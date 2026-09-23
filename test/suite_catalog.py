@@ -2,8 +2,8 @@
 """The one declarative inventory for the repository's hermetic checks.
 
 The shell entrypoints deliberately contain no test membership.  Keeping that
-membership here lets local component runs, smoke, full qualification and CI
-shards answer the same question without maintaining parallel lists.
+membership here lets local component runs, full qualification and CI shards
+answer the same question without maintaining parallel lists.
 """
 
 from __future__ import annotations
@@ -52,17 +52,15 @@ def _suite(
 
 
 def _identifier(path: str) -> str:
-    """Derive a stable, readable id for a ShipLoop test path."""
+    """Derive a stable, readable id for a ShipLoop or nested experiment test path."""
 
     name = path.removeprefix("test/")
-    for suffix in (".test.py", ".test.cjs", ".test.js", ".test.sh"):
+    # Nested experiment modules may use the normal unittest ``test_*.py`` (or
+    # ``test_*.sh``) spelling instead of the repository's ``*.test.*`` one.
+    for suffix in (".test.py", ".test.cjs", ".test.js", ".test.mjs", ".test.sh", ".py", ".sh"):
         if name.endswith(suffix):
             name = name.removesuffix(suffix)
             break
-    else:
-        # Nested experiment modules use the normal unittest ``test_*.py``
-        # spelling instead of the repository's ``*.test.py`` spelling.
-        name = name.removesuffix(".py")
     name = name.replace("test_", "")
     return name.replace("/", "-").replace("_", "-")
 
@@ -282,19 +280,6 @@ _DURATION_SECONDS = {
 }
 _FALLBACK_DURATION_SECONDS = 60.0
 
-_SMOKE_PATHS = frozenset({
-    "test/shiploop-no-model-launch.test.py",
-    "test/shiploop-navigator-v3.test.py",
-    "test/shiploop-navigator-v4.test.py",
-    "test/shiploop-stopped-improve.test.py",
-    "test/shiploop-v4-consumers.test.py",
-    "test/shiploop-packet-bounds.test.py",
-    "test/shiploop-navigator-dry-run.test.py",
-    "test/shiploop-chain-async.test.py",
-    "test/shiploop-graph-driver.test.py",
-    "test/shiploop-graph-trace.test.py",
-})
-
 # Current Ask-Agent checks are deliberately distinct from the retained U18 W1
 # historical experiment.  The adapter rows exercise the ShipLoop consumers
 # that make the current helper contract material.
@@ -337,8 +322,6 @@ _COMPOSITION_PATHS = frozenset({
 
 def _shiploop(path: str) -> Suite:
     groups: set[str] = set()
-    if path in _SMOKE_PATHS:
-        groups.add("smoke")
     if path in _ASK_AGENT_PATHS:
         groups.add("ask-agent")
     if path in _COMPOSITION_PATHS:
@@ -394,8 +377,34 @@ _APPARATUS_SUITE = _suite(
     timeout_seconds=1_200,
 )
 
-# This is a historical U18 W1 test-only operator experiment.  Its assertions
-# remain useful, but it is not a current Ask-Agent smoke or core contract.
+# Nested experiment entry points that no wrapper below discovers.  Each took
+# 0.05-1.5 seconds when measured for cataloging, so the unsharded experiments
+# job needs no duration estimates.
+_EXPERIMENT_PATHS = (
+    "test/experiments/shiploop_feature_contracts/test_study.py",
+    "test/experiments/shiploop_local_skills/test_packet_routes.py",
+    "test/experiments/shiploop_platform_guidance_20260918/apps_script/test/platform_guidance.test.mjs",
+    "test/experiments/shiploop_platform_guidance_20260918/python_bash/test_bash_guidance.sh",
+    "test/experiments/shiploop_platform_guidance_20260918/python_bash/test_python_guidance.py",
+    # The study's complete local check: fixture scans plus its Node contract test.
+    "test/experiments/shiploop_platform_guidance_20260918/salesforce/run_checks.py",
+    "test/experiments/shiploop_requirements/test_study.py",
+)
+
+
+def _experiment(path: str) -> Suite:
+    # ``-B`` keeps fixture modules imported by these studies from writing bytecode.
+    if path.endswith(".mjs"):
+        argv: tuple[str, ...] = ("node", path)
+    elif path.endswith(".sh"):
+        argv = ("bash", path)
+    else:
+        argv = ("python3", "-B", path)
+    return _suite(_identifier(path), "experiments", path, *argv)
+
+
+# The worktree harness is a historical U18 W1 test-only operator experiment.
+# Its assertions remain useful, but it is not a current Ask-Agent core contract.
 _EXPERIMENT_SUITES = (
     _suite(
         "ask-agent-worktree-harness",
@@ -404,13 +413,65 @@ _EXPERIMENT_SUITES = (
         "python3",
         "test/ask-agent-worktree-harness.test.py",
     ),
+    *(_experiment(path) for path in _EXPERIMENT_PATHS),
 )
 
 SUITES = (*_CORE_SUITES, *SHIPLOOP_SUITES, _APPARATUS_SUITE, *_EXPERIMENT_SUITES)
 
+@dataclass(frozen=True)
+class Discovery:
+    """What one cataloged wrapper actually selects beneath its directory.
+
+    ``pattern`` matches file names directly in ``directory``.  When ``packages``
+    is true the wrapper uses unittest discovery, which also descends into
+    subdirectories carrying ``__init__.py``; otherwise it scans one level only.
+    """
+
+    directory: str
+    pattern: str
+    packages: bool
+
+
+# Cataloged wrappers that select tests beneath a directory.  Only the files a
+# wrapper really selects are reachable through it; every other entry point
+# under the same directory still needs a catalog row, an indirect runner below
+# or an explicit exemption.
+DISCOVERY_ROOTS = {
+    "test/shiploop-generalized-discovery.test.py": Discovery(
+        "test/experiments/shiploop_generalized_discovery", "test_*.py", packages=True),
+    "test/shiploop-probe-decisions.test.py": Discovery(
+        "test/experiments/shiploop_probe_decisions", "test_*.py", packages=True),
+    "test/shiploop-repeatable-experiments.test.py": Discovery(
+        "test/experiments/shiploop_repeatable_tests", "test_*.py", packages=True),
+    # ``check_suite.py --suite all`` globs its own directory, not subdirectories.
+    _APPARATUS_SUITE.path: Discovery("skills/shiploop-e2e-audit/harness", "test_*.py", packages=False),
+}
+
+# Entry points executed only through another reachable test.  Each value is
+# the invocation chain from that test; every link's source names the next file.
+INDIRECT_ENTRY_POINTS = {
+    "test/experiments/shiploop_repeatable_tests/remote_fixture/tests/local.test.cjs": (
+        "test/experiments/shiploop_repeatable_tests/test_remote_fixture.py",
+        "test/experiments/shiploop_repeatable_tests/remote_fixture/scripts/verify.cjs",
+    ),
+}
+
+# Runner-named experiment files deliberately kept out of hermetic CI.
+UNCATALOGED_EXPERIMENT_RUNNERS = {
+    "test/experiments/shiploop_capabilities/run_trials.py":
+        "launches live model contexts through the workspace MCP gateway",
+    "test/experiments/shiploop_chain/run_native.py":
+        "opt-in live capture from a real model host",
+    "test/experiments/shiploop_platform_guidance_20260918/tooling/run_ruff_probe.py":
+        "requires an installed Ruff and a caller-selected output path",
+    "test/experiments/shiploop_repeatable_tests/remote_fixture/scripts/run-local.cjs":
+        "manual local-simulation CLI; local.test.cjs asserts the same runtime",
+    "test/experiments/shiploop_ui_consumer/harness/browser-tests.cjs":
+        "drives a real browser through Playwright",
+}
+
 GROUPS = (
     "all",
-    "smoke",
     "core",
     "shiploop",
     "shiploop-1",
@@ -470,6 +531,14 @@ def validate_catalog() -> None:
             raise ValueError(f"catalog path is not fixed in command for {suite.id}")
         if suite.timeout_seconds <= 0:
             raise ValueError(f"non-positive timeout for {suite.id}")
+    for wrapper in DISCOVERY_ROOTS:
+        if wrapper not in paths:
+            raise ValueError(f"discovery wrapper is not cataloged: {wrapper}")
+    for path in (*INDIRECT_ENTRY_POINTS, *UNCATALOGED_EXPERIMENT_RUNNERS):
+        if path in paths:
+            raise ValueError(f"cataloged path is also declared uncataloged: {path}")
+    if not all(reason.strip() for reason in UNCATALOGED_EXPERIMENT_RUNNERS.values()):
+        raise ValueError("every uncataloged experiment runner needs a reason")
     shard_ids = [suite.id for shard in SHIPLOOP_SHARDS for suite in shard]
     if len(shard_ids) != len(SHIPLOOP_SUITES) or set(shard_ids) != {suite.id for suite in SHIPLOOP_SUITES}:
         raise ValueError("ShipLoop shard partition is not exhaustive and disjoint")
@@ -486,10 +555,7 @@ def select(groups: Iterable[str]) -> tuple[Suite, ...]:
         return SUITES
     selected: set[str] = set()
     for group in requested:
-        if group == "smoke":
-            selected.update(suite.id for suite in _CORE_SUITES)
-            selected.update(suite.id for suite in SHIPLOOP_SUITES if "smoke" in suite.groups)
-        elif group.startswith("shiploop-") and group[-1:] in {"1", "2", "3"}:
+        if group.startswith("shiploop-") and group[-1:] in {"1", "2", "3"}:
             selected.update(suite.id for suite in SHIPLOOP_SHARDS[int(group[-1]) - 1])
         else:
             selected.update(

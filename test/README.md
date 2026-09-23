@@ -1,6 +1,6 @@
 # Test runners
 
-Use `bash test/run-all.sh --group smoke` for partial feedback and
+Use focused or component groups for fast local feedback and
 `bash test/run-all.sh` for complete hermetic regression. Local runs and GitHub CI
 use the same [suite catalog](suite_catalog.py). A pass means the selected checks
 passed; offline fixtures do not establish live model or host behavior.
@@ -8,10 +8,9 @@ passed; offline fixtures do not establish live model or host behavior.
 | Selection | Command | Scope |
 |---|---|---|
 | Focused | `python3 -B test/<name>.test.py` | One module; useful while changing its contract |
-| Smoke | `bash test/run-all.sh --group smoke` | Core plus ten selected ShipLoop boundary suites |
 | Ask-Agent component | `bash test/run-all.sh --group ask-agent` | Supported helper tests and ShipLoop consumers |
 | Composition component | `bash test/run-all.sh --group shiploop-composition` | Chain and Improve integration boundaries |
-| Full hermetic | `bash test/run-all.sh` | Core, all ShipLoop suites, source E2E apparatus and historical experiments |
+| Full hermetic | `bash test/run-all.sh` | Core, all ShipLoop suites, source E2E apparatus and historical experiments; what CI runs for every event |
 | Current dependency | `bash test/run-integration.sh current-dispatcher --help` | Explicit external Dispatcher checkout; offline compatibility |
 | Installed or live | `bash test/run-integration.sh --help` | Selected real host, engine, installed package or credentials; opt-in |
 
@@ -19,23 +18,19 @@ passed; offline fixtures do not establish live model or host behavior.
 flowchart TD
     Change[Change under test] --> Local[Focused or component checks locally]
     Local --> PR[Pull request]
-    PR --> Docs{Only allowlisted documents?}
-    Docs -->|Yes| Smoke[Smoke: partial feedback]
-    Docs -->|No or uncertain| Full[Full hermetic regression]
+    PR --> Full[Full hermetic regression]
     Full --> Merge[Merge after candidate passes]
-    Smoke --> Merge
     Merge --> Main[Main: full hermetic regression]
     External[Current dependency or live boundary] --> Explicit[Separate explicit qualification]
 ```
 
-CI runs full regression for code, skill prompts, generated packages, tests,
-scripts, workflow changes and unclassified paths. Only root/test README files
-and Markdown/CSV documents under `docs/` qualify for automatic PR smoke. Renames
-consider both paths; an unavailable diff selects full. Every `main` push selects
-full. Manual dispatch still offers `smoke` or `full`. The `hermetic` aggregate
-requires both the planner and all selected jobs to succeed; its summary states
-the tier and tested SHA. Server-side merge protection is a separate repository
-setting; this workflow does not enable it.
+CI always runs the complete hermetic inventory: every pull request, whatever it
+changes, every `main` push and every manual dispatch run the same full group set
+(`core`, the three ShipLoop shards, `e2e-apparatus` and `experiments`). There is
+no partial tier and no dispatch input. The `hermetic` aggregate requires both the
+planner and all group jobs to succeed. The plan summary lists every group and the
+tested SHA; the aggregate summary states the tested SHA. Server-side merge
+protection is a separate repository setting; this workflow does not enable it.
 
 CI uses `ubuntu-latest`, latest stable Python 3 and latest stable Node, resolving
 fresh versions through setup actions. Receipts record the versions actually used.
@@ -47,8 +42,8 @@ recovery contracts; they do not determine which current tool version to install.
 ```sh
 bash test/run-all.sh --list
 bash test/run-all.sh --group ask-agent --group shiploop-composition --list
-bash test/run-all.sh --group smoke --output /tmp/skill-craft-smoke-unique
-bash test/shiploop.test.sh --smoke --list
+bash test/run-all.sh --group core --output /tmp/skill-craft-core-unique
+bash test/shiploop.test.sh --list
 bash test/shiploop.test.sh --shard 1/3 --list
 ```
 
@@ -60,19 +55,46 @@ run separately. The three `shiploop-1`/`2`/`3` groups partition ShipLoop using
 checked-in duration estimates and a deterministic fallback. They are scheduling
 slices of the same full inventory, not additional coverage.
 
-The ten ShipLoop smoke suites are `no-model-launch`, `navigator-v3`,
-`navigator-v4`, `stopped-improve`, `v4-consumers`, `packet-bounds`,
-`navigator-dry-run`, `chain-async`, `graph-driver`, and `graph-trace`.
-The historical U18/W1 Ask-Agent worktree harness belongs to full-only
-`experiments`; supported Ask-Agent workspace, delivery and managed-harness
-checks remain in core. The legacy `shiploop-walk-journal.test.sh` wrapper is
-available directly but excluded from the aggregate, which owns one action walk.
+The `experiments` group holds the historical U18/W1 Ask-Agent worktree harness
+and the nested experiment entry points that no wrapper discovers; supported
+Ask-Agent workspace, delivery and managed-harness checks remain in core. The
+legacy `shiploop-walk-journal.test.sh` wrapper is available directly but
+excluded from the aggregate, which owns one action walk.
+
+Every runnable test entry point under `test/experiments` must be reachable. A
+runnable file has a `.py`, `.sh`, `.js`, `.cjs` or `.mjs` extension and a test
+name (`test_*`, `*_test`, `*_tests`, `*.test`, `*.spec`, `*-test`, `*-tests`)
+or a study-runner name (`run_*`, `run-*`). It is reachable when it is:
+
+- a catalog row;
+- a module a cataloged wrapper really loads (`suite_catalog.DISCOVERY_ROOTS`).
+  The three unittest wrappers load `test_*.py` directly in their directory and
+  inside `__init__.py` packages; the apparatus loads `test_*.py` in its own
+  directory only. Nested plain directories and non-Python files beneath those
+  directories are not covered;
+- run by a reachable test through a named chain
+  (`suite_catalog.INDIRECT_ENTRY_POINTS`); or
+- deliberately left out of hermetic CI with a stated reason
+  (`suite_catalog.UNCATALOGED_EXPERIMENT_RUNNERS`, for live-host, browser or
+  installed-tool runners).
+
+Files under `evidence/`, `samples/`, `fixtures/`, `workspace/` and `repo/` are
+recorded data, not entry points. Files that the checkout's git ignore rules
+exclude (`.gitignore`, `.git/info/exclude` or a configured excludes file) are
+host-local scratch, such as results, run directories and self-ignoring virtual
+environments, and both scans skip them. Tracked files and untracked files that
+are not ignored still count, so ignore an older unignored virtual environment
+the same way. Outside a git checkout nothing is ignored. The runner refuses to
+start while any other experiment test is unreachable, just as it refuses an
+unclassified top-level test of any of those test spellings.
+`test/test-groups.test.py` checks the wrapper model against each wrapper's real
+loader.
 
 An optional `--output` directory must be new and outside the checkout. It retains
 source identity, runtime versions, selected/completed suites, outcomes, durations
 and per-suite logs. The runner continues remaining selected suites after a
 failure and returns failure overall. CI uploads these artifacts even on failure,
-checks generated-plugin parity in core/smoke, and rejects source drift or new
+checks generated-plugin parity in the core job, and rejects source drift or new
 checkout artifacts except Python bytecode under `__pycache__`. Running the local
 suite alone does not perform these additional CI parity and checkout checks.
 
@@ -172,8 +194,8 @@ different working directory. Each case owns its repositories, worker processes,
 callback processes and pipe barriers; teardown stops remaining children before
 removing fixture directories. It verifies the initiating linked checkout, source
 commit ancestry, immutable event history, and both filesystem and Git worktree
-cleanup. The suite belongs to **smoke and full/sharded** inventories, so routine
-PR CI exercises this boundary. Native host completion delivery remains a separate
+cleanup. The suite belongs to the full, sharded inventory, so every PR CI run
+exercises this boundary. Native host completion delivery remains a separate
 opt-in qualification. See the [asynchronous test plan](../docs/async-orchestrator-test-plan-2026-09-20.md).
 
 Planning-material transport has two focused suites:
@@ -369,7 +391,7 @@ The core `installed-skill-invocation` check includes the bundled mock path from
 an empty unrelated directory, covering marketplace-style audit binding without
 launching a model. Live Grok audits remain separate opt-in E2E work: use the
 audit harness's `xhigh` setting and its 7,200-second cap, then assess retained
-stdout/stderr and product evidence independently of smoke or full hermetic CI.
+stdout/stderr and product evidence independently of hermetic CI.
 
 ### Host and environment targets
 
@@ -415,26 +437,27 @@ Self-contained mocked Hermes-install tests establish installer behavior only.
 They do not provide an actual Hermes runtime, engine availability, live-host
 execution, or certification. A green hermetic aggregate has the same boundary.
 
-CI runs the `smoke` aggregate for pull requests and pushes to `main`; it ignores
-tag and feature-branch pushes. A manual dispatch accepts `tier=smoke` (the
-default) or `tier=full`. Full dispatch runs `core` and the three deterministic
-ShipLoop shards. Select qualification by changed behavior and dependencies:
-runtime, state, graph, callback and recovery changes need their affected suites.
-Use full dispatch only when a concrete cross-subsystem risk cannot be covered by
-narrower checks, and record that reason. Start it against the candidate branch with:
+CI runs the full hermetic inventory for pull requests and pushes to `main`; it
+ignores tag and feature-branch pushes. A manual dispatch runs the same full
+inventory and takes no inputs. Start one against a candidate branch with:
 
 ```sh
-gh workflow run ci.yml --ref <candidate-branch> -f tier=full
+gh workflow run ci.yml --ref <candidate-branch>
 ```
 
 Before treating that run as qualification evidence, check that its tested SHA
-and tree still match the final candidate. A manual full run is qualification
-evidence; it does not replace the required pull-request smoke check. Delegate
-established-suite execution through **test-runner**, supplying exact source/run
-identity, commands, expected evidence, deadline and retry policy; the parent owns
-selection and diagnosis. Do not repeat local full, PR full, and post-merge full
-runs for an identical tested tree. Preserve the tested SHA/tree and select checks
-for changed bytes instead of invalidating unrelated evidence.
+and tree still match the final candidate. Locally, select focused suites by
+changed behavior and dependencies while iterating; CI still runs everything.
+Delegate established-suite execution through **test-runner**, supplying exact
+source/run identity, commands, expected evidence, deadline and retry policy; the
+parent owns selection and diagnosis. Do not repeat local full, PR full, and
+post-merge full runs for an identical tested tree. Preserve the tested SHA/tree
+and select checks for changed bytes instead of invalidating unrelated evidence.
+
+`test/run-integration.sh` stays out of CI because its targets need real hosts,
+engines, installed packages or credentials and are not hermetic. Running the
+applicable targets is a [release checklist](../docs/skill-release-checklist.md)
+step, and each unavailable target is recorded as unverified.
 
 `release-push.test.py` uses disposable Git repositories and a bare remote to
 prove that failed preconditions, changed candidates, dirty files and remote races
@@ -443,8 +466,8 @@ publication-control tests; they do not establish GitHub branch-policy compliance
 
 A newer run for the same pull request cancels the superseded run; main-push and
 manual runs use unique concurrency keys and are never cancelled by this policy.
-CI sets Python 3.12 and Node 22 explicitly and preserves the existing `hermetic`
-status as an aggregate gate. Failed, cancelled or skipped required groups cannot
+CI resolves the latest stable Python 3 and Node and preserves the existing
+`hermetic` status as an aggregate gate. Failed, cancelled or skipped groups cannot
 make that gate pass. Package drift is reported even when another core check fails.
 Each selected test job rejects staged or unstaged tracked-file changes left by tests,
 even after a suite or package-parity failure. The worktree and index are checked

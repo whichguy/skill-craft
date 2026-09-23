@@ -10,6 +10,7 @@ from __future__ import annotations
 
 import argparse
 from dataclasses import dataclass
+import fnmatch
 import hashlib
 import json
 import os
@@ -37,7 +38,19 @@ TOP_LEVEL_TEST_ALLOWLIST = frozenset({
     "test/shiploop-walk-journal.test.sh",
     "test/shiploop.test.sh",
 })
-_TEST_SUFFIXES = (".test.py", ".test.sh", ".test.js", ".test.cjs")
+EXPERIMENTS_ROOT = "test/experiments"
+# A runnable file has an extension of a runtime a catalog row may invoke
+# (python3, bash or node) and a stem following a common test convention.  Both
+# the top-level and experiment scans share these conventions.
+_RUNNABLE_EXTENSIONS = frozenset({".py", ".sh", ".js", ".cjs", ".mjs"})
+_TEST_STEMS = ("test_*", "*_test", "*_tests", "*.test", "*.spec", "*-test", "*-tests")
+# Experiments also carry study runners such as ``run_checks.py``.  Top-level
+# ``run-*`` scripts are this repository's own entrypoints, so only experiments
+# are scanned for them.
+_RUNNER_STEMS = ("run_*", "run-*")
+# Recorded observations, trial samples and product/fixture copies contain
+# test-named files that are data, never entry points of this repository.
+_EXPERIMENT_DATA_DIRS = frozenset({"evidence", "samples", "fixtures", "workspace", "repo"})
 
 
 class UsageParser(argparse.ArgumentParser):
@@ -60,12 +73,12 @@ class ProcessOutcome:
 
 def _parser(*, shiploop_entrypoint: bool = False) -> UsageParser:
     description = (
-        "Run ShipLoop's full, smoke, or deterministic sharded hermetic suites."
+        "Run ShipLoop's full or deterministic sharded hermetic suites."
         if shiploop_entrypoint else
         "Run a deduplicated union of fixed hermetic test groups."
     )
     epilog = (
-        "Legacy ShipLoop flags: --smoke, --shard 1/3|2/3|3/3.\n"
+        "Legacy ShipLoop flag: --shard 1/3|2/3|3/3.\n"
         "Use --output with a new directory outside the checkout to retain a "
         "selected/completed receipt and per-suite logs."
         if shiploop_entrypoint else
@@ -87,8 +100,6 @@ def _parser(*, shiploop_entrypoint: bool = False) -> UsageParser:
     # This is set only by test/shiploop.test.sh.  Keeping it hidden prevents a
     # second user-facing dialect while preserving the wrapper's legacy flags.
     parser.add_argument("--shiploop-entrypoint", action="store_true", help=argparse.SUPPRESS)
-    parser.add_argument("--smoke", action="store_true",
-                        help="run/list only the ShipLoop smoke subset" if shiploop_entrypoint else argparse.SUPPRESS)
     parser.add_argument("--shard", metavar="N/3",
                         help="run/list deterministic ShipLoop shard 1/3, 2/3, or 3/3" if shiploop_entrypoint else argparse.SUPPRESS)
     return parser
@@ -104,29 +115,23 @@ def parse_args(argv: Sequence[str] | None = None) -> tuple[argparse.Namespace, t
         parser.error("--output cannot be used with --list")
 
     if args.shiploop_entrypoint:
-        for option in ("--list", "--smoke", "--shard"):
+        for option in ("--list", "--shard"):
             if sum(value.split("=", 1)[0] == option for value in raw_argv) > 1:
                 parser.error(f"{option} may be specified only once")
         if args.group:
             parser.error("--group is not accepted by test/shiploop.test.sh")
-        if args.smoke and args.shard:
-            parser.error("--smoke and --shard cannot be combined")
         if args.shard and args.shard not in {"1/3", "2/3", "3/3"}:
             parser.error("--shard must be 1/3, 2/3, or 3/3")
-        if args.smoke:
-            groups = ("smoke",)
-        elif args.shard:
-            groups = (f"shiploop-{args.shard[0]}",)
-        else:
-            groups = ("shiploop",)
+        groups = (f"shiploop-{args.shard[0]}",) if args.shard else ("shiploop",)
         return args, groups, True
 
-    if args.smoke or args.shard:
-        parser.error("--smoke and --shard are only accepted by test/shiploop.test.sh")
+    if args.shard:
+        parser.error("--shard is only accepted by test/shiploop.test.sh")
     groups = tuple(args.group or ("all",))
     unknown = set(groups) - set(suite_catalog.GROUPS)
     if unknown:
-        parser.error("unknown group: " + ", ".join(sorted(unknown)))
+        parser.error("unknown group: " + ", ".join(sorted(unknown))
+                     + " (choose from " + ", ".join(suite_catalog.GROUPS) + ")")
     return args, groups, False
 
 
@@ -152,19 +157,136 @@ def prepare_output(path: Path, root: Path) -> Path:
     return output
 
 
+def _runnable(name: str, stems: Iterable[str]) -> bool:
+    stem, extension = os.path.splitext(name)
+    return extension in _RUNNABLE_EXTENSIONS and any(fnmatch.fnmatchcase(stem, pattern) for pattern in stems)
+
+
+def _git_ignored(root: Path, paths: Iterable[str]) -> set[str]:
+    """Return the ``paths`` that the checkout's git ignore rules exclude.
+
+    Ignored files are host-local scratch (run directories, results, virtual
+    environments that ignore themselves), not repository content, so the
+    coverage scans skip them; an untracked test that is not ignored still
+    counts.  Git never follows a symlink, so each path is judged at its real
+    location, and a tracked file is never ignored.  Outside a git checkout, or
+    when git cannot answer, nothing is ignored: the scans can only report more.
+    """
+
+    checkout = os.path.realpath(root)
+    by_real: dict[str, list[str]] = {}
+    for path in paths:
+        real = os.path.realpath(os.path.join(checkout, path))
+        if _inside(Path(real), Path(checkout)):
+            by_real.setdefault(os.path.relpath(real, checkout), []).append(path)
+    toplevel = _read_command(("git", "rev-parse", "--show-toplevel"), root) if by_real else None
+    if not toplevel or toplevel.startswith("unavailable") or os.path.realpath(toplevel) != checkout:
+        return set()
+    try:
+        result = subprocess.run(
+            ("git", "check-ignore", "-z", "--stdin"), cwd=checkout,
+            input="".join(f"{real}\0" for real in by_real), capture_output=True, text=True, check=False,
+        )
+    except OSError:
+        return set()
+    # Exit 1 means nothing is ignored; any other failure ignores nothing.
+    if result.returncode not in (0, 1):
+        return set()
+    return {path for real in result.stdout.split("\0") if real for path in by_real.get(real, ())}
+
+
 def _fixed_top_level_tests(root: Path) -> set[str]:
     test_root = root / "test"
     if not test_root.is_dir():
         return set()
-    return {
+    found = {
         path.relative_to(root).as_posix()
         for path in test_root.iterdir()
-        if path.is_file() and path.name.endswith(_TEST_SUFFIXES)
+        if path.is_file() and _runnable(path.name, _TEST_STEMS)
     }
+    return found - _git_ignored(root, found)
+
+
+def experiment_entry_points(root: Path) -> tuple[str, ...]:
+    """List runnable test entry points under ``test/experiments``.
+
+    Symlinked directories are followed once so a linked tree is judged by the
+    real files it exposes; data subtrees are skipped by name and git-ignored
+    host-local files are skipped by the checkout's own ignore rules.
+    """
+
+    base = root / EXPERIMENTS_ROOT
+    if not base.is_dir():
+        return ()
+    found = []
+    visited: set[str] = set()
+    for directory, subdirectories, files in os.walk(base, followlinks=True):
+        real = os.path.realpath(directory)
+        if real in visited:
+            subdirectories[:] = []
+            continue
+        visited.add(real)
+        subdirectories[:] = sorted(
+            name for name in subdirectories
+            if name not in _EXPERIMENT_DATA_DIRS and name not in {"__pycache__", "node_modules"}
+        )
+        for name in files:
+            if _runnable(name, (*_TEST_STEMS, *_RUNNER_STEMS)):
+                found.append((Path(directory) / name).relative_to(root).as_posix())
+    ignored = _git_ignored(root, found)
+    return tuple(sorted(path for path in found if path not in ignored))
+
+
+def wrapper_selection(root: Path, discovery: suite_catalog.Discovery) -> set[Path]:
+    """Return the real paths of the modules one discovery wrapper loads.
+
+    This mirrors the wrapper's loader instead of trusting its directory: a
+    matching, importable module directly in the directory, plus, for unittest
+    discovery, the same beneath packages that carry ``__init__.py``.
+    """
+
+    selected: set[Path] = set()
+    visited: set[str] = set()
+    pending = [root / discovery.directory]
+    while pending:
+        directory = pending.pop()
+        real = os.path.realpath(directory)
+        if real in visited or not directory.is_dir():
+            continue
+        visited.add(real)
+        for entry in directory.iterdir():
+            if entry.is_file() and fnmatch.fnmatchcase(entry.name, discovery.pattern) and entry.stem.isidentifier():
+                selected.add(Path(os.path.realpath(entry)))
+            elif discovery.packages and entry.is_dir() and (entry / "__init__.py").is_file():
+                pending.append(entry)
+    return selected
+
+
+def unreachable_experiments(root: Path, suites: Iterable[suite_catalog.Suite] = suite_catalog.SUITES) -> tuple[str, ...]:
+    """Return experiment entry points that no cataloged suite runs or exempts."""
+
+    def real(path: str) -> Path:
+        return Path(os.path.realpath(root / path))
+
+    entries = tuple(suites)
+    reachable = {real(suite.path) for suite in entries}
+    for wrapper, discovery in suite_catalog.DISCOVERY_ROOTS.items():
+        if wrapper in {suite.path for suite in entries}:
+            reachable |= wrapper_selection(root, discovery)
+    # An indirect entry point runs only while the test starting its chain does.
+    reachable |= {
+        real(path) for path, chain in suite_catalog.INDIRECT_ENTRY_POINTS.items()
+        if real(chain[0]) in reachable
+    }
+    exempt = {real(path) for path in suite_catalog.UNCATALOGED_EXPERIMENT_RUNNERS}
+    return tuple(
+        path for path in experiment_entry_points(root)
+        if real(path) not in reachable and real(path) not in exempt
+    )
 
 
 def catalog_omissions(root: Path, suites: Iterable[suite_catalog.Suite] = suite_catalog.SUITES) -> tuple[str, ...]:
-    """Report missing fixed targets and unclassified top-level test files."""
+    """Report missing targets, unclassified top-level tests and unreachable experiments."""
 
     entries = tuple(suites)
     missing = [suite.path for suite in entries if not (root / suite.path).is_file()]
@@ -176,7 +298,8 @@ def catalog_omissions(root: Path, suites: Iterable[suite_catalog.Suite] = suite_
         _fixed_top_level_tests(root) - cataloged_top_level - TOP_LEVEL_TEST_ALLOWLIST
     )
     return tuple([*(f"missing catalog target: {path}" for path in missing),
-                  *(f"unclassified top-level test: {path}" for path in unclassified)])
+                  *(f"unclassified top-level test: {path}" for path in unclassified),
+                  *(f"unreachable experiment test: {path}" for path in unreachable_experiments(root, entries))])
 
 
 def _read_command(argv: Sequence[str], cwd: Path) -> str | None:
@@ -370,10 +493,6 @@ def _print_list(selected: Iterable[suite_catalog.Suite], *, shiploop_entrypoint:
 def main(argv: Sequence[str] | None = None) -> int:
     args, groups, shiploop_entrypoint = parse_args(argv)
     selected = suite_catalog.select(groups)
-    if shiploop_entrypoint:
-        # Root --group smoke includes core by design.  The legacy ShipLoop
-        # facade is intentionally narrower and lists/runs its ten paths only.
-        selected = tuple(suite for suite in selected if suite.family == "shiploop")
     if args.list:
         _print_list(selected, shiploop_entrypoint=shiploop_entrypoint)
         return 0

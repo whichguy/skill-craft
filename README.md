@@ -181,14 +181,14 @@ skills/<name>/
 
 ```sh
 bash test/run-all.sh                                  # full hermetic regression
-bash test/run-all.sh --group smoke                    # partial core + ShipLoop feedback
+bash test/run-all.sh --group core                     # partial repository-core feedback
 bash test/run-all.sh --group ask-agent                # helper and consumer boundaries
 bash test/run-all.sh --group shiploop-composition     # cross-skill integration
 bash test/run-all.sh --group ask-agent --group shiploop-composition --list
 ```
 
-Local and GitHub runs share one explicit catalog. Code PRs and every `main` push
-run full regression; allowlisted documentation-only PRs run smoke. Full includes
+Local and GitHub runs share one explicit catalog. Every PR, `main` push and
+manual dispatch runs full regression; there is no partial CI tier. Full includes
 the source E2E apparatus and historical experiments, with balanced ShipLoop
 shards. CI uses latest stable runtimes and retains source/version/result receipts.
 Component unions execute shared entries once. See [test/README.md](test/README.md)
@@ -198,7 +198,8 @@ separate installed/native/live evidence boundaries.
 Hermes is an optional integration, not a prerequisite for repository CI.
 Mocked host-binding tests remain in the hermetic suite; tests needing real engines,
 installed skills, credentials or environment-specific projects are explicitly
-opt-in through `bash test/run-integration.sh --help`.
+opt-in through `bash test/run-integration.sh --help`; running the applicable
+targets is a [release checklist](docs/skill-release-checklist.md) step.
 See [test/README.md](test/README.md) for test groups, prerequisites and evidence boundaries.
 
 ## License

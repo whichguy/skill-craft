@@ -1,18 +1,12 @@
 name: ci
-run-name: CI ${{ github.event_name }} ${{ inputs.tier }}
+run-name: CI ${{ github.event_name }}
 
+# Every event qualifies the complete hermetic inventory; there is no partial tier.
 on:
   push:
     branches: [main]
   pull_request:
   workflow_dispatch:
-    inputs:
-      tier:
-        description: Smoke is partial; full qualifies the complete hermetic inventory
-        type: choice
-        required: true
-        default: smoke
-        options: [smoke, full]
 
 concurrency:
   group: ci-${{ github.workflow }}-${{ github.event_name }}-${{ github.event.pull_request.number || github.run_id }}
@@ -30,17 +24,15 @@ jobs:
       groups: ${{ steps.select.outputs.groups }}
       source_sha: ${{ steps.select.outputs.source_sha }}
     steps:
+      # Planning compares only HEAD with the event SHA; it needs no history.
       - uses: actions/checkout@v7
-        with:
-          fetch-depth: 0
       - uses: actions/setup-python@v7
         with:
           python-version: '3.x'
           check-latest: true
-      - name: Select qualification tier
+      - name: Plan full qualification
         id: select
         env:
-          REQUESTED_TIER: ${{ inputs.tier }}
           EXPECTED_SHA: ${{ github.sha }}
         run: python3 -B test/ci_policy.py plan --expected-sha "$EXPECTED_SHA"
 
@@ -71,7 +63,7 @@ jobs:
           TEST_GROUP: ${{ matrix.group }}
         run: bash test/run-all.sh --group "$TEST_GROUP" --output "$RUNNER_TEMP/hermetic-$TEST_GROUP"
       - name: Plugin views in sync
-        if: ${{ always() && (matrix.group == 'core' || matrix.group == 'smoke') }}
+        if: ${{ always() && matrix.group == 'core' }}
         run: bash scripts/sync-plugin-views.sh --check
       - name: Checkout unchanged
         if: ${{ always() }}
@@ -86,7 +78,7 @@ jobs:
           path: ${{ runner.temp }}/hermetic-${{ matrix.group }}
           if-no-files-found: error
 
-  # Keep the established aggregate name; the plan/summary states its actual tier.
+  # Keep the established aggregate name; the plan summary lists every group.
   hermetic:
     if: ${{ always() }}
     needs: [plan, checks]

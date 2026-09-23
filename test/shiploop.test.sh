@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# Stable ShipLoop facade: --smoke, --shard N/3, and --list stay compatible.
+# Stable ShipLoop facade: --shard N/3 and --list stay compatible.
 set -euo pipefail
 
 root="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd -P)"
