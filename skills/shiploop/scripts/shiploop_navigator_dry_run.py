@@ -73,8 +73,30 @@ def activity_v3(*, two=False):
     return rows
 
 
+def _v3_insert_before(rows, stage, command, extra):
+    """Insert declarations before the first matching v3 row."""
+    index = next(i for i, row in enumerate(rows) if row['at'] == stage and row['command'] == command)
+    rows[index:index] = extra
+    return rows
+
+
 def scenarios(protocol_version=2):
     if protocol_version in (3, 4):
+        # v3/v4 always instantiate skill-validate and ignore carry-forward work
+        # items, so the protocol-2 'skill' and 'corrective-work' shapes have no
+        # equivalent here; run() reports them as unavailable for this protocol.
+        repeat = _v3_insert_before(activity_v3(), 'implement', 'finish-improve', [
+            {'at': 'implement', 'command': 'finish-improve',
+             'receipt': _improve_receipt('implement'),
+             'final_result': {'outcome': 'repeat', 'summary': 'More investigation needed.'},
+             'expect': 'implement'},
+            {'at': 'implement', 'command': 'produce', 'expect': 'implement',
+             'result': {'outcome': 'done', 'summary': 'Synthetic second attempt.'}},
+        ])
+        paused = _v3_insert_before(activity_v3(), 'test-author', 'produce', [
+            {'at': 'test-author', 'command': 'pause', 'expect': 'test-author', 'status': 'paused'},
+            {'at': 'test-author', 'command': 'resume', 'expect': 'test-author'},
+        ])
         return {
             'delivery': {'steps': activity_v3()},
             'two-work-items': {'steps': activity_v3(two=True)},
@@ -92,6 +114,9 @@ def scenarios(protocol_version=2):
                     *activity_v3(),
                 ],
             },
+            'repeat-improve': {'steps': repeat},
+            'pause-resume': {'steps': paused},
+            'halted': {'steps': [{'at': 'intake', 'command': 'halt', 'expect': 'intake', 'status': 'halted'}]},
         }
     result = {name: {'steps': activity(**flags)} for name, flags in (
         ('delivery', {}), ('two-work-items', {'two': True}), ('skill', {'skill': True}))}
@@ -201,7 +226,9 @@ def run_scenario(name, scenario, *, protocol_version=2):
 
 def add_arguments(parser):
     selected = parser.add_mutually_exclusive_group()
-    selected.add_argument('--scenario', choices=('all', *scenarios()), default='all')
+    # Choices span every protocol; run() rejects a name the selected protocol lacks.
+    names = dict.fromkeys(name for version in (2, 3) for name in scenarios(version))
+    selected.add_argument('--scenario', choices=('all', *names), default='all')
     selected.add_argument('--script', help='JSON activity with explicit expected stages and synthetic result declarations')
     parser.add_argument('--format', choices=('summary', 'json', 'markdown'), default='summary')
     parser.add_argument('--protocol-version', choices=(2, 3, 4), type=int, default=3,
@@ -211,13 +238,17 @@ def add_arguments(parser):
 
 def run(args):
     if args.list:
-        print('\n'.join(scenarios()))
+        print('\n'.join(scenarios(args.protocol_version)))
         return 0
     try:
         if args.script:
             selected = {'custom': json.loads(Path(args.script).read_text(encoding='utf-8'))}
         else:
             choices = scenarios(args.protocol_version)
+            if args.scenario != 'all' and args.scenario not in choices:
+                raise ValueError(
+                    f"scenario {args.scenario!r} is not available for protocol "
+                    f"{args.protocol_version}; available: {', '.join(choices)}")
             selected = choices if args.scenario == 'all' else {args.scenario: choices[args.scenario]}
         reports = [run_scenario(name, value, protocol_version=args.protocol_version)
                    for name, value in selected.items()]

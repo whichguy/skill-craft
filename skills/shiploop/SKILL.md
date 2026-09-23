@@ -5,7 +5,7 @@ description: >-
   script's current action packet, and submit its exact completion call until
   the script reports completion with an HTML achievement report. Use when the
   user says shiploop, ship the project, or requests a durable delivery loop.
-version: 0.19.4
+version: 0.19.5
 allowed-tools: all
 license: MIT
 platforms:
@@ -190,7 +190,8 @@ python3 "$CLI" init --repo "$REPO" --run-dir "$RUN_DIR" \
 ```
 
 New workspace and direct runs default to navigator **protocol 3**. Pass
-`--execution-mode=navigator-v2` only to start the retained protocol-2 route;
+`workspace start --protocol-version 2` (or `init --execution-mode=navigator-v2`)
+only to start the retained protocol-2 route; `init --execution-mode` values
 `navigator-v1`, `managed`, and `legacy` remain compatibility selections.
 Existing runs always resume their recorded mode and are never retrofitted. If
 new-run initialization did not select an Improve skill, the first Improve
@@ -253,8 +254,9 @@ that a fresh context can access. They locate authority in the run; they are not
 another state record. Do not copy a current node, action ID, result path, status,
 or predicted successor into the handoff as graph authority.
 
-Active v3/v4 INNER packets prefix both producer and Improve assignments with
-"Clear and then execute the prompt." For an `implement` producer, select the packet's
+Active v3/v4 INNER **producer** packets begin with "Clear and then execute the
+prompt." Improve packets instead begin "Keep the invoking parent alive": never
+clear, replace or wrap the live parent for Improve. For an `implement` producer, select the packet's
 chain route first. During that producer, its bound mode and executor take precedence: parallel chains
 retain their capacity and bypass this serial context boundary; explicit serial
 chains execute in the main context without workers. Do not wrap a chain in an
@@ -272,9 +274,9 @@ ShipLoop callback; only one owner writes to the candidate. Recover or collect an
 existing owner before replacement. An already-fresh assignment does not clear or
 delegate again when the prefix repeats. Serial execution means waiting before
 the next assignment; it does not require reusing the same conversation.
-For Improve, use one fresh context for the whole invocation, retaining context
-between its review iterations and respecting its existing owner/recovery rules.
-Use same-conversation clearing only when the host exposes an actual callable
+For Improve, the fresh context belongs to the one executor running the whole
+invocation, not to the parent; it retains context between its review iterations
+and respects its existing owner/recovery rules. For producers, use same-conversation clearing only when the host exposes an actual callable
 reset and continuation route. Literal `/clear` in returned text is not a tool
 call. If neither route is usable, use the printed pause command and give the
 user the saved handoff: clear through the host or open a fresh context, run the

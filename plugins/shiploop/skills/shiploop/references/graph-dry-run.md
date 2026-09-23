@@ -1,7 +1,7 @@
-# Navigator protocol-2 graph dry runs
+# Navigator graph dry runs
 
-The default graph driver exercises the actual protocol-2 navigator and its full
-returned packets. Synthetic declarations stand in for project work; the driver
+The default graph driver exercises the actual navigator (protocol 3 unless
+`--protocol-version 2|4` is passed) and its full returned packets. Synthetic declarations stand in for project work; the driver
 runs no LLM, Git operation, implementation, test command, or delivery action.
 
 Bind `CLI` from the selected loaded ShipLoop card before running these commands:
@@ -17,9 +17,13 @@ python3 "$CLI" graph-dry-run --scenario two-work-items --format markdown
 python3 "$CLI" graph-dry-run --scenario blocked-resume --format json
 ```
 
-Built-in scenarios cover delivery, multiple work items, conditional skill
-validation, a repeated Improve action, blockers, pause/resume, halt, and new
-corrective work. Expectations are authored independently of the routing tables.
+`--list` prints the scenarios available for the selected protocol. Protocols 3
+and 4 cover delivery, two work items, blocked/resume, a repeat returned through
+Improve, pause/resume and halt; each producer is followed by a synthetic Improve
+completion. Protocol 2 additionally covers conditional skill validation and new
+corrective work, which have no v3/v4 equivalent (v3 always instantiates
+`skill-validate`). Naming a scenario the selected protocol lacks is an input
+error (exit 2) that lists the available names. Expectations are authored independently of the routing tables.
 Each trace contains the effective packet before its synthetic declaration and
 the resulting stage, status, owner, and completed-instance IDs. The packet
 contains the current action's callback. No entire prompt snapshot is a pass
@@ -39,13 +43,16 @@ remains one call-and-return graph action under the normal owner binding.
 
 Custom JSON uses `steps`, each with an effective `at`, `expect`, optional
 `status` (default `active`), and either a generic `result` or
-`command: pause|resume|halt`. The last completion expects stage/status `done`.
-Run it with `--script PATH`. An example prefix is in
-`navigator-dry-run-example.json`.
+`command: pause|resume|halt`. Protocols 3 and 4 pair each producer
+(`command: produce`, optional `result`) with `command: finish-improve` carrying a
+synthetic `receipt` and optional `final_result`. The last completion expects
+stage/status `done`. Run it with `--script PATH`. Example prefixes:
+`navigator-v3-dry-run-example.json` (default protocol) and
+`navigator-dry-run-example.json` (requires `--protocol-version 2`).
 
 Exit 0 means expectations matched, including an intentionally halted or partial
 scenario. Exit 1 means an expectation failed; exit 2 means the input could not
-be read. Simulation success never establishes project completion. See the
+be read or named a scenario unavailable for the selected protocol. Simulation success never establishes project completion. See the
 [navigator guide](navigator.md) for actual execution and Improve ownership.
 
 ## Compatibility harnesses

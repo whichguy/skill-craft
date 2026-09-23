@@ -1,0 +1,16 @@
+{
+  "steps": [
+    {"at": "intake", "command": "produce", "expect": "intake"},
+    {"at": "intake", "command": "finish-improve", "expect": "discovery",
+     "receipt": {"summary": "Synthetic Improve completion for intake.",
+                 "review_refs": ["synthetic://review/intake"],
+                 "check_refs": ["synthetic://check/intake"],
+                 "lessons": "Synthetic retained lesson for intake."}},
+    {"at": "discovery", "command": "produce", "expect": "discovery"},
+    {"at": "discovery", "command": "finish-improve", "expect": "research",
+     "receipt": {"summary": "Synthetic Improve completion for discovery.",
+                 "review_refs": ["synthetic://review/discovery"],
+                 "check_refs": ["synthetic://check/discovery"],
+                 "lessons": "Synthetic retained lesson for discovery."}}
+  ]
+}

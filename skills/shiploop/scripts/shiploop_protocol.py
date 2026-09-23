@@ -7558,6 +7558,11 @@ def workspace_command(core, argv):
     try:
         if args.operation == "start":
             need(bool(args.prompt.strip()), "prompt must not be empty")
+            # Screen before workspace.prepare creates a worktree and branch.
+            import shiploop_privacy
+            need(not shiploop_privacy.sensitive_text(args.prompt),
+                 "prompt appears to contain a credential secret; remove it and name the "
+                 "credential's location instead (the value is not echoed)")
             saved = root / "run" / "state.md"
             if saved.exists():
                 existing = store.read_record(saved)
@@ -7720,7 +7725,7 @@ def main(core, argv=None):
             sub.add_argument("--navigator-version", type=int, choices=(2, 3, 4), default=3)
             sub.add_argument("--improve-skill", default="")
             sub.add_argument("--delivery-contract", action="store_true",
-                             help="opt in a new navigator-v2 run to consumer-delivery declaration checks")
+                             help="opt in a new navigator run (protocol 2, 3 or 4) to consumer-delivery declaration checks")
             sub.add_argument("--independent-review", choices=("optional", "required", "required-with-fallback"), default="optional",
                              help="bind managed review requirements; fallback must be explicitly recorded")
         if name == "improve-bind":
@@ -7861,6 +7866,12 @@ def main(core, argv=None):
         print("ShipLoop blocked: run directory must not be a symlink", file=sys.stderr)
         return 2
     root = unresolved_root.resolve()
+    if args.command != "init" and not root.is_dir():
+        # Only init may create a run directory; the lock would otherwise
+        # materialize a mistyped --run-dir (or a stray repo .shiploop/).
+        print(f"ShipLoop blocked: no ShipLoop run directory at {root}; check --run-dir",
+              file=sys.stderr)
+        return 2
     try:
         with core.run_lock(root):
             # New navigator runs never enter the old proof/child machinery.

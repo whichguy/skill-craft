@@ -1,4 +1,4 @@
-# ShipLoop navigator 0.19.4
+# ShipLoop navigator 0.19.5
 
 ShipLoop's invoking conversation owns navigation, acceptance and delivery. For
 a new v3/v4 ephemeral Improve invocation, the selected Ask Agent can delegate one
@@ -76,8 +76,9 @@ general Ask-Agent protocol compatibility. Binding a skill card freezes its
 bytes; it does not establish semantic protocol compatibility.
 
 `init` and `workspace start` default to navigator protocol 3 for new runs. Pass
-`--execution-mode=navigator-v2` only for the retained v2 route; v1, managed,
-and legacy modes remain for explicit compatibility use. Existing runs resume
+`workspace start --protocol-version 2` (or `init --execution-mode=navigator-v2`)
+only for the retained v2 route; `init --execution-mode` v1, managed, and legacy
+modes remain for explicit compatibility use. Existing runs resume
 their recorded protocol without conversion. The skill uses `workspace start` for
 new Git-backed work and direct `init` for explicit in-place/non-Git use; existing
 runs are never retrofitted.
@@ -3227,16 +3228,21 @@ The compact stdout packet is authoritative for the current action. The command
 surface is:
 
 ```sh
-shiploop init     --repo REPO [--run-dir RUN] [--execution-mode=navigator|navigator-v2|navigator-v1|managed|legacy] [--navigator-version=2|3] [--improve-skill ABSOLUTE_SKILL_CARD] --prompt=TEXT
+# Current navigator (protocol 3 default; 4 opt-in)
+shiploop workspace start --repo REPO --workspace-root ROOT [--protocol-version=2|3|4] [--improve-skill ABSOLUTE_SKILL_CARD] [--include-untracked=PATH]... [--exclude=PATH]... [--delivery-contract] --prompt=TEXT
+shiploop workspace plan-return --workspace-root ROOT
+shiploop workspace return      --workspace-root ROOT
+shiploop init     --repo REPO [--run-dir RUN] [--execution-mode=navigator|navigator-v2|navigator-v1|managed|legacy] [--navigator-version=2|3|4] [--improve-skill ABSOLUTE_SKILL_CARD] [--delivery-contract] --prompt=TEXT
 shiploop next     --run-dir RUN
 shiploop status   --run-dir RUN
 shiploop report   --run-dir RUN
 shiploop improve-bind --run-dir RUN --action ACTION --skill-card ABSOLUTE_SKILL_CARD
 shiploop improve-complete --run-dir RUN --action ACTION --result SKILL_COMPLETION.md
+shiploop improve-reconcile --run-dir RUN --action ACTION --result RECONCILIATION.md   # protocol 4 only
 shiploop plan-status --run-dir RUN --loop STEP_PLAN_LOOP
 shiploop context  --run-dir RUN --section SECTION --offset 0 --limit 4000 [--digest SHA256]
 shiploop context  --run-dir RUN --section review-history --record ARCHIVE_PATH --offset 0 --limit 4000 [--digest SHA256]
-shiploop complete --run-dir RUN --action ACTION --result RESULT.md
+shiploop complete --run-dir RUN --action ACTION --result RESULT.md   # alias: done
 shiploop verify   --run-dir RUN --action ACTION --manifest CHECKS.md [--reason=TEXT]
 shiploop planning-verify  --run-dir RUN --action ACTION --manifest CHECKS.md [--reason=TEXT] [--timeout N]
 shiploop planning-upgrade --run-dir RUN --action ACTION
@@ -3253,7 +3259,16 @@ shiploop pause    --run-dir RUN --reason=TEXT
 shiploop resume   --run-dir RUN
 shiploop halt     --run-dir RUN --reason=TEXT
 shiploop migrate  --run-dir RUN
+# Implementation chains within the current v3/v4 implement action
+shiploop chain {bind,planning-inputs,next,history,pending,claim,start,launched,observe,import-handoff,prepare,settle,done,retry,packet,cleanup,finish,recover} ...
+# Inspection without project work
+shiploop graph-dry-run [--list] [--scenario NAME | --script STEPS.json] [--protocol-version=2|3|4] [--format=summary|json|markdown]
+shiploop managed-graph-dry-run ...   # compatibility managed controller only
 ```
+
+`chain` subcommands are packet-issued; see [parallel implementation
+chains](references/parallel-chain.md). `graph-dry-run --list` prints the
+scenarios available for the selected protocol; see [graph dry runs](references/graph-dry-run.md).
 
 The default `navigator` mode starts protocol 3 for new `init` and workspace
 runs; see the navigator guide for its producer/child handoff commands. The exact

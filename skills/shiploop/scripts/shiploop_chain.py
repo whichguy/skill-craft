@@ -5004,7 +5004,8 @@ def _parser() -> _ArgumentParser:
     bind.add_argument("--worktree-parent", required=True)
     bind.add_argument("--mode", choices=("parallel", "serial"), default="parallel")
     bind.add_argument("--capacity", type=int)
-    bind.add_argument("--lifecycle", choices=("per-step", "final-return"), default="per-step")
+    bind.add_argument("--lifecycle", choices=("per-step", "final-return"), default="per-step",
+                      help="per-step (required); final-return is retired and refused")
     bind.add_argument("--planning-resolutions")
     planning = subs.add_parser("planning-inputs")
     planning.add_argument("--run-dir", required=True)
