@@ -70,7 +70,8 @@ with `version` copied from the verified selected card:
     "helper-managed-worktree",
     "prepared-inspection",
     "returned-commit-delivery",
-    "fingerprint-bound-close"
+    "fingerprint-bound-close",
+    "ignored-output-report"
   ]
 }
 ```
@@ -171,9 +172,19 @@ nonzero check stops task writes; do not replace it with a reported path or with
 Preparation preserves the caller's staged and unstaged layers and non-ignored
 untracked entries. Required ignored/generated inputs need an explicit task
 decision; the helper does not promise installed dependencies or copy them
-silently. Unsupported state produces a concrete failure, not a partial-success
-workspace. Preserve the failure receipt/workspace for recovery when returned.
-This version refuses submodules, conflicted/special index states (including
+silently; `ignored_dependencies_omitted` lists them, collapsing a wholly ignored
+directory to one `dir/` entry. Unsupported state produces a concrete failure,
+not a partial-success workspace. A refusal found while capturing the source
+(the states listed below) happens before any attempt exists. A later failure,
+including a Git timeout, an I/O error or an interrupt, removes whatever
+worktree and still-unmoved branch that prepare created (no worker has run
+there) and names the attempt's `failure.json` record in the error. Re-run
+prepare after fixing the cause. A prepare killed from outside, for example by
+a consumer's own timeout, cannot clean up and may leave the attempt's
+worktree and branch. Permission bits Git does not
+track (for example `chmod 600`, or a symlink's own mode) do not block preparation.
+This version refuses an empty repository or unborn branch (commit once first),
+submodules, conflicted/special index states (including
 intent-to-add, assume-unchanged, skip-worktree and sparse checkout), and active
 Git content filters. It also refuses returned index-only changes that its
 working-content contribution patch cannot represent; retain those for manual
@@ -198,6 +209,15 @@ Review contribution evidence against the inherited baseline. Integrate only the
 worker's contribution under the existing Git integration policy; a raw whole-
 branch diff may include the caller's pre-existing edits. Reports/scratch are not
 code contribution. Revalidate after target movement or further worker edits.
+
+New untracked files that the worktree's ignore rules exclude (caches, build
+output, installed dependencies) are not contribution and never enter the patch.
+When present, the result lists them as `ignored_paths`; they stay covered by the
+fingerprint and are discarded by `close`. Declare one as `--artifact` if it must
+be kept. A worker change to ignore rules is itself a contribution path, so review
+it before accepting what it hides. The contribution patch is plain `git diff`
+output with `a/`/`b/` prefixes and no rename headers (a rename is a delete plus
+an add), independent of the user's colour or diff-prefix configuration.
 
 For a worker handoff, declare the delivery mode selected in the fresh-worker
 launch clause: `patch`, `commits`, or `report-only`. This is the supported
@@ -255,8 +275,9 @@ python3 "$WORKSPACE_HELPER" inspect \
   --delivery-mode report-only
 ```
 
-This succeeds only when every changed path is an explicit artifact/discard and
-none is an inherited repository input. It does not authorize removal; use the
+This succeeds only when every changed path is an explicit artifact/discard or
+reported ignored output (`ignored_paths`), and none is an inherited repository
+input. It does not authorize removal; use the
 separate parent acceptance and `close` step after reports are consumed.
 
 ## Close after acceptance
@@ -306,6 +327,15 @@ worktree through Git. It leaves the branch and returns durable paths. Missing or
 stale evidence, unsafe paths, new changes, missing files or absent stopped-worker
 attestations retain work with a reason. It never merges code, deletes the source checkout, decides
 semantic acceptance, polls agents or runs an age-based cleanup.
+
+`close` exits 0 for both `closed` and `retained`; read `status` (and `reason`)
+rather than the exit code. A retry with a different acceptance after a retained
+close records the acceptance that actually removed the worktree.
+
+Each Git call has a 300-second timeout. Set `ASK_AGENT_GIT_TIMEOUT` (seconds, at
+most 86400) for very large repositories. A timeout is a reported failure; during
+prepare the helper then removes what it created, as described under Snapshot
+limits.
 
 Read the actual outcome before reporting removal. Update final result links to
 the retained paths; a removed worktree link is not a usable deliverable. Existing

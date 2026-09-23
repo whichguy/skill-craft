@@ -76,8 +76,10 @@ it into the caller. Patch workers without that task-specific requirement follow
 their own commit policy.
 
 For dirty patch delivery, the parent rechecks the baseline-relative patch and
-the current target, then uses plain `git apply --check --binary <patch>` followed
-by plain `git apply --binary <patch>`; do not add `--index`. This preserves the
+the current target, then uses plain `git apply --check --binary --whitespace=nowarn <patch>`
+followed by plain `git apply --binary --whitespace=nowarn <patch>`; do not add
+`--index`. `--whitespace=nowarn` keeps the worker's bytes whatever the caller's
+`apply.whitespace` setting. This preserves the
 caller's HEAD and index while applying only the worker delta. Do not squash a
 whole branch containing inherited caller changes. A single target commit is
 eligible only under the existing commit/history policy and after verifying a

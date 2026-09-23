@@ -75,13 +75,15 @@ path and the target path inline, then supply shell-quoted commands with real
 values:
 
 ```sh
-git -C "/actual/target checkout" apply --check --binary "/actual/contribution.patch"
-git -C "/actual/target checkout" apply --binary "/actual/contribution.patch"
+git -C "/actual/target checkout" apply --check --binary --whitespace=nowarn "/actual/contribution.patch"
+git -C "/actual/target checkout" apply --binary --whitespace=nowarn "/actual/contribution.patch"
 ```
 
 The second command is conditional on the first succeeding and the caller choosing
 to integrate. These are intentionally plain `git apply` commands: do not use
-`--index`. Recheck the target's branch/HEAD and staged, unstaged and untracked
+`--index`. Keep `--whitespace=nowarn`: without it a caller's
+`apply.whitespace=fix` (or `strip`) silently rewrites the worker's bytes, and
+`error` refuses a patch that adds trailing whitespace. Recheck the target's branch/HEAD and staged, unstaged and untracked
 state before applying; a moved or concurrently edited target needs reassessment.
 The patch is relative to the inherited working contents, which may include dirty
 caller changes, **not just the named source commit**. Say this explicitly when

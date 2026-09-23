@@ -947,6 +947,43 @@ class PerStepChainTests(PerStepChainFixture):
         self.prepare_and_done("A")
         self.finish()
 
+    def test_managed_delivery_refuses_ignored_worker_output_before_integration(self):
+        """Ignored generated output is refused at returned delivery, never after integration.
+
+        Ask-Agent reports it as `ignored_paths` (never as contribution).  ShipLoop's
+        cleanup keeps any worktree that still holds ignored files, so accepting the
+        delivery would integrate a chain that could never finish.  Removing the
+        output and importing again delivers, integrates and cleans up normally.
+        """
+        graph = json.loads(self.f.graph.read_text())
+        graph["steps"] = graph["steps"][:1]
+        self.f.graph.write_text(json.dumps(graph) + "\n")
+        self.managed_bind(capacity=1)
+        self.assertIn("ignored-output-report", self.binding()["ask_agent_contract"]["capabilities"])
+        attempts = self.claim("A")
+        packet = self.managed_start("A", attempts["A"], base=self.head())
+        workspace = Path(packet["context"]["workspace"])
+        common = Path(self.f.git(workspace, "rev-parse", "--path-format=absolute", "--git-common-dir").strip())
+        with (common / "info" / "exclude").open("a") as stream:
+            stream.write("\n__pycache__/\n")
+        result = self.managed_worker_result("A")
+        generated = workspace / "__pycache__"
+        generated.mkdir()
+        (generated / "generated.cpython-312.pyc").write_bytes(b"\x00generated")
+        target_before = self.head()
+        refused = self.call("import-handoff", {"attempt": attempts["A"], "confirmed_stopped": True,
+                            "handoff": {"path": result["handoff"], "sha256": result["sha256"]}}, ok=False)
+        self.assertIn("ignored generated output (__pycache__/generated.cpython-312.pyc)", refused.stderr)
+        self.assertEqual(self.head(), target_before, "refusal must precede any target mutation")
+        self.assertFalse(any(row["event"]["kind"] == "managed_returned_delivery" for row in self.bridge_events()))
+
+        shutil.rmtree(generated)
+        self.import_finished("A", result)
+        accepted = self.prepare_and_done("A")
+        self.assertEqual(accepted["outcome"], "accepted")
+        self.assertFalse(workspace.exists())
+        self.finish()
+
     def test_managed_returned_delivery_mismatch_refuses_before_target_mutation(self):
         self.managed_bind(single=True)
         attempt = self.claim("A")["A"]
@@ -1258,8 +1295,8 @@ class PerStepChainTests(PerStepChainFixture):
         declared = self.managed_capabilities()
         self.assertEqual(declared["version"], "1.2.3")
         self.assertEqual(declared["capabilities"], [
-            "fingerprint-bound-close", "returned-commit-delivery", "prepared-inspection",
-            "helper-managed-worktree", "future-managed-capability",
+            "ignored-output-report", "fingerprint-bound-close", "returned-commit-delivery",
+            "prepared-inspection", "helper-managed-worktree", "future-managed-capability",
         ])
         self.assertEqual(self.binding()["ask_agent_contract"], declared)
         self.assertEqual(self.f.git(self.f.primary, "worktree", "list", "--porcelain").count("worktree "), 2)

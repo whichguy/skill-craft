@@ -17,7 +17,7 @@
     },
     {
       "name": "ask-agent",
-      "version": "0.7.4",
+      "version": "0.7.5",
       "description": "A delegation skill, not an agent type. Ask native agents to work in the background, continue useful work in the main conversation, and incorporate their results when they return. Use for \"ask an agent\", named agent roles, parallel delegation, or launch-and-notify work.",
       "category": "productivity",
       "source": {
@@ -177,7 +177,7 @@
     },
     {
       "name": "shiploop",
-      "version": "0.19.6",
+      "version": "0.19.7",
       "description": "Markdown-authoritative delivery harness. Start or resume once, follow the script's current action packet, and submit its exact completion call until the script reports completion with an HTML achievement report. Use when the user says shiploop, ship the project, or requests a durable delivery loop.",
       "category": "software-development",
       "source": {

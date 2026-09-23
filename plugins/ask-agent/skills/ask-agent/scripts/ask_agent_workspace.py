@@ -15,6 +15,7 @@ import base64
 import fcntl
 import hashlib
 import json
+import math
 import os
 import re
 import shutil
@@ -41,8 +42,16 @@ MANAGED_WORKTREE_CAPABILITIES = (
     "prepared-inspection",
     "returned-commit-delivery",
     "fingerprint-bound-close",
+    "ignored-output-report",
 )
 VERSION = 1
+# Derived evidence (contribution patch, inspection and delivery records) is
+# stored per fingerprint and reused.  It lives one level below the stable
+# `inspections/` and `delivery-evidence/` roots, in a directory named for the
+# derivation version, so a helper whose fix changes how evidence is derived
+# never reuses a copy an earlier version produced (0.7.4 and earlier wrote
+# `inspections/<fingerprint>` directly).  Bump this when derivation changes.
+EVIDENCE_DERIVATION = "v2"
 SHA256_RE = re.compile(r"[0-9a-f]{64}")
 GIT_SHA_RE = re.compile(r"[0-9a-f]{40,64}")
 SEMVER_RE = re.compile(
@@ -388,6 +397,8 @@ def _clean_git_environment() -> dict[str, str]:
     for key in list(environment):
         if _is_git_context_environment_name(key):
             environment.pop(key, None)
+    for key in GIT_DIFF_ENVIRONMENT:
+        environment.pop(key, None)
     environment["GIT_TERMINAL_PROMPT"] = "0"
     # Read-only source probes must not opportunistically refresh its index.
     environment["GIT_OPTIONAL_LOCKS"] = "0"
@@ -411,33 +422,95 @@ def _require_no_git_context_environment_overrides(operation: str) -> None:
         _fail(f"{operation} refuses Git context environment overrides: " + ", ".join(overrides))
 
 
+# Pin output settings that user/global config could otherwise change.  The
+# helper hashes, compares and applies diff bytes, so colour escapes or
+# alternative path prefixes would corrupt patches or fail verification.
+GIT_OUTPUT_CONFIG = (
+    "-c", "core.hooksPath=/dev/null",
+    "-c", "color.ui=never",
+    "-c", "color.diff=never",
+    "-c", "diff.noprefix=false",
+    "-c", "diff.mnemonicPrefix=false",
+    "-c", "diff.relative=false",
+    "-c", "diff.srcPrefix=a/",
+    "-c", "diff.dstPrefix=b/",
+    "-c", "diff.context=3",
+    "-c", "diff.interHunkContext=0",
+    "-c", "diff.suppressBlankEmpty=false",
+)
+# Explicit flags for every diff whose bytes are hashed, compared or applied.
+# Command-line options outrank configuration, so these hold even for keys the
+# pinned config above does not name (textconv drivers from user attributes,
+# newer prefix keys).  Callers add the prefix choice and the diff operands.
+PATCH_DIFF_FLAGS = (
+    "--binary", "--full-index", "--no-ext-diff", "--no-textconv", "--no-color",
+    "--unified=3", "--inter-hunk-context=0",
+)
+# Environment variables that change diff output or pathspec parsing regardless
+# of configuration.  Git exports the pathspec ones to hooks and `!` aliases when
+# it runs with, for example, --literal-pathspecs; `check-ignore` then refuses
+# every path.
+GIT_DIFF_ENVIRONMENT = frozenset({
+    "GIT_DIFF_OPTS", "GIT_EXTERNAL_DIFF",
+    "GIT_LITERAL_PATHSPECS", "GIT_GLOB_PATHSPECS", "GIT_NOGLOB_PATHSPECS", "GIT_ICASE_PATHSPECS",
+})
+DEFAULT_GIT_TIMEOUT_SECONDS = 300.0
+MAX_GIT_TIMEOUT_SECONDS = 86400.0
+
+
+def _git_timeout() -> float:
+    """Return the per-command Git timeout; ASK_AGENT_GIT_TIMEOUT overrides it."""
+    raw = os.environ.get("ASK_AGENT_GIT_TIMEOUT")
+    if raw is None or not raw.strip():
+        return DEFAULT_GIT_TIMEOUT_SECONDS
+    try:
+        value = float(raw)
+    except ValueError:
+        value = 0.0
+    if not (math.isfinite(value) and 0 < value <= MAX_GIT_TIMEOUT_SECONDS):
+        _fail(f"ASK_AGENT_GIT_TIMEOUT must be a positive number of seconds, at most {MAX_GIT_TIMEOUT_SECONDS:g}")
+    return value
+
+
 def _git(
     repo: Path,
     *arguments: str,
     input_bytes: bytes | None = None,
     check: bool = True,
+    extra_environment: Mapping[str, str] | None = None,
 ) -> subprocess.CompletedProcess[bytes]:
+    timeout = _git_timeout()
+    environment = _clean_git_environment()
+    environment.update(extra_environment or {})
     try:
         result = subprocess.run(
-            ["git", "-c", "core.hooksPath=/dev/null", "-C", os.fspath(repo), *arguments],
+            ["git", *GIT_OUTPUT_CONFIG, "-C", os.fspath(repo), *arguments],
             input=input_bytes,
             stdout=subprocess.PIPE,
             stderr=subprocess.PIPE,
             check=False,
-            env=_clean_git_environment(),
-            timeout=45,
+            env=environment,
+            timeout=timeout,
         )
     except FileNotFoundError as exc:
         _fail("Git is required but was not found on PATH")
         raise AssertionError from exc
     except subprocess.TimeoutExpired as exc:
-        _fail(f"Git timed out during {' '.join(arguments[:3])}")
+        _fail(
+            f"Git timed out after {timeout:g}s during {' '.join(arguments[:3])}; "
+            "set ASK_AGENT_GIT_TIMEOUT to allow longer"
+        )
         raise AssertionError from exc
     if check and result.returncode:
         detail = result.stderr.decode("utf-8", "replace").strip().splitlines()
         suffix = f": {detail[-1]}" if detail else ""
         _fail(f"Git {' '.join(arguments[:3])} failed{suffix}")
     return result
+
+
+def _patch_diff(repo: Path, *arguments: str) -> bytes:
+    """Return a repository diff in the exact form the helper hashes and applies."""
+    return _git(repo, "diff", *PATCH_DIFF_FLAGS, "--src-prefix=a/", "--dst-prefix=b/", *arguments).stdout
 
 
 def _git_text(repo: Path, *arguments: str) -> str:
@@ -460,7 +533,10 @@ def _common_dir(repo: Path) -> Path:
 
 
 def _head(repo: Path) -> str:
-    value = _git_text(repo, "rev-parse", "--verify", "HEAD")
+    probe = _git(repo, "rev-parse", "--verify", "--quiet", "HEAD^{commit}", check=False)
+    if probe.returncode:
+        _fail("repository HEAD does not name a commit (empty repository or unborn branch); commit once before delegating")
+    value = probe.stdout.decode("utf-8", "surrogateescape").strip()
     if not GIT_SHA_RE.fullmatch(value):
         _fail("repository HEAD is not a commit SHA")
     return value
@@ -630,10 +706,45 @@ def _tracked_worktree_manifest(repo: Path) -> list[dict[str, Any]]:
 
 
 def _ignored_paths(repo: Path) -> list[str]:
-    return _split_nul_paths(
-        _git(repo, "ls-files", "--others", "--ignored", "--exclude-standard", "-z").stdout,
-        label="ignored path",
-    )
+    """Report omitted ignored entries; they are never copied, so never validated as copy targets.
+
+    `--directory` collapses a wholly ignored directory (for example
+    `node_modules/` or a `.worktrees/` store) to one entry ending in `/`.
+    """
+    raw = _git(repo, "ls-files", "--others", "--ignored", "--exclude-standard", "--directory", "-z").stdout
+    if raw and not raw.endswith(b"\0"):
+        _fail("Git returned malformed ignored paths")
+    # ls-files can list a collapsed `dir/` and also files beneath it.  Sorted
+    # entries sharing a prefix are contiguous, so one pass keeps only the
+    # outermost entry.
+    collapsed: list[str] = []
+    for entry in sorted(os.fsdecode(item) for item in raw.split(b"\0") if item):
+        if collapsed and collapsed[-1].endswith("/") and entry.startswith(collapsed[-1]):
+            continue
+        collapsed.append(entry)
+    return collapsed
+
+
+def _ignored_added_paths(worktree: Path, changes: Sequence[Mapping[str, Any]]) -> list[str]:
+    """Return worker-added, untracked paths that the worktree's ignore rules exclude.
+
+    These are generated outputs (caches, builds, installed dependencies), not
+    contribution.  They remain in the fingerprinted worker state and are
+    reported separately so the parent can see what close will discard.
+    """
+    candidates = [item["path"] for item in changes if item["change"] == "added" and "index" not in item["layers"]]
+    if not candidates:
+        return []
+    # check-ignore parses stdin entries as pathspecs, so a name such as
+    # `:config` would lose its colon to pathspec magic.  A `./` prefix makes
+    # every entry a plain path; strip it again from the output.
+    payload = b"".join(b"./" + os.fsencode(path) + b"\0" for path in candidates)
+    result = _git(worktree, "check-ignore", "-z", "--stdin", input_bytes=payload, check=False)
+    if result.returncode not in {0, 1}:
+        detail = result.stderr.decode("utf-8", "replace").strip().splitlines()
+        _fail("could not classify ignored worker paths" + (f": {detail[-1]}" if detail else ""))
+    matched = {os.fsdecode(item.removeprefix(b"./")) for item in result.stdout.split(b"\0") if item}
+    return [path for path in candidates if path in matched]
 
 
 def _copy_entry(source_root: Path, entry: Mapping[str, Any], target_root: Path, *, label: str) -> None:
@@ -654,7 +765,7 @@ def _copy_entry(source_root: Path, entry: Mapping[str, Any], target_root: Path, 
         # both as a working-layer patch and as an untracked source path.  The
         # patch may have already recreated identical bytes; verify/reuse only
         # that exact case rather than overwriting it.
-        if _entry_at(target_root, relative, label=f"existing copied {label}") == observed:
+        if _same_copy(_entry_at(target_root, relative, label=f"existing copied {label}"), observed):
             return
         _fail(f"target path already exists while copying {label}: {relative}")
     if observed["type"] == "file":
@@ -671,10 +782,26 @@ def _copy_entry(source_root: Path, entry: Mapping[str, Any], target_root: Path, 
             os.symlink(os.fsdecode(raw_target), target)
         except OSError as exc:
             _fail(f"cannot copy symlink {relative}: {exc}")
+        if hasattr(os, "lchmod"):
+            try:
+                os.lchmod(target, int(observed["mode"]))
+            except (OSError, NotImplementedError):
+                pass  # Best effort; a symlink's own mode is not content Git or tools use.
     else:
         _fail(f"unsupported {label} entry type")
-    if _entry_at(target_root, relative, label=f"copied {label}") != observed:
+    if not _same_copy(_entry_at(target_root, relative, label=f"copied {label}"), observed):
         _fail(f"copied {label} did not verify: {relative}")
+
+
+def _same_copy(copied: Mapping[str, Any], observed: Mapping[str, Any]) -> bool:
+    """Compare a copy with its source, ignoring only a symlink's own permission bits.
+
+    A symlink's mode comes from the creating process's umask and cannot be set
+    on every platform; Git records none of it.  Regular-file modes stay exact.
+    """
+    if copied.get("type") == "symlink" and observed.get("type") == "symlink":
+        return {**copied, "mode": None} == {**observed, "mode": None}
+    return dict(copied) == dict(observed)
 
 
 def _scan_workspace_files(root: Path, *, label: str) -> list[dict[str, Any]]:
@@ -743,8 +870,8 @@ def _capture_source(source: Path) -> SourceCapture:
         common_dir=os.fspath(_common_dir(source)),
         index_bytes_sha256=_index_bytes_digest(source),
         index_entries=entries,
-        staged_patch=_git(source, "diff", "--binary", "--full-index", "--no-ext-diff", "--cached", "HEAD").stdout,
-        unstaged_patch=_git(source, "diff", "--binary", "--full-index", "--no-ext-diff").stdout,
+        staged_patch=_patch_diff(source, "--cached", "HEAD"),
+        unstaged_patch=_patch_diff(source),
         tracked_files=tracked_files,
         untracked=untracked,
         ignored=_ignored_paths(source),
@@ -796,8 +923,8 @@ def _worker_state(worktree: Path) -> dict[str, Any]:
     _refuse_special_index(worktree)
     entries = _index_entries(worktree)
     files = _scan_workspace_files(worktree, label="worker worktree")
-    cached = _git(worktree, "diff", "--binary", "--full-index", "--no-ext-diff", "--cached", "HEAD").stdout
-    unstaged = _git(worktree, "diff", "--binary", "--full-index", "--no-ext-diff").stdout
+    cached = _patch_diff(worktree, "--cached", "HEAD")
+    unstaged = _patch_diff(worktree)
     return {
         "head": _head(worktree),
         "branch": _branch(worktree),
@@ -812,18 +939,55 @@ def _state_fingerprint(state: Mapping[str, Any]) -> str:
     return _sha256(_json_bytes(state))
 
 
-def _inspection_fingerprint(state: Mapping[str, Any], artifacts: Sequence[str], discard: Sequence[str]) -> str:
-    """Bind acceptance to both complete worker state and its reviewed classes."""
-    return _sha256(_json_bytes({
+def _inspection_fingerprint(
+    state: Mapping[str, Any],
+    artifacts: Sequence[str],
+    discard: Sequence[str],
+    ignored: Sequence[str] = (),
+) -> str:
+    """Bind acceptance to complete worker state and every path classification.
+
+    Ignore rules can live outside the fingerprinted worktree (a global
+    excludes file, the common `info/exclude`), so the ignored classification
+    is bound explicitly.  It is included only when non-empty, keeping the
+    fingerprint of the common case identical to earlier helper versions.
+    """
+    value: dict[str, Any] = {
         "state": state,
         "artifacts": sorted(artifacts),
         "discard": sorted(discard),
-    }))
+    }
+    if ignored:
+        value["ignored"] = sorted(ignored)
+    return _sha256(_json_bytes(value))
 
 
 def _copy_tree_entries(source_root: Path, entries: Sequence[Mapping[str, Any]], target_root: Path, *, label: str) -> None:
     for entry in entries:
         _copy_entry(source_root, entry, target_root, label=label)
+
+
+def _git_visible_entries(entries: Sequence[Mapping[str, Any]], *, honor_exec: bool) -> list[dict[str, Any]]:
+    """Project file entries onto what a Git checkout can reproduce.
+
+    Git records only a regular file's executable bit (and nothing for a
+    symlink's own permissions), so a checkout under a different umask or of a
+    `chmod 600` file legitimately differs in raw permission bits.
+    """
+    projected: list[dict[str, Any]] = []
+    for entry in entries:
+        item = dict(entry)
+        if item.get("type") == "symlink" or not honor_exec:
+            item["mode"] = None
+        else:
+            item["mode"] = 0o755 if int(item["mode"]) & 0o100 else 0o644
+        projected.append(item)
+    return projected
+
+
+def _honors_exec_bit(repo: Path) -> bool:
+    result = _git(repo, "config", "--bool", "core.fileMode", check=False)
+    return not (result.returncode == 0 and result.stdout.decode("ascii", "replace").strip() == "false")
 
 
 def _verify_child_capture(worktree: Path, capture: SourceCapture, branch: str) -> dict[str, Any]:
@@ -833,22 +997,21 @@ def _verify_child_capture(worktree: Path, capture: SourceCapture, branch: str) -
         _fail("worker worktree branch does not match its owned branch")
     if _index_entries(worktree) != capture.index_entries:
         _fail("worker worktree index entries differ from captured source index")
-    staged = _git(worktree, "diff", "--binary", "--full-index", "--no-ext-diff", "--cached", "HEAD").stdout
+    staged = _patch_diff(worktree, "--cached", "HEAD")
     if staged != capture.staged_patch:
         _fail("worker worktree staged binary diff differs from captured source")
-    unstaged = _git(worktree, "diff", "--binary", "--full-index", "--no-ext-diff").stdout
+    unstaged = _patch_diff(worktree)
     if unstaged != capture.unstaged_patch:
         _fail("worker worktree unstaged binary diff differs from captured source")
     child_untracked = _untracked_manifest(worktree)
     if child_untracked != capture.untracked:
         _fail("worker worktree untracked inputs differ from captured source")
     expected_files = sorted(capture.tracked_files + capture.untracked, key=lambda item: item["path"])
-    child_files = _scan_workspace_files(worktree, label="worker worktree")
-    if child_files != expected_files:
-        _fail("worker working-file bytes or modes differ from captured source")
+    honor_exec = _honors_exec_bit(worktree)
+    expected_visible = _git_visible_entries(expected_files, honor_exec=honor_exec)
     state = _worker_state(worktree)
-    if state["files"] != expected_files:
-        _fail("worker state files differ after child capture verification")
+    if _git_visible_entries(state["files"], honor_exec=honor_exec) != expected_visible:
+        _fail("worker working-file bytes or Git-tracked modes differ from captured source")
     return state
 
 
@@ -897,16 +1060,20 @@ def _new_attempt(store: Path) -> tuple[str, Path]:
     raise AssertionError("unreachable")
 
 
-def _record_failure(attempt: Path, message: str, **details: Any) -> None:
+def _record_failure(attempt: Path, message: str, **details: Any) -> str:
     path = attempt / "failure.json"
     if path.exists():
-        return
-    value: dict[str, Any] = {"schema": "ask-agent.workspace.failure.v1", "status": "retained", "reason": message}
+        return os.fspath(path)
+    value: dict[str, Any] = {"schema": "ask-agent.workspace.failure.v1", "status": "failed", "reason": message}
     value.update(details)
     try:
         _write_new_json(path, value)
-    except WorkspaceError:
-        pass
+    except (WorkspaceError, OSError) as exc:
+        # The original failure is still raised; do not let a secondary write
+        # error hide it, but never claim a record exists when it does not.
+        sys.stderr.write(f"ask-agent: could not write failure record {path}: {exc}\n")
+        return f"unavailable ({exc})"
+    return os.fspath(path)
 
 
 def _baseline_paths(attempt: Path) -> dict[str, Path]:
@@ -938,10 +1105,18 @@ def _new_prepare(source_argument: Path, store_argument: Path | None, label: str 
     paths = _baseline_paths(attempt)
     worktree = attempt / "worktree"
     branch = f"ask-agent/{_label_fragment(label)}-{attempt_id[:12]}"
+    add_attempted = False
     try:
         with _attempt_lock(attempt):
             _write_new_bytes(paths["staged_patch"], capture_before.staged_patch)
             _write_new_bytes(paths["unstaged_patch"], capture_before.unstaged_patch)
+            if _git(source, "show-ref", "--verify", "--quiet", f"refs/heads/{branch}", check=False).returncode == 0:
+                _fail(f"owned branch name is already in use: {branch}")
+            # From here on Git may leave state behind even when the command
+            # fails or times out (it creates the branch before checkout), so
+            # cleanup inspects what actually exists rather than trusting the
+            # return code.
+            add_attempted = True
             added = _git(source, "worktree", "add", "-b", branch, os.fspath(worktree), capture_before.head, check=False)
             if added.returncode:
                 detail = added.stderr.decode("utf-8", "replace").strip().splitlines()
@@ -962,7 +1137,7 @@ def _new_prepare(source_argument: Path, store_argument: Path | None, label: str 
             state = _verify_child_capture(worktree, capture_before, branch)
             capture_after = _capture_source(source)
             if capture_after.comparable() != capture_before.comparable():
-                _fail("source changed during capture; retained the partial owned workspace for review")
+                _fail("source changed during capture; prepare again once writers are quiescent")
             baseline_files = _owned_directory(attempt, "baseline-files", label="baseline file store")
             _copy_tree_entries(worktree, state["files"], baseline_files, label="baseline file")
             baseline = {
@@ -1010,9 +1185,64 @@ def _new_prepare(source_argument: Path, store_argument: Path | None, label: str 
             result = _base_output(record, "prepared")
             result.update({"source": os.fspath(source), "attempt": attempt_id, "ignored_dependencies_omitted": capture_before.ignored})
             return result
-    except WorkspaceError as exc:
-        _record_failure(attempt, str(exc), worktree=os.fspath(worktree), branch=branch)
-        raise
+    except BaseException as exc:
+        # Any failure, including OSError or an interrupt, must not strand a
+        # receipt-less worktree and branch in the caller's repository.
+        cleanup = "worktree add was not attempted"
+        if add_attempted:
+            try:
+                cleanup = _discard_failed_preparation(source, attempt / "worktree", branch, capture_before.head)
+            except Exception as cleanup_error:  # never mask the original failure
+                cleanup = f"cleanup failed ({cleanup_error}); worktree and branch may remain"
+        detail = str(exc)
+        if not isinstance(exc, WorkspaceError):
+            detail = f"{type(exc).__name__}: {detail}" if detail else type(exc).__name__
+        failure_path = _record_failure(attempt, detail, worktree=os.fspath(attempt / "worktree"), branch=branch, cleanup=cleanup)
+        message = f"{detail} (prepare failed before dispatch; cleanup: {cleanup}; failure record: {failure_path})"
+        if isinstance(exc, (KeyboardInterrupt, SystemExit)):
+            sys.stderr.write(f"ask-agent: {message}\n")
+            raise
+        raise WorkspaceError(message) from exc
+
+
+def _discard_failed_preparation(source: Path, worktree: Path, branch: str, head: str) -> str:
+    """Remove the worktree/branch this prepare just created; no worker has run in them.
+
+    Without a receipt, `close` cannot manage them, so leaving them registered
+    only accumulates orphaned worktrees and `ask-agent/*` branches in the
+    caller's repository.  The branch is deleted only while it still points at
+    the captured source HEAD, i.e. it holds no commits of its own.
+    """
+    notes: list[str] = []
+    if _registered_path_present(source, worktree):
+        # Double force also removes a worktree Git left locked mid-creation
+        # ("initializing").  The path is this attempt's own, so no one else
+        # can hold that lock legitimately.
+        removed = _git(source, "worktree", "remove", "--force", "--force", os.fspath(worktree), check=False)
+        if removed.returncode and _registered_path_present(source, worktree):
+            detail = removed.stderr.decode("utf-8", "replace").strip().splitlines()
+            return "retained worktree and branch; Git refused removal" + (f": {detail[-1]}" if detail else "")
+        if os.path.lexists(worktree):
+            # Git deregisters the worktree even when deleting its files fails,
+            # for example while a killed checkout's child was still writing.
+            shutil.rmtree(worktree)
+            notes.append("removed worktree and its leftover files")
+        else:
+            notes.append("removed worktree")
+    elif os.path.lexists(worktree):
+        shutil.rmtree(worktree)  # the attempt's own path, never registered with Git
+        notes.append("removed unregistered worktree directory")
+    else:
+        notes.append("no worktree was created")
+    tip = _git(source, "rev-parse", "--verify", "--quiet", f"refs/heads/{branch}", check=False)
+    if tip.returncode:
+        notes.append("no branch was created")
+    elif tip.stdout.decode("ascii", "replace").strip() != head:
+        notes.append(f"retained branch {branch} because it moved")
+    else:
+        deleted = _git(source, "branch", "-D", "--", branch, check=False)
+        notes.append(f"deleted branch {branch}" if deleted.returncode == 0 else f"retained branch {branch}; deletion failed")
+    return "; ".join(notes)
 
 
 def _load_receipt(path: Path) -> dict[str, Any]:
@@ -1155,34 +1385,66 @@ def _make_delta_patch(
     record: Mapping[str, Any],
     current: Mapping[str, Any],
     changes: Sequence[Mapping[str, Any]],
-    excluded: Sequence[str],
+    classified: Sequence[str],
+    ignored: frozenset[str],
     fingerprint: str,
 ) -> tuple[str, str]:
     """Make an owned, content-only contribution patch without touching Git state."""
     attempt: Path = record["attempt"]
-    inspection_root = _owned_directory(attempt, "inspections", label="inspection records")
+    inspection_root = _owned_directory(
+        _owned_directory(attempt, "inspections", label="inspection records"),
+        EVIDENCE_DERIVATION, label="current-derivation inspection records",
+    )
     directory = inspection_root / fingerprint
     if directory.exists():
         existing = _canonical_existing_directory(directory, label="inspection record")
-        patch = _canonical_existing_file(existing / "contribution.patch", label="contribution patch")
-        return os.fspath(existing / "inspection.json"), os.fspath(patch)
-    directory.mkdir(mode=0o700)
+        if (existing / "contribution.patch").exists():
+            patch = _canonical_existing_file(existing / "contribution.patch", label="contribution patch")
+            return os.fspath(existing / "inspection.json"), os.fspath(patch)
+        # Records are published by rename, so a directory without its patch
+        # was damaged after publication.  It is helper-owned and cannot be
+        # trusted; rebuild it rather than refusing this state forever.
+        shutil.rmtree(existing)
+    # Build in a private sibling and publish by rename, so an interrupted or
+    # failed build never leaves a record that later calls mistake for complete.
+    staging = inspection_root / f".partial-{fingerprint}-{uuid.uuid4().hex}"
+    staging.mkdir(mode=0o700)
+    try:
+        staging = _canonical_existing_directory(staging, label="inspection staging record")
+        # The side directories are named `a` and `b` and diffed with
+        # --no-prefix, so headers already read `a/<path>`/`b/<path>` and the
+        # patch bytes are used verbatim.  Rewriting the output instead would
+        # also rewrite matching text inside changed lines.
+        before = _owned_directory(staging, "a", label="inspection baseline")
+        after = _owned_directory(staging, "b", label="inspection current state")
+        changed_paths = {
+            entry["path"] for entry in changes
+            if entry["path"] not in ignored and not _selection_contains(classified, entry["path"])
+        }
+        baseline_files_root = _canonical_existing_directory(Path(record["baseline_data"]["baseline_files"]), label="baseline file store")
+        _copy_filtered_state(before, baseline_files_root, record["baseline_data"]["worker_state"], changed_paths, label="inspection baseline file")
+        worker = _repo_root(Path(record["worktree"]))
+        _copy_filtered_state(after, worker, current, changed_paths, label="inspection current file")
+        # --no-renames: `git apply` resolves a rename header's bare paths
+        # without prefix stripping, so a detected rename could not apply.
+        # The ceiling stops repository discovery at the staging directory, so
+        # a repository that happens to enclose the store contributes no
+        # configuration or attributes to the patch.
+        diff = _git(
+            staging, "diff", "--no-index", *PATCH_DIFF_FLAGS, "--no-renames", "--no-prefix",
+            "--", "a", "b", check=False,
+            extra_environment={"GIT_CEILING_DIRECTORIES": os.fspath(inspection_root)},
+        )
+        if diff.returncode not in {0, 1}:
+            detail = diff.stderr.decode("utf-8", "replace").strip().splitlines()
+            _fail("could not create contribution patch" + (f": {detail[-1]}" if detail else ""))
+        _write_new_bytes(staging / "contribution.patch", diff.stdout)
+        os.rename(staging, directory)
+    except BaseException:
+        shutil.rmtree(staging, ignore_errors=True)
+        raise
     directory = _canonical_existing_directory(directory, label="inspection record")
-    before = _owned_directory(directory, "before", label="inspection baseline")
-    after = _owned_directory(directory, "after", label="inspection current state")
-    changed_paths = {entry["path"] for entry in changes if not _selection_contains(excluded, entry["path"])}
-    baseline_files_root = _canonical_existing_directory(Path(record["baseline_data"]["baseline_files"]), label="baseline file store")
-    _copy_filtered_state(before, baseline_files_root, record["baseline_data"]["worker_state"], changed_paths, label="inspection baseline file")
-    worker = _repo_root(Path(record["worktree"]))
-    _copy_filtered_state(after, worker, current, changed_paths, label="inspection current file")
-    diff = _git(directory, "diff", "--no-index", "--binary", "--full-index", "--no-ext-diff", "--src-prefix=a/", "--dst-prefix=b/", "--", "before", "after", check=False)
-    if diff.returncode not in {0, 1}:
-        detail = diff.stderr.decode("utf-8", "replace").strip().splitlines()
-        _fail("could not create contribution patch" + (f": {detail[-1]}" if detail else ""))
-    patch_bytes = diff.stdout.replace(b"a/before/", b"a/").replace(b"b/after/", b"b/")
-    patch_path = directory / "contribution.patch"
-    _write_new_bytes(patch_path, patch_bytes)
-    return os.fspath(directory / "inspection.json"), os.fspath(patch_path)
+    return os.fspath(directory / "inspection.json"), os.fspath(directory / "contribution.patch")
 
 
 def _exact_commit(repo: Path, value: str | None, *, label: str) -> str:
@@ -1228,7 +1490,10 @@ def _write_delivery_evidence(
     mode = evidence.get("mode")
     if mode not in {"patch", "commits", "report-only"}:
         _fail("delivery evidence has an unsupported mode")
-    root = _owned_directory(record["attempt"], "delivery-evidence", label="delivery evidence store")
+    root = _owned_directory(
+        _owned_directory(record["attempt"], "delivery-evidence", label="delivery evidence store"),
+        EVIDENCE_DERIVATION, label="current-derivation delivery evidence",
+    )
     directory = _owned_directory(root, fingerprint, label="delivery evidence directory")
     path = directory / f"{mode}.json"
     if path.exists():
@@ -1454,10 +1719,21 @@ def _inspect_record(
     for path in artifact_paths + discard_paths:
         if not any(path == changed or changed.startswith(path + "/") for changed in changed_paths):
             _fail(f"selected artifact/discard path is not a changed worker path: {path}")
-    fingerprint = _inspection_fingerprint(current, artifact_paths, discard_paths)
-    excluded = artifact_paths + discard_paths
-    contribution_paths = [path for path in changed_paths if not _selection_contains(excluded, path)]
-    inspection_path, patch_path = _make_delta_patch(record, current, changes, excluded, fingerprint)
+    classified = artifact_paths + discard_paths
+    # Explicit classification wins; remaining ignored generated output is
+    # reported but is neither contribution nor patch content.  Ignored
+    # entries are exact paths, so a set keeps this linear for large installs.
+    ignored_paths = [
+        path for path in _ignored_added_paths(worktree, changes)
+        if not _selection_contains(classified, path)
+    ]
+    ignored = frozenset(ignored_paths)
+    fingerprint = _inspection_fingerprint(current, artifact_paths, discard_paths, ignored_paths)
+    contribution_paths = [
+        path for path in changed_paths
+        if path not in ignored and not _selection_contains(classified, path)
+    ]
+    inspection_path, patch_path = _make_delta_patch(record, current, changes, classified, ignored, fingerprint)
     inspection = {
         "schema": INSPECTION_SCHEMA,
         "version": VERSION,
@@ -1477,6 +1753,10 @@ def _inspect_record(
             "unstaged_layer": current["unstaged_patch_sha256"] != baseline_state["unstaged_patch_sha256"],
         },
     }
+    # Present only when non-empty, so records and output for the common case
+    # stay byte-identical to earlier helper versions and exact-key consumers.
+    if ignored_paths:
+        inspection["ignored_paths"] = ignored_paths
     inspection_file = Path(inspection_path)
     if inspection_file.exists():
         existing = _read_json_file(inspection_file, label="inspection record")
@@ -1494,6 +1774,8 @@ def _inspect_record(
         "discard": discard_paths,
         "evidence": {"inspection": inspection_path, "contribution_patch": patch_path},
     })
+    if ignored_paths:
+        result["ignored_paths"] = ignored_paths
     delivery, delivery_evidence = _delivery_proof(
         record,
         worktree,
@@ -1891,14 +2173,23 @@ def close(*, receipt: Path, acceptance: Path | None = None) -> dict[str, Any]:
                 archived_artifacts=archived,
             )
         eligibility = record["attempt"] / "close-eligibility.json"
+        current_eligibility = {
+            "schema": "ask-agent.workspace.close-eligibility.v1",
+            "receipt": record["receipt_path"],
+            "fingerprint": returned["fingerprint"],
+            "decision": accepted["decision"],
+            "archived_artifacts": archived,
+        }
         if not eligibility.exists():
-            _write_new_json(eligibility, {
-                "schema": "ask-agent.workspace.close-eligibility.v1",
-                "receipt": record["receipt_path"],
-                "fingerprint": returned["fingerprint"],
-                "decision": accepted["decision"],
-                "archived_artifacts": archived,
-            })
+            _write_new_json(eligibility, current_eligibility)
+        elif _read_json_file(eligibility, label="close eligibility") != current_eligibility:
+            # A prior close attempt with a different acceptance did not remove
+            # the (still registered) worktree, so its eligibility never took
+            # effect.  Publish this acceptance's record by atomic replacement
+            # so the closed outcome describes the acceptance that removed it.
+            replacement = record["attempt"] / f".close-eligibility-{uuid.uuid4().hex}.json"
+            _write_new_json(replacement, current_eligibility)
+            os.replace(replacement, eligibility)
         removed = _git(source, "worktree", "remove", "--force", os.fspath(worktree), check=False)
         if removed.returncode:
             detail = removed.stderr.decode("utf-8", "replace").strip().splitlines()
@@ -1991,7 +2282,7 @@ def main(argv: Sequence[str] | None = None) -> int:
             _fail("unknown workspace command")
         _emit(result)
         return 0
-    except (WorkspaceError, OSError, ValueError) as exc:
+    except (WorkspaceError, OSError, ValueError, OverflowError) as exc:
         _emit({"status": "error", "error": str(exc)})
         return 2
 

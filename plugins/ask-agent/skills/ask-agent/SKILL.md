@@ -1,7 +1,7 @@
 ---
 name: ask-agent
 description: A delegation skill, not an agent type. Ask native agents to work in the background, continue useful work in the main conversation, and incorporate their results when they return. Use for "ask an agent", named agent roles, parallel delegation, or launch-and-notify work.
-version: 0.7.4
+version: 0.7.5
 license: MIT
 platforms:
   - linux
@@ -294,9 +294,10 @@ returns too; internal handles stay private when the host requires it.
 Honor caller-supplied continuation instructions. Carry the exact continuation
 and helper receipt in the worker's final native response without executing the
 parent's continuation in the worker. When a timed return is explicitly requested,
-use the separately available **prompt-timer** skill, resolved from the host's
-selected skill context. Ordinary delegation does not require that skill or a
-timer. Do not promise notification after the current parent session exits.
+use a native current-session wakeup or wait timeout if the host exposes one, as
+described in [Native lifecycle](references/native-lifecycle.md); otherwise say
+that timed return is unavailable. Ordinary delegation does not require a timer.
+Do not promise notification after the current parent session exits.
 
 ### Consumer-owned workspace
 

@@ -5,8 +5,10 @@ from __future__ import annotations
 
 import hashlib
 import json
+import re
 import os
 from pathlib import Path
+import shlex
 import shutil
 import subprocess
 import sys
@@ -93,6 +95,9 @@ class AskAgentWorkspaceCliTests(unittest.TestCase):
         self._run(self.primary, "init", "-q", "--initial-branch=main")
         self._run(self.primary, "config", "user.email", "ask-agent-test@example.invalid")
         self._run(self.primary, "config", "user.name", "Ask Agent Test")
+        # A developer's global excludes file must not change what the tests
+        # classify as ignored; linked worktrees share this repository setting.
+        self._run(self.primary, "config", "core.excludesFile", os.devnull)
 
         (self.primary / "app.py").write_text("base application\n", encoding="utf-8")
         (self.primary / "dual.txt").write_text("base dual layer\n", encoding="utf-8")
@@ -131,7 +136,8 @@ class AskAgentWorkspaceCliTests(unittest.TestCase):
         environment.pop("PYTHONPATH", None)
         environment["PYTHONDONTWRITEBYTECODE"] = "1"
         environment["PYTHONNOUSERSITE"] = "1"
-        for key, value in (environment_overrides or {}).items():
+        overrides = {**getattr(self, "helper_environment", {}), **(environment_overrides or {})}
+        for key, value in overrides.items():
             if value is None:
                 environment.pop(key, None)
             else:
@@ -1495,6 +1501,7 @@ raise SystemExit(module.main(sys.argv[2:]))
                             "prepared-inspection",
                             "returned-commit-delivery",
                             "fingerprint-bound-close",
+                            "ignored-output-report",
                         ],
                     },
                 )
@@ -1531,6 +1538,525 @@ raise SystemExit(module.main(sys.argv[2:]))
                 self.assertNotEqual(result.returncode, 0, payload)
                 self.assertEqual(payload.get("status"), "error", payload)
                 self.assertIn("executing helper package", str(payload.get("error", "")).lower(), payload)
+
+    # Pinned regressions for patch fidelity, snapshot tolerance, and retry safety.
+
+    def _cli_with_injection(self, injection: str, *args: str) -> tuple[subprocess.CompletedProcess[str], dict[str, Any]]:
+        """Run the helper CLI after executing `injection` against the loaded module."""
+        self._acceptance_number += 1
+        driver = self.root / f"injection-driver-{self._acceptance_number}.py"
+        driver.write_text(
+            "from __future__ import annotations\n"
+            "import importlib.util\n"
+            "from pathlib import Path\n"
+            "import sys\n"
+            "spec = importlib.util.spec_from_file_location('ask_agent_workspace_injected', Path(sys.argv[1]))\n"
+            "module = importlib.util.module_from_spec(spec)\n"
+            "sys.modules[spec.name] = module\n"
+            "spec.loader.exec_module(module)\n"
+            f"{injection}\n"
+            "raise SystemExit(module.main(sys.argv[2:]))\n",
+            encoding="utf-8",
+        )
+        environment = os.environ.copy()
+        environment.pop("PYTHONPATH", None)
+        environment["PYTHONDONTWRITEBYTECODE"] = "1"
+        result = subprocess.run(
+            [sys.executable, "-B", str(driver), str(self._helper_path()), *args],
+            cwd=self.invoke_from, env=environment, text=True,
+            stdout=subprocess.PIPE, stderr=subprocess.PIPE, check=False,
+        )
+        try:
+            payload = json.loads(result.stdout)
+        except json.JSONDecodeError:
+            self.fail(f"injected helper emitted no JSON (rc={result.returncode})\nstdout: {result.stdout}\nstderr: {result.stderr}")
+        return result, payload
+
+    def _prepare_args(self, label: str) -> tuple[str, ...]:
+        return ("prepare", "--source", str(self.source.resolve()), "--store", str(self.store.resolve()),
+                "--label", label, "--writers-quiescent")
+
+    def _inspect_mode(self, receipt: Path, mode: str, *, artifacts: Iterable[str] = (), discard: Iterable[str] = ()) -> dict[str, Any]:
+        arguments = ["inspect", "--receipt", str(receipt.resolve()), "--phase", "returned", "--delivery-mode", mode]
+        for artifact in artifacts:
+            arguments.extend(["--artifact", artifact])
+        for discarded in discard:
+            arguments.extend(["--discard", discarded])
+        return self._cli_success(*arguments)
+
+    def _exclude(self, *patterns: str) -> None:
+        common = Path(self._run(self.source, "rev-parse", "--path-format=absolute", "--git-common-dir").stdout.strip())
+        (common / "info").mkdir(exist_ok=True)
+        with (common / "info" / "exclude").open("a", encoding="utf-8") as stream:
+            stream.write("".join(f"{pattern}\n" for pattern in patterns))
+
+    def _documented_apply_commands(self) -> list[list[str]]:
+        """Return the caller apply commands exactly as result-handoff.md documents them."""
+        text = (HELPER.parents[1] / "references" / "result-handoff.md").read_text(encoding="utf-8")
+        block = text.split("```sh\n", 1)[1].split("```", 1)[0]
+        commands = [shlex.split(line) for line in block.splitlines() if line.startswith("git -C ")]
+        self.assertEqual([command[3] for command in commands], ["apply", "apply"], block)
+        return commands
+
+    def _apply_to_source(self, patch: Path) -> None:
+        """Integrate a contribution patch with the documented caller commands."""
+        for command in self._documented_apply_commands():
+            substituted = [str(self.source) if part == "/actual/target checkout" else
+                           str(patch) if part == "/actual/contribution.patch" else part for part in command]
+            result = subprocess.run(substituted, text=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE, check=False)
+            self.assertEqual(result.returncode, 0, f"{substituted}\n{result.stderr}")
+
+    def _hostile_home(self) -> Path:
+        """A HOME whose global Git config and attributes corrupt naive diffs."""
+        home = self.root / "hostile-home"
+        (home / ".config").mkdir(parents=True)
+        (home / "attributes").write_text("*.dat diff=hex\n*.bin diff=hex\n", encoding="utf-8")
+        (home / ".gitconfig").write_text(
+            "[color]\n\tui = always\n\tdiff = always\n"
+            "[diff]\n\tnoprefix = true\n\tmnemonicPrefix = true\n\trenames = copies\n"
+            "\tcontext = 0\n\tsrcPrefix = x/y/\n\tdstPrefix = z/w/\n\tsuppressBlankEmpty = true\n"
+            "[diff \"hex\"]\n\ttextconv = od -An -c\n"
+            f"[core]\n\tattributesFile = {home / 'attributes'}\n",
+            encoding="utf-8",
+        )
+        return home
+
+    def test_patch_is_verbatim_rename_safe_and_immune_to_hostile_diff_configuration(self) -> None:
+        # Hostile but legitimate configuration at every level the helper's
+        # diffs can see: global (through HOME), repository-local, and the
+        # GIT_DIFF_OPTS environment variable.  Environment GIT_CONFIG_* cannot
+        # carry it because prepare refuses those overrides.
+        home = self._hostile_home()
+        self.helper_environment = {"HOME": str(home), "XDG_CONFIG_HOME": str(home / ".config"),
+                                   "GIT_DIFF_OPTS": "--unified=0"}
+        for key, value in (("color.ui", "always"), ("diff.noprefix", "true"), ("diff.renames", "copies")):
+            self._run(self.primary, "config", key, value)
+        (self.source / "dual.txt").write_text("staged caller layer\n", encoding="utf-8")
+        self._run(self.source, "add", "dual.txt")
+        (self.source / "app.py").write_text("base application\ncaller unstaged edit\n", encoding="utf-8")
+        (self.source / "payload.bin").write_bytes(b"\x00caller\xffpayload\n")
+        prepared = self._prepare(label="hostile config")
+        worktree = Path(prepared["worktree"])
+        receipt = Path(prepared["receipt"])
+
+        (worktree / "app.py").write_text(
+            "base application\ncaller unstaged edit\n\nsee a/before/x and b/after/y\n", encoding="utf-8")
+        (worktree / "moved").mkdir()
+        (worktree / "delete-recreate.txt").rename(worktree / "moved" / "delete-recreate.txt")
+        (worktree / "fixture.dat").write_bytes(b"GIF89a-ish payload\nsecond line\n")
+        tool = worktree / "tool.sh"
+        tool.write_text("#!/bin/sh\necho worker\n", encoding="utf-8")
+        tool.chmod(0o755)
+
+        inspected = self._inspect_mode(receipt, "patch")
+        patch = Path(inspected["delivery"]["contribution_patch"])
+        patch_bytes = patch.read_bytes()
+        self.assertNotIn(b"\x1b[", patch_bytes)
+        self.assertNotIn(b"rename from", patch_bytes)
+        self.assertNotIn(b"copy from", patch_bytes)
+        self.assertIn(b"+see a/before/x and b/after/y\n", patch_bytes)
+
+        self._apply_to_source(patch)
+        for relative in ("app.py", "moved/delete-recreate.txt", "fixture.dat", "tool.sh", "payload.bin"):
+            self.assertEqual((self.source / relative).read_bytes(), (worktree / relative).read_bytes(), relative)
+        self.assertFalse((self.source / "delete-recreate.txt").exists())
+        self.assertTrue(os.access(self.source / "tool.sh", os.X_OK))
+        self.assertEqual(
+            self._run(self.source, "diff", "--cached", "--name-only").stdout.split(), ["dual.txt"],
+            "plain git apply must leave the caller's index untouched",
+        )
+
+    def test_contribution_patch_ignores_a_repository_enclosing_the_store(self) -> None:
+        # A store inside an unrelated repository must not let that repository
+        # take part in the out-of-repository contribution diff.  An unknown
+        # repository extension makes Git refuse to run inside it, so only the
+        # diff's discovery ceiling lets this inspection succeed.
+        outer = self.root / "outer-repository"
+        outer.mkdir()
+        self._run(outer, "init", "-q")
+        self._run(outer, "config", "core.repositoryformatversion", "1")
+        self._run(outer, "config", "extensions.enclosingStoreProbe", "true")
+        self.store = outer / "nested" / "workspace-store"
+        prepared = self._prepare(label="enclosed store")
+        worktree = Path(prepared["worktree"])
+        (worktree / "app.py").write_text("base application\n\nworker line after a blank\n", encoding="utf-8")
+        inspected = self._inspect_mode(Path(prepared["receipt"]), "patch")
+        patch = Path(inspected["delivery"]["contribution_patch"])
+        self.assertIn(b"+worker line after a blank\n", patch.read_bytes())
+        self._apply_to_source(patch)
+        self.assertEqual((self.source / "app.py").read_bytes(), (worktree / "app.py").read_bytes())
+
+    def test_documented_apply_keeps_worker_bytes_under_caller_whitespace_policy(self) -> None:
+        for policy in ("fix", "error"):
+            with self.subTest(policy=policy):
+                self._run(self.source, "checkout", "--", ".")
+                self._run(self.primary, "config", "apply.whitespace", policy)
+                prepared = self._prepare(label=f"whitespace {policy}")
+                worktree = Path(prepared["worktree"])
+                (worktree / "app.py").write_text("base application\ntrailing   \n", encoding="utf-8")
+                inspected = self._inspect_mode(Path(prepared["receipt"]), "patch")
+                self._apply_to_source(Path(inspected["delivery"]["contribution_patch"]))
+                self.assertEqual((self.source / "app.py").read_bytes(), b"base application\ntrailing   \n")
+
+    def test_ignored_generated_output_is_reported_not_contributed(self) -> None:
+        self._exclude("__pycache__/", ".worktrees/", "*.log")
+        (self.source / ".worktrees" / "other").mkdir(parents=True)
+        (self.source / ".worktrees" / "other" / "file.txt").write_text("unrelated worktree store\n", encoding="utf-8")
+        (self.source / "odd\\name.log").write_text("ignored name with a backslash\n", encoding="utf-8")
+        prepared = self._prepare(label="ignored output")
+        self.assertIn(".worktrees/", prepared["ignored_dependencies_omitted"], prepared)
+        worktree = Path(prepared["worktree"])
+        receipt = Path(prepared["receipt"])
+
+        self._write_returned_result(worktree, scratch=False)
+        (worktree / "__pycache__").mkdir()
+        (worktree / "__pycache__" / "app.cpython-312.pyc").write_bytes(b"\x00compiled\xff")
+
+        inspected = self._inspect_mode(receipt, "patch", artifacts=["reports/result.md"])
+        self.assertEqual(inspected["contribution_paths"], ["app.py"], inspected)
+        self.assertEqual(inspected["ignored_paths"], ["__pycache__/app.cpython-312.pyc"], inspected)
+        self.assertNotIn(b"pyc", Path(inspected["delivery"]["contribution_patch"]).read_bytes())
+
+        # An explicit classification wins over the ignored class.
+        kept = self._inspect_mode(receipt, "patch", artifacts=["reports/result.md", "__pycache__"])
+        self.assertNotIn("ignored_paths", kept, kept)
+
+        # Report-only work that incidentally generated ignored output still closes.
+        report_only = self._prepare(label="ignored report")
+        report_tree = Path(report_only["worktree"])
+        report_receipt = Path(report_only["receipt"])
+        self._write_returned_result(report_tree, code=False, scratch=False)
+        (report_tree / "__pycache__").mkdir()
+        (report_tree / "__pycache__" / "m.pyc").write_bytes(b"\x00")
+        reported = self._inspect_mode(report_receipt, "report-only", artifacts=["reports/result.md"])
+        self.assertEqual(reported["delivery"]["contribution_paths"], [], reported)
+        acceptance = self._acceptance(
+            reported["fingerprint"], decision="report-consumed",
+            artifacts=[{"path": "reports/result.md", "purpose": "review"}],
+        )
+        closed = self._cli_success("close", "--receipt", str(report_receipt), "--acceptance", str(acceptance))
+        self.assertEqual(closed.get("status"), "closed", closed)
+
+    def test_pathspec_like_names_are_classified_as_plain_paths(self) -> None:
+        self._exclude("/config")
+        prepared = self._prepare(label="pathspec names")
+        worktree = Path(prepared["worktree"])
+        (worktree / ":config").write_text("a real contribution\n", encoding="utf-8")
+        (worktree / ":!notes.txt").write_text("another one\n", encoding="utf-8")
+        inspected = self._inspect_mode(Path(prepared["receipt"]), "patch")
+        self.assertEqual(sorted(inspected["contribution_paths"]), [":!notes.txt", ":config"], inspected)
+        self.assertNotIn("ignored_paths", inspected)
+
+    def test_fingerprint_binds_the_ignored_classification(self) -> None:
+        self._exclude("__pycache__/")
+        prepared = self._prepare(label="ignore rules move")
+        worktree = Path(prepared["worktree"])
+        receipt = Path(prepared["receipt"])
+        self._write_returned_result(worktree, report=False, scratch=False)
+        (worktree / "__pycache__").mkdir()
+        (worktree / "__pycache__" / "m.pyc").write_bytes(b"\x00")
+        ignored = self._inspect_mode(receipt, "patch")
+        self.assertEqual(ignored["ignored_paths"], ["__pycache__/m.pyc"])
+
+        common = Path(self._run(self.source, "rev-parse", "--path-format=absolute", "--git-common-dir").stdout.strip())
+        exclude = common / "info" / "exclude"
+        exclude.write_text(exclude.read_text(encoding="utf-8").replace("__pycache__/\n", ""), encoding="utf-8")
+        unignored = self._inspect_mode(receipt, "patch")
+        self.assertNotEqual(unignored["fingerprint"], ignored["fingerprint"])
+        self.assertIn("__pycache__/m.pyc", unignored["contribution_paths"])
+
+        acceptance = self._acceptance(ignored["fingerprint"], decision="integrated", artifacts=[])
+        result, closed = self._close(receipt, acceptance)
+        self._assert_retained(result, closed, worktree)
+
+    def test_output_without_ignored_paths_keeps_its_exact_key_set(self) -> None:
+        prepared = self._prepare(label="stable keys")
+        self._write_returned_result(Path(prepared["worktree"]), report=False, scratch=False)
+        inspected = self._inspect_mode(Path(prepared["receipt"]), "patch")
+        self.assertNotIn("ignored_paths", inspected)
+        record = json.loads(Path(inspected["evidence"]["inspection"]).read_text(encoding="utf-8"))
+        self.assertNotIn("ignored_paths", record)
+
+    def test_evidence_derived_by_an_earlier_helper_is_never_reused(self) -> None:
+        prepared = self._prepare(label="legacy evidence")
+        receipt = Path(prepared["receipt"])
+        self._write_returned_result(Path(prepared["worktree"]), report=False, scratch=False)
+        first = self._inspect_mode(receipt, "patch")
+        patch = Path(first["delivery"]["contribution_patch"])
+        self.assertEqual((patch.parent.parent.parent.name, patch.parent.parent.name), ("inspections", "v2"))
+        # Simulate a pre-0.7.5 record under the same fingerprint: a corrupted
+        # patch in the unversioned directory, and no current-derivation record.
+        legacy = receipt.parent / "inspections" / first["fingerprint"]
+        legacy.mkdir(parents=True)
+        (legacy / "contribution.patch").write_bytes(b"legacy corrupted patch\n")
+        (legacy / "inspection.json").write_text("{}", encoding="utf-8")
+        shutil.rmtree(patch.parent)
+        shutil.rmtree(receipt.parent / "delivery-evidence" / "v2")
+        again = self._inspect_mode(receipt, "patch")
+        rebuilt = Path(again["delivery"]["contribution_patch"])
+        self.assertEqual(again["fingerprint"], first["fingerprint"])
+        self.assertNotEqual(rebuilt.parent, legacy)
+        self.assertIn(b"+worker contribution\n", rebuilt.read_bytes())
+
+    def test_prepare_accepts_permission_bits_git_does_not_track(self) -> None:
+        (self.source / "app.py").chmod(0o600)
+        link = self.source / "extra-link"
+        link.symlink_to("app.py")
+        if hasattr(os, "lchmod"):
+            os.lchmod(link, 0o700)
+        self.assertEqual(self._run(self.source, "status", "--porcelain", "--", "app.py").stdout, "")
+        prepared = self._prepare(label="private modes")
+        worktree = Path(prepared["worktree"])
+        self.assertEqual((worktree / "app.py").read_bytes(), (self.source / "app.py").read_bytes())
+        self.assertEqual(os.readlink(worktree / "extra-link"), "app.py")
+        _, inspected = self._inspect(Path(prepared["receipt"]), "prepared")
+        self.assertEqual(inspected["changed_paths"], [], inspected)
+
+    def _assert_failed_prepare_left_nothing(self, payload: dict[str, Any], label: str) -> str:
+        error = payload["error"]
+        self.assertIn("prepare failed before dispatch", error)
+        branches = self._run(self.primary, "for-each-ref", "--format=%(refname)", f"refs/heads/ask-agent/{label}-*").stdout
+        self.assertEqual(branches, "", error)
+        registered = self._run(self.primary, "worktree", "list", "--porcelain").stdout
+        self.assertNotIn(str(self.store.resolve()), registered, error)
+        match = re.search(r"failure record: (\S+/failure\.json)\)", error)
+        self.assertIsNotNone(match, error)
+        failure = Path(match.group(1))
+        self.assertTrue(failure.is_file(), error)
+        self.assertTrue(self._is_within(failure, self.store.resolve()), error)
+        record = json.loads(failure.read_text(encoding="utf-8"))
+        self.assertEqual(record["status"], "failed")
+        self.assertFalse(Path(record["worktree"]).exists(), record)
+        return error
+
+    def test_failed_prepare_removes_its_own_worktree_and_branch(self) -> None:
+        injection = (
+            "def fail(*args, **kwargs):\n"
+            "    raise module.WorkspaceError('injected child verification failure')\n"
+            "module._verify_child_capture = fail"
+        )
+        result, payload = self._cli_with_injection(injection, *self._prepare_args("doomed"))
+        self.assertEqual(result.returncode, 2, payload)
+        error = self._assert_failed_prepare_left_nothing(payload, "doomed")
+        self.assertIn("injected child verification failure", error)
+        self.assertIn("removed worktree", error)
+        self.assertIn("deleted branch ask-agent/doomed-", error)
+
+    def test_failed_prepare_cleans_up_after_any_exception(self) -> None:
+        injection = (
+            "import errno\n"
+            "def fail(*args, **kwargs):\n"
+            "    raise OSError(errno.ENOSPC, 'injected no space left')\n"
+            "module._verify_child_capture = fail"
+        )
+        result, payload = self._cli_with_injection(injection, *self._prepare_args("nospace"))
+        self.assertEqual(result.returncode, 2, payload)
+        error = self._assert_failed_prepare_left_nothing(payload, "nospace")
+        self.assertIn("injected no space left", error)
+
+    def test_failed_worktree_add_cleans_up_what_git_left_behind(self) -> None:
+        # Git creates the branch before checkout, and a timeout or checkout
+        # error can leave the branch, or a worktree locked "initializing".
+        cases = {
+            "locked": (
+                "original = module._git\n"
+                "def wrapped(repo, *arguments, **kwargs):\n"
+                "    result = original(repo, *arguments, **kwargs)\n"
+                "    if arguments[:2] == ('worktree', 'add'):\n"
+                "        original(repo, 'worktree', 'lock', '--reason', 'initializing', arguments[4])\n"
+                "        raise module.WorkspaceError('injected timeout during worktree add')\n"
+                "    return result\n"
+                "module._git = wrapped"
+            ),
+            "branchonly": (
+                "original = module._git\n"
+                "def wrapped(repo, *arguments, **kwargs):\n"
+                "    if arguments[:2] == ('worktree', 'add'):\n"
+                "        original(repo, 'branch', arguments[3], arguments[5])\n"
+                "        raise module.WorkspaceError('injected checkout failure')\n"
+                "    return original(repo, *arguments, **kwargs)\n"
+                "module._git = wrapped"
+            ),
+        }
+        for label, injection in cases.items():
+            with self.subTest(case=label):
+                self.store = self.root / f"store-{label}"
+                result, payload = self._cli_with_injection(injection, *self._prepare_args(label))
+                self.assertEqual(result.returncode, 2, payload)
+                error = self._assert_failed_prepare_left_nothing(payload, label)
+                self.assertIn("deleted branch", error)
+                self.assertNotIn("worktree add was not attempted", error)
+
+    def test_failed_prepare_keeps_a_branch_that_moved(self) -> None:
+        injection = (
+            "def fail(worktree, *args, **kwargs):\n"
+            "    module._git(worktree, '-c', 'user.name=t', '-c', 'user.email=t@example.invalid',\n"
+            "                'commit', '--allow-empty', '-qm', 'moved')\n"
+            "    raise module.WorkspaceError('injected failure after a commit')\n"
+            "module._verify_child_capture = fail"
+        )
+        result, payload = self._cli_with_injection(injection, *self._prepare_args("moved"))
+        self.assertEqual(result.returncode, 2, payload)
+        self.assertIn("because it moved", payload["error"])
+        branches = self._run(self.primary, "for-each-ref", "--format=%(refname)", "refs/heads/ask-agent/moved-*").stdout
+        self.assertTrue(branches.strip(), payload)
+
+    def test_empty_repository_prepare_reports_an_actionable_error(self) -> None:
+        empty = self.root / "empty"
+        empty.mkdir()
+        self._run(empty, "init", "-q")
+        payload = self._cli_error("prepare", "--source", str(empty.resolve()),
+                                  "--store", str(self.store.resolve()), "--writers-quiescent")
+        self.assertIn("empty repository or unborn branch", payload["error"])
+
+    def test_interrupted_inspection_build_is_rebuilt_not_trusted(self) -> None:
+        prepared = self._prepare(label="interrupted inspection")
+        receipt = Path(prepared["receipt"])
+        self._write_returned_result(Path(prepared["worktree"]), report=False, scratch=False)
+        injection = (
+            "def fail(*args, **kwargs):\n"
+            "    raise module.WorkspaceError('injected inspection copy failure')\n"
+            "module._copy_filtered_state = fail"
+        )
+        arguments = ("inspect", "--receipt", str(receipt.resolve()), "--phase", "returned", "--delivery-mode", "patch")
+        result, payload = self._cli_with_injection(injection, *arguments)
+        self.assertEqual(result.returncode, 2, payload)
+        self.assertIn("injected inspection copy failure", payload["error"])
+        inspections = receipt.parent / "inspections" / "v2"
+        self.assertEqual([item.name for item in inspections.iterdir()], [], "no partial record may persist")
+
+        inspected = self._inspect_mode(receipt, "patch")
+        patch = Path(inspected["delivery"]["contribution_patch"])
+        self.assertIn(b"+worker contribution\n", patch.read_bytes())
+
+        # A published record that lost its patch is rebuilt rather than trusted.
+        record_dir = patch.parent
+        patch.unlink()
+        rebuilt = self._inspect_mode(receipt, "patch")
+        self.assertEqual(rebuilt["fingerprint"], inspected["fingerprint"])
+        self.assertIn(b"+worker contribution\n", Path(rebuilt["delivery"]["contribution_patch"]).read_bytes())
+        self.assertTrue((record_dir / "inspection.json").is_file())
+
+    def test_close_retry_records_the_acceptance_that_actually_removed(self) -> None:
+        prepared = self._prepare(label="close retry")
+        worktree = Path(prepared["worktree"])
+        receipt = Path(prepared["receipt"])
+        self._write_returned_result(worktree, code=False, scratch=False)
+
+        kept = self._inspect_mode(receipt, "report-only", artifacts=["reports/result.md"])
+        first = self._acceptance(kept["fingerprint"], decision="report-consumed",
+                                 artifacts=[{"path": "reports/result.md", "purpose": "review"}])
+        self._run(self.primary, "worktree", "lock", str(worktree))
+        result, refused = self._close(receipt, first)
+        self._assert_retained(result, refused, worktree)
+        self.assertIn("Git refused", refused.get("reason", ""), refused)
+        self._run(self.primary, "worktree", "unlock", str(worktree))
+
+        dropped = self._inspect_mode(receipt, "report-only", discard=["reports/result.md"])
+        second = self._acceptance(dropped["fingerprint"], decision="report-consumed", artifacts=[],
+                                  discard=["reports/result.md"])
+        closed = self._cli_success("close", "--receipt", str(receipt), "--acceptance", str(second))
+        self.assertEqual(closed.get("status"), "closed", closed)
+        self.assertEqual(closed["inspection_fingerprint"], dropped["fingerprint"], closed)
+        self.assertEqual(closed["archived_artifacts"], [], closed)
+        eligibility = json.loads((receipt.parent / "close-eligibility.json").read_text(encoding="utf-8"))
+        self.assertEqual(eligibility["fingerprint"], dropped["fingerprint"])
+
+    def test_git_timeout_is_configurable_and_bounded(self) -> None:
+        for value in ("0", "-1", "nan", "inf", "1e20", "abc"):
+            with self.subTest(value=value):
+                result, payload = self._cli("prepare", "--source", str(self.source.resolve()), "--store",
+                                            str(self.store.resolve()), "--writers-quiescent",
+                                            environment_overrides={"ASK_AGENT_GIT_TIMEOUT": value})
+                self.assertEqual(result.returncode, 2, payload)
+                self.assertIn("ASK_AGENT_GIT_TIMEOUT must be a positive number", payload["error"])
+        result, payload = self._cli("prepare", "--source", str(self.source.resolve()), "--store",
+                                    str(self.store.resolve()), "--writers-quiescent",
+                                    environment_overrides={"ASK_AGENT_GIT_TIMEOUT": "0.000001"})
+        self.assertEqual(result.returncode, 2, payload)
+        self.assertIn("Git timed out after 1e-06s", payload["error"])
+        result, payload = self._cli("prepare", "--source", str(self.source.resolve()), "--store",
+                                    str(self.store.resolve()), "--writers-quiescent",
+                                    environment_overrides={"ASK_AGENT_GIT_TIMEOUT": "120"})
+        self.assertEqual(result.returncode, 0, payload)
+        self.assertEqual(payload["status"], "prepared", payload)
+
+    def test_exported_pathspec_variables_do_not_break_inspect_or_close(self) -> None:
+        # Git exports these to hooks and `!` aliases (for example under
+        # --literal-pathspecs); check-ignore would then refuse every path.
+        prepared = self._prepare(label="pathspec environment")
+        worktree = Path(prepared["worktree"])
+        receipt = Path(prepared["receipt"])
+        self._write_returned_result(worktree, scratch=False)
+        (worktree / "new_module.py").write_text("print('new')\n", encoding="utf-8")
+        for variable in ("GIT_LITERAL_PATHSPECS", "GIT_GLOB_PATHSPECS", "GIT_NOGLOB_PATHSPECS", "GIT_ICASE_PATHSPECS"):
+            with self.subTest(variable=variable):
+                self.helper_environment = {variable: "1"}
+                inspected = self._inspect_mode(receipt, "patch", artifacts=["reports/result.md"])
+                self.assertEqual(sorted(inspected["contribution_paths"]), ["app.py", "new_module.py"])
+        acceptance = self._acceptance(inspected["fingerprint"], decision="integrated",
+                                      artifacts=[{"path": "reports/result.md", "purpose": "review"}])
+        closed = self._cli_success("close", "--receipt", str(receipt), "--acceptance", str(acceptance))
+        self.assertEqual(closed.get("status"), "closed", closed)
+
+    def test_failed_prepare_removes_worktree_files_git_left_after_deregistering(self) -> None:
+        # Git deregisters a worktree even when deleting its files fails (for
+        # example while a killed checkout child still writes); the report must
+        # match what is actually left.
+        injection = (
+            "original = module._git\n"
+            "def wrapped(repo, *arguments, **kwargs):\n"
+            "    result = original(repo, *arguments, **kwargs)\n"
+            "    if arguments[:2] == ('worktree', 'remove'):\n"
+            "        stray = module.Path(arguments[-1]) / 'late' / 'checkout.txt'\n"
+            "        stray.parent.mkdir(parents=True)\n"
+            "        stray.write_text('written after removal')\n"
+            "    return result\n"
+            "module._git = wrapped\n"
+            "def fail(*args, **kwargs):\n"
+            "    raise module.WorkspaceError('injected failure before stray files')\n"
+            "module._verify_child_capture = fail"
+        )
+        result, payload = self._cli_with_injection(injection, *self._prepare_args("stray"))
+        self.assertEqual(result.returncode, 2, payload)
+        error = self._assert_failed_prepare_left_nothing(payload, "stray")
+        self.assertIn("removed worktree and its leftover files", error)
+
+    def test_failed_prepare_names_an_exception_without_a_message(self) -> None:
+        injection = (
+            "def fail(*args, **kwargs):\n"
+            "    raise ValueError()\n"
+            "module._verify_child_capture = fail"
+        )
+        result, payload = self._cli_with_injection(injection, *self._prepare_args("nameless"))
+        self.assertEqual(result.returncode, 2, payload)
+        error = self._assert_failed_prepare_left_nothing(payload, "nameless")
+        self.assertTrue(error.startswith("ValueError (prepare failed before dispatch"), error)
+
+    def test_ignored_listing_collapses_directories(self) -> None:
+        self._exclude("*.log", "node_modules/")
+        (self.source / "logs").mkdir()
+        (self.source / "logs" / "x.log").write_text("only ignored content\n", encoding="utf-8")
+        (self.source / "node_modules" / "pkg").mkdir(parents=True)
+        (self.source / "node_modules" / "pkg" / "index.js").write_text("module.exports = 1\n", encoding="utf-8")
+        (self.source / "top.log").write_text("ignored file\n", encoding="utf-8")
+        prepared = self._prepare(label="ignored listing")
+        omitted = prepared["ignored_dependencies_omitted"]
+        self.assertIn("node_modules/", omitted)
+        self.assertIn("top.log", omitted)
+        for entry in omitted:
+            for other in omitted:
+                if other != entry and other.endswith("/"):
+                    self.assertFalse(entry.startswith(other), omitted)
+
+    def test_slice_prose_rules_are_pinned(self) -> None:
+        skill = (HELPER.parents[1] / "SKILL.md").read_text(encoding="utf-8")
+        self.assertNotIn("prompt-timer", skill)
+        self.assertIn("native current-session wakeup", skill)
+        hosts = (HELPER.parents[1] / "references" / "host-capabilities.md").read_text(encoding="utf-8")
+        claude = hosts.split("## Claude Code", 1)[1].split("\n## ", 1)[0]
+        self.assertIn("`SendMessage`", claude)
+        self.assertIn("do not poll or schedule wakeups", claude)
 
 
 if __name__ == "__main__":

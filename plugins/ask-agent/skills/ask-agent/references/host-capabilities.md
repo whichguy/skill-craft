@@ -107,7 +107,12 @@ Do not treat Git's `-C` option as moving tests, builds or relative file writes.
 
 Native completion notifications are the primary return route in the tested
 2.1.278 session. Use TaskOutput only if exposed; it was absent in the routing
-probes. Keep a headless parent alive for the native follow-up result. Follow the
+probes. Keep a headless parent alive for the native follow-up result. Use
+`SendMessage` to the returned agent handle, where exposed, for same-worker
+follow-up and for forwarding an approval, decline or revocation to a running
+worker; a new `Agent` call starts a fresh context instead. Completion
+notifications re-invoke the parent, so do not poll or schedule wakeups merely to
+wait for them. Follow the
 [shared lifecycle](native-lifecycle.md) for visible status and cancellation;
 a promptless ScheduleWakeup or arbitrary timer is not collection. TaskStop
 signaling was observed previously; interruption of a running shell command was

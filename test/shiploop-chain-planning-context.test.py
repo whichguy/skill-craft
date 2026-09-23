@@ -30,6 +30,7 @@ MANAGED_WORKTREE_CAPABILITIES = [
     "prepared-inspection",
     "returned-commit-delivery",
     "fingerprint-bound-close",
+    "ignored-output-report",
 ]
 GUIDANCE_ROUTES = {
     "Coding decision guide": "coding-guidance.md#select-guidance",

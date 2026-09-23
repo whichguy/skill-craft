@@ -53,6 +53,12 @@ _LIFECYCLES = frozenset({"per-step", "final-return"})
 _PER_STEP_ASK_AGENT_CONTRACT = "shiploop-chain-ask-agent/v1"
 _MANAGED_PER_STEP_ASK_AGENT_CONTRACT = "shiploop-chain-ask-agent-managed-worktree/v1"
 _MANAGED_ASK_AGENT_IDENTITY_SCHEMA = "shiploop-chain-ask-agent-identity/v1"
+# Ask-Agent emits `ignored_paths` only when a worker produced ignored generated
+# output; it is never part of the contribution.  The key is schema-valid, but
+# a managed returned delivery refuses it before integration: ShipLoop's cleanup
+# keeps any worker worktree that still holds ignored files, so accepting the
+# delivery would integrate a chain that can never finish.
+ASK_AGENT_OPTIONAL_INSPECTION_KEYS = frozenset({"ignored_paths"})
 _MANAGED_ASK_AGENT_FILES = frozenset({
     "SKILL.md",
     "scripts/ask_agent_workspace.py",
@@ -3290,13 +3296,21 @@ def _managed_returned_delivery(binding: Mapping[str, Any], allocation: Mapping[s
         "changed_paths", "contribution_paths", "artifacts", "discard", "evidence", "delivery",
         "delivery_evidence",
     }
-    if not isinstance(returned, Mapping) or set(returned) != expected_keys:
+    if not isinstance(returned, Mapping) or set(returned) - ASK_AGENT_OPTIONAL_INSPECTION_KEYS != expected_keys:
         _fail("Ask-Agent returned delivery inspection has an unsupported schema")
     if (returned.get("status"), returned.get("phase"), returned.get("receipt"), returned.get("worktree"),
             returned.get("branch"), returned.get("baseline"), returned.get("artifacts"), returned.get("discard")) != (
                 "returned", "returned", receipt["receipt"], workspace, receipt["branch"], receipt["baseline"],
                 [], [_managed_handoff_discard(attempt)]):
         _fail("Ask-Agent returned delivery inspection conflicts with the allocated receipt")
+    ignored = returned.get("ignored_paths")
+    if ignored:
+        if not isinstance(ignored, list) or not all(isinstance(path, str) and path for path in ignored):
+            _fail("Ask-Agent returned delivery has invalid ignored-output evidence")
+        shown = ", ".join(ignored[:5]) + (f" and {len(ignored) - 5} more" if len(ignored) > 5 else "")
+        _fail("managed worker left ignored generated output (" + shown + "); remove it from the worker "
+              "workspace and import the handoff again, because cleanup keeps any worktree that holds "
+              "ignored files and the chain could not finish")
     _sha(returned.get("fingerprint"), "Ask-Agent returned delivery fingerprint")
     if not isinstance(returned.get("changed_paths"), list) or not isinstance(returned.get("contribution_paths"), list):
         _fail("Ask-Agent returned delivery inspection has invalid changed-path evidence")
@@ -3364,7 +3378,7 @@ def _validate_managed_returned_delivery(binding: Mapping[str, Any], allocation: 
         "changed_paths", "contribution_paths", "artifacts", "discard", "evidence", "delivery",
         "delivery_evidence",
     }
-    if not isinstance(inspection, Mapping) or set(inspection) != expected_keys:
+    if not isinstance(inspection, Mapping) or set(inspection) - ASK_AGENT_OPTIONAL_INSPECTION_KEYS != expected_keys:
         _fail("managed returned delivery inspection has an unsupported schema")
     if (inspection.get("status"), inspection.get("phase"), inspection.get("receipt"), inspection.get("worktree"),
             inspection.get("branch"), inspection.get("baseline"), inspection.get("artifacts"), inspection.get("discard")) != (
@@ -3861,7 +3875,7 @@ def _managed_post_integration_inspection(binding: Mapping[str, Any], allocation:
         "status", "receipt", "worktree", "branch", "baseline", "phase", "fingerprint",
         "changed_paths", "contribution_paths", "artifacts", "discard", "evidence",
     }
-    if not isinstance(returned, Mapping) or set(returned) != expected_keys:
+    if not isinstance(returned, Mapping) or set(returned) - ASK_AGENT_OPTIONAL_INSPECTION_KEYS != expected_keys:
         _fail("Ask-Agent post-integration inspection has an unsupported schema")
     if (returned.get("status"), returned.get("phase"), returned.get("receipt"), returned.get("worktree"),
             returned.get("branch"), returned.get("baseline"), returned.get("artifacts"), returned.get("discard")) != (
@@ -3911,7 +3925,7 @@ def _managed_close_intent(binding: Mapping[str, Any], allocation: Mapping[str, A
         "status", "receipt", "worktree", "branch", "baseline", "phase", "fingerprint",
         "changed_paths", "contribution_paths", "artifacts", "discard", "evidence",
     }
-    if (not isinstance(inspection, Mapping) or set(inspection) != inspection_keys
+    if (not isinstance(inspection, Mapping) or set(inspection) - ASK_AGENT_OPTIONAL_INSPECTION_KEYS != inspection_keys
             or (inspection.get("status"), inspection.get("phase"), inspection.get("receipt"),
                 inspection.get("worktree"), inspection.get("branch"), inspection.get("artifacts"),
                 inspection.get("discard")) != (
