@@ -18,7 +18,9 @@ import json
 import math
 import os
 import re
+import shlex
 import shutil
+import signal
 import stat
 import subprocess
 import sys
@@ -51,7 +53,7 @@ VERSION = 1
 # derivation version, so a helper whose fix changes how evidence is derived
 # never reuses a copy an earlier version produced (0.7.4 and earlier wrote
 # `inspections/<fingerprint>` directly).  Bump this when derivation changes.
-EVIDENCE_DERIVATION = "v2"
+EVIDENCE_DERIVATION = "v3"
 SHA256_RE = re.compile(r"[0-9a-f]{64}")
 GIT_SHA_RE = re.compile(r"[0-9a-f]{40,64}")
 SEMVER_RE = re.compile(
@@ -456,6 +458,10 @@ GIT_DIFF_ENVIRONMENT = frozenset({
 })
 DEFAULT_GIT_TIMEOUT_SECONDS = 300.0
 MAX_GIT_TIMEOUT_SECONDS = 86400.0
+# Failed-prepare cleanup often follows a Git timeout; it must not inherit a
+# deliberately short limit and give up on the state that timeout left.
+PROCESS_STOP_GRACE_SECONDS = 2.0
+CLEANUP_GIT_TIMEOUT_SECONDS = 120.0
 
 
 def _git_timeout() -> float:
@@ -478,34 +484,63 @@ def _git(
     input_bytes: bytes | None = None,
     check: bool = True,
     extra_environment: Mapping[str, str] | None = None,
+    minimum_timeout: float = 0.0,
 ) -> subprocess.CompletedProcess[bytes]:
-    timeout = _git_timeout()
+    timeout = max(_git_timeout(), minimum_timeout)
     environment = _clean_git_environment()
     environment.update(extra_environment or {})
+    command = ["git", *GIT_OUTPUT_CONFIG, "-C", os.fspath(repo), *arguments]
     try:
-        result = subprocess.run(
-            ["git", *GIT_OUTPUT_CONFIG, "-C", os.fspath(repo), *arguments],
-            input=input_bytes,
+        # Git runs some work (for example a worktree checkout) in child
+        # processes.  Its own session lets a timeout or interrupt stop the
+        # whole group, so no orphaned child keeps writing after we report.
+        process = subprocess.Popen(
+            command,
+            stdin=subprocess.PIPE if input_bytes is not None else None,
             stdout=subprocess.PIPE,
             stderr=subprocess.PIPE,
-            check=False,
             env=environment,
-            timeout=timeout,
+            start_new_session=True,
         )
     except FileNotFoundError as exc:
         _fail("Git is required but was not found on PATH")
         raise AssertionError from exc
+    try:
+        stdout, stderr = process.communicate(input=input_bytes, timeout=timeout)
     except subprocess.TimeoutExpired as exc:
+        _stop_process_group(process)
         _fail(
             f"Git timed out after {timeout:g}s during {' '.join(arguments[:3])}; "
             "set ASK_AGENT_GIT_TIMEOUT to allow longer"
         )
         raise AssertionError from exc
+    except BaseException:
+        _stop_process_group(process)
+        raise
+    result = subprocess.CompletedProcess(command, process.returncode, stdout, stderr)
     if check and result.returncode:
         detail = result.stderr.decode("utf-8", "replace").strip().splitlines()
         suffix = f": {detail[-1]}" if detail else ""
         _fail(f"Git {' '.join(arguments[:3])} failed{suffix}")
     return result
+
+
+def _stop_process_group(process: subprocess.Popen[bytes]) -> None:
+    """Stop a Git command and every child in its session, then reap it.
+
+    SIGTERM comes first because Git removes its lock files and a half-created
+    worktree on SIGTERM but cannot on SIGKILL; whatever still runs after a
+    short grace is killed.
+    """
+    for signum, wait in ((signal.SIGTERM, PROCESS_STOP_GRACE_SECONDS), (signal.SIGKILL, 10.0)):
+        try:
+            os.killpg(process.pid, signum)
+        except (ProcessLookupError, PermissionError):
+            pass
+        try:
+            process.communicate(timeout=wait)
+        except (subprocess.TimeoutExpired, ValueError):
+            pass
 
 
 def _patch_diff(repo: Path, *arguments: str) -> bytes:
@@ -636,20 +671,33 @@ def _refuse_submodules(repo: Path, entries: Sequence[Mapping[str, Any]]) -> None
         _fail(f"submodule content cannot be faithfully copied: {relative}")
 
 
-def _refuse_filter_ambiguity(repo: Path, paths: Sequence[str]) -> None:
+def _paths_with_attribute(repo: Path, paths: Sequence[str], attribute: str) -> list[str]:
+    """Return the paths for which `attribute` is set (neither unspecified nor unset)."""
     if not paths:
-        return
+        return []
     payload = b"".join(os.fsencode(path) + b"\0" for path in paths)
-    raw = _git(repo, "check-attr", "-z", "filter", "--stdin", input_bytes=payload).stdout
+    raw = _git(repo, "check-attr", "-z", attribute, "--stdin", input_bytes=payload).stdout
     parts = raw.split(b"\0")
     if parts and parts[-1] == b"":
         parts.pop()
     if len(parts) % 3:
-        _fail("Git returned malformed filter attributes")
-    for index in range(0, len(parts), 3):
-        value = parts[index + 2]
-        if value not in {b"unspecified", b"unset"}:
-            _fail(f"Git filter ambiguity is unsupported at {os.fsdecode(parts[index])}")
+        _fail(f"Git returned malformed {attribute} attributes")
+    return [
+        os.fsdecode(parts[index]) for index in range(0, len(parts), 3)
+        if parts[index + 2] not in {b"unspecified", b"unset"}
+        and not (attribute == "working-tree-encoding" and _is_utf8_name(parts[index + 2]))
+    ]
+
+
+def _is_utf8_name(value: bytes) -> bool:
+    """Git treats these working-tree-encoding values as UTF-8 and converts nothing."""
+    return value.lower().replace(b"-", b"") == b"utf8"
+
+
+def _refuse_filter_ambiguity(repo: Path, paths: Sequence[str]) -> None:
+    filtered = _paths_with_attribute(repo, paths, "filter")
+    if filtered:
+        _fail(f"Git filter ambiguity is unsupported at {filtered[0]}")
 
 
 def _entry_at(root: Path, relative: str, *, label: str) -> dict[str, Any]:
@@ -878,9 +926,9 @@ def _capture_source(source: Path) -> SourceCapture:
     )
 
 
-def _registered_worktrees(repo: Path) -> list[dict[str, str]]:
+def _registered_worktrees(repo: Path, *, minimum_timeout: float = 0.0) -> list[dict[str, str]]:
     """Read Git's registration view, rather than trusting a path on disk."""
-    raw = _git(repo, "worktree", "list", "--porcelain").stdout.decode("utf-8", "surrogateescape")
+    raw = _git(repo, "worktree", "list", "--porcelain", minimum_timeout=minimum_timeout).stdout.decode("utf-8", "surrogateescape")
     rows: list[dict[str, str]] = []
     current: dict[str, str] = {}
     for line in raw.splitlines():
@@ -1106,6 +1154,7 @@ def _new_prepare(source_argument: Path, store_argument: Path | None, label: str 
     worktree = attempt / "worktree"
     branch = f"ask-agent/{_label_fragment(label)}-{attempt_id[:12]}"
     add_attempted = False
+    receipt_started = receipt_written = False
     try:
         with _attempt_lock(attempt):
             _write_new_bytes(paths["staged_patch"], capture_before.staged_patch)
@@ -1180,15 +1229,32 @@ def _new_prepare(source_argument: Path, store_argument: Path | None, label: str 
                 "baseline": os.fspath(paths["baseline"]),
                 "baseline_sha256": baseline_sha,
             }
+            receipt_started = True
             _write_new_json(paths["receipt"], receipt)
+            receipt_written = True
             record = _load_receipt(paths["receipt"])
             result = _base_output(record, "prepared")
             result.update({"source": os.fspath(source), "attempt": attempt_id, "ignored_dependencies_omitted": capture_before.ignored})
             return result
     except BaseException as exc:
+        if receipt_written:
+            # The attempt is prepared: its receipt names an intact worktree
+            # that `prepare --receipt` reuses, so nothing is removed.
+            note = f"prepare wrote its receipt; the workspace is kept for reuse with prepare --receipt {paths['receipt']}"
+            if isinstance(exc, (KeyboardInterrupt, SystemExit)):
+                sys.stderr.write(f"ask-agent: {note}\n")
+                raise
+            raise WorkspaceError(f"{exc} ({note})") from exc
         # Any failure, including OSError or an interrupt, must not strand a
         # receipt-less worktree and branch in the caller's repository.
         cleanup = "worktree add was not attempted"
+        if receipt_started:
+            # A receipt this prepare did not finish writing names nothing
+            # usable; remove it so a receipt always means a prepared attempt.
+            try:
+                paths["receipt"].unlink(missing_ok=True)
+            except OSError:
+                pass
         if add_attempted:
             try:
                 cleanup = _discard_failed_preparation(source, attempt / "worktree", branch, capture_before.head)
@@ -1214,14 +1280,29 @@ def _discard_failed_preparation(source: Path, worktree: Path, branch: str, head:
     the captured source HEAD, i.e. it holds no commits of its own.
     """
     notes: list[str] = []
-    if _registered_path_present(source, worktree):
+    if _registered_path_present(source, worktree, minimum_timeout=CLEANUP_GIT_TIMEOUT_SECONDS):
         # Double force also removes a worktree Git left locked mid-creation
         # ("initializing").  The path is this attempt's own, so no one else
         # can hold that lock legitimately.
-        removed = _git(source, "worktree", "remove", "--force", "--force", os.fspath(worktree), check=False)
-        if removed.returncode and _registered_path_present(source, worktree):
-            detail = removed.stderr.decode("utf-8", "replace").strip().splitlines()
-            return "retained worktree and branch; Git refused removal" + (f": {detail[-1]}" if detail else "")
+        removed = _git(source, "worktree", "remove", "--force", "--force", os.fspath(worktree), check=False,
+                       minimum_timeout=CLEANUP_GIT_TIMEOUT_SECONDS)
+        if removed.returncode and _registered_path_present(source, worktree, minimum_timeout=CLEANUP_GIT_TIMEOUT_SECONDS):
+            # Git refuses to validate a half-created worktree (for example one
+            # whose .git file was never written).  The directory is this
+            # attempt's own, so delete it; Git then removes the registration.
+            if os.path.lexists(worktree):
+                shutil.rmtree(worktree)
+            removed = _git(source, "worktree", "remove", "--force", "--force", os.fspath(worktree), check=False,
+                           minimum_timeout=CLEANUP_GIT_TIMEOUT_SECONDS)
+            if removed.returncode and _registered_path_present(source, worktree, minimum_timeout=CLEANUP_GIT_TIMEOUT_SECONDS):
+                detail = removed.stderr.decode("utf-8", "replace").strip().splitlines()
+                return (
+                    "retained worktree registration and branch; Git refused removal"
+                    + (f": {detail[-1]}" if detail else "")
+                    + f"; recover with: rm -rf {shlex.quote(os.fspath(worktree))}; "
+                    + f"git -C {shlex.quote(os.fspath(source))} worktree prune; then delete branch "
+                    + f"{branch} only if it still points at {head}"
+                )
         if os.path.lexists(worktree):
             # Git deregisters the worktree even when deleting its files fails,
             # for example while a killed checkout's child was still writing.
@@ -1234,13 +1315,15 @@ def _discard_failed_preparation(source: Path, worktree: Path, branch: str, head:
         notes.append("removed unregistered worktree directory")
     else:
         notes.append("no worktree was created")
-    tip = _git(source, "rev-parse", "--verify", "--quiet", f"refs/heads/{branch}", check=False)
+    tip = _git(source, "rev-parse", "--verify", "--quiet", f"refs/heads/{branch}", check=False,
+               minimum_timeout=CLEANUP_GIT_TIMEOUT_SECONDS)
     if tip.returncode:
         notes.append("no branch was created")
     elif tip.stdout.decode("ascii", "replace").strip() != head:
         notes.append(f"retained branch {branch} because it moved")
     else:
-        deleted = _git(source, "branch", "-D", "--", branch, check=False)
+        deleted = _git(source, "branch", "-D", "--", branch, check=False,
+                       minimum_timeout=CLEANUP_GIT_TIMEOUT_SECONDS)
         notes.append(f"deleted branch {branch}" if deleted.returncode == 0 else f"retained branch {branch}; deletion failed")
     return "; ".join(notes)
 
@@ -1429,9 +1512,10 @@ def _make_delta_patch(
         # without prefix stripping, so a detected rename could not apply.
         # The ceiling stops repository discovery at the staging directory, so
         # a repository that happens to enclose the store contributes no
-        # configuration or attributes to the patch.
+        # configuration or attributes to the patch.  Without an index, a
+        # global core.autocrlf would turn CRLF into LF on both sides.
         diff = _git(
-            staging, "diff", "--no-index", *PATCH_DIFF_FLAGS, "--no-renames", "--no-prefix",
+            staging, "-c", "core.autocrlf=false", "diff", "--no-index", *PATCH_DIFF_FLAGS, "--no-renames", "--no-prefix",
             "--", "a", "b", check=False,
             extra_environment={"GIT_CEILING_DIRECTORIES": os.fspath(inspection_root)},
         )
@@ -1543,6 +1627,23 @@ def _delivery_proof(
         "base": source_head,
     }
     if delivery_mode == "patch":
+        # The contribution patch carries working-tree bytes, but `git apply`
+        # converts a new file through the target's attributes as they are
+        # before the patch.  working-tree-encoding re-encodes and a filter
+        # smudges already-converted bytes, and apply still exits 0, so refuse
+        # when either the worker's or the caller's attributes convert a path.
+        # (The worker's own view misses a patch that edits .gitattributes.)
+        source, _ = _validate_binding(record, require_worktree=False)
+        converted: set[str] = set()
+        for attribute in ("working-tree-encoding", "filter"):
+            for view in (worktree, source):
+                converted.update(_paths_with_attribute(view, contribution_paths, attribute))
+        if converted:
+            _fail(
+                "patch delivery cannot carry content that Git converts on write (working-tree-encoding "
+                "or filter), because git apply would convert it again: " + ", ".join(sorted(converted))
+                + "; use commits delivery or integrate these files by hand"
+            )
         delivery = {
             "mode": "patch",
             "base": source_head,
@@ -1994,9 +2095,9 @@ def check_context(*, receipt: Path) -> dict[str, Any]:
         return result
 
 
-def _registered_path_present(source: Path, worktree: Path) -> bool:
+def _registered_path_present(source: Path, worktree: Path, *, minimum_timeout: float = 0.0) -> bool:
     expected = os.path.normpath(os.fspath(worktree))
-    for item in _registered_worktrees(source):
+    for item in _registered_worktrees(source, minimum_timeout=minimum_timeout):
         raw = item.get("worktree")
         if raw and os.path.normpath(os.path.abspath(raw)) == expected:
             return True
@@ -2249,7 +2350,18 @@ def _emit(value: Mapping[str, Any]) -> None:
     sys.stdout.write(json.dumps(value, sort_keys=True, ensure_ascii=True, separators=(",", ":")) + "\n")
 
 
+def _terminate(signum: int, _frame: Any) -> None:
+    """Turn a termination signal into an exception so cleanup and Git stops run.
+
+    Git runs in its own session, so a signal sent to the helper's process
+    group no longer reaches it directly; unwinding through `_git` stops it.
+    """
+    raise SystemExit(128 + signum)
+
+
 def main(argv: Sequence[str] | None = None) -> int:
+    for signum in (signal.SIGTERM, signal.SIGHUP):
+        signal.signal(signum, _terminate)
     try:
         parsed = _parser().parse_args(argv)
         if parsed.command == "identity":

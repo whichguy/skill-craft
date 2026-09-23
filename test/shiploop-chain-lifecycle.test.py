@@ -964,6 +964,7 @@ class PerStepChainTests(PerStepChainFixture):
         packet = self.managed_start("A", attempts["A"], base=self.head())
         workspace = Path(packet["context"]["workspace"])
         common = Path(self.f.git(workspace, "rev-parse", "--path-format=absolute", "--git-common-dir").strip())
+        (common / "info").mkdir(exist_ok=True)  # a template may omit info/
         with (common / "info" / "exclude").open("a") as stream:
             stream.write("\n__pycache__/\n")
         result = self.managed_worker_result("A")

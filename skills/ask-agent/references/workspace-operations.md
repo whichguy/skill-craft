@@ -176,12 +176,20 @@ silently; `ignored_dependencies_omitted` lists them, collapsing a wholly ignored
 directory to one `dir/` entry. Unsupported state produces a concrete failure,
 not a partial-success workspace. A refusal found while capturing the source
 (the states listed below) happens before any attempt exists. A later failure,
-including a Git timeout, an I/O error or an interrupt, removes whatever
-worktree and still-unmoved branch that prepare created (no worker has run
-there) and names the attempt's `failure.json` record in the error. Re-run
-prepare after fixing the cause. A prepare killed from outside, for example by
-a consumer's own timeout, cannot clean up and may leave the attempt's
-worktree and branch. Permission bits Git does not
+including a Git timeout, an I/O error, an interrupt, or SIGTERM or SIGHUP,
+stops the running Git command and its children (SIGTERM first, so Git can
+remove its lock files and a half-created worktree, then SIGKILL after a
+two-second grace), removes whatever worktree
+and still-unmoved branch that prepare created (no worker has run there) and
+names the attempt's `failure.json` record in the error. Re-run prepare after
+fixing the cause. Once prepare has written `receipt.json`, the attempt is
+prepared: a later failure or handled signal keeps the workspace, and the
+error names the receipt to reuse with `prepare --receipt`. A prepare killed with SIGKILL, for example by a consumer's
+own timeout, cannot clean up: it may leave the attempt's worktree and
+branch, and Git, which runs in its own session, may still be writing them; a
+Git process killed the same way can leave a lock file (for example
+`<branch>.lock` or `tables.list.lock`) that must be removed by hand once no
+Git command is running. Permission bits Git does not
 track (for example `chmod 600`, or a symlink's own mode) do not block preparation.
 This version refuses an empty repository or unborn branch (commit once first),
 submodules, conflicted/special index states (including
@@ -242,7 +250,11 @@ The JSON result includes `delivery.mode=patch`, the baseline-relative
 `delivery.contribution_patch`, its contribution paths, and
 `evidence.delivery` (also exposed as `delivery_evidence`). The parent verifies that patch against the current target
 and applies it according to repository policy. This is the mode for a dirty
-caller snapshot.
+caller snapshot. Patch delivery refuses a contribution path that Git
+converts on write, through a non-UTF-8 `working-tree-encoding` or a `filter`
+attribute in either the worker's or the caller's attributes: `git apply`
+would convert those bytes again and still succeed. Use `commits` delivery or
+integrate such files by hand.
 
 For a clean-snapshot commit handoff, pass the exact source HEAD from the receipt
 and every full worker contribution SHA in linear order:
@@ -335,7 +347,9 @@ close records the acceptance that actually removed the worktree.
 Each Git call has a 300-second timeout. Set `ASK_AGENT_GIT_TIMEOUT` (seconds, at
 most 86400) for very large repositories. A timeout is a reported failure; during
 prepare the helper then removes what it created, as described under Snapshot
-limits.
+limits. That failed-prepare cleanup gives each of its own Git calls at least
+120 seconds, so a short limit that just expired cannot also stop the
+cleanup.
 
 Read the actual outcome before reporting removal. Update final result links to
 the retained paths; a removed worktree link is not a usable deliverable. Existing

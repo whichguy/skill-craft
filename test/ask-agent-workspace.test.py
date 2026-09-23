@@ -10,10 +10,13 @@ import os
 from pathlib import Path
 import shlex
 import shutil
+import signal
 import subprocess
 import sys
 import tempfile
+import time
 import unittest
+from unittest import mock
 from typing import Any, Iterable, Mapping
 
 
@@ -1541,7 +1544,9 @@ raise SystemExit(module.main(sys.argv[2:]))
 
     # Pinned regressions for patch fidelity, snapshot tolerance, and retry safety.
 
-    def _cli_with_injection(self, injection: str, *args: str) -> tuple[subprocess.CompletedProcess[str], dict[str, Any]]:
+    def _cli_with_injection(
+        self, injection: str, *args: str, expect_json: bool = True,
+    ) -> tuple[subprocess.CompletedProcess[str], dict[str, Any]]:
         """Run the helper CLI after executing `injection` against the loaded module."""
         self._acceptance_number += 1
         driver = self.root / f"injection-driver-{self._acceptance_number}.py"
@@ -1566,6 +1571,8 @@ raise SystemExit(module.main(sys.argv[2:]))
             cwd=self.invoke_from, env=environment, text=True,
             stdout=subprocess.PIPE, stderr=subprocess.PIPE, check=False,
         )
+        if not expect_json:
+            return result, {}
         try:
             payload = json.loads(result.stdout)
         except json.JSONDecodeError:
@@ -1783,7 +1790,7 @@ raise SystemExit(module.main(sys.argv[2:]))
         self._write_returned_result(Path(prepared["worktree"]), report=False, scratch=False)
         first = self._inspect_mode(receipt, "patch")
         patch = Path(first["delivery"]["contribution_patch"])
-        self.assertEqual((patch.parent.parent.parent.name, patch.parent.parent.name), ("inspections", "v2"))
+        self.assertEqual((patch.parent.parent.parent.name, patch.parent.parent.name), ("inspections", "v3"))
         # Simulate a pre-0.7.5 record under the same fingerprint: a corrupted
         # patch in the unversioned directory, and no current-derivation record.
         legacy = receipt.parent / "inspections" / first["fingerprint"]
@@ -1791,7 +1798,7 @@ raise SystemExit(module.main(sys.argv[2:]))
         (legacy / "contribution.patch").write_bytes(b"legacy corrupted patch\n")
         (legacy / "inspection.json").write_text("{}", encoding="utf-8")
         shutil.rmtree(patch.parent)
-        shutil.rmtree(receipt.parent / "delivery-evidence" / "v2")
+        shutil.rmtree(receipt.parent / "delivery-evidence" / "v3")
         again = self._inspect_mode(receipt, "patch")
         rebuilt = Path(again["delivery"]["contribution_patch"])
         self.assertEqual(again["fingerprint"], first["fingerprint"])
@@ -1812,18 +1819,20 @@ raise SystemExit(module.main(sys.argv[2:]))
         _, inspected = self._inspect(Path(prepared["receipt"]), "prepared")
         self.assertEqual(inspected["changed_paths"], [], inspected)
 
-    def _assert_failed_prepare_left_nothing(self, payload: dict[str, Any], label: str) -> str:
+    def _assert_failed_prepare_left_nothing(self, payload: dict[str, Any], label: str, store: Path | None = None) -> str:
+        store = (store or self.store).resolve()
         error = payload["error"]
         self.assertIn("prepare failed before dispatch", error)
         branches = self._run(self.primary, "for-each-ref", "--format=%(refname)", f"refs/heads/ask-agent/{label}-*").stdout
         self.assertEqual(branches, "", error)
         registered = self._run(self.primary, "worktree", "list", "--porcelain").stdout
-        self.assertNotIn(str(self.store.resolve()), registered, error)
-        match = re.search(r"failure record: (\S+/failure\.json)\)", error)
+        self.assertNotIn(str(store), registered, error)
+        # Anchored at the end so a path containing spaces still matches.
+        match = re.search(r"failure record: (.+/failure\.json)\)$", error)
         self.assertIsNotNone(match, error)
         failure = Path(match.group(1))
         self.assertTrue(failure.is_file(), error)
-        self.assertTrue(self._is_within(failure, self.store.resolve()), error)
+        self.assertTrue(self._is_within(failure, store), error)
         record = json.loads(failure.read_text(encoding="utf-8"))
         self.assertEqual(record["status"], "failed")
         self.assertFalse(Path(record["worktree"]).exists(), record)
@@ -1854,6 +1863,53 @@ raise SystemExit(module.main(sys.argv[2:]))
         error = self._assert_failed_prepare_left_nothing(payload, "nospace")
         self.assertIn("injected no space left", error)
 
+    def test_prepare_failing_after_its_receipt_keeps_the_workspace(self) -> None:
+        # Once receipt.json exists the attempt is prepared; a failure or a
+        # handled signal after that must leave it reusable, not tear it down.
+        for label, raise_statement, expected_code in (
+            ("afterterm", "os.kill(os.getpid(), signal.SIGTERM); time.sleep(5)", 128 + signal.SIGTERM),
+            ("afterio", "raise OSError(errno.EIO, 'injected read failure')", 2),
+        ):
+            with self.subTest(case=label):
+                injection = (
+                    "import errno, os, signal, time\n"
+                    "original = module._load_receipt\n"
+                    "calls = []\n"
+                    "def wrapped(*args, **kwargs):\n"
+                    "    if not calls:\n"
+                    "        calls.append(1)\n"
+                    f"        {raise_statement}\n"
+                    "    return original(*args, **kwargs)\n"
+                    "module._load_receipt = wrapped"
+                )
+                result, _ = self._cli_with_injection(injection, *self._prepare_args(label), expect_json=False)
+                self.assertEqual(result.returncode, expected_code, result.stderr)
+                self.assertIn("kept for reuse with prepare --receipt", result.stdout + result.stderr)
+                receipts = list(self.store.glob("attempts/*/receipt.json"))
+                receipt = next(path for path in receipts if json.loads(path.read_text(encoding="utf-8"))["branch"].startswith(f"ask-agent/{label}-"))
+                self.assertFalse((receipt.parent / "failure.json").exists())
+                reused = self._prepare(receipt=receipt)
+                self.assertTrue(reused.get("reused"), reused)
+                self.assertTrue(Path(reused["worktree"]).is_dir(), reused)
+
+    def test_prepare_failing_while_writing_its_receipt_removes_it(self) -> None:
+        injection = (
+            "original = module._write_new_json\n"
+            "def wrapped(path, value):\n"
+            "    if path.name == 'receipt.json':\n"
+            "        module._write_new_bytes(path, b'{\"schema\"')\n"
+            "        raise KeyboardInterrupt\n"
+            "    return original(path, value)\n"
+            "module._write_new_json = wrapped"
+        )
+        result, _ = self._cli_with_injection(injection, *self._prepare_args("partial"), expect_json=False)
+        self.assertNotEqual(result.returncode, 0)
+        messages = [line.removeprefix("ask-agent: ") for line in result.stderr.splitlines() if line.startswith("ask-agent: ")]
+        self.assertEqual(len(messages), 1, result.stderr)
+        error = self._assert_failed_prepare_left_nothing({"error": messages[0]}, "partial")
+        failure = Path(re.search(r"failure record: (.+/failure\.json)\)$", error).group(1))
+        self.assertFalse((failure.parent / "receipt.json").exists(), error)
+
     def test_failed_worktree_add_cleans_up_what_git_left_behind(self) -> None:
         # Git creates the branch before checkout, and a timeout or checkout
         # error can leave the branch, or a worktree locked "initializing".
@@ -1866,6 +1922,17 @@ raise SystemExit(module.main(sys.argv[2:]))
                 "        original(repo, 'worktree', 'lock', '--reason', 'initializing', arguments[4])\n"
                 "        raise module.WorkspaceError('injected timeout during worktree add')\n"
                 "    return result\n"
+                "module._git = wrapped"
+            ),
+            "unregistered": (
+                "original = module._git\n"
+                "def wrapped(repo, *arguments, **kwargs):\n"
+                "    if arguments[:2] == ('worktree', 'add'):\n"
+                "        stray = module.Path(arguments[4]) / 'partial.txt'\n"
+                "        stray.parent.mkdir(parents=True)\n"
+                "        stray.write_text('checkout began before registration')\n"
+                "        raise module.WorkspaceError('injected failure before registration')\n"
+                "    return original(repo, *arguments, **kwargs)\n"
                 "module._git = wrapped"
             ),
             "branchonly": (
@@ -1884,8 +1951,11 @@ raise SystemExit(module.main(sys.argv[2:]))
                 result, payload = self._cli_with_injection(injection, *self._prepare_args(label))
                 self.assertEqual(result.returncode, 2, payload)
                 error = self._assert_failed_prepare_left_nothing(payload, label)
-                self.assertIn("deleted branch", error)
                 self.assertNotIn("worktree add was not attempted", error)
+                if label == "unregistered":
+                    self.assertIn("removed unregistered worktree directory", error)
+                else:
+                    self.assertIn("deleted branch", error)
 
     def test_failed_prepare_keeps_a_branch_that_moved(self) -> None:
         injection = (
@@ -1922,7 +1992,7 @@ raise SystemExit(module.main(sys.argv[2:]))
         result, payload = self._cli_with_injection(injection, *arguments)
         self.assertEqual(result.returncode, 2, payload)
         self.assertIn("injected inspection copy failure", payload["error"])
-        inspections = receipt.parent / "inspections" / "v2"
+        inspections = receipt.parent / "inspections" / "v3"
         self.assertEqual([item.name for item in inspections.iterdir()], [], "no partial record may persist")
 
         inspected = self._inspect_mode(receipt, "patch")
@@ -2048,6 +2118,237 @@ raise SystemExit(module.main(sys.argv[2:]))
             for other in omitted:
                 if other != entry and other.endswith("/"):
                     self.assertFalse(entry.startswith(other), omitted)
+
+    def test_patch_delivery_refuses_working_tree_encoding_content(self) -> None:
+        # git apply re-encodes a new file through the target's
+        # working-tree-encoding and still exits 0, so the patch would deliver
+        # double-encoded bytes.  Patch delivery refuses instead.
+        common = Path(self._run(self.source, "rev-parse", "--path-format=absolute", "--git-common-dir").stdout.strip())
+        (common / "info").mkdir(exist_ok=True)
+        (common / "info" / "attributes").write_text("*.rc working-tree-encoding=UTF-16LE text\n", encoding="utf-8")
+        prepared = self._prepare(label="encoded")
+        worktree = Path(prepared["worktree"])
+        receipt = Path(prepared["receipt"])
+        (worktree / "app.py").write_text("base application\nworker contribution\n", encoding="utf-8")
+        (worktree / "new.rc").write_bytes("hello\nworld\n".encode("utf-16-le"))
+        refused = self._cli_error("inspect", "--receipt", str(receipt.resolve()), "--phase", "returned",
+                                  "--delivery-mode", "patch")
+        self.assertIn("working-tree-encoding", refused["error"])
+        self.assertIn("new.rc", refused["error"])
+        # Without the encoded file the same worker delivers normally.
+        (worktree / "new.rc").unlink()
+        delivered = self._inspect_mode(receipt, "patch")
+        self.assertEqual(delivered["contribution_paths"], ["app.py"])
+
+    def test_patch_delivery_checks_the_callers_attributes_as_well(self) -> None:
+        # git apply converts through the target's attributes as they are
+        # before the patch, so a contribution that also drops the rule from
+        # .gitattributes must still be refused.
+        (self.source / ".gitattributes").write_text("*.rc working-tree-encoding=UTF-16LE text\n", encoding="utf-8")
+        prepared = self._prepare(label="attribute edit")
+        worktree = Path(prepared["worktree"])
+        (worktree / ".gitattributes").write_text("# resources are UTF-8 now\n", encoding="utf-8")
+        (worktree / "new.rc").write_text("hello\nworld\n", encoding="utf-8")
+        refused = self._cli_error("inspect", "--receipt", prepared["receipt"], "--phase", "returned",
+                                  "--delivery-mode", "patch")
+        self.assertIn("new.rc", refused["error"])
+
+    def test_patch_delivery_allows_utf8_encoding_and_refuses_filters(self) -> None:
+        common = Path(self._run(self.source, "rev-parse", "--path-format=absolute", "--git-common-dir").stdout.strip())
+        (common / "info").mkdir(exist_ok=True)
+        (common / "info" / "attributes").write_text(
+            "*.txt working-tree-encoding=utf8\n*.lfsdata filter=lfs\n", encoding="utf-8")
+        prepared = self._prepare(label="attribute values")
+        worktree = Path(prepared["worktree"])
+        receipt = Path(prepared["receipt"])
+        (worktree / "plain.txt").write_text("git converts nothing for utf8\n", encoding="utf-8")
+        delivered = self._inspect_mode(receipt, "patch")
+        self.assertEqual(delivered["contribution_paths"], ["plain.txt"])
+        (worktree / "blob.lfsdata").write_bytes(b"large content\n")
+        refused = self._cli_error("inspect", "--receipt", str(receipt.resolve()), "--phase", "returned",
+                                  "--delivery-mode", "patch")
+        self.assertIn("blob.lfsdata", refused["error"])
+        self.assertNotIn("plain.txt", refused["error"])
+
+    def test_failed_prepare_cleanup_outlives_a_short_git_timeout(self) -> None:
+        # Cleanup after a Git timeout must not inherit that short limit.
+        injection = (
+            "import os\n"
+            "original = module._git\n"
+            "def wrapped(repo, *arguments, **kwargs):\n"
+            "    result = original(repo, *arguments, **kwargs)\n"
+            "    if arguments[:2] == ('worktree', 'add'):\n"
+            "        os.environ['ASK_AGENT_GIT_TIMEOUT'] = '0.000001'\n"
+            "        raise module.WorkspaceError('injected timeout during worktree add')\n"
+            "    return result\n"
+            "module._git = wrapped"
+        )
+        result, payload = self._cli_with_injection(injection, *self._prepare_args("shorttimeout"))
+        self.assertEqual(result.returncode, 2, payload)
+        error = self._assert_failed_prepare_left_nothing(payload, "shorttimeout")
+        self.assertIn("deleted branch", error)
+
+    def _fake_git_with_orphan(self, name: str, *, real_add: bool = False, ignore_term: bool = False) -> tuple[Path, Path, Path]:
+        """A git wrapper whose `worktree add` starts a child that outlives it.
+
+        Returns (bin directory, started marker, orphan marker).  Everything
+        other than `worktree add` runs the real Git.  With `real_add`, the
+        real `worktree add` runs first, so the worktree and branch exist
+        before the wrapper lingers.  With `ignore_term`, the wrapper and its
+        children ignore SIGTERM and the orphan waits 5 s instead of 2 s.
+        """
+        real_git = shutil.which("git")
+        fake = self.root / f"fake-bin-{name}"
+        fake.mkdir()
+        started = self.root / f"{name}-worktree-add-started"
+        orphan = self.root / f"{name}-orphan-wrote-this"
+        add = f"{shlex.quote(real_git)} \"$@\" || exit $?; " if real_add else ""
+        add += "trap '' TERM; " if ignore_term else ""
+        delay = 5 if ignore_term else 2
+        (fake / "git").write_text(
+            "#!/bin/sh\n"
+            "case \" $* \" in\n"
+            f"  *\" worktree add \"*) {add}touch {shlex.quote(str(started))}; "
+            f"(sleep {delay}; touch {shlex.quote(str(orphan))}) & sleep 30 ;;\n"
+            f"  *) exec {shlex.quote(real_git)} \"$@\" ;;\n"
+            "esac\n",
+            encoding="utf-8",
+        )
+        (fake / "git").chmod(0o755)
+        # The first run of a new executable can be slow (for example macOS
+        # policy checks); warm it so only `worktree add` meets the timeout.
+        subprocess.run([str(fake / "git"), "--version"], stdout=subprocess.DEVNULL, check=True)
+        return fake, started, orphan
+
+    def test_git_timeout_stops_the_whole_process_group(self) -> None:
+        # A child that Git starts (as `worktree add` does for its checkout)
+        # must not outlive the helper's timeout.
+        # The wrapper ignores SIGTERM, so only the SIGKILL that follows the
+        # grace period can stop it.
+        fake, _, orphan = self._fake_git_with_orphan("timeout", ignore_term=True)
+        result, payload = self._cli(
+            "prepare", "--source", str(self.source.resolve()), "--store", str(self.store.resolve()),
+            "--label", "orphan", "--writers-quiescent",
+            environment_overrides={"ASK_AGENT_GIT_TIMEOUT": "1", "PATH": f"{fake}{os.pathsep}{os.environ['PATH']}"},
+        )
+        self.assertEqual(result.returncode, 2, payload)
+        self.assertIn("Git timed out after 1s during worktree add", payload["error"])
+        time.sleep(4)
+        self.assertFalse(orphan.exists(), "a child of the timed-out Git command kept running")
+
+    def test_git_timeout_lets_git_remove_its_locks_before_the_kill(self) -> None:
+        # Git removes its lock files on SIGTERM but cannot on SIGKILL, so the
+        # helper must send SIGTERM first.
+        real_git = shutil.which("git")
+        fake = self.root / "fake-bin-lock"
+        fake.mkdir()
+        lock = self.root / "branch.lock"
+        (fake / "git").write_text(
+            "#!/bin/sh\n"
+            "case \" $* \" in\n"
+            f"  *\" worktree add \"*) touch {shlex.quote(str(lock))}; "
+            f"trap 'rm -f {shlex.quote(str(lock))}; exit 143' TERM; sleep 30 & wait ;;\n"
+            f"  *) exec {shlex.quote(real_git)} \"$@\" ;;\n"
+            "esac\n",
+            encoding="utf-8",
+        )
+        (fake / "git").chmod(0o755)
+        subprocess.run([str(fake / "git"), "--version"], stdout=subprocess.DEVNULL, check=True)
+        result, payload = self._cli(
+            *self._prepare_args("lock"),
+            environment_overrides={"ASK_AGENT_GIT_TIMEOUT": "1", "PATH": f"{fake}{os.pathsep}{os.environ['PATH']}"},
+        )
+        self.assertEqual(result.returncode, 2, payload)
+        self.assertIn("Git timed out after 1s during worktree add", payload["error"])
+        self.assertFalse(lock.exists(), "Git got no SIGTERM to remove its lock before the kill")
+
+    def test_contribution_patch_keeps_crlf_under_a_global_autocrlf(self) -> None:
+        # The contribution diff runs outside any repository, so Git's index-based
+        # CRLF safety cannot apply; a global core.autocrlf must not reach it.
+        home = self.root / "autocrlf-home"
+        (home / ".config").mkdir(parents=True)
+        (home / ".gitconfig").write_text("[core]\n\tautocrlf = input\n", encoding="utf-8")
+        environment = {"HOME": str(home), "XDG_CONFIG_HOME": str(home / ".config")}
+        self.helper_environment = environment
+        (self.source / "legacy.cs").write_bytes(b"class A {\r\n  int x = 1;\r\n  int y = 2;\r\n}\r\n")
+        self._run(self.source, "-c", "core.autocrlf=false", "add", "legacy.cs")
+        self._run(self.source, "commit", "-q", "-m", "CRLF source file")
+        prepared = self._prepare(label="autocrlf")
+        worktree = Path(prepared["worktree"])
+        edited = b"class A {\r\n  int x = 1;\r\n  int y = 3;\r\n}\r\n"
+        added = b"@echo off\r\necho hi\r\n"
+        (worktree / "legacy.cs").write_bytes(edited)
+        (worktree / "run.bat").write_bytes(added)
+        inspected = self._inspect_mode(Path(prepared["receipt"]), "patch")
+        with mock.patch.dict(os.environ, environment):
+            self._apply_to_source(Path(inspected["delivery"]["contribution_patch"]))
+        self.assertEqual((self.source / "legacy.cs").read_bytes(), edited)
+        self.assertEqual((self.source / "run.bat").read_bytes(), added)
+
+    def test_signals_to_the_helper_stop_git_and_its_children(self) -> None:
+        # Git runs in its own session, so the helper must stop it when it is
+        # interrupted, terminated or hung up; otherwise Git keeps writing
+        # afterwards.  The signal arrives once the worktree and branch exist,
+        # so prepare's cleanup must also remove them.
+        for label, deliver in (
+            ("sigint", lambda process: process.send_signal(signal.SIGINT)),
+            ("sigterm", lambda process: os.killpg(process.pid, signal.SIGTERM)),
+            ("sighup", lambda process: os.killpg(process.pid, signal.SIGHUP)),
+        ):
+            with self.subTest(signal=label):
+                fake, started, orphan = self._fake_git_with_orphan(label, real_add=True)
+                store = self.root / f"store-{label}"
+                environment = os.environ.copy()
+                environment["PATH"] = f"{fake}{os.pathsep}{environment['PATH']}"
+                environment["PYTHONDONTWRITEBYTECODE"] = "1"
+                process = subprocess.Popen(
+                    [sys.executable, "-B", str(self._helper_path()), "prepare", "--source", str(self.source.resolve()),
+                     "--store", str(store), "--label", label, "--writers-quiescent"],
+                    cwd=self.invoke_from, env=environment, stdout=subprocess.PIPE, stderr=subprocess.PIPE,
+                    text=True, start_new_session=True,
+                    # Python handles SIGINT only when it starts with the default
+                    # disposition; a background runner can pass it ignored.
+                    preexec_fn=lambda: signal.signal(signal.SIGINT, signal.SIG_DFL),
+                )
+                try:
+                    deadline = time.monotonic() + 30
+                    while not started.exists() and time.monotonic() < deadline and process.poll() is None:
+                        time.sleep(0.05)
+                    self.assertTrue(started.exists(), "the fake worktree add never started")
+                    deliver(process)
+                    _, stderr = process.communicate(timeout=60)
+                finally:
+                    if process.poll() is None:
+                        os.killpg(process.pid, signal.SIGKILL)
+                        process.communicate()
+                self.assertNotEqual(process.returncode, 0)
+                messages = [line.removeprefix("ask-agent: ") for line in stderr.splitlines() if line.startswith("ask-agent: ")]
+                self.assertEqual(len(messages), 1, stderr)
+                self._assert_failed_prepare_left_nothing({"error": messages[0]}, label, store)
+                time.sleep(3)
+                self.assertFalse(orphan.exists(), f"Git's child kept running after {label}")
+
+    def test_failed_prepare_recovers_a_worktree_git_cannot_validate(self) -> None:
+        # A worktree killed mid-creation can be locked ("initializing") and
+        # lack its .git file, which fails Git's removal validation; the helper
+        # deletes its own directory and retries with a double force.
+        injection = (
+            "original = module._git\n"
+            "def wrapped(repo, *arguments, **kwargs):\n"
+            "    result = original(repo, *arguments, **kwargs)\n"
+            "    if arguments[:2] == ('worktree', 'add'):\n"
+            "        original(repo, 'worktree', 'lock', '--reason', 'initializing', arguments[4])\n"
+            "        (module.Path(arguments[4]) / '.git').unlink()\n"
+            "        raise module.WorkspaceError('injected failure with a half-created worktree')\n"
+            "    return result\n"
+            "module._git = wrapped"
+        )
+        result, payload = self._cli_with_injection(injection, *self._prepare_args("invalid"))
+        self.assertEqual(result.returncode, 2, payload)
+        error = self._assert_failed_prepare_left_nothing(payload, "invalid")
+        self.assertIn("removed worktree", error)
+        self.assertIn("deleted branch", error)
+        self.assertNotIn("recover with", error)
 
     def test_slice_prose_rules_are_pinned(self) -> None:
         skill = (HELPER.parents[1] / "SKILL.md").read_text(encoding="utf-8")
