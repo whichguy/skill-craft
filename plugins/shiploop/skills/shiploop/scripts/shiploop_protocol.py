@@ -7869,7 +7869,8 @@ def main(core, argv=None):
     if args.command != "init" and not root.is_dir():
         # Only init may create a run directory; the lock would otherwise
         # materialize a mistyped --run-dir (or a stray repo .shiploop/).
-        print(f"ShipLoop blocked: no ShipLoop run directory at {root}; check --run-dir",
+        # Keep the established "error:" contract of core.die for a missing run.
+        print(f"error: no ShipLoop run directory at {root}; check --run-dir",
               file=sys.stderr)
         return 2
     try:

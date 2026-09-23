@@ -1532,7 +1532,8 @@ class CliBoundaryRegressionTests(unittest.TestCase):
             with self.subTest(command=command):
                 result = self.cli(command, "--run-dir", str(missing))
                 self.assertEqual(result.returncode, 2, result.stdout + result.stderr)
-                self.assertIn("no ShipLoop run directory", result.stderr)
+                self.assertTrue(result.stderr.startswith("error: no ShipLoop run directory"),
+                                result.stderr)
         self.assertFalse((self.base / "typo").exists())
         result = self.cli("status", cwd=self.repo)
         self.assertEqual(result.returncode, 2, result.stdout + result.stderr)
