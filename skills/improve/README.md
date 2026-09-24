@@ -38,6 +38,16 @@ separates the request into one complete review-cycle work, an evidence-based exi
 condition, and a repeat condition that preserves real blockers and requested
 stops.
 
+## Inline by default
+
+Improve runs in the conversation that invokes it. Every review, check and commit
+happens there, and each review is recorded as `self-review (inline default)`. It
+starts no reviewer, test-runner or executor agent, even on a host that allows
+agents at will. Ask for an independent review explicitly to add a fresh
+read-only reviewer. To run the whole loop in a fresh native agent while this
+conversation keeps working, use the sibling `improve-agent` skill; that agent
+runs this same card inline.
+
 ## What happens in one callback
 
 An active packet represents one complete review cycle. Before its exact done

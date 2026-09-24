@@ -27,9 +27,10 @@ detail for the next context to distinguish an observation from a plan:
 3. **Review and plan.** State concrete findings, their semantic
    trivial/material/unresolved basis, and the accepted plan or the substantive
    reason no worthwhile change is needed. For each substantive cycle, identify
-   the material actually read with concrete locators and state whether an
-   independent reviewer was used or, if unavailable, the permitted self-review
-   fallback and its rationale.
+   the material actually read with concrete locators and state whether it was
+   the binding's self-review or a selected independent review (and, if a
+   selected reviewer was unavailable, the permitted fallback and its
+   rationale).
 4. **Work and checks.** Record actual edits, commands, relevant environment or
    inputs, exit status, useful output, and the candidate each check observed.
    A planned command, a copied success string, or an unrun test is not check
@@ -154,8 +155,8 @@ remaining observed parser failure, but two fresh qualifying reviews are still re
 A later qualifying no-change review might report:
 
 ```text
-Candidate def456 unchanged in scope; read seven full messages and completed an
-independent review. No material finding; `python -m unittest test_parser` (0)
+Candidate def456 unchanged in scope; read seven full messages and completed a
+self-review (inline default). No material finding; `python -m unittest test_parser` (0)
 remains applicable. No commit was created because this was a no-change review.
 This is trivial review 1 of 2; another distinct full review is required.
 ```

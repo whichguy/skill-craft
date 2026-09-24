@@ -125,8 +125,9 @@ Keep the invoking parent alive and run this Improve invocation inline.
 Delegation: inline. Run the selected Improve skill's whole invocation in this
 conversation, in the exact Child workspace; its review iterations share this
 context. Do not clear, hand off, or hand the invocation to Ask Agent or a native
-worker; read-only scoped reviewers under the selected Improve review policy remain
-available. This conversation is both executor and parent: the only candidate
+worker. Run its reviews and checks in this conversation too; start no reviewer,
+test-runner or executor agent unless the user asked for independent review.
+This conversation is both executor and parent: the only candidate
 writer until the runtime returns a terminal packet, then the sole submitter of
 ShipLoop callbacks. Recover an existing child through its runtime's recovery route
 (for the ephemeral runtime, the saved receipt's exact next_argv); start another

@@ -502,11 +502,12 @@ class EphemeralImproveCliTests(ImproveCliFixture):
             self.assertIn(anchor, headings)
             self.assertIn("Parent callback; run only after the runtime returned complete", packet)
             self.assertIn("Delegation: inline. Run the selected Improve card's ShipLoop v3/v4 whole-skill subcall", packet)
-            for delegated in ("consumer-owned", "host-owner.md", "delegation_owner", "prefer one fresh native worker"):
+            for delegated in ("consumer-owned", "host-owner.md", "delegation_owner", "improve-agent"):
                 self.assertNotIn(delegated, packet)
             self.assertIn("Return order:", packet)
         else:
             self.assertIn("ask-agent/consumer-owned-workspace/v1", packet)
+            self.assertIn("run the host-selected improve-agent card for this bound child", packet)
             self.assertIn("Workspace route: consumer-owned; delivery mode: in-place", packet)
             self.assertIn("execution_role: improve-executor; delegation_owner: parent", packet)
             self.assertIn(owner_record, packet)

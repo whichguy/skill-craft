@@ -1,0 +1,4 @@
+interface:
+  display_name: "Improve Agent"
+  short_description: "Run Improve in a fresh native agent"
+  default_prompt: "Use $improve-agent to run Improve on the current changes in a fresh agent, preserving unrelated work."

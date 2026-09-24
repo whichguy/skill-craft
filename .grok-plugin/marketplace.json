@@ -17,7 +17,7 @@
     },
     {
       "name": "ask-agent",
-      "version": "0.7.8",
+      "version": "0.7.9",
       "description": "A delegation skill, not an agent type. Ask native agents to work in the background, continue useful work in the main conversation, and incorporate their results when they return. Use for \"ask an agent\", named agent roles, parallel delegation, or launch-and-notify work.",
       "category": "productivity",
       "source": {
@@ -87,12 +87,22 @@
     },
     {
       "name": "improve",
-      "version": "0.2.0-rc.9",
+      "version": "0.3.0-rc.1",
       "description": "Use when a repository candidate needs a deliberate review-and-improvement loop: use recent Git history, make warranted changes, run meaningful checks, and require two consecutive trivial-only review passes. Supports a read-only interpretation preview; not a one-off code review.",
       "category": "productivity",
       "source": {
         "type": "local",
         "path": "./plugins/improve"
+      }
+    },
+    {
+      "name": "improve-agent",
+      "version": "0.1.0",
+      "description": "Use when Improve should run in a fresh native agent instead of this conversation: start one agent that runs /improve in its own context, keep useful parent work going, then verify and relay its result. For Improve in this conversation, use improve.",
+      "category": "productivity",
+      "source": {
+        "type": "local",
+        "path": "./plugins/improve-agent"
       }
     },
     {
@@ -187,7 +197,7 @@
     },
     {
       "name": "shiploop",
-      "version": "0.22.0",
+      "version": "0.22.1",
       "description": "Markdown-authoritative delivery harness. Start or resume once, follow the script's current action packet, and submit its exact completion call until the script reports completion with an HTML achievement report. Use when the user says shiploop, ship the project, or requests a durable delivery loop.",
       "category": "software-development",
       "source": {

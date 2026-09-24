@@ -9,12 +9,13 @@ and cleanup. A worker receives the route's complete concise binding; do not
 require it to copy or read this whole reference or a whole parent packet merely
 to begin its assigned Improve invocation.
 
-The currently declared consumer binding is ShipLoop navigator-v3's bound,
-whole-skill Improve child. Its worker receives `execution_role: improve-executor`
-and `delegation_owner: parent`; it runs the complete selected Improve invocation
-without dispatching another whole Improve run. Standalone Improve dispatch keeps
-its existing owner-managed behavior and does not select this route. The binding
-is a Codex native pilot with evidence from bounded native fixtures. Managed-workspace host
+The currently declared consumer is the `improve-agent` skill, composing
+ShipLoop navigator-v3/v4's bound, whole-skill Improve child. Its worker receives
+`execution_role: improve-executor` and `delegation_owner: parent`; it runs the
+complete selected Improve invocation inline without dispatching another whole
+Improve run. A standalone `improve-agent` request uses the helper-managed
+default and does not select this route; inline `improve` starts no agent. The
+binding is a Codex native pilot with evidence from bounded native fixtures. Managed-workspace host
 evidence does not establish this composition on Codex, Claude, Grok, or another
 host.
 

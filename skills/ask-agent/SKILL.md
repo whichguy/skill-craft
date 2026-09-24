@@ -1,7 +1,7 @@
 ---
 name: ask-agent
 description: A delegation skill, not an agent type. Ask native agents to work in the background, continue useful work in the main conversation, and incorporate their results when they return. Use for "ask an agent", named agent roles, parallel delegation, or launch-and-notify work.
-version: 0.7.8
+version: 0.7.9
 license: MIT
 platforms:
   - linux
@@ -63,10 +63,11 @@ available locators. Do not silently switch that incomplete consumer request to
 the helper-managed route, shared writes, an inherited context, or a second
 worktree.
 
-The currently declared consumer binding is ShipLoop navigator-v3's whole-skill
-Improve child. It supplies one fresh executor for the complete bound Improve
-invocation; standalone Improve dispatch remains unchanged. This is a Codex native
-pilot with evidence from bounded native fixtures. Earlier helper-managed host
+The currently declared consumer is the `improve-agent` skill, composing a
+ShipLoop v3/v4 whole-skill Improve child. It supplies one fresh executor for the
+complete bound Improve invocation. A standalone `improve-agent` request uses the
+helper-managed default instead, and inline `improve` starts no agent. This is a
+Codex native pilot with evidence from bounded native fixtures. Earlier helper-managed host
 evidence does not qualify this composition on Codex, Claude, Grok, or another
 host.
 

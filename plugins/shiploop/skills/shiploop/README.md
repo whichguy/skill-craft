@@ -1,4 +1,4 @@
-# ShipLoop navigator 0.22.0
+# ShipLoop navigator 0.22.1
 
 ShipLoop's invoking conversation owns navigation, acceptance and delivery. New
 v3/v4 runs record `delegation: inline`, so that conversation also executes every
@@ -7,15 +7,18 @@ callable host reset, or the printed pause plus a host `/clear` or fresh
 conversation and the Recovery and Resume commands), continues each later INNER stage in the
 same context, and runs each bound Improve invocation through the selected
 Improve skill in the exact Child workspace without Ask Agent, native workers, an
-extra worktree or `host-owner.md`. The boundary is per work item because a model
+extra worktree or `host-owner.md`; its reviews and checks run there too, with no
+reviewer or test-runner agent unless the user asks for independent review. The
+boundary is per work item because a model
 cannot clear its own conversation: in the [clear-ledger study](https://github.com/whichguy/skill-craft/blob/59be9b8232e34dc00ae777052a608a13967ffab2/docs/shiploop-clear-ledger-experiments-2026-09-21.md#live-ledger-study-september-21-2026)
 each packet-text variant produced a verified fresh entry in 0 of 2 cases, while
 external host `/clear` worked in 3 of 3 resets.
 
 `--delegation ask-agent` at `workspace start` or `init` opts a new run into the
 delegated route, which saved runs without the setting also keep. For a new
-v3/v4 ephemeral Improve invocation, the selected Ask Agent can delegate one
-fresh native worker using the explicit consumer-owned workspace route. The
+v3/v4 ephemeral Improve invocation, the selected `improve-agent` skill starts one
+fresh native worker through Ask Agent's explicit consumer-owned workspace route,
+and that worker runs `/improve` inline. The
 worker executes the entire loop in the already-bound candidate; the parent
 collects and verifies it, then performs the guarded final return when required.
 `shiploop delegation --run-dir RUN --set inline|ask-agent` switches an existing
