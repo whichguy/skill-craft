@@ -52,6 +52,9 @@ cd "$repo"
 [[ -x scripts/sync-plugin-views.sh ]] || fail "sync script is not executable"
 node --check scripts/skill-frontmatter-to-plugin-json.js \
   || fail "generator syntax check"
+# Committed plugins/ is release output and may lag the source; regenerate the
+# copy so the checks below test the generator, not release freshness.
+bash scripts/sync-plugin-views.sh >/dev/null || fail "baseline adapter sync"
 bash scripts/sync-plugin-views.sh --check || fail "baseline adapter check"
 
 # Generator command line: each misuse fails with its own message and writes

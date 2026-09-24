@@ -302,12 +302,14 @@ for name in ${leaves[@]+"${leaves[@]}"}; do
   # The generator validates bundle declarations against the leaves before it
   # writes anything, so it runs before any directory is created.
   node "$derive_js" "$name" --write
-  mkdir -p "$view/skills" "$view/agents" "$view/.claude-plugin" "$view/.codex-plugin"
+  mkdir -p "$view/skills" "$view/.claude-plugin" "$view/.codex-plugin"
   cp "$source_license" "$package_license"
   # Remove symlink or stale tree, then copy with package-internal symlink dereference
   # (escape refuse also inside copy_skill_package_deref).
   copy_skill_package_deref "$sot" "$dest_skill" "$name"
   if [[ -f "$agent_sot" ]]; then
+    # Only a skill with a card gets agents/; Git does not keep empty directories.
+    mkdir -p "$view/agents"
     rm -f "$dest_agent"
     cp "$agent_sot" "$dest_agent"
   fi

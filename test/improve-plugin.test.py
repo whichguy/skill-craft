@@ -3,8 +3,12 @@
 import json
 from pathlib import Path
 
+import package_build
+
 root = Path(__file__).resolve().parents[1]
-plugin = root / "plugins" / "improve"
+# plugins/ is release output; package tests read a build of the current source.
+PLUGINS = package_build.plugins()
+plugin = PLUGINS / "improve"
 claude = json.loads((plugin / ".claude-plugin/plugin.json").read_text())
 codex = json.loads((plugin / ".codex-plugin/plugin.json").read_text())
 for field in ("name", "version", "description", "author", "repository", "license"):

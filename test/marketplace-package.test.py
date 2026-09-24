@@ -10,7 +10,11 @@ import tempfile
 import unittest
 from unittest import mock
 
+import package_build
+
 ROOT = Path(__file__).resolve().parents[1]
+# plugins/ is release output; package tests read a build of the current source.
+PLUGINS = package_build.plugins()
 SPEC = importlib.util.spec_from_file_location("package_check", ROOT / "scripts/check-marketplace-packages.py")
 CHECK = importlib.util.module_from_spec(SPEC)
 SPEC.loader.exec_module(CHECK)
@@ -19,7 +23,7 @@ SPEC.loader.exec_module(CHECK)
 class PackageTests(unittest.TestCase):
     def test_generated_agent_routers_bind_the_selected_installed_card(self):
         for name in ("shiploop", "skill-interop"):
-            text = (ROOT / "plugins" / name / "agents" / f"{name}.md").read_text()
+            text = (PLUGINS / name / "agents" / f"{name}.md").read_text()
             self.assertIn("selected by the host", text)
             self.assertIn("absolute", text)
             self.assertNotIn("`skills/", text)
@@ -191,7 +195,7 @@ class PackageTests(unittest.TestCase):
             self.assert_bad("expected bash")
 
     def test_improve_native_inventory_requires_ephemeral_runtime(self):
-        source = ROOT / "plugins" / "improve"
+        source = PLUGINS / "improve"
         with tempfile.TemporaryDirectory(prefix="marketplace improve ") as temporary:
             package = Path(temporary) / "improve"
             shutil.copytree(source, package)
@@ -229,19 +233,19 @@ class PackageTests(unittest.TestCase):
         self.assertTrue(leaves)
         for name in leaves:
             with self.subTest(package=name):
-                self.assertEqual([], CHECK.validate_package(ROOT / "plugins" / name))
+                self.assertEqual([], CHECK.validate_package(PLUGINS / name))
         bundles = sorted(path.parent.name for path in (ROOT / "bundles").glob("*/bundle.json"))
         self.assertIn("backchain", bundles)
         for name in bundles:
             with self.subTest(bundle=name):
                 members = CHECK.bundle_members(ROOT, name)
-                self.assertEqual([], CHECK.validate_package(ROOT / "plugins" / name, members))
+                self.assertEqual([], CHECK.validate_package(PLUGINS / name, members))
 
     def test_explicit_bundle_package_path_reads_its_declaration(self):
         # The documented single-package usage must not mistake a declared
         # member card for an additional public skill.
         result = subprocess.run(
-            [sys.executable, "-B", str(ROOT / "scripts/check-marketplace-packages.py"), str(ROOT / "plugins/backchain")],
+            [sys.executable, "-B", str(ROOT / "scripts/check-marketplace-packages.py"), str(PLUGINS / "backchain")],
             capture_output=True, text=True, check=False,
         )
         self.assertEqual(0, result.returncode, result.stdout + result.stderr)
