@@ -1,4 +1,4 @@
-# ShipLoop navigator 0.19.7
+# ShipLoop navigator 0.19.8
 
 ShipLoop's invoking conversation owns navigation, acceptance and delivery. For
 a new v3/v4 ephemeral Improve invocation, the selected Ask Agent can delegate one
@@ -1306,7 +1306,10 @@ keeps it unfinished even though its review found only polish.
 The executable [continuation policy](scripts/shiploop_until.py) continues to
 serve the non-product convergence owners. It declares an adaptation of
 standalone until-loop **0.1.3**, source commit
-`7fb7057056552438fa39ccf11b70fa7c63f80077`. A selective refresh reviewed
+`7fb7057056552438fa39ccf11b70fa7c63f80077` (`scripts/until-loop`, declared MIT
+in its skill card; that local source had no remote or separate LICENSE file).
+Incorporation, rather than a separate dispatcher, was the user's explicit
+choice. A selective refresh reviewed
 standalone **0.2.1** at `7d24bbc` (including integration safeguards in
 `4430f89`) on 2026-09-13. These are different version lines: the embedded
 adaptation is not a live import, automatic update, or claim of feature parity

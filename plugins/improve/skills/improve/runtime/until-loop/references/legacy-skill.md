@@ -129,20 +129,25 @@ using the specific user correction that authorizes it.
 
 Tell the user the interpreted work, continuation and exit in a few plain
 sentences. This is an explanation, not a required questionnaire or approval
-gate. Read `references/runtime.md` before executing the internal commands.
+gate. Read the adapter for the run's version (`references/runtime.md` for v1,
+`references/runtime-v2.md` for v2) before executing the internal commands.
 Persist the original request and interpreted contract together: in v2's
 authoritative `state.contract`, or the frozen prompt for a legacy v1 run,
 so a fresh context can recover the criteria that guide the loop.
 
-## Candidate protocol and execution context
+## Protocol and execution context
 
-This checkout is the version-2 candidate. For a new natural-language task
-in a workspace without a saved run,
-derive the structured contract using `references/runtime-v2.md`, then call
-the explicit `v2` adapter. The user still supplies ordinary intent. Record
-each required criterion, including negative constraints, with its original
-request basis or a labeled assumption. Preserve the complete original wording.
-Do not parse a prose heading to guess a missing criterion list.
+`ADAPTER.md` is the only router. A new natural-language request never starts
+a durable run here; it uses the callback adapter that `ADAPTER.md` selects.
+This reference applies only after `ADAPTER.md` has routed an explicit legacy
+command or a continuation of an existing durable run to it.
+
+An explicit `v2` command derives the structured contract using
+`references/runtime-v2.md`, then calls the `v2` adapter. The user still
+supplies ordinary intent. Record each required criterion, including negative
+constraints, with its original request basis or a labeled assumption. Preserve
+the complete original wording. Do not parse a prose heading to guess a missing
+criterion list.
 
 For an existing run, inspect its version safely and use that version's adapter:
 schema 1 uses `references/runtime.md`; schema 2 uses `references/runtime-v2.md`.
@@ -151,7 +156,7 @@ identifies v1 recovery and `.pending-v2.json` identifies v2 recovery. Check
 metadata without following links first. Conflicting markers are an error,
 not permission to guess a version or initialize over the saved work.
 Never append new fields to a legacy run or restart it merely to upgrade.
-An actually new task in a workspace that already holds v1 state still uses
+An explicit legacy start in a workspace that already holds v1 state uses
 the v1 adapter's authorized restart. V2 initialization refuses that state;
 do not delete it or silently substitute another workspace to enable v2.
 Explicit legacy commands remain legacy controls.
@@ -272,17 +277,9 @@ skill. Existing parents referencing Exact interpolation, Evidence quoting
 or Error contract should read those sections in `references/runtime.md`.
 Keep the parent's constraints when deriving the contract.
 
-## Validation
+## Protocol references
 
-The following checks and historical audit reports live in the source repository.
-Marketplace plugins contain the runtime resources needed for execution; use a
-checkout of the matching repository release to run its development test suite.
-Do not assume the plugin cache includes the tests or audit reports.
-
-Run `bash tests/until-loop.test.sh` for deterministic runtime and packaging
-checks. Read `tests/intent-evals.md` for realistic interpretation/resume
-evaluations; prose matching does not validate the agent's decisions.
-`references/state.md` and `references/packet.md` define the internal protocol.
-For the candidate, also run `python3 -m unittest discover -s tests -p test_v2.py`
-and read `references/runtime-v2.md` and the candidate README's validation scope.
-`AUDIT.md` records the runtime audit; `INTENT_REVIEW.md` records this redesign.
+`references/state.md` and `references/packet.md` define the internal v1
+protocol; `references/runtime-v2.md` defines v2. This package contains the
+runtime only; its development tests and audit reports live in the upstream
+until-loop repository.

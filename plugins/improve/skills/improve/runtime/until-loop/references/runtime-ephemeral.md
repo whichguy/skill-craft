@@ -34,8 +34,8 @@ Use the available Python interpreter. A start call needs JSON on stdin:
 constraints and order there; retain all outcome and stop predicates in their
 respective conditions. The generic gate defaults to zero. A test repetition
 count is not a trivial-review count. All four text fields must be nonblank;
-workspace must be an existing absolute directory. `context` is optional for old
-callers/states, but the updated skills require it for new natural-language runs.
+workspace must be an existing absolute directory. Every new natural-language
+run supplies `context`; the runtime still accepts context-less states.
 Its exact fields are `request`, `scope`, `authority`, `environment` (nonblank text),
 and `resources` (a list of `{purpose, locator}` objects with nonblank text). The
 list can be empty if no additional resource is needed. No other fields are accepted.

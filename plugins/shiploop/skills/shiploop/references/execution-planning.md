@@ -594,31 +594,39 @@ another planning loop. Read only the packet-selected section for the current act
 
 ## Until-loop incorporation and limits
 
-The user explicitly selected incorporation rather than a separate dispatcher.
-`scripts/shiploop_until.py` adapts the standalone **until-loop 0.1.3**
-repeat/verify/continue decision into a pure internal policy. The inspected local
-source was `scripts/until-loop` at commit
-`7fb7057056552438fa39ccf11b70fa7c63f80077`, declaring MIT in its skill card. No
-remote or separate LICENSE file was present. This provenance identifies the
-design source; it is not a runtime dependency or a multi-host execution claim.
+This section is the single description of how ShipLoop uses Until Loop. It
+does so in two separate ways:
 
-The 2026-09-13 refresh selectively adapts **0.2.1**, inspected at `7d24bbc`
-(integration safeguards in `4430f89`). Settled prompt integrity, safe control-file
-writes and literal argument transport belong to the existing script boundary.
-Current action packets also ask for unmet criteria, useful new evidence or a
-changed strategy, all-clause evaluation and an honest incomplete stop. These
-are reasoning duties inside the assigned stage, not host-selected transitions.
-Every returned packet remains sufficient after a reset; existing Markdown
-receipts and bounded readers carry its state. Same-loop memory may help compare
-work, but a prior assessment is historical evidence, not proof about changed
-code or a new candidate. Available authorized independent review may
-inform high-risk/subjective findings; otherwise disclose self-check. No extra
-notebook, stage, runtime, or test waiver is created.
+- **Embedded policy.** `scripts/shiploop_until.py` adapts the standalone
+  until-loop repeat/verify/continue decision into a pure internal policy for
+  ShipLoop's own convergence owners, listed below. It is not a runtime
+  dependency or a multi-host execution claim. Source versions are recorded in
+  the [README](../README.md#existing-embedded-policy-product-improve-pilot-and-standalone-skill)
+  and the module docstring.
+- **Bound runtime.** An Improve child, or a source-aware Backchain child, runs
+  the physical Until Loop card and `scripts/until_loop_ephemeral.py` bound for
+  that action ([binding](../README.md#current-improve-and-until-loop-binding)).
+  The embedded policy performs no I/O and never calls that runtime. ShipLoop's
+  `state.md` remains SDLC-state authority; the bound runtime remains
+  child-execution authority.
 
-Intentional changes from the standalone script:
+Settled prompt integrity, safe control-file writes and literal argument
+transport belong to the existing script boundary. Each action packet also asks
+for unmet criteria, useful new evidence or a changed strategy, all-clause
+evaluation and an honest incomplete stop. These are reasoning duties inside the
+assigned stage, not host-selected transitions. Every returned packet remains
+sufficient after a reset; existing Markdown receipts and bounded readers carry
+its state. Same-loop memory may help compare work, but a prior assessment is
+historical evidence, not proof about changed code or a new candidate. Available
+authorized independent review may inform high-risk/subjective findings;
+otherwise disclose self-check.
 
-- No `.until-loop/state.json`, independent lock, Git-exclude mutation or second
-  CLI. ShipLoop's existing Markdown transaction remains the only state owner.
+Intentional differences between the embedded policy and the standalone script:
+
+- No `.until-loop/state.json`, independent lock, Git-exclude mutation, optional
+  verifier, single repo-level loop or second CLI. ShipLoop's existing Markdown
+  transaction remains the only state owner, and candidate-bound checks replace
+  the optional verifier.
 - A managed Improve child is not an ambient until-loop run. It uses the same
   ShipLoop transaction/lock and namespaced Markdown receipt while its controller,
   rather than the parent, owns internal phase progression and the clean-pass
@@ -629,9 +637,7 @@ Intentional changes from the standalone script:
   `next`, not a new standalone run.
 - Cycle/budget exhaustion is unfinished; it cannot stand in for quality.
 
-This is an incorporated adaptation, **not** execution of the unmodified external
-until-loop skill. The installed standalone skill is left unchanged. The shared
-receipt-derived policy continues to serve legacy research, behavior and
+The shared receipt-derived policy serves legacy research, behavior and
 specification planning; generic approach/survey/sequence,
 `preparation-readiness` (authorized observation/readiness, not an external-effect
 loop), post-inner, coverage, quality, versioned handoff objectives, initial and

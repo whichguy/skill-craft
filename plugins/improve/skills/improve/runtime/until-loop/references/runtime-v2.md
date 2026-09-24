@@ -1,7 +1,8 @@
-# Candidate version-2 adapter
+# Version-2 durable adapter
 
-Read this for new natural-language tasks using the candidate card, or for a
-saved state whose `version` is 2. The literal `v2` verb selects the candidate
+Read this for a saved state whose `version` is 2 or an explicit `v2` command,
+after [ADAPTER.md](../ADAPTER.md) has routed the run here; new natural-language
+requests use the callback adapter instead. The literal `v2` verb selects this
 protocol. Existing version-1 runs use `runtime.md`; there is no silent migration.
 These are agent-to-script records, not user-facing arguments.
 V2 initialization requires a workspace with no v1 run. An authorized new task
