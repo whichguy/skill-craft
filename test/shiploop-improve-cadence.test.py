@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Pin the plan-and-end Improve cadence: Improve after plan and after the last work item."""
+"""Pin the plan/planning-and-end Improve cadences: planning reviews plus one end-of-work review."""
 from pathlib import Path
 import os
 import subprocess
@@ -10,6 +10,7 @@ import unittest
 ROOT = Path(__file__).resolve().parents[1]
 PACKAGE = ROOT / "skills/shiploop"
 CLI = PACKAGE / "scripts/shiploop"
+CARD = ROOT / "skills/improve/SKILL.md"
 sys.path.insert(0, str(PACKAGE / "scripts"))
 import shiploop_navigator as nav  # noqa: E402
 import shiploop_standalone_improve as standalone  # noqa: E402
@@ -54,6 +55,38 @@ class PlanAndEndNavigatorTests(unittest.TestCase):
                           if entry["stage"] == "plan" or
                           (entry["stage"] == "carry-forward" and entry["workitem"] == "W2")})
 
+    def test_planning_and_end_reviews_every_planning_stage_and_the_end(self):
+        items = [{"id": "W1", "title": "First"}, {"id": "W2", "title": "Second"}]
+        _, reviewed = walk(self.new("planning-and-end"), plan_items=items)
+        self.assertEqual(reviewed, [
+            ("spec", None), ("test-strategy", None), ("plan", None),
+            ("step-plan", "W1"), ("test-spec", "W1"),
+            ("step-plan", "W2"), ("test-spec", "W2"), ("carry-forward", "W2"),
+            ("system-test-author", None), ("release-plan", None),
+        ])
+
+    def test_planning_improve_packet_carries_the_focus_preamble(self):
+        with tempfile.TemporaryDirectory() as temp:
+            repo = Path(temp).resolve() / "repo"
+            repo.mkdir()
+            run = repo.parent / "run"
+            run.mkdir()
+            state = nav.new_state(str(repo), "Cadence fixture.", protocol_version=3,
+                                  improve_skill="", improve_cadence="planning-and-end")
+            while nav.current_stage(state) != "spec":
+                producer = nav.render(None, run, state)
+                # Unreviewed predecessors have no Improve receipt to point at.
+                self.assertNotIn("Prior Improve evidence", producer)
+                state = nav.apply(state, nav.current_action(state)["id"], DONE)
+            action = nav.current_action(state)["id"]
+            state = nav.apply(state, action, DONE)
+            child = state["active_improve"]
+            state["active_improve"] = standalone.binding(
+                state, action, "spec", child["seed_result"], standalone.resolve_skill(str(CARD)))
+            packet = nav.render(None, run, state)
+        self.assertIn("Planning review focus", packet)
+        self.assertIn("a weaker stand-in would pass", packet)
+
     def test_end_review_that_adds_work_moves_to_the_new_last_item(self):
         added = dict(DONE, work_items=[{"id": "W2", "title": "Found by the end review"}])
         _, reviewed = walk(self.new("plan-and-end"), end_final=[added])
@@ -70,7 +103,7 @@ class PlanAndEndNavigatorTests(unittest.TestCase):
         state, _ = walk(self.new("plan-and-end"))
         plan = next(e["action"] for e in state["history"] if e["stage"] == "plan")
         broken = dict(state, improve_results={k: v for k, v in state["improve_results"].items() if k != plan})
-        with self.assertRaisesRegex(nav.NavigatorError, "every plan result"):
+        with self.assertRaisesRegex(nav.NavigatorError, "every reviewed planning result"):
             nav.validate(broken)
 
     def test_producer_packets_state_the_cadence(self):
@@ -96,9 +129,9 @@ class ImproveCadenceCliTests(unittest.TestCase):
                                "--run-dir", str(self.run), "--prompt", "Cadence CLI fixture.", *args],
                               cwd=self.base, text=True, capture_output=True, timeout=60, env=self.env)
 
-    def test_new_runs_record_plan_and_end_and_retry_cannot_change_it(self):
+    def test_new_runs_record_planning_and_end_and_retry_cannot_change_it(self):
         self.assertEqual(self.init().returncode, 0)
-        self.assertEqual(store.read_record(self.run / "state.md")["improve_cadence"], "plan-and-end")
+        self.assertEqual(store.read_record(self.run / "state.md")["improve_cadence"], "planning-and-end")
         retry = self.init("--improve-cadence", "every-stage")
         self.assertNotEqual(retry.returncode, 0)
         self.assertIn("fixed at init", retry.stderr)

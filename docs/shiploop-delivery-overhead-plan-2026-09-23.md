@@ -192,6 +192,15 @@ with the same release:
 This supersedes most of Phase 3 (confirm route). Phase 4's check ledger and
 Phase 6's review provenance now apply to the end-of-work child.
 
+## 0.22.0: planning-and-end default (2026-09-24)
+
+Owner decision: keep Improve for test-spec and the other planning and contract
+stages, not just the global plan. New runs record `planning-and-end`, which is
+`plan-and-end` plus the seven planning stages; each planning review gets a
+focus preamble listing the conditions it should look for. A single-item dry run
+takes 42 events: 34 stages, 7 planning reviews and 1 end review (68 under
+every-stage). Runs created under 0.21.0 keep `plan-and-end`.
+
 ## Next: evidence decides review, not the stage name
 
 Generalized from a second run report (2026-09-24). About sixteen review cycles
@@ -209,11 +218,11 @@ four required test IDs. Replays of facts already on record earned nothing.
 | # | Improvement | Mechanism | Size |
 |---|---|---|---|
 | E1 | Script-assigned evidence class per accepted result | `complete` classifies from the Git diff since the previous accepted action and the stage, never the model summary: `plan` (spec, step-plan, test-spec, or a diff touching a contract file), `mutation` (other product/test diff), `observation` (empty product diff), `na`. Recorded in history and shown in the next packet. | S |
-| E2 | Early contract review (owner decision) | Proposed opt-in cadence `contracts-and-end`: plan-and-end, plus a full Improve child for any `plan`-class result. Today the step-plan and test-spec bugs above would surface only at the end review, after implementation was built on them. Keep streak 2 wherever a child runs. | S, needs E1 |
+| E2 | Early contract review | **Shipped in 0.22.0, stage-based:** the `planning-and-end` default reviews spec, test-strategy, plan, step-plan, test-spec, system-test-author and release-plan. Their packets carry a planning review focus on non-replayable examples, results a weaker stand-in passes, commands that don't run what they claim, and dropped IDs. Streak 2 stays. Remaining: skip a planning child when E1 shows the result changed no contract file. | Done; refinement needs E1 |
 | E3 | Automatic N/A for skill-validate | When the accepted skill-assess result says no repo-local skill was selected, the script accepts skill-validate as N/A citing that result and advances. The stage name stays in history for audit. | S |
 | E4 | Merge same-fact records | When baseline recorded a missing file and nothing changed before test-red, test-red cites that observation and records only the command, exit code and required substrings. The same applies to test-green after implement and to verify after regression. | M, needs E1 + Phase 4 |
 | E5 | Check ledger (Phase 4) | `shiploop check run/lookup` stores command, commit, tree digest, exit code and required substrings, so a stage cites a check instead of rerunning it. | M |
 | E6 | Worktree status line | In worktree runs the progress snapshot says the opened source checkout is unchanged until the final return and names the execution worktree, so a long run does not look like the product is missing. | S |
 
-Order: E1 → E3 and E6 (independent) → E2 once the owner decides → E5 → E4.
+Order: E1 → E3 and E6 (independent) → the E2 skip refinement → E5 → E4.
 Each ships as a ShipLoop-only PR with its own focused tests.

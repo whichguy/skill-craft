@@ -7582,7 +7582,7 @@ def workspace_command(core, argv):
     start.add_argument("--delegation", choices=navigator.DELEGATIONS, default=None,
                        help="new protocol 3/4 run: inline (default) or ask-agent delegation")
     start.add_argument("--improve-cadence", choices=navigator.IMPROVE_CADENCES, default=None,
-                       help="new protocol 3/4 run: plan-and-end (default; Improve after plan and after the last work item) or every-stage")
+                       help="new protocol 3/4 run: planning-and-end (default; Improve after planning stages and after the last work item), plan-and-end or every-stage")
     for name in ("plan-return", "return"):
         child = subs.add_parser(name)
         child.add_argument("--workspace-root", required=True)
@@ -7780,7 +7780,7 @@ def main(core, argv=None):
             sub.add_argument("--delegation", choices=navigator.DELEGATIONS, default=None,
                              help="new protocol 3/4 run: inline (default) or ask-agent delegation")
             sub.add_argument("--improve-cadence", choices=navigator.IMPROVE_CADENCES, default=None,
-                             help="new protocol 3/4 run: plan-and-end (default; Improve after plan and after the last work item) or every-stage")
+                             help="new protocol 3/4 run: planning-and-end (default; Improve after planning stages and after the last work item), plan-and-end or every-stage")
         if name == "delegation":
             sub.add_argument("--set", dest="delegation_value", choices=navigator.DELEGATIONS, required=True,
                              help="execution delegation for this run's future assignments")

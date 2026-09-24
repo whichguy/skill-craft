@@ -5,7 +5,7 @@ description: >-
   script's current action packet, and submit its exact completion call until
   the script reports completion with an HTML achievement report. Use when the
   user says shiploop, ship the project, or requests a durable delivery loop.
-version: 0.21.0
+version: 0.22.0
 allowed-tools: all
 license: MIT
 platforms:
@@ -264,20 +264,36 @@ inline|ask-agent` previews either route (inline by default for protocol 3/4).
 
 ### Improve cadence
 
-A new protocol 3/4 run records `improve_cadence: plan-and-end`. Only two kinds of
-result start an actual Improve child: every `plan` result, and the successful
-`carry-forward` that leaves no work item pending. That end-of-work child reviews
-every executed step together (code, tests, documentation and the queue) before
-OUTER system tests and release. Every other producer result is accepted on its
-own checks and the graph advances directly. The stage names stay in the graph,
-so an auditor still sees each stage happen. If the end review adds work items,
-the review moves to the new last item's carry-forward. `--improve-cadence
-every-stage` at `init` or `workspace start` keeps the earlier behavior, which
-puts an Improve child after every producer. A saved run without the key keeps
-every-stage. The cadence is fixed at init, and `graph-dry-run --improve-cadence`
-previews either cadence. Under plan-and-end, an isolated run's workspace return
-happens at `release` or `handoff` once no child is active, because the end
-review has already finished.
+A new protocol 3/4 run records `improve_cadence: planning-and-end`. Two kinds of
+result start an actual Improve child:
+
+- Every result of a planning stage: `spec`, `test-strategy`, `plan`, `step-plan`,
+  `test-spec`, `system-test-author` and `release-plan`. These stages write the
+  contracts that later work is built on, where a sentence, example or expected
+  result can look done and still be wrong. Their Improve packets carry a
+  planning review focus: find steps or examples that can't be replayed exactly,
+  expected results a weaker stand-in would pass, documented commands that don't
+  run what they claim, and required IDs or cases that were dropped. The review
+  does not replay facts already on record.
+- The successful `carry-forward` that leaves no work item pending. This
+  end-of-work child reviews every executed step together (code, tests,
+  documentation and the queue) before OUTER system tests and release.
+
+Every other producer result is accepted on its own checks and the graph
+advances directly. The stage names stay in the graph, so an auditor still sees
+each stage happen. If the end review adds work items, the review moves to the
+new last item's carry-forward. `--improve-cadence` at `init` or `workspace
+start` selects one of three cadences:
+
+- `planning-and-end`, the default described above.
+- `plan-and-end`, the 0.21.0 default, which reviews only the global `plan` and
+  the end.
+- `every-stage`, which puts an Improve child after every producer.
+
+A saved run without the key keeps every-stage. The cadence is fixed at init, and
+`graph-dry-run --improve-cadence` previews any cadence. Except under
+every-stage, an isolated run's workspace return happens at `release` or
+`handoff` once no child is active, because the end review has already finished.
 
 ## Recovery from older supervised runs
 
@@ -397,7 +413,8 @@ retain the recovery locators and resume the same run when execution resumes.
    verify their behavior and accuracy. Keep material caveats; avoid boilerplate.
 3. When the run's Improve cadence selects this result (every result under
    `every-stage`; the plan and the last carry-forward under the default
-   `plan-and-end`, see [Improve cadence](#improve-cadence)), the script enters
+   `planning-and-end`: planning stages and the last carry-forward; see
+   [Improve cadence](#improve-cadence)), the script enters
    `active_improve` for that same action. Otherwise the result is accepted and the
    next producer packet follows. Read the selected actual Improve `SKILL.md` and let its bound
    Until Loop runtime own the improvement loop. For a new ephemeral child use

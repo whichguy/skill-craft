@@ -25,9 +25,10 @@ run; `ask-agent` renders the opt-in delegated packets. Passing it with protocol
 
 `--list` prints the scenarios available for the selected protocol. Protocols 3
 and 4 cover delivery, two work items, blocked/resume, a repeat returned through
-Improve, pause/resume and halt. `--improve-cadence plan-and-end|every-stage`
-(plan-and-end by default, as for a new run) selects whether only plan and the last
-carry-forward, or every producer, are followed by a synthetic Improve completion. Protocol 2 additionally covers conditional skill validation and new
+Improve, pause/resume and halt. `--improve-cadence planning-and-end|plan-and-end|every-stage`
+(planning-and-end by default, as for a new run) selects which producers are
+followed by a synthetic Improve completion: the planning stages and the last
+carry-forward, only plan and the last carry-forward, or every producer. Protocol 2 additionally covers conditional skill validation and new
 corrective work, which have no v3/v4 equivalent (v3 always instantiates
 `skill-validate`). Naming a scenario the selected protocol lacks is an input
 error (exit 2) that lists the available names. Expectations are authored independently of the routing tables.

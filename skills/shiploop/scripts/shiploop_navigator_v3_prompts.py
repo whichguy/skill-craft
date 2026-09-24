@@ -70,14 +70,26 @@ ASK_AGENT = "ask-agent"
 DELEGATIONS = (INLINE, ASK_AGENT)
 
 # Run-level Improve cadence (state key ``improve_cadence``), fixed at init.
-# ``plan-and-end`` is the default for new CLI-created v3/v4 runs: only the plan
-# result and the carry-forward that leaves no work item pending get an actual
-# Improve child.  A run without the key keeps its recorded every-stage cadence.
+# ``planning-and-end`` is the default for new CLI-created v3/v4 runs: every
+# planning/contract stage result and the carry-forward that leaves no work item
+# pending get an actual Improve child.  ``plan-and-end`` (0.21.0 default) reviews
+# only the global plan and that end.  A run without the key keeps every-stage.
 EVERY_STAGE = "every-stage"
 PLAN_AND_END = "plan-and-end"
-IMPROVE_CADENCES = (EVERY_STAGE, PLAN_AND_END)
-# Stages whose accepted result can start an Improve child under plan-and-end.
-PLAN_AND_END_STAGES = frozenset({"plan", "carry-forward"})
+PLANNING_AND_END = "planning-and-end"
+IMPROVE_CADENCES = (EVERY_STAGE, PLAN_AND_END, PLANNING_AND_END)
+# Stages whose accepted result always starts an Improve child, by cadence.  The
+# end-of-work carry-forward is added by the navigator's pending-queue check.
+# Planning stages write the contracts later work is built on: a sentence, example
+# or expected result there can look done and still be wrong.
+PLANNING_REVIEW_STAGES = frozenset({
+    "spec", "test-strategy", "plan", "step-plan", "test-spec",
+    "system-test-author", "release-plan",
+})
+REVIEWED_STAGES = {
+    PLAN_AND_END: frozenset({"plan"}),
+    PLANNING_AND_END: PLANNING_REVIEW_STAGES,
+}
 
 INLINE_ITEM_CONTEXT = """\
 Clear and then execute the prompt.
@@ -1665,10 +1677,15 @@ _EVERY_STAGE_IMPROVE = (
     "campaign in this result: every producer attempt result is followed by a separate\n"
     "actual Improve-skill handoff before this graph can advance.\n"
 )
+_REVIEWED_WORDING = {
+    PLAN_AND_END: "Only the plan result and\nthe carry-forward that leaves no work item pending get",
+    PLANNING_AND_END: "Only planning results (spec,\ntest-strategy, plan, step-plan, test-spec, "
+                      "system-test-author, release-plan) and the\ncarry-forward that leaves no "
+                      "work item pending get",
+}
 _PLAN_AND_END_IMPROVE = (
     "Do not embed an Improve review\n"
-    "campaign in this result. Improve cadence: plan-and-end. Only the plan result and\n"
-    "the carry-forward that leaves no work item pending get an actual Improve-skill\n"
+    "campaign in this result. Improve cadence: {cadence}. {reviewed} an actual Improve-skill\n"
     "handoff; every other result is accepted on this step's own checks and the graph\n"
     "advances directly. Where this guidance mentions this action's Improve checkpoint,\n"
     "handoff or review at another stage, keep that evidence in evidence_refs for the\n"
@@ -1692,7 +1709,8 @@ def prompt(stage: str, *, delegation: str = ASK_AGENT, cadence: str = EVERY_STAG
     _require_delegation(delegation)
     _require_cadence(cadence)
     common = (COMMON if cadence == EVERY_STAGE
-              else COMMON.replace(_EVERY_STAGE_IMPROVE, _PLAN_AND_END_IMPROVE))
+              else COMMON.replace(_EVERY_STAGE_IMPROVE, _PLAN_AND_END_IMPROVE.format(
+                  cadence=cadence, reviewed=_REVIEWED_WORDING[cadence])))
     parts = [common, duty(stage, delegation=delegation)]
     if stage in PRELUDE or stage in {"step-plan", "test-spec"}:
         parts.append(_PLANNING_HANDOFF if delegation == ASK_AGENT
@@ -1723,6 +1741,24 @@ _INLINE_IMPROVE_REPLACEMENTS = (
      "user prompt nor a second directive. Each reviewed step's task/ready/done\n"
      "criteria remain its sole assignment."),
 )
+
+
+PLANNING_REVIEW_FOCUS = """\
+Planning review focus (Improve cadence planning-and-end). This planning result is
+the contract that later stages build on and that no other review sees until the
+end. Look for these conditions and fix them within scope:
+- a step, example or expected result that cannot be replayed exactly: name the
+  concrete inputs, values, identifiers and sample interactions;
+- an expected result or check that a weaker stand-in would pass: a hardcoded
+  value, a missing assertion, a title-only test, or an absent required name;
+- a documented command that does not run what it claims on the target runtime:
+  run it once and record the exit code and the cases it executes;
+- a required requirement, test ID or case dropped or weakened compared with the
+  prior accepted version;
+- a missing prerequisite, wrong order or unowned verification in the steps.
+Do not reread history or rerun a check already recorded green at this commit
+unless a finding depends on it. A pass that finds none of these is trivial.
+"""
 
 
 def improve_prompt(stage: str, *, delegation: str = ASK_AGENT) -> str:
@@ -1958,8 +1994,11 @@ __all__ = (
     "INLINE",
     "INNER",
     "OUTER",
+    "PLANNING_AND_END",
+    "PLANNING_REVIEW_FOCUS",
+    "PLANNING_REVIEW_STAGES",
     "PLAN_AND_END",
-    "PLAN_AND_END_STAGES",
+    "REVIEWED_STAGES",
     "PRELUDE",
     "PROGRESS_REPORTING",
     "PROMPTS",

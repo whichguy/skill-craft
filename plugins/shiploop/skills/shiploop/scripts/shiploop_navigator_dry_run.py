@@ -17,6 +17,12 @@ WORK3 = ('select-work step-plan test-spec baseline test-author test-red implemen
          'integrate integration-verify carry-forward').split()
 AFTER3 = ('system-test-author system-test product-acceptance release-plan release-check '
           'release release-verify operations handoff').split()
+# Declared independently of the navigator's cadence tables.
+REVIEWED3 = {
+    'plan-and-end': {'plan'},
+    'planning-and-end': {'spec', 'test-strategy', 'plan', 'step-plan', 'test-spec',
+                         'system-test-author', 'release-plan'},
+}
 SCOPE = 'SIMULATION ONLY: actual navigator routes and packets; no project work, checks, commits, or delivery performed.'
 CORE = SimpleNamespace(PACKAGE_ROOT=Path(__file__).resolve().parents[1],
                        REF_DIR=Path(__file__).resolve().parents[1] / 'references')
@@ -57,14 +63,16 @@ def _improve_receipt(stage):
 def activity_v3(*, two=False, cadence='every-stage'):
     """Explicit producer/Improve declarations for the v3 graph.
 
-    every-stage alternates producer and Improve at each stage.  plan-and-end
-    declares Improve only after plan and after the last item's carry-forward.
+    every-stage alternates producer and Improve at each stage.  The other
+    cadences declare Improve only after their reviewed stages and after the
+    last item's carry-forward.
     """
     path = BEFORE3 + WORK3 * (2 if two else 1) + AFTER3
     last_carry = len(path) - 1 - path[::-1].index('carry-forward')
+    reviewed = REVIEWED3.get(cadence)
     rows = []
     for index, (stage, target) in enumerate(zip(path, path[1:] + ['done'])):
-        if cadence == 'plan-and-end' and stage != 'plan' and index != last_carry:
+        if reviewed is not None and stage not in reviewed and index != last_carry:
             rows.append({'at': stage, 'command': 'produce', 'expect': target,
                          'result': {'outcome': 'done',
                                     'summary': 'Synthetic declaration; no work executed.'},
@@ -91,9 +99,9 @@ def _v3_insert_before(rows, stage, command, extra):
     return rows
 
 
-def _v3_plan_and_end_scenarios():
-    """Plan-and-end declarations: most producers advance without an Improve child."""
-    activity = lambda **flags: activity_v3(cadence='plan-and-end', **flags)
+def _v3_plan_and_end_scenarios(cadence):
+    """Plan/planning-and-end declarations: most producers advance without an Improve child."""
+    activity = lambda **flags: activity_v3(cadence=cadence, **flags)
     repeat = _v3_insert_before(activity(), 'plan', 'finish-improve', [
         {'at': 'plan', 'command': 'finish-improve', 'receipt': _improve_receipt('plan'),
          'final_result': {'outcome': 'repeat', 'summary': 'More investigation needed.'},
@@ -124,8 +132,8 @@ def _v3_plan_and_end_scenarios():
 
 
 def scenarios(protocol_version=2, cadence='every-stage'):
-    if protocol_version in (3, 4) and cadence == 'plan-and-end':
-        return _v3_plan_and_end_scenarios()
+    if protocol_version in (3, 4) and cadence in REVIEWED3:
+        return _v3_plan_and_end_scenarios(cadence)
     if protocol_version in (3, 4):
         # v3/v4 always instantiate skill-validate and ignore carry-forward work
         # items, so the protocol-2 'skill' and 'corrective-work' shapes have no
@@ -282,7 +290,7 @@ def add_arguments(parser):
     parser.add_argument('--delegation', choices=navigator.DELEGATIONS, default=None,
                         help='protocol 3/4 execution delegation to simulate; default follows new runs (inline)')
     parser.add_argument('--improve-cadence', choices=navigator.IMPROVE_CADENCES, default=None,
-                        help='protocol 3/4 Improve cadence to simulate; default follows new runs (plan-and-end)')
+                        help='protocol 3/4 Improve cadence to simulate; default follows new runs (planning-and-end)')
     parser.add_argument('--list', action='store_true')
 
 
@@ -304,7 +312,7 @@ def run(args):
             declared = selected['custom'].get('improve_cadence') if isinstance(selected['custom'], dict) else None
             if declared is not None:
                 if declared not in navigator.IMPROVE_CADENCES or args.protocol_version not in (3, 4):
-                    raise ValueError('script improve_cadence must be every-stage or plan-and-end (protocol 3/4)')
+                    raise ValueError('script improve_cadence must be one of ' + ', '.join(navigator.IMPROVE_CADENCES) + ' (protocol 3/4)')
                 if getattr(args, 'improve_cadence', None) not in (None, declared):
                     raise ValueError('script improve_cadence differs from --improve-cadence')
                 cadence = declared

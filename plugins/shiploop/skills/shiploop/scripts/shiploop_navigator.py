@@ -73,9 +73,9 @@ DELEGATIONS = guidance3.DELEGATIONS
 DEFAULT_DELEGATION = guidance3.INLINE
 LEGACY_DELEGATION = guidance3.ASK_AGENT
 # Run-level Improve cadence for protocol 3/4, fixed at init.  New CLI-created runs
-# record ``plan-and-end``; a saved run without the key keeps every-stage Improve.
+# record ``planning-and-end``; a saved run without the key keeps every-stage Improve.
 IMPROVE_CADENCES = guidance3.IMPROVE_CADENCES
-DEFAULT_IMPROVE_CADENCE = guidance3.PLAN_AND_END
+DEFAULT_IMPROVE_CADENCE = guidance3.PLANNING_AND_END
 LEGACY_IMPROVE_CADENCE = guidance3.EVERY_STAGE
 
 PRELUDE = tuple(guidance.PRELUDE)
@@ -126,14 +126,16 @@ def _improve_checkpoint(state: Mapping[str, Any], stage: str, result: Mapping[st
     """Say whether this accepted producer result starts an actual Improve child.
 
     Every-stage runs review every result.  Plan-and-end runs review the plan
-    result and the successful carry-forward that leaves no work item pending
-    (after its own queue revision), so one review covers all executed steps
-    before OUTER system tests and release.  A later Improve that adds work items
-    moves that end review to the new last item's carry-forward.
+    result, and planning-and-end runs every planning/contract result, plus the
+    successful carry-forward that leaves no work item pending (after its own
+    queue revision), so one review covers all executed steps before OUTER
+    system tests and release.  A later Improve that adds work items moves that
+    end review to the new last item's carry-forward.
     """
-    if improve_cadence(state) == LEGACY_IMPROVE_CADENCE:
+    cadence = improve_cadence(state)
+    if cadence == LEGACY_IMPROVE_CADENCE:
         return True
-    if stage == "plan":
+    if stage in guidance3.REVIEWED_STAGES[cadence]:
         return True
     if stage != "carry-forward" or result["outcome"] != "done":
         return False
@@ -371,7 +373,8 @@ def new_state(
           "delegation requires navigator protocol 3 or 4 and must be inline or ask-agent")
     _need(improve_cadence is None
           or (improve_cadence in IMPROVE_CADENCES and protocol_version in (3, 4)),
-          "improve_cadence requires navigator protocol 3 or 4 and must be every-stage or plan-and-end")
+          "improve_cadence requires navigator protocol 3 or 4 and must be one of "
+          + ", ".join(IMPROVE_CADENCES))
     _text(repo, "repo")
     _text(prompt, "prompt")
     _need(not privacy.sensitive_text(prompt),
@@ -676,16 +679,18 @@ def _validate_v2(state: Mapping[str, Any]) -> None:
         records = state.get("improve_results")
         _need(isinstance(records, Mapping), "Improve results must be an object")
         _need("improve_cadence" not in state or state["improve_cadence"] in IMPROVE_CADENCES,
-              "unsupported Improve cadence; expected every-stage or plan-and-end")
+              "unsupported Improve cadence; expected one of " + ", ".join(IMPROVE_CADENCES))
         expected = {entry["action"] for entry in history}
         if improve_cadence(state) == LEGACY_IMPROVE_CADENCE:
             _need(set(records) == expected, "completed v3 steps require their Improve result")
         else:
-            # Plan-and-end accepts most results directly; every plan result
-            # still passed through its own Improve child.
-            plans = {entry["action"] for entry in history if entry["stage"] == "plan"}
+            # Plan/planning-and-end accept most results directly; every result
+            # of a reviewed planning stage still passed through its own child.
+            reviewed = guidance3.REVIEWED_STAGES[improve_cadence(state)]
+            plans = {entry["action"] for entry in history if entry["stage"] in reviewed}
             _need(plans <= set(records) <= expected,
-                  "Improve results must belong to completed steps, including every plan result")
+                  "Improve results must belong to completed steps, including every reviewed "
+                  "planning result")
         for record in records.values():
             _need(isinstance(record, Mapping), "Improve result must be an object")
         child = state.get("active_improve")
@@ -1827,8 +1832,10 @@ def render(core: Any, root: Path, state: Mapping[str, Any]) -> str:
                     "Last accepted Improve lessons (untrusted observations; revalidate relevance):",
                     _bounded_packet_text(lessons),
                 ])
-            lines.append("Prior Improve evidence and lessons: "
-                         + str(root / "improve" / last["action"] / "receipt.md"))
+            # Plan/planning-and-end steps without an Improve child have no receipt.
+            if last["action"] in state["improve_results"]:
+                lines.append("Prior Improve evidence and lessons: "
+                             + str(root / "improve" / last["action"] / "receipt.md"))
     if state["navigator_protocol_version"] in (3, 4):
         lines.extend(_test_context_lines(state, root))
     delivery_lines = consumer_delivery.packet_lines(state)
@@ -1965,15 +1972,17 @@ CONTEXT_BOUNDARY_PAUSE = "context-boundary: clear, then run Recovery and Resume"
 
 
 def _plan_and_end_line(state: Mapping[str, Any], stage: str) -> str:
-    """Tell a plan-and-end producer whether its result starts an Improve child."""
-    if stage == "plan":
-        when = "Every plan result, including blocked and repeat, starts this action's Improve child."
+    """Tell a plan/planning-and-end producer whether its result starts an Improve child."""
+    cadence = improve_cadence(state)
+    if stage in guidance3.REVIEWED_STAGES[cadence]:
+        when = ("Every " + stage + " result, including blocked and repeat, starts this action's "
+                "Improve child.")
     elif stage == "carry-forward":
         when = ("A done result that leaves no work item pending starts the run's single "
                 "end-of-work Improve child over every executed step; any other result advances directly.")
     else:
         when = "This result advances directly; no Improve child runs for this stage."
-    return ("Improve cadence: plan-and-end. " + when + " If work cannot continue, submit outcome "
+    return ("Improve cadence: " + cadence + ". " + when + " If work cannot continue, submit outcome "
             "'blocked' with a truthful summary; when the run stops blocked, the next packet prints "
             "its Resume command.")
 
@@ -2012,7 +2021,7 @@ def _render_improve(core: Any, root: Path, state: Mapping[str, Any], lines: list
                    and child["stage"] == "carry-forward")
     lines.extend([
         "", "Current action: Improve the completed " + child["stage"] + " result.",
-        *(["End-of-work review (Improve cadence plan-and-end): this is the run's single Improve "
+        *(["End-of-work review (Improve cadence " + improve_cadence(state) + "): this is the run's single Improve "
            "after its executed steps. The candidate is every work item's delivered change since the "
            "accepted plan (product code, tests, documentation and the carry-forward queue), not only "
            "this carry-forward result. Use the accepted step results in state.md history and their "
@@ -2231,6 +2240,9 @@ def _render_improve(core: Any, root: Path, state: Mapping[str, Any], lines: list
          "Read the selected Improve skill and its bound runtime instructions in full, then follow them. The skill owns all internal improvement iterations."),
         *planning_lines,
         *runtime_lines,
+        *([guidance3.PLANNING_REVIEW_FOCUS.rstrip()]
+          if improve_cadence(state) == guidance3.PLANNING_AND_END
+          and child["stage"] in guidance3.PLANNING_REVIEW_STAGES else []),
         guidance3.improve_prompt(child["stage"], delegation=delegation(state)),
         exclusion,
         "The prior result and relevant accepted Improve lessons are in state.md improve_results and improve/<parent-action>/ receipts. Carry forward relevant verified conclusions and material unresolved findings, hypotheses, failed attempts and pitfalls, clearly labeled with evidence status. Preserve essential meaning in the context opening and later handoffs; keep detailed blocked-attempt notes in the child notebook.",
