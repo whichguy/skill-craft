@@ -386,6 +386,18 @@ class NavigatorV4Tests(unittest.TestCase):
         invoke_pos = improve.index("Then say 'Run /improve'")
         self.assertLess(context_pos, invoke_pos)
         self.assertIn("improve-reconcile", improve)
+        cancel_rule = ("Freeze in repeat_condition: if a finding invalidates an accepted discovery, "
+                       "research, spec or test-strategy premise")
+        inline = navigator.render(None, root, dict(waiting, delegation="inline"))
+        for packet in (improve, inline):
+            # A blocked stop cannot reconcile; the child must report cancelled.
+            self.assertLess(packet.index(cancel_rule), packet.index("start once"))
+            self.assertIn("continuation_assessment cancelled", packet)
+            self.assertIn("the exact parent return instructions below", packet)
+        self.assertIn("once the runtime has returned that stopped packet", inline)
+        self.assertIn("confirm the runtime returned it in this conversation", inline)
+        for delegated in ("native worker owner", "latest packet, owner record", "host-owner.md"):
+            self.assertNotIn(delegated, inline)
 
         legacy = navigator.new_state(str(self.repo), "Keep v3 stable.", protocol_version=3)
         self.assertEqual(legacy["version"], navigator.STATE_VERSION)

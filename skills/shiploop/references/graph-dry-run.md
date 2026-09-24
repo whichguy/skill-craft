@@ -15,7 +15,13 @@ python3 "$CLI" graph-dry-run
 python3 "$CLI" graph-dry-run --list
 python3 "$CLI" graph-dry-run --scenario two-work-items --format markdown
 python3 "$CLI" graph-dry-run --scenario blocked-resume --format json
+python3 "$CLI" graph-dry-run --scenario delivery --delegation ask-agent --format markdown
 ```
+
+For protocols 3 and 4, `--delegation inline|ask-agent` selects the simulated
+run's [delegation](navigator.md#run-it). It defaults to `inline`, as for a new
+run; `ask-agent` renders the opt-in delegated packets. Passing it with protocol
+2 is an input error (exit 2).
 
 `--list` prints the scenarios available for the selected protocol. Protocols 3
 and 4 cover delivery, two work items, blocked/resume, a repeat returned through
@@ -52,7 +58,8 @@ stage/status `done`. Run it with `--script PATH`. Example prefixes:
 
 Exit 0 means expectations matched, including an intentionally halted or partial
 scenario. Exit 1 means an expectation failed; exit 2 means the input could not
-be read or named a scenario unavailable for the selected protocol. Simulation success never establishes project completion. See the
+be read, named a scenario unavailable for the selected protocol, or passed
+`--delegation` with protocol 2. Simulation success never establishes project completion. See the
 [navigator guide](navigator.md) for actual execution and Improve ownership.
 
 ## Compatibility harnesses

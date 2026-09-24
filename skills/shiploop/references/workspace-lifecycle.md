@@ -103,10 +103,11 @@ still contain usable durable document links and enough rationale to stand alone.
 
 ## Inner assembly and final return
 
-The INNER `integrate` action combines worker changes **inside the execution
-checkout**. It does not merge into the original branch after each item. All
-remaining items, system tests, outer Improve and authorized release work use
-the same assembled candidate. Recheck any integration-affected behavior.
+The INNER `integrate` action combines the item's step and worker changes
+**inside the execution checkout**. It does not merge into the original branch
+after each item. All remaining items, system tests, outer Improve and authorized
+release work use the same assembled candidate. Recheck any integration-affected
+behavior.
 
 Protocol 3 defers the once-only source return until the final `handoff` Improve
 child has completed and its evidence receipt is ready. Review the final return

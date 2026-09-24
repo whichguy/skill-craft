@@ -4823,7 +4823,19 @@ def _bind(root: Path, state: dict[str, Any], args: argparse.Namespace) -> dict[s
     action_id = _action(args.action)
     _require_bindable(state, action_id)
     _require_external_run(root)
+    bindings = state.get("chain_bindings", {})
+    if not isinstance(bindings, Mapping):
+        _fail("navigator chain binding index is invalid")
+    replay = action_id in bindings
+    if not replay and navigator.delegation(state) == "inline":
+        # Inline runs execute reviewed steps directly in the main context.
+        _fail("this run's delegation is inline: execute the reviewed steps directly in the main "
+              "context without a chain; to use a chain, first run: shiploop delegation --run-dir "
+              + str(root) + " --set ask-agent")
     mode = args.mode
+    if mode is None:
+        mode = (_binding_mode(_read_binding(root, action_id, str(bindings[action_id])))
+                if replay else "parallel")
     if mode not in _CHAIN_MODES:
         _fail("--mode must be parallel or serial")
     capacity = args.capacity
@@ -4837,9 +4849,6 @@ def _bind(root: Path, state: dict[str, Any], args: argparse.Namespace) -> dict[s
     if lifecycle != "per-step":
         _fail("new ShipLoop chain bindings require --lifecycle per-step; final-return is retired")
     graph, graph_source = _freeze_graph(args.graph)
-    bindings = state.get("chain_bindings", {})
-    if not isinstance(bindings, Mapping):
-        _fail("navigator chain binding index is invalid")
     previous = (_read_binding(root, action_id, str(bindings[action_id]))
                 if action_id in bindings else None)
     if previous is not None and not _managed_ask_agent_adapter(previous):
@@ -5016,7 +5025,8 @@ def _parser() -> _ArgumentParser:
     bind.add_argument("--dispatcher-skill", required=True)
     bind.add_argument("--ask-agent-skill", required=True)
     bind.add_argument("--worktree-parent", required=True)
-    bind.add_argument("--mode", choices=("parallel", "serial"), default="parallel")
+    bind.add_argument("--mode", choices=("parallel", "serial"), default=None,
+                      help="parallel (default) or serial; a replay keeps the recorded mode")
     bind.add_argument("--capacity", type=int)
     bind.add_argument("--lifecycle", choices=("per-step", "final-return"), default="per-step",
                       help="per-step (required); final-return is retired and refused")

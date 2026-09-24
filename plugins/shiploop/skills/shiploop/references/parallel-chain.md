@@ -1,5 +1,13 @@
 # Parallel implementation chains
 
+Chains apply only to a run whose delegation is `ask-agent`: an opt-in new run,
+a run switched with `python3 "$CLI" delegation --run-dir "$RUN_DIR" --set ask-agent`,
+or a saved run without the setting. Under `delegation: inline`, the default for
+new v3/v4 runs, `implement` executes the reviewed steps directly, one at a time
+in dependency order, in the execution checkout, and `chain bind` refuses a fresh
+binding before any side effect. Replaying an existing binding keeps its recorded
+mode. See the [navigator delegation setting](navigator.md#run-it).
+
 For a reviewed dependency graph with dependency-independent implementation work
 **inside the current navigator-v3/v4 `implement` action**, use this parallel route
 by default when selected compatible native capacity is available. The binding
@@ -17,7 +25,7 @@ unbound navigator records retain their existing format.
 
 ```mermaid
 flowchart TD
-    S[ShipLoop implement] --> D[Main dispatcher]
+    S[ShipLoop implement on an ask-agent run] --> D[Main dispatcher]
     D --> A[Ask-Agent worker A]
     D --> B[Ask-Agent worker B]
     A --> V[Collect and independently verify]
@@ -393,7 +401,8 @@ cleanup and finish. Refuse the old owner before creating or removing a worktree.
 ## Serial execution in the main context
 
 During the implementation producer, the bound mode and recorded executor take
-precedence over the navigator's generic fresh-worker guidance. This precedence
+precedence over the navigator's generic producer context boundary, which for an
+ask-agent run prefers a native fresh worker. This precedence
 ends at producer completion: Improve follows its own selected context and ownership
 policy even when the historical chain binding remains. Parallel chains retain their capacity and have no serial
 reset wrapper. Serial chains do not spawn a fresh worker. If fresh context is
@@ -406,8 +415,10 @@ mode/executor or rerun `start` to obtain another execution grant. Printed `/clea
 text does not perform the host operation.
 
 Bind a new chain with `--mode serial`; omit `--capacity` or set it to `1`.
-`--mode parallel` is the default and retains native Ask-Agent execution. The
-mode is frozen for that chain; do not switch an existing active chain in place.
+Without `--mode`, a fresh binding uses `parallel`, which retains native
+Ask-Agent execution, and a replay of an existing binding resolves to its
+recorded mode. The mode is frozen for that chain; do not switch an existing
+active chain in place.
 Serial mode requires a selected Plan Dispatcher package with atomic
 main-context `start.executor` support as well as the planning-context and graph
 capabilities above. An older package
@@ -416,9 +427,11 @@ any execute grant. For each new serial attempt, the bridge prepares a sibling
 Git worktree and records the main-context executor without a native handle.
 Recovery reuses that attempt's workspace. The binding and
 allocated workspace can remain for inspection; do not treat a successful bind as
-serial capability qualification or edit the frozen package in place. The selected
-Ask-Agent package still supplies the shared Git contribution reference, but
-serial chain execution does not invoke Ask-Agent.
+serial capability qualification or edit the frozen package in place. Serial
+mode launches no agents, but it still depends on both selected packages: `start`
+calls the frozen Ask-Agent workspace helper to prepare and inspect each step
+worktree, cleanup uses that helper's `close`, Ask-Agent supplies the shared Git
+contribution reference, and Plan Dispatcher still owns claims and readiness.
 
 ```sh
 python3 "$CLI" chain bind --run-dir "$RUN_DIR" --action "$ACTION" \

@@ -7534,6 +7534,21 @@ def planning_repair(core, root, state, aid, reason):
     persist(root, state, "planning-repair", writes)
 
 
+def _require_retry_delegation(existing: dict, requested: "str | None", run_dir: Path) -> None:
+    """Recovery retries keep the recorded delegation; only the toggle changes it."""
+    if requested is None:
+        return
+    import shiploop_navigator as navigator
+
+    need(existing.get("navigator_protocol_version") in (3, 4),
+         "this run's protocol has no delegation setting; rerun without --delegation")
+    recorded = navigator.recorded_delegation(existing)
+    need(recorded == requested,
+         f"--delegation {requested} differs from this run's recorded delegation {recorded}; rerun "
+         "without --delegation to recover the run, and change the setting only on an explicit "
+         f"user request with: shiploop delegation --run-dir {run_dir} --set {requested}")
+
+
 def workspace_command(core, argv):
     """One CLI family; workspace effects stay outside the opaque navigator."""
     import shiploop_workspace as workspace
@@ -7550,6 +7565,8 @@ def workspace_command(core, argv):
     start.add_argument("--delivery-contract", action="store_true")
     start.add_argument("--improve-skill", default="")
     start.add_argument("--protocol-version", type=int, choices=(2, 3, 4), default=3)
+    start.add_argument("--delegation", choices=navigator.DELEGATIONS, default=None,
+                       help="new protocol 3/4 run: inline (default) or ask-agent delegation")
     for name in ("plan-return", "return"):
         child = subs.add_parser(name)
         child.add_argument("--workspace-root", required=True)
@@ -7558,6 +7575,8 @@ def workspace_command(core, argv):
     try:
         if args.operation == "start":
             need(bool(args.prompt.strip()), "prompt must not be empty")
+            need(args.delegation is None or args.protocol_version in (3, 4),
+                 "--delegation requires navigator protocol 3 or 4")
             # Screen before workspace.prepare creates a worktree and branch.
             import shiploop_privacy
             need(not shiploop_privacy.sensitive_text(args.prompt),
@@ -7581,6 +7600,7 @@ def workspace_command(core, argv):
                      "workspace start cannot change capture options on retry; use next to recover")
                 need(not args.delivery_contract or existing.get("delivery_contract_version") == 1,
                      "cannot retrofit delivery-contract on an existing run")
+                _require_retry_delegation(existing, args.delegation, root / "run")
                 # Identical re-entry is recovery, not another capture of the
                 # source after product work or a completed integration.
                 return main(core, ["next", "--run-dir", str(root / "run")])
@@ -7592,6 +7612,8 @@ def workspace_command(core, argv):
                     "--navigator-version", str(args.protocol_version), "--improve-skill", args.improve_skill]
             if args.delivery_contract:
                 init.append("--delivery-contract")
+            if args.delegation:
+                init += ["--delegation", args.delegation]
             return main(core, init)
         if args.operation == "plan-return":
             workspace.plan_return(root)
@@ -7690,6 +7712,7 @@ def main(core, argv=None):
         "graph-dry-run", help="inspect navigator routes and prompts without project work"))
     for name in (
         "init",
+        "delegation",
         "improve-bind",
         "improve-complete",
         "improve-reconcile",
@@ -7728,6 +7751,11 @@ def main(core, argv=None):
                              help="opt in a new navigator run (protocol 2, 3 or 4) to consumer-delivery declaration checks")
             sub.add_argument("--independent-review", choices=("optional", "required", "required-with-fallback"), default="optional",
                              help="bind managed review requirements; fallback must be explicitly recorded")
+            sub.add_argument("--delegation", choices=navigator.DELEGATIONS, default=None,
+                             help="new protocol 3/4 run: inline (default) or ask-agent delegation")
+        if name == "delegation":
+            sub.add_argument("--set", dest="delegation_value", choices=navigator.DELEGATIONS, required=True,
+                             help="execution delegation for this run's future assignments")
         if name == "improve-bind":
             sub.add_argument("--skill-card", required=True)
         if name in (
@@ -7849,6 +7877,10 @@ def main(core, argv=None):
     if (args.command == "init" and args.delivery_contract
             and args.execution_mode not in ("navigator", "navigator-worktree", "navigator-v2")):
         parser.error("--delivery-contract requires navigator protocol 2, 3, or 4")
+    if (args.command == "init" and args.delegation is not None
+            and not (args.execution_mode in ("navigator", "navigator-worktree")
+                     and args.navigator_version in (3, 4))):
+        parser.error("--delegation requires navigator protocol 3 or 4")
     if args.command == "graph-dry-run":
         # Deliberately before run-directory discovery, locking or state access.
         return navigator_dry_run.run(args)
@@ -7896,6 +7928,11 @@ def main(core, argv=None):
                      or (existing.get("navigator_protocol_version") in (2, 3, 4)
                          and existing.get("delivery_contract_version") == 1),
                      "--delivery-contract cannot retrofit an existing run; preserve it and use its recorded protocol")
+                _require_retry_delegation(existing, getattr(args, "delegation", None), root)
+                need(args.command != "delegation"
+                     or existing.get("navigator_protocol_version") in (3, 4),
+                     "delegation applies only to navigator protocol 3 or 4 runs; other runs keep "
+                     "their recorded behavior")
                 if ("navigator_protocol_version" in existing
                         or existing.get("execution_mode") == "navigator"):
                     need(not getattr(args, "force", False),
@@ -7906,6 +7943,9 @@ def main(core, argv=None):
                         completion_guard=lambda before, after: workspace_completion_guard(root, before, after),
                     )
             saved_prompt = None
+            need(args.command != "delegation",
+                 "delegation needs an existing navigator protocol 3 or 4 run; choose it with "
+                 "--delegation at init or workspace start")
             if args.command == "init":
                 need(bool(args.prompt.strip()), "prompt must not be empty")
                 need(
@@ -7957,6 +7997,9 @@ def main(core, argv=None):
                         improve_skill=args.improve_skill,
                         delivery_contract=args.delivery_contract,
                         worktree=args.execution_mode == "navigator-worktree",
+                        delegation=(args.delegation or navigator.DEFAULT_DELEGATION
+                                    if args.execution_mode in ("navigator", "navigator-worktree")
+                                    and args.navigator_version in (3, 4) else None),
                     )
                     navigator.save(root, state)
                     print(navigator.render(core, root, state), end="")

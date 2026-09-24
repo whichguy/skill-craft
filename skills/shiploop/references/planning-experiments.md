@@ -90,9 +90,12 @@ baseline, acquire persistent infrastructure, or broaden authority merely to
 finish planning.
 
 A newly printed scratch path does not widen an existing child's frozen scope.
-If the user later explicitly changes authority, follow the source-bound parent
-update route in [Improve context ownership](improve-context.md): retain the
-decision and receipt/effect in the existing handoff and continue the same runtime.
+If the user later explicitly changes authority, follow the later-decision route
+for the run's delegation in [Improve context ownership](improve-context.md).
+Under `delegation: inline`, the decision applies from the next review iteration
+and is recorded in the review notes and handoff. Under `delegation: ask-agent`,
+the parent forwards it through the native channel and the receipt/effect is
+recorded in the existing handoff. Either way, continue the same runtime.
 Do not rewrite launch context or replace a child merely to change its scope.
 
 Use [research's shared evidence and allowance guidance](research-loop.md#budget-stopping-and-convergence):
@@ -122,8 +125,11 @@ invalidates discovery, research, specification or test strategy, identify the
 **earliest** affected stage. Retain the premise and evidence in the reconciliation
 summary and local evidence files; do not edit accepted upstream results in place.
 A paused parent retains its bound child. An unfinished or runtime-`stopped` child
-packet is not proof that the actual worker owner has stopped; the parent must
-collect or confirm that owner before it can accept, reconcile, or replace work.
+packet is not proof that the actual child owner has stopped. Under
+`delegation: ask-agent`, the parent must collect or confirm the delegated worker;
+under `delegation: inline`, the parent is the owner and confirms that the runtime
+returned the packet and no candidate write is in progress. Only then can it
+accept, reconcile, or replace work.
 
 The return path is available only for v4's initial `plan` Improve child before
 any preparation, work-item execution, chain binding or workspace return, when
@@ -135,10 +141,13 @@ rather than receive a fabricated stopped-child settlement.
    Report the unresolved or non-trivial review, unsatisfied or unknown exit, and
    cancelled continuation through the child's actual callback. Save its complete
    raw `stopped` packet at the exact parent-issued receipt location.
-2. The parent collects the actual worker's return or confirms cancellation.
-   An uncertain/live owner, missing terminal packet or usable child callback
-   prevents settlement. The packet importer checks structural declarations and
-   local file identities; it does not independently authenticate worker death.
+2. The parent confirms the owner has stopped: under `delegation: ask-agent` it
+   collects the actual worker's return or confirms cancellation; under
+   `delegation: inline` it confirms the runtime returned that stopped packet in
+   this conversation and no candidate write is in progress. An uncertain/live
+   owner, missing terminal packet or usable child callback prevents settlement.
+   The packet importer checks structural declarations and local file identities;
+   it does not independently authenticate that the owner stopped.
 3. Write the packet-issued reconciliation receipt with exactly `summary`,
    `target`, and nonempty `evidence_refs`. Target is `discovery`, `research`,
    `spec`, or `test-strategy`. Evidence references must be absolute regular,

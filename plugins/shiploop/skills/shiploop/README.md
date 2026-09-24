@@ -1,16 +1,33 @@
-# ShipLoop navigator 0.19.7
+# ShipLoop navigator 0.20.0
 
-ShipLoop's invoking conversation owns navigation, acceptance and delivery. For
-a new v3/v4 ephemeral Improve invocation, the selected Ask Agent can delegate one
+ShipLoop's invoking conversation owns navigation, acceptance and delivery. New
+v3/v4 runs record `delegation: inline`, so that conversation also executes every
+assignment. It clears once per work item at the `select-work` packet (through a
+callable host reset, or the printed pause plus a host `/clear` or fresh
+conversation and the Recovery and Resume commands), continues each later INNER stage in the
+same context, and runs each bound Improve invocation through the selected
+Improve skill in the exact Child workspace without Ask Agent, native workers, an
+extra worktree or `host-owner.md`. The boundary is per work item because a model
+cannot clear its own conversation: in the [clear-ledger study](https://github.com/whichguy/skill-craft/blob/59be9b8232e34dc00ae777052a608a13967ffab2/docs/shiploop-clear-ledger-experiments-2026-09-21.md#live-ledger-study-september-21-2026)
+each packet-text variant produced a verified fresh entry in 0 of 2 cases, while
+external host `/clear` worked in 3 of 3 resets.
+
+`--delegation ask-agent` at `workspace start` or `init` opts a new run into the
+delegated route, which saved runs without the setting also keep. For a new
+v3/v4 ephemeral Improve invocation, the selected Ask Agent can delegate one
 fresh native worker using the explicit consumer-owned workspace route. The
 worker executes the entire loop in the already-bound candidate; the parent
 collects and verifies it, then performs the guarded final return when required.
+`shiploop delegation --run-dir RUN --set inline|ask-agent` switches an existing
+v3/v4 run from its next issued action; see the [command reference](#command-reference).
 Read [Improve context ownership](references/improve-context.md) for capability,
 exclusive writer, interruption and retention rules. A worktree alone does not
 create a separate model session. Shell model-CLI launching belongs only to the external
 E2E harness, not normal ShipLoop CLI operation. Optional bound implementation
-chains may still use a selected compatible Ask-Agent adapter through host-native
-delegation. The former `drive` command and model transports are removed.
+chains, available only on ask-agent runs, may still use a selected compatible
+Ask-Agent adapter through host-native delegation; inline runs execute reviewed
+steps directly in the main conversation. The former `drive` command and model
+transports are removed.
 For a saved run from that older controller, read
 [retired-controller recovery](references/context-reset.md) before continuing.
 
@@ -40,10 +57,12 @@ evidence, budget limitations and recovery. No separate experiment loop is added.
 - [Isolated workspace and artifact return policy](references/workspace-lifecycle.md)
 - [Delivery-authority readiness](references/delivery-authority.md)
 - [README-led current-system baseline and planning handoff](references/current-system-baseline.md)
-- [Optional parallel or serial implementation chains](references/parallel-chain.md) — bind
-  the selected Plan Dispatcher/Ask-Agent packages to one current implementation
-  action. New chains use the per-step managed-workspace flow only. Ask-Agent
-  must be version 0.6 or newer and declare the supported capability contract;
+- [Optional parallel or serial implementation chains](references/parallel-chain.md) — on
+  a `delegation: ask-agent` run, bind the selected Plan Dispatcher/Ask-Agent
+  packages to one current implementation action; `chain bind` refuses a fresh
+  binding on an inline run, which executes its reviewed steps directly. New
+  chains use the per-step managed-workspace flow only. Ask-Agent must be
+  version 0.6 or newer and declare the supported capability contract;
   its helper identity and selected package bytes are frozen for the run. There
   is no 0.4 caller-worktree fallback or new `final-return` lifecycle.
   The Dispatcher must advertise `planning_context: "shiploop-planning-artifacts/v1"`
@@ -75,7 +94,10 @@ does not establish installed or marketplace activation, other-host behavior, or
 general Ask-Agent protocol compatibility. Binding a skill card freezes its
 bytes; it does not establish semantic protocol compatibility.
 
-`init` and `workspace start` default to navigator protocol 3 for new runs. Pass
+`init` and `workspace start` default to navigator protocol 3 and `delegation:
+inline` for new runs; `--delegation ask-agent` opts in to the delegated route,
+and v1/v2, managed and legacy runs refuse the option. A retry cannot change the
+setting; use `shiploop delegation` instead. Pass
 `workspace start --protocol-version 2` (or `init --execution-mode=navigator-v2`)
 only for the retained v2 route; `init --execution-mode` v1, managed, and legacy
 modes remain for explicit compatibility use. Existing runs resume
@@ -145,7 +167,7 @@ actual Improve handoff; a recorded child is resumed through its own state, and
 children commit verified scoped improvements in their bound worktree under
 the selected Improve policy, unless an explicit user or repository no-commit
 override applies. The parent verifies the commit evidence and owns integration;
-a worker commit alone does not prove caller delivery. ShipLoop's `state.md` remains SDLC-state authority;
+a child commit alone does not prove caller delivery. ShipLoop's `state.md` remains SDLC-state authority;
 the selected Until Loop runtime remains child-execution authority.
 
 ### Current Improve and Until Loop binding
@@ -3229,10 +3251,10 @@ surface is:
 
 ```sh
 # Current navigator (protocol 3 default; 4 opt-in)
-shiploop workspace start --repo REPO --workspace-root ROOT [--protocol-version=2|3|4] [--improve-skill ABSOLUTE_SKILL_CARD] [--include-untracked=PATH]... [--exclude=PATH]... [--delivery-contract] --prompt=TEXT
+shiploop workspace start --repo REPO --workspace-root ROOT [--protocol-version=2|3|4] [--improve-skill ABSOLUTE_SKILL_CARD] [--include-untracked=PATH]... [--exclude=PATH]... [--delivery-contract] [--delegation=inline|ask-agent] --prompt=TEXT
 shiploop workspace plan-return --workspace-root ROOT
 shiploop workspace return      --workspace-root ROOT
-shiploop init     --repo REPO [--run-dir RUN] [--execution-mode=navigator|navigator-v2|navigator-v1|managed|legacy] [--navigator-version=2|3|4] [--improve-skill ABSOLUTE_SKILL_CARD] [--delivery-contract] --prompt=TEXT
+shiploop init     --repo REPO [--run-dir RUN] [--execution-mode=navigator|navigator-v2|navigator-v1|managed|legacy] [--navigator-version=2|3|4] [--improve-skill ABSOLUTE_SKILL_CARD] [--delivery-contract] [--delegation=inline|ask-agent] --prompt=TEXT
 shiploop next     --run-dir RUN
 shiploop status   --run-dir RUN
 shiploop report   --run-dir RUN
@@ -3258,17 +3280,24 @@ shiploop revisit  --run-dir RUN --action ACTION --to survey|research|behavior|sp
 shiploop pause    --run-dir RUN --reason=TEXT
 shiploop resume   --run-dir RUN
 shiploop halt     --run-dir RUN --reason=TEXT
+shiploop delegation --run-dir RUN --set=inline|ask-agent   # protocol 3/4; from the next action
 shiploop migrate  --run-dir RUN
 # Implementation chains within the current v3/v4 implement action
 shiploop chain {bind,planning-inputs,next,history,pending,claim,start,launched,observe,import-handoff,prepare,settle,done,retry,packet,cleanup,finish,recover} ...
 # Inspection without project work
-shiploop graph-dry-run [--list] [--scenario NAME | --script STEPS.json] [--protocol-version=2|3|4] [--format=summary|json|markdown]
+shiploop graph-dry-run [--list] [--scenario NAME | --script STEPS.json] [--protocol-version=2|3|4] [--delegation=inline|ask-agent] [--format=summary|json|markdown]
 shiploop managed-graph-dry-run ...   # compatibility managed controller only
 ```
 
-`chain` subcommands are packet-issued; see [parallel implementation
-chains](references/parallel-chain.md). `graph-dry-run --list` prints the
-scenarios available for the selected protocol; see [graph dry runs](references/graph-dry-run.md).
+`chain` subcommands are packet-issued on `delegation: ask-agent` runs; see
+[parallel implementation chains](references/parallel-chain.md). Without
+`--mode`, a new binding is parallel and a replay keeps its recorded mode.
+`delegation` applies from the next issued action; the pending action and its
+Improve checkpoint keep their issued route. It is refused on halted or done runs;
+the recorded value is a no-op.
+`graph-dry-run --list` prints the scenarios available for the selected protocol;
+`--delegation` selects the simulated protocol 3/4 route (inline by default). See
+[graph dry runs](references/graph-dry-run.md).
 
 The default `navigator` mode starts protocol 3 for new `init` and workspace
 runs; see the navigator guide for its producer/child handoff commands. The exact
@@ -3276,7 +3305,7 @@ packet is authoritative for `improve-bind` and `improve-complete` arguments and
 recovery. `navigator-v2` and `navigator-v1` preserve their recorded cursor
 contracts; use managed or legacy modes explicitly for those compatibility routes.
 A v3 parent imports only matching accepted child evidence and never replaces a
-blocked child with inline review work.
+blocked child with a hand-written review loop outside the selected Improve skill.
 
 `TEXT` is literal data: use one `--name=value` argument, including with
 structured argv. In a shell single-quote it, escaping embedded `'` as `'\''`.

@@ -20,6 +20,17 @@ to revalidate, not a new test-state schema or a passing-check receipt. Follow
 [test decision handoffs](repeatable-test-suites.md#carry-test-decisions-through-stages)
 to retain fixture, suite and local/remote choices through later work.
 
+A navigator v3/v4 `state.md` may also carry the optional run-level `delegation`
+key, `inline` or `ask-agent`. New runs created by `init` or `workspace start`
+record `inline` unless `--delegation ask-agent` is passed. A saved run without
+the key keeps its recorded ask-agent behaviour and is never silently migrated;
+v1/v2 states reject the key. Change it only with
+`delegation --run-dir RUN --set inline|ask-agent`, which applies from the next issued action: the action pending when you switch, including its Improve checkpoint, keeps the route it was issued with
+and is refused on a halted or done run. A switch made while an action is pending
+records optional `delegation_hold: {action, route}` for that action; it is
+ignored once another action is issued. See the
+[navigator guide](navigator.md#run-it).
+
 Everything below belongs to a run directory, normally `<repo>/.shiploop`,
 not to the installed ShipLoop package. Markdown is the authoritative state.
 Each structured record has one `shiploop-state` JSON fence inside its Markdown

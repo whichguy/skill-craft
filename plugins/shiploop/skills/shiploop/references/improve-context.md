@@ -6,113 +6,111 @@ Improve nodes retain their recorded direct adapter and do not gain this parked
 parent/child route. In v3/v4, one valid producer submission parks the invoking
 parent and binds the child for the **whole Improve invocation**. The child owns
 its reviews, applicable experiments, and shared investigation allowance; do not
-create a worker for each review iteration. The parent remains ShipLoop's control
-channel and alone may run verified `improve-complete` after collecting terminal
-evidence and confirming the worker and delegates stopped. A parent pause retains
-the child; an unfinished child route is not proof that its native owner stopped.
-The worker retains useful within-loop context while the parent receives a compact
-return and durable locators. This reduces parent-context growth, not necessarily
-total tokens or latency.
+create a worker or a fresh context for each review iteration. The parent remains
+ShipLoop's control channel and alone may run verified `improve-complete` after
+the terminal packet is saved and every candidate writer has stopped. A parent
+pause retains the child; an unfinished child route is not proof that its
+executor stopped. A direct `/improve` call remains the normal standalone
+entrypoint and needs no bound packet; this binding is only the automatic
+internal handoff for an existing ShipLoop v3/v4 run.
 
-For a new delegated invocation, resolve the host-selected Ask Agent card and
-require its declared `ask-agent/consumer-owned-workspace/v1` capability. The
-parent reads that selected package's consumer-owned reference to compose this
-binding; do not guess a sibling checkout or use an older installed wrapper.
-Select `workspace_route: consumer-owned` and `delivery_mode: in-place`
-explicitly with the contract below. The worker receives the complete concise
-binding and does not need to copy or read a whole parent packet or this reference
-merely to dispatch. The ordinary Ask Agent route still creates a separate
-helper-managed worktree and is not compatible with this bound child. Never
-substitute it when this route is missing. A direct `/improve` call remains the
-normal standalone entrypoint and needs no bound packet; this binding is only the
-automatic internal handoff for an existing ShipLoop v3/v4 run. This route is a
-Codex native pilot;
-old helper-managed host results do not qualify this composition on Claude, Grok
-or another host. Check actual capabilities and retain honest host-specific
-evidence before making those claims.
+## Route by the run's delegation
 
-## Select and retain the native owner
+The run-level `delegation` setting in `state.md` selects who executes the
+invocation:
 
-Check the live host schema for fresh context without inherited conversation,
-access to the exact Child workspace and selected skills, the tools needed by
-the assignment, and a native result collection route. Use a general-purpose
-worker and inherit model settings unless the user selected otherwise. A
-restricted reviewer that cannot apply fixes is not an equivalent executor.
-Give Improve the capabilities of a regular in-context coding agent: available
-tools, MCP interactions, skills, research, code/test/documentation/configuration
-changes, checks, commits, and deployments or other external operations already
-authorized for this task and stage. Delegation adds no read-only mode, tool
-allowlist, model downgrade, or fixed investigation, output, or iteration limit.
-Carry existing authorization forward; do not ask again merely because the work
-moved to a fresh context. If the host filters a needed capability, disclose the
-specific gap and coordinate the authorized operation through the parent.
-The parent-only ShipLoop control callbacks and workspace return below are
-ownership boundaries, not a blanket prohibition on deployment or tool use.
-If required review/test delegation is unavailable inside that worker, have the
-parent coordinate it serially through native messages, or use only an explicitly
-permitted fallback. Never count an unavailable required review or check as done.
+- `delegation: inline` is the default that `init` and `workspace start` record
+  for new v3/v4 runs. The invoking parent conversation runs the whole
+  invocation itself; follow the default route below.
+- `delegation: ask-agent` is the opt-in route, chosen by passing
+  `--delegation ask-agent` to `init` or `workspace start`, and the recorded
+  route of any saved run without the key, which is never silently migrated.
+  One fresh native worker runs the invocation through Ask Agent; follow the
+  delegated route at the end of this guide.
 
-Prefer native background execution where supported, keeping the parent alive
-to collect the return. A synchronous native fresh worker can isolate context
-too; disclose that the parent cannot keep working during its call. If no usable
-fresh route exists, disclose the limitation and use the existing same-context
-Improve route only when separate context was not explicitly required. Otherwise
-keep the action pending and report the missing capability. Do not shell-launch
-models, invent an API, or silently use an inherited conversation.
+The setting is run configuration, not an owner record. Change it for an
+existing v3/v4 run only with
+`python3 "$CLI" delegation --run-dir "$RUN_DIR" --set inline|ask-agent`; a
+retried `init` or `workspace start` cannot change it. The change applies from the next issued action: the action pending when you switch, including its Improve checkpoint, keeps the route it was issued with,
+so a bound child keeps the route it started under; the CLI refuses it only on
+halted or done runs. If a `host-owner.md` launch-intent,
+native handle or other evidence shows that a child may already have been
+delegated, recover it with the delegated recovery rules whatever the current
+setting says. The workspace, context-first, completion and acceptance sections
+apply to both routes.
 
-An existing bound parent packet or named source/evidence locator is an input:
-verify that it exists and identifies the intended candidate and content before
-relying on it, while keeping its essential meaning inline in the binding. The
-printed **Child latest packet receipt** and completion-evidence locations are
-output destinations for a genuinely new child; they need not exist before start
-and must not be fabricated. Before dispatch, derive `host-owner.md` beside the
-expected `packet.json` location in the same action directory and retain its
-exact absolute locator with the existing ShipLoop recovery command in host-owned
-durable handoff material. Create an append-only launch-intent entry before
-dispatch containing the exact binding marker, Child workspace, packet receipt,
-timestamp, package identities and parent recovery command. Also record the
-initial HEAD, candidate inventory, inherited staged/unstaged/untracked ownership
-and allowed writes. That entry means *possibly launched*, not not-launched:
-interruption between the native launch and recording its returned handle leaves
-ownership unknown. On recovery, the saved child receipt is required input and is
-read with its sibling `host-owner.md` before work resumes.
+## Default route: the parent runs Improve (`delegation: inline`)
 
-Append the returned native job/thread handle, any host-exposed delegate identity,
-and later collection or stopped evidence without replacing earlier entries. The
-absence of a returned handle is never proof that launch did not happen. Keep the
-raw child packet as exact runtime JSON; `host-owner.md` is a host coordination
-record, not another runtime state machine, graph field, or success receipt.
-Never change `state.md` to track the agent. Announce the assignment and current
-parent/child boundary.
+INNER Improve packets begin with "Keep the invoking parent alive and run this
+Improve invocation inline." PRELUDE and OUTER Improve packets carry the same
+runtime lines without that prefix. The parent conversation runs the selected
+Improve card's ShipLoop v3/v4 whole-skill subcall once, in the exact Child
+workspace; its review iterations share this context. Do not hand the invocation
+to Ask Agent, a native worker or an extra worktree, and write no `host-owner.md`;
+read-only scoped reviewers under the selected Improve review policy remain
+available. Do not clear, hand off or pause for a clear during the invocation. This conversation is both executor and
+parent: the only candidate writer until the runtime returns a terminal packet,
+then the sole submitter of ShipLoop callbacks. No script checks who executes;
+`improve-complete` imports this child from its receipt and completion evidence.
+
+Before start, verify the process cwd and Git root against the packet and follow
+the unchanged workspace and commit rules below. Freeze the exact candidate
+scope, selected packages, explicit user/repository authority including any
+no-commit override, and evidence paths; carry current approvals, declines and
+pending decisions into `context.authority`. Write the context-first opening
+below. Put the packet's binding line alone and first in the frozen
+`context.request`, with the opening after it; import rejects a marker embedded
+in a sentence. Include `context.resources` locators for the receipt, parent
+`state.md`, completion evidence path and exact parent return instructions, so
+the terminal packet can locate the parent return after context loss. An existing
+invocation keeps its frozen authority.
+
+Start the runtime once and save the exact raw JSON stdout of every start, next
+and done call to the printed **Child latest packet receipt**; save the start
+packet before any review work. Only after the terminal packet is saved, write
+the completion evidence described below, then run the packet's parent return and
+callback. Runtime completion alone never advances the action, and no ShipLoop
+callback runs earlier. For the selected v4 initial Plan Improve child, the
+parent-only `improve-reconcile` route applies once the runtime has returned its
+stopped packet in this conversation and no candidate write is in progress.
+
+A later user decision in this conversation applies from the next review
+iteration. Record its source, receipt and effect, and any already-performed
+action, in the existing review notes and replacement handoff; keep the frozen
+launch context unchanged and continue the same runtime. A decision arriving
+after completion cannot retroactively change the saved receipt.
+
+After interruption or lost context, run the Recovery command and read the
+reprinted child receipt locator. For an active child use the saved receipt's
+exact `next_argv` once; for a complete child validate and import without
+rerunning Improve. Start another runtime for this action only through the
+stopped-child restart route below. Missing
+active-child ephemeral state, a lost terminal packet, or a start that may have
+run before its packet was saved is incomplete, never success or permission to
+start over. Recover in one conversation at a time; if an earlier conversation
+may still be writing the candidate, confirm it stopped before continuing.
 
 ## One existing workspace and one writer
 
-Use the exact **Child workspace** printed by the bound packet. Supply Ask Agent
-with its canonical Git root, binding marker, exact frozen candidate/base and
-HEAD, scope and exclusions, inherited staged/unstaged/untracked ownership,
-selected absolute Ask Agent and Improve cards with their runtime identities,
-current producer result and actual stage checks, explicit user/repository
-authority including any no-commit override, evidence/owner locators, parent-only
-continuation and cleanup owner. Keep these facts inline with supporting locators,
-not as a requirement to copy the full packet. Its consumer-owned route
-does not call helper `prepare`, `inspect`, `check-context` or `close` for this
-workspace, invent a helper receipt, or perform a second patch/commit transfer.
-Read-only package `identity` remains available. This boundary isolates
-conversation context and preserves ShipLoop's existing candidate identity.
-Do not create, rebase, remove or switch to another worktree, or rewrite receipt
-paths to make evidence from another checkout appear local.
+Use the exact **Child workspace** printed by the bound packet. Both routes
+preserve ShipLoop's existing candidate identity; the delegated route also
+isolates conversation context. Do not create, rebase, remove or switch to
+another worktree, or rewrite receipt paths to make evidence from another
+checkout appear local.
 
-Grant the worker exclusive write ownership of the scoped candidate, child
+The executor, which is the parent on the default route and the worker on the
+delegated route, has exclusive write ownership of the scoped candidate, child
 runtime, packet receipt and review evidence until it and any delegates finish.
-The parent and other workers must stop competing writes, including check/build
-commands that generate files in that workspace. Continue only unrelated work
-that cannot change the child's inputs. This is a scheduling rule, not a process
-sandbox or a script-enforced lock over the worker's lifetime.
+Every other writer must stop competing writes, including check/build commands
+that generate files in that workspace. Continue only unrelated work that cannot
+change the child's inputs. This is a scheduling rule, not a process sandbox or a
+script-enforced lock over the executor's lifetime.
 
-Use native launch cwd only if exposed. Otherwise require the Child workspace as
-the operation directory on **every** shell call, and absolute paths for file
-tools. Before task work, verify actual process cwd and Git root against the
-packet; report a mismatch instead of operating in the inherited parent cwd.
+On the delegated route, use native launch cwd only if exposed. Otherwise, and
+always on the default route, require the Child workspace as the operation
+directory on **every** shell call, and absolute paths for file tools. Before
+task work, verify actual process cwd and Git root against the packet; report a
+mismatch instead of operating in the inherited parent cwd.
 For a genuinely new child, after the meaningful checks required by its scope,
 commit authorized scoped changed files, including tests, documentation,
 configuration and skills when in scope. Never commit
@@ -122,19 +120,23 @@ user- or repository-authorized no-commit instruction overrides this default.
 An already frozen child contract keeps its recorded authority on recovery.
 Record the exact scoped contribution SHA in the handoff, or the authorized
 no-commit/no-change reason. The parent validates that handoff and performs the
-existing guarded workspace return; the worker does not execute a callback or
-return itself.
+existing guarded workspace return; a delegated worker does not execute a
+callback or return itself.
 
 ## Prepare the context-first assignment
 
-Before invoking Ask Agent, the parent writes the opening **Current context and
-desired improvements** section from its current understanding of the task,
-repository and exact candidate worktree. Include **Current learnings** inside
-that section using Ask Agent's inline handoff rule. Put this completed opening
-first in the native worker prompt, before the skill invocation, route markers
-and orchestration details. The navigator supplies instructions and locators;
-it cannot synthesize facts from the parent's conversation. The parent must
-fill the opening with the actual context, not forward an empty template.
+Before starting Improve on either route, the parent writes the opening
+**Current context and desired improvements** section from its current
+understanding of the task, repository and exact candidate worktree. Include
+**Current learnings** inside that section: a compact current-state brief of
+facts and corrections, decisions and their rationale, hypotheses, and execution
+pitfalls, as short labeled bullets. Suggested improvements remain candidates to
+assess, not findings or authorization. On the delegated route, put this
+completed opening first in the native worker prompt, before the skill
+invocation, route markers and orchestration details. The navigator supplies
+instructions and locators; it cannot synthesize facts from the parent's
+conversation. The parent must fill the opening with the actual context, not
+freeze or forward an empty template.
 
 Explain what the candidate is meant to achieve, what already changed, what
 appears to need improvement and why, and what remains uncertain. Bring forward
@@ -170,6 +172,12 @@ output locators; receipt/evidence/owner outputs; and parent-only continuation
 and cleanup.>
 ```
 
+That whole template is the delegated worker prompt. On the default route there
+is no worker prompt: the parent freezes the opening section in the child
+contract, runs `/improve` with the selected card itself, and keeps the
+workspace, authority and return facts in `context.authority` and
+`context.resources`; the route/owner markers and owner outputs do not apply.
+
 Omit empty learning categories, or state when none are known. Preserve essential
 meaning inline with locators for supporting detail; there is no word or bullet
 quota. Be concise by removing repetition, not consequential context. The opening
@@ -180,11 +188,13 @@ scope from the actual task and explicit boundaries; do not invent a narrower
 allowlist merely from the currently changed files. Explicit candidate exclusions
 and an already frozen scope remain binding.
 
-Retain this opening once at the start of the child's existing `context.request`,
-alongside the canonical request and binding marker. Use the existing handoff to
-retain, correct or retire learnings across iterations. For v4 planning this
-opening supplies the compact planning summary; keep full packets and verbose
-logs behind their existing locators rather than copying them into child context.
+Retain this opening once near the start of the child's existing
+`context.request`, alongside the canonical request and binding marker; the
+marker stays on its own line, alone and first on the default route. Use the
+existing handoff to retain, correct or retire learnings across iterations. For
+v4 planning this opening supplies the compact planning summary; keep full
+packets and verbose logs behind their existing locators rather than copying
+them into child context.
 
 For the initial v4 Plan Improve child, retain the packet's experiment objective
 and exit criteria, applicable original constraints, current source/action
@@ -196,11 +206,181 @@ These are existing contract and handoff contents, not a new result schema.
 
 ## Complete assignment and return
 
-Carry Ask Agent's approval/decline decision record into the existing child
-`context.authority` before start. Summarize its practical implications in the
-opening without reducing a binding decline to a review suggestion. Existing
-approvals remain usable under their conditions; pending approval is not consent.
-Keep action/target boundaries and parent-only ownership explicit.
+Carry the current approval/decline decision record, which is Ask Agent's on the
+delegated route, into the existing child `context.authority` before start.
+Summarize its practical implications in the opening without reducing a binding
+decline to a review suggestion. Existing approvals remain usable under their
+conditions; pending approval is not consent. Keep action/target boundaries and
+parent-only ownership explicit.
+
+The executor runs `/improve` using the selected absolute Improve card once and
+follows that card and its bound runtime, saving each exact raw packet. At
+return, preserve edits and all evidence in place. The return, which is the
+worker's native return on the delegated route and the parent's own completion
+evidence and handoff on the default route, includes:
+
+- Improve's cumulative completion summary inline: key implemented changes and
+  why they matter, what was learned or corrected across the run, actual
+  validation and remaining work; distinguish actual checks from claims. Only
+  for a successful terminal `complete` child, put the outcome and key changes
+  in the existing completion record's `summary`, and the learning synthesis in
+  `lessons`. An incomplete child returns a partial summary in its return and
+  retained handoff/evidence, following the existing recovery route without
+  claiming or submitting successful completion.
+- Observed workspace, binding marker, exact latest packet receipt and completion
+  evidence paths, final qualifying review/check locators and any revised producer
+  result. Include the unchanged parent return instruction as a locator for the
+  parent to execute, not a worker action.
+- Confirmation that candidate writes and delegates have stopped, no parent
+  callback or workspace return was executed, and which paths changed.
+- Canonical candidate/target and Git root, initial/final HEAD, scoped diff or
+  changed-content locators, exact scoped contribution SHA or authorized
+  no-commit/no-change reason,
+  inherited dirty-state preservation, and next owner/retention action. Distinguish
+  the bound candidate from the original caller; no helper delivery receipt exists
+  for this in-place route.
+
+Keep bulky review logs in the named evidence files. A summary does not replace
+the terminal JSON receipt, and two callbacks do not replace two real reviews.
+
+## Parent acceptance and recovery
+
+Only the parent may run `improve-complete`, and only after every candidate writer
+has stopped and it verifies the candidate edits, current checks, and exact
+successful terminal receipt against this action. On the delegated route, first
+collect the actual native return and confirm the worker and its delegates
+stopped. Check that newer user instructions and parent state still allow
+acceptance. Missing, active, blocked or stopped evidence leaves the parent
+incomplete; a paused parent still retains its child and an unfinished child
+route does not prove its executor stopped. The only settlement exception is the
+packet-issued `stopped` reconciliation route for the selected v4 initial Plan
+Improve child using the bundled ephemeral runtime; it still requires confirmed
+owner evidence and the parent's `improve-reconcile`, never `improve-complete`.
+On the default route that evidence is the stopped packet returned in this
+conversation with no candidate write in progress. Resolve conflicting scope or
+stale checks before acceptance; changes after convergence require fresh review
+evidence, not an unchanged old receipt.
+To continue after a stop that cannot be reconciled, once its blocker is resolved or the user authorizes continuing, confirm no candidate write is in progress (delegated route: the recorded owner stopped), rename `packet.json` to `packet.stopped-<UTC timestamp>.json` and the sibling `reviews` directory to `reviews.stopped-<same timestamp>`, record the decision in the new context opening and start a new child with the same binding line; its `review_refs` and `check_refs` must be files the new child writes. To pause instead, run the parent pause command and leave the child active; never report `cancelled` for a pause.
+On the delegated route, append the actual acceptance outcome,
+candidate/check/diff evidence, and any later caller-delivery outcome to
+`host-owner.md`; retain earlier launch and stop events. This record is not
+authorization to bypass the runtime's importer.
+
+On success the edits are already in the bound candidate; there is no second
+worker patch to merge. At final `handoff` in workspace mode, the parent performs
+the packet's existing guarded workspace return before `improve-complete`.
+For other stages it imports once using the exact parent callback, then follows
+the returned packet. Do not report delivery to the caller just because Improve
+or its worker finished: a failed return retains the candidate and is still
+incomplete. Do not clean up the execution worktree when Improve completes.
+
+Carry the accepted changes and learning synthesis into the parent-facing result
+and subsequent relevant context. Reconcile the reported integration/deployment
+state with the parent's actual return outcome; do not substitute receipt paths
+for the substantive summary or report candidate completion as caller delivery.
+
+Recover a default-route child as described in its section above. Recover a
+delegated child, or any child that may already have been delegated, with the
+delegated recovery rules below.
+
+This host instruction does not add machine enforcement of agent identity,
+collection, exclusive writers or semantic review quality. The existing importer
+continues to validate binding, workspace and receipt structure. Legacy/durable
+Improve routes keep their recorded owner and adapter.
+
+## Opt-in delegated route: Ask Agent executor (`delegation: ask-agent`)
+
+This route applies when the run's delegation is `ask-agent`, including a saved
+run without the setting. Its INNER Improve packets begin "Keep the invoking
+parent alive and follow Improve's selected context ownership." One fresh native
+worker owns the whole invocation. The worker retains useful within-loop context
+while the parent receives a compact return and durable locators. This reduces
+parent-context growth, not necessarily total tokens or latency.
+
+For a new delegated invocation, resolve the host-selected Ask Agent card and
+require its declared `ask-agent/consumer-owned-workspace/v1` capability. The
+parent reads that selected package's consumer-owned reference to compose this
+binding; do not guess a sibling checkout or use an older installed wrapper.
+Select `workspace_route: consumer-owned` and `delivery_mode: in-place`
+explicitly with the contract below. The worker receives the complete concise
+binding and does not need to copy or read a whole parent packet or this reference
+merely to dispatch. The ordinary Ask Agent route still creates a separate
+helper-managed worktree and is not compatible with this bound child. Never
+substitute it when this route is missing. This route is a Codex native pilot;
+old helper-managed host results do not qualify this composition on Claude, Grok
+or another host. Check actual capabilities and retain honest host-specific
+evidence before making those claims.
+
+### Select and retain the native owner
+
+Check the live host schema for fresh context without inherited conversation,
+access to the exact Child workspace and selected skills, the tools needed by
+the assignment, and a native result collection route. Use a general-purpose
+worker and inherit model settings unless the user selected otherwise. A
+restricted reviewer that cannot apply fixes is not an equivalent executor.
+Give Improve the capabilities of a regular in-context coding agent: available
+tools, MCP interactions, skills, research, code/test/documentation/configuration
+changes, checks, commits, and deployments or other external operations already
+authorized for this task and stage. Delegation adds no read-only mode, tool
+allowlist, model downgrade, or fixed investigation, output, or iteration limit.
+Carry existing authorization forward; do not ask again merely because the work
+moved to a fresh context. If the host filters a needed capability, disclose the
+specific gap and coordinate the authorized operation through the parent.
+The parent-only ShipLoop control callbacks and workspace return below are
+ownership boundaries, not a blanket prohibition on deployment or tool use.
+If required review/test delegation is unavailable inside that worker, have the
+parent coordinate it serially through native messages, or use only an explicitly
+permitted fallback. Never count an unavailable required review or check as done.
+
+Prefer native background execution where supported, keeping the parent alive
+to collect the return. A synchronous native fresh worker can isolate context
+too; disclose that the parent cannot keep working during its call. If no usable
+fresh route exists, disclose the limitation and use the existing same-context
+Improve route only when separate context was not explicitly required. Otherwise
+keep the action pending and report the missing capability. Do not shell-launch
+models, invent an API, or silently use an inherited conversation. To make
+same-context execution the normal route for later assignments, switch the run
+to `delegation: inline`; the switch applies from the next issued action.
+
+An existing bound parent packet or named source/evidence locator is an input:
+verify that it exists and identifies the intended candidate and content before
+relying on it, while keeping its essential meaning inline in the binding. The
+printed **Child latest packet receipt** and completion-evidence locations are
+output destinations for a genuinely new child; they need not exist before start
+and must not be fabricated. Before dispatch, derive `host-owner.md` beside the
+expected `packet.json` location in the same action directory and retain its
+exact absolute locator with the existing ShipLoop recovery command in host-owned
+durable handoff material. Create an append-only launch-intent entry before
+dispatch containing the exact binding marker, Child workspace, packet receipt,
+timestamp, package identities and parent recovery command. Also record the
+initial HEAD, candidate inventory, inherited staged/unstaged/untracked ownership
+and allowed writes. That entry means *possibly launched*, not not-launched:
+interruption between the native launch and recording its returned handle leaves
+ownership unknown. On recovery, the saved child receipt is required input and is
+read with its sibling `host-owner.md` before work resumes.
+
+Append the returned native job/thread handle, any host-exposed delegate identity,
+and later collection or stopped evidence without replacing earlier entries. The
+absence of a returned handle is never proof that launch did not happen. Keep the
+raw child packet as exact runtime JSON; `host-owner.md` is a host coordination
+record, not another runtime state machine, graph field, or success receipt.
+Never change `state.md` to track the agent; its run-level `delegation` value is
+run configuration, not an owner record. Announce the assignment and current
+parent/child boundary.
+
+### Supply the worker and forward decisions
+
+Supply Ask Agent with the Child workspace's canonical Git root, binding marker,
+exact frozen candidate/base and HEAD, scope and exclusions, inherited
+staged/unstaged/untracked ownership, selected absolute Ask Agent and Improve
+cards with their runtime identities, current producer result and actual stage
+checks, explicit user/repository authority including any no-commit override,
+evidence/owner locators, parent-only continuation and cleanup owner. Keep these
+facts inline with supporting locators, not as a requirement to copy the full
+packet. Its consumer-owned route does not call helper `prepare`, `inspect`,
+`check-context` or `close` for this workspace, invent a helper receipt, or
+perform a second patch/commit transfer. Read-only package `identity` remains
+available.
 
 Give the worker the concise complete binding described above, relevant original
 request/decision locators, and the essential inline context they support; do not
@@ -237,67 +417,17 @@ started operation as possibly performed and reconcile its actual outcome.
 The owner record remains coordination evidence, never callback authority. A
 decision arriving after completion cannot retroactively change the saved receipt.
 
+### Worker execution and return
+
 The worker runs `/improve` using the selected absolute Improve card once inside
 its native context and follows that card and its bound runtime. It saves each
 exact raw packet, must not recursively delegate the whole Improve invocation,
 and may use scoped independent review where supported without concurrent
-candidate writers.
-At return, preserve edits and all evidence in place. Include:
+candidate writers. It returns the completion contents listed above without
+executing a ShipLoop callback or workspace return; the parent collects that
+native return before acceptance.
 
-- Improve's cumulative completion summary inline: key implemented changes and
-  why they matter, what was learned or corrected across the run, actual
-  validation and remaining work; distinguish actual checks from claims. Only
-  for a successful terminal `complete` child, put the outcome and key changes
-  in the existing completion record's `summary`, and the learning synthesis in
-  `lessons`. An incomplete child returns a partial summary in its native return
-  and retained handoff/evidence, following the existing recovery route without
-  claiming or submitting successful completion.
-- Observed workspace, binding marker, exact latest packet receipt and completion
-  evidence paths, final qualifying review/check locators and any revised producer
-  result. Include the unchanged parent return instruction as a locator for the
-  parent to execute, not a worker action.
-- Confirmation that candidate writes and delegates have stopped, no parent
-  callback or workspace return was executed, and which paths changed.
-- Canonical candidate/target and Git root, initial/final HEAD, scoped diff or
-  changed-content locators, exact scoped contribution SHA or authorized
-  no-commit/no-change reason,
-  inherited dirty-state preservation, and next owner/retention action. Distinguish
-  the bound candidate from the original caller; no helper delivery receipt exists
-  for this in-place route.
-
-Keep bulky review logs in the named evidence files. A summary does not replace
-the terminal JSON receipt, and two callbacks do not replace two real reviews.
-
-## Parent acceptance and recovery
-
-Collect the actual native return. Only the parent may run `improve-complete`, and
-only after the worker and its delegates stop and it verifies the candidate edits,
-current checks, and exact successful terminal receipt against this action. Check
-that newer user instructions and parent state still allow acceptance. Missing,
-active, blocked or stopped evidence leaves the parent incomplete; a paused parent
-still retains its child and an unfinished child route does not prove its owner
-stopped. The only settlement exception is the packet-issued `stopped`
-reconciliation route for the selected v4 initial Plan Improve child using the
-bundled ephemeral runtime; it still requires confirmed owner evidence and the
-parent's `improve-reconcile`, never `improve-complete`. Resolve conflicting scope
-or stale checks before acceptance; changes after convergence require fresh review
-evidence, not an unchanged old receipt.
-Append the actual acceptance outcome, candidate/check/diff evidence, and any
-later caller-delivery outcome to `host-owner.md`; retain earlier launch and stop
-events. This record is not authorization to bypass the runtime's importer.
-
-On success the edits are already in the bound candidate; there is no second
-worker patch to merge. At final `handoff` in workspace mode, the parent performs
-the packet's existing guarded workspace return before `improve-complete`.
-For other stages it imports once using the exact parent callback, then follows
-the returned packet. Do not report delivery to the caller just because the
-worker finished: a failed return retains the candidate and is still incomplete.
-Do not clean up the execution worktree on native completion.
-
-Carry the accepted changes and learning synthesis into the parent-facing result
-and subsequent relevant context. Reconcile the reported integration/deployment
-state with the parent's actual return outcome; do not substitute receipt paths
-for the substantive summary or report candidate completion as caller delivery.
+### Delegated recovery
 
 After interruption, recover the parent with its saved `next` command, read the
 reprinted child receipt locator, then derive and read its sibling `host-owner.md`
@@ -319,8 +449,3 @@ active-child ephemeral state or a lost terminal packet is incomplete, never succ
 permission to start over. A resumed host may recover the same invocation in a
 fresh worker only after the old owner is confirmed stopped or never launched. No
 automatic return is promised after the parent session ends.
-
-This host instruction does not add machine enforcement of agent identity,
-collection, exclusive writers or semantic review quality. The existing importer
-continues to validate binding, workspace and receipt structure. Legacy/durable
-Improve routes keep their recorded owner and adapter.

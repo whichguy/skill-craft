@@ -159,7 +159,7 @@ def _completed_instances(state):
     ]
 
 
-def run_scenario(name, scenario, *, protocol_version=2):
+def run_scenario(name, scenario, *, protocol_version=2, delegation=None):
     report = {'name': name, 'simulation_only': True, 'ok': False, 'events': []}
     try:
         if not isinstance(scenario, dict):
@@ -171,7 +171,7 @@ def run_scenario(name, scenario, *, protocol_version=2):
             '/simulation-only/repo',
             'Inspect the SDLC graph with synthetic declarations.',
             protocol_version=protocol_version,
-            **({'improve_skill': ''} if protocol_version in (3, 4) else {}),
+            **({'improve_skill': '', 'delegation': delegation} if protocol_version in (3, 4) else {}),
         )
         for index, step in enumerate(rows, 1):
             if not isinstance(step, dict) or not {'at', 'expect'} <= set(step):
@@ -233,10 +233,15 @@ def add_arguments(parser):
     parser.add_argument('--format', choices=('summary', 'json', 'markdown'), default='summary')
     parser.add_argument('--protocol-version', choices=(2, 3, 4), type=int, default=3,
                         help='navigator protocol to simulate; default follows public navigator v3')
+    parser.add_argument('--delegation', choices=navigator.DELEGATIONS, default=None,
+                        help='protocol 3/4 execution delegation to simulate; default follows new runs (inline)')
     parser.add_argument('--list', action='store_true')
 
 
 def run(args):
+    if args.protocol_version not in (3, 4) and args.delegation is not None:
+        print('Graph dry-run input error: --delegation requires protocol 3 or 4')
+        return 2
     if args.list:
         print('\n'.join(scenarios(args.protocol_version)))
         return 0
@@ -250,7 +255,10 @@ def run(args):
                     f"scenario {args.scenario!r} is not available for protocol "
                     f"{args.protocol_version}; available: {', '.join(choices)}")
             selected = choices if args.scenario == 'all' else {args.scenario: choices[args.scenario]}
-        reports = [run_scenario(name, value, protocol_version=args.protocol_version)
+        delegation = (args.delegation or navigator.DEFAULT_DELEGATION
+                      if args.protocol_version in (3, 4) else None)
+        reports = [run_scenario(name, value, protocol_version=args.protocol_version,
+                                delegation=delegation)
                    for name, value in selected.items()]
     except (OSError, ValueError) as exc:
         print(f'Graph dry-run input error: {exc}')

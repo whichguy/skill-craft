@@ -3,6 +3,7 @@
 from pathlib import Path
 import hashlib
 import json
+import re
 import os
 import shutil
 import subprocess
@@ -35,6 +36,15 @@ EXPLICIT_NO_COMMIT_AUTHORITY = (
 
 class ImproveCliFixture(unittest.TestCase):
     """Hermetic parent fixture shared by ephemeral and explicit legacy routes."""
+
+    # None follows the CLI's new-run default (inline); subclasses pin ask-agent.
+    delegation = None
+
+    def delegation_args(self):
+        return ("--delegation", self.delegation) if self.delegation else ()
+
+    def inline(self):
+        return self.delegation in (None, "inline")
 
     def setUp(self):
         self.temp = tempfile.TemporaryDirectory(prefix="shiploop-child-cli-")
@@ -98,7 +108,8 @@ class ImproveCliFixture(unittest.TestCase):
 
     def _start_parent(self, card):
         self.invoke(CLI, "init", "--repo", self.repo, "--run-dir", self.run,
-                    "--prompt", "Protocol composition fixture", "--improve-skill", card)
+                    "--prompt", "Protocol composition fixture", "--improve-skill", card,
+                    *self.delegation_args())
         self._prepare_parent_evidence()
         self.state = store.read_record(self.run / "state.md")
         self.action = self.state["action"]["id"]
@@ -119,7 +130,7 @@ class ImproveCliFixture(unittest.TestCase):
         run = self.base / ("parent-" + stage)
         self.invoke(CLI, "init", "--repo", self.repo, "--run-dir", run,
                     "--prompt", "Synthetic predecessor navigation for CLI composition.",
-                    "--improve-skill", card)
+                    "--improve-skill", card, *self.delegation_args())
         state = store.read_record(run / "state.md")
         while navigator.current_stage(state) != stage:
             predecessor = navigator.current_stage(state)
@@ -362,14 +373,27 @@ class EphemeralImproveCliTests(ImproveCliFixture):
         before = (self.run / "state.md").read_bytes()
         for _ in range(2):
             packet = self.invoke(CLI, "next", "--run-dir", self.run).stdout
-            self.assertIn("Parent assignment preparation:", packet)
-            self.assertIn("Run /improve", packet)
-            self.assertIn("navigator cannot supply conversation-only learnings", packet)
+            if self.inline():
+                self.assertIn("Context-first opening: before start, write 'Current context and desired improvements'", packet)
+                self.assertIn("Run the selected Improve card's ShipLoop v3/v4 whole-skill subcall in this conversation", packet)
+                self.assertIn("Return order:", packet)
+                self.assertIn("keep the frozen launch context unchanged", packet)
+                self.assertIn("Binding line: copy the next line verbatim into frozen context.request exactly once, "
+                              "first, alone on its own line", packet)
+            else:
+                self.assertIn("Parent assignment preparation:", packet)
+                self.assertIn("Run /improve", packet)
+                self.assertIn("navigator cannot supply conversation-only learnings", packet)
+                self.assertIn("Parent-only return:", packet)
+                self.assertIn("keep launch context immutable and continue the same child", packet)
+                self.assertIn("Binding line: copy the next line verbatim into frozen context.request exactly once, "
+                              "alone on its own line", packet)
+            marker = packet.index(self.bound["contract_marker"] + "\n")
+            self.assertIn("import matches the whole line:\n", packet[marker - 40:marker])
+            self.assertIn("Start inputs owned by ShipLoop: required_trivial_reviews 2 (import rejects fewer)", packet)
             self.assertIn("Selected Improve skill: " + str(CARD.resolve()), packet)
             self.assertIn("material unresolved findings, hypotheses, failed attempts", packet)
-            self.assertIn("Parent-only return:", packet)
             self.assertIn("approvals, declines and pending decisions into child context.authority", packet)
-            self.assertIn("keep launch context immutable and continue the same child", packet)
         self.assertEqual((self.run / "state.md").read_bytes(), before)
 
         header = (
@@ -427,11 +451,26 @@ class EphemeralImproveCliTests(ImproveCliFixture):
         packet = self.invoke(CLI, "next", "--run-dir", self.run).stdout
         self.assertTrue(guide.is_file())
         self.assertIn("Improve context ownership: " + str(guide), packet)
-        self.assertIn("ask-agent/consumer-owned-workspace/v1", packet)
-        self.assertIn("Workspace route: consumer-owned; delivery mode: in-place", packet)
-        self.assertIn("execution_role: improve-executor; delegation_owner: parent", packet)
-        self.assertIn("Native owner record: " + str(bridge.receipt_path(self.bound).with_name("host-owner.md")), packet)
-        self.assertIn("Parent-only return:", packet)
+        owner_record = "Native owner record: " + str(bridge.receipt_path(self.bound).with_name("host-owner.md"))
+        if self.inline():
+            # Inline Improve has no native owner; import below still succeeds.
+            self.assertTrue(packet.startswith("ShipLoop navigator | intake |"))
+            anchor = "default-route-the-parent-runs-improve-delegation-inline"
+            self.assertIn("Improve context ownership: " + str(guide) + "#" + anchor, packet)
+            headings = [re.sub(r"[^a-z0-9 -]", "", line.lstrip("#").strip().lower()).replace(" ", "-")
+                        for line in guide.read_text(encoding="utf-8").splitlines() if line.startswith("#")]
+            self.assertIn(anchor, headings)
+            self.assertIn("Parent callback; run only after the runtime returned complete", packet)
+            self.assertIn("Delegation: inline. Run the selected Improve card's ShipLoop v3/v4 whole-skill subcall", packet)
+            for delegated in ("consumer-owned", "host-owner.md", "delegation_owner", "prefer one fresh native worker"):
+                self.assertNotIn(delegated, packet)
+            self.assertIn("Return order:", packet)
+        else:
+            self.assertIn("ask-agent/consumer-owned-workspace/v1", packet)
+            self.assertIn("Workspace route: consumer-owned; delivery mode: in-place", packet)
+            self.assertIn("execution_role: improve-executor; delegation_owner: parent", packet)
+            self.assertIn(owner_record, packet)
+            self.assertIn("Parent-only return:", packet)
         self.assertIn("Child workspace: " + str(self.repo), packet)
         self.assertIn("Commit policy:", packet)
 
@@ -445,7 +484,11 @@ class EphemeralImproveCliTests(ImproveCliFixture):
         self.assertEqual((self.run / "state.md").read_bytes(), before)
         cold = self.invoke(CLI, "next", "--run-dir", self.run).stdout
         self.assertIn("Current action: Improve the completed intake result.", cold)
-        self.assertIn("Native owner record: " + str(bridge.receipt_path(self.bound).with_name("host-owner.md")), cold)
+        if self.inline():
+            self.assertNotIn(owner_record, cold)
+            self.assertFalse(bridge.receipt_path(self.bound).with_name("host-owner.md").exists())
+        else:
+            self.assertIn(owner_record, cold)
         self.assertEqual((self.run / "state.md").read_bytes(), before)
         self.assertEqual(self.product_contract.read_text(encoding="utf-8"), updated)
         self.invoke(CLI, "improve-complete", "--run-dir", self.run,
@@ -455,6 +498,38 @@ class EphemeralImproveCliTests(ImproveCliFixture):
         self.assertEqual(navigator.current_stage(after), "discovery")
         self.assertEqual(self.product_contract.read_text(encoding="utf-8"), updated)
         self.assertEqual(self.packet_path.read_bytes(), terminal_raw.stdout)
+
+    def test_user_stopped_child_restarts_with_the_same_binding_then_imports(self):
+        """A cancelled non-plan child is archived, restarted once and imported; no halt needed."""
+        packet = self.invoke(CLI, "next", "--run-dir", self.run).stdout
+        self.assertIn("rename packet.json to packet.stopped-<UTC timestamp>.json and the sibling reviews "
+                      "directory to reviews.stopped-<same timestamp>", packet)
+        self.assertIn("must be files the new child writes", packet)
+        self.assertIn("never report cancelled for a pause", packet)
+        _raw, first = self.start_ephemeral_child()
+        stopped_raw, stopped = self.done_ephemeral(
+            first, self.child_report("unresolved", "unknown", "cancelled", "explicit user stop"))
+        self.assertEqual(stopped["status"], "stopped")
+        completion, stopped_receipt = self.completion_receipt()
+        before = (self.run / "state.md").read_bytes()
+        self.invoke(CLI, "improve-complete", "--run-dir", self.run, "--action", self.action,
+                    "--result", completion, status=2)
+        self.assertEqual((self.run / "state.md").read_bytes(), before)
+        archived = self.packet_path.with_name("packet.stopped-20260923T000000Z.json")
+        self.packet_path.rename(archived)
+        reviews = self.packet_path.with_name("reviews")
+        stopped_reviews = reviews.with_name("reviews.stopped-20260923T000000Z")
+        reviews.rename(stopped_reviews)
+        self.finish_ephemeral()
+        completion, _receipt = self.completion_receipt()
+        self.invoke(CLI, "improve-complete", "--run-dir", self.run, "--action", self.action,
+                    "--result", completion)
+        after = store.read_record(self.run / "state.md")
+        self.assertIsNone(after["active_improve"])
+        self.assertEqual(navigator.current_stage(after), "discovery")
+        self.assertEqual(archived.read_bytes(), stopped_raw.stdout)
+        self.assertEqual(sorted(path.name for path in stopped_reviews.iterdir()),
+                         sorted(Path(ref).name for ref in stopped_receipt["review_refs"] + stopped_receipt["check_refs"]))
 
     def test_renderer_preserves_an_explicit_user_no_commit_override(self):
         user_no_commit = "Explicit user no-commit instruction: do not commit this candidate."
@@ -583,14 +658,20 @@ class EphemeralImproveCliTests(ImproveCliFixture):
                     "If this action depends on earlier accepted context, read the durable state and the relevant result record",
                     cold,
                 )
-                self.assertIn(
+                chain_guide = (
                     "Parallel-chain guide: "
                     + str(ROOT / "skills/shiploop/references/parallel-chain.md")
-                    + "#parallel-implementation-chains",
-                    cold,
+                    + "#parallel-implementation-chains"
                 )
-                self.assertIn("bind this action to the default parallel", cold)
-                self.assertIn("mode when the selected Plan Dispatcher and Ask-Agent contracts are compatible", cold)
+                if self.inline():
+                    self.assertTrue(cold.startswith("Continue in this context and execute the prompt.\n"))
+                    self.assertNotIn(chain_guide, cold)
+                    self.assertNotIn("bind this action to the default parallel", cold)
+                    self.assertIn("Delegation is inline: execute a reviewed multi-step plan directly", cold)
+                else:
+                    self.assertIn(chain_guide, cold)
+                    self.assertIn("bind this action to the default parallel", cold)
+                    self.assertIn("mode when the selected Plan Dispatcher and Ask-Agent contracts are compatible", cold)
 
     def test_default_ephemeral_callbacks_preserve_context_then_import_once(self):
         """Cumulative report transport, not proof of model review or summarization."""
@@ -1076,6 +1157,11 @@ class LegacyImproveCliCompatibilityTests(ImproveCliFixture):
         run, action, binding = self.legacy_parent(card)
         runtime = card.parent / "runtime/until-loop/scripts/until-loop"
         self.assertEqual(binding["skill"]["runtime_cli"], str(runtime.resolve()))
+        packet = self.invoke(CLI, "next", "--run-dir", run).stdout
+        # The durable runtime has no packet receipt; its callback must not wait for one.
+        self.assertNotIn("saved at the receipt above", packet)
+        self.assertIn("Binding line: copy the next line verbatim into the child contract original_request "
+                      "exactly once, alone on its own line", packet)
         child = self.initialize_legacy_child(runtime, binding)
         state_path = self.repo / ".until-loop/state.json"
         before_cold_next = state_path.read_bytes()
@@ -1095,6 +1181,20 @@ class LegacyImproveCliCompatibilityTests(ImproveCliFixture):
         record = store.read_record(run / "state.md")["improve_results"][action]
         self.assertEqual(record["runtime_phase"], "done")
         self.assertTrue((run / "improve" / action / "state.json").is_file())
+
+
+class AskAgentEphemeralImproveCliTests(ImproveCliFixture):
+    """The opt-in delegated route keeps its Ask-Agent packet contract."""
+
+    delegation = "ask-agent"
+    test_context_first_assignment_and_learning_header_survive_recovery = (
+        EphemeralImproveCliTests.test_context_first_assignment_and_learning_header_survive_recovery)
+    test_consumer_owned_context_keeps_edits_and_parent_pending_until_import = (
+        EphemeralImproveCliTests.test_consumer_owned_context_keeps_edits_and_parent_pending_until_import)
+    test_planning_improve_packet_carries_graph_identity_through_real_child_callbacks = (
+        EphemeralImproveCliTests.test_planning_improve_packet_carries_graph_identity_through_real_child_callbacks)
+    test_user_stopped_child_restarts_with_the_same_binding_then_imports = (
+        EphemeralImproveCliTests.test_user_stopped_child_restarts_with_the_same_binding_then_imports)
 
 
 if __name__ == "__main__":

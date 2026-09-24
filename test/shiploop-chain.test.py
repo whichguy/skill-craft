@@ -432,6 +432,16 @@ class ChainIntegrationTests(ChainFixture):
         self.assert_completion(recovered, [], ["A", "B", "C", "J"])
         self.assert_context_boundary_preserves_chain_mode("parallel")
 
+    def test_replay_without_mode_keeps_the_recorded_serial_mode(self):
+        self.bind(capacity=1, mode="serial")
+        binding_path = self.run / "chains" / self.action / "binding.md"
+        recorded = binding_path.read_bytes()
+        # Before 0.20.0 an omitted --mode meant parallel and this replay failed.
+        replayed = self.bind(capacity=1)
+        self.assertEqual(replayed["shiploop_chain"]["mode"], "serial")
+        self.assertEqual(binding_path.read_bytes(), recorded)
+        self.bind(capacity=1, mode="parallel", ok=False)
+
     def test_serial_mode_capacity_and_native_launch_are_guarded(self):
         initial_state = (self.run / "state.md").read_bytes()
 

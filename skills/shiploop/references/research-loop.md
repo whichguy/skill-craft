@@ -521,8 +521,9 @@ view and its evidence, but does not claim that the child has completed its
 reviews or that a tested condition holds. The bound child owns its review work,
 applicable experiments, and the investigation's shared allowance. The parent
 alone owns ShipLoop callbacks, including verified `improve-complete` after it
-collects the terminal child evidence and confirms the actual worker and its
-delegates have stopped.
+saves or collects the terminal child evidence and confirms every candidate
+writer has stopped, including, under `delegation: ask-agent`, the actual worker
+and its delegates.
 
 For navigator, keep findings in a durable run note, such as
 `notes/<actionID>.md`, and include its locator in the current generic result's

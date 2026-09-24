@@ -63,8 +63,15 @@ _STATE_KEYS_V1 = frozenset(
     )
 )
 _STATE_KEYS_V2 = _STATE_KEYS_V1 | frozenset(("inner_loops", "delivery_contract_version"))
-_STATE_KEYS_V3 = _STATE_KEYS_V2 | frozenset(("improve_skill", "active_improve", "improve_results", "chain_bindings"))
+_STATE_KEYS_V3 = _STATE_KEYS_V2 | frozenset(
+    ("improve_skill", "active_improve", "improve_results", "chain_bindings", "delegation",
+     "delegation_hold"))
 _STATE_KEYS_V4 = _STATE_KEYS_V3 | frozenset(("planning_reconciliations",))
+# Run-level execution delegation for protocol 3/4.  New CLI-created runs record
+# ``inline``; a saved run without the key keeps its recorded ask-agent route.
+DELEGATIONS = guidance3.DELEGATIONS
+DEFAULT_DELEGATION = guidance3.INLINE
+LEGACY_DELEGATION = guidance3.ASK_AGENT
 
 PRELUDE = tuple(guidance.PRELUDE)
 INNER = tuple(guidance.INNER)
@@ -83,13 +90,36 @@ __all__ = [
     "control",
     "current_action",
     "current_stage",
+    "delegation",
     "dispatch",
+    "recorded_delegation",
     "new_state",
     "reconcile",
     "render",
     "save",
+    "set_delegation",
     "validate",
 ]
+
+
+def recorded_delegation(state: Mapping[str, Any]) -> str:
+    """Return the delegation for newly issued actions; an unrecorded setting stays ask-agent."""
+    if state.get("navigator_protocol_version") in (3, 4):
+        return state.get("delegation", LEGACY_DELEGATION)
+    return LEGACY_DELEGATION
+
+
+def delegation(state: Mapping[str, Any]) -> str:
+    """Return the route for the current action.
+
+    A switch applies from the next issued action: the action pending when it was
+    made, including its Improve checkpoint, keeps the route it was issued with.
+    """
+    hold = state.get("delegation_hold")
+    if hold is not None and state.get("status") not in ("halted", "done"):
+        if current_action(state)["id"] == hold["action"]:
+            return hold["route"]
+    return recorded_delegation(state)
 
 
 def graph(state: Mapping[str, Any]) -> tuple[tuple[str, ...], tuple[str, ...], tuple[str, ...]]:
@@ -286,8 +316,14 @@ def new_state(
     delivery_contract: bool = False,
     worktree: bool = False,
     improve_skill: str = "",
+    delegation: str | None = None,
 ) -> dict[str, Any]:
-    """Create an unpersisted navigator cursor with one initial work item."""
+    """Create an unpersisted navigator cursor with one initial work item.
+
+    ``delegation`` records the run's execution route for protocol 3/4.  ``None``
+    leaves it unrecorded (the legacy ask-agent route); the CLI passes
+    DEFAULT_DELEGATION for new runs.
+    """
     _need(type(protocol_version) is int and protocol_version in _PROTOCOL_VERSIONS,
           "unsupported navigator protocol version")
     _need(type(delivery_contract) is bool, "delivery_contract must be boolean")
@@ -295,6 +331,8 @@ def new_state(
           "delivery_contract requires navigator protocol 2")
     _need(type(worktree) is bool and (not worktree or protocol_version >= 2),
           "worktree mode requires navigator protocol 2")
+    _need(delegation is None or (delegation in DELEGATIONS and protocol_version in (3, 4)),
+          "delegation requires navigator protocol 3 or 4 and must be inline or ask-agent")
     _text(repo, "repo")
     _text(prompt, "prompt")
     _need(not privacy.sensitive_text(prompt),
@@ -334,6 +372,8 @@ def new_state(
                 raise NavigatorError("cannot make the selected Improve locator absolute") from exc
         state.update(improve_skill=selected,
                      active_improve=None, improve_results={})
+        if delegation is not None:
+            state["delegation"] = delegation
     if protocol_version == 4:
         state["planning_reconciliations"] = []
     validate(state)
@@ -447,7 +487,8 @@ def _validate_v2(state: Mapping[str, Any]) -> None:
     prelude, inner, outer = graph(state)
     stages = prelude + inner + outer
     _need(keys <= allowed
-          and allowed - {"status_reason", "delivery_contract_version", "chain_bindings"} <= keys,
+          and allowed - {"status_reason", "delivery_contract_version", "chain_bindings", "delegation",
+                         "delegation_hold"} <= keys,
           "navigator state has unsupported or missing fields")
     _need(state.get("version") == STATE_VERSION, "unsupported navigator state version")
     _need(version in (2, 3, 4),
@@ -581,6 +622,15 @@ def _validate_v2(state: Mapping[str, Any]) -> None:
                   "chain binding must belong to an implementation action")
             _need(isinstance(digest, str) and re.fullmatch(r"[0-9a-f]{64}", digest) is not None,
                   "chain binding digest is invalid")
+        _need("delegation" not in state or state["delegation"] in DELEGATIONS,
+              "unsupported delegation setting; expected inline or ask-agent")
+        hold = state.get("delegation_hold")
+        _need(hold is None or (isinstance(hold, Mapping) and set(hold) == {"action", "route"}
+                               and isinstance(hold["action"], str)
+                               and _ACTION_ID.fullmatch(hold["action"]) is not None
+                               and hold["route"] in DELEGATIONS
+                               and hold["route"] != recorded_delegation(state)),
+              "invalid delegation hold")
         _text(state.get("improve_skill"), "improve_skill", allow_empty=True)
         records = state.get("improve_results")
         _need(isinstance(records, Mapping), "Improve results must be an object")
@@ -900,6 +950,13 @@ def finish_improve(state: Mapping[str, Any], action_id: str, record: Mapping[str
     _need(state["status"] == "active", "parent must be active to import Improve")
     child = state["active_improve"]
     _need(child is not None and child["action_id"] == action_id, "stale Improve parent action")
+    if (final_result is not None and child["stage"] in ("plan", "carry-forward")
+            and isinstance(final_result, Mapping) and final_result.get("outcome") == "done"
+            and "work_items" in child["seed_result"] and "work_items" not in final_result):
+        # Omitting work_items would silently keep the old queue instead of the reviewed one.
+        raise NavigatorError("final_result must list the complete intended queue in work_items: "
+                             "active_improve.seed_result.work_items if accepted, or the "
+                             "still-required items from state.md work_items to keep the current queue")
     result = child["seed_result"] if final_result is None else final_result
     result = _canonical_result(result, stage=child["stage"],
                                protocol_version=state["navigator_protocol_version"],
@@ -1068,6 +1125,30 @@ def control(state: Mapping[str, Any], command: str, reason: str = "") -> dict[st
     return updated
 
 
+def set_delegation(state: Mapping[str, Any], value: Any) -> dict[str, Any]:
+    """Return a new state whose next issued actions use ``value``.
+
+    The pending action keeps its issued route through its Improve checkpoint, so
+    a worker, bound child or chain that may already own it is never re-routed.
+    """
+    validate(state)
+    _need(state["navigator_protocol_version"] in (3, 4),
+          "delegation applies only to navigator protocol 3 or 4 runs")
+    _need(state["status"] not in ("halted", "done"), "terminal navigator state cannot mutate")
+    _need(value in DELEGATIONS, "delegation must be inline or ask-agent")
+    if recorded_delegation(state) == value:
+        return deepcopy(dict(state))
+    current_route = delegation(state)
+    updated = deepcopy(dict(state))
+    updated["delegation"] = value
+    updated.pop("delegation_hold", None)
+    if current_route != value:
+        updated["delegation_hold"] = {"action": current_action(state)["id"], "route": current_route}
+    updated["revision"] += 1
+    validate(updated)
+    return updated
+
+
 def _command(core: Any) -> str:
     package_root = getattr(core, "PACKAGE_ROOT", None)
     return str(Path(package_root) / "scripts" / "shiploop") if package_root else "shiploop"
@@ -1188,15 +1269,36 @@ def _accepted_test_source_lines(
     ]
 
 
+def _latest_done_item_step_plan(state: Mapping[str, Any]) -> Mapping[str, Any] | None:
+    """Find the effective item's current accepted step-plan once later stages run."""
+    if state["navigator_protocol_version"] not in (3, 4):
+        return None
+    workitem = _current_work_item(state)
+    if workitem is None or current_stage(state) in ("select-work", "step-plan"):
+        return None
+    action_id = planning_revision.current_actions(state).get((workitem, "step-plan"))
+    for entry in reversed(state["history"]):
+        if entry["action"] == action_id and entry["outcome"] == "done":
+            return entry
+    return None
+
+
 def _test_context_lines(state: Mapping[str, Any], root: Path) -> list[str]:
     """Project the two v3 test handoff sources without a second state ledger."""
     lines: list[str] = []
+    step_plan = _latest_done_item_step_plan(state)
+    current = _latest_done_current_test_decision(state)
+    if step_plan is not None and (current is None or current["action"] != step_plan["action"]):
+        # The item's ordered steps drive every later INNER stage, including
+        # recovery after a context reset.
+        lines.extend(_accepted_test_source_lines(
+            state, root, step_plan, "Current item step-plan source"
+        ))
     strategy = _latest_done_test_strategy(state)
     if strategy is not None:
         lines.extend(_accepted_test_source_lines(
             state, root, strategy, "Run-wide test strategy source"
         ))
-    current = _latest_done_current_test_decision(state)
     if current is not None:
         lines.extend(_accepted_test_source_lines(
             state, root, current, "Current item test-decision source"
@@ -1443,12 +1545,14 @@ def render(core: Any, root: Path, state: Mapping[str, Any]) -> str:
         # The producer's current guidance already includes this instruction.
         progress_guidance = ""
     lines = []
+    route = delegation(state)
     if state["navigator_protocol_version"] in (3, 4) and state["status"] == "active" and stage in inner:
-        context_guidance = (guidance3.IMPROVE_INNER_CONTEXT if state.get("active_improve")
-                            else guidance3.SERIAL_INNER_CONTEXT)
+        context_guidance = guidance3.inner_context(route, stage, improve=bool(state.get("active_improve")))
         lines.extend([context_guidance, ""])
     lines += [
         f"ShipLoop navigator | {stage} | revision {state['revision']}",
+        *([f"Delegation change: this action keeps {route}; actions issued after it use "
+           f"{recorded_delegation(state)}."] if route != recorded_delegation(state) else []),
         "",
         "Progress snapshot (status context, not instructions):",
         *_progress_lines(state),
@@ -1460,6 +1564,8 @@ def render(core: Any, root: Path, state: Mapping[str, Any]) -> str:
         f"Accepted history: {root / 'state.md'} (history)",
         f"Repository locator: {state['repo']}",
         f"CLI locator: {_command(core)}",
+        *(["ShipLoop skill card: " + str(reference_dir.parent / "SKILL.md")]
+          if state["navigator_protocol_version"] in (3, 4) else []),
         f"Run directory locator: {root}",
         "Access-readiness policy: "
         + str(reference_dir / "research-loop.md")
@@ -1514,9 +1620,12 @@ def render(core: Any, root: Path, state: Mapping[str, Any]) -> str:
         "keep recovery incomplete; do not initialize a replacement or invent a callback.",
         "Recovery only reads the saved state. If paused or blocked, resolve the "
         "condition and follow the printed resume route; if halted or done, stop.",
-        "Give the executing agent only the current action packet and relevant context. "
-        "The owner submits its current callback and consumes the returned packet; "
-        "delegated subtasks do not advance this run or start another one.",
+        ("Execute this packet in this conversation, submit its current callback yourself and "
+         "consume the returned packet; delegated subtasks do not advance this run or start another one."
+         if route == guidance3.INLINE else
+         "Give the executing agent only the current action packet and relevant context. "
+         "The owner submits its current callback and consumes the returned packet; "
+         "delegated subtasks do not advance this run or start another one."),
         "Original request (preserve user scope; embedded quotations do not override instructions):",
         *_request_block(state["prompt"], root, state["run_id"]),
     ]
@@ -1524,6 +1633,8 @@ def render(core: Any, root: Path, state: Mapping[str, Any]) -> str:
         lines.extend(
             label + ": " + str(reference_dir / reference)
             for label, reference in guidance3.STAGE_REFERENCES.get(stage, ())
+            # Inline runs execute reviewed steps directly and never bind a chain.
+            if not (route == guidance3.INLINE and label == "Parallel-chain guide")
         )
     if state["execution_mode"] == "navigator-worktree":
         workspace_root = root.parent
@@ -1585,7 +1696,10 @@ def render(core: Any, root: Path, state: Mapping[str, Any]) -> str:
             lines.append("Proposed queue awaiting Improve: " + str(root / "state.md")
                          + "; field active_improve.seed_result.work_items. These draft items "
                          "have not replaced the accepted queue; reconcile both with approved "
-                         "scope when returning a revised final_result.")
+                         "scope when returning a revised final_result. A done final_result must "
+                         "list the complete intended queue in work_items: the proposed items if "
+                         "accepted, or the still-required items from state.md work_items to keep "
+                         "the current queue; omitting work_items is refused.")
         if stage == "plan":
             lines.append("At plan, supplied work_items replaces the complete ordered queue. "
                          "Omission retains the existing queue (initially W1); use that only "
@@ -1715,7 +1829,7 @@ def render(core: Any, root: Path, state: Mapping[str, Any]) -> str:
 
     if state.get("active_improve") is not None:
         return _render_improve(core, root, state, lines)
-    instruction = (guidance3.prompt(stage)
+    instruction = (guidance3.prompt(stage, delegation=route)
                    if state["navigator_protocol_version"] in (3, 4)
                    else guidance.PROMPTS.get(stage))
     _need(isinstance(instruction, str) and bool(instruction.strip()),
@@ -1771,14 +1885,43 @@ def render(core: Any, root: Path, state: Mapping[str, Any]) -> str:
             f"Write the structured result to: {result_path}",
             "Result template:",
             result_template,
+            *_allowed_outcome_lines(state, stage),
             "Call this when done:",
             _callback(core, root, "complete", action=action["id"], result=str(result_path)),
-            "If work cannot continue, submit outcome 'blocked' with a truthful summary, then follow the printed resume route.",
-            "Pause without consuming the action: " + _callback(core, root, "pause", reason="reason"),
-            "Halt unfinished: " + _callback(core, root, "halt", reason="reason"),
+            *(["If work cannot continue, submit outcome 'blocked' with a truthful summary. Blocked and "
+               "repeat results still pass through this action's Improve checkpoint first; if the run "
+               "then stops blocked, the next packet prints its Resume command."]
+              if state["navigator_protocol_version"] in (3, 4) else
+              ["If work cannot continue, submit outcome 'blocked' with a truthful summary, then follow the printed resume route."]),
+            *(["Context-boundary pause (no callable host reset): "
+               + _callback(core, root, "pause", reason=CONTEXT_BOUNDARY_PAUSE)]
+              if route == guidance3.INLINE and stage == guidance3.INNER[0] else []),
+            "Pause without consuming the action: " + _callback(core, root, "pause", reason="<why>"),
+            "Halt (terminal and irreversible; only on an explicit user stop): "
+            + _callback(core, root, "halt", reason="<why>"),
         ]
     )
     return "\n".join(lines) + "\n"
+
+
+CONTEXT_BOUNDARY_PAUSE = "context-boundary: clear, then run Recovery and Resume"
+
+
+def _allowed_outcome_lines(state: Mapping[str, Any], stage: str) -> list[str]:
+    """State the outcomes _canonical_result accepts for this v3/v4 producer."""
+    if state["navigator_protocol_version"] not in (3, 4):
+        return []
+    outcomes = "done | repeat | blocked"
+    if stage in guidance3.OUTER:
+        outcomes += (" | replan (corrective work_items [{id, title, context}] whose IDs are not "
+                     "already in state.md work_items; they run through INNER, then OUTER restarts)")
+    lines = ["Allowed outcomes: " + outcomes + "."]
+    if stage == "plan":
+        lines.append("Optional work_items replaces the whole queue: list every item in order, not a delta.")
+    elif stage == "carry-forward":
+        lines.append("Optional work_items replaces the queue after this item: list every still-required "
+                     "future item in order, not a delta.")
+    return lines
 
 
 def _render_improve(core: Any, root: Path, state: Mapping[str, Any], lines: list[str]) -> str:
@@ -1807,12 +1950,13 @@ def _render_improve(core: Any, root: Path, state: Mapping[str, Any], lines: list
             "Load the actual Improve skill selected by this host. Retain its absolute SKILL.md location; do not substitute a policy file or managed controller.",
             "Bind that selected card using this command (replace the placeholder only if needed):",
             _callback(core, root, "improve-bind", action=action_id, **{"skill-card": card}),
-            "If unavailable, keep this action pending and report the missing skill; do not perform an inline improvement loop.",
+            "If unavailable, keep this action pending and report the missing skill; do not substitute a hand-written review loop for the selected skill.",
         ])
         return "\n".join(lines) + "\n"
     skill = child["skill"]
     result_path = root / "inbox" / (action_id + "-improve.md")
     ephemeral = Path(skill["runtime_cli"]).name == "until_loop_ephemeral.py"
+    inline = delegation(state) == guidance3.INLINE
     planning_reconcile = (state["navigator_protocol_version"] == 4
                           and child["stage"] == "plan" and ephemeral)
     planning_lines: list[str] = []
@@ -1839,9 +1983,12 @@ def _render_improve(core: Any, root: Path, state: Mapping[str, Any], lines: list
             "and evidence paths under existing user/repository authority before start. Scratch writes "
             "are allowed only within that frozen scope for the bounded probe. A printed path grants "
             "no additional authority; an existing child retains its frozen scope on recovery. "
-            "For explicit later user decisions, follow the source-bound parent update route in "
-            "Improve context ownership and retain receipt/effect in the existing handoff. Keep "
-            "launch context immutable and continue the same child; never replace it merely to "
+            + ("For explicit later user decisions in this conversation, apply them from the next "
+               "review iteration and retain receipt/effect in the review notes and handoff. Keep "
+               if inline else
+               "For explicit later user decisions, follow the source-bound parent update route in "
+               "Improve context ownership and retain receipt/effect in the existing handoff. Keep ")
+            + "launch context immutable and continue the same child; never replace it merely to "
             "change scope.",
             "Freeze the experiment objective in child work and its exit criteria in exit_condition. "
             "Carry the applicable original requirements, current planning source locators, findings "
@@ -1871,40 +2018,77 @@ def _render_improve(core: Any, root: Path, state: Mapping[str, Any], lines: list
 
         packet_path = standalone_improve.receipt_path(child)
         evidence_root = packet_path.parent / "reviews"
+        if inline:
+            ownership_lines = [
+                "Context-first opening: before start, write 'Current context and desired improvements' with current learnings, decisions and unresolved concerns from this conversation and the candidate, and freeze it once in child context.request after the binding line below. Supply essential meaning inline and existing locators for supporting detail; do not copy this packet or restate the skill's execution instructions.",
+                "Delegation: inline. Run the selected Improve card's ShipLoop v3/v4 whole-skill subcall in this conversation, in the exact Child workspace; verify the process cwd and Git root before task work. Do not hand the invocation to Ask Agent, a native worker or an extra worktree; read-only scoped reviewers under the selected Improve review policy remain available. This conversation is the only candidate writer until the runtime returns a terminal packet; stop competing writes there, including checks that generate files. Read that reference's default-route section before start or recovery.",
+                "Freeze the exact candidate scope, selected packages, explicit user/repository authority including any no-commit override, and evidence paths before start. An existing invocation keeps its frozen authority.",
+                "Carry current approvals, declines and pending decisions into child context.authority with action/target, conditions and authorization source; summarize their implications in the opening. Do not ask again for an applicable approval or treat a decline as optional advice. A later user decision in this conversation applies from the next review iteration: record its receipt and effect in the review notes and handoff; keep the frozen launch context unchanged.",
+                "Return order: save each raw packet as below; only after the terminal packet is saved, write the completion evidence and run the parent return and callback below. Runtime completion alone never advances this action.",
+            ]
+        else:
+            ownership_lines = [
+                "Parent assignment preparation: fill 'Current context and desired improvements' with current learnings, decisions and unresolved concerns from the conversation and candidate. Then say 'Run /improve' with the selected card and concrete run binding. Retain the opening once in child context.request. Supply essential meaning inline and existing locators for supporting detail; the navigator cannot supply conversation-only learnings. Do not forward this entire parent packet or repeat the skill's execution instructions.",
+                "For a genuinely new invocation, prefer one fresh native worker for the entire Improve loop with exclusive write ownership in the exact Child workspace. Read the context-ownership reference before launch or recovery. Resolve the host-selected Ask Agent and require its ask-agent/consumer-owned-workspace/v1 capability; never use its default extra-worktree route for this bound child.",
+                "Workspace route: consumer-owned; delivery mode: in-place. Native assignment: execution_role: improve-executor; delegation_owner: parent. Freeze the exact candidate scope, selected packages, explicit user/repository authority including any no-commit override, evidence paths and parent continuation before dispatch. Existing invocations keep their recorded owner and frozen authority; unknown ownership blocks replacement.",
+                "Native owner record: " + str(packet_path.with_name("host-owner.md")),
+                "Carry current approvals, declines and pending decisions into child context.authority with action/target, conditions and authorization source; summarize their implications in the opening. Do not ask again for an applicable approval or treat a decline as optional advice. Forward later user decisions through the native channel and record receipt/effect in host-owner.md and the worker handoff; keep launch context immutable and continue the same child.",
+                "Parent-only return: the worker saves child packets and completion evidence, then returns their locators without executing ShipLoop callbacks or workspace return. The parent collects and verifies the result before executing the exact return route below. Worker completion alone never advances this action.",
+            ]
+        start_word = "start" if inline else "dispatch"
         runtime_lines = [
-            "Improve context ownership: " + str(Path(__file__).resolve().parent.parent / "references" / "improve-context.md"),
-            "Parent assignment preparation: fill 'Current context and desired improvements' with current learnings, decisions and unresolved concerns from the conversation and candidate. Then say 'Run /improve' with the selected card and concrete run binding. Retain the opening once in child context.request. Supply essential meaning inline and existing locators for supporting detail; the navigator cannot supply conversation-only learnings. Do not forward this entire parent packet or repeat the skill's execution instructions.",
-            "For a genuinely new invocation, prefer one fresh native worker for the entire Improve loop with exclusive write ownership in the exact Child workspace. Read the context-ownership reference before launch or recovery. Resolve the host-selected Ask Agent and require its ask-agent/consumer-owned-workspace/v1 capability; never use its default extra-worktree route for this bound child.",
-            "Workspace route: consumer-owned; delivery mode: in-place. Native assignment: execution_role: improve-executor; delegation_owner: parent. Freeze the exact candidate scope, selected packages, explicit user/repository authority including any no-commit override, evidence paths and parent continuation before dispatch. Existing invocations keep their recorded owner and frozen authority; unknown ownership blocks replacement.",
-            "Native owner record: " + str(packet_path.with_name("host-owner.md")),
-            "Carry current approvals, declines and pending decisions into child context.authority with action/target, conditions and authorization source; summarize their implications in the opening. Do not ask again for an applicable approval or treat a decline as optional advice. Forward later user decisions through the native channel and record receipt/effect in host-owner.md and the worker handoff; keep launch context immutable and continue the same child.",
-            "Parent-only return: the worker saves child packets and completion evidence, then returns their locators without executing ShipLoop callbacks or workspace return. The parent collects and verifies the result before executing the exact return route below. Worker completion alone never advances this action.",
+            "Improve context ownership: " + str(Path(__file__).resolve().parent.parent / "references" / "improve-context.md")
+            + ("#default-route-the-parent-runs-improve-delegation-inline" if inline else ""),
+            *ownership_lines,
             "Child runtime authority: the unique temporary state_file returned by the selected runtime. ShipLoop does not write or count child state.",
             "Child latest packet receipt: " + str(packet_path),
-            "Binding inputs: before dispatch, verify the selected cards, runtime and referenced inputs exist and match this candidate and action. Keep workspace, scope, authority and return ownership explicit. The child packet receipt and completion evidence are output destinations for a new child, not pre-start inputs; a resumed child requires its saved receipt. A missing input leaves dispatch pending; never substitute an ambient skill or another workspace.",
-            "Save exact, complete raw JSON stdout from each successful start, next and done call to that receipt using a JSON-aware runner or safe file capture. Never reconstruct, summarize, or truncate the packet. This receipt preserves the callback handle and terminal evidence; it is not a second runtime state machine.",
+            f"Binding inputs: before {start_word}, verify the selected cards, runtime and referenced inputs exist and match this candidate and action. Keep workspace, scope, authority and return ownership explicit. The child packet receipt and completion evidence are output destinations for a new child, not pre-start inputs; a resumed child requires its saved receipt. A missing input leaves {start_word} pending; never substitute an ambient skill or another workspace.",
+            "Save exact, complete raw JSON stdout from each successful start, next and done call to that receipt using a JSON-aware runner or safe file capture. Never reconstruct, summarize, or truncate the packet. This receipt preserves the callback handle and terminal evidence; it is not a second runtime state machine."
+            + (" Save the start packet before any review work." if inline else ""),
+            *(["Freeze in repeat_condition: if a finding invalidates an accepted discovery, research, spec "
+               "or test-strategy premise, finish the current bounded work and report classification "
+               "unresolved or non-trivial, exit_assessment unsatisfied or unknown, and "
+               "continuation_assessment cancelled. A blocked stop cannot use improve-reconcile or "
+               "improve-complete and leaves the parent incomplete."] if planning_reconcile else []),
             "For a genuinely new child, read the selected skills and start once. If this child has already started, read its saved receipt: for active status use its exact next_argv once to recover, then follow the returned instruction; for complete status import its retained receipt without starting or reviewing again. "
-            + ("For stopped status preserve the receipt and keep successful completion unresolved; only "
+            + ("For a cancelled stopped status preserve the receipt and keep successful completion unresolved; only "
                "this v4 initial plan child may use the printed parent-only improve-reconcile route "
-               "after worker collection. " if planning_reconcile else
+               + ("once the runtime has returned that stopped packet. " if inline else "after worker collection. ")
+               if planning_reconcile else
                "For stopped status keep the parent incomplete. ")
+            + "To continue after a stop that cannot be reconciled, once its blocker is resolved or the user "
+            "authorizes continuing, "
+            + ("confirm no candidate write is in progress" if inline else "confirm the recorded owner stopped")
+            + ", rename packet.json to packet.stopped-<UTC timestamp>.json and the sibling reviews "
+            "directory to reviews.stopped-<same timestamp>, record the decision in the new context "
+            "opening and start a new child with the same binding line; its review_refs and check_refs "
+            "must be files the new child writes. "
+            "To pause instead, run the parent pause command below and leave the child active; never "
+            "report cancelled for a pause. "
             + "If an existing active child's receipt or temporary state is unavailable, report incomplete; "
             "never infer completion or silently create a replacement. Terminal recovery uses the retained "
             "raw packet because terminal state is deleted.",
-            "Include this parent identity as a separate line in frozen context.request:",
+            "Binding line: copy the next line verbatim into frozen context.request exactly once, "
+            + ("first, " if inline else "") + "alone on its own line with no bullet, quote, backticks, indentation or trailing text; import matches the whole line:",
             child["contract_marker"],
+            "Start inputs owned by ShipLoop: required_trivial_reviews 2 (import rejects fewer); workspace: "
+            "the Child workspace above.",
             *(
                 [
                     "Freeze the original request, step result and execution/exit/repeat conditions, permitted paths, expected check state, authority and relevant environment in the child's context.",
                     "For this v4 planning Improve child, use the context-first opening as the compact planning summary plus locators for "
-                    "the planning experiments guide, investigation notebook, latest packet, owner record, "
-                    "parent state and completion evidence. Keep the full parent packet, prompts and verbose "
+                    "the planning experiments guide, investigation notebook, latest packet, "
+                    + ("" if inline else "owner record, ")
+                    + "parent state, completion evidence and the exact parent return instructions below. "
+                    "Keep the full parent packet, prompts and verbose "
                     "logs behind those locators; do not duplicate them in the child context.",
                     "Commit policy: use the selected Improve card's scoped-commit policy with the task's explicit overrides; retain existing frozen authority on recovery.",
                 ] if planning_reconcile else [
                     "Freeze the original request, step result and execution/exit/repeat conditions, permitted paths, expected check state, authority and relevant environment in the child's context.",
                     "Commit policy: use the selected Improve card's scoped-commit policy with the task's explicit overrides; retain existing frozen authority on recovery.",
-                    "Include context.resources locators for this latest-packet receipt, native owner record (parent coordination data), parent state.md, completion evidence path and exact parent return instructions below. The child terminal packet must be sufficient to locate and perform the parent return after context loss.",
+                    "Include context.resources locators for this latest-packet receipt, "
+                    + ("" if inline else "native owner record (parent coordination data), ")
+                    + "parent state.md, completion evidence path and exact parent return instructions below. The child terminal packet must be sufficient to locate and perform the parent return after context loss.",
                 ]
             ),
             "Completion deletes the child's temporary state. Preserve the complete terminal packet at the receipt above before calling improve-complete. If terminal output is lost, stop incomplete; a missing state file is not completion evidence.",
@@ -1914,7 +2098,7 @@ def _render_improve(core: Any, root: Path, state: Mapping[str, Any], lines: list
         runtime_lines = [
             "Child authority: " + str(Path(child["workspace"]) / ".until-loop" / "state.json"),
             "Child review notebook: " + str(Path(child["workspace"]) / ".until-loop" / "working.md"),
-            "Include this parent identity as a separate line in the child contract original_request:",
+            "Binding line: copy the next line verbatim into the child contract original_request exactly once, alone on its own line with no bullet, quote, backticks, indentation or trailing text; import matches the whole line:",
             child["contract_marker"],
             "Keep the original request, this step result, relevant work-item context, permitted paths, expected check state and authority in the child contract.",
             commit_guidance,
@@ -1934,13 +2118,16 @@ def _render_improve(core: Any, root: Path, state: Mapping[str, Any], lines: list
         ).rstrip()
         reconcile_lines = [
             "If this selected ephemeral child reaches a stopped, cancelled terminal packet, first "
-            "collect or confirm the recorded native worker owner has stopped or been cancelled. "
-            "Preserve its packet and evidence; do not start, replace, or replay the child.",
+            + ("confirm the runtime returned it in this conversation and no candidate write is in progress. "
+               if inline else
+               "collect or confirm the recorded native worker owner has stopped or been cancelled. ")
+            + "Preserve its packet and evidence; do not start, replace, or replay the child.",
             "For that stopped plan child only, write this exact reconciliation receipt to: "
             + str(reconcile_path),
             reconcile_template,
-            "Parent-only stopped-child callback after collection; it imports the preserved stopped "
-            "packet and immutable evidence, then restarts the requested planning suffix:",
+            ("Parent-only stopped-child callback; it imports the preserved stopped " if inline else
+             "Parent-only stopped-child callback after collection; it imports the preserved stopped ")
+            + "packet and immutable evidence, then restarts the requested planning suffix:",
             _callback(core, root, "improve-reconcile", action=action_id, result=str(reconcile_path)),
             "A successful child still follows the normal improve-complete callback below. A durable "
             "legacy runtime cannot use improve-reconcile.",
@@ -1959,10 +2146,13 @@ def _render_improve(core: Any, root: Path, state: Mapping[str, Any], lines: list
         "Bound Until Loop card: " + skill["runtime_card"],
         "Bound Until Loop CLI locator: " + skill["runtime_cli"],
         "Child workspace: " + child["workspace"],
-        "Read the selected Improve skill and its bound runtime instructions in full, then follow them. The skill owns all internal improvement iterations.",
+        ("Read the selected Improve skill and its bound runtime instructions in full once per context "
+         "(again after a reset or if the card changed), then follow them. The skill owns all internal "
+         "improvement iterations." if inline else
+         "Read the selected Improve skill and its bound runtime instructions in full, then follow them. The skill owns all internal improvement iterations."),
         *planning_lines,
         *runtime_lines,
-        guidance3.improve_prompt(child["stage"]),
+        guidance3.improve_prompt(child["stage"], delegation=delegation(state)),
         exclusion,
         "The prior result and relevant accepted Improve lessons are in state.md improve_results and improve/<parent-action>/ receipts. Carry forward relevant verified conclusions and material unresolved findings, hypotheses, failed attempts and pitfalls, clearly labeled with evidence status. Preserve essential meaning in the context opening and later handoffs; keep detailed blocked-attempt notes in the child notebook.",
         "On completion, provide two distinct final qualifying review records and current check evidence as absolute local file references. A plan/RED disposition is checked against its own criteria, not future product success. Capture separate durable review files beneath Child workspace if the notebook contains both reviews.",
@@ -1974,19 +2164,25 @@ def _render_improve(core: Any, root: Path, state: Mapping[str, Any], lines: list
                      "check_refs": [str(evidence_root / "checks.md")], "lessons": "..."},
                     "Actual Improve completion evidence").rstrip(),
         "If Improve changes decisions or decision-relevant evidence needed by a successor, include "
-        "final_result with the revised generic step result, preserving outcomes and authority. This "
+        "final_result: a complete step result with the same fields as the Step result record above "
+        "(outcome done, repeat, blocked or, at OUTER stages, replan; never reconcile), preserving "
+        "authority; with outcome done at plan or carry-forward, list the complete intended queue in "
+        "work_items whenever the step result proposed one. This "
         "includes valid confirmation with no plan diff. Preserve existing registered evidence_refs "
         "and add every planning file produced or revised, plus a compact decision note and required "
         "supporting evidence. Record the finding, applicable original constraints, affected decision "
         "and consumer, conclusion, limits and source locators. Ordinary qualifying review/check "
         "evidence belongs in review_refs/check_refs; it alone does not require final_result. Do not "
-        "register all scratch output or copy the whole mutable notebook into every worker. Retain "
+        "register all scratch output or copy the whole mutable notebook into every "
+        + ("context" if inline else "worker") + ". Retain "
         "key planning decisions, constraints and acceptance expectations as reference statements "
         "with source locators. The step definition remains the execution prompt; do not substitute "
         "the original user request or a second consolidated directive.",
         *reconcile_lines,
         *return_lines,
-        "Parent-only callback; execute only after collecting and verifying successful bound runtime completion:",
+        ("Parent callback; run only after the runtime returned complete, its terminal packet is saved at "
+         "the receipt above and the completion evidence is written:" if inline and ephemeral else
+         "Parent-only callback; execute only after collecting and verifying successful bound runtime completion:"),
         _callback(core, root, "improve-complete", action=action_id, result=str(result_path)),
         "If incomplete, retain the child, its packet receipt and review notes; do not call complete on the producer again or advance the graph.",
         "Pause parent without losing child: " + _callback(core, root, "pause", reason="reason"),
@@ -2191,7 +2387,7 @@ def dispatch(core: Any, root: Path, state: Mapping[str, Any], args: Any,
         command = "complete"
     _need(command in {
         "init", "next", "status", "context", "report", "complete", "pause", "resume", "halt",
-        "improve-bind", "improve-complete", "improve-reconcile"
+        "improve-bind", "improve-complete", "improve-reconcile", "delegation"
     }, f"navigator does not support legacy command {command!r}")
     validate(state)
     root = Path(root)
@@ -2314,6 +2510,8 @@ def dispatch(core: Any, root: Path, state: Mapping[str, Any], args: Any,
         )
         if completion_guard is not None and updated != state:
             completion_guard(state, updated)
+    elif command == "delegation":
+        updated = set_delegation(state, getattr(args, "delegation_value", None))
     else:
         updated = control(state, command, getattr(args, "reason", ""))
     if updated != state:

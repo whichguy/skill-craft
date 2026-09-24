@@ -97,3 +97,27 @@ preserve parallel capacity guidance and serial main-context ownership without
 changing the binding or restarting an attempt. Completed serial and parallel
 chain fixtures also check that Improve uses its own context and ownership policy
 while retaining the historical chain binding.
+
+## Addendum, September 23, 2026
+
+The record above is unchanged. New v3/v4 runs now record `delegation: inline`
+by default. The owner chose one context boundary per work item, at its
+`select-work` packet, rather than one per INNER stage. That packet begins
+**Clear and then execute the prompt.** then `Delegation: inline.`; the host uses
+a callable reset if it has one, otherwise the pause command and manual handoff
+described above. The work item's other INNER producer packets begin
+**Continue in this context and execute the prompt.** Improve runs its whole
+invocation in the live parent conversation, and inline `implement` executes
+reviewed steps directly without a chain.
+
+This study is the reason. Packet text did not reset a Claude Code context (0/2
+cases), while an external host clear did (3/3 resets). Without a native worker
+or callable reset, a boundary at each of the 18 INNER stages would need a manual
+clear at every stage of every work item. The one-native-fresh-worker route in
+the Decision section is now the opt-in `delegation: ask-agent` route. Its
+packets keep the delegated wording; the same release adds packet-contract fixes
+on both routes (exact binding line, stopped-child restart, outcome and
+`final_result` rules).
+Saved runs without the setting keep it. Scripts still select packet text only and do not
+verify who executed an assignment. The follow-up work is planned in
+[the delivery-overhead plan](shiploop-delivery-overhead-plan-2026-09-23.md).

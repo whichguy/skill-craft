@@ -60,6 +60,69 @@ and child receipt locators for interruption recovery.
 """
 
 
+# Run-level delegation (state key ``delegation``).  ``inline`` is the default
+# for new CLI-created v3/v4 runs; ``ask-agent`` is the opt-in delegated route
+# rendered by SERIAL_INNER_CONTEXT/IMPROVE_INNER_CONTEXT above and by the
+# unmodified DUTIES text.  A run without the key keeps its recorded ask-agent
+# behaviour, so catalog calls default to it.
+INLINE = "inline"
+ASK_AGENT = "ask-agent"
+DELEGATIONS = (INLINE, ASK_AGENT)
+
+INLINE_ITEM_CONTEXT = """\
+Clear and then execute the prompt.
+
+Delegation: inline. This select-work packet opens a work item and is its only
+INNER context boundary. Clear once here, then execute this packet and every
+later INNER stage and Improve checkpoint of this work item in this conversation.
+If the host exposes an actual callable context reset with continuation, use it,
+then run the Recovery command below. Otherwise run the printed pause command and
+give the user this handoff: clear through the host (for example `/clear`) or
+open a fresh conversation, run the Recovery command, then the printed Resume
+command. Printing `/clear` does not clear. A conversation that began with that
+reset or recovery for this work item is already fresh: when this prefix repeats,
+execute without clearing or pausing again. Do not hand this assignment to Ask
+Agent or a native worker; this conversation is the only writer and alone submits
+ShipLoop callbacks. Retain the CLI, repository, run-directory locators and exact Recovery
+command in durable host handoff material.
+"""
+
+INLINE_STAGE_CONTEXT = """\
+Continue in this context and execute the prompt.
+
+Delegation: inline. This work item's context boundary was its select-work
+packet. Execute this INNER stage in this conversation without clearing, pausing
+for a clear, or handing it to Ask Agent or a native worker. This conversation is
+the only writer and alone submits ShipLoop callbacks. After an unplanned reset
+or lost context, run the Recovery command and continue from the reprinted packet.
+"""
+
+INLINE_IMPROVE_CONTEXT = """\
+Keep the invoking parent alive and run this Improve invocation inline.
+
+Delegation: inline. Run the selected Improve skill's whole invocation in this
+conversation, in the exact Child workspace; its review iterations share this
+context. Do not clear, hand off, or hand the invocation to Ask Agent or a native
+worker; read-only scoped reviewers under the selected Improve review policy remain
+available. This conversation is both executor and parent: the only candidate
+writer until the runtime returns a terminal packet, then the sole submitter of
+ShipLoop callbacks. Recover an existing child through its runtime's recovery route
+(for the ephemeral runtime, the saved receipt's exact next_argv); start another
+runtime only through the packet's stopped-child restart route. Retain the exact
+Recovery command and child receipt locator for interruption recovery.
+"""
+
+
+def inner_context(delegation: str, stage: str, *, improve: bool) -> str:
+    """Return the context prefix for an active INNER producer or Improve packet."""
+    _require_delegation(delegation)
+    if delegation == ASK_AGENT:
+        return IMPROVE_INNER_CONTEXT if improve else SERIAL_INNER_CONTEXT
+    if improve:
+        return INLINE_IMPROVE_CONTEXT
+    return INLINE_ITEM_CONTEXT if stage == INNER[0] else INLINE_STAGE_CONTEXT
+
+
 PRELUDE = (
     "intake",
     "discovery",
@@ -1078,7 +1141,11 @@ Perform only authorized Git/worktree integration for the candidate.  Inspect
 actual diffs, branches, conflicts, identities, and combined interfaces.  Preserve
 user work and keep run-time state, raw logs, credentials, and generated artifacts
 out of product commits and returns.  Do not infer a merge, commit, push, or
-deployment from a plan or command attempt.
+deployment from a plan or command attempt.  If implement used a bound chain,
+confirm its finish commit is an ancestor of the execution checkout HEAD and
+record it; otherwise assemble or commit this item's candidate in the execution
+checkout under workspace and repository policy, or record a justified no-op.
+The original branch is returned only at the final workspace return.
 """,
     "integration-verify": """\
 Verify the assembled integrated candidate with the affected shared interfaces,
@@ -1472,19 +1539,111 @@ def _require_stage(stage: str) -> None:
         raise ValueError(f"unknown navigator-v3 stage: {stage!r}")
 
 
-def prompt(stage: str) -> str:
-    """Return the single current producer instruction for a v3 graph stage."""
+def _require_delegation(delegation: str) -> None:
+    if delegation not in DELEGATIONS:
+        raise ValueError(f"unknown navigator-v3 delegation: {delegation!r}")
+
+
+# Inline runs replace only the chain-specific paragraphs of these duties; the
+# ask-agent text above stays the single source for the delegated route.
+_INLINE_DUTY_PARAGRAPHS = {
+    "step-plan": ("""\
+For a plan with dependency-independent implementation steps, create and review
+its initial steps and graph here for the default parallel chain, even when an
+initial serial prefix will release those branches later. A serial chain remains
+an explicit user or host-limit selection. Give every graph direct dependencies,
+readiness and completion criteria,
+shared-resource exclusions and the integration node. Link the graph's exact path
+and content digest in existing plan notes/evidence_refs. This producer's mandatory
+actual Improve loop must review the created steps and graph before they are used
+for execution. Use the Parallel-chain guide for late creation or revision;
+planning never starts the dispatcher or expands this item's scope.
+""", """\
+For a plan with more than one implementation step, record its ordered steps here
+for linear execution in this conversation: each step's direct dependencies,
+readiness and completion criteria, and the checks that show it is done. Link the
+step list in existing plan notes/evidence_refs. This producer's mandatory actual
+Improve loop must review the steps before they are used for execution.
+Delegation is inline: do not create a Plan Dispatcher execution graph or plan
+parallel worker branches; planning never expands this item's scope.
+"""),
+    "implement": ("""\
+For a reviewed graph with safe dependency-independent implementation steps, use
+the parallel-chain guide and bind this action to the default parallel
+mode when the selected Plan Dispatcher and Ask-Agent contracts are compatible
+and observed native slots are available. Record a concrete
+compatibility, capacity, resource, readiness, or recovery blocker if that route
+cannot start; use serial mode only for an explicit user or host limit. Parallel
+mode uses native Ask-Agent; serial mode executes one ready step in the main
+context without spawning agents. Bind parallel capacity to the observed
+user/host native-slot limit, not its fallback default; an independent branch may
+become ready after an initial serial prefix. Both use external sibling worktrees and
+the same verified acceptance transition. Ask-Agent creates parallel worker
+worktrees; orchestration verifies and adopts them, imports worker-local results,
+prepares and checks the combination, merges into the invoking branch, then
+accepts the step and removes its worktree. Retain conflicts and cleanup blockers;
+never repeat accepted work because removal failed. Keep observable combined status; only
+accepted steps are done. Continue until every required step is accepted and the
+combined return is verified, or retain an explicit incomplete blocker. Finish
+before this action's normal completion callback and Improve checkpoint.
+On the initial frontier and every returned event, claim and start every listed
+candidate that is actually safe up to the packet's available capacity. Refresh
+immediately after each callback. Do not wait on a native reconciliation,
+preparation, verification, or collection while an independent safe worker can
+start; defer only a candidate with a concrete recorded blocker.
+""", """\
+Delegation is inline: execute a reviewed multi-step plan directly, one step at a
+time in dependency order, in the execution checkout in this conversation. Do not
+bind an implementation chain or dispatch Ask Agent or native workers; chains are
+available only when the run's delegation is ask-agent. Confirm each step's
+readiness before starting it and its completion checks before starting a
+dependent step. Keep observable per-step status in the result; only verified
+steps are done. Continue until every required step is done and verified, or
+retain an explicit incomplete blocker, before this action's normal completion
+callback and Improve checkpoint.
+"""),
+}
+for _stage, (_delegated, _inline) in _INLINE_DUTY_PARAGRAPHS.items():
+    if DUTIES[_stage].count(_delegated) != 1:
+        raise RuntimeError(f"navigator-v3 {_stage} duty lost its delegated chain paragraph")
+
+_PLANNING_HANDOFF = (
+    "Preserve this planning pass's key reference statements, decisions, constraints and acceptance "
+    "context in its summary and registered material. At plan and step-plan, consolidate applicable "
+    "upstream material for a fresh execution context as supporting references, not a replacement "
+    "assignment or a restatement of the user prompt. The dispatch step task/ready/done contract remains "
+    "the sole worker directive. Register every produced planning file and required source as an absolute "
+    "reference in evidence_refs; an unrecorded conversation is not a planning handoff."
+)
+_INLINE_PLANNING_DIRECTIVE = (
+    "The dispatch step task/ready/done contract remains the sole worker directive.",
+    "Each reviewed step's task/ready/done criteria remain its sole execution directive.",
+)
+
+
+def duty(stage: str, *, delegation: str = ASK_AGENT) -> str:
+    """Return one stage duty with the run's implementation-route paragraph."""
     _require_stage(stage)
-    parts = [COMMON, DUTIES[stage]]
+    _require_delegation(delegation)
+    text = DUTIES[stage]
+    if delegation == INLINE and stage in _INLINE_DUTY_PARAGRAPHS:
+        delegated, inline = _INLINE_DUTY_PARAGRAPHS[stage]
+        text = text.replace(delegated, inline)
+    return text
+
+
+def prompt(stage: str, *, delegation: str = ASK_AGENT) -> str:
+    """Return the single current producer instruction for a v3 graph stage.
+
+    The navigator always passes the run's delegation; the ask-agent default
+    keeps catalog renders identical to runs recorded before the setting existed.
+    """
+    _require_stage(stage)
+    _require_delegation(delegation)
+    parts = [COMMON, duty(stage, delegation=delegation)]
     if stage in PRELUDE or stage in {"step-plan", "test-spec"}:
-        parts.append(
-            "Preserve this planning pass's key reference statements, decisions, constraints and acceptance "
-            "context in its summary and registered material. At plan and step-plan, consolidate applicable "
-            "upstream material for a fresh execution context as supporting references, not a replacement "
-            "assignment or a restatement of the user prompt. The dispatch step task/ready/done contract remains "
-            "the sole worker directive. Register every produced planning file and required source as an absolute "
-            "reference in evidence_refs; an unrecorded conversation is not a planning handoff."
-        )
+        parts.append(_PLANNING_HANDOFF if delegation == ASK_AGENT
+                     else _PLANNING_HANDOFF.replace(*_INLINE_PLANNING_DIRECTIVE))
     if stage in TEST_FACILITY_STAGES:
         parts.append(TEST_FACILITY_HANDOFF)
     if stage in TEST_DECISION_STAGES:
@@ -1501,8 +1660,29 @@ def prompt(stage: str) -> str:
     return "\n\n".join(parts)
 
 
-def improve_prompt(stage: str) -> str:
+# Inline runs have no dispatcher steps, execution graph or worker packets; the
+# ask-agent wording above stays the single source for the delegated route.
+_INLINE_IMPROVE_REPLACEMENTS = (
+    ("the newly created bounded steps and any parallel or serial execution graph",
+     "the newly created bounded steps and their ordered dependencies"),
+    ("user prompt nor a second worker directive. The dispatch step's task/ready/done\n"
+     "contract remains the sole assignment.",
+     "user prompt nor a second directive. Each reviewed step's task/ready/done\n"
+     "criteria remain its sole assignment."),
+)
+
+
+def improve_prompt(stage: str, *, delegation: str = ASK_AGENT) -> str:
     """Return the actual Improve-skill handoff for a completed producer stage."""
+    _require_delegation(delegation)
+    text = _improve_prompt(stage)
+    if delegation == INLINE:
+        for delegated, inline in _INLINE_IMPROVE_REPLACEMENTS:
+            text = text.replace(delegated, inline)
+    return text
+
+
+def _improve_prompt(stage: str) -> str:
     _require_stage(stage)
     backchain = _backchain_guidance(stage, improve_owner=True) if stage in BACKCHAIN_STAGES else ""
     coding_review = ""
@@ -1706,15 +1886,21 @@ if set(DUTIES) != set(STAGES) or set(IMPROVE_SCOPES) != set(STAGES):
 
 PROMPTS = {stage: prompt(stage) for stage in STAGES}
 IMPROVE_PROMPTS = {stage: improve_prompt(stage) for stage in STAGES}
+for _delegated, _inline in _INLINE_IMPROVE_REPLACEMENTS:
+    if not any(_delegated in text for text in IMPROVE_PROMPTS.values()):
+        raise RuntimeError("navigator-v3 Improve prompts lost a delegated-route phrase")
 
 
 __all__ = (
+    "ASK_AGENT",
     "COMMON",
+    "DELEGATIONS",
     "DUTIES",
     "IMPLEMENTATION_CONSTITUTION",
     "IMPLEMENTATION_STAGES",
     "IMPROVE_PROMPTS",
     "IMPROVE_SCOPES",
+    "INLINE",
     "INNER",
     "OUTER",
     "PRELUDE",
@@ -1722,6 +1908,8 @@ __all__ = (
     "PROMPTS",
     "STAGE_REFERENCES",
     "STAGES",
+    "duty",
     "improve_prompt",
+    "inner_context",
     "prompt",
 )

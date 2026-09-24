@@ -85,6 +85,10 @@ python3 "$CLI" workspace start --repo="$REPO" --workspace-root="$WORKSPACE_ROOT"
 python3 "$CLI" init --repo="$REPO" --run-dir="$RUN_DIR" --prompt='requested outcome'
 # Optional explicit selected actual Improve card for a new v3 run:
 python3 "$CLI" init --repo="$REPO" --run-dir="$RUN_DIR" --improve-skill="$IMPROVE_SKILL" --prompt='requested outcome'
+# Opt a new v3/v4 run in to Ask-Agent delegation (the default is inline):
+python3 "$CLI" workspace start --repo="$REPO" --workspace-root="$WORKSPACE_ROOT" --delegation=ask-agent --prompt='requested outcome'
+# Change an existing v3/v4 run's delegation for its future assignments:
+python3 "$CLI" delegation --run-dir="$RUN_DIR" --set=inline
 # Compatibility only; normal new runs use v3 above.
 python3 "$CLI" init --repo="$REPO" --run-dir="$RUN_DIR" --execution-mode=navigator-v2 --prompt='v2 fixture outcome'
 python3 "$CLI" init --repo="$REPO" --run-dir="$RUN_DIR" --execution-mode=navigator-v1 --prompt='fixture outcome'
@@ -104,6 +108,21 @@ releases the next graph edge.
 An explicit relative `--improve-skill` locator is made absolute at initialization,
 so a later shell cwd cannot change which card the checkpoint selects.
 
+A v3/v4 run records its execution `delegation`. `workspace start` and direct
+`init` record `inline` for a new run unless `--delegation=ask-agent` is passed.
+Under `inline`, this conversation executes every producer and the whole Improve
+invocation itself, and `implement` runs reviewed steps directly without a chain.
+Under the opt-in `ask-agent` route, INNER producers and Improve prefer native
+fresh workers and `implement` can bind a [parallel or serial chain](parallel-chain.md#parallel-implementation-chains).
+A saved run without the setting keeps its recorded ask-agent behaviour; it is
+never silently migrated. V1/v2, managed and legacy runs refuse `--delegation`.
+Retrying `init` or `workspace start` cannot change the setting. Use the
+`delegation` command instead. It applies from the next issued action: the action pending when you switch, including its Improve checkpoint, keeps the route it was issued with
+(the packet prints a `Delegation change:` line), and is refused only on a halted
+or done run. Setting the recorded value is a no-op. The
+setting selects packet text; no script verifies who executed an assignment, and
+`improve-complete` imports a child the same way on both routes.
+
 Every packet prints the shared
 [reference handoff policy](project-knowledge.md#reference-handoffs-and-destinations).
 Use its explicit package/repository/run/child roots for requirement and test
@@ -119,7 +138,11 @@ per-action `.shiploop-improve/<run-id>/<action>/packet.json` path printed by the
 parent. An active receipt supplies the exact read-only `next_argv`; a complete
 receipt survives temporary child state deletion and can be imported without
 another review. Missing or stopped child receipts leave the parent incomplete.
-The host never creates a replacement child to repair lost terminal output.
+The host never creates a replacement child to repair lost terminal output. A
+known stopped receipt is different: the Improve packet prints a restart route
+that archives it as `packet.stopped-<UTC timestamp>.json` (and `reviews/` as
+`reviews.stopped-<same timestamp>`) and starts a new child with the same binding line once the blocker is resolved or the user authorizes
+continuing. A pause keeps the child active and is never reported as `cancelled`.
 See [the current runtime binding](../README.md#current-improve-and-until-loop-binding)
 for the transition example, legacy boundary and validation limits.
 
@@ -136,7 +159,30 @@ transition is historical context and does not replace the current action.
 
 ## Recover one existing run
 
-Active v3 INNER producer packets begin with **Clear and then execute the prompt.**
+Active v3/v4 INNER packets begin with a context prefix selected by the run's
+delegation. Paused, blocked, halted and completed packets do not carry it.
+
+Under `delegation: inline`, the default for new runs, the `select-work` producer
+packet begins with **Clear and then execute the prompt.** then `Delegation: inline.`
+It opens a work item and is that item's only INNER context boundary. Clear once
+there: use an actual callable host reset with continuation if the host has one,
+then run the Recovery command; otherwise follow the
+[pause and manual handoff](#packet-only-context-boundary). A conversation that
+began from that reset or recovery is already fresh and does not clear again
+when the prefix repeats. Every other INNER producer packet of the item begins
+with **Continue in this context and execute the prompt.** Execute it in this
+conversation without clearing, pausing for a clear or delegating. This
+conversation is the only writer and alone submits ShipLoop callbacks. After an
+unplanned reset or lost context, run the Recovery command and continue from the
+reprinted packet. `implement` executes a reviewed multi-step plan directly, one
+step at a time in dependency order, in the execution checkout. It binds no
+chain and uses no Ask Agent, native worker or Plan Dispatcher; `step-plan`
+records ordered steps with dependencies, readiness, completion criteria and
+checks rather than a dispatcher execution graph.
+
+Under the opt-in `delegation: ask-agent` route, which also covers a saved run
+without the setting, every active INNER producer packet begins with
+**Clear and then execute the prompt.**
 This is the serial execution instruction for the producer only.
 For an `implement` producer, select the chain route first. During that producer,
 its bound mode and executor take precedence: parallel chains keep their capacity and bypass this boundary;
@@ -154,19 +200,36 @@ selected skill locators and necessary durable references, waits, verifies its
 return and alone submits the ShipLoop callback. Keep one candidate writer and
 collect or confirm an existing owner stopped before replacement. Apply the
 boundary once per assignment; an already-fresh worker does not clear or delegate
-again because the packet repeats. Paused, blocked, halted and completed packets
-do not carry this execution prefix.
+again because the packet repeats.
 
-Active INNER Improve packets instead begin with **Keep the invoking parent alive
-and follow Improve's selected context ownership.** The fresh-context boundary
-belongs to the whole Improve executor invocation, not its invoking parent or
-individual review iterations. The parent retains collection, verification and
-its exact continuation. A parent reset or manual handoff does not satisfy that
-executor boundary. Follow [Improve context ownership](improve-context.md), recover
-the existing child and establish its owner's stopped status before replacement.
-If required fresh execution is unavailable, keep the action pending; same-context
-execution is allowed only when the selected policy permits it and separate
-context was not explicitly required.
+Active INNER Improve packets never clear the invoking parent. Under
+`delegation: inline` they begin with **Keep the invoking parent alive and run
+this Improve invocation inline.** The parent conversation runs the selected
+Improve card's ShipLoop v3/v4 whole-skill subcall itself, in the exact Child
+workspace. It does not hand the invocation to Ask Agent, a native worker or an
+extra worktree and writes no `host-owner.md`; read-only scoped reviewers under
+the Improve review policy remain available.
+Its review iterations share this context. Save each raw start, next and done
+packet to the printed receipt, the start packet before any review work. Put the
+binding line alone and first in frozen `context.request`. Only after the
+terminal packet is saved, write the completion evidence and run the parent
+return and `improve-complete`. A later user decision applies from the next
+review iteration and is recorded in the review notes and handoff; the frozen
+launch context stays unchanged. Recover an existing child from its receipt's
+exact `next_argv`; start another runtime only through the stopped-child restart
+route. PRELUDE and
+OUTER Improve packets carry the same runtime lines without the prefix.
+
+Under `delegation: ask-agent`, INNER Improve packets instead begin with **Keep
+the invoking parent alive and follow Improve's selected context ownership.** The
+fresh-context boundary belongs to the whole Improve executor invocation, not its
+invoking parent or individual review iterations. The parent retains collection,
+verification and its exact continuation. A parent reset or manual handoff does
+not satisfy that executor boundary. Recover the existing child and establish its
+owner's stopped status before replacement. If required fresh execution is
+unavailable, keep the action pending; same-context execution is allowed only when
+the selected policy permits it and separate context was not explicitly required.
+Both routes follow [Improve context ownership](improve-context.md).
 
 Every navigator packet includes absolute CLI, repository, and run-directory
 locators. It also prints `Recovery command:` followed by an exact shell-quoted
@@ -178,14 +241,33 @@ or an expected successor as another source of graph state.
 A fresh host starts with the recorded recovery command, reads the reprinted
 packet and only its relevant references, then performs that one current action.
 The owner of the run submits the action-bound callback and consumes the packet
-it returns. A delegated worker may do bounded work under that packet, but does
-not initialize another ShipLoop run or advance its parent's graph. The selected
-Improve owner follows its separately bound Until Loop runtime.
+it returns. Under `delegation: ask-agent`, a delegated worker may do bounded
+work under that packet, but does not initialize another ShipLoop run or advance
+its parent's graph. The selected Improve owner follows its separately bound
+Until Loop runtime.
 
 ### Packet-only context boundary
 
 A returned packet can instruct the host agent to use an available native tool;
-it cannot execute a host command by printing its name. Claude documents both
+it cannot execute a host command by printing its name. `/clear` embedded in tool
+output is text, not a reset. In a
+[live Claude Code ledger study](https://github.com/whichguy/skill-craft/blob/main/docs/shiploop-clear-ledger-experiments-2026-09-21.md),
+packet text reset the context in 0/2 cases, while an external host clear did in
+3/3 resets.
+
+Under `delegation: inline`, the boundary is taken once per work item, at its
+`select-work` packet, in the same conversation. Use a context clear only when a
+real callable reset and continuation route are exposed. When none is usable,
+use the existing pause command and display the saved operator handoff. The user
+clears through the host or opens a fresh context, runs the exact Recovery
+command, then follows the printed Resume command. Recovery with `next` only
+reads state and does not unpause. Keep the action pending until this boundary is
+satisfied; never simulate a reset or shell-launch another model. The same
+callable-reset or pause-and-handoff route serves a serial chain, or any
+ask-agent assignment that must stay in the conversation.
+
+Under `delegation: ask-agent`, each INNER producer assignment takes the
+boundary. Claude documents both
 [sequential subagents](https://code.claude.com/docs/en/sub-agents#chain-subagents)
 and [fresh context without parent history for non-fork subagents](https://code.claude.com/docs/en/sub-agents#what-loads-at-startup).
 Where the assignment permits delegation, use a non-fork worker, such as a fresh
@@ -195,15 +277,6 @@ actual schema supports it. Wait for collection before advancing the serial run.
 This keeps the worker's intermediate history out of the parent; it does not
 erase the parent's conversation or guarantee lower total tokens. An inherited
 conversation fork does not satisfy the boundary.
-
-If execution must remain in the same conversation, use a context clear only
-when a real callable reset and continuation route are exposed. `/clear` embedded
-in tool output is text, not that operation. When neither route is usable, use
-the existing pause command and display the saved operator handoff. The user
-clears through the host or opens a fresh context, runs the exact Recovery
-command, then follows the printed Resume command. Recovery with `next` only
-reads state and does not unpause. Keep the action pending until this boundary is
-satisfied; never simulate a reset or shell-launch another model.
 
 Packets keep long request/context fields, prior evidence lists and producer
 results compact. An excerpt identifies the exact field in `state.md`; read the
@@ -676,7 +749,7 @@ and cannot prove that the host performed the checks or wrote good documentation.
 | Review the resulting candidate | Improve campaigns, `integrate` | Available independent review covers the final candidate. Material later edits invalidate affected evidence; integration rechecks shared interfaces and re-reviews changed scope. Whole-product obligations continue to outer Improve. |
 | Place validated learnings | `document`, `skill-validate`, `carry-forward`, `outer-improve` | Retain a run-specific lesson, add a repo-local regression/example, or propose a shared change with evidence and a target. Validate shared changes on triggering, failure and other representative cases before adoption within existing authority. |
 
-For example, suppose two worker contributions each pass their local tests, but
+For example, suppose two step contributions each pass their local tests, but
 one emits milliseconds while its consumer interprets seconds. At `integrate`,
 the owner checks the shared specification and runs the combined path. The
 observed unit mismatch prompts a scoped repair, review and affected rechecks;
@@ -716,7 +789,10 @@ not omitting a material contract or safety caveat.
 New v3 workspace/direct entries record their selected actual Improve binding and
 use the 34-producer catalog. Their parent action is `active_improve` while the
 bound child is active; ShipLoop does not duplicate the child's cursor or review
-counter. Direct `init --execution-mode=navigator-v2` retains protocol 2, and
+counter. New v3/v4 entries also record `delegation: inline` unless they opt in
+to `ask-agent`. A saved run without that setting keeps its recorded ask-agent
+route. The `delegation` command never re-owns a bound Improve child or switches
+a bound chain's frozen mode. Direct `init --execution-mode=navigator-v2` retains protocol 2, and
 `navigator-v1`, managed, and legacy states retain the protocol their established
 records select. They are not converted, migrated, or reinterpreted merely because
 the package has been updated. A malformed/missing selected card or child evidence
