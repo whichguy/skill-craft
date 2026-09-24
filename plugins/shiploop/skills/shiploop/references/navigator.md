@@ -207,8 +207,9 @@ Active INNER Improve packets never clear the invoking parent. Under
 this Improve invocation inline.** The parent conversation runs the selected
 Improve card's ShipLoop v3/v4 whole-skill subcall itself, in the exact Child
 workspace. It does not hand the invocation to Ask Agent, a native worker or an
-extra worktree and writes no `host-owner.md`; read-only scoped reviewers under
-the Improve review policy remain available.
+extra worktree and writes no `host-owner.md`. It runs the reviews and checks in
+this conversation too and starts no reviewer, test-runner or executor agent
+unless the user asked for independent review.
 Its review iterations share this context. Save each raw start, next and done
 packet to the printed receipt, the start packet before any review work. Put the
 binding line alone and first in frozen `context.request`. Only after the

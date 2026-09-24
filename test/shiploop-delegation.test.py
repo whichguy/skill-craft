@@ -4,6 +4,7 @@
 from pathlib import Path
 import os
 import re
+import shlex
 import subprocess
 import sys
 import tempfile
@@ -23,7 +24,7 @@ import shiploop_store as store  # noqa: E402
 # name Ask Agent only to forbid it, so these are the positive route phrases.
 DELEGATED_ROUTE_TEXT = (
     "Prefer a native fresh worker",
-    "prefer one fresh native worker",
+    "run the host-selected improve-agent card",
     "ask-agent/consumer-owned-workspace/v1",
     "Workspace route: consumer-owned",
     "Native owner record:",
@@ -45,7 +46,7 @@ def bound_walk(repo, delegation, protocol_version=3):
     selected = standalone.resolve_skill(str(CARD))
     state = nav.new_state(str(repo), "Synthetic bound walk.", protocol_version=protocol_version,
                           delegation=delegation)
-    run = Path(repo).parent / ("run-" + delegation + "-" + str(protocol_version))
+    run = Path(repo).parent / ("run-" + str(delegation) + "-" + str(protocol_version))
     run.mkdir()
     packets = []
     while state["status"] == "active":
@@ -286,12 +287,37 @@ class PacketContractTests(DelegationStateTests):
                 self.assertNotIn(text, packet, (stage, kind, text))
             if kind == "improve":
                 self.assertIn("Delegation: inline. Run the selected Improve card", packet)
-                self.assertIn("read-only scoped reviewers under the selected Improve review policy", packet)
+                self.assertIn("start no reviewer, test-runner or executor agent unless the user asked for "
+                              "independent review", packet)
         # Positive control: every phrase is live on the delegated route, so the
         # inline sweep above cannot pass merely because the wording changed.
         delegated_text = "\n".join(packet for _stage, _kind, packet in delegated)
         for text in BOUND_DELEGATED_TEXT:
             self.assertIn(text, delegated_text)
+
+
+    def test_unrecorded_runs_print_the_inline_switch_on_improve_packets(self):
+        hint = "Delegation: ask-agent, because this run started before inline became the default"
+        with tempfile.TemporaryDirectory(prefix="shiploop-unrecorded-walk-") as temp:
+            repo = Path(temp).resolve() / "repo"
+            repo.mkdir()
+            for version in (3, 4):
+                legacy = bound_walk(repo, None, protocol_version=version)
+                explicit = bound_walk(repo, "ask-agent", protocol_version=version)
+                self.assertEqual([(stage, kind) for stage, kind, _ in legacy],
+                                 [(stage, kind) for stage, kind, _ in explicit])
+                run = str(repo.parent / ("run-None-" + str(version)))
+                for (stage, kind, packet), (_stage, _kind, other) in zip(legacy, explicit):
+                    with self.subTest(version=version, stage=stage, kind=kind):
+                        self.assertNotIn(hint, other)
+                        if kind != "improve":
+                            self.assertNotIn(hint, packet)
+                            continue
+                        lines = [line for line in packet.splitlines() if line.startswith(hint)]
+                        self.assertEqual(len(lines), 1)
+                        argv = shlex.split(lines[0].split("run: ", 1)[1])
+                        self.assertEqual(argv[2:], ["delegation", "--run-dir=" + run, "--set=inline"])
+                        self.assertEqual(len(packet.splitlines()), len(other.splitlines()) + 1)
 
 
 class DelegationCliTests(unittest.TestCase):

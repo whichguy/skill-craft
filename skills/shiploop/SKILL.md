@@ -5,7 +5,7 @@ description: >-
   script's current action packet, and submit its exact completion call until
   the script reports completion with an HTML achievement report. Use when the
   user says shiploop, ship the project, or requests a durable delivery loop.
-version: 0.20.1
+version: 0.21.0
 allowed-tools: all
 license: MIT
 platforms:
@@ -245,11 +245,16 @@ route rather than generating a replacement workflow.
 A new protocol 3/4 run from `workspace start` or `init` records `delegation:
 inline`: this conversation is the only writer and executes every assignment,
 including Improve and implementation steps, without Ask Agent or native workers.
-Pass `--delegation ask-agent` at `workspace start` (or direct `init`) to opt in to
-the delegated route: native Improve executors and implementation chains. A saved
-run without the setting keeps its recorded ask-agent behavior and is never
-silently migrated; v1/v2, managed and legacy runs refuse the option. An `init`
-or `workspace start` retry cannot change it. For an existing v3/v4 run, use:
+Inline Improve checkpoints run the `improve` skill here, reviews and checks
+included, and start no reviewer, test-runner or executor agent unless the user
+asked for independent review. Pass `--delegation ask-agent` at `workspace start`
+(or direct `init`) to opt in to the delegated route: each Improve checkpoint runs
+the `improve-agent` skill, which starts one fresh native worker that runs
+`/improve`, and implementation uses chains. A saved run without the setting
+keeps its recorded ask-agent behavior and is never silently migrated; its
+Improve packets print the command that switches it to inline. v1/v2, managed
+and legacy runs refuse the option. An `init` or `workspace start` retry cannot
+change it. For an existing v3/v4 run, use:
 
 ```sh
 python3 "$CLI" delegation --run-dir "$RUN_DIR" --set inline   # or ask-agent

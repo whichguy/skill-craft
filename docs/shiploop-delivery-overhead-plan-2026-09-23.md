@@ -82,7 +82,7 @@ replaced by measurements once Phase 1 records action timing.
 | 3 Confirm route | Script-observed gate: when the candidate is byte-identical to the last converged review and no check changed, close the step with one ShipLoop confirmation instead of an Improve child (select-work, test-refine, document, skill-assess, skill-validate); code-changing stages always get a full child | 1 | 1 | 20–35 min |
 | 4 Check ledger and footprint testing | `shiploop check run/lookup` records command, commit, tree digest, exit code and counts in the run directory; reviews consult it instead of rerunning; the confirm gate extends to baseline, test-green, regression and static-checks. Stage guidance selects checks from the candidate's changed paths (the suites that execute or pin them); the full suite runs once at the initial baseline, integration-verify and system-test, not at every stage | 3, 1 | 3 | 25–35 min |
 | 5 Compact item profile | Per-item profile chosen at step-plan with script-checked eligibility (one checkout, bounded files, no deploy): spec → failing test → implement → green → done; pinned per item; the long ladder stays for multi-branch and deploying work | 7 | 1 (graph pin) | 30–45 min |
-| 6 Review integrity | Review provenance labels; the second of the two reviews comes from a second context on code-changing stages and receives the diff and command output, not the whole skill | 4 | 2, 4 | +5–12 min (buys back independence) |
+| 6 Review integrity (opt-in) | Review provenance labels (`self-review (inline default)` vs. requested independent review). A second-context review on code-changing stages, given the diff and command output rather than the whole skill, runs only on an explicit independent-review request or through `improve-agent`; inline Improve starts no reviewer agent by default (owner decision 2026-09-24) | 4 | 2, 4 | ≈ 0 by default; +5–12 min when requested |
 | 7 Decisions ledger | Append-only run decisions (grants, declines, revocations with source and scope); producers and each Improve cycle re-read it; import refuses a stale decision view | 5 | 2, 3 | ≈ 0 min; correct deploy authority |
 | 8 Cards and delegated track | Move stable text into cards loaded by stage; host-neutral native-worker contract (worker cwd = Child workspace, no extra worktree) for the ask-agent route | 6, 9 | 5 | 5–15 min |
 
@@ -145,6 +145,19 @@ After this fix lands, scope both the change sets and their verification per skil
   Improve boundaries); shared paths (`install.sh`, `scripts/`, test runners, the
   catalog) still select full. Local verification uses the same selector; CI keeps a
   full run on `main`.
+
+## Update 2026-09-24: Improve split
+
+Improve is now two skills. `improve` (0.3.0-rc.1) runs the loop inline and
+starts no reviewer, test-runner or executor agent unless an independent review
+is explicitly requested; its shared review policy uses an independent reviewer
+only when the owner binding selects one. `improve-agent` (0.1.0) starts one
+fresh native agent that runs `/improve` inline, and ShipLoop's `ask-agent`
+Improve route (0.21.0) runs it. A pre-0.20 run with no recorded `delegation`
+prints the `shiploop delegation --set inline` command in its Improve packets.
+The cause was twofold: Improve's policy said "when available", which every
+agent-capable host satisfies, and ShipLoop's inline packets re-permitted
+reviewers.
 
 ## Invariants that no phase may weaken
 

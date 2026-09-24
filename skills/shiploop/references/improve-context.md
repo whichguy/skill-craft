@@ -46,12 +46,14 @@ Improve invocation inline." PRELUDE and OUTER Improve packets carry the same
 runtime lines without that prefix. The parent conversation runs the selected
 Improve card's ShipLoop v3/v4 whole-skill subcall once, in the exact Child
 workspace; its review iterations share this context. Do not hand the invocation
-to Ask Agent, a native worker or an extra worktree, and write no `host-owner.md`;
-read-only scoped reviewers under the selected Improve review policy remain
-available. Do not clear, hand off or pause for a clear during the invocation. This conversation is both executor and
-parent: the only candidate writer until the runtime returns a terminal packet,
-then the sole submitter of ShipLoop callbacks. No script checks who executes;
-`improve-complete` imports this child from its receipt and completion evidence.
+to Ask Agent, a native worker or an extra worktree, and write no `host-owner.md`.
+Run its reviews and checks in this conversation too; start no reviewer,
+test-runner or executor agent unless the user asked for independent review. Do
+not clear, hand off or pause for a clear during the invocation. This
+conversation is both executor and parent: the only candidate writer until the
+runtime returns a terminal packet, then the sole submitter of ShipLoop
+callbacks. No script checks who executes; `improve-complete` imports this child
+from its receipt and completion evidence.
 
 Before start, verify the process cwd and Git root against the packet and follow
 the unchanged workspace and commit rules below. Freeze the exact candidate
@@ -297,40 +299,32 @@ worker owns the whole invocation. The worker retains useful within-loop context
 while the parent receives a compact return and durable locators. This reduces
 parent-context growth, not necessarily total tokens or latency.
 
-For a new delegated invocation, resolve the host-selected Ask Agent card and
-require its declared `ask-agent/consumer-owned-workspace/v1` capability. The
-parent reads that selected package's consumer-owned reference to compose this
-binding; do not guess a sibling checkout or use an older installed wrapper.
-Select `workspace_route: consumer-owned` and `delivery_mode: in-place`
-explicitly with the contract below. The worker receives the complete concise
-binding and does not need to copy or read a whole parent packet or this reference
-merely to dispatch. The ordinary Ask Agent route still creates a separate
-helper-managed worktree and is not compatible with this bound child. Never
-substitute it when this route is missing. This route is a Codex native pilot;
+For a new delegated invocation, run the host-selected `improve-agent` card for
+this bound child. That card resolves the host-selected Ask Agent card, requires
+its declared `ask-agent/consumer-owned-workspace/v1` capability, selects
+`workspace_route: consumer-owned` and `delivery_mode: in-place`, composes the
+context-first assignment and the worker contract, and verifies the return. It
+fails closed when the capability or a contract field is missing and never
+substitutes Ask Agent's helper-managed extra worktree, which is not compatible
+with this bound child. Do not guess a sibling checkout or use an older installed
+wrapper. This section adds only what ShipLoop's bound child needs beyond that
+card. This route is a Codex native pilot;
 old helper-managed host results do not qualify this composition on Claude, Grok
 or another host. Check actual capabilities and retain honest host-specific
 evidence before making those claims.
 
 ### Select and retain the native owner
 
-Check the live host schema for fresh context without inherited conversation,
-access to the exact Child workspace and selected skills, the tools needed by
-the assignment, and a native result collection route. Use a general-purpose
-worker and inherit model settings unless the user selected otherwise. A
-restricted reviewer that cannot apply fixes is not an equivalent executor.
-Give Improve the capabilities of a regular in-context coding agent: available
-tools, MCP interactions, skills, research, code/test/documentation/configuration
-changes, checks, commits, and deployments or other external operations already
-authorized for this task and stage. Delegation adds no read-only mode, tool
-allowlist, model downgrade, or fixed investigation, output, or iteration limit.
-Carry existing authorization forward; do not ask again merely because the work
-moved to a fresh context. If the host filters a needed capability, disclose the
-specific gap and coordinate the authorized operation through the parent.
+The `improve-agent` card owns the host capability check and the worker's
+capabilities: one general-purpose worker with a regular coding agent's tools,
+skills and the task's existing authorization, inheriting model settings unless
+the user selected otherwise. A restricted reviewer that cannot apply fixes is
+not an equivalent executor. If the host filters a needed capability, disclose
+the specific gap and coordinate the authorized operation through the parent.
 The parent-only ShipLoop control callbacks and workspace return below are
 ownership boundaries, not a blanket prohibition on deployment or tool use.
-If required review/test delegation is unavailable inside that worker, have the
-parent coordinate it serially through native messages, or use only an explicitly
-permitted fallback. Never count an unavailable required review or check as done.
+The worker runs `/improve` inline and starts no reviewer, test-runner or
+executor agent unless the user asked for independent review.
 
 Prefer native background execution where supported, keeping the parent alive
 to collect the return. A synchronous native fresh worker can isolate context
@@ -370,32 +364,23 @@ parent/child boundary.
 
 ### Supply the worker and forward decisions
 
-Supply Ask Agent with the Child workspace's canonical Git root, binding marker,
-exact frozen candidate/base and HEAD, scope and exclusions, inherited
-staged/unstaged/untracked ownership, selected absolute Ask Agent and Improve
-cards with their runtime identities, current producer result and actual stage
-checks, explicit user/repository authority including any no-commit override,
-evidence/owner locators, parent-only continuation and cleanup owner. Keep these
-facts inline with supporting locators, not as a requirement to copy the full
-packet. Its consumer-owned route does not call helper `prepare`, `inspect`,
-`check-context` or `close` for this workspace, invent a helper receipt, or
-perform a second patch/commit transfer. Read-only package `identity` remains
-available.
-
-Give the worker the concise complete binding described above, relevant original
-request/decision locators, and the essential inline context they support; do not
-require a whole parent packet or this ownership guide merely for dispatch. Read
-full values at an existing input locator before freezing the child contract, and
-include selected Improve/runtime identities, parent binding marker, candidate
-scope and exclusions, current producer result, relevant work-item context,
-expected checks, authority, expected packet receipt and completion-evidence
-paths, exact `host-owner.md` locator, and exact parent return instruction.
-Include the host-owner locator in the frozen child `context.resources` as parent
-coordination data. The worker may inspect it for recovery orientation but does
-not update it or use it as authority to select a parent transition. The native
-assignment must say `workspace_route: consumer-owned`,
-`delivery_mode: in-place`, `execution_role: improve-executor` and
-`delegation_owner: parent`. Route selection belongs to the parent, not Improve.
+Compose the assignment with the `improve-agent` card. For this bound child its
+binding also carries the Child workspace's canonical Git root, the binding
+marker, the exact frozen candidate/base and HEAD, scope and exclusions,
+inherited staged/unstaged/untracked ownership, the selected absolute Ask Agent
+and Improve cards with their runtime identities, the current producer result,
+relevant work-item context and actual stage checks, explicit user/repository
+authority including any no-commit override, the expected packet receipt and
+completion-evidence paths, the exact `host-owner.md` locator, the exact parent
+return instruction, and the cleanup owner. Keep these facts inline with
+supporting locators; read full values at an existing input locator before
+freezing the child contract. Include the host-owner locator in the frozen child
+`context.resources` as parent coordination data; the worker may inspect it for
+recovery orientation but does not update it or use it as authority to select a
+parent transition. The consumer-owned route does not call helper `prepare`,
+`inspect`, `check-context` or `close` for this workspace, invent a helper
+receipt, or perform a second patch/commit transfer; read-only package `identity`
+remains available. Route selection belongs to the parent, not Improve.
 The packet's ShipLoop callbacks and workspace-return commands are **parent-only**.
 Do not ask the worker to read the entire parent conversation or run another
 ShipLoop instance. It may start the bound Until Loop once for a genuinely new
@@ -422,8 +407,8 @@ decision arriving after completion cannot retroactively change the saved receipt
 The worker runs `/improve` using the selected absolute Improve card once inside
 its native context and follows that card and its bound runtime. It saves each
 exact raw packet, must not recursively delegate the whole Improve invocation,
-and may use scoped independent review where supported without concurrent
-candidate writers. It returns the completion contents listed above without
+and starts no reviewer, test-runner or executor agent unless the user asked for
+independent review. It returns the completion contents listed above without
 executing a ShipLoop callback or workspace return; the parent collects that
 native return before acceptance.
 
