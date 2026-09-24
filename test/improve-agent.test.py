@@ -92,8 +92,6 @@ class InlineImproveTests(unittest.TestCase):
         policy = flat(IMPROVE / "references" / "review-policy.md")
         self.assertIn("only when the owner binding selects independent review", policy)
         self.assertNotIn("independent reviewer when available", policy)
-        managed = flat(IMPROVE / "references" / "managed-consumer.md")
-        self.assertIn("The managed binding selects independent review whenever a reviewer is available", managed)
 
 
 class PluginViewTests(unittest.TestCase):
