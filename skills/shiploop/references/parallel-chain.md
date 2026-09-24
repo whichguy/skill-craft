@@ -116,7 +116,7 @@ the graph's exact path and content digest in its existing plan notes and
 `evidence_refs`. The selected actual Improve skill must review those created
 steps and the graph through its full improvement loop before `chain bind`, in
 both parallel and serial mode. Use the existing planning handoff and its two
-consecutive qualifying reviews; retain the terminal receipt and reviewed graph
+consecutive trivial self-passes; retain the terminal receipt and reviewed graph
 identity in ordinary evidence. Backchain's dependency audit informs this review.
 
 If the graph is first created or materially changed after that planning review,

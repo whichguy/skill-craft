@@ -151,14 +151,13 @@ After this fix lands, scope both the change sets and their verification per skil
 - Import refuses a binding line that is not exactly its own line.
 - Exactly two distinct review references and `required_trivial_reviews ≥ 2`.
 - Local checks never satisfy a required consumer, identity or deployed observation.
-- Workspace return leaves the source branch untouched. It waits for the final
-  handoff Improve child under `every-stage`, and for no active child at
-  release/handoff under `plan-and-end`.
-- Code-changing work is always covered by a full Improve child: its own child
-  under `every-stage`, the end-of-work child under `plan-and-end` (0.21.0
-  owner decision, 2026-09-24).
-- Saved runs never silently migrate; new behaviour applies to new runs or an
-  explicit, recorded opt-in.
+- Workspace return leaves the source branch untouched and happens at
+  release/handoff once no Improve child is active.
+- Every planning result gets its own Improve child, and code-changing work is
+  covered by the end-of-work child.
+- Only the latest behaviour is kept (owner decision, 2026-09-24): no parallel
+  versions or compatibility modes. A saved run that the current code cannot load
+  is refused with a clear error, not migrated silently.
 
 ## Open owner decisions
 
@@ -226,3 +225,43 @@ four required test IDs. Replays of facts already on record earned nothing.
 
 Order: E1 → E3 and E6 (independent) → the E2 skip refinement → E5 → E4.
 Each ships as a ShipLoop-only PR with its own focused tests.
+
+## 0.23.0: latest behaviour only, plus run-report fixes (2026-09-24)
+
+Owner decisions: keep only the latest code. The Improve cadence setting and the
+`--improve-cadence` flag are gone. Every v3/v4 run reviews its planning results
+and the end of work. Navigator protocols 1 and 2 and the `managed` and `legacy`
+execution modes are removed in the same release. The two-pass gate stays as two
+honest self-passes: packets say so rather than implying independent reviewers.
+
+Shipped from a third run report:
+
+- The one legal callback is the first line after the stage name. For an Improve
+  child it is `improve-complete`, never `complete`.
+- The Improve receipt rule is one sentence: `review_refs` is the two
+  trivial-pass files, and a material review stays on disk. The child may write
+  the receipt; the parent checks it and imports it.
+- The result template's `evidence_refs` holds a placeholder that the script
+  refuses, so an empty list is no longer copied.
+- A user message about the skill, the loop or its cost, or one that says not to
+  implement, pauses product work until an explicit continue.
+- Blocked means an external gap. A retained command that doesn't run the suite
+  is fixed in the stage that finds it.
+- Intake says where the result will be visible and when (source checkout at
+  snapshot until return; deployed outcome only after release).
+- Release-plan names each access, visibility and browser step with its
+  authorization status.
+- Step-plan labels replay fixtures separately from runtime controls.
+- Test strategy names one file that owns the commands, stores commands in
+  fenced blocks rather than table cells, and requires a pass to name its IDs.
+- Salesforce discovery lists components, tabs and apps before naming, and
+  treats a sibling run on the same org as a naming constraint.
+
+Still planned from that report:
+
+| # | Item | Size |
+|---|---|---|
+| F1 | Frozen parent preamble: at run start and at `improve-bind`, the script writes one block (CLI, run dir, worktree, source path, parent-only callbacks, runtime versions, target alias, standing deploy command, sibling runs to leave alone, receipt shape) that the parent pastes instead of re-authoring after compaction | M |
+| F2 | `improve-bind` writes `host-owner.md` with the binding line on the ask-agent route | S |
+| F3 | Serial items on the ask-agent route keep one worker from test-author through test-green instead of a fresh context per stage | M |
+| F4 | A cap on consecutive Improve children whose candidate diff is empty (zero after the first), driven by E1 | S, needs E1 |

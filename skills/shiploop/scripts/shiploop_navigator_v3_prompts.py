@@ -69,27 +69,14 @@ INLINE = "inline"
 ASK_AGENT = "ask-agent"
 DELEGATIONS = (INLINE, ASK_AGENT)
 
-# Run-level Improve cadence (state key ``improve_cadence``), fixed at init.
-# ``planning-and-end`` is the default for new CLI-created v3/v4 runs: every
-# planning/contract stage result and the carry-forward that leaves no work item
-# pending get an actual Improve child.  ``plan-and-end`` (0.21.0 default) reviews
-# only the global plan and that end.  A run without the key keeps every-stage.
-EVERY_STAGE = "every-stage"
-PLAN_AND_END = "plan-and-end"
-PLANNING_AND_END = "planning-and-end"
-IMPROVE_CADENCES = (EVERY_STAGE, PLAN_AND_END, PLANNING_AND_END)
-# Stages whose accepted result always starts an Improve child, by cadence.  The
-# end-of-work carry-forward is added by the navigator's pending-queue check.
-# Planning stages write the contracts later work is built on: a sentence, example
-# or expected result there can look done and still be wrong.
+# Improve runs after every result of a planning/contract stage and once after
+# the carry-forward that leaves no work item pending (the navigator's pending-queue
+# check).  Planning stages write the contracts later work is built on: a sentence,
+# example or expected result there can look done and still be wrong.
 PLANNING_REVIEW_STAGES = frozenset({
     "spec", "test-strategy", "plan", "step-plan", "test-spec",
     "system-test-author", "release-plan",
 })
-REVIEWED_STAGES = {
-    PLAN_AND_END: frozenset({"plan"}),
-    PLANNING_AND_END: PLANNING_REVIEW_STAGES,
-}
 
 INLINE_ITEM_CONTEXT = """\
 Clear and then execute the prompt.
@@ -416,7 +403,9 @@ while authorized runnable work remains. Do not wait for acknowledgement, ask
 whether to continue, or end the turn merely to deliver a report. Follow the exact
 callback and its returned packet, including a bound Improve child; a producer's
 done or a child's completion is not run completion. Respect explicit user stops
-and paused/blocked/halted/done states; resolve recoverable conditions through the
+and paused/blocked/halted/done states. A user message about this skill, the loop,
+its cost, or saying not to implement is a stop for product work: answer it, run the
+current packet's pause command, and resume only on an explicit continue; resolve recoverable conditions through the
 printed route and ask only for an actually missing decision, authority, or access.
 """
 
@@ -441,6 +430,10 @@ Use actual observations for test, build, integration, release, and consumer
 claims.  Keep scope, target authority, artifact identity, operation effects, and
 consumer behavior distinct.  A missing prerequisite, permission, access, or
 trustworthy check is unresolved or blocked; it is not a successful N/A.
+Blocked means work this stage cannot do: a missing target or account, a missing
+approval, or a command with no replacement available inside the stage. A retained
+command that does not run what it claims (for example a test path the runner does
+not expand) is a documentation fix made in this stage, then rerun, not a blocker.
 
 For identity or access discovery, use supported non-mutating probes and
 sanitized evidence. Normal supported tool-managed authentication and tool
@@ -500,8 +493,16 @@ existing evidence_refs so the next Improve packet can recover them. If a require
 source is missing, report the gap rather than inventing a locator or omitting it.
 A justified N/A is still an output that states
 what was assessed and why it does not apply.  Do not embed an Improve review
-campaign in this result: every producer attempt result is followed by a separate
-actual Improve-skill handoff before this graph can advance.
+campaign in this result. Only planning results (spec, test-strategy, plan,
+step-plan, test-spec, system-test-author, release-plan) and the carry-forward that
+leaves no work item pending get an actual Improve-skill handoff; every other result
+is accepted on this step's own checks and the graph advances directly. Where this
+guidance mentions this action's Improve checkpoint, handoff or review at another
+stage, keep that evidence in evidence_refs for the single end-of-work Improve
+instead. Run only the checks this step's change needs. When this step changes no
+product file, its check is the named command, its exit code and its required output
+substrings: record them, cite the earlier accepted stage that ran the same command,
+and do not reread history to repeat it.
 """
 
 
@@ -576,6 +577,11 @@ Sanitize hints for their audience; sensitive locators belong only in an authoriz
 knowledge home, not automatically in ordinary or public project notes.
 Hints are leads, not verified definitions or access; missing hints do not require
 a separate questionnaire when available evidence can resolve the question.
+State where the result will be visible and when. In an isolated run the opened
+source checkout stays at its starting snapshot until the final return, and an
+outcome that lives in a deployed target (an org, a site, a store) exists only
+after release; say both in this result so a long INNER run is not read as idle,
+and do not call a source-level check the user's requested outcome.
 Do not implement or silently broaden scope here.
 """,
     "discovery": """\
@@ -738,7 +744,13 @@ validate them. Apply the Consumer testing guide and retain access gaps.
 Link the durable strategy note in ordinary evidence_refs, with the selection
 rationale, fixture lifecycle, suite entry points and revalidation conditions.
 Retain exact focused, smoke, and full-suite commands, inclusion rules, expected
-cost and environment/fixture prerequisites. Plan durable regression tests, not
+cost and environment/fixture prerequisites. After this stage one file owns the
+suite commands (name it, e.g. the repository's testing doc); plans and later notes
+point at it rather than restating commands, and a stale command sentence elsewhere
+is a plan defect to fix, not a second source of truth. Store each command in a
+fenced code block, never in a Markdown table cell: an escaped `\\|` in a cell becomes
+a literal pipe, matches nothing and can still exit 0. A passing command names the
+test IDs or cases it ran. Plan durable regression tests, not
 one-off probes; smoke is a bounded subset, never evidence for the full suite.
 Plan execution location separately from target location: local, client checks
 against a deployed target, or remote-resident tests. Discover the remote framework,
@@ -906,6 +918,11 @@ defaults. Record the selection or no-fit rationale in the linked plan/evidence
 note; retain the entrypoint, effective inputs/default sources, product contract,
 validation locators and revalidation condition in ordinary evidence_refs. Keep
 later decision changes in these notes, not edits to the script-owned work queue.
+Label every pinned value that exists so a check can replay an exact path (fixed
+dice, seed data, a sample click) as a source-check fixture, and name the runtime
+control separately (for example, two die values the player can change, with the
+pinned values as the documented first path). Implementation must not turn a test
+fixture into the product's only behavior.
 
 Keep the interaction delta within the selected work item; available APIs and
 other features in the original request do not expand it. Apply UI planning
@@ -1272,7 +1289,12 @@ or planned check alone does not establish product acceptance.
     "release-plan": """\
 Create an authorized release/recovery plan: target and candidate identity,
 permission, prerequisites, user impact, rollback, monitoring, pre/post-release
-checks, and stop conditions.  Distinguish source return, artifact publication,
+checks, and stop conditions. List every operation the user-visible outcome needs as
+a named step with its exact command and its authorization status: the deploy
+itself, and each separate access or visibility change (for example assigning a
+permission set, activating an app or tab) and each browser session a consumer
+check needs, with the selected browser tool. A step that an existing approval does
+not cover is a pending approval named now, not a gap found at release-check.  Distinguish source return, artifact publication,
 deployment, promotion, and consumer verification.  A plan does not authorize or
 perform an external operation; a required target or authority gap is blocked.
 Revalidate the integrated test plan for the release target. Use Target-native
@@ -1289,8 +1311,8 @@ Use Release operation guidance to order remaining schema/data/service/cutover
 work and establish its durable execution owner, observations, and recovery limits.
 If earlier deployment/test prerequisites are still unmet, return an outer replan
 with corrective work and retained evidence; let the script rerun the outer stages.
-For isolated runs, source return occurs only after the final handoff Improve
-child. Use an authorized delivery route from the execution checkout if available.
+For isolated runs, source return occurs at release or handoff once no Improve
+child is active. Use an authorized delivery route from the execution checkout if available.
 If source return itself is required before consumer checks can run, record the
 ordering conflict for reconciliation and retain an incomplete disposition; never
 claim earlier checks observed a future return-triggered effect.
@@ -1573,11 +1595,6 @@ def _require_delegation(delegation: str) -> None:
         raise ValueError(f"unknown navigator-v3 delegation: {delegation!r}")
 
 
-def _require_cadence(cadence: str) -> None:
-    if cadence not in IMPROVE_CADENCES:
-        raise ValueError(f"unknown navigator-v3 Improve cadence: {cadence!r}")
-
-
 # Inline runs replace only the chain-specific paragraphs of these duties; the
 # ask-agent text above stays the single source for the delegated route.
 _INLINE_DUTY_PARAGRAPHS = {
@@ -1669,49 +1686,15 @@ def duty(stage: str, *, delegation: str = ASK_AGENT) -> str:
     return text
 
 
-# Under plan-and-end, COMMON's per-result Improve promise is replaced.  Stage
-# duties that mention "this action's Improve checkpoint" keep their wording; the
-# replacement says how to read them, so the delegated text stays one source.
-_EVERY_STAGE_IMPROVE = (
-    "Do not embed an Improve review\n"
-    "campaign in this result: every producer attempt result is followed by a separate\n"
-    "actual Improve-skill handoff before this graph can advance.\n"
-)
-_REVIEWED_WORDING = {
-    PLAN_AND_END: "Only the plan result and\nthe carry-forward that leaves no work item pending get",
-    PLANNING_AND_END: "Only planning results (spec,\ntest-strategy, plan, step-plan, test-spec, "
-                      "system-test-author, release-plan) and the\ncarry-forward that leaves no "
-                      "work item pending get",
-}
-_PLAN_AND_END_IMPROVE = (
-    "Do not embed an Improve review\n"
-    "campaign in this result. Improve cadence: {cadence}. {reviewed} an actual Improve-skill\n"
-    "handoff; every other result is accepted on this step's own checks and the graph\n"
-    "advances directly. Where this guidance mentions this action's Improve checkpoint,\n"
-    "handoff or review at another stage, keep that evidence in evidence_refs for the\n"
-    "single end-of-work Improve instead. Run only the checks this step's change needs.\n"
-    "When this step changes no product file, its check is the named command, its exit\n"
-    "code and its required output substrings: record them, cite the earlier accepted\n"
-    "stage that ran the same command, and do not reread history to repeat it.\n"
-)
-if COMMON.count(_EVERY_STAGE_IMPROVE) != 1:
-    raise RuntimeError("navigator-v3 COMMON lost its per-result Improve sentence")
-
-
-def prompt(stage: str, *, delegation: str = ASK_AGENT, cadence: str = EVERY_STAGE) -> str:
+def prompt(stage: str, *, delegation: str = ASK_AGENT) -> str:
     """Return the single current producer instruction for a v3 graph stage.
 
-    The navigator always passes the run's delegation and Improve cadence; the
-    ask-agent/every-stage defaults keep catalog renders identical to runs
-    recorded before those settings existed.
+    The navigator always passes the run's delegation; the ask-agent default
+    keeps catalog renders identical to runs recorded before the setting existed.
     """
     _require_stage(stage)
     _require_delegation(delegation)
-    _require_cadence(cadence)
-    common = (COMMON if cadence == EVERY_STAGE
-              else COMMON.replace(_EVERY_STAGE_IMPROVE, _PLAN_AND_END_IMPROVE.format(
-                  cadence=cadence, reviewed=_REVIEWED_WORDING[cadence])))
-    parts = [common, duty(stage, delegation=delegation)]
+    parts = [COMMON, duty(stage, delegation=delegation)]
     if stage in PRELUDE or stage in {"step-plan", "test-spec"}:
         parts.append(_PLANNING_HANDOFF if delegation == ASK_AGENT
                      else _PLANNING_HANDOFF.replace(*_INLINE_PLANNING_DIRECTIVE))
@@ -1744,7 +1727,7 @@ _INLINE_IMPROVE_REPLACEMENTS = (
 
 
 PLANNING_REVIEW_FOCUS = """\
-Planning review focus (Improve cadence planning-and-end). This planning result is
+Planning review focus. This planning result is
 the contract that later stages build on and that no other review sees until the
 end. Look for these conditions and fix them within scope:
 - a step, example or expected result that cannot be replayed exactly: name the
@@ -1985,20 +1968,15 @@ __all__ = (
     "COMMON",
     "DELEGATIONS",
     "DUTIES",
-    "EVERY_STAGE",
     "IMPLEMENTATION_CONSTITUTION",
     "IMPLEMENTATION_STAGES",
-    "IMPROVE_CADENCES",
     "IMPROVE_PROMPTS",
     "IMPROVE_SCOPES",
     "INLINE",
     "INNER",
     "OUTER",
-    "PLANNING_AND_END",
     "PLANNING_REVIEW_FOCUS",
     "PLANNING_REVIEW_STAGES",
-    "PLAN_AND_END",
-    "REVIEWED_STAGES",
     "PRELUDE",
     "PROGRESS_REPORTING",
     "PROMPTS",

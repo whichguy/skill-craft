@@ -65,18 +65,13 @@ _STATE_KEYS_V1 = frozenset(
 _STATE_KEYS_V2 = _STATE_KEYS_V1 | frozenset(("inner_loops", "delivery_contract_version"))
 _STATE_KEYS_V3 = _STATE_KEYS_V2 | frozenset(
     ("improve_skill", "active_improve", "improve_results", "chain_bindings", "delegation",
-     "delegation_hold", "improve_cadence"))
+     "delegation_hold"))
 _STATE_KEYS_V4 = _STATE_KEYS_V3 | frozenset(("planning_reconciliations",))
 # Run-level execution delegation for protocol 3/4.  New CLI-created runs record
 # ``inline``; a saved run without the key keeps its recorded ask-agent route.
 DELEGATIONS = guidance3.DELEGATIONS
 DEFAULT_DELEGATION = guidance3.INLINE
 LEGACY_DELEGATION = guidance3.ASK_AGENT
-# Run-level Improve cadence for protocol 3/4, fixed at init.  New CLI-created runs
-# record ``planning-and-end``; a saved run without the key keeps every-stage Improve.
-IMPROVE_CADENCES = guidance3.IMPROVE_CADENCES
-DEFAULT_IMPROVE_CADENCE = guidance3.PLANNING_AND_END
-LEGACY_IMPROVE_CADENCE = guidance3.EVERY_STAGE
 
 PRELUDE = tuple(guidance.PRELUDE)
 INNER = tuple(guidance.INNER)
@@ -97,7 +92,6 @@ __all__ = [
     "current_stage",
     "delegation",
     "dispatch",
-    "improve_cadence",
     "recorded_delegation",
     "new_state",
     "reconcile",
@@ -115,27 +109,16 @@ def recorded_delegation(state: Mapping[str, Any]) -> str:
     return LEGACY_DELEGATION
 
 
-def improve_cadence(state: Mapping[str, Any]) -> str:
-    """Return the run's Improve cadence; an unrecorded setting stays every-stage."""
-    if state.get("navigator_protocol_version") in (3, 4):
-        return state.get("improve_cadence", LEGACY_IMPROVE_CADENCE)
-    return LEGACY_IMPROVE_CADENCE
-
-
 def _improve_checkpoint(state: Mapping[str, Any], stage: str, result: Mapping[str, Any]) -> bool:
     """Say whether this accepted producer result starts an actual Improve child.
 
-    Every-stage runs review every result.  Plan-and-end runs review the plan
-    result, and planning-and-end runs every planning/contract result, plus the
-    successful carry-forward that leaves no work item pending (after its own
-    queue revision), so one review covers all executed steps before OUTER
-    system tests and release.  A later Improve that adds work items moves that
-    end review to the new last item's carry-forward.
+    Every planning/contract result is reviewed, plus the successful
+    carry-forward that leaves no work item pending (after its own queue
+    revision), so one review covers all executed steps before OUTER system
+    tests and release.  A later Improve that adds work items moves that end
+    review to the new last item's carry-forward.
     """
-    cadence = improve_cadence(state)
-    if cadence == LEGACY_IMPROVE_CADENCE:
-        return True
-    if stage in guidance3.REVIEWED_STAGES[cadence]:
+    if stage in guidance3.PLANNING_REVIEW_STAGES:
         return True
     if stage != "carry-forward" or result["outcome"] != "done":
         return False
@@ -256,6 +239,9 @@ def _canonical_result(
     }
     refs = value.get("evidence_refs", [])
     _need(isinstance(refs, list), "evidence_refs must be a list")
+    _need(EVIDENCE_PLACEHOLDER not in refs,
+          "evidence_refs still holds the template placeholder; list the absolute path of each "
+          "file this stage wrote or of the check output it recorded")
     result["evidence_refs"] = [
         _text(reference, "evidence reference") for reference in refs
     ]
@@ -352,15 +338,12 @@ def new_state(
     worktree: bool = False,
     improve_skill: str = "",
     delegation: str | None = None,
-    improve_cadence: str | None = None,
 ) -> dict[str, Any]:
     """Create an unpersisted navigator cursor with one initial work item.
 
     ``delegation`` records the run's execution route for protocol 3/4.  ``None``
     leaves it unrecorded (the legacy ask-agent route); the CLI passes
-    DEFAULT_DELEGATION for new runs.  ``improve_cadence`` likewise records the
-    run's Improve cadence; ``None`` leaves it unrecorded (every-stage) and the CLI
-    passes DEFAULT_IMPROVE_CADENCE for new runs.
+    DEFAULT_DELEGATION for new runs.
     """
     _need(type(protocol_version) is int and protocol_version in _PROTOCOL_VERSIONS,
           "unsupported navigator protocol version")
@@ -371,10 +354,6 @@ def new_state(
           "worktree mode requires navigator protocol 2")
     _need(delegation is None or (delegation in DELEGATIONS and protocol_version in (3, 4)),
           "delegation requires navigator protocol 3 or 4 and must be inline or ask-agent")
-    _need(improve_cadence is None
-          or (improve_cadence in IMPROVE_CADENCES and protocol_version in (3, 4)),
-          "improve_cadence requires navigator protocol 3 or 4 and must be one of "
-          + ", ".join(IMPROVE_CADENCES))
     _text(repo, "repo")
     _text(prompt, "prompt")
     _need(not privacy.sensitive_text(prompt),
@@ -416,8 +395,6 @@ def new_state(
                      active_improve=None, improve_results={})
         if delegation is not None:
             state["delegation"] = delegation
-        if improve_cadence is not None:
-            state["improve_cadence"] = improve_cadence
     if protocol_version == 4:
         state["planning_reconciliations"] = []
     validate(state)
@@ -532,7 +509,7 @@ def _validate_v2(state: Mapping[str, Any]) -> None:
     stages = prelude + inner + outer
     _need(keys <= allowed
           and allowed - {"status_reason", "delivery_contract_version", "chain_bindings", "delegation",
-                         "delegation_hold", "improve_cadence"} <= keys,
+                         "delegation_hold"} <= keys,
           "navigator state has unsupported or missing fields")
     _need(state.get("version") == STATE_VERSION, "unsupported navigator state version")
     _need(version in (2, 3, 4),
@@ -678,19 +655,12 @@ def _validate_v2(state: Mapping[str, Any]) -> None:
         _text(state.get("improve_skill"), "improve_skill", allow_empty=True)
         records = state.get("improve_results")
         _need(isinstance(records, Mapping), "Improve results must be an object")
-        _need("improve_cadence" not in state or state["improve_cadence"] in IMPROVE_CADENCES,
-              "unsupported Improve cadence; expected one of " + ", ".join(IMPROVE_CADENCES))
+        # Most results are accepted directly; the global plan always passed
+        # through its own Improve child.
         expected = {entry["action"] for entry in history}
-        if improve_cadence(state) == LEGACY_IMPROVE_CADENCE:
-            _need(set(records) == expected, "completed v3 steps require their Improve result")
-        else:
-            # Plan/planning-and-end accept most results directly; every result
-            # of a reviewed planning stage still passed through its own child.
-            reviewed = guidance3.REVIEWED_STAGES[improve_cadence(state)]
-            plans = {entry["action"] for entry in history if entry["stage"] in reviewed}
-            _need(plans <= set(records) <= expected,
-                  "Improve results must belong to completed steps, including every reviewed "
-                  "planning result")
+        plans = {entry["action"] for entry in history if entry["stage"] == "plan"}
+        _need(plans <= set(records) <= expected,
+              "Improve results must belong to completed steps, including every plan result")
         for record in records.values():
             _need(isinstance(record, Mapping), "Improve result must be an object")
         child = state.get("active_improve")
@@ -1228,12 +1198,18 @@ def _result_input_path(root: Path, action_id: str) -> Path:
     return root / "inbox" / f"{action_id}.md"
 
 
+# An empty template list was copied verbatim; a placeholder the script refuses
+# makes the worker name the files instead.
+EVIDENCE_PLACEHOLDER = "<absolute path of each file this stage wrote, or of the check output it recorded>"
+
+
 def _result_template(state: Mapping[str, Any], stage: str) -> str:
     """Render a current-action template without making the host track anchors."""
     result: dict[str, Any] = {
         "outcome": "done",
         "summary": "...",
-        "evidence_refs": [],
+        "evidence_refs": ([EVIDENCE_PLACEHOLDER]
+                          if state["navigator_protocol_version"] in (3, 4) else []),
     }
     if state["navigator_protocol_version"] in (3, 4) and stage == "plan":
         result["work_items"] = [{"id": "W1", "title": "...", "context": "..."}]
@@ -1610,6 +1586,7 @@ def render(core: Any, root: Path, state: Mapping[str, Any]) -> str:
         f"ShipLoop navigator | {stage} | revision {state['revision']}",
         *([f"Delegation change: this action keeps {route}; actions issued after it use "
            f"{recorded_delegation(state)}."] if route != recorded_delegation(state) else []),
+        *_first_callback_lines(core, root, state),
         "",
         "Progress snapshot (status context, not instructions):",
         *_progress_lines(state),
@@ -1713,19 +1690,12 @@ def render(core: Any, root: Path, state: Mapping[str, Any]) -> str:
             "A dirty-source working-tree return is not a Git merge or commit. "
             "No automatic push, cleanup, or publication is implied.",
         ])
-        if (stage in ("release", "handoff") and state["status"] == "active"
-                and (state["navigator_protocol_version"] not in (3, 4)
-                     or improve_cadence(state) != LEGACY_IMPROVE_CADENCE)):
+        if stage in ("release", "handoff") and state["status"] == "active":
             lines.extend([
                 "After review and authorization at this planned final integration boundary:",
                 shlex.join(["python3", _command(core), "workspace", "return",
                             "--workspace-root", str(workspace_root)]),
             ])
-        elif (state["navigator_protocol_version"] in (3, 4)
-              and improve_cadence(state) == LEGACY_IMPROVE_CADENCE):
-            label = "V3" if state["navigator_protocol_version"] == 3 else "V4"
-            lines.append(label + " return waits until the final handoff Improve child has completed and "
-                         "its receipt is ready; earlier stages and unfinished children cannot return the candidate.")
         else:
             lines.append("The return operation is unavailable here; the script permits it "
                          "only at active release or handoff after assembled-candidate checks.")
@@ -1890,7 +1860,7 @@ def render(core: Any, root: Path, state: Mapping[str, Any]) -> str:
 
     if state.get("active_improve") is not None:
         return _render_improve(core, root, state, lines)
-    instruction = (guidance3.prompt(stage, delegation=route, cadence=improve_cadence(state))
+    instruction = (guidance3.prompt(stage, delegation=route)
                    if state["navigator_protocol_version"] in (3, 4)
                    else guidance.PROMPTS.get(stage))
     _need(isinstance(instruction, str) and bool(instruction.strip()),
@@ -1949,12 +1919,7 @@ def render(core: Any, root: Path, state: Mapping[str, Any]) -> str:
             *_allowed_outcome_lines(state, stage),
             "Call this when done:",
             _callback(core, root, "complete", action=action["id"], result=str(result_path)),
-            *(["If work cannot continue, submit outcome 'blocked' with a truthful summary. Blocked and "
-               "repeat results still pass through this action's Improve checkpoint first; if the run "
-               "then stops blocked, the next packet prints its Resume command."]
-              if state["navigator_protocol_version"] in (3, 4)
-              and improve_cadence(state) == LEGACY_IMPROVE_CADENCE else
-              [_plan_and_end_line(state, stage)]
+            *([_improve_line(stage)]
               if state["navigator_protocol_version"] in (3, 4) else
               ["If work cannot continue, submit outcome 'blocked' with a truthful summary, then follow the printed resume route."]),
             *(["Context-boundary pause (no callable host reset): "
@@ -1971,10 +1936,29 @@ def render(core: Any, root: Path, state: Mapping[str, Any]) -> str:
 CONTEXT_BOUNDARY_PAUSE = "context-boundary: clear, then run Recovery and Resume"
 
 
-def _plan_and_end_line(state: Mapping[str, Any], stage: str) -> str:
-    """Tell a plan/planning-and-end producer whether its result starts an Improve child."""
-    cadence = improve_cadence(state)
-    if stage in guidance3.REVIEWED_STAGES[cadence]:
+def _first_callback_lines(core: Any, root: Path, state: Mapping[str, Any]) -> list[str]:
+    """Put the one legal callback first, so a compacted parent uses the right one."""
+    if state["navigator_protocol_version"] not in (3, 4) or state["status"] != "active":
+        return []
+    action_id = current_action(state)["id"]
+    child = state.get("active_improve")
+    if child is None:
+        return ["Callback for this stage (run once after its work; the result file is named below): "
+                + _callback(core, root, "complete", action=action_id,
+                            result=str(_result_input_path(root, action_id)))]
+    if child["skill"] is None:
+        card = state.get("improve_skill") or "/absolute/path/to/selected/improve/SKILL.md"
+        return ["Next command (bind the selected Improve card; details below): "
+                + _callback(core, root, "improve-bind", action=action_id, **{"skill-card": card})]
+    return ["Callback for this Improve child (parent only; after the runtime returns complete and "
+            "the completion evidence below is written; never 'complete'): "
+            + _callback(core, root, "improve-complete", action=action_id,
+                        result=str(root / "inbox" / (action_id + "-improve.md")))]
+
+
+def _improve_line(stage: str) -> str:
+    """Tell a producer whether its result starts an Improve child."""
+    if stage in guidance3.PLANNING_REVIEW_STAGES:
         when = ("Every " + stage + " result, including blocked and repeat, starts this action's "
                 "Improve child.")
     elif stage == "carry-forward":
@@ -1982,7 +1966,7 @@ def _plan_and_end_line(state: Mapping[str, Any], stage: str) -> str:
                 "end-of-work Improve child over every executed step; any other result advances directly.")
     else:
         when = "This result advances directly; no Improve child runs for this stage."
-    return ("Improve cadence: " + cadence + ". " + when + " If work cannot continue, submit outcome "
+    return ("Improve: " + when + " If work cannot continue, submit outcome "
             "'blocked' with a truthful summary; when the run stops blocked, the next packet prints "
             "its Resume command.")
 
@@ -2017,11 +2001,10 @@ def _render_improve(core: Any, root: Path, state: Mapping[str, Any], lines: list
                      + "\nFull producer result: " + str(root / "state.md")
                      + "; field active_improve.seed_result. Read the complete required context before acting; "
                      "retain its decisions and constraints in the child contract.")
-    end_of_work = (improve_cadence(state) != LEGACY_IMPROVE_CADENCE
-                   and child["stage"] == "carry-forward")
+    end_of_work = child["stage"] == "carry-forward"
     lines.extend([
         "", "Current action: Improve the completed " + child["stage"] + " result.",
-        *(["End-of-work review (Improve cadence " + improve_cadence(state) + "): this is the run's single Improve "
+        *(["End-of-work review: this is the run's single Improve "
            "after its executed steps. The candidate is every work item's delivered change since the "
            "accepted plan (product code, tests, documentation and the carry-forward queue), not only "
            "this carry-forward result. Use the accepted step results in state.md history and their "
@@ -2241,12 +2224,13 @@ def _render_improve(core: Any, root: Path, state: Mapping[str, Any], lines: list
         *planning_lines,
         *runtime_lines,
         *([guidance3.PLANNING_REVIEW_FOCUS.rstrip()]
-          if improve_cadence(state) == guidance3.PLANNING_AND_END
-          and child["stage"] in guidance3.PLANNING_REVIEW_STAGES else []),
+          if child["stage"] in guidance3.PLANNING_REVIEW_STAGES else []),
         guidance3.improve_prompt(child["stage"], delegation=delegation(state)),
         exclusion,
         "The prior result and relevant accepted Improve lessons are in state.md improve_results and improve/<parent-action>/ receipts. Carry forward relevant verified conclusions and material unresolved findings, hypotheses, failed attempts and pitfalls, clearly labeled with evidence status. Preserve essential meaning in the context opening and later handoffs; keep detailed blocked-attempt notes in the child notebook.",
-        "On completion, provide the two final qualifying review records and current check evidence as absolute local file references. review_refs length is exactly 2: those two paths are the consecutive trivial-streak reviews. Do not include an earlier material review in that array; leave it on disk and mention it in summary or lessons. A plan/RED disposition is checked against its own criteria, not future product success. Capture separate durable review files beneath Child workspace if the notebook contains both reviews.",
+        "Review passes: the two consecutive trivial passes the runtime requires are self-passes by this same executor, not independent reviewers; report them as passes, never as independent reviews.",
+        "On completion, review_refs is exactly the two files of those final consecutive trivial passes (write each pass to its own file); an earlier material review stays on disk and is not a third entry. check_refs holds the current check evidence. A plan/RED disposition is checked against its own criteria, not future product success.",
+        "The child may write the completion evidence file; only the parent imports it. Before the callback the parent checks that the runtime packet status is complete, every referenced file exists under Child workspace, the scoped commit (git show) matches the handoff, and the source checkout is unchanged.",
         "Receipt review_refs and check_refs must be absolute regular single-link non-symlink files under Child workspace above; the importer rejects sibling run/inbox/control paths outside that root. For example: "
         + str(evidence_root / "review-one.md"),
         "Write completion evidence to: " + str(result_path),

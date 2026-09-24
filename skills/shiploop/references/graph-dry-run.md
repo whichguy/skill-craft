@@ -25,10 +25,9 @@ run; `ask-agent` renders the opt-in delegated packets. Passing it with protocol
 
 `--list` prints the scenarios available for the selected protocol. Protocols 3
 and 4 cover delivery, two work items, blocked/resume, a repeat returned through
-Improve, pause/resume and halt. `--improve-cadence planning-and-end|plan-and-end|every-stage`
-(planning-and-end by default, as for a new run) selects which producers are
-followed by a synthetic Improve completion: the planning stages and the last
-carry-forward, only plan and the last carry-forward, or every producer. Protocol 2 additionally covers conditional skill validation and new
+Improve, pause/resume and halt. The planning stages and the
+last carry-forward are followed by a synthetic Improve completion; other producers
+advance directly. Protocol 2 additionally covers conditional skill validation and new
 corrective work, which have no v3/v4 equivalent (v3 always instantiates
 `skill-validate`). Naming a scenario the selected protocol lacks is an input
 error (exit 2) that lists the available names. Expectations are authored independently of the routing tables.
@@ -51,8 +50,7 @@ remains one call-and-return graph action under the normal owner binding.
 
 Custom JSON uses `steps`, each with an effective `at`, `expect`, optional
 `status` (default `active`), and either a generic `result` or
-`command: pause|resume|halt`. A script may set top-level `improve_cadence`; the
-bundled v3 example declares `every-stage`. Protocols 3 and 4 pair each selected producer
+`command: pause|resume|halt`. Protocols 3 and 4 pair each planning producer and the last carry-forward
 (`command: produce`, optional `result`) with `command: finish-improve` carrying a
 synthetic `receipt` and optional `final_result`. The last completion expects
 stage/status `done`. Run it with `--script PATH`. Example prefixes:

@@ -228,7 +228,7 @@ evidence and handoff on the default route, includes:
   retained handoff/evidence, following the existing recovery route without
   claiming or submitting successful completion.
 - Observed workspace, binding marker, exact latest packet receipt and completion
-  evidence paths, final qualifying review/check locators and any revised producer
+  evidence paths, final trivial self-pass review/check locators and any revised producer
   result. Include the unchanged parent return instruction as a locator for the
   parent to execute, not a worker action.
 - Confirmation that candidate writes and delegates have stopped, no parent

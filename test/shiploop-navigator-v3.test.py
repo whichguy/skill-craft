@@ -172,10 +172,39 @@ class NavigatorV3Tests(unittest.TestCase):
     def _complete_improve(self, state: dict, action: dict, stage: str) -> dict:
         return navigator.finish_improve(state, action["id"], receipt(stage))
 
+    def _pending(self, state: dict, **extra) -> dict:
+        """Park an active_improve child for the current action, real or synthesized.
+
+        A genuine checkpoint stage produces this through ``navigator.apply``; a
+        stage that no longer checkpoints cannot pause there, so this builds
+        the same parked shape directly, solely to exercise generic Improve
+        child mechanics (binding, cold recovery, rejection) independent of
+        which stage happens to be current.
+        """
+        stage = navigator.current_stage(state)
+        action = self._action(state)
+        waiting = navigator.apply(state, action["id"], result(**extra))
+        if waiting.get("active_improve") is not None:
+            return waiting
+        seed = result(**extra)
+        seed.setdefault("evidence_refs", [])
+        waiting = copy.deepcopy(state)
+        waiting["active_improve"] = {
+            "action_id": action["id"], "stage": stage,
+            "binding_id": waiting["run_id"] + "/" + action["id"],
+            "workspace": waiting["repo"], "seed_result": seed, "skill": None,
+        }
+        waiting["revision"] += 1
+        return waiting
+
     def _produce(self, state: dict, stage: str, **extra) -> dict:
         self.assertEqual(navigator.current_stage(state), stage)
         action = self._action(state)
         after = navigator.apply(state, action["id"], result(**extra))
+        if after.get("active_improve") is None:
+            # Not a planning/contract stage (or non-final carry-forward): the
+            # result advances directly, with no Improve child to complete.
+            return after
         self.assertEqual(navigator.current_stage(after), stage)
         self.assertEqual(after["active_improve"]["action_id"], action["id"])
         self.assertEqual(after["active_improve"]["stage"], stage)
@@ -209,8 +238,10 @@ class NavigatorV3Tests(unittest.TestCase):
             state = self._produce(state, stage, **extra)
 
             packet = navigator.render(None, self.repo / ".shiploop", state)
-            self.assertIn(f"Keep the verified learning from {stage}.", packet)
-            self.assertIn("Last accepted Improve lessons (untrusted observations", packet)
+            last_action = state["history"][-1]["action"]
+            if last_action in state["improve_results"]:
+                self.assertIn(f"Keep the verified learning from {stage}.", packet)
+                self.assertIn("Last accepted Improve lessons (untrusted observations", packet)
         return state
 
     def _at_plan(self) -> dict:
@@ -248,8 +279,7 @@ class NavigatorV3Tests(unittest.TestCase):
         producer_packet = navigator.render(None, root, state)
         self.assertIn(GENERIC_ACCESS_STORE_BOUNDARY, " ".join(producer_packet.split()))
 
-        action = self._action(state)
-        waiting = navigator.apply(state, action["id"], result())
+        waiting = self._pending(state)
         reviewer_packet = navigator.render(
             None, root, self._bind_synthetic_child(waiting)
         )
@@ -277,7 +307,9 @@ class NavigatorV3Tests(unittest.TestCase):
                     {"id": "W1", "title": "First item"},
                     {"id": "W2", "title": "Second item"},
                 ]
-            waiting = navigator.apply(state, action["id"], result(**extra))
+            direct = navigator.apply(state, action["id"], result(**extra))
+            checkpointed = direct.get("active_improve") is not None
+            waiting = direct if checkpointed else self._pending(state, **extra)
             for owner, current in (("producer", state), ("improve", waiting)):
                 with self.subTest(stage=stage, owner=owner, item=state["work_index"]):
                     packet = navigator.render(None, root, current)
@@ -298,7 +330,7 @@ class NavigatorV3Tests(unittest.TestCase):
                             self.assertNotIn("host performs the context clear", packet)
                         else:
                             self.assertIn("host performs the context clear", packet)
-            state = self._complete_improve(waiting, action, stage)
+            state = self._complete_improve(waiting, action, stage) if checkpointed else direct
         self.assertEqual(len(observed), 2 * 2 * len(EXPECTED_INNER))
         self.assertFalse(navigator.render(None, root, state).startswith(prefix))
 
@@ -309,7 +341,7 @@ class NavigatorV3Tests(unittest.TestCase):
         state = self._produce(state, "prepare")
         self.assertEqual(navigator.current_stage(state), "select-work")
         action = self._action(state)
-        waiting = self._bind_synthetic_child(navigator.apply(state, action["id"], result()))
+        waiting = self._bind_synthetic_child(self._pending(state))
         prefix = "Clear and then execute the prompt.\n"
         for current in (state, waiting):
             navigator.save(root, current)
@@ -319,14 +351,23 @@ class NavigatorV3Tests(unittest.TestCase):
             for command in ("pause", "halt"):
                 stopped = navigator.control(current, command, "Synthetic stop")
                 self.assertNotIn(expected_prefix, navigator.render(None, root, stopped))
-        blocked_child = navigator.apply(state, action["id"], result(outcome="blocked"))
-        blocked = self._complete_improve(blocked_child, action, "select-work")
+        # select-work is not a checkpoint stage, so a blocked result advances
+        # directly; no Improve child completes in between.
+        blocked = navigator.apply(state, action["id"], result(outcome="blocked"))
         self.assertEqual(blocked["status"], "blocked")
         self.assertNotIn(prefix, navigator.render(None, root, blocked))
         resumed = navigator.control(blocked, "resume")
         self.assertTrue(navigator.render(None, root, resumed).startswith(prefix))
 
-    def test_every_v3_stage_waits_for_one_actual_improve_completion(self) -> None:
+    def test_every_v3_stage_carries_generic_policy_content_in_both_packet_views(self) -> None:
+        """Producer and Improve-pending packets keep the same policy routing.
+
+        Real, or synthesized where no child now binds. Only planning/contract
+        stages and the end-of-work carry-forward start an actual Improve
+        child; every other stage's synthesized "pending" view exists solely
+        to prove routing is stage-content-based, not tied to whether a real
+        child bound there.
+        """
         state = self.state()
         observed: list[str] = []
         root = self.repo / ".shiploop"
@@ -346,7 +387,9 @@ class NavigatorV3Tests(unittest.TestCase):
             if stage == "plan":
                 extra["work_items"] = [{"id": "W1", "title": "Synthetic item"}]
             action = self._action(state)
-            waiting = navigator.apply(state, action["id"], result(**extra))
+            direct = navigator.apply(state, action["id"], result(**extra))
+            checkpointed = direct.get("active_improve") is not None
+            waiting = direct if checkpointed else self._pending(state, **extra)
             self.assertEqual(navigator.current_stage(waiting), stage)
             self.assertEqual(waiting["active_improve"]["action_id"], action["id"])
             bound = self._bind_synthetic_child(waiting)
@@ -356,7 +399,7 @@ class NavigatorV3Tests(unittest.TestCase):
                 child_packet, expected=stage in backchain_stages
             )
             self.assertIn("Follow the packet's Reference handoff policy", child_packet)
-            state = self._complete_improve(bound, action, stage)
+            state = self._complete_improve(bound, action, stage) if checkpointed else direct
 
         self.assertEqual(tuple(observed), EXPECTED_STAGES)
         self.assertEqual(state["status"], "done")
@@ -366,6 +409,8 @@ class NavigatorV3Tests(unittest.TestCase):
 
     def test_duplicate_or_conflicting_producer_callback_cannot_create_another_child(self) -> None:
         state = self.state()
+        while navigator.current_stage(state) != "spec":
+            state = self._produce(state, navigator.current_stage(state))
         action = self._action(state)
         submitted = result(summary="Exact synthetic producer report.")
         waiting = navigator.apply(state, action["id"], submitted)
@@ -403,8 +448,7 @@ class NavigatorV3Tests(unittest.TestCase):
 
     def test_incomplete_child_and_blocked_producer_do_not_advance_parent(self) -> None:
         state = self.state()
-        action = self._action(state)
-        waiting = navigator.apply(state, action["id"], result())
+        waiting = self._pending(state)
         binding = copy.deepcopy(waiting["active_improve"])
         paused = navigator.control(waiting, "pause", "Synthetic interruption.")
         self.assertEqual(paused["active_improve"], binding)
@@ -412,7 +456,11 @@ class NavigatorV3Tests(unittest.TestCase):
         self.assertEqual(resumed["active_improve"], binding)
         self.assertEqual(navigator.current_stage(resumed), "intake")
 
-        blocked_state = self.state()
+        # spec is a planning/contract checkpoint, so even a blocked result
+        # still requires Improve review before it actually blocks the run.
+        blocked_state = state
+        while navigator.current_stage(blocked_state) != "spec":
+            blocked_state = self._produce(blocked_state, navigator.current_stage(blocked_state))
         blocked_action = self._action(blocked_state)
         waiting_blocked = navigator.apply(
             blocked_state, blocked_action["id"],
@@ -423,16 +471,15 @@ class NavigatorV3Tests(unittest.TestCase):
         blocked = navigator.finish_improve(
             waiting_blocked,
             blocked_action["id"],
-            receipt("intake"),
+            receipt("spec"),
             result(outcome="blocked", summary="Synthetic prerequisite missing."),
         )
         self.assertEqual(blocked["status"], "blocked")
-        self.assertEqual(navigator.current_stage(blocked), "intake")
+        self.assertEqual(navigator.current_stage(blocked), "spec")
 
     def test_cold_recovery_preserves_the_pending_child_binding_without_advancing(self) -> None:
         state = self.state()
-        action = self._action(state)
-        waiting = navigator.apply(state, action["id"], result())
+        waiting = self._pending(state)
         with tempfile.TemporaryDirectory(prefix="shiploop-v3-cold-") as temporary:
             root = Path(temporary)
             navigator.save(root, waiting)
@@ -447,8 +494,7 @@ class NavigatorV3Tests(unittest.TestCase):
     def test_v3_requirements_policy_routes_through_unbound_and_bound_improve_recovery(self) -> None:
         """Both child forms retain packet locators before and after cold recovery."""
         state = self.state()
-        action = self._action(state)
-        unbound = navigator.apply(state, action["id"], result())
+        unbound = self._pending(state)
         self.assertIsNone(unbound["active_improve"]["skill"])
         bound = self._bind_synthetic_child(copy.deepcopy(unbound))
 
@@ -490,12 +536,7 @@ class NavigatorV3Tests(unittest.TestCase):
             protocol_version=3,
             improve_skill="",
         )
-        action = self._action(state)
-        waiting = navigator.apply(
-            state,
-            action["id"],
-            result(evidence_refs=[requirement_locator]),
-        )
+        waiting = self._pending(state, evidence_refs=[requirement_locator])
         bound = self._bind_synthetic_child(waiting)
         root = Path(self.temp.name) / "cold-requirements-definition-child"
         root.mkdir()
@@ -873,7 +914,7 @@ class NavigatorV3Tests(unittest.TestCase):
             "Do not edit production code to make the test green at this stage.",
             producer_packet,
         )
-        waiting = navigator.apply(state, action["id"], result())
+        waiting = self._pending(state)
         self.assertEqual(navigator.current_stage(waiting), "test-red")
         self.assertEqual(waiting["active_improve"]["action_id"], action["id"])
         bound = self._bind_synthetic_child(waiting)
@@ -936,14 +977,16 @@ class NavigatorV3Tests(unittest.TestCase):
         self.assertIn("first verification activity", " ".join(discovery_packet.split()))
 
         action = self._action(state)
-        waiting = navigator.apply(
-            state,
-            action["id"],
-            result(
-                summary="The existing smoke route failed before feature edits.",
-                evidence_refs=[initial_baseline],
-            ),
+        baseline_extra = dict(
+            summary="The existing smoke route failed before feature edits.",
+            evidence_refs=[initial_baseline],
         )
+        # discovery is not a checkpoint stage, so this result advances
+        # directly; the pending Improve view below is synthesized solely to
+        # exercise its rendering.
+        direct = navigator.apply(state, action["id"], result(**baseline_extra))
+        checkpointed = direct.get("active_improve") is not None
+        waiting = direct if checkpointed else self._pending(state, **baseline_extra)
         unbound = navigator.render(None, self.repo / ".shiploop", waiting)
         bound = self._bind_synthetic_child(copy.deepcopy(waiting))
         bound_packet = navigator.render(None, self.repo / ".shiploop", bound)
@@ -959,7 +1002,7 @@ class NavigatorV3Tests(unittest.TestCase):
         for packet in (bound_packet, cold):
             self.assertIn("may not edit product source, tests", " ".join(packet.split()))
 
-        state = self._complete_improve(waiting, action, "discovery")
+        state = self._complete_improve(waiting, action, "discovery") if checkpointed else direct
         for stage in ("research", "spec", "test-strategy"):
             state = self._produce(state, stage)
         self.assertEqual(navigator.current_stage(state), "plan")
@@ -1048,10 +1091,7 @@ class NavigatorV3Tests(unittest.TestCase):
     def test_v3_current_and_cold_child_packets_retain_review_note_recovery_context(self) -> None:
         """A selected child retains receipt-reference duties before and after recovery."""
         state = self.state()
-        action = self._action(state)
-        waiting = self._bind_synthetic_child(
-            navigator.apply(state, action["id"], result())
-        )
+        waiting = self._bind_synthetic_child(self._pending(state))
         with tempfile.TemporaryDirectory(prefix="shiploop-v3-improve-notes-") as temporary:
             root = Path(temporary)
             current_packet = navigator.render(None, root, waiting)
@@ -1097,7 +1137,9 @@ class NavigatorV3Tests(unittest.TestCase):
         stage = navigator.current_stage(state)
         self.assertEqual(stage, "product-acceptance")
         action = self._action(state)
-        waiting = navigator.apply(
+        # product-acceptance is not a checkpoint stage; a replan outcome
+        # advances directly, with no Improve child to complete.
+        revised = navigator.apply(
             state,
             action["id"],
             result(
@@ -1106,9 +1148,6 @@ class NavigatorV3Tests(unittest.TestCase):
                 work_items=[{"id": "W2", "title": "Corrective item"}],
             ),
         )
-        self.assertEqual(navigator.current_stage(waiting), stage)
-        self.assertEqual(waiting["active_improve"]["action_id"], action["id"])
-        revised = navigator.finish_improve(waiting, action["id"], receipt(stage))
         self.assertEqual(revised["completed_work_items"], ["W1"])
         self.assertIn("W2", [item["id"] for item in revised["work_items"]])
         self.assertEqual(navigator.current_stage(revised), "select-work")
@@ -1185,8 +1224,9 @@ class NavigatorV3Tests(unittest.TestCase):
         ]
         state = self._advance_to_carry_forward(self._planned_queue(rows))
         action = self._action(state)
-        waiting = navigator.apply(state, action["id"], result())
-        completed = navigator.finish_improve(waiting, action["id"], receipt("carry-forward"))
+        # W2/W3 remain queued, so this is not the run's last-item review; it
+        # advances directly, with no Improve child.
+        completed = navigator.apply(state, action["id"], result())
 
         self.assertEqual([item["id"] for item in completed["work_items"]], ["W1", "W2", "W3"])
         self.assertEqual(completed["completed_work_items"], ["W1"])
@@ -1205,8 +1245,9 @@ class NavigatorV3Tests(unittest.TestCase):
         state = self._advance_to_carry_forward(self._planned_queue(rows))
         self.assertEqual([item["id"] for item in state["work_items"]], ["W1", "W2", "W3"])
         action = self._action(state)
-        waiting = navigator.apply(state, action["id"], result(work_items=replacement))
-        revised = navigator.finish_improve(waiting, action["id"], receipt("carry-forward"))
+        # The replacement queue is not empty, so this carry-forward is not the
+        # run's last-item review; it advances directly, with no Improve child.
+        revised = navigator.apply(state, action["id"], result(work_items=replacement))
 
         self.assertEqual([item["id"] for item in revised["work_items"]], ["W1", "NEW"])
         self.assertEqual(
@@ -1228,9 +1269,12 @@ class NavigatorV3Tests(unittest.TestCase):
         self.assertEqual(cleared["completed_work_items"], ["W1"])
         self.assertEqual(navigator.current_stage(cleared), "system-test-author")
 
+        # These two rejections exercise finish_improve's own work_items
+        # validation; a default (queue-preserving) result at these stages no
+        # longer checkpoints on its own, so the pending child is synthesized.
         current_state = self._advance_to_carry_forward(self._planned_queue(rows))
         current_action = self._action(current_state)
-        current_waiting = navigator.apply(current_state, current_action["id"], result())
+        current_waiting = self._pending(current_state)
         before_current = copy.deepcopy(current_waiting)
         with self.assertRaisesRegex(
             navigator.NavigatorError, "repeats completed or current ID"
@@ -1245,15 +1289,12 @@ class NavigatorV3Tests(unittest.TestCase):
 
         completed_state = self._advance_to_carry_forward(self._planned_queue(rows))
         completed_action = self._action(completed_state)
-        completed_waiting = navigator.apply(completed_state, completed_action["id"], result())
-        completed_state = navigator.finish_improve(
-            completed_waiting, completed_action["id"], receipt("carry-forward")
-        )
+        completed_state = navigator.apply(completed_state, completed_action["id"], result())
         completed_state = self._advance_to_carry_forward(completed_state)
         self.assertEqual(completed_state["completed_work_items"], ["W1"])
         self.assertEqual(completed_state["work_items"][completed_state["work_index"]]["id"], "W2")
         prior_action = self._action(completed_state)
-        prior_waiting = navigator.apply(completed_state, prior_action["id"], result())
+        prior_waiting = self._pending(completed_state)
         before_prior = copy.deepcopy(prior_waiting)
         with self.assertRaisesRegex(
             navigator.NavigatorError, "repeats completed or current ID"
@@ -1289,26 +1330,24 @@ class NavigatorV3Tests(unittest.TestCase):
             item_id = state["work_items"][state["work_index"]]["id"]
             action = self._action(state)
             if item_id == "AUDIT" and stage == "test-red" and not repeated:
-                waiting = navigator.apply(
+                # test-red is not a checkpoint stage; a repeat outcome
+                # advances directly, with no Improve child to complete.
+                state = navigator.apply(
                     state,
                     action["id"],
                     result(outcome="repeat", summary="Repeat the audit RED evidence."),
-                )
-                state = navigator.finish_improve(
-                    waiting, action["id"], receipt(stage)
                 )
                 self.assertEqual(navigator.current_stage(state), "test-red")
                 self.assertEqual(state["work_index"], 2)
                 repeated = True
                 continue
             if item_id == "AUDIT" and stage == "verify" and not blocked:
-                waiting = navigator.apply(
+                # verify is not a checkpoint stage; a blocked outcome takes
+                # effect immediately, with no Improve child to complete.
+                blocked_state = navigator.apply(
                     state,
                     action["id"],
                     result(outcome="blocked", summary="Audit target is temporarily unavailable."),
-                )
-                blocked_state = navigator.finish_improve(
-                    waiting, action["id"], receipt(stage)
                 )
                 self.assertEqual(blocked_state["status"], "blocked")
                 self.assertEqual(navigator.current_stage(blocked_state), "verify")
@@ -1407,13 +1446,11 @@ class NavigatorV3Tests(unittest.TestCase):
         self.assertNotIn("Select the next ready work item", select_packet)
 
         select_action = self._action(state)
-        select_child = self._bind_synthetic_child(
-            navigator.apply(state, select_action["id"], result())
-        )
+        select_child = self._bind_synthetic_child(self._pending(state))
         self.assertIn(queue_locator, navigator.render(None, root, select_child))
-        state = navigator.finish_improve(
-            select_child, select_action["id"], receipt("select-work")
-        )
+        # select-work is not a checkpoint stage; it advances directly, with
+        # no Improve child to complete.
+        state = navigator.apply(state, select_action["id"], result())
         state = self._advance_to_carry_forward(state)
         carry_packet = navigator.render(None, root, state)
         self.assertIn(queue_locator, carry_packet)
@@ -1421,10 +1458,8 @@ class NavigatorV3Tests(unittest.TestCase):
 
         carry_action = self._action(state)
         carry_child = self._bind_synthetic_child(
-            navigator.apply(
-                state,
-                carry_action["id"],
-                result(work_items=[{"id": "FOLLOWUP", "title": "Carry-forward item"}]),
+            self._pending(
+                state, work_items=[{"id": "FOLLOWUP", "title": "Carry-forward item"}],
             )
         )
         self.assertIn(proposed_queue_locator, navigator.render(None, root, carry_child))
@@ -1436,7 +1471,7 @@ class NavigatorV3Tests(unittest.TestCase):
 
     def test_malformed_bound_skill_fails_with_controlled_recovery_error(self) -> None:
         state = self.state()
-        waiting = navigator.apply(state, self._action(state)["id"], result())
+        waiting = self._pending(state)
         child = waiting["active_improve"]
         child["version"] = 1
         child["contract_marker"] = "ShipLoop standalone Improve binding: " + child["binding_id"]

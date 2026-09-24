@@ -30,6 +30,8 @@ class PacketBoundsTests(unittest.TestCase):
         waiting = navigator.apply(state, action["id"], {
             "outcome": "done", "summary": "Synthetic packet fixture", **extra,
         })
+        if waiting.get("active_improve") is None:
+            return waiting
         return navigator.finish_improve(waiting, action["id"], {
             "summary": "Synthetic review; no semantic claim", "lessons": "Read relevant references.",
         })
@@ -73,9 +75,12 @@ class PacketBoundsTests(unittest.TestCase):
 
     def test_large_pending_result_uses_exact_seed_locator_and_same_callback(self):
         state = self.state()
+        while navigator.current_stage(state) != "spec":
+            state = self.complete(state)
         action = navigator.current_action(state)
         summary = "s" * 2_000_000 + "SEED_CONSTRAINT_TAIL"
         waiting = navigator.apply(state, action["id"], {"outcome": "done", "summary": summary})
+        self.assertIsNotNone(waiting.get("active_improve"))
         packet = self.cold_packet(waiting)
         self.assertIn("active_improve.seed_result", packet)
         self.assertIn("Outcome: done", packet)

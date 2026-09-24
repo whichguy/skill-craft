@@ -56,12 +56,13 @@ def bound_walk(repo, delegation, protocol_version=3):
         if stage == "plan":
             result["work_items"] = [{"id": "W1", "title": "Synthetic item"}]
         state = nav.apply(state, action, result)
-        child = state["active_improve"]
-        state["active_improve"] = standalone.binding(state, action, child["stage"],
-                                                     child["seed_result"], selected)
-        packets.append((stage, "improve", nav.render(None, run, state)))
-        state["active_improve"] = child
-        state = nav.finish_improve(state, action, {"summary": "Synthetic receipt; no review claim."})
+        child = state.get("active_improve")
+        if child is not None:
+            state["active_improve"] = standalone.binding(state, action, child["stage"],
+                                                         child["seed_result"], selected)
+            packets.append((stage, "improve", nav.render(None, run, state)))
+            state["active_improve"] = child
+            state = nav.finish_improve(state, action, {"summary": "Synthetic receipt; no review claim."})
     return packets
 
 
@@ -74,7 +75,8 @@ def advance(state, target, *, stop_after_apply=False):
         if stage == "plan":
             result["work_items"] = [{"id": "W1", "title": "Synthetic item"}]
         state = nav.apply(state, action, result)
-        state = nav.finish_improve(state, action, {"summary": "Synthetic receipt; no review claim."})
+        if state.get("active_improve") is not None:
+            state = nav.finish_improve(state, action, {"summary": "Synthetic receipt; no review claim."})
     if stop_after_apply:
         action = nav.current_action(state)["id"]
         state = nav.apply(state, action, {"outcome": "done", "summary": "Synthetic " + target + "."})
@@ -135,7 +137,9 @@ class DelegationStateTests(unittest.TestCase):
         self.assertIn("Clear once here", entry)
         self.assertIn("already fresh: when this prefix repeats", entry)
         self.assertIn("Pause without consuming the action:", entry)
-        improve = self.render(advance(state, "select-work", stop_after_apply=True))
+        # step-plan is a planning-review stage, so completing it starts an
+        # actual Improve child (select-work itself no longer does).
+        improve = self.render(advance(state, "step-plan", stop_after_apply=True))
         self.assertTrue(improve.startswith(
             "Keep the invoking parent alive and run this Improve invocation inline.\n"))
         for stage in ("step-plan", "implement", "carry-forward"):
@@ -175,8 +179,10 @@ class DelegationStateTests(unittest.TestCase):
             nav.set_delegation(state, "serial")
 
     def test_switch_never_reroutes_the_pending_action_or_its_improve_checkpoint(self):
-        # A native worker may already own this ask-agent producer: it keeps its route.
-        at_test_author = advance(self.state("ask-agent"), "test-author")
+        # A native worker may already own this ask-agent producer: it keeps its
+        # route. step-plan is a planning-review stage, so it still starts an
+        # actual Improve checkpoint on this same held action.
+        at_test_author = advance(self.state("ask-agent"), "step-plan")
         action = nav.current_action(at_test_author)["id"]
         switched = nav.set_delegation(at_test_author, "inline")
         self.assertEqual(switched["delegation_hold"], {"action": action, "route": "ask-agent"})
@@ -219,7 +225,8 @@ class PacketContractTests(DelegationStateTests):
         self.assertIn("Context-boundary pause (no callable host reset): ", entry)
         self.assertIn("'--reason=context-boundary: clear, then run Recovery and Resume'", entry)
         self.assertIn("Halt (terminal and irreversible; only on an explicit user stop): ", entry)
-        self.assertIn("pass through this action's Improve checkpoint first", entry)
+        # select-work is not a planning/checkpoint stage; it advances directly.
+        self.assertIn("This result advances directly; no Improve child runs for this stage.", entry)
         self.assertNotIn("Context-boundary pause", self.render(advance(self.state(), "step-plan")))
         self.assertNotIn("Context-boundary pause", self.render(advance(self.state("ask-agent"), "select-work")))
         self.assertIn("Optional work_items replaces the whole queue", self.render(advance(self.state(), "plan")))
@@ -280,7 +287,7 @@ class PacketContractTests(DelegationStateTests):
             inline = bound_walk(repo, "inline")
             delegated = bound_walk(repo, "ask-agent") + bound_walk(repo, "ask-agent", protocol_version=4)
             v4 = bound_walk(repo, "inline", protocol_version=4)
-        self.assertEqual(len(inline), 68)
+        self.assertEqual(len(inline), 42)
         for stage, kind, packet in inline + v4:
             for text in BOUND_DELEGATED_TEXT:
                 self.assertNotIn(text, packet, (stage, kind, text))
@@ -375,10 +382,19 @@ class DelegationCliTests(unittest.TestCase):
         self.assertIn("rerun without --delegation", retry.stderr)
 
     def test_toggle_during_a_bound_improve_child_applies_from_the_next_action(self):
-        self.assertEqual(self.init("--improve-skill", CARD, "--improve-cadence", "every-stage").returncode, 0)
+        self.assertEqual(self.init("--improve-skill", CARD).returncode, 0)
+        # intake, discovery and research are not planning stages and advance
+        # directly with no Improve checkpoint; bind at the next stage, spec.
+        for _ in range(3):
+            action = self.saved()["action"]["id"]
+            result_path = self.run / "inbox" / (action + ".md")
+            store.write_record(result_path, {"outcome": "done", "summary": "Synthetic advance."})
+            self.assertEqual(self.cli("done", "--run-dir", self.run, "--action", action,
+                                      "--result", result_path).returncode, 0)
+        self.assertEqual(self.saved()["stage"], "spec")
         action = self.saved()["action"]["id"]
         result_path = self.run / "inbox" / (action + ".md")
-        store.write_record(result_path, {"outcome": "done", "summary": "Synthetic intake."})
+        store.write_record(result_path, {"outcome": "done", "summary": "Synthetic spec."})
         self.assertEqual(self.cli("done", "--run-dir", self.run, "--action", action,
                                   "--result", result_path).returncode, 0)
         bound = self.cli("improve-bind", "--run-dir", self.run, "--action", action, "--skill-card", CARD)

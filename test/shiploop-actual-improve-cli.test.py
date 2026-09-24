@@ -34,7 +34,6 @@ EXPLICIT_NO_COMMIT_AUTHORITY = (
 )
 
 
-EVERY_STAGE = ("--improve-cadence", "every-stage")
 
 class ImproveCliFixture(unittest.TestCase):
     """Hermetic parent fixture shared by ephemeral and explicit legacy routes."""
@@ -43,8 +42,7 @@ class ImproveCliFixture(unittest.TestCase):
     delegation = None
 
     def delegation_args(self):
-        # These tests pin the per-stage Improve child; plan-and-end has its own suite.
-        return (("--delegation", self.delegation) if self.delegation else ()) + EVERY_STAGE
+        return (("--delegation", self.delegation) if self.delegation else ())
 
     def inline(self):
         return self.delegation in (None, "inline")
@@ -114,9 +112,23 @@ class ImproveCliFixture(unittest.TestCase):
                     "--prompt", "Protocol composition fixture", "--improve-skill", card,
                     *self.delegation_args())
         self._prepare_parent_evidence()
-        self.state = store.read_record(self.run / "state.md")
+        state = store.read_record(self.run / "state.md")
+        # intake, discovery and research are not planning stages; advance them
+        # directly with a plain callback before the first checkpoint (spec).
+        for predecessor in ("intake", "discovery", "research"):
+            action = state["action"]["id"]
+            setup = {
+                "outcome": "done",
+                "summary": "Synthetic predecessor navigation only for " + predecessor
+                + "; not a checkpoint stage.",
+            }
+            path = self.run / "inbox" / (action + ".md")
+            store.write_record(path, setup)
+            self.invoke(CLI, "done", "--run-dir", self.run, "--action", action, "--result", path)
+            state = store.read_record(self.run / "state.md")
+        self.state = state
         self.action = self.state["action"]["id"]
-        self.producer = {"outcome": "done", "summary": "Fixture intake evidence.",
+        self.producer = {"outcome": "done", "summary": "Fixture spec evidence.",
                          "evidence_refs": self.parent_evidence_refs}
         self.input = self.run / "inbox" / (self.action + ".md")
         store.write_record(self.input, self.producer)
@@ -148,9 +160,10 @@ class ImproveCliFixture(unittest.TestCase):
             if predecessor == "plan":
                 setup["work_items"] = [{"id": "W1", "title": "Synthetic local-skill item"}]
             state = navigator.apply(state, action, setup)
-            state = navigator.finish_improve(state, action, {
-                "summary": "Synthetic predecessor receipt only; no semantic review claim.",
-            })
+            if state.get("active_improve") is not None:
+                state = navigator.finish_improve(state, action, {
+                    "summary": "Synthetic predecessor receipt only; no semantic review claim.",
+                })
         navigator.save(run, state)
         self.run = run
         self.state = state
@@ -291,7 +304,7 @@ class ImproveCliFixture(unittest.TestCase):
         return self.completion_path, receipt
 
     def complete_current_stage_through_actual_improve(self, evidence_refs, summary):
-        """Advance one current stage through its existing Improve callbacks."""
+        """Advance one current checkpoint stage through its real Improve callbacks."""
         state = store.read_record(self.run / "state.md")
         stage = navigator.current_stage(state)
         self.action = navigator.current_action(state)["id"]
@@ -309,6 +322,22 @@ class ImproveCliFixture(unittest.TestCase):
         completion, _receipt = self.completion_receipt()
         self.invoke(CLI, "improve-complete", "--run-dir", self.run,
                     "--action", self.action, "--result", completion)
+        return stage, self.action, store.read_record(self.run / "state.md")
+
+    def complete_current_stage_directly(self, evidence_refs, summary):
+        """Advance one current non-checkpoint stage with a plain callback; no child starts."""
+        state = store.read_record(self.run / "state.md")
+        stage = navigator.current_stage(state)
+        self.action = navigator.current_action(state)["id"]
+        self.parent_evidence_refs = list(evidence_refs)
+        self.producer = {
+            "outcome": "done",
+            "summary": summary,
+            "evidence_refs": self.parent_evidence_refs,
+        }
+        self.input = self.run / "inbox" / (self.action + ".md")
+        store.write_record(self.input, self.producer)
+        self.invoke(CLI, "done", "--run-dir", self.run, "--action", self.action, "--result", self.input)
         return stage, self.action, store.read_record(self.run / "state.md")
 
     def legacy_card(self):
@@ -329,8 +358,16 @@ class ImproveCliFixture(unittest.TestCase):
     def legacy_parent(self, card):
         run = self.base / "legacy-run"
         self.invoke(CLI, "init", "--repo", self.repo, "--run-dir", run,
-                    "--prompt", "Legacy composition fixture", "--improve-skill", card, *EVERY_STAGE)
+                    "--prompt", "Legacy composition fixture", "--improve-skill", card)
         state = store.read_record(run / "state.md")
+        # intake, discovery and research are not planning stages; advance
+        # them directly before the first checkpoint (spec).
+        for _predecessor in ("intake", "discovery", "research"):
+            action = state["action"]["id"]
+            input_path = run / "inbox" / (action + ".md")
+            store.write_record(input_path, {"outcome": "done", "summary": "Legacy fixture"})
+            self.invoke(CLI, "done", "--run-dir", run, "--action", action, "--result", input_path)
+            state = store.read_record(run / "state.md")
         action = state["action"]["id"]
         input_path = run / "inbox" / (action + ".md")
         store.write_record(input_path, {"outcome": "done", "summary": "Legacy fixture"})
@@ -457,7 +494,7 @@ class EphemeralImproveCliTests(ImproveCliFixture):
         owner_record = "Native owner record: " + str(bridge.receipt_path(self.bound).with_name("host-owner.md"))
         if self.inline():
             # Inline Improve has no native owner; import below still succeeds.
-            self.assertTrue(packet.startswith("ShipLoop navigator | intake |"))
+            self.assertTrue(packet.startswith("ShipLoop navigator | spec |"))
             anchor = "default-route-the-parent-runs-improve-delegation-inline"
             self.assertIn("Improve context ownership: " + str(guide) + "#" + anchor, packet)
             headings = [re.sub(r"[^a-z0-9 -]", "", line.lstrip("#").strip().lower()).replace(" ", "-")
@@ -486,7 +523,7 @@ class EphemeralImproveCliTests(ImproveCliFixture):
         self.assertEqual(terminal["status"], "complete")
         self.assertEqual((self.run / "state.md").read_bytes(), before)
         cold = self.invoke(CLI, "next", "--run-dir", self.run).stdout
-        self.assertIn("Current action: Improve the completed intake result.", cold)
+        self.assertIn("Current action: Improve the completed spec result.", cold)
         if self.inline():
             self.assertNotIn(owner_record, cold)
             self.assertFalse(bridge.receipt_path(self.bound).with_name("host-owner.md").exists())
@@ -498,7 +535,7 @@ class EphemeralImproveCliTests(ImproveCliFixture):
                     "--action", self.action, "--result", completion)
         after = store.read_record(self.run / "state.md")
         self.assertIsNone(after["active_improve"])
-        self.assertEqual(navigator.current_stage(after), "discovery")
+        self.assertEqual(navigator.current_stage(after), "test-strategy")
         self.assertEqual(self.product_contract.read_text(encoding="utf-8"), updated)
         self.assertEqual(self.packet_path.read_bytes(), terminal_raw.stdout)
 
@@ -529,7 +566,7 @@ class EphemeralImproveCliTests(ImproveCliFixture):
                     "--result", completion)
         after = store.read_record(self.run / "state.md")
         self.assertIsNone(after["active_improve"])
-        self.assertEqual(navigator.current_stage(after), "discovery")
+        self.assertEqual(navigator.current_stage(after), "test-strategy")
         self.assertEqual(archived.read_bytes(), stopped_raw.stdout)
         self.assertEqual(sorted(path.name for path in stopped_reviews.iterdir()),
                          sorted(Path(ref).name for ref in stopped_receipt["review_refs"] + stopped_receipt["check_refs"]))
@@ -542,6 +579,11 @@ class EphemeralImproveCliTests(ImproveCliFixture):
             protocol_version=3,
             improve_skill=str(CARD),
         )
+        # intake, discovery and research are not planning stages; advance
+        # them directly before the first checkpoint (spec).
+        for _predecessor in ("intake", "discovery", "research"):
+            action = navigator.current_action(state)["id"]
+            state = navigator.apply(state, action, {"outcome": "done", "summary": "Synthetic advance."})
         action = navigator.current_action(state)["id"]
         waiting = navigator.apply(
             state,
@@ -635,12 +677,17 @@ class EphemeralImproveCliTests(ImproveCliFixture):
                     continue
 
                 step_plan_action = self.action
+                # test-spec is still a planning-review stage and starts a real
+                # Improve child; baseline/test-author/test-red are not and
+                # advance directly with a plain callback.
                 for next_stage in ("test-spec", "baseline", "test-author", "test-red"):
                     self.assertEqual(navigator.current_stage(resumed), next_stage)
                     evidence = self.repo / "evidence" / (next_stage + ".md")
                     evidence.parent.mkdir(parents=True, exist_ok=True)
                     evidence.write_text("# " + next_stage + "\n", encoding="utf-8")
-                    observed_stage, _action, resumed = self.complete_current_stage_through_actual_improve(
+                    advance = (self.complete_current_stage_through_actual_improve
+                              if next_stage == "test-spec" else self.complete_current_stage_directly)
+                    observed_stage, _action, resumed = advance(
                         [str(evidence) + "#fixture"],
                         "Fixture advance through actual Improve for " + next_stage + ".",
                     )
@@ -756,7 +803,7 @@ class EphemeralImproveCliTests(ImproveCliFixture):
         after = (self.run / "state.md").read_bytes()
         state = store.read_record(self.run / "state.md")
         record = state["improve_results"][self.action]
-        self.assertEqual(state["stage"], "discovery")
+        self.assertEqual(state["stage"], "test-strategy")
         self.assertIsNone(state["active_improve"])
         self.assertEqual(record["runtime_phase"], "complete")
         self.assertEqual(record["seed_result"]["evidence_refs"], self.parent_evidence_refs)
@@ -940,8 +987,9 @@ class EphemeralImproveCliTests(ImproveCliFixture):
         """A host-authored child contract retains concrete local-skill locators.
 
         Earlier navigation and the review judgments are synthetic fixtures.  The
-        selected skill-assess parent, ephemeral callbacks, terminal receipt, and
-        parent resume use the real ShipLoop/Improve CLIs.
+        selected parent (spec; skill-assess is no longer a checkpoint stage),
+        ephemeral callbacks, terminal receipt, and parent resume use the real
+        ShipLoop/Improve CLIs.
         """
         index = self.repo / "SHIPLOOP.md"
         local_card = self.repo / "skills/release-evidence-triage/SKILL.md"
@@ -964,10 +1012,10 @@ class EphemeralImproveCliTests(ImproveCliFixture):
             str(input_contract) + "#current-input",
             str(validation) + "::test_current_contract",
         ]
-        self._start_parent_at_stage("skill-assess", local_skill_refs)
-        self.assertEqual(navigator.current_stage(self.state), "skill-assess")
+        self._start_parent_at_stage("spec", local_skill_refs)
+        self.assertEqual(navigator.current_stage(self.state), "spec")
         parent_packet = self.invoke(CLI, "next", "--run-dir", self.run).stdout
-        self.assertIn("Current action: Improve the completed skill-assess result.", parent_packet)
+        self.assertIn("Current action: Improve the completed spec result.", parent_packet)
         for locator in local_skill_refs:
             self.assertIn(locator, parent_packet)
 
@@ -991,7 +1039,7 @@ class EphemeralImproveCliTests(ImproveCliFixture):
                 "the parent packet cannot create this semantic handoff.\n"
                 + self.bound["contract_marker"]
             ),
-            "scope": "Review only the frozen skill-assess evidence bundle and its retained locators.",
+            "scope": "Review only the frozen spec evidence bundle and its retained locators.",
             "authority": EXPLICIT_NO_COMMIT_AUTHORITY,
             "environment": "Use the current fixture workspace and declared Python/Git commands only.",
             "resources": base_context["resources"][:6] + [
@@ -1032,11 +1080,11 @@ class EphemeralImproveCliTests(ImproveCliFixture):
         completion, _receipt = self.completion_receipt()
         self.invoke(CLI, "improve-complete", "--run-dir", self.run, "--action", self.action, "--result", completion)
         resumed = store.read_record(self.run / "state.md")
-        self.assertEqual(navigator.current_stage(resumed), "skill-validate")
+        self.assertEqual(navigator.current_stage(resumed), "test-strategy")
         self.assertEqual(resumed["improve_results"][self.action]["seed_result"]["evidence_refs"], local_skill_refs)
         self.assertEqual(self.packet_path.read_bytes(), terminal_raw.stdout)
         resumed_packet = self.invoke(CLI, "next", "--run-dir", self.run).stdout
-        self.assertIn("ShipLoop navigator | skill-validate |", resumed_packet)
+        self.assertIn("ShipLoop navigator | test-strategy |", resumed_packet)
 
     def test_active_stopped_and_missing_ephemeral_receipts_do_not_release_parent(self):
         completion, _receipt = self.completion_receipt()
@@ -1069,9 +1117,16 @@ class EphemeralImproveCliTests(ImproveCliFixture):
         selected.symlink_to(CARD)
         run = self.base / "relative-selection-run"
         self.invoke(CLI, "init", "--repo", self.repo, "--run-dir", run,
-                    "--prompt", "Relative selection recovery fixture", "--improve-skill", selected.name,
-                    *EVERY_STAGE)
+                    "--prompt", "Relative selection recovery fixture", "--improve-skill", selected.name)
         state = store.read_record(run / "state.md")
+        # intake, discovery and research are not planning stages; advance them
+        # directly before the first checkpoint (spec) binds the relative card.
+        for _predecessor in ("intake", "discovery", "research"):
+            action = state["action"]["id"]
+            result_path = run / "inbox" / (action + ".md")
+            store.write_record(result_path, {"outcome": "done", "summary": "Fixture producer"})
+            self.invoke(CLI, "done", "--run-dir", run, "--action", action, "--result", result_path)
+            state = store.read_record(run / "state.md")
         action = state["action"]["id"]
         result_path = run / "inbox" / (action + ".md")
         store.write_record(result_path, {"outcome": "done", "summary": "Fixture producer"})
@@ -1091,6 +1146,12 @@ class EphemeralImproveCliTests(ImproveCliFixture):
         self.assertEqual(skill["runtime_cli"], str(EPHEMERAL.resolve()))
 
     def test_workspace_return_waits_for_terminal_receipt_and_excludes_ephemeral_artifacts(self):
+        """Return is allowed only once at active release or handoff; no child ever binds there.
+
+        Earlier navigation is synthetic setup; the spec parent's real Improve
+        child (ephemeral runtime, terminal receipt, import) and the final
+        return/exclusion checks use the actual command-line interfaces.
+        """
         source = self.base / "source"
         source.mkdir()
         for args in (("init", "-q"), ("config", "user.email", "fixture@example.invalid"),
@@ -1102,34 +1163,54 @@ class EphemeralImproveCliTests(ImproveCliFixture):
         subprocess.run(["git", "-C", str(source), "commit", "-qm", "baseline"], check=True, capture_output=True, env=self.environment)
         workspace = self.base / "isolated"
         self.invoke(CLI, "workspace", "start", "--repo", source, "--workspace-root", workspace,
-                    "--prompt", "Synthetic final return boundary fixture", "--improve-skill", CARD,
-                    *EVERY_STAGE)
+                    "--prompt", "Synthetic final return boundary fixture", "--improve-skill", CARD)
         self.repo, self.run = workspace / "worktree", workspace / "run"
         self.product_contract = self.product_test = self.repo / "product.txt"
         self._prepare_parent_evidence()
         state = store.read_record(self.run / "state.md")
-        while navigator.current_stage(state) != "handoff":
+        # intake, discovery and research are not planning stages; advance
+        # them directly, then run one real Improve child at spec so its
+        # `.shiploop-improve` artifacts exist to verify exclusion below.
+        for _predecessor in ("intake", "discovery", "research"):
             action = navigator.current_action(state)["id"]
             state = navigator.apply(state, action, {"outcome": "done", "summary": "Synthetic setup"})
-            state = navigator.finish_improve(state, action, {"summary": "Synthetic predecessor child"})
         navigator.save(self.run, state)
         self.action = navigator.current_action(state)["id"]
         self.input = self.run / "inbox" / (self.action + ".md")
-        store.write_record(self.input, {"outcome": "done", "summary": "Final fixture handoff",
+        store.write_record(self.input, {"outcome": "done", "summary": "Fixture spec evidence.",
                                         "evidence_refs": self.parent_evidence_refs})
         self.invoke(CLI, "done", "--run-dir", self.run, "--action", self.action, "--result", self.input)
         self.bind_current(CARD)
         completion, receipt = self.completion_receipt()
         _raw, active = self.start_ephemeral_child()
+        # Refused long before release/handoff, active child or not.
         self.invoke(CLI, "workspace", "return", "--workspace-root", workspace, status=2)
         self.assertEqual((source / "product.txt").read_text(encoding="utf-8"), "baseline\n")
         (self.repo / "product.txt").write_text("final child reviewed candidate\n", encoding="utf-8")
         terminal_raw, terminal = self.finish_ephemeral(active)
         self.assertEqual(terminal["status"], "complete")
-        before_import = (self.run / "state.md").read_bytes()
-        self.invoke(CLI, "improve-complete", "--run-dir", self.run, "--action", self.action,
-                    "--result", completion, status=2)
-        self.assertEqual(before_import, (self.run / "state.md").read_bytes())
+        self.invoke(CLI, "improve-complete", "--run-dir", self.run, "--action", self.action, "--result", completion)
+        self.assertEqual(self.packet_path.read_bytes(), terminal_raw.stdout)
+
+        # Advance the remaining checkpoints and stages to handoff.  Every
+        # planning/contract result still starts and finishes a real Improve
+        # child; every other stage (including release and handoff) advances
+        # directly and never parks one.
+        state = store.read_record(self.run / "state.md")
+        while navigator.current_stage(state) != "handoff":
+            stage = navigator.current_stage(state)
+            action = navigator.current_action(state)["id"]
+            setup = {"outcome": "done", "summary": "Synthetic " + stage + " advance."}
+            if stage == "plan":
+                setup["work_items"] = [{"id": "W1", "title": "Synthetic item"}]
+            state = navigator.apply(state, action, setup)
+            if state.get("active_improve") is not None:
+                state = navigator.finish_improve(state, action, {
+                    "summary": "Synthetic predecessor receipt only; no semantic review claim.",
+                })
+        navigator.save(self.run, state)
+
+        # handoff never parks a child, so return is allowed immediately.
         self.invoke(CLI, "workspace", "plan-return", "--workspace-root", workspace)
         plan_path = workspace / "return-plan.md"
         plan = store.read_record(plan_path)
@@ -1140,18 +1221,15 @@ class EphemeralImproveCliTests(ImproveCliFixture):
             else:
                 row["disposition"] = "keep"
         store.write_record(plan_path, plan)
-        store.write_record(completion, dict(receipt, final_result={
-            "outcome": "blocked", "summary": "Review finished but the delivery prerequisite is unresolved.",
-        }))
-        self.invoke(CLI, "workspace", "return", "--workspace-root", workspace, status=2)
-        self.assertEqual((source / "product.txt").read_text(encoding="utf-8"), "baseline\n")
-        store.write_record(completion, receipt)
         self.invoke(CLI, "workspace", "return", "--workspace-root", workspace)
         self.assertEqual((source / "product.txt").read_text(encoding="utf-8"), "final child reviewed candidate\n")
         self.assertFalse((source / ".shiploop-improve").exists())
-        self.assertEqual(before_import, (self.run / "state.md").read_bytes())
-        self.assertEqual(self.packet_path.read_bytes(), terminal_raw.stdout)
-        self.invoke(CLI, "improve-complete", "--run-dir", self.run, "--action", self.action, "--result", completion)
+
+        action = navigator.current_action(state)["id"]
+        input_path = self.run / "inbox" / (action + ".md")
+        store.write_record(input_path, {"outcome": "done", "summary": "Final fixture handoff",
+                                        "evidence_refs": self.parent_evidence_refs})
+        self.invoke(CLI, "done", "--run-dir", self.run, "--action", action, "--result", input_path)
         self.assertEqual(store.read_record(self.run / "state.md")["status"], "done")
         self.assertEqual(receipt["summary"], "Runtime mechanics completed; no actual review claim.")
 

@@ -376,12 +376,17 @@ skip result. A skip needs its concrete reason and is not a pass; an unrun full
 suite remains unrun even when the focused or smoke command passed. Do not retain
 secrets in commands, fixtures, logs, or project knowledge.
 
+One file owns the suite commands once test strategy is accepted; plans point at
+it. Keep each command in a fenced code block, never in a Markdown table cell: a
+`\|` escaped for the table becomes a literal pipe in a copied alternation pattern,
+matches nothing and can still exit 0. A pass names the IDs or cases it ran, and a
+retained command that does not run the suite (for example a directory path the
+runner does not expand) is fixed in the stage that finds it.
+
 ## Review test assets through Improve
 
 For Navigator v3, the selected actual standalone Improve skill reviews each
-result its cadence selects. That is every producer under `every-stage`. Under
-the default `planning-and-end` it is the planning stages, including `test-spec`,
-plus the end-of-work candidate. Within that
+planning result, including `test-spec`, and the end-of-work candidate. Within that
 candidate scope, its review
 includes local and remote-resident test definitions, execution/target locations,
 platform/library testing-system fit, browser inspection versus retained test

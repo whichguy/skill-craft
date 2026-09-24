@@ -162,8 +162,8 @@ do not silently fall back to editing the source. At the final planned integratio
 boundary, follow the packet's return-plan and guarded return commands. Completion
 requires a verified return receipt. A dirty starting checkout receives only the
 new delta and keeps its original index; this is not a Git merge/commit.
-In protocol 3, that once-only return waits until the final handoff Improve child
-has completed and its evidence is ready, immediately before importing the child.
+That once-only return happens at release or handoff, after the end-of-work Improve
+child, once no child is active.
 If source return must itself trigger a required delivery check, retain that
 ordering conflict as incomplete; use the workspace policy's reconciliation rule.
 
@@ -262,10 +262,9 @@ is never re-routed. It is refused on a halted or done run; setting the recorded
 value is a no-op. `graph-dry-run --delegation
 inline|ask-agent` previews either route (inline by default for protocol 3/4).
 
-### Improve cadence
+### When Improve runs
 
-A new protocol 3/4 run records `improve_cadence: planning-and-end`. Two kinds of
-result start an actual Improve child:
+Two kinds of result start an actual Improve child:
 
 - Every result of a planning stage: `spec`, `test-strategy`, `plan`, `step-plan`,
   `test-spec`, `system-test-author` and `release-plan`. These stages write the
@@ -282,18 +281,11 @@ result start an actual Improve child:
 Every other producer result is accepted on its own checks and the graph
 advances directly. The stage names stay in the graph, so an auditor still sees
 each stage happen. If the end review adds work items, the review moves to the
-new last item's carry-forward. `--improve-cadence` at `init` or `workspace
-start` selects one of three cadences:
+new last item's carry-forward. An isolated run's workspace return happens at
+`release` or `handoff` once no child is active.
 
-- `planning-and-end`, the default described above.
-- `plan-and-end`, the 0.21.0 default, which reviews only the global `plan` and
-  the end.
-- `every-stage`, which puts an Improve child after every producer.
-
-A saved run without the key keeps every-stage. The cadence is fixed at init, and
-`graph-dry-run --improve-cadence` previews any cadence. Except under
-every-stage, an isolated run's workspace return happens at `release` or
-`handoff` once no child is active, because the end review has already finished.
+The two consecutive trivial passes an Improve child needs are self-passes by the
+same executor, not independent reviews; packets and reports call them passes.
 
 ## Recovery from older supervised runs
 
@@ -411,10 +403,8 @@ retain the recovery locators and resume the same run when execution resumes.
    diagnostics, safe failure context,
    and concise, LLM-readable code contracts, then
    verify their behavior and accuracy. Keep material caveats; avoid boilerplate.
-3. When the run's Improve cadence selects this result (every result under
-   `every-stage`; the plan and the last carry-forward under the default
-   `planning-and-end`: planning stages and the last carry-forward; see
-   [Improve cadence](#improve-cadence)), the script enters
+3. When this result is a planning result or the last carry-forward (see
+   [When Improve runs](#when-improve-runs)), the script enters
    `active_improve` for that same action. Otherwise the result is accepted and the
    next producer packet follows. Read the selected actual Improve `SKILL.md` and let its bound
    Until Loop runtime own the improvement loop. For a new ephemeral child use

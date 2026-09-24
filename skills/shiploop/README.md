@@ -215,7 +215,7 @@ contents or grant authority to change them.
 
 For example, with `required_trivial_reviews: 2`, a material repair reported as
 `non-trivial` leaves the streak at zero. A qualifying `trivial` review raises it
-to one and returns another active action. A second qualifying review raises it
+to one and returns another active action. A second trivial self-pass raises it
 to two; with `exit_assessment: satisfied`, Until Loop returns `status: complete`
 and deletes its temporary file. These are three separate execution/report
 cycles. The LLM judges the evidence and classification; the runtime applies the
@@ -314,8 +314,8 @@ under external run storage; reusable facts are promoted into project docs. The
 host must judge ambiguous/custom artifacts—the guard cannot infer their meaning.
 
 Handoff cannot declare completion without a current verified return receipt.
-Protocol 3 performs its once-only source return after the final handoff Improve
-child completes, then imports that child. Earlier or unfinished work cannot return.
+Protocol 3 performs its once-only source return at release or handoff once no
+Improve child is active. Earlier or unfinished work cannot return.
 If branch integration activates deployment, plan it as an authorized release
 operation from the execution checkout where possible; a required source-return
 prerequisite remains incomplete for reconciliation. Verify effects separately.
@@ -520,14 +520,10 @@ runtime own child iterations. ShipLoop has no second review counter.
 
 ## Improve discovery and planning before proceeding
 
-An `every-stage` protocol 3 run applies the same actual-skill handoff after every
-producer, including intake, discovery, research, specification, test strategy,
-global/local plans, and release planning. The default `planning-and-end` cadence for
-new runs applies it to the planning stages (spec, test strategy, plan, step
-plan, test spec, system-test authoring and release plan) and to the last
-carry-forward. That second
-review covers all executed steps before OUTER work. See the skill card's Improve
-cadence section. The producer callback first saves its attempt. The next
+Protocol 3 applies the actual-skill handoff to the planning stages (spec, test
+strategy, plan, step plan, test spec, system-test authoring and release plan) and
+to the last carry-forward, whose review covers all executed steps before OUTER
+work. See the skill card's "When Improve runs" section. The producer callback first saves its attempt. The next
 packet binds or resumes the selected Improve skill; the graph advances only
 when that skill completes and the bound outcome is imported. Read the actual
 selected skill's instructions for its review, history, evidence and commit
@@ -3259,10 +3255,10 @@ surface is:
 
 ```sh
 # Current navigator (protocol 3 default; 4 opt-in)
-shiploop workspace start --repo REPO --workspace-root ROOT [--protocol-version=2|3|4] [--improve-skill ABSOLUTE_SKILL_CARD] [--include-untracked=PATH]... [--exclude=PATH]... [--delivery-contract] [--delegation=inline|ask-agent] [--improve-cadence=planning-and-end|plan-and-end|every-stage] --prompt=TEXT
+shiploop workspace start --repo REPO --workspace-root ROOT [--protocol-version=2|3|4] [--improve-skill ABSOLUTE_SKILL_CARD] [--include-untracked=PATH]... [--exclude=PATH]... [--delivery-contract] [--delegation=inline|ask-agent] --prompt=TEXT
 shiploop workspace plan-return --workspace-root ROOT
 shiploop workspace return      --workspace-root ROOT
-shiploop init     --repo REPO [--run-dir RUN] [--execution-mode=navigator|navigator-v2|navigator-v1|managed|legacy] [--navigator-version=2|3|4] [--improve-skill ABSOLUTE_SKILL_CARD] [--delivery-contract] [--delegation=inline|ask-agent] [--improve-cadence=planning-and-end|plan-and-end|every-stage] --prompt=TEXT
+shiploop init     --repo REPO [--run-dir RUN] [--execution-mode=navigator|navigator-v2|navigator-v1|managed|legacy] [--navigator-version=2|3|4] [--improve-skill ABSOLUTE_SKILL_CARD] [--delivery-contract] [--delegation=inline|ask-agent] --prompt=TEXT
 shiploop next     --run-dir RUN
 shiploop status   --run-dir RUN
 shiploop report   --run-dir RUN
@@ -3293,7 +3289,7 @@ shiploop migrate  --run-dir RUN
 # Implementation chains within the current v3/v4 implement action
 shiploop chain {bind,planning-inputs,next,history,pending,claim,start,launched,observe,import-handoff,prepare,settle,done,retry,packet,cleanup,finish,recover} ...
 # Inspection without project work
-shiploop graph-dry-run [--list] [--scenario NAME | --script STEPS.json] [--protocol-version=2|3|4] [--delegation=inline|ask-agent] [--improve-cadence=planning-and-end|plan-and-end|every-stage] [--format=summary|json|markdown]
+shiploop graph-dry-run [--list] [--scenario NAME | --script STEPS.json] [--protocol-version=2|3|4] [--delegation=inline|ask-agent] [--format=summary|json|markdown]
 shiploop managed-graph-dry-run ...   # compatibility managed controller only
 ```
 
@@ -3304,8 +3300,7 @@ shiploop managed-graph-dry-run ...   # compatibility managed controller only
 Improve checkpoint keep their issued route. It is refused on halted or done runs;
 the recorded value is a no-op.
 `graph-dry-run --list` prints the scenarios available for the selected protocol;
-`--delegation` selects the simulated protocol 3/4 route (inline by default);
-`--improve-cadence` selects the simulated cadence (planning-and-end by default). See
+`--delegation` selects the simulated protocol 3/4 route (inline by default); See
 [graph dry runs](references/graph-dry-run.md).
 
 The default `navigator` mode starts protocol 3 for new `init` and workspace

@@ -228,7 +228,8 @@ class StandaloneImproveBridgeTests(unittest.TestCase):
                     action = navigator.current_action(state)
                     result = {"outcome": "done", "summary": "Synthetic prerequisite."}
                     state = navigator.apply(state, action["id"], result)
-                    state = navigator.finish_improve(state, action["id"], self.receipt())
+                    if state.get("active_improve") is not None:
+                        state = navigator.finish_improve(state, action["id"], self.receipt())
 
                 action = dict(navigator.current_action(state))
                 plan_path = self.workspace / f"{stage}-plan.md"

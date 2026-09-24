@@ -75,6 +75,10 @@ class NavigatorV4Tests(unittest.TestCase):
         stage = navigator.current_stage(state)
         action = navigator.current_action(state)["id"]
         waiting = navigator.apply(state, action, self.result(stage, **(extra or {})))
+        if waiting.get("active_improve") is None:
+            # Not a planning/contract stage (or non-final carry-forward): the
+            # result advances directly, with no Improve child to complete.
+            return waiting
         return navigator.finish_improve(waiting, action, self.synthetic_improve(stage))
 
     def at_plan(self, protocol_version: int = 4) -> dict:
@@ -91,6 +95,17 @@ class NavigatorV4Tests(unittest.TestCase):
         stage = navigator.current_stage(state)
         action = navigator.current_action(state)["id"]
         waiting = navigator.apply(state, action, self.result(stage))
+        if waiting.get("active_improve") is None:
+            # Not a planning/contract stage: no child can bind here for
+            # real, so the pending shape is synthesized solely to exercise
+            # the bound-child renderer at a non-checkpoint stage.
+            waiting = copy.deepcopy(state)
+            waiting["active_improve"] = {
+                "action_id": action, "stage": stage,
+                "binding_id": waiting["run_id"] + "/" + action,
+                "workspace": waiting["repo"], "seed_result": self.result(stage), "skill": None,
+            }
+            waiting["revision"] += 1
         binding = bridge.binding(
             waiting, action, stage, waiting["active_improve"]["seed_result"], self.skill,
         )

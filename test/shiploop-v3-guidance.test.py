@@ -7,6 +7,7 @@ claim that an LLM interpreted a locator correctly or that Improve executed.
 
 from __future__ import annotations
 
+from copy import deepcopy
 from pathlib import Path
 import re
 import shutil
@@ -204,11 +205,36 @@ class V3GuidanceTests(unittest.TestCase):
             improve_skill="",
         )
 
+    def pending_improve(self, state: dict, **extra: object) -> tuple[dict, dict]:
+        """Return the state parked with an active_improve child, real or synthesized.
+
+        A genuine checkpoint stage reaches this through ``navigator.apply``; a
+        stage that no longer checkpoints cannot pause there, so this builds
+        the same parked shape directly, solely to exercise the Improve-pending
+        renderer these route-locator tests check.
+        """
+        stage = navigator.current_stage(state)
+        action = dict(navigator.current_action(state))
+        seed = result(stage, **extra)
+        waiting = navigator.apply(state, action["id"], seed)
+        if waiting.get("active_improve") is not None:
+            return waiting, action
+        waiting = deepcopy(state)
+        waiting["active_improve"] = {
+            "action_id": action["id"], "stage": stage,
+            "binding_id": waiting["run_id"] + "/" + action["id"],
+            "workspace": waiting["repo"], "seed_result": seed, "skill": None,
+        }
+        waiting["revision"] += 1
+        return waiting, action
+
     def complete_stage(self, state: dict, **extra: object) -> tuple[dict, str]:
-        """Advance one synthetic producer/Improve pair solely to render later packets."""
+        """Advance one synthetic producer (and its Improve pair, if checkpointed)."""
         stage = navigator.current_stage(state)
         action = dict(navigator.current_action(state))
         waiting = navigator.apply(state, action["id"], result(stage, **extra))
+        if waiting.get("active_improve") is None:
+            return waiting, action["id"]
         return navigator.finish_improve(waiting, action["id"], receipt(stage)), action["id"]
 
     def complete_stage_with_final(
@@ -216,8 +242,7 @@ class V3GuidanceTests(unittest.TestCase):
     ) -> tuple[dict, str]:
         """Import an Improve-revised result through the normal v3 parent transition."""
         stage = navigator.current_stage(state)
-        action = dict(navigator.current_action(state))
-        waiting = navigator.apply(state, action["id"], result(stage, **extra))
+        waiting, action = self.pending_improve(state, **extra)
         return (
             navigator.finish_improve(waiting, action["id"], receipt(stage), final_result),
             action["id"],
@@ -416,8 +441,7 @@ class V3GuidanceTests(unittest.TestCase):
                     }
                 ]
             if stage in CURRENT_SYSTEM_BASELINE_STAGE_ANCHORS:
-                action = dict(navigator.current_action(recovered))
-                waiting = navigator.apply(recovered, action["id"], result(stage, **extra))
+                waiting, action = self.pending_improve(recovered, **extra)
                 pending, pending_packet = self.cold_packet(waiting)
                 self.assertIsNotNone(pending["active_improve"])
                 self.assertEqual(navigator.current_stage(pending), stage)
@@ -578,9 +602,7 @@ class V3GuidanceTests(unittest.TestCase):
             self.assertEqual(producer_packet.count(RELEASE_OPERATION_ROUTE), 1, producer_packet)
 
             seed_refs = ["synthetic://release-operation/" + stage + "/candidate"]
-            waiting = navigator.apply(
-                recovered, action["id"], result(stage, evidence_refs=seed_refs)
-            )
+            waiting, _action = self.pending_improve(recovered, evidence_refs=seed_refs)
             binding_id = waiting["active_improve"]["binding_id"]
             pending, improve_packet = self.cold_packet(waiting)
             child = pending["active_improve"]
@@ -648,11 +670,10 @@ class V3GuidanceTests(unittest.TestCase):
             recovered, packet = self.cold_packet(state)
             with self.subTest(stage=stage, boundary="producer"):
                 self.assertEqual(packet.count(route), 1)
-            action = dict(navigator.current_action(recovered))
             extra: dict[str, object] = {}
             if stage == "plan":
                 extra["work_items"] = [{"id": "W1", "title": "Synthetic browser case"}]
-            waiting = navigator.apply(recovered, action["id"], result(stage, **extra))
+            waiting, action = self.pending_improve(recovered, **extra)
             pending, packet = self.cold_packet(waiting)
             with self.subTest(stage=stage, boundary="Improve"):
                 self.assertEqual(packet.count(route), 1)
@@ -689,8 +710,7 @@ class V3GuidanceTests(unittest.TestCase):
                 self.assertEqual(producer_packet.count(LOCAL_SKILL_GUIDE_ROUTE), 1, producer_packet)
                 self.assertEqual(producer_packet.count(index_route), 1, producer_packet)
 
-                action = dict(navigator.current_action(producer))
-                pending = navigator.apply(producer, action["id"], result(target))
+                pending, _action = self.pending_improve(producer)
                 recovered_pending, pending_packet = self.cold_packet(pending)
                 self.assertIsNotNone(recovered_pending["active_improve"])
                 self.assertEqual(navigator.current_stage(recovered_pending), target)
@@ -712,8 +732,7 @@ class V3GuidanceTests(unittest.TestCase):
             self.assertNotIn("google.script.run", packet)
             self.assertNotIn("set -euo pipefail", packet)
             if stage in CODING_GUIDE_STAGES:
-                action = dict(navigator.current_action(recovered))
-                waiting = navigator.apply(recovered, action["id"], result(stage))
+                waiting, action = self.pending_improve(recovered)
                 pending, child_packet = self.cold_packet(waiting)
                 self.assertEqual(child_packet.count(CODING_GUIDE_ROUTE), 1)
                 self.assertIn("Current action: Improve the completed " + stage, child_packet)
@@ -1119,11 +1138,8 @@ class V3GuidanceTests(unittest.TestCase):
                 before = (self.run / "state.md").read_bytes()
                 recovered = store.read_record(self.run / "state.md")
                 if stage == "regression":
-                    action = dict(navigator.current_action(recovered))
-                    waiting = navigator.apply(
-                        recovered,
-                        action["id"],
-                        result(stage, evidence_refs=["unrelated://pending-improve"]),
+                    waiting, action = self.pending_improve(
+                        recovered, evidence_refs=["unrelated://pending-improve"],
                     )
                     navigator.save(self.run, waiting)
                     pending_before = (self.run / "state.md").read_bytes()
@@ -1271,10 +1287,8 @@ class V3GuidanceTests(unittest.TestCase):
         assert_sources(packet, test_refine_action, refine_ref)
 
         regression_action = dict(navigator.current_action(state))["id"]
-        waiting = navigator.apply(
-            state,
-            regression_action,
-            result("regression", outcome="repeat", evidence_refs=[regression_repeat_ref]),
+        waiting, _waiting_action = self.pending_improve(
+            state, outcome="repeat", evidence_refs=[regression_repeat_ref]
         )
         pending, packet = self.cold_packet(waiting)
         self.assertIn("Current action: Improve the completed regression result.", packet)
@@ -1414,14 +1428,10 @@ class V3GuidanceTests(unittest.TestCase):
                 plan_action = action
         state, author_packet = self.cold_packet(state)
         self.assertIn(REUSABLE_TEST_FACILITY_ROUTE, author_packet)
-        action = dict(navigator.current_action(state))
-        waiting = navigator.apply(
-            state, action["id"],
-            result(
-                "test-author",
-                summary="Required MCP helper remains planned; readiness is not test execution.",
-                evidence_refs=[skill_ref, mcp_ref],
-            ),
+        waiting, action = self.pending_improve(
+            state,
+            summary="Required MCP helper remains planned; readiness is not test execution.",
+            evidence_refs=[skill_ref, mcp_ref],
         )
         state = navigator.finish_improve(waiting, action["id"], receipt("test-author"))
         author_action = action["id"]
@@ -1813,8 +1823,7 @@ class V3GuidanceTests(unittest.TestCase):
             self.assertEqual(packet.count(relocated_route), 1, packet)
             self.assertNotIn(str(REFERENCES), packet)
 
-            action = dict(navigator.current_action(recovered))
-            waiting = navigator.apply(recovered, action["id"], result(stage))
+            waiting, action = self.pending_improve(recovered)
             navigator.save(self.run, waiting)
             pending = store.read_record(self.run / "state.md")
             pending_packet = navigator.render(core, self.run, pending)
@@ -1873,8 +1882,7 @@ class V3GuidanceTests(unittest.TestCase):
             self.assertEqual(packet.count(relocated_route), 1, packet)
             self.assertNotIn(str(REFERENCES), packet)
 
-            action = dict(navigator.current_action(recovered))
-            waiting = navigator.apply(recovered, action["id"], result(stage))
+            waiting, action = self.pending_improve(recovered)
             navigator.save(self.run, waiting)
             pending = store.read_record(self.run / "state.md")
             self.assertIsNotNone(pending["active_improve"])
@@ -1949,8 +1957,7 @@ class V3GuidanceTests(unittest.TestCase):
             assert_packet(stage, producer_packet)
 
             if stage in SERVICE_DISCOVERY_ROUTES:
-                action = dict(navigator.current_action(producer))
-                waiting = navigator.apply(producer, action["id"], result(stage))
+                waiting, _action = self.pending_improve(producer)
                 pending, pending_packet = self.cold_packet(waiting)
                 self.assertIsNotNone(pending["active_improve"])
                 self.assertEqual(navigator.current_stage(pending), stage)

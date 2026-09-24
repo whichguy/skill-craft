@@ -15,6 +15,7 @@ SCRIPTS = ROOT / 'skills/shiploop/scripts'
 sys.path.insert(0, str(SCRIPTS))
 import shiploop_navigator_dry_run as driver  # noqa: E402
 import shiploop_navigator as navigator  # noqa: E402
+import shiploop_navigator_v3_prompts as guidance3  # noqa: E402
 import shiploop_protocol as protocol  # noqa: E402
 import shiploop_store as store  # noqa: E402
 
@@ -87,8 +88,8 @@ class NavigatorDryRunTests(unittest.TestCase):
         self.assertEqual(two_items['completed_instances'], ['W1', 'W2'])
 
     def test_v3_dry_run_simulates_actual_improve_handoffs_without_starting_them(self):
-        expected = {'delivery': 68, 'two-work-items': 104, 'blocked-resume': 71,
-                    'repeat-improve': 70, 'pause-resume': 70, 'halted': 1}
+        expected = {'delivery': 42, 'two-work-items': 62, 'blocked-resume': 44,
+                    'repeat-improve': 44, 'pause-resume': 44, 'halted': 1}
         scenarios = driver.scenarios(3)
         self.assertEqual(set(scenarios), set(expected))
         for name, scenario in scenarios.items():
@@ -100,24 +101,37 @@ class NavigatorDryRunTests(unittest.TestCase):
                                  'halted' if name == 'halted' else 'done')
                 produces = [event for event in report['events'] if event['command'] == 'produce']
                 finishes = [event for event in report['events'] if event['command'] == 'finish-improve']
-                self.assertEqual(len(produces), len(finishes))
-                self.assertEqual([event['from'] for event in produces],
-                                 [event['from'] for event in finishes])
+                # An actual Improve child starts only for a planning/contract
+                # stage result or the end-of-work carry-forward; every other
+                # produce advances directly with no paired finish-improve.
+                checkpoint_stages = guidance3.PLANNING_REVIEW_STAGES | {'carry-forward'}
+                self.assertTrue({event['from'] for event in finishes} <= checkpoint_stages)
+                planning_produces = sorted(event['from'] for event in produces
+                                           if event['from'] in guidance3.PLANNING_REVIEW_STAGES)
+                planning_finishes = sorted(event['from'] for event in finishes
+                                           if event['from'] in guidance3.PLANNING_REVIEW_STAGES)
+                self.assertEqual(planning_produces, planning_finishes)
                 self.assertTrue(all(event['simulation_only'] for event in report['events']))
 
         two_items = driver.run_scenario(
             'two-work-items', scenarios['two-work-items'], protocol_version=3)
         self.assertEqual(two_items['completed_instances'], ['W1', 'W2'])
-        for command in ('produce', 'finish-improve'):
-            inner = [event for event in two_items['events']
-                     if event['from'] in ('select-work', 'implement', 'carry-forward')
-                     and event['command'] == command]
-            self.assertEqual([event['owner'] for event in inner],
-                             ['W1', 'W1', 'W1', 'W2', 'W2', 'W2'])
-        w1_finish = next(event for event in two_items['events']
-                         if event['owner'] == 'W1' and event['from'] == 'carry-forward'
-                         and event['command'] == 'finish-improve')
-        self.assertEqual(w1_finish['next_owner'], 'W2')
+        produce_inner = [event for event in two_items['events']
+                         if event['from'] in ('select-work', 'implement', 'carry-forward')
+                         and event['command'] == 'produce']
+        self.assertEqual([event['owner'] for event in produce_inner],
+                         ['W1', 'W1', 'W1', 'W2', 'W2', 'W2'])
+        # select-work/implement are not planning stages and W1's carry-forward
+        # leaves W2 pending, so only W2's end-of-work carry-forward gets a
+        # review; W1's carry-forward advances straight to W2 without one.
+        finish_inner = [event for event in two_items['events']
+                        if event['from'] in ('select-work', 'implement', 'carry-forward')
+                        and event['command'] == 'finish-improve']
+        self.assertEqual([event['owner'] for event in finish_inner], ['W2'])
+        w1_produce = next(event for event in two_items['events']
+                          if event['owner'] == 'W1' and event['from'] == 'carry-forward'
+                          and event['command'] == 'produce')
+        self.assertEqual(w1_produce['next_owner'], 'W2')
 
     def test_wrong_edge_and_unknown_command_fail(self):
         wrong = copy.deepcopy(driver.scenarios()['delivery'])
@@ -234,7 +248,7 @@ class NavigatorDryRunTests(unittest.TestCase):
             self.assertEqual(result.returncode, 0, result.stdout + result.stderr)
             events = json.loads(result.stdout)['scenarios'][0]['events']
             self.assertEqual([event['to'] for event in events],
-                             ['intake', 'discovery', 'discovery', 'research'])
+                             ['discovery', 'research', 'spec', 'spec', 'test-strategy'])
 
 
 if __name__ == '__main__':

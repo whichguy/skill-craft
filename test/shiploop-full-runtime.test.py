@@ -27,21 +27,12 @@ SOURCE_SHIPLOOP = ROOT / "skills" / "shiploop"
 SOURCE_IMPROVE = ROOT / "skills" / "improve"
 GENERATED_SHIPLOOP = ROOT / "plugins" / "shiploop" / "skills" / "shiploop"
 GENERATED_IMPROVE = ROOT / "plugins" / "improve" / "skills" / "improve"
-E2E_ROOT = ROOT / "test" / "experiments" / "shiploop_e2e"
 DEFAULT_COMMIT_AUTHORITY = (
     "After the meaningful checks required by the current scope, commit only authorized "
     "changed product or requirements files. Never commit runtime evidence or inherited "
     "unrelated staged work, and do not create an empty commit unless an explicit "
     "audit-every-iteration rule authorizes it."
 )
-
-if str(E2E_ROOT) not in sys.path:
-    sys.path.insert(0, str(E2E_ROOT))
-
-import capture  # noqa: E402
-import evidence  # noqa: E402
-import grok_adapter  # noqa: E402
-import run as e2e_run  # noqa: E402
 
 
 # This expectation is intentionally independent of the prompt catalog and
@@ -62,6 +53,14 @@ EXPECTED_OUTER = (
 )
 EXPECTED_STAGES = EXPECTED_PRELUDE + EXPECTED_INNER + EXPECTED_OUTER
 COLD_RECOVERY_STAGES = {"discovery", "implement", "release-check"}
+# An actual Improve child now starts only for a planning/contract producer
+# result (below) or the carry-forward that leaves no work item pending; every
+# other stage advances with a plain callback.  Independent of the navigator
+# implementation's own copy, per this file's public-contract convention above.
+CHECKPOINT_STAGES = frozenset({
+    "spec", "test-strategy", "plan", "step-plan", "test-spec",
+    "system-test-author", "release-plan",
+})
 
 
 def _delivery_contract(*, candidate: str = "candidate-v1") -> dict:
@@ -333,7 +332,6 @@ class FullRuntimeCompositionTests(unittest.TestCase):
             "workspace", "start", "--repo", source, "--workspace-root", workspace,
             "--prompt", "Synthetic protocol composition fixture; no product claim.",
             "--improve-skill", self._card(self.source_improve),
-            "--improve-cadence", "every-stage",
         ]
         if delivery_contract:
             command.append("--delivery-contract")
@@ -349,8 +347,6 @@ class FullRuntimeCompositionTests(unittest.TestCase):
             "init", "--repo", repo, "--run-dir", run,
             "--prompt", "Synthetic protocol composition fixture; no product claim.",
             "--improve-skill", self._card(improve),
-            # This composition walks a producer/Improve pair at every stage.
-            "--improve-cadence", "every-stage",
         )
         return repo, run
 
@@ -627,6 +623,135 @@ class FullRuntimeCompositionTests(unittest.TestCase):
         })
         self._flush_trace()
 
+    _NO_OVERRIDE = object()
+
+    def _will_start_improve(
+        self, run: Path, stage: str, *, outcome: str = "done", explicit_work_items=_NO_OVERRIDE,
+    ) -> bool:
+        """Mirror the navigator's own checkpoint gate without importing it.
+
+        A planning/contract stage always reviews its result; the carry-forward
+        that leaves no work item pending gets the run's single end-of-work
+        review; every other stage (and every other carry-forward outcome)
+        advances directly.
+        """
+        if stage in CHECKPOINT_STAGES:
+            return True
+        if stage != "carry-forward" or outcome != "done":
+            return False
+        if explicit_work_items is not self._NO_OVERRIDE:
+            return not explicit_work_items
+        state = self._state(run)
+        return state["work_index"] + 1 >= len(state["work_items"])
+
+    def _accept_direct_stage(
+        self, *, shiploop: Path, run: Path, stage: str, payload: dict | None = None,
+        final_result: dict | None = None,
+    ) -> tuple[dict, dict]:
+        """Complete a non-checkpoint producer result with a plain callback.
+
+        No Improve child ever binds here; this exercises the same cold-recovery
+        idempotency this suite checks for a bound child, on the plain pending
+        action instead.
+        """
+        state = self._state(run)
+        cur_stage, action = self._cursor(state)
+        self.assertEqual(cur_stage, stage)
+        action_id = action["id"]
+        if final_result is not None:
+            result = dict(final_result)
+        else:
+            result = {
+                "outcome": "done",
+                "summary": f"Synthetic producer callback for {stage}; no semantic claim.",
+                "evidence_refs": [f"fixture://producer/{stage}/{action_id}"],
+            }
+            if payload:
+                result.update(payload)
+        if stage in COLD_RECOVERY_STAGES:
+            before = (run / "state.md").read_bytes()
+            recovery = self._run(self._script(shiploop), "next", "--run-dir", run)
+            self.assertEqual(before, (run / "state.md").read_bytes())
+            self.assertIn(action_id, recovery.stdout)
+            self.trace["cold_recoveries"].append({"stage": stage, "action": action_id})
+            self._flush_trace()
+        result_path = run / "inbox" / f"{action_id}.md"
+        _write_record(result_path, result, "Synthetic ShipLoop producer callback")
+        self._run(self._script(shiploop), "done", "--run-dir", run, "--action", action_id, "--result", result_path)
+        new_state = self._state(run)
+        self.assertIsNone(new_state["active_improve"])
+        context = {"stage": stage, "action": action_id, "run": run, "shiploop": shiploop}
+        return new_state, context
+
+    def _advance_stage(
+        self,
+        *,
+        shiploop: Path,
+        improve: Path,
+        repo: Path,
+        run: Path,
+        stage: str,
+        payload: dict | None = None,
+        final_result: dict | None = None,
+        rejection: str | None = None,
+        before_import=None,
+    ) -> tuple[dict, dict]:
+        """Complete the current pending stage, binding Improve only if it checkpoints."""
+        outcome = final_result.get("outcome", "done") if final_result else "done"
+        if final_result is not None and "work_items" in final_result:
+            explicit_work_items = final_result["work_items"]
+        elif payload is not None and "work_items" in payload:
+            explicit_work_items = payload["work_items"]
+        else:
+            explicit_work_items = self._NO_OVERRIDE
+        if self._will_start_improve(run, stage, outcome=outcome, explicit_work_items=explicit_work_items):
+            return self._accept_stage(
+                shiploop=shiploop, improve=improve, repo=repo, run=run, stage=stage,
+                payload=payload, final_result=final_result, rejection=rejection,
+                before_import=before_import,
+            )
+        self.assertIsNone(
+            rejection, f"{stage} starts no Improve child; move this rejection variant to a checkpoint stage"
+        )
+        self.assertIsNone(
+            before_import, f"{stage} starts no Improve child; move this hook to a checkpoint stage"
+        )
+        return self._accept_direct_stage(
+            shiploop=shiploop, run=run, stage=stage, payload=payload, final_result=final_result,
+        )
+
+    def _advance_past(self, shiploop: Path, run: Path, stages: tuple[str, ...]) -> None:
+        """Complete each of these non-checkpoint producer stages with a plain callback."""
+        for stage in stages:
+            self._accept_direct_stage(shiploop=shiploop, run=run, stage=stage)
+
+    def _correct_missing_delivery_import_direct(
+        self, *, shiploop: Path, run: Path, stage: str, missing_result: dict, corrected_result: dict,
+    ) -> dict:
+        """Keep a rejected direct completion pending until its fresh observation is supplied."""
+        state = self._state(run)
+        cur_stage, action = self._cursor(state)
+        self.assertEqual(cur_stage, stage)
+        action_id = action["id"]
+        result_path = run / "inbox" / f"{action_id}.md"
+        _write_record(result_path, missing_result, "Synthetic ShipLoop producer callback")
+        before = (run / "state.md").read_bytes()
+        failed = self._run(
+            self._script(shiploop), "done", "--run-dir", run,
+            "--action", action_id, "--result", result_path, code=2,
+        )
+        self.assertIn("pre-update", failed.stdout + failed.stderr)
+        self.assertEqual(before, (run / "state.md").read_bytes())
+        self.trace["rejections"].append({
+            "stage": stage, "action": action_id, "kind": "missing-fresh-delivery-observation",
+        })
+        self._flush_trace()
+        _write_record(result_path, corrected_result, "Synthetic ShipLoop producer callback")
+        self._run(self._script(shiploop), "done", "--run-dir", run, "--action", action_id, "--result", result_path)
+        new_state = self._state(run)
+        self.assertIsNone(new_state["active_improve"])
+        return new_state
+
     def _accept_stage(
         self,
         *,
@@ -756,18 +881,20 @@ class FullRuntimeCompositionTests(unittest.TestCase):
                 payload = {
                     "delivery_assessment": self._delivery_observation(state, "visual-drag"),
                 }
-            before_import = None
             if stage == "handoff":
-                def before_import(context, receipt):
-                    self._return_final_workspace(workspace, source, context, receipt)
-            state, context = self._accept_stage(
+                # Workspace return is allowed at active release or handoff once
+                # no child is active; handoff never binds one, so return runs
+                # here, while it is still the pending action.
+                self._return_final_workspace(workspace, source, {"shiploop": self.source_shiploop}, None)
+            state, context = self._advance_stage(
                 shiploop=self.source_shiploop, improve=self.source_improve,
                 repo=repo, run=run, stage=stage, payload=payload,
-                rejection={"intake": "unfinished", "discovery": "foreign", "research": "stale"}.get(stage),
-                before_import=before_import,
+                # intake/discovery/research advance directly now; these
+                # rejection variants move to the first three checkpoint stages.
+                rejection={"spec": "unfinished", "test-strategy": "foreign", "plan": "stale"}.get(stage),
             )
             observed.append(stage)
-            if stage == "intake":
+            if stage == "spec":
                 first_context = context
                 self._assert_exact_replay(context)
 
@@ -776,7 +903,10 @@ class FullRuntimeCompositionTests(unittest.TestCase):
         self.assertIsNotNone(checkpoint)
         self.assertEqual(state["status"], "done")
         self.assertEqual(len(state["history"]), 34)
-        self.assertEqual(len(state["improve_results"]), 34)
+        # Only the 7 planning/contract stages and the run's single end-of-work
+        # carry-forward review actually bind an Improve child.
+        first_pass_checkpoints = [s for s in EXPECTED_STAGES if s in CHECKPOINT_STAGES or s == "carry-forward"]
+        self.assertEqual(len(state["improve_results"]), len(first_pass_checkpoints))
         self.assertEqual([row["stage"] for row in state["history"]], list(EXPECTED_STAGES))
 
         # Re-enter a real checkpoint recorded immediately before a late outer
@@ -785,7 +915,7 @@ class FullRuntimeCompositionTests(unittest.TestCase):
         checkpoint_state = self._state(run)
         self.assertEqual(self._cursor(checkpoint_state)[0], "operations")
         previous_actions = set(checkpoint_state["improve_results"])
-        state, replan_context = self._accept_stage(
+        state, replan_context = self._advance_stage(
             shiploop=self.source_shiploop, improve=self.source_improve,
             repo=repo, run=run, stage="operations",
             final_result={
@@ -798,9 +928,11 @@ class FullRuntimeCompositionTests(unittest.TestCase):
         self.assertEqual(state["completed_work_items"], ["W1"])
         self.assertEqual([item["id"] for item in state["work_items"]], ["W1", "W2"])
         self.assertTrue(previous_actions.issubset(state["improve_results"]))
-        self.assertTrue((run / "improve" / replan_context["action"] / "evidence").is_dir())
+        # operations is not a planning/contract stage, so this outer replan
+        # advances directly; no Improve child or evidence directory starts.
+        self.assertFalse((run / "improve" / replan_context["action"]).exists())
 
-        state, repeat_context = self._accept_stage(
+        state, repeat_context = self._advance_stage(
             shiploop=self.source_shiploop, improve=self.source_improve,
             repo=repo, run=run, stage="select-work",
             final_result={
@@ -812,9 +944,8 @@ class FullRuntimeCompositionTests(unittest.TestCase):
         self.assertEqual(repeated_stage, "select-work")
         self.assertNotEqual(repeated_action["id"], repeat_context["action"])
         self.assertEqual(state["accepted"][repeat_context["action"]]["outcome"], "repeat")
-        self.assertIn(replan_context["action"], state["improve_results"])
 
-        state, _ = self._accept_stage(
+        state, _ = self._advance_stage(
             shiploop=self.source_shiploop, improve=self.source_improve,
             repo=repo, run=run, stage="select-work",
         )
@@ -824,7 +955,7 @@ class FullRuntimeCompositionTests(unittest.TestCase):
         # delayed v2 contract from system-test and must still complete a new
         # release plan without retaining a stale replanning barrier.
         for stage in EXPECTED_INNER[1:]:
-            state, _ = self._accept_stage(
+            state, _ = self._advance_stage(
                 shiploop=self.source_shiploop, improve=self.source_improve,
                 repo=repo, run=run, stage=stage,
             )
@@ -844,7 +975,7 @@ class FullRuntimeCompositionTests(unittest.TestCase):
                         )["observations"],
                     },
                 }
-            state, context = self._accept_stage(
+            state, context = self._advance_stage(
                 shiploop=self.source_shiploop, improve=self.source_improve,
                 repo=repo, run=run, stage=stage, payload=payload,
             )
@@ -856,7 +987,7 @@ class FullRuntimeCompositionTests(unittest.TestCase):
             self._run(self._script(self.source_shiploop), "next", "--run-dir", run).stdout,
         )
         prior_anchor = self._delivery_anchor(state)
-        state, delayed_replan_context = self._accept_stage(
+        state, delayed_replan_context = self._advance_stage(
             shiploop=self.source_shiploop, improve=self.source_improve,
             repo=repo, run=run, stage="release-check",
             final_result={
@@ -884,25 +1015,28 @@ class FullRuntimeCompositionTests(unittest.TestCase):
         self.assertIn("accepted outer replan edge", blocked_packet)
 
         for stage in EXPECTED_INNER:
-            state, _ = self._accept_stage(
+            state, _ = self._advance_stage(
                 shiploop=self.source_shiploop, improve=self.source_improve,
                 repo=repo, run=run, stage=stage,
             )
         self.assertEqual(self._cursor(state)[0], "system-test-author")
-        state, _ = self._accept_stage(
+        state, _ = self._advance_stage(
             shiploop=self.source_shiploop, improve=self.source_improve,
             repo=repo, run=run, stage="system-test-author",
         )
         before_fresh_system_test = state
-        missing_context = self._begin_stage(
-            shiploop=self.source_shiploop, improve=self.source_improve,
-            repo=repo, run=run, expected_stage="system-test",
-        )
-        missing_child = self._start_child(missing_context)
-        state = self._correct_missing_delivery_import(
-            missing_context,
-            missing_child,
-            {
+        # system-test is not a planning/contract stage, so this rejection now
+        # runs on the plain producer callback: the CLI's own delivery-contract
+        # validation still refuses a result missing the fresh observation.
+        missing_action = self._cursor(self._state(run))[1]["id"]
+        state = self._correct_missing_delivery_import_direct(
+            shiploop=self.source_shiploop, run=run, stage="system-test",
+            missing_result={
+                "outcome": "done",
+                "summary": "Synthetic producer callback for system-test; no semantic claim.",
+                "evidence_refs": [f"fixture://producer/system-test/{missing_action}"],
+            },
+            corrected_result={
                 "outcome": "done",
                 "summary": "Synthetic Improve correction supplies the fresh pre-update observation.",
                 "evidence_refs": ["fixture://delivery/candidate-v3/pre-drag"],
@@ -912,11 +1046,11 @@ class FullRuntimeCompositionTests(unittest.TestCase):
             },
         )
         self.assertEqual(self._cursor(state)[0], "product-acceptance")
-        state, _ = self._accept_stage(
+        state, _ = self._advance_stage(
             shiploop=self.source_shiploop, improve=self.source_improve,
             repo=repo, run=run, stage="product-acceptance",
         )
-        state, _ = self._accept_stage(
+        state, _ = self._advance_stage(
             shiploop=self.source_shiploop, improve=self.source_improve,
             repo=repo, run=run, stage="release-plan",
         )
@@ -924,7 +1058,7 @@ class FullRuntimeCompositionTests(unittest.TestCase):
             self._script(self.source_shiploop), "next", "--run-dir", run
         ).stdout
         self.assertNotIn("Delivery replanning required:", recovered_packet)
-        state, recovered_check_context = self._accept_stage(
+        state, recovered_check_context = self._advance_stage(
             shiploop=self.source_shiploop, improve=self.source_improve,
             repo=repo, run=run, stage="release-check",
         )
@@ -933,15 +1067,18 @@ class FullRuntimeCompositionTests(unittest.TestCase):
             "initial_late_replan_action": replan_context["action"],
             "delayed_contract_after_replan_action": delayed_contract_context["action"],
             "late_contract_replan_action": delayed_replan_context["action"],
-            "missing_fresh_observation_action": missing_context["action"],
+            "missing_fresh_observation_action": missing_action,
             "recovered_release_check_action": recovered_check_context["action"],
         }
 
         self._flush_trace()
         trace = json.loads(self.trace_path.read_text(encoding="utf-8"))
-        baseline = trace["imports"][:34]
-        self.assertEqual([row["stage"] for row in baseline], list(EXPECTED_STAGES))
-        self.assertEqual(len({row["parent_action"] for row in baseline}), 34)
+        # Only the checkpoint stages from the first pass actually import an
+        # Improve completion; every other stage advances with a plain callback
+        # and never appends to trace["imports"].
+        baseline = trace["imports"][:len(first_pass_checkpoints)]
+        self.assertEqual([row["stage"] for row in baseline], first_pass_checkpoints)
+        self.assertEqual(len({row["parent_action"] for row in baseline}), len(first_pass_checkpoints))
         self.assertEqual({row["stage"] for row in trace["cold_recoveries"]}, COLD_RECOVERY_STAGES)
         self.assertEqual(
             {row["kind"] for row in trace["rejections"]},
@@ -965,272 +1102,18 @@ class FullRuntimeCompositionTests(unittest.TestCase):
         self.assertEqual(self.source_fingerprint["shiploop"], _fingerprint(self.source_shiploop))
         self.assertEqual(self.source_fingerprint["improve"], _fingerprint(self.source_improve))
 
-    def test_v3_intake_host_observer_bridge(self) -> None:
-        """Observe one real v3 intake prefix through synthetic host stream records."""
-        observer_root = self.base / "observer bridge"
-        initial = evidence.capture_run_artifacts(
-            [self.unrelated_cwd], observer_root / "initial-artifacts"
-        )
-        executions: list[dict] = []
-        pending_checkpoints: list[dict] = []
-        original_run = self._run
-        original_begin_stage = self._begin_stage
-
-        def record_run(
-            executable: Path, *args: object, code: int = 0
-        ) -> subprocess.CompletedProcess[str]:
-            result = original_run(executable, *args, code=code)
-            executions.append({
-                "argv": list(result.args),
-                "exit_code": result.returncode,
-                "stdout": result.stdout,
-                "stderr": result.stderr,
-            })
-            return result
-
-        def checkpoint_pending(**kwargs: object) -> dict:
-            context = original_begin_stage(**kwargs)
-            capture_root = observer_root / "pending-artifacts"
-            pending_checkpoints.append({
-                "capture": evidence.capture_run_artifacts([context["run"]], capture_root),
-                "execution_count": len(executions),
-            })
-            return context
-
-        self._run = record_run
-        self._begin_stage = checkpoint_pending
-        try:
-            repo, run_dir = self._start_direct(
-                "v3 intake observer bridge", self.source_shiploop, self.source_improve
-            )
-            accepted_state, context = self._accept_stage(
-                shiploop=self.source_shiploop,
-                improve=self.source_improve,
-                repo=repo,
-                run=run_dir,
-                stage="intake",
-            )
-            accepted_capture = evidence.capture_run_artifacts(
-                [run_dir], observer_root / "accepted-artifacts"
-            )
-        finally:
-            self._run = original_run
-            self._begin_stage = original_begin_stage
-
-        self.assertEqual(len(pending_checkpoints), 1, executions)
-        pending_checkpoint = pending_checkpoints[0]
-        pending_navigation = evidence.inspect_run_artifacts(pending_checkpoint["capture"])
-        accepted_navigation = evidence.inspect_run_artifacts(accepted_capture)
-        self.assertEqual(len(pending_navigation["states"]), 1, pending_navigation)
-        self.assertEqual(len(accepted_navigation["states"]), 1, accepted_navigation)
-        pending_state = pending_navigation["states"][0]["state"]
-        captured_accepted_state = accepted_navigation["states"][0]["state"]
-        self.assertEqual(captured_accepted_state, accepted_state)
-        self.assertEqual(pending_state["run_id"], accepted_state["run_id"])
-        self.assertEqual(pending_state["active_improve"]["action_id"], context["action"])
-        self.assertEqual(pending_state["history"], [])
-        self.assertEqual(self._cursor(accepted_state)[0], "discovery")
-        self.assertNotEqual(accepted_state["status"], "done")
-        self.assertEqual(
-            [row["action"] for row in accepted_state["history"]], [context["action"]]
-        )
-        record = accepted_state["improve_results"][context["action"]]
-        self.assertEqual(Path(record["skill"]["skill_card"]), self._card(self.source_improve).resolve())
-        self.assertEqual(Path(record["skill"]["runtime_cli"]), self._until(self.source_improve).resolve())
-
-        pending_count = pending_checkpoint["execution_count"]
-        pending_records = tuple(
-            json.loads(json.dumps(row, sort_keys=True)) for row in executions[:pending_count]
-        )
-        accepted_records = tuple(
-            json.loads(json.dumps(row, sort_keys=True)) for row in executions
-        )
-        self.assertGreater(len(pending_records), 1, pending_records)
-        self.assertGreater(len(accepted_records), len(pending_records), accepted_records)
-        self.assertTrue(all(row["exit_code"] == 0 for row in accepted_records), accepted_records)
-        self.assertTrue(
-            all(isinstance(row["stdout"], str) and isinstance(row["stderr"], str)
-                for row in accepted_records),
-            accepted_records,
-        )
-
-        selected_script = self._script(self.source_shiploop)
-
-        def observed_argv(row: dict) -> list[str]:
-            actual_argv = row["argv"]
-            self.assertEqual(actual_argv[:2], [sys.executable, "-B"], row)
-            return [actual_argv[2], *actual_argv[3:]]
-
-        accepted_argv = [observed_argv(row) for row in accepted_records]
-        completion_indexes = [
-            index
-            for index, argv in enumerate(accepted_argv)
-            if argv[:2] == [str(selected_script), "improve-complete"]
-        ]
-        self.assertEqual(completion_indexes, [len(accepted_argv) - 1], accepted_argv)
-        completion_call_id = f"actual-{completion_indexes[0]}"
-
-        def synthetic_events(
-            records: tuple[dict, ...],
-            *,
-            omit_completion_update: bool = False,
-            duplicate_completion_call: bool = False,
-            omit_completion_exit_code: bool = False,
-            include_terminal_end: bool = True,
-        ) -> list[dict]:
-            events: list[dict] = []
-            for index, row in enumerate(records):
-                call_id = f"actual-{index}"
-                invocation = {
-                    "type": "tool_call",
-                    "toolCallId": call_id,
-                    "toolName": "run_terminal_cmd",
-                    "rawInput": {"argv": observed_argv(row)},
-                    # The envelope is explicit test-only provenance. The actual
-                    # recorded process data remains separate from Grok's input.
-                    "syntheticFromActualProcess": row,
-                }
-                events.append(invocation)
-                if duplicate_completion_call and call_id == completion_call_id:
-                    events.append(json.loads(json.dumps(invocation, sort_keys=True)))
-                # Grok's native stream can report a placeholder zero exit code
-                # while the tool remains in progress. It must not certify the
-                # later completed callback when that final update lacks an exit.
-                events.append({
-                    "type": "tool_call_update",
-                    "toolCallId": call_id,
-                    "status": "in_progress",
-                    "rawOutput": {"exit_code": 0},
-                })
-                if omit_completion_update and call_id == completion_call_id:
-                    continue
-                raw_output = {
-                    "stdout": row["stdout"],
-                    "stderr": row["stderr"],
-                }
-                if not (omit_completion_exit_code and call_id == completion_call_id):
-                    raw_output["exit_code"] = row["exit_code"]
-                events.append({
-                    "type": "tool_call_update",
-                    "toolCallId": call_id,
-                    "status": "completed",
-                    "rawOutput": raw_output,
-                })
-            if include_terminal_end:
-                events.append({"type": "end", "stopReason": "completed"})
-            return events
-
-        def observe(label: str, events: list[dict], navigation: dict) -> tuple[dict, dict]:
-            stream = observer_root / f"{label}.jsonl"
-            stream.write_text(
-                "\n".join(json.dumps(event, ensure_ascii=False, sort_keys=True) for event in events) + "\n",
-                encoding="utf-8",
-            )
-            output = observer_root / f"{label}-capture"
-            captured = capture.capture_process(
-                [
-                    sys.executable,
-                    "-B",
-                    "-c",
-                    (
-                        "import pathlib, sys; "
-                        "sys.stdout.write(pathlib.Path(sys.argv[1]).read_text(encoding='utf-8'))"
-                    ),
-                    str(stream),
-                ],
-                self.unrelated_cwd,
-                output,
-                10,
-                env=self.environment,
-            )
-            self.assertEqual(captured["exit_code"], 0, captured)
-            self.assertFalse(captured["timed_out"], captured)
-            self.assertIsNone(captured["capture_error"], captured)
-            summary = grok_adapter.summarize_events(output / "events.jsonl", selected_script)
-            lifecycle = e2e_run.lifecycle_observation(
-                summary, navigation, accepted_state["prompt"], repo, initial
-            )
-            return summary, lifecycle
-
-        valid_summary, valid_lifecycle = observe(
-            "valid-prefix", synthetic_events(accepted_records), accepted_navigation
-        )
-        self.assertTrue(valid_summary["terminal_end_observed"], valid_summary)
-        self.assertTrue(valid_lifecycle["complete"], valid_lifecycle)
-        self.assertEqual(valid_lifecycle["protocol_version"], 3)
-        self.assertEqual(valid_lifecycle["run_id"], accepted_state["run_id"])
-        self.assertEqual(valid_lifecycle["callback_commands"], ["improve-complete"])
-        self.assertEqual(valid_lifecycle["accepted_action_count"], 1)
-        self.assertEqual(valid_lifecycle["observed_callback_count"], 1)
-        self.assertEqual(valid_lifecycle["missing_callback_actions"], [])
-
-        producer_summary, producer_lifecycle = observe(
-            "producer-only", synthetic_events(pending_records), pending_navigation
-        )
-        self.assertTrue(producer_summary["tool_completion_completed"], producer_summary)
-        self.assertFalse(producer_lifecycle["complete"], producer_lifecycle)
-        self.assertEqual(producer_lifecycle["accepted_action_count"], 0)
-        self.assertEqual(producer_lifecycle["missing_callback_actions"], [])
-
-        missing_update_summary, missing_update_lifecycle = observe(
-            "missing-completion-update",
-            synthetic_events(accepted_records, omit_completion_update=True),
-            accepted_navigation,
-        )
-        missing_update_call = next(
-            call for call in missing_update_summary["cli_calls"]
-            if call["call_id"] == completion_call_id
-        )
-        self.assertFalse(missing_update_call["completed"], missing_update_summary)
-        self.assertFalse(missing_update_lifecycle["complete"], missing_update_lifecycle)
-        self.assertEqual(missing_update_lifecycle["missing_callback_actions"], [context["action"]])
-
-        duplicate_summary, duplicate_lifecycle = observe(
-            "duplicate-tool-event",
-            synthetic_events(accepted_records, duplicate_completion_call=True),
-            accepted_navigation,
-        )
-        self.assertFalse(duplicate_lifecycle["complete"], duplicate_lifecycle)
-        self.assertEqual(duplicate_lifecycle["accepted_action_count"], 1)
-        self.assertEqual(duplicate_lifecycle["missing_callback_actions"], [context["action"]])
-        self.assertIn(completion_call_id, duplicate_lifecycle["ambiguous_tool_call_ids"])
-        self.assertEqual(
-            [call["call_id"] for call in duplicate_summary["cli_calls"]].count(completion_call_id), 2,
-            duplicate_summary,
-        )
-
-        missing_end_summary, missing_end_lifecycle = observe(
-            "missing-terminal-end",
-            synthetic_events(accepted_records, include_terminal_end=False),
-            accepted_navigation,
-        )
-        self.assertFalse(missing_end_summary["terminal_end_observed"], missing_end_summary)
-        self.assertTrue(missing_end_lifecycle["complete"], missing_end_lifecycle)
-        self.assertEqual(missing_end_lifecycle["accepted_action_count"], 1)
-        self.assertEqual(missing_end_lifecycle["observed_callback_count"], 1)
-
-        unknown_exit_summary, unknown_exit_lifecycle = observe(
-            "unknown-completion-exit",
-            synthetic_events(accepted_records, omit_completion_exit_code=True),
-            accepted_navigation,
-        )
-        unknown_exit_call = next(
-            call for call in unknown_exit_summary["cli_calls"]
-            if call["call_id"] == completion_call_id
-        )
-        self.assertTrue(unknown_exit_call["completed"], unknown_exit_summary)
-        self.assertEqual(unknown_exit_call["exit_codes"], [], unknown_exit_summary)
-        self.assertFalse(unknown_exit_lifecycle["complete"], unknown_exit_lifecycle)
-        self.assertEqual(unknown_exit_lifecycle["missing_callback_actions"], [context["action"]])
 
     def test_generated_payload_binds_its_own_selected_improve_runtime(self) -> None:
         """A copied generated payload must not fall back to an ambient skill path."""
         repo, run = self._start_direct("generated payload smoke", self.generated_shiploop, self.generated_improve)
+        # intake, discovery and research advance directly (not planning
+        # stages); spec is the first stage that actually binds Improve.
+        self._advance_past(self.generated_shiploop, run, ("intake", "discovery", "research"))
         state, context = self._accept_stage(
             shiploop=self.generated_shiploop, improve=self.generated_improve,
-            repo=repo, run=run, stage="intake",
+            repo=repo, run=run, stage="spec",
         )
-        self.assertEqual(self._cursor(state)[0], "discovery")
+        self.assertEqual(self._cursor(state)[0], "test-strategy")
         record = state["improve_results"][context["action"]]
         self.assertEqual(Path(record["skill"]["skill_card"]), self._card(self.generated_improve).resolve())
         self.assertEqual(Path(record["skill"]["runtime_cli"]), self._until(self.generated_improve).resolve())
