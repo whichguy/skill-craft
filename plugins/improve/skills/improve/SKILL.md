@@ -5,7 +5,7 @@ description: >-
   loop: use recent Git history, make warranted changes, run meaningful checks,
   and require two consecutive trivial-only review passes. Supports a read-only
   interpretation preview; not a one-off code review.
-version: 0.2.0-rc.9
+version: 0.3.0-rc.1
 license: MIT
 platforms:
   - linux
@@ -32,9 +32,16 @@ Improve is an execution-capable coding agent, not an audit-only role. Within the
 selected entrypoint's task, phase and authority, use the available tools, MCP
 interactions and skills to investigate, produce or revise code, tests, documents
 and configuration, and perform authorized deployments or other operations.
-Running in a delegated context adds no capability restriction. Carry existing
-authorization forward and disclose actual host capability gaps. Parent-only
-control callbacks remain with their owner.
+Running inside an agent started by the [`improve-agent`](#agent-run-invocation)
+skill adds no capability restriction. Carry existing authorization forward and
+disclose actual host capability gaps. Parent-only control callbacks remain with
+their owner.
+
+This card runs inline: the conversation that invokes it executes every review
+cycle, check and callback itself. It never hands the invocation, a review or a
+check run to another agent unless an independent review is explicitly requested
+(see [Agents and independent review](#standalone-owner-binding)). To run the
+whole invocation in a fresh native agent instead, use the `improve-agent` skill.
 
 Use your judgment to find worthwhile improvements, including consequential
 issues the initiating context did not anticipate. Suggested fixes are starting
@@ -134,25 +141,16 @@ never executes it; no other stopped child advances the parent. After a successfu
 `complete` response is saved exactly at the printed host receipt path, the parent
 may use its exact normal return route.
 
-For a native assignment marked `execution_role: improve-executor` and
-`delegation_owner: parent`, execute this entire bound loop in the exact Child
-workspace. The parent selects the Ask Agent route; this card does not dispatch
-itself. Do not delegate the whole invocation again, create another worktree, or
-execute a ShipLoop callback or workspace return. Scoped independent reviewers
-and test workers remain available with only one candidate writer. Retain the
-commit policy, including any explicit no-commit override, and the parent-owned `host-owner.md` locator in the
-frozen context. Read that record for orientation; only the parent appends owner,
-acceptance and delivery events. Save the exact child packets and completion
-evidence, finish all writes and collect delegates, then return the cumulative
-[completion summary](#completion-summary) inline with their absolute
-locators, changed paths, actual checks, scoped commit SHAs (or the explicit
-no-commit/no-change reason), stopped status, and the unchanged parent
-continuation. Only the parent verifies and executes that continuation. Edits
-remain in the bound candidate; native completion is not caller delivery.
+## Agent-run invocation
 
-This executor assignment applies only to the explicit ShipLoop v3/v4 whole-skill
-subcall. Standalone dispatch, other owner-managed entrypoints, and active legacy
-invocations retain their existing ownership and commit policies.
+This card never dispatches itself. The `improve-agent` skill starts one fresh
+native agent and has it run this card there; its card owns that dispatch, the
+assignment layout, the worker contract and the parent's verification. A native
+assignment marked `execution_role: improve-executor` and
+`delegation_owner: parent` is such an agent: follow the worker contract its
+assignment carries, composed from the `improve-agent` card, and run this card
+inside that agent exactly as a direct inline invocation, in the assignment's
+workspace and under its frozen authority. Do not dispatch the invocation again.
 
 ## Other owner-managed consumer entrypoint
 
@@ -192,7 +190,8 @@ The managed binding must state the child action ID, profile, frozen
 candidate/context inputs, scope, history, policy/executor digests, checks,
 explicit `audit-every-iteration` commit policy, evidence/certificate
 requirements, independent-review rule, and parent return conditions. The shared
-policy asks for an independent reviewer when available. If this binding makes
+policy uses an independent reviewer only when the owner binding selects one; the
+managed binding selects one whenever a reviewer is available. If this binding makes
 independent review mandatory, it must explicitly say whether a recorded
 self-review fallback is allowed; absent that authorization, unavailable
 independent review blocks the child. The controller must never infer a fallback
@@ -230,21 +229,29 @@ original learnings with selective references to prior commits in one account.
   behavior is unchanged. A one-line bug fix, public-contract change,
   security/data-integrity correction, or missing required regression coverage
   is material. Uncertain impact remains unresolved until investigated.
+- **Agents and independent review:** this binding does not select independent
+  review by default. Perform every review, check and commit in this
+  conversation; start no reviewer, test-runner or executor agent, and record
+  each review as `self-review (inline default)`. Select a fresh read-only
+  independent reviewer only when the user or the invoking parent explicitly
+  asks for independent review; freeze that request in `context.authority` and
+  apply the shared policy's independent-review rules to it. A host's standing
+  permission or preference to start agents does not select one here.
 - **Evidence location:** retain each review in the host-visible task record:
   the candidate identity and ownership-aware scope, seven-message history read,
   findings, plan or no-change reason, actual changes, commands and results,
   lessons, and commit receipt when required. For each substantive cycle, retain
-  concrete locators for material actually read and whether an independent
-  reviewer was used or, if unavailable, the permitted self-review fallback and
-  its rationale. Repeated templated wording is an audit cue only: neither equal
-  nor unequal bytes prove an independent review. Before `done`, summarize those
-  observations truthfully in its concise `evidence` field and retain complete
-  continuation facts in `handoff`, as described in
-  [callback evidence](references/callback-evidence.md). New runs must not call
-  `scripts/capture_evidence.py`, create `.until-loop/working.md`, or create
-  `.until-loop/evidence/`. The script retains only its current contract,
-  latest report, and trivial-review counter; it cannot turn a callback claim
-  into proof.
+  concrete locators for material actually read and whether it was the inline
+  self-review or a requested independent review (and, if a requested reviewer
+  was unavailable, the disclosed limitation). Repeated templated wording is an
+  audit cue only: neither equal nor unequal bytes prove an independent review.
+  Before `done`, summarize those observations truthfully in its concise
+  `evidence` field and retain complete continuation facts in `handoff`, as
+  described in [callback evidence](references/callback-evidence.md). New runs
+  must not call `scripts/capture_evidence.py`, create `.until-loop/working.md`,
+  or create `.until-loop/evidence/`. The script retains only its current
+  contract, latest report, and trivial-review counter; it cannot turn a
+  callback claim into proof.
 - **Commit policy:** after required checks pass, commit authorized scoped files
   changed by a completed iteration with the required learning-oriented record.
   Its body must include Review, Plan, Changes, Validation, Key learnings, and
@@ -384,8 +391,9 @@ Include preparing a cumulative summary in the standalone execution contract.
 Before each `done`, retain the key implemented changes and still-relevant lessons
 from the whole run in the existing `handoff`; the last two no-change reviews must
 not reduce that account to “nothing changed.” After the runtime returns
-`complete`, return a self-contained summary to the caller, inline in the native
-return when delegated:
+`complete`, return a self-contained summary to the caller; inside an
+[agent-run invocation](#agent-run-invocation), return it inline in the native
+result:
 
 - **Key implemented changes:** what changed, why it matters, and the relevant
   paths and commit receipts. Distinguish this run's contributions from inherited

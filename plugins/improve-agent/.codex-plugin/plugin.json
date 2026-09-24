@@ -1,0 +1,32 @@
+{
+  "name": "improve-agent",
+  "version": "0.1.0",
+  "description": "Use when Improve should run in a fresh native agent instead of this conversation: start one agent that runs /improve in its own context, keep useful parent work going, then verify and relay its result. For Improve in this conversation, use improve.",
+  "author": {
+    "name": "whichguy",
+    "url": "https://github.com/whichguy"
+  },
+  "homepage": "https://github.com/whichguy/skill-craft",
+  "repository": "https://github.com/whichguy/skill-craft",
+  "license": "MIT",
+  "keywords": [
+    "skill-craft",
+    "improve-agent",
+    "portable-skills",
+    "prompt-only"
+  ],
+  "skills": "./skills/",
+  "interface": {
+    "displayName": "Improve Agent",
+    "shortDescription": "Run Improve in a fresh native agent",
+    "longDescription": "Use when Improve should run in a fresh native agent instead of this conversation: start one agent that runs /improve in its own context, keep useful parent work going, then verify and relay its result. For Improve in this conversation, use improve.",
+    "developerName": "whichguy",
+    "category": "Productivity",
+    "capabilities": [
+      "Read"
+    ],
+    "defaultPrompt": [
+      "Use $improve-agent:improve-agent for this task."
+    ]
+  }
+}

@@ -100,12 +100,15 @@ Refresh affected checks after a cleanup that changes the candidate.
 
 ## Independent review
 
-Use a fresh, read-only independent reviewer when available for a meaningful
-second pass. Give that reviewer the scope, current artifacts, evidence, and
-criteria without telling it that the desired result is trivial. Treat its
-observations through the same triage rule. If independent review is unavailable,
-disclose the self-review limitation and permitted fallback rationale in the
-record. Repeated or templated review text is an audit cue, not proof either way:
-matching or different bytes, hashes, or wording do not establish independent or
-substantive review. Review the actual locators and reviewer record instead. This
-policy adds no hash gate, counter, schema, or commit requirement.
+Use a fresh, read-only independent reviewer for a meaningful second pass only
+when the owner binding selects independent review; the binding states when it
+does. Give that reviewer the scope, current artifacts, evidence, and criteria
+without telling it that the desired result is trivial. Treat its observations
+through the same triage rule. When the binding does not select independent
+review, record the self-review and the binding's rationale. If a selected
+independent review is unavailable, disclose the self-review limitation and
+permitted fallback rationale in the record. Repeated or templated review text
+is an audit cue, not proof either way: matching or different bytes, hashes, or
+wording do not establish independent or substantive review. Review the actual
+locators and reviewer record instead. This policy adds no hash gate, counter,
+schema, or commit requirement.

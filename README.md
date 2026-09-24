@@ -35,7 +35,7 @@ Use **skill-craft** for portable skill packages and their plugin distribution. U
 
 <!-- skill-craft:inventory:start -->
 
-**20 skills.** Generated from skill frontmatter by `scripts/sync-plugin-views.sh`.
+**21 skills.** Generated from skill frontmatter by `scripts/sync-plugin-views.sh`.
 
 | Skill | Version | Purpose |
 |-------|---------|---------|
@@ -46,7 +46,8 @@ Use **skill-craft** for portable skill packages and their plugin distribution. U
 | [derive-questions](skills/derive-questions/SKILL.md) | 0.1.2 | Iteratively researches real software project failures and wins, extracts key planning questions via 5-whys analysis, validates them against synthetic test plans, judges their… |
 | [devloop](skills/devloop/SKILL.md) | 0.6.1 | DevLoop (default): invoke the autonomous engine for a machine-verifiable build or debug goal. Use when the user says devloop, DevLoop, /devloop, or wants an isolated fail-closed… |
 | [evidence-gates](skills/evidence-gates/SKILL.md) | 0.2.3 | Optional offline evidence gates (freeze/prove/stop with guard digests) for machine-checkable red→green contracts without the autonomous engine. Use when the user says… |
-| [improve](skills/improve/SKILL.md) | 0.2.0-rc.9 | Use when a repository candidate needs a deliberate review-and-improvement loop: use recent Git history, make warranted changes, run meaningful checks, and require two consecutive… |
+| [improve](skills/improve/SKILL.md) | 0.3.0-rc.1 | Use when a repository candidate needs a deliberate review-and-improvement loop: use recent Git history, make warranted changes, run meaningful checks, and require two consecutive… |
+| [improve-agent](skills/improve-agent/SKILL.md) | 0.1.0 | Use when Improve should run in a fresh native agent instead of this conversation: start one agent that runs /improve in its own context, keep useful parent work going, then… |
 | [improve-system-prompt](skills/improve-system-prompt/SKILL.md) | 0.1.2 | Benchmark and compare system prompt variants (V2/V2a/V2b/V2c) for Sheets Chat by running test scenarios through the real GAS-side ClaudeConversation pipeline. Tests both… |
 | [plan-test](skills/plan-test/SKILL.md) | 0.1.2 | Generate comprehensive tests for code. Uses an inline strategy or an available independent test specialist for complex components. |
 | [prompt-align](skills/prompt-align/SKILL.md) | 0.1.2 | Compare an agent or skill prompt against its test harness skill for phase-model, skip-condition, and wiring consistency. Reports mismatches and identifies which file is… |

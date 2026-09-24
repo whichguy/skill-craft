@@ -114,10 +114,12 @@ either loops to the profile review stage or admits the final fresh-check phase.
 The consumer may mirror that record into legacy receipts, but must not maintain
 a second convergence counter.
 
-If the binding requires independent review, each completed pass records either
-a performed reviewer evidence ref or, only when the binding explicitly permits
-it, an unavailable reviewer plus a recorded `self-review` fallback and reason.
-An unavailable required reviewer without that explicit fallback cannot count.
+The managed binding selects independent review whenever a reviewer is
+available, whether or not it is required. If the binding requires independent
+review, each completed pass records either a performed reviewer evidence ref
+or, only when the binding explicitly permits it, an unavailable reviewer plus a
+recorded `self-review` fallback and reason. An unavailable required reviewer
+without that explicit fallback cannot count.
 
 At a final phase, supply no new pass. Supply an output identity with a
 64-character `identity_digest` and fresh evidence:
