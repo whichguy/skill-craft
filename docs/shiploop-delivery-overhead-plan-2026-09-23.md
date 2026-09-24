@@ -151,9 +151,12 @@ After this fix lands, scope both the change sets and their verification per skil
 - Import refuses a binding line that is not exactly its own line.
 - Exactly two distinct review references and `required_trivial_reviews ≥ 2`.
 - Local checks never satisfy a required consumer, identity or deployed observation.
-- Workspace return leaves the source branch untouched and waits for the final
-  handoff Improve child.
-- test-author, test-red and implement always get a full Improve child.
+- Workspace return leaves the source branch untouched. It waits for the final
+  handoff Improve child under `every-stage`, and for no active child at
+  release/handoff under `plan-and-end`.
+- Code-changing work is always covered by a full Improve child: its own child
+  under `every-stage`, the end-of-work child under `plan-and-end` (0.21.0
+  owner decision, 2026-09-24).
 - Saved runs never silently migrate; new behaviour applies to new runs or an
   explicit, recorded opt-in.
 
@@ -166,3 +169,51 @@ After this fix lands, scope both the change sets and their verification per skil
 | 3 | Pin the Improve package by digest or by copy under symlinked installs? | Digest in Phase 1, copy for new runs in Phase 2 |
 | 4 | Confirm-route defaults | On for new runs; `blocked`/`repeat` stay full; a first-ever passing check is not a transition |
 | 5 | Compact profile | Automatic eligibility for new runs; explicit upgrade only |
+
+## 0.21.0: plan-and-end Improve cadence (2026-09-24)
+
+Owner decision: run Improve once at the end of step execution, not after every
+stage. New v3/v4 runs record `improve_cadence: plan-and-end`. Only two results
+start an Improve child: `plan`, and the `carry-forward` that leaves no work
+item pending. That end-of-work child reviews every item's change before OUTER
+system tests and release. A single-item dry run drops from 68 to 36 events.
+Saved runs and `--improve-cadence every-stage` keep the old behavior. Shipped
+with the same release:
+
+- The receipt says `review_refs` has exactly the two trivial-streak reviews.
+  The import error now reports the count it got and what to do.
+- When the step plan says there is no parallel chain, or the item's steps
+  write the same tree, implement uses one writer in the execution checkout.
+- Implement writes the listed files first and reads history only when a test
+  fails.
+- A stage with no product change records its command, exit code and required
+  output substrings. It does not reread history to repeat a recorded check.
+
+This supersedes most of Phase 3 (confirm route). Phase 4's check ledger and
+Phase 6's review provenance now apply to the end-of-work child.
+
+## Next: evidence decides review, not the stage name
+
+Generalized from a second run report (2026-09-24). About sixteen review cycles
+ran; about ten changed no product file, and they cost roughly an hour. The
+reviews that earned their cost all hit a contract sentence or test that looked
+done but was weak:
+
+- A documented test command that ran nothing on Node 25.
+- A board plan that named its opening roll too loosely to replay.
+- A test spec that a weaker stand-in could pass.
+
+The second pass of a two-pass review caught a plan edit that silently dropped
+four required test IDs. Replays of facts already on record earned nothing.
+
+| # | Improvement | Mechanism | Size |
+|---|---|---|---|
+| E1 | Script-assigned evidence class per accepted result | `complete` classifies from the Git diff since the previous accepted action and the stage, never the model summary: `plan` (spec, step-plan, test-spec, or a diff touching a contract file), `mutation` (other product/test diff), `observation` (empty product diff), `na`. Recorded in history and shown in the next packet. | S |
+| E2 | Early contract review (owner decision) | Proposed opt-in cadence `contracts-and-end`: plan-and-end, plus a full Improve child for any `plan`-class result. Today the step-plan and test-spec bugs above would surface only at the end review, after implementation was built on them. Keep streak 2 wherever a child runs. | S, needs E1 |
+| E3 | Automatic N/A for skill-validate | When the accepted skill-assess result says no repo-local skill was selected, the script accepts skill-validate as N/A citing that result and advances. The stage name stays in history for audit. | S |
+| E4 | Merge same-fact records | When baseline recorded a missing file and nothing changed before test-red, test-red cites that observation and records only the command, exit code and required substrings. The same applies to test-green after implement and to verify after regression. | M, needs E1 + Phase 4 |
+| E5 | Check ledger (Phase 4) | `shiploop check run/lookup` stores command, commit, tree digest, exit code and required substrings, so a stage cites a check instead of rerunning it. | M |
+| E6 | Worktree status line | In worktree runs the progress snapshot says the opened source checkout is unchanged until the final return and names the execution worktree, so a long run does not look like the product is missing. | S |
+
+Order: E1 → E3 and E6 (independent) → E2 once the owner decides → E5 → E4.
+Each ships as a ShipLoop-only PR with its own focused tests.

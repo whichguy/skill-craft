@@ -54,11 +54,22 @@ def _improve_receipt(stage):
     }
 
 
-def activity_v3(*, two=False):
-    """Explicit alternating producer/Improve declarations for the v3 graph."""
+def activity_v3(*, two=False, cadence='every-stage'):
+    """Explicit producer/Improve declarations for the v3 graph.
+
+    every-stage alternates producer and Improve at each stage.  plan-and-end
+    declares Improve only after plan and after the last item's carry-forward.
+    """
     path = BEFORE3 + WORK3 * (2 if two else 1) + AFTER3
+    last_carry = len(path) - 1 - path[::-1].index('carry-forward')
     rows = []
-    for stage, target in zip(path, path[1:] + ['done']):
+    for index, (stage, target) in enumerate(zip(path, path[1:] + ['done'])):
+        if cadence == 'plan-and-end' and stage != 'plan' and index != last_carry:
+            rows.append({'at': stage, 'command': 'produce', 'expect': target,
+                         'result': {'outcome': 'done',
+                                    'summary': 'Synthetic declaration; no work executed.'},
+                         'status': 'done' if target == 'done' else 'active'})
+            continue
         producer = {'outcome': 'done', 'summary': 'Synthetic declaration; no work executed.'}
         if stage == 'plan' and two:
             producer['work_items'] = [
@@ -80,7 +91,41 @@ def _v3_insert_before(rows, stage, command, extra):
     return rows
 
 
-def scenarios(protocol_version=2):
+def _v3_plan_and_end_scenarios():
+    """Plan-and-end declarations: most producers advance without an Improve child."""
+    activity = lambda **flags: activity_v3(cadence='plan-and-end', **flags)
+    repeat = _v3_insert_before(activity(), 'plan', 'finish-improve', [
+        {'at': 'plan', 'command': 'finish-improve', 'receipt': _improve_receipt('plan'),
+         'final_result': {'outcome': 'repeat', 'summary': 'More investigation needed.'},
+         'expect': 'plan'},
+        {'at': 'plan', 'command': 'produce', 'expect': 'plan',
+         'result': {'outcome': 'done', 'summary': 'Synthetic second attempt.'}},
+    ])
+    paused = _v3_insert_before(activity(), 'test-author', 'produce', [
+        {'at': 'test-author', 'command': 'pause', 'expect': 'test-author', 'status': 'paused'},
+        {'at': 'test-author', 'command': 'resume', 'expect': 'test-author'},
+    ])
+    return {
+        'delivery': {'steps': activity()},
+        'two-work-items': {'steps': activity(two=True)},
+        'blocked-resume': {
+            'steps': [
+                {'at': 'intake', 'result': {
+                    'outcome': 'blocked', 'summary': 'Synthetic prerequisite missing.'},
+                 'command': 'produce', 'expect': 'intake', 'status': 'blocked'},
+                {'at': 'intake', 'command': 'resume', 'expect': 'intake'},
+                *activity(),
+            ],
+        },
+        'repeat-improve': {'steps': repeat},
+        'pause-resume': {'steps': paused},
+        'halted': {'steps': [{'at': 'intake', 'command': 'halt', 'expect': 'intake', 'status': 'halted'}]},
+    }
+
+
+def scenarios(protocol_version=2, cadence='every-stage'):
+    if protocol_version in (3, 4) and cadence == 'plan-and-end':
+        return _v3_plan_and_end_scenarios()
     if protocol_version in (3, 4):
         # v3/v4 always instantiate skill-validate and ignore carry-forward work
         # items, so the protocol-2 'skill' and 'corrective-work' shapes have no
@@ -159,7 +204,7 @@ def _completed_instances(state):
     ]
 
 
-def run_scenario(name, scenario, *, protocol_version=2, delegation=None):
+def run_scenario(name, scenario, *, protocol_version=2, delegation=None, cadence=None):
     report = {'name': name, 'simulation_only': True, 'ok': False, 'events': []}
     try:
         if not isinstance(scenario, dict):
@@ -171,7 +216,8 @@ def run_scenario(name, scenario, *, protocol_version=2, delegation=None):
             '/simulation-only/repo',
             'Inspect the SDLC graph with synthetic declarations.',
             protocol_version=protocol_version,
-            **({'improve_skill': '', 'delegation': delegation} if protocol_version in (3, 4) else {}),
+            **({'improve_skill': '', 'delegation': delegation, 'improve_cadence': cadence}
+               if protocol_version in (3, 4) else {}),
         )
         for index, step in enumerate(rows, 1):
             if not isinstance(step, dict) or not {'at', 'expect'} <= set(step):
@@ -235,6 +281,8 @@ def add_arguments(parser):
                         help='navigator protocol to simulate; default follows public navigator v3')
     parser.add_argument('--delegation', choices=navigator.DELEGATIONS, default=None,
                         help='protocol 3/4 execution delegation to simulate; default follows new runs (inline)')
+    parser.add_argument('--improve-cadence', choices=navigator.IMPROVE_CADENCES, default=None,
+                        help='protocol 3/4 Improve cadence to simulate; default follows new runs (plan-and-end)')
     parser.add_argument('--list', action='store_true')
 
 
@@ -242,14 +290,26 @@ def run(args):
     if args.protocol_version not in (3, 4) and args.delegation is not None:
         print('Graph dry-run input error: --delegation requires protocol 3 or 4')
         return 2
+    if args.protocol_version not in (3, 4) and getattr(args, 'improve_cadence', None) is not None:
+        print('Graph dry-run input error: --improve-cadence requires protocol 3 or 4')
+        return 2
+    cadence = (getattr(args, 'improve_cadence', None) or navigator.DEFAULT_IMPROVE_CADENCE
+               if args.protocol_version in (3, 4) else None)
     if args.list:
-        print('\n'.join(scenarios(args.protocol_version)))
+        print('\n'.join(scenarios(args.protocol_version, cadence)))
         return 0
     try:
         if args.script:
             selected = {'custom': json.loads(Path(args.script).read_text(encoding='utf-8'))}
+            declared = selected['custom'].get('improve_cadence') if isinstance(selected['custom'], dict) else None
+            if declared is not None:
+                if declared not in navigator.IMPROVE_CADENCES or args.protocol_version not in (3, 4):
+                    raise ValueError('script improve_cadence must be every-stage or plan-and-end (protocol 3/4)')
+                if getattr(args, 'improve_cadence', None) not in (None, declared):
+                    raise ValueError('script improve_cadence differs from --improve-cadence')
+                cadence = declared
         else:
-            choices = scenarios(args.protocol_version)
+            choices = scenarios(args.protocol_version, cadence)
             if args.scenario != 'all' and args.scenario not in choices:
                 raise ValueError(
                     f"scenario {args.scenario!r} is not available for protocol "
@@ -258,7 +318,7 @@ def run(args):
         delegation = (args.delegation or navigator.DEFAULT_DELEGATION
                       if args.protocol_version in (3, 4) else None)
         reports = [run_scenario(name, value, protocol_version=args.protocol_version,
-                                delegation=delegation)
+                                delegation=delegation, cadence=cadence)
                    for name, value in selected.items()]
     except (OSError, ValueError) as exc:
         print(f'Graph dry-run input error: {exc}')

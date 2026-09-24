@@ -5,7 +5,7 @@ description: >-
   script's current action packet, and submit its exact completion call until
   the script reports completion with an HTML achievement report. Use when the
   user says shiploop, ship the project, or requests a durable delivery loop.
-version: 0.20.1
+version: 0.21.0
 allowed-tools: all
 license: MIT
 platforms:
@@ -262,6 +262,23 @@ is never re-routed. It is refused on a halted or done run; setting the recorded
 value is a no-op. `graph-dry-run --delegation
 inline|ask-agent` previews either route (inline by default for protocol 3/4).
 
+### Improve cadence
+
+A new protocol 3/4 run records `improve_cadence: plan-and-end`. Only two kinds of
+result start an actual Improve child: every `plan` result, and the successful
+`carry-forward` that leaves no work item pending. That end-of-work child reviews
+every executed step together (code, tests, documentation and the queue) before
+OUTER system tests and release. Every other producer result is accepted on its
+own checks and the graph advances directly. The stage names stay in the graph,
+so an auditor still sees each stage happen. If the end review adds work items,
+the review moves to the new last item's carry-forward. `--improve-cadence
+every-stage` at `init` or `workspace start` keeps the earlier behavior, which
+puts an Improve child after every producer. A saved run without the key keeps
+every-stage. The cadence is fixed at init, and `graph-dry-run --improve-cadence`
+previews either cadence. Under plan-and-end, an isolated run's workspace return
+happens at `release` or `handoff` once no child is active, because the end
+review has already finished.
+
 ## Recovery from older supervised runs
 
 The former `drive` command and model transports are removed. A retained
@@ -378,8 +395,11 @@ retain the recovery locators and resume the same run when execution resumes.
    diagnostics, safe failure context,
    and concise, LLM-readable code contracts, then
    verify their behavior and accuracy. Keep material caveats; avoid boilerplate.
-3. After **every** producer result, the script enters `active_improve` for that
-   same action. Read the selected actual Improve `SKILL.md` and let its bound
+3. When the run's Improve cadence selects this result (every result under
+   `every-stage`; the plan and the last carry-forward under the default
+   `plan-and-end`, see [Improve cadence](#improve-cadence)), the script enters
+   `active_improve` for that same action. Otherwise the result is accepted and the
+   next producer packet follows. Read the selected actual Improve `SKILL.md` and let its bound
    Until Loop runtime own the improvement loop. For a new ephemeral child use
    [Improve context ownership](references/improve-context.md). Under
    `delegation: inline`, this parent conversation runs the selected card's
@@ -419,8 +439,8 @@ retain the recovery locators and resume the same run when execution resumes.
    continuing. Pause by pausing the parent; never report `cancelled` for a pause.
 4. The owning agent writes the packet's generic Markdown result and runs its
    exact completion command, retaining the action ID. `done` and `complete` are
-   aliases. `done` starts the bound Improve checkpoint rather than advancing the
-   v3 graph directly; `repeat` requests another producer attempt, and `blocked`
+   aliases. At an Improve checkpoint `done` starts the bound Improve child rather
+   than advancing the v3 graph directly; `repeat` requests another producer attempt, and `blocked`
    preserves unfinished work. These are result outcomes, not permission to pick
    an arbitrary successor. Consume the returned packet before beginning another
    stage.

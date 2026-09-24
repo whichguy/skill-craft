@@ -1,4 +1,4 @@
-# ShipLoop navigator 0.20.1
+# ShipLoop navigator 0.21.0
 
 ShipLoop's invoking conversation owns navigation, acceptance and delivery. New
 v3/v4 runs record `delegation: inline`, so that conversation also executes every
@@ -520,9 +520,12 @@ runtime own child iterations. ShipLoop has no second review counter.
 
 ## Improve discovery and planning before proceeding
 
-Protocol 3 applies the same actual-skill handoff after every producer, including
-intake, discovery, research, specification, test strategy, global/local plans,
-and release planning. The producer callback first saves its attempt. The next
+An `every-stage` protocol 3 run applies the same actual-skill handoff after every
+producer, including intake, discovery, research, specification, test strategy,
+global/local plans, and release planning. The default `plan-and-end` cadence for
+new runs applies it only to the plan and to the last carry-forward. That second
+review covers all executed steps before OUTER work. See the skill card's Improve
+cadence section. The producer callback first saves its attempt. The next
 packet binds or resumes the selected Improve skill; the graph advances only
 when that skill completes and the bound outcome is imported. Read the actual
 selected skill's instructions for its review, history, evidence and commit
@@ -3254,10 +3257,10 @@ surface is:
 
 ```sh
 # Current navigator (protocol 3 default; 4 opt-in)
-shiploop workspace start --repo REPO --workspace-root ROOT [--protocol-version=2|3|4] [--improve-skill ABSOLUTE_SKILL_CARD] [--include-untracked=PATH]... [--exclude=PATH]... [--delivery-contract] [--delegation=inline|ask-agent] --prompt=TEXT
+shiploop workspace start --repo REPO --workspace-root ROOT [--protocol-version=2|3|4] [--improve-skill ABSOLUTE_SKILL_CARD] [--include-untracked=PATH]... [--exclude=PATH]... [--delivery-contract] [--delegation=inline|ask-agent] [--improve-cadence=plan-and-end|every-stage] --prompt=TEXT
 shiploop workspace plan-return --workspace-root ROOT
 shiploop workspace return      --workspace-root ROOT
-shiploop init     --repo REPO [--run-dir RUN] [--execution-mode=navigator|navigator-v2|navigator-v1|managed|legacy] [--navigator-version=2|3|4] [--improve-skill ABSOLUTE_SKILL_CARD] [--delivery-contract] [--delegation=inline|ask-agent] --prompt=TEXT
+shiploop init     --repo REPO [--run-dir RUN] [--execution-mode=navigator|navigator-v2|navigator-v1|managed|legacy] [--navigator-version=2|3|4] [--improve-skill ABSOLUTE_SKILL_CARD] [--delivery-contract] [--delegation=inline|ask-agent] [--improve-cadence=plan-and-end|every-stage] --prompt=TEXT
 shiploop next     --run-dir RUN
 shiploop status   --run-dir RUN
 shiploop report   --run-dir RUN
@@ -3288,7 +3291,7 @@ shiploop migrate  --run-dir RUN
 # Implementation chains within the current v3/v4 implement action
 shiploop chain {bind,planning-inputs,next,history,pending,claim,start,launched,observe,import-handoff,prepare,settle,done,retry,packet,cleanup,finish,recover} ...
 # Inspection without project work
-shiploop graph-dry-run [--list] [--scenario NAME | --script STEPS.json] [--protocol-version=2|3|4] [--delegation=inline|ask-agent] [--format=summary|json|markdown]
+shiploop graph-dry-run [--list] [--scenario NAME | --script STEPS.json] [--protocol-version=2|3|4] [--delegation=inline|ask-agent] [--improve-cadence=plan-and-end|every-stage] [--format=summary|json|markdown]
 shiploop managed-graph-dry-run ...   # compatibility managed controller only
 ```
 
@@ -3299,7 +3302,8 @@ shiploop managed-graph-dry-run ...   # compatibility managed controller only
 Improve checkpoint keep their issued route. It is refused on halted or done runs;
 the recorded value is a no-op.
 `graph-dry-run --list` prints the scenarios available for the selected protocol;
-`--delegation` selects the simulated protocol 3/4 route (inline by default). See
+`--delegation` selects the simulated protocol 3/4 route (inline by default);
+`--improve-cadence` selects the simulated cadence (plan-and-end by default). See
 [graph dry runs](references/graph-dry-run.md).
 
 The default `navigator` mode starts protocol 3 for new `init` and workspace

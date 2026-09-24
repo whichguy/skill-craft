@@ -69,6 +69,16 @@ INLINE = "inline"
 ASK_AGENT = "ask-agent"
 DELEGATIONS = (INLINE, ASK_AGENT)
 
+# Run-level Improve cadence (state key ``improve_cadence``), fixed at init.
+# ``plan-and-end`` is the default for new CLI-created v3/v4 runs: only the plan
+# result and the carry-forward that leaves no work item pending get an actual
+# Improve child.  A run without the key keeps its recorded every-stage cadence.
+EVERY_STAGE = "every-stage"
+PLAN_AND_END = "plan-and-end"
+IMPROVE_CADENCES = (EVERY_STAGE, PLAN_AND_END)
+# Stages whose accepted result can start an Improve child under plan-and-end.
+PLAN_AND_END_STAGES = frozenset({"plan", "carry-forward"})
+
 INLINE_ITEM_CONTEXT = """\
 Clear and then execute the prompt.
 
@@ -993,6 +1003,10 @@ successful control evidence for this stage, not a product failure to hide.
     "implement": """\
 Implement the authorized bounded change.  Preserve unrelated work, inspect the
 actual code as it changes, and carry discoveries into later test refinement.
+Write first: list the paths this step plan creates or changes, write those files,
+then run the item's named focused tests once. Read history or earlier reviews only
+when a test fails or a concrete open question needs a specific section; history
+before the first edit belongs to plan review, not to implementing a listed file set.
 Reopen Target-native test selection when actual local/remote code, configuration,
 dependencies or delivery route changes invalidate the earlier test decision.
 Apply the planned behavior, error handling, opt-in diagnostics, exception context,
@@ -1001,6 +1015,9 @@ Use the Coding decision guide to reopen the accepted plan and only its relevant
 practice/platform sections. Check current code, versions and consumers before
 reuse or augmentation. Retain justified revisions in the linked note; a new
 prerequisite or authority boundary uses the existing correction route.
+When the accepted step plan says no parallel chain, or the work-item context says
+its steps write the same tree, use one writer in the execution checkout and do not
+search for or bind a parallel chain; cite that plan or context locator in the result.
 For a reviewed graph with safe dependency-independent implementation steps, use
 the parallel-chain guide and bind this action to the default parallel
 mode when the selected Plan Dispatcher and Ask-Agent contracts are compatible
@@ -1544,6 +1561,11 @@ def _require_delegation(delegation: str) -> None:
         raise ValueError(f"unknown navigator-v3 delegation: {delegation!r}")
 
 
+def _require_cadence(cadence: str) -> None:
+    if cadence not in IMPROVE_CADENCES:
+        raise ValueError(f"unknown navigator-v3 Improve cadence: {cadence!r}")
+
+
 # Inline runs replace only the chain-specific paragraphs of these duties; the
 # ask-agent text above stays the single source for the delegated route.
 _INLINE_DUTY_PARAGRAPHS = {
@@ -1568,6 +1590,9 @@ Delegation is inline: do not create a Plan Dispatcher execution graph or plan
 parallel worker branches; planning never expands this item's scope.
 """),
     "implement": ("""\
+When the accepted step plan says no parallel chain, or the work-item context says
+its steps write the same tree, use one writer in the execution checkout and do not
+search for or bind a parallel chain; cite that plan or context locator in the result.
 For a reviewed graph with safe dependency-independent implementation steps, use
 the parallel-chain guide and bind this action to the default parallel
 mode when the selected Plan Dispatcher and Ask-Agent contracts are compatible
@@ -1632,15 +1657,43 @@ def duty(stage: str, *, delegation: str = ASK_AGENT) -> str:
     return text
 
 
-def prompt(stage: str, *, delegation: str = ASK_AGENT) -> str:
+# Under plan-and-end, COMMON's per-result Improve promise is replaced.  Stage
+# duties that mention "this action's Improve checkpoint" keep their wording; the
+# replacement says how to read them, so the delegated text stays one source.
+_EVERY_STAGE_IMPROVE = (
+    "Do not embed an Improve review\n"
+    "campaign in this result: every producer attempt result is followed by a separate\n"
+    "actual Improve-skill handoff before this graph can advance.\n"
+)
+_PLAN_AND_END_IMPROVE = (
+    "Do not embed an Improve review\n"
+    "campaign in this result. Improve cadence: plan-and-end. Only the plan result and\n"
+    "the carry-forward that leaves no work item pending get an actual Improve-skill\n"
+    "handoff; every other result is accepted on this step's own checks and the graph\n"
+    "advances directly. Where this guidance mentions this action's Improve checkpoint,\n"
+    "handoff or review at another stage, keep that evidence in evidence_refs for the\n"
+    "single end-of-work Improve instead. Run only the checks this step's change needs.\n"
+    "When this step changes no product file, its check is the named command, its exit\n"
+    "code and its required output substrings: record them, cite the earlier accepted\n"
+    "stage that ran the same command, and do not reread history to repeat it.\n"
+)
+if COMMON.count(_EVERY_STAGE_IMPROVE) != 1:
+    raise RuntimeError("navigator-v3 COMMON lost its per-result Improve sentence")
+
+
+def prompt(stage: str, *, delegation: str = ASK_AGENT, cadence: str = EVERY_STAGE) -> str:
     """Return the single current producer instruction for a v3 graph stage.
 
-    The navigator always passes the run's delegation; the ask-agent default
-    keeps catalog renders identical to runs recorded before the setting existed.
+    The navigator always passes the run's delegation and Improve cadence; the
+    ask-agent/every-stage defaults keep catalog renders identical to runs
+    recorded before those settings existed.
     """
     _require_stage(stage)
     _require_delegation(delegation)
-    parts = [COMMON, duty(stage, delegation=delegation)]
+    _require_cadence(cadence)
+    common = (COMMON if cadence == EVERY_STAGE
+              else COMMON.replace(_EVERY_STAGE_IMPROVE, _PLAN_AND_END_IMPROVE))
+    parts = [common, duty(stage, delegation=delegation)]
     if stage in PRELUDE or stage in {"step-plan", "test-spec"}:
         parts.append(_PLANNING_HANDOFF if delegation == ASK_AGENT
                      else _PLANNING_HANDOFF.replace(*_INLINE_PLANNING_DIRECTIVE))
@@ -1896,13 +1949,17 @@ __all__ = (
     "COMMON",
     "DELEGATIONS",
     "DUTIES",
+    "EVERY_STAGE",
     "IMPLEMENTATION_CONSTITUTION",
     "IMPLEMENTATION_STAGES",
+    "IMPROVE_CADENCES",
     "IMPROVE_PROMPTS",
     "IMPROVE_SCOPES",
     "INLINE",
     "INNER",
     "OUTER",
+    "PLAN_AND_END",
+    "PLAN_AND_END_STAGES",
     "PRELUDE",
     "PROGRESS_REPORTING",
     "PROMPTS",

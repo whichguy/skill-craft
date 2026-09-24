@@ -496,7 +496,9 @@ def _receipt(receipt: Mapping[str, Any], workspace: Path, locator: str) -> dict[
     review_raw = receipt["review_refs"]
     check_raw = receipt["check_refs"]
     _need(isinstance(review_raw, list) and len(review_raw) == 2,
-          "Improve receipt requires exactly two review references")
+          "Improve receipt requires exactly two review references, got "
+          + (str(len(review_raw)) if isinstance(review_raw, list) else "a non-list")
+          + "; list only the two trivial-streak reviews and leave earlier material reviews on disk")
     _need(isinstance(check_raw, list) and bool(check_raw),
           "Improve receipt requires at least one check reference")
     reviews = [_local_reference(workspace, locator, value, "review reference") for value in review_raw]
