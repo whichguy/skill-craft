@@ -23,7 +23,7 @@ from pathlib import Path
 ROOT = Path(__file__).resolve().parents[1]
 # Inputs the generator reads. Generated trees (plugins/, catalogs) are
 # deliberately absent so the build cannot inherit stale release output.
-SOURCE_PREFIXES = ("skills/", "agents/", "bundles/", "scripts/")
+SOURCE_PREFIXES = ("skills/", "agents/", "bundles/", "catalog/", "scripts/")
 SOURCE_FILES = (".gitattributes", "LICENSE", "README.md")
 
 

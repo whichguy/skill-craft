@@ -2,7 +2,8 @@
 "use strict";
 
 /**
- * Derive plugin manifests and marketplace indexes from skills/<leaf>/SKILL.md
+ * Derive plugin manifests and marketplace indexes (Claude, Codex, Cursor, Grok)
+ * from skills/<leaf>/SKILL.md
  * frontmatter and from plugin bundles (bundles/<plugin>/bundle.json).
  *
  * A bundle packages several member skills as one plugin. Its primary member
@@ -578,6 +579,71 @@ function buildGrokMarketplace(leaves, bundles = []) {
   };
 }
 
+// Claude and Codex catalogs keep the historical marketplace name so installed
+// plugin IDs (for example shiploop@skill-craft-market) survive the move from
+// the former skill-craft-market repository into this one.
+const CLAUDE_CODEX_MARKETPLACE = "skill-craft-market";
+const EXTERNAL_PLUGINS = path.join(root, "catalog", "external-plugins.json");
+
+function loadExternalPlugins(localNames) {
+  if (!fs.existsSync(EXTERNAL_PLUGINS)) return [];
+  let data;
+  try {
+    data = JSON.parse(fs.readFileSync(EXTERNAL_PLUGINS, "utf8"));
+  } catch (e) {
+    fail(`catalog/external-plugins.json is invalid: ${e.message}`);
+  }
+  const plugins = Array.isArray(data.plugins) ? data.plugins : fail("catalog/external-plugins.json needs a plugins array");
+  for (const plugin of plugins) {
+    const label = `catalog/external-plugins.json ${plugin && plugin.name}`;
+    if (!plugin || !NAME_RE.test(plugin.name || "")) fail(`${label}: invalid name`);
+    if (localNames.has(plugin.name)) fail(`${label}: also published from this repository`);
+    if ("hooks" in plugin) fail(`${label}: must not declare hooks`);
+    if (!SEMVER_RE.test(plugin.version || "")) fail(`${label}: needs a semantic version`);
+    const source = plugin.source || {};
+    if (typeof source !== "object" || !/^[0-9a-f]{40}$/.test(source.sha || "")) {
+      fail(`${label}: an external source needs a full 40-character sha pin`);
+    }
+  }
+  return plugins;
+}
+
+function catalogEntries(leaves, bundles, source) {
+  const entry = (name, plugin, category) => ({
+    name,
+    description: plugin.description,
+    version: plugin.version,
+    author: plugin.author,
+    source: source(name),
+    policy: { installation: "AVAILABLE", authentication: "ON_INSTALL" },
+    category,
+  });
+  return [
+    ...leaves.map((leaf) => entry(leaf, buildPlugin(leaf, readSkillFrontmatter(leaf)), "Productivity")),
+    ...bundles.map((bundle) => entry(bundle.name, buildBundlePlugin(bundle), "Productivity")),
+  ];
+}
+
+function buildClaudeMarketplace(leaves, bundles = []) {
+  const local = catalogEntries(leaves, bundles, (name) => `./plugins/${name}`);
+  return {
+    name: CLAUDE_CODEX_MARKETPLACE,
+    owner: { name: "whichguy", url: "https://github.com/whichguy" },
+    description: MARKETPLACE_DESCRIPTION,
+    interface: { displayName: "Skill Craft" },
+    plugins: [...local, ...loadExternalPlugins(new Set(local.map((p) => p.name)))].sort(byName),
+  };
+}
+
+function buildCodexMarketplace(leaves, bundles = []) {
+  const local = catalogEntries(leaves, bundles, (name) => ({ source: "local", path: `./plugins/${name}` }));
+  return {
+    name: CLAUDE_CODEX_MARKETPLACE,
+    interface: { displayName: "Skill Craft" },
+    plugins: [...local, ...loadExternalPlugins(new Set(local.map((p) => p.name)))].sort(byName),
+  };
+}
+
 function jsonText(value) {
   return JSON.stringify(value, null, 2) + "\n";
 }
@@ -752,6 +818,16 @@ function runMarketplaces(doWrite, doCheck) {
       value: buildGrokMarketplace(leaves, bundles),
       label: "Grok marketplace index",
     },
+    {
+      outPath: path.join(root, ".claude-plugin", "marketplace.json"),
+      value: buildClaudeMarketplace(leaves, bundles),
+      label: "Claude marketplace index",
+    },
+    {
+      outPath: path.join(root, ".agents", "plugins", "marketplace.json"),
+      value: buildCodexMarketplace(leaves, bundles),
+      label: "Codex marketplace index",
+    },
   ];
 
   if (doCheck) {
@@ -783,6 +859,8 @@ function runMarketplaces(doWrite, doCheck) {
     jsonText({
       cursor: targets[0].value,
       grok: targets[1].value,
+      claude: targets[2].value,
+      codex: targets[3].value,
     })
   );
 }

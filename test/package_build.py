@@ -1,9 +1,9 @@
 """Plugin packages built from source, for tests.
 
 The committed plugins/ tree is release output and may lag the source between
-releases, so package tests read a fresh build instead. test/run_suites.py
-builds once and exports SKILL_CRAFT_PACKAGES; a test run on its own builds
-into a temporary directory that is removed when the process exits.
+releases, so package tests read a fresh build instead. Each test process
+builds once into a temporary directory that is removed when it exits; set
+SKILL_CRAFT_PACKAGES to a build-packages.py output to reuse one build.
 """
 
 import atexit

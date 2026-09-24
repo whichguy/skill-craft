@@ -138,6 +138,9 @@ def apply(releases, date):
     for entry in releases.values():
         for path, _ in entry["notes"]:
             path.unlink()
+        folder = entry["notes"][0][0].parent
+        if not any(folder.iterdir()):
+            folder.rmdir()
     subprocess.run(["bash", str(ROOT / "scripts/sync-plugin-views.sh")], cwd=ROOT, check=True, stdout=subprocess.DEVNULL)
     subprocess.run(["bash", str(ROOT / "scripts/sync-plugin-views.sh"), "--check"], cwd=ROOT, check=True)
 

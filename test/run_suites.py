@@ -9,22 +9,18 @@ spelling and forward here, so they cannot drift into separate inventories.
 from __future__ import annotations
 
 import argparse
-import atexit
 from dataclasses import dataclass
 import hashlib
 import json
 import os
 from pathlib import Path
 import shlex
-import shutil
 import signal
 import subprocess
 import sys
-import tempfile
 import time
 from typing import Iterable, Sequence
 
-import package_build
 import suite_catalog
 
 
@@ -427,18 +423,6 @@ def main(argv: Sequence[str] | None = None) -> int:
         failures = sync.status != "passed"
         if output is not None:
             _write_receipt(output, receipt)
-
-    if not os.environ.get(package_build.ENV):
-        # Package tests read a build from source, not the committed release
-        # output. Build once here so every suite shares it.
-        print("==> [preflight] build-packages")
-        parent = Path(tempfile.mkdtemp(prefix="skill-craft-packages-"))
-        atexit.register(shutil.rmtree, parent, True)
-        try:
-            os.environ[package_build.ENV] = str(package_build.build_into(parent / "build"))
-        except subprocess.CalledProcessError as exc:
-            print(f"run-suites: package build failed ({exc.returncode})", file=sys.stderr)
-            failures = True
 
     completed: list[dict[str, object]] = []
     for index, suite in enumerate(selected, start=1):

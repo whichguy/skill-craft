@@ -43,6 +43,23 @@ jobs:
           REQUESTED_TIER: ${{ inputs.tier }}
           EXPECTED_SHA: ${{ github.sha }}
         run: python3 -B test/ci_policy.py plan --expected-sha "$EXPECTED_SHA"
+      # Versions, plugins/, catalogs and the README inventory change only in
+      # release commits (scripts/release.py); ordinary commits add a change note.
+      - name: Release output only in release commits
+        env:
+          EVENT_NAME: ${{ github.event_name }}
+          PR_BASE: ${{ github.event.pull_request.base.sha }}
+          PUSH_BEFORE: ${{ github.event.before }}
+        run: |
+          case "$EVENT_NAME" in
+            pull_request) base="$PR_BASE" ;;
+            push) base="$PUSH_BEFORE" ;;
+            *) echo "release boundary: not checked for $EVENT_NAME"; exit 0 ;;
+          esac
+          if [ -z "$base" ] || [ "$base" = 0000000000000000000000000000000000000000 ]; then
+            echo "release boundary: no base commit to compare"; exit 0
+          fi
+          python3 -B scripts/check-release-boundary.py --base "$base"
 
   checks:
     name: ${{ needs.plan.outputs.tier }} / ${{ matrix.group }}
@@ -70,9 +87,10 @@ jobs:
         env:
           TEST_GROUP: ${{ matrix.group }}
         run: bash test/run-all.sh --group "$TEST_GROUP" --output "$RUNNER_TEMP/hermetic-$TEST_GROUP"
-      - name: Plugin views in sync
+      # plugins/ is release output: it must match source only at a release commit.
+      - name: Release output matches source
         if: ${{ always() && (matrix.group == 'core' || matrix.group == 'smoke') }}
-        run: bash scripts/sync-plugin-views.sh --check
+        run: python3 -B scripts/check-release-boundary.py --release-sync
       - name: Checkout unchanged
         if: ${{ always() }}
         env:
