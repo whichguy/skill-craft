@@ -17,9 +17,10 @@ retain the original result and explain why the interpretation changed.
    sessions, and independent reviewers. ShipLoop's scripts must not start nested
    Grok, Claude, or Codex workers; record any such launch as a workflow deviation.
    Omitted effort in the external harness must
-   resolve to the explicit `xhigh` default, not an unknown host default. Record
+   resolve to the explicit `xhigh` default, not an unknown host default; a
+   reviewer running on a Claude model defaults to `medium` instead. Record
    operator overrides and any documented native equivalent separately. A native
-   tool without an observable effort control is not proof of inherited `xhigh`.
+   tool without an observable effort control is not proof of the requested level.
 2. Reconstruct accepted stages from durable Markdown and correlate each start,
    callback, and return with captured tool completion. Do not treat a command
    mention, compound-shell exit, or a completed-looking file as execution proof.

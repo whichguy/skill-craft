@@ -8,7 +8,7 @@ description: >-
   Google Apps Script and Salesforce game cases require an authorized test deployment and hosted
   behavior evidence.
   Includes its harness for source and marketplace installs; tests a separately selected ShipLoop.
-version: 0.2.4
+version: 0.2.5
 license: MIT
 platforms:
   - linux
@@ -46,9 +46,13 @@ nested model processes to implement the audit's effort setting. Configure
 
 Default every model launch used by this audit to **extra high (`xhigh`)**:
 the audit operator, builder, review-only operator, independent reviewers, and
-diagnostic model subprocesses. Pass the host's documented effort setting
-explicitly; do not inherit an unspecified CLI default or reduce effort to save
-time. Honor a different effort only when the operator explicitly requests it.
+diagnostic model subprocesses. One exception: a reviewer that runs on a Claude
+model (an independent reviewer or the review-only operator) defaults to
+**`medium`**, because current Claude models review code well at that level;
+raise it only for a measured quality gain. Pass the host's documented effort
+setting explicitly (for Claude, `claude --effort medium` or an agent definition
+that sets it); do not inherit an unspecified CLI default or reduce effort to
+save time. Honor a different effort only when the operator explicitly requests it.
 For Grok shell launches use `--reasoning-effort xhigh`; both `run.py run` and
 `run.py suite` also default to it, including the low-level argv builder.
 
@@ -60,7 +64,7 @@ cannot select the requested level, use an available explicit model launcher or
 report that prerequisite instead of silently launching at a lower or unknown
 effort. If effective effort is not observable, retain that limitation and do not
 claim it was verified. Use a documented native equivalent only when
-literal `xhigh` is unsupported, and record the actual value.
+the requested level is unsupported, and record the actual value.
 
 Git, Python/Node checks, `grok inspect`, and `--version` probes do not make model
 calls and need no effort flag. Preserve an external verifier's exact argv; if

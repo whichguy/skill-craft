@@ -1,8 +1,10 @@
 # Internal runtime adapter
 
-This reference defines the preserved **version-1** adapter. New natural-language
-tasks in the candidate card use `runtime-v2.md`. Select by the existing state's
-version on continuation; never use legacy `complete` for a version-2 run.
+This reference defines the preserved **version-1** adapter, reached only when
+[ADAPTER.md](../ADAPTER.md) routes an explicit legacy command or an existing v1
+run here; new natural-language requests use the callback adapter. Select by the
+existing state's version on continuation; never use legacy `complete` for a
+version-2 run.
 
 Read this after interpreting the user's request in ADAPTER.md. These arguments
 are an agent-to-runtime transport, not the user interface. Requires Python
