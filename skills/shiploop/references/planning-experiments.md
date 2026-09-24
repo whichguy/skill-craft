@@ -133,8 +133,8 @@ accept, reconcile, or replace work.
 
 The return path is available only for v4's initial `plan` Improve child before
 any preparation, work-item execution, chain binding or workspace return, when
-that child selected the bundled ephemeral Until runtime. Direct v1/v2 nodes,
-v3 children, and other v4 children remain on their recorded incomplete route
+that child selected the bundled ephemeral Until runtime. V3 children and
+other v4 children remain on their recorded incomplete route
 rather than receive a fabricated stopped-child settlement.
 
 1. Finish the current bounded work and preserve observations/cleanup status.

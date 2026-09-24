@@ -5,7 +5,7 @@ description: >-
   script's current action packet, and submit its exact completion call until
   the script reports completion with an HTML achievement report. Use when the
   user says shiploop, ship the project, or requests a durable delivery loop.
-version: 0.22.1
+version: 0.23.0
 allowed-tools: all
 license: MIT
 platforms:
@@ -24,19 +24,18 @@ metadata:
 
 # ShipLoop
 
-The script returns one effective SDLC prompt and maintains durable Markdown
-navigation state. Default protocol 3 and explicitly selected protocol 4 issue a
-producer step, then park that
-same parent action while the selected actual Improve skill runs its own bound
-Until Loop cycle. `state.md` owns SDLC traversal; the Improve child owns its
-iterations and runtime state. The host follows one current owner at a time.
-
-For default-v3 and explicitly selected v4 runs, the applicable current protocol
-contract overrides retained v1/v2, managed, and legacy descriptions below. Those
-descriptions apply only when a saved packet or an explicit compatibility mode
-identifies that version. Do not translate their embedded-policy Improve guidance
-into a current v3/v4 action. V4 keeps the same parked parent/child ownership and
-adds only its packet-issued planning experiment and reconciliation behavior.
+The script owns graph navigation: it keeps durable Markdown navigation state
+and returns the prompt for the current step together with the one callback that
+completes it. The host is a library call: it performs that one step and runs the
+printed callback, then follows the packet the callback returns. It never chooses
+a successor itself. Navigator protocol 3 is the default and protocol 4 is an
+opt-in pilot; these are the only protocols. At a planning stage or the last
+carry-forward, the script parks that same parent action while the selected
+actual Improve skill runs its own bound Until Loop cycle. `state.md` owns SDLC
+traversal; the Improve child owns its iterations and runtime state. The host
+follows one current owner at a time. V4 keeps the same parked parent/child
+ownership and adds only its packet-issued planning experiment and
+reconciliation behavior.
 
 ## Opt-in experiment-informed planning
 
@@ -45,8 +44,8 @@ For a fresh run, `workspace start --protocol-version 4` (or `init
 The existing Plan Improve child investigates consequential assumptions. When a
 finding invalidates an upstream premise, the parent can settle its stopped child
 and rerun the affected planning suffix before preparation. Follow only the
-packet-issued reconciliation callback. V3 remains the default; saved runs never
-silently migrate. This pilot does not replace graphs after dispatch.
+packet-issued reconciliation callback. V3 remains the default. This pilot does
+not replace graphs after dispatch.
 
 ## Start or resume
 
@@ -162,8 +161,8 @@ do not silently fall back to editing the source. At the final planned integratio
 boundary, follow the packet's return-plan and guarded return commands. Completion
 requires a verified return receipt. A dirty starting checkout receives only the
 new delta and keeps its original index; this is not a Git merge/commit.
-In protocol 3, that once-only return waits until the final handoff Improve child
-has completed and its evidence is ready, immediately before importing the child.
+That once-only return happens at release or handoff, after the end-of-work Improve
+child, once no child is active.
 If source return must itself trigger a required delivery check, retain that
 ordering conflict as incomplete; use the workspace policy's reconciliation rule.
 
@@ -183,7 +182,7 @@ a new follow-up request runs a fresh baseline.
 
 For a genuinely new/non-Git repository, investigate/bootstrap Git within scope
 first if appropriate, then use the workspace route. An explicitly selected
-in-place/non-Git run may instead use the compatibility entry, documenting why
+in-place/non-Git run may instead use the direct entry, documenting why
 isolation is not used; it has no automatic workspace-return protection:
 
 ```sh
@@ -193,24 +192,20 @@ python3 "$CLI" init --repo "$REPO" --run-dir "$RUN_DIR" \
   --improve-skill="$IMPROVE_SKILL" --prompt='<user request>'
 ```
 
-New workspace and direct runs default to navigator **protocol 3**. Pass
-`workspace start --protocol-version 2` (or `init --execution-mode=navigator-v2`)
-only to start the retained protocol-2 route; `init --execution-mode` values
-`navigator-v1`, `managed`, and `legacy` remain compatibility selections.
-Existing runs always resume their recorded mode and are never retrofitted. If
+New workspace and direct runs use navigator **protocol 3** unless
+`workspace start --protocol-version 4` (or `init --navigator-version 4`) opts in
+to the pilot. A saved run the current code cannot load, including any navigator
+v1/v2, managed or legacy run, is refused with an error that names its protocol
+or mode; start a fresh `--run-dir` (or workspace root) for that request. If
 new-run initialization did not select an Improve skill, the first Improve
 checkpoint stays pending until its packet directs the owner to bind the selected
 card with `improve-bind --action ... --skill-card ...`. Use the packet's exact
 command and absolute selected-card path; never guess an installed copy or
-substitute a same-named skill. For an existing run without `context-host.md`,
-recover its current packet with:
+substitute a same-named skill. Recover an existing run's current packet with:
 
 ```sh
 python3 "$CLI" next --run-dir "$RUN_DIR"
 ```
-
-For a run left by an older controller, follow **Recovery from older supervised
-runs** below before executing any recovered packet.
 
 For a new run explicitly piloting consumer-delivery declaration checks, add
 `--delivery-contract` to `workspace start` (or direct `init`). Read
@@ -233,9 +228,8 @@ argument (`--prompt=--help`). In a shell, single-quote literal text and escape
 embedded quotes; never paste raw user text into double quotes. Preserve the
 original request, including multiline and Unicode text.
 
-If a current packet requires another skill, set an explicit dependency root
-only from that dependency's own observed, selected `SKILL.md` path (for example
-`SHIPLOOP_REVIEW_COVERAGE_ROOT` or `SHIPLOOP_BACKCHAIN_ROOT`). Do not infer a
+If a current packet requires another skill, bind it only from that
+dependency's own observed, selected `SKILL.md` path. Do not infer a
 neighboring package or host cache. An unavailable dependency remains an
 incomplete precondition; record it and follow the packet's blocked/recovery
 route rather than generating a replacement workflow.
@@ -250,11 +244,10 @@ included, and start no reviewer, test-runner or executor agent unless the user
 asked for independent review. Pass `--delegation ask-agent` at `workspace start`
 (or direct `init`) to opt in to the delegated route: each Improve checkpoint runs
 the `improve-agent` skill, which starts one fresh native worker that runs
-`/improve`, and implementation uses chains. A saved run without the setting
-keeps its recorded ask-agent behavior and is never silently migrated; its
-Improve packets print the command that switches it to inline. v1/v2, managed
-and legacy runs refuse the option. An `init` or `workspace start` retry cannot
-change it. For an existing v3/v4 run, use:
+`/improve`, and implementation uses chains. Every v3/v4 run records the
+setting; a saved run without it is refused with an error naming the missing
+`delegation` key. An `init` or `workspace start` retry cannot change it. For an
+existing run, use:
 
 ```sh
 python3 "$CLI" delegation --run-dir "$RUN_DIR" --set inline   # or ask-agent
@@ -265,12 +258,11 @@ switch, including its Improve checkpoint, keeps the route it was issued with
 (the packet says so), so a worker, bound child or chain that may already own it
 is never re-routed. It is refused on a halted or done run; setting the recorded
 value is a no-op. `graph-dry-run --delegation
-inline|ask-agent` previews either route (inline by default for protocol 3/4).
+inline|ask-agent` previews either route (inline by default).
 
-### Improve cadence
+### When Improve runs
 
-A new protocol 3/4 run records `improve_cadence: planning-and-end`. Two kinds of
-result start an actual Improve child:
+Two kinds of result start an actual Improve child:
 
 - Every result of a planning stage: `spec`, `test-strategy`, `plan`, `step-plan`,
   `test-spec`, `system-test-author` and `release-plan`. These stages write the
@@ -287,27 +279,11 @@ result start an actual Improve child:
 Every other producer result is accepted on its own checks and the graph
 advances directly. The stage names stay in the graph, so an auditor still sees
 each stage happen. If the end review adds work items, the review moves to the
-new last item's carry-forward. `--improve-cadence` at `init` or `workspace
-start` selects one of three cadences:
+new last item's carry-forward. An isolated run's workspace return happens at
+`release` or `handoff` once no child is active.
 
-- `planning-and-end`, the default described above.
-- `plan-and-end`, the 0.21.0 default, which reviews only the global `plan` and
-  the end.
-- `every-stage`, which puts an Improve child after every producer.
-
-A saved run without the key keeps every-stage. The cadence is fixed at init, and
-`graph-dry-run --improve-cadence` previews any cadence. Except under
-every-stage, an isolated run's workspace return happens at `release` or
-`handoff` once no child is active, because the end review has already finished.
-
-## Recovery from older supervised runs
-
-The former `drive` command and model transports are removed. A retained
-`context-host.md` records a historical controller; it does not authorize a new
-model launch. Follow [retired-controller recovery](references/context-reset.md)
-to settle that owner before continuing the same run in this conversation.
-Never execute a run concurrently with its old controller or rewrite its receipt
-to imply that an uncertain operation completed.
+The two consecutive trivial passes an Improve child needs are self-passes by the
+same executor, not independent reviews; packets and reports call them passes.
 
 ## Durable handoff
 
@@ -332,9 +308,8 @@ clear and no delegation. Inline INNER Improve packets begin "Keep the invoking
 parent alive and run this Improve invocation inline.": the parent runs the whole
 invocation itself (see step 3 below) and never clears for it.
 
-On the opt-in `delegation: ask-agent` route, and on a saved run without the
-setting, active v3/v4 INNER **producer** packets begin with "Clear and then
-execute the prompt." Improve packets instead begin "Keep the invoking parent
+On the opt-in `delegation: ask-agent` route, active v3/v4 INNER **producer**
+packets begin with "Clear and then execute the prompt." Improve packets instead begin "Keep the invoking parent
 alive": never clear, replace or wrap the live parent for Improve. For an
 `implement` producer, select the packet's chain route first. During that producer, its bound mode and executor take precedence: parallel chains
 retain their capacity and bypass this serial context boundary; explicit serial
@@ -409,17 +384,15 @@ retain the recovery locators and resume the same run when execution resumes.
    Distinguish local execution from checks against remote targets and remote-resident
    tests. Plan the available remote framework, definitions, invocation and lifecycle;
    local results cannot substitute for required unavailable remote checks.
-   Follow the packet's implementation quality indicator: plan and implement
+   Follow the packet's implementation quality guidance: plan and implement
    from applicable project conventions, revalidate changed assumptions, and
    record justified departures. Carry the conventions reference into work-item
    context and delegated prompts. Include relevant error checking, opt-in debug
    diagnostics, safe failure context,
    and concise, LLM-readable code contracts, then
    verify their behavior and accuracy. Keep material caveats; avoid boilerplate.
-3. When the run's Improve cadence selects this result (every result under
-   `every-stage`; the plan and the last carry-forward under the default
-   `planning-and-end`: planning stages and the last carry-forward; see
-   [Improve cadence](#improve-cadence)), the script enters
+3. When this result is a planning result or the last carry-forward (see
+   [When Improve runs](#when-improve-runs)), the script enters
    `active_improve` for that same action. Otherwise the result is accepted and the
    next producer packet follows. Read the selected actual Improve `SKILL.md` and let its bound
    Until Loop runtime own the improvement loop. For a new ephemeral child use
@@ -603,7 +576,7 @@ safe up to `max_steps`; do not leave a safe native slot idle. Defer only a candi
 concrete recorded host-capacity, resource, readiness, or recovery blocker, then
 refresh after every returned event. Never compute successors, select an unlisted
 step, infer a launch from a recovered packet, or finish from an empty ready list.
-`navigation.complete` marks chain completion; the legacy top-level `complete`
+`navigation.complete` marks chain completion; the top-level `complete` field
 describes graph acceptance only. Supply actual readiness, capacity and
 verification facts; if they prevent an offered action, retain that blocker rather
 than inventing a transition.
@@ -642,27 +615,26 @@ for unfinished steps, unmet dependencies, capacity and cleanup recovery; neither
 work nor repairs state. Both take `--run-dir` and `--action` without an input file.
 Keep combined main-conversation status from actual execution observations and
 dispatcher state; progress reports never accept work or release dependencies.
-This does not parallelize whole work-item lifecycles or migrate existing runs.
-Bindings created before binding schema v6 remain diagnostic evidence, not
-execution routes. This includes earlier managed 0.6 bindings that lack the new
-capability proof; binding schema and Ask-Agent version are separate identifiers.
-Preserve their workspaces and start a newly reviewed managed chain rather than
-rebinding them. A cleanup failure
+This does not parallelize whole work-item lifecycles.
+Only binding schema v6 is an execution route; an earlier binding, including a
+0.6 binding without the capability proof, is refused and kept only as
+diagnostic evidence. Binding schema and Ask-Agent version are separate
+identifiers. Preserve its workspaces and bind a newly reviewed chain rather than
+rebinding it. A cleanup failure
 leaves the step accepted and must be resolved without executing its work again.
 Final completion requires all contributions integrated and owned worker cleanup
 complete. Keep dirty targets, conflicts and unknown files as explicit blockers.
 
-## Existing protocols
+## Saved runs the current code cannot load
 
-Recorded navigator-v1 and navigator-v2 runs retain their saved cursor, keys,
-callbacks, and Improve binding. `next` resumes them without migration or
-conversion to v3. Existing managed and legacy runs also retain their recorded
-protocol. Saved v3/v4 runs without a recorded delegation keep the ask-agent
-route ([execution delegation](#execution-delegation)). Follow the packet printed
-for that run. The
-[compatibility README](README.md#historical-compatibility-protocols) describes those routes.
-Explicit compatibility modes remain available only when deliberately selected;
-normal new work uses navigator protocol 3.
+ShipLoop keeps only the latest code: navigator protocols 3 and 4. There are no
+compatibility modes and no migration. `next` and every other verb refuse a saved
+run from navigator v1/v2 or the removed managed and legacy modes with an error
+that names its protocol or mode, and refuse a v3/v4 state with unexpected or
+missing keys (including a missing `delegation`) with an error that names them.
+Nothing is converted or partly resumed. Preserve the old run directory as
+evidence and start the same request again with a fresh `--run-dir` or workspace
+root; its product commits and worktrees are unaffected.
 
 ## Inspect the graph without project work
 
@@ -670,12 +642,10 @@ normal new work uses navigator protocol 3.
 prints its returned effective prompts and owners. Use `--format markdown` to
 inspect full packets, or `--format json` for a trace. It does not run an LLM or
 perform implementation. See [dry-run activities](references/graph-dry-run.md).
-The old managed-controller probe remains available as `managed-graph-dry-run`
-for compatibility testing.
 
 ## Source-aware Backchain selection
 
-For a new navigator-v3 plan, retain `embedded` unless ordinary run notes
+For a new v3/v4 plan, retain `embedded` unless ordinary run notes
 intentionally select compatible `source-aware-native`. The native selection binds
 the observed Backchain `SKILL.md`, `backchain-caller/v1` action/stage resource,
 `references/convergence.md`, and `prompts/convergence-review.prompt.md`, plus the selected

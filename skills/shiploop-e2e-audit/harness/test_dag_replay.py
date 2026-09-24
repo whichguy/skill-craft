@@ -8,6 +8,7 @@ from pathlib import Path
 import subprocess
 import sys
 import tempfile
+from types import SimpleNamespace
 import unittest
 from unittest.mock import patch
 
@@ -88,19 +89,34 @@ class DagReplayTests(unittest.TestCase):
             with self.assertRaisesRegex(dag_replay.DagReplayError, "partial or missing terminal"):
                 session.close()
 
-    def test_full_v3_route_exercises_34_stages_and_68_callback_boundaries(self) -> None:
+    def test_full_v3_route_exercises_34_stages_and_42_callback_boundaries(self) -> None:
         report = self._replay("synthetic-v3-full")
 
         self.assertTrue(report["ok"], report.get("error"))
         self.assertEqual("synthetic-apparatus-passed", report["replay_status"])
-        self.assertEqual(68, len(report["events"]))
+        # 34 producer callbacks plus 8 Improve completions: seven planning
+        # checkpoints and the final carry-forward.
+        self.assertEqual(42, len(report["events"]))
         self.assertEqual({"W1"}, set(report["final"]["completed_work_items"]))
-        producer, improve = report["events"][:2]
-        self.assertEqual("intake", producer["from"])
+        self.assertEqual(["intake", "discovery", "research"], [event["from"] for event in report["events"][:3]])
+        for producer in report["events"][:3]:
+            with self.subTest(stage=producer["from"]):
+                self.assertEqual("produce", producer["command"])
+                self.assertFalse(producer["active_improve"])
+                self.assertNotEqual(producer["post_action_id"], producer["submitted_action_id"])
+        producer, improve = report["events"][3:5]
+        self.assertEqual(("spec", "produce"), (producer["from"], producer["command"]))
         self.assertTrue(producer["active_improve"])
         self.assertEqual(producer["current_action_id"], producer["submitted_action_id"])
+        self.assertEqual(producer["current_action_id"], producer["post_action_id"])
+        self.assertEqual(("spec", "finish-improve"), (improve["from"], improve["command"]))
         self.assertFalse(improve["active_improve"])
         self.assertNotEqual(improve["post_action_id"], improve["submitted_action_id"])
+        improved = [event["from"] for event in report["events"] if event["command"] == "finish-improve"]
+        self.assertEqual([
+            "spec", "test-strategy", "plan", "step-plan", "test-spec", "carry-forward",
+            "system-test-author", "release-plan",
+        ], improved)
         self.assertEqual(0, report["model_calls"])
         self.assertEqual("not-assessed", report["product_verdict"])
         self.assertEqual("not-assessed", report["live_verdict"])
@@ -111,7 +127,11 @@ class DagReplayTests(unittest.TestCase):
         report = self._replay("synthetic-v3-two-work-items")
 
         self.assertTrue(report["ok"], report.get("error"))
+        self.assertEqual(62, len(report["events"]))
         self.assertEqual(["W1", "W2"], report["final"]["completed_work_items"])
+        carry_forward = [event for event in report["events"] if event["from"] == "carry-forward"]
+        # Only the carry-forward that leaves no item pending parks for Improve.
+        self.assertEqual(["produce", "produce", "finish-improve"], [event["command"] for event in carry_forward])
         handoff = next(
             event for event in report["events"]
             if event["from"] == "carry-forward" and event["to"] == "select-work"
@@ -128,8 +148,11 @@ class DagReplayTests(unittest.TestCase):
         self.assertIn("step awaits actual Improve", expected[0]["engine_error"])
         self.assertIn("conflicting Improve completion replay", expected[1]["engine_error"])
         self.assertIn("stale Improve parent action", expected[2]["engine_error"])
-        duplicate = report["events"][1]
-        self.assertEqual(duplicate["pre_state_sha256"], duplicate["post_state_sha256"])
+        self.assertTrue(all(event["from"] in {"spec", "test-strategy"} for event in expected))
+        for command in ("duplicate-produce", "duplicate-finish-improve"):
+            with self.subTest(command=command):
+                duplicate = next(event for event in report["events"] if event["command"] == command)
+                self.assertEqual(duplicate["pre_state_sha256"], duplicate["post_state_sha256"])
 
     def test_pause_blocked_cold_recovery_repeat_and_corrective_replan(self) -> None:
         expectations = {
@@ -145,8 +168,13 @@ class DagReplayTests(unittest.TestCase):
                     self.assertEqual(completed_items, report["final"]["completed_work_items"])
                 if name == "synthetic-v3-pause-blocked-cold-recovery":
                     cold = [event for event in report["events"] if event["command"] == "cold-load"]
-                    self.assertEqual(2, len(cold))
+                    self.assertEqual(["intake", "discovery", "spec"], [event["from"] for event in cold])
                     self.assertTrue(all(event["pre_state_sha256"] == event["post_state_sha256"] for event in cold))
+                    # A producer-only block at discovery; an Improve-returned block at spec.
+                    blocked = [(event["from"], event["command"]) for event in report["events"]
+                               if event["command"] in {"produce", "finish-improve"}
+                               and event["expected"]["status"] == "blocked"]
+                    self.assertEqual([("discovery", "produce"), ("spec", "finish-improve")], blocked)
                 if name == "synthetic-v3-repeat":
                     repeated = [event for event in report["events"] if event["from"] == "step-plan"]
                     self.assertEqual("step-plan", repeated[1]["to"])
@@ -157,6 +185,8 @@ class DagReplayTests(unittest.TestCase):
                     )
                     self.assertEqual("W2", replan["next_owner"])
                     self.assertEqual(["W1"], replan["completed_work_items"])
+                    self.assertEqual("produce", replan["command"])
+                    self.assertFalse(replan["active_improve"])
 
     def test_stale_malformed_and_wrong_edge_controls_cannot_turn_green(self) -> None:
         guarded = self._replay("synthetic-v3-stale-and-malformed")
@@ -167,18 +197,19 @@ class DagReplayTests(unittest.TestCase):
         self.assertTrue(wrong["ok"], wrong.get("error"))
         self.assertTrue(wrong["expected_failure_observed"])
         self.assertEqual("synthetic-apparatus-expected-failure-observed", wrong["replay_status"])
-        self.assertIn("expected edge intake -> discovery/active", wrong["error"])
+        self.assertIn("expected edge intake -> research/active, got discovery/active", wrong["error"])
 
+        # With the true edge the control replays green, so its expected
+        # failure is missing and the report must not pass.
         missing = deepcopy(dag_replay.synthetic_cases()["synthetic-v3-wrong-edge-control"])
         missing["id"] = "synthetic-v3-expected-failure-missing"
-        missing["steps"][0]["expect"] = "intake"
-        missing["expected_final"] = {"stage": "intake", "status": "active"}
+        missing["steps"][0]["expect"] = "discovery"
         fixture = {"kind": "in-code-synthetic", "sha256": dag_replay._canonical_fixture_digest(missing)}
         report = dag_replay.replay_case(missing, fixture=fixture, output=self.root / "missing-negative")
         self.assertFalse(report["ok"])
         self.assertTrue(report["expected_failure_missing"])
 
-    def test_schema_and_drift_fail_closed_and_retained_v2_stays_metadata_only(self) -> None:
+    def test_schema_and_drift_fail_closed_and_only_synthetic_v3_cases_are_accepted(self) -> None:
         invalid = deepcopy(dag_replay.synthetic_cases()["synthetic-v3-full"])
         invalid["steps"] = []
         with self.assertRaisesRegex(dag_replay.DagReplayError, "1..500"):
@@ -199,47 +230,17 @@ class DagReplayTests(unittest.TestCase):
         self.assertEqual("synthetic-apparatus-invalid-drift", report["replay_status"])
         self.assertTrue((self.root / "drift" / "cases" / case["id"] / "report.json").is_file())
 
-        fixtures = sorted((HERE / "fixtures" / "dag").glob("captured_*.json"))
-        self.assertTrue(fixtures)
-        retained, fixture = dag_replay.load_case(fixtures[0])
-        report = dag_replay.replay_case(retained, fixture=fixture, output=self.root / "retained")
-        self.assertTrue(report["ok"], report.get("error"))
-        self.assertEqual(2, report["protocol_version"])
-        self.assertEqual(retained["provenance"], report["retained_trace_metadata"])
-        self.assertEqual("none", report["captured_command_execution"])
-        self.assertEqual("not-assessed", report["product_verdict"])
-
-    def test_retained_trace_contract_rejects_provenance_and_eligibility_mutations(self) -> None:
-        path = sorted((HERE / "fixtures" / "dag").glob("captured_*.json"))[0]
-        retained, _ = dag_replay.load_case(path)
-        mutations = {
-            "empty-provenance": lambda case: case.__setitem__("provenance", {}),
-            "missing-canonical-result": lambda case: case["provenance"].pop("canonical_result_sha256"),
-            "canonical-result-mismatch": lambda case: case["provenance"].__setitem__(
-                "canonical_result_sha256", "0" * 64
-            ),
-            "source-digest-missing": lambda case: case["provenance"]["source_hashes"]["result.json"].pop("sha256"),
-            "accepted-result-count": lambda case: case["provenance"]["accepted_result_sha256"].pop(),
-            "preexisting-run": lambda case: case["provenance"]["preexisting"].__setitem__(
-                "selected_run_preexisting", True
-            ),
-            "unverified-initial-archive": lambda case: case["provenance"]["preexisting"].__setitem__(
-                "initial_archive_verified", False
-            ),
-            "ineligible-original-outcome": lambda case: case["provenance"].__setitem__(
-                "original_outcome", "invalid-trial"
-            ),
-            "unsupported-isolation": lambda case: case["provenance"]["original_isolation"].__setitem__(
-                "status", "live-verified"
-            ),
-            "prompt-retained": lambda case: case.__setitem__("prompt", "raw retained prompt"),
-        }
-        for name, mutate in mutations.items():
-            with self.subTest(mutation=name):
-                case = deepcopy(retained)
-                mutate(case)
-                with self.assertRaises(dag_replay.DagReplayError):
-                    dag_replay.validate_case(case, origin=name)
+        for field, value, message in (
+            ("protocol_version", 2, "protocol_version must be 3"),
+            ("protocol_version", 4, "protocol_version must be 3"),
+            ("kind", "retained-trace", "kind must be synthetic"),
+        ):
+            with self.subTest(field=field, value=value):
+                invalid = deepcopy(dag_replay.synthetic_cases()["synthetic-v3-stale-and-malformed"])
+                invalid[field] = value
+                with self.assertRaisesRegex(dag_replay.DagReplayError, message):
+                    dag_replay.validate_case(invalid)
+        self.assertFalse((HERE / "fixtures" / "dag").exists())
 
     def test_same_root_source_change_after_first_replay_is_reported_without_reusing_cached_code(self) -> None:
         root_key = str(dag_replay.DEFAULT_SKILL_ROOT.resolve())
@@ -268,11 +269,13 @@ class DagReplayTests(unittest.TestCase):
             else:
                 dag_replay._PROCESS_LOADED_PACKAGE_SHA256[root_key] = original_pin
 
-    def test_public_cli_replays_a_retained_fixture_to_new_external_output(self) -> None:
-        fixture = sorted((HERE / "fixtures" / "dag").glob("captured_*.json"))[0]
+    def test_public_cli_replays_a_case_file_to_new_external_output(self) -> None:
+        case = dag_replay.synthetic_cases()["synthetic-v3-stale-and-malformed"]
+        case_path = self.root / "case.json"
+        case_path.write_text(json.dumps(case), encoding="utf-8")
         output = self.root / "cli-output"
         completed = subprocess.run(
-            [sys.executable, "-B", str(HERE / "dag_replay.py"), "--case", str(fixture), "--output", str(output),
+            [sys.executable, "-B", str(HERE / "dag_replay.py"), "--case", str(case_path), "--output", str(output),
              "--skill-root", str(dag_replay.DEFAULT_SKILL_ROOT)],
             capture_output=True,
             text=True,
@@ -283,7 +286,51 @@ class DagReplayTests(unittest.TestCase):
         receipt = json.loads((output / "result.json").read_text(encoding="utf-8"))
         self.assertEqual("synthetic-apparatus-passed", receipt["status"])
         self.assertEqual(0, receipt["model_calls"])
+        self.assertEqual([case["id"]], [report["id"] for report in receipt["reports"]])
         self.assertEqual(str(dag_replay.DEFAULT_SKILL_ROOT.resolve()), receipt["selected_subject"]["root"])
+
+    def test_v3_cursor_invariant_parks_only_at_literal_checkpoints(self) -> None:
+        navigator = SimpleNamespace(
+            current_action=lambda state: state["action"],
+            current_stage=lambda state: state["stage"],
+        )
+
+        def state(stage: str, action: str, *, child: dict | None = None, work_index: int = 0) -> dict:
+            return {
+                "navigator_protocol_version": 3, "stage": stage, "action": {"id": action},
+                "active_improve": child, "accepted": {}, "work_index": work_index,
+                "work_items": [{"id": "W1"}, {"id": "W2"}],
+            }
+
+        def parked(stage: str, action: str, **extra) -> dict:
+            return state(stage, action, child={"action_id": action, "stage": stage}, **extra)
+
+        done = {"outcome": "done", "summary": "Synthetic."}
+        check = dag_replay._assert_v3_cursor_invariants
+        # (b) A non-checkpoint producer advances with no child.
+        check(navigator, state("intake", "a1"), state("discovery", "a2"), "produce", "a1", done)
+        # A checkpoint producer parks its own action.
+        check(navigator, state("spec", "a1"), parked("spec", "a1"), "produce", "a1", done)
+        # A carry-forward that leaves a later item pending advances directly.
+        check(navigator, state("carry-forward", "a1"), state("select-work", "a2", work_index=1),
+              "produce", "a1", done)
+        failures = (
+            # (a) A checkpoint producer that advanced with no child.
+            ("replaced the parent action", state("spec", "a1"), state("test-strategy", "a2"), done),
+            # (c) A non-checkpoint producer that parked a child.
+            ("parked Improve outside a checkpoint", state("intake", "a1"), parked("intake", "a1"), done),
+            # (d) The last carry-forward that advanced with no child.
+            ("replaced the parent action", state("carry-forward", "a1", work_index=1),
+             state("system-test-author", "a2"), done),
+            # Emptying the future queue also makes this carry-forward the last one.
+            ("replaced the parent action", state("carry-forward", "a1"),
+             state("system-test-author", "a2"), {**done, "work_items": []}),
+            ("did not accept its result", state("intake", "a1"), state("intake", "a1"), done),
+        )
+        for index, (message, before, after, result) in enumerate(failures):
+            with self.subTest(case=index, message=message):
+                with self.assertRaisesRegex(dag_replay.DagReplayError, message):
+                    check(navigator, before, after, "produce", "a1", result)
 
     def test_public_cli_rejects_output_inside_selected_subject(self) -> None:
         output = dag_replay.DEFAULT_SKILL_ROOT / "forbidden-e2e-output"

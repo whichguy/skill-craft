@@ -286,7 +286,7 @@ class V4ConsumersTests(unittest.TestCase):
         self.assertIsNone(corrected['replan_required'])
 
     def test_v4_dry_run_preserves_full_existing_graph(self):
-        for name, scenario in dry_run.scenarios(4).items():
+        for name, scenario in dry_run.scenarios().items():
             result = dry_run.run_scenario(name, scenario, protocol_version=4)
             self.assertTrue(result['ok'], result)
 

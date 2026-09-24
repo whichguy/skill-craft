@@ -48,18 +48,24 @@ def main():
                     result["work_items"] = [{"id": "W1", "title": "Requested capability", "context": context}]
                 waiting = navigator.apply(state, action["id"], result)
                 child = waiting["active_improve"]
-                child.update({"version": 1, "contract_marker": "ShipLoop standalone Improve binding: "
-                              + child["binding_id"], "skill": skill})
-                improve = navigator.render(None, root / "run", waiting)
+                improve = None
+                if child is not None:
+                    # Only planning checkpoints and the last carry-forward park an Improve child.
+                    child.update({"version": 1, "contract_marker": "ShipLoop standalone Improve binding: "
+                                  + child["binding_id"], "skill": skill})
+                    improve = navigator.render(None, root / "run", waiting)
                 rows.append({"case": label, "stage": stage, "producer_characters": len(producer),
-                             "improve_characters": len(improve)})
+                             "improve_characters": None if improve is None else len(improve)})
                 if args.packets_dir and label == "normal" and stage in {"discovery", "step-plan", "document", "prepare"}:
                     (args.packets_dir / (stage + ".md")).write_text(producer)
-                    (args.packets_dir / (stage + "-improve.md")).write_text(improve)
-                state = navigator.finish_improve(waiting, action["id"], {
-                    "summary": "Synthetic completion; no actual Improve runtime executed.",
-                    "lessons": "Retain relevant decision locators.",
-                })
+                    if improve is not None:
+                        (args.packets_dir / (stage + "-improve.md")).write_text(improve)
+                state = waiting
+                if child is not None:
+                    state = navigator.finish_improve(waiting, action["id"], {
+                        "summary": "Synthetic completion; no actual Improve runtime executed.",
+                        "lessons": "Retain relevant decision locators.",
+                    })
             if state["status"] != "done":
                 raise AssertionError("Traversal did not finish")
     report = {"scope": "Pure renderer experiment with synthetic transitions and selected package locators.",

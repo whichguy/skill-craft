@@ -34,7 +34,6 @@ _PHASE_FOR_KIND = {
 }
 _OBSERVABLE_AT = {
     "system-test": frozenset(("pre-update",)),
-    "outer-improve": frozenset(("pre-update",)),
     # Release planning may refresh pre-update evidence when a late planning
     # change invalidated it.  It does not authorize an effectful observation.
     "release-plan": frozenset(("pre-update",)),
@@ -46,7 +45,6 @@ _OBSERVABLE_AT = {
 # earlier phase: only the phase that owns an observation may report it passed.
 _NEGATIVE_OBSERVABLE_AT = {
     "system-test": frozenset(("pre-update",)),
-    "outer-improve": frozenset(("pre-update",)),
     "release-plan": frozenset(("pre-update",)),
     # These v3 readiness stages occur after system-test but before release,
     # so they may retain a newly discovered failure of the due pre-update
@@ -73,10 +71,7 @@ _EARLIER_DUE_KINDS = {
     "operations": _OBLIGATION_KINDS,
     "handoff": _OBLIGATION_KINDS,
 }
-_LEGACY_POST_RELEASE_PLAN_MUTATION_STAGES = frozenset(
-    ("release", "release-verify", "handoff")
-)
-_V3_POST_RELEASE_PLAN_MUTATION_STAGES = frozenset(
+_POST_RELEASE_PLAN_MUTATION_STAGES = frozenset(
     (
         "system-test-author", "system-test", "product-acceptance", "release-check",
         "release", "release-verify", "operations", "handoff",
@@ -93,17 +88,11 @@ def _need(condition: bool, message: str) -> None:
         raise ConsumerDeliveryError(message)
 
 
-def _replan_message(protocol_version: Any) -> str:
-    if protocol_version in (3, 4):
-        return (
-            "The required delivery contract changed after release planning and requires replanning through "
-            "the accepted outer replan edge, followed by fresh system-test and release-plan "
-            "evidence for the current contract before another completion."
-        )
-    return (
-        "The required delivery contract changed after release planning and requires replanning; "
-        "start a new planning run before another completion."
-    )
+_REPLAN_MESSAGE = (
+    "The required delivery contract changed after release planning and requires replanning through "
+    "the accepted outer replan edge, followed by fresh system-test and release-plan "
+    "evidence for the current contract before another completion."
+)
 
 
 def _text(value: Any, label: str, *, allow_empty: bool = False) -> str:
@@ -460,10 +449,6 @@ def project(state: Mapping[str, Any]) -> dict[str, Any]:
     if not enabled:
         return projection
     protocol_version = state.get("navigator_protocol_version")
-    post_plan_mutation_stages = (
-        _V3_POST_RELEASE_PLAN_MUTATION_STAGES
-        if protocol_version in (3, 4) else _LEGACY_POST_RELEASE_PLAN_MUTATION_STAGES
-    )
     release_plan_completed = False
     post_plan_replan_pending = False
     fresh_system_test_after_replan = False
@@ -489,13 +474,12 @@ def project(state: Mapping[str, Any]) -> dict[str, Any]:
                     material_change = _material_post_plan_change(
                         previous, assessment["contract"]
                     )
-                    if (protocol_version in (3, 4) and post_plan_replan_pending
-                            and material_change):
+                    if post_plan_replan_pending and material_change:
                         fresh_system_test_after_replan = False
                     if (release_plan_completed
-                            and entry["stage"] in post_plan_mutation_stages
+                            and entry["stage"] in _POST_RELEASE_PLAN_MUTATION_STAGES
                             and material_change):
-                        projection["replan_required"] = _replan_message(protocol_version)
+                        projection["replan_required"] = _REPLAN_MESSAGE
                 projection["contract"] = deepcopy(assessment["contract"])
                 projection["anchor"] = entry["action"]
                 projection["observations"] = retained
@@ -517,7 +501,7 @@ def project(state: Mapping[str, Any]) -> dict[str, Any]:
                     action=entry["action"],
                     stage=entry["stage"],
                 )
-        if protocol_version in (3, 4) and entry["outcome"] == "replan":
+        if entry["outcome"] == "replan":
             # Every accepted v3 edge starts a corrective inner cycle, so a prior
             # release plan cannot cover a candidate changed by that later work.
             release_plan_completed = False
@@ -527,12 +511,11 @@ def project(state: Mapping[str, Any]) -> dict[str, Any]:
                 # system-test and release-plan evidence for the current contract.
                 post_plan_replan_pending = True
                 fresh_system_test_after_replan = False
-        if (protocol_version in (3, 4) and post_plan_replan_pending
+        if (post_plan_replan_pending
                 and entry["stage"] == "system-test" and entry["outcome"] == "done"):
             fresh_system_test_after_replan = True
         if entry["stage"] == "release-plan" and entry["outcome"] == "done":
-            if (protocol_version in (3, 4) and post_plan_replan_pending
-                    and fresh_system_test_after_replan):
+            if post_plan_replan_pending and fresh_system_test_after_replan:
                 projection["replan_required"] = None
                 post_plan_replan_pending = False
             release_plan_completed = True
@@ -610,12 +593,9 @@ def validate_transition(
     projection = _project_submission(state, action_id, stage, result)
     if result["outcome"] != "done":
         return projection
-    required_contract_stage = (
-        "plan" if state.get("navigator_protocol_version") in (3, 4) else "plan-improve"
-    )
-    if stage == required_contract_stage:
+    if stage == "plan":
         _need(projection["contract"] is not None,
-              f"delivery contract is required before successful {required_contract_stage}")
+              "delivery contract is required before successful plan")
         if state.get("navigator_protocol_version") == 4:
             _need(projection["replan_required"] is None, projection["replan_required"])
     elif stage == "system-test":
@@ -736,11 +716,10 @@ def packet_lines(state: Mapping[str, Any]) -> list[str]:
     ]
     contract = projection["contract"]
     if contract is None:
-        required_stage = "plan" if state.get("navigator_protocol_version") in (3, 4) else "plan-improve"
         lines.extend(
             [
                 "Delivery contract: none accepted yet.",
-                f"Before successful {required_stage}, submit a full delivery_assessment with kind 'contract'. An unresolved contract may validly have no obligations; see the schema reference before declaring necessity required.",
+                "Before successful plan, submit a full delivery_assessment with kind 'contract'. An unresolved contract may validly have no obligations; see the schema reference before declaring necessity required.",
             ]
         )
         return lines
@@ -798,16 +777,11 @@ def packet_lines(state: Mapping[str, Any]) -> list[str]:
                 "supersedes this historical anchor and preserves applicable user authority. "
                 "The earlier contract cannot authorize preparation."
             )
-        elif state.get("navigator_protocol_version") in (3, 4):
+        else:
             lines.append(
                 "Use the accepted outer replan edge with new corrective work_items; if that edge already "
                 "returned this run to inner work, complete the fresh system-test and release-plan cycle for "
                 "the current contract. Repeat or resume cannot repair this requirement."
-            )
-        else:
-            lines.append(
-                "Do not complete this effectful action. Submit blocked, then obtain direction for a new "
-                "planning run that references this durable state."
             )
     late_rows = _late_unrepairable_rows(state, projection)
     if late_rows:
@@ -815,18 +789,11 @@ def packet_lines(state: Mapping[str, Any]) -> list[str]:
             "Delivery recovery required: earlier required observations are no longer current: "
             + ", ".join(_packet_text(row["id"]) for row in late_rows) + "."
         )
-        if state.get("navigator_protocol_version") in (3, 4):
-            lines.append(
-                "This action cannot positively repair an earlier phase. Use the accepted outer replan edge "
-                "with corrective work_items; do not repeat or resume this action as a substitute for the "
-                "missing receipt."
-            )
-        else:
-            lines.append(
-                "This action cannot positively repair an earlier phase. Submit blocked and start a new planning "
-                "run that references this durable state; do not repeat this action as a substitute for the "
-                "missing receipt."
-            )
+        lines.append(
+            "This action cannot positively repair an earlier phase. Use the accepted outer replan edge "
+            "with corrective work_items; do not repeat or resume this action as a substitute for the "
+            "missing receipt."
+        )
     return lines
 
 

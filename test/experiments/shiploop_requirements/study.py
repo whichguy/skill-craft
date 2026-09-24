@@ -183,14 +183,17 @@ def _synthetic_state(navigator: Any, repo: Path, request: str, target: str) -> d
     while navigator.current_stage(state) != target:
         stage, action = navigator.current_stage(state), navigator.current_action(state)["id"]
         seed = {"outcome": "done", "summary": f"FIXTURE SETUP ONLY: synthetic {stage} producer.", "evidence_refs": [f"fixture://{stage}"]}
-        waiting = navigator.apply(state, action, seed)
+        state = navigator.apply(state, action, seed)
+        if state["active_improve"] is None:
+            # Only planning checkpoints and the last carry-forward park an Improve child.
+            continue
         receipt = {
             "summary": f"FIXTURE SETUP ONLY: no Improve ran for {stage}.",
             "review_refs": [f"fixture://review/{stage}"],
             "check_refs": [f"fixture://check/{stage}"],
             "lessons": "Fixture setup only; not an observed review or product evidence.",
         }
-        state = navigator.finish_improve(waiting, action, receipt)
+        state = navigator.finish_improve(state, action, receipt)
     return state
 
 

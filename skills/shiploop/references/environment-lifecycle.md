@@ -51,11 +51,10 @@ genuinely unnecessary, with evidence and the earliest activity needing them.
 Separate environment preparation from deploying the implemented candidate and
 from final consumer activation. A release-only staging prerequisite need not
 block independent local coding; isolation needed for coding must precede it.
-These are planning decisions, not permission to execute inside `plan` or
-`plan-improve`. Even authorized setup waits for its script-assigned work item.
+These are planning decisions, not permission to execute inside `plan` or its
+Improve review. Even authorized setup waits for its script-assigned work item.
 
-In **navigator mode**, use the existing ordered `work_items` from `plan` or
-`plan-improve`. Put an explicit preparation producer before every dependent
+Use the existing ordered `work_items` from `plan`. Put an explicit preparation producer before every dependent
 feature item when setup is needed. The producer traverses the same INNER graph:
 its implementation is authorized setup, its tests are readiness/baseline checks,
 and its documentation/Improve/carry-forward concern that setup, not invented
@@ -79,13 +78,6 @@ within the current item's scope may update its plan/checks; otherwise block for
 replanning direction. `carry-forward` can reorder only future work, not jump
 backward or silently change the active item.
 
-In **managed/legacy modes**, retain the recorded lifecycle protocol: authorized
-environment-only setup can use `preparation: outer-before`; dependency-scoped
-setup uses a DAG preparation producer; no separate setup uses `none`. Final
-publication follows the selected DAG or outer-loop route. See
-[platform discovery](platform-discovery.md#bootstrap-validation-and-publication-are-different-obligations).
-Do not copy those schema fields into a navigator result.
-
 ## Carry the route into final delivery
 
 During initial planning, assign each required candidate deployment, migration,
@@ -95,7 +87,7 @@ producer after the feature work and before `system-test`; waiting until final
 `release` would be too late. A multi-hop route is a set of real dependencies,
 not a reason to bypass a prerequisite or invent a fixed number of environments.
 
-`carry-forward` and affected standalone Improve handoffs reconcile new
+`carry-forward` and the affected Improve reviews reconcile new
 environment/deployment needs with the existing plan. `release-plan` reads that
 record, revalidates current targets and readiness, and plans only the remaining
 authorized consumer update or promotion. Keep intermediate test deployments
@@ -121,7 +113,7 @@ candidate and target, predecessor/prerequisites, authority, expected before/afte
 state, observation method, and recovery limit. An operation can be **accepted**,
 **running**, then **terminal**; its effect is **verified** only after the required
 operation postcondition is observed. Final consumer behavior belongs to
-`release-verify`, after `release` returns through its standalone Improve handoff.
+`release-verify`, after `release` records the operation's actual effect.
 A lost reply or
 receipt requires reconciliation against documented provider job/key lookup and
 parameter-binding semantics; a local ID alone does not provide idempotency.

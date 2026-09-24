@@ -28,6 +28,34 @@ FORBIDDEN_TRANSPORTS = (
     "shiploop_host_claude.py",
     "shiploop_host_codex.py",
 )
+# Declared independently: the navigator protocol 1/2, managed and legacy
+# runtime that 0.23.0 removed.  Neither package copy may still ship them.
+REMOVED_SCRIPTS = (
+    "_improve_managed.py", "shiploop_dry_run.py", "shiploop_packets.py", "shiploop_sdlc.py",
+    "shiploop_improve_bridge.py", "shiploop_improve_policy.py", "shiploop_contracts.py",
+    "shiploop_evidence.py", "shiploop_invalidation.py", "shiploop_report.py",
+    "shiploop_artifacts.py", "shiploop_contract_protocol.py", "shiploop_delivery.py",
+    "shiploop_discovery.py", "shiploop_history.py", "shiploop_history_policy.py",
+    "shiploop_iteration_docs.py", "shiploop_knowledge.py", "shiploop_objectives.py",
+    "shiploop_observations.py", "shiploop_outer_work.py", "shiploop_planning.py",
+    "shiploop_research.py", "shiploop_revalidation.py", "shiploop_risk.py",
+    "shiploop_step_planning.py", "shiploop_system_context.py", "shiploop_system_tests.py",
+    "shiploop_until.py", "shiploop_navigator_prompts.py",
+)
+REMOVED_REFERENCES = (
+    "action-protocol.md", "activities", "context-reset.md", "graph-dry-run-example.json",
+    "improve-managed-consumer.md", "improve-managed-controller-pin.json",
+    "improve-policy-pin.json", "improve-review-policy.md", "ledger-contract.md",
+    "navigator-dry-run-example.json", "objective-loops.md", "outer-work.md",
+    "planning-loops.md", "report.md", "research-result-schema.md", "survey.md",
+    "turn-packet.md",
+)
+REMOVED_COMMANDS = ("shiploop-evidence.md", "shiploop-inject.md")
+REMOVED_VERBS = ("managed-graph-dry-run", "migrate", "merge-recover")
+RETIRED_DOC_MENTIONS = (
+    "managed-graph-dry-run", "--execution-mode managed", "navigator-v1", "navigator-v2",
+    "shiploop migrate",
+)
 
 
 def read_record(path: Path) -> dict[str, object]:
@@ -135,6 +163,27 @@ class ShipLoopNoModelLaunchTests(unittest.TestCase):
         rejected = self.run_cli("drive", "--host", "grok")
         self.assertEqual(rejected.returncode, 2, rejected.stdout + rejected.stderr)
         self.assertIn("invalid choice: 'drive'", rejected.stderr)
+        self.assert_no_model_launch()
+
+    def test_package_contains_only_the_v3_v4_runtime(self) -> None:
+        self.assertEqual(len(REMOVED_SCRIPTS), 30)
+        for folder, names in (("scripts", REMOVED_SCRIPTS), ("references", REMOVED_REFERENCES),
+                              ("commands", REMOVED_COMMANDS)):
+            for name in names:
+                with self.subTest(removed=folder + "/" + name):
+                    self.assertFalse(os.path.lexists(self.package / folder / name))
+        for verb in REMOVED_VERBS:
+            with self.subTest(verb=verb):
+                run_dir = self.base / ("removed-" + verb)
+                rejected = self.run_cli(verb, "--run-dir", str(run_dir))
+                self.assertEqual(rejected.returncode, 2, rejected.stdout + rejected.stderr)
+                self.assertIn(f"invalid choice: '{verb}'", rejected.stderr)
+                self.assertFalse(run_dir.exists())
+        for card in (self.package / "SKILL.md", *sorted((self.package / "commands").glob("*.md"))):
+            text = card.read_text(encoding="utf-8")
+            for mention in RETIRED_DOC_MENTIONS:
+                with self.subTest(card=card.name, mention=mention):
+                    self.assertNotIn(mention, text)
         self.assert_no_model_launch()
 
     def test_normal_init_and_next_keep_the_same_run_and_action_without_model_launches(self) -> None:

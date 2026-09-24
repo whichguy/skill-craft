@@ -1,12 +1,14 @@
 # /shiploop next
 
-Reprint the current action without advancing it:
+Reprint the current packet without advancing the run:
 
 ~~~sh
 python3 "$SKILL_ROOT/scripts/shiploop" next --run-dir "$RUN_DIR"
 ~~~
 
-Use it after a context loss or after reviewing durable evidence. It may finish
-durable step scheduling/recovery, but it does not complete implementation,
-review, verification, or merge by inference. Use context for a bounded section
-rather than asking next to dump every receipt or the full DAG.
+Use it after a context reset or interruption, then follow the reprinted packet.
+`next` never chooses a successor, completes a step, imports an Improve child or
+unpauses a run; `status` prints the same packet. The packet names the current
+owner (a producer step or its bound Improve child) and its one legal callback on
+the line after the header. A saved run from an older protocol is refused with an
+error naming it; start a fresh run directory for that request.

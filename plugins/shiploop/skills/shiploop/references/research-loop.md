@@ -15,12 +15,10 @@ is historical context, not a request to execute it again.
 ```mermaid
 flowchart TD
   Q[Scoped questions] --> S[Review sources and investigate]
-  S --> R[Revise evidence and resolve findings]
-  R --> V[Lint, tests and learning commit]
-  V --> G{Two trivial passes and no gaps?}
+  S --> R[Record evidence, decisions and open gaps in a run note]
+  R --> G{Required questions answered or explicitly blocked?}
   G -->|No| S
-  G -->|Yes| F[Fresh final checks]
-  F --> N[Next phase with fresh context]
+  G -->|Yes| N[Generic result with the note in evidence_refs]
 ```
 
 ## Draft
@@ -37,15 +35,11 @@ For each question, distinguish:
 - what a source recommends, with applicability and contrary evidence;
 - what remains unknown or requires a user decision.
 
-Research begins with `body` and `research_state` in the normal Markdown result.
-The script maintains `research.md` and `research-evidence.md` as candidate
-components; host-authored result drafts belong in the printed inbox. The typed
-legacy evidence structure is shown below. For a versioned run, use the packet's
-extended template and the required
-[result shape](research-result-schema.md#result-shape) and
-[replacement rules](research-result-schema.md#replacement-rules), not this
-legacy-only example. Those sections define every row shape, allowed enum and
-stable-identity/link rule; no validator source inspection should be necessary.
+Keep the question inventory in a durable run note, as the
+[navigator adapter](#navigator-execution-mode-adapter) describes, and submit the
+packet's generic result with that note in `evidence_refs`. The structure below
+illustrates the information worth retaining for each question and source; it is
+not a result schema the script validates.
 
 ```json
 {
@@ -86,24 +80,12 @@ work can use actual repository/runtime evidence; no external-search quota or
 third-party tool is mandatory. No relevant uncertainty still requires an explicit
 bounded applicability review, not a fabricated source or silent empty result.
 
-### Versioned system-context links
+### Interaction boundaries
 
-New runs that declare `system_context_protocol_version: 1` extend only their
-`research_state`; older runs keep the exact two-key `questions`/`sources` shape.
-The extension adds `parents`, `contract_refs`, `role_refs`, and `interface_refs`
-to every question, plus one `system_context` record with a version, scope,
-rationale, observations, roles, interfaces, and interactions. The detailed
-model stays in `research.md` and `research-evidence.md`; packets carry only a
-bounded selected projection and its evidence locator.
-
-Use stable IDs and validate every source, parent, role, interface, and contract
-reference. Question parents are acyclic. Contract/question links are reciprocal.
-An interface that represents a surveyed platform names its frozen
-`{platform_id, name}` identity rather than copying or changing the survey.
-Roles record permitted actions and isolation without forcing a `dev`, `stage`,
-or `prod` taxonomy. Include observed or explicitly blocked/not-applicable
-code, state, system, and environment-role observations; unavailable evidence is
-not permission to call a boundary irrelevant.
+Record roles with their permitted actions and isolation without forcing a
+`dev`, `stage`, or `prod` taxonomy. Include observed or explicitly
+blocked/not-applicable code, state, system, and environment-role observations;
+unavailable evidence is not permission to call a boundary irrelevant.
 
 Each relevant interaction records caller/callee interfaces, operation,
 input/output shape, state and failure semantics, supported SDK/client idiom,
@@ -112,7 +94,7 @@ causal boundaries as far as risk requires: a simple local call may stop with a
 reason, while retries, duplicate effects, cancellation, partial commit, or role
 differences need the relevant downstream state/service boundary. A numeric depth
 claim is never evidence. Required unresolved interactions or their open/blocked
-questions prevent research finalization; do not replace them with a future
+questions keep the research incomplete; do not replace them with a future
 consumer dependency or an invented probe.
 
 Use the selected primary contract for an operation. The
@@ -305,7 +287,7 @@ affected work, owner, and safe recheck/resume condition. These are descriptive
 notes, not new result fields or an authentication state machine. Reuse an existing
 request for the same system/role/scope; do not repeatedly prompt on unchanged
 blockers or after refusal. A changed need or new user direction can reopen it.
-Before `plan-improve` completes, check that each concrete external dependency
+Before the plan's Improve review completes, check that each concrete external dependency
 has relevant access evidence or a disclosed access/setup requirement, owner,
 and earliest gating stage.
 An undisclosed known requirement is a planning defect; a disclosed downstream
@@ -485,9 +467,8 @@ Markdown. Use the closing reserve to checkpoint before pausing:
   accepted candidate remains unchanged. If the draft could not be written, say
   what was not retained; do not claim the discoveries were checkpointed.
 
-Use the existing `pause` command for either a legacy or managed action. The
-managed bridge owns its unfinished child status; do not invent a `stopped` result
-or edit child state. `halt` is for deliberately ending the run unfinished, not the
+Use the existing `pause` command. A bound Improve child keeps its own unfinished
+status; do not invent a `stopped` result or edit child state. `halt` is for deliberately ending the run unfinished, not the
 default resumable budget checkpoint. On a later authorized resume, read the
 recorded draft and accepted candidate, finish the current action's duties, and
 use its current callback. Resuming does not replenish the exploration allowance.
@@ -499,9 +480,8 @@ During each research review, challenge the most consequential conclusion with a
 feasible independent source, counterexample, or safe probe; otherwise record that
 limit. Unchanged blockers remain open. Two fully checked trivial passes can finish
 only with no required unresolved questions. Carry durable reusable conclusions to
-the existing plan, knowledge/outer-work records, and scoped product documentation
-tasks; never hand-edit frozen environment state or create a second investigation
-engine.
+the existing plan, run notes, project knowledge and scoped product documentation
+tasks; never hand-edit ShipLoop state or create a second investigation engine.
 
 ## Navigator execution mode adapter
 
@@ -512,11 +492,9 @@ shared allowance in every version. This adapter supplies the current protocol's
 record and owner binding; it does not replace the shared research evidence
 guidance with a navigator-specific one.
 
-Direct legacy navigator v1/v2 Improve nodes own their own review/plan/apply/check
-campaign and ordinary generic result/callback. Do not retrofit a parked
-parent/child relationship onto those persisted runs. In navigator v3/v4, one
-valid generic producer submission instead parks the parent and binds one Improve
-child. That producer checkpoint remains valid: it records the current source
+At an Improve checkpoint, one valid generic producer submission parks the
+parent and binds one Improve child; at other stages the accepted result advances
+the graph directly. That producer checkpoint remains valid: it records the current source
 view and its evidence, but does not claim that the child has completed its
 reviews or that a tested condition holds. The bound child owns its review work,
 applicable experiments, and the investigation's shared allowance. The parent
@@ -531,8 +509,8 @@ For navigator, keep findings in a durable run note, such as
 links, visited boundaries, access and acquisition stages, observations and
 limitations, reuse choices, cleanup, active time/action accounting, remaining
 allowance, conclusions, and required open gaps. Use the current packet's result
-envelope. Do not add `body`, `research_state`, `system_context`, or other legacy
-fields to that envelope or create compatibility candidate files. Named
+envelope. Do not add other fields to that envelope or create extra candidate
+files. Named
 questions/sources/`depth_rationale` in the shared section describe information to
 retain, not a mandatory navigator schema or note layout.
 
@@ -544,21 +522,18 @@ memory. Update the existing note rather than creating a duplicate request.
 
 Record the selected mutation route and its authorization boundaries. Extra
 readers do not grant authority to change that route or evade a real denial.
-References to a frozen inventory, selected-interface identity, or child state
-describe compatibility enforcement; navigator does not freeze those artifacts
-or require their certificates. The host must preserve the actual scope and
-decisions and disclose changes without claiming script-enforced checks.
+The navigator does not freeze an inventory or selected-interface identity. The
+host must preserve the actual scope and decisions and disclose changes without
+claiming script-enforced checks.
 
-For direct legacy v1/v2 nodes, `discovery`, `research`, and `research-improve`
-use this policy for affected environment flows. At `product-improve` and
-`outer-improve`, use it when a consequential newly encountered boundary or
-conflicting evidence requires more investigation. Do not restart settled research
-just because a later node reads this guide. The same investigation's allowance
-follows its notes across nodes and context resets; entering an Improve action
-never refills it. A direct v1/v2 Improve node owns its entire
-review/plan/apply/check/record/assess campaign and its ordinary callback.
+`discovery` and `research` use this policy for affected environment flows. Later
+stages and their Improve reviews use it when a consequential newly encountered
+boundary or conflicting evidence requires more investigation. Do not restart
+settled research just because a later stage reads this guide. The same
+investigation's allowance follows its notes across stages and context resets;
+entering an Improve child never refills it.
 
-For a corresponding bound v3/v4 child, apply the same policy to the producer
+For a bound child, apply the same policy to the producer
 stage that bound it. The parked parent does not repeat those duties or receive a
 second investigation allowance: the child owns the review/plan/apply/check/
 record/assess campaign and its shared allowance. Perform those cycles internally
@@ -573,35 +548,20 @@ completeness of those findings.
 
 Only navigator v4's initial `plan` Improve child, selected for the bundled
 ephemeral runtime before preparation or dispatch, may use the packet-issued
-`stopped` reconciliation route. Direct v1/v2 nodes use their recorded direct
-route; v3 children and later v4 children use their recorded child-incomplete,
-pause, or parent-completion route. A generic producer checkpoint remains valid
+`stopped` reconciliation route. Other children use their recorded
+child-incomplete, pause, or parent-completion route. A generic producer checkpoint remains valid
 in every case; a generic label such as “experiment completed” alone cannot
 establish the observation, consumer readiness, or completion of the bound child.
 
-### Direct v1/v2 reserve checkpoint
-
-Use the closing reserve with the direct v1/v2 packet protocol:
-
-- If the action's duties are complete, submit its valid generic result and pause
-  the returned action when the investigation allowance is exhausted.
-- For unfinished duties, retain the **unaccepted draft** at the current printed
-  inbox path and call `pause` with the note/draft locator, remaining allowance,
-  and next gap. Cold `next` and `resume` preserve that action ID and draft; neither
-  accepts it or replenishes the allowance. Finish the actual duties before
-  submitting that action's result.
-- A substantiated access/owner blocker may instead be submitted as a valid
-  `outcome: blocked` result with durable evidence references. That is an accepted
-  blocker report and allocates a **new action ID at the same stage**; it is not a
-  same-action draft checkpoint or a successful advance. Follow its returned
-  blocked/resume packet. Never mark an unfinished campaign `done` just to save it.
-
-### Bound v3/v4 reserve checkpoint
+### Reserve checkpoint
 
 Before producer submission, unfinished duties may remain an unaccepted draft at
-the parent's printed inbox path while the parent pauses. A valid producer result,
-including a substantiated blocked attempt, parks that action for its bound Improve
-child; it does not by itself import child completion or advance the graph.
+the parent's printed inbox path while the parent pauses. A substantiated
+access/owner blocker may be submitted as a valid `outcome: blocked` result with
+durable evidence references; that allocates a new action at the same stage and
+is not a successful advance. At an Improve checkpoint a valid producer result
+parks that action for its bound Improve child; it does not by itself import
+child completion or advance the graph.
 
 After binding, that single producer submission remains the parent checkpoint.
 Do not submit another generic producer result to checkpoint unfinished child work.
@@ -633,7 +593,7 @@ journal. Keep the distinction visible in the report and improvement plan:
   record the known requirement and its downstream consumer (behavior/spec/test
   planning or an existing handoff route). Do not implement it during research.
   A genuinely unanswered prerequisite remains open; calling it future work
-  does not resolve it or permit research finalization.
+  does not resolve it or complete the research.
 
 Derive safety expectations that hold independently of a missing policy. For
 example, whatever identity or retention policy the owner selects, an unauthorized
@@ -646,143 +606,57 @@ Each review distinguishes **new discoveries** from **unchanged blockers**.
 Open/blocked questions still reset the current convergence streak even if this
 pass found nothing new. Two quiet reviews with a missing owner decision are not
 two successful trivial passes. Use the existing gates, result records and
-carry-forward/outer-work routes; do not add a nested investigation engine.
-
-## Review
-
-Each pass reads its current question/source records, finding ledger, selected
-candidate pages and required Git history. Use `next`, `context` and `history`;
-do not load every old research report. Perform a new investigation or independent
-recheck of the important conclusions, not merely a rewrite of prior prose.
-
-Cover every research rubric key with a concise evidence-based explanation:
-
-| Key | Question to answer in this pass |
-|---|---|
-| `prompt_coverage` | Which requirements/spec clauses/discoveries drive the inventory, and are any omitted or invented? |
-| `environment_conditions` | What runtime, resource, data, concurrency, persistence, configuration and failure conditions actually matter? |
-| `source_quality` | Do inspected sources directly support each conclusion at the relevant version/environment? |
-| `contradictions` | Which sources, observations or requirements disagree, and what evidence or decision resolves the disagreement? |
-| `best_practices` | Which alternatives fit local constraints, and what are their benefits, costs, failure modes and adoption reasons? |
-| `access_readiness` | Are authorized roles, safe probes and prerequisite availability understood without recording secrets? |
-| `invocation_contracts` | Are relevant client/service operations, envelopes, serialization and error/async behavior established on both sides? |
-| `test_deploy_feasibility` | Which local, browser, service or API checks are required and possible in the intended environment? |
-| `remaining_unknowns` | Which material questions remain, what should be investigated next, and what requires user direction? |
-
-Start broad enough to identify plausible alternatives, then investigate the
-highest-risk gaps deeply. Inspect relevant local contracts and current primary
-documentation; use secondary/community reports to generate leads and failure
-hypotheses, not as sole proof of a capability. Seek evidence that could disprove
-the favored answer. Distinguish independent corroboration from copied sources.
-Record what each safe probe or source actually establishes, including null or
-negative results and why an alternative was rejected.
-
-Use the existing planning result contract: `findings` with stable IDs and
-material/trivial severity, the complete `coverage_review` object, `test_review`
-and `learnings`. Plan every unresolved finding, then supply the updated complete
-report and `research_state` at application. Research changes remain candidates
-until checks and audit commits establish convergence.
-
-The complete replacement result is an on-disk artifact, not a requirement to
-paste the entire report or inventory into the model context. For large candidates,
-read bounded relevant sections and assemble the replacement in the printed host
-inbox from the current Markdown using scoped edits or local transformation
-scripts. Do not edit script-owned candidates directly. Preserve untouched
-records and stable IDs, then validate the assembled result. Never omit evidence
-to fit the context window or rely on remembered records from a prior iteration.
+carry-forward route; do not add a nested investigation engine.
 
 ## Evidence and freshness
 
 Source identity and observation time serve different purposes. Prefer an exact
 commit, release, document revision or other immutable identifier for stable
 claims. Record when a volatile condition was observed and its safe point-of-use
-revalidation trigger. The script's finalization time is when the checkpoint was
+revalidation trigger. The time a result was accepted is when the checkpoint was
 recorded, not proof that every remote source was freshly inspected then.
 
 Treat a new/changed conclusion, newly discovered material question, environment
 constraint, incompatibility, or test/deploy feasibility gap as material. A small
 text edit can change the entire decision. Non-semantic report cleanup or a source
-observation/version refresh that changes no conclusion may be trivial. The script
-conservatively treats additions or edits to question records, source identities,
-support or limitations as material, even if the host labels them trivial.
-Unavailable evidence is not evidence that nothing material remains; record the
+observation/version refresh that changes no conclusion may be trivial. Treat
+additions or edits to question records, source identities, support or
+limitations as material. Unavailable evidence is not evidence that nothing material remains; record the
 gap and pause as needed.
 
-Each research iteration requires real candidate-bound lint and tests covering the
-packet's exact `research evidence` acceptance. Useful checks include question/source
-referential integrity, missing applicability/revalidation policy, contradictions
-detectable from a structured model, and the expected results of safe local probes.
-Test the asserted contract, not only file existence. Manual source interpretation
-is host-reported evidence, not executable proof or a passed remote acceptance test.
-Reconcile the report's required case map with the repeatable checks: every
-required case needs an expected outcome and current execution evidence. Label
-historical/manual observations separately; a passing subset does not validate
-the whole case map or excuse an unavailable required check.
-
-Use a distinct verbose audit-only commit per completed planning pass with the
-recorded learnings. Two consecutive fully checked trivial-only passes, no open
-questions/findings, and fresh final checks permit finalization. Apply trivial
-fixes before the checks. A repeated action, failed probe, exhausted budget or
-iteration cap never counts as another successful pass.
+Test the asserted contract, not only file existence. Manual source
+interpretation is host-reported evidence, not executable proof or a passed remote
+acceptance test. Label historical/manual observations separately; a passing
+subset does not validate the whole case map or excuse an unavailable required
+check. A repeated action, failed probe or exhausted budget never counts as a
+successful review pass.
 
 Keep secret values, credential-bearing URLs, account addresses and raw sensitive
 responses out of reports, results and logs. Research does not authorize a new
 credential grant, persistent configuration, destructive experiment, or
 publication. When the user's request or task context authorizes bounded discovery
 setup, a temporary task-local investigation reader, SDK, skill, or test dependency
-may be acquired under the recursive-discovery rules; that does not alter the frozen
-selected writer or interface inventory. Missing user policy is not resolvable by
+may be acquired under the recursive-discovery rules; that does not alter the
+selected writer or interface. Missing user policy is not resolvable by
 additional web citations.
 
 ## Later discoveries
 
-Research completion accepts a versioned evidence baseline, not a permanent claim
-that discovery is over. Every implementation review explicitly assesses whether
-its current scope needs new investigation:
-
-```json
-{
-  "research_assessment": {
-    "status": "required",
-    "summary": "A newly observed boundary invalidates the current assumption.",
-    "evidence": ["Safe reference to the retained observation"],
-    "questions": ["Which supported behavior applies at this boundary?"]
-  }
-}
-```
-
-Statuses are `not-needed`, `resolved`, `required`, or `blocked`. Explain why no
-research is needed when that is the decision. Required/blocked investigation is
-material and cannot leave the improvement loop unresolved. Retain the answer,
-evidence and revalidation policy when resolving it; repeat review and checks.
-`resolved` means investigation was completed in this pass and still resets the
-trivial streak. In a later pass, use `not-needed` when rechecking the existing
-evidence reveals no new investigation need; explain why it remains applicable.
-Every status requires a summary; all except `not-needed` require nonempty
-`evidence` and `questions` lists. These are safe references and question text,
-not an invitation to copy raw source output into the result.
-Use the existing carry-forward checkpoint for facts other iterations need.
+Research records an as-of evidence baseline, not a permanent claim that
+discovery is over. Every implementation stage and Improve review assesses
+whether its current scope needs new investigation, and says why none is needed
+when that is the decision.
 
 | Discovery location | Required route |
 |---|---|
-| Before any execution receipt | `revisit --to research` archives the old research and downstream planning, preserves the survey, and reconverges. A changed survey contract uses `--to survey`. |
-| Within the active step's approved scope | Investigate during its ordinary Improve loop; unresolved research is material and resets convergence. |
-| Required by future pending steps | Carry a `research`-domain `pending-replan` discovery. Post-inner maps it to an explicit `activity: research` producer, and every affected consumer must transitively depend on that producer. |
-| Incompatible requirement, permission or completed-work assumption | Pause for direction. Research evidence is not authority to rewrite the approved baseline. |
+| Within the current item's approved scope | Investigate under this policy during the current stage or its Improve review; unresolved required research keeps the stage incomplete. |
+| Required by future pending items | Revise the future queue at `carry-forward` so a research item precedes every affected consumer. Scheduling it is not answering it. |
+| Incompatible requirement, permission or completed-work assumption | Pause for direction, or report `blocked`. Research evidence is not authority to rewrite the approved baseline. |
 
-A research DAG step names its checkable report/decision artifact in `produces`.
-Its review supplies the full research rubric in `research_review` as well as the
-ordinary execution fields. The step must pass the normal lint/tests,
-carry-forward, verbose commit, two-trivial-pass, final-verify and merge gates.
-Following steps consume the report and scoped knowledge with fresh context.
-Mapping a research obligation means **scheduled**, not answered or verified.
-In `pending_obligation_map`, a research obligation's `{id, steps}` entry lists
-only the research producer IDs in `steps`. The script derives affected pending
-consumers and checks their transitive dependencies separately; do not list those
-consumers as research producers.
-
-Generic improvements to ShipLoop belong in `shiploop-improvements.md`, separate
-from product research and without permission to self-modify the harness.
+Retain the answer, evidence and revalidation policy in the run note and link it
+from the result's `evidence_refs`. Generic improvements to ShipLoop are
+proposals, separate from product research and without permission to
+self-modify the harness.
 
 ## Basis and limits
 
@@ -797,7 +671,7 @@ iteration, not a guarantee of completeness or this exact two-pass threshold.
 The threshold is ShipLoop's explicit operational stopping rule; semantic
 adequacy, source interpretation and live-source truth still require judgment.
 
-## Plan-triggered experiments in navigator v4
+## Plan-triggered experiments in protocol 4
 
 The opt-in [planning experiment guide](planning-experiments.md) applies this
 shared evidence and allowance policy to assumptions exposed by a provisional

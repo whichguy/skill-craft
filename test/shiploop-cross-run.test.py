@@ -128,7 +128,6 @@ class CrossRunTests(unittest.TestCase):
         prompt: str = OLD_PROMPT,
         *,
         repo: Path | None = None,
-        mode: str = "navigator-v2",
         expected: int | None = 0,
     ) -> subprocess.CompletedProcess[str]:
         return self._cli(
@@ -138,7 +137,6 @@ class CrossRunTests(unittest.TestCase):
             str(repo or self.repo),
             "--prompt",
             prompt,
-            "--execution-mode=" + mode,
             expected=expected,
         )
 
@@ -203,7 +201,11 @@ class CrossRunTests(unittest.TestCase):
 
     @staticmethod
     def _complete_state(repo: Path, prompt: str) -> dict:
-        """Build a valid terminal navigator fixture without replaying every CLI call."""
+        """Build a valid terminal navigator fixture without replaying every CLI call.
+
+        Improve checkpoints return through explicitly synthetic receipts; no
+        Improve runtime or review runs.
+        """
         state = navigator.new_state(str(repo), prompt)
         while state["status"] != "done":
             action = navigator.current_action(state)
@@ -222,60 +224,40 @@ class CrossRunTests(unittest.TestCase):
             if action["stage"] == "document":
                 result["choices"] = {"skill_required": False}
             state = navigator.apply(state, action["id"], result)
+            if state["active_improve"] is not None:
+                state = navigator.finish_improve(
+                    state,
+                    action["id"],
+                    {
+                        "summary": "Synthetic prior-run Improve for " + action["stage"] + ".",
+                        "review_refs": [],
+                        "check_refs": [],
+                        "lessons": "Historical scope only.",
+                    },
+                )
         return state
 
     def test_matching_init_is_idempotent_but_changed_prompt_or_repo_is_rejected(self) -> None:
         """A run cannot silently become a different feature or repository."""
-        for mode in ("navigator", "navigator-v1", "managed", "legacy"):
-            with self.subTest(mode=mode):
-                run_dir = self.base / ("run " + mode)
-                first = self._init(run_dir, mode=mode)
-                before = self._snapshot(run_dir)
-                original = self._state(run_dir)
+        run_dir = self.base / "run navigator"
+        first = self._init(run_dir)
+        before = self._snapshot(run_dir)
+        original = self._state(run_dir)
 
-                retry = self._init(run_dir, mode=mode)
-                self.assertEqual(retry.returncode, 0, retry.stdout + retry.stderr)
-                self.assertEqual(self._snapshot(run_dir), before)
+        retry = self._init(run_dir)
+        self.assertEqual(retry.returncode, 0, retry.stdout + retry.stderr)
+        self.assertEqual(self._snapshot(run_dir), before)
 
-                changed_prompt = self._init(
-                    run_dir, NEW_PROMPT, mode=mode, expected=2
-                )
-                self.assertIn("fresh --run-dir", changed_prompt.stderr)
-                self.assertEqual(self._snapshot(run_dir), before)
-                self.assertEqual(self._state(run_dir), original)
+        changed_prompt = self._init(run_dir, NEW_PROMPT, expected=2)
+        self.assertIn("fresh --run-dir", changed_prompt.stderr)
+        self.assertEqual(self._snapshot(run_dir), before)
+        self.assertEqual(self._state(run_dir), original)
 
-                changed_repo = self._init(
-                    run_dir,
-                    mode=mode,
-                    repo=self.other_repo,
-                    expected=2,
-                )
-                self.assertIn("fresh --run-dir", changed_repo.stderr)
-                self.assertEqual(self._snapshot(run_dir), before)
-                self.assertEqual(self._state(run_dir), original)
-                self.assertIn(OLD_PROMPT, first.stdout)
-
-    def test_all_navigator_protocols_expose_requirements_policy_after_cold_next(self) -> None:
-        """CLI packets expose durable policy locators; this does not simulate reading them."""
-        for mode, protocol_version in (
-            ("navigator-v1", 1),
-            ("navigator-v2", 2),
-            ("navigator", 3),
-        ):
-            with self.subTest(mode=mode):
-                run_dir = self.base / (mode + " requirements policy")
-                initial = self._init(run_dir, mode=mode)
-                self.assertEqual(
-                    self._state(run_dir)["navigator_protocol_version"], protocol_version
-                )
-                self._assert_requirements_policy(initial.stdout)
-                self.assertIn("Follow the packet's Reference handoff policy", initial.stdout)
-                before = self._snapshot(run_dir)
-
-                cold = self._cli(run_dir, "next")
-                self._assert_requirements_policy(cold.stdout)
-                self.assertIn("Follow the packet's Reference handoff policy", cold.stdout)
-                self.assertEqual(self._snapshot(run_dir), before)
+        changed_repo = self._init(run_dir, repo=self.other_repo, expected=2)
+        self.assertIn("fresh --run-dir", changed_repo.stderr)
+        self.assertEqual(self._snapshot(run_dir), before)
+        self.assertEqual(self._state(run_dir), original)
+        self.assertIn(OLD_PROMPT, first.stdout)
 
     def test_policy_sections_are_real_in_the_relocated_package(self) -> None:
         """The copied package owns both durable policy anchors; packets do not prove reads."""
@@ -302,8 +284,10 @@ class CrossRunTests(unittest.TestCase):
     def test_successive_new_features_keep_repo_requirements_when_old_run_is_unavailable(self) -> None:
         """Fresh requests retain repository documents, not earlier run state or semantics."""
         old_run = self.base / "unavailable original request"
-        old_packet = self._init(old_run, OLD_PROMPT, mode="navigator")
+        old_packet = self._init(old_run, OLD_PROMPT)
+        self.assertEqual(self._state(old_run)["navigator_protocol_version"], 3)
         self._assert_requirements_policy(old_packet.stdout)
+        self.assertIn("Follow the packet's Reference handoff policy", old_packet.stdout)
         shutil.rmtree(old_run)
         self.assertFalse(old_run.exists())
 
@@ -311,7 +295,7 @@ class CrossRunTests(unittest.TestCase):
         readme = self.readme.read_bytes()
         self.assertIn(b"(docs/requirements.md)", readme)
         first_run = self.base / "first incremental feature"
-        first_packet = self._init(first_run, NEW_PROMPT, mode="navigator")
+        first_packet = self._init(first_run, NEW_PROMPT)
         self._assert_requirements_policy(first_packet.stdout)
         first = self._state(first_run)
         self.assertEqual(first["prompt"], NEW_PROMPT)
@@ -320,7 +304,7 @@ class CrossRunTests(unittest.TestCase):
         first_files = self._snapshot(first_run)
 
         third_run = self.base / "third incremental feature"
-        third_packet = self._init(third_run, THIRD_PROMPT, mode="navigator")
+        third_packet = self._init(third_run, THIRD_PROMPT)
         self._assert_requirements_policy(third_packet.stdout)
         third = self._state(third_run)
         self.assertEqual(third["prompt"], THIRD_PROMPT)
@@ -333,6 +317,7 @@ class CrossRunTests(unittest.TestCase):
             with self.subTest(run_dir=run_dir.name):
                 cold = self._cli(run_dir, "next")
                 self._assert_requirements_policy(cold.stdout)
+                self.assertIn("Follow the packet's Reference handoff policy", cold.stdout)
                 self.assertEqual(self._state(run_dir)["prompt"], prompt)
                 self.assertEqual(self.requirements.read_bytes(), requirements)
                 self.assertEqual(self.readme.read_bytes(), readme)
@@ -410,33 +395,31 @@ class CrossRunTests(unittest.TestCase):
 
     def test_identical_prompt_new_run_preserves_active_prior_run_and_explicit_recovery(self) -> None:
         """Equal prompt text does not force a new request into an active old run."""
-        for mode in ("navigator-v2", "navigator"):
-            with self.subTest(mode=mode):
-                old_run = self.base / (mode + " active prior request")
-                initial = self._init(old_run, NEW_PROMPT, mode=mode)
-                old = self._state(old_run)
-                self.assertEqual(old["status"], "active")
-                old_files = self._snapshot(old_run)
+        old_run = self.base / "active prior request"
+        initial = self._init(old_run, NEW_PROMPT)
+        old = self._state(old_run)
+        self.assertEqual(old["status"], "active")
+        old_files = self._snapshot(old_run)
 
-                fresh_run = self.base / (mode + " fresh identical request")
-                fresh_packet = self._init(fresh_run, NEW_PROMPT, mode=mode)
-                fresh = self._state(fresh_run)
-                fresh_files = self._snapshot(fresh_run)
-                self._assert_knowledge_locators(fresh_packet.stdout)
-                self.assertEqual(fresh["prompt"], old["prompt"])
-                self.assertNotEqual(fresh["run_id"], old["run_id"])
-                self.assertNotEqual(
-                    navigator.current_action(fresh)["id"],
-                    navigator.current_action(old)["id"],
-                )
-                self.assertEqual(fresh["history"], [])
-                self.assertEqual(fresh["accepted"], {})
-                self.assertEqual(self._snapshot(old_run), old_files)
+        fresh_run = self.base / "fresh identical request"
+        fresh_packet = self._init(fresh_run, NEW_PROMPT)
+        fresh = self._state(fresh_run)
+        fresh_files = self._snapshot(fresh_run)
+        self._assert_knowledge_locators(fresh_packet.stdout)
+        self.assertEqual(fresh["prompt"], old["prompt"])
+        self.assertNotEqual(fresh["run_id"], old["run_id"])
+        self.assertNotEqual(
+            navigator.current_action(fresh)["id"],
+            navigator.current_action(old)["id"],
+        )
+        self.assertEqual(fresh["history"], [])
+        self.assertEqual(fresh["accepted"], {})
+        self.assertEqual(self._snapshot(old_run), old_files)
 
-                recovered = self._cli(old_run, "next")
-                self.assertEqual(recovered.stdout, initial.stdout)
-                self.assertEqual(self._snapshot(old_run), old_files)
-                self.assertEqual(self._snapshot(fresh_run), fresh_files)
+        recovered = self._cli(old_run, "next")
+        self.assertEqual(recovered.stdout, initial.stdout)
+        self.assertEqual(self._snapshot(old_run), old_files)
+        self.assertEqual(self._snapshot(fresh_run), fresh_files)
 
     def test_fresh_run_reuses_project_knowledge_locator_without_importing_prior_scope(self) -> None:
         """A new request receives the index, while old run state stays historical."""
@@ -536,6 +519,8 @@ class CrossRunTests(unittest.TestCase):
         done = self._cli(terminal_run, "next")
         self._assert_knowledge_locators(done.stdout)
         self.assertIn("It's all complete.", done.stdout)
+        # Completion is the agent's declaration, not independent proof.
+        self.assertIn("agent-declared completion", done.stdout)
 
     def test_project_index_is_a_read_only_locator_when_present_or_missing(self) -> None:
         """ShipLoop points at repository knowledge without parsing or creating it."""

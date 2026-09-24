@@ -23,7 +23,9 @@ class PacketBoundsTests(unittest.TestCase):
         self.run.mkdir()
 
     def state(self, prompt="Implement the requested behavior."):
-        return navigator.new_state(str(self.repo), prompt, protocol_version=3)
+        # Bounds were measured on the delegated route's longer packets.
+        return navigator.new_state(str(self.repo), prompt, protocol_version=3,
+                                   delegation="ask-agent")
 
     def complete(self, state, **extra):
         action = navigator.current_action(state)
@@ -133,7 +135,10 @@ class PacketBoundsTests(unittest.TestCase):
         self.assertIn("accepted (delivery_assessment records in history order)", packet)
         self.assertIn("does not waive any required observation", packet)
         result_text = packet.split("Result template:\n", 1)[1].split("\nCall this when done:", 1)[0]
-        self.assertEqual(store.loads(result_text), {"outcome": "done", "summary": "...", "evidence_refs": []})
+        # The minimal fallback keeps the placeholder the script refuses, never
+        # an empty list a worker could copy verbatim.
+        self.assertEqual(store.loads(result_text), {"outcome": "done", "summary": "...",
+                                                    "evidence_refs": [navigator.EVIDENCE_PLACEHOLDER]})
         self.assertIn(navigator.current_action(state)["id"], packet)
 
 

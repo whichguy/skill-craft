@@ -36,9 +36,11 @@ def prepare(source, case, output):
     while navigator.current_stage(state) != "plan":
         action = navigator.current_action(state)["id"]
         seed = {"outcome": "done", "summary": "Synthetic traversal only; no project work or review claimed.", "evidence_refs": []}
-        state = navigator.finish_improve(navigator.apply(state, action, seed), action, {
-            "summary": "Synthetic setup, not actual Improve.", "lessons": "Revalidate real prerequisites.",
-        })
+        state = navigator.apply(state, action, seed)
+        if state["active_improve"] is not None:  # Only planning checkpoints and the last carry-forward park an Improve child.
+            state = navigator.finish_improve(state, action, {
+                "summary": "Synthetic setup, not actual Improve.", "lessons": "Revalidate real prerequisites.",
+            })
     run, participant = output / "run", output / "participant"
     run.mkdir(parents=True)
     participant.mkdir()

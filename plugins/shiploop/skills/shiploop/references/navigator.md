@@ -13,12 +13,14 @@ child can return a stopped, evidenced upstream-reconciliation need. The parent
 archives it through `improve-reconcile`, records a non-success result, and reruns
 the fixed suffix from discovery, research, spec, or test strategy. This is the
 only added pre-dispatch edge; successful Improve import keeps its normal gate.
-V1–V3 saved states keep their existing shapes and behavior.
+Protocols 3 and 4 are the only protocols. A saved run from navigator v1/v2 or the
+removed managed and legacy modes is refused with an error naming it.
 
 ```mermaid
 flowchart LR
   P[Current producer prompt] --> R[Producer result]
-  R --> I[Actual Improve skill]
+  R -->|Planning stage or last carry-forward| I[Actual Improve skill]
+  R -->|Any other stage| N
   I --> U[Bound Until Loop cycle]
   U -->|Accepted| C[Import evidence and lessons]
   U -->|Incomplete| U
@@ -33,14 +35,18 @@ The 34 producer stages are fixed by the v3 catalog: prelude `intake`,
 `skill-assess`, `skill-validate`, `static-checks`, `verify`, `integrate`,
 `integration-verify`, `carry-forward`; and outer `system-test-author`,
 `system-test`, `product-acceptance`, `release-plan`, `release-check`, `release`,
-`release-verify`, `operations`, `handoff`. Every instantiated producer runs the
-actual Improve skill afterward, including a justified N/A output. No v3 stage
-contains a copied Improve policy or independently counts review passes.
+`release-verify`, `operations`, `handoff`. Every instantiated producer records a
+result, including a justified N/A output. The planning producers (`spec`,
+`test-strategy`, `plan`, `step-plan`, `test-spec`, `system-test-author`,
+`release-plan`) and the successful `carry-forward` that leaves no work item
+pending are then followed by the actual Improve skill; every other result is
+accepted on its own checks and the script selects the next producer directly.
+No stage contains a copied Improve policy or independently counts review passes.
 
 The graph describes order, not a substitute for engineering judgment. The prompt
 does not dictate exact prose, a check-manifest layout, a byte comparison, or a
-specific command. It requires a substantive producer result and then an actual
-Improve child before a success edge can release that output. A meaningful RED is
+specific command. It requires a substantive producer result and, at an Improve
+checkpoint, an actual Improve child before a success edge can release that output. A meaningful RED is
 successful evidence for its test-control step; it never authorizes production
 edits before `implement`. A blocked Improve child leaves its parent incomplete.
 
@@ -51,11 +57,6 @@ records actual outcomes. `product-acceptance` assesses due pre-release evidence
 and retains pending release verification. `release-verify` observes the required
 post-release consumer behavior. Carry the same clause/case locators through
 Improve and recovery; these duties add neither graph nodes nor semantic counters.
-
-Sections describing v1/v2, managed, and legacy execution are compatibility
-references. Their `*-improve` graph nodes, embedded policy campaigns, and
-protocol-2 defaults do not apply to v3. Shared recovery, domain duties and
-authority rules still apply; this v3 handoff governs their execution.
 
 ## Run it
 
@@ -89,17 +90,15 @@ python3 "$CLI" init --repo="$REPO" --run-dir="$RUN_DIR" --improve-skill="$IMPROV
 python3 "$CLI" workspace start --repo="$REPO" --workspace-root="$WORKSPACE_ROOT" --delegation=ask-agent --prompt='requested outcome'
 # Change an existing v3/v4 run's delegation for its future assignments:
 python3 "$CLI" delegation --run-dir="$RUN_DIR" --set=inline
-# Compatibility only; normal new runs use v3 above.
-python3 "$CLI" init --repo="$REPO" --run-dir="$RUN_DIR" --execution-mode=navigator-v2 --prompt='v2 fixture outcome'
-python3 "$CLI" init --repo="$REPO" --run-dir="$RUN_DIR" --execution-mode=navigator-v1 --prompt='fixture outcome'
 python3 "$CLI" next --run-dir="$RUN_DIR"
 python3 "$CLI" done --run-dir="$RUN_DIR" --action="$ACTION" --result="$RESULT"
 ```
 
 `workspace start` and direct `init` return a v3 `intake` producer packet for a
 new run. `next` rereads the saved effective owner after a context reset; it does
-not select or persist a successor. A v3 producer `done` records the result then
-parks the parent at `active_improve`; it does not advance directly. When a skill
+not select or persist a successor. At an Improve checkpoint a producer `done`
+records the result then parks the parent at `active_improve`; it does not advance
+directly. Any other producer `done` advances to the next producer. When a skill
 was not selected at initialization, the checkpoint's packet supplies the exact
 `improve-bind --action ... --skill-card ...` command. Follow that command and
 the selected card's bound runtime rather than guessing an adapter. Only an
@@ -114,9 +113,8 @@ Under `inline`, this conversation executes every producer and the whole Improve
 invocation itself, and `implement` runs reviewed steps directly without a chain.
 Under the opt-in `ask-agent` route, INNER producers and Improve prefer native
 fresh workers and `implement` can bind a [parallel or serial chain](parallel-chain.md#parallel-implementation-chains).
-A saved run without the setting keeps its recorded ask-agent behaviour; it is
-never silently migrated. V1/v2, managed and legacy runs refuse `--delegation`.
-Retrying `init` or `workspace start` cannot change the setting. Use the
+A saved v3/v4 run without the setting is refused with an error naming the
+missing `delegation` key. Retrying `init` or `workspace start` cannot change the setting. Use the
 `delegation` command instead. It applies from the next issued action: the action pending when you switch, including its Improve checkpoint, keeps the route it was issued with
 (the packet prints a `Delegation change:` line), and is refused only on a halted
 or done run. Setting the recorded value is a no-op. The
@@ -144,18 +142,22 @@ that archives it as `packet.stopped-<UTC timestamp>.json` (and `reviews/` as
 `reviews.stopped-<same timestamp>`) and starts a new child with the same binding line once the blocker is resolved or the user authorizes
 continuing. A pause keeps the child active and is never reported as `cancelled`.
 See [the current runtime binding](../README.md#current-improve-and-until-loop-binding)
-for the transition example, legacy boundary and validation limits.
+for the transition example and validation limits.
 
-The retained v2 result example below applies only to a v2 packet:
+The line after the packet header (`ShipLoop navigator | stage | revision N`) is
+the one legal callback for the current owner: `complete` for a producer,
+`improve-bind` for an unbound child, or `improve-complete` for a bound child.
+Paused, blocked, halted and done packets print none. A producer result fills in
+the packet's printed template, for example:
 
 ````markdown
 ```shiploop-state
-{"outcome":"done","summary":"Current repository facts and scope are recorded.","evidence_refs":["notes/A-INTAKE-001.md"]}
+{"outcome":"done","summary":"Current repository facts and scope are recorded.","evidence_refs":["/absolute/run/notes/A-INTAKE-001.md"]}
 ```
 ````
 
 The packet's Current node and Action identify the assignment. Its Last accepted
-transition is historical context and does not replace the current action.
+transition is context and does not replace the current action.
 
 ## Recover one existing run
 
@@ -180,8 +182,8 @@ chain and uses no Ask Agent, native worker or Plan Dispatcher; `step-plan`
 records ordered steps with dependencies, readiness, completion criteria and
 checks rather than a dispatcher execution graph.
 
-Under the opt-in `delegation: ask-agent` route, which also covers a saved run
-without the setting, every active INNER producer packet begins with
+Under the opt-in `delegation: ask-agent` route, every active INNER producer
+packet begins with
 **Clear and then execute the prompt.**
 This is the serial execution instruction for the producer only.
 For an `implement` producer, select the chain route first. During that producer,
@@ -310,21 +312,23 @@ The semantic result contract is small:
 
 | Field | Meaning |
 | --- | --- |
-| `outcome` | `done`, `repeat`, or `blocked`; v3 outer steps also allow `replan` with new corrective work items. Under the `every-stage` cadence every v3 producer attempt first waits for actual Improve; under the default `planning-and-end` cadence only planning stages and the last carry-forward do (`plan-and-end`: only plan and the last carry-forward). The final disposition then determines the script-owned route. |
+| `outcome` | `done`, `repeat`, or `blocked`; v3 outer steps also allow `replan` with new corrective work items. Planning results and the last carry-forward first wait for actual Improve; other results advance directly. The final disposition then determines the script-owned route. |
 | `summary` | Concise statement of the current action’s real result. |
-| `evidence_refs` | Optional safe references to source, test, note, or external-operation evidence. |
-| `work_items` | Ordered `{id,title,context?}` items at `plan` before execution, at `carry-forward` for future-only work, or required new IDs for v3 outer `replan`. Legacy v1/v2 also accept them at `plan-improve`. |
-| `choices.skill_required` | Legacy v1/v2 routing hint at `document`. V3 always visits `skill-assess` and `skill-validate`, including an evidence-backed N/A disposition. |
-| `delivery_assessment` | Only for new v2 or v3 runs initialized with `--delivery-contract`: a full consumer-delivery contract/correction or bound observations, using the packet template. See [consumer delivery](consumer-delivery.md). |
+| `evidence_refs` | Absolute paths of the files this stage wrote or of the check output it recorded, or other safe references to source, test, note, or external-operation evidence. The template's placeholder is refused. |
+| `work_items` | Ordered `{id,title,context?}` items at `plan` before execution, at `carry-forward` for future-only work, or required new IDs for an outer `replan`. |
+| `delivery_assessment` | Only for runs initialized with `--delivery-contract`: a full consumer-delivery contract/correction or bound observations, using the packet template. See [consumer delivery](consumer-delivery.md). |
 
-After the v3 child has completed reviewing the attempt, `repeat` allocates another action at the same node, so the host can continue
+`skill-assess` and `skill-validate` are always visited, each with an
+evidence-backed N/A disposition when no skill work applies.
+
+After any bound child has completed reviewing the attempt, `repeat` allocates another action at the same node, so the host can continue
 with new information. `blocked` retains unfinished work; after the condition
 is resolved, `resume` returns the same node. Neither is a successful advance.
-Within the actual Improve child (or a legacy Improve node), normal review iterations continue internally. An explicit
+Within the actual Improve child, normal review iterations continue internally. An explicit
 `repeat` restarts the attempt; it never counts as a completed review or clean
 pass. Each converged campaign submits one successful `done`.
-Each new run begins with `W1`, titled from the original goal. A `plan` or
-pre-execution `plan-improve` result can replace the pending plan with ordered
+Each new run begins with `W1`, titled from the original goal. A `plan` result
+can replace the pending plan with ordered
 work items, while completed work-item records remain durable history; optional
 `context` is host-written context, not script-inferred progress.
 
@@ -368,7 +372,7 @@ Every packet, including paused, blocked, halted and done packets, includes a
 read-only snapshot derived from the existing effective cursor, accepted history
 and current work queue. It shows phase/run status, owner/current assignment,
 recorded completed and pending stages for the current phase or item, completed
-item counts/labels and queued items. Legacy v1/v2 also show conditional or skipped skill validation; v3 always visits its skill stages.
+item counts/labels and queued items. The skill stages are always visited.
 Only accepted `done` completes a stage; `repeat` and `blocked` do not. These
 records are host declarations, not independent evidence of tests or external
 effects. Workspace return/merge/push status still comes from the separate return
@@ -377,10 +381,7 @@ plan and receipt, not graph position.
 The snapshot bounds item labels to three completed and three queued items with
 omitted counts, short titles and a short blocking reason. Read `state.md` for
 the full queue/history and actual evidence for execution claims. Before
-`plan` and its child complete, the v3 queue is provisional. In legacy v1/v2,
-this boundary is `plan-improve`, and the `document` result selects
-skill validation: before it completes, validation is conditional; a result
-without `skill_required: true` skips it. Skipped is not completed.
+`plan` and its child complete, the queue is provisional.
 
 The owner gives a concise **Done / Current / Pending / Blocked** update at
 start/recovery, each major completed step, queue changes or changed blockers.
@@ -402,12 +403,12 @@ authority, or access. Paused, blocked, halted and done packets retain their
 existing boundaries. Reporting itself neither advances nor pauses the graph,
 and ShipLoop cannot keep a host process alive or force another tool call.
 
-For a legacy v2 example, after W1's accepted carry-forward and W2's accepted document result
-with no skill validation selected, the next packet assigns W2 `verify`. A
-synthetic user update could say: “Recorded done: W1 and W2 through documentation.
-Current: W2 verification is assigned. Pending: W2 product review, integration,
-carry-forward and six outer stages. Skill validation was skipped. No blocker
-is recorded.” Add “The focused tests are running” only when the host has actually
+For example, after W1's accepted carry-forward and W2's accepted `document`
+result, the next packet assigns W2 `skill-assess`. A synthetic user update could
+say: “Recorded done: W1 and W2 through documentation. Current: W2 skill
+assessment is assigned. Pending: W2 skill validation, static checks,
+verification, integration, carry-forward and the outer stages. No blocker is
+recorded.” Add “The focused tests are running” only when the host has actually
 started and observed that test process. A blocked packet instead reports the
 condition and requires resume; a halted packet has unfinished work and no
 runnable assignment.
@@ -424,7 +425,7 @@ no timer, dashboard refresh, state fields, progress file or traversal rules.
 
 ## One shared INNER graph and per-item records
 
-The flat SDLC path from `select-work` (v3) or `step-plan` (v1/v2) through `carry-forward` is one shared INNER
+The flat SDLC path from `select-work` through `carry-forward` is one shared INNER
 graph, not a graph copy per work item. Root owns the run's global `status`,
 `status_reason`, ordered queue, and `work_index`. While an item is active, root
 is parked at `stage: inner-loop` with `action: null`; the active item's entry in
@@ -442,7 +443,7 @@ This compact state is illustrative rather than a complete persisted schema:
 
 ```json
 {
-  "navigator_protocol_version": 2,
+  "navigator_protocol_version": 3,
   "execution_mode": "navigator",
   "status": "active",
   "stage": "inner-loop",
@@ -455,8 +456,8 @@ This compact state is illustrative rather than a complete persisted schema:
   "inner_loops": {
     "W1": {"stage": "done", "action": null},
     "W2": {
-      "stage": "step-plan",
-      "action": {"id": "W2-step-plan-1", "stage": "step-plan"}
+      "stage": "select-work",
+      "action": {"id": "W2-select-work-1", "stage": "select-work"}
     }
   }
 }
@@ -464,8 +465,8 @@ This compact state is illustrative rather than a complete persisted schema:
 
 No record exists for a future W3 until ShipLoop enters it. At an accepted W1
 `carry-forward`, one locked transaction marks W1 `done`/`null`, advances the
-selection, and creates W2 at `step-plan`; if W1 is final, it instead restores
-root ownership at `system-test`. W1 remains retained after W2 becomes active.
+selection, and creates W2 at `select-work`; if W1 is final, it instead restores
+root ownership at `system-test-author`. W1 remains retained after W2 becomes active.
 Calling `next` after a context reset reprints W2's same effective action rather
 than advancing it. An identical accepted W1 replay after W2 selection is
 non-mutating; a conflicting or unknown old callback fails without changing W2.
@@ -490,74 +491,6 @@ authorization question were recorded. Only then does `done` move the cursor to
 and local-skill facts. This is an example of the intended input → cursor →
 prompt path, not evidence that any repository inspection occurred.
 
-## Historical v2: embedded Improve nodes own their full campaign
-
-This section applies only to retained v2 packets. V3 instead hands every
-producer result to the selected actual Improve skill and never embeds this
-campaign in the navigator prompt. `discovery`, `test-strategy`, `release-plan`,
-`research-improve`, `spec-improve`, `plan-improve`, `step-plan-improve`,
-`product-improve`, and `outer-improve` each invoke the packaged reusable
-[Improve review policy](improve-review-policy.md). Each is one call-and-return
-graph action. The campaign's work occurs under its assigned action; it does not
-become DAG nodes, `inner_loops` records, child callbacks, or ShipLoop review
-counters.
-
-Discovery, test strategy, and release planning first produce their initial
-candidate, then run their full Improve campaign **inside the same action before
-its one completion**. Research, specification, overall planning, and step
-planning retain their immediate dedicated Improve successor; do not wrap their
-draft actions again. Intake remains scope/authority framing. These are prompt
-duties on existing nodes, not new stages or a saved-run migration.
-
-Review the actual stage artifact: discovery facts and consequential unknowns,
-test cases and independent expected outcomes, or release prerequisites and
-recovery/verification plans. A plan check need not execute future product tests,
-and release-plan review must not perform the release. A justified non-applicable
-release is itself a reviewable conclusion. An empty/new repo has no seven-commit
-history to invent: disclose the absence and use current evidence. Discovery
-review shares the existing investigation allowance; exhausting it with required
-work unfinished is incomplete, not two clean passes.
-
-The navigator’s binding is:
-
-- Inspect the latest seven full Git commit messages in every cycle; inspect all
-  available messages when fewer exist and state when no history exists.
-- Keep a precise current candidate and adjacent-context scope. Materiality is
-  semantic: a one-line bug can be material, while cosmetic work needs an impact
-  assessment and is not automatically material.
-- Write durable human-readable evidence under the run directory, such as
-  `notes/<actionID>.md`, covering findings, classification, plan/no-change
-  reason, checks, evidence, learnings, independent-review availability, and
-  clean-review streak before and after. Candidate/source/baseline identity is a
-  host-recorded descriptor, not a scripted hash gate.
-- Commit authorized changes after their checks, without artificial empty
-  commits. An explicit user no-commit direction overrides this default.
-- Use a fresh independent reviewer when available; otherwise record that the
-  pass was self-reviewed and its limitation. Schedule available independent
-  review against the final candidate before convergence and record its actual
-  scope. Later material edits invalidate affected review evidence; reconsider
-  that scope and obtain another independent look when available.
-- Execute review, history-informed planning, apply, checks, record, and assess
-  cycles internally until the host judges two distinct consecutive
-  trivial-only completed reviews with current checks and no open material
-  finding. Then submit a single graph `done`. A blocker is incomplete.
-- When failures or findings recur, record a testable diagnosis, a small check
-  that distinguishes plausible causes, its observation, and the next action.
-  Revisit the hypothesis or plan when retries add no evidence.
-
-The reusable policy tells an owner that **splits** a review campaign into phases
-to execute only its assigned phase and return to its owner. Navigator deliberately
-assigns the complete campaign to one Improve node, so that split-phase
-restriction does not divide this action. It preserves the existing
-whole-campaign owner binding: it does not launch standalone Improve or
-until-loop, make child-phase cursors, inspect ambient loop state, or add a
-second convergence wrapper.
-
-Any plan, code, test, documentation, or skill change made during an Improve
-campaign refreshes the checks it affects. The result is still a host judgment;
-the script neither counts reviews nor classifies materiality, runs Git/tests,
-reads artifacts, verifies policy hashes, or issues certificates.
-
 ## SDLC responsibilities
 
 Discovery and research use the [shared recursive-discovery policy](research-loop.md#recursive-discovery-and-experiments)
@@ -565,7 +498,7 @@ with its [navigator record and checkpoint binding](research-loop.md#navigator-ex
 Product and outer Improve use it for consequential new environment findings.
 Keep the eight-area evidence, reuse decisions, access/setup observations, and
 remaining shared allowance in durable notes referenced by the generic result;
-do not introduce compatibility schemas or child-phase callbacks.
+do not introduce new schemas or child-phase callbacks.
 
 The prelude establishes repository facts, research, specification, independent
 expected outcomes, local test strategy, and prerequisite-aware planning before
@@ -578,8 +511,7 @@ preparation/promotion binding. Discovery maps existing and intended workspace,
 runtime and data boundaries. Planning places required preparation producers
 before feature consumers, and any necessary staged-candidate producer before
 its system tests. Each producer traverses the existing INNER graph; there is
-no new outer-before navigator node or change to saved v1/v2 routing. The older
-managed protocol retains its existing conditional `prepare` route.
+no new outer-before navigator node.
 
 Every packet links the policy and the canonical host-authored
 `notes/environment-lifecycle.md`, including cold paused/blocked and outer
@@ -607,8 +539,8 @@ does not turn a required update into N/A. Improve challenges the original user
 outcome rather than treating the generated spec as its own authority.
 
 `system-test` is for actual authorized integration, end-to-end, runtime, or
-system-boundary checks, distinct from merely planning them. `outer-improve`
-reviews the whole assembled product. `release-plan` establishes permission,
+system-boundary checks, distinct from merely planning them. `product-acceptance`
+assesses the whole assembled product against the original outcome. `release-plan` establishes permission,
 target, rollback, and checks; `release` may honestly be non-applicable;
 `release-verify` examines the actual consumer/runtime boundary. `handoff`
 reports source, test, integration, release, consumer status, and remaining
@@ -617,8 +549,8 @@ limits as facts.
 For an opt-in delivery-contract run, the existing ledger also carries typed
 requirements and separate source/update/identity/behavior observations. The
 script checks declared coverage at the relevant boundary, while the host
-executes and judges checks. Pre-update checks can be refreshed during outer
-Improve/release planning. A material post-plan candidate or target change that
+executes and judges checks. Pre-update checks can be refreshed during release
+planning and its Improve review. A material post-plan candidate or target change that
 needs replanning blocks for direction; `repeat` does not jump backward.
 An unchanged candidate with a completed update and blocked browser check resumes
 verification without automatically re-uploading. See the [full contract and
@@ -681,12 +613,11 @@ do not repeat all discovery or blindly preserve the old pattern.
 
 #### Implementation quality indicator
 
-The planning and code-quality packets carry the explicit indicator
-`Implementation quality: error checking + token-efficient code documentation`.
-It is prompt guidance for the current assignment, not a result field or a
-scripted pass/fail gate. It appears at `plan`, `plan-improve`, `step-plan`,
-`step-plan-improve`, `implement`, `test-refine`, `test-author`, `document`,
-`verify`, `product-improve`, `integrate`, and `outer-improve`.
+The planning and code-quality prompts (`plan`, `step-plan`, `implement`,
+`test-refine`, `test-author`, `document`, `verify` and `integrate`) carry
+error-checking, opt-in diagnostic and concise code-contract duties. This is
+prompt guidance for the current assignment, not a result field or a scripted
+pass/fail gate.
 
 Planning names relevant failure boundaries, expected handling, negative checks,
 diagnostic actions/fields and code-contract locations. Implementation handles
@@ -743,12 +674,12 @@ and cannot prove that the host performed the checks or wrote good documentation.
 
 | Responsibility | Stage | Expected evidence or decision |
 | --- | --- | --- |
-| Challenge acceptance and tests | `step-plan-improve`, `test-refine`, `test-author` | Resolve ambiguous meaning with positive and nearby negative examples; derive expected results from the specification. For important regressions where practical, show an adequate check rejects the known-bad behavior and passes the candidate. |
+| Challenge acceptance and tests | `step-plan` and its Improve review, `test-refine`, `test-author` | Resolve ambiguous meaning with positive and nearby negative examples; derive expected results from the specification. For important regressions where practical, show an adequate check rejects the known-bad behavior and passes the candidate. |
 | Own delegated work | `step-plan`, `implement`, `integrate` | If delegating, identify bounded task/file ownership, shared interfaces, inputs, outputs/checks and the integrating owner. The owner inspects actual contributions and checks their combined behavior before its one completion. |
 | Diagnose persistent failure | `verify`, all Improve campaigns | Distinguish product, test and environment explanations with a small observable experiment. Record the conclusion and why the next action follows; a repeated attempt alone is not progress. |
-| Select relevant operational checks | `step-plan`, `product-improve` | Identify changed authorization/data boundaries, dependencies, recovery or diagnostic needs. Choose proportional checks and retain genuinely missing prerequisites as incomplete. |
-| Review the resulting candidate | Improve campaigns, `integrate` | Available independent review covers the final candidate. Material later edits invalidate affected evidence; integration rechecks shared interfaces and re-reviews changed scope. Whole-product obligations continue to outer Improve. |
-| Place validated learnings | `document`, `skill-validate`, `carry-forward`, `outer-improve` | Retain a run-specific lesson, add a repo-local regression/example, or propose a shared change with evidence and a target. Validate shared changes on triggering, failure and other representative cases before adoption within existing authority. |
+| Select relevant operational checks | `step-plan`, `verify` | Identify changed authorization/data boundaries, dependencies, recovery or diagnostic needs. Choose proportional checks and retain genuinely missing prerequisites as incomplete. |
+| Review the resulting candidate | Improve campaigns, `integrate` | Available independent review covers the final candidate. Material later edits invalidate affected evidence; integration rechecks shared interfaces and re-reviews changed scope. Whole-product obligations continue to `product-acceptance` and the release-plan Improve review. |
+| Place validated learnings | `document`, `skill-validate`, `carry-forward`, `product-acceptance` | Retain a run-specific lesson, add a repo-local regression/example, or propose a shared change with evidence and a target. Validate shared changes on triggering, failure and other representative cases before adoption within existing authority. |
 
 For example, suppose two step contributions each pass their local tests, but
 one emits milliseconds while its consumer interprets seconds. At `integrate`,
@@ -785,19 +716,18 @@ Carry error checking and concise, accurate code documentation from planning
 through implementation and review. Token efficiency means removing redundancy,
 not omitting a material contract or safety caveat.
 
-## Compatibility and limits
+## Limits
 
-New v3 workspace/direct entries record their selected actual Improve binding and
-use the 34-producer catalog. Their parent action is `active_improve` while the
-bound child is active; ShipLoop does not duplicate the child's cursor or review
-counter. New v3/v4 entries also record `delegation: inline` unless they opt in
-to `ask-agent`. A saved run without that setting keeps its recorded ask-agent
-route. The `delegation` command never re-owns a bound Improve child or switches
-a bound chain's frozen mode. Direct `init --execution-mode=navigator-v2` retains protocol 2, and
-`navigator-v1`, managed, and legacy states retain the protocol their established
-records select. They are not converted, migrated, or reinterpreted merely because
-the package has been updated. A malformed/missing selected card or child evidence
-keeps a v3 parent incomplete rather than falling back to an embedded campaign.
+New workspace/direct entries record their selected actual Improve binding, the
+34-producer catalog and `delegation: inline` unless they opt in to `ask-agent`.
+The parent action is `active_improve` while a bound child is active; ShipLoop
+does not duplicate the child's cursor or review counter. The `delegation`
+command never re-owns a bound Improve child or switches a bound chain's frozen
+mode. A saved run the current code cannot load (navigator v1/v2, the removed
+managed and legacy modes, or a v3/v4 state with unexpected or missing keys) is
+refused with an error naming the protocol, mode or keys; start a fresh run
+directory for that request. A malformed/missing selected card or child evidence
+keeps the parent incomplete; there is no embedded fallback campaign.
 
 Navigator prompts and graph-walk tests can show that the script returns the
 expected stage and transitions only after accepted result envelopes. They cannot

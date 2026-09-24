@@ -32,10 +32,10 @@
   },
   "id": "ttt-literal-standalone-complete",
   "observer": {
-    "grok_adapter_sha256": "62bced88980a1f95fcce4e973086afd46a4120ba937eed5410c30e69c0858e78",
+    "grok_adapter_sha256": "2891e1bef1d7a08eb09b78490d39ed86f009dd5f1d00d5eb1258328e2cc4a7c3",
     "source_edit_policy": "parser-source-mismatch-invalidates-attribution",
-    "previous_grok_adapter_sha256": "3571fc09cb2ba76a939c345272a2e08402086041f8274cbc4b8d2350266e415e",
-    "revalidation": "Launch selection rejects ambiguous literal ShipLoop routes while accepting normal omitted-alias records; all five golden attribution expectations independently replayed unchanged. Original capture provenance and events are unchanged.",
+    "previous_grok_adapter_sha256": "62bced88980a1f95fcce4e973086afd46a4120ba937eed5410c30e69c0858e78",
+    "revalidation": "The direct-form ShipLoop verb allowlist now matches the current CLI: chain, delegation and improve-reconcile were added and the retired verbs were removed. Every fixture uses only the retained complete verb; all five golden attribution expectations independently replayed unchanged. Original capture provenance and events are unchanged.",
     "revalidation_history": [
       {
         "grok_adapter_sha256": "d1ff9c7208061a70857aa1ae95513823ebf26f69b0951f4890388d37011c8d66",
@@ -46,6 +46,11 @@
         "grok_adapter_sha256": "3571fc09cb2ba76a939c345272a2e08402086041f8274cbc4b8d2350266e415e",
         "previous_grok_adapter_sha256": "d1ff9c7208061a70857aa1ae95513823ebf26f69b0951f4890388d37011c8d66",
         "revalidation": "Launch argv now defaults omitted and None reasoning effort to xhigh; all five golden attribution expectations independently replayed unchanged. Capture provenance and events are unchanged."
+      },
+      {
+        "grok_adapter_sha256": "62bced88980a1f95fcce4e973086afd46a4120ba937eed5410c30e69c0858e78",
+        "previous_grok_adapter_sha256": "3571fc09cb2ba76a939c345272a2e08402086041f8274cbc4b8d2350266e415e",
+        "revalidation": "Launch selection rejects ambiguous literal ShipLoop routes while accepting normal omitted-alias records; all five golden attribution expectations independently replayed unchanged. Original capture provenance and events are unchanged."
       }
     ]
   },

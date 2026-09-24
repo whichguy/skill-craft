@@ -28,7 +28,7 @@ supports that distinction; it does not establish this local probe's accuracy.
 
 ## What the small test contains
 
-The [probe — capture, export and mechanical grading](../test/shiploop-teachback.py)
+The probe — capture, export and mechanical grading (removed in ShipLoop 0.23.0)
 reuses the existing real-CLI integration fixture. It creates and cleans up a
 disposable Git repository, then exports three unedited packets:
 
@@ -117,8 +117,8 @@ not the contents of referenced material. A later, separate probe could provide
 selected read-only context pages. Full execution/outer-loop completion,
 implementation checks, terminal certification, adversarial evidence, and
 cross-model reliability remain covered by other tests or future pilots—not
-by these three captures. Existing [packet contract](../skills/shiploop/references/turn-packet.md)
-and [orientation integration tests](../test/shiploop-orientation-integration.test.py)
+by these three captures. Existing packet contract (removed in ShipLoop 0.23.0)
+and orientation integration tests (removed in ShipLoop 0.23.0)
 remain authoritative evidence for the corresponding runtime behavior.
 
 Run the deterministic probe regressions with:

@@ -86,16 +86,20 @@ class PlanningContextFixture(unittest.TestCase):
         if choices is not None:
             result["choices"] = choices
         waiting = navigator.apply(self.state, action, result)
-        self.state = navigator.finish_improve(
-            waiting,
-            action,
-            {
-                "summary": "Accepted Improve evidence for " + stage + ".",
-                "lessons": "Retain the decision from " + stage + ".",
-                "review_refs": [str(self.write_text("reviews/" + action + ".md", "review\n"))],
-                "check_refs": [str(self.write_text("checks/" + action + ".md", "check\n"))],
-            },
-        )
+        if waiting["active_improve"] is None:
+            # Not an Improve checkpoint: the result advanced directly.
+            self.state = waiting
+        else:
+            self.state = navigator.finish_improve(
+                waiting,
+                action,
+                {
+                    "summary": "Accepted Improve evidence for " + stage + ".",
+                    "lessons": "Retain the decision from " + stage + ".",
+                    "review_refs": [str(self.write_text("reviews/" + action + ".md", "review\n"))],
+                    "check_refs": [str(self.write_text("checks/" + action + ".md", "check\n"))],
+                },
+            )
         navigator.save(self.run, self.state)
         self.actions.setdefault(stage, []).append(action)
         return action

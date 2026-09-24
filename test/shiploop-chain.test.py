@@ -6,7 +6,6 @@ are synthetic. This suite does not launch an LLM or qualify host callbacks.
 """
 from __future__ import annotations
 
-import importlib.util
 import json
 import os
 from pathlib import Path
@@ -32,11 +31,6 @@ import shiploop_navigator as nav
 import shiploop_store as store
 import shiploop_chain_ledger as chain_ledger
 import shiploop_chain as chain
-
-_improve_spec = importlib.util.spec_from_file_location(
-    "chain_actual_improve_fixture", ROOT / "test/shiploop-actual-improve-cli.test.py")
-_improve_fixture = importlib.util.module_from_spec(_improve_spec)
-_improve_spec.loader.exec_module(_improve_fixture)
 
 
 class ChainIntegrationTests(ChainFixture):
@@ -178,10 +172,9 @@ class ChainIntegrationTests(ChainFixture):
     def test_history_survives_child_drift_and_views_allow_indexed_past_actions(self):
         self.complete_single_chain()
         self.parent_complete(ok=True)
-        old_action = self.action
-        self.import_synthetic_improve("repeat")
+        # Implement is not an Improve checkpoint: the producer result advances.
         state = store.read_record(self.run / "state.md")
-        self.assertNotEqual(nav.current_action(state)["id"], old_action)
+        self.assertNotEqual(nav.current_action(state)["id"], self.action)
         before = self.run_bytes()
         history = self.call("history")
         self.assertTrue(history["shiploop_chain"]["finished"])
@@ -298,20 +291,23 @@ class ChainIntegrationTests(ChainFixture):
             env={**os.environ, "PYTHONPATH": str(SCRIPTS)}, text=True, capture_output=True, timeout=30)
         self.assertEqual(p.returncode, 73, p.stdout + p.stderr)
 
-    def import_synthetic_improve(self, outcome):
-        # Reuse the actual child-runtime test apparatus, not a fabricated terminal receipt.
-        fixture = _improve_fixture.ImproveCliFixture()
-        fixture.base, fixture.repo, fixture.run = self.base, self.target, self.run
-        fixture.environment = {**os.environ, "PYTHONDONTWRITEBYTECODE": "1"}
-        fixture.action = self.action
-        fixture.parent_evidence_refs = []
-        fixture.bind_current()
-        fixture.finish_ephemeral()
-        fixture.completion_receipt(final_result={"outcome": outcome,
-            "summary": "Synthetic review disposition after verified chain"})
-        return fixture.invoke(
-            CLI, "improve-complete", "--run-dir", self.run, "--action", self.action,
-            "--result", fixture.completion_path)
+    def assert_producer_advanced_past_finished_chain(self):
+        """Implement parks no Improve child: completion advances and keeps the binding."""
+        state = store.read_record(self.run / "state.md")
+        self.assertNotEqual(nav.current_stage(state), "implement")
+        self.assertNotEqual(nav.current_action(state)["id"], self.action)
+        self.assertIsNone(state["active_improve"])
+        self.assertNotIn(self.action, state["improve_results"])
+        self.assertIn(self.action, state["chain_bindings"])
+        self.assertTrue((self.run / "chains" / self.action / "binding.md").is_file())
+        cold = subprocess.run(
+            [sys.executable, "-B", str(CLI), "next", "--run-dir", str(self.run)],
+            cwd=self.primary, text=True, capture_output=True,
+        )
+        self.assertEqual(cold.returncode, 0, cold.stderr)
+        self.assertNotIn("Chain recovery:", cold.stdout)
+        self.assertNotIn("Current action: Improve the completed implement result.", cold.stdout)
+        return state
 
     def test_serial_managed_full_diamond_executes_in_main_context_before_finish(self):
         self.select_dispatcher(SERIAL_FIXTURE)
@@ -371,7 +367,7 @@ class ChainIntegrationTests(ChainFixture):
             self.assertNotIn(self.target, workspace.parents)
             self.assertTrue(workspace.is_relative_to(self.parent.resolve()))
         self.parent_complete(ok=True)
-        self.assert_context_boundary_preserves_chain_mode("serial", after_producer=True)
+        self.assert_producer_advanced_past_finished_chain()
 
     def test_legacy_serial_helper_refuses_fresh_context_bind_before_writes(self):
         initial_state = (self.run / "state.md").read_bytes()
@@ -381,17 +377,13 @@ class ChainIntegrationTests(ChainFixture):
         self.assertEqual((self.run / "state.md").read_bytes(), initial_state)
         self.assertFalse((self.run / "chains").exists())
 
-    def assert_context_boundary_preserves_chain_mode(self, mode, *, after_producer=False):
+    def assert_context_boundary_preserves_chain_mode(self, mode):
         state_path = self.run / "state.md"
         binding_path = self.run / "chains" / self.action / "binding.md"
         before = (state_path.read_bytes(), binding_path.read_bytes())
         self.assertEqual(store.read_record(binding_path)["mode"], mode)
         state = store.read_record(state_path)
-        if after_producer:
-            self.assertEqual(state["active_improve"]["action_id"], self.action)
-            self.assertIn(self.action, state["chain_bindings"])
-        else:
-            self.assertIsNone(state.get("active_improve"))
+        self.assertIsNone(state.get("active_improve"))
         fresh = nav.render(None, self.run, state)
         cold = subprocess.run(
             [sys.executable, "-B", str(CLI), "next", "--run-dir", str(self.run)],
@@ -406,16 +398,8 @@ class ChainIntegrationTests(ChainFixture):
         for packet in (fresh, cold.stdout):
             normalized = " ".join(packet.split())
             self.assertIn("Chain recovery:", packet)
-            if after_producer:
-                self.assertIn("Current action: Improve the completed implement result.", packet)
-                self.assertIn("Keep the invoking parent alive", packet)
-                self.assertIn("Chain precedence ends at producer completion", normalized)
-                self.assertIn("Do not clear, replace or wrap the live parent", normalized)
-                self.assertNotIn("Clear and then execute the prompt.", packet)
-                self.assertNotIn(rule, normalized)
-            else:
-                self.assertIn(rule, normalized)
-                self.assertIn("Both modes recover the existing attempt, never rerun start.", normalized)
+            self.assertIn(rule, normalized)
+            self.assertIn("Both modes recover the existing attempt, never rerun start.", normalized)
         self.assertEqual((state_path.read_bytes(), binding_path.read_bytes()), before)
 
     def test_current_binding_defaults_to_parallel(self):
@@ -614,9 +598,7 @@ class ChainIntegrationTests(ChainFixture):
             self.assertNotIn(self.target, path.parents)
             self.assertTrue(path.is_relative_to(self.parent.resolve()))
         self.parent_complete(ok=True)
-        state = store.read_record(self.run / "state.md")
-        self.assertEqual(nav.current_stage(state), "implement")
-        self.assertIsNotNone(state["active_improve"])
+        self.assert_producer_advanced_past_finished_chain()
 
     def test_missing_binding_and_stale_action_fail_closed(self):
         self.bind()
@@ -697,7 +679,8 @@ class ChainIntegrationTests(ChainFixture):
         self.assertEqual(self.child_state_path().read_bytes(), before_child)
 
     def test_non_implementation_binding_is_rejected(self):
-        state = nav.new_state(str(self.target), "Still intake", protocol_version=3)
+        state = nav.new_state(str(self.target), "Still intake", protocol_version=3,
+                              delegation="ask-agent")
         nav.save(self.run, state)
         self.action = nav.current_action(state)["id"]
         p = self.call("bind", ok=False, extra=("--graph", str(self.graph),
@@ -722,34 +705,33 @@ class ChainIntegrationTests(ChainFixture):
         self.assertEqual(set(self.call("recover")["ready"]), {"A", "B"})
         self.call("claim", {"steps": ["A"]}, ok=False)
 
-    def test_improve_repeat_archives_chain_without_blocking_new_implementation(self):
+    def test_producer_repeat_after_finished_chain_starts_a_new_implementation(self):
         self.complete_single_chain()
-        self.parent_complete(ok=True)
         old_action = self.action
-        self.import_synthetic_improve("repeat")
+        self.parent_complete("repeat", ok=True)
         state = store.read_record(self.run / "state.md")
         self.assertEqual(nav.current_stage(state), "implement")
+        self.assertEqual(state["status"], "active")
+        self.assertIsNone(state["active_improve"])
         self.action = nav.current_action(state)["id"]
         self.assertNotEqual(self.action, old_action)
         self.assertIn(old_action, state["chain_bindings"])
-        self.parent_complete(ok=True)
-
-    def test_improve_done_can_refine_returned_candidate_then_advance(self):
-        self.complete_single_chain()
-        self.parent_complete(ok=True)
-        self.assert_context_boundary_preserves_chain_mode("parallel", after_producer=True)
-        (self.target / "A.txt").write_text("A\nImproved\n")
-        self.import_synthetic_improve("done")
+        self.assertTrue((self.run / "chains" / old_action / "binding.md").is_file())
+        # The archived chain does not block a fresh chain on the new action.
+        self.assertEqual(self.bind()["ready"], ["A"])
         state = store.read_record(self.run / "state.md")
-        self.assertNotEqual(nav.current_stage(state), "implement")
+        self.assertEqual(set(state["chain_bindings"]), {old_action, self.action})
 
-    def test_improve_blocked_keeps_finished_chain_and_parent_incomplete(self):
+    def test_producer_blocked_keeps_finished_chain_and_parent_incomplete(self):
         self.complete_single_chain()
-        self.parent_complete(ok=True)
-        self.import_synthetic_improve("blocked")
+        old_action = self.action
+        self.parent_complete("blocked", ok=True)
         state = store.read_record(self.run / "state.md")
-        self.assertNotEqual(state["status"], "complete")
+        self.assertEqual(state["status"], "blocked")
         self.assertEqual(nav.current_stage(state), "implement")
+        self.assertIsNone(state["active_improve"])
+        self.assertIn(old_action, state["chain_bindings"])
+        self.assertTrue((self.run / "chains" / old_action / "binding.md").is_file())
 
     def test_claim_and_retry_reconcile_after_process_exit_loses_response(self):
         self.bind()

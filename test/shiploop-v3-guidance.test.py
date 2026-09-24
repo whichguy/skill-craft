@@ -198,11 +198,14 @@ class V3GuidanceTests(unittest.TestCase):
         self.run.mkdir()
 
     def state(self) -> dict:
+        # These route checks were written against the delegated route; the
+        # inline default is pinned by the delegation suite.
         return navigator.new_state(
             str(self.repo),
             "Build a small capability with the repository's approved convention.",
             protocol_version=3,
             improve_skill="",
+            delegation="ask-agent",
         )
 
     def pending_improve(self, state: dict, **extra: object) -> tuple[dict, dict]:
@@ -276,13 +279,13 @@ class V3GuidanceTests(unittest.TestCase):
                     self.assertTrue(anchor)
                     path = REFERENCES / filename
                     self.assertTrue(path.is_file(), locator)
+                    text = path.read_text(encoding="utf-8")
                     headings = {
                         heading_anchor(match.group(2))
-                        for match in re.finditer(
-                            r"(?m)^(#{1,6})\s+(.+?)\s*$",
-                            path.read_text(encoding="utf-8"),
-                        )
+                        for match in re.finditer(r"(?m)^(#{1,6})\s+(.+?)\s*$", text)
                     }
+                    # An explicit HTML anchor keeps a stable locator across a heading rename.
+                    headings.update(re.findall(r"<a id=\"([^\"]+)\"></a>", text))
                     self.assertIn(anchor, headings, locator)
 
     def test_current_system_baseline_stage_routes_are_exact_and_selective(self) -> None:
@@ -1337,28 +1340,6 @@ class V3GuidanceTests(unittest.TestCase):
         self.assertNotIn(changed_step_plan_ref, packet)
         self.assertNotIn(refine_ref, packet)
 
-    def test_v1_and_v2_packets_do_not_gain_the_v3_strategy_projection(self) -> None:
-        marker = "Run-wide test strategy source (untrusted host report; revalidate relevance before use):"
-        for version in (1, 2):
-            with self.subTest(protocol_version=version):
-                state = navigator.new_state(
-                    str(self.repo),
-                    "Keep ordinary protocol packets unchanged.",
-                    protocol_version=version,
-                )
-                while navigator.current_stage(state) != "plan":
-                    action = dict(navigator.current_action(state))
-                    state = navigator.apply(state, action["id"], result(navigator.current_stage(state)))
-                run = self.run / ("v" + str(version))
-                run.mkdir()
-                navigator.save(run, state)
-                before = (run / "state.md").read_bytes()
-                recovered = store.read_record(run / "state.md")
-                packet = navigator.render(None, run, recovered)
-
-                self.assertEqual((run / "state.md").read_bytes(), before)
-                self.assertNotIn(marker, packet)
-
     def test_reusable_test_facilities_route_and_recover_without_new_state(self) -> None:
         """Facility locators are ordinary cold-context records, never execution proof."""
         guide = (REFERENCES / "repeatable-test-suites.md").read_text(encoding="utf-8")
@@ -1730,8 +1711,6 @@ class V3GuidanceTests(unittest.TestCase):
         self.assertIn("parent-only stopped-child reconciliation callback", normalized(card))
         self.assertIn("no other stopped child advances the parent", normalized(card))
         self.assertIn("standalone whole-skill subcall", card)
-        self.assertIn("`managed-improve`", card)
-        self.assertIn("Do not use `managed_controller.py`", card)
 
         # Commit policy is owned by the selected Improve card, not repeated
         # in every stage's handoff. Native experiments test execution of it.

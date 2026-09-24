@@ -743,7 +743,9 @@ def prepare(args: argparse.Namespace) -> dict[str, Any]:
     os.chmod(oracle_path, 0o444)
 
     nav = load_navigator(source_root)
-    state = nav.new_state(str(feature), "Run bounded native chain pilot", protocol_version=3)
+    # A chain binds only on an ask-agent run; inline runs execute steps in the main context.
+    state = nav.new_state(str(feature), "Run bounded native chain pilot", protocol_version=3,
+                          delegation="ask-agent")
     synthetic_actions: list[dict[str, str]] = []
     while nav.current_stage(state) != "implement":
         stage = nav.current_stage(state)
@@ -752,7 +754,9 @@ def prepare(args: argparse.Namespace) -> dict[str, Any]:
         if stage == "plan":
             result["work_items"] = [{"id": "native-chain-pilot", "title": "A/B/C/J native chain fixture"}]
         state = nav.apply(state, action, result)
-        state = nav.finish_improve(state, action, {"summary": "Synthetic prerequisite Improve receipt for native pilot only."})
+        if state["active_improve"] is not None:
+            # Only planning checkpoints park a child before implement.
+            state = nav.finish_improve(state, action, {"summary": "Synthetic prerequisite Improve receipt for native pilot only."})
         synthetic_actions.append({"stage": stage, "action": action})
         nav.save(run_dir, state)
     action = str(nav.current_action(state)["id"])

@@ -6,6 +6,15 @@ for an actual system. Recovery snapshots retain their originating absolute
 checkout paths as audit locators, not portable runtime defaults. A packet is a
 read-only teaching artifact, not authorization to execute a ShipLoop callback.
 
+**Historical (ShipLoop 0.23.0).** The packet generators `prepare_packets.py`
+and `prepare_guard_packets.py`, and `test/shiploop-delivery-prompts.test.py`,
+were removed with navigator protocols 1 and 2: they rendered the retired
+`shiploop_navigator_prompts.py` catalog and walked the old `plan-improve` /
+`outer-improve` stages. The frozen packets, responses, oracles and assessments
+below remain as the study's evidence; the commands that name the removed files
+are kept only as the record of how that evidence was produced. The fake
+deployment and browser-consumer fixtures are current and still cataloged.
+
 ## Standing authority follow-up
 
 `authority-cases.json` exercises eight independent contexts: current standing

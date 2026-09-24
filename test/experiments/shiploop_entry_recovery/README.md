@@ -1,5 +1,11 @@
 # ShipLoop entry and recovery trial
 
+> **Historical (ShipLoop 0.23.0).** This experiment drives navigator
+> protocol 2 (`init` with the `*-improve` stages), which ShipLoop 0.23.0
+> removed; its scripts no longer run against the current `skills/shiploop`
+> package. The preregistration, evidence and results remain the record of
+> what was observed. Reproduce it only from a checkout that predates 0.23.0.
+
 This opt-in fixture tests a linked, fresh-context execution segment with an
 intentional interruption. It does not launch an LLM or change production state.
 Read [preregistration.md](preregistration.md) before conducting or grading it.

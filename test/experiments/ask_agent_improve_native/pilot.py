@@ -154,7 +154,8 @@ if args.operation == 'setup':
     while nav.current_stage(state) != 'handoff':
         action = nav.current_action(state)['id']
         state = nav.apply(state, action, {'outcome': 'done', 'summary': 'Synthetic predecessor setup; no work or review execution claim.'})
-        state = nav.finish_improve(state, action, {'summary': 'Synthetic predecessor marker only.'})
+        if state['active_improve'] is not None:  # Only planning checkpoints and the last carry-forward park an Improve child.
+            state = nav.finish_improve(state, action, {'summary': 'Synthetic predecessor marker only.'})
     nav.save(run, state)
     action = nav.current_action(state)['id']
     producer = run / 'inbox' / (action + '.md')

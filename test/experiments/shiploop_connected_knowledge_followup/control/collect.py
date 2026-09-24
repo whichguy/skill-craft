@@ -62,7 +62,9 @@ def main(sample):
                'review_refs': [], 'check_refs': [], 'lessons': 'No review or workflow-completion claim.'}
     waiting = navigator.apply(state, action, result)
     navigator.save(run, waiting)
-    state = navigator.finish_improve(waiting, action, receipt)
+    state = waiting
+    if waiting['active_improve'] is not None:  # Only planning checkpoints and the last carry-forward park an Improve child.
+        state = navigator.finish_improve(waiting, action, receipt)
     navigator.save(run, state)
     assert sha(result_file) == result_digest
     assert state['accepted'][action] == result, 'Do not repair or augment sampled result'
@@ -72,7 +74,9 @@ def main(sample):
         if stage == 'plan':
             seed['work_items'] = [{'id': 'W1', 'title': 'Conditional retry UI',
                                   'context': 'Use the actual discovery evidence and preserve its unresolved implementation prerequisites.'}]
-        state = navigator.finish_improve(navigator.apply(state, aid, seed), aid, receipt)
+        state = navigator.apply(state, aid, seed)
+        if state['active_improve'] is not None:  # Only planning checkpoints and the last carry-forward park an Improve child.
+            state = navigator.finish_improve(state, aid, receipt)
         navigator.save(run, state)
         assert sha(result_file) == result_digest
     navigator.save(run, state)

@@ -1,5 +1,12 @@
 # Clear progress reporting: two experiments
 
+> **Historical (ShipLoop 0.23.0).** This experiment drives navigator
+> protocols 1 and 2 (the `PRELUDE`/`_IMPROVE_STAGES` tables and `*-improve`
+> stages), which ShipLoop 0.23.0 removed; its scripts no longer run against
+> the current `skills/shiploop` package. The preregistration, evidence and
+> results remain the record of what was observed. Reproduce it only from a
+> checkout that predates 0.23.0.
+
 Decision: adopt a bounded derived snapshot and a reporting cue. Keep Markdown
 state and traversal authoritative, with one current action and no new progress
 state. Improve continues to own its internal campaign.

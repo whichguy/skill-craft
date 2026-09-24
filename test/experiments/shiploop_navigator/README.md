@@ -1,5 +1,12 @@
 # Navigator experiments
 
+> **Historical (ShipLoop 0.23.0).** This experiment drives navigator
+> protocol 1 (`new_state(protocol_version=1)` and
+> `--execution-mode=navigator-v1`), which ShipLoop 0.23.0 removed; its
+> scripts no longer run against the current `skills/shiploop` package. The
+> preregistration, evidence and results remain the record of what was
+> observed. Reproduce it only from a checkout that predates 0.23.0.
+
 These opt-in experiments separate graph mechanics, cold prompt interpretation,
 and real agent work. They add no runtime gate or new dependency. Results from
 September 14, 2026 are summarized in

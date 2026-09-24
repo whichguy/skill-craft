@@ -1,10 +1,8 @@
 # Improve context ownership
 
 Use this host-owned boundary for a bound navigator-v3 or navigator-v4 Improve
-child using the ephemeral Until Loop runtime. Direct legacy navigator-v1/v2
-Improve nodes retain their recorded direct adapter and do not gain this parked
-parent/child route. In v3/v4, one valid producer submission parks the invoking
-parent and binds the child for the **whole Improve invocation**. The child owns
+child using the ephemeral Until Loop runtime. At an Improve checkpoint, one
+valid producer submission parks the invoking parent and binds the child for the **whole Improve invocation**. The child owns
 its reviews, applicable experiments, and shared investigation allowance; do not
 create a worker or a fresh context for each review iteration. The parent remains
 ShipLoop's control channel and alone may run verified `improve-complete` after
@@ -23,9 +21,8 @@ invocation:
   for new v3/v4 runs. The invoking parent conversation runs the whole
   invocation itself; follow the default route below.
 - `delegation: ask-agent` is the opt-in route, chosen by passing
-  `--delegation ask-agent` to `init` or `workspace start`, and the recorded
-  route of any saved run without the key, which is never silently migrated.
-  One fresh native worker runs the invocation through Ask Agent; follow the
+  `--delegation ask-agent` to `init` or `workspace start`, or by switching an
+  existing run with `delegation --set ask-agent`. One fresh native worker runs the invocation through Ask Agent; follow the
   delegated route at the end of this guide.
 
 The setting is run configuration, not an owner record. Change it for an

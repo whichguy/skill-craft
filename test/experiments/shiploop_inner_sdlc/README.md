@@ -1,5 +1,11 @@
 # Inner-SDLC synthetic pilots
 
+> **Historical (ShipLoop 0.23.0).** This experiment drives navigator
+> protocol 1 (`new_state(protocol_version=1)`), which ShipLoop 0.23.0
+> removed; its scripts no longer run against the current `skills/shiploop`
+> package. The preregistration, evidence and results remain the record of
+> what was observed. Reproduce it only from a checkout that predates 0.23.0.
+
 These opt-in, stdlib-only fixtures validate whether a fresh agent can carry out
 one current ShipLoop action on an isolated local repository. They do not run a
 worker, change production, or estimate model reliability. They are capability

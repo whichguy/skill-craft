@@ -21,7 +21,7 @@ SPEC.loader.exec_module(evidence)
 
 class EvidenceTests(unittest.TestCase):
     def test_selected_navigator_import_restores_module_cache(self) -> None:
-        names = ("shiploop_navigator", "shiploop_navigator_prompts", "shiploop_navigator_v3_prompts", "shiploop_consumer_delivery", "shiploop_store")
+        names = ("shiploop_navigator", "shiploop_navigator_v3_prompts", "shiploop_consumer_delivery", "shiploop_planning_revision", "shiploop_privacy", "shiploop_store")
         before = {name: sys.modules.get(name) for name in names}
         navigator = evidence._load_navigator(PACKAGE)
         self.assertEqual(Path(navigator.__file__).resolve(), PACKAGE / "scripts" / "shiploop_navigator.py")

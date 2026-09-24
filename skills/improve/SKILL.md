@@ -5,7 +5,7 @@ description: >-
   loop: use recent Git history, make warranted changes, run meaningful checks,
   and require two consecutive trivial-only review passes. Supports a read-only
   interpretation preview; not a one-off code review.
-version: 0.3.0-rc.1
+version: 0.3.0-rc.2
 license: MIT
 platforms:
   - linux
@@ -86,10 +86,9 @@ New standalone runs use that per-run temporary callback state. They must not
 call `scripts/capture_evidence.py`, create `.until-loop/working.md`, or use the
 durable v1/v2 adapters. Those retained files apply only to an explicitly
 selected legacy run under [the legacy standalone binding](references/legacy-standalone.md).
-Do not replace `RUNTIME_SCRIPT` with an ambient Until Loop installation or call
-`managed_controller.py` as a standalone runtime. If Python, the bundled file,
-or a repository prerequisite is missing, report that condition rather than
-silently changing runtimes.
+Do not replace `RUNTIME_SCRIPT` with an ambient Until Loop installation. If
+Python, the bundled file, or a repository prerequisite is missing, report that
+condition rather than silently changing runtimes.
 
 ## ShipLoop v3/v4 whole-skill subcall
 
@@ -128,8 +127,7 @@ merge, push, parent callback, or broader scope authority. Improve owns its revie
 temporary Until Loop handle; ShipLoop keeps the parent graph action pending and
 imports accepted child evidence once. Reopen only relevant parent locators for
 cold recovery, and retain concise current decision/revalidation locators in the
-child handoff. Do not use `managed_controller.py`, a `managed-improve` callback,
-or an ambient Until Loop runtime for this v3/v4 route.
+child handoff. Do not use an ambient Until Loop runtime for this v3/v4 route.
 
 For an `active` or `blocked` child response, do not call a parent callback.
 Follow the child packet or report its incomplete state through the recorded
@@ -160,42 +158,6 @@ and that owner's explicit binding in full. It must not run this standalone card
 or this card's Until Loop adapter. The other owner supplies its own history
 window, scope, classification rule, evidence location, commit policy,
 phase/callback, and finalization authority.
-
-## ShipLoop managed-subrun entrypoint
-
-[ShipLoop's managed consumer binding](references/managed-consumer.md) is a
-separate consumer of the same shared policy. It applies only when a ShipLoop
-run has selected the versioned managed Improve protocol and printed a
-`managed-improve` packet. It does not replace the standalone owner binding
-for a v3/v4 whole-skill subcall above or change an existing ShipLoop run that lacks
-that protocol marker.
-
-Read the managed-consumer binding and the parent-supplied child packet in full.
-The managed controller owns the child phase sequence, its completed review
-records, material reset, and two-consecutive-trivial assessment. ShipLoop owns
-the parent action, delivery DAG, run lock, Markdown transaction, and consumer
-release. While the child is active, do not invoke the standalone card or its
-bundled Until Loop adapter, create an ambient `.until-loop` directory, call a
-legacy per-phase ShipLoop callback, or start another Improve invocation to
-improve the child's own plan.
-
-The parent action remains fixed at `managed-improve` while the child progresses
-in its namespaced Markdown records. Follow only the printed child continuation
-or import route. A terminal child status of `blocked`, `needs-prerequisite`,
-`needs-replan`, or `stopped` is incomplete; it keeps the parent action and
-binding for recovery. Only a current, validated `converged` certificate can
-release the parent to its stated return stage.
-
-The managed binding must state the child action ID, profile, frozen
-candidate/context inputs, scope, history, policy/executor digests, checks,
-explicit `audit-every-iteration` commit policy, evidence/certificate
-requirements, independent-review rule, and parent return conditions. The shared
-policy uses an independent reviewer only when the owner binding selects one; the
-managed binding selects one whenever a reviewer is available. If this binding makes
-independent review mandatory, it must explicitly say whether a recorded
-self-review fallback is allowed; absent that authorization, unavailable
-independent review blocks the child. The controller must never infer a fallback
-from availability or a desire to finish.
 
 ## Standalone owner binding
 

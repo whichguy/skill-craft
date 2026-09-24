@@ -98,10 +98,16 @@ class DelegationStateTests(unittest.TestCase):
     def render(self, state):
         return nav.render(None, self.run, state)
 
-    def test_only_explicit_delegation_is_recorded_and_absent_means_ask_agent(self):
-        legacy = nav.new_state("/r", "Synthetic.", protocol_version=3)
-        self.assertNotIn("delegation", legacy)
-        self.assertEqual(nav.delegation(legacy), "ask-agent")
+    def test_every_run_records_delegation_and_a_run_without_it_is_refused(self):
+        default = nav.new_state("/r", "Synthetic.", protocol_version=3)
+        self.assertEqual((default["delegation"], nav.delegation(default)), ("inline", "inline"))
+        # A run saved before the setting existed is not routed through ask-agent.
+        unrecorded = dict(default)
+        del unrecorded["delegation"]
+        with self.assertRaises(nav.NavigatorError) as caught:
+            nav.validate(unrecorded)
+        self.assertIn("navigator state has no recorded delegation", str(caught.exception))
+        self.assertIn("fresh --run-dir", str(caught.exception))
         for version in (3, 4):
             for value in ("inline", "ask-agent"):
                 with self.subTest(version=version, value=value):
@@ -109,25 +115,15 @@ class DelegationStateTests(unittest.TestCase):
                     self.assertEqual(state["delegation"], value)
                     self.assertEqual(nav.delegation(state), value)
 
-    def test_delegation_is_limited_to_protocols_3_and_4_and_known_values(self):
-        with self.assertRaisesRegex(nav.NavigatorError, "protocol 3 or 4"):
-            nav.new_state("/r", "Synthetic.", protocol_version=2, delegation="inline")
-        with self.assertRaisesRegex(nav.NavigatorError, "inline or ask-agent"):
-            self.state("parallel")
+    def test_delegation_is_limited_to_known_values(self):
+        for value in ("parallel", None):
+            with self.subTest(value=value):
+                with self.assertRaisesRegex(nav.NavigatorError, "inline or ask-agent"):
+                    self.state(value)
         bad = self.state()
         bad["delegation"] = "Inline"
         with self.assertRaisesRegex(nav.NavigatorError, "unsupported delegation"):
             nav.validate(bad)
-        v2 = nav.new_state("/r", "Synthetic.", protocol_version=2)
-        v2["delegation"] = "inline"
-        with self.assertRaisesRegex(nav.NavigatorError, "unsupported or missing fields"):
-            nav.validate(v2)
-
-    def test_ask_agent_setting_renders_exactly_like_an_unrecorded_run(self):
-        legacy = advance(nav.new_state("/simulation-only/repo", "Synthetic.", protocol_version=3), "implement")
-        explicit = dict(legacy, delegation="ask-agent")
-        self.assertEqual(self.render(legacy), self.render(explicit))
-        self.assertIn("bind this action to the default parallel", self.render(explicit))
 
     def test_inline_clears_once_per_work_item_then_continues_in_context(self):
         state = self.state()
@@ -161,7 +157,7 @@ class DelegationStateTests(unittest.TestCase):
 
     def test_no_inline_packet_in_a_full_walk_routes_work_to_a_delegate(self):
         for version in (3, 4):
-            scenarios = dry_run.scenarios(version)
+            scenarios = dry_run.scenarios()
             report = dry_run.run_scenario("delivery", scenarios["delivery"],
                                           protocol_version=version, delegation="inline")
             self.assertTrue(report["ok"], report.get("error"))
@@ -174,8 +170,6 @@ class DelegationStateTests(unittest.TestCase):
         switched = nav.set_delegation(state, "ask-agent")
         self.assertEqual((switched["delegation"], switched["revision"]), ("ask-agent", state["revision"] + 1))
         self.assertEqual(nav.set_delegation(switched, "ask-agent"), switched)
-        legacy = nav.new_state("/r", "Synthetic.", protocol_version=3)
-        self.assertEqual(nav.set_delegation(legacy, "ask-agent"), legacy)
         with self.assertRaisesRegex(nav.NavigatorError, "inline or ask-agent"):
             nav.set_delegation(state, "serial")
 
@@ -190,11 +184,23 @@ class DelegationStateTests(unittest.TestCase):
         pending = self.render(switched)
         self.assertEqual(pending.split("\n\n", 1)[0], "Clear and then execute the prompt.")
         self.assertIn("Prefer a native fresh worker", pending)
-        self.assertIn("Delegation change: this action keeps ask-agent; actions issued after it use inline.",
-                      pending)
+        change = "Delegation change: this action keeps ask-agent; actions issued after it use inline."
+        self.assertIn(change, pending)
+        # The held-route line never displaces the one legal callback after it.
+        lines = pending.splitlines()
+        callback = lines[lines.index(change) + 1]
+        self.assertTrue(callback.startswith("Callback for this stage"), callback)
+        self.assertIn("--action=" + action, callback)
         checkpoint = nav.apply(switched, action, {"outcome": "done", "summary": "Synthetic."})
+        held_child = self.render(checkpoint)
         self.assertIn("Keep the invoking parent alive and follow Improve's selected context ownership.",
-                      self.render(checkpoint))
+                      held_child)
+        lines = held_child.splitlines()
+        callback = lines[lines.index(change) + 1]
+        # The parked child is unbound, so its one legal callback is improve-bind.
+        self.assertTrue(callback.startswith("Next command (bind the selected Improve card"), callback)
+        self.assertIn(" improve-bind ", callback)
+        self.assertIn("--action=" + action, callback)
         following = nav.finish_improve(checkpoint, action, {"summary": "Synthetic receipt."})
         self.assertTrue(self.render(following).startswith("Continue in this context and execute the prompt."))
         # Switching back before the next action cancels the pending change.
@@ -206,12 +212,10 @@ class DelegationStateTests(unittest.TestCase):
         chained = dict(at_implement, chain_bindings={nav.current_action(at_implement)["id"]: "0" * 64})
         self.assertEqual(nav.delegation(nav.set_delegation(chained, "inline")), "ask-agent")
 
-    def test_toggle_refuses_terminal_and_pre_v3_runs(self):
+    def test_toggle_refuses_terminal_runs(self):
         halted = nav.control(self.state(), "halt", "Synthetic stop.")
         with self.assertRaisesRegex(nav.NavigatorError, "terminal"):
             nav.set_delegation(halted, "ask-agent")
-        with self.assertRaisesRegex(nav.NavigatorError, "protocol 3 or 4"):
-            nav.set_delegation(nav.new_state("/r", "Synthetic.", protocol_version=2), "inline")
         bad = dict(self.state(), delegation_hold={"action": "x", "route": "inline"})
         with self.assertRaisesRegex(nav.NavigatorError, "invalid delegation hold"):
             nav.validate(bad)
@@ -302,29 +306,66 @@ class PacketContractTests(DelegationStateTests):
         for text in BOUND_DELEGATED_TEXT:
             self.assertIn(text, delegated_text)
 
-
-    def test_unrecorded_runs_print_the_inline_switch_on_improve_packets(self):
-        hint = "Delegation: ask-agent, because this run started before inline became the default"
-        with tempfile.TemporaryDirectory(prefix="shiploop-unrecorded-walk-") as temp:
+    def test_every_active_packet_leads_with_its_legal_callback_and_schedule_text(self):
+        with tempfile.TemporaryDirectory(prefix="shiploop-callback-walk-") as temp:
             repo = Path(temp).resolve() / "repo"
             repo.mkdir()
-            for version in (3, 4):
-                legacy = bound_walk(repo, None, protocol_version=version)
-                explicit = bound_walk(repo, "ask-agent", protocol_version=version)
-                self.assertEqual([(stage, kind) for stage, kind, _ in legacy],
-                                 [(stage, kind) for stage, kind, _ in explicit])
-                run = str(repo.parent / ("run-None-" + str(version)))
-                for (stage, kind, packet), (_stage, _kind, other) in zip(legacy, explicit):
-                    with self.subTest(version=version, stage=stage, kind=kind):
-                        self.assertNotIn(hint, other)
-                        if kind != "improve":
-                            self.assertNotIn(hint, packet)
-                            continue
-                        lines = [line for line in packet.splitlines() if line.startswith(hint)]
-                        self.assertEqual(len(lines), 1)
-                        argv = shlex.split(lines[0].split("run: ", 1)[1])
-                        self.assertEqual(argv[2:], ["delegation", "--run-dir=" + run, "--set=inline"])
-                        self.assertEqual(len(packet.splitlines()), len(other.splitlines()) + 1)
+            walks = {(route, version): bound_walk(repo, route, protocol_version=version)
+                     for route, version in (("inline", 3), ("ask-agent", 3), ("ask-agent", 4),
+                                            ("inline", 4))}
+        planning = nav.guidance3.PLANNING_REVIEW_STAGES
+        for (route, version), packets in walks.items():
+            for stage, kind, packet in packets:
+                with self.subTest(route=route, version=version, stage=stage, kind=kind):
+                    # Producers stay within the cold-packet bound. A bound child adds
+                    # its runtime contract (about 39,300 chars at most, before temp
+                    # paths); the v4 initial plan child also carries the
+                    # planning-experiment contract (about 44,700 chars; 43,500 in
+                    # 0.22.0), so it alone gets a wider bound.
+                    if kind == "produce":
+                        bound = 40_000
+                    elif version == 4 and stage == "plan":
+                        bound = 46_000
+                    else:
+                        bound = 42_000
+                    self.assertLess(len(packet), bound)
+                    self.assertNotIn("Improve cadence", packet)
+                    lines = packet.splitlines()
+                    # An inline prefix may precede the header; nothing else may.
+                    header = next(i for i, line in enumerate(lines)
+                                  if line.startswith("ShipLoop navigator | "))
+                    self.assertRegex(lines[header],
+                                     r"^ShipLoop navigator \| " + re.escape(stage) + r" \| revision \d+$")
+                    lead = lines[header + 1]
+                    if kind == "produce":
+                        self.assertTrue(lead.startswith("Callback for this stage "), lead)
+                        done = lines[lines.index("Call this when done:") + 1]
+                        self.assertEqual(shlex.split(lead.split("): ", 1)[1]), shlex.split(done))
+                        if stage in planning:
+                            self.assertIn("Improve: Every " + stage + " result, including blocked and "
+                                          "repeat, starts this action's Improve child.", packet)
+                        elif stage == "carry-forward":
+                            self.assertIn("starts the run's single end-of-work Improve child", packet)
+                        else:
+                            self.assertIn("Improve: This result advances directly; no Improve child "
+                                          "runs for this stage.", packet)
+                        continue
+                    self.assertTrue(lead.startswith("Callback for this Improve child "), lead)
+                    argv = shlex.split(lead.split("): ", 1)[1])
+                    self.assertEqual(argv[2], "improve-complete")
+                    evidence = next(line for line in lines
+                                    if line.startswith("Write completion evidence to: "))
+                    self.assertIn("--result=" + evidence.split(": ", 1)[1], argv)
+                    parent = next(i for i, line in enumerate(lines)
+                                  if line.startswith(("Parent callback;", "Parent-only callback;")))
+                    self.assertEqual(argv, shlex.split(lines[parent + 1]))
+                    if stage == "carry-forward":
+                        self.assertIn("End-of-work review: this is the run's single Improve", packet)
+                        self.assertNotIn("Planning review focus", packet)
+                    else:
+                        self.assertIn(stage, planning)
+                        self.assertIn("Planning review focus.", packet)
+                        self.assertNotIn("End-of-work review", packet)
 
 
 class DelegationCliTests(unittest.TestCase):
@@ -359,15 +400,17 @@ class DelegationCliTests(unittest.TestCase):
         self.assertEqual(result.returncode, 0, result.stderr)
         self.assertEqual(store.read_record(other / "state.md")["delegation"], "ask-agent")
 
-    def test_delegation_flag_fails_before_creating_non_v3_v4_runs(self):
+    def test_removed_init_modes_are_rejected_before_creating_a_run(self):
+        # The single home for rejecting removed init modes and protocol 2.
         for extra in (("--execution-mode", "navigator-v2"), ("--navigator-version", "2"),
                       ("--execution-mode", "navigator-v1"), ("--execution-mode", "managed"),
                       ("--execution-mode", "legacy")):
-            with self.subTest(extra=extra):
-                result = self.init("--delegation", "inline", *extra)
-                self.assertNotEqual(result.returncode, 0)
-                self.assertIn("requires navigator protocol 3 or 4", result.stderr)
-                self.assertFalse(self.run.exists())
+            for delegation in ((), ("--delegation", "inline")):
+                with self.subTest(extra=extra, delegation=delegation):
+                    result = self.init(*delegation, *extra)
+                    self.assertEqual(result.returncode, 2, result.stdout + result.stderr)
+                    self.assertIn("invalid choice", result.stderr)
+                    self.assertFalse(self.run.exists())
 
     def test_init_retry_cannot_change_delegation_and_toggle_is_explicit(self):
         self.assertEqual(self.init().returncode, 0)
@@ -393,19 +436,9 @@ class DelegationCliTests(unittest.TestCase):
         self.run.mkdir()
         missing = self.cli("delegation", "--run-dir", self.run, "--set", "inline")
         self.assertNotEqual(missing.returncode, 0)
-        self.assertIn("needs an existing navigator protocol 3 or 4 run", missing.stderr)
+        self.assertIn("delegation needs an existing run", missing.stderr)
         self.assertFalse((self.run / "state.md").exists())
         self.assertNotEqual(self.cli("delegation", "--run-dir", self.run).returncode, 0)
-        v2 = self.base / "v2-run"
-        self.assertEqual(self.cli("init", "--repo", self.repo, "--run-dir", v2, "--prompt", "Old.",
-                                  "--navigator-version", "2").returncode, 0)
-        refused = self.cli("delegation", "--run-dir", v2, "--set", "inline")
-        self.assertNotEqual(refused.returncode, 0)
-        self.assertIn("protocol 3 or 4", refused.stderr)
-        retry = self.cli("init", "--repo", self.repo, "--run-dir", v2, "--prompt", "Old.",
-                         "--delegation", "ask-agent")
-        self.assertNotEqual(retry.returncode, 0)
-        self.assertIn("rerun without --delegation", retry.stderr)
 
     def test_toggle_during_a_bound_improve_child_applies_from_the_next_action(self):
         self.assertEqual(self.init("--improve-skill", CARD).returncode, 0)
@@ -473,10 +506,6 @@ class DelegationCliTests(unittest.TestCase):
                            "--prompt", "Default workspace delegation.")
         self.assertEqual(started.returncode, 0, started.stderr)
         self.assertEqual(store.read_record(default_root / "run/state.md")["delegation"], "inline")
-        refused = self.cli("workspace", "start", "--repo", self.repo, "--workspace-root", self.base / "v2",
-                           "--prompt", "Old protocol.", "--protocol-version", "2", "--delegation", "inline")
-        self.assertNotEqual(refused.returncode, 0)
-        self.assertFalse((self.base / "v2").exists())
 
     def test_graph_dry_run_defaults_to_new_run_delegation(self):
         default = self.cli("graph-dry-run", "--scenario", "delivery", "--format", "markdown")
@@ -486,9 +515,6 @@ class DelegationCliTests(unittest.TestCase):
                              "--delegation", "ask-agent")
         self.assertEqual(delegated.returncode, 0, delegated.stderr)
         self.assertIn("Prefer a native fresh worker", delegated.stdout)
-        bad = self.cli("graph-dry-run", "--protocol-version", "2", "--delegation", "inline")
-        self.assertEqual(bad.returncode, 2)
-        self.assertRegex(bad.stdout, re.compile("requires protocol 3 or 4"))
 
 
 if __name__ == "__main__":

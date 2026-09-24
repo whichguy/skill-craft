@@ -280,6 +280,8 @@ def _relative_binding_path(action_id: str) -> str:
 
 def _load_state(root: Path) -> dict[str, Any]:
     state_path = root / "state.md"
+    if not os.path.lexists(state_path) and os.path.lexists(root / "state.json"):
+        _fail(navigator.retired_json_run_reason(root))
     data = _read_regular(state_path, "authoritative ShipLoop state.md")
     try:
         value = store.loads(data.decode("utf-8"))

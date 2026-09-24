@@ -393,7 +393,7 @@ normal check is not yet successful. It does not make the inner action complete,
 does not permit a remote call, and does not substitute for the existing
 carry-forward/replan/pause route when the discovery changes the product plan or
 authority. The generic `shiploop-improvements.md` journal remains proposal-only
-and distinct. See [Outer-work journal](../skills/shiploop/references/outer-work.md).
+and distinct. See Outer-work journal (removed in ShipLoop 0.23.0).
 
 ## 6. Artifact producer/consumer audit and closure plan
 

@@ -51,27 +51,14 @@ from grok_adapter import (  # noqa: E402
 from recovery_isolation import assess_isolation  # noqa: E402
 from salesforce_proof import target_preflight_errors  # noqa: E402
 
-# These public stop keys remain the v2 names used by suites.json. A v3
-# navigator folds each prelude review into the accepted producer stage, so the
-# compatibility aliases below resolve those keys after the selected state has
-# established the protocol.
-PARTIAL_STAGES = ("intake", "discovery", "research", "research-improve", "spec", "spec-improve",
-                  "test-strategy", "plan", "plan-improve")
-_V3_PARTIAL_STAGES = ("intake", "discovery", "research", "spec", "test-strategy", "plan")
-_PARTIAL_STAGE_ALIASES = {
-    2: {stage: stage for stage in PARTIAL_STAGES},
-    3: {
-        "intake": "intake",
-        "discovery": "discovery",
-        "research": "research",
-        "research-improve": "research",
-        "spec": "spec",
-        "spec-improve": "spec",
-        "test-strategy": "test-strategy",
-        "plan": "plan",
-        "plan-improve": "plan",
-    },
-}
+# Public stop keys are the navigator protocol 3/4 prelude producer stages. A
+# partial capture stops only after an accepted prelude stage, before the
+# navigator can enter an ambiguous per-work-item inner loop.
+PARTIAL_STAGES = ("intake", "discovery", "research", "spec", "test-strategy", "plan")
+_SUPPORTED_PROTOCOLS = frozenset((3, 4))
+_IMPROVE_CALLBACK = "improve-complete"
+_RECONCILE_CALLBACK = "improve-reconcile"
+_PRODUCER_CALLBACKS = frozenset(("complete", "done"))
 _CONTROL_INPUT_OBSERVER_SCHEMA = 1
 _OBSERVER_LATE_GRADE_SCHEMA = 1
 _SALESFORCE_CREATE_STEP_ID = "salesforce-checkers-create"
@@ -92,19 +79,37 @@ _SALESFORCE_PREFLIGHT_IDENTITY_KEYS = (
 def _partial_boundary(protocol_version: Any, requested_stage: str) -> tuple[str, tuple[str, ...]] | None:
     """Resolve a public partial-stop key against one observed navigator protocol.
 
-    Protocol 3 accepts a producer stage only after its standalone Improve child
-    returns. Its accepted ``plan`` is consequently the faithful counterpart of
-    the legacy ``plan-improve`` boundary; no new physical ``prepare`` stop is
-    exposed through the existing suite contract.
+    Only navigator protocols 3 and 4 are observed. A saved run of any other
+    protocol has no supported boundary, so its partial stop is unsupported.
     """
-    aliases = _PARTIAL_STAGE_ALIASES.get(protocol_version)
-    if aliases is None:
+    if protocol_version not in _SUPPORTED_PROTOCOLS or requested_stage not in PARTIAL_STAGES:
         return None
-    target = aliases.get(requested_stage)
-    if target is None:
-        return None
-    stages = PARTIAL_STAGES if protocol_version == 2 else _V3_PARTIAL_STAGES
-    return target, stages[:stages.index(target) + 1]
+    return requested_stage, PARTIAL_STAGES[:PARTIAL_STAGES.index(requested_stage) + 1]
+
+
+def _action_callbacks(state: Mapping[str, Any]) -> dict[str, frozenset[str]]:
+    """Map every accepted action to the one callback family that accepted it.
+
+    Protocols 3 and 4 accept most producer results directly through
+    ``complete`` (``done`` is its CLI alias). An action with an Improve record
+    was accepted by importing its Improve child instead: ``improve-complete``,
+    or ``improve-reconcile`` for a stopped protocol-4 plan child.
+    """
+    records = state.get("improve_results")
+    records = records if isinstance(records, Mapping) else {}
+    callbacks: dict[str, frozenset[str]] = {}
+    for entry in state.get("history", []):
+        if not isinstance(entry, dict) or not isinstance(entry.get("action"), str):
+            continue
+        action = entry["action"]
+        record = records.get(action)
+        if record is None:
+            callbacks[action] = _PRODUCER_CALLBACKS
+        elif isinstance(record, Mapping) and record.get("runtime_phase") == "stopped":
+            callbacks[action] = frozenset((_RECONCILE_CALLBACK,))
+        else:
+            callbacks[action] = frozenset((_IMPROVE_CALLBACK,))
+    return callbacks
 
 
 def read_json(path: Path) -> Any:
@@ -1169,8 +1174,8 @@ def partial_observation(navigation: dict, events: dict, prompt: str, repo: Path,
         return {**result, "reason": "requested-stage-not-accepted"}
     prefix = history[:targets[0] + 1]
     result["accepted_after_boundary"] = len(history) - len(prefix)
-    # V2 records explicit review stages; v3 records each producer only after its
-    # standalone Improve child completes. ``required_stages`` is protocol-local.
+    # A planning checkpoint is recorded only after its Improve child returns;
+    # every other prelude producer is recorded when its result is accepted.
     completed = {item.get("stage") for item in prefix if item.get("outcome") == "done"}
     if not set(required_stages) <= completed:
         return {**result, "reason": "prefix-stage-gap"}
@@ -1228,7 +1233,7 @@ def protocol_status(navigation: dict, prompt: str, repo: Path, initial: dict,
     if state.get("status") != "done":
         return "incomplete-" + str(state.get("status", "unknown"))
     action = state.get("action")
-    # Protocol 2 retains the terminal ROOT action; completed INNER items use null.
+    # The terminal state retains its ROOT done action; completed INNER items use null.
     if (not state.get("run_id") or state.get("stage") != "done"
             or not isinstance(action, dict) or action.get("stage") != "done" or not action.get("id")):
         return "unverified-inconsistent-terminal-state"
@@ -1279,8 +1284,12 @@ def lifecycle_observation(events: dict, navigation: dict, prompt: str, repo: Pat
     workspace_root = run_dir.parent
     state = record["state"]
     protocol_version = state.get("navigator_protocol_version")
-    required_actions = {entry["action"] for entry in state.get("history", []) if isinstance(entry, dict) and isinstance(entry.get("action"), str)}
-    callback_commands = {"improve-complete"} if protocol_version == 3 else {"complete", "done"}
+    if protocol_version not in _SUPPORTED_PROTOCOLS:
+        return {"complete": False, "reason": "unsupported-navigator-protocol",
+                "run_id": state.get("run_id"), "protocol_version": protocol_version}
+    expected_callbacks = _action_callbacks(state)
+    required_actions = set(expected_callbacks)
+    callback_commands = set().union(*expected_callbacks.values()) if expected_callbacks else set()
     callbacks: set[str] = set()
     started = returned = False
     call_counts = Counter(call.get("call_id") for call in events.get("cli_calls", []))
@@ -1306,15 +1315,19 @@ def lifecycle_observation(events: dict, navigation: dict, prompt: str, repo: Pat
             started = True
         if tail[:1] == ["init"] and same_path(flags.get("--repo"), repo) and same_path(flags.get("--run-dir"), run_dir):
             started = True
-        if tail[:1] and tail[0] in callback_commands and same_path(flags.get("--run-dir"), run_dir) and flags.get("--action") in required_actions:
-            callbacks.add(flags["--action"])
+        action = flags.get("--action")
+        if (tail[:1] and action in expected_callbacks and tail[0] in expected_callbacks[action]
+                and same_path(flags.get("--run-dir"), run_dir)):
+            callbacks.add(action)
         if tail[:2] == ["workspace", "return"] and same_path(flags.get("--workspace-root"), workspace_root):
             returned = True
     missing = sorted(required_actions - callbacks)
     needs_return = state.get("execution_mode") == "navigator-worktree"
     return {"complete": started and bool(required_actions) and not missing and (returned or not needs_return),
             "run_id": state["run_id"], "protocol_version": protocol_version,
-            "callback_commands": sorted(callback_commands), "start_observed": started,
+            "callback_commands": sorted(callback_commands),
+            "action_callback_commands": {action: sorted(verbs) for action, verbs in sorted(expected_callbacks.items())},
+            "start_observed": started,
             "return_observed": returned, "accepted_action_count": len(required_actions),
             "observed_callback_count": len(callbacks), "missing_callback_actions": missing,
             "ambiguous_tool_call_ids": ambiguous_ids,

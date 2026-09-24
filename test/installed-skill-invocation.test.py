@@ -264,7 +264,7 @@ class InstalledSkillInvocationTest(unittest.TestCase):
             "shiploop": (
                 "selected, loaded",
                 'CLI="$SKILL_ROOT/scripts/shiploop"',
-                "SHIPLOOP_REVIEW_COVERAGE_ROOT",
+                "dependency's own observed, selected `SKILL.md` path",
             ),
             "improve": (
                 "selected, loaded",

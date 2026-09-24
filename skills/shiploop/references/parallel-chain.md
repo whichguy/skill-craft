@@ -1,8 +1,8 @@
 # Parallel implementation chains
 
 Chains apply only to a run whose delegation is `ask-agent`: an opt-in new run,
-a run switched with `python3 "$CLI" delegation --run-dir "$RUN_DIR" --set ask-agent`,
-or a saved run without the setting. Under `delegation: inline`, the default for
+or a run switched with `python3 "$CLI" delegation --run-dir "$RUN_DIR" --set ask-agent`.
+Under `delegation: inline`, the default for
 new v3/v4 runs, `implement` executes the reviewed steps directly, one at a time
 in dependency order, in the execution checkout, and `chain bind` refuses a fresh
 binding before any side effect. Replaying an existing binding keeps its recorded

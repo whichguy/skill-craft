@@ -59,14 +59,6 @@ class ConsumerDeliveryCliTests(unittest.TestCase):
         self.assertIn("cannot retrofit", result.stderr)
         self.assertEqual(before, (self.run / "state.md").read_bytes())
 
-    def test_unsupported_modes_fail_before_creating_run(self):
-        for mode in ("navigator-v1", "managed", "legacy"):
-            with self.subTest(mode=mode):
-                result = self.init("--delivery-contract", "--execution-mode", mode)
-                self.assertNotEqual(result.returncode, 0)
-                self.assertIn("requires navigator protocol 2, 3, or 4", result.stderr)
-                self.assertFalse(self.run.exists())
-
     def test_marked_init_without_flag_cannot_remove_recorded_mode(self):
         result = self.init("--delivery-contract")
         self.assertEqual(result.returncode, 0, result.stderr)

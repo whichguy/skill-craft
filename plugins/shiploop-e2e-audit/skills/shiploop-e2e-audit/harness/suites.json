@@ -29,16 +29,16 @@
     },
     {
       "id": "planning-smoke",
-      "title": "Planning smoke: tic-tac-toe through plan improve",
-      "description": "Observes one fresh create request through the complete prelude and plan-improve acceptance. It deliberately stops before implementation and cannot establish a completed application.",
+      "title": "Planning smoke: tic-tac-toe through the reviewed plan",
+      "description": "Observes one fresh create request through the complete prelude and the plan accepted after its Improve review. It deliberately stops before implementation and cannot establish a completed application.",
       "mode": "partial",
       "cases": [
         {
-          "id": "ttt-create-plan-improve",
+          "id": "ttt-create-plan",
           "step": "ttt-create",
           "product_key": "tic-tac-toe-planning-smoke",
           "depends_on": [],
-          "stop_after_stage": "plan-improve",
+          "stop_after_stage": "plan",
           "timeout_seconds": 7200,
           "max_turns": 1000
         }

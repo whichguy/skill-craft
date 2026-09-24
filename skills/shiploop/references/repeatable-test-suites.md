@@ -182,8 +182,7 @@ current item-specific decisions into repository test documentation and future
 item context; whole-system testing reconciles that retained coverage. A missing
 decision calls for scoped reassessment; do not guess from a previous tool name.
 The latest reviewed item decision can refine the global baseline within its
-scope. Conflicts or missing prerequisites remain explicit. Managed/legacy runs
-retain their existing test-plan/binding and context routes.
+scope. Conflicts or missing prerequisites remain explicit.
 
 ## OUTER test-planning handshake
 
@@ -398,6 +397,4 @@ invent a parallel Improve algorithm, state machine, or test framework.
 An expected RED result during test authoring is useful evidence, not a reason
 to weaken the oracle or make production edits merely to turn it green. Preserve
 the independent oracle and the expected RED evidence until the scoped
-implementation work legitimately satisfies it. Managed and legacy runs retain
-their packet-selected review/callback route; do not apply the v3 standalone
-handoff to an unmarked older run or run both routes for one candidate.
+implementation work legitimately satisfies it.

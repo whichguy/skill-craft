@@ -1,9 +1,8 @@
 # Isolate a run; return only lasting work
 
-This policy applies to new `workspace start` runs (`navigator-worktree`, navigator
-protocol 3). Direct `init`, saved navigator-v1/v2, managed and legacy runs keep
-their existing behavior; do not retrofit an active run or claim that those routes
-have this helper's return gate. The SDLC graph and Improve ownership are unchanged.
+This policy applies to `workspace start` runs (execution mode
+`navigator-worktree`, navigator protocol 3 or 4). A direct `init` run has no
+workspace and does not claim this helper's return gate. The SDLC graph and Improve ownership are unchanged.
 
 ```mermaid
 flowchart LR
@@ -105,26 +104,25 @@ still contain usable durable document links and enough rationale to stand alone.
 
 The INNER `integrate` action combines the item's step and worker changes
 **inside the execution checkout**. It does not merge into the original branch
-after each item. All remaining items, system tests, outer Improve and authorized
-release work use the same assembled candidate. Recheck any integration-affected
+after each item. All remaining items, system tests, outer Improve reviews and
+authorized release work use the same assembled candidate. Recheck any integration-affected
 behavior.
 
-Protocol 3 defers the once-only source return until the final `handoff` Improve
-child has completed and its evidence receipt is ready. Review the final return
-plan, perform the authorized return, then import that child. Earlier producers
-and unfinished children cannot return the candidate; no subsequent producer
-can silently change a returned candidate. The return command validates the
-child completion and successful final disposition without advancing the graph.
+The once-only source return happens at `release` or `handoff`, once no Improve
+child is active (the end-of-work child and the `release-plan` child have been
+imported). Review the final return plan, perform the authorized return, then
+complete the current producer. Earlier stages and an active child cannot return
+the candidate; no subsequent producer can silently change a returned candidate.
+The return command validates that boundary without advancing the graph.
 
 During discovery and prepare, determine whether returning to the original branch
 itself triggers CI/deployment or another material effect, and whether that return
 is a prerequisite for a required consumer check. At release planning, revalidate
-the finding against the selected candidate and authority. For v3, use an authorized
+the finding against the selected candidate and authority. Use an authorized
 delivery/verification route from the execution checkout when available. If source
 return is a prerequisite for a required consumer check, record that unresolved
 ordering boundary and keep the run incomplete for reconciliation; do not claim a
-pre-return check observed the later effect or bypass the final return guard. Legacy
-v1/v2 retain their earlier release-or-handoff return route.
+pre-return check observed the later effect or bypass the final return guard.
 The helper never grants deployment, push or branch-policy authority. Source
 return is not evidence that a hosted consumer has been updated.
 

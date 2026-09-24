@@ -193,7 +193,9 @@ def rendered_packets(package: Path, out: Path, repo: Path, goal: str) -> tuple[P
         action = nav.current_action(state)["id"]
         synthetic = {"outcome": "done", "summary": "Synthetic packet setup only; no work, callback, or Improve execution occurred.", "evidence_refs": []}
         state = nav.apply(state, action, synthetic)
-        state = nav.finish_improve(state, action, {"synthetic_packet_setup": True})
+        if state["active_improve"] is not None:
+            # Only planning checkpoints and the last carry-forward park a child.
+            state = nav.finish_improve(state, action, {"synthetic_packet_setup": True})
     if set(found) != {"skill-assess", "skill-validate"}:
         raise RuntimeError("could not render both v3 skill packets")
     return found["skill-assess"], found["skill-validate"]

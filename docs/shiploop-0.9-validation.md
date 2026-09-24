@@ -3,7 +3,7 @@
 **Historical validation record — delivered in `68324cf`.** Counts, source
 locations and operator observations below belong to that revision, not a new
 verification run. See the [proposal disposition index](shiploop-proposal-closeout.md)
-and [current command contract](../skills/shiploop/references/action-protocol.md).
+and current command contract (removed in ShipLoop 0.23.0).
 
 Date: 2026-09-11. Starting revision: `f68f033c939bc36c104a27ca7d699d5d7103c6f4`.
 

@@ -1,9 +1,0 @@
-{
-  "name": "planning-before-implementation",
-  "profile": "product",
-  "steps": [
-    {"at": "review", "event": "done", "expect": "improve-plan", "prompt_contains": ["history", "tests"]},
-    {"at": "improve-plan", "event": "done", "expect": "improve-plan-verify", "prompt_contains": ["test_plan", "prerequisites"]},
-    {"at": "improve-plan-verify", "event": "done", "expect": "improve-apply", "prompt_contains": ["planning-verify", "before Apply"]}
-  ]
-}

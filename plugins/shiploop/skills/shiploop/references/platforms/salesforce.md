@@ -24,6 +24,15 @@ in an identified disposable org when required.
 
 ## Service discovery
 
+Before choosing component, tab or app names, list what the target org already has
+(`sf org list metadata --metadata-type LightningComponentBundle`, `CustomTab`,
+`CustomApplication`). A Tooling query on `CustomTab.Name` returns INVALID_FIELD,
+so use the metadata listing for tab evidence. Treat another ShipLoop run against
+the same org as a naming constraint: pick names it does not use.
+Separate the deploy from each visibility step (permission-set assignment, app or
+tab access): each is its own command with its own authorization, planned by name
+at release-plan.
+
 When Salesforce is an affected service boundary, apply the conditional
 [service discovery guide](../service-discovery.md). Record the observed selected
 tool or supported route, current org/role evidence, and the separate authority

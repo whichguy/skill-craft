@@ -121,9 +121,9 @@ host checkout into a tree that is bind-mounted into the container as `/opt/data`
 ### Operator / CI (**implemented**)
 
 - Hermetic suite: `bash test/run-all.sh` (**implemented**) remains the complete
-  local aggregate. `--group smoke` runs core plus six selected ShipLoop graph and
+  local aggregate. `--group smoke` runs core plus eight selected ShipLoop graph and
   boundary suites; it is partial evidence, never a full-regression claim.
-  `test/shiploop.test.sh --smoke` selects those six from the one canonical
+  `test/shiploop.test.sh --smoke` selects those eight from the one canonical
   inventory, while no-argument/all and `--shard 1/3|2/3|3/3` preserve the full
   behavior. No installed AI host or engine is required; core's bundled mock also
   covers marketplace-style binding from an empty unrelated directory.

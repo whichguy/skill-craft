@@ -23,44 +23,79 @@ import shiploop_store as store  # noqa: E402
 class NavigatorDryRunTests(unittest.TestCase):
     def test_access_policy_is_reachable_through_actual_graph_and_recovery(self):
         # A routing/locator contract, not proof that a host follows auth advice.
-        policy = ROOT / 'skills/shiploop/references/research-loop.md'
+        references = ROOT / 'skills/shiploop/references'
+        policy = references / 'research-loop.md'
+        lifecycle = references / 'environment-lifecycle.md'
+        self.assertTrue(lifecycle.is_file())
+        self.assertTrue((references / 'delivery-authority.md').is_file())
+        policy_text = policy.read_text(encoding='utf-8')
+        self.assertIn('## Recursive discovery and experiments', policy_text)
+        self.assertIn('## Navigator execution mode adapter', policy_text)
+        requirements = guidance3.ENVIRONMENT_DISCOVERY_REQUIREMENTS
+        self.assertEqual(set(requirements), {'discovery', 'research'})
+        discovery_lines = (
+            'One investigation allowance spans applicable discovery and research review stages; '
+            'a stage boundary does not refill it.',
+            f'Recursive discovery policy: {policy}#recursive-discovery-and-experiments',
+            f'Navigator adapter: {policy}#navigator-execution-mode-adapter',
+        )
         for name in ('delivery', 'blocked-resume', 'pause-resume'):
-            report = driver.run_scenario(name, driver.scenarios()[name])
+            report = driver.run_scenario(name, driver.scenarios()[name], protocol_version=3)
             self.assertTrue(report['ok'], report.get('error'))
             for event in report['events']:
-                with self.subTest(scenario=name, stage=event['from']):
-                    self.assertEqual(event['prompt'].count(
+                with self.subTest(scenario=name, stage=event['from'], command=event['command']):
+                    prompt = event['prompt']
+                    self.assertEqual(prompt.count(
                         f'Access-readiness policy: {policy}#early-access-readiness'
                     ), 1)
-                    self.assertEqual(event['prompt'].count(
+                    self.assertEqual(prompt.count(
                         'Cross-run knowledge policy: '
                         + str(policy.parent / 'project-knowledge.md')
                     ), 1)
                     self.assertIn(
                         'Repository knowledge index (host-authored, if present): ',
-                        event['prompt'],
+                        prompt,
                     )
-                    self.assertEqual(event['prompt'].count(
+                    self.assertEqual(prompt.count(
                         'Consumer testing guide: '
                         + str(policy.parent / 'testing-and-documentation.md')
                         + '#lightweight-and-browser-checks'
                     ), 1)
-                    self.assertEqual(event['prompt'].count(
+                    self.assertEqual(prompt.count(
                         'Worktree and artifact policy: '
                         + str(policy.parent / 'workspace-lifecycle.md')
                     ), 1)
+                    self.assertEqual(prompt.count(
+                        'Delivery-authority policy: ' + str(references / 'delivery-authority.md')
+                    ), 1)
+                    self.assertEqual(prompt.count(f'Environment lifecycle policy: {lifecycle}'), 1)
+                    self.assertEqual(prompt.count(
+                        'Environment lifecycle note (host-authored, if present): '
+                        + str(driver.RUN / 'notes' / 'environment-lifecycle.md')
+                    ), 1)
+                    # Only the discovery and research producers carry the
+                    # environment discovery requirement and its locators.
+                    discovery = event['from'] in requirements
+                    self.assertEqual(prompt.count('Environment discovery requirement: '),
+                                     int(discovery))
+                    if discovery:
+                        self.assertIn('Environment discovery requirement: '
+                                      + requirements[event['from']], prompt)
+                    for line in discovery_lines:
+                        self.assertEqual(prompt.count(line), int(discovery), line)
 
-    def test_expected_paths_and_full_packets(self):
-        expected = {'delivery': (25, 'done'), 'two-work-items': (35, 'done'),
-                    'skill': (26, 'done'), 'repeat-improve': (26, 'done'),
-                    'blocked-resume': (27, 'done'), 'pause-resume': (27, 'done'),
-                    'halted': (1, 'halted'), 'corrective-work': (35, 'done')}
-        self.assertEqual(set(driver.scenarios()), set(expected))
-        for name, scenario in driver.scenarios().items():
+    def test_v3_dry_run_simulates_actual_improve_handoffs_without_starting_them(self):
+        expected = {'delivery': 42, 'two-work-items': 62, 'blocked-resume': 44,
+                    'repeat-improve': 44, 'pause-resume': 44, 'halted': 1}
+        scenarios = driver.scenarios()
+        self.assertEqual(set(scenarios), set(expected))
+        for name, scenario in scenarios.items():
             with self.subTest(name=name):
-                report = driver.run_scenario(name, scenario)
+                report = driver.run_scenario(name, scenario, protocol_version=3)
                 self.assertTrue(report['ok'], report.get('error'))
-                self.assertEqual((len(report['events']), report['simulated_status']), expected[name])
+                self.assertEqual(len(report['events']), expected[name])
+                self.assertEqual(report['simulated_status'],
+                                 'halted' if name == 'halted' else 'done')
                 for event in report['events']:
                     self.assertTrue(event['simulation_only'])
                     self.assertIn('owner', event)
@@ -71,34 +106,6 @@ class NavigatorDryRunTests(unittest.TestCase):
                     self.assertFalse(
                         {'phase', 'subphase', 'counter', 'review_count'} & set(event)
                     )
-
-        two_items = driver.run_scenario('two-work-items', driver.scenarios()['two-work-items'])
-        self.assertTrue(two_items['ok'], two_items.get('error'))
-        inner_owners = {
-            event['owner'] for event in two_items['events'] if event['owner'] != 'root'
-        }
-        self.assertEqual(inner_owners, {'W1', 'W2'})
-        w1_carry = next(
-            event
-            for event in two_items['events']
-            if event['owner'] == 'W1' and event['from'] == 'carry-forward'
-        )
-        self.assertEqual(w1_carry['next_owner'], 'W2')
-        self.assertEqual(w1_carry['completed_instances'], ['W1'])
-        self.assertEqual(two_items['completed_instances'], ['W1', 'W2'])
-
-    def test_v3_dry_run_simulates_actual_improve_handoffs_without_starting_them(self):
-        expected = {'delivery': 42, 'two-work-items': 62, 'blocked-resume': 44,
-                    'repeat-improve': 44, 'pause-resume': 44, 'halted': 1}
-        scenarios = driver.scenarios(3)
-        self.assertEqual(set(scenarios), set(expected))
-        for name, scenario in scenarios.items():
-            with self.subTest(name=name):
-                report = driver.run_scenario(name, scenario, protocol_version=3)
-                self.assertTrue(report['ok'], report.get('error'))
-                self.assertEqual(len(report['events']), expected[name])
-                self.assertEqual(report['simulated_status'],
-                                 'halted' if name == 'halted' else 'done')
                 produces = [event for event in report['events'] if event['command'] == 'produce']
                 finishes = [event for event in report['events'] if event['command'] == 'finish-improve']
                 # An actual Improve child starts only for a planning/contract
@@ -116,6 +123,8 @@ class NavigatorDryRunTests(unittest.TestCase):
         two_items = driver.run_scenario(
             'two-work-items', scenarios['two-work-items'], protocol_version=3)
         self.assertEqual(two_items['completed_instances'], ['W1', 'W2'])
+        self.assertEqual({event['owner'] for event in two_items['events']
+                          if event['owner'] != 'root'}, {'W1', 'W2'})
         produce_inner = [event for event in two_items['events']
                          if event['from'] in ('select-work', 'implement', 'carry-forward')
                          and event['command'] == 'produce']
@@ -132,6 +141,7 @@ class NavigatorDryRunTests(unittest.TestCase):
                           if event['owner'] == 'W1' and event['from'] == 'carry-forward'
                           and event['command'] == 'produce')
         self.assertEqual(w1_produce['next_owner'], 'W2')
+        self.assertEqual(w1_produce['completed_instances'], ['W1'])
 
     def test_wrong_edge_and_unknown_command_fail(self):
         wrong = copy.deepcopy(driver.scenarios()['delivery'])
@@ -141,6 +151,15 @@ class NavigatorDryRunTests(unittest.TestCase):
         wrong['steps'][0]['command'] = 'execute-shell'
         self.assertIn('unknown synthetic command', driver.run_scenario('shell', wrong)['error'])
 
+    def test_unknown_top_level_script_field_is_refused_by_name(self):
+        """A retired setting such as improve_cadence is refused, not ignored."""
+        retired = copy.deepcopy(driver.scenarios()['delivery'])
+        retired['improve_cadence'] = 'every-stage'
+        report = driver.run_scenario('custom', retired)
+        self.assertFalse(report['ok'])
+        self.assertIn('scenario has unsupported fields: improve_cadence', report['error'])
+        self.assertEqual(report['events'], [])
+
     def test_no_live_run_or_engine_calls(self):
         class ForbiddenCore:
             def __getattr__(self, name):
@@ -149,16 +168,19 @@ class NavigatorDryRunTests(unittest.TestCase):
             raise AssertionError('Navigator dry-run attempted project execution or persistence')
         from contextlib import redirect_stdout
         from io import StringIO
-        output = StringIO()
-        with (patch.object(subprocess, 'run', side_effect=forbidden),
-              patch.object(store, 'transaction', side_effect=forbidden),
-              patch.object(navigator, 'save', side_effect=forbidden),
-              redirect_stdout(output)):
-            self.assertEqual(
-                protocol.main(ForbiddenCore(), ['graph-dry-run', '--protocol-version', '2']),
-                0,
-            )
-        self.assertEqual(output.getvalue().count('PASS '), 8)
+        for version in ('3', '4'):
+            with self.subTest(protocol=version):
+                output = StringIO()
+                with (patch.object(subprocess, 'run', side_effect=forbidden),
+                      patch.object(store, 'transaction', side_effect=forbidden),
+                      patch.object(navigator, 'save', side_effect=forbidden),
+                      redirect_stdout(output)):
+                    self.assertEqual(
+                        protocol.main(ForbiddenCore(),
+                                      ['graph-dry-run', '--protocol-version', version]),
+                        0,
+                    )
+                self.assertEqual(output.getvalue().count('PASS '), 6)
 
     def test_cli_custom_json_and_markdown_without_state_changes(self):
         with tempfile.TemporaryDirectory(prefix='navigator-dry-run-') as temporary:
@@ -169,14 +191,15 @@ class NavigatorDryRunTests(unittest.TestCase):
             state.write_text('Unrelated incomplete run')
             before = state.read_bytes()
             env = dict(os.environ, PYTHONDONTWRITEBYTECODE='1')
-            cli = [sys.executable, '-B', str(SCRIPTS / 'shiploop'), 'graph-dry-run',
-                   '--protocol-version', '2']
+            cli = [sys.executable, '-B', str(SCRIPTS / 'shiploop'), 'graph-dry-run']
             result = subprocess.run(cli + ['--format', 'json'], cwd=root, env=env, capture_output=True, text=True)
             self.assertEqual(result.returncode, 0, result.stderr)
             data = json.loads(result.stdout)
             self.assertTrue(data['simulation_only'])
-            self.assertEqual(len(data['scenarios']), 8)
-            custom = subprocess.run(cli + ['--script', str(ROOT / 'skills/shiploop/references/navigator-dry-run-example.json'), '--format', 'markdown'], cwd=root, env=env, capture_output=True, text=True)
+            self.assertEqual(len(data['scenarios']), 6)
+            example = ROOT / 'skills/shiploop/references/navigator-v3-dry-run-example.json'
+            custom = subprocess.run(cli + ['--script', str(example), '--format', 'markdown'],
+                                    cwd=root, env=env, capture_output=True, text=True)
             self.assertEqual(custom.returncode, 0, custom.stdout + custom.stderr)
             self.assertIn('intake -> discovery', custom.stdout)
             self.assertEqual(state.read_bytes(), before)
@@ -204,17 +227,17 @@ class NavigatorDryRunTests(unittest.TestCase):
             self.assertEqual(state.read_bytes(), before)
 
     def test_every_listed_scenario_runs_for_its_protocol(self):
-        # Regression: --list printed protocol-2 names while the v3 default
-        # lacked five of them, so --scenario crashed with a bare KeyError (exit 1).
+        # Regression: --list once printed names the selected protocol lacked,
+        # so --scenario crashed with a bare KeyError (exit 1).
         env = dict(os.environ, PYTHONDONTWRITEBYTECODE='1')
         base = [sys.executable, '-B', str(SCRIPTS / 'shiploop'), 'graph-dry-run']
         with tempfile.TemporaryDirectory(prefix='navigator-dry-run-list-') as temporary:
-            for version in ('2', '3', '4'):
+            for version in ('3', '4'):
                 listed = subprocess.run(base + ['--list', '--protocol-version', version],
                                         cwd=temporary, env=env, capture_output=True, text=True)
                 self.assertEqual(listed.returncode, 0, listed.stderr)
                 names = listed.stdout.split()
-                self.assertEqual(names, list(driver.scenarios(int(version))))
+                self.assertEqual(names, list(driver.scenarios()))
                 for name in names:
                     with self.subTest(protocol=version, scenario=name):
                         result = subprocess.run(
@@ -222,20 +245,6 @@ class NavigatorDryRunTests(unittest.TestCase):
                             cwd=temporary, env=env, capture_output=True, text=True)
                         self.assertEqual(result.returncode, 0, result.stdout + result.stderr)
                         self.assertNotIn('Traceback', result.stderr)
-
-    def test_scenario_missing_from_protocol_is_an_input_error(self):
-        env = dict(os.environ, PYTHONDONTWRITEBYTECODE='1')
-        with tempfile.TemporaryDirectory(prefix='navigator-dry-run-missing-') as temporary:
-            for name in ('skill', 'corrective-work'):
-                with self.subTest(scenario=name):
-                    result = subprocess.run(
-                        [sys.executable, '-B', str(SCRIPTS / 'shiploop'), 'graph-dry-run',
-                         '--scenario', name], cwd=temporary, env=env,
-                        capture_output=True, text=True)
-                    self.assertEqual(result.returncode, 2, result.stdout + result.stderr)
-                    self.assertIn(f"scenario '{name}' is not available for protocol 3",
-                                  result.stdout)
-                    self.assertNotIn('Traceback', result.stderr)
 
     def test_v3_example_script_passes_on_default_protocol(self):
         env = dict(os.environ, PYTHONDONTWRITEBYTECODE='1')

@@ -24,34 +24,26 @@ IMPROVE_SKILL_NAME = "improve"
 _SELECTED_SKILL_NAMES = frozenset((SHIPLOOP_SKILL_NAME, IMPROVE_SKILL_NAME))
 NATIVE_STREAM_FORMAT = "streaming-json"
 DEFAULT_REASONING_EFFORT = "xhigh"
+# The current ShipLoop CLI verbs (``done`` is the alias of ``complete``).
 SHIPLOOP_DIRECT_SUBCOMMANDS = frozenset(
     {
         "workspace",
-        "managed-graph-dry-run",
+        "chain",
         "graph-dry-run",
         "init",
+        "delegation",
         "improve-bind",
         "improve-complete",
+        "improve-reconcile",
         "next",
         "status",
         "report",
-        "plan-status",
         "context",
         "complete",
         "done",
-        "verify",
-        "planning-verify",
-        "planning-upgrade",
-        "history",
-        "journal",
         "halt",
         "pause",
         "resume",
-        "repair",
-        "merge-recover",
-        "replan",
-        "revisit",
-        "migrate",
     }
 )
 _SHELL_ASSIGNMENT = re.compile(r"^([A-Za-z_][A-Za-z0-9_]*)=(.*)$", re.DOTALL)

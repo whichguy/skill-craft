@@ -2,8 +2,10 @@ from __future__ import annotations
 
 import json
 import os
+import re
 from pathlib import Path
 import stat
+import subprocess
 import sys
 import tempfile
 import unittest
@@ -13,7 +15,9 @@ HERE = Path(__file__).resolve().parent
 if str(HERE) not in sys.path:
     sys.path.insert(0, str(HERE))
 
+import layout  # noqa: E402
 from grok_adapter import (  # noqa: E402
+    SHIPLOOP_DIRECT_SUBCOMMANDS,
     GrokAdapterError,
     IMPROVE_SKILL_NAME,
     build_argv,
@@ -90,6 +94,15 @@ class GrokAdapterTests(unittest.TestCase):
             "IMPROVE": str(self.improve_skill),
             **extra,
         }
+
+    def test_direct_subcommand_allowlist_matches_the_current_shiploop_cli(self) -> None:
+        """A retired verb must not be credited, and a current one must not be missed."""
+        cli = layout.default_skill_root() / "scripts" / "shiploop"
+        completed = subprocess.run([sys.executable, "-B", str(cli), "--help"],
+                                   capture_output=True, text=True, check=True, timeout=30)
+        verbs = re.search(r"\{([a-z,-]+)\}", completed.stdout)
+        self.assertIsNotNone(verbs, completed.stdout)
+        self.assertEqual(SHIPLOOP_DIRECT_SUBCOMMANDS, frozenset(verbs.group(1).split(",")))
 
     def test_inspect_selection_uses_repo_cwd_and_returns_only_selected_record(self) -> None:
         capture = self.root / "inspect-capture.json"

@@ -8,9 +8,6 @@ from types import SimpleNamespace
 import shiploop_navigator as navigator
 
 # Independently declared expected paths: do not derive these from routing code.
-BEFORE = 'intake discovery research research-improve spec spec-improve test-strategy plan plan-improve'.split()
-WORK = 'step-plan step-plan-improve implement test-refine test-author document verify product-improve integrate carry-forward'.split()
-AFTER = 'system-test outer-improve release-plan release release-verify handoff'.split()
 BEFORE3 = 'intake discovery research spec test-strategy plan prepare'.split()
 WORK3 = ('select-work step-plan test-spec baseline test-author test-red implement test-green '
          'test-refine regression document skill-assess skill-validate static-checks verify '
@@ -25,23 +22,6 @@ SCOPE = 'SIMULATION ONLY: actual navigator routes and packets; no project work, 
 CORE = SimpleNamespace(PACKAGE_ROOT=Path(__file__).resolve().parents[1],
                        REF_DIR=Path(__file__).resolve().parents[1] / 'references')
 RUN = Path('/simulation-only/.shiploop')
-
-
-def activity(*, two=False, skill=False):
-    work = list(WORK)
-    if skill:
-        work.insert(work.index('verify'), 'skill-validate')
-    path = BEFORE + work * (2 if two else 1) + AFTER
-    rows = []
-    for stage, target in zip(path, path[1:] + ['done']):
-        result = {'outcome': 'done', 'summary': 'Synthetic declaration; no work executed.'}
-        if stage == 'plan' and two:
-            result['work_items'] = [{'id': 'W1', 'title': 'First fixture'}, {'id': 'W2', 'title': 'Second fixture'}]
-        if stage == 'document' and skill:
-            result['choices'] = {'skill_required': True}
-        rows.append({'at': stage, 'result': result, 'expect': target,
-                     'status': 'done' if target == 'done' else 'active'})
-    return rows
 
 
 def _improve_receipt(stage):
@@ -126,39 +106,14 @@ def _v3_scenarios():
     }
 
 
-def scenarios(protocol_version=2):
-    if protocol_version in (3, 4):
-        # v3/v4 always instantiate skill-validate and ignore carry-forward work
-        # items, so the protocol-2 'skill' and 'corrective-work' shapes have no
-        # equivalent here; run() reports them as unavailable for this protocol.
-        return _v3_scenarios()
-    result = {name: {'steps': activity(**flags)} for name, flags in (
-        ('delivery', {}), ('two-work-items', {'two': True}), ('skill', {'skill': True}))}
-    repeat = activity()
-    index = next(i for i, row in enumerate(repeat) if row['at'] == 'product-improve')
-    repeat.insert(index, {'at': 'product-improve', 'result': {'outcome': 'repeat', 'summary': 'More investigation needed.'}, 'expect': 'product-improve'})
-    result['repeat-improve'] = {'steps': repeat}
-    for name, command, status in (('blocked-resume', 'blocked', 'blocked'), ('pause-resume', 'pause', 'paused')):
-        rows = activity()
-        index = next(i for i, row in enumerate(rows) if row['at'] == 'test-author')
-        stop = {'at': 'test-author', 'expect': 'test-author', 'status': status}
-        if command == 'blocked':
-            stop['result'] = {'outcome': 'blocked', 'summary': 'Synthetic missing prerequisite.'}
-        else:
-            stop['command'] = command
-        rows[index:index] = [stop, {'at': 'test-author', 'command': 'resume', 'expect': 'test-author'}]
-        result[name] = {'steps': rows}
-    result['halted'] = {'steps': [{'at': 'intake', 'command': 'halt', 'expect': 'intake', 'status': 'halted'}]}
-    future = activity(two=True)
-    first = next(row for row in future if row['at'] == 'carry-forward')
-    first['result']['work_items'] = [{'id': 'W3', 'title': 'Newly discovered corrective work'}]
-    result['corrective-work'] = {'steps': future}
-    return result
+def scenarios():
+    """Protocols 3 and 4 share one graph and these scenarios."""
+    return _v3_scenarios()
 
 
 def _owner(state):
     """Name the serialized cursor owner without creating another cursor schema."""
-    if state.get('navigator_protocol_version') in (2, 3, 4) and state.get('stage') == 'inner-loop':
+    if state.get('stage') == 'inner-loop':
         return state['work_items'][state['work_index']]['id']
     return 'root'
 
@@ -173,19 +128,21 @@ def _completed_instances(state):
     ]
 
 
-def run_scenario(name, scenario, *, protocol_version=2, delegation=None):
+def run_scenario(name, scenario, *, protocol_version=3, delegation=navigator.DEFAULT_DELEGATION):
     report = {'name': name, 'simulation_only': True, 'ok': False, 'events': []}
     try:
         if not isinstance(scenario, dict):
             raise ValueError('scenario must be an object')
+        extra = sorted(set(scenario) - {'steps'})
+        if extra:
+            raise ValueError('scenario has unsupported fields: ' + ', '.join(extra))
         rows = scenario.get('steps')
         if not isinstance(rows, list) or not 1 <= len(rows) <= 1000:
             raise ValueError('scenario needs 1..1000 explicit steps')
         state = navigator.new_state(
             '/simulation-only/repo',
             'Inspect the SDLC graph with synthetic declarations.',
-            protocol_version=protocol_version,
-            **({'improve_skill': '', 'delegation': delegation} if protocol_version in (3, 4) else {}),
+            protocol_version=protocol_version, improve_skill='', delegation=delegation,
         )
         for index, step in enumerate(rows, 1):
             if not isinstance(step, dict) or not {'at', 'expect'} <= set(step):
@@ -240,37 +197,27 @@ def run_scenario(name, scenario, *, protocol_version=2, delegation=None):
 
 def add_arguments(parser):
     selected = parser.add_mutually_exclusive_group()
-    # Choices span every protocol; run() rejects a name the selected protocol lacks.
-    names = dict.fromkeys(name for version in (2, 3) for name in scenarios(version))
-    selected.add_argument('--scenario', choices=('all', *names), default='all')
+    selected.add_argument('--scenario', choices=('all', *scenarios()), default='all')
     selected.add_argument('--script', help='JSON activity with explicit expected stages and synthetic result declarations')
     parser.add_argument('--format', choices=('summary', 'json', 'markdown'), default='summary')
-    parser.add_argument('--protocol-version', choices=(2, 3, 4), type=int, default=3,
+    parser.add_argument('--protocol-version', choices=(3, 4), type=int, default=3,
                         help='navigator protocol to simulate; default follows public navigator v3')
     parser.add_argument('--delegation', choices=navigator.DELEGATIONS, default=None,
-                        help='protocol 3/4 execution delegation to simulate; default follows new runs (inline)')
+                        help='execution delegation to simulate; default follows new runs (inline)')
     parser.add_argument('--list', action='store_true')
 
 
 def run(args):
-    if args.protocol_version not in (3, 4) and args.delegation is not None:
-        print('Graph dry-run input error: --delegation requires protocol 3 or 4')
-        return 2
     if args.list:
-        print('\n'.join(scenarios(args.protocol_version)))
+        print('\n'.join(scenarios()))
         return 0
     try:
         if args.script:
             selected = {'custom': json.loads(Path(args.script).read_text(encoding='utf-8'))}
         else:
-            choices = scenarios(args.protocol_version)
-            if args.scenario != 'all' and args.scenario not in choices:
-                raise ValueError(
-                    f"scenario {args.scenario!r} is not available for protocol "
-                    f"{args.protocol_version}; available: {', '.join(choices)}")
+            choices = scenarios()
             selected = choices if args.scenario == 'all' else {args.scenario: choices[args.scenario]}
-        delegation = (args.delegation or navigator.DEFAULT_DELEGATION
-                      if args.protocol_version in (3, 4) else None)
+        delegation = args.delegation or navigator.DEFAULT_DELEGATION
         reports = [run_scenario(name, value, protocol_version=args.protocol_version,
                                 delegation=delegation)
                    for name, value in selected.items()]

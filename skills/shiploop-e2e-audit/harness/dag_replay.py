@@ -27,7 +27,6 @@ import layout
 
 HERE = layout.HARNESS_ROOT
 DEFAULT_SKILL_ROOT = layout.default_skill_root()
-FIXTURE_ROOT = HERE / "fixtures" / "dag"
 MOCK_PATH = HERE / "mock_grok.py"
 CASE_SCHEMA = "shiploop-e2e-dag-case/1"
 MOCK_REQUEST_SCHEMA = "shiploop-e2e-mock-grok-request/1"
@@ -51,35 +50,8 @@ _COMMANDS = frozenset((
     "duplicate-finish-improve", "conflicting-finish-improve", "stale-finish-improve",
 ))
 _STATUSES = frozenset(("active", "paused", "blocked", "halted", "done"))
-_KINDS = frozenset(("retained-trace", "synthetic"))
-_RETAINED_TRACE_PROVENANCE_FIELDS = frozenset((
-    "canonical_result_sha256", "source_hashes", "original_outcome", "original_isolation",
-    "preexisting", "accepted_result_sha256", "scope",
-))
-_RETAINED_TRACE_SOURCE_NAMES = frozenset((
-    "result.json", "manifest.json", "navigation.json", "events.jsonl", "initial-evidence.json",
-))
-_RETAINED_TRACE_SOURCE_FIELDS = frozenset(("present", "bytes", "sha256"))
-_RETAINED_TRACE_STEP_FIELDS = frozenset((
-    "at", "owner", "command", "result", "expect", "status", "expect_owner",
-))
-_RETAINED_TRACE_RESULT_FIELDS = frozenset(("outcome", "summary", "work_items", "choices"))
-_RETAINED_TRACE_SCOPE = (
-    "Synthetic graph replay only. Workspace, return, model, command, and product evidence were not "
-    "replayed; preexisting-state observations do not establish a fresh one-shot."
-)
-_RETAINED_TRACE_ORIGINAL_OUTCOMES = frozenset((
-    "passed", "product-failed", "awaiting-independent-verification", "run-isolation-failed",
-    "partial-smoke-passed", "partial-smoke-failed", "partial-smoke-overshot", "unverified",
-))
-_RETAINED_TRACE_ISOLATION_STATUSES = frozenset(("pass", "fail", "unverified", "not-applicable"))
-_RETAINED_TRACE_V2_STAGES = frozenset((
-    "intake", "discovery", "research", "research-improve", "spec", "spec-improve",
-    "test-strategy", "plan", "plan-improve", "step-plan", "step-plan-improve", "implement",
-    "test-refine", "test-author", "document", "verify", "product-improve", "integrate",
-    "carry-forward", "system-test", "outer-improve", "release-plan", "release",
-    "release-verify", "handoff",
-))
+_KIND = "synthetic"
+_PROTOCOL_VERSION = 3
 _V3_PRELUDE = (
     "intake", "discovery", "research", "spec", "test-strategy", "plan", "prepare",
 )
@@ -93,12 +65,22 @@ _V3_OUTER = (
     "system-test-author", "system-test", "product-acceptance", "release-plan",
     "release-check", "release", "release-verify", "operations", "handoff",
 )
+# The Improve schedule, stated literally so the replay oracle stays independent
+# of the navigator's own constants: every planning/contract producer, plus the
+# successful carry-forward that leaves no work item pending, parks for Improve.
+# Every other producer result is accepted directly.
+_V3_PLANNING_CHECKPOINTS = frozenset((
+    "spec", "test-strategy", "plan", "step-plan", "test-spec",
+    "system-test-author", "release-plan",
+))
 _MOCK_RESPONSE_TIMEOUT_SECONDS = 5.0
+# The navigator's top-level import closure.
 _ENGINE_MODULES = frozenset((
     "shiploop_navigator",
-    "shiploop_navigator_prompts",
     "shiploop_navigator_v3_prompts",
     "shiploop_consumer_delivery",
+    "shiploop_planning_revision",
+    "shiploop_privacy",
     "shiploop_store",
 ))
 # A module path alone is not an execution identity: Python can retain bytecode
@@ -148,137 +130,8 @@ def _text(value: Any, label: str) -> str:
     return value
 
 
-def _digest(value: Any, label: str) -> str:
-    if not isinstance(value, str) or len(value) != 64 or any(char not in "0123456789abcdef" for char in value):
-        raise DagReplayError(f"{label} must be a lowercase SHA-256 digest")
-    return value
-
-
-def _nonnegative_integer(value: Any, label: str) -> int:
-    if type(value) is not int or value < 0:
-        raise DagReplayError(f"{label} must be a nonnegative integer")
-    return value
-
-
-def _validate_retained_trace(case: dict[str, Any], origin: str) -> None:
-    """Validate only the sanitized v2 trace shape exported by behavior_capture."""
-    if case["protocol_version"] != 2:
-        raise DagReplayError(f"{origin}: retained traces require protocol_version 2")
-    if "prompt" in case:
-        raise DagReplayError(f"{origin}: retained traces must omit sanitized prompt content")
-    if "expected_failure" in case:
-        raise DagReplayError(f"{origin}: retained traces cannot carry synthetic expected failures")
-    if case["expected_final"] != {"stage": "done", "status": "done"}:
-        raise DagReplayError(f"{origin}: retained traces require the exported done final state")
-
-    provenance = case["provenance"]
-    if set(provenance) != _RETAINED_TRACE_PROVENANCE_FIELDS:
-        raise DagReplayError(f"{origin}: retained trace provenance has unsupported or missing fields")
-    canonical = _digest(provenance["canonical_result_sha256"], f"{origin} canonical_result_sha256")
-    if provenance["scope"] != _RETAINED_TRACE_SCOPE:
-        raise DagReplayError(f"{origin}: retained trace scope is not the exported replay boundary")
-    if not isinstance(provenance["original_outcome"], str) or provenance["original_outcome"] not in _RETAINED_TRACE_ORIGINAL_OUTCOMES:
-        raise DagReplayError(f"{origin}: retained trace original outcome is ineligible")
-
-    source_hashes = provenance["source_hashes"]
-    if not isinstance(source_hashes, dict) or set(source_hashes) != _RETAINED_TRACE_SOURCE_NAMES:
-        raise DagReplayError(f"{origin}: retained trace source hashes are incomplete")
-    for source_name, record in source_hashes.items():
-        if not isinstance(record, dict) or set(record) != _RETAINED_TRACE_SOURCE_FIELDS:
-            raise DagReplayError(f"{origin}: retained trace source record {source_name} is invalid")
-        if record["present"] is not True:
-            raise DagReplayError(f"{origin}: retained trace source record {source_name} is absent")
-        if type(record["bytes"]) is not int or record["bytes"] <= 0:
-            raise DagReplayError(f"{origin}: retained trace source record {source_name} has invalid bytes")
-        _digest(record["sha256"], f"{origin} retained trace source {source_name} sha256")
-    if source_hashes["result.json"]["sha256"] != canonical:
-        raise DagReplayError(f"{origin}: canonical result digest does not match result.json")
-
-    accepted_digests = provenance["accepted_result_sha256"]
-    if not isinstance(accepted_digests, list) or len(accepted_digests) != len(case["steps"]):
-        raise DagReplayError(f"{origin}: retained trace accepted-result digest count does not match steps")
-    for index, value in enumerate(accepted_digests, 1):
-        _digest(value, f"{origin} retained trace accepted-result digest {index}")
-
-    isolation = provenance["original_isolation"]
-    if not isinstance(isolation, dict) or set(isolation) != {"basis", "status"}:
-        raise DagReplayError(f"{origin}: retained trace isolation record is invalid")
-    if isolation["basis"] == "supplemental-recovery-isolation/1":
-        if not isinstance(isolation["status"], str) or isolation["status"] not in _RETAINED_TRACE_ISOLATION_STATUSES:
-            raise DagReplayError(f"{origin}: retained trace isolation status is invalid")
-    elif isolation != {"basis": "unavailable", "status": "unverified"}:
-        raise DagReplayError(f"{origin}: retained trace isolation basis is invalid")
-
-    preexisting = provenance["preexisting"]
-    expected_preexisting_fields = {
-        "scope", "initial_archive_verified", "initial_state_count",
-        "matching_initial_state_count", "selected_run_preexisting",
-    }
-    if not isinstance(preexisting, dict) or set(preexisting) != expected_preexisting_fields:
-        raise DagReplayError(f"{origin}: retained trace freshness record is invalid")
-    initial_count = _nonnegative_integer(preexisting["initial_state_count"], f"{origin} initial state count")
-    matching_count = _nonnegative_integer(
-        preexisting["matching_initial_state_count"], f"{origin} matching initial state count"
-    )
-    if matching_count > initial_count:
-        raise DagReplayError(f"{origin}: retained trace matching initial states exceed retained initial states")
-    if (preexisting["scope"] != "captured-initial-archive-only"
-            or preexisting["initial_archive_verified"] is not True
-            or preexisting["selected_run_preexisting"] is not False):
-        raise DagReplayError(f"{origin}: retained trace is not eligible as a fresh derived replay")
-
-    work_item_ids: set[str] = set()
-    steps = case["steps"]
-    for index, step in enumerate(steps):
-        step_number = index + 1
-        if not {"at", "owner", "command", "result", "expect", "status"} <= set(step) or set(step) - _RETAINED_TRACE_STEP_FIELDS:
-            raise DagReplayError(f"{origin}: retained trace step {step_number} has unsupported or missing fields")
-        if step["at"] not in _RETAINED_TRACE_V2_STAGES:
-            raise DagReplayError(f"{origin}: retained trace step {step_number} has unsupported stage")
-        if step["command"] != "done":
-            raise DagReplayError(f"{origin}: retained trace step {step_number} must use the exported done command")
-        target = steps[index + 1]["at"] if index + 1 < len(steps) else "done"
-        expected_status = "active" if index + 1 < len(steps) else "done"
-        if step["expect"] != target or step["status"] != expected_status:
-            raise DagReplayError(f"{origin}: retained trace step {step_number} is not contiguous")
-        if index + 1 < len(steps):
-            if step.get("expect_owner") != steps[index + 1].get("owner"):
-                raise DagReplayError(f"{origin}: retained trace step {step_number} has inconsistent next owner")
-        elif "expect_owner" in step:
-            raise DagReplayError(f"{origin}: retained trace terminal step must not retain a next owner")
-
-        result = step["result"]
-        if not {"outcome", "summary"} <= set(result) or set(result) - _RETAINED_TRACE_RESULT_FIELDS:
-            raise DagReplayError(f"{origin}: retained trace step {step_number} result is unsupported")
-        if result["outcome"] != "done":
-            raise DagReplayError(f"{origin}: retained trace step {step_number} result must be done")
-        _text(result["summary"], f"{origin} retained trace step {step_number} summary")
-        if "choices" in result:
-            choices = result["choices"]
-            if not isinstance(choices, dict) or set(choices) != {"skill_required"} or type(choices["skill_required"]) is not bool:
-                raise DagReplayError(f"{origin}: retained trace step {step_number} choices are unsupported")
-        if "work_items" in result:
-            items = result["work_items"]
-            if not isinstance(items, list):
-                raise DagReplayError(f"{origin}: retained trace step {step_number} work items are invalid")
-            local_ids: set[str] = set()
-            for item in items:
-                if not isinstance(item, dict) or set(item) != {"id", "title"}:
-                    raise DagReplayError(f"{origin}: retained trace step {step_number} work item is invalid")
-                item_id = _text(item["id"], f"{origin} retained trace work item id")
-                _text(item["title"], f"{origin} retained trace work item title")
-                if item_id in local_ids:
-                    raise DagReplayError(f"{origin}: retained trace step {step_number} repeats a work item")
-                local_ids.add(item_id)
-            work_item_ids.update(local_ids)
-    valid_owners = {"root", *work_item_ids}
-    for index, step in enumerate(steps, 1):
-        if step["owner"] not in valid_owners:
-            raise DagReplayError(f"{origin}: retained trace step {index} owner is unsupported")
-
-
 def _owner(state: Mapping[str, Any]) -> str:
-    if state.get("navigator_protocol_version") in (2, 3) and state.get("stage") == "inner-loop":
+    if state.get("navigator_protocol_version") in (3, 4) and state.get("stage") == "inner-loop":
         return str(state["work_items"][state["work_index"]]["id"])
     return "root"
 
@@ -300,10 +153,10 @@ def validate_case(raw: Any, *, origin: str = "fixture") -> dict[str, Any]:
     case_id = _text(raw["id"], f"{origin} id")
     if not all(char.isalnum() or char in "_-" for char in case_id):
         raise DagReplayError(f"{origin}: id has unsafe characters")
-    if raw["kind"] not in _KINDS:
-        raise DagReplayError(f"{origin}: kind must be retained-trace or synthetic")
-    if type(raw["protocol_version"]) is not int or raw["protocol_version"] not in (2, 3):
-        raise DagReplayError(f"{origin}: protocol_version must be 2 or 3")
+    if raw["kind"] != _KIND:
+        raise DagReplayError(f"{origin}: kind must be synthetic")
+    if type(raw["protocol_version"]) is not int or raw["protocol_version"] != _PROTOCOL_VERSION:
+        raise DagReplayError(f"{origin}: protocol_version must be 3")
     if not isinstance(raw["provenance"], dict):
         raise DagReplayError(f"{origin}: provenance must be an object")
     if "prompt" in raw:
@@ -350,8 +203,6 @@ def validate_case(raw: Any, *, origin: str = "fixture") -> dict[str, Any]:
             raise DagReplayError(f"{origin}: expected_final completed_work_items is invalid")
     if "expected_failure" in raw:
         _text(raw["expected_failure"], f"{origin} expected_failure")
-    if raw["kind"] == "retained-trace":
-        _validate_retained_trace(raw, origin)
     return raw
 
 
@@ -388,32 +239,38 @@ def _receipt(stage: str, *, marker: str = "complete") -> dict[str, Any]:
 
 def _v3_path_steps(stages: tuple[str, ...], *, work_items: list[dict[str, str]] | None = None,
                    active_owner: str = "W1", terminal_target: str | None = None) -> list[dict[str, Any]]:
-    """Build independent expected edges for a v3 producer/Improve alternation."""
+    """Build independent expected edges for the v3 producer/Improve schedule.
+
+    A literal checkpoint producer parks its action and a synthetic Improve
+    completion advances it. Every other producer advances directly.
+    """
     rows: list[dict[str, Any]] = []
     item_ids = [row["id"] for row in work_items] if work_items else [active_owner]
     item_index = 0
     for index, stage in enumerate(stages):
         target = stages[index + 1] if index + 1 < len(stages) else (terminal_target or "done")
-        result = _result(stage, work_items=work_items if stage == "plan" else None)
-        rows.append({"at": stage, "owner": "root" if stage not in _V3_INNER else None,
-                     "command": "produce", "result": result, "expect": stage, "status": "active"})
-        # Omit a None owner rather than placing it in the strict schema.
-        if rows[-1].get("owner") is None:
-            rows[-1].pop("owner")
-        finish: dict[str, Any] = {
-            "at": stage,
-            "command": "finish-improve",
-            "receipt": _receipt(stage),
-            "expect": target,
-            "status": "done" if target == "done" else "active",
-        }
         if stage == "carry-forward":
             item_index += 1
+        checkpoint = stage in _V3_PLANNING_CHECKPOINTS or (
+            stage == "carry-forward" and item_index >= len(item_ids)
+        )
+        edge: dict[str, Any] = {"expect": target, "status": "done" if target == "done" else "active"}
         if target in _V3_INNER:
             if item_index >= len(item_ids):
                 raise DagReplayError("synthetic path expects an unavailable work item")
-            finish["expect_owner"] = item_ids[item_index]
-        rows.append(finish)
+            edge["expect_owner"] = item_ids[item_index]
+        produce: dict[str, Any] = {
+            "at": stage, "command": "produce",
+            "result": _result(stage, work_items=work_items if stage == "plan" else None),
+        }
+        # Omit an inner owner rather than placing None in the strict schema.
+        if stage not in _V3_INNER:
+            produce["owner"] = "root"
+        if checkpoint:
+            rows.append({**produce, "expect": stage, "status": "active"})
+            rows.append({"at": stage, "command": "finish-improve", "receipt": _receipt(stage), **edge})
+        else:
+            rows.append({**produce, **edge})
     return rows
 
 
@@ -455,34 +312,42 @@ def synthetic_cases() -> dict[str, dict[str, Any]]:
         ),
     }
 
-    wait_steps = [
-        {"at": "intake", "command": "produce", "result": _result("intake"), "expect": "intake", "status": "active"},
-        {"at": "intake", "command": "duplicate-produce", "result": _result("intake"), "expect": "intake", "status": "active"},
-        {"at": "intake", "command": "conflicting-produce", "result": _result("intake", summary="Conflicting synthetic declaration."), "expect": "intake", "status": "active", "expect_error": "step awaits actual Improve"},
-        {"at": "intake", "command": "finish-improve", "receipt": _receipt("intake"), "expect": "discovery", "status": "active"},
-        {"at": "discovery", "command": "duplicate-finish-improve", "receipt": _receipt("intake"), "expect": "discovery", "status": "active"},
-        {"at": "discovery", "command": "conflicting-finish-improve", "receipt": _receipt("intake", marker="conflict"), "expect": "discovery", "status": "active", "expect_error": "conflicting Improve completion replay"},
-        {"at": "discovery", "command": "stale-finish-improve", "receipt": _receipt("discovery"), "expect": "discovery", "status": "active", "expect_error": "stale Improve parent action"},
+    # Replay guards need a parked child, so they run at the first checkpoint.
+    to_spec = _v3_path_steps(("intake", "discovery", "research"), terminal_target="spec")
+    wait_steps = to_spec + [
+        {"at": "spec", "command": "produce", "result": _result("spec"), "expect": "spec", "status": "active"},
+        {"at": "spec", "command": "duplicate-produce", "result": _result("spec"), "expect": "spec", "status": "active"},
+        {"at": "spec", "command": "conflicting-produce", "result": _result("spec", summary="Conflicting synthetic declaration."), "expect": "spec", "status": "active", "expect_error": "step awaits actual Improve"},
+        {"at": "spec", "command": "finish-improve", "receipt": _receipt("spec"), "expect": "test-strategy", "status": "active"},
+        {"at": "test-strategy", "command": "duplicate-finish-improve", "receipt": _receipt("spec"), "expect": "test-strategy", "status": "active"},
+        {"at": "test-strategy", "command": "conflicting-finish-improve", "receipt": _receipt("spec", marker="conflict"), "expect": "test-strategy", "status": "active", "expect_error": "conflicting Improve completion replay"},
+        {"at": "test-strategy", "command": "stale-finish-improve", "receipt": _receipt("test-strategy"), "expect": "test-strategy", "status": "active", "expect_error": "stale Improve parent action"},
     ]
     cases["synthetic-v3-improve-replay-guards"] = _synthetic_case(
-        "synthetic-v3-improve-replay-guards", wait_steps, {"stage": "discovery", "status": "active"}
+        "synthetic-v3-improve-replay-guards", wait_steps, {"stage": "test-strategy", "status": "active"}
     )
 
     paused_steps = [
-        {"at": "intake", "command": "produce", "result": _result("intake"), "expect": "intake", "status": "active"},
         {"at": "intake", "command": "pause", "expect": "intake", "status": "paused"},
         {"at": "intake", "command": "cold-load", "expect": "intake", "status": "paused"},
         {"at": "intake", "command": "resume", "expect": "intake", "status": "active"},
-        {"at": "intake", "command": "finish-improve", "receipt": _receipt("intake"), "expect": "discovery", "status": "active"},
-        {"at": "discovery", "command": "produce", "result": _result("discovery", outcome="blocked"), "expect": "discovery", "status": "active"},
-        {"at": "discovery", "command": "finish-improve", "receipt": _receipt("discovery"), "final_result": _result("discovery", outcome="blocked"), "expect": "discovery", "status": "blocked"},
+        {"at": "intake", "command": "produce", "result": _result("intake"), "expect": "discovery", "status": "active"},
+        {"at": "discovery", "command": "produce", "result": _result("discovery", outcome="blocked"), "expect": "discovery", "status": "blocked"},
         {"at": "discovery", "command": "cold-load", "expect": "discovery", "status": "blocked"},
         {"at": "discovery", "command": "resume", "expect": "discovery", "status": "active"},
-        {"at": "discovery", "command": "produce", "result": _result("discovery"), "expect": "discovery", "status": "active"},
-        {"at": "discovery", "command": "finish-improve", "receipt": _receipt("discovery"), "expect": "research", "status": "active"},
+        {"at": "discovery", "command": "produce", "result": _result("discovery"), "expect": "research", "status": "active"},
+        {"at": "research", "command": "produce", "result": _result("research"), "expect": "spec", "status": "active"},
+        {"at": "spec", "command": "produce", "result": _result("spec"), "expect": "spec", "status": "active"},
+        {"at": "spec", "command": "pause", "expect": "spec", "status": "paused"},
+        {"at": "spec", "command": "cold-load", "expect": "spec", "status": "paused"},
+        {"at": "spec", "command": "resume", "expect": "spec", "status": "active"},
+        {"at": "spec", "command": "finish-improve", "receipt": _receipt("spec"), "final_result": _result("spec", outcome="blocked"), "expect": "spec", "status": "blocked"},
+        {"at": "spec", "command": "resume", "expect": "spec", "status": "active"},
+        {"at": "spec", "command": "produce", "result": _result("spec"), "expect": "spec", "status": "active"},
+        {"at": "spec", "command": "finish-improve", "receipt": _receipt("spec", marker="retry"), "expect": "test-strategy", "status": "active"},
     ]
     cases["synthetic-v3-pause-blocked-cold-recovery"] = _synthetic_case(
-        "synthetic-v3-pause-blocked-cold-recovery", paused_steps, {"stage": "research", "status": "active"}
+        "synthetic-v3-pause-blocked-cold-recovery", paused_steps, {"stage": "test-strategy", "status": "active"}
     )
 
     repeat_prefix = _v3_path_steps(_V3_PRELUDE + ("select-work",), terminal_target="step-plan")
@@ -500,8 +365,8 @@ def synthetic_cases() -> dict[str, dict[str, Any]]:
         _V3_PRELUDE + _V3_INNER + ("system-test-author",), terminal_target="system-test"
     )
     corrective_steps = corrective_prefix + [
-        {"at": "system-test", "command": "produce", "result": _result("system-test", outcome="replan", work_items=[{"id": "W2", "title": "Corrective synthetic item"}]), "expect": "system-test", "status": "active"},
-        {"at": "system-test", "command": "finish-improve", "receipt": _receipt("system-test"), "expect": "select-work", "expect_owner": "W2", "status": "active"},
+        # system-test is not a checkpoint: its corrective replan applies directly.
+        {"at": "system-test", "owner": "root", "command": "produce", "result": _result("system-test", outcome="replan", work_items=[{"id": "W2", "title": "Corrective synthetic item"}]), "expect": "select-work", "expect_owner": "W2", "status": "active"},
         *_v3_path_steps(_V3_INNER + _V3_OUTER, active_owner="W2"),
     ]
     cases["synthetic-v3-corrective-replan"] = _synthetic_case(
@@ -512,17 +377,18 @@ def synthetic_cases() -> dict[str, dict[str, Any]]:
     error_steps = [
         {"at": "intake", "command": "stale-produce", "result": _result("intake"), "expect": "intake", "status": "active", "expect_error": "stale navigator action ID"},
         {"at": "intake", "command": "malformed-produce", "result": {"outcome": "done"}, "expect": "intake", "status": "active", "expect_error": "result requires outcome and summary"},
-        {"at": "intake", "command": "produce", "result": _result("intake"), "expect": "intake", "status": "active"},
-        {"at": "intake", "command": "finish-improve", "receipt": _receipt("intake"), "expect": "discovery", "status": "active"},
+        {"at": "intake", "command": "produce", "result": _result("intake"), "expect": "discovery", "status": "active"},
     ]
     cases["synthetic-v3-stale-and-malformed"] = _synthetic_case(
         "synthetic-v3-stale-and-malformed", error_steps, {"stage": "discovery", "status": "active"}
     )
+    # A negative control: intake truly advances to discovery, so this expected
+    # edge must fail. A replay that reported it green would be a broken oracle.
     cases["synthetic-v3-wrong-edge-control"] = _synthetic_case(
         "synthetic-v3-wrong-edge-control",
-        [{"at": "intake", "command": "produce", "result": _result("intake"), "expect": "discovery", "status": "active"}],
-        {"stage": "intake", "status": "active"},
-        expected_failure="expected edge intake -> discovery/active, got intake/active",
+        [{"at": "intake", "command": "produce", "result": _result("intake"), "expect": "research", "status": "active"}],
+        {"stage": "discovery", "status": "active"},
+        expected_failure="expected edge intake -> research/active, got discovery/active",
     )
     for case in cases.values():
         validate_case(case, origin=f"synthetic {case['id']}")
@@ -780,22 +646,44 @@ def _apply_callback(navigator: Any, state: Mapping[str, Any], command: str, outp
     raise DagReplayError(f"unsupported replay command: {command}")
 
 
+def _literal_checkpoint(before: Mapping[str, Any], stage: str, result: Any) -> bool:
+    """Say whether this producer result must park for Improve, per the literal schedule."""
+    if stage in _V3_PLANNING_CHECKPOINTS:
+        return True
+    if stage != "carry-forward" or not isinstance(result, Mapping) or result.get("outcome") != "done":
+        return False
+    if "work_items" in result:
+        return not result["work_items"]
+    return before["work_index"] + 1 >= len(before["work_items"])
+
+
 def _assert_v3_cursor_invariants(navigator: Any, before: Mapping[str, Any], after: Mapping[str, Any],
-                                 command: str, submitted_action: str) -> None:
+                                 command: str, submitted_action: str, result: Any = None) -> None:
     """Check packet-level v3 invariants the coarse stage oracle cannot see."""
-    if before.get("navigator_protocol_version") != 3:
-        return
     producer = {"done", "produce", "duplicate-produce", "conflicting-produce", "malformed-produce"}
     if command in producer:
         before_action = navigator.current_action(before)["id"]
         after_action = navigator.current_action(after)["id"]
+        parked = before.get("active_improve")
         child = after.get("active_improve")
-        if after_action != before_action:
-            raise DagReplayError("v3 producer replaced the parent action instead of parking it for Improve")
-        if not isinstance(child, Mapping) or child.get("action_id") != submitted_action:
-            raise DagReplayError("v3 producer did not bind active Improve to the submitted parent action")
-        if child.get("stage") != navigator.current_stage(before):
-            raise DagReplayError("v3 producer bound Improve to the wrong stage")
+        if submitted_action in before.get("accepted", {}):
+            if _state_hash(before) != _state_hash(after):
+                raise DagReplayError("v3 producer replay changed an accepted action")
+        elif parked is not None:
+            if after_action != before_action or child != parked:
+                raise DagReplayError("v3 producer replay replaced the parked Improve child")
+        elif _literal_checkpoint(before, navigator.current_stage(before), result):
+            if after_action != before_action:
+                raise DagReplayError("v3 producer replaced the parent action instead of parking it for Improve")
+            if not isinstance(child, Mapping) or child.get("action_id") != submitted_action:
+                raise DagReplayError("v3 producer did not bind active Improve to the submitted parent action")
+            if child.get("stage") != navigator.current_stage(before):
+                raise DagReplayError("v3 producer bound Improve to the wrong stage")
+        else:
+            if child is not None:
+                raise DagReplayError("v3 producer parked Improve outside a checkpoint")
+            if after_action == before_action:
+                raise DagReplayError("v3 producer did not accept its result outside a checkpoint")
     if command == "finish-improve" and before.get("active_improve") is not None:
         child = before["active_improve"]
         if child.get("action_id") != submitted_action:
@@ -847,7 +735,6 @@ def replay_case(case: Mapping[str, Any], *, fixture: Mapping[str, Any], output: 
         "protocol_version": case["protocol_version"],
         "fixture": dict(fixture),
         "provenance": case["provenance"],
-        "retained_trace_metadata": case["provenance"] if case["kind"] == "retained-trace" else None,
         "simulation_only": True,
         "model_calls": 0,
         "product_verdict": "not-assessed",
@@ -907,7 +794,7 @@ def replay_case(case: Mapping[str, Any], *, fixture: Mapping[str, Any], output: 
         f"/simulation-only/dag-replay/{case['id']}",
         case.get("prompt", "Synthetic ShipLoop DAG replay fixture; no project work."),
         protocol_version=case["protocol_version"],
-        **({"improve_skill": ""} if case["protocol_version"] == 3 else {}),
+        improve_skill="",
     )
     navigator.save(run_dir, state)
     initial_state = _load_durable(navigator, run_dir)
@@ -977,7 +864,8 @@ def replay_case(case: Mapping[str, Any], *, fixture: Mapping[str, Any], output: 
                 event["expected_error_observed"] = True
                 state = pre_state
             else:
-                _assert_v3_cursor_invariants(navigator, pre_state, state, command, submitted_action)
+                _assert_v3_cursor_invariants(navigator, pre_state, state, command, submitted_action,
+                                             output_value.get("result"))
                 if state != pre_state:
                     navigator.save(run_dir, state)
             effective_stage = navigator.current_stage(state)
@@ -1061,13 +949,8 @@ def replay_case(case: Mapping[str, Any], *, fixture: Mapping[str, Any], output: 
 
 
 def _default_cases() -> list[tuple[dict[str, Any], dict[str, Any]]]:
-    rows: list[tuple[dict[str, Any], dict[str, Any]]] = []
-    for case in synthetic_cases().values():
-        rows.append((case, {"kind": "in-code-synthetic", "sha256": _canonical_fixture_digest(case)}))
-    if FIXTURE_ROOT.is_dir():
-        for path in sorted(FIXTURE_ROOT.glob("*.json")):
-            rows.append(load_case(path))
-    return rows
+    return [(case, {"kind": "in-code-synthetic", "sha256": _canonical_fixture_digest(case)})
+            for case in synthetic_cases().values()]
 
 
 def _new_external_output(path: Path, skill_root: Path) -> Path:
@@ -1081,7 +964,7 @@ def _new_external_output(path: Path, skill_root: Path) -> Path:
 
 def main(argv: list[str] | None = None) -> int:
     parser = argparse.ArgumentParser(description=__doc__)
-    parser.add_argument("--case", action="append", type=Path, help="repeatable JSON fixture path; defaults to all DAG fixtures and in-code synthetics")
+    parser.add_argument("--case", action="append", type=Path, help="repeatable JSON case path; defaults to the in-code synthetic cases")
     parser.add_argument("--output", type=Path, required=True, help="new external output directory")
     parser.add_argument("--skill-root", type=Path, help="selected ShipLoop skill root to fingerprint and execute")
     args = parser.parse_args(argv)

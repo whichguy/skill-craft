@@ -603,9 +603,9 @@ python3 -B "$HARNESS/dag_replay.py" --output /tmp/shiploop-dag-replay-01
 ```
 
 These commands use scripted Grok responses with the real navigator transition
-code, including current-protocol synthetic cases and sanitized paths retained
-from real E2E runs. Future live trials also write `behavior.json` for repeatable
-analysis and case derivation. Source drift, wrong edges, callback conflicts, and
+code and independently authored navigator protocol 3 cases. Live trials also
+write a sanitized `behavior.json` for repeatable analysis; it is never turned
+into a replay case. Source drift, wrong edges, callback conflicts, and
 missing evidence remain visible. Mock passes cannot establish live application
 or model success. See
 [MOCK-REPLAY.md — capture, replay, and evidence boundaries](MOCK-REPLAY.md).
@@ -642,7 +642,7 @@ python3 "$HARNESS/run.py" suite \
 | Suite | Cases | Observation boundary |
 | --- | --- | --- |
 | `launch-smoke` | Tic-tac-toe and checkers create | Accepted `intake` and its real callback |
-| `planning-smoke` | Tic-tac-toe create | Reviewed plan: v2 `plan-improve`; v3 accepted `plan` after Improve |
+| `planning-smoke` | Tic-tac-toe create | Reviewed plan: `plan` accepted after its Improve child |
 | `ttt-full` | Create, guidance, best-move refinement | Full verified deployment, hosted behavior, and predecessor chain |
 | `checkers-full` | Create, guidance, hint-toggle refinement | Full verified deployment, hosted behavior, and predecessor chain |
 | `battleship-full` | Create, status/history, history-filter refinement | Full verified deployment, hosted behavior, and predecessor chain |
@@ -695,13 +695,15 @@ python3 "$HARNESS/run.py" run \
   --stop-after-stage intake --timeout 7200 --max-turns 1000
 ```
 
-Choose any prelude boundary through `plan-improve`. The legacy review names
-`research-improve`, `spec-improve`, and `plan-improve` remain selection aliases:
-on protocol 3 they resolve to the corresponding accepted stage after its Improve
-child completes. Callback auditing requires `improve-complete` for protocol 3;
-its earlier producer `complete` call does not establish stage acceptance.
-INNER boundaries are not exposed because the same stage recurs across work
-items and needs a separate explicit selection contract.
+Choose any prelude boundary: `intake`, `discovery`, `research`, `spec`,
+`test-strategy` or `plan`. Only navigator protocol 3 and 4 runs are observed; a
+run of any other protocol has no supported boundary. `spec`, `test-strategy`
+and `plan` are Improve checkpoints: each is accepted only after its Improve
+child returns, so callback auditing requires `improve-complete` for them, and
+their earlier producer `complete` call does not establish stage acceptance.
+Other stages are accepted by their `complete` (or `done`) callback. INNER
+boundaries are not exposed because the same stage recurs across work items and
+needs a separate explicit selection contract.
 
 **Implemented versus unproven:** the runner, capture/identity checks, scenario
 catalog, receipt validation, composite game-oracle framework, source-closure
@@ -837,8 +839,10 @@ are separate observations. Inspection and disk hashes prove which package was
 selected on disk; they do not prove that a model obeyed every instruction or
 reveal its hidden context. Actual script use must be observed in structured
 tool events. A full pass additionally requires observed start, every accepted
-action's `complete`/`done` callback, and the worktree return, bound to that new
-run's paths/action IDs. An `init` call plus completed-looking files is insufficient.
+action's own callback, and the worktree return, bound to that new
+run's paths/action IDs. An action with an Improve record needs `improve-complete`
+(`improve-reconcile` for a stopped protocol-4 plan child); every other action
+needs `complete` or its `done` alias. An `init` call plus completed-looking files is insufficient.
 For shell strings, only the final executable command can receive automatic
 lifecycle credit. Earlier commands share a final status that does not establish
 their individual success. Conditional/pipeline syntax, control flow, dynamic
@@ -1163,6 +1167,10 @@ disposition and each Improve action reviewer availability, scope, currency, and
 fallback limitation when needed. Omitted inventory items, HTTP/DOM/engine
 substituted for a selected interaction, or missing reviewer availability remain
 gaps or unverified; they cannot become a product pass through the catalog grader.
+The observed Improve inventory is the current run's `improve_results` actions,
+because only checkpoint actions pass through an Improve child. A record with no
+accepted action is invalid; an accepted `plan` without a record, or a snapshot
+of a protocol other than 3 or 4, leaves the inventory unverified.
 Campaign comparison keeps planned-but-not-run cases, failures, interruptions,
 missing reviews, observer versions, and changed settings in the denominator.
 

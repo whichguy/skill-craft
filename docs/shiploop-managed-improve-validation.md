@@ -62,7 +62,7 @@ statuses are `active`, `converged`, `blocked`, `needs-prerequisite`,
 certificate releases a consumer.
 
 The managed consumer is a distinct Improve entrypoint described by
-[managed-consumer.md](../skills/improve/references/managed-consumer.md). It
+managed-consumer.md (removed in ShipLoop 0.23.0). It
 does not alter standalone Improve or the legacy ShipLoop owner-managed route.
 
 ## Prompt and constitution changes

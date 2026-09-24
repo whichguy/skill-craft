@@ -187,14 +187,18 @@ def packet(workspace: Path, stage: str, task: str, *, runtime: Path):
     import shiploop_navigator as nav
     run = workspace / 'shiploop-state'
     run.mkdir(exist_ok=True)
-    state = nav.new_state(str(workspace), task)
+    state = nav.new_state(str(workspace), task, protocol_version=3)
     for _ in range(80):
         if state['stage'] == stage:
             break
         result = {'outcome':'done','summary':'Synthetic fixture preparation; preceding project work was not executed.'}
         if state['stage'] == 'plan':
             result['work_items']=[{'id':'W1','title':'Current controlled task'}]
-        state = nav.apply(state, state['action']['id'], result)
+        action = state['action']['id']
+        state = nav.apply(state, action, result)
+        if state['active_improve'] is not None:
+            # Only planning checkpoints and the last carry-forward park an Improve child.
+            state = nav.finish_improve(state, action, {'summary': 'Synthetic fixture preparation; no Improve executed.'})
     else:
         raise RuntimeError(stage)
     nav.save(run,state)

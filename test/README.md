@@ -8,7 +8,7 @@ passed; offline fixtures do not establish live model or host behavior.
 | Selection | Command | Scope |
 |---|---|---|
 | Focused | `python3 -B test/<name>.test.py` | One module; useful while changing its contract |
-| Smoke | `bash test/run-all.sh --group smoke` | Core plus ten selected ShipLoop boundary suites |
+| Smoke | `bash test/run-all.sh --group smoke` | Core plus eight selected ShipLoop boundary suites |
 | Ask-Agent component | `bash test/run-all.sh --group ask-agent` | Supported helper tests and ShipLoop consumers |
 | Composition component | `bash test/run-all.sh --group shiploop-composition` | Chain and Improve integration boundaries |
 | Full hermetic | `bash test/run-all.sh` | Core, all ShipLoop suites, source E2E apparatus and historical experiments |
@@ -53,20 +53,19 @@ bash test/shiploop.test.sh --shard 1/3 --list
 ```
 
 Repeated groups form a union: shared entries run once, in catalog order.
-`--list` and help execute no suites or synchronization. Root listing prints one
+`--list` and help execute no suites. Root listing prints one
 row per constituent entry, with family, ID and command; the ShipLoop wrapper
 prints only paths. `core`, `shiploop`, `e2e-apparatus`, and `experiments` can also
 run separately. The three `shiploop-1`/`2`/`3` groups partition ShipLoop using
 checked-in duration estimates and a deterministic fallback. They are scheduling
 slices of the same full inventory, not additional coverage.
 
-The ten ShipLoop smoke suites are `no-model-launch`, `navigator-v3`,
+The eight ShipLoop smoke suites are `no-model-launch`, `navigator-v3`,
 `navigator-v4`, `stopped-improve`, `v4-consumers`, `packet-bounds`,
-`navigator-dry-run`, `chain-async`, `graph-driver`, and `graph-trace`.
+`navigator-dry-run`, and `chain-async`.
 The historical U18/W1 Ask-Agent worktree harness belongs to full-only
 `experiments`; supported Ask-Agent workspace, delivery and managed-harness
-checks remain in core. The legacy `shiploop-walk-journal.test.sh` wrapper is
-available directly but excluded from the aggregate, which owns one action walk.
+checks remain in core.
 
 An optional `--output` directory must be new and outside the checkout. It retains
 source identity, runtime versions, selected/completed suites, outcomes, durations
@@ -271,11 +270,10 @@ state continuity, not that an LLM asks promptly or that a live account is usable
 The [bounded interpretation check](experiments/shiploop_auth/README.md) records
 ten fictional access scenarios and the stage-skipping ambiguity they exposed.
 
-`python3 test/shiploop-environment-lifecycle.test.py` checks the existing
-navigator's preparation → feature → staged-candidate work-item ordering,
-blocked/cold recovery, local-only path, and selected-package policy locators.
-It uses synthetic declarations: queue traversal does not prove that a host
-selected all prerequisites, created a sandbox, or promoted a live candidate.
+`test/shiploop-auth-readiness.test.py` also checks that v3 packets carry the
+selected package's Environment lifecycle policy and this run's lifecycle note
+locator. It uses synthetic declarations: it does not prove that a host selected
+all prerequisites, created a sandbox, or promoted a live candidate.
 The [environment interpretation study](experiments/shiploop_environment/README.md)
 records three fictional topology cases and the planning-versus-execution
 ambiguity corrected through a fresh-reader follow-up.

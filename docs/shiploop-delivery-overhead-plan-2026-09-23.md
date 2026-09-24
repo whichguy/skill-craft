@@ -244,8 +244,19 @@ Each ships as a ShipLoop-only PR with its own focused tests.
 Owner decisions: keep only the latest code. The Improve cadence setting and the
 `--improve-cadence` flag are gone. Every v3/v4 run reviews its planning results
 and the end of work. Navigator protocols 1 and 2 and the `managed` and `legacy`
-execution modes are removed in the same release. The two-pass gate stays as two
-honest self-passes: packets say so rather than implying independent reviewers.
+execution modes are removed in the same release, with their scripts, references
+and commands (`evidence`, `inject`, `repair`, `migrate`, `merge-recover`,
+`managed-graph-dry-run`). A saved run the code cannot load is refused with an
+error that names its protocol, mode or unexpected/missing keys, including a
+v3/v4 run without a recorded `delegation`; the user starts a fresh run
+directory. The two-pass gate stays as two honest self-passes: packets say so
+rather than implying independent reviewers.
+
+Architecture principle: ShipLoop's scripts own graph navigation and return the
+prompt for the current step; the LLM is a library call that performs that one
+step and runs the printed callback. A routing decision belongs in the script,
+not in prompt guidance; prefer a rule the script enforces over one the model is
+asked to follow. Follow-ups are judged against this principle.
 
 Shipped from a third run report:
 
@@ -278,3 +289,4 @@ Still planned from that report:
 | F2 | `improve-bind` writes `host-owner.md` with the binding line on the ask-agent route | S |
 | F3 | Serial items on the ask-agent route keep one worker from test-author through test-green instead of a fresh context per stage | M |
 | F4 | A cap on consecutive Improve children whose candidate diff is empty (zero after the first), driven by E1 | S, needs E1 |
+| F5 | `step-plan` records serial vs parallel in its result, and the script omits chain guidance from a serial item's `implement` packet on the ask-agent route. This moves a routing decision from the model into the script (today the prompt asks the model not to chain a serial plan) | S |

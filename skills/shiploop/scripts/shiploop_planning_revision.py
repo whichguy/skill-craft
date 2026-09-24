@@ -102,8 +102,9 @@ def current_actions(state: Mapping[str, Any]) -> dict[tuple[str | None, str], st
 
     This deliberately reads only ``history`` and ``accepted``.  It is therefore
     usable by source readers that receive a compact/synthetic state projection.
-    V1--V3 retain their historical latest-done behavior.  In V4, a chronological
-    reconcile row removes the root planning suffix beginning at its target.
+    Protocol 3 keeps the latest done result per (workitem, stage).  In protocol
+    4, a chronological reconcile row removes the root planning suffix beginning
+    at its target.
     """
     if not isinstance(state, Mapping):
         return {}

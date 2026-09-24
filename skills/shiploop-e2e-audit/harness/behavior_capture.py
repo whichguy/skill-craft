@@ -21,7 +21,6 @@ from typing import Any, Iterable, Mapping
 
 
 SCHEMA = "shiploop-e2e-live-behavior/1"
-CASE_SCHEMA = "shiploop-e2e-dag-case/1"
 _HASH = re.compile(r"^[0-9a-f]{64}$")
 _MAX_JSON_BYTES = 16 * 1024 * 1024
 _MAX_EVENT_LINE_BYTES = 1024 * 1024
@@ -29,16 +28,6 @@ _MAX_EVENT_LINE_BYTES = 1024 * 1024
 # These lists are intentionally closed.  A value read from a live transcript is
 # not portable merely because it looks harmless; unknown strings become a fixed
 # qualification rather than being copied into a fixture.
-_V2_STAGES = frozenset(
-    {
-        "intake", "discovery", "research", "research-improve", "spec",
-        "spec-improve", "test-strategy", "plan", "plan-improve",
-        "step-plan", "step-plan-improve", "implement", "test-refine",
-        "test-author", "document", "verify", "product-improve", "integrate",
-        "carry-forward", "system-test", "outer-improve", "release-plan",
-        "release", "release-verify", "handoff", "done",
-    }
-)
 _V3_STAGES = frozenset(
     {
         "intake", "discovery", "research", "spec", "test-strategy", "plan",
@@ -51,8 +40,13 @@ _V3_STAGES = frozenset(
         "operations", "handoff", "done",
     }
 )
+# Navigator protocols 3 and 4 share one stage graph; any other protocol is
+# retained only as an ``unsupported-protocol`` qualification.
+_SUPPORTED_PROTOCOLS = frozenset({3, 4})
+# The live runner's public partial-stop keys (run.PARTIAL_STAGES).
+_STOP_STAGES = frozenset({"intake", "discovery", "research", "spec", "test-strategy", "plan"})
 _STATE_STATUSES = frozenset({"active", "paused", "blocked", "halted", "done"})
-_OUTCOMES = frozenset({"done", "repeat", "blocked", "replan"})
+_OUTCOMES = frozenset({"done", "repeat", "blocked", "replan", "reconcile"})
 _NATIVE_TYPES = frozenset(
     {
         "available_commands", "end", "plan", "text", "thought", "tool_call",
@@ -167,7 +161,7 @@ def _safe_number(value: Any) -> int | float | None:
 
 
 def _safe_stage(value: Any, protocol_version: int | None) -> str | None:
-    allowed = _V2_STAGES if protocol_version == 2 else _V3_STAGES if protocol_version == 3 else frozenset()
+    allowed = _V3_STAGES if protocol_version in _SUPPORTED_PROTOCOLS else frozenset()
     return value if isinstance(value, str) and value in allowed else None
 
 
@@ -332,7 +326,7 @@ def _canonical_state(
 ) -> tuple[dict[str, Any], bool]:
     """Normalize one selected state without preserving its free-text fields."""
     protocol = state.get("navigator_protocol_version")
-    protocol_version = protocol if type(protocol) is int and protocol in {2, 3} else None
+    protocol_version = protocol if type(protocol) is int and protocol in _SUPPORTED_PROTOCOLS else None
     if protocol_version is None:
         _append_once(limits, "unsupported-protocol")
     stage = _safe_stage(state.get("stage"), protocol_version)
@@ -637,8 +631,8 @@ def _requested_settings(manifest: Mapping[str, Any] | None, limits: list[str]) -
         }
     scenario = manifest.get("scenario")
     kind = scenario.get("kind") if isinstance(scenario, Mapping) else None
-    protocol_for_stop = 2
-    stop = _safe_stage(manifest.get("stop_after_stage"), protocol_for_stop)
+    raw_stop = manifest.get("stop_after_stage")
+    stop = raw_stop if isinstance(raw_stop, str) and raw_stop in _STOP_STAGES else None
     if manifest.get("stop_after_stage") is not None and stop is None:
         _append_once(limits, "unsupported-stop-stage")
     effort = manifest.get("reasoning_effort_requested")
@@ -757,47 +751,23 @@ def _derive_isolation(
         return {"status": "unverified", "basis": "unavailable"}
 
 
-def _replay_metadata(dag: Mapping[str, Any] | None, original: Mapping[str, str], limits: list[str]) -> dict[str, Any]:
+def _replay_metadata(dag: Mapping[str, Any] | None, original: Mapping[str, str]) -> dict[str, Any]:
+    """Qualify a retained trial; none is exported as a DAG replay case.
+
+    DAG replay uses independently authored synthetic protocol-3 cases. A
+    retained trial does not record the complete producer and Improve callback
+    sequence, and the exporter never invents one.
+    """
     if not isinstance(dag, Mapping):
         return {"status": "not-replayable", "reason": "dag-unavailable"}
-    protocol = dag.get("protocol_version")
-    final = dag.get("final")
-    history = dag.get("accepted_history")
     preexisting = dag.get("preexisting")
-    all_done = isinstance(history, list) and bool(history) and all(
-        isinstance(row, Mapping) and row.get("result", {}).get("outcome") == "done"
-        and isinstance(row.get("accepted_result_sha256"), str)
-        for row in history
-    )
-    final_done = isinstance(final, Mapping) and final.get("stage") == "done" and final.get("status") == "done"
-    initial_scope = (
-        isinstance(preexisting, Mapping)
-        and preexisting.get("selected_run_preexisting") is False
-        and preexisting.get("initial_archive_verified") is True
-    )
-    no_capture_limits = not any(code in limits for code in (
-        "unsupported-protocol", "unsupported-state-stage", "unsupported-state-status",
-        "malformed-work-items", "malformed-history", "malformed-accepted-results",
-        "accepted-history-mismatch", "unsupported-history-owner", "unsupported-history-stage",
-        "unsupported-history-outcome", "missing-accepted-result", "matching-run-unverified",
-        "prompt-identity-unavailable", "prompt-identity-mismatch",
-        "native-events-partial", "process-truncated", "process-capture-error",
-        "process-incomplete", "process-unavailable", "original-statuses-unavailable",
-        "unsupported-original-status", "accepted-result-outcome-mismatch",
-        "unsupported-result-work-items", "unsupported-result-choices",
-        "result-missing", "result-malformed", "result-not-object", "result-oversized",
-        "manifest-missing", "manifest-malformed", "manifest-not-object", "manifest-oversized",
-        "navigation-missing", "navigation-malformed", "navigation-not-object", "navigation-oversized",
-    ))
     if isinstance(preexisting, Mapping) and preexisting.get("selected_run_preexisting") is True:
         return {"status": "not-replayable", "reason": "preexisting-run-not-fresh-one-shot"}
     if original.get("overall") in {"interrupted", "harness-or-environment-error", "incomplete", "invalid-trial"}:
         return {"status": "not-replayable", "reason": "original-live-trial-ineligible"}
-    if protocol == 2 and all_done and final_done and initial_scope and no_capture_limits:
-        return {"status": "derivable", "reason": "complete-all-done-v2-initial-scope"}
-    if protocol == 3:
-        return {"status": "not-replayable", "reason": "protocol-v3-needs-complete-command-sequence"}
-    return {"status": "not-replayable", "reason": "incomplete-or-ambiguous-history"}
+    if dag.get("protocol_version") not in _SUPPORTED_PROTOCOLS:
+        return {"status": "not-replayable", "reason": "unsupported-protocol"}
+    return {"status": "not-replayable", "reason": "callback-sequence-not-derivable"}
 
 
 def export_trial(trial: Path) -> dict[str, Any]:
@@ -888,7 +858,6 @@ def export_trial(trial: Path) -> dict[str, Any]:
     behavior["replay"] = _replay_metadata(
         behavior["dag"] if isinstance(behavior["dag"], Mapping) else None,
         original,
-        limits,
     )
     # The result, manifest, navigation, and native event stream are the minimum
     # source set.  A parsed selected state is additionally required for a
@@ -903,81 +872,6 @@ def export_trial(trial: Path) -> dict[str, Any]:
     return behavior
 
 
-def _replay_case(bundle: Mapping[str, Any]) -> dict[str, Any] | None:
-    replay = bundle.get("replay")
-    dag = bundle.get("dag")
-    provenance = bundle.get("provenance")
-    original = bundle.get("original_statuses")
-    if not isinstance(replay, Mapping) or replay.get("status") != "derivable":
-        return None
-    if not isinstance(dag, Mapping) or not isinstance(provenance, Mapping) or not isinstance(original, Mapping):
-        return None
-    history = dag.get("accepted_history")
-    if not isinstance(history, list) or not history:
-        return None
-    work_items = dag.get("work_items")
-    if not isinstance(work_items, list):
-        return None
-    steps: list[dict[str, Any]] = []
-    result_hashes: list[str] = []
-    for index, row in enumerate(history):
-        if not isinstance(row, Mapping):
-            return None
-        stage = row.get("at")
-        owner = row.get("owner")
-        result = row.get("result")
-        result_hash = row.get("accepted_result_sha256")
-        if not isinstance(stage, str) or stage not in _V2_STAGES - {"done"}:
-            return None
-        if owner not in {"root", *{item.get("id") for item in work_items if isinstance(item, Mapping)}}:
-            return None
-        if not isinstance(result, Mapping) or result.get("outcome") != "done" or not isinstance(result_hash, str):
-            return None
-        next_row = history[index + 1] if index + 1 < len(history) else None
-        expect = next_row.get("at") if isinstance(next_row, Mapping) else "done"
-        status = "active" if expect != "done" else "done"
-        step_result: dict[str, Any] = {
-            "outcome": "done",
-            "summary": f"Synthetic replay of recorded {stage} acceptance.",
-        }
-        if "work_items" in result:
-            step_result["work_items"] = result["work_items"]
-        if "choices" in result:
-            step_result["choices"] = result["choices"]
-        step: dict[str, Any] = {
-            "at": stage,
-            "owner": owner,
-            "command": "done",
-            "result": step_result,
-            "expect": expect,
-            "status": status,
-        }
-        if isinstance(next_row, Mapping) and next_row.get("owner") in {"root", *{item.get("id") for item in work_items if isinstance(item, Mapping)}}:
-            step["expect_owner"] = next_row["owner"]
-        steps.append(step)
-        result_hashes.append(result_hash)
-    canonical = provenance.get("canonical_result_sha256")
-    if not isinstance(canonical, str):
-        return None
-    return {
-        "schema": CASE_SCHEMA,
-        "id": f"retained-v2-{canonical[:12]}",
-        "kind": "retained-trace",
-        "protocol_version": 2,
-        "provenance": {
-            "canonical_result_sha256": canonical,
-            "source_hashes": provenance.get("source_hashes"),
-            "original_outcome": original.get("overall"),
-            "original_isolation": bundle.get("supplemental_isolation"),
-            "preexisting": dag.get("preexisting"),
-            "accepted_result_sha256": result_hashes,
-            "scope": "Synthetic graph replay only. Workspace, return, model, command, and product evidence were not replayed; preexisting-state observations do not establish a fresh one-shot.",
-        },
-        "steps": steps,
-        "expected_final": {"stage": "done", "status": "done"},
-    }
-
-
 def _write_json(path: Path, value: Mapping[str, Any]) -> Path:
     path.parent.mkdir(parents=True, exist_ok=True)
     temporary = path.with_suffix(path.suffix + ".tmp")
@@ -989,8 +883,8 @@ def _write_json(path: Path, value: Mapping[str, Any]) -> Path:
 def _write_new_json(path: Path, value: Mapping[str, Any]) -> Path:
     path.parent.mkdir(parents=True, exist_ok=True)
     encoded = json.dumps(value, indent=2, sort_keys=True) + "\n"
-    # `x` is intentionally used instead of check-then-replace: replay cases
-    # are immutable test evidence and a competing writer must not overwrite one.
+    # `x` is intentionally used instead of check-then-replace: an export is
+    # immutable evidence and a competing writer must not overwrite one.
     with path.open("x", encoding="utf-8") as handle:
         handle.write(encoded)
     return path
@@ -1002,22 +896,10 @@ def write_trial_behavior(trial: Path) -> Path:
     return _write_json(trial / "behavior.json", export_trial(trial))
 
 
-def write_replay_case(trial: Path, output: Path) -> Path | None:
-    """Write one derivable v2 trace case, or return ``None`` with no fixture."""
-    bundle = export_trial(trial)
-    case = _replay_case(bundle)
-    if case is None:
-        return None
-    canonical = case["provenance"]["canonical_result_sha256"]
-    destination = Path(output) / f"captured_{canonical[:12]}.json"
-    return _write_new_json(destination, case)
-
-
 def _arguments() -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser(description="Create a sanitized ShipLoop E2E behavior export.")
     parser.add_argument("--trial", required=True, type=Path)
     parser.add_argument("--output", required=True, type=Path, help="New behavior JSON path")
-    parser.add_argument("--case-output", type=Path, help="Directory for a derivable protocol-v2 replay case")
     return parser
 
 
@@ -1026,21 +908,8 @@ def main(argv: list[str] | None = None) -> int:
     if args.output.exists():
         raise SystemExit("--output must name a new JSON file")
     bundle = export_trial(args.trial)
-    case_data = _replay_case(bundle) if args.case_output is not None else None
-    case_path: Path | None = None
-    if case_data is not None:
-        canonical = case_data["provenance"]["canonical_result_sha256"]
-        case_path = args.case_output / f"captured_{canonical[:12]}.json"
-        if case_path.absolute() == args.output.absolute() or case_path.exists():
-            raise SystemExit("--case-output would overwrite an existing replay case")
     _write_new_json(args.output, bundle)
-    if case_data is not None and case_path is not None:
-        _write_new_json(case_path, case_data)
-    print(json.dumps({
-        "schema": SCHEMA,
-        "capture_status": bundle["capture_status"],
-        "replay_case_written": case_path is not None,
-    }, sort_keys=True))
+    print(json.dumps({"schema": SCHEMA, "capture_status": bundle["capture_status"]}, sort_keys=True))
     return 0
 
 

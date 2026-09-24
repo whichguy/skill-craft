@@ -1,5 +1,6 @@
 #!/usr/bin/env python3
 """Pin when Improve runs: every planning result plus one end-of-work review."""
+import copy
 from pathlib import Path
 import sys
 import tempfile
@@ -38,6 +39,30 @@ def walk(state, *, plan_items=None, end_final=None, limit=200):
     raise AssertionError("walk did not finish")
 
 
+def advance_to(state, target, *, limit=200):
+    """Drive synthetic producers (and any Improve child) until ``target`` is current."""
+    for _ in range(limit):
+        if nav.current_stage(state) == target and state["active_improve"] is None:
+            return state
+        stage, action = nav.current_stage(state), nav.current_action(state)["id"]
+        state = nav.apply(state, action, DONE)
+        if state["active_improve"] is not None:
+            state = nav.finish_improve(state, action, receipt(stage))
+    raise AssertionError("did not reach " + target)
+
+
+def template(packet):
+    """Parse the result template the packet prints for its producer."""
+    return store.loads(packet.split("Result template:\n", 1)[1].split("\nCall this when done:", 1)[0])
+
+
+def after_header(packet):
+    """Return the line after the navigator header (the one legal callback slot)."""
+    lines = packet.splitlines()
+    index = next(i for i, line in enumerate(lines) if line.startswith("ShipLoop navigator | "))
+    return lines[index + 1]
+
+
 class ImproveScheduleTests(unittest.TestCase):
     def new(self):
         return nav.new_state("/simulation-only/repo", "Schedule fixture.", protocol_version=3,
@@ -60,12 +85,15 @@ class ImproveScheduleTests(unittest.TestCase):
         ends = [entry for entry in reviewed if entry[0] == "carry-forward"]
         self.assertEqual(ends, [("carry-forward", "W1"), ("carry-forward", "W2")])
 
-    def test_state_still_requires_the_plan_review(self):
+    def test_state_requires_every_planning_stage_review(self):
         state, _ = walk(self.new())
-        plan = next(e["action"] for e in state["history"] if e["stage"] == "plan")
-        broken = dict(state, improve_results={k: v for k, v in state["improve_results"].items() if k != plan})
-        with self.assertRaisesRegex(nav.NavigatorError, "every plan result"):
-            nav.validate(broken)
+        for stage in ("plan", "spec", "step-plan"):
+            with self.subTest(stage=stage):
+                action = next(e["action"] for e in state["history"] if e["stage"] == stage)
+                broken = dict(state, improve_results={
+                    k: v for k, v in state["improve_results"].items() if k != action})
+                with self.assertRaisesRegex(nav.NavigatorError, "every planning-stage result"):
+                    nav.validate(broken)
 
     def test_producer_packet_leads_with_its_callback_and_says_no_child_runs(self):
         state = self.new()
@@ -77,9 +105,19 @@ class ImproveScheduleTests(unittest.TestCase):
 
     def test_template_placeholder_is_refused(self):
         state = self.new()
+        run = Path("/simulation-only/run")
+        # Every rendered template carries the placeholder, never an empty list.
+        for stage, at in (("intake", state), ("plan", advance_to(state, "plan"))):
+            with self.subTest(stage=stage):
+                self.assertEqual(template(nav.render(None, run, at))["evidence_refs"],
+                                 [nav.EVIDENCE_PLACEHOLDER])
         action = nav.current_action(state)["id"]
-        with self.assertRaisesRegex(nav.NavigatorError, "template placeholder"):
-            nav.apply(state, action, dict(DONE, evidence_refs=[nav.EVIDENCE_PLACEHOLDER]))
+        for refs in ([nav.EVIDENCE_PLACEHOLDER], ["/simulation-only/repo/notes.md", nav.EVIDENCE_PLACEHOLDER]):
+            with self.subTest(refs=refs):
+                before = copy.deepcopy(state)
+                with self.assertRaisesRegex(nav.NavigatorError, "template placeholder"):
+                    nav.apply(state, action, dict(DONE, evidence_refs=refs))
+                self.assertEqual(state, before)
 
     def test_planning_improve_packet_has_focus_callback_first_and_honest_passes(self):
         with tempfile.TemporaryDirectory() as temp:
@@ -102,6 +140,90 @@ class ImproveScheduleTests(unittest.TestCase):
         self.assertIn("Planning review focus", packet)
         self.assertIn("self-passes by this same executor, not independent reviewers", packet)
         self.assertNotIn("Capture separate durable review files", packet)
+        text = " ".join(packet.split())
+        self.assertIn("review_refs is exactly the two files of those final consecutive trivial passes", text)
+        self.assertIn("only the parent imports it", text)
+        self.assertNotIn("review_refs length is exactly 2", text)
+
+    def test_unsuccessful_last_carry_forward_advances_without_improve(self):
+        state = advance_to(self.new(), "carry-forward")
+        self.assertEqual(len(state["work_items"]), 1)
+        action = nav.current_action(state)["id"]
+        records = copy.deepcopy(state["improve_results"])
+        blocked = nav.apply(state, action, dict(DONE, outcome="blocked", summary="Synthetic block."))
+        self.assertIsNone(blocked["active_improve"])
+        self.assertEqual(blocked["status"], "blocked")
+        self.assertEqual(blocked["improve_results"], records)
+        repeated = nav.apply(state, action, dict(DONE, outcome="repeat", summary="Synthetic retry."))
+        self.assertIsNone(repeated["active_improve"])
+        self.assertEqual(nav.current_stage(repeated), "carry-forward")
+        self.assertNotEqual(nav.current_action(repeated)["id"], action)
+        self.assertEqual(repeated["improve_results"], records)
+
+    def test_improve_record_for_an_unrecorded_action_is_refused(self):
+        state, _ = walk(self.new())
+        nav.validate(state)
+        broken = copy.deepcopy(state)
+        broken["improve_results"]["nav-" + "0" * 32] = receipt("spec")
+        with self.assertRaisesRegex(nav.NavigatorError, "must belong to completed steps"):
+            nav.validate(broken)
+
+    def test_saved_improve_cadence_key_is_refused_with_a_named_error(self):
+        # Runs saved by 0.21/0.22 carry this key; the generic key check names it.
+        for version in (3, 4):
+            with self.subTest(protocol=version):
+                state = nav.new_state("/simulation-only/repo", "Schedule fixture.",
+                                      protocol_version=version)
+                with self.assertRaises(nav.NavigatorError) as caught:
+                    nav.validate(dict(state, improve_cadence="planning-and-end"))
+                message = str(caught.exception)
+                self.assertIn("unexpected: improve_cadence", message)
+                self.assertIn("saved by an older ShipLoop", message)
+                self.assertIn("fresh --run-dir", message)
+                # The same generic check names a missing required key.
+                missing = dict(state)
+                del missing["inner_loops"]
+                with self.assertRaises(nav.NavigatorError) as caught:
+                    nav.validate(missing)
+                self.assertIn("missing: inner_loops", str(caught.exception))
+                self.assertIn("fresh --run-dir", str(caught.exception))
+
+    def test_leading_line_binds_an_unbound_child_and_is_absent_when_stopped(self):
+        run = Path("/simulation-only/run")
+        state = advance_to(self.new(), "spec")
+        action = nav.current_action(state)["id"]
+        waiting = nav.apply(state, action, DONE)
+        self.assertIsNone(waiting["active_improve"]["skill"])
+        packet = nav.render(None, run, waiting)
+        lead = after_header(packet)
+        self.assertTrue(lead.startswith("Next command (bind the selected Improve card"), lead)
+        lines = packet.splitlines()
+        body = lines[lines.index("Bind that selected card using this command "
+                                 "(replace the placeholder only if needed):") + 1]
+        self.assertIn(" improve-bind ", body)
+        self.assertTrue(lead.endswith(": " + body), (lead, body))
+        self.assertIn("/absolute/path/to/selected/improve/SKILL.md", lead)
+        # PROGRESS_REPORTING tells the host to run the packet's pause command,
+        # so the unbound packet prints it.
+        self.assertIn("Pause parent without losing child: "
+                      + nav._callback(None, run, "pause", reason="reason"), lines)
+
+        done, _ = walk(self.new())
+        fresh = self.new()
+        stopped = {
+            "paused": nav.control(fresh, "pause", "Synthetic pause."),
+            "paused-child": nav.control(waiting, "pause", "Synthetic pause with a parked child."),
+            "blocked": nav.apply(fresh, nav.current_action(fresh)["id"],
+                                 dict(DONE, outcome="blocked", summary="Synthetic block.")),
+            "halted": nav.control(self.new(), "halt", "Synthetic stop."),
+            "done": done,
+        }
+        for label, stopped_state in stopped.items():
+            with self.subTest(status=label):
+                packet = nav.render(None, run, stopped_state)
+                for callback in ("Callback for this stage", "Next command (bind",
+                                 "Callback for this Improve child"):
+                    self.assertNotIn(callback, packet)
 
 
 class ReceiptCountTests(unittest.TestCase):

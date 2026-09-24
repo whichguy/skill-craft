@@ -25,8 +25,6 @@ import suite_catalog
 
 
 ROOT = Path(__file__).resolve().parents[1]
-SYNC_COMMAND = ("python3", "-B", "scripts/sync-improve-managed.py")
-SYNC_TIMEOUT_SECONDS = 300
 TOP_LEVEL_TEST_ALLOWLIST = frozenset({
     # Explicit host-dependent checks are invoked through test/run-integration.sh.
     "test/advisors.test.sh",
@@ -34,7 +32,6 @@ TOP_LEVEL_TEST_ALLOWLIST = frozenset({
     "test/devloop-gas-weather-native.test.sh",
     "test/review-plan.test.sh",
     # Public entrypoints/wrappers are exercised by their catalog owners.
-    "test/shiploop-walk-journal.test.sh",
     "test/shiploop.test.sh",
 })
 _TEST_SUFFIXES = (".test.py", ".test.sh", ".test.js", ".test.cjs")
@@ -372,7 +369,7 @@ def main(argv: Sequence[str] | None = None) -> int:
     selected = suite_catalog.select(groups)
     if shiploop_entrypoint:
         # Root --group smoke includes core by design.  The legacy ShipLoop
-        # facade is intentionally narrower and lists/runs its ten paths only.
+        # facade is intentionally narrower and lists/runs its ShipLoop paths only.
         selected = tuple(suite for suite in selected if suite.family == "shiploop")
     if args.list:
         _print_list(selected, shiploop_entrypoint=shiploop_entrypoint)
@@ -397,33 +394,12 @@ def main(argv: Sequence[str] | None = None) -> int:
         "source": source_identity(ROOT),
         "runtimes": runtime_versions(ROOT),
         "selected": [_command_record(suite) for suite in selected],
-        "preflight": [],
         "completed": [],
         "status": "running",
     }
     if output is not None:
         _write_receipt(output, receipt)
     failures = False
-    if any(suite.family == "shiploop" for suite in selected):
-        print("==> [preflight] sync-improve-managed")
-        sync = run_process(SYNC_COMMAND, cwd=ROOT, timeout_seconds=SYNC_TIMEOUT_SECONDS)
-        _emit(sync)
-        sync_record = {
-            "id": "sync-improve-managed",
-            "command": shlex.join(SYNC_COMMAND),
-            "status": sync.status,
-            "returncode": sync.returncode,
-            "duration_seconds": round(sync.duration_seconds, 3),
-            "stdout_log": _write_log(output, 0, "sync-improve-managed", "stdout", sync.stdout),
-            "stderr_log": _write_log(output, 0, "sync-improve-managed", "stderr", sync.stderr),
-        }
-        if sync.error:
-            sync_record["error"] = sync.error
-        receipt["preflight"].append(sync_record)
-        failures = sync.status != "passed"
-        if output is not None:
-            _write_receipt(output, receipt)
-
     completed: list[dict[str, object]] = []
     for index, suite in enumerate(selected, start=1):
         print(f"==> [{suite.family}] {suite.id}")

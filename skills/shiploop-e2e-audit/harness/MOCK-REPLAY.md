@@ -21,15 +21,12 @@ From the skill-craft repository root:
 
 ```sh
 python3 -B test/experiments/shiploop_e2e/check_suite.py --suite mock
-python3 -B test/shiploop-full-runtime.test.py \
-  FullRuntimeCompositionTests.test_v3_intake_host_observer_bridge
 python3 -B test/experiments/shiploop_e2e/dag_replay.py \
   --output /tmp/shiploop-dag-replay-01
 ```
 
 Choose a new output directory. The first command runs assertion and mutation
-tests. The second runs the short real CLI/Improve-to-host-observer bridge. The
-third retains an inspectable replay report and per-case evidence.
+tests. The second retains an inspectable replay report and per-case evidence.
 Use `dag_replay.py --help` for explicit case selection and source selection.
 Neither command launches Grok or another model, contacts a service, or executes
 commands from a captured transcript. The live runner's two-hour cap and `xhigh`
@@ -37,15 +34,14 @@ setting apply to live requests, not to these deterministic replays.
 
 ## Capture a behavior fixture
 
-Future live trials write a derived `behavior.json` beside their original raw
+Live trials write a derived `behavior.json` beside their original raw
 capture and result. Interrupted or incomplete attempts retain explicit gaps.
 Export a retained trial without changing its original records:
 
 ```sh
 python3 -B test/experiments/shiploop_e2e/behavior_capture.py \
   --trial /absolute/retained/trial \
-  --output /tmp/shiploop-behavior-01.json \
-  --case-output /tmp/shiploop-derived-cases-01
+  --output /tmp/shiploop-behavior-01.json
 ```
 
 The portable record retains source hashes, requested settings, process outcomes,
@@ -56,28 +52,15 @@ commands, product source, credentials, or user paths. Original raw logs remain
 the audit authority; the compact record deliberately cannot answer every
 semantic question about a run.
 
-Only an unambiguous complete protocol-2 sequence of accepted `done` results is
-currently eligible for automatic case derivation. Partial, blocked, unsupported,
-or protocol-3 observations can still be captured, but the exporter must not
-invent missing control calls or child receipts to make them replayable. Current
-protocol-3 behavior is covered by independently authored synthetic cases.
-
-Fixtures labeled `retained-trace` must carry the exporter's source hash records,
-matching result identity, one accepted-result digest per step, original outcome
-and isolation qualification, and verified initial-scope metadata. Validation
-also checks the exported v2 result shape and contiguous recorded steps. Original
-prompts remain omitted. The accepted-result digests identify the original
-records, not the sanitized replacement text; these local schema checks do not
-authenticate a fixture author or recheck unavailable original artifacts.
-Hand-authored examples use `kind: synthetic`.
-
-The checked-in replay cases come from the tic-tac-toe create (two work items)
-and Checkers create (one item). The invalid tic-tac-toe feature is retained as
-a behavior observation with its reused-run qualification; it is ineligible for
-automatic replay-case derivation. Checkers' product failure travels with its
-routing fixture. A successful replay of accepted stage order cannot rehabilitate
-a live product result. Preexisting history is not relabeled as work performed by
-a fresh one-shot request.
+The exporter normalizes navigator protocol 3 and 4 states. A state of any
+other protocol is kept only as an `unsupported-protocol` qualification. No
+retained trial is exported as a replay case: its record lacks the complete
+producer and Improve callback sequence, and the exporter must not invent
+missing control calls or child receipts. DAG replay instead uses independently
+authored synthetic protocol-3 cases, labeled `kind: synthetic`. A successful
+replay of accepted stage order cannot rehabilitate a live product result, and
+preexisting history is not relabeled as work performed by a fresh one-shot
+request.
 
 ## Mock boundary and failure evidence
 
@@ -94,18 +77,22 @@ result text is retained in debug output. Keep those cases non-sensitive. The
 allowlisted sanitization guarantee applies to the live-behavior exporter; the
 mock transport is not a general secret scrubber for arbitrary custom fixtures.
 
-For example, a protocol-3 `intake` producer response must leave the same action
-waiting for Improve. A synthetic Improve completion can then advance to
-`discovery`. An expectation that producer completion goes directly to
-`discovery` fails at that first edge. Other controls exercise work-item order,
-repetition, blocked/resumed work, cold state reload, corrective work, and stale
-or conflicting callbacks. A replay mismatch is an apparatus/protocol result;
-it is not an application-test result.
+The cases state the Improve schedule literally rather than importing it. Only
+the planning checkpoints (`spec`, `test-strategy`, `plan`, `step-plan`,
+`test-spec`, `system-test-author`, `release-plan`) and the successful
+carry-forward that leaves no work item pending park their action for Improve.
+For example, a `spec` producer response must leave the same action waiting for
+Improve, and a synthetic Improve completion then advances to `test-strategy`.
+An `intake` producer response instead advances directly to `discovery`; a
+control that expects any other edge must fail at that first event. Other
+controls exercise work-item order, repetition, blocked/resumed work, cold state
+reload, corrective work, and stale or conflicting callbacks. A replay mismatch
+is an apparatus/protocol result; it is not an application-test result.
 
 The report pins the ShipLoop and fixture inputs used. Changes during replay
-invalidate that observation. Retained protocol-2 paths stay protocol 2; they
-are never silently translated into the newer graph. Review an intentional DAG
-change against the current contract and add a separately labeled case.
+invalidate that observation. A case must be protocol 3; a case of any other
+protocol or kind is rejected before replay. Review an intentional DAG change
+against the current contract and update the literal expectations.
 
 ## Evidence limits
 
@@ -121,36 +108,18 @@ shell shapes, including heredoc limitations and a masked failure. Existing
 recovery-isolation fixtures reject old-run reuse. Keep those tests beside DAG
 replay: a completed stage sequence alone cannot establish either transport
 attribution or fresh-request identity. Separate observer regression tests check
-protocol-aware smoke boundaries: the existing `plan-improve` selection means
-v2 `plan-improve` or v3 accepted `plan` after Improve. A v3 producer callback alone
-cannot satisfy lifecycle evidence. These fixture checks do not establish a new
-live Grok smoke result.
-
-## Real CLI to synthetic host events
-
-`FullRuntimeCompositionTests.test_v3_intake_host_observer_bridge` runs one real
-`init -> intake -> Improve import -> discovery` prefix with copied ShipLoop and
-Improve packages. It captures the actual producer-pending state and accepted
-state, then feeds the recorded CLI outputs through synthetic Grok events, the
-process capture layer, and the live observer parser. The negative streams remove
-completion evidence, duplicate a tool call, or omit the terminal event. They
-reuse immutable records; they do not rerun or alter the accepted state.
-Completed tool events with no reported exit code remain unattributed.
-The mock includes Grok's interim `in_progress` updates with placeholder zero exit
-codes. Only explicit terminal exit evidence can support successful attribution;
-an interim zero cannot replace a missing final code or conceal a final failure.
-
-An accepted action, an attributed callback, and a complete host stream are
-separate observations. A producer result alone leaves intake pending Improve;
-a missing terminal event does not erase an already observed callback. This
-bridge tests those boundaries, not Grok's interpretation of skill prose.
+the protocol 3/4 smoke boundaries and callbacks: the `plan` selection means the
+plan accepted after its Improve child, and each accepted action needs its own
+callback (`improve-complete` for an action with an Improve record, `complete`
+or `done` otherwise). A checkpoint producer callback alone cannot satisfy
+lifecycle evidence. These fixture checks do not establish a new live Grok
+smoke result.
 
 | Existing check | Contract |
 | --- | --- |
-| Short bridge method above | Real CLI/Improve result and state reach the host observer correctly |
 | `python3 -B test/shiploop-full-runtime.test.py` | Full 34-stage route, real child runtime, worktree return, recovery and generated package selection |
 | `check_suite.py --suite mock` | Fast routing, fixed fixture expectations and negative controls |
-| `check_suite.py --suite workflow` | Recorded workflow evidence, v3 parent/child inventory and campaign qualifications |
+| `check_suite.py --suite workflow` | Recorded workflow evidence, protocol 3/4 checkpoint Improve inventory and campaign qualifications |
 
 Live `result.json` retains lifecycle counts and missing callback IDs; `audit.json`
 retains stage counts. DAG replay `report.json` retains ordered transitions,

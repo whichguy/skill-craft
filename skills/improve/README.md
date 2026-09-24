@@ -96,7 +96,6 @@ reconstructed honestly.
 | New standalone Improve request | runtime/until-loop/scripts/until_loop_ephemeral.py through runtime/until-loop/ADAPTER.md | One private temporary file per run; no .until-loop state or collector. |
 | Explicit durable v1/v2 continuation | [legacy-standalone.md](references/legacy-standalone.md) and retained runtime/until-loop/scripts/until-loop | Preserve the selected durable state, adapter, collector, and checked record. Never migrate it into a callback run. |
 | ShipLoop v3/v4 whole-skill subcall | The new standalone callback binding with the exact ShipLoop marker in context.request | Preserve parent scope, commit policy, receipt, and return-route locators. Save exact child responses; only complete permits the normal parent return. A stopped child permits only an explicitly printed v4 parent reconciliation route. |
-| ShipLoop managed subrun | [managed-consumer.md](references/managed-consumer.md) and scripts/managed_controller.py | ShipLoop owns the parent graph and Improve's managed controller owns its named child phases. |
 
 For a ShipLoop v3/v4 whole-skill subcall, commit verified scoped changes in the
 bound worktree under the standalone policy, unless an explicit frozen no-commit
@@ -158,7 +157,7 @@ recursive discovery still finds only Improve. Install or distribute the whole
 leaf. A successful installation does not establish that every host can execute
 every project check.
 
-This is Improve 0.2.0-rc.1. The bundled default Until Loop runtime is
+This is Improve 0.3.0-rc.2. The bundled default Until Loop runtime is
 0.4.0-rc.2. The package has a relocation regression and focused compatibility
 checks; those checks do not prove universal model judgment, a completed
 multi-host rollout, or a particular repository's review quality.

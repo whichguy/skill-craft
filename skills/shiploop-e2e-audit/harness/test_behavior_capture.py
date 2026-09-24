@@ -47,7 +47,7 @@ class BehaviorCaptureTests(unittest.TestCase):
         self,
         *,
         name: str = "trial",
-        protocol: int = 2,
+        protocol: int = 3,
         outcome: str = "done",
         original_overall: str = "passed",
         initial_state: dict[str, object] | None = None,
@@ -76,14 +76,14 @@ class BehaviorCaptureTests(unittest.TestCase):
             {"id": "first-secret-work-item", "title": "Sensitive title at /Users/user"},
             {"id": "second-secret-work-item", "title": "Other sensitive title"},
         ]
-        stages = ["intake", "plan", "plan-improve", "step-plan", "carry-forward", "handoff"]
+        stages = ["intake", "plan", "prepare", "step-plan", "carry-forward", "handoff"]
         if unknown_stage is not None:
             stages[2] = unknown_stage
         action_ids = [f"opaque-action-{index}" for index in range(len(stages))]
         history = []
         accepted: dict[str, object] = {}
         for index, (stage, action) in enumerate(zip(stages, action_ids)):
-            owner = None if stage in {"intake", "plan", "plan-improve", "handoff"} else "first-secret-work-item"
+            owner = None if stage in {"intake", "plan", "prepare", "handoff"} else "first-secret-work-item"
             history.append({
                 "action": action,
                 "stage": stage,
@@ -160,7 +160,7 @@ class BehaviorCaptureTests(unittest.TestCase):
         events.write_text(contents, encoding="utf-8")
         return trial
 
-    def test_complete_v2_capture_is_sanitized_and_derives_a_case(self) -> None:
+    def test_complete_v3_capture_is_sanitized(self) -> None:
         trial = self.make_trial()
         bundle = behavior_capture.export_trial(trial)
         encoded = json.dumps(bundle, sort_keys=True)
@@ -168,8 +168,13 @@ class BehaviorCaptureTests(unittest.TestCase):
         self.assertEqual(bundle["schema"], behavior_capture.SCHEMA)
         self.assertEqual(bundle["capture_status"], "complete")
         self.assertEqual(bundle["replay"], {
-            "status": "derivable", "reason": "complete-all-done-v2-initial-scope"
+            "status": "not-replayable", "reason": "callback-sequence-not-derivable"
         })
+        self.assertEqual(bundle["dag"]["protocol_version"], 3)
+        self.assertEqual(
+            [row["at"] for row in bundle["dag"]["accepted_history"]],
+            ["intake", "plan", "prepare", "step-plan", "carry-forward", "handoff"],
+        )
         self.assertEqual(bundle["dag"]["work_items"], [
             {"id": "W1", "title": "Synthetic work item W1"},
             {"id": "W2", "title": "Synthetic work item W2"},
@@ -182,15 +187,27 @@ class BehaviorCaptureTests(unittest.TestCase):
         self.assertNotIn("/Users/", encoded)
         self.assertNotIn("first-secret-work-item", encoded)
         self.assertNotIn("opaque-live-run-id", encoded)
+        self.assertFalse(hasattr(behavior_capture, "write_replay_case"))
 
-        case = behavior_capture._replay_case(bundle)
-        self.assertIsNotNone(case)
-        assert case is not None
-        self.assertEqual(case["schema"], behavior_capture.CASE_SCHEMA)
-        self.assertEqual(case["protocol_version"], 2)
-        self.assertEqual(case["steps"][1]["result"]["work_items"], bundle["dag"]["work_items"])
-        self.assertEqual(case["expected_final"], {"stage": "done", "status": "done"})
-        self.assertEqual(len(case["provenance"]["accepted_result_sha256"]), 6)
+    def test_protocol_2_is_unsupported_and_protocol_4_is_canonicalized(self) -> None:
+        retired = behavior_capture.export_trial(self.make_trial(name="protocol-2", protocol=2))
+        encoded = json.dumps(retired, sort_keys=True)
+        self.assertIn("unsupported-protocol", retired["limitations"])
+        self.assertIsNone(retired["dag"]["protocol_version"])
+        self.assertEqual(retired["replay"], {"status": "not-replayable", "reason": "unsupported-protocol"})
+        self.assertEqual(retired["capture_status"], "partial")
+        self.assertNotIn("secret-prompt-value", encoded)
+        self.assertNotIn("/Users/", encoded)
+
+        current = behavior_capture.export_trial(self.make_trial(name="protocol-4", protocol=4))
+        self.assertNotIn("unsupported-protocol", current["limitations"])
+        self.assertEqual(current["capture_status"], "complete")
+        self.assertEqual(current["dag"]["protocol_version"], 4)
+        self.assertEqual(
+            [row["at"] for row in current["dag"]["accepted_history"]],
+            ["intake", "plan", "prepare", "step-plan", "carry-forward", "handoff"],
+        )
+        self.assertEqual(current["replay"]["status"], "not-replayable")
 
     def test_missing_trial_is_unavailable_without_throwing(self) -> None:
         bundle = behavior_capture.export_trial(self.root / "absent")
@@ -215,7 +232,6 @@ class BehaviorCaptureTests(unittest.TestCase):
         self.assertIn("unsupported-history-stage", bundle["limitations"])
         self.assertNotIn("secret-control", encoded)
         self.assertNotIn("/Users/", encoded)
-        self.assertIsNone(behavior_capture._replay_case(bundle))
 
     def test_mismatched_accepted_result_and_incomplete_process_block_replay(self) -> None:
         trial = self.make_trial()
@@ -312,7 +328,7 @@ class BehaviorCaptureTests(unittest.TestCase):
     def test_preexisting_matching_run_keeps_invalid_trial_qualification(self) -> None:
         prompt = "Create harmless app with token secret-prompt-value at /Users/private/project"
         initial = {
-            "navigator_protocol_version": 2,
+            "navigator_protocol_version": 3,
             "run_id": "opaque-live-run-id",
             "prompt": prompt,
             "stage": "discovery",
@@ -327,7 +343,6 @@ class BehaviorCaptureTests(unittest.TestCase):
         self.assertEqual(bundle["replay"], {
             "status": "not-replayable", "reason": "preexisting-run-not-fresh-one-shot"
         })
-        self.assertIsNone(behavior_capture._replay_case(bundle))
 
     def test_hashes_change_when_source_changes(self) -> None:
         trial = self.make_trial()
@@ -358,50 +373,13 @@ class BehaviorCaptureTests(unittest.TestCase):
         second = subprocess.run(command, capture_output=True, text=True, check=False)
         self.assertNotEqual(second.returncode, 0)
         self.assertIn("new JSON", second.stderr)
-
-    def test_replay_case_refuses_to_overwrite_a_retained_fixture(self) -> None:
-        trial = self.make_trial()
-        directory = self.root / "cases"
-        first = behavior_capture.write_replay_case(trial, directory)
-        self.assertIsNotNone(first)
-        assert first is not None
-        original = first.read_bytes()
-        with self.assertRaises(FileExistsError):
-            behavior_capture.write_replay_case(trial, directory)
-        self.assertEqual(first.read_bytes(), original)
-
-    def test_checked_in_retained_cases_are_complete_v2_and_provenanced(self) -> None:
-        fixtures = HERE / "fixtures" / "dag"
-        paths = [
-            fixtures / "captured_ttt_create_v2.json",
-            fixtures / "captured_checkers_create_v2.json",
-        ]
-        self.assertTrue(all(path.is_file() for path in paths))
-        cases = [json.loads(path.read_text(encoding="utf-8")) for path in paths]
-        self.assertEqual({len(case["steps"]) for case in cases}, {25, 35})
-        for case in cases:
-            with self.subTest(case=case["id"]):
-                self.assertEqual(case["schema"], behavior_capture.CASE_SCHEMA)
-                self.assertEqual(case["kind"], "retained-trace")
-                self.assertEqual(case["protocol_version"], 2)
-                self.assertEqual(case["expected_final"], {"stage": "done", "status": "done"})
-                self.assertTrue(SHA256.fullmatch(case["provenance"]["canonical_result_sha256"]))
-                self.assertEqual(len(case["provenance"]["accepted_result_sha256"]), len(case["steps"]))
-                self.assertTrue(all(step["command"] == "done" for step in case["steps"]))
-                self.assertNotIn("/Users/", json.dumps(case, sort_keys=True))
-        two_item = next(case for case in cases if len(case["steps"]) == 35)
-        self.assertEqual(len(two_item["steps"][7]["result"]["work_items"]), 2)
-        product_failed = next(case for case in cases if len(case["steps"]) == 25)
-        self.assertEqual(product_failed["provenance"]["original_outcome"], "product-failed")
-
-    def test_checked_in_invalid_feature_behavior_remains_invalid(self) -> None:
-        path = HERE / "fixtures" / "behavior" / "captured_ttt_guidance.json"
-        bundle = json.loads(path.read_text(encoding="utf-8"))
-        self.assertEqual(bundle["schema"], behavior_capture.SCHEMA)
-        self.assertEqual(bundle["original_statuses"]["overall"], "invalid-trial")
-        self.assertTrue(bundle["dag"]["preexisting"]["selected_run_preexisting"])
-        self.assertEqual(bundle["replay"]["status"], "not-replayable")
-        self.assertNotIn("/Users/", path.read_text(encoding="utf-8"))
+        retired = subprocess.run(
+            [*command[:-1], str(self.root / "other.json"), "--case-output", str(self.root / "cases")],
+            capture_output=True, text=True, check=False,
+        )
+        self.assertEqual(retired.returncode, 2)
+        self.assertIn("unrecognized arguments: --case-output", retired.stderr)
+        self.assertFalse((self.root / "other.json").exists())
 
 
 if __name__ == "__main__":

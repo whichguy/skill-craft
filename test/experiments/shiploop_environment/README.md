@@ -1,7 +1,7 @@
 # Environment lifecycle interpretation check
 
 Bounded read-only study on 2026-09-16. It complements the executable
-[lifecycle traversal tests](../../shiploop-environment-lifecycle.test.py), not
+lifecycle traversal tests (removed in ShipLoop 0.23.0), not
 live provisioning or delivery verification.
 
 ## Method and inputs

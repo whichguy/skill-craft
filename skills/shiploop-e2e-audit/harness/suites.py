@@ -22,8 +22,7 @@ SUITES_PATH = HERE / "suites.json"
 # after an accepted prelude stage, before the navigator can enter an ambiguous
 # per-work-item inner loop.
 STOP_AFTER_STAGES = frozenset((
-    "intake", "discovery", "research", "research-improve", "spec",
-    "spec-improve", "test-strategy", "plan", "plan-improve",
+    "intake", "discovery", "research", "spec", "test-strategy", "plan",
 ))
 _SLUG = re.compile(r"[a-z0-9]+(?:-[a-z0-9]+)*\Z")
 

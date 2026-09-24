@@ -21,28 +21,29 @@ RUNTIME_FILES = (
     "runtime_validation.py",
 )
 REQUIRED_TOP_LEVEL_FILES = frozenset((*RUNTIME_FILES, "fixture-app.py"))
+# The navigator protocol 3/4 package (ShipLoop 0.23.0 and later).  The minimum
+# is a floor below the package's file count (56 at 0.23.0) that still rejects a
+# partial copy; the required set names the files the navigator cannot run
+# without.
 REQUIRED_SHIPLOOP_FILES = frozenset(
     {
         "shiploop/README.md",
         "shiploop/SKILL.md",
         "shiploop/commands/shiploop.md",
-        "shiploop/references/action-protocol.md",
-        "shiploop/references/ledger-contract.md",
         "shiploop/references/navigator.md",
         "shiploop/references/state-files.md",
         "shiploop/scripts/shiploop",
-        "shiploop/scripts/shiploop_artifacts.py",
-        "shiploop/scripts/shiploop_contract_protocol.py",
-        "shiploop/scripts/shiploop_contracts.py",
+        "shiploop/scripts/shiploop_consumer_delivery.py",
         "shiploop/scripts/shiploop_navigator.py",
         "shiploop/scripts/shiploop_navigator_dry_run.py",
-        "shiploop/scripts/shiploop_objectives.py",
-        "shiploop/scripts/shiploop_packets.py",
+        "shiploop/scripts/shiploop_navigator_v3_prompts.py",
+        "shiploop/scripts/shiploop_planning_revision.py",
+        "shiploop/scripts/shiploop_privacy.py",
         "shiploop/scripts/shiploop_protocol.py",
         "shiploop/scripts/shiploop_store.py",
     }
 )
-MINIMUM_SHIPLOOP_FILE_COUNT = 80
+MINIMUM_SHIPLOOP_FILE_COUNT = 50
 SHA256_RE = re.compile(r"^[0-9a-f]{64}$")
 
 

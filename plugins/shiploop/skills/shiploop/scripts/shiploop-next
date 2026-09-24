@@ -11,11 +11,8 @@ EXIT_BLOCKED = 2
 EXIT_USAGE = 64
 PACKAGE_ROOT = Path(__file__).resolve().parents[1]
 REFUSED = {
-    "update",
     "complete",
-    "complete-step",
-    "start-step",
-    "clear-step",
+    "done",
     "init",
 }
 

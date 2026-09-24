@@ -1,7 +1,0 @@
-{
-  "steps": [
-    {"at": "intake", "expect": "discovery"},
-    {"at": "discovery", "expect": "research"},
-    {"at": "research", "expect": "research-improve"}
-  ]
-}

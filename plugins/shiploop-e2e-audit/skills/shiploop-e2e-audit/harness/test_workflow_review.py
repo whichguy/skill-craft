@@ -30,10 +30,10 @@ class WorkflowReviewTests(unittest.TestCase):
     def assess(self, review=None):
         return validate_review(review or self.review, self.result, self.root)
 
-    def v3_state(self, *, history, improve_results, run_id="current", **extra):
+    def v3_state(self, *, history, improve_results, run_id="current", protocol=3, **extra):
         return {
             "run_id": run_id,
-            "navigator_protocol_version": 3,
+            "navigator_protocol_version": protocol,
             "history": history,
             "improve_results": improve_results,
             **extra,
@@ -55,10 +55,10 @@ class WorkflowReviewTests(unittest.TestCase):
         ]
 
     def test_v3_improve_inventory_uses_completed_child_records(self):
-        self.use_v3_inventory(["v3-i1"])
+        self.use_v3_inventory(["v3-plan"])
         self.result["navigation"] = {"states": [{"state": self.v3_state(
-            history=[{"action": "v3-i1", "stage": "intake"}],
-            improve_results={"v3-i1": {"summary": "Completed child."}},
+            history=[{"action": "v3-intake", "stage": "intake"}, {"action": "v3-plan", "stage": "plan"}],
+            improve_results={"v3-plan": {"summary": "Completed child."}},
         )}]}
         self.assertEqual(self.assess()["status"], "supported-pass")
 
@@ -78,29 +78,53 @@ class WorkflowReviewTests(unittest.TestCase):
         self.assertEqual(self.assess()["status"], "supported-gap")
 
     def test_v3_missing_pair_is_unverified_and_extra_or_malformed_pair_is_invalid(self):
-        self.use_v3_inventory(["v3-i1"])
+        self.use_v3_inventory(["v3-plan"])
         state = self.v3_state(
-            history=[{"action": "v3-i1", "stage": "intake"}], improve_results={},
+            history=[{"action": "v3-intake", "stage": "intake"}, {"action": "v3-plan", "stage": "plan"}],
+            improve_results={},
         )
         self.result["navigation"] = {"states": [{"state": state}]}
+        assessment = self.assess()
+        self.assertEqual(assessment["status"], "unverified")
+        self.assertIn("current-run accepted planning-stage result has no Improve record",
+                      assessment["unverified"])
+        # Every planning stage, not only plan, requires its Improve record.
+        state["history"].append({"action": "v3-spec", "stage": "spec"})
+        state["improve_results"] = {"v3-plan": {}}
         self.assertEqual(self.assess()["status"], "unverified")
+        state["history"].pop()
 
-        state["improve_results"] = {"v3-i1": {}, "extra": {}}
+        # A non-checkpoint action without a record is the normal schedule.
+        state["improve_results"] = {"v3-plan": {}}
+        self.assertEqual(self.assess()["status"], "supported-pass")
+
+        state["improve_results"] = {"v3-plan": {}, "extra": {}}
         self.assertEqual(self.assess()["status"], "invalid")
-        state["improve_results"] = {"v3-i1": "not an object"}
+        state["improve_results"] = {"v3-plan": "not an object"}
         self.assertEqual(self.assess()["status"], "invalid")
 
-    def test_v3_inventory_excludes_other_runs_and_legacy_stage_inventory_remains_supported(self):
+    def test_v3_inventory_excludes_other_runs_and_unsupported_protocols_are_unverified(self):
         self.result["lifecycle"] = {"run_id": "current"}
+        foreign = {"state": self.v3_state(
+            run_id="other", history=[{"action": "foreign", "stage": "plan"}],
+            improve_results={"foreign": {}},
+        )}
         self.result["navigation"] = {"states": [
             {"state": {"run_id": "current", "navigator_protocol_version": 2, "history": [
-                {"action": "i1", "stage": "product-improve"},
-            ]}},
-            {"state": self.v3_state(
-                run_id="other", history=[{"action": "foreign", "stage": "intake"}],
-                improve_results={"foreign": {}},
-            )},
+                {"action": "i1", "stage": "plan"},
+            ], "improve_results": {"i1": {}}}},
+            foreign,
         ]}
+        assessment = self.assess()
+        self.assertEqual(assessment["status"], "unverified", assessment)
+        self.assertIn(
+            "current-run navigator protocol is unsupported; only protocols 3 and 4 supply Improve inventory",
+            assessment["unverified"],
+        )
+
+        self.result["navigation"]["states"][0] = {"state": self.v3_state(
+            history=[{"action": "i1", "stage": "plan"}], improve_results={"i1": {}},
+        )}
         self.assertEqual(self.assess()["status"], "supported-pass")
 
     def test_v3_divergent_snapshots_are_unverified_but_identical_views_are_comparable(self):
@@ -122,18 +146,44 @@ class WorkflowReviewTests(unittest.TestCase):
         ]
         self.assertEqual(self.assess()["status"], "unverified")
 
-    def test_mixed_current_run_legacy_and_v3_snapshots_are_unverified(self):
-        self.use_v3_inventory(["legacy-i1", "v3-i1"])
+    def test_mixed_current_run_unsupported_and_v3_snapshots_are_unverified(self):
+        self.use_v3_inventory(["v3-i1"])
         self.result["navigation"] = {"states": [
             {"state": {"run_id": "current", "navigator_protocol_version": 2, "history": [
-                {"action": "legacy-i1", "stage": "product-improve"},
-            ]}},
+                {"action": "v3-i1", "stage": "plan"},
+            ], "improve_results": {"v3-i1": {}}}},
             {"state": self.v3_state(
-                history=[{"action": "v3-i1", "stage": "intake"}],
+                history=[{"action": "v3-i1", "stage": "plan"}],
                 improve_results={"v3-i1": {}},
             )},
         ]}
-        self.assertEqual(self.assess()["status"], "unverified")
+        assessment = self.assess()
+        self.assertEqual(assessment["status"], "unverified")
+        self.assertIn("current-run navigator protocol is ambiguous across snapshots", assessment["unverified"])
+
+    def test_checkpoint_records_form_the_v3_v4_inventory_and_plan_record_is_required(self):
+        history = [{"action": "a-intake", "stage": "intake"}, {"action": "a-plan", "stage": "plan"}]
+        for protocol in (3, 4):
+            with self.subTest(protocol=protocol):
+                self.use_v3_inventory(["a-plan"])
+                state = self.v3_state(history=history, improve_results={"a-plan": {}}, protocol=protocol)
+                self.result["navigation"] = {"states": [{"state": state}]}
+                assessment = self.assess()
+                self.assertEqual(assessment["status"], "supported-pass", assessment)
+                self.assertNotIn(
+                    "current-run navigator protocol is unsupported; only protocols 3 and 4 supply Improve inventory",
+                    assessment["unverified"],
+                )
+
+                # The un-reviewed intake action is not an Improve inventory item.
+                self.use_v3_inventory(["a-intake", "a-plan"])
+                self.assertEqual(self.assess()["status"], "supported-gap")
+
+                self.use_v3_inventory(["a-plan"])
+                state["improve_results"] = {}
+                self.assertEqual(self.assess()["status"], "unverified")
+                state["improve_results"] = {"a-plan": {}, "not-accepted": {}}
+                self.assertEqual(self.assess()["status"], "invalid")
 
     def test_malformed_present_navigation_containers_do_not_raise_or_support_inventory(self):
         for lifecycle, navigation in ((None, None), ([], {}), ({"run_id": "current"}, [])):
@@ -210,8 +260,10 @@ class WorkflowReviewTests(unittest.TestCase):
         self.assertEqual(self.assess()["status"], "supported-gap")
         self.review["inventory"]["improve_action_ids"].remove("i2")
         self.result["lifecycle"] = {"run_id": "current"}
-        self.result["navigation"] = {"states": [{"state": {"run_id": "current", "history": [
-            {"action": "i1", "stage": "product-improve"}, {"action": "i2", "stage": "outer-improve"}]}}]}
+        self.result["navigation"] = {"states": [{"state": self.v3_state(
+            history=[{"action": "i1", "stage": "plan"}, {"action": "i2", "stage": "release-plan"}],
+            improve_results={"i1": {}, "i2": {}},
+        )}]}
         self.assertEqual(self.assess()["status"], "supported-gap")
 
 

@@ -1,193 +1,119 @@
 # Global system-test catalog
 
-This is the retained managed/legacy catalog contract. Navigator v3 uses its
-[test and outer stages](navigator.md) with ordinary notes/results instead.
-Keep the catalog's run-wide test requirements distinct from the
+The run-wide system-test catalog lists the whole-product cases that item tests
+cannot cover: real integration, consumer, runtime, security, accessibility,
+migration, compatibility and operational boundaries. It is planned at
+`test-strategy`, authored at `system-test-author`, executed at `system-test`,
+reconciled at `product-acceptance`, and, for cases that need the authorized
+release first, observed at `release-verify`. Keep its run-wide test requirements
+distinct from the
 [maintained product requirements](project-knowledge.md#maintained-product-requirements):
-cases cite the applicable product clauses, but a derived test view is not a
-second editable product spec or proof that those clauses passed.
+cases cite the applicable product clauses, but the catalog is not a second
+editable product spec or proof that those clauses passed.
 
-`backchain/plan.md` is the authoritative Markdown home for the run-wide
-system-test catalog. It is part of the accepted DAG, not a second workflow,
-test runner, mutable checklist, or authority to deploy. The protocol may derive
-a readable `system-test-requirements.md` view from that catalog, but the derived
-view is never edited and is not an independent source of state.
-
-This contract applies only to new runs carrying
-`system_test_protocol_version: 1`.
-An older run with an absent marker remains compatible but is **un-certified**
-against this global catalog until it supplies one through its supported planning
-route. An unknown marker version fails closed. Do not insert catalog rows into
-a legacy plan, infer missing IDs, or claim a historical run satisfied this gate.
+The catalog lives in an ordinary durable test note named in the producing
+result's `evidence_refs`, not in a separate state file, workflow, test runner or
+authority to deploy. `system-test-author` retains it as the integrated test plan
+through the
+[OUTER test-planning handshake](repeatable-test-suites.md#outer-test-planning-handshake).
 
 ## Catalog shape
 
-The accepted DAG has `system_tests` with this closed shape:
+Record one row per case in a compact Markdown table:
 
-```json
-{
-  "version": 1,
-  "phases": {
-    "pre_deployment": {
-      "status": "required",
-      "reason": "The integrated prerelease target exercises the shared authorization boundary."
-    },
-    "post_deployment": {
-      "status": "not-applicable",
-      "reason": "This delivery has no deployment; the integrated prerelease target is the final runnable boundary."
-    }
-  },
-  "cases": [
-    {
-      "id": "SYS-ORDER-CREATE",
-      "phase": "pre_deployment",
-      "requirement": "Exercise order creation through the integrated prerelease boundary.",
-      "expected_outcome": "A valid request creates one visible order and an invalid request leaves no order.",
-      "environment": "authorized prerelease fixture tenant",
-      "prerequisites": ["S2"],
-      "test_step": "S7",
-      "test_id": "T-SYSTEM-ORDER-CREATE",
-      "deployment_step": null
-    }
-  ]
-}
-```
+| Field | Record |
+|---|---|
+| Case ID | A stable `SYS-...` identity that never changes meaning. |
+| Phase | `pre-release` (the integrated candidate before release) or `post-release` (the released target, observed at `release-verify`). |
+| Requirement | The product clause or `R-`/`T-` ID it exercises. |
+| Expected outcome | An independent observable result, including absent side effects. |
+| Environment and target | The authorized target, fixture and role; real versus simulated boundaries. |
+| Prerequisites | The work items or readiness evidence the case consumes. |
+| Executable reference | Test path/selector and command, or a reproducible manual procedure when automation is genuinely unavailable. |
+| Owner | The stage that obtains the observation (`system-test` or `release-verify`). |
 
-`version` is exactly `1`. Each phase has exactly `status` and `reason`;
-`status` is `required` or `not-applicable`, and the reason is always concrete.
-Each case has exactly the fields shown. `id` is a stable `SYS-...` identity,
-`phase` is `pre_deployment` or `post_deployment`, `prerequisites` is a unique
-list of DAG step IDs, `test_step` names its owner step, and `test_id`
-names the exact `T-...` test contract in that step. `deployment_step` is a DAG
-step ID or `null`.
+State for each phase whether it is required, or not applicable with a concrete
+reason. When there is no deployment, pre-release means the integrated candidate
+and post-release is not applicable for that stated reason. Both phases may be
+not applicable only when their reasons show why no relevant integrated or
+released boundary exists.
 
-The catalog is deliberately small and typed. Its prose explains intent, but the
-step contract and verification manifest still own executable command details,
-exact acceptance strings, observed result, and local log paths. A catalog row
-does not prove that its test ran or that a remote target is the claimed build.
-`environment` is descriptive; actual check authors must inspect and assert the
+The catalog is deliberately small. The test code and its recorded run own
+command details, observed results and log locations. A catalog row does not
+prove that its test ran or that a remote target is the claimed build. The
+environment field is descriptive; the check itself must inspect and assert the
 actual selected target/build. A reused local or mock result cannot establish a
 remote boundary.
 
 ## Placement and dependency rules
 
-`system-test-pre` and `system-test-post` are ordinary DAG activities, not new
-ShipLoop stages. They use the normal step lifecycle:
+System cases are planned with the work queue, not added as extra graph stages.
+A case whose fixture, harness or target setup needs real work gets an earlier
+work item that produces it; that item follows the normal INNER stages.
+`system-test-author` then authors or refines the whole-product cases and
+fixtures from the assembled candidate, and `system-test` executes the
+pre-release cases against the actual intended candidate.
 
-```text
-step-plan -> implement tests/refinements -> verify/fix -> Improve review
--> plan using the last seven full commit messages -> apply -> lint/tests
--> two applied trivial passes with commits -> merge
-```
-
-The normal step-plan must define Ready/Done criteria, the exact `T-` contract,
-fixtures, target/environment limits, expected outcomes, and documentation
-effects before product edits. After implementation learning, author or refine
-the real tests; run the declared manifest, retain failures, fix justified
-defects, and rerun. A grouped test step is valid when its cases share an
-honest fixture/boundary and its step contract names every included case.
 Apply [repeatable test suites](repeatable-test-suites.md) to the tests and
 fixtures owned by those cases, including the evidence needed to share expensive
-fixtures and the distinction between focused, smoke and full evidence. This
-guidance does not change the catalog shape or extend the protocol to a legacy
-run without its marker.
+fixtures and the distinction between focused, smoke and full evidence.
 
 Plan execution location separately from target location: a local check, a local
 client against a deployed target, or a remote-resident test executing within the
-remote runtime. Discover the available framework, invocation/access and deployment
-prerequisites. Retain remote test definitions/registration and their repeatable
-authorized install, invocation, result retrieval and cleanup route. The full suite
-may require both local and remote parts; a local pass cannot satisfy an unavailable
-remote check. Keep missing readiness/availability explicit at its existing
-pre/post-deployment boundary; do not invent another catalog or deploy to bypass it.
+remote runtime. Discover the available framework, invocation/access and
+deployment prerequisites. Retain remote test definitions/registration and their
+repeatable authorized install, invocation, result retrieval and cleanup route.
+The full suite may require both local and remote parts; a local pass cannot
+satisfy an unavailable remote check. Keep missing readiness explicit at its
+pre- or post-release boundary; do not invent another catalog or deploy to bypass
+it.
 
-Case prerequisites fan in: the `test_step` for a case depends on every listed
-DAG step ID, as well as any actual product/readiness producer it consumes. Do
-not serialize independent cases merely because they appear in one catalog list.
+Case prerequisites fan in: a case depends on every listed prerequisite as well
+as any actual product/readiness producer it consumes. Do not serialize
+independent cases merely because they appear in one catalog.
 
-- A required pre-deployment case uses `activity: system-test-pre`. Its step must
-  complete before the DAG publication step.
-- A required post-deployment case uses `activity: system-test-post`. Its step
-  depends on the DAG publication and declared target-readiness producers.
-- Required real post-deployment testing requires `lifecycle.publish: dag`.
-  `publish: outer-loop` is unsuitable: it is host-reported publication evidence,
-  not an authoring or system-test gate.
-- When there is no deployment, `pre_deployment` means the integrated prerelease
-  target and `post_deployment` must be `not-applicable` with that concrete
-  reason. Both phases may be `not-applicable` only when their reasons show why
-  no relevant integrated or released boundary exists.
+- A required pre-release case must pass at `system-test` before
+  `product-acceptance` can declare pre-release readiness.
+- A required post-release case stays pending with its owner through
+  `product-acceptance` and is observed at `release-verify` after the authorized
+  release.
 
 Unknown target identity, unavailable access, missing authorization, or an
-unresolved real boundary is not `not-applicable`. Record the blocker through the
-existing pause/knowledge/replan route and seek the needed authority.
+unresolved real boundary is not "not applicable". Record the blocker in the
+run note, report `blocked` when the current stage cannot proceed, and seek the
+needed authority.
 
-## Example: one case in an ordinary DAG
+## Example
 
-`SYS-ORDER-CREATE` above depends on `S2`. Its `S7` owner step has test contract
-`T-SYSTEM-ORDER-CREATE`, selects the authorized prerelease tenant, and
-asserts both one created order and no invalid-request side effect. If publication
-is out of scope, this is the integrated prerelease target and the catalog's
-post-deployment phase is N/A for the stated reason. In a separate deployment
-example, this case may set `deployment_step: "S8"` and precede `S8`
-(`activity: publish`); an added post-deployment case would instead name `S9`,
-whose inputs include `S8` and target readiness. This is one fan-in graph, not a
-separate deployment pipeline.
+`SYS-ORDER-CREATE` exercises order creation through the integrated pre-release
+boundary. It depends on the work item that adds the order endpoint and on the
+authorized prerelease fixture tenant. Its expected outcome is one created order
+for a valid request and no order for an invalid one. `system-test` runs it
+against the assembled candidate. If the delivery includes a release, a separate
+post-release case such as `SYS-ORDER-VISIBLE` names `release-verify` as its
+owner and the released target as its environment.
 
 ## Reassessment, change, and closure
 
-Every carry-forward, post-inner, and quality review records this strict
-`system_test_review` object:
+Every `carry-forward` reassesses whether the catalog still matches the
+delivery: no change, with the relevant case IDs and rationale, or a revision. A
+revision that needs new fixture or setup work revises the future queue in that
+same `carry-forward` result so the producer precedes its consumer. The last
+carry-forward's Improve review covers the executed items together, including
+their system-test implications. At outer stages, a needed catalog change is
+corrective work through `replan`.
 
-```json
-{
-  "decision": "no-change",
-  "evidence": "SYS-ORDER-CREATE: the selected integrated boundary and case mapping remain unchanged.",
-  "discovery_ids": []
-}
-```
+Completed or running case definitions stay immutable. Add a corrective case
+for a changed requirement, target or executable assertion; do not rewrite a
+completed row to make previous evidence appear current. A changed candidate
+needs fresh execution of the cases it affects.
 
-The object has exactly `decision`, `evidence`, and `discovery_ids`. `decision`
-is exactly `no-change` or `revise`; `evidence` names relevant case IDs plus
-concrete rationale/deltas; and `discovery_ids` is always a list. A
-`no-change` decision has `[]`. A carry-forward `revise` names the current
-`test-strategy`/`pending-replan` discoveries or already-open obligations that
-require change. Its IDs persist in script-owned `state.system_test_pending`, and
-cold `context --section system-test-requirements` exposes the outstanding IDs.
-A post-inner `revise`—or an outer replan when its `system_test_review` says
-`revise`—requires a pending DAG/plan revision. Quality remains blocked until
-each pending ID is mapped to its typed system-test owner; unrelated work cannot
-discharge it.
-
-`context --section system-test-requirements` renders the current authoritative
-plan even if a derived `system-test-requirements.md` view is altered, missing, or
-out of date. A new fact is recorded first through the existing bounded knowledge
-ledger; a future catalog/test need is a `pending-replan` obligation. An inner
-action may also record a later external dependency through the outer-work side
-journal, but that journal is never system-test evidence and cannot make a failed
-test pass.
-
-Catalog changes use pending-only DAG/plan replan. Completed or running case
-definitions—its test step, exact `T-` test, and deployment linkage—remain
-immutable. Add a corrective case and/or corrective steps for a changed
-requirement, target, or executable assertion; do not rewrite a completed row to
-make previous evidence appear current. This resets the affected convergence and
-requires fresh verification.
-
-The revised catalog must contain a changed or new `SYS-...` case with a changed
-or new pending typed system-test owner, and every pending mapping must reach
-that owner through the DAG. A prose case-ID mention, evidence string, or a
-completed unrelated step is not a mapping and cannot close the obligation.
-
-Quality consumes the accepted catalog, all finished case-step receipts and their
-contract evidence, the latest global reassessment, and current
-`lifecycle.acceptance` checks. It validates each immutable historical case
-against the target epoch saved with its proof; it does not compare an old
-certificate to current knowledge merely because corrective work now exists. A
-changed current requirement instead needs a newly completed corrective case.
-Quality rejects missing, blocked, unrun, altered, or mismatched required proof.
-The final report identifies the catalog in its source inventory and reports
-bounded evidence/limitations; it
-does not infer a remote build identity merely from a catalog field.
+`product-acceptance` consumes the catalog, the executed pre-release results and
+the pending post-release cases. It rejects missing, blocked, unrun or
+mismatched required pre-release evidence; not-yet-due post-release cases remain
+pending with their owner. The final report names the catalog and reports
+bounded evidence and limitations; it does not infer a remote build identity
+merely from a catalog field.
 
 ## Safety boundary
 
@@ -201,12 +127,9 @@ mock, or host-reported smoke result is evidence only for its actual boundary.
 
 ## Runtime and semantic boundary
 
-The runtime can prove the accepted graph, required case IDs, bound receipts and
-digests, and that declared checks executed with their recorded outcomes. It
-cannot prove that a remote identity claim is true, that a test assertion has the
-intended semantic meaning, or that an external environment remains fresh after a
-check. Evidence strings and case-ID mentions remain host judgment: schema
-validation cannot prove comprehension, assertion adequacy, or that every
-relevant case was considered. The host must inspect the actual target/build and
-evaluate assertion adequacy; do not replace that work with a generic
-remote-attestation string or string-equality convention.
+The navigator records host-reported results and enforces stage order. It cannot
+prove that a remote identity claim is true, that a test assertion has the
+intended semantic meaning, that every relevant case was considered, or that an
+external environment remains fresh after a check. The host must inspect the
+actual target/build and evaluate assertion adequacy; do not replace that work
+with a generic remote-attestation string or string-equality convention.

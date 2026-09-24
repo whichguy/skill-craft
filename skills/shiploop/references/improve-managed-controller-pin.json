@@ -1,9 +1,0 @@
-{
-  "contract_path": "references/improve-managed-consumer.md",
-  "contract_sha256": "83c893eab2b9b2277e79e4f66dc133d0e74fc6a618fddd3275a896073d5461e3",
-  "contract_source": "skills/improve/references/managed-consumer.md",
-  "controller": "improve-managed-controller/v1",
-  "sha256": "68a5445e2fb16972b722cc468a49128dc5f606dff84df39a117ec94a8b43e781",
-  "source": "skills/improve/scripts/managed_controller.py",
-  "version": 1
-}

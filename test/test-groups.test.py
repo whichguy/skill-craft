@@ -49,12 +49,6 @@ class TestGroupTests(unittest.TestCase):
         root = Path(temporary.name) / "checkout"
         self._copy_runner(root)
         trace = root / "trace"
-        sync = root / "scripts" / "sync-improve-managed.py"
-        sync.parent.mkdir()
-        sync.write_text(
-            "from pathlib import Path\nimport os\nPath(os.environ['TEST_TRACE']).write_text('sync\\n')\n",
-            encoding="utf-8",
-        )
         env = dict(os.environ, TEST_TRACE=str(trace))
         return root, env
 
@@ -69,14 +63,6 @@ class TestGroupTests(unittest.TestCase):
         trace = parent / "trace"
         env = dict(os.environ, TEST_TRACE=str(trace))
 
-        sync = root / "scripts" / "sync-improve-managed.py"
-        sync.parent.mkdir()
-        sync.write_text(
-            "from pathlib import Path\nimport os, sys\n"
-            "with Path(os.environ['TEST_TRACE']).open('a') as stream: stream.write('sync\\n')\n"
-            "raise SystemExit(7 if os.environ.get('FAIL_SYNC') else 0)\n",
-            encoding="utf-8",
-        )
         for suite in suite_catalog.SUITES:
             target = root / suite.path
             target.parent.mkdir(parents=True, exist_ok=True)
@@ -112,9 +98,9 @@ class TestGroupTests(unittest.TestCase):
         return root, env, parent
 
     def test_audited_catalog_counts_and_fixed_commands(self) -> None:
-        self.assertEqual(len(suite_catalog.SHIPLOOP_SUITES), 103)
+        self.assertEqual(len(suite_catalog.SHIPLOOP_SUITES), 44)
         self.assertEqual(len([suite for suite in suite_catalog.SUITES if suite.family == "core"]), 30)
-        self.assertEqual(len(suite_catalog.SUITES), 135)
+        self.assertEqual(len(suite_catalog.SUITES), 76)
         self.assertTrue(all(suite.hermetic for suite in suite_catalog.SUITES))
         self.assertTrue(all(suite.path in suite.argv for suite in suite_catalog.SUITES))
         self.assertTrue(all(suite.argv[0] in {"python3", "node", "bash"} for suite in suite_catalog.SUITES))
@@ -143,7 +129,7 @@ class TestGroupTests(unittest.TestCase):
             "ask-agent-workspace", "ask-agent-delivery", "ask-agent-managed-harness",
             "experiments-shiploop-chain-native-pilot", "shiploop-chain-handoff",
             "shiploop-chain-async", "shiploop-consumer-delivery",
-            "shiploop-consumer-delivery-cli", "shiploop-delivery-prompts",
+            "shiploop-consumer-delivery-cli",
         } <= names)
         self.assertNotIn("ask-agent-worktree-harness", names)
         self.assertEqual(
@@ -160,10 +146,10 @@ class TestGroupTests(unittest.TestCase):
             members = set(shard)
             self.assertEqual(shard, tuple(suite for suite in canonical if suite in members))
         self.assertEqual(sum(
-            sum(suite.id == "shiploop-action-walk" for suite in shard) for shard in shards
+            sum(suite.id == "shiploop-chain-lifecycle" for suite in shard) for shard in shards
         ), 1)
 
-    def test_list_help_and_invalid_arguments_do_not_execute_or_sync(self) -> None:
+    def test_list_help_and_invalid_arguments_do_not_execute(self) -> None:
         root, env = self.list_fixture()
         for invocation, args, code in (
             (self.invoke_root, ("--list",), 0),
@@ -226,7 +212,7 @@ class TestGroupTests(unittest.TestCase):
         self.assertEqual(result.returncode, 1, result.stdout + result.stderr)
         self.assertEqual(
             (parent / "trace").read_text(encoding="utf-8").splitlines(),
-            ["sync", *(suite.id for suite in selected)],
+            [suite.id for suite in selected],
         )
         receipt = json.loads((output / "receipt.json").read_text(encoding="utf-8"))
         self.assertEqual(receipt["status"], "failed")

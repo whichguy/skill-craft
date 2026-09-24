@@ -40,11 +40,13 @@ class LocalSkillRoutes(unittest.TestCase):
                 result = {"outcome": "done", "summary": "Synthetic navigation setup only."}
                 if stage == "plan":
                     result["work_items"] = [{"id": "W1", "title": "Review evidence"}]
-                waiting = nav.apply(state, action["id"], result)
-                state = nav.finish_improve(waiting, action["id"], {
-                    "summary": "Synthetic navigation setup, no Improve executed.",
-                    "lessons": "No live work claimed.",
-                })
+                state = nav.apply(state, action["id"], result)
+                if state["active_improve"] is not None:
+                    # Only planning checkpoints and the last carry-forward park a child.
+                    state = nav.finish_improve(state, action["id"], {
+                        "summary": "Synthetic navigation setup, no Improve executed.",
+                        "lessons": "No live work claimed.",
+                    })
             self.assertEqual(checked, ["skill-assess", "skill-validate"])
 
 

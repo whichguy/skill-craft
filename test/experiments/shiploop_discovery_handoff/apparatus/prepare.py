@@ -45,7 +45,9 @@ def render_packet(package: Path, case: Path, workspace: Path, task: str) -> tupl
     while navigator.current_stage(state) != "discovery":
         stage, action = navigator.current_stage(state), navigator.current_action(state)["id"]
         seed = {"outcome": "done", "summary": "Synthetic fixture traversal; no project work claimed.", "evidence_refs": []}
-        state = navigator.finish_improve(navigator.apply(state, action, seed), action, receipt(stage))
+        state = navigator.apply(state, action, seed)
+        if state["active_improve"] is not None:  # Only planning checkpoints and the last carry-forward park an Improve child.
+            state = navigator.finish_improve(state, action, receipt(stage))
     run = case / "run"
     run.mkdir()
     navigator.save(run, state)

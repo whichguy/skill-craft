@@ -1,15 +1,14 @@
 # Behavioral requirements contract
 
-These are stack-neutral semantic modeling duties. The companion
-[planning loops](planning-loops.md) now enforce repeated behavior/spec review,
-evidence and finalization; they do not automatically prove semantic completeness.
+These are stack-neutral semantic modeling duties. The spec producer and its
+Improve review apply them; neither automatically proves semantic completeness.
 Read the packet-selected
 section, then only the linked model/source sections needed for this action.
 Model the **requested product's behavior**, not ShipLoop's workflow or task DAG.
 
 ## Discovery and research
 
-Start from the incoming request in `context --section prompt`, not recalled chat.
+Start from the incoming request recorded in `state.md` (`prompt`), not recalled chat.
 Split it into atomic requirements with stable `R-` IDs and exact source pointers.
 Record actors/roles, entities, system and external boundaries, ownership, initial
 conditions, intended outcomes, non-goals, and unknowns. Distinguish user-required
@@ -24,17 +23,15 @@ research, and spec: inspect existing specs and quality policies, reconcile the
 current change, and define applicable non-functional criteria without inventing
 targets. Carry preserved quality conditions into the affected model and checks.
 
-At `approach`, identify modeling scope and high-risk questions. At `survey`,
-inventory the existing flows, state owners, persistence/communication boundaries,
-entrypoints, tests, and documentation in the environment body's prose. Preserve
-the required environment machine record unchanged in shape. At `research`,
+At `discovery`, identify modeling scope and high-risk questions, and inventory
+the existing flows, state owners, persistence/communication boundaries,
+entrypoints, tests, and documentation in the discovery note. At `research`,
 investigate the uncertainties and retain findings in the research result body.
-Survey/research do not authorize product edits or deployment.
-The [research convergence loop](research-loop.md) retains stable questions and
-source evidence, repeats investigation to two checked trivial-only passes, and
-must finalize before behavior drafting. Revisit research explicitly when a new
-source or environmental discovery changes the assumptions before execution;
-reconverge its dependent behavior/spec work instead of reusing stale proof.
+Discovery and research do not authorize product edits or deployment.
+[Research](research-loop.md) retains stable questions and source evidence in
+its run note before the spec drafts behavior. When a new source or environmental
+discovery changes the assumptions before execution, investigate it and revisit
+the dependent spec and plan instead of reusing stale proof.
 
 Research deeply where behavior is uncertain or consequential:
 
@@ -350,18 +347,16 @@ preserve, add, modify or retire affected conditions with an explicit basis.
 Keep lasting accepted intent outside this run's model; preserve the current
 protocol's existing freeze/revision rules rather than silently altering its baseline.
 
-At `behavior`, retrieve the incoming prompt, approach, environment and research
+At `spec`, retrieve the incoming prompt, discovery and research results
 in bounded sections. Store the proposed product behavior in the result `body`:
 a requirement index, sequence flows, state inventory, transition ledger, and
 case mapping. Use compact Markdown tables and Mermaid diagrams where they make
 ordering or state changes clearer. Use consistent IDs and terminology across
 diagrams, tables, tests, and implementation; a pretty diagram alone is not a spec.
 Apply [Discovery and research](#discovery-and-research) to unresolved rules before
-freezing them. Refine this model through the behavior loop. At `spec`, integrate
-the converged model with `done_sentence`, `checkable`, and lifecycle decisions
-in a draft, then run spec improvement. R/F/T model records remain Markdown prose;
-the separate loop's structured finding/rubric fields are specified in
-[Planning loops](planning-loops.md), not an invented model schema.
+accepting them. Write the model with its acceptance decisions; the spec's
+Improve review then challenges it. R/F/T model records remain Markdown
+prose, not an invented model schema.
 
 ### Sequence flows
 
@@ -431,15 +426,14 @@ home for accepted changes without deriving normative intent from observed bugs.
 Retrieve only the current requirement/flow/transition slice and adjacent affected
 paths from the durable behavior model, spec/draft, research, plan and current
 step. Never assume the
-previous prompt's mental model survives. Use `context --section spec|research|plan`
-with one valid section value at a time and bounded pages. During planning use
-`behavior`, `spec-draft`, `lifecycle-draft`, `planning` and `iteration` as
-available. During execution use the active `step`, `iteration`, and current
-`knowledge`. A frozen model records the approved baseline; current observations
-are retrieved separately and must not silently redefine its acceptance.
+previous prompt's mental model survives. Read the accepted spec, research and
+plan results the packet names in `state.md` and their linked notes, and during
+execution the current item's step-plan and test-decision sources. The accepted
+spec records the approved baseline; current observations are retrieved
+separately and must not silently redefine its acceptance.
 
-Use this breadth audit on every behavior/spec review and at sequence, then every affected Improve
-cycle; at outer quality, reconcile the whole in-scope model:
+Use this breadth audit on every spec and plan review and every affected Improve
+cycle; at `product-acceptance`, reconcile the whole in-scope model:
 
 1. **Prompt to outcome:** every `R-` requirement has a flow/outcome, relevant
    transitions, and acceptance cases, or a justified non-behavioral applicability
@@ -455,8 +449,6 @@ cycle; at outer quality, reconcile the whole in-scope model:
    does not establish every meaningful sequence or concurrency interleaving.
 4. **Tests and evidence:** map required `R-/F-/T-` IDs to stable case IDs with
    preconditions/events and explicit expected state, output, errors and effects.
-   Map cases to exact step `produces` and lifecycle acceptance strings as needed;
-   IDs supplement those strings, never replace the check manifest contract.
    Select browser/service/API surfaces by risk and actual environment. Keep
    expected outcomes separate from observed status/revision/evidence; required
    failed, blocked, or unrun cases remain unfinished.
@@ -469,41 +461,40 @@ Carry this model through the existing stages:
 
 | Stage | Durable action |
 | --- | --- |
-| `behavior` and its loop | Draft the model, repeatedly discover edges, preserve stable findings, resolve them and converge before spec authoring. |
-| `spec` and its loop | Integrate the converged model, challenge clarity/consistency/feasibility, and converge before freezing the spec or sequencing work. |
-| `sequence` | Map the behavior/test/documentation outputs and dependencies into pending steps. Put contract, environment and deployment prerequisites before their consumers. Keep product behavior order distinct from the work DAG. |
-| `implement` | Implement the active slice, cases, and enduring product diagrams/ledger where needed; compare with the frozen spec, not an improvised model. |
-| `review` / `improve-plan` / `improve-apply` | Read Git history first at review. Audit affected and adjacent paths, plan fixes, then update code/tests/docs before verification. Preserve learnings and model deltas in the existing result fields. |
-| `verify` / `final-verify` | Run lint and all required checks, compare expected transitions/effects with observations. Do not silently adjust expectations to match failures. |
-| `carry-forward` | After an execution iteration's checks, distill new observations with source, scope, revalidation guidance and impact. Current-step corrections restart review; broader obligations remain visible for post-inner; incompatible contracts pause. |
-| `post-inner` | Ask whether discovered behavior changes broader pending steps, prerequisites, cases, or documentation. Revise only pending work within the frozen spec; record no-change rationale otherwise. |
-| `quality` | Reconcile end-to-end flows and state interactions across merged steps with whole-product evidence; corrective work returns through pending DAG steps and full inner loops. |
-| `handoff` | Link the behavior model and case evidence, naming scope/exclusions and unresolved limitations honestly. Generic harness proposals stay in the separate ShipLoop journal. |
+| `discovery`, `research` | Inventory existing flows, state owners and boundaries; investigate uncertain or consequential behavior without product edits. |
+| `spec` and its Improve review | Write the model, challenge clarity/consistency/feasibility, and settle it before planning. |
+| `test-strategy`, `plan` | Map the behavior/test/documentation outputs and dependencies into ordered work items. Put contract, environment and deployment prerequisites before their consumers. Keep product behavior order distinct from the work queue. |
+| `step-plan`, `test-spec` | Select the item's slice, cases and expected transitions/effects before code. |
+| `implement` | Implement the active slice, cases, and enduring product diagrams/ledger where needed; compare with the accepted spec, not an improvised model. |
+| `test-green`, `regression`, `verify` | Run lint and all required checks, compare expected transitions/effects with observations. Do not silently adjust expectations to match failures. |
+| `carry-forward` | Distill new observations with source, scope, revalidation guidance and impact. Revise only future work within the accepted spec; incompatible contracts pause. |
+| `product-acceptance` | Reconcile end-to-end flows and state interactions across items with whole-product evidence; corrective work returns through `replan` and new work items. |
+| `handoff` | Link the behavior model and case evidence, naming scope/exclusions and unresolved limitations honestly. Generic harness proposals stay separate. |
 
-If learning contradicts frozen scope/acceptance, stop and seek direction, not a
-silent spec edit. Before any step exists, use the supported `revisit` correction
-path; pending-only replanning cannot change frozen acceptance. Never invent a
-rewind command or directly modify authority files to bypass the protocol.
+If learning contradicts accepted scope/acceptance, stop and seek direction, not a
+silent spec edit. Future-queue revision cannot change accepted acceptance. Never
+invent a rewind command or directly modify authority files to bypass the
+protocol.
 During execution, preserve the observation in the
 [project knowledge checkpoint](carry-forward.md), including what it contradicts
 and which consumers are affected. The separate living ledger preserves learning
 without falsely certifying a replacement spec or hiding a changed assumption.
 Use the [execution research assessment](research-loop.md#later-discoveries) for
-new unanswered questions: investigate current-scope gaps inside Improve, or
-create a research prerequisite before affected pending consumers. Material
+new unanswered questions: investigate current-scope gaps in the current stage
+or its Improve review, or add a research item before affected future consumers. Material
 environmental/behavior uncertainty cannot be classified as non-semantic polish.
 
-Persist compact source/decision summaries and IDs in existing `body`, `plan`,
-`test_review`, `test_changes`, `learnings`, or `summary` as appropriate. Before
+Persist compact source/decision summaries and IDs in the result `summary` and
+the run notes its `evidence_refs` name. Before
 implementation, the spec/plan holds the proposed model. Plan enduring product
 model docs as worktree artifacts; link their current sections/revisions after
 creation. Keep essential rules and unresolved decisions inline in authoritative
 Markdown so deleting a draft or clearing context loses no decision. Large
 diagrams and evidence can be linked/paged; an ephemeral draft-only link is not
 durable state. Do not dump all histories or the human-oriented ShipLoop README
-into every action packet. Scripts preserve imported records and enforce the
-loop, ledger, rubric presence, check/commit evidence and promotion gates; they do
-not determine transition coverage or meaning automatically.
+into every action packet. Scripts preserve accepted results and enforce the
+graph's transitions; they do not determine transition coverage or meaning
+automatically.
 
 ## Worked example
 

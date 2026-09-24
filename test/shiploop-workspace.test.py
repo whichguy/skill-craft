@@ -1301,44 +1301,8 @@ class ShipLoopWorkspaceTests(unittest.TestCase):
         self.assertEqual((self.repo / ".git" / "index").read_bytes(), absent_lock_index)
         self.assertEqual(self._common_object_snapshot(), absent_lock_objects)
 
-    def test_public_workspace_commands_start_plan_and_return(self) -> None:
-        root = self.base / "public cli workspace"
-        started = self.cli(
-            "workspace",
-            "start",
-            "--repo",
-            str(self.repo),
-            "--workspace-root",
-            str(root),
-            "--protocol-version",
-            "2",
-            "--prompt",
-            "Add one small isolated feature.",
-        )
-        self.assertIn("ShipLoop navigator | intake", started.stdout)
-        self.assertIn("Call this when done:", started.stdout)
-        manifest = store.read_record(root / "workspace.md")
-        self.assertEqual(manifest["status"], "prepared")
-        self.assertTrue((root / "run" / "state.md").is_file())
-        worktree = root / "worktree"
-        (worktree / "cli-feature.txt").write_text("CLI candidate\n", encoding="utf-8")
-        self._commit_all(worktree, "CLI candidate")
-
-        planned = self.cli(
-            "workspace", "plan-return", "--workspace-root", str(root)
-        )
-        self.assertIn("Review all keep/exclude dispositions", planned.stdout)
-        self._resolve_plan(root)
-        # The return itself is a whole-run handoff: it is intentionally not
-        # available during intake or an inner item.  Use a synthetic valid
-        # graph walk here only to reach the public command's allowed boundary.
-        state = self._advance_to_handoff(store.read_record(root / "run" / "state.md"))
-        navigator.save(root / "run", state)
-        returned = self.cli("workspace", "return", "--workspace-root", str(root))
-        self.assertIn("Verified workspace return", returned.stdout)
-        self.assertEqual(store.read_record(root / "return-receipt.md")["status"], "returned")
-
     def test_public_return_is_refused_before_release_or_handoff_without_mutation(self) -> None:
+        """Return needs active release/handoff and no active Improve child."""
         root = self.base / "early return"
         self.cli(
             "workspace",
@@ -1347,8 +1311,6 @@ class ShipLoopWorkspaceTests(unittest.TestCase):
             str(self.repo),
             "--workspace-root",
             str(root),
-            "--protocol-version",
-            "2",
             "--prompt",
             "Do not return before the outer lifecycle is ready.",
         )
@@ -1364,6 +1326,56 @@ class ShipLoopWorkspaceTests(unittest.TestCase):
         self.assertEqual(self._workspace_snapshot(root), run_before)
         self.assertFalse((root / "return-receipt.md").exists())
 
+        # Handoff never parks a child under the Improve schedule, so a child
+        # there is synthesized directly, solely to exercise the return gate.
+        run = root / "run"
+        state = self._advance_to_handoff(store.read_record(run / "state.md"))
+        action = navigator.current_action(state)
+        state["active_improve"] = {
+            "action_id": action["id"], "stage": "handoff",
+            "binding_id": state["run_id"] + "/" + action["id"],
+            "workspace": state["repo"],
+            "seed_result": {"outcome": "done", "summary": "Synthetic parked handoff.",
+                            "evidence_refs": []},
+            "skill": None,
+        }
+        state["revision"] += 1
+        navigator.save(run, state)
+        source_before = self._source_snapshot()
+        run_before = self._workspace_snapshot(root)
+
+        awaiting = self.cli(
+            "workspace", "return", "--workspace-root", str(root), code=2
+        )
+
+        self.assertIn("awaits the active Improve child", awaiting.stderr)
+        self._assert_source_unchanged(source_before)
+        self.assertEqual(self._workspace_snapshot(root), run_before)
+        self.assertFalse((root / "return-receipt.md").exists())
+
+    def test_plan_return_refuses_a_retired_saved_run_without_mutation(self) -> None:
+        """plan-return, like every run-bound verb, refuses a run it cannot load."""
+        root = self.base / "retired plan return"
+        self.cli(
+            "workspace", "start", "--repo", str(self.repo), "--workspace-root", str(root),
+            "--prompt", "Refuse planning a return for a retired run.",
+        )
+        state = store.read_record(root / "run" / "state.md")
+        state["navigator_protocol_version"] = 2
+        store.write_record(root / "run" / "state.md", state)
+        manifest_before = (root / "workspace.md").read_bytes()
+        source_before = self._source_snapshot()
+
+        refused = self.cli(
+            "workspace", "plan-return", "--workspace-root", str(root), code=2
+        )
+
+        self.assertIn("navigator protocol 2", refused.stderr)
+        self.assertIn("fresh --run-dir", refused.stderr)
+        self.assertEqual((root / "workspace.md").read_bytes(), manifest_before)
+        self.assertFalse((root / "return-plan.md").exists())
+        self._assert_source_unchanged(source_before)
+
     def test_workspace_start_replay_is_idempotent_and_rejects_changed_scope_or_capture(self) -> None:
         root = self.base / "replayed workspace start"
         prompt = "Make one isolated feature without replacing this run."
@@ -1374,8 +1386,6 @@ class ShipLoopWorkspaceTests(unittest.TestCase):
             str(self.repo),
             "--workspace-root",
             str(root),
-            "--protocol-version",
-            "2",
             "--prompt",
             prompt,
         )
@@ -1390,8 +1400,6 @@ class ShipLoopWorkspaceTests(unittest.TestCase):
             str(self.repo),
             "--workspace-root",
             str(root),
-            "--protocol-version",
-            "2",
             "--prompt",
             prompt,
         )
@@ -1407,8 +1415,6 @@ class ShipLoopWorkspaceTests(unittest.TestCase):
             str(self.repo),
             "--workspace-root",
             str(root),
-            "--protocol-version",
-            "2",
             "--prompt",
             "A distinct request must use a new workspace.",
             code=2,
@@ -1421,8 +1427,6 @@ class ShipLoopWorkspaceTests(unittest.TestCase):
             str(self.repo),
             "--workspace-root",
             str(root),
-            "--protocol-version",
-            "2",
             "--prompt",
             prompt,
             "--include-untracked",
@@ -1437,64 +1441,61 @@ class ShipLoopWorkspaceTests(unittest.TestCase):
     def test_fresh_workspace_roots_isolate_identical_prompts(self) -> None:
         """Same text in a new root creates a new run and preserves the old cursor."""
         prompt = "Keep this request independent even when an identical run exists."
-        for label, protocol_args, protocol_version in (
-            ("default-v3", (), 3),
-            ("explicit-v2", ("--protocol-version", "2"), 2),
-        ):
-            with self.subTest(protocol=label):
-                old_root = self.base / f"{label} original workspace"
-                fresh_root = self.base / f"{label} fresh workspace"
-                self.cli(
-                    "workspace",
-                    "start",
-                    "--repo",
-                    str(self.repo),
-                    "--workspace-root",
-                    str(old_root),
-                    *protocol_args,
-                    "--prompt",
-                    prompt,
-                )
-                old_workspace_before = (old_root / "workspace.md").read_bytes()
-                old_state_before = (old_root / "run" / "state.md").read_bytes()
-                old_state = store.read_record(old_root / "run" / "state.md")
+        old_root = self.base / "original workspace"
+        fresh_root = self.base / "fresh workspace"
+        self.cli(
+            "workspace",
+            "start",
+            "--repo",
+            str(self.repo),
+            "--workspace-root",
+            str(old_root),
+            "--prompt",
+            prompt,
+        )
+        old_workspace_before = (old_root / "workspace.md").read_bytes()
+        old_state_before = (old_root / "run" / "state.md").read_bytes()
+        old_state = store.read_record(old_root / "run" / "state.md")
 
-                self.cli(
-                    "workspace",
-                    "start",
-                    "--repo",
-                    str(self.repo),
-                    "--workspace-root",
-                    str(fresh_root),
-                    *protocol_args,
-                    "--prompt",
-                    prompt,
-                )
-                fresh_workspace_before = (fresh_root / "workspace.md").read_bytes()
-                fresh_state_before = (fresh_root / "run" / "state.md").read_bytes()
-                fresh_state = store.read_record(fresh_root / "run" / "state.md")
+        self.cli(
+            "workspace",
+            "start",
+            "--repo",
+            str(self.repo),
+            "--workspace-root",
+            str(fresh_root),
+            "--prompt",
+            prompt,
+        )
+        fresh_workspace_before = (fresh_root / "workspace.md").read_bytes()
+        fresh_state_before = (fresh_root / "run" / "state.md").read_bytes()
+        fresh_state = store.read_record(fresh_root / "run" / "state.md")
 
-                self.assertEqual(old_state["status"], "active")
-                self.assertEqual(fresh_state["status"], "active")
-                self.assertEqual(old_state["navigator_protocol_version"], protocol_version)
-                self.assertEqual(fresh_state["navigator_protocol_version"], protocol_version)
-                self.assertEqual(old_state["prompt"].encode("utf-8"), prompt.encode("utf-8"))
-                self.assertEqual(fresh_state["prompt"].encode("utf-8"), prompt.encode("utf-8"))
-                self.assertNotEqual(old_state["run_id"], fresh_state["run_id"])
-                self.assertNotEqual(old_state["action"]["id"], fresh_state["action"]["id"])
-                self.assertEqual((old_root / "workspace.md").read_bytes(), old_workspace_before)
-                self.assertEqual((old_root / "run" / "state.md").read_bytes(), old_state_before)
+        self.assertEqual(old_state["status"], "active")
+        self.assertEqual(fresh_state["status"], "active")
+        self.assertEqual(old_state["navigator_protocol_version"], 3)
+        self.assertEqual(fresh_state["navigator_protocol_version"], 3)
+        self.assertEqual(old_state["prompt"].encode("utf-8"), prompt.encode("utf-8"))
+        self.assertEqual(fresh_state["prompt"].encode("utf-8"), prompt.encode("utf-8"))
+        self.assertNotEqual(old_state["run_id"], fresh_state["run_id"])
+        self.assertNotEqual(old_state["action"]["id"], fresh_state["action"]["id"])
+        self.assertEqual((old_root / "workspace.md").read_bytes(), old_workspace_before)
+        self.assertEqual((old_root / "run" / "state.md").read_bytes(), old_state_before)
 
-                recovered = self.cli("next", "--run-dir", str(old_root / "run"))
-                self.assertIn("ShipLoop navigator | intake", recovered.stdout)
-                self.assertEqual((old_root / "workspace.md").read_bytes(), old_workspace_before)
-                self.assertEqual((old_root / "run" / "state.md").read_bytes(), old_state_before)
-                self.assertEqual((fresh_root / "workspace.md").read_bytes(), fresh_workspace_before)
-                self.assertEqual((fresh_root / "run" / "state.md").read_bytes(), fresh_state_before)
+        recovered = self.cli("next", "--run-dir", str(old_root / "run"))
+        self.assertIn("ShipLoop navigator | intake", recovered.stdout)
+        self.assertEqual((old_root / "workspace.md").read_bytes(), old_workspace_before)
+        self.assertEqual((old_root / "run" / "state.md").read_bytes(), old_state_before)
+        self.assertEqual((fresh_root / "workspace.md").read_bytes(), fresh_workspace_before)
+        self.assertEqual((fresh_root / "run" / "state.md").read_bytes(), fresh_state_before)
 
     @staticmethod
     def _advance_to_handoff(state: dict) -> dict:
-        """Build a valid terminal-adjacent navigator fixture without host work."""
+        """Build a valid terminal-adjacent navigator fixture without host work.
+
+        Improve checkpoints return through explicitly synthetic receipts; no
+        Improve runtime or review runs.
+        """
         while state["status"] != "done":
             action = navigator.current_action(state)
             if action["stage"] == "handoff":
@@ -1511,9 +1512,18 @@ class ShipLoopWorkspaceTests(unittest.TestCase):
                         "context": "Only test navigator terminal gating.",
                     }
                 ]
-            if action["stage"] == "document":
-                result["choices"] = {"skill_required": False}
             state = navigator.apply(state, action["id"], result)
+            if state["active_improve"] is not None:
+                state = navigator.finish_improve(
+                    state,
+                    action["id"],
+                    {
+                        "summary": "Synthetic Improve for " + action["stage"] + ".",
+                        "review_refs": [],
+                        "check_refs": [],
+                        "lessons": "Only test workspace handoff gating.",
+                    },
+                )
         raise AssertionError("navigator reached done before handoff")
 
     def test_worktree_navigator_cannot_complete_handoff_without_return_receipt(self) -> None:
@@ -1525,8 +1535,6 @@ class ShipLoopWorkspaceTests(unittest.TestCase):
             str(self.repo),
             "--workspace-root",
             str(root),
-            "--protocol-version",
-            "2",
             "--prompt",
             "Guard the isolated workspace handoff.",
         )
@@ -1562,60 +1570,6 @@ class ShipLoopWorkspaceTests(unittest.TestCase):
         self.assertEqual((run / "state.md").read_bytes(), before)
         self.assertFalse((run / "report.html").exists())
 
-    def test_verified_return_allows_the_same_worktree_handoff_to_complete(self) -> None:
-        """The terminal guard rejects missing proof without making valid proof unusable."""
-        root = self.base / "successful guarded handoff"
-        self.cli(
-            "workspace",
-            "start",
-            "--repo",
-            str(self.repo),
-            "--workspace-root",
-            str(root),
-            "--protocol-version",
-            "2",
-            "--prompt",
-            "Complete one isolated handoff after a verified return.",
-        )
-        worktree = root / "worktree"
-        (worktree / "handoff-feature.txt").write_text("returned feature\n", encoding="utf-8")
-        self._commit_all(worktree, "candidate handoff feature")
-        run = (root / "run").resolve()
-        state = self._advance_to_handoff(store.read_record(run / "state.md"))
-        navigator.save(run, state)
-        self.cli("workspace", "plan-return", "--workspace-root", str(root))
-        self._resolve_plan(root)
-        returned = self.cli("workspace", "return", "--workspace-root", str(root))
-        self.assertIn("Verified workspace return", returned.stdout)
-        action = navigator.current_action(store.read_record(run / "state.md"))
-        result_path = run / "inbox" / f"{action['id']}.md"
-        store.write_record(
-            result_path,
-            {
-                "outcome": "done",
-                "summary": "Verified workspace return is available to the terminal guard.",
-            },
-            "ShipLoop navigator result",
-        )
-
-        completed = self.cli(
-            "complete",
-            "--run-dir",
-            str(run),
-            "--action",
-            action["id"],
-            "--result",
-            str(result_path),
-        )
-
-        self.assertIn("It's all complete.", completed.stdout)
-        self.assertEqual(store.read_record(run / "state.md")["status"], "done")
-        self.assertEqual(
-            (self.repo / "handoff-feature.txt").read_text(encoding="utf-8"),
-            "returned feature\n",
-        )
-        self.assertEqual(store.read_record(root / "return-receipt.md")["status"], "returned")
-
     def test_return_projection_stays_current_across_terminal_cold_and_report_packets(self) -> None:
         """A historical handoff summary cannot keep a drifted receipt current."""
         root = self.base / "return projection"
@@ -1626,11 +1580,10 @@ class ShipLoopWorkspaceTests(unittest.TestCase):
             str(self.repo),
             "--workspace-root",
             str(root),
-            "--protocol-version",
-            "2",
             "--prompt",
             "Project the current guarded workspace return into packets.",
         )
+        self.assertEqual(store.read_record(root / "workspace.md")["status"], "prepared")
         run = (root / "run").resolve()
         receipt_path = run.parent / "return-receipt.md"
         initial_state = store.read_record(run / "state.md")
@@ -1648,9 +1601,11 @@ class ShipLoopWorkspaceTests(unittest.TestCase):
         self._commit_all(worktree, "candidate for return projection")
         state = self._advance_to_handoff(store.read_record(run / "state.md"))
         navigator.save(run, state)
-        self.cli("workspace", "plan-return", "--workspace-root", str(root))
+        planned = self.cli("workspace", "plan-return", "--workspace-root", str(root))
+        self.assertIn("Review all keep/exclude dispositions", planned.stdout)
         self._resolve_plan(root)
-        self.cli("workspace", "return", "--workspace-root", str(root))
+        returned = self.cli("workspace", "return", "--workspace-root", str(root))
+        self.assertIn("Verified workspace return", returned.stdout)
         returned_kind = store.read_record(receipt_path)["kind"]
 
         returned_state = store.read_record(run / "state.md")
@@ -1690,6 +1645,13 @@ class ShipLoopWorkspaceTests(unittest.TestCase):
         )
         self.assertIn("It's all complete.", terminal.stdout)
         self.assertIn("Current workspace return: currently verified", terminal.stdout)
+        # The verified return lets the same worktree handoff complete.
+        self.assertEqual(store.read_record(run / "state.md")["status"], "done")
+        self.assertEqual(
+            (self.repo / "return-projection-feature.txt").read_text(encoding="utf-8"),
+            "returned feature\n",
+        )
+        self.assertEqual(store.read_record(receipt_path)["status"], "returned")
 
         (worktree / "return-projection-feature.txt").write_text(
             "candidate drift after terminal handoff\n", encoding="utf-8"
@@ -1732,33 +1694,6 @@ class ShipLoopWorkspaceTests(unittest.TestCase):
         self.assertEqual(state["execution_mode"], "navigator-worktree")
         self.assertIsNone(state["active_improve"])
         self.assertIn("ShipLoop navigator | intake", started.stdout)
-
-    def test_explicit_v2_and_v1_direct_navigator_cold_recovery_remain_unchanged(self) -> None:
-        for mode in ("navigator-v2", "navigator-v1"):
-            with self.subTest(mode=mode):
-                run = self.base / f"{mode} direct run"
-                created = self.cli(
-                    "init",
-                    "--repo",
-                    str(self.repo),
-                    "--run-dir",
-                    str(run),
-                    "--execution-mode",
-                    mode,
-                    "--prompt",
-                    "Keep existing navigator behavior stable.",
-                )
-                self.assertEqual(created.returncode, 0)
-                before = (run / "state.md").read_bytes()
-                recovered = self.cli("next", "--run-dir", str(run))
-                self.assertEqual(recovered.returncode, 0)
-                self.assertEqual((run / "state.md").read_bytes(), before)
-                state = store.read_record(run / "state.md")
-                self.assertEqual(
-                    state["navigator_protocol_version"], 1 if mode == "navigator-v1" else 2
-                )
-                self.assertNotEqual(state.get("execution_mode"), "navigator-worktree")
-
 
 if __name__ == "__main__":
     unittest.main(verbosity=2)

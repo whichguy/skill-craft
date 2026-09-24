@@ -47,10 +47,12 @@ class NavigatorV4Tests(unittest.TestCase):
         self.skill = bridge.resolve_skill(str(ROOT / "skills" / "improve" / "SKILL.md"))
 
     def state(self, protocol_version: int = 4) -> dict:
+        # The delegated route is the one these packets contrast with inline.
         return navigator.new_state(
             str(self.repo.resolve()),
             "Reconcile a planning premise in a small isolated project.",
             protocol_version=protocol_version,
+            delegation="ask-agent",
         )
 
     @staticmethod
@@ -329,6 +331,7 @@ class NavigatorV4Tests(unittest.TestCase):
         alias.symlink_to(self.repo, target_is_directory=True)
         state = navigator.new_state(
             str(alias), "Reconcile a plan through a workspace alias.", protocol_version=4,
+            delegation="ask-agent",
         )
         while navigator.current_stage(state) != "plan":
             state = self.complete_synthetic(state)

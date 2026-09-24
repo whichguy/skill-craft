@@ -8,6 +8,8 @@ from __future__ import annotations
 from collections.abc import Mapping
 from pathlib import Path
 
+# Every accepted result at these stages passed through its own Improve child.
+from dag_replay import _V3_PLANNING_CHECKPOINTS as PLANNING_REVIEW_STAGES
 from grading import _artifact_result
 
 
@@ -30,13 +32,19 @@ def _evidence(rows: object, root: Path, label: str, errors: list[str]) -> None:
             errors.append(f"{label}: invalid evidence {index}")
 
 
+_SUPPORTED_PROTOCOLS = (3, 4)
+
+
 def _observed_improve_actions(result: dict, errors: list[str], unknown: list[str]) -> tuple[set[str], bool, bool]:
     """Return current-run completed Improve actions without inferring review truth.
 
-    Version 3 stores a completed Improve receipt by its ordinary producer action
-    ID. Legacy runs instead retain explicit ``*-improve`` history stages. A
-    partial or malformed v3 snapshot is an audit limitation, never a completed
-    child record manufactured from an active producer.
+    Navigator protocols 3 and 4 store a completed Improve receipt by its
+    ordinary producer action ID, and only checkpoint actions carry one. The
+    inventory is therefore exactly the recorded actions. As in the navigator,
+    every record must belong to an accepted action and every accepted ``plan``
+    action must have one. A snapshot of any other protocol cannot supply an
+    inventory. A partial or malformed snapshot is an audit limitation, never a
+    completed child record manufactured from an active producer.
     """
     has_lifecycle = "lifecycle" in result
     has_navigation = "navigation" in result
@@ -57,9 +65,8 @@ def _observed_improve_actions(result: dict, errors: list[str], unknown: list[str
         return set(), False, False
 
     observed: set[str] = set()
-    v3_inventories: set[frozenset[str]] = set()
-    saw_v3 = False
-    saw_legacy = False
+    inventories: set[frozenset[str]] = set()
+    protocols: set[object] = set()
     known = False
     comparable = True
     for row in states:
@@ -67,21 +74,19 @@ def _observed_improve_actions(result: dict, errors: list[str], unknown: list[str
         if not isinstance(state, Mapping) or state.get("run_id") != run_id:
             continue
         known = True
+        protocol = state.get("navigator_protocol_version")
+        protocols.add(protocol if type(protocol) is int else None)
+        if type(protocol) is not int or protocol not in _SUPPORTED_PROTOCOLS:
+            unknown.append("current-run navigator protocol is unsupported; only protocols 3 and 4 supply Improve inventory")
+            comparable = False
+            continue
         history = state.get("history")
         if not isinstance(history, list):
             errors.append("current-run navigator history is malformed")
             continue
-        if state.get("navigator_protocol_version") != 3:
-            saw_legacy = True
-            for entry in history:
-                if isinstance(entry, Mapping) and "improve" in str(entry.get("stage", "")):
-                    action = entry.get("action")
-                    if isinstance(action, str) and action:
-                        observed.add(action)
-            continue
 
-        saw_v3 = True
         action_ids: list[str] = []
+        plan_ids: set[str] = set()
         malformed_history = False
         for entry in history:
             action = entry.get("action") if isinstance(entry, Mapping) else None
@@ -89,43 +94,44 @@ def _observed_improve_actions(result: dict, errors: list[str], unknown: list[str
                 malformed_history = True
                 break
             action_ids.append(action)
+            if entry.get("stage") in PLANNING_REVIEW_STAGES:
+                plan_ids.add(action)
         if malformed_history or len(set(action_ids)) != len(action_ids):
-            errors.append("current-run v3 accepted history is malformed")
+            errors.append("current-run accepted history is malformed")
             continue
 
         records = state.get("improve_results")
         if records is None:
-            unknown.append("current-run v3 Improve records are missing")
+            unknown.append("current-run Improve records are missing")
             comparable = False
             continue
         if not isinstance(records, Mapping):
-            errors.append("current-run v3 Improve records are malformed")
+            errors.append("current-run Improve records are malformed")
             continue
         record_ids = set(records)
         if any(not isinstance(action, str) or not action for action in record_ids):
-            errors.append("current-run v3 Improve record ID is malformed")
+            errors.append("current-run Improve record ID is malformed")
             continue
         if any(not isinstance(receipt, Mapping) for receipt in records.values()):
-            errors.append("current-run v3 Improve receipt is malformed")
+            errors.append("current-run Improve receipt is malformed")
             continue
-        expected = set(action_ids)
-        missing = expected - record_ids
-        extra = record_ids - expected
-        if missing:
-            unknown.append("current-run v3 Improve records are incomplete")
-            comparable = False
+        extra = record_ids - set(action_ids)
+        missing_plans = plan_ids - record_ids
         if extra:
-            errors.append("current-run v3 Improve records have no accepted parent action")
-        if not missing and not extra:
-            observed.update(expected)
-            v3_inventories.add(frozenset(expected))
+            errors.append("current-run Improve records have no accepted parent action")
+        if missing_plans:
+            unknown.append("current-run accepted planning-stage result has no Improve record")
+            comparable = False
+        if not extra and not missing_plans:
+            observed.update(record_ids)
+            inventories.add(frozenset(record_ids))
     if not known:
         unknown.append("current-run navigator state is missing")
         comparable = False
-    if len(v3_inventories) > 1:
-        unknown.append("current-run v3 Improve inventory is ambiguous across snapshots")
+    if len(inventories) > 1:
+        unknown.append("current-run Improve inventory is ambiguous across snapshots")
         comparable = False
-    if saw_v3 and saw_legacy:
+    if len(protocols) > 1:
         unknown.append("current-run navigator protocol is ambiguous across snapshots")
         comparable = False
     return observed, known, comparable

@@ -406,8 +406,9 @@ def render_packet(
                 ],
                 evidence_refs=[plan_ref] if plan_ref else [],
             )
-        waiting = navigator.apply(state, action, result)
-        state = navigator.finish_improve(waiting, action, receipt(stage))
+        state = navigator.apply(state, action, result)
+        if state["active_improve"] is not None:  # Only planning checkpoints and the last carry-forward park an Improve child.
+            state = navigator.finish_improve(state, action, receipt(stage))
     run = case / "run"
     run.mkdir(parents=True)
     navigator.save(run, state)

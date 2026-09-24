@@ -59,8 +59,10 @@ class ChainFixture(unittest.TestCase):
         self.run = self.base / "run"
         self.run.mkdir()
         self.original_prompt_sentinel = "ORIGINAL-USER-PROMPT-SENTINEL: never copy this into planning references"
+        # A chain is the ask-agent route; an inline run executes steps directly.
         self.state = nav.new_state(
-            str(self.target), self.original_prompt_sentinel, protocol_version=3
+            str(self.target), self.original_prompt_sentinel, protocol_version=3,
+            delegation="ask-agent",
         )
         self.planning_dir = self.base / "planning-material"
         self.planning_dir.mkdir()
@@ -131,8 +133,11 @@ class ChainFixture(unittest.TestCase):
                     "context": "Use the reviewed context-code contract and the architecture decision.",
                 }]
             self.state = nav.apply(self.state, aid, value)
-            improve, improve_writes = self.synthetic_improve_record(aid, stage)
-            self.state = nav.finish_improve(self.state, aid, improve)
+            improve_writes = None
+            if self.state["active_improve"] is not None:
+                # Only an Improve checkpoint parks a child to import.
+                improve, improve_writes = self.synthetic_improve_record(aid, stage)
+                self.state = nav.finish_improve(self.state, aid, improve)
             self.planning_action_ids.append(aid)
             nav.save(self.run, self.state, improve_writes)
         # Public navigator operations retain this generic run lock. Include it

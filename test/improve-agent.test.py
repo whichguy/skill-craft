@@ -88,6 +88,16 @@ class InlineImproveTests(unittest.TestCase):
         self.assertNotIn("return the cumulative\n[completion summary]", card)
         self.assertNotIn("This executor assignment applies only", card)
 
+    def test_shiploop_managed_subrun_route_is_removed(self) -> None:
+        # ShipLoop's managed execution mode was the controller's only consumer.
+        for relative in ("scripts/managed_controller.py", "references/managed-consumer.md"):
+            self.assertFalse((IMPROVE / relative).exists(), relative)
+        for card in (IMPROVE / "SKILL.md", IMPROVE / "README.md"):
+            body = text(card)
+            for phrase in ("managed_controller", "managed-consumer", "managed-improve",
+                           "managed subrun", "managed-subrun"):
+                self.assertNotIn(phrase, body, f"{card.name}: {phrase}")
+
     def test_policy_selects_independent_review_through_the_binding(self) -> None:
         policy = flat(IMPROVE / "references" / "review-policy.md")
         self.assertIn("only when the owner binding selects independent review", policy)

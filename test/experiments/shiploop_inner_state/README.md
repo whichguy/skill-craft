@@ -1,5 +1,11 @@
 # Per-work-item state and independent Improve trial
 
+> **Historical (ShipLoop 0.23.0).** This experiment drives navigator
+> protocol 2 (`init` with the `*-improve` stages), which ShipLoop 0.23.0
+> removed; its scripts no longer run against the current `skills/shiploop`
+> package. The preregistration, evidence and results remain the record of
+> what was observed. Reproduce it only from a checkout that predates 0.23.0.
+
 This opt-in experiment uses the public CLI to prepare two work items. Setup is
 synthetic, including all W1 actions and the prefix of W2. A fresh agent receives
 only a durable locator, recovers W2, and performs one real Improve campaign.

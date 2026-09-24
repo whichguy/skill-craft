@@ -12,12 +12,9 @@ EXIT_USAGE = 64
 PACKAGE_ROOT = Path(__file__).resolve().parents[1]
 REFUSED = {
     "next",
-    "update",
-    "complete-step",
-    "start-step",
-    "clear-step",
     "init",
     "complete",
+    "done",
 }
 
 

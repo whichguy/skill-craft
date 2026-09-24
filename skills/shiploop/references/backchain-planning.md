@@ -60,15 +60,11 @@ Read only the sections selected by the current packet. Perform that one action
 and submit its exact callback; a planning review never authorizes implementation,
 deployment, a new credential, or a different writer.
 
-**Retained managed/legacy only:** ShipLoop owns the Markdown DAG, accepted spec, step contracts, review findings,
-checks, audit commits, two-trivial-pass gates, and pending-only replans. Keep its
-existing result shape. Do not add Backchain's `goal_needs`, `parallel_groups`,
-`match`, or `artifact` fields to it. Concrete carriers and review conclusions
-belong in existing output descriptions, evidence references and Markdown bodies.
-No second scheduler, per-row cursor, state file, or model dependency is needed.
-**Navigator v3:** ShipLoop owns traversal; actual Improve owns its independent
-review cycle. Use ordinary notes, `evidence_refs` and work-item `context` as
-described in [Navigator planning](#navigator-planning), not the legacy fields.
+ShipLoop owns traversal; actual Improve owns its independent review cycle. Use
+ordinary notes, `evidence_refs` and work-item `context` as described in
+[Navigator planning](#navigator-planning). Do not add Backchain's `goal_needs`,
+`parallel_groups`, `match`, or `artifact` fields to a navigator result. No second
+scheduler, per-row cursor, state file, or model dependency is needed.
 
 ## Outcomes
 
@@ -83,20 +79,14 @@ material, even when every listed test passes.
 
 Give every independently checkable outcome a distinct criterion/case and a
 sufficient planned observation: input/fixture, expected state or side effects,
-named artifact or behavior, target and relevant revision when known. In v3,
-keep these criteria in the current spec/plan notes and carry their locators in
+named artifact or behavior, target and relevant revision when known. Keep
+these criteria in the current spec/plan notes and carry their locators in
 `evidence_refs` and work-item `context`; future test paths remain planned.
 Do not invent future receipts or observed revisions.
 
-**Retained managed/legacy only:** At spec stages, author acceptance cases in the
-spec/lifecycle candidate; do not invent future step IDs or contracts. During sequence,
-map those cases to the work that establishes them and the later checks that
-inspect them, using the step contracts and system-test requirements being
-authored there. Later step plans retain the accepted mappings.
 "The suite passes" alone is not per-outcome evidence. Use the existing
-spec/lifecycle acceptance, `contract.done`, `contract.tests`, case IDs and
-system-test requirements appropriate to that stage; do not duplicate them in
-a new goal catalog. Share test infrastructure when useful, but retain each
+acceptance criteria, case IDs and system-test catalog appropriate to that stage;
+do not duplicate them in a new goal catalog. Share test infrastructure when useful, but retain each
 outcome's trace. A planned check is not a passing result.
 
 Keep subjective requests such as readability visible as scoped work and review
@@ -111,25 +101,22 @@ the overall-plan level: repository/branch state, existing users or data needing
 migration, release gates, required documentation, and systems that must exist.
 Only a requirement-triggered probe creates a need; an irrelevant category adds
 nothing. Record a baseline fact only when the request or an actual inspection
-establishes it (`initial_state` in retained managed/legacy plans; cited ordinary
-notes in v3). A tool's presence, an unanswered question or an
+establishes it, with a cited run note. A tool's presence, an unanswered question or an
 assumption is not evidence of access, runtime readiness, or populated data.
 
-Draft coherent postcondition steps from these outcomes. In retained
-managed/legacy plans, `statement` and `produces` describe what will be true;
-`prompt` holds the authorized work. In v3, put the scoped outcome, prerequisites
-and source/test locators in each ordered work item's `title`/`context` and linked
-plan notes; do not add the legacy fields to a navigator result.
+Draft coherent postcondition steps from these outcomes. Put the scoped outcome,
+prerequisites and source/test locators in each ordered work item's
+`title`/`context` and linked plan notes.
 Split independently schedulable work when prerequisites or deliverables diverge;
-do not require a separate DAG node for every assertion or cosmetic improvement.
-ShipLoop's per-step verification gates already provide local checks. Plan a
+do not require a separate work item for every assertion or cosmetic
+improvement. Each item's INNER test and verification stages already provide
+local checks. Plan a
 separate system/integration producer only when a check genuinely needs multiple
 steps, another environment, or a later lifecycle boundary.
 
 Apply the dependency audit below to every draft step and new or widened supplier.
 Record the outcome/case mapping, evidence sources, missing producers and final
-forward-order check in existing plan notes and evidence. Retained managed/legacy
-results use `plan` and `dependency_review`; v3 uses `evidence_refs` and work-item
+forward-order check in existing plan notes, `evidence_refs` and work-item
 `context`. Ask a clarifying question
 when its answer could change an edge, supplier, scope or unresolved obligation.
 Answer from current evidence where possible. Asking or answering does not itself
@@ -162,9 +149,9 @@ For each step or local microplan row, use all five lenses:
 Name concrete carriers in existing output/evidence text when ambiguous: a
 migration file is not the applied database state; a mock provider is not a
 matching user record; a deployment is not a same-build smoke receipt. A path
-through a related producer does not supply the missing layer. Retained
-managed/legacy DAGs require exact need-to-producer strings; v3 retains the
-mapping in ordinary plan/context prose. Matching strings are not proof of truth.
+through a related producer does not supply the missing layer. Retain the
+need-to-producer mapping in ordinary plan/context prose; matching strings are
+not proof of truth.
 Metadata existence also does not prove intended-consumer access: an assignment
 for another user does not supply the intended user's prerequisite, existing
 effective access may suffice, and the deployment operator need not be that
@@ -192,44 +179,32 @@ handling. These are conditional risk checks, not mandatory extra migration work.
 
 ## Step plans
 
-In v3, read the current work item's `context`, linked requirement and plan sections,
+Read the current work item's `context`, linked requirement and plan sections,
 and supplier/test evidence. Keep the local microplan, audit and unresolved gaps
 in ordinary notes and the result's `evidence_refs`; Improve reads those same
-locators through its existing contract. No `step-context` command, frozen-plan
-certificate, or legacy dependency fields are implied.
-
-**Retained managed/legacy only:** Use the existing execution microplan and its output/case rows. Read the selected
-step, direct suppliers/consumers and accepted criteria through `step-context`;
-read `backchain/plan.md` for an exact cited `initial_state` fact when needed.
-Recheck relevant current environment/knowledge evidence: an initial declaration
-or completed supplier receipt can be stale. Follow transitive references when
-the five lenses reveal a concrete dependency, without repeating the entire
-global environment survey for every row.
-
-In those retained modes, record the audit and unresolved gaps in `body`, `coverage_review.dependencies`
-and `context_evidence.dependencies`; preserve every enclosing `PARENT-*` finding
-and existing contract/test mapping. Apply the full audit during initial and
-Improve planning and after plan revisions. During implementation, follow the
-certified plan and route new gaps through review/recovery, not unapproved edits
-to its frozen inputs. Per-row checks do not create per-row callbacks.
+locators through its existing contract. Recheck relevant current environment
+evidence: an initial declaration or completed supplier result can be stale.
+Follow transitive references when the five lenses reveal a concrete dependency,
+without repeating the entire global environment survey for every row. During
+implementation, follow the accepted plan and route new gaps through the current
+stage's result, not unapproved edits to its inputs. Per-row checks do not create
+per-row callbacks.
 
 ## Replanning
 
-Post-inner and outer review reconcile newly observed facts with the original
+`carry-forward` and the outer stages reconcile newly observed facts with the original
 outcomes and every affected pending consumer. Reuse known suppliers rather
 than duplicating work, but do not erase unfulfilled outcomes when documenting
 an external blocker. A local constructible fixture may have an authorized
 producer; an unavailable external approval cannot be manufactured by one.
 
-In v3, use the current `carry-forward`/outer correction result for permitted
-future or corrective work; do not edit accepted state or declare a missing
-prerequisite satisfied. In retained managed/legacy modes, use carry-forward and
-the existing pending-only revision path for compatible
-future work. A prerequisite that blocks the active step needs resolution or a
+Use the current `carry-forward` or outer `replan` result for permitted future or
+corrective work; do not edit accepted state or declare a missing prerequisite
+satisfied. A prerequisite that blocks the active step needs resolution or a
 pause now, not a journal entry that permits premature completion. Preserve
 running/completed definitions, accepted receipts, exact goal and initial-state
 baseline; incompatible changes need explicit replanning authority. No Backchain
-rule permits silently repairing or deleting frozen edges outside that path.
+rule permits silently repairing or deleting accepted edges outside that path.
 
 ## Provenance
 
@@ -252,7 +227,7 @@ adaptation, not execution or a byte-identical snapshot of the external skill.
 
 ## Source-aware native caller (navigator v3)
 
-`embedded` remains the current compatibility mode. A new run may intentionally
+`embedded` remains the default mode. A new run may intentionally
 select `source-aware-native` in ordinary run notes when the host has observed the
 selected Backchain `SKILL.md`, its `backchain-caller/v1` action/stage resource,
 `references/convergence.md`, and `prompts/convergence-review.prompt.md`, plus a selected

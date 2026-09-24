@@ -24,6 +24,7 @@ SOURCE_SCRIPTS = SOURCE_PACKAGE / "scripts"
 if str(SOURCE_SCRIPTS) not in sys.path:
     sys.path.insert(0, str(SOURCE_SCRIPTS))
 
+import shiploop_navigator as navigator  # noqa: E402
 import shiploop_store as store  # noqa: E402
 
 
@@ -36,33 +37,9 @@ GENERIC_ACCESS_STORE_BOUNDARY = (
     "without session material remain allowed. Builders and reviewers must not read, decode, "
     "retain, or report local authentication, session, or credential-store contents."
 )
-EXPECTED_STAGES = (
-    "intake",
-    "discovery",
-    "research",
-    "research-improve",
-    "spec",
-    "spec-improve",
-    "test-strategy",
-    "plan",
-    "plan-improve",
-    "step-plan",
-    "step-plan-improve",
-    "implement",
-    "test-refine",
-    "test-author",
-    "document",
-    "verify",
-    "product-improve",
-    "integrate",
-    "carry-forward",
-    "system-test",
-    "outer-improve",
-    "release-plan",
-    "release",
-    "release-verify",
-    "handoff",
-)
+LIFECYCLE_POLICY_LABEL = "Environment lifecycle policy: "
+LIFECYCLE_NOTE_LABEL = "Environment lifecycle note (host-authored, if present): "
+LIFECYCLE_NOTE = "notes/environment-lifecycle.md"
 
 
 class AuthReadinessNavigatorTests(unittest.TestCase):
@@ -79,6 +56,9 @@ class AuthReadinessNavigatorTests(unittest.TestCase):
         )
         self.cli = (self.package / "scripts" / "shiploop").resolve()
         self.research_loop = (self.package / "references" / "research-loop.md").resolve()
+        self.lifecycle_policy = (
+            self.package / "references" / "environment-lifecycle.md"
+        ).resolve()
         self.repo = self.base / "ordinary repository"
         self.repo.mkdir()
         self.unrelated_cwd = self.base / "unrelated cwd"
@@ -123,19 +103,17 @@ class AuthReadinessNavigatorTests(unittest.TestCase):
             ]
         ).stdout
 
-    def _start(self, run_dir: Path, protocol_version: int) -> str:
-        args = [
+    def _start(self, run_dir: Path) -> str:
+        packet = self._cli(
+            run_dir,
             "init",
             "--repo",
             str(self.repo),
             "--prompt",
             "Exercise the early access-readiness packet contract.",
-        ]
-        if protocol_version == 1:
-            args.append("--execution-mode=navigator-v1")
-        elif protocol_version == 2:
-            args.append("--execution-mode=navigator-v2")
-        return self._cli(run_dir, *args)
+        )
+        self.assertEqual(self._state(run_dir)["navigator_protocol_version"], 3)
+        return packet
 
     @staticmethod
     def _state(run_dir: Path) -> dict:
@@ -143,13 +121,7 @@ class AuthReadinessNavigatorTests(unittest.TestCase):
 
     @staticmethod
     def _current_action(state: dict) -> dict:
-        if (
-            state["navigator_protocol_version"] == 2
-            and state["stage"] == "inner-loop"
-        ):
-            owner = state["work_items"][state["work_index"]]["id"]
-            return state["inner_loops"][owner]["action"]
-        return state["action"]
+        return dict(navigator.current_action(state))
 
     def _policy_locator(self) -> str:
         return (
@@ -162,7 +134,7 @@ class AuthReadinessNavigatorTests(unittest.TestCase):
     def _assert_active_access_boundary(self, packet: str) -> None:
         self.assertIn(GENERIC_ACCESS_STORE_BOUNDARY, " ".join(packet.split()))
 
-    def _assert_access_policy(self, packet: str) -> None:
+    def _assert_access_policy(self, packet: str, run_dir: Path) -> None:
         expected = self._policy_locator()
         self.assertEqual(packet.count(expected), 1, packet)
         self.assertEqual(packet.count(ACCESS_POLICY_LABEL), 1, packet)
@@ -185,13 +157,27 @@ class AuthReadinessNavigatorTests(unittest.TestCase):
             + str(SOURCE_PACKAGE / "references" / "delivery-authority.md"),
             packet,
         )
+        # The environment-lifecycle policy also comes from the selected
+        # package, next to this run's own host-authored lifecycle note.
+        self.assertEqual(
+            packet.count(LIFECYCLE_POLICY_LABEL + str(self.lifecycle_policy)), 1, packet
+        )
+        self.assertEqual(packet.count(LIFECYCLE_POLICY_LABEL), 1, packet)
+        self.assertNotIn(
+            LIFECYCLE_POLICY_LABEL
+            + str((SOURCE_PACKAGE / "references" / "environment-lifecycle.md").resolve()),
+            packet,
+        )
+        note = LIFECYCLE_NOTE_LABEL + str((run_dir / LIFECYCLE_NOTE).resolve())
+        self.assertEqual(packet.count(note), 1, packet)
+        self.assertEqual(packet.count(LIFECYCLE_NOTE_LABEL), 1, packet)
 
     def _cold_packet(self, run_dir: Path) -> str:
         before = (run_dir / "state.md").read_bytes()
         packet = self._cli(run_dir, "next")
         self.assertEqual((run_dir / "state.md").read_bytes(), before)
         self._assert_active_access_boundary(packet)
-        self._assert_access_policy(packet)
+        self._assert_access_policy(packet, run_dir)
         return packet
 
     def _submit(self, run_dir: Path, packet: str, result: dict) -> tuple[str, Path, list[str]]:
@@ -227,59 +213,17 @@ class AuthReadinessNavigatorTests(unittest.TestCase):
             **extra,
         }
 
-    def test_generic_access_store_boundary_reaches_cold_legacy_builder_packets(self) -> None:
-        """The shared policy is generic and reaches retained v1/v2 builder packets."""
-        reference = " ".join(self.research_loop.read_text(encoding="utf-8").split())
-        self.assertIn(GENERIC_ACCESS_STORE_BOUNDARY, reference)
-        for protocol_version in (1, 2):
-            with self.subTest(protocol_version=protocol_version):
-                packet = self._start(
-                    self.base / f"generic boundary v{protocol_version}", protocol_version
-                )
-                self._assert_active_access_boundary(packet)
-
     def test_relocated_reference_exposes_the_early_access_heading(self) -> None:
         self.assertTrue(self.research_loop.is_file())
-        self.assertRegex(
-            self.research_loop.read_text(encoding="utf-8"),
-            r"(?m)^#{1,6} Early access readiness\s*$",
-        )
-
-    def test_v1_and_v2_walk_active_packets_without_cold_render_mutation(self) -> None:
-        """Both actual graphs select exactly one policy locator from their package."""
-        for protocol_version in (1, 2):
-            with self.subTest(protocol_version=protocol_version):
-                run_dir = self.base / f"navigator v{protocol_version} run"
-                packet = self._start(run_dir, protocol_version)
-                seen: list[str] = []
-                while self._state(run_dir)["status"] == "active":
-                    state = self._state(run_dir)
-                    self.assertEqual(
-                        state["navigator_protocol_version"], protocol_version
-                    )
-                    action = self._current_action(state)
-                    stage = action["stage"]
-                    seen.append(stage)
-                    self._assert_active_access_boundary(packet)
-                    self._assert_access_policy(packet)
-                    cold = self._cold_packet(run_dir)
-                    self.assertIn(action["id"], cold)
-                    result = self._result(stage)
-                    if stage == "document":
-                        result["choices"] = {"skill_required": False}
-                    packet, _callback, _command = self._submit(run_dir, cold, result)
-                    if self._state(run_dir)["status"] == "active":
-                        self._assert_active_access_boundary(packet)
-                        self._assert_access_policy(packet)
-
-                final = self._state(run_dir)
-                self.assertEqual(tuple(seen), EXPECTED_STAGES)
-                self.assertEqual((final["stage"], final["status"]), ("done", "done"))
-                self.assertIn("agent-declared completion", packet)
+        reference = self.research_loop.read_text(encoding="utf-8")
+        self.assertRegex(reference, r"(?m)^#{1,6} Early access readiness\s*$")
+        # The shared access-store boundary is generic policy text.
+        self.assertIn(GENERIC_ACCESS_STORE_BOUNDARY, " ".join(reference.split()))
+        self.assertTrue(self.lifecycle_policy.is_file())
 
     def test_paused_draft_packet_keeps_the_relocated_policy_without_advancing(self) -> None:
         run_dir = self.base / "paused run"
-        packet = self._start(run_dir, 2)
+        packet = self._start(run_dir)
         packet, _callback, _command = self._submit(
             run_dir, packet, self._result("intake")
         )
@@ -299,12 +243,12 @@ class AuthReadinessNavigatorTests(unittest.TestCase):
         self.assertEqual((self._current_action(paused)["stage"], paused["status"]), ("discovery", "paused"))
         self.assertEqual(self._current_action(paused)["id"], action["id"])
         self.assertEqual(draft.read_bytes(), draft_bytes)
-        self._assert_access_policy(paused_packet)
+        self._assert_access_policy(paused_packet, run_dir)
         self.assertNotIn("Call this when done:", paused_packet)
 
         cold_paused = self._cli(run_dir, "next")
         self.assertEqual((run_dir / "state.md").read_bytes(), paused_bytes)
-        self._assert_access_policy(cold_paused)
+        self._assert_access_policy(cold_paused, run_dir)
         self.assertNotIn("Call this when done:", cold_paused)
 
         resumed_packet = self._cli(run_dir, "resume")
@@ -312,11 +256,11 @@ class AuthReadinessNavigatorTests(unittest.TestCase):
         self.assertEqual((self._current_action(resumed)["stage"], resumed["status"]), ("discovery", "active"))
         self.assertEqual(self._current_action(resumed)["id"], action["id"])
         self.assertEqual(draft.read_bytes(), draft_bytes)
-        self._assert_access_policy(resumed_packet)
+        self._assert_access_policy(resumed_packet, run_dir)
 
     def test_cold_block_resume_uses_fresh_callback_and_preserves_discovery_note(self) -> None:
         run_dir = self.base / "blocked run"
-        packet = self._start(run_dir, 2)
+        packet = self._start(run_dir)
         packet, _callback, _command = self._submit(
             run_dir, packet, self._result("intake")
         )
@@ -350,14 +294,14 @@ class AuthReadinessNavigatorTests(unittest.TestCase):
             store.read_record(run_dir / "results" / f"{blocked_action['id']}.md")["result"],
             blocked_result,
         )
-        self._assert_access_policy(blocked_packet)
+        self._assert_access_policy(blocked_packet, run_dir)
         self.assertIn(note_ref, blocked_packet)
         self.assertNotIn("Call this when done:", blocked_packet)
 
         blocked_bytes = (run_dir / "state.md").read_bytes()
         cold_blocked = self._cli(run_dir, "next")
         self.assertEqual((run_dir / "state.md").read_bytes(), blocked_bytes)
-        self._assert_access_policy(cold_blocked)
+        self._assert_access_policy(cold_blocked, run_dir)
         self.assertIn(note_ref, cold_blocked)
         self.assertNotIn("Call this when done:", cold_blocked)
 
@@ -366,7 +310,7 @@ class AuthReadinessNavigatorTests(unittest.TestCase):
         resumed_action = self._current_action(resumed)
         self.assertEqual((resumed_action["stage"], resumed["status"]), ("discovery", "active"))
         self.assertEqual(resumed_action["id"], fresh_action["id"])
-        self._assert_access_policy(resumed_packet)
+        self._assert_access_policy(resumed_packet, run_dir)
         self.assertIn(note_ref, resumed_packet)
 
         resumed_cold = self._cold_packet(run_dir)
@@ -376,7 +320,7 @@ class AuthReadinessNavigatorTests(unittest.TestCase):
         after_done = self._state(run_dir)
         self.assertEqual((self._current_action(after_done)["stage"], after_done["status"]), ("research", "active"))
         self.assertEqual(after_done["accepted"][blocked_action["id"]], blocked_result)
-        self._assert_access_policy(done_packet)
+        self._assert_access_policy(done_packet, run_dir)
 
         blocked_callback.write_text(
             store.dumps(

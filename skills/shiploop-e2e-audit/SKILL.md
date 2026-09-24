@@ -8,7 +8,7 @@ description: >-
   Google Apps Script and Salesforce game cases require an authorized test deployment and hosted
   behavior evidence.
   Includes its harness for source and marketplace installs; tests a separately selected ShipLoop.
-version: 0.2.5
+version: 0.3.0
 license: MIT
 platforms:
   - linux
@@ -182,7 +182,7 @@ command's `--help` if this checkout differs from these defaults.
 | `grok` | Live/preflight | `--grok`: executable path. Resolve an available Grok explicitly; the CLI's fallback is PATH lookup, then `~/.local/bin/grok`. |
 | `git` | Live/preflight | `--git`: optional executable path; otherwise the runner probes a working Git. Retain any selected macOS Command Line Tools override. |
 | `skill-root` | Mock/apparatus/live/check | Actual separate ShipLoop package directory → `check_suite.py --skill-root` or `run.py run/suite/check --skill-root`. If omitted in this skill, resolve the host-selected installed card, including marketplace installs. Live/check assert ShipLoop discovery; Improve is selected separately from one real user-invocable `grok inspect` record, with no override. Direct Python CLIs have their own documented defaults. |
-| `stop-after-stage` | Single live step only | `--stop-after-stage`: `intake`, `discovery`, `research`, `research-improve`, `spec`, `spec-improve`, `test-strategy`, `plan`, or `plan-improve`. Omit for a full attempt. Suites own their stop boundaries. |
+| `stop-after-stage` | Single live step only | `--stop-after-stage`: `intake`, `discovery`, `research`, `spec`, `test-strategy`, or `plan` (the plan accepted after its Improve review). Omit for a full attempt. Suites own their stop boundaries. |
 | `artifact-root` | Live | Additional known ShipLoop workspace directory → repeated `--artifact-root`; accept repeated fields or a JSON string array. Omit to retain the runner's normal product/sibling workspace scan. Must not contain trial output. |
 | `verifier` | Live | Nonempty JSON array of string arguments → one serialized JSON value for `--verifier`. No shell command string. Require a real checker and absolute executable/input paths because it runs from the evidence directory. Full results need the platform-specific deployment and hosted-browser evidence defined in `CASES.md`: GAS staging/promotion and published `/exec` identity, or Salesforce dev-org/deployment/component/Lightning identity. Omitted means product verification remains unverified. |
 | `verifier-timeout` | Live with verifier | Positive finite seconds → `--verifier-timeout`, default 300. Separate from the builder's time cap. |

@@ -38,7 +38,7 @@ def _load_navigator(package: Path) -> Any:
     source = scripts / "shiploop_navigator.py"
     if not source.is_file():
         raise ValueError(f"selected package has no shiploop_navigator.py: {source}")
-    names = ("shiploop_navigator", "shiploop_navigator_prompts", "shiploop_navigator_v3_prompts", "shiploop_consumer_delivery", "shiploop_store")
+    names = ("shiploop_navigator", "shiploop_navigator_v3_prompts", "shiploop_consumer_delivery", "shiploop_planning_revision", "shiploop_privacy", "shiploop_store")
     prior = {name: sys.modules.pop(name, None) for name in names}
     sys.path.insert(0, str(scripts))
     try:

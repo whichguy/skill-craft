@@ -538,9 +538,17 @@ class PlanningContextChainTests(unittest.TestCase):
         artifact_paths = {row["path"] for row in manifest["artifacts"]}
         self.assertTrue(all(str(self.f.run / "results" / (action + ".md")) in artifact_paths
                             for action in self.f.planning_action_ids))
+        # Only Improve checkpoints (planning/contract stages) carry receipts.
+        reviewed = [action for action in self.f.planning_action_ids
+                    if action in self.f.state["improve_results"]]
+        self.assertTrue(reviewed)
         self.assertTrue(all(
             str(self.f.run / "improve" / action / "receipt.md") in artifact_paths
-            for action in self.f.planning_action_ids
+            for action in reviewed
+        ))
+        self.assertFalse(any(
+            str(self.f.run / "improve" / action / "receipt.md") in artifact_paths
+            for action in self.f.planning_action_ids if action not in reviewed
         ))
         self.assertTrue(any("improve-receipt" in row["roles"] for row in manifest["artifacts"]))
         self.assertTrue(any("improve-evidence" in row["roles"] for row in manifest["artifacts"]))

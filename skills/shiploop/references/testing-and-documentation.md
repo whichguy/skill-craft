@@ -5,16 +5,12 @@ requirements within existing stages, not new CLI fields or semantic guarantees.
 Reuse repository conventions and available tools; do not install a framework or
 create a service just to satisfy a test-category label.
 
-Before product execution, use the current packet's planning checks. Compatibility
-planning-loop runs repeatedly review case expectations and run lint/tests of the
-research/behavior/specification artifacts through `planning-verify`; a v3 navigator
-uses its `test-strategy`, `plan`, and `step-plan` producer duties, each followed by
-its standalone Improve handoff. Neither route's planning checks certify future product
-test results. Product acceptance remains blocked until its real implementation checks
-run.
-Research tests use the exact `research evidence` acceptance and inspect the
-question/source relationships and asserted contracts; they do not prove that a
-live environment stayed unchanged. See
+Before product execution, use the current packet's planning checks. The
+`test-strategy`, `plan`, `step-plan` and `test-spec` producers plan the checks,
+and each is followed by its Improve review. Planning checks do not certify future
+product test results. Product acceptance remains blocked until its real
+implementation checks run. Research evidence does not prove that a live
+environment stayed unchanged; see
 [Research evidence and freshness](research-loop.md#evidence-and-freshness).
 
 For affected interactions, follow the shared
@@ -34,201 +30,27 @@ An arbitrary delay followed by an eventual-state assertion does not prove that
 the intended interleaving occurred. Bound waits and release any held work during
 teardown, including when an assertion fails.
 
-## Managed Improve checkpoints
+## Local and outer-test boundary
 
-This section applies only when the current packet is a managed Improve child
-under `managed_improve_protocol_version: 1`. The ShipLoop parent remains at
-`managed-improve`; the child controller owns the following phase progression
-and records it in the bound Markdown receipt. Do not start standalone Improve,
-create `.until-loop` state, or use legacy phase callbacks to duplicate these
-checkpoints.
+An item's checks prove only that item's candidate. The run's global system-test
+catalog, its authoring and pre-deployment execution, final release checks and
+post-deployment observation belong to `system-test-author`, `system-test`,
+`product-acceptance`, `release-check` and `release-verify`. Plan global cases
+before delivery sequencing; author and improve their fixtures in their owned
+work; execute them against the assembled or deployed target only when their
+prerequisites and authorization exist. A local mock or simulator cannot
+substitute for a required real boundary, and an unobserved future deployment is
+not test evidence.
 
-1. **Initial local test plan.** Before source edits, retain the complete case
-   matrix. `step-plan` and `step-plan-revise` require it; the local-plan child
-   converges it before it releases code.
-2. **Per-iteration product plan.** Before each Apply, `improve-plan` requires
-   the current test plan plus coverage/context evidence, explicit prerequisite
-   satisfaction evidence and learnings. Run one `improve-plan-verify` planning
-   check. This is one checked plan record, not a nested two-trivial plan
-   campaign.
-3. **Post-code refinement.** After Apply, `test-refine` inspects actual code
-   and dependencies before changing tests. It returns the complete current test
-   plan and `refinement_reason`; retained/new cases keep independent expected
-   outcomes. A changed oracle requires an external requirement/contract basis.
-4. **Executable-test authoring.** `test-author` maps every retained/new planned
-   case to real test files/selectors and exact check commands. `verify` later binds
-   those IDs and ordered command arguments to the actual check manifest. Its `test_refinement` record
-   describes authored, updated or reused tests. This checkpoint never claims
-   the tests passed.
-5. **Documentation and skill validation.** `iteration-document` records the
-   documentation/reuse assessment. If it selects a repo-local skill,
-   `skill-validate` verifies its entrypoint/index, inputs, helper or example
-   checks, failure/recovery behavior and host limits before verification.
-   Discovery or a frontmatter-only check is not successful use.
-6. **Actual verification.** `verify` runs the bound manifest after code, tests, docs
-   and selected skill evidence are current. Failed, stale, blocked or unrun
-   checks are incomplete. A product defect found by a tests/fixtures-only scope
-   returns corrective-work evidence; it cannot be hidden by weakening the
-   expected result.
-
-Use these packet fields. They stay in the child/parent Markdown records; they
-are not a second global test catalog.
-
-```json
-{
-  "test_plan": {
-    "cases": [
-      {
-        "case_id": "CASE-CSV-001",
-        "contract_id": "T-CSV-001",
-        "requirement": "CSV labels containing commas remain one field after export.",
-        "inputs": ["A fixture record with a comma in its label."],
-        "expected_outcome": "The exported field is quoted and parses back to the original label.",
-        "test_selectors": ["test/test_csv.py::test_quotes_commas"],
-        "check_ids": ["T-CSV-001"],
-        "environment": "Local Python environment with the repository CSV parser.",
-        "fixture": "A temporary CSV output containing one comma-bearing label."
-      }
-    ],
-    "coverage": [
-      {"surface": "unit", "disposition": "selected", "reason": "CSV quoting is a deterministic local transformation."},
-      {"surface": "mock_fake", "disposition": "not-applicable", "reason": "The selected serializer has no collaborator boundary."},
-      {"surface": "integration", "disposition": "not-applicable", "reason": "This scoped contract has no service integration."},
-      {"surface": "end_to_end", "disposition": "not-applicable", "reason": "This local serializer has no end-user journey."},
-      {"surface": "browser_service_api", "disposition": "not-applicable", "reason": "This selected contract exposes no browser or API boundary."}
-    ]
-  }
-}
-```
-
-Every surface appears once with `selected`, `not-applicable`, or
-`required-but-blocked`; the latter prevents release. Each case retains the
-accepted contract ID and exact expected outcome, even when several cases share
-a test command. `test_selectors` are safe repository-relative
-`path::selector` references, not a claim that the selector ran.
-
-```json
-{
-  "test_refinement": {
-    "cases": [
-      {
-        "case_id": "CASE-CSV-001",
-        "disposition": "authored",
-        "test_paths": ["test/test_csv.py"],
-        "check_ids": ["T-CSV-001"],
-        "coverage": "The test exercises the planned comma-escaping boundary.",
-        "oracle": {"decision": "unchanged"}
-      }
-    ]
-  },
-  "test_bindings": {
-    "bindings": [
-      {
-        "check_id": "T-CSV-001",
-        "argv": ["python3", "test/test_csv.py"],
-        "case_ids": ["CASE-CSV-001"],
-        "selectors": ["test/test_csv.py::test_quotes_commas"],
-        "selection": {"mode": "direct", "evidence": "The script runs its unittest suite including the quoting assertion."}
-      }
-    ]
-  }
-}
-```
-
-`disposition` is `authored`, `updated`, or `reused`. A reused case must add an
-`adequacy_reason`. A corrected oracle must state its old/new expected outcomes,
-independent basis and preserved coverage. The next `verify` action, not this
-record, establishes whether the named checks passed.
-
-Every case/check and planned selector must be covered by `test_bindings` at
-`test-author`. Its `argv` must exactly match the later test-kind manifest row.
-Direct selection names each test path or selector in `argv`. For suite discovery,
-use `selection:{mode:"suite",evidence:"...",evidence_path:"..."}`: the existing
-repo-local discovery/config file must name every selected path or selector.
-The script freezes that file with the authored tests and rejects later changes.
-These bindings establish command identity; review still must assess assertion quality.
-Selected skill-example check commands likewise must name their example path.
-
-The child, not the parent, counts a completed review cycle after these duties
-are satisfied. It returns a certificate only after its current evidence and
-the binding's convergence/reviewer rules hold. A mandatory independent review
-blocks when unavailable unless the binding explicitly authorizes and records a
-self-review fallback.
-
-New runs select this policy with `init --independent-review optional`, `required`,
-or `required-with-fallback`. A required counted pass supplies a commit-result
-`independent_review:{status:"performed",evidence_ref:"reviews/current.md"}`.
-The existing run-relative record is bound as evidence. An explicitly allowed
-fallback instead records `status:"unavailable"`, `fallback:"self-review"`,
-`reason`, and `evidence_ref`. The reviewer identity and judgment remain
-host-reported; missing required evidence is refused.
-
-### Local and outer-test boundary
-
-A managed local-plan or product certificate proves only its bound candidate and
-checks. The parent delivery DAG still owns the global system-test requirements,
-their producer/test-owner steps, pre-deployment integration/journey execution,
-final release checks and post-deployment observation. Plan global cases before
-delivery sequencing; author and improve their fixtures in their owned work;
-execute them against the assembled/deployed target only when their prerequisites
-and authorization exist. A local mock or simulator cannot substitute for a
-required real boundary, and an unobserved future deployment is not test evidence.
-
-Likewise, a prerequisite repo-local skill is an earlier DAG producer with its
-own validation before a consumer relies on it. A reusable procedure discovered
-during product work follows the child `iteration-document` and selected
-`skill-validate` path. Neither route authorizes global installation or lets a
-late skill edit bypass final product/outer test evidence.
-
-### Current product and replacement evidence
-
-At product final verification the adapter derives `invalidation_impact` from
-the actual baseline-to-final Git artifact bytes and binds it into the child
-certificate. It names selected contracts/outputs and all known potentially
-affected local cases, SYS cases, documentation and skills. The map is
-conservative (`certainty:"uncertain"`); a host cannot narrow away required
-checks by declaring a small impact. Mode-only changes still count through the
-full candidate fingerprint.
-
-Each system-test owner captures its original product fingerprint and completed
-producer identities when it merges. A later product or suite change makes
-affected historical evidence stale. `context --section system-test-requirements`
-shows that map. Frozen original SYS cases and receipts are retained. Add new
-equivalent SYS cases and pending test owners with the same requirement,
-expected outcome, environment and deployment target, and execute the existing
-or updated tests against the current candidate. Author all changed suites
-before final re-execution; a replacement may honestly reuse its tests and
-record an audit-only commit. This avoids manufacturing new files on every
-verification pass. The separately certified `REVIEW_CONVERGE.md` ledger is
-excluded from the product fingerprint.
-
-Quality supplies this result field when the map lists stale SYS cases:
-
-```json
-{
-  "system_test_revalidation": {
-    "version": 1,
-    "product_content_identity_sha256": "COPY_CURRENT_PRODUCT_CONTENT_IDENTITY_SHA256",
-    "replacements": [
-      {"stale_case_id": "SYS-PRE-001", "replacement_case_id": "SYS-PRE-002"}
-    ]
-  }
-}
-```
-
-The script verifies every replacement has fresh completed check/contract proof
-for the current product; a replacement that is itself stale cannot discharge
-an old case. The final quality manifest also reruns all completed local test
-bindings and selected skill examples on the assembled tree. Retrieve exact
-commands from `context --section sdlc`; combine them with lint and every
-whole-product acceptance check. The current implementation conservatively
-retains that full required set. It does not claim precise impact analysis or
-support silently discarding obsolete commands. Changes to those contracts
-require explicit corrective planning and compatible executable evidence.
+Likewise, a prerequisite repo-local skill is an earlier work item with its own
+validation before a consumer relies on it. A reusable procedure discovered
+during product work follows `skill-assess` and `skill-validate`. Neither
+authorizes global installation or lets a late skill edit bypass final product
+or outer test evidence.
 
 ## Stage readiness and completion
 
-For navigator v3, apply only the current stage's row below. **Definition of Ready**
+Apply only the current stage's row below. **Definition of Ready**
 means its required inputs, authority and prerequisites are available. **Definition
 of Done** means its scoped output and due evidence exist. These are host duties
 inside the existing graph, not new result fields or mechanical semantic gates.
@@ -273,11 +95,10 @@ to retain the requirement section, test path/selector and actual result location
 as distinct locators; planned cases and source inspection are not passing evidence.
 
 Define expected behavior before implementation when possible. In the spec, name
-observable acceptance criteria. Before source code, the existing planning result
-`body`/`plan` contains a compact criteria matrix: each stable case ID maps its
-contract `T-` ID and exact `produces` string to preconditions/input, expected
-output/state/side effect, planned test path/selector, check ID, and
-environment/fixture. This is the durable pre-code plan, not a new result schema
+observable acceptance criteria. Before source code, the step-plan and test-spec
+results contain a compact criteria matrix: each stable case ID maps its
+requirement or `T-` ID to preconditions/input, expected output/state/side
+effect, planned test path/selector, check command, and environment/fixture. This is the durable pre-code plan, not a new result schema
 or a second test catalog. In the sequence, plan tests/documentation as
 deliverables, not an afterthought.
 Use [repeatable test suites](repeatable-test-suites.md) to make those existing
@@ -287,20 +108,19 @@ full commands. It adds no protocol or framework requirement.
 For behavioral requirements, also link `R-/F-/T-` IDs from the
 [product behavior model](behavioral-requirements.md#behavior-model). Cases must
 state the expected source/destination or unchanged state, outputs and side
-effects, including applicable invalid-event and recovery sequences. Model IDs
-never substitute for exact manifest acceptance strings.
+effects, including applicable invalid-event and recovery sequences.
 
 Keep one compact case record per distinct behavior, or a parameterized record
 for equivalent boundaries:
 
 | Field | Record |
 | --- | --- |
-| Case and requirement | Stable case ID (for example, `TC-07`), mapped contract `T-` ID, criterion, and exact step `produces` or lifecycle acceptance string. |
+| Case and requirement | Stable case ID (for example, `TC-07`), mapped requirement or `T-` ID, and criterion. |
 | Preconditions and input | Initial state, fixtures, role, relevant configuration, and stimulus/action. |
 | Expected outcome | Observable result, state change or absence of side effects; explicit error behavior and justified tolerance/time bound where relevant. Never just “works.” |
 | Scope, surface, and environment | Unit/integration/end-to-end scope, mock/fake strategy, and separately selected browser/service/API view; target environment alias, real versus simulated dependencies, readiness requirements. |
 | Due phase and owner | The existing activity that must obtain this observation, its owner and prerequisites. Separate pre-release checks from post-release consumer verification. |
-| Executable reference | Planned or actual test path/symbol/selector and check-manifest ID, or a reproducible manual procedure when automation is genuinely unavailable. |
+| Executable reference | Planned or actual test path/symbol/selector and check command, or a reproducible manual procedure when automation is genuinely unavailable. |
 | Observation | Separately record actual outcome, passed/failed/blocked/not-run status, checked revision/build, and evidence reference. Expected is not actual. |
 
 Keep each affected, independently verifiable requirement clause linked to this
@@ -327,10 +147,9 @@ Example, not a universal requirement:
 Use executable tests with clear assertions as the detail source when sufficient;
 add concise Markdown case/index entries where intent or expected outcomes are
 not apparent. Do not duplicate entire test implementations or maintain a giant
-second test catalog. Case IDs supplement, never replace, the manifest's exact
-`acceptance` strings. A case description or file-existence check is not execution.
+second test catalog. A case description or file-existence check is not execution.
 Manual evidence must remain labeled manual; it does not replace mandatory
-script-run lint/test checks or certify a required automated case as passed.
+lint/test checks or certify a required automated case as passed.
 
 After code, inspect the actual diff, changed dependencies, and code learnings;
 then author or refine the executable tests from that evidence and the pre-code
@@ -339,8 +158,8 @@ rationale and evidence that it covers the criterion; do not manufacture a
 no-op edit. New observations can refine stimuli or assertions, but do not
 silently rewrite accepted behavior.
 
-Run current required checks through `verify`; preserve failures and explain test
-or manifest changes. Include documentation/example checks where applicable. A
+Run current required checks at `test-green`, `regression`, `static-checks` and
+`verify`; preserve failures and explain test changes. Include documentation/example checks where applicable. A
 test correction records its reason, the before/after oracle, an independent
 requirement/contract source, and coverage retained or added. Do not change
 expected outcomes or remove assertions merely to match a bug. A requirement
@@ -451,11 +270,11 @@ examples, not required dependencies.
 
 ### Security, fuzzing, and ongoing maintenance
 
-The lifecycle must explicitly assess security testing, fuzzing, and dependency
+Test strategy must explicitly assess security testing, fuzzing, and dependency
 maintenance. These are risk-based choices, not mandatory technology-specific
 tools. Record `required` or a concrete `not-applicable` reason for security and
 fuzz testing; unavailable required work is `blocked`. Selected tests map stable
-`T-` IDs to actual step test contracts at sequence time. Expected outcomes,
+`T-` IDs to actual item test cases at planning time. Expected outcomes,
 fixtures, real versus simulated boundaries and executable evidence remain part
 of the ordinary test plan; a policy declaration is not a passed test.
 
@@ -468,38 +287,18 @@ security tests on a live service without authorization.
 
 For ongoing dependency updates, evaluate the advisory source, responsible owner,
 cadence, mechanism, validation before release and rollback. A six-hour cadence
-is an example to justify, not ShipLoop's default. `dag` means an explicitly
-scoped implementation producer in this delivery; `operate-later` records a
-future operational policy without creating a scheduler or updater. Prefer
+is an example to justify, not ShipLoop's default. Maintenance can be an
+explicitly scoped work item in this delivery, or a future operational policy
+recorded without creating a scheduler or updater. Prefer
 reviewed, testable, reversible updates over assuming the application can safely
 replace its own dependencies. Any persistent automation or production change
 still needs task-specific authorization. `not-applicable` and `blocked` require
 clear reasons; do not conceal an unresolved requirement as future work.
 
-The new-run `lifecycle.risk_policy` shape is:
-
-```json
-{
-  "risk_policy_version": 1,
-  "security": {"decision": "not-applicable", "rationale": "Explain this increment's actual risk assessment."},
-  "fuzz": {"decision": "not-applicable", "rationale": "Explain why fuzzing has no meaningful target or oracle here."},
-  "maintenance": {"decision": "not-applicable", "rationale": "Explain why ongoing dependency maintenance is outside this increment."}
-}
-```
-
-Replace these explanatory reasons with concrete findings; they are not default
-waivers. `required` security/fuzz decisions add a nonempty unique `case_ids`
-list. The same test may cover both concerns, but each ID must identify exactly
-one DAG test definition. `blocked` may retain planned case IDs but cannot pass
-sequence. `not-applicable` carries no selected case IDs.
-
-Maintenance `dag` and `operate-later` add nonempty strings `owner`,
-`advisory_source`, `cadence`, `mechanism`, `validation`, and `rollback`, plus
-`step_id`: a real DAG producer for `dag`, null for `operate-later`. A selected
-maintenance policy is run-wide: its producer must precede every DAG publication.
-No field itself schedules
-anything. Other decisions omit these selected fields. Malformed or unknown
-versions fail validation rather than becoming a legacy exemption.
+Record each decision with concrete findings and, for `required` security or
+fuzz work, the case IDs that cover it; a `blocked` decision keeps its planned
+cases open. A maintenance decision names its owner, advisory source, cadence,
+mechanism, validation and rollback.
 
 ### Layers and real boundaries
 
@@ -513,7 +312,7 @@ browser/service/API views. Do not infer one decision from another:
 | End-to-end | A critical user or operational journey needs proof through its actual entrypoint. | Entry path, selected environment, user-visible result, and required readiness/cleanup. |
 | Mock/fake | An isolated dependency must be replaced for diagnosis, cost, determinism, or unavailable infrastructure. | Replaced dependency, reason, fidelity limit, and the retained real-boundary check or its blocked cause. |
 
-At survey/spec, and whenever changed behavior warrants it, assess each
+At discovery/spec, and whenever changed behavior warrants it, assess each
 browser/service/API surface:
 
 | Surface | Select when | Expected evidence |
@@ -610,53 +409,19 @@ material findings, even if the fix is a short sentence.
 Product README, function docs, and enduring test-case docs belong in the product
 worktree and Git. They are **not** ShipLoop state. Do not put run cursors, receipt
 dumps, raw logs, or generic harness journals in them. `AGENTS.md` remains optional.
-Before step execution, store proposed docs/cases in the spec/plan results; survey
-does not create product files. Plan documentation outputs and checks explicitly.
+Before step execution, store proposed docs/cases in the spec/plan results; discovery
+and research do not create product files. Plan documentation outputs and checks explicitly.
 
 ## Iteration documentation and reuse
 
-The legacy versioned route with `iteration_documentation_protocol_version: 1` has a mandatory
-`iteration-document` action after each `improve-apply` and before `verify`.
-The initial implementation enters Improve, so its first candidate also receives
-this gate before the step can finish. An assessment is required; needless edits
-or skill creation are not. Follow the packet's exact result schema. Old unmarked
-runs retain their original callbacks and cannot claim this new receipt.
+`document` records the documentation disposition for the current item, and
+`skill-assess` and `skill-validate` record the reusable-skill decision and its
+checks. An assessment is required; needless edits or skill creation are not.
+Update or explicitly assess relevant README and interface documentation before
+actual verification, and complete `skill-validate` when a skill is selected.
 
-A managed product child retains the same substantive documentation and reusable
-skill obligations, but its controller owns their placement and evidence inside
-the child receipt. It must update or explicitly assess relevant README/interface
-documentation before actual verification, and it must complete the explicit
-`skill-validate` checkpoint when a skill is selected. A managed packet's child
-phase/result shape takes precedence over the legacy `iteration-document`
-callback; do not run both routes for one candidate.
-
-### Legacy documentation receipt fields
-
-The following result schema and script checks apply only to the legacy
-`iteration_documentation_protocol_version: 1` route. Navigator v3 uses the
-generic result described under [Reusable product skills](#reusable-product-skills);
-managed children follow their own printed phase/result schema.
-
-The legacy result has `summary`, `documentation`, `reusable_skill`, Boolean `material`
-and `learnings`. Both assessment objects start with `decision`, `rationale`,
-`paths` and `references`. Decisions are `created`, `updated`, `reused` or
-`not-needed`. For `not-needed`, both path arrays are empty and the rationale
-explains the actual no-work decision. Other decisions name existing safe
-repo-relative reference files; created/updated docs also name their actual files.
-A reusable skill names exactly one `SKILL.md` within its local directory and
-adds `purpose`, `when`, `how`, `inputs` and `validation`. The packet contains a
-minimal example, not a suggested default verdict. If work is required but blocked,
-use the printed pause/repair route instead of mislabeling it `not-needed`.
-
-Skill entrypoints need nonempty frontmatter `name` and `description`; references
-must include a repo-local index that names the entrypoint. The script checks
-those declared files/links and the receipt binding; meaningful input defaults,
-verification procedures, security semantics and future usefulness still require
-host review. Do not mistake a minimal frontmatter check for complete Agent Skills
-schema validation or a working helper test.
-
-Read the actual code/test diff, accepted step plan, current knowledge and relevant
-repo docs. Prefer colocated concise contracts/comments for non-obvious behavior;
+Read the actual code/test diff, accepted step plan and relevant repo docs.
+Prefer colocated concise contracts/comments for non-obvious behavior;
 incrementally update affected README sections and existing design/architecture/
 environment notes, or give a concrete unchanged reason. Always assess the repo
 README (record absence and decide whether this step needs one). Use AGENTS.md for
@@ -666,13 +431,9 @@ the existing appropriate index instead of duplicating it.
 
 ### Reusable product skills
 
-This content guidance applies across modes; use the current packet's result
-format, not a different protocol's documentation receipt.
-
-For navigator v3, describe the disposition in `summary` and link its evidence in
-`evidence_refs`, alongside the packet's `outcome`. Do not emit legacy
-`documentation`, `reusable_skill`, `material` or `learnings` result fields.
-V3 preserves those ordinary references; it does not validate skill frontmatter,
+Describe the disposition in `summary` and link its evidence in `evidence_refs`,
+alongside the packet's `outcome`. ShipLoop preserves those ordinary references;
+it does not validate skill frontmatter,
 index links, meaningful execution or compatibility through a skill-specific
 receipt. Those remain host review and verification obligations.
 
@@ -771,26 +532,6 @@ local skills. Retain stable procedures/default sources outside disposable run
 storage. Keep task-specific values and raw checks in evidence; a prior selection
 or passing check is a revalidation input, not authority for the next task.
 
-### Legacy receipt binding and invalidation
-
-The following binding and convergence rules apply to the legacy versioned
-documentation route above, not navigator v3's generic producer results.
-
-The script saves the result in the ordinary Markdown action/iteration records.
-Verification and commit consume its binding; future reviews/plans read the local
-index, linked skill/docs and current knowledge. There is no new documentation
-database. Changed files must pass the following lint/tests before commit. A
-material addition or changed instruction resets convergence; the script also
-conservatively treats any worktree edit during this action as material. Thus the
-new artifacts receive subsequent review-and-improve passes, not an unchecked
-last-minute handoff. Include the recorded learnings in the primary commit.
-
-For this versioned route, editing the worktree after the documentation receipt
-invalidates it even if later tests pass. Use the printed `repair` route to return
-to review and obtain a new documentation assessment and fresh checks. Merely
-rerunning `verify` cannot renew that receipt. Unmarked legacy runs retain their
-earlier late-edit handling.
-
 ## Implementation constitution
 
 Use these stack-neutral defaults in the current step, not a new governance loop.
@@ -842,91 +583,75 @@ in the existing plan and review notes. The rules below and the
    using its authoritative criterion; supporting diagnostic or health scores
    cannot substitute for a different required outcome. For a changed decision rule, exercise a valid case
    and a discriminating failure, including conflicting signals when relevant.
-6. **One convergence owner.** A v3 standalone Improve child uses the selected
-   Improve card and its bound Until Loop for review, plan, apply, check and
+6. **One convergence owner.** A bound Improve child uses the selected Improve
+   card and its bound Until Loop for review, plan, apply, check and
    two-trivial assessment within the parent-supplied scope and commit policy.
-   A versioned managed Improve child retains its managed binding for the same
-   ownership boundary. ShipLoop owns its parent action, DAG and certificate
-   import. Do not wrap either child's per-iteration plan in another converging
-   Improve loop, count its passes in the parent, or use a legacy callback in
-   parallel. A material change reopens affected evidence; an unavailable
-   mandatory reviewer blocks unless the binding explicitly records an authorized
-   self-review fallback.
+   Those two passes are self-passes by one executor, not independent reviews.
+   ShipLoop owns the parent action, the graph and the child's import. Do not
+   wrap the child's work in another converging loop or count its passes in the
+   parent. A material change reopens affected evidence.
 
-In existing `body`/`plan`, note consequential design choices. During review use
-existing findings; record changes or justified exceptions in `summary`/`learnings`
-where that action permits them. Personal style preferences alone are trivial;
-behavior/security/contract changes are material. Never downgrade the script's
-classification. This is host judgment, not a new field, score or proof of quality.
+In the plan note, record consequential design choices; record changes or
+justified exceptions in the result summary and its evidence notes. Personal
+style preferences alone are trivial; behavior/security/contract changes are
+material. This is host judgment, not a new field, score or proof of quality.
 
 ## Iteration
 
-Also read the current global catalog through `context --section
-system-test-requirements` when offered. Cross-step tests have separate
-prerequisite-owned activities; they never replace this step's required tests.
-Use the [system-test contract](system-tests.md#reassessment-change-and-closure)
-for the carry-forward/replan checkpoint and pre/post-deployment test sequencing.
+Cross-item system tests have separate prerequisite-owned activities; they never
+replace this item's required tests. Use the
+[system-test contract](system-tests.md#reassessment-change-and-closure) at
+`carry-forward` and for pre/post-deployment test sequencing.
 
 Use [Test cases](#test-cases), [Surface selection](#surface-selection), or
-[Documentation](#documentation) only when the current step needs their record
-shape or selection rules; do not load unrelated sections or past cycles.
+[Documentation](#documentation) only when the current stage needs their record
+shape or selection rules; do not load unrelated sections or past items.
 
 The packet owns the order. This table locates duties and records; it is not a
-second scheduler. Keep the [Test cases](#test-cases) oracle/reuse rules,
-[Surface selection](#surface-selection) decisions and
-[Documentation](#documentation) contract rather than duplicating them per phase.
+second scheduler.
 
-| Current action | Duty and existing record |
+| Current stage | Duty and existing record |
 | --- | --- |
-| Managed parent `managed-improve` | Keep the parent action fixed and follow only the child packet/import route. The parent neither advances a child phase nor counts a child review. |
-| Managed local-plan child | Require the complete pre-code `test_plan` in `step-plan` and `step-plan-revise`; it converges that plan before implementation. |
-| Managed product child `improve-plan` / `improve-plan-verify` | Bind product findings, complete test plan, coverage/context evidence, prerequisites and learnings; validate/check the plan once before Apply, with no nested plan-convergence campaign. |
-| Managed product child `improve-apply` → `test-refine` → `test-author` | Apply scoped code, then refine the complete test plan from actual code and author/update/reuse executable tests with independent oracle evidence. Those records do not claim checks passed. |
-| Managed product child `iteration-document` / `skill-validate` | Record documentation/reuse assessment. When a skill is selected, validate its actual entrypoint/index and example/helper checks before verification; do not install it globally. |
-| Managed product child `review` | Begin from current history/knowledge and compare actual code/tests/environment/docs with independent expectations. The child retains findings, test/research assessment and learnings. |
-| Managed product child `verify` / `carry-forward` / `commit` / `final-verify` | Run current required checks after all bound artifacts are current, record carry-forward evidence, retain the primary learning/audit-commit evidence, and let the child decide convergence before returning a certificate. |
-| Legacy `step-plan` / `improve-plan`, then nested plan convergence | Put the pre-code case-to-contract matrix in `body`/`plan`. Use the implementation constitution; only a finalized plan authorizes its scoped code edits. |
-| Legacy `implement` / `improve-apply` | Write certified code, inspect actual diff/learnings, then author/refine tests and docs. Initial adequacy and justified oracle corrections use `test_review`; Improve application deltas use `test_changes` and `learnings`. Retained/TDD tests need evidence of adequacy, not a manufactured edit. |
-| Legacy `review` | Begin with current Git history and knowledge; compare actual code/tests/environment/docs with independent expectations. Record findings, `test_review`, `learnings` and `research_assessment`; new material research questions require investigation. |
-| Legacy `iteration-document` (versioned runs) | Required docs/README and reusable-local-skill decision, with safe paths, reasons, intended readers and learnings. Make scoped documentation/skill edits before fresh verification, not after it. |
-| Legacy `verify` / `final-verify` | Run required lint/tests and relevant examples/links; diagnose failures. In versioned runs, any source edit after `iteration-document` requires repair, renewed review/documentation and fresh checks; merely rerunning verify cannot renew the documentation receipt. Legacy repairs also remain material. Required failed, blocked or unrun checks remain unfinished. Put case/check evidence in `summary`; a test-oracle change needs independent justification. |
-| Legacy `carry-forward` | Use the [carry-forward contract](carry-forward.md) for scoped observations/evidence or explicit no discoveries. A current-step correction returns to review and fresh checks; prior evidence is stale. |
-| Legacy `commit` | Include test/docs deltas or no-change reasons and required review, nested-plan, apply, versioned iteration-document and carry-forward learnings verbatim. Two trivial-only cycles and fresh final verification remain mandatory. |
-| `post-inner` after either route | Reassess broader tests, environments, contracts, README and prerequisites. Resolve pending-work obligations through validated pending-only replanning; generic ShipLoop proposals go to its journal. |
+| `step-plan`, `test-spec` | Put the pre-code case-to-requirement matrix in the plan and test notes. Use the implementation constitution; only the accepted plan authorizes its scoped code edits. |
+| `baseline`, `test-author`, `test-red` | Observe the item's starting state, author executable tests from the independent cases, and record the expected RED failure without production edits. |
+| `implement` | Write the planned code; inspect the actual diff and learnings. |
+| `test-green`, `test-refine`, `regression` | Run the authored tests; refine cases from the code actually written with an independent basis; run the affected regression set. Required failed, blocked or unrun checks remain unfinished. |
+| `document`, `skill-assess`, `skill-validate` | Required docs/README and reusable-local-skill decision, with safe paths, reasons and intended readers. Make documentation/skill edits before fresh verification, not after it. |
+| `static-checks`, `verify` | Run required lint/tests and relevant examples/links; diagnose failures. A source edit after documentation needs its affected checks rerun. A test-oracle change needs independent justification. |
+| `integrate`, `integration-verify` | Assemble through authorized Git/worktree work and recheck the combined candidate. Assembly is not deployment. |
+| `carry-forward` | Use the [carry-forward contract](carry-forward.md) for scoped observations and the future queue. The last carry-forward's Improve review covers every executed step together. |
 
 Keep case IDs, independent sources, environment, observed outcomes and evidence
-references compact in the permitted result fields above. Results are imported
-into authoritative Markdown; no sidecar schema or assumed chat memory is needed.
-Keep essential facts inline and detail linked for a fresh context. Update product
-artifacts before verification; run-only observations go in the packet's inbox,
-not into the product tree after checks (which would stale the evidence).
+references compact in the result summary and its linked notes. Results are
+imported into authoritative Markdown; no sidecar schema or assumed chat memory
+is needed. Keep essential facts inline and detail linked for a fresh context.
+Update product artifacts before verification; run-only observations go in the
+packet's inbox, not into the product tree after checks (which would stale the
+evidence).
 
 ## Deployment and handoff
 
-For navigator v3, use the [stage completion map](#stage-readiness-and-completion).
+Use the [stage completion map](#stage-readiness-and-completion).
 `product-acceptance` precedes `release`: it reconciles due product checks and
 explicit pending post-release cases. `release-verify` obtains the latter's actual
-observations; `handoff` reconciles the final evidence. The compatibility guidance
-below about outer quality and DAG publication applies to those named older
-routes, not an instruction to move v3's final release before product acceptance.
+observations; `handoff` reconciles the final evidence.
 
-At outer quality, reassess the selected browser/service/API views against the
-whole product, not only the final step. Match the manifest to every exact
-`lifecycle.acceptance` string. Review expected-versus-observed outcomes, test
-adequacy, function/API contracts, README accuracy, and environment identity.
-Required blocked/not-run checks remain unfinished. Product changes discovered
-here use corrective DAG steps, including documentation-only fixes, not direct
-outer-checkout edits around the inner loop.
+At `product-acceptance`, reassess the selected browser/service/API views against
+the whole product, not only the final item. Match the checks to every
+acceptance criterion. Review expected-versus-observed outcomes, test adequacy,
+function/API contracts, README accuracy, and environment identity. Required
+blocked/not-run checks remain unfinished. Product changes discovered here use
+corrective work items through `replan`, including documentation-only fixes, not
+direct edits around the inner loop.
 
 If whole-product acceptance depends on a real deployment, plan authorized
-deployment/readiness and dependent verification **as DAG work before outer
-quality**. Do not certify that acceptance locally while waiting for a later
-outer publish. Outer-loop publication may add final delivery smoke checks after
-publication; document their expected outcomes and record real results in its
-existing `verification`/`evidence` fields. Inspect prior delivery before retries.
-Failed/unknown delivery checks keep publication unfinished; pause for direction
-when correction requires work or authority unavailable at that stage. Never
-invent a replan command at `publish` or implicitly authorize rollback/redeployment.
+deployment/readiness and dependent verification as earlier work items or as the
+pending post-release cases that `release-verify` owns. Do not certify that
+acceptance locally while waiting for a later release. Record the release's
+actual effect separately from its consumer observations, and inspect prior
+delivery before retries. Failed/unknown delivery checks keep the release
+unfinished; pause for direction when correction requires work or authority
+unavailable at that stage. Never implicitly authorize rollback or redeployment.
 
 Handoff links the checked case documentation, function/interface reference, and
 product README. Summarize passed/failed/blocked/not-run outcomes, actual tested

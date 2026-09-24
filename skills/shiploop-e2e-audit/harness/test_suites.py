@@ -41,12 +41,12 @@ class SuiteTests(unittest.TestCase):
         self.assertTrue(all(case["depends_on"] == [] for case in launch["cases"]))
         self.assertTrue(all(case["timeout_seconds"] == 7200 and case["max_turns"] == 1000 for case in launch["cases"]))
 
-    def test_planning_smoke_stops_at_plan_improve(self) -> None:
+    def test_planning_smoke_stops_at_plan(self) -> None:
         planning = suites.resolve_suite("planning-smoke", self.families)
         self.assertEqual(1, len(planning["cases"]))
         case = planning["cases"][0]
         self.assertEqual("ttt-create", case["step_id"])
-        self.assertEqual("plan-improve", case["stop_after_stage"])
+        self.assertEqual("plan", case["stop_after_stage"])
         self.assertEqual((7200, 1000), (case["timeout_seconds"], case["max_turns"]))
         self.assertTrue(case["prompt"].startswith("/shiploop "))
 

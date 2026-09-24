@@ -178,6 +178,14 @@ OUTER = (
 
 STAGES = PRELUDE + INNER + OUTER
 
+# Rendered at these producer stages with the recursive-discovery locators.
+ENVIRONMENT_DISCOVERY_REQUIREMENTS = {
+    "discovery": "Mandatory for this stage's relevant environment reads.",
+    "research": (
+        "Mandatory while resolving relevant environment unknowns in this stage."
+    ),
+}
+
 TEST_FACILITY_STAGES = frozenset({
     "test-strategy", "plan", "step-plan", "test-spec", "test-author", "test-red",
     "test-refine", "regression", "carry-forward", "system-test-author", "release-plan",
@@ -1969,6 +1977,7 @@ __all__ = (
     "COMMON",
     "DELEGATIONS",
     "DUTIES",
+    "ENVIRONMENT_DISCOVERY_REQUIREMENTS",
     "IMPLEMENTATION_CONSTITUTION",
     "IMPLEMENTATION_STAGES",
     "IMPROVE_PROMPTS",

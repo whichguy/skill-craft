@@ -1146,7 +1146,7 @@ class EphemeralImproveCliTests(ImproveCliFixture):
         self.assertEqual(skill["skill_card"], str(CARD.resolve()))
         self.assertEqual(skill["runtime_cli"], str(EPHEMERAL.resolve()))
 
-    def test_workspace_return_waits_for_terminal_receipt_and_excludes_ephemeral_artifacts(self):
+    def test_workspace_return_excludes_ephemeral_improve_artifacts(self):
         """Return is allowed only once at active release or handoff; no child ever binds there.
 
         Earlier navigation is synthetic setup; the spec parent's real Improve
@@ -1211,7 +1211,8 @@ class EphemeralImproveCliTests(ImproveCliFixture):
                 })
         navigator.save(self.run, state)
 
-        # handoff never parks a child, so return is allowed immediately.
+        # handoff never parks a child, so return is allowed immediately. The
+        # return gate for a parked child is pinned in shiploop-workspace.test.py.
         self.invoke(CLI, "workspace", "plan-return", "--workspace-root", workspace)
         plan_path = workspace / "return-plan.md"
         plan = store.read_record(plan_path)
