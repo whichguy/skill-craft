@@ -40,6 +40,8 @@ fail() {
 }
 
 [[ -x scripts/sync-plugin-views.sh ]] || fail "scripts/sync-plugin-views.sh not executable"
+# plugins/ is release output; rebuild this fixture's views from source first.
+bash scripts/sync-plugin-views.sh >/dev/null || fail "baseline sync"
 
 # Leaf-only bytecode is not plugin-view drift (.gitignore already ignores it).
 pyc_pin="skills/shiploop/scripts/__pycache__"
@@ -55,7 +57,7 @@ cleanup_pyc_pin
 trap - EXIT
 [[ "$rc_pyc" -eq 0 ]] || fail "leaf-only __pycache__ should not fail --check: $out_pyc"
 
-# Check mode must pass against committed materialization
+# Check mode must pass after regenerating
 bash scripts/sync-plugin-views.sh --check || fail "plugin views out of sync or still symlinked"
 
 # No symlinks under any plugins/*/skills or plugins/*/agents
@@ -555,11 +557,13 @@ cleanup_bundle
 rm -rf bundles plugins/backchain
 bash scripts/sync-plugin-views.sh >/dev/null || fail "sync without bundles"
 python3 - <<'PY' || fail "inventory without bundles must render only the skills table"
+import pathlib
+last = sorted(p.parent.name for p in pathlib.Path("skills").glob("*/SKILL.md"))[-1]
 text = open("README.md").read()
 block = text.split("<!-- skill-craft:inventory:start -->")[1].split("<!-- skill-craft:inventory:end -->")[0]
 lines = block.split("\n")
 assert "plugin bundle" not in block and "| Plugin |" not in block, "bundle table present"
-assert lines[-2] == "" and lines[-3].startswith("| [skill-interop]"), lines[-4:]
+assert lines[-2] == "" and lines[-3].startswith(f"| [{last}]"), lines[-4:]
 assert '"backchain"' not in open(".grok-plugin/marketplace.json").read()
 PY
 trap - EXIT

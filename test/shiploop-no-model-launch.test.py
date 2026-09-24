@@ -19,6 +19,8 @@ import sys
 import tempfile
 import unittest
 
+import package_build
+
 
 ROOT = Path(__file__).resolve().parents[1]
 FORBIDDEN_TRANSPORTS = (
@@ -82,11 +84,14 @@ class ShipLoopNoModelLaunchTests(unittest.TestCase):
     package_relative = Path("skills") / "shiploop"
     package_label = "source"
 
+    def package_dir(self) -> Path:
+        return ROOT / self.package_relative
+
     def setUp(self) -> None:
         self.temp = tempfile.TemporaryDirectory(prefix="shiploop-no-model-launch-")
         self.addCleanup(self.temp.cleanup)
         self.base = Path(self.temp.name).resolve()
-        source_package = ROOT / self.package_relative
+        source_package = self.package_dir()
         self.assertTrue(source_package.is_dir(), f"required {self.package_label} package is missing: {source_package}")
         self.package = self.base / "relocated package" / self.package_label
         shutil.copytree(source_package, self.package, ignore=shutil.ignore_patterns("__pycache__", "*.pyc"))
@@ -192,8 +197,11 @@ class ShipLoopNoModelLaunchTests(unittest.TestCase):
 
 
 class GeneratedShipLoopNoModelLaunchTests(ShipLoopNoModelLaunchTests):
-    package_relative = Path("plugins") / "shiploop" / "skills" / "shiploop"
     package_label = "generated"
+
+    def package_dir(self) -> Path:
+        # plugins/ is release output; read a build of the current source.
+        return package_build.plugins() / "shiploop" / "skills" / "shiploop"
 
 
 if __name__ == "__main__":

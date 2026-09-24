@@ -121,28 +121,38 @@ class CIPolicyTests(unittest.TestCase):
         self.assertIn("fromJSON(needs.plan.outputs.groups)", workflow)
         self.assertIn("python-version: '3.x'", workflow)
         self.assertIn("node-version: 'latest'", workflow)
-        self.assertEqual(workflow.count("check-latest: true"), 3)
+        self.assertEqual(workflow.count("check-latest: true"), 5)
         self.assertNotIn("ubuntu-24.04", workflow)
         self.assertIn("fail-fast: false", workflow)
         self.assertIn('--output "$RUNNER_TEMP/hermetic-$TEST_GROUP"', workflow)
         self.assertIn("if-no-files-found: error", workflow)
         self.assertIn("uses: actions/upload-artifact@v7", workflow)
         self.assertIn("cancel-in-progress: ${{ github.event_name == 'pull_request' }}", workflow)
-        self.assertIn("always() && (matrix.group == 'core' || matrix.group == 'smoke')", workflow)
         self.assertNotIn("secrets.", workflow)
         self.assertNotIn("run-integration", workflow)
+        self.assertNotIn("--release-sync", workflow)
+
+    def test_release_boundary_job_sees_full_history_and_the_pr_first_parent(self):
+        workflow = (ROOT / ".github/workflows/ci.yml").read_text()
+        job = workflow.split("\n  release-boundary:\n", 1)[1].split("\n  hermetic:\n", 1)[0]
+        self.assertIn("fetch-depth: 0", job)
+        self.assertIn("check-release-boundary.py --base", job)
+        self.assertIn('base="$(git rev-parse HEAD^1)"', job)
+        self.assertIn("node-version: 'latest'", job)
+        self.assertNotIn("needs:", job)
 
     def test_actual_aggregate_commands_reject_every_incomplete_job_state(self):
         workflow = (ROOT / ".github/workflows/ci.yml").read_text()
         gate = workflow.split("\n  hermetic:\n", 1)[1]
-        self.assertIn("needs: [plan, checks]", gate)
+        self.assertIn("needs: [plan, checks, release-boundary]", gate)
         self.assertIn("if: ${{ always() }}", gate)
         commands = "\n".join(line[10:] for line in gate.split("        run: |\n", 1)[1].splitlines())
         summary = self.root / "summary"
-        for plan, checks in itertools.product(("success", "failure", "cancelled", "skipped", ""), repeat=2):
-            env = dict(os.environ, PLAN_RESULT=plan, CHECKS_RESULT=checks, TIER="full", SOURCE_SHA=self.base, GITHUB_STEP_SUMMARY=str(summary))
+        for plan, checks, boundary in itertools.product(("success", "failure", "cancelled", "skipped", ""), repeat=3):
+            env = dict(os.environ, PLAN_RESULT=plan, CHECKS_RESULT=checks, BOUNDARY_RESULT=boundary, TIER="full",
+                       SOURCE_SHA=self.base, GITHUB_STEP_SUMMARY=str(summary))
             result = subprocess.run(["bash", "-c", commands], env=env)
-            self.assertEqual(result.returncode == 0, plan == checks == "success", (plan, checks))
+            self.assertEqual(result.returncode == 0, plan == checks == boundary == "success", (plan, checks, boundary))
 
     def test_plan_cli_records_actual_checkout_and_rejects_wrong_candidate(self):
         event = self.root / "event.json"

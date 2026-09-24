@@ -71,10 +71,12 @@ available directly but excluded from the aggregate, which owns one action walk.
 An optional `--output` directory must be new and outside the checkout. It retains
 source identity, runtime versions, selected/completed suites, outcomes, durations
 and per-suite logs. The runner continues remaining selected suites after a
-failure and returns failure overall. CI uploads these artifacts even on failure,
-checks generated-plugin parity in core/smoke, and rejects source drift or new
-checkout artifacts except Python bytecode under `__pycache__`. Running the local
-suite alone does not perform these additional CI parity and checkout checks.
+failure and returns failure overall. CI uploads these artifacts even on failure
+and rejects source drift or new checkout artifacts except Python bytecode under
+`__pycache__`. A separate `release-boundary` job runs
+`scripts/check-release-boundary.py --base` over the pushed range. Running the
+local suite alone does not perform these additional CI checkout and boundary
+checks.
 
 Full regression runs the source E2E apparatus with `check_suite.py --suite all`
 once. Its named diagnostic groups intentionally overlap; do not concatenate them
@@ -441,13 +443,23 @@ prove that failed preconditions, changed candidates, dirty files and remote race
 cannot publish a divergent release through the guarded push command. These are
 publication-control tests; they do not establish GitHub branch-policy compliance.
 
+`release-flow.test.sh` and `release-boundary.test.sh` (core) cut releases and
+run the release guard in disposable repositories. The guard checks each release
+commit out in a temporary worktree and requires its
+`sync-plugin-views.sh --check` to pass there; ordinary commits need a
+`changes/<leaf>/` note for each skill or agent card they change, may not delete
+a note pending at the base, and at HEAD must leave notes that `release.py`
+accepts. `plugins/` is release output and lags source between releases, so
+package tests read a fresh `scripts/build-packages.py` build through
+`test/package_build.py` (reuse one with `SKILL_CRAFT_PACKAGES`).
+
 A newer run for the same pull request cancels the superseded run; main-push and
 manual runs use unique concurrency keys and are never cancelled by this policy.
 CI sets Python 3.12 and Node 22 explicitly and preserves the existing `hermetic`
 status as an aggregate gate. Failed, cancelled or skipped required groups cannot
-make that gate pass. Package drift is reported even when another core check fails.
+make that gate pass, and neither can a failed `release-boundary` job.
 Each selected test job rejects staged or unstaged tracked-file changes left by tests,
-even after a suite or package-parity failure. The worktree and index are checked
+even after a suite failure. The worktree and index are checked
 separately so restoring a working file cannot hide its staged changes.
 Checkout-local bootstrap pins are generated in temporary directories, not
 rewritten into source fixtures. This dirty-tree guard is not a sandbox: it does
@@ -500,7 +512,8 @@ local catalog and disposable profile with an allowlisted environment. The test
 installs the Skill Interop helper, exercises it after installation, then installs,
 runs and removes Review Coverage. No ambient provider credentials are inherited,
 no model call is made, and no personal plugin state should change. These checks
-prove local installed behavior only, not published-pin readiness or public review.
+prove local installed behavior only, not that a published release serves these
+bytes, nor public review.
 
 `bash test/run-integration.sh marketplace-bundle-claude|marketplace-bundle-grok|marketplace-bundle-codex BUNDLE`
 installs one multi-skill bundle view the same way and requires every declared
@@ -527,7 +540,8 @@ The core `marketplace-host-isolation` suite covers that same consumer flow with
 a fake Codex CLI that materializes a real package copy. It is hermetic coverage of
 the test apparatus and installed helper boundary. The opt-in target uses the real
 CLI; neither target invokes a model or proves native task return or published
-marketplace pins. Verify published pins separately at their immutable source SHA.
+marketplace catalogs. Verify the published release commit, and each
+commit-pinned plugin in `catalog/external-plugins.json`, separately.
 
 ### Navigator protocol 3 and actual Improve
 

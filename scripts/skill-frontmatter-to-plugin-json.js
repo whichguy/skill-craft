@@ -584,6 +584,8 @@ function buildGrokMarketplace(leaves, bundles = []) {
 // the former skill-craft-market repository into this one.
 const CLAUDE_CODEX_MARKETPLACE = "skill-craft-market";
 const EXTERNAL_PLUGINS = path.join(root, "catalog", "external-plugins.json");
+const EXTERNAL_KEYS = new Set(["name", "description", "version", "author", "source", "policy", "category"]);
+const GITHUB_REPO_RE = /^https:\/\/github\.com\/([A-Za-z0-9-]+)\/([A-Za-z0-9._-]+?)(?:\.git)?$/;
 
 function loadExternalPlugins(localNames) {
   if (!fs.existsSync(EXTERNAL_PLUGINS)) return [];
@@ -594,14 +596,46 @@ function loadExternalPlugins(localNames) {
     fail(`catalog/external-plugins.json is invalid: ${e.message}`);
   }
   const plugins = Array.isArray(data.plugins) ? data.plugins : fail("catalog/external-plugins.json needs a plugins array");
+  const seen = new Set();
+  const nonEmpty = (value) => typeof value === "string" && value.trim() !== "";
   for (const plugin of plugins) {
     const label = `catalog/external-plugins.json ${plugin && plugin.name}`;
-    if (!plugin || !NAME_RE.test(plugin.name || "")) fail(`${label}: invalid name`);
+    if (!plugin || typeof plugin !== "object" || !NAME_RE.test(plugin.name || "")) fail(`${label}: invalid name`);
     if (localNames.has(plugin.name)) fail(`${label}: also published from this repository`);
-    if ("hooks" in plugin) fail(`${label}: must not declare hooks`);
+    if (seen.has(plugin.name.toLowerCase())) fail(`${label}: listed more than once`);
+    seen.add(plugin.name.toLowerCase());
+    // Entries are copied verbatim into both catalogs, so only known catalog
+    // fields may appear (no hooks, mcpServers or other components).
+    for (const key of Object.keys(plugin)) {
+      if (!EXTERNAL_KEYS.has(key)) fail(`${label}: unexpected key ${key}`);
+    }
     if (!SEMVER_RE.test(plugin.version || "")) fail(`${label}: needs a semantic version`);
-    const source = plugin.source || {};
-    if (typeof source !== "object" || !/^[0-9a-f]{40}$/.test(source.sha || "")) {
+    if (!nonEmpty(plugin.description)) fail(`${label}: needs a description`);
+    if (!nonEmpty(plugin.category)) fail(`${label}: needs a category`);
+    const policy = plugin.policy || {};
+    if (policy.installation !== "AVAILABLE" || policy.authentication !== "ON_INSTALL" || Object.keys(policy).length !== 2) {
+      fail(`${label}: policy must be {installation: AVAILABLE, authentication: ON_INSTALL}`);
+    }
+    const source = plugin.source;
+    if (!source || typeof source !== "object" || !["url", "git-subdir"].includes(source.source)) {
+      fail(`${label}: source.source must be url or git-subdir`);
+    }
+    const repo = GITHUB_REPO_RE.exec(typeof source.url === "string" ? source.url : "");
+    if (!repo) fail(`${label}: source.url must be https://github.com/<owner>/<repo>`);
+    if (`${repo[1]}/${repo[2]}`.toLowerCase() === "whichguy/skill-craft") {
+      fail(`${label}: source.url points at this repository`);
+    }
+    if (source.source === "git-subdir") {
+      const sub = source.path;
+      if (!nonEmpty(sub) || sub.startsWith("/") || sub.includes("\\") ||
+          sub.split("/").some((part) => part === "" || part === "." || part === "..")) {
+        fail(`${label}: git-subdir needs a relative path inside the repository`);
+      }
+    } else if ("path" in source) {
+      fail(`${label}: a url source takes no path`);
+    }
+    if ("ref" in source && !nonEmpty(source.ref)) fail(`${label}: source.ref must be a non-empty string`);
+    if (!/^[0-9a-f]{40}$/.test(source.sha || "")) {
       fail(`${label}: an external source needs a full 40-character sha pin`);
     }
   }

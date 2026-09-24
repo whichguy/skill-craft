@@ -253,14 +253,15 @@ class PackageTests(unittest.TestCase):
         self.assertEqual(["backchain", "plan-dispatcher"], CHECK.bundle_members(ROOT, "backchain"))
 
     def test_default_run_covers_every_leaf_and_bundle(self):
-        # The documented release gate is the no-argument run; it must
-        # enumerate bundles as well as leaves, not only validate them when
-        # a caller names them.
+        # The all-package run must enumerate bundles as well as leaves, not
+        # only validate them when a caller names them. It reads a fresh build
+        # because the committed plugins/ tree may lag the source.
         leaves = sorted(path.parent.name for path in (ROOT / "skills").glob("*/SKILL.md"))
         bundles = sorted(path.parent.name for path in (ROOT / "bundles").glob("*/bundle.json"))
         self.assertIn("backchain", bundles)
         result = subprocess.run(
-            [sys.executable, "-B", str(ROOT / "scripts/check-marketplace-packages.py")],
+            [sys.executable, "-B", str(ROOT / "scripts/check-marketplace-packages.py"),
+             "--root", str(package_build.packages_root())],
             capture_output=True, text=True, check=False,
         )
         self.assertEqual(0, result.returncode, result.stdout + result.stderr)

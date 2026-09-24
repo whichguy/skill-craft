@@ -17,11 +17,23 @@ fail() {
 [[ -f "$root/skills/devloop/references/bootstrap.md" ]] || fail "missing bootstrap.md"
 [[ -f "$fixture_tgz" ]] || fail "missing fixture tgz"
 
+tmpdir="$(mktemp -d "${TMPDIR:-/tmp}/devloop-run-test.XXXXXX")"
+cleanup() { rm -rf "$tmpdir"; }
+trap cleanup EXIT
+
+# plugins/ is release output; the distributed payload comes from a build of
+# the current source.
+packages="${SKILL_CRAFT_PACKAGES:-}"
+if [[ -z "$packages" ]]; then
+  packages="$tmpdir/packages"
+  python3 -B "$root/scripts/build-packages.py" "$packages" >/dev/null || fail "package build"
+fi
+
 # M0: a marketplace package must not contain an ordinary-invocation fetch,
 # bootstrap command override, auto-installing uv invocation, or operator pin.
 # This intentionally precedes setup assertions: it is the regression that
 # proves the distributed payload is fail-closed before implementation changes.
-python3 - "$root/skills/devloop" "$root/plugins/devloop/skills/devloop" <<'PY' || fail "M0 distributed payload contains provisioning behavior"
+python3 - "$root/skills/devloop" "$packages/plugins/devloop/skills/devloop" <<'PY' || fail "M0 distributed payload contains provisioning behavior"
 from pathlib import Path
 import sys
 
@@ -58,9 +70,6 @@ PY
 python3 -c 'import json;d=json.load(open("'"$root"'/scripts/devloop-engine-pin.json")); assert "version" in d and "url" in d and "sha256" in d; assert "grok" in d.get("transports", [])' \
   || fail "operator engine pin schema"
 
-tmpdir="$(mktemp -d "${TMPDIR:-/tmp}/devloop-run-test.XXXXXX")"
-cleanup() { rm -rf "$tmpdir"; }
-trap cleanup EXIT
 fixture_pin="$tmpdir/engine-pin-fixture.json"
 
 # The operator contract requires pytest in the selected interpreter. The test
@@ -980,7 +989,7 @@ d47d_plugin="$d47d_home/.codex/plugins/cache/test-marketplace/devloop"
 d47d_engine="$tmpdir/d47d-minimal-engine"
 rm -rf "$d47d_home" "$d47d_engine"
 mkdir -p "$(dirname "$d47d_plugin")" "$d47d_engine/scripts"
-cp -R "$root/plugins/devloop" "$d47d_plugin"
+cp -R "$packages/plugins/devloop" "$d47d_plugin"
 printf 'print("D47D_CLI")\n' >"$d47d_engine/scripts/devloop_cli.py"
 d47d_run="$d47d_plugin/skills/devloop/scripts/devloop-run"
 [[ -x "$d47d_run" ]] || fail "D47d Codex cache runtime missing: $d47d_run"

@@ -1,7 +1,8 @@
 #!/usr/bin/env python3
 """Opt-in real CLI install smoke in disposable profiles (no model/API calls).
 
-Tests the current local package bytes, not their published Git catalog pins.
+Tests a build of the current local source, not the committed plugins/ tree
+or its published Git catalog pins.
 Run with --host claude|grok|codex. The personal host profiles are never used.
 --bundle NAME installs one multi-skill bundle view (plugins/NAME) and checks
 that every declared member card is materialized once with identical bytes.
@@ -19,6 +20,8 @@ import subprocess
 import sys
 import tempfile
 from typing import Any, Mapping
+
+import package_build
 
 ROOT = Path(__file__).resolve().parents[1]
 LEAVES = ("skill-interop", "review-coverage")
@@ -166,7 +169,7 @@ def run_smoke(host: str, binary: str) -> dict:
             path.mkdir()
         plugins = []
         for name in LEAVES:
-            source = ROOT / "plugins" / name
+            source = package_build.plugins() / name
             shutil.copytree(source, market / "plugins" / name,
                             ignore=shutil.ignore_patterns("__pycache__", "*.pyc"))
             if host == "grok":
@@ -269,7 +272,7 @@ def run_ask_agent_consumer(
     resolved = shutil.which(binary)
     if not resolved:
         raise RuntimeError(f"{host} CLI unavailable: {binary}")
-    source_package = ROOT / "plugins" / ASK_AGENT
+    source_package = package_build.plugins() / ASK_AGENT
     source_skill = source_package / "skills" / ASK_AGENT
     if not source_skill.is_dir():
         raise RuntimeError(f"Ask Agent package is unavailable: {source_skill}")
@@ -525,7 +528,7 @@ def run_bundle_smoke(host: str, binary: str, bundle: str) -> dict:
             directory.mkdir(parents=True)
         parent = dict(os.environ)
         env = isolated_environment(parent, home)
-        shutil.copytree(ROOT / "plugins" / bundle, market / "plugins" / bundle,
+        shutil.copytree(package_build.plugins() / bundle, market / "plugins" / bundle,
                         ignore=shutil.ignore_patterns("__pycache__", "*.pyc", ".DS_Store"))
         if host == "grok":
             entry = {"name": bundle, "source": {"type": "local", "path": f"./plugins/{bundle}"}}
