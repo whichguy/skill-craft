@@ -112,7 +112,7 @@ host checkout into a tree that is bind-mounted into the container as `/opt/data`
 | Grok/Cursor same-repository catalogs | **implemented** — generated from skill frontmatter; distribution and publication steps in [distribution.md](distribution.md) |
 | `plugin.json` name/version/description/license derived from `SKILL.md` | **implemented** (`scripts/skill-frontmatter-to-plugin-json.js`; sync enumerates from `skills/`) |
 | Root Claude/Codex catalogs in this repository (`skill-craft-market` retired); external plugins pinned in `catalog/external-plugins.json` | **implemented** |
-| Release output (`plugins/`, catalogs, versions) written only by `scripts/release.py`; enforced by `scripts/check-release-boundary.py` | **implemented** |
+| Release output (`plugins/`, catalogs, versions) written only by `scripts/release.py`; enforced by `scripts/check-release-boundary.py`, which also re-verifies each release commit's output against its source | **implemented** |
 | `install.sh --status` / `--uninstall` (owned only) | **implemented** |
 | skillctl | **optional / not planned** (use `install.sh`) |
 | Default DevLoop card `skills/devloop` | **implemented** (discovery on Claude/Grok/Codex/Cursor; Hermes card skipped; installed-engine resolution only; separate operator provisioning) |
@@ -128,7 +128,13 @@ host checkout into a tree that is bind-mounted into the container as `/opt/data`
   inventory, while no-argument/all and `--shard 1/3|2/3|3/3` preserve the full
   behavior. No installed AI host or engine is required; core's bundled mock also
   covers marketplace-style binding from an empty unrelated directory.
-- Plugin view drift: `bash scripts/sync-plugin-views.sh --check` (**implemented**)
+- Release boundary: `python3 scripts/check-release-boundary.py --base REV` (**implemented**)
+  runs in CI's separate `release-boundary` job. Ordinary commits need a
+  `changes/<leaf>/` note for every skill or agent card they change; each
+  release commit is checked out in a temporary worktree and its
+  `sync-plugin-views.sh --check` must pass there. Between releases
+  `plugins/` lags source, so package tests read a `scripts/build-packages.py`
+  build instead.
 - CI: `.github/workflows/ci.yml` (**implemented**); pull requests and `main`
   pushes use the smoke tier. Manual dispatch defaults to smoke and can select
   `tier=full`, which runs core plus three deterministic ShipLoop shards for
@@ -136,7 +142,7 @@ host checkout into a tree that is bind-mounted into the container as `/opt/data`
   `hermetic` status remains the aggregate gate. A full run only qualifies the
   matching final SHA/tree; it is not a substitute for the PR smoke gate.
   Each selected test job rejects staged or unstaged tracked changes after
-  their suites, including failed suites; package parity runs with core or smoke.
+  their suites, including failed suites.
 - External integrations: explicitly selected via `bash test/run-integration.sh`;
   never pulled into the required CI aggregate. Live Grok E2E audits are also
   opt-in, use `xhigh` with a 7,200-second cap, and are distinct from hermetic

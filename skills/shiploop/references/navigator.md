@@ -672,10 +672,11 @@ work; it does not automatically prescribe product architecture, authorize an
 external operation, or require adding a dependency. Select only relevant tools
 and practices. A docs-only item should not invent runtime conventions.
 
-For example, this repository's `skills/` source and generated `plugins/` layout
-means a prompt change belongs in the canonical skill followed by package sync
-and parity checks. A work-item context can point to the layout rule and selected
-commands. If a dependency change makes an older code example invalid, investigate
+For example, this repository's `skills/` source and release-output `plugins/`
+layout means a prompt change belongs in the canonical skill plus a
+`changes/<leaf>/` note; ordinary work items do not regenerate or commit
+`plugins/` or catalogs. A work-item context can point to the layout rule and
+selected commands. If a dependency change makes an older code example invalid, investigate
 the affected API, record a justified exception and update the relevant checks;
 do not repeat all discovery or blindly preserve the old pattern.
 

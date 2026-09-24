@@ -147,10 +147,12 @@ codex plugin add skill-interop@skill-craft-market
 ```
 
 The Claude and Codex catalogs keep the name `skill-craft-market`, so plugin
-IDs are unchanged from the former `whichguy/skill-craft-market` repository.
-Remove that registration before adding this one. Register a local checkout by
-passing its absolute root to `marketplace add`. Install only skills not
-already exposed by skill-dir. Start a new Codex thread after installing a plugin.
+IDs are unchanged from the former `whichguy/skill-craft-market` repository; to
+move an existing registration without uninstalling its plugins, follow
+[distribution.md](docs/distribution.md#moving-from-the-former-whichguyskill-craft-market-repository).
+Register a local checkout by passing its absolute root to `marketplace add`.
+Install only skills not already exposed by skill-dir. Start a new Codex thread
+after installing a plugin.
 
 ### Install lifecycle
 
@@ -166,9 +168,9 @@ already exposed by skill-dir. Start a new Codex thread after installing a plugin
 
 This repo also contains generated native catalogs at `.grok-plugin/marketplace.json`
 and `.cursor-plugin/marketplace.json`. Both reference the same generated `plugins/<leaf>`
-packages in this checkout, plus each plugin bundle (`plugins/backchain`). They do not
-include the sibling catalog's external packages.
-Use a full plugin sync to regenerate the catalogs. See
+packages in this checkout, plus each plugin bundle (`plugins/backchain`). They omit
+the external plugins listed in `catalog/external-plugins.json`. Only
+`scripts/release.py` regenerates the catalogs. See
 [distribution instructions](docs/distribution.md) for local use, updates, and publication.
 
 ## Unit of a skill (agentskills.io)
@@ -224,16 +226,18 @@ plugins/skill-interop/
 ```
 
 Claude `git-subdir` installs **do not follow** relative symlinks outside the pin path,
-so the plugin view is a **materialised copy**. Keep it in sync:
+so the plugin view is a **materialised copy**. `plugins/` is release output:
+`scripts/release.py` regenerates it with `scripts/sync-plugin-views.sh` and
+commits it, so between releases it lags `skills/`. After editing a skill, add a
+change note and check a build of the current source instead:
 
 ```sh
-./scripts/sync-plugin-views.sh          # after editing skills/
-./scripts/sync-plugin-views.sh --check  # CI / pre-commit
+python3 scripts/build-packages.py "$(mktemp -d)/build"   # prints the build dir
 ```
 
-Copy and `--check` ignore `__pycache__/` and `*.pyc`. Bytecode next to a
-leaf script is not view drift. Bare `--check` still fails if some other
-plugin view's content is dirty.
+Package tests build the same way (`test/package_build.py`). Never commit
+`sync-plugin-views.sh` output by hand. Copy and `--check` ignore `__pycache__/`
+and `*.pyc`; bytecode next to a leaf script is not view drift.
 
 Catalog entries select `./plugins/skill-interop`, not the bare skill leaf.
 
