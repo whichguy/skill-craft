@@ -3,16 +3,13 @@
   "bundle": "backchain",
   "upstream": {
     "repository": "https://github.com/whichguy/plan-orchestrator.git",
-    "repository_aliases": [
-      "https://github.com/whichguy/backchain.git"
-    ],
-    "commit": "ff73f085f0294be9573db33bbbd696ce0674b789",
+    "commit": "8671b5c45f889e2eb82a4aca4b94a0af53f61869",
     "manifest": {
       "path": ".claude-plugin/plugin.json",
       "name": "backchain",
-      "version": "0.3.9",
-      "sha256": "995e5d5c2205addfcb4546eec6b8999e3d2741eb36af40f4504b057c21d6bf1c",
-      "git_blob": "eb8722e8718072f333af2164138a5fb44af9fc73"
+      "version": "0.4.0",
+      "sha256": "b432724f7d4d666f8cc61d22dcafb421ffc9218f8b8ca431d9cb9d523d28f61d",
+      "git_blob": "45a25ddb1dbb06928f2117d69a3eb2339277fc8c"
     }
   },
   "files": [
@@ -25,8 +22,8 @@
     {
       "path": "skills/backchain/SKILL.md",
       "mode": "100644",
-      "sha256": "53c278f43589599f22023c51efcaef3b274123de8db9ba8678f2c56c6b26919d",
-      "git_blob": "b57788c343460a9777e3f2d79e33cf7145bc02be"
+      "sha256": "1634d38d8c09c750ca6029d7603671c34fbf9ae14c0594a34d81ded300fb70a4",
+      "git_blob": "72b7d7413999b81988794909c44043b283037c40"
     },
     {
       "path": "skills/backchain/evals/evals.json",
@@ -127,8 +124,8 @@
     {
       "path": "skills/plan-dispatcher/SKILL.md",
       "mode": "100644",
-      "sha256": "c1b0ba72e6aec8d4675ba2eac698b4d5f5334edefc9b0386669d462e7614c218",
-      "git_blob": "40fd548fe57e075475109da9f22d1d31a09ba3ec"
+      "sha256": "df4be75911e6c3acb33ded64b19bb4e96ad26951e757b1695b4a6243a50d4d58",
+      "git_blob": "5d399d0ff5fbf6c9bde33335be6f05d147d88ebe"
     },
     {
       "path": "skills/plan-dispatcher/references/host-matrix.md",
@@ -139,26 +136,26 @@
     {
       "path": "skills/plan-dispatcher/references/protocol.md",
       "mode": "100644",
-      "sha256": "891dac0e44ec54f5503221b881af33873d7b501f920dad8c8fdd4863ea6f697a",
-      "git_blob": "2a1d0d3bab531d8af0712ff72fedd900045bcbe6"
+      "sha256": "c9b21133b865aaa74b7fa54b7a27e92218b8483b569541023ffae1aa9399b742",
+      "git_blob": "444054a0b3e0cb649241e1ce39ebfa6c9528f5d4"
     },
     {
       "path": "skills/plan-dispatcher/scripts/dispatch.js",
       "mode": "100644",
-      "sha256": "b5cc6e4a4dfd37db2b5c0eabeda7ee5c267b5e1681708c6371c9f8c76acde95b",
-      "git_blob": "319b834a452045110117354bef67d87b0b50734a"
+      "sha256": "5a63a1412b8473797b1dec0437c802fa00ff342734c7bb129120bb1ea879e21a",
+      "git_blob": "8691bb7aedc5b6c70236fb2ac6c663380a104f0b"
     },
     {
       "path": "skills/plan-dispatcher/scripts/planning-context.js",
       "mode": "100644",
-      "sha256": "93c8a3bf414c25451aee75879ba5145373e24462ab6ff0659049e1d985eaff89",
-      "git_blob": "c9445899dd5e0a88ef8f7a2b4e7cce5655f05aaf"
+      "sha256": "23044acc81d3bf9baf8cdd8417f21e88f185bdd75daba096981afc7af213a238",
+      "git_blob": "4c445b896b4fff015e870400dc28cbb3e90ed4f2"
     },
     {
       "path": "skills/plan-dispatcher/scripts/state.js",
       "mode": "100644",
-      "sha256": "dcfeeac0feb82331d16705ff6f26f9ecf3765cb86edb8aedfafa9a6fd8047718",
-      "git_blob": "c202985b959024c1e8ac2e7608b67e4a86292682"
+      "sha256": "b6fa1225e6fdb5bac3820e30f7186412b6be044771480222fb99be5c0f697941",
+      "git_blob": "65bd4bbb32480cd13e82785fa56a13e835708bae"
     }
   ]
 }

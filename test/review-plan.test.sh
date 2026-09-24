@@ -11,8 +11,7 @@ resolve_skill() {
   local candidate
   for candidate in \
     "${REVIEW_PLAN_SKILL:-}" \
-    "$HOME/.cursor/skills/review-plan" \
-    "$HOME/.claude/plugins/cache/claude-craft/review-suite/0.2.4/skills/review-plan"
+    "$HOME/.cursor/skills/review-plan"
   do
     if [[ -n "$candidate" && -f "$candidate/SKILL.md" ]]; then
       printf '%s\n' "$candidate"

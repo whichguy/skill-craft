@@ -22,13 +22,15 @@
 | architect | planning-suite | Wave 2 |
 | plan-test | planning-suite (`test`) | Renamed leaf to avoid generic `test` |
 | compare-prompts | review-bench | Wave 2 |
-| derive-questions | review-bench | Wave 2 |
-| question-bench | review-bench | Wave 2 |
 | improve-system-prompt | review-bench | Wave 2 (Sheets Chat specific) |
 | review-fix-bench | review-bench | Wave 2 |
 | review-coverage | (native) | Post-ship residual×2 directive + CLI |
-| devloop | (native) | **Default DevLoop** — thin engine shim (resolve/bootstrap/exec); bare “devloop” routes here |
+| devloop | (native) | **Default DevLoop** — thin engine shim (resolve/exec; setup is operator-only); bare “devloop” routes here |
 | evidence-gates | (native) | **Demoted** optional offline freeze/prove/build-on-host/stop evidence gates — not DevLoop |
+
+**Retired:** `derive-questions` and `question-bench` (review-bench, Wave 2) were
+removed from skill-craft together with the question-ID review-plan contract they
+served.
 
 Host overlay compose (before / during / after DevLoop) and the practice list:
 [LOOP-ENGINEERING.md](LOOP-ENGINEERING.md).

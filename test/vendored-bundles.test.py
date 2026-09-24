@@ -315,14 +315,21 @@ class OfflineTamperTests(unittest.TestCase):
         for url, needle in ((f"https://oauth2:{token}@github.com/owner/upstream.git", "must not embed credentials"),
                             ("https://someone@github.com/owner/upstream.git", "must not embed credentials"),
                             ("http://github.com/owner/upstream.git", "must be https URLs")):
-            with self.subTest(alias=needle):
+            with self.subTest(repository=needle):
                 prov = json.loads(pristine_provenance)
-                prov["upstream"]["repository_aliases"] = [url]
+                prov["upstream"]["repository"] = url
                 self.provenance_path.write_text(json.dumps(prov, indent=2) + "\n")
                 result = self.check()
                 self.assertNotEqual(0, result.returncode, result.stderr)
                 self.assertIn(needle, result.stderr)
                 self.assertNotIn(token, result.stdout + result.stderr)
+        # One repository per bundle: a retained alias list is refused, not carried forward.
+        prov = json.loads(pristine_provenance)
+        prov["upstream"]["repository_aliases"] = ["https://github.com/owner/renamed.git"]
+        self.provenance_path.write_text(json.dumps(prov, indent=2) + "\n")
+        refused = self.check()
+        self.assertNotEqual(0, refused.returncode, refused.stderr)
+        self.assertIn("exactly repository, commit, manifest", refused.stderr)
         prov = json.loads(pristine_provenance)
         prov["upstream"]["manifest"]["path"] = ".claude-plugin/192.168.1.20.json"
         self.provenance_path.write_text(json.dumps(prov, indent=2) + "\n")
@@ -526,19 +533,14 @@ class RefreshTests(unittest.TestCase):
         published = self.refresh()
         self.assertEqual(0, published.returncode, published.stdout + published.stderr)
 
-    def test_origin_must_match_repository_or_alias(self) -> None:
+    def test_origin_must_match_the_repository(self) -> None:
         self.git("remote", "set-url", "origin", "https://example.invalid/other/repo.git")
         result = self.refresh("--repository", UPSTREAM_URL)
         self.assertEqual(2, result.returncode, result.stderr)
         self.assertIn("origin does not match", result.stderr)
-        self.git("remote", "set-url", "origin", "git@example.invalid:owner/renamed.git")
-        aliased = self.refresh(
-            "--repository", "https://example.invalid/owner/current.git",
-            "--repository-alias", "https://example.invalid/owner/renamed.git", "--write",
-        )
-        self.assertEqual(0, aliased.returncode, aliased.stdout + aliased.stderr)
-        prov = json.loads((self.bundle / "PROVENANCE.json").read_text())
-        self.assertEqual(["https://example.invalid/owner/renamed.git"], prov["upstream"]["repository_aliases"])
+        alias = self.refresh("--repository", UPSTREAM_URL, "--repository-alias", "https://example.invalid/other/repo.git")
+        self.assertNotEqual(0, alias.returncode, alias.stderr)
+        self.assertIn("unrecognized arguments: --repository-alias", alias.stderr)
 
     def test_upstream_symlink_and_submodule_are_refused(self) -> None:
         self.import_initial()
@@ -654,7 +656,6 @@ class RefreshTests(unittest.TestCase):
     def test_repository_is_fixed_after_the_first_import(self) -> None:
         self.import_initial()
         self.assert_refused_unchanged(64, "only for the first import", "--repository", "https://example.invalid/x.git")
-        self.assert_refused_unchanged(64, "only for the first import", "--repository-alias", "https://example.invalid/y.git")
 
     def test_first_import_url_must_be_https_without_credentials(self) -> None:
         token = "tok" + "e" * 30
@@ -667,9 +668,6 @@ class RefreshTests(unittest.TestCase):
                 self.assertIn(needle, result.stderr)
                 self.assertNotIn(token, result.stdout + result.stderr)
                 self.assertFalse((self.bundle / "PROVENANCE.json").exists())
-        aliased = self.refresh("--repository", UPSTREAM_URL, "--repository-alias", f"https://x:{token}@example.invalid/a.git")
-        self.assertEqual(64, aliased.returncode, aliased.stderr)
-        self.assertNotIn(token, aliased.stderr)
 
     def test_upstream_that_drops_a_declared_member_or_its_manifest_is_invalid(self) -> None:
         self.import_initial()

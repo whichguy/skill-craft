@@ -47,11 +47,13 @@ TEST_HOLD_RELEASE_SCHEMA = "shiploop-native-pilot-refill-hold-release/v1"
 TEST_HOLD_DEFAULT_TIMEOUT_SECONDS = 1800
 TEST_HOLD_POLL_SECONDS = 0.05
 ASK_AGENT_MANAGED_SCHEMA = "shiploop-chain-ask-agent-managed-worktree/v1"
+# The complete current managed-worktree capability set; no numeric version floor.
 ASK_AGENT_MANAGED_CAPABILITIES = frozenset({
     "helper-managed-worktree",
     "prepared-inspection",
     "returned-commit-delivery",
     "fingerprint-bound-close",
+    "ignored-output-report",
 })
 
 STEPS: dict[str, dict[str, Any]] = {
@@ -555,6 +557,7 @@ def bridge(context: dict[str, Any], operation: str, *, payload: dict[str, Any] |
 
 def graph() -> dict[str, Any]:
     return {
+        "version": 1,
         "steps": [
             {"id": step, "deps": spec["deps"], "contract": {
                 "task": spec["task"], "ready": spec["ready"], "done": spec["done"],
@@ -607,13 +610,12 @@ def selected_dispatcher_preflight(dispatcher_card: Path) -> dict[str, Any]:
     }
 
 
-def _managed_ask_agent_version(value: Any, label: str) -> tuple[int, int, int]:
+def _managed_ask_agent_version(value: Any, label: str) -> str:
     if not isinstance(value, str):
         fail(f"{label} has no semantic version")
-    match = re.fullmatch(r"(0|[1-9][0-9]*)\.(0|[1-9][0-9]*)\.(0|[1-9][0-9]*)(?:[-+].*)?", value)
-    if match is None:
+    if re.fullmatch(r"(0|[1-9][0-9]*)\.(0|[1-9][0-9]*)\.(0|[1-9][0-9]*)(?:[-+].*)?", value) is None:
         fail(f"{label} has an invalid semantic version")
-    return tuple(int(part) for part in match.groups())
+    return value
 
 
 def selected_ask_agent_preflight(ask_card: Path) -> dict[str, Any]:
@@ -648,16 +650,17 @@ def selected_ask_agent_preflight(ask_card: Path) -> dict[str, Any]:
     capabilities = invoke("capabilities")
     if set(capabilities) != {"schema", "version", "capabilities"}:
         fail("selected Ask-Agent capabilities has an unsupported response shape")
-    version = _managed_ask_agent_version(capabilities.get("version"), "selected Ask-Agent capabilities")
+    _managed_ask_agent_version(capabilities.get("version"), "selected Ask-Agent capabilities")
     declared = capabilities.get("capabilities")
     if (capabilities.get("schema") != ASK_AGENT_MANAGED_SCHEMA
             or not isinstance(declared, list)
             or not all(isinstance(item, str) and item for item in declared)
             or len(set(declared)) != len(declared)
             or not ASK_AGENT_MANAGED_CAPABILITIES.issubset(set(declared))):
-        fail("selected Ask-Agent does not declare the required managed-worktree capabilities")
-    if version < (0, 6, 0):
-        fail("selected Ask-Agent requires version 0.6.0+ managed-worktree capabilities")
+        named = {item for item in declared if isinstance(item, str)} if isinstance(declared, list) else set()
+        missing = sorted(ASK_AGENT_MANAGED_CAPABILITIES - named)
+        fail("selected Ask-Agent does not declare the required managed-worktree capabilities"
+             + (": " + ", ".join(missing) if missing else ""))
 
     identity = invoke("identity")
     identity_required = {
@@ -744,7 +747,7 @@ def prepare(args: argparse.Namespace) -> dict[str, Any]:
 
     nav = load_navigator(source_root)
     # A chain binds only on an ask-agent run; inline runs execute steps in the main context.
-    state = nav.new_state(str(feature), "Run bounded native chain pilot", protocol_version=3,
+    state = nav.new_state(str(feature), "Run bounded native chain pilot",
                           delegation="ask-agent")
     synthetic_actions: list[dict[str, str]] = []
     while nav.current_stage(state) != "implement":
@@ -816,7 +819,6 @@ def prepare(args: argparse.Namespace) -> dict[str, Any]:
     bound = bridge(context, "bind", extra=[
         "--graph", str(graph_path), "--dispatcher-skill", str(dispatcher_card),
         "--ask-agent-skill", str(ask_card), "--worktree-parent", str(worktree_parent),
-        "--lifecycle", "per-step",
         "--mode", "parallel",
         "--capacity", str(args.capacity),
     ])
@@ -2039,8 +2041,8 @@ def parser() -> argparse.ArgumentParser:
     prep.add_argument("--hold-timeout-seconds", type=int, default=TEST_HOLD_DEFAULT_TIMEOUT_SECONDS)
     prep.set_defaults(handler=prepare)
     for name, handler in (("claim", claim), ("start", start), ("launched", launched),
-                          ("import-handoff", import_handoff), ("verify", import_handoff),
-                          ("prepare-integration", prepare_integration), ("done", done), ("settle", done),
+                          ("import-handoff", import_handoff),
+                          ("prepare-integration", prepare_integration), ("done", done),
                           ("show", show), ("finish", finish), ("packet", packet), ("wait-hold", wait_hold)):
         item = subs.add_parser(name)
         item.add_argument("--pilot-dir", required=True)
@@ -2052,9 +2054,9 @@ def parser() -> argparse.ArgumentParser:
             item.add_argument("--attempt", required=True)
         if name == "launched":
             item.add_argument("--handle-file", required=True)
-        if name in {"import-handoff", "verify"}:
+        if name == "import-handoff":
             item.add_argument("--handoff-manifest", required=True)
-        if name in {"import-handoff", "verify", "prepare-integration", "done", "settle"}:
+        if name in {"import-handoff", "prepare-integration", "done"}:
             item.add_argument("--confirmed-stopped", action="store_true")
     return program
 

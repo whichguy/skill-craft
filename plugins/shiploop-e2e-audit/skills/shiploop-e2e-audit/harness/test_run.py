@@ -62,7 +62,7 @@ def record(path,value):
     path.write_text("# Fixture declaration\n\n```shiploop-state\n"+json.dumps(value)+"\n```\n")
 sys.path.insert(0,os.environ["E2E_TEST_NAVIGATOR_ROOT"])
 import shiploop_navigator as navigator
-state=navigator.new_state(str(workspace/"worktree"),prompt,worktree=True,protocol_version=3,improve_skill="")
+state=navigator.new_state(str(workspace/"worktree"),prompt,worktree=True,improve_skill="")
 navigator.save(run_dir,state)
 receipt={"summary":"Synthetic Improve receipt; no Improve runtime executed.","review_refs":["synthetic://review"],"check_refs":["synthetic://check"],"lessons":"Synthetic lesson."}
 while state["status"] != "done":
@@ -523,6 +523,39 @@ class RunTests(unittest.TestCase):
             self.assertEqual("invalid-trial", graded["statuses"]["overall"])
             self.assertEqual("observer-identity-unavailable", graded["statuses"]["observer"])
             self.assertFalse(graded["late_grade_observer_observation"]["identity_complete"])
+
+    def test_late_grade_refuses_a_trial_that_predates_the_current_contracts(self):
+        from contextlib import redirect_stderr
+        import io
+        observer = self.observer_fixture("observer-inputs-pre-contract")
+        for variant in ("observer", "control-input"):
+            with self.subTest(variant=variant), patch.object(run, "OBSERVER_ROOT", observer):
+                self.repo = self.root / "products" / f"pre-contract-{variant}"
+                _code, output, result = self.invoke(name=f"pre-contract-{variant}")
+                manifest = run.read_json(output / "manifest.json")
+                if variant == "observer":
+                    # An observer_sha256-only binding is the retired pre-contract shape.
+                    manifest.pop("observer_late_grade_contract")
+                    result.pop("observer_late_grade_contract")
+                    self.assertIn("observer_sha256", manifest)
+                else:
+                    manifest.pop("control_input_observer")
+                    manifest.pop("control_roots")
+                    result.pop("control_input_observation", None)
+                run.write_json(output / "manifest.json", manifest)
+                run.write_json(output / "result.json", result)
+                retained = (output / "result.json").read_bytes()
+                diagnostic = io.StringIO()
+                with redirect_stderr(diagnostic):
+                    code, _graded = self.grade(output)
+
+                self.assertEqual(code, 2)
+                self.assertIn(
+                    "trial predates the current observer/control-input contract; re-run",
+                    diagnostic.getvalue(),
+                )
+                self.assertEqual(retained, (output / "result.json").read_bytes())
+                self.assertFalse((output / "grade.json").exists())
 
     def test_recorded_prior_run_reuse_cannot_be_graded_into_success(self):
         _, output, result = self.invoke(name="isolation-failure")

@@ -112,7 +112,7 @@ class AuthReadinessNavigatorTests(unittest.TestCase):
             "--prompt",
             "Exercise the early access-readiness packet contract.",
         )
-        self.assertEqual(self._state(run_dir)["navigator_protocol_version"], 3)
+        self.assertEqual(self._state(run_dir)["navigator_protocol_version"], 4)
         return packet
 
     @staticmethod

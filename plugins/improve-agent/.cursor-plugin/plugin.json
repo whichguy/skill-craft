@@ -1,6 +1,6 @@
 {
   "name": "improve-agent",
-  "version": "0.1.0",
+  "version": "0.1.1",
   "description": "Use when Improve should run in a fresh native agent instead of this conversation: start one agent that runs /improve in its own context, keep useful parent work going, then verify and relay its result. For Improve in this conversation, use improve.",
   "author": {
     "name": "whichguy"

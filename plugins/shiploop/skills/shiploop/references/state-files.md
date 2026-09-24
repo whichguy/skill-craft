@@ -1,6 +1,6 @@
 # Durable run files
 
-This catalog describes the run directory of a navigator protocol 3 or 4 run.
+This catalog describes the run directory of a navigator protocol 4 run.
 It does not replace the repository's
 [maintained product requirements](project-knowledge.md#maintained-product-requirements).
 Everything below belongs to a run directory (for a workspace run,
@@ -57,8 +57,8 @@ action is issued. See the [navigator guide](navigator.md#run-it).
   locked Markdown transaction writes them; the host writes only its inbox
   result, notes and product files, then runs the printed callback.
 - A state the current code cannot load is refused, never repaired or
-  converted. That includes navigator v1/v2 runs, the removed managed and legacy
-  modes, and a v3/v4 `state.md` with unexpected or missing keys, such as a run
+  converted. That includes navigator v1/v2/v3 runs, the removed managed and legacy
+  modes, and a protocol 4 `state.md` with unexpected or missing keys, such as a run
   without `delegation`. The error names the protocol, mode or keys. Preserve
   the directory as evidence and start the request again in a fresh run
   directory.

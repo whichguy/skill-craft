@@ -23,7 +23,9 @@ Flags:
   --strict             If DEVLOOP_HOME is invalid, exit 2 instead of falling back
   --host NAME          grok|hermes|claude|codex|cursor|auto (default: auto)
   --allow-hermes-seed  Permit resolving an already installed Hermes engine
-  --no-bootstrap       Deprecated compatibility no-op; the runtime never provisions
+
+Put devloop_cli options (--repo, --lang, ...) after --. Any other option
+before -- is refused with exit 64.
 
 Environment:
   DEVLOOP_HOME              Preferred preinstalled engine root
@@ -31,7 +33,6 @@ Environment:
   DEVLOOP_HOST              Host affinity; exported to the engine
   DEVLOOP_TRANSPORT         Explicit external grok|hermes transport where required
   DEVLOOP_ALLOW_HERMES_SEED Permit resolving an installed Hermes engine
-  DEVLOOP_ALLOW_LEGACY_ENGINE  Skip engine capability declaration checks (unsupported)
   DEVLOOP_DEPTH / DEVLOOP_NESTING  Nonzero invokes fail closed (anti-reentry)
   GROK_BIN                  Grok CLI for Grok transport
   HERMES_HOME               Installed Hermes engine location
@@ -66,13 +67,12 @@ while [[ $# -gt 0 ]]; do
       shift 2
       ;;
     --allow-hermes-seed) allow_hermes_seed=1; shift ;;
-    --no-bootstrap) shift ;;
-    --setup|--force-bootstrap|--force-hard)
-      printf 'devloop-run: %s is operator-only; this marketplace runtime never provisions engines.\n' "$1" >&2
-      printf "%s\n" "  Use a trusted checkout's scripts/devloop-setup.sh outside the installed package." >&2
+    --) shift; break ;;
+    -?*)
+      printf 'devloop-run: unknown option: %s\n' "$1" >&2
+      printf '  Put devloop_cli options after --. See devloop-run --help.\n' >&2
       exit 64
       ;;
-    --) shift; break ;;
     *) break ;;
   esac
 done
@@ -175,10 +175,9 @@ is_full_engine() {
 engine_declares_transport() {
   local engine="$1"
   local wanted="$2"
-  local capability
-  for capability in "$engine/engine-capabilities.json" "$engine/.skill-craft-capabilities.json" "$engine/references/capabilities.json" "$engine/.skill-craft-engine.json"; do
-    [[ -f "$capability" ]] || continue
-    "$engine_python" - "$capability" "$wanted" <<'PY'
+  local capability="$engine/engine-capabilities.json"
+  [[ -f "$capability" ]] || return 1
+  "$engine_python" - "$capability" "$wanted" <<'PY'
 import json, sys
 try:
     data = json.load(open(sys.argv[1], encoding="utf-8"))
@@ -189,9 +188,6 @@ if not isinstance(transports, list):
     raise SystemExit(1)
 raise SystemExit(0 if sys.argv[2] in transports else 2)
 PY
-    return $?
-  done
-  return 1
 }
 
 resolve_engine() {
@@ -303,7 +299,6 @@ preflight_invoke() {
     auto) require_explicit_external_transport auto ;;
   esac
 
-  [[ "${DEVLOOP_ALLOW_LEGACY_ENGINE:-0}" == "1" ]] && return 0
   if [[ "$DEVLOOP_HOST" != "grok" ]] || ! is_full_engine "$engine"; then
     return 0
   fi
@@ -318,8 +313,8 @@ preflight_invoke() {
     fail_closed
   fi
   if [[ "$capability_status" -eq 1 ]]; then
-    printf 'devloop-run: full engine lacks a transports[] capability declaration for Grok.\n' >&2
-    printf '  Provision a current Grok-capable engine, or use DEVLOOP_ALLOW_LEGACY_ENGINE=1 (unsupported).\n' >&2
+    printf 'devloop-run: full engine lacks a transports[] capability declaration for Grok (engine-capabilities.json).\n' >&2
+    printf "%s\n" "  Have an operator provision a current Grok-capable engine with a trusted checkout's scripts/devloop-setup.sh." >&2
     fail_closed
   fi
 }

@@ -19,7 +19,6 @@ from __future__ import annotations
 
 import errno
 import fcntl
-import hashlib
 import os
 import re
 import stat
@@ -37,19 +36,14 @@ class ChainGitError(ValueError):
 __all__ = [
     "ChainGitError",
     "adopt_managed_workspace",
-    "adopt_workspace",
-    "allocation_plan",
-    "allocate",
     "bind_worker_instance",
     "fast_forward",
     "inspect_contribution",
+    "inspect_integrated_worker",
     "inspect_prepared",
     "inspect_removed",
-    "inspect_superseded_removed",
     "prepare_integration",
     "recover_allocation",
-    "remove_worker",
-    "remove_superseded_worker",
     "target_identity",
     "validate_target",
 ]
@@ -59,15 +53,7 @@ _IDENTITY_KEYS = ("repo", "git_dir", "common_dir", "branch", "head")
 _WORKER_INSTANCE_KEYS = ("root", "git_dir")
 _FILESYSTEM_INSTANCE_KEYS = ("device", "inode")
 _SHA = re.compile(r"[0-9a-f]{40}|[0-9a-f]{64}")
-_STEM = re.compile(
-    r"(?P<run>[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12})-"
-    r"(?P<attempt>[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12})-"
-    r"(?P<digest>[0-9a-f]{16})"
-)
-_BRANCH_PREFIX = "shiploop/chain-"
-_PATH_PREFIX = "shiploop-chain-"
 _RETURN_LOCK_NAME = "shiploop-chain-return.lock"
-_LEGACY_LIFECYCLE = "final-return"
 _PER_STEP_LIFECYCLE = "per-step"
 _PREPARED_MERGE_PREFIX = "ShipLoop chain prepared"
 _GIT_ENV_KEYS = frozenset(
@@ -484,14 +470,6 @@ def _uuid(value: Any, *, label: str) -> str:
     return canonical
 
 
-def _names(identity: Mapping[str, str], run_id: str, attempt: str, base_commit: str) -> tuple[str, str]:
-    seed = "\x00".join(
-        tuple(identity[key] for key in _IDENTITY_KEYS) + (run_id, attempt, base_commit)
-    ).encode("utf-8", "surrogateescape")
-    stem = f"{run_id}-{attempt}-{hashlib.sha256(seed).hexdigest()[:16]}"
-    return _PATH_PREFIX + stem, _BRANCH_PREFIX + stem
-
-
 def _path_overlap(left: Path, right: Path) -> bool:
     try:
         left.relative_to(right)
@@ -617,142 +595,48 @@ def _workspace_parent(value: Any) -> Path:
     return parent
 
 
-def _owned_pair(identity: Mapping[str, str], path: Path, branch: Any, base_commit: str) -> None:
-    if not isinstance(branch, str) or not branch.startswith(_BRANCH_PREFIX):
-        _fail("allocation branch is not a ShipLoop-owned deterministic branch")
-    if not path.name.startswith(_PATH_PREFIX):
-        _fail("allocation path is not a ShipLoop-owned deterministic path")
-    path_stem = path.name[len(_PATH_PREFIX):]
-    branch_stem = branch[len(_BRANCH_PREFIX):]
-    if path_stem != branch_stem:
-        _fail("allocation path and branch do not name the same attempt")
-    match = _STEM.fullmatch(path_stem)
-    if match is None:
-        _fail("allocation names do not encode canonical UUID attempts")
-    run_id = _uuid(match.group("run"), label="allocation run ID")
-    attempt = _uuid(match.group("attempt"), label="allocation attempt ID")
-    expected_path, expected_branch = _names(identity, run_id, attempt, base_commit)
-    if path.name != expected_path or branch != expected_branch:
-        _fail("allocation names are not deterministic for the frozen target and base")
-
-
-def _plan_lifecycle(plan: Mapping[str, Any]) -> str:
-    lifecycle = plan.get("lifecycle", _LEGACY_LIFECYCLE)
-    if lifecycle not in (_LEGACY_LIFECYCLE, _PER_STEP_LIFECYCLE):
-        _fail("allocation plan has an unsupported lifecycle")
-    return lifecycle
-
-
-def allocation_plan(
-    identity: Mapping[str, Any],
-    workspace_parent: Path | str,
-    run_id: str,
-    attempt: str,
-    base_commit: str,
-    *,
-    lifecycle: str = _LEGACY_LIFECYCLE,
-) -> Dict[str, Any]:
-    """Build a deterministic, still-unallocated worktree intent."""
-    if lifecycle not in (_LEGACY_LIFECYCLE, _PER_STEP_LIFECYCLE):
-        _fail("allocation lifecycle is unsupported")
-    target = (
-        validate_target(identity)
-        if lifecycle == _LEGACY_LIFECYCLE
-        else _current_target(identity, allow_head_drift=True)
-    )
-    parent = _workspace_parent(workspace_parent)
-    base = _exact_commit(Path(target["repo"]), base_commit, target["head"], label="base commit")
-    if lifecycle == _PER_STEP_LIFECYCLE and base != target["head"]:
-        _fail("per-step allocation must start at the current target HEAD")
-    run = _uuid(run_id, label="run ID")
-    retry = _uuid(attempt, label="attempt")
-    leaf, branch = _names(target, run, retry, base)
-    candidate = _canonical_candidate(parent / leaf, label="allocation path")
-    if candidate.parent != parent:
-        _fail("allocation path escapes the explicit workspace parent")
-    if os.path.lexists(candidate):
-        _fail("allocation path is already occupied")
-    _owned_pair(target, candidate, branch, base)
-    _assert_external_location(target, parent, candidate)
-    result: Dict[str, Any] = {
-        "target": dict(target),
-        "path": os.fspath(candidate),
-        "branch": branch,
-        "base_commit": base,
-    }
-    if lifecycle == _PER_STEP_LIFECYCLE:
-        result.update({"lifecycle": lifecycle, "run_id": run, "attempt": retry})
-    return result
-
-
 def _normalized_plan(plan: Mapping[str, Any], *, allow_owned_allocation: bool) -> Dict[str, Any]:
+    """Validate one helper-managed per-step plan; no other plan shape is supported."""
     if not isinstance(plan, Mapping):
         _fail("allocation plan must be an object")
-    for key in ("target", "path", "branch", "base_commit"):
+    for key in ("target", "path", "branch", "base_commit", "worker", "workspace_parent"):
         if key not in plan:
             _fail(f"allocation plan is missing {key}")
-    lifecycle = _plan_lifecycle(plan)
+    if plan.get("lifecycle") != _PER_STEP_LIFECYCLE:
+        _fail("allocation plan must use the per-step lifecycle")
+    if plan.get("managed_workspace") is not True:
+        _fail("allocation plan must bind a helper-managed workspace")
     target = _identity_values(plan["target"])
-    current = _current_target(target, allow_head_drift=lifecycle == _PER_STEP_LIFECYCLE)
+    current = _current_target(target, allow_head_drift=True)
     raw_path = _absolute_path(plan["path"], label="allocation path")
     candidate = _canonical_candidate(raw_path, label="allocation path")
     if os.fspath(raw_path) != os.fspath(candidate):
         _fail("allocation plan path is not canonical")
-    managed_workspace = plan.get("managed_workspace", False)
-    if type(managed_workspace) is not bool:
-        _fail("managed workspace marker must be boolean")
-    if managed_workspace:
-        if lifecycle != _PER_STEP_LIFECYCLE:
-            _fail("only per-step plans can use a helper-managed workspace")
-        raw_parent = _absolute_path(plan.get("workspace_parent"), label="managed workspace parent")
-        parent = _workspace_parent(os.fspath(raw_parent))
-        if candidate == parent or not _inside(candidate, parent):
-            _fail("managed workspace path must remain below its explicit .work-trees parent")
-    else:
-        if "workspace_parent" in plan:
-            _fail("ordinary allocation plans cannot carry a managed workspace parent")
-        parent = _workspace_parent(os.fspath(raw_path.parent))
-        if candidate.parent != parent:
-            _fail("allocation plan path is not a direct child of its .work-trees parent")
+    raw_parent = _absolute_path(plan["workspace_parent"], label="managed workspace parent")
+    parent = _workspace_parent(os.fspath(raw_parent))
+    if candidate == parent or not _inside(candidate, parent):
+        _fail("managed workspace path must remain below its explicit .work-trees parent")
     base = _exact_commit(Path(current["repo"]), plan["base_commit"], current["head"], label="base commit")
     branch = _branch_name(Path(current["repo"]), plan["branch"], label="allocation branch")
     if branch == target["branch"]:
         _fail("allocation branch must differ from the target branch")
-
-    worker: Optional[Dict[str, str]] = None
+    run = _uuid(plan.get("run_id"), label="per-step plan run ID")
+    retry = _uuid(plan.get("attempt"), label="per-step plan attempt")
     worker_instance: Optional[Dict[str, Dict[str, int]]] = None
-    if lifecycle == _PER_STEP_LIFECYCLE:
-        run = _uuid(plan.get("run_id"), label="per-step plan run ID")
-        retry = _uuid(plan.get("attempt"), label="per-step plan attempt")
-    elif "worker" in plan:
-        _fail("legacy allocation plan cannot bind an adopted worker")
-
     if "worker_instance" in plan:
-        if lifecycle != _PER_STEP_LIFECYCLE:
-            _fail("only per-step plans can bind a worker filesystem instance")
         worker_instance = _worker_instance_values(plan["worker_instance"])
-
-    if "worker" in plan:
-        if lifecycle != _PER_STEP_LIFECYCLE:
-            _fail("only per-step plans can bind an adopted worker")
-        worker = _identity_values(plan["worker"])
-        if worker["repo"] != os.fspath(candidate):
-            _fail("adopted worker root does not match its planned path")
-        if worker["common_dir"] != target["common_dir"]:
-            _fail("adopted worker does not share the planned Git common directory")
-        if worker["git_dir"] == target["git_dir"]:
-            _fail("adopted worker reuses the initiating checkout private Git directory")
-        if worker["branch"] != branch:
-            _fail("adopted worker branch does not match its plan")
-        _branch_name(Path(current["repo"]), worker["branch"], label="adopted worker branch")
-        if worker["head"] != base:
-            _fail("adopted worker did not start at its declared base commit")
-    else:
-        _owned_pair(target, candidate, branch, base)
-        if lifecycle == _PER_STEP_LIFECYCLE:
-            expected_path, expected_branch = _names(target, run, retry, base)
-            if candidate.name != expected_path or branch != expected_branch:
-                _fail("per-step allocation names do not match their recorded attempt")
+    worker = _identity_values(plan["worker"])
+    if worker["repo"] != os.fspath(candidate):
+        _fail("adopted worker root does not match its planned path")
+    if worker["common_dir"] != target["common_dir"]:
+        _fail("adopted worker does not share the planned Git common directory")
+    if worker["git_dir"] == target["git_dir"]:
+        _fail("adopted worker reuses the initiating checkout private Git directory")
+    if worker["branch"] != branch:
+        _fail("adopted worker branch does not match its plan")
+    _branch_name(Path(current["repo"]), worker["branch"], label="adopted worker branch")
+    if worker["head"] != base:
+        _fail("adopted worker did not start at its declared base commit")
     _assert_external_location(
         target,
         parent,
@@ -764,64 +648,16 @@ def _normalized_plan(plan: Mapping[str, Any], *, allow_owned_allocation: bool) -
         "path": os.fspath(candidate),
         "branch": branch,
         "base_commit": base,
-    }
-    if lifecycle == _PER_STEP_LIFECYCLE:
-        result.update({"lifecycle": lifecycle, "run_id": run, "attempt": retry})
-    if managed_workspace:
-        result.update({"managed_workspace": True, "workspace_parent": os.fspath(parent)})
-    if worker is not None:
-        result["worker"] = worker
-    if worker_instance is not None:
-        result["worker_instance"] = worker_instance
-    return result
-
-
-def adopt_workspace(
-    target: Mapping[str, Any],
-    workspace_parent: Path | str,
-    run_id: str,
-    attempt: str,
-    base_commit: str,
-    workspace: Path | str,
-) -> Dict[str, Any]:
-    """Bind one caller-created, clean Ask-Agent worktree to a per-step plan."""
-    current = validate_target(target)
-    base = _exact_commit(Path(current["repo"]), base_commit, current["head"], label="base commit")
-    if base != current["head"]:
-        _fail("adopted worker must start at the current target HEAD")
-    run = _uuid(run_id, label="run ID")
-    retry = _uuid(attempt, label="attempt")
-    parent = _workspace_parent(workspace_parent)
-    raw_path = _absolute_path(workspace, label="adopted workspace")
-    _reject_symlink_redirection(raw_path, label="adopted workspace")
-    if not os.path.lexists(raw_path) or raw_path.is_symlink() or not raw_path.is_dir():
-        _fail("adopted workspace must be an existing non-symlink directory")
-    path = _canonical_candidate(raw_path, label="adopted workspace")
-    if path.parent != parent:
-        _fail("adopted workspace must be a direct canonical child of its workspace parent")
-    _assert_external_location(current, parent, path, owned_candidate=path)
-    worker = target_identity(path)
-    if worker["repo"] != os.fspath(path):
-        _fail("adopted worker root does not match its workspace")
-    if worker["common_dir"] != current["common_dir"]:
-        _fail("adopted worker does not share the target Git common directory")
-    if worker["git_dir"] == current["git_dir"]:
-        _fail("adopted worker reuses the target private Git directory")
-    if worker["branch"] == current["branch"]:
-        _fail("adopted worker must use a branch distinct from the target")
-    if worker["head"] != base:
-        _fail("adopted worker HEAD does not match the declared base commit")
-    plan = {
-        "target": dict(current),
-        "path": os.fspath(path),
-        "branch": worker["branch"],
-        "base_commit": base,
         "lifecycle": _PER_STEP_LIFECYCLE,
         "run_id": run,
         "attempt": retry,
-        "worker": dict(worker),
+        "managed_workspace": True,
+        "workspace_parent": os.fspath(parent),
+        "worker": worker,
     }
-    return bind_worker_instance(plan)
+    if worker_instance is not None:
+        result["worker_instance"] = worker_instance
+    return result
 
 
 def adopt_managed_workspace(
@@ -834,10 +670,8 @@ def adopt_managed_workspace(
 ) -> Dict[str, Any]:
     """Bind one Ask-Agent-helper-owned worktree below the configured root.
 
-    Ask Agent 0.6 owns an attempt store and places each linked worktree below
-    it.  That differs from the direct-child layout owned by ShipLoop's legacy
-    allocator, so retain a distinct plan marker rather than weakening the
-    ordinary allocator's deterministic-path contract.
+    Ask Agent owns an attempt store and places each linked worktree below it;
+    the plan records that parent and the ``managed_workspace`` marker.
     """
     current = validate_target(target)
     base = _exact_commit(Path(current["repo"]), base_commit, current["head"], label="base commit")
@@ -944,40 +778,6 @@ def _assert_allocated_worker(plan: Mapping[str, Any], worker: Mapping[str, str],
     return actual
 
 
-def allocate(plan: Mapping[str, Any]) -> Dict[str, str]:
-    """Create the planned linked worktree once; recovery is a separate action."""
-    normalized = _normalized_plan(plan, allow_owned_allocation=False)
-    if "worker" in normalized:
-        _fail("an adopted workspace cannot be allocated again")
-    # Allocation is a mutation, so a per-step plan may recover after a target
-    # advance but may not create a newly stale worker from an old target head.
-    validate_target(normalized["target"])
-    target = Path(normalized["target"]["repo"])
-    path = Path(normalized["path"])
-    if os.path.lexists(path):
-        _fail("allocation path is already occupied; use recover_allocation for an existing worktree")
-    if _branch_exists(target, normalized["branch"]):
-        _fail("allocation branch is already occupied; use recover_allocation for an existing worktree")
-    result = _git(
-        target,
-        "worktree",
-        "add",
-        "-b",
-        normalized["branch"],
-        os.fspath(path),
-        normalized["base_commit"],
-        readonly=False,
-    )
-    if result.returncode:
-        detail = result.stderr.decode("utf-8", "replace").strip().splitlines()
-        suffix = f": {detail[-1]}" if detail else ""
-        _fail(f"Git could not allocate the planned worktree{suffix}")
-    worker = target_identity(path)
-    verified = _assert_allocated_worker(normalized, worker, exact_base=True)
-    validate_target(normalized["target"])
-    return verified
-
-
 def _recover_normalized(normalized: Mapping[str, Any]) -> Dict[str, str]:
     path = Path(normalized["path"])
     if not os.path.lexists(path) or path.is_symlink() or not path.is_dir():
@@ -1003,16 +803,13 @@ def inspect_contribution(plan: Mapping[str, Any], commit: str) -> Dict[str, Any]
 
 
 def _per_step_plan(plan: Mapping[str, Any]) -> Dict[str, Any]:
-    normalized = _normalized_plan(plan, allow_owned_allocation=True)
-    if normalized.get("lifecycle") != _PER_STEP_LIFECYCLE:
-        _fail("per-step integration requires a per-step allocation plan")
-    return normalized
+    return _normalized_plan(plan, allow_owned_allocation=True)
 
 
 def bind_worker_instance(plan: Mapping[str, Any]) -> Dict[str, Any]:
-    """Bind a newly allocated per-step worker to its root and private Git dirs.
+    """Bind a newly adopted per-step worker to its root and private Git dirs.
 
-    Call this immediately after allocation and persist the returned plan before
+    Call this immediately after adoption and persist the returned plan before
     the worker performs work.  Repeating it validates an existing binding.
     """
     normalized = _per_step_plan(plan)
@@ -1246,10 +1043,7 @@ def _integrated_target(plan: Mapping[str, Any], integrated_commit: str) -> tuple
 
 def _require_worker_instance_for_cleanup(plan: Mapping[str, Any]) -> None:
     if "worker_instance" not in plan:
-        _fail(
-            "per-step cleanup requires a recorded worker filesystem identity; "
-            "old unbound plans remain readable but cannot remove a worktree"
-        )
+        _fail("per-step cleanup requires a recorded worker filesystem identity")
 
 
 def inspect_integrated_worker(plan: Mapping[str, Any], integrated_commit: str) -> Dict[str, Any]:
@@ -1298,105 +1092,6 @@ def inspect_removed(plan: Mapping[str, Any], integrated_commit: str) -> Dict[str
         "branch": branch,
         "removed": True,
     }
-
-
-def remove_worker(plan: Mapping[str, Any], integrated_commit: str) -> Dict[str, Any]:
-    """Remove one clean, integrated worker without force; keep its branch ref."""
-    normalized = _per_step_plan(plan)
-    _require_worker_instance_for_cleanup(normalized)
-    target, integrated = _integrated_target(normalized, integrated_commit)
-    path = Path(normalized["path"])
-    if not os.path.lexists(path):
-        _fail("worker path is already absent; use inspect_removed after a cleanup intent")
-    worker = _recover_normalized(normalized)
-    _is_ancestor(
-        Path(target["repo"]),
-        worker["head"],
-        integrated,
-        label="integrated commit",
-    )
-    _assert_no_ignored_paths(Path(worker["repo"]))
-    result = _git(
-        Path(target["repo"]),
-        "worktree",
-        "remove",
-        os.fspath(path),
-        readonly=False,
-    )
-    if result.returncode:
-        detail = result.stderr.decode("utf-8", "replace").strip().splitlines()
-        suffix = f": {detail[-1]}" if detail else ""
-        _fail(f"Git could not remove the worker worktree{suffix}")
-    return inspect_removed(normalized, integrated)
-
-
-def inspect_superseded_removed(
-    plan: Mapping[str, Any],
-    replacement_integrated_commit: str,
-) -> Dict[str, Any]:
-    """Prove a retired worker is absent while retaining its unintegrated ref."""
-    normalized = _per_step_plan(plan)
-    target, replacement = _integrated_target(normalized, replacement_integrated_commit)
-    path = Path(normalized["path"])
-    if os.path.lexists(path):
-        _fail("superseded worker path still exists; cleanup is not complete")
-    if path in _registered_worktrees(Path(target["repo"])):
-        _fail("superseded worker path remains registered after cleanup")
-    branch = normalized["branch"]
-    if not _branch_exists(Path(target["repo"]), branch):
-        _fail("superseded worker branch was removed; cleanup must retain recovery refs")
-    worker_commit = _git_text(
-        Path(target["repo"]),
-        "rev-parse",
-        "--verify",
-        f"refs/heads/{branch}",
-    )
-    worker_commit = _exact_commit(
-        Path(target["repo"]),
-        worker_commit,
-        target["head"],
-        label="retained superseded worker commit",
-    )
-    return {
-        "replacement_integrated_commit": replacement,
-        "workspace": os.fspath(path),
-        "branch": branch,
-        "worker_commit": worker_commit,
-        "removed": True,
-    }
-
-
-def remove_superseded_worker(
-    plan: Mapping[str, Any],
-    replacement_integrated_commit: str,
-) -> Dict[str, Any]:
-    """Remove one clean retired worker without asserting its commit integrated."""
-    normalized = _per_step_plan(plan)
-    _require_worker_instance_for_cleanup(normalized)
-    target, replacement = _integrated_target(normalized, replacement_integrated_commit)
-    path = Path(normalized["path"])
-    if not os.path.lexists(path):
-        _fail(
-            "superseded worker path is already absent; "
-            "use inspect_superseded_removed after a cleanup intent"
-        )
-    worker = _recover_normalized(normalized)
-    _assert_no_ignored_paths(Path(worker["repo"]))
-    result = _git(
-        Path(target["repo"]),
-        "worktree",
-        "remove",
-        os.fspath(path),
-        readonly=False,
-    )
-    if result.returncode:
-        detail = result.stderr.decode("utf-8", "replace").strip().splitlines()
-        suffix = f": {detail[-1]}" if detail else ""
-        _fail(f"Git could not remove the superseded worker worktree{suffix}")
-    proof = inspect_superseded_removed(normalized, replacement)
-    if proof["worker_commit"] != worker["head"]:
-        _fail("superseded worker branch changed during cleanup")
-    return proof
 
 
 def fast_forward(identity: Mapping[str, Any], commit: str) -> Dict[str, str]:

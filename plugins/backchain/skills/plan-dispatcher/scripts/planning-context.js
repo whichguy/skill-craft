@@ -340,15 +340,6 @@ function readVerifiedJson(reference, label) {
   }
 }
 
-function normalizeManifestGraph(rawGraph, normalizeGraph) {
-  requireObject(rawGraph, 'planning context manifest.graph JSON');
-  const keys = Object.keys(rawGraph).sort();
-  if (keys.length === 1 && keys[0] === 'steps') {
-    rawGraph = { version: 1, steps: rawGraph.steps };
-  }
-  return normalizeGraph(rawGraph);
-}
-
 function load(referenceValue, expectedGraph, normalizeGraph, sameGraph) {
   const reference = contextReference(referenceValue, 'planning_context');
   const manifest = readVerifiedJson(reference, 'planning_context');
@@ -358,7 +349,8 @@ function load(referenceValue, expectedGraph, normalizeGraph, sameGraph) {
   // exact frozen step IDs.
   const rawGraphReference = fileReference(manifest.graph, 'planning context manifest.graph');
   const rawGraph = readVerifiedJson(rawGraphReference, 'planning context manifest.graph');
-  const frozenGraph = normalizeManifestGraph(rawGraph, normalizeGraph);
+  requireObject(rawGraph, 'planning context manifest.graph JSON');
+  const frozenGraph = normalizeGraph(rawGraph);
   if (!sameGraph(frozenGraph, expectedGraph)) {
     fail('planning context manifest.graph does not match the initialized graph');
   }

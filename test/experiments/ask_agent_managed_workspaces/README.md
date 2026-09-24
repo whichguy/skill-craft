@@ -127,10 +127,12 @@ integration, frozen package/helper integrity, retained reports, helper outcome
 receipts, acceptance references, and the normalized two-worker native trace.
 The parent work event must follow both initial confirmed launches and precede
 either return. A retry must have a new worker ID, attempt ID, and worktree after
-the earlier failed return; its failed attempt remains retained. A v1 event trace
-is preserved as historical evidence but is `LEGACY_UNQUALIFIED`, never a v2
-`COMPLETE`. Model booleans, file counts, or process exit cannot independently
-pass the trial.
+the earlier failed return; its failed attempt remains retained. The verifier
+reads only the current schemas: a manifest other than
+`ask-agent-managed-workspaces.v2`, or one missing a key `prepare` writes, is a
+`CONTRACT_ERROR`, and an event trace other than `events.v2` is `UNOBSERVED`,
+never `COMPLETE`. Model booleans, file counts, or process exit cannot
+independently pass the trial.
 
 The same output exposes `checks.lifecycle_layers`: `native_launch`,
 `parent_continuation`, `native_return`, `operation_cwd_root_binding`,

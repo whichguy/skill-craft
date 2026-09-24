@@ -1473,8 +1473,8 @@ class ShipLoopWorkspaceTests(unittest.TestCase):
 
         self.assertEqual(old_state["status"], "active")
         self.assertEqual(fresh_state["status"], "active")
-        self.assertEqual(old_state["navigator_protocol_version"], 3)
-        self.assertEqual(fresh_state["navigator_protocol_version"], 3)
+        self.assertEqual(old_state["navigator_protocol_version"], 4)
+        self.assertEqual(fresh_state["navigator_protocol_version"], 4)
         self.assertEqual(old_state["prompt"].encode("utf-8"), prompt.encode("utf-8"))
         self.assertEqual(fresh_state["prompt"].encode("utf-8"), prompt.encode("utf-8"))
         self.assertNotEqual(old_state["run_id"], fresh_state["run_id"])
@@ -1690,7 +1690,7 @@ class ShipLoopWorkspaceTests(unittest.TestCase):
             "Use the actual Improve skill after each step.",
         )
         state = store.read_record(root / "run" / "state.md")
-        self.assertEqual(state["navigator_protocol_version"], 3)
+        self.assertEqual(state["navigator_protocol_version"], 4)
         self.assertEqual(state["execution_mode"], "navigator-worktree")
         self.assertIsNone(state["active_improve"])
         self.assertIn("ShipLoop navigator | intake", started.stdout)

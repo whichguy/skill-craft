@@ -3,18 +3,19 @@
 A prompt-only native-parent case for U18 Git worktree delegation. It measures source
 snapshot fidelity, worker-only contribution handling, report recovery and parent-owned
 integration/removal separately. It creates no script, dispatcher, model restriction or
-separate temporary result folder. The optional operator helper below is test
-apparatus only; it is not part of the Ask Agent skill or native delegation path.
+separate temporary result folder.
 
-## Reusable operator checks
+**Retired record.** This fixture exercises the caller-prepared worktree contract,
+which current Ask-Agent no longer supports: the helper now prepares, inspects and
+closes managed worktrees (see the
+[managed-workspace apparatus](../../../ask_agent_managed_workspaces/README.md)).
+The `verify-w1.py` operator helper and its offline regression suite were removed.
+The table below describes what that helper checked, kept only so the
+[U18 results](../WORKTREE-RESULTS.md) remain readable.
 
-Use [operator/verify-w1.py](operator/verify-w1.py) to remove repetitive setup and
-verification from live runs. It uses Python's standard library and Git. Run
-`python3 operator/verify-w1.py --help` from this directory for command arguments.
-The [operator contracts](operator/README.md) define launch and completion JSON,
-evidence provenance and exit statuses.
+## Former operator checks
 
-| Command | Operator responsibility it checks |
+| Command | Operator responsibility it checked |
 | --- | --- |
 | `prepare` | Create a fresh owned primary repository and dirty linked feature checkout; save the baseline and paths. Parent still creates worker worktrees. |
 | `snapshot` | Record checkout identity, index and working layers, untracked inputs, file modes/types and hashes. |
@@ -45,18 +46,11 @@ compact return reminders, real parent continuation, capabilities and observation
 limits separately against the frozen oracle. A completed lifecycle can still
 have those instruction-following failures, as the U18 results demonstrate.
 
-Run the no-model regression suite from the repository root:
-
-```sh
-PYTHONDONTWRITEBYTECODE=1 python3 test/ask-agent-worktree-harness.test.py
-```
-
-It is also registered in the `core` hermetic group. Native W1 remains an opt-in
-live experiment. Tests create and dispose of their own synthetic repositories;
-live teardown remains the model parent's responsibility. The helper does not
-repair agent mistakes, remove worktrees or impose worker execution limits.
-The frozen U18 W1 campaign predates this helper; new apparatus checks do not
-retroactively qualify invalid or interrupted attempts.
+No hermetic suite runs this fixture. Its redaction, ordering and archival
+checks that still apply to current delegation are covered by
+`test/ask-agent-managed-harness.test.py`. The frozen U18 W1 campaign predates
+the removed helper; its checks never retroactively qualified invalid or
+interrupted attempts.
 
 ## Source fixture before launch
 

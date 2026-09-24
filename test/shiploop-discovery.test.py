@@ -43,7 +43,6 @@ class InteractionGuidanceTests(unittest.TestCase):
             str(self.repo),
             "Assess the requested interaction boundary.",
             str(self.root / "bound-plan.md"),
-            protocol_version=3,
             improve_skill="",
         )
 
@@ -77,11 +76,11 @@ class InteractionGuidanceTests(unittest.TestCase):
                         (self.repo / "selected-improve" / "SKILL.md").resolve()
                     ),
                     "runtime_card": str(
-                        (self.repo / "until-loop" / "SKILL.md").resolve()
+                        (self.repo / "until-loop" / "ADAPTER.md").resolve()
                     ),
                     "runtime_cli": str(
                         (
-                            self.repo / "until-loop" / "scripts" / "until-loop"
+                            self.repo / "until-loop" / "scripts" / "until_loop_ephemeral.py"
                         ).resolve()
                     ),
                     "skill_version": "synthetic",

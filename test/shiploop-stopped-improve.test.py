@@ -19,6 +19,7 @@ ROOT = Path(__file__).resolve().parents[1]
 SCRIPTS = ROOT / "skills" / "shiploop" / "scripts"
 IMPROVE = ROOT / "skills" / "improve" / "SKILL.md"
 sys.path.insert(0, str(SCRIPTS))
+import shiploop_navigator as navigator  # noqa: E402
 import shiploop_standalone_improve as bridge  # noqa: E402
 import shiploop_store as store  # noqa: E402
 
@@ -322,10 +323,32 @@ class StoppedStandaloneImproveTests(unittest.TestCase):
             "---\nname: until-loop\n---\nUse the durable v2 adapter.\n", encoding="utf-8",
         )
         (scripts / "until-loop").write_text("#!/bin/sh\n", encoding="utf-8")
-        legacy = bridge.resolve_skill(str(root / "SKILL.md"))
-        legacy_binding = bridge.binding(self.state, "legacy-plan", "plan", {}, legacy)
-        with self.assertRaisesRegex(bridge.StandaloneImproveError, "durable legacy"):
-            bridge.settle_incomplete(legacy_binding, submitted)
+        with self.assertRaisesRegex(
+            bridge.StandaloneImproveError,
+            "durable Until Loop runtimes are no longer supported; select the current Improve card",
+        ):
+            bridge.resolve_skill(str(root / "SKILL.md"))
+        # A saved binding that names a durable CLI is refused, not settled.
+        stale = copy.deepcopy(self.binding)
+        stale["skill"]["runtime_cli"] = str(scripts / "until-loop")
+        with self.assertRaisesRegex(bridge.StandaloneImproveError, "differs from selected card"):
+            bridge.settle_incomplete(stale, submitted)
+
+    def test_saved_durable_improve_runtime_is_a_retired_run(self) -> None:
+        # The Improve card is fixed at init, so a saved run bound to a durable
+        # runtime is refused on every verb with the fresh-run route, not with
+        # the init-only "select the current Improve card" advice.
+        durable = copy.deepcopy(self.binding)
+        durable["skill"]["runtime_cli"] = str(self.workspace / "runtime" / "scripts" / "until-loop")
+        saved = {"navigator_protocol_version": 4, "active_improve": durable}
+        reason = navigator.retired_run_reason(saved)
+        self.assertEqual(reason, navigator.DURABLE_IMPROVE_REASON)
+        self.assertIn(navigator.FRESH_RUN_HINT, reason)
+        self.assertNotIn("select the current Improve card", reason)
+        with self.assertRaisesRegex(navigator.NavigatorError, "retired durable Until Loop runtime"):
+            navigator.validate(saved)
+        current = {"navigator_protocol_version": 4, "active_improve": copy.deepcopy(self.binding)}
+        self.assertIsNone(navigator.retired_run_reason(current))
 
 
 if __name__ == "__main__":

@@ -42,7 +42,7 @@ Do **not** renumber legacy Layer 0–2. Skill-interop reviews and checklists alr
 | Provenance (managed installs) | append | **implemented** — schema-2 marker + append-only `receipts.jsonl` + `--status` / `--uninstall` |
 | Operator / CI | control plane (not a runtime layer) | **implemented** — hermetic suite + GitHub Actions |
 
-Optional numbered aliases: `SC-L0`… only when disambiguating from unrelated monorepo “L1/L2” tiers (e.g. question-bench).
+Optional numbered aliases: `SC-L0`… only when disambiguating from unrelated monorepo “L1/L2” tiers.
 
 ### Layer 0 — contract (**implemented**)
 
@@ -120,22 +120,26 @@ host checkout into a tree that is bind-mounted into the container as `/opt/data`
 
 ### Operator / CI (**implemented**)
 
-- Hermetic suite: `bash test/run-all.sh` (**implemented**) remains the complete
-  local aggregate. `--group smoke` runs core plus eight selected ShipLoop graph and
-  boundary suites; it is partial evidence, never a full-regression claim.
-  `test/shiploop.test.sh --smoke` selects those eight from the one canonical
-  inventory, while no-argument/all and `--shard 1/3|2/3|3/3` preserve the full
-  behavior. No installed AI host or engine is required; core's bundled mock also
+- Hermetic suite: `bash test/run-all.sh` (**implemented**) is the one runner
+  command and, with no group, the complete local aggregate. Named groups
+  (`core`, `shiploop`, `shiploop-1|2|3`, `ask-agent`, `shiploop-composition`,
+  `e2e-apparatus`) select from the one canonical inventory in
+  `test/suite_catalog.py`. `--group smoke` runs core plus eight selected ShipLoop
+  graph and boundary suites; it is partial evidence, never a full-regression
+  claim. No installed AI host or engine is required; core's bundled mock also
   covers marketplace-style binding from an empty unrelated directory.
 - Plugin view drift: `bash scripts/sync-plugin-views.sh --check` (**implemented**)
-- CI: `.github/workflows/ci.yml` (**implemented**); pull requests and `main`
-  pushes use the smoke tier. Manual dispatch defaults to smoke and can select
-  `tier=full`, which runs core plus three deterministic ShipLoop shards for
-  runtime/state/graph/callback changes and release qualification. The fail-closed
-  `hermetic` status remains the aggregate gate. A full run only qualifies the
-  matching final SHA/tree; it is not a substitute for the PR smoke gate.
-  Each selected test job rejects staged or unstaged tracked changes after
-  their suites, including failed suites; package parity runs with core or smoke.
+- CI: `.github/workflows/ci.yml` (**implemented**); `test/ci_policy.py` selects
+  the tier. Pull requests that change only allowlisted explanatory documents
+  (root/test README, Markdown/CSV under `docs/`) run smoke; every other pull
+  request, every `main` push and any unclassified event run full. Manual dispatch
+  requires an explicit `tier=smoke` or `tier=full`. Full runs `core`, three
+  deterministic ShipLoop shards and `e2e-apparatus`, one job per group. The
+  fail-closed `hermetic` status is the aggregate gate; its summary states the
+  tier and tested SHA. After its suites, including failed suites, each job's
+  guard rejects a moved HEAD, staged or unstaged tracked changes, and untracked
+  or ignored files other than `__pycache__` bytecode; package parity runs with
+  core or smoke.
 - External integrations: explicitly selected via `bash test/run-integration.sh`;
   never pulled into the required CI aggregate. Live Grok E2E audits are also
   opt-in, use `xhigh` with a 7,200-second cap, and are distinct from hermetic
@@ -276,11 +280,14 @@ echo "EXIT=${PIPESTATUS[0]}" | tee -a run-all.log
 A smoke cycle may not claim full-regression coverage. Any cycle may not claim
 PASS without a trailing `EXIT=0` line (or attributed non-packaging failures only).
 
-## devloop bootstrap (host-local)
+## devloop engine setup (operator-only)
 
-Portable card on Grok/Claude/Codex/Cursor. Engine materializes under
-`~/.local/share/devloop` (or `$XDG_DATA_HOME/devloop`) via `--setup` / first run
-when missing, without overwriting Hermes skillhub leaf `devloop`. See
+Portable card on Grok/Claude/Codex/Cursor. The card and `devloop-run` never
+provision an engine: a missing engine exits 2, and an unknown option such as the
+retired `--setup` exits 64. An operator runs the repository-only
+`scripts/devloop-setup.sh` (see the clean-laptop path above), which installs the
+engine under `~/.local/share/devloop` (or `$XDG_DATA_HOME/devloop`) without
+overwriting the Hermes skillhub leaf `devloop`. See
 `skills/devloop/references/bootstrap.md`.
 
 ## Reserved leaf names

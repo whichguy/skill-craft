@@ -1,6 +1,6 @@
 # Improve callback evidence
 
-This reference applies to a **new standalone Improve run** using Until Loop's
+This reference applies to a **standalone Improve run** using Until Loop's
 single-file callback runtime. It defines what the executing host should retain
 and summarize before the exact `done_argv` call. It does not add a collector,
 another state file, or an alternative transition authority.
@@ -48,8 +48,7 @@ detail for the next context to distinguish an observation from a plan:
 
 The host may retain detailed test output in its normal transcript or in a
 run-isolated artifact when the task permits it. Such an artifact is evidence
-for the host to assess, not a second loop state, a shared review counter, or a
-reason to modify `.until-loop`.
+for the host to assess, not a second loop state or a shared review counter.
 
 Repeated or templated review prose is an audit cue that calls for the underlying
 locators and reviewer record to be checked. Neither matching nor different
@@ -204,12 +203,9 @@ checks the report's shape, action identity, transition order, and configured
 gate. It cannot prove the host read history, ran a command, preserved unrelated
 work, or made a valid semantic classification.
 
-Do not call `scripts/capture_evidence.py`, create
-`.until-loop/working.md`, or create `.until-loop/evidence/` for a new callback
-run. Those are legacy v1/v2 mechanisms. Do not fabricate a host record merely
-to submit `trivial`. If required work, evidence, a check, or a required commit
-is incomplete, report `unresolved` with an `unknown` or `unsatisfied` exit
-assessment and name the gap. A real unavailable dependency is `blocked`; a
+Do not fabricate a host record merely to submit `trivial`. If required work,
+evidence, a check, or a required commit is incomplete, report `unresolved` with
+an `unknown` or `unsatisfied` exit assessment and name the gap. A real unavailable dependency is `blocked`; a
 triggered user-prescribed stop is `cancelled`. Neither is success.
 
 After `done`, consume the returned packet in full. Its `active` instruction is

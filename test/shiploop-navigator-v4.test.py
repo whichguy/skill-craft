@@ -46,12 +46,11 @@ class NavigatorV4Tests(unittest.TestCase):
         self.run.mkdir()
         self.skill = bridge.resolve_skill(str(ROOT / "skills" / "improve" / "SKILL.md"))
 
-    def state(self, protocol_version: int = 4) -> dict:
+    def state(self) -> dict:
         # The delegated route is the one these packets contrast with inline.
         return navigator.new_state(
             str(self.repo.resolve()),
             "Reconcile a planning premise in a small isolated project.",
-            protocol_version=protocol_version,
             delegation="ask-agent",
         )
 
@@ -83,8 +82,8 @@ class NavigatorV4Tests(unittest.TestCase):
             return waiting
         return navigator.finish_improve(waiting, action, self.synthetic_improve(stage))
 
-    def at_plan(self, protocol_version: int = 4) -> dict:
-        state = self.state(protocol_version)
+    def at_plan(self) -> dict:
+        state = self.state()
         while navigator.current_stage(state) != "plan":
             state = self.complete_synthetic(state)
         return state
@@ -330,7 +329,7 @@ class NavigatorV4Tests(unittest.TestCase):
         alias = self.temp_root / "project-alias"
         alias.symlink_to(self.repo, target_is_directory=True)
         state = navigator.new_state(
-            str(alias), "Reconcile a plan through a workspace alias.", protocol_version=4,
+            str(alias), "Reconcile a plan through a workspace alias.",
             delegation="ask-agent",
         )
         while navigator.current_stage(state) != "plan":
@@ -386,7 +385,7 @@ class NavigatorV4Tests(unittest.TestCase):
                 "evidence_refs": [str(self.repo / "evidence.md")],
             })
 
-    def test_v4_packet_uses_stable_planning_locators_and_v3_shape_stays_exact(self) -> None:
+    def test_v4_packet_uses_stable_planning_locators_and_history_shape_stays_exact(self) -> None:
         state = self.at_plan()
         root = self.run
         producer = navigator.render(None, root, state)
@@ -417,12 +416,12 @@ class NavigatorV4Tests(unittest.TestCase):
         for delegated in ("native worker owner", "latest packet, owner record", "host-owner.md"):
             self.assertNotIn(delegated, inline)
 
-        legacy = navigator.new_state(str(self.repo), "Keep v3 stable.", protocol_version=3)
-        self.assertEqual(legacy["version"], navigator.STATE_VERSION)
-        self.assertEqual(legacy["navigator_protocol_version"], 3)
-        self.assertNotIn("planning_reconciliations", legacy)
-        legacy = self.complete_synthetic(legacy)
-        self.assertEqual(set(legacy["history"][0]), {
+        fresh = navigator.new_state(str(self.repo), "Keep the history shape stable.")
+        self.assertEqual(fresh["version"], navigator.STATE_VERSION)
+        self.assertEqual(fresh["navigator_protocol_version"], 4)
+        self.assertEqual(fresh["planning_reconciliations"], [])
+        fresh = self.complete_synthetic(fresh)
+        self.assertEqual(set(fresh["history"][0]), {
             "stage", "outcome", "summary", "workitem", "action",
         })
 
@@ -452,7 +451,7 @@ class NavigatorV4Tests(unittest.TestCase):
         self.assertIn("complete ordered work_items", packet)
         self.assertEqual(packet.count("Planning experiments guide:"), 1)
         self.assertEqual(packet.count("Planning investigation notebook:"), 1)
-        self.assertIn("only this v4 initial plan child may use the printed parent-only improve-reconcile route after worker collection", packet)
+        self.assertIn("only this initial plan child may use the printed parent-only improve-reconcile route after worker collection", packet)
 
     def test_planning_scratch_cannot_alias_runtime_action_directory(self) -> None:
         state = self.at_plan()
@@ -470,12 +469,6 @@ class NavigatorV4Tests(unittest.TestCase):
         self.assertNotEqual(scratch, runtime_root)
 
     def test_v4_experiment_contract_is_limited_to_the_initial_plan_child(self) -> None:
-        legacy_root = self.temp_root / "v3-plan"
-        legacy_root.mkdir()
-        _legacy, _action, _binding, legacy_packet = self.cold_bound_packet(
-            self.at_plan(protocol_version=3), legacy_root,
-        )
-
         other_v4 = self.state()
         while navigator.current_stage(other_v4) != "research":
             other_v4 = self.complete_synthetic(other_v4)
@@ -483,11 +476,10 @@ class NavigatorV4Tests(unittest.TestCase):
         other_root.mkdir()
         _other, _action, _binding, other_packet = self.cold_bound_packet(other_v4, other_root)
 
-        for packet in (legacy_packet, other_packet):
-            self.assertNotIn("Planning experiment objective:", packet)
-            self.assertNotIn("Planning experiment exit:", packet)
-            self.assertNotIn("Planning scratch directory:", packet)
-            self.assertNotIn("improve-reconcile", packet)
+        self.assertNotIn("Planning experiment objective:", other_packet)
+        self.assertNotIn("Planning experiment exit:", other_packet)
+        self.assertNotIn("Planning scratch directory:", other_packet)
+        self.assertNotIn("improve-reconcile", other_packet)
 
     def test_cold_reconciled_v4_plan_packet_lists_current_sources_and_revalidates_queue(self) -> None:
         waiting, action, _receipt, path, _evidence, _binding = self.real_stopped_plan()
@@ -515,30 +507,6 @@ class NavigatorV4Tests(unittest.TestCase):
             self.assertIn(str(self.run / "results" / (current[(None, stage)] + ".md")), sources)
         self.assertIn(str(self.run / "improve" / action / "receipt.md"), sources)
 
-    def test_v3_active_plan_rejects_reconcile_and_keeps_persisted_packet_readable(self) -> None:
-        state = self.at_plan(protocol_version=3)
-        action = navigator.current_action(state)["id"]
-        waiting = navigator.apply(state, action, self.result("plan"))
-        receipt = {
-            "summary": "This v3 child cannot request a reconciliation route.",
-            "target": "research",
-            "evidence_refs": [str(self.repo / "v3-evidence.md")],
-        }
-        with self.assertRaisesRegex(navigator.NavigatorError, "protocol 4"):
-            navigator.reconcile(waiting, action, {}, receipt)
-
-        navigator.save(self.run, waiting)
-        before = (self.run / "state.md").read_bytes()
-        packet = navigator.render(None, self.run, store.read_record(self.run / "state.md"))
-        self.assertIn("Current action: Improve the completed plan result.", packet)
-        input_path = self.run / "inbox" / f"{action}-reconcile.md"
-        input_path.write_text(store.dumps(receipt, "Stopped Improve reconciliation receipt"), encoding="utf-8")
-        rejected = self.cli_reconcile(action, input_path)
-        self.assertNotEqual(rejected.returncode, 0)
-        self.assertIn("improve-reconcile requires navigator protocol 4", rejected.stderr)
-        self.assertEqual((self.run / "state.md").read_bytes(), before)
-        navigator.render(None, self.run, store.read_record(self.run / "state.md"))
-
     def test_archive_reader_rejects_post_open_substitution(self) -> None:
         archive = self.run / "improve" / "action" / "receipt.md"
         archive.parent.mkdir(parents=True)
@@ -561,36 +529,59 @@ class NavigatorV4Tests(unittest.TestCase):
             ):
                 revision._regular_file(self.run, "improve/action/receipt.md", "test archive")
 
-    def test_cli_defaults_to_v3_and_accepts_explicit_v4(self) -> None:
-        self.assertEqual(navigator.LATEST_PROTOCOL_VERSION, 3)
-        self.assertEqual(navigator.MAX_SUPPORTED_PROTOCOL_VERSION, 4)
+    def test_cli_creates_protocol_4_runs_and_refuses_a_protocol_selector(self) -> None:
+        self.assertEqual(navigator.PROTOCOL_VERSION, 4)
+        self.assertFalse(hasattr(navigator, "LATEST_PROTOCOL_VERSION"))
+        env = {**os.environ, "PYTHONDONTWRITEBYTECODE": "1"}
 
-        def initialize(name: str, version: int | None) -> dict:
+        def initialize(name: str, *extra: str) -> tuple[subprocess.CompletedProcess, Path]:
             run = self.temp_root / name
             argv = [
                 sys.executable, "-B", str(SCRIPTS / "shiploop"), "init",
                 "--repo", str(self.repo), "--run-dir", str(run),
-                "--prompt", "Initialize a protocol selection fixture.",
+                "--prompt", "Initialize a protocol fixture.", *extra,
             ]
-            if version is not None:
-                argv.extend(["--navigator-version", str(version)])
             completed = subprocess.run(
-                argv, cwd=self.repo, env={**os.environ, "PYTHONDONTWRITEBYTECODE": "1"},
+                argv, cwd=self.repo, env=env,
                 text=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE, check=False, timeout=30,
             )
-            self.assertEqual(completed.returncode, 0, completed.stdout + completed.stderr)
-            return store.read_record(run / "state.md")
+            return completed, run
 
-        default = initialize("default-v3", None)
-        explicit = initialize("explicit-v4", 4)
-        self.assertEqual(default["navigator_protocol_version"], 3)
-        self.assertNotIn("planning_reconciliations", default)
-        self.assertEqual(explicit["navigator_protocol_version"], 4)
-        self.assertEqual(explicit["planning_reconciliations"], [])
+        completed, run = initialize("default-v4")
+        self.assertEqual(completed.returncode, 0, completed.stdout + completed.stderr)
+        default = store.read_record(run / "state.md")
+        self.assertEqual(default["navigator_protocol_version"], 4)
+        self.assertEqual(default["planning_reconciliations"], [])
+        for version in ("3", "4"):
+            with self.subTest(navigator_version=version):
+                refused, run = initialize("selector-" + version, "--navigator-version", version)
+                self.assertEqual(refused.returncode, 2, refused.stdout + refused.stderr)
+                self.assertIn("unrecognized arguments: --navigator-version", refused.stderr)
+                self.assertFalse(run.exists())
 
-    def test_projection_keeps_v3_latest_done_and_accepts_missing_synthetic_workitem(self) -> None:
+    def test_saved_protocol_3_run_is_refused_without_mutation(self) -> None:
+        state = self.state()
+        navigator.save(self.run, state)
+        saved = dict(store.read_record(self.run / "state.md"), navigator_protocol_version=3)
+        del saved["planning_reconciliations"]
+        store.write_record(self.run / "state.md", saved, title="Saved ShipLoop state")
+        before = (self.run / "state.md").read_bytes()
+        refused = subprocess.run(
+            [sys.executable, "-B", str(SCRIPTS / "shiploop"), "next", "--run-dir", str(self.run)],
+            cwd=self.repo, env={**os.environ, "PYTHONDONTWRITEBYTECODE": "1"},
+            text=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE, check=False, timeout=30,
+        )
+        output = refused.stdout + refused.stderr
+        self.assertEqual(refused.returncode, 2, output)
+        self.assertIn("navigator protocol 3", output)
+        self.assertIn("only protocol 4", output)
+        self.assertIn("fresh --run-dir", output)
+        self.assertNotIn("Traceback", output)
+        self.assertEqual((self.run / "state.md").read_bytes(), before)
+
+    def test_projection_keeps_latest_done_and_accepts_missing_synthetic_workitem(self) -> None:
         old_history = {
-            "navigator_protocol_version": 3,
+            "navigator_protocol_version": 4,
             "history": [
                 {"action": "old", "stage": "research", "outcome": "done", "workitem": None},
                 {"action": "new", "stage": "research", "outcome": "done"},
@@ -598,7 +589,6 @@ class NavigatorV4Tests(unittest.TestCase):
             "accepted": {"old": {}, "new": {}},
         }
         self.assertEqual(revision.current_actions(old_history)[(None, "research")], "new")
-
 
 if __name__ == "__main__":
     unittest.main(verbosity=2)

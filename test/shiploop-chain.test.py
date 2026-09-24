@@ -19,7 +19,6 @@ from unittest.mock import patch
 from shiploop_chain_support import (
     CLI,
     ChainFixture,
-    LEGACY_SERIAL_FIXTURE,
     SERIAL_FIXTURE,
     digest,
 )
@@ -56,23 +55,7 @@ class ChainIntegrationTests(ChainFixture):
         self.call("pending", ok=False)
         self.assertEqual(self.run_bytes(), before)
 
-    def test_dispatcher_resumes_legacy_state_in_place_without_a_new_copy(self):
-        self.select_dispatcher(SERIAL_FIXTURE)
-        self.bind()
-        authority = self.child_state_path()
-        self.assertEqual(authority.name, "plan-dispatcher-state.json")
-        legacy = authority.with_name("state.json")
-        authority.rename(legacy)
-        self.claim(["A"])
-        self.assertEqual(self.child_state_path(), legacy)
-        self.assertEqual(self.child_state()["steps"]["A"]["status"], "claimed")
-        before = self.run_bytes()
-        self.assertEqual(self.call("pending")["pending"][0]["status"], "claimed")
-        self.call("next")
-        self.assertEqual(self.run_bytes(), before)
-        self.assertFalse(authority.exists())
-
-    def test_duplicate_dispatcher_states_refuse_reads_and_mutation_without_fallback(self):
+    def test_legacy_dispatcher_state_file_refuses_reads_and_mutation_without_fallback(self):
         self.select_dispatcher(SERIAL_FIXTURE)
         self.bind()
         authority = self.child_state_path()
@@ -84,12 +67,18 @@ class ChainIntegrationTests(ChainFixture):
                 authority.write_bytes(content)
                 before = self.run_bytes()
                 before_head = self.git(self.target, "rev-parse", "HEAD")
-                for operation, value in (("pending", None), ("claim", {"steps": ["A"]})):
+                for operation, value in (("pending", None), ("next", None), ("claim", {"steps": ["A"]})):
                     result = self.call(operation, value, ok=False)
-                    self.assertRegex(result.stdout + result.stderr,
-                                     r"multiple dispatcher state files|both canonical and legacy state files")
+                    self.assertIn("legacy Plan Dispatcher state.json runs are not supported", result.stderr)
                 self.assertEqual(self.run_bytes(), before)
                 self.assertEqual(self.git(self.target, "rev-parse", "HEAD"), before_head)
+        authority.unlink()
+        before = self.run_bytes()
+        for operation, value in (("pending", None), ("claim", {"steps": ["A"]})):
+            result = self.call(operation, value, ok=False)
+            self.assertIn("legacy Plan Dispatcher state.json runs are not supported", result.stderr)
+        self.assertEqual(self.run_bytes(), before)
+        self.assertFalse(authority.exists())
 
     def test_history_and_pending_are_read_only_current_views(self):
         self.bind()
@@ -150,7 +139,7 @@ class ChainIntegrationTests(ChainFixture):
 
     def test_serial_pending_reports_local_execution_and_empty_completion(self):
         self.select_dispatcher(SERIAL_FIXTURE)
-        self.graph = self.write("graph.json", {"steps": [{"id": "A", "deps": [],
+        self.graph = self.write("graph.json", {"version": 1, "steps": [{"id": "A", "deps": [],
             "contract": {"task": "Implement A", "ready": [], "done": ["A verified"]}}]})
         self.bind(capacity=None, mode="serial")
         attempt = self.claim(["A"])["A"]
@@ -200,7 +189,7 @@ class ChainIntegrationTests(ChainFixture):
             self.call(operation, ok=False)
         self.assertEqual(self.run_bytes(), before)
         self.assertEqual(event.stat().st_nlink, 2)
-        self.call("recover")
+        self.call("next")
         self.assertFalse(private.exists())
         self.assertEqual(event.stat().st_nlink, 1)
         with event.open("a") as handle:
@@ -221,7 +210,7 @@ class ChainIntegrationTests(ChainFixture):
             self.assertIn("explicit recovery", self.call(operation, ok=False).stderr)
         self.assertFalse((self.run / "query-probe-2.md").exists())
         self.assertEqual(self.run_bytes(), before)
-        self.call("recover")
+        self.call("next")
         self.assertEqual((self.run / "query-probe-2.md").read_text(), "second")
         lock = self.run / ".lock"
         lock.unlink()
@@ -371,7 +360,8 @@ class ChainIntegrationTests(ChainFixture):
 
     def test_legacy_serial_helper_refuses_fresh_context_bind_before_writes(self):
         initial_state = (self.run / "state.md").read_bytes()
-        self.select_dispatcher(LEGACY_SERIAL_FIXTURE)
+        # A dispatcher package without the planning-context helper is an old release.
+        (self.dispatcher / "scripts/planning-context.js").unlink()
         refused = self.bind(capacity=None, mode="serial", ok=False)
         self.assertIn("planning-context.js", refused.stderr)
         self.assertEqual((self.run / "state.md").read_bytes(), initial_state)
@@ -411,7 +401,7 @@ class ChainIntegrationTests(ChainFixture):
         self.assertEqual(binding["capacity"], 2)
         self.assertIn("planning_context", binding)
 
-        recovered = self.call("recover")
+        recovered = self.call("next")
         self.assertEqual(recovered["shiploop_chain"]["mode"], "parallel")
         self.assert_completion(recovered, [], ["A", "B", "C", "J"])
         self.assert_context_boundary_preserves_chain_mode("parallel")
@@ -471,7 +461,7 @@ class ChainIntegrationTests(ChainFixture):
         self.assertEqual([event["data"]["action"] for event in start_results], ["execute", "reconcile"])
         after_replay_ledger = self.ledger_bytes()
 
-        recovered = self.call("recover")
+        recovered = self.call("next")
         self.assert_completion(recovered, [], ["A", "B", "C", "J"])
         active = [action for action in recovered["actions"] if action.get("attempt") == a]
         self.assertEqual([action["action"] for action in active], ["resume"])
@@ -480,7 +470,7 @@ class ChainIntegrationTests(ChainFixture):
         self.assertIsNone(self.child_record(a)["handle"])
         self.assert_context_boundary_preserves_chain_mode("serial")
 
-    def test_serial_done_alias_reconciles_once_and_preserves_terminal_history(self):
+    def test_serial_done_reconciles_once_and_preserves_terminal_history(self):
         self.select_dispatcher(SERIAL_FIXTURE)
         self.bind(capacity=None, mode="serial")
         a = self.claim(["A"])["A"]
@@ -502,15 +492,10 @@ class ChainIntegrationTests(ChainFixture):
         before_state = self.child_state_path().read_bytes()
         before_revision = self.child_state()["revision"]
         before_ledger = self.ledger_bytes()
-        repeated_settle = self.call("settle", verification)
-        self.assert_completion(repeated_settle, ["A"], ["B", "C", "J"])
-        self.assertEqual(self.child_state_path().read_bytes(), before_state)
-        self.assertEqual(self.child_state()["revision"], before_revision)
-        self.assertEqual(self.ledger_bytes(), before_ledger)
-        self.assertEqual(len(self.terminal_events(a)), 1)
         repeated_done = self.call("done", verification)
         self.assert_completion(repeated_done, ["A"], ["B", "C", "J"])
         self.assertEqual(self.child_state_path().read_bytes(), before_state)
+        self.assertEqual(self.child_state()["revision"], before_revision)
         self.assertEqual(self.ledger_bytes(), before_ledger)
         self.assertEqual(len(self.terminal_events(a)), 1)
 
@@ -570,18 +555,18 @@ class ChainIntegrationTests(ChainFixture):
         self.assertEqual(len(self.call("next")["active"]), 2)
         verification = self.contribute("A")
         self.assertNotIn("C", self.call("next")["ready"])
-        self.call("settle", verification)
+        self.call("done", verification)
         now = self.call("next")
         self.assertIn("C", now["ready"])
         self.assertNotIn("J", now["ready"])
         self.assertTrue(any(a["step"] == "B" for a in now["active"]))
         c = self.claim(["C"])["C"]
         self.start("C", c, self.commits["A"])
-        self.call("settle", self.contribute("C"))
-        self.call("settle", self.contribute("B"))
+        self.call("done", self.contribute("C"))
+        self.call("done", self.contribute("B"))
         j = self.claim(["J"])["J"]
         self.start("J", j, self.git(self.target, "rev-parse", "HEAD"), integration=True)
-        self.call("settle", self.contribute("J", integration=True))
+        self.call("done", self.contribute("J", integration=True))
         self.assertTrue(self.call("next")["complete"])
         self.parent_complete()  # Child graph completion alone is insufficient.
         proof = self.write("combined-verification.json", {"commit": self.commits["J"], "passed": True,
@@ -623,7 +608,7 @@ class ChainIntegrationTests(ChainFixture):
         self.assertEqual(output["action"], "reconcile")
         self.assertEqual(output["packet"], packet)
         self.assertEqual(self.git(self.target, "worktree", "list", "--porcelain"), before_worktrees)
-        self.assertEqual(self.call("recover")["active"][0]["attempt"], a)
+        self.assertEqual(self.call("next")["active"][0]["attempt"], a)
 
     def test_settlement_requires_native_stoppage_attestation(self):
         self.bind()
@@ -631,11 +616,11 @@ class ChainIntegrationTests(ChainFixture):
         self.start("A", a)
         verification = self.contribute("A")
         verification["confirmed_stopped"] = False
-        self.call("settle", verification, ok=False)
+        self.call("done", verification, ok=False)
         self.assertNotIn("C", self.call("next")["ready"])
         verification["confirmed_stopped"] = True
-        self.call("settle", verification)
-        self.call("settle", verification)  # exact replay is inert
+        self.call("done", verification)
+        self.call("done", verification)  # exact replay is inert
 
     def test_selected_package_drift_blocks_mutations(self):
         self.bind()
@@ -647,7 +632,7 @@ class ChainIntegrationTests(ChainFixture):
         self.bind()
         a = self.claim(["A"])["A"]
         self.start("A", a)
-        self.call("settle", self.contribute("A"))
+        self.call("done", self.contribute("A"))
         c = self.claim(["C"])["C"]
         ready = self.write("bad-base-ready.json", {"ready": True})
         self.call("start", {"attempt": c, "base_commit": self.initial, "write_scope": ["C.txt"],
@@ -666,26 +651,28 @@ class ChainIntegrationTests(ChainFixture):
             self.assertEqual((events / name).read_bytes(), content)
         self.assertNotIn("C", self.call("next")["ready"])
 
-    def test_observe_is_rejected_without_rewriting_prior_event_files(self):
+    def test_retired_verbs_and_bind_lifecycle_flag_are_not_accepted(self):
         self.bind()
         a = self.claim(["A"])["A"]
-        self.start("A", a)
-        self.contribute("A")
-        before_events = self.ledger_bytes()
-        before_child = self.child_state_path().read_bytes()
-        refused = self.call("observe", {"attempt": a, "occurred_at": "2020-01-01T00:00:00Z"}, ok=False)
-        self.assertIn("import-handoff", refused.stderr)
-        self.assertEqual(self.ledger_bytes(), before_events)
-        self.assertEqual(self.child_state_path().read_bytes(), before_child)
+        before = self.run_bytes()
+        for operation in ("recover", "settle", "observe"):
+            refused = self.call(operation, {"attempt": a, "confirmed_stopped": True}, ok=False)
+            self.assertIn("invalid choice", refused.stderr)
+        refused = self.call("bind", ok=False, extra=(
+            "--graph", str(self.graph), "--dispatcher-skill", str(self.dispatcher / "SKILL.md"),
+            "--ask-agent-skill", str(self.ask / "SKILL.md"), "--worktree-parent", str(self.parent),
+            "--lifecycle", "per-step"))
+        self.assertIn("unrecognized arguments: --lifecycle", refused.stderr)
+        self.assertEqual(self.run_bytes(), before)
 
     def test_non_implementation_binding_is_rejected(self):
-        state = nav.new_state(str(self.target), "Still intake", protocol_version=3,
+        state = nav.new_state(str(self.target), "Still intake",
                               delegation="ask-agent")
         nav.save(self.run, state)
         self.action = nav.current_action(state)["id"]
         p = self.call("bind", ok=False, extra=("--graph", str(self.graph),
             "--dispatcher-skill", str(self.dispatcher / "SKILL.md"), "--ask-agent-skill", str(self.ask / "SKILL.md"),
-            "--worktree-parent", str(self.parent), "--lifecycle", "per-step"))
+            "--worktree-parent", str(self.parent)))
         self.assertFalse((self.run / "chains").exists())
 
     def test_unfinished_chain_blocks_halt_and_improve_import_but_can_pause(self):
@@ -699,10 +686,14 @@ class ChainIntegrationTests(ChainFixture):
             p = subprocess.run(argv, text=True, capture_output=True)
             self.assertNotEqual(p.returncode, 0)
             self.assertIn("chain is unfinished", p.stderr + p.stdout)
+            # The refusal prints the exact resume callback, not a removed verb.
+            self.assertIn("chain next --run-dir " + str(self.run) + " --action " + self.action,
+                          p.stderr + p.stdout)
+            self.assertNotIn("chain recover", p.stderr + p.stdout)
         p = subprocess.run([sys.executable, "-B", str(CLI), "pause", "--run-dir", str(self.run),
                             "--reason", "Synthetic pause"], text=True, capture_output=True)
         self.assertEqual(p.returncode, 0, p.stderr)
-        self.assertEqual(set(self.call("recover")["ready"]), {"A", "B"})
+        self.assertEqual(set(self.call("next")["ready"]), {"A", "B"})
         self.call("claim", {"steps": ["A"]}, ok=False)
 
     def test_producer_repeat_after_finished_chain_starts_a_new_implementation(self):
@@ -740,7 +731,7 @@ class ChainIntegrationTests(ChainFixture):
         self.start("A", a)
         verification = self.contribute("A")
         verification["verification"]["passed"] = False
-        self.call("settle", verification)
+        self.call("done", verification)
         retry = {"attempt": a, "confirmed_stopped": True, "reason": "Synthetic failed check"}
         self.crash_after("retry", retry)
         self.call("retry", retry)
@@ -754,18 +745,18 @@ class ChainIntegrationTests(ChainFixture):
         verification = self.contribute("A")
         worker = Path(self.packets["A"]["context"]["workspace"])
         (worker / "unfinished.txt").write_text("dirty after report\n")
-        self.call("settle", verification, ok=False)
+        self.call("done", verification, ok=False)
         state = self.call("next")
         self.assertNotIn("C", state["ready"])
         self.assertTrue(any(row["attempt"] == a for row in state["active"]))
 
     def test_failed_and_wrong_commit_finish_proof_preserves_accepted_target(self):
-        self.graph = self.write("graph.json", {"steps": [{"id": "A", "deps": [],
+        self.graph = self.write("graph.json", {"version": 1, "steps": [{"id": "A", "deps": [],
             "contract": {"task": "Implement A", "ready": [], "done": ["A verified"]}}]})
         self.bind()
         a = self.claim(["A"])["A"]
         self.start("A", a)
-        self.call("settle", self.contribute("A"))
+        self.call("done", self.contribute("A"))
         accepted_target = self.git(self.target, "rev-parse", "HEAD")
         self.assertEqual(accepted_target, self.commits["A"])
         for contents in ({"passed": False, "commit": self.commits["A"]},
@@ -812,7 +803,7 @@ class ChainIntegrationTests(ChainFixture):
         refused = self.call("start", b, ok=False)
         self.assertIn("resource", refused.stderr.lower())
         assert_b_remains_unallocated()
-        self.call("settle", self.contribute("A"))
+        self.call("done", self.contribute("A"))
         b["base_commit"] = self.git(self.target, "rev-parse", "HEAD")
         started = self.call("start", b)
         self.assertEqual(started["action"], "launch")
@@ -825,7 +816,7 @@ class ChainIntegrationTests(ChainFixture):
         self.call("bind", ok=False, extra=("--graph", str(self.graph),
             "--dispatcher-skill", str(self.dispatcher / "SKILL.md"),
             "--ask-agent-skill", str(self.ask / "SKILL.md"), "--worktree-parent", str(invalid),
-            "--lifecycle", "per-step"))
+            ))
         self.assertEqual((self.run / "state.md").read_bytes(), original)
         self.assertFalse((self.run / "chains").exists())
 

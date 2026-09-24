@@ -262,27 +262,10 @@ assert_symlink "$HOME/.codex/skills/devloop" "$source_devloop"
 assert_symlink "$HOME/.cursor/skills/devloop" "$source_devloop"
 assert_symlink "$(opencode_skills_dir)/devloop" "$source_devloop"
 assert_absent "$HOME/.hermes/skills/software-development/devloop"
-assert_absent "$HOME/.hermes/skills/software-development/devloop-run"
-assert_absent "$HOME/.claude/skills/devloop-run"
-assert_absent "$HOME/.grok/skills/devloop-run"
-assert_absent "$HOME/.codex/skills/devloop-run"
-assert_absent "$HOME/.cursor/skills/devloop-run"
-assert_absent "$(opencode_skills_dir)/devloop-run"
 printf '%s\n' "$out16" | grep -qi 'Skipped Hermes card install' \
   || fail "I16 should skip Hermes card: $out16"
 assert_symlink "$HOME/.grok/commands/devloop.md" "$source_devloop/commands/devloop.md"
 assert_absent "$HOME/.claude/commands/devloop.md"
-
-# ---------------------------------------------------------------------------
-# I17: leftover owned symlink at old dest …/devloop-run is removed
-# ---------------------------------------------------------------------------
-fresh_home i17
-mkdir -p "$HOME/.grok/skills"
-ln -s "$source_devloop" "$HOME/.grok/skills/devloop-run"
-out17="$("$install_sh" --grok-only --skill devloop 2>&1)" || fail "I17 failed: $out17"
-assert_symlink "$HOME/.grok/skills/devloop" "$source_devloop"
-assert_absent "$HOME/.grok/skills/devloop-run"
-printf '%s\n' "$out17" | grep -q 'Removed leftover dest' || fail "I17 should report leftover removal: $out17"
 
 # ---------------------------------------------------------------------------
 # I18: --opencode-only uses XDG_CONFIG_HOME (including spaces) and isolates
@@ -447,4 +430,32 @@ rc=$?
 set -e
 [[ "$rc" -eq 64 ]] || fail "invalid flag should exit 64 (got $rc)"
 
-printf 'install-targets.test.sh: PASS I1–I21 (skill-craft install, 6 hosts, identity dest, flags, dry-run, skip-if-exists, --relink, --agents, marketplace-only sources)\n'
+# One spelling per flag: --relink and --skill all. The retired --force and
+# --skill both spellings are not synonyms any more.
+printf '%s\n' "$help_text" | grep -q -- '--relink' || fail "--help must document --relink"
+printf '%s\n' "$help_text" | grep -q -- '--force' && fail "--help must not document --force"
+printf '%s\n' "$help_text" | grep -qw 'both' && fail "--help must not document --skill both"
+fresh_home flags
+set +e
+out_force="$("$install_sh" --claude-only --skill skill-interop --force 2>&1)"
+rc_force=$?
+set -e
+[[ "$rc_force" -eq 64 ]] || fail "--force must be an unknown flag (exit 64, got $rc_force): $out_force"
+printf '%s\n' "$out_force" | grep -q 'Unknown flag: --force' || fail "--force refusal message: $out_force"
+set +e
+out_both="$("$install_sh" --claude-only --skill both 2>&1)"
+rc_both=$?
+set -e
+[[ "$rc_both" -eq 1 ]] || fail "--skill both must not select every skill (exit 1, got $rc_both): $out_both"
+printf '%s\n' "$out_both" | grep -q 'skills/both/SKILL.md' || fail "--skill both is a plain leaf name: $out_both"
+[[ ! -e "$HOME/.claude" ]] || fail "--force/--skill both must not write"
+
+# --agents with --status is a usage error (exit 64), not a printf failure (exit 2).
+set +e
+out_agents="$("$install_sh" --status --agents 2>&1)"
+rc_agents=$?
+set -e
+[[ "$rc_agents" -eq 64 ]] || fail "--status --agents want exit 64 got $rc_agents: $out_agents"
+printf '%s\n' "$out_agents" | grep -q -- '--agents is only valid for install' || fail "--agents message: $out_agents"
+
+printf 'install-targets.test.sh: PASS I1–I16, I18–I21 (skill-craft install, 6 hosts, identity dest, flags, dry-run, skip-if-exists, --relink, --agents, marketplace-only sources)\n'

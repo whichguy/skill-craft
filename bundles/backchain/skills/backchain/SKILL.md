@@ -7,7 +7,7 @@ description: >-
   coding request into a forward draft then backward-chaining enriched DAG with explicit
   unresolved risks, then directly calls the selected Until Loop to repeat dependency
   review until two consecutive trivial/no-change reviews.
-version: 0.3.9
+version: 0.4.0
 author: Backchain
 license: MIT
 platforms:

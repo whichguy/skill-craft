@@ -646,7 +646,7 @@ class GrokAdapterTests(unittest.TestCase):
         command = (
             f"python3 {self.cli} workspace start --repo {self.repo} --workspace-root={workspace_root}; "
             f"python3 {self.cli} complete --run-dir={run_dir} --action=ACT-1 --result {result_one}; "
-            f"{self.cli} done --run-dir {run_dir} --action ACT-2 --result={result_two}"
+            f"{self.cli} complete --run-dir {run_dir} --action ACT-2 --result={result_two}"
         )
         records = [
             {"type": "tool_call", "toolCallId": "multi", "rawInput": {"command": command}},
@@ -657,13 +657,13 @@ class GrokAdapterTests(unittest.TestCase):
         summary = summarize_events(events, self.cli)
 
         self.assertEqual(["multi"], summary["tool_invocation"]["call_ids"])
-        self.assertEqual({"multi": "done"}, summary["tool_invocation"]["subcommands"])
+        self.assertEqual({"multi": "complete"}, summary["tool_invocation"]["subcommands"])
         self.assertEqual(
             [
                 {
                     "call_id": "multi",
                     "argv_tail": [
-                        "done",
+                        "complete",
                         "--run-dir",
                         str(run_dir),
                         "--action",

@@ -91,10 +91,18 @@ def snapshot():
         'preserved_files': {name: digest(source / name) for name in ['user-intent.txt', 'loose-note.txt']},
         'calculator': digest(source / 'calculator.py')}
 
+def load_pilot():
+    """Read this case's pilot.json; only the current scoped-required policy is accepted."""
+    path = case / 'pilot.json'
+    info = json.loads(path.read_text())
+    policy = info.get('commit_policy')
+    if policy != 'scoped-required':
+        raise SystemExit(f"Refusing {path}: commit_policy must be 'scoped-required', found {policy!r}. "
+                         'Run setup for a new case; this pilot does not re-verify other policies.')
+    return info
+
 def verify_worker_commits(info, terminal):
-    """Qualify new committed pilots without rewriting older frozen experiments."""
-    if info.get('commit_policy') != 'scoped-required':
-        return {'status': 'not-required-by-frozen-fixture'}
+    """Require scoped worker commits whose exact SHAs appear in the terminal handoff."""
     def candidate_git(label, *argv):
         return command(['git', *argv], candidate, label).decode().strip()
     baseline = info['candidate_initial_head']
@@ -161,7 +169,7 @@ if args.operation == 'setup':
     producer = run / 'inbox' / (action + '.md')
     store.write_record(producer, {'outcome': 'done', 'summary': 'Review the bounded calculator candidate and preserve caller inputs.',
         'evidence_refs': [str(candidate / 'calculator.py'), str(candidate / 'test_calculator.py')]})
-    ship('producer-done', 'done', '--run-dir', run, '--action', action, '--result', producer)
+    ship('producer-complete', 'complete', '--run-dir', run, '--action', action, '--result', producer)
     ship('improve-bind', 'improve-bind', '--run-dir', run, '--action', action, '--skill-card', card)
     bound = store.read_record(run / 'state.md')['active_improve']
     receipt = bridge.receipt_path(bound)
@@ -185,13 +193,13 @@ if args.operation == 'setup':
 elif args.operation == 'snapshot':
     print(json.dumps(snapshot(), indent=2))
 elif args.operation == 'verify-delivery':
-    manifest = scoped_delivery_manifest(json.loads((case / 'pilot.json').read_text()))
+    manifest = scoped_delivery_manifest(load_pilot())
     print(json.dumps(manifest, indent=2))
     if manifest['scoped_delivery'] != 'PASS':
         raise SystemExit('Scoped delivery mismatch: '+', '.join(
             row['path'] for row in manifest['delivery_paths'] if row['result'] != 'match'))
 else:
-    info = json.loads((case / 'pilot.json').read_text())
+    info = load_pilot()
     collected = json.loads((case / 'parent-collected.json').read_text())
     assert collected['worker_stopped'] and collected['delegates_stopped']
     owner_record = Path(info['owner_record'])
@@ -218,7 +226,7 @@ else:
     after, before = snapshot(), json.loads((case / 'caller-before.json').read_text())
     assert all(after[key] == before[key] for key in ['head', 'index', 'cached_diff', 'preserved_files'])
     assert after['calculator'] != before['calculator']
-    for name, markers in info.get('caller_scope_markers', {}).items():
+    for name, markers in info['caller_scope_markers'].items():
         for marker in markers:
             assert (source / name).read_text().count(marker) == 1, 'Inherited scoped caller content changed'
     assert not (source / '.shiploop-improve').exists()

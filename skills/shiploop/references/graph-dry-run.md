@@ -1,7 +1,7 @@
 # Navigator graph dry runs
 
-The graph driver exercises the actual navigator (protocol 3 unless
-`--protocol-version 4` is passed) and its full returned packets. Synthetic
+The graph driver exercises the actual navigator (protocol 4) and its full
+returned packets. Synthetic
 declarations stand in for project work; the driver runs no LLM, Git operation,
 implementation, test command, or delivery action.
 
@@ -23,7 +23,7 @@ python3 "$CLI" graph-dry-run --scenario delivery --delegation ask-agent --format
 [delegation](navigator.md#run-it). It defaults to `inline`, as for a new run;
 `ask-agent` renders the opt-in delegated packets.
 
-`--list` prints the scenarios (the same for protocols 3 and 4): delivery, two
+`--list` prints the scenarios: delivery, two
 work items, blocked/resume, a repeat returned through Improve, pause/resume and
 halt. The planning stages and the last carry-forward are followed by a synthetic
 Improve completion; other producers advance directly. An unknown scenario
@@ -50,11 +50,11 @@ Custom JSON has only `steps` (any other top-level field is refused), each with a
 (`command: produce`, optional `result`) is paired with `command: finish-improve`
 carrying a synthetic `receipt` and optional `final_result`. The last completion
 expects stage/status `done`. Run it with `--script PATH`. The packaged
-`navigator-v3-dry-run-example.json` is an example prefix:
+`graph-dry-run-scenario.json` is an example prefix:
 
 ```sh
 python3 "$CLI" graph-dry-run \
-  --script "$SKILL_ROOT/references/navigator-v3-dry-run-example.json" --format json
+  --script "$SKILL_ROOT/references/graph-dry-run-scenario.json" --format json
 ```
 
 Exit 0 means expectations matched, including an intentionally halted or partial

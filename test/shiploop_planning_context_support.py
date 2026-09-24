@@ -49,7 +49,6 @@ class PlanningContextFixture(unittest.TestCase):
             str(self.repo.resolve()),
             "ORIGINAL REQUEST SENTINEL must not appear in planning reference files.",
             bound_plan="Keep the reviewed graph unchanged and retain explicit planning references.",
-            protocol_version=3,
         )
         self.actions: dict[str, list[str]] = {}
 

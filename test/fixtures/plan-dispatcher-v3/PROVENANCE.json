@@ -3,14 +3,14 @@
   "repository": "https://github.com/whichguy/plan-orchestrator",
   "base_commit": "6fd7a86ca284d8467ec55413d9b2ab42667e7657",
   "path": "skills/plan-dispatcher",
-  "version": "0.1.3",
+  "version": "0.2.0",
   "files_sha256": {
-    "SKILL.md": "c1b0ba72e6aec8d4675ba2eac698b4d5f5334edefc9b0386669d462e7614c218",
-    "scripts/dispatch.js": "b5cc6e4a4dfd37db2b5c0eabeda7ee5c267b5e1681708c6371c9f8c76acde95b",
-    "scripts/state.js": "dcfeeac0feb82331d16705ff6f26f9ecf3765cb86edb8aedfafa9a6fd8047718",
-    "scripts/planning-context.js": "93c8a3bf414c25451aee75879ba5145373e24462ab6ff0659049e1d985eaff89",
-    "references/protocol.md": "891dac0e44ec54f5503221b881af33873d7b501f920dad8c8fdd4863ea6f697a",
+    "SKILL.md": "df4be75911e6c3acb33ded64b19bb4e96ad26951e757b1695b4a6243a50d4d58",
+    "scripts/dispatch.js": "5a63a1412b8473797b1dec0437c802fa00ff342734c7bb129120bb1ea879e21a",
+    "scripts/state.js": "b6fa1225e6fdb5bac3820e30f7186412b6be044771480222fb99be5c0f697941",
+    "scripts/planning-context.js": "23044acc81d3bf9baf8cdd8417f21e88f185bdd75daba096981afc7af213a238",
+    "references/protocol.md": "c9b21133b865aaa74b7fa54b7a27e92218b8483b569541023ffae1aa9399b742",
     "references/host-matrix.md": "afbe1e94e48a8134cce37a81c6f869ec123c71523b30c135e3d5c9e134602d4a"
   },
-  "source_commit": "86cf08050d0d3eb402ce29e687652d3d53600d5c"
+  "source_commit": "8671b5c45f889e2eb82a4aca4b94a0af53f61869"
 }

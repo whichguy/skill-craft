@@ -19,7 +19,7 @@ description: |
   order, results remapped before aggregation.
 
 argument-hint: "<prompt-file> [inputs-dir | inline text] [prompt-b] [free-form options]"
-version: 0.1.2
+version: 0.1.3
 license: MIT
 platforms:
   - linux
@@ -65,7 +65,6 @@ to extract the following values:
 /compare-prompts agents/summarizer.md "The quick brown fox jumped over the lazy dog"
 /compare-prompts agents/translator.md with text "Hello world, how are you?"
 /compare-prompts agents/code-reviewer.md   (no input — runs prompt with empty input)
-/compare-prompts --prompt agents/code-reviewer.md --inputs inputs/  (legacy flag style also works)
 ```
 
 ---
@@ -74,19 +73,19 @@ to extract the following values:
 
 **Interpret arguments from `<prompt-arguments>` as free-form text.**
 
-Extract these values by understanding the user's intent — they may use flags, positional
-paths, natural language, or any combination:
+Extract these values by understanding the user's intent — they may use positional paths,
+natural language, or a combination of both:
 
 | Variable | How to identify |
 |----------|----------------|
-| `prompt_a_path` | The primary prompt file. Look for the first file path containing `/` or `.md`. If `--prompt` or `--prompt-a` flag is present, use its value. Words like "baseline", "current", "before", "A" help disambiguate when two paths are present. |
-| `prompt_b_path` | The comparison prompt file. Look for a second file path, or one associated with "B", "candidate", "new", "after", "compare against", "vs". If `--prompt-b` flag is present, use its value. |
-| `inputs_dir` | A directory path for test inputs. Look for paths associated with "inputs", "test", "dir". If `--inputs` flag is present, use its value. Optional — may be absent. |
-| `input_text` | Inline text to use as test input. Look for quoted strings, or text after "with input", "using text", "test with". Also: any substantial free-form text that is clearly meant as input content (not a path, label, or model). If `--input` or `--text` flag is present, use its value. Optional — may be absent. |
-| `label_a` | Display label for prompt A. Look for "label-a", "baseline label", or `--label-a`. |
-| `label_b` | Display label for prompt B. Look for "label-b", "candidate label", or `--label-b`. |
-| `run_model` | A host-valid model identifier. Look for "model", "use", "with", or `--model`. |
-| `judge_model` | A host-valid model for an independent evaluator. Look for "judge", "judge-model", or `--judge-model`. |
+| `prompt_a_path` | The primary prompt file. Look for the first file path containing `/` or `.md`. Words like "baseline", "current", "before", "A" help disambiguate when two paths are present. |
+| `prompt_b_path` | The comparison prompt file. Look for a second file path, or one associated with "B", "candidate", "new", "after", "compare against", "vs". |
+| `inputs_dir` | A directory path for test inputs. Look for paths associated with "inputs", "test", "dir". Optional — may be absent. |
+| `input_text` | Inline text to use as test input. Look for quoted strings, or text after "with input", "using text", "test with". Also: any substantial free-form text that is clearly meant as input content (not a path, label, or model). Optional — may be absent. |
+| `label_a` | Display label for prompt A. Look for "label-a", "baseline label". |
+| `label_b` | Display label for prompt B. Look for "label-b", "candidate label". |
+| `run_model` | A host-valid model identifier. Look for "model", "use", "with". |
+| `judge_model` | A host-valid model for an independent evaluator. Look for "judge", "judge-model". |
 
 **Defaults** (apply when not found in arguments):
 - `prompt_b_path` = derived from git HEAD~1 of prompt_a_path (existing resolution logic)
@@ -102,7 +101,7 @@ paths, natural language, or any combination:
 2. Compute RELATIVE_PATH: relative path of prompt_a_path from REPO_ROOT
 3. Run preflight: `git -C "$REPO_ROOT" show HEAD~1:"$RELATIVE_PATH" > /dev/null 2>&1`
    - If this fails → abort with:
-     `"Cannot extract HEAD~1 of <file>: no prior commit history. Provide --prompt-b explicitly."`
+     `"Cannot extract HEAD~1 of <file>: no prior commit history. Name the comparison prompt (prompt B) explicitly."`
 4. Extract: `git -C "$REPO_ROOT" show HEAD~1:"$RELATIVE_PATH" > "$COMPARE_TMPDIR/prompt-b-head1.md"`
 5. Set prompt_b_path = `$COMPARE_TMPDIR/prompt-b-head1.md`
 

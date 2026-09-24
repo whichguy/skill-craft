@@ -114,16 +114,6 @@ printf '%s\n' "$out4" | grep -q 'Updated (Hermes' || fail "H4 should Updated: $o
 assert_copy_tree "$leaf" "$pkg_abs"
 
 # ---------------------------------------------------------------------------
-# H5: legacy exact symlink auto-migrates
-# ---------------------------------------------------------------------------
-fresh_home h5
-mkdir -p "$HOME/.hermes/skills/software-development"
-ln -s "$pkg_abs" "$(hermes_dest "$leaf")"
-out5="$("$install_sh" --from "$pkg_abs" --hermes-only 2>&1)" || fail "H5 failed: $out5"
-printf '%s\n' "$out5" | grep -q 'Migrated to copy' || fail "H5 migrate: $out5"
-assert_copy_tree "$leaf" "$pkg_abs"
-
-# ---------------------------------------------------------------------------
 # H6: wrong symlink, no --relink → skip
 # ---------------------------------------------------------------------------
 fresh_home h6
@@ -320,4 +310,4 @@ set -e
 [[ "$rc18" -ne 0 ]] || fail "H18 want nonzero for src==dst: $out18"
 printf '%s\n' "$out18" | grep -qi 'same path\|nest\|Refused' || fail "H18 message: $out18"
 
-printf 'hermes-binding.test.sh: PASS H1–H18 (copy lifecycle, internal symlink deref, receipts)\n'
+printf 'hermes-binding.test.sh: PASS H1–H4, H6–H18 (copy lifecycle, internal symlink deref, receipts)\n'

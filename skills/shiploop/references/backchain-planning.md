@@ -2,10 +2,10 @@
 
 ## Navigator planning
 
-In navigator v3's default `embedded` mode this is an incorporated reasoning
-guide, not a standalone Backchain invocation or a compatibility result schema.
-An explicitly selected `source-aware-native` run uses the caller contract in
-[Source-aware native caller](#source-aware-native-caller-navigator-v3) below. Read the selected
+This guide is ShipLoop's planning checklist, not a standalone Backchain
+invocation or a result schema. A Backchain call uses only the caller contract in
+[Source-aware native caller](#source-aware-native-caller) below; there is no
+embedded Backchain mode. Read the selected
 product clauses using [reference handoffs and destinations](project-knowledge.md#reference-handoffs-and-destinations)
 alongside the new request and current-run spec. Preserve unaffected conditions
 and map each required outcome to its own expected observation/test locator.
@@ -14,8 +14,8 @@ At `spec`, check outcomes and missing prerequisites without authoring future
 receipts. At `plan`, apply [the dependency audit](#dependency-audit) to order
 producers before consumers. At `step-plan`, apply it to the scoped local
 microplan and its suppliers. At `carry-forward` and `product-acceptance`, use it
-only for affected pending/corrective work and newly exposed dependencies. In an
-explicit native selection, a whole `plan`/`draft` or authorized `repair`/`revise`
+only for affected pending/corrective work and newly exposed dependencies. In a
+native call, a whole `plan`/`draft` or authorized `repair`/`revise`
 operation owns its internal convergence; the ordinary Improve handoff remains a
 separate broader review.
 
@@ -32,11 +32,11 @@ check later supersession against current evidence, and turn useful findings into
 specific plan constraints, prerequisites or checks rather than a citation inventory.
 
 Retain the audit in ordinary plan notes, result `evidence_refs` and work-item
-`context`. Use v3's current callback and allowed result fields; do not import
+`context`. Use the current callback and allowed result fields; do not import
 legacy result fields, frozen-plan certificates, a Backchain JSON schema, or
-another counter/dispatcher. The sections below describe the shared five lenses
-and retained compatibility bindings; legacy field names apply only to those
-recorded modes. A source path, matched label, or completed supplier declaration
+another counter/dispatcher. The sections below describe the shared five lenses.
+A saved run from a retired protocol or mode is refused rather than read with
+older field names. A source path, matched label, or completed supplier declaration
 is not independent evidence that the needed state exists.
 
 For a context-capable implementation chain, author coherent supporting planning
@@ -52,10 +52,9 @@ unchanged reviewed execution graph.
 
 ## Owner binding
 
-In `embedded` mode this is ShipLoop's adaptation of the inspected Backchain
-planning method, not a call to its standalone skill, generator, elaborator, or
-harness. Explicit `source-aware-native` selection is the v3 exception and binds
-the current host to the observed standalone skill and caller resources below.
+This guide is not a call to Backchain's standalone skill, generator, elaborator,
+or harness. Only a `source-aware-native` call binds the current host to the
+observed standalone skill and caller resources below.
 Read only the sections selected by the current packet. Perform that one action
 and submit its exact callback; a planning review never authorizes implementation,
 deployment, a new credential, or a different writer.
@@ -206,29 +205,16 @@ running/completed definitions, accepted receipts, exact goal and initial-state
 baseline; incompatible changes need explicit replanning authority. No Backchain
 rule permits silently repairing or deleting accepted edges outside that path.
 
-## Provenance
+## Limits
 
-The incorporated `embedded` guide was inspected against Backchain checkout
-`8278e27a84aa3a28c8986f798e14a3cd9436be67`. Selected native calls record their own
-actual card and resource identities as described below.
-Sources: `prompts/generator.v1.md`, `prompts/dependency-review.prompt.md`,
-`prompts/elaborator.v1.md`, and their regression/experiment controls. This
-reference selectively incorporates outcome-first drafting, per-outcome checks,
-evidence-only closes, five lenses, carrier/layer distinctions, shared suppliers
-and conditional transition clocks. The upstream card's older blanket orphan
-rule is not imported: a required terminal deliverable is a legitimate outcome.
+ShipLoop's gates validate shapes, identities, links and receipts—not the
+semantic truth or exhaustiveness of this reasoning. Review against independent
+request criteria and meaningful checks remains necessary.
 
-Experimental replacement prompts, alternate model backends, NBQ/EVSI machinery,
-benchmark scoring and standalone JSON packaging are not adopted. ShipLoop's
-current gates validate shapes, identities, links and receipts—not the semantic
-truth or exhaustiveness of this reasoning. Review against independent request
-criteria and meaningful checks remains necessary. This is an incorporated
-adaptation, not execution or a byte-identical snapshot of the external skill.
+## Source-aware native caller
 
-## Source-aware native caller (navigator v3)
-
-`embedded` remains the default mode. A new run may intentionally
-select `source-aware-native` in ordinary run notes when the host has observed the
+`source-aware-native` is the only Backchain route. A planning host may call it,
+recording the selection in ordinary run notes, when the host has observed the
 selected Backchain `SKILL.md`, its `backchain-caller/v1` action/stage resource,
 `references/convergence.md`, and `prompts/convergence-review.prompt.md`, plus a selected
 physical Until Loop root with its `SKILL.md`, `references/runtime-ephemeral.md`, and
@@ -278,18 +264,17 @@ use a one-pass Backchain primitive for any relevant diagnostic.
 
 
 An unavailable, stale, ambiguous, superseded-without-inspection, or incompatible
-material source/card/contract/resource is incomplete or blocked; do not silently
-select embedded. A chosen embedded mode is recorded explicitly and is never called
-a native invocation. Host reasoning evaluates capability and packet compatibility:
+material source/card/contract/resource is incomplete or blocked; there is no
+fallback route. Host reasoning evaluates capability and packet compatibility:
 the direct-handoff compatibility judgment remains host-judged and the script does not
 claim to enforce those semantic facts. A native output with invalid identity is
 unchanged/rejected/unresolved; no digest is invented. A revised plan starts with
 structural status unknown and empty `parallel_groups` until its exact output digest and
 structural check are independently recorded.
 
-## V4 experiment-informed planning
+## Experiment-informed planning
 
-In the [v4 pilot](planning-experiments.md), the provisional delivery plan exposes
+In [experiment-informed planning](planning-experiments.md), the provisional delivery plan exposes
 assumptions to its existing Plan Improve owner. That child may run bounded
 experiments and revise the candidate or return an upstream-reconciliation need.
 Native Backchain remains plan-only; do not launch another Backchain/Until loop

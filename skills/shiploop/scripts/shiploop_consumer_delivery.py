@@ -46,14 +46,14 @@ _OBSERVABLE_AT = {
 _NEGATIVE_OBSERVABLE_AT = {
     "system-test": frozenset(("pre-update",)),
     "release-plan": frozenset(("pre-update",)),
-    # These v3 readiness stages occur after system-test but before release,
+    # These readiness stages occur after system-test but before release,
     # so they may retain a newly discovered failure of the due pre-update
     # evidence without inventing a positive receipt for it.
     "product-acceptance": frozenset(("pre-update",)),
     "release-check": frozenset(("pre-update",)),
     "release": frozenset(("pre-update", "effect", "identity")),
     "release-verify": _OBLIGATION_KINDS,
-    # Operations follows release verification in the v3 graph, so every
+    # Operations follows release verification in the navigator graph, so every
     # obligation is already due and a later failure must remain durable.
     "operations": _OBLIGATION_KINDS,
     "handoff": _OBLIGATION_KINDS,
@@ -428,7 +428,7 @@ def _blank_projection(enabled: bool) -> dict[str, Any]:
 
 
 def _superseded_planning_anchor(state: Mapping[str, Any], anchor: str | None) -> bool:
-    if state.get("navigator_protocol_version") != 4 or anchor is None:
+    if anchor is None:
         return False
     entry = next((row for row in state["history"] if row["action"] == anchor), None)
     return (entry is not None and entry["stage"] in planning_revision.PLANNING_STAGES
@@ -448,7 +448,6 @@ def project(state: Mapping[str, Any]) -> dict[str, Any]:
     projection = _blank_projection(enabled)
     if not enabled:
         return projection
-    protocol_version = state.get("navigator_protocol_version")
     release_plan_completed = False
     post_plan_replan_pending = False
     fresh_system_test_after_replan = False
@@ -502,7 +501,7 @@ def project(state: Mapping[str, Any]) -> dict[str, Any]:
                     stage=entry["stage"],
                 )
         if entry["outcome"] == "replan":
-            # Every accepted v3 edge starts a corrective inner cycle, so a prior
+            # Every accepted edge starts a corrective inner cycle, so a prior
             # release plan cannot cover a candidate changed by that later work.
             release_plan_completed = False
             if projection["replan_required"] is not None:
@@ -519,7 +518,7 @@ def project(state: Mapping[str, Any]) -> dict[str, Any]:
                 projection["replan_required"] = None
                 post_plan_replan_pending = False
             release_plan_completed = True
-    if protocol_version == 4 and projection["anchor"] is not None:
+    if projection["anchor"] is not None:
         # Retain the full correction lineage so a reconciliation cannot erase
         # user-authority requirements. A superseded anchor is useful only as
         # the source of a correction; it cannot authorize the new plan.
@@ -596,8 +595,7 @@ def validate_transition(
     if stage == "plan":
         _need(projection["contract"] is not None,
               "delivery contract is required before successful plan")
-        if state.get("navigator_protocol_version") == 4:
-            _need(projection["replan_required"] is None, projection["replan_required"])
+        _need(projection["replan_required"] is None, projection["replan_required"])
     elif stage == "system-test":
         _need(not _pending(projection, phase="system-test"),
               "required pre-update obligations are not current")

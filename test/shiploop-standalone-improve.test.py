@@ -17,7 +17,6 @@ import unittest
 ROOT = Path(__file__).resolve().parents[1]
 SCRIPTS = ROOT / "skills" / "shiploop" / "scripts"
 IMPROVE = ROOT / "skills" / "improve" / "SKILL.md"
-LEGACY_RUNTIME = ROOT / "skills" / "improve" / "runtime" / "until-loop" / "scripts"
 sys.path.insert(0, str(SCRIPTS))
 import shiploop_standalone_improve as bridge  # noqa: E402
 import shiploop_navigator as navigator  # noqa: E402
@@ -30,8 +29,6 @@ class StandaloneImproveBridgeTests(unittest.TestCase):
         self.workspace.mkdir()
         self.state = {"run_id": "run01", "repo": str(self.workspace)}
         self.parent = "nav-test"
-        self.skill = self._legacy_skill()
-        self.binding = bridge.binding(self.state, self.parent, "implement", {}, self.skill)
         self.ephemeral_skill = bridge.resolve_skill(str(IMPROVE))
         self.ephemeral_binding = bridge.binding(
             self.state, self.parent, "implement", {}, self.ephemeral_skill,
@@ -39,68 +36,6 @@ class StandaloneImproveBridgeTests(unittest.TestCase):
 
     def tearDown(self) -> None:
         self.temp.cleanup()
-
-    def _legacy_skill(self) -> dict[str, str]:
-        """Create an explicit selected legacy card, independent of the default package."""
-        root = self.workspace / "legacy-improve"
-        runtime = root / "runtime" / "until-loop"
-        scripts = runtime / "scripts"
-        scripts.mkdir(parents=True)
-        (root / "SKILL.md").write_text(
-            "---\nname: improve\nversion: test-legacy\n---\nUse the bundled until-loop adapter.\n",
-            encoding="utf-8",
-        )
-        (runtime / "ADAPTER.md").write_text(
-            "---\nname: until-loop\nversion: test-legacy\n---\nUse the durable v2 adapter.\n",
-            encoding="utf-8",
-        )
-        for name in ("until-loop", "until_loop_packet.py", "until_loop_v2.py"):
-            shutil.copy2(LEGACY_RUNTIME / name, scripts / name)
-        shutil.copytree(LEGACY_RUNTIME.parent / "references", runtime / "references")
-        return bridge.resolve_skill(str(root / "SKILL.md"))
-
-    def command(self, *args: str) -> subprocess.CompletedProcess[str]:
-        return subprocess.run(
-            [sys.executable, "-B", self.skill["runtime_cli"], *args], text=True,
-            stdout=subprocess.PIPE, stderr=subprocess.PIPE, check=False,
-        )
-
-    def initialize(self, *, marker: str | None = None, verify: bool = False) -> None:
-        request = "Improve this action.\n" + (marker if marker is not None else self.binding["contract_marker"])
-        contract = {
-            "version": 1,
-            "policy": "decision-rubric/2",
-            "original_request": request,
-            "interpretation": "Review the action until the recorded criterion has evidence.",
-            "criteria": [{"id": "C1", "text": "Record review evidence", "basis": {"kind": "request", "reference": "review"}}],
-        }
-        path = self.workspace / "contract.json"
-        path.write_text(json.dumps(contract), encoding="utf-8")
-        args = ["v2", "init", "--repo", str(self.workspace), "--contract-file", str(path)]
-        if verify:
-            args.extend(["--verify", f"{sys.executable} -c 'pass'"])
-        result = self.command(*args)
-        self.assertEqual(result.returncode, 0, result.stderr)
-
-    def finish(self) -> None:
-        state_path = self.workspace / ".until-loop" / "state.json"
-        state = json.loads(state_path.read_text(encoding="utf-8"))
-        action = state["action"]
-        result = {
-            "action_id": action["id"],
-            "contract_revision": state["contract"]["revision"],
-            "decision": "complete",
-            "criteria": [{"id": "C1", "status": "satisfied", "evidence": "review-a.md and review-b.md"}],
-            "next_action": None,
-            "blocker": None,
-        }
-        Path(action["result_path"]).write_text(json.dumps(result), encoding="utf-8")
-        done = self.command("v2", "submit", "--repo", str(self.workspace), "--action-id", action["id"])
-        self.assertEqual(done.returncode, 0, done.stderr)
-        run = self.workspace / ".until-loop"
-        (run / "working.md").write_text("two review passes\n", encoding="utf-8")
-        for name in ("review-a.md", "review-b.md", "check.md"):
-            (self.workspace / name).write_text(name, encoding="utf-8")
 
     def receipt(self) -> dict[str, object]:
         return {
@@ -176,24 +111,6 @@ class StandaloneImproveBridgeTests(unittest.TestCase):
         for name in ("review-a.md", "review-b.md", "check.md"):
             (self.workspace / name).write_text(name, encoding="utf-8")
 
-    def test_real_v2_completion_imports_read_only_archives(self) -> None:
-        self.assertNotEqual(self.skill["skill_version"], "unversioned")
-        self.assertNotEqual(self.skill["runtime_version"], "unversioned")
-        self.initialize(verify=True)
-        self.finish()
-        record, writes = bridge.complete(self.binding, self.receipt())
-        self.assertEqual(record["runtime_phase"], "done")
-        self.assertEqual(record["binding_id"], "run01/nav-test")
-        self.assertIn("improve/nav-test/state.json", writes)
-        self.assertIn("improve/nav-test/working.md", writes)
-        self.assertIn("improve/nav-test/history.jsonl", writes)
-        self.assertIn("improve/nav-test/result.json", writes)
-        self.assertIn("improve/nav-test/receipt.md", writes)
-        evidence = record["evidence"]
-        self.assertEqual(len(evidence), 3)
-        for item in evidence:
-            self.assertEqual(writes[item["archive"]], (self.workspace / item["source"]).read_text(encoding="utf-8"))
-
     def test_selected_package_runs_real_ephemeral_runtime_and_archives_terminal_packet(self) -> None:
         self.assertEqual(Path(self.ephemeral_skill["runtime_cli"]).name, "until_loop_ephemeral.py")
         packet, raw = self.terminal_ephemeral()
@@ -221,7 +138,7 @@ class StandaloneImproveBridgeTests(unittest.TestCase):
         for stage, successor in (("plan", "prepare"), ("step-plan", "test-spec")):
             with self.subTest(stage=stage):
                 state = navigator.new_state(
-                    str(self.workspace), "Create and review initial steps.", protocol_version=3,
+                    str(self.workspace), "Create and review initial steps.",
                 )
                 # Only preceding stages use synthetic receipts to reach the boundary.
                 while navigator.current_stage(state) != stage:
@@ -305,11 +222,13 @@ class StandaloneImproveBridgeTests(unittest.TestCase):
                     "completion replay must not advance another stage",
                 )
 
-    def test_ephemeral_bindings_are_independent_of_durable_state_and_each_other(self) -> None:
-        # An unrelated durable child still blocks a legacy binding, but a
-        # selected ephemeral runtime has a private tempfile and no ambient
-        # .until-loop ownership relationship.
-        self.initialize(marker="ShipLoop standalone Improve binding: foreign/action")
+    def test_ephemeral_bindings_are_independent_of_workspace_state_and_each_other(self) -> None:
+        # A selected ephemeral runtime has a private tempfile and no ambient
+        # workspace ownership relationship, even when an external Until Loop
+        # installation left a .until-loop directory behind.
+        stray = self.workspace / ".until-loop"
+        stray.mkdir()
+        (stray / "state.json").write_text("{}", encoding="utf-8")
         first = bridge.binding(self.state, self.parent, "implement", {}, self.ephemeral_skill)
         second = bridge.binding(
             {"run_id": "run02", "repo": str(self.workspace)}, "nav-other", "document", {},
@@ -388,7 +307,36 @@ class StandaloneImproveBridgeTests(unittest.TestCase):
         with self.assertRaisesRegex(bridge.StandaloneImproveError, "cannot be a symlink"):
             bridge.complete(self.ephemeral_binding, self.receipt())
 
+    def _improve_copy(self) -> Path:
+        copied = self.workspace / "improve-copy"
+        shutil.copytree(IMPROVE.parent, copied)
+        return copied
+
     def test_selected_symlink_uses_documented_installed_layout_without_home_path(self) -> None:
+        copied = self._improve_copy()
+        selected = self.workspace / "selected-improve.md"
+        selected.symlink_to(copied / "SKILL.md")
+        resolved = bridge.resolve_skill(str(selected))
+        runtime = copied / "runtime" / "until-loop"
+        self.assertEqual(resolved["skill_card"], str((copied / "SKILL.md").resolve()))
+        self.assertEqual(resolved["runtime_card"], str((runtime / "ADAPTER.md").resolve()))
+        self.assertEqual(resolved["runtime_cli"],
+                         str((runtime / "scripts" / "until_loop_ephemeral.py").resolve()))
+        self.assertEqual(resolved["skill_version"], self.ephemeral_skill["skill_version"])
+        self.assertEqual(resolved["runtime_version"], self.ephemeral_skill["runtime_version"])
+
+    def test_non_ephemeral_or_example_layout_card_is_refused(self) -> None:
+        refusal = "durable Until Loop runtimes are no longer supported; select the current Improve card"
+        # A package whose adapter does not declare the ephemeral runtime.
+        durable = self._improve_copy()
+        adapter = durable / "runtime" / "until-loop" / "ADAPTER.md"
+        adapter.write_text(
+            "---\nname: until-loop\nversion: test-durable\n---\nUse scripts/until-loop v2.\n",
+            encoding="utf-8",
+        )
+        with self.assertRaisesRegex(bridge.StandaloneImproveError, refusal):
+            bridge.resolve_skill(str(durable / "SKILL.md"))
+        # The pre-package example layout whose parent card is ../../SKILL.md.
         runtime_root = self.workspace / "runtime-root"
         installed = runtime_root / "examples" / "improve"
         installed.mkdir(parents=True)
@@ -399,93 +347,41 @@ class StandaloneImproveBridgeTests(unittest.TestCase):
             encoding="utf-8",
         )
         (runtime_root / "SKILL.md").write_text("---\nname: until-loop\n---\n", encoding="utf-8")
-        cli = runtime_root / "scripts" / "until-loop"
-        cli.write_text("#!/usr/bin/env python3\n", encoding="utf-8")
-        selected = self.workspace / "selected-improve.md"
-        selected.symlink_to(card)
-        resolved = bridge.resolve_skill(str(selected))
-        self.assertEqual(resolved["skill_card"], str(card.resolve()))
-        self.assertEqual(resolved["runtime_card"], str((runtime_root / "SKILL.md").resolve()))
-        self.assertEqual(resolved["runtime_cli"], str(cli.resolve()))
-        self.assertEqual(resolved["skill_version"], "unversioned")
-        self.assertEqual(resolved["runtime_version"], "unversioned")
-
-    def test_nonterminal_or_foreign_child_does_not_release_parent(self) -> None:
-        self.initialize(marker="ShipLoop standalone Improve binding: foreign/action")
-        with self.assertRaisesRegex(bridge.StandaloneImproveError, "not bound"):
-            bridge.binding(self.state, self.parent, "implement", {}, self.skill)
-
-    def test_matching_nonterminal_child_does_not_release_parent(self) -> None:
-        self.initialize()
-        with self.assertRaisesRegex(bridge.StandaloneImproveError, "not completed"):
-            bridge.complete(self.binding, self.receipt())
-
-    def test_pending_or_unsafe_state_needs_runtime_recovery(self) -> None:
-        self.initialize()
-        pending = self.workspace / ".until-loop" / ".pending-v2.json"
-        pending.write_text("{}", encoding="utf-8")
-        with self.assertRaisesRegex(bridge.StandaloneImproveError, "pending journal"):
-            bridge.complete(self.binding, self.receipt())
-
-    def test_terminal_runtime_result_must_match_the_accepted_assessment(self) -> None:
-        self.initialize()
-        self.finish()
-        state = json.loads((self.workspace / ".until-loop" / "state.json").read_text(encoding="utf-8"))
-        result = self.workspace / ".until-loop" / "results" / (state["last_assessment"]["action_id"] + ".json")
-        result.write_text("{}", encoding="utf-8")
-        with self.assertRaisesRegex(bridge.StandaloneImproveError, "does not match"):
-            bridge.complete(self.binding, self.receipt())
+        (runtime_root / "scripts" / "until_loop_ephemeral.py").write_text(
+            "#!/usr/bin/env python3\n", encoding="utf-8",
+        )
+        with self.assertRaisesRegex(bridge.StandaloneImproveError, refusal):
+            bridge.resolve_skill(str(card))
+        # A saved binding that names a durable CLI cannot be completed.
+        stale = copy.deepcopy(self.ephemeral_binding)
+        stale["skill"]["runtime_cli"] = str(Path(stale["skill"]["runtime_cli"]).with_name("until-loop"))
+        with self.assertRaisesRegex(bridge.StandaloneImproveError, "differs from selected card"):
+            bridge.complete(stale, self.receipt())
 
     def test_parent_lexical_workspace_locator_survives_physical_runtime_resolution(self) -> None:
         alias = Path(self.temp.name) / "workspace-alias"
         alias.symlink_to(self.workspace, target_is_directory=True)
         self.state["repo"] = str(alias)
-        self.binding = bridge.binding(self.state, self.parent, "implement", {}, self.skill)
-        self.assertEqual(self.binding["workspace"], str(alias))
-        # Until Loop records the physical path, while the parent stores the
+        self.ephemeral_binding = bridge.binding(
+            self.state, self.parent, "implement", {}, self.ephemeral_skill,
+        )
+        self.assertEqual(self.ephemeral_binding["workspace"], str(alias))
+        # The runtime records the physical path, while the parent stores the
         # alias.  Import resolves the alias for validation without changing
         # the stored parent locator.
-        self.initialize()
-        self.finish()
+        _packet, raw = self.terminal_ephemeral()
+        self.write_evidence()
+        packet_path = self.save_terminal_packet(raw)
+        self.assertEqual(packet_path.parent.parent.parent.parent, alias)
         receipt = self.receipt()
         receipt["review_refs"] = [str(alias / "review-a.md"), str(alias / "review-b.md")]
         receipt["check_refs"] = [str(alias / "check.md")]
-        record, _writes = bridge.complete(self.binding, receipt)
+        record, _writes = bridge.complete(self.ephemeral_binding, receipt)
         self.assertEqual(record["workspace"], str(self.workspace.resolve()))
-
-    def test_symlinked_runtime_state_and_tampered_terminal_history_are_rejected(self) -> None:
-        self.initialize()
-        self.finish()
-        run = self.workspace / ".until-loop"
-        history = run / "history.jsonl"
-        rows = history.read_text(encoding="utf-8").splitlines()
-        payload = json.loads(rows[-1])
-        payload["state_digest"] = "0" * 64
-        history.write_text(json.dumps(payload) + "\n", encoding="utf-8")
-        with self.assertRaisesRegex(bridge.StandaloneImproveError, "terminal history"):
-            bridge.complete(self.binding, self.receipt())
-        # A runtime state must remain a real single-link file, even if its
-        # target itself is otherwise a valid completion record.
-        state = run / "state.json"
-        saved = run / "saved-state.json"
-        state.replace(saved)
-        state.symlink_to(saved.name)
-        with self.assertRaisesRegex(bridge.StandaloneImproveError, "cannot be a symlink"):
-            bridge.complete(self.binding, self.receipt())
-
-    def test_sequential_settled_child_allows_new_binding_and_unsafe_receipt_fails(self) -> None:
-        self.initialize()
-        self.finish()
-        imported, _writes = bridge.complete(self.binding, self.receipt())
-        with self.assertRaisesRegex(bridge.StandaloneImproveError, "was not imported"):
-            bridge.binding(self.state, "nav-next", "document", {}, self.skill)
-        self.state["improve_results"] = {self.parent: imported}
-        second = bridge.binding(self.state, "nav-next", "document", {}, self.skill)
-        self.assertEqual(second["binding_id"], "run01/nav-next")
         bad = self.receipt()
         bad["review_refs"] = ["review-a.md", "review-a.md"]
         with self.assertRaisesRegex(bridge.StandaloneImproveError, "distinct"):
-            bridge.complete(self.binding, bad)
+            bridge.complete(self.ephemeral_binding, bad)
 
 
 if __name__ == "__main__":

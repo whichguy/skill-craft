@@ -1,7 +1,7 @@
-# ShipLoop navigator 0.23.0
+# ShipLoop navigator 0.24.0
 
 ShipLoop's invoking conversation owns navigation, acceptance and delivery. New
-v3/v4 runs record `delegation: inline`, so that conversation also executes every
+runs record `delegation: inline`, so that conversation also executes every
 assignment. It clears once per work item at the `select-work` packet (through a
 callable host reset, or the printed pause plus a host `/clear` or fresh
 conversation and the Recovery and Resume commands), continues each later INNER stage in the
@@ -16,13 +16,13 @@ external host `/clear` worked in 3 of 3 resets.
 
 `--delegation ask-agent` at `workspace start` or `init` opts a new run into the
 delegated route. For a new
-v3/v4 ephemeral Improve invocation, the selected `improve-agent` skill starts one
+ephemeral Improve invocation, the selected `improve-agent` skill starts one
 fresh native worker through Ask Agent's explicit consumer-owned workspace route,
 and that worker runs `/improve` inline. The
 worker executes the entire loop in the already-bound candidate; the parent
 collects and verifies it, then performs the guarded final return when required.
 `shiploop delegation --run-dir RUN --set inline|ask-agent` switches an existing
-v3/v4 run from its next issued action; see the [command reference](#command-reference).
+run from its next issued action; see the [command reference](#command-reference).
 Read [Improve context ownership](references/improve-context.md) for capability,
 exclusive writer, interruption and retention rules. A worktree alone does not
 create a separate model session. Shell model-CLI launching belongs only to the external
@@ -38,7 +38,7 @@ a development checkout is source code, not an additional installed copy. Do not
 add same-name skill-directory links alongside marketplace packages. Open a fresh
 host session after an update so it loads the selected package's current card.
 
-New runs use navigator protocol 3: the script persists and traverses the SDLC
+New runs use navigator protocol 4: the script persists and traverses the SDLC
 graph and issues one producer prompt at a time. After a planning result or the
 last carry-forward it parks that parent action for the selected actual Improve
 skill; every other result advances directly. The script owns navigation; the
@@ -49,9 +49,8 @@ script imports one accepted child result before choosing the next producer; it
 does not recreate Improve's review logic, phases, counters, or policy in a
 ShipLoop prompt.
 
-An explicit new-run v4 pilot adds experiment-informed Plan Improve and a guarded
-return to the earliest invalidated planning stage. Use `workspace start
---protocol-version 4`, or `init --navigator-version 4`; v3 remains the default.
+Every run includes experiment-informed Plan Improve and a guarded return to the
+earliest invalidated planning stage; there is no protocol selector.
 Read [experiments during planning](references/planning-experiments.md) for effects,
 evidence, budget limitations and recovery. No separate experiment loop is added.
 
@@ -65,10 +64,12 @@ evidence, budget limitations and recovery. No separate experiment loop is added.
   a `delegation: ask-agent` run, bind the selected Plan Dispatcher/Ask-Agent
   packages to one current implementation action; `chain bind` refuses a fresh
   binding on an inline run, which executes its reviewed steps directly. New
-  chains use the per-step managed-workspace flow only. Ask-Agent must be
-  version 0.6 or newer and declare the supported capability contract;
-  its helper identity and selected package bytes are frozen for the run. There
-  is no 0.4 caller-worktree fallback or new `final-return` lifecycle.
+  chains use the per-step managed-workspace flow only. The Ask-Agent helper
+  must declare the full current capability set (helper-managed-worktree,
+  prepared-inspection, returned-commit-delivery, fingerprint-bound-close,
+  ignored-output-report); there is no version floor. Its helper identity and
+  selected package bytes are frozen for the run; caller-prepared worktrees are
+  not supported.
   The Dispatcher must advertise `planning_context: "shiploop-planning-artifacts/v1"`
   and `graph_validation: "execution-graph/v1"`; [chain preflight](references/parallel-chain.md#planning-artifact-handoff)
   rejects invalid graphs before binding. Initial steps and their graph must
@@ -80,14 +81,14 @@ evidence, budget limitations and recovery. No separate experiment loop is added.
   The parent imports worker results, verifies the current combined candidate,
   integrates and accepts the exact attempt, then refills safe ready capacity
   before helper-owned cleanup. Accepted is the sole stored done state; the
-  derived `completion` view lists done/not-done. `chain done` and `settle` use
-  the same verified transition. Read-only `chain history` and `chain pending`
+  derived `completion` view lists done/not-done. `chain done` is the one
+  verified settlement transition. Read-only `chain history` and `chain pending`
   expose timestamped evidence, unfinished steps, dependencies and capacity.
   Final completion requires all contributions integrated and cleanup resolved.
   Superseded managed attempts remain an explicit retained-workspace blocker;
-  their unsuccessful work is not silently discarded. Pre-v6 bindings remain
-  inspectable evidence and are not resumed as execution routes or silently
-  migrated. Binding schema v6 records this capability proof and lifecycle;
+  their unsuccessful work is not silently discarded. A pre-v6 binding is
+  refused on every chain operation; preserve its worktrees and ledger and bind
+  a new managed chain. Binding schema v6 records this capability proof and lifecycle;
   its number is independent of the selected Ask-Agent package version.
 
 The planning-artifact handoff published at `c33a103` and its bounded native
@@ -98,10 +99,10 @@ does not establish installed or marketplace activation, other-host behavior, or
 general Ask-Agent protocol compatibility. Binding a skill card freezes its
 bytes; it does not establish semantic protocol compatibility.
 
-`init` and `workspace start` default to navigator protocol 3 and `delegation:
-inline` for new runs; `--delegation ask-agent` opts in to the delegated route.
-A retry cannot change the setting; use `shiploop delegation` instead. Protocols
-3 and 4 are the only protocols: a saved navigator v1/v2, managed or legacy run
+`init` and `workspace start` create navigator protocol 4 runs with `delegation:
+inline`; `--delegation ask-agent` opts in to the delegated route.
+A retry cannot change the setting; use `shiploop delegation` instead. Protocol
+4 is the only protocol: a saved navigator v1/v2/v3, managed or legacy run
 is refused with an error naming it (see
 [saved runs the current code cannot load](#saved-runs-the-current-code-cannot-load)).
 The skill uses `workspace start` for new Git-backed work and direct `init` for
@@ -110,7 +111,7 @@ Navigation completion records the host's declared result; it does not certify
 tests or deployment. Workspace-mode completion additionally requires its actual
 local return receipt, not just a host assertion that integration happened.
 
-## Navigator v3: producer, Improve child, then transition
+## Navigator: producer, Improve child, then transition
 
 ```mermaid
 flowchart LR
@@ -204,7 +205,8 @@ is a receipt and recovery locator, not another loop controller. Until Loop owns
 one independent temporary file for the active child. Separate parents/actions
 have separate receipts and runtime files; overlapping product edits still need
 coordination. ShipLoop excludes `.shiploop-improve` from product return and
-commits, just as it excludes legacy `.until-loop` state.
+commits, and likewise excludes `.until-loop` state that an external Until Loop
+installation may create in the workspace.
 For the final worktree handoff, untracked receipt files remain in the execution
 worktree with an `exclude` return-plan disposition so import can read them after
 product return. Staging, committing or placing them in candidate history still
@@ -241,11 +243,11 @@ runner; manually rewriting returned JSON risks destroying the only receipt.
 The importer verifies structure, identity and evidence-file availability; it
 does not independently prove the truth of the LLM's review claims.
 
-Existing durable-v2 packages remain supported through their explicitly selected
-legacy card and CLI, including their state/history validation. Already bound
-children are not migrated when a package changes: a binding/version mismatch
-requires access to the original selected package, not reinterpretation of old
-state as an ephemeral run.
+Only the ephemeral runtime is supported. A selected card whose bound runtime is
+not `scripts/until_loop_ephemeral.py` (for example a durable Until Loop package
+or the older example layout) is refused with an error; nothing is converted.
+Already bound children are not migrated when a package changes: a
+binding/version mismatch requires access to the original selected package.
 
 The real-CLI composition tests in `test/shiploop-actual-improve-cli.test.py`
 exercise the material/trivial/trivial sequence, cold packet recovery, terminal
@@ -494,8 +496,9 @@ recovery. ShipLoop imports completion evidence, not a new product specification.
 This last transfer is a host duty, not an automatic semantic guarantee.
 
 [Backchain planning guidance](references/backchain-planning.md#navigator-planning)
-uses the same outcome/source/test mapping in the relevant v3 planning and review
-packets. It is the packaged adaptation, not a second standalone planning run.
+uses the same outcome/source/test mapping in the relevant planning and review
+packets. It is ShipLoop's planning checklist, not a second standalone planning
+run; a Backchain call uses only the `source-aware-native` route.
 Keep product-document links portable across worktree return; verify destination
 files and anchors, distinguish planned tests from evidence, and repair affected
 links together when an authorized change moves a destination. Improve/Until Loop
@@ -555,7 +558,7 @@ decision, not an invented local-only completion criterion.
 
 Improve reviews the original outcome as well as the generated plan: **if every
 step succeeds, will the intended user actually receive the requested behavior?**
-In protocol 3 the actual selected Improve skill performs that review through
+The actual selected Improve skill performs that review through
 its bound Until Loop runtime. Its own convergence policy remains authoritative;
 ShipLoop adds neither an internal review graph nor a second review counter.
 
@@ -869,12 +872,12 @@ shared-state, security and delivery complexity must be justified by the spec.
 
 ## Saved runs the current code cannot load
 
-ShipLoop 0.23.0 keeps only navigator protocols 3 and 4 (execution modes
-`navigator` and `navigator-worktree`). Navigator v1/v2 and the former managed
+ShipLoop 0.24.0 keeps only navigator protocol 4 (execution modes
+`navigator` and `navigator-worktree`). Navigator v1/v2/v3 and the former managed
 and legacy stage machine are removed, together with their commands, embedded
 Improve policy and compatibility documentation. Every verb refuses a saved run
 it cannot load, with an error that names the recorded protocol or mode, or the
-unexpected or missing `state.md` keys (for example a v3/v4 run without its
+unexpected or missing `state.md` keys (for example a run without its
 `delegation` key). Nothing is converted, migrated or partly resumed. Keep the old
 run directory as evidence and start the same request again with a fresh
 `--run-dir` or `--workspace-root`; product commits and worktrees are unaffected.
@@ -885,29 +888,28 @@ The compact stdout packet is authoritative for the current action; its first
 line after the header is the one legal callback. The command surface is:
 
 ```sh
-# Start: protocol 3 by default, 4 is the opt-in pilot
-shiploop workspace start --repo REPO --workspace-root ROOT [--protocol-version=3|4] [--improve-skill ABSOLUTE_SKILL_CARD] [--include-untracked=PATH]... [--exclude=PATH]... [--delivery-contract] [--delegation=inline|ask-agent] --prompt=TEXT
+# Start a navigator protocol 4 run
+shiploop workspace start --repo REPO --workspace-root ROOT [--improve-skill ABSOLUTE_SKILL_CARD] [--include-untracked=PATH]... [--exclude=PATH]... [--delivery-contract] [--delegation=inline|ask-agent] --prompt=TEXT
 shiploop workspace plan-return --workspace-root ROOT
 shiploop workspace return      --workspace-root ROOT
-shiploop init     --repo REPO [--run-dir RUN] [--navigator-version=3|4] [--improve-skill ABSOLUTE_SKILL_CARD] [--delivery-contract] [--delegation=inline|ask-agent] --prompt=TEXT
+shiploop init     --repo REPO [--run-dir RUN] [--improve-skill ABSOLUTE_SKILL_CARD] [--delivery-contract] [--delegation=inline|ask-agent] --prompt=TEXT
 # Reread the current packet; never advances
 shiploop next     --run-dir RUN
-shiploop status   --run-dir RUN
 shiploop report   --run-dir RUN
 # Callbacks the packet prints
-shiploop complete --run-dir RUN --action ACTION --result RESULT.md   # alias: done
+shiploop complete --run-dir RUN --action ACTION --result RESULT.md
 shiploop improve-bind --run-dir RUN --action ACTION --skill-card ABSOLUTE_SKILL_CARD
 shiploop improve-complete --run-dir RUN --action ACTION --result SKILL_COMPLETION.md
-shiploop improve-reconcile --run-dir RUN --action ACTION --result RECONCILIATION.md   # protocol 4 only
+shiploop improve-reconcile --run-dir RUN --action ACTION --result RECONCILIATION.md
 # Run control
 shiploop pause    --run-dir RUN --reason=TEXT
 shiploop resume   --run-dir RUN
 shiploop halt     --run-dir RUN --reason=TEXT
 shiploop delegation --run-dir RUN --set=inline|ask-agent   # from the next issued action
 # Implementation chains within the current implement action (ask-agent runs)
-shiploop chain {bind,planning-inputs,next,history,pending,claim,start,launched,observe,import-handoff,prepare,settle,done,retry,packet,cleanup,finish,recover} ...
+shiploop chain {bind,planning-inputs,next,history,pending,claim,start,launched,import-handoff,prepare,done,retry,packet,cleanup,finish} ...
 # Inspection without project work
-shiploop graph-dry-run [--list] [--scenario NAME | --script STEPS.json] [--protocol-version=3|4] [--delegation=inline|ask-agent] [--format=summary|json|markdown]
+shiploop graph-dry-run [--list] [--scenario NAME | --script STEPS.json] [--delegation=inline|ask-agent] [--format=summary|json|markdown]
 ```
 
 `chain` subcommands are packet-issued on `delegation: ask-agent` runs; see
@@ -916,7 +918,7 @@ shiploop graph-dry-run [--list] [--scenario NAME | --script STEPS.json] [--proto
 `delegation` applies from the next issued action; the pending action and its
 Improve checkpoint keep their issued route. It is refused on halted or done runs;
 setting the recorded value is a no-op.
-`graph-dry-run --list` prints the scenarios (the same for protocols 3 and 4);
+`graph-dry-run --list` prints the scenarios;
 `--delegation` selects the simulated route (inline by default). See
 [graph dry runs](references/graph-dry-run.md).
 
@@ -954,7 +956,7 @@ phase diagram.
 | What persists across a cold context? | [Markdown transactions](scripts/shiploop_store.py) and the [state-file guide](references/state-files.md). |
 | How does isolated work return to the source checkout? | [Workspace start, return plan and guarded return](scripts/shiploop_workspace.py). |
 | How are consumer-delivery declarations checked? | [Consumer-delivery contract](scripts/shiploop_consumer_delivery.py). |
-| How does protocol 4 rerun invalidated planning? | [Planning revision archives](scripts/shiploop_planning_revision.py). |
+| How does the navigator rerun invalidated planning? | [Planning revision archives](scripts/shiploop_planning_revision.py). |
 | How do implementation chains run? | [Chain bridge](scripts/shiploop_chain.py), [Git](scripts/shiploop_chain_git.py), [handoff](scripts/shiploop_chain_handoff.py), [ledger](scripts/shiploop_chain_ledger.py) and [planning inputs](scripts/shiploop_planning_context.py). |
 | How are routes inspected without project work? | [Graph dry run](scripts/shiploop_navigator_dry_run.py). |
 
@@ -962,7 +964,7 @@ In the **skill-craft source checkout**, not an installed package, the stable
 verification entrypoint is:
 
 ```sh
-bash test/shiploop.test.sh
+bash test/run-all.sh --group shiploop
 ```
 
 Focused examples:

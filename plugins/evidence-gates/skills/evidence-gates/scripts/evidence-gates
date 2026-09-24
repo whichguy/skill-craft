@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""DevLoop native gates — freeze / prove / stop / doctor / self-check.
+"""Offline evidence gates — freeze / prove / stop / doctor / self-check.
 
 Exit codes:
   0  success / green
@@ -29,7 +29,7 @@ EXIT_BLOCKED = 2
 EXIT_USAGE = 64
 
 PACKAGE_ROOT = Path(__file__).resolve().parents[1]
-VERSION = "0.1.0"
+VERSION = "0.2.4"
 
 
 def die(code: int, msg: str, *, reason: str | None = None, extra: dict | None = None) -> None:
@@ -488,7 +488,7 @@ def cmd_doctor(args: argparse.Namespace) -> None:
             "mode": "native",
             "repo": str(repo) if repo else None,
             "issues": issues,
-            "note": "On Hermes, bare /devloop is the engine skill; use this package leaf or say DevLoop native.",
+            "note": "On Hermes, bare /devloop is the engine skill; invoke this package as evidence-gates or say offline evidence gates.",
         }
     )
     if issues:

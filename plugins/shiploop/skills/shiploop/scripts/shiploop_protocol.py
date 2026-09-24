@@ -3,7 +3,7 @@
 The navigator (shiploop_navigator) owns the graph, the durable cursor and the
 packet for the current step.  This module parses the CLI, holds the run lock,
 refuses saved runs from removed protocols, and hands every verb for a
-protocol 3/4 run to ``navigator.dispatch``.  Workspace effects and chain
+protocol 4 run to ``navigator.dispatch``.  Workspace effects and chain
 operations stay in their own modules.
 """
 
@@ -54,7 +54,6 @@ def workspace_command(core, argv):
     start.add_argument("--exclude", action="append", default=[])
     start.add_argument("--delivery-contract", action="store_true")
     start.add_argument("--improve-skill", default="")
-    start.add_argument("--protocol-version", type=int, choices=(3, 4), default=3)
     start.add_argument("--delegation", choices=navigator.DELEGATIONS, default=None,
                        help="new run: inline (default) or ask-agent delegation")
     for name in ("plan-return", "return"):
@@ -97,7 +96,7 @@ def workspace_command(core, argv):
             init = ["init", "--repo", record["worktree"],
                     "--run-dir", record["run_dir"],
                     "--execution-mode", "navigator-worktree", "--prompt=" + args.prompt,
-                    "--navigator-version", str(args.protocol_version), "--improve-skill", args.improve_skill]
+                    "--improve-skill", args.improve_skill]
             if args.delivery_contract:
                 init.append("--delivery-contract")
             if args.delegation:
@@ -187,7 +186,6 @@ def main(core, argv=None):
         "improve-complete",
         "improve-reconcile",
         "next",
-        "status",
         "report",
         "context",
         "complete",
@@ -195,7 +193,7 @@ def main(core, argv=None):
         "pause",
         "resume",
     ):
-        sub = subs.add_parser(name, aliases=["done"] if name == "complete" else [])
+        sub = subs.add_parser(name)
         sub.add_argument("--run-dir")
         if name == "init":
             sub.add_argument("--prompt", required=True)
@@ -203,7 +201,6 @@ def main(core, argv=None):
             sub.add_argument("--bound-plan", default="")
             sub.add_argument("--execution-mode", choices=("navigator", "navigator-worktree"), default="navigator",
                              help="navigator-worktree is created by workspace start; existing runs retain their recorded mode")
-            sub.add_argument("--navigator-version", type=int, choices=(3, 4), default=3)
             sub.add_argument("--improve-skill", default="")
             sub.add_argument("--delivery-contract", action="store_true",
                              help="opt a new run in to consumer-delivery declaration checks")
@@ -226,10 +223,6 @@ def main(core, argv=None):
     if args.command == "graph-dry-run":
         # Deliberately before run-directory discovery, locking or state access.
         return navigator_dry_run.run(args)
-    # The thin host has one completion verb; retain the established spelling
-    # as an exact alias, with identical action binding and replay semantics.
-    if args.command == "done":
-        args.command = "complete"
     raw_root = args.run_dir
     if args.command == "init" and not raw_root and args.repo:
         raw_root = str(Path(args.repo) / ".shiploop")
@@ -309,7 +302,6 @@ def main(core, argv=None):
             state = navigator.new_state(
                 str(repo), args.prompt,
                 str(Path(args.bound_plan).resolve()) if args.bound_plan else "",
-                protocol_version=args.navigator_version,
                 improve_skill=args.improve_skill,
                 delivery_contract=args.delivery_contract,
                 worktree=args.execution_mode == "navigator-worktree",

@@ -329,7 +329,7 @@ class PlanningContextTests(PlanningContextFixture):
         )
 
         file_like_state = navigator.new_state(
-            str(self.repo.resolve()), "File-like resolution fixture.", protocol_version=3
+            str(self.repo.resolve()), "File-like resolution fixture."
         )
         self.state = file_like_state
         self.actions = {}

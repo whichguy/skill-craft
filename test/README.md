@@ -11,7 +11,7 @@ passed; offline fixtures do not establish live model or host behavior.
 | Smoke | `bash test/run-all.sh --group smoke` | Core plus eight selected ShipLoop boundary suites |
 | Ask-Agent component | `bash test/run-all.sh --group ask-agent` | Supported helper tests and ShipLoop consumers |
 | Composition component | `bash test/run-all.sh --group shiploop-composition` | Chain and Improve integration boundaries |
-| Full hermetic | `bash test/run-all.sh` | Core, all ShipLoop suites, source E2E apparatus and historical experiments |
+| Full hermetic | `bash test/run-all.sh` | Core, all ShipLoop suites and the source E2E apparatus |
 | Current dependency | `bash test/run-integration.sh current-dispatcher --help` | Explicit external Dispatcher checkout; offline compatibility |
 | Installed or live | `bash test/run-integration.sh --help` | Selected real host, engine, installed package or credentials; opt-in |
 
@@ -39,8 +39,9 @@ setting; this workflow does not enable it.
 
 CI uses `ubuntu-latest`, latest stable Python 3 and latest stable Node, resolving
 fresh versions through setup actions. Receipts record the versions actually used.
-Historical Dispatcher/Until fixtures remain fixed test inputs for old state and
-recovery contracts; they do not determine which current tool version to install.
+The one pinned Dispatcher fixture (`test/fixtures/plan-dispatcher-v3`) is a fixed
+test input; it does not determine which current tool version to install. Older
+package versions are not kept: refusal cases mutate copies of current fixtures.
 
 ## Inventory, union and evidence
 
@@ -48,24 +49,22 @@ recovery contracts; they do not determine which current tool version to install.
 bash test/run-all.sh --list
 bash test/run-all.sh --group ask-agent --group shiploop-composition --list
 bash test/run-all.sh --group smoke --output /tmp/skill-craft-smoke-unique
-bash test/shiploop.test.sh --smoke --list
-bash test/shiploop.test.sh --shard 1/3 --list
+bash test/run-all.sh --group shiploop --list
+bash test/run-all.sh --group shiploop-1 --list
 ```
 
-Repeated groups form a union: shared entries run once, in catalog order.
-`--list` and help execute no suites. Root listing prints one
-row per constituent entry, with family, ID and command; the ShipLoop wrapper
-prints only paths. `core`, `shiploop`, `e2e-apparatus`, and `experiments` can also
-run separately. The three `shiploop-1`/`2`/`3` groups partition ShipLoop using
+`test/run-all.sh` is the only runner command; it has no ShipLoop-specific
+flags. Repeated groups form a union: shared entries run once, in catalog order.
+`--list` and help execute no suites. Listing prints one row per constituent
+entry, with family, ID and command. `core`, `shiploop` and `e2e-apparatus` can
+also run separately. The three `shiploop-1`/`2`/`3` groups partition ShipLoop using
 checked-in duration estimates and a deterministic fallback. They are scheduling
 slices of the same full inventory, not additional coverage.
 
 The eight ShipLoop smoke suites are `no-model-launch`, `navigator-v3`,
 `navigator-v4`, `stopped-improve`, `v4-consumers`, `packet-bounds`,
-`navigator-dry-run`, and `chain-async`.
-The historical U18/W1 Ask-Agent worktree harness belongs to full-only
-`experiments`; supported Ask-Agent workspace, delivery and managed-harness
-checks remain in core.
+`navigator-dry-run`, and `chain-async`. `smoke` also runs all of core.
+The Ask-Agent workspace, delivery and managed-harness checks run in core.
 
 An optional `--output` directory must be new and outside the checkout. It retains
 source identity, runtime versions, selected/completed suites, outcomes, durations
@@ -148,15 +147,15 @@ result preservation and hostile-path/replay controls. Both are in the full
 ShipLoop inventory. Use the [native pilot](experiments/shiploop_chain/README.md)
 for separate qualification with actual Ask-Agent contexts and completion events.
 
-New execution cases use the source Ask-Agent 0.6+ managed helper with real sibling
+New execution cases use the source managed Ask-Agent helper with real sibling
 worktrees and immutable receipts. They exercise both return orders, stale combined
 verification after target movement, successor launch before accepted-worker
 cleanup, replay/retry fencing, and cleanup recovery with late worker changes.
 Serial execution uses that same preparation and cleanup contract in the main
-context, without a native handle. Retired 0.4 and final-return fixtures are only
-used to check rejection or read-only historical inspection. Capability and
-identity checks establish compatibility; package version and Markdown wording
-alone do not.
+context, without a native handle. Old packages are built as mutated copies of
+the current fixtures to check refusal; pre-v6 bindings are refused on every
+operation. The helper's identity and its full declared capability set establish
+compatibility; there is no version floor, and Markdown wording alone does not.
 Managed `done` returns acceptance and ready actions first; the parent then uses
 the existing cleanup callback. `shiploop-chain-git.test.py` separately checks that
 an integrated-worker inspection rejects a newer HEAD, dirty or ignored files, and
@@ -184,7 +183,8 @@ python3 -B test/shiploop-chain-planning-context.test.py
 
 The collector suite checks accepted planning records, reference resolution,
 immutable inputs, and exclusion of the original user prompt. The composed suite
-uses the pinned `plan-dispatcher-v3` package and controlled worker processes to
+uses the one pinned Dispatcher fixture, `test/fixtures/plan-dispatcher-v3`, and
+controlled worker processes to
 check invalid-graph rejection before binding with no parent mutation, corrected
 retry, cold recovery, parallel/serial code generation from references, dependency
 joins, import recovery, and worktree cleanup. Its failure-path check stops
@@ -231,12 +231,13 @@ maps every supported chain operation to state, Git effects, context requirements
 and existing tests. It separates dispatcher snapshot authority from bridge audit
 history, and host-owned review judgments from mechanical checks. Selected gaps
 reuse these suites instead of adding another orchestration or test framework.
-The chain suite also checks that new runs have one `plan-dispatcher-state.json`,
-legacy runs keep their one existing file, status views save no completion copy,
-and ambiguous or missing state cannot silently select or reconstruct authority.
+The chain suite also checks that runs have one `plan-dispatcher-state.json`,
+a run with a retired `state.json` is refused, status views save no completion
+copy, and ambiguous or missing state cannot silently select or reconstruct
+authority.
 
 `python3 test/shiploop-full-runtime.test.py` composes public ShipLoop and selected
-bundled Until Loop CLIs across the protocol-3 graph, including cold recovery and
+bundled Until Loop CLIs across the protocol 4 graph, including cold recovery and
 corrective outcomes. Its review judgments are synthetic: it proves local runtime
 composition, not semantic Improve quality, live host execution, or deployment.
 Copied-package cases exercise portable payloads from an unrelated CWD without a
@@ -270,7 +271,7 @@ state continuity, not that an LLM asks promptly or that a live account is usable
 The [bounded interpretation check](experiments/shiploop_auth/README.md) records
 ten fictional access scenarios and the stage-skipping ambiguity they exposed.
 
-`test/shiploop-auth-readiness.test.py` also checks that v3 packets carry the
+`test/shiploop-auth-readiness.test.py` also checks that navigator packets carry the
 selected package's Environment lifecycle policy and this run's lifecycle note
 locator. It uses synthetic declarations: it does not prove that a host selected
 all prerequisites, created a sandbox, or promoted a live candidate.
@@ -301,13 +302,13 @@ test. [Workspace experiments](experiments/shiploop_workspace/README.md) explain
 why starting at HEAD and deleting transient files at the tip were insufficient.
 
 The three `shiploop-chain{,-git,-ledger}.test.py` suites belong to the ordinary
-ShipLoop aggregate. They exercise the public bridge with a pinned Plan Dispatcher
-v1 fixture, disposable real Git worktrees, eager fan-out and joins, guarded return,
-and append-only event records under process contention. A separate v2 fixture
-pins the uncommitted executor-aware dispatcher candidate for serial cases: one
-main-context task at a time, no native launch/handle, dependency-respecting
-completion through final return, stale attempts, unsupported old packages and
-exact terminal replay after other steps progress. The state/ledger bytes must
+ShipLoop aggregate. They exercise the public bridge with the pinned
+`plan-dispatcher-v3` fixture, disposable real Git worktrees, eager fan-out and
+joins, per-step integration, and append-only event records under process
+contention. Serial cases use the same fixture: one main-context task at a time,
+no native launch/handle, dependency-respecting completion, stale attempts,
+refused old packages (mutated fixture copies) and exact terminal replay after
+other steps progress. The state/ledger bytes must
 remain unchanged on identical terminal retries; a crash between child acceptance
 and bridge recording is reconciled once. Native handles, worker
 reports, and prerequisite Improve judgments are synthetic in these tests; these
@@ -346,18 +347,19 @@ registered once in the ShipLoop inventory. Its synthetic tests check apparatus
 contracts; they do not reproduce the original model trials. Private raw study
 evidence is not part of the published fixture set.
 
-The [ShipLoop E2E harness](experiments/shiploop_e2e/README.md) separately supports
-offline observer, receipt, game-oracle, and synthetic-host checks:
+The [ShipLoop E2E harness](../skills/shiploop-e2e-audit/harness/README.md)
+separately supports offline observer, receipt, game-oracle, and synthetic-host
+checks:
 
 ```sh
-python3 test/experiments/shiploop_e2e/check_suite.py --suite regressions
-python3 -m unittest discover -s test/experiments/shiploop_e2e -p 'test_*.py'
+python3 skills/shiploop-e2e-audit/harness/check_suite.py --suite regressions
+python3 -m unittest discover -s skills/shiploop-e2e-audit/harness -p 'test_*.py'
 ```
 
 These no-model apparatus checks are independent of live Grok runs. Retained
 external-product cases are explicitly opt-in and reported as skipped when their
 fixtures are unavailable; those skips do not establish product behavior. The
-aggregate full-runtime test also exercises one real protocol-3 intake prefix
+aggregate full-runtime test also exercises one real protocol 4 intake prefix
 through synthetic host-stream observations. Neither synthetic observations nor
 an offline suite pass proves model compliance, a working hosted game, or a
 deployment. Live host/browser/MCP tests remain explicit authorized experiments,
@@ -413,10 +415,12 @@ Self-contained mocked Hermes-install tests establish installer behavior only.
 They do not provide an actual Hermes runtime, engine availability, live-host
 execution, or certification. A green hermetic aggregate has the same boundary.
 
-CI runs the `smoke` aggregate for pull requests and pushes to `main`; it ignores
-tag and feature-branch pushes. A manual dispatch accepts `tier=smoke` (the
-default) or `tier=full`. Full dispatch runs `core` and the three deterministic
-ShipLoop shards. Select qualification by changed behavior and dependencies:
+CI selects its tier with `test/ci_policy.py`, as described at the top of this
+guide: documentation-only pull requests run `smoke`; every other pull request
+and every `main` push runs full. It ignores tag and feature-branch pushes. A
+manual dispatch accepts `tier=smoke` (the default) or `tier=full`. Full runs
+`core`, the three deterministic ShipLoop shards and `e2e-apparatus`, one job per
+group. Select qualification by changed behavior and dependencies:
 runtime, state, graph, callback and recovery changes need their affected suites.
 Use full dispatch only when a concrete cross-subsystem risk cannot be covered by
 narrower checks, and record that reason. Start it against the candidate branch with:
@@ -441,15 +445,16 @@ publication-control tests; they do not establish GitHub branch-policy compliance
 
 A newer run for the same pull request cancels the superseded run; main-push and
 manual runs use unique concurrency keys and are never cancelled by this policy.
-CI sets Python 3.12 and Node 22 explicitly and preserves the existing `hermetic`
-status as an aggregate gate. Failed, cancelled or skipped required groups cannot
+CI resolves the latest stable Python 3 and Node through its setup actions
+(`check-latest`) and preserves the existing `hermetic` status as an aggregate gate. Failed, cancelled or skipped required groups cannot
 make that gate pass. Package drift is reported even when another core check fails.
-Each selected test job rejects staged or unstaged tracked-file changes left by tests,
-even after a suite or package-parity failure. The worktree and index are checked
-separately so restoring a working file cannot hide its staged changes.
-Checkout-local bootstrap pins are generated in temporary directories, not
-rewritten into source fixtures. This dirty-tree guard is not a sandbox: it does
-not reject untracked/ignored artifacts or tests deliberately committing changes.
+Each selected test job runs `test/ci_policy.py guard` after its suites, even after
+a suite or package-parity failure. It rejects a moved HEAD, staged or unstaged
+tracked-file changes, and untracked or ignored files other than Python bytecode
+under `__pycache__`. The worktree and index are checked separately so restoring
+a working file cannot hide its staged changes. Checkout-local bootstrap pins are
+generated in temporary directories, not rewritten into source fixtures. The guard
+is not a sandbox: it inspects only the checkout, after the suites finish.
 CI does not inject secret values or make any integration target mandatory.
 The small Linux-only CI footprint is intentional; it is not macOS or live-host
 certification. Local checks may use other Python/Node versions.
@@ -527,10 +532,10 @@ the test apparatus and installed helper boundary. The opt-in target uses the rea
 CLI; neither target invokes a model or proves native task return or published
 marketplace pins. Verify published pins separately at their immutable source SHA.
 
-### Navigator protocol 3 and actual Improve
+### Navigator protocol 4 and actual Improve
 
-`shiploop-navigator-v3.test.py` and `graph-dry-run --protocol-version 3`
-exercise universal child handoffs and correction routes with synthetic receipts.
+`shiploop-navigator-v3.test.py` (named for its origin; it now drives protocol 4)
+and `graph-dry-run` exercise universal child handoffs and correction routes with synthetic receipts.
 `shiploop-standalone-improve.test.py` and `shiploop-actual-improve-cli.test.py`
 exercise the real bundled Until Loop runtime and parent import/recovery boundary.
 Their review judgments are fixtures; they do not prove a live model followed
@@ -571,16 +576,9 @@ Raw native dispatch/freshness and actual child-tool provenance remain live
 qualification responsibilities; synthetic events do not validate those APIs.
 
 The [W1 worktree fixture](experiments/portable_delegation/usability/worktree-handoff/README.md)
-now has a test-only operator helper for repeatable setup, launch preflight,
-public evidence projection and completion checks. Its offline regression suite
-runs in the full-only `experiments` hermetic group, or directly:
-
-```sh
-PYTHONDONTWRITEBYTECODE=1 python3 test/ask-agent-worktree-harness.test.py
-```
-
-It uses disposable Git repositories and synthetic public host records, makes no
-model calls and does not prove live skill compliance. The
+is a record of the retired caller-prepared worktree contract. Its operator helper
+and offline regression suite were removed; the redaction, ordering and archival
+checks that still apply now live in `test/ask-agent-managed-harness.test.py`. The
 [U18 results](experiments/portable_delegation/usability/WORKTREE-RESULTS.md) retain
 native successes, behavior failures and invalid/interrupted attempts separately.
 

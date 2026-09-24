@@ -9,9 +9,9 @@
     {
       "bundled_path": "ADAPTER.md",
       "upstream_path": "SKILL.md",
-      "sha256": "5a3fd63b13b75b1af71576d29586489f427a5e5a2d762313c79f04f2b7c094bb",
+      "sha256": "a5899dda6727bc5b4313b856b7fb957319e5b8f05160a01daf979dcdd4b55ca7",
       "upstream_sha256": "609959649f69f3ee5408bedbd6331806799495a8f59418e8d097c3d9f3c08028",
-      "adaptation_reason": "Clarify owner-bound user authority updates versus changed immutable loop conditions; the runtime Python script remains unchanged."
+      "adaptation_reason": "Clarify owner-bound user authority updates versus changed immutable loop conditions. Replace the durable v1/v2 run routing and its 'new request' qualifier with a refusal of saved durable .until-loop runs, because only the callback runtime is vendored. The runtime Python script remains unchanged."
     },
     {
       "bundled_path": "LICENSE",
@@ -26,68 +26,9 @@
     {
       "bundled_path": "references/runtime-ephemeral.md",
       "upstream_path": "references/runtime-ephemeral.md",
-      "sha256": "e6005f531c8042b59c20116ec766a71af421949cfa9cd93b46c2af184348d5e5",
+      "sha256": "d6d4285feb1613f7a1ced36333ee41ab69b8cc4957220ed6b024ee05fc4c8e29",
       "upstream_sha256": "8d59ea1b8dcbabc6cffbe333dbe60ec638aa9f2ecab6a9cd4c1891ded8f058bb",
-      "adaptation_reason": "States the current context requirement without describing earlier callers."
-    },
-    {
-      "bundled_path": "references/legacy-skill.md",
-      "upstream_path": "references/legacy-skill.md",
-      "sha256": "2b979aab61744f148d27dc95684c58806978753d0e64a4fa0445a6dd9b8946e5",
-      "upstream_sha256": "b99b55383e500fefff18bc9554853fdd2583994d685bf5c3b90d9ffe1abc91c6",
-      "adaptation_reason": "Defers run selection to ADAPTER.md: new natural-language requests use the callback adapter; this reference covers only explicit legacy commands and existing durable runs. Replaces the v2-candidate routing and the pointers to source-repository tests and audit reports absent from this package."
-    }
-  ],
-  "retained_legacy_runtime": [
-    {
-      "bundled_path": "scripts/until-loop",
-      "upstream_path": "scripts/until-loop",
-      "sha256": "e35f26744f3c010f9548f4bf84c290427637db008bb47821d44d8fe2c2647e97"
-    },
-    {
-      "bundled_path": "scripts/until_loop_packet.py",
-      "upstream_path": "scripts/until_loop_packet.py",
-      "sha256": "d37a46a54f10284a5add9865b0a3eb98736a7a3ad2e3721d6232e1a561e44e96"
-    },
-    {
-      "bundled_path": "scripts/until_loop_v2.py",
-      "upstream_path": "scripts/until_loop_v2.py",
-      "sha256": "df0eecacce7a618b847551e19dfc00841dd804fc11fa1029ae20a2757cf5478a"
-    },
-    {
-      "bundled_path": "references/decision-rubric.md",
-      "upstream_path": "references/decision-rubric.md",
-      "sha256": "6d7f478e880d3b7858a79b850ca9b8ecbba4876e5c547ac642f4219126889ecd"
-    }
-  ],
-  "package_local_legacy_reference_adaptations": [
-    {
-      "bundled_path": "references/packet.md",
-      "upstream_path": "references/packet.md",
-      "upstream_sha256": "d18d41e6a9815ac5a62e553eb638f2c5543c611de9b459bb5b95e341222b67df",
-      "bundled_sha256": "77157253936936b8b543e7681d2c5123b50ef23761bdf694aee0abf7dcb2d8f0",
-      "reason": "Keeps links inside the renamed ADAPTER.md package layout. Names version 2 as the durable v2 protocol rather than a candidate."
-    },
-    {
-      "bundled_path": "references/runtime-v2.md",
-      "upstream_path": "references/runtime-v2.md",
-      "upstream_sha256": "667632cbde0713a5bec683bd524b440b4777813d4b9ba8d9249c893cd15449d3",
-      "bundled_sha256": "fcbed1279a88e8a8c6604dcf48d128cac63126ea9ee7eab33dc66081e3498e10",
-      "reason": "Keeps explicit durable v2 links inside the renamed ADAPTER.md package layout. Defers run selection to ADAPTER.md: new natural-language requests use the callback adapter; this reference covers only explicit legacy commands and existing durable runs."
-    },
-    {
-      "bundled_path": "references/runtime.md",
-      "upstream_path": "references/runtime.md",
-      "upstream_sha256": "bbac2e7e3d88567601d9fddbe28fa0d488ca8754e1081fc6dfd2d4ef94e47ed9",
-      "bundled_sha256": "e4c10d85f2daa680c3522dd73174db99c0a88cc6fb2d4757c5ec9c1f5804289b",
-      "reason": "Keeps explicit durable v1 links and validation text inside the package layout. Defers run selection to ADAPTER.md: new natural-language requests use the callback adapter; this reference covers only explicit legacy commands and existing durable runs."
-    },
-    {
-      "bundled_path": "references/state.md",
-      "upstream_path": "references/state.md",
-      "upstream_sha256": "b6693e84d52ce5fb2fe58c9bd8517de83f79e5b3bdd4d08fb97587418ba339e5",
-      "bundled_sha256": "0532424724575a6f206396393a323b0e43e26c9fbe9b4c757d5913c8d8c12449",
-      "reason": "Names version 2 as the durable v2 protocol rather than a candidate, and drops the pointer to a candidate README absent from this package."
+      "adaptation_reason": "States the current context requirement without describing earlier callers. Drops the durable v1/v2 adapter pointer and the 'new runs' qualifier, because those adapters are not vendored."
     }
   ]
 }

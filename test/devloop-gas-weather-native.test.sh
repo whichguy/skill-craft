@@ -180,7 +180,6 @@ if [[ "$live" == "1" ]]; then
   export DEVLOOP_HOST="${DEVLOOP_HOST:-auto}"
   export DEVLOOP_TRANSPORT=hermes
   export DEVLOOP_HOME="$engine"
-  export DEVLOOP_ALLOW_LEGACY_ENGINE=1
   export GROK_BIN="${GROK_BIN:-$(command -v grok || true)}"
   # Design-time judges call HERMES_BIN without cwd=target; pin the e2e repo so the
   # ollama-hermes-shim can resolve tests/test_weather_contract.py for structural YES.
@@ -237,7 +236,7 @@ else
   echo "=== live engine skipped (DEVLOOP_LIVE_WEATHER=$live) hermetic wiring ===" | tee -a "$log"
   write_offline_contract_tests
   DEVLOOP_HOME="$engine" DEVLOOP_HOST=auto \
-    bash "$run" --host auto --probe --no-bootstrap 2>&1 | tee -a "$log"
+    bash "$run" --host auto --probe 2>&1 | tee -a "$log"
   engine_exit=0
 fi
 

@@ -185,7 +185,7 @@ class ReferenceRoutingTests(unittest.TestCase):
         return {path.relative_to(package_root) for path in visited}
 
     def test_every_v3_v4_packet_locator_resolves_to_a_package_reference_heading(self) -> None:
-        """Every reference locator a v3/v4 packet prints names a real file and heading."""
+        """Every reference locator a navigator packet prints names a real file and heading."""
         reference_dir = REF_DIR.resolve()
         locator = re.compile(re.escape(str(reference_dir))
                              + r"/([\w./-]+?\.(?:md|json))(?:#([\w-]+))?")
@@ -196,31 +196,30 @@ class ReferenceRoutingTests(unittest.TestCase):
             run = Path(raw).resolve() / "run"
             repo.mkdir()
             run.mkdir()
-            for version in (3, 4):
-                for delegation in ("inline", "ask-agent"):
-                    state = navigator.new_state(str(repo), "Walk every packet locator.",
-                                                protocol_version=version, delegation=delegation)
-                    for command in ("pause", "halt"):
-                        packets.append(navigator.render(
-                            None, run, navigator.control(state, command, "Synthetic stop.")))
-                    while state["status"] == "active":
-                        stage = navigator.current_stage(state)
-                        action = navigator.current_action(state)["id"]
-                        packets.append(navigator.render(None, run, state))
-                        payload = {"outcome": "done", "summary": "Synthetic " + stage + "."}
-                        if stage == "plan":
-                            payload["work_items"] = [{"id": "W1", "title": "Synthetic item"}]
-                        state = navigator.apply(state, action, payload)
-                        child = state.get("active_improve")
-                        if child is None:
-                            continue
-                        packets.append(navigator.render(None, run, state))
-                        bound = dict(state, active_improve=standalone.binding(
-                            state, action, child["stage"], child["seed_result"], selected))
-                        packets.append(navigator.render(None, run, bound))
-                        state = navigator.finish_improve(
-                            state, action, {"summary": "Synthetic receipt; no review claim."})
+            for delegation in ("inline", "ask-agent"):
+                state = navigator.new_state(str(repo), "Walk every packet locator.",
+                                            delegation=delegation)
+                for command in ("pause", "halt"):
+                    packets.append(navigator.render(
+                        None, run, navigator.control(state, command, "Synthetic stop.")))
+                while state["status"] == "active":
+                    stage = navigator.current_stage(state)
+                    action = navigator.current_action(state)["id"]
                     packets.append(navigator.render(None, run, state))
+                    payload = {"outcome": "done", "summary": "Synthetic " + stage + "."}
+                    if stage == "plan":
+                        payload["work_items"] = [{"id": "W1", "title": "Synthetic item"}]
+                    state = navigator.apply(state, action, payload)
+                    child = state.get("active_improve")
+                    if child is None:
+                        continue
+                    packets.append(navigator.render(None, run, state))
+                    bound = dict(state, active_improve=standalone.binding(
+                        state, action, child["stage"], child["seed_result"], selected))
+                    packets.append(navigator.render(None, run, bound))
+                    state = navigator.finish_improve(
+                        state, action, {"summary": "Synthetic receipt; no review claim."})
+                packets.append(navigator.render(None, run, state))
         seen = {(match.group(1), match.group(2)) for packet in packets
                 for match in locator.finditer(packet)}
         for relative, anchor in sorted(seen, key=lambda item: (item[0], item[1] or "")):

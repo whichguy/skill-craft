@@ -53,8 +53,7 @@ Before publishing a changed skill package, freeze the candidate bytes:
    and verify every changed release payload with
    `python3 scripts/check-release-payload.py --base <previous-catalog-commit>`.
    The release-diff gate reads complete packaged trees at each changed entry's
-   exact pinned or once-resolved SHA; it does not silently upgrade unchanged
-   legacy pins.
+   exact pinned or once-resolved SHA.
    Run affected verifier tests when changing verifier code, and collect required
    catalog CI for the exact candidate. Reuse its unchanged-tree evidence instead
    of repeating the same unit bank locally and after merge.
@@ -79,8 +78,7 @@ Pin lag after ship is a bug: marketplace install must not serve pre-ship wording
 
 ## Vendored bundle refresh
 
-Backchain's development source (`whichguy/plan-orchestrator`, formerly
-`whichguy/backchain`) stays private. skill-craft publishes a hash-verified copy
+Backchain's development source (`whichguy/plan-orchestrator`) stays private. skill-craft publishes a hash-verified copy
 of its `skills/backchain`, `skills/plan-dispatcher` and `agents/backchain.md`
 as `bundles/backchain/`, generated into `plugins/backchain/`. CI proves only
 that the bundle matches its own `PROVENANCE.json` and passes the publication

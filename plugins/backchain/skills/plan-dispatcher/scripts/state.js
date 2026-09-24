@@ -15,7 +15,7 @@ const path = require('node:path');
 const planningContext = require('./planning-context');
 
 const STATE_FILE = 'plan-dispatcher-state.json';
-const LEGACY_STATE_FILE = 'state.json';
+const RETIRED_STATE_FILE = 'state.json';
 const INBOX_DIR = 'inbox';
 const LOCK_FILE = '.dispatcher.lock';
 const ACTIVE_STATUSES = new Set(['claimed', 'launching', 'running', 'rejected']);
@@ -151,14 +151,22 @@ function existingStatePath(dir, filename) {
 }
 
 function statePath(dir) {
-  const canonical = existingStatePath(dir, STATE_FILE);
-  const legacy = existingStatePath(dir, LEGACY_STATE_FILE);
-  if (canonical && legacy) {
-    fail('dispatcher run has both canonical and legacy state files');
+  // plan-dispatcher-state.json is the only state authority. A run that still
+  // carries the Plan Dispatcher 0.1.0 state.json is refused before any read or
+  // write, so nothing chooses between two mutable authorities.
+  let retired = true;
+  try {
+    fs.lstatSync(path.join(dir, RETIRED_STATE_FILE));
+  } catch (error) {
+    if (error.code !== 'ENOENT') {
+      fail('could not inspect dispatcher state file: ' + error.message);
+    }
+    retired = false;
   }
-  // New runs use the canonical name. A legacy-only run remains in place so
-  // recovery never creates a second mutable state authority.
-  return canonical || legacy || path.join(dir, STATE_FILE);
+  if (retired) {
+    fail('dispatcher run uses retired state.json (Plan Dispatcher 0.1.0); not supported');
+  }
+  return existingStatePath(dir, STATE_FILE) || path.join(dir, STATE_FILE);
 }
 
 function inboxDirectory(dir) {

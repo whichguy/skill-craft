@@ -237,8 +237,8 @@ different harness merely because the current repo contains one. It validates
 an explicit development `checkout` without fallback and records the actual
 harness digest plus source HEAD/dirty state where available. A copied package
 does not need Git metadata. The harness files live only once in the source tree,
-at `skills/shiploop-e2e-audit/harness`; the old
-`test/experiments/shiploop_e2e` path is a compatibility symlink. The standard
+at `skills/shiploop-e2e-audit/harness`; an explicit checkout without that
+directory is refused. The standard
 plugin generator materializes the whole skill, so distribution needs no special
 installer or download step.
 
@@ -603,7 +603,7 @@ python3 -B "$HARNESS/dag_replay.py" --output /tmp/shiploop-dag-replay-01
 ```
 
 These commands use scripted Grok responses with the real navigator transition
-code and independently authored navigator protocol 3 cases. Live trials also
+code and independently authored navigator protocol 4 cases. Live trials also
 write a sanitized `behavior.json` for repeatable analysis; it is never turned
 into a replay case. Source drift, wrong edges, callback conflicts, and
 missing evidence remain visible. Mock passes cannot establish live application
@@ -696,12 +696,12 @@ python3 "$HARNESS/run.py" run \
 ```
 
 Choose any prelude boundary: `intake`, `discovery`, `research`, `spec`,
-`test-strategy` or `plan`. Only navigator protocol 3 and 4 runs are observed; a
+`test-strategy` or `plan`. Only navigator protocol 4 runs are observed; a
 run of any other protocol has no supported boundary. `spec`, `test-strategy`
 and `plan` are Improve checkpoints: each is accepted only after its Improve
 child returns, so callback auditing requires `improve-complete` for them, and
 their earlier producer `complete` call does not establish stage acceptance.
-Other stages are accepted by their `complete` (or `done`) callback. INNER
+Other stages are accepted by their `complete` callback. INNER
 boundaries are not exposed because the same stage recurs across work items and
 needs a separate explicit selection contract.
 
@@ -842,7 +842,7 @@ tool events. A full pass additionally requires observed start, every accepted
 action's own callback, and the worktree return, bound to that new
 run's paths/action IDs. An action with an Improve record needs `improve-complete`
 (`improve-reconcile` for a stopped protocol-4 plan child); every other action
-needs `complete` or its `done` alias. An `init` call plus completed-looking files is insufficient.
+needs `complete`. An `init` call plus completed-looking files is insufficient.
 For shell strings, only the final executable command can receive automatic
 lifecycle credit. Earlier commands share a final status that does not establish
 their individual success. Conditional/pipeline syntax, control flow, dynamic
@@ -864,8 +864,10 @@ neither the layout nor this detector is an OS sandbox.
 Late grading re-fingerprints the running observer against the trial's frozen
 identity. Editing the observer after capture invalidates that trial's grade;
 it does not silently reinterpret the old run as a pass. Missing or conflicting
-identity fields in observer-bound receipts also fail closed. Unbound historical
-receipts retain an explicitly reported legacy compatibility path.
+identity fields in observer-bound receipts also fail closed. A trial that
+declares neither the observer late-grade contract nor the control-input
+contract predates them; grading refuses it ("trial predates the current
+observer/control-input contract; re-run") and leaves its records unchanged.
 
 The September 17 inspection found `SKILL.md` at 0.11.1 and a legacy 0.9 entry
 description in `commands/shiploop.md`. Both are part of the package fingerprint.

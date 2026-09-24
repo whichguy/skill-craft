@@ -1,20 +1,20 @@
 # Navigator execution mode
 
-Navigator protocol 3 is the default for new ShipLoop runs. It is a small,
+Navigator protocol 4 is the only ShipLoop protocol. It is a small,
 script-owned graph that returns exactly one current owner: a producer step or
 the selected actual Improve skill for that producer. ShipLoop's `state.md`
 persists SDLC traversal. Improve follows the Until Loop runtime bound by its
 selected card and owns review iterations, child state, and convergence. The
 script imports one matching child result before it selects another producer.
 
-A fresh opt-in protocol 4 run uses the same stage graph and adds
+Every run includes
 [experiment-informed planning](planning-experiments.md). Its initial Plan Improve
 child can return a stopped, evidenced upstream-reconciliation need. The parent
 archives it through `improve-reconcile`, records a non-success result, and reruns
 the fixed suffix from discovery, research, spec, or test strategy. This is the
-only added pre-dispatch edge; successful Improve import keeps its normal gate.
-Protocols 3 and 4 are the only protocols. A saved run from navigator v1/v2 or the
-removed managed and legacy modes is refused with an error naming it.
+only pre-dispatch return edge; successful Improve import keeps its normal gate.
+A saved run from navigator v1/v2/v3 or the removed managed and legacy modes is
+refused with an error naming it.
 
 ```mermaid
 flowchart LR
@@ -28,7 +28,7 @@ flowchart LR
   N --> P
 ```
 
-The 34 producer stages are fixed by the v3 catalog: prelude `intake`,
+The 34 producer stages are fixed by the navigator catalog: prelude `intake`,
 `discovery`, `research`, `spec`, `test-strategy`, `plan`, `prepare`; inner
 `select-work`, `step-plan`, `test-spec`, `baseline`, `test-author`, `test-red`,
 `implement`, `test-green`, `test-refine`, `regression`, `document`,
@@ -84,17 +84,17 @@ a second source of traversal state.
 python3 "$CLI" workspace start --repo="$REPO" --workspace-root="$WORKSPACE_ROOT" --prompt='requested outcome'
 # Explicit direct/non-Git mode, without automatic workspace-return protection:
 python3 "$CLI" init --repo="$REPO" --run-dir="$RUN_DIR" --prompt='requested outcome'
-# Optional explicit selected actual Improve card for a new v3 run:
+# Optional explicit selected actual Improve card for a new run:
 python3 "$CLI" init --repo="$REPO" --run-dir="$RUN_DIR" --improve-skill="$IMPROVE_SKILL" --prompt='requested outcome'
-# Opt a new v3/v4 run in to Ask-Agent delegation (the default is inline):
+# Opt a new run in to Ask-Agent delegation (the default is inline):
 python3 "$CLI" workspace start --repo="$REPO" --workspace-root="$WORKSPACE_ROOT" --delegation=ask-agent --prompt='requested outcome'
-# Change an existing v3/v4 run's delegation for its future assignments:
+# Change an existing run's delegation for its future assignments:
 python3 "$CLI" delegation --run-dir="$RUN_DIR" --set=inline
 python3 "$CLI" next --run-dir="$RUN_DIR"
-python3 "$CLI" done --run-dir="$RUN_DIR" --action="$ACTION" --result="$RESULT"
+python3 "$CLI" complete --run-dir="$RUN_DIR" --action="$ACTION" --result="$RESULT"
 ```
 
-`workspace start` and direct `init` return a v3 `intake` producer packet for a
+`workspace start` and direct `init` return an `intake` producer packet for a
 new run. `next` rereads the saved effective owner after a context reset; it does
 not select or persist a successor. At an Improve checkpoint a producer `done`
 records the result then parks the parent at `active_improve`; it does not advance
@@ -107,13 +107,13 @@ releases the next graph edge.
 An explicit relative `--improve-skill` locator is made absolute at initialization,
 so a later shell cwd cannot change which card the checkpoint selects.
 
-A v3/v4 run records its execution `delegation`. `workspace start` and direct
+Every run records its execution `delegation`. `workspace start` and direct
 `init` record `inline` for a new run unless `--delegation=ask-agent` is passed.
 Under `inline`, this conversation executes every producer and the whole Improve
 invocation itself, and `implement` runs reviewed steps directly without a chain.
 Under the opt-in `ask-agent` route, INNER producers and Improve prefer native
 fresh workers and `implement` can bind a [parallel or serial chain](parallel-chain.md#parallel-implementation-chains).
-A saved v3/v4 run without the setting is refused with an error naming the
+A saved run without the setting is refused with an error naming the
 missing `delegation` key. Retrying `init` or `workspace start` cannot change the setting. Use the
 `delegation` command instead. It applies from the next issued action: the action pending when you switch, including its Improve checkpoint, keeps the route it was issued with
 (the packet prints a `Delegation change:` line), and is refused only on a halted
@@ -161,7 +161,7 @@ transition is context and does not replace the current action.
 
 ## Recover one existing run
 
-Active v3/v4 INNER packets begin with a context prefix selected by the run's
+Active INNER packets begin with a context prefix selected by the run's
 delegation. Paused, blocked, halted and completed packets do not carry it.
 
 Under `delegation: inline`, the default for new runs, the `select-work` producer
@@ -207,7 +207,7 @@ again because the packet repeats.
 Active INNER Improve packets never clear the invoking parent. Under
 `delegation: inline` they begin with **Keep the invoking parent alive and run
 this Improve invocation inline.** The parent conversation runs the selected
-Improve card's ShipLoop v3/v4 whole-skill subcall itself, in the exact Child
+Improve card's ShipLoop whole-skill subcall itself, in the exact Child
 workspace. It does not hand the invocation to Ask Agent, a native worker or an
 extra worktree and writes no `host-owner.md`. It runs the reviews and checks in
 this conversation too and starts no reviewer, test-runner or executor agent
@@ -312,7 +312,7 @@ The semantic result contract is small:
 
 | Field | Meaning |
 | --- | --- |
-| `outcome` | `done`, `repeat`, or `blocked`; v3 outer steps also allow `replan` with new corrective work items. Planning results and the last carry-forward first wait for actual Improve; other results advance directly. The final disposition then determines the script-owned route. |
+| `outcome` | `done`, `repeat`, or `blocked`; outer steps also allow `replan` with new corrective work items; `reconcile` is recorded only through the initial plan child's `improve-reconcile`. Planning results and the last carry-forward first wait for actual Improve; other results advance directly. The final disposition then determines the script-owned route. |
 | `summary` | Concise statement of the current action’s real result. |
 | `evidence_refs` | Absolute paths of the files this stage wrote or of the check output it recorded, or other safe references to source, test, note, or external-operation evidence. The template's placeholder is refused. |
 | `work_items` | Ordered `{id,title,context?}` items at `plan` before execution, at `carry-forward` for future-only work, or required new IDs for an outer `replan`. |
@@ -443,7 +443,7 @@ This compact state is illustrative rather than a complete persisted schema:
 
 ```json
 {
-  "navigator_protocol_version": 3,
+  "navigator_protocol_version": 4,
   "execution_mode": "navigator",
   "status": "active",
   "stage": "inner-loop",
@@ -723,8 +723,8 @@ New workspace/direct entries record their selected actual Improve binding, the
 The parent action is `active_improve` while a bound child is active; ShipLoop
 does not duplicate the child's cursor or review counter. The `delegation`
 command never re-owns a bound Improve child or switches a bound chain's frozen
-mode. A saved run the current code cannot load (navigator v1/v2, the removed
-managed and legacy modes, or a v3/v4 state with unexpected or missing keys) is
+mode. A saved run the current code cannot load (navigator v1/v2/v3, the removed
+managed and legacy modes, or a protocol 4 state with unexpected or missing keys) is
 refused with an error naming the protocol, mode or keys; start a fresh run
 directory for that request. A malformed/missing selected card or child evidence
 keeps the parent incomplete; there is no embedded fallback campaign.

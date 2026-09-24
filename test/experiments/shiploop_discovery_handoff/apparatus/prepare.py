@@ -41,7 +41,7 @@ def render_packet(package: Path, case: Path, workspace: Path, task: str) -> tupl
     loaded = Path(navigator.__file__).resolve()
     if not loaded.is_relative_to(package.resolve()):
         raise RuntimeError(f"navigator escaped frozen package: {loaded}")
-    state = navigator.new_state(str(workspace), task, protocol_version=3, improve_skill="")
+    state = navigator.new_state(str(workspace), task, improve_skill="")
     while navigator.current_stage(state) != "discovery":
         stage, action = navigator.current_stage(state), navigator.current_action(state)["id"]
         seed = {"outcome": "done", "summary": "Synthetic fixture traversal; no project work claimed.", "evidence_refs": []}

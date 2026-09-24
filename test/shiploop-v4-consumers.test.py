@@ -35,7 +35,7 @@ class V4ConsumersTests(unittest.TestCase):
         self.f = PlanningContextFixture('runTest')
         self.f.setUp()
         self.addCleanup(self.f.doCleanups)
-        self.f.state = nav.new_state(str(self.f.repo.resolve()), 'Reconcile planning sources', protocol_version=4)
+        self.f.state = nav.new_state(str(self.f.repo.resolve()), 'Reconcile planning sources')
 
     def to_plan(self, references=None):
         while nav.current_stage(self.f.state) != 'plan':
@@ -188,8 +188,8 @@ class V4ConsumersTests(unittest.TestCase):
         self.assertEqual(self.f.state['navigator_protocol_version'], 4)
         card = (ROOT / 'skills/shiploop/SKILL.md').read_text()
         guide = (ROOT / 'skills/shiploop/references/parallel-chain.md').read_text()
-        self.assertIn('current v3/v4 `implement` action', card)
-        self.assertIn('current navigator-v3/v4 `implement` action', guide)
+        self.assertIn('current `implement` action', card)
+        self.assertIn('current navigator `implement` action', guide)
 
     def test_missing_reconciliation_archive_blocks_context_and_chain_recovery(self):
         self.to_plan()
@@ -287,7 +287,7 @@ class V4ConsumersTests(unittest.TestCase):
 
     def test_v4_dry_run_preserves_full_existing_graph(self):
         for name, scenario in dry_run.scenarios().items():
-            result = dry_run.run_scenario(name, scenario, protocol_version=4)
+            result = dry_run.run_scenario(name, scenario)
             self.assertTrue(result['ok'], result)
 
 

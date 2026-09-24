@@ -2,7 +2,7 @@
 """Derived planning-revision state for navigator protocol 4.
 
 The navigator history remains the chronological authority.  This module keeps
-the one v4-only reconciliation projection and archive checks separate from
+the one reconciliation projection and archive checks separate from
 consumer-specific readers so every consumer can make the same currentness
 decision without storing another planning ledger.
 """
@@ -49,7 +49,7 @@ _MAX_ARCHIVE_BYTES = 4 * 1024 * 1024
 
 
 class PlanningRevisionError(ValueError):
-    """Raised when a v4 planning reconciliation is malformed or unavailable."""
+    """Raised when a planning reconciliation is malformed or unavailable."""
 
 
 def _need(condition: bool, message: str) -> None:
@@ -102,9 +102,8 @@ def current_actions(state: Mapping[str, Any]) -> dict[tuple[str | None, str], st
 
     This deliberately reads only ``history`` and ``accepted``.  It is therefore
     usable by source readers that receive a compact/synthetic state projection.
-    Protocol 3 keeps the latest done result per (workitem, stage).  In protocol
-    4, a chronological reconcile row removes the root planning suffix beginning
-    at its target.
+    It keeps the latest done result per (workitem, stage); a chronological
+    reconcile row removes the root planning suffix beginning at its target.
     """
     if not isinstance(state, Mapping):
         return {}
@@ -112,7 +111,6 @@ def current_actions(state: Mapping[str, Any]) -> dict[tuple[str | None, str], st
     accepted = state.get("accepted")
     if not isinstance(history, list) or not isinstance(accepted, Mapping):
         return {}
-    protocol = state.get("navigator_protocol_version")
     result: dict[tuple[str | None, str], str] = {}
     for entry in history:
         if not isinstance(entry, Mapping):
@@ -126,7 +124,7 @@ def current_actions(state: Mapping[str, Any]) -> dict[tuple[str | None, str], st
             workitem = entry.get("workitem")
             result[(workitem if isinstance(workitem, str) else None, stage)] = action
             continue
-        if protocol != 4 or outcome != "reconcile":
+        if outcome != "reconcile":
             continue
         accepted_result = accepted.get(action)
         if not isinstance(accepted_result, Mapping):
@@ -143,16 +141,14 @@ def current_actions(state: Mapping[str, Any]) -> dict[tuple[str | None, str], st
 
 
 def validate(state: Mapping[str, Any]) -> None:
-    """Validate v4 reconciliation bindings without reading a run directory."""
+    """Validate reconciliation bindings without reading a run directory."""
     _need(isinstance(state, Mapping), "navigator state must be an object")
-    if state.get("navigator_protocol_version") != 4:
-        return
     history, accepted = _history_and_accepted(state)
     events = state.get("planning_reconciliations")
     records = state.get("improve_results")
     run_id = state.get("run_id")
-    _need(isinstance(events, list), "v4 planning reconciliations must be a list")
-    _need(isinstance(records, Mapping), "v4 Improve results must be an object")
+    _need(isinstance(events, list), "planning reconciliations must be a list")
+    _need(isinstance(records, Mapping), "Improve results must be an object")
     _need(isinstance(run_id, str) and _ACTION.fullmatch(run_id) is not None,
           "unsafe navigator run ID")
 
@@ -316,15 +312,13 @@ def _regular_file(root: Path, relative: str, label: str) -> bytes:
 def validate_archives(
     state: Mapping[str, Any], root: Path | str, writes: Mapping[str, str] | None = None,
 ) -> None:
-    """Verify immutable stopped-child archives for a v4 state.
+    """Verify immutable stopped-child archives for a navigator state.
 
     This is intentionally root-aware and separate from :func:`validate`: a
     state can be syntactically sound while its required archived evidence has
     been removed or changed after the transaction completed.
     """
     validate(state)
-    if state.get("navigator_protocol_version") != 4:
-        return
     root_path = Path(root)
     pending = dict(writes or {})
 

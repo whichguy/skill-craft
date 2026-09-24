@@ -1,4 +1,4 @@
-"""Prompt catalog for navigator v3's script-owned SDLC traversal.
+"""Prompt catalog for the navigator's script-owned SDLC traversal (protocol 4).
 
 The navigator selects one producer step at a time.  After that producer has a
 result, the runtime renders :func:`improve_prompt` and parks the parent action
@@ -61,7 +61,7 @@ and child receipt locators for interruption recovery.
 
 
 # Run-level delegation (state key ``delegation``).  ``inline`` is the default
-# for new CLI-created v3/v4 runs; ``ask-agent`` is the opt-in delegated route
+# for new CLI-created runs; ``ask-agent`` is the opt-in delegated route
 # rendered by SERIAL_INNER_CONTEXT/IMPROVE_INNER_CONTEXT above and by the
 # unmodified DUTIES text.  A run without the key keeps its recorded ask-agent
 # behaviour, so catalog calls default to it.
@@ -1504,10 +1504,8 @@ def _backchain_guidance(stage: str, *, improve_owner: bool = False) -> str:
     selection = """\
 Follow the packet's Backchain planning guide for this stage's scoped outcome,
 prerequisite and consumer review. Carry selected requirement sections and test
-locators through the plan and existing result/context fields. Existing runs retain
-their recorded mode. For a new v3 plan, current embedded adaptation remains the
-compatibility default until an explicit run-note selection chooses
-`source-aware-native`.
+locators through the plan and existing result/context fields. The only Backchain
+call route is `source-aware-native`; ShipLoop carries no embedded Backchain mode.
 
 A `source-aware-native` call is allowed only when run notes identify an observed
 selected Backchain `SKILL.md`, `backchain-caller/v1` resource for this action/stage,
@@ -1556,7 +1554,7 @@ primitive; do not start a whole Backchain→Until Loop child.
     if stage in BACKCHAIN_NATIVE_CALLS:
         action, operation = BACKCHAIN_NATIVE_CALLS[stage]
         return selection + f"""\
-When `source-aware-native` is selected for this stage, the current stage host may
+Through `source-aware-native`, the current stage host may
 request exactly one action `{action}` / stage `{operation}` within the packet's
 scope. Backchain invokes the selected actual Until Loop for its dependency-specific
 review/fix/check cycle using `Backchain standalone Until Loop binding: <binding-id>`.
@@ -1596,12 +1594,12 @@ BACKCHAIN_GUIDANCE = _backchain_guidance("plan")
 
 def _require_stage(stage: str) -> None:
     if stage not in DUTIES:
-        raise ValueError(f"unknown navigator-v3 stage: {stage!r}")
+        raise ValueError(f"unknown navigator stage: {stage!r}")
 
 
 def _require_delegation(delegation: str) -> None:
     if delegation not in DELEGATIONS:
-        raise ValueError(f"unknown navigator-v3 delegation: {delegation!r}")
+        raise ValueError(f"unknown navigator delegation: {delegation!r}")
 
 
 # Inline runs replace only the chain-specific paragraphs of these duties; the
@@ -1668,7 +1666,7 @@ callback and Improve checkpoint.
 }
 for _stage, (_delegated, _inline) in _INLINE_DUTY_PARAGRAPHS.items():
     if DUTIES[_stage].count(_delegated) != 1:
-        raise RuntimeError(f"navigator-v3 {_stage} duty lost its delegated chain paragraph")
+        raise RuntimeError(f"navigator {_stage} duty lost its delegated chain paragraph")
 
 _PLANNING_HANDOFF = (
     "Preserve this planning pass's key reference statements, decisions, constraints and acceptance "
@@ -1696,7 +1694,7 @@ def duty(stage: str, *, delegation: str = ASK_AGENT) -> str:
 
 
 def prompt(stage: str, *, delegation: str = ASK_AGENT) -> str:
-    """Return the single current producer instruction for a v3 graph stage.
+    """Return the single current producer instruction for a navigator graph stage.
 
     The navigator always passes the run's delegation; the ask-agent default
     keeps catalog renders identical to runs recorded before the setting existed.
@@ -1960,16 +1958,16 @@ outcome rather than replaying it.
 
 
 if len(STAGES) != 34 or len(set(STAGES)) != len(STAGES):
-    raise RuntimeError("navigator-v3 stage catalog must contain 34 unique stages")
+    raise RuntimeError("navigator stage catalog must contain 34 unique stages")
 if set(DUTIES) != set(STAGES) or set(IMPROVE_SCOPES) != set(STAGES):
-    raise RuntimeError("navigator-v3 prompts do not cover the complete graph")
+    raise RuntimeError("navigator prompts do not cover the complete graph")
 
 
 PROMPTS = {stage: prompt(stage) for stage in STAGES}
 IMPROVE_PROMPTS = {stage: improve_prompt(stage) for stage in STAGES}
 for _delegated, _inline in _INLINE_IMPROVE_REPLACEMENTS:
     if not any(_delegated in text for text in IMPROVE_PROMPTS.values()):
-        raise RuntimeError("navigator-v3 Improve prompts lost a delegated-route phrase")
+        raise RuntimeError("navigator Improve prompts lost a delegated-route phrase")
 
 
 __all__ = (

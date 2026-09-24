@@ -1,7 +1,8 @@
 """Validate analyst-owned workflow evidence; never infer review truth from prose.
 
-Version 2 adds explicit selected-test and Improve-review records. These are
-external audit records, not ShipLoop state or a new completion gate.
+Only version 2 reviews are accepted; each carries explicit selected-test and
+Improve-review records. These are external audit records, not ShipLoop state or
+a new completion gate.
 """
 from __future__ import annotations
 
@@ -9,10 +10,11 @@ from collections.abc import Mapping
 from pathlib import Path
 
 # Every accepted result at these stages passed through its own Improve child.
-from dag_replay import _V3_PLANNING_CHECKPOINTS as PLANNING_REVIEW_STAGES
+from dag_replay import _PLANNING_CHECKPOINTS as PLANNING_REVIEW_STAGES
 from grading import _artifact_result
 
 
+WORKFLOW_REVIEW_SCHEMA = "shiploop-e2e-workflow-review/2"
 DIMENSIONS = (
     "literal-request-and-selected-source", "dag-execution-and-callback-attribution",
     "platform-and-consumer-contract-preserved", "planned-tests-reconciled-with-observations",
@@ -32,13 +34,13 @@ def _evidence(rows: object, root: Path, label: str, errors: list[str]) -> None:
             errors.append(f"{label}: invalid evidence {index}")
 
 
-_SUPPORTED_PROTOCOLS = (3, 4)
+_SUPPORTED_PROTOCOLS = (4,)
 
 
 def _observed_improve_actions(result: dict, errors: list[str], unknown: list[str]) -> tuple[set[str], bool, bool]:
     """Return current-run completed Improve actions without inferring review truth.
 
-    Navigator protocols 3 and 4 store a completed Improve receipt by its
+    Navigator protocol 4 stores a completed Improve receipt by its
     ordinary producer action ID, and only checkpoint actions carry one. The
     inventory is therefore exactly the recorded actions. As in the navigator,
     every record must belong to an accepted action and every accepted ``plan``
@@ -77,7 +79,7 @@ def _observed_improve_actions(result: dict, errors: list[str], unknown: list[str
         protocol = state.get("navigator_protocol_version")
         protocols.add(protocol if type(protocol) is int else None)
         if type(protocol) is not int or protocol not in _SUPPORTED_PROTOCOLS:
-            unknown.append("current-run navigator protocol is unsupported; only protocols 3 and 4 supply Improve inventory")
+            unknown.append("current-run navigator protocol is unsupported; only protocol 4 supplies Improve inventory")
             comparable = False
             continue
         history = state.get("history")
@@ -144,8 +146,8 @@ def validate_review(review: dict, result: dict, evidence_root: Path) -> dict:
     unknown: list[str] = []
     if not isinstance(review, dict):
         return {"status": "invalid", "errors": ["review must be an object"], "gaps": [], "unverified": []}
-    if review.get("schema") not in {"shiploop-e2e-workflow-review/1", "shiploop-e2e-workflow-review/2"}:
-        errors.append("unsupported workflow review schema")
+    if review.get("schema") != WORKFLOW_REVIEW_SCHEMA:
+        errors.append(f"unsupported workflow review schema; only {WORKFLOW_REVIEW_SCHEMA} is accepted")
     expected = {key: result.get(key) for key in ("trial_id", "candidate_digest", "baseline_digest", "skill_digest")}
     expected["harness_digest"] = result.get("harness_snapshot", {}).get("package_sha256")
     for key, value in expected.items():

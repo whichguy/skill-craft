@@ -39,11 +39,11 @@ From the ongoing native parent:
    `delegates_stopped`, and `owner_record_sha256` for the exact retained owner
    record. These are parent attestations, not fixture-produced facts.
 5. Run `pilot.py finalize --package /absolute/skill-craft --case /absolute/case`.
-   For new cases it first verifies actual commits since the frozen candidate
-   baseline, their exact SHAs in the terminal handoff, scoped path sets and learning
-   sections, and that all scoped
-   changes are committed; it saves `worker-commits.json`. Older frozen fixtures
-   retain their original policy. This dirty-caller fixture returns a patch-like
+   It refuses a `pilot.json` whose `commit_policy` is not `scoped-required`;
+   run `setup` for a new case instead. It first verifies actual commits since the
+   frozen candidate baseline, their exact SHAs in the terminal handoff, scoped path
+   sets and learning sections, and that all scoped changes are committed; it saves
+   `worker-commits.json`. This dirty-caller fixture returns a patch-like
    working-tree delta: the worker commit stays private, and caller HEAD/index
    remain unchanged. It validates the successful terminal receipt, resolves only scoped return
    paths, runs guarded workspace return, and compares every named product and

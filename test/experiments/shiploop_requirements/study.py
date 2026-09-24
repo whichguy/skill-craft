@@ -179,7 +179,7 @@ def _navigator(frozen_skill: Path) -> Iterator[Any]:
 
 def _synthetic_state(navigator: Any, repo: Path, request: str, target: str) -> dict[str, Any]:
     """Use only pure v3 APIs to select a trial cursor; no runtime work is implied."""
-    state = navigator.new_state(str(repo), request, protocol_version=3, improve_skill="")
+    state = navigator.new_state(str(repo), request, improve_skill="")
     while navigator.current_stage(state) != target:
         stage, action = navigator.current_stage(state), navigator.current_action(state)["id"]
         seed = {"outcome": "done", "summary": f"FIXTURE SETUP ONLY: synthetic {stage} producer.", "evidence_refs": [f"fixture://{stage}"]}

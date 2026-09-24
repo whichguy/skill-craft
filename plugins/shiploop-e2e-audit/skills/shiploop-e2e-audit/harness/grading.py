@@ -7,7 +7,7 @@ into a live prompt.  Invoke it as a separate, terminal observer and retain its
 single JSON object from stdout with the native runner stdout/stderr and pinned
 artifacts, for example::
 
-    python3 test/experiments/shiploop_e2e/grading.py \\
+    python3 skills/shiploop-e2e-audit/harness/grading.py \\
       --receipt "$trial/verification-receipt.json" \\
       --trial-id ttt-highlight-01 \\
       --candidate-digest "$candidate_digest" \\

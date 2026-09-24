@@ -10,7 +10,7 @@ require it to copy or read this whole reference or a whole parent packet merely
 to begin its assigned Improve invocation.
 
 The currently declared consumer is the `improve-agent` skill, composing
-ShipLoop navigator-v3/v4's bound, whole-skill Improve child. Its worker receives
+ShipLoop's bound, whole-skill Improve child. Its worker receives
 `execution_role: improve-executor` and `delegation_owner: parent`; it runs the
 complete selected Improve invocation inline without dispatching another whole
 Improve run. A standalone `improve-agent` request uses the helper-managed

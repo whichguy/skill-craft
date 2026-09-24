@@ -285,7 +285,7 @@ class CrossRunTests(unittest.TestCase):
         """Fresh requests retain repository documents, not earlier run state or semantics."""
         old_run = self.base / "unavailable original request"
         old_packet = self._init(old_run, OLD_PROMPT)
-        self.assertEqual(self._state(old_run)["navigator_protocol_version"], 3)
+        self.assertEqual(self._state(old_run)["navigator_protocol_version"], 4)
         self._assert_requirements_policy(old_packet.stdout)
         self.assertIn("Follow the packet's Reference handoff policy", old_packet.stdout)
         shutil.rmtree(old_run)

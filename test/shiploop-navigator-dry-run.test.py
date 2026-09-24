@@ -40,7 +40,7 @@ class NavigatorDryRunTests(unittest.TestCase):
             f'Navigator adapter: {policy}#navigator-execution-mode-adapter',
         )
         for name in ('delivery', 'blocked-resume', 'pause-resume'):
-            report = driver.run_scenario(name, driver.scenarios()[name], protocol_version=3)
+            report = driver.run_scenario(name, driver.scenarios()[name])
             self.assertTrue(report['ok'], report.get('error'))
             for event in report['events']:
                 with self.subTest(scenario=name, stage=event['from'], command=event['command']):
@@ -84,14 +84,14 @@ class NavigatorDryRunTests(unittest.TestCase):
                     for line in discovery_lines:
                         self.assertEqual(prompt.count(line), int(discovery), line)
 
-    def test_v3_dry_run_simulates_actual_improve_handoffs_without_starting_them(self):
+    def test_dry_run_simulates_actual_improve_handoffs_without_starting_them(self):
         expected = {'delivery': 42, 'two-work-items': 62, 'blocked-resume': 44,
                     'repeat-improve': 44, 'pause-resume': 44, 'halted': 1}
         scenarios = driver.scenarios()
         self.assertEqual(set(scenarios), set(expected))
         for name, scenario in scenarios.items():
             with self.subTest(name=name):
-                report = driver.run_scenario(name, scenario, protocol_version=3)
+                report = driver.run_scenario(name, scenario)
                 self.assertTrue(report['ok'], report.get('error'))
                 self.assertEqual(len(report['events']), expected[name])
                 self.assertEqual(report['simulated_status'],
@@ -121,7 +121,7 @@ class NavigatorDryRunTests(unittest.TestCase):
                 self.assertTrue(all(event['simulation_only'] for event in report['events']))
 
         two_items = driver.run_scenario(
-            'two-work-items', scenarios['two-work-items'], protocol_version=3)
+            'two-work-items', scenarios['two-work-items'])
         self.assertEqual(two_items['completed_instances'], ['W1', 'W2'])
         self.assertEqual({event['owner'] for event in two_items['events']
                           if event['owner'] != 'root'}, {'W1', 'W2'})
@@ -168,19 +168,13 @@ class NavigatorDryRunTests(unittest.TestCase):
             raise AssertionError('Navigator dry-run attempted project execution or persistence')
         from contextlib import redirect_stdout
         from io import StringIO
-        for version in ('3', '4'):
-            with self.subTest(protocol=version):
-                output = StringIO()
-                with (patch.object(subprocess, 'run', side_effect=forbidden),
-                      patch.object(store, 'transaction', side_effect=forbidden),
-                      patch.object(navigator, 'save', side_effect=forbidden),
-                      redirect_stdout(output)):
-                    self.assertEqual(
-                        protocol.main(ForbiddenCore(),
-                                      ['graph-dry-run', '--protocol-version', version]),
-                        0,
-                    )
-                self.assertEqual(output.getvalue().count('PASS '), 6)
+        output = StringIO()
+        with (patch.object(subprocess, 'run', side_effect=forbidden),
+              patch.object(store, 'transaction', side_effect=forbidden),
+              patch.object(navigator, 'save', side_effect=forbidden),
+              redirect_stdout(output)):
+            self.assertEqual(protocol.main(ForbiddenCore(), ['graph-dry-run']), 0)
+        self.assertEqual(output.getvalue().count('PASS '), 6)
 
     def test_cli_custom_json_and_markdown_without_state_changes(self):
         with tempfile.TemporaryDirectory(prefix='navigator-dry-run-') as temporary:
@@ -197,7 +191,7 @@ class NavigatorDryRunTests(unittest.TestCase):
             data = json.loads(result.stdout)
             self.assertTrue(data['simulation_only'])
             self.assertEqual(len(data['scenarios']), 6)
-            example = ROOT / 'skills/shiploop/references/navigator-v3-dry-run-example.json'
+            example = ROOT / 'skills/shiploop/references/graph-dry-run-scenario.json'
             custom = subprocess.run(cli + ['--script', str(example), '--format', 'markdown'],
                                     cwd=root, env=env, capture_output=True, text=True)
             self.assertEqual(custom.returncode, 0, custom.stdout + custom.stderr)
@@ -205,8 +199,8 @@ class NavigatorDryRunTests(unittest.TestCase):
             self.assertEqual(state.read_bytes(), before)
             self.assertEqual([p.name for p in sentinel.iterdir()], ['state.md'])
 
-    def test_cli_defaults_to_protocol_v3_without_touching_saved_state(self):
-        with tempfile.TemporaryDirectory(prefix='navigator-dry-run-v3-') as temporary:
+    def test_cli_simulates_protocol_4_without_touching_saved_state(self):
+        with tempfile.TemporaryDirectory(prefix='navigator-dry-run-v4-') as temporary:
             root = Path(temporary)
             sentinel = root / '.shiploop'
             sentinel.mkdir()
@@ -220,36 +214,46 @@ class NavigatorDryRunTests(unittest.TestCase):
             self.assertEqual(result.returncode, 0, result.stderr)
             data = json.loads(result.stdout)
             self.assertTrue(data['simulation_only'])
-            self.assertEqual(data['protocol_version'], 3)
+            self.assertEqual(data['protocol_version'], 4)
             self.assertEqual(set(item['name'] for item in data['scenarios']),
                              {'delivery', 'two-work-items', 'blocked-resume',
                               'repeat-improve', 'pause-resume', 'halted'})
             self.assertEqual(state.read_bytes(), before)
 
-    def test_every_listed_scenario_runs_for_its_protocol(self):
-        # Regression: --list once printed names the selected protocol lacked,
-        # so --scenario crashed with a bare KeyError (exit 1).
+    def test_every_listed_scenario_runs(self):
+        # Regression: --list once printed names a protocol lacked, so
+        # --scenario crashed with a bare KeyError (exit 1).
         env = dict(os.environ, PYTHONDONTWRITEBYTECODE='1')
         base = [sys.executable, '-B', str(SCRIPTS / 'shiploop'), 'graph-dry-run']
         with tempfile.TemporaryDirectory(prefix='navigator-dry-run-list-') as temporary:
-            for version in ('3', '4'):
-                listed = subprocess.run(base + ['--list', '--protocol-version', version],
-                                        cwd=temporary, env=env, capture_output=True, text=True)
-                self.assertEqual(listed.returncode, 0, listed.stderr)
-                names = listed.stdout.split()
-                self.assertEqual(names, list(driver.scenarios()))
-                for name in names:
-                    with self.subTest(protocol=version, scenario=name):
-                        result = subprocess.run(
-                            base + ['--scenario', name, '--protocol-version', version],
-                            cwd=temporary, env=env, capture_output=True, text=True)
-                        self.assertEqual(result.returncode, 0, result.stdout + result.stderr)
-                        self.assertNotIn('Traceback', result.stderr)
+            listed = subprocess.run(base + ['--list'],
+                                    cwd=temporary, env=env, capture_output=True, text=True)
+            self.assertEqual(listed.returncode, 0, listed.stderr)
+            names = listed.stdout.split()
+            self.assertEqual(names, list(driver.scenarios()))
+            for name in names:
+                with self.subTest(scenario=name):
+                    result = subprocess.run(
+                        base + ['--scenario', name],
+                        cwd=temporary, env=env, capture_output=True, text=True)
+                    self.assertEqual(result.returncode, 0, result.stdout + result.stderr)
+                    self.assertNotIn('Traceback', result.stderr)
 
-    def test_v3_example_script_passes_on_default_protocol(self):
+    def test_protocol_version_flag_is_retired(self):
         env = dict(os.environ, PYTHONDONTWRITEBYTECODE='1')
-        example = ROOT / 'skills/shiploop/references/navigator-v3-dry-run-example.json'
-        with tempfile.TemporaryDirectory(prefix='navigator-dry-run-v3-example-') as temporary:
+        base = [sys.executable, '-B', str(SCRIPTS / 'shiploop'), 'graph-dry-run']
+        with tempfile.TemporaryDirectory(prefix='navigator-dry-run-flag-') as temporary:
+            for version in ('3', '4'):
+                with self.subTest(version=version):
+                    result = subprocess.run(base + ['--protocol-version', version],
+                                            cwd=temporary, env=env, capture_output=True, text=True)
+                    self.assertNotEqual(result.returncode, 0)
+                    self.assertIn('--protocol-version', result.stderr)
+
+    def test_example_script_passes(self):
+        env = dict(os.environ, PYTHONDONTWRITEBYTECODE='1')
+        example = ROOT / 'skills/shiploop/references/graph-dry-run-scenario.json'
+        with tempfile.TemporaryDirectory(prefix='graph-dry-run-scenario-') as temporary:
             result = subprocess.run(
                 [sys.executable, '-B', str(SCRIPTS / 'shiploop'), 'graph-dry-run',
                  '--script', str(example), '--format', 'json'],

@@ -19,9 +19,7 @@ PROMPT_LEAVES = (
     "architect",
     "plan-test",
     "compare-prompts",
-    "derive-questions",
     "review-fix-bench",
-    "question-bench",
     "improve-system-prompt",
     "c-plan",
     "prompt-align",
@@ -63,14 +61,10 @@ class PromptMarketplaceContractTests(unittest.TestCase):
         )
 
     def test_benchmark_models_are_host_valid_and_trials_remain_independent(self) -> None:
-        for leaf in ("compare-prompts", "derive-questions"):
-            with self.subTest(leaf=leaf):
-                body = card(leaf)
-                self.assertNotRegex(body, re.compile(r"claude-[A-Za-z0-9_.-]+", re.I))
-                self.assertIn("host-default model", body)
-                self.assertIn("fresh independent session", body)
-        derive = card("derive-questions")
-        self.assertIn("research requires web access or a user-provided source corpus", derive)
+        body = card("compare-prompts")
+        self.assertNotRegex(body, re.compile(r"claude-[A-Za-z0-9_.-]+", re.I))
+        self.assertIn("host-default model", body)
+        self.assertIn("fresh independent session", body)
 
     def test_review_fix_bench_requires_explicit_external_runner_inputs(self) -> None:
         body = card("review-fix-bench")
@@ -86,18 +80,6 @@ class PromptMarketplaceContractTests(unittest.TestCase):
         self.assertIn("No installed runner is bundled", body)
         self.assertIn("blocked prerequisite", body)
         self.assertIn("fresh\nindependent session", body)
-
-    def test_question_bench_uses_bundled_rubric_and_generic_independent_evaluator(self) -> None:
-        body = card("question-bench")
-        rubric = SKILLS / "question-bench" / "references" / "judge-rubric.md"
-        self.assertTrue(rubric.is_file(), "question-bench must package its reusable judge rubric")
-        self.assertNotIn("question-bench-judge", body)
-        self.assertNotIn("~/.claude", body)
-        self.assertNotRegex(body, re.compile(r"claude-[A-Za-z0-9_.-]+", re.I))
-        self.assertIn("--judge-rubric", body)
-        self.assertIn("bundled judge rubric", body)
-        self.assertIn("fresh independent evaluator", body)
-        self.assertIn("current host's discovery metadata", body)
 
     def test_improve_system_prompt_requires_explicit_product_configuration(self) -> None:
         body = card("improve-system-prompt")

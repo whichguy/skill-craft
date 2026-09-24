@@ -1,7 +1,7 @@
 ---
 name: ask-agent
 description: A delegation skill, not an agent type. Ask native agents to work in the background, continue useful work in the main conversation, and incorporate their results when they return. Use for "ask an agent", named agent roles, parallel delegation, or launch-and-notify work.
-version: 0.7.9
+version: 0.7.10
 license: MIT
 platforms:
   - linux
@@ -21,8 +21,7 @@ return; the parent owns acceptance and integration. `ask-agent` selects this
 skill, not an agent type. Do not implement another model launcher, SDK client,
 subprocess harness, scheduler, or file watcher to simulate native delegation.
 
-The helper-managed workspace route is the default for delegation. Historical
-experimental cards are test fixtures, not alternative supported workflows. A
+The helper-managed workspace route is the default for delegation. A
 consumer-owned workspace is an explicit invoking-consumer contract, never an
 automatic interpretation of an existing worktree, a speed request, or a request
 for fresh context.
@@ -64,7 +63,7 @@ the helper-managed route, shared writes, an inherited context, or a second
 worktree.
 
 The currently declared consumer is the `improve-agent` skill, composing a
-ShipLoop v3/v4 whole-skill Improve child. It supplies one fresh executor for the
+ShipLoop whole-skill Improve child. It supplies one fresh executor for the
 complete bound Improve invocation. A standalone `improve-agent` request uses the
 helper-managed default instead, and inline `improve` starts no agent. This is a
 Codex native pilot with evidence from bounded native fixtures. Earlier helper-managed host
@@ -192,11 +191,17 @@ reference instead.
    an empty/default-branch checkout. An explicit ban on all filesystem writes
    also prohibits setup; an ordinary review permits isolated setup and reports.
 
-   Orchestrated Git work requires this managed 0.6+ flow. The parent checks the
-   selected helper's `capabilities --skill-card` response and `identity` before
-   preparation; an older caller-worktree contract or an unsupported newer helper
-   is not a fallback. Serial orchestration uses the same workspace helper while
-   executing the bounded task in the main context instead of launching a worker.
+   Orchestrated Git work requires this managed flow. Before preparation the
+   parent checks the selected helper's `identity` and its
+   `capabilities --skill-card` response, which must declare the
+   `shiploop-chain-ask-agent-managed-worktree/v1` schema with the full current
+   capability set: `helper-managed-worktree`, `prepared-inspection`,
+   `returned-commit-delivery`, `fingerprint-bound-close` and
+   `ignored-output-report`. The capability set is the gate, not a version
+   number; a helper missing any of them, or a caller-worktree contract, is
+   refused and is not a fallback. Serial orchestration uses the same workspace
+   helper while executing the bounded task in the main context instead of
+   launching a worker.
 
    A coordinating Dispatcher or ShipLoop parent may perform this preparation
    before freezing its execution context. Continue that same attempt with the

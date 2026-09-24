@@ -24,7 +24,6 @@ import native_pilot as pilot
 ROOT = Path(__file__).resolve().parents[3]
 PILOT = ROOT / "test" / "experiments" / "shiploop_chain" / "native_pilot.py"
 ASK_AGENT = ROOT / "skills" / "ask-agent" / "SKILL.md"
-DISPATCHER_V2 = ROOT / "test" / "fixtures" / "plan-dispatcher-v2" / "SKILL.md"
 DISPATCHER_V3 = ROOT / "test" / "fixtures" / "plan-dispatcher-v3" / "SKILL.md"
 DEFAULT_DISPATCHER = DISPATCHER_V3
 
@@ -315,13 +314,20 @@ class NativePilotTests(unittest.TestCase):
         self.assertEqual(default, DISPATCHER_V3)
         self.assertEqual(default_remaining, ["-k", "selected_dispatcher"])
 
-    def test_v2_is_rejected_by_preflight_before_a_pilot_directory_exists(self) -> None:
-        refused = self.prepare(DISPATCHER_V2, ok=False)
+    def test_dispatcher_without_planning_context_is_rejected_before_a_pilot_directory_exists(self) -> None:
+        old_dispatcher = self.base / "old-dispatcher"
+        shutil.copytree(DISPATCHER_V3.parent, old_dispatcher)
+        helper = old_dispatcher / "scripts" / "dispatch.js"
+        source = helper.read_text(encoding="utf-8")
+        context_capability = "    planning_context: planningContext.SCHEMA,\n"
+        self.assertIn(context_capability, source)
+        helper.write_text(source.replace(context_capability, "", 1), encoding="utf-8")
+        refused = self.prepare(old_dispatcher / "SKILL.md", ok=False)
         self.assertIn("does not support planning_context", refused["stderr"])
         self.assertIn("no pilot was created", refused["stderr"])
         self.assertFalse(self.pilot_dir.exists())
 
-    def test_v04_has_no_execution_path_and_is_rejected_before_a_pilot_directory_exists(self) -> None:
+    def test_helper_without_full_capability_set_is_rejected_before_a_pilot_directory_exists(self) -> None:
         legacy = self.base / "legacy-ask-agent"
         shutil.copytree(ASK_AGENT.parent, legacy)
         card = legacy / "SKILL.md"
@@ -329,8 +335,17 @@ class NativePilotTests(unittest.TestCase):
         self.assertIn(f"version: {ASK_AGENT_VERSION}", card_text)
         card.write_text(card_text.replace(f"version: {ASK_AGENT_VERSION}", "version: 0.4.0", 1),
                         encoding="utf-8")
+        helper = legacy / "scripts" / "ask_agent_workspace.py"
+        helper_text = helper.read_text(encoding="utf-8")
+        declared = '        "capabilities": list(MANAGED_WORKTREE_CAPABILITIES),'
+        self.assertIn(declared, helper_text)
+        helper.write_text(helper_text.replace(
+            declared,
+            '        "capabilities": [item for item in MANAGED_WORKTREE_CAPABILITIES '
+            'if item != "ignored-output-report"],', 1,
+        ), encoding="utf-8")
         refused = self.prepare(ask_agent=card, ok=False)
-        self.assertIn("requires version 0.6.0+", refused["stderr"])
+        self.assertIn("required managed-worktree capabilities: ignored-output-report", refused["stderr"])
         self.assertFalse(self.pilot_dir.exists())
 
     def test_context_only_dispatcher_is_rejected_before_a_pilot_directory_exists(self) -> None:

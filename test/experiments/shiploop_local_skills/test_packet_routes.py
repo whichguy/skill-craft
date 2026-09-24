@@ -21,7 +21,7 @@ class LocalSkillRoutes(unittest.TestCase):
             repo, run = root / "repo", root / "run"
             repo.mkdir()
             run.mkdir()
-            state = nav.new_state(str(repo), "Review current evidence.", protocol_version=3)
+            state = nav.new_state(str(repo), "Review current evidence.")
             checked = []
             while nav.current_stage(state) != "static-checks":
                 stage = nav.current_stage(state)

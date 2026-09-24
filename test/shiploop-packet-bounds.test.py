@@ -24,7 +24,7 @@ class PacketBoundsTests(unittest.TestCase):
 
     def state(self, prompt="Implement the requested behavior."):
         # Bounds were measured on the delegated route's longer packets.
-        return navigator.new_state(str(self.repo), prompt, protocol_version=3,
+        return navigator.new_state(str(self.repo), prompt,
                                    delegation="ask-agent")
 
     def complete(self, state, **extra):
@@ -111,8 +111,7 @@ class PacketBoundsTests(unittest.TestCase):
         self.assertIn("Resume:", packet)
 
     def test_oversized_delivery_template_is_not_truncated_into_invalid_json(self):
-        state = navigator.new_state(str(self.repo), "Observe local behavior.",
-                                    protocol_version=3, delivery_contract=True)
+        state = navigator.new_state(str(self.repo), "Observe local behavior.", delivery_contract=True)
         while navigator.current_stage(state) != "plan":
             state = self.complete(state)
         contract = {

@@ -63,9 +63,8 @@ those historical results.
 - **Focused offline:** run `python3 -B test/ask-agent-managed-harness.test.py` after
   changing the apparatus. It runs disposable real Git fixtures and synthetic
   event mutations, without model processes or installed settings.
-- **Related regression:** also run `python3 -B test/ask-agent-workspace.test.py`,
-  `python3 -B test/ask-agent-delivery.test.py`, and
-  `python3 -B test/ask-agent-worktree-harness.test.py`. These already belong to
+- **Related regression:** also run `python3 -B test/ask-agent-workspace.test.py`
+  and `python3 -B test/ask-agent-delivery.test.py`. These already belong to
   `bash test/run-all.sh --group core`; no second suite registry is needed.
 - **Live smoke:** for one explicit host/profile, prepare a fresh managed fixture
   and run its existing two-worker assignment. Qualify C02–C05, patch/report-only

@@ -9,8 +9,9 @@ A native host must launch fresh workers and retain its
 own launch/completion trace.
 
 The pilot defaults to the source Ask-Agent package and the frozen Plan Dispatcher
-v3 fixture. It requires Ask-Agent 0.6.0 or newer with the compatible machine
-capability declaration and exact helper identity. It also preflights the selected
+v3 fixture. It requires an Ask-Agent helper that declares the full current
+managed-worktree capability set (including `ignored-output-report`; there is no
+version-number floor) and exact helper identity. It also preflights the selected
 Dispatcher's `capabilities` before creating a pilot directory; its required
 `planning_context` capability preserves the immutable planning references in
 worker packets. An older or incompatible package is not a fallback.

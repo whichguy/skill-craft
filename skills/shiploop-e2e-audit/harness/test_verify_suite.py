@@ -759,7 +759,7 @@ class CompositeVerifierTests(unittest.TestCase):
         self.assertEqual(row["status"], "unverified")
         self.assertIn("source-mapping-file-digest-mismatch", row["details"]["errors"])
 
-    def test_frozen_legacy_required_checks_remain_gradable(self) -> None:
+    def test_frozen_required_checks_override_the_current_catalog(self) -> None:
         env, trial, _candidate, _baseline, _family, _step = self.fixture("ttt-create")
         result = json.loads((trial / "result.json").read_text(encoding="utf-8"))
         result["required_checks"] = [
@@ -779,6 +779,15 @@ class CompositeVerifierTests(unittest.TestCase):
         self.assertEqual([row["id"] for row in receipt["checks"]], result["required_checks"])
         self.assertEqual(self.row(receipt, "local-only-scope")["status"], "pass")
         self.assertEqual(grade["product_status"], "passed")
+
+    def test_trial_without_frozen_required_checks_is_refused(self) -> None:
+        env, trial, _candidate, _baseline, _family, _step = self.fixture("ttt-create")
+        result = json.loads((trial / "result.json").read_text(encoding="utf-8"))
+        del result["required_checks"]
+        trial.joinpath("result.json").write_text(json.dumps(result), encoding="utf-8")
+
+        with self.assertRaisesRegex(ValueError, "predates the current contract; re-run"):
+            self.verify_ttt(env)
 
     def test_duplicate_frozen_required_checks_are_rejected(self) -> None:
         env, trial, _candidate, _baseline, _family, _step = self.fixture("ttt-create")

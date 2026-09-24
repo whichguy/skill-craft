@@ -1,6 +1,6 @@
 # Single-file callback adapter
 
-This adapter executes new Until Loop runs. The skill interprets natural language;
+This adapter executes Until Loop runs. The skill interprets natural language;
 the script validates its report and decides the next transition. Internal JSON
 and arguments are agent transport, never a user questionnaire.
 
@@ -175,6 +175,3 @@ verifier, background process, or restart guarantee. Independent files allow
 independent loops; editing the same checkout still needs explicit coordination
 or separate worktrees. A killed host may leave an orphan tempfile. Never delete
 another task's file or treat an arbitrary matching filename as this run's state.
-
-For an explicitly selected durable v1/v2 run, use `legacy-skill.md` and that
-version's adapter. The callback adapter neither touches nor upgrades its files.

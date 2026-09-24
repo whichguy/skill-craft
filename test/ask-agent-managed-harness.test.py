@@ -607,11 +607,138 @@ class ManagedWorkspaceEvidenceV2Tests(unittest.TestCase):
         self.assertFalse(outcomes["pass"], outcomes)
         self.assertFalse(trace["pass"], trace)
 
-    def test_legacy_events_never_gain_a_v2_complete_result(self) -> None:
+    def test_cleanup_before_acceptance_fails_the_reports_cleanup_layer(self) -> None:
+        # Ordering: a workspace may be closed only after its return and its
+        # parent acceptance, never between them.
         code, report = self._valid_records()
-        _, _, trace = self._validate(self._valid_events(code, report), managed_workspaces.LEGACY_EVENT_SCHEMA)
-        self.assertFalse(trace["pass"], trace)
-        self.assertEqual(trace["status"], "LEGACY_UNQUALIFIED")
+        for mutation in ("cleanup_before_acceptance", "acceptance_before_return"):
+            with self.subTest(mutation=mutation):
+                events = self._valid_events(code, report)
+                if mutation == "cleanup_before_acceptance":
+                    moved = next(event for event in events if event.get("kind") == "cleanup" and event.get("worker_id") == code["worker_id"])
+                    anchor = next(event for event in events if event.get("kind") == "parent_acceptance" and event.get("worker_id") == code["worker_id"])
+                else:
+                    moved = next(event for event in events if event.get("kind") == "parent_acceptance" and event.get("worker_id") == code["worker_id"])
+                    anchor = next(event for event in events if event.get("kind") == "native_return" and event.get("worker_id") == code["worker_id"])
+                events.remove(moved)
+                events.insert(events.index(anchor), moved)
+                _, _, trace = self._validate(events)
+                self.assertFalse(trace["pass"], trace)
+                self.assertFalse(trace["layers"]["reports_cleanup"]["pass"], trace)
+                self.assertTrue(trace["layers"]["native_return"]["pass"], trace)
+                self.assertTrue(any("cleanup occurred before completed acceptance" in error for error in trace["errors"]), trace)
+
+    def test_archived_reports_must_be_exact_regular_files_inside_helper_results(self) -> None:
+        # Archival: count-matching is not enough; each report must be a regular
+        # file at its own path under the attempt's durable results directory.
+        for mutation, message in (
+            ("symlinked_archive", "archived report must not be a symlink"),
+            ("archive_outside_results", "archived report path escapes the helper durable results directory"),
+            ("missing_detail_report", "close evidence does not archive the exact required report artifacts"),
+        ):
+            with self.subTest(mutation=mutation):
+                code, report = self._valid_records()
+                close_path = Path(code["close"])
+                close = json.loads(close_path.read_text(encoding="utf-8"))
+                row = close["archived_artifacts"][0]
+                archive = Path(row["archive"])
+                outside = self.root / f"outside-{mutation}.md"
+                outside.write_bytes(archive.read_bytes())
+                if mutation == "symlinked_archive":
+                    archive.chmod(0o644)
+                    archive.unlink()
+                    archive.symlink_to(outside)
+                else:
+                    if mutation == "archive_outside_results":
+                        row["archive"] = str(outside)
+                    else:
+                        close["archived_artifacts"] = [
+                            item for item in close["archived_artifacts"]
+                            if item.get("path", item.get("source")) == "reports/handoff-index.md"
+                        ]
+                    close_path.chmod(0o644)
+                    self._write_json(close_path, close)
+                outcomes, _, trace = self._validate(self._valid_events(code, report))
+                self.assertFalse(outcomes["pass"], outcomes)
+                self.assertTrue(any(message in error for error in outcomes["errors"]), outcomes)
+                self.assertFalse(trace["pass"], trace)
+
+    def test_verdict_never_copies_trace_payload_text(self) -> None:
+        # Redaction: the durable verdict records identities, paths and layer
+        # results only; parent prose and host payload text stay in the trace.
+        run = self._prepare_cli_run()
+        code, report = self._valid_records()
+        (self.caller / "pricing.json").write_text('{"currency":"USD","base_price":100,"discount_rate":0.10}\n', encoding="utf-8")
+        markers = {
+            "parent_work": "PRIVATE-PARENT-WORK-7c1e",
+            "launch_prompt": "PRIVATE-LAUNCH-PROMPT-7c1e",
+            "return_output": "PRIVATE-RETURN-OUTPUT-7c1e",
+            "reasoning": "PRIVATE-REASONING-7c1e",
+            "parent_final": "PRIVATE-PARENT-FINAL-7c1e",
+        }
+        events = self._valid_events(code, report)
+        next(event for event in events if event["kind"] == "parent_work")["description"] = markers["parent_work"]
+        for event in events:
+            if event["kind"] == "native_launch":
+                event["native"]["prompt"] = markers["launch_prompt"]
+            elif event["kind"] == "native_return":
+                event["native"]["output"] = markers["return_output"]
+                event["native"]["reasoning"] = markers["reasoning"]
+        events.append({"kind": "parent_final", "parent": {"session_id": "parent-session", "locator": "parent:final"},
+                       "status": "completed", "summary": markers["parent_final"]})
+        self._write_events(events)
+        output = self.operator / "verification-redaction.json"
+        result = subprocess.run(
+            [sys.executable, "-B", str(MODULE_PATH), "verify", "--run", str(run), "--output", str(output)],
+            cwd=ROOT, text=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE, check=False,
+        )
+        self.assertEqual(result.returncode, 0, f"stdout={result.stdout}\nstderr={result.stderr}")
+        written = output.read_text(encoding="utf-8")
+        self.assertEqual(json.loads(written)["status"], "COMPLETE")
+        self.assertEqual(json.loads(written)["checks"]["parent_final_response"]["status"], "PASS")
+        for name, marker in markers.items():
+            with self.subTest(field=name):
+                self.assertNotIn(marker, written)
+                self.assertNotIn(marker, result.stdout)
+                self.assertNotIn(marker, result.stderr)
+
+    def test_non_v2_event_trace_is_refused_as_unobserved(self) -> None:
+        code, report = self._valid_records()
+        for schema in ("ask-agent-managed-workspaces.events.v1", "ask-agent-managed-workspaces.events.v3"):
+            with self.subTest(schema=schema):
+                _, _, trace = self._validate(self._valid_events(code, report), schema)
+                self.assertFalse(trace["pass"], trace)
+                self.assertEqual(trace["status"], "UNOBSERVED")
+                self.assertEqual(trace["errors"], [f"public event trace must use {managed_workspaces.EVENT_SCHEMA}"])
+
+    def test_manifest_schema_must_be_current(self) -> None:
+        run = self._prepare_cli_run()
+        manifest_path = self.operator / "manifest.json"
+        current = json.loads(manifest_path.read_text(encoding="utf-8"))
+        self.assertEqual(current["schema"], managed_workspaces.SCHEMA)
+        self.assertEqual(managed_workspaces.load_manifest(manifest_path), current)
+        without_head = {key: value for key, value in current.items() if key != "source_head"}
+        cases = (
+            ("v1 manifest", {**current, "schema": "ask-agent-managed-workspaces.v1"}, "fixture manifest must use ask-agent-managed-workspaces.v2"),
+            ("unversioned manifest", {key: value for key, value in current.items() if key != "schema"}, "fixture manifest must use ask-agent-managed-workspaces.v2"),
+            ("manifest without source_head", without_head, "fixture manifest lacks source_head"),
+        )
+        for index, (name, manifest, message) in enumerate(cases):
+            with self.subTest(name=name):
+                self._write_json(manifest_path, manifest)
+                with self.assertRaisesRegex(managed_workspaces.ContractError, message):
+                    managed_workspaces.load_manifest(manifest_path)
+                output = self.operator / f"verification-refused-{index}.json"
+                result = subprocess.run(
+                    [sys.executable, "-B", str(MODULE_PATH), "verify", "--run", str(run), "--output", str(output)],
+                    cwd=ROOT, text=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE, check=False,
+                )
+                self.assertEqual(result.returncode, 2, f"stdout={result.stdout}\nstderr={result.stderr}")
+                self.assertEqual(result.stdout, "")
+                error = json.loads(result.stderr)
+                self.assertEqual(error["status"], "CONTRACT_ERROR")
+                self.assertIn(message, error["error"])
+                self.assertFalse(output.exists())
 
     def test_receipt_uses_immutable_baseline_head_after_parent_head_advances(self) -> None:
         initial_head = self._git(self.caller, "rev-parse", "HEAD").strip()

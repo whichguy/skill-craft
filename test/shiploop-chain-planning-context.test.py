@@ -63,15 +63,13 @@ class PlanningContextChainTests(unittest.TestCase):
                 if stream is not None and not stream.closed:
                     stream.close()
 
-    def bind(self, test, *, mode: str = "parallel", capacity: int | None = None,
-             lifecycle: str = "per-step", ok: bool = True):
+    def bind(self, test, *, mode: str = "parallel", capacity: int | None = None, ok: bool = True):
         extra = [
             "--graph", str(test.graph),
             "--dispatcher-skill", str(test.dispatcher / "SKILL.md"),
             "--ask-agent-skill", str(test.ask / "SKILL.md"),
             "--worktree-parent", str(test.parent),
             "--mode", mode,
-            "--lifecycle", lifecycle,
         ]
         if capacity is not None:
             extra += ["--capacity", str(capacity)]
@@ -568,25 +566,18 @@ class PlanningContextChainTests(unittest.TestCase):
         self.assertNotIn("status", json.dumps(projection))
         self.assertNotIn("active_improve", json.dumps(projection))
 
-    def test_versionless_steps_graph_adapter_keeps_the_original_source_bytes(self) -> None:
+    def test_versionless_steps_graph_is_refused_before_writes(self) -> None:
         raw = (
-            b'{"steps":[{"id":"A","deps":[],"contract":{"task":"Adapter task",'
+            b'{"steps":[{"id":"A","deps":[],"contract":{"task":"Versionless task",'
             b'"ready":["input"],"done":["output"]}}]}\n'
         )
         self.f.graph.write_bytes(raw)
-        self.bind(self.f)
-        binding, _context, manifest = self.binding_and_manifest(self.f)
+        before = self.f.run_bytes()
+        refused = self.bind(self.f, ok=False)
+        self.assertIn("validate-graph rejected graph before binding", refused.stderr)
         self.assertEqual(self.f.graph.read_bytes(), raw)
-        self.assertEqual(manifest["graph"], {
-            "path": str(self.f.graph.resolve()), "sha256": digest(self.f.graph),
-        })
-        self.assertEqual(binding["graph"], {
-            "version": 1,
-            "steps": [{
-                "id": "A", "deps": [],
-                "contract": {"task": "Adapter task", "ready": ["input"], "done": ["output"]},
-            }],
-        })
+        self.assertEqual(self.f.run_bytes(), before)
+        self.assertFalse((self.f.run / "chains").exists())
 
     def test_graph_preflight_rejects_invalid_graphs_without_binding_then_allows_retry(self) -> None:
         valid = json.loads(self.f.graph.read_text())
@@ -685,20 +676,6 @@ class PlanningContextChainTests(unittest.TestCase):
             cold = self.f.call("packet", {"attempt": attempt})["packet"]
             self.assertEqual(cold, packet)
             self.assert_worker_guidance(cold, selected)
-
-    def test_fresh_final_return_binding_is_refused_before_writes(self) -> None:
-        for mode in ("parallel", "serial"):
-            with self.subTest(mode=mode):
-                test = self.new_fixture()
-                before = test.run_bytes()
-                head = test.git(test.target, "rev-parse", "HEAD")
-                worktrees = test.git(test.primary, "worktree", "list", "--porcelain")
-                refused = self.bind(test, mode=mode, capacity=1, lifecycle="final-return", ok=False)
-                self.assertRegex(refused.stderr.lower(), r"managed|per-step|final-return")
-                self.assertEqual(test.run_bytes(), before)
-                self.assertEqual(test.git(test.target, "rev-parse", "HEAD"), head)
-                self.assertEqual(test.git(test.primary, "worktree", "list", "--porcelain"), worktrees)
-                self.assertFalse((test.run / "chains").exists())
 
     def test_consumer_fixture_stops_before_edits_when_guidance_is_unavailable(self) -> None:
         self.bind(self.f, mode="serial", capacity=1)
@@ -1009,7 +986,7 @@ class PlanningContextChainTests(unittest.TestCase):
                 self.assertIn("import", refused.stderr.lower())
                 self.assertEqual(blocked.run_bytes(), before)
 
-    def test_legacy_dispatcher_refusal_and_existing_v1_binding_is_readonly(self) -> None:
+    def test_legacy_dispatcher_refusal_and_existing_v1_binding_is_refused(self) -> None:
         context_only = self.new_fixture()
         context_helper = context_only.dispatcher / "scripts" / "dispatch.js"
         context_helper.write_text(context_helper.read_text().replace(
@@ -1022,12 +999,13 @@ class PlanningContextChainTests(unittest.TestCase):
         self.assertFalse((context_only.run / "chains").exists())
 
         old = self.new_fixture()
-        old.select_dispatcher(fixture.LEGACY_FIXTURE)
+        # A dispatcher package without the planning-context helper is an old release.
+        (old.dispatcher / "scripts" / "planning-context.js").unlink()
         before = old.run_bytes()
         extra = (
             "--graph", str(old.graph), "--dispatcher-skill", str(old.dispatcher / "SKILL.md"),
             "--ask-agent-skill", str(old.ask / "SKILL.md"), "--worktree-parent", str(old.parent),
-            "--mode", "parallel", "--lifecycle", "per-step",
+            "--mode", "parallel",
         )
         refused = old.call("bind", ok=False, extra=extra)
         self.assertIn("cannot resolve dispatcher scripts/planning-context.js", refused.stderr)
@@ -1036,23 +1014,7 @@ class PlanningContextChainTests(unittest.TestCase):
 
         legacy = self.new_fixture()
         graph, graph_source = fixture.chain._freeze_graph(str(legacy.graph))
-        dispatcher = fixture.chain._package(
-            str(fixture.LEGACY_FIXTURE / "SKILL.md"), "dispatcher",
-            ("SKILL.md", "scripts/dispatch.js", "scripts/state.js", "references/protocol.md"),
-        )
-        ask_agent = fixture.chain._package(
-            str(legacy.ask / "SKILL.md"), "Ask-Agent", ("SKILL.md", "references/git-integration.md"),
-        )
         chain_dir = legacy.run / "chains" / legacy.action
-        chain_dir.mkdir(parents=True)
-        dispatcher_run = chain_dir / "dispatcher"
-        init = legacy.write("legacy-init.json", {"owner": "legacy-owner", "graph": graph})
-        initialized = subprocess.run(
-            [fixture.chain._node_path(), dispatcher["files"]["scripts/dispatch.js"]["path"],
-             "init", str(dispatcher_run), str(init)],
-            text=True, capture_output=True, timeout=30,
-        )
-        self.assertEqual(initialized.returncode, 0, initialized.stderr + initialized.stdout)
         binding = {
             "schema": "shiploop-chain-binding/v1",
             "run_id": legacy.state["run_id"],
@@ -1063,12 +1025,10 @@ class PlanningContextChainTests(unittest.TestCase):
             "capacity": 2,
             "graph": graph,
             "graph_source": graph_source,
-            "dispatcher": dispatcher,
-            "ask_agent": ask_agent,
             "node": fixture.chain._node_path(),
             "target": fixture.chain._git_identity(legacy.target),
             "worktree_parent": str(legacy.parent),
-            "dispatcher_run": str(dispatcher_run),
+            "dispatcher_run": str(chain_dir / "dispatcher"),
         }
         raw = fixture.store.dumps(binding, "ShipLoop chain binding")
         state = fixture.store.read_record(legacy.run / "state.md")
@@ -1081,14 +1041,13 @@ class PlanningContextChainTests(unittest.TestCase):
         before = legacy.run_bytes()
         head = legacy.git(legacy.target, "rev-parse", "HEAD")
         worktrees = legacy.git(legacy.primary, "worktree", "list", "--porcelain")
-        history = legacy.call("history")
-        pending = legacy.call("pending")
-        self.assertIsInstance(history, dict)
-        self.assertIsInstance(pending, dict)
-        self.assertEqual(legacy.run_bytes(), before)
-        self.assertEqual(legacy.git(legacy.target, "rev-parse", "HEAD"), head)
-        self.assertEqual(legacy.git(legacy.primary, "worktree", "list", "--porcelain"), worktrees)
-
+        for operation in ("history", "pending", "next"):
+            with self.subTest(operation=operation):
+                refused = legacy.call(operation, ok=False)
+                self.assertIn("chain binding schema shiploop-chain-binding/v1 is retired", refused.stderr)
+                self.assertEqual(legacy.run_bytes(), before)
+                self.assertEqual(legacy.git(legacy.target, "rev-parse", "HEAD"), head)
+                self.assertEqual(legacy.git(legacy.primary, "worktree", "list", "--porcelain"), worktrees)
 
 if __name__ == "__main__":
     unittest.main(verbosity=2)

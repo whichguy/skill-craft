@@ -60,7 +60,7 @@ while [[ $# -gt 0 ]]; do
       [[ -n "$data_home" ]] || { printf 'devloop-setup: --data-home requires DIR\n' >&2; exit 64; }
       shift 2
       ;;
-    --force|--force-bootstrap) force=1; shift ;;
+    --force) force=1; shift ;;
     --force-hard) force_hard=1; shift ;;
     --allow-hermes-seed) allow_hermes_seed=1; shift ;;
     *) printf 'devloop-setup: unknown option: %s\n' "$1" >&2; usage >&2; exit 64 ;;

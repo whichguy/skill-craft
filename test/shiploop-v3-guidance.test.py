@@ -203,7 +203,6 @@ class V3GuidanceTests(unittest.TestCase):
         return navigator.new_state(
             str(self.repo),
             "Build a small capability with the repository's approved convention.",
-            protocol_version=3,
             improve_skill="",
             delegation="ask-agent",
         )
@@ -750,8 +749,8 @@ class V3GuidanceTests(unittest.TestCase):
                     "contract_marker": "ShipLoop standalone Improve binding: " + child["binding_id"],
                     "skill": {
                         "skill_card": str(self.repo / "improve/SKILL.md"),
-                        "runtime_card": str(self.repo / "until-loop/SKILL.md"),
-                        "runtime_cli": str(self.repo / "until-loop/scripts/until-loop"),
+                        "runtime_card": str(self.repo / "until-loop/ADAPTER.md"),
+                        "runtime_cli": str(self.repo / "until-loop/scripts/until_loop_ephemeral.py"),
                         "skill_version": "synthetic",
                         "runtime_version": "synthetic",
                     },
@@ -1706,7 +1705,7 @@ class V3GuidanceTests(unittest.TestCase):
 
     def test_v3_improve_and_source_return_guidance_keep_the_existing_boundary(self) -> None:
         card = IMPROVE_CARD.read_text(encoding="utf-8")
-        self.assertIn("## ShipLoop v3/v4 whole-skill subcall", card)
+        self.assertIn("## ShipLoop whole-skill subcall", card)
         self.assertIn("When a ShipLoop v3 or v4 packet", card)
         self.assertIn("parent-only stopped-child reconciliation callback", normalized(card))
         self.assertIn("no other stopped child advances the parent", normalized(card))

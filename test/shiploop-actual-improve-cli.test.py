@@ -5,7 +5,6 @@ import hashlib
 import json
 import re
 import os
-import shutil
 import subprocess
 import sys
 import tempfile
@@ -22,7 +21,6 @@ import shiploop_store as store  # noqa: E402
 CLI = ROOT / "skills/shiploop/scripts/shiploop"
 CARD = ROOT / "skills/improve/SKILL.md"
 EPHEMERAL = ROOT / "skills/improve/runtime/until-loop/scripts/until_loop_ephemeral.py"
-LEGACY_UNTIL = ROOT / "skills/improve/runtime/until-loop/scripts/until-loop"
 DEFAULT_COMMIT_AUTHORITY = (
     "After the meaningful checks required by the current scope, commit authorized "
     "scoped changed files, including tests, documentation, configuration and skills when in scope. Never commit runtime evidence or inherited "
@@ -36,7 +34,7 @@ EXPLICIT_NO_COMMIT_AUTHORITY = (
 
 
 class ImproveCliFixture(unittest.TestCase):
-    """Hermetic parent fixture shared by ephemeral and explicit legacy routes."""
+    """Hermetic parent fixture shared by the inline and Ask-Agent ephemeral routes."""
 
     # None follows the CLI's new-run default (inline); subclasses pin ask-agent.
     delegation = None
@@ -124,7 +122,7 @@ class ImproveCliFixture(unittest.TestCase):
             }
             path = self.run / "inbox" / (action + ".md")
             store.write_record(path, setup)
-            self.invoke(CLI, "done", "--run-dir", self.run, "--action", action, "--result", path)
+            self.invoke(CLI, "complete", "--run-dir", self.run, "--action", action, "--result", path)
             state = store.read_record(self.run / "state.md")
         self.state = state
         self.action = self.state["action"]["id"]
@@ -132,7 +130,7 @@ class ImproveCliFixture(unittest.TestCase):
                          "evidence_refs": self.parent_evidence_refs}
         self.input = self.run / "inbox" / (self.action + ".md")
         store.write_record(self.input, self.producer)
-        self.invoke(CLI, "done", "--run-dir", self.run, "--action", self.action, "--result", self.input)
+        self.invoke(CLI, "complete", "--run-dir", self.run, "--action", self.action, "--result", self.input)
         self.bind_current(card)
 
     def _start_parent_at_stage(self, stage, evidence_refs, card=CARD):
@@ -176,7 +174,7 @@ class ImproveCliFixture(unittest.TestCase):
         }
         self.input = self.run / "inbox" / (self.action + ".md")
         store.write_record(self.input, self.producer)
-        self.invoke(CLI, "done", "--run-dir", self.run, "--action", self.action, "--result", self.input)
+        self.invoke(CLI, "complete", "--run-dir", self.run, "--action", self.action, "--result", self.input)
         self.bind_current(card)
 
     def bind_current(self, card=CARD):
@@ -316,7 +314,7 @@ class ImproveCliFixture(unittest.TestCase):
         }
         self.input = self.run / "inbox" / (self.action + ".md")
         store.write_record(self.input, self.producer)
-        self.invoke(CLI, "done", "--run-dir", self.run, "--action", self.action, "--result", self.input)
+        self.invoke(CLI, "complete", "--run-dir", self.run, "--action", self.action, "--result", self.input)
         self.bind_current()
         self.finish_ephemeral()
         completion, _receipt = self.completion_receipt()
@@ -337,62 +335,8 @@ class ImproveCliFixture(unittest.TestCase):
         }
         self.input = self.run / "inbox" / (self.action + ".md")
         store.write_record(self.input, self.producer)
-        self.invoke(CLI, "done", "--run-dir", self.run, "--action", self.action, "--result", self.input)
+        self.invoke(CLI, "complete", "--run-dir", self.run, "--action", self.action, "--result", self.input)
         return stage, self.action, store.read_record(self.run / "state.md")
-
-    def legacy_card(self):
-        root = self.base / "legacy-improve"
-        runtime = root / "runtime/until-loop"
-        scripts = runtime / "scripts"
-        scripts.mkdir(parents=True)
-        card = root / "SKILL.md"
-        card.write_text("---\nname: improve\nversion: legacy-fixture\n---\nExplicit legacy until-loop v2 fixture.\n", encoding="utf-8")
-        (runtime / "ADAPTER.md").write_text("---\nname: until-loop\nversion: legacy-fixture\n---\nLegacy v2 runtime.\n", encoding="utf-8")
-        (runtime / "references").mkdir()
-        shutil.copyfile(LEGACY_UNTIL.parent.parent / "references/decision-rubric.md",
-                        runtime / "references/decision-rubric.md")
-        for name in ("until-loop", "until_loop_v2.py", "until_loop_packet.py"):
-            shutil.copyfile(LEGACY_UNTIL.parent / name, scripts / name)
-        return card
-
-    def legacy_parent(self, card):
-        run = self.base / "legacy-run"
-        self.invoke(CLI, "init", "--repo", self.repo, "--run-dir", run,
-                    "--prompt", "Legacy composition fixture", "--improve-skill", card)
-        state = store.read_record(run / "state.md")
-        # intake, discovery and research are not planning stages; advance
-        # them directly before the first checkpoint (spec).
-        for _predecessor in ("intake", "discovery", "research"):
-            action = state["action"]["id"]
-            input_path = run / "inbox" / (action + ".md")
-            store.write_record(input_path, {"outcome": "done", "summary": "Legacy fixture"})
-            self.invoke(CLI, "done", "--run-dir", run, "--action", action, "--result", input_path)
-            state = store.read_record(run / "state.md")
-        action = state["action"]["id"]
-        input_path = run / "inbox" / (action + ".md")
-        store.write_record(input_path, {"outcome": "done", "summary": "Legacy fixture"})
-        self.invoke(CLI, "done", "--run-dir", run, "--action", action, "--result", input_path)
-        self.invoke(CLI, "improve-bind", "--run-dir", run, "--action", action, "--skill-card", card)
-        return run, action, store.read_record(run / "state.md")["active_improve"]
-
-    def initialize_legacy_child(self, runtime, binding):
-        contract = {
-            "version": 1, "policy": "decision-rubric/2",
-            "original_request": "Legacy protocol-only fixture.\n" + binding["contract_marker"],
-            "interpretation": "Test durable v2 compatibility without ambient selection.",
-            "criteria": [{"id": "C1", "text": "Fixture evidence exists", "basis": {"kind": "request", "reference": "fixture"}}],
-        }
-        contract_path = self.base / "legacy-contract.json"
-        contract_path.write_text(json.dumps(contract), encoding="utf-8")
-        self.invoke(runtime, "v2", "init", "--repo", self.repo, "--contract-file", contract_path)
-        child = json.loads((self.repo / ".until-loop/state.json").read_text(encoding="utf-8"))
-        Path(child["action"]["result_path"]).write_text(json.dumps({
-            "action_id": child["action"]["id"], "contract_revision": 1, "decision": "complete",
-            "criteria": [{"id": "C1", "status": "satisfied", "evidence": "Synthetic legacy fixture"}],
-            "next_action": None, "blocker": None,
-        }), encoding="utf-8")
-        return child
-
 
 class EphemeralImproveCliTests(ImproveCliFixture):
     def test_context_first_assignment_and_learning_header_survive_recovery(self):
@@ -415,7 +359,7 @@ class EphemeralImproveCliTests(ImproveCliFixture):
             packet = self.invoke(CLI, "next", "--run-dir", self.run).stdout
             if self.inline():
                 self.assertIn("Context-first opening: before start, write 'Current context and desired improvements'", packet)
-                self.assertIn("Run the selected Improve card's ShipLoop v3/v4 whole-skill subcall in this conversation", packet)
+                self.assertIn("Run the selected Improve card's ShipLoop whole-skill subcall in this conversation", packet)
                 self.assertIn("Return order:", packet)
                 self.assertIn("keep the frozen launch context unchanged", packet)
                 self.assertIn("Binding line: copy the next line verbatim into frozen context.request exactly once, "
@@ -501,7 +445,7 @@ class EphemeralImproveCliTests(ImproveCliFixture):
                         for line in guide.read_text(encoding="utf-8").splitlines() if line.startswith("#")]
             self.assertIn(anchor, headings)
             self.assertIn("Parent callback; run only after the runtime returned complete", packet)
-            self.assertIn("Delegation: inline. Run the selected Improve card's ShipLoop v3/v4 whole-skill subcall", packet)
+            self.assertIn("Delegation: inline. Run the selected Improve card's ShipLoop whole-skill subcall", packet)
             for delegated in ("consumer-owned", "host-owner.md", "delegation_owner", "improve-agent"):
                 self.assertNotIn(delegated, packet)
             self.assertIn("Return order:", packet)
@@ -577,7 +521,6 @@ class EphemeralImproveCliTests(ImproveCliFixture):
         state = navigator.new_state(
             str(self.repo),
             user_no_commit,
-            protocol_version=3,
             improve_skill=str(CARD),
         )
         # intake, discovery and research are not planning stages; advance
@@ -726,7 +669,7 @@ class EphemeralImproveCliTests(ImproveCliFixture):
 
     def test_default_ephemeral_callbacks_preserve_context_then_import_once(self):
         """Cumulative report transport, not proof of model review or summarization."""
-        self.assertEqual(self.state["navigator_protocol_version"], 3)
+        self.assertEqual(self.state["navigator_protocol_version"], 4)
         self.assertEqual(self.bound["skill"]["runtime_cli"], str(EPHEMERAL.resolve()))
         self.assertEqual(self.bound["skill"]["runtime_version"], "0.4.0-rc.2")
         selected_frontmatter = CARD.read_text(encoding="utf-8").split("---", 2)[1]
@@ -1126,12 +1069,12 @@ class EphemeralImproveCliTests(ImproveCliFixture):
             action = state["action"]["id"]
             result_path = run / "inbox" / (action + ".md")
             store.write_record(result_path, {"outcome": "done", "summary": "Fixture producer"})
-            self.invoke(CLI, "done", "--run-dir", run, "--action", action, "--result", result_path)
+            self.invoke(CLI, "complete", "--run-dir", run, "--action", action, "--result", result_path)
             state = store.read_record(run / "state.md")
         action = state["action"]["id"]
         result_path = run / "inbox" / (action + ".md")
         store.write_record(result_path, {"outcome": "done", "summary": "Fixture producer"})
-        self.invoke(CLI, "done", "--run-dir", run, "--action", action, "--result", result_path)
+        self.invoke(CLI, "complete", "--run-dir", run, "--action", action, "--result", result_path)
         before = (run / "state.md").read_bytes()
         cold = subprocess.run([sys.executable, "-B", str(CLI), "next", "--run-dir", str(run)], cwd="/",
                               text=True, capture_output=True, timeout=30, env=self.environment)
@@ -1180,7 +1123,7 @@ class EphemeralImproveCliTests(ImproveCliFixture):
         self.input = self.run / "inbox" / (self.action + ".md")
         store.write_record(self.input, {"outcome": "done", "summary": "Fixture spec evidence.",
                                         "evidence_refs": self.parent_evidence_refs})
-        self.invoke(CLI, "done", "--run-dir", self.run, "--action", self.action, "--result", self.input)
+        self.invoke(CLI, "complete", "--run-dir", self.run, "--action", self.action, "--result", self.input)
         self.bind_current(CARD)
         completion, receipt = self.completion_receipt()
         _raw, active = self.start_ephemeral_child()
@@ -1231,41 +1174,9 @@ class EphemeralImproveCliTests(ImproveCliFixture):
         input_path = self.run / "inbox" / (action + ".md")
         store.write_record(input_path, {"outcome": "done", "summary": "Final fixture handoff",
                                         "evidence_refs": self.parent_evidence_refs})
-        self.invoke(CLI, "done", "--run-dir", self.run, "--action", action, "--result", input_path)
+        self.invoke(CLI, "complete", "--run-dir", self.run, "--action", action, "--result", input_path)
         self.assertEqual(store.read_record(self.run / "state.md")["status"], "done")
         self.assertEqual(receipt["summary"], "Runtime mechanics completed; no actual review claim.")
-
-
-class LegacyImproveCliCompatibilityTests(ImproveCliFixture):
-    def test_explicit_legacy_card_still_composes_durable_v2(self):
-        card = self.legacy_card()
-        run, action, binding = self.legacy_parent(card)
-        runtime = card.parent / "runtime/until-loop/scripts/until-loop"
-        self.assertEqual(binding["skill"]["runtime_cli"], str(runtime.resolve()))
-        packet = self.invoke(CLI, "next", "--run-dir", run).stdout
-        # The durable runtime has no packet receipt; its callback must not wait for one.
-        self.assertNotIn("saved at the receipt above", packet)
-        self.assertIn("Binding line: copy the next line verbatim into the child contract original_request "
-                      "exactly once, alone on its own line", packet)
-        child = self.initialize_legacy_child(runtime, binding)
-        state_path = self.repo / ".until-loop/state.json"
-        before_cold_next = state_path.read_bytes()
-        cold = self.invoke(runtime, "v2", "next", "--repo", self.repo)
-        self.assertIn(binding["contract_marker"], cold.stdout)
-        self.assertEqual(before_cold_next, state_path.read_bytes())
-        root = self.repo / ".until-loop"
-        for name in ("working.md", "review-a.md", "review-b.md", "checks.md"):
-            (root / name).write_text("Synthetic legacy evidence: " + name + "\n", encoding="utf-8")
-        completion = run / "inbox" / (action + "-improve.md")
-        store.write_record(completion, {"summary": "Legacy runtime mechanics complete.",
-                                        "review_refs": [str(root / "review-a.md"), str(root / "review-b.md")],
-                                        "check_refs": [str(root / "checks.md")]})
-        self.invoke(CLI, "improve-complete", "--run-dir", run, "--action", action, "--result", completion, status=2)
-        self.invoke(runtime, "v2", "submit", "--repo", self.repo, "--action-id", child["action"]["id"])
-        self.invoke(CLI, "improve-complete", "--run-dir", run, "--action", action, "--result", completion)
-        record = store.read_record(run / "state.md")["improve_results"][action]
-        self.assertEqual(record["runtime_phase"], "done")
-        self.assertTrue((run / "improve" / action / "state.json").is_file())
 
 
 class AskAgentEphemeralImproveCliTests(ImproveCliFixture):

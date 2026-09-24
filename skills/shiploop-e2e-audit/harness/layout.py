@@ -37,9 +37,7 @@ def canonical_source_checkout() -> Path | None:
         return None
     checkout = skills_directory.parent
     expected_harness = checkout / "skills" / "shiploop-e2e-audit" / "harness"
-    legacy_harness = checkout / "test" / "experiments" / "shiploop_e2e"
-    if (expected_harness.resolve() != HARNESS_ROOT or not (checkout / ".git").exists()
-            or not legacy_harness.exists() or legacy_harness.resolve() != HARNESS_ROOT):
+    if expected_harness.resolve() != HARNESS_ROOT or not (checkout / ".git").exists():
         return None
     return checkout.resolve()
 

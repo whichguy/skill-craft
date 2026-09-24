@@ -52,7 +52,7 @@ and choose **exactly one**:
 | S5 | Else | Run exactly **one** `/review-converge`, land Log; do not start another round this turn | n/a |
 
 **Landed** means latest Log `Committed: yes` and a commit subject matching
-`review-converge: round N —` (or legacy `grok-review-converge: round N —`).
+`review-converge: round N —`.
 **There is no “keep going forever while active.”** `active` = at most one more
 unit of work, then re-evaluate.
 

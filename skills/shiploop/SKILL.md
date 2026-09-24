@@ -5,7 +5,7 @@ description: >-
   script's current action packet, and submit its exact completion call until
   the script reports completion with an HTML achievement report. Use when the
   user says shiploop, ship the project, or requests a durable delivery loop.
-version: 0.23.0
+version: 0.24.0
 allowed-tools: all
 license: MIT
 platforms:
@@ -28,24 +28,20 @@ The script owns graph navigation: it keeps durable Markdown navigation state
 and returns the prompt for the current step together with the one callback that
 completes it. The host is a library call: it performs that one step and runs the
 printed callback, then follows the packet the callback returns. It never chooses
-a successor itself. Navigator protocol 3 is the default and protocol 4 is an
-opt-in pilot; these are the only protocols. At a planning stage or the last
-carry-forward, the script parks that same parent action while the selected
+a successor itself. Navigator protocol 4 is the only protocol. At a planning
+stage or the last carry-forward, the script parks that same parent action while the selected
 actual Improve skill runs its own bound Until Loop cycle. `state.md` owns SDLC
 traversal; the Improve child owns its iterations and runtime state. The host
-follows one current owner at a time. V4 keeps the same parked parent/child
-ownership and adds only its packet-issued planning experiment and
-reconciliation behavior.
+follows one current owner at a time. The initial plan child may also run
+packet-issued planning experiments and request reconciliation.
 
-## Opt-in experiment-informed planning
+## Experiment-informed planning
 
-For a fresh run, `workspace start --protocol-version 4` (or `init
---navigator-version 4`) enables [experiments during planning](references/planning-experiments.md).
+Every run supports [experiments during planning](references/planning-experiments.md).
 The existing Plan Improve child investigates consequential assumptions. When a
 finding invalidates an upstream premise, the parent can settle its stopped child
 and rerun the affected planning suffix before preparation. Follow only the
-packet-issued reconciliation callback. V3 remains the default. This pilot does
-not replace graphs after dispatch.
+packet-issued reconciliation callback. Graphs are not replaced after dispatch.
 
 ## Start or resume
 
@@ -56,7 +52,7 @@ do not add approval questions at each phase, experiment, review, or child launch
 The parent reads packets and submits parent callbacks. Under the default
 `delegation: inline` ([execution delegation](#execution-delegation)), this
 conversation also executes each assignment itself, including each new bound
-v3/v4 ephemeral Improve invocation, which it runs through the selected Improve
+ephemeral Improve invocation, which it runs through the selected Improve
 skill in the existing Child workspace. Only a `delegation: ask-agent` run
 prefers one fresh native worker for a new Improve invocation through the
 selected Ask Agent's explicit consumer-owned workspace route; that worker owns
@@ -192,10 +188,9 @@ python3 "$CLI" init --repo "$REPO" --run-dir "$RUN_DIR" \
   --improve-skill="$IMPROVE_SKILL" --prompt='<user request>'
 ```
 
-New workspace and direct runs use navigator **protocol 3** unless
-`workspace start --protocol-version 4` (or `init --navigator-version 4`) opts in
-to the pilot. A saved run the current code cannot load, including any navigator
-v1/v2, managed or legacy run, is refused with an error that names its protocol
+New workspace and direct runs use navigator **protocol 4**; there is no protocol
+selector. A saved run the current code cannot load, including any navigator
+v1/v2/v3, managed or legacy run, is refused with an error that names its protocol
 or mode; start a fresh `--run-dir` (or workspace root) for that request. If
 new-run initialization did not select an Improve skill, the first Improve
 checkpoint stays pending until its packet directs the owner to bind the selected
@@ -236,7 +231,7 @@ route rather than generating a replacement workflow.
 
 ### Execution delegation
 
-A new protocol 3/4 run from `workspace start` or `init` records `delegation:
+A new run from `workspace start` or `init` records `delegation:
 inline`: this conversation is the only writer and executes every assignment,
 including Improve and implementation steps, without Ask Agent or native workers.
 Inline Improve checkpoints run the `improve` skill here, reviews and checks
@@ -244,7 +239,7 @@ included, and start no reviewer, test-runner or executor agent unless the user
 asked for independent review. Pass `--delegation ask-agent` at `workspace start`
 (or direct `init`) to opt in to the delegated route: each Improve checkpoint runs
 the `improve-agent` skill, which starts one fresh native worker that runs
-`/improve`, and implementation uses chains. Every v3/v4 run records the
+`/improve`, and implementation uses chains. Every run records the
 setting; a saved run without it is refused with an error naming the missing
 `delegation` key. An `init` or `workspace start` retry cannot change it. For an
 existing run, use:
@@ -308,7 +303,7 @@ clear and no delegation. Inline INNER Improve packets begin "Keep the invoking
 parent alive and run this Improve invocation inline.": the parent runs the whole
 invocation itself (see step 3 below) and never clears for it.
 
-On the opt-in `delegation: ask-agent` route, active v3/v4 INNER **producer**
+On the opt-in `delegation: ask-agent` route, active INNER **producer**
 packets begin with "Clear and then execute the prompt." Improve packets instead begin "Keep the invoking parent
 alive": never clear, replace or wrap the live parent for Improve. For an
 `implement` producer, select the packet's chain route first. During that producer, its bound mode and executor take precedence: parallel chains
@@ -365,7 +360,7 @@ retain the recovery locators and resume the same run when execution resumes.
 1. The owning agent reads the original goal, repository, current work item,
    relevant durable notes and the stage's instructions. The packet identifies
    one effective node, its owner, and exactly one completion callback. During
-   v3/v4 INNER work, the parent exposes exactly one active owner: the producer or
+   INNER work, the parent exposes exactly one active owner: the producer or
    its bound Improve child. On a `delegation: ask-agent` run, give a worker only
    that one current packet and the relevant scoped context. A delegated worker does not
    initialize another ShipLoop run, advance the parent graph, or submit the parent's
@@ -398,7 +393,7 @@ retain the recovery locators and resume the same run when execution resumes.
    Until Loop runtime own the improvement loop. For a new ephemeral child use
    [Improve context ownership](references/improve-context.md). Under
    `delegation: inline`, this parent conversation runs the selected card's
-   ShipLoop v3/v4 whole-skill subcall itself in the exact Child workspace, with no
+   ShipLoop whole-skill subcall itself in the exact Child workspace, with no
    Ask Agent, native worker, extra worktree or `host-owner.md`: write the
    context-first opening, put the packet's binding line alone and first in frozen
    `context.request`, and save the start packet before any review work. A later
@@ -425,7 +420,8 @@ retain the recovery locators and resume the same run when execution resumes.
    the parent return and import. On cold recovery,
    read the receipt and use its exact `next_argv` for an active child. Missing
    state/output is incomplete, never evidence of success or permission to restart.
-   The retained durable-v2 route follows its recorded adapter instead.
+   Only the ephemeral runtime is supported; a card or saved binding that names a
+   durable Until Loop runtime is refused.
    On accepted success, use `improve-complete` with the
    packet's completion evidence; the script imports it once and selects the next
    producer. A blocked or stopped child leaves the parent incomplete; follow the
@@ -433,9 +429,9 @@ retain the recovery locators and resume the same run when execution resumes.
    with the same binding line) once the blocker is resolved or the user authorizes
    continuing. Pause by pausing the parent; never report `cancelled` for a pause.
 4. The owning agent writes the packet's generic Markdown result and runs its
-   exact completion command, retaining the action ID. `done` and `complete` are
-   aliases. At an Improve checkpoint `done` starts the bound Improve child rather
-   than advancing the v3 graph directly; `repeat` requests another producer attempt, and `blocked`
+   exact completion command (`complete`), retaining the action ID. At an Improve
+   checkpoint a `done` outcome starts the bound Improve child rather
+   than advancing the graph directly; `repeat` requests another producer attempt, and `blocked`
    preserves unfinished work. These are result outcomes, not permission to pick
    an arbitrary successor. Consume the returned packet before beginning another
    stage.
@@ -508,7 +504,7 @@ ordering, recovery and completion examples. Planning includes backward
 prerequisite review; the host must place producers before consumers in the
 ordered work queue.
 
-After v3/v4 accepts `carry-forward` and imports its bound Improve completion, the
+After the navigator accepts `carry-forward` and imports its bound Improve completion, the
 locked state transaction marks the completed item, retains its evidence, and
 either creates the next item's `select-work` action or returns ownership to
 `system-test-author`. Root status and queue remain global. A `repeat` replaces
@@ -522,7 +518,7 @@ Implementation chains are the opt-in `delegation: ask-agent` route. Under
 `delegation: inline`, `step-plan` records a multi-step plan as ordered steps with
 direct dependencies, readiness and completion criteria, and checks, without a
 Plan Dispatcher execution graph; its actual Improve loop reviews them. Within the
-current v3/v4 `implement` action, execute the reviewed steps directly, one at a
+current `implement` action, execute the reviewed steps directly, one at a
 time in dependency order, in the execution checkout in this conversation: no
 chain binding, Ask Agent or native workers, and no Plan Dispatcher. Only verified
 steps are done. `chain bind` refuses a fresh binding on an inline run before any
@@ -533,7 +529,7 @@ On an ask-agent run, after creating initial steps, require their plan and execut
 the selected actual Improve loop before execution. The normal `plan`/`step-plan`
 handoff owns that review; follow the linked guide for late graph creation or
 material revisions. Retain the completed review's graph identity and evidence.
-For a reviewed graph within the current v3/v4 `implement` action that has safe
+For a reviewed graph within the current `implement` action that has safe
 dependency-independent steps, the main owner uses [the parallel implementation
 chain](references/parallel-chain.md) by default when the selected Plan Dispatcher
 and Ask-Agent contracts are compatible and observed native slots are available.
@@ -580,10 +576,10 @@ step, infer a launch from a recovered packet, or finish from an empty ready list
 describes graph acceptance only. Supply actual readiness, capacity and
 verification facts; if they prevent an offered action, retain that blocker rather
 than inventing a transition.
-Every new chain requires Ask-Agent 0.6 or newer with the declared managed-workspace
-capabilities and matching helper identity. Both parallel and serial preparation
-use that selected helper; caller-prepared worktrees and the 0.4 flow are not
-supported. Each step starts from the invoking branch's current integrated HEAD.
+Every new chain requires the selected Ask-Agent to declare the full current
+managed-workspace capability set and a matching helper identity; a version number
+alone does not qualify. Both parallel and serial preparation use that selected
+helper; caller-prepared worktrees are not supported. Each step starts from the invoking branch's current integrated HEAD.
 The parent imports and archives worker-local results, prepares and checks the
 combination, merges it into the invoking checkout and accepts the exact attempt.
 It refills safe ready capacity before asking the receipt owner to close accepted
@@ -609,28 +605,26 @@ planning file in the producer result's existing `evidence_refs`; explicitly
 registered external local specifications are valid, while URLs remain
 reference-only until materialized locally.
 Accepted is the only persisted step-done state. The derived `completion` view
-lists done/not-done; `done` aliases the existing verified `settle` transition.
+lists done/not-done; `chain done` is the one verified settlement transition.
 Use read-only `chain history` for timestamped audit events and `chain pending`
 for unfinished steps, unmet dependencies, capacity and cleanup recovery; neither dispatches
 work nor repairs state. Both take `--run-dir` and `--action` without an input file.
 Keep combined main-conversation status from actual execution observations and
 dispatcher state; progress reports never accept work or release dependencies.
 This does not parallelize whole work-item lifecycles.
-Only binding schema v6 is an execution route; an earlier binding, including a
-0.6 binding without the capability proof, is refused and kept only as
-diagnostic evidence. Binding schema and Ask-Agent version are separate
-identifiers. Preserve its workspaces and bind a newly reviewed chain rather than
-rebinding it. A cleanup failure
+Only binding schema v6 is supported; every chain operation, including history
+and pending, refuses an earlier binding. Preserve its workspaces and ledger and
+bind a newly reviewed chain rather than rebinding it. A cleanup failure
 leaves the step accepted and must be resolved without executing its work again.
 Final completion requires all contributions integrated and owned worker cleanup
 complete. Keep dirty targets, conflicts and unknown files as explicit blockers.
 
 ## Saved runs the current code cannot load
 
-ShipLoop keeps only the latest code: navigator protocols 3 and 4. There are no
+ShipLoop keeps only the latest code: navigator protocol 4. There are no
 compatibility modes and no migration. `next` and every other verb refuse a saved
-run from navigator v1/v2 or the removed managed and legacy modes with an error
-that names its protocol or mode, and refuse a v3/v4 state with unexpected or
+run from navigator v1/v2/v3 or the removed managed and legacy modes with an error
+that names its protocol or mode, and refuse a protocol 4 state with unexpected or
 missing keys (including a missing `delegation`) with an error that names them.
 Nothing is converted or partly resumed. Preserve the old run directory as
 evidence and start the same request again with a fresh `--run-dir` or workspace
@@ -645,8 +639,9 @@ perform implementation. See [dry-run activities](references/graph-dry-run.md).
 
 ## Source-aware Backchain selection
 
-For a new v3/v4 plan, retain `embedded` unless ordinary run notes
-intentionally select compatible `source-aware-native`. The native selection binds
+`source-aware-native` is the only Backchain route; there is no embedded
+Backchain mode. A planning host that calls Backchain records the selection in
+ordinary run notes. The native selection binds
 the observed Backchain `SKILL.md`, `backchain-caller/v1` action/stage resource,
 `references/convergence.md`, and `prompts/convergence-review.prompt.md`, plus the selected
 physical Until Loop root with its card, `references/runtime-ephemeral.md`, and
@@ -684,7 +679,7 @@ companions, but may not commit, push, merge, execute the project, or broaden sco
 Use the selected card only when it and the contract/resource are observed and
 compatible. A missing, stale, ambiguous, or incompatible material input is an
 incomplete/blocked native request with its recovery locator, not permission to
-guess, silently use another package, or call embedded native. The host judges
+guess or silently use another package. The host judges
 capability and source adequacy, including the host-judged semantic compatibility of
 the direct handoff; the ShipLoop script does not claim to machine-enforce those
-judgments. Existing cold runs preserve their recorded mode.
+judgments.

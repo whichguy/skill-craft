@@ -29,9 +29,10 @@ import shiploop_store as store
 
 
 STATE_VERSION = 3
-LATEST_PROTOCOL_VERSION = 3
-MAX_SUPPORTED_PROTOCOL_VERSION = 4
-_PROTOCOL_VERSIONS = frozenset((3, 4))
+# Navigator protocol 4 is the only protocol; saved runs from earlier protocols
+# are refused by retired_run_reason.
+PROTOCOL_VERSION = 4
+_PROTOCOL_VERSIONS = (PROTOCOL_VERSION,)
 _ACTION_ID = re.compile(r"^[A-Za-z][A-Za-z0-9_-]{0,159}$")
 _WORK_ITEM_ID = re.compile(r"^[A-Za-z][A-Za-z0-9_-]{0,63}$")
 _STATUSES = frozenset(("active", "paused", "blocked", "halted", "done"))
@@ -39,7 +40,7 @@ _RESULT_KEYS = frozenset((
     "outcome", "summary", "evidence_refs", "work_items", "choices", "delivery_assessment",
     "reconciliation_target",
 ))
-_STATE_KEYS_V3 = frozenset(
+_STATE_KEYS = frozenset(
     (
         "version",
         "navigator_protocol_version",
@@ -66,9 +67,9 @@ _STATE_KEYS_V3 = frozenset(
         "chain_bindings",
         "delegation",
         "delegation_hold",
+        "planning_reconciliations",
     )
 )
-_STATE_KEYS_V4 = _STATE_KEYS_V3 | frozenset(("planning_reconciliations",))
 # Run-level execution delegation.  Every run records it; new runs default to
 # ``inline``.
 DELEGATIONS = guidance3.DELEGATIONS
@@ -77,9 +78,15 @@ DEFAULT_DELEGATION = guidance3.INLINE
 FRESH_RUN_HINT = ("Preserve it; this ShipLoop cannot resume it. Start new work with init or "
                   "workspace start in a fresh --run-dir.")
 _MANAGED_MARKER = "managed_improve_protocol_version"
+_EPHEMERAL_IMPROVE_RUNTIME = "until_loop_ephemeral.py"
+# Printed for a saved run whose bound Improve child names a durable runtime; the
+# Improve card is fixed at init, so the only route is a fresh run.
+DURABLE_IMPROVE_REASON = ("this run's bound Improve child uses a retired durable Until Loop "
+                          "runtime, which ShipLoop no longer supports. " + FRESH_RUN_HINT)
 
 __all__ = [
     "NavigatorError",
+    "PROTOCOL_VERSION",
     "STATE_VERSION",
     "apply",
     "control",
@@ -107,28 +114,38 @@ def recorded_delegation(state: Mapping[str, Any]) -> str:
 def retired_run_reason(state: Any) -> str | None:
     """Name a saved run from a removed protocol or mode; ``None`` when not retired.
 
-    Protocols 1 and 2 and the managed/legacy stage machine were removed.  Their
-    saved runs are refused here, never routed into another graph.
+    Protocols 1, 2 and 3 and the managed/legacy stage machine were removed.
+    Their saved runs are refused here, never routed into another graph.
     """
     if not isinstance(state, Mapping):
         return None
     if "navigator_protocol_version" in state:
         version = state.get("navigator_protocol_version")
-        if type(version) is int and version in (1, 2):
+        if type(version) is int and version in (1, 2, 3):
             return (f"this run was saved with navigator protocol {version}, which ShipLoop no "
-                    "longer supports (only protocols 3 and 4). " + FRESH_RUN_HINT)
+                    "longer supports (only protocol 4). " + FRESH_RUN_HINT)
+        if _durable_improve_runtime(state):
+            return DURABLE_IMPROVE_REASON
         return None
     if state.get("execution_mode") in ("navigator", "navigator-worktree"):
         return None
     mode = "managed" if _MANAGED_MARKER in state else "legacy"
     return (f"this run was saved in the retired {mode} execution mode, which ShipLoop no "
-            "longer supports (only navigator protocols 3 and 4). " + FRESH_RUN_HINT)
+            "longer supports (only navigator protocol 4). " + FRESH_RUN_HINT)
+
+
+def _durable_improve_runtime(state: Mapping[str, Any]) -> bool:
+    """True when the saved active Improve child names a retired durable runtime."""
+    child = state.get("active_improve")
+    selected = child.get("skill") if isinstance(child, Mapping) else None
+    runtime = selected.get("runtime_cli") if isinstance(selected, Mapping) else None
+    return isinstance(runtime, str) and Path(runtime).name != _EPHEMERAL_IMPROVE_RUNTIME
 
 
 def retired_json_run_reason(run_dir: Path) -> str:
     """Name a run directory that holds only the retired JSON state file."""
     return (f"{Path(run_dir) / 'state.json'} is a retired JSON-state run, which ShipLoop no "
-            "longer supports (only navigator protocols 3 and 4). " + FRESH_RUN_HINT)
+            "longer supports (only navigator protocol 4). " + FRESH_RUN_HINT)
 
 
 def _improve_checkpoint(state: Mapping[str, Any], stage: str, result: Mapping[str, Any]) -> bool:
@@ -163,7 +180,7 @@ def delegation(state: Mapping[str, Any]) -> str:
 
 
 def graph(state: Mapping[str, Any]) -> tuple[tuple[str, ...], tuple[str, ...], tuple[str, ...]]:
-    """Return the protocol 3/4 execution graph."""
+    """Return the protocol 4 execution graph."""
     return guidance3.PRELUDE, guidance3.INNER, guidance3.OUTER
 
 
@@ -229,26 +246,22 @@ def _normalise_choices(value: Any, stage: str) -> dict[str, bool]:
 
 
 def _canonical_result(
-    value: Any, *, stage: str, delivery_contract: bool = False, protocol_version: int
+    value: Any, *, stage: str, delivery_contract: bool = False
 ) -> dict[str, Any]:
     _need(isinstance(value, Mapping), "result must be an object")
     keys = set(value)
     _need({"outcome", "summary"} <= keys, "result requires outcome and summary")
     _need(keys <= _RESULT_KEYS, "result has unsupported fields")
     outcome = value.get("outcome")
-    outcomes = (
-        ("done", "repeat", "blocked", "replan", "reconcile") if protocol_version == 4
-        else ("done", "repeat", "blocked", "replan")
-    )
-    _need(outcome in outcomes,
+    _need(outcome in ("done", "repeat", "blocked", "replan", "reconcile"),
           "result outcome must be done, repeat, blocked, or a supported corrective replan")
     if outcome == "reconcile":
-        _need(protocol_version == 4 and stage == "plan" and set(value) == {
+        _need(stage == "plan" and set(value) == {
             "outcome", "summary", "evidence_refs", "reconciliation_target",
-        }, "reconcile is allowed only as the exact v4 plan result")
+        }, "reconcile is allowed only as the exact plan result")
     else:
         _need("reconciliation_target" not in value,
-              "reconciliation_target is allowed only with a v4 reconcile result")
+              "reconciliation_target is allowed only with a reconcile result")
     if outcome == "replan":
         _need(stage in guidance3.OUTER and "work_items" in value,
               "replan requires corrective work_items at an outer stage")
@@ -339,7 +352,6 @@ def new_state(
     prompt: str,
     bound_plan: str = "",
     *,
-    protocol_version: int = LATEST_PROTOCOL_VERSION,
     delivery_contract: bool = False,
     worktree: bool = False,
     improve_skill: str = "",
@@ -349,8 +361,6 @@ def new_state(
 
     ``delegation`` records the run's execution route (inline or ask-agent).
     """
-    _need(type(protocol_version) is int and protocol_version in _PROTOCOL_VERSIONS,
-          "unsupported navigator protocol version; expected 3 or 4")
     _need(type(delivery_contract) is bool, "delivery_contract must be boolean")
     _need(type(worktree) is bool, "worktree must be boolean")
     _need(delegation in DELEGATIONS, "delegation must be inline or ask-agent")
@@ -362,7 +372,7 @@ def new_state(
     _text(bound_plan, "bound_plan", allow_empty=True)
     state: dict[str, Any] = {
         "version": STATE_VERSION,
-        "navigator_protocol_version": protocol_version,
+        "navigator_protocol_version": PROTOCOL_VERSION,
         "execution_mode": "navigator-worktree" if worktree else "navigator",
         "run_id": "nav-" + uuid.uuid4().hex,
         "revision": 0,
@@ -378,6 +388,7 @@ def new_state(
         "accepted": {},
         "history": [],
         "inner_loops": {},
+        "planning_reconciliations": [],
     }
     if delivery_contract:
         state["delivery_contract_version"] = consumer_delivery.DELIVERY_CONTRACT_VERSION
@@ -391,8 +402,6 @@ def new_state(
             raise NavigatorError("cannot make the selected Improve locator absolute") from exc
     state.update(improve_skill=selected, active_improve=None, improve_results={},
                  delegation=delegation)
-    if protocol_version == 4:
-        state["planning_reconciliations"] = []
     validate(state)
     return state
 
@@ -408,10 +417,10 @@ def _validate_action(action: Any, stage: str, label: str) -> str:
 
 
 def _validate_v2(state: Mapping[str, Any]) -> None:
-    """Validate a protocol 3/4 state (the inner-loop cursor shape began at v2)."""
+    """Validate a protocol 4 state (the inner-loop cursor shape began at v2)."""
     keys = set(state)
     version = state.get("navigator_protocol_version")
-    allowed = _STATE_KEYS_V4 if version == 4 else _STATE_KEYS_V3
+    allowed = _STATE_KEYS
     prelude, inner, outer = graph(state)
     stages = prelude + inner + outer
     _need("delegation" in keys,
@@ -526,7 +535,7 @@ def _validate_v2(state: Mapping[str, Any]) -> None:
         history_ids.append(entry_action)
         _need(entry_action in accepted, "navigator history action has no accepted result")
         canonical = _canonical_result(
-            accepted[entry_action], stage=entry_stage, delivery_contract=delivery_contract, protocol_version=version
+            accepted[entry_action], stage=entry_stage, delivery_contract=delivery_contract
         )
         _need(canonical == accepted[entry_action], "accepted navigator result is not canonical")
         _need(entry.get("outcome") == canonical["outcome"], "navigator history outcome disagrees")
@@ -592,7 +601,7 @@ def _validate_v2(state: Mapping[str, Any]) -> None:
               "Improve binding identity mismatch")
         _need(child["workspace"] == state["repo"], "Improve workspace mismatch")
         seed = _canonical_result(child["seed_result"], stage=child["stage"],
-                                 delivery_contract=delivery_contract, protocol_version=version)
+                                 delivery_contract=delivery_contract)
         _need(seed == child["seed_result"],
               "Improve requires a canonical step attempt result")
         selected = child["skill"]
@@ -610,17 +619,18 @@ def _validate_v2(state: Mapping[str, Any]) -> None:
                 _text(value, "selected Improve " + key)
                 if not key.endswith("version"):
                     _need(Path(value).is_absolute(), "selected Improve paths must be absolute")
+            _need(Path(selected["runtime_cli"]).name == _EPHEMERAL_IMPROVE_RUNTIME,
+                  DURABLE_IMPROVE_REASON)
         _need(status != "done", "completed parent cannot own an active child")
-    if version == 4:
-        try:
-            planning_revision.validate(state)
-        except planning_revision.PlanningRevisionError as exc:
-            raise NavigatorError(str(exc)) from exc
-        # Once plan has advanced, its complete projected planning suffix is
-        # a recovery precondition as well as an acceptance-time check.
-        # A live plan action may legitimately precede a completed plan.
-        if stage == "prepare" or stage not in prelude:
-            _planning_sources_current(state)
+    try:
+        planning_revision.validate(state)
+    except planning_revision.PlanningRevisionError as exc:
+        raise NavigatorError(str(exc)) from exc
+    # Once plan has advanced, its complete projected planning suffix is
+    # a recovery precondition as well as an acceptance-time check.
+    # A live plan action may legitimately precede a completed plan.
+    if stage == "prepare" or stage not in prelude:
+        _planning_sources_current(state)
 
 
 def validate(state: Any) -> None:
@@ -630,7 +640,7 @@ def validate(state: Any) -> None:
     _need(retired is None, retired or "")
     protocol_version = state.get("navigator_protocol_version")
     _need(type(protocol_version) is int and protocol_version in _PROTOCOL_VERSIONS,
-          "unsupported navigator protocol version")
+          "unsupported navigator protocol version; expected 4")
     _validate_v2(state)
 
 
@@ -693,7 +703,7 @@ def _planning_sources_current(state: Mapping[str, Any]) -> None:
     missing = [stage for stage in planning_revision.PLANNING_STAGES[:-1]
                if (None, stage) not in current]
     _need(not missing,
-          "v4 prepare requires current projected planning sources: " + ", ".join(missing))
+          "prepare requires current projected planning sources: " + ", ".join(missing))
 
 
 def _apply_result(state: Mapping[str, Any], action_id: str, result: Any, improve_record: Any = None) -> dict[str, Any]:
@@ -707,8 +717,7 @@ def _apply_result(state: Mapping[str, Any], action_id: str, result: Any, improve
     if action_id in accepted:
         _need(replay is not None, "accepted navigator result has no history")
         submitted = _canonical_result(
-            result, stage=replay["stage"], delivery_contract=delivery_contract,
-            protocol_version=state["navigator_protocol_version"]
+            result, stage=replay["stage"], delivery_contract=delivery_contract
         )
         _need(submitted == accepted[action_id],
               "conflicting result replay for accepted navigator action")
@@ -719,8 +728,7 @@ def _apply_result(state: Mapping[str, Any], action_id: str, result: Any, improve
     action = current_action(state)
     _need(action_id == action["id"], "stale navigator action ID")
     canonical = _canonical_result(
-        result, stage=stage, delivery_contract=delivery_contract,
-        protocol_version=state["navigator_protocol_version"]
+        result, stage=stage, delivery_contract=delivery_contract
     )
     if delivery_contract:
         try:
@@ -792,7 +800,7 @@ def _apply_result(state: Mapping[str, Any], action_id: str, result: Any, improve
         validate(updated)
         return updated
 
-    if updated["navigator_protocol_version"] == 4 and stage == "plan":
+    if stage == "plan":
         _planning_sources_current(updated)
 
     if stage == "prepare":
@@ -819,7 +827,6 @@ def apply(state: Mapping[str, Any], action_id: str, result: Any) -> dict[str, An
         seed = record.get("seed_result", state["accepted"][action_id])
         prior = _action_history(state, action_id)
         submitted = _canonical_result(result, stage=prior["stage"],
-                                      protocol_version=state["navigator_protocol_version"],
                                       delivery_contract="delivery_contract_version" in state)
         _need(submitted["outcome"] != "reconcile",
               "reconcile requires improve-reconcile, never normal apply")
@@ -829,8 +836,7 @@ def apply(state: Mapping[str, Any], action_id: str, result: Any) -> dict[str, An
     stage = current_stage(state)
     _need(action_id == current_action(state)["id"], "stale navigator action ID")
     canonical = _canonical_result(result, stage=stage,
-        delivery_contract="delivery_contract_version" in state,
-        protocol_version=state["navigator_protocol_version"])
+        delivery_contract="delivery_contract_version" in state)
     _need(canonical["outcome"] != "reconcile",
           "reconcile requires improve-reconcile, never normal apply")
     child = state["active_improve"]
@@ -880,7 +886,6 @@ def finish_improve(state: Mapping[str, Any], action_id: str, record: Mapping[str
                              "still-required items from state.md work_items to keep the current queue")
     result = child["seed_result"] if final_result is None else final_result
     result = _canonical_result(result, stage=child["stage"],
-                               protocol_version=state["navigator_protocol_version"],
                                delivery_contract="delivery_contract_version" in state)
     _need(result["outcome"] != "reconcile",
           "reconcile requires improve-reconcile, never finish_improve")
@@ -924,8 +929,6 @@ def _canonical_workspace_identity(value: Any) -> str | None:
 
 
 def _reconciliation_permitted(state: Mapping[str, Any], action_id: str) -> Mapping[str, Any]:
-    _need(state["navigator_protocol_version"] == 4,
-          "improve-reconcile requires navigator protocol 4")
     _need(state["status"] == "active", "parent must be active to reconcile Improve")
     _need(state["stage"] == "plan" and state.get("work_index") == 0
           and not state.get("completed_work_items") and not state.get("inner_loops")
@@ -1001,7 +1004,7 @@ def reconcile(
             "evidence_refs": submitted["evidence_refs"],
             "reconciliation_target": submitted["target"],
         },
-        stage="plan", protocol_version=4,
+        stage="plan",
         delivery_contract="delivery_contract_version" in state,
     )
     updated = deepcopy(dict(state))
@@ -1144,7 +1147,7 @@ def _request_block(prompt: str, root: Path, run_id: str) -> list[str]:
 
 
 def _latest_done_test_strategy(state: Mapping[str, Any]) -> Mapping[str, Any] | None:
-    """Find the current v3/v4 root test strategy from accepted history."""
+    """Find the current root test strategy from accepted history."""
     current = planning_revision.current_actions(state)
     action_id = current.get((None, "test-strategy"))
     if action_id is None:
@@ -1156,7 +1159,7 @@ def _latest_done_test_strategy(state: Mapping[str, Any]) -> Mapping[str, Any] | 
 
 
 def _latest_done_current_test_decision(state: Mapping[str, Any]) -> Mapping[str, Any] | None:
-    """Find the current accepted decision source for the effective v3/v4 item."""
+    """Find the current accepted decision source for the effective item."""
     workitem = _current_work_item(state)
     if workitem is None:
         return None
@@ -1202,7 +1205,7 @@ def _latest_done_item_step_plan(state: Mapping[str, Any]) -> Mapping[str, Any] |
 
 
 def _test_context_lines(state: Mapping[str, Any], root: Path) -> list[str]:
-    """Project the two v3 test handoff sources without a second state ledger."""
+    """Project the two test handoff sources without a second state ledger."""
     lines: list[str] = []
     step_plan = _latest_done_item_step_plan(state)
     current = _latest_done_current_test_decision(state)
@@ -1343,15 +1346,13 @@ def _progress_lines(state: Mapping[str, Any]) -> list[str]:
     )
     last_replan = max((index for index, entry in enumerate(state["history"])
                        if entry["outcome"] == "replan"), default=-1)
-    if state["navigator_protocol_version"] == 4:
-        done = set(planning_revision.current_actions(state))
-    else:
-        done = {
-            (entry["workitem"], entry["stage"])
-            for index, entry in enumerate(state["history"])
-            if entry["outcome"] == "done"
-            and not (entry["stage"] in outer and index < last_replan)
-        }
+    # Reconciliation already removes an invalidated planning suffix; an outer
+    # replan likewise reopens every outer stage accepted before it.
+    position = {entry["action"]: index for index, entry in enumerate(state["history"])}
+    done = {
+        key for key, action_id in planning_revision.current_actions(state).items()
+        if not (key[1] in outer and position.get(action_id, -1) < last_replan)
+    }
 
     def compact(value: str, limit: int = 80) -> str:
         value = " ".join(value.split())
@@ -1433,11 +1434,10 @@ def render(core: Any, root: Path, state: Mapping[str, Any]) -> str:
     """Render a packet; worktree packets derive a read-only return projection."""
     validate(state)
     root = Path(root)
-    if state["navigator_protocol_version"] == 4:
-        try:
-            planning_revision.validate_archives(state, root)
-        except planning_revision.PlanningRevisionError as exc:
-            raise NavigatorError(str(exc)) from exc
+    try:
+        planning_revision.validate_archives(state, root)
+    except planning_revision.PlanningRevisionError as exc:
+        raise NavigatorError(str(exc)) from exc
     prelude, inner, outer = graph(state)
     stage = current_stage(state)
     action = current_action(state)
@@ -1600,12 +1600,11 @@ def render(core: Any, root: Path, state: Mapping[str, Any]) -> str:
             lines.append("At plan, supplied work_items replaces the complete ordered queue. "
                          "Omission retains the existing queue (initially W1); use that only "
                          "when it represents the whole approved plan.")
-            if state["navigator_protocol_version"] == 4:
-                lines.append("Revalidate the current work-item queue against the whole revised plan, "
-                             "including after reconciliation. If membership, order or context changes, "
-                             "return the complete ordered work_items in the producer result or Improve "
-                             "final_result. Omit work_items only after confirming the retained queue "
-                             "still represents the whole approved plan.")
+            lines.append("Revalidate the current work-item queue against the whole revised plan, "
+                         "including after reconciliation. If membership, order or context changes, "
+                         "return the complete ordered work_items in the producer result or Improve "
+                         "final_result. Omit work_items only after confirming the retained queue "
+                         "still represents the whole approved plan.")
         elif stage == "carry-forward":
             lines.extend([
                 "Omit work_items to retain the future queue. Supplied work_items replaces "
@@ -1615,8 +1614,7 @@ def render(core: Any, root: Path, state: Mapping[str, Any]) -> str:
                 "items. An empty array removes all future work; use it only when none remains "
                 "required. Explain removals, merges or supersession in the linked plan note.",
             ])
-    if (state["navigator_protocol_version"] == 4
-            and stage in planning_revision.PLANNING_STAGES[:-1]):
+    if stage in planning_revision.PLANNING_STAGES[:-1]:
         planning_notebook = (Path(state["repo"]) / ".shiploop-improve" / state["run_id"]
                              / "planning-investigation.md")
         purpose = {
@@ -1883,10 +1881,8 @@ def _render_improve(core: Any, root: Path, state: Mapping[str, Any], lines: list
         return "\n".join(lines) + "\n"
     skill = child["skill"]
     result_path = root / "inbox" / (action_id + "-improve.md")
-    ephemeral = Path(skill["runtime_cli"]).name == "until_loop_ephemeral.py"
     inline = delegation(state) == guidance3.INLINE
-    planning_reconcile = (state["navigator_protocol_version"] == 4
-                          and child["stage"] == "plan" and ephemeral)
+    planning_reconcile = child["stage"] == "plan"
     planning_lines: list[str] = []
     exclusion = (
         "Exclude .until-loop, .shiploop-improve and ShipLoop runtime metadata from product candidates, "
@@ -1930,109 +1926,85 @@ def _render_improve(core: Any, root: Path, state: Mapping[str, Any], lines: list
             "review-note writes keep their existing owners. Explicitly scoped candidate planning "
             "artifacts and the investigation notebook may be revised."
         )
-    commit_guidance = (
-        "For a genuinely new child, after the meaningful checks required by the current "
-        "scope, commit authorized scoped changed files, including tests, documentation, "
-        "configuration and skills when in scope. Never commit "
-        "runtime evidence or inherited unrelated staged work, and do not create an empty "
-        "commit unless an explicit audit-every-iteration rule authorizes it. An explicit "
-        "user- or repository-authorized no-commit instruction overrides this default. An "
-        "already frozen child contract keeps its recorded authority on recovery. Record the "
-        "exact scoped contribution SHA in the child handoff, or the authorized "
-        "no-commit/no-change reason."
-    )
-    if ephemeral:
-        import shiploop_standalone_improve as standalone_improve
+    import shiploop_standalone_improve as standalone_improve
 
-        packet_path = standalone_improve.receipt_path(child)
-        evidence_root = packet_path.parent / "reviews"
-        if inline:
-            ownership_lines = [
-                "Context-first opening: before start, write 'Current context and desired improvements' with current learnings, decisions and unresolved concerns from this conversation and the candidate, and freeze it once in child context.request after the binding line below. Supply essential meaning inline and existing locators for supporting detail; do not copy this packet or restate the skill's execution instructions.",
-                "Delegation: inline. Run the selected Improve card's ShipLoop v3/v4 whole-skill subcall in this conversation, in the exact Child workspace; verify the process cwd and Git root before task work. Do not hand the invocation to Ask Agent, a native worker or an extra worktree. Run its reviews and checks in this conversation too; start no reviewer, test-runner or executor agent unless the user asked for independent review. This conversation is the only candidate writer until the runtime returns a terminal packet; stop competing writes there, including checks that generate files. Read that reference's default-route section before start or recovery.",
-                "Freeze the exact candidate scope, selected packages, explicit user/repository authority including any no-commit override, and evidence paths before start. An existing invocation keeps its frozen authority.",
-                "Carry current approvals, declines and pending decisions into child context.authority with action/target, conditions and authorization source; summarize their implications in the opening. Do not ask again for an applicable approval or treat a decline as optional advice. A later user decision in this conversation applies from the next review iteration: record its receipt and effect in the review notes and handoff; keep the frozen launch context unchanged.",
-                "Return order: save each raw packet as below; only after the terminal packet is saved, write the completion evidence and run the parent return and callback below. Runtime completion alone never advances this action.",
-            ]
-        else:
-            ownership_lines = [
-                "Parent assignment preparation: fill 'Current context and desired improvements' with current learnings, decisions and unresolved concerns from the conversation and candidate. Then say 'Run /improve' with the selected card and concrete run binding. Retain the opening once in child context.request. Supply essential meaning inline and existing locators for supporting detail; the navigator cannot supply conversation-only learnings. Do not forward this entire parent packet or repeat the skill's execution instructions.",
-                "For a genuinely new invocation, run the host-selected improve-agent card for this bound child: it starts one fresh native worker for the entire Improve loop with exclusive write ownership in the exact Child workspace, through the host-selected Ask Agent's ask-agent/consumer-owned-workspace/v1 route; never use Ask Agent's default extra-worktree route for this bound child. Read the context-ownership reference before launch or recovery.",
-                "Workspace route: consumer-owned; delivery mode: in-place. Native assignment: execution_role: improve-executor; delegation_owner: parent. Freeze the exact candidate scope, selected packages, explicit user/repository authority including any no-commit override, evidence paths and parent continuation before dispatch. Existing invocations keep their recorded owner and frozen authority; unknown ownership blocks replacement.",
-                "Native owner record: " + str(packet_path.with_name("host-owner.md")),
-                "Carry current approvals, declines and pending decisions into child context.authority with action/target, conditions and authorization source; summarize their implications in the opening. Do not ask again for an applicable approval or treat a decline as optional advice. Forward later user decisions through the native channel and record receipt/effect in host-owner.md and the worker handoff; keep launch context immutable and continue the same child.",
-                "Parent-only return: the worker saves child packets and completion evidence, then returns their locators without executing ShipLoop callbacks or workspace return. The parent collects and verifies the result before executing the exact return route below. Worker completion alone never advances this action.",
-            ]
-        start_word = "start" if inline else "dispatch"
-        runtime_lines = [
-            "Improve context ownership: " + str(Path(__file__).resolve().parent.parent / "references" / "improve-context.md")
-            + ("#default-route-the-parent-runs-improve-delegation-inline" if inline else ""),
-            *ownership_lines,
-            "Child runtime authority: the unique temporary state_file returned by the selected runtime. ShipLoop does not write or count child state.",
-            "Child latest packet receipt: " + str(packet_path),
-            f"Binding inputs: before {start_word}, verify the selected cards, runtime and referenced inputs exist and match this candidate and action. Keep workspace, scope, authority and return ownership explicit. The child packet receipt and completion evidence are output destinations for a new child, not pre-start inputs; a resumed child requires its saved receipt. A missing input leaves {start_word} pending; never substitute an ambient skill or another workspace.",
-            "Save exact, complete raw JSON stdout from each successful start, next and done call to that receipt using a JSON-aware runner or safe file capture. Never reconstruct, summarize, or truncate the packet. This receipt preserves the callback handle and terminal evidence; it is not a second runtime state machine."
-            + (" Save the start packet before any review work." if inline else ""),
-            *(["Freeze in repeat_condition: if a finding invalidates an accepted discovery, research, spec "
-               "or test-strategy premise, finish the current bounded work and report classification "
-               "unresolved or non-trivial, exit_assessment unsatisfied or unknown, and "
-               "continuation_assessment cancelled. A blocked stop cannot use improve-reconcile or "
-               "improve-complete and leaves the parent incomplete."] if planning_reconcile else []),
-            "For a genuinely new child, read the selected skills and start once. If this child has already started, read its saved receipt: for active status use its exact next_argv once to recover, then follow the returned instruction; for complete status import its retained receipt without starting or reviewing again. "
-            + ("For a cancelled stopped status preserve the receipt and keep successful completion unresolved; only "
-               "this v4 initial plan child may use the printed parent-only improve-reconcile route "
-               + ("once the runtime has returned that stopped packet. " if inline else "after worker collection. ")
-               if planning_reconcile else
-               "For stopped status keep the parent incomplete. ")
-            + "To continue after a stop that cannot be reconciled, once its blocker is resolved or the user "
-            "authorizes continuing, "
-            + ("confirm no candidate write is in progress" if inline else "confirm the recorded owner stopped")
-            + ", rename packet.json to packet.stopped-<UTC timestamp>.json and the sibling reviews "
-            "directory to reviews.stopped-<same timestamp>, record the decision in the new context "
-            "opening and start a new child with the same binding line; its review_refs and check_refs "
-            "must be files the new child writes. "
-            "To pause instead, run the parent pause command below and leave the child active; never "
-            "report cancelled for a pause. "
-            + "If an existing active child's receipt or temporary state is unavailable, report incomplete; "
-            "never infer completion or silently create a replacement. Terminal recovery uses the retained "
-            "raw packet because terminal state is deleted.",
-            "Binding line: copy the next line verbatim into frozen context.request exactly once, "
-            + ("first, " if inline else "") + "alone on its own line with no bullet, quote, backticks, indentation or trailing text; import matches the whole line:",
-            child["contract_marker"],
-            "Start inputs owned by ShipLoop: required_trivial_reviews 2 (import rejects fewer); workspace: "
-            "the Child workspace above.",
-            *(
-                [
-                    "Freeze the original request, step result and execution/exit/repeat conditions, permitted paths, expected check state, authority and relevant environment in the child's context.",
-                    "For this v4 planning Improve child, use the context-first opening as the compact planning summary plus locators for "
-                    "the planning experiments guide, investigation notebook, latest packet, "
-                    + ("" if inline else "owner record, ")
-                    + "parent state, completion evidence and the exact parent return instructions below. "
-                    "Keep the full parent packet, prompts and verbose "
-                    "logs behind those locators; do not duplicate them in the child context.",
-                    "Commit policy: use the selected Improve card's scoped-commit policy with the task's explicit overrides; retain existing frozen authority on recovery.",
-                ] if planning_reconcile else [
-                    "Freeze the original request, step result and execution/exit/repeat conditions, permitted paths, expected check state, authority and relevant environment in the child's context.",
-                    "Commit policy: use the selected Improve card's scoped-commit policy with the task's explicit overrides; retain existing frozen authority on recovery.",
-                    "Include context.resources locators for this latest-packet receipt, "
-                    + ("" if inline else "native owner record (parent coordination data), ")
-                    + "parent state.md, completion evidence path and exact parent return instructions below. The child terminal packet must be sufficient to locate and perform the parent return after context loss.",
-                ]
-            ),
-            "Completion deletes the child's temporary state. Preserve the complete terminal packet at the receipt above before calling improve-complete. If terminal output is lost, stop incomplete; a missing state file is not completion evidence.",
+    packet_path = standalone_improve.receipt_path(child)
+    evidence_root = packet_path.parent / "reviews"
+    if inline:
+        ownership_lines = [
+            "Context-first opening: before start, write 'Current context and desired improvements' with current learnings, decisions and unresolved concerns from this conversation and the candidate, and freeze it once in child context.request after the binding line below. Supply essential meaning inline and existing locators for supporting detail; do not copy this packet or restate the skill's execution instructions.",
+            "Delegation: inline. Run the selected Improve card's ShipLoop whole-skill subcall in this conversation, in the exact Child workspace; verify the process cwd and Git root before task work. Do not hand the invocation to Ask Agent, a native worker or an extra worktree. Run its reviews and checks in this conversation too; start no reviewer, test-runner or executor agent unless the user asked for independent review. This conversation is the only candidate writer until the runtime returns a terminal packet; stop competing writes there, including checks that generate files. Read that reference's default-route section before start or recovery.",
+            "Freeze the exact candidate scope, selected packages, explicit user/repository authority including any no-commit override, and evidence paths before start. An existing invocation keeps its frozen authority.",
+            "Carry current approvals, declines and pending decisions into child context.authority with action/target, conditions and authorization source; summarize their implications in the opening. Do not ask again for an applicable approval or treat a decline as optional advice. A later user decision in this conversation applies from the next review iteration: record its receipt and effect in the review notes and handoff; keep the frozen launch context unchanged.",
+            "Return order: save each raw packet as below; only after the terminal packet is saved, write the completion evidence and run the parent return and callback below. Runtime completion alone never advances this action.",
         ]
     else:
-        evidence_root = Path(child["workspace"]) / ".until-loop" / "reviews"
-        runtime_lines = [
-            "Child authority: " + str(Path(child["workspace"]) / ".until-loop" / "state.json"),
-            "Child review notebook: " + str(Path(child["workspace"]) / ".until-loop" / "working.md"),
-            "Binding line: copy the next line verbatim into the child contract original_request exactly once, alone on its own line with no bullet, quote, backticks, indentation or trailing text; import matches the whole line:",
-            child["contract_marker"],
-            "Keep the original request, this step result, relevant work-item context, permitted paths, expected check state and authority in the child contract.",
-            commit_guidance,
-            "Parent integration retains the run's merge/push policy.",
-            "Inspect the existing child using its bound adapter. Continue a matching active run; resume a paused child only when its recorded condition permits; import a matching completed child without rerunning it. For a genuinely new step, the adapter may restart only a settled previous run whose evidence was retained. Never replace an unrelated active run or bypass recovery.",
+        ownership_lines = [
+            "Parent assignment preparation: fill 'Current context and desired improvements' with current learnings, decisions and unresolved concerns from the conversation and candidate. Then say 'Run /improve' with the selected card and concrete run binding. Retain the opening once in child context.request. Supply essential meaning inline and existing locators for supporting detail; the navigator cannot supply conversation-only learnings. Do not forward this entire parent packet or repeat the skill's execution instructions.",
+            "For a genuinely new invocation, run the host-selected improve-agent card for this bound child: it starts one fresh native worker for the entire Improve loop with exclusive write ownership in the exact Child workspace, through the host-selected Ask Agent's ask-agent/consumer-owned-workspace/v1 route; never use Ask Agent's default extra-worktree route for this bound child. Read the context-ownership reference before launch or recovery.",
+            "Workspace route: consumer-owned; delivery mode: in-place. Native assignment: execution_role: improve-executor; delegation_owner: parent. Freeze the exact candidate scope, selected packages, explicit user/repository authority including any no-commit override, evidence paths and parent continuation before dispatch. Existing invocations keep their recorded owner and frozen authority; unknown ownership blocks replacement.",
+            "Native owner record: " + str(packet_path.with_name("host-owner.md")),
+            "Carry current approvals, declines and pending decisions into child context.authority with action/target, conditions and authorization source; summarize their implications in the opening. Do not ask again for an applicable approval or treat a decline as optional advice. Forward later user decisions through the native channel and record receipt/effect in host-owner.md and the worker handoff; keep launch context immutable and continue the same child.",
+            "Parent-only return: the worker saves child packets and completion evidence, then returns their locators without executing ShipLoop callbacks or workspace return. The parent collects and verifies the result before executing the exact return route below. Worker completion alone never advances this action.",
         ]
+    start_word = "start" if inline else "dispatch"
+    runtime_lines = [
+        "Improve context ownership: " + str(Path(__file__).resolve().parent.parent / "references" / "improve-context.md")
+        + ("#default-route-the-parent-runs-improve-delegation-inline" if inline else ""),
+        *ownership_lines,
+        "Child runtime authority: the unique temporary state_file returned by the selected runtime. ShipLoop does not write or count child state.",
+        "Child latest packet receipt: " + str(packet_path),
+        f"Binding inputs: before {start_word}, verify the selected cards, runtime and referenced inputs exist and match this candidate and action. Keep workspace, scope, authority and return ownership explicit. The child packet receipt and completion evidence are output destinations for a new child, not pre-start inputs; a resumed child requires its saved receipt. A missing input leaves {start_word} pending; never substitute an ambient skill or another workspace.",
+        "Save exact, complete raw JSON stdout from each successful start, next and done call to that receipt using a JSON-aware runner or safe file capture. Never reconstruct, summarize, or truncate the packet. This receipt preserves the callback handle and terminal evidence; it is not a second runtime state machine."
+        + (" Save the start packet before any review work." if inline else ""),
+        *(["Freeze in repeat_condition: if a finding invalidates an accepted discovery, research, spec "
+           "or test-strategy premise, finish the current bounded work and report classification "
+           "unresolved or non-trivial, exit_assessment unsatisfied or unknown, and "
+           "continuation_assessment cancelled. A blocked stop cannot use improve-reconcile or "
+           "improve-complete and leaves the parent incomplete."] if planning_reconcile else []),
+        "For a genuinely new child, read the selected skills and start once. If this child has already started, read its saved receipt: for active status use its exact next_argv once to recover, then follow the returned instruction; for complete status import its retained receipt without starting or reviewing again. "
+        + ("For a cancelled stopped status preserve the receipt and keep successful completion unresolved; only "
+           "this initial plan child may use the printed parent-only improve-reconcile route "
+           + ("once the runtime has returned that stopped packet. " if inline else "after worker collection. ")
+           if planning_reconcile else
+           "For stopped status keep the parent incomplete. ")
+        + "To continue after a stop that cannot be reconciled, once its blocker is resolved or the user "
+        "authorizes continuing, "
+        + ("confirm no candidate write is in progress" if inline else "confirm the recorded owner stopped")
+        + ", rename packet.json to packet.stopped-<UTC timestamp>.json and the sibling reviews "
+        "directory to reviews.stopped-<same timestamp>, record the decision in the new context "
+        "opening and start a new child with the same binding line; its review_refs and check_refs "
+        "must be files the new child writes. "
+        "To pause instead, run the parent pause command below and leave the child active; never "
+        "report cancelled for a pause. "
+        + "If an existing active child's receipt or temporary state is unavailable, report incomplete; "
+        "never infer completion or silently create a replacement. Terminal recovery uses the retained "
+        "raw packet because terminal state is deleted.",
+        "Binding line: copy the next line verbatim into frozen context.request exactly once, "
+        + ("first, " if inline else "") + "alone on its own line with no bullet, quote, backticks, indentation or trailing text; import matches the whole line:",
+        child["contract_marker"],
+        "Start inputs owned by ShipLoop: required_trivial_reviews 2 (import rejects fewer); workspace: "
+        "the Child workspace above.",
+        *(
+            [
+                "Freeze the original request, step result and execution/exit/repeat conditions, permitted paths, expected check state, authority and relevant environment in the child's context.",
+                "For this planning Improve child, use the context-first opening as the compact planning summary plus locators for "
+                "the planning experiments guide, investigation notebook, latest packet, "
+                + ("" if inline else "owner record, ")
+                + "parent state, completion evidence and the exact parent return instructions below. "
+                "Keep the full parent packet, prompts and verbose "
+                "logs behind those locators; do not duplicate them in the child context.",
+                "Commit policy: use the selected Improve card's scoped-commit policy with the task's explicit overrides; retain existing frozen authority on recovery.",
+            ] if planning_reconcile else [
+                "Freeze the original request, step result and execution/exit/repeat conditions, permitted paths, expected check state, authority and relevant environment in the child's context.",
+                "Commit policy: use the selected Improve card's scoped-commit policy with the task's explicit overrides; retain existing frozen authority on recovery.",
+                "Include context.resources locators for this latest-packet receipt, "
+                + ("" if inline else "native owner record (parent coordination data), ")
+                + "parent state.md, completion evidence path and exact parent return instructions below. The child terminal packet must be sufficient to locate and perform the parent return after context loss.",
+            ]
+        ),
+        "Completion deletes the child's temporary state. Preserve the complete terminal packet at the receipt above before calling improve-complete. If terminal output is lost, stop incomplete; a missing state file is not completion evidence.",
+    ]
     reconcile_lines: list[str] = []
     if planning_reconcile:
         reconcile_path = root / "inbox" / (action_id + "-reconcile.md")
@@ -2057,8 +2029,7 @@ def _render_improve(core: Any, root: Path, state: Mapping[str, Any], lines: list
              "Parent-only stopped-child callback after collection; it imports the preserved stopped ")
             + "packet and immutable evidence, then restarts the requested planning suffix:",
             _callback(core, root, "improve-reconcile", action=action_id, result=str(reconcile_path)),
-            "A successful child still follows the normal improve-complete callback below. A durable "
-            "legacy runtime cannot use improve-reconcile.",
+            "A successful child still follows the normal improve-complete callback below.",
         ]
     lines.extend([
         "Selected Improve skill: " + skill["skill_card"],
@@ -2103,7 +2074,7 @@ def _render_improve(core: Any, root: Path, state: Mapping[str, Any], lines: list
         "the original user request or a second consolidated directive.",
         *reconcile_lines,
         ("Parent callback; run only after the runtime returned complete, its terminal packet is saved at "
-         "the receipt above and the completion evidence is written:" if inline and ephemeral else
+         "the receipt above and the completion evidence is written:" if inline else
          "Parent-only callback; execute only after collecting and verifying successful bound runtime completion:"),
         _callback(core, root, "improve-complete", action=action_id, result=str(result_path)),
         "If incomplete, retain the child, its packet receipt and review notes; do not call complete on the producer again or advance the graph.",
@@ -2231,11 +2202,10 @@ def save(root: Path, state: Mapping[str, Any], extra_writes: Mapping[str, str] |
     validate(state)
     writes = dict(extra_writes or {})
     root = Path(root)
-    if state["navigator_protocol_version"] == 4:
-        try:
-            planning_revision.validate_archives(state, root, writes)
-        except planning_revision.PlanningRevisionError as exc:
-            raise NavigatorError(str(exc)) from exc
+    try:
+        planning_revision.validate_archives(state, root, writes)
+    except planning_revision.PlanningRevisionError as exc:
+        raise NavigatorError(str(exc)) from exc
     _need("state.md" not in writes, "child evidence cannot replace parent state")
     writes["state.md"] = store.dumps(dict(state), "ShipLoop navigator state")
     inbox = root / "inbox"
@@ -2301,19 +2271,16 @@ def dispatch(core: Any, root: Path, state: Mapping[str, Any], args: Any,
     """Execute one navigator CLI verb; callers hold the run lock."""
     command = getattr(args, "command", None)
     _need(isinstance(command, str), "navigator command is missing")
-    if command == "done":
-        command = "complete"
     _need(command in {
-        "init", "next", "status", "context", "report", "complete", "pause", "resume", "halt",
+        "init", "next", "context", "report", "complete", "pause", "resume", "halt",
         "improve-bind", "improve-complete", "improve-reconcile", "delegation"
     }, f"navigator does not support command {command!r}")
     validate(state)
     root = Path(root)
-    if state["navigator_protocol_version"] == 4:
-        try:
-            planning_revision.validate_archives(state, root)
-        except planning_revision.PlanningRevisionError as exc:
-            raise NavigatorError(str(exc)) from exc
+    try:
+        planning_revision.validate_archives(state, root)
+    except planning_revision.PlanningRevisionError as exc:
+        raise NavigatorError(str(exc)) from exc
     if command in ("complete", "improve-complete", "halt") and state.get("chain_bindings"):
         import shiploop_chain
         try:
@@ -2325,7 +2292,7 @@ def dispatch(core: Any, root: Path, state: Mapping[str, Any], args: Any,
     if command == "init":
         print(render(core, root, state), end="")
         return 0
-    if command in ("next", "status"):
+    if command == "next":
         print(render(core, root, state), end="")
         return 0
     if command == "context":
@@ -2378,8 +2345,6 @@ def dispatch(core: Any, root: Path, state: Mapping[str, Any], args: Any,
                 if completion_guard is not None and updated != state:
                     completion_guard(state, updated)
             else:
-                _need(state["navigator_protocol_version"] == 4,
-                      "improve-reconcile requires navigator protocol 4")
                 _need(isinstance(action_id, str) and _ACTION_ID.fullmatch(action_id) is not None,
                       "unsafe Improve parent action")
                 path = root / "inbox" / (action_id + "-reconcile.md")

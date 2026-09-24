@@ -46,7 +46,8 @@ REMOVED_REFERENCES = (
     "action-protocol.md", "activities", "context-reset.md", "graph-dry-run-example.json",
     "improve-managed-consumer.md", "improve-managed-controller-pin.json",
     "improve-policy-pin.json", "improve-review-policy.md", "ledger-contract.md",
-    "navigator-dry-run-example.json", "objective-loops.md", "outer-work.md",
+    "navigator-dry-run-example.json", "navigator-v3-dry-run-example.json",
+    "objective-loops.md", "outer-work.md",
     "planning-loops.md", "report.md", "research-result-schema.md", "survey.md",
     "turn-packet.md",
 )
@@ -165,7 +166,7 @@ class ShipLoopNoModelLaunchTests(unittest.TestCase):
         self.assertIn("invalid choice: 'drive'", rejected.stderr)
         self.assert_no_model_launch()
 
-    def test_package_contains_only_the_v3_v4_runtime(self) -> None:
+    def test_package_contains_only_the_current_runtime(self) -> None:
         self.assertEqual(len(REMOVED_SCRIPTS), 30)
         for folder, names in (("scripts", REMOVED_SCRIPTS), ("references", REMOVED_REFERENCES),
                               ("commands", REMOVED_COMMANDS)):
@@ -196,7 +197,7 @@ class ShipLoopNoModelLaunchTests(unittest.TestCase):
         )
         self.assertEqual(initialized.returncode, 0, initialized.stdout + initialized.stderr)
         initial = read_record(run_dir / "state.md")
-        self.assertEqual(initial["navigator_protocol_version"], 3)
+        self.assertEqual(initial["navigator_protocol_version"], 4)
         initial_action = initial["action"]
         self.assertIsInstance(initial_action, dict)
         self.assertIn(initial_action["id"], initialized.stdout)
@@ -219,7 +220,7 @@ class ShipLoopNoModelLaunchTests(unittest.TestCase):
         )
         self.assertEqual(initialized.returncode, 0, initialized.stdout + initialized.stderr)
         initial = read_record(run_dir / "state.md")
-        self.assertEqual(initial["navigator_protocol_version"], 3)
+        self.assertEqual(initial["navigator_protocol_version"], 4)
         initial_action = initial["action"]
         self.assertIsInstance(initial_action, dict)
 

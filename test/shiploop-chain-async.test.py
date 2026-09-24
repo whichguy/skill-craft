@@ -46,9 +46,9 @@ class AsyncCallbackTests(unittest.TestCase):
         return subprocess.run(self._callback_argv(operation, value, label),
                               cwd=cwd or self.f.primary, text=True, capture_output=True, timeout=90)
 
-    def _public_recover(self, *, cwd=None):
+    def _public_next(self, *, cwd=None):
         return subprocess.run(
-            [sys.executable, "-B", str(fixture.CLI), "chain", "recover",
+            [sys.executable, "-B", str(fixture.CLI), "chain", "next",
              "--run-dir", str(self.f.run), "--action", self.f.action],
             cwd=cwd or self.f.primary, text=True, capture_output=True, timeout=90,
         )
@@ -265,10 +265,10 @@ class AsyncCallbackTests(unittest.TestCase):
         self.assertIsNotNone(b_handle)
         self.assertEqual(b_record["context"]["workspace"], str(workspaces["B"]))
         before = snapshot()
-        recovery = self._public_recover(cwd=workspaces["B"])
+        recovery = self._public_next(cwd=workspaces["B"])
         self.assertEqual(recovery.returncode, 0, recovery.stderr + recovery.stdout)
         recovered = json.loads(recovery.stdout)
-        life.assert_navigation("recover", recovered)
+        life.assert_navigation("next", recovered)
         self.assertEqual(snapshot(), before)
         self.assertIsNone(b.poll())
         self.assertEqual(f.child_state()["steps"]["B"]["current_attempt"], attempts["B"])

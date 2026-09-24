@@ -1466,10 +1466,12 @@ raise SystemExit(module.main(sys.argv[2:]))
         )
         newer_version = f"{int(current_version.split('.', 1)[0]) + 1}.0.0"
 
+        # The capability set, not a version number, is the managed contract:
+        # the declaration copies whatever version the verified card states.
         for label, version in (
-            ("supported-0.6", "0.6.0"),
             ("current", current_version),
-            ("newer", newer_version),
+            ("lower-card-version", "0.1.0"),
+            ("higher-card-version", newer_version),
         ):
             with self.subTest(version=version):
                 installed_skill = self.root / f"capabilities-{label}"
@@ -1792,24 +1794,25 @@ raise SystemExit(module.main(sys.argv[2:]))
         self.assertNotIn("ignored_paths", record)
 
     def test_evidence_derived_by_an_earlier_helper_is_never_reused(self) -> None:
-        prepared = self._prepare(label="legacy evidence")
+        prepared = self._prepare(label="stray evidence")
         receipt = Path(prepared["receipt"])
         self._write_returned_result(Path(prepared["worktree"]), report=False, scratch=False)
         first = self._inspect_mode(receipt, "patch")
         patch = Path(first["delivery"]["contribution_patch"])
         self.assertEqual((patch.parent.parent.parent.name, patch.parent.parent.name), ("inspections", "v4"))
-        # Simulate a pre-0.7.5 record under the same fingerprint: a corrupted
-        # patch in the unversioned directory, and no current-derivation record.
-        legacy = receipt.parent / "inspections" / first["fingerprint"]
-        legacy.mkdir(parents=True)
-        (legacy / "contribution.patch").write_bytes(b"legacy corrupted patch\n")
-        (legacy / "inspection.json").write_text("{}", encoding="utf-8")
+        # Only the current derivation directory is read.  Plant a record under
+        # the same fingerprint outside it (a corrupted patch directly under
+        # `inspections/`) and remove the current-derivation record.
+        stray = receipt.parent / "inspections" / first["fingerprint"]
+        stray.mkdir(parents=True)
+        (stray / "contribution.patch").write_bytes(b"stray corrupted patch\n")
+        (stray / "inspection.json").write_text("{}", encoding="utf-8")
         shutil.rmtree(patch.parent)
         shutil.rmtree(receipt.parent / "delivery-evidence" / "v4")
         again = self._inspect_mode(receipt, "patch")
         rebuilt = Path(again["delivery"]["contribution_patch"])
         self.assertEqual(again["fingerprint"], first["fingerprint"])
-        self.assertNotEqual(rebuilt.parent, legacy)
+        self.assertNotEqual(rebuilt.parent, stray)
         self.assertIn(b"+worker contribution\n", rebuilt.read_bytes())
 
     def test_prepare_accepts_permission_bits_git_does_not_track(self) -> None:

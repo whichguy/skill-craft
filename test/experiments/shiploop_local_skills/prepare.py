@@ -176,7 +176,7 @@ def copy_package(out: Path) -> Path:
 def rendered_packets(package: Path, out: Path, repo: Path, goal: str) -> tuple[Path, Path]:
     sys.path.insert(0, str(package / "scripts"))
     import shiploop_navigator as nav  # type: ignore
-    state = nav.new_state(str(repo), goal, protocol_version=3)
+    state = nav.new_state(str(repo), goal)
     found: dict[str, Path] = {}
     for _ in range(64):
         stage = nav.current_stage(state)

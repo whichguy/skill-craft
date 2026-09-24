@@ -20,8 +20,8 @@ requires an explicit fixture review rather than silently changing the oracle.
 From the skill-craft repository root:
 
 ```sh
-python3 -B test/experiments/shiploop_e2e/check_suite.py --suite mock
-python3 -B test/experiments/shiploop_e2e/dag_replay.py \
+python3 -B skills/shiploop-e2e-audit/harness/check_suite.py --suite mock
+python3 -B skills/shiploop-e2e-audit/harness/dag_replay.py \
   --output /tmp/shiploop-dag-replay-01
 ```
 
@@ -39,7 +39,7 @@ capture and result. Interrupted or incomplete attempts retain explicit gaps.
 Export a retained trial without changing its original records:
 
 ```sh
-python3 -B test/experiments/shiploop_e2e/behavior_capture.py \
+python3 -B skills/shiploop-e2e-audit/harness/behavior_capture.py \
   --trial /absolute/retained/trial \
   --output /tmp/shiploop-behavior-01.json
 ```
@@ -52,12 +52,12 @@ commands, product source, credentials, or user paths. Original raw logs remain
 the audit authority; the compact record deliberately cannot answer every
 semantic question about a run.
 
-The exporter normalizes navigator protocol 3 and 4 states. A state of any
+The exporter normalizes navigator protocol 4 states. A state of any
 other protocol is kept only as an `unsupported-protocol` qualification. No
 retained trial is exported as a replay case: its record lacks the complete
 producer and Improve callback sequence, and the exporter must not invent
 missing control calls or child receipts. DAG replay instead uses independently
-authored synthetic protocol-3 cases, labeled `kind: synthetic`. A successful
+authored synthetic protocol 4 cases, labeled `kind: synthetic`. A successful
 replay of accepted stage order cannot rehabilitate a live product result, and
 preexisting history is not relabeled as work performed by a fresh one-shot
 request.
@@ -90,7 +90,7 @@ reload, corrective work, and stale or conflicting callbacks. A replay mismatch
 is an apparatus/protocol result; it is not an application-test result.
 
 The report pins the ShipLoop and fixture inputs used. Changes during replay
-invalidate that observation. A case must be protocol 3; a case of any other
+invalidate that observation. A case must be protocol 4; a case of any other
 protocol or kind is rejected before replay. Review an intentional DAG change
 against the current contract and update the literal expectations.
 
@@ -108,10 +108,10 @@ shell shapes, including heredoc limitations and a masked failure. Existing
 recovery-isolation fixtures reject old-run reuse. Keep those tests beside DAG
 replay: a completed stage sequence alone cannot establish either transport
 attribution or fresh-request identity. Separate observer regression tests check
-the protocol 3/4 smoke boundaries and callbacks: the `plan` selection means the
+the protocol 4 smoke boundaries and callbacks: the `plan` selection means the
 plan accepted after its Improve child, and each accepted action needs its own
 callback (`improve-complete` for an action with an Improve record, `complete`
-or `done` otherwise). A checkpoint producer callback alone cannot satisfy
+otherwise). A checkpoint producer callback alone cannot satisfy
 lifecycle evidence. These fixture checks do not establish a new live Grok
 smoke result.
 
@@ -119,7 +119,7 @@ smoke result.
 | --- | --- |
 | `python3 -B test/shiploop-full-runtime.test.py` | Full 34-stage route, real child runtime, worktree return, recovery and generated package selection |
 | `check_suite.py --suite mock` | Fast routing, fixed fixture expectations and negative controls |
-| `check_suite.py --suite workflow` | Recorded workflow evidence, protocol 3/4 checkpoint Improve inventory and campaign qualifications |
+| `check_suite.py --suite workflow` | Recorded workflow evidence, protocol 4 checkpoint Improve inventory and campaign qualifications |
 
 Live `result.json` retains lifecycle counts and missing callback IDs; `audit.json`
 retains stage counts. DAG replay `report.json` retains ordered transitions,

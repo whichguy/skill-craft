@@ -234,7 +234,7 @@ fresh_home s17
 "$install_sh" --skill skill-interop --claude-only >/dev/null
 mkdir -p "$HOME/.claude/plugins"
 cat >"$HOME/.claude/plugins/installed_plugins.json" <<'JSON'
-{"plugins":{"skill-interop@skill-craft-market":[{"version":"9.9.9"}]}}
+{"version":2,"plugins":{"skill-interop@skill-craft-market":[{"version":"9.9.9"}]}}
 JSON
 out17="$(
   CLAUDE_INSTALLED_PLUGINS_JSON= \
@@ -249,7 +249,7 @@ fresh_home s18
 "$install_sh" --skill skill-interop --claude-only >/dev/null
 inv18="$tmpdir/inv-s18.json"
 cat >"$inv18" <<'JSON'
-{"plugins":{"skill-interop@skill-craft-market":[{"version":"0.2.2","enabled":false}]}}
+{"version":2,"plugins":{"skill-interop@skill-craft-market":[{"version":"0.2.2","enabled":false}]}}
 JSON
 out18="$(
   CLAUDE_INSTALLED_PLUGINS_JSON="$inv18" \
@@ -264,7 +264,7 @@ fresh_home s19
 "$install_sh" --skill skill-interop --claude-only >/dev/null
 inv19="$tmpdir/inv-s19.json"
 cat >"$inv19" <<'JSON'
-{"plugins":{"skill-interop@skill-craft-market":[{"version":"0.2.2"}]}}
+{"version":2,"plugins":{"skill-interop@skill-craft-market":[{"version":"0.2.2"}]}}
 JSON
 out19="$(
   CLAUDE_INSTALLED_PLUGINS_JSON="$inv19" \
@@ -279,7 +279,7 @@ fresh_home s20
 "$install_sh" --skill skill-interop --claude-only >/dev/null
 inv20="$tmpdir/inv-s20.json"
 cat >"$inv20" <<'JSON'
-{"plugins":{"skill-interop@skill-craft-market":[{"version":"0.2.2","enabled":"true"}]}}
+{"version":2,"plugins":{"skill-interop@skill-craft-market":[{"version":"0.2.2","enabled":"true"}]}}
 JSON
 out20="$(
   CLAUDE_INSTALLED_PLUGINS_JSON="$inv20" \
@@ -294,7 +294,7 @@ fresh_home s21
 "$install_sh" --skill skill-interop --claude-only >/dev/null
 inv21="$tmpdir/inv-s21.json"
 cat >"$inv21" <<'JSON'
-{"plugins":{"skill-interop@skill-craft-market":[{"version":"0.2.2","enabled":false},{"version":"0.2.3","enabled":true}]}}
+{"version":2,"plugins":{"skill-interop@skill-craft-market":[{"version":"0.2.2","enabled":false},{"version":"0.2.3","enabled":true}]}}
 JSON
 out21="$(
   CLAUDE_INSTALLED_PLUGINS_JSON="$inv21" \
@@ -309,7 +309,7 @@ fresh_home s22
 "$install_sh" --skill skill-interop --claude-only >/dev/null
 inv22="$tmpdir/inv-s22.json"
 cat >"$inv22" <<'JSON'
-{"plugins":{"skill-interop@skill-craft-market":[{"version":"0.2.2","enabled":false}],"skill-interop@other-market":[{"version":"9.1.0","enabled":true}]}}
+{"version":2,"plugins":{"skill-interop@skill-craft-market":[{"version":"0.2.2","enabled":false}],"skill-interop@other-market":[{"version":"9.1.0","enabled":true}]}}
 JSON
 out22="$(
   CLAUDE_INSTALLED_PLUGINS_JSON="$inv22" \
@@ -324,7 +324,7 @@ fresh_home s23
 "$install_sh" --skill skill-interop --claude-only >/dev/null
 inv23="$tmpdir/inv-s23.json"
 cat >"$inv23" <<'JSON'
-{"plugins":{"skill-interop@skill-craft-market":[{"version":"0.2.2","enabled":false}],"skill-interop@other-market":[{"version":"9.1.0"}]}}
+{"version":2,"plugins":{"skill-interop@skill-craft-market":[{"version":"0.2.2","enabled":false}],"skill-interop@other-market":[{"version":"9.1.0"}]}}
 JSON
 out23="$(
   CLAUDE_INSTALLED_PLUGINS_JSON="$inv23" \
@@ -386,4 +386,62 @@ printf '%s\n' "$out26u" | grep -q 'Uninstalled copy' || fail "S26 copy uninstall
 [[ ! -e "$opencode_dest" ]] || fail "S26 copied destination remains"
 [[ ! -e "$opencode_marker" ]] || fail "S26 copy marker remains"
 
-printf 'install-status-uninstall.test.sh: PASS S1–S26\n'
+# S27: --copy over an owned symlink install is not auto-migrated. Without
+# --relink it is skipped with a hint; --copy --relink replaces it with a managed
+# copy and reports Relinked.
+fresh_home s27
+"$install_sh" --claude-only --skill skill-interop >/dev/null
+dest27="$HOME/.claude/skills/skill-interop"
+craft27="$HOME/.claude/skills/.skill-craft"
+out27s="$("$install_sh" --claude-only --copy --skill skill-interop 2>&1)" || fail "S27 copy without relink: $out27s"
+printf '%s\n' "$out27s" | grep -q 'Skipped existing path' || fail "S27 skip: $out27s"
+printf '%s\n' "$out27s" | grep -q 're-run with --copy --relink' || fail "S27 relink hint: $out27s"
+printf '%s\n' "$out27s" | grep -qi 'migrat' && fail "S27 must not auto-migrate: $out27s"
+[[ -L "$dest27" && "$(readlink "$dest27")" == "$source_interop" ]] || fail "S27 owned symlink must remain"
+[[ ! -e "$craft27/skill-interop.json" ]] || fail "S27 no copy marker without --relink"
+out27d="$("$install_sh" --claude-only --copy --relink --dry-run --skill skill-interop 2>&1)" || fail "S27 dry run: $out27d"
+printf '%s\n' "$out27d" | grep -q 'Would relink (Claude Code / skill-interop)' || fail "S27 would relink: $out27d"
+[[ -L "$dest27" ]] || fail "S27 dry run must not replace the symlink"
+out27r="$("$install_sh" --claude-only --copy --relink --skill skill-interop 2>&1)" || fail "S27 copy relink: $out27r"
+printf '%s\n' "$out27r" | grep -q 'Relinked (Claude Code / skill-interop): .* (copy)' || fail "S27 Relinked: $out27r"
+[[ -d "$dest27" && ! -L "$dest27" ]] || fail "S27 expected managed copy"
+[[ -f "$craft27/skill-interop.json" ]] || fail "S27 copy marker missing"
+diff -rq "$source_interop" "$dest27" >/dev/null || fail "S27 copy differs from source"
+grep -q '"action":"relink","leaf":"skill-interop","mode":"copy".*"outcome":"relinked"' "$craft27/receipts.jsonl" \
+  || fail "S27 relink receipt: $(cat "$craft27/receipts.jsonl")"
+out27st="$("$install_sh" --status --claude-only --skill skill-interop 2>&1)" || fail "S27 status: $out27st"
+printf '%s\n' "$out27st" | grep -q 'state=copy-owned' || fail "S27 copy-owned status: $out27st"
+pass "S27 --copy over owned symlink needs --relink"
+
+# S28: only the installed_plugins.json version 2 shape is read. Any other shape
+# (no version, dict records, top-level list, unreadable) reports no plugin-track,
+# never a double-install warning, and one unsupported-inventory note per run.
+fresh_home s28
+"$install_sh" --skill skill-interop --claude-only >/dev/null
+inv28="$tmpdir/inv-s28.json"
+for body in \
+  '{"plugins":{"skill-interop@skill-craft-market":[{"version":"0.2.2","enabled":true}]}}' \
+  '{"version":2,"plugins":{"skill-interop@skill-craft-market":{"version":"0.2.2","enabled":true}}}' \
+  '[{"id":"skill-interop@skill-craft-market","version":"0.2.2","enabled":true}]' \
+  'not-json{'; do
+  printf '%s\n' "$body" >"$inv28"
+  out28="$(
+    CLAUDE_INSTALLED_PLUGINS_JSON="$inv28" \
+      "$install_sh" --status --skill skill-interop --claude-only 2>&1
+  )" || fail "S28 status ($body): $out28"
+  printf '%s\n' "$out28" | grep -q 'state=symlink-owned' || fail "S28 skill-dir ($body): $out28"
+  printf '%s\n' "$out28" | grep -q 'plugin-track:' && fail "S28 plugin-track from unsupported shape ($body): $out28"
+  printf '%s\n' "$out28" | grep -q 'double-install' && fail "S28 double-install from unsupported shape ($body): $out28"
+  printf '%s\n' "$out28" | grep -q 'note (Claude plugin inventory): unsupported inventory' \
+    || fail "S28 unsupported note ($body): $out28"
+done
+printf '%s\n' '{"plugins":{"skill-interop@skill-craft-market":[{"version":"0.2.2"}]}}' >"$inv28"
+out28a="$(
+  CLAUDE_INSTALLED_PLUGINS_JSON="$inv28" \
+    "$install_sh" --status --skill all --claude-only 2>&1
+)" || fail "S28 status all: $out28a"
+notes28="$(printf '%s\n' "$out28a" | grep -c 'unsupported inventory' || true)"
+[[ "$notes28" -eq 1 ]] || fail "S28 want one unsupported note per run, got $notes28: $out28a"
+pass "S28 non-v2 inventory reported as unsupported"
+
+printf 'install-status-uninstall.test.sh: PASS S1–S28\n'

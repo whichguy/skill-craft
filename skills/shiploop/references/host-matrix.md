@@ -31,10 +31,10 @@ interpret its returned action. No host-specific `/goal` invocation is needed.
 Stored DAG prompts retain the planning grammar but are instructions for the
 host, not permission to bypass ShipLoop's action cursor.
 
-New runs use navigator protocol 3. `next` rehydrates the current owner and action
-from authoritative Markdown. Submit the exact callback printed in that packet;
-retained older modes follow their recorded protocol rather than a guessed
-conversion.
+New runs use navigator protocol 4, the only protocol. `next` rehydrates the current owner and action
+from authoritative Markdown. Submit the exact callback printed in that packet.
+A saved run from a retired protocol or mode is refused with an error that names
+it; start a fresh run rather than guessing a conversion.
 
 The invoking conversation performs the producer work, then follows the selected
 Improve skill and its bound Until Loop runtime. ShipLoop imports accepted child

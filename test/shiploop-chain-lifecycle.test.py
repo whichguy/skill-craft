@@ -264,7 +264,7 @@ class PerStepChainTests(PerStepChainFixture):
         self.assertEqual(replayed_start["action"], "reconcile")
         self.assertEqual(replayed_start["packet"], self.packets["B"])
         self.assertEqual(self.f.git(self.f.target, "worktree", "list", "--porcelain"), before_replayed_start)
-        recovered = self.call("recover")
+        recovered = self.call("next")
         self.assertFalse(self.action_rows(recovered, "launch"),
                          "cold recovery must not grant a fresh native launch")
         self.assertTrue(recovered["navigation"]["actions"])
@@ -342,7 +342,7 @@ class PerStepChainTests(PerStepChainFixture):
         self.assertEqual((replay["step"], replay["attempt"]), ("A", claims["A"]))
         self.assertEqual(len(self.f.terminal_events(claims["A"])), 1)
         self.call("history")
-        self.call("recover")
+        self.call("next")
 
     def test_navigation_advertises_full_ready_frontier_with_capacity_bound(self):
         bound = self.bind(capacity=1)
@@ -1235,7 +1235,7 @@ class PerStepChainTests(PerStepChainFixture):
 
         self.addCleanup(remove_retained_workspace)
 
-    def test_current_managed_helper_accepts_060_when_it_declares_capabilities_and_identity(self):
+    def test_managed_helper_qualifies_by_declared_capabilities_not_version_number(self):
         self.use_managed_ask_agent()
         card = self.f.ask / "SKILL.md"
         import re
@@ -1302,40 +1302,27 @@ class PerStepChainTests(PerStepChainFixture):
         self.assertEqual(self.binding()["ask_agent_contract"], declared)
         self.assertEqual(self.f.git(self.f.primary, "worktree", "list", "--porcelain").count("worktree "), 2)
 
-    def test_old_04_and_final_return_fresh_bindings_refuse_before_effects(self):
-        self.use_legacy_ask_agent()
+    def test_old_helper_without_the_full_capability_set_refuses_before_effects(self):
+        self.use_managed_ask_agent()
         before_run = self.f.run_bytes()
         before_head = self.head()
         before_worktrees = self.f.git(self.f.primary, "worktree", "list", "--porcelain")
-        old = self.bind(ok=False)
-        # The historical card lacks the current managed package layout and
-        # is rejected before a helper can execute.
-        self.assertIn("cannot resolve ask-agent references/native-lifecycle.md", old.stderr.lower())
-        self.assertEqual(self.f.run_bytes(), before_run)
-        self.assertEqual(self.head(), before_head)
-        self.assertEqual(self.f.git(self.f.primary, "worktree", "list", "--porcelain"), before_worktrees)
-        self.assertFalse((self.f.run / "chains").exists())
-
-        # A complete package with an old version must also fail the numeric
-        # floor, even when its capability endpoint exists.
-        self.use_managed_ask_agent()
+        # An older helper (0.4.9 card, pre-ignored-output-report helper) is not
+        # qualified by any version number; its incomplete declaration refuses.
         card = self.f.ask / "SKILL.md"
         card.write_text(re.sub(r"(?m)^version:.*$", "version: 0.4.9", card.read_text()))
-        old_version = self.bind(ok=False)
-        self.assertIn("requires Ask-Agent 0.6.0 or newer", old_version.stderr)
-        self.assertEqual(self.f.run_bytes(), before_run)
-        self.assertEqual(self.head(), before_head)
-        self.assertEqual(self.f.git(self.f.primary, "worktree", "list", "--porcelain"), before_worktrees)
-        self.assertFalse((self.f.run / "chains").exists())
-
-        self.use_managed_ask_agent()
-        before_run = self.f.run_bytes()
-        final_return = self.f.call("bind", ok=False, extra=(
-            "--graph", str(self.f.graph), "--dispatcher-skill", str(self.f.dispatcher / "SKILL.md"),
-            "--ask-agent-skill", str(self.f.ask / "SKILL.md"), "--worktree-parent", str(self.f.parent),
-            "--mode", "parallel", "--lifecycle", "final-return",
+        helper = self.f.ask / "scripts/ask_agent_workspace.py"
+        helper_text = helper.read_text()
+        original_capabilities = '        "capabilities": list(MANAGED_WORKTREE_CAPABILITIES),'
+        self.assertIn(original_capabilities, helper_text)
+        helper.write_text(helper_text.replace(
+            original_capabilities,
+            '        "capabilities": [item for item in MANAGED_WORKTREE_CAPABILITIES '
+            'if item != "ignored-output-report"],',
+            1,
         ))
-        self.assertRegex(final_return.stderr.lower(), r"managed|per-step|final-return")
+        old_version = self.bind(ok=False)
+        self.assertIn("lacks required capabilities: ignored-output-report", old_version.stderr)
         self.assertEqual(self.f.run_bytes(), before_run)
         self.assertEqual(self.head(), before_head)
         self.assertEqual(self.f.git(self.f.primary, "worktree", "list", "--porcelain"), before_worktrees)
@@ -1386,14 +1373,14 @@ class PerStepChainTests(PerStepChainFixture):
         self.assertEqual(self.f.git(self.f.primary, "worktree", "list", "--porcelain"), before_worktrees)
         self.assertFalse((self.f.run / "chains").exists())
 
-    def test_retired_v5_binding_with_removed_package_is_inspection_only(self):
-        """Historic bindings survive host-skill rotation but cannot resume execution."""
+    def test_retired_v5_binding_is_refused_on_every_operation_without_mutation(self):
+        """An older binding schema is refused, never projected or resumed."""
         self.managed_bind(single=True)
         binding_path = self.f.run / "chains" / self.f.action / "binding.md"
         binding = fixture.store.read_record(binding_path)
         self.assertEqual(binding["schema"], "shiploop-chain-binding/v6")
         binding["schema"] = "shiploop-chain-binding/v5"
-        # A retired view must never execute the frozen node or resolve an
+        # A refused binding must never execute the frozen node or resolve an
         # installed helper.  Both paths are deliberately unavailable here.
         binding["node"] = str(self.f.base / "retired-node-must-not-run")
         raw = fixture.store.dumps(binding, "ShipLoop chain binding")
@@ -1409,28 +1396,22 @@ class PerStepChainTests(PerStepChainFixture):
         before_run = self.f.run_bytes()
         before_head = self.head()
         before_worktrees = self.f.git(self.f.primary, "worktree", "list", "--porcelain")
-        history = self.f.call("history")
-        pending = self.f.call("pending")
-        self.assertEqual(history["retired_flow"]["binding_schema"], "shiploop-chain-binding/v5")
-        self.assertEqual(pending["retired_flow"], history["retired_flow"])
-        self.assertIsNone(pending["pending"])
-        self.assertEqual(pending["pending_reason"], "retired flow state was not queried")
-        self.assertEqual(self.f.run_bytes(), before_run)
+        refusal = ("chain binding schema shiploop-chain-binding/v5 is retired; preserve its "
+                   "worktrees/ledger and bind a new managed chain")
 
-        for operation in ("next", "recover"):
-            projection = self.f.call(operation)
-            self.assertEqual(projection["retired_flow"], history["retired_flow"])
+        def assert_refused(refused):
+            self.assertIn(refusal, refused.stderr)
             self.assertEqual(self.f.run_bytes(), before_run)
+            self.assertEqual(self.head(), before_head)
+            self.assertEqual(self.f.git(self.f.primary, "worktree", "list", "--porcelain"), before_worktrees)
 
-        bind = self.f.call("bind", ok=False, extra=(
+        for operation in ("history", "pending", "next"):
+            assert_refused(self.f.call(operation, ok=False))
+        assert_refused(self.f.call("bind", ok=False, extra=(
             "--graph", str(self.f.graph), "--dispatcher-skill", str(self.f.dispatcher / "SKILL.md"),
             "--ask-agent-skill", str(self.f.ask / "SKILL.md"), "--worktree-parent", str(self.f.parent),
-            "--mode", "parallel", "--lifecycle", "per-step",
-        ))
-        self.assertRegex(bind.stderr.lower(), r"retired|managed|inspection")
-        self.assertEqual(self.f.run_bytes(), before_run)
-        self.assertEqual(self.head(), before_head)
-        self.assertEqual(self.f.git(self.f.primary, "worktree", "list", "--porcelain"), before_worktrees)
+            "--mode", "parallel",
+        )))
 
         attempt = "retired-attempt"
         proof = self.f.write("retired-v5-finish.json", {"passed": True, "commit": before_head})
@@ -1439,11 +1420,9 @@ class PerStepChainTests(PerStepChainFixture):
             ("claim", {"steps": ["A"]}),
             ("start", self.f.start_value("A", attempt)),
             ("launched", {"attempt": attempt, "handle": {"host": "fixture", "id": "retired"}}),
-            ("observe", {"attempt": attempt, "occurred_at": "2026-09-20T00:00:00Z"}),
             ("import-handoff", {"attempt": attempt, "confirmed_stopped": True,
                                 "handoff": {"path": str(handoff), "sha256": fixture.digest(handoff)}}),
             ("prepare", {"attempt": attempt, "confirmed_stopped": True}),
-            ("settle", {"attempt": attempt, "confirmed_stopped": True}),
             ("done", {"attempt": attempt, "confirmed_stopped": True}),
             ("retry", {"attempt": attempt, "confirmed_stopped": True, "reason": "retired fixture"}),
             ("packet", {"attempt": attempt}),
@@ -1451,11 +1430,37 @@ class PerStepChainTests(PerStepChainFixture):
             ("finish", {"commit": before_head, "confirmed_stopped": True,
                         "verification": {"path": str(proof), "sha256": fixture.digest(proof)}}),
         ):
-            refused = self.f.call(operation, value, ok=False)
-            self.assertRegex(refused.stderr.lower(), r"retired|managed|inspection")
-            self.assertEqual(self.f.run_bytes(), before_run)
-            self.assertEqual(self.head(), before_head)
-            self.assertEqual(self.f.git(self.f.primary, "worktree", "list", "--porcelain"), before_worktrees)
+            with self.subTest(operation=operation):
+                assert_refused(self.f.call(operation, value, ok=False))
+        # Orientation names the refusal route rather than projecting the old flow.
+        self.assertIn("chain next", " ".join(fixture.chain.orientation(
+            None, self.f.run, fixture.store.read_record(self.f.run / "state.md"))))
+
+    def test_v6_binding_frozen_without_a_current_capability_is_retired(self):
+        """A v6 binding frozen by an older helper refuses with the rebind route."""
+        self.managed_bind(single=True)
+        binding_path = self.f.run / "chains" / self.f.action / "binding.md"
+        binding = fixture.store.read_record(binding_path)
+        contract = dict(binding["ask_agent_contract"])
+        contract["capabilities"] = [capability for capability in contract["capabilities"]
+                                    if capability != "ignored-output-report"]
+        binding["ask_agent_contract"] = contract
+        raw = fixture.store.dumps(binding, "ShipLoop chain binding")
+        state = fixture.store.read_record(self.f.run / "state.md")
+        state["chain_bindings"] = dict(state["chain_bindings"])
+        state["chain_bindings"][self.f.action] = hashlib.sha256(raw.encode("utf-8")).hexdigest()
+        state["revision"] += 1
+        fixture.nav.save(self.f.run, state, {
+            str(binding_path.relative_to(self.f.run)): raw,
+        })
+        before_run = self.f.run_bytes()
+        refusal = ("chain binding was frozen with an Ask-Agent helper that lacks "
+                   "ignored-output-report; preserve its worktrees/ledger and bind a new managed chain")
+        for operation in ("history", "pending", "next"):
+            with self.subTest(operation=operation):
+                refused = self.f.call(operation, ok=False)
+                self.assertIn(refusal, refused.stderr)
+                self.assertEqual(self.f.run_bytes(), before_run)
 
     def test_stale_combined_candidate_refuses_merge_then_reprepares(self):
         self.bind()
@@ -1673,9 +1678,8 @@ class PerStepChainTests(PerStepChainFixture):
         worker = Path(packet["context"]["workspace"])
         self.collect("A", self.launch("A"))
         value = self.prepared_input("A")
-        helper = fixture.chain._chain_git()
-        with patch.object(helper, "remove_worker", side_effect=ValueError("fixture removal refusal")):
-            accepted = fixture.chain._settle(self.f.run, self.binding(), value)
+        # Managed acceptance defers helper-owned close; the worker is retained.
+        accepted = fixture.chain._per_step_done(self.f.run, self.binding(), value)
         self.assertEqual(accepted["outcome"], "accepted")
         self.assertTrue(worker.exists())
 
@@ -1704,9 +1708,16 @@ class PerStepChainTests(PerStepChainFixture):
         self.assertTrue(old_worker.exists())
 
         self.takeover()
-        self.assert_owner_refusal("cleanup", {"attempt": old_attempt, "confirmed_stopped": True,
-                                                "disposition": "superseded",
-                                                "reason": "Replacement independently accepted"})
+        # A superseded disposition has no cleanup path at all, so it refuses
+        # before any owner-dependent effect.
+        before_ledger = self.f.ledger_bytes()
+        before_child = self.f.child_state_path().read_bytes()
+        refused = self.call("cleanup", {"attempt": old_attempt, "confirmed_stopped": True,
+                                        "disposition": "superseded",
+                                        "reason": "Replacement independently accepted"}, ok=False)
+        self.assertIn("retain the superseded Ask-Agent helper-managed workspace", refused.stderr)
+        self.assertEqual(self.f.ledger_bytes(), before_ledger)
+        self.assertEqual(self.f.child_state_path().read_bytes(), before_child)
         self.assertTrue(old_worker.exists())
 
     def test_public_owner_takeover_refuses_finish_before_audit_receipt(self):
@@ -1731,9 +1742,8 @@ class PerStepChainTests(PerStepChainFixture):
         self.start("A", attempt)
         self.collect("A", self.launch("A"))
         value = self.prepared_input("A")
-        helper = fixture.chain._chain_git()
-        with patch.object(helper, "remove_worker", side_effect=ValueError("fixture removal refusal")):
-            output = fixture.chain._settle(self.f.run, self.binding(), value)
+        # Managed acceptance defers helper-owned close; the worker is retained.
+        output = fixture.chain._per_step_done(self.f.run, self.binding(), value)
         self.assertEqual(output["outcome"], "accepted")
         self.assertEqual(self.f.child_record(attempt)["status"], "accepted")
         head = self.head()
@@ -1767,9 +1777,8 @@ class PerStepChainTests(PerStepChainFixture):
         a, b = self.launch("A"), self.launch("B")
         self.collect("A", a)
         a_value = self.prepared_input("A")
-        helper = fixture.chain._chain_git()
-        with patch.object(helper, "remove_worker", side_effect=ValueError("fixture removal refusal")):
-            accepted = fixture.chain._settle(self.f.run, self.binding(), a_value)
+        # Managed acceptance defers helper-owned close; the worker is retained.
+        accepted = fixture.chain._per_step_done(self.f.run, self.binding(), a_value)
         self.assertEqual(accepted["outcome"], "accepted")
         self.assertIn(attempts["A"], accepted["lifecycle"]["cleanup_pending"])
         a_worker = Path(a_packet["context"]["workspace"])
@@ -1830,7 +1839,7 @@ class PerStepChainTests(PerStepChainFixture):
             return original(chain_dir, event_id, kind, data, **kwargs)
         with patch.object(fixture.chain, "_append", side_effect=crash_before_receipt):
             with self.assertRaises((OSError, ValueError)):
-                fixture.chain._settle(self.f.run, self.binding(), value)
+                fixture.chain._per_step_done(self.f.run, self.binding(), value)
         self.assertEqual(self.head(), value["integration"]["candidate_commit"])
         self.assertNotEqual(self.f.child_record(attempt)["status"], "accepted")
         recovered = self.call("done", value)
@@ -1853,7 +1862,7 @@ class PerStepChainTests(PerStepChainFixture):
         helper = fixture.chain._chain_git()
         with patch.object(helper, "fast_forward", side_effect=ValueError("fixture target write interruption")):
             with self.assertRaises(fixture.chain.ChainError):
-                fixture.chain._settle(self.f.run, self.binding(), a_value)
+                fixture.chain._per_step_done(self.f.run, self.binding(), a_value)
         self.assertEqual(self.head(), initial)
         self.assertNotEqual(self.f.child_record(attempts["A"])["status"], "accepted")
         events_after_failure = self.bridge_events()
@@ -2161,7 +2170,7 @@ class PerStepChainTests(PerStepChainFixture):
             return original(chain_dir, event_id, kind, data, **kwargs)
         with patch.object(fixture.chain, "_append", side_effect=crash_before_contribution):
             with self.assertRaises((OSError, ValueError)):
-                fixture.chain._settle(self.f.run, self.binding(), value)
+                fixture.chain._per_step_done(self.f.run, self.binding(), value)
         self.assertEqual(self.f.child_record(attempt)["status"], "accepted")
         recovered = self.call("done", value)
         cleaned = self.run_deferred_managed_cleanup("A", recovered)

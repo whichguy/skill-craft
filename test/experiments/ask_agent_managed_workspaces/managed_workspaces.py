@@ -20,9 +20,7 @@ import sys
 from typing import Any, Mapping
 
 SCHEMA = "ask-agent-managed-workspaces.v2"
-LEGACY_SCHEMA = "ask-agent-managed-workspaces.v1"
 EVENT_SCHEMA = "ask-agent-managed-workspaces.events.v2"
-LEGACY_EVENT_SCHEMA = "ask-agent-managed-workspaces.events.v1"
 OUTCOMES_SCHEMA = "ask-agent-managed-workspaces.helper-outcomes.v2"
 ACCEPTANCE_SCHEMA = "ask-agent-managed-workspaces.acceptance.v2"
 HOSTS = ("grok", "claude", "codex", "cursor", "opencode")
@@ -706,9 +704,6 @@ def _trace_v2_validation(
     except ContractError as exc:
         reason = str(exc)
         return {"pass": False, "status": "UNOBSERVED", "errors": [reason], "layers": _unobserved_trace_layers(reason), **details}
-    if payload.get("schema") == LEGACY_EVENT_SCHEMA:
-        reason = "v1 event trace cannot establish v2 COMPLETE"
-        return {"pass": False, "status": "LEGACY_UNQUALIFIED", "errors": [reason], "layers": _unobserved_trace_layers(reason), **details}
     if payload.get("schema") != EVENT_SCHEMA or not isinstance(payload.get("events"), list):
         reason = f"public event trace must use {EVENT_SCHEMA}"
         return {"pass": False, "status": "UNOBSERVED", "errors": [reason], "layers": _unobserved_trace_layers(reason), **details}
@@ -1108,9 +1103,26 @@ def _lifecycle_layer_verdicts(checks: Mapping[str, Any]) -> dict[str, dict[str, 
     return layers
 
 
+MANIFEST_KEYS = frozenset({
+    "schema", "host", "run", "primary", "caller", "source_head", "fixture_code_delivery_mode",
+    "package", "baseline", "prompt", "skill_sha256", "package_tree_sha256", "workspace_helper",
+})
+
+
+def load_manifest(path: Path) -> dict[str, Any]:
+    """Read the fixture manifest `prepare` writes; any other schema is refused."""
+    manifest = load_json(path)
+    if manifest.get("schema") != SCHEMA:
+        raise ContractError(f"fixture manifest must use {SCHEMA}; found {manifest.get('schema')!r}: {path}")
+    missing = sorted(MANIFEST_KEYS - set(manifest))
+    if missing:
+        raise ContractError(f"fixture manifest lacks {', '.join(missing)}: {path}")
+    return manifest
+
+
 def verify(args: argparse.Namespace) -> int:
     run_dir = canonical(args.run); operator = run_dir / "operator"
-    manifest = load_json(operator / "manifest.json"); baseline = load_json(operator / "source-baseline.json")
+    manifest = load_manifest(operator / "manifest.json"); baseline = load_json(operator / "source-baseline.json")
     caller = canonical(manifest["caller"]); current = git_snapshot(caller)
     checks: dict[str, Any] = {"schema": SCHEMA, "run": str(run_dir), "host": manifest["host"], "checks": {}, "status": "PARTIAL"}
     expected = baseline["files"]
@@ -1141,14 +1153,12 @@ def verify(args: argparse.Namespace) -> int:
     except (OSError, json.JSONDecodeError):
         pricing_ok = False
     checks["checks"]["pricing_only_integration"] = {"pass": pricing_ok}
-    manifest = dict(manifest)
-    manifest.setdefault("source_head", baseline.get("head"))
     outcomes = _outcome_validation(manifest, operator)
     checks["checks"]["helper_receipts_and_outcomes"] = _public_outcomes(outcomes)
     code_modes = sorted({record.get("mode") for record in outcomes["attempts"].values() if record.get("role") == "code"})
     checks["checks"]["managed_fixture_delivery_mode"] = {
-        "pass": code_modes == [manifest.get("fixture_code_delivery_mode", "patch")],
-        "expected": manifest.get("fixture_code_delivery_mode", "patch"),
+        "pass": code_modes == [manifest["fixture_code_delivery_mode"]],
+        "expected": manifest["fixture_code_delivery_mode"],
         "observed": code_modes,
         "note": "The dirty managed fixture qualifies patch delivery; clean commit-delivery proof is covered by the helper suite.",
     }

@@ -3,13 +3,13 @@
 Chains apply only to a run whose delegation is `ask-agent`: an opt-in new run,
 or a run switched with `python3 "$CLI" delegation --run-dir "$RUN_DIR" --set ask-agent`.
 Under `delegation: inline`, the default for
-new v3/v4 runs, `implement` executes the reviewed steps directly, one at a time
+new runs, `implement` executes the reviewed steps directly, one at a time
 in dependency order, in the execution checkout, and `chain bind` refuses a fresh
 binding before any side effect. Replaying an existing binding keeps its recorded
 mode. See the [navigator delegation setting](navigator.md#run-it).
 
 For a reviewed dependency graph with dependency-independent implementation work
-**inside the current navigator-v3/v4 `implement` action**, use this parallel route
+**inside the current navigator `implement` action**, use this parallel route
 by default when selected compatible native capacity is available. The binding
 remains explicit, action-scoped, and recoverable. ShipLoop retains one parent
 action and its normal Improve/test sequence; the work-item queue remains
@@ -17,11 +17,10 @@ ordered. Existing runs are unchanged unless their current implementation action
 is explicitly bound. Serial mode remains an explicit user or host-limit choice,
 and a concrete compatibility, readiness, or resource blocker retains the
 ordinary parent route.
-New chains use only the managed per-step lifecycle. Fresh `final-return` and
-Ask-Agent 0.4 bindings are rejected before state or workspace creation. Existing
-pre-v6 bindings remain diagnostic evidence; preserve their workspaces and do not
-resume the retired execution flow or switch a bound run in place. Ordinary
-unbound navigator records retain their existing format.
+Chains use only the managed per-step lifecycle and binding schema v6. A saved
+binding with any older schema is refused by every chain operation, including
+`history` and `pending`: preserve its worktrees and ledger and bind a new managed
+chain. Ordinary unbound navigator records retain their existing format.
 
 ```mermaid
 flowchart TD
@@ -38,19 +37,19 @@ flowchart TD
 ## Bind the selected packages and reviewed graph
 
 Use the exact selected Plan Dispatcher and Ask-Agent skill cards for every new
-binding, including serial mode. Ask-Agent must be at least 0.6.0 and its selected
-helper must expose `capabilities --skill-card ABSOLUTE_SKILL_CARD` and `identity`.
-The capability response must declare the supported managed-workspace schema and
-required preparation, inspection, commit-delivery and fingerprint-bound-close
-capabilities. Markdown wording and a higher version number alone do not establish
-compatibility. Compatible later versions use this same negotiated flow.
+binding, including serial mode. The selected Ask-Agent helper must expose
+`capabilities --skill-card ABSOLUTE_SKILL_CARD` and `identity`. The capability
+response must declare the supported managed-workspace schema and the full current
+capability set: `helper-managed-worktree`, `prepared-inspection`,
+`returned-commit-delivery`, `fingerprint-bound-close` and `ignored-output-report`.
+There is no version-number floor: Markdown wording or a version number alone
+never establishes compatibility, and a helper missing any capability is refused.
 
 Binding schema v6 records this capability proof and the managed lifecycle for
 both modes. Its schema number is independent of Ask-Agent's package version.
 The binding freezes the workspace helper, execution references, selected card,
 logical/resolved paths, version and hashes. Both modes use the helper's native
-identity proof; missing capabilities or identity fail closed without a legacy
-fallback. ShipLoop does not install the selected packages, search host skill
+identity proof; missing capabilities or identity fail closed. ShipLoop does not install the selected packages, search host skill
 directories or silently choose a substitute. Plan Dispatcher requires Node.js;
 ShipLoop uses its public helper for state operations, never a model subprocess
 launcher. The parent launches native workers in parallel mode or executes the
@@ -59,8 +58,8 @@ bounded assignment in its main context in serial mode.
 The graph is Plan Dispatcher's execution graph with direct `deps` and each
 step's `contract.task`, `contract.ready` and `contract.done`. A reviewed Backchain
 plan should use the selected Plan Orchestrator checkout's
-`scripts/export-execution-graph.js`; a compatible legacy checkout can retain
-`harness/dispatcher-plan.js`. Review the graph against the **current
+`scripts/export-execution-graph.js`, which emits `version: 1`; a graph without
+that version is refused before binding. Review the graph against the **current
 implementation action's scope** before binding; do not submit the whole project's
 SDLC as one implementation graph. Keep missing prerequisites explicit rather
 than treating syntactic validation as a semantic readiness check.
@@ -249,14 +248,12 @@ time and an empty ready list never authorize acceptance or completion.
 | `start` | `attempt`, current `base_commit`, relative `write_scope`, canonical `resources`, and `ready_evidence:{path,sha256}`. Both modes prepare through the selected managed Ask-Agent helper and return its receipt with a native launch or main-context execute packet. Do not supply `workspace`; caller-prepared adoption is unsupported. |
 | `launched` | `attempt`, actual native `handle`; record only after the host confirms launch. |
 | `packet` | `attempt`; recover the existing packet, never a new launch grant. |
-| `observe` | `attempt`, optional source `occurred_at`; append receipt observation after native collection. It does not accept the task. |
 | `import-handoff` | `attempt`, `confirmed_stopped:true`, `handoff:{path,sha256}`; parent archives worker-local results and publishes the existing dispatcher report. |
 | `prepare` | `attempt`, `confirmed_stopped:true`; inspect original contribution, reconcile current target into the stopped worker checkout, and return the exact combined candidate for independent checks. |
-| `settle` | `attempt`, `confirmed_stopped:true`, candidate-bound `integration` and `verification:{receipt_sha256,passed,reason,evidence:{path,sha256}}`; verify, merge into the invoking checkout, accept and return the ready frontier. Managed cleanup is deferred in both execution modes. |
-| `cleanup` | `attempt`, `confirmed_stopped:true`; close or retry accepted-worker removal after refilling safe capacity. Superseded managed attempts remain blocked and have no supported cleanup callback. Cleanup never executes the task again. |
-| `done` | An alias for `settle` with the identical evidence contract; it invokes the same transition once. Rejected verification leaves the step not done. |
+| `done` | `attempt`, `confirmed_stopped:true`, candidate-bound `integration` and `verification:{receipt_sha256,passed,reason,evidence:{path,sha256}}`; verify, merge into the invoking checkout, accept and return the ready frontier. Rejected verification leaves the step not done. Managed cleanup is deferred in both execution modes. |
+| `cleanup` | `attempt`, `confirmed_stopped:true`; close or retry accepted-worker removal after refilling safe capacity. Superseded managed attempts remain blocked and have no supported cleanup callback (a `superseded` disposition is refused). Cleanup never executes the task again. |
 | `retry` | `attempt`, `confirmed_stopped:true`, `reason`; preserve failed evidence/worktree, then claim a fresh attempt. |
-| `next` / `recover` | Inspect durable child state, bridge events and unresolved operations. No automatic relaunch. |
+| `next` | Inspect durable child state, bridge events and unresolved operations, and recover an interrupted parent transaction. No automatic relaunch. |
 | `history` | No input file. Read the timestamped bridge audit in append sequence, including past indexed actions; no recovery or child invocation. |
 | `pending` | No input file. List every unaccepted step with current status and unmet direct dependencies, plus capacity; no claim, launch or acceptance. |
 | `finish` | Current integrated target `commit`, `confirmed_stopped:true`, and independent `verification:{path,sha256}`; require all contributions accepted, final combined verification and completed cleanup. Per-step mode has already merged each result; this is a final audit. |
@@ -375,9 +372,9 @@ runtime state file for every graph step, inside the binding's `dispatcher_run`:
 and blocked steps are all **not done**. There is no second stored completion
 boolean to synchronize. `completion.done` and `completion.not_done` in bridge
 snapshots are derived lists; `completion` describes graph acceptance.
-Existing runs with only the legacy `state.json` continue in that same file;
-never copy or mirror it. If both names exist, stop and resolve the ambiguity
-before proceeding. The run directory is outside the project checkout. This is
+A child run that contains a legacy `state.json` is refused before any child
+operation ("legacy Plan Dispatcher state.json runs are not supported"); never
+copy, rename or mirror it. The run directory is outside the project checkout. This is
 generated orchestration state, retained across interruptions and finish for
 recovery and inspection until the run is explicitly disposed of. Immutable
 bindings, result receipts and the append-only bridge ledger are configuration
@@ -386,8 +383,8 @@ The chain also exposes outstanding integration and cleanup work: accepted code
 stays accepted if worktree removal fails. Such a failure cannot trigger task
 reexecution and prevents final `finish` until cleanup is resolved.
 
-Use `done` or `settle`, with the same exact attempt and verification receipt, to
-record acceptance. An identical repeated completion is inert even after another
+Use `done`, with the exact attempt and verification receipt, to record
+acceptance. An identical repeated completion is inert even after another
 step progresses. A conflicting verification is an error; an obsolete attempt
 cannot complete its replacement. A worker saying "done," a progress notice, or
 a report file alone cannot accept the step or unlock a dependent.
@@ -541,11 +538,10 @@ Preserve its receipt, results and worktree; do not bypass the receipt owner with
 direct Git removal or claim final cleanup is complete. Ready replacement and
 independent work remain visible before this finalization blocker.
 
-All pre-v6 bindings, including earlier managed 0.6 bindings, are retained only for diagnostic
-inspection. Their old execution callbacks cannot allocate, launch, integrate or
-remove work under the new flow. Do not convert their binding or invent receipt
-ownership for an existing directory. Preserve their evidence/workspaces and
-prepare a newly reviewed managed chain when continuing the work.
+Pre-v6 bindings are refused by every chain operation, including `history` and
+`pending`. Do not convert their binding or invent receipt ownership for an
+existing directory. Preserve their evidence/workspaces and prepare a newly
+reviewed managed chain when continuing the work.
 
 Only after the chain finishes may the parent submit its normal current producer
 result. ShipLoop then invokes its existing actual Improve checkpoint and later
@@ -575,7 +571,7 @@ Both views return JSON and accept an action ID still indexed in the run, even
 after the navigator has advanced. They acquire the existing run lock for reading
 and do not create files, append events, repair interruptions or dispatch work.
 An unfinished parent transaction or interrupted event publication must first be
-recovered explicitly through `chain recover` for the current action. An absent
+recovered explicitly through `chain next` for the current action. An absent
 or unsafe run lock, invalid binding or corrupt ledger makes the query fail.
 
 `history` returns `sequence` (the event count) and `events` in append order. Each
@@ -615,7 +611,7 @@ source `occurred_at`. Corrections and reconciliation append new records. Never
 re-sort published entries by timestamp. Derived views do not replace either
 parent or child authority.
 
-Bridge intents precede mutations. If interrupted, use `chain recover`, inspect
+Bridge intents precede mutations. If interrupted, use `chain next`, inspect
 the recorded child/native/Git state and follow the returned recovery boundary.
 A lost launch response remains uncertain even if a handle was never saved. Do
 not replay the event log as native execution or steal a lock based on age.

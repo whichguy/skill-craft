@@ -546,7 +546,7 @@ the invocation. Required unresolved questions prevent a host declaration of
 convergence; navigator validates the result envelope, not the truth or
 completeness of those findings.
 
-Only navigator v4's initial `plan` Improve child, selected for the bundled
+Only the navigator's initial `plan` Improve child, selected for the bundled
 ephemeral runtime before preparation or dispatch, may use the packet-issued
 `stopped` reconciliation route. Other children use their recorded
 child-incomplete, pause, or parent-completion route. A generic producer checkpoint remains valid
@@ -671,11 +671,11 @@ iteration, not a guarantee of completeness or this exact two-pass threshold.
 The threshold is ShipLoop's explicit operational stopping rule; semantic
 adequacy, source interpretation and live-source truth still require judgment.
 
-## Plan-triggered experiments in protocol 4
+## Plan-triggered experiments
 
-The opt-in [planning experiment guide](planning-experiments.md) applies this
+The [planning experiment guide](planning-experiments.md) applies this
 shared evidence and allowance policy to assumptions exposed by a provisional
-plan. Only v4's initial bound Plan Improve child may run this planning-specific
+plan. Only the initial bound Plan Improve child may run this planning-specific
 path. It may validly choose zero experiments. A valid confirmation that leaves
 the plan unchanged still exports its decision-note evidence through the existing
 `final_result.evidence_refs`, which the parent verifies and imports through

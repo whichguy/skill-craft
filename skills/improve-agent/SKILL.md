@@ -5,7 +5,7 @@ description: >-
   conversation: start one agent that runs /improve in its own context, keep
   useful parent work going, then verify and relay its result. For Improve in
   this conversation, use improve.
-version: 0.1.0
+version: 0.1.1
 license: MIT
 platforms:
   - linux
@@ -51,7 +51,7 @@ user's choice.
   Choose the delivery mode before launch: `commits` when Improve's ordinary
   commit policy applies, `patch` for an explicit no-commit request, and
   `report-only` for a preview or dry-run request.
-- **Consumer-bound child.** When a consumer such as a ShipLoop v3/v4
+- **Consumer-bound child.** When a consumer such as a ShipLoop
   `delegation: ask-agent` Improve packet supplies a complete consumer-owned
   contract, use Ask Agent's consumer-owned workspace route with
   `workspace_route: consumer-owned` and `delivery_mode: in-place`. It requires

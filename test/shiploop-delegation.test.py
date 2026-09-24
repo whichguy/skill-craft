@@ -41,12 +41,11 @@ BOUND_DELEGATED_TEXT = DELEGATED_ROUTE_TEXT + (
 )
 
 
-def bound_walk(repo, delegation, protocol_version=3):
+def bound_walk(repo, delegation):
     """Render every producer and its bound ephemeral Improve packet for one item."""
     selected = standalone.resolve_skill(str(CARD))
-    state = nav.new_state(str(repo), "Synthetic bound walk.", protocol_version=protocol_version,
-                          delegation=delegation)
-    run = Path(repo).parent / ("run-" + str(delegation) + "-" + str(protocol_version))
+    state = nav.new_state(str(repo), "Synthetic bound walk.", delegation=delegation)
+    run = Path(repo).parent / ("run-" + str(delegation))
     run.mkdir()
     packets = []
     while state["status"] == "active":
@@ -91,15 +90,15 @@ class DelegationStateTests(unittest.TestCase):
         self.run = Path(self.temp.name) / "run"
         self.run.mkdir()
 
-    def state(self, delegation="inline", protocol_version=3):
+    def state(self, delegation="inline"):
         return nav.new_state("/simulation-only/repo", "Synthetic delegation request.",
-                             protocol_version=protocol_version, delegation=delegation)
+                             delegation=delegation)
 
     def render(self, state):
         return nav.render(None, self.run, state)
 
     def test_every_run_records_delegation_and_a_run_without_it_is_refused(self):
-        default = nav.new_state("/r", "Synthetic.", protocol_version=3)
+        default = nav.new_state("/r", "Synthetic.")
         self.assertEqual((default["delegation"], nav.delegation(default)), ("inline", "inline"))
         # A run saved before the setting existed is not routed through ask-agent.
         unrecorded = dict(default)
@@ -108,12 +107,11 @@ class DelegationStateTests(unittest.TestCase):
             nav.validate(unrecorded)
         self.assertIn("navigator state has no recorded delegation", str(caught.exception))
         self.assertIn("fresh --run-dir", str(caught.exception))
-        for version in (3, 4):
-            for value in ("inline", "ask-agent"):
-                with self.subTest(version=version, value=value):
-                    state = self.state(value, version)
-                    self.assertEqual(state["delegation"], value)
-                    self.assertEqual(nav.delegation(state), value)
+        for value in ("inline", "ask-agent"):
+            with self.subTest(value=value):
+                state = self.state(value)
+                self.assertEqual(state["delegation"], value)
+                self.assertEqual(nav.delegation(state), value)
 
     def test_delegation_is_limited_to_known_values(self):
         for value in ("parallel", None):
@@ -156,14 +154,12 @@ class DelegationStateTests(unittest.TestCase):
                 self.assertNotIn(text, packet)
 
     def test_no_inline_packet_in_a_full_walk_routes_work_to_a_delegate(self):
-        for version in (3, 4):
-            scenarios = dry_run.scenarios()
-            report = dry_run.run_scenario("delivery", scenarios["delivery"],
-                                          protocol_version=version, delegation="inline")
-            self.assertTrue(report["ok"], report.get("error"))
-            for event in report["events"]:
-                for text in DELEGATED_ROUTE_TEXT:
-                    self.assertNotIn(text, event["prompt"], (version, event["from"], text))
+        scenarios = dry_run.scenarios()
+        report = dry_run.run_scenario("delivery", scenarios["delivery"], delegation="inline")
+        self.assertTrue(report["ok"], report.get("error"))
+        for event in report["events"]:
+            for text in DELEGATED_ROUTE_TEXT:
+                self.assertNotIn(text, event["prompt"], (event["from"], text))
 
     def test_toggle_records_the_setting_once_for_new_actions(self):
         state = self.state()
@@ -290,10 +286,9 @@ class PacketContractTests(DelegationStateTests):
             repo = Path(temp).resolve() / "repo"
             repo.mkdir()
             inline = bound_walk(repo, "inline")
-            delegated = bound_walk(repo, "ask-agent") + bound_walk(repo, "ask-agent", protocol_version=4)
-            v4 = bound_walk(repo, "inline", protocol_version=4)
+            delegated = bound_walk(repo, "ask-agent")
         self.assertEqual(len(inline), 42)
-        for stage, kind, packet in inline + v4:
+        for stage, kind, packet in inline:
             for text in BOUND_DELEGATED_TEXT:
                 self.assertNotIn(text, packet, (stage, kind, text))
             if kind == "improve":
@@ -310,21 +305,19 @@ class PacketContractTests(DelegationStateTests):
         with tempfile.TemporaryDirectory(prefix="shiploop-callback-walk-") as temp:
             repo = Path(temp).resolve() / "repo"
             repo.mkdir()
-            walks = {(route, version): bound_walk(repo, route, protocol_version=version)
-                     for route, version in (("inline", 3), ("ask-agent", 3), ("ask-agent", 4),
-                                            ("inline", 4))}
+            walks = {route: bound_walk(repo, route) for route in ("inline", "ask-agent")}
         planning = nav.guidance3.PLANNING_REVIEW_STAGES
-        for (route, version), packets in walks.items():
+        for route, packets in walks.items():
             for stage, kind, packet in packets:
-                with self.subTest(route=route, version=version, stage=stage, kind=kind):
+                with self.subTest(route=route, stage=stage, kind=kind):
                     # Producers stay within the cold-packet bound. A bound child adds
                     # its runtime contract (about 39,300 chars at most, before temp
-                    # paths); the v4 initial plan child also carries the
+                    # paths); the initial plan child also carries the
                     # planning-experiment contract (about 44,700 chars; 43,500 in
                     # 0.22.0), so it alone gets a wider bound.
                     if kind == "produce":
                         bound = 40_000
-                    elif version == 4 and stage == "plan":
+                    elif stage == "plan":
                         bound = 46_000
                     else:
                         bound = 42_000
@@ -396,13 +389,14 @@ class DelegationCliTests(unittest.TestCase):
         self.assertEqual(self.saved()["delegation"], "inline")
         other = self.base / "ask-run"
         result = self.cli("init", "--repo", self.repo, "--run-dir", other, "--prompt", "Other.",
-                          "--delegation", "ask-agent", "--navigator-version", "4")
+                          "--delegation", "ask-agent")
         self.assertEqual(result.returncode, 0, result.stderr)
         self.assertEqual(store.read_record(other / "state.md")["delegation"], "ask-agent")
 
     def test_removed_init_modes_are_rejected_before_creating_a_run(self):
-        # The single home for rejecting removed init modes and protocol 2.
-        for extra in (("--execution-mode", "navigator-v2"), ("--navigator-version", "2"),
+        # The single home for rejecting removed init modes and the retired
+        # protocol selector.
+        for extra in (("--execution-mode", "navigator-v2"),
                       ("--execution-mode", "navigator-v1"), ("--execution-mode", "managed"),
                       ("--execution-mode", "legacy")):
             for delegation in ((), ("--delegation", "inline")):
@@ -411,6 +405,12 @@ class DelegationCliTests(unittest.TestCase):
                     self.assertEqual(result.returncode, 2, result.stdout + result.stderr)
                     self.assertIn("invalid choice", result.stderr)
                     self.assertFalse(self.run.exists())
+        for version in ("2", "3", "4"):
+            with self.subTest(navigator_version=version):
+                result = self.init("--navigator-version", version)
+                self.assertEqual(result.returncode, 2, result.stdout + result.stderr)
+                self.assertIn("unrecognized arguments: --navigator-version", result.stderr)
+                self.assertFalse(self.run.exists())
 
     def test_init_retry_cannot_change_delegation_and_toggle_is_explicit(self):
         self.assertEqual(self.init().returncode, 0)
@@ -448,13 +448,13 @@ class DelegationCliTests(unittest.TestCase):
             action = self.saved()["action"]["id"]
             result_path = self.run / "inbox" / (action + ".md")
             store.write_record(result_path, {"outcome": "done", "summary": "Synthetic advance."})
-            self.assertEqual(self.cli("done", "--run-dir", self.run, "--action", action,
+            self.assertEqual(self.cli("complete", "--run-dir", self.run, "--action", action,
                                       "--result", result_path).returncode, 0)
         self.assertEqual(self.saved()["stage"], "spec")
         action = self.saved()["action"]["id"]
         result_path = self.run / "inbox" / (action + ".md")
         store.write_record(result_path, {"outcome": "done", "summary": "Synthetic spec."})
-        self.assertEqual(self.cli("done", "--run-dir", self.run, "--action", action,
+        self.assertEqual(self.cli("complete", "--run-dir", self.run, "--action", action,
                                   "--result", result_path).returncode, 0)
         bound = self.cli("improve-bind", "--run-dir", self.run, "--action", action, "--skill-card", CARD)
         self.assertEqual(bound.returncode, 0, bound.stderr)
@@ -466,7 +466,7 @@ class DelegationCliTests(unittest.TestCase):
         self.assertEqual(self.saved()["delegation_hold"], {"action": action, "route": "inline"})
 
     def test_chain_bind_is_refused_on_inline_runs_before_any_side_effect(self):
-        state = advance(nav.new_state(str(self.repo), "Synthetic chain refusal.", protocol_version=3,
+        state = advance(nav.new_state(str(self.repo), "Synthetic chain refusal.",
                                       delegation="inline"), "implement")
         self.run.mkdir()
         nav.save(self.run, state)

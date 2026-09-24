@@ -25,7 +25,7 @@ RUN = Path('/simulation-only/.shiploop')
 
 
 def _improve_receipt(stage):
-    """Synthetic child result for protocol-v3 traversal only.
+    """Synthetic child result for graph traversal only.
 
     It never starts Improve, Until Loop, checks, or a project process.  The
     pure navigator API consumes this declaration to exercise its handoff edge.
@@ -38,8 +38,8 @@ def _improve_receipt(stage):
     }
 
 
-def activity_v3(*, two=False):
-    """Explicit producer/Improve declarations for the v3 graph.
+def activity(*, two=False):
+    """Explicit producer/Improve declarations for the navigator graph.
 
     Improve follows only the planning stages and the last item's carry-forward.
     """
@@ -67,24 +67,23 @@ def activity_v3(*, two=False):
     return rows
 
 
-def _v3_insert_before(rows, stage, command, extra):
-    """Insert declarations before the first matching v3 row."""
+def _insert_before(rows, stage, command, extra):
+    """Insert declarations before the first matching row."""
     index = next(i for i, row in enumerate(rows) if row['at'] == stage and row['command'] == command)
     rows[index:index] = extra
     return rows
 
 
-def _v3_scenarios():
-    """V3/v4 declarations: most producers advance without an Improve child."""
-    activity = activity_v3
-    repeat = _v3_insert_before(activity(), 'plan', 'finish-improve', [
+def scenarios():
+    """Declarations for protocol 4: most producers advance without an Improve child."""
+    repeat = _insert_before(activity(), 'plan', 'finish-improve', [
         {'at': 'plan', 'command': 'finish-improve', 'receipt': _improve_receipt('plan'),
          'final_result': {'outcome': 'repeat', 'summary': 'More investigation needed.'},
          'expect': 'plan'},
         {'at': 'plan', 'command': 'produce', 'expect': 'plan',
          'result': {'outcome': 'done', 'summary': 'Synthetic second attempt.'}},
     ])
-    paused = _v3_insert_before(activity(), 'test-author', 'produce', [
+    paused = _insert_before(activity(), 'test-author', 'produce', [
         {'at': 'test-author', 'command': 'pause', 'expect': 'test-author', 'status': 'paused'},
         {'at': 'test-author', 'command': 'resume', 'expect': 'test-author'},
     ])
@@ -106,11 +105,6 @@ def _v3_scenarios():
     }
 
 
-def scenarios():
-    """Protocols 3 and 4 share one graph and these scenarios."""
-    return _v3_scenarios()
-
-
 def _owner(state):
     """Name the serialized cursor owner without creating another cursor schema."""
     if state.get('stage') == 'inner-loop':
@@ -128,7 +122,7 @@ def _completed_instances(state):
     ]
 
 
-def run_scenario(name, scenario, *, protocol_version=3, delegation=navigator.DEFAULT_DELEGATION):
+def run_scenario(name, scenario, *, delegation=navigator.DEFAULT_DELEGATION):
     report = {'name': name, 'simulation_only': True, 'ok': False, 'events': []}
     try:
         if not isinstance(scenario, dict):
@@ -142,7 +136,7 @@ def run_scenario(name, scenario, *, protocol_version=3, delegation=navigator.DEF
         state = navigator.new_state(
             '/simulation-only/repo',
             'Inspect the SDLC graph with synthetic declarations.',
-            protocol_version=protocol_version, improve_skill='', delegation=delegation,
+            improve_skill='', delegation=delegation,
         )
         for index, step in enumerate(rows, 1):
             if not isinstance(step, dict) or not {'at', 'expect'} <= set(step):
@@ -200,8 +194,6 @@ def add_arguments(parser):
     selected.add_argument('--scenario', choices=('all', *scenarios()), default='all')
     selected.add_argument('--script', help='JSON activity with explicit expected stages and synthetic result declarations')
     parser.add_argument('--format', choices=('summary', 'json', 'markdown'), default='summary')
-    parser.add_argument('--protocol-version', choices=(3, 4), type=int, default=3,
-                        help='navigator protocol to simulate; default follows public navigator v3')
     parser.add_argument('--delegation', choices=navigator.DELEGATIONS, default=None,
                         help='execution delegation to simulate; default follows new runs (inline)')
     parser.add_argument('--list', action='store_true')
@@ -218,14 +210,13 @@ def run(args):
             choices = scenarios()
             selected = choices if args.scenario == 'all' else {args.scenario: choices[args.scenario]}
         delegation = args.delegation or navigator.DEFAULT_DELEGATION
-        reports = [run_scenario(name, value, protocol_version=args.protocol_version,
-                                delegation=delegation)
+        reports = [run_scenario(name, value, delegation=delegation)
                    for name, value in selected.items()]
     except (OSError, ValueError) as exc:
         print(f'Graph dry-run input error: {exc}')
         return 2
     if args.format == 'json':
-        print(json.dumps({'simulation_only': True, 'protocol_version': args.protocol_version,
+        print(json.dumps({'simulation_only': True, 'protocol_version': navigator.PROTOCOL_VERSION,
                           'scope': SCOPE, 'scenarios': reports}, indent=2))
     else:
         print(SCOPE)

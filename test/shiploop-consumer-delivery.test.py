@@ -61,7 +61,6 @@ class ConsumerDeliveryTests(unittest.TestCase):
         return navigator.new_state(
             str(self.repo),
             "Make the existing game feature usable by its player.",
-            protocol_version=3,
             delivery_contract=True,
         )
 

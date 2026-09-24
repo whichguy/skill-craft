@@ -1,13 +1,12 @@
 # Experiments during planning
 
-Navigator v4 is an explicit new-run pilot. Select `--protocol-version 4` on
-`workspace start`, or `--navigator-version 4` on `init`. Existing runs keep their
-saved protocol; the default remains v3. Follow the current packet rather than
-retrofitting this guide onto an active older run.
+Every navigator protocol 4 run supports planning experiments; there is no
+protocol selector, and a saved run from an older protocol is refused. Follow the
+current packet.
 
 Lifecycle and owner rules remain in the
 [navigator execution mode adapter](research-loop.md#navigator-execution-mode-adapter).
-This planning-specific duty applies only to v4's initial bound Plan Improve
+This planning-specific duty applies only to the initial bound Plan Improve
 child using the selected ephemeral runtime, after its one valid producer
 submission has parked the parent. Plan Improve screens the
 provisional plan for consequential uncertainty and may conduct a worthwhile
@@ -23,7 +22,7 @@ flowchart TD
     C -->|No, bounded probe available| D[Run and evaluate experiment]
     D --> E{Upstream premise invalidated?}
     E -->|No| B
-    E -->|Yes| F[Selected v4 initial plan child stops]
+    E -->|Yes| F[Selected initial plan child stops]
     F --> G[Parent reconciles earliest affected stage]
     G --> A
     C -->|Yes| H[Normal qualifying reviews]
@@ -131,10 +130,10 @@ under `delegation: inline`, the parent is the owner and confirms that the runtim
 returned the packet and no candidate write is in progress. Only then can it
 accept, reconcile, or replace work.
 
-The return path is available only for v4's initial `plan` Improve child before
+The return path is available only for the initial `plan` Improve child before
 any preparation, work-item execution, chain binding or workspace return, when
-that child selected the bundled ephemeral Until runtime. V3 children and
-other v4 children remain on their recorded incomplete route
+that child selected the bundled ephemeral Until runtime. Other children remain
+on their recorded incomplete route
 rather than receive a fabricated stopped-child settlement.
 
 1. Finish the current bounded work and preserve observations/cleanup status.
@@ -169,7 +168,7 @@ Do not recreate the child or repeat its experiments merely because the parent
 response was lost. Missing or changed archived evidence blocks recovery rather
 than silently restoring stale authority.
 
-After preparation begins, this pilot does not replace an active graph. Block
+After preparation begins, planning experiments do not replace an active graph. Block
 architecture-dependent consumers and use an already-supported corrective route,
 or retain an explicit incomplete handoff. If a feasibility question requires
 substantial product implementation, keep its dependent architecture unresolved

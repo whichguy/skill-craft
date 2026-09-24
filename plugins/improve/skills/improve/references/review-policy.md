@@ -19,20 +19,12 @@ Before a consumer applies this policy, its owner must state:
   review, including concrete review-material locators and the independent
   reviewer or permitted fallback rationale for each substantive cycle;
 - the commit policy, including no-change handling and any explicit override;
-- the phase boundary and callback that receive each completed phase; and
+- the callback that receives each completed review cycle; and
 - the authority and conditions that may finalize the whole requested work.
 
 The binding must preserve explicit user constraints. History informs a plan; it
 does not silently expand scope, establish present truth, authorize unrelated
 work, or override a user constraint.
-
-## Owner-managed consumer entrypoint
-
-An owner-managed consumer reads this policy in full together with its owner's
-binding before acting. If an owner splits a cycle into phases, execute only the
-assigned phase and return the owner callback. Never run the entire cycle in one
-action. The owner remains responsible for invoking later phases and deciding
-whether their evidence can support finalization.
 
 ## Review-cycle obligations
 

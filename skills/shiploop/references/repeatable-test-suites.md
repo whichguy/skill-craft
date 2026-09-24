@@ -154,7 +154,7 @@ duplicating the facility or treating its former availability as current proof.
 
 ## Carry test decisions through stages
 
-For Navigator v3, retain the run-wide strategy note in the `test-strategy`
+For the navigator, retain the run-wide strategy note in the `test-strategy`
 result's ordinary `evidence_refs`. Record selected capabilities and concrete
 project choices, rationale, execution versus target location, fixture lifecycle,
 suite commands/membership, prerequisites, and revalidation conditions there.
@@ -384,7 +384,7 @@ runner does not expand) is fixed in the stage that finds it.
 
 ## Review test assets through Improve
 
-For Navigator v3, the selected actual standalone Improve skill reviews each
+In the navigator, the selected actual standalone Improve skill reviews each
 planning result, including `test-spec`, and the end-of-work candidate. Within that
 candidate scope, its review
 includes local and remote-resident test definitions, execution/target locations,

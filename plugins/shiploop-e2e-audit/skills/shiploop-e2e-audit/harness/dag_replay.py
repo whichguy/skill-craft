@@ -51,17 +51,17 @@ _COMMANDS = frozenset((
 ))
 _STATUSES = frozenset(("active", "paused", "blocked", "halted", "done"))
 _KIND = "synthetic"
-_PROTOCOL_VERSION = 3
-_V3_PRELUDE = (
+_PROTOCOL_VERSION = 4
+_PRELUDE = (
     "intake", "discovery", "research", "spec", "test-strategy", "plan", "prepare",
 )
-_V3_INNER = (
+_INNER = (
     "select-work", "step-plan", "test-spec", "baseline", "test-author", "test-red",
     "implement", "test-green", "test-refine", "regression", "document", "skill-assess",
     "skill-validate", "static-checks", "verify", "integrate", "integration-verify",
     "carry-forward",
 )
-_V3_OUTER = (
+_OUTER = (
     "system-test-author", "system-test", "product-acceptance", "release-plan",
     "release-check", "release", "release-verify", "operations", "handoff",
 )
@@ -69,7 +69,7 @@ _V3_OUTER = (
 # of the navigator's own constants: every planning/contract producer, plus the
 # successful carry-forward that leaves no work item pending, parks for Improve.
 # Every other producer result is accepted directly.
-_V3_PLANNING_CHECKPOINTS = frozenset((
+_PLANNING_CHECKPOINTS = frozenset((
     "spec", "test-strategy", "plan", "step-plan", "test-spec",
     "system-test-author", "release-plan",
 ))
@@ -131,7 +131,7 @@ def _text(value: Any, label: str) -> str:
 
 
 def _owner(state: Mapping[str, Any]) -> str:
-    if state.get("navigator_protocol_version") in (3, 4) and state.get("stage") == "inner-loop":
+    if state.get("navigator_protocol_version") == _PROTOCOL_VERSION and state.get("stage") == "inner-loop":
         return str(state["work_items"][state["work_index"]]["id"])
     return "root"
 
@@ -156,7 +156,7 @@ def validate_case(raw: Any, *, origin: str = "fixture") -> dict[str, Any]:
     if raw["kind"] != _KIND:
         raise DagReplayError(f"{origin}: kind must be synthetic")
     if type(raw["protocol_version"]) is not int or raw["protocol_version"] != _PROTOCOL_VERSION:
-        raise DagReplayError(f"{origin}: protocol_version must be 3")
+        raise DagReplayError(f"{origin}: protocol_version must be {_PROTOCOL_VERSION}")
     if not isinstance(raw["provenance"], dict):
         raise DagReplayError(f"{origin}: provenance must be an object")
     if "prompt" in raw:
@@ -237,9 +237,9 @@ def _receipt(stage: str, *, marker: str = "complete") -> dict[str, Any]:
     }
 
 
-def _v3_path_steps(stages: tuple[str, ...], *, work_items: list[dict[str, str]] | None = None,
+def _path_steps(stages: tuple[str, ...], *, work_items: list[dict[str, str]] | None = None,
                    active_owner: str = "W1", terminal_target: str | None = None) -> list[dict[str, Any]]:
-    """Build independent expected edges for the v3 producer/Improve schedule.
+    """Build independent expected edges for the producer/Improve schedule.
 
     A literal checkpoint producer parks its action and a synthetic Improve
     completion advances it. Every other producer advances directly.
@@ -251,11 +251,11 @@ def _v3_path_steps(stages: tuple[str, ...], *, work_items: list[dict[str, str]] 
         target = stages[index + 1] if index + 1 < len(stages) else (terminal_target or "done")
         if stage == "carry-forward":
             item_index += 1
-        checkpoint = stage in _V3_PLANNING_CHECKPOINTS or (
+        checkpoint = stage in _PLANNING_CHECKPOINTS or (
             stage == "carry-forward" and item_index >= len(item_ids)
         )
         edge: dict[str, Any] = {"expect": target, "status": "done" if target == "done" else "active"}
-        if target in _V3_INNER:
+        if target in _INNER:
             if item_index >= len(item_ids):
                 raise DagReplayError("synthetic path expects an unavailable work item")
             edge["expect_owner"] = item_ids[item_index]
@@ -264,7 +264,7 @@ def _v3_path_steps(stages: tuple[str, ...], *, work_items: list[dict[str, str]] 
             "result": _result(stage, work_items=work_items if stage == "plan" else None),
         }
         # Omit an inner owner rather than placing None in the strict schema.
-        if stage not in _V3_INNER:
+        if stage not in _INNER:
             produce["owner"] = "root"
         if checkpoint:
             rows.append({**produce, "expect": stage, "status": "active"})
@@ -280,7 +280,7 @@ def _synthetic_case(case_id: str, steps: list[dict[str, Any]], expected_final: d
         "schema": CASE_SCHEMA,
         "id": case_id,
         "kind": "synthetic",
-        "protocol_version": 3,
+        "protocol_version": _PROTOCOL_VERSION,
         "provenance": {
             "source": "dag_replay.py synthetic builder",
             "meaning": "Fixture controls only; no retained model or product behavior.",
@@ -295,17 +295,17 @@ def _synthetic_case(case_id: str, steps: list[dict[str, Any]], expected_final: d
 
 
 def synthetic_cases() -> dict[str, dict[str, Any]]:
-    """Return independent v3 calibration cases; expected edges are literal here."""
-    full_path = _V3_PRELUDE + _V3_INNER + _V3_OUTER
+    """Return independent calibration cases; expected edges are literal here."""
+    full_path = _PRELUDE + _INNER + _OUTER
     cases: dict[str, dict[str, Any]] = {
-        "synthetic-v3-full": _synthetic_case(
-            "synthetic-v3-full", _v3_path_steps(full_path),
+        "synthetic-full": _synthetic_case(
+            "synthetic-full", _path_steps(full_path),
             {"stage": "done", "status": "done", "completed_work_items": ["W1"]}
         ),
-        "synthetic-v3-two-work-items": _synthetic_case(
-            "synthetic-v3-two-work-items",
-            _v3_path_steps(
-                _V3_PRELUDE + _V3_INNER + _V3_INNER + _V3_OUTER,
+        "synthetic-two-work-items": _synthetic_case(
+            "synthetic-two-work-items",
+            _path_steps(
+                _PRELUDE + _INNER + _INNER + _OUTER,
                 work_items=[{"id": "W1", "title": "First synthetic item"}, {"id": "W2", "title": "Second synthetic item"}],
             ),
             {"stage": "done", "status": "done", "completed_work_items": ["W1", "W2"]},
@@ -313,7 +313,7 @@ def synthetic_cases() -> dict[str, dict[str, Any]]:
     }
 
     # Replay guards need a parked child, so they run at the first checkpoint.
-    to_spec = _v3_path_steps(("intake", "discovery", "research"), terminal_target="spec")
+    to_spec = _path_steps(("intake", "discovery", "research"), terminal_target="spec")
     wait_steps = to_spec + [
         {"at": "spec", "command": "produce", "result": _result("spec"), "expect": "spec", "status": "active"},
         {"at": "spec", "command": "duplicate-produce", "result": _result("spec"), "expect": "spec", "status": "active"},
@@ -323,8 +323,8 @@ def synthetic_cases() -> dict[str, dict[str, Any]]:
         {"at": "test-strategy", "command": "conflicting-finish-improve", "receipt": _receipt("spec", marker="conflict"), "expect": "test-strategy", "status": "active", "expect_error": "conflicting Improve completion replay"},
         {"at": "test-strategy", "command": "stale-finish-improve", "receipt": _receipt("test-strategy"), "expect": "test-strategy", "status": "active", "expect_error": "stale Improve parent action"},
     ]
-    cases["synthetic-v3-improve-replay-guards"] = _synthetic_case(
-        "synthetic-v3-improve-replay-guards", wait_steps, {"stage": "test-strategy", "status": "active"}
+    cases["synthetic-improve-replay-guards"] = _synthetic_case(
+        "synthetic-improve-replay-guards", wait_steps, {"stage": "test-strategy", "status": "active"}
     )
 
     paused_steps = [
@@ -346,31 +346,31 @@ def synthetic_cases() -> dict[str, dict[str, Any]]:
         {"at": "spec", "command": "produce", "result": _result("spec"), "expect": "spec", "status": "active"},
         {"at": "spec", "command": "finish-improve", "receipt": _receipt("spec", marker="retry"), "expect": "test-strategy", "status": "active"},
     ]
-    cases["synthetic-v3-pause-blocked-cold-recovery"] = _synthetic_case(
-        "synthetic-v3-pause-blocked-cold-recovery", paused_steps, {"stage": "test-strategy", "status": "active"}
+    cases["synthetic-pause-blocked-cold-recovery"] = _synthetic_case(
+        "synthetic-pause-blocked-cold-recovery", paused_steps, {"stage": "test-strategy", "status": "active"}
     )
 
-    repeat_prefix = _v3_path_steps(_V3_PRELUDE + ("select-work",), terminal_target="step-plan")
+    repeat_prefix = _path_steps(_PRELUDE + ("select-work",), terminal_target="step-plan")
     repeat_steps = repeat_prefix + [
         {"at": "step-plan", "command": "produce", "result": _result("step-plan", outcome="repeat"), "expect": "step-plan", "status": "active"},
         {"at": "step-plan", "command": "finish-improve", "receipt": _receipt("step-plan"), "final_result": _result("step-plan", outcome="repeat"), "expect": "step-plan", "status": "active"},
         {"at": "step-plan", "command": "produce", "result": _result("step-plan"), "expect": "step-plan", "status": "active"},
         {"at": "step-plan", "command": "finish-improve", "receipt": _receipt("step-plan"), "expect": "test-spec", "status": "active"},
     ]
-    cases["synthetic-v3-repeat"] = _synthetic_case(
-        "synthetic-v3-repeat", repeat_steps, {"stage": "test-spec", "status": "active", "owner": "W1"}
+    cases["synthetic-repeat"] = _synthetic_case(
+        "synthetic-repeat", repeat_steps, {"stage": "test-spec", "status": "active", "owner": "W1"}
     )
 
-    corrective_prefix = _v3_path_steps(
-        _V3_PRELUDE + _V3_INNER + ("system-test-author",), terminal_target="system-test"
+    corrective_prefix = _path_steps(
+        _PRELUDE + _INNER + ("system-test-author",), terminal_target="system-test"
     )
     corrective_steps = corrective_prefix + [
         # system-test is not a checkpoint: its corrective replan applies directly.
         {"at": "system-test", "owner": "root", "command": "produce", "result": _result("system-test", outcome="replan", work_items=[{"id": "W2", "title": "Corrective synthetic item"}]), "expect": "select-work", "expect_owner": "W2", "status": "active"},
-        *_v3_path_steps(_V3_INNER + _V3_OUTER, active_owner="W2"),
+        *_path_steps(_INNER + _OUTER, active_owner="W2"),
     ]
-    cases["synthetic-v3-corrective-replan"] = _synthetic_case(
-        "synthetic-v3-corrective-replan", corrective_steps,
+    cases["synthetic-corrective-replan"] = _synthetic_case(
+        "synthetic-corrective-replan", corrective_steps,
         {"stage": "done", "status": "done", "completed_work_items": ["W1", "W2"]}
     )
 
@@ -379,13 +379,13 @@ def synthetic_cases() -> dict[str, dict[str, Any]]:
         {"at": "intake", "command": "malformed-produce", "result": {"outcome": "done"}, "expect": "intake", "status": "active", "expect_error": "result requires outcome and summary"},
         {"at": "intake", "command": "produce", "result": _result("intake"), "expect": "discovery", "status": "active"},
     ]
-    cases["synthetic-v3-stale-and-malformed"] = _synthetic_case(
-        "synthetic-v3-stale-and-malformed", error_steps, {"stage": "discovery", "status": "active"}
+    cases["synthetic-stale-and-malformed"] = _synthetic_case(
+        "synthetic-stale-and-malformed", error_steps, {"stage": "discovery", "status": "active"}
     )
     # A negative control: intake truly advances to discovery, so this expected
     # edge must fail. A replay that reported it green would be a broken oracle.
-    cases["synthetic-v3-wrong-edge-control"] = _synthetic_case(
-        "synthetic-v3-wrong-edge-control",
+    cases["synthetic-wrong-edge-control"] = _synthetic_case(
+        "synthetic-wrong-edge-control",
         [{"at": "intake", "command": "produce", "result": _result("intake"), "expect": "research", "status": "active"}],
         {"stage": "discovery", "status": "active"},
         expected_failure="expected edge intake -> research/active, got discovery/active",
@@ -648,7 +648,7 @@ def _apply_callback(navigator: Any, state: Mapping[str, Any], command: str, outp
 
 def _literal_checkpoint(before: Mapping[str, Any], stage: str, result: Any) -> bool:
     """Say whether this producer result must park for Improve, per the literal schedule."""
-    if stage in _V3_PLANNING_CHECKPOINTS:
+    if stage in _PLANNING_CHECKPOINTS:
         return True
     if stage != "carry-forward" or not isinstance(result, Mapping) or result.get("outcome") != "done":
         return False
@@ -657,9 +657,9 @@ def _literal_checkpoint(before: Mapping[str, Any], stage: str, result: Any) -> b
     return before["work_index"] + 1 >= len(before["work_items"])
 
 
-def _assert_v3_cursor_invariants(navigator: Any, before: Mapping[str, Any], after: Mapping[str, Any],
+def _assert_cursor_invariants(navigator: Any, before: Mapping[str, Any], after: Mapping[str, Any],
                                  command: str, submitted_action: str, result: Any = None) -> None:
-    """Check packet-level v3 invariants the coarse stage oracle cannot see."""
+    """Check packet-level invariants the coarse stage oracle cannot see."""
     producer = {"done", "produce", "duplicate-produce", "conflicting-produce", "malformed-produce"}
     if command in producer:
         before_action = navigator.current_action(before)["id"]
@@ -668,30 +668,30 @@ def _assert_v3_cursor_invariants(navigator: Any, before: Mapping[str, Any], afte
         child = after.get("active_improve")
         if submitted_action in before.get("accepted", {}):
             if _state_hash(before) != _state_hash(after):
-                raise DagReplayError("v3 producer replay changed an accepted action")
+                raise DagReplayError("producer replay changed an accepted action")
         elif parked is not None:
             if after_action != before_action or child != parked:
-                raise DagReplayError("v3 producer replay replaced the parked Improve child")
+                raise DagReplayError("producer replay replaced the parked Improve child")
         elif _literal_checkpoint(before, navigator.current_stage(before), result):
             if after_action != before_action:
-                raise DagReplayError("v3 producer replaced the parent action instead of parking it for Improve")
+                raise DagReplayError("producer replaced the parent action instead of parking it for Improve")
             if not isinstance(child, Mapping) or child.get("action_id") != submitted_action:
-                raise DagReplayError("v3 producer did not bind active Improve to the submitted parent action")
+                raise DagReplayError("producer did not bind active Improve to the submitted parent action")
             if child.get("stage") != navigator.current_stage(before):
-                raise DagReplayError("v3 producer bound Improve to the wrong stage")
+                raise DagReplayError("producer bound Improve to the wrong stage")
         else:
             if child is not None:
-                raise DagReplayError("v3 producer parked Improve outside a checkpoint")
+                raise DagReplayError("producer parked Improve outside a checkpoint")
             if after_action == before_action:
-                raise DagReplayError("v3 producer did not accept its result outside a checkpoint")
+                raise DagReplayError("producer did not accept its result outside a checkpoint")
     if command == "finish-improve" and before.get("active_improve") is not None:
         child = before["active_improve"]
         if child.get("action_id") != submitted_action:
-            raise DagReplayError("v3 Improve completion was not bound to the active parent action")
+            raise DagReplayError("Improve completion was not bound to the active parent action")
         if after.get("active_improve") is not None:
-            raise DagReplayError("v3 Improve completion did not clear the active child")
+            raise DagReplayError("Improve completion did not clear the active child")
         if navigator.current_action(after)["id"] == navigator.current_action(before)["id"]:
-            raise DagReplayError("v3 Improve completion did not create a successor action")
+            raise DagReplayError("Improve completion did not create a successor action")
     if command == "cold-load" and _state_hash(before) != _state_hash(after):
         raise DagReplayError("cold-load did not restore the exact durable state")
 
@@ -793,7 +793,6 @@ def replay_case(case: Mapping[str, Any], *, fixture: Mapping[str, Any], output: 
     state = navigator.new_state(
         f"/simulation-only/dag-replay/{case['id']}",
         case.get("prompt", "Synthetic ShipLoop DAG replay fixture; no project work."),
-        protocol_version=case["protocol_version"],
         improve_skill="",
     )
     navigator.save(run_dir, state)
@@ -864,7 +863,7 @@ def replay_case(case: Mapping[str, Any], *, fixture: Mapping[str, Any], output: 
                 event["expected_error_observed"] = True
                 state = pre_state
             else:
-                _assert_v3_cursor_invariants(navigator, pre_state, state, command, submitted_action,
+                _assert_cursor_invariants(navigator, pre_state, state, command, submitted_action,
                                              output_value.get("result"))
                 if state != pre_state:
                     navigator.save(run_dir, state)

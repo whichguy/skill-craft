@@ -15,6 +15,6 @@ its terminal report. `delegation` applies from the next issued action.
 After an interruption, run `next` first, inspect saved history and the actual
 repository effects, then follow the reprinted packet. There is no repair,
 migrate or merge-recover command: a stopped Improve child restarts through the
-route its packet prints, and a saved run from an older protocol (v1/v2, managed
+route its packet prints, and a saved run from an older protocol (v1/v2/v3, managed
 or legacy) is refused with an error naming it. Start a fresh `--run-dir` (or
 `workspace start --workspace-root`) for that request.

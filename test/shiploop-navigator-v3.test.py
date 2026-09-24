@@ -135,7 +135,6 @@ class NavigatorV3Tests(unittest.TestCase):
         return navigator.new_state(
             str(self.repo),
             "Build a small synthetic capability.",
-            protocol_version=3,
             improve_skill="",
             delegation="ask-agent",
         )
@@ -248,8 +247,10 @@ class NavigatorV3Tests(unittest.TestCase):
                 "contract_marker": "ShipLoop standalone Improve binding: " + child["binding_id"],
                 "skill": {
                     "skill_card": str((self.repo / "selected-improve" / "SKILL.md").resolve()),
-                    "runtime_card": str((self.repo / "until-loop" / "SKILL.md").resolve()),
-                    "runtime_cli": str((self.repo / "until-loop" / "scripts" / "until-loop").resolve()),
+                    "runtime_card": str((self.repo / "until-loop" / "ADAPTER.md").resolve()),
+                    "runtime_cli": str(
+                        (self.repo / "until-loop" / "scripts" / "until_loop_ephemeral.py").resolve()
+                    ),
                     "skill_version": "synthetic",
                     "runtime_version": "synthetic",
                 },
@@ -562,7 +563,6 @@ class NavigatorV3Tests(unittest.TestCase):
         state = navigator.new_state(
             str(self.repo),
             original_request,
-            protocol_version=3,
             improve_skill="",
             delegation="ask-agent",
         )
@@ -771,6 +771,26 @@ class NavigatorV3Tests(unittest.TestCase):
                 ):
                     self.assertIn(requirement, source_text)
 
+
+    def test_source_aware_native_is_the_only_backchain_route(self) -> None:
+        """The frozen embedded Backchain adaptation is retired (no mode, default or pin)."""
+        texts = {
+            "guide": self.backchain_planning_guide.read_text(encoding="utf-8"),
+            "card": (SCRIPTS.parent / "SKILL.md").read_text(encoding="utf-8"),
+        }
+        for stage in EXPECTED_STAGES:
+            texts["prompt " + stage] = prompts.prompt(stage)
+            texts["improve " + stage] = prompts.improve_prompt(stage)
+        for label, text in texts.items():
+            flat = " ".join(text.split())
+            with self.subTest(source=label):
+                for retired in ("`embedded` mode", "embedded adaptation", "compatibility default",
+                                "8278e27", "select embedded", "retain `embedded`",
+                                "Existing runs retain their recorded mode"):
+                    self.assertNotIn(retired, flat)
+        for label in ("guide", "card", "prompt plan"):
+            with self.subTest(source=label):
+                self.assertIn("only Backchain", " ".join(texts[label].split()))
 
     def test_v3_backchain_planning_guidance_is_scoped_to_selected_stages(self) -> None:
         """Producer and actual Improve prompts use the guide only for planning decisions."""
@@ -1075,7 +1095,7 @@ class NavigatorV3Tests(unittest.TestCase):
             "is a local test route and must not substitute for targetruntime."
         )
         state = navigator.new_state(
-            str(self.repo), original_request, protocol_version=3, improve_skill="",
+            str(self.repo), original_request, improve_skill="",
             delegation="ask-agent",
         )
         reconciliation_stages = {
@@ -1133,8 +1153,10 @@ class NavigatorV3Tests(unittest.TestCase):
 
             self.assertEqual((root / "state.md").read_bytes(), before)
             self.assertEqual(recovered["active_improve"], waiting["active_improve"])
+            child = waiting["active_improve"]
             safe_reference = str(
-                self.repo / ".until-loop" / "reviews" / "review-one.md"
+                self.repo / ".shiploop-improve" / waiting["run_id"] / child["action_id"]
+                / "reviews" / "review-one.md"
             )
             for render_state, packet in (("current", current_packet), ("cold", cold_packet)):
                 with self.subTest(render_state=render_state):
@@ -1595,19 +1617,22 @@ class NavigatorV3Tests(unittest.TestCase):
                     navigator.validate(corruption)
 
         # validate() itself refuses a retired run by name; the CLI test
-        # test_saved_pre_v3_runs_are_refused_with_a_clear_error_and_no_mutation
+        # test_saved_pre_v4_runs_are_refused_with_a_clear_error_and_no_mutation
         # covers every retired protocol and mode.
         with self.assertRaises(navigator.NavigatorError) as caught:
             navigator.validate(dict(copy.deepcopy(state), navigator_protocol_version=2))
         self.assertIn("navigator protocol 2", str(caught.exception))
         self.assertIn("fresh --run-dir", str(caught.exception))
 
-        for version in (1, 2):
-            with self.subTest(new_state_protocol=version):
-                with self.assertRaisesRegex(navigator.NavigatorError, "expected 3 or 4"):
-                    navigator.new_state(str(self.repo), "Old protocol.", protocol_version=version)
+        for version in (1, 2, 3):
+            with self.subTest(retired_protocol=version):
+                with self.assertRaisesRegex(navigator.NavigatorError,
+                                            f"navigator protocol {version}.*only protocol 4"):
+                    navigator.validate(dict(copy.deepcopy(state), navigator_protocol_version=version))
+        with self.assertRaises(TypeError):
+            navigator.new_state(str(self.repo), "Old protocol.", protocol_version=3)
         default = navigator.new_state(str(self.repo), "Default protocol.")
-        self.assertEqual(default["navigator_protocol_version"], 3)
+        self.assertEqual(default["navigator_protocol_version"], 4)
         self.assertEqual(default["delegation"], "inline")
 
     def test_v3_save_is_transactional_recovers_via_cli_and_refuses_symlink_escape(self) -> None:
@@ -1654,7 +1679,7 @@ class NavigatorV3Tests(unittest.TestCase):
                 recovered = store.read_record(root / "state.md")
                 self.assertEqual(recovered, updated)
                 receipt_record = store.read_record(root / "results" / f"{action['id']}.md")
-                self.assertEqual(receipt_record["navigator_protocol_version"], 3)
+                self.assertEqual(receipt_record["navigator_protocol_version"], 4)
                 self.assertIsNone(receipt_record["workitem"])
                 self.assertEqual(receipt_record["result"], updated["accepted"][action["id"]])
 
@@ -1675,7 +1700,7 @@ class NavigatorV3Tests(unittest.TestCase):
         self.assertTrue((cli_root / "transaction.md").is_file())
         self.assertEqual(store.read_record(cli_root / "state.md"), state)
         status = subprocess.run(
-            [sys.executable, "-B", str(SCRIPTS / "shiploop"), "status", "--run-dir", str(cli_root)],
+            [sys.executable, "-B", str(SCRIPTS / "shiploop"), "next", "--run-dir", str(cli_root)],
             cwd=self.repo, env={**os.environ, "PYTHONDONTWRITEBYTECODE": "1"},
             text=True, capture_output=True, timeout=30,
         )
@@ -1832,7 +1857,7 @@ class NavigatorV3Tests(unittest.TestCase):
 
         # Dispatch keeps cold context, reads only its callback, and escapes the report.
         goal = "Build <unsafe> flow without losing the original goal."
-        unsafe = navigator.new_state(str(self.repo), goal, protocol_version=3, delegation="ask-agent")
+        unsafe = navigator.new_state(str(self.repo), goal, delegation="ask-agent")
         run = (Path(self.temp.name) / "dispatch-run").resolve()
         run.mkdir()
         navigator.save(run, unsafe)
@@ -1907,7 +1932,7 @@ class NavigatorV3Tests(unittest.TestCase):
         workspace_root = Path(self.temp.name) / "workspace <unsafe>"
         report_root = workspace_root / "run"
         report_root.mkdir(parents=True)
-        worktree = navigator.new_state(str(self.repo), "Build a worktree fixture.", protocol_version=3,
+        worktree = navigator.new_state(str(self.repo), "Build a worktree fixture.",
                                        worktree=True, delegation="ask-agent")
         before = copy.deepcopy(worktree)
         receipt_path = workspace_root / "return-receipt.md"
@@ -1928,7 +1953,7 @@ class NavigatorV3Tests(unittest.TestCase):
             unverified = navigator.render(None, report_root, worktree)
         self.assertIn("Current workspace return: not currently verified.", unverified)
 
-        direct = navigator.new_state(str(self.repo), "Build a direct fixture.", protocol_version=3,
+        direct = navigator.new_state(str(self.repo), "Build a direct fixture.",
                                      delegation="ask-agent")
         direct_before = copy.deepcopy(direct)
         with patch("shiploop_workspace.completed_receipt_snapshot",
@@ -2014,14 +2039,14 @@ class CliBoundaryRegressionTests(unittest.TestCase):
 
     def test_read_only_commands_never_create_a_run_directory(self) -> None:
         missing = self.base / "typo" / "run"
-        for command in ("status", "next", "report"):
+        for command in ("next", "report"):
             with self.subTest(command=command):
                 result = self.cli(command, "--run-dir", str(missing))
                 self.assertEqual(result.returncode, 2, result.stdout + result.stderr)
                 self.assertTrue(result.stderr.startswith("error: no ShipLoop run directory"),
                                 result.stderr)
         self.assertFalse((self.base / "typo").exists())
-        result = self.cli("status", cwd=self.repo)
+        result = self.cli("next", cwd=self.repo)
         self.assertEqual(result.returncode, 2, result.stdout + result.stderr)
         self.assertFalse((self.repo / ".shiploop").exists())
 
@@ -2089,9 +2114,9 @@ class CliBoundaryRegressionTests(unittest.TestCase):
         return sorted((str(path.relative_to(root)), path.read_bytes() if path.is_file() else None)
                       for path in root.rglob("*") if path.name != ".lock")
 
-    def test_saved_pre_v3_runs_are_refused_with_a_clear_error_and_no_mutation(self) -> None:
+    def test_saved_pre_v4_runs_are_refused_with_a_clear_error_and_no_mutation(self) -> None:
         prompt = "Saved before this ShipLoop."
-        template = navigator.new_state(str(self.repo), prompt, protocol_version=3)
+        template = navigator.new_state(str(self.repo), prompt)
         legacy = {"version": 3, "revision": 0, "stage": "preflight", "phase": "intake",
                   "run_id": "20260101T000000Z-legacy01", "prompt": prompt,
                   "repo_root": str(self.repo), "completed_actions": {},
@@ -2099,6 +2124,7 @@ class CliBoundaryRegressionTests(unittest.TestCase):
         fixtures = {
             "protocol-1": (dict(template, navigator_protocol_version=1), "navigator protocol 1"),
             "protocol-2": (dict(template, navigator_protocol_version=2), "navigator protocol 2"),
+            "protocol-3": (dict(template, navigator_protocol_version=3), "navigator protocol 3"),
             # Managed states carry "version": 3 but no navigator marker.
             "managed": (dict(legacy, managed_improve_protocol_version=1),
                         "retired managed execution mode"),
@@ -2117,19 +2143,18 @@ class CliBoundaryRegressionTests(unittest.TestCase):
             before = self._listing(run)
             commands = {
                 "next": ("next", "--run-dir", str(run)),
-                "status": ("status", "--run-dir", str(run)),
                 "report": ("report", "--run-dir", str(run)),
                 "complete": ("complete", "--run-dir", str(run), "--action", action,
                              "--result", str(run / "inbox" / (action + ".md"))),
                 "init": ("init", "--repo", str(self.repo), "--run-dir", str(run), "--prompt=" + prompt),
                 "delegation": ("delegation", "--run-dir", str(run), "--set", "inline"),
-                "chain recover": ("chain", "recover", "--run-dir", str(run), "--action", action),
+                "chain next": ("chain", "next", "--run-dir", str(run), "--action", action),
             }
             # Every non-chain verb shares one pre-dispatch refusal, so each
             # verb is pinned once (protocol 2); the other fixtures use next and
-            # the separately routed chain recover.
+            # the separately routed chain next.
             if label != "protocol-2":
-                commands = {key: commands[key] for key in ("next", "chain recover")}
+                commands = {key: commands[key] for key in ("next", "chain next")}
             for command, argv in commands.items():
                 with self.subTest(fixture=label, command=command):
                     refused = self.cli(*argv)
@@ -2224,7 +2249,7 @@ class CliBoundaryRegressionTests(unittest.TestCase):
         self.assertEqual(sorted(codes), [0, 2], err1 + err2)
         winner, loser, prompt = ((out1, err2, "first") if codes[0] == 0 else (out2, err1, "second"))
         state = store.read_record(self.repo / ".shiploop" / "state.md")
-        self.assertEqual(state["navigator_protocol_version"], 3)
+        self.assertEqual(state["navigator_protocol_version"], 4)
         self.assertEqual(state["prompt"], prompt)
         self.assertIn(state["action"]["id"], winner)
         self.assertIn("init request/repository differs from this saved run", loser)
@@ -2296,8 +2321,8 @@ class CliBoundaryRegressionTests(unittest.TestCase):
             return subprocess.run([sys.executable, "-B", str(SCRIPTS / name), *argv], cwd=self.base,
                                   env=self.env, capture_output=True, text=True, timeout=30)
 
-        for name, verbs in (("shiploop-next", ("complete", "done", "init")),
-                            ("shiploop-complete", ("next", "init", "complete", "done"))):
+        for name, verbs in (("shiploop-next", ("complete", "init", "next")),
+                            ("shiploop-complete", ("next", "init", "complete"))):
             for verb in verbs:
                 with self.subTest(wrapper=name, verb=verb):
                     refused = wrapper(name, verb, "--run-dir", str(run))

@@ -517,37 +517,11 @@ two consecutive clean residual rounds with green suite
         })
 
     def test_improve_bound_adapter_ignores_ambient_runtime(self) -> None:
+        # Improve binds only its bundled callback runtime. An ambient
+        # `until-loop` on PATH (the retired durable CLI name) is never used, and
+        # every returned callback names the bundled script.
         package = self.package("improve")
-        runtime = package / "runtime/until-loop/scripts/until-loop"
-        collector = package / "scripts/capture_evidence.py"
-        contract = self.consumer / "preview contract.json"
-        contract.write_text(
-            json.dumps(
-                {
-                    "version": 1,
-                    "policy": "decision-rubric/2",
-                    "original_request": "Preview a bounded Improve review.",
-                    "interpretation": (
-                        "Execute: inspect the selected candidate. Continue while a "
-                        "required criterion lacks current evidence. Success: every "
-                        "criterion has current evidence. Early stop: a real blocker "
-                        "prevents useful progress."
-                    ),
-                    "criteria": [
-                        {
-                            "id": "C1",
-                            "text": "Review the selected candidate before proposing changes.",
-                            "basis": {
-                                "kind": "request",
-                                "reference": "Preview a bounded Improve review.",
-                            },
-                        }
-                    ],
-                }
-            )
-            + "\n",
-            encoding="utf-8",
-        )
+        runtime = package / "runtime/until-loop/scripts/until_loop_ephemeral.py"
         fake_bin = self.temp_root / "ambient until-loop bin"
         fake_bin.mkdir(exist_ok=True)
         sentinel = self.consumer / "ambient-runtime-was-used"
@@ -557,39 +531,44 @@ two consecutive clean residual rounds with green suite
             encoding="utf-8",
         )
         fake_runtime.chmod(0o755)
-        env = {
+        env = self.base_env({
             "PATH": f"{fake_bin}{os.pathsep}{os.environ.get('PATH', '')}",
             "AMBIENT_UNTIL_SENTINEL": str(sentinel),
+        })
+        contract = {
+            "workspace": str(self.consumer),
+            "work": "Exercise one synthetic protocol review; do not change product files.",
+            "exit_condition": "Two synthetic qualifying reviews complete.",
+            "repeat_condition": "Continue while the review gate remains open.",
+            "required_trivial_reviews": 2,
+            "context": {"request": "Ambient runtime isolation fixture", "scope": "Fixture only",
+                        "authority": "No product edits or commits", "environment": sys.executable,
+                        "resources": []},
         }
-        preview = self.invoke_python(
-            runtime,
-            "v2",
-            "preview",
-            "--contract-file",
-            str(contract),
-            extra_env=env,
-        )
-        self.assert_ok(preview, "Improve bundled Until Loop preview")
-        payload = json.loads(preview.stdout)
-        self.assertEqual(payload["mode"], "preview")
-        self.assertEqual(payload["status"], "not_initialized")
-        self.assertFalse(sentinel.exists(), "bundled adapter invoked ambient until-loop")
 
-        missing_repo = self.invoke_python(
-            collector,
-            "snapshot",
-            "--repo",
-            str(self.consumer / "missing workspace"),
-            "--owner",
-            "standalone-improve",
-            "--history-window",
-            "1",
-            "--scope",
-            "candidate.txt",
-            extra_env=env,
-        )
-        self.assertEqual(missing_repo.returncode, 2, missing_repo.stderr)
-        self.assertIn("repository directory does not exist", missing_repo.stderr)
+        def call(argv, payload=None):
+            result = subprocess.run(argv, input=None if payload is None else json.dumps(payload),
+                                    cwd=self.consumer, text=True, capture_output=True,
+                                    env=env, timeout=30)
+            self.assert_ok(result, "bundled Improve callback runtime")
+            return json.loads(result.stdout)
+
+        packet = call([sys.executable, "-B", str(runtime), "start"], contract)
+        state = Path(packet["state_file"])
+        self.addCleanup(lambda: state.unlink(missing_ok=True))
+        self.assertEqual(packet["status"], "active")
+        for argv in (packet["next_argv"], packet["done_argv"]):
+            self.assertEqual(argv[1], str(runtime))
+        report = {"classification": "trivial", "exit_assessment": "satisfied",
+                  "continuation_assessment": "allowed", "evidence": "Synthetic review fixture",
+                  "handoff": "Retain this protocol-only fixture; no semantic review claim."}
+        first = call(packet["done_argv"], report)
+        self.assertEqual(first["done_argv"][1], str(runtime))
+        terminal = call(first["done_argv"], report)
+        self.assertEqual(terminal["status"], "complete")
+        self.assertFalse(state.exists())
+        self.assertFalse(sentinel.exists(), "bundled adapter invoked ambient until-loop")
+        self.assertFalse((self.consumer / ".until-loop").exists())
         self.assert_no_bytecode()
 
 

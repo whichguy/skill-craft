@@ -5,7 +5,7 @@ description: >-
   loop: use recent Git history, make warranted changes, run meaningful checks,
   and require two consecutive trivial-only review passes. Supports a read-only
   interpretation preview; not a one-off code review.
-version: 0.3.0-rc.2
+version: 0.3.0-rc.3
 license: MIT
 platforms:
   - linux
@@ -25,11 +25,10 @@ runtime. It does not create a second state machine or invoke `/goal`.
 
 Read the shared policy in full before interpreting or executing this skill. It
 defines the reusable review-cycle obligations. The sections below supply this
-standalone consumer's binding, preview behavior, callback evidence, and legacy
-continuation boundary.
+standalone consumer's binding, preview behavior, and callback evidence.
 
 Improve is an execution-capable coding agent, not an audit-only role. Within the
-selected entrypoint's task, phase and authority, use the available tools, MCP
+selected entrypoint's task and authority, use the available tools, MCP
 interactions and skills to investigate, produce or revise code, tests, documents
 and configuration, and perform authorized deployments or other operations.
 Running inside an agent started by the [`improve-agent`](#agent-run-invocation)
@@ -73,7 +72,7 @@ SKILL_ROOT="/absolute/directory-containing-the-loaded-SKILL.md"
 RUNTIME_SCRIPT="$SKILL_ROOT/runtime/until-loop/scripts/until_loop_ephemeral.py"
 ```
 
-The exact package-relative script locator for a new standalone run is
+The exact package-relative script locator for a standalone run is
 `runtime/until-loop/scripts/until_loop_ephemeral.py`. The bound adapter is the
 only CLI caller: it translates natural-language intent into its internal
 contract, starts or resumes the selected run, and consumes the exact callback
@@ -82,15 +81,12 @@ skill-directory or marketplace installation must keep this entire package tree
 together; the nested runtime is an internal dependency, not a second standalone
 parent.
 
-New standalone runs use that per-run temporary callback state. They must not
-call `scripts/capture_evidence.py`, create `.until-loop/working.md`, or use the
-durable v1/v2 adapters. Those retained files apply only to an explicitly
-selected legacy run under [the legacy standalone binding](references/legacy-standalone.md).
-Do not replace `RUNTIME_SCRIPT` with an ambient Until Loop installation. If
-Python, the bundled file, or a repository prerequisite is missing, report that
-condition rather than silently changing runtimes.
+Standalone runs use that per-run temporary callback state. Do not replace
+`RUNTIME_SCRIPT` with an ambient Until Loop installation. If Python, the
+bundled file, or a repository prerequisite is missing, report that condition
+rather than silently changing runtimes.
 
-## ShipLoop v3/v4 whole-skill subcall
+## ShipLoop whole-skill subcall
 
 When a ShipLoop v3 or v4 packet names a selected actual Improve card and prints a
 `ShipLoop standalone Improve binding: <binding-id>` marker, this is a
@@ -114,10 +110,9 @@ location, the exact parent return instruction or callback locator, and the
 printed host receipt path for the child response. These locators make a terminal
 child packet sufficient for a fresh host to save its exact response at the
 required receipt path and then return through the parent route. Do not infer a
-different route from a durable `.until-loop` directory or from a remembered
-parent state.
+different route from a remembered parent state.
 
-The v3/v4 child follows the standalone binding's ordinary commit policy: after
+The ShipLoop child follows the standalone binding's ordinary commit policy: after
 required checks pass, commit authorized scoped changes in the bound candidate
 worktree and retain the commit SHA in its handoff. Stage only intended paths;
 never include runtime receipts or unrelated inherited staging. An explicit
@@ -127,7 +122,7 @@ merge, push, parent callback, or broader scope authority. Improve owns its revie
 temporary Until Loop handle; ShipLoop keeps the parent graph action pending and
 imports accepted child evidence once. Reopen only relevant parent locators for
 cold recovery, and retain concise current decision/revalidation locators in the
-child handoff. Do not use an ambient Until Loop runtime for this v3/v4 route.
+child handoff. Do not use an ambient Until Loop runtime for this ShipLoop route.
 
 For an `active` or `blocked` child response, do not call a parent callback.
 Follow the child packet or report its incomplete state through the recorded
@@ -149,15 +144,6 @@ assignment marked `execution_role: improve-executor` and
 assignment carries, composed from the `improve-agent` card, and run this card
 inside that agent exactly as a direct inline invocation, in the assignment's
 workspace and under its frozen authority. Do not dispatch the invocation again.
-
-## Other owner-managed consumer entrypoint
-
-An owner-managed consumer other than the explicit ShipLoop v3/v4 whole-skill
-subcall above must read [the shared review policy](references/review-policy.md)
-and that owner's explicit binding in full. It must not run this standalone card
-or this card's Until Loop adapter. The other owner supplies its own history
-window, scope, classification rule, evidence location, commit policy,
-phase/callback, and finalization authority.
 
 ## Standalone owner binding
 
@@ -209,11 +195,9 @@ original learnings with selective references to prior commits in one account.
   audit cue only: neither equal nor unequal bytes prove an independent review.
   Before `done`, summarize those observations truthfully in its concise
   `evidence` field and retain complete continuation facts in `handoff`, as
-  described in [callback evidence](references/callback-evidence.md). New runs
-  must not call `scripts/capture_evidence.py`, create `.until-loop/working.md`,
-  or create `.until-loop/evidence/`. The script retains only its current
-  contract, latest report, and trivial-review counter; it cannot turn a
-  callback claim into proof.
+  described in [callback evidence](references/callback-evidence.md). The
+  script retains only its current contract, latest report, and trivial-review
+  counter; it cannot turn a callback claim into proof.
 - **Commit policy:** after required checks pass, commit authorized scoped files
   changed by a completed iteration with the required learning-oriented record.
   Its body must include Review, Plan, Changes, Validation, Key learnings, and
@@ -252,7 +236,7 @@ original learnings with selective references to prior commits in one account.
   budget, failed required commit, stale check, or unresolved evidence remains
   incomplete rather than satisfying the review policy.
 
-New runs are ephemeral across an abandoned host session: the per-run file
+Runs are ephemeral across an abandoned host session: the per-run file
 survives only while it exists and is deleted at a terminal transition. Separate
 run files permit separate callbacks, but they do not coordinate edits, tests,
 or Git commits in one checkout. Use separate worktrees or otherwise coordinate
@@ -301,8 +285,7 @@ in `context.environment` when needed. The canonical request goes in
 
 Retain the parent-supplied **Current context and desired improvements** opening,
 including **Current learnings**, once at the start of `context.request`, alongside
-the canonical request and any required binding marker. Existing assignments that
-supply only Current learnings keep that content; do not fabricate a missing brief.
+the canonical request and any required binding marker.
 For a direct invocation, distill the current understanding and relevant learnings
 already in context before `start`. Include material unresolved hypotheses and
 failed attempts as well as verified conclusions. Use them to inform the first
@@ -374,7 +357,7 @@ approval/decline implications that affect subsequent work; do not discard them
 as orchestration detail. Keep essential conclusions inline and link to supporting
 detail; use the space needed to make the result useful without copying the whole
 iteration log. Preserve the exact terminal receipt separately. For the ShipLoop
-v3/v4 subcall, populate the existing completion record's `summary` with the outcome
+whole-skill subcall, populate the existing completion record's `summary` with the outcome
 and key changes, and `lessons` with the learning synthesis. Do not add runtime
 fields, reopen a completed loop, or issue another callback to format this report.
 A blocked, stopped or interrupted run returns the same useful account labeled
@@ -407,7 +390,7 @@ policy. Label unknown evidence and hypothetical decisions; do not claim tests
 or review iterations occurred. An actual execution request must recheck current
 context.
 
-## Execution handoff and legacy continuation
+## Execution handoff
 
 Preserve the shared policy and every standalone binding above in the interpreted
 contract, including conditional commit overrides and negative constraints. The
@@ -430,9 +413,3 @@ The runtime validates action identity and applies reported state transitions,
 including the two-review gate. It does not independently verify that a commit
 was made, a test ran, or a semantic judgment is correct. The callback evidence
 is a concise handoff record, not fabricated proof.
-
-An explicit continuation of a pre-existing version-1 or version-2 Improve run
-uses [the legacy standalone binding](references/legacy-standalone.md) and the
-matching legacy Until Loop adapter. Do not discover old state and silently use
-it for a new Improve request, and do not migrate a legacy run into a new
-temporary callback file.

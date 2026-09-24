@@ -16,7 +16,8 @@ usage() {
   printf '  --from DIR            # install only basename(DIR) from that path\n' >&2
   printf '                        # (must contain SKILL.md); exclusive with --skill\n' >&2
   printf '  --agents              # also symlink agents/<leaf>.md for Claude/Grok\n' >&2
-  printf '  --relink | --force    # replace wrong/dangling skill or agent symlinks\n' >&2
+  printf '  --relink              # replace wrong/dangling skill or agent symlinks; with\n' >&2
+  printf '                        # --copy, also turn an owned symlink into a managed copy\n' >&2
   printf '                        # (never clobbers a real file/directory)\n' >&2
   printf '  --copy                # force copy mode for all hosts (Hermes default)\n' >&2
   printf '  --symlink             # force symlink mode for all hosts (overrides Hermes copy)\n' >&2
@@ -38,13 +39,14 @@ usage() {
   printf '           (container bind: /opt/data/skills/software-development/<dest>)\n' >&2
   printf '           Provenance: ~/.hermes/skills/software-development/.skill-craft/<dest>.json\n' >&2
   printf '  dest = leaf. Leaf devloop skips Hermes (engine owns software-development/devloop).\n' >&2
-  printf '  Leftover dest devloop-run is removed on Claude/Grok/Codex/Cursor/OpenCode.\n' >&2
   printf '  Grok slash: skills/devloop/commands/devloop.md → ~/.grok/commands/devloop.md\n' >&2
   printf '\n' >&2
   printf 'Status outcomes: absent | symlink-owned | symlink-wrong | copy-owned |\n' >&2
   printf '  copy-owned-stale | foreign | foreign-file\n' >&2
   printf 'When Claude plugin inventory is available, --status also reports plugin-track\n' >&2
   printf 'and warns on double-install only when a matching plugin is confirmed enabled.\n' >&2
+  printf 'Only the installed_plugins.json version 2 shape {"version": 2, "plugins":\n' >&2
+  printf '{id: [records]}} is read; any other shape gets one unsupported-inventory note.\n' >&2
   printf 'Plugin state is confirmed-enabled only for literal JSON enabled:true; otherwise\n' >&2
   printf 'it is cached-state-unknown or disabled.\n' >&2
   printf 'Override inventory path: CLAUDE_INSTALLED_PLUGINS_JSON (default\n' >&2
@@ -60,7 +62,9 @@ usage() {
   printf 'are marketplace-only: never installed here, and refused as --from sources (exit 64),\n' >&2
   printf 'as is any copy whose plugin manifest names the skill-craft repository (host caches).\n' >&2
   printf 'Foreign real directories are never overwritten or uninstalled.\n' >&2
-  printf 'With --relink, only wrong or dangling symlinks are replaced.\n' >&2
+  printf 'With --relink, only symlinks are replaced: wrong or dangling ones, and in copy\n' >&2
+  printf 'mode an owned symlink install. Switching an existing symlink install to --copy\n' >&2
+  printf 'needs --relink; without it the symlink is skipped.\n' >&2
   printf 'Hermes managed copies are refreshed on re-run; foreign trees are skipped.\n' >&2
   printf '\n' >&2
   printf 'Exit codes:\n' >&2
@@ -72,10 +76,10 @@ usage() {
   printf '  64 usage / flag error\n' >&2
 }
 
-# Safe skill leaf: all|both (special = every skills/*) OR ^[a-z0-9]([a-z0-9-]*[a-z0-9])?$ length 2–64
+# Safe skill leaf: all (special = every skills/*) OR ^[a-z0-9]([a-z0-9-]*[a-z0-9])?$ length 2–64
 is_safe_skill_name() {
   local name="$1"
-  if [[ "$name" == "all" || "$name" == "both" ]]; then
+  if [[ "$name" == "all" ]]; then
     return 0
   fi
   local len=${#name}
@@ -221,8 +225,7 @@ while [[ $# -gt 0 ]]; do
       install_agents=1
       shift
       ;;
-    --relink|--force)
-      # --relink is primary; --force is a synonym
+    --relink)
       relink=1
       shift
       ;;
@@ -269,7 +272,7 @@ if [[ "$skill_flag_set" -eq 1 && "$from_flag_set" -eq 1 ]]; then
 fi
 
 if [[ "$action" != "install" && "$install_agents" -eq 1 ]]; then
-  printf '--agents is only valid for install (not --status/--uninstall)\n' >&2
+  printf '%s\n' '--agents is only valid for install (not --status/--uninstall)' >&2
   exit 64
 fi
 
@@ -286,48 +289,6 @@ fi
 # as a function so HOME/XDG overrides are resolved at invocation time.
 opencode_skills_dir() {
   printf '%s/opencode/skills\n' "${XDG_CONFIG_HOME:-$HOME/.config}"
-}
-
-# User-facing dest name is the source leaf. Leaf "devloop" skips Hermes
-# (engine owns software-development/devloop); leftover dest "devloop-run"
-# is still removed on symlink hosts.
-dest_leaf() {
-  local _host="$1"
-  local leaf="$2"
-  printf '%s\n' "$leaf"
-}
-
-# Remove an owned leftover symlink at a prior dest name so hosts do not
-# see two cards. Identity dest still drops leftover "devloop-run".
-remove_legacy_source_dest() {
-  local label="$1"
-  local skills_dir="$2"
-  local source_leaf="$3"
-  local dest="$4"
-  local source_dir="$5"
-  local legacy_leaf=""
-  if [[ "$dest" != "$source_leaf" ]]; then
-    legacy_leaf="$source_leaf"
-  elif [[ "$source_leaf" == "devloop" ]]; then
-    legacy_leaf="devloop-run"
-  else
-    return 0
-  fi
-  local legacy="$skills_dir/$legacy_leaf"
-  if [[ ! -L "$legacy" ]]; then
-    return 0
-  fi
-  local target
-  target="$(readlink "$legacy")"
-  if [[ "$target" != "$source_dir" ]]; then
-    return 0
-  fi
-  if [[ "$dry_run" -eq 1 ]]; then
-    printf 'Would remove leftover dest (%s): %s\n' "$label" "$legacy"
-    return 0
-  fi
-  rm -f "$legacy"
-  printf 'Removed leftover dest (%s): %s\n' "$label" "$legacy"
 }
 
 # install_one LABEL SKILLS_DIR LEAF SOURCE_DIR
@@ -468,11 +429,11 @@ PYMARKER
 # Append-only audit log (timestamps ok here; not used for ownership identity).
 append_receipt() {
   local skills_dir="$1"
-  local action="$2"   # install|update|migrate|relink|uninstall|status-n/a
+  local action="$2"   # install|update|relink|uninstall
   local leaf="$3"
   local mode="$4"     # copy|symlink
   local source_dir="$5"
-  local outcome="$6"  # created|updated|migrated|relinked|removed|skipped-foreign|...
+  local outcome="$6"  # created|updated|relinked|removed
   local craft_dir="$skills_dir/.skill-craft"
   local receipt_file="$craft_dir/receipts.jsonl"
   local ts
@@ -595,7 +556,7 @@ materialize_hermes_copy() {
   local source_dir="$4"
   local destination="$5"
   local marker="$6"
-  local verb="$7" # Installed | Updated | Migrated | Relinked
+  local verb="$7" # Installed | Updated | Relinked
   local craft_dir="$skills_dir/.skill-craft"
   local stage="$craft_dir/.tmp-${leaf}.$$"
   local old="$craft_dir/.old-${leaf}.$$"
@@ -604,7 +565,6 @@ materialize_hermes_copy() {
 
   case "$verb" in
     Updated) receipt_action="update"; receipt_outcome="updated" ;;
-    Migrated) receipt_action="migrate"; receipt_outcome="migrated" ;;
     Relinked) receipt_action="relink"; receipt_outcome="relinked" ;;
     Installed|*) receipt_action="install"; receipt_outcome="created" ;;
   esac
@@ -635,9 +595,6 @@ materialize_hermes_copy() {
       ;;
     Updated)
       printf 'Updated (%s): %s\n' "$label" "$destination"
-      ;;
-    Migrated)
-      printf 'Migrated to copy (%s): %s\n' "$label" "$destination"
       ;;
     Relinked)
       printf 'Relinked (%s): %s (copy)\n' "$label" "$destination"
@@ -684,17 +641,8 @@ install_hermes_copy() {
     return 0
   fi
 
-  # --- Legacy exact symlink → auto-migrate ---
-  if [[ -L "$destination" && "$(readlink "$destination")" == "$source_dir" ]]; then
-    if [[ "$dry_run" -eq 1 ]]; then
-      printf 'Would migrate to copy (%s): %s\n' "$label" "$destination"
-      return 0
-    fi
-    materialize_hermes_copy "$label" "$skills_dir" "$leaf" "$source_dir" "$destination" "$marker" "Migrated"
-    return 0
-  fi
-
-  # --- Wrong or dangling symlink ---
+  # --- Any symlink: an owned symlink install, or a wrong/dangling one ---
+  # Copy mode replaces a symlink only with --relink (then reports Relinked).
   if [[ -L "$destination" ]]; then
     if [[ "$relink" -eq 1 ]]; then
       if [[ "$dry_run" -eq 1 ]]; then
@@ -705,6 +653,13 @@ install_hermes_copy() {
       return 0
     fi
     printf 'Skipped existing path (not replacing it) (%s): %s\n' "$label" "$destination"
+    if [[ "$(readlink "$destination")" == "$source_dir" ]]; then
+      local rerun="--relink"
+      if [[ "$force_mode" == "copy" ]]; then
+        rerun="--copy --relink"
+      fi
+      printf '  owned symlink install; re-run with %s to replace it with a managed copy\n' "$rerun"
+    fi
     return 0
   fi
 
@@ -793,20 +748,18 @@ host_uses_copy() {
   [[ "$host" == "hermes" ]]
 }
 
+# The destination name on every host is the source leaf.
 install_host_skill() {
   local host="$1"
   local label="$2"
   local skills_dir="$3"
   local leaf="$4"
   local source_dir="$5"
-  local dest
-  dest="$(dest_leaf "$host" "$leaf")"
   if host_uses_copy "$host"; then
-    install_hermes_copy "$label / $dest" "$skills_dir" "$dest" "$source_dir"
+    install_hermes_copy "$label / $leaf" "$skills_dir" "$leaf" "$source_dir"
   else
-    install_one "$label / $dest" "$skills_dir" "$dest" "$source_dir"
+    install_one "$label / $leaf" "$skills_dir" "$leaf" "$source_dir"
   fi
-  remove_legacy_source_dest "$label" "$skills_dir" "$leaf" "$dest" "$source_dir"
 }
 
 install_skill_to_hosts() {
@@ -939,9 +892,13 @@ status_one() {
 #   CLAUDE_INSTALLED_PLUGINS_JSON=                    — skip probe (empty string)
 # Unset → default $HOME/.claude/plugins/installed_plugins.json
 #
+# Only the installed_plugins.json version 2 shape is read:
+#   {"version": 2, "plugins": {"<name>@<market>": [<record object>, ...]}}
 # Prints one line to stdout when a plugin id matches leaf@* :
 #   plugin-track: <id>  version=<v>  enabled=<true|false|unknown>  state=<state>
-# Returns 0 if a plugin track is present for leaf, 1 otherwise.
+# Returns 0 if a plugin track is present for leaf, 1 when there is no inventory
+# or no match, and 2 (with the reason on stdout) for an unreadable file or any
+# other shape.
 claude_plugin_track_line() {
   local leaf="$1"
   local inv_path
@@ -954,29 +911,46 @@ claude_plugin_track_line() {
   [[ -f "$inv_path" ]] || return 1
 
   # python3 always available in this stack; parse inventory without jq.
-  CLAUDE_PLUGIN_INV_PATH="$inv_path" CLAUDE_PLUGIN_LEAF="$leaf" python3 - <<'PY' || return 1
+  local rc=0
+  CLAUDE_PLUGIN_INV_PATH="$inv_path" CLAUDE_PLUGIN_LEAF="$leaf" python3 - <<'PY' || rc=$?
 import json, os, sys
 from pathlib import Path
 
 path = Path(os.environ["CLAUDE_PLUGIN_INV_PATH"])
 leaf = os.environ["CLAUDE_PLUGIN_LEAF"]
-try:
-    data = json.loads(path.read_text())
-except Exception:
-    sys.exit(1)
 
-plugins = data.get("plugins", data) if isinstance(data, dict) else data
+
+def unsupported(reason):
+    print(
+        f"unsupported inventory {path}: {reason}; "
+        'want {"version": 2, "plugins": {id: [records]}}; plugin-track skipped'
+    )
+    sys.exit(2)
+
+
+try:
+    data = json.loads(path.read_text(encoding="utf-8"))
+except (OSError, UnicodeError, ValueError):
+    unsupported("not readable JSON")
+if not isinstance(data, dict) or data.get("version") != 2:
+    unsupported("version is not 2")
+plugins = data.get("plugins")
+if not isinstance(plugins, dict):
+    unsupported("plugins is not an object")
+for plugin_id, records in plugins.items():
+    if not isinstance(records, list) or not all(isinstance(r, dict) for r in records):
+        unsupported(f"plugins[{plugin_id!r}] is not a list of record objects")
+
 found = []
 ordinal = 0
 
-def consider(plugin_id, meta):
+def consider(plugin_id, record):
     global ordinal
-    if not isinstance(plugin_id, str) or "@" not in plugin_id:
+    if "@" not in plugin_id:
         return
     name = plugin_id.split("@", 1)[0]
     if name != leaf:
         return
-    record = meta if isinstance(meta, dict) else {}
     version = str(record.get("version") or "")
     enabled_value = record.get("enabled")
     if enabled_value is True:
@@ -988,26 +962,10 @@ def consider(plugin_id, meta):
     found.append((plugin_id, version, enabled, ordinal))
     ordinal += 1
 
-def consider_all(plugin_id, meta):
-    if isinstance(meta, list):
-        if meta:
-            for item in meta:
-                consider(plugin_id, item)
-        else:
-            # A matching, empty cached record is still informative, but not enabled.
-            consider(plugin_id, {})
-    else:
-        consider(plugin_id, meta)
-
-if isinstance(plugins, dict):
-    for pid, meta in plugins.items():
-        consider_all(pid, meta)
-elif isinstance(plugins, list):
-    for item in plugins:
-        if not isinstance(item, dict):
-            continue
-        pid = item.get("id") or item.get("name") or ""
-        consider_all(pid, item)
+for plugin_id, records in plugins.items():
+    # A matching, empty cached record list is still informative, but not enabled.
+    for record in records or [{}]:
+        consider(plugin_id, record)
 
 if not found:
     sys.exit(1)
@@ -1031,15 +989,27 @@ ver_s = version if version else "?"
 print(f"plugin-track: {pid}  version={ver_s}  enabled={enabled}  state={state}")
 sys.exit(0)
 PY
+  return "$rc"
 }
+
+# The unsupported-inventory note prints once per run, not once per leaf.
+plugin_inventory_note_shown=0
 
 # After Claude skill-dir status, report plugin-track and warn only for a confirmed
 # enabled plugin plus a present skill directory.
 status_claude_plugin_overlay() {
   local leaf="$1"
   local skill_state="$2"
-  local line
-  if ! line="$(claude_plugin_track_line "$leaf")"; then
+  local line rc=0
+  line="$(claude_plugin_track_line "$leaf")" || rc=$?
+  if [[ "$rc" -eq 2 ]]; then
+    if [[ "$plugin_inventory_note_shown" -eq 0 ]]; then
+      printf 'note (Claude plugin inventory): %s\n' "$line" >&2
+      plugin_inventory_note_shown=1
+    fi
+    return 0
+  fi
+  if [[ "$rc" -ne 0 ]]; then
     return 0
   fi
   printf 'status (Claude plugin / %s): %s\n' "$leaf" "$line"
@@ -1110,70 +1080,42 @@ uninstall_one() {
   esac
 }
 
+# status_host_skill LABEL SKILLS_DIR LEAF SOURCE_DIR (dest = leaf)
 status_host_skill() {
-  local host="$1"
-  local label="$2"
-  local skills_dir="$3"
-  local leaf="$4"
-  local source_dir="$5"
-  local dest
-  dest="$(dest_leaf "$host" "$leaf")"
-  status_one "$label / $dest" "$skills_dir" "$dest" "$source_dir"
+  status_one "$1 / $3" "$2" "$3" "$4"
 }
 
+# uninstall_host_skill LABEL SKILLS_DIR LEAF SOURCE_DIR (dest = leaf)
 uninstall_host_skill() {
-  local host="$1"
-  local label="$2"
-  local skills_dir="$3"
-  local leaf="$4"
-  local source_dir="$5"
-  local dest
-  dest="$(dest_leaf "$host" "$leaf")"
-  uninstall_one "$label / $dest" "$skills_dir" "$dest" "$source_dir"
-  # Owned leftover at a prior dest name. Absent leftover must not flip
-  # uninstall to exit 4 after a successful dest removal.
-  local leftover=""
-  if [[ "$dest" != "$leaf" ]]; then
-    leftover="$leaf"
-  elif [[ "$leaf" == "devloop" ]]; then
-    leftover="devloop-run"
-  fi
-  if [[ -n "$leftover" ]]; then
-    local legacy="$skills_dir/$leftover"
-    if [[ -L "$legacy" || -e "$legacy" ]]; then
-      uninstall_one "$label leftover / $leftover" "$skills_dir" "$leftover" "$source_dir"
-    fi
-  fi
+  uninstall_one "$1 / $3" "$2" "$3" "$4"
 }
 
 status_skill_to_hosts() {
   local leaf="$1"
   local source_dir="$2"
   local claude_state=""
-  local claude_dest
   if [[ "$install_claude" -eq 1 ]]; then
-    claude_dest="$(dest_leaf claude "$leaf")"
-    status_host_skill claude "Claude Code" "$HOME/.claude/skills" "$leaf" "$source_dir"
-    claude_state="$(classify_destination "$HOME/.claude/skills" "$claude_dest" "$source_dir")"
+    status_host_skill "Claude Code" "$HOME/.claude/skills" "$leaf" "$source_dir"
+    claude_state="$(classify_destination "$HOME/.claude/skills" "$leaf" "$source_dir")"
     status_claude_plugin_overlay "$leaf" "$claude_state"
   fi
   if [[ "$install_grok" -eq 1 ]]; then
-    status_host_skill grok "Grok" "$HOME/.grok/skills" "$leaf" "$source_dir"
+    status_host_skill "Grok" "$HOME/.grok/skills" "$leaf" "$source_dir"
   fi
   if [[ "$install_codex" -eq 1 ]]; then
-    status_host_skill codex "Codex" "$HOME/.codex/skills" "$leaf" "$source_dir"
+    status_host_skill "Codex" "$HOME/.codex/skills" "$leaf" "$source_dir"
   fi
   if [[ "$install_cursor" -eq 1 ]]; then
-    status_host_skill cursor "Cursor" "$HOME/.cursor/skills" "$leaf" "$source_dir"
+    status_host_skill "Cursor" "$HOME/.cursor/skills" "$leaf" "$source_dir"
   fi
   if [[ "$install_opencode" -eq 1 ]]; then
-    status_host_skill opencode "OpenCode" "$(opencode_skills_dir)" "$leaf" "$source_dir"
+    status_host_skill "OpenCode" "$(opencode_skills_dir)" "$leaf" "$source_dir"
   fi
   if [[ "$install_hermes" -eq 1 ]]; then
     if [[ "$leaf" == "devloop" ]]; then
       printf 'Skipped Hermes card status for leaf devloop (engine owns software-development/devloop)\n'
     else
-      status_host_skill hermes "Hermes skillhub" "$HOME/.hermes/skills/software-development" "$leaf" "$source_dir"
+      status_host_skill "Hermes skillhub" "$HOME/.hermes/skills/software-development" "$leaf" "$source_dir"
     fi
   fi
 }
@@ -1182,10 +1124,10 @@ uninstall_skill_to_hosts() {
   local leaf="$1"
   local source_dir="$2"
   if [[ "$install_claude" -eq 1 ]]; then
-    uninstall_host_skill claude "Claude Code" "$HOME/.claude/skills" "$leaf" "$source_dir"
+    uninstall_host_skill "Claude Code" "$HOME/.claude/skills" "$leaf" "$source_dir"
   fi
   if [[ "$install_grok" -eq 1 ]]; then
-    uninstall_host_skill grok "Grok" "$HOME/.grok/skills" "$leaf" "$source_dir"
+    uninstall_host_skill "Grok" "$HOME/.grok/skills" "$leaf" "$source_dir"
     if [[ "$leaf" == "devloop" ]]; then
       local cmd_src="$source_dir/commands/devloop.md"
       local cmd_dest="$HOME/.grok/commands/devloop.md"
@@ -1200,19 +1142,19 @@ uninstall_skill_to_hosts() {
     fi
   fi
   if [[ "$install_codex" -eq 1 ]]; then
-    uninstall_host_skill codex "Codex" "$HOME/.codex/skills" "$leaf" "$source_dir"
+    uninstall_host_skill "Codex" "$HOME/.codex/skills" "$leaf" "$source_dir"
   fi
   if [[ "$install_cursor" -eq 1 ]]; then
-    uninstall_host_skill cursor "Cursor" "$HOME/.cursor/skills" "$leaf" "$source_dir"
+    uninstall_host_skill "Cursor" "$HOME/.cursor/skills" "$leaf" "$source_dir"
   fi
   if [[ "$install_opencode" -eq 1 ]]; then
-    uninstall_host_skill opencode "OpenCode" "$(opencode_skills_dir)" "$leaf" "$source_dir"
+    uninstall_host_skill "OpenCode" "$(opencode_skills_dir)" "$leaf" "$source_dir"
   fi
   if [[ "$install_hermes" -eq 1 ]]; then
     if [[ "$leaf" == "devloop" ]]; then
       printf 'Skipped Hermes card uninstall for leaf devloop (engine owns software-development/devloop)\n'
     else
-      uninstall_host_skill hermes "Hermes skillhub" "$HOME/.hermes/skills/software-development" "$leaf" "$source_dir"
+      uninstall_host_skill "Hermes skillhub" "$HOME/.hermes/skills/software-development" "$leaf" "$source_dir"
     fi
   fi
 }
@@ -1311,7 +1253,7 @@ if [[ "$from_flag_set" -eq 1 ]]; then
     exit 64
   fi
   leaf="$(basename "$skill_from")"
-  if ! is_safe_skill_name "$leaf" || [[ "$leaf" == "all" || "$leaf" == "both" ]]; then
+  if ! is_safe_skill_name "$leaf" || [[ "$leaf" == "all" ]]; then
     printf 'Invalid skill leaf from --from path basename: %s\n' "$leaf" >&2
     exit 64
   fi
@@ -1322,7 +1264,7 @@ if [[ "$from_flag_set" -eq 1 ]]; then
   install_pairs+=("${leaf}|${skill_from}")
 else
   case "$skill_mode" in
-    all|both)
+    all)
       while IFS= read -r leaf; do
         [[ -n "$leaf" ]] || continue
         install_pairs+=("${leaf}|${repo_dir}/skills/${leaf}")

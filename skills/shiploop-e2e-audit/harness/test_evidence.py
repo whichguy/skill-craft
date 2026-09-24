@@ -241,7 +241,7 @@ class EvidenceTest(unittest.TestCase):
             (run / "inbox").mkdir()
             outside.mkdir()
             state = {
-                "navigator_protocol_version": 3,
+                "navigator_protocol_version": 4,
                 "run_id": "nav-test",
                 "repo": "/example/repository",
                 "revision": 4,

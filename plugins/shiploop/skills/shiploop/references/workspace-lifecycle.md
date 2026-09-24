@@ -1,7 +1,7 @@
 # Isolate a run; return only lasting work
 
 This policy applies to `workspace start` runs (execution mode
-`navigator-worktree`, navigator protocol 3 or 4). A direct `init` run has no
+`navigator-worktree`, navigator protocol 4). A direct `init` run has no
 workspace and does not claim this helper's return gate. The SDLC graph and Improve ownership are unchanged.
 
 ```mermaid

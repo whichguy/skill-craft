@@ -35,37 +35,35 @@ Use **skill-craft** for portable skill packages and their plugin distribution. U
 
 <!-- skill-craft:inventory:start -->
 
-**21 skills.** Generated from skill frontmatter by `scripts/sync-plugin-views.sh`.
+**19 skills.** Generated from skill frontmatter by `scripts/sync-plugin-views.sh`.
 
 | Skill | Version | Purpose |
 |-------|---------|---------|
 | [architect](skills/architect/SKILL.md) | 0.1.2 | Design system architecture and make technology decisions. Uses a structured inline design or an available independent reviewer for comprehensive work. |
-| [ask-agent](skills/ask-agent/SKILL.md) | 0.7.9 | A delegation skill, not an agent type. Ask native agents to work in the background, continue useful work in the main conversation, and incorporate their results when they return.… |
+| [ask-agent](skills/ask-agent/SKILL.md) | 0.7.10 | A delegation skill, not an agent type. Ask native agents to work in the background, continue useful work in the main conversation, and incorporate their results when they return.… |
 | [c-plan](skills/c-plan/SKILL.md) | 0.1.2 | Resolve ambiguous user prompts by choosing whether to answer now, answer with assumptions, ask 1–2 high-value clarification questions, replan, or stop. Use when the best response… |
-| [compare-prompts](skills/compare-prompts/SKILL.md) | 0.1.2 | Compare two prompt versions (A vs B) by running both against a directory of test input files, then evaluating results on three dimensions in priority order: quality > tokens >… |
-| [derive-questions](skills/derive-questions/SKILL.md) | 0.1.2 | Iteratively researches real software project failures and wins, extracts key planning questions via 5-whys analysis, validates them against synthetic test plans, judges their… |
-| [devloop](skills/devloop/SKILL.md) | 0.6.1 | DevLoop (default): invoke the autonomous engine for a machine-verifiable build or debug goal. Use when the user says devloop, DevLoop, /devloop, or wants an isolated fail-closed… |
-| [evidence-gates](skills/evidence-gates/SKILL.md) | 0.2.3 | Optional offline evidence gates (freeze/prove/stop with guard digests) for machine-checkable red→green contracts without the autonomous engine. Use when the user says… |
-| [improve](skills/improve/SKILL.md) | 0.3.0-rc.2 | Use when a repository candidate needs a deliberate review-and-improvement loop: use recent Git history, make warranted changes, run meaningful checks, and require two consecutive… |
-| [improve-agent](skills/improve-agent/SKILL.md) | 0.1.0 | Use when Improve should run in a fresh native agent instead of this conversation: start one agent that runs /improve in its own context, keep useful parent work going, then… |
+| [compare-prompts](skills/compare-prompts/SKILL.md) | 0.1.3 | Compare two prompt versions (A vs B) by running both against a directory of test input files, then evaluating results on three dimensions in priority order: quality > tokens >… |
+| [devloop](skills/devloop/SKILL.md) | 0.7.0 | DevLoop (default): invoke the autonomous engine for a machine-verifiable build or debug goal. Use when the user says devloop, DevLoop, /devloop, or wants an isolated fail-closed… |
+| [evidence-gates](skills/evidence-gates/SKILL.md) | 0.2.4 | Optional offline evidence gates (freeze/prove/stop with guard digests) for machine-checkable red→green contracts without the autonomous engine. Use when the user says… |
+| [improve](skills/improve/SKILL.md) | 0.3.0-rc.3 | Use when a repository candidate needs a deliberate review-and-improvement loop: use recent Git history, make warranted changes, run meaningful checks, and require two consecutive… |
+| [improve-agent](skills/improve-agent/SKILL.md) | 0.1.1 | Use when Improve should run in a fresh native agent instead of this conversation: start one agent that runs /improve in its own context, keep useful parent work going, then… |
 | [improve-system-prompt](skills/improve-system-prompt/SKILL.md) | 0.1.2 | Benchmark and compare system prompt variants (V2/V2a/V2b/V2c) for Sheets Chat by running test scenarios through the real GAS-side ClaudeConversation pipeline. Tests both… |
-| [plan-test](skills/plan-test/SKILL.md) | 0.1.2 | Generate comprehensive tests for code. Uses an inline strategy or an available independent test specialist for complex components. |
+| [plan-test](skills/plan-test/SKILL.md) | 0.1.3 | Generate comprehensive tests for code. Uses an inline strategy or an available independent test specialist for complex components. |
 | [prompt-align](skills/prompt-align/SKILL.md) | 0.1.2 | Compare an agent or skill prompt against its test harness skill for phase-model, skip-condition, and wiring consistency. Reports mismatches and identifies which file is… |
 | [prompt-audit](skills/prompt-audit/SKILL.md) | 0.1.2 | Audit an agent or skill prompt file for internal inconsistencies (phase numbering, behavioral contracts, terminology, stale references). Produces a Q&A with info-gain scores, a… |
 | [prompt-migrate](skills/prompt-migrate/SKILL.md) | 0.1.2 | TDD-based prompt migration — given a target agent/skill prompt and a remediation list, writes failing tests first, then updates the prompt to make them pass. Commits remain… |
 | [prompt-refine](skills/prompt-refine/SKILL.md) | 0.1.2 | Full prompt-improvement workflow — runs prompt-audit to find inconsistencies, presents a remediation plan, then runs prompt-migrate to apply fixes and prompt-align to verify… |
-| [question-bench](skills/question-bench/SKILL.md) | 0.1.2 | Benchmark review-plan question effectiveness via experiment-based ablation. Applies different question subsets to a plan (or directory of plans) in parallel experiments,… |
-| [review-coverage](skills/review-coverage/SKILL.md) | 0.2.7 | Add a post-ship improve-to-exhaustion directive to a plan, or run that directive after implementation. Invoke like any skill: /review-coverage, "review-coverage on this plan",… |
+| [review-coverage](skills/review-coverage/SKILL.md) | 0.3.0 | Add a post-ship improve-to-exhaustion directive to a plan, or run that directive after implementation. Invoke like any skill: /review-coverage, "review-coverage on this plan",… |
 | [review-fix-bench](skills/review-fix-bench/SKILL.md) | 0.1.2 | Compare two code-review prompt versions against supplied fixture ground truth using an explicitly configured external benchmark runner. Reports an F1-based verdict only when the… |
-| [shiploop](skills/shiploop/SKILL.md) | 0.23.0 | Markdown-authoritative delivery harness. Start or resume once, follow the script's current action packet, and submit its exact completion call until the script reports completion… |
-| [shiploop-e2e-audit](skills/shiploop-e2e-audit/SKILL.md) | 0.3.0 | Run the ShipLoop test harness and audit its retained graph, review, test, product and incremental-change evidence. Use for ShipLoop mock checks, live one-shot E2E smoke/full… |
+| [shiploop](skills/shiploop/SKILL.md) | 0.24.0 | Markdown-authoritative delivery harness. Start or resume once, follow the script's current action packet, and submit its exact completion call until the script reports completion… |
+| [shiploop-e2e-audit](skills/shiploop-e2e-audit/SKILL.md) | 0.4.0 | Run the ShipLoop test harness and audit its retained graph, review, test, product and incremental-change evidence. Use for ShipLoop mock checks, live one-shot E2E smoke/full… |
 | [skill-interop](skills/skill-interop/SKILL.md) | 0.2.3 | Use when authoring or reviewing a portable multi-host agent skill (Grok, Claude Code, Codex, Hermes): scaffold a prompt-only skill, make a skill host-agnostic, create skill… |
 
 **1 plugin bundle.** Marketplace-only: `install.sh` never installs bundle members. Generated from `bundles/<plugin>/bundle.json` and member frontmatter by `scripts/sync-plugin-views.sh`.
 
 | Plugin | Version | Skills | Purpose |
 |--------|---------|--------|---------|
-| [backchain](bundles/backchain/bundle.json) | 0.3.9 | backchain, plan-dispatcher | Plan Orchestrator portable skills: Backchain builds and repeatedly reviews evidence-backed dependency plans; Plan Dispatcher coordinates their execution with native agents.… |
+| [backchain](bundles/backchain/bundle.json) | 0.4.0 | backchain, plan-dispatcher | Plan Orchestrator portable skills: Backchain builds and repeatedly reviews evidence-backed dependency plans; Plan Dispatcher coordinates their execution with native agents.… |
 
 <!-- skill-craft:inventory:end -->
 
@@ -77,10 +75,11 @@ Operator guides: [ShipLoop](skills/shiploop/README.md),
 [completed ShipLoop proposals](docs/shiploop-proposal-closeout.md).
 
 **External compatibility:** Per-step ShipLoop chains require a selected compatible
-Plan Dispatcher and Ask-Agent 0.6.0 or newer with the required helper capabilities.
-Both parallel and serial modes use the current managed-worktree lifecycle and
-v6 binding. Earlier bindings are diagnostic evidence only; their retired execution
-callbacks cannot resume work. Follow
+Plan Dispatcher and an Ask-Agent helper declaring all five required
+managed-worktree capabilities (no version floor). Both parallel and serial modes
+use the current managed-worktree lifecycle and v6 binding. Every chain operation
+refuses an earlier binding; preserve its worktrees and ledger and bind a new
+chain. Follow
 [the chain binding requirements](skills/shiploop/references/parallel-chain.md#bind-the-selected-packages-and-reviewed-graph).
 
 **External (not in this monorepo):** [lennox-s40](https://github.com/whichguy/lennox-s40) — thermostat skill; install from that clone. Catalog pin remains in skill-craft-market.
@@ -99,6 +98,9 @@ when you only need that view.
 Installs `skills/<leaf>` into local skill homes. Claude/Grok/Codex/Cursor get **symlinks**.
 Hermes gets a **materialized copy** (refreshable managed install; foreign real trees skipped).
 Never clobbers a foreign real file/directory. Wrong/dangling symlinks are only replaced with `--relink`.
+Switching an existing symlink install to a managed copy needs `./install.sh --copy --relink`;
+without `--relink` the symlink is skipped. `--relink` is the only spelling (no `--force`), and
+`--skill all` the only all-skills value.
 Source leaf `devloop` installs as dest `devloop` on Claude/Grok/Codex/Cursor.
 Hermes card install is skipped (the engine owns `software-development/devloop`).
 
@@ -162,7 +164,7 @@ skill-dir. Start a new Codex thread after installing a plugin.
 | **Dev (skill-dir)** | `./install.sh --skill <name> [--agents] [--relink]` |
 | **Claude or Codex plugin** | install via skill-craft-market (above) |
 | **Upgrade skill-dir** | `git pull` + re-run install; use `--relink` if links point elsewhere |
-| **Uninstall skill-dir** | remove host symlink under `~/.{claude,grok,codex}/skills/<name>` (and Hermes path) |
+| **Uninstall skill-dir** | `./install.sh --skill <name> --uninstall` (removes only owned installs, every host) |
 
 See the skill-craft-market README for per-host faces.
 
@@ -197,10 +199,10 @@ bash test/run-all.sh --group shiploop-composition     # cross-skill integration
 bash test/run-all.sh --group ask-agent --group shiploop-composition --list
 ```
 
-Local and GitHub runs share one explicit catalog. Code PRs and every `main` push
-run full regression; allowlisted documentation-only PRs run smoke. Full includes
-the source E2E apparatus and historical experiments, with balanced ShipLoop
-shards. CI uses latest stable runtimes and retains source/version/result receipts.
+Local and GitHub runs share one explicit catalog, and `test/run-all.sh` is the
+only runner command. Code PRs and every `main` push run full regression;
+allowlisted documentation-only PRs run smoke. Full includes the source E2E
+apparatus, with balanced ShipLoop shards. CI uses latest stable runtimes and retains source/version/result receipts.
 Component unions execute shared entries once. See [test/README.md](test/README.md)
 for the exact policy, cleanup rules, current-Dispatcher qualification and the
 separate installed/native/live evidence boundaries.

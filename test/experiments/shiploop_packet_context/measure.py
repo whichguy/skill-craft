@@ -36,8 +36,7 @@ def main():
         root = Path(temporary)
         for label, context in (("normal", "docs/decisions.md: use the established runtime and test examples."),
                                ("oversized", "x" * 2_000_000 + " REQUIRED_TAIL")):
-            state = navigator.new_state(str(root), "Implement the requested capability without changing its runtime.",
-                                        protocol_version=3, improve_skill=str(selected_card))
+            state = navigator.new_state(str(root), "Implement the requested capability without changing its runtime.", improve_skill=str(selected_card))
             for stage in expected:
                 if navigator.current_stage(state) != stage:
                     raise AssertionError("Unexpected traversal at " + stage)

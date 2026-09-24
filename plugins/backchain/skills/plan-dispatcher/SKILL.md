@@ -7,7 +7,7 @@ description: >-
   Planning belongs to Backchain or the caller; this skill executes the plan.
 license: MIT
 metadata:
-  version: 0.1.3
+  version: 0.2.0
   author: Backchain
   platforms:
     - linux
@@ -37,10 +37,10 @@ substitute a model subprocess.
 Every Ask-Agent delegation selects a compatible package before execution. Bind
 its selected absolute `SKILL.md` and helper, run `capabilities --skill-card ABS`,
 and accept only its declared `shiploop-chain-ask-agent-managed-worktree/v1`
-schema, a semantic `version` at least `0.6.0`, and all four required capabilities:
-`helper-managed-worktree`, `prepared-inspection`, `returned-commit-delivery`,
-and `fingerprint-bound-close`. Do not infer compatibility from a frontmatter
-number or prose. Then use the existing `identity --skill-card ABS` binding and
+schema with the full current capability set: `helper-managed-worktree`,
+`prepared-inspection`, `returned-commit-delivery`, `fingerprint-bound-close`
+and `ignored-output-report`. The capability set is the gate, not a version
+number; do not infer compatibility from a version, frontmatter or prose. Then use the existing `identity --skill-card ABS` binding and
 preserve that selected-card/helper identity. For every Git task, use that selected
 managed-worktree helper before freezing dispatcher context. Non-Git delegation
 uses the same compatible selected package but retains its generic context without

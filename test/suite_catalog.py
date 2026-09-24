@@ -178,8 +178,7 @@ _SMOKE_PATHS = frozenset({
     "test/shiploop-chain-async.test.py",
 })
 
-# Current Ask-Agent checks are deliberately distinct from the retained U18 W1
-# historical experiment.  The adapter rows exercise the ShipLoop consumers
+# Current Ask-Agent checks.  The adapter rows exercise the ShipLoop consumers
 # that make the current helper contract material.
 _ASK_AGENT_PATHS = frozenset({
     "test/experiments/shiploop_chain/test_native_pilot.py",
@@ -249,7 +248,6 @@ _CORE_SUITES = (
     _suite("improve", "core", "test/improve.test.sh", "bash", "test/improve.test.sh"),
     _suite("improve-plugin", "core", "test/improve-plugin.test.py", "python3", "test/improve-plugin.test.py"),
     _suite("improve-agent", "core", "test/improve-agent.test.py", "python3", "test/improve-agent.test.py"),
-    _suite("shiploop-testkit", "core", "test/shiploop-testkit.test.sh", "bash", "test/shiploop-testkit.test.sh"),
     _suite("review-coverage", "core", "test/review-coverage.test.sh", "bash", "test/review-coverage.test.sh"),
     _suite("dual-body-guard", "core", "test/dual-body-guard.test.sh", "bash", "test/dual-body-guard.test.sh"),
 )
@@ -270,19 +268,7 @@ _APPARATUS_SUITE = _suite(
     timeout_seconds=1_200,
 )
 
-# This is a historical U18 W1 test-only operator experiment.  Its assertions
-# remain useful, but it is not a current Ask-Agent smoke or core contract.
-_EXPERIMENT_SUITES = (
-    _suite(
-        "ask-agent-worktree-harness",
-        "experiments",
-        "test/ask-agent-worktree-harness.test.py",
-        "python3",
-        "test/ask-agent-worktree-harness.test.py",
-    ),
-)
-
-SUITES = (*_CORE_SUITES, *SHIPLOOP_SUITES, _APPARATUS_SUITE, *_EXPERIMENT_SUITES)
+SUITES = (*_CORE_SUITES, *SHIPLOOP_SUITES, _APPARATUS_SUITE)
 
 GROUPS = (
     "all",
@@ -295,7 +281,6 @@ GROUPS = (
     "ask-agent",
     "shiploop-composition",
     "e2e-apparatus",
-    "experiments",
 )
 
 _ID_RE = re.compile(r"^[a-z0-9][a-z0-9-]*$")
@@ -338,7 +323,7 @@ def validate_catalog() -> None:
     for suite in SUITES:
         if not _ID_RE.fullmatch(suite.id):
             raise ValueError(f"invalid suite id: {suite.id}")
-        if suite.family not in {"core", "shiploop", "e2e-apparatus", "experiments"}:
+        if suite.family not in {"core", "shiploop", "e2e-apparatus"}:
             raise ValueError(f"invalid suite family: {suite.family}")
         if not suite.argv or suite.argv[0] not in {"python3", "node", "bash"}:
             raise ValueError(f"unsupported fixed command for {suite.id}")

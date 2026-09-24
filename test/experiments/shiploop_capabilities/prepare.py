@@ -187,7 +187,7 @@ def packet(workspace: Path, stage: str, task: str, *, runtime: Path):
     import shiploop_navigator as nav
     run = workspace / 'shiploop-state'
     run.mkdir(exist_ok=True)
-    state = nav.new_state(str(workspace), task, protocol_version=3)
+    state = nav.new_state(str(workspace), task)
     for _ in range(80):
         if state['stage'] == stage:
             break

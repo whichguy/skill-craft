@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# Hermetic DevLoop native CLI tests (no network, no host harness CLIs).
+# Hermetic evidence-gates CLI tests (no network, no host harness CLIs).
 set -euo pipefail
 
 root="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd -P)"
@@ -257,7 +257,7 @@ cat >"$tmpdir/missing-exe.json" <<'JSON'
     "role": "regression",
     "outcome": "x",
     "verifier": {
-      "argv": ["devloop_native_definitely_missing_xyzzy_99", "--version"],
+      "argv": ["evidence_gates_definitely_missing_xyzzy_99", "--version"],
       "expected_exit": 0,
       "timeout_seconds": 5,
       "guard_paths": []

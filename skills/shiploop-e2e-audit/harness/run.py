@@ -51,16 +51,21 @@ from grok_adapter import (  # noqa: E402
 from recovery_isolation import assess_isolation  # noqa: E402
 from salesforce_proof import target_preflight_errors  # noqa: E402
 
-# Public stop keys are the navigator protocol 3/4 prelude producer stages. A
+# Public stop keys are the navigator protocol 4 prelude producer stages. A
 # partial capture stops only after an accepted prelude stage, before the
 # navigator can enter an ambiguous per-work-item inner loop.
 PARTIAL_STAGES = ("intake", "discovery", "research", "spec", "test-strategy", "plan")
-_SUPPORTED_PROTOCOLS = frozenset((3, 4))
+_SUPPORTED_PROTOCOLS = frozenset((4,))
 _IMPROVE_CALLBACK = "improve-complete"
 _RECONCILE_CALLBACK = "improve-reconcile"
-_PRODUCER_CALLBACKS = frozenset(("complete", "done"))
+_PRODUCER_CALLBACKS = frozenset(("complete",))
 _CONTROL_INPUT_OBSERVER_SCHEMA = 1
 _OBSERVER_LATE_GRADE_SCHEMA = 1
+_PRE_CONTRACT_TRIAL = "trial predates the current observer/control-input contract; re-run"
+
+
+class PreContractTrialError(ValueError):
+    """A retained trial recorded before the observer/control-input contract."""
 _SALESFORCE_CREATE_STEP_ID = "salesforce-checkers-create"
 _SALESFORCE_PREFLIGHT_MAX_AGE_SECONDS = 15 * 60
 _SALESFORCE_PREFLIGHT_MAX_FUTURE_SECONDS = 60
@@ -79,7 +84,7 @@ _SALESFORCE_PREFLIGHT_IDENTITY_KEYS = (
 def _partial_boundary(protocol_version: Any, requested_stage: str) -> tuple[str, tuple[str, ...]] | None:
     """Resolve a public partial-stop key against one observed navigator protocol.
 
-    Only navigator protocols 3 and 4 are observed. A saved run of any other
+    Only navigator protocol 4 is observed. A saved run of any other
     protocol has no supported boundary, so its partial stop is unsupported.
     """
     if protocol_version not in _SUPPORTED_PROTOCOLS or requested_stage not in PARTIAL_STAGES:
@@ -90,10 +95,10 @@ def _partial_boundary(protocol_version: Any, requested_stage: str) -> tuple[str,
 def _action_callbacks(state: Mapping[str, Any]) -> dict[str, frozenset[str]]:
     """Map every accepted action to the one callback family that accepted it.
 
-    Protocols 3 and 4 accept most producer results directly through
-    ``complete`` (``done`` is its CLI alias). An action with an Improve record
+    Protocol 4 accepts most producer results directly through
+    ``complete``. An action with an Improve record
     was accepted by importing its Improve child instead: ``improve-complete``,
-    or ``improve-reconcile`` for a stopped protocol-4 plan child.
+    or ``improve-reconcile`` for a stopped initial plan child.
     """
     records = state.get("improve_results")
     records = records if isinstance(records, Mapping) else {}
@@ -497,16 +502,24 @@ def _unavailable_control_input_observation(reason: str) -> dict:
     }
 
 
+def _require_current_trial_contract(result: dict, manifest: dict) -> None:
+    """Refuse a trial that declares neither the control-input nor observer contract.
+
+    Every current manifest declares both. A trial that declares a contract but
+    lost or corrupted part of it is still graded, and fails closed as invalid.
+    """
+    control_declared = ("control_input_observer" in manifest or "control_roots" in manifest
+                        or isinstance(result.get("control_input_observation"), dict))
+    observer_declared = "observer_late_grade_contract" in manifest or "observer_late_grade_contract" in result
+    if not control_declared or not observer_declared:
+        raise PreContractTrialError(_PRE_CONTRACT_TRIAL)
+
+
 def _refresh_control_input_observation(output: Path, result: dict, manifest: dict) -> None:
     """Re-scan retained stdout before late grading without clearing an exposure."""
     roots = manifest.get("control_roots")
     previous = result.get("control_input_observation")
     contract = manifest.get("control_input_observer")
-    declared_gate = contract is not None or "control_roots" in manifest or isinstance(previous, dict)
-    if not declared_gate:
-        # Pre-gate trials retain their historical compatibility behavior. New
-        # manifests carry the versioned contract below and fail closed.
-        return
     if not isinstance(contract, dict) or contract.get("schema_version") != _CONTROL_INPUT_OBSERVER_SCHEMA or contract.get("required") is not True:
         current = _unavailable_control_input_observation("declared control-input observer contract is malformed")
     elif not isinstance(roots, dict) or not roots:
@@ -536,20 +549,12 @@ def _is_sha256(value: object) -> bool:
 def _refresh_late_grade_observer_identity(output: Path, result: dict, manifest: dict) -> None:
     """Recheck the trusted observer root before a late grade.
 
-    New trials bind the frozen identity in both manifest and result. Truly
-    legacy receipts without any observer binding keep their historical grading
-    behavior; no editable trial path is used to select the current observer.
+    A trial binds the frozen identity in both manifest and result; no editable
+    trial path is used to select the current observer.
     """
     previous_stable = result.get("observer_stable")
     manifest_contract = manifest.get("observer_late_grade_contract")
     result_contract = result.get("observer_late_grade_contract")
-    modern_contract = "observer_late_grade_contract" in manifest or "observer_late_grade_contract" in result
-    bound_legacy = (
-        "observer_sha256" in manifest
-        or "observer_digest" in result
-        or isinstance(result.get("harness_snapshot"), dict)
-        or (output / "harness-inputs" / "index.json").is_file()
-    )
     observation: dict[str, Any] = {
         "schema_version": _OBSERVER_LATE_GRADE_SCHEMA,
         "trusted_observer_root": str(Path(OBSERVER_ROOT).resolve()),
@@ -568,33 +573,16 @@ def _refresh_late_grade_observer_identity(output: Path, result: dict, manifest: 
         if previous_stable is not False:
             result.setdefault("statuses", {})["observer"] = "observer-identity-unavailable"
 
-    if not modern_contract and not bound_legacy:
-        observation.update(
-            identity_complete=False,
-            matches_frozen_identity=None,
-            status="legacy-observer-identity-not-declared",
-            policy="No current observer is selected from editable legacy trial artifacts.",
-        )
-        result["late_grade_observer_observation"] = observation
+    if not isinstance(manifest_contract, dict) or not isinstance(result_contract, dict):
+        invalidate("trial is missing a manifest/result observer contract")
         return
-
-    if modern_contract:
-        if not isinstance(manifest_contract, dict) or not isinstance(result_contract, dict):
-            invalidate("new trial is missing a manifest/result observer contract")
-            return
-        if manifest_contract.get("schema_version") != _OBSERVER_LATE_GRADE_SCHEMA or result_contract.get("schema_version") != _OBSERVER_LATE_GRADE_SCHEMA:
-            invalidate("new trial observer contract has an unsupported schema")
-            return
-        expected = manifest_contract.get("frozen_sha256")
-        if result_contract.get("frozen_sha256") != expected:
-            invalidate("manifest and result frozen observer identities disagree")
-            return
-    else:
-        # Earlier observer-bound receipts used observer_sha256 directly. They
-        # remain checkable, but an unbound receipt is never retroactively rooted
-        # through editable trial metadata.
-        expected = manifest.get("observer_sha256")
-        observation["legacy_bound_identity"] = True
+    if manifest_contract.get("schema_version") != _OBSERVER_LATE_GRADE_SCHEMA or result_contract.get("schema_version") != _OBSERVER_LATE_GRADE_SCHEMA:
+        invalidate("trial observer contract has an unsupported schema")
+        return
+    expected = manifest_contract.get("frozen_sha256")
+    if result_contract.get("frozen_sha256") != expected:
+        invalidate("manifest and result frozen observer identities disagree")
+        return
 
     if not _is_sha256(expected):
         invalidate("frozen observer identity is missing or malformed")
@@ -1355,6 +1343,7 @@ def run_verifier(args: argparse.Namespace, output: Path, result: dict, repo: Pat
 
 def apply_grade(output: Path, result: dict, receipt: dict) -> None:
     manifest = read_json(output / "manifest.json")
+    _require_current_trial_contract(result, manifest)
     _refresh_control_input_observation(output, result, manifest)
     _refresh_late_grade_observer_identity(output, result, manifest)
     if manifest.get("partial") or result.get("partial"):
@@ -1597,6 +1586,9 @@ def main(argv: list[str] | None = None) -> int:
             try:
                 receipt = read_json(Path(args.receipt).expanduser().resolve())
                 apply_grade(output, result, receipt)
+            except PreContractTrialError:
+                # Refuse a retired trial without rewriting its retained records.
+                raise
             except (OSError, ValueError, RuntimeError, KeyError) as exc:
                 result.setdefault("statuses", {})["overall"] = "invalid-trial"
                 result["error"] = str(exc)

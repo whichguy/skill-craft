@@ -89,8 +89,8 @@ class DagReplayTests(unittest.TestCase):
             with self.assertRaisesRegex(dag_replay.DagReplayError, "partial or missing terminal"):
                 session.close()
 
-    def test_full_v3_route_exercises_34_stages_and_42_callback_boundaries(self) -> None:
-        report = self._replay("synthetic-v3-full")
+    def test_full_route_exercises_34_stages_and_42_callback_boundaries(self) -> None:
+        report = self._replay("synthetic-full")
 
         self.assertTrue(report["ok"], report.get("error"))
         self.assertEqual("synthetic-apparatus-passed", report["replay_status"])
@@ -124,7 +124,7 @@ class DagReplayTests(unittest.TestCase):
         self.assertEqual(1, report["mock_transport"]["subprocesses"])
 
     def test_two_work_items_preserve_queue_identity(self) -> None:
-        report = self._replay("synthetic-v3-two-work-items")
+        report = self._replay("synthetic-two-work-items")
 
         self.assertTrue(report["ok"], report.get("error"))
         self.assertEqual(62, len(report["events"]))
@@ -140,7 +140,7 @@ class DagReplayTests(unittest.TestCase):
         self.assertEqual(["W1"], handoff["completed_work_items"])
 
     def test_improve_and_callback_replay_guards_are_observed(self) -> None:
-        report = self._replay("synthetic-v3-improve-replay-guards")
+        report = self._replay("synthetic-improve-replay-guards")
 
         self.assertTrue(report["ok"], report.get("error"))
         expected = [event for event in report["events"] if event.get("expected_error_observed")]
@@ -156,9 +156,9 @@ class DagReplayTests(unittest.TestCase):
 
     def test_pause_blocked_cold_recovery_repeat_and_corrective_replan(self) -> None:
         expectations = {
-            "synthetic-v3-pause-blocked-cold-recovery": [],
-            "synthetic-v3-repeat": [],
-            "synthetic-v3-corrective-replan": ["W1", "W2"],
+            "synthetic-pause-blocked-cold-recovery": [],
+            "synthetic-repeat": [],
+            "synthetic-corrective-replan": ["W1", "W2"],
         }
         for name, completed_items in expectations.items():
             with self.subTest(name=name):
@@ -166,7 +166,7 @@ class DagReplayTests(unittest.TestCase):
                 self.assertTrue(report["ok"], report.get("error"))
                 if completed_items:
                     self.assertEqual(completed_items, report["final"]["completed_work_items"])
-                if name == "synthetic-v3-pause-blocked-cold-recovery":
+                if name == "synthetic-pause-blocked-cold-recovery":
                     cold = [event for event in report["events"] if event["command"] == "cold-load"]
                     self.assertEqual(["intake", "discovery", "spec"], [event["from"] for event in cold])
                     self.assertTrue(all(event["pre_state_sha256"] == event["post_state_sha256"] for event in cold))
@@ -175,10 +175,10 @@ class DagReplayTests(unittest.TestCase):
                                if event["command"] in {"produce", "finish-improve"}
                                and event["expected"]["status"] == "blocked"]
                     self.assertEqual([("discovery", "produce"), ("spec", "finish-improve")], blocked)
-                if name == "synthetic-v3-repeat":
+                if name == "synthetic-repeat":
                     repeated = [event for event in report["events"] if event["from"] == "step-plan"]
                     self.assertEqual("step-plan", repeated[1]["to"])
-                if name == "synthetic-v3-corrective-replan":
+                if name == "synthetic-corrective-replan":
                     replan = next(
                         event for event in report["events"]
                         if event["from"] == "system-test" and event["to"] == "select-work"
@@ -189,11 +189,11 @@ class DagReplayTests(unittest.TestCase):
                     self.assertFalse(replan["active_improve"])
 
     def test_stale_malformed_and_wrong_edge_controls_cannot_turn_green(self) -> None:
-        guarded = self._replay("synthetic-v3-stale-and-malformed")
+        guarded = self._replay("synthetic-stale-and-malformed")
         self.assertTrue(guarded["ok"], guarded.get("error"))
         self.assertEqual(2, sum("expected_error_observed" in event for event in guarded["events"]))
 
-        wrong = self._replay("synthetic-v3-wrong-edge-control")
+        wrong = self._replay("synthetic-wrong-edge-control")
         self.assertTrue(wrong["ok"], wrong.get("error"))
         self.assertTrue(wrong["expected_failure_observed"])
         self.assertEqual("synthetic-apparatus-expected-failure-observed", wrong["replay_status"])
@@ -201,25 +201,25 @@ class DagReplayTests(unittest.TestCase):
 
         # With the true edge the control replays green, so its expected
         # failure is missing and the report must not pass.
-        missing = deepcopy(dag_replay.synthetic_cases()["synthetic-v3-wrong-edge-control"])
-        missing["id"] = "synthetic-v3-expected-failure-missing"
+        missing = deepcopy(dag_replay.synthetic_cases()["synthetic-wrong-edge-control"])
+        missing["id"] = "synthetic-expected-failure-missing"
         missing["steps"][0]["expect"] = "discovery"
         fixture = {"kind": "in-code-synthetic", "sha256": dag_replay._canonical_fixture_digest(missing)}
         report = dag_replay.replay_case(missing, fixture=fixture, output=self.root / "missing-negative")
         self.assertFalse(report["ok"])
         self.assertTrue(report["expected_failure_missing"])
 
-    def test_schema_and_drift_fail_closed_and_only_synthetic_v3_cases_are_accepted(self) -> None:
-        invalid = deepcopy(dag_replay.synthetic_cases()["synthetic-v3-full"])
+    def test_schema_and_drift_fail_closed_and_only_synthetic_v4_cases_are_accepted(self) -> None:
+        invalid = deepcopy(dag_replay.synthetic_cases()["synthetic-full"])
         invalid["steps"] = []
         with self.assertRaisesRegex(dag_replay.DagReplayError, "1..500"):
             dag_replay.validate_case(invalid)
-        invalid = deepcopy(dag_replay.synthetic_cases()["synthetic-v3-full"])
+        invalid = deepcopy(dag_replay.synthetic_cases()["synthetic-full"])
         invalid["steps"][0]["unknown"] = True
         with self.assertRaisesRegex(dag_replay.DagReplayError, "unsupported"):
             dag_replay.validate_case(invalid)
 
-        case = deepcopy(dag_replay.synthetic_cases()["synthetic-v3-stale-and-malformed"])
+        case = deepcopy(dag_replay.synthetic_cases()["synthetic-stale-and-malformed"])
         fixture = {"kind": "in-code-synthetic", "sha256": dag_replay._canonical_fixture_digest(case)}
         stable = dag_replay._source_fingerprint(dag_replay.DEFAULT_SKILL_ROOT)
         drifted = deepcopy(stable)
@@ -231,12 +231,12 @@ class DagReplayTests(unittest.TestCase):
         self.assertTrue((self.root / "drift" / "cases" / case["id"] / "report.json").is_file())
 
         for field, value, message in (
-            ("protocol_version", 2, "protocol_version must be 3"),
-            ("protocol_version", 4, "protocol_version must be 3"),
+            ("protocol_version", 2, "protocol_version must be 4"),
+            ("protocol_version", 3, "protocol_version must be 4"),
             ("kind", "retained-trace", "kind must be synthetic"),
         ):
             with self.subTest(field=field, value=value):
-                invalid = deepcopy(dag_replay.synthetic_cases()["synthetic-v3-stale-and-malformed"])
+                invalid = deepcopy(dag_replay.synthetic_cases()["synthetic-stale-and-malformed"])
                 invalid[field] = value
                 with self.assertRaisesRegex(dag_replay.DagReplayError, message):
                     dag_replay.validate_case(invalid)
@@ -247,12 +247,12 @@ class DagReplayTests(unittest.TestCase):
         original_pin = dag_replay._PROCESS_LOADED_PACKAGE_SHA256.get(root_key)
         try:
             dag_replay._PROCESS_LOADED_PACKAGE_SHA256.pop(root_key, None)
-            first = self._replay("synthetic-v3-stale-and-malformed")
+            first = self._replay("synthetic-stale-and-malformed")
             self.assertTrue(first["ok"], first.get("error"))
             changed = deepcopy(first["source_before"])
             changed["package_sha256"] = "f" * 64
-            second = deepcopy(dag_replay.synthetic_cases()["synthetic-v3-stale-and-malformed"])
-            second["id"] = "synthetic-v3-same-root-cache-drift"
+            second = deepcopy(dag_replay.synthetic_cases()["synthetic-stale-and-malformed"])
+            second["id"] = "synthetic-same-root-cache-drift"
             fixture = {"kind": "in-code-synthetic", "sha256": dag_replay._canonical_fixture_digest(second)}
             with patch.object(dag_replay, "_source_fingerprint", return_value=changed):
                 report = dag_replay.replay_case(second, fixture=fixture, output=self.root / "cache-drift")
@@ -270,7 +270,7 @@ class DagReplayTests(unittest.TestCase):
                 dag_replay._PROCESS_LOADED_PACKAGE_SHA256[root_key] = original_pin
 
     def test_public_cli_replays_a_case_file_to_new_external_output(self) -> None:
-        case = dag_replay.synthetic_cases()["synthetic-v3-stale-and-malformed"]
+        case = dag_replay.synthetic_cases()["synthetic-stale-and-malformed"]
         case_path = self.root / "case.json"
         case_path.write_text(json.dumps(case), encoding="utf-8")
         output = self.root / "cli-output"
@@ -289,7 +289,7 @@ class DagReplayTests(unittest.TestCase):
         self.assertEqual([case["id"]], [report["id"] for report in receipt["reports"]])
         self.assertEqual(str(dag_replay.DEFAULT_SKILL_ROOT.resolve()), receipt["selected_subject"]["root"])
 
-    def test_v3_cursor_invariant_parks_only_at_literal_checkpoints(self) -> None:
+    def test_cursor_invariant_parks_only_at_literal_checkpoints(self) -> None:
         navigator = SimpleNamespace(
             current_action=lambda state: state["action"],
             current_stage=lambda state: state["stage"],
@@ -297,7 +297,7 @@ class DagReplayTests(unittest.TestCase):
 
         def state(stage: str, action: str, *, child: dict | None = None, work_index: int = 0) -> dict:
             return {
-                "navigator_protocol_version": 3, "stage": stage, "action": {"id": action},
+                "navigator_protocol_version": 4, "stage": stage, "action": {"id": action},
                 "active_improve": child, "accepted": {}, "work_index": work_index,
                 "work_items": [{"id": "W1"}, {"id": "W2"}],
             }
@@ -306,7 +306,7 @@ class DagReplayTests(unittest.TestCase):
             return state(stage, action, child={"action_id": action, "stage": stage}, **extra)
 
         done = {"outcome": "done", "summary": "Synthetic."}
-        check = dag_replay._assert_v3_cursor_invariants
+        check = dag_replay._assert_cursor_invariants
         # (b) A non-checkpoint producer advances with no child.
         check(navigator, state("intake", "a1"), state("discovery", "a2"), "produce", "a1", done)
         # A checkpoint producer parks its own action.

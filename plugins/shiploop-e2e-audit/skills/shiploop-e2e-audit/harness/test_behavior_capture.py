@@ -47,7 +47,7 @@ class BehaviorCaptureTests(unittest.TestCase):
         self,
         *,
         name: str = "trial",
-        protocol: int = 3,
+        protocol: int = 4,
         outcome: str = "done",
         original_overall: str = "passed",
         initial_state: dict[str, object] | None = None,
@@ -160,7 +160,7 @@ class BehaviorCaptureTests(unittest.TestCase):
         events.write_text(contents, encoding="utf-8")
         return trial
 
-    def test_complete_v3_capture_is_sanitized(self) -> None:
+    def test_complete_v4_capture_is_sanitized(self) -> None:
         trial = self.make_trial()
         bundle = behavior_capture.export_trial(trial)
         encoded = json.dumps(bundle, sort_keys=True)
@@ -170,7 +170,7 @@ class BehaviorCaptureTests(unittest.TestCase):
         self.assertEqual(bundle["replay"], {
             "status": "not-replayable", "reason": "callback-sequence-not-derivable"
         })
-        self.assertEqual(bundle["dag"]["protocol_version"], 3)
+        self.assertEqual(bundle["dag"]["protocol_version"], 4)
         self.assertEqual(
             [row["at"] for row in bundle["dag"]["accepted_history"]],
             ["intake", "plan", "prepare", "step-plan", "carry-forward", "handoff"],
@@ -189,15 +189,19 @@ class BehaviorCaptureTests(unittest.TestCase):
         self.assertNotIn("opaque-live-run-id", encoded)
         self.assertFalse(hasattr(behavior_capture, "write_replay_case"))
 
-    def test_protocol_2_is_unsupported_and_protocol_4_is_canonicalized(self) -> None:
-        retired = behavior_capture.export_trial(self.make_trial(name="protocol-2", protocol=2))
-        encoded = json.dumps(retired, sort_keys=True)
-        self.assertIn("unsupported-protocol", retired["limitations"])
-        self.assertIsNone(retired["dag"]["protocol_version"])
-        self.assertEqual(retired["replay"], {"status": "not-replayable", "reason": "unsupported-protocol"})
-        self.assertEqual(retired["capture_status"], "partial")
-        self.assertNotIn("secret-prompt-value", encoded)
-        self.assertNotIn("/Users/", encoded)
+    def test_retired_protocols_are_unsupported_and_protocol_4_is_canonicalized(self) -> None:
+        for protocol in (2, 3):
+            with self.subTest(protocol=protocol):
+                retired = behavior_capture.export_trial(
+                    self.make_trial(name=f"protocol-{protocol}", protocol=protocol))
+                encoded = json.dumps(retired, sort_keys=True)
+                self.assertIn("unsupported-protocol", retired["limitations"])
+                self.assertIsNone(retired["dag"]["protocol_version"])
+                self.assertEqual(retired["replay"],
+                                 {"status": "not-replayable", "reason": "unsupported-protocol"})
+                self.assertEqual(retired["capture_status"], "partial")
+                self.assertNotIn("secret-prompt-value", encoded)
+                self.assertNotIn("/Users/", encoded)
 
         current = behavior_capture.export_trial(self.make_trial(name="protocol-4", protocol=4))
         self.assertNotIn("unsupported-protocol", current["limitations"])
@@ -328,7 +332,7 @@ class BehaviorCaptureTests(unittest.TestCase):
     def test_preexisting_matching_run_keeps_invalid_trial_qualification(self) -> None:
         prompt = "Create harmless app with token secret-prompt-value at /Users/private/project"
         initial = {
-            "navigator_protocol_version": 3,
+            "navigator_protocol_version": 4,
             "run_id": "opaque-live-run-id",
             "prompt": prompt,
             "stage": "discovery",

@@ -507,6 +507,69 @@ EOF
 if ! python3 "$CLI" validate "$TMP0" >/dev/null 2>&1; then ok max_rounds_zero_rejects; else bad max_rounds_zero_rejects; fi
 rm -f "$TMP0"
 
+# Retired short labels (Max rounds / Base / Target path) are refused by name,
+# never read as values; canonical labels are the only accepted spelling.
+TMPMR=$(mktemp)
+cat >"$TMPMR" <<'EOF'
+## Review Coverage
+
+| Field | Value |
+|-------|--------|
+| Base ref | abcdef1234567890deadbeef |
+| Target paths | src/foo.ts |
+| Test command | npm test |
+| Materiality bar | material (P0/P1) |
+| Driver | review-converge under /goal |
+| Max rounds | 12 |
+
+1. Forward audit of specs to code.
+2. Reverse audit of code vs base.
+two consecutive clean residual rounds with green suite
+EOF
+set +e
+MR_ERR=$(python3 "$CLI" validate "$TMPMR" 2>&1 >/dev/null)
+MR_RC=$?
+set -e
+if [[ "$MR_RC" -eq 1 ]] && printf '%s\n' "$MR_ERR" \
+  | grep -q "retired field label 'Max rounds' is not accepted; rename it to 'Max review-converge rounds'"; then
+  ok retired_max_rounds_label_rejects
+else
+  bad retired_max_rounds_label_rejects
+fi
+if ! python3 "$CLI" goal-body --plan "$TMPMR" >/dev/null 2>&1; then ok retired_max_rounds_goal_body_refuses; else bad retired_max_rounds_goal_body_refuses; fi
+rm -f "$TMPMR"
+
+TMPBT=$(mktemp)
+cat >"$TMPBT" <<'EOF'
+## Review Coverage
+
+| Field | Value |
+|-------|--------|
+| Base | abcdef1234567890deadbeef |
+| Target path | src/foo.ts |
+| Test command | npm test |
+| Materiality bar | material (P0/P1) |
+| Driver | review-converge under /goal |
+
+1. Forward audit of specs to code.
+2. Reverse audit of code vs base.
+two consecutive clean residual rounds with green suite
+EOF
+set +e
+BT_ERR=$(python3 "$CLI" validate "$TMPBT" 2>&1 >/dev/null)
+BT_RC=$?
+set -e
+if [[ "$BT_RC" -eq 1 ]] \
+  && printf '%s\n' "$BT_ERR" | grep -q "retired field label 'Base' is not accepted; rename it to 'Base ref'" \
+  && printf '%s\n' "$BT_ERR" | grep -q "retired field label 'Target path' is not accepted; rename it to 'Target paths'" \
+  && printf '%s\n' "$BT_ERR" | grep -q 'missing Base ref field' \
+  && printf '%s\n' "$BT_ERR" | grep -q 'missing Target paths field'; then
+  ok retired_base_target_labels_reject
+else
+  bad retired_base_target_labels_reject
+fi
+rm -f "$TMPBT"
+
 # pathspec clause in goal-body
 if printf '%s\n' "$GBO" | grep -qi 'never git add -A\|Pathspec commits only'; then ok goal_body_pathspec; else bad goal_body_pathspec; fi
 
@@ -645,7 +708,7 @@ else
   bad full_template_no_goal_body
 fi
 
-if grep -q '^version: 0.2.7$' "$ROOT/skills/review-coverage/SKILL.md"; then ok skill_version; else bad skill_version; fi
+if grep -q '^version: 0.3.0$' "$ROOT/skills/review-coverage/SKILL.md"; then ok skill_version; else bad skill_version; fi
 # Skill-first invoke (primary); CLI remains optional helper
 if grep -qE '/review-coverage|## Invocation' "$ROOT/skills/review-coverage/SKILL.md" \
   && grep -qiE 'not the primary|optional CLI helpers|not a script-first' "$ROOT/skills/review-coverage/SKILL.md"; then

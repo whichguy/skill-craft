@@ -137,25 +137,27 @@ python3 /absolute/ask-agent/scripts/ask_agent_workspace.py capabilities \
   --skill-card /absolute/ask-agent/SKILL.md
 ```
 
-Accept only a declared JSON capability response with this schema, a semantic
-`version` at least `0.6.0`, and all four required capability names:
+Accept only a declared JSON capability response with this schema and the full
+current capability set (all five names):
 
 ```json
 {
   "schema": "shiploop-chain-ask-agent-managed-worktree/v1",
-  "version": "0.6.0",
+  "version": "verified selected card version",
   "capabilities": [
     "helper-managed-worktree",
     "prepared-inspection",
     "returned-commit-delivery",
-    "fingerprint-bound-close"
+    "fingerprint-bound-close",
+    "ignored-output-report"
   ]
 }
 ```
 
-Do not treat a frontmatter version, a version number alone, or prose in a
-skill card/reference as compatibility. A missing schema, version, or required
-capability blocks delegation. After this gate, use the existing
+The capability set is the gate, not a version number: `version` is recorded
+with the declaration but no numeric floor applies. Do not treat a frontmatter
+version, a version number, or prose in a skill card/reference as
+compatibility. A missing schema or any missing capability blocks delegation. After this gate, use the existing
 `identity --skill-card` contract unchanged and retain its selected-card/helper
 identity with the same capability declaration. Every Git task workspace,
 including an explicitly serial `main-context` task, must then be prepared by
@@ -167,13 +169,14 @@ preparation.
 
 ## Run state authority
 
-Each RUN has one mutable dispatcher snapshot. New `init` creates
-`plan-dispatcher-state.json`. A preexisting RUN that has only legacy `state.json`
-continues to read and update that file in place. If both names exist, or either
-present candidate is not a regular non-symlink file, operations fail rather than
-choose, copy, link, rename, or mirror a second state authority. The separate
-`inbox/` directory contains immutable report receipts, not another mutable state.
-Graph-only runs remain state version 1. An init with `planning_context` creates
+Each RUN has one mutable dispatcher snapshot, `plan-dispatcher-state.json`,
+created by `init`. A RUN that contains the retired Plan Dispatcher 0.1.0
+`state.json` is refused ("dispatcher run uses retired state.json (Plan
+Dispatcher 0.1.0); not supported") before any read or write; start a new run
+instead. A state file that is not a regular non-symlink file also fails; no
+operation chooses, copies, links, renames, or mirrors a second state authority.
+The separate `inbox/` directory contains immutable report receipts, not another mutable state.
+Graph-only runs use state version 1. An init with `planning_context` creates
 state version 2 and retains its immutable reference; v1 runs are never upgraded
 or retrofitted with planning inputs.
 
@@ -200,7 +203,7 @@ task and done must be nonempty. Initial-world facts in ready require actual chec
 not just a declaration in the plan. Contracts and provenance are frozen with the
 dependency graph. Plan changes require a new run after reconciling existing work.
 
-From a Backchain checkout, `node harness/dispatcher-plan.js PLAN.json` emits the
+From a Backchain checkout, `node scripts/export-execution-graph.js PLAN.json` emits the
 graph without executing it. Export requires structural validity, exact
 `completionStatus=complete` including goal_needs closure, and compatibility with
 the execution graph validator. Reserved object-key IDs and whitespace-only
@@ -255,10 +258,9 @@ navigation, replace a step's task/ready/done contract, or carry a repackaged
 original user prompt.
 
 Before creating the run directory, init validates the wire-reference digest,
-manifest source, frozen graph digest and canonical graph equality. A legacy raw
-manifest graph is accepted only when its top-level object is exactly `{steps}`;
-the dispatcher adapts that form to `{version:1,steps}` before applying its normal
-graph validator. Init also checks every required artifact and refuses required
+manifest source, frozen graph digest and canonical graph equality. The manifest
+graph must be a versioned `{version:1,steps}` graph that passes the normal graph
+validator; an unversioned `{steps}` graph is refused. Init also checks every required artifact and refuses required
 unresolved or reference-only material. It performs no run-directory mutation on
 failure.
 
@@ -326,7 +328,7 @@ a guessed substitute. Workers use applicable planning facts and constraints with
 the task/ready/done contract. If those facts conflict with it, they preserve the
 discrepancy and evidence and report it to the parent before affected work; they do
 not change the graph. Context-bound packets deliberately omit `graph.source.goal`;
-graph-only packets retain that legacy field.
+graph-only packets carry it as their goal.
 
 Context is exactly:
 

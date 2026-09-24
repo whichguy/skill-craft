@@ -386,7 +386,7 @@ def render_packet(
     import shiploop_store as store  # noqa: PLC0415
 
     core = type("FrozenPacketSource", (), {"PACKAGE_ROOT": package})()
-    state = navigator.new_state(str(repo), goal, protocol_version=3, improve_skill="")
+    state = navigator.new_state(str(repo), goal, improve_skill="")
     while navigator.current_stage(state) != target:
         stage = navigator.current_stage(state)
         action = navigator.current_action(state)["id"]

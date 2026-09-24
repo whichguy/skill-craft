@@ -1,6 +1,6 @@
 # Improve context ownership
 
-Use this host-owned boundary for a bound navigator-v3 or navigator-v4 Improve
+Use this host-owned boundary for a bound navigator Improve
 child using the ephemeral Until Loop runtime. At an Improve checkpoint, one
 valid producer submission parks the invoking parent and binds the child for the **whole Improve invocation**. The child owns
 its reviews, applicable experiments, and shared investigation allowance; do not
@@ -10,7 +10,7 @@ the terminal packet is saved and every candidate writer has stopped. A parent
 pause retains the child; an unfinished child route is not proof that its
 executor stopped. A direct `/improve` call remains the normal standalone
 entrypoint and needs no bound packet; this binding is only the automatic
-internal handoff for an existing ShipLoop v3/v4 run.
+internal handoff for an existing ShipLoop run.
 
 ## Route by the run's delegation
 
@@ -18,7 +18,7 @@ The run-level `delegation` setting in `state.md` selects who executes the
 invocation:
 
 - `delegation: inline` is the default that `init` and `workspace start` record
-  for new v3/v4 runs. The invoking parent conversation runs the whole
+  for new runs. The invoking parent conversation runs the whole
   invocation itself; follow the default route below.
 - `delegation: ask-agent` is the opt-in route, chosen by passing
   `--delegation ask-agent` to `init` or `workspace start`, or by switching an
@@ -26,7 +26,7 @@ invocation:
   delegated route at the end of this guide.
 
 The setting is run configuration, not an owner record. Change it for an
-existing v3/v4 run only with
+existing run only with
 `python3 "$CLI" delegation --run-dir "$RUN_DIR" --set inline|ask-agent`; a
 retried `init` or `workspace start` cannot change it. The change applies from the next issued action: the action pending when you switch, including its Improve checkpoint, keeps the route it was issued with,
 so a bound child keeps the route it started under; the CLI refuses it only on
@@ -41,7 +41,7 @@ apply to both routes.
 INNER Improve packets begin with "Keep the invoking parent alive and run this
 Improve invocation inline." PRELUDE and OUTER Improve packets carry the same
 runtime lines without that prefix. The parent conversation runs the selected
-Improve card's ShipLoop v3/v4 whole-skill subcall once, in the exact Child
+Improve card's ShipLoop whole-skill subcall once, in the exact Child
 workspace; its review iterations share this context. Do not hand the invocation
 to Ask Agent, a native worker or an extra worktree, and write no `host-owner.md`.
 Run its reviews and checks in this conversation too; start no reviewer,
@@ -69,7 +69,7 @@ and done call to the printed **Child latest packet receipt**; save the start
 packet before any review work. Only after the terminal packet is saved, write
 the completion evidence described below, then run the packet's parent return and
 callback. Runtime completion alone never advances the action, and no ShipLoop
-callback runs earlier. For the selected v4 initial Plan Improve child, the
+callback runs earlier. For the selected initial Plan Improve child, the
 parent-only `improve-reconcile` route applies once the runtime has returned its
 stopped packet in this conversation and no candidate write is in progress.
 
@@ -191,11 +191,11 @@ Retain this opening once near the start of the child's existing
 `context.request`, alongside the canonical request and binding marker; the
 marker stays on its own line, alone and first on the default route. Use the
 existing handoff to retain, correct or retire learnings across iterations. For
-v4 planning this opening supplies the compact planning summary; keep full
+planning this opening supplies the compact planning summary; keep full
 packets and verbose logs behind their existing locators rather than copying
 them into child context.
 
-For the initial v4 Plan Improve child, retain the packet's experiment objective
+For the initial Plan Improve child, retain the packet's experiment objective
 and exit criteria, applicable original constraints, current source/action
 locators, and decision consequences in that compact context. Keep essential
 findings and rationale inline; locators cannot replace critical reasoning.
@@ -252,7 +252,7 @@ stopped. Check that newer user instructions and parent state still allow
 acceptance. Missing, active, blocked or stopped evidence leaves the parent
 incomplete; a paused parent still retains its child and an unfinished child
 route does not prove its executor stopped. The only settlement exception is the
-packet-issued `stopped` reconciliation route for the selected v4 initial Plan
+packet-issued `stopped` reconciliation route for the selected initial Plan
 Improve child using the bundled ephemeral runtime; it still requires confirmed
 owner evidence and the parent's `improve-reconcile`, never `improve-complete`.
 On the default route that evidence is the stopped packet returned in this
@@ -284,8 +284,8 @@ delegated recovery rules below.
 
 This host instruction does not add machine enforcement of agent identity,
 collection, exclusive writers or semantic review quality. The existing importer
-continues to validate binding, workspace and receipt structure. Legacy/durable
-Improve routes keep their recorded owner and adapter.
+continues to validate binding, workspace and receipt structure. A durable Until
+Loop runtime is not supported and is refused at bind and import.
 
 ## Opt-in delegated route: Ask Agent executor (`delegation: ask-agent`)
 

@@ -76,7 +76,7 @@ last report and context, then deletes the temporary state file.
 
 ## Context, handoff, and cold recovery
 
-New standalone runs freeze the canonical request, original candidate scope and
+Standalone runs freeze the canonical request, original candidate scope and
 baseline, authority such as commit or push limits, relevant environment/check
 commands, and exact resource locators in context. Every context-bearing report
 supplies a complete nonblank handoff that carries current candidate identity,
@@ -89,15 +89,14 @@ command or infer a new candidate from a later commit or clean worktree. If the
 temporary state file and latest response are both gone, the run cannot be
 reconstructed honestly.
 
-## Entry points and compatibility
+## Entry points
 
 | Situation | Binding and state | Boundary |
 |---|---|---|
-| New standalone Improve request | runtime/until-loop/scripts/until_loop_ephemeral.py through runtime/until-loop/ADAPTER.md | One private temporary file per run; no .until-loop state or collector. |
-| Explicit durable v1/v2 continuation | [legacy-standalone.md](references/legacy-standalone.md) and retained runtime/until-loop/scripts/until-loop | Preserve the selected durable state, adapter, collector, and checked record. Never migrate it into a callback run. |
-| ShipLoop v3/v4 whole-skill subcall | The new standalone callback binding with the exact ShipLoop marker in context.request | Preserve parent scope, commit policy, receipt, and return-route locators. Save exact child responses; only complete permits the normal parent return. A stopped child permits only an explicitly printed v4 parent reconciliation route. |
+| Standalone Improve request | runtime/until-loop/scripts/until_loop_ephemeral.py through runtime/until-loop/ADAPTER.md | One private temporary file per run. |
+| ShipLoop whole-skill subcall | The standalone callback binding with the exact ShipLoop marker in context.request | Preserve parent scope, commit policy, receipt, and return-route locators. Save exact child responses; only complete permits the normal parent return. A stopped child permits only an explicitly printed v4 parent reconciliation route. |
 
-For a ShipLoop v3/v4 whole-skill subcall, commit verified scoped changes in the
+For a ShipLoop whole-skill subcall, commit verified scoped changes in the
 bound worktree under the standalone policy, unless an explicit frozen no-commit
 override applies. Report the commit SHA separately from caller delivery; the
 parent owns integration. A child keeps the parent latest-packet receipt location
@@ -139,9 +138,8 @@ sections and no-commit/no-change rules; this adds no runtime state or reference
 quota. See the required [decision rationale and learning guidance](references/callback-evidence.md#decision-rationale-and-learning).
 
 The reusable obligations are in [review-policy.md](references/review-policy.md).
-[callback-evidence.md](references/callback-evidence.md) explains the new
-host-record and handoff boundary. [evidence-capture.md](references/evidence-capture.md)
-remains the factual collector guide for explicitly selected legacy runs.
+[callback-evidence.md](references/callback-evidence.md) explains the
+host-record and handoff boundary.
 
 ## Preview and installation
 
@@ -157,14 +155,14 @@ recursive discovery still finds only Improve. Install or distribute the whole
 leaf. A successful installation does not establish that every host can execute
 every project check.
 
-This is Improve 0.3.0-rc.2. The bundled default Until Loop runtime is
-0.4.0-rc.2. The package has a relocation regression and focused compatibility
-checks; those checks do not prove universal model judgment, a completed
-multi-host rollout, or a particular repository's review quality.
+This is Improve 0.3.0-rc.3. The bundled Until Loop runtime is 0.4.0-rc.2.
+The package has a relocation regression and focused runtime checks; those
+checks do not prove universal model judgment, a completed multi-host rollout,
+or a particular repository's review quality.
 
 ## Provenance and packaging boundary
 
-The default callback runtime is vendored from
+The callback runtime is vendored from
 [whichguy/until-loop](https://github.com/whichguy/until-loop) commit
 458f40ac35c8254906898890c25a784a6e3eb39c (runtime 0.4.0-rc.2). Its
 scripts/until_loop_ephemeral.py is byte-identical to upstream, with SHA-256
@@ -172,14 +170,13 @@ scripts/until_loop_ephemeral.py is byte-identical to upstream, with SHA-256
 
 [runtime/until-loop/PROVENANCE.json](runtime/until-loop/PROVENANCE.json)
 records the upstream commit, version, source paths, and SHA-256 values for the
-new default runtime, retained v1/v2 scripts, and the small package-local legacy
-reference adaptations required by the renamed ADAPTER.md layout. The bundled
-ADAPTER.md also clarifies owner-bound user updates versus changes to immutable
-loop conditions; its provenance entry retains both upstream and bundled hashes
-and the adaptation reason. The runtime Python script remains byte-identical.
-The old durable
-scripts, adapters, and collector remain only for explicit legacy calls; they are
-not fallback behavior for a new request.
+vendored callback runtime. Only that callback runtime is vendored; upstream's
+durable v1/v2 scripts and references are not part of this package, and a saved
+durable `.until-loop` run is refused rather than continued. The bundled
+ADAPTER.md clarifies owner-bound user updates versus changes to immutable loop
+conditions and drops upstream's durable-run routing; its provenance entry
+retains both upstream and bundled hashes and the adaptation reason. The runtime
+Python script remains byte-identical.
 
 The source repository's tests, experiment output, validation manifests,
 activation reports, working-checkout instructions, .git data, and bytecode are
@@ -207,7 +204,7 @@ PATH=/Library/Developer/CommandLineTools/usr/bin:$PATH PYTHONDONTWRITEBYTECODE=1
 PATH=/Library/Developer/CommandLineTools/usr/bin:$PATH PYTHONDONTWRITEBYTECODE=1 python3 test/improve-plugin.test.py
 ~~~
 
-The package test relocates the leaf to a path with spaces, verifies the new
-ephemeral start/next/done two-review terminal path and state deletion, and keeps
-the read-only v2 preview plus collector compatibility checks. It does not run
-arbitrary repository changes or prove semantic review quality.
+The package test relocates the leaf to a path with spaces, verifies the
+ephemeral start/next/done two-review terminal path and state deletion, and
+checks the vendored runtime provenance. It does not run arbitrary repository
+changes or prove semantic review quality.

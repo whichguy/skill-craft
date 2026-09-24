@@ -30,8 +30,7 @@ def prepare(source, case, output):
     if not loaded.is_relative_to(source):
         raise ValueError("Navigator import escaped selected frozen source")
     state = navigator.new_state(
-        str(workspace), "Outline a conditional delivery plan from retained discovery findings.",
-        protocol_version=3, improve_skill="",
+        str(workspace), "Outline a conditional delivery plan from retained discovery findings.", improve_skill="",
     )
     while navigator.current_stage(state) != "plan":
         action = navigator.current_action(state)["id"]

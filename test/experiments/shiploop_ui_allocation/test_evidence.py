@@ -30,7 +30,7 @@ class EvidenceTests(unittest.TestCase):
     def write_state(self, root: Path, imports: dict | None = None) -> Path:
         store = evidence._load_store(PACKAGE)
         navigator = evidence._load_navigator(PACKAGE)
-        state = navigator.new_state(str(root), "Synthetic navigator fixture", protocol_version=3)
+        state = navigator.new_state(str(root), "Synthetic navigator fixture")
         self.import_action = None
         self.import_binding = None
         if imports:

@@ -23,19 +23,16 @@ import shiploop_chain_support as fixture
 ROOT = Path(__file__).resolve().parents[1]
 WORKER = ROOT / "test/fixtures/chain-code-worker.py"
 # Fresh deterministic bindings exercise the installed managed Ask-Agent package.
-# The 0.4 fixture remains available only for explicit rejection coverage.
 ASK = ROOT / "skills/ask-agent"
-LEGACY_ASK = ROOT / "test/fixtures/ask-agent-v04"
 
 NAVIGATION_OPERATIONS = frozenset({
-    "bind", "next", "recover", "claim", "start", "launched", "import-handoff",
-    "prepare", "settle", "done", "retry", "packet", "cleanup", "finish", "observe",
+    "bind", "next", "claim", "start", "launched", "import-handoff",
+    "prepare", "done", "retry", "packet", "cleanup", "finish",
 })
 CALLBACK_BY_ACTION = {
     "claim": "claim",
     "start": "start",
     "prepare-workspace": "start",
-    "recover-workspace": "start",
     "launch": "launched",
     "execute": "import-handoff",
     "collect": "import-handoff",
@@ -49,7 +46,7 @@ CALLBACK_BY_ACTION = {
     "retry": "retry",
 }
 ATTEMPT_ACTIONS = frozenset({
-    "start", "prepare-workspace", "recover-workspace", "launch", "reconcile",
+    "start", "prepare-workspace", "launch", "reconcile",
     "execute", "collect", "resume", "recover-import", "prepare", "verify", "recover-integration",
     "cleanup", "retry",
 })
@@ -244,7 +241,7 @@ class PerStepChainFixture(unittest.TestCase):
         extra = [
             "--graph", str(self.f.graph), "--dispatcher-skill", str(self.f.dispatcher / "SKILL.md"),
             "--ask-agent-skill", str(self.f.ask / "SKILL.md"), "--worktree-parent", str(self.f.parent),
-            "--mode", mode, "--lifecycle", "per-step",
+            "--mode", mode,
         ]
         if capacity is not None:
             extra += ["--capacity", str(capacity)]
@@ -254,11 +251,6 @@ class PerStepChainFixture(unittest.TestCase):
         """Restore the real managed package after an explicit negative fixture."""
         shutil.rmtree(self.f.ask)
         shutil.copytree(ROOT / "skills/ask-agent", self.f.ask)
-
-    def use_legacy_ask_agent(self):
-        """Select 0.4 only to prove fresh managed binding refuses it."""
-        shutil.rmtree(self.f.ask)
-        shutil.copytree(LEGACY_ASK, self.f.ask)
 
     def managed_capabilities(self):
         helper = self.f.ask / "scripts/ask_agent_workspace.py"

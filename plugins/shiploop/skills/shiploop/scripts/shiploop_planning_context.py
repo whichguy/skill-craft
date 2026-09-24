@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Read-only v3 planning-context collection for ShipLoop chain binding.
+"""Read-only planning-context collection for ShipLoop chain binding.
 
 The navigator's accepted ledger is the authority for this inventory.  The
 collector deliberately does not guess legacy planning paths, scan a project,
@@ -778,7 +778,7 @@ def collect(
     graph_source: dict,
     resolutions: dict | None = None,
 ) -> dict[str, Any]:
-    """Collect a v3 planning manifest without creating or modifying any file.
+    """Collect a planning manifest without creating or modifying any file.
 
     ``resolutions`` is intentionally narrow and explicit::
 
@@ -802,8 +802,8 @@ def collect(
         planning_revision.validate_archives(state, run_root)
     except ValueError as exc:
         _fail("invalid navigator state: " + str(exc))
-    if state.get("navigator_protocol_version") not in (3, 4):
-        _fail("planning context requires navigator-v3 or navigator-v4 state")
+    if state.get("navigator_protocol_version") != 4:
+        _fail("planning context requires a navigator protocol 4 state")
     try:
         action = navigator.current_action(state)
         stage = navigator.current_stage(state)

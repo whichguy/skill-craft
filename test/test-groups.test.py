@@ -18,6 +18,7 @@ import unittest
 ROOT = Path(__file__).resolve().parents[1]
 TEST_DIR = ROOT / "test"
 sys.path.insert(0, str(TEST_DIR))
+import ci_policy  # noqa: E402
 import run_suites  # noqa: E402
 import suite_catalog  # noqa: E402
 
@@ -29,19 +30,12 @@ class TestGroupTests(unittest.TestCase):
             cwd=root, env=env, capture_output=True, text=True, timeout=30,
         )
 
-    def invoke_shiploop(self, root: Path, *args: str, env: dict[str, str] | None = None) -> subprocess.CompletedProcess[str]:
-        return subprocess.run(
-            ["bash", str(root / "test" / "shiploop.test.sh"), *args],
-            cwd=root, env=env, capture_output=True, text=True, timeout=30,
-        )
-
     def _copy_runner(self, root: Path) -> None:
         test = root / "test"
         test.mkdir(parents=True)
-        for name in ("suite_catalog.py", "run_suites.py", "run-all.sh", "shiploop.test.sh"):
+        for name in ("suite_catalog.py", "run_suites.py", "run-all.sh"):
             shutil.copyfile(TEST_DIR / name, test / name)
-        for name in ("run-all.sh", "shiploop.test.sh"):
-            (test / name).chmod(0o755)
+        (test / "run-all.sh").chmod(0o755)
 
     def list_fixture(self) -> tuple[Path, dict[str, str]]:
         temporary = tempfile.TemporaryDirectory(prefix="skill-craft-list-fixture-")
@@ -99,8 +93,8 @@ class TestGroupTests(unittest.TestCase):
 
     def test_audited_catalog_counts_and_fixed_commands(self) -> None:
         self.assertEqual(len(suite_catalog.SHIPLOOP_SUITES), 44)
-        self.assertEqual(len([suite for suite in suite_catalog.SUITES if suite.family == "core"]), 30)
-        self.assertEqual(len(suite_catalog.SUITES), 76)
+        self.assertEqual(len([suite for suite in suite_catalog.SUITES if suite.family == "core"]), 29)
+        self.assertEqual(len(suite_catalog.SUITES), 74)
         self.assertTrue(all(suite.hermetic for suite in suite_catalog.SUITES))
         self.assertTrue(all(suite.path in suite.argv for suite in suite_catalog.SUITES))
         self.assertTrue(all(suite.argv[0] in {"python3", "node", "bash"} for suite in suite_catalog.SUITES))
@@ -109,12 +103,13 @@ class TestGroupTests(unittest.TestCase):
     def test_full_ci_components_are_the_complete_deduplicated_union(self) -> None:
         full = suite_catalog.select(("all",))
         components = suite_catalog.select((
-            "core", "shiploop-1", "shiploop-2", "shiploop-3", "e2e-apparatus", "experiments",
+            "core", "shiploop-1", "shiploop-2", "shiploop-3", "e2e-apparatus",
         ))
         self.assertEqual(components, full)
+        self.assertEqual(suite_catalog.select(ci_policy.FULL_GROUPS), full)
         self.assertEqual(len({suite.id for suite in full}), len(full))
-        self.assertEqual(full[-2].family, "e2e-apparatus")
-        self.assertEqual(full[-1].family, "experiments")
+        self.assertEqual(full[-1].family, "e2e-apparatus")
+        self.assertEqual({suite.family for suite in full}, {"core", "shiploop", "e2e-apparatus"})
 
     def test_component_unions_are_catalog_ordered_and_current_ask_agent_is_distinct(self) -> None:
         combined = suite_catalog.select(("ask-agent", "shiploop-composition", "ask-agent"))
@@ -131,11 +126,9 @@ class TestGroupTests(unittest.TestCase):
             "shiploop-chain-async", "shiploop-consumer-delivery",
             "shiploop-consumer-delivery-cli",
         } <= names)
-        self.assertNotIn("ask-agent-worktree-harness", names)
-        self.assertEqual(
-            [suite.id for suite in suite_catalog.select(("experiments",))],
-            ["ask-agent-worktree-harness"],
-        )
+        self.assertNotIn("experiments", suite_catalog.GROUPS)
+        with self.assertRaises(ValueError):
+            suite_catalog.select(("experiments",))
 
     def test_lpt_shards_are_disjoint_exhaustive_and_catalog_ordered(self) -> None:
         canonical = suite_catalog.SHIPLOOP_SUITES
@@ -155,28 +148,28 @@ class TestGroupTests(unittest.TestCase):
             (self.invoke_root, ("--list",), 0),
             (self.invoke_root, ("--group", "core", "--list"), 0),
             (self.invoke_root, ("--help",), 0),
-            (self.invoke_shiploop, ("--smoke", "--list"), 0),
             (self.invoke_root, ("--group", "unknown"), 64),
             (self.invoke_root, ("--group", ""), 64),
             (self.invoke_root, ("--group",), 64),
-            (self.invoke_shiploop, ("--smoke", "--shard", "1/3"), 64),
-            (self.invoke_shiploop, ("--list", "--list"), 64),
-            (self.invoke_shiploop, ("--smoke", "--smoke"), 64),
-            (self.invoke_shiploop, ("--shard", "1/3", "--shard", "2/3"), 64),
+            (self.invoke_root, ("--group", "experiments", "--list"), 64),
+            # The retired ShipLoop facade dialect has no hidden spelling left.
+            (self.invoke_root, ("--smoke", "--list"), 64),
+            (self.invoke_root, ("--shard", "1/3", "--list"), 64),
+            (self.invoke_root, ("--shiploop-entrypoint", "--list"), 64),
         ):
             with self.subTest(args=args):
                 result = invocation(root, *args, env=env)
                 self.assertEqual(result.returncode, code, result.stdout + result.stderr)
                 self.assertFalse((root / "trace").exists())
 
-    def test_root_list_is_flattened_and_shiploop_list_preserves_bare_paths(self) -> None:
+    def test_root_list_is_flattened(self) -> None:
         root, env = self.list_fixture()
+        self.assertFalse((TEST_DIR / "shiploop.test.sh").exists())
         listed = self.invoke_root(
             root,
             "--group", "ask-agent",
             "--group", "shiploop-composition",
             "--group", "ask-agent",
-            "--group", "experiments",
             "--list",
             env=env,
         )
@@ -186,16 +179,9 @@ class TestGroupTests(unittest.TestCase):
         self.assertTrue(all(len(row) == 3 for row in rows), listed.stdout)
         self.assertEqual(
             [row[1] for row in rows],
-            [suite.id for suite in suite_catalog.select(("ask-agent", "shiploop-composition", "ask-agent", "experiments"))],
+            [suite.id for suite in suite_catalog.select(("ask-agent", "shiploop-composition", "ask-agent"))],
         )
         self.assertEqual(len(rows), len({row[1] for row in rows}))
-
-        smoke = self.invoke_shiploop(root, "--smoke", "--list", env=env)
-        self.assertEqual(smoke.returncode, 0, smoke.stderr)
-        self.assertEqual(
-            smoke.stdout.splitlines(),
-            [suite.path for suite in suite_catalog.SHIPLOOP_SUITES if "smoke" in suite.groups],
-        )
 
     def test_execution_continues_after_failure_and_persists_incremental_receipt(self) -> None:
         root, env, parent = self.execution_fixture()

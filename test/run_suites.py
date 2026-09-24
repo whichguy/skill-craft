@@ -2,8 +2,8 @@
 """Execute fixed hermetic suites selected from :mod:`suite_catalog`.
 
 This runner intentionally owns process lifecycle, output receipts and catalog
-coverage checks.  The public Bash entrypoints only preserve familiar command
-spelling and forward here, so they cannot drift into separate inventories.
+coverage checks.  ``test/run-all.sh`` is its one public Bash entrypoint and only
+forwards here, so it cannot drift into a separate inventory.
 """
 
 from __future__ import annotations
@@ -31,8 +31,6 @@ TOP_LEVEL_TEST_ALLOWLIST = frozenset({
     "test/cursor-imported-skills.test.sh",
     "test/devloop-gas-weather-native.test.sh",
     "test/review-plan.test.sh",
-    # Public entrypoints/wrappers are exercised by their catalog owners.
-    "test/shiploop.test.sh",
 })
 _TEST_SUFFIXES = (".test.py", ".test.sh", ".test.js", ".test.cjs")
 
@@ -55,76 +53,36 @@ class ProcessOutcome:
     error: str | None = None
 
 
-def _parser(*, shiploop_entrypoint: bool = False) -> UsageParser:
-    description = (
-        "Run ShipLoop's full, smoke, or deterministic sharded hermetic suites."
-        if shiploop_entrypoint else
-        "Run a deduplicated union of fixed hermetic test groups."
-    )
-    epilog = (
-        "Legacy ShipLoop flags: --smoke, --shard 1/3|2/3|3/3.\n"
-        "Use --output with a new directory outside the checkout to retain a "
-        "selected/completed receipt and per-suite logs."
-        if shiploop_entrypoint else
-        "Groups: " + ", ".join(suite_catalog.GROUPS) + "\n"
-        "Use --output with a new directory outside the checkout to retain a "
-        "selected/completed receipt and per-suite logs."
-    )
+def _parser() -> UsageParser:
     parser = UsageParser(
-        prog="bash test/shiploop.test.sh" if shiploop_entrypoint else "bash test/run-all.sh",
-        description=description,
+        prog="bash test/run-all.sh",
+        description="Run a deduplicated union of fixed hermetic test groups.",
         formatter_class=argparse.RawDescriptionHelpFormatter,
-        epilog=epilog,
+        epilog=(
+            "Groups: " + ", ".join(suite_catalog.GROUPS) + "\n"
+            "Use --output with a new directory outside the checkout to retain a "
+            "selected/completed receipt and per-suite logs."
+        ),
     )
     parser.add_argument("--group", action="append", metavar="GROUP",
-                        help=(argparse.SUPPRESS if shiploop_entrypoint else
-                              "repeatable group; unions are deduplicated in catalog order"))
+                        help="repeatable group; unions are deduplicated in catalog order")
     parser.add_argument("--list", action="store_true", help="list selected catalog entries without executing")
     parser.add_argument("--output", type=Path, help="new external receipt directory")
-    # This is set only by test/shiploop.test.sh.  Keeping it hidden prevents a
-    # second user-facing dialect while preserving the wrapper's legacy flags.
-    parser.add_argument("--shiploop-entrypoint", action="store_true", help=argparse.SUPPRESS)
-    parser.add_argument("--smoke", action="store_true",
-                        help="run/list only the ShipLoop smoke subset" if shiploop_entrypoint else argparse.SUPPRESS)
-    parser.add_argument("--shard", metavar="N/3",
-                        help="run/list deterministic ShipLoop shard 1/3, 2/3, or 3/3" if shiploop_entrypoint else argparse.SUPPRESS)
     return parser
 
 
-def parse_args(argv: Sequence[str] | None = None) -> tuple[argparse.Namespace, tuple[str, ...], bool]:
-    """Parse either the root or legacy ShipLoop wrapper dialect without work."""
+def parse_args(argv: Sequence[str] | None = None) -> tuple[argparse.Namespace, tuple[str, ...]]:
+    """Parse the one runner dialect without doing any work."""
 
-    raw_argv = tuple(sys.argv[1:] if argv is None else argv)
-    parser = _parser(shiploop_entrypoint="--shiploop-entrypoint" in raw_argv)
-    args = parser.parse_args(raw_argv)
+    parser = _parser()
+    args = parser.parse_args(sys.argv[1:] if argv is None else argv)
     if args.list and args.output is not None:
         parser.error("--output cannot be used with --list")
-
-    if args.shiploop_entrypoint:
-        for option in ("--list", "--smoke", "--shard"):
-            if sum(value.split("=", 1)[0] == option for value in raw_argv) > 1:
-                parser.error(f"{option} may be specified only once")
-        if args.group:
-            parser.error("--group is not accepted by test/shiploop.test.sh")
-        if args.smoke and args.shard:
-            parser.error("--smoke and --shard cannot be combined")
-        if args.shard and args.shard not in {"1/3", "2/3", "3/3"}:
-            parser.error("--shard must be 1/3, 2/3, or 3/3")
-        if args.smoke:
-            groups = ("smoke",)
-        elif args.shard:
-            groups = (f"shiploop-{args.shard[0]}",)
-        else:
-            groups = ("shiploop",)
-        return args, groups, True
-
-    if args.smoke or args.shard:
-        parser.error("--smoke and --shard are only accepted by test/shiploop.test.sh")
     groups = tuple(args.group or ("all",))
     unknown = set(groups) - set(suite_catalog.GROUPS)
     if unknown:
         parser.error("unknown group: " + ", ".join(sorted(unknown)))
-    return args, groups, False
+    return args, groups
 
 
 def _inside(path: Path, possible_parent: Path) -> bool:
@@ -355,24 +313,16 @@ def _write_receipt(output: Path, receipt: dict[str, object]) -> None:
     (output / "receipt.json").write_text(json.dumps(receipt, indent=2, sort_keys=True) + "\n", encoding="utf-8")
 
 
-def _print_list(selected: Iterable[suite_catalog.Suite], *, shiploop_entrypoint: bool) -> None:
+def _print_list(selected: Iterable[suite_catalog.Suite]) -> None:
     for suite in selected:
-        if shiploop_entrypoint:
-            # Legacy ShipLoop --list consumers expect one bare test path per row.
-            print(suite.path)
-        else:
-            print(f"{suite.family}\t{suite.id}\t{shlex.join(suite.argv)}")
+        print(f"{suite.family}\t{suite.id}\t{shlex.join(suite.argv)}")
 
 
 def main(argv: Sequence[str] | None = None) -> int:
-    args, groups, shiploop_entrypoint = parse_args(argv)
+    args, groups = parse_args(argv)
     selected = suite_catalog.select(groups)
-    if shiploop_entrypoint:
-        # Root --group smoke includes core by design.  The legacy ShipLoop
-        # facade is intentionally narrower and lists/runs its ShipLoop paths only.
-        selected = tuple(suite for suite in selected if suite.family == "shiploop")
     if args.list:
-        _print_list(selected, shiploop_entrypoint=shiploop_entrypoint)
+        _print_list(selected)
         return 0
 
     problems = catalog_omissions(ROOT)
@@ -384,12 +334,12 @@ def main(argv: Sequence[str] | None = None) -> int:
     try:
         output = prepare_output(args.output, ROOT) if args.output else None
     except ValueError as exc:
-        _parser(shiploop_entrypoint=shiploop_entrypoint).error(str(exc))
+        _parser().error(str(exc))
         raise AssertionError("unreachable")
 
     receipt: dict[str, object] = {
         "schema": "skill-craft-hermetic-receipt/1",
-        "entrypoint": "shiploop" if shiploop_entrypoint else "run-all",
+        "entrypoint": "run-all",
         "groups": list(groups),
         "source": source_identity(ROOT),
         "runtimes": runtime_versions(ROOT),
@@ -420,11 +370,10 @@ def main(argv: Sequence[str] | None = None) -> int:
         _write_receipt(output, receipt)
         print(f"receipt: {output / 'receipt.json'}")
 
-    label = "shiploop.test.sh" if shiploop_entrypoint else "run-all.sh"
     if failures:
-        print(f"{label}: FAILED", file=sys.stderr)
+        print("run-all.sh: FAILED", file=sys.stderr)
         return 1
-    print(f"{label}: PASS ({', '.join(groups)} hermetic group selection)")
+    print(f"run-all.sh: PASS ({', '.join(groups)} hermetic group selection)")
     return 0
 
 

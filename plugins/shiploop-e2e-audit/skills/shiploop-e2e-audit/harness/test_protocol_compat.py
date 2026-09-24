@@ -1,4 +1,4 @@
-"""Navigator protocol 3/4 observer checks; no model or ShipLoop invocation."""
+"""Navigator protocol 4 observer checks; no model or ShipLoop invocation."""
 
 from __future__ import annotations
 
@@ -112,24 +112,26 @@ class ProtocolCompatibilityTests(unittest.TestCase):
         with patch.object(run, "inspect_run_artifacts", return_value={"states": []}):
             return run.lifecycle_observation(events, navigation, self.prompt, self.repo, {})
 
-    def test_v3_plan_stop_is_the_accepted_plan_after_improve(self) -> None:
+    def test_plan_stop_is_the_accepted_plan_after_improve(self) -> None:
         stages = ("intake", "discovery", "research", "spec", "test-strategy", "plan")
         self.assertEqual(stages, run.PARTIAL_STAGES)
-        state, navigation, captured = self.state_and_navigation(3, stages, current_stage="prepare")
+        state, navigation, captured = self.state_and_navigation(4, stages, current_stage="prepare")
 
         observed = self.partial(navigation, self.events_for(state), captured, "plan")
 
         self.assertTrue(observed["durable_boundary_reached"])
         self.assertTrue(observed["reached"])
-        self.assertEqual(3, observed["protocol_version"])
+        self.assertEqual(4, observed["protocol_version"])
         self.assertEqual("plan", observed["requested_stage"])
         self.assertEqual("plan", observed["effective_stop_stage"])
         self.assertEqual(list(stages), observed["required_stages"])
-        self.assertEqual(("research", stages[:3]), run._partial_boundary(3, "research"))
-        self.assertEqual(("spec", stages[:4]), run._partial_boundary(3, "spec"))
+        self.assertEqual("accepted-prefix-and-callbacks-observed", observed["reason"])
+        self.assertEqual(("plan", run.PARTIAL_STAGES), run._partial_boundary(4, "plan"))
+        self.assertEqual(("research", stages[:3]), run._partial_boundary(4, "research"))
+        self.assertEqual(("spec", stages[:4]), run._partial_boundary(4, "spec"))
         for retired in ("research-improve", "spec-improve", "plan-improve", "step-plan"):
             with self.subTest(retired=retired):
-                self.assertIsNone(run._partial_boundary(3, retired))
+                self.assertIsNone(run._partial_boundary(4, retired))
 
         # The plan producer callback alone never accepts a planning checkpoint.
         producer_only = self.events_for(state, overrides={
@@ -139,22 +141,8 @@ class ProtocolCompatibilityTests(unittest.TestCase):
         self.assertFalse(observed["reached"])
         self.assertEqual("prefix-callbacks-unverified", observed["reason"])
 
-    def test_protocol_4_partial_boundary_matches_v3_prelude(self) -> None:
-        self.assertEqual(("plan", run.PARTIAL_STAGES), run._partial_boundary(4, "plan"))
-        self.assertEqual(run._partial_boundary(3, "spec"), run._partial_boundary(4, "spec"))
-        state, navigation, captured = self.state_and_navigation(
-            4, run.PARTIAL_STAGES, current_stage="prepare"
-        )
-
-        observed = self.partial(navigation, self.events_for(state), captured, "plan")
-
-        self.assertTrue(observed["reached"], observed)
-        self.assertEqual(4, observed["protocol_version"])
-        self.assertEqual(list(run.PARTIAL_STAGES), observed["required_stages"])
-        self.assertEqual("accepted-prefix-and-callbacks-observed", observed["reason"])
-
     def test_retired_protocols_have_no_boundary_or_lifecycle_credit(self) -> None:
-        for protocol in (1, 2, None):
+        for protocol in (1, 2, 3, None):
             with self.subTest(protocol=protocol):
                 self.assertIsNone(run._partial_boundary(protocol, "plan"))
                 state, navigation, captured = self.state_and_navigation(
@@ -168,8 +156,8 @@ class ProtocolCompatibilityTests(unittest.TestCase):
                 self.assertFalse(lifecycle["complete"])
                 self.assertEqual("unsupported-navigator-protocol", lifecycle["reason"])
 
-    def test_v3_lifecycle_requires_matching_successful_improve_complete(self) -> None:
-        state, navigation, _ = self.state_and_navigation(3, ("plan",), current_stage="prepare")
+    def test_lifecycle_requires_matching_successful_improve_complete(self) -> None:
+        state, navigation, _ = self.state_and_navigation(4, ("plan",), current_stage="prepare")
         action = state["history"][0]["action"]
         self.assertIn(action, state["improve_results"])
         start = self.call("start", ["init", "--repo", str(self.repo), "--run-dir", str(self.run_dir)])
@@ -198,36 +186,38 @@ class ProtocolCompatibilityTests(unittest.TestCase):
         self.assertTrue(observed["complete"])
         self.assertEqual(["improve-complete"], observed["callback_commands"])
 
-    def test_v3_and_v4_lifecycle_match_each_action_to_its_callback(self) -> None:
-        for protocol in (3, 4):
-            with self.subTest(protocol=protocol):
-                state, navigation, _ = self.state_and_navigation(
-                    protocol, ("intake", "plan"), current_stage="prepare"
-                )
-                intake, plan = (entry["action"] for entry in state["history"])
-                self.assertEqual({plan}, set(state["improve_results"]))
+    def test_lifecycle_matches_each_action_to_its_callback(self) -> None:
+        state, navigation, _ = self.state_and_navigation(
+            4, ("intake", "plan"), current_stage="prepare"
+        )
+        intake, plan = (entry["action"] for entry in state["history"])
+        self.assertEqual({plan}, set(state["improve_results"]))
 
-                for producer in ("complete", "done"):
-                    observed = self.lifecycle(navigation, self.events_for(state, producer))
-                    self.assertTrue(observed["complete"], observed)
-                    self.assertEqual([], observed["missing_callback_actions"])
-                self.assertEqual(["complete", "done", "improve-complete"], observed["callback_commands"])
-                self.assertEqual(
-                    {intake: ["complete", "done"], plan: ["improve-complete"]},
-                    observed["action_callback_commands"],
-                )
+        observed = self.lifecycle(navigation, self.events_for(state))
+        self.assertTrue(observed["complete"], observed)
+        self.assertEqual([], observed["missing_callback_actions"])
+        self.assertEqual(["complete", "improve-complete"], observed["callback_commands"])
+        self.assertEqual(
+            {intake: ["complete"], plan: ["improve-complete"]},
+            observed["action_callback_commands"],
+        )
 
-                producer_for_plan = self.events_for(state, overrides={plan: "complete"})
-                observed = self.lifecycle(navigation, producer_for_plan)
-                self.assertFalse(observed["complete"])
-                self.assertEqual([plan], observed["missing_callback_actions"])
+        # The retired ``done`` alias is not a ShipLoop verb and earns no credit.
+        retired_alias = self.lifecycle(navigation, self.events_for(state, "done"))
+        self.assertFalse(retired_alias["complete"])
+        self.assertEqual([intake], retired_alias["missing_callback_actions"])
 
-                improve_for_intake = self.events_for(state, overrides={intake: "improve-complete"})
-                observed = self.lifecycle(navigation, improve_for_intake)
-                self.assertFalse(observed["complete"])
-                self.assertEqual([intake], observed["missing_callback_actions"])
+        producer_for_plan = self.events_for(state, overrides={plan: "complete"})
+        observed = self.lifecycle(navigation, producer_for_plan)
+        self.assertFalse(observed["complete"])
+        self.assertEqual([plan], observed["missing_callback_actions"])
 
-        # A stopped protocol-4 plan child is accepted only by improve-reconcile.
+        improve_for_intake = self.events_for(state, overrides={intake: "improve-complete"})
+        observed = self.lifecycle(navigation, improve_for_intake)
+        self.assertFalse(observed["complete"])
+        self.assertEqual([intake], observed["missing_callback_actions"])
+
+        # A stopped initial plan child is accepted only by improve-reconcile.
         state, navigation, _ = self.state_and_navigation(4, ("intake", "plan"), current_stage="spec")
         intake, plan = (entry["action"] for entry in state["history"])
         state["improve_results"][plan] = {"runtime_phase": "stopped"}
@@ -238,7 +228,7 @@ class ProtocolCompatibilityTests(unittest.TestCase):
         self.assertEqual([plan], observed["missing_callback_actions"])
 
     def test_unknown_exit_cannot_support_lifecycle_attribution(self) -> None:
-        for protocol, stages in ((3, ("intake",)), (3, ("plan",)), (4, ("plan",))):
+        for protocol, stages in ((4, ("intake",)), (4, ("plan",))):
             state, navigation, _ = self.state_and_navigation(protocol, stages, current_stage="prepare")
             state["execution_mode"] = "navigator-worktree"
             events = self.events_for(state)

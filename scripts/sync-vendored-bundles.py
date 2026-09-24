@@ -27,9 +27,9 @@ Usage:
       new tree outside the bundle, replaces the bundle's skills/ and agents/
       subtrees and PROVENANCE.json, then re-runs --check. It never edits
       bundle.json and never writes to DIR. Run scripts/sync-plugin-views.sh
-      afterwards. The first import also needs --repository URL (and optional
-      repeated --repository-alias URL for renamed repositories); both must be
-      https URLs without embedded credentials or user names.
+      afterwards. The first import also needs --repository URL, an https URL
+      without embedded credentials or a user name. The checkout's origin must
+      be that one repository.
 
 The publication lint covers the vendored files, bundle.json, PROVENANCE.json
 and the upstream manifest description. It refuses absolute home paths (POSIX,
@@ -394,13 +394,9 @@ def validate_provenance_record(prov: dict[str, Any], name: str, label: str) -> l
     if prov["format"] != PROVENANCE_FORMAT or prov["bundle"] != name:
         raise Failure(1, f"{label}/PROVENANCE.json format or bundle name is wrong")
     upstream = prov["upstream"]
-    if not isinstance(upstream, dict) or set(upstream) - {"repository", "repository_aliases", "commit", "manifest"} \
-            or not {"repository", "commit", "manifest"} <= set(upstream):
-        raise Failure(1, f"{label}/PROVENANCE.json upstream must hold repository, commit, manifest")
-    aliases = upstream.get("repository_aliases", [])
-    if not isinstance(aliases, list):
-        raise Failure(1, f"{label}/PROVENANCE.json upstream.repository_aliases must be a list")
-    for url in (upstream["repository"], *aliases):
+    if not isinstance(upstream, dict) or set(upstream) != {"repository", "commit", "manifest"}:
+        raise Failure(1, f"{label}/PROVENANCE.json upstream must hold exactly repository, commit, manifest")
+    for url in (upstream["repository"],):
         problem = repository_url_problem(url)
         if problem == "must not embed credentials or a user name":
             raise Failure(3, f"{label}/PROVENANCE.json upstream repository URL {problem}")
@@ -697,27 +693,23 @@ def refresh(args: argparse.Namespace, root: Path) -> int:
         # current bundle.json, so a membership change still meets the
         # release-policy checks below instead of needing a first import.
         validate_provenance_record(old, name, label)
-        if args.repository or args.repository_alias:
-            raise Failure(64, "--repository/--repository-alias are only for the first import")
+        if args.repository:
+            raise Failure(64, "--repository is only for the first import")
         repository = old["upstream"]["repository"]
-        aliases = list(old["upstream"].get("repository_aliases", []))
         manifest_path = old["upstream"]["manifest"]["path"]
     else:
         if not args.repository:
             raise Failure(64, f"first import of {label} needs --repository URL")
         repository = args.repository
-        aliases = list(args.repository_alias or [])
         manifest_path = DEFAULT_MANIFEST
-        for url in (repository, *aliases):
-            problem = repository_url_problem(url)
-            if problem:
-                # Never echo the value: it may carry a token.
-                raise Failure(64, f"--repository/--repository-alias {problem}")
+        problem = repository_url_problem(repository)
+        if problem:
+            # Never echo the value: it may carry a token.
+            raise Failure(64, f"--repository {problem}")
 
     top = upstream_checkout(root, Path(args.source))
     origin = git(top, "remote", "get-url", "origin")
-    accepted = {normalize_repository(url) for url in (repository, *aliases)}
-    if normalize_repository(origin) not in accepted:
+    if normalize_repository(origin) != normalize_repository(repository):
         raise Failure(2, f"upstream origin does not match {label} provenance repository")
     if old is not None:
         verify_recorded_commit(top, old, label)
@@ -784,8 +776,6 @@ def refresh(args: argparse.Namespace, root: Path) -> int:
         raise Failure(2, f"upstream primary SKILL.md version {primary_version!r} != {manifest_path} version {version!r}")
 
     upstream_record: dict[str, Any] = {"repository": repository}
-    if aliases:
-        upstream_record["repository_aliases"] = aliases
     upstream_record.update(commit=commit, manifest={
         "path": manifest_path,
         "name": name,
@@ -866,10 +856,9 @@ def parse(argv: list[str] | None) -> argparse.Namespace:
     parser.add_argument("--ref", help=f"upstream commit-ish (default {PUBLISHED_REF})")
     parser.add_argument("--write", action="store_true", help="apply the refresh")
     parser.add_argument("--repository", help="upstream https URL (first import only)")
-    parser.add_argument("--repository-alias", action="append", help="accepted older upstream URL (first import only)")
     parser.add_argument("--root", type=Path, default=None, help="skill-craft checkout (default: this script's)")
     args = parser.parse_args(argv)
-    refresh_flags = (args.source, args.ref, args.write, args.repository, args.repository_alias)
+    refresh_flags = (args.source, args.ref, args.write, args.repository)
     if args.check and any(refresh_flags):
         raise Failure(64, "--check is offline and takes only --bundle and --root")
     if not args.check and not args.source:

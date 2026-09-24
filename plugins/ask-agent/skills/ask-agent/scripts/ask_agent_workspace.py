@@ -50,9 +50,8 @@ VERSION = 1
 # Derived evidence (contribution patch, inspection and delivery records) is
 # stored per fingerprint and reused.  It lives one level below the stable
 # `inspections/` and `delivery-evidence/` roots, in a directory named for the
-# derivation version, so a helper whose fix changes how evidence is derived
-# never reuses a copy an earlier version produced (0.7.4 and earlier wrote
-# `inspections/<fingerprint>` directly).  Bump this when derivation changes.
+# derivation version.  Only this directory is read; evidence anywhere else
+# under those roots is never reused.  Bump this when derivation changes.
 EVIDENCE_DERIVATION = "v4"
 SHA256_RE = re.compile(r"[0-9a-f]{64}")
 GIT_SHA_RE = re.compile(r"[0-9a-f]{40,64}")
@@ -1029,8 +1028,8 @@ def _inspection_fingerprint(
 
     Ignore rules can live outside the fingerprinted worktree (a global
     excludes file, the common `info/exclude`), so the ignored classification
-    is bound explicitly.  It is included only when non-empty, keeping the
-    fingerprint of the common case identical to earlier helper versions.
+    is bound explicitly.  The `ignored` key is present only when the
+    classification is non-empty.
     """
     value: dict[str, Any] = {
         "state": state,
@@ -1905,8 +1904,7 @@ def _inspect_record(
             "unstaged_layer": current["unstaged_patch_sha256"] != baseline_state["unstaged_patch_sha256"],
         },
     }
-    # Present only when non-empty, so records and output for the common case
-    # stay byte-identical to earlier helper versions and exact-key consumers.
+    # `ignored_paths` is a conditional key: present only when non-empty.
     if ignored_paths:
         inspection["ignored_paths"] = ignored_paths
     inspection_file = Path(inspection_path)

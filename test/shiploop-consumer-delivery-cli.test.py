@@ -42,7 +42,7 @@ class ConsumerDeliveryCliTests(unittest.TestCase):
         before = state_path.read_bytes()
         state = store.loads(before.decode())
         self.assertEqual(state["delivery_contract_version"], 1)
-        self.assertEqual(state["navigator_protocol_version"], 3)
+        self.assertEqual(state["navigator_protocol_version"], 4)
         recovered = self.cli("next", "--run-dir", str(self.run))
         self.assertEqual(recovered.returncode, 0, recovered.stderr)
         self.assertEqual(before, state_path.read_bytes())

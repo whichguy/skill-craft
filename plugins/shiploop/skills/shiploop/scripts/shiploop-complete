@@ -14,7 +14,6 @@ REFUSED = {
     "next",
     "init",
     "complete",
-    "done",
 }
 
 

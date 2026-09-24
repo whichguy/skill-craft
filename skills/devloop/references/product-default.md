@@ -28,7 +28,7 @@ Grok completion of a real loop must work with:
 **Host affinity (shipped in card):** `DEVLOOP_HOST=grok` (or `--host grok`) never
 selects the live Hermes leaf unless `DEVLOOP_ALLOW_HERMES_SEED=1`. Nested invoke
 (`DEVLOOP_DEPTH`≠0) exits 2. Full engines without a declared `grok` transport
-capability fail closed at invoke (override: `DEVLOOP_ALLOW_LEGACY_ENGINE=1`).
+in `engine-capabilities.json` fail closed at invoke.
 
 Until a matching host-local engine is provisioned by an operator, the card must
 fail closed with exit **2** and next steps — not fall back to host-agent

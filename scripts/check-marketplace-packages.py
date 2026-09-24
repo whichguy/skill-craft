@@ -46,11 +46,7 @@ NATIVE_SCRIPT_ENTRYPOINTS: dict[str, dict[str, str]] = {
     "evidence-gates": {"scripts/evidence-gates": "python3"},
     # Keyed by skill name: plan-dispatcher ships as a backchain bundle member.
     "plan-dispatcher": {"scripts/dispatch.js": "node"},
-    "improve": {
-        "runtime/until-loop/scripts/until_loop_ephemeral.py": "python3",
-        "runtime/until-loop/scripts/until-loop": "python3",
-        "scripts/capture_evidence.py": "python3",
-    },
+    "improve": {"runtime/until-loop/scripts/until_loop_ephemeral.py": "python3"},
     "review-coverage": {"scripts/review-coverage": "python3"},
     "shiploop": {"scripts/shiploop": "python3"},
     "shiploop-e2e-audit": {

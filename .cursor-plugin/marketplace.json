@@ -33,11 +33,6 @@
       "description": "Compare two prompt versions (A vs B) by running both against a directory of test input files, then evaluating results on three dimensions in priority order: quality > tokens > time."
     },
     {
-      "name": "derive-questions",
-      "source": "./plugins/derive-questions",
-      "description": "Iteratively researches real software project failures and wins, extracts key planning questions via 5-whys analysis, validates them against synthetic test plans, judges their effectiveness via a parallel judge agent, refines them, and persists to a growing questions library. Builds a curated, language/system-agnostic question library that prevents known failure modes when applied during software planning."
-    },
-    {
       "name": "devloop",
       "source": "./plugins/devloop",
       "description": "DevLoop (default): invoke the autonomous engine for a machine-verifiable build or debug goal. Use when the user says devloop, DevLoop, /devloop, or wants an isolated fail-closed build with executable tests. Thin shim: resolve a preinstalled engine, then exec scripts/devloop-run. Runtime hosts: Grok and Hermes. Claude/Codex/Cursor require an explicit external transport. NOT the demoted offline skill evidence-gates. NOT host-agent DEFINE/PROVE/BUILD."
@@ -86,11 +81,6 @@
       "name": "prompt-refine",
       "source": "./plugins/prompt-refine",
       "description": "Full prompt-improvement workflow — runs prompt-audit to find inconsistencies, presents a remediation plan, then runs prompt-migrate to apply fixes and prompt-align to verify harness consistency. Use for any agent or skill prompt that needs structural repair."
-    },
-    {
-      "name": "question-bench",
-      "source": "./plugins/question-bench",
-      "description": "Benchmark review-plan question effectiveness via experiment-based ablation. Applies different question subsets to a plan (or directory of plans) in parallel experiments, evaluates each against fixed plan-quality questions (Q-PQ1..Q-PQ8), and compares quality spreads to identify which questions drive real improvement."
     },
     {
       "name": "review-coverage",

@@ -12,8 +12,8 @@ EXIT_USAGE = 64
 PACKAGE_ROOT = Path(__file__).resolve().parents[1]
 REFUSED = {
     "complete",
-    "done",
     "init",
+    "next",
 }
 
 
@@ -26,8 +26,6 @@ def main(argv: Optional[List[str]] = None) -> int:
     argv = list(sys.argv[1:] if argv is None else argv)
     if argv and argv[0] in REFUSED:
         die(EXIT_BLOCKED, f"shiploop next refuses {argv[0]}")
-    if argv and argv[0] == "next":
-        argv = argv[1:]
     harness = PACKAGE_ROOT / "scripts" / "shiploop"
     if not harness.is_file():
         die(EXIT_BLOCKED, "missing same-leaf scripts/shiploop")

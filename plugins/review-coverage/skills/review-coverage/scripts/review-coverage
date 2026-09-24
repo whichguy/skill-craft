@@ -16,14 +16,6 @@ SHORT_TEMPLATE = REF_DIR / "review_coverage.short.md"
 _STATIC_MARK = "Static complete-when"
 _TRAILER_MARK = "Printer trailer"
 
-HEADING_RE = re.compile(
-    r"(?im)^[ \t]{0,3}#{1,6}[ \t]+Review\s+Coverage\b"
-)
-# Legacy heading still recognized as present (validate only)
-LEGACY_HEAD_RE = re.compile(
-    r"(?im)^[ \t]{0,3}#{1,6}[ \t]+(?:Post[- ]?Implementation\s+)?Residual\s+Loop\b"
-    r"|^[ \t]{0,3}#{1,6}[ \t]+Residual\s+Loop\b"
-)
 # Capture reason; placeholder reasons (e.g. <reason>) are not real waivers.
 WAIVER_RE = re.compile(
     r"(?im)^[ \t]*None\s*[—–-]\s*residual\s+loop\s+waived\s*:\s*(?P<reason>\S.+?)\s*$"
@@ -72,6 +64,8 @@ def _section_body(text: str) -> Optional[str]:
         if start is None:
             if level != 2:
                 continue
+            # The legacy Residual Loop H2 stays readable only while the external
+            # plan-oversight residual_loop.md template still emits it.
             if re.search(r"(?i)^Review\s+Coverage\b", title) or re.search(
                 r"(?i)^(?:Post[- ]?Implementation\s+)?Residual\s+Loop\b", title
             ):
@@ -89,9 +83,7 @@ def _section_body(text: str) -> Optional[str]:
 KNOWN_FIELD_KEYS = frozenset(
     {
         "base ref",
-        "base",
         "target paths",
-        "target path",
         "test command",
         "driver",
         "materiality bar",
@@ -99,9 +91,16 @@ KNOWN_FIELD_KEYS = frozenset(
         "plan contract",
         "specs",
         "max review-converge rounds",
-        "max rounds",
     }
 )
+# Retired short labels -> canonical label. They are parsed only so validate can
+# refuse them by name; no value is ever read from them.
+RETIRED_FIELD_LABELS = {
+    "base": "Base ref",
+    "target path": "Target paths",
+    "max rounds": "Max review-converge rounds",
+}
+_PARSED_FIELD_KEYS = KNOWN_FIELD_KEYS | frozenset(RETIRED_FIELD_LABELS)
 
 
 def _fields(body: str) -> Dict[str, str]:
@@ -139,7 +138,7 @@ def _fields(body: str) -> Dict[str, str]:
                     continue
                 if key in {"field", "key"}:
                     continue
-                if in_field_table and key in KNOWN_FIELD_KEYS:
+                if in_field_table and key in _PARSED_FIELD_KEYS:
                     fields[key] = cells[1]
             continue
         # left a table
@@ -151,7 +150,7 @@ def _fields(body: str) -> Dict[str, str]:
         )
         if m:
             key = re.sub(r"\s+", " ", m.group("key")).lower()
-            if key in KNOWN_FIELD_KEYS and key not in labeled:
+            if key in _PARSED_FIELD_KEYS and key not in labeled:
                 labeled[key] = m.group("value")
     for key, value in labeled.items():
         fields.setdefault(key, value)
@@ -220,15 +219,12 @@ def _placeholder_waiver_present(text: str) -> bool:
 def _core_fields_filled(fields: Dict[str, str]) -> bool:
     """True when Base ref, Target paths, and Test command are non-placeholder."""
 
-    def present(*keys: str) -> bool:
-        for k in keys:
-            if k in fields and not _is_placeholder(fields[k]):
-                return True
-        return False
+    def present(key: str) -> bool:
+        return key in fields and not _is_placeholder(fields[key])
 
     return (
-        present("base ref", "base")
-        and present("target paths", "target path")
+        present("base ref")
+        and present("target paths")
         and present("test command")
     )
 
@@ -242,6 +238,13 @@ def validate(text: str) -> Tuple[bool, List[str]]:
     fields = _fields(body)
     waiver = _waiver_reason(text)
     filled = _core_fields_filled(fields)
+    # Retired short labels are refused on every path, waived or not.
+    gaps: List[str] = [
+        f"retired field label '{retired.capitalize()}' is not accepted; "
+        f"rename it to '{canonical}'"
+        for retired, canonical in RETIRED_FIELD_LABELS.items()
+        if retired in fields
+    ]
 
     if waiver is not None and filled:
         return False, [
@@ -249,20 +252,16 @@ def validate(text: str) -> Tuple[bool, List[str]]:
             "(use only the waiver line, or remove the waiver and keep the fields)"
         ]
     if waiver is not None:
-        return True, []
+        return (len(gaps) == 0, gaps)
 
-    gaps: List[str] = []
     if _placeholder_waiver_present(text):
         gaps.append(
             "placeholder waiver reason is not a real waiver "
             "(replace <reason> with a concrete reason, or fill residual fields)"
         )
 
-    def require(label: str, *aliases: str) -> Optional[str]:
-        value = next(
-            (fields[k] for k in (label.lower(), *aliases) if k in fields),
-            None,
-        )
+    def require(label: str) -> Optional[str]:
+        value = fields.get(label.lower())
         if value is None:
             gaps.append(f"missing {label} field")
             return None
@@ -271,8 +270,8 @@ def validate(text: str) -> Tuple[bool, List[str]]:
             return None
         return value
 
-    require("Base ref", "base")
-    require("Target paths", "target path")
+    require("Base ref")
+    require("Target paths")
     require("Test command")
     driver = require("Driver")
     # MVP: only review-converge is supported as residual Driver (the reference
@@ -309,20 +308,20 @@ def validate(text: str) -> Tuple[bool, List[str]]:
 
 
 def _max_rounds_error(fields: Dict[str, str]) -> Optional[str]:
-    """Return a gap string if Max rounds is present but not a positive integer."""
-    raw = fields.get("max review-converge rounds") or fields.get("max rounds")
+    """Return a gap string if the round cap is present but not a positive integer."""
+    raw = fields.get("max review-converge rounds")
     if raw is None or str(raw).strip() == "":
         return None  # absent → default 12 at goal-body time
     if _is_placeholder(str(raw)):
-        return "Max rounds field has placeholder value"
+        return "Max review-converge rounds field has placeholder value"
     text = str(raw).strip()
     if re.search(r"(?i)\b(unlimited|inf(inity)?|no\s*limit)\b", text):
-        return "Max rounds must be a positive integer (not unlimited)"
+        return "Max review-converge rounds must be a positive integer (not unlimited)"
     lead = re.match(r"^(\d+)\b", text)
     if not lead:
-        return "Max rounds must be a positive integer"
+        return "Max review-converge rounds must be a positive integer"
     if int(lead.group(1)) < 1:
-        return "Max rounds must be a positive integer (>= 1)"
+        return "Max review-converge rounds must be a positive integer (>= 1)"
     return None
 
 
@@ -331,7 +330,7 @@ def _max_review_rounds(fields: Dict[str, str]) -> str:
 
     Call only after validate() has accepted the plan (or when absent).
     """
-    value = fields.get("max review-converge rounds") or fields.get("max rounds") or ""
+    value = fields.get("max review-converge rounds") or ""
     if not str(value).strip() or _is_placeholder(str(value)):
         return "12"
     match = re.match(r"^(\d+)\b", str(value).strip())
@@ -423,8 +422,8 @@ def goal_body(text: str, plan_path: str = "") -> Tuple[Optional[str], str]:
     assert static is not None and trailer is not None
     body = _section_body(text) or ""
     fields = _fields(body)
-    base_ref = fields.get("base ref") or fields.get("base") or ""
-    target_paths = fields.get("target paths") or fields.get("target path") or ""
+    base_ref = fields.get("base ref") or ""
+    target_paths = fields.get("target paths") or ""
     test_command = fields.get("test command") or ""
     max_n = _max_review_rounds(fields)
     repo = fields.get("repo") or ""
@@ -575,7 +574,7 @@ def _preflight(
     elif waived:
         failures.append("residual waived — preflight requires a runnable campaign")
 
-    base_ref = fields.get("base ref") or fields.get("base") or ""
+    base_ref = fields.get("base ref") or ""
     base_ok = bool(base_ref) and _git_output(
         repo, "rev-parse", "--verify", f"{base_ref}^{{commit}}"
     ) is not None
@@ -640,8 +639,8 @@ def cmd_run_card(plan: str, preflight: bool = False) -> int:
         print(f"error: {gerr}", file=sys.stderr)
         return 1
     fields = _fields(_section_body(text) or "")
-    base_ref = fields.get("base ref") or fields.get("base") or ""
-    target_paths = fields.get("target paths") or fields.get("target path") or ""
+    base_ref = fields.get("base ref") or ""
+    target_paths = fields.get("target paths") or ""
     test_command = fields.get("test command") or ""
     max_n = _max_review_rounds(fields)
     print("### 1. Open host goal")

@@ -8,7 +8,7 @@ description: >
   (use review-plan) or raw residual×2 engine mechanics alone (use
   review-converge under /goal).
 allowed-tools: all
-version: 0.2.7
+version: 0.3.0
 license: MIT
 platforms:
   - linux
@@ -83,7 +83,7 @@ to a similarly named executable.
 | Term | Meaning |
 |------|---------|
 | **Review Coverage** | Durable plan **H2 only** `## Review Coverage` + this skill (H1/H3+ are not recognized). After ship: prove code matches specs and **stop** when proof is stable. |
-| **Status / Log / landed** | Driver ledger at repo-root `REVIEW_CONVERGE.md`. **Landed** = latest Log `Committed: yes` and `review-converge: round N —` (or legacy `grok-review-converge: round N —`). |
+| **Status / Log / landed** | Driver ledger at repo-root `REVIEW_CONVERGE.md`. **Landed** = latest Log `Committed: yes` and `review-converge: round N —`. |
 | **residual** | Forward (specs→code) + reverse (diff vs Base ref); material fixes only; pathspec commits. |
 | **clean / residual×2** | Clean = **only trivial findings remaining this cycle** (not “fixed some material and left minors”). Review success = two consecutive cleans with second-pass verification as defined below. Fixing material resets the streak. After DevLoop COMPLETE, this is the overlay — not a nested `/devloop`. Practices: skill-craft `docs/LOOP-ENGINEERING.md`. |
 | **`/goal` body** | Outer multi-turn objective: **static complete-when sentence** + plan bindings (see below). Do not paraphrase the static sentence. |
@@ -110,10 +110,10 @@ python3 "$CLI" goal-body --plan <ABS_PLAN> --slash
 Show that output to the operator labeled **user-typed slash — not
 agent-executable on Grok**. Fallback only if the CLI is missing: STATIC + the
 same trailer fields/order as `references/review_coverage.md` (Plan absolute, Base
-ref, Target paths, Test command, Driver one round, Max rounds + halt rules,
+ref, Target paths, Test command, Driver one round, Max review-converge rounds + halt rules,
 Ledger clean = only trivial findings remaining this cycle + landed SUCCESS, and
 the Finalization current-candidate evidence, pathspec). Include `Repo:` when
-set. Default max rounds **N** = 12. The CLI
+set. Default Max review-converge rounds **N** = 12. The CLI
 fills those slots and prints; it does not author the sentence. The **executable**
 driver is in-session **review-converge** (or `update_goal` when that tool exists).
 
@@ -149,6 +149,9 @@ Skip pure doc-only one-line plans unless the user asks.
    - **Repo** — optional absolute git root
    - **Plan contract** — absolute plan path (SHA-256 at campaign start)
    - **Specs** — anchors / intent questions for forward audit
+
+   Use these labels exactly. The retired short labels `Base`, `Target path` and
+   `Max rounds` fail validation; rename them to the labels above.
 5. Heading must be level-2 `## Review Coverage` only — not `#` / `###`, and not
    `## Post-Implementation Residual Loop` (collides with review-plan Q-E2).
    **If the plan still has legacy `## Post-Implementation Residual Loop`:** rewrite
@@ -183,9 +186,9 @@ waiver. Report what you wrote; do not require the user to run a CLI.
    - Plan has filled `## Review Coverage` (or run Phase A first).
    - Not waived (if waived, stop — no residual campaign).
    - Base ref looks real; if git repo available, prefer resolvable.
-   - If repo-root `REVIEW_CONVERGE.md` (or legacy `GROK_CONVERGE.md`) is
-     **terminal** (`complete` / `stopped`) for a **different** plan contract,
-     plan hash, or campaign scope → **hard stop**: archive/rename the ledger
+   - If repo-root `REVIEW_CONVERGE.md` is **terminal** (`complete` / `stopped`)
+     for a **different** plan contract, plan hash, or campaign scope → **hard
+     stop**: archive/rename the ledger
      first (do not auto-delete). Same plan + re-run only if operator explicitly
      requests re-open residual. Resuming Finalization alone is not a residual reopen;
      for the same completed/landed campaign, reconcile its Finalization record

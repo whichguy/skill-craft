@@ -405,7 +405,7 @@ mapping/decision rather than rewriting history. At product return, verify durabl
 links from the returned repository, without requiring the discarded worktree or
 old run folder for the accepted intent.
 
-For v3, the host carries the selected requirement sections, test locators,
+In a navigator run, the host carries the selected requirement sections, test locators,
 relevant local-skill entrypoint/input/validation locators and run-note locators
 from the producer result/work-item context into the
 actual Improve request. Retain them in that child's existing contract prose and

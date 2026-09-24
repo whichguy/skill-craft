@@ -65,7 +65,7 @@ def after_header(packet):
 
 class ImproveScheduleTests(unittest.TestCase):
     def new(self):
-        return nav.new_state("/simulation-only/repo", "Schedule fixture.", protocol_version=3,
+        return nav.new_state("/simulation-only/repo", "Schedule fixture.",
                              improve_skill="")
 
     def test_planning_stages_and_the_end_start_improve(self):
@@ -125,7 +125,7 @@ class ImproveScheduleTests(unittest.TestCase):
             repo.mkdir()
             run = repo.parent / "run"
             run.mkdir()
-            state = nav.new_state(str(repo), "Schedule fixture.", protocol_version=3, improve_skill="")
+            state = nav.new_state(str(repo), "Schedule fixture.", improve_skill="")
             while nav.current_stage(state) != "spec":
                 # Unreviewed predecessors have no Improve receipt to point at.
                 self.assertNotIn("Prior Improve evidence", nav.render(None, run, state))
@@ -170,22 +170,21 @@ class ImproveScheduleTests(unittest.TestCase):
 
     def test_saved_improve_cadence_key_is_refused_with_a_named_error(self):
         # Runs saved by 0.21/0.22 carry this key; the generic key check names it.
-        for version in (3, 4):
-            with self.subTest(protocol=version):
-                state = nav.new_state("/simulation-only/repo", "Schedule fixture.",
-                                      protocol_version=version)
-                with self.assertRaises(nav.NavigatorError) as caught:
-                    nav.validate(dict(state, improve_cadence="planning-and-end"))
-                message = str(caught.exception)
-                self.assertIn("unexpected: improve_cadence", message)
-                self.assertIn("saved by an older ShipLoop", message)
-                self.assertIn("fresh --run-dir", message)
-                # The same generic check names a missing required key.
+        state = nav.new_state("/simulation-only/repo", "Schedule fixture.")
+        with self.assertRaises(nav.NavigatorError) as caught:
+            nav.validate(dict(state, improve_cadence="planning-and-end"))
+        message = str(caught.exception)
+        self.assertIn("unexpected: improve_cadence", message)
+        self.assertIn("saved by an older ShipLoop", message)
+        self.assertIn("fresh --run-dir", message)
+        # The same generic check names a missing required key.
+        for key in ("inner_loops", "planning_reconciliations"):
+            with self.subTest(missing=key):
                 missing = dict(state)
-                del missing["inner_loops"]
+                del missing[key]
                 with self.assertRaises(nav.NavigatorError) as caught:
                     nav.validate(missing)
-                self.assertIn("missing: inner_loops", str(caught.exception))
+                self.assertIn("missing: " + key, str(caught.exception))
                 self.assertIn("fresh --run-dir", str(caught.exception))
 
     def test_leading_line_binds_an_unbound_child_and_is_absent_when_stopped(self):

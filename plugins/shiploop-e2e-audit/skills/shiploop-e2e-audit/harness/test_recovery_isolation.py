@@ -17,8 +17,8 @@ class RecoveryIsolationTests(unittest.TestCase):
         self.assertEqual(result["status"], "fail")
         self.assertEqual(result["prior_runs_recovered"][0]["run_id"], "old")
 
-    def test_protocol_three_improve_complete_on_old_run_is_a_new_request_violation(self):
-        self.initial["states"][0]["state"]["navigator_protocol_version"] = 3
+    def test_improve_complete_on_old_run_is_a_new_request_violation(self):
+        self.initial["states"][0]["state"]["navigator_protocol_version"] = 4
         events = {"cli_calls": [{
             "call_id": "complete", "argv_tail": [
                 "improve-complete", "--run-dir=/prior/run", "--action=old-action", "--result=/tmp/result.md",

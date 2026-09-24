@@ -223,15 +223,14 @@ def _context(environ: Mapping[str, str]) -> dict[str, Any]:
     family, catalog_step = _catalog_context(result["step_id"])
     frozen_checks = result.get("required_checks")
     if frozen_checks is None:
-        required_checks = list(catalog_step["required_checks"])
-    elif (not isinstance(frozen_checks, list) or not frozen_checks
-          or any(not _nonempty_string(check_id) for check_id in frozen_checks)
-          or len(set(frozen_checks)) != len(frozen_checks)):
+        raise ValueError("trial result lacks frozen required_checks; the trial predates the current contract; re-run")
+    if (not isinstance(frozen_checks, list) or not frozen_checks
+            or any(not _nonempty_string(check_id) for check_id in frozen_checks)
+            or len(set(frozen_checks)) != len(frozen_checks)):
         raise ValueError("trial required checks must be unique nonempty strings")
-    else:
-        # The launch result freezes the requirements selected at run time.
-        # Current catalog edits must not retroactively relabel an old trial.
-        required_checks = list(frozen_checks)
+    # The launch result freezes the requirements selected at run time.
+    # Current catalog edits must not retroactively relabel a trial.
+    required_checks = list(frozen_checks)
     step = {**catalog_step, "required_checks": required_checks}
     if not isinstance(result.get("trial_id"), str) or not result["trial_id"]:
         raise ValueError("trial result lacks trial_id")

@@ -24,11 +24,8 @@ import shiploop_chain_ledger as chain_ledger
 import shiploop_chain as chain
 
 CLI = SCRIPTS / "shiploop"
-# New bindings always carry the immutable planning-context contract.  Keep the
-# old pinned packages named separately: they are fixtures for recovery and
-# refusal cases, never implicit candidates for a fresh bind.
-LEGACY_FIXTURE = ROOT / "test/fixtures/plan-dispatcher-v1"
-LEGACY_SERIAL_FIXTURE = ROOT / "test/fixtures/plan-dispatcher-v2"
+# Bindings always carry the immutable planning-context contract of this one
+# pinned Plan Dispatcher package.
 CONTEXT_FIXTURE = ROOT / "test/fixtures/plan-dispatcher-v3"
 FIXTURE = CONTEXT_FIXTURE
 SERIAL_FIXTURE = CONTEXT_FIXTURE
@@ -61,7 +58,7 @@ class ChainFixture(unittest.TestCase):
         self.original_prompt_sentinel = "ORIGINAL-USER-PROMPT-SENTINEL: never copy this into planning references"
         # A chain is the ask-agent route; an inline run executes steps directly.
         self.state = nav.new_state(
-            str(self.target), self.original_prompt_sentinel, protocol_version=3,
+            str(self.target), self.original_prompt_sentinel,
             delegation="ask-agent",
         )
         self.planning_dir = self.base / "planning-material"
@@ -252,8 +249,7 @@ class ChainFixture(unittest.TestCase):
 
     def bind(self, capacity=2, *, mode=None, ok=True):
         extra = ["--graph", str(self.graph), "--dispatcher-skill", str(self.dispatcher / "SKILL.md"),
-                 "--ask-agent-skill", str(self.ask / "SKILL.md"), "--worktree-parent", str(self.parent),
-                 "--lifecycle", "per-step"]
+                 "--ask-agent-skill", str(self.ask / "SKILL.md"), "--worktree-parent", str(self.parent)]
         if mode is not None:
             extra += ["--mode", mode]
         if capacity is not None:
@@ -404,12 +400,12 @@ class ChainFixture(unittest.TestCase):
         return result
 
     def complete_single_chain(self):
-        self.graph = self.write("graph.json", {"steps": [{"id": "A", "deps": [],
+        self.graph = self.write("graph.json", {"version": 1, "steps": [{"id": "A", "deps": [],
             "contract": {"task": "Implement A", "ready": [], "done": ["A verified"]}}]})
         self.bind()
         a = self.claim(["A"])["A"]
         self.start("A", a)
-        self.call("settle", self.contribute("A"))
+        self.call("done", self.contribute("A"))
         self.cleanup_accepted_workers()
         proof = self.write("combined.json", {"passed": True, "commit": self.commits["A"]})
         value = {"commit": self.commits["A"], "confirmed_stopped": True,
@@ -419,9 +415,7 @@ class ChainFixture(unittest.TestCase):
 
     def child_state_path(self):
         binding = store.read_record(self.run / "chains" / self.action / "binding.md")
-        directory = Path(binding["dispatcher_run"])
-        current = directory / "plan-dispatcher-state.json"
-        return current if current.exists() else directory / "state.json"
+        return Path(binding["dispatcher_run"]) / "plan-dispatcher-state.json"
 
     def child_state(self):
         return json.loads(self.child_state_path().read_text())

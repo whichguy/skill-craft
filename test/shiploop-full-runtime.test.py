@@ -375,7 +375,7 @@ class FullRuntimeCompositionTests(unittest.TestCase):
         result_path = run / "inbox" / f"{action_id}.md"
         _write_record(result_path, producer, "Synthetic ShipLoop producer callback")
         self._run(
-            self._script(shiploop), "done", "--run-dir", run,
+            self._script(shiploop), "complete", "--run-dir", run,
             "--action", action_id, "--result", result_path,
         )
         waiting = self._state(run)
@@ -677,7 +677,7 @@ class FullRuntimeCompositionTests(unittest.TestCase):
             self._flush_trace()
         result_path = run / "inbox" / f"{action_id}.md"
         _write_record(result_path, result, "Synthetic ShipLoop producer callback")
-        self._run(self._script(shiploop), "done", "--run-dir", run, "--action", action_id, "--result", result_path)
+        self._run(self._script(shiploop), "complete", "--run-dir", run, "--action", action_id, "--result", result_path)
         new_state = self._state(run)
         self.assertIsNone(new_state["active_improve"])
         context = {"stage": stage, "action": action_id, "run": run, "shiploop": shiploop}
@@ -737,7 +737,7 @@ class FullRuntimeCompositionTests(unittest.TestCase):
         _write_record(result_path, missing_result, "Synthetic ShipLoop producer callback")
         before = (run / "state.md").read_bytes()
         failed = self._run(
-            self._script(shiploop), "done", "--run-dir", run,
+            self._script(shiploop), "complete", "--run-dir", run,
             "--action", action_id, "--result", result_path, code=2,
         )
         self.assertIn("pre-update", failed.stdout + failed.stderr)
@@ -747,7 +747,7 @@ class FullRuntimeCompositionTests(unittest.TestCase):
         })
         self._flush_trace()
         _write_record(result_path, corrected_result, "Synthetic ShipLoop producer callback")
-        self._run(self._script(shiploop), "done", "--run-dir", run, "--action", action_id, "--result", result_path)
+        self._run(self._script(shiploop), "complete", "--run-dir", run, "--action", action_id, "--result", result_path)
         new_state = self._state(run)
         self.assertIsNone(new_state["active_improve"])
         return new_state
@@ -804,7 +804,7 @@ class FullRuntimeCompositionTests(unittest.TestCase):
             "--action", context["action"], "--result", receipt,
         )
         self._run(
-            self._script(context["shiploop"]), "done", "--run-dir", run,
+            self._script(context["shiploop"]), "complete", "--run-dir", run,
             "--action", context["action"], "--result", context["producer_path"],
         )
         self.assertEqual(state_before, (run / "state.md").read_bytes())

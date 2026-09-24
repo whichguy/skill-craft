@@ -98,6 +98,23 @@ class InlineImproveTests(unittest.TestCase):
                            "managed subrun", "managed-subrun"):
                 self.assertNotIn(phrase, body, f"{card.name}: {phrase}")
 
+    def test_durable_runtime_and_phase_split_routes_are_removed(self) -> None:
+        # The durable v1/v2 Until Loop route, its collector and the phase-split
+        # owner-managed consumer had no remaining caller; one route remains.
+        for relative in ("scripts/capture_evidence.py", "references/legacy-standalone.md",
+                         "references/evidence-capture.md"):
+            self.assertFalse((IMPROVE / relative).exists(), relative)
+        for card in (IMPROVE / "SKILL.md", IMPROVE / "README.md",
+                     IMPROVE / "references" / "review-policy.md",
+                     IMPROVE / "references" / "callback-evidence.md"):
+            body = flat(card)
+            for phrase in ("legacy-standalone", "capture_evidence", "evidence-capture",
+                           "Owner-managed consumer entrypoint", "owner-managed consumer",
+                           "Never run the entire cycle in one action",
+                           "supply only Current learnings", "legacy continuation"):
+                self.assertNotIn(phrase, body, f"{card.name}: {phrase}")
+        self.assertIn("## Execution handoff\n", text(IMPROVE / "SKILL.md"))
+
     def test_policy_selects_independent_review_through_the_binding(self) -> None:
         policy = flat(IMPROVE / "references" / "review-policy.md")
         self.assertIn("only when the owner binding selects independent review", policy)

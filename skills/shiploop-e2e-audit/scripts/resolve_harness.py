@@ -178,17 +178,11 @@ def explicit_harness(raw_checkout: str, starting_cwd: Path, git_path: str | None
     status = git(git_path, checkout, "status", "--porcelain=v1", "--untracked-files=all")
     if not head or status.returncode:
         raise ResolverError(f"explicit checkout cannot provide Git identity: {checkout}")
-    candidates = (
-        checkout / "skills" / SKILL / "harness",
-        checkout / "test" / "experiments" / "shiploop_e2e",
-    )
-    failures = []
-    for candidate in candidates:
-        try:
-            return validate_harness(candidate), os.fspath(checkout), head, bool(status.stdout.strip())
-        except ResolverError as error:
-            failures.append(str(error))
-    raise ResolverError("explicit checkout has no usable E2E harness: " + "; ".join(failures))
+    try:
+        harness = validate_harness(checkout / "skills" / SKILL / "harness")
+    except ResolverError as error:
+        raise ResolverError(f"explicit checkout has no usable E2E harness: {error}") from error
+    return harness, os.fspath(checkout), head, bool(status.stdout.strip())
 
 
 def main(argv: list[str] | None = None) -> int:

@@ -24,7 +24,7 @@ IMPROVE_SKILL_NAME = "improve"
 _SELECTED_SKILL_NAMES = frozenset((SHIPLOOP_SKILL_NAME, IMPROVE_SKILL_NAME))
 NATIVE_STREAM_FORMAT = "streaming-json"
 DEFAULT_REASONING_EFFORT = "xhigh"
-# The current ShipLoop CLI verbs (``done`` is the alias of ``complete``).
+# The current ShipLoop CLI verbs, exactly as ``shiploop --help`` lists them.
 SHIPLOOP_DIRECT_SUBCOMMANDS = frozenset(
     {
         "workspace",
@@ -36,11 +36,9 @@ SHIPLOOP_DIRECT_SUBCOMMANDS = frozenset(
         "improve-complete",
         "improve-reconcile",
         "next",
-        "status",
         "report",
         "context",
         "complete",
-        "done",
         "halt",
         "pause",
         "resume",
@@ -707,14 +705,6 @@ def _cli_invocations(event: dict[str, Any], textual_paths: set[str], resolved_pa
         if argv_tail is not None:
             invocations.append(argv_tail)
     return invocations
-
-
-def _cli_invocation(event: dict[str, Any], textual_paths: set[str], resolved_paths: set[str]) -> str | None:
-    """Return the first subcommand for compatibility with existing summaries."""
-    invocations = _cli_invocations(event, textual_paths, resolved_paths)
-    if not invocations:
-        return None
-    return invocations[0][0] if invocations[0] else ""
 
 
 def _reported_exit_code(event: dict[str, Any]) -> int | None:

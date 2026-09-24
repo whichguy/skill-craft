@@ -28,7 +28,7 @@ _MAX_EVENT_LINE_BYTES = 1024 * 1024
 # These lists are intentionally closed.  A value read from a live transcript is
 # not portable merely because it looks harmless; unknown strings become a fixed
 # qualification rather than being copied into a fixture.
-_V3_STAGES = frozenset(
+_STAGES = frozenset(
     {
         "intake", "discovery", "research", "spec", "test-strategy", "plan",
         "prepare", "select-work", "step-plan", "test-spec", "baseline",
@@ -40,9 +40,9 @@ _V3_STAGES = frozenset(
         "operations", "handoff", "done",
     }
 )
-# Navigator protocols 3 and 4 share one stage graph; any other protocol is
+# Navigator protocol 4 is the only observed protocol; any other protocol is
 # retained only as an ``unsupported-protocol`` qualification.
-_SUPPORTED_PROTOCOLS = frozenset({3, 4})
+_SUPPORTED_PROTOCOLS = frozenset({4})
 # The live runner's public partial-stop keys (run.PARTIAL_STAGES).
 _STOP_STAGES = frozenset({"intake", "discovery", "research", "spec", "test-strategy", "plan"})
 _STATE_STATUSES = frozenset({"active", "paused", "blocked", "halted", "done"})
@@ -161,7 +161,7 @@ def _safe_number(value: Any) -> int | float | None:
 
 
 def _safe_stage(value: Any, protocol_version: int | None) -> str | None:
-    allowed = _V3_STAGES if protocol_version in _SUPPORTED_PROTOCOLS else frozenset()
+    allowed = _STAGES if protocol_version in _SUPPORTED_PROTOCOLS else frozenset()
     return value if isinstance(value, str) and value in allowed else None
 
 
@@ -754,7 +754,7 @@ def _derive_isolation(
 def _replay_metadata(dag: Mapping[str, Any] | None, original: Mapping[str, str]) -> dict[str, Any]:
     """Qualify a retained trial; none is exported as a DAG replay case.
 
-    DAG replay uses independently authored synthetic protocol-3 cases. A
+    DAG replay uses independently authored synthetic protocol 4 cases. A
     retained trial does not record the complete producer and Improve callback
     sequence, and the exporter never invents one.
     """

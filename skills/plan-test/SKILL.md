@@ -11,7 +11,7 @@ description: |
 
   NOT for: Only running an existing suite without designing or changing coverage.
 argument-hint: "[file-path or function-name]"
-version: 0.1.2
+version: 0.1.3
 license: MIT
 platforms:
   - linux
@@ -24,7 +24,7 @@ metadata:
 > **skill-craft port** of a claude-craft suite skill. Host-neutral: use repo-root search instead of Claude plugin paths. SoT: whichguy/skill-craft `skills/plan-test/`.
 
 
-# /test — Test Generation
+# /plan-test — Test Generation
 
 Generate tests for specified code. Detects the project's test framework automatically
 and matches existing test patterns.

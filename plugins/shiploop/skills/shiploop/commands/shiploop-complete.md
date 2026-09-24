@@ -4,7 +4,7 @@ Run exactly the callback the current packet printed on the line after its
 header. There are three kinds:
 
 ~~~sh
-# Producer step result (alias: done)
+# Producer step result
 python3 "$SKILL_ROOT/scripts/shiploop" complete \
   --run-dir "$RUN_DIR" --action "$ACTION_ID" --result "$RUN_DIR/inbox/$ACTION_ID.md"
 # Bind the selected Improve card when the packet asks for it

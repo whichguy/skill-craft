@@ -47,17 +47,14 @@ class HarnessBindingTests(unittest.TestCase):
             self.add_harness(package / "harness")
         return package
 
-    def checkout(self, name: str, *, legacy: bool = False) -> Path:
+    def checkout(self, name: str, *, harness_at: Path | None = None) -> Path:
         root = self.base / name
         package = root / "skills" / "shiploop-e2e-audit"
         script = package / "scripts" / "resolve_harness.py"
         script.parent.mkdir(parents=True)
         shutil.copy2(RESOLVER, script)
         (package / "SKILL.md").write_text("---\nname: shiploop-e2e-audit\n---\n", encoding="utf-8")
-        self.add_harness(
-            root / "test" / "experiments" / "shiploop_e2e"
-            if legacy else package / "harness"
-        )
+        self.add_harness(root / harness_at if harness_at is not None else package / "harness")
         subprocess.run(["git", "init", "-q", str(root)], check=True, env=self.git_env)
         subprocess.run(["git", "-C", str(root), "add", "."], check=True, env=self.git_env)
         subprocess.run(["git", "-C", str(root), "commit", "-qm", "fixture"], check=True, env=self.git_env)
@@ -217,18 +214,23 @@ class HarnessBindingTests(unittest.TestCase):
         self.assertIn("harness is missing required files", result.stderr)
         self.assertIn("suites.json", result.stderr)
 
-    def test_explicit_checkout_supports_the_legacy_harness_location(self) -> None:
+    def test_explicit_checkout_with_only_the_retired_harness_location_is_refused(self) -> None:
         package = self.package("selected package", harness=False)
-        legacy = self.checkout("legacy checkout", legacy=True)
+        retired = self.checkout(
+            "retired checkout", harness_at=Path("test") / "experiments" / "shiploop_e2e",
+        )
         empty = self.base / "empty folder"
         empty.mkdir()
 
-        record = self.record(self.invoke(
-            package / "scripts" / "resolve_harness.py", empty, "--checkout", str(legacy),
-        ))
+        result = self.invoke(
+            package / "scripts" / "resolve_harness.py", empty, "--checkout", str(retired),
+        )
 
-        self.assertEqual(record["binding_source"], "explicit")
-        self.assertEqual(record["harness"], str(legacy / "test" / "experiments" / "shiploop_e2e"))
+        self.assertEqual(result.returncode, 2)
+        self.assertEqual(result.stdout, "")
+        self.assertIn("explicit checkout has no usable E2E harness", result.stderr)
+        self.assertIn(str(retired / "skills" / "shiploop-e2e-audit" / "harness"), result.stderr)
+        self.assertNotIn("test/experiments/shiploop_e2e", result.stderr)
 
 
 if __name__ == "__main__":

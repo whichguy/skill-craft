@@ -6,7 +6,7 @@ import os
 from pathlib import Path, PurePosixPath
 import subprocess
 
-FULL_GROUPS = ["core", "shiploop-1", "shiploop-2", "shiploop-3", "e2e-apparatus", "experiments"]
+FULL_GROUPS = ["core", "shiploop-1", "shiploop-2", "shiploop-3", "e2e-apparatus"]
 
 
 def git(root, *args):
