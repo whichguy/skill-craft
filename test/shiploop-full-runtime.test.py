@@ -333,6 +333,7 @@ class FullRuntimeCompositionTests(unittest.TestCase):
             "workspace", "start", "--repo", source, "--workspace-root", workspace,
             "--prompt", "Synthetic protocol composition fixture; no product claim.",
             "--improve-skill", self._card(self.source_improve),
+            "--improve-cadence", "every-stage",
         ]
         if delivery_contract:
             command.append("--delivery-contract")
@@ -348,6 +349,8 @@ class FullRuntimeCompositionTests(unittest.TestCase):
             "init", "--repo", repo, "--run-dir", run,
             "--prompt", "Synthetic protocol composition fixture; no product claim.",
             "--improve-skill", self._card(improve),
+            # This composition walks a producer/Improve pair at every stage.
+            "--improve-cadence", "every-stage",
         )
         return repo, run
 

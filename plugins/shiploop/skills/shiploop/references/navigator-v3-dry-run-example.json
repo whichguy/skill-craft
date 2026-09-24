@@ -1,4 +1,5 @@
 {
+  "improve_cadence": "every-stage",
   "steps": [
     {"at": "intake", "command": "produce", "expect": "intake"},
     {"at": "intake", "command": "finish-improve", "expect": "discovery",

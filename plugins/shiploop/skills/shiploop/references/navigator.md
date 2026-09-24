@@ -310,7 +310,7 @@ The semantic result contract is small:
 
 | Field | Meaning |
 | --- | --- |
-| `outcome` | `done`, `repeat`, or `blocked`; v3 outer steps also allow `replan` with new corrective work items. Every v3 producer attempt first waits for actual Improve. Its final disposition then determines the script-owned route. |
+| `outcome` | `done`, `repeat`, or `blocked`; v3 outer steps also allow `replan` with new corrective work items. Under the `every-stage` cadence every v3 producer attempt first waits for actual Improve; under the default `planning-and-end` cadence only planning stages and the last carry-forward do (`plan-and-end`: only plan and the last carry-forward). The final disposition then determines the script-owned route. |
 | `summary` | Concise statement of the current action’s real result. |
 | `evidence_refs` | Optional safe references to source, test, note, or external-operation evidence. |
 | `work_items` | Ordered `{id,title,context?}` items at `plan` before execution, at `carry-forward` for future-only work, or required new IDs for v3 outer `replan`. Legacy v1/v2 also accept them at `plan-improve`. |

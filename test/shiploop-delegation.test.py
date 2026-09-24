@@ -401,7 +401,7 @@ class DelegationCliTests(unittest.TestCase):
         self.assertIn("rerun without --delegation", retry.stderr)
 
     def test_toggle_during_a_bound_improve_child_applies_from_the_next_action(self):
-        self.assertEqual(self.init("--improve-skill", CARD).returncode, 0)
+        self.assertEqual(self.init("--improve-skill", CARD, "--improve-cadence", "every-stage").returncode, 0)
         action = self.saved()["action"]["id"]
         result_path = self.run / "inbox" / (action + ".md")
         store.write_record(result_path, {"outcome": "done", "summary": "Synthetic intake."})

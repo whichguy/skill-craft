@@ -378,8 +378,11 @@ secrets in commands, fixtures, logs, or project knowledge.
 
 ## Review test assets through Improve
 
-For Navigator v3, every producer result is followed by the selected actual
-standalone Improve skill. Within that producer's candidate scope, its review
+For Navigator v3, the selected actual standalone Improve skill reviews each
+result its cadence selects. That is every producer under `every-stage`. Under
+the default `planning-and-end` it is the planning stages, including `test-spec`,
+plus the end-of-work candidate. Within that
+candidate scope, its review
 includes local and remote-resident test definitions, execution/target locations,
 platform/library testing-system fit, browser inspection versus retained test
 coverage, remote framework availability and invocation, fixture setup/teardown,

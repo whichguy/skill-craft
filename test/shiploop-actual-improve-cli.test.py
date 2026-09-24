@@ -34,6 +34,8 @@ EXPLICIT_NO_COMMIT_AUTHORITY = (
 )
 
 
+EVERY_STAGE = ("--improve-cadence", "every-stage")
+
 class ImproveCliFixture(unittest.TestCase):
     """Hermetic parent fixture shared by ephemeral and explicit legacy routes."""
 
@@ -41,7 +43,8 @@ class ImproveCliFixture(unittest.TestCase):
     delegation = None
 
     def delegation_args(self):
-        return ("--delegation", self.delegation) if self.delegation else ()
+        # These tests pin the per-stage Improve child; plan-and-end has its own suite.
+        return (("--delegation", self.delegation) if self.delegation else ()) + EVERY_STAGE
 
     def inline(self):
         return self.delegation in (None, "inline")
@@ -326,7 +329,7 @@ class ImproveCliFixture(unittest.TestCase):
     def legacy_parent(self, card):
         run = self.base / "legacy-run"
         self.invoke(CLI, "init", "--repo", self.repo, "--run-dir", run,
-                    "--prompt", "Legacy composition fixture", "--improve-skill", card)
+                    "--prompt", "Legacy composition fixture", "--improve-skill", card, *EVERY_STAGE)
         state = store.read_record(run / "state.md")
         action = state["action"]["id"]
         input_path = run / "inbox" / (action + ".md")
@@ -1067,7 +1070,8 @@ class EphemeralImproveCliTests(ImproveCliFixture):
         selected.symlink_to(CARD)
         run = self.base / "relative-selection-run"
         self.invoke(CLI, "init", "--repo", self.repo, "--run-dir", run,
-                    "--prompt", "Relative selection recovery fixture", "--improve-skill", selected.name)
+                    "--prompt", "Relative selection recovery fixture", "--improve-skill", selected.name,
+                    *EVERY_STAGE)
         state = store.read_record(run / "state.md")
         action = state["action"]["id"]
         result_path = run / "inbox" / (action + ".md")
@@ -1099,7 +1103,8 @@ class EphemeralImproveCliTests(ImproveCliFixture):
         subprocess.run(["git", "-C", str(source), "commit", "-qm", "baseline"], check=True, capture_output=True, env=self.environment)
         workspace = self.base / "isolated"
         self.invoke(CLI, "workspace", "start", "--repo", source, "--workspace-root", workspace,
-                    "--prompt", "Synthetic final return boundary fixture", "--improve-skill", CARD)
+                    "--prompt", "Synthetic final return boundary fixture", "--improve-skill", CARD,
+                    *EVERY_STAGE)
         self.repo, self.run = workspace / "worktree", workspace / "run"
         self.product_contract = self.product_test = self.repo / "product.txt"
         self._prepare_parent_evidence()

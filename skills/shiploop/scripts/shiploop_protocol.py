@@ -7534,6 +7534,20 @@ def planning_repair(core, root, state, aid, reason):
     persist(root, state, "planning-repair", writes)
 
 
+def _require_retry_cadence(existing: dict, requested: "str | None") -> None:
+    """The Improve cadence is fixed at init; a retry may only restate it."""
+    if requested is None:
+        return
+    import shiploop_navigator as navigator
+
+    need(existing.get("navigator_protocol_version") in (3, 4),
+         "this run's protocol has no Improve cadence; rerun without --improve-cadence")
+    recorded = navigator.improve_cadence(existing)
+    need(requested == recorded,
+         f"--improve-cadence {requested} differs from this run's recorded cadence {recorded}; "
+         "the cadence is fixed at init, so rerun without --improve-cadence to recover the run")
+
+
 def _require_retry_delegation(existing: dict, requested: "str | None", run_dir: Path) -> None:
     """Recovery retries keep the recorded delegation; only the toggle changes it."""
     if requested is None:
@@ -7567,6 +7581,8 @@ def workspace_command(core, argv):
     start.add_argument("--protocol-version", type=int, choices=(2, 3, 4), default=3)
     start.add_argument("--delegation", choices=navigator.DELEGATIONS, default=None,
                        help="new protocol 3/4 run: inline (default) or ask-agent delegation")
+    start.add_argument("--improve-cadence", choices=navigator.IMPROVE_CADENCES, default=None,
+                       help="new protocol 3/4 run: planning-and-end (default; Improve after planning stages and after the last work item), plan-and-end or every-stage")
     for name in ("plan-return", "return"):
         child = subs.add_parser(name)
         child.add_argument("--workspace-root", required=True)
@@ -7577,6 +7593,8 @@ def workspace_command(core, argv):
             need(bool(args.prompt.strip()), "prompt must not be empty")
             need(args.delegation is None or args.protocol_version in (3, 4),
                  "--delegation requires navigator protocol 3 or 4")
+            need(args.improve_cadence is None or args.protocol_version in (3, 4),
+                 "--improve-cadence requires navigator protocol 3 or 4")
             # Screen before workspace.prepare creates a worktree and branch.
             import shiploop_privacy
             need(not shiploop_privacy.sensitive_text(args.prompt),
@@ -7601,6 +7619,7 @@ def workspace_command(core, argv):
                 need(not args.delivery_contract or existing.get("delivery_contract_version") == 1,
                      "cannot retrofit delivery-contract on an existing run")
                 _require_retry_delegation(existing, args.delegation, root / "run")
+                _require_retry_cadence(existing, args.improve_cadence)
                 # Identical re-entry is recovery, not another capture of the
                 # source after product work or a completed integration.
                 return main(core, ["next", "--run-dir", str(root / "run")])
@@ -7614,6 +7633,8 @@ def workspace_command(core, argv):
                 init.append("--delivery-contract")
             if args.delegation:
                 init += ["--delegation", args.delegation]
+            if args.improve_cadence:
+                init += ["--improve-cadence", args.improve_cadence]
             return main(core, init)
         if args.operation == "plan-return":
             workspace.plan_return(root)
@@ -7639,7 +7660,12 @@ def workspace_command(core, argv):
                      "after the graph's assembled-candidate checks")
                 workspace.assert_binding(root, Path(saved["repo"]))
                 child = saved.get("active_improve")
-                if saved["navigator_protocol_version"] in (3, 4):
+                if (saved["navigator_protocol_version"] in (3, 4)
+                        and navigator.improve_cadence(saved) != navigator.LEGACY_IMPROVE_CADENCE):
+                    # Plan-and-end: the end-of-work Improve finished before OUTER,
+                    # so return follows the assembled-candidate checks, as in v2.
+                    need(child is None, "workspace return awaits the active Improve child")
+                elif saved["navigator_protocol_version"] in (3, 4):
                     # Return is a once-only effect. Wait for the last review so
                     # later child edits cannot invalidate an already-used receipt.
                     need(navigator.current_stage(saved) == "handoff" and child is not None,
@@ -7753,6 +7779,8 @@ def main(core, argv=None):
                              help="bind managed review requirements; fallback must be explicitly recorded")
             sub.add_argument("--delegation", choices=navigator.DELEGATIONS, default=None,
                              help="new protocol 3/4 run: inline (default) or ask-agent delegation")
+            sub.add_argument("--improve-cadence", choices=navigator.IMPROVE_CADENCES, default=None,
+                             help="new protocol 3/4 run: planning-and-end (default; Improve after planning stages and after the last work item), plan-and-end or every-stage")
         if name == "delegation":
             sub.add_argument("--set", dest="delegation_value", choices=navigator.DELEGATIONS, required=True,
                              help="execution delegation for this run's future assignments")
@@ -7881,6 +7909,10 @@ def main(core, argv=None):
             and not (args.execution_mode in ("navigator", "navigator-worktree")
                      and args.navigator_version in (3, 4))):
         parser.error("--delegation requires navigator protocol 3 or 4")
+    if (args.command == "init" and getattr(args, "improve_cadence", None) is not None
+            and not (args.execution_mode in ("navigator", "navigator-worktree")
+                     and args.navigator_version in (3, 4))):
+        parser.error("--improve-cadence requires navigator protocol 3 or 4")
     if args.command == "graph-dry-run":
         # Deliberately before run-directory discovery, locking or state access.
         return navigator_dry_run.run(args)
@@ -7929,6 +7961,7 @@ def main(core, argv=None):
                          and existing.get("delivery_contract_version") == 1),
                      "--delivery-contract cannot retrofit an existing run; preserve it and use its recorded protocol")
                 _require_retry_delegation(existing, getattr(args, "delegation", None), root)
+                _require_retry_cadence(existing, getattr(args, "improve_cadence", None))
                 need(args.command != "delegation"
                      or existing.get("navigator_protocol_version") in (3, 4),
                      "delegation applies only to navigator protocol 3 or 4 runs; other runs keep "
@@ -8000,6 +8033,9 @@ def main(core, argv=None):
                         delegation=(args.delegation or navigator.DEFAULT_DELEGATION
                                     if args.execution_mode in ("navigator", "navigator-worktree")
                                     and args.navigator_version in (3, 4) else None),
+                        improve_cadence=(args.improve_cadence or navigator.DEFAULT_IMPROVE_CADENCE
+                                         if args.execution_mode in ("navigator", "navigator-worktree")
+                                         and args.navigator_version in (3, 4) else None),
                     )
                     navigator.save(root, state)
                     print(navigator.render(core, root, state), end="")
