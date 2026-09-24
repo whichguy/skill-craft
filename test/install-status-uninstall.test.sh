@@ -39,33 +39,14 @@ out2="$("$install_sh" --status --skill skill-interop 2>&1)" || fail "S2: $out2"
 printf '%s\n' "$out2" | grep -q 'Claude Code' || fail "S2 missing Claude"
 printf '%s\n' "$out2" | grep -q 'OpenCode' || fail "S2 missing OpenCode"
 printf '%s\n' "$out2" | grep -q 'state=symlink-owned' || fail "S2 symlink-owned: $out2"
-printf '%s\n' "$out2" | grep -q 'state=copy-owned' || fail "S2 copy-owned Hermes: $out2"
 
-# S3: foreign Hermes not uninstalled
-fresh_home s3
-mkdir -p "$HOME/.hermes/skills/software-development/skill-interop"
-printf 'foreign\n' >"$HOME/.hermes/skills/software-development/skill-interop/SKILL.md"
-out3="$("$install_sh" --status --skill skill-interop --hermes-only 2>&1)" || fail "S3 status: $out3"
-printf '%s\n' "$out3" | grep -q 'state=foreign' || fail "S3 foreign: $out3"
-set +e
-out3u="$("$install_sh" --uninstall --skill skill-interop --hermes-only 2>&1)"
-rc3u=$?
-set -e
-[[ "$rc3u" -eq 3 ]] || fail "S3 uninstall want exit 3 got $rc3u: $out3u"
-printf '%s\n' "$out3u" | grep -q 'Skipped uninstall (not owned)' || fail "S3 skip: $out3u"
-[[ -f "$HOME/.hermes/skills/software-development/skill-interop/SKILL.md" ]] || fail "S3 foreign deleted"
-[[ "$(cat "$HOME/.hermes/skills/software-development/skill-interop/SKILL.md")" == "foreign" ]] || fail "S3 content"
-
-# S4: uninstall owned symlink + copy
+# S4: uninstall owned symlinks
 fresh_home s4
 "$install_sh" --skill skill-interop >/dev/null
 out4="$("$install_sh" --uninstall --skill skill-interop 2>&1)" || fail "S4: $out4"
 printf '%s\n' "$out4" | grep -q 'Uninstalled symlink' || fail "S4 symlink: $out4"
-printf '%s\n' "$out4" | grep -q 'Uninstalled copy' || fail "S4 copy: $out4"
 [[ ! -e "$HOME/.claude/skills/skill-interop" ]] || fail "S4 claude remains"
 [[ ! -e "$HOME/.config/opencode/skills/skill-interop" ]] || fail "S4 OpenCode remains"
-[[ ! -e "$HOME/.hermes/skills/software-development/skill-interop" ]] || fail "S4 hermes remains"
-[[ ! -f "$HOME/.hermes/skills/software-development/.skill-craft/skill-interop.json" ]] || fail "S4 marker remains"
 
 # S5: dry-run uninstall no mutate
 fresh_home s5
@@ -95,29 +76,31 @@ set -e
 printf '%s\n' "$out7u" | grep -q 'Skipped uninstall (not owned)' || fail "S7 skip: $out7u"
 [[ -L "$HOME/.claude/skills/skill-interop" ]] || fail "S7 wrong symlink must remain"
 
-# S8: status copy-owned-stale after managed install then dest content drift
+# S8: status copy-owned-stale after managed --copy install then dest content drift
 fresh_home s8
-"$install_sh" --skill skill-interop --hermes-only >/dev/null
-printf 'drift-s8\n' >>"$HOME/.hermes/skills/software-development/skill-interop/SKILL.md"
-out8="$("$install_sh" --status --skill skill-interop --hermes-only 2>&1)" || fail "S8 status: $out8"
+"$install_sh" --skill skill-interop --opencode-only --copy >/dev/null
+printf 'drift-s8\n' >>"$(opencode_skills_dir)/skill-interop/SKILL.md"
+out8="$("$install_sh" --status --skill skill-interop --opencode-only 2>&1)" || fail "S8 status: $out8"
 printf '%s\n' "$out8" | grep -q 'state=copy-owned-stale' || fail "S8 stale: $out8"
 # uninstall still owns stale managed copy
-out8u="$("$install_sh" --uninstall --skill skill-interop --hermes-only 2>&1)" || fail "S8 uninstall: $out8u"
+out8u="$("$install_sh" --uninstall --skill skill-interop --opencode-only 2>&1)" || fail "S8 uninstall: $out8u"
 printf '%s\n' "$out8u" | grep -q 'Uninstalled copy' || fail "S8 uninstall owned: $out8u"
-[[ ! -e "$HOME/.hermes/skills/software-development/skill-interop" ]] || fail "S8 dest remains"
+[[ ! -e "$(opencode_skills_dir)/skill-interop" ]] || fail "S8 dest remains"
 
-printf 'install-status-uninstall.test.sh: PASS S1–S8 (continued)\n'
+printf 'install-status-uninstall.test.sh: PASS S1–S2, S4–S8 (continued)\n'
 
 # --- S9–S13: marker-invalid foreign (byte-identical under install/status/uninstall) ---
-# Shared setup: foreign tree + invalid marker for hermes skill-interop leaf.
+# Shared setup: foreign tree + invalid marker for the OpenCode copy-mode skill-interop leaf.
 
 marker_invalid_case() {
   local case_id="$1"
   local marker_body="$2"
   local expect_snip="$3"
   fresh_home "mi-$case_id"
-  local dest="$HOME/.hermes/skills/software-development/skill-interop"
-  local mdir="$HOME/.hermes/skills/software-development/.skill-craft"
+  local dest
+  dest="$(opencode_skills_dir)/skill-interop"
+  local mdir
+  mdir="$(opencode_skills_dir)/.skill-craft"
   mkdir -p "$dest" "$mdir"
   printf 'foreign-body-%s\n' "$case_id" >"$dest/SKILL.md"
   printf 'keep-me\n' >"$dest/extra-$case_id.txt"
@@ -128,18 +111,18 @@ marker_invalid_case() {
   local mbefore mafter
   mbefore="$(shasum "$mdir/skill-interop.json" | awk '{print $1}')"
 
-  out_st="$("$install_sh" --status --skill skill-interop --hermes-only 2>&1)" || fail "S$case_id status: $out_st"
+  out_st="$("$install_sh" --status --skill skill-interop --opencode-only 2>&1)" || fail "S$case_id status: $out_st"
   printf '%s\n' "$out_st" | grep -q 'state=foreign' || fail "S$case_id status foreign: $out_st"
 
   set +e
-  out_in="$("$install_sh" --skill skill-interop --hermes-only 2>&1)"
+  out_in="$("$install_sh" --skill skill-interop --opencode-only --copy 2>&1)"
   rc_in=$?
   set -e
   [[ "$rc_in" -eq 3 ]] || fail "S$case_id install want exit 3 got $rc_in: $out_in"
   printf '%s\n' "$out_in" | grep -qi 'foreign\|Skipped' || fail "S$case_id install skip: $out_in"
 
   set +e
-  out_un="$("$install_sh" --uninstall --skill skill-interop --hermes-only 2>&1)"
+  out_un="$("$install_sh" --uninstall --skill skill-interop --opencode-only 2>&1)"
   rc_un=$?
   set -e
   [[ "$rc_un" -eq 3 ]] || fail "S$case_id uninstall want exit 3 got $rc_un: $out_un"
@@ -386,4 +369,4 @@ printf '%s\n' "$out26u" | grep -q 'Uninstalled copy' || fail "S26 copy uninstall
 [[ ! -e "$opencode_dest" ]] || fail "S26 copied destination remains"
 [[ ! -e "$opencode_marker" ]] || fail "S26 copy marker remains"
 
-printf 'install-status-uninstall.test.sh: PASS S1–S26\n'
+printf 'install-status-uninstall.test.sh: PASS S1–S2, S4–S26\n'

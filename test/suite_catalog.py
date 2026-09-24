@@ -371,7 +371,6 @@ _CORE_SUITES = (
     _suite("marketplace-run", "core", "test/marketplace-run.test.sh", "bash", "test/marketplace-run.test.sh"),
     _suite("install-targets", "core", "test/install-targets.test.sh", "bash", "test/install-targets.test.sh"),
     _suite("install-arbitrary-skill", "core", "test/install-arbitrary-skill.test.sh", "bash", "test/install-arbitrary-skill.test.sh"),
-    _suite("hermes-binding", "core", "test/hermes-binding.test.sh", "bash", "test/hermes-binding.test.sh"),
     _suite("install-status-uninstall", "core", "test/install-status-uninstall.test.sh", "bash", "test/install-status-uninstall.test.sh"),
     _suite("devloop-run", "core", "test/devloop-run.test.sh", "bash", "test/devloop-run.test.sh"),
     _suite("evidence-gates", "core", "test/evidence-gates.test.sh", "bash", "test/evidence-gates.test.sh"),

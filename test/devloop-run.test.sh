@@ -61,6 +61,8 @@ python3 -c 'import json;d=json.load(open("'"$root"'/scripts/devloop-engine-pin.j
 tmpdir="$(mktemp -d "${TMPDIR:-/tmp}/devloop-run-test.XXXXXX")"
 cleanup() { rm -rf "$tmpdir"; }
 trap cleanup EXIT
+# Isolate every case from the machine's own engine-seed configuration.
+unset HERMES_HOME DEVLOOP_ALLOW_HERMES_SEED || true
 fixture_pin="$tmpdir/engine-pin-fixture.json"
 
 # The operator contract requires pytest in the selected interpreter. The test
@@ -71,6 +73,12 @@ mkdir -p "$operator_python_site"
 printf '# operator-provided pytest fixture\n' >"$operator_python_site/pytest.py"
 export PYTHONPATH="$operator_python_site${PYTHONPATH:+:$PYTHONPATH}"
 
+# Explicit external transport fixture: the runtime only checks that GROK_BIN is
+# executable; stub engines never invoke it.
+fake_grok="$tmpdir/fake-grok"
+printf '#!/usr/bin/env bash\necho fake-grok\n' >"$fake_grok"
+chmod +x "$fake_grok"
+
 # Checkout-local paths belong in scratch, never in a tracked fixture.
 python3 - "$fixture_tgz" "$fixture_pin" <<'PY'
 import hashlib, json, pathlib, sys
@@ -80,8 +88,8 @@ pin.write_text(json.dumps({"version": "fixture", "url": f"file://{tgz.resolve()}
 PY
 
 # D1: --help
-unset DEVLOOP_HOME HERMES_HOME DEVLOOP_BOOTSTRAP_CMD DEVLOOP_ENGINE_URL DEVLOOP_DATA_HOME DEVLOOP_ENGINE_PIN DEVLOOP_ENGINE_SHA256 \
-  DEVLOOP_HOST DEVLOOP_ALLOW_HERMES_SEED DEVLOOP_ALLOW_LEGACY_ENGINE DEVLOOP_DEPTH DEVLOOP_NESTING DEVLOOP_TRANSPORT GROK_BIN || true
+unset DEVLOOP_HOME DEVLOOP_BOOTSTRAP_CMD DEVLOOP_ENGINE_URL DEVLOOP_DATA_HOME DEVLOOP_ENGINE_PIN DEVLOOP_ENGINE_SHA256 \
+  DEVLOOP_HOST DEVLOOP_ALLOW_LEGACY_ENGINE DEVLOOP_DEPTH DEVLOOP_NESTING DEVLOOP_TRANSPORT GROK_BIN || true
 export HOME="$tmpdir/empty-home"
 mkdir -p "$HOME"
 set +e
@@ -117,7 +125,7 @@ chmod +x "$attack"
 missing_data="$tmpdir/missing-engine-data"
 set +e
 out_m1="$(PATH="$network_bin:$PATH" NETWORK_TRACE="$network_trace" ATTACK_TRACE="$attack_trace" \
-  DEVLOOP_HOME= DEVLOOP_DATA_HOME="$missing_data" HERMES_HOME="$tmpdir/no-hermes" \
+  DEVLOOP_HOME= DEVLOOP_DATA_HOME="$missing_data" \
   DEVLOOP_ENGINE_URL='https://example.invalid/engine.tgz' DEVLOOP_BOOTSTRAP_CMD="$attack" \
   "$run" --host auto -- 'missing engine must not fetch' 2>&1)"
 rc_m1=$?
@@ -147,7 +155,7 @@ print("STUB_CLI", " ".join(sys.argv[1:]))
 sys.exit(0)
 PY
 export DEVLOOP_HOME="$eng"
-out2="$(DEVLOOP_TRANSPORT=hermes "$run" -- hello --repo /tmp/x 2>&1)" || fail "D2: $out2"
+out2="$(DEVLOOP_TRANSPORT=grok GROK_BIN="$fake_grok" "$run" -- hello --repo /tmp/x 2>&1)" || fail "D2: $out2"
 printf '%s\n' "$out2" | grep -q 'STUB_CLI hello --repo /tmp/x' || fail "D2 stub: $out2"
 printf 'LAYER simple: D2 DEVLOOP_HOME exec OK\n'
 
@@ -162,7 +170,8 @@ print("STUB_ARGS=" + json.dumps(sys.argv[1:]))
 print("STUB_DEPTH=" + os.environ.get("DEVLOOP_DEPTH", ""))
 print("STUB_NESTING=" + os.environ.get("DEVLOOP_NESTING", ""))
 PY
-out2b="$(PATH="$network_bin:$PATH" NETWORK_TRACE="$network_trace" DEVLOOP_HOME="$space_engine" DEVLOOP_TRANSPORT=hermes \
+out2b="$(PATH="$network_bin:$PATH" NETWORK_TRACE="$network_trace" DEVLOOP_HOME="$space_engine" \
+  DEVLOOP_TRANSPORT=grok GROK_BIN="$fake_grok" \
   "$run" --host auto -- --repo "$space_target" --lang python --cancel 'run 17' 'goal with spaces' 2>&1)" \
   || fail "D2b path-space engine: $out2b"
 printf '%s\n' "$out2b" | grep -q 'STATE target=explicit reason=repo_flag' || fail "D2b target state: $out2b"
@@ -203,26 +212,27 @@ out6="$("$run" --probe 2>&1)" || fail "D6: $out6"
 printf '%s\n' "$out6" | grep -q 'engine=' || fail "D6: $out6"
 printf 'LAYER simple: D6 probe OK\n'
 
-# D7: strict broken home
+# D7: strict broken home refuses even when a host-local fallback engine exists
 export DEVLOOP_HOME="$tmpdir/not-an-engine"
-mkdir -p "$HOME/.hermes/skills/software-development/devloop/scripts"
-printf 'print(1)\n' >"$HOME/.hermes/skills/software-development/devloop/scripts/devloop_cli.py"
+d7_data="$tmpdir/data-d7-fallback"
+mkdir -p "$d7_data/devloop/scripts"
+printf 'print(1)\n' >"$d7_data/devloop/scripts/devloop_cli.py"
 set +e
-out7="$("$run" --strict --no-bootstrap hi 2>&1)"
+# --probe isolates resolution: without --strict this selects the fallback (exit 0).
+out7="$(DEVLOOP_DATA_HOME="$d7_data" "$run" --strict --probe --no-bootstrap hi 2>&1)"
 rc7=$?
 set -e
 [[ "$rc7" -eq 2 ]] || fail "D7 want 2 got $rc7"
 
-# D8: operator pin provisioning (file:// fixture, no Hermes), then runtime exec
-unset DEVLOOP_HOME HERMES_HOME DEVLOOP_BOOTSTRAP_CMD DEVLOOP_ENGINE_URL || true
-rm -rf "$HOME/.hermes"
+# D8: operator pin provisioning (file:// fixture), then runtime exec
+unset DEVLOOP_HOME DEVLOOP_BOOTSTRAP_CMD DEVLOOP_ENGINE_URL || true
 export DEVLOOP_DATA_HOME="$tmpdir/data"
 export DEVLOOP_ENGINE_PIN="$fixture_pin"
 out8="$("$setup" --host auto --pin "$fixture_pin" --data-home "$DEVLOOP_DATA_HOME" 2>&1)" || fail "D8 setup: $out8"
 [[ -f "$DEVLOOP_DATA_HOME/devloop/scripts/devloop_cli.py" ]] || fail "D8 missing cli: $out8"
 [[ -f "$DEVLOOP_DATA_HOME/devloop/.skill-craft-engine.json" ]] || fail "D8 missing marker"
 out8p="$("$run" --probe --no-bootstrap 2>&1)" || fail "D8 probe: $out8p"
-out8r="$(DEVLOOP_TRANSPORT=hermes "$run" -- hi 2>&1)" || fail "D8 run: $out8r"
+out8r="$(DEVLOOP_TRANSPORT=grok GROK_BIN="$fake_grok" "$run" -- hi 2>&1)" || fail "D8 run: $out8r"
 printf '%s\n' "$out8r" | grep -q 'FIXTURE_ENGINE' || fail "D8 fixture run: $out8r"
 printf 'LAYER integration: D8 operator-setup+probe+exec fixture OK\n'
 
@@ -293,7 +303,7 @@ out9c="$(DEVLOOP_BOOTSTRAP_CMD="$venv_bootstrap" DEVLOOP_ENGINE_PYTHON_TRACE="$v
   "$setup" --data-home "$DEVLOOP_DATA_HOME" 2>&1)" || fail "D9c setup: $out9c"
 grep -F -- '-c import pytest' "$venv_trace" >/dev/null \
   || fail "D9c setup did not verify pytest with selected venv interpreter: $(<"$venv_trace")"
-out9cr="$(DEVLOOP_TRANSPORT=hermes DEVLOOP_ENGINE_PYTHON_TRACE="$venv_trace" \
+out9cr="$(DEVLOOP_TRANSPORT=grok GROK_BIN="$fake_grok" DEVLOOP_ENGINE_PYTHON_TRACE="$venv_trace" \
   "$run" -- hi 2>&1)" || fail "D9c runtime: $out9cr"
 grep -F -- 'scripts/devloop_cli.py hi' "$venv_trace" >/dev/null \
   || fail "D9c runtime did not select the staged venv interpreter: $(<"$venv_trace")"
@@ -385,7 +395,8 @@ mkdir -p "$copy_engine/scripts"
 printf 'print("COPY_ENGINE")\n' >"$copy_engine/scripts/devloop_cli.py"
 (
   cd /
-  out11="$(DEVLOOP_HOME="$copy_engine" DEVLOOP_TRANSPORT=hermes "$card_copy/scripts/devloop-run" -- hello 2>&1)" || fail "D11 runtime from /: $out11"
+  out11="$(DEVLOOP_HOME="$copy_engine" DEVLOOP_TRANSPORT=grok GROK_BIN="$fake_grok" \
+    "$card_copy/scripts/devloop-run" -- hello 2>&1)" || fail "D11 runtime from /: $out11"
   printf '%s\n' "$out11" | grep -q 'COPY_ENGINE' || fail "D11 copied runtime did not use injected engine: $out11"
 )
 
@@ -406,7 +417,7 @@ printf '%s\n' "$out12" | grep -qi 'force-hard\|unmarked' || fail "D12 message: $
 export DEVLOOP_DATA_HOME="$tmpdir/data-conc"
 rm -rf "$DEVLOOP_DATA_HOME"
 export DEVLOOP_ENGINE_PIN="$fixture_pin"
-unset DEVLOOP_HOME HERMES_HOME DEVLOOP_BOOTSTRAP_CMD DEVLOOP_ENGINE_URL || true
+unset DEVLOOP_HOME DEVLOOP_BOOTSTRAP_CMD DEVLOOP_ENGINE_URL || true
 out13a="$tmpdir/devloop-conc-a.out"
 out13b="$tmpdir/devloop-conc-b.out"
 set +e
@@ -449,7 +460,7 @@ out14b="$("$pkg" --from "$clean_tree" --version 0.0.0-ok --out "$tmpdir/pkg-out"
 # D15: operator setup without python3 → exit 2 (not bare 127)
 export DEVLOOP_DATA_HOME="$tmpdir/data-nopy"
 export DEVLOOP_ENGINE_PIN="$fixture_pin"
-unset DEVLOOP_HOME HERMES_HOME || true
+unset DEVLOOP_HOME || true
 # PATH with only coreutils-ish bins; no python3
 nopy_bin="$tmpdir/nopy-bin"
 mkdir -p "$nopy_bin"
@@ -468,7 +479,6 @@ set -e
 printf '%s\n' "$out15" | grep -qi 'python3' || fail "D15 message: $out15"
 
 # D16: honesty / version — strict shim, default DevLoop ownership
-grep -qi 'Hermes' "$root/skills/devloop/SKILL.md" || fail "D16 honesty Hermes host"
 grep -qi 'mode=engine' "$root/skills/devloop/SKILL.md" || fail "D16 mode=engine banner"
 grep -qi 'Forbidden' "$root/skills/devloop/SKILL.md" || fail "D16 forbids host loop"
 grep -qi 'evidence-gates' "$root/skills/devloop/SKILL.md" || fail "D16 mentions demoted evidence-gates"
@@ -481,7 +491,7 @@ printf 'LAYER simple: D16 version + ownership docs OK\n'
 # D17: operator-only DEVLOOP_BOOTSTRAP_CMD success
 export DEVLOOP_DATA_HOME="$tmpdir/data-cmd"
 rm -rf "$DEVLOOP_DATA_HOME"
-unset DEVLOOP_HOME HERMES_HOME DEVLOOP_ENGINE_URL DEVLOOP_ENGINE_PIN || true
+unset DEVLOOP_HOME DEVLOOP_ENGINE_URL DEVLOOP_ENGINE_PIN || true
 export DEVLOOP_BOOTSTRAP_CMD="$tmpdir/bootstrap-cmd.sh"
 cat >"$DEVLOOP_BOOTSTRAP_CMD" <<'SH'
 #!/usr/bin/env bash
@@ -493,7 +503,7 @@ SH
 chmod +x "$DEVLOOP_BOOTSTRAP_CMD"
 out17="$("$setup" --data-home "$DEVLOOP_DATA_HOME" 2>&1)" || fail "D17 setup: $out17"
 [[ -f "$DEVLOOP_DATA_HOME/devloop/scripts/devloop_cli.py" ]] || fail "D17 engine missing"
-out17r="$(DEVLOOP_TRANSPORT=hermes "$run" --no-bootstrap -- hi 2>&1)" || fail "D17 run: $out17r"
+out17r="$(DEVLOOP_TRANSPORT=grok GROK_BIN="$fake_grok" "$run" --no-bootstrap -- hi 2>&1)" || fail "D17 run: $out17r"
 printf '%s\n' "$out17r" | grep -q 'BOOTSTRAP_CMD_ENGINE' || fail "D17 run output: $out17r"
 
 # D18: operator-only DEVLOOP_BOOTSTRAP_CMD fail → exit 2
@@ -516,80 +526,15 @@ rm -rf "$DEVLOOP_DATA_HOME"
 mkdir -p "$DEVLOOP_DATA_HOME/devloop/scripts"
 printf 'print("OLD")\n' >"$DEVLOOP_DATA_HOME/devloop/scripts/devloop_cli.py"
 # no marker
-unset DEVLOOP_BOOTSTRAP_CMD DEVLOOP_HOME HERMES_HOME || true
+unset DEVLOOP_BOOTSTRAP_CMD DEVLOOP_HOME || true
 export DEVLOOP_ENGINE_PIN="$fixture_pin"
 out19="$("$setup" --pin "$fixture_pin" --data-home "$DEVLOOP_DATA_HOME" --force --force-hard 2>&1)" || fail "D19 setup: $out19"
 [[ -f "$DEVLOOP_DATA_HOME/devloop/.skill-craft-engine.json" ]] || fail "D19 marker missing"
-out19r="$(DEVLOOP_TRANSPORT=hermes "$run" --no-bootstrap -- hi 2>&1)" || fail "D19 run: $out19r"
+out19r="$(DEVLOOP_TRANSPORT=grok GROK_BIN="$fake_grok" "$run" --no-bootstrap -- hi 2>&1)" || fail "D19 run: $out19r"
 printf '%s\n' "$out19r" | grep -q 'FIXTURE_ENGINE' || fail "D19 fixture run: $out19r"
-
-# D20: resolve engine from HERMES_HOME seed (explicit host=hermes only)
-export DEVLOOP_DATA_HOME="$tmpdir/data-seed-empty"
-rm -rf "$DEVLOOP_DATA_HOME"
-mkdir -p "$DEVLOOP_DATA_HOME"
-unset DEVLOOP_HOME DEVLOOP_BOOTSTRAP_CMD DEVLOOP_ENGINE_URL || true
-export HERMES_HOME="$tmpdir/hermes-seed"
-mkdir -p "$HERMES_HOME/skills/software-development/devloop/scripts"
-printf 'print("SEED_ENGINE")\n' >"$HERMES_HOME/skills/software-development/devloop/scripts/devloop_cli.py"
-export DEVLOOP_ENGINE_PIN="$tmpdir/empty-pin.json"
-printf '%s\n' '{"version":"x","url":"REPLACE_WITH_RELEASE_URL/x.tgz","sha256":""}' >"$DEVLOOP_ENGINE_PIN"
-out20p="$("$run" --host hermes --probe --no-bootstrap 2>&1)" || fail "D20 probe: $out20p"
-printf '%s\n' "$out20p" | grep -q 'engine=' || fail "D20 probe engine=: $out20p"
-printf '%s\n' "$out20p" | grep -q 'hermes-seed\|SEED\|devloop' || fail "D20 probe selected seed: $out20p"
-out20r="$("$run" --host hermes --no-bootstrap -- hi 2>&1)" || fail "D20 run: $out20r"
-printf '%s\n' "$out20r" | grep -q 'SEED_ENGINE' || fail "D20 run output: $out20r"
-
-# D21: operator seed-copy path (--force with an explicit Hermes seed).
-# The runtime resolves preinstalled engines only; the operator script materializes
-# the host-local copy after explicit setup.
-export DEVLOOP_DATA_HOME="$tmpdir/data-seed-copy"
-rm -rf "$DEVLOOP_DATA_HOME"
-unset DEVLOOP_HOME DEVLOOP_BOOTSTRAP_CMD DEVLOOP_ENGINE_URL || true
-export HERMES_HOME="$tmpdir/hermes-seed-copy"
-mkdir -p "$HERMES_HOME/skills/software-development/devloop/scripts"
-printf 'print("SEED_COPY_ENGINE")\n' >"$HERMES_HOME/skills/software-development/devloop/scripts/devloop_cli.py"
-export DEVLOOP_ENGINE_PIN="$tmpdir/replace-pin.json"
-printf '%s\n' '{"version":"seed","url":"REPLACE_WITH_RELEASE_URL/x.tgz","sha256":""}' >"$DEVLOOP_ENGINE_PIN"
-out21="$("$setup" --host hermes --pin "$DEVLOOP_ENGINE_PIN" --data-home "$DEVLOOP_DATA_HOME" --force --force-hard 2>&1)" || fail "D21 seed-copy setup: $out21"
-printf '%s\n' "$out21" | grep -qi 'seed' || fail "D21 setup should seed-copy: $out21"
-[[ -f "$DEVLOOP_DATA_HOME/devloop/scripts/devloop_cli.py" ]] || fail "D21 host-local engine missing after seed-copy"
-[[ -f "$DEVLOOP_DATA_HOME/devloop/.skill-craft-engine.json" ]] || fail "D21 marker missing after seed-copy"
-# Must run from host-local, not only via resolve to HERMES_HOME
-unset HERMES_HOME
-out21r="$(DEVLOOP_TRANSPORT=hermes "$run" --no-bootstrap -- hi 2>&1)" || fail "D21 run host-local: $out21r"
-printf '%s\n' "$out21r" | grep -q 'SEED_COPY_ENGINE' || fail "D21 host-local run: $out21r"
-printf 'LAYER e2e: D21 force-bootstrap seed-copy + host-local exec OK\n'
-
-# D22: dual-install affinity — host=grok must NOT select Hermes leaf when host-local empty
-unset DEVLOOP_HOME DEVLOOP_BOOTSTRAP_CMD DEVLOOP_ENGINE_URL DEVLOOP_ALLOW_HERMES_SEED || true
-export DEVLOOP_DATA_HOME="$tmpdir/data-dual-empty"
-rm -rf "$DEVLOOP_DATA_HOME"
-mkdir -p "$DEVLOOP_DATA_HOME"
-export HERMES_HOME="$tmpdir/hermes-dual"
-mkdir -p "$HERMES_HOME/skills/software-development/devloop/scripts"
-printf 'print("HERMES_LEAF")\n' >"$HERMES_HOME/skills/software-development/devloop/scripts/devloop_cli.py"
-export DEVLOOP_ENGINE_PIN="$tmpdir/empty-pin-dual.json"
-printf '%s\n' '{"version":"x","url":"REPLACE_WITH_RELEASE_URL/x.tgz","sha256":""}' >"$DEVLOOP_ENGINE_PIN"
-set +e
-out22="$("$run" --host grok --probe --no-bootstrap 2>&1)"
-rc22=$?
-set -e
-[[ "$rc22" -eq 2 ]] || fail "D22 want exit 2 (no host-local, hermes disallowed) got $rc22: $out22"
-printf '%s\n' "$out22" | grep -qi 'skipping Hermes\|hermes_seed_allowed=0\|engine not resolved\|not resolved' \
-  || fail "D22 should skip Hermes seed: $out22"
-# auto must not silently seed from Hermes either
-set +e
-out22b="$("$run" --host auto --probe --no-bootstrap 2>&1)"
-rc22b=$?
-set -e
-[[ "$rc22b" -eq 2 ]] || fail "D22b auto want exit 2 (no Hermes seed) got $rc22b: $out22b"
-printf '%s\n' "$out22b" | grep -qi 'skipping Hermes\|hermes_seed_allowed=0\|engine not resolved\|not resolved' \
-  || fail "D22b auto should skip Hermes seed: $out22b"
-printf 'LAYER integration: D22 dual-install grok affinity OK\n'
 
 # D23: nesting refuse
 export DEVLOOP_HOME="$eng"
-unset HERMES_HOME || true
 export DEVLOOP_DEPTH=1
 set +e
 out23="$("$run" --host auto -- hi 2>&1)"
@@ -610,9 +555,6 @@ printf '# stub\n' >"$full_eng/dispatch.py"
 printf '# stub\n' >"$full_eng/devloop_bridge.py"
 export DEVLOOP_HOME="$full_eng"
 # Provide fake grok so binary preflight passes
-fake_grok="$tmpdir/fake-grok"
-printf '#!/usr/bin/env bash\necho fake-grok\n' >"$fake_grok"
-chmod +x "$fake_grok"
 export GROK_BIN="$fake_grok"
 set +e
 out24="$("$run" --host grok -- hi 2>&1)"
@@ -627,18 +569,18 @@ printf '%s\n' "$out24b" | grep -q 'FULL' || fail "D24b: $out24b"
 printf 'LAYER integration: D24 grok capability preflight OK\n'
 
 # D25: bootstrap.md honesty + host affinity docs
-grep -qi 'DEVLOOP_HOST\|host affinity\|ALLOW_HERMES_SEED' "$root/skills/devloop/references/bootstrap.md" \
+grep -qi 'DEVLOOP_HOST\|host affinity' "$root/skills/devloop/references/bootstrap.md" \
   || fail "D25 bootstrap affinity docs"
 grep -qi 'fail closed\|Do not use evidence-gates' "$root/skills/devloop/references/bootstrap.md" \
   || fail "D25 bootstrap fail-closed docs"
 grep -qi 'explicit' "$root/skills/devloop/references/bootstrap.md" \
   && grep -qi 'cursor' "$root/skills/devloop/references/bootstrap.md" \
-  || fail "D25 bootstrap no-auto-Hermes on cursor"
+  || fail "D25 bootstrap explicit transport on cursor"
 printf 'LAYER simple: D25 bootstrap honesty OK\n'
 
 # D26: invoke via ~/.grok/skills symlink (logical path) with no --host / DEVLOOP_HOST.
-# Physical pwd -P must not hide Grok affinity or select a Hermes leaf.
-unset DEVLOOP_HOME DEVLOOP_HOST DEVLOOP_BOOTSTRAP_CMD DEVLOOP_ENGINE_URL DEVLOOP_ALLOW_HERMES_SEED \
+# Physical pwd -P must not hide Grok affinity.
+unset DEVLOOP_HOME DEVLOOP_HOST DEVLOOP_BOOTSTRAP_CMD DEVLOOP_ENGINE_URL \
   DEVLOOP_ALLOW_LEGACY_ENGINE DEVLOOP_TRANSPORT GROK_BIN || true
 d26_home="$tmpdir/d26-home"
 rm -rf "$d26_home"
@@ -648,9 +590,6 @@ export HOME="$d26_home"
 export DEVLOOP_DATA_HOME="$tmpdir/data-d26-empty"
 rm -rf "$DEVLOOP_DATA_HOME"
 mkdir -p "$DEVLOOP_DATA_HOME"
-export HERMES_HOME="$tmpdir/hermes-d26"
-mkdir -p "$HERMES_HOME/skills/software-development/devloop/scripts"
-printf 'print("HERMES_HIJACK")\n' >"$HERMES_HOME/skills/software-development/devloop/scripts/devloop_cli.py"
 export DEVLOOP_ENGINE_PIN="$tmpdir/empty-pin-d26.json"
 printf '%s\n' '{"version":"x","url":"REPLACE_WITH_RELEASE_URL/x.tgz","sha256":""}' >"$DEVLOOP_ENGINE_PIN"
 d26_run="$d26_home/.grok/skills/devloop/scripts/devloop-run"
@@ -662,14 +601,10 @@ set -e
 [[ "$rc26" -eq 2 ]] || fail "D26 want exit 2 (grok symlink, no host-local) got $rc26: $out26"
 printf '%s\n' "$out26" | grep -q 'DEVLOOP_HOST=grok' \
   || fail "D26 symlink probe must detect host=grok: $out26"
-printf '%s\n' "$out26" | grep -qi 'skipping Hermes\|hermes_seed_allowed=0' \
-  || fail "D26 must skip Hermes seed: $out26"
-printf '%s\n' "$out26" | grep -qi 'HERMES_HIJACK\|engine=.*/hermes-d26' \
-  && fail "D26 must not select Hermes leaf: $out26"
 printf 'LAYER integration: D26 grok skill-dir symlink host detect OK\n'
 
 # D27: operator pin transports omit grok → host=grok setup refuses (before extract)
-unset DEVLOOP_HOME DEVLOOP_HOST DEVLOOP_ALLOW_HERMES_SEED DEVLOOP_ALLOW_LEGACY_ENGINE || true
+unset DEVLOOP_HOME DEVLOOP_HOST DEVLOOP_ALLOW_LEGACY_ENGINE || true
 export DEVLOOP_DATA_HOME="$tmpdir/data-d27"
 rm -rf "$DEVLOOP_DATA_HOME"
 mkdir -p "$DEVLOOP_DATA_HOME"
@@ -682,7 +617,7 @@ pin.write_text(json.dumps({
     "version": "fixture",
     "url": f"file://{tgz.resolve()}",
     "sha256": sha,
-    "transports": ["hermes"],
+    "transports": ["other"],
 }, indent=2) + "\n")
 PY
 set +e
@@ -696,7 +631,7 @@ printf '%s\n' "$out27" | grep -qi 'transports without "grok"\|declares transport
 printf 'LAYER integration: D27 pin without grok transport refused OK\n'
 
 # D28: identity banner + BEFORE/AFTER/STATE on probe success and fail-closed
-unset DEVLOOP_HOME DEVLOOP_HOST DEVLOOP_BOOTSTRAP_CMD DEVLOOP_ENGINE_URL DEVLOOP_ALLOW_HERMES_SEED \
+unset DEVLOOP_HOME DEVLOOP_HOST DEVLOOP_BOOTSTRAP_CMD DEVLOOP_ENGINE_URL \
   DEVLOOP_ALLOW_LEGACY_ENGINE DEVLOOP_TRANSPORT GROK_BIN || true
 export DEVLOOP_HOME="$eng"
 out28="$("$run" --probe --no-bootstrap 2>&1)" || fail "D28 probe: $out28"
@@ -724,10 +659,11 @@ printf 'LAYER integration: D28 identity+lifecycle traces OK\n'
 
 # D29: --repo flag → explicit (goal prose must not change that)
 unset DEVLOOP_HOME DEVLOOP_HOST DEVLOOP_DATA_HOME DEVLOOP_ENGINE_PIN DEVLOOP_ENGINE_URL \
-  DEVLOOP_BOOTSTRAP_CMD DEVLOOP_ALLOW_HERMES_SEED DEVLOOP_ALLOW_LEGACY_ENGINE \
-  DEVLOOP_TRANSPORT GROK_BIN HERMES_HOME || true
+  DEVLOOP_BOOTSTRAP_CMD DEVLOOP_ALLOW_LEGACY_ENGINE \
+  DEVLOOP_TRANSPORT GROK_BIN || true
 export DEVLOOP_HOME="$eng"
-export DEVLOOP_TRANSPORT=hermes
+export DEVLOOP_TRANSPORT=grok
+export GROK_BIN="$fake_grok"
 out29="$("$run" -- --repo /tmp/x "start a new repo for this" 2>&1)" || fail "D29: $out29"
 printf '%s\n' "$out29" | grep -q 'STATE target=explicit reason=repo_flag' || fail "D29 repo_flag: $out29"
 printf 'LAYER simple: D29 --repo flag → explicit OK\n'
@@ -888,8 +824,8 @@ printf '%s\n' "$(grep -c "grok -p '/loop" "$alias_md" || true)" | grep -q '^0$' 
   || fail "D41 alias must not invoke grok -p /loop"
 printf 'LAYER simple: D41 /devloop alias alignment OK (%s)\n' "$alias_md"
 
-# D42: ~/.cursor/skills/devloop logical path detects host=cursor (no Hermes seed)
-unset DEVLOOP_HOME DEVLOOP_HOST DEVLOOP_BOOTSTRAP_CMD DEVLOOP_ENGINE_URL DEVLOOP_ALLOW_HERMES_SEED \
+# D42: ~/.cursor/skills/devloop logical path detects host=cursor
+unset DEVLOOP_HOME DEVLOOP_HOST DEVLOOP_BOOTSTRAP_CMD DEVLOOP_ENGINE_URL \
   DEVLOOP_ALLOW_LEGACY_ENGINE DEVLOOP_TRANSPORT GROK_BIN || true
 d42_home="$tmpdir/d42-home"
 rm -rf "$d42_home"
@@ -899,9 +835,6 @@ export HOME="$d42_home"
 export DEVLOOP_DATA_HOME="$tmpdir/data-d42-empty"
 rm -rf "$DEVLOOP_DATA_HOME"
 mkdir -p "$DEVLOOP_DATA_HOME"
-export HERMES_HOME="$tmpdir/hermes-d42"
-mkdir -p "$HERMES_HOME/skills/software-development/devloop/scripts"
-printf 'print("HERMES_HIJACK")\n' >"$HERMES_HOME/skills/software-development/devloop/scripts/devloop_cli.py"
 export DEVLOOP_ENGINE_PIN="$tmpdir/empty-pin-d42.json"
 printf '%s\n' '{"version":"x","url":"REPLACE_WITH_RELEASE_URL/x.tgz","sha256":""}' >"$DEVLOOP_ENGINE_PIN"
 d42_run="$d42_home/.cursor/skills/devloop/scripts/devloop-run"
@@ -913,15 +846,11 @@ set -e
 [[ "$rc42" -eq 2 ]] || fail "D42 want exit 2 (cursor symlink, no host-local) got $rc42: $out42"
 printf '%s\n' "$out42" | grep -q 'DEVLOOP_HOST=cursor' \
   || fail "D42 symlink probe must detect host=cursor: $out42"
-printf '%s\n' "$out42" | grep -qi 'skipping Hermes\|hermes_seed_allowed=0' \
-  || fail "D42 must skip Hermes seed: $out42"
-printf '%s\n' "$out42" | grep -qi 'HERMES_HIJACK\|engine=.*/hermes-d42' \
-  && fail "D42 must not select Hermes leaf: $out42"
 printf 'LAYER integration: D42 cursor skill-dir symlink host detect OK\n'
 
-# D47: cursor invoke + full engine + unset transport → exit 2 (no auto-Hermes).
-# Explicit DEVLOOP_TRANSPORT=hermes still execs.
-unset DEVLOOP_HOST DEVLOOP_BOOTSTRAP_CMD DEVLOOP_ENGINE_URL DEVLOOP_ALLOW_HERMES_SEED \
+# D47: cursor invoke + full engine + unset transport → exit 2 (no implicit transport).
+# Explicit DEVLOOP_TRANSPORT=grok still execs.
+unset DEVLOOP_HOST DEVLOOP_BOOTSTRAP_CMD DEVLOOP_ENGINE_URL \
   DEVLOOP_ALLOW_LEGACY_ENGINE DEVLOOP_TRANSPORT GROK_BIN || true
 d47_home="$tmpdir/d47-home"
 rm -rf "$d47_home"
@@ -944,18 +873,16 @@ out47="$("$d47_run" -- hi 2>&1)"
 rc47=$?
 set -e
 [[ "$rc47" -eq 2 ]] || fail "D47 want exit 2 (cursor, unset transport) got $rc47: $out47"
-printf '%s\n' "$out47" | grep -qi 'no DevLoop transport\|DEVLOOP_TRANSPORT=unset\|does not auto-select Hermes' \
-  || fail "D47 must refuse implicit Hermes: $out47"
+printf '%s\n' "$out47" | grep -qi 'no DevLoop transport\|DEVLOOP_TRANSPORT=unset' \
+  || fail "D47 must refuse without an explicit transport: $out47"
 printf '%s\n' "$out47" | grep -qi 'evidence-gates' || fail "D47 must mention not evidence-gates: $out47"
-printf '%s\n' "$out47" | grep -qi 'hermes chat' && fail "D47 must not invoke hermes chat: $out47"
 printf '%s\n' "$out47" | grep -q 'D47_CLI' && fail "D47 must not exec engine: $out47"
-out47b="$(DEVLOOP_TRANSPORT=hermes "$d47_run" -- hi 2>&1)" || fail "D47b explicit hermes: $out47b"
-printf '%s\n' "$out47b" | grep -q 'D47_CLI' || fail "D47b explicit hermes must exec: $out47b"
-printf '%s\n' "$out47b" | grep -qi 'hermes chat' && fail "D47b stub must not invoke hermes chat: $out47b"
-printf 'LAYER integration: D47 cursor unset transport fail-closed + explicit hermes OK\n'
+out47b="$(DEVLOOP_TRANSPORT=grok GROK_BIN="$fake_grok" "$d47_run" -- hi 2>&1)" || fail "D47b explicit grok: $out47b"
+printf '%s\n' "$out47b" | grep -q 'D47_CLI' || fail "D47b explicit grok must exec: $out47b"
+printf 'LAYER integration: D47 cursor unset transport fail-closed + explicit grok OK\n'
 
 # D47c: Claude and Codex retain the same explicit external transport escape
-# hatch, but their unset native route must fail closed rather than guessing Hermes.
+# hatch, but their unset native route must fail closed rather than guessing a transport.
 for external_host in claude codex; do
   set +e
   out47c="$(DEVLOOP_TRANSPORT= "$run" --host "$external_host" -- hi 2>&1)"
@@ -964,8 +891,8 @@ for external_host in claude codex; do
   [[ "$rc47c" -eq 2 ]] || fail "D47c $external_host unset transport want 2 got $rc47c: $out47c"
   printf '%s\n' "$out47c" | grep -qi 'no DevLoop transport\|explicit external' \
     || fail "D47c $external_host missing native-port boundary: $out47c"
-  out47d="$(DEVLOOP_TRANSPORT=hermes "$run" --host "$external_host" -- hi 2>&1)" \
-    || fail "D47c $external_host explicit hermes: $out47d"
+  out47d="$(DEVLOOP_TRANSPORT=grok GROK_BIN="$fake_grok" "$run" --host "$external_host" -- hi 2>&1)" \
+    || fail "D47c $external_host explicit grok: $out47d"
   printf '%s\n' "$out47d" | grep -q 'D47_CLI' \
     || fail "D47c $external_host lost explicit external route: $out47d"
 done
@@ -993,8 +920,8 @@ printf '%s\n' "$out47e" | grep -q 'host=codex\|DEVLOOP_HOST=codex' \
   || fail "D47d cache path must detect Codex: $out47e"
 printf '%s\n' "$out47e" | grep -q 'D47D_CLI' \
   && fail "D47d cache path must not execute minimal engine without transport: $out47e"
-out47f="$(DEVLOOP_HOME="$d47d_engine" DEVLOOP_TRANSPORT=hermes "$d47d_run" -- hi 2>&1)" \
-  || fail "D47d explicit hermes from Codex cache: $out47f"
+out47f="$(DEVLOOP_HOME="$d47d_engine" DEVLOOP_TRANSPORT=grok GROK_BIN="$fake_grok" "$d47d_run" -- hi 2>&1)" \
+  || fail "D47d explicit grok from Codex cache: $out47f"
 printf '%s\n' "$out47f" | grep -q 'D47D_CLI' \
   || fail "D47d explicit transport must execute minimal engine: $out47f"
 printf 'LAYER integration: D47d Codex plugin cache fail-closed + explicit transport OK\n'
