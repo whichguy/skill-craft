@@ -1,6 +1,6 @@
 ---
-Execute: inline
-Status: in progress (worktree refactor/repo-layout-26fa71)
+Execute: ask
+Status: done for phases 1-3 (merged as 29413c1 on 2026-09-24; skill-craft-market archived). Phase 4 is open pending an owner decision.
 Date: 2026-09-24
 ---
 
@@ -133,6 +133,12 @@ merged until you approve.
 
 Requires a review of what in the private `plan-orchestrator` repository is not
 already public. Not part of this worktree run.
+
+Status: open, owner decision. Backchain is still vendored (`bundles/backchain`,
+re-vendored at 0.5.1 in bbe645a), and the vendored refresh works under the
+release flow. Moving the source in would retire `sync-vendored-bundles.py` and
+the provenance step, but it would also make the development repository's skill
+files public.
 
 ### Merge checklist (after approval)
 
