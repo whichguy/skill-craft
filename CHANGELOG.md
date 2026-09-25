@@ -4,6 +4,10 @@ Written by scripts/release.py.
 
 ## 2026-09-24
 
+### improve 0.3.0-rc.5
+
+- Improve vendors Until Loop 0.5.1, whose packets now ask for clear, evidence-grounded status updates without changing control flow.
+
 ### review-coverage 0.3.1
 
 - The host matrix installs from whichguy/skill-craft, explains moving an old Claude registration without uninstalling plugins, and replaces the plugin sync step with a change note.
