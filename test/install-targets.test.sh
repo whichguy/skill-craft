@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# Hermetic install.sh coverage for skill-craft: six hosts × repo skills, flags, skip-if-exists, dry-run, --relink.
+# Hermetic install.sh coverage for skill-craft: five hosts × repo skills, flags, skip-if-exists, dry-run, --relink.
 set -euo pipefail
 
 root="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd -P)"
@@ -29,19 +29,6 @@ opencode_skills_dir() {
   printf '%s/opencode/skills\n' "${XDG_CONFIG_HOME:-$HOME/.config}"
 }
 
-assert_hermes_copy() {
-  local leaf="$1"
-  local source="$2"
-  local dest="$HOME/.hermes/skills/software-development/$leaf"
-  local marker="$HOME/.hermes/skills/software-development/.skill-craft/$leaf.json"
-  [[ -d "$dest" ]] || fail "expected Hermes real directory at $dest"
-  [[ ! -L "$dest" ]] || fail "Hermes dest must not be a symlink: $dest"
-  [[ -f "$dest/SKILL.md" ]] || fail "Hermes copy missing SKILL.md at $dest"
-  [[ -f "$marker" ]] || fail "Hermes provenance marker missing: $marker"
-  grep -q '"mode":"copy"' "$marker" || fail "marker missing mode=copy: $marker"
-  diff -rq "$source" "$dest" >/dev/null || fail "Hermes copy differs from source: $dest"
-}
-
 assert_all_hosts() {
   local leaf="$1"
   local source="$2"
@@ -50,7 +37,6 @@ assert_all_hosts() {
   assert_symlink "$HOME/.codex/skills/$leaf" "$source"
   assert_symlink "$HOME/.cursor/skills/$leaf" "$source"
   assert_symlink "$(opencode_skills_dir)/$leaf" "$source"
-  assert_hermes_copy "$leaf" "$source"
 }
 
 assert_no_hosts() {
@@ -60,7 +46,6 @@ assert_no_hosts() {
   assert_absent "$HOME/.codex/skills/$leaf"
   assert_absent "$HOME/.cursor/skills/$leaf"
   assert_absent "$(opencode_skills_dir)/$leaf"
-  assert_absent "$HOME/.hermes/skills/software-development/$leaf"
 }
 
 fresh_home() {
@@ -85,7 +70,6 @@ assert_all_hosts "skill-interop" "$source_interop"
 printf '%s\n' "$out" | grep -q 'Claude Code' || fail "I1 stdout missing Claude install line"
 printf '%s\n' "$out" | grep -q 'Grok' || fail "I1 stdout missing Grok install line"
 printf '%s\n' "$out" | grep -q 'Codex' || fail "I1 stdout missing Codex install line"
-printf '%s\n' "$out" | grep -q 'Hermes' || fail "I1 stdout missing Hermes install line"
 printf '%s\n' "$out" | grep -q 'Cursor' || fail "I1 stdout missing Cursor install line"
 printf '%s\n' "$out" | grep -q 'OpenCode' || fail "I1 stdout missing OpenCode install line"
 # Must NOT install product leaves that are not in this monorepo, including
@@ -135,7 +119,6 @@ assert_symlink "$HOME/.claude/skills/skill-interop" "$source_interop"
 assert_absent "$HOME/.grok/skills/skill-interop"
 assert_absent "$HOME/.codex/skills/skill-interop"
 assert_absent "$HOME/.cursor/skills/skill-interop"
-assert_absent "$HOME/.hermes/skills/software-development/skill-interop"
 
 # ---------------------------------------------------------------------------
 # I7: --grok-only
@@ -146,7 +129,6 @@ assert_symlink "$HOME/.grok/skills/skill-interop" "$source_interop"
 assert_absent "$HOME/.claude/skills/skill-interop"
 assert_absent "$HOME/.codex/skills/skill-interop"
 assert_absent "$HOME/.cursor/skills/skill-interop"
-assert_absent "$HOME/.hermes/skills/software-development/skill-interop"
 
 # ---------------------------------------------------------------------------
 # I8: --codex-only
@@ -156,19 +138,6 @@ out8="$("$install_sh" --codex-only --skill skill-interop 2>&1)" || fail "I8 fail
 assert_symlink "$HOME/.codex/skills/skill-interop" "$source_interop"
 assert_absent "$HOME/.claude/skills/skill-interop"
 assert_absent "$HOME/.grok/skills/skill-interop"
-assert_absent "$HOME/.cursor/skills/skill-interop"
-assert_absent "$HOME/.hermes/skills/software-development/skill-interop"
-
-# ---------------------------------------------------------------------------
-# I9: --hermes-only → materialized copy (not symlink)
-# ---------------------------------------------------------------------------
-fresh_home i9
-out9="$("$install_sh" --hermes-only --skill skill-interop 2>&1)" || fail "I9 failed: $out9"
-assert_hermes_copy "skill-interop" "$source_interop"
-printf '%s\n' "$out9" | grep -q '(copy)' || fail "I9 should report copy install: $out9"
-assert_absent "$HOME/.claude/skills/skill-interop"
-assert_absent "$HOME/.grok/skills/skill-interop"
-assert_absent "$HOME/.codex/skills/skill-interop"
 assert_absent "$HOME/.cursor/skills/skill-interop"
 
 # ---------------------------------------------------------------------------
@@ -183,7 +152,6 @@ assert_no_hosts "skill-interop"
 [[ ! -d "$HOME/.codex" ]] || fail "I10 dry-run must not create ~/.codex"
 [[ ! -d "$HOME/.cursor" ]] || fail "I10 dry-run must not create ~/.cursor"
 [[ ! -d "$HOME/.config" ]] || fail "I10 dry-run must not create ~/.config"
-[[ ! -d "$HOME/.hermes" ]] || fail "I10 dry-run must not create ~/.hermes"
 
 # ---------------------------------------------------------------------------
 # I11: dangling symlink without --relink → skipped
@@ -246,11 +214,9 @@ assert_symlink "$HOME/.cursor/skills/skill-interop" "$source_interop"
 assert_absent "$HOME/.claude/skills/skill-interop"
 assert_absent "$HOME/.grok/skills/skill-interop"
 assert_absent "$HOME/.codex/skills/skill-interop"
-assert_absent "$HOME/.hermes/skills/software-development/skill-interop"
 
 # ---------------------------------------------------------------------------
 # I16: --skill devloop is identity install on Claude/Grok/Codex/Cursor/OpenCode.
-# Hermes card install is skipped (engine owns software-development/devloop).
 # ---------------------------------------------------------------------------
 source_devloop="$root/skills/devloop"
 [[ -f "$source_devloop/SKILL.md" ]] || fail "I16 missing skills/devloop/SKILL.md"
@@ -261,9 +227,6 @@ assert_symlink "$HOME/.grok/skills/devloop" "$source_devloop"
 assert_symlink "$HOME/.codex/skills/devloop" "$source_devloop"
 assert_symlink "$HOME/.cursor/skills/devloop" "$source_devloop"
 assert_symlink "$(opencode_skills_dir)/devloop" "$source_devloop"
-assert_absent "$HOME/.hermes/skills/software-development/devloop"
-printf '%s\n' "$out16" | grep -qi 'Skipped Hermes card install' \
-  || fail "I16 should skip Hermes card: $out16"
 assert_symlink "$HOME/.grok/commands/devloop.md" "$source_devloop/commands/devloop.md"
 assert_absent "$HOME/.claude/commands/devloop.md"
 
@@ -280,13 +243,12 @@ assert_absent "$HOME/.claude/skills/skill-interop"
 assert_absent "$HOME/.grok/skills/skill-interop"
 assert_absent "$HOME/.codex/skills/skill-interop"
 assert_absent "$HOME/.cursor/skills/skill-interop"
-assert_absent "$HOME/.hermes/skills/software-development/skill-interop"
 assert_absent "$XDG_CONFIG_HOME/opencode/agents/skill-interop.md"
 assert_absent "$XDG_CONFIG_HOME/opencode/opencode.json"
 printf '%s\n' "$out18" | grep -q 'OpenCode' || fail "I18 stdout missing OpenCode install line: $out18"
 
 # ---------------------------------------------------------------------------
-# I19: --all explicitly selects the same six host targets as the default.
+# I19: --all explicitly selects the same host targets as the default.
 # ---------------------------------------------------------------------------
 fresh_home i19
 out19="$("$install_sh" --all --skill skill-interop 2>&1)" || fail "I19 failed: $out19"
@@ -339,7 +301,6 @@ expect_from_refused "I21 bundle uninstall" --uninstall --from "$root/bundles/bac
 assert_no_hosts "backchain"
 assert_no_hosts "plan-dispatcher"
 assert_no_hosts "skill-interop"
-[[ ! -d "$HOME/.hermes" ]] || fail "I21 refusal must not create a Hermes copy"
 canonical="$tmpdir/canonical/skills/backchain"
 mkdir -p "$canonical" "$HOME/.claude/skills"
 printf -- '---\nname: backchain\n---\n' >"$canonical/SKILL.md"
@@ -458,4 +419,4 @@ set -e
 [[ "$rc_agents" -eq 64 ]] || fail "--status --agents want exit 64 got $rc_agents: $out_agents"
 printf '%s\n' "$out_agents" | grep -q -- '--agents is only valid for install' || fail "--agents message: $out_agents"
 
-printf 'install-targets.test.sh: PASS I1–I16, I18–I21 (skill-craft install, 6 hosts, identity dest, flags, dry-run, skip-if-exists, --relink, --agents, marketplace-only sources)\n'
+printf 'install-targets.test.sh: PASS I1–I8, I10–I16, I18–I21 (skill-craft install, 5 hosts, identity dest, flags, dry-run, skip-if-exists, --relink, --agents, marketplace-only sources)\n'

@@ -6,6 +6,7 @@
 #   DEVLOOP_LIVE_WEATHER=0  — hermetic wiring only (probe + offline contract on existing files)
 #   DEVLOOP_WEATHER_REPO    — existing, non-symlink absolute repo path (required)
 #   DEVLOOP_HOME            — existing, non-symlink engine root (required)
+#   GROK_BIN                — Grok CLI for the live Grok transport (LIVE=1; default: grok on PATH)
 #   SCRATCH / GROK_GOAL_SCRATCH — log dir
 #     LIVE=1 → devloop-weather-native.log (canonical LIVE proof; never clobbered by hermetic)
 #     LIVE=0 → devloop-weather-native-hermetic.log
@@ -13,7 +14,6 @@ set -euo pipefail
 
 root="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd -P)"
 run="$root/skills/devloop/scripts/devloop-run"
-shim="$root/test/fixtures/ollama-hermes-shim"
 : "${DEVLOOP_LIVE_WEATHER:=}"
 : "${DEVLOOP_WEATHER_REPO:=}"
 : "${DEVLOOP_HOME:=}"
@@ -54,7 +54,9 @@ fi
   preflight_fail "DEVLOOP_WEATHER_REPO must not be /, this skill-craft checkout, or the home directory"
 
 if [[ "$live" == "1" ]]; then
-  [[ -f "$shim" && ! -L "$shim" ]] || preflight_fail "missing native shim at $shim"
+  grok_bin="${GROK_BIN:-$(command -v grok || true)}"
+  [[ -n "$grok_bin" && -x "$grok_bin" ]] || \
+    preflight_fail "live mode requires an executable GROK_BIN or grok on PATH"
 else
   [[ -f "$repo/common-js/weather.gs" ]] || \
     preflight_fail "offline mode requires $repo/common-js/weather.gs; it will not seed a home project"
@@ -173,23 +175,19 @@ engine_exit=1
 engine_json="$scratch_default/devloop-weather-engine.json"
 
 if [[ "$live" == "1" ]]; then
-  chmod +x "$shim"
   prepare_clean_live_repo
   echo "=== live engine invoke via devloop-run ===" | tee -a "$log"
-  export HERMES_BIN="$shim"
   export DEVLOOP_HOST="${DEVLOOP_HOST:-auto}"
-  export DEVLOOP_TRANSPORT=hermes
+  export DEVLOOP_TRANSPORT=grok
   export DEVLOOP_HOME="$engine"
-  export GROK_BIN="${GROK_BIN:-$(command -v grok || true)}"
-  # Design-time judges call HERMES_BIN without cwd=target; pin the e2e repo so the
-  # ollama-hermes-shim can resolve tests/test_weather_contract.py for structural YES.
-  export DEVLOOP_WEATHER_REPO="$repo"
+  export GROK_BIN="$grok_bin"
   export DEVLOOP_REPO="$repo"
   export DEVLOOP_TARGET="${DEVLOOP_TARGET:-$repo}"
   export DEVLOOP_WRITE_SAFE_ROOT="${DEVLOOP_WRITE_SAFE_ROOT:-$scratch_default/write-safe-native}"
   mkdir -p "$DEVLOOP_WRITE_SAFE_ROOT"
-  # Five distinct models for assert_distinct_models (coder/designer/judges/tiebreaker).
-  # Prefer relatively small local tags; OLLAMA_JUDGE_MODEL forces design-time judge speed.
+  # Five distinct role ids for assert_distinct_models (coder/designer/judges/tiebreaker).
+  # On the Grok transport the engine maps non-grok-* role ids onto its Grok CLI model;
+  # a non-grok-* planner id stays on local ollama.
   export DEVLOOP_PLANNER="${DEVLOOP_PLANNER:-qwen3:1.7b}"
   export DEVLOOP_DESIGNER="${DEVLOOP_DESIGNER:-phi4-mini:3.8b}"
   export DEVLOOP_CODER="${DEVLOOP_CODER:-gemma4:e4b}"
@@ -197,7 +195,6 @@ if [[ "$live" == "1" ]]; then
   export DEVLOOP_JUDGE_B="${DEVLOOP_JUDGE_B:-qwen3.6:27b-nvfp4}"
   export DEVLOOP_TIEBREAKER="${DEVLOOP_TIEBREAKER:-gemma4:26b-mxfp8}"
   export DEVLOOP_ADVISOR="${DEVLOOP_ADVISOR:-phi4-mini:3.8b}"
-  export OLLAMA_JUDGE_MODEL="${OLLAMA_JUDGE_MODEL:-qwen3:1.7b}"
 
   set +e
   bash "$run" -- \

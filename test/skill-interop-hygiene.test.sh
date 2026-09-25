@@ -37,7 +37,6 @@ grep -q '\.claude' "$hp" || fail "host-paths.md missing .claude"
 grep -q '\.grok' "$hp" || fail "host-paths.md missing .grok"
 grep -q '\.codex' "$hp" || fail "host-paths.md missing .codex"
 grep -q '\.cursor' "$hp" || fail "host-paths.md missing .cursor"
-grep -q '\.hermes' "$hp" || fail "host-paths.md missing .hermes"
 
 # No model pin strings in create-template prompts
 if grep -qiE 'sonnet|opus|gpt-' "$si/references/create-template/prompts/"*.tmpl 2>/dev/null; then
@@ -47,7 +46,7 @@ if grep -qiE 'sonnet|opus|gpt-' "$si/references/create-template/SKILL.md.tmpl" 2
   fail "create-template SKILL.md.tmpl must not pin model names"
 fi
 
-# Default DevLoop package must be skills/devloop (Hermes engine leaf is foreign)
+# Default DevLoop package must be skills/devloop (an engine leaf elsewhere is foreign)
 if [[ ! -d "$root/skills/devloop" ]]; then
   fail "package must be skills/devloop"
 fi

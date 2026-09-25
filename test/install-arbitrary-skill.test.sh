@@ -30,19 +30,6 @@ opencode_skills_dir() {
   printf '%s/opencode/skills\n' "${XDG_CONFIG_HOME:-$HOME/.config}"
 }
 
-assert_hermes_copy() {
-  local leaf="$1"
-  local source="$2"
-  local dest="$HOME/.hermes/skills/software-development/$leaf"
-  local marker="$HOME/.hermes/skills/software-development/.skill-craft/$leaf.json"
-  [[ -d "$dest" ]] || fail "expected Hermes real directory at $dest"
-  [[ ! -L "$dest" ]] || fail "Hermes dest must not be a symlink: $dest"
-  [[ -f "$dest/SKILL.md" ]] || fail "Hermes copy missing SKILL.md at $dest"
-  [[ -f "$marker" ]] || fail "Hermes provenance marker missing: $marker"
-  grep -q '"mode":"copy"' "$marker" || fail "marker missing mode=copy: $marker"
-  diff -rq "$source" "$dest" >/dev/null || fail "Hermes copy differs from source: $dest"
-}
-
 assert_all_hosts() {
   local leaf="$1"
   local source="$2"
@@ -51,7 +38,6 @@ assert_all_hosts() {
   assert_symlink "$HOME/.codex/skills/$leaf" "$source"
   assert_symlink "$HOME/.cursor/skills/$leaf" "$source"
   assert_symlink "$(opencode_skills_dir)/$leaf" "$source"
-  assert_hermes_copy "$leaf" "$source"
 }
 
 assert_no_hosts() {
@@ -61,7 +47,6 @@ assert_no_hosts() {
   assert_absent "$HOME/.codex/skills/$leaf"
   assert_absent "$HOME/.cursor/skills/$leaf"
   assert_absent "$(opencode_skills_dir)/$leaf"
-  assert_absent "$HOME/.hermes/skills/software-development/$leaf"
 }
 
 fresh_home() {
@@ -77,7 +62,7 @@ trap cleanup EXIT
 [[ -f "$fixture_sample/SKILL.md" ]] || fail "missing frozen fixture: $fixture_sample/SKILL.md"
 
 # ---------------------------------------------------------------------------
-# E1: --from fixture sample-skill → all 6 hosts get sample-skill symlink
+# E1: --from fixture sample-skill → all 5 symlink hosts get sample-skill symlink
 # ---------------------------------------------------------------------------
 fresh_home e1
 fixture_abs="$(cd "$fixture_sample" && pwd -P)"

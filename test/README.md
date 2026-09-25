@@ -413,9 +413,11 @@ Do not put secret values in commands, CI configuration, output, or fixtures.
 
 ## Evidence boundaries and CI
 
-Self-contained mocked Hermes-install tests establish installer behavior only.
-They do not provide an actual Hermes runtime, engine availability, live-host
-execution, or certification. A green hermetic aggregate has the same boundary.
+Self-contained mocked install tests establish installer behavior only. They
+do not provide an actual host runtime, engine availability, live-host execution,
+or certification. A green hermetic aggregate has the same boundary. Hermes is
+not part of any test tier: no suite installs into or asserts on Hermes, even
+though `install.sh` and DevLoop still support it.
 
 CI selects its tier with `test/ci_policy.py`, as described at the top of this
 guide: documentation-only pull requests run `smoke`; every other pull request

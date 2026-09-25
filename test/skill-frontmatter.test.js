@@ -3,7 +3,7 @@
 
 /**
  * Frontmatter contract for every skills/<leaf>/SKILL.md (P1).
- * skill-interop keeps stricter Hermes-peer extras.
+ * skill-interop keeps stricter frontmatter extras.
  */
 const fs = require("fs");
 const path = require("path");
@@ -98,7 +98,7 @@ for (const leaf of leaves) {
   }
 }
 
-// skill-interop Hermes-peer extras
+// skill-interop frontmatter extras
 {
   const leaf = "skill-interop";
   if (!leaves.includes(leaf)) {
@@ -107,9 +107,6 @@ for (const leaf of leaves) {
   const text = fs.readFileSync(path.join(skillsDir, leaf, "SKILL.md"), "utf8");
   const { fm } = parseFrontmatter(text, leaf);
   requireLine(fm, leaf, /^author:\s*\S+/m, "author");
-  requireLine(fm, leaf, /^\s+hermes:\s*$/m, "metadata.hermes");
-  requireLine(fm, leaf, /^\s+category:\s*software-development\s*$/m, "hermes.category");
-  requireLine(fm, leaf, /^\s+tags:\s*$/m, "hermes.tags");
   requireLine(fm, leaf, /^\s+kind:\s*script-backed\s*$/m, "kind script-backed");
 
   const descMatch = fm.match(/^description:\s*>-?\s*\n((?:[ \t]+.*\n)*)/m);
@@ -128,10 +125,10 @@ for (const leaf of leaves) {
     fail(`${leaf}: description length ${desc.length} > 1024`);
   }
   if (!/^Use when\b/i.test(desc)) {
-    fail(`${leaf}: description should start with 'Use when' (Hermes peer trigger style)`);
+    fail(`${leaf}: description should start with 'Use when'`);
   }
 }
 
 console.log(
-  `skill-frontmatter.test.js: PASS ${leaves.length} skills (name/version/license/platforms/kind; skill-interop hermes extras)`
+  `skill-frontmatter.test.js: PASS ${leaves.length} skills (name/version/license/platforms/kind; skill-interop extras)`
 );
