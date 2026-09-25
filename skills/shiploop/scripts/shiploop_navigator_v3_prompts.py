@@ -570,10 +570,12 @@ file cold with no run history. Every rule serves that reader.
    precise name to a comment and one authoritative explanation to several.
 5. Small, not thin. KISS and YAGNI limit features and abstractions. They never
    remove an argument check, an error path or a contract docstring.
-6. Make failure diagnosable. Errors name the operation and expected versus
-   observed. Reuse the existing debug switch for short, redacted state
-   summaries at major actions, with no diagnostic work while it is off. Keep
-   secrets and duplicate stack traces out of user-facing messages.
+6. Make failure diagnosable. Check a response's contract, not only transport
+   success. Before mutation or cleanup, keep the context that explains a
+   failure: operation, relevant IDs, expected versus observed. Errors name the
+   operation and that mismatch. Reuse the existing debug switch for short,
+   redacted state summaries at major actions, with no diagnostic work while it
+   is off. Keep secrets and duplicate stack traces out of user-facing messages.
 """
 
 
@@ -980,7 +982,8 @@ confirm as `Confirm by: unconfirmable here — <what would confirm it>` rather
 than dropping it. When the item adds or changes a public entry point, include
 this criterion: each such entry point checks its arguments and carries a contract
 docstring (Code craft 2-3). Confirm by: inspecting the diff for each entry point
-and running its rejection tests; pass when every entry point has both. When a check relies on an external oracle (golden, fixture, or
+and running its rejection tests; pass when every entry point has both.
+When a check relies on an external oracle (golden, fixture, or
 snapshot), confirm that the oracle agrees with the task.
 Use the Repository-local skill guidance. Reopen the repo's current skill index or
 README/AGENTS links, even if earlier context reported no fit: a preceding item may
