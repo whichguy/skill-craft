@@ -852,7 +852,9 @@ class NavigatorV3Tests(unittest.TestCase):
         for phrase in (
             "Exit criteria: this stage is finished only when every load-bearing assumption",
             "evidenced (its source locator)",
-            "probed (the read or command and its observed outcome)",
+            "probed (the read or command and its observed outcome, saved to a file)",
+            "listed in the result's assumptions field",
+            "ShipLoop refuses a done result without the list",
             "open (the check that would settle it",
             "A recalled fact is not evidence",
             "an inconclusive probe leaves its assumption open",

@@ -843,6 +843,9 @@ class ToolResolutionTests(Fixture):
 
 def complete(run: Path, state: dict, result: dict = DONE) -> str:
     action = nav.current_action(state)["id"]
+    stage = nav.current_stage(state)
+    if stage in ("research", "plan") and result.get("outcome") == "done" and "assumptions" not in result:
+        result = dict(result, assumptions=[])
     inbox = run / "inbox"
     inbox.mkdir(exist_ok=True)
     path = inbox / (action + ".md")

@@ -104,6 +104,7 @@ _SHIPLOOP_PATHS = (
     "test/shiploop-improve-schedule.test.py",
     "test/shiploop-lint.test.py",
     "test/shiploop-quality.test.py",
+    "test/shiploop-assumptions.test.py",
     "test/experiments/shiploop_delivery/fake_deployment.test.py",
     "test/experiments/shiploop_delivery/browser_consumer/serve_fixture.test.py",
     "test/shiploop-store.test.py",
@@ -167,6 +168,7 @@ _DURATION_SECONDS = {
     "test/shiploop-improve-schedule.test.py": 0.2,
     "test/shiploop-lint.test.py": 36.0,
     "test/shiploop-quality.test.py": 5.0,
+    "test/shiploop-assumptions.test.py": 0.2,
     "test/experiments/shiploop_delivery/browser_consumer/serve_fixture.test.py": 2.53,
     "test/shiploop-capability-runtime.test.py": 0.996,
 }

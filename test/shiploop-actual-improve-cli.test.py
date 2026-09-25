@@ -120,6 +120,8 @@ class ImproveCliFixture(unittest.TestCase):
                 "summary": "Synthetic predecessor navigation only for " + predecessor
                 + "; not a checkpoint stage.",
             }
+            if predecessor == "research":
+                setup["assumptions"] = []
             path = self.run / "inbox" / (action + ".md")
             store.write_record(path, setup)
             self.invoke(CLI, "complete", "--run-dir", self.run, "--action", action, "--result", path)
@@ -172,6 +174,8 @@ class ImproveCliFixture(unittest.TestCase):
             "summary": "Fixture local-skill assessment; synthetic prior navigation is setup only.",
             "evidence_refs": self.parent_evidence_refs,
         }
+        if stage in ("research", "plan"):
+            self.producer["assumptions"] = []
         self.input = self.run / "inbox" / (self.action + ".md")
         store.write_record(self.input, self.producer)
         self.invoke(CLI, "complete", "--run-dir", self.run, "--action", self.action, "--result", self.input)
@@ -1068,7 +1072,10 @@ class EphemeralImproveCliTests(ImproveCliFixture):
         for _predecessor in ("intake", "discovery", "research"):
             action = state["action"]["id"]
             result_path = run / "inbox" / (action + ".md")
-            store.write_record(result_path, {"outcome": "done", "summary": "Fixture producer"})
+            producer = {"outcome": "done", "summary": "Fixture producer"}
+            if _predecessor == "research":
+                producer["assumptions"] = []
+            store.write_record(result_path, producer)
             self.invoke(CLI, "complete", "--run-dir", run, "--action", action, "--result", result_path)
             state = store.read_record(run / "state.md")
         action = state["action"]["id"]

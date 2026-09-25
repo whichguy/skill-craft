@@ -21,6 +21,7 @@ import uuid
 from pathlib import Path
 from typing import Any
 
+import shiploop_assumptions as assumptions
 import shiploop_navigator_v3_prompts as guidance3
 import shiploop_consumer_delivery as consumer_delivery
 import shiploop_lint as lint
@@ -40,7 +41,7 @@ _WORK_ITEM_ID = re.compile(r"^[A-Za-z][A-Za-z0-9_-]{0,63}$")
 _STATUSES = frozenset(("active", "paused", "blocked", "halted", "done"))
 _RESULT_KEYS = frozenset((
     "outcome", "summary", "evidence_refs", "work_items", "choices", "delivery_assessment",
-    "reconciliation_target",
+    "reconciliation_target", "assumptions",
 ))
 _STATE_KEYS = frozenset(
     (
@@ -333,6 +334,13 @@ def _canonical_result(
         )
     if "choices" in value:
         result["choices"] = _normalise_choices(value["choices"], stage)
+    if "assumptions" in value:
+        _need(stage in assumptions.STAGES and outcome == "done",
+              "assumptions are allowed only on a done research or plan result")
+        try:
+            result["assumptions"] = assumptions.canonical(value["assumptions"], stage)
+        except assumptions.AssumptionError as exc:
+            raise NavigatorError(str(exc)) from exc
     if "delivery_assessment" in value:
         _need(delivery_contract,
               "delivery_assessment requires an opt-in delivery-contract navigator run")
@@ -762,6 +770,34 @@ def _planning_sources_current(state: Mapping[str, Any]) -> None:
                if (None, stage) not in current]
     _need(not missing,
           "prepare requires current projected planning sources: " + ", ".join(missing))
+
+
+def _check_submitted_assumptions(state: Mapping[str, Any], stage: str, result: Any) -> None:
+    """Refuse a submitted done research/plan result without a complete assumption list.
+
+    Runs at the CLI gates, the only route a host can submit through; the pure
+    graph functions validate the field's shape when present but do not require
+    it, so simulations stay independent of this rule.  A done plan keeps every
+    research assumption and routes each open one to a work item in its queue.
+    """
+    if stage not in assumptions.STAGES or not isinstance(result, Mapping):
+        return
+    if result.get("outcome") != "done":
+        return
+    try:
+        rows = assumptions.canonical(result.get("assumptions"), stage)
+        if stage == "plan":
+            prior = None
+            for entry in reversed(state["history"]):
+                if entry["stage"] == "research" and entry["outcome"] == "done":
+                    prior = state["accepted"][entry["action"]].get("assumptions", [])
+                    break
+            queue = result.get("work_items", state["work_items"])
+            consumers = {row["id"] for row in queue if isinstance(row, Mapping) and "id" in row}
+            assumptions.check_carried(prior, rows, consumers)
+        assumptions.check_files(rows)
+    except assumptions.AssumptionError as exc:
+        raise NavigatorError(str(exc)) from exc
 
 
 def _apply_result(state: Mapping[str, Any], action_id: str, result: Any, improve_record: Any = None) -> dict[str, Any]:
@@ -1238,6 +1274,15 @@ def _result_template(state: Mapping[str, Any], stage: str) -> str:
     }
     if stage == "plan":
         result["work_items"] = [{"id": "W1", "title": "...", "context": "..."}]
+    if stage in assumptions.STAGES:
+        result["assumptions"] = [
+            {"id": "A1", "assumption": "...", "disposition": "evidenced",
+             "evidence": ["<absolute path or URL>"]},
+            {"id": "A2", "assumption": "...", "disposition": "probed", "check": "...",
+             "evidence": ["<absolute path of the saved probe output>"]},
+            {"id": "A3", "assumption": "...", "disposition": "open", "check": "...",
+             "reason": "...", "consumer": "W1" if stage == "plan" else "<stage or consumer>"},
+        ]
     assessment = consumer_delivery.template_assessment(state, stage)
     if assessment is not None:
         result["delivery_assessment"] = assessment
@@ -2180,17 +2225,14 @@ def _render_improve(core: Any, root: Path, state: Mapping[str, Any], lines: list
             "Planning experiment objective: Identify and conduct feasible bounded experiments that "
             "could materially change a decision in this provisional plan or determine whether its "
             "consumer may proceed. Reuse sufficient evidence; zero experiments is valid.",
-            "Planning assumption list: In the investigation notebook, start from research's "
-            "assumption list and add each load-bearing assumption this plan introduces (one whose "
-            "failure would change a plan decision, consumer or acceptance check). Give each a "
-            "disposition: evidenced (source locator), probed (read or command and observed "
-            "outcome) or open (the check that would settle it, why it was not run, and its first "
-            "affected consumer, which the plan must block or route). A recalled fact is not "
-            "evidence.",
-            "Planning experiment exit: Require coherent current planning artifacts, a disposition "
-            "for every load-bearing assumption of the current plan, no open assumption that a "
-            "feasible bounded probe within the remaining allowance could settle now, and the two "
-            "existing qualifying reviews. An inconclusive "
+            "Planning assumption list: final_result.assumptions keeps every research assumption "
+            "ID and adds each load-bearing assumption this plan introduces: evidenced, probed "
+            "(with its saved output file) or open (with the consumer work item that settles or "
+            "blocks on it). ShipLoop refuses a dropped ID, an open consumer outside the queue, or "
+            "a missing evidence file.",
+            "Planning experiment exit: Require coherent current planning artifacts, a complete "
+            "assumption list with no open entry that a bounded probe within the remaining "
+            "allowance could settle now, and the two existing qualifying reviews. An inconclusive "
             "probe remains unresolved; running a probe or exhausting the shared investigation allowance "
             "does not satisfy readiness. Use the current Improve cycle, never a nested loop or a new "
             "experiment counter. Preserve findings, remaining allowance and cleanup through recovery.",
@@ -2637,9 +2679,13 @@ def dispatch(core: Any, root: Path, state: Mapping[str, Any], args: Any,
                     _need(state["status"] == "active" and child is not None
                           and action_id == child["action_id"] and child["skill"] is not None,
                           "no bound current Improve child")
+                    final_result = receipt.get("final_result")
+                    _check_submitted_assumptions(
+                        state, child["stage"],
+                        child["seed_result"] if final_result is None else final_result)
                     record, extra_writes = standalone.complete(child, receipt)
                     record["submission"] = deepcopy(receipt)
-                    updated = finish_improve(state, action_id, record, receipt.get("final_result"))
+                    updated = finish_improve(state, action_id, record, final_result)
                 if completion_guard is not None and updated != state:
                     completion_guard(state, updated)
             else:
@@ -2693,6 +2739,8 @@ def dispatch(core: Any, root: Path, state: Mapping[str, Any], args: Any,
                 quality.check_terminal(root, state, cursor_item or "", action_id, submitted)
             except quality.QualityError as exc:
                 raise NavigatorError(str(exc)) from exc
+        if state["status"] == "active" and action_id not in state["accepted"]:
+            _check_submitted_assumptions(state, current_stage(state), submitted)
         updated = apply(state, action_id, submitted)
         if completion_guard is not None and updated != state:
             completion_guard(state, updated)
