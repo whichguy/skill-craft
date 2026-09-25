@@ -1056,9 +1056,11 @@ def plan_return(workspace_root: Path) -> Dict[str, Any]:
         _fail("blocked workspace cannot produce a return plan")
     source = _repo_root(Path(manifest["source_repo"]))
     initial = manifest["initial_fingerprint"]
-    # A follow-up plan still reviews the whole delta from the baseline; only
-    # the source it starts from is the previous receipt's verified result.
-    if _follow_up_base(root, manifest, source) is None and not _fingerprint_equal(
+    # A follow-up plan still reviews the whole delta from the baseline.  The
+    # source it starts from is the previous receipt's result, which return
+    # verifies before it changes anything.
+    previous = _receipt(root)
+    if not (previous and previous.get("status") == "returned") and not _fingerprint_equal(
         initial, _fingerprint(source, root, manifest["selected_untracked"])
     ):
         _fail("source checkout drifted since preparation; return is blocked")
@@ -1386,26 +1388,6 @@ def _source_result_matches_snapshot(source: Path, receipt: Mapping[str, Any]) ->
     return _fingerprint_matches_snapshot(source, expected, extras)
 
 
-def _follow_up_base(
-    root: Path, manifest: Mapping[str, Any], source: Path
-) -> Optional[Dict[str, Any]]:
-    """The completed receipt a follow-up return starts from, if there is one.
-
-    Product changes made after a return (a fix found by a post-deploy check)
-    need a second return.  That is safe only while the source still holds
-    exactly what the previous receipt recorded; any other state is drift.
-    """
-    receipt = _receipt(root)
-    if not receipt or receipt.get("status") != "returned":
-        return None
-    if not _source_result_matches(source, root, receipt):
-        _fail(
-            "source checkout changed after the previous return; a follow-up return "
-            "is blocked until that change is reconciled"
-        )
-    return receipt
-
-
 def _returned_paths(source: Path, receipt: Mapping[str, Any]) -> set:
     """Paths the source holds because an earlier return put them there."""
     expected = receipt.get("expected_source", {})
@@ -1435,16 +1417,18 @@ def execute_return(workspace_root: Path) -> Dict[str, Any]:
     assert_binding(root, worktree)
     existing = _receipt(root)
     previous: Optional[Dict[str, Any]] = None
+    # True when the source already moved past the previous receipt: the
+    # follow-up then only records a source that holds its exact result.
+    adopt = False
     if existing and existing.get("status") == "returned":
         current_candidate, _, _ = _candidate(manifest, root)
-        if not _source_result_matches(source, root, existing):
-            _fail(
-                "completed return receipt no longer matches the source checkout; a "
-                "follow-up return is blocked until that change is reconciled"
-            )
-        if _fingerprint_equal(existing.get("candidate_fingerprint", {}), current_candidate):
+        source_at_receipt = _source_result_matches(source, root, existing)
+        if source_at_receipt and _fingerprint_equal(
+            existing.get("candidate_fingerprint", {}), current_candidate
+        ):
             return existing
         previous = existing
+        adopt = not source_at_receipt
     elif existing and existing.get("status") == "applying":
         current_candidate, _, _ = _candidate(manifest, root)
         if _fingerprint_equal(existing.get("candidate_fingerprint", {}), current_candidate) and _source_result_matches(source, root, existing):
@@ -1470,7 +1454,7 @@ def execute_return(workspace_root: Path) -> Dict[str, Any]:
             _fingerprint(source, root, manifest["selected_untracked"]),
         )
 
-    if not source_unchanged():
+    if not adopt and not source_unchanged():
         _fail("source checkout drifted since preparation; return is blocked")
     plan = _record(root, RETURN_PLAN, "return plan")
     candidate, changes, history = _candidate(manifest, root)
@@ -1486,12 +1470,13 @@ def execute_return(workspace_root: Path) -> Dict[str, Any]:
 
     if any(_forbidden(row["path"]) and not retained_child_evidence(row) for row in rows):
         _fail("candidate contains a protected transient/runtime path; preserve the workspace and remove it before return")
-    _reject_added_path_collisions(
-        source,
-        manifest["baseline_tree"],
-        rows,
-        _returned_paths(source, previous) if previous else (),
-    )
+    if not adopt:
+        _reject_added_path_collisions(
+            source,
+            manifest["baseline_tree"],
+            rows,
+            _returned_paths(source, previous) if previous else (),
+        )
 
     candidate_tree = _candidate_tree_with_kept_untracked(worktree, root, candidate["tracked_tree"], rows)
     patch = _patch(worktree, manifest["baseline_tree"], candidate_tree, rows)
@@ -1526,6 +1511,18 @@ def execute_return(workspace_root: Path) -> Dict[str, Any]:
         }
         if previous is not None:
             receipt["previous_receipt"] = previous
+        if adopt:
+            # Someone already brought this result into the source (for
+            # example by copying the fix by hand).  Record it only when the
+            # source is exactly the reviewed result; anything else is drift.
+            if not _source_result_matches(source, root, receipt):
+                _fail(
+                    "source checkout changed after the previous return and does not "
+                    "hold the reviewed follow-up result; reconcile it before returning"
+                )
+            receipt["status"] = "returned"
+            receipt["source_already_returned"] = True
+            mutate = None
         manifest["status"] = "returned"
         if mutate is None:
             # Nothing reaches the source: its verified state already is the result.
@@ -1557,6 +1554,8 @@ def execute_return(workspace_root: Path) -> Dict[str, Any]:
         # Never mutate the source index in the working-tree route.  ``--check``
         # happens before the persisted intent, which lets retry recognize an
         # apply that completed just before a process crash.
+        if adopt:
+            return delta  # record() verifies the source instead of applying
         if _git(source, "apply", "--check", "-", input_bytes=delta).returncode:
             _fail("reviewed delta cannot be applied cleanly; source was not returned")
 

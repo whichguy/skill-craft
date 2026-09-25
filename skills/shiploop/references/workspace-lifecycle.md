@@ -173,8 +173,10 @@ source state the previous receipt recorded, not from the preparation baseline:
   the follow-up is an ordinary first return.
 
 The new receipt keeps the previous one as `previous_receipt`. If the source
-changed in any way since the previous receipt, both commands refuse: that is
-drift to reconcile, not a follow-up. An interrupted follow-up whose source still
+already holds exactly the result the follow-up would produce (the fix was copied
+in by hand), `return` records that without writing and marks the receipt
+`source_already_returned`. Any other source change since the previous receipt
+is drift: `return` refuses it rather than overwrite or bless it. An interrupted follow-up whose source still
 matches the previous receipt applied nothing and may be retried.
 
 For example, if `game.js` has a staged change and a further unstaged change,

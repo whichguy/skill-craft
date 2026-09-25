@@ -1315,13 +1315,37 @@ class ShipLoopWorkspaceTests(unittest.TestCase):
         (self.repo / "feature.txt").write_text("user edit in source\n", encoding="utf-8")
         source_before = self._source_snapshot()
 
-        with self.assertRaisesRegex(workspace.WorkspaceError, "after the previous return"):
-            self._call(workspace.plan_return, root)
-        with self.assertRaisesRegex(workspace.WorkspaceError, "no longer matches the source"):
+        self._plan(root)
+        self._resolve_plan(root, exclude={"tool-state.log"})
+        with self.assertRaisesRegex(workspace.WorkspaceError, "does not hold the reviewed follow-up"):
             self._call(workspace.execute_return, root)
 
         self._assert_source_unchanged(source_before)
         self.assertEqual(store.read_record(root / "return-receipt.md"), first)
+
+    def test_follow_up_records_a_source_that_already_holds_its_exact_result(self) -> None:
+        """A fix copied into the source by hand is recorded, not applied twice."""
+        root = self.base / "follow-up already copied"
+        worktree = self._worktree(self._prepare(name=root.name))
+        (worktree / "feature.txt").write_text("first return\n", encoding="utf-8")
+        self._commit_all(worktree, "first candidate")
+        (worktree / "tool-state.log").write_text("untracked\n", encoding="utf-8")
+        self._plan(root)
+        self._resolve_plan(root, exclude={"tool-state.log"})
+        first = self._execute(root)
+        (worktree / "feature.txt").write_text("fixed\n", encoding="utf-8")
+        self._commit_all(worktree, "post-deploy fix")
+        (self.repo / "feature.txt").write_text("fixed\n", encoding="utf-8")
+        self._plan(root)
+        self._resolve_plan(root, exclude={"tool-state.log"})
+        source_before = self._source_snapshot()
+
+        second = self._execute(root)
+
+        self._assert_source_unchanged(source_before)
+        self.assertTrue(second["source_already_returned"])
+        self.assertEqual(second["previous_receipt"], first)
+        self.assertEqual(self._call(workspace.completed_receipt, root, self.repo), second)
 
     def test_interrupted_follow_up_that_never_touched_source_can_retry(self) -> None:
         root = self.base / "follow-up interrupted"
