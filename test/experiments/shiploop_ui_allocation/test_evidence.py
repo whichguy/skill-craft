@@ -34,6 +34,11 @@ class EvidenceTests(unittest.TestCase):
         self.import_action = None
         self.import_binding = None
         if imports:
+            # Improve records exist only at checkpoint stages; reach spec first.
+            while navigator.current_stage(state) != "spec":
+                state = navigator.apply(state, navigator.current_action(state)["id"], {
+                    "outcome": "done", "summary": "Synthetic accepted producer result.", "evidence_refs": [],
+                })
             action = state["action"]["id"]
             record = next(iter(imports.values()))
             if record.get("kind") != "synthetic-fixture-predecessor":
@@ -98,7 +103,7 @@ class EvidenceTests(unittest.TestCase):
             report = evidence.inspect_case(root, PACKAGE)
         self.assertTrue(report["structurally_valid"], report)
         self.assertEqual(report["imports"][0]["binding_id"], record["binding_id"])
-        self.assertEqual(report["accepted_stage_record_count"], 1)
+        self.assertEqual(report["accepted_stage_record_count"], 4)  # intake..spec accepted; Improve at spec
         self.assertIn("reported evidence", report["callback_content"])
 
     def test_missing_terminal_fails_closed_for_real_import(self) -> None:
@@ -121,14 +126,14 @@ class EvidenceTests(unittest.TestCase):
 
     def test_synthetic_predecessors_are_not_real_imports_and_inner_action_is_derived(self) -> None:
         with tempfile.TemporaryDirectory() as temp:
-            root = self.write_state(Path(temp), {"nav-old": {"kind": "synthetic-fixture-predecessor", "claim": "No runtime.", "stage": "intake", "seed_result": {"outcome": "done"}}})
+            root = self.write_state(Path(temp), {"nav-old": {"kind": "synthetic-fixture-predecessor", "claim": "No runtime.", "stage": "spec", "seed_result": {"outcome": "done"}}})
             report = evidence.inspect_case(root, PACKAGE)
         self.assertTrue(report["structurally_valid"], report)
-        self.assertEqual(report["stage"], "discovery")
+        self.assertEqual(report["stage"], "test-strategy")
         self.assertIsNotNone(report["action_identity"]["id"])
         self.assertEqual(report["imports"], [])
         self.assertEqual(len(report["synthetic_predecessors"]), 1)
-        self.assertEqual(report["accepted_stage_record_count"], 1)
+        self.assertEqual(report["accepted_stage_record_count"], 4)  # intake..spec accepted; Improve at spec
 
     def test_bad_archived_evidence_digest_fails_closed(self) -> None:
         with tempfile.TemporaryDirectory() as temp:
