@@ -20,7 +20,7 @@
     {
       "name": "backchain",
       "source": "./plugins/backchain",
-      "description": "Plan Orchestrator portable skills: Backchain builds and repeatedly reviews evidence-backed dependency plans; Plan Dispatcher coordinates their execution with native agents. Existing backchain skill and plugin identities remain stable."
+      "description": "Use when an implementation task needs a dependency-aware plan before coding: backward planner / backchain / precondition-first planning, dependency DAGs, elaborating incomplete plans, or scheduler-ready step graphs. Turns a natural-language coding request into a forward draft then backward-chaining enriched DAG with explicit unresolved risks, then directly calls the selected Until Loop to repeat dependency review until two consecutive trivial/no-change reviews."
     },
     {
       "name": "c-plan",
@@ -56,6 +56,11 @@
       "name": "improve-system-prompt",
       "source": "./plugins/improve-system-prompt",
       "description": "Benchmark and compare system prompt variants (V2/V2a/V2b/V2c) for Sheets Chat by running test scenarios through the real GAS-side ClaudeConversation pipeline. Tests both system-placement and user-placement, then evaluates with heuristic scoring (ABTestHarness) and LLM-as-judge. Product-specific: requires an authorized Sheets Chat/GAS execution integration."
+    },
+    {
+      "name": "plan-dispatcher",
+      "source": "./plugins/plan-dispatcher",
+      "description": "Use when executing or resuming an agreed dependency graph with one main dispatcher and parallel native workers: claim ready steps, preserve launch state, collect result evidence, verify outcomes, and identify successors. Planning belongs to Backchain or the caller; this skill executes the plan."
     },
     {
       "name": "plan-test",

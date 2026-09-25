@@ -1,7 +1,7 @@
 {
   "name": "backchain",
-  "version": "0.5.1",
-  "description": "Plan Orchestrator portable skills: Backchain builds and repeatedly reviews evidence-backed dependency plans; Plan Dispatcher coordinates their execution with native agents. Existing backchain skill and plugin identities remain stable.",
+  "version": "0.6.0",
+  "description": "Use when an implementation task needs a dependency-aware plan before coding: backward planner / backchain / precondition-first planning, dependency DAGs, elaborating incomplete plans, or scheduler-ready step graphs. Turns a natural-language coding request into a forward draft then backward-chaining enriched DAG with explicit unresolved risks, then directly calls the selected Until Loop to repeat dependency review until two consecutive trivial/no-change reviews.",
   "author": {
     "name": "Backchain",
     "url": "https://github.com/whichguy"
@@ -13,6 +13,6 @@
     "skill-craft",
     "backchain",
     "portable-skills",
-    "plan-dispatcher"
+    "prompt-only"
   ]
 }

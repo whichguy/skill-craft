@@ -42,8 +42,8 @@
     },
     {
       "name": "backchain",
-      "description": "Plan Orchestrator portable skills: Backchain builds and repeatedly reviews evidence-backed dependency plans; Plan Dispatcher coordinates their execution with native agents. Existing backchain skill and plugin identities remain stable.",
-      "version": "0.5.1",
+      "description": "Use when an implementation task needs a dependency-aware plan before coding: backward planner / backchain / precondition-first planning, dependency DAGs, elaborating incomplete plans, or scheduler-ready step graphs. Turns a natural-language coding request into a forward draft then backward-chaining enriched DAG with explicit unresolved risks, then directly calls the selected Until Loop to repeat dependency review until two consecutive trivial/no-change reviews.",
+      "version": "0.6.0",
       "author": {
         "name": "Backchain",
         "url": "https://github.com/whichguy"
@@ -196,6 +196,24 @@
         "url": "https://github.com/whichguy/lennox-s40.git",
         "ref": "main",
         "sha": "3505fcdf0ff48dc495027382a85ae9cfbd72423f"
+      },
+      "policy": {
+        "installation": "AVAILABLE",
+        "authentication": "ON_INSTALL"
+      },
+      "category": "Productivity"
+    },
+    {
+      "name": "plan-dispatcher",
+      "description": "Use when executing or resuming an agreed dependency graph with one main dispatcher and parallel native workers: claim ready steps, preserve launch state, collect result evidence, verify outcomes, and identify successors. Planning belongs to Backchain or the caller; this skill executes the plan.",
+      "version": "0.3.0",
+      "author": {
+        "name": "Backchain",
+        "url": "https://github.com/whichguy"
+      },
+      "source": {
+        "source": "local",
+        "path": "./plugins/plan-dispatcher"
       },
       "policy": {
         "installation": "AVAILABLE",

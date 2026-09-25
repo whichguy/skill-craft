@@ -1,0 +1,33 @@
+{
+  "name": "plan-dispatcher",
+  "version": "0.3.0",
+  "description": "Use when executing or resuming an agreed dependency graph with one main dispatcher and parallel native workers: claim ready steps, preserve launch state, collect result evidence, verify outcomes, and identify successors. Planning belongs to Backchain or the caller; this skill executes the plan.",
+  "author": {
+    "name": "Backchain",
+    "url": "https://github.com/whichguy"
+  },
+  "homepage": "https://github.com/whichguy/skill-craft",
+  "repository": "https://github.com/whichguy/skill-craft",
+  "license": "MIT",
+  "keywords": [
+    "skill-craft",
+    "plan-dispatcher",
+    "portable-skills",
+    "script-backed"
+  ],
+  "skills": "./skills/",
+  "interface": {
+    "displayName": "Plan Dispatcher",
+    "shortDescription": "Use when executing or resuming an agreed dependency graph with one main dispatcher and parallel native workers: claim…",
+    "longDescription": "Use when executing or resuming an agreed dependency graph with one main dispatcher and parallel native workers: claim ready steps, preserve launch state, collect result evidence, verify outcomes, and identify successors. Planning belongs to Backchain or the caller; this skill executes the plan.",
+    "developerName": "Backchain",
+    "category": "Software Development",
+    "capabilities": [
+      "Read",
+      "Write"
+    ],
+    "defaultPrompt": [
+      "Use $plan-dispatcher:plan-dispatcher for this task."
+    ]
+  }
+}
