@@ -317,14 +317,16 @@ under external run storage; reusable facts are promoted into project docs. The
 host must judge ambiguous/custom artifacts—the guard cannot infer their meaning.
 
 Handoff cannot declare completion without a current verified return receipt.
-Protocol 3 performs its once-only source return at release or handoff once no
-Improve child is active. Earlier or unfinished work cannot return.
+Protocol 3 performs its source return at release or handoff once no
+Improve child is active. Earlier or unfinished work cannot return. A product
+change committed after the return goes back as a follow-up return from the
+previous receipt, by the same route; source drift since that receipt blocks it.
 If branch integration activates deployment, plan it as an authorized release
 operation from the execution checkout where possible; a required source-return
 prerequisite remains incomplete for reconciliation. Verify effects separately.
 A local return never proves remote
 delivery. All source documentation intended for return must be finalized before
-the return; subsequent changes require renewed reconciliation/validation.
+the return; subsequent changes require renewed validation and a follow-up return.
 Worktrees and run records are retained, not automatically deleted.
 Never push all workspace branches: a local private baseline may contain earlier
 uncommitted inputs. Push only the intended reviewed branch when authorized.

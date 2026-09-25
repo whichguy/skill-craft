@@ -157,8 +157,10 @@ do not silently fall back to editing the source. At the final planned integratio
 boundary, follow the packet's return-plan and guarded return commands. Completion
 requires a verified return receipt. A dirty starting checkout receives only the
 new delta and keeps its original index; this is not a Git merge/commit.
-That once-only return happens at release or handoff, after the end-of-work Improve
-child, once no child is active.
+The return happens at release or handoff, after the end-of-work Improve
+child, once no child is active. A product fix committed after that return (for
+example one found by a post-deploy check) goes back as a follow-up return: run
+the same return-plan and return commands again.
 If source return must itself trigger a required delivery check, retain that
 ordering conflict as incomplete; use the workspace policy's reconciliation rule.
 

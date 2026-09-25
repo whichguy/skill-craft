@@ -108,11 +108,12 @@ after each item. All remaining items, system tests, outer Improve reviews and
 authorized release work use the same assembled candidate. Recheck any integration-affected
 behavior.
 
-The once-only source return happens at `release` or `handoff`, once no Improve
+The source return happens at `release` or `handoff`, once no Improve
 child is active (the end-of-work child and the `release-plan` child have been
 imported). Review the final return plan, perform the authorized return, then
 complete the current producer. Earlier stages and an active child cannot return
-the candidate; no subsequent producer can silently change a returned candidate.
+the candidate; no subsequent producer can silently change a returned candidate:
+a later product change makes the receipt stale until a follow-up return.
 The return command validates that boundary without advancing the graph.
 
 During discovery and prepare, determine whether returning to the original branch
@@ -153,6 +154,29 @@ return is not evidence that a hosted consumer has been updated.
    before its exact callback. Handoff's `done` is rejected without a current
    verified receipt. Script checks do not replace semantic review or tests.
 
+### Follow-up return
+
+A check that runs after the return, such as a post-deploy browser check, can
+find a defect that needs a product fix. Commit that fix in the execution
+checkout, rerun its checks, then run `plan-return` and `return` again. The new
+plan still reviews every path from the baseline. The follow-up starts from the
+source state the previous receipt recorded, not from the preparation baseline:
+
+- After a **working-tree return**, the helper moves the source working tree
+  from the previous receipt's result to the result of the whole new reviewed
+  delta. Paths the previous return placed may change or disappear; the source
+  index and HEAD still stay untouched.
+- After a **fast-forward**, the follow-up is another fast-forward and needs a
+  clean, committed candidate that descends from the returned commit. Uncommitted
+  or untracked product output is refused rather than mixed into a merged branch.
+- After a **no-change return**, the source is still the preparation state, so
+  the follow-up is an ordinary first return.
+
+The new receipt keeps the previous one as `previous_receipt`. If the source
+changed in any way since the previous receipt, both commands refuse: that is
+drift to reconcile, not a follow-up. An interrupted follow-up whose source still
+matches the previous receipt applied nothing and may be retried.
+
 For example, if `game.js` has a staged change and a further unstaged change,
 ShipLoop begins with their combined working contents in isolation. It adds the
 requested drag behavior there. Return applies that new delta while leaving the
@@ -166,13 +190,14 @@ No automatic cleanup: keep the worktree, private branch, run report and receipts
 available for inspection/recovery. Cleanup is a separate authorized operation,
 only after checking no unique work remains. Never delete user source files to
 force a clean return. A repeated return must reconcile its receipt and actual
-source/candidate effects; it must not apply the patch twice.
+source/candidate effects; it must not apply the patch twice. A follow-up return
+applies only the change since the previous receipt's recorded result.
 
 Source/index/branch drift, path collisions, changed candidates, unsupported Git
 states or transient history require resolution before completion. After a
 return, further product changes invalidate its evidence; do not reuse the old
-receipt. Stop and reconcile the intended integration rather than rewriting the
-manifest baseline. External actors must not edit the source during the guarded
+receipt. Return them with a follow-up return, never by rewriting the manifest
+baseline or the receipt. External actors must not edit the source during the guarded
 operation; repository tools cannot lock out arbitrary editors. Preserve partial
 operation evidence on unexpected failures and inspect actual effects before retry.
 

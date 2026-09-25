@@ -14,7 +14,8 @@ The public functions are intentionally small:
 ``plan_return``
     Write a reviewed-path return plan without changing the source checkout.
 ``execute_return``
-    Apply the approved delta or perform a safe fast-forward merge.
+    Apply the approved delta or perform a safe fast-forward merge; after a
+    verified return, carry later product changes as a follow-up return.
 ``assert_binding`` / ``completed_receipt``
     Protocol-start and terminal-handoff guards. Their exclusive-lock path may
     recover a crashed Markdown transaction before it evaluates the receipt.
@@ -1013,10 +1014,17 @@ def _plan_rows(
 
 
 def _reject_added_path_collisions(
-    source: Path, baseline_tree: str, rows: Sequence[Mapping[str, Any]]
+    source: Path,
+    baseline_tree: str,
+    rows: Sequence[Mapping[str, Any]],
+    returned: Iterable[str] = (),
 ) -> None:
-    """An ignored/untracked source file must never be overwritten by return."""
-    baseline_paths = set(_tree_paths(source, baseline_tree))
+    """An ignored/untracked source file must never be overwritten by return.
+
+    ``returned`` names paths an earlier verified return already placed in the
+    source; a follow-up return may update those.
+    """
+    baseline_paths = set(_tree_paths(source, baseline_tree)).union(returned)
     for row in rows:
         path = row["path"]
         if (
@@ -1048,7 +1056,11 @@ def plan_return(workspace_root: Path) -> Dict[str, Any]:
         _fail("blocked workspace cannot produce a return plan")
     source = _repo_root(Path(manifest["source_repo"]))
     initial = manifest["initial_fingerprint"]
-    if not _fingerprint_equal(initial, _fingerprint(source, root, manifest["selected_untracked"])):
+    # A follow-up plan still reviews the whole delta from the baseline; only
+    # the source it starts from is the previous receipt's verified result.
+    if _follow_up_base(root, manifest, source) is None and not _fingerprint_equal(
+        initial, _fingerprint(source, root, manifest["selected_untracked"])
+    ):
         _fail("source checkout drifted since preparation; return is blocked")
     candidate, changes, history = _candidate(manifest, root)
     plan: Dict[str, Any] = {
@@ -1176,6 +1188,8 @@ def _patch(
 
 
 def _apply_cached_tree(repo: Path, root: Path, baseline_tree: str, patch: bytes) -> str:
+    if not patch:
+        return baseline_tree
     descriptor, index = _temporary_index(root)
     os.close(descriptor)
     env = {"GIT_INDEX_FILE": os.fspath(index), "GIT_OPTIONAL_LOCKS": "0"}
@@ -1372,35 +1386,91 @@ def _source_result_matches_snapshot(source: Path, receipt: Mapping[str, Any]) ->
     return _fingerprint_matches_snapshot(source, expected, extras)
 
 
+def _follow_up_base(
+    root: Path, manifest: Mapping[str, Any], source: Path
+) -> Optional[Dict[str, Any]]:
+    """The completed receipt a follow-up return starts from, if there is one.
+
+    Product changes made after a return (a fix found by a post-deploy check)
+    need a second return.  That is safe only while the source still holds
+    exactly what the previous receipt recorded; any other state is drift.
+    """
+    receipt = _receipt(root)
+    if not receipt or receipt.get("status") != "returned":
+        return None
+    if not _source_result_matches(source, root, receipt):
+        _fail(
+            "source checkout changed after the previous return; a follow-up return "
+            "is blocked until that change is reconciled"
+        )
+    return receipt
+
+
+def _returned_paths(source: Path, receipt: Mapping[str, Any]) -> set:
+    """Paths the source holds because an earlier return put them there."""
+    expected = receipt.get("expected_source", {})
+    if receipt.get("kind") == "fast-forward-merge":
+        return set(_tree_paths(source, expected["tree"]))
+    if receipt.get("kind") == "working-tree-return":
+        return set(_tree_paths(source, expected["working_tree"]))
+    return set()
+
+
 def _write_receipt(root: Path, manifest: Dict[str, Any], receipt: Dict[str, Any]) -> None:
     _write(root, {MANIFEST: (manifest, "ShipLoop workspace"), RETURN_RECEIPT: (receipt, "ShipLoop return receipt")})
 
 
 @_locked_existing_root
 def execute_return(workspace_root: Path) -> Dict[str, Any]:
-    """Return reviewed work once; refuse drift and reconcile an interrupted return."""
+    """Return reviewed work; refuse drift and reconcile an interrupted return.
+
+    Product changes committed after a verified return (for example a fix found
+    by a post-deploy check) return as a follow-up from that receipt's recorded
+    source state, by the same route, and the new receipt keeps the old one.
+    """
     root = _resolved_directory(Path(workspace_root), label="workspace root")
     manifest = _manifest(root)
     source = _repo_root(Path(manifest["source_repo"]))
     worktree = _resolved_directory(Path(manifest["worktree"]), label="workspace worktree")
     assert_binding(root, worktree)
     existing = _receipt(root)
+    previous: Optional[Dict[str, Any]] = None
     if existing and existing.get("status") == "returned":
         current_candidate, _, _ = _candidate(manifest, root)
-        if _fingerprint_equal(existing.get("candidate_fingerprint", {}), current_candidate) and _source_result_matches(source, root, existing):
+        if not _source_result_matches(source, root, existing):
+            _fail(
+                "completed return receipt no longer matches the source checkout; a "
+                "follow-up return is blocked until that change is reconciled"
+            )
+        if _fingerprint_equal(existing.get("candidate_fingerprint", {}), current_candidate):
             return existing
-        _fail("completed return receipt no longer matches the candidate or source checkout")
-    if existing and existing.get("status") == "applying":
+        previous = existing
+    elif existing and existing.get("status") == "applying":
         current_candidate, _, _ = _candidate(manifest, root)
         if _fingerprint_equal(existing.get("candidate_fingerprint", {}), current_candidate) and _source_result_matches(source, root, existing):
             existing["status"] = "returned"
             manifest["status"] = "returned"
             _write_receipt(root, manifest, existing)
             return existing
-        _fail("interrupted return cannot be reconciled; source outcome is unknown and this helper will not replay or roll back it")
+        prior = existing.get("previous_receipt")
+        if isinstance(prior, dict) and _source_result_matches(source, root, prior):
+            # The interrupted follow-up left the source exactly as the previous
+            # receipt recorded it, so nothing was applied and it can be retried.
+            previous = prior
+        else:
+            _fail("interrupted return cannot be reconciled; source outcome is unknown and this helper will not replay or roll back it")
     if manifest["status"] == "blocked":
         _fail("blocked workspace cannot return work")
-    if not _fingerprint_equal(manifest["initial_fingerprint"], _fingerprint(source, root, manifest["selected_untracked"])):
+
+    def source_unchanged() -> bool:
+        if previous is not None:
+            return _source_result_matches(source, root, previous)
+        return _fingerprint_equal(
+            manifest["initial_fingerprint"],
+            _fingerprint(source, root, manifest["selected_untracked"]),
+        )
+
+    if not source_unchanged():
         _fail("source checkout drifted since preparation; return is blocked")
     plan = _record(root, RETURN_PLAN, "return plan")
     candidate, changes, history = _candidate(manifest, root)
@@ -1416,14 +1486,16 @@ def execute_return(workspace_root: Path) -> Dict[str, Any]:
 
     if any(_forbidden(row["path"]) and not retained_child_evidence(row) for row in rows):
         _fail("candidate contains a protected transient/runtime path; preserve the workspace and remove it before return")
-    _reject_added_path_collisions(source, manifest["baseline_tree"], rows)
+    _reject_added_path_collisions(
+        source,
+        manifest["baseline_tree"],
+        rows,
+        _returned_paths(source, previous) if previous else (),
+    )
 
     candidate_tree = _candidate_tree_with_kept_untracked(worktree, root, candidate["tracked_tree"], rows)
     patch = _patch(worktree, manifest["baseline_tree"], candidate_tree, rows)
     plan_digest = _plan_digest(plan)
-    kind = "working-tree-return"
-    expected_source: Dict[str, Any]
-    extras: List[str]
 
     # A final Improve packet must remain untracked in the worker until the
     # parent imports it.  It does not make a committed product candidate dirty
@@ -1438,74 +1510,111 @@ def execute_return(workspace_root: Path) -> Dict[str, Any]:
     )
     clean_candidate = clean_tracked_candidate and only_retained_child_evidence
     all_history_kept = all(row["disposition"] == "keep" for row in rows if row["in_history"])
+    fast_forward_ok = manifest["start_clean"] and clean_candidate and all_history_kept
     has_new_commits = _head(worktree) != manifest["baseline_commit"]
-    if not patch and not (manifest["start_clean"] and clean_candidate and all_history_kept and has_new_commits):
-        receipt = {
-            "schema": RECEIPT_SCHEMA,
-            "version": VERSION,
-            "status": "returned",
-            "kind": "no-change-return",
-            "source_before": manifest["initial_fingerprint"],
-            "candidate_fingerprint": candidate,
-            "plan_digest": plan_digest,
-            "expected_source": manifest["initial_fingerprint"],
-            "source_extra_paths": manifest["selected_untracked"],
+    prior_kind = previous.get("kind") if previous else None
+
+    def record(
+        kind: str, expected_source: Mapping[str, Any], extras: Sequence[str], mutate: Any
+    ) -> Dict[str, Any]:
+        receipt: Dict[str, Any] = {
+            "schema": RECEIPT_SCHEMA, "version": VERSION,
+            "status": "returned" if mutate is None else "applying", "kind": kind,
+            "source_before": previous["expected_source"] if previous else manifest["initial_fingerprint"],
+            "candidate_fingerprint": candidate, "plan_digest": plan_digest,
+            "expected_source": dict(expected_source), "source_extra_paths": list(extras),
         }
+        if previous is not None:
+            receipt["previous_receipt"] = previous
         manifest["status"] = "returned"
+        if mutate is None:
+            # Nothing reaches the source: its verified state already is the result.
+            _write_receipt(root, manifest, receipt)
+            return receipt
+        _write_receipt(root, manifest, receipt)
+        if not source_unchanged():
+            _fail("source checkout drifted before return; persisted intent requires reconciliation")
+        mutate()
+        if not _source_result_matches(source, root, receipt):
+            _fail("return command completed but source outcome is not the recorded result")
+        receipt["status"] = "returned"
         _write_receipt(root, manifest, receipt)
         return receipt
-    if manifest["start_clean"] and clean_candidate and all_history_kept:
+
+    def fast_forward() -> None:
+        result = _git(source, "merge", "--ff-only", "--no-overwrite-ignore", manifest["branch"])
+        if result.returncode:
+            _fail("fast-forward merge reported failure; source outcome is unknown and the persisted intent must be reconciled")
+
+    def fast_forward_target() -> Dict[str, Any]:
+        return {
+            "head": _head(worktree),
+            "branch": manifest["source_branch"],
+            "tree": _git_text(worktree, "rev-parse", "HEAD^{tree}"),
+        }
+
+    def apply(delta: bytes) -> Any:
+        # Never mutate the source index in the working-tree route.  ``--check``
+        # happens before the persisted intent, which lets retry recognize an
+        # apply that completed just before a process crash.
+        if _git(source, "apply", "--check", "-", input_bytes=delta).returncode:
+            _fail("reviewed delta cannot be applied cleanly; source was not returned")
+
+        def run() -> None:
+            if _git(source, "apply", "-", input_bytes=delta).returncode:
+                _fail("return apply reported failure; source outcome is unknown and the persisted intent must be reconciled")
+        return run
+
+    if prior_kind == "fast-forward-merge":
+        # The source branch already holds the earlier candidate commits; only a
+        # further fast-forward keeps it a plain descendant of what it received.
+        if not fast_forward_ok:
+            _fail(
+                "a follow-up to a fast-forward return needs a clean, committed "
+                "candidate with every history path kept; commit the product change "
+                "and keep untracked output out of the worktree"
+            )
+        prior_head = previous["expected_source"]["head"]
+        if _head(worktree) == prior_head:
+            return record("fast-forward-merge", previous["expected_source"], [], None)
+        if _git(worktree, "merge-base", "--is-ancestor", prior_head, "HEAD", readonly=True).returncode:
+            _fail("workspace candidate no longer descends from the previously returned commit")
+        return record("fast-forward-merge", fast_forward_target(), [], fast_forward)
+    if prior_kind == "working-tree-return":
+        # The source working tree holds the earlier delta, so move it from that
+        # recorded result to the result the whole reviewed delta now produces.
+        expected_source, extras = _expected_dirty_source(
+            source, worktree, root, manifest, patch, rows
+        )
+        if expected_source == previous["expected_source"] and extras == previous["source_extra_paths"]:
+            return record("working-tree-return", expected_source, extras, None)
+        delta = _git(
+            source, "diff", "--binary", "--full-index", "--no-ext-diff", "--no-textconv",
+            "--no-renames", previous["expected_source"]["working_tree"],
+            expected_source["working_tree"], readonly=True,
+        )
+        if delta.returncode:
+            _fail("cannot build follow-up return patch")
+        if not delta.stdout:
+            return record("working-tree-return", expected_source, extras, None)
+        return record("working-tree-return", expected_source, extras, apply(delta.stdout))
+
+    if not patch and not (fast_forward_ok and has_new_commits):
+        return record(
+            "no-change-return", manifest["initial_fingerprint"], manifest["selected_untracked"], None
+        )
+    if fast_forward_ok:
         # A true fast-forward preserves candidate commits only after every
         # history path was explicitly reviewed.  Protected paths were rejected
         # before a plan existed, including add-then-delete transient commits.
         result = _git(source, "merge-base", "--is-ancestor", manifest["source_head"], "HEAD", readonly=True)
         if result.returncode:
             _fail("source branch no longer descends from its prepared HEAD")
-        expected_source = {
-            "head": _head(worktree),
-            "branch": manifest["source_branch"],
-            "tree": _git_text(worktree, "rev-parse", "HEAD^{tree}"),
-        }
-        kind = "fast-forward-merge"
-        intent = {
-            "schema": RECEIPT_SCHEMA, "version": VERSION, "status": "applying", "kind": kind,
-            "source_before": manifest["initial_fingerprint"], "candidate_fingerprint": candidate,
-            "plan_digest": plan_digest, "expected_source": expected_source, "source_extra_paths": [],
-        }
-        _write_receipt(root, manifest, intent)
-        if not _fingerprint_equal(manifest["initial_fingerprint"], _fingerprint(source, root, manifest["selected_untracked"])):
-            _fail("source checkout drifted before fast-forward; persisted intent requires reconciliation")
-        result = _git(source, "merge", "--ff-only", "--no-overwrite-ignore", manifest["branch"])
-        if result.returncode:
-            _fail("fast-forward merge reported failure; source outcome is unknown and the persisted intent must be reconciled")
-    else:
-        # Never mutate the source index in the dirty-start route.  ``--check``
-        # happens before the real apply, and the persisted intent lets retry
-        # recognize an apply that completed just before a process crash.
-        expected_source, extras = _expected_dirty_source(
-            source, worktree, root, manifest, patch, rows
-        )
-        checked = _git(source, "apply", "--check", "-", input_bytes=patch)
-        if checked.returncode:
-            _fail("reviewed delta cannot be applied cleanly; source was not returned")
-        intent = {
-            "schema": RECEIPT_SCHEMA, "version": VERSION, "status": "applying", "kind": kind,
-            "source_before": manifest["initial_fingerprint"], "candidate_fingerprint": candidate,
-            "plan_digest": plan_digest, "expected_source": expected_source, "source_extra_paths": extras,
-        }
-        _write_receipt(root, manifest, intent)
-        if not _fingerprint_equal(manifest["initial_fingerprint"], _fingerprint(source, root, manifest["selected_untracked"])):
-            _fail("source checkout drifted before apply; persisted intent requires reconciliation")
-        result = _git(source, "apply", "-", input_bytes=patch)
-        if result.returncode:
-            _fail("return apply reported failure; source outcome is unknown and the persisted intent must be reconciled")
-
-    if not _source_result_matches(source, root, intent):
-        _fail("return command completed but source outcome is not the recorded result")
-    intent["status"] = "returned"
-    manifest["status"] = "returned"
-    _write_receipt(root, manifest, intent)
-    return intent
+        return record("fast-forward-merge", fast_forward_target(), [], fast_forward)
+    expected_source, extras = _expected_dirty_source(
+        source, worktree, root, manifest, patch, rows
+    )
+    return record("working-tree-return", expected_source, extras, apply(patch))
 
 
 @_locked_existing_root

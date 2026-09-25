@@ -1211,6 +1211,151 @@ class ShipLoopWorkspaceTests(unittest.TestCase):
         self.assertIsNone(self._call(workspace.completed_receipt, root, self.repo))
         self.assertEqual((root / "return-receipt.md").read_bytes(), receipt_bytes)
 
+    def test_follow_up_working_tree_return_moves_source_from_the_last_receipt(self) -> None:
+        """A fix committed after a return goes back without replaying the first delta."""
+        self._seed_dirty_source()
+        root = self.base / "follow-up working tree"
+        worktree = self._worktree(
+            self._prepare(include_untracked=("selected-input.txt",), name=root.name)
+        )
+        (worktree / "feature.txt").write_text("first return\n", encoding="utf-8")
+        (worktree / "retired.txt").write_text("returned then removed\n", encoding="utf-8")
+        self._commit_all(worktree, "first candidate")
+        (worktree / "tool-state.log").write_text("untracked tool output\n", encoding="utf-8")
+        self._plan(root)
+        self._resolve_plan(root, exclude={"tool-state.log"})
+        before_head = self.git("rev-parse", "HEAD").stdout.strip()
+        before_index = (self.repo / ".git" / "index").read_bytes()
+        first = self._execute(root)
+        self.assertEqual(first["kind"], "working-tree-return")
+
+        # Post-deploy fix: edit, add and delete paths the first return placed.
+        (worktree / "feature.txt").write_text("fixed after deploy\n", encoding="utf-8")
+        (worktree / "access.txt").write_text("new permission\n", encoding="utf-8")
+        (worktree / "retired.txt").unlink()
+        self._commit_all(worktree, "post-deploy fix")
+        (worktree / "tool-state.log").write_text("more untracked tool output\n", encoding="utf-8")
+        self.assertIsNone(self._call(workspace.completed_receipt, root, self.repo))
+        self._plan(root)
+        self._resolve_plan(root, exclude={"tool-state.log"})
+
+        second = self._execute(root)
+
+        self.assertEqual(second["kind"], "working-tree-return")
+        self.assertEqual(second["previous_receipt"], first)
+        self.assertEqual(second["source_before"], first["expected_source"])
+        self.assertEqual((self.repo / "feature.txt").read_text(), "fixed after deploy\n")
+        self.assertEqual((self.repo / "access.txt").read_text(), "new permission\n")
+        self.assertFalse((self.repo / "retired.txt").exists())
+        self.assertFalse((self.repo / "tool-state.log").exists())
+        self.assertEqual((self.repo / "tracked-staged.txt").read_text(), "captured staged input\n")
+        self.assertEqual((self.repo / "selected-input.txt").read_text(), "selected untracked input\n")
+        self.assertEqual(self.git("rev-parse", "HEAD").stdout.strip(), before_head)
+        self.assertEqual((self.repo / ".git" / "index").read_bytes(), before_index)
+        self.assertEqual(self._call(workspace.completed_receipt, root, self.repo), second)
+        self.assertEqual(self._call(workspace.completed_receipt_snapshot, root, self.repo), second)
+        workspace_before = self._workspace_snapshot(root)
+        self.assertEqual(self._call(workspace.execute_return, root), second)
+        self.assertEqual(self._workspace_snapshot(root), workspace_before)
+
+    def test_follow_up_fast_forward_return_advances_the_source_branch(self) -> None:
+        root = self.base / "follow-up fast forward"
+        worktree = self._worktree(self._prepare(name=root.name))
+        (worktree / "feature.txt").write_text("first return\n", encoding="utf-8")
+        self._commit_all(worktree, "first candidate")
+        self._plan(root)
+        self._resolve_plan(root)
+        first = self._execute(root)
+        self.assertEqual(first["kind"], "fast-forward-merge")
+
+        (worktree / "feature.txt").write_text("fixed after deploy\n", encoding="utf-8")
+        fix = self._commit_all(worktree, "post-deploy fix")
+        self._plan(root)
+        self._resolve_plan(root)
+
+        second = self._execute(root)
+
+        self.assertEqual(second["kind"], "fast-forward-merge")
+        self.assertEqual(second["previous_receipt"], first)
+        self.assertEqual(self.git("rev-parse", "HEAD").stdout.strip(), fix)
+        self.assertEqual(self.git("status", "--porcelain").stdout, "")
+        self.assertEqual(self._call(workspace.completed_receipt, root, self.repo), second)
+
+    def test_follow_up_after_fast_forward_refuses_uncommitted_output(self) -> None:
+        root = self.base / "follow-up fast forward dirty"
+        worktree = self._worktree(self._prepare(name=root.name))
+        (worktree / "feature.txt").write_text("first return\n", encoding="utf-8")
+        self._commit_all(worktree, "first candidate")
+        self._plan(root)
+        self._resolve_plan(root)
+        first = self._execute(root)
+        (worktree / "feature.txt").write_text("uncommitted fix\n", encoding="utf-8")
+        self._plan(root)
+        self._resolve_plan(root)
+        source_before = self._source_snapshot()
+
+        with self.assertRaisesRegex(workspace.WorkspaceError, "follow-up to a fast-forward"):
+            self._call(workspace.execute_return, root)
+
+        self._assert_source_unchanged(source_before)
+        self.assertEqual(store.read_record(root / "return-receipt.md"), first)
+
+    def test_follow_up_refuses_a_source_changed_after_the_previous_return(self) -> None:
+        root = self.base / "follow-up source drift"
+        worktree = self._worktree(self._prepare(name=root.name))
+        (worktree / "feature.txt").write_text("first return\n", encoding="utf-8")
+        self._commit_all(worktree, "first candidate")
+        (worktree / "tool-state.log").write_text("untracked\n", encoding="utf-8")
+        self._plan(root)
+        self._resolve_plan(root, exclude={"tool-state.log"})
+        first = self._execute(root)
+        self._plan(root)  # the unchanged candidate may be re-planned
+        (worktree / "feature.txt").write_text("fixed\n", encoding="utf-8")
+        self._commit_all(worktree, "post-deploy fix")
+        (self.repo / "feature.txt").write_text("user edit in source\n", encoding="utf-8")
+        source_before = self._source_snapshot()
+
+        with self.assertRaisesRegex(workspace.WorkspaceError, "after the previous return"):
+            self._call(workspace.plan_return, root)
+        with self.assertRaisesRegex(workspace.WorkspaceError, "no longer matches the source"):
+            self._call(workspace.execute_return, root)
+
+        self._assert_source_unchanged(source_before)
+        self.assertEqual(store.read_record(root / "return-receipt.md"), first)
+
+    def test_interrupted_follow_up_that_never_touched_source_can_retry(self) -> None:
+        root = self.base / "follow-up interrupted"
+        worktree = self._worktree(self._prepare(name=root.name))
+        (worktree / "feature.txt").write_text("first return\n", encoding="utf-8")
+        self._commit_all(worktree, "first candidate")
+        (worktree / "tool-state.log").write_text("untracked\n", encoding="utf-8")
+        self._plan(root)
+        self._resolve_plan(root, exclude={"tool-state.log"})
+        first = self._execute(root)
+        (worktree / "feature.txt").write_text("fixed\n", encoding="utf-8")
+        self._commit_all(worktree, "post-deploy fix")
+        self._plan(root)
+        self._resolve_plan(root, exclude={"tool-state.log"})
+
+        real_git = workspace._git
+
+        def crash_on_apply(repo, *args, **kwargs):
+            if args[:2] == ("apply", "-"):
+                raise KeyboardInterrupt("simulated crash before apply")
+            return real_git(repo, *args, **kwargs)
+
+        with mock.patch.object(workspace, "_git", crash_on_apply):
+            with self.assertRaises(KeyboardInterrupt):
+                self._call(workspace.execute_return, root)
+        intent = store.read_record(root / "return-receipt.md")
+        self.assertEqual(intent["status"], "applying")
+        self.assertEqual(intent["previous_receipt"], first)
+
+        second = self._execute(root)
+
+        self.assertEqual(second["previous_receipt"], first)
+        self.assertEqual((self.repo / "feature.txt").read_text(), "fixed\n")
+
     def test_receipt_snapshot_never_mutates_workspace_or_git_objects(self) -> None:
         """Display reads refuse uncertainty instead of creating locks or recovery writes."""
         root = self.base / "read-only receipt snapshot"
