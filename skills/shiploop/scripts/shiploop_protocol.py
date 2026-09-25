@@ -249,6 +249,7 @@ def main(core, argv=None):
         "improve-complete",
         "improve-reconcile",
         "next",
+        "status",
         "report",
         "context",
         "complete",

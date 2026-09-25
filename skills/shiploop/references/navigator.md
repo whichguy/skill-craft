@@ -41,6 +41,9 @@ result, including a justified N/A output. The planning producers (`spec`,
 `release-plan`) and the successful `carry-forward` that leaves no work item
 pending are then followed by the actual Improve skill; every other result is
 accepted on its own checks and the script selects the next producer directly.
+`static-checks` is the one inner stage that loops: it runs the bound Until Loop
+with a ShipLoop-authored quality contract, and ShipLoop accepts `done` only with
+a matching terminal packet ([quality loop](../SKILL.md#static-checks-quality-loop)).
 No stage contains a copied Improve policy or independently counts review passes.
 
 The graph describes order, not a substitute for engineering judgment. The prompt
@@ -383,12 +386,16 @@ omitted counts, short titles and a short blocking reason. Read `state.md` for
 the full queue/history and actual evidence for execution claims. Before
 `plan` and its child complete, the queue is provisional.
 
-The owner gives a concise **Done / Current / Pending / Blocked** update at
-start/recovery, each major completed step, queue changes or changed blockers.
-Group adjacent short stages. During long actions or waits, follow the host's
-update cadence with an actual observation, or the last known status and next
-check. Avoid duplicate reports for every callback, unchanged poll or delegated
-worker. This is communication guidance; the host chooses wording and timing.
+Every packet also carries the script-rendered [status block](status-display.md)
+between `=== ShipLoop status ===` and `=== end ShipLoop status ===`: where the
+run is, the phase and item maps, what was just accepted, what comes next, the
+item's plan sentence and the completed items. The owner shows that block to the
+user unchanged at start/recovery and after each callback, unless a host status
+hook (such as the Claude Code hook in the status-display guide) already showed
+it. The owner may add one line, for example an observed test run in progress;
+it does not paraphrase, reorder or extend the block. During long actions or
+waits, follow the host's update cadence with an actual observation, or the last
+known status and next check.
 
 Run to completion by default within the user's scope and existing authority.
 Emit these reports as intermediate updates and immediately continue the active
@@ -421,8 +428,10 @@ percent completion, elapsed execution or an ETA from a changing queue. Refresh
 after acceptance; future stage labels are context, not additional prompts.
 
 `report` uses the same escaped snapshot in its on-demand HTML output. Automatic
-`report.html` persistence remains limited to done/halted runs; this change adds
-no timer, dashboard refresh, state fields, progress file or traversal rules.
+`report.html` persistence remains limited to done/halted runs. Every saved
+transition also rewrites `status.md`, the derived copy of the status block, in
+the same transaction as `state.md`; `status` prints the block read-only. Neither
+adds a timer, state field or traversal rule.
 
 ## One shared INNER graph and per-item records
 

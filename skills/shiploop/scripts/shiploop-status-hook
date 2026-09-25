@@ -1,0 +1,12 @@
+#!/bin/sh
+# Claude Code PostToolUse hook: show ShipLoop's own status block to the user.
+# Cheap exit for every Bash call that did not print a ShipLoop status block;
+# never fails the tool call. See references/status-display.md.
+input=$(cat) || exit 0
+case $input in
+  *'=== ShipLoop status ==='*) ;;
+  *) exit 0 ;;
+esac
+dir=$(dirname "$0") || exit 0
+printf '%s' "$input" | python3 "$dir/shiploop_status_hook.py" 2>/dev/null
+exit 0

@@ -257,6 +257,18 @@ class Fixture(unittest.TestCase):
 
 
 class LintPassTests(Fixture):
+    def test_snapshot_skips_an_ignored_run_directory_inside_the_checkout(self):
+        """A literal exclude naming an ignored path makes ``add -A`` fail; the snapshot omits it."""
+        self.commit({".gitignore": "runs/\n", "a.py": "x = 1\n"})
+        run_dir = self.repo / "runs" / "r1"
+        run_dir.mkdir(parents=True)
+        (run_dir / "state.md").write_text("run state\n")
+        self.edit({"b.py": "y = 2\n"})
+        index = self.run_dir / "snapshot.index"
+        tree = lint.snapshot_tree(self.repo, run_dir, index)
+        names = git(self.repo, "ls-tree", "-r", "--name-only", tree).split()
+        self.assertEqual(sorted(names), [".gitignore", "a.py", "b.py"])
+
     def test_new_findings_are_separated_from_base_debt(self):
         self.commit({"a.py": "x = 1  # lint\n"})
         self.base()
@@ -899,11 +911,11 @@ class HookTests(Fixture):
             self.edit({"a.py": "x = 1\ny = 3\n"})
             self.assertIn("Status: stale. a.py changed after this pass", nav.render(CORE, self.run_dir, state))
             self.assertEqual(len(self.logged()), calls)
-            # A repeated static-checks entry is report-only.
-            self.edit({"a.py": "x = 1\ny = 3  # fixme\n"})
-            packet = complete(self.run_dir, state, dict(DONE, outcome="repeat"))
-            self.assertIn("auto-fix runs only on the work item's first static-checks entry", packet)
-            self.assertEqual((self.repo / "a.py").read_text(), "x = 1\ny = 3  # fixme\n")
+            # The bound Until Loop repeats the quality review, so the graph refuses repeat here.
+            before = (self.run_dir / "state.md").read_bytes()
+            with self.assertRaisesRegex(nav.NavigatorError, "static-checks accepts only done or blocked"):
+                complete(self.run_dir, state, dict(DONE, outcome="repeat"))
+            self.assertEqual((self.run_dir / "state.md").read_bytes(), before)
 
     def test_verify_entry_names_the_static_checks_auto_fix(self):
         """The planning-stage Improve completions pass through the hook; complete enters both lint stages."""
@@ -963,22 +975,24 @@ class HookTests(Fixture):
         self.assertIn(record["result_line"], packet)
         self.assertEqual(len(self.logged()), calls)
 
-    def test_mode_off_runs_nothing(self):
-        view = {"mode": "off", "status": "active", "stage": "static-checks", "action": "B", "workitem": "W1",
-                "items": ["W1"], "repo": str(self.repo)}
-        runner = mock.Mock(side_effect=AssertionError("run() must not be called"))
-        with mock.patch.object(lint, "lint_pass", side_effect=AssertionError("no pass")), \
-                mock.patch.object(lint, "_git", side_effect=AssertionError("no Git")):
-            self.assertEqual(lint.on_transition(self.run_dir, dict(view, action="A", items=[]), view,
-                                                command="shiploop", runner=runner), ({}, None))
-        runner.assert_not_called()
+    def test_mode_off_runs_no_linter_but_records_the_change_inventory(self):
+        """lint=off stops linters and auto-fix; the item base and inventory still serve the quality loop."""
         self.commit({"a.py": "x = 1\n"})
         self.start("off")
-        with self.patched_env():
+        with self.patched_env(), \
+                mock.patch.object(lint, "lint_pass", side_effect=AssertionError("no lint pass")):
             state = drive(self.run_dir, "static-checks", edit=self.edit_item)
         self.assertEqual(self.logged(), [])
-        self.assertFalse((self.run_dir / "lint").exists())
-        self.assertIn("ShipLoop lint: off (run option lint=off)", nav.render(CORE, self.run_dir, state))
+        action = nav.current_action(state)["id"]
+        self.assertTrue((self.run_dir / "lint" / "items" / "W1.md").is_file())
+        self.assertFalse((self.run_dir / "lint" / (action + ".md")).exists())
+        record = store.read_record(self.run_dir / lint.inventory_path(action))
+        self.assertEqual(record["status"], "ok")
+        self.assertEqual([(row["status"], row["path"]) for row in record["rows"]], [("M", "a.py")])
+        packet = nav.render(CORE, self.run_dir, state)
+        self.assertIn("ShipLoop lint: off (run option lint=off)", packet)
+        self.assertIn("Change inventory for W1", packet)
+        self.assertIn("  M a.py", packet)
 
     def test_saved_run_without_the_key_behaves_as_off_and_prints_nothing(self):
         self.commit({"a.py": "x = 1\n"})

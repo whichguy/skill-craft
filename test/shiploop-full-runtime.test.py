@@ -15,6 +15,7 @@ import hashlib
 import json
 import os
 from pathlib import Path
+import shlex
 import shutil
 import subprocess
 import sys
@@ -672,6 +673,8 @@ class FullRuntimeCompositionTests(unittest.TestCase):
             }
             if payload:
                 result.update(payload)
+            if stage == "static-checks":
+                result["evidence_refs"] = [self._run_quality_loop(shiploop, run, action_id)]
         if stage in COLD_RECOVERY_STAGES:
             before = (run / "state.md").read_bytes()
             recovery = self._run(self._script(shiploop), "next", "--run-dir", run)
@@ -686,6 +689,39 @@ class FullRuntimeCompositionTests(unittest.TestCase):
         self.assertIsNone(new_state["active_improve"])
         context = {"stage": stage, "action": action_id, "run": run, "shiploop": shiploop}
         return new_state, context
+
+    def _run_quality_loop(self, shiploop: Path, run: Path, action_id: str) -> str:
+        """Run the packet's bound Until Loop start command for one trivial iteration.
+
+        The ShipLoop packet names the runtime, the script-authored contract and
+        the terminal path; the real runtime issues the terminal packet that
+        ``complete`` then checks against that contract.
+        """
+        packet = self._run(self._script(shiploop), "next", "--run-dir", run).stdout
+        start = next(line for line in packet.splitlines() if line.startswith("Start: "))
+        words = shlex.split(start[len("Start: "):])
+        self.assertEqual(words[-2], "<")
+        argv, contract = words[:-2], words[-1]
+        self.assertEqual(argv[-1], "start")
+        self.assertEqual(json.loads(Path(contract).read_text())["required_trivial_reviews"], 1)
+        started = subprocess.run(argv, input=Path(contract).read_text(), text=True,
+                                 capture_output=True, timeout=30, check=True)
+        active = json.loads(started.stdout)
+        self.assertEqual(active["status"], "active")
+        report = {
+            "classification": "trivial", "exit_assessment": "satisfied",
+            "continuation_assessment": "allowed",
+            "evidence": "Synthetic quality iteration: no entry points changed; no semantic claim.",
+            "handoff": "Synthetic fixture run; nothing remains.",
+        }
+        finished = subprocess.run(active["done_argv"], input=json.dumps(report), text=True,
+                                  capture_output=True, timeout=30, check=True)
+        self.assertEqual(json.loads(finished.stdout)["status"], "complete")
+        terminal = next(line for line in packet.splitlines()
+                        if line.startswith("Save the terminal packet (stdout) to: "))
+        path = Path(terminal.split(": ", 1)[1])
+        path.write_text(finished.stdout)
+        return str(path)
 
     def _advance_stage(
         self,

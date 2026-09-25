@@ -178,6 +178,59 @@ OUTER = (
 
 STAGES = PRELUDE + INNER + OUTER
 
+# User-facing status display only: one plain purpose per stage and the INNER
+# stages grouped for the item map.  Neither is a prompt, graph, or state.
+STAGE_PURPOSE = {
+    "intake": "confirm the request, boundaries and open questions",
+    "discovery": "inspect the current repository, environment and baseline tests",
+    "research": "resolve the unknowns that matter with evidence",
+    "spec": "define required behavior and acceptance criteria",
+    "test-strategy": "map requirements to the checks that will prove them",
+    "plan": "build the dependency plan and the work-item queue",
+    "prepare": "ready the development and test environment",
+    "select-work": "confirm this work item is still the right next item",
+    "step-plan": "plan this item's concrete changes and checks",
+    "test-spec": "specify the tests this item needs before code changes",
+    "baseline": "record the relevant checks before any change",
+    "test-author": "write the tests the item's test spec calls for",
+    "test-red": "run the new tests and confirm they fail for the right reason",
+    "implement": "make the planned change",
+    "test-green": "run the focused tests and confirm they pass",
+    "test-refine": "tighten the tests against the actual implementation",
+    "regression": "rerun the retained suites for regressions",
+    "document": "update the documentation this change affects",
+    "skill-assess": "decide whether a reusable skill or helper change is warranted",
+    "skill-validate": "validate any skill or helper change against real inputs",
+    "static-checks": "run formatting, lint, type and build checks",
+    "verify": "verify the item against its acceptance criteria",
+    "integrate": "integrate the candidate into the working branch",
+    "integration-verify": "verify the integrated result and shared interfaces",
+    "carry-forward": "record lessons and revise the remaining queue",
+    "system-test-author": "prepare end-to-end and system tests",
+    "system-test": "run end-to-end and system tests on the real candidate",
+    "product-acceptance": "assess the product against the original outcome",
+    "release-plan": "plan the release, rollback and checks",
+    "release-check": "confirm release readiness without releasing",
+    "release": "perform the planned release",
+    "release-verify": "verify the release where consumers use it",
+    "operations": "confirm monitoring, recovery and support readiness",
+    "handoff": "write the final handoff with status and evidence",
+}
+
+INNER_GROUPS = (
+    ("Plan", ("select-work", "step-plan")),
+    ("Tests first", ("test-spec", "baseline", "test-author", "test-red")),
+    ("Build", ("implement", "test-green", "test-refine")),
+    ("Check", ("regression", "document", "skill-assess", "skill-validate",
+               "static-checks", "verify")),
+    ("Integrate", ("integrate", "integration-verify", "carry-forward")),
+)
+
+if set(STAGE_PURPOSE) != set(STAGES):
+    raise RuntimeError("STAGE_PURPOSE must describe exactly the navigator stages")
+if tuple(stage for _, group in INNER_GROUPS for stage in group) != INNER:
+    raise RuntimeError("INNER_GROUPS must cover INNER exactly, in order")
+
 # Rendered at these producer stages with the recursive-discovery locators.
 ENVIRONMENT_DISCOVERY_REQUIREMENTS = {
     "discovery": "Mandatory for this stage's relevant environment reads.",
@@ -401,9 +454,11 @@ for _facility_stage in TEST_FACILITY_STAGES:
 
 
 PROGRESS_REPORTING = """\
-Progress: report the saved Done / Current / Pending / Blocked snapshot at
-start/recovery and after each major completed step. Only the current owner reports
-overall progress. State labels say which action is assigned, not that work, tests, or
+Progress: show the user this packet's ShipLoop status block unchanged, from its
+begin marker through its end marker, at start/recovery and after each callback. Skip it only
+when a host status hook already showed this same block (it arrives as a system
+reminder). Do not paraphrase, reorder or extend it; add at most one line of your
+own. Only the current owner reports overall progress. State labels say which action is assigned, not that work, tests, or
 Improve iterations have occurred.  Describe Improve activity only from its own
 observed records; do not infer a review count, completion percentage, or ETA.
 Run to completion by default within scope and authority. Emit progress as an
@@ -549,35 +604,93 @@ RECONCILIATION_STAGES = frozenset(
 )
 
 
-IMPLEMENTATION_CONSTITUTION = """\
-Implementation constitution for this step:
-- Apply KISS/YAGNI: make the smallest sufficient change for the accepted
-  requirement; retain necessary error checks and documentation. Add no speculative
-  abstraction, fallback or configuration; a verified no-change outcome is valid.
-  Precision and necessary caveats take priority over advisory size targets.
-- Derive practices from the product purpose, current runtime/dependency and
-  interface contracts, repository conventions, applicable skills/MCP tools, and
-  supported library examples.  Record a justified departure; do not add a
-  dependency or integration merely because it is available.
-- Validate changed input and state boundaries before effects; check response
-  contracts as well as process/transport success. Preserve actionable failures,
-  proportional cleanup/recovery, and the original error type/cause/traceback;
-  diagnostics must never mask the original failure.
-- Reuse the existing debug control where available.  With debug enabled, emit
-  bounded, redacted before/after state summaries at major actions, including the
-  operation ID, important decisions, counts, state changes and failure outcome.
-  Avoid whole-state dumps and expensive diagnostic work while debug is disabled.
-- Before mutation or cleanup, capture safe stable context needed to explain an
-  exception: operation/phase, expected versus observed conditions, relevant IDs
-  and bounded state.  Keep sensitive values and duplicate stack traces out of
-  user-facing messages; retain concise internal context and causal detail.
-- Make changed files/modules, classes, public interfaces and non-obvious logic
-  understandable with concise, colocated documentation of purpose, preconditions,
-  outputs/errors, material effects/invariants, and rationale. Prefer clear names
-  and one authoritative
-  explanation over boilerplate or repeated narration. Add or preserve key tombstone
-  comments explaining why a removed approach must not return; keep no dead code.
+# One rubric for writing and reviewing code.  Implementation-stage packets,
+# the static-checks quality loop and the end-of-work Improve focus all carry
+# this exact text, so no packet names the rubric without also defining it.
+CODE_CRAFT = """\
+Code craft. Write for the next maintainer, a person or a model, who opens one
+file cold with no run history. Every rule serves that reader.
+1. Match the house. The repository's error types, validation helpers, docstring
+   style and logging come first; record any justified departure. Add no
+   dependency, option or fallback without a present need.
+2. Fail at the door. A function reachable from outside its module (exported
+   API, CLI handler, request or event handler, callback) checks its arguments
+   before any effect: required values present, type and shape, range or allowed
+   set, and consistency between arguments. Reject with the house error type,
+   naming the argument, the constraint and the received value (redacted when
+   sensitive). Code called only by validated code may trust its caller; say so
+   once where that is not obvious. Never swallow an error or substitute a
+   success default; keep the original cause when rethrowing.
+3. State the contract where it lives. A new file opens with one or two lines on
+   its purpose. A public function's docstring gives purpose, argument
+   constraints, return, errors raised and side effects. In a body, comment only
+   what the code cannot say: why this approach, an invariant, a workaround and
+   its trigger, a removed approach that must not return.
+4. Spend tokens on information. Delete comments that restate a name, signature
+   or the next line. No banners, change history or commented-out code. Prefer a
+   precise name to a comment and one authoritative explanation to several.
+5. Small, not thin. KISS and YAGNI limit features and abstractions. They never
+   remove an argument check, an error path or a contract docstring.
+6. Make failure diagnosable. Check a response's contract, not only transport
+   success. Before mutation or cleanup, keep the context that explains a
+   failure: operation, relevant IDs, expected versus observed. Errors name the
+   operation and that mismatch. Reuse the existing debug switch for short,
+   redacted state summaries at major actions, with no diagnostic work while it
+   is off. Keep secrets and duplicate stack traces out of user-facing messages.
+7. Write text that can be translated. User-facing messages go through the
+   repository's message catalog or i18n helper when one exists; otherwise keep
+   each message one whole sentence with named placeholders, never assembled
+   from fragments, so it can be externalized later. Format numbers, dates,
+   currency and plurals through locale-aware APIs. Keep log text, error codes
+   and machine identifiers stable and untranslated.
 """
+
+
+# The static-checks quality loop runs on the Until Loop bound to the selected
+# Improve card.  ShipLoop writes these three texts into the loop contract
+# verbatim; the Until Loop script counts iterations and ends the loop, and
+# ShipLoop checks the saved terminal packet against them before accepting.
+QUALITY_LOOP_LIMIT = 3
+
+QUALITY_ITERATION = """\
+One quality iteration over this work item's change. Scope: the change
+inventory in context, plus tests for those files.
+1. Checks. On the first iteration, run the step plan's focused tests and the
+   selected formatting, lint, type, build and static-analysis checks, recording
+   each command and exit code. Later iterations start from the previous
+   iteration's final check results in the handoff.
+2. Inventory. List every new or changed public entry point in scope: exported
+   function, CLI handler, request or event handler, callback.
+3. Trace. For each entry point, walk one valid, one boundary and one invalid
+   input through the code, branch by branch, to its return value, raised error
+   or side effect. Compare each path with the accepted step plan and
+   requirements, and record a one-line trace per path. A path that is wrong,
+   unhandled or untested is a finding; add a test for an untested path.
+4. Review against the Code craft rubric: each entry point's argument checks and
+   contract docstring, then the rest of the change for missing error paths,
+   silent failures, comments that restate code, stale comments, dead code, and
+   user-facing text that is concatenated or bypasses the repository's catalog.
+5. Classify. Material: wrong behavior on a traced path; a missing or wrong
+   argument check, contract, error path or test; a failing check; a misleading
+   comment. Trivial: wording, ordering, a sharper name. Do not reopen a finding
+   an earlier iteration fixed unless its code changed again.
+6. Fix every finding within scope, changing the work and never a check or its
+   expected result. If anything changed, rerun the step 1 checks once and
+   record the results in the handoff.
+Classify this iteration trivial only when it found no material finding.
+"""
+
+QUALITY_EXIT_CONDITION = (
+    "A complete iteration found only trivial findings or none, applied them, and "
+    "the step's focused tests and static checks pass on the final candidate."
+)
+
+QUALITY_REPEAT_CONDITION = (
+    "Repeat while the latest iteration fixed a material finding and its checks ran. "
+    "Stop cancelled when iteration " + str(QUALITY_LOOP_LIMIT) + " still finds a "
+    "material finding, naming it. Stop blocked when a finding cannot be fixed within "
+    "the scope or authority in context, or a required check cannot run."
+)
 
 
 DUTIES = {
@@ -904,7 +1017,9 @@ correction need; do not skip it or advance to carry-forward to repair the queue.
 conditions before relying on an earlier convention or environment decision.
 """,
     "step-plan": """\
-Turn the selected item into a bounded implementation plan.  Name target files
+Turn the selected item into a bounded implementation plan.  Open the result
+summary with one sentence naming the concrete change and the checks that will
+prove it; the status display shows that sentence.  Name target files
 and interfaces, behavior and failure cases, tests/fixtures/commands, existing
 conventions and reusable capabilities, diagnostic/error-handling obligations,
 documentation changes, integration impact, and required checks.  Revalidate
@@ -934,7 +1049,11 @@ sufficient. Give content criteria (docs, changelogs, test coverage) a
 command-checkable confirmation, such as a search for required terms, so they are
 re-observed rather than recalled. Mark a criterion that no available check can
 confirm as `Confirm by: unconfirmable here — <what would confirm it>` rather
-than dropping it. When a check relies on an external oracle (golden, fixture, or
+than dropping it. When the item adds or changes a public entry point, include
+this criterion: each such entry point checks its arguments and carries a contract
+docstring (Code craft 2-3). Confirm by: inspecting the diff for each entry point
+and running its rejection tests; pass when every entry point has both.
+When a check relies on an external oracle (golden, fixture, or
 snapshot), confirm that the oracle agrees with the task.
 Use the Repository-local skill guidance. Reopen the repo's current skill index or
 README/AGENTS links, even if earlier context reported no fit: a preceding item may
@@ -1006,6 +1125,9 @@ the oracle.  A test specification is not execution evidence.
 Preserve every assigned clause and its required surface and due phase. Specify
 the action and expected observable outcome for each distinct behavior, not only
 that its page loads. Link later-phase procedures without claiming they ran here.
+For each new or changed public entry point, specify one rejection case per
+constraint it checks (missing, wrong type or shape, out of range), asserting the
+error type, the named argument and unchanged state.
 Specify setup, test/assertions, and teardown together, or state why a stateless
 case needs no setup or teardown. Reuse fixture code without assuming mutable
 state is shareable. Share expensive setup only with demonstrated noninterference;
@@ -1034,6 +1156,8 @@ specification before production implementation.  Preserve adequate coverage and
 keep experiments isolated.  Do not weaken or delete an assertion merely to make
 the eventual candidate pass; record a justified N/A only where test-first work
 cannot apply and name the alternative evidence.
+Author the specified rejection cases for each public entry point; they are
+executable tests, not comments.
 Retain tests and fixtures in the repository. Register each case in the full
 regression route and applicable focused entry points; decide smoke membership
 independently without duplicating tests. Follow the Repeatable
@@ -1063,8 +1187,8 @@ when a test fails or a concrete open question needs a specific section; history
 before the first edit belongs to plan review, not to implementing a listed file set.
 Reopen Target-native test selection when actual local/remote code, configuration,
 dependencies or delivery route changes invalidate the earlier test decision.
-Apply the planned behavior, error handling, opt-in diagnostics, exception context,
-and concise code contracts.  Do not claim verification from an edit alone.
+Apply the planned behavior and the Code craft rubric below.  Do not claim
+verification from an edit alone.
 Exit criteria: the accepted step plan's completion criteria are this action's
 exit criteria. It is finished only when you have confirmed each one as far as
 this environment allows.
@@ -1213,13 +1337,28 @@ reuse claim needs a fresh-reader trial using only the repo index, skill and new
 task; otherwise record that cold-context reuse remains untested.
 """,
     "static-checks": """\
-Run the selected formatting, lint, type, build, packaging, and static analysis
-checks for the current candidate.  Inspect failures, make only justified repairs,
-and rerun affected checks.  State any required unrun check, why it is unavailable,
-and the condition for completing it rather than treating partial green as done.
-A ShipLoop lint block after this packet's callback is supporting output, not this
-step's evidence: read it, keep or revert any auto-fix it names, and still select and
-run this step's own checks.
+Purpose: run this work item's quality loop on the bound Until Loop. ShipLoop
+wrote the loop contract; the Until Loop script counts iterations and decides
+when the loop ends; you execute each iteration and report it honestly.
+Inputs: the Quality loop lines below (Until Loop card, start command, contract,
+packet paths), the change inventory, and the ShipLoop lint block if present.
+Do:
+1. Read the bound Until Loop card in full once per context and follow it. Start
+   the run with the printed command. Do not edit, retype or extend the contract.
+2. Execute each returned iteration exactly as its work says, then call its done
+   command. Save every returned packet from stdout to the printed latest-packet
+   path, so a reset can recover the run through its next_argv. Continue until
+   the runtime returns complete or stopped.
+3. Save the terminal packet, byte for byte from stdout, to the printed terminal
+   path and list that path in evidence_refs.
+Report: done when the loop completed; blocked when it stopped, naming the
+unresolved findings for plan revision. Summarize the entry-point inventory, each
+trace that found an issue, the fixes, and the final check commands with exit
+codes. ShipLoop refuses this result unless the saved terminal packet matches the
+contract and outcome. State any required unrun check and why it could not run.
+A ShipLoop lint block is supporting output, not this step's evidence: read it,
+keep or revert any auto-fix it names, and still run the step's own checks inside
+the loop.
 """,
     "verify": """\
 Verify the complete work item against its acceptance criteria and current evidence.
@@ -1230,6 +1369,8 @@ Use the Coding decision guide to compare the actual diff and affected consumers
 with the accepted plan, justified revisions and selected practice/platform checks.
 Preserve any required real-boundary gap; a pattern name or tool pass is not proof
 of the behavior it did not exercise.
+Check the static-checks quality loop's entry-point inventory against the actual
+diff; an entry point missing from it has not been traced or reviewed.
 Check the implement result's per-criterion receipt against each completion
 criterion of the accepted step plan, and independently rerun or inspect each
 criterion's confirmation. Do not accept the item when a confirmable criterion
@@ -1310,6 +1451,8 @@ applicable.  A justified N/A records why that boundary does not apply; it does n
 erase a required external check with missing access.
 Integrate retained INNER cases with the repeatable full-suite entry point; retain
 the smoke selection and new system cases without copying tests into another suite.
+Each new test file names the requirement or test IDs it covers in its opening
+lines, and shared test helpers check their arguments.
 Review shared setup cost, independent assertions, isolation and failure teardown
 using the Repeatable test-suite guide. Verify actual discovery and rerun commands.
 Author/version remote-resident definitions and registration when the remote
@@ -1772,7 +1915,7 @@ def prompt(stage: str, *, delegation: str = ASK_AGENT) -> str:
     if stage in RECONCILIATION_STAGES:
         parts.append(SELECTED_CASE_RECONCILIATION)
     if stage in IMPLEMENTATION_STAGES:
-        parts.append(IMPLEMENTATION_CONSTITUTION)
+        parts.append(CODE_CRAFT)
     parts.append(PROGRESS_REPORTING)
     return "\n\n".join(parts)
 
@@ -1805,6 +1948,15 @@ end. Look for these conditions and fix them within scope:
 Do not reread history or rerun a check already recorded green at this commit
 unless a finding depends on it. A pass that finds none of these is trivial.
 """
+
+
+END_REVIEW_FOCUS = """\
+End-of-work code review focus. Across every executed work item's change, trace
+each new or changed public entry point with a valid, a boundary and an invalid
+input, then review the change against the rubric below. Fix violations within
+scope. A pass that finds no material violation is trivial.
+
+""" + CODE_CRAFT
 
 
 def improve_prompt(stage: str, *, delegation: str = ASK_AGENT) -> str:
@@ -2031,19 +2183,26 @@ __all__ = (
     "COMMON",
     "DELEGATIONS",
     "DUTIES",
+    "END_REVIEW_FOCUS",
     "ENVIRONMENT_DISCOVERY_REQUIREMENTS",
-    "IMPLEMENTATION_CONSTITUTION",
+    "CODE_CRAFT",
     "IMPLEMENTATION_STAGES",
     "IMPROVE_PROMPTS",
     "IMPROVE_SCOPES",
     "INLINE",
     "INNER",
+    "INNER_GROUPS",
     "OUTER",
     "PLANNING_REVIEW_FOCUS",
     "PLANNING_REVIEW_STAGES",
+    "QUALITY_EXIT_CONDITION",
+    "QUALITY_ITERATION",
+    "QUALITY_LOOP_LIMIT",
+    "QUALITY_REPEAT_CONDITION",
     "PRELUDE",
     "PROGRESS_REPORTING",
     "PROMPTS",
+    "STAGE_PURPOSE",
     "STAGE_REFERENCES",
     "STAGES",
     "duty",

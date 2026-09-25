@@ -17,6 +17,7 @@ inside its Markdown file, and there is no writable JSON mirror.
 | `improve/<action>/` | The imported Improve child record for one parent action: its receipt, terminal packet, the two trivial-pass review files and copied evidence. |
 | `workspace.md`, `return-plan.md`, `return-receipt.md` | For workspace runs (in the workspace root): the original checkout, branch and baseline, the reviewed return plan and the guarded return receipt that completion requires. |
 | `report.html` | Derived report written for done and halted runs; not workflow state. |
+| `status.md` | Derived copy of the user-facing [status block](status-display.md), rewritten by every saved transition in the same transaction as `state.md`; not workflow state. |
 | `lint/` | Script-owned lint output, never exit-criteria evidence: per-item base snapshots (`items/`), per-action records and patches, byte-exact tool logs (`logs/`, mode 0600), scratch space (`tmp/`) and pending fix journals. See the [lint catalog](lint-catalog.md). |
 
 The live Improve child keeps its own receipt at

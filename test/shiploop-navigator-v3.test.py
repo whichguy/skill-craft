@@ -1699,7 +1699,8 @@ class NavigatorV3Tests(unittest.TestCase):
         submitted = result(summary="Synthetic intake result.")
         updated = navigator.apply(state, action["id"], submitted)
         self.assertEqual(navigator.current_stage(updated), "discovery")
-        expected_targets = (f"results/{action['id']}.md", "state.md")
+        expected_targets = (f"results/{action['id']}.md", "state.md", "status.md")
+        expected_status = "```text\n" + navigator.status_block(updated) + "\n```\n"
         core = SimpleNamespace(PACKAGE_ROOT=SCRIPTS.parent)
         real_transaction = store.transaction
 
@@ -1735,6 +1736,8 @@ class NavigatorV3Tests(unittest.TestCase):
                 self.assertFalse((root / "transaction.md").exists())
                 recovered = store.read_record(root / "state.md")
                 self.assertEqual(recovered, updated)
+                # The derived status copy rolls forward with the state it describes.
+                self.assertEqual((root / "status.md").read_text(encoding="utf-8"), expected_status)
                 receipt_record = store.read_record(root / "results" / f"{action['id']}.md")
                 self.assertEqual(receipt_record["navigator_protocol_version"], 4)
                 self.assertIsNone(receipt_record["workitem"])
@@ -1765,6 +1768,8 @@ class NavigatorV3Tests(unittest.TestCase):
         self.assertFalse((cli_root / "transaction.md").exists())
         self.assertEqual(store.read_record(cli_root / "state.md"), updated)
         self.assertIn("ShipLoop navigator | discovery | revision 1", status.stdout)
+        self.assertEqual((cli_root / "status.md").read_text(encoding="utf-8"), expected_status)
+        self.assertIn(navigator.status_block(updated), status.stdout)
 
         outside = Path(self.temp.name) / "outside"
         outside.mkdir()
