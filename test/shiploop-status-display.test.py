@@ -368,10 +368,17 @@ class StatusHookTests(unittest.TestCase):
             "codex": lambda command, out: {"hook_event_name": "PostToolUse", "tool_name": "Bash",
                                            "tool_input": {"command": command},
                                            "tool_response": {"output": out}},
-            "grok": lambda command, out: {"hookEventName": "PostToolUse", "toolName": "run_terminal_command",
-                                          "toolInput": {"command": command},
-                                          "toolResult": {"command": command, "exit_code": 0,
-                                                         "output_for_prompt": out}},
+            # Grok 1.0.41's real payload (captured live): camelCase keys plus
+            # snake_case aliases, and the raw output as a list of byte values.
+            "grok": lambda command, out: {
+                "hookEventName": "PostToolUse", "hook_event_name": "PostToolUse",
+                "toolName": "run_terminal_command", "tool_name": "run_terminal_command",
+                "toolInput": {"command": command}, "tool_input": {"command": command},
+                "toolResult": {"command": command, "exit_code": 0, "output": list(out.encode()),
+                               "output_for_prompt": out, "truncated": False, "type": "run_terminal_command"},
+                "tool_response": {"command": command, "exit_code": 0, "output": list(out.encode()),
+                                  "output_for_prompt": out, "truncated": False, "type": "run_terminal_command"},
+                "isBackgrounded": False},
             "cursor": lambda command, out: {"hook_event_name": "afterShellExecution",
                                             "command": command, "output": out, "duration": 5},
         }

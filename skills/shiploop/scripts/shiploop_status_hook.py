@@ -84,8 +84,12 @@ def _output(response: Any, *keys: str) -> str | None:
         return response
     if isinstance(response, dict):
         for key in keys:
-            if isinstance(response.get(key), str):
-                return response[key]
+            value = response.get(key)
+            if isinstance(value, str):
+                return value
+            # Grok sends a shell command's raw output as a list of byte values.
+            if isinstance(value, list) and value and all(isinstance(b, int) and 0 <= b < 256 for b in value):
+                return bytes(value).decode("utf-8", "replace")
     return None
 
 
@@ -99,19 +103,21 @@ def shell_call(payload: Any) -> tuple[str, str, str] | None:
     """Return (host, command, output) from a host's after-shell hook payload."""
     if not isinstance(payload, dict):
         return None
-    if "tool_name" in payload:  # Claude Code and Codex share this shape.
-        tool_input = payload.get("tool_input")
-        if payload.get("tool_name") != "Bash" or not isinstance(tool_input, dict):
-            return None
-        host, command = "claude-or-codex", tool_input.get("command")
-        output = _output(payload.get("tool_response"), "stdout", "output")
-    elif "toolName" in payload:  # Grok.
+    # Grok also sends snake_case aliases (tool_name, tool_response), so its
+    # camelCase keys are checked before the Claude/Codex shape.
+    if "toolName" in payload:  # Grok.
         tool_input = payload.get("toolInput")
         if payload.get("toolName") not in ("run_terminal_command", "Bash") or not isinstance(tool_input, dict):
             return None
         host, command = "grok", tool_input.get("command")
         output = _output(payload.get("toolResult", payload.get("tool_response")),
-                         "output_for_prompt", "stdout", "output")
+                         "output", "output_for_prompt", "stdout")
+    elif "tool_name" in payload:  # Claude Code and Codex share this shape.
+        tool_input = payload.get("tool_input")
+        if payload.get("tool_name") != "Bash" or not isinstance(tool_input, dict):
+            return None
+        host, command = "claude-or-codex", tool_input.get("command")
+        output = _output(payload.get("tool_response"), "stdout", "output")
     elif "command" in payload and "output" in payload:  # Cursor afterShellExecution.
         host, command, output = "cursor", payload.get("command"), _output(payload.get("output"))
     else:
