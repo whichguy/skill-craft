@@ -29,8 +29,10 @@ create a separate model session. Shell model-CLI launching belongs only to the e
 E2E harness, not normal ShipLoop CLI operation. Optional bound implementation
 chains, available only on ask-agent runs, may still use a selected compatible
 Ask-Agent adapter through host-native delegation; inline runs execute reviewed
-steps directly in the main conversation. The former `drive` command and model
-transports are removed.
+steps directly in the main conversation. The `shiploop` CLI never launches a
+model: the former `drive` command and model transports are removed. The optional
+[keepalive](#keepalive-keep-a-run-moving) driver, `scripts/shiploop-drive`, is a
+separate script you start yourself.
 
 Install and update ShipLoop and its selected Improve dependency through your
 host's configured marketplace. Keep one discovered installation of each skill;
@@ -110,6 +112,28 @@ explicit in-place/non-Git use.
 Navigation completion records the host's declared result; it does not certify
 tests or deployment. Workspace-mode completion additionally requires its actual
 local return receipt, not just a host assertion that integration happened.
+
+## Keepalive: keep a run moving
+
+A host ends its turn when the model decides to, even while the run has work it
+can do. Keepalive hooks ask `shiploop hook-status` at each turn end and, while the
+run is active and progressing, refuse the stop and name the run's next command.
+A marketplace install of the ShipLoop plugin brings the hooks with it for Claude
+Code, Grok, Codex and Cursor. A skill-directory install adds them with
+`scripts/shiploop-hook install --host HOST` (the only route for OpenCode);
+`install.sh` never writes host hook config.
+
+- Only one session per run, its owner, is kept alive; a parallel worker or a
+  second terminal on the same run is let go. Ownership passes on when the
+  owner's turn ends.
+- A user stops the run by asking to stop or pause; a question about the loop does
+  not stop it. `SHIPLOOP_KEEPALIVE=off` disables the hooks.
+- For unattended runs, `scripts/shiploop-drive --host HOST --run-dir RUN -- HOST_ARGS`
+  starts or resumes host sessions until the run is done, paused, blocked or stuck.
+  Cursor (`cursor-agent -p`) and OpenCode (`opencode run`) need it; their headless
+  modes cannot be kept going from inside.
+
+Details, host table and decision log: [keepalive](references/keepalive.md).
 
 ## Navigator: producer, Improve child, then transition
 
@@ -912,6 +936,10 @@ shiploop lint-mode --run-dir RUN --set=fix|report|off      # later lint passes
 shiploop lint     --run-dir RUN --action ACTION [--show --part N [--rerun N]]   # advisory; never gates
 # Implementation chains within the current implement action (ask-agent runs)
 shiploop chain {bind,planning-inputs,next,history,pending,claim,start,launched,import-handoff,prepare,done,retry,packet,cleanup,finish} ...
+# Keepalive (see references/keepalive.md)
+shiploop hook-status --run-dir RUN                        # read-only JSON; never locks or writes
+scripts/shiploop-hook install|status|uninstall --host HOST [--dry-run]
+scripts/shiploop-drive --host HOST --run-dir RUN [--max-sessions N] [--session-timeout S] [-- HOST_ARGS]
 # Inspection without project work
 shiploop graph-dry-run [--list] [--scenario NAME | --script STEPS.json] [--delegation=inline|ask-agent] [--format=summary|json|markdown]
 ```

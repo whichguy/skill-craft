@@ -1,0 +1,15 @@
+{
+  "session_id": "__SESSION__",
+  "transcript_path": "/tmp/shiploop-keepalive-fixture",
+  "cwd": "/tmp/shiploop-keepalive-fixture",
+  "prompt_id": "d01b7156-4f96-4f50-afc5-60b77b471537",
+  "permission_mode": "auto",
+  "effort": {
+    "level": "high"
+  },
+  "hook_event_name": "Stop",
+  "stop_hook_active": false,
+  "last_assistant_message": "Stage 1 of 4 (alpha) complete \u2014 appended \"alpha\" to work.log and marked it done; run stays active for the next stage.",
+  "background_tasks": [],
+  "session_crons": []
+}

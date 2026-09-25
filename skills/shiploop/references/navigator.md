@@ -408,7 +408,8 @@ that prevents further authorized work. Resolve recoverable conditions within
 scope through the printed resume route; ask only for actually missing decisions,
 authority, or access. Paused, blocked, halted and done packets retain their
 existing boundaries. Reporting itself neither advances nor pauses the graph,
-and ShipLoop cannot keep a host process alive or force another tool call.
+and the script cannot keep a host process alive or force another tool call; the
+optional [keepalive hooks and driver](keepalive.md) do that from the host side.
 
 For example, after W1's accepted carry-forward and W2's accepted `document`
 result, the next packet assigns W2 `skill-assess`. A synthetic user update could

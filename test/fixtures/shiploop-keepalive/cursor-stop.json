@@ -1,0 +1,14 @@
+{
+  "session_id": "__SESSION__",
+  "conversation_id": "__SESSION__",
+  "generation_id": "__SESSION__",
+  "cursor_version": "2026.09.18-9a7762b",
+  "model": "default",
+  "transcript_path": "/tmp/shiploop-keepalive-fixture",
+  "workspace_roots": [
+    "/tmp/shiploop-keepalive-fixture"
+  ],
+  "hook_event_name": "stop",
+  "status": "completed",
+  "loop_count": 0
+}

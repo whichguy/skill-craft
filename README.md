@@ -123,6 +123,12 @@ Hermes card install is skipped (the engine owns `software-development/devloop`).
 
 `dest` is the source leaf. Leaf `devloop` skips Hermes so it cannot overwrite the engine.
 
+`install.sh` never writes host hook config. A marketplace install carries a skill's hooks:
+its `host-hooks.json` is generated into each host's plugin hook file, which Claude Code,
+Grok, Codex and Cursor load with the plugin. For a skill-directory install, ShipLoop's
+own `scripts/shiploop-hook install --host HOST` registers its
+[keepalive](skills/shiploop/references/keepalive.md) hooks. Use one route per host.
+
 With `--agents`: `~/.claude/agents/<leaf>.md` and `~/.grok/agents/<leaf>.md` when present.
 Re-running install refreshes managed Hermes copies; foreign Hermes trees print `Skipped (foreign)`.
 

@@ -420,6 +420,10 @@ decision, authority, or access that is actually missing. Preserve paused,
 blocked, halted, and child-owner boundaries. If the host interrupts execution,
 retain the recovery locators and resume the same run when execution resumes.
 
+With [keepalive](references/keepalive.md) installed, the host refuses to end a
+turn while the run is active; follow the refusal's named next command. A
+question about the loop is not a stop: answer it and continue the packet.
+
 1. The owning agent reads the original goal, repository, current work item,
    relevant durable notes and the stage's instructions. The packet identifies
    one effective node, its owner, and exactly one completion callback. During

@@ -307,11 +307,11 @@ pass_sync "leaf views are exact; stale entries reported and removed"
 hooks_json() { python3 -c 'import json,sys; print(json.dumps(json.load(open(sys.argv[1])), sort_keys=True))' "$1"; }
 [[ "$(ls plugins/shiploop/hooks)" == $'codex.json\ncursor.json\nhooks.json' ]] \
   || fail "plugins/shiploop/hooks is not exactly the three generated host files"
-[[ "$(hooks_json plugins/shiploop/hooks/hooks.json)" == '{"hooks": {"PostToolUse": [{"hooks": [{"command": "\"${CLAUDE_PLUGIN_ROOT}/skills/shiploop/scripts/shiploop-status-hook\"", "timeout": 10, "type": "command"}], "matcher": "Bash"}]}}' ]] \
+[[ "$(hooks_json plugins/shiploop/hooks/hooks.json)" == '{"hooks": {"PostToolUse": [{"hooks": [{"command": "\"${CLAUDE_PLUGIN_ROOT}/skills/shiploop/scripts/shiploop-status-hook\"", "timeout": 10, "type": "command"}, {"command": "\"${CLAUDE_PLUGIN_ROOT}/skills/shiploop/scripts/shiploop-keepalive-observe\"", "timeout": 30, "type": "command"}], "matcher": "Bash"}], "Stop": [{"hooks": [{"command": "\"${CLAUDE_PLUGIN_ROOT}/skills/shiploop/scripts/shiploop-keepalive-stop\"", "timeout": 30, "type": "command"}]}]}}' ]] \
   || fail "Claude/Grok hook file content"
-[[ "$(hooks_json plugins/shiploop/hooks/codex.json)" == '{"hooks": {"PostToolUse": [{"hooks": [{"command": "\"$PLUGIN_ROOT/skills/shiploop/scripts/shiploop-status-hook\"", "timeout": 10, "type": "command"}], "matcher": "Bash"}]}}' ]] \
+[[ "$(hooks_json plugins/shiploop/hooks/codex.json)" == '{"hooks": {"PostToolUse": [{"hooks": [{"command": "\"$PLUGIN_ROOT/skills/shiploop/scripts/shiploop-status-hook\"", "timeout": 10, "type": "command"}, {"command": "\"$PLUGIN_ROOT/skills/shiploop/scripts/shiploop-keepalive-observe\"", "timeout": 30, "type": "command"}], "matcher": "Bash"}], "Stop": [{"hooks": [{"command": "\"$PLUGIN_ROOT/skills/shiploop/scripts/shiploop-keepalive-stop\"", "timeout": 30, "type": "command"}]}]}}' ]] \
   || fail "Codex hook file content"
-[[ "$(hooks_json plugins/shiploop/hooks/cursor.json)" == '{"hooks": {"afterShellExecution": [{"command": "\"${CURSOR_PLUGIN_ROOT}/skills/shiploop/scripts/shiploop-status-hook\"", "timeout": 10}]}, "version": 1}' ]] \
+[[ "$(hooks_json plugins/shiploop/hooks/cursor.json)" == '{"hooks": {"afterShellExecution": [{"command": "\"${CURSOR_PLUGIN_ROOT}/skills/shiploop/scripts/shiploop-status-hook\"", "timeout": 10}, {"command": "\"${CURSOR_PLUGIN_ROOT}/skills/shiploop/scripts/shiploop-keepalive-observe\"", "timeout": 30}], "stop": [{"command": "\"${CURSOR_PLUGIN_ROOT}/skills/shiploop/scripts/shiploop-keepalive-stop\"", "loop_limit": 50, "timeout": 30}]}, "version": 1}' ]] \
   || fail "Cursor hook file content"
 grep -q '"hooks": "./hooks/codex.json"' plugins/shiploop/.codex-plugin/plugin.json || fail "Codex manifest hooks field"
 grep -q '"hooks": "./hooks/cursor.json"' plugins/shiploop/.cursor-plugin/plugin.json || fail "Cursor manifest hooks field"

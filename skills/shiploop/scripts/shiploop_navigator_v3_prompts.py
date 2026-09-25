@@ -467,9 +467,15 @@ while authorized runnable work remains. Do not wait for acknowledgement, ask
 whether to continue, or end the turn merely to deliver a report. Follow the exact
 callback and its returned packet, including a bound Improve child; a producer's
 done or a child's completion is not run completion. Respect explicit user stops
-and paused/blocked/halted/done states. A user message about this skill, the loop,
-its cost, or saying not to implement is a stop for product work: answer it, run the
-current packet's pause command, and resume only on an explicit continue; resolve recoverable conditions through the
+and paused/blocked/halted/done states. A user message that asks to stop or pause,
+or says not to implement, is a stop for product work: run the current packet's pause
+command, answer it, and resume only on an explicit continue. A question or comment
+about this skill, the loop, its progress or its cost is not a stop: answer it
+briefly and keep following the current packet. Do not pause on your own to ask
+whether the run is worth continuing or to confirm the process for a small task;
+the user's request already authorizes the run. If a host keepalive hook refuses to
+end the turn, its reason names this run's next command: run it and follow the
+packet. Resolve recoverable conditions through the
 printed route and ask only for an actually missing decision, authority, or access.
 """
 

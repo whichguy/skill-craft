@@ -255,7 +255,12 @@ function readSkillFrontmatter(leaf) {
 // hooks; each host gets its own generated file, in its own format and plugin
 // root variable, and may only run an executable in the skill's own scripts/.
 const HOOK_HOSTS = ["claude", "codex", "cursor", "grok"];
-const HOOK_EVENTS = new Set(["after-shell"]);
+// after-shell: after a shell command. turn-end: when the host is about to end
+// the agent's turn (Claude-format Stop; Cursor stop).
+const HOOK_EVENTS = new Set(["after-shell", "turn-end"]);
+// Cursor stops re-prompting after loop_limit follow-ups (default 5); a turn-end
+// hook owns its own loop limits, so the host limit is only a backstop.
+const CURSOR_TURN_END_LOOP_LIMIT = 50;
 const HOOK_ID_RE = /^[a-z0-9]([a-z0-9-]*[a-z0-9])?$/;
 const HOOK_SCRIPT_RE = /^scripts\/[A-Za-z0-9._-]+$/;
 const HOOK_FILES = {
@@ -313,14 +318,15 @@ function buildHostHooks(leaf, decl) {
   if (!decl) return {};
   const files = {};
   const command = (variable, hook) => `"${variable}/skills/${leaf}/${hook.script}"`;
-  const claudeShaped = (variable, hooks) => ({
-    hooks: {
-      PostToolUse: [{
-        matcher: "Bash",
-        hooks: hooks.map((hook) => ({ type: "command", command: command(variable, hook), timeout: hook.timeout })),
-      }],
-    },
-  });
+  const entry = (variable, hook) => ({ type: "command", command: command(variable, hook), timeout: hook.timeout });
+  const claudeShaped = (variable, hooks) => {
+    const shell = hooks.filter((hook) => hook.event === "after-shell");
+    const turnEnd = hooks.filter((hook) => hook.event === "turn-end");
+    const events = {};
+    if (shell.length) events.PostToolUse = [{ matcher: "Bash", hooks: shell.map((hook) => entry(variable, hook)) }];
+    if (turnEnd.length) events.Stop = [{ hooks: turnEnd.map((hook) => entry(variable, hook)) }];
+    return { hooks: events };
+  };
   const forHost = (...hosts) => decl.hooks.filter((hook) => hosts.some((h) => hook.hosts.includes(h)));
   const claude = forHost("claude", "grok");
   if (claude.length) files[HOOK_FILES.claude] = claudeShaped("${CLAUDE_PLUGIN_ROOT}", claude);
@@ -328,14 +334,21 @@ function buildHostHooks(leaf, decl) {
   if (codex.length) files[HOOK_FILES.codex] = claudeShaped("$PLUGIN_ROOT", codex);
   const cursor = forHost("cursor");
   if (cursor.length) {
-    files[HOOK_FILES.cursor] = {
-      version: 1,
-      hooks: {
-        afterShellExecution: cursor.map((hook) => ({
-          command: command("${CURSOR_PLUGIN_ROOT}", hook), timeout: hook.timeout,
-        })),
-      },
-    };
+    const events = {};
+    const shell = cursor.filter((hook) => hook.event === "after-shell");
+    const turnEnd = cursor.filter((hook) => hook.event === "turn-end");
+    if (shell.length) {
+      events.afterShellExecution = shell.map((hook) => ({
+        command: command("${CURSOR_PLUGIN_ROOT}", hook), timeout: hook.timeout,
+      }));
+    }
+    if (turnEnd.length) {
+      events.stop = turnEnd.map((hook) => ({
+        command: command("${CURSOR_PLUGIN_ROOT}", hook), timeout: hook.timeout,
+        loop_limit: CURSOR_TURN_END_LOOP_LIMIT,
+      }));
+    }
+    files[HOOK_FILES.cursor] = { version: 1, hooks: events };
   }
   return files;
 }

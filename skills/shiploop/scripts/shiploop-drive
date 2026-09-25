@@ -1,0 +1,14 @@
+#!/usr/bin/env python3
+"""shiploop-drive — start or resume host sessions until a ShipLoop run stops moving.
+
+  shiploop-drive --host HOST --run-dir DIR [--max-sessions N] [--session-timeout S] [-- HOST ARGS]
+"""
+
+import sys
+from pathlib import Path
+
+sys.path.insert(0, str(Path(__file__).resolve().parent))
+import shiploop_keepalive  # noqa: E402
+
+if __name__ == "__main__":
+    sys.exit(shiploop_keepalive.drive_main())

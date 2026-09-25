@@ -1,0 +1,19 @@
+{
+  "hookEventName": "stop",
+  "sessionId": "__SESSION__",
+  "cwd": "/tmp/shiploop-keepalive-fixture",
+  "workspaceRoot": "/tmp/shiploop-keepalive-fixture",
+  "timestamp": "2026-09-25T19:52:44.742314+00:00",
+  "transcriptPath": "/tmp/shiploop-keepalive-fixture",
+  "promptId": "582233ae-ac7d-4b20-a8fe-6c995a8b0719",
+  "permissionMode": "bypassPermissions",
+  "reason": "end_turn",
+  "stopHookActive": false,
+  "lastAssistantMessage": "Stage 1 of 4 (alpha) is done: `alpha` was appended to `work.log` and the stage was accepted at revision 1.",
+  "backgroundTasks": [],
+  "sessionCrons": [],
+  "hook_event_name": "Stop",
+  "session_id": "__SESSION__",
+  "transcript_path": "/tmp/shiploop-keepalive-fixture",
+  "permission_mode": "bypassPermissions"
+}

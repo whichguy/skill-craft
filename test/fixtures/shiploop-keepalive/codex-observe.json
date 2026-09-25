@@ -1,0 +1,15 @@
+{
+  "session_id": "__SESSION__",
+  "turn_id": "01a0da1d-9de2-7ba1-97f0-2f0b14921e5c",
+  "transcript_path": "/tmp/shiploop-keepalive-fixture",
+  "cwd": "/tmp/shiploop-keepalive-fixture",
+  "hook_event_name": "PostToolUse",
+  "model": "gpt-6-astra",
+  "permission_mode": "default",
+  "tool_name": "Bash",
+  "tool_input": {
+    "command": "/tmp/shiploop-keepalive-fixture next"
+  },
+  "tool_response": "__MARKER__\n== Packet: stage 1 of 4 (alpha) ==\n1. Append the single line 'alpha' to the file work.log in the current directory.\n2. Run: /tmp/shiploop-keepalive-fixture complete\n3. Then write a one-line progress report for the user and end your turn. The user will re-invoke you for the next stage.\n",
+  "tool_use_id": "exec-2038deb3-d518-4c69-a270-cf4ac5b06425"
+}
