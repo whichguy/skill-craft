@@ -7,7 +7,6 @@ claim that an LLM interpreted a locator correctly or that Improve executed.
 
 from __future__ import annotations
 
-from copy import deepcopy
 from pathlib import Path
 import re
 import shutil
@@ -207,27 +206,18 @@ class V3GuidanceTests(unittest.TestCase):
             delegation="ask-agent",
         )
 
-    def pending_improve(self, state: dict, **extra: object) -> tuple[dict, dict]:
-        """Return the state parked with an active_improve child, real or synthesized.
-
-        A genuine checkpoint stage reaches this through ``navigator.apply``; a
-        stage that no longer checkpoints cannot pause there, so this builds
-        the same parked shape directly, solely to exercise the Improve-pending
-        renderer these route-locator tests check.
-        """
+    def produce(self, state: dict, **extra: object) -> tuple[dict, dict]:
+        """Apply one synthetic producer result; a checkpoint stage parks its child."""
         stage = navigator.current_stage(state)
         action = dict(navigator.current_action(state))
-        seed = result(stage, **extra)
-        waiting = navigator.apply(state, action["id"], seed)
-        if waiting.get("active_improve") is not None:
-            return waiting, action
-        waiting = deepcopy(state)
-        waiting["active_improve"] = {
-            "action_id": action["id"], "stage": stage,
-            "binding_id": waiting["run_id"] + "/" + action["id"],
-            "workspace": waiting["repo"], "seed_result": seed, "skill": None,
-        }
-        waiting["revision"] += 1
+        return navigator.apply(state, action["id"], result(stage, **extra)), action
+
+    def pending_improve(self, state: dict, **extra: object) -> tuple[dict, dict]:
+        """Return the state parked with the real Improve child of a checkpoint stage."""
+        stage = navigator.current_stage(state)
+        waiting, action = self.produce(state, **extra)
+        self.assertIsNotNone(waiting.get("active_improve"),
+                             stage + " is not an Improve checkpoint")
         return waiting, action
 
     def complete_stage(self, state: dict, **extra: object) -> tuple[dict, str]:
@@ -442,26 +432,25 @@ class V3GuidanceTests(unittest.TestCase):
                         "context": item_context,
                     }
                 ]
+            waiting, action = self.produce(recovered, **extra)
+            if waiting["active_improve"] is None:
+                state = waiting
+                continue
+            # Only planning stages and the final carry-forward park a child.
+            pending, pending_packet = self.cold_packet(waiting)
+            self.assertEqual(navigator.current_stage(pending), stage)
+            self.assertIn("Current action: Improve the completed " + stage, pending_packet)
+            assert_packet(stage, pending_packet)
+            if stage in {"test-strategy", "step-plan"}:
+                self.assertIn(prior_baseline_ref, pending_packet)
+                self.assertIn(incoming_delta_ref, pending_packet)
+            if stage == "step-plan":
+                self.assertIn("Work item context: " + item_context, pending_packet)
             if stage in CURRENT_SYSTEM_BASELINE_STAGE_ANCHORS:
-                waiting, action = self.pending_improve(recovered, **extra)
-                pending, pending_packet = self.cold_packet(waiting)
-                self.assertIsNotNone(pending["active_improve"])
-                self.assertEqual(navigator.current_stage(pending), stage)
-                self.assertIn("Current action: Improve the completed " + stage, pending_packet)
-                assert_packet(stage, pending_packet)
-                if stage == "discovery":
-                    self.assertIn(prior_baseline_ref, pending_packet)
-                    self.assertIn(incoming_delta_ref, pending_packet)
-                if stage == "step-plan":
-                    self.assertIn("Work item context: " + item_context, pending_packet)
-                    self.assertIn(prior_baseline_ref, pending_packet)
-                    self.assertIn(incoming_delta_ref, pending_packet)
                 observed.append(stage)
-                state = navigator.finish_improve(pending, action["id"], receipt(stage))
-            else:
-                state, _action_id = self.complete_stage(recovered, **extra)
+            state = navigator.finish_improve(pending, action["id"], receipt(stage))
 
-        self.assertEqual(tuple(observed), tuple(CURRENT_SYSTEM_BASELINE_STAGE_ANCHORS))
+        self.assertEqual(tuple(observed), ("spec", "test-strategy", "plan", "step-plan", "carry-forward"))
 
     def test_cold_lifecycle_packets_keep_clause_surface_and_due_phase(self) -> None:
         """A compact requirement survives planning and due-stage reconciliation.
@@ -606,42 +595,24 @@ class V3GuidanceTests(unittest.TestCase):
             self.assertEqual(navigator.current_action(recovered)["id"], action["id"])
             self.assertEqual(producer_packet.count(RELEASE_OPERATION_ROUTE), 1, producer_packet)
 
-            seed_refs = ["synthetic://release-operation/" + stage + "/candidate"]
-            waiting, _action = self.pending_improve(recovered, evidence_refs=seed_refs)
-            binding_id = waiting["active_improve"]["binding_id"]
-            pending, improve_packet = self.cold_packet(waiting)
-            child = pending["active_improve"]
-            self.assertEqual(navigator.current_action(pending)["id"], action["id"])
-            self.assertEqual(child["action_id"], action["id"])
-            self.assertEqual(child["stage"], stage)
-            self.assertEqual(child["binding_id"], binding_id)
-            self.assertEqual(child["binding_id"], pending["run_id"] + "/" + action["id"])
-            self.assertEqual(child["seed_result"]["evidence_refs"], seed_refs)
-            self.assertEqual(improve_packet.count(RELEASE_OPERATION_ROUTE), 1, improve_packet)
-
             if stage == "release" and not release_blocked_once:
+                # release never starts an Improve child: the producer's partial
+                # result is accepted directly and blocks the run.
                 release_blocked_once = True
-                blocked = navigator.finish_improve(
-                    pending,
-                    action["id"],
-                    receipt(stage),
-                    result(
-                        stage,
-                        outcome="blocked",
-                        summary="Synthetic release evidence is partial.",
-                        evidence_refs=partial_release_refs,
-                    ),
+                blocked, _action = self.produce(
+                    recovered,
+                    outcome="blocked",
+                    summary="Synthetic release evidence is partial.",
+                    evidence_refs=partial_release_refs,
                 )
+                self.assertIsNone(blocked["active_improve"])
                 blocked, blocked_packet = self.cold_packet(blocked)
                 self.assertEqual(blocked["status"], "blocked")
                 self.assertEqual(navigator.current_stage(blocked), stage)
                 self.assertEqual(
                     blocked["accepted"][action["id"]]["evidence_refs"], partial_release_refs
                 )
-                self.assertEqual(
-                    blocked["improve_results"][action["id"]]["seed_result"]["evidence_refs"],
-                    seed_refs,
-                )
+                self.assertNotIn(action["id"], blocked["improve_results"])
                 self.assertEqual(blocked_packet.count(RELEASE_OPERATION_ROUTE), 1, blocked_packet)
 
                 resumed = navigator.control(blocked, "resume")
@@ -654,7 +625,24 @@ class V3GuidanceTests(unittest.TestCase):
                 self.assertEqual(resumed_packet.count(RELEASE_OPERATION_ROUTE), 1, resumed_packet)
                 continue
 
-            state = navigator.finish_improve(pending, action["id"], receipt(stage))
+            seed_refs = ["synthetic://release-operation/" + stage + "/candidate"]
+            waiting, _action = self.produce(recovered, evidence_refs=seed_refs)
+            if stage == "release-plan":
+                # The only planning stage here: its child carries the route too.
+                binding_id = waiting["active_improve"]["binding_id"]
+                pending, improve_packet = self.cold_packet(waiting)
+                child = pending["active_improve"]
+                self.assertEqual(navigator.current_action(pending)["id"], action["id"])
+                self.assertEqual(child["action_id"], action["id"])
+                self.assertEqual(child["stage"], stage)
+                self.assertEqual(child["binding_id"], binding_id)
+                self.assertEqual(child["binding_id"], pending["run_id"] + "/" + action["id"])
+                self.assertEqual(child["seed_result"]["evidence_refs"], seed_refs)
+                self.assertEqual(improve_packet.count(RELEASE_OPERATION_ROUTE), 1, improve_packet)
+                state = navigator.finish_improve(pending, action["id"], receipt(stage))
+            else:
+                self.assertIsNone(waiting["active_improve"])
+                state = waiting
             state = self.save_reload(state)
             observed.append(stage)
             if stage == "release-verify":
@@ -670,6 +658,7 @@ class V3GuidanceTests(unittest.TestCase):
         )
         state = self.state()
         observed: list[str] = []
+        improved: list[str] = []
         while state["status"] != "done":
             stage = navigator.current_stage(state)
             recovered, packet = self.cold_packet(state)
@@ -678,14 +667,23 @@ class V3GuidanceTests(unittest.TestCase):
             extra: dict[str, object] = {}
             if stage == "plan":
                 extra["work_items"] = [{"id": "W1", "title": "Synthetic browser case"}]
-            waiting, action = self.pending_improve(recovered, **extra)
+            waiting, action = self.produce(recovered, **extra)
+            observed.append(stage)
+            if waiting["active_improve"] is None:
+                state = waiting
+                continue
             pending, packet = self.cold_packet(waiting)
             with self.subTest(stage=stage, boundary="Improve"):
                 self.assertEqual(packet.count(route), 1)
                 self.assertIn("Current action: Improve the completed " + stage, packet)
             state = navigator.finish_improve(pending, action["id"], receipt(stage))
-            observed.append(stage)
+            improved.append(stage)
         self.assertEqual(tuple(observed), prompts.STAGES)
+        self.assertEqual(
+            tuple(improved),
+            tuple(stage for stage in prompts.STAGES
+                  if stage in prompts.PLANNING_REVIEW_STAGES or stage == "carry-forward"),
+        )
 
     def test_cold_local_skill_routes_cover_early_and_late_decisions(self) -> None:
         """Fresh producer and pending-child packets retain the local skill route.
@@ -698,6 +696,7 @@ class V3GuidanceTests(unittest.TestCase):
         index.write_text("# Fixture local skill index\n", encoding="utf-8")
         index_route = "Repository knowledge index (host-authored, if present): " + str(index)
         observed: list[str] = []
+        improved: list[str] = []
 
         for target in LOCAL_SKILL_ROUTE_STAGES:
             with self.subTest(stage=target):
@@ -715,20 +714,26 @@ class V3GuidanceTests(unittest.TestCase):
                 self.assertEqual(producer_packet.count(LOCAL_SKILL_GUIDE_ROUTE), 1, producer_packet)
                 self.assertEqual(producer_packet.count(index_route), 1, producer_packet)
 
-                pending, _action = self.pending_improve(producer)
+                pending, _action = self.produce(producer)
+                observed.append(target)
+                if target not in prompts.PLANNING_REVIEW_STAGES:
+                    self.assertIsNone(pending["active_improve"])
+                    continue
                 recovered_pending, pending_packet = self.cold_packet(pending)
                 self.assertIsNotNone(recovered_pending["active_improve"])
                 self.assertEqual(navigator.current_stage(recovered_pending), target)
                 self.assertEqual(pending_packet.count(LOCAL_SKILL_GUIDE_ROUTE), 1, pending_packet)
                 self.assertEqual(pending_packet.count(index_route), 1, pending_packet)
-                observed.append(target)
+                improved.append(target)
 
         self.assertEqual(tuple(observed), LOCAL_SKILL_ROUTE_STAGES)
+        self.assertEqual(improved, ["step-plan"])
 
     def test_coding_guide_is_selective_in_cold_producer_and_improve_packets(self) -> None:
         """Route locators, not every card body; retain the same owner on recovery."""
         state = self.state()
         observed = []
+        improved = []
         while state["status"] != "done":
             stage = navigator.current_stage(state)
             recovered, packet = self.cold_packet(state)
@@ -737,6 +742,8 @@ class V3GuidanceTests(unittest.TestCase):
             self.assertNotIn("google.script.run", packet)
             self.assertNotIn("set -euo pipefail", packet)
             if stage in CODING_GUIDE_STAGES:
+                observed.append(stage)
+            if stage in CODING_GUIDE_STAGES and stage in prompts.PLANNING_REVIEW_STAGES:
                 waiting, action = self.pending_improve(recovered)
                 pending, child_packet = self.cold_packet(waiting)
                 self.assertEqual(child_packet.count(CODING_GUIDE_ROUTE), 1)
@@ -763,12 +770,13 @@ class V3GuidanceTests(unittest.TestCase):
                 self.assertEqual(bound["active_improve"], pending["active_improve"])
                 self.assertEqual(bound_packet.count(CODING_GUIDE_ROUTE), 1)
                 self.assertIn("selected practice/platform locators", normalized(bound_packet))
-                observed.append(stage)
+                improved.append(stage)
             extra = {}
             if stage == "plan":
                 extra["work_items"] = [{"id": "W1", "title": "Synthetic item"}]
             state, _ = self.complete_stage(state, **extra)
         self.assertEqual(tuple(observed), CODING_GUIDE_STAGES)
+        self.assertEqual(improved, ["step-plan"])
 
     def test_coding_reference_links_survive_package_relocation(self) -> None:
         """A packaged selector and its cards must work outside this checkout."""
@@ -1048,7 +1056,8 @@ class V3GuidanceTests(unittest.TestCase):
         strategy_ref = "docs/testing.md#accepted-strategy"
         hidden_tail = "UNTRUSTED-STRATEGY-TAIL-MUST-NOT-BE-RENDERED"
         long_ref = "untrusted://strategy/" + ("x" * 2600) + hidden_tail
-        checkpoints = {"step-plan", "test-author", "test-refine", "regression", "system-test-author"}
+        checkpoints = {"step-plan", "test-spec", "test-author", "test-refine", "regression",
+                       "system-test-author"}
         state = self.state()
         strategy_action = ""
         decision_action: str | None = None
@@ -1142,7 +1151,7 @@ class V3GuidanceTests(unittest.TestCase):
                 state = self.save_reload(state)
                 before = (self.run / "state.md").read_bytes()
                 recovered = store.read_record(self.run / "state.md")
-                if stage == "regression":
+                if stage == "test-spec":
                     waiting, action = self.pending_improve(
                         recovered, evidence_refs=["unrelated://pending-improve"],
                     )
@@ -1152,7 +1161,7 @@ class V3GuidanceTests(unittest.TestCase):
                     with patch.object(Path, "read_text", side_effect=AssertionError("render read evidence")):
                         packet = navigator.render(None, self.run, pending)
                     self.assertEqual((self.run / "state.md").read_bytes(), pending_before)
-                    self.assertIn("Current action: Improve the completed regression result.", packet)
+                    self.assertIn("Current action: Improve the completed test-spec result.", packet)
                     assert_test_sources(packet, inner=True)
                     observed.add(stage)
                     observed.add("pending Improve")
@@ -1197,7 +1206,7 @@ class V3GuidanceTests(unittest.TestCase):
         draft_step_plan_ref = "untrusted://draft-step-plan"
         author_ref = "docs/testing.md#authored-case"
         refine_ref = "docs/testing.md#refined-case"
-        regression_repeat_ref = "untrusted://regression-repeat"
+        test_spec_repeat_ref = "untrusted://test-spec-repeat"
         regression_ref = "docs/testing.md#regression-decision"
         w2_ref = "docs/testing.md#w2-decision"
         state = self.state()
@@ -1261,6 +1270,21 @@ class V3GuidanceTests(unittest.TestCase):
         self.assertNotIn(draft_step_plan_ref, packet)
         self.assertIn("Work item context: " + contexts["W1"], packet)
 
+        # A pending repeat proposal under review is not a test decision.
+        repeat_action = dict(navigator.current_action(state))["id"]
+        waiting, _waiting_action = self.pending_improve(
+            state, outcome="repeat", evidence_refs=[test_spec_repeat_ref]
+        )
+        pending, packet = self.cold_packet(waiting)
+        self.assertIn("Current action: Improve the completed test-spec result.", packet)
+        assert_sources(packet, step_plan_action, changed_step_plan_ref)
+        self.assertNotIn("Current item test-decision source action: " + repeat_action, packet)
+        state = navigator.finish_improve(pending, repeat_action, receipt("test-spec"))
+        state, packet = self.cold_packet(state)
+        self.assertEqual(navigator.current_stage(state), "test-spec")
+        assert_sources(packet, step_plan_action, changed_step_plan_ref)
+        self.assertNotIn("Current item test-decision source action: " + repeat_action, packet)
+
         state, test_spec_action = self.complete_stage(
             state, evidence_refs=["docs/testing.md#test-spec"]
         )
@@ -1290,25 +1314,6 @@ class V3GuidanceTests(unittest.TestCase):
         state, packet = self.cold_packet(state)
         self.assertEqual(navigator.current_stage(state), "regression")
         assert_sources(packet, test_refine_action, refine_ref)
-
-        regression_action = dict(navigator.current_action(state))["id"]
-        waiting, _waiting_action = self.pending_improve(
-            state, outcome="repeat", evidence_refs=[regression_repeat_ref]
-        )
-        pending, packet = self.cold_packet(waiting)
-        self.assertIn("Current action: Improve the completed regression result.", packet)
-        assert_sources(packet, test_refine_action, refine_ref)
-        self.assertNotIn(
-            "Current item test-decision source action: " + regression_action,
-            packet,
-        )
-        state = navigator.finish_improve(pending, regression_action, receipt("regression"))
-        state, packet = self.cold_packet(state)
-        assert_sources(packet, test_refine_action, refine_ref)
-        self.assertNotIn(
-            "Current item test-decision source action: " + regression_action,
-            packet,
-        )
 
         state, regression_action = self.complete_stage(state, evidence_refs=[regression_ref])
         state, packet = self.cold_packet(state)
@@ -1411,13 +1416,11 @@ class V3GuidanceTests(unittest.TestCase):
                 plan_action = action
         state, author_packet = self.cold_packet(state)
         self.assertIn(REUSABLE_TEST_FACILITY_ROUTE, author_packet)
-        waiting, action = self.pending_improve(
+        state, author_action = self.complete_stage(
             state,
             summary="Required MCP helper remains planned; readiness is not test execution.",
             evidence_refs=[skill_ref, mcp_ref],
         )
-        state = navigator.finish_improve(waiting, action["id"], receipt("test-author"))
-        author_action = action["id"]
         state, packet = self.cold_packet(state)
         packet = normalized(packet)
         self.assertIn(skill_ref, packet)
@@ -1598,9 +1601,9 @@ class V3GuidanceTests(unittest.TestCase):
                 {"id": "W3", "title": "Correct target compatibility", "context": "W3 new target fixture."}
             ],
         )
-        state, replan_action = self.complete_stage_with_final(
-            state, replan_result, evidence_refs=["unrelated://release-check-draft"]
-        )
+        replan_action = dict(navigator.current_action(state))["id"]
+        state = navigator.apply(state, replan_action, replan_result)
+        self.assertIsNone(state["active_improve"])
         state = self.save_reload(state)
         self.assertEqual(navigator.current_stage(state), "select-work")
         self.assertEqual(navigator._current_work_item(state), "W3")
@@ -1804,13 +1807,9 @@ class V3GuidanceTests(unittest.TestCase):
             self.assertEqual(packet.count(relocated_route), 1, packet)
             self.assertNotIn(str(REFERENCES), packet)
 
-            waiting, action = self.pending_improve(recovered)
-            navigator.save(self.run, waiting)
-            pending = store.read_record(self.run / "state.md")
-            pending_packet = navigator.render(core, self.run, pending)
-            self.assertEqual(pending_packet.count(relocated_route), 1, pending_packet)
-            self.assertNotIn(str(REFERENCES), pending_packet)
-            state = navigator.finish_improve(pending, action["id"], receipt(stage))
+            # Discovery stages never start an Improve child.
+            state, _action = self.produce(recovered)
+            self.assertIsNone(state["active_improve"])
             observed.append(stage)
 
         self.assertEqual(tuple(observed), DISCOVERY_INVESTIGATION_STAGES)
@@ -1818,7 +1817,7 @@ class V3GuidanceTests(unittest.TestCase):
     def _assert_relocated_discovery_route(
         self, *, label: str, guide: str, anchor: str, stages: tuple[str, ...]
     ) -> None:
-        """Check a package-relative discovery route across normal and Improve packets."""
+        """Check a package-relative discovery route across recovered producer packets."""
         expected = [(label, guide + "#" + anchor)]
         for stage in prompts.STAGES:
             with self.subTest(stage=stage):
@@ -1863,14 +1862,9 @@ class V3GuidanceTests(unittest.TestCase):
             self.assertEqual(packet.count(relocated_route), 1, packet)
             self.assertNotIn(str(REFERENCES), packet)
 
-            waiting, action = self.pending_improve(recovered)
-            navigator.save(self.run, waiting)
-            pending = store.read_record(self.run / "state.md")
-            self.assertIsNotNone(pending["active_improve"])
-            pending_packet = navigator.render(core, self.run, pending)
-            self.assertEqual(pending_packet.count(relocated_route), 1, pending_packet)
-            self.assertNotIn(str(REFERENCES), pending_packet)
-            state = navigator.finish_improve(pending, action["id"], receipt(stage))
+            # Discovery stages never start an Improve child.
+            state, _action = self.produce(recovered)
+            self.assertIsNone(state["active_improve"])
             observed.append(stage)
 
         self.assertEqual(tuple(observed), stages)
@@ -1885,7 +1879,7 @@ class V3GuidanceTests(unittest.TestCase):
         )
 
     def test_discovery_evidence_handoff_route_recovers_from_relocated_package(self) -> None:
-        """A normal packet and pending Improve preserve the selected handoff locator."""
+        """A recovered producer packet preserves the selected handoff locator."""
         self._assert_relocated_discovery_route(
             label=DISCOVERY_EVIDENCE_HANDOFF_LABEL,
             guide=DISCOVERY_EVIDENCE_HANDOFF_GUIDE,
@@ -1922,6 +1916,7 @@ class V3GuidanceTests(unittest.TestCase):
         index_route = "Repository knowledge index (host-authored, if present): " + str(index)
         routes = tuple(dict.fromkeys(SERVICE_DISCOVERY_ROUTES.values()))
         observed: list[str] = []
+        improved: list[str] = []
         state = self.state()
 
         def assert_packet(stage: str, packet: str) -> None:
@@ -1938,19 +1933,23 @@ class V3GuidanceTests(unittest.TestCase):
             assert_packet(stage, producer_packet)
 
             if stage in SERVICE_DISCOVERY_ROUTES:
-                waiting, _action = self.pending_improve(producer)
-                pending, pending_packet = self.cold_packet(waiting)
-                self.assertIsNotNone(pending["active_improve"])
-                self.assertEqual(navigator.current_stage(pending), stage)
-                assert_packet(stage, pending_packet)
                 observed.append(stage)
-
             extra: dict[str, object] = {}
             if stage == "plan":
                 extra["work_items"] = [{"id": "W1", "title": "Synthetic item"}]
-            state, _action_id = self.complete_stage(state, **extra)
+            waiting, action = self.produce(producer, **extra)
+            if waiting["active_improve"] is None:
+                state = waiting
+                continue
+            pending, pending_packet = self.cold_packet(waiting)
+            self.assertEqual(navigator.current_stage(pending), stage)
+            assert_packet(stage, pending_packet)
+            if stage in SERVICE_DISCOVERY_ROUTES:
+                improved.append(stage)
+            state = navigator.finish_improve(pending, action["id"], receipt(stage))
 
         self.assertEqual(tuple(observed), tuple(SERVICE_DISCOVERY_STAGE_ANCHORS))
+        self.assertEqual(improved, ["spec", "test-strategy", "plan", "step-plan"])
 
 
     def test_service_discovery_guide_sections_and_links_survive_package_relocation(self) -> None:

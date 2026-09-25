@@ -168,6 +168,42 @@ class ImproveScheduleTests(unittest.TestCase):
         with self.assertRaisesRegex(nav.NavigatorError, "must belong to completed steps"):
             nav.validate(broken)
 
+    def test_forged_improve_child_at_a_non_checkpoint_stage_is_refused(self):
+        # apply() never parks a child here; a saved run that has one was forged.
+        items = [{"id": "W1", "title": "First"}, {"id": "W2", "title": "Second"}]
+        for target in ("implement", "carry-forward"):
+            with self.subTest(stage=target):
+                state = advance_to(self.new(), "plan")
+                state = nav.finish_improve(
+                    nav.apply(state, nav.current_action(state)["id"], dict(DONE, work_items=items)),
+                    nav.current_action(state)["id"], receipt("plan"))
+                state = advance_to(state, target)
+                action = nav.current_action(state)["id"]
+                nav.validate(state)
+                forged = copy.deepcopy(state)
+                forged["active_improve"] = {
+                    "action_id": action, "stage": target,
+                    "binding_id": state["run_id"] + "/" + action,
+                    "workspace": state["repo"], "seed_result": dict(DONE, evidence_refs=[]),
+                    "skill": None,
+                }
+                # W1's carry-forward leaves W2 pending, so it is not the end review.
+                with self.assertRaisesRegex(
+                        nav.NavigatorError,
+                        "Improve child is at " + target + ", a stage that never starts an "
+                        "Improve child"):
+                    nav.validate(forged)
+
+    def test_improve_record_at_a_non_planning_step_is_refused(self):
+        state, _ = walk(self.new())
+        action = next(e["action"] for e in state["history"] if e["stage"] == "implement")
+        broken = copy.deepcopy(state)
+        broken["improve_results"][action] = receipt("implement")
+        with self.assertRaisesRegex(
+                nav.NavigatorError,
+                "Improve result " + action + " is at implement, a stage that never starts"):
+            nav.validate(broken)
+
     def test_saved_improve_cadence_key_is_refused_with_a_named_error(self):
         # Runs saved by 0.21/0.22 carry this key; the generic key check names it.
         state = nav.new_state("/simulation-only/repo", "Schedule fixture.")

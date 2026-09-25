@@ -1302,7 +1302,7 @@ class ShipLoopWorkspaceTests(unittest.TestCase):
         self.assertEqual(self._common_object_snapshot(), absent_lock_objects)
 
     def test_public_return_is_refused_before_release_or_handoff_without_mutation(self) -> None:
-        """Return needs active release/handoff and no active Improve child."""
+        """Return needs active release/handoff; a forged handoff Improve child is refused."""
         root = self.base / "early return"
         self.cli(
             "workspace",
@@ -1326,10 +1326,11 @@ class ShipLoopWorkspaceTests(unittest.TestCase):
         self.assertEqual(self._workspace_snapshot(root), run_before)
         self.assertFalse((root / "return-receipt.md").exists())
 
-        # Handoff never parks a child under the Improve schedule, so a child
-        # there is synthesized directly, solely to exercise the return gate.
+        # Handoff never parks an Improve child, so a saved child there is a
+        # forged run that the return refuses before touching anything.
         run = root / "run"
         state = self._advance_to_handoff(store.read_record(run / "state.md"))
+        navigator.save(run, state)
         action = navigator.current_action(state)
         state["active_improve"] = {
             "action_id": action["id"], "stage": "handoff",
@@ -1340,15 +1341,15 @@ class ShipLoopWorkspaceTests(unittest.TestCase):
             "skill": None,
         }
         state["revision"] += 1
-        navigator.save(run, state)
+        store.write_record(run / "state.md", state)
         source_before = self._source_snapshot()
         run_before = self._workspace_snapshot(root)
 
-        awaiting = self.cli(
+        forged = self.cli(
             "workspace", "return", "--workspace-root", str(root), code=2
         )
 
-        self.assertIn("awaits the active Improve child", awaiting.stderr)
+        self.assertIn("Improve child is at handoff, a stage that never starts", forged.stderr)
         self._assert_source_unchanged(source_before)
         self.assertEqual(self._workspace_snapshot(root), run_before)
         self.assertFalse((root / "return-receipt.md").exists())

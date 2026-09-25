@@ -183,6 +183,12 @@ def retired_json_run_reason(run_dir: Path) -> str:
             "longer supports (only navigator protocol 4). " + FRESH_RUN_HINT)
 
 
+# Stages whose accepted result can carry an Improve record: every planning
+# stage, plus carry-forward (only the final one starts a child, but an earlier
+# end review stays recorded when a later Improve added work items).
+_IMPROVE_STAGES = guidance3.PLANNING_REVIEW_STAGES | {"carry-forward"}
+
+
 def _improve_checkpoint(state: Mapping[str, Any], stage: str, result: Mapping[str, Any]) -> bool:
     """Say whether this accepted producer result starts an actual Improve child.
 
@@ -632,8 +638,12 @@ def _validate_v2(state: Mapping[str, Any]) -> None:
                 if entry["stage"] in guidance3.PLANNING_REVIEW_STAGES}
     _need(planning <= set(records) <= expected,
           "Improve results must belong to completed steps, including every planning-stage result")
-    for record in records.values():
+    history_stage = {entry["action"]: entry["stage"] for entry in history}
+    for record_id, record in records.items():
         _need(isinstance(record, Mapping), "Improve result must be an object")
+        _need(history_stage[record_id] in _IMPROVE_STAGES,
+              "Improve result " + record_id + " is at " + history_stage[record_id]
+              + ", a stage that never starts an Improve child")
     child = state.get("active_improve")
     if child is not None:
         _need(isinstance(child, Mapping) and set(child) in ({
@@ -648,6 +658,9 @@ def _validate_v2(state: Mapping[str, Any]) -> None:
                                  delivery_contract=delivery_contract)
         _need(seed == child["seed_result"],
               "Improve requires a canonical step attempt result")
+        _need(_improve_checkpoint(state, child["stage"], seed),
+              "this run's Improve child is at " + child["stage"] + ", a stage that never starts "
+              "an Improve child; only planning stages and the final carry-forward do")
         selected = child["skill"]
         if selected is None:
             _need("version" not in child and "contract_marker" not in child,
