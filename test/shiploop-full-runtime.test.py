@@ -21,12 +21,16 @@ import sys
 import tempfile
 import unittest
 
+import package_build
+
 
 ROOT = Path(__file__).resolve().parents[1]
+# plugins/ is release output; package tests read a build of the current source.
+PLUGINS = package_build.plugins()
 SOURCE_SHIPLOOP = ROOT / "skills" / "shiploop"
 SOURCE_IMPROVE = ROOT / "skills" / "improve"
-GENERATED_SHIPLOOP = ROOT / "plugins" / "shiploop" / "skills" / "shiploop"
-GENERATED_IMPROVE = ROOT / "plugins" / "improve" / "skills" / "improve"
+GENERATED_SHIPLOOP = PLUGINS / "shiploop" / "skills" / "shiploop"
+GENERATED_IMPROVE = PLUGINS / "improve" / "skills" / "improve"
 DEFAULT_COMMIT_AUTHORITY = (
     "After the meaningful checks required by the current scope, commit only authorized "
     "changed product or requirements files. Never commit runtime evidence or inherited "

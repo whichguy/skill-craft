@@ -111,7 +111,8 @@ host checkout into a tree that is bind-mounted into the container as `/opt/data`
 | Plugin bundle `bundles/<plugin>/` → one multi-skill view `plugins/<plugin>/` (vendored, provenance-verified; marketplace-only, never installed by `install.sh`) | **implemented** — `bundles/backchain`; `scripts/sync-vendored-bundles.py` |
 | Grok/Cursor same-repository catalogs | **implemented** — generated from skill frontmatter; distribution and publication steps in [distribution.md](distribution.md) |
 | `plugin.json` name/version/description/license derived from `SKILL.md` | **implemented** (`scripts/skill-frontmatter-to-plugin-json.js`; sync enumerates from `skills/`) |
-| skill-craft-market pins (catalog only; no skill bodies) | **implemented** |
+| Root Claude/Codex catalogs in this repository (`skill-craft-market` retired); external plugins pinned in `catalog/external-plugins.json` | **implemented** |
+| Release output (`plugins/`, catalogs, versions) written only by `scripts/release.py`; enforced by `scripts/check-release-boundary.py`, which also re-verifies each release commit's output against its source | **implemented** |
 | `install.sh --status` / `--uninstall` (owned only) | **implemented** |
 | skillctl | **optional / not planned** (use `install.sh`) |
 | Default DevLoop card `skills/devloop` | **implemented** (discovery on Claude/Grok/Codex/Cursor; Hermes card skipped; installed-engine resolution only; separate operator provisioning) |
@@ -128,7 +129,13 @@ host checkout into a tree that is bind-mounted into the container as `/opt/data`
   graph and boundary suites; it is partial evidence, never a full-regression
   claim. No installed AI host or engine is required; core's bundled mock also
   covers marketplace-style binding from an empty unrelated directory.
-- Plugin view drift: `bash scripts/sync-plugin-views.sh --check` (**implemented**)
+- Release boundary: `python3 scripts/check-release-boundary.py --base REV` (**implemented**)
+  runs in CI's separate `release-boundary` job. Ordinary commits need a
+  `changes/<leaf>/` note for every skill or agent card they change; each
+  release commit is checked out in a temporary worktree and its
+  `sync-plugin-views.sh --check` must pass there. Between releases
+  `plugins/` lags source, so package tests read a `scripts/build-packages.py`
+  build instead.
 - CI: `.github/workflows/ci.yml` (**implemented**); `test/ci_policy.py` selects
   the tier. Pull requests that change only allowlisted explanatory documents
   (root/test README, Markdown/CSV under `docs/`) run smoke; every other pull
@@ -138,8 +145,7 @@ host checkout into a tree that is bind-mounted into the container as `/opt/data`
   fail-closed `hermetic` status is the aggregate gate; its summary states the
   tier and tested SHA. After its suites, including failed suites, each job's
   guard rejects a moved HEAD, staged or unstaged tracked changes, and untracked
-  or ignored files other than `__pycache__` bytecode; package parity runs with
-  core or smoke.
+  or ignored files other than `__pycache__` bytecode.
 - External integrations: explicitly selected via `bash test/run-integration.sh`;
   never pulled into the required CI aggregate. Live Grok E2E audits are also
   opt-in, use `xhigh` with a 7,200-second cap, and are distinct from hermetic
@@ -185,14 +191,14 @@ skill-craft/skills/<leaf>/     # SoT (all hosts skill-dir)
         └── plugins/<leaf>/    # shared marketplace package (materialised copy)
                  ▲
                  ├── skill-craft Grok/Cursor indexes: ./plugins/<leaf>
-                 └── skill-craft-market Claude/Codex pins: plugins/<leaf>
+                 └── skill-craft Claude/Codex indexes: ./plugins/<leaf>
 
 skill-craft/bundles/<plugin>/  # vendored multi-skill source (bundle.json + PROVENANCE.json)
         │                      # never enumerated by install.sh
         └── plugins/<plugin>/  # one plugin: skills/<member>/…, agents/…, host manifests
                  ▲
                  ├── skill-craft Grok/Cursor indexes: ./plugins/<plugin>
-                 └── skill-craft-market Claude/Codex: plugins/<plugin>
+                 └── skill-craft Claude/Codex indexes: ./plugins/<plugin>
 ```
 
 ### Plugin bundles (**implemented**)
@@ -227,7 +233,7 @@ claude-craft product suites (wiki, gas, async, …) stay host-native. Portable l
 | P2 | Derive `plugin.json` from `SKILL.md` | **done** |
 | P3 | `--status` / `--uninstall` | **done** |
 | P4 | `skills/devloop` probe card | **done** |
-| Market pins | skill-craft-market → full commit `sha` for every leaf, with release tag or `main` as a reachability label | **done** |
+| Market pins | skill-craft-market → full commit `sha` for every leaf (superseded 2026-09: root catalogs here, release-only output) | **done** |
 
 ### Package-internal symlinks (**implemented**)
 
@@ -238,15 +244,18 @@ Both **Hermes materialization** (`install.sh`) and **Claude plugin-view sync**
 (fail closed; no partial write). Post-sync / post-materialize trees must contain **no**
 residual symlinks (Claude git-subdir cannot follow them under `plugins/`).
 
-**skill-craft-market** Claude-compatible catalog (also read by Codex) pins skill-craft `plugins/<leaf>` at a full commit **`sha`**, optionally labeled with a git **`ref`**
-(release tags such as **`v0.3.0`** / **`v0.3.3`** per leaf). External leaves (e.g.
-**lennox-s40**) pin a **standalone** repo URL — this monorepo must not also ship
-`skills/<same-name>/`. A private upstream (Backchain) is published instead as a
-vendored plugin bundle, so its catalog entry selects `plugins/<plugin>` here. Advance a pin only when that leaf’s content or package version
-changes at a released tag or verified published commit (no bulk retarget of
-content-identical pins). Untagged published packages may use `ref: "main"` plus a
-full commit `sha`; the SHA fixes package bytes. Catalog validation checks version
-parity at that SHA and reachability from the declared ref.
+Plugin packages under `plugins/` must be self-contained real trees. A 2026-09-24
+experiment in disposable profiles found that Codex and Grok, installing from a
+local-folder marketplace, silently drop a skill directory that is a symlink
+leaving the plugin, while their git-clone installs and Claude's local install
+dereferenced it. So `plugins/` holds generated copies, written only at release.
+
+The root catalogs select `./plugins/<leaf>` in this repository; a plugin updates
+when its `version` changes, which only `scripts/release.py` does. External
+leaves (e.g. **lennox-s40**) are pinned by full commit `sha` in
+`catalog/external-plugins.json`; this monorepo must not also ship
+`skills/<same-name>/`. A private upstream (Backchain) is published as a vendored
+plugin bundle at `plugins/backchain`.
 
 
 

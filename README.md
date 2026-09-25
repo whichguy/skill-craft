@@ -16,8 +16,7 @@ This is **not** [claude-craft](https://github.com/whichguy/claude-craft).
 
 | Repo | Role |
 |------|------|
-| **skill-craft** (this repo) | Skill source of truth, shared plugin packages, generated Grok/Cursor catalogs |
-| **skill-craft-market** | Pinned Claude/Codex catalog and host setup notes; no skill prompt bodies |
+| **skill-craft** (this repo) | Skill source of truth and the marketplace for Claude, Codex, Grok and Cursor; `install.sh` for every host including OpenCode |
 | **claude-craft** | Claude Code plugin marketplace (GAS, wiki, review suites, …) |
 
 ## skill-craft vs claude-craft
@@ -82,17 +81,13 @@ refuses an earlier binding; preserve its worktrees and ledger and bind a new
 chain. Follow
 [the chain binding requirements](skills/shiploop/references/parallel-chain.md#bind-the-selected-packages-and-reviewed-graph).
 
-**External (not in this monorepo):** [lennox-s40](https://github.com/whichguy/lennox-s40) — thermostat skill; install from that clone. Catalog pin remains in skill-craft-market.
+**External (not in this monorepo):** [lennox-s40](https://github.com/whichguy/lennox-s40) — thermostat skill; install from that clone. Its catalog pin is in `catalog/external-plugins.json`.
 
-Port inventory: [docs/PORT.md](docs/PORT.md). After editing any skill body (including frontmatter version/description), run:
-
-```sh
-./scripts/sync-plugin-views.sh          # generate plugin packages, manifests, Grok/Cursor catalogs
-./scripts/sync-plugin-views.sh --check  # CI / pre-commit; enumerates skills/ SoT
-```
-
-`--check` ignores `__pycache__/` and `*.pyc`. Name a leaf (`--check shiploop`)
-when you only need that view.
+Port inventory: [docs/PORT.md](docs/PORT.md). After editing a skill, add a
+change note under `changes/<leaf>/` ([format](changes/README.md)) instead of
+editing its version. `plugins/`, the catalogs and this inventory are release
+output written by `python3 scripts/release.py`; see the
+[release checklist](docs/skill-release-checklist.md).
 ## Install (`install.sh`)
 
 Installs `skills/<leaf>` into local skill homes. Claude/Grok/Codex/Cursor get **symlinks**.
@@ -137,44 +132,47 @@ Hermes card install is skipped (the engine owns `software-development/devloop`).
 With `--agents`: `~/.claude/agents/<leaf>.md` and `~/.grok/agents/<leaf>.md` when present.
 Re-running install refreshes managed Hermes copies; foreign Hermes trees print `Skipped (foreign)`.
 
-## Marketplace pins (sibling repo)
+## Marketplace
 
-**skill-craft-market** holds the Claude/Codex catalog that **pins** skills in this repo.
-Claude and Codex pins use the **plugin view** path (`plugins/<name>`), never the bare skill leaf.
-Catalog only — skill prompt bodies stay here.
+This repository is the marketplace. Claude and Codex read the root catalogs
+`.claude-plugin/marketplace.json` and `.agents/plugins/marketplace.json`; Grok
+and Cursor read `.grok-plugin/` and `.cursor-plugin/`. OpenCode has no skill
+marketplace and uses `install.sh`.
 
 ```sh
-claude plugin marketplace add whichguy/skill-craft-market
+claude plugin marketplace add whichguy/skill-craft
 claude plugin install skill-interop@skill-craft-market
 
-# Codex reads the same catalog:
-codex plugin marketplace add whichguy/skill-craft-market
+codex plugin marketplace add whichguy/skill-craft
 codex plugin list --marketplace skill-craft-market --available --json
 codex plugin add skill-interop@skill-craft-market
 ```
 
-Register a local market checkout by passing its absolute root to `marketplace add`.
-Registration makes packages available; install only leaves not already exposed by
-skill-dir. Start a new Codex thread after installing a plugin.
+The Claude and Codex catalogs keep the name `skill-craft-market`, so plugin
+IDs are unchanged from the former `whichguy/skill-craft-market` repository; to
+move an existing registration without uninstalling its plugins, follow
+[distribution.md](docs/distribution.md#moving-from-the-former-whichguyskill-craft-market-repository).
+Register a local checkout by passing its absolute root to `marketplace add`.
+Install only skills not already exposed by skill-dir. Start a new Codex thread
+after installing a plugin.
 
 ### Install lifecycle
 
 | Mode | Action |
 |------|--------|
 | **Dev (skill-dir)** | `./install.sh --skill <name> [--agents] [--relink]` |
-| **Claude or Codex plugin** | install via skill-craft-market (above) |
+| **Claude, Codex or Grok plugin** | install from this marketplace (above) |
 | **Upgrade skill-dir** | `git pull` + re-run install; use `--relink` if links point elsewhere |
 | **Uninstall skill-dir** | `./install.sh --skill <name> --uninstall` (removes only owned installs, every host) |
 
-See the skill-craft-market README for per-host faces.
 
 ### Grok and Cursor marketplaces
 
 This repo also contains generated native catalogs at `.grok-plugin/marketplace.json`
 and `.cursor-plugin/marketplace.json`. Both reference the same generated `plugins/<leaf>`
-packages in this checkout, plus each plugin bundle (`plugins/backchain`). They do not
-include the sibling catalog's external packages.
-Use a full plugin sync to regenerate the catalogs. See
+packages in this checkout, plus each plugin bundle (`plugins/backchain`). They omit
+the external plugins listed in `catalog/external-plugins.json`. Only
+`scripts/release.py` regenerates the catalogs. See
 [distribution instructions](docs/distribution.md) for local use, updates, and publication.
 
 ## Unit of a skill (agentskills.io)
@@ -230,18 +228,20 @@ plugins/skill-interop/
 ```
 
 Claude `git-subdir` installs **do not follow** relative symlinks outside the pin path,
-so the plugin view is a **materialised copy**. Keep it in sync:
+so the plugin view is a **materialised copy**. `plugins/` is release output:
+`scripts/release.py` regenerates it with `scripts/sync-plugin-views.sh` and
+commits it, so between releases it lags `skills/`. After editing a skill, add a
+change note and check a build of the current source instead:
 
 ```sh
-./scripts/sync-plugin-views.sh          # after editing skills/
-./scripts/sync-plugin-views.sh --check  # CI / pre-commit
+python3 scripts/build-packages.py "$(mktemp -d)/build"   # prints the build dir
 ```
 
-Copy and `--check` ignore `__pycache__/` and `*.pyc`. Bytecode next to a
-leaf script is not view drift. Bare `--check` still fails if some other
-plugin view's content is dirty.
+Package tests build the same way (`test/package_build.py`). Never commit
+`sync-plugin-views.sh` output by hand. Copy and `--check` ignore `__pycache__/`
+and `*.pyc`; bytecode next to a leaf script is not view drift.
 
-`skill-craft-market` pins `path: "plugins/skill-interop"`, not the bare skill leaf.
+Catalog entries select `./plugins/skill-interop`, not the bare skill leaf.
 
 A **plugin bundle** is one plugin with several skills. `bundles/backchain/` holds
 a verbatim copy of the private Backchain repository's `backchain` and

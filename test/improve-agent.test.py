@@ -5,7 +5,11 @@ import re
 import unittest
 from pathlib import Path
 
+import package_build
+
 ROOT = Path(__file__).resolve().parents[1]
+# plugins/ is release output; package tests read a build of the current source.
+PLUGINS = package_build.plugins()
 AGENT = ROOT / "skills" / "improve-agent"
 IMPROVE = ROOT / "skills" / "improve"
 
@@ -123,7 +127,7 @@ class InlineImproveTests(unittest.TestCase):
 
 class PluginViewTests(unittest.TestCase):
     def test_plugin_view_publishes_one_matching_skill(self) -> None:
-        plugin = ROOT / "plugins" / "improve-agent"
+        plugin = PLUGINS / "improve-agent"
         claude = json.loads(text(plugin / ".claude-plugin" / "plugin.json"))
         codex = json.loads(text(plugin / ".codex-plugin" / "plugin.json"))
         for field in ("name", "version", "description", "license"):

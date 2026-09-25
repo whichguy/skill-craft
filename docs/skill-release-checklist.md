@@ -1,80 +1,84 @@
-# Skill release checklist (skill-craft → skill-craft-market)
+# Skill release checklist
 
-Before publishing a changed skill package, freeze the candidate bytes:
+Source and release output are separate. Feature work edits source under
+`skills/`, `agents/`, `bundles/` and `catalog/` and adds a change note. Only a
+release commit changes versions, `plugins/`, the four host catalogs, the README
+inventory and `CHANGELOG.md`.
 
-1. **Version the changed leaf first**, including packaging-only changes. Do not
-   change its version or package bytes after final verification without rerunning
-   affected checks. Preserve unrelated work in shared checkouts.
-   A vendored plugin bundle (`bundles/<plugin>/`, for example Backchain) is
-   versioned upstream, never here: refresh it with the steps in
-   [Vendored bundle refresh](#vendored-bundle-refresh) instead of editing its bytes.
-2. **Plugin views and native catalogs in sync:** `bash scripts/sync-plugin-views.sh`, then
-   `bash scripts/sync-plugin-views.sh --check`. Full sync also regenerates the Grok/Cursor
-   catalogs and README inventory. Commit generated metadata with the package change.
-3. **Verify the frozen candidate at the appropriate tier:** start with
-   `bash test/run-all.sh --group smoke` and affected package checks such as
-   `python3 scripts/check-marketplace-packages.py`. Smoke is partial evidence,
-   not exhaustive regression evidence. Select additional suites from the changed
-   behavior and its dependencies: runtime, durable-state, graph, callback and
-   recovery changes need their affected regression suites, not automatically
-   every repository suite. Use the complete hermetic aggregate
-   (`bash test/run-all.sh`) or a manual CI full tier only for a concrete
-   cross-subsystem risk that narrower checks cannot cover; record that reason.
-   Delegate established-suite execution to the **test-runner** skill with the
-   exact source identity, commands, expected evidence, deadline and retry policy.
-   Keep selection and failure diagnosis with the parent.
-   Do not repeat local full, PR full, and post-merge full runs when one qualifying
-   run tested identical bytes; record the tested SHA and tree, and reselect only
-   affected checks if bytes change. A manual full CI run is started with
-   `gh workflow run ci.yml --ref <candidate-branch> -f tier=full`; confirm its
-   tested SHA and tree still match the final candidate before relying on it. It is
-   qualification evidence, not a replacement for the required PR smoke check.
-   The opt-in `marketplace-claude`, `marketplace-grok`, `marketplace-codex`,
-   and `marketplace-codex-ask-agent`
-   targets of `test/run-integration.sh` require actual host CLIs and disposable
-   profiles, not personal installs. Record host versions and separate parser,
-   installation, installed-script and model-workflow evidence. For Ask Agent,
-   record `identity --skill-card` from the host-selected package; a same-name
-   skill-directory link does not identify an independently installed plugin copy.
-   Any unavailable
-   check stays explicitly unverified. Then, with publication authorization,
-   commit/publish the source and **tag** the verified tip (no further byte changes).
-   For an authorized direct fast-forward publication, use the guarded push below
-   so a failed precondition cannot be followed accidentally by a separate push.
-   Protected-branch reviews, checks and merge-queue requirements still apply.
-4. **Market selection:** only root skill-craft-market `.claude-plugin/marketplace.json` (no second catalog under `faces/`):
-   - `source.path` = `plugins/<skill>` (not bare `skills/`), including the vendored bundle `plugins/backchain`.
-   - Ask Agent, ShipLoop, Improve and Backchain follow the latest published `main` with `source.ref: "main"` and no `source.sha`. Validate the resolved commit once and retain that exact SHA in release evidence; a floating entry is not an immutable pin.
-   - Other entries retain their full 40-character `source.sha` and optional tag/ref reachability label. Do not retarget unrelated leaves.
-   - `version` must match the selected package's SKILL.md / `plugin.json` at the resolved commit. Bump each changed package on every release: hosts may cache by this version, so following `main` does not promise refresh for an unversioned intermediate commit.
-   - Refresh the marketplace and installed plugin through the host before claiming local activation. Publication alone does not update an existing host session.
-5. **Verify the catalog** from skill-craft-market: validate shape with
-   `python3 scripts/check-catalog.py --skill-craft-root /absolute/source/checkout`
-   and verify every changed release payload with
-   `python3 scripts/check-release-payload.py --base <previous-catalog-commit>`.
-   The release-diff gate reads complete packaged trees at each changed entry's
-   exact pinned or once-resolved SHA.
-   Run affected verifier tests when changing verifier code, and collect required
-   catalog CI for the exact candidate. Reuse its unchanged-tree evidence instead
-   of repeating the same unit bank locally and after merge.
-   `python3 scripts/check-pins.py --full-payload` remains available for a complete
-   catalog audit or changed shared verification rules; an individual pin update need
-   not requalify every unchanged payload. Once the catalog selects
-   `plugins/backchain` from skill-craft, no entry needs private repository access;
-   an optional `GH_TOKEN` only raises GitHub's anonymous API rate limit for a
-   full local run. The default pin check without `--full-payload`
-   explicitly reports that complete payload readiness was not checked.
-6. **Push market** and operators run `claude plugin marketplace update skill-craft-market`
-   or `codex plugin marketplace upgrade skill-craft-market` for a Git-backed catalog.
-   Local registrations read their checkout. Codex reads the same Claude-compatible catalog;
-   use `codex plugin list --marketplace skill-craft-market --available --json` to verify discovery.
-7. skill-dir users: `./install.sh --skill <skill>` (tracks checkout; no tag required).
-8. Grok/Cursor distribution: publish the source repo revision containing the generated
-   native indexes and package manifests. See [distribution.md](distribution.md) for
-   host refresh and Cursor submission/import steps. A local JSON file alone does not
-   create a public marketplace listing.
+## Every change
 
-Pin lag after ship is a bug: marketplace install must not serve pre-ship wording.
+1. Edit the skill. Do **not** edit its `version:` or anything under `plugins/`.
+2. Add `changes/<leaf>/<slug>.md` with `bump: patch|minor|major` and a line or
+   two for people who install it ([format](../changes/README.md)). An
+   `agents/<leaf>.md` card edit needs one too. A change nobody needs to
+   receive as an update may instead carry a `No-Change-Note: <reason>` commit
+   trailer; it excuses only the commit that carries it. Put trailers in the
+   message's final paragraph, together with `Co-Authored-By:` and no blank
+   line between them.
+3. Test against a build from source: package tests do this themselves through
+   `test/package_build.py`; `python3 scripts/build-packages.py <new-dir>` builds
+   the same output by hand. Start with `bash test/run-all.sh --group smoke`
+   and the affected suites; the full aggregate (`bash test/run-all.sh`) is for
+   concrete cross-subsystem risk. Record the tested SHA and tree.
+4. CI's `release-boundary` job runs `scripts/check-release-boundary.py --base`
+   over the pushed range. It rejects ordinary commits that edit release output,
+   skip a note, or delete a note that was pending before the range (only
+   `release.py` consumes notes), and pending notes that `release.py` would
+   refuse. It checks each release commit out in a temporary worktree and
+   requires its output to match its own source.
+5. **Land** the pull request with a merge commit or a rebase/fast-forward,
+   never a squash. A squash folds the messages into one, which moves
+   trailers out of the final paragraph (and can fold a release commit into
+   ordinary work), so the push check then fails on `main`.
+
+## Release
+
+1. **Fresh canonical checkout.** Apply the local checkout policy: clean `main`,
+   `git fetch origin`, `git merge --ff-only origin/main`.
+2. **Preview:** `python3 scripts/release.py --dry-run` lists each skill's old
+   and new version.
+3. **Cut:** `python3 scripts/release.py`. It bumps versions, writes
+   `CHANGELOG.md`, deletes the consumed notes, regenerates `plugins/`, the
+   catalogs and the README inventory, checks them, and makes one commit with a
+   `Skill-Craft-Release:` trailer. It never pushes. A failed release restores
+   the checkout to HEAD and keeps the notes: fix the problem and rerun. Never
+   commit release output by hand.
+4. **Qualify** the release commit at the tier the notes call for. The opt-in
+   `marketplace-claude`, `marketplace-grok`, `marketplace-codex`, and
+   `marketplace-codex-ask-agent` targets of `test/run-integration.sh` exercise
+   real host CLIs in disposable profiles. Record host versions; anything not
+   run stays explicitly unverified.
+5. **Publish** with [guarded publication](#guarded-publication). Users refresh
+   with `claude plugin marketplace update skill-craft-market`,
+   `codex plugin marketplace upgrade skill-craft-market`, or the Grok and
+   Cursor equivalents in [distribution.md](distribution.md). Skill-directory
+   users (`./install.sh`) track the checkout and need no release.
+
+A change with a note always ships at a new version; a source change carrying
+`No-Change-Note` ships with the next release at its unchanged version and
+reaches only fresh installs. With no pending notes, `release.py` still cuts an
+output-only release (trailer `Skill-Craft-Release: output-only`) when release
+output no longer matches source, for example after a skill is deleted or
+`LICENSE` or `catalog/` changes; `--dry-run` reports it as output drift.
+
+### Rolling back
+
+Never revert a release commit. Revert the source commit instead and add a
+note; the next release ships the rollback at a new version. If a release
+commit was already reverted, its card sits below the last released version, so
+the note must set an explicit `version:` above that release: `release.py`
+refuses any `<leaf>@<version>` that already appears in a `Skill-Craft-Release`
+trailer.
+
+## External plugins
+
+Lennox S40, Until Loop and Workflow are published from their own repositories
+and listed in `catalog/external-plugins.json` with a full 40-character `sha`.
+Advance a pin only after verifying that commit. Edit
+`catalog/external-plugins.json` in an ordinary commit (no note); the next
+`release.py` run publishes it, as an output-only release when no notes are
+pending. Never re-add
+`skills/<same-name>/` for an external plugin (`test/dual-body-guard.test.sh`).
 
 ## Vendored bundle refresh
 
@@ -97,8 +101,13 @@ lint; it cannot see the private upstream. Refresh it deliberately:
    email addresses, credential shapes, private IPs, hidden characters, and the
    operator's user name and git user.name) is heuristic and cannot recognize
    internal names or private context.
-4. **Apply.** Rerun with `--write`, then `bash scripts/sync-plugin-views.sh` and
-   `bash scripts/sync-plugin-views.sh --check`.
+4. **Apply.** Rerun with `--write` and commit only `bundles/backchain` as an
+   ordinary source commit (no note, no trailer). Then run
+   `python3 scripts/release.py`: it releases every bundle whose upstream
+   version differs from its `plugins/` package, with a
+   `Skill-Craft-Release: backchain@<version>` trailer and a CHANGELOG entry.
+   Do not run `sync-plugin-views.sh` or hand-write the trailer. A bundle needs
+   no `changes/` note; its version comes from upstream.
 5. **Verify.** `python3 test/vendored-bundles.test.py`, the core group, and the
    release gate for a multi-skill package on each host you ship to:
    `bash test/run-integration.sh marketplace-bundle-claude backchain` (also
@@ -146,7 +155,4 @@ the operation. The helper rechecks the candidate, clean state and remote base
 before one non-forced push of the frozen commit. A divergent remote update racing
 the push is rejected by Git. It does not bypass hooks, server policy, or required
 reviews; use the host's approved merge path where direct pushes are prohibited.
-If a push result is uncertain, inspect the remote ref before retrying. Publish
-tags and catalog pins only after verifying the source commit on the remote.
-
-**External leaves** (e.g. lennox-s40): pin the standalone repo in the market; never re-add `skills/<same-name>/` to this monorepo (`test/dual-body-guard.test.sh`).
+If a push result is uncertain, inspect the remote ref before retrying.

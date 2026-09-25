@@ -20,8 +20,12 @@ import unittest
 from pathlib import Path
 from typing import Mapping, Sequence
 
+import package_build
+
 
 ROOT = Path(__file__).resolve().parents[1]
+# plugins/ is release output; package tests read a build of the current source.
+PLUGINS = package_build.plugins()
 LEAVES = (
     "review-coverage",
     "skill-interop",
@@ -136,9 +140,9 @@ class InstalledSkillInvocationTest(unittest.TestCase):
         cls.packages: dict[str, Path] = {}
         # Bundle members keep their plugin layout (their own skills/ parent),
         # so they never become siblings that a leaf's dependency lookup finds.
-        sources = [(leaf, ROOT / "plugins" / leaf / "skills" / leaf, cls.package_parent) for leaf in LEAVES]
+        sources = [(leaf, PLUGINS / leaf / "skills" / leaf, cls.package_parent) for leaf in LEAVES]
         sources += [
-            (member, ROOT / "plugins" / bundle / "skills" / member,
+            (member, PLUGINS / bundle / "skills" / member,
              cls.temp_root / "installed bundle plugins with spaces" / bundle / "skills")
             for bundle, member in BUNDLE_MEMBERS
         ]

@@ -1,0 +1,65 @@
+{
+  "_comment": "Plugins published from other repositories. Hand-maintained: advance a sha only after verifying that commit. scripts/sync-plugin-views.sh merges these into the Claude and Codex catalogs.",
+  "plugins": [
+    {
+      "name": "lennox-s40",
+      "description": "Control a Lennox S40 (and S30/E30 LAN) smart thermostat over the local network: read status, set mode/setpoints/fan/away. Use when the user mentions home AC, heat, thermostat, Lennox Home, S40 zones, or HVAC setpoints. Local HTTPS only (no Lennox cloud). Requires LAN reachability and one-time scripts/lennox-s40 --setup.",
+      "version": "0.2.1",
+      "author": {
+        "name": "whichguy"
+      },
+      "source": {
+        "source": "url",
+        "url": "https://github.com/whichguy/lennox-s40.git",
+        "ref": "main",
+        "sha": "3505fcdf0ff48dc495027382a85ae9cfbd72423f"
+      },
+      "policy": {
+        "installation": "AVAILABLE",
+        "authentication": "ON_INSTALL"
+      },
+      "category": "Productivity"
+    },
+    {
+      "name": "until-loop",
+      "description": "Interpret natural-language work and evidence-based exit conditions with a private callback state file, LLM judgment, and legacy-run compatibility.",
+      "version": "0.4.0-rc.2",
+      "author": {
+        "name": "whichguy"
+      },
+      "source": {
+        "source": "git-subdir",
+        "url": "https://github.com/whichguy/until-loop.git",
+        "path": "plugins/until-loop",
+        "ref": "main",
+        "sha": "b88c730df41e016fb9ba490dabcb4c0c32d36a54"
+      },
+      "policy": {
+        "installation": "AVAILABLE",
+        "authentication": "ON_INSTALL"
+      },
+      "category": "Productivity"
+    },
+    {
+      "name": "workflow",
+      "description": "Weave reconciles a specification, functional requirements, NFRs, and atomic step contracts before it executes or resumes a durable dependency workflow. Scripts own state and issue serial actions or a bounded frontier of native-agent actions.",
+      "version": "0.3.0",
+      "author": {
+        "name": "whichguy",
+        "url": "https://github.com/whichguy"
+      },
+      "source": {
+        "source": "git-subdir",
+        "url": "https://github.com/whichguy/workflow-engine.git",
+        "path": "plugins/workflow",
+        "sha": "f3e0d97b90512023c430c8205836c67117326ca2",
+        "ref": "main"
+      },
+      "policy": {
+        "installation": "AVAILABLE",
+        "authentication": "ON_INSTALL"
+      },
+      "category": "Productivity"
+    }
+  ]
+}

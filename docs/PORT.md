@@ -35,7 +35,7 @@ served.
 Host overlay compose (before / during / after DevLoop) and the practice list:
 [LOOP-ENGINEERING.md](LOOP-ENGINEERING.md).
 
-**External (not monorepo):** [lennox-s40](https://github.com/whichguy/lennox-s40) — local LAN thermostat control; skill-craft-market pins the standalone repo.
+**External (not monorepo):** [lennox-s40](https://github.com/whichguy/lennox-s40) — local LAN thermostat control; `catalog/external-plugins.json` pins the standalone repo.
 
 ## Stay in claude-craft (suite)
 
@@ -51,7 +51,12 @@ optimize-system-prompt, ablate-review-plan, validate-questions, compare-question
 
 1. Copy `claude-craft/plugins/<suite>/skills/<leaf>/` → `skill-craft/skills/<leaf>/`
 2. Neutralize `CLAUDE_PLUGIN_*` paths
-3. Add `plugins/<leaf>/.claude-plugin/plugin.json` then `./scripts/sync-plugin-views.sh`
-4. Pin in skill-craft-market root `.claude-plugin/marketplace.json` only (no faces/* catalog)
-5. Tag skill-craft; flip market `ref` only when that leaf’s content/version changes
+3. Put the starting `version:` in `SKILL.md`. Add no `plugins/`, catalog,
+   README inventory or `CHANGELOG.md` entry: those are release output.
+4. Add `changes/<leaf>/<slug>.md` with `version: <the same version>`
+   ([format](../changes/README.md)); a never-released skill may ship at its
+   authored version.
+5. The next `python3 scripts/release.py` ships it. A skill that stays in
+   another repository is instead pinned by commit in
+   `catalog/external-plugins.json`.
 6. Optional claude-craft SoT note

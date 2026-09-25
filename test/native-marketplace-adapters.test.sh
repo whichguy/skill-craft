@@ -52,6 +52,9 @@ cd "$repo"
 [[ -x scripts/sync-plugin-views.sh ]] || fail "sync script is not executable"
 node --check scripts/skill-frontmatter-to-plugin-json.js \
   || fail "generator syntax check"
+# Committed plugins/ is release output and may lag the source; regenerate the
+# copy so the checks below test the generator, not release freshness.
+bash scripts/sync-plugin-views.sh >/dev/null || fail "baseline adapter sync"
 bash scripts/sync-plugin-views.sh --check || fail "baseline adapter check"
 
 # Generator command line: each misuse fails with its own message and writes
@@ -236,6 +239,97 @@ for (const bundle of bundles) {
 }
 NODE
 
+# Claude and Codex catalogs keep the historical marketplace name, list every
+# local package, and carry each catalog/external-plugins.json entry verbatim.
+node - <<'NODE' || exit 1
+const fs = require("fs");
+const { isDeepStrictEqual } = require("util");
+const leaves = fs
+  .readdirSync("skills", { withFileTypes: true })
+  .filter((entry) => entry.isDirectory() && fs.existsSync(`skills/${entry.name}/SKILL.md`))
+  .map((entry) => entry.name);
+const bundles = fs
+  .readdirSync("bundles", { withFileTypes: true })
+  .filter((entry) => entry.isDirectory() && fs.existsSync(`bundles/${entry.name}/bundle.json`))
+  .map((entry) => JSON.parse(fs.readFileSync(`bundles/${entry.name}/bundle.json`, "utf8")).name);
+const published = [...leaves, ...bundles].sort();
+const external = JSON.parse(fs.readFileSync("catalog/external-plugins.json", "utf8")).plugins;
+const externalNames = new Set(external.map((plugin) => plugin.name));
+const claude = JSON.parse(fs.readFileSync(".claude-plugin/marketplace.json", "utf8"));
+const codex = JSON.parse(fs.readFileSync(".agents/plugins/marketplace.json", "utf8"));
+const localSource = {
+  Claude: (name) => `./plugins/${name}`,
+  Codex: (name) => ({ source: "local", path: `./plugins/${name}` }),
+};
+for (const [host, catalog] of [["Claude", claude], ["Codex", codex]]) {
+  if (catalog.name !== "skill-craft-market") {
+    throw new Error(`${host} catalog must keep the skill-craft-market name`);
+  }
+  const local = catalog.plugins.filter((plugin) => !externalNames.has(plugin.name));
+  if (JSON.stringify(local.map((plugin) => plugin.name).sort()) !== JSON.stringify(published)) {
+    throw new Error(`${host} local entries are not exactly the leaves plus bundles`);
+  }
+  for (const plugin of local) {
+    if (!isDeepStrictEqual(plugin.source, localSource[host](plugin.name))) {
+      throw new Error(`${host} local source invalid for ${plugin.name}`);
+    }
+  }
+  for (const want of external) {
+    const got = catalog.plugins.filter((plugin) => plugin.name === want.name);
+    if (got.length !== 1 || !isDeepStrictEqual(got[0].source, want.source)) {
+      throw new Error(`${host} catalog must carry external ${want.name} once with its pinned source`);
+    }
+  }
+}
+NODE
+
+# Each invalid external entry is refused before any catalog is compared.
+external="catalog/external-plugins.json"
+cp "$external" "$tmp/external-before"
+expect_external_failure() {
+  local label="$1" needle="$2" edit="$3"
+  EDIT="$edit" node - <<'NODE'
+const fs = require("fs");
+const path = "catalog/external-plugins.json";
+const data = JSON.parse(fs.readFileSync(path, "utf8"));
+const plugins = data.plugins;
+new Function("plugins", process.env.EDIT)(plugins);
+fs.writeFileSync(path, JSON.stringify(data, null, 2) + "\n");
+NODE
+  expect_failure "$label" "$needle" node "$gen" --marketplaces --check
+  cp "$tmp/external-before" "$external"
+}
+expect_external_failure "external local-name collision" "also published from this repository" \
+  'plugins[0].name = "c-plan";'
+expect_external_failure "external short sha" "full 40-character sha pin" \
+  'plugins[0].source.sha = plugins[0].source.sha.slice(0, 12);'
+expect_external_failure "external two-part version" "needs a semantic version" \
+  'plugins[0].version = "1.0";'
+expect_external_failure "duplicate external entry" "listed more than once" \
+  'plugins.push(JSON.parse(JSON.stringify(plugins.find((p) => p.name === "lennox-s40") || plugins[0])));'
+expect_external_failure "external local source" "source.source must be url or git-subdir" \
+  'plugins[0].source = { source: "local", path: "./plugins/x" };'
+expect_external_failure "external non-GitHub URL" "source.url must be https://github.com/<owner>/<repo>" \
+  'plugins[0].source.url = "https://gitlab.com/whichguy/x.git";'
+expect_external_failure "external escaping path" "relative path inside the repository" \
+  'Object.assign(plugins[0].source, { source: "git-subdir", path: "../x" });'
+expect_external_failure "external extra component" "unexpected key mcpServers" \
+  'plugins[0].mcpServers = { x: { command: "x" } };'
+cmp -s "$external" "$tmp/external-before" || fail "external catalog not restored"
+node "$gen" --marketplaces --check >/dev/null || fail "restored external catalog must pass"
+
+# A hand edit to a generated Claude/Codex catalog is drift.
+node - <<'NODE'
+const fs = require("fs");
+const path = ".agents/plugins/marketplace.json";
+const catalog = JSON.parse(fs.readFileSync(path, "utf8"));
+catalog.name = "hand-edited";
+fs.writeFileSync(path, JSON.stringify(catalog, null, 2) + "\n");
+NODE
+expect_failure "hand-edited Codex catalog" "Codex marketplace index" \
+  node "$gen" --marketplaces --check
+bash scripts/sync-plugin-views.sh || fail "restore hand-edited Codex catalog"
+
 # A leaf check only owns that leaf. It must not reject unrelated root-index
 # drift, while the full check must catch the stale generated index.
 node - <<'NODE'
@@ -396,4 +490,4 @@ printf '%s\n' '{"name":"_zz-orphan","version":"0.0.0"}' \
 expect_failure "packaged orphan" "orphan" \
   bash scripts/sync-plugin-views.sh --check
 
-printf 'native-marketplace-adapters.test.sh: PASS (generated Cursor/Grok adapter drift checks)\n'
+printf 'native-marketplace-adapters.test.sh: PASS (generated host catalog and adapter drift checks)\n'

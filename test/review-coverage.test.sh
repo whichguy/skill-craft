@@ -615,33 +615,41 @@ rm -f "$TMPI"
 if python3 "$CLI" template | head -1 | grep -q '^## Review Coverage'; then ok template_cmd; else bad template_cmd; fi
 if python3 "$CLI" template --short | head -1 | grep -q '^## Review Coverage'; then ok template_short_cmd; else bad template_short_cmd; fi
 
-if [[ -f "$ROOT/plugins/review-coverage/.claude-plugin/plugin.json" ]]; then ok plugin_json; else bad plugin_json; fi
-if "$ROOT/scripts/sync-plugin-views.sh" --check review-coverage 2>/dev/null \
-  || "$ROOT/scripts/sync-plugin-views.sh" --check 2>/dev/null | grep -q review-coverage; then
-  # --check may be global; ensure plugin skill tree exists
-  [[ -f "$ROOT/plugins/review-coverage/skills/review-coverage/SKILL.md" ]] && ok plugin_synced || bad plugin_synced
+# plugins/ is release output; compare a fresh build of the current source.
+RC_PACKAGES="${SKILL_CRAFT_PACKAGES:-}"
+RC_BUILD=""
+if [[ -z "$RC_PACKAGES" ]]; then
+  RC_BUILD=$(mktemp -d)
+  python3 -B "$ROOT/scripts/build-packages.py" "$RC_BUILD/build" >/dev/null || bad plugin_build
+  RC_PACKAGES="$RC_BUILD/build"
+fi
+RC_PLUGIN="$RC_PACKAGES/plugins/review-coverage"
+if [[ -f "$RC_PLUGIN/.claude-plugin/plugin.json" ]]; then ok plugin_json; else bad plugin_json; fi
+if [[ -f "$RC_PLUGIN/skills/review-coverage/SKILL.md" && ! -L "$RC_PLUGIN/skills/review-coverage" ]]; then
+  ok plugin_synced
 else
-  [[ -f "$ROOT/plugins/review-coverage/skills/review-coverage/SKILL.md" ]] && ok plugin_synced || bad plugin_synced
+  bad plugin_synced
 fi
 # Content equality: plugin view must match source for skill leaf files
 if diff -q "$ROOT/skills/review-coverage/scripts/review-coverage" \
-  "$ROOT/plugins/review-coverage/skills/review-coverage/scripts/review-coverage" >/dev/null; then
+  "$RC_PLUGIN/skills/review-coverage/scripts/review-coverage" >/dev/null; then
   ok plugin_script_match
 else
   bad plugin_script_match
 fi
 if diff -q "$ROOT/skills/review-coverage/SKILL.md" \
-  "$ROOT/plugins/review-coverage/skills/review-coverage/SKILL.md" >/dev/null; then
+  "$RC_PLUGIN/skills/review-coverage/SKILL.md" >/dev/null; then
   ok plugin_skill_match
 else
   bad plugin_skill_match
 fi
 if diff -q "$ROOT/skills/review-coverage/references/review_coverage.md" \
-  "$ROOT/plugins/review-coverage/skills/review-coverage/references/review_coverage.md" >/dev/null; then
+  "$RC_PLUGIN/skills/review-coverage/references/review_coverage.md" >/dev/null; then
   ok plugin_template_match
 else
   bad plugin_template_match
 fi
+[[ -z "$RC_BUILD" ]] || rm -rf "$RC_BUILD"
 
 # Field-table values must win over fenced /goal command examples (no pollution)
 TMPPOL=$(mktemp)
@@ -708,7 +716,7 @@ else
   bad full_template_no_goal_body
 fi
 
-if grep -q '^version: 0.3.0$' "$ROOT/skills/review-coverage/SKILL.md"; then ok skill_version; else bad skill_version; fi
+if grep -Eq '^version: (0|[1-9][0-9]*)\.(0|[1-9][0-9]*)\.(0|[1-9][0-9]*)(-[0-9A-Za-z.-]+)?$' "$ROOT/skills/review-coverage/SKILL.md"; then ok skill_version; else bad skill_version; fi
 # Skill-first invoke (primary); CLI remains optional helper
 if grep -qE '/review-coverage|## Invocation' "$ROOT/skills/review-coverage/SKILL.md" \
   && grep -qiE 'not the primary|optional CLI helpers|not a script-first' "$ROOT/skills/review-coverage/SKILL.md"; then

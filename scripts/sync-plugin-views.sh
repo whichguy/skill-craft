@@ -6,12 +6,16 @@
 # from SKILL.md. A bundle (bundles/<plugin>/bundle.json) becomes one plugin
 # with several member skills; its vendored bytes are verified against
 # PROVENANCE.json (scripts/sync-vendored-bundles.py) before any write.
+# plugins/ and the catalogs are release output: they are committed only
+# through scripts/release.py, never by hand.
 #
 # Usage:
 #   ./scripts/sync-plugin-views.sh           # sync all skills/* and bundles/*
 #   ./scripts/sync-plugin-views.sh skill-interop   # one leaf or one bundle
-#   ./scripts/sync-plugin-views.sh --check   # exit 1 if out of sync (CI)
+#   ./scripts/sync-plugin-views.sh --check   # exit 1 if out of sync (gates release commits)
 #
+# A full sync removes orphan plugins/<name> packages (no skills/<name>/SKILL.md
+# and no bundles/<name>/bundle.json); a full --check reports them.
 # Copy and --check ignore __pycache__/, *.pyc and .DS_Store at every depth.
 # Running a leaf script is not plugin-view drift. Other content diffs still
 # fail --check. A leaf or bundle operation first validates every bundle
@@ -32,7 +36,7 @@ for arg in "$@"; do
   case "$arg" in
     --check) check_only=1 ;;
     -h|--help)
-      sed -n '2,19p' "$0"
+      sed -n '2,24p' "$0"
       exit 0
       ;;
     *) names+=("$arg") ;;
@@ -219,13 +223,19 @@ done
 
 # Orphan plugin views (plugin without a source SKILL.md or bundle.json) — only
 # when syncing the full set. A source directory without either is not valid.
-if [[ "$check_only" -eq 1 && "$full_sync" -eq 1 ]]; then
+# --check reports them; a full sync removes them (a deleted skill's package).
+if [[ "$full_sync" -eq 1 ]]; then
   shopt -s nullglob
   for d in plugins/*/; do
     n="$(basename "$d")"
     if [[ ! -f "skills/$n/SKILL.md" && ! -f "bundles/$n/bundle.json" ]] && plugin_has_packaged_contents "$d"; then
-      printf 'sync-plugin-views: FAIL orphan plugins/%s (no skills/%s/SKILL.md or bundles/%s/bundle.json)\n' "$n" "$n" "$n" >&2
-      fail=1
+      if [[ "$check_only" -eq 1 ]]; then
+        printf 'sync-plugin-views: FAIL orphan plugins/%s (no skills/%s/SKILL.md or bundles/%s/bundle.json)\n' "$n" "$n" "$n" >&2
+        fail=1
+      else
+        rm -rf "plugins/${n:?}"
+        printf 'sync-plugin-views: removed orphan plugins/%s\n' "$n"
+      fi
     fi
   done
   shopt -u nullglob
@@ -302,12 +312,14 @@ for name in ${leaves[@]+"${leaves[@]}"}; do
   # The generator validates bundle declarations against the leaves before it
   # writes anything, so it runs before any directory is created.
   node "$derive_js" "$name" --write
-  mkdir -p "$view/skills" "$view/agents" "$view/.claude-plugin" "$view/.codex-plugin"
+  mkdir -p "$view/skills" "$view/.claude-plugin" "$view/.codex-plugin"
   cp "$source_license" "$package_license"
   # Remove symlink or stale tree, then copy with package-internal symlink dereference
   # (escape refuse also inside copy_skill_package_deref).
   copy_skill_package_deref "$sot" "$dest_skill" "$name"
   if [[ -f "$agent_sot" ]]; then
+    # Only a skill with a card gets agents/; Git does not keep empty directories.
+    mkdir -p "$view/agents"
     rm -f "$dest_agent"
     cp "$agent_sot" "$dest_agent"
   fi

@@ -6,11 +6,13 @@ flowchart TD
   I --> H[Grok Claude Cursor Codex OpenCode]
   S --> P[Generated plugin packages]
   P --> N[Grok and Cursor catalogs]
-  P --> M[Pinned Claude and Codex catalog]
+  P --> M[Claude and Codex catalogs]
 ```
 
-Edit `skills/<leaf>/`, then run `./scripts/sync-plugin-views.sh`. It copies each
-skill into `plugins/<leaf>/skills/<leaf>/` and derives host metadata from its
+Edit `skills/<leaf>/`, then add a change note under `changes/<leaf>/`
+([format](../changes/README.md)). At release, `scripts/release.py` runs
+`./scripts/sync-plugin-views.sh`, which copies each skill into
+`plugins/<leaf>/skills/<leaf>/` and derives host metadata from its
 frontmatter. For example, `skills/shiploop/SKILL.md` produces the shared ShipLoop
 plugin and a `./plugins/shiploop` entry in each native catalog. All hosts receive
 the same skill body; host-specific files describe how to find it.
@@ -49,34 +51,37 @@ is unknown, inspect `claude plugin list --json` for the host's current state.
 
 ## Marketplace entry points
 
-| Host | Repository to distribute | Index | Packages |
-|------|--------------------------|-------|----------|
-| Grok | `whichguy/skill-craft` | `.grok-plugin/marketplace.json` | Source skill packages and plugin bundles |
-| Cursor | `whichguy/skill-craft` | `.cursor-plugin/marketplace.json` | Source skill packages and plugin bundles |
-| Claude Code | `whichguy/skill-craft-market` | `.claude-plugin/marketplace.json` | Source packages plus external pins |
-| Codex | `whichguy/skill-craft-market` | Same Claude-compatible index | Same published package selections |
+`whichguy/skill-craft` is the one marketplace for every host:
 
-The source repo owns Grok/Cursor adapters because those indexes can point directly
-at its existing plugin directories. The sibling repo stays catalog-only and
-uses rolling `main` for Ask Agent, ShipLoop, Improve and Backchain, with no
-commit pin for those four entries. Other entries retain per-package pins. Each
-validation freezes the resolved SHA for its checks and evidence. Package versions
-still advance on every release for host cache/update detection; users refresh the
-marketplace and installed plugin through the host. Lennox S40 and the standalone
-Until Loop skill are maintained separately.
+| Host | Index | Packages |
+|------|-------|----------|
+| Claude Code | `.claude-plugin/marketplace.json` | Skill packages, plugin bundles and external pins |
+| Codex | `.agents/plugins/marketplace.json` (falls back to the Claude index) | Same selection |
+| Grok | `.grok-plugin/marketplace.json` | Skill packages and plugin bundles |
+| Cursor | `.cursor-plugin/marketplace.json` | Skill packages and plugin bundles |
+| OpenCode | none (no skill marketplace) | `./install.sh` skill directories |
+
+All four indexes are generated at release (`scripts/release.py` runs
+`scripts/sync-plugin-views.sh`) and point at `./plugins/<name>`. The Claude and
+Codex indexes keep the marketplace name `skill-craft-market`, so plugin IDs
+such as `shiploop@skill-craft-market` continue to work after the move from the
+former `skill-craft-market` repository. Lennox S40, Until Loop and Workflow are published from their own
+repositories and pinned by full commit in `catalog/external-plugins.json`.
+
+`plugins/` and the indexes are **release output**. They change only in a
+release commit made by `scripts/release.py`, so users of a marketplace
+install receive released packages, never work in progress. A plugin updates
+when its `version` changes, which happens only at release.
 
 Backchain's development repository stays private. skill-craft publishes a
 hash-verified copy of its two skills (`backchain`, `plan-dispatcher`) and agent
 card as the plugin bundle `bundles/backchain`, generated into
-`plugins/backchain`, so it installs anonymously like any other skill-craft
-package: `$backchain:backchain` / `/backchain:backchain` and
+`plugins/backchain`: `$backchain:backchain` / `/backchain:backchain` and
 `$backchain:plan-dispatcher` / `/backchain:plan-dispatcher`. `install.sh` never
 installs bundle members. Keep one track per host: the skill-directory links to
-the canonical checkout or the plugin, not both. Adding the bundle to the Grok and
-Cursor indexes is a new install channel for those hosts. The sibling catalog
-selects `plugins/backchain` in a coordinated change after the source is
-published; refresh steps are in the
-[release checklist](skill-release-checklist.md#vendored-bundle-refresh).
+the canonical checkout or the plugin, not both. A bundle refresh is an ordinary
+source commit to `bundles/backchain`; the next release publishes it. Steps are
+in the [release checklist](skill-release-checklist.md#vendored-bundle-refresh).
 Improve remains owned here and includes its own compatible runtime; the standalone
 Until Loop entry does not replace Improve's selected source.
 
@@ -99,19 +104,41 @@ this under **Plugins → Create your own marketplace**.
 ### Claude Code and Codex
 
 ```sh
-claude plugin marketplace add whichguy/skill-craft-market
+claude plugin marketplace add whichguy/skill-craft
 claude plugin install shiploop@skill-craft-market
 
-codex plugin marketplace add whichguy/skill-craft-market
+codex plugin marketplace add whichguy/skill-craft
 codex plugin list --marketplace skill-craft-market --available --json
 codex plugin add shiploop@skill-craft-market
 ```
 
-For local development, pass the absolute `skill-craft-market` checkout path to
-`marketplace add`. A host may require replacing an existing registration of the
-same name before changing its source. Refresh Git catalogs with Claude
-`plugin marketplace update skill-craft-market` or Codex
-`plugin marketplace upgrade skill-craft-market`. Start a new Codex task after
+#### Moving from the former `whichguy/skill-craft-market` repository
+
+The Claude and Codex catalogs keep the marketplace name `skill-craft-market`,
+so installed plugin IDs such as `shiploop@skill-craft-market` do not change.
+Re-point the existing registration:
+
+- **Claude Code:** run `claude plugin marketplace add whichguy/skill-craft`
+  over the existing registration. It replaces the source and keeps installed
+  plugins. Do **not** run `claude plugin marketplace remove skill-craft-market`
+  first: removing a marketplace uninstalls every plugin installed from it, and
+  adding it back does not reinstall them.
+- **Codex:** `codex plugin marketplace add` refuses a different source under
+  the same name, so run `codex plugin marketplace remove skill-craft-market`,
+  then `codex plugin marketplace add whichguy/skill-craft`. Codex keeps the
+  install records; the plugins list as installed again once the new source is
+  added.
+- **Grok and Cursor** already read this repository's own indexes; nothing moves.
+
+Verify with `claude plugin list` and `codex plugin list`. (Checked with Claude
+Code 2.1.281 and Codex CLI 0.156.1 in disposable profiles, moving a local
+`skill-craft-market` between two directories.)
+
+For local development, pass the absolute `skill-craft` checkout path to
+`marketplace add`. Refresh Git catalogs with Claude
+`plugin marketplace update skill-craft-market`, Codex
+`plugin marketplace upgrade skill-craft-market` or Grok
+`grok plugin marketplace update`. Start a new Codex task after
 installing. See the [Codex marketplace reference](https://developers.openai.com/plugins/build/plugins#marketplace-metadata).
 
 ### Install IDs and skill namespaces
@@ -167,8 +194,8 @@ Cursor also supports a personal marketplace import in the current desktop UI:
 `https://github.com/whichguy/skill-craft`. This User import was verified in Cursor
 3.20.21, where all 18 packages appeared as available additions. That repository
 owns the required root
-`.cursor-plugin/marketplace.json`; do not use the catalog-only `skill-craft-market`
-sibling for Cursor import. Cursor does not document a ref or `/tree/<branch>` URL syntax for
+`.cursor-plugin/marketplace.json`; the retired `skill-craft-market`
+repository has no Cursor index. Cursor does not document a ref or `/tree/<branch>` URL syntax for
 this field, so use the repository root. To stage a different default branch without
 changing the production repository, use a separate staging repository with a valid
 root marketplace index.
@@ -179,20 +206,25 @@ additionally requires submitting the public repository through
 [Cursor's publication form](https://cursor.com/marketplace/publish) and passing
 review. See [Cursor plugin distribution](https://cursor.com/docs/plugins).
 
-## Keeping generated files in sync
+## Checking packages
+
+`plugins/` and the catalogs are committed only by `scripts/release.py`, so
+between releases they lag the source. Check a build of the current source
+instead:
 
 ```sh
-./scripts/sync-plugin-views.sh
-./scripts/sync-plugin-views.sh --check
-bash test/sync-plugin-views.test.sh
-python3 scripts/check-marketplace-packages.py
+OUT="$(mktemp -d)/build"
+python3 scripts/build-packages.py "$OUT"
+python3 scripts/check-marketplace-packages.py --root "$OUT"
 python3 test/installed-skill-invocation.test.py
 ```
 
-Full sync updates both native catalogs and the README inventory. It refuses an
-empty source tree or missing inventory markers. Leaf-only sync updates that package;
-run full sync before release so catalog descriptions and versions match. Never
-hand-edit generated manifests or copy bodies into `skill-craft-market`.
+`build-packages.py` writes every package, the four host catalogs and the README
+inventory into `OUT` without touching the checkout; package tests build the same
+way through `test/package_build.py` (or reuse `SKILL_CRAFT_PACKAGES`). The sync
+it runs refuses an empty source tree or missing inventory markers. Never run
+`sync-plugin-views.sh` to commit its output by hand, and never hand-edit
+generated manifests.
 
 Every package contains its own LICENSE, generated root README, canonical skill
 tree, and Claude, Cursor and Codex manifests. Authored skill READMEs remain next
@@ -227,13 +259,13 @@ provider credentials, alter personal plugin registrations, call a model, or prov
 that remote pins already serve these bytes. Cursor import and public marketplace
 review remain separate manual checks.
 
-Commit and publish the source adapters and catalog repairs before giving remote
-install instructions to other people. Validate pins with the sibling catalog's
-CI. Once it selects the vendored `plugins/backchain`, every catalog source is
-public and validation needs no `MARKETPLACE_READ_TOKEN`.
-The full [release checklist](skill-release-checklist.md) preserves package versions
-and each entry's rolling or pinned selection. Catalog generation and local validation do not establish
-that changes are published or that every script can execute on every host.
+Remote installs serve only published release commits: cut one with
+`scripts/release.py`, then publish it with `scripts/release-push.py` (see the
+[release checklist](skill-release-checklist.md)) before giving remote install
+instructions to other people. External plugins are pinned by full commit `sha`
+in `catalog/external-plugins.json`; verify each pinned commit in its own
+repository. Catalog generation and local validation do not establish that
+changes are published or that every script can execute on every host.
 
 ## Runtime limits
 
