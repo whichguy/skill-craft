@@ -557,22 +557,28 @@ in the existing plan and review notes. The rules below and the
    duplication, or isolates a real boundary. Explain the present benefit of new
    indirection; do not build a framework for hypothetical reuse or force unrelated
    code through one abstraction.
-3. **Explicit boundaries.** Check untrusted inputs and public preconditions:
-   shape, domain constraints and relevant state before effects. Use established
-   validators and clear error behavior; do not swallow failure or invent success
-   defaults. Avoid redundant internal checks, but retain revalidation when state
-   or trust can change. Validation is not authorization. Test invalid inputs and
-   expected unchanged state where relevant.
+3. **Explicit boundaries.** Every new or changed public entry point (exported
+   API, CLI handler, request or event handler, callback) checks its arguments
+   before effects: presence, type and shape, range or allowed set, and
+   consistency between arguments. Reject with the repository's error type,
+   naming the argument and the constraint. Code called only from validated
+   callers may trust them; skip only those redundant checks, and retain
+   revalidation when state or trust can change. Do not swallow failure or
+   invent success defaults. Validation is not authorization. Test invalid
+   inputs and expected unchanged state.
    At CLI, file, subprocess or service boundaries, distinguish missing/malformed
    input, execution failure and a successful transport carrying an error result.
    Check the documented response contract before using its payload. Keep required
    evidence failures explicit; optional diagnostics may be unavailable without
    replacing a valid result. A fallback must be supported by the contract.
-4. **Compact, useful documentation.** Prefer clear names. Comment on intent,
-   invariants, surprising constraints and tradeoffs, not obvious syntax. Document
-   changed public/non-obvious contracts as specified in [Documentation](#documentation).
-   No mandatory comment on every function, machine-only tags, copied code prose,
-   or abbreviated names merely to save tokens. Keep essential caveats.
+4. **Compact, useful documentation.** New files open with their purpose;
+   public entry points carry a contract docstring (purpose, argument
+   constraints, return, errors, side effects). Inside bodies, comment on intent,
+   invariants, surprising constraints and tradeoffs, not obvious syntax.
+   Private helpers need a comment only when non-obvious. Delete comments that
+   restate names or code. Document changed public/non-obvious contracts as
+   specified in [Documentation](#documentation). The packets carry these rules
+   as the *Code craft* rubric, which the `static-checks` quality loop reviews.
 5. **Evidence before polish.** Plan tests first; inspect code before refining
    actual tests; run required lint/tests after edits. Update affected README/docs.
    Prefer existing tools and focused cases over checklist-driven test layers.

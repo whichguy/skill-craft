@@ -24,6 +24,7 @@ from typing import Any
 import shiploop_navigator_v3_prompts as guidance3
 import shiploop_consumer_delivery as consumer_delivery
 import shiploop_lint as lint
+import shiploop_quality as quality
 import shiploop_planning_revision as planning_revision
 import shiploop_privacy as privacy
 import shiploop_store as store
@@ -1148,14 +1149,27 @@ def set_lint_mode(state: Mapping[str, Any], value: Any) -> dict[str, Any]:
 
 def _lint_transition(core: Any, root: Path, before: Mapping[str, Any],
                      after: Mapping[str, Any]) -> tuple[dict[str, str], Any]:
-    """Run the advisory lint hook; lint can never change or fail the transition."""
+    """Transition hooks: advisory lint, the change inventory and the quality-loop contract.
+
+    None of them can change or fail the transition: a hook failure leaves its
+    record absent or ``unavailable`` and the packet says so.
+    """
     try:
-        return lint.on_transition(root, lint_view(before), lint_view(after), command=_command(core),
-                                  reference_dir=_reference_dir(core))
+        writes, payload = lint.on_transition(root, lint_view(before), lint_view(after),
+                                             command=_command(core), reference_dir=_reference_dir(core))
     except KeyboardInterrupt:
         raise
     except BaseException:  # noqa: BLE001 - the hook records its own failures
-        return {}, None
+        writes, payload = {}, None
+    view, prior = lint_view(after), lint_view(before)
+    if view["stage"] == quality.STAGE and view["action"] and view["action"] != prior["action"]:
+        try:
+            writes = {**writes, **quality.transition_writes(root, after, view["workitem"], view["action"])}
+        except KeyboardInterrupt:
+            raise
+        except BaseException:  # noqa: BLE001 - a missing contract renders as unavailable
+            pass
+    return writes, payload
 
 
 def _lint_finish(root: Path, payload: Any) -> None:
@@ -1906,6 +1920,8 @@ def render(core: Any, root: Path, state: Mapping[str, Any]) -> str:
         ]
     )
     lines.extend(_lint_lines(core, root, state, stage, action["id"]))
+    if stage == quality.STAGE:
+        lines.extend(quality.render_lines(root, state, workitem or "", action["id"]))
     return "\n".join(lines) + "\n"
 
 
@@ -1949,7 +1965,8 @@ def _improve_line(stage: str) -> str:
 
 def _allowed_outcome_lines(state: Mapping[str, Any], stage: str) -> list[str]:
     """State the outcomes _canonical_result accepts for this producer."""
-    outcomes = "done | repeat | blocked"
+    # The bound Until Loop repeats the quality review inside static-checks.
+    outcomes = "done | blocked" if stage == quality.STAGE else "done | repeat | blocked"
     if stage in guidance3.OUTER:
         outcomes += (" | replan (corrective work_items [{id, title, context}] whose IDs are not "
                      "already in state.md work_items; they run through INNER, then OUTER restarts)")
@@ -2164,6 +2181,7 @@ def _render_improve(core: Any, root: Path, state: Mapping[str, Any], lines: list
         *runtime_lines,
         *([guidance3.PLANNING_REVIEW_FOCUS.rstrip()]
           if child["stage"] in guidance3.PLANNING_REVIEW_STAGES else []),
+        *([guidance3.END_REVIEW_FOCUS.rstrip()] if child["stage"] == "carry-forward" else []),
         guidance3.improve_prompt(child["stage"], delegation=delegation(state)),
         exclusion,
         "The prior result and relevant accepted Improve lessons are in state.md improve_results and improve/<parent-action>/ receipts. Carry forward relevant verified conclusions and material unresolved findings, hypotheses, failed attempts and pitfalls, clearly labeled with evidence status. Preserve essential meaning in the context opening and later handoffs; keep detailed blocked-attempt notes in the child notebook.",
@@ -2507,11 +2525,14 @@ def dispatch(core: Any, root: Path, state: Mapping[str, Any], args: Any,
             _need(action_id == current,
                   f"action {action_id!r} is not the current navigator action; current action is "
                   f"{current} with result path {_result_input_path(root, current)}")
-        updated = apply(
-            state,
-            getattr(args, "action", None),
-            _submitted_result(root, args),
-        )
+        submitted = _submitted_result(root, args)
+        if (state["status"] == "active" and action_id not in state["accepted"]
+                and _active_cursor(state)[0] == quality.STAGE):
+            try:
+                quality.check_terminal(root, state, action_id, submitted)
+            except quality.QualityError as exc:
+                raise NavigatorError(str(exc)) from exc
+        updated = apply(state, action_id, submitted)
         if completion_guard is not None and updated != state:
             completion_guard(state, updated)
     elif command == "delegation":

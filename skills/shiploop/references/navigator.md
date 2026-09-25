@@ -41,6 +41,9 @@ result, including a justified N/A output. The planning producers (`spec`,
 `release-plan`) and the successful `carry-forward` that leaves no work item
 pending are then followed by the actual Improve skill; every other result is
 accepted on its own checks and the script selects the next producer directly.
+`static-checks` is the one inner stage that loops: it runs the bound Until Loop
+with a ShipLoop-authored quality contract, and ShipLoop accepts `done` only with
+a matching terminal packet ([quality loop](../SKILL.md#static-checks-quality-loop)).
 No stage contains a copied Improve policy or independently counts review passes.
 
 The graph describes order, not a substitute for engineering judgment. The prompt
