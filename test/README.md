@@ -504,8 +504,11 @@ operator setup helper.
 
 `installed-skill-invocation` also runs Plan Dispatcher
 (`plugins/plan-dispatcher/skills/plan-dispatcher`) from a read-only copy. The
-current-Dispatcher qualification below is unchanged: it still takes an explicit
-external checkout.
+core `plan-dispatcher-state`, `-cli`, `-progress`, `-planning-context` and
+`-compound` suites exercise `skills/plan-dispatcher` directly or from a cold
+copy, with a deterministic fake host (`test/fixtures/plan-dispatcher/`); they
+launch no native agent or model. The current-Dispatcher qualification below is
+unchanged: it still takes an explicit external checkout.
 
 `bash test/run-integration.sh marketplace-claude|marketplace-grok|marketplace-codex`
 means choose **one** named target. Each requires that real CLI and uses a temporary

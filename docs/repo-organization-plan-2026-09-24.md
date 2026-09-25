@@ -1,6 +1,6 @@
 ---
 Execute: ask
-Status: done for phases 1-3 (merged as 29413c1 on 2026-09-24; skill-craft-market archived). Phase 4 is open pending an owner decision.
+Status: done for phases 1-3 (merged as 29413c1 on 2026-09-24; skill-craft-market archived). Phase 4 done on 2026-09-25: Backchain and Plan Dispatcher are ordinary skills, and the plugin-bundle mechanism is gone.
 Date: 2026-09-24
 ---
 
@@ -134,11 +134,14 @@ merged until you approve.
 Requires a review of what in the private `plan-orchestrator` repository is not
 already public. Not part of this worktree run.
 
-Status: open, owner decision. Backchain is still vendored (`bundles/backchain`,
-re-vendored at 0.5.1 in bbe645a), and the vendored refresh works under the
-release flow. Moving the source in would retire `sync-vendored-bundles.py` and
-the provenance step, but it would also make the development repository's skill
-files public.
+Status: done (2026-09-25, branch `refactor/backchain-source-dc8e41`). The owner
+chose to move the source in. `skills/backchain`, `skills/plan-dispatcher` and
+`agents/backchain.md` are ordinary skill-craft source, published as two plugins
+(`backchain`, `plan-dispatcher`); `backchain:plan-dispatcher` goes away with no
+alias. `bundles/`, `sync-vendored-bundles.py`, the provenance step and every
+bundle code path are removed. Plan Dispatcher's hermetic tests moved into
+`test/`; Backchain's research harness, schema, fixtures and samples stay in the
+Backchain development checkout.
 
 ### Merge checklist (after approval)
 
