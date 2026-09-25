@@ -2,6 +2,16 @@
 
 Written by scripts/release.py.
 
+## 2026-09-25
+
+### backchain 0.5.1
+
+- Vendored from upstream a6eeda0056af
+
+### shiploop 0.25.1
+
+- A saved run whose Improve child sits at a stage that never starts one (anything other than a planning stage or the final carry-forward), or whose Improve result belongs to such a step, is now refused on load with a message naming that stage. `workspace return` relies on this check instead of its own active-child guard.
+
 ## 2026-09-24
 
 ### backchain 0.5.0

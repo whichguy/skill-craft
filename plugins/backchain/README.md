@@ -8,7 +8,7 @@ This plugin packages 2 skills. Agent cards: [agents/backchain.md](agents/backcha
 
 | Skill | Version | Kind | Codex | Claude | Card |
 |-------|---------|------|-------|--------|------|
-| `backchain` | 0.5.0 | portable | `$backchain:backchain` | `/backchain:backchain` | [SKILL.md](skills/backchain/SKILL.md) |
+| `backchain` | 0.5.1 | portable | `$backchain:backchain` | `/backchain:backchain` | [SKILL.md](skills/backchain/SKILL.md) |
 | `plan-dispatcher` | 0.3.0 | script-backed | `$backchain:plan-dispatcher` | `/backchain:plan-dispatcher` | [SKILL.md](skills/plan-dispatcher/SKILL.md) |
 
 ## Install
@@ -29,7 +29,7 @@ This package contains only the skills and agent cards listed above. Files that a
 
 ## Provenance
 
-The skills and agent cards are a verbatim, hash-verified copy of upstream commit `0f09091a9c3b1b5dee7f55d3fc4a79ecf22f327b` (upstream package version 0.5.0). Skill Craft records every file's sha256 in [bundles/backchain/PROVENANCE.json](https://github.com/whichguy/skill-craft/blob/main/bundles/backchain/PROVENANCE.json).
+The skills and agent cards are a verbatim, hash-verified copy of upstream commit `a6eeda0056af06bdd92cafbce29717456125e374` (upstream package version 0.5.1). Skill Craft records every file's sha256 in [bundles/backchain/PROVENANCE.json](https://github.com/whichguy/skill-craft/blob/main/bundles/backchain/PROVENANCE.json).
 
 ## Support
 

@@ -144,11 +144,9 @@ def workspace_command(core, argv):
                      and navigator.current_stage(saved) in ("release", "handoff"),
                      "workspace return is allowed only at active release or handoff, "
                      "after the graph's assembled-candidate checks")
+                # validate() refuses an Improve child at release or handoff, so
+                # return follows the assembled-candidate checks with none active.
                 workspace.assert_binding(root, Path(saved["repo"]))
-                child = saved.get("active_improve")
-                # The end-of-work Improve finished before OUTER, so return follows
-                # the assembled-candidate checks once no child is active.
-                need(child is None, "workspace return awaits the active Improve child")
                 receipt = workspace.execute_return(root)
             print(f"Verified workspace return: {receipt['kind']}.")
             print(f"Receipt: {root / 'return-receipt.md'}")
