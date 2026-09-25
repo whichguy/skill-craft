@@ -586,8 +586,10 @@ QUALITY_LOOP_LIMIT = 3
 QUALITY_ITERATION = """\
 One quality iteration over this work item's change. Scope: the change
 inventory in context, plus tests for those files.
-1. Checks. Run the step plan's focused tests and the selected formatting, lint,
-   type, build and static-analysis checks. Record each command and exit code.
+1. Checks. On the first iteration, run the step plan's focused tests and the
+   selected formatting, lint, type, build and static-analysis checks, recording
+   each command and exit code. Later iterations start from the previous
+   iteration's final check results in the handoff.
 2. Inventory. List every new or changed public entry point in scope: exported
    function, CLI handler, request or event handler, callback.
 3. Trace. For each entry point, walk one valid, one boundary and one invalid
@@ -603,7 +605,8 @@ inventory in context, plus tests for those files.
    comment. Trivial: wording, ordering, a sharper name. Do not reopen a finding
    an earlier iteration fixed unless its code changed again.
 6. Fix every finding within scope, changing the work and never a check or its
-   expected result. Then rerun step 1 once.
+   expected result. If anything changed, rerun the step 1 checks once and
+   record the results in the handoff.
 Classify this iteration trivial only when it found no material finding.
 """
 
