@@ -305,42 +305,61 @@ class InstallTests(KeepaliveTestCase):
         self.assertIn("would add", report)
         self.assertFalse((self.home() / ".claude" / "settings.json").exists())
 
-    def test_install_sh_hooks_flag_runs_the_skill_installer(self) -> None:
-        env = {**os.environ, "CLAUDE_INSTALLED_PLUGINS_JSON": ""}
-        result = subprocess.run(["bash", str(ROOT / "install.sh"), "--skill", "shiploop", "--claude-only", "--hooks"],
-                                capture_output=True, text=True, env=env, check=False)
-        self.assertEqual(result.returncode, 0, result.stdout + result.stderr)
-        self.assertIn("Hooks (shiploop):", result.stdout + result.stderr)
-        self.assertEqual(keepalive.status("claude"), "installed")
-        self.assertEqual(keepalive.status("grok"), "absent")
-        result = subprocess.run(["bash", str(ROOT / "install.sh"), "--skill", "shiploop", "--claude-only",
-                                 "--hooks", "--uninstall"], capture_output=True, text=True, env=env, check=False)
+    def test_install_sh_never_writes_host_hook_config(self) -> None:
+        result = subprocess.run(["bash", str(ROOT / "install.sh"), "--skill", "shiploop", "--claude-only"],
+                                capture_output=True, text=True,
+                                env={**os.environ, "CLAUDE_INSTALLED_PLUGINS_JSON": ""}, check=False)
         self.assertEqual(result.returncode, 0, result.stdout + result.stderr)
         self.assertEqual(keepalive.status("claude"), "absent")
 
 
 class MarketplacePackageTests(KeepaliveTestCase):
-    """Installing the ShipLoop plugin from the marketplace brings its hooks."""
+    """Installing the ShipLoop plugin from a marketplace brings the keepalive hooks."""
 
-    def test_plugin_package_ships_hooks_that_run_from_the_package(self) -> None:
+    # Generated file, plugin-root variable, recorded payload host, extra env.
+    HOST_FILES = (
+        ("hooks.json", "CLAUDE_PLUGIN_ROOT", "claude", {}),
+        ("hooks.json", "CLAUDE_PLUGIN_ROOT", "grok", {"GROK_PLUGIN_ROOT": "set"}),
+        ("codex.json", "PLUGIN_ROOT", "codex", {}),
+        ("cursor.json", "CURSOR_PLUGIN_ROOT", "cursor", {}),
+    )
+
+    @staticmethod
+    def commands(hooks: dict, event: str) -> list[str]:
+        found = []
+        for group in hooks["hooks"].get(event, []):
+            found.extend(item["command"] for item in group.get("hooks", [group]))
+        return [command for command in found if "keepalive" in command]
+
+    def test_each_hosts_generated_hooks_run_keepalive_from_the_package(self) -> None:
         sys.path.insert(0, str(ROOT / "test"))
         import package_build
 
         plugin = package_build.plugins() / "shiploop"
-        hooks = json.loads((plugin / "hooks" / "hooks.json").read_text())
-        self.assertEqual(hooks, json.loads((ROOT / "skills/shiploop/hooks/plugin-hooks.json").read_text()))
-        commands = {event: entries[0]["hooks"][0]["command"] for event, entries in hooks["hooks"].items()}
-        self.assertEqual(set(commands), {"PostToolUse", "Stop"})
-        # Run the plugin's own commands the way a host does: through a shell
-        # with CLAUDE_PLUGIN_ROOT pointing at the installed package.
-        env = {**os.environ, "CLAUDE_PLUGIN_ROOT": str(plugin)}
-        for event, payload in (("PostToolUse", self.payload("claude", "observe")),
-                               ("Stop", self.payload("claude", "stop"))):
-            result = subprocess.run(["bash", "-c", commands[event]], input=json.dumps(payload),
-                                    capture_output=True, text=True, env=env, check=False)
-            self.assertEqual(result.returncode, 0, result.stderr)
-        self.assertEqual(json.loads(result.stdout)["decision"], "block")
-        self.assertIn(str(plugin), json.loads(result.stdout)["reason"])
+        for file_name, variable, host, extra in self.HOST_FILES:
+            with self.subTest(host=host):
+                keepalive.release_owner(str(self.run_dir))
+                hooks = json.loads((plugin / "hooks" / file_name).read_text())
+                cursor = file_name == "cursor.json"
+                observe = self.commands(hooks, "afterShellExecution" if cursor else "PostToolUse")
+                stop = self.commands(hooks, "stop" if cursor else "Stop")
+                self.assertEqual((len(observe), len(stop)), (1, 1))
+                env = {**os.environ, variable: str(plugin), **extra}
+                if variable != "CURSOR_PLUGIN_ROOT":
+                    env.pop("CURSOR_PLUGIN_ROOT", None)
+                if not extra:
+                    env.pop("GROK_PLUGIN_ROOT", None)
+                session = f"plugin-{host}"
+                for command, payload in ((observe[0], self.payload(host, "observe", session)),
+                                         (stop[0], self.payload(host, "stop", session))):
+                    # Hosts run the command through a shell with the variable set.
+                    result = subprocess.run(["bash", "-c", command], input=json.dumps(payload),
+                                            capture_output=True, text=True, env=env, check=False)
+                    self.assertEqual(result.returncode, 0, result.stderr)
+                reply = json.loads(result.stdout)
+                text = reply["followup_message"] if cursor else reply["reason"]
+                self.assertIn(str(plugin), text)
+                self.assertIsNotNone(keepalive.load_binding(host, session))
 
 
 class DriverTests(KeepaliveTestCase):

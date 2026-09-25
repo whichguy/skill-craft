@@ -15,7 +15,11 @@ code and are not catalog options.
 
 - **Item base.** When a work item's inner loop starts, ShipLoop snapshots the
   working content (tracked and untracked, not ignored files) into a private
-  Git index and records the tree under `<run>/lint/items/<W>.md`.
+  Git index and records the tree under `<run>/lint/items/<W>.md`. This runs in
+  every lint mode, as does the **change inventory**: each new `static-checks`
+  action records the item's changed paths (base to current snapshot) under
+  `<run>/lint/<action>-inventory.md` for the quality loop. `off` stops only
+  linters and auto-fix.
 - **Scope.** Only files under the run's repository directory are in scope
   (a run whose `repo` is a subdirectory of a checkout never lints or fixes a
   sibling directory). ShipLoop runtime metadata (`.shiploop`,

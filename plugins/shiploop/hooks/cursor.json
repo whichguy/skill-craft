@@ -1,0 +1,11 @@
+{
+  "version": 1,
+  "hooks": {
+    "afterShellExecution": [
+      {
+        "command": "\"${CURSOR_PLUGIN_ROOT}/skills/shiploop/scripts/shiploop-status-hook\"",
+        "timeout": 10
+      }
+    ]
+  }
+}

@@ -183,9 +183,10 @@ view_entries() {
 # Entries of plugins/<name> that its generation does not produce (for example
 # a skill or agent card that left the package), as paths relative to the view.
 stale_view_entries() {
-  local view="$1" name="$2" has_agent="$3" has_hooks="${4:-0}" entry
+  local view="$1" name="$2" has_agent="$3" has_hooks="$4" entry
   local top=".claude-plugin .codex-plugin .cursor-plugin LICENSE README.md skills"
   if [[ "$has_agent" -eq 1 ]]; then top="$top agents"; fi
+  # hooks/ is generated only from skills/<name>/host-hooks.json.
   if [[ "$has_hooks" -eq 1 ]]; then top="$top hooks"; fi
   while IFS= read -r entry; do
     [[ -n "$entry" ]] || continue
@@ -198,11 +199,6 @@ stale_view_entries() {
     while IFS= read -r entry; do
       if [[ -n "$entry" && "$entry" != "$name.md" ]]; then printf 'agents/%s\n' "$entry"; fi
     done < <(view_entries "$view/agents")
-  fi
-  if [[ "$has_hooks" -eq 1 ]]; then
-    while IFS= read -r entry; do
-      if [[ -n "$entry" && "$entry" != "hooks.json" ]]; then printf 'hooks/%s\n' "$entry"; fi
-    done < <(view_entries "$view/hooks")
   fi
   return 0
 }
@@ -236,17 +232,13 @@ for name in ${leaves[@]+"${leaves[@]}"}; do
   plugin_json="$view/.claude-plugin/plugin.json"
   codex_plugin_json="$view/.codex-plugin/plugin.json"
   package_license="$view/LICENSE"
-  # A skill may ship plugin-level hooks (Claude format; Grok, Codex and Cursor
-  # load the same hooks/hooks.json from a plugin root).
-  hooks_sot="$sot/hooks/plugin-hooks.json"
-  dest_hooks="$view/hooks/hooks.json"
 
   [[ -d "$sot" ]] || { printf 'sync-plugin-views: missing SoT skills/%s\n' "$name" >&2; exit 1; }
   [[ -f "$sot/SKILL.md" ]] || { printf 'sync-plugin-views: missing skills/%s/SKILL.md\n' "$name" >&2; exit 1; }
   has_agent=0
   if [[ -f "$agent_sot" ]]; then has_agent=1; fi
   has_hooks=0
-  if [[ -f "$hooks_sot" ]]; then has_hooks=1; fi
+  if [[ -f "$sot/host-hooks.json" ]]; then has_hooks=1; fi
 
   if [[ "$check_only" -eq 1 ]]; then
     if [[ ! -f "$plugin_json" ]]; then
@@ -298,15 +290,6 @@ for name in ${leaves[@]+"${leaves[@]}"}; do
         fail=1
       fi
     fi
-    if [[ "$has_hooks" -eq 1 ]]; then
-      if [[ -L "$dest_hooks" || ! -f "$dest_hooks" ]]; then
-        printf 'sync-plugin-views: FAIL missing plugins/%s/hooks/hooks.json\n' "$name" >&2
-        fail=1
-      elif ! cmp -s "$hooks_sot" "$dest_hooks"; then
-        printf 'sync-plugin-views: FAIL plugin hooks out of sync for %s\n' "$name" >&2
-        fail=1
-      fi
-    fi
     while IFS= read -r entry; do
       [[ -n "$entry" ]] || continue
       printf 'sync-plugin-views: FAIL plugins/%s/%s is not generated from skills/%s\n' "$name" "$entry" "$name" >&2
@@ -326,11 +309,6 @@ for name in ${leaves[@]+"${leaves[@]}"}; do
   while IFS= read -r entry; do
     if [[ -n "$entry" ]]; then rm -rf "${view:?}/$entry"; fi
   done < <(stale_view_entries "$view" "$name" "$has_agent" "$has_hooks")
-  if [[ "$has_hooks" -eq 1 ]]; then
-    mkdir -p "$view/hooks"
-    rm -f "$dest_hooks"
-    cp "$hooks_sot" "$dest_hooks"
-  fi
   if [[ -f "$agent_sot" ]]; then
     # Only a skill with a card gets agents/; Git does not keep empty directories.
     mkdir -p "$view/agents"

@@ -302,5 +302,54 @@ rm -f plugins/c-plan/.DS_Store plugins/c-plan/skills/.DS_Store
 bash scripts/sync-plugin-views.sh --check >/dev/null || fail "check after exact-view repairs"
 pass_sync "leaf views are exact; stale entries reported and removed"
 
-printf 'sync-plugin-views.test.sh: PASS (incl. internal deref + escape refuse + B1 + exact views)\n'
+# Host hooks: generated only from skills/<leaf>/host-hooks.json, one file per
+# host, each running the skill's own script through that host's root variable.
+hooks_json() { python3 -c 'import json,sys; print(json.dumps(json.load(open(sys.argv[1])), sort_keys=True))' "$1"; }
+[[ "$(ls plugins/shiploop/hooks)" == $'codex.json\ncursor.json\nhooks.json' ]] \
+  || fail "plugins/shiploop/hooks is not exactly the three generated host files"
+[[ "$(hooks_json plugins/shiploop/hooks/hooks.json)" == '{"hooks": {"PostToolUse": [{"hooks": [{"command": "\"${CLAUDE_PLUGIN_ROOT}/skills/shiploop/scripts/shiploop-status-hook\"", "timeout": 10, "type": "command"}, {"command": "\"${CLAUDE_PLUGIN_ROOT}/skills/shiploop/scripts/shiploop-keepalive-observe\"", "timeout": 30, "type": "command"}], "matcher": "Bash"}], "Stop": [{"hooks": [{"command": "\"${CLAUDE_PLUGIN_ROOT}/skills/shiploop/scripts/shiploop-keepalive-stop\"", "timeout": 30, "type": "command"}]}]}}' ]] \
+  || fail "Claude/Grok hook file content"
+[[ "$(hooks_json plugins/shiploop/hooks/codex.json)" == '{"hooks": {"PostToolUse": [{"hooks": [{"command": "\"$PLUGIN_ROOT/skills/shiploop/scripts/shiploop-status-hook\"", "timeout": 10, "type": "command"}, {"command": "\"$PLUGIN_ROOT/skills/shiploop/scripts/shiploop-keepalive-observe\"", "timeout": 30, "type": "command"}], "matcher": "Bash"}], "Stop": [{"hooks": [{"command": "\"$PLUGIN_ROOT/skills/shiploop/scripts/shiploop-keepalive-stop\"", "timeout": 30, "type": "command"}]}]}}' ]] \
+  || fail "Codex hook file content"
+[[ "$(hooks_json plugins/shiploop/hooks/cursor.json)" == '{"hooks": {"afterShellExecution": [{"command": "\"${CURSOR_PLUGIN_ROOT}/skills/shiploop/scripts/shiploop-status-hook\"", "timeout": 10}, {"command": "\"${CURSOR_PLUGIN_ROOT}/skills/shiploop/scripts/shiploop-keepalive-observe\"", "timeout": 30}], "stop": [{"command": "\"${CURSOR_PLUGIN_ROOT}/skills/shiploop/scripts/shiploop-keepalive-stop\"", "loop_limit": 50, "timeout": 30}]}, "version": 1}' ]] \
+  || fail "Cursor hook file content"
+grep -q '"hooks": "./hooks/codex.json"' plugins/shiploop/.codex-plugin/plugin.json || fail "Codex manifest hooks field"
+grep -q '"hooks": "./hooks/cursor.json"' plugins/shiploop/.cursor-plugin/plugin.json || fail "Cursor manifest hooks field"
+! grep -q '"hooks"' plugins/shiploop/.claude-plugin/plugin.json || fail "Claude manifest must use the default hooks path"
+! grep -q '"hooks"' plugins/c-plan/.codex-plugin/plugin.json || fail "a leaf without host-hooks.json declares hooks"
+python3 scripts/check-marketplace-packages.py plugins/shiploop >/dev/null || fail "package check of generated hooks"
+
+# A leaf without a declaration may not carry hooks/.
+mkdir -p plugins/c-plan/hooks && printf '{}\n' > plugins/c-plan/hooks/hooks.json
+expect_fail "hooks/ without host-hooks.json" "plugins/c-plan/hooks is not generated" \
+  bash scripts/sync-plugin-views.sh --check c-plan
+expect_fail "package check of undeclared hooks" "declares no hook commands" \
+  python3 scripts/check-marketplace-packages.py plugins/c-plan
+bash scripts/sync-plugin-views.sh c-plan >/dev/null || fail "sync over undeclared hooks/"
+[[ ! -e plugins/c-plan/hooks ]] || fail "sync must remove undeclared hooks/"
+
+# Edited or extra hook files are drift; a command outside scripts/ is refused.
+printf 'extra\n' > plugins/shiploop/hooks/extra.json
+expect_fail "extra hook file" "hooks/ holds" bash scripts/sync-plugin-views.sh --check shiploop
+rm plugins/shiploop/hooks/extra.json
+sed -i.bak 's|/scripts/shiploop-status-hook|/scripts/../SKILL.md|' plugins/shiploop/hooks/codex.json && rm plugins/shiploop/hooks/codex.json.bak
+expect_fail "edited hook file" "hooks/codex.json out of sync" bash scripts/sync-plugin-views.sh --check shiploop
+expect_fail "package check of a command outside scripts/" "command must run an executable" \
+  python3 scripts/check-marketplace-packages.py plugins/shiploop
+bash scripts/sync-plugin-views.sh shiploop >/dev/null || fail "sync over edited hooks"
+
+# The declaration itself is validated before anything is generated.
+decl=skills/shiploop/host-hooks.json
+cp "$decl" "$decl.orig"
+sed 's|scripts/shiploop-status-hook|../SKILL.md|' "$decl.orig" > "$decl"
+expect_fail "declaration outside scripts/" "script must be scripts/<file>" bash scripts/sync-plugin-views.sh --check shiploop
+sed 's|scripts/shiploop-status-hook|scripts/shiploop_status_hook.py|' "$decl.orig" > "$decl"
+expect_fail "non-executable declared script" "must be an executable regular file" bash scripts/sync-plugin-views.sh --check shiploop
+sed 's|"grok"|"opencode"|' "$decl.orig" > "$decl"
+expect_fail "unknown host" "hosts must be distinct values" bash scripts/sync-plugin-views.sh --check shiploop
+mv "$decl.orig" "$decl"
+bash scripts/sync-plugin-views.sh --check shiploop >/dev/null || fail "check after restoring the declaration"
+pass_sync "host hooks are generated per host from host-hooks.json and nowhere else"
+
+printf 'sync-plugin-views.test.sh: PASS (incl. internal deref + escape refuse + B1 + exact views + host hooks)\n'
 exit 0

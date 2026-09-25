@@ -54,9 +54,9 @@ Use **skill-craft** for portable skill packages and their plugin distribution. U
 | [prompt-refine](skills/prompt-refine/SKILL.md) | 0.1.2 | Full prompt-improvement workflow — runs prompt-audit to find inconsistencies, presents a remediation plan, then runs prompt-migrate to apply fixes and prompt-align to verify… |
 | [review-coverage](skills/review-coverage/SKILL.md) | 0.3.1 | Add a post-ship improve-to-exhaustion directive to a plan, or run that directive after implementation. Invoke like any skill: /review-coverage, "review-coverage on this plan",… |
 | [review-fix-bench](skills/review-fix-bench/SKILL.md) | 0.1.2 | Compare two code-review prompt versions against supplied fixture ground truth using an explicitly configured external benchmark runner. Reports an F1-based verdict only when the… |
-| [shiploop](skills/shiploop/SKILL.md) | 0.25.1 | Markdown-authoritative delivery harness. Start or resume once, follow the script's current action packet, and submit its exact completion call until the script reports completion… |
-| [shiploop-e2e-audit](skills/shiploop-e2e-audit/SKILL.md) | 0.4.3 | Run the ShipLoop test harness and audit its retained graph, review, test, product and incremental-change evidence. Use for ShipLoop mock checks, live one-shot E2E smoke/full… |
-| [skill-interop](skills/skill-interop/SKILL.md) | 0.2.4 | Use when authoring or reviewing a portable multi-host agent skill (Grok, Claude Code, Codex, Hermes): scaffold a prompt-only skill, make a skill host-agnostic, create skill… |
+| [shiploop](skills/shiploop/SKILL.md) | 0.26.0 | Markdown-authoritative delivery harness. Start or resume once, follow the script's current action packet, and submit its exact completion call until the script reports completion… |
+| [shiploop-e2e-audit](skills/shiploop-e2e-audit/SKILL.md) | 0.4.4 | Run the ShipLoop test harness and audit its retained graph, review, test, product and incremental-change evidence. Use for ShipLoop mock checks, live one-shot E2E smoke/full… |
+| [skill-interop](skills/skill-interop/SKILL.md) | 0.2.5 | Use when authoring or reviewing a portable multi-host agent skill (Grok, Claude Code, Codex, Hermes): scaffold a prompt-only skill, make a skill host-agnostic, create skill… |
 
 <!-- skill-craft:inventory:end -->
 
@@ -99,7 +99,6 @@ Hermes card install is skipped (the engine owns `software-development/devloop`).
 ./install.sh --skill all             # explicit: all skills under skills/
 ./install.sh --from /path/to/pkg     # external package (leaf = basename)
 ./install.sh --agents                # also agents/<leaf>.md → Claude/Grok
-./install.sh --skill shiploop --hooks  # also register the skill's host hooks (not Hermes)
 ./install.sh --claude-only           # single host
 ./install.sh --grok-only
 ./install.sh --codex-only
@@ -124,11 +123,11 @@ Hermes card install is skipped (the engine owns `software-development/devloop`).
 
 `dest` is the source leaf. Leaf `devloop` skips Hermes so it cannot overwrite the engine.
 
-`--hooks` runs a skill's own `hooks/install` for each selected host except Hermes; with
-`--status` or `--uninstall` it reports or removes them. Today only ShipLoop ships hooks
-([keepalive](skills/shiploop/references/keepalive.md)). A marketplace install needs no
-flag: a skill's `hooks/plugin-hooks.json` is packaged as the plugin's `hooks/hooks.json`,
-which Claude Code, Grok, Codex and Cursor load with the plugin. Use one route per host.
+`install.sh` never writes host hook config. A marketplace install carries a skill's hooks:
+its `host-hooks.json` is generated into each host's plugin hook file, which Claude Code,
+Grok, Codex and Cursor load with the plugin. For a skill-directory install, ShipLoop's
+own `scripts/shiploop-hook install --host HOST` registers its
+[keepalive](skills/shiploop/references/keepalive.md) hooks. Use one route per host.
 
 With `--agents`: `~/.claude/agents/<leaf>.md` and `~/.grok/agents/<leaf>.md` when present.
 Re-running install refreshes managed Hermes copies; foreign Hermes trees print `Skipped (foreign)`.

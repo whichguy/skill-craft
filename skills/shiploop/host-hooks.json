@@ -1,0 +1,25 @@
+{
+  "hooks": [
+    {
+      "id": "status-display",
+      "event": "after-shell",
+      "script": "scripts/shiploop-status-hook",
+      "timeout": 10,
+      "hosts": ["claude", "codex", "cursor", "grok"]
+    },
+    {
+      "id": "keepalive-observe",
+      "event": "after-shell",
+      "script": "scripts/shiploop-keepalive-observe",
+      "timeout": 30,
+      "hosts": ["claude", "codex", "cursor", "grok"]
+    },
+    {
+      "id": "keepalive-stop",
+      "event": "turn-end",
+      "script": "scripts/shiploop-keepalive-stop",
+      "timeout": 30,
+      "hosts": ["claude", "codex", "cursor", "grok"]
+    }
+  ]
+}

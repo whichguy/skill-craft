@@ -51,22 +51,26 @@ only the run's owner session is ever kept alive.
   parent owns the run.
 - Every read-modify-write of a binding or owner record holds an exclusive file
   lock, and two registrations of one host for the same stop (for example a
-  plugin and `install.sh --hooks`) get the same answer.
+  plugin and `shiploop-hook install`) get the same answer.
 - Only one `shiploop-drive` runs per run; a second one exits with code 3.
 
 ## Hosts
 
-A marketplace install of the ShipLoop plugin carries the hooks: the package's
-`hooks/hooks.json` (from `hooks/plugin-hooks.json`) runs
+A marketplace install of the ShipLoop plugin carries the hooks. ShipLoop
+declares them in `host-hooks.json` (`keepalive-observe` on `after-shell`,
+`keepalive-stop` on `turn-end`), and the package generator writes each host's
+own file: `hooks/hooks.json` for Claude and Grok, `hooks/codex.json`,
+`hooks/cursor.json`. Their argument-free entry scripts
+(`scripts/shiploop-keepalive-observe`, `scripts/shiploop-keepalive-stop`) run
 `shiploop-hook … --host auto`, which tells Grok (`GROK_PLUGIN_ROOT`), Cursor
-(`CURSOR_PLUGIN_ROOT`), Codex and Claude apart. Cursor turns the Claude-style
-block reply into its follow-up message. Codex's plugin-hook loading was read from
-its binary, not yet observed live.
+(`CURSOR_PLUGIN_ROOT`), Codex and Claude apart. Codex asks you to trust new
+plugin hooks, and Grok runs a plugin's hooks only once it is enabled and trusted;
+neither host's plugin-hook loading has been observed live yet.
 
-A skill-directory install adds them with `./install.sh --skill shiploop --hooks`
-(or `scripts/shiploop-hook install --host HOST`), the only route for OpenCode.
-`--status` and `--uninstall` with `--hooks` report or remove them. Use one route
-per host. Hermes is not supported.
+A skill-directory install adds them with `scripts/shiploop-hook install --host HOST`
+(repeat `--host`; `status` and `uninstall` take the same form), the only route
+for OpenCode. `install.sh` never writes host hook config. Use one route per host.
+Hermes is not supported.
 
 | Host | Registered in | Continue signal | Unattended (headless) |
 |------|---------------|-----------------|-----------------------|

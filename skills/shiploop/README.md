@@ -1,4 +1,4 @@
-# ShipLoop navigator 0.25.1
+# ShipLoop navigator 0.26.0
 
 ShipLoop's invoking conversation owns navigation, acceptance and delivery. New
 runs record `delegation: inline`, so that conversation also executes every
@@ -120,7 +120,8 @@ can do. Keepalive hooks ask `shiploop hook-status` at each turn end and, while t
 run is active and progressing, refuse the stop and name the run's next command.
 A marketplace install of the ShipLoop plugin brings the hooks with it for Claude
 Code, Grok, Codex and Cursor. A skill-directory install adds them with
-`./install.sh --skill shiploop --hooks`, which also covers OpenCode.
+`scripts/shiploop-hook install --host HOST` (the only route for OpenCode);
+`install.sh` never writes host hook config.
 
 - Only one session per run, its owner, is kept alive; a parallel worker or a
   second terminal on the same run is let go. Ownership passes on when the

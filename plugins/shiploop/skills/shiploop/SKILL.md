@@ -5,7 +5,7 @@ description: >-
   script's current action packet, and submit its exact completion call until
   the script reports completion with an HTML achievement report. Use when the
   user says shiploop, ship the project, or requests a durable delivery loop.
-version: 0.25.1
+version: 0.26.0
 allowed-tools: all
 license: MIT
 platforms:
@@ -157,8 +157,10 @@ do not silently fall back to editing the source. At the final planned integratio
 boundary, follow the packet's return-plan and guarded return commands. Completion
 requires a verified return receipt. A dirty starting checkout receives only the
 new delta and keeps its original index; this is not a Git merge/commit.
-That once-only return happens at release or handoff, after the end-of-work Improve
-child, once no child is active.
+The return happens at release or handoff, after the end-of-work Improve
+child, once no child is active. A product fix committed after that return (for
+example one found by a post-deploy check) goes back as a follow-up return: run
+the same return-plan and return commands again.
 If source return must itself trigger a required delivery check, retain that
 ordering conflict as incomplete; use the workspace policy's reconciliation rule.
 
@@ -287,7 +289,9 @@ itself: when a work item's inner loop starts it snapshots the item base, the
 `complete` that enters `static-checks` lints the files the item changed and, on
 the item's first entry only, applies ruff-classified safe fixes that touch only
 lines the item changed, and the `complete` that enters `verify` reruns it
-report-only (or repeats the stored result when nothing changed). The block
+report-only (or repeats the stored result when nothing changed). `off` stops the
+linters and auto-fix only; the item base and the change inventory the quality
+loop reads are still recorded. The block
 follows the packet's callback. It lists every command's exact argv, cwd, exit
 code and complete output, shows auto-fixes as an applied diff plus NOT APPLIED
 hunks, separates new findings from debt already present at the item base, and
@@ -296,6 +300,24 @@ no transition is gated on it, and the step still selects and runs its own
 checks. Linters that execute repository code are listed with a risk tag and
 never run, and missing tools produce install recommendations; nothing is ever
 installed. Details and safety pins: [lint catalog](references/lint-catalog.md).
+
+### Static-checks quality loop
+
+`static-checks` runs one quality loop on the Until Loop bound to the selected
+Improve card (`runtime/until-loop`). On the `complete` that enters it, ShipLoop
+records the item's change inventory (tracked and untracked files since the
+item base, in every lint mode) and writes the loop contract
+`quality/<action>-contract.json` from its prompt catalog. The first iteration
+runs the checks (later ones rerun them only after an edit); each iteration
+lists the changed public entry points, traces each one with a
+valid, a boundary and an invalid input, reviews the change against the *Code
+craft* rubric and fixes what it finds. The Until Loop script ends the loop
+after an iteration with only trivial findings; a third iteration that still
+finds a material issue stops it. The stage accepts only `done` or `blocked`:
+`done` needs the saved terminal packet `quality/<action>-terminal.json`, which
+ShipLoop checks against the contract it rebuilds from run state (not the file on
+disk) before advancing. The end-of-work Improve
+reviews every item's change against the same rubric.
 
 `--lint fix|report|off` at `init` or `workspace start` selects the option; a
 saved run without the key behaves as `off` and is never migrated. `report`
@@ -375,6 +397,11 @@ the host handoff, or force any host tool call.
 
 ## Follow the current packet
 
+Each packet carries a script-rendered **status block** (`=== ShipLoop status ===`):
+where the run is, what just finished, what comes next and what is complete.
+Show it to the user unchanged unless a host status hook already did; see
+[status display](references/status-display.md).
+
 Run to completion by default within the user's scope and existing authority.
 Progress reports are intermediate updates, not turn-ending handoffs or approval
 requests. After each major completed step, briefly report the milestone and
@@ -408,6 +435,8 @@ retain the recovery locators and resume the same run when execution resumes.
    pass after the last edit, and stop only when all are confirmed, one is proven
    unachievable (route it to planning), or the same check still fails after 3
    genuine fix attempts ([step exit criteria](references/parallel-chain.md#step-exit-criteria)).
+   At `static-checks`, run the packet's [quality loop](#static-checks-quality-loop)
+   on the bound Until Loop and save its terminal packet where the packet says.
    A ShipLoop lint block printed after a `static-checks` or `verify` callback is
    supporting output, not exit-criteria evidence, and never replaces the checks
    you select ([script-owned lint](#script-owned-lint)).

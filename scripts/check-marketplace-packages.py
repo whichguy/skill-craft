@@ -9,6 +9,7 @@ from __future__ import annotations
 import argparse
 import ast
 import json
+import os
 import re
 import sys
 from pathlib import Path
@@ -177,6 +178,57 @@ def validate_codex_interface(codex: dict, errors: list[str]) -> None:
         errors.append("Codex interface defaultPrompt must contain one to three short strings")
 
 
+# Generated from skills/<leaf>/host-hooks.json: each host's file, the plugin
+# root variable its commands use, and the manifest that must point at it.
+HOOK_FILES = {
+    "hooks.json": ("${CLAUDE_PLUGIN_ROOT}", None),
+    "codex.json": ("$PLUGIN_ROOT", ".codex-plugin"),
+    "cursor.json": ("${CURSOR_PLUGIN_ROOT}", ".cursor-plugin"),
+}
+
+
+def validate_hooks(package: Path, name: str, errors: list[str]) -> None:
+    """Hooks may only be the generated per-host files, running the skill's own scripts."""
+    hook_dir = package / "hooks"
+    present = sorted(item.name for item in hook_dir.iterdir()) if hook_dir.is_dir() else []
+    for file_name in present:
+        if file_name not in HOOK_FILES:
+            errors.append(f"hooks/{file_name}: not a generated host hook file")
+    for file_name, (variable, adapter) in HOOK_FILES.items():
+        if adapter is not None:
+            try:
+                manifest = json.loads((package / adapter / "plugin.json").read_text(encoding="utf-8"))
+            except (OSError, UnicodeError, ValueError):
+                manifest = {}
+            declared = manifest.get("hooks") if isinstance(manifest, dict) else None
+            expected = f"./hooks/{file_name}" if file_name in present else None
+            if declared != expected:
+                errors.append(f"{adapter}/plugin.json: hooks must be {expected!r}, found {declared!r}")
+        if file_name not in present:
+            continue
+        try:
+            data = json.loads((hook_dir / file_name).read_text(encoding="utf-8"))
+        except (OSError, UnicodeError, ValueError) as exc:
+            errors.append(f"hooks/{file_name}: unreadable or invalid JSON: {exc}")
+            continue
+        groups = (data.get("hooks") or {}) if isinstance(data, dict) else {}
+        entries = []
+        for event, items in groups.items() if isinstance(groups, dict) else ():
+            for item in items if isinstance(items, list) else ():
+                entries.extend(item.get("hooks", [item]) if isinstance(item, dict) else [item])
+        if not entries:
+            errors.append(f"hooks/{file_name}: declares no hook commands")
+        prefix = f'"{variable}/skills/{name}/scripts/'
+        for entry in entries:
+            command = entry.get("command") if isinstance(entry, dict) else None
+            script = (command[len(prefix):-1] if isinstance(command, str) and command.startswith(prefix)
+                      and command.endswith('"') else "")
+            target = package / "skills" / name / "scripts" / script
+            if not script or "/" in script or not target.is_file() or not os.access(target, os.X_OK):
+                errors.append(f"hooks/{file_name}: command must run an executable in "
+                              f"skills/{name}/scripts/ via {variable}: {command!r}")
+
+
 def validate_package(package: Path) -> list[str]:
     """Return all actionable errors, including malformed/unreadable payloads."""
     errors: list[str] = []
@@ -231,8 +283,10 @@ def validate_package(package: Path) -> list[str]:
                 errors.append(f"{relative}: {key} must be a confined ./ package path")
             elif not (package / value).exists():
                 errors.append(f"{relative}: missing declared {key} path {value}")
-        if "hooks" in manifest:
-            errors.append(f"{relative}: this catalog does not distribute hooks")
+        if adapter == ".claude-plugin" and "hooks" in manifest:
+            errors.append(f"{relative}: Claude hooks use the default hooks/hooks.json, not a manifest field")
+
+    validate_hooks(package, name, errors)
 
     base = manifests.get(".claude-plugin", {})
     codex = manifests.get(".codex-plugin", {})
