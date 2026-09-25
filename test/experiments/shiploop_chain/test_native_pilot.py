@@ -240,7 +240,7 @@ class NativePilotTests(unittest.TestCase):
         state_path = self.pilot_dir / "run" / "state.md"
         self.assertEqual(synthetic["state"], str(state_path))
         state = store.read_record(state_path)
-        self.assertEqual(state["navigator_protocol_version"], 3)
+        self.assertEqual(state["navigator_protocol_version"], navigator.PROTOCOL_VERSION)
         self.assertEqual(navigator.current_stage(state), "implement")
         history = {entry["action"] for entry in state["history"]}
         for entry in synthetic["actions"]:

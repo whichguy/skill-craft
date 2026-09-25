@@ -1043,7 +1043,9 @@ class HookTests(Fixture):
 
 class CliTests(Fixture):
     def cli(self, *args: str, env: dict | None = None) -> subprocess.CompletedProcess:
-        merged = dict(os.environ)
+        # Host git config (for example git-lfs's global filter on CI runners)
+        # must not reach the CLI: workspace start refuses custom filters.
+        merged = {**os.environ, "GIT_CONFIG_NOSYSTEM": "1", "GIT_CONFIG_GLOBAL": os.devnull}
         merged.update(env or {})
         return subprocess.run([sys.executable, str(CLI), *args], capture_output=True, text=True, env=merged)
 
