@@ -9,7 +9,6 @@ from __future__ import annotations
 import json
 import os
 from pathlib import Path
-import shutil
 import subprocess
 import sys
 import tempfile
@@ -670,7 +669,7 @@ class ChainIntegrationTests(ChainFixture):
                               delegation="ask-agent")
         nav.save(self.run, state)
         self.action = nav.current_action(state)["id"]
-        p = self.call("bind", ok=False, extra=("--graph", str(self.graph),
+        self.call("bind", ok=False, extra=("--graph", str(self.graph),
             "--dispatcher-skill", str(self.dispatcher / "SKILL.md"), "--ask-agent-skill", str(self.ask / "SKILL.md"),
             "--worktree-parent", str(self.parent)))
         self.assertFalse((self.run / "chains").exists())
@@ -830,6 +829,160 @@ class ChainIntegrationTests(ChainFixture):
         self.assertIn("observed native slots", packet)
         self.assertEqual((self.run / "state.md").read_bytes(), before)
 
+
+    def verify_instruction(self, result, attempt):
+        # Per-step navigation is the bridge's own projection returned with each
+        # mutating callback; the dispatcher's next view carries its own text.
+        actions = [action for action in result["navigation"]["actions"]
+                   if action.get("attempt") == attempt and action["action"] == "verify"]
+        self.assertEqual(len(actions), 1)
+        return " ".join(actions[0]["instruction"].split())
+
+    def assert_parent_verify_rule(self, instruction):
+        for phrase in (
+            "Check the returned per-item receipt against each definition_of_done item",
+            "independently rerun or inspect each item's confirmation",
+            "Reject when a confirmable item failed or was not confirmed, naming the items",
+            "treat it as BLOCKED for planning, not as accepted",
+            "goes back to planning (plan revision or replan), not to a blind retry",
+            "archived exit-criteria.json handoff file",
+        ):
+            self.assertIn(phrase, instruction)
+
+    def test_step_packets_carry_exit_criteria_and_verify_carries_parent_rule(self):
+        """Exit criteria live in the emitted prompts; the bridge never reruns them."""
+        self.bind()
+        claims = self.claim(["A", "B"])
+        packet = self.start("A", claims["A"])["packet"]
+        self.start("B", claims["B"])
+        instructions = packet["instructions"]
+        rule = chain._exit_criteria_instruction("the assignment's definition_of_done items")
+        self.assertEqual(instructions.count(rule), 1)
+        joined = " ".join(" ".join(instructions).split())
+        for phrase in (
+            "Exit criteria: the assignment's definition_of_done items are your exit criteria.",
+            "Use the item's `Confirm by:` method when it has one.",
+            "Never download, install, or fetch a tool, runtime, or dependency to confirm an item.",
+            "leave that check failing and report the discrepancy",
+            "After your last edit to any file, rerun every check in one pass; only that pass counts.",
+            "change the work, not the check",
+            "the same check still failing after 3 genuine fix attempts → FAILED",
+            "or reported `unconfirmable` when its text already says `Confirm by: unconfirmable here`, "
+            "and none failed → SUCCEEDED",
+            "for an item the plan did not already mark `Confirm by: unconfirmable here`",
+            "with the existing behavior kept at the conflict point",
+            "`confirmed`, `inspected`, `failed`, `not_run`, or `unconfirmable`",
+            "declared handoff file exit-criteria.json",
+            "List it in the manifest files with its sha256",
+        ):
+            self.assertIn(phrase, joined)
+        # A first attempt carries no prior_attempts feedback.
+        self.assertNotIn("prior_attempts", joined)
+        # The handoff v1 manifest contract is unchanged; the receipt is a declared file.
+        self.assertEqual(packet["handoff"]["required"],
+                         ["run_id", "step", "attempt", "base_commit", "status", "commit", "summary", "files"])
+
+        repo = Path(packet["context"]["workspace"])
+        (repo / "A.txt").write_text("A\n")
+        self.git(repo, "add", "A.txt")
+        self.git(repo, "commit", "-qm", "Implement A")
+        handoff_root = repo / ".shiploop-handoff" / packet["attempt"]
+        handoff_root.mkdir(parents=True, exist_ok=True)
+        receipt = handoff_root / "exit-criteria.json"
+        receipt.write_text(json.dumps({
+            "criteria": [{"criterion": "A.txt holds A", "check": "cat A.txt",
+                          "observed": "A", "level": "confirmed"}],
+            "discrepancies": [], "recommendations": [],
+        }) + "\n")
+        handoff = handoff_root / "handoff.json"
+        handoff.write_text(json.dumps({
+            "schema": "shiploop-chain-handoff/v1", "run_id": packet["run_id"], "step": "A",
+            "attempt": packet["attempt"], "base_commit": packet["context"]["base_commit"],
+            "status": "SUCCEEDED", "commit": self.git(repo, "rev-parse", "HEAD"),
+            "summary": "A confirmed; no discrepancies.",
+            "files": [{"path": "exit-criteria.json", "sha256": digest(receipt)}],
+        }) + "\n")
+        imported = self.call("import-handoff", {
+            "attempt": packet["attempt"], "confirmed_stopped": True,
+            "handoff": {"path": str(handoff), "sha256": digest(handoff)},
+        })
+        self.assertEqual(imported["import"]["status"], "SUCCEEDED")
+        self.assertIn("exit-criteria.json", json.dumps(imported))
+        prepared = self.call("prepare", {"attempt": packet["attempt"], "confirmed_stopped": True})
+        self.assert_parent_verify_rule(self.verify_instruction(prepared, packet["attempt"]))
+
+        blocked = self.packets["B"]
+        blocked_root = Path(blocked["context"]["workspace"]) / ".shiploop-handoff" / blocked["attempt"]
+        blocked_root.mkdir(parents=True, exist_ok=True)
+        blocked_receipt = blocked_root / "exit-criteria.json"
+        blocked_receipt.write_text(json.dumps({
+            "criteria": [{"criterion": "B runs under Node 14", "check": "node --version",
+                          "observed": "node: command not found", "level": "unconfirmable"}],
+            "discrepancies": [], "recommendations": ["Confirm under Node 14 where it is installed."],
+        }) + "\n")
+        blocked_handoff = blocked_root / "handoff.json"
+        blocked_handoff.write_text(json.dumps({
+            "schema": "shiploop-chain-handoff/v1", "run_id": blocked["run_id"], "step": "B",
+            "attempt": blocked["attempt"], "base_commit": blocked["context"]["base_commit"],
+            "status": "BLOCKED", "commit": None, "summary": "B blocked: Node 14 is absent.",
+            "files": [{"path": "exit-criteria.json", "sha256": digest(blocked_receipt)}],
+        }) + "\n")
+        imported = self.call("import-handoff", {
+            "attempt": blocked["attempt"], "confirmed_stopped": True,
+            "handoff": {"path": str(blocked_handoff), "sha256": digest(blocked_handoff)},
+        })
+        self.assertEqual(imported["import"]["status"], "BLOCKED")
+        self.assert_parent_verify_rule(self.verify_instruction(imported, blocked["attempt"]))
+
+    def test_serial_per_step_packet_carries_exit_criteria_and_verify_carries_parent_rule(self):
+        """Serial chains execute the same per-step packet in the main context."""
+        self.select_dispatcher(SERIAL_FIXTURE)
+        self.graph = self.write("graph.json", {"version": 1, "steps": [{"id": "A", "deps": [],
+            "contract": {"task": "Implement A", "ready": [], "done": ["A verified"]}}]})
+        self.bind(capacity=None, mode="serial")
+        attempt = self.claim(["A"])["A"]
+        packet = self.serial_start("A", attempt)["packet"]
+        instructions = packet["instructions"]
+        self.assertEqual(instructions.count(chain._exit_criteria_instruction(
+            "the assignment's definition_of_done items")), 1)
+        self.assertEqual(instructions.count(chain._EXIT_CRITERIA_HANDOFF_INSTRUCTION), 1)
+        joined = " ".join(instructions)
+        self.assertIn("You are executing this bounded task in the current main conversation.", joined)
+        self.assertNotIn("Achieve the definition of done", joined)
+        self.assertNotIn("prior_attempts", joined)
+        verify = chain._serial_action_instruction("verify")[1]
+        self.assertIn(chain._PARENT_VERIFY_RULE, verify)
+
+    def test_retried_step_packet_carries_prior_attempts_and_feedback(self):
+        """A retry's real per-step packet carries the dispatcher's prior_attempts and the feedback rule."""
+        self.select_dispatcher(SERIAL_FIXTURE)
+        self.bind(capacity=None, mode="serial")
+        a1 = self.claim(["A"])["A"]
+        first = self.serial_start("A", a1)["packet"]
+        self.assertNotIn("prior_attempts", first)
+        rejected = json.loads(json.dumps(self.contribute("A")))
+        rejected["verification"]["passed"] = False
+        self.assertEqual(self.call("done", rejected)["outcome"], "rejected")
+        self.call("retry", {"attempt": a1, "confirmed_stopped": True, "reason": "criterion 2 failed"})
+        a2 = self.claim(["A"])["A"]
+        packet = self.serial_start("A", a2)["packet"]
+        self.assertEqual([prior["attempt"] for prior in packet["prior_attempts"]], [a1])
+        self.assertTrue(packet["prior_attempts"][0]["reason"])
+        feedback = chain._prior_attempts_instructions(packet)
+        self.assertEqual(len(feedback), 1)
+        self.assertEqual(packet["instructions"].count(feedback[0]), 1)
+
+    def test_replaced_instruction_lists_keep_the_prior_attempts_feedback(self):
+        """A retried step's prior_attempts data arrives with the instruction to use it."""
+        prior = [{"attempt": "A-1", "status": "retried", "reason": "criterion 2 failed",
+                  "result": {"path": "results/A-1.json", "sha256": "0" * 64}, "verification": None}]
+        feedback = chain._prior_attempts_instructions({"prior_attempts": prior})
+        self.assertEqual(len(feedback), 1)
+        self.assertIn("This packet's prior_attempts lists this step's earlier attempts", feedback[0])
+        self.assertIn("address the named failing items first", feedback[0])
+        self.assertIn("archived exit-criteria.json handoff file", feedback[0])
+        self.assertEqual(chain._prior_attempts_instructions({"prior_attempts": []}), [])
+        self.assertEqual(chain._prior_attempts_instructions({}), [])
 
 class PacketReplayIdentityTests(unittest.TestCase):
     def setUp(self):

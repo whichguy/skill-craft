@@ -210,7 +210,12 @@ the execution graph validator. Reserved object-key IDs and whitespace-only
 contracts fail at export rather than yielding a graph that init cannot use.
 It maps `statement` to
 task, direct non-null input suppliers to deps, input needs to ready, and produces
-to done. This gate is structural; it does not prove semantic sufficiency or replace
+to done. A produce with a Backchain `confirm` entry carries its method in the done
+string: `<produce>. Confirm by: <by>` for execution, the same plus
+` (inspection is sufficient)` for inspection, or
+`<produce>. Confirm by: unconfirmable here — <by>`. A produce without one is
+exported unchanged. Workers treat every done item as an exit criterion and use
+its `Confirm by:` method when present (see [exit criteria](#exit-criteria)). This gate is structural; it does not prove semantic sufficiency or replace
 readiness/acceptance evidence. Do not resolve the exporter relative to this package.
 Exact repeated ready/done wording is listed once; distinct supplier dependencies
 and every original input binding remain intact, even when their wording matches.
@@ -294,12 +299,12 @@ the affected graph IDs. A context-bound `next` also includes the exact
 | claim | `{owner,steps:["B","C"]}` | Reserve precisely these ready IDs atomically; return preparation packets, which never launch by themselves |
 | start | `{owner,attempt,context,executor?}` | Native path persists launch intent and returns launch; `main-context` executor atomically enters serial work and returns execute; exact replay reconciles |
 | launched | `{owner,attempt,handle}` | Save actual nonempty native handle returned by the host |
-| packet | `{attempt}` | Read frozen task/context and supplier evidence; never authorize another launch, execution, acceptance, or successor selection |
+| packet | `{attempt}` | Read frozen task/context, supplier evidence and any `prior_attempts`; never authorize another launch, execution, acceptance, or successor selection |
 | check-context | `{step}` or `{attempt}` | Read context availability for one current graph step; never mutates state or authorizes launch/acceptance |
 | report | Envelope below | Publish one immutable inbox receipt; dispatcher state unchanged |
 | receipt | `{attempt}` | Return the envelope and digest of its stored bytes; never infer completion or acceptance |
 | settle | `{owner,attempt,verification}` | Record independent accepted/rejected decision and return next actions |
-| retry | `{owner,attempt,confirmed_stopped:true,reason}` | Retire nonaccepted attempt; next claim gets a fresh token |
+| retry | `{owner,attempt,confirmed_stopped:true,reason}` | Retire nonaccepted attempt; next claim gets a fresh token whose packet lists it in `prior_attempts` |
 | takeover | `{oldOwner,newOwner,confirmed_stopped:true,reason}` | Fence old dispatcher owner, retain workers/receipts |
 
 Every successful operation scoped to a RUN includes `next_argv`, exactly
@@ -422,6 +427,13 @@ Worker envelope:
 
 Status is SUCCEEDED, FAILED or BLOCKED. Result artifact records actual output,
 commit/workspace identity where applicable, checks and exit codes, and limitations.
+It includes a `criteria` array with one entry per definition_of_done item,
+`{criterion, check, observed, level}`: the item text, the check or inspection
+used, the observed output from the final pass, and a level of `confirmed`,
+`inspected`, `failed`, `not_run` or `unconfirmable`. It also includes
+`discrepancies` and `recommendations` arrays, empty when there are none. The
+helper does not parse the artifact; the parent reads `criteria` during
+verification.
 Its self-contained handoff summary preserves material discoveries, corrected
 assumptions, decisions and concise rationale, checks actually performed,
 unresolved questions, and implications for the assigned result; it states when
@@ -446,6 +458,50 @@ the returned `report_argv`. The public helper rejects a different evidence path,
 and its CLI rejects a different envelope input path. Packet recovery deterministically
 returns the same output paths. Output-directory setup happens before launch intent;
 a setup failure leaves the claim unlaunched and startable.
+
+### Exit criteria
+
+Every packet tells the worker, native or main-context, that its
+definition_of_done items are its exit criteria. The task is finished only when
+each item is confirmed as far as the environment allows:
+
+1. Before editing, record for each item the command or inspection that confirms
+   it and what counts as a pass, using the item's `Confirm by:` method when it has
+   one. Existing tests, check scripts, golden or fixture files, and thresholds
+   belong to the checks and change only when an item says so.
+2. Confirm with what is already present. Never download, install, or fetch a
+   tool, runtime, or dependency to confirm an item; record the best available
+   evidence and recommend what would confirm it.
+3. Stay within the task. A check whose satisfaction would make the result do or
+   claim something the task does not ask for stays failing, and the discrepancy
+   is reported.
+4. After the last edit to any file, rerun every check in one pass; only that pass
+   counts. A failing check changes the work, not the check.
+5. Stop on exactly one: every item confirmed or inspected, or reported
+   `unconfirmable` when its definition_of_done text already says `Confirm by:
+   unconfirmable here`, and none failed → SUCCEEDED; an item proven unachievable
+   → BLOCKED; the same check still failing after 3 genuine fix attempts → FAILED.
+   An item is proven unachievable only when (a) it contradicts another item, the
+   task, or a protected file, shown by a check after all compatible work is done
+   and with the existing behavior kept at the conflict point; (b) confirming it
+   needs a tool, runtime, access, or authority that is absent, for an item the
+   plan did not already mark `Confirm by: unconfirmable here`; or (c) satisfying
+   it would exceed the task.
+
+Missing input still means BLOCKED; never guess. The worker reports actual checks
+and output artifact or commit identity, with the per-item `criteria` receipt
+above.
+
+Parent verification applies to every result, Git or not. The parent checks the
+returned per-item receipt against each definition_of_done item and independently
+reruns or inspects each item's confirmation. It rejects when a confirmable item
+failed or was not confirmed, naming the items in the settlement reason. An item
+reported `inspected` or `unconfirmable` whose `Confirm by:` required execution
+means the step contract cannot be met here: treat it as BLOCKED for planning,
+not as accepted. A BLOCKED result with a proven-unachievable item goes back to
+planning (plan revision, or a replan in a new run), not to a blind retry.
+
+### Parent verification and settlement
 
 Parent verification (inside the settle request):
 
@@ -555,6 +611,21 @@ ending the worker. If periodic status is unavailable, disclose it before idle
 and continue native completion collection. A rejected result blocks its descendants while other
 independent ready work can continue. Retrying that task is a separate explicit
 operation with a fresh attempt; dispatching its successors is not a retry.
+Retry a fixable failure only; a proven-unachievable item goes back to planning.
+
+A fresh attempt's packet carries `prior_attempts`, the step's earlier attempts
+oldest first, each `{attempt, status, reason, result, verification}`. `status` is
+the reported receipt status (SUCCEEDED, FAILED or BLOCKED), or `NOT_REPORTED`
+when the attempt was retried without a receipt. `reason` is the settlement
+rejection reason when the attempt was settled, otherwise the retry reason.
+`result` is the receipt's `{path, sha256}` result evidence and `verification` is
+the parent's settlement `{path, sha256}` evidence; each is `null` when absent.
+This is a read-only projection of existing dispatcher state and inbox receipts:
+it adds no state fields and does not change retry or settlement semantics. A
+first attempt's packet has no `prior_attempts` key. When the key is present, the
+worker verifies those hashes, reads the results and reasons first, and
+addresses the named failing items. Name the failing items in a rejecting
+settlement reason so the next attempt can act on them.
 
 When no step can launch, collect active native tasks if their results are needed;
 otherwise report the concrete dependency, readiness, resource or recovery blocker.

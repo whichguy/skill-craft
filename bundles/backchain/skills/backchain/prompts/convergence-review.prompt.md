@@ -23,7 +23,16 @@ coverage.
 1. Trace backward from every requested outcome and verification sink. Identify an
    evidenced initial fact, sufficient supplier, or honest unresolved need.
 2. Walk the scoped graph forward across suppliers, consumers, new branches, ordering,
-   readiness, and done evidence.
+   readiness, and done evidence. Every produce needs a `confirm` entry whose check two
+   people running it separately would be forced to agree on and that covers the whole
+   produce. A step this cycle may change is one whose exact ID is provisional in the caller
+   `edit_bounds` and that is not running, completed, or protected; with no caller
+   `edit_bounds`, it is any step that is not running or completed. On a step this cycle may
+   change, a produce with no confirmation, a confirmation that checks only part of its
+   produce, or an `unconfirmable` marker on a produce that an available check could in fact
+   confirm or whose `by` does not name what would confirm it, is a material planning gap.
+   On any other step the same finding is advisory; it is not a planning gap or a forbidden
+   necessary repair.
 3. Actually load `references/technical-lenses.md`, screen all categories, and load
    applicable or uncertain cards/interactions. Record the observed locator in checks.
 4. Revisit effects of prior repairs across shared prerequisites, independent tracks,

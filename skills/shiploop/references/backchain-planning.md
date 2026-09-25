@@ -83,6 +83,19 @@ these criteria in the current spec/plan notes and carry their locators in
 `evidence_refs` and work-item `context`; future test paths remain planned.
 Do not invent future receipts or observed revisions.
 
+Give every completion criterion a confirmation: `<condition>. Confirm by:
+<command, observation, or inspection>; pass when <expected result>.` It must pass
+the two-people test: two people running it separately would be forced to agree.
+State whether the condition must be exercised or whether inspection is
+sufficient. Give content criteria (docs, changelogs, test coverage) a
+command-checkable confirmation, such as a search for required terms, so they are
+re-observed rather than recalled. Mark a criterion that no available check can
+confirm as `Confirm by: unconfirmable here — <what would confirm it>` rather
+than dropping it. When a check relies on an external oracle (golden, fixture, or
+snapshot), confirm that the oracle agrees with the task. This applies to every
+work step's `produces`/`contract.done`, not only sinks; a Backchain step
+`confirm` entry records the same confirmation in structured form.
+
 "The suite passes" alone is not per-outcome evidence. Use the existing
 acceptance criteria, case IDs and system-test catalog appropriate to that stage;
 do not duplicate them in a new goal catalog. Share test infrastructure when useful, but retain each
@@ -108,8 +121,11 @@ prerequisites and source/test locators in each ordered work item's
 `title`/`context` and linked plan notes.
 Split independently schedulable work when prerequisites or deliverables diverge;
 do not require a separate work item for every assertion or cosmetic
-improvement. Each item's INNER test and verification stages already provide
-local checks. Plan a
+improvement. Local checks come from each step's own completion criteria and
+their `Confirm by:` confirmations: `implement` (or a chain worker) loops until
+each is confirmed as far as the environment allows, and `verify` (or chain
+parent verification) reruns or inspects them. A criterion without a
+confirmation has no local check. Plan a
 separate system/integration producer only when a check genuinely needs multiple
 steps, another environment, or a later lifecycle boundary.
 

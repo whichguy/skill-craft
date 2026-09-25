@@ -23,10 +23,10 @@
   },
   "id": "synthetic-failed-callback-followed-by-exit-zero",
   "observer": {
-    "grok_adapter_sha256": "468208ab2e206934a3c65fd61850088e3ca7529b70f14182fe2a1ce361303d86",
+    "grok_adapter_sha256": "0e28aa71bd5df4bb126d780241cf10b4e31aacd25a3df4e205fda1d904274d1d",
     "source_edit_policy": "parser-source-mismatch-invalidates-attribution",
-    "previous_grok_adapter_sha256": "62bced88980a1f95fcce4e973086afd46a4120ba937eed5410c30e69c0858e78",
-    "revalidation": "The direct-form ShipLoop verb allowlist now matches the current CLI: chain, delegation and improve-reconcile were added and the retired verbs were removed. Every fixture uses only the retained complete verb; all five golden attribution expectations independently replayed unchanged. Original capture provenance and events are unchanged.",
+    "previous_grok_adapter_sha256": "468208ab2e206934a3c65fd61850088e3ca7529b70f14182fe2a1ce361303d86",
+    "revalidation": "The direct-form ShipLoop verb allowlist now also accepts lint-mode and lint, the new ShipLoop exit-criteria lint verbs. Every fixture uses only the retained complete verb; all five golden attribution expectations independently replayed unchanged. Original capture provenance and events are unchanged.",
     "revalidation_history": [
       {
         "grok_adapter_sha256": "d1ff9c7208061a70857aa1ae95513823ebf26f69b0951f4890388d37011c8d66",
@@ -42,6 +42,11 @@
         "grok_adapter_sha256": "62bced88980a1f95fcce4e973086afd46a4120ba937eed5410c30e69c0858e78",
         "previous_grok_adapter_sha256": "3571fc09cb2ba76a939c345272a2e08402086041f8274cbc4b8d2350266e415e",
         "revalidation": "Launch selection rejects ambiguous literal ShipLoop routes while accepting normal omitted-alias records; all five golden attribution expectations independently replayed unchanged. Original capture provenance and events are unchanged."
+      },
+      {
+        "grok_adapter_sha256": "468208ab2e206934a3c65fd61850088e3ca7529b70f14182fe2a1ce361303d86",
+        "previous_grok_adapter_sha256": "62bced88980a1f95fcce4e973086afd46a4120ba937eed5410c30e69c0858e78",
+        "revalidation": "The direct-form ShipLoop verb allowlist now matches the current CLI: chain, delegation and improve-reconcile were added and the retired verbs were removed. Every fixture uses only the retained complete verb; all five golden attribution expectations independently replayed unchanged. Original capture provenance and events are unchanged."
       }
     ]
   },

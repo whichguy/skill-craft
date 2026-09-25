@@ -19,7 +19,14 @@ A single JSON object matching this exact shape:
       "statement": "<the state/conclusion this step achieves — a postcondition, never an action>",
       "produces": ["<explicit output state>"],
       "inputs": [],
-      "origin": "seed"
+      "origin": "seed",
+      "confirm": [
+        {
+          "produces": "<exact text of one produces entry>",
+          "by": "<command, observation, or inspection>; pass when <expected result>",
+          "level": "execute"
+        }
+      ]
     }
   ],
   "parallel_groups": [],
@@ -77,11 +84,10 @@ A single JSON object matching this exact shape:
     and this prompt tells you elsewhere to emit `unresolved: []`. An earlier version of this rule
     instructed exactly that entry; it was unfollowable, and the one plan that appeared to obey it
     attached the record to an arbitrary step.
-    - **Known gap, deliberately not papered over:** the schema has no request-coverage ledger, so a
-      plan currently cannot distinguish "this requirement was judged unverifiable" from "this
-      requirement was forgotten". Closing that needs an evaluator-owned record scored against the
-      original request — an artifact this prompt does not author — not a field the plan writes about
-      itself.
+    - **Mark it, so judged-unverifiable reads differently from forgotten.** Give that work step's
+      produce a `confirm` entry with `"level": "unconfirmable"` and a `by` naming what would confirm
+      it (it exports as `Confirm by: unconfirmable here — <what would confirm it>`). A requirement
+      with no step at all is still indistinguishable from one that was forgotten, so never drop it.
   - **One sink per spec item — never a single catch-all.** Each `goal_needs` entry gets its **own**
     terminal step, so every requirement has its own traceable verification. Do **not** collapse
     several requirements into one step, and in particular do not let "the test suite passes" stand
@@ -166,6 +172,31 @@ A single JSON object matching this exact shape:
     Never invent near-matches. Never use the string `"initial"`. The backward-chaining pass exists to wire
     edges thoroughly — empty inputs are preferred over wrong ones.
   - Has `origin: "seed"` — every step you draft has this value. Never write `"discovered"`.
+  - Has `confirm`: one entry per `produces` entry, on **every** step — work steps included, not only
+    verification sinks. See the confirmation rule below.
+- **`confirm` — give every completion criterion a confirmation.** Each entry is
+  `{"produces": "<exact text of one of this step's produces>", "by": "<command, observation, or
+  inspection>; pass when <expected result>", "level": "execute" | "inspect" | "unconfirmable"}`, and
+  it reads as `<condition>. Confirm by: <command, observation, or inspection>; pass when <expected
+  result>.` Copy the `produces` text character for character and name each produce once.
+  - It must pass the two-people test: two people running it separately would be forced to agree.
+  - State whether the condition must be exercised (`"execute"`) or whether inspection is sufficient
+    (`"inspect"`).
+  - Give content criteria (docs, changelogs, test coverage) a command-checkable confirmation, such as
+    a search for required terms, so they are re-observed rather than recalled.
+  - Mark a criterion that no available check can confirm as `"level": "unconfirmable"` with `by`
+    naming what would confirm it (`Confirm by: unconfirmable here — <what would confirm it>`) rather
+    than dropping it.
+  - When a check relies on an external oracle (golden, fixture, or snapshot), confirm that the oracle
+    agrees with the task.
+  - A confirmation describes how to check a produce; it is never a reason to add a produce, a step, or
+    a `goal_needs` entry.
+  - Example: `{"produces": "the checkout handler rejects payloads missing a required field", "by":
+    "post a checkout payload without amount to the handler through the existing test suite; pass when
+    it returns 400 and the payment processor stub records no call", "level": "execute"}`. A changelog
+    produce might use `"by": "search CHANGELOG.md for the new flag name; pass when an entry names it",
+    "level": "inspect"`. A production-only behaviour might use `"by": "a production traffic sample
+    showing the new header", "level": "unconfirmable"`.
 - **`parallel_groups`**: always `[]`. A later process derives them deterministically.
 - **`unresolved`**: always `[]`. A later process may populate this.
 

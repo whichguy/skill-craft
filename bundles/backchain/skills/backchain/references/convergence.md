@@ -73,7 +73,14 @@ fresh backward trace from every requested outcome and verification sink, a forwa
 suppliers/consumers/new branches, all-42-lens applicability screen, source and experiment
 identity review, authorized repair, and appropriate checks. Source-aware work also uses `audit.prompt.md`
 and one bounds-respecting `revise.prompt.md`. Do not recursively invoke whole Backchain or
-Until Loop. Legacy elaboration still preserves inherited seed/null edges and `goal_needs`.
+Until Loop. Legacy elaboration still preserves inherited seed/null edges, `goal_needs`, and step
+`confirm` entries. A step this cycle may change is one whose exact ID is provisional in the
+caller `edit_bounds` and that is not running, completed, or protected; with no caller
+`edit_bounds`, it is any step that is not running or completed. On such a step, a produce with no
+confirmation, a confirmation that checks only part of its produce, or an unjustified
+`unconfirmable` marker (on a produce an available check could confirm, or whose `by` does not
+name what would) is a material planning gap. On any other step it is advisory; it is not a
+planning gap or a forbidden necessary repair.
 
 Before submitting each cycle's `done` report, retain its original review observations
 in a stable, host-readable record; do not overwrite an earlier qualifying record.

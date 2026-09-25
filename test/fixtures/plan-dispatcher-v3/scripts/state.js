@@ -1380,6 +1380,39 @@ function planningContextPacket(dir, step) {
   );
 }
 
+/*
+ * Read-only retry feedback for a step's current packet.  Every noncurrent
+ * attempt of a step is a retried one; state keeps attempts in creation order.
+ */
+function priorAttempts(dir, step) {
+  requireString(dir, 'dir');
+  const state = readState(dir);
+  assertKnownStep(state, step);
+  const current = state.steps[step].current_attempt;
+  const prior = [];
+  for (const attempt of Object.keys(state.attempts)) {
+    const record = state.attempts[attempt];
+    if (record.step !== step || attempt === current || record.status !== 'retried') {
+      continue;
+    }
+    let stored = null;
+    try {
+      stored = readInbox(dir, attempt, true);
+    } catch (_) {
+      stored = null;
+    }
+    const reported = stored && receiptMatchesRecord(stored, state, record) ? stored : null;
+    prior.push({
+      attempt,
+      status: reported ? reported.envelope.status : 'NOT_REPORTED',
+      reason: hasOwn(record, 'rejection_reason') ? record.rejection_reason : record.retry.reason,
+      result: reported ? cloneJson(reported.envelope.evidence) : null,
+      verification: hasOwn(record, 'verification') ? cloneJson(record.verification.evidence) : null,
+    });
+  }
+  return prior;
+}
+
 function claim(dir, owner, limit, stepIds) {
   requireString(dir, 'dir');
   if (!Number.isSafeInteger(limit) || limit < 0) {
@@ -1804,6 +1837,7 @@ module.exports = {
   checkPlanningContext,
   assertPlanningContextAvailable,
   planningContextPacket,
+  priorAttempts,
   claim,
   start,
   launched,

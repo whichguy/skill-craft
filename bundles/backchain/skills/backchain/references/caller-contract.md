@@ -96,8 +96,9 @@ changed request/scope/bounds, or newer contradictory governing source uses exist
 cancel/rebind behavior; no state is carried into that changed binding. Backchain must not inject a `max_passes`, derive pass IDs/streaks, or run a
 parallel controller.
 
-A source-aware child uses audit/revise only as Backchain primitives within one Until Loop callback. Legacy elaboration remains separate and preserves inherited seed/null edges and
-`goal_needs`; an authorized revise may remove or rewire only exact provisional edges.
+A source-aware child uses audit/revise only as Backchain primitives within one Until Loop callback. Legacy elaboration remains separate and preserves inherited seed/null edges,
+`goal_needs`, and step `confirm` entries; an authorized revise may remove or rewire only exact provisional edges
+and carries each `confirm` entry to any produce text it rewrites.
 An explicit `review/audit` stays read-only and never starts the Until Loop binding.
 
 Final `{plan, review}` restores outer caller action/stage/ID and original input identity,

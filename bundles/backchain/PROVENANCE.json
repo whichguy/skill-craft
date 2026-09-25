@@ -3,13 +3,13 @@
   "bundle": "backchain",
   "upstream": {
     "repository": "https://github.com/whichguy/plan-orchestrator.git",
-    "commit": "8671b5c45f889e2eb82a4aca4b94a0af53f61869",
+    "commit": "0f09091a9c3b1b5dee7f55d3fc4a79ecf22f327b",
     "manifest": {
       "path": ".claude-plugin/plugin.json",
       "name": "backchain",
-      "version": "0.4.0",
-      "sha256": "b432724f7d4d666f8cc61d22dcafb421ffc9218f8b8ca431d9cb9d523d28f61d",
-      "git_blob": "45a25ddb1dbb06928f2117d69a3eb2339277fc8c"
+      "version": "0.5.0",
+      "sha256": "fc00b05c40f547c053386144fd4f0b0b17464341ef92e57ce81ec7a12dc80fd8",
+      "git_blob": "367b6ba8bff1a4f70aab32b6b1c58a06f00abf0d"
     }
   },
   "files": [
@@ -22,8 +22,8 @@
     {
       "path": "skills/backchain/SKILL.md",
       "mode": "100644",
-      "sha256": "1634d38d8c09c750ca6029d7603671c34fbf9ae14c0594a34d81ded300fb70a4",
-      "git_blob": "72b7d7413999b81988794909c44043b283037c40"
+      "sha256": "bb52d23ca5e56658d2271492b2a545b3749b1aac3278e468fbb1248d6f790084",
+      "git_blob": "953da728527e2c0880a0f1ce9dd65930ec3b5c93"
     },
     {
       "path": "skills/backchain/evals/evals.json",
@@ -40,14 +40,14 @@
     {
       "path": "skills/backchain/prompts/audit.prompt.md",
       "mode": "100644",
-      "sha256": "ec069482b9313fef953a06291267c60120e60808ccee74821ce0344c14c949f8",
-      "git_blob": "8af266015cb23f2036fca173da7a3484bdce98cf"
+      "sha256": "6e0d9c5863523e18e719e49f4ca2543c9f18a2798d75fc39dd4ce277dfb6ba0b",
+      "git_blob": "5f3601df5f41be4399b7983498ab94c2da1f1306"
     },
     {
       "path": "skills/backchain/prompts/convergence-review.prompt.md",
       "mode": "100644",
-      "sha256": "05c8a3050a08a25c7bfc66ed7b55d29b1021d25edeb93eec93282896eaedb089",
-      "git_blob": "47f09e881dc1050dbe2fac9db5752159ae88ea45"
+      "sha256": "ee842fd35c9013df167e8bc988cae2d1c2d0df93c6aed94404398ec178c83ced",
+      "git_blob": "995ff722cf302d9cf3ebe852da3b4b636b0aea1e"
     },
     {
       "path": "skills/backchain/prompts/dependency-review.prompt.md",
@@ -58,14 +58,14 @@
     {
       "path": "skills/backchain/prompts/elaborator.v1.md",
       "mode": "100644",
-      "sha256": "d06051016db73ab3239242dc1f588796f43f4a6e33f1700be9f88ed5b264a4be",
-      "git_blob": "57f48bd376ffc8654d3c82f853ad91e04793693f"
+      "sha256": "36ebbbc96e10633f5fabb772665e9dee98991b1dae234819f95dc477cab9ac5e",
+      "git_blob": "afb2b24a85f00c60db3e5e966edd17f7d23c7373"
     },
     {
       "path": "skills/backchain/prompts/generator.v1.md",
       "mode": "100644",
-      "sha256": "2426c679c2ce004cf6a418f97a9b09e3c19cf808764ee2a5904c83061acd570e",
-      "git_blob": "d51e086f38fb405362825ff389ac6931eb3fb018"
+      "sha256": "9ad9f37602def91743a3e8c259e2d990f34b81c5c8ecf0c920f41bc67355742c",
+      "git_blob": "dbbf4152c230941969f647fa2f92b617a6f36c87"
     },
     {
       "path": "skills/backchain/prompts/intent-judge.prompt.md",
@@ -76,20 +76,20 @@
     {
       "path": "skills/backchain/prompts/revise.prompt.md",
       "mode": "100644",
-      "sha256": "33421f2458ccc4b3bc89d78808a0455aec15cfbc6321c0c4b5a7420205d68b1f",
-      "git_blob": "b8f2520a5a4a796e05d52f358167bb7ca175b8fd"
+      "sha256": "efbb71ea5efd935e62a8ddfbe5326333dff46fb45a90a1eae35810b246369d5f",
+      "git_blob": "244ec134384c570d30fd7675485d9b9cb63432e4"
     },
     {
       "path": "skills/backchain/references/caller-contract.md",
       "mode": "100644",
-      "sha256": "8e12275a56a1c2fe29cf9fb7d8562823b8ffa0e7eed340eb3117695e5d2db3a8",
-      "git_blob": "32de1ea825bc560e986c327d6d2e0d614140d0f2"
+      "sha256": "feab0f8a73b1e7d538c5ec8c01647fd668024275aa12121909e4b8a2f9458294",
+      "git_blob": "a600bf8d55deab0d12c76f4593fef54caa024c5e"
     },
     {
       "path": "skills/backchain/references/convergence.md",
       "mode": "100644",
-      "sha256": "e4407c69653042640966269825b9b7b71d229c308f78361d7a93e6f8b0f87dae",
-      "git_blob": "3cf6857ca4c6f3e9d2848f98618c70d6dfe82b27"
+      "sha256": "e8226c19fdfbd66bb8ddd0bf2cedc3e241a87562b7e0014ff74750b2a6c0feab",
+      "git_blob": "bb6d3e9468b5154d6ed2896528086c18292b1019"
     },
     {
       "path": "skills/backchain/references/dependency-context.md",
@@ -124,8 +124,8 @@
     {
       "path": "skills/plan-dispatcher/SKILL.md",
       "mode": "100644",
-      "sha256": "df4be75911e6c3acb33ded64b19bb4e96ad26951e757b1695b4a6243a50d4d58",
-      "git_blob": "5d399d0ff5fbf6c9bde33335be6f05d147d88ebe"
+      "sha256": "02e65d2954c67d48cf5a0c59e6da836ed5a93d9304f4674d4bc7773570793a7b",
+      "git_blob": "51486cfc4c815a48e5cc3c58dbba080684caf6f4"
     },
     {
       "path": "skills/plan-dispatcher/references/host-matrix.md",
@@ -136,14 +136,14 @@
     {
       "path": "skills/plan-dispatcher/references/protocol.md",
       "mode": "100644",
-      "sha256": "c9b21133b865aaa74b7fa54b7a27e92218b8483b569541023ffae1aa9399b742",
-      "git_blob": "444054a0b3e0cb649241e1ce39ebfa6c9528f5d4"
+      "sha256": "a0f4ffaba747855194ce35013f68bcc9e7bb1503a3e0cbc822aab01edf5ca504",
+      "git_blob": "f3b2015a7ee2f418ce5d7c98b2d23655b43c5383"
     },
     {
       "path": "skills/plan-dispatcher/scripts/dispatch.js",
       "mode": "100644",
-      "sha256": "5a63a1412b8473797b1dec0437c802fa00ff342734c7bb129120bb1ea879e21a",
-      "git_blob": "8691bb7aedc5b6c70236fb2ac6c663380a104f0b"
+      "sha256": "b1ebdabca0daa82855e210afcda16012b633eaa40023cdd4a5dff692b9ca667b",
+      "git_blob": "6e365e4622b6b61e484db6fdda4983761c117300"
     },
     {
       "path": "skills/plan-dispatcher/scripts/planning-context.js",
@@ -154,8 +154,8 @@
     {
       "path": "skills/plan-dispatcher/scripts/state.js",
       "mode": "100644",
-      "sha256": "b6fa1225e6fdb5bac3820e30f7186412b6be044771480222fb99be5c0f697941",
-      "git_blob": "65bd4bbb32480cd13e82785fa56a13e835708bae"
+      "sha256": "2f7d11a1bca8e8d20c3060e029d75c84b0b7ee2c80661f4513a07011d4b77e21",
+      "git_blob": "76bd2e67f0a49c1498b7a975cff9b4c0053803ac"
     }
   ]
 }

@@ -475,6 +475,9 @@ class V3GuidanceTests(unittest.TestCase):
             "test-spec": "every assigned clause",
             "test-author": "Authoring is complete",
             "test-refine": "removed or narrowed case",
+            "step-plan": "two people running it separately would be forced to agree",
+            "implement": "After your last edit to any file, rerun every check in one pass",
+            "verify": "treat it as blocked for planning, not as accepted",
             "product-acceptance": "pending release verification",
             "release-verify": "usable consumer entry",
         }

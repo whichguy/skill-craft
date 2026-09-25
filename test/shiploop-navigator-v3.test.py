@@ -840,6 +840,51 @@ class NavigatorV3Tests(unittest.TestCase):
             " ".join(prompts.DUTIES["spec"].split()),
         )
 
+    def test_v3_step_duties_carry_exit_criteria_authoring_loop_and_parent_check(self) -> None:
+        """Rule A, the worker loop W and parent check P live in the emitted duties.
+
+        The script does not rerun exit-criteria checks, so each route's packet
+        must carry the text. Both delegations render the same shared paragraphs.
+        """
+        authoring = (
+            "Give every completion criterion a confirmation: `<condition>. Confirm by: <command, "
+            "observation, or inspection>; pass when <expected result>.`",
+            "two people running it separately would be forced to agree",
+            "State whether the condition must be exercised or whether inspection is sufficient.",
+            "command-checkable confirmation, such as a search for required terms",
+            "`Confirm by: unconfirmable here — <what would confirm it>` rather than dropping it",
+            "confirm that the oracle agrees with the task",
+        )
+        loop = (
+            "Exit criteria: the accepted step plan's completion criteria are this action's exit criteria.",
+            "Use its `Confirm by:` method when it has one.",
+            "golden or fixture files, and thresholds belong to the checks",
+            "Never download, install, or fetch a tool, runtime, or dependency to confirm a criterion.",
+            "leave that check failing and report the discrepancy",
+            "After your last edit to any file, rerun every check in one pass; only that pass counts.",
+            "change the work, not the check, and rerun them all",
+            "a criterion proven unachievable → outcome blocked",
+            "or reported `unconfirmable` when the accepted plan already marks it `Confirm by: "
+            "unconfirmable here`, and none failed → outcome done",
+            "for a criterion the plan did not already mark `Confirm by: unconfirmable here`",
+            "still failing after 3 genuine fix attempts",
+            "with the existing behavior kept at the conflict point",
+            "`confirmed`, `inspected`, `failed`, `not_run`, or `unconfirmable`",
+        )
+        parent = (
+            "independently rerun or inspect each criterion's confirmation",
+            "Do not accept the item when a confirmable criterion failed or was not confirmed",
+            "treat it as blocked for planning, not as accepted",
+            "goes back to planning (plan revision or replan), not to a blind retry",
+        )
+        for delegation in (prompts.ASK_AGENT, prompts.INLINE):
+            for stage, phrases in (("step-plan", authoring), ("implement", loop), ("verify", parent)):
+                text = " ".join(prompts.prompt(stage, delegation=delegation).split())
+                for phrase in phrases:
+                    with self.subTest(delegation=delegation, stage=stage, phrase=phrase):
+                        self.assertEqual(text.count(phrase), 1)
+        self.assertNotIn("Exit criteria:", " ".join(prompts.prompt("static-checks").split()))
+
     def test_v3_test_strategy_requires_repeatable_harness_revalidation_and_suite_tiers(self) -> None:
         """The global strategy chooses rerunnable coverage before item work starts."""
         strategy = " ".join(prompts.prompt("test-strategy").split())
@@ -1534,7 +1579,9 @@ class NavigatorV3Tests(unittest.TestCase):
 
         child["skill"] = {
             "skill_card": "/skills/improve/SKILL.md", "runtime_card": "/runtime/SKILL.md",
-            "runtime_cli": "relative/runtime", "skill_version": "unversioned",
+            # The bundled ephemeral runtime name, so the durable-runtime refusal
+            # does not preempt the path check this case exercises.
+            "runtime_cli": "relative/until_loop_ephemeral.py", "skill_version": "unversioned",
             "runtime_version": "unversioned",
         }
         with self.assertRaisesRegex(navigator.NavigatorError, "paths must be absolute"):

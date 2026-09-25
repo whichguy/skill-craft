@@ -180,8 +180,8 @@ the selected Until Loop runtime remains child-execution authority.
 
 ### Current Improve and Until Loop binding
 
-The canonical Improve package bundles Until Loop **0.4.0-rc.2**, pinned to
-upstream commit `458f40ac35c8254906898890c25a784a6e3eb39c`. Its default child uses
+The canonical Improve package bundles Until Loop **0.5.0**, pinned to
+upstream commit `5df2a2feef4d80b93ca3c8a749d7d265c082d376`. Its default child uses
 `scripts/until_loop_ephemeral.py`; the package provenance manifest records the
 copied source hashes. The explicit selected card determines this binding. An
 ambient same-named skill or an older `scripts/until-loop` on `PATH` cannot select
@@ -889,10 +889,10 @@ line after the header is the one legal callback. The command surface is:
 
 ```sh
 # Start a navigator protocol 4 run
-shiploop workspace start --repo REPO --workspace-root ROOT [--improve-skill ABSOLUTE_SKILL_CARD] [--include-untracked=PATH]... [--exclude=PATH]... [--delivery-contract] [--delegation=inline|ask-agent] --prompt=TEXT
+shiploop workspace start --repo REPO --workspace-root ROOT [--improve-skill ABSOLUTE_SKILL_CARD] [--include-untracked=PATH]... [--exclude=PATH]... [--delivery-contract] [--delegation=inline|ask-agent] [--lint=fix|report|off] --prompt=TEXT
 shiploop workspace plan-return --workspace-root ROOT
 shiploop workspace return      --workspace-root ROOT
-shiploop init     --repo REPO [--run-dir RUN] [--improve-skill ABSOLUTE_SKILL_CARD] [--delivery-contract] [--delegation=inline|ask-agent] --prompt=TEXT
+shiploop init     --repo REPO [--run-dir RUN] [--improve-skill ABSOLUTE_SKILL_CARD] [--delivery-contract] [--delegation=inline|ask-agent] [--lint=fix|report|off] --prompt=TEXT
 # Reread the current packet; never advances
 shiploop next     --run-dir RUN
 shiploop report   --run-dir RUN
@@ -906,6 +906,8 @@ shiploop pause    --run-dir RUN --reason=TEXT
 shiploop resume   --run-dir RUN
 shiploop halt     --run-dir RUN --reason=TEXT
 shiploop delegation --run-dir RUN --set=inline|ask-agent   # from the next issued action
+shiploop lint-mode --run-dir RUN --set=fix|report|off      # later lint passes
+shiploop lint     --run-dir RUN --action ACTION [--show --part N [--rerun N]]   # advisory; never gates
 # Implementation chains within the current implement action (ask-agent runs)
 shiploop chain {bind,planning-inputs,next,history,pending,claim,start,launched,import-handoff,prepare,done,retry,packet,cleanup,finish} ...
 # Inspection without project work
@@ -918,6 +920,12 @@ shiploop graph-dry-run [--list] [--scenario NAME | --script STEPS.json] [--deleg
 `delegation` applies from the next issued action; the pending action and its
 Improve checkpoint keep their issued route. It is refused on halted or done runs;
 setting the recorded value is a no-op.
+`lint-mode` changes the run's script-owned lint option (new runs record `fix`;
+a saved run without it behaves as `off`) and is refused on halted or done runs.
+`lint` reruns the advisory pass report-only for the current action, or `--show`
+prints one part of a stored record; it exits 0 clean, 1 with new findings or an
+uncovered file, 3 when it could not run, and ShipLoop never gates on it. See
+[lint catalog](references/lint-catalog.md).
 `graph-dry-run --list` prints the scenarios;
 `--delegation` selects the simulated route (inline by default). See
 [graph dry runs](references/graph-dry-run.md).
@@ -959,6 +967,7 @@ phase diagram.
 | How does the navigator rerun invalidated planning? | [Planning revision archives](scripts/shiploop_planning_revision.py). |
 | How do implementation chains run? | [Chain bridge](scripts/shiploop_chain.py), [Git](scripts/shiploop_chain_git.py), [handoff](scripts/shiploop_chain_handoff.py), [ledger](scripts/shiploop_chain_ledger.py) and [planning inputs](scripts/shiploop_planning_context.py). |
 | How are routes inspected without project work? | [Graph dry run](scripts/shiploop_navigator_dry_run.py). |
+| What does the script-owned lint pass run, fix and record? | [Advisory lint pass](scripts/shiploop_lint.py) and its [lint catalog](references/lint-catalog.md). |
 
 In the **skill-craft source checkout**, not an installed package, the stable
 verification entrypoint is:
@@ -1032,6 +1041,8 @@ a product.
   declarations and early authority questions.
 - [Host matrix](references/host-matrix.md): host-specific invocation
   constraints; it is a reference, not mutable run state.
+- [Lint catalog](references/lint-catalog.md): the script-owned advisory lint
+  pass, its tools, safety pins and catalog data.
 
 If this guide and the current packet differ, follow the packet, preserve the
 evidence, and record the documentation issue as a ShipLoop improvement proposal.

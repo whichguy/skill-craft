@@ -23,6 +23,7 @@ from typing import Any
 
 import shiploop_navigator_v3_prompts as guidance3
 import shiploop_consumer_delivery as consumer_delivery
+import shiploop_lint as lint
 import shiploop_planning_revision as planning_revision
 import shiploop_privacy as privacy
 import shiploop_store as store
@@ -68,12 +69,19 @@ _STATE_KEYS = frozenset(
         "delegation",
         "delegation_hold",
         "planning_reconciliations",
+        "lint",
     )
 )
 # Run-level execution delegation.  Every run records it; new runs default to
 # ``inline``.
 DELEGATIONS = guidance3.DELEGATIONS
 DEFAULT_DELEGATION = guidance3.INLINE
+# Run-level script-owned lint option.  New CLI-created runs record ``fix``; a
+# saved run without the key behaves as ``off`` and is never migrated.
+# ``lint-mode --set`` changes it mid-run.
+LINT_MODES = lint.MODES
+DEFAULT_LINT = lint.DEFAULT_MODE
+LEGACY_LINT = lint.LEGACY_MODE
 # Printed for any saved run this navigator cannot load.
 FRESH_RUN_HINT = ("Preserve it; this ShipLoop cannot resume it. Start new work with init or "
                   "workspace start in a fresh --run-dir.")
@@ -94,6 +102,8 @@ __all__ = [
     "current_stage",
     "delegation",
     "dispatch",
+    "lint_mode",
+    "lint_view",
     "recorded_delegation",
     "new_state",
     "reconcile",
@@ -102,6 +112,7 @@ __all__ = [
     "retired_run_reason",
     "save",
     "set_delegation",
+    "set_lint_mode",
     "validate",
 ]
 
@@ -109,6 +120,30 @@ __all__ = [
 def recorded_delegation(state: Mapping[str, Any]) -> str:
     """Return the recorded delegation for newly issued actions."""
     return state["delegation"]
+
+
+def lint_mode(state: Mapping[str, Any]) -> str:
+    """Return the run's lint option; an unrecorded setting behaves as off."""
+    return state.get("lint", LEGACY_LINT)
+
+
+def lint_view(state: Mapping[str, Any]) -> dict[str, Any]:
+    """Project the few cursor facts the lint hook reads; no validation, no effects."""
+    stage, action, workitem = _active_cursor(state)
+    static = [entry["action"] for entry in state.get("history", ())
+              if entry.get("stage") == "static-checks" and entry.get("workitem") == workitem]
+    return {
+        "mode": lint_mode(state),
+        "status": state.get("status"),
+        "stage": stage,
+        "action": action["id"] if isinstance(action, Mapping) else None,
+        "workitem": workitem,
+        "items": sorted(state.get("inner_loops", {}) or {}),
+        "static_entries": len(static),
+        "last_static_action": static[-1] if static else None,
+        "repo": state.get("repo"),
+        "execution_mode": state.get("execution_mode"),
+    }
 
 
 def retired_run_reason(state: Any) -> str | None:
@@ -356,14 +391,19 @@ def new_state(
     worktree: bool = False,
     improve_skill: str = "",
     delegation: str = DEFAULT_DELEGATION,
+    lint_option: str | None = None,
 ) -> dict[str, Any]:
     """Create an unpersisted navigator cursor with one initial work item.
 
     ``delegation`` records the run's execution route (inline or ask-agent).
+    ``lint_option`` records the script-owned lint option; ``None`` leaves it
+    unrecorded (off) and the CLI passes DEFAULT_LINT for new runs.
     """
     _need(type(delivery_contract) is bool, "delivery_contract must be boolean")
     _need(type(worktree) is bool, "worktree must be boolean")
     _need(delegation in DELEGATIONS, "delegation must be inline or ask-agent")
+    _need(lint_option is None or lint_option in LINT_MODES,
+          "lint must be one of " + ", ".join(LINT_MODES))
     _text(repo, "repo")
     _text(prompt, "prompt")
     _need(not privacy.sensitive_text(prompt),
@@ -402,6 +442,8 @@ def new_state(
             raise NavigatorError("cannot make the selected Improve locator absolute") from exc
     state.update(improve_skill=selected, active_improve=None, improve_results={},
                  delegation=delegation)
+    if lint_option is not None:
+        state["lint"] = lint_option
     validate(state)
     return state
 
@@ -428,7 +470,7 @@ def _validate_v2(state: Mapping[str, Any]) -> None:
           "routed such runs through ask-agent. " + FRESH_RUN_HINT)
     unexpected = sorted(keys - allowed)
     missing = sorted(allowed - {"status_reason", "delivery_contract_version", "chain_bindings",
-                                "delegation_hold"} - keys)
+                                "delegation_hold", "lint"} - keys)
     _need(not unexpected and not missing,
           "navigator state has unsupported or missing fields ("
           + "; ".join(part for part in (
@@ -578,6 +620,8 @@ def _validate_v2(state: Mapping[str, Any]) -> None:
                            and hold["route"] in DELEGATIONS
                            and hold["route"] != recorded_delegation(state)),
           "invalid delegation hold")
+    _need("lint" not in state or state["lint"] in LINT_MODES,
+          "unsupported lint option; expected one of " + ", ".join(LINT_MODES))
     _text(state.get("improve_skill"), "improve_skill", allow_empty=True)
     records = state.get("improve_results")
     _need(isinstance(records, Mapping), "Improve results must be an object")
@@ -1069,6 +1113,66 @@ def set_delegation(state: Mapping[str, Any], value: Any) -> dict[str, Any]:
     updated["revision"] += 1
     validate(updated)
     return updated
+
+
+def set_lint_mode(state: Mapping[str, Any], value: Any) -> dict[str, Any]:
+    """Return a new state whose later lint passes use ``value``.
+
+    A pass already stored for the current action is kept; a switch to ``fix``
+    fixes only where a per-item base exists (captured while lint was not off).
+    """
+    validate(state)
+    _need(state["status"] not in ("halted", "done"), "terminal navigator state cannot mutate")
+    _need(value in LINT_MODES, "lint mode must be one of " + ", ".join(LINT_MODES))
+    if state.get("lint") == value:
+        return deepcopy(dict(state))
+    updated = deepcopy(dict(state))
+    updated["lint"] = value
+    updated["revision"] += 1
+    validate(updated)
+    return updated
+
+
+def _lint_transition(core: Any, root: Path, before: Mapping[str, Any],
+                     after: Mapping[str, Any]) -> tuple[dict[str, str], Any]:
+    """Run the advisory lint hook; lint can never change or fail the transition."""
+    try:
+        return lint.on_transition(root, lint_view(before), lint_view(after), command=_command(core),
+                                  reference_dir=_reference_dir(core))
+    except KeyboardInterrupt:
+        raise
+    except BaseException:  # noqa: BLE001 - the hook records its own failures
+        return {}, None
+
+
+def _lint_finish(root: Path, payload: Any) -> None:
+    try:
+        lint.finalize(root, payload)
+    except KeyboardInterrupt:
+        raise
+    except BaseException:  # noqa: BLE001
+        pass
+
+
+def _lint_lines(core: Any, root: Path, state: Mapping[str, Any], stage: str, action_id: str) -> list[str]:
+    """Stored lint output for this packet; reading a record never runs a linter."""
+    try:
+        return lint.render_lines(root, action_id, stage=stage,
+                                 run_option=state.get("lint"), repo=state["repo"], command=_command(core))
+    except KeyboardInterrupt:
+        raise
+    except BaseException as exc:  # noqa: BLE001
+        return ["ShipLoop lint record unreadable (" + lint.SUPPORTING + "): " + type(exc).__name__ + "."]
+
+
+def _lint_pending(root: Path) -> list[str]:
+    """An unconsumed lint journal on packets that return before ``_lint_lines`` runs."""
+    try:
+        return lint.pending_lines(root)
+    except KeyboardInterrupt:
+        raise
+    except BaseException:  # noqa: BLE001 - advisory output only
+        return []
 
 
 def _command(core: Any) -> str:
@@ -1717,12 +1821,14 @@ def render(core: Any, root: Path, state: Mapping[str, Any]) -> str:
                 f"{label}, unfinished: " + _required_excerpt(state["status_reason"], root, "status_reason"),
                 "The current action remains pending; do not submit a result until it is resumed.",
                 "Resume: " + _callback(core, root, "resume"),
+                *_lint_pending(root),
             ]
         )
         return "\n".join(lines) + "\n"
 
     if state.get("active_improve") is not None:
-        return _render_improve(core, root, state, lines)
+        text = _render_improve(core, root, state, lines)
+        return text + "".join(line + "\n" for line in _lint_pending(root))
     instruction = guidance3.prompt(stage, delegation=route)
     _need(isinstance(instruction, str) and bool(instruction.strip()),
           f"navigator prompt is unavailable for {stage}")
@@ -1786,6 +1892,7 @@ def render(core: Any, root: Path, state: Mapping[str, Any]) -> str:
             + _callback(core, root, "halt", reason="<why>"),
         ]
     )
+    lines.extend(_lint_lines(core, root, state, stage, action["id"]))
     return "\n".join(lines) + "\n"
 
 
@@ -2273,7 +2380,7 @@ def dispatch(core: Any, root: Path, state: Mapping[str, Any], args: Any,
     _need(isinstance(command, str), "navigator command is missing")
     _need(command in {
         "init", "next", "context", "report", "complete", "pause", "resume", "halt",
-        "improve-bind", "improve-complete", "improve-reconcile", "delegation"
+        "improve-bind", "improve-complete", "improve-reconcile", "delegation", "lint-mode"
     }, f"navigator does not support command {command!r}")
     validate(state)
     root = Path(root)
@@ -2370,7 +2477,11 @@ def dispatch(core: Any, root: Path, state: Mapping[str, Any], args: Any,
                         raise NavigatorError("selected Improve bridge lacks stopped-child settlement") from exc
                     updated = reconcile(state, action_id, record, receipt)
             if updated != state:
-                save(root, updated, extra_writes)
+                # An Improve completion can start a new work item's inner loop
+                # (the end review may add work items); the hook captures its base.
+                lint_writes, lint_payload = _lint_transition(core, root, state, updated)
+                save(root, updated, {**lint_writes, **extra_writes})
+                _lint_finish(root, lint_payload)
             print(render(core, root, updated), end="")
             return 0
         except standalone.StandaloneImproveError as exc:
@@ -2392,9 +2503,16 @@ def dispatch(core: Any, root: Path, state: Mapping[str, Any], args: Any,
             completion_guard(state, updated)
     elif command == "delegation":
         updated = set_delegation(state, getattr(args, "delegation_value", None))
+    elif command == "lint-mode":
+        updated = set_lint_mode(state, getattr(args, "lint_value", None))
     else:
         updated = control(state, command, getattr(args, "reason", ""))
     if updated != state:
-        save(root, updated)
+        # Only ``complete`` enters static-checks or verify (neither follows a
+        # planning stage, so no Improve completion reaches them).
+        lint_writes, lint_payload = ((_lint_transition(core, root, state, updated))
+                                     if command == "complete" else ({}, None))
+        save(root, updated, lint_writes)
+        _lint_finish(root, lint_payload)
     print(render(core, root, updated), end="")
     return 0

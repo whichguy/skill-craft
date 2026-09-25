@@ -920,6 +920,16 @@ and content digest in existing plan notes/evidence_refs. This producer's mandato
 actual Improve loop must review the created steps and graph before they are used
 for execution. Use the Parallel-chain guide for late creation or revision;
 planning never starts the dispatcher or expands this item's scope.
+Give every completion criterion a confirmation: `<condition>. Confirm by:
+<command, observation, or inspection>; pass when <expected result>.` It must pass
+the two-people test: two people running it separately would be forced to agree.
+State whether the condition must be exercised or whether inspection is
+sufficient. Give content criteria (docs, changelogs, test coverage) a
+command-checkable confirmation, such as a search for required terms, so they are
+re-observed rather than recalled. Mark a criterion that no available check can
+confirm as `Confirm by: unconfirmable here — <what would confirm it>` rather
+than dropping it. When a check relies on an external oracle (golden, fixture, or
+snapshot), confirm that the oracle agrees with the task.
 Use the Repository-local skill guidance. Reopen the repo's current skill index or
 README/AGENTS links, even if earlier context reported no fit: a preceding item may
 have created or evolved a skill. Prefer unchanged reuse with supported inputs and
@@ -1049,6 +1059,35 @@ Reopen Target-native test selection when actual local/remote code, configuration
 dependencies or delivery route changes invalidate the earlier test decision.
 Apply the planned behavior, error handling, opt-in diagnostics, exception context,
 and concise code contracts.  Do not claim verification from an edit alone.
+Exit criteria: the accepted step plan's completion criteria are this action's
+exit criteria. It is finished only when you have confirmed each one as far as
+this environment allows.
+(1) Before editing, record for each criterion the command or inspection that
+confirms it and what counts as a pass. Use its `Confirm by:` method when it has
+one. Existing tests, check scripts, golden or fixture files, and thresholds belong
+to the checks: change them only when a criterion says to.
+(2) Confirm with what is already present. Never download, install, or fetch a
+tool, runtime, or dependency to confirm a criterion. Record the best available
+evidence and recommend what would confirm it.
+(3) Stay within the item. If satisfying a check would make the result do or claim
+something the item does not ask for, leave that check failing and report the
+discrepancy.
+(4) After your last edit to any file, rerun every check in one pass; only that
+pass counts. When a check fails, change the work, not the check, and rerun them all.
+(5) Stop on exactly one: every criterion confirmed or inspected, or reported
+`unconfirmable` when the accepted plan already marks it `Confirm by: unconfirmable
+here`, and none failed → outcome done; a criterion proven unachievable → outcome
+blocked, naming it for plan revision rather than a blind retry; the same check
+still failing after 3 genuine fix attempts → outcome blocked with that criterion
+failed. A criterion is proven unachievable only when (a) it contradicts another
+criterion, the item, or a protected file, shown by a check after all compatible
+work is done and with the existing behavior kept at the conflict point; (b)
+confirming it needs a tool, runtime, access, or authority that is absent, for a
+criterion the plan did not already mark `Confirm by: unconfirmable here`; or (c)
+satisfying it would exceed the item.
+Report each criterion's check, the observed output from the final pass, and its
+level (`confirmed`, `inspected`, `failed`, `not_run`, or `unconfirmable`), plus
+discrepancies and recommendations, in the result summary or a linked evidence note.
 Use the Coding decision guide to reopen the accepted plan and only its relevant
 practice/platform sections. Check current code, versions and consumers before
 reuse or augmentation. Retain justified revisions in the linked note; a new
@@ -1172,6 +1211,9 @@ Run the selected formatting, lint, type, build, packaging, and static analysis
 checks for the current candidate.  Inspect failures, make only justified repairs,
 and rerun affected checks.  State any required unrun check, why it is unavailable,
 and the condition for completing it rather than treating partial green as done.
+A ShipLoop lint block after this packet's callback is supporting output, not this
+step's evidence: read it, keep or revert any auto-fix it names, and still select and
+run this step's own checks.
 """,
     "verify": """\
 Verify the complete work item against its acceptance criteria and current evidence.
@@ -1182,6 +1224,14 @@ Use the Coding decision guide to compare the actual diff and affected consumers
 with the accepted plan, justified revisions and selected practice/platform checks.
 Preserve any required real-boundary gap; a pattern name or tool pass is not proof
 of the behavior it did not exercise.
+Check the implement result's per-criterion receipt against each completion
+criterion of the accepted step plan, and independently rerun or inspect each
+criterion's confirmation. Do not accept the item when a confirmable criterion
+failed or was not confirmed; name those criteria. A criterion reported `inspected`
+or `unconfirmable` whose `Confirm by:` required execution means the step contract
+cannot be met here: treat it as blocked for planning, not as accepted. A blocked
+result with a proven-unachievable criterion goes back to planning (plan revision
+or replan), not to a blind retry.
 Reconcile tests, static checks, documentation, error behavior, diagnostics,
 dependencies, and known limitations.  Refresh checks affected by material changes
 and retain failures or blocked boundaries honestly.  This is work-item acceptance,

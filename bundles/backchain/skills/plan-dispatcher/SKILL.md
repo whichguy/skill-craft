@@ -7,7 +7,7 @@ description: >-
   Planning belongs to Backchain or the caller; this skill executes the plan.
 license: MIT
 metadata:
-  version: 0.2.0
+  version: 0.3.0
   author: Backchain
   platforms:
     - linux
@@ -279,6 +279,14 @@ selected package for recovery.
    before task work. They use applicable planning facts within that contract and
    report an evidence-backed task/ready/done discrepancy to the parent without
    changing the graph. An unavailable required input is BLOCKED, never guessed.
+   Every packet makes the definition_of_done items the worker's exit criteria:
+   record each item's confirming check and pass condition before editing (using
+   its `Confirm by:` method when present), never install or fetch a tool to
+   confirm one, stay within the task, rerun every check in one pass after the
+   last edit, and stop on SUCCEEDED (all confirmed or inspected, or reported
+   `unconfirmable` when the item already says `Confirm by: unconfirmable here`,
+   none failed), BLOCKED (an item proven unachievable) or FAILED (the same check
+   still failing after 3 genuine fix attempts). See [exit criteria](references/protocol.md#exit-criteria).
 5. A worker writes its result/envelope at the packet's concrete `outputs` paths,
    publishes a `report` using the returned argv, and returns the actual receipt
    response, including its `next_argv`, with those paths plus SUCCEEDED, FAILED or
@@ -290,6 +298,11 @@ selected package for recovery.
    continuation ownership also applies to a bounded main-context task: its task
    execution returns the report response to the dispatcher loop, which alone
    follows graph navigation.
+   The result artifact includes a `criteria` array, one
+   `{criterion, check, observed, level}` entry per definition_of_done item with
+   the observed output from the final pass and a level of `confirmed`,
+   `inspected`, `failed`, `not_run` or `unconfirmable`, plus `discrepancies` and
+   `recommendations`.
    Substantial results begin with a self-contained handoff summary;
    repository results include the Git receipt, exact contribution/target
    revisions and integration state. Preserve material discoveries, corrected
@@ -308,6 +321,14 @@ selected package for recovery.
    locations after import. Evaluate the worker's
    recommendation against the current action and contract before submitting
    verification facts and following the returned continuation.
+   For every result, Git or not, check the per-item `criteria` receipt against
+   each definition_of_done item and independently rerun or inspect each item's
+   confirmation. Reject when a confirmable item failed or was not confirmed,
+   naming the items in the settlement reason. An item reported `inspected` or
+   `unconfirmable` whose `Confirm by:` required execution means the step
+   contract cannot be met here: treat it as BLOCKED for planning, not as
+   accepted. A BLOCKED result with a proven-unachievable item goes back to
+   planning (plan revision or replan), not to a blind retry.
    For a main-context report handoff, it records that all task-owned commands
    finished at the bounded task-phase boundary in the current conversation. It
    reads the assigned handoff and independently checks the task's done contract,
@@ -370,6 +391,10 @@ native worker.
 
 Retry only after confirming the old worker stopped and inspecting its effects;
 the helper creates a fresh attempt on the next claim and rejects stale reports.
+The fresh attempt's packet carries `prior_attempts`, the step's earlier attempts
+oldest first as `{attempt, status, reason, result, verification}`, read from
+existing state; the worker reads them first and addresses the named failing
+items. A first attempt's packet has no `prior_attempts`.
 A recovered managed Git attempt retains the same declared capability response,
 selected package binding, identity and preparation receipt: inspect or reconcile
 that preparation rather than rerunning it or creating another worktree. A fresh
