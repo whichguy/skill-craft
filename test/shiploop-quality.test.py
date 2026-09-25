@@ -67,6 +67,9 @@ class QualityLoopTests(unittest.TestCase):
     def complete(self, result: dict) -> str:
         state = self.state()
         action = nav.current_action(state)["id"]
+        if (nav.current_stage(state) == "plan" and result.get("outcome") == "done"
+                and "assumptions" not in result):
+            result = dict(result, assumptions=[])
         path = self.run_dir / "inbox" / (action + ".md")
         path.parent.mkdir(exist_ok=True)
         path.write_text(store.dumps(result, "result"))
