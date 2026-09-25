@@ -576,6 +576,12 @@ file cold with no run history. Every rule serves that reader.
    operation and that mismatch. Reuse the existing debug switch for short,
    redacted state summaries at major actions, with no diagnostic work while it
    is off. Keep secrets and duplicate stack traces out of user-facing messages.
+7. Write text that can be translated. User-facing messages go through the
+   repository's message catalog or i18n helper when one exists; otherwise keep
+   each message one whole sentence with named placeholders, never assembled
+   from fragments, so it can be externalized later. Format numbers, dates,
+   currency and plurals through locale-aware APIs. Keep log text, error codes
+   and machine identifiers stable and untranslated.
 """
 
 
@@ -601,7 +607,8 @@ inventory in context, plus tests for those files.
    unhandled or untested is a finding; add a test for an untested path.
 4. Review against the Code craft rubric: each entry point's argument checks and
    contract docstring, then the rest of the change for missing error paths,
-   silent failures, comments that restate code, stale comments and dead code.
+   silent failures, comments that restate code, stale comments, dead code, and
+   user-facing text that is concatenated or bypasses the repository's catalog.
 5. Classify. Material: wrong behavior on a traced path; a missing or wrong
    argument check, contract, error path or test; a failing check; a misleading
    comment. Trivial: wording, ordering, a sharper name. Do not reopen a finding

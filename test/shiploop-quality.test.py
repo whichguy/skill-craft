@@ -293,6 +293,13 @@ class PromptTests(unittest.TestCase):
                     self.assertEqual(text.count("2. Fail at the door."), 1)
         self.assertNotIn("Fail at the door", prompts.prompt("spec"))
 
+    def test_code_craft_keeps_user_facing_text_translatable(self):
+        rubric = " ".join(prompts.CODE_CRAFT.split())
+        self.assertIn("7. Write text that can be translated.", rubric)
+        self.assertIn("never assembled from fragments", rubric)
+        self.assertIn("Keep log text, error codes and machine identifiers stable and untranslated", rubric)
+        self.assertIn("bypasses the repository's catalog", " ".join(prompts.QUALITY_ITERATION.split()))
+
     def test_supporting_stages_carry_their_code_quality_duties(self):
         expected = {
             "step-plan": "each such entry point checks its arguments and carries a contract",

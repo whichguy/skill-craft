@@ -44,6 +44,7 @@ change.
 | [Logging and debugging](coding-practices.md#logging-and-debugging) | Failures, diagnostics, telemetry, investigation. |
 | [Tool output as evidence](coding-practices.md#tool-output-as-evidence) | Filtered or shortened output used for a decision or verification. |
 | [Agent and experiment budgets](coding-practices.md#agent-and-experiment-budgets) | Agent execution, paid trials, retries, or usage limits. |
+| [Localization](coding-practices.md#localization) | User-facing text, messages, or locale-dependent formatting. |
 | [Feature flags](coding-practices.md#feature-flags) | Rollout, experiment, operations, or removal. |
 | [UI](platforms/ui.md) | Rendered interaction, state, accessibility, or artifact. |
 | [Google Apps Script](platforms/apps-script.md) | Server, HTML Service, trigger, or deployment boundary. |

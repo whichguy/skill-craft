@@ -149,6 +149,23 @@ whether the selected policy stops new calls under uncertainty. Label partial tot
 and unmeasured preparation or review costs. This is a scoped decision, not a new
 accounting store or scheduler.
 
+## Localization
+
+Find the repository's existing message mechanism first (gettext, ICU
+MessageFormat, resource bundles, `i18next`, Apps Script or Salesforce custom
+labels) and put new user-facing text there with a stable key. Without one, do
+not add a framework for a single message: keep messages whole sentences with
+named placeholders in one place, so a later catalog is a move, not a rewrite.
+Never build a sentence by concatenation or reuse one fragment across sentences;
+word order, gender and plural rules differ by language. Select plural and
+number, date, time and currency forms through locale-aware APIs, and pass the
+locale explicitly rather than relying on the process default. In rendered UI,
+allow for text expansion, right-to-left layout and non-Latin input. Keep
+translation out of logs, audit records, error codes, identifiers and parsed or
+persisted values; translate only at presentation. Test that a message renders
+with its placeholders filled, and a pseudo-locale or second locale where the
+repository has one.
+
 ## Feature flags
 
 Use a flag for a concrete rollout, experiment, or operational-control need.
