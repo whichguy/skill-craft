@@ -58,8 +58,8 @@ usage() {
   printf '  Codex/Cursor/OpenCode/Hermes: skipped (no agent install)\n' >&2
   printf '\n' >&2
   printf 'Sources: skills/<name> under this repo, or --from DIR.\n' >&2
-  printf 'Plugin bundles (bundles/<plugin>) and generated plugin views (plugins/<name>)\n' >&2
-  printf 'are marketplace-only: never installed here, and refused as --from sources (exit 64),\n' >&2
+  printf 'Generated plugin views (plugins/<name>) are marketplace-only: never installed\n' >&2
+  printf 'here, and refused as --from sources (exit 64),\n' >&2
   printf 'as is any copy whose plugin manifest names the skill-craft repository (host caches).\n' >&2
   printf 'Foreign real directories are never overwritten or uninstalled.\n' >&2
   printf 'With --relink, only symlinks are replaced: wrong or dangling ones, and in copy\n' >&2
@@ -1198,10 +1198,9 @@ sys.exit(1)
 PY
 }
 
-# Vendored bundle members and generated plugin views duplicate a canonical
-# skill (bundles/<plugin>) or a skills/<leaf> source (plugins/<name>). Refuse
-# them as --from sources for every action: paths in this checkout or in any
-# other skill-craft checkout, and any copy whose host manifest names
+# Generated plugin views (plugins/<name>) duplicate a skills/<leaf> source.
+# Refuse them as --from sources for every action: paths in this checkout or
+# in any other skill-craft checkout, and any copy whose host manifest names
 # skill-craft's repository (host plugin caches, git-subdir clones). So a
 # --relink cannot repoint a canonical link at a marketplace copy that still
 # carries its generated manifests. Structure and manifests, not skill names,
@@ -1209,10 +1208,6 @@ PY
 marketplace_only_source_reason() {
   local source="$1"
   case "$source/" in
-    "$repo_dir/bundles/"*)
-      printf 'vendored bundle members are marketplace-only; install from the canonical source'
-      return 0
-      ;;
     "$repo_dir/plugins/"*)
       printf 'generated plugin views are marketplace-only; install skills/<leaf> or the canonical source'
       return 0
@@ -1222,10 +1217,6 @@ marketplace_only_source_reason() {
   skills_dir="$(dirname "$source")"
   package="$(dirname "$skills_dir")"
   [[ "$(basename "$skills_dir")" == "skills" ]] || return 1
-  if [[ -f "$package/bundle.json" ]]; then
-    printf 'vendored bundle members are marketplace-only; install from the canonical source'
-    return 0
-  fi
   if [[ "$(basename "$(dirname "$package")")" == "plugins" && -f "$package/.claude-plugin/plugin.json" \
         && -f "$(dirname "$(dirname "$package")")/scripts/sync-plugin-views.sh" ]]; then
     printf 'generated plugin views are marketplace-only; install skills/<leaf> or the canonical source'

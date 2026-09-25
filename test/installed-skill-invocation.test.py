@@ -4,8 +4,7 @@
 Each case copies the generated plugin's shipped skill package beneath a path
 containing spaces, makes that copy read-only, and invokes it from an unrelated
 writable cwd. It does not install a host plugin or use a live host/model
-session. Script-backed members of plugin bundles are copied from their bundle
-view (plugins/<bundle>/skills/<member>).
+session.
 """
 from __future__ import annotations
 
@@ -33,10 +32,7 @@ LEAVES = (
     "shiploop",
     "shiploop-e2e-audit",
     "improve",
-)
-# (bundle plugin, member skill) pairs shipped inside a multi-skill plugin view.
-BUNDLE_MEMBERS = (
-    ("backchain", "plan-dispatcher"),
+    "plan-dispatcher",
 )
 
 
@@ -138,17 +134,9 @@ class InstalledSkillInvocationTest(unittest.TestCase):
         cls.home = cls.temp_root / "isolated home"
         cls.home.mkdir()
         cls.packages: dict[str, Path] = {}
-        # Bundle members keep their plugin layout (their own skills/ parent),
-        # so they never become siblings that a leaf's dependency lookup finds.
-        sources = [(leaf, PLUGINS / leaf / "skills" / leaf, cls.package_parent) for leaf in LEAVES]
-        sources += [
-            (member, PLUGINS / bundle / "skills" / member,
-             cls.temp_root / "installed bundle plugins with spaces" / bundle / "skills")
-            for bundle, member in BUNDLE_MEMBERS
-        ]
-        for leaf, source, parent in sources:
-            parent.mkdir(parents=True, exist_ok=True)
-            destination = parent / leaf
+        for leaf in LEAVES:
+            source = PLUGINS / leaf / "skills" / leaf
+            destination = cls.package_parent / leaf
             shutil.copytree(
                 source,
                 destination,
@@ -503,7 +491,7 @@ two consecutive clean residual rounds with green suite
         self.assertFalse((self.consumer / ".until-loop").exists())
         self.assert_no_bytecode()
 
-    def test_plan_dispatcher_capabilities_from_read_only_bundle_copy(self) -> None:
+    def test_plan_dispatcher_capabilities_from_read_only_copy(self) -> None:
         package = self.package("plan-dispatcher")
         digest = {
             path.relative_to(package).as_posix(): path.read_bytes()
@@ -511,7 +499,7 @@ two consecutive clean residual rounds with green suite
         }
         before = set(self.consumer.iterdir())
         result = self.invoke(("node", package / "scripts/dispatch.js", "capabilities"))
-        self.assert_ok(result, "plan-dispatcher capabilities from the bundle view")
+        self.assert_ok(result, "plan-dispatcher capabilities from the installed copy")
         payload = json.loads(result.stdout)
         self.assertEqual("execution-graph/v1", payload["capabilities"]["graph_validation"])
         self.assertEqual(set(self.consumer.iterdir()), before)

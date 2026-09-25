@@ -502,12 +502,8 @@ DevLoop's core suite separately proves that missing-engine invocation cannot
 bootstrap; checksum/extraction/replacement tests target the repository-only
 operator setup helper.
 
-The core `vendored-bundles` suite hash-checks each plugin bundle
-(`bundles/<plugin>/`) offline against its `PROVENANCE.json` and applies the
-publication lint; it proves consistency with that record, not equality with the
-private upstream. Its refresh cases use a synthetic upstream git repository only.
-`installed-skill-invocation` also runs the bundled Plan Dispatcher
-(`plugins/backchain/skills/plan-dispatcher`) from a read-only copy. The
+`installed-skill-invocation` also runs Plan Dispatcher
+(`plugins/plan-dispatcher/skills/plan-dispatcher`) from a read-only copy. The
 current-Dispatcher qualification below is unchanged: it still takes an explicit
 external checkout.
 
@@ -519,18 +515,6 @@ runs and removes Review Coverage. No ambient provider credentials are inherited,
 no model call is made, and no personal plugin state should change. These checks
 prove local installed behavior only, not that a published release serves these
 bytes, nor public review.
-
-`bash test/run-integration.sh marketplace-bundle-claude|marketplace-bundle-grok|marketplace-bundle-codex BUNDLE`
-installs one multi-skill bundle view the same way and requires every declared
-member card (for Backchain: `backchain` and `plan-dispatcher`) to materialize
-once with bytes identical to the view. Run it on each shipped host before the
-catalog selects a new or changed bundle. `bash test/run-integration.sh vendored-bundle-lag BUNDLE /path/to/checkout`
-dry-runs a refresh against that checkout's fetched `origin/main`; it never
-writes. Exit 0 alone means in sync. Exit 1 is lag a `--write` refresh would
-apply; a lagging upstream can also exit 2 (description or membership drift, or
-an invalid upstream), 3 (lint refusal) or 4 (release-policy refusal such as
-changed bytes without a version increase), and 5 means the provenance record
-is wrong. See `scripts/sync-vendored-bundles.py --help`.
 
 `bash test/run-integration.sh marketplace-codex-ask-agent` exercises the complete
 local Ask Agent plugin in a disposable Codex profile. It compares every package

@@ -55,10 +55,10 @@ is unknown, inspect `claude plugin list --json` for the host's current state.
 
 | Host | Index | Packages |
 |------|-------|----------|
-| Claude Code | `.claude-plugin/marketplace.json` | Skill packages, plugin bundles and external pins |
+| Claude Code | `.claude-plugin/marketplace.json` | Skill packages and external pins |
 | Codex | `.agents/plugins/marketplace.json` (falls back to the Claude index) | Same selection |
-| Grok | `.grok-plugin/marketplace.json` | Skill packages and plugin bundles |
-| Cursor | `.cursor-plugin/marketplace.json` | Skill packages and plugin bundles |
+| Grok | `.grok-plugin/marketplace.json` | Skill packages |
+| Cursor | `.cursor-plugin/marketplace.json` | Skill packages |
 | OpenCode | none (no skill marketplace) | `./install.sh` skill directories |
 
 All four indexes are generated at release (`scripts/release.py` runs
@@ -73,15 +73,10 @@ release commit made by `scripts/release.py`, so users of a marketplace
 install receive released packages, never work in progress. A plugin updates
 when its `version` changes, which happens only at release.
 
-Backchain's development repository stays private. skill-craft publishes a
-hash-verified copy of its two skills (`backchain`, `plan-dispatcher`) and agent
-card as the plugin bundle `bundles/backchain`, generated into
-`plugins/backchain`: `$backchain:backchain` / `/backchain:backchain` and
-`$backchain:plan-dispatcher` / `/backchain:plan-dispatcher`. `install.sh` never
-installs bundle members. Keep one track per host: the skill-directory links to
-the canonical checkout or the plugin, not both. A bundle refresh is an ordinary
-source commit to `bundles/backchain`; the next release publishes it. Steps are
-in the [release checklist](skill-release-checklist.md#vendored-bundle-refresh).
+Backchain and Plan Dispatcher are ordinary skills here (`skills/backchain`,
+`skills/plan-dispatcher`), each published as its own plugin. Backchain's
+research harness, schema, fixtures and samples stay in the separate Backchain
+development checkout and are not shipped.
 Improve remains owned here and includes its own compatible runtime; the standalone
 Until Loop entry does not replace Improve's selected source.
 
@@ -246,11 +241,7 @@ Optional real-host checks (installed CLIs required):
 bash test/run-integration.sh marketplace-claude
 bash test/run-integration.sh marketplace-grok
 bash test/run-integration.sh marketplace-codex
-bash test/run-integration.sh marketplace-bundle-claude backchain   # also -grok, -codex
 ```
-
-The bundle targets install one multi-skill plugin view in a disposable profile
-and require every declared member card to materialize once with identical bytes.
 
 These create disposable host profiles and local catalogs, install Skill Interop,
 invoke its installed marketplace helper, install Review Coverage, run its bundled

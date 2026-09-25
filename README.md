@@ -2,8 +2,6 @@
 
 **Host-neutral portable skills monorepo.** Skills live under `skills/<leaf>/` and install into
 Grok, Claude Code, Cursor, Codex, and Hermes skill directories via `install.sh`.
-Plugin bundles under `bundles/<plugin>/` (Backchain) are vendored, provenance-verified
-copies published only as marketplace plugins; `install.sh` never installs them.
 
 For setup and marketplace distribution across hosts, start with
 [docs/distribution.md](docs/distribution.md).
@@ -170,7 +168,7 @@ after installing a plugin.
 
 This repo also contains generated native catalogs at `.grok-plugin/marketplace.json`
 and `.cursor-plugin/marketplace.json`. Both reference the same generated `plugins/<leaf>`
-packages in this checkout, plus each plugin bundle (`plugins/backchain`). They omit
+packages in this checkout. They omit
 the external plugins listed in `catalog/external-plugins.json`. Only
 `scripts/release.py` regenerates the catalogs. See
 [distribution instructions](docs/distribution.md) for local use, updates, and publication.
@@ -242,12 +240,3 @@ Package tests build the same way (`test/package_build.py`). Never commit
 and `*.pyc`; bytecode next to a leaf script is not view drift.
 
 Catalog entries select `./plugins/skill-interop`, not the bare skill leaf.
-
-A **plugin bundle** is one plugin with several skills. `bundles/backchain/` holds
-a verbatim copy of the private Backchain repository's `backchain` and
-`plan-dispatcher` skills and agent card, recorded with sha256 hashes in
-`PROVENANCE.json`. Sync verifies those bytes before generating `plugins/backchain/`
-(skills invoked as `backchain:backchain` and `backchain:plan-dispatcher`). Never
-hand-edit a bundle; refresh it from a published upstream release with
-`scripts/sync-vendored-bundles.py` (see the
-[release checklist](docs/skill-release-checklist.md#vendored-bundle-refresh)).

@@ -17,10 +17,9 @@ This command, run on a clean checkout:
   3. regenerates plugins/, the host catalogs and the README inventory;
   4. commits everything with a `Skill-Craft-Release:` trailer.
 
-A vendored bundle whose upstream version differs from its plugins/ package
-releases the same way, without a note. With no notes and no bundles, a
-release is cut only when release output no longer matches source (a deleted
-skill, LICENSE or catalog/ change); its trailer is `output-only`.
+With no notes, a release is cut only when release output no longer matches
+source (a deleted skill, LICENSE or catalog/ change); its trailer is
+`output-only`.
 
 A new version must be above the current one and never already released. A
 skill with no plugins/ package yet may ship at its authored version with a
@@ -35,7 +34,6 @@ Usage:
 
 import argparse
 import datetime
-import json
 import re
 import subprocess
 import sys
@@ -170,20 +168,7 @@ def plan():
     return releases
 
 
-def pending_bundles():
-    """Vendored bundles whose upstream manifest version differs from their plugins/ package."""
-    pending = {}
-    for manifest in sorted((ROOT / "bundles").glob("*/bundle.json")):
-        name = manifest.parent.name
-        upstream = json.loads((manifest.parent / "PROVENANCE.json").read_text())["upstream"]
-        plugin = ROOT / "plugins" / name / ".claude-plugin" / "plugin.json"
-        old = json.loads(plugin.read_text()).get("version") if plugin.is_file() else None
-        if old != upstream["manifest"]["version"]:
-            pending[name] = {"old": old, "new": upstream["manifest"]["version"], "commit": upstream["commit"]}
-    return pending
-
-
-def apply(releases, bundles, date):
+def apply(releases, date):
     for leaf, entry in releases.items():
         card = entry["card"]
         card.write_text(CARD_VERSION.sub(lambda m: m.group(1) + entry["new"] + m.group(3), card.read_text(), count=1))
@@ -194,7 +179,6 @@ def apply(releases, bundles, date):
                 lines[0] = lines[0][: -len(entry["old"])] + entry["new"]
                 guide.write_text("\n".join(lines))
     items = [(leaf, entry["new"], [body for _, body in entry["notes"]]) for leaf, entry in releases.items()]
-    items += [(name, entry["new"], [f"Vendored from upstream {entry['commit'][:12]}"]) for name, entry in bundles.items()]
     section = [f"## {date}", ""]
     for name, version, bodies in sorted(items):
         section.append(f"### {name} {version}")
@@ -221,13 +205,12 @@ def apply(releases, bundles, date):
             folder.rmdir()
 
 
-def cut(releases, bundles, date):
+def cut(releases, date):
     """Apply the plan, regenerate release output and commit it."""
-    apply(releases, bundles, date)
+    apply(releases, date)
     subprocess.run(["bash", str(ROOT / "scripts/sync-plugin-views.sh")], cwd=ROOT, check=True, stdout=subprocess.DEVNULL)
     subprocess.run(["bash", str(ROOT / "scripts/sync-plugin-views.sh"), "--check"], cwd=ROOT, check=True)
-    shipped = sorted([(leaf, entry["new"]) for leaf, entry in releases.items()]
-                     + [(name, entry["new"]) for name, entry in bundles.items()])
+    shipped = sorted((leaf, entry["new"]) for leaf, entry in releases.items())
     summary = ", ".join(f"{name} {version}" for name, version in shipped) or "sync output"
     paths = ("skills", "changes", "CHANGELOG.md", "README.md", "plugins",
              ".grok-plugin", ".cursor-plugin", ".claude-plugin", ".agents")
@@ -243,12 +226,9 @@ def main():
     args = parser.parse_args()
     try:
         releases = plan()
-        bundles = pending_bundles()
         for leaf, entry in sorted(releases.items()):
             print(f"release: {leaf} {entry['old']} -> {entry['new']} ({len(entry['notes'])} note(s))")
-        for name, entry in sorted(bundles.items()):
-            print(f"release: {name} {entry['old'] or '(unreleased)'} -> {entry['new']} (vendored bundle)")
-        if not releases and not bundles:
+        if not releases:
             check = subprocess.run(["bash", str(ROOT / "scripts/sync-plugin-views.sh"), "--check"],
                                    cwd=ROOT, capture_output=True)
             if check.returncode == 0:
@@ -264,7 +244,7 @@ def main():
             raise ReleaseError("checkout must be clean; commit or set aside other work first")
         head = git("rev-parse", "HEAD").strip()
         try:
-            cut(releases, bundles, args.date)
+            cut(releases, args.date)
         except BaseException:
             # The checkout was clean, so everything outside HEAD is ours to undo.
             if git("rev-parse", "HEAD").strip() == head:

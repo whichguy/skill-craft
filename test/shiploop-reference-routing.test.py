@@ -254,8 +254,7 @@ class ReferenceRoutingTests(unittest.TestCase):
 
         def exists(name: str) -> bool:
             candidates = [package / name, ROOT / name,
-                          *ROOT.glob("skills/*/" + name), *ROOT.glob("skills/*/runtime/*/" + name),
-                          *ROOT.glob("bundles/*/skills/*/" + name)]
+                          *ROOT.glob("skills/*/" + name), *ROOT.glob("skills/*/runtime/*/" + name)]
             return any(candidate.is_file() for candidate in candidates)
 
         missing: list[str] = []
