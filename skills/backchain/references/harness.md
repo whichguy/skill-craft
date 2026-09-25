@@ -1,6 +1,8 @@
 # Backchain harness inventory (adapters only)
 
-Planning logic lives in **prompts**, not here. Use these when a checkout is available.
+Planning logic lives in **prompts**, not here. The harness, `fixtures/` and `samples/`
+live in the separate Backchain development checkout and are not shipped with this
+skill; use these commands only in that checkout.
 
 ## Whole-skill completion boundary
 

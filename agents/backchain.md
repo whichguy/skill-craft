@@ -14,5 +14,5 @@ Load and follow the **backchain** skill (`skills/backchain/SKILL.md` or the inst
 
 - Mode table, native procedure, harness packaging, and plan contract: skill card.
 - Prompts: `prompts/` under the skill package (generator, elaborator, dependency-review).
-- Install: use your host's plugin marketplace (`backchain` plugin), or from a Backchain
-  source checkout run `./install.sh --skill backchain` (optional `--agents` for this card).
+- Install: use your host's plugin marketplace (`backchain` plugin), or from a Skill Craft
+  checkout run `./install.sh --skill backchain` (optional `--agents` for this card).
