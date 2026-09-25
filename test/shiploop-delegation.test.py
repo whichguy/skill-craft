@@ -445,13 +445,9 @@ class DelegationCliTests(unittest.TestCase):
         # intake, discovery and research are not planning stages and advance
         # directly with no Improve checkpoint; bind at the next stage, spec.
         for _ in range(3):
-            saved = self.saved()
-            action = saved["action"]["id"]
+            action = self.saved()["action"]["id"]
             result_path = self.run / "inbox" / (action + ".md")
-            result = {"outcome": "done", "summary": "Synthetic advance."}
-            if saved["stage"] == "research":
-                result["assumptions"] = []
-            store.write_record(result_path, result)
+            store.write_record(result_path, {"outcome": "done", "summary": "Synthetic advance."})
             self.assertEqual(self.cli("complete", "--run-dir", self.run, "--action", action,
                                       "--result", result_path).returncode, 0)
         self.assertEqual(self.saved()["stage"], "spec")

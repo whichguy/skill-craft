@@ -377,7 +377,7 @@ class FullRuntimeCompositionTests(unittest.TestCase):
         }
         if payload:
             producer.update(payload)
-        if stage in ("research", "plan") and producer.get("outcome") == "done" and "assumptions" not in producer:
+        if stage == "plan" and producer.get("outcome") == "done" and "assumptions" not in producer:
             producer["assumptions"] = []
         result_path = run / "inbox" / f"{action_id}.md"
         _write_record(result_path, producer, "Synthetic ShipLoop producer callback")
@@ -677,7 +677,7 @@ class FullRuntimeCompositionTests(unittest.TestCase):
                 result.update(payload)
             if stage == "static-checks":
                 result["evidence_refs"] = [self._run_quality_loop(shiploop, run, action_id)]
-        if stage in ("research", "plan") and result.get("outcome") == "done" and "assumptions" not in result:
+        if stage == "plan" and result.get("outcome") == "done" and "assumptions" not in result:
             result["assumptions"] = []
         if stage in COLD_RECOVERY_STAGES:
             before = (run / "state.md").read_bytes()

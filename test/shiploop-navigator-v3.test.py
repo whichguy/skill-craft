@@ -846,18 +846,16 @@ class NavigatorV3Tests(unittest.TestCase):
             " ".join(prompts.DUTIES["spec"].split()),
         )
 
-    def test_v3_research_duty_exits_on_assumption_dispositions(self) -> None:
-        """Research ends when every load-bearing assumption has a disposition."""
+    def test_v3_research_duty_lists_assumptions_for_the_plan(self) -> None:
+        """Research records dispositions; the plan result is where they are enforced."""
         research = " ".join(prompts.DUTIES["research"].split())
         for phrase in (
-            "Exit criteria: this stage is finished only when every load-bearing assumption",
-            "evidenced (its source locator)",
-            "probed (the read or command and its observed outcome, saved to a file)",
-            "listed in the result's assumptions field",
-            "ShipLoop refuses a done result without the list",
-            "open (the check that would settle it",
+            "List each load-bearing assumption in that decision note",
+            "evidenced (source locator)",
+            "probed (the read or command and its saved outcome)",
+            "open (the check that would settle it and why it was not run)",
+            "The plan's assumption list starts from it",
             "A recalled fact is not evidence",
-            "an inconclusive probe leaves its assumption open",
         ):
             self.assertIn(phrase, research)
 

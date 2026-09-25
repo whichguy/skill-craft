@@ -42,9 +42,9 @@ The existing Plan Improve child investigates consequential assumptions. When a
 finding invalidates an upstream premise, the parent can settle its stopped child
 and rerun the affected planning suffix before preparation. Follow only the
 packet-issued reconciliation callback. Graphs are not replaced after dispatch.
-Research and plan results carry an `assumptions` list, and the script refuses
-a done result whose list is missing, drops a research ID, routes an open entry
-to no real work item, or cites a missing evidence file.
+The plan result carries an `assumptions` list, and the script refuses a done
+plan whose list is missing, routes an open entry to no real work item, or cites
+a missing evidence file.
 
 ## Start or resume
 

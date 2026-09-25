@@ -1,8 +1,8 @@
 #!/usr/bin/env python3
-"""Script-owned checks for the research and plan assumption lists.
+"""Script-owned checks for the plan's assumption list.
 
-A ``done`` research or plan result carries ``assumptions``: every load-bearing
-assumption with a disposition.  The model chooses which probes to run; these
+A ``done`` plan result carries ``assumptions``: every load-bearing assumption
+with a disposition.  The model chooses which probes to run; these
 checks make a skipped probe visible instead of silent.  They verify shape,
 links and existence, never whether a list is complete or a locator true.
 """
@@ -14,7 +14,7 @@ import stat
 from pathlib import Path
 from typing import Any, Mapping
 
-STAGES = frozenset(("research", "plan"))
+STAGES = frozenset(("plan",))
 DISPOSITIONS = ("evidenced", "probed", "open")
 _ID = re.compile(r"^[A-Za-z][A-Za-z0-9_-]{0,63}$")
 _URL = re.compile(r"^[A-Za-z][A-Za-z0-9+.-]*://\S+$")
@@ -28,7 +28,7 @@ _SHAPE = (
     "each assumption is {id, assumption, disposition} plus: evidenced -> evidence "
     "(list of absolute paths or URLs); probed -> check (the read or command) and "
     "evidence (its captured output); open -> check (what would settle it), reason "
-    "(why it was not run) and consumer (the first affected stage or work item)"
+    "(why it was not run) and consumer (the work item that settles or blocks on it)"
 )
 
 
@@ -86,15 +86,8 @@ def canonical(value: Any, stage: str) -> list[dict[str, Any]]:
     return rows
 
 
-def check_carried(prior: list[Mapping[str, Any]] | None, current: list[Mapping[str, Any]],
-                  consumers: set[str]) -> None:
-    """Refuse a plan list that drops a research assumption or names no real consumer."""
-    ids = {row["id"] for row in current}
-    if prior is not None:
-        dropped = [row["id"] for row in prior if row["id"] not in ids]
-        _need(not dropped,
-              "plan assumptions drop research assumption(s) " + ", ".join(dropped)
-              + "; keep every research ID and change its disposition instead")
+def check_consumers(current: list[Mapping[str, Any]], consumers: set[str]) -> None:
+    """Refuse an open assumption that names no work item in the plan's queue."""
     for row in current:
         if row["disposition"] == "open":
             _need(row["consumer"] in consumers,

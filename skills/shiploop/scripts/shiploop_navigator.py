@@ -336,7 +336,7 @@ def _canonical_result(
         result["choices"] = _normalise_choices(value["choices"], stage)
     if "assumptions" in value:
         _need(stage in assumptions.STAGES and outcome == "done",
-              "assumptions are allowed only on a done research or plan result")
+              "assumptions are allowed only on a done plan result")
         try:
             result["assumptions"] = assumptions.canonical(value["assumptions"], stage)
         except assumptions.AssumptionError as exc:
@@ -773,12 +773,12 @@ def _planning_sources_current(state: Mapping[str, Any]) -> None:
 
 
 def _check_submitted_assumptions(state: Mapping[str, Any], stage: str, result: Any) -> None:
-    """Refuse a submitted done research/plan result without a complete assumption list.
+    """Refuse a submitted done plan result without a complete assumption list.
 
     Runs at the CLI gates, the only route a host can submit through; the pure
     graph functions validate the field's shape when present but do not require
-    it, so simulations stay independent of this rule.  A done plan keeps every
-    research assumption and routes each open one to a work item in its queue.
+    it, so simulations stay independent of this rule.  Each open assumption
+    must name a work item in the submitted queue.
     """
     if stage not in assumptions.STAGES or not isinstance(result, Mapping):
         return
@@ -786,15 +786,9 @@ def _check_submitted_assumptions(state: Mapping[str, Any], stage: str, result: A
         return
     try:
         rows = assumptions.canonical(result.get("assumptions"), stage)
-        if stage == "plan":
-            prior = None
-            for entry in reversed(state["history"]):
-                if entry["stage"] == "research" and entry["outcome"] == "done":
-                    prior = state["accepted"][entry["action"]].get("assumptions", [])
-                    break
-            queue = result.get("work_items", state["work_items"])
-            consumers = {row["id"] for row in queue if isinstance(row, Mapping) and "id" in row}
-            assumptions.check_carried(prior, rows, consumers)
+        queue = result.get("work_items", state["work_items"])
+        consumers = {row["id"] for row in queue if isinstance(row, Mapping) and "id" in row}
+        assumptions.check_consumers(rows, consumers)
         assumptions.check_files(rows)
     except assumptions.AssumptionError as exc:
         raise NavigatorError(str(exc)) from exc
@@ -1281,7 +1275,7 @@ def _result_template(state: Mapping[str, Any], stage: str) -> str:
             {"id": "A2", "assumption": "...", "disposition": "probed", "check": "...",
              "evidence": ["<absolute path of the saved probe output>"]},
             {"id": "A3", "assumption": "...", "disposition": "open", "check": "...",
-             "reason": "...", "consumer": "W1" if stage == "plan" else "<stage or consumer>"},
+             "reason": "...", "consumer": "W1"},
         ]
     assessment = consumer_delivery.template_assessment(state, stage)
     if assessment is not None:
@@ -2225,11 +2219,11 @@ def _render_improve(core: Any, root: Path, state: Mapping[str, Any], lines: list
             "Planning experiment objective: Identify and conduct feasible bounded experiments that "
             "could materially change a decision in this provisional plan or determine whether its "
             "consumer may proceed. Reuse sufficient evidence; zero experiments is valid.",
-            "Planning assumption list: final_result.assumptions keeps every research assumption "
-            "ID and adds each load-bearing assumption this plan introduces: evidenced, probed "
-            "(with its saved output file) or open (with the consumer work item that settles or "
-            "blocks on it). ShipLoop refuses a dropped ID, an open consumer outside the queue, or "
-            "a missing evidence file.",
+            "Planning assumption list: final_result.assumptions lists every load-bearing "
+            "assumption of this plan, including research's: evidenced, probed (with its saved "
+            "output file) or open (with the consumer work item that settles or blocks on it). "
+            "ShipLoop refuses a missing list, an open consumer outside the queue, or a missing "
+            "evidence file.",
             "Planning experiment exit: Require coherent current planning artifacts, a complete "
             "assumption list with no open entry that a bounded probe within the remaining "
             "allowance could settle now, and the two existing qualifying reviews. An inconclusive "

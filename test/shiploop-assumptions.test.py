@@ -1,9 +1,9 @@
 #!/usr/bin/env python3
-"""Hermetic tests for the research and plan assumption-list gates.
+"""Hermetic tests for the plan assumption-list gate.
 
 The pure graph functions only validate the field's shape; the CLI submission
-gates require it, keep research IDs through plan, route open entries to real
-work items and require evidence files to exist.
+gates require it on a done plan, route open entries to real work items and
+require evidence files to exist.
 """
 from __future__ import annotations
 
@@ -43,14 +43,14 @@ def open_row(ident: str, consumer: str) -> dict:
 
 
 class ShapeTests(unittest.TestCase):
-    def refused(self, value, stage="research") -> str:
+    def refused(self, value, stage="plan") -> str:
         with self.assertRaises(assumptions.AssumptionError) as caught:
             assumptions.canonical(value, stage)
         return str(caught.exception)
 
     def test_missing_list_is_refused_and_empty_list_is_valid(self):
         self.assertIn("requires assumptions", self.refused(None))
-        self.assertEqual(assumptions.canonical([], "research"), [])
+        self.assertEqual(assumptions.canonical([], "plan"), [])
 
     def test_each_disposition_needs_exactly_its_fields(self):
         self.assertIn("disposition must be one of", self.refused(
@@ -69,15 +69,11 @@ class ShapeTests(unittest.TestCase):
         self.assertIn("listed twice", self.refused([row, dict(row)]))
         self.assertIn("short identifier", self.refused([evidenced("1 bad", "https://x.test")]))
 
-    def test_plan_keeps_research_ids_and_routes_open_entries_to_work_items(self):
-        prior = [evidenced("A1", "https://x.test"), open_row("A2", "spec")]
-        with self.assertRaisesRegex(assumptions.AssumptionError, "drop research assumption.*A2"):
-            assumptions.check_carried(prior, [evidenced("A1", "https://x.test")], {"W1"})
+    def test_open_entries_must_name_a_work_item_in_the_queue(self):
         with self.assertRaisesRegex(assumptions.AssumptionError, "not a work item"):
-            assumptions.check_carried(prior, [evidenced("A1", "https://x.test"),
-                                              open_row("A2", "W9")], {"W1"})
-        assumptions.check_carried(prior, [evidenced("A1", "https://x.test"),
-                                          open_row("A2", "W1")], {"W1"})
+            assumptions.check_consumers([open_row("A1", "W9")], {"W1"})
+        assumptions.check_consumers([open_row("A1", "W1"), evidenced("A2", "https://x.test")],
+                                    {"W1"})
 
     def test_files_must_exist_and_a_probe_must_cite_saved_output(self):
         with tempfile.TemporaryDirectory() as temp:
@@ -95,13 +91,12 @@ class ShapeTests(unittest.TestCase):
             assumptions.check_files([probed("A1", str(output)),
                                      evidenced("A2", "https://x.test/doc")])
 
-    def test_navigator_allows_the_field_only_on_done_research_or_plan(self):
-        with self.assertRaisesRegex(nav.NavigatorError, "only on a done research or plan"):
-            nav._canonical_result(dict(DONE, assumptions=[]), stage="spec")
-        with self.assertRaisesRegex(nav.NavigatorError, "only on a done research or plan"):
-            nav._canonical_result(dict(DONE, outcome="repeat", assumptions=[]), stage="research")
+    def test_navigator_allows_the_field_only_on_a_done_plan(self):
+        for stage, outcome in (("research", "done"), ("spec", "done"), ("plan", "repeat")):
+            with self.assertRaisesRegex(nav.NavigatorError, "only on a done plan"):
+                nav._canonical_result(dict(DONE, outcome=outcome, assumptions=[]), stage=stage)
         # Pure graph functions validate a present list but do not require one.
-        self.assertNotIn("assumptions", nav._canonical_result(DONE, stage="research"))
+        self.assertNotIn("assumptions", nav._canonical_result(DONE, stage="plan"))
 
 
 class GateTests(unittest.TestCase):
@@ -118,20 +113,16 @@ class GateTests(unittest.TestCase):
         state = nav.new_state(str(self.repo), "Assumption fixture.", improve_skill="",
                               lint_option="off")
         nav.save(self.run_dir, state)
-
-    def state(self) -> dict:
-        return store.read_record(self.run_dir / "state.md")
-
-    def advance_pure(self, until: str, research: dict | None = None) -> None:
         state = self.state()
-        while nav.current_stage(state) != until:
-            stage = nav.current_stage(state)
+        while nav.current_stage(state) != "plan":
             action = nav.current_action(state)["id"]
-            result = research if stage == "research" and research is not None else DONE
-            state = nav.apply(state, action, result)
+            state = nav.apply(state, action, DONE)
             if state.get("active_improve"):
                 state = nav.finish_improve(state, action, IMPROVE)
         nav.save(self.run_dir, state)
+
+    def state(self) -> dict:
+        return store.read_record(self.run_dir / "state.md")
 
     def complete(self, result: dict) -> None:
         state = self.state()
@@ -143,36 +134,34 @@ class GateTests(unittest.TestCase):
             nav.dispatch(CORE, self.run_dir, state, types.SimpleNamespace(
                 command="complete", action=action, result=str(path)))
 
-    def test_research_gate_refuses_a_missing_list_or_file_and_accepts_a_complete_one(self):
-        self.advance_pure("research")
-        with self.assertRaisesRegex(nav.NavigatorError, "requires assumptions"):
-            self.complete(DONE)
-        with self.assertRaisesRegex(nav.NavigatorError, "does not exist"):
-            self.complete(dict(DONE, assumptions=[probed("A1", str(self.base / "gone.txt"))]))
-        self.assertEqual(nav.current_stage(self.state()), "research")
-        rows = [probed("A1", str(self.output)), open_row("A2", "plan")]
-        self.complete(dict(DONE, assumptions=rows))
-        state = self.state()
-        self.assertEqual(nav.current_stage(state), "spec")
-        accepted = state["accepted"][state["history"][-1]["action"]]
-        self.assertEqual([row["id"] for row in accepted["assumptions"]], ["A1", "A2"])
+    def test_research_submits_without_a_list(self):
+        state = nav.new_state(str(self.repo), "Research fixture.", improve_skill="",
+                              lint_option="off")
+        while nav.current_stage(state) != "research":
+            state = nav.apply(state, nav.current_action(state)["id"], DONE)
+        nav.save(self.run_dir, state)
+        self.complete(DONE)
+        self.assertEqual(nav.current_stage(self.state()), "spec")
 
-    def test_non_done_research_needs_no_list(self):
-        self.advance_pure("research")
-        self.complete(dict(DONE, outcome="repeat"))
-        self.assertEqual(nav.current_stage(self.state()), "research")
-
-    def test_plan_gate_refuses_a_dropped_id_and_an_unrouted_open_entry(self):
-        research = dict(DONE, assumptions=[open_row("A1", "plan")])
-        self.advance_pure("plan", research=research)
+    def test_plan_gate_refuses_bad_lists_and_parks_a_complete_one(self):
         items = [{"id": "W1", "title": "First item", "context": "..."}]
-        with self.assertRaisesRegex(nav.NavigatorError, "drop research assumption"):
-            self.complete(dict(DONE, work_items=items, assumptions=[]))
+        with self.assertRaisesRegex(nav.NavigatorError, "requires assumptions"):
+            self.complete(dict(DONE, work_items=items))
+        with self.assertRaisesRegex(nav.NavigatorError, "does not exist"):
+            self.complete(dict(DONE, work_items=items,
+                               assumptions=[probed("A1", str(self.base / "gone.txt"))]))
         with self.assertRaisesRegex(nav.NavigatorError, "not a work item"):
             self.complete(dict(DONE, work_items=items, assumptions=[open_row("A1", "W2")]))
         self.assertIsNone(self.state().get("active_improve"))
-        self.complete(dict(DONE, work_items=items, assumptions=[open_row("A1", "W1")]))
-        self.assertEqual(self.state()["active_improve"]["stage"], "plan")
+        rows = [probed("A1", str(self.output)), open_row("A2", "W1")]
+        self.complete(dict(DONE, work_items=items, assumptions=rows))
+        child = self.state()["active_improve"]
+        self.assertEqual(child["stage"], "plan")
+        self.assertEqual([row["id"] for row in child["seed_result"]["assumptions"]], ["A1", "A2"])
+
+    def test_non_done_plan_needs_no_list(self):
+        self.complete(dict(DONE, outcome="repeat"))
+        self.assertEqual(nav.current_stage(self.state()), "plan")
 
 
 if __name__ == "__main__":
