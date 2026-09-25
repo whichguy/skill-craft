@@ -846,6 +846,19 @@ class NavigatorV3Tests(unittest.TestCase):
             " ".join(prompts.DUTIES["spec"].split()),
         )
 
+    def test_v3_research_duty_exits_on_assumption_dispositions(self) -> None:
+        """Research ends when every load-bearing assumption has a disposition."""
+        research = " ".join(prompts.DUTIES["research"].split())
+        for phrase in (
+            "Exit criteria: this stage is finished only when every load-bearing assumption",
+            "evidenced (its source locator)",
+            "probed (the read or command and its observed outcome)",
+            "open (the check that would settle it",
+            "A recalled fact is not evidence",
+            "an inconclusive probe leaves its assumption open",
+        ):
+            self.assertIn(phrase, research)
+
     def test_v3_step_duties_carry_exit_criteria_authoring_loop_and_parent_check(self) -> None:
         """Rule A, the worker loop W and parent check P live in the emitted duties.
 

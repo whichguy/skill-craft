@@ -45,6 +45,16 @@ establish whether its consumer may proceed?** A task can need zero experiments.
 Reuse sufficient current evidence rather than repeat it to satisfy a quota.
 Baseline checks and required acceptance checks remain due regardless.
 
+The investigation notebook keeps an **assumption list**. Start from research's
+list and add each load-bearing assumption the plan introduces: one whose failure
+would change a plan decision, consumer or acceptance check. Each has one
+disposition: evidenced (source locator), probed (read or command and observed
+outcome) or open (the check that would settle it, why it was not run, and its
+first affected consumer, which the plan blocks or routes). The list is what makes
+choosing zero experiments visible; an unlisted assumption is an unreviewed one.
+The exit requires a disposition for every entry and no open entry that a feasible
+bounded probe within the remaining allowance could settle now.
+
 Before an experiment, append a dated record to the packet's investigation
 notebook. Name the decision and assumption, plausible alternatives, affected
 consumer, representative source/configuration/target identity, discriminator and

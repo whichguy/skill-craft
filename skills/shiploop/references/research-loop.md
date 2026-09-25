@@ -411,6 +411,12 @@ intended-user test. A successful local test cannot become a claim about a
 deployed endpoint or user behavior. A material result re-enters the existing
 review/plan/apply loop and resets convergence.
 
+The research stage exits on the same test. Its decision note lists every
+load-bearing assumption as evidenced, probed or open; an open entry names the
+check that would settle it, why it was not run, and its first affected consumer.
+The model chooses which probes to run; the list makes each choice not to probe
+visible to planning and review. A recalled fact is not evidence.
+
 ### Reuse before a new mechanism
 
 For each implementation choice, inspect the current mechanism, configuration,

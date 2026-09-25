@@ -2180,8 +2180,17 @@ def _render_improve(core: Any, root: Path, state: Mapping[str, Any], lines: list
             "Planning experiment objective: Identify and conduct feasible bounded experiments that "
             "could materially change a decision in this provisional plan or determine whether its "
             "consumer may proceed. Reuse sufficient evidence; zero experiments is valid.",
-            "Planning experiment exit: Require coherent current planning artifacts, no worthwhile "
-            "unresolved experiment due now, and the two existing qualifying reviews. An inconclusive "
+            "Planning assumption list: In the investigation notebook, start from research's "
+            "assumption list and add each load-bearing assumption this plan introduces (one whose "
+            "failure would change a plan decision, consumer or acceptance check). Give each a "
+            "disposition: evidenced (source locator), probed (read or command and observed "
+            "outcome) or open (the check that would settle it, why it was not run, and its first "
+            "affected consumer, which the plan must block or route). A recalled fact is not "
+            "evidence.",
+            "Planning experiment exit: Require coherent current planning artifacts, a disposition "
+            "for every load-bearing assumption of the current plan, no open assumption that a "
+            "feasible bounded probe within the remaining allowance could settle now, and the two "
+            "existing qualifying reviews. An inconclusive "
             "probe remains unresolved; running a probe or exhausting the shared investigation allowance "
             "does not satisfy readiness. Use the current Improve cycle, never a nested loop or a new "
             "experiment counter. Preserve findings, remaining allowance and cleanup through recovery.",

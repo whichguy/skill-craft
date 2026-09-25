@@ -427,6 +427,10 @@ class NavigatorV4Tests(unittest.TestCase):
         self.assertEqual(navigator.current_stage(cold), "plan")
         self.assertIn("Planning experiment objective:", packet)
         self.assertIn("Planning experiment exit:", packet)
+        self.assertIn("Planning assumption list:", packet)
+        self.assertIn("start from research's assumption list", packet)
+        self.assertIn("a disposition for every load-bearing assumption", packet)
+        self.assertIn("no open assumption that a feasible bounded probe", packet)
         self.assertIn("zero experiments", packet_lower)
         self.assertIn("sufficient evidence", packet_lower)
         self.assertIn("inconclusive", packet_lower)
@@ -468,6 +472,7 @@ class NavigatorV4Tests(unittest.TestCase):
 
         self.assertNotIn("Planning experiment objective:", other_packet)
         self.assertNotIn("Planning experiment exit:", other_packet)
+        self.assertNotIn("Planning assumption list:", other_packet)
         self.assertNotIn("Planning scratch directory:", other_packet)
         self.assertNotIn("improve-reconcile", other_packet)
 

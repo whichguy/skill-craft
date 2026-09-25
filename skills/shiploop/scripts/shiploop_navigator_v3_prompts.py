@@ -812,6 +812,13 @@ For affected service choices, use Service discovery guidance to resolve current
 state, zero-copy/cache tradeoffs, permission-aware invalidation, async recovery,
 and observability gaps with discriminating evidence. Reuse native facilities;
 retain unknowns and their actual dependent work in the indexed decision note.
+Exit criteria: this stage is finished only when every load-bearing assumption is
+listed in that decision note with a disposition. An assumption is load-bearing
+when a plan decision, consumer or acceptance check would change if it were false.
+Each one is evidenced (its source locator), probed (the read or command and its
+observed outcome) or open (the check that would settle it, why it was not run
+here, and its first affected consumer). A recalled fact is not evidence, and an
+inconclusive probe leaves its assumption open. An empty list is valid when stated.
 """,
     "spec": """\
 Define the required behavior, boundaries, acceptance criteria, nonfunctional
