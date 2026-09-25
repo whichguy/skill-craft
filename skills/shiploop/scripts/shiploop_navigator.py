@@ -1481,9 +1481,14 @@ STATUS_END = "=== end ShipLoop status ==="
 _STATUS_MARK = {"done": "\u2713", "current": "\u25b6", "pending": "\u00b7"}
 
 
+# An absolute or home-relative path inside host text, shown by its last segment.
+_STATUS_PATH = re.compile(r"(?<![\w.~/])(?:~|file:/)?/[^\s\"'`<>]*/([^\s\"'`<>/]+)")
+
+
 def _status_text(value: Any, limit: int) -> str:
-    """One display-safe line: printable, whitespace-collapsed, marker-proof, capped."""
+    """One display-safe line: printable, path-free, whitespace-collapsed, marker-proof, capped."""
     text = "".join(char if char.isprintable() else " " for char in str(value))
+    text = _STATUS_PATH.sub(r"\1", text)
     text = re.sub(r"={3,}", "==", " ".join(text.split()))
     return text if len(text) <= limit else text[:limit - 1] + "\u2026"
 

@@ -225,6 +225,19 @@ class StatusBlockTests(unittest.TestCase):
         self.assertNotIn("===", done)
         self.assertLessEqual(len(done), len("Done:      discovery: ") + 140)
 
+    def test_host_paths_are_shortened_to_their_last_segment(self) -> None:
+        # CI temp paths are short enough to fit the caps, so a path must never
+        # pass through whole (the packet pins how often locators appear).
+        rows = [{"id": "W1", "title": "Read /tmp/a/spec.md",
+                 "context": "Use /tmp/a/requirements.md#r1 and ~/src/p/test_cli.py. More."}]
+        state = self.advance_to(self.planned(rows), "step-plan")
+        block = navigator.status_block(state)
+        self.assertIn('W1 "Read spec.md"', block)
+        self.assertEqual(line(block, "Item plan"), "Item plan: Use requirements.md#r1 and test_cli.py.")
+        self.assertNotIn("/tmp/", block)
+        self.assertNotIn("~/", block)
+        self.assertIn("3/4 and and/or", navigator._status_text("3/4 and and/or", 80))
+
     def test_block_is_bounded_for_huge_queues_and_long_text(self) -> None:
         rows = [{"id": "W" + "x" * 63 if index == 0 else f"W{index:04d}",
                  "title": "title " * 1000, "context": "context " * 1000} for index in range(1000)]
