@@ -305,14 +305,16 @@ installed. Details and safety pins: [lint catalog](references/lint-catalog.md).
 Improve card (`runtime/until-loop`). On the `complete` that enters it, ShipLoop
 records the item's change inventory (tracked and untracked files since the
 item base, in every lint mode) and writes the loop contract
-`quality/<action>-contract.json` from its prompt catalog. Each iteration reruns
-the checks, lists the changed public entry points, traces each one with a
+`quality/<action>-contract.json` from its prompt catalog. The first iteration
+runs the checks (later ones rerun them only after an edit); each iteration
+lists the changed public entry points, traces each one with a
 valid, a boundary and an invalid input, reviews the change against the *Code
 craft* rubric and fixes what it finds. The Until Loop script ends the loop
 after an iteration with only trivial findings; a third iteration that still
 finds a material issue stops it. The stage accepts only `done` or `blocked`:
 `done` needs the saved terminal packet `quality/<action>-terminal.json`, which
-ShipLoop checks against the contract before advancing. The end-of-work Improve
+ShipLoop checks against the contract it rebuilds from run state (not the file on
+disk) before advancing. The end-of-work Improve
 reviews every item's change against the same rubric.
 
 `--lint fix|report|off` at `init` or `workspace start` selects the option; a
