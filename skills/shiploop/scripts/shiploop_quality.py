@@ -164,12 +164,15 @@ def _read_json(path: Path, label: str) -> Any:
         raise QualityError(label + " is not valid JSON: " + str(path)) from exc
 
 
-def check_terminal(root: Path, state: Mapping[str, Any], action: str, result: Mapping[str, Any]) -> None:
+def check_terminal(root: Path, state: Mapping[str, Any], work_item: str, action: str,
+                   result: Mapping[str, Any]) -> None:
     """Refuse a static-checks result that the bound Until Loop's terminal packet does not support.
 
     ``done`` needs a ``complete`` packet within the iteration limit; ``blocked``
     accepts a ``stopped`` packet or none (the summary carries the reason).
     ``repeat`` is never valid: the loop, not the graph, repeats the review.
+    The packet is compared with the contract rebuilt from ShipLoop state, not
+    with the contract file, so editing that file cannot reshape the loop.
     """
     outcome = result.get("outcome") if isinstance(result, Mapping) else None
     _need(outcome in ("done", "blocked"),
@@ -181,26 +184,29 @@ def check_terminal(root: Path, state: Mapping[str, Any], action: str, result: Ma
     path = root / terminal_path(action)
     if outcome == "blocked" and not os.path.lexists(path):
         return
-    refs = result.get("evidence_refs") or []
-    _need(str(path) in refs, "list the saved terminal packet in evidence_refs: " + str(path))
+    refs = result.get("evidence_refs")
+    _need(isinstance(refs, list) and str(path) in refs,
+          "list the saved terminal packet in evidence_refs: " + str(path))
     packet = _read_json(path, "Until Loop terminal packet")
-    contract = _read_json(root / contract_path(action), "ShipLoop quality contract")
-    _need(isinstance(packet, Mapping) and isinstance(contract, Mapping),
-          "terminal packet and contract must be JSON objects")
+    _need(isinstance(packet, Mapping), "the Until Loop terminal packet must be a JSON object")
+    conditions, progress = packet.get("conditions"), packet.get("progress")
+    _need(isinstance(conditions, Mapping) and isinstance(progress, Mapping),
+          "the Until Loop terminal packet lacks its conditions or progress")
+    expected = build_contract(root, state, work_item, action)
+    _need(packet.get("workspace") == expected["workspace"]
+          and packet.get("work") == expected["work"]
+          and conditions.get("exit") == expected["exit_condition"]
+          and conditions.get("repeat") == expected["repeat_condition"]
+          and progress.get("required_trivial_reviews") == expected["required_trivial_reviews"]
+          and packet.get("context") == expected["context"],
+          "the terminal packet is not from a run of this action's contract "
+          + str(root / contract_path(action)))
     status = packet.get("status")
     _need(status in ("complete", "stopped"),
           "the terminal packet must have status complete or stopped, found " + repr(status))
-    conditions = packet.get("conditions") or {}
-    progress = packet.get("progress") or {}
-    _need(packet.get("workspace") == contract.get("workspace")
-          and packet.get("work") == contract.get("work")
-          and conditions.get("exit") == contract.get("exit_condition")
-          and conditions.get("repeat") == contract.get("repeat_condition")
-          and progress.get("required_trivial_reviews") == contract.get("required_trivial_reviews"),
-          "the terminal packet is not from a run of this action's contract " + str(root / contract_path(action)))
     if status == "complete":
         iterations = progress.get("action_number")
-        _need(isinstance(iterations, int) and iterations >= 1,
+        _need(isinstance(iterations, int) and not isinstance(iterations, bool) and iterations >= 1,
               "the terminal packet has no iteration count")
         if iterations > guidance3.QUALITY_LOOP_LIMIT:
             _need(outcome == "blocked", "the quality loop ran " + str(iterations) + " iterations; more than "

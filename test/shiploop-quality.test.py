@@ -194,8 +194,24 @@ class QualityLoopTests(unittest.TestCase):
         for result, message in cases:
             with self.subTest(message=message), self.assertRaisesRegex(nav.NavigatorError, message):
                 self.complete(result)
-        self.run_loop([TRIVIAL], contract_edit=lambda contract: contract.update(work="Something easier."))
+        edits = {
+            "work": lambda contract: contract.update(work="Something easier."),
+            "authority": lambda contract: contract["context"].update(authority="Anything goes."),
+        }
+        for name, edit in edits.items():
+            with self.subTest(edited=name):
+                self.run_loop([TRIVIAL], contract_edit=edit)
+                with self.assertRaisesRegex(nav.NavigatorError, "not from a run of this action's contract"):
+                    self.complete(dict(DONE, evidence_refs=[str(self.terminal())]))
+        # Editing the contract file itself cannot reshape the loop: ShipLoop rebuilds it from state.
+        contract_file = self.run_dir / quality.contract_path(self.action())
+        contract_file.write_text(contract_file.read_text().replace("Trace.", "Skim."))
+        self.run_loop([TRIVIAL])
         with self.assertRaisesRegex(nav.NavigatorError, "not from a run of this action's contract"):
+            self.complete(dict(DONE, evidence_refs=[str(self.terminal())]))
+        # A malformed packet is refused cleanly, not with a crash.
+        self.terminal().write_text(json.dumps({"status": "complete", "conditions": [], "progress": 1}))
+        with self.assertRaisesRegex(nav.NavigatorError, "lacks its conditions or progress"):
             self.complete(dict(DONE, evidence_refs=[str(self.terminal())]))
         self.assertEqual((self.run_dir / "state.md").read_bytes(), before)
 

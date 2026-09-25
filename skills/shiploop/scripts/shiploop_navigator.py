@@ -2526,10 +2526,11 @@ def dispatch(core: Any, root: Path, state: Mapping[str, Any], args: Any,
                   f"action {action_id!r} is not the current navigator action; current action is "
                   f"{current} with result path {_result_input_path(root, current)}")
         submitted = _submitted_result(root, args)
+        cursor_stage, _, cursor_item = _active_cursor(state)
         if (state["status"] == "active" and action_id not in state["accepted"]
-                and _active_cursor(state)[0] == quality.STAGE):
+                and cursor_stage == quality.STAGE):
             try:
-                quality.check_terminal(root, state, action_id, submitted)
+                quality.check_terminal(root, state, cursor_item or "", action_id, submitted)
             except quality.QualityError as exc:
                 raise NavigatorError(str(exc)) from exc
         updated = apply(state, action_id, submitted)
