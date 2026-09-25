@@ -4,6 +4,29 @@ Written by scripts/release.py.
 
 ## 2026-09-25
 
+### shiploop 0.27.0
+
+- The plan result now carries an `assumptions` list, and the navigator enforces
+  it. A done plan submitted through `complete` or `improve-complete` is refused
+  unless every load-bearing assumption is listed as evidenced, probed or open.
+  Every local evidence path must exist, a probed entry must cite a nonempty saved
+  output file, and each open entry must name a work item in the plan's queue. The
+  Plan Improve loop exits only when no open entry could be settled by a bounded
+  probe now. Research lists its assumptions in its decision note as the plan's
+  starting point, without a gate. The model still decides whether to experiment;
+  the gate makes a decision not to probe visible.
+- The status hook recognizes Grok's real PostToolUse payload (camelCase keys with snake_case aliases, output as a list of byte values), and the status-display guide records how to make Grok use the trusted plugin install.
+- Keepalive: host hooks stop an agent from ending its turn while a run can still move, for Claude Code, Codex, Grok, Cursor and OpenCode. A marketplace install brings them (declared in `host-hooks.json`, generated per host); a skill-directory install adds them with `scripts/shiploop-hook install --host HOST`. See `references/keepalive.md`.
+  Only one session per run is kept alive; parallel workers and second terminals on the same run are let go, and ownership passes on when the owner's turn ends.
+  New `shiploop hook-status` (read-only JSON run status) and a `Keepalive marker:` line in every packet.
+  New `scripts/shiploop-drive` runs or resumes host sessions until a run is done, paused, blocked or stuck; use it for unattended Cursor and OpenCode runs.
+  A question about the loop no longer pauses the run, and the agent is told not to pause on its own to ask whether to continue; only an explicit stop or pause, or a real blocker, does.
+- The status block shortens any absolute path in a title, summary or reason to its last segment, so it never repeats full file paths from host text.
+
+### shiploop-e2e-audit 0.4.5
+
+- Recognize ShipLoop's new read-only `hook-status` verb in the Grok adapter's direct-subcommand allowlist.
+
 ### shiploop 0.26.0
 
 - Code craft gains rule 7, *Write text that can be translated*: user-facing

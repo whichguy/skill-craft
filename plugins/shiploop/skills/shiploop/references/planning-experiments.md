@@ -45,6 +45,23 @@ establish whether its consumer may proceed?** A task can need zero experiments.
 Reuse sufficient current evidence rather than repeat it to satisfy a quota.
 Baseline checks and required acceptance checks remain due regardless.
 
+The plan result carries an **assumption list** in `assumptions`. Start from
+research's decision-note list and add each load-bearing assumption the plan introduces: one
+whose failure would change a plan decision, consumer or acceptance check. Each
+has one disposition: evidenced (`evidence` locators), probed (`check` plus
+`evidence` naming its saved output file) or open (`check` that would settle it,
+`reason` it was not run, and the `consumer` work item that settles or blocks on
+it). The list is what makes choosing zero experiments visible; an unlisted
+assumption is an unreviewed one. The exit requires a disposition for every entry
+and no open entry that a feasible bounded probe within the remaining allowance
+could settle now.
+
+ShipLoop enforces what it can check at the `complete` and `improve-complete`
+gates: the list is present, each open consumer is a work item in the submitted
+queue, every local evidence path exists, and each
+probed entry cites a nonempty output file. It cannot check that the list is
+complete or that a locator supports its claim; review owns those.
+
 Before an experiment, append a dated record to the packet's investigation
 notebook. Name the decision and assumption, plausible alternatives, affected
 consumer, representative source/configuration/target identity, discriminator and
@@ -54,7 +71,8 @@ why it exercises the intended boundary. For noisy results, predeclare controls
 and repetitions.
 
 At an accepted confirmation, retain that decision note/evidence locator in the
-existing `final_result.evidence_refs`; do not add an experiment result field.
+existing `final_result.evidence_refs`; the only planning-experiment field is
+`assumptions`.
 Normal review/check references document review mechanics, but do not substitute
 for accepted producer evidence in `final_result`.
 

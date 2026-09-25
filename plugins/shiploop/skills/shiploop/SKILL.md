@@ -5,7 +5,7 @@ description: >-
   script's current action packet, and submit its exact completion call until
   the script reports completion with an HTML achievement report. Use when the
   user says shiploop, ship the project, or requests a durable delivery loop.
-version: 0.26.0
+version: 0.27.0
 allowed-tools: all
 license: MIT
 platforms:
@@ -42,6 +42,9 @@ The existing Plan Improve child investigates consequential assumptions. When a
 finding invalidates an upstream premise, the parent can settle its stopped child
 and rerun the affected planning suffix before preparation. Follow only the
 packet-issued reconciliation callback. Graphs are not replaced after dispatch.
+The plan result carries an `assumptions` list, and the script refuses a done
+plan whose list is missing, routes an open entry to no real work item, or cites
+a missing evidence file.
 
 ## Start or resume
 
@@ -416,6 +419,10 @@ conditions within scope and follow the printed resume route; ask only for a
 decision, authority, or access that is actually missing. Preserve paused,
 blocked, halted, and child-owner boundaries. If the host interrupts execution,
 retain the recovery locators and resume the same run when execution resumes.
+
+With [keepalive](references/keepalive.md) installed, the host refuses to end a
+turn while the run is active; follow the refusal's named next command. A
+question about the loop is not a stop: answer it and continue the packet.
 
 1. The owning agent reads the original goal, repository, current work item,
    relevant durable notes and the stage's instructions. The packet identifies

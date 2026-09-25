@@ -60,6 +60,14 @@ generated hook file per host, so installing the ShipLoop plugin sets it up:
 | Claude Code | `hooks/hooks.json` | active once the plugin is enabled | yes |
 | Codex | `hooks/codex.json` (manifest `hooks`) | review and trust it once in `/hooks` | yes, as a UI warning |
 | Grok | `hooks/hooks.json` (Claude format) | install with `--trust` | no: Grok never shows a successful hook's output |
+
+On Grok, a same-named plugin from Claude's marketplace clone
+(`~/.claude/plugins/marketplaces/<market>/plugins/shiploop`) outranks Grok's own
+installs, and Grok never trusted that path, so its hooks stay inactive. Linking
+the trusted install at `~/.grok/plugins/shiploop` makes it win; check with
+`grok inspect --json`. Grok 1.0.41 also runs no plugin hooks in headless
+`grok -p` sessions, only settings-file hooks, so verify there in an interactive
+session. Grok sends the command's output as a list of byte values.
 | Cursor | `hooks/cursor.json` (manifest `hooks`) | active in a trusted workspace | no: `afterShellExecution` has no output field |
 
 On Grok and Cursor the hook recognizes the call and stays silent, so the

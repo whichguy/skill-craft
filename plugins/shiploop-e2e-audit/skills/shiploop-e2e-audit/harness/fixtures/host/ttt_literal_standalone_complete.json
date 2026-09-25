@@ -32,9 +32,9 @@
   },
   "id": "ttt-literal-standalone-complete",
   "observer": {
-    "grok_adapter_sha256": "df179384cd18eccdbdd795f47b380eb134a7d0654d9412b5250828f7f4028f28",
+    "grok_adapter_sha256": "6d19398a9909bfd35f82755830633b7c222c2a6ba06b3c0902fc97f4ff555ac7",
     "source_edit_policy": "parser-source-mismatch-invalidates-attribution",
-    "previous_grok_adapter_sha256": "0e28aa71bd5df4bb126d780241cf10b4e31aacd25a3df4e205fda1d904274d1d",
+    "previous_grok_adapter_sha256": "df179384cd18eccdbdd795f47b380eb134a7d0654d9412b5250828f7f4028f28",
     "revalidation": "The direct-form ShipLoop verb allowlist now also accepts lint-mode and lint, the new ShipLoop exit-criteria lint verbs. Every fixture uses only the retained complete verb; all five golden attribution expectations independently replayed unchanged. Original capture provenance and events are unchanged.",
     "revalidation_history": [
       {

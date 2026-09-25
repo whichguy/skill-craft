@@ -411,6 +411,10 @@ intended-user test. A successful local test cannot become a claim about a
 deployed endpoint or user behavior. A material result re-enters the existing
 review/plan/apply loop and resets convergence.
 
+The research stage lists its load-bearing assumptions in its decision note as
+evidenced, probed or open. The plan's assumption list starts from that note; the
+plan result is where ShipLoop enforces the list. A recalled fact is not evidence.
+
 ### Reuse before a new mechanism
 
 For each implementation choice, inspect the current mechanism, configuration,

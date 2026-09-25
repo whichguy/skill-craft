@@ -10,6 +10,7 @@ operations stay in their own modules.
 from __future__ import annotations
 
 import argparse
+import json
 import os
 import shlex
 import sys
@@ -176,8 +177,51 @@ def workspace_completion_guard(root, previous, updated):
             raise ProtocolError(str(exc)) from exc
 
 
+def hook_status(core, argv):
+    """Answer whether a run can still move, for keepalive hooks and the driver.
+
+    Read-only and lock-free: it runs when a host is about to end a turn, so it
+    must never wait on a command in progress or recover a transaction.  The one
+    JSON line it prints is the whole contract; exit 2 means "no answer".
+    """
+    parser = argparse.ArgumentParser(prog="shiploop hook-status")
+    parser.add_argument("--run-dir", required=True)
+    args = parser.parse_args(argv)
+    root = core.run_dir_from_arg(args.run_dir, walk=False).resolve()
+    try:
+        state = core.load_state(root)
+        retired = navigator.retired_run_reason(state)
+        need(retired is None, retired or "")
+        navigator.validate(state)
+        stage = navigator.current_stage(state)
+        action = navigator.current_action(state)
+    except SystemExit:
+        # core.load_state already printed its reason on stderr.
+        print(json.dumps({"run_dir": str(root), "error": "run state cannot be read"}))
+        return 2
+    except (ProtocolError, navigator.NavigatorError, store.StorageError, OSError,
+            KeyError, ValueError, TypeError) as exc:
+        print(json.dumps({"run_dir": str(root), "error": str(exc)}))
+        return 2
+    print(json.dumps({
+        "run_dir": str(root),
+        "run_id": state["run_id"],
+        "repo": state["repo"],
+        "status": state["status"],
+        "status_reason": state.get("status_reason", ""),
+        "stage": stage,
+        "action": (action or {}).get("id"),
+        "revision": state["revision"],
+        "next": shlex.join(["python3", str(core.PACKAGE_ROOT / "scripts" / "shiploop"),
+                            "next", "--run-dir", str(root)]),
+    }))
+    return 0
+
+
 def main(core, argv=None):
     raw_argv = list(sys.argv[1:] if argv is None else argv)
+    if raw_argv and raw_argv[0] == "hook-status":
+        return hook_status(core, raw_argv[1:])
     if raw_argv and raw_argv[0] == "workspace":
         return workspace_command(core, raw_argv[1:])
     if raw_argv and raw_argv[0] == "chain":
@@ -194,6 +238,7 @@ def main(core, argv=None):
     subs.add_parser("workspace", help="isolated start, return-plan review, and guarded return")
     subs.add_parser("chain", help="bind and operate a parallel or serial chain within the current implementation action")
     subs.add_parser("lint", help="advisory lint rerun for the current action, or show a stored record part (never gates)")
+    subs.add_parser("hook-status", help="read-only JSON: can this run still move (for keepalive hooks and the driver)")
     navigator_dry_run.add_arguments(subs.add_parser(
         "graph-dry-run", help="inspect navigator routes and prompts without project work"))
     for name in (
