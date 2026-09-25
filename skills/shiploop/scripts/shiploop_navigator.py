@@ -1210,6 +1210,10 @@ def _result_input_path(root: Path, action_id: str) -> Path:
     return root / "inbox" / f"{action_id}.md"
 
 
+# The prefix shiploop_keepalive searches command output for; keep both in step.
+KEEPALIVE_MARKER = "SHIPLOOP-RUN"
+
+
 # An empty template list was copied verbatim; a placeholder the script refuses
 # makes the worker name the files instead.
 EVIDENCE_PLACEHOLDER = "<absolute path of each file this stage wrote, or of the check output it recorded>"
@@ -1587,6 +1591,8 @@ def render(core: Any, root: Path, state: Mapping[str, Any]) -> str:
         f"CLI locator: {_command(core)}",
         "ShipLoop skill card: " + str(reference_dir.parent / "SKILL.md"),
         f"Run directory locator: {root}",
+        # Keepalive hooks bind a host session to this run from this exact line.
+        f"Keepalive marker: {KEEPALIVE_MARKER} run={state['run_id']} rev={state['revision']} dir={root}",
         "Access-readiness policy: "
         + str(reference_dir / "research-loop.md")
         + "#early-access-readiness",

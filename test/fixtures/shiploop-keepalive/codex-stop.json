@@ -1,0 +1,11 @@
+{
+  "session_id": "__SESSION__",
+  "turn_id": "01a0da1d-9de2-7ba1-97f0-2f0b14921e5c",
+  "transcript_path": "/tmp/shiploop-keepalive-fixture",
+  "cwd": "/tmp/shiploop-keepalive-fixture",
+  "hook_event_name": "Stop",
+  "model": "gpt-6-astra",
+  "permission_mode": "default",
+  "stop_hook_active": false,
+  "last_assistant_message": "Stage 1 of 4 complete: appended `alpha` to `work.log`; stub accepted revision 1."
+}

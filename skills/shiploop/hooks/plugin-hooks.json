@@ -1,0 +1,29 @@
+{
+  "description": "ShipLoop keepalive: keep an active ShipLoop run moving across turns. One registration serves every host that loads this plugin; --host auto detects which one called.",
+  "hooks": {
+    "PostToolUse": [
+      {
+        "matcher": "*",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "python3 \"${CLAUDE_PLUGIN_ROOT}/skills/shiploop/scripts/shiploop-hook\" observe --host auto",
+            "timeout": 30
+          }
+        ]
+      }
+    ],
+    "Stop": [
+      {
+        "matcher": "*",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "python3 \"${CLAUDE_PLUGIN_ROOT}/skills/shiploop/scripts/shiploop-hook\" stop --host auto",
+            "timeout": 30
+          }
+        ]
+      }
+    ]
+  }
+}

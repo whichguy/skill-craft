@@ -99,6 +99,7 @@ Hermes card install is skipped (the engine owns `software-development/devloop`).
 ./install.sh --skill all             # explicit: all skills under skills/
 ./install.sh --from /path/to/pkg     # external package (leaf = basename)
 ./install.sh --agents                # also agents/<leaf>.md → Claude/Grok
+./install.sh --skill shiploop --hooks  # also register the skill's host hooks (not Hermes)
 ./install.sh --claude-only           # single host
 ./install.sh --grok-only
 ./install.sh --codex-only
@@ -122,6 +123,12 @@ Hermes card install is skipped (the engine owns `software-development/devloop`).
 | Hermes | `~/.hermes/skills/software-development/<dest>` | **copy** (+ `.skill-craft/<dest>.json` marker) |
 
 `dest` is the source leaf. Leaf `devloop` skips Hermes so it cannot overwrite the engine.
+
+`--hooks` runs a skill's own `hooks/install` for each selected host except Hermes; with
+`--status` or `--uninstall` it reports or removes them. Today only ShipLoop ships hooks
+([keepalive](skills/shiploop/references/keepalive.md)). A marketplace install needs no
+flag: a skill's `hooks/plugin-hooks.json` is packaged as the plugin's `hooks/hooks.json`,
+which Claude Code, Grok, Codex and Cursor load with the plugin. Use one route per host.
 
 With `--agents`: `~/.claude/agents/<leaf>.md` and `~/.grok/agents/<leaf>.md` when present.
 Re-running install refreshes managed Hermes copies; foreign Hermes trees print `Skipped (foreign)`.

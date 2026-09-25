@@ -1609,7 +1609,9 @@ class NavigatorV3Tests(unittest.TestCase):
         everywhere = (
             "Blocked means work this stage cannot do",
             "is a documentation fix made in this stage, then rerun, not a blocker",
-            "saying not to implement is a stop for product work",
+            "says not to implement, is a stop for product work",
+            "about this skill, the loop, its progress or its cost is not a stop",
+            "Do not pause on your own to ask whether the run is worth continuing",
         )
         by_stage = {
             "intake": ("State where the result will be visible and when",),

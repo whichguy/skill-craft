@@ -1,0 +1,7 @@
+#!/usr/bin/env bash
+# install.sh --hooks contract: hooks/install install|status|uninstall --host HOST [--dry-run]
+set -euo pipefail
+here="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd -P)"
+action="${1:?usage: install install|status|uninstall --host HOST [--dry-run]}"
+shift
+exec python3 "$here/../scripts/shiploop-hook" "$action" "$@"

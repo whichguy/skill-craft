@@ -115,6 +115,7 @@ _SHIPLOOP_PATHS = (
     "test/shiploop-repeatable-experiments.test.py",
     "test/shiploop-privacy.test.py",
     "test/shiploop-reference-routing.test.py",
+    "test/shiploop-keepalive.test.py",
 )
 
 # Measured in the audited full GitHub qualification.  Every known duration is

@@ -1,0 +1,16 @@
+{
+  "conversation_id": "__SESSION__",
+  "generation_id": "__SESSION__",
+  "model": "default",
+  "command": "/tmp/shiploop-keepalive-fixture next",
+  "output": "__MARKER__\n== Packet: stage 1 of 4 (alpha) ==\n1. Append the single line 'alpha' to the file work.log in the current directory.\n2. Run: /tmp/shiploop-keepalive-fixture complete\n3. Then write a one-line progress report for the user and end your turn. The user will re-invoke you for the next stage.\n",
+  "duration": 525.634,
+  "sandbox": false,
+  "session_id": "__SESSION__",
+  "hook_event_name": "afterShellExecution",
+  "cursor_version": "2026.09.18-9a7762b",
+  "workspace_roots": [
+    "/tmp/shiploop-keepalive-fixture"
+  ],
+  "transcript_path": "/tmp/shiploop-keepalive-fixture"
+}

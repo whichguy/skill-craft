@@ -16,6 +16,9 @@ usage() {
   printf '  --from DIR            # install only basename(DIR) from that path\n' >&2
   printf '                        # (must contain SKILL.md); exclusive with --skill\n' >&2
   printf '  --agents              # also symlink agents/<leaf>.md for Claude/Grok\n' >&2
+  printf '  --hooks               # also install/report/remove host hooks for skills that ship\n' >&2
+  printf '                        # an executable hooks/install (never Hermes); with --status\n' >&2
+  printf '                        # or --uninstall, report or remove them\n' >&2
   printf '  --relink              # replace wrong/dangling skill or agent symlinks; with\n' >&2
   printf '                        # --copy, also turn an owned symlink into a managed copy\n' >&2
   printf '                        # (never clobbers a real file/directory)\n' >&2
@@ -133,6 +136,7 @@ skill_from=""    # absolute path when --from used
 skill_flag_set=0
 from_flag_set=0
 install_agents=0
+install_hooks=0
 dry_run=0
 relink=0
 # force_mode: "" | copy | symlink — empty means host defaults (Hermes=copy, others=symlink)
@@ -223,6 +227,10 @@ while [[ $# -gt 0 ]]; do
       ;;
     --agents)
       install_agents=1
+      shift
+      ;;
+    --hooks)
+      install_hooks=1
       shift
       ;;
     --relink)
@@ -1278,6 +1286,33 @@ else
   esac
 fi
 
+# A skill that ships hooks/install owns its host hook registration. The contract
+# is: hooks/install install|status|uninstall --host HOST [--dry-run]. Hermes has
+# no hook support here and is never passed.
+run_skill_hooks() {
+  local leaf="$1" source_dir="$2" hook_action="$3" rc host
+  local installer="$source_dir/hooks/install"
+  [[ -x "$installer" ]] || return 0
+  local -a hosts=()
+  [[ "$install_claude" -eq 1 ]] && hosts+=(claude)
+  [[ "$install_grok" -eq 1 ]] && hosts+=(grok)
+  [[ "$install_codex" -eq 1 ]] && hosts+=(codex)
+  [[ "$install_cursor" -eq 1 ]] && hosts+=(cursor)
+  [[ "$install_opencode" -eq 1 ]] && hosts+=(opencode)
+  [[ ${#hosts[@]} -gt 0 ]] || return 0
+  local -a argv=("$installer" "$hook_action")
+  for host in "${hosts[@]}"; do
+    argv+=(--host "$host")
+  done
+  if [[ "$dry_run" -eq 1 && "$hook_action" != "status" ]]; then
+    argv+=(--dry-run)
+  fi
+  printf 'Hooks (%s):\n' "$leaf"
+  rc=0
+  "${argv[@]}" || rc=$?
+  note_exit "$rc"
+}
+
 for pair in "${install_pairs[@]}"; do
   leaf="${pair%%|*}"
   source_dir="${pair#*|}"
@@ -1295,6 +1330,9 @@ for pair in "${install_pairs[@]}"; do
       fi
       ;;
   esac
+  if [[ "$install_hooks" -eq 1 ]]; then
+    run_skill_hooks "$leaf" "$source_dir" "$action"
+  fi
 done
 
 exit "$worst_exit"
