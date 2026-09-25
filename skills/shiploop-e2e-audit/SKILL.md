@@ -8,7 +8,7 @@ description: >-
   Google Apps Script and Salesforce game cases require an authorized test deployment and hosted
   behavior evidence.
   Includes its harness for source and marketplace installs; tests a separately selected ShipLoop.
-version: 0.4.0
+version: 0.4.1
 license: MIT
 platforms:
   - linux

@@ -43,7 +43,7 @@ _INCOMPLETE_RECEIPT_FIELDS = {"summary", "target", "evidence_refs"}
 _RECONCILIATION_TARGETS = {"discovery", "research", "spec", "test-strategy"}
 _TERMINAL_PACKET_FIELDS = {
     "status", "state_file", "workspace", "work", "conditions", "progress", "context",
-    "context_limit", "status_semantics", "last_report", "instruction", "next_argv",
+    "status_semantics", "last_report", "instruction", "next_argv",
     "done_argv", "report_schema",
 }
 
@@ -609,8 +609,6 @@ def _ephemeral_terminal_packet(
           "Until Loop terminal packet does not meet its required trivial-review gate")
     _need(trivial_streak <= action_number,
           "Until Loop terminal progress has an incoherent trivial streak")
-    _need(packet.get("context_limit") is None,
-          "Until Loop terminal packet lacks immutable continuity context")
     context = _ephemeral_context(packet.get("context"))
     _need(_marked_request_binding_id(context["request"], "Until Loop terminal context") == binding_id,
           "Until Loop terminal context is not bound to this ShipLoop action")
@@ -658,8 +656,6 @@ def _ephemeral_stopped_packet(
     _integer(progress.get("required_trivial_reviews"), "Until Loop stopped required trivial reviews")
     _need(trivial_streak <= action_number,
           "Until Loop stopped progress has an incoherent trivial streak")
-    _need(packet.get("context_limit") is None,
-          "Until Loop stopped packet lacks immutable continuity context")
     context = _ephemeral_context(packet.get("context"))
     _need(_marked_request_binding_id(context["request"], "Until Loop stopped context") == binding_id,
           "Until Loop stopped context is not bound to this ShipLoop action")

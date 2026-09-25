@@ -2,16 +2,16 @@
   "format": "skill-craft-until-loop-runtime-provenance/v1",
   "upstream": {
     "repository": "https://github.com/whichguy/until-loop.git",
-    "commit": "458f40ac35c8254906898890c25a784a6e3eb39c",
-    "version": "0.4.0-rc.2"
+    "commit": "5df2a2feef4d80b93ca3c8a749d7d265c082d376",
+    "version": "0.5.0"
   },
   "default_ephemeral_runtime": [
     {
       "bundled_path": "ADAPTER.md",
       "upstream_path": "SKILL.md",
-      "sha256": "a5899dda6727bc5b4313b856b7fb957319e5b8f05160a01daf979dcdd4b55ca7",
-      "upstream_sha256": "609959649f69f3ee5408bedbd6331806799495a8f59418e8d097c3d9f3c08028",
-      "adaptation_reason": "Clarify owner-bound user authority updates versus changed immutable loop conditions. Replace the durable v1/v2 run routing and its 'new request' qualifier with a refusal of saved durable .until-loop runs, because only the callback runtime is vendored. The runtime Python script remains unchanged."
+      "sha256": "b69f9b2dab089cfb30ab4ff7811db647f8a34871f822f29003409adbc3dffa92",
+      "upstream_sha256": "9c2e67b5127a8bd4c16f6bd13bb99582de07b67f11bb46d8aa6329222b0a383b",
+      "adaptation_reason": "Clarify owner-bound user authority updates versus changed immutable loop conditions: an owner-bound child follows its consumer's update contract instead of cancelling and replacing the owner's run."
     },
     {
       "bundled_path": "LICENSE",
@@ -21,14 +21,12 @@
     {
       "bundled_path": "scripts/until_loop_ephemeral.py",
       "upstream_path": "scripts/until_loop_ephemeral.py",
-      "sha256": "6a4131f8a70b56a361556fbc61e924f060ebf1ba5d5f1387a6d6d735e89b4212"
+      "sha256": "09157c5338fc394105215ba4e08954dbcb182ac7784dc7da201a99dad36c8726"
     },
     {
       "bundled_path": "references/runtime-ephemeral.md",
       "upstream_path": "references/runtime-ephemeral.md",
-      "sha256": "d6d4285feb1613f7a1ced36333ee41ab69b8cc4957220ed6b024ee05fc4c8e29",
-      "upstream_sha256": "8d59ea1b8dcbabc6cffbe333dbe60ec638aa9f2ecab6a9cd4c1891ded8f058bb",
-      "adaptation_reason": "States the current context requirement without describing earlier callers. Drops the durable v1/v2 adapter pointer and the 'new runs' qualifier, because those adapters are not vendored."
+      "sha256": "095206ed5e6278e7c93a46a5c2e1936e66d65693f0db8b1471cb0c68f2ee6d25"
     }
   ]
 }

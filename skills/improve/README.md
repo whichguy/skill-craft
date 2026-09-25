@@ -155,7 +155,7 @@ recursive discovery still finds only Improve. Install or distribute the whole
 leaf. A successful installation does not establish that every host can execute
 every project check.
 
-This is Improve 0.3.0-rc.3. The bundled Until Loop runtime is 0.4.0-rc.2.
+This is Improve 0.3.0-rc.4. The bundled Until Loop runtime is 0.5.0.
 The package has a relocation regression and focused runtime checks; those
 checks do not prove universal model judgment, a completed multi-host rollout,
 or a particular repository's review quality.
@@ -164,19 +164,18 @@ or a particular repository's review quality.
 
 The callback runtime is vendored from
 [whichguy/until-loop](https://github.com/whichguy/until-loop) commit
-458f40ac35c8254906898890c25a784a6e3eb39c (runtime 0.4.0-rc.2). Its
+5df2a2feef4d80b93ca3c8a749d7d265c082d376 (runtime 0.5.0). Its
 scripts/until_loop_ephemeral.py is byte-identical to upstream, with SHA-256
-6a4131f8a70b56a361556fbc61e924f060ebf1ba5d5f1387a6d6d735e89b4212.
+09157c5338fc394105215ba4e08954dbcb182ac7784dc7da201a99dad36c8726.
 
 [runtime/until-loop/PROVENANCE.json](runtime/until-loop/PROVENANCE.json)
 records the upstream commit, version, source paths, and SHA-256 values for the
-vendored callback runtime. Only that callback runtime is vendored; upstream's
-durable v1/v2 scripts and references are not part of this package, and a saved
-durable `.until-loop` run is refused rather than continued. The bundled
+vendored callback runtime, which is upstream's only runtime; a workspace
+`.until-loop` directory from an earlier release is not a run and is never read. The bundled
 ADAPTER.md clarifies owner-bound user updates versus changes to immutable loop
-conditions and drops upstream's durable-run routing; its provenance entry
+conditions; its provenance entry
 retains both upstream and bundled hashes and the adaptation reason. The runtime
-Python script remains byte-identical.
+script and its reference are byte-identical.
 
 The source repository's tests, experiment output, validation manifests,
 activation reports, working-checkout instructions, .git data, and bytecode are

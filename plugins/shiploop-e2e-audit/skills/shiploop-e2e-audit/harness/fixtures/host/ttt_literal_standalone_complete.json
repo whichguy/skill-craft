@@ -32,7 +32,7 @@
   },
   "id": "ttt-literal-standalone-complete",
   "observer": {
-    "grok_adapter_sha256": "2891e1bef1d7a08eb09b78490d39ed86f009dd5f1d00d5eb1258328e2cc4a7c3",
+    "grok_adapter_sha256": "468208ab2e206934a3c65fd61850088e3ca7529b70f14182fe2a1ce361303d86",
     "source_edit_policy": "parser-source-mismatch-invalidates-attribution",
     "previous_grok_adapter_sha256": "62bced88980a1f95fcce4e973086afd46a4120ba937eed5410c30e69c0858e78",
     "revalidation": "The direct-form ShipLoop verb allowlist now matches the current CLI: chain, delegation and improve-reconcile were added and the retired verbs were removed. Every fixture uses only the retained complete verb; all five golden attribution expectations independently replayed unchanged. Original capture provenance and events are unchanged.",

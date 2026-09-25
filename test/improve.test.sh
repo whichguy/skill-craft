@@ -139,17 +139,17 @@ card_version = re.search(r"(?m)^version: (\S+)$", card.split("---", 2)[1])
 assert card_version is not None, "relocated Improve card requires a declared version"
 assert card_version.group(1) == source_version.group(1)
 assert "runtime/until-loop/scripts/until_loop_ephemeral.py" in card
-assert "version: 0.4.0-rc.2" in adapter
+assert "version: 0.5.0" in adapter
 assert manifest["format"] == "skill-craft-until-loop-runtime-provenance/v1"
 assert manifest["upstream"] == {
     "repository": "https://github.com/whichguy/until-loop.git",
-    "commit": "458f40ac35c8254906898890c25a784a6e3eb39c",
-    "version": "0.4.0-rc.2",
+    "commit": "5df2a2feef4d80b93ca3c8a749d7d265c082d376",
+    "version": "0.5.0",
 }
 entries = {entry["bundled_path"]: entry for entry in manifest["default_ephemeral_runtime"]}
 script = root / "runtime/until-loop/scripts/until_loop_ephemeral.py"
 assert entries["scripts/until_loop_ephemeral.py"]["sha256"] == (
-    "6a4131f8a70b56a361556fbc61e924f060ebf1ba5d5f1387a6d6d735e89b4212"
+    "09157c5338fc394105215ba4e08954dbcb182ac7784dc7da201a99dad36c8726"
 )
 assert hashlib.sha256(script.read_bytes()).hexdigest() == entries[
     "scripts/until_loop_ephemeral.py"
@@ -158,7 +158,7 @@ assert hashlib.sha256((root / "runtime/until-loop/ADAPTER.md").read_bytes()).hex
     "ADAPTER.md"
 ]["sha256"]
 assert entries["ADAPTER.md"]["upstream_sha256"] == (
-    "609959649f69f3ee5408bedbd6331806799495a8f59418e8d097c3d9f3c08028"
+    "9c2e67b5127a8bd4c16f6bd13bb99582de07b67f11bb46d8aa6329222b0a383b"
 )
 assert entries["ADAPTER.md"]["adaptation_reason"].strip()
 assert entries["ADAPTER.md"]["sha256"] != entries["ADAPTER.md"]["upstream_sha256"]
@@ -175,16 +175,16 @@ assert shipped == set(entries), (sorted(shipped), sorted(entries))
 for relative, entry in entries.items():
     digest = hashlib.sha256((runtime_root / relative).read_bytes()).hexdigest()
     assert digest == entry["sha256"], relative
-# A saved durable run is refused, never routed to a retained adapter.
+# A workspace .until-loop directory is never treated as a run.
 flat_adapter = " ".join(adapter.split())
 assert (
-    "A saved durable `.until-loop` run from the retired v1/v2 runtime is not supported"
+    "A workspace `.until-loop` directory from an earlier Until Loop release is not a run"
     in flat_adapter
 )
 for retired in ("legacy-skill.md", "runtime-v2.md", "references/runtime.md", ".pending-v2.json"):
     assert retired not in adapter, retired
 PY
-pass ephemeral_runtime_provenance_matches_v0_4_0_rc_2
+pass ephemeral_runtime_provenance_matches_v0_5_0
 
 ephemeral_runtime="$bundle/runtime/until-loop/scripts/until_loop_ephemeral.py"
 ephemeral_contract="$tmpdir/ephemeral contract.json"
