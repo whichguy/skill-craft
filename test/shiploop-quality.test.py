@@ -226,7 +226,7 @@ class QualityLoopTests(unittest.TestCase):
         self.complete(dict(DONE, outcome="blocked", summary="Loop exceeded its limit.", evidence_refs=refs))
         self.assertEqual(self.state()["status"], "blocked")
 
-    def test_stopped_loop_reports_blocked_and_blocked_needs_no_packet(self):
+    def test_stopped_loop_reports_blocked(self):
         self.start()
         self.drive_to(quality.STAGE)
         self.run_loop([dict(MATERIAL, continuation_assessment="cancelled")])
@@ -235,6 +235,14 @@ class QualityLoopTests(unittest.TestCase):
             self.complete(dict(DONE, evidence_refs=refs))
         self.complete(dict(DONE, outcome="blocked", summary="Material finding at iteration 1.",
                            evidence_refs=refs))
+        self.assertEqual(self.state()["status"], "blocked")
+
+    def test_blocked_without_a_terminal_packet_is_accepted(self):
+        """A loop that never started (for example, no usable runtime) can still report blocked."""
+        self.start()
+        self.drive_to(quality.STAGE)
+        self.assertFalse(self.terminal().exists())
+        self.complete(dict(DONE, outcome="blocked", summary="Until Loop runtime unavailable."))
         self.assertEqual(self.state()["status"], "blocked")
 
     def test_run_without_improve_card_says_unavailable(self):
