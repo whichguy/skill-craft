@@ -224,7 +224,8 @@ generated manifests.
 Every package contains its own LICENSE, generated root README, canonical skill
 tree, and Claude, Cursor and Codex manifests. Authored skill READMEs remain next
 to their SKILL.md. The Codex adapter declares `./skills/`; it does not require
-an MCP server or hooks. The offline package checker rejects incomplete payloads,
+an MCP server. A skill with `host-hooks.json` also gets generated host hook files
+under `hooks/`, and its Codex and Cursor manifests name theirs. The offline package checker rejects incomplete payloads,
 escaping paths, leftover symlinks and invalid metadata. It is not host approval.
 
 Script-backed cards bind the directory of the **loaded** SKILL.md before running

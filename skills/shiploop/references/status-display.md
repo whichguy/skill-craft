@@ -36,9 +36,10 @@ Completed: 1 item; W1 "Config loader refactor": loader split, 12 tests added
    which prints the block read-only. `status` takes the run lock like `next`,
    so it first finishes any interrupted save. Only a direct read of
    `status.md` during an interrupted save can show the previous step.
-3. **Claude Code hook** (optional): `scripts/shiploop-status-hook` copies the
-   block from a ShipLoop command's own stdout into the hook's `systemMessage`,
-   which Claude Code shows to the user in the transcript.
+3. **Host status hook**: `scripts/shiploop-status-hook` copies the block from a
+   ShipLoop command's own stdout into the hook's `systemMessage`, which Claude
+   Code and Codex show to the user. A marketplace install sets it up; see
+   [host hooks](#host-hooks).
 
 ## Host text is untrusted
 
@@ -49,10 +50,27 @@ IDs at 32 characters, titles at 60 (40 in Completed), and summaries and reasons
 at 140 (60 in Completed). The block holds no commands or absolute paths, is at
 most 11 lines, and stays under about 1,500 characters for any queue.
 
-## Claude Code hook
+## Host hooks
 
-Add to `~/.claude/settings.json` (adjust the path if the skill is installed
-elsewhere):
+`host-hooks.json` declares the hook, and the marketplace package carries one
+generated hook file per host, so installing the ShipLoop plugin sets it up:
+
+| Host | Package file | After installing | Shows the block to you |
+|---|---|---|---|
+| Claude Code | `hooks/hooks.json` | active once the plugin is enabled | yes |
+| Codex | `hooks/codex.json` (manifest `hooks`) | review and trust it once in `/hooks` | yes, as a UI warning |
+| Grok | `hooks/hooks.json` (Claude format) | install with `--trust` | no: Grok never shows a successful hook's output |
+| Cursor | `hooks/cursor.json` (manifest `hooks`) | active in a trusted workspace | no: `afterShellExecution` has no output field |
+
+On Grok and Cursor the hook recognizes the call and stays silent, so the
+in-packet block and `status.md` remain the display there. OpenCode has no
+marketplace; it uses the in-packet block and `status.md`.
+
+### Skill-directory installs
+
+`install.sh` never writes host settings. For a symlinked Claude Code install,
+add the hook yourself to `~/.claude/settings.json` (adjust the path if the skill
+is installed elsewhere). Do not also enable the plugin, or each block shows twice:
 
 ```json
 {
@@ -89,5 +107,7 @@ So `cat status.md`, a `grep` over fixtures or an `echo` of the markers never
 shows anything. A backgrounded call has no stdout at hook time and stays
 silent; ShipLoop callbacks are not backgrounded.
 
-Other hosts (Codex, Grok, Cursor, OpenCode) use the in-packet block and
-`status.md`.
+The script reads each host's payload shape: Claude Code and Codex
+(`tool_name`, `tool_input.command`, `tool_response`), Grok (`toolName`,
+`toolInput.command`, `toolResult.output_for_prompt`) and Cursor (`command`,
+`output`). An unknown shape stays silent.

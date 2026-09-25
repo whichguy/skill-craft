@@ -348,6 +348,34 @@ class StatusHookTests(unittest.TestCase):
                 self.assertEqual(completed.returncode, 0, completed.stderr)
                 self.assertEqual(json.loads(completed.stdout), {"systemMessage": self.block})
 
+    def test_host_payload_shapes(self) -> None:
+        """Claude and Codex display; Grok and Cursor are recognized but cannot display."""
+        cat = f"cat {self.run_dir}/status.md"
+        shapes = {
+            "codex": lambda command, out: {"hook_event_name": "PostToolUse", "tool_name": "Bash",
+                                           "tool_input": {"command": command},
+                                           "tool_response": {"output": out}},
+            "grok": lambda command, out: {"hookEventName": "PostToolUse", "toolName": "run_terminal_command",
+                                          "toolInput": {"command": command},
+                                          "toolResult": {"command": command, "exit_code": 0,
+                                                         "output_for_prompt": out}},
+            "cursor": lambda command, out: {"hook_event_name": "afterShellExecution",
+                                            "command": command, "output": out, "duration": 5},
+        }
+        expected_host = {"codex": "claude-or-codex", "grok": "grok", "cursor": "cursor"}
+        for name, shape in shapes.items():
+            with self.subTest(host=name):
+                self.assertEqual(hook.status_block(shape(self.command, self.packet)),
+                                 (expected_host[name], self.block))
+                self.assertIsNone(hook.status_block(shape(cat, self.block)))
+                self.assertIsNone(hook.status_block(shape(self.command + " | head", self.packet)))
+                completed = self.run_hook(json.dumps(shape(self.command, self.packet)))
+                self.assertEqual(completed.returncode, 0, completed.stderr)
+                if name == "codex":
+                    self.assertEqual(json.loads(completed.stdout), {"systemMessage": self.block})
+                else:
+                    self.assertEqual(completed.stdout, "")
+
     def test_lookalike_or_unsafe_calls_stay_silent(self) -> None:
         status_md = f"{self.run_dir}/status.md"
         cases = {

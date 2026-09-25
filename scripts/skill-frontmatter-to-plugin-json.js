@@ -177,8 +177,10 @@ function buildPlugin(leaf, fm) {
   };
 }
 
-function buildCursorPlugin(leaf, fm) {
-  return cursorFromPlugin(buildPlugin(leaf, fm));
+function buildCursorPlugin(leaf, fm, hookFiles = {}) {
+  const cursor = cursorFromPlugin(buildPlugin(leaf, fm));
+  if (hookFiles[HOOK_FILES.cursor]) cursor.hooks = `./${HOOK_FILES.cursor}`;
+  return cursor;
 }
 
 function cursorFromPlugin(plugin) {
@@ -201,12 +203,13 @@ function cursorFromPlugin(plugin) {
   };
 }
 
-function buildCodexPlugin(leaf, fm) {
+function buildCodexPlugin(leaf, fm, hookFiles = {}) {
   const plugin = buildPlugin(leaf, fm);
   const kind = kindFromFm(fm) || "portable";
   return {
     ...plugin,
     skills: "./skills/",
+    ...(hookFiles[HOOK_FILES.codex] ? { hooks: `./${HOOK_FILES.codex}` } : {}),
     interface: {
       displayName: displayNameFromLeaf(leaf),
       shortDescription: shortDescriptionFromFm(fm, plugin.description),
@@ -246,6 +249,95 @@ function readSkillFrontmatter(leaf) {
     fail(`missing ${skillPath}`);
   }
   return parseFrontmatter(fs.readFileSync(skillPath, "utf8"));
+}
+
+// Host hooks: an optional skills/<leaf>/host-hooks.json declares host-neutral
+// hooks; each host gets its own generated file, in its own format and plugin
+// root variable, and may only run an executable in the skill's own scripts/.
+const HOOK_HOSTS = ["claude", "codex", "cursor", "grok"];
+const HOOK_EVENTS = new Set(["after-shell"]);
+const HOOK_ID_RE = /^[a-z0-9]([a-z0-9-]*[a-z0-9])?$/;
+const HOOK_SCRIPT_RE = /^scripts\/[A-Za-z0-9._-]+$/;
+const HOOK_FILES = {
+  claude: "hooks/hooks.json", // Claude's default path; Grok loads Claude plugin hooks.
+  codex: "hooks/codex.json",
+  cursor: "hooks/cursor.json",
+};
+
+function readHostHooks(leaf) {
+  const declPath = path.join(root, "skills", leaf, "host-hooks.json");
+  if (!fs.existsSync(declPath)) return null;
+  let decl;
+  try {
+    decl = JSON.parse(fs.readFileSync(declPath, "utf8"));
+  } catch (e) {
+    fail(`invalid JSON ${declPath}: ${e.message}`);
+  }
+  const label = `skills/${leaf}/host-hooks.json`;
+  if (!decl || typeof decl !== "object" || Array.isArray(decl) ||
+      Object.keys(decl).join() !== "hooks" || !Array.isArray(decl.hooks) || decl.hooks.length === 0) {
+    fail(`${label}: must be {"hooks": [ ... ]} with at least one hook`);
+  }
+  const ids = new Set();
+  for (const hook of decl.hooks) {
+    const keys = Object.keys(hook || {}).sort().join();
+    if (keys !== "event,hosts,id,script,timeout") {
+      fail(`${label}: each hook has exactly id, event, script, timeout and hosts`);
+    }
+    if (!HOOK_ID_RE.test(hook.id) || ids.has(hook.id)) fail(`${label}: invalid or duplicate id ${hook.id}`);
+    ids.add(hook.id);
+    if (!HOOK_EVENTS.has(hook.event)) fail(`${label}: ${hook.id}: unsupported event ${hook.event}`);
+    if (!HOOK_SCRIPT_RE.test(hook.script)) fail(`${label}: ${hook.id}: script must be scripts/<file>`);
+    const script = path.join(root, "skills", leaf, hook.script);
+    let stat;
+    try {
+      stat = fs.lstatSync(script);
+    } catch (e) {
+      fail(`${label}: ${hook.id}: missing script ${hook.script}`);
+    }
+    if (!stat.isFile() || (stat.mode & 0o111) === 0) {
+      fail(`${label}: ${hook.id}: script ${hook.script} must be an executable regular file`);
+    }
+    if (!Number.isInteger(hook.timeout) || hook.timeout < 1 || hook.timeout > 60) {
+      fail(`${label}: ${hook.id}: timeout must be an integer from 1 to 60`);
+    }
+    if (!Array.isArray(hook.hosts) || hook.hosts.length === 0 ||
+        new Set(hook.hosts).size !== hook.hosts.length || !hook.hosts.every((h) => HOOK_HOSTS.includes(h))) {
+      fail(`${label}: ${hook.id}: hosts must be distinct values from ${HOOK_HOSTS.join(", ")}`);
+    }
+  }
+  return decl;
+}
+
+function buildHostHooks(leaf, decl) {
+  if (!decl) return {};
+  const files = {};
+  const command = (variable, hook) => `"${variable}/skills/${leaf}/${hook.script}"`;
+  const claudeShaped = (variable, hooks) => ({
+    hooks: {
+      PostToolUse: [{
+        matcher: "Bash",
+        hooks: hooks.map((hook) => ({ type: "command", command: command(variable, hook), timeout: hook.timeout })),
+      }],
+    },
+  });
+  const forHost = (...hosts) => decl.hooks.filter((hook) => hosts.some((h) => hook.hosts.includes(h)));
+  const claude = forHost("claude", "grok");
+  if (claude.length) files[HOOK_FILES.claude] = claudeShaped("${CLAUDE_PLUGIN_ROOT}", claude);
+  const codex = forHost("codex");
+  if (codex.length) files[HOOK_FILES.codex] = claudeShaped("$PLUGIN_ROOT", codex);
+  const cursor = forHost("cursor");
+  if (cursor.length) {
+    files[HOOK_FILES.cursor] = {
+      version: 1,
+      hooks: {
+        afterShellExecution: cursor.map((hook) => ({
+          command: command("${CURSOR_PLUGIN_ROOT}", hook), timeout: hook.timeout,
+        })),
+      },
+    };
+  }
+  return files;
 }
 
 function byName(a, b) {
@@ -625,11 +717,20 @@ function writeOrCheckPackage(name, generated, doWrite, doCheck) {
   const codexPath = path.join(base, ".codex-plugin", "plugin.json");
   const readmePath = packageReadmePath(name);
 
+  const hookPaths = Object.keys(generated.hooks || {});
   if (doCheck) {
     checkClaudePlugin(claudePath, generated.plugin, name);
     checkGeneratedJson(cursorPath, generated.cursor, `${name} Cursor plugin manifest`);
     checkGeneratedJson(codexPath, generated.codex, `${name} Codex plugin manifest`);
     checkGeneratedText(readmePath, generated.readme, `${name} package README`);
+    for (const rel of hookPaths) {
+      checkGeneratedJson(path.join(base, rel), generated.hooks[rel], `${name} ${rel}`);
+    }
+    const hookDir = path.join(base, "hooks");
+    const present = fs.existsSync(hookDir) ? fs.readdirSync(hookDir).map((f) => `hooks/${f}`).sort() : [];
+    if (present.join() !== [...hookPaths].sort().join()) {
+      fail(`${name} hooks/ holds ${present.join(", ") || "nothing"}; host-hooks.json generates ${hookPaths.join(", ") || "nothing"}`);
+    }
     process.stdout.write(`skill-frontmatter-to-plugin-json: CHECK OK ${name}\n`);
     return;
   }
@@ -639,6 +740,9 @@ function writeOrCheckPackage(name, generated, doWrite, doCheck) {
     writeGeneratedJson(cursorPath, generated.cursor);
     writeGeneratedJson(codexPath, generated.codex);
     writeGeneratedText(readmePath, generated.readme);
+    const hookDir = path.join(base, "hooks");
+    fs.rmSync(hookDir, { recursive: true, force: true });
+    for (const rel of hookPaths) writeGeneratedJson(path.join(base, rel), generated.hooks[rel]);
     process.stdout.write(
       `skill-frontmatter-to-plugin-json: wrote plugins/${name} host manifests and README.md\n`
     );
@@ -672,13 +776,15 @@ function main() {
   }
   const leaf = options.leaves[0];
   const fm = readSkillFrontmatter(leaf);
+  const hooks = buildHostHooks(leaf, readHostHooks(leaf));
   writeOrCheckPackage(
     leaf,
     {
       plugin: buildPlugin(leaf, fm),
-      cursor: buildCursorPlugin(leaf, fm),
-      codex: buildCodexPlugin(leaf, fm),
+      cursor: buildCursorPlugin(leaf, fm, hooks),
+      codex: buildCodexPlugin(leaf, fm, hooks),
       readme: buildPackageReadme(leaf, fm),
+      hooks,
     },
     options.write,
     options.check

@@ -115,8 +115,13 @@ for (const leaf of leaves) {
   if (codex.skills !== "./skills/") {
     throw new Error(`Codex skill path invalid for ${leaf}`);
   }
-  if ("hooks" in codex || "mcpServers" in codex || "apps" in codex) {
+  if ("mcpServers" in codex || "apps" in codex) {
     throw new Error(`Codex manifest must not invent components for ${leaf}`);
+  }
+  // Hooks come only from skills/<leaf>/host-hooks.json, as the generated file.
+  const declaresHooks = fs.existsSync(`skills/${leaf}/host-hooks.json`);
+  if (("hooks" in codex) !== declaresHooks || (declaresHooks && codex.hooks !== "./hooks/codex.json")) {
+    throw new Error(`Codex hooks must match skills/${leaf}/host-hooks.json for ${leaf}`);
   }
   const requiredInterface = [
     "displayName",

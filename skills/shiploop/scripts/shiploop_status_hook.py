@@ -79,23 +79,54 @@ def _verb(command: str) -> tuple[str, str | None] | None:
     return None
 
 
-def _stdout(response: Any) -> str | None:
+def _output(response: Any, *keys: str) -> str | None:
     if isinstance(response, str):
         return response
-    if isinstance(response, dict) and isinstance(response.get("stdout"), str):
-        return response["stdout"]
+    if isinstance(response, dict):
+        for key in keys:
+            if isinstance(response.get(key), str):
+                return response[key]
     return None
 
 
-def status_message(payload: Any) -> str | None:
-    """Return the status block to show, or None when this call does not qualify."""
-    if not isinstance(payload, dict) or payload.get("tool_name", "Bash") != "Bash":
+# Hosts whose after-shell hook output can reach the user.  Grok never shows a
+# successful PostToolUse hook's output and Cursor's afterShellExecution has no
+# output field, so there the in-packet block remains the display.
+DISPLAY_HOSTS = {"claude-or-codex"}
+
+
+def shell_call(payload: Any) -> tuple[str, str, str] | None:
+    """Return (host, command, output) from a host's after-shell hook payload."""
+    if not isinstance(payload, dict):
         return None
-    tool_input = payload.get("tool_input")
-    command = tool_input.get("command") if isinstance(tool_input, dict) else None
-    stdout = _stdout(payload.get("tool_response"))
-    if not isinstance(command, str) or not stdout:
+    if "tool_name" in payload:  # Claude Code and Codex share this shape.
+        tool_input = payload.get("tool_input")
+        if payload.get("tool_name") != "Bash" or not isinstance(tool_input, dict):
+            return None
+        host, command = "claude-or-codex", tool_input.get("command")
+        output = _output(payload.get("tool_response"), "stdout", "output")
+    elif "toolName" in payload:  # Grok.
+        tool_input = payload.get("toolInput")
+        if payload.get("toolName") not in ("run_terminal_command", "Bash") or not isinstance(tool_input, dict):
+            return None
+        host, command = "grok", tool_input.get("command")
+        output = _output(payload.get("toolResult", payload.get("tool_response")),
+                         "output_for_prompt", "stdout", "output")
+    elif "command" in payload and "output" in payload:  # Cursor afterShellExecution.
+        host, command, output = "cursor", payload.get("command"), _output(payload.get("output"))
+    else:
         return None
+    if not isinstance(command, str) or not output:
+        return None
+    return host, command, output
+
+
+def status_block(payload: Any) -> tuple[str, str] | None:
+    """Return (host, block) when this call was a direct ShipLoop call carrying its block."""
+    call = shell_call(payload)
+    if call is None:
+        return None
+    host, command, stdout = call
     found = _verb(command)
     if found is None:
         return None
@@ -120,7 +151,13 @@ def status_message(payload: Any) -> str | None:
     start, end = head.find(BEGIN), head.find(END)
     if start < 0 or end < start or head.count(BEGIN) != 1:
         return None
-    return head[start:end + len(END)]
+    return host, head[start:end + len(END)]
+
+
+def status_message(payload: Any) -> str | None:
+    """Return the block to show the user, only on hosts that can display it."""
+    found = status_block(payload)
+    return found[1] if found is not None and found[0] in DISPLAY_HOSTS else None
 
 
 def main() -> int:

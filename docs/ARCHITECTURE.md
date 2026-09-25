@@ -112,6 +112,7 @@ host checkout into a tree that is bind-mounted into the container as `/opt/data`
 | `plugin.json` name/version/description/license derived from `SKILL.md` | **implemented** (`scripts/skill-frontmatter-to-plugin-json.js`; sync enumerates from `skills/`) |
 | Root Claude/Codex catalogs in this repository (`skill-craft-market` retired); external plugins pinned in `catalog/external-plugins.json` | **implemented** |
 | Release output (`plugins/`, catalogs, versions) written only by `scripts/release.py`; enforced by `scripts/check-release-boundary.py`, which also re-verifies each release commit's output against its source | **implemented** |
+| Host hooks: a skill may declare hooks in `skills/<leaf>/host-hooks.json`; the generator writes one file per host into `plugins/<leaf>/hooks/` (Claude/Grok `hooks.json`, Codex `codex.json`, Cursor `cursor.json`) and points the Codex and Cursor manifests at theirs. A hook command may only run an executable in the skill's own `scripts/`; `scripts/check-marketplace-packages.py` enforces that on every package | **implemented** |
 | `install.sh --status` / `--uninstall` (owned only) | **implemented** |
 | skillctl | **optional / not planned** (use `install.sh`) |
 | Default DevLoop card `skills/devloop` | **implemented** (discovery on Claude/Grok/Codex/Cursor; Hermes card skipped; installed-engine resolution only; separate operator provisioning) |
@@ -202,6 +203,8 @@ not repointed at a marketplace copy that still carries its generated manifests.
 ## Out of scope (product repos)
 
 claude-craft product suites (wiki, gas, async, …) stay host-native. Portable leaves port here; suite hooks/agents may remain in claude-craft.
+A portable leaf's own hooks ship only through its marketplace package, generated
+from `host-hooks.json`. `install.sh` never writes host settings or hook config.
 
 ## Phase completion
 

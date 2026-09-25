@@ -1,0 +1,11 @@
+{
+  "hooks": [
+    {
+      "id": "status-display",
+      "event": "after-shell",
+      "script": "scripts/shiploop-status-hook",
+      "timeout": 10,
+      "hosts": ["claude", "codex", "cursor", "grok"]
+    }
+  ]
+}
