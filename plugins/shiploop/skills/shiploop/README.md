@@ -1,4 +1,4 @@
-# ShipLoop navigator 0.24.1
+# ShipLoop navigator 0.24.2
 
 ShipLoop's invoking conversation owns navigation, acceptance and delivery. New
 runs record `delegation: inline`, so that conversation also executes every
@@ -981,17 +981,19 @@ production acceptance, research quality or an actual remote deployment. For
 README changes, also check internal anchors, packaged relative links, Mermaid
 rendering and agreement with the current packet vocabulary.
 In the source checkout, `skills/shiploop/` is canonical and
-`plugins/shiploop/skills/shiploop/` is derived. After a scoped edit:
+`plugins/shiploop/` is release output that only `scripts/release.py` writes.
+After an edit, add `changes/shiploop/<slug>.md` and check a build of the
+current source:
 
 ```sh
-bash scripts/sync-plugin-views.sh shiploop
-bash scripts/sync-plugin-views.sh --check shiploop
+python3 scripts/build-packages.py "$(mktemp -d)/build"
 git diff --check
 ```
 
-Do not synchronize unrelated skills or use documentation validation as a reason
-to initialize a real run, start standalone Until Loop, install an integration,
-change persistent configuration, or publish a product.
+Do not run `sync-plugin-views.sh` or commit `plugins/` or catalogs. Do not use
+documentation validation as a reason to initialize a real run, start standalone
+Until Loop, install an integration, change persistent configuration, or publish
+a product.
 
 ## Related references
 

@@ -17,12 +17,16 @@
 ## Marketplace (Claude plugin)
 
 ```sh
-claude plugin marketplace add whichguy/skill-craft-market
+claude plugin marketplace add whichguy/skill-craft
 claude plugin install review-coverage@skill-craft-market
 ```
 
-Pin path: **`plugins/review-coverage`** (not bare `skills/`). Prefer a **release tag** that
-includes current `main` product; skill-dir install tracks the skill-craft checkout instead.
+The catalog keeps the name `skill-craft-market`, so the install ID is unchanged. A Claude
+registration of the former `whichguy/skill-craft-market` repository moves by running the
+`add` above over it; removing it first uninstalls its plugins (see skill-craft
+`docs/distribution.md`). The catalog entry points at **`./plugins/review-coverage`** (not
+bare `skills/`), so marketplace installs receive released packages only; skill-dir
+install tracks the skill-craft checkout instead.
 
 ## Phase support
 
@@ -65,10 +69,11 @@ Optional CLI: after the parent card binds `CLI` from its selected loaded
 Before claiming a clean residual×2 streak:
 
 1. **Pathspec commits only** under Target paths — never `git add -A` / `.` / `-u`.
-2. After package edit: prefer **scoped** `./scripts/sync-plugin-views.sh review-coverage`
-   (not bare global sync mid-residual — that can delete foreign skills). Then
-   `git status` for unexpected deletes.
-3. Do not start residual with unfinished WIP in Target paths (plugin/version drift).
+2. After a skill edit in skill-craft: add a `changes/review-coverage/<slug>.md` note.
+   Do not run `sync-plugin-views.sh` or commit `plugins/`, catalogs or `version:`
+   (release output, written only by `scripts/release.py`). Then `git status` for
+   unexpected changes.
+3. Do not start residual with unfinished WIP in Target paths.
 4. Prefer skill Phase B preflight (hard stop on foreign terminal ledger), or optional
    `run-card --preflight` for humans.
 5. After completed/landed review, perform the documented **Finalization** in

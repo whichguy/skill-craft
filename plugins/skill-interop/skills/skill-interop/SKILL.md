@@ -7,7 +7,7 @@ description: >-
   across hosts. Covers prompt-first design, host matrix, anti-patterns
   (divergent copies, silent mode fallback, abs symlinks), and script-backed
   CLI contracts.
-version: 0.2.3
+version: 0.2.4
 author: Backchain / interop
 license: MIT
 platforms:
@@ -132,7 +132,9 @@ dual-home checkout; never overwrite foreign trees):
 See `references/host-paths.md` for skill and agent destinations (Claude, Grok, Codex, Hermes).
 
 This path is **not** the plugin marketplace. For host plugins use **Marketplace** below.
-Marketplace **pins** (no skill bodies) live in sibling **skill-craft-market**.
+skill-craft itself is the marketplace (catalog name `skill-craft-market`). Its catalogs and
+`plugins/` are release output written by `scripts/release.py`; plugins from other
+repositories are pinned by commit in `catalog/external-plugins.json`.
 
 ## Marketplace procedure
 

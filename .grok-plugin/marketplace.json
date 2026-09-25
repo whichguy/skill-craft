@@ -157,7 +157,7 @@
     },
     {
       "name": "review-coverage",
-      "version": "0.3.0",
+      "version": "0.3.1",
       "description": "Add a post-ship improve-to-exhaustion directive to a plan, or run that directive after implementation. Invoke like any skill: /review-coverage, \"review-coverage on this plan\", residual×2 after ship, or ensure the plan has a /goal-ready ## Review Coverage section. Not for pre-exit plan quality (use review-plan) or raw residual×2 engine mechanics alone (use review-converge under /goal).",
       "category": "productivity",
       "source": {
@@ -177,7 +177,7 @@
     },
     {
       "name": "shiploop",
-      "version": "0.24.1",
+      "version": "0.24.2",
       "description": "Markdown-authoritative delivery harness. Start or resume once, follow the script's current action packet, and submit its exact completion call until the script reports completion with an HTML achievement report. Use when the user says shiploop, ship the project, or requests a durable delivery loop.",
       "category": "software-development",
       "source": {
@@ -187,7 +187,7 @@
     },
     {
       "name": "shiploop-e2e-audit",
-      "version": "0.4.1",
+      "version": "0.4.2",
       "description": "Run the ShipLoop test harness and audit its retained graph, review, test, product and incremental-change evidence. Use for ShipLoop mock checks, live one-shot E2E smoke/full campaigns, or review of existing trial output. Full Google Apps Script and Salesforce game cases require an authorized test deployment and hosted behavior evidence. Includes its harness for source and marketplace installs; tests a separately selected ShipLoop.",
       "category": "productivity",
       "source": {
@@ -197,7 +197,7 @@
     },
     {
       "name": "skill-interop",
-      "version": "0.2.3",
+      "version": "0.2.4",
       "description": "Use when authoring or reviewing a portable multi-host agent skill (Grok, Claude Code, Codex, Hermes): scaffold a prompt-only skill, make a skill host-agnostic, create skill layout, review skill for interop, or install across hosts. Covers prompt-first design, host matrix, anti-patterns (divergent copies, silent mode fallback, abs symlinks), and script-backed CLI contracts.",
       "category": "software-development",
       "source": {

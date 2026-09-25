@@ -399,11 +399,12 @@ freshness.
 
 `run.py check`, `run.py run`, and every one-case live suite preflight both
 selected skills: ShipLoop and Improve. For each, the gate compares three
-identities: the newest committed source skill and generated package on
-`whichguy/skill-craft` branch `main`, the immutable package pin on
-`whichguy/skill-craft-market` branch `main`, and the actual selected local skill.
-The gate reads fresh remote heads using temporary bare Git repositories. It
-compares file bytes and executable modes, including published plugin metadata;
+identities: the newest committed source skill on `whichguy/skill-craft` branch
+`main`, the released `plugins/<leaf>` and its `./plugins/<leaf>` entry in
+`.claude-plugin/marketplace.json` on the same `main`, and the actual selected
+local skill. A pending `changes/<leaf>/` note stops the gate until `release.py`
+publishes it. The gate reads the fresh remote head into a temporary bare Git
+repository. It compares file bytes and executable modes, including published plugin metadata;
 matching version labels alone are not proof. `--skill-root` applies only to
 ShipLoop; Improve must resolve from one real user-invocable `grok inspect`
 record. Unrelated source commits do not require republishing an unchanged
@@ -413,14 +414,14 @@ this consumer evaluation path.
 | Status | Meaning and effect |
 | --- | --- |
 | `ready` | Current source, published package and selected installation agree; launch may proceed. |
-| `unpublished-source` | Newest source/package differs from the immutable published package, or generated views lag source; no builder launch. |
+| `unpublished-source` | Source has unreleased changes: `plugins/<leaf>` lags `skills/<leaf>`, or a `changes/<leaf>/` note is pending; no builder launch. |
 | `installed-stale` | Selected local skill differs from the published current package; no builder launch. |
 | `freshness-unverified` | Network/Git/catalog/package verification failed; no builder launch. |
 
 A blocked trial exits 2, prints the reason, retains `freshness.json` and
 `result.json`, and marks its overall status `blocked-preflight`. `freshness.json`
 contains `skills.shiploop` and `skills.improve`, each with selected, source,
-published/catalog-pin identities and source-to-generated, source-to-published,
+published/catalog identities and source-to-generated, source-to-published,
 and selected-to-published comparisons. `check` preserves its ShipLoop
 `selection` and compatible `package_sha256`, and adds `improve_selection` plus
 explicit `improve_package_sha256`; it exits 2 when blocked, with

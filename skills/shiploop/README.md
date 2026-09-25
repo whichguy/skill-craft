@@ -1,4 +1,4 @@
-# ShipLoop navigator 0.24.1
+# ShipLoop navigator 0.24.2
 
 ShipLoop's invoking conversation owns navigation, acceptance and delivery. New
 runs record `delegation: inline`, so that conversation also executes every

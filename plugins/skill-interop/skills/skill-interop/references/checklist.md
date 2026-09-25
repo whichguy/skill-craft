@@ -48,7 +48,7 @@ See also the [published skill-craft architecture](https://github.com/whichguy/sk
 
 - [ ] Skill-dir install path documented per host  
 - [ ] Claude plugin view (if any) is derived from `skills/`, not a second SoT  
-- [ ] Marketplace pins contain no skill bodies  
+- [ ] Marketplace catalog entries contain no skill bodies  
 
 ## Honesty
 
@@ -59,7 +59,7 @@ See also the [published skill-craft architecture](https://github.com/whichguy/sk
 ## Operator / CI
 
 - [ ] Hermetic tests cover install and contract surfaces used by this skill  
-- [ ] Plugin view `--check` green when Claude view ships  
+- [ ] At a release commit, `sync-plugin-views.sh --check` is green; ordinary commits add a `changes/<leaf>/` note  
 
 ## Host matrix
 

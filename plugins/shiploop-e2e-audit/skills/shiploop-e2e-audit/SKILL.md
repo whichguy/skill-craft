@@ -8,7 +8,7 @@ description: >-
   Google Apps Script and Salesforce game cases require an authorized test deployment and hosted
   behavior evidence.
   Includes its harness for source and marketplace installs; tests a separately selected ShipLoop.
-version: 0.4.1
+version: 0.4.2
 license: MIT
 platforms:
   - linux
@@ -26,9 +26,10 @@ builder with the literal catalog `/shiploop` prompt. Do not start ShipLoop on th
 audit request, complete its callbacks yourself, or coach the builder.
 
 Every live case has a mandatory publication/freshness preflight. It compares
-each selected ShipLoop and Improve package with its latest committed authoritative
-source `main` and immutable marketplace package, by contents and executable modes.
-Equal version labels alone are insufficient. If either newest source is unpublished,
+each selected ShipLoop and Improve package with the released package on
+authoritative source `main` (`plugins/<leaf>` and its entry in skill-craft's own
+marketplace catalog), by contents and executable modes.
+Equal version labels alone are insufficient. If either newest source is unreleased,
 either installation is stale, or either comparison cannot be verified, report the
 retained freshness receipt and stop before the builder launches.
 The evaluator must not publish, install, update, repoint, or repair packages
@@ -246,8 +247,9 @@ not provide unattended full-chain verification.
 
 Use Python 3.10+ and Git. Live runs require an authenticated Grok CLI; the
 no-model `check` command requires a runnable Grok CLI, Git, and read access to
-the authoritative source and marketplace remotes. Offline checks cannot qualify
-freshness. A failed preflight must be explained before any evaluation launch.
+the authoritative source remote, which also holds the marketplace catalog.
+Offline checks cannot qualify freshness. A failed preflight must be explained
+before any evaluation launch.
 Follow the README preflight. Keep the selected ShipLoop/Improve packages and
 observer sources unchanged while the runner is active; record their actual
 selection and digests. `--skill-root` verifies discovery, it does not install
