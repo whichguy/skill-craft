@@ -83,6 +83,7 @@ _SHIPLOOP_PATHS = (
     "test/experiments/shiploop_ui_allocation/test_evidence.py",
     "test/shiploop-full-runtime.test.py",
     "test/shiploop-navigator-dry-run.test.py",
+    "test/shiploop-status-display.test.py",
     "test/shiploop-auth-readiness.test.py",
     "test/shiploop-cross-run.test.py",
     "test/shiploop-workspace.test.py",
@@ -179,6 +180,7 @@ _SMOKE_PATHS = frozenset({
     "test/shiploop-v4-consumers.test.py",
     "test/shiploop-packet-bounds.test.py",
     "test/shiploop-navigator-dry-run.test.py",
+    "test/shiploop-status-display.test.py",
     "test/shiploop-chain-async.test.py",
 })
 

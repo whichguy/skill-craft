@@ -397,6 +397,11 @@ the host handoff, or force any host tool call.
 
 ## Follow the current packet
 
+Each packet carries a script-rendered **status block** (`=== ShipLoop status ===`):
+where the run is, what just finished, what comes next and what is complete.
+Show it to the user unchanged unless a host status hook already did; see
+[status display](references/status-display.md).
+
 Run to completion by default within the user's scope and existing authority.
 Progress reports are intermediate updates, not turn-ending handoffs or approval
 requests. After each major completed step, briefly report the milestone and

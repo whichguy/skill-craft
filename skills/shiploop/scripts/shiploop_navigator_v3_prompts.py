@@ -178,6 +178,59 @@ OUTER = (
 
 STAGES = PRELUDE + INNER + OUTER
 
+# User-facing status display only: one plain purpose per stage and the INNER
+# stages grouped for the item map.  Neither is a prompt, graph, or state.
+STAGE_PURPOSE = {
+    "intake": "confirm the request, boundaries and open questions",
+    "discovery": "inspect the current repository, environment and baseline tests",
+    "research": "resolve the unknowns that matter with evidence",
+    "spec": "define required behavior and acceptance criteria",
+    "test-strategy": "map requirements to the checks that will prove them",
+    "plan": "build the dependency plan and the work-item queue",
+    "prepare": "ready the development and test environment",
+    "select-work": "confirm this work item is still the right next item",
+    "step-plan": "plan this item's concrete changes and checks",
+    "test-spec": "specify the tests this item needs before code changes",
+    "baseline": "record the relevant checks before any change",
+    "test-author": "write the tests the item's test spec calls for",
+    "test-red": "run the new tests and confirm they fail for the right reason",
+    "implement": "make the planned change",
+    "test-green": "run the focused tests and confirm they pass",
+    "test-refine": "tighten the tests against the actual implementation",
+    "regression": "rerun the retained suites for regressions",
+    "document": "update the documentation this change affects",
+    "skill-assess": "decide whether a reusable skill or helper change is warranted",
+    "skill-validate": "validate any skill or helper change against real inputs",
+    "static-checks": "run formatting, lint, type and build checks",
+    "verify": "verify the item against its acceptance criteria",
+    "integrate": "integrate the candidate into the working branch",
+    "integration-verify": "verify the integrated result and shared interfaces",
+    "carry-forward": "record lessons and revise the remaining queue",
+    "system-test-author": "prepare end-to-end and system tests",
+    "system-test": "run end-to-end and system tests on the real candidate",
+    "product-acceptance": "assess the product against the original outcome",
+    "release-plan": "plan the release, rollback and checks",
+    "release-check": "confirm release readiness without releasing",
+    "release": "perform the planned release",
+    "release-verify": "verify the release where consumers use it",
+    "operations": "confirm monitoring, recovery and support readiness",
+    "handoff": "write the final handoff with status and evidence",
+}
+
+INNER_GROUPS = (
+    ("Plan", ("select-work", "step-plan")),
+    ("Tests first", ("test-spec", "baseline", "test-author", "test-red")),
+    ("Build", ("implement", "test-green", "test-refine")),
+    ("Check", ("regression", "document", "skill-assess", "skill-validate",
+               "static-checks", "verify")),
+    ("Integrate", ("integrate", "integration-verify", "carry-forward")),
+)
+
+if set(STAGE_PURPOSE) != set(STAGES):
+    raise RuntimeError("STAGE_PURPOSE must describe exactly the navigator stages")
+if tuple(stage for _, group in INNER_GROUPS for stage in group) != INNER:
+    raise RuntimeError("INNER_GROUPS must cover INNER exactly, in order")
+
 # Rendered at these producer stages with the recursive-discovery locators.
 ENVIRONMENT_DISCOVERY_REQUIREMENTS = {
     "discovery": "Mandatory for this stage's relevant environment reads.",
@@ -401,9 +454,11 @@ for _facility_stage in TEST_FACILITY_STAGES:
 
 
 PROGRESS_REPORTING = """\
-Progress: report the saved Done / Current / Pending / Blocked snapshot at
-start/recovery and after each major completed step. Only the current owner reports
-overall progress. State labels say which action is assigned, not that work, tests, or
+Progress: show the user this packet's ShipLoop status block unchanged, from its
+begin marker through its end marker, at start/recovery and after each callback. Skip it only
+when a host status hook already showed this same block (it arrives as a system
+reminder). Do not paraphrase, reorder or extend it; add at most one line of your
+own. Only the current owner reports overall progress. State labels say which action is assigned, not that work, tests, or
 Improve iterations have occurred.  Describe Improve activity only from its own
 observed records; do not infer a review count, completion percentage, or ETA.
 Run to completion by default within scope and authority. Emit progress as an
@@ -956,7 +1011,9 @@ correction need; do not skip it or advance to carry-forward to repair the queue.
 conditions before relying on an earlier convention or environment decision.
 """,
     "step-plan": """\
-Turn the selected item into a bounded implementation plan.  Name target files
+Turn the selected item into a bounded implementation plan.  Open the result
+summary with one sentence naming the concrete change and the checks that will
+prove it; the status display shows that sentence.  Name target files
 and interfaces, behavior and failure cases, tests/fixtures/commands, existing
 conventions and reusable capabilities, diagnostic/error-handling obligations,
 documentation changes, integration impact, and required checks.  Revalidate
@@ -2128,6 +2185,7 @@ __all__ = (
     "IMPROVE_SCOPES",
     "INLINE",
     "INNER",
+    "INNER_GROUPS",
     "OUTER",
     "PLANNING_REVIEW_FOCUS",
     "PLANNING_REVIEW_STAGES",
@@ -2138,6 +2196,7 @@ __all__ = (
     "PRELUDE",
     "PROGRESS_REPORTING",
     "PROMPTS",
+    "STAGE_PURPOSE",
     "STAGE_REFERENCES",
     "STAGES",
     "duty",
