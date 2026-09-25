@@ -139,17 +139,17 @@ card_version = re.search(r"(?m)^version: (\S+)$", card.split("---", 2)[1])
 assert card_version is not None, "relocated Improve card requires a declared version"
 assert card_version.group(1) == source_version.group(1)
 assert "runtime/until-loop/scripts/until_loop_ephemeral.py" in card
-assert "version: 0.5.0" in adapter
+assert "version: 0.5.1" in adapter
 assert manifest["format"] == "skill-craft-until-loop-runtime-provenance/v1"
 assert manifest["upstream"] == {
     "repository": "https://github.com/whichguy/until-loop.git",
-    "commit": "5df2a2feef4d80b93ca3c8a749d7d265c082d376",
-    "version": "0.5.0",
+    "commit": "733419d1a9ac7ef3a648bc955928751d9f06799d",
+    "version": "0.5.1",
 }
 entries = {entry["bundled_path"]: entry for entry in manifest["default_ephemeral_runtime"]}
 script = root / "runtime/until-loop/scripts/until_loop_ephemeral.py"
 assert entries["scripts/until_loop_ephemeral.py"]["sha256"] == (
-    "09157c5338fc394105215ba4e08954dbcb182ac7784dc7da201a99dad36c8726"
+    "066de07327d44c4cb58d44556ee2d3d6610fb5508ae0d14f92557ef90347298e"
 )
 assert hashlib.sha256(script.read_bytes()).hexdigest() == entries[
     "scripts/until_loop_ephemeral.py"
@@ -158,7 +158,7 @@ assert hashlib.sha256((root / "runtime/until-loop/ADAPTER.md").read_bytes()).hex
     "ADAPTER.md"
 ]["sha256"]
 assert entries["ADAPTER.md"]["upstream_sha256"] == (
-    "9c2e67b5127a8bd4c16f6bd13bb99582de07b67f11bb46d8aa6329222b0a383b"
+    "a8bff8fce0b7d74101bdfdf1eb8d18c92bff2d4e638a1c443f1236ef77c356b5"
 )
 assert entries["ADAPTER.md"]["adaptation_reason"].strip()
 assert entries["ADAPTER.md"]["sha256"] != entries["ADAPTER.md"]["upstream_sha256"]
@@ -184,7 +184,7 @@ assert (
 for retired in ("legacy-skill.md", "runtime-v2.md", "references/runtime.md", ".pending-v2.json"):
     assert retired not in adapter, retired
 PY
-pass ephemeral_runtime_provenance_matches_v0_5_0
+pass ephemeral_runtime_provenance_matches_v0_5_1
 
 ephemeral_runtime="$bundle/runtime/until-loop/scripts/until_loop_ephemeral.py"
 ephemeral_contract="$tmpdir/ephemeral contract.json"

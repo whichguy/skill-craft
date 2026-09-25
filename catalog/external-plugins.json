@@ -23,7 +23,7 @@
     {
       "name": "until-loop",
       "description": "Interpret natural-language work and evidence-based exit conditions with a private callback state file and LLM judgment.",
-      "version": "0.5.0",
+      "version": "0.5.1",
       "author": {
         "name": "whichguy"
       },
@@ -32,7 +32,7 @@
         "url": "https://github.com/whichguy/until-loop.git",
         "path": "plugins/until-loop",
         "ref": "main",
-        "sha": "5df2a2feef4d80b93ca3c8a749d7d265c082d376"
+        "sha": "733419d1a9ac7ef3a648bc955928751d9f06799d"
       },
       "policy": {
         "installation": "AVAILABLE",
