@@ -381,7 +381,10 @@ def _excludes(top: Path, run_dir: Path) -> List[str]:
     specs = [":(top,exclude,glob)**/" + part + "/**" for part in RUNTIME_PARTS]
     if _inside(os.fspath(run_dir), os.fspath(top)):
         relative = os.path.relpath(os.fspath(run_dir), os.fspath(top))
-        if relative not in (".", ""):
+        # ``add -A`` already skips an ignored run directory, and an exclude that
+        # names an ignored path makes it fail ("paths are ignored"), so name the
+        # run directory only when Git would otherwise add it.
+        if relative not in (".", "") and _git(top, "check-ignore", "-q", "--", relative).returncode != 0:
             specs.insert(0, ":(top,exclude,literal)" + relative)
     return specs
 
@@ -1906,6 +1909,93 @@ def finalize(run_dir: Path, payload: Optional[Mapping[str, Any]]) -> None:
         pass
 
 
+# ---------------------------------------------------------------- change inventory
+
+INVENTORY_KIND = "inventory"
+
+
+class _PlainGit:
+    """The ``git`` half of ``_Invoker`` for plumbing outside a lint pass."""
+
+    def __init__(self, top: Path, timeout: float) -> None:
+        self.top = top
+        self.timeout = timeout
+
+    def git(self, *args: str, env: Optional[Mapping[str, str]] = None,
+            floor: float = 1.0) -> subprocess.CompletedProcess:
+        return _git(self.top, *args, env=env, timeout=max(floor, self.timeout))
+
+
+def inventory_path(action: str) -> str:
+    """Run-relative record path of one static-checks action's change inventory."""
+    return "lint/" + action + "-inventory.md"
+
+
+def inventory_writes(run_dir: Path, repo: Path, work_item: str, action: str,
+                     timeout: float = BUDGET_SECONDS) -> Dict[str, str]:
+    """Record the files this work item changed, tracked and untracked, for one action.
+
+    Runs in every lint mode: a snapshot is Git plumbing, not a linter.  The
+    diff is item base -> current private-index snapshot, so untracked files
+    appear, ignored files and ShipLoop runtime metadata do not.  Any failure
+    becomes an ``unavailable`` record; it never falls back to a run-wide base,
+    because that would widen the review scope beyond the work item.
+    """
+    payload: Dict[str, Any] = {"schema": SCHEMA, "kind": INVENTORY_KIND, "work_item": work_item,
+                               "action": action, "created_at": _now()}
+    try:
+        base = read_base(run_dir, work_item)
+        top = git_toplevel(Path(repo), timeout=timeout)
+        if top is None:
+            payload.update(status="unavailable", reason="not a Git checkout")
+        elif base is None:
+            payload.update(status="unavailable", reason="no base snapshot was captured when " + work_item
+                           + " started")
+        else:
+            prefix = scope_prefix(top, Path(repo))
+            index = _lint_dir(run_dir) / "tmp" / ("inventory-" + uuid.uuid4().hex + ".index")
+            try:
+                tree = snapshot_tree(top, Path(run_dir), index, prefix=prefix, timeout=timeout)
+            finally:
+                if index.exists():
+                    index.unlink()
+            rows = _diff_scope(_PlainGit(top, timeout), str(base["tree"]), tree, prefix)
+            payload.update(status="ok", toplevel=os.fspath(top), base_tree=base["tree"], tree=tree,
+                           rows=rows)
+    except KeyboardInterrupt:
+        raise
+    except BaseException as exc:  # noqa: BLE001 - an inventory failure must never fail complete
+        payload.update(status="unavailable", reason=type(exc).__name__ + ": " + _one_line(str(exc)))
+    return {inventory_path(action): store.dumps(_sanitize(payload), "ShipLoop change inventory")}
+
+
+def render_inventory_lines(run_dir: Path, action: str, work_item: str) -> List[str]:
+    """Read-only packet lines for one action's change inventory; never runs Git."""
+    path = Path(run_dir) / inventory_path(action)
+    record: Any = None
+    if path.is_file():
+        try:
+            record = store.read_record(path)
+        except (OSError, store.StorageError):
+            record = None
+    if not isinstance(record, Mapping) or record.get("status") != "ok":
+        reason = record.get("reason") if isinstance(record, Mapping) else "no record at " + str(path)
+        return ["No change inventory recorded for " + work_item + " (" + str(reason) + "). Build one "
+                "from `git status --porcelain` and the step plan's file list, and say so in the result."]
+    rows = [row for row in record.get("rows", ()) if isinstance(row, Mapping)]
+    lines = ["Change inventory for " + work_item + " (item base " + str(record.get("base_tree", ""))[:12]
+             + " -> entry snapshot " + str(record.get("tree", ""))[:12]
+             + "; tracked and untracked, ignored excluded; record " + str(path) + "):"]
+    if not rows:
+        lines.append("  (no changed files)")
+    for row in rows[:MAX_FILES]:
+        renamed = " (from " + cquote(str(row.get("old"))) + ")" if row.get("status") in ("R", "C") else ""
+        lines.append("  " + str(row.get("status")) + " " + cquote(str(row.get("path"))) + renamed)
+    if len(rows) > MAX_FILES:
+        lines.append("  +" + str(len(rows) - MAX_FILES) + " more in the record")
+    return lines
+
+
 # ---------------------------------------------------------------- navigator hook
 
 def on_transition(run_dir: Path, before: Mapping[str, Any], after: Mapping[str, Any], *, command: str,
@@ -1922,17 +2012,23 @@ def on_transition(run_dir: Path, before: Mapping[str, Any], after: Mapping[str, 
     """
     run_dir = Path(run_dir)
     entered = ""
+    writes: Dict[str, str] = {}
     try:
-        mode = after.get("mode", LEGACY_MODE)
-        if mode not in ("fix", "report") or after.get("status") != "active":
-            return {}, None
-        writes: Dict[str, str] = {}
+        # The item base and the static-checks inventory serve the quality loop
+        # in every lint mode; only the linters and auto-fix below honour lint=off.
         item = after.get("workitem")
         if item and item in set(after.get("items", ())) - set(before.get("items", ())):
             if read_base(run_dir, item) is None:
                 writes.update(capture_base(run_dir, Path(after["repo"]), item))
         stage = after.get("stage")
-        if stage not in LINT_STAGES or after.get("action") == before.get("action"):
+        new_action = after.get("action") is not None and after.get("action") != before.get("action")
+        if stage == "static-checks" and new_action and item:
+            writes.update(inventory_writes(run_dir, Path(after["repo"]), str(item), str(after["action"]),
+                                           timeout=min(GIT_TIMEOUT_SECONDS, max(1.0, budget))))
+        mode = after.get("mode", LEGACY_MODE)
+        if mode not in ("fix", "report") or after.get("status") != "active":
+            return writes, None
+        if stage not in LINT_STAGES or not new_action:
             return writes, None
         entered = str(after["action"])
         base = read_base(run_dir, item)
@@ -1976,11 +2072,11 @@ def on_transition(run_dir: Path, before: Mapping[str, Any], after: Mapping[str, 
         raise
     except BaseException as exc:  # noqa: BLE001 - lint must never fail complete
         if not entered:
-            return {}, None
+            return writes, None
         try:
             payload = failure_payload(entered, str(after.get("stage")), str(after.get("workitem") or ""),
                                       str(after.get("mode")), exc, command, run_dir)
-            return record_writes(payload), None
+            return {**writes, **record_writes(payload)}, None
         except KeyboardInterrupt:
             raise
         except BaseException:  # noqa: BLE001

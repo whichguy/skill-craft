@@ -22,6 +22,7 @@ Env bin overrides (testable): `CLAUDE_BIN`, `CODEX_BIN`, `GROK_BIN`.
 | install_plugin | yes (`plugin install`) | yes (`plugin install`; git/path or qualified marketplace selector) | yes (`plugin add`) |
 | install_git / path as id | mediated via marketplace | yes (git URL / GitHub shorthand / local path) | no — need `name@marketplace` |
 | update plugins / marketplaces | yes | yes | marketplace `upgrade` |
+| plugin-bundled hooks | yes (`hooks/hooks.json`; active on enable) | yes (loads Claude-format `hooks/hooks.json`; needs `--trust`) | yes (manifest `hooks`; trust once in `/hooks`) |
 
 Hermes is **not** in this marketplace facade (skill-dir only via `install.sh`).
 

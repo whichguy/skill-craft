@@ -4,6 +4,51 @@ Written by scripts/release.py.
 
 ## 2026-09-25
 
+### shiploop 0.26.0
+
+- Code craft gains rule 7, *Write text that can be translated*: user-facing
+  messages go through the repository's message catalog when one exists, and
+  otherwise stay whole sentences with named placeholders so they can be
+  externalized later. Numbers, dates, currency and plurals use locale-aware
+  APIs, and logs, error codes and identifiers stay untranslated. The quality
+  loop reviews for concatenated or catalog-bypassing text, and a new
+  Localization practice card in the coding decision guide covers catalogs,
+  plurals, explicit locales, UI expansion and right-to-left layout, and tests.
+- `static-checks` now runs a quality loop on the Until Loop bound to the selected
+  Improve card. ShipLoop writes the loop contract. Each iteration traces every
+  changed public entry point with a valid, a boundary and an invalid input, then
+  reviews the change against the new *Code craft* rubric: argument checks,
+  contract docstrings, and comments that are useful rather than token-wasting.
+  The loop ends after an iteration with only trivial findings, and a third
+  iteration that still finds a material issue stops it. The stage accepts `done`
+  only with a terminal packet that matches the contract; `repeat` is no longer
+  accepted there.
+  - The *Code craft* rubric replaces the implementation constitution. Step plans
+    gain an argument-check/docstring criterion, test specs gain rejection cases,
+    `verify` checks the loop's entry-point inventory, and the end-of-work Improve
+    reviews against the same rubric.
+  - The change inventory (tracked and untracked files since the item base) is
+    recorded in every lint mode; `lint: off` still stops linters and auto-fix.
+  - Fixed: the lint snapshot failed when the run directory sat inside the
+    checkout and was git-ignored.
+- A product fix committed after the workspace return no longer strands the run.
+  Run `workspace plan-return` and `workspace return` again: the follow-up starts
+  from the source state the previous receipt recorded and uses the same route
+  (working-tree update or another fast-forward). The new receipt keeps the old
+  one as `previous_receipt`. A source that already holds exactly the follow-up
+  result (a fix copied in by hand) is recorded without writing; any other source
+  change made since that receipt still blocks.
+- Installing the ShipLoop plugin from the marketplace now sets up the status hook: the package carries generated hook files for Claude Code, Codex, Grok and Cursor. Claude Code and Codex show the status block to you after each ShipLoop call (Codex asks you to trust the hook once in `/hooks`). Grok and Cursor run the hook but cannot display it, so the in-packet block stays the display there. The hook now recognizes each host's payload shape.
+- Every packet now carries a script-rendered status block: where the run is (phase, work item and stage group), what was just accepted, what comes next, the item's plan sentence and the completed items. The host shows it unchanged instead of writing its own progress summary. Each saved transition also writes `status.md` in the run directory, and the new `shiploop status` verb prints the block. On Claude Code, the optional `scripts/shiploop-status-hook` PostToolUse hook shows the block to you directly from ShipLoop's own output; see `references/status-display.md` for the settings snippet.
+
+### shiploop-e2e-audit 0.4.4
+
+- The Grok adapter recognizes ShipLoop's new read-only `status` verb as a direct ShipLoop subcommand.
+
+### skill-interop 0.2.5
+
+- The marketplace-hosts reference records plugin-bundled hook support for Claude, Grok and Codex.
+
 ### backchain 0.6.0
 
 - Plan Dispatcher leaves the `backchain` plugin and ships as its own `plan-dispatcher` plugin; `backchain:plan-dispatcher` no longer exists, so install `plan-dispatcher` instead. Backchain's source now lives in Skill Craft, and `./install.sh --skill backchain` installs it from a Skill Craft checkout. The card now says that the harness, schema, fixtures and samples it mentions live in the separate Backchain development checkout and are not shipped with the skill.

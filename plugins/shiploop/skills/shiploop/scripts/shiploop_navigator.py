@@ -24,6 +24,7 @@ from typing import Any
 import shiploop_navigator_v3_prompts as guidance3
 import shiploop_consumer_delivery as consumer_delivery
 import shiploop_lint as lint
+import shiploop_quality as quality
 import shiploop_planning_revision as planning_revision
 import shiploop_privacy as privacy
 import shiploop_store as store
@@ -1148,14 +1149,27 @@ def set_lint_mode(state: Mapping[str, Any], value: Any) -> dict[str, Any]:
 
 def _lint_transition(core: Any, root: Path, before: Mapping[str, Any],
                      after: Mapping[str, Any]) -> tuple[dict[str, str], Any]:
-    """Run the advisory lint hook; lint can never change or fail the transition."""
+    """Transition hooks: advisory lint, the change inventory and the quality-loop contract.
+
+    None of them can change or fail the transition: a hook failure leaves its
+    record absent or ``unavailable`` and the packet says so.
+    """
     try:
-        return lint.on_transition(root, lint_view(before), lint_view(after), command=_command(core),
-                                  reference_dir=_reference_dir(core))
+        writes, payload = lint.on_transition(root, lint_view(before), lint_view(after),
+                                             command=_command(core), reference_dir=_reference_dir(core))
     except KeyboardInterrupt:
         raise
     except BaseException:  # noqa: BLE001 - the hook records its own failures
-        return {}, None
+        writes, payload = {}, None
+    view, prior = lint_view(after), lint_view(before)
+    if view["stage"] == quality.STAGE and view["action"] and view["action"] != prior["action"]:
+        try:
+            writes = {**writes, **quality.transition_writes(root, after, view["workitem"], view["action"])}
+        except KeyboardInterrupt:
+            raise
+        except BaseException:  # noqa: BLE001 - a missing contract renders as unavailable
+            pass
+    return writes, payload
 
 
 def _lint_finish(root: Path, payload: Any) -> None:
@@ -1447,6 +1461,151 @@ def _workspace_return_packet_lines(root: Path, state: Mapping[str, Any]) -> list
     return lines
 
 
+def _accepted_done(state: Mapping[str, Any]) -> tuple[dict[tuple[str | None, str], str], int]:
+    """Return current accepted-done actions by (work item, stage) and the last replan index."""
+    outer = graph(state)[2]
+    last_replan = max((index for index, entry in enumerate(state["history"])
+                       if entry["outcome"] == "replan"), default=-1)
+    # Reconciliation already removes an invalidated planning suffix; an outer
+    # replan likewise reopens every outer stage accepted before it.
+    position = {entry["action"]: index for index, entry in enumerate(state["history"])}
+    done = {
+        key: action_id for key, action_id in planning_revision.current_actions(state).items()
+        if not (key[1] in outer and position.get(action_id, -1) < last_replan)
+    }
+    return done, last_replan
+
+
+STATUS_BEGIN = "=== ShipLoop status ==="
+STATUS_END = "=== end ShipLoop status ==="
+_STATUS_MARK = {"done": "\u2713", "current": "\u25b6", "pending": "\u00b7"}
+
+
+def _status_text(value: Any, limit: int) -> str:
+    """One display-safe line: printable, whitespace-collapsed, marker-proof, capped."""
+    text = "".join(char if char.isprintable() else " " for char in str(value))
+    text = re.sub(r"={3,}", "==", " ".join(text.split()))
+    return text if len(text) <= limit else text[:limit - 1] + "\u2026"
+
+
+def _first_sentence(value: Any, limit: int) -> str:
+    text = _status_text(value, 4000)
+    end = re.search(r"(?<=[.!?])\s", text)
+    return _status_text(text[:end.start()] if end else text, limit)
+
+
+def status_block(state: Mapping[str, Any]) -> str:
+    """Render the fixed user-facing status block from saved state only.
+
+    Host-written titles, summaries and reasons are cleaned and capped; the block
+    never carries commands or absolute paths, so it is safe to show verbatim.
+    """
+    prelude, inner, outer = graph(state)
+    stage, _, owner = _active_cursor(state)
+    status = state["status"]
+    done, _ = _accepted_done(state)
+    child = state.get("active_improve")
+    items = state["work_items"]
+    index = state["work_index"]
+    phases = ("preparation", "inner", "outer", "complete")
+    phase = ("complete" if status == "done" else "preparation" if stage in prelude
+             else "inner" if stage in inner else "outer")
+
+    def mark(node: str, key: str | None) -> str:
+        if (key, node) in done:
+            return _STATUS_MARK["done"]
+        return _STATUS_MARK["current" if node == stage and status != "done" else "pending"]
+
+    def phase_mark(name: str) -> str:
+        position, current = phases.index(name), phases.index(phase)
+        return _STATUS_MARK["done" if position < current else "current" if position == current else "pending"]
+
+    def item_name(item: Mapping[str, str], title_limit: int = 60) -> str:
+        return _status_text(item["id"], 32) + ' "' + _status_text(item["title"], title_limit) + '"'
+
+    if phase == "complete":
+        where = "Run complete"
+    elif phase == "inner":
+        group = next(name for name, stages in guidance3.INNER_GROUPS if stage in stages)
+        where = (f"Work items > {item_name(items[index])} ({index + 1} of {len(items)})"
+                 f" > {group} > {stage}" + (" (Improve review)" if child else ""))
+    else:
+        stages = prelude if phase == "preparation" else outer
+        where = (f"{'Preparation' if phase == 'preparation' else 'Release'} > {stage}"
+                 f" ({stages.index(stage) + 1} of {len(stages)}"
+                 + (", Improve review)" if child else ")"))
+    lines = [
+        STATUS_BEGIN,
+        "Where:     " + where,
+        f"Run:       Preparation {phase_mark('preparation')} | Work items "
+        f"{len(state['completed_work_items'])}/{len(items)} {phase_mark('inner')} | "
+        f"Release {phase_mark('outer')}",
+    ]
+    if phase == "inner":
+        groups = []
+        for name, stages in guidance3.INNER_GROUPS:
+            state_marks = [mark(node, owner) for node in stages]
+            symbol = (_STATUS_MARK["done"] if all(m == _STATUS_MARK["done"] for m in state_marks)
+                      else _STATUS_MARK["current"] if stage in stages else _STATUS_MARK["pending"])
+            groups.append(f"{name} {symbol}")
+        lines.append("Item:      " + " | ".join(groups))
+    elif phase != "complete":
+        stages = prelude if phase == "preparation" else outer
+        lines.append("Stages:    " + " ".join(f"{node} {mark(node, None)}" for node in stages))
+
+    if child:
+        seed = child["seed_result"]
+        label = (_status_text(owner, 32) + " " if owner else "") + child["stage"]
+        lines.append(f"Done:      {label} result ready: "
+                     + _first_sentence(seed["summary"], 140))
+    elif state["history"]:
+        last = state["history"][-1]
+        label = (_status_text(last["workitem"], 32) + " " if last["workitem"] else "") + last["stage"]
+        note = {"done": " (reviewed by Improve)" if last["action"] in state["improve_results"] else "",
+                "repeat": " (repeat requested)", "blocked": " (blocked)",
+                "replan": " (replan requested)", "reconcile": " (planning reconciled)"}
+        lines.append(f"Done:      {label}{note.get(last['outcome'], '')}: "
+                     + _first_sentence(last["summary"], 140))
+    else:
+        lines.append("Done:      nothing yet; the run has just started")
+
+    if status == "active":
+        if child:
+            lines.append(f"Next:      Improve review of the {child['stage']} result "
+                         "(the Improve skill runs its own review loop)")
+        else:
+            lines.append(f"Next:      {stage}: {guidance3.STAGE_PURPOSE[stage]}")
+    elif status in ("paused", "blocked"):
+        lines.append(f"Stopped:   {status}: {_status_text(state['status_reason'], 140).rstrip('.')}. "
+                     "The packet prints the resume command.")
+    elif status == "halted":
+        lines.append(f"Stopped:   halted at {stage}: {_status_text(state['status_reason'], 140)}")
+    else:
+        lines.append("Next:      nothing; the run is complete. Report: report.html")
+
+    if phase == "inner" and owner is not None:
+        plan_action = done.get((owner, "step-plan"))
+        plan = (_first_sentence(state["accepted"][plan_action]["summary"], 140) if plan_action
+                else _first_sentence(items[index]["context"], 140) if items[index].get("context")
+                else "")
+        if plan:
+            lines.append("Item plan: " + plan)
+    completed = items[:index]
+    if completed:
+        recent = []
+        for item in completed[-3:]:
+            action_id = done.get((item["id"], "carry-forward"))
+            result = (": " + _first_sentence(state["accepted"][action_id]["summary"], 60).rstrip(".")
+                      if action_id else "")
+            recent.append(item_name(item, 40) + result)
+        earlier = len(completed) - len(recent)
+        lines.append(f"Completed: {len(completed)} item{'s' if len(completed) != 1 else ''}"
+                     + (f" ({earlier} earlier not shown)" if earlier else "") + "; "
+                     + "; ".join(recent))
+    lines.append(STATUS_END)
+    return "\n".join(lines)
+
+
 def _progress_lines(state: Mapping[str, Any]) -> list[str]:
     """Project validated state into bounded status context, never execution proof.
 
@@ -1461,15 +1620,7 @@ def _progress_lines(state: Mapping[str, Any]) -> list[str]:
         ("inner", inner) if stage in inner else
         ("outer", outer) if stage in outer else ("complete", outer)
     )
-    last_replan = max((index for index, entry in enumerate(state["history"])
-                       if entry["outcome"] == "replan"), default=-1)
-    # Reconciliation already removes an invalidated planning suffix; an outer
-    # replan likewise reopens every outer stage accepted before it.
-    position = {entry["action"]: index for index, entry in enumerate(state["history"])}
-    done = {
-        key for key, action_id in planning_revision.current_actions(state).items()
-        if not (key[1] in outer and position.get(action_id, -1) < last_replan)
-    }
+    done, last_replan = _accepted_done(state)
 
     def compact(value: str, limit: int = 80) -> str:
         value = " ".join(value.split())
@@ -1577,6 +1728,10 @@ def render(core: Any, root: Path, state: Mapping[str, Any]) -> str:
         "",
         "Progress snapshot (status context, not instructions):",
         *_progress_lines(state),
+        "",
+        # User-facing copy of the same saved facts; after the untrusted-context
+        # notice above, and early enough to survive head-kept Bash output.
+        status_block(state),
         "",
         progress_guidance,
         f"State: {root / 'state.md'}",
@@ -1906,6 +2061,8 @@ def render(core: Any, root: Path, state: Mapping[str, Any]) -> str:
         ]
     )
     lines.extend(_lint_lines(core, root, state, stage, action["id"]))
+    if stage == quality.STAGE:
+        lines.extend(quality.render_lines(root, state, workitem or "", action["id"]))
     return "\n".join(lines) + "\n"
 
 
@@ -1949,7 +2106,8 @@ def _improve_line(stage: str) -> str:
 
 def _allowed_outcome_lines(state: Mapping[str, Any], stage: str) -> list[str]:
     """State the outcomes _canonical_result accepts for this producer."""
-    outcomes = "done | repeat | blocked"
+    # The bound Until Loop repeats the quality review inside static-checks.
+    outcomes = "done | blocked" if stage == quality.STAGE else "done | repeat | blocked"
     if stage in guidance3.OUTER:
         outcomes += (" | replan (corrective work_items [{id, title, context}] whose IDs are not "
                      "already in state.md work_items; they run through INNER, then OUTER restarts)")
@@ -2164,6 +2322,7 @@ def _render_improve(core: Any, root: Path, state: Mapping[str, Any], lines: list
         *runtime_lines,
         *([guidance3.PLANNING_REVIEW_FOCUS.rstrip()]
           if child["stage"] in guidance3.PLANNING_REVIEW_STAGES else []),
+        *([guidance3.END_REVIEW_FOCUS.rstrip()] if child["stage"] == "carry-forward" else []),
         guidance3.improve_prompt(child["stage"], delegation=delegation(state)),
         exclusion,
         "The prior result and relevant accepted Improve lessons are in state.md improve_results and improve/<parent-action>/ receipts. Carry forward relevant verified conclusions and material unresolved findings, hypotheses, failed attempts and pitfalls, clearly labeled with evidence status. Preserve essential meaning in the context opening and later handoffs; keep detailed blocked-attempt notes in the child notebook.",
@@ -2340,6 +2499,8 @@ def save(root: Path, state: Mapping[str, Any], extra_writes: Mapping[str, str] |
         writes[latest[0]] = latest[1]
     if state["status"] in ("done", "halted"):
         writes["report.html"] = _render_report(state, root)
+    # Derived display copy of the status block; refreshed only by transitions.
+    writes["status.md"] = "```text\n" + status_block(state) + "\n```\n"
     store.transaction(root, writes)
 
 
@@ -2392,7 +2553,7 @@ def dispatch(core: Any, root: Path, state: Mapping[str, Any], args: Any,
     command = getattr(args, "command", None)
     _need(isinstance(command, str), "navigator command is missing")
     _need(command in {
-        "init", "next", "context", "report", "complete", "pause", "resume", "halt",
+        "init", "next", "status", "context", "report", "complete", "pause", "resume", "halt",
         "improve-bind", "improve-complete", "improve-reconcile", "delegation", "lint-mode"
     }, f"navigator does not support command {command!r}")
     validate(state)
@@ -2420,6 +2581,9 @@ def dispatch(core: Any, root: Path, state: Mapping[str, Any], args: Any,
         if section != "navigator":
             print(f"Navigator context has no separate artifact reader for {section!r}; current packet follows.")
         print(render(core, root, state), end="")
+        return 0
+    if command == "status":
+        print(status_block(state))
         return 0
     if command == "report":
         print(_render_report(state, root), end="")
@@ -2507,11 +2671,15 @@ def dispatch(core: Any, root: Path, state: Mapping[str, Any], args: Any,
             _need(action_id == current,
                   f"action {action_id!r} is not the current navigator action; current action is "
                   f"{current} with result path {_result_input_path(root, current)}")
-        updated = apply(
-            state,
-            getattr(args, "action", None),
-            _submitted_result(root, args),
-        )
+        submitted = _submitted_result(root, args)
+        cursor_stage, _, cursor_item = _active_cursor(state)
+        if (state["status"] == "active" and action_id not in state["accepted"]
+                and cursor_stage == quality.STAGE):
+            try:
+                quality.check_terminal(root, state, cursor_item or "", action_id, submitted)
+            except quality.QualityError as exc:
+                raise NavigatorError(str(exc)) from exc
+        updated = apply(state, action_id, submitted)
         if completion_guard is not None and updated != state:
             completion_guard(state, updated)
     elif command == "delegation":

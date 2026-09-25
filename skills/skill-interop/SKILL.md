@@ -7,7 +7,7 @@ description: >-
   across hosts. Covers prompt-first design, host matrix, anti-patterns
   (divergent copies, silent mode fallback, abs symlinks), and script-backed
   CLI contracts.
-version: 0.2.4
+version: 0.2.5
 author: Backchain / interop
 license: MIT
 platforms:

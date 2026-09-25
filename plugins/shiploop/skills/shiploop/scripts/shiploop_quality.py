@@ -1,0 +1,231 @@
+"""The static-checks quality loop on the Until Loop bound to the selected Improve card.
+
+ShipLoop authors the loop contract from its prompt catalog on the transition
+into static-checks.  The bound Until Loop runtime counts iterations and ends the
+loop; the host executes each iteration.  On ``complete`` ShipLoop accepts
+``done`` only when the saved terminal packet matches that contract, so the
+review cannot be skipped or reshaped by the executor.  Rendering reads files
+and never runs Git or the runtime.
+"""
+
+from __future__ import annotations
+
+import json
+import os
+import shlex
+import stat
+import sys
+from pathlib import Path
+from typing import Any, Mapping, Optional
+
+import shiploop_lint as lint
+import shiploop_navigator_v3_prompts as guidance3
+import shiploop_standalone_improve as standalone
+
+STAGE = "static-checks"
+RUBRIC_PATH = "quality/code-craft.md"
+
+
+class QualityError(ValueError):
+    """A static-checks result or its terminal packet does not satisfy the loop contract."""
+
+
+def _need(condition: bool, message: str) -> None:
+    if not condition:
+        raise QualityError(message)
+
+
+def contract_path(action: str) -> str:
+    return "quality/" + action + "-contract.json"
+
+
+def latest_path(action: str) -> str:
+    return "quality/" + action + "-latest.json"
+
+
+def terminal_path(action: str) -> str:
+    return "quality/" + action + "-terminal.json"
+
+
+def _step_plan_result(root: Path, state: Mapping[str, Any], work_item: str) -> Optional[str]:
+    """Absolute path of the work item's latest accepted step-plan result record, if any."""
+    actions = [row["action"] for row in state.get("history", ())
+               if row.get("stage") == "step-plan" and row.get("workitem") == work_item]
+    return str(root / "results" / (actions[-1] + ".md")) if actions else None
+
+
+def _work_title(state: Mapping[str, Any], work_item: str) -> str:
+    for row in state.get("work_items", ()):
+        if row.get("id") == work_item:
+            return str(row.get("title") or work_item)
+    return work_item
+
+
+def _runtime(state: Mapping[str, Any]) -> dict[str, str]:
+    """Resolve the Until Loop bound to the run's selected Improve card (reads card files only)."""
+    card = state.get("improve_skill") or ""
+    _need(bool(card), "no Improve card is bound to this run, so it has no bound Until Loop runtime")
+    try:
+        return standalone.resolve_skill(card)
+    except standalone.StandaloneImproveError as exc:
+        raise QualityError("the bound Until Loop runtime cannot be resolved: " + str(exc)) from exc
+
+
+def build_contract(root: Path, state: Mapping[str, Any], work_item: str, action: str) -> dict[str, Any]:
+    """Return the Until Loop start contract for one static-checks action.
+
+    ``work``, both conditions and the trivial-review gate come verbatim from
+    the prompt catalog; ``check_terminal`` compares the terminal packet with
+    this same contract.
+    """
+    _need(bool(work_item) and bool(action), "a quality contract needs a work item and an action")
+    root = Path(root)
+    repo = str(state["repo"])
+    resources = [
+        {"purpose": "Code craft rubric the review applies", "locator": str(root / RUBRIC_PATH)},
+        {"purpose": "change inventory: the files in scope",
+         "locator": str(root / lint.inventory_path(action))},
+        {"purpose": "ShipLoop lint record for this action, when lint ran",
+         "locator": str(root / "lint" / (action + ".md"))},
+    ]
+    step_plan = _step_plan_result(root, state, work_item)
+    if step_plan is not None:
+        resources.append({"purpose": "accepted step plan: criteria, focused tests and checks",
+                          "locator": step_plan})
+    return {
+        "workspace": repo,
+        "work": guidance3.QUALITY_ITERATION.strip(),
+        "exit_condition": guidance3.QUALITY_EXIT_CONDITION,
+        "repeat_condition": guidance3.QUALITY_REPEAT_CONDITION,
+        "required_trivial_reviews": 1,
+        "context": {
+            "request": ("Quality loop for ShipLoop work item " + work_item + " ("
+                        + _work_title(state, work_item) + "): trace, verify and improve its change "
+                        "against the Code craft rubric until an iteration finds only trivial issues."),
+            "scope": ("Workspace " + repo + ". Only the files in the change inventory for " + work_item
+                      + ", plus tests for them. Preserve every other change."),
+            "authority": ("Edit in-scope product files and tests. Do not commit, push, install or "
+                          "download anything, change a check's expected result, or widen scope. "
+                          "ShipLoop callbacks belong to the parent; the loop never calls them."),
+            "environment": ("Run in " + repo + ". Use the focused test and static-check commands named "
+                            "in the accepted step plan and the current repository; recheck them "
+                            "before relying on them."),
+            "resources": resources,
+        },
+    }
+
+
+def transition_writes(root: Path, after: Mapping[str, Any], work_item: Optional[str],
+                      action: Optional[str]) -> dict[str, str]:
+    """Contract and rubric writes for a newly issued static-checks action."""
+    if not work_item or not action:
+        return {}
+    contract = build_contract(Path(root), after, work_item, action)
+    return {
+        contract_path(action): json.dumps(contract, indent=2, sort_keys=True) + "\n",
+        RUBRIC_PATH: guidance3.CODE_CRAFT,
+    }
+
+
+def render_lines(root: Path, state: Mapping[str, Any], work_item: str, action: str) -> list[str]:
+    """Read-only packet lines: runtime, start command, packet paths and inventory."""
+    root = Path(root)
+    lines = ["", "Quality loop (bound Until Loop; the loop script counts iterations, at most "
+             + str(guidance3.QUALITY_LOOP_LIMIT) + "):"]
+    try:
+        runtime = _runtime(state)
+    except QualityError as exc:
+        lines.append("Unavailable: " + str(exc) + ". Report outcome blocked with this reason.")
+        return lines + lint.render_inventory_lines(root, action, work_item)
+    contract = root / contract_path(action)
+    lines += [
+        "Bound Until Loop card (read in full once per context): " + runtime["runtime_card"],
+        "Loop contract (written by ShipLoop; pass it unchanged): " + str(contract),
+        "Start: " + shlex.join([sys.executable, runtime["runtime_cli"], "start"]) + " < "
+        + shlex.quote(str(contract)),
+        "Save every returned packet (stdout) to: " + str(root / latest_path(action)),
+        "Save the terminal packet (stdout) to: " + str(root / terminal_path(action)),
+    ]
+    if not contract.is_file():
+        lines.append("The loop contract is missing; report outcome blocked naming this path.")
+    return lines + lint.render_inventory_lines(root, action, work_item)
+
+
+def _read_json(path: Path, label: str) -> Any:
+    try:
+        metadata = path.lstat()
+    except OSError as exc:
+        raise QualityError(label + " is missing: " + str(path)) from exc
+    _need(stat.S_ISREG(metadata.st_mode) and metadata.st_nlink == 1,
+          label + " must be a regular single-link non-symlink file: " + str(path))
+    try:
+        return json.loads(path.read_text(encoding="utf-8"))
+    except (OSError, UnicodeDecodeError, ValueError) as exc:
+        raise QualityError(label + " is not valid JSON: " + str(path)) from exc
+
+
+def check_terminal(root: Path, state: Mapping[str, Any], work_item: str, action: str,
+                   result: Mapping[str, Any]) -> None:
+    """Refuse a static-checks result that the bound Until Loop's terminal packet does not support.
+
+    ``done`` needs a ``complete`` packet within the iteration limit; ``blocked``
+    accepts a ``stopped`` packet or none (the summary carries the reason).
+    ``repeat`` is never valid: the loop, not the graph, repeats the review.
+    The packet is compared with the contract rebuilt from ShipLoop state, not
+    with the contract file, so editing that file cannot reshape the loop.
+    """
+    outcome = result.get("outcome") if isinstance(result, Mapping) else None
+    _need(outcome in ("done", "blocked"),
+          "static-checks accepts only done or blocked; the bound Until Loop repeats the review, "
+          "not the graph")
+    if not state.get("improve_skill"):
+        return  # No bound runtime: the packet directs blocked; nothing to verify.
+    root = Path(root)
+    path = root / terminal_path(action)
+    if outcome == "blocked" and not os.path.lexists(path):
+        return
+    refs = result.get("evidence_refs")
+    _need(isinstance(refs, list) and str(path) in refs,
+          "list the saved terminal packet in evidence_refs: " + str(path))
+    packet = _read_json(path, "Until Loop terminal packet")
+    _need(isinstance(packet, Mapping), "the Until Loop terminal packet must be a JSON object")
+    conditions, progress = packet.get("conditions"), packet.get("progress")
+    _need(isinstance(conditions, Mapping) and isinstance(progress, Mapping),
+          "the Until Loop terminal packet lacks its conditions or progress")
+    expected = build_contract(root, state, work_item, action)
+    _need(packet.get("workspace") == expected["workspace"]
+          and packet.get("work") == expected["work"]
+          and conditions.get("exit") == expected["exit_condition"]
+          and conditions.get("repeat") == expected["repeat_condition"]
+          and progress.get("required_trivial_reviews") == expected["required_trivial_reviews"]
+          and packet.get("context") == expected["context"],
+          "the terminal packet is not from a run of this action's contract "
+          + str(root / contract_path(action)))
+    status = packet.get("status")
+    _need(status in ("complete", "stopped"),
+          "the terminal packet must have status complete or stopped, found " + repr(status))
+    if status == "complete":
+        iterations = progress.get("action_number")
+        _need(isinstance(iterations, int) and not isinstance(iterations, bool) and iterations >= 1,
+              "the terminal packet has no iteration count")
+        if iterations > guidance3.QUALITY_LOOP_LIMIT:
+            _need(outcome == "blocked", "the quality loop ran " + str(iterations) + " iterations; more than "
+                  + str(guidance3.QUALITY_LOOP_LIMIT) + " is outside the contract, report blocked")
+        else:
+            _need(outcome == "done", "a complete quality loop reports outcome done")
+    else:
+        _need(outcome == "blocked", "a stopped quality loop reports outcome blocked")
+
+
+__all__ = (
+    "QualityError",
+    "RUBRIC_PATH",
+    "STAGE",
+    "build_contract",
+    "check_terminal",
+    "contract_path",
+    "latest_path",
+    "render_lines",
+    "terminal_path",
+    "transition_writes",
+)

@@ -38,6 +38,7 @@ SHIPLOOP_DIRECT_SUBCOMMANDS = frozenset(
         "improve-complete",
         "improve-reconcile",
         "next",
+        "status",
         "report",
         "context",
         "complete",
