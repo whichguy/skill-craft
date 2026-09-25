@@ -108,7 +108,6 @@ host checkout into a tree that is bind-mounted into the container as `/opt/data`
 | Skill-dir symlink (Claude, Grok, Codex, Cursor) | **implemented** |
 | Skill-dir materialized copy (Hermes default) | **implemented** |
 | Shared plugin view `plugins/<leaf>/` via `sync-plugin-views.sh` | **implemented** |
-| Plugin bundle `bundles/<plugin>/` → one multi-skill view `plugins/<plugin>/` (vendored, provenance-verified; marketplace-only, never installed by `install.sh`) | **implemented** — `bundles/backchain`; `scripts/sync-vendored-bundles.py` |
 | Grok/Cursor same-repository catalogs | **implemented** — generated from skill frontmatter; distribution and publication steps in [distribution.md](distribution.md) |
 | `plugin.json` name/version/description/license derived from `SKILL.md` | **implemented** (`scripts/skill-frontmatter-to-plugin-json.js`; sync enumerates from `skills/`) |
 | Root Claude/Codex catalogs in this repository (`skill-craft-market` retired); external plugins pinned in `catalog/external-plugins.json` | **implemented** |
@@ -192,33 +191,13 @@ skill-craft/skills/<leaf>/     # SoT (all hosts skill-dir)
                  ▲
                  ├── skill-craft Grok/Cursor indexes: ./plugins/<leaf>
                  └── skill-craft Claude/Codex indexes: ./plugins/<leaf>
-
-skill-craft/bundles/<plugin>/  # vendored multi-skill source (bundle.json + PROVENANCE.json)
-        │                      # never enumerated by install.sh
-        └── plugins/<plugin>/  # one plugin: skills/<member>/…, agents/…, host manifests
-                 ▲
-                 ├── skill-craft Grok/Cursor indexes: ./plugins/<plugin>
-                 └── skill-craft Claude/Codex indexes: ./plugins/<plugin>
 ```
 
-### Plugin bundles (**implemented**)
-
-A bundle packages several upstream skills as one plugin whose skills are
-invoked as `<plugin>:<member>`. `bundles/<plugin>/bundle.json` declares the
-member skills and agent cards; the member named like the bundle is the primary
-card and supplies version, license, author and category. `PROVENANCE.json`
-records the upstream commit and each copied file's sha256 and git blob id.
-`scripts/sync-vendored-bundles.py --check` verifies those bytes offline (it runs
-before every bundle view is written or checked) and applies a publication lint;
-CI therefore proves consistency with the recorded provenance, not equality with
-a private upstream. Only a local `--from` refresh or dry run compares against
-upstream, and it reads committed blobs published on upstream `origin/main`.
-A member name may never also be a `skills/<leaf>`. `install.sh` never
-installs bundle members, and `install.sh --from` refuses bundle and
-generated-view paths in a skill-craft checkout plus any copy whose plugin
-manifest names the skill-craft repository (host plugin caches, git-subdir
-clones), so the canonical skill-directory links are not duplicated or
-repointed at a marketplace copy that still carries its generated manifests.
+Each plugin package holds exactly one skill and, when it has one, its agent
+card. `install.sh --from` refuses generated-view paths in a skill-craft checkout
+plus any copy whose plugin manifest names the skill-craft repository (host
+plugin caches, git-subdir clones), so the canonical skill-directory links are
+not repointed at a marketplace copy that still carries its generated manifests.
 
 ## Out of scope (product repos)
 
@@ -254,8 +233,7 @@ The root catalogs select `./plugins/<leaf>` in this repository; a plugin updates
 when its `version` changes, which only `scripts/release.py` does. External
 leaves (e.g. **lennox-s40**) are pinned by full commit `sha` in
 `catalog/external-plugins.json`; this monorepo must not also ship
-`skills/<same-name>/`. A private upstream (Backchain) is published as a vendored
-plugin bundle at `plugins/backchain`.
+`skills/<same-name>/`.
 
 
 

@@ -13,7 +13,7 @@ repo="$tmp/repo"
 mkdir -p "$repo"
 
 (cd "$root" && git ls-files -z --cached --others --exclude-standard -- \
-  skills agents bundles catalog changes scripts plugins .grok-plugin .cursor-plugin .claude-plugin .agents \
+  skills agents catalog changes scripts plugins .grok-plugin .cursor-plugin .claude-plugin .agents \
   README.md LICENSE .gitattributes | xargs -0 tar -cf -) | (cd "$repo" && tar -xf -)
 cd "$repo"
 export GIT_AUTHOR_NAME=test GIT_AUTHOR_EMAIL=test@example.invalid
@@ -75,7 +75,7 @@ boundary --base "$base" >/dev/null || fail "feature plus release must pass"
 bash scripts/sync-plugin-views.sh --check >/dev/null 2>&1 || fail "release output must match source"
 release_head="$(git rev-parse HEAD)"
 
-# 5. Nothing pending (no notes, no bundle, no drift) is a no-op with no commit.
+# 5. Nothing pending (no notes, no drift) is a no-op with no commit.
 python3 -B scripts/release.py | grep -q "no pending notes" || fail "empty release must be a no-op"
 [[ "$(git rev-parse HEAD)" == "$release_head" ]] || fail "no-op release made a commit"
 
@@ -163,21 +163,15 @@ out="$(python3 -B scripts/release.py 2>&1)" && fail "a release with a failing sy
 [[ "$(git rev-parse HEAD)" == "$before" && -f changes/c-plan/rollback.md ]] || fail "failed release lost HEAD or its note"
 git reset -q --hard HEAD~1
 
-# 14. B7: a bundle refresh releases with no note.
-pre_bundle="$(git rev-parse HEAD)"
-bundle_version="$(python3 -c 'import json; print(json.load(open("bundles/backchain/PROVENANCE.json"))["upstream"]["manifest"]["version"])')"
-sed -i.bak "s/\"version\": \"$bundle_version\"/\"version\": \"0.0.1\"/" plugins/backchain/.claude-plugin/plugin.json
-rm plugins/backchain/.claude-plugin/plugin.json.bak
-git add -A && git commit -qm "release: fixture lagging bundle" -m "Skill-Craft-Release: fixture"
+# 14. A1: a trailer does not exempt a commit whose output differs from its source.
+pre_lag="$(git rev-parse HEAD)"
+c_plan_version="$(sed -n 's/^version: //p' skills/c-plan/SKILL.md | head -1)"
+sed -i.bak "s/\"version\": \"$c_plan_version\"/\"version\": \"0.0.1\"/" plugins/c-plan/.claude-plugin/plugin.json
+rm plugins/c-plan/.claude-plugin/plugin.json.bak
+git add -A && git commit -qm "release: fixture lagging output" -m "Skill-Craft-Release: fixture"
 lagging="$(git rev-parse HEAD)"
-# A1: a trailer does not exempt a commit whose output differs from its source.
-out="$(boundary --base "$pre_bundle")" && fail "an out-of-sync release commit must fail the boundary check"
+out="$(boundary --base "$pre_lag")" && fail "an out-of-sync release commit must fail the boundary check"
 [[ "$out" == *"release commit output does not match its source"* ]] || fail "out-of-sync release not named: $out"
-python3 -B scripts/release.py --dry-run | grep -q "backchain 0.0.1 -> $bundle_version" || fail "pending bundle not planned"
-python3 -B scripts/release.py --date 2000-01-01 >/dev/null || fail "bundle release failed"
-git log -1 --format='%(trailers:key=Skill-Craft-Release,valueonly)' | grep -q "backchain@$bundle_version" \
-  || fail "bundle release lacks its trailer"
-grep -q "^### backchain $bundle_version" CHANGELOG.md || fail "bundle release missing from the changelog"
 
 # 15. B7: deleting a skill cuts an output-only release that prunes its package.
 git rm -rq skills/zz-new && git commit -qm "chore: remove zz-new"
@@ -188,7 +182,7 @@ git log -1 --format='%(trailers:key=Skill-Craft-Release,valueonly)' | grep -qx "
 [[ ! -e plugins/zz-new ]] || fail "deleted skill's package survived the release"
 bash scripts/sync-plugin-views.sh --check >/dev/null 2>&1 || fail "output-only release must match source"
 [[ -z "$(git status --porcelain)" ]] || fail "output-only release left changes"
-boundary --base "$base" --head "$pre_bundle" >/dev/null || fail "releases after the feature commit must pass the boundary check"
+boundary --base "$base" --head "$pre_lag" >/dev/null || fail "releases after the feature commit must pass the boundary check"
 boundary --base "$lagging" >/dev/null || fail "releases after the lagging fixture must pass the boundary check: $(boundary --base "$lagging")"
 
 printf 'release-flow.test.sh: PASS\n'

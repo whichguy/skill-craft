@@ -14,6 +14,8 @@ platforms:
   - linux
   - macos
 metadata:
+  skill_craft:
+    kind: prompt-only
   hermes:
     category: software-development
     tags:
@@ -43,7 +45,7 @@ terminal receipt. Backchain does not implement a second loop, counter, or recove
 | Mode | When | Product label |
 |------|------|----------------|
 | **Native** (default) | Grok / Claude / Codex / Hermes chat | **native-unvalidated** plan JSON plus selected Until Loop binding |
-| **Structural check** | Checkout available; user wants waves/validation | **script-packaged** via `--package-only` |
+| **Structural check** | Backchain development checkout available; user wants waves/validation | **script-packaged** via `--package-only` |
 | **One-shot harness** | Candidate generation→elaboration | `run-prompt.sh` (one-shot; not convergence) |
 | **NBQ experiment** | Explicit EVSI / casebook A/B only | **nbq-experiment** — never default |
 
@@ -73,7 +75,7 @@ or substitute scheduler is allowed.
    binding companion. Report `mode=native` and `structural_plan_status: unknown` outside
    the plan unless a deterministic validator receipt exists for this exact plan. Keep
    `parallel_groups: []` in the canonical plan until that receipt exists.
-7. Optional checkout packaging: `bash harness/run-prompt.sh --package-only enriched.json`
+7. Optional packaging in a Backchain development checkout: `bash harness/run-prompt.sh --package-only enriched.json`
    proves only its structural result, never Until Loop completion.
 
 ### Source-aware native plan (explicit `backchain-caller/v1` selection)
@@ -115,7 +117,7 @@ Harness inventory, env, exit codes: `references/harness.md`. Dependency context 
 
 ## Procedure (automated packaging)
 
-**One-shot candidate packaging** (checkout + Claude-compatible runner):
+**One-shot candidate packaging** (Backchain development checkout + Claude-compatible runner):
 
 The commands below do not run Until Loop or semantic convergence. A direct CLI exit 0
 proves only its documented structural result. The scripts and benchmark prompts remain
@@ -201,7 +203,7 @@ hand/harness-supplied) is the goal-closure check.
 **Manual multi-step (templates remain authoritative):**
 
 1. Put the unedited request into `prompts/generator.v1.md` at `{{RAW_PROMPT}}`; save its
-   JSON-only draft. Demo requests live under `samples/*.prompt.md`. The generator derives the
+   JSON-only draft. Demo requests live under the development checkout's `samples/*.prompt.md`. The generator derives the
    request's terminal observable conditions into `goal_needs` **before** drafting any step, then
    runs **environment probes once against those conditions** — repo/worktree state, existing user
    or data state needing transition, release gates, documentation, and systems that must be brought
@@ -224,7 +226,7 @@ hand/harness-supplied) is the goal-closure check.
    These duties are cumulative with the in-place rewrite duty, not alternatives to it. Trace
    mode is for offline/manual debugging only: `harness/bench.sh` always renders it as `off` and
    does not parse trace-mode output.
-3. Recompute `parallel_groups` with `computeParallelGroups` from `harness/lib.js` (or use
+3. Recompute `parallel_groups` with `computeParallelGroups` from the development checkout's `harness/lib.js` (or use
    `packagePlan` / `run-prompt.sh --package-only`), then validate with `validateStructure`
    before using the plan. Do not leave `parallel_groups` as `[]` if multi-member waves exist.
 4. For a complete Backchain planning invocation, run `references/convergence.md` over
@@ -234,7 +236,7 @@ hand/harness-supplied) is the goal-closure check.
 
 ## Plan document shape
 
-A complete plan JSON object has these **required top-level keys** (see `schema/plan.schema.json`):
+A complete plan JSON object has these **required top-level keys** (the development checkout's `schema/plan.schema.json` states them as a schema):
 
 `goal`, `initial_state`, `steps`, `parallel_groups`, `unresolved`
 
@@ -342,11 +344,12 @@ is **invalid**, not silently ignored.
 ## Layout and verification
 
 A marketplace or skill-directory install ships only this skill directory (`SKILL.md`,
-`prompts/`, `references/`). The paths below, the harness commands above and the gate below
-exist only in a Backchain **source repository** checkout; the native procedure and plan
-contract on this card need none of them.
+`prompts/`, `references/`, `evals/`), published from Skill Craft. The paths below, the
+harness commands above and the gate below live in the separate Backchain **development
+checkout** and are not shipped with this skill; the native procedure and plan contract on
+this card need none of them.
 
-| Path (source checkout) | Purpose |
+| Path (development checkout) | Purpose |
 | --- | --- |
 | `prompts/` | Generator, elaborator, rubric-judge, compare-judge templates |
 | `schema/plan.schema.json` | Plan document schema |
@@ -354,7 +357,7 @@ contract on this card need none of them.
 | `samples/` | Natural-language requests for generator demos |
 | `harness/` | Structural validation + `bench.sh` scoring |
 
-### Local-change gate (maintainers, source checkout)
+### Local-change gate (maintainers, development checkout)
 
 When changing Backchain itself with a `test-harness` skill installed, its contract is
 `<test-harness>/references/gate-snippet.md` + `local-change-gate.md`, for example:
@@ -371,12 +374,12 @@ Require `PASS_CLEAN` or `PASS_CLEAN_SCOPED`. Paste `chat-card.md`. Do **not** tr
 | **Inner suite** | `make test-fast` |
 | **Residual** | LLM bench / casebook — not RESULT |
 
-- **Install:** use your host's plugin marketplace (`backchain` plugin). From a source
-  checkout, `./install.sh` installs into Claude Code and the Hermes skillhub:  
+- **Install:** use your host's plugin marketplace (`backchain` plugin). From a Skill Craft
+  checkout, `./install.sh --skill backchain` installs the skill directory:  
   - Claude Code: `~/.claude/skills/backchain`  
   - Hermes skillhub: `~/.hermes/skills/software-development/backchain`  
   - Flags: `--claude-only` / `--hermes-only`; never overwrites an existing path
-- **LLM bench / casebook (optional residual, not RESULT):**  
+- **LLM bench / casebook (optional residual, development checkout, not RESULT):**  
   `bash harness/bench.sh --run --label <name>` ·  
   `bash harness/bench.sh --compare <labelA> <labelB>`
 
@@ -384,16 +387,17 @@ Require `PASS_CLEAN` or `PASS_CLEAN_SCOPED`. Paste `chat-card.md`. Do **not** tr
 
 | Habitat | Skill install path | Notes |
 | --- | --- | --- |
-| Claude Code (host) | `~/.claude/skills/backchain` | `./install.sh` or `--claude-only` |
-| Hermes skillhub (host) | `~/.hermes/skills/software-development/backchain` | `./install.sh` or `--hermes-only` |
+| Claude Code (host) | `~/.claude/skills/backchain` | `./install.sh --skill backchain` or `--claude-only` |
+| Hermes skillhub (host) | `~/.hermes/skills/software-development/backchain` | `./install.sh --skill backchain` or `--hermes-only` |
 | Hermes Docker container | `/opt/data/skills/software-development/backchain` | Same files as host when `~/.hermes` is bind-mounted at `/opt/data` |
 
 The **skill package** is `skills/backchain/SKILL.md` (this card). The generator/elaborator
-templates, schema, and `make test-fast` harness live in the **host repository** checkout —
-they are **not** assumed to be mounted into the Hermes container. Skill-only Hermes operators
+templates ship with it; the schema and `make test-fast` harness live in the Backchain
+**development checkout** — they are **not** assumed to be mounted into the Hermes
+container. Skill-only Hermes operators
 follow the procedure and plan contract on this card; run the deterministic suite from the
-host repo when changing code.
+development checkout when changing code.
 
 You can use the generator and elaborator prompts directly in any Claude Code or Hermes
-session that has the skill installed, or run scored fixture passes with the harness on the
-host repo.
+session that has the skill installed, or run scored fixture passes with the harness in the
+development checkout.

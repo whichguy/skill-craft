@@ -1,7 +1,7 @@
 # Skill release checklist
 
 Source and release output are separate. Feature work edits source under
-`skills/`, `agents/`, `bundles/` and `catalog/` and adds a change note. Only a
+`skills/`, `agents/` and `catalog/` and adds a change note. Only a
 release commit changes versions, `plugins/`, the four host catalogs, the README
 inventory and `CHANGELOG.md`.
 
@@ -79,59 +79,6 @@ Advance a pin only after verifying that commit. Edit
 `release.py` run publishes it, as an output-only release when no notes are
 pending. Never re-add
 `skills/<same-name>/` for an external plugin (`test/dual-body-guard.test.sh`).
-
-## Vendored bundle refresh
-
-Backchain's development source (`whichguy/plan-orchestrator`) stays private. skill-craft publishes a hash-verified copy
-of its `skills/backchain`, `skills/plan-dispatcher` and `agents/backchain.md`
-as `bundles/backchain/`, generated into `plugins/backchain/`. CI proves only
-that the bundle matches its own `PROVENANCE.json` and passes the publication
-lint; it cannot see the private upstream. Refresh it deliberately:
-
-1. **Upstream release first.** The upstream commit must be published on its
-   `origin/main`, and the upstream `.claude-plugin/plugin.json` version must
-   increase whenever any vendored byte changes (hosts use it as the update
-   signal). The refresh refuses otherwise (exit 4). Its description must equal
-   `bundles/backchain/bundle.json`; change bundle.json only in a reviewed edit.
-2. **Fresh canonical checkout.** Apply the local checkout policy: clean `main`,
-   `git fetch origin`, `git merge --ff-only origin/main`.
-3. **Dry run and review.** `python3 scripts/sync-vendored-bundles.py --bundle backchain --from ../backchain`
-   prints the upstream commit, version and changed paths. Read the actual diff:
-   everything vendored becomes permanently public. The lint (home paths,
-   email addresses, credential shapes, private IPs, hidden characters, and the
-   operator's user name and git user.name) is heuristic and cannot recognize
-   internal names or private context.
-4. **Apply.** Rerun with `--write` and commit only `bundles/backchain` as an
-   ordinary source commit (no note, no trailer). Then run
-   `python3 scripts/release.py`: it releases every bundle whose upstream
-   version differs from its `plugins/` package, with a
-   `Skill-Craft-Release: backchain@<version>` trailer and a CHANGELOG entry.
-   Do not run `sync-plugin-views.sh` or hand-write the trailer. A bundle needs
-   no `changes/` note; its version comes from upstream.
-5. **Verify.** `python3 test/vendored-bundles.test.py`, the core group, and the
-   release gate for a multi-skill package on each host you ship to:
-   `bash test/run-integration.sh marketplace-bundle-claude backchain` (also
-   `-codex` and `-grok`). Record host versions.
-6. **Lag check (optional, local).** `bash test/run-integration.sh vendored-bundle-lag backchain ../backchain`
-   dry-runs a refresh against the checkout's fetched `origin/main` and never
-   writes. Only exit 0 means the snapshot is current; every other exit means
-   it is not shown current, and stderr says why:
-   - 0: in sync.
-   - 1: lag that a `--write` refresh would apply (payload or version differs),
-     or a local bundle that fails its own verification.
-   - 2: upstream unavailable or invalid, including drift that needs a
-     deliberate edit (the upstream description no longer equals `bundle.json`,
-     or a declared member is missing upstream).
-   - 3: new upstream content fails the publication lint.
-   - 4: lag the release policy refuses (bytes changed without an upstream
-     version increase, a lower version, or a commit not on `origin/main`).
-   - 5: `PROVENANCE.json` no longer matches its recorded upstream commit.
-   - 64: usage error.
-
-`install.sh` never installs bundle members: the canonical skill-directory links
-keep pointing at the private checkout, and `--from` refuses `bundles/` and
-generated `plugins/` paths plus copies whose plugin manifest names the
-skill-craft repository, such as host plugin caches (exit 64).
 
 ## Guarded publication
 

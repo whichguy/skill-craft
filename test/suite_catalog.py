@@ -235,7 +235,6 @@ _CORE_SUITES = (
     _suite("release-flow", "core", "test/release-flow.test.sh", "bash", "test/release-flow.test.sh"),
     _suite("release-boundary", "core", "test/release-boundary.test.sh", "bash", "test/release-boundary.test.sh"),
     _suite("native-marketplace-adapters", "core", "test/native-marketplace-adapters.test.sh", "bash", "test/native-marketplace-adapters.test.sh"),
-    _suite("vendored-bundles", "core", "test/vendored-bundles.test.py", "python3", "test/vendored-bundles.test.py"),
     _suite("marketplace-package", "core", "test/marketplace-package.test.py", "python3", "test/marketplace-package.test.py"),
     _suite("marketplace-host-isolation", "core", "test/marketplace-host-isolation.test.py", "python3", "test/marketplace-host-isolation.test.py"),
     _suite("installed-skill-invocation", "core", "test/installed-skill-invocation.test.py", "python3", "test/installed-skill-invocation.test.py"),
@@ -253,6 +252,11 @@ _CORE_SUITES = (
     _suite("improve-agent", "core", "test/improve-agent.test.py", "python3", "test/improve-agent.test.py"),
     _suite("review-coverage", "core", "test/review-coverage.test.sh", "bash", "test/review-coverage.test.sh"),
     _suite("dual-body-guard", "core", "test/dual-body-guard.test.sh", "bash", "test/dual-body-guard.test.sh"),
+    _suite("plan-dispatcher-state", "core", "test/plan-dispatcher-state.test.js", "node", "test/plan-dispatcher-state.test.js"),
+    _suite("plan-dispatcher-cli", "core", "test/plan-dispatcher-cli.test.js", "node", "test/plan-dispatcher-cli.test.js"),
+    _suite("plan-dispatcher-progress", "core", "test/plan-dispatcher-progress.test.js", "node", "test/plan-dispatcher-progress.test.js"),
+    _suite("plan-dispatcher-planning-context", "core", "test/plan-dispatcher-planning-context.test.js", "node", "test/plan-dispatcher-planning-context.test.js"),
+    _suite("plan-dispatcher-compound", "core", "test/plan-dispatcher-compound.test.js", "node", "test/plan-dispatcher-compound.test.js"),
 )
 
 SHIPLOOP_SUITES = tuple(_shiploop(path) for path in _SHIPLOOP_PATHS)
