@@ -40,6 +40,16 @@ def _require_retry_delegation(existing: dict, requested: "str | None", run_dir: 
          f"user request with: shiploop delegation --run-dir {run_dir} --set {requested}")
 
 
+def _require_retry_lint(existing: dict, requested: "str | None", run_dir: Path) -> None:
+    """Recovery retries keep the recorded lint option; only lint-mode changes it."""
+    if requested is None:
+        return
+    recorded = navigator.lint_mode(existing)
+    need(recorded == requested,
+         f"--lint {requested} differs from this run's recorded lint option {recorded}; rerun without "
+         f"--lint to recover the run, and change it with: shiploop lint-mode --run-dir {run_dir} --set {requested}")
+
+
 def workspace_command(core, argv):
     """One CLI family; workspace effects stay outside the opaque navigator."""
     import shiploop_workspace as workspace
@@ -56,6 +66,8 @@ def workspace_command(core, argv):
     start.add_argument("--improve-skill", default="")
     start.add_argument("--delegation", choices=navigator.DELEGATIONS, default=None,
                        help="new run: inline (default) or ask-agent delegation")
+    start.add_argument("--lint", choices=navigator.LINT_MODES, default=None,
+                       help="new run: script-owned advisory lint fix (default), report or off")
     for name in ("plan-return", "return"):
         child = subs.add_parser(name)
         child.add_argument("--workspace-root", required=True)
@@ -88,6 +100,7 @@ def workspace_command(core, argv):
                 need(not args.delivery_contract or existing.get("delivery_contract_version") == 1,
                      "cannot retrofit delivery-contract on an existing run")
                 _require_retry_delegation(existing, args.delegation, root / "run")
+                _require_retry_lint(existing, args.lint, root / "run")
                 # Identical re-entry is recovery, not another capture of the
                 # source after product work or a completed integration.
                 return main(core, ["next", "--run-dir", str(root / "run")])
@@ -101,6 +114,8 @@ def workspace_command(core, argv):
                 init.append("--delivery-contract")
             if args.delegation:
                 init += ["--delegation", args.delegation]
+            if args.lint:
+                init += ["--lint", args.lint]
             return main(core, init)
         if args.operation == "plan-return":
             # Like every run-bound verb, refuse a retired or unloadable run
@@ -170,6 +185,9 @@ def main(core, argv=None):
     if raw_argv and raw_argv[0] == "chain":
         import shiploop_chain
         return shiploop_chain.main(core, raw_argv[1:])
+    if raw_argv and raw_argv[0] == "lint":
+        import shiploop_lint
+        return shiploop_lint.main(core, raw_argv[1:])
     parser = argparse.ArgumentParser(
         prog="shiploop",
         description="Markdown-authoritative, script-navigated session harness",
@@ -177,11 +195,13 @@ def main(core, argv=None):
     subs = parser.add_subparsers(dest="command", required=True)
     subs.add_parser("workspace", help="isolated start, return-plan review, and guarded return")
     subs.add_parser("chain", help="bind and operate a parallel or serial chain within the current implementation action")
+    subs.add_parser("lint", help="advisory lint rerun for the current action, or show a stored record part (never gates)")
     navigator_dry_run.add_arguments(subs.add_parser(
         "graph-dry-run", help="inspect navigator routes and prompts without project work"))
     for name in (
         "init",
         "delegation",
+        "lint-mode",
         "improve-bind",
         "improve-complete",
         "improve-reconcile",
@@ -206,9 +226,14 @@ def main(core, argv=None):
                              help="opt a new run in to consumer-delivery declaration checks")
             sub.add_argument("--delegation", choices=navigator.DELEGATIONS, default=None,
                              help="new run: inline (default) or ask-agent delegation")
+            sub.add_argument("--lint", choices=navigator.LINT_MODES, default=None,
+                             help="new run: script-owned advisory lint fix (default), report or off")
         if name == "delegation":
             sub.add_argument("--set", dest="delegation_value", choices=navigator.DELEGATIONS, required=True,
                              help="execution delegation for this run's future assignments")
+        if name == "lint-mode":
+            sub.add_argument("--set", dest="lint_value", choices=navigator.LINT_MODES, required=True,
+                             help="script-owned advisory lint for this run's later passes")
         if name == "improve-bind":
             sub.add_argument("--skill-card", required=True)
         if name in ("complete", "improve-bind", "improve-complete", "improve-reconcile"):
@@ -272,6 +297,7 @@ def main(core, argv=None):
                          or existing.get("delivery_contract_version") == 1,
                          "--delivery-contract cannot retrofit an existing run; preserve it and use its recorded settings")
                 _require_retry_delegation(existing, getattr(args, "delegation", None), root)
+                _require_retry_lint(existing, getattr(args, "lint", None), root)
                 return navigator.dispatch(
                     core, root, existing, args,
                     completion_guard=lambda before, after: workspace_completion_guard(root, before, after),
@@ -282,6 +308,8 @@ def main(core, argv=None):
             need(args.command != "delegation",
                  "delegation needs an existing run; choose it with --delegation at init or "
                  "workspace start")
+            need(args.command != "lint-mode",
+                 "lint-mode needs an existing run; choose it with --lint at init or workspace start")
             if args.command != "init":
                 core.die(core.EXIT_BLOCKED, f"no authoritative state.md in {root}")
             need(bool(args.prompt.strip()), "prompt must not be empty")
@@ -306,6 +334,7 @@ def main(core, argv=None):
                 delivery_contract=args.delivery_contract,
                 worktree=args.execution_mode == "navigator-worktree",
                 delegation=args.delegation or navigator.DEFAULT_DELEGATION,
+                lint_option=args.lint or navigator.DEFAULT_LINT,
             )
             navigator.save(root, state)
             print(navigator.render(core, root, state), end="")

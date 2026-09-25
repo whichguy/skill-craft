@@ -7,7 +7,7 @@ description: >-
   coding request into a forward draft then backward-chaining enriched DAG with explicit
   unresolved risks, then directly calls the selected Until Loop to repeat dependency
   review until two consecutive trivial/no-change reviews.
-version: 0.4.0
+version: 0.5.0
 author: Backchain
 license: MIT
 platforms:
@@ -248,9 +248,27 @@ Optional top-level key: **`goal_needs`** — array of non-empty strings naming t
 - **`steps`**: at least one step; every step's `produces` has **at least one** non-empty string
   (schema `minItems`).
 
-Every step has exactly **five fields**: `id`, `statement`, `produces`, `inputs`, `origin`.  
+Every step has **five required fields**: `id`, `statement`, `produces`, `inputs`, `origin`,
+plus one optional field, `confirm`.  
 `origin` is `seed` or `discovered`. Do **not** invent extra step or plan fields
 (`dependents`, `flags`, `rationale`, `preconditions`, etc.).
+
+**`confirm`** (optional array) records how each produce is confirmed. Each entry is
+`{ "produces": "<exact text of one of this step's produces>", "by": "<command, observation,
+or inspection>; pass when <expected result>", "level": "execute" | "inspect" | "unconfirmable" }`
+and names a produce at most once. Author one for every step's produces, work steps included,
+not only verification sinks. The confirmation must pass the two-people test: two people running
+it separately would be forced to agree. `execute` means the condition must be exercised;
+`inspect` means inspection is sufficient. Give content criteria (docs, changelogs, test coverage)
+a command-checkable confirmation, such as a search for required terms. A criterion no available
+check can confirm keeps its produce and gets `level: "unconfirmable"` with `by` naming what would
+confirm it, rather than being dropped. When a check relies on an external oracle (golden, fixture,
+or snapshot), the confirmation also confirms that the oracle agrees with the task. The exporter
+turns each confirmed produce into the done string `<produce>. Confirm by: <by>` (`inspect` adds
+`(inspection is sufficient)`; `unconfirmable` reads `Confirm by: unconfirmable here — <by>`).
+A produce without an entry stays valid and exports unchanged; packaging reports it in the
+advisory `unconfirmed_produces` list. The elaborator and revise preserve existing entries and
+repair them when they rewrite a produce, the same way they preserve `goal_needs`.
 
 **`statement` and every entry in `produces` are postconditions (state/conclusion), never
 actions, commands, or tool calls.** Write what becomes true when the step is done — e.g.
@@ -295,8 +313,11 @@ leave `parallel_groups` as `[]` until that recompute.
 Keep seed step IDs and existing input edges intact. The structural validator enforces seven
 invariants (agents loading only this skill must still honor them):
 
-1. **Schema shape** — closed fields/enums; only the five step fields above; inputs use
-   `need`/`from` (+ optional `artifact`/`match`); unresolved uses the reason-specific shape.  
+1. **Schema shape** — closed fields/enums; only the five step fields above plus optional
+   `confirm`; inputs use `need`/`from` (+ optional `artifact`/`match`); unresolved uses the
+   reason-specific shape. Each `confirm` entry names the exact text of one of its step's
+   `produces`, at most once, with a non-blank `by` and a `level` of `execute`, `inspect`, or
+   `unconfirmable`.  
 2. **Acyclic committed edges** — no dependency cycles; circular residual risk is bookkeeping
    in `unresolved`, not committed `from` edges.  
 3. **Suppliers exist** — every non-null `inputs[].from` references an existing step id.  
@@ -310,6 +331,8 @@ invariants (agents loading only this skill must still honor them):
    elaborator layer); structural checks only prove provenance and declared assumptions.
 
 **Structural vs complete:** `validateStructure` returns `{ ok, failures }` (invalid vs valid).
+A produce without a `confirm` entry is neither a structural failure nor incomplete; it is only
+the advisory `unconfirmed_produces` signal.
 Separately, `completionStatus(plan)` reports `invalid` | `incomplete` | `complete`:
 structure-ok plans with non-empty `unresolved` are **valid incomplete** (normal for residual
 gaps). Optional `goal_needs` (when present) must be covered by `produces` or `initial_state` for

@@ -32,6 +32,8 @@ SHIPLOOP_DIRECT_SUBCOMMANDS = frozenset(
         "graph-dry-run",
         "init",
         "delegation",
+        "lint-mode",
+        "lint",
         "improve-bind",
         "improve-complete",
         "improve-reconcile",

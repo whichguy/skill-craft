@@ -5,7 +5,7 @@ description: >-
   script's current action packet, and submit its exact completion call until
   the script reports completion with an HTML achievement report. Use when the
   user says shiploop, ship the project, or requests a durable delivery loop.
-version: 0.24.2
+version: 0.25.0
 allowed-tools: all
 license: MIT
 platforms:
@@ -280,6 +280,39 @@ new last item's carry-forward. An isolated run's workspace return happens at
 The two consecutive trivial passes an Improve child needs are self-passes by the
 same executor, not independent reviews; packets and reports call them passes.
 
+### Script-owned lint
+
+A new run records `lint: fix`. ShipLoop then runs a small advisory lint pass
+itself: when a work item's inner loop starts it snapshots the item base, the
+`complete` that enters `static-checks` lints the files the item changed and, on
+the item's first entry only, applies ruff-classified safe fixes that touch only
+lines the item changed, and the `complete` that enters `verify` reruns it
+report-only (or repeats the stored result when nothing changed). The block
+follows the packet's callback. It lists every command's exact argv, cwd, exit
+code and complete output, shows auto-fixes as an applied diff plus NOT APPLIED
+hunks, separates new findings from debt already present at the item base, and
+states per-file coverage. It is supporting output, not exit-criteria evidence:
+no transition is gated on it, and the step still selects and runs its own
+checks. Linters that execute repository code are listed with a risk tag and
+never run, and missing tools produce install recommendations; nothing is ever
+installed. Details and safety pins: [lint catalog](references/lint-catalog.md).
+
+`--lint fix|report|off` at `init` or `workspace start` selects the option; a
+saved run without the key behaves as `off` and is never migrated. `report`
+shows would-be fixes as NOT APPLIED. An `init` or `workspace start` retry cannot
+change it. For an existing run:
+
+```sh
+python3 "$CLI" lint-mode --run-dir "$RUN_DIR" --set report   # or fix, off
+python3 "$CLI" lint --run-dir "$RUN_DIR" --action "$ACTION"   # report-only rerun
+```
+
+`lint-mode` is refused on a halted or done run. A switch to `fix` applies fixes
+only where a per-item base exists; otherwise the pass says its base fell back
+and runs report-only. The `lint` rerun exits 0 when clean and fully covered, 1
+when new findings remain or a file is uncovered, and 3 when the pass could not
+run; ShipLoop never gates on that exit code.
+
 ## Durable handoff
 
 Each navigator packet supplies absolute CLI, repository, and run-directory
@@ -369,8 +402,16 @@ retain the recovery locators and resume the same run when execution resumes.
    conversation context may help; current Markdown wins.
 2. Perform the assigned duties using the appropriate tools and skills. Establish
    test criteria before implementation, refine cases using the actual code,
-   run meaningful tests and available linters, fix failures and recheck. Record
-   outcomes and limitations honestly. Do not weaken tests to obtain a pass.
+   and give each completion criterion a `Confirm by:` confirmation. Treat those
+   criteria as exit criteria: confirm each by its stated method with what is
+   already present, fix the work rather than the check, rerun every check in one
+   pass after the last edit, and stop only when all are confirmed, one is proven
+   unachievable (route it to planning), or the same check still fails after 3
+   genuine fix attempts ([step exit criteria](references/parallel-chain.md#step-exit-criteria)).
+   A ShipLoop lint block printed after a `static-checks` or `verify` callback is
+   supporting output, not exit-criteria evidence, and never replaces the checks
+   you select ([script-owned lint](#script-owned-lint)).
+   Record outcomes and limitations honestly. Do not weaken tests to obtain a pass.
    Apply [repeatable test suites](references/repeatable-test-suites.md): select or
    revalidate the harness during initial planning; for every INNER change assess
    setup, test, teardown and focused/smoke/full-suite inclusion. Retain executable

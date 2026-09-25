@@ -86,6 +86,14 @@ convergence loop of its own. Product edits wait for `implement`. A step is not
 ready to code merely because its work item is next, and a plan is not ready
 merely because one pass produced it.
 
+Each completion criterion in the step plan carries its confirmation:
+`<condition>. Confirm by: <command, observation, or inspection>; pass when
+<expected result>.`, with inspection declared where it is sufficient and
+`Confirm by: unconfirmable here — <what would confirm it>` where nothing
+available can confirm it ([authoring rule](backchain-planning.md#outcomes)).
+These criteria are `implement`'s exit criteria and what `verify` checks item by
+item; a plan check can flag a criterion that has neither form.
+
 ## Local microplan and backchain
 
 The work queue orders delivery items. Within the selected item, draft a compact
@@ -287,3 +295,17 @@ gaps, not a proof of exhaustiveness. The
 of unaided self-verification in evaluated planning tasks; that motivates
 current-code inspection, meaningful checks and retained counterevidence. The host
 remains responsible for evidence quality, test adequacy and truthful reporting.
+
+### Until Loop per step (selective)
+
+A step's exit-criteria loop normally runs inside its step prompt: confirm each
+criterion by its stated method, rerun every check after the last edit, and stop
+on done, proven unachievable, or the same check failing after 3 genuine fix
+attempts. For a step expected to need many iterations or context resets, or for
+a retried step, that fix-until-confirmed loop may instead run as a bound Until
+Loop child with `work` = the step, `exit_condition` = every criterion confirmed
+by its stated method, `repeat_condition` = the proven-unachievable rule plus a
+no-progress stop, and `required_trivial_reviews` = 0. The contract text itself
+must carry the conflict rule: keep existing behavior at the conflict point; a
+prompt around the contract is not enough. This is not the default: on bounded
+steps it produced the same outcomes at about 1.8× the cost.

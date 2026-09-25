@@ -64,6 +64,14 @@ implementation action's scope** before binding; do not submit the whole project'
 SDLC as one implementation graph. Keep missing prerequisites explicit rather
 than treating syntactic validation as a semantic readiness check.
 
+Each `contract.done` item is that step's exit criterion. Author it as
+`<condition>. Confirm by: <command, observation, or inspection>; pass when
+<expected result>.`, state when inspection is sufficient, and mark a criterion
+no available check can confirm as `Confirm by: unconfirmable here — <what would
+confirm it>` instead of dropping it. A Backchain step `confirm` entry exports in
+this form. The worker packet makes these items its exit criteria; the bridge
+never reruns them.
+
 ### Planning-artifact handoff
 
 For a new context-capable binding, inspect the read-only inventory first:
@@ -131,7 +139,10 @@ the frozen binding in place.
 
 The host verifies this review evidence; `bind` validates and freezes the graph.
 Planning review checks dependencies, ready/done criteria, parallel paths, joins,
-shared resources and verification ownership. It does not run the planned tasks.
+shared resources and verification ownership. A done item without a confirmation
+that two people running it separately would be forced to agree on, or an
+unjustified `unconfirmable here` marker, is a material planning gap. It does not
+run the planned tasks.
 Every planning producer and its Improve completion must retain each generated
 planning file in ordinary `evidence_refs`. If an Improve `final_result` refines
 the producer outcome, preserve earlier registered references and add the new
@@ -258,6 +269,41 @@ time and an empty ready list never authorize acceptance or completion.
 | `pending` | No input file. List every unaccepted step with current status and unmet direct dependencies, plus capacity; no claim, launch or acceptance. |
 | `finish` | Current integrated target `commit`, `confirmed_stopped:true`, and independent `verification:{path,sha256}`; require all contributions accepted, final combined verification and completed cleanup. Per-step mode has already merged each result; this is a final audit. |
 
+### Step exit criteria
+
+Every worker packet, parallel or serial, carries the exit-criteria loop: before
+editing, record each done item's confirming check and pass condition, using its
+`Confirm by:` method; confirm with what is already present and never install
+tools to do so; stay within the task and report a check that would require more
+as a discrepancy; after the last edit rerun every check in one pass; stop on
+exactly one of SUCCEEDED (every item confirmed or inspected, or reported
+`unconfirmable` when the plan already marks it `Confirm by: unconfirmable here`,
+none failed), BLOCKED (an item proven unachievable) or FAILED (the same check
+still failing after 3 genuine fix attempts). An item is proven unachievable only
+when it contradicts another item, the task or a protected file after all
+compatible work with existing behavior kept at the conflict point, needs an
+absent tool, runtime, access or authority (unless the plan already marked it
+unconfirmable here), or would exceed the task. Existing tests, check scripts,
+golden or fixture files and thresholds belong to the checks. Plan Dispatcher
+0.3.0 worker packets use the same wording. When a retried step's packet
+carries `prior_attempts` (Plan Dispatcher 0.3.0 adds it), the worker first
+verifies and reads those earlier results and reasons and addresses the named
+failing items.
+
+A per-step worker writes its per-item receipt as the declared handoff file
+`exit-criteria.json`: `criteria` (a list of `{criterion, check, observed,
+level}` with level `confirmed`, `inspected`, `failed`, `not_run` or
+`unconfirmable`), `discrepancies` and `recommendations`. It is listed in the
+manifest `files` and summarized in `summary`; the handoff v1 keys are unchanged.
+
+The parent's `verify` checks that receipt against each done item and independently
+reruns or inspects each item's confirmation. It rejects a result whose
+confirmable item failed or was not confirmed, naming the items. An item reported
+`inspected` or `unconfirmable` whose `Confirm by:` required execution means the
+step contract cannot be met here: treat it as BLOCKED for planning, not as
+accepted. A BLOCKED result with a proven-unachievable item goes back to planning
+(plan revision or replan), not to a blind `retry`.
+
 Successful `done` evidence is a JSON object with `passed:true`, actual checks,
 and `integration` containing the exact `source_commit`, `expected_target`,
 `candidate_commit`, and `workspace` returned by `prepare`. These identify the
@@ -340,7 +386,8 @@ The local handoff is `.shiploop-handoff/<attempt>/handoff.json` inside the worke
 checkout. Use schema `shiploop-chain-handoff/v1` with `run_id`, `step`, `attempt`,
 `base_commit`, actual `status`, exact `commit` (null for failed/blocked work),
 `summary` and `files:[{path,sha256}]`. File paths are relative to the handoff
-directory; declare every result/scratch file there. Keep code deliverables
+directory; declare every result/scratch file there, including the per-item
+receipt `exit-criteria.json`. Keep code deliverables
 committed outside that directory. Parent import preserves exact bytes and evidence references
 in an external immutable archive, authors the dispatcher artifact/envelope, and
 removes only preserved, unchanged, declared local temporary files. A link, path

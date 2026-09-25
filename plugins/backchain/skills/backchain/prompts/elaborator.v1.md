@@ -15,9 +15,10 @@ needed) in place** so it reads as the state that action was meant to establish (
 becomes "TypeORM is installed as a project dependency"). Do not record anywhere that you made this fix —
 the corrected text *is* the record. This never affects a step's `id` or its `origin`.
 
-## The five-field schema — nothing else exists
+## The step schema — nothing else exists
 
-Every step, in the draft and in your output, has exactly these fields and no others:
+Every step, in the draft and in your output, has exactly these fields and no others (the first five
+required, `confirm` authored by you whenever the draft lacks it):
 
 - **`id`** — a seed step's id is immutable. Never rename, renumber, or otherwise touch the `id` of any step
   whose `origin` is `"seed"`. When you insert a brand-new step, give it a fresh id of the form `D1`, `D2`,
@@ -33,6 +34,25 @@ Every step, in the draft and in your output, has exactly these fields and no oth
   flag name). Add `match` only when the need and the supplying step's `produces` don't obviously refer to
   the same state in the same words — most edges need no `match` at all; do not add one reflexively.
 - **`origin`** — `"seed"` for every step already in the draft, `"discovered"` for every step you insert.
+- **`confirm`** — how each produce is confirmed: `[{"produces": "<exact text of one of this step's
+  produces>", "by": "<command, observation, or inspection>; pass when <expected result>", "level":
+  "execute" | "inspect" | "unconfirmable"}]`, one entry per produce, each produce named once.
+  **Preserve every existing `confirm` entry** the draft carries (no drop, no reword of `by`, no level
+  change). The repairs: when you rewrite or widen a produce in place, update its entry's
+  `produces` to the new exact text in the same edit; when you widen it, also keep the original
+  `by` and extend it to cover the added condition, raising `level` to `execute` if the added
+  condition must be exercised. Author a missing entry for every produce — seed,
+  work, sink, and every `D*` you insert — under this rule: give every completion criterion a
+  confirmation, `<condition>. Confirm by: <command, observation, or inspection>; pass when <expected
+  result>.` It must pass the two-people test: two people running it separately would be forced to
+  agree. State whether the condition must be exercised (`execute`) or whether inspection is
+  sufficient (`inspect`). Give content criteria (docs, changelogs, test coverage) a
+  command-checkable confirmation, such as a search for required terms, so they are re-observed
+  rather than recalled. Mark a criterion that no available check can confirm as `unconfirmable`
+  with `by` naming what would confirm it (`Confirm by: unconfirmable here — <what would confirm
+  it>`) rather than dropping it. When a check relies on an external oracle (golden, fixture, or
+  snapshot), confirm that the oracle agrees with the task. A confirmation never justifies a new
+  produce, step, or edge.
 
 Do not add `dependents`, `flags`, `rationale`, `placement`, `via`, `preconditions`, `bound_hit`, or any other
 field to a step or to the top-level plan. If you find yourself wanting to explain *why* you made an edit,
@@ -108,8 +128,10 @@ obviously have done it." If you cannot name the evidence *or* the predecessor th
 the need is still open.
 
 This gate applies to **preconditions a step needs in order to start**, not to a sibling "verify S"
-on every claim. A step's own `produces` is the evidence of *its* claim. Do not insert ceremonial
-verification unless a `goal_needs` sink already requires an independent check.
+on every claim. A step's own `produces` is the evidence of *its* claim, and its `confirm` entries
+carry the condition that checks it: a work step states how it is confirmed without a separate
+verify step. Do not insert ceremonial verification unless a `goal_needs` sink already requires an
+independent check.
 
 **Question ≠ fact still holds for questions.** An unanswered *question* (preference, product taste,
 NBQ aid) is not evidence and must not invent a D* by itself. An inferred *world-state need* from a
@@ -142,7 +164,8 @@ close a genuine gap. The discriminating question is always:
   "a seeded local test user with matching OAuth identity exists" is fixture work, not "mock provider
   endpoints exist"). The new step's `statement`/`produces` must name the **evidence** the consumer will
   rely on. If you cannot say how an implementer would force agreement the need holds after D* runs,
-  D* is not a real supplier — pick unresolved instead of a claim-only discovered step.
+  D* is not a real supplier — pick unresolved instead of a claim-only discovered step. Write that
+  answer down as the new step's `confirm` entry for each of its produces.
 - **Unresolved** when you cannot responsibly invent a supplier.
 
 Never widen a step to *add* work it was not doing (that manufactures a god-step and hides a real gap).
@@ -220,7 +243,9 @@ action-shaped, rewrite it as a state now (core discipline above).
 
 **Lens 2 — NEEDS (upstream enumeration).** Enumerate candidate preconditions from the claim. For each
 state the statement touches, ask: "could an implementer start this step's work in a world where this is
-false?" and "what does *verifying* this step's postcondition assume already exists?" Merge in draft
+false?" and "what does *verifying* this step's postcondition assume already exists?" Record the
+verification you reasoned about in this step's `confirm` entries: keep an existing entry, author a
+missing one, and repair one whose produce you rewrote. Merge in draft
 `inputs[].need` texts as candidates to re-derive, not as conclusions. Expect 2–6 candidates; zero is
 almost always wrong for a non-root step. When the claim uses **resolve / match / find / authorize /
 select / look up** verbs, distinguish (a) **storage/model capability**, (b) **lookup or association
@@ -447,7 +472,8 @@ This reasoning is for your own use in reaching a correct answer — **do not inc
 in the JSON plan object.** The sole exception is the separate `<trace>` block required when trace mode is
 `on` (described below). The only trace of this process that should appear in the final plan is the resolved
 `inputs` entry itself, plus an optional `match` note when the connection is genuinely non-obvious from
-comparing the need's text to the supplier's `produces` text directly.
+comparing the need's text to the supplier's `produces` text directly, and the step's `confirm` entries
+recording how each produce is checked.
 
 ### Worked mini-example (insert vs enrich)
 
@@ -505,8 +531,9 @@ the one that's already correct.
 
 ## Output contract
 
-Output **only** the complete enriched plan as raw JSON — matching the schema above exactly (five fields per
-step, `parallel_groups` always `[]`, `unresolved` entries following the reason-specific shape). No prose, no
+Output **only** the complete enriched plan as raw JSON — matching the schema above exactly (five required
+fields per step plus `confirm` with one entry per produce, preserved entries kept, `parallel_groups`
+always `[]`, `unresolved` entries following the reason-specific shape). No prose, no
 markdown code fences, no commentary before or after the JSON when trace mode is `off` (see below).
 
 Trace mode: {{TRACE_MODE}}

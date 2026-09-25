@@ -1,6 +1,6 @@
 {
   "name": "backchain",
-  "version": "0.4.0",
+  "version": "0.5.0",
   "description": "Plan Orchestrator portable skills: Backchain builds and repeatedly reviews evidence-backed dependency plans; Plan Dispatcher coordinates their execution with native agents. Existing backchain skill and plugin identities remain stable.",
   "author": {
     "name": "Backchain"
