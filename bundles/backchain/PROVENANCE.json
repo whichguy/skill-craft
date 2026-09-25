@@ -3,13 +3,13 @@
   "bundle": "backchain",
   "upstream": {
     "repository": "https://github.com/whichguy/plan-orchestrator.git",
-    "commit": "0f09091a9c3b1b5dee7f55d3fc4a79ecf22f327b",
+    "commit": "a6eeda0056af06bdd92cafbce29717456125e374",
     "manifest": {
       "path": ".claude-plugin/plugin.json",
       "name": "backchain",
-      "version": "0.5.0",
-      "sha256": "fc00b05c40f547c053386144fd4f0b0b17464341ef92e57ce81ec7a12dc80fd8",
-      "git_blob": "367b6ba8bff1a4f70aab32b6b1c58a06f00abf0d"
+      "version": "0.5.1",
+      "sha256": "697d862148604fc8cab2ef66bc7108d4747595d1848491c9f5adb9ffe2493eae",
+      "git_blob": "69283d71f772b64892e36c9ccfa47a84cb302994"
     }
   },
   "files": [
@@ -22,8 +22,8 @@
     {
       "path": "skills/backchain/SKILL.md",
       "mode": "100644",
-      "sha256": "bb52d23ca5e56658d2271492b2a545b3749b1aac3278e468fbb1248d6f790084",
-      "git_blob": "953da728527e2c0880a0f1ce9dd65930ec3b5c93"
+      "sha256": "b58579639830a4b57dbf9554c854d618a72ffbbe5eaa0cd355bd92d32690b39d",
+      "git_blob": "d1492b01da10f4927128e7f530e0b81fbb3b26ed"
     },
     {
       "path": "skills/backchain/evals/evals.json",
@@ -64,8 +64,8 @@
     {
       "path": "skills/backchain/prompts/generator.v1.md",
       "mode": "100644",
-      "sha256": "9ad9f37602def91743a3e8c259e2d990f34b81c5c8ecf0c920f41bc67355742c",
-      "git_blob": "dbbf4152c230941969f647fa2f92b617a6f36c87"
+      "sha256": "9a893044912f90c0889531ded7af22d8e6917376654657e83eb83b6457e3efe5",
+      "git_blob": "6428306bfe3c5c64f2042e44108297c787692e19"
     },
     {
       "path": "skills/backchain/prompts/intent-judge.prompt.md",

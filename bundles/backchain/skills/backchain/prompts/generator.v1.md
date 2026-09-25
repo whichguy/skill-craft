@@ -97,20 +97,33 @@ A single JSON object matching this exact shape:
     entries in its `produces` will not satisfy more than one of them.
   - Name in each sink's `inputs[]` the specific work steps whose output that check inspects, so the
     trace from requirement back to the work establishing it is readable off the graph.
-- **One condition per work step.** A step's `produces` should carry a single condition. When one
-  drafted step would establish two separately-checkable things — say both "a failed delivery is
-  parked instead of retried" and "a parked record retains its original payload" — draft **two
-  steps**, each producing one, and give each the inputs it actually needs. Consumers then wire to
-  the step producing the condition they name.
-  - **Why it matters here rather than as tidiness:** verification sinks trace one condition each, so
-    a step bundling two conditions makes two sinks point back at the same place, and the trace ends
-    somewhere ambiguous — you cannot tell which half of that step established which requirement. The
-    funnel from spec item back to the work only stays readable if each step does one job.
-  - Splitting must happen now, while drafting. Later stages cannot do it: seed ids are immutable and
-    elaboration may only add discovered steps, so a bundled step stays bundled for the rest of the
-    run.
-  - This is not a licence to shred one condition into ceremonial fragments. Two conditions that are
-    genuinely one state — the same fact stated twice — remain one step.
+- **Coherent implementation increments.** Each work seed owns one concrete deliverable or
+  postcondition family that an implementer can establish and check with its stated suppliers.
+  Split a bundled step when its parts have different prerequisites, expose a reusable intermediate
+  artifact, or can be implemented and checked independently. This also applies inside one large
+  requested behavior: a data contract, its producer, and its consumer may be separate increments
+  even when they ultimately serve the same `goal_needs` entry. Keep each increment's output
+  concrete enough for a consumer to quote as its `need`. Do not bundle separately implementable
+  and checkable deliverables merely because they belong to the same feature or family.
+  - Merge adjacent fragments when neither yields a useful independently checkable state and they
+    share the same prerequisites, implementation boundary, and postcondition family. Do not make
+    a seed for every assertion, file edit, or procedural action. Do not split merely to increase
+    parallelism; retain a necessary sequence when one increment really consumes another's output.
+  - Apply this split/merge check **once before finalizing seed ids**. Account for every requested
+    obligation, including work with no downstream consumer; independent work is still required.
+    Do not let a broad phrase such as "the feature works" hide several implementable deliverables.
+    Seed identities are preserved by later passes, so repair bundled work here.
+  - For each proposed dependency ask: **what output of the supplier must exist before this
+    consumer can establish its state?** Add the edge only when highly confident and quote the
+    supplier output exactly, following the input rules below. Shared topic, presentation order, and a shared file alone are not causal dependencies.
+    A shared contract can unlock multiple independent implementations; integration then consumes
+    all outputs it actually checks. File/resource contention must be declared and checked during
+    execution planning before launch; do not invent producer/consumer edges solely for contention.
+    Isolated workspaces do not guarantee merge safety. Missing edges
+    in a first draft are not proof of independence; later dependency review still checks them.
+  - No minimum seed count, elapsed-time quota, or mandatory design/scaffolding step. A small
+    change can remain one work seed plus any independently justified verification sink. Keep
+    verification sinks separate and one per checkable goal condition as specified above.
 - **Environment probes — run ONCE against `goal_needs`, never per step.** After `goal_needs` is
   finalized and **before** drafting any step, probe those terminal conditions exactly once for
   five categories of real-world precondition. This is a single spec-level pass, not a per-step
@@ -153,11 +166,9 @@ A single JSON object matching this exact shape:
   it out; backward chaining will find a supplier, insert a predecessor that produces the evidence, or
   record it unresolved. Be concrete when you do include a fact; vague entries just push work later.
 - **`steps`**: draft them in whatever order feels natural. Exact ordering is not semantic.
-  Prefer **coherent implementable units** over slicing every assertion or test case into its own seed
-  when those pieces share the same suppliers and postcondition family (e.g. merge “integration tests
-  cover login / callback / session” into **one** test step unless dependencies or deliverables truly
-  diverge). Do **not** invent padding steps; fewer clear seeds beat many near-duplicates. **Seed count
-  is not a quality score** — a short, well-stated draft is ideal. Every step:
+  Use the split/merge check above to choose **coherent implementable units**. **Seed count is not
+  a quality score**: enough increments expose real deliverables and dependencies without padding.
+  Every step:
   - Has a sequential `id`: `S1`, `S2`, `S3`, ... in the order you draft them.
   - Has a `statement` that is a **state or conclusion**, never an action, command, or tool invocation. Write
     "the database migration has been applied," not "run the migration." Write "the User model exposes a
