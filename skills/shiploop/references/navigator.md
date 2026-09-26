@@ -73,11 +73,11 @@ flowchart TD
   subgraph INNER[Inner loop: once per work item, the item record owns the cursor]
     SW[select-work] --> SP[step-plan ✦ records test commands] --> TS[test-spec ✦] --> BL[baseline → test-author → test-red]
     BL --> IM[implement ⛔ lint gate, pass-or-stop]
-    IM --> TG[test-green ⟳⛔ test loop, at most 4]
+    IM --> TG[test-green ⟳⛔ test loop]
     TG --> TR[test-refine ⛔ test rerun, pass-or-stop]
-    TR --> RG[regression ⟳⛔ test loop, at most 4]
+    TR --> RG[regression ⟳⛔ test loop]
     RG --> DOC[document → skill-assess → skill-validate]
-    DOC --> SC[static-checks ⟳ quality loop, at most 3; ⛔ test rerun]
+    DOC --> SC[static-checks ⟳ quality loop; ⛔ test rerun]
     SC --> VI[verify → integrate → integration-verify ⛔ test rerun]
     VI --> CF[carry-forward]
     CF -->|more items| SW
@@ -96,7 +96,7 @@ flowchart TD
 unwaived new finding, and every stage from `test-green` on that can edit code
 (`test-green`, `test-refine`, `regression`, `static-checks`,
 `integration-verify`) is not accepted until ShipLoop has run the recorded test
-commands itself and each exited 0; after 3 refused runs `done` is no longer accepted and the item goes back to `step-plan` with `revise`. ⟳ loops inside the stage: the bound Until Loop
+commands itself and each exited 0; after 7 refused runs `done` is no longer accepted and the item goes back to `step-plan` with `revise`. ⟳ loops inside the stage: the bound Until Loop
 drives the test loops and the `static-checks` quality loop, and the pass-or-stop
 prompt loop reruns failing checks at `implement`, `test-refine` and
 `integration-verify` until they pass or the step reports `revise` (or `blocked` for what only the user, an access grant or an outside dependency can resolve).

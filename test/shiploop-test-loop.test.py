@@ -222,7 +222,7 @@ class TestLoopTests(unittest.TestCase):
         self.assertEqual(contract["required_trivial_reviews"], 1)
         packet = self.packet()
         self.assertIn("Allowed outcomes: done | blocked | revise (", packet)
-        self.assertIn("Test loop (bound Until Loop; the loop script counts iterations, at most 4):", packet)
+        self.assertIn("Test loop (bound Until Loop; the loop script counts iterations; there is no iteration limit):", packet)
         self.assertIn("  1. [focused] sh check.sh fixed.txt", packet)
         self.assertIn("ShipLoop checks the terminal packet against the contract and then runs every listed command",
                       " ".join(packet.split()))
@@ -273,11 +273,12 @@ class TestLoopTests(unittest.TestCase):
                             "not from a run of this action's contract")
         self.run_loop([TRIVIAL])
         self.assert_refused(DONE, "list the saved terminal packet in evidence_refs")
-        self.run_loop([MATERIAL] * 4 + [TRIVIAL])
-        self.assert_refused(dict(DONE, evidence_refs=[str(self.terminal())]),
-                            "ran 5 iterations, more than the 4 in its contract.*report outcome revise")
-        self.complete(dict(DONE, outcome="revise", evidence_refs=[str(self.terminal())]))
-        self.assertEqual(nav.current_stage(self.state()), "step-plan")
+        # No iteration limit: a long loop that ends complete is done.
+        self.run_loop([MATERIAL] * 6 + [TRIVIAL])
+        self.assert_refused(dict(DONE, outcome="revise", evidence_refs=[str(self.terminal())]),
+                            "a complete test loop reports outcome done")
+        self.complete(dict(DONE, evidence_refs=[str(self.terminal())]))
+        self.assertEqual(nav.current_stage(self.state()), "test-refine")
 
     def test_stopped_loop_reports_blocked_and_runs_no_command(self):
         self.start()
@@ -407,15 +408,15 @@ class TestLoopTests(unittest.TestCase):
                 self.complete(done)
                 self.assertNotEqual(nav.current_stage(self.state()), stage)
 
-    def test_after_three_refused_runs_only_blocked_is_accepted(self):
+    def test_after_seven_refused_runs_only_blocked_is_accepted(self):
         self.start()
         self.drive_to("test-refine")
         (self.repo / "retained.txt").unlink()
-        for attempt in (1, 2, 3):
-            self.assert_refused(DONE, "Refused runs for this action: " + str(attempt) + " of 3")
+        for attempt in range(1, 8):
+            self.assert_refused(DONE, "Refused runs for this action: " + str(attempt) + " of 7")
         (self.repo / "retained.txt").write_text("retained\n")  # even a now-passing tree
         with mock.patch.object(test_loop, "lint", wraps=test_loop.lint) as runner:
-            self.assert_refused(DONE, "was refused 3 times; done is no longer accepted")
+            self.assert_refused(DONE, "was refused 7 times; done is no longer accepted")
             runner.run_argv.assert_not_called()
         self.complete(dict(DONE, outcome="blocked", blocked_by="external"))
         self.assertEqual(self.state()["status"], "blocked")

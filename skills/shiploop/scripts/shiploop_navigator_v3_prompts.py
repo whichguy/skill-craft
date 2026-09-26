@@ -573,7 +573,6 @@ file cold with no run history. Every rule serves that reader.
 # Improve card.  ShipLoop writes these three texts into the loop contract
 # verbatim; the Until Loop script counts iterations and ends the loop, and
 # ShipLoop checks the saved terminal packet against them before accepting.
-QUALITY_LOOP_LIMIT = stage_spec.stage("static-checks").loop_limit
 
 QUALITY_ITERATION = """\
 One quality iteration over this work item's change. Scope: the change
@@ -612,14 +611,13 @@ QUALITY_EXIT_CONDITION = (
 )
 
 QUALITY_REPEAT_CONDITION = (
-    "Repeat while the latest iteration fixed a material finding and its checks ran. "
-    "Stop cancelled when iteration " + str(QUALITY_LOOP_LIMIT) + " still finds a "
-    "material finding, naming it. Stop blocked when a finding cannot be fixed within "
-    "the scope or authority in context, or a required check cannot run."
+    "Repeat while the latest iteration fixed a material finding and its checks ran; "
+    "there is no iteration limit. Stop blocked when a finding cannot be fixed within "
+    "the scope or authority in context, or a required check cannot run. Never stop "
+    "cancelled: a user's stop is the ShipLoop packet's pause command."
 )
 
 # Script-enforced test loops (test-green, regression) on the same bound Until Loop.
-TEST_LOOP_LIMIT = stage_spec.stage("test-green").loop_limit
 
 TEST_ITERATION = """\
 One test iteration over this work item's test command list (below).
@@ -648,8 +646,8 @@ TEST_EXIT_CONDITION = (
 
 TEST_REPEAT_CONDITION = (
     "Repeat while the latest iteration found a failing command and changed code to "
-    "fix it. Stop cancelled when iteration " + str(TEST_LOOP_LIMIT) + " still has a "
-    "failing command, naming it. Stop blocked when a failure is proven unachievable: "
+    "fix it; there is no iteration limit. Never stop cancelled: a user's stop is the "
+    "ShipLoop packet's pause command. Stop blocked when a failure is proven unachievable: "
     "it contradicts the specification or another requirement, needs a tool, access "
     "or authority that is absent, or would exceed the item."
 )
@@ -669,14 +667,14 @@ Do:
    the runtime returns complete or stopped.
 3. Save the terminal packet, byte for byte from stdout, to the printed terminal
    path and list that path in evidence_refs.
-Report: done when the loop completed; revise when it used all its iterations
-without passing (the item goes back to its step plan, with the failing command
-as evidence); blocked, with blocked_by, only when the user, an access grant or
+Report: done when the loop completed; revise when it stopped blocked because a
+failure is unachievable as planned (the item goes back to its step plan, with the
+failing command as evidence); blocked, with blocked_by, only when the user, an access grant or
 an outside dependency must unblock it. On done, ShipLoop checks the terminal
 packet against the contract and then runs every listed command itself; it
 refuses done unless each exits 0 and prints the failures. After a refusal, fix
 the code, start the loop again with the printed command (its terminal packet is
-replaced) and submit again. After 3 refused runs done is no longer accepted:
+replaced) and submit again. After 7 refused runs done is no longer accepted:
 report revise. Before the test run, ShipLoop lints this item's changes as at
 implement: it refuses done once after an auto-fix and while a new finding on a
 changed line has no `lint_waivers` entry.
@@ -1413,8 +1411,9 @@ Do:
    the runtime returns complete or stopped.
 3. Save the terminal packet, byte for byte from stdout, to the printed terminal
    path and list that path in evidence_refs.
-Report: done when the loop completed; revise when it used all its iterations
-with material findings left, naming them (the item goes back to its step plan);
+Report: done when the loop completed; revise when it stopped blocked because a
+finding shows the item's goal is wrong as planned, naming it (the item goes back
+to its step plan);
 blocked, with blocked_by, only when the user, an access grant or an outside
 dependency must unblock it. Summarize the entry-point inventory, each
 trace that found an issue, the fixes, and the final check commands with exit
@@ -2314,7 +2313,6 @@ __all__ = (
     "PLANNING_REVIEW_STAGES",
     "QUALITY_EXIT_CONDITION",
     "QUALITY_ITERATION",
-    "QUALITY_LOOP_LIMIT",
     "QUALITY_REPEAT_CONDITION",
     "PRELUDE",
     "PROGRESS_REPORTING",

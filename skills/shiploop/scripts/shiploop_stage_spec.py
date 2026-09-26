@@ -72,14 +72,10 @@ class Stage:
     edits: frozenset[str] = frozenset()    # what the stage may change: code, tests, docs
     entry_runs: tuple[str, ...] = ()       # script tool runs when the stage's action is issued
     complete_runs: tuple[str, ...] = ()    # script tool runs before done is accepted
-    loop_limit: int = 3                    # iterations the stage's loop may use
     improve: str | None = None             # "always", "last-item" or None
     reads: tuple[str, ...] = ()            # accepted results to read first ("item:" = this item)
     blocks: frozenset[str] = field(default_factory=frozenset)
     outcomes: tuple[str, ...] = ("done", "repeat", "blocked")
-    # Outcomes accepted once the stage's loop has used its iterations: done is
-    # never among them.  Filled in by _finish for INNER build and OUTER stages.
-    on_exhausted: tuple[str, ...] = ("blocked",)
 
     def __post_init__(self) -> None:
         if self.phase not in PHASES:
@@ -96,8 +92,6 @@ class Stage:
             raise ValueError(f"{self.name}: unknown improve rule {self.improve!r}")
         if not set(self.outcomes) <= OUTCOMES or "done" not in self.outcomes:
             raise ValueError(f"{self.name}: outcomes must include done and use known outcomes")
-        if not self.on_exhausted or not set(self.on_exhausted) <= set(self.outcomes) - {"done", "repeat"}:
-            raise ValueError(f"{self.name}: on_exhausted must be non-empty allowed outcomes other than done/repeat")
 
 
 _PLANNING = "Keep this stage's decisions, constraints and source locators in its result and evidence_refs."
@@ -305,7 +299,6 @@ _ROWS = (
         edits=frozenset({"code", "tests"}),
         entry_runs=("test-loop-contract",),
         complete_runs=("lint-gate", "test-loop"),
-        loop_limit=4,
         reads=("item:test-spec", "item:implement"),
         blocks=frozenset({"code-craft"}),
         outcomes=("done", "blocked"),
@@ -335,7 +328,6 @@ _ROWS = (
         edits=frozenset({"code", "tests"}),
         entry_runs=("test-loop-contract",),
         complete_runs=("lint-gate", "test-loop"),
-        loop_limit=4,
         reads=("test-strategy", "item:baseline"),
         blocks=frozenset({"test-facility", "test-decision", "code-craft"}),
         outcomes=("done", "blocked"),
@@ -376,7 +368,6 @@ _ROWS = (
         edits=frozenset({"code", "tests"}),
         entry_runs=("change-inventory", "quality-contract", "advisory-lint"),
         complete_runs=("quality-terminal", "test-rerun"),
-        loop_limit=3,
         reads=("item:step-plan", "item:implement"),
         blocks=frozenset({"code-craft"}),
         outcomes=("done", "blocked"),
@@ -544,9 +535,9 @@ def _finish(rows: tuple[Stage, ...]) -> tuple[Stage, ...]:
     finished = []
     for index, row in enumerate(rows):
         if first <= index <= last:
-            row = replace(row, outcomes=row.outcomes + ("revise",), on_exhausted=("revise",))
+            row = replace(row, outcomes=row.outcomes + ("revise",))
         elif row.phase == "outer":
-            row = replace(row, outcomes=row.outcomes + ("replan",), on_exhausted=("replan", "blocked"))
+            row = replace(row, outcomes=row.outcomes + ("replan",))
         finished.append(row)
     return tuple(finished)
 

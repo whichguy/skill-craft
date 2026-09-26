@@ -363,8 +363,7 @@ runs the checks (later ones rerun them only after an edit); each iteration
 lists the changed public entry points, traces each one with a
 valid, a boundary and an invalid input, reviews the change against the *Code
 craft* rubric and fixes what it finds. The Until Loop script ends the loop
-after an iteration with only trivial findings; a third iteration that still
-finds a material issue stops it. The stage accepts only `done`, `revise` or
+after an iteration with only trivial findings; there is no iteration limit. The stage accepts only `done`, `revise` or
 `blocked` (see [Revise](#revise-back-to-the-step-plan)): `done` needs the terminal
 packet `quality/<action>-terminal.json`, which the runtime writes itself (the
 packet's start command passes `--receipt`). ShipLoop accepts only a complete
@@ -446,7 +445,7 @@ Every stage after the test loops that can edit code reruns them too: on `done`
 at `test-refine`, `static-checks` (after its quality-loop check) and
 `integration-verify`, ShipLoop runs every recorded command and refuses unless
 each passes. There is no loop at those stages; the packet lists the commands.
-Each action allows 3 refused runs; after that ShipLoop no longer accepts `done`,
+Each action allows 7 refused runs; after that ShipLoop no longer accepts `done`,
 so a failing command goes back to the step plan with `revise` instead of an
 endless retry.
 
@@ -494,9 +493,10 @@ unachievable while it is being built, from `test-spec` through
 `step-plan` with that result as evidence, and its earlier results from the step
 plan on stop counting as current. Each work item may revise twice; after that
 ShipLoop refuses `revise` and the stage reports `blocked` with `blocked_by: user`
-and a question. A script-run loop that uses all its iterations without meeting
-its exit condition must report `revise`; a loop cancelled before its limit is
-refused, because a user's stop is the packet's `pause` command. The per-item
+and a question. A script-run loop has no iteration limit: it runs until its
+exit condition holds. One that stops blocked because the item's goal proved wrong
+reports `revise`; a cancelled loop is refused, because a user's stop is the
+packet's `pause` command. The per-item
 count is kept in `state.md` `revisions`.
 
 ## Durable handoff

@@ -85,8 +85,12 @@ class StageTableTest(unittest.TestCase):
         self.assertEqual(test_loop.RED_STAGE, "test-red")
         self.assertEqual(quality.STAGE, "static-checks")
         self.assertEqual(spec.with_entry_run("lint-base"), ("select-work",))
-        self.assertEqual(prompts.TEST_LOOP_LIMIT, 4)
-        self.assertEqual(prompts.QUALITY_LOOP_LIMIT, 3)
+        # ShipLoop loops are unbounded (owner decision 2026-09-26): no stage carries a limit.
+        self.assertFalse(any(hasattr(spec.stage(name), "loop_limit") for name in spec.STAGES))
+        for condition in (prompts.QUALITY_REPEAT_CONDITION, prompts.TEST_REPEAT_CONDITION):
+            self.assertIn("no iteration limit", condition)
+            self.assertNotIn("Stop cancelled when", condition)
+        self.assertEqual(test_loop.MAX_REFUSED_RUNS, 7)
 
     def test_stages_that_edit_code_run_a_script_check_before_done(self) -> None:
         # A stage that may change code or tests must end with a script-run lint

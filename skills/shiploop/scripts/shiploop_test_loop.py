@@ -45,7 +45,7 @@ RED_STAGE, = stage_spec.with_complete_run("test-red")
 RERUN_STAGES = stage_spec.with_complete_run("test-rerun")
 VERIFY_STAGES = STAGES + RERUN_STAGES
 # Refused command runs per action before done is no longer accepted (then revise or blocked).
-MAX_REFUSED_RUNS = 3
+MAX_REFUSED_RUNS = 7
 # focused and regression commands run tests; a check (for example a search that a
 # document names a required term) is judged by its exit code alone.
 SUITES = ("focused", "regression", "check")
@@ -240,8 +240,8 @@ def render_lines(root: Path, state: Mapping[str, Any], work_item: str, action: s
     """Read-only packet lines: runtime, start command, packet paths and the command list."""
     root = Path(root)
     commands, reason = stage_commands(state, stage, work_item)
-    lines = ["", "Test loop (bound Until Loop; the loop script counts iterations, at most "
-             + str(guidance3.TEST_LOOP_LIMIT) + "):"]
+    lines = ["", "Test loop (bound Until Loop; the loop script counts iterations; there is no "
+             "iteration limit):"]
     if not commands:
         if reason:
             lines.append("No command to run: " + reason.rstrip(".") + ". Report done with that reason; there is no "
@@ -338,7 +338,7 @@ def check_terminal(root: Path, state: Mapping[str, Any], work_item: str, action:
         return
     try:
         quality.check_loop_packet(path, result, build_contract(root, state, work_item, action, stage),
-                                  guidance3.TEST_LOOP_LIMIT, "test loop", str(root / contract_path(action)))
+                                  "test loop", str(root / contract_path(action)))
     except quality.QualityError as exc:
         raise TestLoopError(str(exc)) from exc
 
