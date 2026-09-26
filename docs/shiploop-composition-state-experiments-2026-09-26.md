@@ -8,7 +8,7 @@ such as the mcp-gas-deploy module system or an org's Apex framework.
 
 Harness, fixtures, judge prompts and every verdict:
 [experiments/shiploop-composition-state-20260926](experiments/shiploop-composition-state-20260926/README.md).
-No ShipLoop source was changed by this work.
+The recommended changes were implemented afterwards; see the rerun at the end.
 
 ## Decisions this evidence supports
 
@@ -198,6 +198,48 @@ allowlisted entry point. The requirement that hidden information stay hidden
 has to be tied to the layer's property for the plan to act on it. The candidate
 card text is in
 [candidate-apps-script-card.md](experiments/shiploop-composition-state-20260926/battleship/candidate-apps-script-card.md).
+
+## After implementation: rerun on the shipped text
+
+The five changes were implemented (`feat(shiploop): ask for composable design, a
+state lifecycle and checked platform claims`) and 53 trials were rerun with
+prompts rebuilt from the committed module and card, graded by the same judges
+([after/](experiments/shiploop-composition-state-20260926/after/)).
+
+| Measure | Before (current wording) | Experiment wording | Shipped text |
+| --- | --- | --- | --- |
+| TSV export fully composed | 0/4 | 4/4 | 4/4 |
+| Sales tax kept separate | 4/4 | 4/4 | 4/4 |
+| Intake asks about persistence | 3/9 | 9/9 | 9/9 |
+| Intake asks about hidden information | 0/9 | 7/9 | 9/9 |
+| Intake asks about sign-in | 0/9 | 3/9 | 7/9 |
+| Invite: end of life for games | 2/9 | 7/9 | 9/9 |
+| Invite: quotas | 3/9 | 7/9 | 8/9 |
+| Invite: email addresses as personal data | 0/9 | 7/9 | 9/9 |
+| Invite: retention | 0/9 | 7/9 | 6/9 |
+| Invite: deletion path | 0/9 | 2/9 | 3/9 |
+| Invite: personal data kept out of logs | 0/9 | 5/9 | 3/9 |
+| Invite: invite link expiry | 6/9 | 8/9 | 9/9 |
+| Planning review catches plan-stage platform errors | 0/15 | 10/15 | 10/15 |
+| mcp-gas-deploy bridge identified (tic-tac-toe fixture) | 0/9 | 3/3 | 2/3 |
+
+Two shifts to watch:
+
+- **Solo games move server-side.** With the shipped text, 8/9 solo plans keep
+  authoritative state on the server (current wording 1/9, v2 5/9), mostly to
+  keep the computer's fleet away from the player, and 4/9 adopt platform sign-in.
+  Unrequested features stayed low (2 across nine plans). This follows the
+  hidden-information clause; if a browser-only solo game is preferred, the
+  intake question is where the user now decides it.
+- **The layer card is conditional.** The E7 fixture is tic-tac-toe, which has no
+  hidden information, and two plans reasoned from that that the bridge needed no
+  fix. The card applies it to per-user authority too, which covers turn
+  enforcement; one plan acted on that. A fixture with hidden state is the fair
+  test of the card's closing instruction.
+
+Planning reviews with the claim bullet again added some platform claims the
+judge (without web access) rated wrong: 6 across 15 reviews, fewer than the 10
+in E6b, with the same caveat that several are the judge's own gaps.
 
 ## Open experiments
 

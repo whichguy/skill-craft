@@ -18,6 +18,7 @@ change gives a before/after comparison.
 | E4/E5 lifecycle v2 | `battleship/build_lifecycle_v2.py` (`life2.txt`) | `claude -p` per prompt | `battleship/judge4.sh` with `judge4.txt` |
 | E6 research claims | `battleship/build_platform_claims.py` | `battleship/run6.sh` | `battleship/judge6.sh` with `judge6.txt` |
 | E6b planning review | real E1 plans with errors plus the planning review focus | `claude -p` with web tools | `battleship/judge6b.txt` |
+| Rerun after implementation | `after/build_after.py` (reads the E3, E6b and E7 prompts and `build.py`/`build4.py` from the original `EXP_DIR`; `SHIPLOOP_WT` = the checkout to test) | `after/run_after.sh` | `after/score_after.py` → `after/verdicts_after.json` |
 | E7 layered conventions | `battleship/build7.py` (`layered.txt`, `layered_props.txt`, `trace_bullet.txt`) | `battleship/run7.sh` | `battleship/judge7_gas.txt`, `battleship/judge7_sf.txt` |
 
 Environment variables: `EXP_DIR` (the scratch working directory, default the
