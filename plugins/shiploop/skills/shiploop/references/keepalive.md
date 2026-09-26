@@ -15,15 +15,26 @@ optional; runs work without it.
 | `scripts/shiploop-hook stop` | When the host is about to end a turn: while the bound run is `active` and its revision moved since the last refusal, refuse the stop and name the run's next command. |
 | `scripts/shiploop-drive` | Outer driver for unattended runs: starts or resumes host sessions until the run is not active. |
 
-`hook-status` is the only place that decides whether a run can move. The hooks
+`hook-status` is the only place that decides whether a run can move. Its
+`progress` field is `<revision>.<callback attempts>.<Improve pass>`: an accepted
+result, a refused callback (the model is fixing and resubmitting) and each pass
+of an active Improve review all count as progress, so a long review or a fix
+loop is not mistaken for a stall.
+
+Each stop also counts the turn's continuations (the host's `stopHookActive` /
+`stop_hook_active` flag marks a continuation). Grok ends a turn after 8
+continuations; from the 6th the reason asks harder not to stop, and the
+decision log records `continuation N/8`. When Grok does end the turn, one
+"continue" resumes the run. The hooks
 and the driver never read `state.md` themselves.
 
 ## Stop decisions
 
 | Run state | Hook reply |
 |-----------|------------|
-| `active`, revision moved since the last refusal | Refuse the stop; the reason names `shiploop next --run-dir …`. |
-| `active`, revision unchanged since the last refusal | Allow, with a notice that the run made no progress. |
+| `active`, progress moved since the last refusal | Refuse the stop; the reason names `shiploop next --run-dir …`. |
+| `active`, a host background task still running | Refuse the stop; the reason says to wait for the task in this turn. |
+| `active`, progress unchanged since the last refusal | Allow, with a notice that the run made no progress. |
 | `paused`, `blocked`, `halted`, `done` | Allow and drop the binding. |
 | No binding, unreadable run, hook error | Allow. Hooks fail open. |
 | Grok session-end stop, subagent stop | Allow. |
