@@ -3,7 +3,7 @@
 
 The run binds the repository's source Improve card, so each loop uses the real
 bundled Until Loop runtime, and ShipLoop really runs the recorded commands
-(``test -f <file>``) before it accepts done.
+(``sh check.sh <file>``, which prints a unittest-style summary) before it accepts done.
 """
 from __future__ import annotations
 
@@ -34,7 +34,10 @@ TRIVIAL = {"classification": "trivial", "exit_assessment": "satisfied", "continu
            "evidence": "Synthetic iteration: every command exited 0.", "handoff": "Synthetic; nothing remains."}
 MATERIAL = dict(TRIVIAL, classification="non-trivial", exit_assessment="unsatisfied",
                 evidence="Synthetic iteration: a command failed and the code was fixed.")
-COMMANDS = [{"command": "test -f fixed.txt", "suite": "focused"},
+# A one-test runner: prints a unittest summary, fails while its file is missing.
+CHECK = ('echo "Ran 1 test in 0.001s"\n'
+         'if test -f "$1"; then echo OK; else echo "FAILED (failures=1)"; exit 1; fi\n')
+COMMANDS = [{"command": "sh check.sh fixed.txt", "suite": "focused"},
             {"command": "test -f retained.txt", "suite": "regression"}]
 
 
@@ -55,6 +58,7 @@ class TestLoopTests(unittest.TestCase):
         git(self.repo, "config", "user.email", "loop@example.invalid")
         git(self.repo, "config", "user.name", "Loop Test")
         (self.repo / "a.py").write_text("x = 1\n")
+        (self.repo / "check.sh").write_text(CHECK)
         git(self.repo, "add", "-A")
         git(self.repo, "commit", "-qm", "base")
 
@@ -174,7 +178,7 @@ class TestLoopTests(unittest.TestCase):
         for bad, message in (
             ([{"command": "pytest", "suite": "unit"}], "suite must be focused or regression"),
             ([{"command": "pytest\nrm -rf x", "suite": "focused"}], "one nonblank line"),
-            ([{"command": "pytest"}], "exactly command and suite"),
+            ([{"command": "pytest"}], "command and suite, and optionally ids and min_tests"),
             ([], "an empty test_commands list needs test_commands_na"),
         ):
             with self.subTest(bad=bad), self.assertRaisesRegex(nav.NavigatorError, message):
@@ -195,21 +199,21 @@ class TestLoopTests(unittest.TestCase):
         self.start()
         self.drive_to("test-green")
         contract = json.loads((self.run_dir / test_loop.contract_path(self.action())).read_text())
-        self.assertIn("Test command list:\n1. [focused] test -f fixed.txt\n", contract["work"])
+        self.assertIn("Test command list:\n1. [focused] sh check.sh fixed.txt\n", contract["work"])
         self.assertNotIn("retained.txt", contract["work"])
         self.assertEqual(contract["exit_condition"], prompts.TEST_EXIT_CONDITION)
         self.assertEqual(contract["required_trivial_reviews"], 1)
         packet = self.packet()
         self.assertIn("Allowed outcomes: done | blocked.", packet)
         self.assertIn("Test loop (bound Until Loop; the loop script counts iterations, at most 4):", packet)
-        self.assertIn("  1. [focused] test -f fixed.txt", packet)
+        self.assertIn("  1. [focused] sh check.sh fixed.txt", packet)
         self.assertIn("ShipLoop checks the terminal packet\nagainst the contract and then runs every listed command",
                       packet)
         self.pass_loop()
         self.assertEqual(nav.current_stage(self.state()), "test-refine")
         self.drive_to("regression")
         contract = json.loads((self.run_dir / test_loop.contract_path(self.action())).read_text())
-        self.assertIn("1. [focused] test -f fixed.txt\n2. [regression] test -f retained.txt\n", contract["work"])
+        self.assertIn("1. [focused] sh check.sh fixed.txt\n2. [regression] test -f retained.txt\n", contract["work"])
 
     def test_failing_tests_loop_until_fixed_then_the_script_accepts(self):
         self.start()
@@ -221,7 +225,7 @@ class TestLoopTests(unittest.TestCase):
         self.assertEqual(nav.current_stage(self.state()), "test-refine")
         record = store.read_record(self.run_dir / test_loop.verify_path(action, 1))
         self.assertTrue(record["passed"])
-        self.assertEqual([(row["command"], row["exit"]) for row in record["runs"]], [("test -f fixed.txt", 0)])
+        self.assertEqual([(row["command"], row["exit"]) for row in record["runs"]], [("sh check.sh fixed.txt", 0)])
 
     def test_script_rerun_refuses_a_loop_that_claimed_green(self):
         self.start()
@@ -229,7 +233,7 @@ class TestLoopTests(unittest.TestCase):
         self.run_loop([TRIVIAL])  # claims every command passed; fixed.txt does not exist
         action = self.action()
         done = dict(DONE, evidence_refs=[str(self.terminal())])
-        self.assert_refused(done, r"(?s)test-green is not done.*\[focused\] test -f fixed.txt -> exit 1")
+        self.assert_refused(done, r"(?s)test-green is not done.*\[focused\] sh check.sh fixed.txt -> exit 1")
         record = store.read_record(self.run_dir / test_loop.verify_path(action, 1))
         self.assertFalse(record["passed"])
         (self.repo / "fixed.txt").write_text("fixed\n")
@@ -286,7 +290,7 @@ class TestLoopTests(unittest.TestCase):
         state["improve_skill"] = ""  # a run whose card was never bound: no Until Loop runtime
         nav.save(self.run_dir, state)
         self.assertIn("Unavailable: no Improve card is bound", self.packet())
-        self.assert_refused(DONE, r"test -f fixed.txt -> exit 1")
+        self.assert_refused(DONE, r"sh check.sh fixed.txt -> exit 1")
         (self.repo / "fixed.txt").write_text("fixed\n")
         self.complete(DONE)
         self.assertEqual(nav.current_stage(self.state()), "test-refine")
@@ -323,6 +327,33 @@ class TestLoopTests(unittest.TestCase):
         self.complete(dict(DONE, outcome="blocked", blocked_by="external"))
         self.assertEqual(self.state()["status"], "blocked")
 
+    def test_test_red_runs_the_focused_commands_and_expects_a_failing_test(self):
+        self.start()
+        self.drive_to("test-red")
+        self.assertIn("Expected-RED run: on done, ShipLoop runs each focused command", self.packet())
+        (self.repo / "fixed.txt").write_text("already\n")  # the new test passes before implementation
+        self.assert_refused(DONE, r"(?s)test-red is not done.*did not fail as expected.*passed, but test-red "
+                                  r"expects the new tests to fail")
+        (self.repo / "fixed.txt").unlink()
+        action = self.action()
+        self.complete(DONE)
+        self.assertEqual(nav.current_stage(self.state()), "implement")
+        record = store.read_record(self.run_dir / test_loop.verify_path(action, 2))
+        self.assertTrue(record["passed"])
+        self.assertEqual(record["expect"], "red")
+        self.assertEqual(record["runs"][0]["status"], "red")
+
+    def test_red_na_expects_the_tests_to_pass_and_to_have_run(self):
+        self.start()
+        self.drive_to("test-red")
+        characterise = dict(DONE, red_na="characterisation tests of existing behaviour")
+        self.assert_refused(characterise, r"sh check.sh fixed.txt -> exit 1")
+        (self.repo / "fixed.txt").write_text("existing\n")
+        self.complete(characterise)
+        self.assertEqual(nav.current_stage(self.state()), "implement")
+        with self.assertRaisesRegex(nav.NavigatorError, "red_na is allowed only on a done test-red result"):
+            nav._canonical_result(characterise, stage="test-green")
+
     def run_quality_loop(self) -> None:
         """One trivial quality-loop iteration, saved to the static-checks terminal path."""
         start = next(line for line in self.packet().splitlines() if line.startswith("Start: "))
@@ -346,6 +377,23 @@ class VerifyLimitTests(unittest.TestCase):
                                                command_timeout=0.5)
         self.assertIn("[focused] sleep 5 -> timed out", refusal)
         self.assertIn("tests/A1-verify1.md", writes)
+
+    def test_a_zero_test_run_is_refused_with_the_ids_to_show(self):
+        with tempfile.TemporaryDirectory() as temp:
+            root = Path(temp)
+            state = self.state(root, "echo 'Tests:       2 skipped, 2 total'")
+            state["accepted"]["S1"]["test_commands"][0]["ids"] = ["TC-9", "TC-10"]
+            writes, refusal = test_loop.verify(root, state, "W1", "A1", "test-green")
+            record = store.loads(writes["tests/A1-verify1.md"])
+        self.assertEqual(record["runs"][0]["status"], "no-tests")
+        self.assertRegex(refusal, r"ran no tests \(jest reported 0 run, 0 failed\).*so the output names TC-9, TC-10")
+        self.assertIn("running the whole suite instead does not satisfy this", refusal)
+        for red_na in (None, "characterisation"):
+            with self.subTest(red_na=red_na), tempfile.TemporaryDirectory() as temp:
+                root = Path(temp)
+                _writes, refusal = test_loop.verify(root, self.state(root, "echo 'Tests:       2 skipped, 2 total'"),
+                                                    "W1", "A1", "test-red", red_na=red_na)
+                self.assertIn("ran no tests", refusal)
 
     def test_a_spent_stage_budget_skips_and_refuses(self):
         with tempfile.TemporaryDirectory() as temp:

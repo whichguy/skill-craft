@@ -361,7 +361,8 @@ pass).
 ### Test loop
 
 `step-plan` records the work item's test command list in its result:
-`"test_commands": [{"command": "<shell command>", "suite": "focused" | "regression"}]`.
+`"test_commands": [{"command": "<shell command>", "suite": "focused" | "regression", "ids": ["TC-9"], "min_tests": 1}]`
+(`ids` and `min_tests` optional).
 ShipLoop refuses a done `step-plan` without it; an empty list needs
 `test_commands_na` with the reason. `test-green` loops on the focused commands
 and `regression` on every command, each on the Until Loop bound to the selected
@@ -379,13 +380,27 @@ Improve card:
    from run state. Then ShipLoop runs every listed command itself with
    `/bin/sh -c` from the repository (at most 10 minutes each, 30 per stage),
    records the output in `tests/<action>-verify<N>.md`, and refuses `done`
-   unless each exits 0. The refusal prints each failing command and the end of
-   its output.
+   unless each passes. The refusal prints each failing command, why it did not
+   pass and the end of its output.
+
+A command passes only when it exits 0 **and ran tests**. ShipLoop reads the
+runner's summary (Jest, Vitest, pytest, unittest, Mocha, cargo, go, dotnet) and
+refuses a run of zero tests (`no-tests`), fewer than `min_tests`
+(`too-few-tests`), or one whose output does not show each listed ID on a line
+that is not a skip line (`ids-missing`). A focused command whose count ShipLoop
+cannot read passes only with `ids` that all appear; a regression command without
+`ids` or `min_tests` may pass uncounted.
+
+`test-red` is script-checked too: on `done` ShipLoop runs the focused commands and
+expects each to fail inside a test (at least one failing test, every listed ID
+shown). A green run, a zero-test run or a failure before any test ran (syntax,
+import, setup) is refused. Characterisation tests that already pass carry
+`red_na` with the reason; ShipLoop then requires them to pass and to have run.
 
 Every stage after the test loops that can edit code reruns them too: on `done`
 at `test-refine`, `static-checks` (after its quality-loop check) and
 `integration-verify`, ShipLoop runs every recorded command and refuses unless
-each exits 0. There is no loop at those stages; the packet lists the commands.
+each passes. There is no loop at those stages; the packet lists the commands.
 Each action allows 3 refused runs; after that ShipLoop accepts only `blocked`,
 so a failing command goes back to plan revision instead of an endless retry.
 

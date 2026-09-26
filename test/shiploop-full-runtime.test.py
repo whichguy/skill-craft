@@ -163,6 +163,9 @@ def _fingerprint(root: Path) -> dict[str, str]:
     return result
 
 
+# A focused check that prints a unittest summary, so ShipLoop can see it ran a test.
+FOCUSED = "test -d . && echo 'Ran 1 test in 0.001s'"
+
 class FullRuntimeCompositionTests(unittest.TestCase):
     """Exercise a complete script-owned graph through fresh public processes."""
 
@@ -381,8 +384,11 @@ class FullRuntimeCompositionTests(unittest.TestCase):
             producer["assumptions"] = []
         if stage == "step-plan" and producer.get("outcome") == "done" and "test_commands" not in producer:
             # Real commands: test-green and regression loop on them, then ShipLoop reruns them.
-            producer["test_commands"] = [{"command": "test -d .", "suite": "focused"},
+            producer["test_commands"] = [{"command": FOCUSED, "suite": "focused"},
                                          {"command": "true", "suite": "regression"}]
+        if stage == "test-red" and producer.get("outcome") == "done" and "red_na" not in producer:
+            # The synthetic focused command already passes, so declare it and let ShipLoop check it ran.
+            producer["red_na"] = "synthetic fixture: the focused check already passes"
         result_path = run / "inbox" / f"{action_id}.md"
         _write_record(result_path, producer, "Synthetic ShipLoop producer callback")
         self._run(
@@ -683,6 +689,9 @@ class FullRuntimeCompositionTests(unittest.TestCase):
                 result["evidence_refs"] = [self._run_quality_loop(shiploop, run, action_id)]
         if stage == "plan" and result.get("outcome") == "done" and "assumptions" not in result:
             result["assumptions"] = []
+        if stage == "test-red" and result.get("outcome") == "done" and "red_na" not in result:
+            # The synthetic focused command already passes, so declare it and let ShipLoop check it ran.
+            result["red_na"] = "synthetic fixture: the focused check already passes"
         if stage in COLD_RECOVERY_STAGES:
             before = (run / "state.md").read_bytes()
             recovery = self._run(self._script(shiploop), "next", "--run-dir", run)
@@ -698,7 +707,7 @@ class FullRuntimeCompositionTests(unittest.TestCase):
             verified = _read_record(run / "tests" / f"{action_id}-verify1.md")
             self.assertTrue(verified["passed"])
             self.assertEqual([row["command"] for row in verified["runs"]],
-                             ["test -d ."] if stage == "test-green" else ["test -d .", "true"])
+                             [FOCUSED] if stage == "test-green" else [FOCUSED, "true"])
         new_state = self._state(run)
         self.assertIsNone(new_state["active_improve"])
         context = {"stage": stage, "action": action_id, "run": run, "shiploop": shiploop}

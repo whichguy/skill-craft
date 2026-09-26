@@ -44,7 +44,7 @@ _STATUSES = frozenset(("active", "paused", "blocked", "halted", "done"))
 _RESULT_KEYS = frozenset((
     "outcome", "summary", "evidence_refs", "work_items", "choices", "delivery_assessment",
     "reconciliation_target", "assumptions", "lint_waivers", "test_commands", "test_commands_na",
-    "blocked_by",
+    "blocked_by", "red_na",
 ))
 # Who can unblock a blocked result.  Anything the run can fix itself is not blocked.
 BLOCKED_BY = ("user", "access", "external")
@@ -376,6 +376,10 @@ def _canonical_result(
             _need("test_commands_na" in value,
                   "an empty test_commands list needs test_commands_na with the reason")
             result["test_commands_na"] = _text(value["test_commands_na"], "test_commands_na")
+    if "red_na" in value:
+        _need(stage == test_loop.RED_STAGE and outcome == "done",
+              "red_na is allowed only on a done test-red result")
+        result["red_na"] = _text(value["red_na"], "red_na")
     if "lint_waivers" in value:
         _need(stage in lint.GATE_STAGES and outcome == "done",
               "lint_waivers are allowed only on a done " + ", ".join(lint.GATE_STAGES) + " result")
@@ -833,7 +837,8 @@ def _check_submitted_test_commands(stage: str, result: Any) -> None:
         return
     _need("test_commands" in result,
           "a done step-plan result must list test_commands: [{\"command\": \"<shell command>\", "
-          "\"suite\": \"focused\" | \"regression\"}], or an empty list with test_commands_na")
+          "\"suite\": \"focused\" | \"regression\", \"ids\": [\"<test ID>\", ...]}], or an empty list "
+          "with test_commands_na")
 
 
 def _check_submitted_assumptions(state: Mapping[str, Any], stage: str, result: Any) -> None:
@@ -1310,6 +1315,22 @@ def _test_rerun_gate(root: Path, state: Mapping[str, Any], action_id: str, stage
     _need(not refusal, refusal)
 
 
+def _test_red_gate(root: Path, state: Mapping[str, Any], action_id: str,
+                   workitem: str | None, submitted: Any) -> None:
+    """Accept test-red's done only after ShipLoop runs the focused commands and sees them fail inside a test.
+
+    With ``red_na`` the commands must pass instead, and must still have run tests.
+    """
+    if not isinstance(submitted, Mapping) or submitted.get("outcome") != "done":
+        return
+    red_na = submitted.get("red_na")
+    writes, refusal = test_loop.verify(root, state, workitem or "", action_id, test_loop.RED_STAGE,
+                                       red_na=red_na if isinstance(red_na, str) and red_na.strip() else None)
+    for relative, text in writes.items():
+        store.atomic_write_text(root / relative, text)
+    _need(not refusal, refusal)
+
+
 def _lint_gate(core: Any, root: Path, state: Mapping[str, Any], action_id: str, stage: str,
                workitem: str | None, submitted: Any) -> None:
     """Refuse a gate stage's done (``lint.GATE_STAGES``) while the lint gate reports an unwaived new finding.
@@ -1405,7 +1426,7 @@ def _result_template(state: Mapping[str, Any], stage: str) -> str:
     if stage == "plan":
         result["work_items"] = [{"id": "W1", "title": "...", "context": "..."}]
     if stage == "step-plan":
-        result["test_commands"] = [{"command": "...", "suite": "focused"},
+        result["test_commands"] = [{"command": "...", "suite": "focused", "ids": ["TC-1"]},
                                    {"command": "...", "suite": "regression"}]
     if stage in assumptions.STAGES:
         result["assumptions"] = [
@@ -2275,6 +2296,8 @@ def render(core: Any, root: Path, state: Mapping[str, Any]) -> str:
         lines.extend(test_loop.render_lines(root, state, workitem or "", action["id"], stage))
     elif stage in test_loop.RERUN_STAGES:
         lines.extend(test_loop.rerun_lines(state, workitem or "", stage))
+    elif stage == test_loop.RED_STAGE:
+        lines.extend(test_loop.red_lines(state, workitem or ""))
     return "\n".join(lines) + "\n"
 
 
@@ -2934,6 +2957,8 @@ def dispatch(core: Any, root: Path, state: Mapping[str, Any], args: Any,
                 _test_loop_gate(root, state, action_id, cursor_stage, cursor_item, submitted)
             elif cursor_stage in test_loop.RERUN_STAGES:
                 _test_rerun_gate(root, state, action_id, cursor_stage, cursor_item, submitted)
+            elif cursor_stage == test_loop.RED_STAGE:
+                _test_red_gate(root, state, action_id, cursor_item, submitted)
         updated = apply(state, action_id, submitted)
         if completion_guard is not None and updated != state:
             completion_guard(state, updated)
