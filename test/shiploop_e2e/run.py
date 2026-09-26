@@ -358,7 +358,7 @@ def parser() -> argparse.ArgumentParser:
     p.add_argument("--max-budget-usd", type=float, default=10.0, help="claude only; grok has no spend cap")
     p.add_argument("--permission-mode", default="auto")
     p.add_argument("--timeout", type=int, default=10800, help="seconds before the host is killed")
-    p.add_argument("--max-resumes", type=int, default=3,
+    p.add_argument("--max-resumes", type=int, default=20,
                    help="grok only: resume the same session this many times while ShipLoop is still active")
     p.add_argument("--quiet", action="store_true", help="do not print the live progress view")
     p.add_argument("--grok-bin", default="grok")
