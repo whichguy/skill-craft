@@ -287,22 +287,35 @@ same executor, not independent reviews; packets and reports call them passes.
 
 ### Script-owned lint
 
-A new run records `lint: fix`. ShipLoop then runs a small advisory lint pass
-itself: when a work item's inner loop starts it snapshots the item base, the
-`complete` that enters `static-checks` lints the files the item changed and, on
-the item's first entry only, applies ruff-classified safe fixes that touch only
-lines the item changed, and the `complete` that enters `verify` reruns it
-report-only (or repeats the stored result when nothing changed). `off` stops the
-linters and auto-fix only; the item base and the change inventory the quality
-loop reads are still recorded. The block
-follows the packet's callback. It lists every command's exact argv, cwd, exit
-code and complete output, shows auto-fixes as an applied diff plus NOT APPLIED
-hunks, separates new findings from debt already present at the item base, and
-states per-file coverage. It is supporting output, not exit-criteria evidence:
-no transition is gated on it, and the step still selects and runs its own
-checks. Linters that execute repository code are listed with a risk tag and
-never run, and missing tools produce install recommendations; nothing is ever
-installed. Details and safety pins: [lint catalog](references/lint-catalog.md).
+A new run records `lint: fix`. ShipLoop then lints each work item itself. When
+the item's inner loop starts it snapshots the item base. For every file the
+item changed, it discovers the linters for that file type: built-in ruff and
+shellcheck, the linters the repository configures (eslint, prettier, tsc, mypy,
+black, markdownlint-cli2, yamllint, gofmt; actionlint whenever it is on PATH),
+and `npm run lint` or `make lint` for a changed file no other linter covers.
+Repository-configured linters run repository code; pre-commit is never run,
+because it may download environments. Nothing is ever installed.
+
+- **Implement gate.** The `complete` that submits `implement` as done lints
+  every changed file and applies safe fixes on lines the item changed. It
+  refuses that submission once after an auto-fix (rerun the step's checks, then
+  submit again), and while a new finding on a line the item changed has no
+  entry in the result's `lint_waivers` (`[{"id", "reason"}]`, using the IDs the
+  refusal prints). Findings present at the base or elsewhere in a file, missing
+  tools, tool errors, timeouts and a pass that cannot run never refuse. The
+  implement packet prints the report-only `lint` command to run after each step.
+- **Later passes (advisory).** The `complete` that enters `static-checks` lints
+  again and, on the item's first entry only, applies safe fixes to later edits;
+  the `complete` that enters `verify` reruns it report-only (or repeats the
+  stored result when nothing changed).
+
+`off` stops the linters, the gate and auto-fix only; the item base and the
+change inventory the quality loop reads are still recorded. The block follows
+the packet's callback. It lists every command's exact argv, cwd, exit code and
+complete output, shows auto-fixes as an applied diff plus NOT APPLIED hunks,
+separates new findings from debt already present at the item base, and states
+per-file coverage. The step still selects and runs its own checks. Details and
+safety pins: [lint catalog](references/lint-catalog.md).
 
 ### Static-checks quality loop
 
@@ -336,7 +349,20 @@ python3 "$CLI" lint --run-dir "$RUN_DIR" --action "$ACTION"   # report-only reru
 only where a per-item base exists; otherwise the pass says its base fell back
 and runs report-only. The `lint` rerun exits 0 when clean and fully covered, 1
 when new findings remain or a file is uncovered, and 3 when the pass could not
-run; ShipLoop never gates on that exit code.
+run; ShipLoop never gates on that exit code (the implement gate runs its own
+pass).
+
+### Tests pass or the step stops
+
+`implement`, `test-green`, `test-refine`, `regression` and `integration-verify`
+share one loop in their prompts: run the checks; when one fails, diagnose it,
+fix the product code and rerun; change a check only for an independent reason
+that the check itself is wrong. Only a final full pass after the last edit
+counts. The step ends on exactly one of: every check passes (`done`); a check
+proven unachievable (`blocked`, for plan revision); or the same check still
+failing after 3 genuine fix attempts (`blocked`). A red check never leaves the
+step as `done`. ShipLoop cannot run the tests itself, so this is prompt duty;
+the script-owned parts are the lint gate and the static-checks quality loop.
 
 ## Durable handoff
 

@@ -11,6 +11,7 @@ import contextlib
 import io
 import json
 import os
+import re
 import shutil
 import stat
 import subprocess
@@ -196,6 +197,59 @@ def write_stub(directory: Path, name: str) -> Path:
     return path
 
 
+DISCOVERED_STUB = r"""
+import json, os, sys
+argv = sys.argv[1:]
+name = os.path.basename(sys.argv[0])
+with open(os.environ["STUB_LOG"], "a") as log:
+    log.write(json.dumps([name] + argv + ["cwd=" + os.getcwd()]) + "\n")
+if name == "eslint":
+    files = [arg for arg in argv if arg.startswith("./")]
+    out = []
+    for path in files:
+        messages = [{"line": number, "column": 1, "ruleId": "stub/rule", "severity": 2, "message": "stub finding"}
+                    for number, line in enumerate(open(path).read().splitlines(), 1) if "LINTME" in line]
+        out.append({"filePath": os.path.abspath(path), "messages": messages})
+    print(json.dumps(out))
+    sys.exit(1 if any(entry["messages"] for entry in out) else 0)
+if name == "prettier":
+    text = sys.stdin.read()
+    sys.stdout.write("".join(line.rstrip() + "\n" for line in text.splitlines()))
+    sys.exit(0)
+if name == "tsc":
+    found = False
+    for root, _dirs, names in os.walk("."):
+        for file in names:
+            if file.endswith(".ts"):
+                path = os.path.normpath(os.path.join(root, file))
+                for number, line in enumerate(open(path).read().splitlines(), 1):
+                    if "TSBAD" in line:
+                        print(path + "(" + str(number) + ",5): error TS2322: stub type error")
+                        found = True
+    sys.exit(2 if found else 0)
+if name == "actionlint":
+    for path in [arg for arg in argv if not arg.startswith("-")]:
+        for number, line in enumerate(open(path).read().splitlines(), 1):
+            if "BAD" in line:
+                print(path + ":" + str(number) + ":1: stub workflow finding [syntax-check]")
+    sys.exit(0)
+if name == "npm":
+    for number, line in enumerate(open("notes.txt").read().splitlines(), 1):
+        if "BAD" in line:
+            print("notes.txt:" + str(number) + ":1 stub project finding")
+    sys.exit(1)
+sys.exit(0)
+"""
+
+
+def write_tool(directory: Path, name: str) -> Path:
+    directory.mkdir(parents=True, exist_ok=True)
+    path = directory / name
+    path.write_text("#!" + sys.executable + "\n" + DISCOVERED_STUB)
+    path.chmod(0o755)
+    return path
+
+
 class Fixture(unittest.TestCase):
     """A committed Git repository, a run directory and a stub tool directory."""
 
@@ -275,8 +329,8 @@ class LintPassTests(Fixture):
         self.edit({"a.py": "x = 1  # lint\ny = 2  # lint\n"})
         payload = self.run_pass()
         self.assertTrue(payload["block"].startswith("ShipLoop lint (supporting output; not exit-criteria evidence"))
-        self.assertIn("[present at the base; elsewhere in a file this item changed]", payload["block"])
-        self.assertIn("[new since the base; on a line this item changed]", payload["block"])
+        self.assertIn("[present at the base; elsewhere in a file this item changed; L", payload["block"])
+        self.assertIn("[new since the base; on a line this item changed; L", payload["block"])
         self.assertEqual(payload["counts"]["new_on_changed"], 1)
         self.assertEqual(payload["counts"]["at_base"], 1)
         self.assertEqual(payload["exit_code"], lint.EXIT_FINDINGS)
@@ -399,7 +453,7 @@ class LintPassTests(Fixture):
         self.base()
         self.edit({"a.py": "y = 2  # lint\n"})
         payload = self.run_pass(budget=0.0)
-        self.assertIn("Skipped because the 20-second pass budget ran out: reading a.py", payload["block"])
+        self.assertIn("Skipped because the " + str(int(lint.BUDGET_SECONDS)) + "-second pass budget ran out: reading a.py", payload["block"])
         self.assertIn("- a.py: not in scope: the pass budget ran out before this file was read", payload["block"])
         self.assertEqual(payload["counts"]["uncovered"], 1)
 
@@ -418,8 +472,8 @@ class LintPassTests(Fixture):
             self.run_pass(mode="report", budget=3.0)
         self.assertTrue(seen)
         self.assertTrue(all(timeout <= 3.0 for _verb, timeout in seen), seen)
-        # Only files with a linter or syntax check read their base blob.
-        self.assertEqual([verb for verb, _timeout in seen].count("cat-file"), 1)
+        # Every changed text file reads its base blob: discovered linters gate on changed lines.
+        self.assertEqual([verb for verb, _timeout in seen].count("cat-file"), 2)
 
     def test_large_repetitive_diffs_are_not_attributed_line_by_line(self):
         base = "".join("x = 1\n" if n % 7 else "y = 2\n" for n in range(7000))
@@ -654,20 +708,23 @@ class LintPassTests(Fixture):
             lint.lint_pass(plain, self.run_dir, action="A1", work_item="W1", stage="static-checks",
                            mode="fix", run_option="fix", base=None, allow_fix=False, env=self.env())
 
-    def test_repository_code_linters_are_listed_with_risk_and_never_run(self):
-        self.commit({"a.py": "x = 1\n", "package.json": json.dumps({"scripts": {"lint": "eslint ."}}),
-                     "Makefile": "lint:\n\techo lint\ncheck: test\n\techo check\n",
+    def test_only_formatters_and_pre_commit_are_listed_as_not_run(self):
+        """Repository linters run; a format script, other make targets and pre-commit do not."""
+        self.commit({"a.py": "x = 1\n", "package.json": json.dumps({"scripts": {"lint": "eslint .",
+                                                                                  "format": "prettier -w ."}}),
+                     "Makefile": "lint:\n\techo lint\nformat-check:\n\techo fc\ncheck: test\n\techo check\n",
                      ".pre-commit-config.yaml": "repos: []\n", "eslint.config.js": "export default []\n"})
         self.base()
         self.edit({"a.py": "x = 2\n"})
         payload = self.run_pass()
         block = payload["block"]
         self.assertIn("Not run by ShipLoop (ask the user before running any of these):", block)
-        self.assertIn("| npm run lint (package.json scripts.lint; risk: runs npm lifecycle scripts", block)
-        self.assertIn("| make lint (Makefile; risk: runs a repository recipe, first line: echo lint)", block)
+        self.assertIn("| npm run format (package.json scripts.format; not run: only the script named lint runs", block)
+        self.assertIn("| make format-check (Makefile; not run: only the lint target runs, first line: echo fc)", block)
         self.assertNotIn("make check", block)
+        self.assertNotIn("| npm run lint", block)
         self.assertIn("may download hook environments", block)
-        self.assertIn("| eslint (eslint.config.js; risk: its configuration executes repository code)", block)
+        # ruff covers the only changed file, so no project lint script ran; no JS file, so no eslint.
         self.assertFalse(any(argv[0] not in ("ruff", "shellcheck") for argv in self.logged()))
 
 
@@ -700,7 +757,8 @@ class LintPassTests(Fixture):
         self.assertNotIn("svc_b", payload["block"])
         self.assertEqual(payload["applied"], ["svc_a/a.py"])
         self.assertEqual((self.repo / "svc_b/b.py").read_text(), "y = 1\nw = 2  # fixme\n")
-        self.assertIn("| npm run lint (package.json scripts.lint", payload["block"])
+        # ruff covers svc_a/a.py, so the project lint script is not needed.
+        self.assertNotIn("npm run lint", payload["block"])
 
     def test_option_shaped_file_names_are_passed_as_paths(self):
         """node --check must never read a changed file named --require=x.js as an option."""
@@ -856,17 +914,37 @@ def complete(run: Path, state: dict, result: dict = DONE) -> str:
     return buffer.getvalue()
 
 
-def drive(run: Path, until: str, *, edit=None) -> dict:
-    """Walk a saved run through real dispatch (so the lint hook runs) to ``until``."""
+def complete_implement(run: Path, state: dict) -> str:
+    """Submit implement as done through the lint gate: resubmit after an auto-fix, waive what remains."""
+    result = DONE
+    for _ in range(4):
+        try:
+            return complete(run, state, result)
+        except nav.NavigatorError as exc:
+            text = str(exc)
+            if "auto-fixed" in text:
+                continue
+            ids = re.findall(r"^- (L[0-9a-f]{10}(?:-[0-9]+)?) ", text, re.M)
+            if not ids:
+                raise
+            result = dict(DONE, lint_waivers=[{"id": found, "reason": "Fixture keeps it."} for found in ids])
+    raise AssertionError("the lint gate kept refusing implement")
+
+
+def drive(run: Path, until: str, *, edit=None, edit_at: str = "implement") -> dict:
+    """Walk a saved run through real dispatch (so the lint hooks run) to ``until``."""
     state = store.read_record(run / "state.md")
     for _ in range(200):
         if nav.current_stage(state) == until and not state.get("active_improve"):
             return state
         stage = nav.current_stage(state)
-        if edit is not None and stage == "implement":
+        if edit is not None and stage == edit_at:
             edit()
         action = nav.current_action(state)["id"]
-        complete(run, state)
+        if stage == "implement":
+            complete_implement(run, state)
+        else:
+            complete(run, state)
         state = store.read_record(run / "state.md")
         if state.get("active_improve"):
             # The improve-complete branch of dispatch: finish the child, run the lint hook, save.
@@ -896,7 +974,7 @@ class HookTests(Fixture):
         self.commit({"a.py": "x = 1\n"})
         self.start()
         with self.patched_env():
-            state = drive(self.run_dir, "skill-validate", edit=self.edit_item)
+            state = drive(self.run_dir, "skill-validate", edit=self.edit_item, edit_at="document")
             self.assertTrue((self.run_dir / "lint" / "items" / "W1.md").is_file())
             packet = complete(self.run_dir, state)
             state = store.read_record(self.run_dir / "state.md")
@@ -925,7 +1003,7 @@ class HookTests(Fixture):
         self.commit({"a.py": "x = 1\n"})
         self.start()
         with self.patched_env():
-            state = drive(self.run_dir, "static-checks", edit=self.edit_item)
+            state = drive(self.run_dir, "static-checks", edit=self.edit_item, edit_at="document")
             self.assertTrue((self.run_dir / "lint" / "items" / "W1.md").is_file())
             action = nav.current_action(state)["id"]
             record = store.read_record(self.run_dir / "lint" / (action + ".md"))
@@ -1013,7 +1091,7 @@ class HookTests(Fixture):
         self.commit({"a.py": "x = 1\n"})
         self.start()
         with self.patched_env():
-            state = drive(self.run_dir, "skill-validate", edit=self.edit_item)
+            state = drive(self.run_dir, "skill-validate", edit=self.edit_item, edit_at="document")
             expected = nav.apply(state, nav.current_action(state)["id"], DONE)
             with mock.patch.object(lint, "lint_pass", side_effect=SystemExit(2)):
                 packet = complete(self.run_dir, state)
@@ -1056,6 +1134,194 @@ class HookTests(Fixture):
             self.assertEqual(code, 0)
             shown.append(buffer.getvalue().split("\n", 1)[1])
         self.assertEqual("".join(shown), payload["block"])
+
+
+class DiscoveredLinterTests(Fixture):
+    """Linters the repository configures run on the changed files of their type."""
+
+    def test_eslint_runs_from_node_modules_and_gates_only_changed_lines(self):
+        self.commit({".gitignore": "node_modules/\n", "eslint.config.js": "export default []\n",
+                     "a.js": "one\nLINTME old\n"})
+        write_tool(self.repo / "node_modules" / ".bin", "eslint")
+        self.base()
+        self.edit({"a.js": "one\nLINTME old\nLINTME new\n"})
+        payload = self.run_pass(mode="report")
+        block = payload["block"]
+        # Fixtures have no node on PATH, so eslint is this file's only coverage.
+        self.assertIn("- a.js: linted by eslint (eslint.config.js)", block)
+        self.assertEqual([(row["path"], row["line"]) for row in payload["gating"]], [("a.js", 3)])
+        self.assertTrue(payload["gating"][0]["id"].startswith("L"))
+        self.assertEqual(payload["counts"]["unattributed"], 1)
+        eslint = [argv for argv in self.logged() if argv[0] == "eslint"]
+        self.assertEqual(len(eslint), 1)
+        self.assertIn("./a.js", eslint[0])
+        self.assertEqual(eslint[0][-1], "cwd=" + str(self.repo))
+
+    def test_prettier_reports_the_regions_it_would_rewrite(self):
+        self.commit({".prettierrc": "{}\n", "a.md": "one\n"})
+        write_tool(self.bin, "prettier")
+        self.base()
+        self.edit({"a.md": "one\ntwo   \n"})
+        payload = self.run_pass(mode="report")
+        # git diff --check reports the trailing whitespace too; prettier adds its own finding.
+        prettier = [row for row in payload["gating"] if row["message"].startswith("prettier: ")]
+        self.assertEqual([(row["path"], row["line"]) for row in prettier], [("a.md", 2)])
+        self.assertIn("formatting differs from prettier output on lines 2-2; run prettier --write a.md",
+                      prettier[0]["message"])
+
+    def test_tsc_project_findings_count_only_in_changed_files(self):
+        self.commit({"tsconfig.json": "{}\n", "src/a.ts": "let a = 1;\n", "src/b.ts": "let b = TSBAD;\n"})
+        write_tool(self.bin, "tsc")
+        self.base()
+        self.edit({"src/a.ts": "let a = 1;\nlet c = TSBAD;\n"})
+        payload = self.run_pass(mode="report")
+        self.assertEqual([(row["path"], row["line"]) for row in payload["gating"]], [("src/a.ts", 2)])
+        self.assertNotIn("src/b.ts:", "\n".join(row["path"] for row in payload["gating"]))
+
+    def test_configured_but_missing_linter_is_recommended_and_never_fetched(self):
+        self.commit({".yamllint": "extends: default\n", "x.yaml": "a: 1\n"})
+        self.base()
+        self.edit({"x.yaml": "a: 2\n"})
+        payload = self.run_pass(mode="report")
+        self.assertIn("Recommended: the repository configures yamllint (.yamllint), but yamllint not found",
+                      payload["block"])
+        self.assertIn("yamllint not run: yamllint not found", payload["block"])
+        self.assertEqual(payload["gating"], [])
+
+    def test_actionlint_runs_whenever_it_is_on_path(self):
+        self.commit({".github/workflows/ci.yml": "on: push\n"})
+        write_tool(self.bin, "actionlint")
+        self.base()
+        self.edit({".github/workflows/ci.yml": "on: push\nBAD: 1\n"})
+        payload = self.run_pass(mode="report")
+        self.assertEqual([(row["path"], row["line"]) for row in payload["gating"]],
+                         [(".github/workflows/ci.yml", 2)])
+        self.assertIn("linted by actionlint (on PATH)", payload["block"])
+
+    def test_npm_lint_runs_only_for_changed_files_no_other_linter_covers(self):
+        self.commit({"package.json": json.dumps({"scripts": {"lint": "stub"}}), "notes.txt": "fine\n",
+                     "a.py": "x = 1\n"})
+        write_tool(self.bin, "npm")
+        self.base()
+        self.edit({"a.py": "x = 2\n"})
+        self.run_pass(mode="report")
+        self.assertFalse([argv for argv in self.logged() if argv[0] == "npm"])
+        self.edit({"notes.txt": "fine\nBAD\n"})
+        payload = self.run_pass(mode="report")
+        self.assertEqual([argv[1:4] for argv in self.logged() if argv[0] == "npm"], [["run", "--silent", "lint"]])
+        self.assertEqual([(row["path"], row["line"]) for row in payload["gating"]], [("notes.txt", 2)])
+        self.assertIn("- notes.txt: no file-type linter; git diff --check; npm run lint ran (exit 1); it does "
+                      "not say which files it covers", payload["block"])
+
+    def test_finding_ids_survive_a_line_shift(self):
+        self.commit({"a.py": "x = 1\n"})
+        self.base()
+        self.edit({"a.py": "x = 1\ny = 2  # lint\n"})
+        first = self.run_pass(mode="report")["gating"][0]["id"]
+        self.edit({"a.py": "# header\nx = 1\ny = 2  # lint\n"})
+        second = self.run_pass(mode="report")["gating"]
+        self.assertIn(first, [row["id"] for row in second])
+
+
+class GateTests(Fixture):
+    """implement's done passes through the lint gate."""
+
+    def start(self, option: str = "fix") -> dict:
+        nav.save(self.run_dir, nav.new_state(str(self.repo), "Lint gate fixture.", improve_skill="",
+                                             lint_option=option))
+        with self.patched_env():
+            return drive(self.run_dir, "implement")
+
+    def patched_env(self):
+        return mock.patch.dict(os.environ, {"PATH": str(self.bin) + ":" + SYSTEM_PATH, "STUB_LOG": str(self.log)})
+
+    def test_new_finding_refuses_done_until_fixed_or_waived(self):
+        self.commit({"a.py": "x = 1\n"})
+        state = self.start()
+        self.edit({"a.py": "x = 1\ny = 2  # lint\n"})
+        before = (self.run_dir / "state.md").read_bytes()
+        with self.patched_env():
+            with self.assertRaises(nav.NavigatorError) as refused:
+                complete(self.run_dir, state)
+            self.assertEqual((self.run_dir / "state.md").read_bytes(), before)
+            text = str(refused.exception)
+            self.assertIn("implement is not done while 1 new lint finding on lines this work item changed", text)
+            found = re.findall(r"^- (L[0-9a-f]{10}) a\.py:2: ", text, re.M)
+            self.assertEqual(len(found), 1, text)
+            action = nav.current_action(state)["id"]
+            self.assertTrue((self.run_dir / "lint" / (action + ".gate1.md")).is_file())
+            packet = nav.render(CORE, self.run_dir, state)
+            self.assertIn("Latest implement lint gate (pass 1)", packet)
+            self.assertIn("Lint each implementation step (report-only):", packet)
+            with self.assertRaisesRegex(nav.NavigatorError, "finding ID the lint gate printed"):
+                complete(self.run_dir, state, dict(DONE, lint_waivers=[{"id": "x", "reason": "r"}]))
+            complete(self.run_dir, state, dict(DONE, lint_waivers=[{"id": found[0], "reason": "Kept on purpose."}]))
+        saved = store.read_record(self.run_dir / "state.md")
+        self.assertEqual(nav.current_stage(saved), "test-green")
+        # The malformed waiver was refused before any pass ran: two gate passes in all.
+        self.assertFalse((self.run_dir / "lint" / (action + ".gate3.md")).exists())
+        record = store.read_record(self.run_dir / "lint" / (action + ".gate2.md"))
+        self.assertEqual(record["waived"], found)
+        self.assertEqual(saved["accepted"][action]["lint_waivers"], [{"id": found[0], "reason": "Kept on purpose."}])
+
+    def test_auto_fix_refuses_once_then_accepts(self):
+        self.commit({"a.py": "x = 1\n"})
+        state = self.start()
+        self.edit({"a.py": "x = 1\ny = 2  # fixme\n"})
+        with self.patched_env():
+            with self.assertRaisesRegex(nav.NavigatorError, "ShipLoop auto-fixed a.py on lines this work item "
+                                                            "changed"):
+                complete(self.run_dir, state)
+            self.assertEqual((self.repo / "a.py").read_text(), "x = 1\ny = 2\n")
+            complete(self.run_dir, state)
+        self.assertEqual(nav.current_stage(store.read_record(self.run_dir / "state.md")), "test-green")
+
+    def test_lint_off_and_non_done_outcomes_run_no_gate(self):
+        self.commit({"a.py": "x = 1\n"})
+        state = self.start("off")
+        self.edit({"a.py": "x = 1\ny = 2  # lint\n"})
+        with self.patched_env(), mock.patch.object(lint, "lint_pass", side_effect=AssertionError("no pass")):
+            complete(self.run_dir, state)
+        self.assertEqual(nav.current_stage(store.read_record(self.run_dir / "state.md")), "test-green")
+
+    def test_blocked_implement_is_not_linted(self):
+        self.commit({"a.py": "x = 1\n"})
+        state = self.start()
+        self.edit({"a.py": "x = 1\ny = 2  # lint\n"})
+        with self.patched_env(), mock.patch.object(lint, "lint_pass", side_effect=AssertionError("no pass")):
+            complete(self.run_dir, state, dict(DONE, outcome="blocked"))
+
+    def test_a_pass_that_cannot_run_never_refuses(self):
+        self.commit({"a.py": "x = 1\n"})
+        state = self.start()
+        with self.patched_env(), mock.patch.object(lint, "lint_pass", side_effect=RuntimeError("boom")):
+            complete(self.run_dir, state)
+        action = nav.current_action(state)["id"]
+        record = store.read_record(self.run_dir / "lint" / (action + ".gate1.md"))
+        self.assertEqual(record["kind"], "failure")
+        self.assertIn("could not run: RuntimeError: boom", record["block"])
+
+    def test_lint_waivers_are_refused_outside_a_done_implement(self):
+        waivers = [{"id": "L0123456789", "reason": "r"}]
+        with self.assertRaisesRegex(nav.NavigatorError, "only on a done implement result"):
+            nav._canonical_result(dict(DONE, lint_waivers=waivers), stage="verify")
+        with self.assertRaisesRegex(nav.NavigatorError, "only on a done implement result"):
+            nav._canonical_result(dict(DONE, outcome="blocked", lint_waivers=waivers), stage="implement")
+        self.assertEqual(nav._canonical_result(dict(DONE, lint_waivers=waivers), stage="implement")["lint_waivers"],
+                         waivers)
+
+
+class PromptContractTests(unittest.TestCase):
+    def test_test_stages_carry_the_pass_or_stop_loop(self):
+        import shiploop_navigator_v3_prompts as guidance
+        for stage in ("test-green", "test-refine", "regression", "integration-verify"):
+            text = guidance.prompt(stage, delegation=guidance.INLINE)
+            self.assertIn("Pass-or-stop loop: this stage is done only when every check it runs passes", text)
+            self.assertIn("the same check\nstill failing after 3 genuine fix attempts → outcome blocked", text)
+        self.assertNotIn("Pass-or-stop loop", guidance.prompt("verify", delegation=guidance.INLINE))
+        implement = guidance.prompt("implement", delegation=guidance.INLINE)
+        self.assertIn("Lint every step: after a step's last edit, run the packet's printed lint command", implement)
+        self.assertIn("`lint_waivers`", implement)
 
 
 class CliTests(Fixture):
