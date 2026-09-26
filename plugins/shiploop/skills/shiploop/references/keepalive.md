@@ -41,7 +41,7 @@ and the driver never read `state.md` themselves.
 | `active`, progress moved since the last refusal | Refuse the stop; the reason names `shiploop next --run-dir …`. |
 | `active`, a host background task still running | Refuse the stop; the reason says to wait for the task in this turn. |
 | `active`, progress unchanged since the last refusal | Allow, with a notice that the run made no progress. |
-| `paused`, `blocked`, `halted`, `done` | Allow and drop the binding. |
+| `paused`, `blocked`, `halted`, `done` | Allow quietly and drop the binding. A `blocked` run waiting on the user (`awaiting` in hook-status) stays stopped until the user's reply resumes it. |
 | No binding, unreadable run, hook error | Allow. Hooks fail open. |
 | Grok session-end stop, subagent stop | Allow. |
 
@@ -49,8 +49,12 @@ A user stops a run by asking to stop or pause: the agent runs the packet's pause
 command, the run becomes `paused`, and the next stop is allowed. The script
 refuses a pause whose reason is context housekeeping (a clear, a context
 boundary, compaction, a fresh conversation), and the decision log records each
-pause's reason. A question about
-the loop is not a stop. Host interrupts (Ctrl+C, Esc) skip stop hooks entirely.
+pause's reason. A question about the skill, the loop or its cost is neither a
+stop nor a resume, and neither is "continue" when the run is waiting on the
+user: `resume` then requires `--answer "<their words>"` (a decision) or
+`--observed "<what they reported>"` (steps only a person could take), and refuses
+a bare "continue". The reply is recorded in `decisions/<action>.md` and shown in
+the next packet. Host interrupts (Ctrl+C, Esc) skip stop hooks entirely.
 `SHIPLOOP_KEEPALIVE=off` in the host's environment disables the hooks.
 Each stop decision is appended to
 `${XDG_STATE_HOME:-~/.local/state}/shiploop/keepalive/decisions.log` with its

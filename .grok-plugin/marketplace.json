@@ -77,8 +77,8 @@
     },
     {
       "name": "improve",
-      "version": "0.3.0-rc.5",
-      "description": "Use when a repository candidate needs a deliberate review-and-improvement loop: use recent Git history, make warranted changes, run meaningful checks, and require two consecutive trivial-only review passes. Supports a read-only interpretation preview; not a one-off code review.",
+      "version": "0.3.0-rc.6",
+      "description": "Use when a repository candidate needs a deliberate review-and-improvement loop: use recent Git history, make warranted changes, run meaningful checks, and repeat until two consecutive passes make no changes, or the first pass completes with no change. Supports a read-only interpretation preview; not a one-off code review.",
       "category": "productivity",
       "source": {
         "type": "local",
@@ -187,7 +187,7 @@
     },
     {
       "name": "shiploop",
-      "version": "0.32.2",
+      "version": "0.33.0",
       "description": "Markdown-authoritative delivery harness. Start or resume once, follow the script's current action packet, and submit its exact completion call until the script reports completion with an HTML achievement report. Use when the user says shiploop, ship the project, or requests a durable delivery loop.",
       "category": "software-development",
       "source": {

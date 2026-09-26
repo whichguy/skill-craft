@@ -100,7 +100,8 @@ readiness; it is not evidence that no delivery work is needed.
 `authority` has `status` (`approved`, `not-required`, `unresolved`), `kind`
 (`request`, `user-decision`, `repo-policy`), `reference`, `target`, and `operation`.
 For `repo-policy`, also supply `approval_ref` identifying the user instruction
-that approved it. Its target/operation must match the contract. Agent-authored
+that approved it. Optional `scope` is `run` (a plain yes covers this run only) or
+`standing`; `standing` requires `kind: repo-policy` with its `approval_ref`. Its target/operation must match the contract. Agent-authored
 policy cannot authorize itself; a nonempty reference is not authentication.
 Correction sources use the same kind/reference/approval convention.
 
@@ -177,6 +178,15 @@ Use the accepted outer `replan` outcome with new corrective work items. That ret
 until a fresh `system-test` and `release-plan` complete for the current contract.
 `repeat` and `resume` do not clear it.
 
+When every corrective item changed only non-code paths (its step plan records no
+test command and declares only documentation, configuration or navigation
+metadata, such as a Salesforce tab and app), each outer stage's packet names the
+delta: the changed paths and the result that stage accepted before the replan.
+The stages still run, because the fresh evidence above is required, but each
+keeps and cites its earlier evidence for everything the paths do not affect, and
+authors, runs or plans only the new rows. Unit-test evidence for an unchanged tree
+stays valid.
+
 Before Improve converges, resolve a contradiction such as delivery marked
 required in the specification but optional in the plan against the original
 request and approved scope. A changed delivery scope needs an actual user
@@ -184,8 +194,11 @@ disposition; editing generated plan text is not authority to change it.
 
 For example, source synchronization succeeds and target identity matches, but a
 browser check reaches login. Preserve effect/identity and mark behavior blocked.
-After appropriate access is restored within authority, resume verification of
-the same candidate. The feature remains unverified; do not automatically repush
+When this host cannot sign in, report `release-verify` blocked with `awaiting`
+kind `present`: the steps for the person (entry URL, App Launcher name, the
+action) and what they should report back. The run stops quietly; the person's
+report (`resume --observed "<their words>"`) resumes it. Then resume verification
+of the same candidate. The feature remains unverified; do not automatically repush
 or upload again just to create a fresh receipt. If the candidate/target changes
 instead, follow the replanning boundary.
 

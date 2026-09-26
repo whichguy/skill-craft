@@ -116,8 +116,8 @@
     },
     {
       "name": "improve",
-      "description": "Use when a repository candidate needs a deliberate review-and-improvement loop: use recent Git history, make warranted changes, run meaningful checks, and require two consecutive trivial-only review passes. Supports a read-only interpretation preview; not a one-off code review.",
-      "version": "0.3.0-rc.5",
+      "description": "Use when a repository candidate needs a deliberate review-and-improvement loop: use recent Git history, make warranted changes, run meaningful checks, and repeat until two consecutive passes make no changes, or the first pass completes with no change. Supports a read-only interpretation preview; not a one-off code review.",
+      "version": "0.3.0-rc.6",
       "author": {
         "name": "whichguy",
         "url": "https://github.com/whichguy"
@@ -301,7 +301,7 @@
     {
       "name": "shiploop",
       "description": "Markdown-authoritative delivery harness. Start or resume once, follow the script's current action packet, and submit its exact completion call until the script reports completion with an HTML achievement report. Use when the user says shiploop, ship the project, or requests a durable delivery loop.",
-      "version": "0.32.2",
+      "version": "0.33.0",
       "author": {
         "name": "whichguy",
         "url": "https://github.com/whichguy"
@@ -346,7 +346,7 @@
     {
       "name": "until-loop",
       "description": "Interpret natural-language work and evidence-based exit conditions with a private callback state file and LLM judgment.",
-      "version": "0.5.1",
+      "version": "0.6.0",
       "author": {
         "name": "whichguy"
       },
@@ -355,7 +355,7 @@
         "url": "https://github.com/whichguy/until-loop.git",
         "path": "plugins/until-loop",
         "ref": "main",
-        "sha": "733419d1a9ac7ef3a648bc955928751d9f06799d"
+        "sha": "e1101f782411887d6c3e8e3b6a9110f15a59802d"
       },
       "policy": {
         "installation": "AVAILABLE",

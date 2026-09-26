@@ -47,6 +47,18 @@ Separate the deploy from each visibility step (permission-set assignment, app or
 tab access): each is its own command with its own authorization, planned by name
 at release-plan.
 
+A consumer entry is source metadata, not a side effect. `lightning__Tab` in a
+component's `js-meta.xml` only makes the component eligible for a tab; it creates
+no tab anyone can open. Plan the entry as files at step-plan: a `CustomTab`
+(`tabs/<Name>.tab-meta.xml`) and, when the design needs one, an app
+(`applications/<Name>.app-meta.xml`) that lists the tab, plus the permission set
+or profile visibility that shows them. Confirm the tab with
+`sf org list metadata --metadata-type CustomTab --target-org <alias>` and look
+for its API name. The Tooling `CustomTab` query returns no rows for a Lightning
+component tab and would stay red after a good deploy. Run that confirm once at
+release-check, beside `sf project deploy validate` (the dry-run), so its
+"not there yet" output is on record before the real deploy.
+
 When Salesforce is an affected service boundary, apply the conditional
 [service discovery guide](../service-discovery.md). Record the observed selected
 tool or supported route, current org/role evidence, and the separate authority

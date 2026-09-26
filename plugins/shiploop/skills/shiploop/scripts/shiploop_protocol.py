@@ -242,6 +242,8 @@ def hook_status(core, argv):
         "repo": state["repo"],
         "status": state["status"],
         "status_reason": state.get("status_reason", ""),
+        # A run blocked on a person: the stop stays quiet until their reply resumes it.
+        "awaiting": (navigator.awaiting(state) or (None, {}))[1].get("kind", ""),
         "stage": stage,
         "action": (action or {}).get("id"),
         "revision": state["revision"],
@@ -322,8 +324,15 @@ def main(core, argv=None):
             sub.add_argument("--result", required=True)
         if name == "context":
             sub.add_argument("--section", default="navigator")
+        if name == "next":
+            sub.add_argument("--full", action="store_true",
+                             help="print the full packet even when this action was already shown")
         if name in ("halt", "pause"):
             sub.add_argument("--reason", required=True)
+        if name == "resume":
+            reply = sub.add_mutually_exclusive_group()
+            reply.add_argument("--answer", help="the user's own reply to the question the run is waiting on")
+            reply.add_argument("--observed", help="what the person reported after the steps the run waits on")
     args = parser.parse_args(argv)
     if args.command == "graph-dry-run":
         # Deliberately before run-directory discovery, locking or state access.
@@ -430,7 +439,7 @@ def main(core, argv=None):
                 lint_option=args.lint or navigator.DEFAULT_LINT,
             )
             navigator.save(root, state)
-            print(navigator.render(core, root, state), end="")
+            navigator.emit(core, root, state)
             return 0
     except navigator.NavigatorError as exc:
         print(f"ShipLoop navigator: {exc}", file=sys.stderr)

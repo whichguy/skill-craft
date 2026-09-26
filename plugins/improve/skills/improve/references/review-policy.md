@@ -103,4 +103,7 @@ permitted fallback rationale in the record. Repeated or templated review text
 is an audit cue, not proof either way: matching or different bytes, hashes, or
 wording do not establish independent or substantive review. Review the actual
 locators and reviewer record instead. This policy adds no hash gate, counter,
-schema, or commit requirement.
+schema, or commit requirement for judging review quality. One Git check is
+different in kind: it asks whether the review changed anything, not whether it
+was good. When the first trivial review leaves the workspace content unchanged,
+the runtime ends the loop there (owner decision 2026-09-26).

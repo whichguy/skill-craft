@@ -1,6 +1,6 @@
 # Improve
 
-Use when a repository candidate needs a deliberate review-and-improvement loop: use recent Git history, make warranted changes, run meaningful checks, and require two consecutive trivial-only review passes. Supports a read-only interpretation preview; not a one-off code review.
+Use when a repository candidate needs a deliberate review-and-improvement loop: use recent Git history, make warranted changes, run meaningful checks, and repeat until two consecutive passes make no changes, or the first pass completes with no change. Supports a read-only interpretation preview; not a one-off code review.
 
 ## Install
 

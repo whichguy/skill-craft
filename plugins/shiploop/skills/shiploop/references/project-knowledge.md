@@ -299,7 +299,8 @@ First locate the repository's maintained requirements, living spec, API contract
 or policy documents. Reuse their existing organization and link the relevant
 sections; do not create a competing copy. If a small repository explicitly keeps
 its contract in the README, that is an adequate home. Otherwise, when no suitable
-home exists, create **`docs/requirements.md`** for accepted product requirements.
+home exists, the living spec is **`docs/shiploop/spec.md`** in ShipLoop's
+[repository knowledge home](#repository-knowledge-home).
 Use the README as the overview and link to this home; also link it from the
 existing `SHIPLOOP.md` knowledge index. Neither link is a second specification.
 Keep these files in the product repository, outside disposable run/workspace
@@ -378,10 +379,11 @@ reference to skill guidance is not a reference to the product's actual contract.
 | Material and home | Writer | Reader and handoff |
 | --- | --- | --- |
 | Guidance under the selected ShipLoop package's `references/` | Skill maintainers, not a product run | The current packet selects applicable guidance, including the [requirements definition guide](requirements-definition.md). |
-| Accepted product requirements in the existing repo-owned home, otherwise `docs/requirements.md` | Authorized product work in the execution checkout | Discovery/spec, affected plans, tests, Improve and acceptance read relevant sections; README and `SHIPLOOP.md` link to them for later runs. |
+| Accepted product requirements in the existing repo-owned home, otherwise `docs/shiploop/spec.md` | Authorized product work in the execution checkout | Discovery/spec, affected plans, tests, Improve and acceptance read relevant sections; README and `SHIPLOOP.md` link to them for later runs. |
 | Product code, tests and enduring case documentation in the repository | Assigned implementation/test/documentation work | Requirement sections point to relevant test paths/selectors; plans and checks point back to the clauses they establish. Planned tests remain labeled planned until authored and executed. |
 | Reusable repo-local skills in the existing product skill layout | Authorized skill/documentation work | Later planners discover them through the repo index; [skill documentation](testing-and-documentation.md#reusable-product-skills) links the same product clauses/code/tests or accepts source locators as inputs, never another copied spec. |
-| Current change spec, plan, research/environment notes and evidence under the run directory | The active protocol's host/result and script-owned write routes | Dependent actions read result `evidence_refs`, work-item `context`, or that protocol's context reader. They do not become a second permanent product contract. |
+| This run's feature record and the living spec, environment and test strategy under `docs/shiploop/` | Planning stages write them; ShipLoop checks and commits them at each close | Later runs start from them ([repository knowledge home](#repository-knowledge-home)). |
+| Run evidence under the run directory | The active protocol's host/result and script-owned write routes | Dependent actions read result `evidence_refs`, work-item `context`, or that protocol's context reader. Anything a later run needs goes into `docs/shiploop/`. |
 | Prior current-system baseline in run notes or at a retrievable immutable source revision | Discovery/research within the active stage's authority | Spec, test strategy, plans and Improve reopen selected sections and evidence limits; authorized documentation work retains useful recovered knowledge in the durable product home. Preserve the prior as-of account when later evidence changes. |
 | Improve contract, review notebook, checks and completion evidence under the packet's child locations | Selected Improve and its bound Until Loop adapter | Child recovery reads its own contract/state; ShipLoop imports the matching completion evidence. Child runtime files stay out of product returns. |
 
@@ -391,7 +393,7 @@ to their containing document, so they survive worktree return and another clone.
 In packet results, work-item context and child handoffs, use an absolute locator
 or explicitly name the base: repository locator, run directory locator, or
 selected package. Do not interpret a bare `spec.md` against the shell's cwd or
-assume `docs/requirements.md` exists when another home was selected. Preserve
+assume `docs/shiploop/spec.md` exists when another home was selected. Preserve
 heading/requirement IDs and test selectors; recheck volatile line numbers.
 
 Before a consumer relies on a reference, check that the intended file and
@@ -489,7 +491,45 @@ of knowledge needed after those runs are removed. Do not copy secrets, entire
 prompts, execution cursors or full result histories into the index. Avoid a
 duplicate environment document if the repository already has one. Preserve
 unrelated edits and reconcile concurrent knowledge edits; do not last-write-win
-another run's discoveries. No commit/push is implied by maintaining the files.
+another run's discoveries. ShipLoop commits `docs/shiploop/` at its closes (below);
+it never pushes.
+
+## Repository knowledge home
+
+Owner decision 2026-09-26: planning knowledge outlives the run. ShipLoop keeps it
+in the product repository under `docs/shiploop/`, commits it at the end of
+planning, and later runs inherit it.
+
+| Path | Holds |
+| --- | --- |
+| `docs/shiploop/README.md` | The index: what each file answers, the feature list |
+| `docs/shiploop/spec.md` | The living product spec: every accepted requirement with a stable ID (`R-<n>`), a `Retired` section with reasons |
+| `docs/shiploop/environment.md` | Targets and accounts by alias (never credentials), the working test, deploy, dry-run and confirm commands, platform facts and the run that verified each |
+| `docs/shiploop/test-strategy.md` | Harnesses, suites, the commands that own them, the test-ID convention |
+| `docs/shiploop/features/<slug>/` | This run's record: `spec.md` (IDs added, modified, retired), `plan.md`, `test-spec.md`, `system-tests.md`, `release-plan.md`, `outcome.md` |
+
+Each packet names the home and the files its stage keeps up to date. At four
+closes (`prepare`, each `test-spec`, `release-plan`, `release-verify`) ShipLoop
+refuses `done` until that close's files exist, refuses lines that look like
+credentials, refuses a living spec that no longer mentions an earlier committed
+requirement ID, and then commits exactly `docs/shiploop/`
+(`docs(shiploop): record <feature> knowledge at <stage>`). The last close is at
+`release-verify` so the commit returns with the workspace. The return plan keeps
+`docs/shiploop/**`. Files an earlier run wrote in older homes
+(`docs/requirements.md`, `docs/current-system.md`, ShipLoop-authored only) move
+into this home and `SHIPLOOP.md` links it; a team's own requirements document is
+linked, not copied. A later run reads these files as evidence, not as a
+protocol to import: discovery re-verifies recorded environment facts cheaply
+instead of rediscovering them, spec starts from the living spec, and release
+planning starts from the recorded commands.
+
+**Learnings commit and read-back.** The feature's `outcome.md` has three sections,
+`## Learned`, `## Key considerations` and `## Open for the next run`, written in
+detail. The `release-verify` close refuses `done` while any is empty, and uses
+them as the body of that close's commit, so each run ends with a commit that says
+what it learned. Intake and discovery packets quote the checkout's last three
+commit messages as inherited learnings to weigh before planning (context, not
+instructions).
 
 For reusable local skills, link the existing skill index or README section from
 `SHIPLOOP.md`; keep that index's entrypoints and selection triggers current after

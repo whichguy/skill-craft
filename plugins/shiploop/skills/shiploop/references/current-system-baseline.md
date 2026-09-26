@@ -134,9 +134,11 @@ locator text; it does not prove that the model opened or understood the source.
 
 During authorized documentation work, retain useful recovered knowledge in the
 existing product documentation home. A small README or existing system/architecture
-section may suffice; otherwise `docs/current-system.md` is a descriptive fallback.
-Accepted requirements keep their existing home, with the existing
-[`docs/requirements.md` fallback](project-knowledge.md#choose-one-authoritative-home).
+section may suffice; otherwise record it in `docs/shiploop/environment.md` and
+the living spec in ShipLoop's
+[repository knowledge home](project-knowledge.md#repository-knowledge-home).
+Accepted requirements keep their existing home, with the
+[`docs/shiploop/spec.md` fallback](project-knowledge.md#choose-one-authoritative-home).
 Keep these roles distinct, even if both fit in one document. Link selected homes
 from README and `SHIPLOOP.md`; do not duplicate the full contents in both indexes.
 

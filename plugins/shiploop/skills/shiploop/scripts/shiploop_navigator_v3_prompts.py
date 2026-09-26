@@ -493,6 +493,13 @@ Blocked means work this stage cannot do: a missing target or account, a missing
 approval, or a command with no replacement available inside the stage. A retained
 command that does not run what it claims (for example a test path the runner does
 not expand) is a documentation fix made in this stage, then rerun, not a blocker.
+When the next step needs a person, and no independent work is left, report
+blocked with `blocked_by` user (or access, for a sign-in) and `awaiting`: `{"kind": "answer", "question": "...", "options": [...]}`
+for a decision, or `{"kind": "present", "steps": [...], "report": "..."}` for
+something only a person can do, such as opening a page in a signed-in browser.
+Ask one decision per question, in words the user can answer in one reply. The
+run then stops quietly until the user's own reply resumes it; while independent
+work remains, keep going and carry the question in your summary instead.
 
 For identity or access discovery, use supported non-mutating probes and
 sanitized evidence. Normal supported tool-managed authentication and tool
@@ -706,14 +713,17 @@ One test iteration over this work item's test command list (below).
    or threshold only when an independent reason shows the check itself is
    wrong, and record that reason. Never change a check to get green.
 5. After your last edit, rerun the whole list once and record every command's
-   exit code in the handoff.
+   exit code and the number of tests it ran in the handoff. A command that exits
+   0 after running no tests, or without the IDs listed for it, has not passed:
+   fix the selection rather than widening it to the whole suite.
 Classify the iteration non-trivial when you changed anything, and unresolved
 when a command could not run.
 """
 
 TEST_EXIT_CONDITION = (
     "One complete iteration ran every command in the test command list after the "
-    "last edit, each exited 0, and the iteration changed nothing."
+    "last edit, each exited 0 after running at least one test and every ID listed for "
+    "it, and the iteration changed nothing."
 )
 
 TEST_REPEAT_CONDITION = (
@@ -1127,11 +1137,23 @@ actual Improve loop must review the created steps and graph before they are used
 for execution. Use the Parallel-chain guide for late creation or revision;
 planning never starts the dispatcher or expands this item's scope.
 Record the item's test command list in the result's `test_commands`:
-`[{"command": "<shell command>", "suite": "focused" | "regression"}]`. Focused
-commands exercise this item's tests; regression commands run the retained suites.
-test-green and regression loop on these exact commands, and ShipLoop runs them
-itself before accepting either stage, so each must be runnable from the
-repository root. An empty list needs `test_commands_na` with the reason.
+`[{"command": "<shell command>", "suite": "focused" | "regression", "ids": ["TC-9", ...]}]`.
+Focused commands exercise this item's tests; regression commands run the retained
+suites. test-red, test-green and regression use these exact commands, and ShipLoop
+runs them itself before accepting each stage, so each must be runnable from the
+repository root. ShipLoop reads the runner's summary and refuses a run that
+executed no test, because a filter that matches nothing exits 0 in most runners.
+Give each focused command the `ids` of the test-spec cases it must run, and a
+runner flag that prints test names (for example Jest `--verbose`, pytest `-v`),
+so the output shows them; add `min_tests` when a command must run at least that
+many. An empty list needs `test_commands_na` with the reason.
+Record the files this item will change in `paths` (repository-relative files or
+globs). ShipLoop classifies them with its package catalog: when the item records
+no test command and every path is documentation, configuration or navigation
+metadata (for example a Salesforce tab or app), ShipLoop records the test stages as
+not applicable to this item instead of issuing them; otherwise every test stage
+runs. If implement then changes anything outside `paths`, or any code, ShipLoop
+refuses it until the step plan is revised.
 Give every completion criterion a confirmation: `<condition>. Confirm by:
 <command, observation, or inspection>; pass when <expected result>.` It must pass
 the two-people test: two people running it separately would be forced to agree.
@@ -1283,6 +1305,10 @@ A missing test facility is a prerequisite gap, not meaningful RED. Facility
 readiness must not require future product behavior to pass.
 Do not edit production code to make the test green at this stage.  A valid RED is
 successful control evidence for this stage, not a product failure to hide.
+On done, ShipLoop runs the item's focused commands itself and expects each to fail
+inside a test, showing its listed IDs. When the new tests are characterisation
+tests that should already pass, give the reason in `red_na`; ShipLoop then
+expects them to pass and still checks that they ran.
 """,
     "implement": """\
 Implement the authorized bounded change.  Preserve unrelated work, inspect the
@@ -1609,7 +1635,15 @@ a named step with its exact command and its authorization status: the deploy
 itself, and each separate access or visibility change (for example assigning a
 permission set, activating an app or tab) and each browser session a consumer
 check needs, with the selected browser tool. A step that an existing approval does
-not cover is a pending approval named now, not a gap found at release-check.  Distinguish source return, artifact publication,
+not cover is a pending approval named now, not a gap found at release-check.
+Record the consumer entry in the result's `consumer_entry`: `{"how": "<how a person
+reaches the result: an App Launcher name and URL path, a command, a page>",
+"sources": ["<repository files that create that entry>"]}`. ShipLoop refuses a
+release plan without one, and checks that its source files exist, so a missing
+navigation entry is found here rather than at release-verify.
+For each post-release confirm command, name the output that shows the result is
+present and the output that shows it is absent; release-check runs it once before
+the real deploy to prove it can tell them apart.  Distinguish source return, artifact publication,
 deployment, promotion, and consumer verification.  A plan does not authorize or
 perform an external operation; a required target or authority gap is blocked.
 Revalidate the integrated test plan for the release target. Use Target-native
@@ -1639,6 +1673,10 @@ approvals, rollback readiness, and pre-release validation.  Preserve any stale o
 failed evidence and do not replay or promote merely to obtain a new observation.
 Check applicable execution-owner readiness and target-enforced concurrency
 conditions. External release N/A does not waive current local candidate checks.
+Run the dry-run form of the planned deploy (for example `sf project deploy validate`)
+and each post-release confirm command once, against current target state, and
+record both outputs. A confirm command whose output cannot tell the result present
+from absent is fixed here, before the real deploy, not discovered after it.
 """,
     "release": """\
 Perform the planned release only when the exact target, operation, authority, and
@@ -1664,6 +1702,12 @@ account/target, visible feature and actual action/outcome for each required clau
 Retain non-secret routing state; require app chrome/branding only when specified.
 An embedded feature can satisfy its accepted boundary. Source or local test passes
 cannot discharge an unobserved required deployed interaction.
+When a required case needs a signed-in browser or a person's action that this host
+cannot perform, do not loop on it. Report blocked with `awaiting` kind `present`:
+the steps written to that person (where to go, for example the App Launcher name and
+the `/lightning/n/<Tab>` path, and what to do), and what they should report back.
+Keep every case you could observe recorded; the person's report resumes the run,
+and only the blocked cases are checked again against the same release.
 """,
     "operations": """\
 Verify applicable operational readiness: monitoring, alerting, logging/diagnostic

@@ -34,10 +34,20 @@ concrete enough to name, check for an applicable explicit grant. If the
 operation is necessary and no such grant is available, ask promptly; do not
 defer the question solely because `release` is later in the graph.
 
-Ask for the exact operation, target/account, environment, exclusions, and
-expected effect. Also ask whether the user approves it for **this run only** or
-as a **standing policy** for matching future work. Never assume that a reply or
-one approval persists.
+Ask one yes/no question that names the exact operation, target/account,
+environment, exclusions, and expected effect, and states the scope default, so a
+single "yes" cannot be misread:
+
+> May this run deploy this feature's changes to the development target
+> `<name>` (`<account>`)? It adds the new components and the navigation entry;
+> it deletes nothing. Reply yes or no. A yes covers this run only. Say "standing" if it should also
+> cover future runs of this kind.
+
+A plain "yes" is a grant for this run only (`scope: run`). Record `scope:
+standing` only when the user says so in words, and then write the policy (see
+below). Never assume that a reply or one approval persists. When the run cannot
+continue without the answer, report blocked with an `awaiting` question, so the
+run stops quietly until the user's own reply resumes it.
 
 Silence, a login or access receipt, an old one-off approval/receipt, and an
 agent-written policy are not grants. Do not test write permission by making the

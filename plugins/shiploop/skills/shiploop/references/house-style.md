@@ -99,7 +99,7 @@ At step planning, before any product edit, write a compact **match contract**
 into the item's accepted step plan: the plan note its result registers in
 `evidence_refs`, named in its `summary`. Every later stage that builds or
 checks the item (test authoring, implementation, static checks, verification,
-documentation) lists that step-plan result under **Read first**, so a fresh
+documentation) lists that step-plan result under **Results this stage builds on**, so a fresh
 context finds the contract without this conversation. Work-item `context` is
 written only at plan and carry-forward; a plan that already knows an item's
 exemplars may name them there, and step planning confirms or replaces them.

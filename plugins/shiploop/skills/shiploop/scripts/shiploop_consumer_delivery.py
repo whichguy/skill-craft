@@ -131,7 +131,7 @@ def _correction_source(value: Any, label: str) -> dict[str, str]:
 
 def _authority(value: Any) -> dict[str, str]:
     _need(isinstance(value, Mapping), "delivery authority must be an object")
-    allowed = {"status", "kind", "reference", "approval_ref", "target", "operation"}
+    allowed = {"status", "kind", "reference", "approval_ref", "target", "operation", "scope"}
     required = {"status", "kind", "reference", "target", "operation"}
     _need(set(value) <= allowed and required <= set(value),
           "delivery authority has unsupported or missing fields")
@@ -142,12 +142,20 @@ def _authority(value: Any) -> dict[str, str]:
         {key: value[key] for key in ("kind", "reference", "approval_ref") if key in value},
         "delivery authority",
     )
-    return {
+    result = {
         "status": status,
         **source,
         "target": _text(value.get("target"), "delivery authority target"),
         "operation": _text(value.get("operation"), "delivery authority operation"),
     }
+    if "scope" in value:
+        # A plain yes covers this run; standing needs the user's own words, kept as a repo policy.
+        scope = value["scope"]
+        _need(scope in ("run", "standing"), "delivery authority scope must be run or standing")
+        _need(scope == "run" or source["kind"] == "repo-policy",
+              "a standing delivery grant must be recorded as a repo-policy with its approval_ref")
+        result["scope"] = scope
+    return result
 
 
 def _obligations(value: Any) -> list[dict[str, Any]]:

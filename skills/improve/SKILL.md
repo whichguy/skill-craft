@@ -6,7 +6,7 @@ description: >-
   and repeat until two consecutive passes make no changes, or the first pass
   completes with no change. Supports a read-only interpretation preview; not a
   one-off code review.
-version: 0.3.0-rc.5
+version: 0.3.0-rc.6
 license: MIT
 platforms:
   - linux

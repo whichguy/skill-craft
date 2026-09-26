@@ -376,8 +376,9 @@ def _decide(host: str, session: str, binding: dict, *, waiting: bool = False) ->
                 "why": f"run cannot be read: {status.get('error', 'run changed')}"}
     if status["status"] != "active":
         reason = status.get("status_reason")
+        waiting = " (waiting on the user)" if status.get("awaiting") else ""
         return {"decision": "allow", "drop": True,
-                "why": f"run is {status['status']}" + (f": {reason}" if reason else "")}
+                "why": f"run is {status['status']}{waiting}" + (f": {reason}" if reason else "")}
     if not claim_owner(binding["run_dir"], host, session):
         return {"decision": "allow", "why": "another session owns this run",
                 "notice": ("ShipLoop keepalive: another session owns this run, so this one is not "

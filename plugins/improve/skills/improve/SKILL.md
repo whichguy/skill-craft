@@ -3,9 +3,10 @@ name: improve
 description: >-
   Use when a repository candidate needs a deliberate review-and-improvement
   loop: use recent Git history, make warranted changes, run meaningful checks,
-  and require two consecutive trivial-only review passes. Supports a read-only
-  interpretation preview; not a one-off code review.
-version: 0.3.0-rc.5
+  and repeat until two consecutive passes make no changes, or the first pass
+  completes with no change. Supports a read-only interpretation preview; not a
+  one-off code review.
+version: 0.3.0-rc.6
 license: MIT
 platforms:
   - linux
@@ -230,10 +231,16 @@ original learnings with selective references to prior commits in one account.
   `non-trivial` for a material finding or behavior change, even if fixed; and
   `unresolved` if work, evidence, required commit, or assessment is incomplete.
   Report the substantive exit assessment and whether continuation is allowed,
-  blocked, or cancelled. The configured gate is two consecutive qualifying
-  trivial reviews; a material or unresolved report resets it. Only the runtime
-  can accept a terminal transition. A blocker, requested stop, exhausted
-  budget, failed required commit, stale check, or unresolved evidence remains
+  blocked, or cancelled.
+- **Exit rule:** repeat until two consecutive passes make no changes, or the
+  first pass completes with no change. "No changes" means a `trivial` pass:
+  nothing material found, at most trivial polish. A material or unresolved
+  pass resets the count. The one-pass exit needs more than the report: the
+  runtime checks from Git that the workspace content (tracked and untracked
+  files; ignored and runtime files aside) is exactly what it was at `start`,
+  and only then ends the loop after that first pass. Only the runtime can
+  accept a terminal transition. A blocker, requested stop, exhausted budget,
+  failed required commit, stale check, or unresolved evidence remains
   incomplete rather than satisfying the review policy.
 
 Runs are ephemeral across an abandoned host session: the per-run file
@@ -395,7 +402,8 @@ context.
 Preserve the shared policy and every standalone binding above in the interpreted
 contract, including conditional commit overrides and negative constraints. The
 execution condition must contain the complete ordered review cycle; the exit
-condition must include current evidence plus two consecutive qualifying reviews;
+condition must include current evidence and the exit rule (two consecutive
+passes with no changes, or a first pass that completes with no change);
 and the continuation condition must retain useful authorized work and incomplete
 stops. Before start, check that required exit outcomes can be achieved during
 execution. If the task requires an authorized deployment or other external
@@ -410,6 +418,6 @@ instruction while it is active. Do not add a nested plan-convergence loop or
 invent a successor, counter, or terminal decision.
 
 The runtime validates action identity and applies reported state transitions,
-including the two-review gate. It does not independently verify that a commit
+including the exit rule. It does not independently verify that a commit
 was made, a test ran, or a semantic judgment is correct. The callback evidence
 is a concise handoff record, not fabricated proof.

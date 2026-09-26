@@ -5,7 +5,7 @@ description: >-
   script's current action packet, and submit its exact completion call until
   the script reports completion with an HTML achievement report. Use when the
   user says shiploop, ship the project, or requests a durable delivery loop.
-version: 0.32.2
+version: 0.33.0
 allowed-tools: all
 license: MIT
 platforms:
@@ -287,6 +287,35 @@ new last item's carry-forward. An isolated run's workspace return happens at
 
 The two consecutive trivial passes an Improve child needs are self-passes by the
 same executor, not independent reviews; packets and reports call them passes.
+When the first pass is trivial and the runtime sees from Git that the workspace
+is unchanged, the loop completes after that one pass (`unchanged_first_pass` in
+the terminal packet) and the receipt lists that one review. ShipLoop cross-checks
+it against the tree it recorded at `improve-bind`.
+
+An Improve review makes the changes it finds warranted, in code, tests or
+documentation, and commits them. At `improve-bind` ShipLoop snapshots the
+candidate. At `improve-complete` it refuses the import while files the review
+changed still differ from `HEAD`; work that was uncommitted before the review is
+not counted. A receipt `no_commit` reason, citing the user's or repository's
+instruction, records the edits instead. The end-of-work review reruns every
+completed item's recorded test commands only when it changed the tree; an
+unchanged tree keeps the recorded passes. A result that is unchanged by the
+review needs no `final_result`: ShipLoop reuses the submitted result.
+
+### Repository knowledge home
+
+Planning knowledge outlives the run. Planning stages keep `docs/shiploop/` in the
+product repository up to date: `README.md` (index), `spec.md` (the living spec,
+stable `R-<n>` IDs), `environment.md` (targets by alias, working commands,
+platform facts), `test-strategy.md`, and this run's `features/<slug>/` record.
+At `prepare`, each `test-spec`, `release-plan` and `release-verify`, ShipLoop
+refuses `done` until that close's files exist, screens them for credentials,
+refuses a living spec that drops an earlier committed ID, and commits exactly
+`docs/shiploop/`. The `release-verify` commit's message is the feature
+`outcome.md`'s `Learned`, `Key considerations` and `Open for the next run`
+sections, and intake and discovery packets quote the last three commit messages
+as inherited learnings. The next run starts from these files; see
+[repository knowledge home](references/project-knowledge.md#repository-knowledge-home).
 
 ### Script-owned lint
 
@@ -361,8 +390,10 @@ pass).
 ### Test loop
 
 `step-plan` records the work item's test command list in its result:
-`"test_commands": [{"command": "<shell command>", "suite": "focused" | "regression"}]`.
-ShipLoop refuses a done `step-plan` without it; an empty list needs
+`"test_commands": [{"command": "<shell command>", "suite": "focused" | "regression", "ids": ["TC-9"], "min_tests": 1}]`
+(`ids` and `min_tests` optional).
+It also records `"paths"`: the repository-relative files or globs the item will
+change. ShipLoop refuses a done `step-plan` without either; an empty list needs
 `test_commands_na` with the reason. `test-green` loops on the focused commands
 and `regression` on every command, each on the Until Loop bound to the selected
 Improve card:
@@ -379,15 +410,47 @@ Improve card:
    from run state. Then ShipLoop runs every listed command itself with
    `/bin/sh -c` from the repository (at most 10 minutes each, 30 per stage),
    records the output in `tests/<action>-verify<N>.md`, and refuses `done`
-   unless each exits 0. The refusal prints each failing command and the end of
-   its output.
+   unless each passes. The refusal prints each failing command, why it did not
+   pass and the end of its output.
+
+A command passes only when it exits 0 **and ran tests**. ShipLoop reads the
+runner's summary (Jest, Vitest, pytest, unittest, Mocha, cargo, go, dotnet) and
+refuses a run of zero tests (`no-tests`), fewer than `min_tests`
+(`too-few-tests`), or one whose output does not show each listed ID on a line
+that is not a skip line (`ids-missing`). A focused command whose count ShipLoop
+cannot read passes only with `ids` that all appear; a regression command without
+`ids` or `min_tests` may pass uncounted.
+
+**Test stages not applicable to an item.** When the accepted step plan records
+no test command (`test_commands_na`) and every declared path is documentation,
+configuration or navigation metadata in the package catalog
+(`references/path-classes.json`; a path no rule matches counts as code), ShipLoop
+records `test-spec`, `baseline`, `test-author`, `test-red`, `test-green`,
+`test-refine` and `regression` as not applicable to that item instead of issuing
+them: each keeps a history row and result file, and `test-spec` gets no Improve
+child. `implement`'s `done` is then refused if the item's real diff touches code
+or any path outside `paths`, so the step plan is revised and the stages run.
+Anything short of that proof runs every test stage.
+
+`test-red` is script-checked too: on `done` ShipLoop runs the focused commands and
+expects each to fail inside a test (at least one failing test, every listed ID
+shown). A green run, a zero-test run or a failure before any test ran (syntax,
+import, setup) is refused. Characterisation tests that already pass carry
+`red_na` with the reason; ShipLoop then requires them to pass and to have run.
 
 Every stage after the test loops that can edit code reruns them too: on `done`
 at `test-refine`, `static-checks` (after its quality-loop check) and
 `integration-verify`, ShipLoop runs every recorded command and refuses unless
-each exits 0. There is no loop at those stages; the packet lists the commands.
+each passes. There is no loop at those stages; the packet lists the commands.
 Each action allows 3 refused runs; after that ShipLoop accepts only `blocked`,
 so a failing command goes back to plan revision instead of an endless retry.
+
+A done `release-plan` records `consumer_entry`: how a person reaches the result
+and the repository files that create that entry. ShipLoop refuses the release plan
+without one or when those files do not exist, so a component with no navigation
+entry is caught before release rather than at `release-verify`. `release-check`
+runs the dry-run deploy and each post-release confirm command once, recording
+their "not there yet" output before the real deploy.
 
 These are commands the step plan recorded; ShipLoop runs them outside the host's
 permission prompts, and the step plan's Improve review is their check. With an
@@ -459,9 +522,19 @@ the host handoff, or force any host tool call.
 
 Every packet names the run's **context index** (`context-index.md`): the request,
 the accepted planning basis, each work item's results and their notes. Active
-packets add **Read first**: the accepted results the current stage builds on.
-Read those before acting, use the index for the global picture, and report a
-conflict with an accepted decision instead of silently choosing.
+packets add **Results this stage builds on**: references to the accepted results
+the current stage depends on. Open one when its content is not already in your
+context, use the index when you need the global picture, and report a conflict
+with an accepted decision instead of silently choosing. Packets point at material
+rather than asking you to reread it at every stage.
+
+A repeated `next` for the same action prints a short packet: status, callback,
+keepalive marker, what changed since it was last printed, the stage references
+and the full stage prompt. The run-level rules (locators, recovery, delegation
+rule, original request) are then a reference to `rules.md`, which ShipLoop keeps
+current; open it when they are not in your context, for example after
+compaction. `next --full` prints everything. A new action, a status change or a
+changed rules block prints the full packet.
 
 Each packet carries a script-rendered **status block** (`=== ShipLoop status ===`):
 where the run is, what just finished, what comes next and what is complete.
@@ -581,7 +654,10 @@ question about the loop is not a stop: answer it and continue the packet.
    any already-applied work, then follow the reprinted current packet. An
    identical accepted result is an idempotent retry; a conflicting result cannot
    reuse its ID. If a packet is paused or blocked, resolve its stated condition
-   and use its printed `resume` command once. Halted or done packets stop.
+   and use its printed `resume` command once. A packet blocked on the user
+   (`awaiting`) prints the question or steps: end the turn with them and resume
+   only with the user's own reply (`--answer` or `--observed`). "Continue" and a
+   question about the skill are not replies. Halted or done packets stop.
 6. Completion records the host's declaration. It is not independent proof that
    software was tested, deployed, or accepted by a consumer.
 
@@ -602,8 +678,9 @@ not make hosted delivery optional; it also does not grant remote-write authority
 Keep update necessity, scoped authority, and consumer verification distinct.
 Once discovery makes the consumer, target/account, and necessary operation
 concrete, follow [delivery authority readiness](references/delivery-authority.md):
-promptly ask for an applicable explicit grant when needed, including whether it
-is for this run or standing. Do not defer that question merely until release.
+promptly ask for an applicable explicit grant when needed, as one yes/no
+question whose yes covers this run only unless the user says "standing". Do not
+defer that question merely until release.
 Retain the assessment, owner, earliest gate, and actual binding evidence in the
 canonical environment-lifecycle note; independent authorized work can continue,
 but do not write or complete `release-plan` while required authority is
