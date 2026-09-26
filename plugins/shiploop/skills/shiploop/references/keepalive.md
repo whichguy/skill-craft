@@ -15,7 +15,13 @@ optional; runs work without it.
 | `scripts/shiploop-hook stop` | When the host is about to end a turn: while the bound run is `active` and its revision moved since the last refusal, refuse the stop and name the run's next command. |
 | `scripts/shiploop-drive` | Outer driver for unattended runs: starts or resumes host sessions until the run is not active. |
 
-`hook-status` is the only place that decides whether a run can move. Its
+`hook-status` is the only place that decides whether a run can move.
+
+If a host session prints a second packet while its keepalive has never bound
+that run, the packet command warns once on stderr ("ShipLoop keepalive is not
+active in this <host> session") with the host's fix, such as restarting Grok so
+its leader loads the plugin hooks. A session that was bound and later released
+does not warn. Its
 `progress` field is `<revision>.<callback attempts>.<Improve pass>`: an accepted
 result, a refused callback (the model is fixing and resubmitting) and each pass
 of an active Improve review all count as progress, so a long review or a fix
