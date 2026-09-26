@@ -129,7 +129,7 @@ def main(argv: list[str] | None = None) -> int:
     p.add_argument("--model")
     p.add_argument("--effort")
     p.add_argument("--permission-mode", default="auto")
-    p.add_argument("--run-max-turns", type=int, default=600)
+    p.add_argument("--run-max-turns", type=int, default=10000)
     p.add_argument("--improve-max-turns", type=int, default=120)
     p.add_argument("--max-budget-usd", type=float, default=10.0, help="per Claude process; Grok has no spend cap")
     p.add_argument("--run-timeout", type=int, default=10800)

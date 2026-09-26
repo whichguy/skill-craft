@@ -40,7 +40,7 @@ pre-created. It grades five verdicts into `result.json`:
   `/shiploop`, since Grok does not namespace plugin skills; Claude
   `/skill-craft:shiploop`, since a bare `/shiploop` is not registered there);
 - **plugin**: exactly one skill-craft plugin loaded, and it is the build under test;
-- **process**: the host exited 0 in time (defaults: 600 turns, 3 hours);
+- **process**: the host exited 0 in time (defaults: 10,000 turns, 3 hours);
 - **shiploop**: a ShipLoop `state.md` under the output directory (in `work/.shiploop` or
   an external workspace root the agent chose beside `work/`) has status `done`, with
   its `report.html`;
