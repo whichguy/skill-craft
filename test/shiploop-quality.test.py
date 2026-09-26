@@ -148,7 +148,8 @@ class QualityLoopTests(unittest.TestCase):
             raw = subprocess.run(packet["done_argv"], input=json.dumps(report), text=True,
                                  capture_output=True, check=True, timeout=30).stdout
             packet = json.loads(raw)
-        self.terminal().write_text(raw)
+        # The runtime, started with the printed --receipt, already wrote the last packet there.
+        self.assertEqual(json.loads(self.terminal().read_text()), packet)
         return packet
 
     # -- tests ---------------------------------------------------------------------
@@ -222,8 +223,44 @@ class QualityLoopTests(unittest.TestCase):
             self.complete(dict(DONE, evidence_refs=[str(self.terminal())]))
         # A malformed packet is refused cleanly, not with a crash.
         self.terminal().write_text(json.dumps({"status": "complete", "conditions": [], "progress": 1}))
-        with self.assertRaisesRegex(nav.NavigatorError, "lacks its conditions or progress"):
+        with self.assertRaisesRegex(nav.NavigatorError, "not a complete Until Loop packet"):
             self.complete(dict(DONE, evidence_refs=[str(self.terminal())]))
+        self.assertEqual((self.run_dir / "state.md").read_bytes(), before)
+
+    def test_a_terminal_packet_the_runtime_did_not_write_is_refused(self):
+        """Audit 2026-09-26: a six-key object copied from the contract passed as the terminal packet."""
+        self.start()
+        self.drive_to(quality.STAGE)
+        before = (self.run_dir / "state.md").read_bytes()
+        result = dict(DONE, evidence_refs=[str(self.terminal())])
+        contract = json.loads((self.run_dir / quality.contract_path(self.action())).read_text())
+        forged = {"status": "complete", "workspace": contract["workspace"], "work": contract["work"],
+                  "conditions": {"exit": contract["exit_condition"], "repeat": contract["repeat_condition"]},
+                  "progress": {"action_number": 1, "trivial_streak": 1,
+                               "required_trivial_reviews": contract["required_trivial_reviews"]},
+                  "context": contract["context"]}
+        self.terminal().write_text(json.dumps(forged))
+        with self.assertRaisesRegex(nav.NavigatorError, "not a complete Until Loop packet"):
+            self.complete(result)
+        # A genuine packet from a run started without the printed --receipt is not this action's receipt.
+        start = next(line for line in self.packet().splitlines() if line.startswith("Start: "))
+        words = shlex.split(start[len("Start: "):])
+        argv = words[:words.index("--receipt")]
+        first = json.loads(subprocess.run(argv, input=Path(words[-1]).read_text(), text=True,
+                                          capture_output=True, check=True, timeout=30).stdout)
+        raw = subprocess.run(first["done_argv"], input=json.dumps(TRIVIAL), text=True,
+                             capture_output=True, check=True, timeout=30).stdout
+        self.terminal().write_text(raw)
+        with self.assertRaisesRegex(nav.NavigatorError, "not written by a run started with --receipt"):
+            self.complete(result)
+        # A full copy whose run is still live is refused too.
+        live = self.run_loop([])
+        self.assertEqual(live["status"], "active")
+        copy = dict(live, status="complete", next_argv=None, done_argv=None, report_schema=None,
+                    last_report=TRIVIAL)
+        self.terminal().write_text(json.dumps(copy))
+        with self.assertRaisesRegex(nav.NavigatorError, "still live"):
+            self.complete(result)
         self.assertEqual((self.run_dir / "state.md").read_bytes(), before)
 
     def test_loop_past_the_iteration_limit_must_report_blocked(self):

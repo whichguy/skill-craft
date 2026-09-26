@@ -57,7 +57,9 @@ class V4ConsumersTests(unittest.TestCase):
                         'scope': 'Only temporary evidence and candidate plan', 'authority': 'No product edits or commits',
                         'environment': 'Local isolated test fixture', 'resources': []},
         }
-        started = subprocess.run([sys.executable, '-B', skill['runtime_cli'], 'start'],
+        receipt = bridge.receipt_path(binding)
+        receipt.parent.mkdir(parents=True, exist_ok=True)
+        started = subprocess.run([sys.executable, '-B', skill['runtime_cli'], 'start', '--receipt', str(receipt)],
                                  input=json.dumps(contract), text=True, capture_output=True, check=True)
         packet = json.loads(started.stdout)
         stopped = subprocess.run(packet['done_argv'], input=json.dumps({
@@ -109,8 +111,10 @@ class V4ConsumersTests(unittest.TestCase):
                 'resources': [],
             },
         }
+        receipt = bridge.receipt_path(binding)
+        receipt.parent.mkdir(parents=True, exist_ok=True)
         started = subprocess.run(
-            [sys.executable, '-B', skill['runtime_cli'], 'start'],
+            [sys.executable, '-B', skill['runtime_cli'], 'start', '--receipt', str(receipt)],
             input=json.dumps(contract), text=True, capture_output=True, check=True, timeout=30,
         )
         packet_path = bridge.receipt_path(binding)

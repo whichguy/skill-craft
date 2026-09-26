@@ -473,8 +473,10 @@ class FullRuntimeCompositionTests(unittest.TestCase):
         }
         state_directory = self.base / "ephemeral-child-state"
         state_directory.mkdir(exist_ok=True)
+        context["packet_path"].parent.mkdir(parents=True, exist_ok=True)
         raw, packet = self._run_child_argv(
-            [sys.executable, "-B", str(self._until(context["improve"])), "start", "--directory", str(state_directory)],
+            [sys.executable, "-B", str(self._until(context["improve"])), "start", "--directory", str(state_directory),
+             "--receipt", str(context["packet_path"])],
             contract,
         )
         self.assertEqual(packet["status"], "active")
@@ -734,7 +736,7 @@ class FullRuntimeCompositionTests(unittest.TestCase):
         words = shlex.split(start[len("Start: "):])
         self.assertEqual(words[-2], "<")
         argv, contract = words[:-2], words[-1]
-        self.assertEqual(argv[-1], "start")
+        self.assertEqual(argv[-3:-1], ["start", "--receipt"])
         self.assertEqual(json.loads(Path(contract).read_text())["required_trivial_reviews"], 1)
         started = subprocess.run(argv, input=Path(contract).read_text(), text=True,
                                  capture_output=True, timeout=30, check=True)
@@ -749,10 +751,10 @@ class FullRuntimeCompositionTests(unittest.TestCase):
         finished = subprocess.run(active["done_argv"], input=json.dumps(report), text=True,
                                   capture_output=True, timeout=30, check=True)
         self.assertEqual(json.loads(finished.stdout)["status"], "complete")
-        terminal = next(line for line in packet.splitlines()
-                        if line.startswith("Save the terminal packet (stdout) to: "))
-        path = Path(terminal.split(": ", 1)[1])
-        path.write_text(finished.stdout)
+        receipt = next(line for line in packet.splitlines() if line.startswith("Receipt (the runtime writes"))
+        path = Path(receipt.rsplit(": ", 1)[1])
+        # The runtime wrote the terminal packet itself; the host never copied stdout.
+        self.assertEqual(json.loads(path.read_text()), json.loads(finished.stdout))
         return str(path)
 
     def _advance_stage(

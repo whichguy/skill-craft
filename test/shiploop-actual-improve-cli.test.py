@@ -237,6 +237,12 @@ class ImproveCliFixture(unittest.TestCase):
             "context": self.child_context(),
         }
 
+    def receipt_args(self):
+        """Start the child the way ShipLoop's packet says: the runtime writes the receipt itself."""
+        path = bridge.receipt_path(self.bound)
+        path.parent.mkdir(parents=True, exist_ok=True)
+        return ["--receipt", str(path)]
+
     def save_packet(self, result):
         path = bridge.receipt_path(self.bound)
         path.parent.mkdir(parents=True, exist_ok=True)
@@ -248,7 +254,7 @@ class ImproveCliFixture(unittest.TestCase):
     def start_ephemeral_child(self):
         self.assertEqual(self.bound["skill"]["runtime_cli"], str(EPHEMERAL.resolve()))
         result, packet = self.invoke_argv(
-            [sys.executable, "-B", str(EPHEMERAL), "start", "--directory", str(self.base)],
+            [sys.executable, "-B", str(EPHEMERAL), "start", "--directory", str(self.base), *self.receipt_args()],
             self.child_contract(),
         )
         self.assertEqual(packet["status"], "active")
@@ -679,7 +685,7 @@ class EphemeralImproveCliTests(ImproveCliFixture):
         """Cumulative report transport, not proof of model review or summarization."""
         self.assertEqual(self.state["navigator_protocol_version"], 4)
         self.assertEqual(self.bound["skill"]["runtime_cli"], str(EPHEMERAL.resolve()))
-        self.assertEqual(self.bound["skill"]["runtime_version"], "0.6.0")
+        self.assertEqual(self.bound["skill"]["runtime_version"], "0.7.0")
         selected_frontmatter = CARD.read_text(encoding="utf-8").split("---", 2)[1]
         selected_version = next(
             line.partition(":")[2].strip().strip("\"'")
@@ -690,7 +696,8 @@ class EphemeralImproveCliTests(ImproveCliFixture):
         for text in (self.bound["contract_marker"], "Bound Until Loop CLI locator: " + str(EPHEMERAL.resolve()),
                      "Child latest packet receipt: " + str(bridge.receipt_path(self.bound)),
                      "Commit policy:",
-                     "Save exact, complete raw JSON stdout", "Completion deletes the child's temporary state"):
+                     "Start the child runtime with --receipt " + str(bridge.receipt_path(self.bound)),
+                     "Completion deletes the child's temporary state"):
             self.assertIn(text, parent_packet)
 
         # Selected inputs are real before launch. Receipt/evidence paths are
@@ -833,7 +840,7 @@ class EphemeralImproveCliTests(ImproveCliFixture):
         contract["context"] = manual_context
 
         start_raw, first = self.invoke_argv(
-            [sys.executable, "-B", str(EPHEMERAL), "start", "--directory", str(self.base)], contract
+            [sys.executable, "-B", str(EPHEMERAL), "start", "--directory", str(self.base), *self.receipt_args()], contract
         )
         self.assertEqual(first["status"], "active")
         self.save_packet(start_raw)
@@ -912,7 +919,7 @@ class EphemeralImproveCliTests(ImproveCliFixture):
         ]
         contract["context"] = context
         raw, first = self.invoke_argv(
-            [sys.executable, "-B", str(EPHEMERAL), "start", "--directory", str(self.base)],
+            [sys.executable, "-B", str(EPHEMERAL), "start", "--directory", str(self.base), *self.receipt_args()],
             contract,
         )
         self.save_packet(raw)
@@ -1005,7 +1012,7 @@ class EphemeralImproveCliTests(ImproveCliFixture):
         contract["work"] = "Host-authored fixture review of a frozen local-skill selection."
         contract["context"] = manual_context
         start_raw, first = self.invoke_argv(
-            [sys.executable, "-B", str(EPHEMERAL), "start", "--directory", str(self.base)], contract
+            [sys.executable, "-B", str(EPHEMERAL), "start", "--directory", str(self.base), *self.receipt_args()], contract
         )
         self.assertEqual(first["status"], "active")
         self.save_packet(start_raw)

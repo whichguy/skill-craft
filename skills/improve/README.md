@@ -157,7 +157,7 @@ recursive discovery still finds only Improve. Install or distribute the whole
 leaf. A successful installation does not establish that every host can execute
 every project check.
 
-The bundled Until Loop runtime is 0.6.0.
+The bundled Until Loop runtime is 0.7.0.
 The package has a relocation regression and focused runtime checks; those
 checks do not prove universal model judgment, a completed multi-host rollout,
 or a particular repository's review quality.
@@ -166,9 +166,9 @@ or a particular repository's review quality.
 
 The callback runtime is vendored from
 [whichguy/until-loop](https://github.com/whichguy/until-loop) commit
-e1101f782411887d6c3e8e3b6a9110f15a59802d (runtime 0.6.0). Its
+80e6caca28aaeb9038e7c209809cc2071aab22ac (runtime 0.7.0). Its
 scripts/until_loop_ephemeral.py is byte-identical to upstream, with SHA-256
-0efab0d976d272e8a956561356efa5c14d11b300617b1219482d20164cba8fe9.
+0fc7f2f57cf0cfa9535f3512bb2633a4e50977eda85e5b263f2da8206bbb6647.
 
 [runtime/until-loop/PROVENANCE.json](runtime/until-loop/PROVENANCE.json)
 records the upstream commit, version, source paths, and SHA-256 values for the

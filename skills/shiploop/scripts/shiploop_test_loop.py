@@ -71,10 +71,6 @@ def contract_path(action: str) -> str:
     return "tests/" + action + "-contract.json"
 
 
-def latest_path(action: str) -> str:
-    return "tests/" + action + "-latest.json"
-
-
 def terminal_path(action: str) -> str:
     return "tests/" + action + "-terminal.json"
 
@@ -227,10 +223,10 @@ def render_lines(root: Path, state: Mapping[str, Any], work_item: str, action: s
         lines += [
             "Bound Until Loop card (open it if its rules are not already in your context): " + runtime["runtime_card"],
             "Loop contract (written by ShipLoop; pass it unchanged): " + str(contract),
-            "Start: " + shlex.join([sys.executable, runtime["runtime_cli"], "start"]) + " < "
+            "Start: " + shlex.join([sys.executable, runtime["runtime_cli"], "start",
+                                     "--receipt", str(root / terminal_path(action))]) + " < "
             + shlex.quote(str(contract)),
-            "Save every returned packet (stdout) to: " + str(root / latest_path(action)),
-            "Save the terminal packet (stdout) to: " + str(root / terminal_path(action)),
+            quality.RECEIPT_LINE + str(root / terminal_path(action)),
         ]
         if not contract.is_file():
             lines.append("The loop contract is missing; report outcome blocked naming this path.")
@@ -496,7 +492,6 @@ __all__ = (
     "build_contract",
     "check_terminal",
     "contract_path",
-    "latest_path",
     "judge",
     "normalise_commands",
     "red_lines",

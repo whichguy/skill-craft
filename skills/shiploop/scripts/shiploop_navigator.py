@@ -2868,7 +2868,7 @@ def _render_improve(core: Any, root: Path, state: Mapping[str, Any], lines: list
             "Delegation: inline. Run the selected Improve card's ShipLoop whole-skill subcall in this conversation, in the exact Child workspace; verify the process cwd and Git root before task work. Do not hand the invocation to Ask Agent, a native worker or an extra worktree. Run its reviews and checks in this conversation too; start no reviewer, test-runner or executor agent unless the user asked for independent review. This conversation is the only candidate writer until the runtime returns a terminal packet; stop competing writes there, including checks that generate files. Read that reference's default-route section before start or recovery.",
             "Freeze the exact candidate scope, selected packages, explicit user/repository authority including any no-commit override, and evidence paths before start. An existing invocation keeps its frozen authority.",
             "Carry current approvals, declines and pending decisions into child context.authority with action/target, conditions and authorization source; summarize their implications in the opening. Do not ask again for an applicable approval or treat a decline as optional advice. A later user decision in this conversation applies from the next review iteration: record its receipt and effect in the review notes and handoff; keep the frozen launch context unchanged.",
-            "Return order: save each raw packet as below; only after the terminal packet is saved, write the completion evidence and run the parent return and callback below. Runtime completion alone never advances this action.",
+            "Return order: only after the runtime has written the terminal packet to the receipt below, write the completion evidence and run the parent return and callback below. Runtime completion alone never advances this action.",
         ]
     else:
         ownership_lines = [
@@ -2877,7 +2877,7 @@ def _render_improve(core: Any, root: Path, state: Mapping[str, Any], lines: list
             "Workspace route: consumer-owned; delivery mode: in-place. Native assignment: execution_role: improve-executor; delegation_owner: parent. Freeze the exact candidate scope, selected packages, explicit user/repository authority including any no-commit override, evidence paths and parent continuation before dispatch. Existing invocations keep their recorded owner and frozen authority; unknown ownership blocks replacement.",
             "Native owner record: " + str(packet_path.with_name("host-owner.md")),
             "Carry current approvals, declines and pending decisions into child context.authority with action/target, conditions and authorization source; summarize their implications in the opening. Do not ask again for an applicable approval or treat a decline as optional advice. Forward later user decisions through the native channel and record receipt/effect in host-owner.md and the worker handoff; keep launch context immutable and continue the same child.",
-            "Parent-only return: the worker saves child packets and completion evidence, then returns their locators without executing ShipLoop callbacks or workspace return. The parent collects and verifies the result before executing the exact return route below. Worker completion alone never advances this action.",
+            "Parent-only return: the worker starts the child with the receipt below and writes the completion evidence, then returns their locators without executing ShipLoop callbacks or workspace return. The parent collects and verifies the result before executing the exact return route below. Worker completion alone never advances this action.",
         ]
     start_word = "start" if inline else "dispatch"
     runtime_lines = [
@@ -2887,8 +2887,11 @@ def _render_improve(core: Any, root: Path, state: Mapping[str, Any], lines: list
         "Child runtime authority: the unique temporary state_file returned by the selected runtime. ShipLoop does not write or count child state.",
         "Child latest packet receipt: " + str(packet_path),
         f"Binding inputs: before {start_word}, verify the selected cards, runtime and referenced inputs exist and match this candidate and action. Keep workspace, scope, authority and return ownership explicit. The child packet receipt and completion evidence are output destinations for a new child, not pre-start inputs; a resumed child requires its saved receipt. A missing input leaves {start_word} pending; never substitute an ambient skill or another workspace.",
-        "Save exact, complete raw JSON stdout from each successful start, next and done call to that receipt using a JSON-aware runner or safe file capture. Never reconstruct, summarize, or truncate the packet. This receipt preserves the callback handle and terminal evidence; it is not a second runtime state machine."
-        + (" Save the start packet before any review work." if inline else ""),
+        "Start the child runtime with --receipt " + shlex.quote(str(packet_path)) + ": the runtime writes every "
+        "packet it returns to that receipt before printing it, and the terminal packet before it deletes its "
+        "state, so the callback handle and terminal evidence survive a lost context. Do not write or edit the "
+        "receipt; ShipLoop imports only a packet the runtime wrote there. It is not a second runtime state machine."
+        + (" Start before any review work." if inline else ""),
         *(["Freeze in repeat_condition: if a finding invalidates an accepted discovery, research, spec "
            "or test-strategy premise, finish the current bounded work and report classification "
            "unresolved or non-trivial, exit_assessment unsatisfied or unknown, and "

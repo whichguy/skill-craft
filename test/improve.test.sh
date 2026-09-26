@@ -139,18 +139,18 @@ card_version = re.search(r"(?m)^version: (\S+)$", card.split("---", 2)[1])
 assert card_version is not None, "relocated Improve card requires a declared version"
 assert card_version.group(1) == source_version.group(1)
 assert "runtime/until-loop/scripts/until_loop_ephemeral.py" in card
-assert "version: 0.6.0" in adapter
+assert "version: 0.7.0" in adapter
 assert manifest["format"] == "skill-craft-until-loop-runtime-provenance/v1"
 assert manifest["upstream"] == {
     "repository": "https://github.com/whichguy/until-loop.git",
-    "commit": "e1101f782411887d6c3e8e3b6a9110f15a59802d",
-    "version": "0.6.0",
+    "commit": "80e6caca28aaeb9038e7c209809cc2071aab22ac",
+    "version": "0.7.0",
 }
 entries = {entry["bundled_path"]: entry for entry in manifest["default_ephemeral_runtime"]}
 script = root / "runtime/until-loop/scripts/until_loop_ephemeral.py"
-# Byte-for-byte upstream 0.6.0, which ends on a first pass that changed nothing.
+# Byte-for-byte upstream 0.7.0, which writes each packet to an optional --receipt file.
 assert entries["scripts/until_loop_ephemeral.py"]["sha256"] == (
-    "0efab0d976d272e8a956561356efa5c14d11b300617b1219482d20164cba8fe9"
+    "0fc7f2f57cf0cfa9535f3512bb2633a4e50977eda85e5b263f2da8206bbb6647"
 )
 assert "adaptation_reason" not in entries["scripts/until_loop_ephemeral.py"]
 assert hashlib.sha256(script.read_bytes()).hexdigest() == entries[
@@ -160,7 +160,7 @@ assert hashlib.sha256((root / "runtime/until-loop/ADAPTER.md").read_bytes()).hex
     "ADAPTER.md"
 ]["sha256"]
 assert entries["ADAPTER.md"]["upstream_sha256"] == (
-    "e18cf5dde32830f99d4235bb80d883e75887c2885e25f12987e9bed6bf94dc2f"
+    "421ec3e497a54eac6d818d0f03279ed97a5c8ca0366412eded80822d42b60928"
 )
 assert entries["ADAPTER.md"]["adaptation_reason"].strip()
 assert entries["ADAPTER.md"]["sha256"] != entries["ADAPTER.md"]["upstream_sha256"]
@@ -186,7 +186,7 @@ assert (
 for retired in ("legacy-skill.md", "runtime-v2.md", "references/runtime.md", ".pending-v2.json"):
     assert retired not in adapter, retired
 PY
-pass ephemeral_runtime_provenance_matches_v0_6_0
+pass ephemeral_runtime_provenance_matches_v0_7_0
 
 ephemeral_runtime="$bundle/runtime/until-loop/scripts/until_loop_ephemeral.py"
 ephemeral_contract="$tmpdir/ephemeral contract.json"

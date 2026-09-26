@@ -44,7 +44,7 @@ _RECONCILIATION_TARGETS = {"discovery", "research", "spec", "test-strategy"}
 _TERMINAL_PACKET_FIELDS = {
     "status", "state_file", "workspace", "work", "conditions", "progress", "context",
     "status_semantics", "last_report", "instruction", "next_argv",
-    "done_argv", "report_schema",
+    "done_argv", "report_schema", "receipt",
 }
 
 __all__ = [
@@ -580,6 +580,13 @@ def _terminal_state_absent(value: Any) -> str:
     raise StandaloneImproveError("Until Loop terminal state_file remains present")
 
 
+def _runtime_wrote_receipt(packet: Mapping[str, Any], binding: Mapping[str, Any], label: str) -> None:
+    """The child's runtime, started with --receipt, wrote this packet at the printed receipt path."""
+    _need(packet.get("receipt") == str(receipt_path(binding)),
+          label + " was not written by a child runtime started with --receipt " + str(receipt_path(binding))
+          + "; start the child with the printed --receipt so the runtime keeps this copy itself")
+
+
 def _ephemeral_terminal_packet(
     packet: Mapping[str, Any], *, workspace: Path, binding_id: str,
 ) -> tuple[dict[str, Any], dict[str, Any], dict[str, str]]:
@@ -589,6 +596,7 @@ def _ephemeral_terminal_packet(
     _need(packet.get("status") == "complete", "Until Loop terminal packet is not complete")
     state_file = _text(packet.get("state_file"), "Until Loop terminal state_file")
     _need(Path(state_file).is_absolute(), "Until Loop terminal state_file must be absolute")
+    _terminal_state_absent(state_file)
     packet_workspace = _workspace(packet.get("workspace"), "Until Loop terminal workspace")
     _need(packet_workspace == workspace, "Until Loop terminal packet is bound to another workspace")
     _text(packet.get("work"), "Until Loop terminal work")
@@ -704,6 +712,7 @@ def _complete_ephemeral(
     packet, context, report = _ephemeral_terminal_packet(
         _json(packet_raw, "Until Loop terminal packet"), workspace=workspace, binding_id=binding_id,
     )
+    _runtime_wrote_receipt(packet, binding, "Until Loop terminal packet")
     checked_receipt = _receipt(receipt, workspace, workspace_value)
     single = bool(packet["progress"].get("unchanged_first_pass"))
     _need(len(checked_receipt["review_refs"]) == (1 if single else 2),
@@ -754,6 +763,7 @@ def _settle_incomplete_ephemeral(
     packet, context, report = _ephemeral_stopped_packet(
         _json(packet_raw, "Until Loop stopped packet"), workspace=workspace, binding_id=binding_id,
     )
+    _runtime_wrote_receipt(packet, binding, "Until Loop stopped packet")
     checked_receipt = _incomplete_receipt(receipt, workspace, workspace_value)
     submission = _copy(dict(receipt), "incomplete Improve receipt submission")
     prefix = f"improve/{action}"

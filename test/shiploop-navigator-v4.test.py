@@ -31,6 +31,14 @@ import shiploop_standalone_improve as bridge  # noqa: E402
 import shiploop_store as store  # noqa: E402
 
 
+
+def _receipt(binding):
+    """The child receipt path ShipLoop prints; the runtime writes every packet there itself."""
+    path = bridge.receipt_path(binding)
+    path.parent.mkdir(parents=True, exist_ok=True)
+    return path
+
+
 class InterruptedTransaction(RuntimeError):
     """Test-only fault used to leave one recoverable store transaction."""
 
@@ -128,7 +136,7 @@ class NavigatorV4Tests(unittest.TestCase):
             },
         }
         started = subprocess.run(
-            [sys.executable, "-B", self.skill["runtime_cli"], "start"],
+            [sys.executable, "-B", self.skill["runtime_cli"], "start", "--receipt", str(_receipt(binding))],
             input=json.dumps(contract), text=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE,
             check=False, timeout=30,
         )

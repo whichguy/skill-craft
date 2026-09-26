@@ -39,12 +39,25 @@ def contract_path(action: str) -> str:
     return "quality/" + action + "-contract.json"
 
 
-def latest_path(action: str) -> str:
-    return "quality/" + action + "-latest.json"
-
-
 def terminal_path(action: str) -> str:
     return "quality/" + action + "-terminal.json"
+
+
+# The runtime, started with --receipt, writes every packet it returns to this file
+# and the terminal packet before it deletes its state: nothing depends on the host
+# having saved stdout before a compaction.
+RECEIPT_LINE = ("Receipt (the runtime writes every packet here, the terminal one last; ShipLoop "
+                "checks this file, so do not write or edit it): ")
+
+# Every key the bound runtime puts in a packet (Until Loop 0.7.0).
+_PACKET_KEYS = frozenset({
+    "status", "state_file", "workspace", "work", "conditions", "progress", "context",
+    "status_semantics", "last_report", "instruction", "next_argv", "done_argv", "report_schema",
+    "receipt",
+})
+_PROGRESS_KEYS = (frozenset({"action_number", "trivial_streak", "required_trivial_reviews"}),
+                  frozenset({"action_number", "trivial_streak", "required_trivial_reviews",
+                             "unchanged_first_pass"}))
 
 
 def _step_plan_result(root: Path, state: Mapping[str, Any], work_item: str) -> Optional[str]:
@@ -141,10 +154,10 @@ def render_lines(root: Path, state: Mapping[str, Any], work_item: str, action: s
     lines += [
         "Bound Until Loop card (open it if its rules are not already in your context): " + runtime["runtime_card"],
         "Loop contract (written by ShipLoop; pass it unchanged): " + str(contract),
-        "Start: " + shlex.join([sys.executable, runtime["runtime_cli"], "start"]) + " < "
+        "Start: " + shlex.join([sys.executable, runtime["runtime_cli"], "start",
+                                 "--receipt", str(root / terminal_path(action))]) + " < "
         + shlex.quote(str(contract)),
-        "Save every returned packet (stdout) to: " + str(root / latest_path(action)),
-        "Save the terminal packet (stdout) to: " + str(root / terminal_path(action)),
+        RECEIPT_LINE + str(root / terminal_path(action)),
     ]
     if not contract.is_file():
         lines.append("The loop contract is missing; report outcome blocked naming this path.")
@@ -204,8 +217,14 @@ def check_loop_packet(path: Path, result: Mapping[str, Any], expected: Mapping[s
           "list the saved terminal packet in evidence_refs: " + str(path))
     packet = _read_json(path, "Until Loop terminal packet")
     _need(isinstance(packet, Mapping), "the Until Loop terminal packet must be a JSON object")
+    _need(set(packet) == _PACKET_KEYS,
+          "the terminal packet is not a complete Until Loop packet (start the loop with the printed "
+          "--receipt command; the runtime writes this file itself)")
+    _need(packet.get("receipt") == str(path),
+          "the terminal packet was not written by a run started with --receipt " + str(path))
     conditions, progress = packet.get("conditions"), packet.get("progress")
-    _need(isinstance(conditions, Mapping) and isinstance(progress, Mapping),
+    _need(isinstance(conditions, Mapping) and isinstance(progress, Mapping)
+          and frozenset(progress) in _PROGRESS_KEYS,
           "the Until Loop terminal packet lacks its conditions or progress")
     _need(packet.get("workspace") == expected["workspace"]
           and packet.get("work") == expected["work"]
@@ -217,7 +236,17 @@ def check_loop_packet(path: Path, result: Mapping[str, Any], expected: Mapping[s
     status = packet.get("status")
     _need(status in ("complete", "stopped"),
           "the terminal packet must have status complete or stopped, found " + repr(status))
+    state_file = packet.get("state_file")
+    _need(isinstance(state_file, str) and os.path.isabs(state_file) and not os.path.lexists(state_file),
+          "the terminal packet's run is still live or unnamed; a terminal transition deletes its state file")
+    _need(packet.get("next_argv") is None and packet.get("done_argv") is None
+          and packet.get("report_schema") is None,
+          "the terminal packet still offers a callback")
+    report = packet.get("last_report")
+    _need(isinstance(report, Mapping), "the terminal packet has no final report")
     if status == "complete":
+        _need(report.get("classification") == "trivial" and report.get("exit_assessment") == "satisfied",
+              "a complete terminal packet needs a trivial report whose exit is satisfied")
         iterations = progress.get("action_number")
         _need(isinstance(iterations, int) and not isinstance(iterations, bool) and iterations >= 1,
               "the terminal packet has no iteration count")
@@ -232,13 +261,13 @@ def check_loop_packet(path: Path, result: Mapping[str, Any], expected: Mapping[s
 
 __all__ = (
     "QualityError",
+    "RECEIPT_LINE",
     "check_loop_packet",
     "RUBRIC_PATH",
     "STAGE",
     "build_contract",
     "check_terminal",
     "contract_path",
-    "latest_path",
     "render_lines",
     "terminal_path",
     "transition_writes",

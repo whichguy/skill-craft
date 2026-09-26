@@ -6,7 +6,7 @@ valid producer submission parks the invoking parent and binds the child for the 
 its reviews, applicable experiments, and shared investigation allowance; do not
 create a worker or a fresh context for each review iteration. The parent remains
 ShipLoop's control channel and alone may run verified `improve-complete` after
-the terminal packet is saved and every candidate writer has stopped. A parent
+the runtime has written the terminal packet to the receipt and every candidate writer has stopped. A parent
 pause retains the child; an unfinished child route is not proof that its
 executor stopped. A direct `/improve` call remains the normal standalone
 entrypoint and needs no bound packet; this binding is only the automatic
@@ -64,9 +64,11 @@ in a sentence. Include `context.resources` locators for the receipt, parent
 the terminal packet can locate the parent return after context loss. An existing
 invocation keeps its frozen authority.
 
-Start the runtime once and save the exact raw JSON stdout of every start, next
-and done call to the printed **Child latest packet receipt**; save the start
-packet before any review work. Only after the terminal packet is saved, write
+Start the runtime once, before any review work, with `--receipt` set to the
+printed **Child latest packet receipt**: the runtime writes every start, next and
+done packet there itself, the terminal one before it deletes its state, so the
+receipt survives a lost context. Do not write or edit it. Only after the runtime
+has written the terminal packet, write
 the completion evidence described below, then run the packet's parent return and
 callback. Runtime completion alone never advances the action, and no ShipLoop
 callback runs earlier. For the selected initial Plan Improve child, the

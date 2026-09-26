@@ -365,9 +365,11 @@ valid, a boundary and an invalid input, reviews the change against the *Code
 craft* rubric and fixes what it finds. The Until Loop script ends the loop
 after an iteration with only trivial findings; a third iteration that still
 finds a material issue stops it. The stage accepts only `done` or `blocked`:
-`done` needs the saved terminal packet `quality/<action>-terminal.json`, which
-ShipLoop checks against the contract it rebuilds from run state (not the file on
-disk) before advancing. The end-of-work Improve
+`done` needs the terminal packet `quality/<action>-terminal.json`, which the
+runtime writes itself (the packet's start command passes `--receipt`). ShipLoop
+accepts only a complete runtime packet written there by a finished run and checks
+it against the contract it rebuilds from run state (not the file on disk) before
+advancing. The end-of-work Improve
 reviews every item's change against the same rubric.
 
 `--lint fix|report|off` at `init` or `workspace start` selects the option; a
@@ -400,7 +402,9 @@ Improve card:
 
 1. On the `complete` that enters the stage, ShipLoop writes the loop contract
    `tests/<action>-contract.json`, whose work embeds the exact command list.
-2. The packet prints the start command, the packet paths and the list. Each
+2. The packet prints the start command (with `--receipt`, so the runtime
+   writes every packet, the terminal one last, to `tests/<action>-terminal.json`)
+   and the command list. Each
    iteration runs every command, finds the cause of each failure, fixes the
    product code (never a check to get green) and reruns the whole list after
    its last edit. The loop ends after an iteration in which every command
@@ -585,7 +589,8 @@ question about the loop is not a stop: answer it and continue the packet.
    genuine fix attempts ([step exit criteria](references/parallel-chain.md#step-exit-criteria)).
    At `test-green` and `regression`, run the packet's [test loop](#test-loop),
    and at `static-checks` its [quality loop](#static-checks-quality-loop), on
-   the bound Until Loop, and save each terminal packet where the packet says.
+   the bound Until Loop with the printed start command; its `--receipt` makes
+   the runtime keep the terminal packet, so do not write that file yourself.
    A ShipLoop lint block printed after a `static-checks` or `verify` callback is
    supporting output, not exit-criteria evidence, and never replaces the checks
    you select ([script-owned lint](#script-owned-lint)).
@@ -628,15 +633,16 @@ question about the loop is not a stop: answer it and continue the packet.
    imitate Improve's algorithm in ShipLoop, substitute a hand-written review loop
    for the selected skill, create
    a child phase graph/counter, or advance the parent while the child is active.
-   With the current ephemeral Until Loop, save each exact returned JSON packet at
-   the parent packet's per-action receipt path. The one temporary `state_file`
-   owns the child's live counters; the saved packet retains its recovery command
-   and final completion evidence. Preserve parent identity, scoped authority and
+   Start the ephemeral Until Loop with `--receipt` set to the parent packet's
+   per-action receipt path: the runtime writes every packet there before printing
+   it. The one temporary `state_file` owns the child's live counters; the receipt
+   retains its recovery command and final completion evidence, and ShipLoop
+   imports only a packet the runtime wrote there. Preserve parent identity, scoped authority and
    return locators in frozen child `context`, and replace `handoff` on each `done`.
    Execute one work iteration, submit its truthful classification and assessments,
-   then obey the returned instruction. A complete child deletes its state file,
-   so save its terminal packet before writing the completion evidence and running
-   the parent return and import. On cold recovery,
+   then obey the returned instruction. A complete child deletes its state file
+   after the runtime has written its terminal packet to the receipt; then write
+   the completion evidence and run the parent return and import. On cold recovery,
    read the receipt and use its exact `next_argv` for an active child. Missing
    state/output is incomplete, never evidence of success or permission to restart.
    Only the ephemeral runtime is supported; a card or saved binding that names a

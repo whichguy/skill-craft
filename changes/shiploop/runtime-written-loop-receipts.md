@@ -1,0 +1,4 @@
+---
+bump: minor
+---
+Until Loop packets no longer depend on the host copying stdout before a context loss. The test-loop and quality-loop start commands pass `--receipt tests|quality/<action>-terminal.json`, and Improve children start with `--receipt` set to the printed Child latest packet receipt, so the bundled runtime (Until Loop 0.7.0) writes every packet there itself and the terminal packet before it deletes its state. ShipLoop now accepts a loop or Improve terminal packet only when it is a complete runtime packet whose `receipt` names that exact path and whose state file is gone; a hand-written object copied from the contract, a packet from a run started without the printed `--receipt`, or a copy of a still-live run is refused. The complete-packet Improve import now also requires the child's state file to be deleted, as the stopped import already did.

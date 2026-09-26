@@ -159,7 +159,8 @@ class TestLoopTests(unittest.TestCase):
             raw = subprocess.run(packet["done_argv"], input=json.dumps(report), text=True,
                                  capture_output=True, check=True, timeout=30).stdout
             packet = json.loads(raw)
-        self.terminal().write_text(raw)
+        # The runtime, started with the printed --receipt, already wrote the last packet there.
+        self.assertEqual(json.loads(self.terminal().read_text()), packet)
         return packet
 
     def pass_loop(self) -> None:
@@ -443,7 +444,8 @@ class TestLoopTests(unittest.TestCase):
                                            capture_output=True, check=True, timeout=30).stdout)
         raw = subprocess.run(packet["done_argv"], input=json.dumps(TRIVIAL), text=True,
                              capture_output=True, check=True, timeout=30).stdout
-        (self.run_dir / "quality" / (self.action() + "-terminal.json")).write_text(raw)
+        saved = self.run_dir / "quality" / (self.action() + "-terminal.json")
+        self.assertEqual(json.loads(saved.read_text()), json.loads(raw))
 
 
 class VerifyLimitTests(unittest.TestCase):

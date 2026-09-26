@@ -24,6 +24,14 @@ import shiploop_standalone_improve as bridge  # noqa: E402
 import shiploop_store as store  # noqa: E402
 
 
+
+def _receipt(binding):
+    """The child receipt path ShipLoop prints; the runtime writes every packet there itself."""
+    path = bridge.receipt_path(binding)
+    path.parent.mkdir(parents=True, exist_ok=True)
+    return path
+
+
 class StoppedStandaloneImproveTests(unittest.TestCase):
     def setUp(self) -> None:
         self.temp = tempfile.TemporaryDirectory(prefix="shiploop-stopped-improve-")
@@ -65,7 +73,7 @@ class StoppedStandaloneImproveTests(unittest.TestCase):
             },
         }
         completed = subprocess.run(
-            [sys.executable, "-B", self.skill["runtime_cli"], "start"],
+            [sys.executable, "-B", self.skill["runtime_cli"], "start", "--receipt", str(_receipt(self.binding))],
             input=json.dumps(contract), text=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE,
             check=False,
         )

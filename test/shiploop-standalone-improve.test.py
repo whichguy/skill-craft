@@ -22,6 +22,14 @@ import shiploop_standalone_improve as bridge  # noqa: E402
 import shiploop_navigator as navigator  # noqa: E402
 
 
+
+def _receipt(binding):
+    """The child receipt path ShipLoop prints; the runtime writes every packet there itself."""
+    path = bridge.receipt_path(binding)
+    path.parent.mkdir(parents=True, exist_ok=True)
+    return path
+
+
 class StandaloneImproveBridgeTests(unittest.TestCase):
     def setUp(self) -> None:
         self.temp = tempfile.TemporaryDirectory(prefix="shiploop-standalone-improve-")
@@ -67,7 +75,7 @@ class StandaloneImproveBridgeTests(unittest.TestCase):
             },
         }
         completed = subprocess.run(
-            [sys.executable, "-B", self.ephemeral_skill["runtime_cli"], "start"],
+            [sys.executable, "-B", self.ephemeral_skill["runtime_cli"], "start", "--receipt", str(_receipt(self.ephemeral_binding))],
             input=json.dumps(contract), text=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE,
             check=False,
         )
@@ -311,15 +319,16 @@ class StandaloneImproveBridgeTests(unittest.TestCase):
         with self.assertRaisesRegex(bridge.StandaloneImproveError, "unsupported schema"):
             bridge.complete(self.ephemeral_binding, self.receipt())
 
-    def test_ephemeral_terminal_receipt_is_required_and_never_follows_a_link(self) -> None:
+    def test_ephemeral_terminal_receipt_survives_lost_stdout_and_never_follows_a_link(self) -> None:
         packet, raw = self.terminal_ephemeral()
         self.write_evidence()
-        # The runtime's deleted tempfile is not evidence of completion.  A
-        # host that lost the terminal stdout packet leaves the parent blocked.
-        with self.assertRaisesRegex(bridge.StandaloneImproveError, "unavailable"):
-            bridge.complete(self.ephemeral_binding, self.receipt())
+        # The child started with --receipt: the runtime wrote the terminal packet
+        # before deleting its state, so a host that lost stdout still has it.
+        path = bridge.receipt_path(self.ephemeral_binding)
+        self.assertFalse(Path(packet["state_file"]).exists())
+        self.assertEqual(path.read_text(encoding="utf-8"), raw)
+        self.assertEqual(json.loads(path.read_text(encoding="utf-8"))["receipt"], str(path))
 
-        path = self.save_terminal_packet(raw)
         copied = self.workspace / "outside-packet.json"
         copied.write_text(raw, encoding="utf-8")
         path.unlink()
