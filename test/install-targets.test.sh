@@ -309,16 +309,16 @@ expect_from_refused() {
   printf '%s\n' "$out" | grep -q 'marketplace-only' || fail "$label refusal message: $out"
 }
 fresh_home i21
-expect_from_refused "I21 leaf plugin view" --from "$root/plugins/skill-interop/skills/skill-interop"
-expect_from_refused "I21 view status" --status --from "$root/plugins/skill-interop/skills/skill-interop"
-expect_from_refused "I21 view uninstall" --uninstall --from "$root/plugins/skill-interop/skills/skill-interop"
+expect_from_refused "I21 leaf plugin view" --from "$root/plugins/skill-craft/skills/skill-interop"
+expect_from_refused "I21 view status" --status --from "$root/plugins/skill-craft/skills/skill-interop"
+expect_from_refused "I21 view uninstall" --uninstall --from "$root/plugins/skill-craft/skills/skill-interop"
 assert_no_hosts "skill-interop"
 canonical="$tmpdir/canonical/skills/backchain"
 mkdir -p "$canonical" "$HOME/.claude/skills"
 printf -- '---\nname: backchain\n---\n' >"$canonical/SKILL.md"
 ln -s "$canonical" "$HOME/.claude/skills/backchain"
 expect_from_refused "I21 relink from view" --claude-only --relink \
-  --from "$root/plugins/backchain/skills/backchain"
+  --from "$root/plugins/skill-craft/skills/backchain"
 assert_symlink "$HOME/.claude/skills/backchain" "$canonical"
 
 other="$tmpdir/other-checkout"
@@ -336,20 +336,19 @@ repo_const="$(sed -n 's/^skill_craft_repository="\(.*\)"$/\1/p' "$install_sh")"
 [[ -n "$repo_const" ]] || fail "I21 install.sh must declare skill_craft_repository"
 grep -Fq "const REPOSITORY = \"$repo_const\";" "$root/scripts/skill-frontmatter-to-plugin-json.js" \
   || fail "I21 install.sh skill_craft_repository must equal the generator REPOSITORY"
-cache_root="$HOME/.claude/plugins/cache/skill-craft-market"
-mkdir -p "$cache_root/backchain" "$cache_root/skill-interop"
-cp -R "$root/plugins/backchain" "$cache_root/backchain/0.3.7"
-cp -R "$root/plugins/skill-interop" "$cache_root/skill-interop/0.2.3"
+cache_root="$HOME/.claude/plugins/cache/whichguy/skill-craft"
+mkdir -p "$cache_root"
+cp -R "$root/plugins/skill-craft" "$cache_root/1.0.0"
 expect_from_refused "I21 cached view copy relink dry run" --claude-only --relink --dry-run \
-  --from "$cache_root/backchain/0.3.7/skills/backchain"
+  --from "$cache_root/1.0.0/skills/backchain"
 expect_from_refused "I21 cached view copy relink" --claude-only --relink \
-  --from "$cache_root/backchain/0.3.7/skills/backchain"
+  --from "$cache_root/1.0.0/skills/backchain"
 expect_from_refused "I21 cached leaf view copy" --claude-only \
-  --from "$cache_root/skill-interop/0.2.3/skills/skill-interop"
+  --from "$cache_root/1.0.0/skills/skill-interop"
 # One host's manifest is enough (a Codex cache need not keep the others).
-rm -rf "$cache_root/backchain/0.3.7/.claude-plugin" "$cache_root/backchain/0.3.7/.cursor-plugin"
+rm -rf "$cache_root/1.0.0/.claude-plugin" "$cache_root/1.0.0/.cursor-plugin"
 expect_from_refused "I21 Codex-only cached copy" --claude-only --relink \
-  --from "$cache_root/backchain/0.3.7/skills/backchain"
+  --from "$cache_root/1.0.0/skills/backchain"
 # The repository may be spelled as a .git URL or an npm-style object.
 spelled="$tmpdir/spelled-copy"
 mkdir -p "$spelled/.cursor-plugin" "$spelled/skills/spelled-leaf"

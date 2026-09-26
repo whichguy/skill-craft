@@ -522,7 +522,7 @@ bootstrap; checksum/extraction/replacement tests target the repository-only
 operator setup helper.
 
 `installed-skill-invocation` also runs Plan Dispatcher
-(`plugins/plan-dispatcher/skills/plan-dispatcher`) from a read-only copy. The
+(`plugins/skill-craft/skills/plan-dispatcher`) from a read-only copy. The
 core `plan-dispatcher-state`, `-cli`, `-progress`, `-planning-context` and
 `-compound` suites exercise `skills/plan-dispatcher` directly or from a cold
 copy, with a deterministic fake host (`test/fixtures/plan-dispatcher/`); they
