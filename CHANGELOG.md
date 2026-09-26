@@ -4,6 +4,25 @@ Written by scripts/release.py.
 
 ## 2026-09-26
 
+### skill-craft 1.0.0
+
+- Skills: review-coverage 0.3.2, shiploop 0.33.1, skill-interop 0.2.6
+
+### review-coverage 0.3.2
+
+- The retired `## Post-Implementation Residual Loop` heading is no longer read. A plan that has only that heading now reports a missing `## Review Coverage` section, matching plan-oversight, which refuses it too.
+- Review Coverage now ships in the one skill-craft plugin: install skill-craft@whichguy and invoke /skill-craft:review-coverage.
+
+### shiploop 0.33.1
+
+- A saved run without a recorded `lint` option is now refused with the fresh-run hint instead of being read as `off`; new runs always record the option. Run records containing U+2028, U+2029 or U+0085 in any text now read back correctly (the reader split lines on those characters). An isolated workspace's source fingerprint now hashes the index's staged entries rather than the raw index file, so a timestamp-only index rewrite no longer looks like a source change. Workspace manifests written with the old fingerprint are refused with instructions. Git commands in workspace operations honour `SHIPLOOP_GIT_TIMEOUT` (seconds, default 45).
+- On Claude, the plugin adds a `SessionStart` hook with the `compact` matcher. After the host compacts a bound session, the hook clears the run's last-packet record, so the next `next` prints the full packet with the run rules instead of the short repeat packet.
+- ShipLoop now ships in the one skill-craft plugin: install skill-craft@whichguy and invoke /skill-craft:shiploop (Codex $skill-craft:shiploop). The host matrix names the new identities.
+
+### skill-interop 0.2.6
+
+- The marketplace section describes the one skill-craft plugin (skill-craft@whichguy, /skill-craft:<leaf>) that now carries every skill.
+
 ### improve 0.3.0-rc.6
 
 - A review loop with a gate of two or more trivial reviews now completes after its first review when that review is trivial and satisfied, and the bundled Until Loop runtime sees from Git that the workspace content (tracked and untracked files, excluding ignored and runtime files) is unchanged since `start`. A second pass would only have reviewed the same tree. The complete packet reports `progress.unchanged_first_pass: true`. Any change, or a workspace outside Git, still needs two consecutive trivial reviews.

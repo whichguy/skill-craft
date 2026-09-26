@@ -1,0 +1,15 @@
+#!/usr/bin/env python3
+"""Plugin hook entry: after the host compacts context, the next ShipLoop packet prints in full.
+
+Generated host hook files may only run an argument-free script from scripts/,
+so this is `shiploop-hook compacted --host auto` in that shape.
+"""
+
+import sys
+from pathlib import Path
+
+sys.path.insert(0, str(Path(__file__).resolve().parent))
+import shiploop_keepalive  # noqa: E402
+
+if __name__ == "__main__":
+    sys.exit(shiploop_keepalive.hook_main(["compacted", "--host", "auto"]))
