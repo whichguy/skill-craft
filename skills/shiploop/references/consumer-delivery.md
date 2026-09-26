@@ -178,6 +178,15 @@ Use the accepted outer `replan` outcome with new corrective work items. That ret
 until a fresh `system-test` and `release-plan` complete for the current contract.
 `repeat` and `resume` do not clear it.
 
+When every corrective item changed only non-code paths (its step plan records no
+test command and declares only documentation, configuration or navigation
+metadata, such as a Salesforce tab and app), each outer stage's packet names the
+delta: the changed paths and the result that stage accepted before the replan.
+The stages still run, because the fresh evidence above is required, but each
+keeps and cites its earlier evidence for everything the paths do not affect, and
+authors, runs or plans only the new rows. Unit-test evidence for an unchanged tree
+stays valid.
+
 Before Improve converges, resolve a contradiction such as delivery marked
 required in the specification but optional in the plan against the original
 request and approved scope. A changed delivery scope needs an actual user

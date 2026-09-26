@@ -426,6 +426,13 @@ each passes. There is no loop at those stages; the packet lists the commands.
 Each action allows 3 refused runs; after that ShipLoop accepts only `blocked`,
 so a failing command goes back to plan revision instead of an endless retry.
 
+A done `release-plan` records `consumer_entry`: how a person reaches the result
+and the repository files that create that entry. ShipLoop refuses the release plan
+without one or when those files do not exist, so a component with no navigation
+entry is caught before release rather than at `release-verify`. `release-check`
+runs the dry-run deploy and each post-release confirm command once, recording
+their "not there yet" output before the real deploy.
+
 These are commands the step plan recorded; ShipLoop runs them outside the host's
 permission prompts, and the step plan's Improve review is their check. With an
 empty list the stage has no loop and accepts `done` with the recorded reason.

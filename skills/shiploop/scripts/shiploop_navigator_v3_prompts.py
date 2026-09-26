@@ -1635,7 +1635,15 @@ a named step with its exact command and its authorization status: the deploy
 itself, and each separate access or visibility change (for example assigning a
 permission set, activating an app or tab) and each browser session a consumer
 check needs, with the selected browser tool. A step that an existing approval does
-not cover is a pending approval named now, not a gap found at release-check.  Distinguish source return, artifact publication,
+not cover is a pending approval named now, not a gap found at release-check.
+Record the consumer entry in the result's `consumer_entry`: `{"how": "<how a person
+reaches the result: an App Launcher name and URL path, a command, a page>",
+"sources": ["<repository files that create that entry>"]}`. ShipLoop refuses a
+release plan without one, and checks that its source files exist, so a missing
+navigation entry is found here rather than at release-verify.
+For each post-release confirm command, name the output that shows the result is
+present and the output that shows it is absent; release-check runs it once before
+the real deploy to prove it can tell them apart.  Distinguish source return, artifact publication,
 deployment, promotion, and consumer verification.  A plan does not authorize or
 perform an external operation; a required target or authority gap is blocked.
 Revalidate the integrated test plan for the release target. Use Target-native
@@ -1665,6 +1673,10 @@ approvals, rollback readiness, and pre-release validation.  Preserve any stale o
 failed evidence and do not replay or promote merely to obtain a new observation.
 Check applicable execution-owner readiness and target-enforced concurrency
 conditions. External release N/A does not waive current local candidate checks.
+Run the dry-run form of the planned deploy (for example `sf project deploy validate`)
+and each post-release confirm command once, against current target state, and
+record both outputs. A confirm command whose output cannot tell the result present
+from absent is fixed here, before the real deploy, not discovered after it.
 """,
     "release": """\
 Perform the planned release only when the exact target, operation, authority, and

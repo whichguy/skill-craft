@@ -47,7 +47,7 @@ _STATUSES = frozenset(("active", "paused", "blocked", "halted", "done"))
 _RESULT_KEYS = frozenset((
     "outcome", "summary", "evidence_refs", "work_items", "choices", "delivery_assessment",
     "reconciliation_target", "assumptions", "lint_waivers", "test_commands", "test_commands_na",
-    "blocked_by", "red_na", "awaiting", "paths",
+    "blocked_by", "red_na", "awaiting", "paths", "consumer_entry",
 ))
 # A bare "carry on" is not an answer to the question a blocked run is waiting on.
 _NOT_AN_ANSWER = frozenset((
@@ -362,6 +362,40 @@ def decision_path(action: str) -> str:
     return "decisions/" + action + ".md"
 
 
+def _replan_delta_lines(root: Path, state: Mapping[str, Any], stage: str) -> list[str]:
+    """After a replan whose corrective items changed only non-code paths, scope this outer stage to the delta.
+
+    The stage still runs (the delivery contract needs its fresh evidence); the
+    packet names what changed and the result this stage accepted before the
+    replan, so unchanged rows are cited rather than redone.
+    """
+    if stage not in guidance3.OUTER:
+        return []
+    history = state["history"]
+    replans = [index for index, row in enumerate(history) if row["outcome"] == "replan"]
+    if not replans:
+        return []
+    at = replans[-1]
+    corrective = [row["id"] for row in state["accepted"][history[at]["action"]].get("work_items", ())]
+    if not corrective or any(item not in state["completed_work_items"] for item in corrective):
+        return []
+    if any(item_scope.no_test_item(state, item) is None for item in corrective):
+        return []
+    paths = sorted({path for item in corrective for path in item_scope.declared(state, item)})
+    before = [row for row in history[:at] if row["stage"] == stage and row["outcome"] == "done"]
+    lines = ["", "Delta after the replan at " + history[at]["stage"] + ": the corrective item"
+             + ("s " if len(corrective) > 1 else " ") + ", ".join(corrective)
+             + " changed only non-code paths: " + ", ".join(paths) + "."]
+    if before:
+        lines.append("This stage's result before the replan: " + str(root / "results" / (before[-1]["action"] + ".md"))
+                     + ". Keep its evidence for everything these paths do not affect and cite it; author, run, "
+                     "plan or check only what they affect, and say in the summary which rows are new and which "
+                     "are carried over.")
+    else:
+        lines.append("Scope this stage to what these paths affect, and cite the accepted evidence for the rest.")
+    return lines
+
+
 def _answered_lines(root: Path, state: Mapping[str, Any]) -> list[str]:
     """After a resume, the user's recorded reply to the wait this stage last blocked on."""
     history = state.get("history") or ()
@@ -461,6 +495,17 @@ def _canonical_result(
             result["paths"] = item_scope.normalise_paths(value["paths"])
         except item_scope.ItemScopeError as exc:
             raise NavigatorError(str(exc)) from exc
+    if "consumer_entry" in value:
+        _need(stage == "release-plan" and outcome == "done",
+              "consumer_entry is allowed only on a done release-plan result")
+        entry = value["consumer_entry"]
+        _need(isinstance(entry, Mapping) and set(entry) == {"how", "sources"},
+              "consumer_entry has how and sources")
+        try:
+            sources = item_scope.normalise_paths(entry["sources"])
+        except item_scope.ItemScopeError as exc:
+            raise NavigatorError("consumer_entry sources: " + str(exc)) from exc
+        result["consumer_entry"] = {"how": _text(entry["how"], "consumer_entry how"), "sources": sources}
     if "red_na" in value:
         _need(stage == test_loop.RED_STAGE and outcome == "done",
               "red_na is allowed only on a done test-red result")
@@ -1091,6 +1136,23 @@ def _check_submitted_test_commands(stage: str, result: Any) -> None:
         item_scope.normalise_paths(result["paths"])
     except item_scope.ItemScopeError as exc:
         raise NavigatorError(str(exc)) from exc
+
+
+def _check_submitted_consumer_entry(repo: str, stage: str, result: Any) -> None:
+    """Refuse a submitted done release-plan that names no consumer entry, or whose entry files are missing."""
+    if stage != "release-plan" or not isinstance(result, Mapping) or result.get("outcome") != "done":
+        return
+    _need("consumer_entry" in result,
+          "a done release-plan result must record consumer_entry: {\"how\": \"<how a person reaches the "
+          "result>\", \"sources\": [\"<repository files that create that entry>\"]}. A deployed component "
+          "with no navigation entry (for example a Salesforce lightning__Tab target without a CustomTab) "
+          "is not reachable; plan the entry as source files.")
+    entry = result["consumer_entry"]
+    sources = entry.get("sources") if isinstance(entry, Mapping) else None
+    missing = [path for path in (sources or []) if isinstance(path, str)
+               and not any(Path(repo).glob(path)) and not (Path(repo) / path).exists()]
+    _need(not missing, "consumer_entry sources do not exist in the repository: " + ", ".join(missing)
+          + ". Create the entry's source files before the release plan, or correct the paths.")
 
 
 def _check_submitted_assumptions(state: Mapping[str, Any], stage: str, result: Any) -> None:
@@ -2495,6 +2557,7 @@ def render(core: Any, root: Path, state: Mapping[str, Any], *,
         text = _render_improve(core, root, state, lines)
         return text + "".join(line + "\n" for line in _lint_pending(root))
     lines.extend(_answered_lines(root, state))
+    lines.extend(_replan_delta_lines(root, state, stage))
     instruction = guidance3.prompt(stage, delegation=route)
     _need(isinstance(instruction, str) and bool(instruction.strip()),
           f"navigator prompt is unavailable for {stage}")
@@ -3182,6 +3245,9 @@ def dispatch(core: Any, root: Path, state: Mapping[str, Any], args: Any,
                         child["seed_result"] if final_result is None else final_result)
                     _check_submitted_test_commands(
                         child["stage"], child["seed_result"] if final_result is None else final_result)
+                    _check_submitted_consumer_entry(
+                        state["repo"], child["stage"],
+                        child["seed_result"] if final_result is None else final_result)
                     _improve_change_gate(root, state, action_id, child, receipt)
                     record, extra_writes = standalone.complete(child, receipt)
                     record["submission"] = deepcopy(receipt)
@@ -3242,6 +3308,7 @@ def dispatch(core: Any, root: Path, state: Mapping[str, Any], args: Any,
         if state["status"] == "active" and action_id not in state["accepted"]:
             _check_submitted_assumptions(state, current_stage(state), submitted)
             _check_submitted_test_commands(current_stage(state), submitted)
+            _check_submitted_consumer_entry(state["repo"], current_stage(state), submitted)
             # Lint first, so the tests run on any code the lint gate auto-fixed.
             if cursor_stage in lint.GATE_STAGES:
                 _lint_gate(core, root, state, action_id, cursor_stage, cursor_item, submitted)

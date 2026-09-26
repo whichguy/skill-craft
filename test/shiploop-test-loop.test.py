@@ -115,6 +115,8 @@ class TestLoopTests(unittest.TestCase):
                 return state
             if current == "step-plan":
                 self.complete(dict(DONE, **recorded))
+            elif current == "release-plan":
+                self.complete(dict(DONE, consumer_entry={"how": "run python3 a.py", "sources": ["a.py"]}))
             elif current in test_loop.STAGES:
                 self.pass_loop()
             elif current == "static-checks":
@@ -322,6 +324,27 @@ class TestLoopTests(unittest.TestCase):
         (self.repo / "NOTES.md").unlink()
         self.complete(DONE)
         self.assertEqual(nav.current_stage(self.state()), "document")
+
+    def test_a_release_plan_must_name_an_existing_consumer_entry(self):
+        self.start()
+        self.drive_to("release-plan")
+        self.assert_refused(DONE, "must record consumer_entry")
+        self.assert_refused(dict(DONE, consumer_entry={"how": "App Launcher: Fleet command",
+                                                       "sources": ["force-app/main/default/tabs/Fleet.tab-meta.xml"]}),
+                            "consumer_entry sources do not exist in the repository: force-app/main/default/tabs/")
+        self.complete(dict(DONE, consumer_entry={"how": "run python3 a.py", "sources": ["a.py"]}))
+
+    def test_outer_stages_after_a_non_code_replan_are_scoped_to_the_delta(self):
+        self.start()
+        self.drive_to("release-verify")
+        self.complete(dict(DONE, outcome="replan", summary="No navigation entry.",
+                           work_items=[{"id": "W2", "title": "Add the tab and app"}]))
+        self.drive_to("system-test-author", step_plan=self.NO_TESTS)
+        packet = self.packet()
+        self.assertIn("Delta after the replan at release-verify: the corrective item W2 changed only non-code "
+                      "paths: docs/fleet.md, force-app/main/default/tabs/Fleet_command.tab-meta.xml.", packet)
+        self.assertRegex(packet, r"This stage's result before the replan: .*/results/nav-[0-9a-f]+\.md\. Keep its "
+                                 r"evidence")
 
     def test_a_done_step_plan_must_declare_its_paths(self):
         self.start()
