@@ -1001,7 +1001,7 @@ class HookTests(Fixture):
             self.assertEqual(len(self.logged()), calls)
             # The bound Until Loop repeats the quality review, so the graph refuses repeat here.
             before = (self.run_dir / "state.md").read_bytes()
-            with self.assertRaisesRegex(nav.NavigatorError, "static-checks accepts only done or blocked"):
+            with self.assertRaisesRegex(nav.NavigatorError, "static-checks accepts only done, revise or blocked"):
                 complete(self.run_dir, state, dict(DONE, outcome="repeat"))
             self.assertEqual((self.run_dir / "state.md").read_bytes(), before)
 
@@ -1340,7 +1340,7 @@ class PromptContractTests(unittest.TestCase):
         for stage in ("test-refine", "integration-verify"):
             text = guidance.prompt(stage, delegation=guidance.INLINE)
             self.assertIn("Pass-or-stop loop: this stage is done only when every check it runs passes", text)
-            self.assertIn("the same check\nstill failing after 3 genuine fix attempts → outcome blocked", text)
+            self.assertIn("the same check still failing after 3 genuine fix attempts → outcome revise", " ".join(text.split()))
         # test-green and regression run the script-enforced test loop instead.
         for stage in ("verify", "test-green", "regression"):
             self.assertNotIn("Pass-or-stop loop", guidance.prompt(stage, delegation=guidance.INLINE))

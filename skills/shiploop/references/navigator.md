@@ -96,17 +96,17 @@ flowchart TD
 unwaived new finding, and every stage from `test-green` on that can edit code
 (`test-green`, `test-refine`, `regression`, `static-checks`,
 `integration-verify`) is not accepted until ShipLoop has run the recorded test
-commands itself and each exited 0; after 3 refused runs only `blocked` is. ⟳ loops inside the stage: the bound Until Loop
+commands itself and each exited 0; after 3 refused runs `done` is no longer accepted and the item goes back to `step-plan` with `revise`. ⟳ loops inside the stage: the bound Until Loop
 drives the test loops and the `static-checks` quality loop, and the pass-or-stop
 prompt loop reruns failing checks at `implement`, `test-refine` and
-`integration-verify` until they pass or the step stops as `blocked`.
+`integration-verify` until they pass or the step reports `revise` (or `blocked` for what only the user, an access grant or an outside dependency can resolve).
 
 | | Inner loop | Outer loop |
 | --- | --- | --- |
 | Runs | once per work item, over one shared graph | once, unless `replan` reopens it |
 | Improve children | `step-plan`, `test-spec`, last `carry-forward` | `system-test-author`, `release-plan` |
-| Outcomes | `done`, `repeat`, `blocked` (`test-green`, `regression`, `static-checks`: `done`, `blocked`) | adds `replan` with new work items |
-| Going back | `carry-forward` replaces the future queue | `replan` appends items; after their end review, outer restarts at `system-test-author` |
+| Outcomes | `done`, `repeat`, `blocked`; from `test-spec` to `integration-verify` also `revise`, back to `step-plan` at most twice per item (`test-green`, `regression`, `static-checks`: `done`, `revise`, `blocked`) | adds `replan` with new work items |
+| Going back | `revise` returns the item to `step-plan`; `carry-forward` replaces the future queue | `replan` appends items; after their end review, outer restarts at `system-test-author` |
 | Script-owned checks | recorded test commands at `step-plan`; lint gate at `implement`, `test-green`, `regression`; test-loop terminal packets at `test-green`, `regression`; ShipLoop's own test run at those two plus `test-refine`, `static-checks`, `integration-verify`; quality-loop terminal packet at `static-checks` | none |
 
 The graph describes order, not a substitute for engineering judgment. The prompt

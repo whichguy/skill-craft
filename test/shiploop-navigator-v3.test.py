@@ -884,7 +884,7 @@ class NavigatorV3Tests(unittest.TestCase):
             "leave that check failing and report the discrepancy",
             "After your last edit to any file, rerun every check in one pass; only that pass counts.",
             "change the work, not the check, and rerun them all",
-            "a criterion proven unachievable → outcome blocked",
+            "a criterion proven unachievable → outcome revise",
             "or reported `unconfirmable` when the accepted plan already marks it `Confirm by: "
             "unconfirmable here`, and none failed → outcome done",
             "for a criterion the plan did not already mark `Confirm by: unconfirmable here`",
@@ -895,8 +895,8 @@ class NavigatorV3Tests(unittest.TestCase):
         parent = (
             "independently rerun or inspect each criterion's confirmation",
             "Do not accept the item when a confirmable criterion failed or was not confirmed",
-            "treat it as blocked for planning, not as accepted",
-            "goes back to planning (plan revision or replan), not to a blind retry",
+            "report revise so the step plan is corrected, not accepted",
+            "goes back to the step plan (revise), or to a replan at an OUTER stage",
         )
         for delegation in (prompts.ASK_AGENT, prompts.INLINE):
             for stage, phrases in (("step-plan", authoring), ("implement", loop), ("verify", parent)):
