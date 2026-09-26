@@ -339,16 +339,18 @@ class NavigatorV3Tests(unittest.TestCase):
                         observed.append((stage, owner, state["work_index"]))
                         self.assertEqual(packet.count(expected_prefix), 1)
                         self.assertIn("Recovery command:\n", packet)
-                        self.assertIn("do not clear again", packet)
                         if owner == "improve":
                             self.assertNotIn(prefix, packet)
                             self.assertIn("Keep the invoking parent alive", packet)
                             self.assertIn("not individual review iterations", packet)
                             self.assertIn("Do not clear, replace or", packet)
-                            self.assertNotIn("If neither route is usable", packet)
-                            self.assertNotIn("host performs the context clear", packet)
+                            self.assertIn("do not clear again", packet)
+                            self.assertNotIn("execute the assignment in this conversation", packet)
                         else:
-                            self.assertIn("host performs the context clear", packet)
+                            # Without a fresh worker the producer runs here; it never pauses for a clear.
+                            self.assertIn("do not delegate it again", packet)
+                            self.assertIn("execute the assignment in this conversation", packet)
+                            self.assertIn("Never pause for a\ncontext clear", packet)
             state = self._complete_improve(direct, action, stage) if checkpointed else direct
         self.assertEqual(
             [entry for entry in observed if entry[1] == "producer"],

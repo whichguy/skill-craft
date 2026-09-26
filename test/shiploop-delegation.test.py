@@ -123,14 +123,17 @@ class DelegationStateTests(unittest.TestCase):
         with self.assertRaisesRegex(nav.NavigatorError, "unsupported delegation"):
             nav.validate(bad)
 
-    def test_inline_clears_once_per_work_item_then_continues_in_context(self):
+    def test_inline_continues_in_context_at_every_stage_including_a_new_work_item(self):
+        # No packet, script or hook output can clear a host conversation, so a
+        # pause for a clear stopped every work item until the user came back.
         state = self.state()
         self.assertTrue(self.render(state).startswith("ShipLoop navigator | intake |"))
         state = advance(state, "select-work")
         entry = self.render(state)
-        self.assertTrue(entry.startswith("Clear and then execute the prompt.\n\nDelegation: inline."))
-        self.assertIn("Clear once here", entry)
-        self.assertIn("already fresh: when this prefix repeats", entry)
+        self.assertTrue(entry.startswith(
+            "Continue in this context and execute the prompt.\n\nDelegation: inline."))
+        self.assertIn("including the\nselect-work stage that opens each work item", entry)
+        self.assertNotIn("Clear and then", entry)
         self.assertIn("Pause without consuming the action:", entry)
         # step-plan is a planning-review stage, so completing it starts an
         # actual Improve child (select-work itself no longer does).
@@ -141,7 +144,7 @@ class DelegationStateTests(unittest.TestCase):
             with self.subTest(stage=stage):
                 packet = self.render(advance(state, stage))
                 self.assertTrue(packet.startswith("Continue in this context and execute the prompt.\n"))
-                self.assertIn("context boundary was its select-work", packet)
+                self.assertIn("Do not clear, pause for a clear", packet)
 
     def test_inline_implement_runs_reviewed_steps_directly_without_a_chain(self):
         inline = self.render(advance(self.state(), "implement"))
@@ -223,13 +226,15 @@ class PacketContractTests(DelegationStateTests):
     def test_producer_packets_state_outcomes_and_explicit_commands(self):
         entry = self.render(advance(self.state(), "select-work"))
         self.assertIn("Allowed outcomes: done | repeat | blocked.\nCall this when done:\n", entry)
-        self.assertIn("Context-boundary pause (no callable host reset): ", entry)
-        self.assertIn("'--reason=context-boundary: clear, then run Recovery and Resume'", entry)
         self.assertIn("Halt (terminal and irreversible; only on an explicit user stop): ", entry)
         # select-work is not a planning/checkpoint stage; it advances directly.
         self.assertIn("This result advances directly; no Improve child runs for this stage.", entry)
-        self.assertNotIn("Context-boundary pause", self.render(advance(self.state(), "step-plan")))
-        self.assertNotIn("Context-boundary pause", self.render(advance(self.state("ask-agent"), "select-work")))
+        # No route offers a pause for a context clear: the host cannot be cleared from a packet.
+        for route in ("inline", "ask-agent"):
+            with self.subTest(route=route):
+                packet = self.render(advance(self.state(route), "select-work"))
+                self.assertNotIn("context-boundary", packet)
+                self.assertNotIn("Recovery command, then the printed Resume", packet)
         self.assertIn("Optional work_items replaces the whole queue", self.render(advance(self.state(), "plan")))
         self.assertIn("replaces the queue after this item",
                       self.render(advance(self.state(), "carry-forward")))

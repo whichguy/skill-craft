@@ -121,3 +121,35 @@ on both routes (exact binding line, stopped-child restart, outcome and
 Saved runs without the setting keep it. Scripts still select packet text only and do not
 verify who executed an assignment. The follow-up work is planned in
 [the delivery-overhead plan](shiploop-delivery-overhead-plan-2026-09-23.md).
+
+## Addendum, September 25, 2026: Grok, and no more pause
+
+A live Grok run (ShipLoop 0.27.0, Grok 1.0.41, interactive) finished its
+preparation, reached the first work item's `select-work` packet, took the
+printed context-boundary pause after about 23 minutes and handed the user a
+`/clear` plus two recovery commands. The keepalive stop hook allows a paused run
+to stop, so nothing continued it.
+
+Four Grok 1.0.41 probes then tested whether `/clear`, a newline and a prompt,
+returned to the host, clears the conversation. Each session first stored a
+codeword; the conversation counts as cleared only if the codeword is gone.
+
+| Probe | Source of `/clear` + prompt | Cleared? |
+|-------|-----------------------------|----------|
+| E1 | Script output returned to the model (`grok -p`) | No. The model also flagged the text as a prompt injection. |
+| E2 | Stop hook `{"decision":"block","reason":"/clear\n…"}`, `grok -p` | No. The reason arrived as a user message; the model answered from context. |
+| E3 | Headless prompt beginning `/clear\n…` on `--resume` | No. Same session, codeword recalled. |
+| E4 | The E2 hook in the interactive TUI | No. One session; the model answered from context. |
+
+Grok's `/new` (alias `/clear`) runs only when the user types it, and Grok
+compacts automatically at 85% of the context window. With Claude's 0/2 above, no
+tested host lets a packet, script or hook clear the conversation. ShipLoop
+therefore no longer pauses for a clear: every inline INNER stage, including
+`select-work`, begins **Continue in this context and execute the prompt.**, and
+an ask-agent producer without a usable fresh worker runs in the conversation.
+
+The same run showed a separate gap: the Grok plugin's keepalive hooks never
+fired (no Grok decision in the keepalive log for that session or the four
+probes; Grok's stop dispatch listed only `~/.claude/settings.json`). The
+global-hook route, `scripts/shiploop-hook install --host grok`, is the one Grok
+is known to run.

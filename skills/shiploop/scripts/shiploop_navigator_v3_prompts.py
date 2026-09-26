@@ -17,7 +17,6 @@ While executing that producer, its bound mode and executor take precedence: para
 chains retain their capacity and bypass this serial context boundary; serial
 chains execute in the main context without spawning workers. Do not wrap a chain
 in an extra worker. Both modes recover the existing attempt, never rerun start.
-Serial chains may use only the callable-reset or manual-handoff route below.
 Chain precedence ends at producer completion. Improve follows its own selected
 context and ownership policy even when the historical chain binding remains.
 For other serial INNER assignments where delegation is permitted, begin
@@ -29,14 +28,10 @@ this packet, selected skill locators and necessary durable references in the
 existing workspace. Run one assignment worker at a time; the parent waits for
 its result, verifies it and alone submits the ShipLoop callback. Keep one writer;
 collect or confirm an existing owner stopped before replacement. Once fresh for
-this assignment, do not clear again or delegate it again when this prefix repeats.
-Use a same-conversation clear only if the host exposes an actual callable reset
-and continuation route; then recover this same run. Printing `/clear` in a packet
-does not invoke it. If neither route is usable, use the printed pause command and
-give the user a durable handoff: clear through the host or open a fresh context,
-run the Recovery command, then follow the printed Resume command. Do not claim
-a clear or execute the pending assignment before that boundary is satisfied.
-ShipLoop emits this instruction; the host performs the context clear.
+this assignment, do not delegate it again when this prefix repeats. If no fresh
+worker is usable, execute the assignment in this conversation. Never pause for a
+context clear: no packet, script or hook output can clear a host conversation,
+and the host's own compaction manages its context.
 """
 
 
@@ -78,32 +73,16 @@ PLANNING_REVIEW_STAGES = frozenset({
     "system-test-author", "release-plan",
 })
 
-INLINE_ITEM_CONTEXT = """\
-Clear and then execute the prompt.
-
-Delegation: inline. This select-work packet opens a work item and is its only
-INNER context boundary. Clear once here, then execute this packet and every
-later INNER stage and Improve checkpoint of this work item in this conversation.
-If the host exposes an actual callable context reset with continuation, use it,
-then run the Recovery command below. Otherwise run the printed pause command and
-give the user this handoff: clear through the host (for example `/clear`) or
-open a fresh conversation, run the Recovery command, then the printed Resume
-command. Printing `/clear` does not clear. A conversation that began with that
-reset or recovery for this work item is already fresh: when this prefix repeats,
-execute without clearing or pausing again. Do not hand this assignment to Ask
-Agent or a native worker; this conversation is the only writer and alone submits
-ShipLoop callbacks. Retain the CLI, repository, run-directory locators and exact Recovery
-command in durable host handoff material.
-"""
-
 INLINE_STAGE_CONTEXT = """\
 Continue in this context and execute the prompt.
 
-Delegation: inline. This work item's context boundary was its select-work
-packet. Execute this INNER stage in this conversation without clearing, pausing
-for a clear, or handing it to Ask Agent or a native worker. This conversation is
-the only writer and alone submits ShipLoop callbacks. After an unplanned reset
-or lost context, run the Recovery command and continue from the reprinted packet.
+Delegation: inline. Execute this INNER stage in this conversation, including the
+select-work stage that opens each work item. Do not clear, pause for a clear, or
+hand it to Ask Agent or a native worker: no packet, script or hook output can
+clear a host conversation, and the host's own compaction manages its context.
+This conversation is the only writer and alone submits ShipLoop callbacks. After
+an unplanned reset or lost context, run the Recovery command and continue from
+the reprinted packet.
 """
 
 INLINE_IMPROVE_CONTEXT = """\
@@ -123,14 +102,12 @@ Recovery command and child receipt locator for interruption recovery.
 """
 
 
-def inner_context(delegation: str, stage: str, *, improve: bool) -> str:
+def inner_context(delegation: str, *, improve: bool) -> str:
     """Return the context prefix for an active INNER producer or Improve packet."""
     _require_delegation(delegation)
     if delegation == ASK_AGENT:
         return IMPROVE_INNER_CONTEXT if improve else SERIAL_INNER_CONTEXT
-    if improve:
-        return INLINE_IMPROVE_CONTEXT
-    return INLINE_ITEM_CONTEXT if stage == INNER[0] else INLINE_STAGE_CONTEXT
+    return INLINE_IMPROVE_CONTEXT if improve else INLINE_STAGE_CONTEXT
 
 
 PRELUDE = (
