@@ -187,8 +187,8 @@ HOOK_FILES = {
 }
 
 
-def validate_hooks(package: Path, name: str, errors: list[str]) -> None:
-    """Hooks may only be the generated per-host files, running the skill's own scripts."""
+def validate_hooks(package: Path, skills: list[str], errors: list[str]) -> None:
+    """Hooks may only be the generated per-host files, each running a bundled skill's own script."""
     hook_dir = package / "hooks"
     present = sorted(item.name for item in hook_dir.iterdir()) if hook_dir.is_dir() else []
     for file_name in present:
@@ -218,15 +218,15 @@ def validate_hooks(package: Path, name: str, errors: list[str]) -> None:
                 entries.extend(item.get("hooks", [item]) if isinstance(item, dict) else [item])
         if not entries:
             errors.append(f"hooks/{file_name}: declares no hook commands")
-        prefix = f"{variable}/skills/{name}/scripts/"
+        pattern = re.compile(re.escape(variable) + r"/skills/([a-z0-9][a-z0-9-]*)/scripts/([^/]+)")
         for entry in entries:
             command = entry.get("command") if isinstance(entry, dict) else None
-            script = (command[len(prefix):] if isinstance(command, str) and command.startswith(prefix)
-                      else "")
-            target = package / "skills" / name / "scripts" / script
-            if not script or "/" in script or not target.is_file() or not os.access(target, os.X_OK):
-                errors.append(f"hooks/{file_name}: command must run an executable in "
-                              f"skills/{name}/scripts/ via {variable}: {command!r}")
+            match = pattern.fullmatch(command) if isinstance(command, str) else None
+            target = package / "skills" / match[1] / "scripts" / match[2] if match else None
+            if (not match or match[1] not in skills or not target.is_file()
+                    or not os.access(target, os.X_OK)):
+                errors.append(f"hooks/{file_name}: command must run an executable in a bundled "
+                              f"skills/<skill>/scripts/ via {variable}: {command!r}")
 
 
 def validate_package(package: Path) -> list[str]:
@@ -236,7 +236,7 @@ def validate_package(package: Path) -> list[str]:
     if not package.is_dir() or package.is_symlink():
         return [f"{package}: package must be a real directory"]
     if not NAME.fullmatch(name):
-        errors.append("package folder must be a normalized skill name")
+        errors.append("package folder must be a normalized plugin name")
 
     # Reject links before opening any package payload. A generated package must
     # be self-contained, and preflight makes a symlink diagnostic deterministic
@@ -286,7 +286,12 @@ def validate_package(package: Path) -> list[str]:
         if adapter == ".claude-plugin" and "hooks" in manifest:
             errors.append(f"{relative}: Claude hooks use the default hooks/hooks.json, not a manifest field")
 
-    validate_hooks(package, name, errors)
+    skills_dir = package / "skills"
+    skills = sorted(item.name for item in skills_dir.iterdir()
+                    if item.is_dir()) if skills_dir.is_dir() else []
+    if not skills:
+        errors.append("package bundles no skills/<skill>/SKILL.md")
+    validate_hooks(package, skills, errors)
 
     base = manifests.get(".claude-plugin", {})
     codex = manifests.get(".codex-plugin", {})
@@ -299,18 +304,26 @@ def validate_package(package: Path) -> list[str]:
     if codex:
         validate_codex_interface(codex, errors)
 
-    expected = package / "skills" / name / "SKILL.md"
-    try:
-        body = expected.read_text(encoding="utf-8")
+    cards = set()
+    for skill in skills:
+        card = skills_dir / skill / "SKILL.md"
+        cards.add(card)
+        label = f"skills/{skill}/SKILL.md"
+        try:
+            body = card.read_text(encoding="utf-8")
+        except (OSError, UnicodeError) as exc:
+            errors.append(f"missing/unreadable {label}: {exc}")
+            continue
         fields = frontmatter(body)
-        for field in ("name", "version", "license"):
-            if not fields.get(field) or fields[field] != base.get(field):
-                errors.append(f"SKILL.md {field} must match the plugin manifest")
+        if fields.get("name") != skill:
+            errors.append(f"{label}: name must match its folder {skill}")
+        if not SEMVER.fullmatch(fields.get("version", "")):
+            errors.append(f"{label}: version must be semantic version")
+        if not fields.get("license"):
+            errors.append(f"{label}: missing license")
         kind = re.search(r"^\s+kind:\s*(\S+)\s*$", body.split("\n---\n", 1)[0], re.M)
         if kind and kind[1] in ("script-backed", "mixed"):
-            validate_script_entrypoints(name, expected.parent, kind[1], errors)
-    except (OSError, UnicodeError) as exc:
-        errors.append(f"missing/unreadable skills/{name}/SKILL.md: {exc}")
+            validate_script_entrypoints(skill, card.parent, kind[1], errors)
 
     # Never follow links in a distributed payload. Generated trees should have
     # already materialized internal links; a dangling link is also a failure.
@@ -318,7 +331,7 @@ def validate_package(package: Path) -> list[str]:
         relative = item.relative_to(package).as_posix()
         if not item.is_file():
             continue
-        if item.name == "SKILL.md" and item != expected:
+        if item.name == "SKILL.md" and item not in cards:
             errors.append(f"additional public SKILL.md in payload: {relative}")
         if item.suffix == ".py" or (item.parent.name == "scripts" and not item.suffix):
             try:
@@ -335,7 +348,8 @@ def validate_package(package: Path) -> list[str]:
 def main() -> int:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("packages", nargs="*", type=Path, help="individual plugin directories")
-    parser.add_argument("--root", type=Path, default=Path(__file__).resolve().parents[1], help="source checkout for all-leaf coverage")
+    parser.add_argument("--root", type=Path, default=Path(__file__).resolve().parents[1],
+                        help="checkout or build whose plugins/skill-craft is checked")
     args = parser.parse_args()
     if args.packages:
         packages = args.packages
@@ -344,7 +358,12 @@ def main() -> int:
         if not leaves:
             print("FAIL no source skills found", file=sys.stderr)
             return 1
-        packages = [args.root / "plugins" / name for name in leaves]
+        package = args.root / "plugins" / "skill-craft"
+        bundled = sorted(path.parent.name for path in (package / "skills").glob("*/SKILL.md"))
+        if bundled != leaves:
+            print(f"FAIL skill-craft: bundles {bundled}, source has {leaves}", file=sys.stderr)
+            return 1
+        packages = [package]
     failed = 0
     for package in packages:
         errors = validate_package(package)

@@ -132,9 +132,10 @@ dual-home checkout; never overwrite foreign trees):
 See `references/host-paths.md` for skill and agent destinations (Claude, Grok, Codex, Hermes).
 
 This path is **not** the plugin marketplace. For host plugins use **Marketplace** below.
-skill-craft itself is the marketplace (catalog name `skill-craft-market`). Its catalogs and
-`plugins/` are release output written by `scripts/release.py`; plugins from other
-repositories are pinned by commit in `catalog/external-plugins.json`.
+skill-craft itself is the marketplace (catalog name `whichguy`, after its publisher). Every skill ships in
+its one `skill-craft` plugin (install `skill-craft@whichguy`; invoke `/skill-craft:<leaf>`).
+Its catalogs and `plugins/` are release output written by `scripts/release.py`; plugins
+from other repositories are pinned by commit in `catalog/external-plugins.json`.
 
 ## Marketplace procedure
 

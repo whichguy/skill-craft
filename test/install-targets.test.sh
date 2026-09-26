@@ -62,26 +62,51 @@ trap cleanup EXIT
 [[ -f "$source_interop/SKILL.md" ]] || fail "missing skills/skill-interop/SKILL.md"
 
 # ---------------------------------------------------------------------------
-# I1: Fresh HOME, no flags → all hosts × all skills (at least skill-interop)
+# I1: Fresh HOME, no flags → the default host only: OpenCode. Claude, Grok, Codex and Cursor now get
+# every skill through the skill-craft marketplace plugin, so they stay absent
+# without an explicit host flag or --all.
 # ---------------------------------------------------------------------------
 fresh_home i1
 out="$("$install_sh" 2>&1)" || fail "I1 install.sh failed on fresh home: $out"
-assert_all_hosts "skill-interop" "$source_interop"
-printf '%s\n' "$out" | grep -q 'Claude Code' || fail "I1 stdout missing Claude install line"
-printf '%s\n' "$out" | grep -q 'Grok' || fail "I1 stdout missing Grok install line"
-printf '%s\n' "$out" | grep -q 'Codex' || fail "I1 stdout missing Codex install line"
-printf '%s\n' "$out" | grep -q 'Cursor' || fail "I1 stdout missing Cursor install line"
+assert_symlink "$(opencode_skills_dir)/skill-interop" "$source_interop"
+assert_absent "$HOME/.claude/skills/skill-interop"
+assert_absent "$HOME/.grok/skills/skill-interop"
+assert_absent "$HOME/.codex/skills/skill-interop"
+assert_absent "$HOME/.cursor/skills/skill-interop"
 printf '%s\n' "$out" | grep -q 'OpenCode' || fail "I1 stdout missing OpenCode install line"
-# Backchain and Plan Dispatcher are ordinary skills/ leaves.
-assert_all_hosts "backchain" "$root/skills/backchain"
-assert_all_hosts "plan-dispatcher" "$root/skills/plan-dispatcher"
+printf '%s\n' "$out" | grep -q 'Claude Code' && fail "I1 default must not touch Claude Code: $out"
+printf '%s\n' "$out" | grep -q 'Grok' && fail "I1 default must not touch Grok: $out"
+printf '%s\n' "$out" | grep -q 'Codex' && fail "I1 default must not touch Codex: $out"
+printf '%s\n' "$out" | grep -q 'Cursor' && fail "I1 default must not touch Cursor: $out"
+# Backchain and Plan Dispatcher are ordinary skills/ leaves; same default scope.
+assert_symlink "$(opencode_skills_dir)/backchain" "$root/skills/backchain"
+assert_symlink "$(opencode_skills_dir)/plan-dispatcher" "$root/skills/plan-dispatcher"
+assert_absent "$HOME/.claude/skills/backchain"
+assert_absent "$HOME/.claude/skills/plan-dispatcher"
 
 # ---------------------------------------------------------------------------
-# I2: Idempotent re-run → "already installed"
+# I2: Idempotent re-run of the default (no flags), same HOME as I1 →
+# "already installed" for OpenCode (the only symlink host the default touches).
 # ---------------------------------------------------------------------------
 out2="$("$install_sh" 2>&1)" || fail "I2 install.sh re-run failed: $out2"
 printf '%s\n' "$out2" | grep -q 'Already installed' || fail "I2 re-run should report already installed"
+assert_symlink "$(opencode_skills_dir)/skill-interop" "$source_interop"
+
+# ---------------------------------------------------------------------------
+# I1b: --all → all hosts × all skills (explicit opt-in; this is what a
+# no-flags run used to do before Claude/Grok/Codex/Cursor moved to the
+# skill-craft marketplace plugin by default).
+# ---------------------------------------------------------------------------
+fresh_home i1all
+outall="$("$install_sh" --all 2>&1)" || fail "I1b install.sh --all failed: $outall"
 assert_all_hosts "skill-interop" "$source_interop"
+printf '%s\n' "$outall" | grep -q 'Claude Code' || fail "I1b stdout missing Claude install line"
+printf '%s\n' "$outall" | grep -q 'Grok' || fail "I1b stdout missing Grok install line"
+printf '%s\n' "$outall" | grep -q 'Codex' || fail "I1b stdout missing Codex install line"
+printf '%s\n' "$outall" | grep -q 'Cursor' || fail "I1b stdout missing Cursor install line"
+printf '%s\n' "$outall" | grep -q 'OpenCode' || fail "I1b stdout missing OpenCode install line"
+assert_all_hosts "backchain" "$root/skills/backchain"
+assert_all_hosts "plan-dispatcher" "$root/skills/plan-dispatcher"
 
 # ---------------------------------------------------------------------------
 # I3: Foreign tree at dest → skipped, foreign SKILL.md preserved
@@ -96,17 +121,17 @@ got_foreign="$(cat "$HOME/.claude/skills/skill-interop/SKILL.md")"
 [[ "$got_foreign" == "foreign" ]] || fail "I3 foreign SKILL.md content changed"
 
 # ---------------------------------------------------------------------------
-# I4: --skill skill-interop → only skill-interop leaves
+# I4: --all --skill skill-interop → only skill-interop leaves, all hosts
 # ---------------------------------------------------------------------------
 fresh_home i4
-out4="$("$install_sh" --skill skill-interop 2>&1)" || fail "I4 failed: $out4"
+out4="$("$install_sh" --all --skill skill-interop 2>&1)" || fail "I4 failed: $out4"
 assert_all_hosts "skill-interop" "$source_interop"
 
 # ---------------------------------------------------------------------------
-# I5: --skill all → same as default for current monorepo
+# I5: --all --skill all → same skill-interop coverage as I4, via --skill all
 # ---------------------------------------------------------------------------
 fresh_home i5
-out5="$("$install_sh" --skill all 2>&1)" || fail "I5 failed: $out5"
+out5="$("$install_sh" --all --skill all 2>&1)" || fail "I5 failed: $out5"
 assert_all_hosts "skill-interop" "$source_interop"
 
 # ---------------------------------------------------------------------------
@@ -193,12 +218,14 @@ got13="$(cat "$HOME/.claude/skills/skill-interop/SKILL.md")"
 [[ "$got13" == "foreign-relink" ]] || fail "I13 foreign SKILL.md content changed"
 
 # ---------------------------------------------------------------------------
-# I14: --agents installs thin agent card for Claude + Grok
+# I14: --agents installs thin agent card for Claude + Grok (--all: agent
+# install is gated on the Claude/Grok skill flags, which need an explicit
+# host flag or --all now that the default doesn't select those hosts)
 # ---------------------------------------------------------------------------
 fresh_home i14
 agent_src="$root/agents/skill-interop.md"
 [[ -f "$agent_src" ]] || fail "I14 missing agents/skill-interop.md"
-out14="$("$install_sh" --skill skill-interop --agents 2>&1)" || fail "I14 failed: $out14"
+out14="$("$install_sh" --all --skill skill-interop --agents 2>&1)" || fail "I14 failed: $out14"
 assert_symlink "$HOME/.claude/agents/skill-interop.md" "$agent_src"
 assert_symlink "$HOME/.grok/agents/skill-interop.md" "$agent_src"
 assert_absent "$HOME/.codex/agents/skill-interop.md"
@@ -215,12 +242,12 @@ assert_absent "$HOME/.grok/skills/skill-interop"
 assert_absent "$HOME/.codex/skills/skill-interop"
 
 # ---------------------------------------------------------------------------
-# I16: --skill devloop is identity install on Claude/Grok/Codex/Cursor/OpenCode.
+# I16: --all --skill devloop is identity install on Claude/Grok/Codex/Cursor/OpenCode.
 # ---------------------------------------------------------------------------
 source_devloop="$root/skills/devloop"
 [[ -f "$source_devloop/SKILL.md" ]] || fail "I16 missing skills/devloop/SKILL.md"
 fresh_home i16
-out16="$("$install_sh" --skill devloop 2>&1)" || fail "I16 install failed: $out16"
+out16="$("$install_sh" --all --skill devloop 2>&1)" || fail "I16 install failed: $out16"
 assert_symlink "$HOME/.claude/skills/devloop" "$source_devloop"
 assert_symlink "$HOME/.grok/skills/devloop" "$source_devloop"
 assert_symlink "$HOME/.codex/skills/devloop" "$source_devloop"
@@ -235,7 +262,16 @@ assert_absent "$HOME/.claude/commands/devloop.md"
 # ---------------------------------------------------------------------------
 fresh_home i18
 export XDG_CONFIG_HOME="$tmpdir/opencode config i18"
-out18="$("$install_sh" --opencode-only --skill skill-interop --agents 2>&1)" || fail "I18 failed: $out18"
+# Agent cards install only for Claude/Grok: asking for them with OpenCode alone
+# is a usage error that writes nothing.
+set +e
+out18a="$("$install_sh" --opencode-only --skill skill-interop --agents 2>&1)"
+rc18a=$?
+set -e
+[[ "$rc18a" -eq 64 ]] || fail "I18 --opencode-only --agents want exit 64 got $rc18a: $out18a"
+printf '%s\n' "$out18a" | grep -q -- '--agents needs' || fail "I18 --agents message: $out18a"
+assert_absent "$XDG_CONFIG_HOME/opencode/skills/skill-interop"
+out18="$("$install_sh" --opencode-only --skill skill-interop 2>&1)" || fail "I18 failed: $out18"
 assert_symlink "$XDG_CONFIG_HOME/opencode/skills/skill-interop" "$source_interop"
 assert_absent "$HOME/.config/opencode/skills/skill-interop"
 assert_absent "$HOME/.claude/skills/skill-interop"
@@ -247,7 +283,8 @@ assert_absent "$XDG_CONFIG_HOME/opencode/opencode.json"
 printf '%s\n' "$out18" | grep -q 'OpenCode' || fail "I18 stdout missing OpenCode install line: $out18"
 
 # ---------------------------------------------------------------------------
-# I19: --all explicitly selects the same host targets as the default.
+# I19: --all explicitly selects every host (Claude/Grok/Codex/Cursor/OpenCode),
+# no longer the same as the default (which now only selects OpenCode).
 # ---------------------------------------------------------------------------
 fresh_home i19
 out19="$("$install_sh" --all --skill skill-interop 2>&1)" || fail "I19 failed: $out19"
@@ -383,4 +420,4 @@ set -e
 [[ "$rc_agents" -eq 64 ]] || fail "--status --agents want exit 64 got $rc_agents: $out_agents"
 printf '%s\n' "$out_agents" | grep -q -- '--agents is only valid for install' || fail "--agents message: $out_agents"
 
-printf 'install-targets.test.sh: PASS I1–I8, I10–I16, I18, I19, I21 (skill-craft install, 5 hosts, identity dest, flags, dry-run, skip-if-exists, --relink, --agents, marketplace-only sources)\n'
+printf 'install-targets.test.sh: PASS I1, I1b, I2–I8, I10–I16, I18, I19, I21 (skill-craft install, 5 hosts, default-hosts scope, identity dest, flags, dry-run, skip-if-exists, --relink, --agents, marketplace-only sources)\n'

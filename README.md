@@ -94,11 +94,11 @@ Source leaf `devloop` installs as dest `devloop` on Claude/Grok/Codex/Cursor.
 Hermes card install is skipped (the engine owns `software-development/devloop`).
 
 ```sh
-./install.sh                         # all hosts, every skills/<leaf>
+./install.sh                         # OpenCode (plugin hosts use skill-craft@whichguy), every skills/<leaf>
 ./install.sh --skill skill-interop   # one skill
 ./install.sh --skill all             # explicit: all skills under skills/
 ./install.sh --from /path/to/pkg     # external package (leaf = basename)
-./install.sh --agents                # also agents/<leaf>.md → Claude/Grok
+./install.sh --claude-only --agents  # also agents/<leaf>.md → Claude (or --grok-only)
 ./install.sh --claude-only           # single host
 ./install.sh --grok-only
 ./install.sh --codex-only
@@ -141,27 +141,28 @@ marketplace and uses `install.sh`.
 
 ```sh
 claude plugin marketplace add whichguy/skill-craft
-claude plugin install skill-interop@skill-craft-market
+claude plugin install skill-craft@whichguy
 
 codex plugin marketplace add whichguy/skill-craft
-codex plugin list --marketplace skill-craft-market --available --json
-codex plugin add skill-interop@skill-craft-market
+codex plugin list --marketplace whichguy --available --json
+codex plugin add skill-craft@whichguy
 ```
 
-The Claude and Codex catalogs keep the name `skill-craft-market`, so plugin
-IDs are unchanged from the former `whichguy/skill-craft-market` repository; to
-move an existing registration without uninstalling its plugins, follow
-[distribution.md](docs/distribution.md#moving-from-the-former-whichguyskill-craft-market-repository).
+Every skill ships in the one `skill-craft` plugin, so hosts invoke it as
+`skill-craft:<skill>`: `/skill-craft:shiploop` in Claude, `$skill-craft:shiploop`
+in Codex. Moving from the earlier per-skill plugins
+(`shiploop@skill-craft-market`) is covered in
+[distribution.md](docs/distribution.md#moving-from-per-skill-plugins).
 Register a local checkout by passing its absolute root to `marketplace add`.
-Install only skills not already exposed by skill-dir. Start a new Codex thread
-after installing a plugin.
+Do not also link the same skills by skill-dir. Start a new Codex thread after
+installing the plugin.
 
 ### Install lifecycle
 
 | Mode | Action |
 |------|--------|
-| **Dev (skill-dir)** | `./install.sh --skill <name> [--agents] [--relink]` |
-| **Claude, Codex or Grok plugin** | install from this marketplace (above) |
+| **Dev (skill-dir)** | `./install.sh --claude-only --skill <name> [--agents] [--relink]` (default host: OpenCode) |
+| **Claude, Codex, Grok or Cursor plugin** | install `skill-craft@whichguy` from this marketplace (above) |
 | **Upgrade skill-dir** | `git pull` + re-run install; use `--relink` if links point elsewhere |
 | **Uninstall skill-dir** | `./install.sh --skill <name> --uninstall` (removes only owned installs, every host) |
 
@@ -169,8 +170,8 @@ after installing a plugin.
 ### Grok and Cursor marketplaces
 
 This repo also contains generated native catalogs at `.grok-plugin/marketplace.json`
-and `.cursor-plugin/marketplace.json`. Both reference the same generated `plugins/<leaf>`
-packages in this checkout. They omit
+and `.cursor-plugin/marketplace.json`. Both reference the same generated `plugins/skill-craft`
+package in this checkout. They omit
 the external plugins listed in `catalog/external-plugins.json`. Only
 `scripts/release.py` regenerates the catalogs. See
 [distribution instructions](docs/distribution.md) for local use, updates, and publication.

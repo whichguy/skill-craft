@@ -4,32 +4,38 @@
 flowchart TD
   S[Authoritative skills] --> I[Local installer]
   I --> H[Grok Claude Cursor Codex OpenCode]
-  S --> P[Generated plugin packages]
+  S --> P[One generated skill-craft plugin]
   P --> N[Grok and Cursor catalogs]
   P --> M[Claude and Codex catalogs]
 ```
 
 Edit `skills/<leaf>/`, then add a change note under `changes/<leaf>/`
 ([format](../changes/README.md)). At release, `scripts/release.py` runs
-`./scripts/sync-plugin-views.sh`, which copies each skill into
-`plugins/<leaf>/skills/<leaf>/` and derives host metadata from its
-frontmatter. For example, `skills/shiploop/SKILL.md` produces the shared ShipLoop
-plugin and a `./plugins/shiploop` entry in each native catalog. All hosts receive
-the same skill body; host-specific files describe how to find it.
+`./scripts/sync-plugin-views.sh`, which copies every skill into the one
+`skill-craft` plugin at `plugins/skill-craft/skills/<leaf>/` and derives host
+metadata from the frontmatter and `catalog/skill-craft-plugin.json`. Each native
+catalog lists that plugin once as `./plugins/skill-craft`, so hosts expose every
+skill as `skill-craft:<leaf>` (Claude `/skill-craft:shiploop`, Codex
+`$skill-craft:shiploop`). All hosts receive the same skill body; host-specific
+files describe how to find it.
 
-## Your own use on five hosts
+## Your own use
 
-From the source checkout:
+Claude, Codex, Grok and Cursor install every skill from the `skill-craft`
+marketplace plugin ([entry points](#marketplace-entry-points)). OpenCode has no
+skill marketplace, so `install.sh` links it from the source checkout; without
+host flags the installer targets only OpenCode (Hermes needs `--hermes-only`):
 
 ```sh
-./install.sh --grok-only --claude-only --cursor-only --codex-only --opencode-only --dry-run
-./install.sh --grok-only --claude-only --cursor-only --codex-only --opencode-only
-./install.sh --grok-only --claude-only --cursor-only --codex-only --opencode-only --status
+./install.sh --dry-run
+./install.sh
+./install.sh --status
 ```
 
-Host flags combine. These commands install all source skills; add
-`--skill shiploop` to select one. Without host flags the installer also targets
-Hermes. Links use `~/.grok/skills`, `~/.claude/skills`, `~/.cursor/skills`, `~/.codex/skills`, and
+To develop against the checkout on a plugin host, link it explicitly (for example
+`./install.sh --claude-only --skill shiploop`) and disable the plugin meanwhile;
+`--status` warns when an enabled `skill-craft` plugin would load the same skill
+twice. Add `--skill shiploop` to select one skill. Links use `~/.grok/skills`, `~/.claude/skills`, `~/.cursor/skills`, `~/.codex/skills`, and
 `${XDG_CONFIG_HOME:-$HOME/.config}/opencode/skills`. Keep the checkout in place. Update with `git pull` and rerun
 the installer when new skills are added. Restart the host session to refresh discovery.
 
@@ -62,19 +68,21 @@ is unknown, inspect `claude plugin list --json` for the host's current state.
 | OpenCode | none (no skill marketplace) | `./install.sh` skill directories |
 
 All four indexes are generated at release (`scripts/release.py` runs
-`scripts/sync-plugin-views.sh`) and point at `./plugins/<name>`. The Claude and
-Codex indexes keep the marketplace name `skill-craft-market`, so plugin IDs
-such as `shiploop@skill-craft-market` continue to work after the move from the
-former `skill-craft-market` repository. Lennox S40, Until Loop and Workflow are published from their own
-repositories and pinned by full commit in `catalog/external-plugins.json`.
+`scripts/sync-plugin-views.sh`), are named `whichguy` after the publisher, and point at
+`./plugins/skill-craft`. The install ID on every host is
+`skill-craft@whichguy`. Lennox S40, Until Loop and Workflow are published
+from their own repositories and pinned by full commit in
+`catalog/external-plugins.json`; they are listed in the Claude and Codex indexes
+only.
 
 `plugins/` and the indexes are **release output**. They change only in a
 release commit made by `scripts/release.py`, so users of a marketplace
-install receive released packages, never work in progress. A plugin updates
-when its `version` changes, which happens only at release.
+install receive released packages, never work in progress. The plugin updates
+when its `version` (in `catalog/skill-craft-plugin.json`) changes, which happens
+at every release; each skill keeps its own `version:` for the changelog.
 
 Backchain and Plan Dispatcher are ordinary skills here (`skills/backchain`,
-`skills/plan-dispatcher`), each published as its own plugin. Backchain's
+`skills/plan-dispatcher`), shipped in the skill-craft plugin like every other skill. Backchain's
 research harness, schema, fixtures and samples stay in the separate Backchain
 development checkout and are not shipped.
 Improve remains owned here and includes its own compatible runtime; the standalone
@@ -90,8 +98,8 @@ grok plugin list --available --json
 ```
 
 After publishing the native index, consumers register `whichguy/skill-craft`.
-Install a selected package with `grok plugin install shiploop --trust`, only
-after reviewing its contents and choosing plugin mode for that skill. Grok
+Install the plugin with `grok plugin install skill-craft --trust`, only
+after reviewing its contents. Grok
 supports these same-repository local source entries and the existing
 `.claude-plugin/plugin.json` package manifests. Its installed user guide documents
 this under **Plugins → Create your own marketplace**.
@@ -100,70 +108,65 @@ this under **Plugins → Create your own marketplace**.
 
 ```sh
 claude plugin marketplace add whichguy/skill-craft
-claude plugin install shiploop@skill-craft-market
+claude plugin install skill-craft@whichguy
 
 codex plugin marketplace add whichguy/skill-craft
-codex plugin list --marketplace skill-craft-market --available --json
-codex plugin add shiploop@skill-craft-market
+codex plugin list --marketplace whichguy --available --json
+codex plugin add skill-craft@whichguy
 ```
-
-#### Moving from the former `whichguy/skill-craft-market` repository
-
-The Claude and Codex catalogs keep the marketplace name `skill-craft-market`,
-so installed plugin IDs such as `shiploop@skill-craft-market` do not change.
-Re-point the existing registration:
-
-- **Claude Code:** run `claude plugin marketplace add whichguy/skill-craft`
-  over the existing registration. It replaces the source and keeps installed
-  plugins. Do **not** run `claude plugin marketplace remove skill-craft-market`
-  first: removing a marketplace uninstalls every plugin installed from it, and
-  adding it back does not reinstall them.
-- **Codex:** `codex plugin marketplace add` refuses a different source under
-  the same name, so run `codex plugin marketplace remove skill-craft-market`,
-  then `codex plugin marketplace add whichguy/skill-craft`. Codex keeps the
-  install records; the plugins list as installed again once the new source is
-  added.
-- **Grok and Cursor** already read this repository's own indexes; nothing moves.
-
-Verify with `claude plugin list` and `codex plugin list`. (Checked with Claude
-Code 2.1.281 and Codex CLI 0.156.1 in disposable profiles, moving a local
-`skill-craft-market` between two directories.)
 
 For local development, pass the absolute `skill-craft` checkout path to
 `marketplace add`. Refresh Git catalogs with Claude
-`plugin marketplace update skill-craft-market`, Codex
-`plugin marketplace upgrade skill-craft-market` or Grok
+`plugin marketplace update whichguy`, Codex
+`plugin marketplace upgrade whichguy` or Grok
 `grok plugin marketplace update`. Start a new Codex task after
 installing. See the [Codex marketplace reference](https://developers.openai.com/plugins/build/plugins#marketplace-metadata).
+
+#### Moving from per-skill plugins
+
+Earlier releases published one plugin per skill (`shiploop@skill-craft-market`)
+from a Claude/Codex marketplace named `skill-craft-market`. Those IDs are gone.
+Remove the old registration, which uninstalls the per-skill plugins installed
+from it, then add the repository again and install the one plugin:
+
+```sh
+claude plugin marketplace remove skill-craft-market
+claude plugin marketplace add whichguy/skill-craft
+claude plugin install skill-craft@whichguy
+```
+
+Codex: `codex plugin marketplace remove skill-craft-market`, add the repository,
+then `codex plugin add skill-craft@whichguy`. Grok: uninstall each per-skill
+plugin (`grok plugin list` shows them), update the `whichguy` marketplace and
+install `skill-craft`. Plugins from other repositories (Until Loop, Workflow) are
+separate sources; keep them.
 
 ### Install IDs and skill namespaces
 
 The marketplace selects a package; the plugin name supplies the skill namespace.
-Skill Craft keeps one independently installable plugin per source skill. Keep
-`name: shiploop` in the source card and `"name": "shiploop"` in its plugin
-manifests: the host adds the prefix when it loads the plugin. Do not put
-`skill-craft:` or `shiploop:` into the source card's name.
+Skill Craft ships every source skill in one plugin named `skill-craft`, so the
+namespace is `skill-craft` on every host. The marketplace is named after its
+publisher, `whichguy`, so the install ID reads `skill-craft@whichguy`. Keep `name: shiploop` in the source
+card: the host adds the `skill-craft:` prefix when it loads the plugin. Do not
+put `skill-craft:` into the source card's name.
 
 | Identity | ShipLoop example | Purpose |
 |----------|------------------|---------|
-| Marketplace | `skill-craft-market` | Catalog registration for Claude and Codex |
-| Plugin install ID | `shiploop@skill-craft-market` | Select the package to install or remove |
-| Plugin skill in Codex | `$shiploop:shiploop` | Select the installed plugin's skill |
-| Plugin skill in Claude | `/shiploop:shiploop` | Select the installed plugin's skill |
+| Marketplace | `whichguy` | Catalog registration on every host |
+| Plugin install ID | `skill-craft@whichguy` | Install or remove every skill at once |
+| Plugin skill in Codex | `$skill-craft:shiploop` | Select the installed plugin's skill |
+| Plugin skill in Claude | `/skill-craft:shiploop` | Select the installed plugin's skill |
 | Skill-dir skill in Codex | `$shiploop` | Select the separately side-loaded skill |
 
-For example, `codex plugin add shiploop@skill-craft-market` installs the selected
-`plugins/shiploop` package. In a fresh task, the host exposes its
-`skills/shiploop/SKILL.md` as `shiploop:shiploop`. Use `$shiploop:shiploop` to
-request that copy. If a side-loaded `shiploop` also exists, a bare `$shiploop`
-does not establish that the marketplace copy was selected. Inspect the loaded
-card's path and plugin identity when verifying an installation.
+In a fresh task, the host exposes the packaged `skills/shiploop/SKILL.md` as
+`skill-craft:shiploop`. If a side-loaded `shiploop` also exists, a bare
+`$shiploop` does not establish that the marketplace copy was selected. Inspect
+the loaded card's path and plugin identity when verifying an installation. A
+bare `/shiploop` is not a registered command in headless Claude; use the
+qualified name.
 
-The generated Codex action prompts and package README examples use the
-qualified plugin identity. The source card retains its portable bare name for
-skill-dir installs. Changing the marketplace's display name does not change the
-plugin namespace; a shared `skill-craft:<skill>` namespace would require a
-different plugin packaging contract.
+The generated Codex action prompts and package README use the qualified plugin
+identity. The source card retains its portable bare name for skill-dir installs.
 
 This distinction follows the [OpenAI plugin namespace contract](https://developers.openai.com/plugins/build/plugins#create-a-plugin-manually)
 and [Claude plugin skill namespacing](https://code.claude.com/docs/en/plugins#create-your-first-plugin).
@@ -172,22 +175,22 @@ examples; runtime discovery remains a separate host check.
 
 ### Cursor
 
-Each package has a generated `.cursor-plugin/plugin.json`. The root marketplace
+The plugin has a generated `.cursor-plugin/plugin.json`. The root marketplace
 uses same-repository paths, as required by the
 [Cursor multi-plugin format](https://cursor.com/docs/reference/plugins).
 
-For a local plugin smoke test, first choose a skill not already installed through
-skill-dir. Place or symlink that **individual** `plugins/<leaf>` directory under
-`~/.cursor/plugins/local/<leaf>`, reload Cursor, and inspect **Customize → Plugins**
-and **Skills**. Do not link the whole monorepo there as a single plugin. Remove
-the test link when finished. This tests an individual package; it is not a public
-catalog submission.
+For a local plugin smoke test, first remove skill-dir installs of the same skills.
+Place or symlink the generated `plugins/skill-craft` directory under
+`~/.cursor/plugins/local/skill-craft`, reload Cursor, and inspect **Customize →
+Plugins** and **Skills**. Do not link the whole monorepo there. Remove the test
+link when finished. This tests the package; it is not a public catalog submission.
 
 Cursor also supports a personal marketplace import in the current desktop UI:
 **Customize → Browse Marketplace → Add Marketplace → Import from GitHub**. Select
 **Scope: User** and enter the source repository root exactly as
 `https://github.com/whichguy/skill-craft`. This User import was verified in Cursor
-3.20.21, where all 18 packages appeared as available additions. That repository
+3.20.21 with the earlier per-skill packages; re-check that the one
+`skill-craft` plugin lists every skill. That repository
 owns the required root
 `.cursor-plugin/marketplace.json`; the retired `skill-craft-market`
 repository has no Cursor index. Cursor does not document a ref or `/tree/<branch>` URL syntax for

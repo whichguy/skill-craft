@@ -2,15 +2,17 @@
 "use strict";
 
 /**
- * Derive plugin manifests and marketplace indexes (Claude, Codex, Cursor, Grok)
- * from skills/<leaf>/SKILL.md frontmatter.
+ * Derive the one skill-craft plugin package (Claude, Codex, Cursor manifests,
+ * hooks, README) and the marketplace indexes (Claude, Codex, Cursor, Grok) from
+ * every skills/<leaf>/SKILL.md plus catalog/skill-craft-plugin.json.
+ *
+ * Every skill ships in a single plugin named skill-craft, so hosts namespace
+ * them as skill-craft:<leaf> (Claude /skill-craft:shiploop, Codex
+ * $skill-craft:shiploop).
  *
  * Usage:
- *   node scripts/skill-frontmatter-to-plugin-json.js <leaf>
- *   node scripts/skill-frontmatter-to-plugin-json.js <leaf> --write
- *   node scripts/skill-frontmatter-to-plugin-json.js <leaf> --check
- *   node scripts/skill-frontmatter-to-plugin-json.js --marketplaces --write
- *   node scripts/skill-frontmatter-to-plugin-json.js --marketplaces --check
+ *   node scripts/skill-frontmatter-to-plugin-json.js --package [--write|--check]
+ *   node scripts/skill-frontmatter-to-plugin-json.js --marketplaces [--write|--check]
  *
  * Exit 0 on success / check match; exit 1 on error or --check mismatch.
  */
@@ -86,27 +88,6 @@ function metadataScalar(fm, key) {
   return m ? m[1].trim().replace(/^['"]|['"]$/g, "") : null;
 }
 
-function displayNameFromLeaf(leaf) {
-  const known = {
-    "c-plan": "C Plan",
-    devloop: "DevLoop",
-    shiploop: "ShipLoop",
-  };
-  if (known[leaf]) return known[leaf];
-  return leaf
-    .split("-")
-    .map((part) => part.charAt(0).toUpperCase() + part.slice(1))
-    .join(" ");
-}
-
-function titleCase(value) {
-  return value
-    .split(/[-_\s]+/)
-    .filter(Boolean)
-    .map((part) => part.charAt(0).toUpperCase() + part.slice(1))
-    .join(" ");
-}
-
 function shortDescriptionFromText(description) {
   if (description.length <= 120) return description;
   const cut = description.slice(0, 119);
@@ -118,16 +99,6 @@ function shortDescriptionFromFm(fm, description) {
   const declared = metadataScalar(fm, "short-description");
   if (declared) return declared;
   return shortDescriptionFromText(description);
-}
-
-function platformsFromFm(fm) {
-  const match = fm.match(/^platforms:\s*\n((?:[ \t]+-\s+\S+.*\n?)*)/m);
-  if (!match) return [];
-  return match[1]
-    .split("\n")
-    .map((line) => line.match(/^\s+-\s+(.+?)\s*$/))
-    .filter(Boolean)
-    .map((parts) => parts[1]);
 }
 
 function buildPlugin(leaf, fm) {
@@ -177,8 +148,51 @@ function buildPlugin(leaf, fm) {
   };
 }
 
-function buildCursorPlugin(leaf, fm, hookFiles = {}) {
-  const cursor = cursorFromPlugin(buildPlugin(leaf, fm));
+// The plugin that carries every skill. Its name is the marketplace name, so
+// every host namespaces the skills as skill-craft:<leaf>. Its version is
+// release output: only scripts/release.py writes catalog/skill-craft-plugin.json.
+const PLUGIN_NAME = "skill-craft";
+const BUNDLE_SOURCE = path.join(root, "catalog", "skill-craft-plugin.json");
+
+function readBundle() {
+  let data;
+  try {
+    data = JSON.parse(fs.readFileSync(BUNDLE_SOURCE, "utf8"));
+  } catch (e) {
+    fail(`catalog/skill-craft-plugin.json is missing or invalid: ${e.message}`);
+  }
+  if (!data || typeof data !== "object" || Object.keys(data).sort().join() !== "description,name,version") {
+    fail("catalog/skill-craft-plugin.json must hold exactly name, version and description");
+  }
+  if (data.name !== PLUGIN_NAME) fail(`catalog/skill-craft-plugin.json name must be ${PLUGIN_NAME}`);
+  if (!SEMVER_RE.test(data.version || "")) fail("catalog/skill-craft-plugin.json version must be strict semver");
+  if (typeof data.description !== "string" || !data.description.trim() || data.description.length > MAX_DESC) {
+    fail("catalog/skill-craft-plugin.json description must be non-empty and at most 1024 characters");
+  }
+  return data;
+}
+
+function buildBundlePlugin(leaves) {
+  const bundle = readBundle();
+  // Validates every card (name == leaf, strict semver) before packaging it.
+  for (const leaf of leaves) buildPlugin(leaf, readSkillFrontmatter(leaf));
+  return {
+    name: PLUGIN_NAME,
+    version: bundle.version,
+    description: bundle.description,
+    author: {
+      name: "whichguy",
+      url: "https://github.com/whichguy",
+    },
+    homepage: REPOSITORY,
+    repository: REPOSITORY,
+    license: "MIT",
+    keywords: [PLUGIN_NAME, "portable-skills", ...leaves],
+  };
+}
+
+function buildCursorPlugin(leaves, hookFiles = {}) {
+  const cursor = cursorFromPlugin(buildBundlePlugin(leaves));
   if (hookFiles[HOOK_FILES.cursor]) cursor.hooks = `./${HOOK_FILES.cursor}`;
   return cursor;
 }
@@ -203,31 +217,25 @@ function cursorFromPlugin(plugin) {
   };
 }
 
-function buildCodexPlugin(leaf, fm, hookFiles = {}) {
-  const plugin = buildPlugin(leaf, fm);
-  const kind = kindFromFm(fm) || "portable";
+function buildCodexPlugin(leaves, hookFiles = {}) {
+  const plugin = buildBundlePlugin(leaves);
+  const promptOnly = leaves.every((leaf) => kindFromFm(readSkillFrontmatter(leaf)) === "prompt-only");
+  const featured = ["shiploop", "improve", "ask-agent"].filter((leaf) => leaves.includes(leaf));
   return {
     ...plugin,
     skills: "./skills/",
     ...(hookFiles[HOOK_FILES.codex] ? { hooks: `./${HOOK_FILES.codex}` } : {}),
     interface: {
-      displayName: displayNameFromLeaf(leaf),
-      shortDescription: shortDescriptionFromFm(fm, plugin.description),
+      displayName: "Skill Craft",
+      shortDescription: shortDescriptionFromText(plugin.description),
       longDescription: plugin.description,
       developerName: plugin.author.name,
-      category: titleCase(categoryFromFm(fm)),
-      capabilities: kind === "prompt-only" ? ["Read"] : ["Read", "Write"],
-      defaultPrompt: [`Use $${leaf}:${leaf} for this task.`],
+      category: "Productivity",
+      capabilities: promptOnly ? ["Read"] : ["Read", "Write"],
+      defaultPrompt: (featured.length ? featured : leaves.slice(0, 1))
+        .map((leaf) => `Use $${PLUGIN_NAME}:${leaf} for this task.`),
     },
   };
-}
-
-function categoryFromFm(fm) {
-  // skill-craft's Hermes metadata has an optional category. Grok catalog
-  // entries use one for consistent browsing, so general skills use its
-  // documented example category while a declared source category wins.
-  const m = fm.match(/^\s+category:\s*(\S+)\s*$/m);
-  return m ? m[1] : "productivity";
 }
 
 function listLeaves() {
@@ -314,12 +322,19 @@ function readHostHooks(leaf) {
   return decl;
 }
 
-function buildHostHooks(leaf, decl) {
-  if (!decl) return {};
+// Merge every skill's declared hooks into the plugin's one file per host.
+function buildHostHooks(leaves) {
+  const all = [];
+  for (const leaf of leaves) {
+    const decl = readHostHooks(leaf);
+    if (decl) all.push(...decl.hooks.map((hook) => ({ ...hook, leaf })));
+  }
+  if (all.length === 0) return {};
   const files = {};
+  const decl = { hooks: all };
   // Unquoted: Grok does not strip quotes and would read the quoted path as a file
   // name relative to the hooks folder. Plugin roots contain no spaces.
-  const command = (variable, hook) => `${variable}/skills/${leaf}/${hook.script}`;
+  const command = (variable, hook) => `${variable}/skills/${hook.leaf}/${hook.script}`;
   const entry = (variable, hook) => ({ type: "command", command: command(variable, hook), timeout: hook.timeout });
   const claudeShaped = (variable, hooks) => {
     const shell = hooks.filter((hook) => hook.event === "after-shell");
@@ -360,57 +375,42 @@ function byName(a, b) {
 }
 
 function buildCursorMarketplace(leaves) {
+  const plugin = buildBundlePlugin(leaves);
   return {
-    name: "skill-craft",
+    name: MARKETPLACE,
     owner: {
       name: "whichguy",
     },
     metadata: {
       description: MARKETPLACE_DESCRIPTION,
     },
-    plugins: leaves
-      .map((leaf) => {
-        const plugin = buildPlugin(leaf, readSkillFrontmatter(leaf));
-        return {
-          name: leaf,
-          source: `./plugins/${leaf}`,
-          description: plugin.description,
-        };
-      })
-      .sort(byName),
+    plugins: [{ name: PLUGIN_NAME, source: `./plugins/${PLUGIN_NAME}`, description: plugin.description }],
   };
 }
 
 function buildGrokMarketplace(leaves) {
+  const plugin = buildBundlePlugin(leaves);
   return {
-    name: "skill-craft",
+    name: MARKETPLACE,
     description: MARKETPLACE_DESCRIPTION,
     owner: {
       name: "whichguy",
     },
-    plugins: leaves
-      .map((leaf) => {
-        const fm = readSkillFrontmatter(leaf);
-        const plugin = buildPlugin(leaf, fm);
-        return {
-          name: leaf,
-          version: plugin.version,
-          description: plugin.description,
-          category: categoryFromFm(fm),
-          source: {
-            type: "local",
-            path: `./plugins/${leaf}`,
-          },
-        };
-      })
-      .sort(byName),
+    plugins: [{
+      name: PLUGIN_NAME,
+      version: plugin.version,
+      description: plugin.description,
+      category: "productivity",
+      source: {
+        type: "local",
+        path: `./plugins/${PLUGIN_NAME}`,
+      },
+    }],
   };
 }
 
-// Claude and Codex catalogs keep the historical marketplace name so installed
-// plugin IDs (for example shiploop@skill-craft-market) survive the move from
-// the former skill-craft-market repository into this one.
-const CLAUDE_CODEX_MARKETPLACE = "skill-craft-market";
+// One marketplace name on every host; install IDs are skill-craft@whichguy.
+const MARKETPLACE = "whichguy";
 const EXTERNAL_PLUGINS = path.join(root, "catalog", "external-plugins.json");
 const EXTERNAL_KEYS = new Set(["name", "description", "version", "author", "source", "policy", "category"]);
 const GITHUB_REPO_RE = /^https:\/\/github\.com\/([A-Za-z0-9-]+)\/([A-Za-z0-9._-]+?)(?:\.git)?$/;
@@ -470,38 +470,41 @@ function loadExternalPlugins(localNames) {
   return plugins;
 }
 
-function catalogEntries(leaves, source) {
-  return leaves.map((leaf) => {
-    const plugin = buildPlugin(leaf, readSkillFrontmatter(leaf));
-    return {
-      name: leaf,
-      description: plugin.description,
-      version: plugin.version,
-      author: plugin.author,
-      source: source(leaf),
-      policy: { installation: "AVAILABLE", authentication: "ON_INSTALL" },
-      category: "Productivity",
-    };
-  });
+function catalogEntry(leaves, source) {
+  const plugin = buildBundlePlugin(leaves);
+  return {
+    name: PLUGIN_NAME,
+    description: plugin.description,
+    version: plugin.version,
+    author: plugin.author,
+    source,
+    policy: { installation: "AVAILABLE", authentication: "ON_INSTALL" },
+    category: "Productivity",
+  };
+}
+
+// External plugins may not reuse the plugin name or any bundled skill name.
+function reservedNames(leaves) {
+  return new Set([PLUGIN_NAME, ...leaves]);
 }
 
 function buildClaudeMarketplace(leaves) {
-  const local = catalogEntries(leaves, (name) => `./plugins/${name}`);
+  const local = catalogEntry(leaves, `./plugins/${PLUGIN_NAME}`);
   return {
-    name: CLAUDE_CODEX_MARKETPLACE,
+    name: MARKETPLACE,
     owner: { name: "whichguy", url: "https://github.com/whichguy" },
     description: MARKETPLACE_DESCRIPTION,
     interface: { displayName: "Skill Craft" },
-    plugins: [...local, ...loadExternalPlugins(new Set(local.map((p) => p.name)))].sort(byName),
+    plugins: [local, ...loadExternalPlugins(reservedNames(leaves))].sort(byName),
   };
 }
 
 function buildCodexMarketplace(leaves) {
-  const local = catalogEntries(leaves, (name) => ({ source: "local", path: `./plugins/${name}` }));
+  const local = catalogEntry(leaves, { source: "local", path: `./plugins/${PLUGIN_NAME}` });
   return {
-    name: CLAUDE_CODEX_MARKETPLACE,
+    name: MARKETPLACE,
     interface: { displayName: "Skill Craft" },
-    plugins: [...local, ...loadExternalPlugins(new Set(local.map((p) => p.name)))].sort(byName),
+    plugins: [local, ...loadExternalPlugins(reservedNames(leaves))].sort(byName),
   };
 }
 
@@ -529,7 +532,7 @@ function checkGeneratedJson(outPath, value, label) {
   }
 }
 
-function checkClaudePlugin(outPath, plugin, leaf) {
+function checkClaudePlugin(outPath, plugin, name) {
   if (!fs.existsSync(outPath)) {
     fail(`missing ${outPath}`);
   }
@@ -546,48 +549,41 @@ function checkClaudePlugin(outPath, plugin, leaf) {
   for (const k of keys) {
     if (parsed[k] !== plugin[k]) {
       fail(
-        `${leaf} plugin.json ${k} mismatch\n  want: ${JSON.stringify(plugin[k])}\n  got:  ${JSON.stringify(parsed[k])}`
+        `${name} plugin.json ${k} mismatch\n  want: ${JSON.stringify(plugin[k])}\n  got:  ${JSON.stringify(parsed[k])}`
       );
     }
   }
   if (!parsed.author || parsed.author.name !== plugin.author.name) {
-    fail(`${leaf} plugin.json author.name mismatch`);
+    fail(`${name} plugin.json author.name mismatch`);
   }
 }
 
-function packageReadmePath(leaf) {
-  return path.join(root, "plugins", leaf, "README.md");
-}
-
-function buildPackageReadme(leaf, fm) {
-  const plugin = buildPlugin(leaf, fm);
-  const kind = kindFromFm(fm) || "portable";
-  const platforms = platformsFromFm(fm);
-  const authoredGuide = path.join(root, "skills", leaf, "README.md");
-  const guide = fs.existsSync(authoredGuide)
-    ? `This package preserves its authored guide at [skills/${leaf}/README.md](skills/${leaf}/README.md).`
-    : `The packaged [skill instructions](skills/${leaf}/SKILL.md) are the authoritative guide.`;
-  const platformText = platforms.length > 0 ? platforms.join(", ") : "the platforms declared by the skill";
+function buildPackageReadme(leaves) {
+  const plugin = buildBundlePlugin(leaves);
+  const cell = (text) => text.replace(/\|/g, "\\|").replace(/[\r\n]+/g, " ");
+  const rows = leaves.map((leaf) => {
+    const fm = readSkillFrontmatter(leaf);
+    const card = buildPlugin(leaf, fm);
+    return `| [${leaf}](skills/${leaf}/SKILL.md) | \`/${PLUGIN_NAME}:${leaf}\` | ${cell(card.version)} | ${cell(shortDescriptionFromFm(fm, card.description))} |`;
+  });
   return [
-    `# ${displayNameFromLeaf(leaf)}`,
+    "# Skill Craft",
     "",
     plugin.description,
     "",
     "## Install",
     "",
-    `Install the \`${leaf}\` package from a configured Skill Craft marketplace, then start a fresh host session so it loads the packaged skill.`,
+    `Add the \`${MARKETPLACE}\` marketplace, install \`${PLUGIN_NAME}@${MARKETPLACE}\`, then start a fresh host session so it loads the packaged skills.`,
     "",
     "## Use",
     "",
-    `Use the installed plugin skill: in Codex, ask for \`$${leaf}:${leaf}\`; in Claude, invoke \`/${leaf}:${leaf}\`; in other hosts, select the installed plugin skill. Read [SKILL.md](skills/${leaf}/SKILL.md) before execution; it defines the workflow and any task-specific limits.`,
+    `Every skill is namespaced by this plugin: in Claude, invoke \`/${PLUGIN_NAME}:<skill>\` (for example \`/${PLUGIN_NAME}:shiploop\`); in Codex, ask for \`$${PLUGIN_NAME}:<skill>\`; in other hosts, select the installed plugin skill. Read each skill's SKILL.md before execution; it defines the workflow and any task-specific limits. When a skill invokes a bundled helper, resolve it from the loaded skill directory (for example, \`skills/<skill>/scripts/...\`), never from the consumer project's current directory.`,
     "",
-    "## Runtime and prerequisites",
+    "## Skills",
     "",
-    `This is a \`${kind}\` skill for ${platformText}. Consult the packaged card for its required tools, credentials, filesystem writes, network behavior, and recovery steps. When it invokes a bundled helper, resolve it from the loaded skill directory (for example, \`skills/${leaf}/scripts/...\`), never from the consumer project's current directory.`,
-    "",
-    "## Documentation",
-    "",
-    guide,
+    "| Skill | Claude command | Version | Purpose |",
+    "|-------|----------------|---------|---------|",
+    ...rows,
     "",
     "## Support",
     "",
@@ -710,27 +706,30 @@ function runMarketplaces(doWrite, doCheck) {
 }
 
 function parseArgs(args) {
-  const options = { write: false, check: false, marketplaces: false, leaves: [] };
-  for (let index = 0; index < args.length; index += 1) {
-    const arg = args[index];
+  const options = { write: false, check: false, marketplaces: false, package: false };
+  for (const arg of args) {
     if (arg === "--write") options.write = true;
     else if (arg === "--check") options.check = true;
     else if (arg === "--marketplaces") options.marketplaces = true;
-    else if (arg.startsWith("--")) fail(`unknown option ${arg}`);
-    else options.leaves.push(arg);
+    else if (arg === "--package") options.package = true;
+    else fail(`unknown argument ${arg}`);
   }
   if (options.write && options.check) {
     fail("--write and --check are mutually exclusive");
   }
+  if (options.marketplaces === options.package) {
+    fail("choose exactly one of --package or --marketplaces");
+  }
   return options;
 }
 
-function writeOrCheckPackage(name, generated, doWrite, doCheck) {
+function writeOrCheckPackage(generated, doWrite, doCheck) {
+  const name = PLUGIN_NAME;
   const base = path.join(root, "plugins", name);
   const claudePath = path.join(base, ".claude-plugin", "plugin.json");
   const cursorPath = path.join(base, ".cursor-plugin", "plugin.json");
   const codexPath = path.join(base, ".codex-plugin", "plugin.json");
-  const readmePath = packageReadmePath(name);
+  const readmePath = path.join(base, "README.md");
 
   const hookPaths = Object.keys(generated.hooks || {});
   if (doCheck) {
@@ -771,7 +770,7 @@ function main() {
   const args = process.argv.slice(2);
   if (args.length === 0 || args.includes("-h") || args.includes("--help")) {
     console.log(
-      "Usage: skill-frontmatter-to-plugin-json.js <leaf> [--write|--check]\n" +
+      "Usage: skill-frontmatter-to-plugin-json.js --package [--write|--check]\n" +
         "       skill-frontmatter-to-plugin-json.js --marketplaces [--write|--check]"
     );
     process.exit(args.length === 0 ? 1 : 0);
@@ -779,26 +778,21 @@ function main() {
   const options = parseArgs(args);
 
   if (options.marketplaces) {
-    if (options.leaves.length > 0) {
-      fail("--marketplaces does not take a leaf");
-    }
     runMarketplaces(options.write, options.check);
     return;
   }
 
-  if (options.leaves.length !== 1) {
-    fail("missing leaf");
+  const leaves = listLeaves();
+  if (leaves.length === 0) {
+    fail("no source skills; refusing empty distribution");
   }
-  const leaf = options.leaves[0];
-  const fm = readSkillFrontmatter(leaf);
-  const hooks = buildHostHooks(leaf, readHostHooks(leaf));
+  const hooks = buildHostHooks(leaves);
   writeOrCheckPackage(
-    leaf,
     {
-      plugin: buildPlugin(leaf, fm),
-      cursor: buildCursorPlugin(leaf, fm, hooks),
-      codex: buildCodexPlugin(leaf, fm, hooks),
-      readme: buildPackageReadme(leaf, fm),
+      plugin: buildBundlePlugin(leaves),
+      cursor: buildCursorPlugin(leaves, hooks),
+      codex: buildCodexPlugin(leaves, hooks),
+      readme: buildPackageReadme(leaves),
       hooks,
     },
     options.write,

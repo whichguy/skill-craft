@@ -598,7 +598,7 @@ class MarketplacePackageTests(KeepaliveTestCase):
         sys.path.insert(0, str(ROOT / "test"))
         import package_build
 
-        plugin = package_build.plugins() / "shiploop"
+        plugin = package_build.plugins() / "skill-craft"
         for file_name, variable, host, extra in self.HOST_FILES:
             with self.subTest(host=host):
                 keepalive.release_owner(str(self.run_dir))

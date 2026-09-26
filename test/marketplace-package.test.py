@@ -23,7 +23,7 @@ SPEC.loader.exec_module(CHECK)
 class PackageTests(unittest.TestCase):
     def test_generated_agent_routers_bind_the_selected_installed_card(self):
         for name in ("shiploop", "skill-interop"):
-            text = (PLUGINS / name / "agents" / f"{name}.md").read_text()
+            text = (PLUGINS / "skill-craft" / "agents" / f"{name}.md").read_text()
             self.assertIn("selected by the host", text)
             self.assertIn("absolute", text)
             self.assertNotIn("`skills/", text)
@@ -98,9 +98,12 @@ class PackageTests(unittest.TestCase):
         self.assert_bad("name")
 
     def test_skill_version_drift(self):
+        # A bundled skill keeps its own version independent of the plugin
+        # manifest's version (each skill in the bundle ships its own line), so
+        # the invariant here is that the card's version is still valid semver.
         card = self.skill / "SKILL.md"
-        card.write_text(card.read_text().replace("1.2.3", "1.2.4"))
-        self.assert_bad("SKILL.md version")
+        card.write_text(card.read_text().replace("1.2.3", "1.2"))
+        self.assert_bad("version must be semantic version")
 
     def test_missing_skill(self):
         self.skill.joinpath("SKILL.md").unlink()
@@ -195,9 +198,9 @@ class PackageTests(unittest.TestCase):
             self.assert_bad("expected bash")
 
     def test_improve_native_inventory_requires_ephemeral_runtime(self):
-        source = PLUGINS / "improve"
+        source = PLUGINS / "skill-craft"
         with tempfile.TemporaryDirectory(prefix="marketplace improve ") as temporary:
-            package = Path(temporary) / "improve"
+            package = Path(temporary) / "skill-craft"
             shutil.copytree(source, package)
             runtime = package / "skills/improve/runtime/until-loop/scripts/until_loop_ephemeral.py"
             self.assertTrue(runtime.is_file())
@@ -229,16 +232,19 @@ class PackageTests(unittest.TestCase):
         self.assert_bad("invalid JSON")
 
     def test_every_generated_source_package_passes(self):
+        # Every skill now ships in the one skill-craft bundle rather than its
+        # own package, so validating the bundle covers every source skill.
         leaves = sorted(path.parent.name for path in (ROOT / "skills").glob("*/SKILL.md"))
         self.assertTrue(leaves)
-        for name in leaves:
-            with self.subTest(package=name):
-                self.assertEqual([], CHECK.validate_package(PLUGINS / name))
+        bundled = sorted(path.parent.name for path in (PLUGINS / "skill-craft" / "skills").glob("*/SKILL.md"))
+        self.assertEqual(leaves, bundled)
+        self.assertEqual([], CHECK.validate_package(PLUGINS / "skill-craft"))
 
     def test_default_run_covers_every_leaf(self):
-        # The all-package run must enumerate every leaf, not only validate the
-        # packages a caller names. It reads a fresh build because the
-        # committed plugins/ tree may lag the source.
+        # The default run (no packages named) must validate the one bundle
+        # and refuse to proceed if it does not cover every source leaf. It
+        # reads a fresh build because the committed plugins/ tree may lag the
+        # source.
         leaves = sorted(path.parent.name for path in (ROOT / "skills").glob("*/SKILL.md"))
         result = subprocess.run(
             [sys.executable, "-B", str(ROOT / "scripts/check-marketplace-packages.py"),
@@ -246,19 +252,19 @@ class PackageTests(unittest.TestCase):
             capture_output=True, text=True, check=False,
         )
         self.assertEqual(0, result.returncode, result.stdout + result.stderr)
-        for name in leaves:
-            self.assertIn(f"OK {name}: complete marketplace payload", result.stdout)
-        self.assertIn(f"marketplace-packages: {len(leaves)}/{len(leaves)} passed", result.stdout)
+        self.assertIn("OK skill-craft: complete marketplace payload", result.stdout)
+        self.assertIn("marketplace-packages: 1/1 passed", result.stdout)
+        bundled = sorted(path.parent.name for path in (PLUGINS / "skill-craft" / "skills").glob("*/SKILL.md"))
+        self.assertEqual(leaves, bundled)
 
     def test_plan_dispatcher_declares_its_node_entrypoint(self):
         self.assertEqual({"scripts/dispatch.js": "node"}, CHECK.NATIVE_SCRIPT_ENTRYPOINTS["plan-dispatcher"])
-        self.assertEqual([], CHECK.validate_package(PLUGINS / "plan-dispatcher"))
+        self.assertEqual([], CHECK.validate_package(PLUGINS / "skill-craft"))
 
-    def test_second_skill_card_fails(self):
-        helper = self.package / "skills/helper"
-        helper.mkdir(parents=True)
-        helper.joinpath("SKILL.md").write_text("---\nname: helper\nlicense: MIT\nversion: 1.2.3\n---\n")
-        self.assert_bad("additional public SKILL.md in payload: skills/helper/SKILL.md")
+    # A second top-level skills/<x>/SKILL.md is no longer a failure: bundling
+    # more than one skill in the package is exactly the current design (see
+    # test_nested_public_skill for the guard that does still apply — a
+    # SKILL.md nested *inside* a skill's own tree rather than at its root).
 
 
 if __name__ == "__main__":

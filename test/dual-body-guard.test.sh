@@ -1,7 +1,8 @@
 #!/usr/bin/env bash
 # Fail if the monorepo ships a second body for one skill identity.
 # - External pins: lennox-s40 → whichguy/lennox-s40 (standalone wins).
-# - plugins/<name> exists only for a skills/<name> leaf.
+# - Every skill ships in the one plugins/skill-craft bundle; no other
+#   plugins/<name> directory may carry packaged content.
 set -euo pipefail
 
 root="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd -P)"
@@ -22,15 +23,15 @@ external_leaves=(lennox-s40)
 for leaf in "${external_leaves[@]}"; do
   [[ ! -e "$root/skills/$leaf" ]] || fail "skills/$leaf must not exist (external SoT)"
   [[ ! -e "$packages/plugins/$leaf" ]] || fail "plugins/$leaf must not exist (external SoT)"
+  [[ ! -e "$packages/plugins/skill-craft/skills/$leaf" ]] || fail "plugins/skill-craft/skills/$leaf must not exist (external SoT)"
 done
 
-python3 - "$root" "$packages" <<'PY' || exit 1
+python3 - "$packages" <<'PY' || exit 1
 import sys
 from pathlib import Path
 
-root = Path(sys.argv[1])
-plugins = Path(sys.argv[2]) / "plugins"
-leaves = {path.parent.name for path in (root / "skills").glob("*/SKILL.md")}
+plugins = Path(sys.argv[1]) / "plugins"
+plugin_name = "skill-craft"
 
 
 def packaged(view):
@@ -43,9 +44,9 @@ def packaged(view):
 
 
 problems = [
-    f"plugins/{view.name} has no skills/{view.name}"
+    f"plugins/{view.name} is a second body; every skill ships in plugins/{plugin_name}"
     for view in sorted(plugins.iterdir())
-    if view.is_dir() and view.name not in leaves and packaged(view)
+    if view.is_dir() and view.name != plugin_name and packaged(view)
 ]
 if problems:
     sys.exit("dual-body-guard.test.sh: FAIL " + "; ".join(problems))

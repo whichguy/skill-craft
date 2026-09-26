@@ -32,18 +32,19 @@ fresh_home s1
 out1="$("$install_sh" --status --skill skill-interop --claude-only 2>&1)" || fail "S1: $out1"
 printf '%s\n' "$out1" | grep -q 'state=absent' || fail "S1 absent: $out1"
 
-# S2: install then status owned
+# S2: install then status owned (--all: Claude and OpenCode both need an
+# explicit host flag now that the default installs only OpenCode/Hermes).
 fresh_home s2
-"$install_sh" --skill skill-interop >/dev/null
-out2="$("$install_sh" --status --skill skill-interop 2>&1)" || fail "S2: $out2"
+"$install_sh" --all --skill skill-interop >/dev/null
+out2="$("$install_sh" --status --all --skill skill-interop 2>&1)" || fail "S2: $out2"
 printf '%s\n' "$out2" | grep -q 'Claude Code' || fail "S2 missing Claude"
 printf '%s\n' "$out2" | grep -q 'OpenCode' || fail "S2 missing OpenCode"
 printf '%s\n' "$out2" | grep -q 'state=symlink-owned' || fail "S2 symlink-owned: $out2"
 
-# S4: uninstall owned symlinks
+# S4: uninstall owned symlinks (--all: exercise Claude + OpenCode explicitly)
 fresh_home s4
-"$install_sh" --skill skill-interop >/dev/null
-out4="$("$install_sh" --uninstall --skill skill-interop 2>&1)" || fail "S4: $out4"
+"$install_sh" --all --skill skill-interop >/dev/null
+out4="$("$install_sh" --uninstall --all --skill skill-interop 2>&1)" || fail "S4: $out4"
 printf '%s\n' "$out4" | grep -q 'Uninstalled symlink' || fail "S4 symlink: $out4"
 [[ ! -e "$HOME/.claude/skills/skill-interop" ]] || fail "S4 claude remains"
 [[ ! -e "$HOME/.config/opencode/skills/skill-interop" ]] || fail "S4 OpenCode remains"
@@ -173,7 +174,7 @@ cat >"$inv15" <<'JSON'
 {
   "version": 2,
   "plugins": {
-    "skill-interop@skill-craft-market": [
+    "skill-craft@whichguy": [
       {"scope": "user", "version": "0.2.2", "enabled": true}
     ]
   }
@@ -184,7 +185,7 @@ out15="$(
     "$install_sh" --status --skill skill-interop --claude-only 2>&1
 )" || fail "S15 status: $out15"
 printf '%s\n' "$out15" | grep -q 'state=symlink-owned' || fail "S15 skill-dir: $out15"
-printf '%s\n' "$out15" | grep -q 'plugin-track: skill-interop@skill-craft-market' || fail "S15 plugin-track: $out15"
+printf '%s\n' "$out15" | grep -q 'plugin-track: skill-craft@whichguy' || fail "S15 plugin-track: $out15"
 printf '%s\n' "$out15" | grep -q 'enabled=true  state=confirmed-enabled' || fail "S15 confirmed enabled: $out15"
 printf '%s\n' "$out15" | grep -q 'double-install' || fail "S15 double-install warn: $out15"
 pass "S15 double-install warn"
@@ -196,7 +197,7 @@ cat >"$inv16" <<'JSON'
 {
   "version": 2,
   "plugins": {
-    "skill-interop@skill-craft-market": [
+    "skill-craft@whichguy": [
       {"scope": "user", "version": "0.2.2"}
     ]
   }
@@ -207,7 +208,7 @@ out16="$(
     "$install_sh" --status --skill skill-interop --claude-only 2>&1
 )" || fail "S16 status: $out16"
 printf '%s\n' "$out16" | grep -q 'state=absent' || fail "S16 absent: $out16"
-printf '%s\n' "$out16" | grep -q 'plugin-track: skill-interop@skill-craft-market' || fail "S16 plugin-track: $out16"
+printf '%s\n' "$out16" | grep -q 'plugin-track: skill-craft@whichguy' || fail "S16 plugin-track: $out16"
 printf '%s\n' "$out16" | grep -q 'enabled=unknown  state=cached-state-unknown' || fail "S16 cached state: $out16"
 printf '%s\n' "$out16" | grep -q 'double-install' && fail "S16 unexpected double-install: $out16"
 pass "S16 plugin-only no double-install"
@@ -217,7 +218,7 @@ fresh_home s17
 "$install_sh" --skill skill-interop --claude-only >/dev/null
 mkdir -p "$HOME/.claude/plugins"
 cat >"$HOME/.claude/plugins/installed_plugins.json" <<'JSON'
-{"version":2,"plugins":{"skill-interop@skill-craft-market":[{"version":"9.9.9"}]}}
+{"version":2,"plugins":{"skill-craft@whichguy":[{"version":"9.9.9"}]}}
 JSON
 out17="$(
   CLAUDE_INSTALLED_PLUGINS_JSON= \
@@ -232,7 +233,7 @@ fresh_home s18
 "$install_sh" --skill skill-interop --claude-only >/dev/null
 inv18="$tmpdir/inv-s18.json"
 cat >"$inv18" <<'JSON'
-{"version":2,"plugins":{"skill-interop@skill-craft-market":[{"version":"0.2.2","enabled":false}]}}
+{"version":2,"plugins":{"skill-craft@whichguy":[{"version":"0.2.2","enabled":false}]}}
 JSON
 out18="$(
   CLAUDE_INSTALLED_PLUGINS_JSON="$inv18" \
@@ -247,7 +248,7 @@ fresh_home s19
 "$install_sh" --skill skill-interop --claude-only >/dev/null
 inv19="$tmpdir/inv-s19.json"
 cat >"$inv19" <<'JSON'
-{"version":2,"plugins":{"skill-interop@skill-craft-market":[{"version":"0.2.2"}]}}
+{"version":2,"plugins":{"skill-craft@whichguy":[{"version":"0.2.2"}]}}
 JSON
 out19="$(
   CLAUDE_INSTALLED_PLUGINS_JSON="$inv19" \
@@ -262,7 +263,7 @@ fresh_home s20
 "$install_sh" --skill skill-interop --claude-only >/dev/null
 inv20="$tmpdir/inv-s20.json"
 cat >"$inv20" <<'JSON'
-{"version":2,"plugins":{"skill-interop@skill-craft-market":[{"version":"0.2.2","enabled":"true"}]}}
+{"version":2,"plugins":{"skill-craft@whichguy":[{"version":"0.2.2","enabled":"true"}]}}
 JSON
 out20="$(
   CLAUDE_INSTALLED_PLUGINS_JSON="$inv20" \
@@ -277,7 +278,7 @@ fresh_home s21
 "$install_sh" --skill skill-interop --claude-only >/dev/null
 inv21="$tmpdir/inv-s21.json"
 cat >"$inv21" <<'JSON'
-{"version":2,"plugins":{"skill-interop@skill-craft-market":[{"version":"0.2.2","enabled":false},{"version":"0.2.3","enabled":true}]}}
+{"version":2,"plugins":{"skill-craft@whichguy":[{"version":"0.2.2","enabled":false},{"version":"0.2.3","enabled":true}]}}
 JSON
 out21="$(
   CLAUDE_INSTALLED_PLUGINS_JSON="$inv21" \
@@ -292,13 +293,13 @@ fresh_home s22
 "$install_sh" --skill skill-interop --claude-only >/dev/null
 inv22="$tmpdir/inv-s22.json"
 cat >"$inv22" <<'JSON'
-{"version":2,"plugins":{"skill-interop@skill-craft-market":[{"version":"0.2.2","enabled":false}],"skill-interop@other-market":[{"version":"9.1.0","enabled":true}]}}
+{"version":2,"plugins":{"skill-craft@whichguy":[{"version":"0.2.2","enabled":false}],"skill-craft@other-market":[{"version":"9.1.0","enabled":true}]}}
 JSON
 out22="$(
   CLAUDE_INSTALLED_PLUGINS_JSON="$inv22" \
     "$install_sh" --status --skill skill-interop --claude-only 2>&1
 )" || fail "S22 status: $out22"
-printf '%s\n' "$out22" | grep -q 'plugin-track: skill-interop@other-market  version=9.1.0  enabled=true  state=confirmed-enabled' || fail "S22 enabled other market: $out22"
+printf '%s\n' "$out22" | grep -q 'plugin-track: skill-craft@other-market  version=9.1.0  enabled=true  state=confirmed-enabled' || fail "S22 enabled other market: $out22"
 printf '%s\n' "$out22" | grep -q 'double-install' || fail "S22 enabled other market warning: $out22"
 pass "S22 enabled other market wins disabled preferred cache"
 
@@ -307,13 +308,13 @@ fresh_home s23
 "$install_sh" --skill skill-interop --claude-only >/dev/null
 inv23="$tmpdir/inv-s23.json"
 cat >"$inv23" <<'JSON'
-{"version":2,"plugins":{"skill-interop@skill-craft-market":[{"version":"0.2.2","enabled":false}],"skill-interop@other-market":[{"version":"9.1.0"}]}}
+{"version":2,"plugins":{"skill-craft@whichguy":[{"version":"0.2.2","enabled":false}],"skill-craft@other-market":[{"version":"9.1.0"}]}}
 JSON
 out23="$(
   CLAUDE_INSTALLED_PLUGINS_JSON="$inv23" \
     "$install_sh" --status --skill skill-interop --claude-only 2>&1
 )" || fail "S23 status: $out23"
-printf '%s\n' "$out23" | grep -q 'plugin-track: skill-interop@other-market  version=9.1.0  enabled=unknown  state=cached-state-unknown' || fail "S23 mixed state selection: $out23"
+printf '%s\n' "$out23" | grep -q 'plugin-track: skill-craft@other-market  version=9.1.0  enabled=unknown  state=cached-state-unknown' || fail "S23 mixed state selection: $out23"
 printf '%s\n' "$out23" | grep -q 'double-install' && fail "S23 mixed cache false duplicate: $out23"
 pass "S23 mixed false and unknown remains unknown"
 
@@ -403,9 +404,9 @@ fresh_home s28
 "$install_sh" --skill skill-interop --claude-only >/dev/null
 inv28="$tmpdir/inv-s28.json"
 for body in \
-  '{"plugins":{"skill-interop@skill-craft-market":[{"version":"0.2.2","enabled":true}]}}' \
-  '{"version":2,"plugins":{"skill-interop@skill-craft-market":{"version":"0.2.2","enabled":true}}}' \
-  '[{"id":"skill-interop@skill-craft-market","version":"0.2.2","enabled":true}]' \
+  '{"plugins":{"skill-craft@whichguy":[{"version":"0.2.2","enabled":true}]}}' \
+  '{"version":2,"plugins":{"skill-craft@whichguy":{"version":"0.2.2","enabled":true}}}' \
+  '[{"id":"skill-craft@whichguy","version":"0.2.2","enabled":true}]' \
   'not-json{'; do
   printf '%s\n' "$body" >"$inv28"
   out28="$(
@@ -418,7 +419,7 @@ for body in \
   printf '%s\n' "$out28" | grep -q 'note (Claude plugin inventory): unsupported inventory' \
     || fail "S28 unsupported note ($body): $out28"
 done
-printf '%s\n' '{"plugins":{"skill-interop@skill-craft-market":[{"version":"0.2.2"}]}}' >"$inv28"
+printf '%s\n' '{"plugins":{"skill-craft@whichguy":[{"version":"0.2.2"}]}}' >"$inv28"
 out28a="$(
   CLAUDE_INSTALLED_PLUGINS_JSON="$inv28" \
     "$install_sh" --status --skill all --claude-only 2>&1

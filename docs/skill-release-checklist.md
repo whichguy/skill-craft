@@ -50,8 +50,8 @@ inventory and `CHANGELOG.md`.
    real host CLIs in disposable profiles. Record host versions; anything not
    run stays explicitly unverified.
 5. **Publish** with [guarded publication](#guarded-publication). Users refresh
-   with `claude plugin marketplace update skill-craft-market`,
-   `codex plugin marketplace upgrade skill-craft-market`, or the Grok and
+   with `claude plugin marketplace update whichguy`,
+   `codex plugin marketplace upgrade whichguy`, or the Grok and
    Cursor equivalents in [distribution.md](distribution.md). Skill-directory
    users (`./install.sh`) track the checkout and need no release.
 

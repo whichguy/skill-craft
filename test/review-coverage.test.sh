@@ -623,7 +623,7 @@ if [[ -z "$RC_PACKAGES" ]]; then
   python3 -B "$ROOT/scripts/build-packages.py" "$RC_BUILD/build" >/dev/null || bad plugin_build
   RC_PACKAGES="$RC_BUILD/build"
 fi
-RC_PLUGIN="$RC_PACKAGES/plugins/review-coverage"
+RC_PLUGIN="$RC_PACKAGES/plugins/skill-craft"
 if [[ -f "$RC_PLUGIN/.claude-plugin/plugin.json" ]]; then ok plugin_json; else bad plugin_json; fi
 if [[ -f "$RC_PLUGIN/skills/review-coverage/SKILL.md" && ! -L "$RC_PLUGIN/skills/review-coverage" ]]; then
   ok plugin_synced

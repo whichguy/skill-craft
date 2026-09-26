@@ -126,14 +126,14 @@ class InlineImproveTests(unittest.TestCase):
 
 
 class PluginViewTests(unittest.TestCase):
-    def test_plugin_view_publishes_one_matching_skill(self) -> None:
-        plugin = PLUGINS / "improve-agent"
+    def test_plugin_view_publishes_a_matching_skill(self) -> None:
+        plugin = PLUGINS / "skill-craft"
         claude = json.loads(text(plugin / ".claude-plugin" / "plugin.json"))
         codex = json.loads(text(plugin / ".codex-plugin" / "plugin.json"))
         for field in ("name", "version", "description", "license"):
             self.assertEqual(codex[field], claude[field], field)
         cards = sorted(p.relative_to(plugin).as_posix() for p in plugin.rglob("SKILL.md"))
-        self.assertEqual(cards, ["skills/improve-agent/SKILL.md"])
+        self.assertIn("skills/improve-agent/SKILL.md", cards)
         self.assertEqual(text(plugin / "skills" / "improve-agent" / "SKILL.md"), text(AGENT / "SKILL.md"))
 
 

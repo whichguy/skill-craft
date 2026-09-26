@@ -251,7 +251,7 @@ class GeneratedShipLoopNoModelLaunchTests(ShipLoopNoModelLaunchTests):
 
     def package_dir(self) -> Path:
         # plugins/ is release output; read a build of the current source.
-        return package_build.plugins() / "shiploop" / "skills" / "shiploop"
+        return package_build.plugins() / "skill-craft" / "skills" / "shiploop"
 
 
 if __name__ == "__main__":

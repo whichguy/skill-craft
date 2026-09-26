@@ -13,18 +13,25 @@ This command, run on a clean checkout:
 
   1. bumps each noted skill's `version:` in skills/<leaf>/SKILL.md (and the
      first line of skills/<leaf>/README.md when it ends with the old version);
-  2. prepends the notes to CHANGELOG.md and deletes them;
-  3. regenerates plugins/, the host catalogs and the README inventory;
-  4. commits everything with a `Skill-Craft-Release:` trailer.
+  2. bumps the skill-craft plugin's version in catalog/skill-craft-plugin.json;
+  3. prepends a CHANGELOG.md section, led by the plugin version, with the
+     notes, and deletes them;
+  4. regenerates plugins/skill-craft, the host catalogs and the README inventory;
+  5. commits everything with a `Skill-Craft-Release:` trailer.
+
+Every skill ships in the one skill-craft plugin, so every release changes its
+version: by the largest bump among the notes (a `version:` note counts as the
+bump its old -> new version implies), or by a patch for an output-only release.
+The first release of plugins/skill-craft ships the authored version as is.
 
 With no notes, a release is cut only when release output no longer matches
-source (a deleted skill, LICENSE or catalog/ change); its trailer is
-`output-only`.
+source (a deleted skill, LICENSE or catalog/ change); its trailer names only
+the plugin.
 
 A new version must be above the current one and never already released. A
-skill with no plugins/ package yet may ship at its authored version with a
-`version:` note. When the release fails before committing, the checkout is
-restored to HEAD and the notes are kept.
+skill never shipped in plugins/skill-craft may ship at its authored version
+with a `version:` note. When the release fails before committing, the checkout
+is restored to HEAD and the notes are kept.
 
 It never pushes. Publish the commit with scripts/release-push.py.
 
@@ -34,6 +41,7 @@ Usage:
 
 import argparse
 import datetime
+import json
 import re
 import subprocess
 import sys
@@ -41,6 +49,8 @@ from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[1]
 CHANGES = ROOT / "changes"
+PLUGIN = "skill-craft"
+BUNDLE = ROOT / "catalog" / "skill-craft-plugin.json"
 TRAILER = "Skill-Craft-Release"
 # Strict semver, as scripts/skill-frontmatter-to-plugin-json.js checks it.
 _NUM = r"0|[1-9]\d*"
@@ -120,10 +130,39 @@ def bumped(version, bump):
     return f"{major}.{minor}.{patch + 1}"
 
 
+def in_head(path):
+    return subprocess.run(["git", "-C", str(ROOT), "cat-file", "-e", f"HEAD:{path}"],
+                          capture_output=True).returncode == 0
+
+
 def never_released(leaf):
-    """True when HEAD has no plugins/<leaf> package: the skill was never released."""
-    return subprocess.run(["git", "-C", str(ROOT), "cat-file", "-e", f"HEAD:plugins/{leaf}"],
-                          capture_output=True).returncode != 0
+    """True when HEAD's plugin does not bundle the skill: it was never released."""
+    return not in_head(f"plugins/{PLUGIN}/skills/{leaf}")
+
+
+def implied_bump(old, new):
+    """The bump class an explicit old -> new skill version stands for."""
+    (a, b, _, _), (c, d, _, _) = semver(old), semver(new)
+    return "major" if c != a else "minor" if d != b else "patch"
+
+
+def plan_bundle(releases, released):
+    """{old, new} for the skill-craft plugin version this release ships."""
+    try:
+        old = json.loads(BUNDLE.read_text())["version"]
+    except (OSError, ValueError, KeyError, TypeError) as exc:
+        raise ReleaseError(f"catalog/skill-craft-plugin.json has no version: {exc}")
+    if not in_head(f"plugins/{PLUGIN}"):
+        new = old
+    else:
+        bumps = [bump for entry in releases.values() for bump in entry["bumps"]]
+        bumps += [implied_bump(entry["old"], entry["new"]) for entry in releases.values() if entry["set"]]
+        new = bumped(old, max(bumps, key=BUMPS.index) if bumps else "patch")
+        if precedence(new) <= precedence(old):
+            raise ReleaseError(f"{PLUGIN}: new version {new} is not above current {old}")
+    if f"{PLUGIN}@{new}" in released:
+        raise ReleaseError(f"{PLUGIN}: {new} was already released")
+    return {"old": old, "new": new}
 
 
 def released_versions():
@@ -168,7 +207,16 @@ def plan():
     return releases
 
 
-def apply(releases, date):
+def plan_all():
+    """(skill releases, plugin version change). Reads only; changes nothing."""
+    releases = plan()
+    return releases, plan_bundle(releases, released_versions())
+
+
+def apply(releases, bundle, date):
+    data = json.loads(BUNDLE.read_text())
+    data["version"] = bundle["new"]
+    BUNDLE.write_text(json.dumps(data, indent=2) + "\n")
     for leaf, entry in releases.items():
         card = entry["card"]
         card.write_text(CARD_VERSION.sub(lambda m: m.group(1) + entry["new"] + m.group(3), card.read_text(), count=1))
@@ -179,7 +227,10 @@ def apply(releases, date):
                 lines[0] = lines[0][: -len(entry["old"])] + entry["new"]
                 guide.write_text("\n".join(lines))
     items = [(leaf, entry["new"], [body for _, body in entry["notes"]]) for leaf, entry in releases.items()]
-    section = [f"## {date}", ""]
+    # The plugin version users see on update leads the section and names what it ships.
+    shipped = ", ".join(f"{name} {version}" for name, version, _ in sorted(items))
+    section = [f"## {date}", "", f"### {PLUGIN} {bundle['new']}", "",
+               f"- Skills: {shipped}" if shipped else "- Release output regenerated; no skill changed.", ""]
     for name, version, bodies in sorted(items):
         section.append(f"### {name} {version}")
         section.append("")
@@ -188,15 +239,14 @@ def apply(releases, date):
                            for i, line in enumerate(body.splitlines()))
         section.append("")
     log = ROOT / "CHANGELOG.md"
-    if items:
-        previous = log.read_text() if log.is_file() else "# Changelog\n\nWritten by scripts/release.py.\n"
-        head, sep, rest = previous.partition("\n## ")
-        if sep and rest.startswith(f"{date}\n"):
-            # One heading per date: the new blocks go under the existing one.
-            tail = "\n" + rest[len(date) + 1:].lstrip("\n")
-        else:
-            tail = "\n## " + rest if sep else ""
-        log.write_text(head.rstrip("\n") + "\n\n" + "\n".join(section) + tail)
+    previous = log.read_text() if log.is_file() else "# Changelog\n\nWritten by scripts/release.py.\n"
+    head, sep, rest = previous.partition("\n## ")
+    if sep and rest.startswith(f"{date}\n"):
+        # One heading per date: the new blocks go under the existing one.
+        tail = "\n" + rest[len(date) + 1:].lstrip("\n")
+    else:
+        tail = "\n## " + rest if sep else ""
+    log.write_text(head.rstrip("\n") + "\n\n" + "\n".join(section) + tail)
     for entry in releases.values():
         for path, _ in entry["notes"]:
             path.unlink()
@@ -205,18 +255,18 @@ def apply(releases, date):
             folder.rmdir()
 
 
-def cut(releases, date):
+def cut(releases, bundle, date):
     """Apply the plan, regenerate release output and commit it."""
-    apply(releases, date)
+    apply(releases, bundle, date)
     subprocess.run(["bash", str(ROOT / "scripts/sync-plugin-views.sh")], cwd=ROOT, check=True, stdout=subprocess.DEVNULL)
     subprocess.run(["bash", str(ROOT / "scripts/sync-plugin-views.sh"), "--check"], cwd=ROOT, check=True)
-    shipped = sorted((leaf, entry["new"]) for leaf, entry in releases.items())
-    summary = ", ".join(f"{name} {version}" for name, version in shipped) or "sync output"
-    paths = ("skills", "changes", "CHANGELOG.md", "README.md", "plugins",
+    shipped = [(PLUGIN, bundle["new"])] + sorted((leaf, entry["new"]) for leaf, entry in releases.items())
+    summary = ", ".join(f"{name} {version}" for name, version in shipped)
+    paths = ("skills", "changes", "catalog/skill-craft-plugin.json", "CHANGELOG.md", "README.md", "plugins",
              ".grok-plugin", ".cursor-plugin", ".claude-plugin", ".agents")
     git("add", "-A", "--", *[p for p in paths if (ROOT / p).exists() or git("ls-files", "--", p)])
     git("commit", "-q", "-m", f"release: {summary}", "-m",
-        f"{TRAILER}: " + (", ".join(f"{name}@{version}" for name, version in shipped) or "output-only"))
+        f"{TRAILER}: " + ", ".join(f"{name}@{version}" for name, version in shipped))
 
 
 def main():
@@ -225,7 +275,7 @@ def main():
     parser.add_argument("--date", default=datetime.date.today().isoformat())
     args = parser.parse_args()
     try:
-        releases = plan()
+        releases, bundle = plan_all()
         for leaf, entry in sorted(releases.items()):
             print(f"release: {leaf} {entry['old']} -> {entry['new']} ({len(entry['notes'])} note(s))")
         if not releases:
@@ -235,16 +285,17 @@ def main():
                 print("release: no pending notes under changes/; nothing to release")
                 return 0
             if args.dry_run:
-                print("release: output drift; would cut an output-only release")
+                print(f"release: output drift; would cut an output-only release ({PLUGIN} {bundle['old']} -> {bundle['new']})")
                 return 0
             print("release: no pending notes, but release output differs from source; cutting an output-only release")
+        print(f"release: {PLUGIN} {bundle['old']} -> {bundle['new']}")
         if args.dry_run:
             return 0
         if git("status", "--porcelain=v1", "--untracked-files=all"):
             raise ReleaseError("checkout must be clean; commit or set aside other work first")
         head = git("rev-parse", "HEAD").strip()
         try:
-            cut(releases, args.date)
+            cut(releases, bundle, args.date)
         except BaseException:
             # The checkout was clean, so everything outside HEAD is ours to undo.
             if git("rev-parse", "HEAD").strip() == head:

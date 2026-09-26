@@ -22,8 +22,11 @@ from typing import Any, Mapping
 import package_build
 
 ROOT = Path(__file__).resolve().parents[1]
+# Every skill ships in the one plugins/skill-craft bundle; these are the
+# bundled skills this smoke exercises, not separate installable plugins.
 LEAVES = ("skill-interop", "review-coverage")
 ASK_AGENT = "ask-agent"
+PLUGIN_NAME = "skill-craft"
 GIT_CONTEXT_ENVIRONMENT = frozenset({
     "GIT_DIR", "GIT_WORK_TREE", "GIT_COMMON_DIR", "GIT_INDEX_FILE",
     "GIT_OBJECT_DIRECTORY", "GIT_ALTERNATE_OBJECT_DIRECTORIES",
@@ -165,21 +168,21 @@ def run_smoke(host: str, binary: str) -> dict:
         env.update({f"{host.upper()}_BIN": resolved})
         for path in (home / ".codex", home / ".claude", home / ".grok"):
             path.mkdir()
-        plugins = []
-        for name in LEAVES:
-            source = package_build.plugins() / name
-            shutil.copytree(source, market / "plugins" / name,
-                            ignore=shutil.ignore_patterns("__pycache__", "*.pyc"))
-            if host == "grok":
-                plugins.append({"name": name, "source": {"type": "local", "path": f"./plugins/{name}"}})
-            elif host == "codex":
-                plugins.append({"name": name, "source": {"source": "local", "path": f"./plugins/{name}"},
-                                "policy": {"installation": "AVAILABLE", "authentication": "ON_INSTALL"},
-                                "category": "Productivity"})
-            else:
-                plugins.append({"name": name, "source": f"./plugins/{name}"})
+        # Every skill ships in the one skill-craft bundle now, so the local
+        # catalog carries exactly one plugin entry covering every LEAVES skill.
+        source = package_build.plugins() / PLUGIN_NAME
+        shutil.copytree(source, market / "plugins" / PLUGIN_NAME,
+                        ignore=shutil.ignore_patterns("__pycache__", "*.pyc"))
+        if host == "grok":
+            plugin_entry = {"name": PLUGIN_NAME, "source": {"type": "local", "path": f"./plugins/{PLUGIN_NAME}"}}
+        elif host == "codex":
+            plugin_entry = {"name": PLUGIN_NAME, "source": {"source": "local", "path": f"./plugins/{PLUGIN_NAME}"},
+                            "policy": {"installation": "AVAILABLE", "authentication": "ON_INSTALL"},
+                            "category": "Productivity"}
+        else:
+            plugin_entry = {"name": PLUGIN_NAME, "source": f"./plugins/{PLUGIN_NAME}"}
         catalog_name = "skill-craft-consumer-smoke"
-        catalog = {"name": catalog_name, "plugins": plugins}
+        catalog = {"name": catalog_name, "plugins": [plugin_entry]}
         if host == "claude":
             catalog["owner"] = {"name": "Skill Craft local test"}
         manifest_dir = market / ({"grok": ".grok-plugin", "claude": ".claude-plugin", "codex": ".agents/plugins"}[host])
@@ -199,16 +202,16 @@ def run_smoke(host: str, binary: str) -> dict:
             # Only accept materialized plugin files inside this disposable home.
             # A file in the source marketplace is not installation evidence.
             actual = installed_skill_card(home, host, name)
-            expected = market / "plugins" / name / "skills" / name / "SKILL.md"
+            expected = market / "plugins" / PLUGIN_NAME / "skills" / name / "SKILL.md"
             if digest(actual) != digest(expected):
                 raise RuntimeError(f"installed skill body mismatch: {name}")
             return actual
 
         version = call([resolved, "--version"]).strip()
-        # Bootstrap the helper itself via the real host CLI; subsequent catalog
-        # and plugin operations deliberately go through the installed helper.
+        # Bootstrap the plugin itself via the real host CLI; subsequent catalog
+        # and plugin operations deliberately go through its installed wrapper.
         call([resolved, "plugin", "marketplace", "add", str(market)])
-        helper_id = "skill-interop" if host == "grok" else f"skill-interop@{catalog_name}"
+        helper_id = PLUGIN_NAME if host == "grok" else f"{PLUGIN_NAME}@{catalog_name}"
         install = [resolved, "plugin", "add" if host == "codex" else "install", helper_id]
         if host == "grok":
             install.append("--trust")
@@ -225,29 +228,36 @@ def run_smoke(host: str, binary: str) -> dict:
         second_data["name"] = "skill-craft-consumer-second"
         second_catalog.write_text(json.dumps(second_data))
         call(wrapper + ["marketplaces", "add", str(second)])
-        # Grok qualifies local markets by normalized directory name, not the
-        # catalog's display name. Do not let the second registration make the
-        # intentionally duplicated plugin name ambiguous.
-        target_id = "review-coverage@local/local-marketplace" if host == "grok" else f"review-coverage@{catalog_name}"
-        call(wrapper + ["plugins", "install", target_id] + (["--trust"] if host == "grok" else []))
         listed = call(wrapper + ["plugins", "list", "--json"])
-        if "review-coverage" not in listed:
-            raise RuntimeError("installed wrapper did not list the installed target")
+        if PLUGIN_NAME not in listed:
+            raise RuntimeError("installed wrapper did not list the installed plugin")
         card = installed_skill("review-coverage")
         cli = card.parent / "scripts/review-coverage"
-        expected_cli = market / "plugins/review-coverage/skills/review-coverage/scripts/review-coverage"
+        expected_cli = market / "plugins" / PLUGIN_NAME / "skills/review-coverage/scripts/review-coverage"
         if digest(cli) != digest(expected_cli):
             raise RuntimeError("installed bundled script mismatch")
         output = call(["python3", str(cli), "template", "--short"])
         if "Review Coverage" not in output:
             raise RuntimeError("installed template helper did not return the expected artifact")
         before_remove = {"card_sha256": digest(card), "script_sha256": digest(cli)}
-        # Grok's installed identity is the name, not its catalog source selector.
-        remove_id = "review-coverage" if host == "grok" else target_id
-        call(wrapper + ["plugins", "uninstall", remove_id])
-        listed = call(wrapper + ["plugins", "list", "--json"])
-        if "review-coverage" in listed:
-            raise RuntimeError("removed target remains in installed inventory")
+        # The whole bundle is one plugin, so removing it removes every skill;
+        # verify via the raw host CLI rather than the wrapper the bundle owns
+        # (that script is itself removed by this call).
+        remove_id = PLUGIN_NAME if host == "grok" else helper_id
+        raw_remove = {
+            "grok": [resolved, "plugin", "uninstall", remove_id],
+            "claude": [resolved, "plugin", "uninstall", remove_id],
+            "codex": [resolved, "plugin", "remove", remove_id, "--json"],
+        }[host]
+        call(raw_remove)
+        raw_list = {
+            "grok": [resolved, "plugin", "list", "--json"],
+            "claude": [resolved, "plugin", "list", "--json"],
+            "codex": [resolved, "plugin", "list", "--json"],
+        }[host]
+        listed = call(raw_list)
+        if PLUGIN_NAME in listed:
+            raise RuntimeError("removed plugin remains in installed inventory")
         return {"host": host, "version": version, "status": "passed",
                 "scope": "local catalog install, installed wrapper operations and script execution; no model workflow or published-pin proof",
                 **before_remove, "commands": receipts}
@@ -270,10 +280,10 @@ def run_ask_agent_consumer(
     resolved = shutil.which(binary)
     if not resolved:
         raise RuntimeError(f"{host} CLI unavailable: {binary}")
-    source_package = package_build.plugins() / ASK_AGENT
+    source_package = package_build.plugins() / PLUGIN_NAME
     source_skill = source_package / "skills" / ASK_AGENT
     if not source_skill.is_dir():
-        raise RuntimeError(f"Ask Agent package is unavailable: {source_skill}")
+        raise RuntimeError(f"Ask Agent skill is unavailable: {source_skill}")
     receipts: list[dict[str, Any]] = []
     with tempfile.TemporaryDirectory(prefix="skill-craft-codex-ask-agent-consumer-") as temporary:
         scratch = Path(temporary)
@@ -332,7 +342,7 @@ def run_ask_agent_consumer(
         def git(*arguments: str, cwd: Path) -> str:
             return call(["git", *arguments], cwd=cwd, environment=helper_env)
 
-        copied_package = market / "plugins" / ASK_AGENT
+        copied_package = market / "plugins" / PLUGIN_NAME
         shutil.copytree(
             source_package,
             copied_package,
@@ -346,8 +356,8 @@ def run_ask_agent_consumer(
         catalog = {
             "name": catalog_name,
             "plugins": [{
-                "name": ASK_AGENT,
-                "source": {"source": "local", "path": f"./plugins/{ASK_AGENT}"},
+                "name": PLUGIN_NAME,
+                "source": {"source": "local", "path": f"./plugins/{PLUGIN_NAME}"},
                 "policy": {"installation": "AVAILABLE", "authentication": "ON_INSTALL"},
                 "category": "Productivity",
             }],
@@ -356,7 +366,7 @@ def run_ask_agent_consumer(
 
         version = call([resolved, "--version"]).strip()
         call([resolved, "plugin", "marketplace", "add", market])
-        plugin_id = f"{ASK_AGENT}@{catalog_name}"
+        plugin_id = f"{PLUGIN_NAME}@{catalog_name}"
         call([resolved, "plugin", "add", plugin_id, "--json"])
         card = installed_skill_card(home, host, ASK_AGENT)
         actual_package = card.parent.parent.parent

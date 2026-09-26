@@ -135,7 +135,7 @@ class InstalledSkillInvocationTest(unittest.TestCase):
         cls.home.mkdir()
         cls.packages: dict[str, Path] = {}
         for leaf in LEAVES:
-            source = PLUGINS / leaf / "skills" / leaf
+            source = PLUGINS / "skill-craft" / "skills" / leaf
             destination = cls.package_parent / leaf
             shutil.copytree(
                 source,

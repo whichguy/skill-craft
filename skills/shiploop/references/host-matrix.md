@@ -14,14 +14,15 @@ start` or `init` instructions and each returned command exactly.
 
 | Host | Marketplace invocation | Selected package |
 |------|------------------------|------------------|
-| Codex | `$shiploop:shiploop` | `shiploop@skill-craft-market` |
-| Claude Code | `/shiploop:shiploop` | `shiploop@skill-craft-market` |
+| Codex | `$skill-craft:shiploop` | `skill-craft@whichguy` |
+| Claude Code | `/skill-craft:shiploop` | `skill-craft@whichguy` |
 | Grok | Select the installed plugin's ShipLoop skill | Native marketplace package |
 | Cursor | Select the installed plugin's ShipLoop skill | Native marketplace package |
 | Hermes | Select the installed ShipLoop card | Host-supported materialized package |
 
 The marketplace name identifies the catalog; the plugin name supplies the
-Codex/Claude skill namespace. Keep one discovered installation per skill.
+Codex/Claude skill namespace. Every skill-craft skill ships in the one
+`skill-craft` plugin, so ShipLoop and Improve install together. Keep one discovered installation per skill.
 Skill-directory installations are a separate distribution mode and do not
 establish that a marketplace package was selected. Inspect the loaded card's
 absolute path and plugin identity when validating an installation.

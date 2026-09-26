@@ -18,15 +18,13 @@
 
 ```sh
 claude plugin marketplace add whichguy/skill-craft
-claude plugin install review-coverage@skill-craft-market
+claude plugin install skill-craft@whichguy
 ```
 
-The catalog keeps the name `skill-craft-market`, so the install ID is unchanged. A Claude
-registration of the former `whichguy/skill-craft-market` repository moves by running the
-`add` above over it; removing it first uninstalls its plugins (see skill-craft
-`docs/distribution.md`). The catalog entry points at **`./plugins/review-coverage`** (not
-bare `skills/`), so marketplace installs receive released packages only; skill-dir
-install tracks the skill-craft checkout instead.
+Review Coverage ships inside the one `skill-craft` plugin with every other skill-craft
+skill; invoke it as `/skill-craft:review-coverage`. The catalog entry points at
+**`./plugins/skill-craft`** (not bare `skills/`), so marketplace installs receive released
+packages only; skill-dir install tracks the skill-craft checkout instead.
 
 ## Phase support
 

@@ -40,11 +40,11 @@ boundary --base "$base" >/dev/null || fail "feature commit with notes must pass"
 
 # 2. Hand-editing a version or plugins/ is refused.
 sed -i.bak "s/^version: .*/version: 99.0.0/" skills/architect/SKILL.md && rm skills/architect/SKILL.md.bak
-echo "stale" >> plugins/architect/README.md
+echo "stale" >> plugins/skill-craft/README.md
 git add -A && git commit -qm "bad: hand bump"
 out="$(boundary --base "$base")" && fail "hand-edited release output must fail"
 [[ "$out" == *"skills/architect/SKILL.md (version)"* ]] || fail "version edit not named: $out"
-[[ "$out" == *"plugins/architect/README.md"* ]] || fail "plugins/ edit not named: $out"
+[[ "$out" == *"plugins/skill-craft/README.md"* ]] || fail "plugins/ edit not named: $out"
 [[ "$out" == *"no changes/architect/*.md note"* ]] || fail "missing note not named: $out"
 git reset -q --hard HEAD~1
 
@@ -64,13 +64,19 @@ python3 -B scripts/release.py --date 2000-01-01 >/dev/null || fail "release comm
 [[ -z "$(find changes -mindepth 2 -name '*.md')" ]] || fail "release left change notes behind"
 git log -1 --format='%(trailers:key=Skill-Craft-Release,valueonly)' | grep -q "shiploop@" \
   || fail "release commit lacks its trailer"
+git log -1 --format='%(trailers:key=Skill-Craft-Release,valueonly)' | grep -q "skill-craft@" \
+  || fail "release commit trailer lacks the bundle plugin"
 shiploop_new="$(sed -n 's/^version: //p' skills/shiploop/SKILL.md | head -1)"
 improve_new="$(sed -n 's/^version: //p' skills/improve/SKILL.md | head -1)"
+bundle_new="$(python3 -c "import json; print(json.load(open('catalog/skill-craft-plugin.json'))['version'])")"
 [[ "$shiploop_new" != "$shiploop_old" && "$improve_new" != "$improve_old" ]] || fail "versions not bumped"
-grep -q "\"version\": \"$shiploop_new\"" plugins/shiploop/.claude-plugin/plugin.json || fail "plugin manifest not regenerated"
-grep -q "\"version\": \"$shiploop_new\"" .claude-plugin/marketplace.json || fail "Claude catalog not regenerated"
+grep -q "^version: $shiploop_new\$" plugins/skill-craft/skills/shiploop/SKILL.md || fail "bundled skill card not regenerated"
+grep -q "\"version\": \"$bundle_new\"" plugins/skill-craft/.claude-plugin/plugin.json || fail "bundle plugin manifest not regenerated"
+grep -q "\"version\": \"$bundle_new\"" .claude-plugin/marketplace.json || fail "Claude catalog not regenerated"
+grep -q "### skill-craft $bundle_new" CHANGELOG.md || fail "changelog missing the bundle release heading"
+grep -q "^- Skills: .*shiploop $shiploop_new" CHANGELOG.md || fail "changelog skills summary missing shiploop"
 grep -q "### shiploop $shiploop_new" CHANGELOG.md || fail "changelog missing the release"
-cmp -s skills/shiploop/SKILL.md plugins/shiploop/skills/shiploop/SKILL.md || fail "plugin copy not refreshed"
+cmp -s skills/shiploop/SKILL.md plugins/skill-craft/skills/shiploop/SKILL.md || fail "plugin copy not refreshed"
 boundary --base "$base" >/dev/null || fail "feature plus release must pass"
 bash scripts/sync-plugin-views.sh --check >/dev/null 2>&1 || fail "release output must match source"
 release_head="$(git rev-parse HEAD)"
@@ -140,7 +146,7 @@ rm skills/zz-new/SKILL.md.bak
 note zz-new first '---\nversion: 0.1.0\n---\nFirst release.\n'
 git add -A && git commit -qm "feat: zz-new"
 python3 -B scripts/release.py --date 2000-01-01 >/dev/null || fail "a new skill must release at its authored version"
-[[ -d plugins/zz-new ]] || fail "new skill's package missing after its first release"
+[[ -d plugins/skill-craft/skills/zz-new ]] || fail "new skill missing from the bundle after its first release"
 git log -1 --format='%(trailers:key=Skill-Craft-Release,valueonly)' | grep -q "zz-new@0.1.0" \
   || fail "new skill did not release at 0.1.0"
 
@@ -165,23 +171,26 @@ git reset -q --hard HEAD~1
 
 # 14. A1: a trailer does not exempt a commit whose output differs from its source.
 pre_lag="$(git rev-parse HEAD)"
-c_plan_version="$(sed -n 's/^version: //p' skills/c-plan/SKILL.md | head -1)"
-sed -i.bak "s/\"version\": \"$c_plan_version\"/\"version\": \"0.0.1\"/" plugins/c-plan/.claude-plugin/plugin.json
-rm plugins/c-plan/.claude-plugin/plugin.json.bak
+bundle_version="$(python3 -c "import json; print(json.load(open('catalog/skill-craft-plugin.json'))['version'])")"
+sed -i.bak "s/\"version\": \"$bundle_version\"/\"version\": \"0.0.1\"/" plugins/skill-craft/.claude-plugin/plugin.json
+rm plugins/skill-craft/.claude-plugin/plugin.json.bak
 git add -A && git commit -qm "release: fixture lagging output" -m "Skill-Craft-Release: fixture"
 lagging="$(git rev-parse HEAD)"
 out="$(boundary --base "$pre_lag")" && fail "an out-of-sync release commit must fail the boundary check"
 [[ "$out" == *"release commit output does not match its source"* ]] || fail "out-of-sync release not named: $out"
 
-# 15. B7: deleting a skill cuts an output-only release that prunes its package.
+# 15. B7: deleting a skill cuts an output-only release that prunes it from the bundle.
 git rm -rq skills/zz-new && git commit -qm "chore: remove zz-new"
 python3 -B scripts/release.py --dry-run | grep -q "output drift" || fail "dry run must report output drift"
 python3 -B scripts/release.py >/dev/null || fail "output-only release failed"
-git log -1 --format='%(trailers:key=Skill-Craft-Release,valueonly)' | grep -qx "output-only" \
-  || fail "output-only release lacks its trailer"
-[[ ! -e plugins/zz-new ]] || fail "deleted skill's package survived the release"
+git log -1 --format='%(trailers:key=Skill-Craft-Release,valueonly)' | grep -Eqx 'skill-craft@[0-9]+\.[0-9]+\.[0-9]+' \
+  || fail "output-only release trailer must name only the bundle plugin"
+[[ ! -e plugins/skill-craft/skills/zz-new ]] || fail "deleted skill survived the release"
 bash scripts/sync-plugin-views.sh --check >/dev/null 2>&1 || fail "output-only release must match source"
 [[ -z "$(git status --porcelain)" ]] || fail "output-only release left changes"
+grep -q "^### skill-craft " CHANGELOG.md || fail "output-only release missing its bundle heading"
+grep -qxF -- "- Release output regenerated; no skill changed." CHANGELOG.md \
+  || fail "output-only release missing its no-skill-changed changelog line"
 boundary --base "$base" --head "$pre_lag" >/dev/null || fail "releases after the feature commit must pass the boundary check"
 boundary --base "$lagging" >/dev/null || fail "releases after the lagging fixture must pass the boundary check: $(boundary --base "$lagging")"
 

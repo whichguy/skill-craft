@@ -85,8 +85,8 @@ def main():
     if args[:2] == ["plugin", "add"] and len(args) >= 3:
         state = load_state(home)
         market = Path(state["marketplace"])
-        source = market / "plugins" / "ask-agent"
-        target = home / "plugins" / "cache" / "fake-market" / "ask-agent" / "fixture"
+        source = market / "plugins" / "skill-craft"
+        target = home / "plugins" / "cache" / "fake-market" / "skill-craft" / "fixture"
         if target.exists():
             raise RuntimeError("fake Codex fixture cache unexpectedly already exists")
         shutil.copytree(source, target)

@@ -22,7 +22,12 @@ The new version must be above the current one and never already released:
 `scripts/release.py` refuses a `<leaf>@<version>` that appears in any earlier
 `Skill-Craft-Release` trailer. A new skill's first note uses
 `version: <the version already in its SKILL.md>`; that is allowed only while
-`plugins/<leaf>` does not yet exist at HEAD.
+`plugins/skill-craft/skills/<leaf>` does not yet exist at HEAD.
+
+Every release also bumps the one `skill-craft` plugin's version in
+`catalog/skill-craft-plugin.json`: by the largest bump among the notes (a
+`version:` note counts as the bump its old -> new version implies), or by a
+patch for an output-only release. Never edit that version by hand.
 
 Prereleases: a `patch` bump stays on the rc line (`0.3.0-rc.1` becomes
 `0.3.0-rc.2`). A `minor` or `major` bump that lands on the rc's own line

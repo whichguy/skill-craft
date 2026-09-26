@@ -25,7 +25,10 @@ usage() {
   printf '  --uninstall           # remove only owned installs (symlink-owned or managed copy)\n' >&2
   printf '  --dry-run             # print actions only, no writes\n' >&2
   printf '\n' >&2
-  printf 'Default (no host flags): install ALL six hosts.\n' >&2
+  printf 'Default (no host flags): OpenCode only, the one host without a skill\n' >&2
+  printf '  marketplace. Claude, Grok, Codex and Cursor get every skill from the\n' >&2
+  printf '  skill-craft@whichguy marketplace plugin; link them only for development,\n' >&2
+  printf '  with an explicit host flag or --all. Hermes needs --hermes-only or --all.\n' >&2
   printf 'Default (no --skill/--from): install every skills/<leaf> with SKILL.md.\n' >&2
   printf 'Default action: install. --status / --uninstall are exclusive with each other.\n' >&2
   printf '\n' >&2
@@ -44,7 +47,8 @@ usage() {
   printf 'Status outcomes: absent | symlink-owned | symlink-wrong | copy-owned |\n' >&2
   printf '  copy-owned-stale | foreign | foreign-file\n' >&2
   printf 'When Claude plugin inventory is available, --status also reports plugin-track\n' >&2
-  printf 'and warns on double-install only when a matching plugin is confirmed enabled.\n' >&2
+  printf '(the skill-craft plugin carries every skill) and warns on double-install only\n' >&2
+  printf 'when that plugin is confirmed enabled.\n' >&2
   printf 'Only the installed_plugins.json version 2 shape {"version": 2, "plugins":\n' >&2
   printf '{id: [records]}} is read; any other shape gets one unsupported-inventory note.\n' >&2
   printf 'Plugin state is confirmed-enabled only for literal JSON enabled:true; otherwise\n' >&2
@@ -276,13 +280,18 @@ if [[ "$action" != "install" && "$install_agents" -eq 1 ]]; then
   exit 64
 fi
 
+# Claude, Grok, Codex and Cursor install every skill through the skill-craft
+# marketplace plugin, so linking them by default would load each skill twice.
+# Hermes copies are written only when selected.
 if [[ "$host_flag_set" -eq 0 ]]; then
-  install_claude=1
-  install_grok=1
-  install_codex=1
-  install_hermes=1
-  install_cursor=1
   install_opencode=1
+fi
+
+# Agent cards go only to Claude and Grok; without either host --agents would
+# silently install nothing.
+if [[ "$install_agents" -eq 1 && "$install_claude" -eq 0 && "$install_grok" -eq 0 ]]; then
+  printf '%s\n' '--agents needs --claude-only, --grok-only or --all (agent cards install only for Claude/Grok)' >&2
+  exit 64
 fi
 
 # OpenCode's documented global skills path uses the XDG config root. Keep this
@@ -894,7 +903,8 @@ status_one() {
 #
 # Only the installed_plugins.json version 2 shape is read:
 #   {"version": 2, "plugins": {"<name>@<market>": [<record object>, ...]}}
-# Prints one line to stdout when a plugin id matches leaf@* :
+# The skill-craft plugin bundles every skill, so any skill-craft@* id tracks
+# every leaf. Prints one line to stdout when a plugin id matches skill-craft@* :
 #   plugin-track: <id>  version=<v>  enabled=<true|false|unknown>  state=<state>
 # Returns 0 if a plugin track is present for leaf, 1 when there is no inventory
 # or no match, and 2 (with the reason on stdout) for an unreadable file or any
@@ -912,12 +922,11 @@ claude_plugin_track_line() {
 
   # python3 always available in this stack; parse inventory without jq.
   local rc=0
-  CLAUDE_PLUGIN_INV_PATH="$inv_path" CLAUDE_PLUGIN_LEAF="$leaf" python3 - <<'PY' || rc=$?
+  CLAUDE_PLUGIN_INV_PATH="$inv_path" python3 - <<'PY' || rc=$?
 import json, os, sys
 from pathlib import Path
 
 path = Path(os.environ["CLAUDE_PLUGIN_INV_PATH"])
-leaf = os.environ["CLAUDE_PLUGIN_LEAF"]
 
 
 def unsupported(reason):
@@ -949,7 +958,7 @@ def consider(plugin_id, record):
     if "@" not in plugin_id:
         return
     name = plugin_id.split("@", 1)[0]
-    if name != leaf:
+    if name != "skill-craft":
         return
     version = str(record.get("version") or "")
     enabled_value = record.get("enabled")
@@ -975,7 +984,7 @@ if not found:
 status_rank = {"true": 0, "unknown": 1, "false": 2}
 found.sort(key=lambda t: (
     status_rank[t[2]],
-    0 if t[0].endswith("@skill-craft-market") else 1,
+    0 if t[0].endswith("@whichguy") else 1,
     t[0],
     t[3],
 ))

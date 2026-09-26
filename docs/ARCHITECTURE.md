@@ -107,12 +107,12 @@ host checkout into a tree that is bind-mounted into the container as `/opt/data`
 |-------|--------|
 | Skill-dir symlink (Claude, Grok, Codex, Cursor) | **implemented** |
 | Skill-dir materialized copy (Hermes default) | **implemented** |
-| Shared plugin view `plugins/<leaf>/` via `sync-plugin-views.sh` | **implemented** |
+| One shared plugin view `plugins/skill-craft/` bundling every skill (`skill-craft:<leaf>`) via `sync-plugin-views.sh` | **implemented** |
 | Grok/Cursor same-repository catalogs | **implemented** — generated from skill frontmatter; distribution and publication steps in [distribution.md](distribution.md) |
 | `plugin.json` name/version/description/license derived from `SKILL.md` | **implemented** (`scripts/skill-frontmatter-to-plugin-json.js`; sync enumerates from `skills/`) |
-| Root Claude/Codex catalogs in this repository (`skill-craft-market` retired); external plugins pinned in `catalog/external-plugins.json` | **implemented** |
+| Root catalogs in this repository, all named `whichguy` (install `skill-craft@whichguy`); external plugins pinned in `catalog/external-plugins.json` | **implemented** |
 | Release output (`plugins/`, catalogs, versions) written only by `scripts/release.py`; enforced by `scripts/check-release-boundary.py`, which also re-verifies each release commit's output against its source | **implemented** |
-| Host hooks: a skill may declare `after-shell` and `turn-end` hooks in `skills/<leaf>/host-hooks.json`; the generator writes one file per host into `plugins/<leaf>/hooks/` (Claude/Grok `hooks.json`, Codex `codex.json`, Cursor `cursor.json`) and points the Codex and Cursor manifests at theirs. A hook command may only run an executable in the skill's own `scripts/`; `scripts/check-marketplace-packages.py` enforces that on every package | **implemented** |
+| Host hooks: a skill may declare `after-shell` and `turn-end` hooks in `skills/<leaf>/host-hooks.json`; the generator merges every skill's hooks into one file per host in `plugins/skill-craft/hooks/` (Claude/Grok `hooks.json`, Codex `codex.json`, Cursor `cursor.json`) and points the Codex and Cursor manifests at theirs. A hook command may only run an executable in its skill's own `scripts/`; `scripts/check-marketplace-packages.py` enforces that on the package | **implemented** |
 | `install.sh --status` / `--uninstall` (owned only) | **implemented** |
 | skillctl | **optional / not planned** (use `install.sh`) |
 | Default DevLoop card `skills/devloop` | **implemented** (discovery on Claude/Grok/Codex/Cursor; Hermes card skipped; installed-engine resolution only; separate operator provisioning) |
@@ -184,17 +184,17 @@ skill-interop additionally requires Hermes-peer fields (`author`, `metadata.herm
 ```text
 skill-craft/skills/<leaf>/     # SoT (all hosts skill-dir)
         │
-        ├── install.sh ──► ~/.claude|grok|codex|cursor/skills/<leaf>   (symlink)
+        ├── install.sh ──► opencode/skills/<leaf>   (symlink; plugin hosts only for dev)
         │              ──► ~/.hermes/skills/software-development/<leaf>  (copy)
         │
-        └── plugins/<leaf>/    # shared marketplace package (materialised copy)
+        └── plugins/skill-craft/skills/<leaf>/   # one marketplace package (materialised copies)
                  ▲
-                 ├── skill-craft Grok/Cursor indexes: ./plugins/<leaf>
-                 └── skill-craft Claude/Codex indexes: ./plugins/<leaf>
+                 ├── skill-craft Grok/Cursor indexes: ./plugins/skill-craft
+                 └── skill-craft Claude/Codex indexes: ./plugins/skill-craft
 ```
 
-Each plugin package holds exactly one skill and, when it has one, its agent
-card. `install.sh --from` refuses generated-view paths in a skill-craft checkout
+The one plugin package holds every skill and each skill's agent card, when it
+has one. `install.sh --from` refuses generated-view paths in a skill-craft checkout
 plus any copy whose plugin manifest names the skill-craft repository (host
 plugin caches, git-subdir clones), so the canonical skill-directory links are
 not repointed at a marketplace copy that still carries its generated manifests.
@@ -231,8 +231,9 @@ local-folder marketplace, silently drop a skill directory that is a symlink
 leaving the plugin, while their git-clone installs and Claude's local install
 dereferenced it. So `plugins/` holds generated copies, written only at release.
 
-The root catalogs select `./plugins/<leaf>` in this repository; a plugin updates
-when its `version` changes, which only `scripts/release.py` does. External
+The root catalogs select `./plugins/skill-craft` in this repository; the plugin updates
+when its `version` (in `catalog/skill-craft-plugin.json`) changes, which only
+`scripts/release.py` does, at every release. External
 leaves (e.g. **lennox-s40**) are pinned by full commit `sha` in
 `catalog/external-plugins.json`; this monorepo must not also ship
 `skills/<same-name>/`.

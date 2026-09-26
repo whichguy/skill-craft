@@ -2,6 +2,11 @@
 # Cursor and Grok marketplace metadata is generated from skill frontmatter.
 # Exercise drift failures in an isolated checkout so this test never mutates
 # the caller's materialized plugin views.
+#
+# Every skill ships in the one plugins/skill-craft bundle: the generator's
+# CLI takes --package or --marketplaces (no per-leaf argument), and the
+# marketplace catalogs list exactly one local plugin entry ("skill-craft")
+# rather than one entry per skill.
 set -euo pipefail
 
 root="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd -P)"
@@ -49,6 +54,9 @@ mkdir -p "$repo"
   -cf - .) | (cd "$repo" && tar -xf -)
 cd "$repo"
 
+PLUGIN="skill-craft"
+MARKETPLACE="whichguy"
+
 [[ -x scripts/sync-plugin-views.sh ]] || fail "sync script is not executable"
 node --check scripts/skill-frontmatter-to-plugin-json.js \
   || fail "generator syntax check"
@@ -61,151 +69,147 @@ bash scripts/sync-plugin-views.sh --check || fail "baseline adapter check"
 # nothing; an unknown option is refused rather than silently dropped.
 gen="scripts/skill-frontmatter-to-plugin-json.js"
 generated_digest() {
-  (find plugins .cursor-plugin .grok-plugin README.md -type f | LC_ALL=C sort | xargs shasum) 2>/dev/null
+  (find plugins .cursor-plugin .grok-plugin .claude-plugin .agents README.md -type f | LC_ALL=C sort | xargs shasum) 2>/dev/null
 }
 generated_digest > "$tmp/generated-before-cli"
-expect_failure "unknown option on a leaf" "unknown option --bogus" node "$gen" c-plan --check --bogus
-expect_failure "--marketplaces with a leaf" "--marketplaces does not take a leaf" \
-  node "$gen" --marketplaces c-plan --check
-expect_failure "--write with --check" "mutually exclusive" node "$gen" c-plan --write --check
-expect_failure "two leaves" "missing leaf" node "$gen" c-plan skill-interop --check
-node "$gen" c-plan --check >/dev/null || fail "leaf --check must still pass"
+expect_failure "unknown option" "unknown argument --bogus" node "$gen" --package --check --bogus
+expect_failure "both --package and --marketplaces" "choose exactly one of --package or --marketplaces" \
+  node "$gen" --package --marketplaces --check
+expect_failure "neither --package nor --marketplaces" "choose exactly one of --package or --marketplaces" \
+  node "$gen" --check
+expect_failure "--write with --check" "mutually exclusive" node "$gen" --package --write --check
+node "$gen" --package --check >/dev/null || fail "--package --check must still pass"
 node "$gen" --marketplaces --check >/dev/null || fail "--marketplaces --check must still pass"
 generated_digest | cmp -s - "$tmp/generated-before-cli" || fail "generator command-line refusals changed generated files"
 
-# The adapters expose every actual source skill, and nothing inferred from empty/stale directories.
-node - <<'NODE' || exit 1
+# The bundle carries every actual source skill, and nothing inferred from
+# empty/stale directories; the Cursor and Grok catalogs each list exactly one
+# local plugin entry (the bundle), not one per skill.
+node - <<NODE || exit 1
 const fs = require("fs");
+const plugin = "$PLUGIN";
 const leaves = fs
   .readdirSync("skills", { withFileTypes: true })
-  .filter((entry) => entry.isDirectory() && fs.existsSync(`skills/${entry.name}/SKILL.md`))
+  .filter((entry) => entry.isDirectory() && fs.existsSync(\`skills/\${entry.name}/SKILL.md\`))
   .map((entry) => entry.name)
   .sort();
 if (leaves.length === 0) {
   throw new Error("expected at least one source skill");
 }
-const published = leaves;
 const cursor = JSON.parse(fs.readFileSync(".cursor-plugin/marketplace.json", "utf8"));
 const grok = JSON.parse(fs.readFileSync(".grok-plugin/marketplace.json", "utf8"));
 for (const [host, catalog] of [["Cursor", cursor], ["Grok", grok]]) {
-  const names = catalog.plugins.map((plugin) => plugin.name);
-  if (JSON.stringify(names) !== JSON.stringify(published)) {
-    throw new Error(`${host} catalog set is not exactly the leaves`);
+  const names = catalog.plugins.map((p) => p.name);
+  if (JSON.stringify(names) !== JSON.stringify([plugin])) {
+    throw new Error(\`\${host} catalog must list exactly the one bundle plugin, got \${names}\`);
   }
 }
-for (const plugin of cursor.plugins) {
-  if (plugin.source !== `./plugins/${plugin.name}` || !plugin.description) {
-    throw new Error(`Cursor entry invalid for ${plugin.name}`);
+const cursorPlugin = cursor.plugins[0];
+if (cursorPlugin.source !== \`./plugins/\${plugin}\` || !cursorPlugin.description) {
+  throw new Error("Cursor entry invalid");
+}
+const grokPlugin = grok.plugins[0];
+if (grokPlugin.source?.type !== "local" || grokPlugin.source?.path !== \`./plugins/\${plugin}\` ||
+    !grokPlugin.version || !grokPlugin.category) {
+  throw new Error("Grok entry invalid");
+}
+
+const base = \`plugins/\${plugin}\`;
+const claude = JSON.parse(fs.readFileSync(\`\${base}/.claude-plugin/plugin.json\`, "utf8"));
+const codex = JSON.parse(fs.readFileSync(\`\${base}/.codex-plugin/plugin.json\`, "utf8"));
+for (const key of ["name", "version", "description", "author", "repository", "license"]) {
+  if (JSON.stringify(codex[key]) !== JSON.stringify(claude[key])) {
+    throw new Error(\`Codex identity drift: \${key}\`);
   }
 }
-for (const plugin of grok.plugins) {
-  if (plugin.source?.type !== "local" || plugin.source?.path !== `./plugins/${plugin.name}` || !plugin.version || !plugin.category) {
-    throw new Error(`Grok entry invalid for ${plugin.name}`);
+if (codex.skills !== "./skills/") {
+  throw new Error("Codex skill path invalid");
+}
+if ("mcpServers" in codex || "apps" in codex) {
+  throw new Error("Codex manifest must not invent components");
+}
+// Hooks come only from skills/<leaf>/host-hooks.json, merged into one file.
+const declaresHooks = leaves.some((leaf) => fs.existsSync(\`skills/\${leaf}/host-hooks.json\`));
+if (("hooks" in codex) !== declaresHooks || (declaresHooks && codex.hooks !== "./hooks/codex.json")) {
+  throw new Error("Codex hooks must match the merged skills/<leaf>/host-hooks.json declarations");
+}
+const requiredInterface = ["displayName", "shortDescription", "longDescription", "developerName", "category"];
+for (const key of requiredInterface) {
+  if (typeof codex.interface?.[key] !== "string" || !codex.interface[key].trim()) {
+    throw new Error(\`Codex interface \${key} missing\`);
   }
+}
+if (!Array.isArray(codex.interface?.capabilities) || codex.interface.capabilities.length === 0 ||
+    !Array.isArray(codex.interface?.defaultPrompt) || codex.interface.defaultPrompt.length === 0) {
+  throw new Error("Codex interface actions missing");
+}
+const featured = ["shiploop", "improve", "ask-agent"].filter((leaf) => leaves.includes(leaf));
+const expectedCodexPrompt = (featured.length ? featured : leaves.slice(0, 1))
+  .map((leaf) => \`Use $\${plugin}:\${leaf} for this task.\`);
+if (JSON.stringify(codex.interface.defaultPrompt) !== JSON.stringify(expectedCodexPrompt)) {
+  throw new Error("Codex default prompt must use the qualified bundle-namespaced skills");
+}
+if (!fs.existsSync(\`\${base}/LICENSE\`) || fs.readFileSync(\`\${base}/LICENSE\`, "utf8") !== fs.readFileSync("LICENSE", "utf8")) {
+  throw new Error("package root LICENSE missing or drifted");
+}
+if (!fs.existsSync(\`\${base}/README.md\`) || !fs.readFileSync(\`\${base}/README.md\`, "utf8").trim()) {
+  throw new Error("package root README missing");
+}
+const readme = fs.readFileSync(\`\${base}/README.md\`, "utf8");
+if (!readme.includes(\`\\\`$\${plugin}:<skill>\\\`\`) || !readme.includes(\`\\\`/\${plugin}:<skill>\\\`\`)) {
+  throw new Error("package README must document the qualified host invocation pattern");
 }
 for (const leaf of leaves) {
-  const root = `plugins/${leaf}`;
-  const claude = JSON.parse(fs.readFileSync(`${root}/.claude-plugin/plugin.json`, "utf8"));
-  const codex = JSON.parse(fs.readFileSync(`${root}/.codex-plugin/plugin.json`, "utf8"));
-  for (const key of ["name", "version", "description", "author", "repository", "license"]) {
-    if (JSON.stringify(codex[key]) !== JSON.stringify(claude[key])) {
-      throw new Error(`Codex identity drift for ${leaf}: ${key}`);
-    }
+  if (!readme.includes(\`\\\`/\${plugin}:\${leaf}\\\`\`)) {
+    throw new Error(\`package README must list the qualified Claude command for \${leaf}\`);
   }
-  if (codex.skills !== "./skills/") {
-    throw new Error(`Codex skill path invalid for ${leaf}`);
+}
+const cards = [];
+const visit = (dir) => {
+  for (const entry of fs.readdirSync(dir, { withFileTypes: true })) {
+    const full = \`\${dir}/\${entry.name}\`;
+    if (entry.isDirectory()) visit(full);
+    else if (entry.isFile() && entry.name === "SKILL.md") cards.push(full);
   }
-  if ("mcpServers" in codex || "apps" in codex) {
-    throw new Error(`Codex manifest must not invent components for ${leaf}`);
-  }
-  // Hooks come only from skills/<leaf>/host-hooks.json, as the generated file.
-  const declaresHooks = fs.existsSync(`skills/${leaf}/host-hooks.json`);
-  if (("hooks" in codex) !== declaresHooks || (declaresHooks && codex.hooks !== "./hooks/codex.json")) {
-    throw new Error(`Codex hooks must match skills/${leaf}/host-hooks.json for ${leaf}`);
-  }
-  const requiredInterface = [
-    "displayName",
-    "shortDescription",
-    "longDescription",
-    "developerName",
-    "category",
-  ];
-  for (const key of requiredInterface) {
-    if (typeof codex.interface?.[key] !== "string" || !codex.interface[key].trim()) {
-      throw new Error(`Codex interface ${key} missing for ${leaf}`);
-    }
-  }
-  if (!Array.isArray(codex.interface?.capabilities) || codex.interface.capabilities.length === 0 ||
-      !Array.isArray(codex.interface?.defaultPrompt) || codex.interface.defaultPrompt.length === 0) {
-    throw new Error(`Codex interface actions missing for ${leaf}`);
-  }
-  const expectedCodexPrompt = `Use $${leaf}:${leaf} for this task.`;
-  if (JSON.stringify(codex.interface.defaultPrompt) !== JSON.stringify([expectedCodexPrompt])) {
-    throw new Error(`Codex default prompt must use the qualified plugin skill for ${leaf}`);
-  }
-  if (!fs.existsSync(`${root}/LICENSE`) || fs.readFileSync(`${root}/LICENSE`, "utf8") !== fs.readFileSync("LICENSE", "utf8")) {
-    throw new Error(`package root LICENSE missing or drifted for ${leaf}`);
-  }
-  if (!fs.existsSync(`${root}/README.md`) || !fs.readFileSync(`${root}/README.md`, "utf8").trim()) {
-    throw new Error(`package root README missing for ${leaf}`);
-  }
-  const readme = fs.readFileSync(`${root}/README.md`, "utf8");
-  if (!readme.includes(`\`$${leaf}:${leaf}\``) || !readme.includes(`\`/${leaf}:${leaf}\``)) {
-    throw new Error(`package README must document qualified host invocations for ${leaf}`);
-  }
-  if (readme.includes(`\`$${leaf}\``)) {
-    throw new Error(`package README must not claim bare Codex invocation for ${leaf}`);
-  }
-  const cards = [];
-  const visit = (dir) => {
-    for (const entry of fs.readdirSync(dir, { withFileTypes: true })) {
-      const full = `${dir}/${entry.name}`;
-      if (entry.isDirectory()) visit(full);
-      else if (entry.isFile() && entry.name === "SKILL.md") cards.push(full);
-    }
-  };
-  visit(`${root}/skills`);
-  if (JSON.stringify(cards.sort()) !== JSON.stringify([`${root}/skills/${leaf}/SKILL.md`])) {
-    throw new Error(`unexpected public skill cards for ${leaf}: ${cards.join(", ")}`);
-  }
+};
+visit(\`\${base}/skills\`);
+const expectedCards = leaves.map((leaf) => \`\${base}/skills/\${leaf}/SKILL.md\`).sort();
+if (JSON.stringify(cards.sort()) !== JSON.stringify(expectedCards)) {
+  throw new Error(\`unexpected public skill cards in the bundle: \${cards.join(", ")}\`);
 }
 NODE
 
-# Claude and Codex catalogs keep the historical marketplace name, list every
-# local package, and carry each catalog/external-plugins.json entry verbatim.
-node - <<'NODE' || exit 1
+# Claude and Codex catalogs use the "whichguy" marketplace name, list the one
+# local bundle plugin, and carry each catalog/external-plugins.json entry
+# verbatim.
+node - <<NODE || exit 1
 const fs = require("fs");
 const { isDeepStrictEqual } = require("util");
-const leaves = fs
-  .readdirSync("skills", { withFileTypes: true })
-  .filter((entry) => entry.isDirectory() && fs.existsSync(`skills/${entry.name}/SKILL.md`))
-  .map((entry) => entry.name);
-const published = leaves.sort();
+const plugin = "$PLUGIN";
+const marketplace = "$MARKETPLACE";
 const external = JSON.parse(fs.readFileSync("catalog/external-plugins.json", "utf8")).plugins;
-const externalNames = new Set(external.map((plugin) => plugin.name));
+const externalNames = new Set(external.map((p) => p.name));
 const claude = JSON.parse(fs.readFileSync(".claude-plugin/marketplace.json", "utf8"));
 const codex = JSON.parse(fs.readFileSync(".agents/plugins/marketplace.json", "utf8"));
 const localSource = {
-  Claude: (name) => `./plugins/${name}`,
-  Codex: (name) => ({ source: "local", path: `./plugins/${name}` }),
+  Claude: () => \`./plugins/\${plugin}\`,
+  Codex: () => ({ source: "local", path: \`./plugins/\${plugin}\` }),
 };
 for (const [host, catalog] of [["Claude", claude], ["Codex", codex]]) {
-  if (catalog.name !== "skill-craft-market") {
-    throw new Error(`${host} catalog must keep the skill-craft-market name`);
+  if (catalog.name !== marketplace) {
+    throw new Error(\`\${host} catalog must use the \${marketplace} marketplace name\`);
   }
-  const local = catalog.plugins.filter((plugin) => !externalNames.has(plugin.name));
-  if (JSON.stringify(local.map((plugin) => plugin.name).sort()) !== JSON.stringify(published)) {
-    throw new Error(`${host} local entries are not exactly the leaves`);
+  const local = catalog.plugins.filter((p) => !externalNames.has(p.name));
+  if (local.length !== 1 || local[0].name !== plugin) {
+    throw new Error(\`\${host} local entries must be exactly the one bundle plugin\`);
   }
-  for (const plugin of local) {
-    if (!isDeepStrictEqual(plugin.source, localSource[host](plugin.name))) {
-      throw new Error(`${host} local source invalid for ${plugin.name}`);
-    }
+  if (!isDeepStrictEqual(local[0].source, localSource[host]())) {
+    throw new Error(\`\${host} local source invalid for \${plugin}\`);
   }
   for (const want of external) {
-    const got = catalog.plugins.filter((plugin) => plugin.name === want.name);
+    const got = catalog.plugins.filter((p) => p.name === want.name);
     if (got.length !== 1 || !isDeepStrictEqual(got[0].source, want.source)) {
-      throw new Error(`${host} catalog must carry external ${want.name} once with its pinned source`);
+      throw new Error(\`\${host} catalog must carry external \${want.name} once with its pinned source\`);
     }
   }
 }
@@ -258,8 +262,8 @@ expect_failure "hand-edited Codex catalog" "Codex marketplace index" \
   node "$gen" --marketplaces --check
 bash scripts/sync-plugin-views.sh || fail "restore hand-edited Codex catalog"
 
-# A leaf check only owns that leaf. It must not reject unrelated root-index
-# drift, while the full check must catch the stale generated index.
+# The package check (plugins/skill-craft's own manifests) does not reach into
+# the root marketplace indexes, while the marketplaces check does.
 node - <<'NODE'
 const fs = require("fs");
 const path = ".cursor-plugin/marketplace.json";
@@ -267,42 +271,39 @@ const catalog = JSON.parse(fs.readFileSync(path, "utf8"));
 catalog.metadata.description = "stale test value";
 fs.writeFileSync(path, JSON.stringify(catalog, null, 2) + "\n");
 NODE
-bash scripts/sync-plugin-views.sh --check c-plan \
-  || fail "leaf-only check should not inspect root marketplace indexes"
+node "$gen" --package --check >/dev/null \
+  || fail "package check should not inspect root marketplace indexes"
 expect_failure "stale Cursor index" "Cursor marketplace index" \
-  bash scripts/sync-plugin-views.sh --check
+  node "$gen" --marketplaces --check
 bash scripts/sync-plugin-views.sh || fail "restore stale Cursor index"
 
-# A missing per-plugin Cursor manifest is caught by the owning leaf check.
-rm -f plugins/c-plan/.cursor-plugin/plugin.json
+# A missing bundle Cursor manifest is caught by the package check.
+rm -f "plugins/$PLUGIN/.cursor-plugin/plugin.json"
 expect_failure "missing Cursor manifest" "missing" \
-  bash scripts/sync-plugin-views.sh --check c-plan
-bash scripts/sync-plugin-views.sh c-plan || fail "restore missing Cursor manifest"
-bash scripts/sync-plugin-views.sh --check c-plan \
-  || fail "restored Cursor manifest"
+  node "$gen" --package --check
+node "$gen" --package --write >/dev/null || fail "restore missing Cursor manifest"
+node "$gen" --package --check >/dev/null || fail "restored Cursor manifest"
 
 # Codex is a generated peer adapter, not a hand-maintained special case.
-rm -f plugins/c-plan/.codex-plugin/plugin.json
+rm -f "plugins/$PLUGIN/.codex-plugin/plugin.json"
 expect_failure "missing Codex manifest" "missing" \
-  bash scripts/sync-plugin-views.sh --check c-plan
-bash scripts/sync-plugin-views.sh c-plan || fail "restore missing Codex manifest"
-bash scripts/sync-plugin-views.sh --check c-plan \
-  || fail "restored Codex manifest"
+  node "$gen" --package --check
+node "$gen" --package --write >/dev/null || fail "restore missing Codex manifest"
+node "$gen" --package --check >/dev/null || fail "restored Codex manifest"
 
-codex_manifest="plugins/c-plan/.codex-plugin/plugin.json"
+codex_manifest="plugins/$PLUGIN/.codex-plugin/plugin.json"
 cp "$codex_manifest" "$codex_manifest.bak-native-test"
-node - <<'NODE'
+node - <<NODE
 const fs = require("fs");
-const path = "plugins/c-plan/.codex-plugin/plugin.json";
+const path = "$codex_manifest";
 const manifest = JSON.parse(fs.readFileSync(path, "utf8"));
 manifest.interface.defaultPrompt = ["stale fixture"];
 fs.writeFileSync(path, JSON.stringify(manifest, null, 2) + "\n");
 NODE
 expect_failure "drifted Codex manifest" "Codex plugin manifest" \
-  bash scripts/sync-plugin-views.sh --check c-plan
+  node "$gen" --package --check
 mv "$codex_manifest.bak-native-test" "$codex_manifest"
-bash scripts/sync-plugin-views.sh --check c-plan \
-  || fail "restored Codex manifest after drift"
+node "$gen" --package --check >/dev/null || fail "restored Codex manifest after drift"
 
 # Exact generated index content rejects entries that are not backed by a skill.
 node - <<'NODE'
@@ -322,8 +323,10 @@ expect_failure "extra Grok index entry" "Grok marketplace index" \
   bash scripts/sync-plugin-views.sh --check
 bash scripts/sync-plugin-views.sh || fail "restore extra Grok index entry"
 
-# Adding a real source leaf must update all discovery surfaces, preserve prose
-# outside the inventory, and remove the entry again when the leaf is retired.
+# Adding a real source leaf materializes it inside the one bundle and updates
+# the README inventory, but does not grow the marketplace catalogs (every
+# host still lists exactly the one "skill-craft" plugin entry); prose outside
+# the inventory is preserved, and removing the leaf again cleans it up.
 printf '\n<!-- outside-inventory-sentinel -->\n' >> README.md
 mkdir -p skills/catalog-fixture
 cat > skills/catalog-fixture/SKILL.md <<'SKILL'
@@ -336,18 +339,23 @@ license: MIT
 Fixture only.
 SKILL
 bash scripts/sync-plugin-views.sh || fail "new source leaf sync"
-node - <<'NODE'
+node - <<NODE
 const fs = require("fs");
+const plugin = "$PLUGIN";
 const readme = fs.readFileSync("README.md", "utf8");
-if (!readme.includes("[catalog-fixture](skills/catalog-fixture/SKILL.md) | 1.2.3 | Test \\| automatic")) {
+if (!readme.includes("[catalog-fixture](skills/catalog-fixture/SKILL.md) | 1.2.3 | Test \\\\| automatic")) {
   throw new Error("new skill/version/escaped description missing from README inventory");
 }
 if (!readme.includes("<!-- outside-inventory-sentinel -->")) throw new Error("outside prose lost");
 for (const host of ["cursor", "grok"]) {
-  const catalog = JSON.parse(fs.readFileSync(`.${host}-plugin/marketplace.json`, "utf8"));
-  if (catalog.plugins.filter(p => p.name === "catalog-fixture").length !== 1) {
-    throw new Error(`${host} new source leaf missing or duplicated`);
+  const catalog = JSON.parse(fs.readFileSync(\`.\${host}-plugin/marketplace.json\`, "utf8"));
+  const names = catalog.plugins.map((p) => p.name);
+  if (JSON.stringify(names) !== JSON.stringify([plugin])) {
+    throw new Error(\`\${host} catalog must still list only the one bundle plugin after a new leaf, got \${names}\`);
   }
+}
+if (!fs.existsSync(\`plugins/\${plugin}/skills/catalog-fixture/SKILL.md\`)) {
+  throw new Error("new leaf missing from the materialized bundle");
 }
 NODE
 
@@ -359,7 +367,7 @@ text = p.read_text()
 row = next(line for line in text.splitlines(True) if line.startswith("| [catalog-fixture]"))
 p.write_text(text.replace(row, row + row))
 PY
-bash scripts/sync-plugin-views.sh --check c-plan || fail "leaf check must ignore root inventory"
+node "$gen" --package --check >/dev/null || fail "package check must ignore root inventory"
 expect_failure "duplicate README row" "README inventory out of sync" \
   node scripts/skill-frontmatter-to-plugin-json.js --marketplaces --check
 bash scripts/sync-plugin-views.sh || fail "restore generated inventory"
@@ -377,9 +385,10 @@ printf '\n<!-- skill-craft:inventory:start -->\n' >> README.md
 expect_failure "duplicate inventory marker" "exactly one ordered" \
   node scripts/skill-frontmatter-to-plugin-json.js --marketplaces --write
 cp "$tmp/readme-before-drift" README.md
-rm -rf skills/catalog-fixture plugins/catalog-fixture
+rm -rf skills/catalog-fixture
 bash scripts/sync-plugin-views.sh || fail "removed source leaf sync"
 grep -q 'catalog-fixture' README.md && fail "removed leaf remains in README inventory"
+[[ ! -e "plugins/$PLUGIN/skills/catalog-fixture" ]] || fail "removed leaf remains in the materialized bundle"
 
 # An empty/incomplete checkout must not turn stale catalogs into a green check
 # or overwrite a previously good inventory/catalog with an empty release.
@@ -401,15 +410,17 @@ plugins_digest | cmp -s - "$tmp/plugins-before-empty" || fail "empty source chan
 rmdir skills
 mv "$tmp/held-skills" skills
 
-# Empty stale directories are ignored, but a package with contents and no
-# source SKILL.md is still an orphan.
-mkdir -p skills/_zz-empty plugins/_zz-empty
-bash scripts/sync-plugin-views.sh --check \
-  || fail "empty stale directories should not fail full check"
-mkdir -p plugins/_zz-orphan/.cursor-plugin
+# A stray plugins/<name> directory other than the one true bundle is always
+# rejected by a full check, packaged or not: this repo publishes exactly one
+# plugin (plugins/skill-craft), so any other entry is a leftover, not noise.
+mkdir -p "skills/_zz-empty"
+mkdir -p "plugins/_zz-orphan/.cursor-plugin"
 printf '%s\n' '{"name":"_zz-orphan","version":"0.0.0"}' \
-  >plugins/_zz-orphan/.cursor-plugin/plugin.json
-expect_failure "packaged orphan" "orphan" \
+  >"plugins/_zz-orphan/.cursor-plugin/plugin.json"
+expect_failure "stray plugins/<name> directory" "is not generated" \
   bash scripts/sync-plugin-views.sh --check
+bash scripts/sync-plugin-views.sh || fail "restore stray plugins directory"
+[[ ! -e "plugins/_zz-orphan" ]] || fail "full sync should have removed the stray plugins directory"
+rm -rf "skills/_zz-empty"
 
 printf 'native-marketplace-adapters.test.sh: PASS (generated host catalog and adapter drift checks)\n'

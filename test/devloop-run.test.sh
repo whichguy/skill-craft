@@ -33,7 +33,7 @@ fi
 # bootstrap command override, auto-installing uv invocation, or operator pin.
 # This intentionally precedes setup assertions: it is the regression that
 # proves the distributed payload is fail-closed before implementation changes.
-python3 - "$root/skills/devloop" "$packages/plugins/devloop/skills/devloop" <<'PY' || fail "M0 distributed payload contains provisioning behavior"
+python3 - "$root/skills/devloop" "$packages/plugins/skill-craft/skills/devloop" <<'PY' || fail "M0 distributed payload contains provisioning behavior"
 from pathlib import Path
 import sys
 
@@ -928,11 +928,11 @@ printf 'LAYER integration: D47c Claude/Codex explicit external transport preserv
 # explicit external transport remains usable.
 unset DEVLOOP_HOST DEVLOOP_TRANSPORT || true
 d47d_home="$tmpdir/d47d-home"
-d47d_plugin="$d47d_home/.codex/plugins/cache/test-marketplace/devloop"
+d47d_plugin="$d47d_home/.codex/plugins/cache/test-marketplace/skill-craft"
 d47d_engine="$tmpdir/d47d-minimal-engine"
 rm -rf "$d47d_home" "$d47d_engine"
 mkdir -p "$(dirname "$d47d_plugin")" "$d47d_engine/scripts"
-cp -R "$packages/plugins/devloop" "$d47d_plugin"
+cp -R "$packages/plugins/skill-craft" "$d47d_plugin"
 printf 'print("D47D_CLI")\n' >"$d47d_engine/scripts/devloop_cli.py"
 d47d_run="$d47d_plugin/skills/devloop/scripts/devloop-run"
 [[ -x "$d47d_run" ]] || fail "D47d Codex cache runtime missing: $d47d_run"

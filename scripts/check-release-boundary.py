@@ -6,6 +6,7 @@ Only a release commit (made by scripts/release.py, marked with a
 
   - plugins/**, the host catalogs and the README inventory block
   - the `version:` field of any skills/<leaf>/SKILL.md
+  - the `version` of the skill-craft plugin in catalog/skill-craft-plugin.json
   - CHANGELOG.md
 
 A release commit is checked out in a temporary worktree and its output must
@@ -27,6 +28,7 @@ Usage:
 
 import argparse
 import importlib.util
+import json
 import re
 import shutil
 import subprocess
@@ -44,6 +46,7 @@ INVENTORY = re.compile(r"<!-- skill-craft:inventory:start -->.*?<!-- skill-craft
 # The top-level `version:` of the front matter only; never a line past its closing ---.
 VERSION = re.compile(r"\A---\n(?:(?!---\n).*\n)*?version:[ \t]*(\S.*?)[ \t]*\n(?:.*\n)*?---\n")
 SKILL_CARD = re.compile(r"^skills/([^/]+)/SKILL\.md$")
+BUNDLE = "catalog/skill-craft-plugin.json"
 LEAF_SOURCE = re.compile(r"^(?:skills/([^/]+)/|agents/([^/]+)\.md$)")
 NOTE = re.compile(r"^changes/([^/]+)/[^/]+\.md$")
 TRAILER_LINE = re.compile(rf"^({RELEASE_TRAILER}|{NO_NOTE_TRAILER})\s*:", re.I | re.M)
@@ -89,6 +92,13 @@ def card_version(text):
     return match.group(1) if match else None
 
 
+def bundle_version(text):
+    try:
+        return json.loads(text).get("version") if text is not None else None
+    except (ValueError, AttributeError):
+        return "<unreadable>"
+
+
 def inventory(text):
     if text is None:
         return None
@@ -106,6 +116,9 @@ def release_output_changes(rev):
             found.append(path)
         elif path == "README.md" and inventory(show(parent, path)) != inventory(show(rev, path)):
             found.append("README.md (inventory block)")
+        elif path == BUNDLE and bundle_version(show(parent, path)) != bundle_version(show(rev, path)):
+            if show(parent, path) is not None and show(rev, path) is not None:
+                found.append(f"{path} (version)")
         elif SKILL_CARD.match(path) and card_version(show(parent, path)) != card_version(show(rev, path)):
             if show(parent, path) is not None and show(rev, path) is not None:
                 found.append(f"{path} (version)")

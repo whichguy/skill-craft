@@ -63,10 +63,11 @@ trap cleanup EXIT
 
 # ---------------------------------------------------------------------------
 # E1: --from fixture sample-skill → all 5 symlink hosts get sample-skill symlink
+# (--all: the default now only touches OpenCode/Hermes)
 # ---------------------------------------------------------------------------
 fresh_home e1
 fixture_abs="$(cd "$fixture_sample" && pwd -P)"
-out1="$("$install_sh" --from "$fixture_sample" 2>&1)" || fail "E1 --from failed: $out1"
+out1="$("$install_sh" --all --from "$fixture_sample" 2>&1)" || fail "E1 --from failed: $out1"
 assert_all_hosts "sample-skill" "$fixture_abs"
 assert_no_hosts "skill-interop"
 printf '%s\n' "$out1" | grep -q 'sample-skill' || fail "E1 stdout should mention sample-skill"
@@ -85,9 +86,10 @@ assert_no_hosts "nonexistent-skill-xyz"
 
 # ---------------------------------------------------------------------------
 # E3: --skill all installs repo skills (skill-interop), not fixture
+# (--all: the default now only touches OpenCode/Hermes)
 # ---------------------------------------------------------------------------
 fresh_home e3
-out3="$("$install_sh" --skill all 2>&1)" || fail "E3 --skill all failed: $out3"
+out3="$("$install_sh" --all --skill all 2>&1)" || fail "E3 --skill all failed: $out3"
 assert_all_hosts "skill-interop" "$source_interop"
 assert_no_hosts "sample-skill"
 
