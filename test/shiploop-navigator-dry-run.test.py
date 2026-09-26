@@ -20,6 +20,64 @@ import shiploop_protocol as protocol  # noqa: E402
 import shiploop_store as store  # noqa: E402
 
 
+# A Battleship-shaped pair of work items: W1 changes code and has tests; W2 only
+# adds navigation metadata (a Salesforce tab and app), as the run's corrective item did.
+CODE_ITEM = {"paths": ["force-app/main/default/lwc/fleetCommand/**"],
+             "test_commands": [{"command": "npm test -- --verbose", "suite": "focused", "ids": ["TC-9"]},
+                               {"command": "npm test", "suite": "regression"}]}
+METADATA_ITEM = {"paths": ["force-app/main/default/tabs/Fleet_command.tab-meta.xml",
+                           "force-app/main/default/applications/Fleet.app-meta.xml"],
+                 "test_commands": [], "test_commands_na": "Navigation metadata; no unit-testable behaviour."}
+
+
+def host_work_per_item(step_plans):
+    """Drive the pure navigator through the INNER loop; count what the host must do per item.
+
+    Returns {item: {"packets": producer results the host submitted, "reviews": Improve children}}.
+    Stages ShipLoop records as not applicable are not host work.
+    """
+    state = navigator.new_state("/simulation-only/repo", "Battleship-shaped measurement.")
+    counts = {}
+    for _ in range(400):
+        stage = navigator.current_stage(state)
+        if stage == "system-test-author":
+            return counts
+        action = navigator.current_action(state)["id"]
+        item = navigator._current_work_item(state)
+        if state.get("active_improve") is not None:
+            counts.setdefault(item, {"packets": 0, "reviews": 0})["reviews"] += 1
+            state = navigator.finish_improve(state, action, {"summary": "Synthetic review.",
+                                                              "review_refs": ["synthetic://r"],
+                                                              "check_refs": ["synthetic://c"]})
+            continue
+        result = {"outcome": "done", "summary": "Synthetic declaration; no work executed."}
+        if stage == "plan":
+            result["work_items"] = [{"id": item_id, "title": item_id} for item_id in step_plans]
+        if stage == "step-plan":
+            result.update(step_plans[item])
+        if item:
+            counts.setdefault(item, {"packets": 0, "reviews": 0})["packets"] += 1
+        state = navigator.apply(state, action, result)
+    raise AssertionError("did not reach the outer stages")
+
+
+class BattleshipMeasurementTests(unittest.TestCase):
+    """The run-feedback plan's measurement: a metadata-only item costs the host far less."""
+
+    def test_a_metadata_only_item_skips_its_seven_test_stages_and_the_test_spec_review(self):
+        counts = host_work_per_item({"W1": CODE_ITEM, "W2": METADATA_ITEM})
+        # W1 walks all 18 INNER stages; its step-plan and test-spec get Improve reviews.
+        self.assertEqual(counts["W1"], {"packets": 18, "reviews": 2})
+        # W2 loses test-spec, baseline, test-author, test-red, test-green, test-refine and
+        # regression (7 packets) and the test-spec review; the end-of-work review remains.
+        self.assertEqual(counts["W2"], {"packets": 11, "reviews": 2})
+
+    def test_without_proof_a_no_command_item_still_walks_every_stage(self):
+        code_without_commands = {"paths": ["src/**"], "test_commands": [],
+                                 "test_commands_na": "The model says there is nothing to test."}
+        counts = host_work_per_item({"W1": code_without_commands})
+        self.assertEqual(counts["W1"]["packets"], 18)
+
 class NavigatorDryRunTests(unittest.TestCase):
     def test_access_policy_is_reachable_through_actual_graph_and_recovery(self):
         # A routing/locator contract, not proof that a host follows auth advice.

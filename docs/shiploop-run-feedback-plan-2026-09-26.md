@@ -510,6 +510,21 @@ Each PR registers new suites in `test/suite_catalog.py` (group list and timing m
 runs its footprint suites locally and CI's quick tier on push. The release commit
 runs the full tier.
 
+## Measured (2026-09-26)
+
+`test/shiploop-navigator-dry-run.test.py` (BattleshipMeasurementTests) drives the
+real navigator through a code item with tests and a navigation-metadata item:
+
+| Item | Host packets | Improve reviews |
+|---|---|---|
+| W1: component code with Jest commands | 18 | 2 (step-plan, test-spec) |
+| W2: tab and app metadata, no test command | 11 | 2 (step-plan, end-of-work) |
+| A code item that merely claims "nothing to test" | 18 | — |
+
+The metadata item drops seven test stages and the test-spec review; without
+script proof nothing is dropped. The live comparison against the 140-revision
+Battleship run still needs a real run.
+
 ## Measuring it
 
 - **Dry run:** `test/shiploop-navigator-dry-run.test.py` gets a Battleship-shaped
