@@ -20,4 +20,7 @@ def write(state: Mapping[str, Any]) -> None:
                 continue
             path.parent.mkdir(parents=True, exist_ok=True)
             body = "R-1: Synthetic requirement.\n" if path.name == "spec.md" else "Synthetic knowledge.\n"
+            if path.name == "outcome.md":
+                body = "".join("## " + name + "\n\nSynthetic " + name.lower() + ".\n\n"
+                               for name in knowledge.LEARNING_SECTIONS)
             path.write_text("# " + path.stem + "\n\n" + body, encoding="utf-8")

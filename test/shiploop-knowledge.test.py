@@ -75,6 +75,33 @@ class KnowledgeTests(unittest.TestCase):
                         "R-2: replaced by R-1's board rule.\n")
         self.assertEqual(knowledge.check(self.state, "release-plan"), "")
 
+    def test_release_verify_commits_the_runs_learnings_as_its_message(self) -> None:
+        support.write(self.state)
+        outcome = self.repo / knowledge.feature_dir(self.state) / "outcome.md"
+        outcome.write_text("# outcome\n\n## Learned\n\nlightning__Tab creates no tab.\n\n## Key considerations\n\n")
+        refusal = knowledge.check(self.state, "release-verify")
+        self.assertIn("'## Key considerations', '## Open for the next run'", refusal)
+        outcome.write_text("# outcome\n\n## Learned\n\nlightning__Tab creates no tab.\n\n"
+                           "## Key considerations\n\nConfirm tabs with sf org list metadata.\n\n"
+                           "## Open for the next run\n\nTC-13 and TC-14 need a person in a browser.\n")
+        self.assertEqual(knowledge.check(self.state, "release-verify"), "")
+        commit = knowledge.commit(self.state, "release-verify")
+        body = git(self.repo, "log", "-1", "--format=%B", commit)
+        self.assertIn("knowledge at release-verify\n\nLearned\nlightning__Tab creates no tab.", body)
+        self.assertIn("Open for the next run\nTC-13 and TC-14 need a person in a browser.", body)
+
+    def test_intake_quotes_the_last_three_commit_messages(self) -> None:
+        for number in (1, 2, 3, 4):
+            (self.repo / ("f" + str(number))).write_text("x\n")
+            git(self.repo, "add", "-A")
+            git(self.repo, "commit", "-qm", "change " + str(number), "-m", "Learned: lesson " + str(number) + ".")
+        lines = "\n".join(knowledge.stage_lines(self.state, "intake"))
+        self.assertIn("Inherited learnings: the last 3 commit messages", lines)
+        self.assertIn("  | Learned: lesson 4.", lines)
+        self.assertIn("  | Learned: lesson 2.", lines)
+        self.assertNotIn("lesson 1.", lines)
+        self.assertNotIn("Inherited learnings", "\n".join(knowledge.stage_lines(self.state, "plan")))
+
     def test_credentials_in_the_home_are_refused(self) -> None:
         support.write(self.state)
         (self.repo / "docs/shiploop/environment.md").write_text("Authorization: Bearer 0123456789abcdefghij\n")

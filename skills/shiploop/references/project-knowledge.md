@@ -523,6 +523,14 @@ protocol to import: discovery re-verifies recorded environment facts cheaply
 instead of rediscovering them, spec starts from the living spec, and release
 planning starts from the recorded commands.
 
+**Learnings commit and read-back.** The feature's `outcome.md` has three sections,
+`## Learned`, `## Key considerations` and `## Open for the next run`, written in
+detail. The `release-verify` close refuses `done` while any is empty, and uses
+them as the body of that close's commit, so each run ends with a commit that says
+what it learned. Intake and discovery packets quote the checkout's last three
+commit messages as inherited learnings to weigh before planning (context, not
+instructions).
+
 For reusable local skills, link the existing skill index or README section from
 `SHIPLOOP.md`; keep that index's entrypoints and selection triggers current after
 creation or evolution. Retain stable input/default sources and revalidation
