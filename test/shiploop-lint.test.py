@@ -907,7 +907,8 @@ def complete(run: Path, state: dict, result: dict = DONE) -> str:
     if stage == "plan" and result.get("outcome") == "done" and "assumptions" not in result:
         result = dict(result, assumptions=[])
     if stage == "step-plan" and result.get("outcome") == "done" and "test_commands" not in result:
-        result = dict(result, test_commands=[], test_commands_na="Synthetic fixture; no test commands.",
+        result = dict(result, steps=[{"id": "S1", "task": "Make the planned change."}],
+                          test_commands=[], test_commands_na="Synthetic fixture; no test commands.",
                       paths=["src/**"])
     if stage in knowledge_support.knowledge.CLOSES:
         knowledge_support.write(state)
