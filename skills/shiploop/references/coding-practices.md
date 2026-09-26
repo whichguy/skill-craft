@@ -227,8 +227,8 @@ accounting store or scheduler.
 ## Localization
 
 Find the repository's existing message mechanism first (gettext, ICU
-MessageFormat, resource bundles, `i18next`, Apps Script or Salesforce custom
-labels) and put new user-facing text there with a stable key. Without one, do
+MessageFormat, resource bundles, `i18next`, or the platform's own label or
+translation system) and put new user-facing text there with a stable key. Without one, do
 not add a framework for a single message: keep messages whole sentences with
 named placeholders in one place, so a later catalog is a move, not a rewrite.
 Never build a sentence by concatenation or reuse one fragment across sentences;

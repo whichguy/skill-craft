@@ -131,8 +131,8 @@ to keep the selected product sections and test locators correlated across plans,
 results and Improve's own contract, without confusing package, repository and run files.
 For item planning, coding and verification, use the
 [coding decision guide](references/coding-guidance.md#select-guidance). Keep a compact
-accepted plan and load only applicable engineering practices and UI, Apps Script,
-Salesforce, Python or Bash cards. Retain decision and check locators through the
+accepted plan and load only the applicable engineering practices and the platform
+cards the guide lists for the surfaces this work touches. Retain decision and check locators through the
 existing result/review notes; the guide does not change stage order or edit authority.
 Use [house style](references/house-style.md) to extract the repository's evidenced
 coding conventions at discovery, carry each item's nearest exemplars as a match
