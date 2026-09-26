@@ -29,3 +29,26 @@ detailed message; read the last three commit messages before the next run or cha
 - Harness lessons: grade run state wherever ShipLoop puts it; `node --test` passed with zero tests
   until the check required a passing test; Grok logs tool output as a byte array plus
   `output_for_prompt` (measure the latter).
+
+## Run 2 — 2026-09-26 — battleship, Grok grok-4.7 medium, skill-craft 1.0.1 (ShipLoop 0.33.1, b7653ed)
+
+- Outcome: the Grok session ended after 158 turns and 2,662 s ($11.36 reported), stop reason `cancelled`,
+  with no error. ShipLoop was active at revision 25, last accepted stage test-green; 15 stages accepted,
+  19 still ahead. `work/` stayed empty; ShipLoop's worktree passes all four checks.
+- Root cause of the stop: on turn 158 the model submitted test-refine's `complete` with its output redirected
+  to /tmp. Since 153160e, `complete` on a test stage reruns every recorded test command, so it ran long enough
+  for Grok to move it to a background task. The model then ended its turn to wait; in headless mode a finished
+  turn ends the session, killing the callback. The keepalive hooks never ran in this session (no decision was
+  written to the isolated profile's keepalive state), so nothing refused that turn end.
+- Timeline: preparation 26.7 min (spec 10.1 min, research 4.2, plan 4.0, test-strategy 3.4); the item's stages
+  through test-green 15.2 min. Run 1 reached select-work 6 minutes sooner.
+- Improve: 10 children. Spec's took six actions, one finding per iteration (d1c61a5, 5282d88, 7f0f1e3,
+  4e73e79) before two trivial passes; test-strategy and step-plan stopped on an unchanged first pass.
+- The spec review found a real contradiction (a shot count versus rejected shots after the win) and resolved it
+  by answering shots after the win with HTTP 400 `{error}` and no result or gameOver. The reviewer argues that
+  replaces response fields the request names; the product is otherwise consistent with its own spec.
+- Truncation: 1 truncated output (the first `next` packet, 19.6 of 26.2 KB), down from 7 in run 1. The model
+  still redirected packets to /tmp files and grepped the skill's Python for result shapes.
+- Context reached 336 K tokens per call (34.5 M cached tokens), the same range as run 1.
+- Harness: the full-game check was stricter than the request. It now fails only when a shot after the game is
+  over reports gameOver false (run 1's defect, exit 5); rejecting the shot passes (run 2's design).
