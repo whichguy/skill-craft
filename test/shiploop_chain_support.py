@@ -393,7 +393,10 @@ class ChainFixture(unittest.TestCase):
 
     def parent_complete(self, outcome="done", *, ok=False):
         p = self.run / "inbox" / (self.action + ".md")
-        store.write_record(p, {"outcome": outcome, "summary": "Synthetic chain integration complete"})
+        result = {"outcome": outcome, "summary": "Synthetic chain integration complete"}
+        if outcome == "blocked":
+            result["blocked_by"] = "external"  # every blocked result names who can unblock it
+        store.write_record(p, result)
         result = subprocess.run([sys.executable, "-B", str(CLI), "complete", "--run-dir", str(self.run),
                                  "--action", self.action, "--result", str(p)], text=True, capture_output=True)
         self.assertEqual(result.returncode == 0, ok, result.stdout + result.stderr)
