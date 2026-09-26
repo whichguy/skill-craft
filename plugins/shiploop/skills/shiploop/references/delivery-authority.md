@@ -10,11 +10,11 @@ does not itself grant a write.
 ## Ask at the first concrete boundary
 
 **The request is the grant when it names the target.** When the user's request
-asks for the result to be delivered somewhere ("deploy it to my Salesforce
-developer org", "publish it to my staging site"), that request authorizes this
+asks for the result to be delivered somewhere ("deploy it to my development
+environment", "publish it to my staging site"), that request authorizes this
 run to make the non-destructive delivery of the project's own changes to that
 target. At discovery, resolve the named target to exactly one concrete
-target/account (for example the connected org behind the default alias) and
+target/account (for example the environment the deploy tool is already configured and signed in for) and
 record the resolved grant in the discovery evidence: target, account ID, the
 project's own changes only, no destructive changes to unrelated resources, this
 run only. Do not ask the user to confirm it, do not plan a work item to record it,

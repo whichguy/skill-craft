@@ -4,6 +4,13 @@ Written by scripts/release.py.
 
 ## 2026-09-26
 
+### shiploop 0.32.1
+
+- Core guidance no longer names a specific platform. SKILL.md points at the
+  platform cards the coding guide lists instead of hard-coding them, and the i18n
+  and delivery-authority examples use neutral wording. Platform detail stays in
+  `references/platforms/`.
+
 ### shiploop 0.32.0
 
 - A blocked result must now say who can unblock it: `blocked_by` is `user` (a
