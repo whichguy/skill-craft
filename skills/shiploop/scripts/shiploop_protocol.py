@@ -177,6 +177,38 @@ def workspace_completion_guard(root, previous, updated):
             raise ProtocolError(str(exc)) from exc
 
 
+CALLBACK_ATTEMPTS = "callback-attempts"
+CALLBACK_VERBS = frozenset({"complete", "improve-bind", "improve-complete", "improve-reconcile"})
+
+
+def _callback_attempts(root: Path) -> int:
+    try:
+        return int((root / CALLBACK_ATTEMPTS).read_text(encoding="utf-8").strip() or 0)
+    except (OSError, ValueError):
+        return 0
+
+
+def _count_callback_attempt(root: Path) -> None:
+    """Record one callback attempt, accepted or refused; state is untouched."""
+    try:
+        (root / CALLBACK_ATTEMPTS).write_text(str(_callback_attempts(root) + 1) + "\n", encoding="utf-8")
+    except OSError:
+        pass
+
+
+def _improve_pass(state) -> int:
+    """The active Improve review's pass number from its runtime receipt; 0 when unknown."""
+    child = state.get("active_improve")
+    if not isinstance(child, dict) or not child.get("skill"):
+        return 0
+    try:
+        import shiploop_standalone_improve as standalone
+        packet = json.loads(standalone.receipt_path(child).read_text(encoding="utf-8"))
+        return int((packet.get("progress") or {}).get("action_number") or 0)
+    except Exception:  # noqa: BLE001 - a read-only status hint must never fail
+        return 0
+
+
 def hook_status(core, argv):
     """Answer whether a run can still move, for keepalive hooks and the driver.
 
@@ -209,10 +241,12 @@ def hook_status(core, argv):
         "repo": state["repo"],
         "status": state["status"],
         "status_reason": state.get("status_reason", ""),
-        "status_reason": state.get("status_reason", ""),
         "stage": stage,
         "action": (action or {}).get("id"),
         "revision": state["revision"],
+        # Keepalive progress: the revision, callback attempts (a refused callback is
+        # still work) and the active Improve review's pass count.
+        "progress": f"{state['revision']}.{_callback_attempts(root)}.{_improve_pass(state)}",
         "next": shlex.join(["python3", str(core.PACKAGE_ROOT / "scripts" / "shiploop"),
                             "next", "--run-dir", str(root)]),
     }))
@@ -314,6 +348,8 @@ def main(core, argv=None):
         return 2
     try:
         with core.run_lock(root):
+            if args.command in CALLBACK_VERBS and (root / "state.md").exists():
+                _count_callback_attempt(root)
             if (root / "state.md").exists():
                 existing = core.load_state(root)
                 # A run saved by a removed protocol or mode is refused before
@@ -392,6 +428,8 @@ def main(core, argv=None):
         print(f"ShipLoop navigator: {exc}", file=sys.stderr)
         print("Read the current packet with next; the rejected request did not advance the graph.",
               file=sys.stderr)
+        print("The run is still active: fix the result and resubmit in this turn; do not end the "
+              "turn over a refused callback.", file=sys.stderr)
         return 2
     except (ProtocolError, store.StorageError, OSError, KeyError, ValueError, TypeError) as exc:
         print(f"ShipLoop blocked: {exc}", file=sys.stderr)

@@ -301,11 +301,37 @@ def observe(host: str, payload: Mapping[str, Any]) -> dict | None:
     return binding
 
 
-def _continue_reason(status: Mapping[str, Any]) -> str:
-    return (f"ShipLoop run {status['run_dir']} is still active at stage {status['stage']} "
+# Hosts that force a turn to end after this many stop-hook continuations.
+CONTINUATION_CAPS = {"grok": 8}
+# From this many continuations before a cap, the reason asks harder not to stop.
+CAP_WARNING_MARGIN = 2
+
+
+def _continue_reason(status: Mapping[str, Any], host: str = "", turn_blocks: int = 0,
+                     waiting: bool = False) -> str:
+    text = (f"ShipLoop run {status['run_dir']} is still active at stage {status['stage']} "
             f"(revision {status['revision']}). Do not end the turn: run `{status['next']}` "
             "and follow the packet it prints. Only an explicit user stop or pause ends the run; "
             "then run the packet's pause command.")
+    if waiting:
+        text += (" A background task is still running: wait for it in this turn (poll its "
+                 "output), then continue the packet; do not end the turn to wait.")
+    cap = CONTINUATION_CAPS.get(host)
+    if cap and turn_blocks >= cap - CAP_WARNING_MARGIN:
+        text += (f" This is continuation {turn_blocks} of {host}'s {cap} per turn; the host ends "
+                 "the turn after that. Do not end the turn to report progress: keep following "
+                 "packets until the run is done or needs the user.")
+    return text
+
+
+def _turn_continued(payload: Mapping[str, Any]) -> bool:
+    """True when this stop follows a stop-hook continuation within the same turn."""
+    return bool(payload.get("stopHookActive") or payload.get("stop_hook_active"))
+
+
+def _background_tasks(payload: Mapping[str, Any]) -> bool:
+    tasks = payload.get("backgroundTasks") or payload.get("background_tasks")
+    return bool(tasks)
 
 
 def stop(host: str, payload: Mapping[str, Any]) -> dict:
@@ -325,7 +351,9 @@ def stop(host: str, payload: Mapping[str, Any]) -> dict:
         if isinstance(last, dict) and time.time() - last.get("at", 0) < DUPLICATE_WINDOW_SECONDS:
             # A second registration of this host for the same stop.
             return {key: value for key, value in last.items() if key != "at"}
-        decision = _decide(host, session, binding)
+        if not _turn_continued(payload):
+            binding["turn_blocks"] = 0
+        decision = _decide(host, session, binding, waiting=_background_tasks(payload))
         if decision.pop("drop", False):
             path.unlink(missing_ok=True)
         else:
@@ -337,7 +365,7 @@ def stop(host: str, payload: Mapping[str, Any]) -> dict:
     return decision
 
 
-def _decide(host: str, session: str, binding: dict) -> dict:
+def _decide(host: str, session: str, binding: dict, *, waiting: bool = False) -> dict:
     status = run_status(binding["run_dir"])
     if status.get("error") or status.get("run_id") != binding["run_id"]:
         return {"decision": "allow", "drop": True,
@@ -347,13 +375,23 @@ def _decide(host: str, session: str, binding: dict) -> dict:
         return {"decision": "allow", "drop": True,
                 "why": f"run is {status['status']}" + (f": {reason}" if reason else "")}
     if not claim_owner(binding["run_dir"], host, session):
-        return {"decision": "allow", "why": "another session owns this run"}
-    if binding.get("last_block_rev") == status["revision"]:
+        return {"decision": "allow", "why": "another session owns this run",
+                "notice": ("ShipLoop keepalive: another session owns this run, so this one is not "
+                           "kept going. Continue the run from that session, or close it and run: "
+                           + status["next"])}
+    # Revision, callback attempts and Improve review passes all count as progress.
+    progress = status.get("progress", str(status["revision"]))
+    if binding.get("last_block_progress") == progress and not waiting:
         return {"decision": "allow", "why": "no progress",
                 "notice": ("ShipLoop keepalive: the run made no progress since the last "
                            "continuation, so the turn may end. Resume with: " + status["next"])}
-    binding["last_block_rev"] = status["revision"]
-    return {"decision": "continue", "reason": _continue_reason(status)}
+    binding["last_block_progress"] = progress
+    binding["turn_blocks"] = int(binding.get("turn_blocks", 0)) + 1
+    cap = CONTINUATION_CAPS.get(host)
+    why = "run can move" + (" (background task running)" if waiting else "")
+    why += f"; continuation {binding['turn_blocks']}" + (f"/{cap}" if cap else "")
+    return {"decision": "continue", "why": why,
+            "reason": _continue_reason(status, host, binding["turn_blocks"], waiting)}
 
 
 def _log_decision(host: str, payload: Mapping[str, Any], decision: Mapping[str, Any]) -> None:

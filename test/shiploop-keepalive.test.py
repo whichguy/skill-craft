@@ -138,7 +138,7 @@ class HookDecisionTests(KeepaliveTestCase):
             self.hook("stop", "claude", self.payload("claude", "stop"))
         log = [json.loads(line) for line in (self.temp / "state" / "decisions.log").read_text().splitlines()]
         self.assertEqual([(entry["decision"], entry["why"]) for entry in log],
-                         [("continue", "run can move"), ("allow", "run is paused: user asked")])
+                         [("continue", "run can move; continuation 1"), ("allow", "run is paused: user asked")])
         self.assertNotIn("session-1", json.dumps(log))
 
     def test_a_second_registration_in_the_same_moment_repeats_the_decision(self) -> None:
@@ -194,6 +194,69 @@ class HookDecisionTests(KeepaliveTestCase):
         self.assertEqual(json.loads(result.stdout)["decision"], "block")
 
 
+class ProgressAndTurnTests(KeepaliveTestCase):
+    """What counts as progress, and how continuations are counted within a turn."""
+
+    def grok_stop(self, active: bool, **extra) -> dict:
+        payload = {**self.payload("grok", "stop", "turn-1"), "stopHookActive": active, **extra}
+        with mock.patch.object(keepalive, "DUPLICATE_WINDOW_SECONDS", 0):
+            return keepalive.stop("grok", payload)
+
+    def bind_grok(self) -> None:
+        self.hook("observe", "grok", self.payload("grok", "observe", "turn-1"))
+
+    def test_a_refused_callback_counts_as_progress(self) -> None:
+        self.bind_grok()
+        self.assertEqual(self.grok_stop(False)["decision"], "continue")
+        refused = shiploop("complete", "--run-dir", str(self.run_dir), "--action", "nav-unknown",
+                           "--result", str(self.run_dir / "inbox" / "nav-unknown.md"))
+        self.assertNotEqual(refused.returncode, 0)
+        self.assertIn("do not end the turn over a refused callback", refused.stderr)
+        self.assertEqual(self.grok_stop(True)["decision"], "continue")
+        self.assertEqual(self.grok_stop(True)["decision"], "allow")
+
+    def test_a_running_background_task_is_a_wait_not_a_stop(self) -> None:
+        self.bind_grok()
+        self.grok_stop(False)
+        decision = self.grok_stop(True, backgroundTasks=[{"id": "deploy"}])
+        self.assertEqual(decision["decision"], "continue")
+        self.assertIn("background task is still running", decision["reason"])
+
+    def test_grok_continuations_are_counted_per_turn_and_warned_near_the_cap(self) -> None:
+        self.bind_grok()
+        reasons = []
+        for index in range(7):
+            (self.run_dir / "callback-attempts").write_text(str(index + 1))
+            decision = self.grok_stop(index > 0)
+            self.assertEqual(decision["decision"], "continue")
+            reasons.append(decision["reason"])
+        self.assertNotIn("of grok's 8", reasons[4])
+        self.assertIn("continuation 6 of grok's 8", reasons[5])
+        (self.run_dir / "callback-attempts").write_text("99")
+        fresh = self.grok_stop(False)
+        self.assertIn("continuation 1/8", fresh["why"])
+
+    def test_a_second_session_is_told_who_owns_the_run(self) -> None:
+        self.bind_grok()
+        self.grok_stop(False)
+        self.hook("observe", "grok", self.payload("grok", "observe", "turn-2"))
+        with mock.patch.object(keepalive, "DUPLICATE_WINDOW_SECONDS", 0):
+            decision = keepalive.stop("grok", self.payload("grok", "stop", "turn-2"))
+        self.assertEqual(decision["decision"], "allow")
+        self.assertIn("another session owns this run", decision["notice"])
+
+    def test_an_improve_review_pass_is_part_of_progress(self) -> None:
+        sys.path.insert(0, str(SCRIPTS))
+        import shiploop_protocol as protocol
+        receipt = self.temp / "packet.json"
+        receipt.write_text(json.dumps({"progress": {"action_number": 3}}))
+        import shiploop_standalone_improve as standalone
+        with mock.patch.object(standalone, "receipt_path", return_value=receipt):
+            self.assertEqual(protocol._improve_pass({"active_improve": {"skill": "card"}}), 3)
+        self.assertEqual(protocol._improve_pass({"active_improve": None}), 0)
+        self.assertIn(".", self.status()["progress"])
+
+
 class ConcurrencyTests(KeepaliveTestCase):
     """Several agents on one run: only the owner is kept alive."""
 
@@ -206,8 +269,9 @@ class ConcurrencyTests(KeepaliveTestCase):
     def test_second_session_on_a_run_is_not_kept_alive(self) -> None:
         self.bind("claude", "owner")
         self.bind("codex", "worker")  # e.g. a chain worker or a second terminal
-        self.assertEqual(self.stop_decision("codex", "worker"),
-                         {"decision": "allow", "why": "another session owns this run"})
+        worker = self.stop_decision("codex", "worker")
+        self.assertEqual((worker["decision"], worker["why"]), ("allow", "another session owns this run"))
+        self.assertIn("another session owns this run", worker["notice"])
         self.assertEqual(self.stop_decision("claude", "owner")["decision"], "continue")
 
     def test_ownership_passes_on_when_the_owners_turn_ends(self) -> None:
@@ -244,7 +308,8 @@ class ConcurrencyTests(KeepaliveTestCase):
         with ThreadPoolExecutor(max_workers=12) as pool:
             replies = list(pool.map(lambda _: keepalive.run_hook("stop", "claude", payload), range(12)))
         self.assertEqual({json.loads(reply)["decision"] for reply in replies}, {"block"})
-        self.assertEqual(keepalive.load_binding("claude", "owner")["last_block_rev"], 0)
+        self.assertEqual(keepalive.load_binding("claude", "owner")["last_block_progress"],
+                         self.status()["progress"])
         self.assertFalse((self.temp / "state" / "errors.log").exists())
 
     def test_parallel_sessions_elect_exactly_one_owner(self) -> None:
