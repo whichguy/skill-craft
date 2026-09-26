@@ -652,9 +652,8 @@ file cold with no run history. Every rule serves that reader.
    chose, with the narrowest visibility a present consumer needs. A new name
    must not collide with or shadow one in the shared space of any runtime it
    runs in (such as globals, an import path, a shell or a platform org) or in a
-   library the code uses. No new generic
-   bucket such as `utils`. Stored data follows the planned schema and storage
-   policy.
+   library the code uses. No new generic bucket such as `utils`. Stored data
+   follows the planned schema and storage policy.
 """
 
 
