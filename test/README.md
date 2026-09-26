@@ -29,7 +29,12 @@ Pull requests and ordinary `main` pushes run the quick tier: the fixed baseline
 plus the suites that match the changed files (a changed suite runs itself; a
 changed file selects the suites named after it, so `shiploop_chain.py` selects
 the `shiploop-chain*` suites; a change under `skills/<leaf>/` selects the core
-suites named after the leaf). Suites measured above two minutes and the E2E
+suites named after the leaf; a changed file under `skills/`, `agents/`,
+`scripts/` or `test/` also selects the suites whose source, or a test helper
+they import, names it, so `shiploop_navigator.py` and
+`test/shiploop_*_support.py` reach their consumers; ShipLoop's `SKILL.md`,
+`references/` and `commands/` select its packet and guidance suites; and the
+`scripts/shiploop` entrypoint selects every light ShipLoop suite). Suites measured above two minutes and the E2E
 apparatus never run in quick. A pull request diffs from its merge base and a push
 from the previous `main` head. Only a release commit (its `Skill-Craft-Release:`
 trailer) runs the full tier. Manual dispatch offers `quick` (the last commit's

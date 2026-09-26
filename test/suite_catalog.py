@@ -9,7 +9,8 @@ shards answer the same question without maintaining parallel lists.
 from __future__ import annotations
 
 from dataclasses import dataclass
-from pathlib import PurePosixPath
+from functools import cache
+from pathlib import Path, PurePosixPath
 import re
 from typing import Iterable
 
@@ -396,6 +397,62 @@ def _prefixed(stem: str, suites: Iterable[Suite]) -> set[str]:
 # File names that say nothing about which suite covers them.
 _GENERIC_STEMS = frozenset({"skill", "readme", "changelog", "license", "--init--"})
 
+_ROOT = Path(__file__).resolve().parents[1]
+
+# ShipLoop's prompt surface: the skill card, its references and its commands
+# reach models through packets that these suites render and check.
+_SHIPLOOP_PROMPT_IDS = (
+    "shiploop-v3-guidance",
+    "shiploop-reference-routing",
+    "shiploop-delegation",
+    "shiploop-packet-bounds",
+    "shiploop-navigator-dry-run",
+)
+_SHIPLOOP_PROMPT_PREFIXES = ("skills/shiploop/references/", "skills/shiploop/commands/")
+
+# The ShipLoop entrypoint every CLI suite runs through; no file name finds them.
+_SHIPLOOP_WIDE_PATHS = frozenset({"skills/shiploop/scripts/shiploop"})
+
+
+_REFERENCE_PREFIXES = ("skills/", "agents/", "scripts/", "test/")
+
+
+@cache
+def _suite_sources() -> dict[str, str]:
+    """Each suite's source text plus the test helper modules it imports by name."""
+
+    helpers = {
+        path.stem: path.read_text(errors="ignore")
+        for path in (_ROOT / "test").glob("*.py")
+        if not path.name.endswith(".test.py")
+    }
+    sources = {}
+    for suite in SUITES:
+        path = _ROOT / suite.path
+        text = path.read_text(errors="ignore") if path.is_file() else ""
+        text += "".join(body for stem, body in helpers.items()
+                        if re.search(rf"\b{re.escape(stem)}\b", text))
+        sources[suite.id] = text
+    return sources
+
+
+def _referencing(path: str) -> set[str]:
+    """Suites whose source names the changed file (a module name or a file name).
+
+    Only code paths qualify; a document's name (docs/notes.md) says nothing
+    about coverage.  Names without a separator (run.py, the bare shiploop
+    entrypoint) are too common to mean anything and select nothing here.
+    """
+
+    if not path.startswith(_REFERENCE_PREFIXES):
+        return set()
+    name = PurePosixPath(path).name
+    token = PurePosixPath(name).stem if name.endswith(".py") else name
+    if _stem(path) in _GENERIC_STEMS or not re.search(r"[_.-]", token):
+        return set()
+    pattern = re.compile(rf"(?<![\w.-]){re.escape(token)}(?![\w-])")
+    return {identifier for identifier, text in _suite_sources().items() if pattern.search(text)}
+
 
 def targeted(changed: Iterable[str]) -> set[str]:
     """Suite ids that a set of changed repository paths points at.
@@ -404,7 +461,11 @@ def targeted(changed: Iterable[str]) -> set[str]:
     it (shiploop_chain.py selects the shiploop-chain suites).  A change under
     skills/<leaf>/, agents/<leaf>.md or changes/<leaf>/ selects the core suites
     named after the leaf; ShipLoop's own suites are chosen by file name only,
-    since its leaf name prefixes every one of them.
+    since its leaf name prefixes every one of them.  A changed file also
+    selects the suites whose source names it, so a shared module such as
+    shiploop_navigator.py or a test helper reaches its consumers.  ShipLoop's
+    prompt surface selects the packet suites, and its entrypoint selects
+    every ShipLoop suite.
     """
 
     ids: set[str] = set()
@@ -424,6 +485,12 @@ def targeted(changed: Iterable[str]) -> set[str]:
             ids.update(_prefixed(stem, SUITES))
         if leaf:
             ids.update(_prefixed(leaf, (suite for suite in SUITES if suite.family != "shiploop")))
+        if path not in {suite.path for suite in SUITES}:
+            ids.update(_referencing(path))
+        if path == "skills/shiploop/SKILL.md" or path.startswith(_SHIPLOOP_PROMPT_PREFIXES):
+            ids.update(_SHIPLOOP_PROMPT_IDS)
+        if path in _SHIPLOOP_WIDE_PATHS:
+            ids.update(suite.id for suite in SHIPLOOP_SUITES)
     return ids
 
 

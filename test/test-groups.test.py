@@ -142,12 +142,32 @@ class TestGroupTests(unittest.TestCase):
             "install.sh": {"install-targets", "install-arbitrary-skill", "install-status-uninstall"},
             "test/shiploop-lint.test.py": {"shiploop-lint"},
             "docs/notes.md": set(),
-            "skills/shiploop/SKILL.md": set(),
+            "skills/shiploop/SKILL.md": {"shiploop-v3-guidance", "shiploop-reference-routing",
+                                         "shiploop-delegation"},
+            "test/shiploop_consumer_delivery_support.py": {"shiploop-consumer-delivery"},
         }
         for path, expected in cases.items():
             with self.subTest(path=path):
                 extra = {suite.id for suite in suite_catalog.quick((path,))} - baseline
                 self.assertEqual(extra, expected)
+
+    def test_quick_reaches_the_consumers_of_shared_shiploop_sources(self) -> None:
+        # Suites named after nothing in these paths still exercise them; a
+        # name match alone left prompt and navigator edits at the baseline.
+        cases = {
+            "skills/shiploop/scripts/shiploop_navigator.py": {"shiploop-lint", "shiploop-delegation",
+                                                              "shiploop-actual-improve-cli"},
+            "skills/shiploop/scripts/shiploop_navigator_v3_prompts.py": {"shiploop-v3-guidance",
+                                                                         "shiploop-quality"},
+            "skills/shiploop/references/research-loop.md": {"shiploop-v3-guidance",
+                                                            "shiploop-reference-routing"},
+            "skills/shiploop/commands/shiploop.md": {"shiploop-delegation"},
+            "skills/shiploop/scripts/shiploop": {"shiploop-store", "shiploop-privacy",
+                                                 "shiploop-keepalive"},
+        }
+        for path, expected in cases.items():
+            with self.subTest(path=path):
+                self.assertLessEqual(expected, {suite.id for suite in suite_catalog.quick((path,))})
 
     def test_quick_never_runs_heavy_suites_or_the_apparatus(self) -> None:
         everything = tuple(suite.path for suite in suite_catalog.SUITES)
