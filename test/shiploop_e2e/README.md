@@ -57,6 +57,14 @@ retried or resumed.
 
 ### Isolation
 
+- **Keepalive and resume (Grok).** Headless Grok never runs plugin hooks and reads
+  `~/.grok/hooks` only when a session starts, so the harness installs ShipLoop's own
+  keepalive hook into the isolated profile before launch (`shiploop-hook install --host
+  grok`) and reports the keepalive's decisions in `result.json`. A headless session
+  also ends whenever the model ends its turn; when that happens while ShipLoop's run is
+  still `active`, the harness resumes the same session (`grok --resume`, default 3
+  times, `--max-resumes`) with a prompt to run `shiploop next`, within the timeout.
+  Turns and cost add up across sessions.
 - **Grok** runs with a throwaway `HOME`. Its `.grok` holds only a symlink to
   your `~/.grok/auth.json` and the plugin under test, so your Grok plugins, the
   running Grok leader and everything Grok inherits from `~/.claude` stay out.

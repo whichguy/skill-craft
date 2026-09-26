@@ -15,6 +15,7 @@ from pathlib import Path
 import re
 import signal
 import subprocess
+import sys
 import time
 
 # The user's Grok sign-in; the only file an isolated Grok HOME links to.
@@ -56,14 +57,44 @@ def grok_install(env: dict, plugin_dir: Path, grok_bin: str = "grok") -> dict:
             "loaded": [f"{name} {path}" for name, path in loaded], "wanted": wanted}
 
 
+def grok_keepalive(env: dict, plugin_dir: Path) -> dict:
+    """Install ShipLoop's global Grok keepalive hooks before the session starts.
+
+    Headless Grok never runs plugin hooks and loads ~/.grok/hooks only at session
+    start, so the hooks ShipLoop self-installs mid-run would protect no session of
+    this run. Installing them first is what a user's second session gets.
+    """
+    installer = plugin_dir / "skills" / "shiploop" / "scripts" / "shiploop-hook"
+    done = subprocess.run([sys.executable, str(installer), "install", "--host", "grok"], env=env,
+                          capture_output=True, text=True)
+    return {"installed": done.returncode == 0, "output": (done.stdout + done.stderr).strip()[-400:]}
+
+
+def keepalive_decisions(home: Path) -> dict:
+    """What the keepalive decided in an isolated profile: proof its hooks ran."""
+    log = home / ".local" / "state" / "shiploop" / "keepalive" / "decisions.log"
+    counts: dict = {}
+    if log.is_file():
+        for line in log.read_text(errors="replace").splitlines():
+            try:
+                decision = json.loads(line).get("decision", "?")
+            except ValueError:
+                continue
+            counts[decision] = counts.get(decision, 0) + 1
+    return counts
+
+
 def argv_for(host: str, *, prompt: str, prompt_file: Path, cwd: Path, model: str, effort: str | None,
              permission_mode: str, max_turns: int, max_budget_usd: float = 10.0,
-             plugin_dir: Path | None = None, grok_bin: str = "grok", claude_bin: str = "claude") -> list[str]:
+             plugin_dir: Path | None = None, resume: str | None = None,
+             grok_bin: str = "grok", claude_bin: str = "claude") -> list[str]:
     if host == "grok":
         prompt_file.write_text(prompt)
         argv = [grok_bin, "--cwd", str(cwd), "--prompt-file", str(prompt_file), "--verbatim",
                 "--output-format", "streaming-json", "--model", model, "--max-turns", str(max_turns),
                 "--permission-mode", permission_mode, "--no-auto-update"]
+        if resume:
+            argv += ["--resume", resume]
         return argv + (["--reasoning-effort", effort] if effort else [])
     argv = [claude_bin, "-p", prompt, "--model", model, "--max-turns", str(max_turns),
             "--max-budget-usd", str(max_budget_usd), "--permission-mode", permission_mode,

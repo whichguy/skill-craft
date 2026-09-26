@@ -134,14 +134,17 @@ class LiveView:
         self.emit(f"tool  {name}: " + " ".join(str(detail).split())[:140])
 
 
-def launch(argv: list[str], work: Path, out: Path, env: dict, timeout: int, watch: bool) -> dict:
-    # The skill must start from a directory with nothing in it.
-    leftover = sorted(p.name for p in work.iterdir())
-    if leftover:
-        raise SystemExit(f"working directory is not empty: {leftover}")
+def launch(argv: list[str], work: Path, out: Path, env: dict, timeout: int, watch: bool,
+           first: bool = True) -> dict:
+    if first:
+        # The skill must start from a directory with nothing in it.
+        leftover = sorted(p.name for p in work.iterdir())
+        if leftover:
+            raise SystemExit(f"working directory is not empty: {leftover}")
     start = time.time()
     view = LiveView(start, watch)
-    with (out / "events.jsonl").open("wb") as events, (out / "stderr.txt").open("wb") as stderr:
+    mode = "wb" if first else "ab"  # a resumed session appends to the same streams
+    with (out / "events.jsonl").open(mode) as events, (out / "stderr.txt").open(mode) as stderr:
         proc = subprocess.Popen(argv, cwd=work, stdin=subprocess.DEVNULL, stdout=subprocess.PIPE,
                                 stderr=stderr, env=env, start_new_session=True)
 
@@ -190,9 +193,38 @@ def summarize_events(path: Path) -> dict:
         elif kind == "available_commands" and not seen["commands"]:  # Grok
             seen["commands"] = [c for c in event.get("commands") or [] if isinstance(c, str)]
         elif kind in ("result", "end"):
-            seen.update(num_turns=event.get("num_turns"), cost_usd=event.get("total_cost_usd"),
-                        stop=event.get("subtype") or event.get("stopReason"))
+            seen.setdefault("sessions", []).append(
+                {"num_turns": event.get("num_turns"), "cost_usd": event.get("total_cost_usd"),
+                 "stop": event.get("subtype") or event.get("stopReason")})
+            seen.update(stop=event.get("subtype") or event.get("stopReason"))
+    ended = seen.get("sessions") or []
+    if ended:
+        # Each host session reports its own totals; a resumed run adds them up.
+        seen["num_turns"] = sum(s["num_turns"] or 0 for s in ended)
+        seen["cost_usd"] = round(sum(s["cost_usd"] or 0 for s in ended), 4)
     return seen
+
+
+def last_session_id(events_path: Path) -> str | None:
+    """The host session to resume: the last session id the event stream carried."""
+    found = None
+    for line in events_path.read_text(errors="replace").splitlines():
+        try:
+            event = json.loads(line)
+        except ValueError:
+            continue
+        if isinstance(event, dict) and isinstance(event.get("sessionId"), str):
+            found = event["sessionId"]
+    return found
+
+
+def resume_prompt(out: Path, run_dir: str) -> str:
+    cli = next((out / "home" / ".grok" / "installed-plugins").glob("skill-craft-*/skills/shiploop/scripts/shiploop"),
+               None)
+    command = f'python3 "{cli}" next --run-dir "{run_dir}"' if cli else f'shiploop next --run-dir "{run_dir}"'
+    return ("This session ended while the ShipLoop run was still active. Continue it now: run "
+            f"`{command}` and follow the packet it prints, to the end of the run. Never end the turn "
+            "while a ShipLoop command is still running.")
 
 
 def model_visible_output(raw) -> str:
@@ -283,7 +315,7 @@ def grade_shiploop(out: Path) -> dict:
             continue
         if isinstance(state, dict) and "status" in state:
             runs.append({"run_dir": str(state_path.parent), "status": state.get("status"),
-                         "stage": state.get("stage"),
+                         "stage": state.get("stage"), "revision": state.get("revision"),
                          "report_html": (state_path.parent / "report.html").is_file()})
     if not runs:
         return {"pass": False, "reason": "no ShipLoop state.md under the output directory"}
@@ -326,6 +358,8 @@ def parser() -> argparse.ArgumentParser:
     p.add_argument("--max-budget-usd", type=float, default=10.0, help="claude only; grok has no spend cap")
     p.add_argument("--permission-mode", default="auto")
     p.add_argument("--timeout", type=int, default=10800, help="seconds before the host is killed")
+    p.add_argument("--max-resumes", type=int, default=3,
+                   help="grok only: resume the same session this many times while ShipLoop is still active")
     p.add_argument("--quiet", action="store_true", help="do not print the live progress view")
     p.add_argument("--grok-bin", default="grok")
     p.add_argument("--claude-bin", default="claude")
@@ -353,6 +387,9 @@ def main(argv: list[str] | None = None) -> int:
     if args.host == "grok":
         env = hosts.grok_env(out / "home")
         plugin = hosts.grok_install(env, plugin_dir, args.grok_bin)
+        keepalive = hosts.grok_keepalive(env, plugin_dir)
+    else:
+        keepalive = None
     cli = hosts.argv_for(args.host, prompt=f"/{args.skill} {prompt}", prompt_file=out / "host-prompt.txt",
                          cwd=work, model=args.model, effort=args.effort,
                          permission_mode=args.permission_mode, max_turns=args.max_turns,
@@ -368,7 +405,27 @@ def main(argv: list[str] | None = None) -> int:
         print(f"shiploop e2e case={name} host={args.host} model={args.model} effort={args.effort} "
               f"work={work}", flush=True)
 
+    deadline = time.time() + args.timeout
     process = launch(cli, work, out, env, args.timeout, watch=not args.quiet)
+    sessions = [dict(process, resumed=None)]
+    # A headless Grok session ends whenever the model ends its turn. While ShipLoop's
+    # run is still active, resume that same session (bounded) instead of losing the run.
+    while args.host == "grok" and len(sessions) <= args.max_resumes:
+        state = grade_shiploop(out)
+        session_id = last_session_id(out / "events.jsonl")
+        remaining = int(deadline - time.time())
+        if state.get("status") != "active" or not session_id or remaining <= 60:
+            break
+        if not args.quiet:
+            print(f"resume {len(sessions)}/{args.max_resumes}: session {session_id} ended with ShipLoop "
+                  f"active at revision {state.get('revision')}, stage {state.get('stage')}", flush=True)
+        argv = hosts.argv_for(args.host, prompt=resume_prompt(out, state["run_dir"]),
+                              prompt_file=out / f"resume-{len(sessions)}.txt", cwd=work, model=args.model,
+                              effort=args.effort, permission_mode=args.permission_mode,
+                              max_turns=args.max_turns, resume=session_id, grok_bin=args.grok_bin)
+        process = launch(argv, work, out, env, remaining, watch=not args.quiet, first=False)
+        sessions.append(dict(process, resumed=session_id))
+    process = dict(process, sessions=sessions, resumes=len(sessions) - 1)
     process["pass"] = process["status"] == "exited"
     cli_seen = summarize_events(out / "events.jsonl")
     write_transcript(out / "events.jsonl", out / "transcript.md")
@@ -385,8 +442,11 @@ def main(argv: list[str] | None = None) -> int:
                                        for c in run_checks(Path(shiploop["worktree"]), checks)]
     verdicts = [invoked["pass"], plugin["pass"], process["pass"], shiploop["pass"],
                 *(c["pass"] for c in check_results)]
+    if keepalive is not None:
+        keepalive["decisions"] = hosts.keepalive_decisions(out / "home")
     result = {"case": name, "host": args.host, "model": args.model, "effort": args.effort,
               "pass": all(verdicts), "invoked": invoked, "plugin": plugin, "process": process,
+              "keepalive": keepalive,
               "shiploop": shiploop, "checks": check_results, "cli": cli_seen, "output": str(out)}
     (out / "result.json").write_text(json.dumps(result, indent=2) + "\n")
 
@@ -395,7 +455,11 @@ def main(argv: list[str] | None = None) -> int:
     print(f"  invoked   {mark(invoked['pass'])}  /{args.skill}")
     print(f"  plugin    {mark(plugin['pass'])}  {', '.join(map(str, plugin['loaded'])) or 'none loaded'}")
     print(f"  process   {mark(process['pass'])}  {process['status']} rc={process['returncode']} "
-          f"{process['elapsed_seconds']}s cost=${cli_seen.get('cost_usd')}")
+          f"{sum(s['elapsed_seconds'] for s in sessions):.1f}s cost=${cli_seen.get('cost_usd')} "
+          f"sessions={len(sessions)}")
+    if keepalive is not None:
+        print(f"  keepalive {'installed' if keepalive['installed'] else 'NOT installed'}; "
+              f"decisions {keepalive['decisions'] or 'none (hooks never ran)'}")
     print(f"  shiploop  {mark(shiploop['pass'])}  {shiploop.get('status') or shiploop.get('reason')}")
     if shiploop.get("worktree_checks") is not None:
         passed = sum(c["pass"] for c in shiploop["worktree_checks"])

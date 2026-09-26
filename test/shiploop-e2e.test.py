@@ -83,6 +83,9 @@ if argv[:2] == ["plugin", "list"]:
     sys.exit(0)
 os.chdir(argv[argv.index("--cwd") + 1])
 prompt = Path(argv[argv.index("--prompt-file") + 1]).read_text()
+resumed = argv[argv.index("--resume") + 1] if "--resume" in argv else None
+with open(os.environ["FAKE_LOG"] + ".sessions", "a") as log:
+    log.write(json.dumps({{"resumed": resumed, "prompt": prompt}}) + "\\n")
 Path(os.environ["FAKE_LOG"]).write_text(json.dumps({{
     "argv": argv, "prompt": prompt, "cwd_listing": os.listdir("."), "home": str(home),
     "auth_is_symlink": (home / ".grok" / "auth.json").is_symlink(),
@@ -91,9 +94,16 @@ print(json.dumps({{"type": "available_commands", "tools": [], "commands": ["ship
 print(json.dumps({{"type": "tool_call", "toolName": "run_terminal_command", "rawInput": {{"command": "shiploop next"}}}}))
 for chunk in ("Ship", "ped."):
     print(json.dumps({{"type": "text", "data": chunk}}))
-if os.environ.get("FAKE_MODE") == "done":
+mode = os.environ.get("FAKE_MODE")
+if mode == "done" or (mode == "resume" and resumed):
+    import shutil
+    shutil.rmtree(".shiploop", ignore_errors=True)  # a resumed session finishes the same run
     product()
-print(json.dumps({{"type": "end", "stopReason": "end_turn", "num_turns": 4, "total_cost_usd": 0.01}}))
+elif mode in ("resume", "stuck"):
+    Path(".shiploop").mkdir(exist_ok=True)
+    store.write_record(Path(".shiploop/state.md"), {{"status": "active", "stage": "test-refine", "revision": 25}})
+print(json.dumps({{"type": "end", "stopReason": "cancelled", "sessionId": "sess-1", "num_turns": 4,
+                  "total_cost_usd": 0.01}}))
 """
 
 
@@ -166,6 +176,43 @@ class GrokRunTest(HarnessCase):
         with self.assertRaises(SystemExit):
             self.invoke("grok", "done")
         self.assertFalse(self.log.exists())
+
+
+class GrokResumeTest(HarnessCase):
+    def sessions(self) -> list[dict]:
+        return [json.loads(line) for line in Path(str(self.log) + ".sessions").read_text().splitlines()]
+
+    def test_session_that_ends_with_shiploop_active_is_resumed_until_done(self):
+        code, result = self.invoke("grok", "resume")
+        self.assertEqual(code, 0, result)
+        self.assertEqual(result["process"]["resumes"], 1)
+        sessions = self.sessions()
+        self.assertEqual([s["resumed"] for s in sessions], [None, "sess-1"])
+        self.assertIn(" next --run-dir ", sessions[1]["prompt"])
+        self.assertIn("Never end the turn while a ShipLoop command is still running", sessions[1]["prompt"])
+        self.assertEqual(result["cli"]["num_turns"], 8)
+        self.assertEqual(result["shiploop"]["status"], "done")
+
+    def test_resume_stops_at_the_cap_when_the_run_never_finishes(self):
+        code, result = self.invoke("grok", "stuck", "--max-resumes", "2")
+        self.assertEqual(code, 1)
+        self.assertEqual(result["process"]["resumes"], 2)
+        self.assertEqual(len(self.sessions()), 3)
+        self.assertEqual(result["shiploop"]["status"], "active")
+
+    def test_no_resume_when_the_run_is_done(self):
+        code, result = self.invoke("grok", "done")
+        self.assertEqual(code, 0, result)
+        self.assertEqual(result["process"]["resumes"], 0)
+
+    def test_keepalive_decisions_are_counted_from_the_isolated_profile(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            home = Path(tmp)
+            self.assertEqual(hosts.keepalive_decisions(home), {})
+            log = home / ".local" / "state" / "shiploop" / "keepalive" / "decisions.log"
+            log.parent.mkdir(parents=True)
+            log.write_text('{"decision": "allow"}\n{"decision": "continue"}\n{"decision": "continue"}\n')
+            self.assertEqual(hosts.keepalive_decisions(home), {"allow": 1, "continue": 2})
 
 
 class ClaudeRunTest(HarnessCase):
