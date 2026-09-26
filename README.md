@@ -191,7 +191,7 @@ skills/<name>/
 
 ```sh
 bash test/run-all.sh                                  # full hermetic regression
-bash test/run-all.sh --group smoke                    # partial core + ShipLoop feedback
+bash test/run-all.sh --group quick --changed-from origin/main  # baseline + suites for your changes
 bash test/run-all.sh --group ask-agent                # helper and consumer boundaries
 bash test/run-all.sh --group shiploop-composition     # cross-skill integration
 bash test/run-all.sh --group ask-agent --group shiploop-composition --list

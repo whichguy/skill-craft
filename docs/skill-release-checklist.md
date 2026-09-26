@@ -17,8 +17,9 @@ inventory and `CHANGELOG.md`.
    line between them.
 3. Test against a build from source: package tests do this themselves through
    `test/package_build.py`; `python3 scripts/build-packages.py <new-dir>` builds
-   the same output by hand. Start with `bash test/run-all.sh --group smoke`
-   and the affected suites; the full aggregate (`bash test/run-all.sh`) is for
+   the same output by hand. Start with
+   `bash test/run-all.sh --group quick --changed-from origin/main`, which adds
+   the suites matching your changes to a light baseline; the full aggregate (`bash test/run-all.sh`) is for
    concrete cross-subsystem risk. Record the tested SHA and tree.
 4. CI's `release-boundary` job runs `scripts/check-release-boundary.py --base`
    over the pushed range. It rejects ordinary commits that edit release output,
