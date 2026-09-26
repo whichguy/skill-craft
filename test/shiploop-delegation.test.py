@@ -225,7 +225,11 @@ class PacketContractTests(DelegationStateTests):
 
     def test_producer_packets_state_outcomes_and_explicit_commands(self):
         entry = self.render(advance(self.state(), "select-work"))
-        self.assertIn("Allowed outcomes: done | repeat | blocked.\nCall this when done:\n", entry)
+        # The result contract sits under the callback; the tail repeats only the callback.
+        head = entry.split("Current stage guidance:", 1)[0]
+        self.assertIn("\nWrite the structured result to: ", head)
+        self.assertIn("\nAllowed outcomes: done | repeat | blocked.\n", head)
+        self.assertIn("\nCall this when done:\n", entry.split("Current stage guidance:", 1)[1])
         self.assertIn("Halt (terminal and irreversible; only on an explicit user stop): ", entry)
         # select-work is not a planning/checkpoint stage; it advances directly.
         self.assertIn("This result advances directly; no Improve child runs for this stage.", entry)

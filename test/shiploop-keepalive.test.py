@@ -110,11 +110,29 @@ class HookStatusAndMarkerTests(KeepaliveTestCase):
 
 
 class RepeatPacketTests(KeepaliveTestCase):
-    """A repeated next for the same action refers to the run rules instead of reprinting them."""
+    """next is the recovery command and prints the full packet; --brief is the in-context short reprint."""
 
-    def test_a_repeat_next_is_short_and_keeps_the_stage_prompt_and_marker(self) -> None:
+    def test_plain_next_after_a_packet_is_the_full_packet(self) -> None:
+        # The script cannot know whether the host lost the rules since this packet was shown.
+        recovered = shiploop("next", "--run-dir", str(self.run_dir)).stdout
+        self.assertEqual(recovered, self.packet)
+        self.assertIn("Original request (preserve user scope", recovered)
+        self.assertIn("Recovery command:", recovered)
+
+    def test_the_result_contract_is_printed_under_the_callback(self) -> None:
+        lines = self.packet.splitlines()
+        callback = next(i for i, line in enumerate(lines) if line.startswith("Callback for this stage"))
+        self.assertTrue(lines[callback + 1].startswith("Write the structured result to: "))
+        self.assertEqual(lines[callback + 2], "Result template:")
+        outcomes = next(i for i, line in enumerate(lines) if line.startswith("Allowed outcomes: "))
+        guidance = lines.index("Current stage guidance:")
+        self.assertLess(outcomes, guidance)
+        self.assertEqual(sum(line.startswith("Write the structured result to: ") for line in lines), 1)
+        self.assertEqual(sum(line.startswith("Allowed outcomes: ") for line in lines), 1)
+
+    def test_a_brief_repeat_is_short_and_keeps_the_stage_prompt_and_marker(self) -> None:
         self.assertIn("Original request (preserve user scope", self.packet)
-        short = shiploop("next", "--run-dir", str(self.run_dir)).stdout
+        short = shiploop("next", "--run-dir", str(self.run_dir), "--brief").stdout
         self.assertIn("Same action as revision 0; nothing has changed since.", short)
         self.assertIn("Run rules: " + str(self.run_dir / "rules.md"), short)
         self.assertNotIn("Original request (preserve user scope", short)
@@ -127,11 +145,11 @@ class RepeatPacketTests(KeepaliveTestCase):
         self.assertIn("Original request (preserve user scope", rules)
         self.assertIn("Recovery command:", rules)
 
-    def test_full_flag_a_new_status_or_a_new_action_prints_the_full_packet(self) -> None:
-        self.assertIn("Original request", shiploop("next", "--run-dir", str(self.run_dir), "--full").stdout)
+    def test_a_new_status_or_a_new_action_prints_the_full_packet_even_brief(self) -> None:
+        self.assertIn("Original request", shiploop("next", "--run-dir", str(self.run_dir)).stdout)
         shiploop("pause", "--run-dir", str(self.run_dir), "--reason", "user asked")
         shiploop("resume", "--run-dir", str(self.run_dir))
-        after = shiploop("next", "--run-dir", str(self.run_dir)).stdout
+        after = shiploop("next", "--run-dir", str(self.run_dir), "--brief").stdout
         self.assertIn("Same action as revision 2; nothing has changed since.", after)  # resume printed rev 2
         action = self.status()["action"]
         path = self.run_dir / "inbox" / (action + ".md")
@@ -139,7 +157,7 @@ class RepeatPacketTests(KeepaliveTestCase):
         path.write_text(store.dumps({"outcome": "done", "summary": "Intake recorded."}, "test result"))
         moved = shiploop("complete", "--run-dir", str(self.run_dir), "--action", action, "--result", str(path))
         self.assertIn("Original request (preserve user scope", moved.stdout)
-        self.assertIn("Same action as revision", shiploop("next", "--run-dir", str(self.run_dir)).stdout)
+        self.assertIn("Same action as revision", shiploop("next", "--run-dir", str(self.run_dir), "--brief").stdout)
 
 
 class CompactionTests(KeepaliveTestCase):
@@ -147,11 +165,12 @@ class CompactionTests(KeepaliveTestCase):
 
     def test_a_compacted_session_gets_the_full_packet_next(self) -> None:
         self.hook("observe", "claude", self.payload("claude", "observe"))
-        self.assertIn("Same action as revision 0", shiploop("next", "--run-dir", str(self.run_dir)).stdout)
+        self.assertIn("Same action as revision 0", shiploop("next", "--run-dir", str(self.run_dir), "--brief").stdout)
         compact = {**self.payload("claude", "stop"), "hook_event_name": "SessionStart", "source": "compact"}
         self.assertEqual(keepalive.run_hook("compacted", "claude", json.dumps(compact)), "")
         self.assertFalse((self.run_dir / "last-packet.json").exists())
-        self.assertIn("Original request (preserve user scope", shiploop("next", "--run-dir", str(self.run_dir)).stdout)
+        self.assertIn("Original request (preserve user scope",
+                      shiploop("next", "--run-dir", str(self.run_dir), "--brief").stdout)
 
     def test_other_session_starts_and_unbound_sessions_change_nothing(self) -> None:
         self.hook("observe", "claude", self.payload("claude", "observe"))

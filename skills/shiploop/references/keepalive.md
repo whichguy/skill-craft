@@ -59,9 +59,9 @@ the next packet. Host interrupts (Ctrl+C, Esc) skip stop hooks entirely.
 
 On Claude, a third hook runs on `SessionStart` with the `compact` matcher: after
 the host compacts a bound session's context it removes the run's
-`last-packet.json`, so the next `next` prints the full packet (run rules
-included) instead of the short repeat packet. Other hosts have no compaction
-event; there the short packet points at `rules.md`.
+`last-packet.json`, so even a `next --brief` prints the full packet (run rules
+included). Plain `next`, the recovery command every stop reason names, prints the
+full packet on every host, with or without a compaction event.
 Each stop decision is appended to
 `${XDG_STATE_HOME:-~/.local/state}/shiploop/keepalive/decisions.log` with its
 reason, and hook failures to `errors.log` beside it.

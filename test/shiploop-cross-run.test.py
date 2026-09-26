@@ -425,7 +425,7 @@ class CrossRunTests(unittest.TestCase):
         self.assertEqual(fresh["accepted"], {})
         self.assertEqual(self._snapshot(old_run), old_files)
 
-        recovered = self._cli(old_run, "next", "--full")
+        recovered = self._cli(old_run, "next")
         self.assertEqual(recovered.stdout, initial.stdout)
         self.assertEqual(self._snapshot(old_run), old_files)
         self.assertEqual(self._snapshot(fresh_run), fresh_files)
@@ -442,9 +442,9 @@ class CrossRunTests(unittest.TestCase):
         initial = self._init(new_run, NEW_PROMPT)
         self._assert_knowledge_locators(initial.stdout)
         new_before_next = self._snapshot(new_run)
-        cold = self._cli(new_run, "next")
-        self._assert_knowledge_locators(cold.stdout)  # the short repeat packet refers to rules.md
-        self.assertEqual(self._cli(new_run, "next", "--full").stdout, initial.stdout)
+        brief = self._cli(new_run, "next", "--brief")
+        self._assert_knowledge_locators(brief.stdout)  # the short reprint refers to rules.md
+        self.assertEqual(self._cli(new_run, "next").stdout, initial.stdout)
         self.assertEqual(self._snapshot(new_run), new_before_next)
         self.assertEqual(self._snapshot(old_run), old_snapshot)
 

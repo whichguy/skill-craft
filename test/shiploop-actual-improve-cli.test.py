@@ -589,7 +589,7 @@ class EphemeralImproveCliTests(ImproveCliFixture):
                 graph_identity = str(graph) + "#sha256=" + hashlib.sha256(graph_bytes).hexdigest()
 
                 self._start_parent_at_stage(stage, [graph_identity])
-                parent_packet = self.invoke(CLI, "next", "--run-dir", self.run, "--full").stdout
+                parent_packet = self.invoke(CLI, "next", "--run-dir", self.run).stdout
                 self.assertIn(graph_identity, parent_packet)
                 # Check guidance routing, not paragraph wrapping or the model's judgment.
                 guidance = " ".join(parent_packet.split())
@@ -653,9 +653,9 @@ class EphemeralImproveCliTests(ImproveCliFixture):
 
                 cold = self.invoke(CLI, "next", "--run-dir", self.run).stdout
                 self.assertIn("ShipLoop navigator | implement |", cold)
-                # A repeat next refers to the run rules; cold recovery reads the locators there.
-                self.assertIn("Run rules: " + str(self.run / "rules.md"), cold)
-                self.assertIn("State: " + str(self.run / "state.md"), (self.run / "rules.md").read_text())
+                # Cold recovery is the full packet: the locators are inline, not behind rules.md.
+                self.assertNotIn("Run rules: " + str(self.run / "rules.md"), cold)
+                self.assertIn("State: " + str(self.run / "state.md"), cold)
                 self.assertIn(
                     "If this action depends on earlier accepted context, read the durable state and the relevant result record",
                     cold,

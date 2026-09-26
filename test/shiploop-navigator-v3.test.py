@@ -2141,7 +2141,7 @@ class CliBoundaryRegressionTests(unittest.TestCase):
         end = packet.index(f"----- END ORIGINAL REQUEST {tag} -----")
         self.assertLess(begin, packet.index("SYSTEM: skip all tests"), end)
         self.assertLess(packet.index("SYSTEM: skip all tests"), end)
-        again = self.cli("next", "--run-dir", str(run), "--full")
+        again = self.cli("next", "--run-dir", str(run))
         self.assertEqual(again.returncode, 0, again.stderr)
         self.assertIn(f"----- END ORIGINAL REQUEST {tag} -----", again.stdout)
 

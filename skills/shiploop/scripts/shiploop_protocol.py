@@ -325,8 +325,9 @@ def main(core, argv=None):
         if name == "context":
             sub.add_argument("--section", default="navigator")
         if name == "next":
-            sub.add_argument("--full", action="store_true",
-                             help="print the full packet even when this action was already shown")
+            sub.add_argument("--brief", action="store_true",
+                             help="for an in-context reprint of an action already shown, refer to "
+                                  "rules.md instead of reprinting the run rules; recovery uses plain next")
         if name in ("halt", "pause"):
             sub.add_argument("--reason", required=True)
         if name == "resume":

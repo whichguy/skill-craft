@@ -263,7 +263,7 @@ def _is_subagent(payload: Mapping[str, Any]) -> bool:
 def compacted(host: str, payload: Mapping[str, Any]) -> str | None:
     """After the host compacted this session's context, make the run's next packet full.
 
-    The short repeat packet assumes the run rules are still in context; once
+    The short packet (``next --brief``) assumes the run rules are still in context; once
     the host has compacted it, they may not be.  Removing the run's
     last-packet.json record makes the next ``next`` print the full packet.
     Returns the run directory it reset, if any.

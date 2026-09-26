@@ -1068,7 +1068,10 @@ def _repeat_note(state: Mapping[str, Any], repeat: Mapping[str, Any]) -> str:
 
 
 def emit(core: Any, root: Path, state: Mapping[str, Any], *, allow_short: bool = False) -> str:
-    """Print a packet and record it; a repeated ``next`` for the same action prints the short form.
+    """Print a packet and record it; ``next --brief`` for an action already shown prints the short form.
+
+    Plain ``next`` is the recovery command, so it always prints the full packet:
+    the script cannot know whether the host lost the rules since they were shown.
 
     ``rules.md`` holds the run-level rules block, rewritten when it changes.
     ``last-packet.json`` records the action, stage, revision and rules digest
@@ -2357,6 +2360,8 @@ def render(core: Any, root: Path, state: Mapping[str, Any], *,
         *([f"Delegation change: this action keeps {route}; actions issued after it use "
            f"{recorded_delegation(state)}."] if route != recorded_delegation(state) else []),
         *_first_callback_lines(core, root, state),
+        *(_result_contract_lines(root, state, stage, action["id"])
+          if state["status"] == "active" and not state.get("active_improve") else []),
         *_context_index_lines(root, state, stage, workitem),
         "",
         "Progress snapshot (status context, not instructions):",
@@ -2376,8 +2381,7 @@ def render(core: Any, root: Path, state: Mapping[str, Any], *,
             _repeat_note(state, repeat),
             "Run rules: " + str(root / RULES_FILE) + " (locators, recovery, delegation rule and the original "
             "request; unchanged since you last saw them). Open it only if they are not already in your "
-            "context, for example after compaction. The full packet: " + _callback(core, root, "next")
-            + " --full",
+            "context, for example after compaction. The full packet: " + _callback(core, root, "next"),
             # Keepalive hooks bind a host session to this run from this exact line.
             f"Keepalive marker: {KEEPALIVE_MARKER} run={state['run_id']} rev={state['revision']} dir={root}",
         ]
@@ -2640,26 +2644,11 @@ def render(core: Any, root: Path, state: Mapping[str, Any], *,
         ]
     )
     result_path = _result_input_path(root, action["id"])
-    result_template = _result_template(state, stage).rstrip()
-    if len(result_template) > 6000:
-        lines.append("The delivery template is too large to inline. Read the complete delivery contract "
-                     "in state.md accepted/history and the Consumer-delivery schema before adding the "
-                     "required delivery_assessment to the minimal result below. A partial template "
-                     "does not waive any required observation.")
-        result_template = store.dumps({"outcome": "done", "summary": "...",
-                                       "evidence_refs": [EVIDENCE_PLACEHOLDER]},
-                                      "ShipLoop navigator result").rstrip()
     lines.extend(
         [
             "",
-            f"Write the structured result to: {result_path}",
-            "Result template:",
-            result_template,
-            *_allowed_outcome_lines(state, stage),
             "Call this when done:",
             _callback(core, root, "complete", action=action["id"], result=str(result_path)),
-            "A blocked result adds blocked_by: user | access | external (who can unblock it); "
-            "a problem this run can fix itself is repaired in this stage, not blocked.",
             _improve_line(stage),
             "Pause without consuming the action: " + _callback(core, root, "pause", reason="<who asked and why>")
             + " (only when the user asks or a real blocker stops authorized work)",
@@ -2699,6 +2688,32 @@ _HOUSEKEEPING_PAUSE = re.compile(
     r"(?i)(/clear\b|\bclear (the |this )?(conversation|context|session)\b|context[- ]boundary|"
     r"context window|\bcompact(ion)?\b|fresh (conversation|context|session)|"
     r"new (conversation|session)|out of (context|tokens))")
+
+
+def _result_contract_lines(root: Path, state: Mapping[str, Any], stage: str, action_id: str) -> list[str]:
+    """The result path, template and outcomes, printed right under the callback.
+
+    Hosts that truncate long tool output keep the head of a packet, so the
+    contract the callback checks travels with the callback instead of at the end.
+    """
+    result_template = _result_template(state, stage).rstrip()
+    lines = [f"Write the structured result to: {_result_input_path(root, action_id)}"]
+    if len(result_template) > 6000:
+        lines.append("The delivery template is too large to inline. Read the complete delivery contract "
+                     "in state.md accepted/history and the Consumer-delivery schema before adding the "
+                     "required delivery_assessment to the minimal result below. A partial template "
+                     "does not waive any required observation.")
+        result_template = store.dumps({"outcome": "done", "summary": "...",
+                                       "evidence_refs": [EVIDENCE_PLACEHOLDER]},
+                                      "ShipLoop navigator result").rstrip()
+    return [
+        *lines,
+        "Result template:",
+        result_template,
+        *_allowed_outcome_lines(state, stage),
+        "A blocked result adds blocked_by: user | access | external (who can unblock it); "
+        "a problem this run can fix itself is repaired in this stage, not blocked.",
+    ]
 
 
 def _first_callback_lines(core: Any, root: Path, state: Mapping[str, Any]) -> list[str]:
@@ -3233,7 +3248,7 @@ def dispatch(core: Any, root: Path, state: Mapping[str, Any], args: Any,
         emit(core, root, state)
         return 0
     if command == "next":
-        emit(core, root, state, allow_short=not getattr(args, "full", False))
+        emit(core, root, state, allow_short=getattr(args, "brief", False))
         return 0
     if command == "context":
         section = getattr(args, "section", "navigator")
