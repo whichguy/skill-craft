@@ -112,6 +112,10 @@ class TestLoopTests(unittest.TestCase):
                 self.complete(dict(DONE, **recorded))
             elif current in test_loop.STAGES:
                 self.pass_loop()
+            elif current == "static-checks":
+                self.run_quality_loop()
+                self.complete(dict(DONE, evidence_refs=[str(self.run_dir / "quality"
+                                                            / (self.action() + "-terminal.json"))]))
             else:
                 self.complete(DONE)
         raise AssertionError("did not reach " + stage)
@@ -286,6 +290,48 @@ class TestLoopTests(unittest.TestCase):
         (self.repo / "fixed.txt").write_text("fixed\n")
         self.complete(DONE)
         self.assertEqual(nav.current_stage(self.state()), "test-refine")
+
+    def test_stages_that_edit_code_rerun_every_command_before_done(self):
+        self.start()
+        for stage in test_loop.RERUN_STAGES:
+            with self.subTest(stage=stage):
+                self.drive_to(stage)
+                self.assertIn("Test rerun: on done, ShipLoop runs every test command", self.packet())
+                (self.repo / "retained.txt").unlink()  # this stage broke a regression test
+                if stage == "static-checks":
+                    self.run_quality_loop()
+                    done = dict(DONE, evidence_refs=[str(self.run_dir / "quality" / (self.action()
+                                                                                     + "-terminal.json"))])
+                else:
+                    done = DONE
+                self.assert_refused(done, r"(?s)" + stage + r" is not done.*\[regression\] test -f retained.txt"
+                                    r" -> exit 1.*Fix the code so every command passes")
+                (self.repo / "retained.txt").write_text("retained\n")
+                self.complete(done)
+                self.assertNotEqual(nav.current_stage(self.state()), stage)
+
+    def test_after_three_refused_runs_only_blocked_is_accepted(self):
+        self.start()
+        self.drive_to("test-refine")
+        (self.repo / "retained.txt").unlink()
+        for attempt in (1, 2, 3):
+            self.assert_refused(DONE, "Refused runs for this action: " + str(attempt) + " of 3")
+        (self.repo / "retained.txt").write_text("retained\n")  # even a now-passing tree
+        with mock.patch.object(test_loop, "lint", wraps=test_loop.lint) as runner:
+            self.assert_refused(DONE, "was refused 3 times; done is no longer accepted")
+            runner.run_argv.assert_not_called()
+        self.complete(dict(DONE, outcome="blocked"))
+        self.assertEqual(self.state()["status"], "blocked")
+
+    def run_quality_loop(self) -> None:
+        """One trivial quality-loop iteration, saved to the static-checks terminal path."""
+        start = next(line for line in self.packet().splitlines() if line.startswith("Start: "))
+        words = shlex.split(start[len("Start: "):])
+        packet = json.loads(subprocess.run(words[:-2], input=Path(words[-1]).read_text(), text=True,
+                                           capture_output=True, check=True, timeout=30).stdout)
+        raw = subprocess.run(packet["done_argv"], input=json.dumps(TRIVIAL), text=True,
+                             capture_output=True, check=True, timeout=30).stdout
+        (self.run_dir / "quality" / (self.action() + "-terminal.json")).write_text(raw)
 
 
 class VerifyLimitTests(unittest.TestCase):

@@ -943,7 +943,7 @@ def drive(run: Path, until: str, *, edit=None, edit_at: str = "implement") -> di
         if edit is not None and stage == edit_at:
             edit()
         action = nav.current_action(state)["id"]
-        if stage == "implement":
+        if stage in lint.GATE_STAGES:
             complete_implement(run, state)
         else:
             complete(run, state)
@@ -1278,6 +1278,21 @@ class GateTests(Fixture):
             complete(self.run_dir, state)
         self.assertEqual(nav.current_stage(store.read_record(self.run_dir / "state.md")), "test-green")
 
+    def test_test_green_edits_pass_through_the_same_gate(self):
+        self.commit({"a.py": "x = 1\n"})
+        state = self.start()
+        with self.patched_env():
+            complete(self.run_dir, state)  # implement: nothing changed yet
+            state = store.read_record(self.run_dir / "state.md")
+            self.assertEqual(nav.current_stage(state), "test-green")
+            self.edit({"a.py": "x = 1\ny = 2  # lint\n"})  # a fix made during the test loop
+            with self.assertRaises(nav.NavigatorError) as refused:
+                complete(self.run_dir, state)
+            self.assertIn("test-green is not done while 1 new lint finding", str(refused.exception))
+            found = re.findall(r"^- (L[0-9a-f]{10}) ", str(refused.exception), re.M)
+            complete(self.run_dir, state, dict(DONE, lint_waivers=[{"id": found[0], "reason": "Kept."}]))
+        self.assertEqual(nav.current_stage(store.read_record(self.run_dir / "state.md")), "test-refine")
+
     def test_lint_off_and_non_done_outcomes_run_no_gate(self):
         self.commit({"a.py": "x = 1\n"})
         state = self.start("off")
@@ -1305,9 +1320,9 @@ class GateTests(Fixture):
 
     def test_lint_waivers_are_refused_outside_a_done_implement(self):
         waivers = [{"id": "L0123456789", "reason": "r"}]
-        with self.assertRaisesRegex(nav.NavigatorError, "only on a done implement result"):
+        with self.assertRaisesRegex(nav.NavigatorError, "only on a done implement, test-green, regression result"):
             nav._canonical_result(dict(DONE, lint_waivers=waivers), stage="verify")
-        with self.assertRaisesRegex(nav.NavigatorError, "only on a done implement result"):
+        with self.assertRaisesRegex(nav.NavigatorError, "only on a done implement, test-green, regression result"):
             nav._canonical_result(dict(DONE, outcome="blocked", lint_waivers=waivers), stage="implement")
         self.assertEqual(nav._canonical_result(dict(DONE, lint_waivers=waivers), stage="implement")["lint_waivers"],
                          waivers)

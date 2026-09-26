@@ -365,8 +365,8 @@ def _canonical_result(
                   "an empty test_commands list needs test_commands_na with the reason")
             result["test_commands_na"] = _text(value["test_commands_na"], "test_commands_na")
     if "lint_waivers" in value:
-        _need(stage == lint.GATE_STAGE and outcome == "done",
-              "lint_waivers are allowed only on a done implement result")
+        _need(stage in lint.GATE_STAGES and outcome == "done",
+              "lint_waivers are allowed only on a done " + ", ".join(lint.GATE_STAGES) + " result")
         result["lint_waivers"] = _normalise_lint_waivers(value["lint_waivers"])
     if "choices" in value:
         result["choices"] = _normalise_choices(value["choices"], stage)
@@ -1279,15 +1279,26 @@ def _test_loop_gate(root: Path, state: Mapping[str, Any], action_id: str, stage:
     _need(not refusal, refusal)
 
 
-def _lint_gate(core: Any, root: Path, state: Mapping[str, Any], action_id: str,
+def _test_rerun_gate(root: Path, state: Mapping[str, Any], action_id: str, stage: str,
+                     workitem: str | None, submitted: Any) -> None:
+    """Accept done at a stage that can edit code only after ShipLoop reruns every recorded test command."""
+    if not isinstance(submitted, Mapping) or submitted.get("outcome") != "done":
+        return
+    writes, refusal = test_loop.verify(root, state, workitem or "", action_id, stage)
+    for relative, text in writes.items():
+        store.atomic_write_text(root / relative, text)
+    _need(not refusal, refusal)
+
+
+def _lint_gate(core: Any, root: Path, state: Mapping[str, Any], action_id: str, stage: str,
                workitem: str | None, submitted: Any) -> None:
-    """Refuse implement's done while the lint gate reports an unwaived new finding.
+    """Refuse a gate stage's done (``lint.GATE_STAGES``) while the lint gate reports an unwaived new finding.
 
     Runs only for a done submission on a run whose lint option is fix or
     report.  The record is written whether or not the submission is refused;
     a pass that cannot run never refuses (see ``lint.gate``).
     """
-    result = _canonical_result(submitted, stage=lint.GATE_STAGE,
+    result = _canonical_result(submitted, stage=stage,
                                delivery_contract="delivery_contract_version" in state)
     mode = lint_mode(state)
     if result["outcome"] != "done" or mode not in ("fix", "report"):
@@ -1295,7 +1306,7 @@ def _lint_gate(core: Any, root: Path, state: Mapping[str, Any], action_id: str,
     waivers = {entry["id"]: entry["reason"] for entry in result.get("lint_waivers", [])}
     writes, payload, refusal = lint.gate(
         Path(state["repo"]), root, action=action_id, work_item=workitem or "", run_option=mode,
-        base=lint.read_base(root, workitem), waivers=waivers, command=_command(core),
+        base=lint.read_base(root, workitem), waivers=waivers, command=_command(core), stage=stage,
         reference_dir=_reference_dir(core), execution_mode=str(state.get("execution_mode", "navigator")))
     for relative, text in writes.items():
         store.atomic_write_text(root / relative, text)
@@ -2238,6 +2249,8 @@ def render(core: Any, root: Path, state: Mapping[str, Any]) -> str:
         lines.extend(quality.render_lines(root, state, workitem or "", action["id"]))
     if stage in test_loop.STAGES:
         lines.extend(test_loop.render_lines(root, state, workitem or "", action["id"], stage))
+    elif stage in test_loop.RERUN_STAGES:
+        lines.extend(test_loop.rerun_lines(state, workitem or "", stage))
     return "\n".join(lines) + "\n"
 
 
@@ -2867,10 +2880,13 @@ def dispatch(core: Any, root: Path, state: Mapping[str, Any], args: Any,
         if state["status"] == "active" and action_id not in state["accepted"]:
             _check_submitted_assumptions(state, current_stage(state), submitted)
             _check_submitted_test_commands(current_stage(state), submitted)
+            # Lint first, so the tests run on any code the lint gate auto-fixed.
+            if cursor_stage in lint.GATE_STAGES:
+                _lint_gate(core, root, state, action_id, cursor_stage, cursor_item, submitted)
             if cursor_stage in test_loop.STAGES:
                 _test_loop_gate(root, state, action_id, cursor_stage, cursor_item, submitted)
-            if cursor_stage == lint.GATE_STAGE:
-                _lint_gate(core, root, state, action_id, cursor_item, submitted)
+            elif cursor_stage in test_loop.RERUN_STAGES:
+                _test_rerun_gate(root, state, action_id, cursor_stage, cursor_item, submitted)
         updated = apply(state, action_id, submitted)
         if completion_guard is not None and updated != state:
             completion_guard(state, updated)

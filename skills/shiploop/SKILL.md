@@ -296,14 +296,17 @@ and `npm run lint` or `make lint` for a changed file no other linter covers.
 Repository-configured linters run repository code; pre-commit is never run,
 because it may download environments. Nothing is ever installed.
 
-- **Implement gate.** The `complete` that submits `implement` as done lints
+- **Lint gate.** The `complete` that submits `implement`, `test-green` or
+  `regression` as done (each of them edits code) lints
   every changed file and applies safe fixes on lines the item changed. It
   refuses that submission once after an auto-fix (rerun the step's checks, then
   submit again), and while a new finding on a line the item changed has no
   entry in the result's `lint_waivers` (`[{"id", "reason"}]`, using the IDs the
   refusal prints). Findings present at the base or elsewhere in a file, missing
-  tools, tool errors, timeouts and a pass that cannot run never refuse. The
-  implement packet prints the report-only `lint` command to run after each step.
+  tools, tool errors, timeouts and a pass that cannot run never refuse. At the
+  test loops the gate runs before ShipLoop's test run, so the tests cover any
+  auto-fix. The implement packet prints the report-only `lint` command to run
+  after each step.
 - **Later passes (advisory).** The `complete` that enters `static-checks` lints
   again and, on the item's first entry only, applies safe fixes to later edits;
   the `complete` that enters `verify` reruns it report-only (or repeats the
@@ -375,6 +378,13 @@ Improve card:
    records the output in `tests/<action>-verify<N>.md`, and refuses `done`
    unless each exits 0. The refusal prints each failing command and the end of
    its output.
+
+Every stage after the test loops that can edit code reruns them too: on `done`
+at `test-refine`, `static-checks` (after its quality-loop check) and
+`integration-verify`, ShipLoop runs every recorded command and refuses unless
+each exits 0. There is no loop at those stages; the packet lists the commands.
+Each action allows 3 refused runs; after that ShipLoop accepts only `blocked`,
+so a failing command goes back to plan revision instead of an endless retry.
 
 These are commands the step plan recorded; ShipLoop runs them outside the host's
 permission prompts, and the step plan's Improve review is their check. With an

@@ -736,7 +736,10 @@ failing command for plan revision. On done, ShipLoop checks the terminal packet
 against the contract and then runs every listed command itself; it refuses done
 unless each exits 0 and prints the failures. After a refusal, fix the code,
 start the loop again with the printed command (its terminal packet is replaced)
-and submit again, or report blocked.
+and submit again, or report blocked. After 3 refused runs only blocked is
+accepted. Before the test run, ShipLoop lints this item's changes as at
+implement: it refuses done once after an auto-fix and while a new finding on a
+changed line has no `lint_waivers` entry.
 """
 
 

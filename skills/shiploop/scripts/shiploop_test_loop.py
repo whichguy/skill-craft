@@ -31,6 +31,12 @@ import shiploop_quality as quality
 import shiploop_store as store
 
 STAGES = ("test-green", "regression")
+# Stages that can edit code after the test loops: on done ShipLoop reruns every
+# recorded command (no loop).
+RERUN_STAGES = ("test-refine", "static-checks", "integration-verify")
+VERIFY_STAGES = STAGES + RERUN_STAGES
+# Refused command runs per action before only blocked is accepted.
+MAX_REFUSED_RUNS = 3
 SUITES = ("focused", "regression")
 COMMAND_TIMEOUT_SECONDS = 600.0
 STAGE_BUDGET_SECONDS = 1800.0
@@ -94,13 +100,13 @@ def _step_plan(state: Mapping[str, Any], work_item: str) -> Tuple[Optional[str],
 def stage_commands(state: Mapping[str, Any], stage: str, work_item: str) -> Tuple[List[Dict[str, str]], str]:
     """This stage's commands and, when there are none, why.
 
-    test-green runs the focused commands; regression runs every command.
+    test-green runs the focused commands; every other stage runs every command.
     """
     _action, result = _step_plan(state, work_item)
     if "test_commands" not in result:
         return [], ""
     commands = [dict(row) for row in result["test_commands"]
-                if stage == "regression" or row["suite"] == "focused"]
+                if stage != "test-green" or row["suite"] == "focused"]
     if commands:
         return commands, ""
     return [], str(result.get("test_commands_na") or ("the accepted step plan lists no focused command"
@@ -195,6 +201,18 @@ def render_lines(root: Path, state: Mapping[str, Any], work_item: str, action: s
     return lines
 
 
+def rerun_lines(state: Mapping[str, Any], work_item: str, stage: str) -> List[str]:
+    """Packet lines for a rerun stage: the commands ShipLoop runs before accepting done."""
+    commands, _reason = stage_commands(state, stage, work_item)
+    if not commands:
+        return []
+    return (["", "Test rerun: on done, ShipLoop runs every test command the step plan recorded from "
+             + str(state["repo"]) + " and refuses unless each exits 0 (at most " + str(MAX_REFUSED_RUNS)
+             + " refused runs, then only blocked):"]
+            + ["  " + str(number) + ". [" + row["suite"] + "] " + row["command"]
+               for number, row in enumerate(commands, 1)])
+
+
 def check_terminal(root: Path, state: Mapping[str, Any], work_item: str, action: str, stage: str,
                    result: Mapping[str, Any]) -> None:
     """Refuse a test-loop result that its saved Until Loop terminal packet does not support.
@@ -245,6 +263,16 @@ def verify(root: Path, state: Mapping[str, Any], work_item: str, action: str, st
     commands, _reason = stage_commands(state, stage, work_item)
     if not commands:
         return {}, ""
+    refused = 0
+    number = 1
+    while (root / verify_path(action, number)).exists():
+        prior = store.read_record(root / verify_path(action, number))
+        refused += 0 if isinstance(prior, Mapping) and prior.get("passed") else 1
+        number += 1
+    if refused >= MAX_REFUSED_RUNS:
+        return {}, ("ShipLoop test run: " + stage + " was refused " + str(refused) + " times; done is no longer "
+                    "accepted for this action. Report outcome blocked, naming the failing command from "
+                    + str(root / verify_path(action, number - 1)) + ", so the step plan can be revised.")
     runner = runner or lint.run_argv
     clock = clock or time.monotonic
     repo = Path(str(state["repo"]))
@@ -266,9 +294,6 @@ def verify(root: Path, state: Mapping[str, Any], work_item: str, action: str, st
         runs.append({**row, "status": "timeout" if status == "timeout" else ("passed" if code == 0 else "failed"),
                      "exit": code, "seconds": round(clock() - started, 3),
                      "stdout": _tail(out), "stderr": _tail(err)})
-    number = 1
-    while (root / verify_path(action, number)).exists():
-        number += 1
     record = {
         "schema": SCHEMA, "action": action, "stage": stage, "work_item": work_item,
         "created_at": datetime.now(timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ"),
@@ -288,14 +313,23 @@ def verify(root: Path, state: Mapping[str, Any], work_item: str, action: str, st
         lines.append("- [" + run["suite"] + "] " + run["command"] + " -> " + outcome)
         tail = (run["stdout"] + "\n" + run["stderr"]).strip().splitlines()[-15:]
         lines += ["    | " + line for line in tail]
-    lines.append("Fix the code, start the test loop again with the packet's start command (its terminal "
-                 "packet is replaced), then submit done again; or report blocked. Full output: "
-                 + str(root / relative) + ".")
+    attempts = ("Refused runs for this action: " + str(refused + 1) + " of " + str(MAX_REFUSED_RUNS)
+                + "; after that only blocked is accepted.")
+    if stage in STAGES:
+        lines.append("Fix the code, start the test loop again with the packet's start command (its terminal "
+                     "packet is replaced), then submit done again; or report blocked. " + attempts
+                     + " Full output: " + str(root / relative) + ".")
+    else:
+        lines.append("Fix the code so every command passes (never change a check to get green), then submit "
+                     "done again; or report blocked. " + attempts + " Full output: " + str(root / relative) + ".")
     return writes, "\n".join(lines)
 
 
 __all__ = (
+    "MAX_REFUSED_RUNS",
+    "RERUN_STAGES",
     "STAGES",
+    "VERIFY_STAGES",
     "TestLoopError",
     "build_contract",
     "check_terminal",
@@ -303,6 +337,7 @@ __all__ = (
     "latest_path",
     "normalise_commands",
     "render_lines",
+    "rerun_lines",
     "stage_commands",
     "terminal_path",
     "transition_writes",
