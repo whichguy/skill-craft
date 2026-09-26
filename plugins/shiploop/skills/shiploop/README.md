@@ -1,4 +1,4 @@
-# ShipLoop navigator 0.28.0
+# ShipLoop navigator 0.29.0
 
 ShipLoop's invoking conversation owns navigation, acceptance and delivery. New
 runs record `delegation: inline`, so that conversation also executes every
@@ -140,17 +140,10 @@ Details, host table and decision log: [keepalive](references/keepalive.md).
 
 ## Navigator: producer, Improve child, then transition
 
-```mermaid
-flowchart LR
-  S[Script selects one producer] --> R[Producer result]
-  R -->|Planning stage or last carry-forward| I[Selected Improve skill]
-  R -->|Any other stage| N
-  I --> U[Bound Until Loop child]
-  U -->|Accepted completion| M[Import evidence and lessons once]
-  U -->|Blocked or interrupted| U
-  M --> N[Script selects next producer]
-  N --> S
-```
+The [navigator guide](references/navigator.md) draws this producer, Improve and
+routing pattern and the [whole-run map](references/navigator.md#whole-run-map)
+of the prelude, per-item inner loop and outer loop, with their gates and
+loops.
 
 Planning results (`spec`, `test-strategy`, `plan`, `step-plan`, `test-spec`,
 `system-test-author`, `release-plan`) and the successful `carry-forward` that
@@ -344,7 +337,7 @@ under external run storage; reusable facts are promoted into project docs. The
 host must judge ambiguous/custom artifacts—the guard cannot infer their meaning.
 
 Handoff cannot declare completion without a current verified return receipt.
-Protocol 3 performs its source return at release or handoff once no
+The navigator performs its source return at release or handoff once no
 Improve child is active. Earlier or unfinished work cannot return. A product
 change committed after the return goes back as a follow-up return from the
 previous receipt, by the same route; source drift since that receipt blocks it.
@@ -551,7 +544,7 @@ runtime own child iterations. ShipLoop has no second review counter.
 
 ## Improve discovery and planning before proceeding
 
-Protocol 3 applies the actual-skill handoff to the planning stages (spec, test
+The navigator applies the actual-skill handoff to the planning stages (spec, test
 strategy, plan, step plan, test spec, system-test authoring and release plan) and
 to the last carry-forward, whose review covers all executed steps before OUTER
 work. See the skill card's "When Improve runs" section. The producer callback first saves its attempt. The next
@@ -936,7 +929,7 @@ shiploop resume   --run-dir RUN
 shiploop halt     --run-dir RUN --reason=TEXT
 shiploop delegation --run-dir RUN --set=inline|ask-agent   # from the next issued action
 shiploop lint-mode --run-dir RUN --set=fix|report|off      # later lint passes
-shiploop lint     --run-dir RUN --action ACTION [--show --part N [--rerun N]]   # advisory; never gates
+shiploop lint     --run-dir RUN --action ACTION [--show --part N [--rerun N | --gate N]]   # report-only rerun
 # Implementation chains within the current implement action (ask-agent runs)
 shiploop chain {bind,planning-inputs,next,history,pending,claim,start,launched,import-handoff,prepare,done,retry,packet,cleanup,finish} ...
 # Keepalive (see references/keepalive.md)
@@ -955,9 +948,11 @@ Improve checkpoint keep their issued route. It is refused on halted or done runs
 setting the recorded value is a no-op.
 `lint-mode` changes the run's script-owned lint option (new runs record `fix`;
 a saved run without it behaves as `off`) and is refused on halted or done runs.
-`lint` reruns the advisory pass report-only for the current action, or `--show`
-prints one part of a stored record; it exits 0 clean, 1 with new findings or an
-uncovered file, 3 when it could not run, and ShipLoop never gates on it. See
+`lint` reruns the pass report-only for the current action, or `--show` prints
+one part of a stored record (`--gate N` for implement gate pass N); it exits 0
+clean, 1 with new findings or an uncovered file, 3 when it could not run, and
+ShipLoop never gates on that exit code. The implement gate runs its own pass on
+`complete`. See
 [lint catalog](references/lint-catalog.md).
 `graph-dry-run --list` prints the scenarios;
 `--delegation` selects the simulated route (inline by default). See
@@ -1000,7 +995,7 @@ phase diagram.
 | How does the navigator rerun invalidated planning? | [Planning revision archives](scripts/shiploop_planning_revision.py). |
 | How do implementation chains run? | [Chain bridge](scripts/shiploop_chain.py), [Git](scripts/shiploop_chain_git.py), [handoff](scripts/shiploop_chain_handoff.py), [ledger](scripts/shiploop_chain_ledger.py) and [planning inputs](scripts/shiploop_planning_context.py). |
 | How are routes inspected without project work? | [Graph dry run](scripts/shiploop_navigator_dry_run.py). |
-| What does the script-owned lint pass run, fix and record? | [Advisory lint pass](scripts/shiploop_lint.py) and its [lint catalog](references/lint-catalog.md). |
+| What does the script-owned lint pass run, fix and record? | [Lint pass and implement gate](scripts/shiploop_lint.py) and its [lint catalog](references/lint-catalog.md). |
 
 In the **skill-craft source checkout**, not an installed package, the stable
 verification entrypoint is:
@@ -1074,8 +1069,8 @@ a product.
   declarations and early authority questions.
 - [Host matrix](references/host-matrix.md): host-specific invocation
   constraints; it is a reference, not mutable run state.
-- [Lint catalog](references/lint-catalog.md): the script-owned advisory lint
-  pass, its tools, safety pins and catalog data.
+- [Lint catalog](references/lint-catalog.md): the script-owned lint passes and
+  implement gate, the discovered linters, safety pins and catalog data.
 
 If this guide and the current packet differ, follow the packet, preserve the
 evidence, and record the documentation issue as a ShipLoop improvement proposal.

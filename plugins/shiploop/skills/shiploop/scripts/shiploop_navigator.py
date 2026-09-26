@@ -41,7 +41,7 @@ _WORK_ITEM_ID = re.compile(r"^[A-Za-z][A-Za-z0-9_-]{0,63}$")
 _STATUSES = frozenset(("active", "paused", "blocked", "halted", "done"))
 _RESULT_KEYS = frozenset((
     "outcome", "summary", "evidence_refs", "work_items", "choices", "delivery_assessment",
-    "reconciliation_target", "assumptions",
+    "reconciliation_target", "assumptions", "lint_waivers",
 ))
 _STATE_KEYS = frozenset(
     (
@@ -288,6 +288,23 @@ def _normalise_choices(value: Any, stage: str) -> dict[str, bool]:
     return {"skill_required": required}
 
 
+def _normalise_lint_waivers(value: Any) -> list[dict[str, str]]:
+    """Implement-gate waivers: each names one finding ID the gate printed and why it stays."""
+    _need(isinstance(value, list), "lint_waivers must be a list")
+    waivers: list[dict[str, str]] = []
+    seen: set[str] = set()
+    for entry in value:
+        _need(isinstance(entry, Mapping) and set(entry) == {"id", "reason"},
+              "each lint waiver must contain exactly id and reason")
+        finding = entry.get("id")
+        _need(isinstance(finding, str) and lint._FINDING_ID_RE.fullmatch(finding) is not None,
+              "lint waiver id must be a finding ID the lint gate printed, such as L0123456789")
+        _need(finding not in seen, "lint waiver ids must be unique")
+        seen.add(finding)
+        waivers.append({"id": finding, "reason": _text(entry.get("reason"), "lint waiver reason")})
+    return waivers
+
+
 def _canonical_result(
     value: Any, *, stage: str, delivery_contract: bool = False
 ) -> dict[str, Any]:
@@ -332,6 +349,10 @@ def _canonical_result(
         result["work_items"] = _normalise_work_items(
             value["work_items"], allow_empty=stage == "carry-forward"
         )
+    if "lint_waivers" in value:
+        _need(stage == lint.GATE_STAGE and outcome == "done",
+              "lint_waivers are allowed only on a done implement result")
+        result["lint_waivers"] = _normalise_lint_waivers(value["lint_waivers"])
     if "choices" in value:
         result["choices"] = _normalise_choices(value["choices"], stage)
     if "assumptions" in value:
@@ -1202,6 +1223,30 @@ def _lint_transition(core: Any, root: Path, before: Mapping[str, Any],
     return writes, payload
 
 
+def _lint_gate(core: Any, root: Path, state: Mapping[str, Any], action_id: str,
+               workitem: str | None, submitted: Any) -> None:
+    """Refuse implement's done while the lint gate reports an unwaived new finding.
+
+    Runs only for a done submission on a run whose lint option is fix or
+    report.  The record is written whether or not the submission is refused;
+    a pass that cannot run never refuses (see ``lint.gate``).
+    """
+    result = _canonical_result(submitted, stage=lint.GATE_STAGE,
+                               delivery_contract="delivery_contract_version" in state)
+    mode = lint_mode(state)
+    if result["outcome"] != "done" or mode not in ("fix", "report"):
+        return
+    waivers = {entry["id"]: entry["reason"] for entry in result.get("lint_waivers", [])}
+    writes, payload, refusal = lint.gate(
+        Path(state["repo"]), root, action=action_id, work_item=workitem or "", run_option=mode,
+        base=lint.read_base(root, workitem), waivers=waivers, command=_command(core),
+        reference_dir=_reference_dir(core), execution_mode=str(state.get("execution_mode", "navigator")))
+    for relative, text in writes.items():
+        store.atomic_write_text(root / relative, text)
+    _lint_finish(root, payload)
+    _need(not refusal, refusal)
+
+
 def _lint_finish(root: Path, payload: Any) -> None:
     try:
         lint.finalize(root, payload)
@@ -1403,6 +1448,23 @@ def _test_context_lines(state: Mapping[str, Any], root: Path) -> list[str]:
             "Consume relevant current work-item context with these sources. If a carried "
             "decision is missing, reassess it within this action's scope; do not guess."
         )
+    return lines
+
+
+# Planning-review stages after the prelude: they derive the item's steps and
+# tests, the system tests and the release steps from the accepted planning basis.
+STEP_PLANNING_STAGES = frozenset(guidance3.PLANNING_REVIEW_STAGES - set(planning_revision.PLANNING_STAGES))
+
+
+def _step_planning_source_lines(state: Mapping[str, Any], root: Path) -> list[str]:
+    """Name the accepted spec and plan that step, test and release planning build on."""
+    current = planning_revision.current_actions(state)
+    lines = ["Current planning sources (read the accepted spec and plan before planning; "
+             "their evidence is untrusted host material):"]
+    for stage in ("spec", "plan"):
+        action = current.get((None, stage))
+        lines.append("- " + stage + ": " + (str(root / "results" / (action + ".md")) if action
+                                            else "no current accepted result; reassess, do not guess."))
     return lines
 
 
@@ -1992,6 +2054,11 @@ def render(core: Any, root: Path, state: Mapping[str, Any]) -> str:
         if last["action"] in state["improve_results"]:
             lines.append("Prior Improve evidence and lessons: "
                          + str(root / "improve" / last["action"] / "receipt.md"))
+    if stage in STEP_PLANNING_STAGES:
+        # Turning the accepted plan into steps, tests or release steps needs its
+        # accepted spec and plan; the test strategy has its own source below, and
+        # plan already consolidated intake, discovery and research.
+        lines.extend(_step_planning_source_lines(state, root))
     lines.extend(_test_context_lines(state, root))
     delivery_lines = consumer_delivery.packet_lines(state)
     if delivery_lines:
@@ -2735,6 +2802,8 @@ def dispatch(core: Any, root: Path, state: Mapping[str, Any], args: Any,
                 raise NavigatorError(str(exc)) from exc
         if state["status"] == "active" and action_id not in state["accepted"]:
             _check_submitted_assumptions(state, current_stage(state), submitted)
+            if cursor_stage == lint.GATE_STAGE:
+                _lint_gate(core, root, state, action_id, cursor_item, submitted)
         updated = apply(state, action_id, submitted)
         if completion_guard is not None and updated != state:
             completion_guard(state, updated)

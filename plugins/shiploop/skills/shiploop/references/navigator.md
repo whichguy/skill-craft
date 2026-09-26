@@ -20,13 +20,21 @@ refused with an error naming it.
 flowchart LR
   P[Current producer prompt] --> R[Producer result]
   R -->|Planning stage or last carry-forward| I[Actual Improve skill]
-  R -->|Any other stage| N
+  R -->|Any other stage| F
   I --> U[Bound Until Loop cycle]
-  U -->|Accepted| C[Import evidence and lessons]
   U -->|Incomplete| U
-  C --> N[Script selects next producer]
+  U -->|Accepted| C[Import evidence and final result]
+  C --> F[Script routes the final result]
+  F -->|done| N[Next producer]
+  F -->|repeat| P
+  F -->|blocked| B[Wait for resume, then same stage]
+  F -->|replan, outer only| W[New work items enter the inner loop]
   N --> P
 ```
+
+The route is the same for a direct result and an Improve child's final result.
+The child can change the result it imports, so a reviewed `done` can become
+`repeat`, `blocked` or, at an outer stage, `replan`.
 
 The 34 producer stages are fixed by the navigator catalog: prelude `intake`,
 `discovery`, `research`, `spec`, `test-strategy`, `plan`, `prepare`; inner
@@ -41,10 +49,56 @@ result, including a justified N/A output. The planning producers (`spec`,
 `release-plan`) and the successful `carry-forward` that leaves no work item
 pending are then followed by the actual Improve skill; every other result is
 accepted on its own checks and the script selects the next producer directly.
-`static-checks` is the one inner stage that loops: it runs the bound Until Loop
-with a ShipLoop-authored quality contract, and ShipLoop accepts `done` only with
-a matching terminal packet ([quality loop](../SKILL.md#static-checks-quality-loop)).
+`static-checks` is the one inner stage whose loop the script counts: it runs the
+bound Until Loop with a ShipLoop-authored quality contract, and ShipLoop accepts
+`done` only with a matching terminal packet ([quality loop](../SKILL.md#static-checks-quality-loop)).
+`implement` is accepted as done only through the
+[lint gate](../SKILL.md#script-owned-lint), and the test-running stages carry
+the [pass-or-stop loop](../SKILL.md#tests-pass-or-the-step-stops) in their
+prompts.
 No stage contains a copied Improve policy or independently counts review passes.
+
+## Whole-run map
+
+```mermaid
+flowchart TD
+  subgraph PRELUDE[Prelude: root owns the cursor]
+    intake --> discovery --> research --> spec[spec ✦] --> ts[test-strategy ✦] --> plan[plan ✦] --> prepare
+    plan -. "Plan Improve reconcile" .-> discovery
+  end
+  prepare --> SW
+  subgraph INNER[Inner loop: once per work item, the item record owns the cursor]
+    SW[select-work] --> SP[step-plan ✦] --> TS[test-spec ✦] --> BL[baseline → test-author → test-red]
+    BL --> IM[implement ⛔ lint gate, pass-or-stop]
+    IM --> TG[test-green → test-refine → regression ⟳ pass-or-stop]
+    TG --> DOC[document → skill-assess → skill-validate]
+    DOC --> SC[static-checks ⟳ quality loop, at most 3]
+    SC --> VI[verify → integrate → integration-verify ⟳]
+    VI --> CF[carry-forward]
+    CF -->|more items| SW
+  end
+  CF -->|"last item ✦ end review"| STA
+  subgraph OUTER[Outer loop: root owns the cursor]
+    STA[system-test-author ✦] --> ST[system-test] --> PA[product-acceptance] --> RP[release-plan ✦]
+    RP --> REL[release-check → release → release-verify → operations → handoff]
+  end
+  OUTER -. "replan: new work items" .-> SW
+  REL --> done
+```
+
+✦ starts an actual Improve child. ⛔ is script-enforced: `implement` is not
+accepted while the lint gate reports an unwaived new finding. ⟳ loops inside the
+stage: the bound Until Loop drives the `static-checks` quality loop, and the
+pass-or-stop prompt loop reruns failing checks until they pass or the step
+stops as `blocked`.
+
+| | Inner loop | Outer loop |
+| --- | --- | --- |
+| Runs | once per work item, over one shared graph | once, unless `replan` reopens it |
+| Improve children | `step-plan`, `test-spec`, last `carry-forward` | `system-test-author`, `release-plan` |
+| Outcomes | `done`, `repeat`, `blocked` (`static-checks`: `done`, `blocked`) | adds `replan` with new work items |
+| Going back | `carry-forward` replaces the future queue | `replan` appends items; after their end review, outer restarts at `system-test-author` |
+| Script-owned checks | lint gate at `implement`, quality-loop terminal packet at `static-checks` | none |
 
 The graph describes order, not a substitute for engineering judgment. The prompt
 does not dictate exact prose, a check-manifest layout, a byte comparison, or a

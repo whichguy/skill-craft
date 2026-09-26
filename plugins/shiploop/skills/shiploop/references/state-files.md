@@ -41,6 +41,15 @@ revalidate, not a new test-state schema or a passing-check receipt. Follow
 [test decision handoffs](repeatable-test-suites.md#carry-test-decisions-through-stages)
 to retain fixture, suite and local/remote choices through later work.
 
+The planning basis travels the same way. Prelude planning packets (discovery
+through plan) name the current accepted intake-through-test-strategy results as
+**Current planning sources**. The stages that turn the accepted plan into work
+(`step-plan`, `test-spec`, `system-test-author`, `release-plan`) name the
+accepted `spec` and `plan` results there, beside the test strategy source, so
+the steps, tests and release steps are planned from the accepted plan rather
+than from memory. `test/shiploop-planning-handoff.test.py` pins which results
+each stage's packet names.
+
 ## Delegation
 
 Every run records the run-level `delegation` key, `inline` or `ask-agent`. New

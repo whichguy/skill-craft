@@ -1138,7 +1138,8 @@ useful inspection findings into retained tests or explicit manual procedures.
 Retain the harness and case locators in the existing plan and work-item context.
 For remote-resident cases, revalidate framework availability and the authorized
 setup, test-definition/invocation, result retrieval and teardown route.
-Reopen this item's selected prior-baseline and incoming-spec sections from context.
+Reopen the packet's Current planning sources (accepted spec and plan), its test
+strategy source and this item's selected prior-baseline and incoming-spec sections.
 Revalidate scope/freshness, retain preserved behavior and checks, and surface any
 missing consequential source before dependent implementation.
 For affected service work, reopen the indexed current contract and item-specific
@@ -1153,7 +1154,8 @@ to independent positive, boundary, and failure assertions, fixtures, and command
 paths.  Define what the baseline/expected RED should prove, what focused GREEN
 will prove after implementation, and how regression coverage prevents weakening
 the oracle.  A test specification is not execution evidence.
-Preserve every assigned clause and its required surface and due phase. Specify
+Take the item's clauses from the accepted spec and plan named in the packet's
+Current planning sources. Preserve every assigned clause and its required surface and due phase. Specify
 the action and expected observable outcome for each distinct behavior, not only
 that its page loads. Link later-phase procedures without claiming they ran here.
 For each new or changed public entry point, specify one rejection case per
@@ -1249,6 +1251,14 @@ satisfying it would exceed the item.
 Report each criterion's check, the observed output from the final pass, and its
 level (`confirmed`, `inspected`, `failed`, `not_run`, or `unconfirmable`), plus
 discrepancies and recommendations, in the result summary or a linked evidence note.
+Lint every step: after a step's last edit, run the packet's printed lint command
+and fix the new findings on lines you changed before starting the next step.
+Unless the run's lint option is off, when you submit done ShipLoop lints every
+file this work item changed with the linters the repository configures. It
+refuses done once after applying an
+auto-fix (rerun your checks, then submit again) and while a new finding on a
+changed line remains. A finding that must stay goes in the result's
+`lint_waivers` as `{"id": "<printed ID>", "reason": "<why>"}`.
 Use the Coding decision guide to reopen the accepted plan and only its relevant
 practice/platform sections. Check current code, versions and consumers before
 reuse or augmentation. Retain justified revisions in the linked note; a new
@@ -1923,6 +1933,30 @@ def duty(stage: str, *, delegation: str = ASK_AGENT) -> str:
     return text
 
 
+# Stages that run tests: none is done while a check it runs is red.
+TEST_LOOP_STAGES = frozenset({"test-green", "test-refine", "regression", "integration-verify"})
+
+PASS_OR_STOP = """\
+Pass-or-stop loop: this stage is done only when every check it runs passes on
+the current candidate.
+(1) Run the selected checks. When one fails, find out why with a small
+observation (product defect, invalid test, or environment), fix the product
+code, and rerun the checks the fix can affect. After your last edit, rerun the
+whole selected set in one pass; only that pass counts.
+(2) Change a test, fixture, golden file or threshold only when an independent
+reason shows the check itself is wrong, and record that reason. Never change a
+check to get green.
+(3) Stop on exactly one: every selected check passes in the final pass →
+outcome done; a check proven unachievable (it contradicts the specification or
+another requirement, needs a tool, access or authority that is absent, or would
+exceed the item) → outcome blocked, naming it for plan revision; the same check
+still failing after 3 genuine fix attempts → outcome blocked with that check
+failed. A red check never leaves this stage as done.
+Report each check's command, its final-pass output and whether it passed,
+failed or was not run (with the reason).
+"""
+
+
 def prompt(stage: str, *, delegation: str = ASK_AGENT) -> str:
     """Return the single current producer instruction for a navigator graph stage.
 
@@ -1932,7 +1966,7 @@ def prompt(stage: str, *, delegation: str = ASK_AGENT) -> str:
     _require_stage(stage)
     _require_delegation(delegation)
     parts = [COMMON, duty(stage, delegation=delegation)]
-    if stage in PRELUDE or stage in {"step-plan", "test-spec"}:
+    if stage in PRELUDE or stage in PLANNING_REVIEW_STAGES:
         parts.append(_PLANNING_HANDOFF if delegation == ASK_AGENT
                      else _PLANNING_HANDOFF.replace(*_INLINE_PLANNING_DIRECTIVE))
     if stage in TEST_FACILITY_STAGES:
@@ -1945,6 +1979,8 @@ def prompt(stage: str, *, delegation: str = ASK_AGENT) -> str:
         parts.append(_backchain_guidance(stage))
     if stage in RECONCILIATION_STAGES:
         parts.append(SELECTED_CASE_RECONCILIATION)
+    if stage in TEST_LOOP_STAGES:
+        parts.append(PASS_OR_STOP)
     if stage in IMPLEMENTATION_STAGES:
         parts.append(CODE_CRAFT)
     parts.append(PROGRESS_REPORTING)

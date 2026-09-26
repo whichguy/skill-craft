@@ -4,6 +4,43 @@ Written by scripts/release.py.
 
 ## 2026-09-25
 
+### shiploop 0.29.0
+
+- Lint now runs right after implementation and gates it. When `implement` is
+  submitted as done, ShipLoop lints every file the work item changed and applies
+  safe fixes on changed lines. It refuses the submission once after an auto-fix,
+  so the step reruns its checks. It also refuses while a new finding on a line
+  the item changed remains, unless the result lists it in the new `lint_waivers`
+  field (`[{"id", "reason"}]`) with the ID the refusal prints. Findings from
+  before the item, missing tools, tool errors and timeouts never block, and
+  `lint: off` turns the gate off. The implement packet prints the `lint` command
+  to run after each step.
+
+  Linters are now discovered per changed file type. Besides ruff and shellcheck,
+  ShipLoop runs the linters a repository configures (eslint, prettier, tsc, mypy,
+  black, markdownlint-cli2, yamllint, gofmt), actionlint whenever it is on PATH,
+  and `npm run lint` or `make lint` for changed files no other linter covers.
+  Repository-configured linters run repository code by design; pre-commit is
+  still never run, and nothing is ever installed. The lint time limit rises from
+  20 to 120 seconds (60 per tool). `shiploop lint --show --gate N` reads a gate
+  record.
+
+  `test-green`, `test-refine`, `regression` and `integration-verify` now carry the
+  same pass-or-stop loop as `implement`: fix the code and rerun until every check
+  passes, and stop only as `blocked` when a check is proven unachievable or still
+  fails after 3 genuine fix attempts. A red check never leaves these stages as
+  done. The navigator guide gains a whole-run map of the prelude, inner and outer
+  loops.
+- The stages that turn the accepted plan into work now receive it. `step-plan`,
+  `test-spec`, `system-test-author` and `release-plan` packets name the accepted
+  `spec` and `plan` results under "Current planning sources", beside the test
+  strategy source. Before, they carried only the previous stage's result and the
+  test strategy, so the requirements and the plan reached step creation only if
+  the model searched `state.md` for them. The step-plan and test-spec duties point
+  at those sources.
+  `system-test-author` and `release-plan` are now also told to register every
+  planning file they produce in `evidence_refs`, like the other planning stages.
+
 ### shiploop 0.28.0
 
 - Keepalive now works on Grok without an installer. Grok lists a plugin's hooks but

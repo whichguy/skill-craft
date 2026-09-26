@@ -1,12 +1,22 @@
 #!/usr/bin/env python3
-"""Script-owned advisory lint for ShipLoop navigator protocol 4 runs (phase 1).
+"""Script-owned lint for ShipLoop navigator protocol 4 runs.
 
-ShipLoop runs this pass itself at two INNER transitions: the ``complete`` that
-enters ``static-checks`` (the item's first entry may apply safe fixes) and the
-entry to ``verify`` (report-only).  Its output is supporting output, never
-exit-criteria evidence: records live under ``<run>/lint/`` and never enter
-checks, manifests, documentation receipts or chain evidence, and no transition
-is gated on them.  The model still selects and runs the step's own checks.
+ShipLoop runs this pass itself at three INNER points.  The ``complete`` that
+submits ``implement`` as done runs the gate (``gate``): it lints every file the
+work item changed, applies safe fixes, and refuses the submission once after
+applying a fix and while a new finding on a line the item changed has no
+waiver.  The ``complete`` that enters ``static-checks`` (the item's first entry
+may apply safe fixes) and the entry to ``verify`` (report-only) are advisory.
+Records live under ``<run>/lint/`` and never enter checks, manifests,
+documentation receipts or chain evidence.  The model still selects and runs the
+step's own checks.
+
+Linters are discovered per changed file type from the catalog: built-in ruff and
+shellcheck, the tools a repository configures (eslint, prettier, tsc, mypy,
+black, markdownlint-cli2, yamllint, gofmt; actionlint whenever it is on PATH),
+and ``npm run lint`` / ``make lint`` when a changed file has no other linter.
+Repository-configured linters run repository code by design (owner decision
+2026-09-25); ShipLoop still never installs or downloads a tool.
 
 Safety rules are fixed here, not in the catalog: PATH-only tool resolution
 (Git included) refusing relative entries, paths inside any work tree of the
@@ -55,8 +65,9 @@ DEFAULT_MODE = "fix"
 LEGACY_MODE = "off"
 LINT_STAGES = ("static-checks", "verify")
 SUPPORTING = "supporting output; not exit-criteria evidence"
-BUDGET_SECONDS = 20.0
-TOOL_TIMEOUT_SECONDS = 10.0
+GATE_STAGE = "implement"
+BUDGET_SECONDS = 120.0
+TOOL_TIMEOUT_SECONDS = 60.0
 MAX_FILES = 200
 MAX_FILE_BYTES = 2_000_000
 # Line-diff cells (before x after, after trimming the common prefix and suffix)
@@ -77,8 +88,6 @@ EMPTY_BLOBS = frozenset(("e69de29bb2d1d6434b8b29ae775ad8c2e48c5391",
                          "473a0f4c3be8a93681a267e3b1e9a7dcda1185436fe141f7749120a303721813"))
 # ShipLoop runtime metadata is never part of a work item's changes.
 RUNTIME_PARTS = tuple(sorted((set(workspace.FORBIDDEN_PARTS) - {".git"}) | {".shiploop-handoff"}))
-# Kinds whose base blob is read (base lint, syntax regression, JSON parse).
-BASE_KINDS = ("python", "shell", "javascript", "json")
 FIX_OK_EXIT = (0, 1)
 EXIT_CLEAN = 0
 EXIT_FINDINGS = 1
@@ -86,6 +95,11 @@ EXIT_UNAVAILABLE = 3
 CATALOG_NAME = "lint-catalog.md"
 _REDACTED = privacy.REDACTED_SENSITIVE_VALUE
 _FINDING_RE = re.compile(r"^(?P<path>.+?):(?P<line>\d+):(?:(?P<col>\d+):)? (?P<rest>.+)$")
+# Discovered tools: ``path:line[:col][:] message`` and tsc's ``path(line,col): message``.
+_TOOL_FINDING_RE = re.compile(r"^(?P<path>[^\s:][^:]*?):(?P<line>\d+)(?::(?P<col>\d+))?:?\s+(?P<rest>\S.*)$")
+_TSC_FINDING_RE = re.compile(r"^(?P<path>[^\s(][^(]*?)\((?P<line>\d+),(?P<col>\d+)\):\s+(?P<rest>\S.*)$")
+_HUNK_RE = re.compile(r"^@@ -(?P<start>\d+)(?:,(?P<count>\d+))? \+\d+(?:,\d+)? @@")
+_FINDING_ID_RE = re.compile(r"^L[0-9a-f]{10}(?:-[0-9]+)?$")
 _RUFF_CONFIG_RE = re.compile(r"(?m)^\s*\[tool\.ruff")
 _MAKE_TARGET_RE = re.compile(r"^(?P<name>lint(?:-[A-Za-z0-9_.-]+)?|format-check)\s*:(?!=)")
 _PACKAGE_SCRIPT_RE = re.compile(r"(?i)^(?:lint|format|fmt|prettier|eslint)(?:[:_-].*)?$|lint")
@@ -552,8 +566,12 @@ class _Invoker:
 
     def run(self, argv: Sequence[str], *, what: str, stdin: Optional[bytes] = None,
             stdin_note: str = "", note: str = "", stdout_note: str = "",
-            ok_codes: Optional[Sequence[int]] = (0, 1)) -> Optional[Dict[str, Any]]:
-        """Run one invocation; ``ok_codes`` None means any exit is a result, not a tool error."""
+            ok_codes: Optional[Sequence[int]] = (0, 1), cwd: Optional[Path] = None) -> Optional[Dict[str, Any]]:
+        """Run one invocation; ``ok_codes`` None means any exit is a result, not a tool error.
+
+        ``cwd`` defaults to the Git top level; discovered tools run in the run's
+        repository directory so they find its configuration.
+        """
         left = self.remaining()
         if left <= 0.1:
             self.skipped.append(what)
@@ -561,7 +579,7 @@ class _Invoker:
         timeout = max(0.1, min(self.tool_timeout, left))
         started = self.clock()
         try:
-            status, code, out, err = self.runner(list(argv), self.top, timeout,
+            status, code, out, err = self.runner(list(argv), cwd or self.top, timeout,
                                                  input_bytes=b"" if stdin is None else stdin, env=self.env)
         except OSError as exc:
             status, code, out, err = "error", None, b"", (type(exc).__name__ + ": " + str(exc) + "\n").encode()
@@ -819,6 +837,8 @@ class _File:
         self.uncovered = False
         self.findings: List[Dict[str, Any]] = []
         self.sha = ""
+        self.linted_by: List[str] = []   # discovered linters that ran on this file
+        self.tool_notes: List[str] = []  # discovered linters that could not lint it
 
     def label(self) -> str:
         if self.status in ("R", "C"):
@@ -994,9 +1014,23 @@ def _run_pass(invoker: _Invoker, catalog: Mapping[str, Any], top: Path, run_dir:
     if shell and tools["shellcheck"][0]:
         _shellcheck(invoker, top, shell, tools["shellcheck"][0])
     _tier0(invoker, top, run_dir, active, tools, base_tree, current_tree, catalog)
+    missing = _discover(invoker, catalog, top, project, active, base_env, shim_dirs, roots)
+    for item in active:
+        if item.linted_by:
+            linted = "linted by " + ", ".join(item.linted_by)
+            if not item.coverage or item.coverage.startswith("not in scope"):
+                item.coverage = linted
+            else:
+                item.coverage = item.coverage.replace(" (no catalogued linter)", "") + "; " + linted
+            item.uncovered = False
     for item in active:
         if not item.coverage:
             _default_coverage(item, tools)
+    _project_scripts(invoker, catalog, top, project, active, base_env, shim_dirs, roots)
+    for item in active:
+        if item.tool_notes:
+            item.coverage += "; " + "; ".join(item.tool_notes)
+    _assign_ids(active)
     created, removed = _tool_created(invoker, run_dir, untracked_before, catalog)
 
     file_state: Dict[str, Optional[str]] = {}
@@ -1021,7 +1055,11 @@ def _run_pass(invoker: _Invoker, catalog: Mapping[str, Any], top: Path, run_dir:
                  if finding["class"] == "new" and finding["on_changed"])
     new_else = sum(1 for item in active for finding in item.findings
                    if finding["class"] == "new" and not finding["on_changed"])
-    old = sum(1 for item in active for finding in item.findings if finding["class"] != "new")
+    old = sum(1 for item in active for finding in item.findings if finding["class"] in ("at-base", "at-base-edited"))
+    unattributed = sum(1 for item in active for finding in item.findings if finding["class"] == "unattributed")
+    gating = [{"id": finding["id"], "path": item.path, "line": finding["line"], "message": finding["rest"]}
+              for item in active for finding in item.findings
+              if finding["class"] == "new" and finding["on_changed"]]
     uncovered = [item for item in files if item.uncovered]
     tool_errors = sum(1 for call in invoker.calls if call["error"])
     timeouts = sum(1 for call in invoker.calls if call["status"] == "timeout")
@@ -1035,7 +1073,9 @@ def _run_pass(invoker: _Invoker, catalog: Mapping[str, Any], top: Path, run_dir:
                        + "; " + str(new_on + new_else) + " new finding" + ("" if new_on + new_else == 1 else "s")
                        + " remain (" + str(new_on) + " on lines this item changed, " + str(new_else)
                        + " elsewhere in changed files); " + str(old)
-                       + " present at the base (not counted). Tool errors: " + str(tool_errors)
+                       + " present at the base (not counted); " + str(unattributed)
+                       + " from repository linters elsewhere in changed files (not compared with the base)."
+                       + " Tool errors: " + str(tool_errors)
                        + ". Timeouts: " + str(timeouts) + ".")
     coverage_lines = [_redact(_one_line("- " + cquote(item.path) + ": " + (item.scope or item.coverage)
                                         + ("; check-only: " + "; ".join(item.check_only)
@@ -1089,11 +1129,11 @@ def _run_pass(invoker: _Invoker, catalog: Mapping[str, Any], top: Path, run_dir:
     finding_lines = []
     for item in active:
         for finding in item.findings:
-            finding_lines += _data(finding["raw"] + "   [" + finding["label"] + "]")
+            finding_lines += _data(finding["raw"] + "   [" + finding["label"] + "; " + finding["id"] + "]")
     lines.append("Findings (" + str(sum(len(item.findings) for item in active)) + "):")
     lines += finding_lines or ["(none)"]
     lines += _not_run(project, catalog, tools, files)
-    lines += _recommendations(top, catalog, tools, active, files, project)
+    lines += _recommendations(top, catalog, tools, active, files, project, missing)
     if created:
         lines.append("Files created by tools during this pass: " + ", ".join(cquote(path) for path in created)
                      + (". Removed catalogued caches: " + ", ".join(cquote(path) for path in removed)
@@ -1103,9 +1143,15 @@ def _run_pass(invoker: _Invoker, catalog: Mapping[str, Any], top: Path, run_dir:
                      + "; ".join(invoker.skipped) + ".")
     lines.append("END lint data")
     lines.append(result_line)
-    lines.append("These are recommendations, not a gate. Fix what applies, or state in your result why a finding "
-                 "stays. This pass does not replace the static checks you select for this step. ShipLoop never "
-                 "gates on this pass or on the `shiploop lint` exit code.")
+    if stage == GATE_STAGE:
+        lines.append("Gate: ShipLoop refuses this step's done while a new finding on a line this item changed "
+                     "remains. Fix each one, or list it in the result's lint_waivers as {\"id\": \"<ID>\", "
+                     "\"reason\": \"<why it stays>\"}. Pre-existing findings, other files, uncovered files, tool "
+                     "errors and timeouts never block. This pass does not replace the checks you run for this step.")
+    else:
+        lines.append("At " + stage + " this pass is advisory: fix what applies, or state in your result why a "
+                     "finding stays. It does not replace the static checks you select for this step; ShipLoop "
+                     "gates only implement's done on it, never on the `shiploop lint` exit code.")
     lines.append("Rerun after your own edits (report-only): " + rerun)
     exact_path = _lint_dir(run_dir) / "logs" / (record_name + ".patch")
     if exact_patch:
@@ -1118,7 +1164,9 @@ def _run_pass(invoker: _Invoker, catalog: Mapping[str, Any], top: Path, run_dir:
         "file_state": file_state, "applied": [item.path for item, _ in applied],
         "result_line": result_line, "coverage_lines": coverage_lines,
         "counts": {"new_on_changed": new_on, "new_elsewhere": new_else, "at_base": old,
-                   "uncovered": len(uncovered), "tool_errors": tool_errors, "timeouts": timeouts},
+                   "uncovered": len(uncovered), "tool_errors": tool_errors, "timeouts": timeouts,
+                   "unattributed": unattributed},
+        "gating": gating,
         "exit_code": exit_code, "block": "\n".join(_redact(_one_line(line)) for line in lines) + "\n",
         "patch": _redacted_patch(exact_patch), "pending": pending_path.name if exact_patch else "",
         "pending_sha256": _sha256(exact_patch) if exact_patch else "",
@@ -1160,12 +1208,13 @@ def _load_file(invoker: _Invoker, top: Path, item: _File, base_entries: Mapping[
         item.check_only.append("not UTF-8")
     item.kind = _classify(item.path, item.data[:256], catalog)
     old = base_entries.get(item.old if item.status in ("R", "C") else item.path)
-    if old is not None and item.status != "A" and item.kind in BASE_KINDS:
+    if old is not None and item.status != "A":
         blob = invoker.git("cat-file", "blob", old[1])
         if blob.returncode == 0:
             item.base = blob.stdout
             item.base_text = blob.stdout.decode("utf-8", "replace")
-    if item.kind in ("python", "shell"):
+    # Every text file gets changed-line attribution: discovered linters gate on it.
+    if item.text is not None:
         changed = _changed_lines(item.base_text, item.text)
         if changed is None:
             item.changed = set(range(1, len(_split_lines(item.text)) + 1))
@@ -1609,6 +1658,300 @@ def _tool_created(invoker: _Invoker, run_dir: Path, before: Set[str],
     return created, removed
 
 
+# ---------------------------------------------------------------- discovered linters
+
+def _matches(item: _File, row: Mapping[str, Any]) -> bool:
+    lowered = item.path.lower()
+    prefix = row.get("prefix")
+    if prefix and not lowered.startswith(prefix):
+        return False
+    return lowered.endswith(tuple(row.get("suffixes", ())))
+
+
+def _read_text(path: Path) -> str:
+    try:
+        return path.read_text(encoding="utf-8", errors="replace") if path.is_file() else ""
+    except OSError:
+        return ""
+
+
+def _marker(roots: Sequence[Path], row: Mapping[str, Any]) -> Optional[Path]:
+    """The configuration that declares this linter, or None.
+
+    Looks in the run's repository directory, then the Git top level: a marker
+    file, a ``[tool.X]`` table in pyproject.toml, or a package.json key.
+    """
+    for root in roots:
+        for name in row.get("markers", ()):
+            if (root / name).is_file():
+                return root / name
+        table = row.get("pyproject_table")
+        if table and re.search(r"(?m)^\s*\[" + re.escape(table) + r"[\].]", _read_text(root / "pyproject.toml")):
+            return root / "pyproject.toml"
+        key = row.get("package_key")
+        if key:
+            try:
+                package = json.loads(_read_text(root / "package.json") or "{}")
+            except ValueError:
+                package = {}
+            if isinstance(package, Mapping) and key in package:
+                return root / "package.json"
+    return None
+
+
+def _discovered_tool(row: Mapping[str, Any], roots: Sequence[Path], top: Path, path_env: str,
+                     shim_dirs: Sequence[str], repo_roots_: Sequence[str]) -> Tuple[Optional[str], str]:
+    """A repository-installed node binary first (node_modules/.bin), then PATH."""
+    name = str(row["bin"])
+    if row.get("node_bin"):
+        for root in roots:
+            candidate = root / "node_modules" / ".bin" / name
+            if candidate.is_file() and os.access(os.fspath(candidate), os.X_OK):
+                return os.fspath(candidate), ""
+    return resolve_tool(name, top, path_env, shim_dirs, repo_roots_)
+
+
+def _argv(template: Sequence[str], *, tool: str, files: Sequence[str] = (), file: str = "",
+          marker: str = "") -> List[str]:
+    argv: List[str] = []
+    for part in template:
+        if part == "{files}":
+            argv += list(files)
+        else:
+            argv.append(part.replace("{bin}", tool).replace("{file}", file).replace("{marker}", marker))
+    return argv
+
+
+def _tool_relative(path: str, project: Path, top: Path) -> str:
+    """A path a tool printed (relative to its cwd, the project) as a top-level-relative path."""
+    absolute = path if os.path.isabs(path) else os.path.join(os.fspath(project), path)
+    return os.path.normpath(os.path.relpath(absolute, os.fspath(top)))
+
+
+def _add_finding(item: _File, name: str, line: int, message: str, lines: Sequence[int] = ()) -> None:
+    """Attribute one discovered finding: gating when it sits on a line the item changed."""
+    span = set(lines or (line,))
+    on_changed = bool(span & item.changed)
+    rest = name + ": " + _one_line(message)
+    item.findings.append({
+        "path": item.path, "line": line, "rest": rest, "raw": item.path + ":" + str(line) + ": " + rest,
+        "class": "new" if on_changed else "unattributed", "on_changed": on_changed,
+        "label": ("on a line this item changed" if on_changed
+                  else "elsewhere in a file this item changed (not compared with the base)"),
+    })
+
+
+def _parse_tool_lines(text: str, by_path: Mapping[str, _File], name: str, project: Path, top: Path) -> None:
+    for raw in text.splitlines():
+        match = _TSC_FINDING_RE.match(raw) or _TOOL_FINDING_RE.match(raw)
+        if match is None:
+            continue
+        item = by_path.get(_tool_relative(match.group("path"), project, top))
+        if item is not None:
+            _add_finding(item, name, int(match.group("line")), match.group("rest"))
+
+
+def _parse_eslint_json(text: str, by_path: Mapping[str, _File], name: str, project: Path, top: Path) -> bool:
+    try:
+        results = json.loads(text)
+    except ValueError:
+        return False
+    if not isinstance(results, list):
+        return False
+    for entry in results:
+        if not isinstance(entry, Mapping):
+            continue
+        item = by_path.get(_tool_relative(str(entry.get("filePath", "")), project, top))
+        if item is None:
+            continue
+        for message in entry.get("messages", ()) or ():
+            if not isinstance(message, Mapping):
+                continue
+            line = message.get("line") if isinstance(message.get("line"), int) else 1
+            level = "error" if message.get("severity") == 2 else "warning"
+            _add_finding(item, name, line, level + " " + str(message.get("ruleId") or "parse") + ": "
+                         + str(message.get("message", "")))
+    return True
+
+
+def _format_findings(item: _File, name: str, formatted: str, hint: str) -> None:
+    """One finding per region a formatter would rewrite (current-file line numbers)."""
+    current = _split_lines(item.text or "")
+    opcodes = _opcodes(current, _split_lines(formatted))
+    if opcodes is None:
+        _add_finding(item, name, 1, "formatting differs from " + name + " output (file too large to "
+                     "attribute by line); run " + hint, sorted(item.changed) or [1])
+        return
+    for _tag, i1, i2, _j1, _j2 in opcodes:
+        start = min(i1 + 1, max(1, len(current)))
+        span = list(range(start, max(i2, start) + 1))
+        _add_finding(item, name, start, "formatting differs from " + name + " output on lines "
+                     + str(span[0]) + "-" + str(span[-1]) + "; run " + hint, span)
+
+
+def _parse_diff(item: _File, name: str, text: str, hint: str) -> None:
+    """Hunks of a unified diff from the current file (old side) to the formatted file."""
+    for raw in text.splitlines():
+        match = _HUNK_RE.match(raw)
+        if match is None:
+            continue
+        start = int(match.group("start"))
+        count = int(match.group("count")) if match.group("count") is not None else 1
+        first = max(1, start)
+        span = list(range(first, first + max(count, 1)))
+        _add_finding(item, name, first, "formatting differs from " + name + " output on lines "
+                     + str(span[0]) + "-" + str(span[-1]) + "; run " + hint, span)
+
+
+def _discover(invoker: _Invoker, catalog: Mapping[str, Any], top: Path, project: Path,
+              active: Sequence[_File], base_env: Mapping[str, str], shim_dirs: Sequence[str],
+              roots: Sequence[str]) -> List[str]:
+    """Run every catalogued linter the repository declares for a changed file type.
+
+    Returns recommendation lines for linters the repository configures but this
+    host lacks.  Findings, coverage and tool notes go onto the files.
+    """
+    search = [project] if project == top else [project, top]
+    path_env = base_env.get("PATH", "")
+    missing: List[str] = []
+    for row in catalog.get("discovered", ()):
+        name = str(row["name"])
+        files = [item for item in active if item.text is not None and _matches(item, row)]
+        if not files:
+            continue
+        marker = _marker(search, row)
+        if marker is None and row.get("require_marker", True):
+            continue
+        tool, reason = _discovered_tool(row, search, top, path_env, shim_dirs, roots)
+        declared = (" (" + cquote(os.path.relpath(os.fspath(marker), os.fspath(top))) + ")") if marker else ""
+        if tool is None:
+            if marker is not None:
+                missing.append("Recommended: the repository configures " + name + declared + ", but " + reason
+                               + ". Mention it to the user; ShipLoop never installs tools.")
+            for item in files:
+                item.tool_notes.append(name + " not run: " + reason)
+            continue
+        by_path = {os.path.normpath(item.path): item for item in files}
+        relative = {item.path: os.path.join(".", os.path.relpath(os.fspath(top / item.path), os.fspath(project)))
+                    for item in files}
+        ok = tuple(row.get("ok", (0, 1)))
+        fmt = row.get("format", "lines")
+        hint = str(row.get("fix_hint", name))
+        label = name + (declared or " (on PATH)")
+
+        def failed(call: Optional[Mapping[str, Any]], members: Sequence[_File]) -> bool:
+            if call is None:
+                for member in members:
+                    member.tool_notes.append(name + " skipped: pass budget ran out")
+                return True
+            if call["status"] == "timeout" or call["exit"] not in ok:
+                why = "timed out" if call["status"] == "timeout" else "exited " + str(call["exit"])
+                for member in members:
+                    member.tool_notes.append(name + " " + why + " (see its output above)")
+                return True
+            return False
+
+        if fmt in ("stdin-diff", "diff"):
+            for item in files:
+                if fmt == "stdin-diff":
+                    call = invoker.run(_argv(row["argv"], tool=tool, file=relative[item.path]),
+                                       what=name + " " + item.path, stdin=item.data, cwd=project,
+                                       stdin_note="stdin: current " + cquote(item.path), ok_codes=ok)
+                else:
+                    call = invoker.run(_argv(row["argv"], tool=tool, file=relative[item.path]),
+                                       what=name + " " + item.path, cwd=project, ok_codes=ok)
+                if failed(call, [item]):
+                    continue
+                if fmt == "stdin-diff":
+                    formatted = _decode(call["stdout"])
+                    if formatted != (item.text or ""):
+                        _format_findings(item, name, formatted, hint + " " + item.path)
+                else:
+                    _parse_diff(item, name, _decode(call["stdout"]), hint + " " + item.path)
+                item.linted_by.append(label)
+            continue
+        if row.get("scope") == "project":
+            argv = _argv(row["argv"], tool=tool, marker=os.fspath(marker) if marker else "")
+        else:
+            argv = _argv(row["argv"], tool=tool, files=[relative[item.path] for item in files])
+        call = invoker.run(argv, what=name, cwd=project, ok_codes=ok)
+        if failed(call, files):
+            continue
+        text = _decode(call["stdout"]) + "\n" + _decode(call["stderr"])
+        if fmt == "eslint-json":
+            if not _parse_eslint_json(_decode(call["stdout"]), by_path, name, project, top):
+                for item in files:
+                    item.tool_notes.append(name + " output was not JSON (see its output above)")
+                continue
+        else:
+            _parse_tool_lines(text, by_path, name, project, top)
+        for item in files:
+            item.linted_by.append(label)
+    return missing
+
+
+def _project_scripts(invoker: _Invoker, catalog: Mapping[str, Any], top: Path, project: Path,
+                     active: Sequence[_File], base_env: Mapping[str, str], shim_dirs: Sequence[str],
+                     roots: Sequence[str]) -> None:
+    """``npm run lint`` / ``make lint`` for changed files no other linter covered.
+
+    These scripts lint what the repository chose, so their findings count only
+    on the changed files they name; files they are silent about stay uncovered.
+    """
+    uncovered = [item for item in active if item.text is not None and not item.linted_by
+                 and "linted by" not in item.coverage]
+    if not uncovered:
+        return
+    by_path = {os.path.normpath(item.path): item for item in active}
+    for row in catalog.get("project_scripts", ()):
+        present = False
+        if row.get("script"):
+            try:
+                package = json.loads(_read_text(project / str(row["file"])) or "{}")
+            except ValueError:
+                package = {}
+            scripts = package.get("scripts") if isinstance(package, Mapping) else None
+            present = isinstance(scripts, Mapping) and isinstance(scripts.get(row["script"]), str)
+        elif row.get("target"):
+            present = any(re.match(r"^" + re.escape(str(row["target"])) + r"\s*:(?!=)", line)
+                          for line in _read_text(project / str(row["file"])).splitlines())
+        if not present:
+            continue
+        tool, reason = resolve_tool(str(row["bin"]), top, base_env.get("PATH", ""), shim_dirs, roots)
+        if tool is None:
+            for item in uncovered:
+                item.tool_notes.append(str(row["name"]) + " not run: " + reason)
+            continue
+        call = invoker.run(_argv(row["argv"], tool=tool), what=str(row["name"]), cwd=project, ok_codes=None)
+        if call is None:
+            continue
+        _parse_tool_lines(_decode(call["stdout"]) + "\n" + _decode(call["stderr"]), by_path,
+                          str(row["name"]), project, top)
+        for item in uncovered:
+            if item.coverage.startswith("not in scope: no catalogued linter"):
+                item.coverage = "no file-type linter; git diff --check"
+            item.tool_notes.append(str(row["name"]) + " ran (exit " + str(call["exit"])
+                                   + "); it does not say which files it covers")
+        return
+
+
+def _assign_ids(files: Sequence[_File]) -> None:
+    """Stable finding IDs: path, message without its column and the line's text (not its number)."""
+    seen: Counter = Counter()
+    for item in files:
+        for finding in item.findings:
+            rest = re.sub(r"^(\d+:)", "", finding["rest"].replace(" [*]", ""))
+            digest = hashlib.sha1("\0".join((item.path, rest, item.line_text(finding["line"]).strip()))
+                                  .encode("utf-8", "surrogateescape")).hexdigest()[:10]
+            base_id = "L" + digest
+            seen[base_id] += 1
+            finding["id"] = base_id if seen[base_id] == 1 else base_id + "-" + str(seen[base_id])
+
+
+def gating_findings(payload: Mapping[str, Any]) -> List[Mapping[str, Any]]:
+    return list(payload.get("gating", ()))
+
+
 def _call_lines(calls: Sequence[Mapping[str, Any]]) -> List[str]:
     lines = []
     for call in calls:
@@ -1635,7 +1978,7 @@ def _call_lines(calls: Sequence[Mapping[str, Any]]) -> List[str]:
 
 def _not_run(top: Path, catalog: Mapping[str, Any], tools: Mapping[str, Tuple[Optional[str], str]],
              files: Sequence[_File]) -> List[str]:
-    """Declared commands that execute repository code: facts with a risk tag, never run."""
+    """Declared commands ShipLoop does not run: formatters that rewrite files and pre-commit."""
     entries = []
     package = top / "package.json"
     if package.is_file():
@@ -1645,9 +1988,10 @@ def _not_run(top: Path, catalog: Mapping[str, Any], tools: Mapping[str, Tuple[Op
             scripts = {}
         if isinstance(scripts, Mapping):
             for name in sorted(scripts):
-                if isinstance(name, str) and _PACKAGE_SCRIPT_RE.search(name):
+                if isinstance(name, str) and name != "lint" and _PACKAGE_SCRIPT_RE.search(name):
                     entries.append("npm run " + name + " (package.json scripts." + name
-                                   + "; risk: runs npm lifecycle scripts and repository code)")
+                                   + "; not run: only the script named lint runs, and a format script may "
+                                   "rewrite files)")
     for makefile in ("Makefile", "makefile", "GNUmakefile"):
         path = top / makefile
         if not path.is_file():
@@ -1655,29 +1999,23 @@ def _not_run(top: Path, catalog: Mapping[str, Any], tools: Mapping[str, Tuple[Op
         lines = path.read_text(encoding="utf-8", errors="replace").splitlines()
         for index, line in enumerate(lines):
             match = _MAKE_TARGET_RE.match(line)
-            if match:
+            if match and match.group("name") != "lint":
                 recipe = lines[index + 1].strip() if index + 1 < len(lines) else ""
-                entries.append("make " + match.group("name") + " (" + makefile + "; risk: runs a repository "
-                               "recipe, first line: " + (recipe or "(none)") + ")")
+                entries.append("make " + match.group("name") + " (" + makefile + "; not run: only the lint "
+                               "target runs, first line: " + (recipe or "(none)") + ")")
         break
     if (top / ".pre-commit-config.yaml").is_file():
-        entries.append("pre-commit run --files <changed files> (.pre-commit-config.yaml; risk: may download "
-                       "hook environments and runs repository-configured hooks)")
-    for tool, names in catalog.get("repo_code_configs", {}).items():
-        found = [name for name in names if (top / name).is_file()]
-        if found:
-            entries.append(tool + " (" + ", ".join(found) + "; risk: its configuration executes repository code)")
-    if tools["actionlint"][0] and any(item.kind == "workflow" for item in files):
-        entries.append("actionlint " + " ".join(cquote(item.path) for item in files if item.kind == "workflow")
-                       + " (actionlint is on PATH; phase 1 does not run it)")
+        entries.append("pre-commit run --files <changed files> (.pre-commit-config.yaml; not run: it may "
+                       "download hook environments, and ShipLoop never installs or downloads tools)")
     if not entries:
         return []
     return ["Not run by ShipLoop (ask the user before running any of these):"] + _data("\n".join(entries))
 
 
 def _recommendations(top: Path, catalog: Mapping[str, Any], tools: Mapping[str, Tuple[Optional[str], str]],
-                     active: Sequence[_File], files: Sequence[_File], project: Optional[Path] = None) -> List[str]:
-    lines = []
+                     active: Sequence[_File], files: Sequence[_File], project: Optional[Path] = None,
+                     missing: Sequence[str] = ()) -> List[str]:
+    lines = list(missing)
     wanted = (("ruff", "python"), ("shellcheck", "shell"), ("actionlint", "workflow"))
     for tool, kind in wanted:
         matching = [item for item in files if item.kind == kind and not item.scope.startswith("not in scope: deleted")]
@@ -1874,10 +2212,22 @@ def render_lines(run_dir: Path, action: str, *, stage: str, run_option: Optional
     """Read-only packet lines for the current action: never lints."""
     run_dir = Path(run_dir)
     lines = pending_lines(run_dir)
+    if stage == GATE_STAGE and run_option in ("fix", "report"):
+        lines.append("Lint each implementation step (report-only): "
+                     + _command_line(command, "lint", run_dir=run_dir, action=action))
     if run_option == "off" and stage == "static-checks":
         lines.append("ShipLoop lint: off (run option lint=off). ShipLoop ran no linters; choose and run this "
                      "step's static checks yourself.")
     record = _record_path(run_dir, action)
+    gate_number = 0
+    if stage == GATE_STAGE:
+        while _record_path(run_dir, action + ".gate" + str(gate_number + 1)).is_file():
+            gate_number += 1
+        record = _record_path(run_dir, action + ".gate" + str(gate_number))
+        if gate_number:
+            lines.append("")
+            lines.append("Latest implement lint gate (pass " + str(gate_number) + "); ShipLoop reruns it when you "
+                         "submit done:")
     if record.is_file():
         payload = store.read_record(record)
         block = str(payload.get("block", ""))
@@ -1887,9 +2237,13 @@ def render_lines(run_dir: Path, action: str, *, stage: str, run_option: Optional
         lines.append("")
         lines.append(parts[0].rstrip("\n"))
         if len(parts) > 1:
+            shows = ([shlex.join(["python3", command, "lint", "--run-dir=" + os.fspath(run_dir),
+                                  "--action=" + action, "--show", "--gate=" + str(gate_number),
+                                  "--part=" + str(number)]) for number in range(2, len(parts) + 1)]
+                     if gate_number else
+                     [_show_command(command, run_dir, action, number) for number in range(2, len(parts) + 1)])
             lines.append("Lint block part 1 of " + str(len(parts)) + ". Read every part (lossless): "
-                         + "; ".join(_show_command(command, run_dir, action, number)
-                                     for number in range(2, len(parts) + 1)))
+                         + "; ".join(shows))
         if stale:
             lines.append("Status: stale. " + ", ".join(cquote(path) for path in stale) + " changed after this "
                          "pass (expected after your own repairs). Rerun: "
@@ -2083,6 +2437,73 @@ def on_transition(run_dir: Path, before: Mapping[str, Any], after: Mapping[str, 
             return {}, None
 
 
+# ---------------------------------------------------------------- the implement gate
+
+def gate(repo: Path, run_dir: Path, *, action: str, work_item: str, run_option: str,
+         base: Optional[Mapping[str, Any]], waivers: Mapping[str, str], command: str,
+         env: Optional[Mapping[str, str]] = None, runner: Optional[Runner] = None,
+         clock: Optional[Callable[[], float]] = None, budget: float = BUDGET_SECONDS,
+         tool_timeout: float = TOOL_TIMEOUT_SECONDS, reference_dir: Optional[Path] = None,
+         execution_mode: str = "navigator") -> Tuple[Dict[str, str], Optional[Dict[str, Any]], str]:
+    """Lint the work item's changes before ``implement`` is accepted as done.
+
+    Returns (record writes, payload to finalize, refusal text).  An empty
+    refusal accepts the submission.  The submission is refused once after an
+    auto-fix (the step's earlier check results are stale for the fixed files)
+    and while a new finding on a line the item changed has no waiver.  A pass
+    that cannot run, tool errors, timeouts, uncovered files and findings
+    elsewhere never refuse: the record says what happened.
+    """
+    run_dir = Path(run_dir)
+    number = 1
+    while _record_path(run_dir, action + ".gate" + str(number)).exists():
+        number += 1
+    name = action + ".gate" + str(number)
+    try:
+        payload = lint_pass(Path(repo), run_dir, action=action, work_item=work_item, stage=GATE_STAGE,
+                            mode=run_option, run_option=run_option, base=base, allow_fix=base is not None,
+                            command=command, record_name=name, env=env, runner=runner, clock=clock,
+                            budget=budget, tool_timeout=tool_timeout, reference_dir=reference_dir,
+                            execution_mode=execution_mode)
+    except KeyboardInterrupt:
+        raise
+    except BaseException as exc:  # noqa: BLE001 - a pass that cannot run never refuses
+        failure = failure_payload(action, GATE_STAGE, work_item, run_option, exc, command, run_dir)
+        failure["record"] = name
+        return record_writes(failure), None, ""
+    show = shlex.join(["python3", command, "lint", "--run-dir=" + os.fspath(run_dir), "--action=" + action,
+                       "--show", "--gate=" + str(number), "--part=1"])
+    record = os.fspath(_record_path(run_dir, name))
+    remaining = [finding for finding in payload.get("gating", ()) if finding["id"] not in waivers]
+    waived = sorted(finding["id"] for finding in payload.get("gating", ()) if finding["id"] in waivers)
+    payload["waived"] = waived
+    if waived:
+        payload["block"] += ("Waived by the implement result: " + ", ".join(waived) + ".\n")
+    refusal = ""
+    if payload.get("applied"):
+        refusal = ("ShipLoop lint gate: ShipLoop auto-fixed " + ", ".join(cquote(path) for path in payload["applied"])
+                   + " on lines this work item changed, so check results from before this pass are stale for "
+                   "those files. Rerun every check that confirms this step's exit criteria (tests included), "
+                   "repair or revert a fix that breaks one, then submit done again. Full record: " + record
+                   + " (read it with: " + show + ").")
+    elif remaining:
+        listed = remaining[:40]
+        refusal = "\n".join([
+            "ShipLoop lint gate: implement is not done while " + str(len(remaining)) + " new lint finding"
+            + ("" if len(remaining) == 1 else "s") + " on lines this work item changed remain"
+            + (" (" + str(len(waived)) + " waived)" if waived else "") + ":",
+            *["- " + finding["id"] + " " + _redact(_one_line(finding["path"] + ":" + str(finding["line"]) + ": "
+                                                             + finding["message"])) for finding in listed],
+            *(["- ... " + str(len(remaining) - len(listed)) + " more in the record"]
+              if len(remaining) > len(listed) else []),
+            "Fix each one, rerun this step's checks, and submit done again. A finding that must stay goes in "
+            "the result as \"lint_waivers\": [{\"id\": \"<ID>\", \"reason\": \"<why it stays>\"}]. Rerun lint "
+            "yourself with: " + _command_line(command, "lint", run_dir=run_dir, action=action)
+            + ". Full record: " + record + " (read it with: " + show + ").",
+        ])
+    return record_writes(payload), payload, refusal
+
+
 # ---------------------------------------------------------------- CLI verb
 
 def main(core: Any, argv: Optional[Sequence[str]] = None) -> int:
@@ -2096,6 +2517,7 @@ def main(core: Any, argv: Optional[Sequence[str]] = None) -> int:
     parser.add_argument("--show", action="store_true", help="print a stored record part instead of rerunning")
     parser.add_argument("--part", type=int, default=1)
     parser.add_argument("--rerun", type=int, default=0, help="with --show: read rerun record N")
+    parser.add_argument("--gate", type=int, default=0, help="with --show: read implement gate record N")
     args = parser.parse_args(list(argv or ()))
     root = Path(args.run_dir).absolute()
     if re.fullmatch(r"[A-Za-z][A-Za-z0-9_-]{0,159}", args.action) is None:
@@ -2103,7 +2525,8 @@ def main(core: Any, argv: Optional[Sequence[str]] = None) -> int:
         return EXIT_UNAVAILABLE
     command = os.fspath(Path(getattr(core, "PACKAGE_ROOT", Path(__file__).resolve().parents[1])) / "scripts" / "shiploop")
     if args.show:
-        name = args.action + ("." + str(args.rerun) if args.rerun else "")
+        name = args.action + (".gate" + str(args.gate) if args.gate
+                              else "." + str(args.rerun) if args.rerun else "")
         path = _record_path(root, name)
         if not path.is_file():
             print("ShipLoop lint: no stored record " + cquote(os.fspath(path)), file=sys.stderr)
