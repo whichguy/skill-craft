@@ -260,6 +260,30 @@ def _is_subagent(payload: Mapping[str, Any]) -> bool:
     return any(payload.get(key) for key in ("subagentType", "agent_id", "agent_type"))
 
 
+def compacted(host: str, payload: Mapping[str, Any]) -> str | None:
+    """After the host compacted this session's context, make the run's next packet full.
+
+    The short repeat packet assumes the run rules are still in context; once
+    the host has compacted it, they may not be.  Removing the run's
+    last-packet.json record makes the next ``next`` print the full packet.
+    Returns the run directory it reset, if any.
+    """
+    if str(payload.get("source", "compact")) != "compact":
+        return None
+    session = session_of(payload)
+    if session is None or _is_subagent(payload):
+        return None
+    binding = load_binding(host, session)
+    if binding is None:
+        return None
+    record = Path(binding["run_dir"]) / "last-packet.json"
+    try:
+        record.unlink()
+    except FileNotFoundError:
+        pass
+    return binding["run_dir"]
+
+
 def observe(host: str, payload: Mapping[str, Any]) -> dict | None:
     """Bind the session to the run named by a marker in this tool output.
 
@@ -452,6 +476,9 @@ def run_hook(event: str, host: str, raw: str) -> str:
             return ""
         if event == "observe":
             observe(host, payload)
+            return ""
+        if event == "compacted":
+            compacted(host, payload)
             return ""
         decision = stop(host, payload)
         _log_decision(host, payload, decision)
@@ -858,7 +885,7 @@ def hook_main(argv: list[str] | None = None) -> int:
         prog="shiploop-hook",
         description="Keep a ShipLoop run moving across host turns (see references/keepalive.md).")
     sub = parser.add_subparsers(dest="command", required=True)
-    for name in ("observe", "stop"):
+    for name in ("observe", "stop", "compacted"):
         event = sub.add_parser(name, help=f"host hook event: {name} (reads the payload on stdin)")
         event.add_argument("--host", choices=(*HOSTS, AUTO), required=True)
     for name in ("install", "uninstall", "status"):
@@ -867,7 +894,7 @@ def hook_main(argv: list[str] | None = None) -> int:
         if name != "status":
             action.add_argument("--dry-run", action="store_true")
     args = parser.parse_args(argv)
-    if args.command in ("observe", "stop"):
+    if args.command in ("observe", "stop", "compacted"):
         reply = run_hook(args.command, args.host, sys.stdin.read())
         if reply:
             print(reply)

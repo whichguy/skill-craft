@@ -264,8 +264,10 @@ function readSkillFrontmatter(leaf) {
 // root variable, and may only run an executable in the skill's own scripts/.
 const HOOK_HOSTS = ["claude", "codex", "cursor", "grok"];
 // after-shell: after a shell command. turn-end: when the host is about to end
-// the agent's turn (Claude-format Stop; Cursor stop).
-const HOOK_EVENTS = new Set(["after-shell", "turn-end"]);
+// the agent's turn (Claude-format Stop; Cursor stop). context-compacted: after
+// the host compacted the conversation (Claude-format SessionStart, matcher
+// "compact"; Cursor has no equivalent and gets no entry).
+const HOOK_EVENTS = new Set(["after-shell", "turn-end", "context-compacted"]);
 // Cursor stops re-prompting after loop_limit follow-ups (default 5); a turn-end
 // hook owns its own loop limits, so the host limit is only a backstop.
 const CURSOR_TURN_END_LOOP_LIMIT = 50;
@@ -339,9 +341,13 @@ function buildHostHooks(leaves) {
   const claudeShaped = (variable, hooks) => {
     const shell = hooks.filter((hook) => hook.event === "after-shell");
     const turnEnd = hooks.filter((hook) => hook.event === "turn-end");
+    const compacted = hooks.filter((hook) => hook.event === "context-compacted");
     const events = {};
     if (shell.length) events.PostToolUse = [{ matcher: "Bash", hooks: shell.map((hook) => entry(variable, hook)) }];
     if (turnEnd.length) events.Stop = [{ hooks: turnEnd.map((hook) => entry(variable, hook)) }];
+    if (compacted.length) {
+      events.SessionStart = [{ matcher: "compact", hooks: compacted.map((hook) => entry(variable, hook)) }];
+    }
     return { hooks: events };
   };
   const forHost = (...hosts) => decl.hooks.filter((hook) => hosts.some((h) => hook.hosts.includes(h)));

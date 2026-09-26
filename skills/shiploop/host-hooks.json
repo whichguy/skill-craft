@@ -5,21 +5,45 @@
       "event": "after-shell",
       "script": "scripts/shiploop-status-hook",
       "timeout": 10,
-      "hosts": ["claude", "codex", "cursor", "grok"]
+      "hosts": [
+        "claude",
+        "codex",
+        "cursor",
+        "grok"
+      ]
     },
     {
       "id": "keepalive-observe",
       "event": "after-shell",
       "script": "scripts/shiploop-keepalive-observe",
       "timeout": 30,
-      "hosts": ["claude", "codex", "cursor", "grok"]
+      "hosts": [
+        "claude",
+        "codex",
+        "cursor",
+        "grok"
+      ]
     },
     {
       "id": "keepalive-stop",
       "event": "turn-end",
       "script": "scripts/shiploop-keepalive-stop",
       "timeout": 30,
-      "hosts": ["claude", "codex", "cursor", "grok"]
+      "hosts": [
+        "claude",
+        "codex",
+        "cursor",
+        "grok"
+      ]
+    },
+    {
+      "id": "keepalive-compacted",
+      "event": "context-compacted",
+      "script": "scripts/shiploop-keepalive-compacted",
+      "timeout": 10,
+      "hosts": [
+        "claude"
+      ]
     }
   ]
 }

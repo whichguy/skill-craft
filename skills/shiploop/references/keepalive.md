@@ -56,6 +56,12 @@ user: `resume` then requires `--answer "<their words>"` (a decision) or
 a bare "continue". The reply is recorded in `decisions/<action>.md` and shown in
 the next packet. Host interrupts (Ctrl+C, Esc) skip stop hooks entirely.
 `SHIPLOOP_KEEPALIVE=off` in the host's environment disables the hooks.
+
+On Claude, a third hook runs on `SessionStart` with the `compact` matcher: after
+the host compacts a bound session's context it removes the run's
+`last-packet.json`, so the next `next` prints the full packet (run rules
+included) instead of the short repeat packet. Other hosts have no compaction
+event; there the short packet points at `rules.md`.
 Each stop decision is appended to
 `${XDG_STATE_HOME:-~/.local/state}/shiploop/keepalive/decisions.log` with its
 reason, and hook failures to `errors.log` beside it.

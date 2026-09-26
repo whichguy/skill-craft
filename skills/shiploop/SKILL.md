@@ -533,7 +533,9 @@ keepalive marker, what changed since it was last printed, the stage references
 and the full stage prompt. The run-level rules (locators, recovery, delegation
 rule, original request) are then a reference to `rules.md`, which ShipLoop keeps
 current; open it when they are not in your context, for example after
-compaction. `next --full` prints everything. A new action, a status change or a
+compaction. `next --full` prints everything. On Claude, a `SessionStart` hook with the
+`compact` matcher clears the record after the host compacts, so the next packet
+is full. A new action, a status change or a
 changed rules block prints the full packet.
 
 Each packet carries a script-rendered **status block** (`=== ShipLoop status ===`):

@@ -141,6 +141,27 @@ class RepeatPacketTests(KeepaliveTestCase):
         self.assertIn("Original request (preserve user scope", moved.stdout)
         self.assertIn("Same action as revision", shiploop("next", "--run-dir", str(self.run_dir)).stdout)
 
+
+class CompactionTests(KeepaliveTestCase):
+    """After the host compacts context, the next packet is full again."""
+
+    def test_a_compacted_session_gets_the_full_packet_next(self) -> None:
+        self.hook("observe", "claude", self.payload("claude", "observe"))
+        self.assertIn("Same action as revision 0", shiploop("next", "--run-dir", str(self.run_dir)).stdout)
+        compact = {**self.payload("claude", "stop"), "hook_event_name": "SessionStart", "source": "compact"}
+        self.assertEqual(keepalive.run_hook("compacted", "claude", json.dumps(compact)), "")
+        self.assertFalse((self.run_dir / "last-packet.json").exists())
+        self.assertIn("Original request (preserve user scope", shiploop("next", "--run-dir", str(self.run_dir)).stdout)
+
+    def test_other_session_starts_and_unbound_sessions_change_nothing(self) -> None:
+        self.hook("observe", "claude", self.payload("claude", "observe"))
+        resume = {**self.payload("claude", "stop"), "hook_event_name": "SessionStart", "source": "resume"}
+        keepalive.run_hook("compacted", "claude", json.dumps(resume))
+        self.assertTrue((self.run_dir / "last-packet.json").exists())
+        other = {**self.payload("claude", "stop", "someone-else"), "source": "compact"}
+        keepalive.run_hook("compacted", "claude", json.dumps(other))
+        self.assertTrue((self.run_dir / "last-packet.json").exists())
+
 class AwaitingUserTests(KeepaliveTestCase):
     """A run blocked on the user's reply stops quietly and resumes only with that reply."""
 
@@ -607,6 +628,13 @@ class MarketplacePackageTests(KeepaliveTestCase):
                 observe = self.commands(hooks, "afterShellExecution" if cursor else "PostToolUse")
                 stop = self.commands(hooks, "stop" if cursor else "Stop")
                 self.assertEqual((len(observe), len(stop)), (1, 1))
+                # Claude-format files (Claude and Grok) reset the repeat packet after compaction.
+                compact = [group for group in hooks["hooks"].get("SessionStart", [])
+                           if group.get("matcher") == "compact"]
+                self.assertEqual(len(compact), 1 if file_name == "hooks.json" else 0)
+                if compact:
+                    self.assertTrue(compact[0]["hooks"][0]["command"].endswith(
+                        "skills/shiploop/scripts/shiploop-keepalive-compacted"))
                 # Grok does not strip quotes: a quoted command becomes a file name
                 # relative to the hooks folder ("command not found").
                 for command in (*observe, *stop):
