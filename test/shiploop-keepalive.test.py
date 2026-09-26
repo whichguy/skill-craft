@@ -108,6 +108,39 @@ class HookStatusAndMarkerTests(KeepaliveTestCase):
 
 
 
+
+class RepeatPacketTests(KeepaliveTestCase):
+    """A repeated next for the same action refers to the run rules instead of reprinting them."""
+
+    def test_a_repeat_next_is_short_and_keeps_the_stage_prompt_and_marker(self) -> None:
+        self.assertIn("Original request (preserve user scope", self.packet)
+        short = shiploop("next", "--run-dir", str(self.run_dir)).stdout
+        self.assertIn("Same action as revision 0; nothing has changed since.", short)
+        self.assertIn("Run rules: " + str(self.run_dir / "rules.md"), short)
+        self.assertNotIn("Original request (preserve user scope", short)
+        self.assertNotIn("Recovery command:", short)
+        self.assertIn("ShipLoop navigator | intake | revision 0", short)
+        full_prompt_tail = self.packet.rstrip().splitlines()[-1]
+        self.assertTrue(short.rstrip().endswith(full_prompt_tail))  # the stage prompt and callback are whole
+        self.assertEqual(keepalive.last_marker(short)["rev"], 0)
+        rules = (self.run_dir / "rules.md").read_text()
+        self.assertIn("Original request (preserve user scope", rules)
+        self.assertIn("Recovery command:", rules)
+
+    def test_full_flag_a_new_status_or_a_new_action_prints_the_full_packet(self) -> None:
+        self.assertIn("Original request", shiploop("next", "--run-dir", str(self.run_dir), "--full").stdout)
+        shiploop("pause", "--run-dir", str(self.run_dir), "--reason", "user asked")
+        shiploop("resume", "--run-dir", str(self.run_dir))
+        after = shiploop("next", "--run-dir", str(self.run_dir)).stdout
+        self.assertIn("Same action as revision 2; nothing has changed since.", after)  # resume printed rev 2
+        action = self.status()["action"]
+        path = self.run_dir / "inbox" / (action + ".md")
+        path.parent.mkdir(exist_ok=True)
+        path.write_text(store.dumps({"outcome": "done", "summary": "Intake recorded."}, "test result"))
+        moved = shiploop("complete", "--run-dir", str(self.run_dir), "--action", action, "--result", str(path))
+        self.assertIn("Original request (preserve user scope", moved.stdout)
+        self.assertIn("Same action as revision", shiploop("next", "--run-dir", str(self.run_dir)).stdout)
+
 class AwaitingUserTests(KeepaliveTestCase):
     """A run blocked on the user's reply stops quietly and resumes only with that reply."""
 

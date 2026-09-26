@@ -496,9 +496,19 @@ the host handoff, or force any host tool call.
 
 Every packet names the run's **context index** (`context-index.md`): the request,
 the accepted planning basis, each work item's results and their notes. Active
-packets add **Read first**: the accepted results the current stage builds on.
-Read those before acting, use the index for the global picture, and report a
-conflict with an accepted decision instead of silently choosing.
+packets add **Results this stage builds on**: references to the accepted results
+the current stage depends on. Open one when its content is not already in your
+context, use the index when you need the global picture, and report a conflict
+with an accepted decision instead of silently choosing. Packets point at material
+rather than asking you to reread it at every stage.
+
+A repeated `next` for the same action prints a short packet: status, callback,
+keepalive marker, what changed since it was last printed, the stage references
+and the full stage prompt. The run-level rules (locators, recovery, delegation
+rule, original request) are then a reference to `rules.md`, which ShipLoop keeps
+current; open it when they are not in your context, for example after
+compaction. `next --full` prints everything. A new action, a status change or a
+changed rules block prints the full packet.
 
 Each packet carries a script-rendered **status block** (`=== ShipLoop status ===`):
 where the run is, what just finished, what comes next and what is complete.

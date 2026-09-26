@@ -277,8 +277,9 @@ class StatusBlockTests(unittest.TestCase):
 
         def files() -> dict:
             # The run lock file is created empty by any locked verb; it holds no content.
+            # rules.md and last-packet.json are packet display records, never state.
             return {path: path.read_bytes() for path in root.rglob("*")
-                    if path.is_file() and path.name != ".lock"}
+                    if path.is_file() and path.name not in (".lock", "rules.md", "last-packet.json")}
 
         before = files()
         cli = [sys.executable, "-B", str(SCRIPTS / "shiploop")]

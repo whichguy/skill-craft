@@ -156,7 +156,7 @@ class QualityLoopTests(unittest.TestCase):
         action = self.action()
         self.assertIn("Quality loop (bound Until Loop", packet)
         card = str(ROOT / "skills/improve/runtime/until-loop/ADAPTER.md")
-        self.assertIn("Bound Until Loop card (read in full once per context): " + card, packet)
+        self.assertIn("Bound Until Loop card (open it if its rules are not already in your context): " + card, packet)
         self.assertIn("Allowed outcomes: done | blocked.", packet)
         contract = json.loads((self.run_dir / quality.contract_path(action)).read_text())
         self.assertEqual(contract["work"], prompts.QUALITY_ITERATION.strip())

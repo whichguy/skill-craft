@@ -139,7 +139,7 @@ def render_lines(root: Path, state: Mapping[str, Any], work_item: str, action: s
         return lines + lint.render_inventory_lines(root, action, work_item)
     contract = root / contract_path(action)
     lines += [
-        "Bound Until Loop card (read in full once per context): " + runtime["runtime_card"],
+        "Bound Until Loop card (open it if its rules are not already in your context): " + runtime["runtime_card"],
         "Loop contract (written by ShipLoop; pass it unchanged): " + str(contract),
         "Start: " + shlex.join([sys.executable, runtime["runtime_cli"], "start"]) + " < "
         + shlex.quote(str(contract)),

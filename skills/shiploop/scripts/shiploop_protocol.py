@@ -324,6 +324,9 @@ def main(core, argv=None):
             sub.add_argument("--result", required=True)
         if name == "context":
             sub.add_argument("--section", default="navigator")
+        if name == "next":
+            sub.add_argument("--full", action="store_true",
+                             help="print the full packet even when this action was already shown")
         if name in ("halt", "pause"):
             sub.add_argument("--reason", required=True)
         if name == "resume":
@@ -436,7 +439,7 @@ def main(core, argv=None):
                 lint_option=args.lint or navigator.DEFAULT_LINT,
             )
             navigator.save(root, state)
-            print(navigator.render(core, root, state), end="")
+            navigator.emit(core, root, state)
             return 0
     except navigator.NavigatorError as exc:
         print(f"ShipLoop navigator: {exc}", file=sys.stderr)
