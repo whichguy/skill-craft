@@ -177,6 +177,7 @@ class ImproveCliFixture(unittest.TestCase):
         if stage == "step-plan":
             self.producer["test_commands"] = []
             self.producer["test_commands_na"] = "Synthetic fixture; no test commands."
+            self.producer["paths"] = ["src/**"]
         self.input = self.run / "inbox" / (self.action + ".md")
         store.write_record(self.input, self.producer)
         self.invoke(CLI, "complete", "--run-dir", self.run, "--action", self.action, "--result", self.input)
@@ -1136,6 +1137,9 @@ class EphemeralImproveCliTests(ImproveCliFixture):
         self.invoke(CLI, "workspace", "return", "--workspace-root", workspace, status=2)
         self.assertEqual((source / "product.txt").read_text(encoding="utf-8"), "baseline\n")
         (self.repo / "product.txt").write_text("final child reviewed candidate\n", encoding="utf-8")
+        # An Improve review commits its own changes; the import refuses them uncommitted.
+        subprocess.run(["git", "-C", str(self.repo), "commit", "-qm", "review: final candidate", "--",
+                        "product.txt"], check=True, capture_output=True)
         terminal_raw, terminal = self.finish_ephemeral(active)
         self.assertEqual(terminal["status"], "complete")
         self.invoke(CLI, "improve-complete", "--run-dir", self.run, "--action", self.action, "--result", completion)

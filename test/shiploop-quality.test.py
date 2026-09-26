@@ -72,7 +72,8 @@ class QualityLoopTests(unittest.TestCase):
             result = dict(result, assumptions=[])
         if (nav.current_stage(state) == "step-plan" and result.get("outcome") == "done"
                 and "test_commands" not in result):
-            result = dict(result, test_commands=[], test_commands_na="Synthetic fixture; no test commands.")
+            result = dict(result, test_commands=[], test_commands_na="Synthetic fixture; no test commands.",
+                          paths=["src/**"])
         path = self.run_dir / "inbox" / (action + ".md")
         path.parent.mkdir(exist_ok=True)
         path.write_text(store.dumps(result, "result"))

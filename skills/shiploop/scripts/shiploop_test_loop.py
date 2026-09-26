@@ -396,7 +396,8 @@ def verify(root: Path, state: Mapping[str, Any], work_item: str, action: str, st
            runner: Optional[Runner] = None, env: Optional[Mapping[str, str]] = None,
            clock: Optional[Callable[[], float]] = None,
            command_timeout: float = COMMAND_TIMEOUT_SECONDS,
-           budget: float = STAGE_BUDGET_SECONDS, red_na: Optional[str] = None) -> Tuple[Dict[str, str], str]:
+           budget: float = STAGE_BUDGET_SECONDS, red_na: Optional[str] = None,
+           commands: Optional[List[Dict[str, Any]]] = None) -> Tuple[Dict[str, str], str]:
     """Run every command of this stage once; return (record writes, refusal text).
 
     An empty refusal means every command passed (``judge``).  At test-red each
@@ -406,7 +407,8 @@ def verify(root: Path, state: Mapping[str, Any], work_item: str, action: str, st
     refuses.
     """
     root = Path(root)
-    commands, _reason = stage_commands(state, stage, work_item)
+    if commands is None:
+        commands, _reason = stage_commands(state, stage, work_item)
     if not commands:
         return {}, ""
     red = stage == RED_STAGE and not red_na

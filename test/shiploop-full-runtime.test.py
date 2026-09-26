@@ -386,6 +386,8 @@ class FullRuntimeCompositionTests(unittest.TestCase):
             # Real commands: test-green and regression loop on them, then ShipLoop reruns them.
             producer["test_commands"] = [{"command": FOCUSED, "suite": "focused"},
                                          {"command": "true", "suite": "regression"}]
+        if stage == "step-plan" and producer.get("outcome") == "done" and "paths" not in producer:
+            producer["paths"] = ["src/**"]
         if stage == "test-red" and producer.get("outcome") == "done" and "red_na" not in producer:
             # The synthetic focused command already passes, so declare it and let ShipLoop check it ran.
             producer["red_na"] = "synthetic fixture: the focused check already passes"

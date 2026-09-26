@@ -26,6 +26,7 @@ sys.path.insert(0, str(PACKAGE / "scripts"))
 import shiploop_navigator as nav  # noqa: E402
 import shiploop_navigator_v3_prompts as prompts  # noqa: E402
 import shiploop_store as store  # noqa: E402
+import shiploop_item_scope as item_scope  # noqa: E402
 import shiploop_test_loop as test_loop  # noqa: E402
 
 CORE = types.SimpleNamespace(PACKAGE_ROOT=PACKAGE, REF_DIR=PACKAGE / "references")
@@ -103,7 +104,7 @@ class TestLoopTests(unittest.TestCase):
 
     def drive_to(self, stage: str, *, step_plan: dict | None = None) -> dict:
         """Advance with synthetic results; the step plan records ``step_plan`` (default: COMMANDS)."""
-        recorded = {"test_commands": COMMANDS} if step_plan is None else step_plan
+        recorded = {"test_commands": COMMANDS, "paths": ["a.py"]} if step_plan is None else step_plan
         for _ in range(200):
             state = self.state()
             if state.get("active_improve") is not None:
@@ -275,13 +276,58 @@ class TestLoopTests(unittest.TestCase):
 
     def test_an_empty_command_list_skips_the_loop_with_its_reason(self):
         self.start()
-        self.drive_to("test-green", step_plan={"test_commands": [], "test_commands_na": "Docs-only item."})
+        # The declared path is code, so the test stages still run; the loop has nothing to run.
+        self.drive_to("test-green", step_plan={"test_commands": [], "test_commands_na": "Docs-only item.",
+                                               "paths": ["a.py"]})
         action = self.action()
         self.assertFalse((self.run_dir / test_loop.contract_path(action)).exists())
         self.assertIn("No command to run: Docs-only item. Report done with that reason", self.packet())
         self.complete(DONE)
         self.assertEqual(nav.current_stage(self.state()), "test-refine")
         self.assertFalse((self.run_dir / test_loop.verify_path(action, 1)).exists())
+
+    NO_TESTS = {"test_commands": [], "test_commands_na": "Navigation metadata only.",
+                "paths": ["force-app/main/default/tabs/Fleet_command.tab-meta.xml", "docs/fleet.md"]}
+
+    def test_an_item_that_declares_only_non_code_paths_leaves_its_test_stages_out(self):
+        self.start()
+        self.drive_to("implement", step_plan=self.NO_TESTS)
+        state = self.state()
+        rows = [row for row in state["history"] if row["stage"] in item_scope.TEST_STAGES[:4]]
+        self.assertEqual([row["stage"] for row in rows], ["test-spec", "baseline", "test-author", "test-red"])
+        for row in rows:
+            self.assertIn("Not applicable to this item", row["summary"])
+            self.assertTrue((self.run_dir / "results" / (row["action"] + ".md")).is_file())
+        step = next(row for row in state["history"] if row["stage"] == "step-plan")
+        self.assertTrue((self.run_dir / "results" / (step["action"] + ".md")).is_file())
+        tab = self.repo / "force-app/main/default/tabs/Fleet_command.tab-meta.xml"
+        tab.parent.mkdir(parents=True)
+        tab.write_text("<CustomTab/>\n")
+        self.complete(DONE)
+        self.assertEqual(nav.current_stage(self.state()), "document")
+        later = [row["stage"] for row in self.state()["history"][-3:]]
+        self.assertEqual(later, ["test-green", "test-refine", "regression"])
+
+    def test_implement_outside_the_declared_non_code_paths_is_refused(self):
+        self.start()
+        self.drive_to("implement", step_plan=self.NO_TESTS)
+        (self.repo / "a.py").write_text("x = 2\n")
+        self.assert_refused(DONE, r"(?s)declared only non-code paths.*- a.py \(code\).*report blocked")
+        (self.repo / "a.py").write_text("x = 1\n")
+        (self.repo / "notes.txt").write_text("stray\n")
+        self.assert_refused(DONE, r"- notes.txt \(code\)")  # a path no rule matches counts as code
+        (self.repo / "notes.txt").unlink()
+        (self.repo / "NOTES.md").write_text("stray\n")
+        self.assert_refused(DONE, r"- NOTES.md \(not declared\)")
+        (self.repo / "NOTES.md").unlink()
+        self.complete(DONE)
+        self.assertEqual(nav.current_stage(self.state()), "document")
+
+    def test_a_done_step_plan_must_declare_its_paths(self):
+        self.start()
+        self.drive_to("step-plan")
+        self.assert_refused(dict(DONE, test_commands=COMMANDS), "must list paths")
+        self.assert_refused(dict(DONE, test_commands=COMMANDS, paths=["../x"]), "inside the repository")
 
     def test_without_a_bound_runtime_the_script_still_runs_the_commands(self):
         self.start()

@@ -1,0 +1,4 @@
+---
+bump: minor
+---
+A done `step-plan` now declares `paths`: the files or globs the item will change. When the item records no test command and every declared path is documentation, configuration or navigation metadata (package catalog `references/path-classes.json`; an unmatched path counts as code), ShipLoop records `test-spec` through `regression` as not applicable to that item instead of issuing seven empty stages and an Improve review. `implement` is refused if the real change reaches code or goes outside `paths`. An Improve review must commit the edits it makes: `improve-complete` refuses while files the review changed are uncommitted, unless the receipt's `no_commit` gives the user's or repository's instruction. The end-of-work review reruns every item's recorded test commands only when it changed files. An unchanged Improve result no longer needs a restated `final_result`.

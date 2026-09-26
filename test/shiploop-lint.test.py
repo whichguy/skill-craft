@@ -905,7 +905,8 @@ def complete(run: Path, state: dict, result: dict = DONE) -> str:
     if stage == "plan" and result.get("outcome") == "done" and "assumptions" not in result:
         result = dict(result, assumptions=[])
     if stage == "step-plan" and result.get("outcome") == "done" and "test_commands" not in result:
-        result = dict(result, test_commands=[], test_commands_na="Synthetic fixture; no test commands.")
+        result = dict(result, test_commands=[], test_commands_na="Synthetic fixture; no test commands.",
+                      paths=["src/**"])
     inbox = run / "inbox"
     inbox.mkdir(exist_ok=True)
     path = inbox / (action + ".md")

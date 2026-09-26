@@ -288,6 +288,16 @@ new last item's carry-forward. An isolated run's workspace return happens at
 The two consecutive trivial passes an Improve child needs are self-passes by the
 same executor, not independent reviews; packets and reports call them passes.
 
+An Improve review makes the changes it finds warranted, in code, tests or
+documentation, and commits them. At `improve-bind` ShipLoop snapshots the
+candidate. At `improve-complete` it refuses the import while files the review
+changed still differ from `HEAD`; work that was uncommitted before the review is
+not counted. A receipt `no_commit` reason, citing the user's or repository's
+instruction, records the edits instead. The end-of-work review reruns every
+completed item's recorded test commands only when it changed the tree; an
+unchanged tree keeps the recorded passes. A result that is unchanged by the
+review needs no `final_result`: ShipLoop reuses the submitted result.
+
 ### Script-owned lint
 
 A new run records `lint: fix`. ShipLoop then lints each work item itself. When
@@ -363,7 +373,8 @@ pass).
 `step-plan` records the work item's test command list in its result:
 `"test_commands": [{"command": "<shell command>", "suite": "focused" | "regression", "ids": ["TC-9"], "min_tests": 1}]`
 (`ids` and `min_tests` optional).
-ShipLoop refuses a done `step-plan` without it; an empty list needs
+It also records `"paths"`: the repository-relative files or globs the item will
+change. ShipLoop refuses a done `step-plan` without either; an empty list needs
 `test_commands_na` with the reason. `test-green` loops on the focused commands
 and `regression` on every command, each on the Until Loop bound to the selected
 Improve card:
@@ -390,6 +401,17 @@ refuses a run of zero tests (`no-tests`), fewer than `min_tests`
 that is not a skip line (`ids-missing`). A focused command whose count ShipLoop
 cannot read passes only with `ids` that all appear; a regression command without
 `ids` or `min_tests` may pass uncounted.
+
+**Test stages not applicable to an item.** When the accepted step plan records
+no test command (`test_commands_na`) and every declared path is documentation,
+configuration or navigation metadata in the package catalog
+(`references/path-classes.json`; a path no rule matches counts as code), ShipLoop
+records `test-spec`, `baseline`, `test-author`, `test-red`, `test-green`,
+`test-refine` and `regression` as not applicable to that item instead of issuing
+them: each keeps a history row and result file, and `test-spec` gets no Improve
+child. `implement`'s `done` is then refused if the item's real diff touches code
+or any path outside `paths`, so the step plan is revised and the stages run.
+Anything short of that proof runs every test stage.
 
 `test-red` is script-checked too: on `done` ShipLoop runs the focused commands and
 expects each to fail inside a test (at least one failing test, every listed ID

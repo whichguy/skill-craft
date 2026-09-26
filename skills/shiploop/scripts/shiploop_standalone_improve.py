@@ -379,7 +379,7 @@ def _absolute_local_reference(workspace: Path, locator: str, value: Any, label: 
 
 def _receipt(receipt: Mapping[str, Any], workspace: Path, locator: str) -> dict[str, Any]:
     _need(isinstance(receipt, Mapping), "Improve receipt must be an object")
-    allowed = {"summary", "review_refs", "check_refs", "lessons", "final_result"}
+    allowed = {"summary", "review_refs", "check_refs", "lessons", "final_result", "no_commit"}
     _need(set(receipt) <= allowed and {"summary", "review_refs", "check_refs"} <= set(receipt),
           "Improve receipt has unsupported or missing fields")
     review_raw = receipt["review_refs"]
@@ -402,6 +402,9 @@ def _receipt(receipt: Mapping[str, Any], workspace: Path, locator: str) -> dict[
         copied["lessons"] = _text(receipt["lessons"], "receipt lessons")
     if "final_result" in receipt:
         copied["final_result"] = _copy(receipt["final_result"], "receipt final result")
+    if "no_commit" in receipt:
+        # The user's or repository's instruction not to commit the review's edits.
+        copied["no_commit"] = _text(receipt["no_commit"], "receipt no_commit reason")
     return copied
 
 

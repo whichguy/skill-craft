@@ -26,6 +26,8 @@ import shiploop_navigator_v3_prompts as guidance3
 import shiploop_consumer_delivery as consumer_delivery
 import shiploop_lint as lint
 import shiploop_quality as quality
+import shiploop_improve_changes as improve_changes
+import shiploop_item_scope as item_scope
 import shiploop_test_loop as test_loop
 import shiploop_planning_revision as planning_revision
 import shiploop_context_index as context_index
@@ -44,7 +46,7 @@ _STATUSES = frozenset(("active", "paused", "blocked", "halted", "done"))
 _RESULT_KEYS = frozenset((
     "outcome", "summary", "evidence_refs", "work_items", "choices", "delivery_assessment",
     "reconciliation_target", "assumptions", "lint_waivers", "test_commands", "test_commands_na",
-    "blocked_by", "red_na", "awaiting",
+    "blocked_by", "red_na", "awaiting", "paths",
 ))
 # A bare "carry on" is not an answer to the question a blocked run is waiting on.
 _NOT_AN_ANSWER = frozenset((
@@ -452,6 +454,12 @@ def _canonical_result(
     if "awaiting" in value:
         _need(outcome == "blocked", "awaiting is allowed only on a blocked result")
         result["awaiting"] = _normalise_awaiting(value["awaiting"])
+    if "paths" in value:
+        _need(stage == "step-plan" and outcome == "done", "paths are allowed only on a done step-plan result")
+        try:
+            result["paths"] = item_scope.normalise_paths(value["paths"])
+        except item_scope.ItemScopeError as exc:
+            raise NavigatorError(str(exc)) from exc
     if "red_na" in value:
         _need(stage == test_loop.RED_STAGE and outcome == "done",
               "red_na is allowed only on a done test-red result")
@@ -773,8 +781,12 @@ def _validate_v2(state: Mapping[str, Any]) -> None:
     # Most results are accepted directly; every planning-stage result always
     # passed through its own Improve child.
     expected = {entry["action"] for entry in history}
+    # A test stage recorded as not applicable to its item (no test command, only
+    # non-code paths; derived from the item's own step plan) had nothing to review.
     planning = {entry["action"] for entry in history
-                if entry["stage"] in guidance3.PLANNING_REVIEW_STAGES}
+                if entry["stage"] in guidance3.PLANNING_REVIEW_STAGES
+                and not (entry["stage"] in item_scope.TEST_STAGES and entry["workitem"]
+                         and item_scope.no_test_item(state, entry["workitem"]))}
     _need(planning <= set(records) <= expected,
           "Improve results must belong to completed steps, including every planning-stage result")
     history_stage = {entry["action"]: entry["stage"] for entry in history}
@@ -883,6 +895,29 @@ def _begin_v2_inner_loop(state: dict[str, Any]) -> None:
     }
 
 
+def _record_not_applicable_tests(state: dict[str, Any], stage: str) -> str:
+    """Record the item's test stages as not applicable when the script can prove it; return the next stage.
+
+    Proof (``item_scope.no_test_item``): the final accepted step plan records no
+    test command with a reason and declares only non-code paths.  After
+    implement, its done was already refused unless the real diff stayed inside
+    those paths.  Every left-out stage keeps a history row and a result file.
+    """
+    item = _current_work_item(state)
+    reason = item_scope.no_test_item(state, item) if item else None
+    while reason and stage in item_scope.TEST_STAGES:
+        action_id = _new_action(stage)["id"]
+        state["inner_loops"][item] = {"stage": stage, "action": action_id}
+        _record_acceptance(state, action_id, stage, {
+            "outcome": "done",
+            "summary": "Not applicable to this item: " + reason + ". ShipLoop recorded this stage without "
+                       "running it.",
+            "evidence_refs": [],
+        })
+        stage = _next_stage(stage, state)
+    return stage
+
+
 def _replace_v2_inner_action(state: dict[str, Any], stage: str) -> None:
     item_id = _current_work_item(state)
     _need(_is_v2_inner_root(state) and item_id is not None,
@@ -915,6 +950,13 @@ def _check_submitted_test_commands(stage: str, result: Any) -> None:
           "a done step-plan result must list test_commands: [{\"command\": \"<shell command>\", "
           "\"suite\": \"focused\" | \"regression\", \"ids\": [\"<test ID>\", ...]}], or an empty list "
           "with test_commands_na")
+    _need("paths" in result,
+          "a done step-plan result must list paths: the repository-relative files or globs this item will "
+          "change. ShipLoop classifies them to decide which test stages apply.")
+    try:
+        item_scope.normalise_paths(result["paths"])
+    except item_scope.ItemScopeError as exc:
+        raise NavigatorError(str(exc)) from exc
 
 
 def _check_submitted_assumptions(state: Mapping[str, Any], stage: str, result: Any) -> None:
@@ -1031,6 +1073,7 @@ def _apply_result(state: Mapping[str, Any], action_id: str, result: Any, improve
     if _is_v2_inner_root(updated):
         next_stage = _next_stage(stage, updated)
         _need(next_stage in graph(updated)[1], "inner loop cannot advance outside its graph")
+        next_stage = _record_not_applicable_tests(updated, next_stage)
         _replace_v2_inner_action(updated, next_stage)
         validate(updated)
         return updated
@@ -1423,6 +1466,27 @@ def _test_red_gate(root: Path, state: Mapping[str, Any], action_id: str,
     _need(not refusal, refusal)
 
 
+def _improve_change_gate(root: Path, state: Mapping[str, Any], action_id: str,
+                         child: Mapping[str, Any], receipt: Any) -> None:
+    """Refuse an Improve import that left its own edits uncommitted; rerun tests after a changing end review.
+
+    Compares the candidate with the snapshot taken at improve-bind.  The
+    end-of-work review (the final carry-forward) reruns every completed item's
+    recorded commands only when it changed the tree; an unchanged tree keeps
+    the recorded passes.
+    """
+    changes = improve_changes.review_changes(root, Path(state["repo"]), action_id)
+    refusal = improve_changes.commit_refusal(changes, receipt if isinstance(receipt, Mapping) else {})
+    _need(not refusal, refusal)
+    if child.get("stage") != "carry-forward" or (changes is not None and not changes[0]):
+        return
+    commands = improve_changes.rerun_commands(state)
+    writes, refusal = test_loop.verify(root, state, "", action_id, "end-of-work review", commands=commands)
+    for relative, text in writes.items():
+        store.atomic_write_text(root / relative, text)
+    _need(not refusal, refusal)
+
+
 def _lint_gate(core: Any, root: Path, state: Mapping[str, Any], action_id: str, stage: str,
                workitem: str | None, submitted: Any) -> None:
     """Refuse a gate stage's done (``lint.GATE_STAGES``) while the lint gate reports an unwaived new finding.
@@ -1518,6 +1582,7 @@ def _result_template(state: Mapping[str, Any], stage: str) -> str:
     if stage == "plan":
         result["work_items"] = [{"id": "W1", "title": "...", "context": "..."}]
     if stage == "step-plan":
+        result["paths"] = ["<repository-relative file or glob>"]
         result["test_commands"] = [{"command": "...", "suite": "focused", "ids": ["TC-1"]},
                                    {"command": "...", "suite": "regression"}]
     if stage in assumptions.STAGES:
@@ -2704,6 +2769,7 @@ def _render_improve(core: Any, root: Path, state: Mapping[str, Any], lines: list
         exclusion,
         "The prior result and relevant accepted Improve lessons are in state.md improve_results and improve/<parent-action>/ receipts. Carry forward relevant verified conclusions and material unresolved findings, hypotheses, failed attempts and pitfalls, clearly labeled with evidence status. Preserve essential meaning in the context opening and later handoffs; keep detailed blocked-attempt notes in the child notebook.",
         "Review passes: the two consecutive trivial passes the runtime requires are self-passes by this same executor, not independent reviewers; report them as passes, never as independent reviews.",
+        "Changes: change what is warranted in code, tests or documentation, and commit it; ShipLoop reruns the affected checks. The import is refused while files this review changed are still uncommitted (work that was uncommitted before the review is not counted). If the user or repository said not to commit, put that instruction in the receipt's no_commit.",
         "On completion, review_refs is exactly the two files of those final consecutive trivial passes (write each pass to its own file); an earlier material review stays on disk and is not a third entry. check_refs holds the current check evidence. A plan/RED disposition is checked against its own criteria, not future product success.",
         "The child may write the completion evidence file; only the parent imports it. Before the callback the parent checks that the runtime packet status is complete, every referenced file exists under Child workspace, the scoped commit (git show) matches the handoff, and the source checkout is unchanged.",
         "Receipt review_refs and check_refs must be absolute regular single-link non-symlink files under Child workspace above; the importer rejects sibling run/inbox/control paths outside that root. For example: "
@@ -2717,8 +2783,9 @@ def _render_improve(core: Any, root: Path, state: Mapping[str, Any], lines: list
         "final_result: a complete step result with the same fields as the Step result record above "
         "(outcome done, repeat, blocked or, at OUTER stages, replan; never reconcile), preserving "
         "authority; with outcome done at plan or carry-forward, list the complete intended queue in "
-        "work_items whenever the step result proposed one. This "
-        "includes valid confirmation with no plan diff. Preserve existing registered evidence_refs "
+        "work_items whenever the step result proposed one. When the step result is unchanged, omit "
+        "final_result: ShipLoop reuses the result already submitted, so do not restate it. Preserve "
+        "existing registered evidence_refs "
         "and add every planning file produced or revised, plus a compact decision note and required "
         "supporting evidence. Record the finding, applicable original constraints, affected decision "
         "and consumer, conclusion, limits and source locators. Ordinary qualifying review/check "
@@ -2837,10 +2904,7 @@ def _render_report(state: Mapping[str, Any], root: Path | None = None) -> str:
     ) + "\n"
 
 
-def _latest_result_record(state: Mapping[str, Any]) -> tuple[str, str] | None:
-    if not state["history"]:
-        return None
-    entry = state["history"][-1]
+def _result_record(state: Mapping[str, Any], entry: Mapping[str, Any]) -> tuple[str, str]:
     action_id = entry["action"]
     record = {
         "navigator_protocol_version": state["navigator_protocol_version"],
@@ -2851,6 +2915,27 @@ def _latest_result_record(state: Mapping[str, Any]) -> tuple[str, str] | None:
         "result": state["accepted"][action_id],
     }
     return f"results/{action_id}.md", store.dumps(record, "ShipLoop navigator result")
+
+
+def _latest_result_record(state: Mapping[str, Any]) -> tuple[str, str] | None:
+    if not state["history"]:
+        return None
+    return _result_record(state, state["history"][-1])
+
+
+def _new_result_records(root: Path, state: Mapping[str, Any]) -> dict[str, str]:
+    """The latest result record, plus earlier trailing ones not yet on disk.
+
+    One transition can accept several rows: a submitted result followed by the
+    test stages ShipLoop recorded as not applicable to the item.
+    """
+    writes: dict[str, str] = {}
+    for number, entry in enumerate(reversed(state["history"])):
+        path, text = _result_record(state, entry)
+        if number and (root / path).exists():
+            break
+        writes[path] = text
+    return writes
 
 
 def save(root: Path, state: Mapping[str, Any], extra_writes: Mapping[str, str] | None = None) -> None:
@@ -2871,9 +2956,7 @@ def save(root: Path, state: Mapping[str, Any], extra_writes: Mapping[str, str] |
         # Provision the packet's input directory through the same recoverable
         # transaction as its first cursor, without touching existing inputs.
         writes["inbox/.keep"] = ""
-    latest = _latest_result_record(state)
-    if latest is not None:
-        writes[latest[0]] = latest[1]
+    writes.update(_new_result_records(root, state))
     if state["status"] in ("done", "halted"):
         writes["report.html"] = _render_report(state, root)
     # Derived display copy of the status block; refreshed only by transitions.
@@ -2985,6 +3068,9 @@ def dispatch(core: Any, root: Path, state: Mapping[str, Any], args: Any,
                     updated["active_improve"] = bound
                     updated["improve_skill"] = selected["skill_card"]
                     updated["revision"] += 1
+                    for relative, text in improve_changes.bind_writes(root, Path(state["repo"]),
+                                                                      action_id).items():
+                        store.atomic_write_text(root / relative, text)
             elif command == "improve-complete":
                 _need(isinstance(action_id, str) and _ACTION_ID.fullmatch(action_id) is not None,
                       "unsafe Improve parent action")
@@ -3008,6 +3094,7 @@ def dispatch(core: Any, root: Path, state: Mapping[str, Any], args: Any,
                         child["seed_result"] if final_result is None else final_result)
                     _check_submitted_test_commands(
                         child["stage"], child["seed_result"] if final_result is None else final_result)
+                    _improve_change_gate(root, state, action_id, child, receipt)
                     record, extra_writes = standalone.complete(child, receipt)
                     record["submission"] = deepcopy(receipt)
                     updated = finish_improve(state, action_id, record, final_result)
@@ -3076,6 +3163,10 @@ def dispatch(core: Any, root: Path, state: Mapping[str, Any], args: Any,
                 _test_rerun_gate(root, state, action_id, cursor_stage, cursor_item, submitted)
             elif cursor_stage == test_loop.RED_STAGE:
                 _test_red_gate(root, state, action_id, cursor_item, submitted)
+            if (cursor_stage == "implement" and cursor_item and isinstance(submitted, Mapping)
+                    and submitted.get("outcome") == "done"):
+                refusal = item_scope.scope_refusal(root, state, cursor_item)
+                _need(not refusal, refusal)
         updated = apply(state, action_id, submitted)
         if completion_guard is not None and updated != state:
             completion_guard(state, updated)

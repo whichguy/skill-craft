@@ -1,0 +1,25 @@
+{
+  "schema": "shiploop-path-classes/v1",
+  "about": "Package-owned path classes. ShipLoop leaves an item's test stages out only when every path it declares and changes is in a non-behavioural class; a path matching no rule counts as code. First matching class wins, in this order.",
+  "order": ["test", "metadata-nav", "docs", "config"],
+  "non_behavioural": ["metadata-nav", "docs", "config"],
+  "classes": {
+    "test": [
+      "**/test/**", "**/tests/**", "**/__tests__/**", "**/spec/**",
+      "**/*.test.*", "**/*.spec.*", "**/test_*.py", "**/*_test.py", "**/*_test.go",
+      "**/conftest.py", "**/jest.config.*", "**/vitest.config.*", "**/pytest.ini"
+    ],
+    "metadata-nav": [
+      "**/tabs/*.tab-meta.xml",
+      "**/applications/*.app-meta.xml",
+      "**/flexipages/*.flexipage-meta.xml",
+      "**/permissionsets/*.permissionset-meta.xml"
+    ],
+    "docs": [
+      "**/*.md", "**/*.rst", "**/*.adoc", "docs/**", "**/LICENSE", "**/LICENSE.*", "**/CHANGELOG*"
+    ],
+    "config": [
+      ".github/**", "**/.gitignore", "**/.gitattributes", "**/.editorconfig", ".vscode/**", "**/.forceignore"
+    ]
+  }
+}

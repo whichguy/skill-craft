@@ -1147,6 +1147,13 @@ Give each focused command the `ids` of the test-spec cases it must run, and a
 runner flag that prints test names (for example Jest `--verbose`, pytest `-v`),
 so the output shows them; add `min_tests` when a command must run at least that
 many. An empty list needs `test_commands_na` with the reason.
+Record the files this item will change in `paths` (repository-relative files or
+globs). ShipLoop classifies them with its package catalog: when the item records
+no test command and every path is documentation, configuration or navigation
+metadata (for example a Salesforce tab or app), ShipLoop records the test stages as
+not applicable to this item instead of issuing them; otherwise every test stage
+runs. If implement then changes anything outside `paths`, or any code, ShipLoop
+refuses it until the step plan is revised.
 Give every completion criterion a confirmation: `<condition>. Confirm by:
 <command, observation, or inspection>; pass when <expected result>.` It must pass
 the two-people test: two people running it separately would be forced to agree.
