@@ -212,11 +212,11 @@ class TestLoopTests(unittest.TestCase):
         self.assertEqual(contract["exit_condition"], prompts.TEST_EXIT_CONDITION)
         self.assertEqual(contract["required_trivial_reviews"], 1)
         packet = self.packet()
-        self.assertIn("Allowed outcomes: done | blocked.", packet)
+        self.assertIn("Allowed outcomes: done | blocked | revise (", packet)
         self.assertIn("Test loop (bound Until Loop; the loop script counts iterations, at most 4):", packet)
         self.assertIn("  1. [focused] sh check.sh fixed.txt", packet)
-        self.assertIn("ShipLoop checks the terminal packet\nagainst the contract and then runs every listed command",
-                      packet)
+        self.assertIn("ShipLoop checks the terminal packet against the contract and then runs every listed command",
+                      " ".join(packet.split()))
         self.pass_loop()
         self.assertEqual(nav.current_stage(self.state()), "test-refine")
         self.drive_to("regression")
@@ -258,7 +258,7 @@ class TestLoopTests(unittest.TestCase):
         self.start()
         self.drive_to("test-green")
         (self.repo / "fixed.txt").write_text("fixed\n")
-        self.assert_refused(dict(DONE, outcome="repeat"), "accepts only done or blocked")
+        self.assert_refused(dict(DONE, outcome="repeat"), "accepts only done, revise or blocked")
         self.run_loop([TRIVIAL], contract_edit=lambda c: c.update(work="Run nothing."))
         self.assert_refused(dict(DONE, evidence_refs=[str(self.terminal())]),
                             "not from a run of this action's contract")
@@ -266,9 +266,9 @@ class TestLoopTests(unittest.TestCase):
         self.assert_refused(DONE, "list the saved terminal packet in evidence_refs")
         self.run_loop([MATERIAL] * 4 + [TRIVIAL])
         self.assert_refused(dict(DONE, evidence_refs=[str(self.terminal())]),
-                            "ran 5 iterations; more than 4 is outside the contract")
-        self.complete(dict(DONE, outcome="blocked", blocked_by="external", evidence_refs=[str(self.terminal())]))
-        self.assertEqual(self.state()["status"], "blocked")
+                            "ran 5 iterations, more than the 4 in its contract.*report outcome revise")
+        self.complete(dict(DONE, outcome="revise", evidence_refs=[str(self.terminal())]))
+        self.assertEqual(nav.current_stage(self.state()), "step-plan")
 
     def test_stopped_loop_reports_blocked_and_runs_no_command(self):
         self.start()
@@ -277,7 +277,7 @@ class TestLoopTests(unittest.TestCase):
         self.assertEqual(stopped["status"], "stopped")
         with mock.patch.object(test_loop, "verify", side_effect=AssertionError("no command runs")):
             self.assert_refused(dict(DONE, evidence_refs=[str(self.terminal())]),
-                                "a stopped test loop reports outcome blocked")
+                                "a test loop stopped as blocked reports outcome blocked")
             self.complete(dict(DONE, outcome="blocked", blocked_by="external", evidence_refs=[str(self.terminal())]))
         self.assertEqual(self.state()["status"], "blocked")
 

@@ -44,7 +44,7 @@ RED_STAGE, = stage_spec.with_complete_run("test-red")
 # recorded command (no loop).
 RERUN_STAGES = stage_spec.with_complete_run("test-rerun")
 VERIFY_STAGES = STAGES + RERUN_STAGES
-# Refused command runs per action before only blocked is accepted.
+# Refused command runs per action before done is no longer accepted (then revise or blocked).
 MAX_REFUSED_RUNS = 3
 SUITES = ("focused", "regression")
 COMMAND_KEYS = frozenset({"command", "suite", "ids", "min_tests"})
@@ -210,8 +210,8 @@ def render_lines(root: Path, state: Mapping[str, Any], work_item: str, action: s
             lines.append("No command to run: " + reason.rstrip(".") + ". Report done with that reason; there is no "
                          "loop to run.")
         else:
-            lines.append("The accepted step plan recorded no test_commands. Report outcome blocked so "
-                         "the step plan can be revised.")
+            lines.append("The accepted step plan recorded no test_commands. Report outcome revise so "
+                         "the step plan records them.")
         return lines
     try:
         runtime = quality._runtime(state)
@@ -245,7 +245,7 @@ def rerun_lines(state: Mapping[str, Any], work_item: str, stage: str) -> List[st
         return []
     return (["", "Test rerun: on done, ShipLoop runs every test command the step plan recorded from "
              + str(state["repo"]) + " and refuses unless each passes (at most " + str(MAX_REFUSED_RUNS)
-             + " refused runs, then only blocked):"]
+             + " refused runs, then the item goes back to its step plan with revise):"]
             + ["  " + str(number) + ". " + _listing(row) for number, row in enumerate(commands, 1)]
             + [COUNT_RULE])
 
@@ -282,15 +282,17 @@ def check_terminal(root: Path, state: Mapping[str, Any], work_item: str, action:
     check; the command rerun still applies to ``done``.
     """
     outcome = result.get("outcome") if isinstance(result, Mapping) else None
-    _need(outcome in ("done", "blocked"),
-          stage + " accepts only done or blocked; the bound Until Loop repeats the tests, not the graph")
+    _need(outcome in ("done", "revise", "blocked"),
+          stage + " accepts only done, revise or blocked; the bound Until Loop repeats the tests, not the graph")
     if outcome == "blocked":
-        return  # Always accepted: giving up honestly never needs a matching packet.
+        return  # Blocked needs blocked_by (user, access, external), checked by the navigator.
     commands, reason = stage_commands(state, stage, work_item)
     if not commands:
-        _need(outcome == "blocked" or bool(reason),
-              "the accepted step plan recorded no test_commands; report blocked so it can be revised")
+        _need(outcome == "revise" or bool(reason),
+              "the accepted step plan recorded no test_commands; report revise so the step plan records them")
         return
+    if outcome == "revise" and refused_runs(root, action) >= MAX_REFUSED_RUNS:
+        return  # ShipLoop's own runs already failed MAX_REFUSED_RUNS times.
     if not state.get("improve_skill"):
         return
     root = Path(root)
@@ -389,6 +391,23 @@ def _explain(run: Mapping[str, Any]) -> str:
     return "exit " + str(run["exit"])
 
 
+def _verify_count(root: Path, action: str) -> int:
+    """How many ShipLoop test-run records this action has."""
+    number = 0
+    while (Path(root) / verify_path(action, number + 1)).exists():
+        number += 1
+    return number
+
+
+def refused_runs(root: Path, action: str) -> int:
+    """How many of this action's ShipLoop test runs were refused."""
+    refused = 0
+    for number in range(1, _verify_count(root, action) + 1):
+        prior = store.read_record(Path(root) / verify_path(action, number))
+        refused += 0 if isinstance(prior, Mapping) and prior.get("passed") else 1
+    return refused
+
+
 def verify(root: Path, state: Mapping[str, Any], work_item: str, action: str, stage: str, *,
            runner: Optional[Runner] = None, env: Optional[Mapping[str, str]] = None,
            clock: Optional[Callable[[], float]] = None,
@@ -409,16 +428,13 @@ def verify(root: Path, state: Mapping[str, Any], work_item: str, action: str, st
     if not commands:
         return {}, ""
     red = stage == RED_STAGE and not red_na
-    refused = 0
-    number = 1
-    while (root / verify_path(action, number)).exists():
-        prior = store.read_record(root / verify_path(action, number))
-        refused += 0 if isinstance(prior, Mapping) and prior.get("passed") else 1
-        number += 1
+    refused = refused_runs(root, action)
+    number = _verify_count(root, action) + 1
     if refused >= MAX_REFUSED_RUNS:
         return {}, ("ShipLoop test run: " + stage + " was refused " + str(refused) + " times; done is no longer "
-                    "accepted for this action. Report outcome blocked, naming the failing command from "
-                    + str(root / verify_path(action, number - 1)) + ", so the step plan can be revised.")
+                    "accepted for this action. Report outcome revise, naming the failing command from "
+                    + str(root / verify_path(action, number - 1)) + ", so the step plan is revised; report "
+                    "blocked only if the user, an access grant or an outside dependency must unblock it.")
     runner = runner or lint.run_argv
     clock = clock or time.monotonic
     repo = Path(str(state["repo"]))
@@ -468,17 +484,16 @@ def verify(root: Path, state: Mapping[str, Any], work_item: str, action: str, st
         tail = (run["stdout"] + "\n" + run["stderr"]).strip().splitlines()[-15:]
         lines += ["    | " + line for line in tail]
     attempts = ("Refused runs for this action: " + str(refused + 1) + " of " + str(MAX_REFUSED_RUNS)
-                + "; after that only blocked is accepted.")
+                + "; after that the item goes back to its step plan (revise).")
     if stage in STAGES:
         lines.append("Fix the code, start the test loop again with the packet's start command (its terminal "
-                     "packet is replaced), then submit done again; or report blocked. " + attempts
+                     "packet is replaced), then submit done again. " + attempts
                      + " Full output: " + str(root / relative) + ".")
     elif red:
-        lines.append("Fix the tests or their setup (not the product code), then submit done again; or report "
-                     "blocked. " + attempts + " Full output: " + str(root / relative) + ".")
+        lines.append("Fix the tests or their setup (not the product code), then submit done again. " + attempts + " Full output: " + str(root / relative) + ".")
     else:
         lines.append("Fix the code so every command passes (never change a check to get green), then submit "
-                     "done again; or report blocked. " + attempts + " Full output: " + str(root / relative) + ".")
+                     "done again. " + attempts + " Full output: " + str(root / relative) + ".")
     return writes, "\n".join(lines)
 
 

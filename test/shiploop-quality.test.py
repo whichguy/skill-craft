@@ -162,7 +162,7 @@ class QualityLoopTests(unittest.TestCase):
         self.assertIn("Quality loop (bound Until Loop", packet)
         card = str(ROOT / "skills/improve/runtime/until-loop/ADAPTER.md")
         self.assertIn("Bound Until Loop card (open it if its rules are not already in your context): " + card, packet)
-        self.assertIn("Allowed outcomes: done | blocked.", packet)
+        self.assertIn("Allowed outcomes: done | blocked | revise (", packet)
         contract = json.loads((self.run_dir / quality.contract_path(action)).read_text())
         self.assertEqual(contract["work"], prompts.QUALITY_ITERATION.strip())
         self.assertEqual(contract["exit_condition"], prompts.QUALITY_EXIT_CONDITION)
@@ -201,7 +201,7 @@ class QualityLoopTests(unittest.TestCase):
         before = (self.run_dir / "state.md").read_bytes()
         cases = [
             (DONE, "list the saved terminal packet in evidence_refs"),
-            (dict(DONE, outcome="repeat"), "accepts only done or blocked"),
+            (dict(DONE, outcome="repeat"), "accepts only done, revise or blocked"),
         ]
         for result, message in cases:
             with self.subTest(message=message), self.assertRaisesRegex(nav.NavigatorError, message):
@@ -263,23 +263,32 @@ class QualityLoopTests(unittest.TestCase):
             self.complete(result)
         self.assertEqual((self.run_dir / "state.md").read_bytes(), before)
 
-    def test_loop_past_the_iteration_limit_must_report_blocked(self):
+    def test_loop_past_the_iteration_limit_goes_back_to_the_step_plan(self):
         self.start()
         self.drive_to(quality.STAGE)
         terminal = self.run_loop([MATERIAL, MATERIAL, MATERIAL, TRIVIAL])
         self.assertEqual(terminal["progress"]["action_number"], prompts.QUALITY_LOOP_LIMIT + 1)
         refs = [str(self.terminal())]
-        with self.assertRaisesRegex(nav.NavigatorError, "more than 3 is outside the contract"):
+        with self.assertRaisesRegex(nav.NavigatorError, "more than the 3 in its contract.*report outcome revise"):
             self.complete(dict(DONE, evidence_refs=refs))
-        self.complete(dict(DONE, outcome="blocked", blocked_by="external", summary="Loop exceeded its limit.", evidence_refs=refs))
-        self.assertEqual(self.state()["status"], "blocked")
+        with self.assertRaisesRegex(nav.NavigatorError, "report outcome revise"):
+            self.complete(dict(DONE, outcome="blocked", blocked_by="external", evidence_refs=refs))
+        self.complete(dict(DONE, outcome="revise", summary="Loop used its limit.", evidence_refs=refs))
+        state = self.state()
+        self.assertEqual(state["status"], "active")
+        self.assertEqual(nav.current_stage(state), "step-plan")
+        self.assertEqual(state["revisions"], {"W1": 1})
 
-    def test_stopped_loop_reports_blocked(self):
+    def test_cancel_before_the_limit_is_refused_and_a_blocked_stop_reports_blocked(self):
         self.start()
         self.drive_to(quality.STAGE)
         self.run_loop([dict(MATERIAL, continuation_assessment="cancelled")])
         refs = [str(self.terminal())]
-        with self.assertRaisesRegex(nav.NavigatorError, "stopped quality loop reports outcome blocked"):
+        for outcome in ("done", "revise"):
+            with self.assertRaisesRegex(nav.NavigatorError, "cancelled after 1 of 3 iterations.*pause command"):
+                self.complete(dict(DONE, outcome=outcome, evidence_refs=refs))
+        self.run_loop([dict(MATERIAL, continuation_assessment="blocked")])
+        with self.assertRaisesRegex(nav.NavigatorError, "stopped as blocked reports outcome blocked"):
             self.complete(dict(DONE, evidence_refs=refs))
         self.complete(dict(DONE, outcome="blocked", blocked_by="external", summary="Material finding at iteration 1.",
                            evidence_refs=refs))

@@ -182,15 +182,17 @@ def check_terminal(root: Path, state: Mapping[str, Any], work_item: str, action:
                    result: Mapping[str, Any]) -> None:
     """Refuse a static-checks result that the bound Until Loop's terminal packet does not support.
 
-    ``done`` needs a ``complete`` packet within the iteration limit; ``blocked``
-    accepts a ``stopped`` packet or none (the summary carries the reason).
+    ``done`` needs a ``complete`` packet within the iteration limit; ``revise``
+    needs a packet showing the limit was used up (see ``check_loop_packet``);
+    ``blocked`` accepts a blocked ``stopped`` packet or none (the summary and
+    blocked_by carry the reason).
     ``repeat`` is never valid: the loop, not the graph, repeats the review.
     The packet is compared with the contract rebuilt from ShipLoop state, not
     with the contract file, so editing that file cannot reshape the loop.
     """
     outcome = result.get("outcome") if isinstance(result, Mapping) else None
-    _need(outcome in ("done", "blocked"),
-          "static-checks accepts only done or blocked; the bound Until Loop repeats the review, "
+    _need(outcome in ("done", "revise", "blocked"),
+          "static-checks accepts only done, revise or blocked; the bound Until Loop repeats the review, "
           "not the graph")
     if not state.get("improve_skill"):
         return  # No bound runtime: the packet directs blocked; nothing to verify.
@@ -208,9 +210,11 @@ def check_loop_packet(path: Path, result: Mapping[str, Any], expected: Mapping[s
 
     Shared by every script-enforced loop (the quality loop and the test loops).
     The packet must come from a run of ``expected`` (rebuilt from ShipLoop
-    state, so editing the contract file cannot reshape the loop); ``complete``
-    within ``limit`` iterations supports only ``done``, anything else only
-    ``blocked``.
+    state, so editing the contract file cannot reshape the loop).  ``complete``
+    within ``limit`` iterations supports only ``done``.  Using up the limit
+    (``complete`` past it, or ``cancelled`` at it) supports only ``revise``;
+    ``cancelled`` before the limit is refused, since a user's stop is a pause.
+    A ``blocked`` stop supports only ``blocked``.
     """
     outcome = result.get("outcome")
     refs = result.get("evidence_refs")
@@ -245,20 +249,30 @@ def check_loop_packet(path: Path, result: Mapping[str, Any], expected: Mapping[s
           "the terminal packet still offers a callback")
     report = packet.get("last_report")
     _need(isinstance(report, Mapping), "the terminal packet has no final report")
+    iterations = progress.get("action_number")
+    _need(isinstance(iterations, int) and not isinstance(iterations, bool) and iterations >= 1,
+          "the terminal packet has no iteration count")
+    exhausted = "; the item goes back to its step plan with the evidence: report outcome revise"
     if status == "complete":
         _need(report.get("classification") == "trivial" and report.get("exit_assessment") == "satisfied",
               "a complete terminal packet needs a trivial report whose exit is satisfied")
-        iterations = progress.get("action_number")
-        _need(isinstance(iterations, int) and not isinstance(iterations, bool) and iterations >= 1,
-              "the terminal packet has no iteration count")
         if iterations > limit:
-            _need(outcome == "blocked", "the " + label + " ran " + str(iterations) + " iterations; more than "
-                  + str(limit) + " is outside the contract, report blocked")
+            _need(outcome == "revise", "the " + label + " ran " + str(iterations) + " iterations, more than the "
+                  + str(limit) + " in its contract" + exhausted)
         else:
             _need(outcome == "done", "a complete " + label + " reports outcome done")
-    else:
-        _need(outcome == "blocked", "a stopped " + label + " reports outcome blocked")
-
+        return
+    continuation = report.get("continuation_assessment")
+    if continuation == "cancelled":
+        # The contract's only requested stop is its iteration limit; a user's
+        # stop is ShipLoop's pause, which keeps the loop active.
+        _need(iterations >= limit, "the " + label + " was cancelled after " + str(iterations) + " of "
+              + str(limit) + " iterations; the contract stops only at its limit. A user's stop is the "
+              "packet's pause command, not a cancelled loop: start the loop again and run it to its end")
+        _need(outcome == "revise", "the " + label + " used all " + str(limit) + " iterations without "
+              "meeting its exit condition" + exhausted)
+        return
+    _need(outcome == "blocked", "a " + label + " stopped as blocked reports outcome blocked, with blocked_by")
 
 __all__ = (
     "QualityError",

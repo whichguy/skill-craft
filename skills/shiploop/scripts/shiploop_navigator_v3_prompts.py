@@ -665,13 +665,15 @@ Do:
    the runtime returns complete or stopped.
 3. Save the terminal packet, byte for byte from stdout, to the printed terminal
    path and list that path in evidence_refs.
-Report: done when the loop completed; blocked when it stopped, naming the
-failing command for plan revision. On done, ShipLoop checks the terminal packet
-against the contract and then runs every listed command itself; it refuses done
-unless each exits 0 and prints the failures. After a refusal, fix the code,
-start the loop again with the printed command (its terminal packet is replaced)
-and submit again, or report blocked. After 3 refused runs only blocked is
-accepted. Before the test run, ShipLoop lints this item's changes as at
+Report: done when the loop completed; revise when it used all its iterations
+without passing (the item goes back to its step plan, with the failing command
+as evidence); blocked, with blocked_by, only when the user, an access grant or
+an outside dependency must unblock it. On done, ShipLoop checks the terminal
+packet against the contract and then runs every listed command itself; it
+refuses done unless each exits 0 and prints the failures. After a refusal, fix
+the code, start the loop again with the printed command (its terminal packet is
+replaced) and submit again. After 3 refused runs done is no longer accepted:
+report revise. Before the test run, ShipLoop lints this item's changes as at
 implement: it refuses done once after an auto-fix and while a new finding on a
 changed line has no `lint_waivers` entry.
 """
@@ -1255,9 +1257,10 @@ pass counts. When a check fails, change the work, not the check, and rerun them 
 (5) Stop on exactly one: every criterion confirmed or inspected, or reported
 `unconfirmable` when the accepted plan already marks it `Confirm by: unconfirmable
 here`, and none failed → outcome done; a criterion proven unachievable → outcome
-blocked, naming it for plan revision rather than a blind retry; the same check
-still failing after 3 genuine fix attempts → outcome blocked with that criterion
-failed. A criterion is proven unachievable only when (a) it contradicts another
+revise, naming it, so the step plan is corrected rather than blindly retried
+(blocked, with blocked_by, only when the user, an access grant or an outside
+dependency must resolve it); the same check still failing after 3 genuine fix
+attempts → outcome revise with that criterion failed. A criterion is proven unachievable only when (a) it contradicts another
 criterion, the item, or a protected file, shown by a check after all compatible
 work is done and with the existing behavior kept at the conflict point; (b)
 confirming it needs a tool, runtime, access, or authority that is absent, for a
@@ -1400,8 +1403,10 @@ Do:
    the runtime returns complete or stopped.
 3. Save the terminal packet, byte for byte from stdout, to the printed terminal
    path and list that path in evidence_refs.
-Report: done when the loop completed; blocked when it stopped, naming the
-unresolved findings for plan revision. Summarize the entry-point inventory, each
+Report: done when the loop completed; revise when it used all its iterations
+with material findings left, naming them (the item goes back to its step plan);
+blocked, with blocked_by, only when the user, an access grant or an outside
+dependency must unblock it. Summarize the entry-point inventory, each
 trace that found an issue, the fixes, and the final check commands with exit
 codes. ShipLoop refuses this result unless the saved terminal packet matches the
 contract and outcome. State any required unrun check and why it could not run.
@@ -1425,9 +1430,9 @@ criterion of the accepted step plan, and independently rerun or inspect each
 criterion's confirmation. Do not accept the item when a confirmable criterion
 failed or was not confirmed; name those criteria. A criterion reported `inspected`
 or `unconfirmable` whose `Confirm by:` required execution means the step contract
-cannot be met here: treat it as blocked for planning, not as accepted. A blocked
-result with a proven-unachievable criterion goes back to planning (plan revision
-or replan), not to a blind retry.
+cannot be met here: report revise so the step plan is corrected, not accepted.
+A proven-unachievable criterion goes back to the step plan (revise), or to a
+replan at an OUTER stage when it is product-wide, not to a blind retry.
 Reconcile tests, static checks, documentation, error behavior, diagnostics,
 dependencies, and known limitations.  Refresh checks affected by material changes
 and retain failures or blocked boundaries honestly.  This is work-item acceptance,
@@ -1957,10 +1962,10 @@ reason shows the check itself is wrong, and record that reason. Never change a
 check to get green.
 (3) Stop on exactly one: every selected check passes in the final pass →
 outcome done; a check proven unachievable (it contradicts the specification or
-another requirement, needs a tool, access or authority that is absent, or would
-exceed the item) → outcome blocked, naming it for plan revision; the same check
-still failing after 3 genuine fix attempts → outcome blocked with that check
-failed. A red check never leaves this stage as done.
+another requirement, or would exceed the item) → outcome revise, naming it, so
+the step plan is corrected; a check that needs a tool, access or authority that
+is absent → outcome blocked with blocked_by; the same check still failing after
+3 genuine fix attempts → outcome revise with that check failed. A red check never leaves this stage as done.
 Report each check's command, its final-pass output and whether it passed,
 failed or was not run (with the reason).
 """

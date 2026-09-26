@@ -39,7 +39,7 @@ import shiploop_stage_spec as stage_spec
 import shiploop_store as store
 
 
-STATE_VERSION = 3
+STATE_VERSION = 4
 # Navigator protocol 4 is the only protocol; saved runs from earlier protocols
 # are refused by retired_run_reason.
 PROTOCOL_VERSION = 4
@@ -92,6 +92,7 @@ _STATE_KEYS = frozenset(
         "delegation",
         "delegation_hold",
         "planning_reconciliations",
+        "revisions",
         "lint",
     )
 )
@@ -435,8 +436,12 @@ def _canonical_result(
     _need({"outcome", "summary"} <= keys, "result requires outcome and summary")
     _need(keys <= _RESULT_KEYS, "result has unsupported fields")
     outcome = value.get("outcome")
-    _need(outcome in ("done", "repeat", "blocked", "replan", "reconcile"),
-          "result outcome must be done, repeat, blocked, or a supported corrective replan")
+    _need(outcome in ("done", "repeat", "blocked", "replan", "revise", "reconcile"),
+          "result outcome must be done, repeat, blocked, revise, or a supported corrective replan")
+    if outcome == "revise":
+        _need(outcome in stage_spec.stage(stage).outcomes,
+              "revise sends a work item back to " + stage_spec.REVISE_TO + " and is allowed only at the "
+              "INNER stages from test-spec to integration-verify")
     if outcome == "reconcile":
         _need(stage == "plan" and set(value) == {
             "outcome", "summary", "evidence_refs", "reconciliation_target",
@@ -633,6 +638,7 @@ def new_state(
         "history": [],
         "inner_loops": {},
         "planning_reconciliations": [],
+        "revisions": {},
     }
     if delivery_contract:
         state["delivery_contract_version"] = consumer_delivery.DELIVERY_CONTRACT_VERSION
@@ -685,7 +691,9 @@ def _validate_v2(state: Mapping[str, Any]) -> None:
               "unexpected: " + ", ".join(unexpected) if unexpected else "",
               "missing: " + ", ".join(missing) if missing else "") if part)
           + "); a run saved by an older ShipLoop cannot be loaded. " + FRESH_RUN_HINT)
-    _need(state.get("version") == STATE_VERSION, "unsupported navigator state version")
+    _need(state.get("version") == STATE_VERSION,
+          "navigator state version " + repr(state.get("version")) + " is not the supported version "
+          + str(STATE_VERSION) + ". " + FRESH_RUN_HINT)
     _need(version in _PROTOCOL_VERSIONS,
           "unsupported navigator protocol version")
     delivery_contract = "delivery_contract_version" in state
@@ -744,6 +752,12 @@ def _validate_v2(state: Mapping[str, Any]) -> None:
     else:
         _need(work_index == 0 and not completed,
               "prelude stage cannot have completed work items")
+
+    revisions = state.get("revisions")
+    _need(isinstance(revisions, Mapping)
+          and all(key in item_ids and type(count) is int and 1 <= count <= stage_spec.MAX_REVISES
+                  for key, count in revisions.items()),
+          "navigator revisions must map work item IDs to 1.." + str(stage_spec.MAX_REVISES))
 
     loops = state.get("inner_loops")
     _need(isinstance(loops, Mapping), "navigator inner loops are invalid")
@@ -1263,6 +1277,19 @@ def _apply_result(state: Mapping[str, Any], action_id: str, result: Any, improve
 
     updated.pop("status_reason", None)
     updated["status"] = "active"
+    if canonical["outcome"] == "revise":
+        # The item's goal proved wrong while building it: back to its step plan
+        # with this result as evidence.  Enforced for new results only.
+        item_id = _current_work_item(updated)
+        used = updated["revisions"].get(item_id, 0)
+        _need(used < stage_spec.MAX_REVISES,
+              "work item " + str(item_id) + " has used its " + str(stage_spec.MAX_REVISES) + " revisions; "
+              "report blocked with blocked_by user and an awaiting question so the user decides")
+        updated["revisions"][item_id] = used + 1
+        _replace_v2_inner_action(updated, stage_spec.REVISE_TO)
+        validate(updated)
+        return updated
+
     if canonical["outcome"] == "repeat":
         if _is_v2_inner_root(updated):
             _replace_v2_inner_action(updated, stage)
@@ -2186,6 +2213,7 @@ def status_block(state: Mapping[str, Any]) -> str:
         label = (_status_text(last["workitem"], 32) + " " if last["workitem"] else "") + last["stage"]
         note = {"done": " (reviewed by Improve)" if last["action"] in state["improve_results"] else "",
                 "repeat": " (repeat requested)", "blocked": " (blocked)",
+                "revise": " (sent back to " + stage_spec.REVISE_TO + ")",
                 "replan": " (replan requested)", "reconcile": " (planning reconciled)"}
         lines.append(f"Done:      {label}{note.get(last['outcome'], '')}: "
                      + _first_sentence(last["summary"], 140))
@@ -2753,13 +2781,22 @@ def _improve_line(stage: str) -> str:
 
 
 def _allowed_outcome_lines(state: Mapping[str, Any], stage: str) -> list[str]:
-    """State the outcomes _canonical_result accepts for this producer."""
-    # The bound Until Loop repeats the quality review inside static-checks.
-    outcomes = ("done | blocked" if stage == quality.STAGE or stage in test_loop.STAGES
-                else "done | repeat | blocked")
-    if stage in guidance3.OUTER:
-        outcomes += (" | replan (corrective work_items [{id, title, context}] whose IDs are not "
-                     "already in state.md work_items; they run through INNER, then OUTER restarts)")
+    """State the outcomes _canonical_result accepts for this producer (from the stage table)."""
+    row = stage_spec.stage(stage)
+    described = []
+    for outcome in row.outcomes:
+        if outcome == "replan":
+            described.append("replan (corrective work_items [{id, title, context}] whose IDs are not "
+                             "already in state.md work_items; they run through INNER, then OUTER restarts)")
+        elif outcome == "revise":
+            item_id = _current_work_item(state)
+            left = stage_spec.MAX_REVISES - state.get("revisions", {}).get(item_id, 0)
+            described.append("revise (the item's step plan or test spec is wrong or unachievable: it goes "
+                             "back to " + stage_spec.REVISE_TO + " with this result as evidence; "
+                             + str(left) + " of " + str(stage_spec.MAX_REVISES) + " left for this item)")
+        else:
+            described.append(outcome)
+    outcomes = " | ".join(described)
     lines = ["Allowed outcomes: " + outcomes + "."]
     if stage == "plan":
         lines.append("Optional work_items replaces the whole queue: list every item in order, not a delta.")

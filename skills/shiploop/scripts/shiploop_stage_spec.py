@@ -13,7 +13,7 @@ This module imports nothing from ShipLoop, so any module may import it.
 
 from __future__ import annotations
 
-from dataclasses import dataclass, field
+from dataclasses import dataclass, field, replace
 from types import MappingProxyType
 from typing import Mapping
 
@@ -46,6 +46,13 @@ COMPLETE_RUNS = frozenset({
 })
 EDITS = frozenset({"code", "tests", "docs"})
 PHASES = ("prelude", "inner", "outer")
+OUTCOMES = frozenset({"done", "repeat", "blocked", "replan", "revise"})
+
+# A work item whose goal proves wrong while it is being built goes back to its
+# step plan with the evidence, at most MAX_REVISES times; after that the user
+# decides (blocked, blocked_by user).
+REVISE_TO = "step-plan"
+MAX_REVISES = 2
 
 
 @dataclass(frozen=True)
@@ -68,6 +75,9 @@ class Stage:
     reads: tuple[str, ...] = ()            # accepted results to read first ("item:" = this item)
     blocks: frozenset[str] = field(default_factory=frozenset)
     outcomes: tuple[str, ...] = ("done", "repeat", "blocked")
+    # Outcomes accepted once the stage's loop has used its iterations: done is
+    # never among them.  Filled in by _finish for INNER build and OUTER stages.
+    on_exhausted: tuple[str, ...] = ("blocked",)
 
     def __post_init__(self) -> None:
         if self.phase not in PHASES:
@@ -82,6 +92,10 @@ class Stage:
                 raise ValueError(f"{self.name}: unknown {label} {sorted(unknown)}")
         if self.improve not in (None, "always", "last-item"):
             raise ValueError(f"{self.name}: unknown improve rule {self.improve!r}")
+        if not set(self.outcomes) <= OUTCOMES or "done" not in self.outcomes:
+            raise ValueError(f"{self.name}: outcomes must include done and use known outcomes")
+        if not self.on_exhausted or not set(self.on_exhausted) <= set(self.outcomes) - {"done", "repeat"}:
+            raise ValueError(f"{self.name}: on_exhausted must be non-empty allowed outcomes other than done/repeat")
 
 
 _PLANNING = "Keep this stage's decisions, constraints and source locators in its result and evidence_refs."
@@ -508,6 +522,28 @@ _ROWS = (
     ),
 )
 
+
+
+def _finish(rows: tuple[Stage, ...]) -> tuple[Stage, ...]:
+    """Add the outcomes that follow from a stage's place in the graph.
+
+    INNER stages from test-spec through integration-verify build the item
+    against its step plan, so a goal that proves wrong there goes back to the
+    step plan (revise).  OUTER stages route missing product work as replan.
+    """
+    names = [row.name for row in rows]
+    first, last = names.index("test-spec"), names.index("integration-verify")
+    finished = []
+    for index, row in enumerate(rows):
+        if first <= index <= last:
+            row = replace(row, outcomes=row.outcomes + ("revise",), on_exhausted=("revise",))
+        elif row.phase == "outer":
+            row = replace(row, outcomes=row.outcomes + ("replan",), on_exhausted=("replan", "blocked"))
+        finished.append(row)
+    return tuple(finished)
+
+
+_ROWS = _finish(_ROWS)
 STAGE_SPEC: Mapping[str, Stage] = MappingProxyType({row.name: row for row in _ROWS})
 STAGES: tuple[str, ...] = tuple(row.name for row in _ROWS)
 PRELUDE: tuple[str, ...] = tuple(row.name for row in _ROWS if row.phase == "prelude")
@@ -542,6 +578,13 @@ def with_complete_run(run: str) -> tuple[str, ...]:
     if run not in COMPLETE_RUNS:
         raise ValueError(f"unknown complete run: {run!r}")
     return tuple(row.name for row in _ROWS if run in row.complete_runs)
+
+
+def with_outcome(outcome: str) -> tuple[str, ...]:
+    """Stages, in graph order, that accept ``outcome``."""
+    if outcome not in OUTCOMES:
+        raise ValueError(f"unknown outcome: {outcome!r}")
+    return tuple(row.name for row in _ROWS if outcome in row.outcomes)
 
 
 def with_improve(rule: str) -> frozenset[str]:

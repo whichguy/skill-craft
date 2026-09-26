@@ -144,7 +144,7 @@ class NavigatorDryRunTests(unittest.TestCase):
 
     def test_dry_run_simulates_actual_improve_handoffs_without_starting_them(self):
         expected = {'delivery': 42, 'two-work-items': 62, 'blocked-resume': 44,
-                    'repeat-improve': 44, 'pause-resume': 44, 'halted': 1}
+                    'repeat-improve': 44, 'revise': 50, 'pause-resume': 44, 'halted': 1}
         scenarios = driver.scenarios()
         self.assertEqual(set(scenarios), set(expected))
         for name, scenario in scenarios.items():
@@ -232,7 +232,7 @@ class NavigatorDryRunTests(unittest.TestCase):
               patch.object(navigator, 'save', side_effect=forbidden),
               redirect_stdout(output)):
             self.assertEqual(protocol.main(ForbiddenCore(), ['graph-dry-run']), 0)
-        self.assertEqual(output.getvalue().count('PASS '), 6)
+        self.assertEqual(output.getvalue().count('PASS '), 7)
 
     def test_cli_custom_json_and_markdown_without_state_changes(self):
         with tempfile.TemporaryDirectory(prefix='navigator-dry-run-') as temporary:
@@ -248,7 +248,7 @@ class NavigatorDryRunTests(unittest.TestCase):
             self.assertEqual(result.returncode, 0, result.stderr)
             data = json.loads(result.stdout)
             self.assertTrue(data['simulation_only'])
-            self.assertEqual(len(data['scenarios']), 6)
+            self.assertEqual(len(data['scenarios']), 7)
             example = ROOT / 'skills/shiploop/references/graph-dry-run-scenario.json'
             custom = subprocess.run(cli + ['--script', str(example), '--format', 'markdown'],
                                     cwd=root, env=env, capture_output=True, text=True)
@@ -275,7 +275,7 @@ class NavigatorDryRunTests(unittest.TestCase):
             self.assertEqual(data['protocol_version'], 4)
             self.assertEqual(set(item['name'] for item in data['scenarios']),
                              {'delivery', 'two-work-items', 'blocked-resume',
-                              'repeat-improve', 'pause-resume', 'halted'})
+                              'repeat-improve', 'revise', 'pause-resume', 'halted'})
             self.assertEqual(state.read_bytes(), before)
 
     def test_every_listed_scenario_runs(self):

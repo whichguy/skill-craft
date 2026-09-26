@@ -506,7 +506,7 @@ class V3GuidanceTests(unittest.TestCase):
             "test-refine": "removed or narrowed case",
             "step-plan": "two people running it separately would be forced to agree",
             "implement": "After your last edit to any file, rerun every check in one pass",
-            "verify": "treat it as blocked for planning, not as accepted",
+            "verify": "report revise so the step plan is corrected, not accepted",
             "product-acceptance": "pending release verification",
             "release-verify": "usable consumer entry",
         }

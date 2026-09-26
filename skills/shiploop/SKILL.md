@@ -364,12 +364,12 @@ lists the changed public entry points, traces each one with a
 valid, a boundary and an invalid input, reviews the change against the *Code
 craft* rubric and fixes what it finds. The Until Loop script ends the loop
 after an iteration with only trivial findings; a third iteration that still
-finds a material issue stops it. The stage accepts only `done` or `blocked`:
-`done` needs the terminal packet `quality/<action>-terminal.json`, which the
-runtime writes itself (the packet's start command passes `--receipt`). ShipLoop
-accepts only a complete runtime packet written there by a finished run and checks
-it against the contract it rebuilds from run state (not the file on disk) before
-advancing. The end-of-work Improve
+finds a material issue stops it. The stage accepts only `done`, `revise` or
+`blocked` (see [Revise](#revise-back-to-the-step-plan)): `done` needs the terminal
+packet `quality/<action>-terminal.json`, which the runtime writes itself (the
+packet's start command passes `--receipt`). ShipLoop accepts only a complete
+runtime packet written there by a finished run and checks it against the contract
+it rebuilds from run state (not the file on disk) before advancing. The end-of-work Improve
 reviews every item's change against the same rubric.
 
 `--lint fix|report|off` at `init` or `workspace start` selects the option; a
@@ -409,7 +409,7 @@ Improve card:
    product code (never a check to get green) and reruns the whole list after
    its last edit. The loop ends after an iteration in which every command
    exited 0 and nothing changed; iteration 4 that still fails stops it.
-3. The stage accepts only `done` or `blocked`. `done` needs the saved terminal
+3. The stage accepts only `done`, `revise` or `blocked`. `done` needs the saved terminal
    packet `tests/<action>-terminal.json`, checked against the contract rebuilt
    from run state. Then ShipLoop runs every listed command itself with
    `/bin/sh -c` from the repository (at most 10 minutes each, 30 per stage),
@@ -446,8 +446,9 @@ Every stage after the test loops that can edit code reruns them too: on `done`
 at `test-refine`, `static-checks` (after its quality-loop check) and
 `integration-verify`, ShipLoop runs every recorded command and refuses unless
 each passes. There is no loop at those stages; the packet lists the commands.
-Each action allows 3 refused runs; after that ShipLoop accepts only `blocked`,
-so a failing command goes back to plan revision instead of an endless retry.
+Each action allows 3 refused runs; after that ShipLoop no longer accepts `done`,
+so a failing command goes back to the step plan with `revise` instead of an
+endless retry.
 
 A done `release-plan` records `consumer_entry`: how a person reaches the result
 and the repository files that create that entry. ShipLoop refuses the release plan
@@ -467,9 +468,23 @@ prompts: run the checks; when one fails, diagnose it, fix the product code and
 rerun; change a check only for an independent reason that the check itself is
 wrong. Only a final full pass after the last edit counts. The step ends on
 exactly one of: every check passes (`done`); a check proven unachievable
-(`blocked`, for plan revision); or the same check still failing after 3 genuine
-fix attempts (`blocked`). At these stages it is prompt duty; `test-green` and
+(`revise`); or the same check still failing after 3 genuine fix attempts
+(`revise`). A check that needs a tool, access or authority that is absent ends
+`blocked` with `blocked_by`. At these stages it is prompt duty; `test-green` and
 `regression` run the script-enforced [test loop](#test-loop).
+
+### Revise: back to the step plan
+
+A fixable problem is never `blocked`. When a work item's goal proves wrong or
+unachievable while it is being built, from `test-spec` through
+`integration-verify`, the stage reports `revise`: the item goes back to
+`step-plan` with that result as evidence, and its earlier results from the step
+plan on stop counting as current. Each work item may revise twice; after that
+ShipLoop refuses `revise` and the stage reports `blocked` with `blocked_by: user`
+and a question. A script-run loop that uses all its iterations without meeting
+its exit condition must report `revise`; a loop cancelled before its limit is
+refused, because a user's stop is the packet's `pause` command. The per-item
+count is kept in `state.md` `revisions`.
 
 ## Durable handoff
 
