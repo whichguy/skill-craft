@@ -9,7 +9,8 @@ there with one headless host process, shows its progress live, and grades:
             Grok does not namespace plugin skills)
   plugin    exactly one skill-craft plugin loaded, and it is the build under test
   process   the host exited 0 within the timeout
-  shiploop  .shiploop/state.md reports status "done" and report.html exists
+  shiploop  a ShipLoop state.md under the output directory reports status
+            "done" and its report.html exists
   checks    every case check command exits 0 in the working directory
 
 The default host is Grok at medium reasoning effort. By default the run tests a
@@ -128,7 +129,8 @@ class LiveView:
 
     def tool(self, name, arg):
         arg = arg if isinstance(arg, dict) else {}
-        detail = next((arg[k] for k in ("command", "cmd", "file_path", "path", "skill", "description") if arg.get(k)), "")
+        detail = next((arg[k] for k in ("command", "cmd", "file_path", "target_file", "target_directory", "pattern",
+                                    "path", "skill", "description") if arg.get(k)), "")
         self.emit(f"tool  {name}: " + " ".join(str(detail).split())[:140])
 
 
@@ -225,18 +227,30 @@ def grade_claude_plugin(plugins: list[dict], plugin_dir: Path | None) -> dict:
     return {"pass": paths == [wanted], "loaded": paths, "wanted": wanted}
 
 
-def grade_shiploop(work: Path) -> dict:
-    run = work / ".shiploop"
-    state_path = run / "state.md"
-    if not state_path.is_file():
-        return {"pass": False, "reason": "no .shiploop/state.md"}
-    try:
-        state = store.read_record(state_path)
-    except store.StorageError as exc:
-        return {"pass": False, "reason": f"unreadable state.md: {exc}"}
-    status = state.get("status") if isinstance(state, dict) else None
-    report = (run / "report.html").is_file()
-    return {"pass": status == "done" and report, "status": status, "report_html": report}
+def grade_shiploop(out: Path) -> dict:
+    """ShipLoop's run state, wherever the agent put it under the output directory.
+
+    The skill may keep its run inside the repository (work/.shiploop) or in an
+    external workspace root beside it (for example <out>/.shiploop-runs/<name>/run);
+    the throwaway home/ and the plugin build/ are not searched.
+    """
+    runs = []
+    for state_path in sorted(out.rglob("state.md")):
+        relative = state_path.relative_to(out).parts
+        if relative[0] in ("home", "build"):
+            continue
+        try:
+            state = store.read_record(state_path)
+        except store.StorageError:
+            continue
+        if isinstance(state, dict) and "status" in state:
+            runs.append({"run_dir": str(state_path.parent), "status": state.get("status"),
+                         "report_html": (state_path.parent / "report.html").is_file()})
+    if not runs:
+        return {"pass": False, "reason": "no ShipLoop state.md under the output directory"}
+    done = [run for run in runs if run["status"] == "done" and run["report_html"]]
+    chosen = done[0] if done else runs[0]
+    return {"pass": bool(done), **chosen, "runs": len(runs)}
 
 
 def run_checks(work: Path, checks: list[str], timeout: int = 180) -> list[dict]:
@@ -319,7 +333,7 @@ def main(argv: list[str] | None = None) -> int:
     plugins = cli_seen.pop("plugins")
     if plugin is None:
         plugin = grade_claude_plugin(plugins, plugin_dir)
-    shiploop = grade_shiploop(work)
+    shiploop = grade_shiploop(out)
     check_results = run_checks(work, checks)
     verdicts = [invoked["pass"], plugin["pass"], process["pass"], shiploop["pass"],
                 *(c["pass"] for c in check_results)]
