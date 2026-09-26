@@ -8,7 +8,7 @@ passed; offline fixtures do not establish live model or host behavior.
 | Selection | Command | Scope |
 |---|---|---|
 | Focused | `python3 -B test/<name>.test.py` | One module; useful while changing its contract |
-| Quick | `bash test/run-all.sh --group quick [--changed-from REF]` | A fixed light baseline (3 core, 9 ShipLoop boundary suites) plus the light suites matching files changed since REF |
+| Quick | `bash test/run-all.sh --group quick [--changed-from REF]` | A fixed light baseline (3 core, 10 ShipLoop boundary suites) plus the light suites matching files changed since REF |
 | Ask-Agent component | `bash test/run-all.sh --group ask-agent` | Supported helper tests and ShipLoop consumers |
 | Composition component | `bash test/run-all.sh --group shiploop-composition` | Chain and Improve integration boundaries |
 | Full hermetic | `bash test/run-all.sh` | Core, all ShipLoop suites and the source E2E apparatus |
@@ -63,9 +63,10 @@ checked-in duration estimates and a deterministic fallback. They are scheduling
 slices of the same full inventory, not additional coverage.
 
 The quick baseline is three core suites (`test-groups`, `ci-policy`,
-`skill-frontmatter`) and nine ShipLoop suites (`no-model-launch`,
+`skill-frontmatter`) and ten ShipLoop suites (`no-model-launch`,
 `navigator-v3`, `navigator-v4`, `stopped-improve`, `v4-consumers`,
-`packet-bounds`, `navigator-dry-run`, `status-display` and `chain-async`).
+`packet-bounds`, `navigator-dry-run`, `status-display`, `chain-async` and
+`planning-handoff`).
 The Ask-Agent workspace, delivery and managed-harness checks run in core.
 
 An optional `--output` directory must be new and outside the checkout. It retains

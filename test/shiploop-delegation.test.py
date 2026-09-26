@@ -14,6 +14,8 @@ ROOT = Path(__file__).resolve().parents[1]
 PACKAGE = ROOT / "skills/shiploop"
 CLI = PACKAGE / "scripts/shiploop"
 CARD = ROOT / "skills/improve/SKILL.md"
+# GitHub Actions checks the repository out here; packet size bounds are measured at it.
+CI_CHECKOUT = "/home/runner/work/skill-craft/skill-craft"
 sys.path.insert(0, str(PACKAGE / "scripts"))
 import shiploop_navigator as nav  # noqa: E402
 import shiploop_standalone_improve as standalone  # noqa: E402
@@ -327,7 +329,9 @@ class PacketContractTests(DelegationStateTests):
                         bound = 48_000
                     else:
                         bound = 44_000
-                    self.assertLess(len(packet), bound)
+                    # Measure as if checked out where CI checks out, so a longer local
+                    # path (a worktree) does not change the result.
+                    self.assertLess(len(packet.replace(str(ROOT), CI_CHECKOUT)), bound)
                     self.assertNotIn("Improve cadence", packet)
                     lines = packet.splitlines()
                     # An inline prefix may precede the header; nothing else may.

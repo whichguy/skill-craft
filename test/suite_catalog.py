@@ -120,6 +120,7 @@ _SHIPLOOP_PATHS = (
     "test/shiploop-privacy.test.py",
     "test/shiploop-reference-routing.test.py",
     "test/shiploop-keepalive.test.py",
+    "test/shiploop-planning-handoff.test.py",
 )
 
 # Measured in the audited full GitHub qualification.  Every known duration is
@@ -173,6 +174,7 @@ _DURATION_SECONDS = {
     "test/shiploop-assumptions.test.py": 0.2,
     "test/experiments/shiploop_delivery/browser_consumer/serve_fixture.test.py": 2.53,
     "test/shiploop-capability-runtime.test.py": 0.996,
+    "test/shiploop-planning-handoff.test.py": 0.2,
 }
 _FALLBACK_DURATION_SECONDS = 60.0
 
@@ -187,6 +189,7 @@ _QUICK_PATHS = frozenset({
     "test/shiploop-navigator-dry-run.test.py",
     "test/shiploop-status-display.test.py",
     "test/shiploop-chain-async.test.py",
+    "test/shiploop-planning-handoff.test.py",
 })
 
 # Current Ask-Agent checks.  The adapter rows exercise the ShipLoop consumers

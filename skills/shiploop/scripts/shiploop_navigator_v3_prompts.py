@@ -1138,7 +1138,8 @@ useful inspection findings into retained tests or explicit manual procedures.
 Retain the harness and case locators in the existing plan and work-item context.
 For remote-resident cases, revalidate framework availability and the authorized
 setup, test-definition/invocation, result retrieval and teardown route.
-Reopen this item's selected prior-baseline and incoming-spec sections from context.
+Reopen the packet's Current planning sources (accepted spec and plan), its test
+strategy source and this item's selected prior-baseline and incoming-spec sections.
 Revalidate scope/freshness, retain preserved behavior and checks, and surface any
 missing consequential source before dependent implementation.
 For affected service work, reopen the indexed current contract and item-specific
@@ -1153,7 +1154,8 @@ to independent positive, boundary, and failure assertions, fixtures, and command
 paths.  Define what the baseline/expected RED should prove, what focused GREEN
 will prove after implementation, and how regression coverage prevents weakening
 the oracle.  A test specification is not execution evidence.
-Preserve every assigned clause and its required surface and due phase. Specify
+Take the item's clauses from the accepted spec and plan named in the packet's
+Current planning sources. Preserve every assigned clause and its required surface and due phase. Specify
 the action and expected observable outcome for each distinct behavior, not only
 that its page loads. Link later-phase procedures without claiming they ran here.
 For each new or changed public entry point, specify one rejection case per
@@ -1964,7 +1966,7 @@ def prompt(stage: str, *, delegation: str = ASK_AGENT) -> str:
     _require_stage(stage)
     _require_delegation(delegation)
     parts = [COMMON, duty(stage, delegation=delegation)]
-    if stage in PRELUDE or stage in {"step-plan", "test-spec"}:
+    if stage in PRELUDE or stage in PLANNING_REVIEW_STAGES:
         parts.append(_PLANNING_HANDOFF if delegation == ASK_AGENT
                      else _PLANNING_HANDOFF.replace(*_INLINE_PLANNING_DIRECTIVE))
     if stage in TEST_FACILITY_STAGES:
