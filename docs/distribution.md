@@ -265,13 +265,6 @@ changes are published or that every script can execute on every host.
 ## Runtime limits
 
 Skill discovery is separate from execution. Prompt skills can still reference
-optional host agents, external CLIs, or project-specific harnesses. In particular,
-the DevLoop engine has Grok/Hermes runtime bindings; discovery in Claude, Codex,
-or Cursor does not add another engine transport. The distributed DevLoop runtime
-never downloads or provisions an engine. An operator may explicitly provision it
-from a trusted source checkout with `bash scripts/devloop-setup.sh --host grok`;
-see that command's `--help` for pin and destination controls. Missing engines
-fail with exit 2 and setup guidance. Claude/Codex/Cursor can use an explicitly
-selected supported external transport, not a claimed native transport.
+optional host agents, external CLIs, or project-specific harnesses.
 Benchmark skills retain declared independent-session, harness and project-access
 prerequisites; packaging does not manufacture unavailable capabilities.

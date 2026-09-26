@@ -56,13 +56,6 @@
     "rationale": "The request explicitly asks for backward elaboration of an incomplete plan and scheduler-ready waves."
   },
   {
-    "id": "coexistence-devloop",
-    "query": "Use Devloop to implement cross-service checkout idempotency, covering schema migration, API idempotency keys, worker retries, reconciliation, and staged rollout. First establish what can run in parallel and what blocks cutover.",
-    "should_trigger": true,
-    "category": "coexistence",
-    "rationale": "Execution can remain owned by Devloop while Backchain supplies the requested dependency order."
-  },
-  {
     "id": "coexistence-plan-review",
     "query": "Review this draft data-migration plan for missing preconditions, then convert the accepted result into a scheduler-ready graph across schema, API, worker, and rollout tasks.",
     "should_trigger": true,

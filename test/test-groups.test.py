@@ -93,8 +93,8 @@ class TestGroupTests(unittest.TestCase):
 
     def test_audited_catalog_counts_and_fixed_commands(self) -> None:
         self.assertEqual(len(suite_catalog.SHIPLOOP_SUITES), 56)
-        self.assertEqual(len([suite for suite in suite_catalog.SUITES if suite.family == "core"]), 35)
-        self.assertEqual(len(suite_catalog.SUITES), 93)
+        self.assertEqual(len([suite for suite in suite_catalog.SUITES if suite.family == "core"]), 33)
+        self.assertEqual(len(suite_catalog.SUITES), 91)
         self.assertTrue(all(suite.hermetic for suite in suite_catalog.SUITES))
         self.assertTrue(all(suite.path in suite.argv for suite in suite_catalog.SUITES))
         self.assertTrue(all(suite.argv[0] in {"python3", "node", "bash"} for suite in suite_catalog.SUITES))
@@ -351,11 +351,6 @@ class TestGroupTests(unittest.TestCase):
             outcome = run_suites.run_process((sys.executable, str(program)), cwd=root, timeout_seconds=0.1)
             self.assertEqual(outcome.status, "timed_out")
             self.assertLess(time.monotonic() - started, 4)
-
-    def test_bootstrap_fixture_pin_does_not_rewrite_the_checkout(self) -> None:
-        script = (ROOT / "test" / "devloop-run.test.sh").read_text(encoding="utf-8")
-        self.assertIn('fixture_pin="$tmpdir/engine-pin-fixture.json"', script)
-        self.assertNotIn('fixture_pin="$root/test/fixtures/engine-pin-fixture.json"', script)
 
 
 if __name__ == "__main__":

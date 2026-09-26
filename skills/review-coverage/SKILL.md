@@ -85,7 +85,7 @@ to a similarly named executable.
 | **Review Coverage** | Durable plan **H2 only** `## Review Coverage` + this skill (H1/H3+ are not recognized). After ship: prove code matches specs and **stop** when proof is stable. |
 | **Status / Log / landed** | Driver ledger at repo-root `REVIEW_CONVERGE.md`. **Landed** = latest Log `Committed: yes` and `review-converge: round N —`. |
 | **residual** | Forward (specs→code) + reverse (diff vs Base ref); material fixes only; pathspec commits. |
-| **clean / residual×2** | Clean = **only trivial findings remaining this cycle** (not “fixed some material and left minors”). Review success = two consecutive cleans with second-pass verification as defined below. Fixing material resets the streak. After DevLoop COMPLETE, this is the overlay — not a nested `/devloop`. Practices: skill-craft `docs/LOOP-ENGINEERING.md`. |
+| **clean / residual×2** | Clean = **only trivial findings remaining this cycle** (not “fixed some material and left minors”). Review success = two consecutive cleans with second-pass verification as defined below. Fixing material resets the streak. |
 | **`/goal` body** | Outer multi-turn objective: **static complete-when sentence** + plan bindings (see below). Do not paraphrase the static sentence. |
 | **`/review-converge`** | Default Driver: **one** residual round per outer turn. |
 | **complete** | residual×2 review success + landed Log. Delivery success additionally requires the current-candidate Finalization record below. |

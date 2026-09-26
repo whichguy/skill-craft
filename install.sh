@@ -41,8 +41,7 @@ usage() {
   printf '  Hermes:  ~/.hermes/skills/software-development/<dest>  (copy)\n' >&2
   printf '           (container bind: /opt/data/skills/software-development/<dest>)\n' >&2
   printf '           Provenance: ~/.hermes/skills/software-development/.skill-craft/<dest>.json\n' >&2
-  printf '  dest = leaf. Leaf devloop skips Hermes (engine owns software-development/devloop).\n' >&2
-  printf '  Grok slash: skills/devloop/commands/devloop.md → ~/.grok/commands/devloop.md\n' >&2
+  printf '  dest = leaf.\n' >&2
   printf '\n' >&2
   printf 'Status outcomes: absent | symlink-owned | symlink-wrong | copy-owned |\n' >&2
   printf '  copy-owned-stale | foreign | foreign-file\n' >&2
@@ -780,10 +779,6 @@ install_skill_to_hosts() {
   fi
   if [[ "$install_grok" -eq 1 ]]; then
     install_host_skill grok "Grok" "$HOME/.grok/skills" "$leaf" "$source_dir"
-    if [[ "$leaf" == "devloop" ]]; then
-      install_agent_one "Grok command /devloop" "$HOME/.grok/commands" "devloop" \
-        "$source_dir/commands/devloop.md"
-    fi
   fi
   if [[ "$install_codex" -eq 1 ]]; then
     install_host_skill codex "Codex" "$HOME/.codex/skills" "$leaf" "$source_dir"
@@ -798,12 +793,7 @@ install_skill_to_hosts() {
     # Peer layout under Hermes skillhub. Host ~/.hermes is typically bind-mounted
     # to /opt/data in the hermes container — abs-symlinks to host checkouts break.
     # Default: materialize a managed copy with provenance under .skill-craft/.
-    # Leaf "devloop" skips Hermes — the engine owns software-development/devloop.
-    if [[ "$leaf" == "devloop" ]]; then
-      printf 'Skipped Hermes card install for leaf devloop (engine owns software-development/devloop)\n'
-    else
-      install_host_skill hermes "Hermes skillhub" "$HOME/.hermes/skills/software-development" "$leaf" "$source_dir"
-    fi
+    install_host_skill hermes "Hermes skillhub" "$HOME/.hermes/skills/software-development" "$leaf" "$source_dir"
   fi
 }
 
@@ -1121,11 +1111,7 @@ status_skill_to_hosts() {
     status_host_skill "OpenCode" "$(opencode_skills_dir)" "$leaf" "$source_dir"
   fi
   if [[ "$install_hermes" -eq 1 ]]; then
-    if [[ "$leaf" == "devloop" ]]; then
-      printf 'Skipped Hermes card status for leaf devloop (engine owns software-development/devloop)\n'
-    else
-      status_host_skill "Hermes skillhub" "$HOME/.hermes/skills/software-development" "$leaf" "$source_dir"
-    fi
+    status_host_skill "Hermes skillhub" "$HOME/.hermes/skills/software-development" "$leaf" "$source_dir"
   fi
 }
 
@@ -1137,18 +1123,6 @@ uninstall_skill_to_hosts() {
   fi
   if [[ "$install_grok" -eq 1 ]]; then
     uninstall_host_skill "Grok" "$HOME/.grok/skills" "$leaf" "$source_dir"
-    if [[ "$leaf" == "devloop" ]]; then
-      local cmd_src="$source_dir/commands/devloop.md"
-      local cmd_dest="$HOME/.grok/commands/devloop.md"
-      if [[ -L "$cmd_dest" && "$(readlink "$cmd_dest")" == "$cmd_src" ]]; then
-        if [[ "$dry_run" -eq 1 ]]; then
-          printf 'Would uninstall symlink (Grok command /devloop): %s\n' "$cmd_dest"
-        else
-          rm -f "$cmd_dest"
-          printf 'Uninstalled symlink (Grok command /devloop): %s\n' "$cmd_dest"
-        fi
-      fi
-    fi
   fi
   if [[ "$install_codex" -eq 1 ]]; then
     uninstall_host_skill "Codex" "$HOME/.codex/skills" "$leaf" "$source_dir"
@@ -1160,11 +1134,7 @@ uninstall_skill_to_hosts() {
     uninstall_host_skill "OpenCode" "$(opencode_skills_dir)" "$leaf" "$source_dir"
   fi
   if [[ "$install_hermes" -eq 1 ]]; then
-    if [[ "$leaf" == "devloop" ]]; then
-      printf 'Skipped Hermes card uninstall for leaf devloop (engine owns software-development/devloop)\n'
-    else
-      uninstall_host_skill "Hermes skillhub" "$HOME/.hermes/skills/software-development" "$leaf" "$source_dir"
-    fi
+    uninstall_host_skill "Hermes skillhub" "$HOME/.hermes/skills/software-development" "$leaf" "$source_dir"
   fi
 }
 

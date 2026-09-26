@@ -270,8 +270,6 @@ _CORE_SUITES = (
     _suite("install-targets", "core", "test/install-targets.test.sh", "bash", "test/install-targets.test.sh"),
     _suite("install-arbitrary-skill", "core", "test/install-arbitrary-skill.test.sh", "bash", "test/install-arbitrary-skill.test.sh"),
     _suite("install-status-uninstall", "core", "test/install-status-uninstall.test.sh", "bash", "test/install-status-uninstall.test.sh"),
-    _suite("devloop-run", "core", "test/devloop-run.test.sh", "bash", "test/devloop-run.test.sh"),
-    _suite("evidence-gates", "core", "test/evidence-gates.test.sh", "bash", "test/evidence-gates.test.sh"),
     _suite("improve", "core", "test/improve.test.sh", "bash", "test/improve.test.sh"),
     _suite("improve-plugin", "core", "test/improve-plugin.test.py", "python3", "test/improve-plugin.test.py"),
     _suite("improve-agent", "core", "test/improve-agent.test.py", "python3", "test/improve-agent.test.py"),

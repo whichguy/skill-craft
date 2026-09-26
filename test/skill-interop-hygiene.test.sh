@@ -46,14 +46,5 @@ if grep -qiE 'sonnet|opus|gpt-' "$si/references/create-template/SKILL.md.tmpl" 2
   fail "create-template SKILL.md.tmpl must not pin model names"
 fi
 
-# Default DevLoop package must be skills/devloop (an engine leaf elsewhere is foreign)
-if [[ ! -d "$root/skills/devloop" ]]; then
-  fail "package must be skills/devloop"
-fi
-if [[ -d "$root/skills/devloop-run" ]]; then
-  fail "leftover skills/devloop-run (package is skills/devloop)"
-fi
-grep -q 'skills/devloop' "$root/docs/ARCHITECTURE.md" || fail "ARCHITECTURE should mention skills/devloop"
-
 printf 'skill-interop-hygiene.test.sh: PASS (prompts, templates, scaffold, anti-patterns, host-paths, no pins)\n'
 exit 0

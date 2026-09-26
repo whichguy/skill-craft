@@ -14,7 +14,7 @@ These drove the final packaging model after advisors review and PR1–P4 landing
 5. **`plugin.json` must derive from frontmatter** or version/description drift (and mid-sentence truncation) is inevitable.
 6. **Enumerate plugin sync from `skills/`**, not `plugins/` — otherwise new leaves never get Claude views and `--check` stays green.
 7. **Discovery ≠ execution** for engines — a four-host skill-dir install is not multi-host runtime.
-8. **Foreign real destinations** (e.g. live Hermes `devloop` engine) must classify as `foreign` and never clobber; the `devloop` card skips Hermes install so dest does not collide with the engine leaf.
+8. **Foreign real destinations** (a leaf installed by something else) must classify as `foreign` and never be clobbered.
 9. **Extend `install.sh`**, do not invent `skillctl` as a second install CLI.
 10. **CI is required** — hermetic green alone coexists with broken host binding if nothing runs `--check` / install tests automatically.
 
@@ -37,7 +37,7 @@ Do **not** renumber legacy Layer 0–2. Skill-interop reviews and checklists alr
 | Prompts | **Layer 1** | **implemented** |
 | Scripts / CLI | **Layer 2** | **implemented** |
 | Skill card (`SKILL.md` router) | review step (not a Layer 1 rename) | **implemented** |
-| Runtime binding | append (**SC-L3**) | **implemented** for Hermes materialize + installed `devloop` resolution; explicit operator setup is outside packages; Grok/Hermes engine transports, no native Claude/Codex transport |
+| Runtime binding | append (**SC-L3**) | **implemented** for Hermes materialize |
 | Host adapters + distribution | append (**SC-L4 / SC-L5**) | **implemented** (skill-dir install, shared plugin views, Grok/Cursor indexes, Claude/Codex pins) |
 | Provenance (managed installs) | append | **implemented** — schema-2 marker + append-only `receipts.jsonl` + `--status` / `--uninstall` |
 | Operator / CI | control plane (not a runtime layer) | **implemented** — hermetic suite + GitHub Actions |
@@ -60,41 +60,16 @@ One CLI family per skill; injectable seams; scripts do not re-author planning po
 
 `SKILL.md` is the discovery/router surface. Engines that are CLI-first load this as documentation for chat models, not as the engine’s system prompt.
 
-### Runtime binding — SC-L3 (**implemented** for Hermes materialize + installed `devloop` resolution)
+### Runtime binding — SC-L3 (**implemented** for Hermes materialize)
 
 Binding surfaces are **distinct** (do not collapse into one env var).
-
-**Product default:** bare **DevLoop / devloop** = engine via **`skills/devloop`**
-(shim only). Harnesses must not reimplement the loop. Optional offline freeze/prove/stop
-is **`evidence-gates`** (demoted; not default). See
-`skills/devloop/references/product-default.md`. Host overlay compose
-(before / during / after) and the practice list:
-[LOOP-ENGINEERING.md](LOOP-ENGINEERING.md).
 
 | Surface | Role |
 |---------|------|
 | Package root | Directory containing `SKILL.md` |
 | Runtime home | e.g. Hermes hub / container data root |
 | Write-safe root | Where engines may create workspaces/traces |
-| Host-local engine | `~/.local/share/devloop` (explicit operator setup; marker-owned) |
-| Transport / launcher bins | Overridable (`HERMES_BIN`, `GROK_BIN`, `DEVLOOP_TRANSPORT`, …) |
 | Target repository | Effectful git work for engines |
-
-**Transport honesty:** Hermes host uses Hermes chat transport. Grok uses an installed
-engine with Grok capability and `GROK_BIN`, without requiring a Hermes runtime.
-Claude/Codex/Cursor require an explicitly selected supported external transport;
-the card does not claim those hosts have native engine transports. Missing engines
-or unsupported capabilities fail closed, without host-agent loop improvisation.
-
-**devloop clean-laptop path:** the card installs on Grok/Claude/Codex/Cursor, but
-never downloads or installs an engine at invocation time. An operator separately
-runs `bash scripts/devloop-setup.sh --host grok` from a trusted source checkout.
-That repository-only command owns `scripts/devloop-engine-pin.json`, SHA-256
-verification, safe extraction, locking and atomic replacement. Before activation,
-it checks `pytest` and the engine CLI using the same interpreter selection as the
-runtime. Dependencies must already be installed; neither setup nor the packaged
-launcher installs them. The card never clobbers the Hermes engine leaf (card install skipped
-on Hermes). Missing prerequisites exit 2 with operator guidance.
 
 **Hermes skill-dir install (implemented):** materialize a **managed copy** under
 `~/.hermes/skills/software-development/<leaf>` with provenance at
@@ -115,9 +90,6 @@ host checkout into a tree that is bind-mounted into the container as `/opt/data`
 | Host hooks: a skill may declare `after-shell` and `turn-end` hooks in `skills/<leaf>/host-hooks.json`; the generator merges every skill's hooks into one file per host in `plugins/skill-craft/hooks/` (Claude/Grok `hooks.json`, Codex `codex.json`, Cursor `cursor.json`) and points the Codex and Cursor manifests at theirs. A hook command may only run an executable in its skill's own `scripts/`; `scripts/check-marketplace-packages.py` enforces that on the package | **implemented** |
 | `install.sh --status` / `--uninstall` (owned only) | **implemented** |
 | skillctl | **optional / not planned** (use `install.sh`) |
-| Default DevLoop card `skills/devloop` | **implemented** (discovery on Claude/Grok/Codex/Cursor; Hermes card skipped; installed-engine resolution only; separate operator provisioning) |
-| Demoted evidence gates `skills/evidence-gates` | **implemented** (offline freeze/prove/stop; not DevLoop) |
-| Grok engine transport (no Hermes) | **implemented** (card host affinity + pin `transports: [hermes, grok]`; [`devloop-engine-v0.2.0` was published on GitHub](https://github.com/whichguy/skill-craft/releases/tag/devloop-engine-v0.2.0) on 2026-08-15; publication does not establish host installation or execution) |
 
 ### Operator / CI (**implemented**)
 
@@ -213,7 +185,7 @@ from `host-hooks.json`. `install.sh` never writes host settings or hook config.
 | P1 | Frontmatter contract + kinds | **done** |
 | P2 | Derive `plugin.json` from `SKILL.md` | **done** |
 | P3 | `--status` / `--uninstall` | **done** |
-| P4 | `skills/devloop` probe card | **done** |
+| P4 | `skills/devloop` probe card | **done**; archived 2026-09-26 with `evidence-gates` (see `docs/PORT.md`) |
 | Market pins | skill-craft-market → full commit `sha` for every leaf (superseded 2026-09: root catalogs here, release-only output) | **done** |
 
 ### Package-internal symlinks (**implemented**)
@@ -269,26 +241,8 @@ echo "EXIT=${PIPESTATUS[0]}" | tee -a run-all.log
 A quick cycle may not claim full-regression coverage. Any cycle may not claim
 PASS without a trailing `EXIT=0` line (or attributed non-packaging failures only).
 
-## devloop engine setup (operator-only)
-
-Portable card on Grok/Claude/Codex/Cursor. The card and `devloop-run` never
-provision an engine: a missing engine exits 2, and an unknown option such as the
-retired `--setup` exits 64. An operator runs the repository-only
-`scripts/devloop-setup.sh` (see the clean-laptop path above), which installs the
-engine under `~/.local/share/devloop` (or `$XDG_DATA_HOME/devloop`) without
-overwriting the Hermes skillhub leaf `devloop`. See
-`skills/devloop/references/bootstrap.md`.
-
-## Reserved leaf names
-
-| Leaf | Role |
-|------|------|
-| `devloop` | **Default DevLoop** portable card (`skills/devloop`). Dest = leaf on Claude/Grok/Codex/Cursor. Hermes card install is skipped — engine owns `software-development/devloop`. |
-| `evidence-gates` | Demoted offline evidence gates; must not steal bare “devloop” discovery. |
-
 ## Related files
 
 - Install: `install.sh`, `skills/skill-interop/references/host-paths.md`
 - Interop review: `skills/skill-interop/references/checklist.md`, `anti-patterns.md`
-- Engine probe: `skills/devloop/`
 - Ports inventory: `docs/PORT.md`

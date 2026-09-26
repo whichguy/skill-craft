@@ -7,8 +7,6 @@ For setup and marketplace distribution across hosts, start with
 [docs/distribution.md](docs/distribution.md).
 
 Architecture (layers, binding, install honesty): [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md).
-Loop-engineering compose (before / during / after DevLoop):
-[docs/LOOP-ENGINEERING.md](docs/LOOP-ENGINEERING.md).
 
 This is **not** [claude-craft](https://github.com/whichguy/claude-craft).
 
@@ -90,8 +88,6 @@ Never clobbers a foreign real file/directory. Wrong/dangling symlinks are only r
 Switching an existing symlink install to a managed copy needs `./install.sh --copy --relink`;
 without `--relink` the symlink is skipped. `--relink` is the only spelling (no `--force`), and
 `--skill all` the only all-skills value.
-Source leaf `devloop` installs as dest `devloop` on Claude/Grok/Codex/Cursor.
-Hermes card install is skipped (the engine owns `software-development/devloop`).
 
 ```sh
 ./install.sh                         # OpenCode (plugin hosts use skill-craft@whichguy), every skills/<leaf>
@@ -121,7 +117,7 @@ Hermes card install is skipped (the engine owns `software-development/devloop`).
 | Cursor | `~/.cursor/skills/<dest>` | symlink (never `~/.cursor/skills-cursor`) |
 | Hermes | `~/.hermes/skills/software-development/<dest>` | **copy** (+ `.skill-craft/<dest>.json` marker) |
 
-`dest` is the source leaf. Leaf `devloop` skips Hermes so it cannot overwrite the engine.
+`dest` is the source leaf.
 
 `install.sh` never writes host hook config. A marketplace install carries a skill's hooks:
 its `host-hooks.json` is generated into each host's plugin hook file, which Claude Code,

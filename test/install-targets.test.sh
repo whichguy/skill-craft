@@ -242,21 +242,6 @@ assert_absent "$HOME/.grok/skills/skill-interop"
 assert_absent "$HOME/.codex/skills/skill-interop"
 
 # ---------------------------------------------------------------------------
-# I16: --all --skill devloop is identity install on Claude/Grok/Codex/Cursor/OpenCode.
-# ---------------------------------------------------------------------------
-source_devloop="$root/skills/devloop"
-[[ -f "$source_devloop/SKILL.md" ]] || fail "I16 missing skills/devloop/SKILL.md"
-fresh_home i16
-out16="$("$install_sh" --all --skill devloop 2>&1)" || fail "I16 install failed: $out16"
-assert_symlink "$HOME/.claude/skills/devloop" "$source_devloop"
-assert_symlink "$HOME/.grok/skills/devloop" "$source_devloop"
-assert_symlink "$HOME/.codex/skills/devloop" "$source_devloop"
-assert_symlink "$HOME/.cursor/skills/devloop" "$source_devloop"
-assert_symlink "$(opencode_skills_dir)/devloop" "$source_devloop"
-assert_symlink "$HOME/.grok/commands/devloop.md" "$source_devloop/commands/devloop.md"
-assert_absent "$HOME/.claude/commands/devloop.md"
-
-# ---------------------------------------------------------------------------
 # I18: --opencode-only uses XDG_CONFIG_HOME (including spaces) and isolates
 # OpenCode from all other host skill and agent directories.
 # ---------------------------------------------------------------------------
@@ -419,4 +404,4 @@ set -e
 [[ "$rc_agents" -eq 64 ]] || fail "--status --agents want exit 64 got $rc_agents: $out_agents"
 printf '%s\n' "$out_agents" | grep -q -- '--agents is only valid for install' || fail "--agents message: $out_agents"
 
-printf 'install-targets.test.sh: PASS I1, I1b, I2–I8, I10–I16, I18, I19, I21 (skill-craft install, 5 hosts, default-hosts scope, identity dest, flags, dry-run, skip-if-exists, --relink, --agents, marketplace-only sources)\n'
+printf 'install-targets.test.sh: PASS I1, I1b, I2–I8, I10–I15, I18, I19, I21 (skill-craft install, 5 hosts, default-hosts scope, identity dest, flags, dry-run, skip-if-exists, --relink, --agents, marketplace-only sources)\n'

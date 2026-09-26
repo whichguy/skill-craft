@@ -405,29 +405,6 @@ bash test/run-integration.sh weather-live
 bash test/run-integration.sh cursor-imports
 ```
 
-Weather checks require both explicit locators; do not infer them from an
-installed engine or a surrounding checkout:
-
-```sh
-DEVLOOP_HOME=/absolute/path/to/devloop \
-DEVLOOP_WEATHER_REPO=/absolute/path/to/weather-repository \
-  bash test/run-integration.sh weather-offline
-
-DEVLOOP_HOME=/absolute/path/to/devloop \
-DEVLOOP_WEATHER_REPO=/absolute/path/to/weather-repository \
-  bash test/run-integration.sh weather-live
-```
-
-The optional weather runner selects `offline` or `live` mode only for the
-explicit target. `weather-offline` checks engine location/capability files and
-the selected existing product; its non-executing probe is not a test of a live
-host connection. It writes `tests/test_weather_contract.py` after preflight.
-
-**Use a disposable project for `weather-live`.** It deletes/recreates
-`common-js/weather.gs` and `appsscript.json`, overwrites `README.md` and the
-generated test, and commits its tests-only baseline in the selected project
-before invoking the live engine. It is a specialized experiment, not a generic
-deployment test. Missing prerequisites fail; they are never a passing skip.
 Do not put secret values in commands, CI configuration, output, or fixtures.
 
 ## Evidence boundaries and CI
@@ -436,7 +413,7 @@ Self-contained mocked install tests establish installer behavior only. They
 do not provide an actual host runtime, engine availability, live-host execution,
 or certification. A green hermetic aggregate has the same boundary. Hermes is
 not part of any test tier: no suite installs into or asserts on Hermes, even
-though `install.sh` and DevLoop still support it.
+though `install.sh` still supports it.
 
 CI selects its tier with `test/ci_policy.py`, as described at the top of this
 guide: pull requests and ordinary `main` pushes run `quick`; a release commit
@@ -517,9 +494,6 @@ The core group runs `marketplace-package`, `installed-skill-invocation` and
 `prompt-marketplace-contract`. These check all generated native payloads, execute
 bundled helpers from copied read-only package trees (including paths with spaces),
 and check prompt dependency/capability contracts. They do not run model benchmarks.
-DevLoop's core suite separately proves that missing-engine invocation cannot
-bootstrap; checksum/extraction/replacement tests target the repository-only
-operator setup helper.
 
 `installed-skill-invocation` also runs Plan Dispatcher
 (`plugins/skill-craft/skills/plan-dispatcher`) from a read-only copy. The

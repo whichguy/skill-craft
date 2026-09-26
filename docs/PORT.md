@@ -25,15 +25,12 @@
 | improve-system-prompt | review-bench | Wave 2 (Sheets Chat specific) |
 | review-fix-bench | review-bench | Wave 2 |
 | review-coverage | (native) | Post-ship residual×2 directive + CLI |
-| devloop | (native) | **Default DevLoop** — thin engine shim (resolve/exec; setup is operator-only); bare “devloop” routes here |
-| evidence-gates | (native) | **Demoted** optional offline freeze/prove/build-on-host/stop evidence gates — not DevLoop |
 
 **Retired:** `derive-questions` and `question-bench` (review-bench, Wave 2) were
 removed from skill-craft together with the question-ID review-plan contract they
-served.
-
-Host overlay compose (before / during / after DevLoop) and the practice list:
-[LOOP-ENGINEERING.md](LOOP-ENGINEERING.md).
+served. `devloop` (the autonomous-engine shim) and its offline companion
+`evidence-gates` were archived on 2026-09-26 (owner decision); their source,
+engine and local projects are in `~/src-archive/2026-09-26/devloop/`.
 
 **External (not monorepo):** [lennox-s40](https://github.com/whichguy/lennox-s40) — local LAN thermostat control; `catalog/external-plugins.json` pins the standalone repo.
 

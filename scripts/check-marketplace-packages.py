@@ -39,8 +39,6 @@ CODEX_INTERFACE_TEXT_FIELDS = (
 # use the conservative recognized-script fallback below.
 NATIVE_SCRIPT_ENTRYPOINTS: dict[str, dict[str, str]] = {
     "ask-agent": {"scripts/ask_agent_workspace.py": "python3"},
-    "devloop": {"scripts/devloop-run": "bash"},
-    "evidence-gates": {"scripts/evidence-gates": "python3"},
     "plan-dispatcher": {"scripts/dispatch.js": "node"},
     "improve": {"runtime/until-loop/scripts/until_loop_ephemeral.py": "python3"},
     "review-coverage": {"scripts/review-coverage": "python3"},

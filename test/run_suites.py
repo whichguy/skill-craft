@@ -29,7 +29,6 @@ TOP_LEVEL_TEST_ALLOWLIST = frozenset({
     # Explicit host-dependent checks are invoked through test/run-integration.sh.
     "test/advisors.test.sh",
     "test/cursor-imported-skills.test.sh",
-    "test/devloop-gas-weather-native.test.sh",
     "test/review-plan.test.sh",
 })
 _TEST_SUFFIXES = (".test.py", ".test.sh", ".test.js", ".test.cjs")

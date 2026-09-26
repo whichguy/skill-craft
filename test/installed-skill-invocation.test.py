@@ -28,7 +28,6 @@ PLUGINS = package_build.plugins()
 LEAVES = (
     "review-coverage",
     "skill-interop",
-    "evidence-gates",
     "shiploop",
     "shiploop-e2e-audit",
     "improve",
@@ -248,11 +247,6 @@ class InstalledSkillInvocationTest(unittest.TestCase):
                 'MARKETPLACE_RUN="$SKILL_ROOT/scripts/marketplace-run.sh"',
                 "MARKETPLACE_INSTALL_SH",
             ),
-            "evidence-gates": (
-                "selected, loaded",
-                'CLI="$SKILL_ROOT/scripts/evidence-gates"',
-                "rather than invoking a same-named program from",
-            ),
             "shiploop": (
                 "selected, loaded",
                 'CLI="$SKILL_ROOT/scripts/shiploop"',
@@ -381,30 +375,6 @@ two consecutive clean residual rounds with green suite
         )
         self.assert_ok(explicit_checkout, "marketplace-run explicit checkout installer")
         self.assertIn(str(installer), explicit_checkout.stdout)
-        self.assert_no_bytecode()
-
-    def test_evidence_gates_self_check_from_read_only_copy(self) -> None:
-        package = self.package("evidence-gates")
-        cli = package / "scripts/evidence-gates"
-        self_check = self.invoke_python(cli, "self-check")
-        self.assert_ok(self_check, "evidence-gates self-check")
-        payload = json.loads(self_check.stdout)
-        self.assertTrue(payload["ok"])
-        self.assertEqual(payload["mode"], "native")
-        self.assertEqual(payload["package_root"], str(package.resolve()))
-
-        charter = self.consumer / "charter.json"
-        charter.write_text('{"criteria": []}\n', encoding="utf-8")
-        package_write = self.invoke_python(
-            cli,
-            "freeze",
-            "--charter",
-            str(charter),
-            "--repo",
-            str(package),
-        )
-        self.assertEqual(package_write.returncode, 2, package_write.stderr)
-        self.assertIn("package_root_write", package_write.stderr)
         self.assert_no_bytecode()
 
     def test_shiploop_graph_and_recovery_from_read_only_copy(self) -> None:
