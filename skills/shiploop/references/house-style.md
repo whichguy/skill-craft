@@ -92,8 +92,13 @@ instructions: recheck a rule before relying on it.
 ## Write the match contract
 
 At step planning, before any product edit, write a compact **match contract**
-into the work item's `context`, so that the implement and test packets carry
-it and a fresh context can follow it.
+into the item's accepted step plan: the plan note its result registers in
+`evidence_refs`, named in its `summary`. Every later stage that builds or
+checks the item (test authoring, implementation, static checks, verification,
+documentation) lists that step-plan result under **Read first**, so a fresh
+context finds the contract without this conversation. Work-item `context` is
+written only at plan and carry-forward; a plan that already knows an item's
+exemplars may name them there, and step planning confirms or replaces them.
 
 1. **Name the artifacts.** List the kinds of file the item adds or changes:
    for example a command, handler, module, migration, test, fixture or
@@ -121,8 +126,9 @@ and the verifier, not a copy of the house-style record.
 
 ## Match while building
 
-At test authoring and implementation, reopen the match contract and its
-exemplars before editing; do not work from a remembered summary.
+At test authoring and implementation, reopen the match contract in the item's
+step-plan result and its exemplars before editing; do not work from a
+remembered summary.
 
 - Write new code and tests in the exemplars' shape and vocabulary.
 - After a first draft, search again using the draft's own names and calls.

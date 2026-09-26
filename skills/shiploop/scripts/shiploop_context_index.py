@@ -36,7 +36,7 @@ STAGE_READS: dict[str, tuple[str, ...]] = {
     "step-plan": ("spec", "test-strategy", "plan", "prepare"),
     "test-spec": ("spec", "test-strategy", "plan", "item:step-plan"),
     "baseline": ("test-strategy", "item:step-plan", "item:test-spec"),
-    "test-author": ("test-strategy", "item:test-spec"),
+    "test-author": ("test-strategy", "item:step-plan", "item:test-spec"),
     "test-red": ("item:test-spec", "item:test-author"),
     "implement": ("spec", "plan", "item:step-plan", "item:test-spec"),
     "test-green": ("item:test-spec", "item:implement"),
