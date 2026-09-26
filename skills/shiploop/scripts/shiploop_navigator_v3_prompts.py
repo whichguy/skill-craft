@@ -231,6 +231,7 @@ STAGE_REFERENCES: dict[str, tuple[tuple[str, str], ...]] = {
         ("Delivery authority guidance", "delivery-authority.md#ask-at-the-first-concrete-boundary"),
     ),
     "discovery": (
+        ("Delivery authority guidance", "delivery-authority.md#ask-at-the-first-concrete-boundary"),
         ("Connected knowledge discovery", "project-knowledge.md#connected-knowledge-discovery"),
         ("Discovery evidence handoff", "project-knowledge.md#discovery-evidence-handoff"),
         ("Discovery investigation guidance", "research-loop.md#plan-the-investigation"),
@@ -268,6 +269,7 @@ STAGE_REFERENCES: dict[str, tuple[tuple[str, str], ...]] = {
         ("State and data assessment", "requirements-definition.md#state-and-data-change-assessment"),
     ),
     "plan": (
+        ("Delivery authority guidance", "delivery-authority.md#ask-at-the-first-concrete-boundary"),
         ("Service discovery guidance", "service-discovery.md#development-handoff"),
         ("Current-system baseline guide", "current-system-baseline.md#planning-and-review-handoff"),
         ("Dependency-planning guidance", "backchain-planning.md#dependency-audit"),

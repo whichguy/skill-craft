@@ -9,7 +9,27 @@ does not itself grant a write.
 
 ## Ask at the first concrete boundary
 
-At discovery, after the consumer, target/account, and necessary operation are
+**The request is the grant when it names the target.** When the user's request
+asks for the result to be delivered somewhere ("deploy it to my Salesforce
+developer org", "publish it to my staging site"), that request authorizes this
+run to make the non-destructive delivery of the project's own changes to that
+target. At discovery, resolve the named target to exactly one concrete
+target/account (for example the connected org behind the default alias) and
+record the resolved grant in the discovery evidence: target, account ID, the
+project's own changes only, no destructive changes to unrelated resources, this
+run only. Do not ask the user to confirm it, do not plan a work item to record it,
+and do not block on it later.
+
+Ask only when the request does not settle it: the request names no delivery
+target; discovery finds no matching target or more than one; the target is a
+production or shared environment the request did not name; or the operation is
+destructive beyond the project's own changes. Then ask once, at intake or
+discovery, together with any other open question, and keep going: independent
+work continues and only the dependent write waits. Never make recording an
+approval a work item, and never stop mid-run to ask for authority the request
+already gave.
+
+When the request does not settle it: at discovery, after the consumer, target/account, and necessary operation are
 concrete enough to name, check for an applicable explicit grant. If the
 operation is necessary and no such grant is available, ask promptly; do not
 defer the question solely because `release` is later in the graph.

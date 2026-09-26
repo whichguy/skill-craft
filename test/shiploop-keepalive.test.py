@@ -163,6 +163,15 @@ class HookDecisionTests(KeepaliveTestCase):
         self.assertIsNone(self.hook("observe", "cursor", self.payload("grok", "observe")))
         self.assertEqual(list((self.temp / "state").glob("bindings/*")), [])
 
+    def test_a_shiploop_command_binds_even_when_its_output_was_filtered(self) -> None:
+        payload = {"hookEventName": "PostToolUse", "sessionId": "filtered-1",
+                   "toolInput": {"command": f"python3 shiploop next --run-dir={self.run_dir} | tail -5"},
+                   "toolResult": "=== ShipLoop status === (filtered, no marker)"}
+        self.hook("observe", "grok", payload)
+        binding = keepalive.load_binding("grok", "filtered-1")
+        self.assertIsNotNone(binding)
+        self.assertEqual(binding["run_id"], self.status()["run_id"])
+
     def test_marker_copied_from_elsewhere_does_not_bind(self) -> None:
         payload = self.payload("claude", "observe")
         payload["tool_response"]["stdout"] = f"SHIPLOOP-RUN run=nav-0000 rev=0 dir={self.run_dir}"

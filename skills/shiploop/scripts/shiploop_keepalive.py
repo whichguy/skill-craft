@@ -228,6 +228,19 @@ def _strings(value: Any) -> Iterator[str]:
             yield from _strings(item)
 
 
+# A ShipLoop command in the tool input names its run even when the model
+# filtered the output and the packet's marker never reached the hook.
+COMMAND_RUN_DIR = re.compile(r"\bshiploop\b[^\n|;&]*?--run-dir[= ]['\"]?([^\s'\"|;&]+)")
+
+
+def command_run_dir(payload: Any) -> str | None:
+    found = None
+    for text in _strings(payload):
+        for match in COMMAND_RUN_DIR.finditer(text):
+            found = match[1]
+    return found
+
+
 def last_marker(payload: Any) -> dict | None:
     found = None
     for text in _strings(payload):
@@ -254,6 +267,12 @@ def observe(host: str, payload: Mapping[str, Any]) -> dict | None:
         # A subagent works for its parent; it never owns the parent's run.
         return None
     marker = last_marker(payload)
+    if marker is None:
+        run_dir = command_run_dir(payload)
+        if run_dir is not None:
+            status = run_status(run_dir)
+            if not status.get("error") and status.get("run_id"):
+                marker = {"run_id": status["run_id"], "run_dir": status["run_dir"]}
     if marker is None:
         existing = load_binding(host, session)
         if existing is not None:
