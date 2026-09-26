@@ -119,7 +119,10 @@ A host ends its turn when the model decides to, even while the run has work it
 can do. Keepalive hooks ask `shiploop hook-status` at each turn end and, while the
 run is active and progressing, refuse the stop and name the run's next command.
 A marketplace install of the ShipLoop plugin brings the hooks with it for Claude
-Code, Grok, Codex and Cursor. A skill-directory install adds them with
+Code, Codex (approve them once when Codex asks) and Cursor. Grok never runs
+plugin hooks, so ShipLoop writes `~/.grok/hooks/shiploop-keepalive.json` itself
+the first time it runs under Grok; new Grok sessions load it. A skill-directory
+install adds them with
 `scripts/shiploop-hook install --host HOST` (the only route for OpenCode);
 `install.sh` never writes host hook config.
 

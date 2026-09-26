@@ -313,6 +313,53 @@ class InstallTests(KeepaliveTestCase):
         self.assertEqual(keepalive.status("claude"), "absent")
 
 
+class SelfInstallTests(KeepaliveTestCase):
+    """Grok never runs plugin hooks, so ShipLoop installs its global hooks there itself."""
+
+    GROK = {"GROK_AGENT": "1"}
+
+    def grok_file(self) -> Path:
+        return self.temp / "home" / ".grok" / "hooks" / "shiploop-keepalive.json"
+
+    def test_first_command_under_grok_installs_the_hooks_once(self) -> None:
+        notice = keepalive.ensure_hooks(self.GROK)
+        self.assertIn("installed the grok hooks", notice)
+        self.assertEqual(keepalive.status("grok"), "installed")
+        self.assertIsNone(keepalive.ensure_hooks(self.GROK))
+
+    def test_other_hosts_and_a_disabled_keepalive_write_nothing(self) -> None:
+        self.assertIsNone(keepalive.ensure_hooks({}))
+        with mock.patch.dict(os.environ, {"SHIPLOOP_KEEPALIVE": "off"}):
+            self.assertIsNone(keepalive.ensure_hooks(self.GROK))
+        self.assertFalse(self.grok_file().exists())
+        self.assertEqual(keepalive.status("claude"), "absent")
+
+    def test_a_working_copy_is_kept_and_a_missing_one_repaired(self) -> None:
+        keepalive.install("grok")
+        installed = self.grok_file().read_text()
+        other = self.temp / "other-copy" / "shiploop-hook"
+        other.parent.mkdir()
+        other.write_text("#!/bin/sh\n")
+        moved = installed.replace(str(SCRIPTS / "shiploop-hook"), str(other))
+        self.grok_file().write_text(moved)
+        self.assertIsNone(keepalive.ensure_hooks(self.GROK))
+        self.assertEqual(self.grok_file().read_text(), moved)
+        other.unlink()
+        self.assertIn("updated the grok hooks", keepalive.ensure_hooks(self.GROK))
+        self.assertEqual(keepalive.status("grok"), "installed")
+
+    def test_the_cli_reports_the_install_once_on_stderr(self) -> None:
+        env = {**os.environ, **self.GROK}
+        argv = [sys.executable, str(SCRIPTS / "shiploop"), "next", "--run-dir", str(self.run_dir)]
+        first = subprocess.run(argv, capture_output=True, text=True, env=env, check=False)
+        self.assertEqual(first.returncode, 0, first.stderr)
+        self.assertIn("ShipLoop keepalive: installed the grok hooks", first.stderr)
+        self.assertNotIn("ShipLoop keepalive:", first.stdout)
+        second = subprocess.run(argv, capture_output=True, text=True, env=env, check=False)
+        self.assertNotIn("ShipLoop keepalive:", second.stderr)
+        self.assertEqual(first.stdout, second.stdout)
+
+
 class MarketplacePackageTests(KeepaliveTestCase):
     """Installing the ShipLoop plugin from a marketplace brings the keepalive hooks."""
 
