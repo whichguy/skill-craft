@@ -4,6 +4,63 @@ Written by scripts/release.py.
 
 ## 2026-09-26
 
+### skill-craft 1.1.0
+
+- Skills: improve 0.3.0-rc.7, shiploop 0.34.0
+
+### improve 0.3.0-rc.7
+
+- The bundled Until Loop runtime is 0.7.0: `start --receipt <absolute file>` makes the runtime write every packet it returns to that file (atomically, mode 0600) before printing it, including the terminal packet, which it writes before deleting its state. In a ShipLoop subcall, start the bound runtime with the printed host receipt path as `--receipt`; ShipLoop imports only a packet the runtime wrote there.
+
+### shiploop 0.34.0
+
+- A completion criterion is now confirmed only by a command ShipLoop runs and sees pass. A done
+  `step-plan` lists its `criteria` and names, in each test command's `criteria`, the ones that command
+  confirms; an uncovered criterion is refused. A new `check` command kind (judged by exit code) covers
+  content with no test runner, such as a README that must document a flag. `verify` reruns every
+  recorded command. `system-test-author` must record `system_commands` and `release-plan`
+  `consumer_checks` (or an empty list with the reason); ShipLoop runs them when `system-test` and
+  `release-verify` report done and refuses unless each passes.
+- Every packet now tells the host never to end its turn while a ShipLoop command is still running: keep the command in the foreground, or wait for it in the same turn when the host backgrounds it. A test-stage `complete` reruns the recorded tests and can take minutes, and a headless Grok session ends when the turn ends, which lost a callback in a live run. The keepalive self-install notice now says the current session is not protected (headless sessions never are).
+- `next` always prints the full packet. It is the recovery command, and the script cannot know whether the host kept the run rules through a clear, a compaction or a fresh `shiploop-drive` session, so recovery no longer returns the short form with the original request and delegation rule behind a pointer to `rules.md`. `next --full` is removed. Every producer packet now prints its result path, result template and allowed outcomes directly under the callback line instead of at the end, so a host that keeps only the head of long output still has the contract the callback checks; the tail keeps the callback, pause and halt lines.
+- Every producer packet now opens with the stage's goal, the conditions that confirm it and its fixed
+  considerations for developing, testing, delivering and the assistive tools, right after the
+  callback. Guidance that cannot apply to a stage is no longer printed there: the work-item paragraph
+  appears only at plan and carry-forward, interaction design only from discovery to step-plan, the
+  Code craft rubric only where code or tests are written or reviewed, and "the Improve child" only at
+  stages that have one. implement and release no longer mention an Improve checkpoint they do not
+  have. Packets are about 3% shorter overall.
+- A done `step-plan` must list `steps: [{"id": "S1", "task": "..."}]`, every implementation step in the order to do them (one step is fine). On the inline route ShipLoop then issues one `implement` packet per step: each names its step, the steps already accepted and the ones still to come, and the callback after the last step moves to the test stages. Which steps are done is read from the run's history, so recovery after a lost context reprints the current step. A revised step plan starts its steps over. The ask-agent route is unchanged: a chain runs every step inside its one `implement` action.
+- There is one packet form. `next --brief`, the short repeat packet, the per-run `rules.md` and `last-packet.json` display records and the Claude `SessionStart` compaction hook (`shiploop-keepalive-compacted`) are removed: every packet, including every `next`, prints in full, so nothing depends on what a host kept from an earlier packet. The Improve change gate's check that a one-pass review really left the candidate unchanged now runs; it previously failed silently and never refused.
+- A context lost in the middle of a stage can now pick up where it left off. Every packet names the
+  action's pass log (`notes/<action>.md`), where each pass records what it checked and what is left,
+  and the run context index gains an "In progress" section (the action, its pass log, loop packets,
+  ShipLoop test runs so far and revisions used) and a "Script records" section listing ShipLoop's own
+  test runs, loop packets, lint records and Improve receipts. A result that cites a local file that
+  does not exist is refused. `verify` now reads the item's implement, test-green, regression and
+  static-checks results, and `handoff` reads product-acceptance and operations.
+- A fixable problem is no longer reported as `blocked`. When a work item's goal proves wrong or
+  unachievable while it is being built (test-spec through integration-verify), the stage reports
+  the new outcome `revise`: the item goes back to `step-plan` with that result as evidence, at most
+  twice per item, and then the user decides. A script-run test or quality loop that uses all its
+  iterations, or three refused test runs, now routes to `revise`; a loop cancelled before its limit
+  is refused, because a user's stop is `pause`. `blocked` stays for what only the user, an access
+  grant or an outside dependency can resolve. Saved runs from earlier versions are refused; start a
+  fresh run.
+- Until Loop packets no longer depend on the host copying stdout before a context loss. The test-loop and quality-loop start commands pass `--receipt tests|quality/<action>-terminal.json`, and Improve children start with `--receipt` set to the printed Child latest packet receipt, so the bundled runtime (Until Loop 0.7.0) writes every packet there itself and the terminal packet before it deletes its state. ShipLoop now accepts a loop or Improve terminal packet only when it is a complete runtime packet whose `receipt` names that exact path and whose state file is gone; a hand-written object copied from the contract, a packet from a run started without the printed `--receipt`, or a copy of a still-live run is refused. The complete-packet Improve import now also requires the child's state file to be deleted, as the stopped import already did.
+- ShipLoop's 34 stages are now described in one table (`scripts/shiploop_stage_spec.py`): each
+  stage's goal, the conditions that confirm it, and its fixed considerations for developing,
+  testing, delivering and the assistive tools (linters, test runners) the script runs around it.
+  The stage sets that decide Improve reviews, lint gates, test runs, prompt blocks and "Read first"
+  lists are derived from that table. Packets and run behaviour are unchanged.
+- Keepalive now lets a turn end after 14 continuations with no accepted result (twice the per-action test-run refusal budget), with a notice to submit `blocked` or `revise`; a refused callback still counts as progress until then, and an accepted result starts the count again. When `handoff` is refused for want of a current workspace return, the refusal now says whether no return was made or the recorded one is stale (for example after ShipLoop's own `docs/shiploop/` commit at `release-verify`) and prints the exact `workspace plan-return` and `workspace return` commands. `system_commands` and `consumer_checks` can no longer name `criteria`, which nothing checked.
+- ShipLoop's quality and test loops no longer have an iteration limit: they run until their exit
+  condition holds. The loop contracts no longer tell the model to cancel at iteration 3 (quality) or
+  4 (tests), a complete loop is `done` however many iterations it took, and a cancelled loop is always
+  refused (a user's stop is the packet's `pause` command). A loop that stops blocked reports `blocked`,
+  or `revise` when the item's goal proved wrong as planned. ShipLoop's own test reruns now allow 7
+  refused runs before `done` is no longer accepted (was 3).
+
 ### skill-craft 1.0.1
 
 - Skills: backchain 0.6.1, review-coverage 0.3.3

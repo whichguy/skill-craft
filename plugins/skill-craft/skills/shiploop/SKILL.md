@@ -5,7 +5,7 @@ description: >-
   script's current action packet, and submit its exact completion call until
   the script reports completion with an HTML achievement report. Use when the
   user says shiploop, ship the project, or requests a durable delivery loop.
-version: 0.33.1
+version: 0.34.0
 allowed-tools: all
 license: MIT
 platforms:
@@ -363,11 +363,12 @@ runs the checks (later ones rerun them only after an edit); each iteration
 lists the changed public entry points, traces each one with a
 valid, a boundary and an invalid input, reviews the change against the *Code
 craft* rubric and fixes what it finds. The Until Loop script ends the loop
-after an iteration with only trivial findings; a third iteration that still
-finds a material issue stops it. The stage accepts only `done` or `blocked`:
-`done` needs the saved terminal packet `quality/<action>-terminal.json`, which
-ShipLoop checks against the contract it rebuilds from run state (not the file on
-disk) before advancing. The end-of-work Improve
+after an iteration with only trivial findings; there is no iteration limit. The stage accepts only `done`, `revise` or
+`blocked` (see [Revise](#revise-back-to-the-step-plan)): `done` needs the terminal
+packet `quality/<action>-terminal.json`, which the runtime writes itself (the
+packet's start command passes `--receipt`). ShipLoop accepts only a complete
+runtime packet written there by a finished run and checks it against the contract
+it rebuilds from run state (not the file on disk) before advancing. The end-of-work Improve
 reviews every item's change against the same rubric.
 
 `--lint fix|report|off` at `init` or `workspace start` selects the option; a
@@ -393,19 +394,23 @@ pass).
 `"test_commands": [{"command": "<shell command>", "suite": "focused" | "regression", "ids": ["TC-9"], "min_tests": 1}]`
 (`ids` and `min_tests` optional).
 It also records `"paths"`: the repository-relative files or globs the item will
-change. ShipLoop refuses a done `step-plan` without either; an empty list needs
+change, and `"steps": [{"id": "S1", "task": "..."}]`: every implementation step in
+the order to do them (one step is fine). ShipLoop refuses a done `step-plan`
+without any of these; an empty command list needs
 `test_commands_na` with the reason. `test-green` loops on the focused commands
 and `regression` on every command, each on the Until Loop bound to the selected
 Improve card:
 
 1. On the `complete` that enters the stage, ShipLoop writes the loop contract
    `tests/<action>-contract.json`, whose work embeds the exact command list.
-2. The packet prints the start command, the packet paths and the list. Each
+2. The packet prints the start command (with `--receipt`, so the runtime
+   writes every packet, the terminal one last, to `tests/<action>-terminal.json`)
+   and the command list. Each
    iteration runs every command, finds the cause of each failure, fixes the
    product code (never a check to get green) and reruns the whole list after
    its last edit. The loop ends after an iteration in which every command
    exited 0 and nothing changed; iteration 4 that still fails stops it.
-3. The stage accepts only `done` or `blocked`. `done` needs the saved terminal
+3. The stage accepts only `done`, `revise` or `blocked`. `done` needs the saved terminal
    packet `tests/<action>-terminal.json`, checked against the contract rebuilt
    from run state. Then ShipLoop runs every listed command itself with
    `/bin/sh -c` from the repository (at most 10 minutes each, 30 per stage),
@@ -442,8 +447,9 @@ Every stage after the test loops that can edit code reruns them too: on `done`
 at `test-refine`, `static-checks` (after its quality-loop check) and
 `integration-verify`, ShipLoop runs every recorded command and refuses unless
 each passes. There is no loop at those stages; the packet lists the commands.
-Each action allows 3 refused runs; after that ShipLoop accepts only `blocked`,
-so a failing command goes back to plan revision instead of an endless retry.
+Each action allows 7 refused runs; after that ShipLoop no longer accepts `done`,
+so a failing command goes back to the step plan with `revise` instead of an
+endless retry.
 
 A done `release-plan` records `consumer_entry`: how a person reaches the result
 and the repository files that create that entry. ShipLoop refuses the release plan
@@ -456,6 +462,19 @@ These are commands the step plan recorded; ShipLoop runs them outside the host's
 permission prompts, and the step plan's Improve review is their check. With an
 empty list the stage has no loop and accepts `done` with the recorded reason.
 
+### Confirmation is a passing command
+
+A passing test that ShipLoop runs is the only confirmation of a completion
+criterion. `step-plan` lists the item's `criteria` and names, in each test
+command's `criteria`, the ones that command confirms; ShipLoop refuses a step plan
+with an uncovered criterion. Content with no test runner gets a `check` command
+(suite `check`, judged by exit code), for example a `grep` that a README documents a
+flag. `verify` reruns every recorded command. `system-test-author` records
+`system_commands` and `release-plan` records `consumer_checks`; ShipLoop runs them
+when `system-test` and `release-verify` report done and refuses unless each passes.
+An empty list needs its `_na` reason. The run records under `tests/` are the
+evidence; a result's summary is not.
+
 ### Tests pass or the step stops
 
 `implement`, `test-refine` and `integration-verify` carry the same loop in their
@@ -463,9 +482,24 @@ prompts: run the checks; when one fails, diagnose it, fix the product code and
 rerun; change a check only for an independent reason that the check itself is
 wrong. Only a final full pass after the last edit counts. The step ends on
 exactly one of: every check passes (`done`); a check proven unachievable
-(`blocked`, for plan revision); or the same check still failing after 3 genuine
-fix attempts (`blocked`). At these stages it is prompt duty; `test-green` and
+(`revise`); or the same check still failing after 3 genuine fix attempts
+(`revise`). A check that needs a tool, access or authority that is absent ends
+`blocked` with `blocked_by`. At these stages it is prompt duty; `test-green` and
 `regression` run the script-enforced [test loop](#test-loop).
+
+### Revise: back to the step plan
+
+A fixable problem is never `blocked`. When a work item's goal proves wrong or
+unachievable while it is being built, from `test-spec` through
+`integration-verify`, the stage reports `revise`: the item goes back to
+`step-plan` with that result as evidence, and its earlier results from the step
+plan on stop counting as current. Each work item may revise twice; after that
+ShipLoop refuses `revise` and the stage reports `blocked` with `blocked_by: user`
+and a question. A script-run loop has no iteration limit: it runs until its
+exit condition holds. One that stops blocked because the item's goal proved wrong
+reports `revise`; a cancelled loop is refused, because a user's stop is the
+packet's `pause` command. The per-item
+count is kept in `state.md` `revisions`.
 
 ## Durable handoff
 
@@ -520,6 +554,12 @@ the host handoff, or force any host tool call.
 
 ## Follow the current packet
 
+Every producer packet opens, right after its callback, with the stage's **Goal**,
+its **Done when** conditions and its fixed **Considerations** (develop, test,
+deploy, tools), all from the stage table in `scripts/shiploop_stage_spec.py`.
+Work toward that goal and keep going until every condition holds; a passing
+test that ShipLoop ran is the evidence.
+
 Every packet names the run's **context index** (`context-index.md`): the request,
 the accepted planning basis, each work item's results and their notes. Active
 packets add **Results this stage builds on**: references to the accepted results
@@ -528,15 +568,12 @@ context, use the index when you need the global picture, and report a conflict
 with an accepted decision instead of silently choosing. Packets point at material
 rather than asking you to reread it at every stage.
 
-A repeated `next` for the same action prints a short packet: status, callback,
-keepalive marker, what changed since it was last printed, the stage references
-and the full stage prompt. The run-level rules (locators, recovery, delegation
-rule, original request) are then a reference to `rules.md`, which ShipLoop keeps
-current; open it when they are not in your context, for example after
-compaction. `next --full` prints everything. On Claude, a `SessionStart` hook with the
-`compact` matcher clears the record after the host compacts, so the next packet
-is full. A new action, a status change or a
-changed rules block prints the full packet.
+Every packet is the full packet, and `next` reprints it. It is the recovery
+command, and the script cannot know what survived a clear or compaction, so no
+packet ever refers back to an earlier one. Every producer packet prints its
+result path, result template and allowed outcomes directly under the callback
+line, so a host that keeps only the head of long output still has the contract
+the callback checks.
 
 Each packet carries a script-rendered **status block** (`=== ShipLoop status ===`):
 where the run is, what just finished, what comes next and what is complete.
@@ -582,7 +619,8 @@ question about the loop is not a stop: answer it and continue the packet.
    genuine fix attempts ([step exit criteria](references/parallel-chain.md#step-exit-criteria)).
    At `test-green` and `regression`, run the packet's [test loop](#test-loop),
    and at `static-checks` its [quality loop](#static-checks-quality-loop), on
-   the bound Until Loop, and save each terminal packet where the packet says.
+   the bound Until Loop with the printed start command; its `--receipt` makes
+   the runtime keep the terminal packet, so do not write that file yourself.
    A ShipLoop lint block printed after a `static-checks` or `verify` callback is
    supporting output, not exit-criteria evidence, and never replaces the checks
    you select ([script-owned lint](#script-owned-lint)).
@@ -625,15 +663,16 @@ question about the loop is not a stop: answer it and continue the packet.
    imitate Improve's algorithm in ShipLoop, substitute a hand-written review loop
    for the selected skill, create
    a child phase graph/counter, or advance the parent while the child is active.
-   With the current ephemeral Until Loop, save each exact returned JSON packet at
-   the parent packet's per-action receipt path. The one temporary `state_file`
-   owns the child's live counters; the saved packet retains its recovery command
-   and final completion evidence. Preserve parent identity, scoped authority and
+   Start the ephemeral Until Loop with `--receipt` set to the parent packet's
+   per-action receipt path: the runtime writes every packet there before printing
+   it. The one temporary `state_file` owns the child's live counters; the receipt
+   retains its recovery command and final completion evidence, and ShipLoop
+   imports only a packet the runtime wrote there. Preserve parent identity, scoped authority and
    return locators in frozen child `context`, and replace `handoff` on each `done`.
    Execute one work iteration, submit its truthful classification and assessments,
-   then obey the returned instruction. A complete child deletes its state file,
-   so save its terminal packet before writing the completion evidence and running
-   the parent return and import. On cold recovery,
+   then obey the returned instruction. A complete child deletes its state file
+   after the runtime has written its terminal packet to the receipt; then write
+   the completion evidence and run the parent return and import. On cold recovery,
    read the receipt and use its exact `next_argv` for an active child. Missing
    state/output is incomplete, never evidence of success or permission to restart.
    Only the ephemeral runtime is supported; a card or saved binding that names a
@@ -735,13 +774,14 @@ incomplete rather than creating a hidden success edge.
 ## Parallel implementation chains
 
 Implementation chains are the opt-in `delegation: ask-agent` route. Under
-`delegation: inline`, `step-plan` records a multi-step plan as ordered steps with
-direct dependencies, readiness and completion criteria, and checks, without a
-Plan Dispatcher execution graph; its actual Improve loop reviews them. Within the
-current `implement` action, execute the reviewed steps directly, one at a
-time in dependency order, in the execution checkout in this conversation: no
-chain binding, Ask Agent or native workers, and no Plan Dispatcher. Only verified
-steps are done. `chain bind` refuses a fresh binding on an inline run before any
+`delegation: inline`, `step-plan` records its `steps` in order, without a Plan
+Dispatcher execution graph; its actual Improve loop reviews them. ShipLoop then
+issues one `implement` packet per step, in that order, in the execution checkout
+in this conversation: each packet names its step, the steps already accepted and
+the ones still to come, and the callback after the last step moves to the test
+stages. No chain binding, Ask Agent or native workers, and no Plan Dispatcher.
+Which steps are done is read from the run's history, so recovery reprints the
+current step. `chain bind` refuses a fresh binding on an inline run before any
 side effect; a replay of an existing binding keeps its recorded mode. To use a
 chain, first switch the run with `delegation --set ask-agent`.
 

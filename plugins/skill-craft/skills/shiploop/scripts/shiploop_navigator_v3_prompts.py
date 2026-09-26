@@ -8,6 +8,8 @@ Neither prompt contains a copied Improve algorithm or a second review counter.
 
 from __future__ import annotations
 
+import shiploop_stage_spec as stage_spec
+
 
 SERIAL_INNER_CONTEXT = """\
 Clear and then execute the prompt.
@@ -68,10 +70,7 @@ DELEGATIONS = (INLINE, ASK_AGENT)
 # the carry-forward that leaves no work item pending (the navigator's pending-queue
 # check).  Planning stages write the contracts later work is built on: a sentence,
 # example or expected result there can look done and still be wrong.
-PLANNING_REVIEW_STAGES = frozenset({
-    "spec", "test-strategy", "plan", "step-plan", "test-spec",
-    "system-test-author", "release-plan",
-})
+PLANNING_REVIEW_STAGES = stage_spec.with_improve("always")
 
 INLINE_STAGE_CONTEXT = """\
 Continue in this context and execute the prompt.
@@ -110,89 +109,16 @@ def inner_context(delegation: str, *, improve: bool) -> str:
     return INLINE_IMPROVE_CONTEXT if improve else INLINE_STAGE_CONTEXT
 
 
-PRELUDE = (
-    "intake",
-    "discovery",
-    "research",
-    "spec",
-    "test-strategy",
-    "plan",
-    "prepare",
-)
-
-INNER = (
-    "select-work",
-    "step-plan",
-    "test-spec",
-    "baseline",
-    "test-author",
-    "test-red",
-    "implement",
-    "test-green",
-    "test-refine",
-    "regression",
-    "document",
-    "skill-assess",
-    "skill-validate",
-    "static-checks",
-    "verify",
-    "integrate",
-    "integration-verify",
-    "carry-forward",
-)
-
-OUTER = (
-    "system-test-author",
-    "system-test",
-    "product-acceptance",
-    "release-plan",
-    "release-check",
-    "release",
-    "release-verify",
-    "operations",
-    "handoff",
-)
+# The graph and each stage's fixed considerations live in shiploop_stage_spec.
+PRELUDE = stage_spec.PRELUDE
+INNER = stage_spec.INNER
+OUTER = stage_spec.OUTER
 
 STAGES = PRELUDE + INNER + OUTER
 
 # User-facing status display only: one plain purpose per stage and the INNER
 # stages grouped for the item map.  Neither is a prompt, graph, or state.
-STAGE_PURPOSE = {
-    "intake": "confirm the request, boundaries and open questions",
-    "discovery": "inspect the current repository, environment and baseline tests",
-    "research": "resolve the unknowns that matter with evidence",
-    "spec": "define required behavior and acceptance criteria",
-    "test-strategy": "map requirements to the checks that will prove them",
-    "plan": "build the dependency plan and the work-item queue",
-    "prepare": "ready the development and test environment",
-    "select-work": "confirm this work item is still the right next item",
-    "step-plan": "plan this item's concrete changes and checks",
-    "test-spec": "specify the tests this item needs before code changes",
-    "baseline": "record the relevant checks before any change",
-    "test-author": "write the tests the item's test spec calls for",
-    "test-red": "run the new tests and confirm they fail for the right reason",
-    "implement": "make the planned change",
-    "test-green": "run the focused tests and confirm they pass",
-    "test-refine": "tighten the tests against the actual implementation",
-    "regression": "rerun the retained suites for regressions",
-    "document": "update the documentation this change affects",
-    "skill-assess": "decide whether a reusable skill or helper change is warranted",
-    "skill-validate": "validate any skill or helper change against real inputs",
-    "static-checks": "run formatting, lint, type and build checks",
-    "verify": "verify the item against its acceptance criteria",
-    "integrate": "integrate the candidate into the working branch",
-    "integration-verify": "verify the integrated result and shared interfaces",
-    "carry-forward": "record lessons and revise the remaining queue",
-    "system-test-author": "prepare end-to-end and system tests",
-    "system-test": "run end-to-end and system tests on the real candidate",
-    "product-acceptance": "assess the product against the original outcome",
-    "release-plan": "plan the release, rollback and checks",
-    "release-check": "confirm release readiness without releasing",
-    "release": "perform the planned release",
-    "release-verify": "verify the release where consumers use it",
-    "operations": "confirm monitoring, recovery and support readiness",
-    "handoff": "write the final handoff with status and evidence",
-}
+STAGE_PURPOSE = {name: row.goal for name, row in stage_spec.STAGE_SPEC.items()}
 
 INNER_GROUPS = (
     ("Plan", ("select-work", "step-plan")),
@@ -215,11 +141,10 @@ ENVIRONMENT_DISCOVERY_REQUIREMENTS = {
         "Mandatory while resolving relevant environment unknowns in this stage."
     ),
 }
+if set(ENVIRONMENT_DISCOVERY_REQUIREMENTS) != stage_spec.with_block("environment-discovery"):
+    raise RuntimeError("ENVIRONMENT_DISCOVERY_REQUIREMENTS must match the stage table")
 
-TEST_FACILITY_STAGES = frozenset({
-    "test-strategy", "plan", "step-plan", "test-spec", "test-author", "test-red",
-    "test-refine", "regression", "carry-forward", "system-test-author", "release-plan",
-})
+TEST_FACILITY_STAGES = stage_spec.with_block("test-facility")
 
 
 # Keep stage routing declarative and package-relative.  The navigator renders
@@ -462,9 +387,13 @@ command, answer it, and resume only on an explicit continue. A question or comme
 about this skill, the loop, its progress or its cost is not a stop: answer it
 briefly and keep following the current packet. Do not pause on your own to ask
 whether the run is worth continuing or to confirm the process for a small task;
-the user's request already authorizes the run. If a host keepalive hook refuses to
-end the turn, its reason names this run's next command: run it and follow the
-packet. Resolve recoverable conditions through the
+the user's request already authorizes the run. Never end the turn while a ShipLoop
+command is still running: keep each one in the foreground until it returns, and if
+the host moves it to a background task, wait for that task in this same turn before
+anything else. A `complete` that reruns tests can take minutes, and a headless host
+ends the whole session when the turn ends, losing the callback. If a host keepalive
+hook refuses to end the turn, its reason names this run's next command: run it and
+follow the packet. Resolve recoverable conditions through the
 printed route and ask only for an actually missing decision, authority, or access.
 """
 
@@ -534,6 +463,26 @@ Later clarifications must be actual user instructions for this same request with
 their durable user-source/decision basis; an unverified host summary is not an
 instruction. Use the active correction/revision route for affected frozen contracts.
 
+Return the packet's concise producer result with a truthful outcome, summary,
+and useful evidence locators. For relevant product work, include the selected
+maintained requirement sections and test/evidence locators in the result's
+existing evidence_refs so the next Improve packet can recover them. If a required
+source is missing, report the gap rather than inventing a locator or omitting it.
+A justified N/A is still an output that states
+what was assessed and why it does not apply.  Do not embed an Improve review
+campaign in this result. Only planning results (spec, test-strategy, plan,
+step-plan, test-spec, system-test-author, release-plan) and the carry-forward that
+leaves no work item pending get an actual Improve-skill handoff; every other result
+is accepted on this step's own checks and the graph advances directly. Run only the checks this step's change needs. When this step changes no
+product file, its check is the named command, its exit code and its required output
+substrings: record them, cite the earlier accepted stage that ran the same command,
+and do not reread history to repeat it.
+"""
+
+
+# Stage-specific paragraphs, carried only by the stages the stage table names
+# (blocks "interaction-design" and "work-items").
+INTERACTION_DESIGN = """\
 During discovery, research, spec development, global planning and step planning,
 use the packet's Interaction design guide and its incoming-events, UI-specific planning
 and review sections as applicable. Identify actors, channels, incoming/outgoing events,
@@ -545,30 +494,14 @@ and deployment fit. Prefer existing capabilities; no UI does not skip applicable
 machine interactions. Put exact relevant source/section locators and short decisions
 in each affected work-item context and evidence_refs, including planned check locators,
 for cold recovery and the normal Improve handoff; do not start a nested review.
+"""
 
+WORK_ITEM_CONTEXT = """\
 Where a plan creates or revises work
 items, retain only the relevant compact locator, decision, rationale, scope, and
 revalidation condition in existing plan notes and that item's `context`; retain
 the supporting source locator in the ordinary `evidence_refs`. Do not copy source
 transcripts, invent a decision ledger, or treat a context summary as proof.
-
-Return the packet's concise producer result with a truthful outcome, summary,
-and useful evidence locators. For relevant product work, include the selected
-maintained requirement sections and test/evidence locators in the result's
-existing evidence_refs so the next Improve packet can recover them. If a required
-source is missing, report the gap rather than inventing a locator or omitting it.
-A justified N/A is still an output that states
-what was assessed and why it does not apply.  Do not embed an Improve review
-campaign in this result. Only planning results (spec, test-strategy, plan,
-step-plan, test-spec, system-test-author, release-plan) and the carry-forward that
-leaves no work item pending get an actual Improve-skill handoff; every other result
-is accepted on this step's own checks and the graph advances directly. Where this
-guidance mentions this action's Improve checkpoint, handoff or review at another
-stage, keep that evidence in evidence_refs for the single end-of-work Improve
-instead. Run only the checks this step's change needs. When this step changes no
-product file, its check is the named command, its exit code and its required output
-substrings: record them, cite the earlier accepted stage that ran the same command,
-and do not reread history to repeat it.
 """
 
 
@@ -588,16 +521,7 @@ all requirements met while required observations remain unrun.
 """
 
 
-RECONCILIATION_STAGES = frozenset(
-    {
-        "verify",
-        "integration-verify",
-        "system-test",
-        "product-acceptance",
-        "release-verify",
-        "handoff",
-    }
-)
+RECONCILIATION_STAGES = stage_spec.with_block("reconciliation")
 
 
 # One rubric for writing and reviewing code.  Implementation-stage packets,
@@ -653,7 +577,6 @@ file cold with no run history. Every rule serves that reader.
 # Improve card.  ShipLoop writes these three texts into the loop contract
 # verbatim; the Until Loop script counts iterations and ends the loop, and
 # ShipLoop checks the saved terminal packet against them before accepting.
-QUALITY_LOOP_LIMIT = 3
 
 QUALITY_ITERATION = """\
 One quality iteration over this work item's change. Scope: the change
@@ -692,14 +615,13 @@ QUALITY_EXIT_CONDITION = (
 )
 
 QUALITY_REPEAT_CONDITION = (
-    "Repeat while the latest iteration fixed a material finding and its checks ran. "
-    "Stop cancelled when iteration " + str(QUALITY_LOOP_LIMIT) + " still finds a "
-    "material finding, naming it. Stop blocked when a finding cannot be fixed within "
-    "the scope or authority in context, or a required check cannot run."
+    "Repeat while the latest iteration fixed a material finding and its checks ran; "
+    "there is no iteration limit. Stop blocked when a finding cannot be fixed within "
+    "the scope or authority in context, or a required check cannot run. Never stop "
+    "cancelled: a user's stop is the ShipLoop packet's pause command."
 )
 
 # Script-enforced test loops (test-green, regression) on the same bound Until Loop.
-TEST_LOOP_LIMIT = 4
 
 TEST_ITERATION = """\
 One test iteration over this work item's test command list (below).
@@ -728,8 +650,8 @@ TEST_EXIT_CONDITION = (
 
 TEST_REPEAT_CONDITION = (
     "Repeat while the latest iteration found a failing command and changed code to "
-    "fix it. Stop cancelled when iteration " + str(TEST_LOOP_LIMIT) + " still has a "
-    "failing command, naming it. Stop blocked when a failure is proven unachievable: "
+    "fix it; there is no iteration limit. Never stop cancelled: a user's stop is the "
+    "ShipLoop packet's pause command. Stop blocked when a failure is proven unachievable: "
     "it contradicts the specification or another requirement, needs a tool, access "
     "or authority that is absent, or would exceed the item."
 )
@@ -749,13 +671,15 @@ Do:
    the runtime returns complete or stopped.
 3. Save the terminal packet, byte for byte from stdout, to the printed terminal
    path and list that path in evidence_refs.
-Report: done when the loop completed; blocked when it stopped, naming the
-failing command for plan revision. On done, ShipLoop checks the terminal packet
-against the contract and then runs every listed command itself; it refuses done
-unless each exits 0 and prints the failures. After a refusal, fix the code,
-start the loop again with the printed command (its terminal packet is replaced)
-and submit again, or report blocked. After 3 refused runs only blocked is
-accepted. Before the test run, ShipLoop lints this item's changes as at
+Report: done when the loop completed; revise when it stopped blocked because a
+failure is unachievable as planned (the item goes back to its step plan, with the
+failing command as evidence); blocked, with blocked_by, only when the user, an access grant or
+an outside dependency must unblock it. On done, ShipLoop checks the terminal
+packet against the contract and then runs every listed command itself; it
+refuses done unless each exits 0 and prints the failures. After a refusal, fix
+the code, start the loop again with the printed command (its terminal packet is
+replaced) and submit again. After 7 refused runs done is no longer accepted:
+report revise. Before the test run, ShipLoop lints this item's changes as at
 implement: it refuses done once after an auto-fix and while a new finding on a
 changed line has no `lint_waivers` entry.
 """
@@ -1136,6 +1060,12 @@ and content digest in existing plan notes/evidence_refs. This producer's mandato
 actual Improve loop must review the created steps and graph before they are used
 for execution. Use the Parallel-chain guide for late creation or revision;
 planning never starts the dispatcher or expands this item's scope.
+List the item's completion criteria in `criteria` (`[{"id": "C1", "text": "..."}]`)
+and name, in each test command's `criteria`, the criteria that command confirms.
+Every criterion needs a command: a passing test ShipLoop runs is the only
+confirmation. For content that has no test runner, such as a README that must
+document a flag, add a `check` command (suite `check`, judged by its exit code),
+for example `grep -q -- '--greeting' README.md`.
 Record the item's test command list in the result's `test_commands`:
 `[{"command": "<shell command>", "suite": "focused" | "regression", "ids": ["TC-9", ...]}]`.
 Focused commands exercise this item's tests; regression commands run the retained
@@ -1339,9 +1269,10 @@ pass counts. When a check fails, change the work, not the check, and rerun them 
 (5) Stop on exactly one: every criterion confirmed or inspected, or reported
 `unconfirmable` when the accepted plan already marks it `Confirm by: unconfirmable
 here`, and none failed → outcome done; a criterion proven unachievable → outcome
-blocked, naming it for plan revision rather than a blind retry; the same check
-still failing after 3 genuine fix attempts → outcome blocked with that criterion
-failed. A criterion is proven unachievable only when (a) it contradicts another
+revise, naming it, so the step plan is corrected rather than blindly retried
+(blocked, with blocked_by, only when the user, an access grant or an outside
+dependency must resolve it); the same check still failing after 3 genuine fix
+attempts → outcome revise with that criterion failed. A criterion is proven unachievable only when (a) it contradicts another
 criterion, the item, or a protected file, shown by a check after all compatible
 work is done and with the existing behavior kept at the conflict point; (b)
 confirming it needs a tool, runtime, access, or authority that is absent, for a
@@ -1382,7 +1313,7 @@ accepts the step and removes its worktree. Retain conflicts and cleanup blockers
 never repeat accepted work because removal failed. Keep observable combined status; only
 accepted steps are done. Continue until every required step is accepted and the
 combined return is verified, or retain an explicit incomplete blocker. Finish
-before this action's normal completion callback and Improve checkpoint.
+before this action's normal completion callback.
 On the initial frontier and every returned event, claim and start every listed
 candidate that is actually safe up to the packet's available capacity. Refresh
 immediately after each callback. Do not wait on a native reconciliation,
@@ -1484,8 +1415,11 @@ Do:
    the runtime returns complete or stopped.
 3. Save the terminal packet, byte for byte from stdout, to the printed terminal
    path and list that path in evidence_refs.
-Report: done when the loop completed; blocked when it stopped, naming the
-unresolved findings for plan revision. Summarize the entry-point inventory, each
+Report: done when the loop completed; revise when it stopped blocked because a
+finding shows the item's goal is wrong as planned, naming it (the item goes back
+to its step plan);
+blocked, with blocked_by, only when the user, an access grant or an outside
+dependency must unblock it. Summarize the entry-point inventory, each
 trace that found an issue, the fixes, and the final check commands with exit
 codes. ShipLoop refuses this result unless the saved terminal packet matches the
 contract and outcome. State any required unrun check and why it could not run.
@@ -1494,6 +1428,9 @@ keep or revert any auto-fix it names, and still run the step's own checks inside
 the loop.
 """,
     "verify": """\
+On done, ShipLoop runs every command the step plan recorded, each tied to the criteria it confirms and refuses done unless each passes; the
+record it writes is the evidence, so a criterion is confirmed by its passing
+command, not by this result's summary.
 Verify the complete work item against its acceptance criteria and current evidence.
 Check evidence applies to the current candidate, command, configuration and target;
 stale, missing or skipped required evidence is incomplete. Use the authoritative
@@ -1509,9 +1446,9 @@ criterion of the accepted step plan, and independently rerun or inspect each
 criterion's confirmation. Do not accept the item when a confirmable criterion
 failed or was not confirmed; name those criteria. A criterion reported `inspected`
 or `unconfirmable` whose `Confirm by:` required execution means the step contract
-cannot be met here: treat it as blocked for planning, not as accepted. A blocked
-result with a proven-unachievable criterion goes back to planning (plan revision
-or replan), not to a blind retry.
+cannot be met here: report revise so the step plan is corrected, not accepted.
+A proven-unachievable criterion goes back to the step plan (revise), or to a
+replan at an OUTER stage when it is product-wide, not to a blind retry.
 Reconcile tests, static checks, documentation, error behavior, diagnostics,
 dependencies, and known limitations.  Refresh checks affected by material changes
 and retain failures or blocked boundaries honestly.  This is work-item acceptance,
@@ -1571,6 +1508,10 @@ locators forward. Preserve historical snapshots and pending persistence work;
 new observations do not silently replace approved intent or old evidence.
 """,
     "system-test-author": """\
+Record the system tests in `system_commands` (same shape as a step plan's
+test_commands; suite `focused`, `regression` or `check`). ShipLoop runs every one
+itself when system-test reports done and refuses unless each passes. When no
+system test applies, give an empty list with `system_commands_na` and the reason.
 Reopen the Run-wide test strategy source. From accepted history, select the
 latest done test-decision record for every relevant completed item: step-plan,
 test-spec, test-author, test-refine or regression, with its retained prior locators.
@@ -1597,6 +1538,9 @@ Identify which checks run now and which require the authorized release first;
 required post-release checks stay assigned to release-verify, not silently waived.
 """,
     "system-test": """\
+On done, ShipLoop runs the system commands system-test-author recorded and refuses done unless each passes; the
+record it writes is the evidence, so a criterion is confirmed by its passing
+command, not by this result's summary.
 Execute authorized end-to-end, runtime, integration, or system tests against the
 actual intended candidate and boundary.  Verify prerequisites, fixtures, target,
 identity, authorization, and observed behavior.  Do not substitute a planned case
@@ -1628,6 +1572,11 @@ incoming spec. Check durable knowledge and remaining gaps; a recovered descripti
 or planned check alone does not establish product acceptance.
 """,
     "release-plan": """\
+Record the post-release consumer checks as commands in `consumer_checks` (same
+shape; a `check` command is judged by its exit code). ShipLoop runs every one
+itself when release-verify reports done and refuses unless each passes. A check
+only a person can make stays in the plan as a blocked `awaiting` step; when no
+command applies, give an empty list with `consumer_checks_na` and the reason.
 Create an authorized release/recovery plan: target and candidate identity,
 permission, prerequisites, user impact, rollback, monitoring, pre/post-release
 checks, and stop conditions. List every operation the user-visible outcome needs as
@@ -1687,10 +1636,13 @@ or promotion simply to complete the graph.
 Use Release operation guidance: distinguish accepted/running from terminal and
 verified; retain partial receipts and reconcile with supported provider lookup,
 retry, parameter-binding, and conditional-mutation semantics before proceeding.
-Check operation postconditions here, then return through this stage's Improve.
+Check operation postconditions here before completing this stage.
 The script-selected release-verify owns final consumer behavior checks afterward.
 """,
     "release-verify": """\
+On done, ShipLoop runs the consumer checks release-plan recorded and refuses done unless each passes; the
+record it writes is the evidence, so a criterion is confirmed by its passing
+command, not by this result's summary.
 Verify the actual release and required deployed consumer/runtime behavior using
 current target evidence.  Distinguish source synchronization, artifact identity,
 operation receipt, and real consumer behavior.  A blocked or unknown post-release
@@ -1776,27 +1728,11 @@ IMPROVE_SCOPES = {
 }
 
 
-IMPLEMENTATION_STAGES = frozenset(
-    {
-        "step-plan",
-        "test-spec",
-        "test-author",
-        "test-red",
-        "implement",
-        "test-green",
-        "test-refine",
-        "regression",
-        "document",
-        "static-checks",
-        "verify",
-        "integrate",
-        "integration-verify",
-    }
-)
+IMPLEMENTATION_STAGES = stage_spec.with_block("code-craft")
 
 
-BACKCHAIN_STAGES = frozenset({"spec", "plan", "step-plan", "carry-forward", "product-acceptance"})
-TEST_DECISION_STAGES = frozenset({"step-plan", "test-spec", "test-author", "test-refine", "regression"})
+BACKCHAIN_STAGES = stage_spec.with_block("backchain")
+TEST_DECISION_STAGES = stage_spec.with_block("test-decision")
 TEST_FACILITY_HANDOFF = """\
 Use the packet's Reusable test facilities guide. Read applicable selected skill
 and MCP capability references; reuse, configure or extend existing frameworks,
@@ -1844,9 +1780,7 @@ route. Reuse unaffected evidence only with its identity and relevance establishe
 BACKCHAIN_NATIVE_CALLS = {
     "plan": ("plan", "draft"),
 }
-BACKCHAIN_AUDIT_STAGES = frozenset(
-    {"spec", "step-plan", "carry-forward", "product-acceptance"}
-)
+BACKCHAIN_AUDIT_STAGES = BACKCHAIN_STAGES - set(BACKCHAIN_NATIVE_CALLS)
 
 
 def _backchain_guidance(stage: str, *, improve_owner: bool = False) -> str:
@@ -1967,11 +1901,11 @@ actual Improve loop must review the created steps and graph before they are used
 for execution. Use the Parallel-chain guide for late creation or revision;
 planning never starts the dispatcher or expands this item's scope.
 """, """\
-For a plan with more than one implementation step, record its ordered steps here
-for linear execution in this conversation: each step's direct dependencies,
-readiness and completion criteria, and the checks that show it is done. Link the
-step list in existing plan notes/evidence_refs. This producer's mandatory actual
-Improve loop must review the steps before they are used for execution.
+Record every implementation step in the result's steps list, in the order to
+do them; an item with one change has one step. ShipLoop issues one implement
+packet per step in that order, in this conversation, so each step names one
+bounded piece of work. This producer's mandatory actual Improve loop must review
+the steps before they are used for execution.
 Delegation is inline: do not create a Plan Dispatcher execution graph or plan
 parallel worker branches; planning never expands this item's scope.
 """),
@@ -1996,22 +1930,20 @@ accepts the step and removes its worktree. Retain conflicts and cleanup blockers
 never repeat accepted work because removal failed. Keep observable combined status; only
 accepted steps are done. Continue until every required step is accepted and the
 combined return is verified, or retain an explicit incomplete blocker. Finish
-before this action's normal completion callback and Improve checkpoint.
+before this action's normal completion callback.
 On the initial frontier and every returned event, claim and start every listed
 candidate that is actually safe up to the packet's available capacity. Refresh
 immediately after each callback. Do not wait on a native reconciliation,
 preparation, verification, or collection while an independent safe worker can
 start; defer only a candidate with a concrete recorded blocker.
 """, """\
-Delegation is inline: execute a reviewed multi-step plan directly, one step at a
-time in dependency order, in the execution checkout in this conversation. Do not
-bind an implementation chain or dispatch Ask Agent or native workers; chains are
-available only when the run's delegation is ask-agent. Confirm each step's
-readiness before starting it and its completion checks before starting a
-dependent step. Keep observable per-step status in the result; only verified
-steps are done. Continue until every required step is done and verified, or
-retain an explicit incomplete blocker, before this action's normal completion
-callback and Improve checkpoint.
+Delegation is inline: this packet is for the one step named in its Step line.
+Do that step in the execution checkout in this conversation, then run this
+packet's callback; ShipLoop issues the next step, and after the last one the
+test stages. Do not start a later step, bind an implementation chain, or dispatch
+Ask Agent or native workers; chains are available only when the run's delegation
+is ask-agent. If the step cannot be done as planned, report revise so the step
+plan is corrected.
 """),
 }
 for _stage, (_delegated, _inline) in _INLINE_DUTY_PARAGRAPHS.items():
@@ -2045,7 +1977,7 @@ def duty(stage: str, *, delegation: str = ASK_AGENT) -> str:
 
 # Stages that run tests: none is done while a check it runs is red.
 # test-green and regression run the script-enforced test loop instead.
-TEST_LOOP_STAGES = frozenset({"test-refine", "integration-verify"})
+PASS_OR_STOP_STAGES = stage_spec.with_block("pass-or-stop")
 
 PASS_OR_STOP = """\
 Pass-or-stop loop: this stage is done only when every check it runs passes on
@@ -2059,10 +1991,10 @@ reason shows the check itself is wrong, and record that reason. Never change a
 check to get green.
 (3) Stop on exactly one: every selected check passes in the final pass →
 outcome done; a check proven unachievable (it contradicts the specification or
-another requirement, needs a tool, access or authority that is absent, or would
-exceed the item) → outcome blocked, naming it for plan revision; the same check
-still failing after 3 genuine fix attempts → outcome blocked with that check
-failed. A red check never leaves this stage as done.
+another requirement, or would exceed the item) → outcome revise, naming it, so
+the step plan is corrected; a check that needs a tool, access or authority that
+is absent → outcome blocked with blocked_by; the same check still failing after
+3 genuine fix attempts → outcome revise with that check failed. A red check never leaves this stage as done.
 Report each check's command, its final-pass output and whether it passed,
 failed or was not run (with the reason).
 """
@@ -2077,20 +2009,28 @@ def prompt(stage: str, *, delegation: str = ASK_AGENT) -> str:
     _require_stage(stage)
     _require_delegation(delegation)
     parts = [COMMON, duty(stage, delegation=delegation)]
+    if stage in stage_spec.with_block("interaction-design"):
+        parts.append(INTERACTION_DESIGN)
+    if stage in stage_spec.with_block("work-items"):
+        parts.append(WORK_ITEM_CONTEXT)
     if stage in PRELUDE or stage in PLANNING_REVIEW_STAGES:
         parts.append(_PLANNING_HANDOFF if delegation == ASK_AGENT
                      else _PLANNING_HANDOFF.replace(*_INLINE_PLANNING_DIRECTIVE))
+    improves = stage_spec.stage(stage).improve is not None
     if stage in TEST_FACILITY_STAGES:
-        parts.append(TEST_FACILITY_HANDOFF)
+        parts.append(TEST_FACILITY_HANDOFF if improves else TEST_FACILITY_HANDOFF.replace(
+            "Carry relevant locators into item context and the\nImprove child's context/notes.",
+            "Carry relevant locators into item context."))
     if stage in TEST_DECISION_STAGES:
         parts.append(TEST_DECISION_HANDOFF)
     if stage in OUTER:
-        parts.append(OUTER_TEST_HANDOFF)
+        parts.append(OUTER_TEST_HANDOFF if improves else OUTER_TEST_HANDOFF.replace(
+            "in this result and the Improve child's context/notes.", "in this result."))
     if stage in BACKCHAIN_STAGES:
         parts.append(_backchain_guidance(stage))
     if stage in RECONCILIATION_STAGES:
         parts.append(SELECTED_CASE_RECONCILIATION)
-    if stage in TEST_LOOP_STAGES:
+    if stage in PASS_OR_STOP_STAGES:
         parts.append(PASS_OR_STOP)
     if stage in IMPLEMENTATION_STAGES:
         parts.append(CODE_CRAFT)
@@ -2375,7 +2315,6 @@ __all__ = (
     "PLANNING_REVIEW_STAGES",
     "QUALITY_EXIT_CONDITION",
     "QUALITY_ITERATION",
-    "QUALITY_LOOP_LIMIT",
     "QUALITY_REPEAT_CONDITION",
     "PRELUDE",
     "PROGRESS_REPORTING",

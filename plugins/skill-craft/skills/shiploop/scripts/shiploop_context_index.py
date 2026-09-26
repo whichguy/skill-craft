@@ -18,48 +18,18 @@ from typing import Any, Iterable, Mapping
 
 import shiploop_navigator_v3_prompts as prompts
 import shiploop_planning_revision as planning_revision
+import shiploop_stage_spec as stage_spec
+
+# Script-written records a fresh context may need, relative to the run directory.
+RECORD_GLOBS = ("tests/*-verify*.md", "tests/*-terminal.json", "quality/*-terminal.json",
+                "lint/*.md", "improve/*/receipt.md")
 
 INDEX_FILE = "context-index.md"
 SUMMARY_LIMIT = 400
 
 # Entries each stage reads first.  A bare name is the run's root result for
 # that stage; "item:<stage>" is the current work item's result.
-STAGE_READS: dict[str, tuple[str, ...]] = {
-    "intake": (),
-    "discovery": ("intake",),
-    "research": ("intake", "discovery"),
-    "spec": ("intake", "discovery", "research"),
-    "test-strategy": ("spec", "research"),
-    "plan": ("intake", "discovery", "research", "spec", "test-strategy"),
-    "prepare": ("plan", "test-strategy"),
-    "select-work": ("spec", "plan"),
-    "step-plan": ("spec", "test-strategy", "plan", "prepare"),
-    "test-spec": ("spec", "test-strategy", "plan", "item:step-plan"),
-    "baseline": ("test-strategy", "item:step-plan", "item:test-spec"),
-    "test-author": ("test-strategy", "item:step-plan", "item:test-spec"),
-    "test-red": ("item:test-spec", "item:test-author"),
-    "implement": ("spec", "plan", "item:step-plan", "item:test-spec"),
-    "test-green": ("item:test-spec", "item:implement"),
-    "test-refine": ("spec", "item:test-spec", "item:implement"),
-    "regression": ("test-strategy", "item:baseline"),
-    "document": ("spec", "plan", "item:step-plan", "item:implement"),
-    "skill-assess": ("plan", "item:step-plan"),
-    "skill-validate": ("item:skill-assess",),
-    "static-checks": ("item:step-plan", "item:implement"),
-    "verify": ("spec", "test-strategy", "item:step-plan", "item:test-spec"),
-    "integrate": ("plan", "item:step-plan", "item:verify"),
-    "integration-verify": ("spec", "item:integrate"),
-    "carry-forward": ("spec", "plan", "item:integration-verify"),
-    "system-test-author": ("spec", "test-strategy", "plan"),
-    "system-test": ("spec", "system-test-author"),
-    "product-acceptance": ("intake", "spec", "system-test"),
-    "release-plan": ("spec", "plan", "system-test"),
-    "release-check": ("release-plan",),
-    "release": ("release-plan", "release-check"),
-    "release-verify": ("spec", "release-plan", "release"),
-    "operations": ("release-plan", "release-verify"),
-    "handoff": ("intake", "spec", "plan", "release-verify"),
-}
+STAGE_READS: dict[str, tuple[str, ...]] = {name: row.reads for name, row in stage_spec.STAGE_SPEC.items()}
 
 _ROOT_STAGES = ("intake", *planning_revision.PLANNING_STAGES)
 
@@ -118,6 +88,7 @@ def render(state: Mapping[str, Any], root: Path, stage: str) -> str:
         f"- Repository: {state['repo']}",
         f"- Current stage: {stage}",
         "",
+        *_in_progress_lines(state, root),
         "## Request",
         "",
         str(state.get("prompt", "")).strip() or "(empty)",
@@ -153,6 +124,10 @@ def render(state: Mapping[str, Any], root: Path, stage: str) -> str:
         action = current.get((None, stage))
         if action is not None:
             lines.extend(_entry_lines(state, root, stage, action))
+    records = sorted({str(path) for pattern in RECORD_GLOBS for path in root.glob(pattern) if path.is_file()})
+    if records:
+        lines.extend(["", "## Script records (ShipLoop's own test runs, loop packets, lint and Improve receipts)", ""])
+        lines.extend(f"- {record}" for record in records)
     superseded = [entry for entry in state.get("history") or []
                   if entry.get("outcome") == "done" and entry.get("action") in state["accepted"]
                   and current.get((entry.get("workitem"), entry.get("stage"))) != entry.get("action")]
@@ -162,6 +137,57 @@ def render(state: Mapping[str, Any], root: Path, stage: str) -> str:
             lines.append(f"- {entry.get('workitem') or 'run'} {entry.get('stage')}: "
                          f"{_result_path(root, entry['action'])}")
     return "\n".join(lines).rstrip() + "\n"
+
+
+def pass_log_path(root: Path, action_id: str) -> Path:
+    """Where the host logs each pass of an action: what it checked and what is left."""
+    return Path(root) / "notes" / (action_id + ".md")
+
+
+def _in_progress_lines(state: Mapping[str, Any], root: Path) -> list[str]:
+    """What a fresh context needs to resume the current action mid-stage."""
+    action = _current_action(state)
+    if action is None or state.get("status") not in ("active", "paused", "blocked"):
+        return []
+    stage, action_id = action["stage"], action["id"]
+    row = stage_spec.stage(stage)
+    lines = ["## In progress", "",
+             f"- Action {action_id} ({stage}); result file {root / 'inbox' / (action_id + '.md')}",
+             f"- Pass log (what each pass checked and what is left): {pass_log_path(root, action_id)}"]
+    loop_dir = ("tests" if "test-loop" in row.complete_runs
+                else "quality" if "quality-terminal" in row.complete_runs else None)
+    if loop_dir:
+        lines.append(f"- Loop packets: {root / loop_dir / (action_id + '-latest.json')} (latest), "
+                     f"{root / loop_dir / (action_id + '-terminal.json')} (terminal)")
+    runs = sorted(root.glob(f"tests/{action_id}-verify*.md"))
+    if runs:
+        lines.append(f"- ShipLoop test runs for this action: {len(runs)}, latest {runs[-1]}")
+    item = action.get("workitem")
+    if item and state.get("revisions", {}).get(item):
+        lines.append(f"- {item} has gone back to step-plan {state['revisions'][item]} of "
+                     f"{stage_spec.MAX_REVISES} times")
+    child = state.get("active_improve")
+    if isinstance(child, Mapping) and child.get("skill"):
+        import shiploop_standalone_improve as standalone  # lazy: only runs with a bound child
+        lines.append(f"- Improve child receipt (its exact next_argv resumes it): {standalone.receipt_path(child)}")
+    return lines + [""]
+
+
+def _current_action(state: Mapping[str, Any]) -> dict[str, Any] | None:
+    """The effective action without importing the navigator."""
+    if state.get("stage") == "inner-loop":
+        index = state.get("work_index", 0)
+        items = state.get("work_items") or []
+        if index >= len(items):
+            return None
+        item = items[index]["id"]
+        loop = (state.get("inner_loops") or {}).get(item) or {}
+        if not isinstance(loop.get("action"), Mapping):
+            return None
+        return {**loop["action"], "stage": loop["stage"], "workitem": item}
+    if not isinstance(state.get("action"), Mapping):
+        return None
+    return {**state["action"], "stage": state["stage"], "workitem": None}
 
 
 def read_first(state: Mapping[str, Any], root: Path, stage: str,

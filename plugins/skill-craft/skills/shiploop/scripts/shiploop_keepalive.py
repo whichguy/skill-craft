@@ -260,30 +260,6 @@ def _is_subagent(payload: Mapping[str, Any]) -> bool:
     return any(payload.get(key) for key in ("subagentType", "agent_id", "agent_type"))
 
 
-def compacted(host: str, payload: Mapping[str, Any]) -> str | None:
-    """After the host compacted this session's context, make the run's next packet full.
-
-    The short repeat packet assumes the run rules are still in context; once
-    the host has compacted it, they may not be.  Removing the run's
-    last-packet.json record makes the next ``next`` print the full packet.
-    Returns the run directory it reset, if any.
-    """
-    if str(payload.get("source", "compact")) != "compact":
-        return None
-    session = session_of(payload)
-    if session is None or _is_subagent(payload):
-        return None
-    binding = load_binding(host, session)
-    if binding is None:
-        return None
-    record = Path(binding["run_dir"]) / "last-packet.json"
-    try:
-        record.unlink()
-    except FileNotFoundError:
-        pass
-    return binding["run_dir"]
-
-
 def observe(host: str, payload: Mapping[str, Any]) -> dict | None:
     """Bind the session to the run named by a marker in this tool output.
 
@@ -331,6 +307,12 @@ def observe(host: str, payload: Mapping[str, Any]) -> dict | None:
 
 # Hosts that force a turn to end after this many stop-hook continuations.
 CONTINUATION_CAPS = {"grok": 8}
+# A refused callback counts as progress so the host fixes and resubmits it.  But
+# after this many continuations with no accepted result (the revision unchanged)
+# the stop is allowed, so a state that can never be accepted does not keep a
+# session alive forever.  Twice shiploop_test_loop.MAX_REFUSED_RUNS: the script
+# stops accepting test runs for an action well before keepalive gives up on it.
+STUCK_CONTINUATIONS = 14
 # From this many continuations before a cap, the reason asks harder not to stop.
 CAP_WARNING_MARGIN = 2
 
@@ -414,6 +396,16 @@ def _decide(host: str, session: str, binding: dict, *, waiting: bool = False) ->
         return {"decision": "allow", "why": "no progress",
                 "notice": ("ShipLoop keepalive: the run made no progress since the last "
                            "continuation, so the turn may end. Resume with: " + status["next"])}
+    if binding.get("block_revision") != status["revision"]:
+        binding["block_revision"], binding["blocks_at_revision"] = status["revision"], 0
+    if not waiting:
+        binding["blocks_at_revision"] = int(binding.get("blocks_at_revision", 0)) + 1
+        if binding["blocks_at_revision"] > STUCK_CONTINUATIONS:
+            return {"decision": "allow", "why": "stuck: no accepted result",
+                    "notice": ("ShipLoop keepalive: " + str(STUCK_CONTINUATIONS) + " continuations "
+                               "produced no accepted result for this action, so the turn may end. Read "
+                               "the last refusal; if it cannot be fixed in this run, submit outcome "
+                               "blocked (or revise) with the reason. Resume with: " + status["next"])}
     binding["last_block_progress"] = progress
     binding["turn_blocks"] = int(binding.get("turn_blocks", 0)) + 1
     cap = CONTINUATION_CAPS.get(host)
@@ -476,9 +468,6 @@ def run_hook(event: str, host: str, raw: str) -> str:
             return ""
         if event == "observe":
             observe(host, payload)
-            return ""
-        if event == "compacted":
-            compacted(host, payload)
             return ""
         decision = stop(host, payload)
         _log_decision(host, payload, decision)
@@ -763,7 +752,9 @@ def ensure_hooks(env: Mapping[str, str] | None = None) -> str | None:
             return None
         verb = "installed" if current == "absent" else "updated"
         return (f"ShipLoop keepalive: {verb} the {host} hooks in {config_path(host)} ({host} does not "
-                f"run plugin hooks). New {host} sessions load them; in this session open /hooks and press r.")
+                f"run plugin hooks). New {host} sessions load them; this session is not protected until "
+                f"you open /hooks and press r, and a headless session never is, so do not end the turn "
+                f"while a ShipLoop command runs.")
     return None
 
 
@@ -885,7 +876,7 @@ def hook_main(argv: list[str] | None = None) -> int:
         prog="shiploop-hook",
         description="Keep a ShipLoop run moving across host turns (see references/keepalive.md).")
     sub = parser.add_subparsers(dest="command", required=True)
-    for name in ("observe", "stop", "compacted"):
+    for name in ("observe", "stop"):
         event = sub.add_parser(name, help=f"host hook event: {name} (reads the payload on stdin)")
         event.add_argument("--host", choices=(*HOSTS, AUTO), required=True)
     for name in ("install", "uninstall", "status"):
@@ -894,7 +885,7 @@ def hook_main(argv: list[str] | None = None) -> int:
         if name != "status":
             action.add_argument("--dry-run", action="store_true")
     args = parser.parse_args(argv)
-    if args.command in ("observe", "stop", "compacted"):
+    if args.command in ("observe", "stop"):
         reply = run_hook(args.command, args.host, sys.stdin.read())
         if reply:
             print(reply)

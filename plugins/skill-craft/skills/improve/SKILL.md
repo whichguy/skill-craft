@@ -6,7 +6,7 @@ description: >-
   and repeat until two consecutive passes make no changes, or the first pass
   completes with no change. Supports a read-only interpretation preview; not a
   one-off code review.
-version: 0.3.0-rc.6
+version: 0.3.0-rc.7
 license: MIT
 platforms:
   - linux
@@ -106,6 +106,11 @@ move. Keep explicitly excluded scratch or pre-existing user paths outside that
 candidate. When the inventory is large, retain one exact inventory locator
 rather than recopying every path into each review record.
 
+Start the bound runtime with `--receipt <the printed host receipt path>`: the
+runtime then writes every child packet there itself, the terminal packet before
+it deletes its state, and ShipLoop imports only a packet written that way. Never
+write or edit that receipt by hand.
+
 The child `context.resources` must retain the parent latest-packet receipt
 location, the exact parent return instruction or callback locator, and the
 printed host receipt path for the child response. These locators make a terminal
@@ -132,8 +137,8 @@ and return their locators. Only when a ShipLoop v4 packet explicitly prints its
 parent-only stopped-child reconciliation callback may the parent, after
 collecting or confirming the worker stopped, use that exact callback. The worker
 never executes it; no other stopped child advances the parent. After a successful
-`complete` response is saved exactly at the printed host receipt path, the parent
-may use its exact normal return route.
+`complete` response is at the printed host receipt path (the runtime wrote it
+there), the parent may use its exact normal return route.
 
 ## Agent-run invocation
 

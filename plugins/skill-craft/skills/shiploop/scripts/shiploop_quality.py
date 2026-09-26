@@ -20,9 +20,10 @@ from typing import Any, Mapping, Optional
 
 import shiploop_lint as lint
 import shiploop_navigator_v3_prompts as guidance3
+import shiploop_stage_spec as stage_spec
 import shiploop_standalone_improve as standalone
 
-STAGE = "static-checks"
+STAGE, = stage_spec.with_complete_run("quality-terminal")
 RUBRIC_PATH = "quality/code-craft.md"
 
 
@@ -39,12 +40,25 @@ def contract_path(action: str) -> str:
     return "quality/" + action + "-contract.json"
 
 
-def latest_path(action: str) -> str:
-    return "quality/" + action + "-latest.json"
-
-
 def terminal_path(action: str) -> str:
     return "quality/" + action + "-terminal.json"
+
+
+# The runtime, started with --receipt, writes every packet it returns to this file
+# and the terminal packet before it deletes its state: nothing depends on the host
+# having saved stdout before a compaction.
+RECEIPT_LINE = ("Receipt (the runtime writes every packet here, the terminal one last; ShipLoop "
+                "checks this file, so do not write or edit it): ")
+
+# Every key the bound runtime puts in a packet (Until Loop 0.7.0).
+_PACKET_KEYS = frozenset({
+    "status", "state_file", "workspace", "work", "conditions", "progress", "context",
+    "status_semantics", "last_report", "instruction", "next_argv", "done_argv", "report_schema",
+    "receipt",
+})
+_PROGRESS_KEYS = (frozenset({"action_number", "trivial_streak", "required_trivial_reviews"}),
+                  frozenset({"action_number", "trivial_streak", "required_trivial_reviews",
+                             "unchanged_first_pass"}))
 
 
 def _step_plan_result(root: Path, state: Mapping[str, Any], work_item: str) -> Optional[str]:
@@ -87,6 +101,8 @@ def build_contract(root: Path, state: Mapping[str, Any], work_item: str, action:
          "locator": str(root / lint.inventory_path(action))},
         {"purpose": "ShipLoop lint record for this action, when lint ran",
          "locator": str(root / "lint" / (action + ".md"))},
+        {"purpose": "this action's pass log: append what each iteration checked and what is left",
+         "locator": str(root / "notes" / (action + ".md"))},
     ]
     step_plan = _step_plan_result(root, state, work_item)
     if step_plan is not None:
@@ -130,8 +146,8 @@ def transition_writes(root: Path, after: Mapping[str, Any], work_item: Optional[
 def render_lines(root: Path, state: Mapping[str, Any], work_item: str, action: str) -> list[str]:
     """Read-only packet lines: runtime, start command, packet paths and inventory."""
     root = Path(root)
-    lines = ["", "Quality loop (bound Until Loop; the loop script counts iterations, at most "
-             + str(guidance3.QUALITY_LOOP_LIMIT) + "):"]
+    lines = ["", "Quality loop (bound Until Loop; the loop script counts iterations; there is no "
+             "iteration limit):"]
     try:
         runtime = _runtime(state)
     except QualityError as exc:
@@ -141,10 +157,10 @@ def render_lines(root: Path, state: Mapping[str, Any], work_item: str, action: s
     lines += [
         "Bound Until Loop card (open it if its rules are not already in your context): " + runtime["runtime_card"],
         "Loop contract (written by ShipLoop; pass it unchanged): " + str(contract),
-        "Start: " + shlex.join([sys.executable, runtime["runtime_cli"], "start"]) + " < "
+        "Start: " + shlex.join([sys.executable, runtime["runtime_cli"], "start",
+                                 "--receipt", str(root / terminal_path(action))]) + " < "
         + shlex.quote(str(contract)),
-        "Save every returned packet (stdout) to: " + str(root / latest_path(action)),
-        "Save the terminal packet (stdout) to: " + str(root / terminal_path(action)),
+        RECEIPT_LINE + str(root / terminal_path(action)),
     ]
     if not contract.is_file():
         lines.append("The loop contract is missing; report outcome blocked naming this path.")
@@ -168,15 +184,16 @@ def check_terminal(root: Path, state: Mapping[str, Any], work_item: str, action:
                    result: Mapping[str, Any]) -> None:
     """Refuse a static-checks result that the bound Until Loop's terminal packet does not support.
 
-    ``done`` needs a ``complete`` packet within the iteration limit; ``blocked``
-    accepts a ``stopped`` packet or none (the summary carries the reason).
+    ``done`` needs a ``complete`` packet; ``revise`` and ``blocked`` need a
+    blocked ``stopped`` packet (see ``check_loop_packet``), or ``blocked`` none
+    (the summary and blocked_by carry the reason).
     ``repeat`` is never valid: the loop, not the graph, repeats the review.
     The packet is compared with the contract rebuilt from ShipLoop state, not
     with the contract file, so editing that file cannot reshape the loop.
     """
     outcome = result.get("outcome") if isinstance(result, Mapping) else None
-    _need(outcome in ("done", "blocked"),
-          "static-checks accepts only done or blocked; the bound Until Loop repeats the review, "
+    _need(outcome in ("done", "revise", "blocked"),
+          "static-checks accepts only done, revise or blocked; the bound Until Loop repeats the review, "
           "not the graph")
     if not state.get("improve_skill"):
         return  # No bound runtime: the packet directs blocked; nothing to verify.
@@ -185,18 +202,19 @@ def check_terminal(root: Path, state: Mapping[str, Any], work_item: str, action:
     if outcome == "blocked" and not os.path.lexists(path):
         return
     check_loop_packet(path, result, build_contract(root, state, work_item, action),
-                      guidance3.QUALITY_LOOP_LIMIT, "quality loop", str(root / contract_path(action)))
+                      "quality loop", str(root / contract_path(action)))
 
 
-def check_loop_packet(path: Path, result: Mapping[str, Any], expected: Mapping[str, Any], limit: int,
+def check_loop_packet(path: Path, result: Mapping[str, Any], expected: Mapping[str, Any],
                       label: str, contract_file: str) -> None:
     """Refuse a loop stage's result that its saved Until Loop terminal packet does not support.
 
     Shared by every script-enforced loop (the quality loop and the test loops).
     The packet must come from a run of ``expected`` (rebuilt from ShipLoop
-    state, so editing the contract file cannot reshape the loop); ``complete``
-    within ``limit`` iterations supports only ``done``, anything else only
-    ``blocked``.
+    state, so editing the contract file cannot reshape the loop).  Loops have
+    no iteration limit.  ``complete`` supports only ``done``; a ``blocked``
+    stop supports ``revise`` (the item's goal proved wrong) or ``blocked``; a
+    ``cancelled`` stop supports nothing, since a user's stop is a pause.
     """
     outcome = result.get("outcome")
     refs = result.get("evidence_refs")
@@ -204,8 +222,14 @@ def check_loop_packet(path: Path, result: Mapping[str, Any], expected: Mapping[s
           "list the saved terminal packet in evidence_refs: " + str(path))
     packet = _read_json(path, "Until Loop terminal packet")
     _need(isinstance(packet, Mapping), "the Until Loop terminal packet must be a JSON object")
+    _need(set(packet) == _PACKET_KEYS,
+          "the terminal packet is not a complete Until Loop packet (start the loop with the printed "
+          "--receipt command; the runtime writes this file itself)")
+    _need(packet.get("receipt") == str(path),
+          "the terminal packet was not written by a run started with --receipt " + str(path))
     conditions, progress = packet.get("conditions"), packet.get("progress")
-    _need(isinstance(conditions, Mapping) and isinstance(progress, Mapping),
+    _need(isinstance(conditions, Mapping) and isinstance(progress, Mapping)
+          and frozenset(progress) in _PROGRESS_KEYS,
           "the Until Loop terminal packet lacks its conditions or progress")
     _need(packet.get("workspace") == expected["workspace"]
           and packet.get("work") == expected["work"]
@@ -217,28 +241,41 @@ def check_loop_packet(path: Path, result: Mapping[str, Any], expected: Mapping[s
     status = packet.get("status")
     _need(status in ("complete", "stopped"),
           "the terminal packet must have status complete or stopped, found " + repr(status))
+    state_file = packet.get("state_file")
+    _need(isinstance(state_file, str) and os.path.isabs(state_file) and not os.path.lexists(state_file),
+          "the terminal packet's run is still live or unnamed; a terminal transition deletes its state file")
+    _need(packet.get("next_argv") is None and packet.get("done_argv") is None
+          and packet.get("report_schema") is None,
+          "the terminal packet still offers a callback")
+    report = packet.get("last_report")
+    _need(isinstance(report, Mapping), "the terminal packet has no final report")
+    iterations = progress.get("action_number")
+    _need(isinstance(iterations, int) and not isinstance(iterations, bool) and iterations >= 1,
+          "the terminal packet has no iteration count")
     if status == "complete":
-        iterations = progress.get("action_number")
-        _need(isinstance(iterations, int) and not isinstance(iterations, bool) and iterations >= 1,
-              "the terminal packet has no iteration count")
-        if iterations > limit:
-            _need(outcome == "blocked", "the " + label + " ran " + str(iterations) + " iterations; more than "
-                  + str(limit) + " is outside the contract, report blocked")
-        else:
-            _need(outcome == "done", "a complete " + label + " reports outcome done")
-    else:
-        _need(outcome == "blocked", "a stopped " + label + " reports outcome blocked")
-
+        _need(report.get("classification") == "trivial" and report.get("exit_assessment") == "satisfied",
+              "a complete terminal packet needs a trivial report whose exit is satisfied")
+        _need(outcome == "done", "a complete " + label + " reports outcome done")
+        return
+    # Loops have no iteration limit, so the contract never asks for a cancel; a
+    # user's stop is ShipLoop's pause, which keeps the loop active.
+    _need(report.get("continuation_assessment") != "cancelled",
+          "the " + label + " was cancelled after " + str(iterations) + " iterations; it has no iteration "
+          "limit. A user's stop is the packet's pause command, not a cancelled loop: start the loop again "
+          "and run it until its exit condition holds")
+    _need(outcome in ("blocked", "revise"),
+          "a " + label + " stopped as blocked reports outcome blocked, with blocked_by, or revise when the "
+          "item's goal proved wrong as planned")
 
 __all__ = (
     "QualityError",
+    "RECEIPT_LINE",
     "check_loop_packet",
     "RUBRIC_PATH",
     "STAGE",
     "build_contract",
     "check_terminal",
     "contract_path",
-    "latest_path",
     "render_lines",
     "terminal_path",
     "transition_writes",

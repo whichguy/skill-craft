@@ -73,11 +73,11 @@ flowchart TD
   subgraph INNER[Inner loop: once per work item, the item record owns the cursor]
     SW[select-work] --> SP[step-plan ✦ records test commands] --> TS[test-spec ✦] --> BL[baseline → test-author → test-red]
     BL --> IM[implement ⛔ lint gate, pass-or-stop]
-    IM --> TG[test-green ⟳⛔ test loop, at most 4]
+    IM --> TG[test-green ⟳⛔ test loop]
     TG --> TR[test-refine ⛔ test rerun, pass-or-stop]
-    TR --> RG[regression ⟳⛔ test loop, at most 4]
+    TR --> RG[regression ⟳⛔ test loop]
     RG --> DOC[document → skill-assess → skill-validate]
-    DOC --> SC[static-checks ⟳ quality loop, at most 3; ⛔ test rerun]
+    DOC --> SC[static-checks ⟳ quality loop; ⛔ test rerun]
     SC --> VI[verify → integrate → integration-verify ⛔ test rerun]
     VI --> CF[carry-forward]
     CF -->|more items| SW
@@ -96,17 +96,17 @@ flowchart TD
 unwaived new finding, and every stage from `test-green` on that can edit code
 (`test-green`, `test-refine`, `regression`, `static-checks`,
 `integration-verify`) is not accepted until ShipLoop has run the recorded test
-commands itself and each exited 0; after 3 refused runs only `blocked` is. ⟳ loops inside the stage: the bound Until Loop
+commands itself and each exited 0; after 7 refused runs `done` is no longer accepted and the item goes back to `step-plan` with `revise`. ⟳ loops inside the stage: the bound Until Loop
 drives the test loops and the `static-checks` quality loop, and the pass-or-stop
 prompt loop reruns failing checks at `implement`, `test-refine` and
-`integration-verify` until they pass or the step stops as `blocked`.
+`integration-verify` until they pass or the step reports `revise` (or `blocked` for what only the user, an access grant or an outside dependency can resolve).
 
 | | Inner loop | Outer loop |
 | --- | --- | --- |
 | Runs | once per work item, over one shared graph | once, unless `replan` reopens it |
 | Improve children | `step-plan`, `test-spec`, last `carry-forward` | `system-test-author`, `release-plan` |
-| Outcomes | `done`, `repeat`, `blocked` (`test-green`, `regression`, `static-checks`: `done`, `blocked`) | adds `replan` with new work items |
-| Going back | `carry-forward` replaces the future queue | `replan` appends items; after their end review, outer restarts at `system-test-author` |
+| Outcomes | `done`, `repeat`, `blocked`; from `test-spec` to `integration-verify` also `revise`, back to `step-plan` at most twice per item (`test-green`, `regression`, `static-checks`: `done`, `revise`, `blocked`) | adds `replan` with new work items |
+| Going back | `revise` returns the item to `step-plan`; `carry-forward` replaces the future queue | `replan` appends items; after their end review, outer restarts at `system-test-author` |
 | Script-owned checks | recorded test commands at `step-plan`; lint gate at `implement`, `test-green`, `regression`; test-loop terminal packets at `test-green`, `regression`; ShipLoop's own test run at those two plus `test-refine`, `static-checks`, `integration-verify`; quality-loop terminal packet at `static-checks` | none |
 
 The graph describes order, not a substitute for engineering judgment. The prompt
@@ -237,11 +237,10 @@ conversation without clearing, pausing for a clear or delegating (see
 [context boundaries](#context-boundaries)). This
 conversation is the only writer and alone submits ShipLoop callbacks. After an
 unplanned reset or lost context, run the Recovery command and continue from the
-reprinted packet. `implement` executes a reviewed multi-step plan directly, one
-step at a time in dependency order, in the execution checkout. It binds no
-chain and uses no Ask Agent, native worker or Plan Dispatcher; `step-plan`
-records ordered steps with dependencies, readiness, completion criteria and
-checks rather than a dispatcher execution graph.
+reprinted packet. ShipLoop issues one `implement` packet per step of the
+accepted step plan, in its order, in the execution checkout. It binds no chain
+and uses no Ask Agent, native worker or Plan Dispatcher; `step-plan` records
+ordered `steps` rather than a dispatcher execution graph.
 
 Under the opt-in `delegation: ask-agent` route, every active INNER producer
 packet begins with

@@ -10,7 +10,8 @@ inside its Markdown file, and there is no writable JSON mirror.
 
 | File or directory | Authority / purpose |
 |---|---|
-| `state.md` | The navigator state: protocol version, execution mode, run ID and revision, repository and original prompt, current stage/action/status, work queue and `work_index`, per-item `inner_loops`, accepted results and history, the selected Improve card, the active Improve child and imported Improve records, chain bindings, the run's `delegation`, and the required run-level `lint` option (`fix`, `report` or `off`; a saved run without it is refused). Protocol 4 adds `planning_reconciliations`. |
+| `state.md` | The navigator state: protocol version, execution mode, run ID and revision, repository and original prompt, current stage/action/status, work queue and `work_index`, per-item `inner_loops`, accepted results and history, the selected Improve card, the active Improve child and imported Improve records, chain bindings, the run's `delegation`, and the required run-level `lint` option (`fix`, `report` or `off`; a saved run without it is refused). Protocol 4 adds `planning_reconciliations`, and state version 4 adds `revisions` (how many times each work item went back to `step-plan`, at most 2). |
+| `notes/<action>.md` | The pass log for one action: after each pass the host appends what it checked and what is left. Every packet names it and the context index lists it under "In progress", so a context lost mid-stage resumes from the last pass. It is a recovery aid, not evidence: ShipLoop's own test-run records are the evidence. |
 | `inbox/<action>.md` | Where the host writes the current action's result before running the printed callback. It is input, not accepted state. |
 | `results/<action>.md` | The accepted producer result for one action, written by the script's transaction. |
 | `notes/` | Host-authored run notes named in results' `evidence_refs`, including the canonical `notes/environment-lifecycle.md`. |
@@ -18,7 +19,6 @@ inside its Markdown file, and there is no writable JSON mirror.
 | `workspace.md`, `return-plan.md`, `return-receipt.md` | For workspace runs (in the workspace root): the original checkout, branch and baseline, the reviewed return plan and the guarded return receipt that completion requires. |
 | `report.html` | Derived report written for done and halted runs; not workflow state. |
 | `status.md` | Derived copy of the user-facing [status block](status-display.md), rewritten by every saved transition in the same transaction as `state.md`; not workflow state. |
-| `rules.md`, `last-packet.json` | Packet display records, never state: the run-level rules block a repeated `next` refers to, and the action, stage, status and revision of the last printed packet. Recovery never needs them. |
 | `decisions/<action>.md` | The user's own reply to a question (or a person's report after steps) a blocked result was `awaiting`, recorded by `resume --answer`/`--observed`. |
 | `improve/<action>-bind.md` | The candidate's tree when that Improve child was bound; the import compares against it to find the review's own uncommitted edits. |
 | `lint/` | Script-owned lint output, never exit-criteria evidence: per-item base snapshots (`items/`), per-action records and patches, byte-exact tool logs (`logs/`, mode 0600), scratch space (`tmp/`) and pending fix journals. See the [lint catalog](lint-catalog.md). |

@@ -3,8 +3,8 @@
 Chains apply only to a run whose delegation is `ask-agent`: an opt-in new run,
 or a run switched with `python3 "$CLI" delegation --run-dir "$RUN_DIR" --set ask-agent`.
 Under `delegation: inline`, the default for
-new runs, `implement` executes the reviewed steps directly, one at a time
-in dependency order, in the execution checkout, and `chain bind` refuses a fresh
+new runs, ShipLoop issues one `implement` packet per reviewed step, in order,
+in the execution checkout, and `chain bind` refuses a fresh
 binding before any side effect. Replaying an existing binding keeps its recorded
 mode. See the [navigator delegation setting](navigator.md#run-it).
 

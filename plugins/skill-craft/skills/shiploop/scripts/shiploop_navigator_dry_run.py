@@ -91,6 +91,19 @@ def scenarios():
         {'at': 'test-author', 'command': 'pause', 'expect': 'test-author', 'status': 'paused'},
         {'at': 'test-author', 'command': 'resume', 'expect': 'test-author'},
     ])
+    # implement finds the step plan unachievable: the item goes back to
+    # step-plan and walks its planning and test stages again.
+    base = activity()
+    replan_rows = []
+    for row in base[base.index(next(r for r in base if r['at'] == 'step-plan')):]:
+        if row['at'] == 'implement':
+            break
+        replan_rows.append(dict(row))
+    revised = _insert_before(base, 'implement', 'produce', [
+        {'at': 'implement', 'command': 'produce', 'expect': 'step-plan',
+         'result': {'outcome': 'revise', 'summary': 'Synthetic: a completion criterion is unachievable as planned.'}},
+        *replan_rows,
+    ])
     return {
         'delivery': {'steps': activity()},
         'two-work-items': {'steps': activity(two=True)},
@@ -104,6 +117,7 @@ def scenarios():
             ],
         },
         'repeat-improve': {'steps': repeat},
+        'revise': {'steps': revised},
         'pause-resume': {'steps': paused},
         'halted': {'steps': [{'at': 'intake', 'command': 'halt', 'expect': 'intake', 'status': 'halted'}]},
     }

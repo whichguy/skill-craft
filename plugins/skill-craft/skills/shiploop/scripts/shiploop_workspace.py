@@ -72,6 +72,7 @@ __all__ = [
     "WorkspaceError",
     "assert_binding",
     "completed_receipt",
+    "returned_before",
     "completed_receipt_snapshot",
     "execute_return",
     "plan_return",
@@ -1638,6 +1639,15 @@ def execute_return(workspace_root: Path) -> Dict[str, Any]:
 
 
 @_locked_existing_root
+def returned_before(workspace_root: Path) -> bool:
+    """Whether a return was recorded at all (a stale receipt still counts)."""
+    try:
+        receipt = _receipt(_resolved_directory(Path(workspace_root), label="workspace root"))
+    except WorkspaceError:
+        return False
+    return bool(receipt) and receipt.get("status") == "returned"
+
+
 def completed_receipt(workspace_root: Path, repo: Path) -> Optional[Dict[str, Any]]:
     """Recovery-capable terminal gate for the worktree's completed return."""
     root = _resolved_directory(Path(workspace_root), label="workspace root")

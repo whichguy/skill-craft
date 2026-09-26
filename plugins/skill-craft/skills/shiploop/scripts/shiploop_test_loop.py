@@ -33,20 +33,23 @@ from typing import Any, Callable, Dict, List, Mapping, Optional, Tuple
 import shiploop_lint as lint
 import shiploop_navigator_v3_prompts as guidance3
 import shiploop_quality as quality
+import shiploop_stage_spec as stage_spec
 import shiploop_store as store
 import shiploop_test_counts as counts
 
-STAGES = ("test-green", "regression")
+STAGES = stage_spec.with_complete_run("test-loop")
 # The expected-RED control: ShipLoop runs the focused commands and expects a test failure.
-RED_STAGE = "test-red"
+RED_STAGE, = stage_spec.with_complete_run("test-red")
 # Stages that can edit code after the test loops: on done ShipLoop reruns every
 # recorded command (no loop).
-RERUN_STAGES = ("test-refine", "static-checks", "integration-verify")
+RERUN_STAGES = stage_spec.with_complete_run("test-rerun")
 VERIFY_STAGES = STAGES + RERUN_STAGES
-# Refused command runs per action before only blocked is accepted.
-MAX_REFUSED_RUNS = 3
-SUITES = ("focused", "regression")
-COMMAND_KEYS = frozenset({"command", "suite", "ids", "min_tests"})
+# Refused command runs per action before done is no longer accepted (then revise or blocked).
+MAX_REFUSED_RUNS = 7
+# focused and regression commands run tests; a check (for example a search that a
+# document names a required term) is judged by its exit code alone.
+SUITES = ("focused", "regression", "check")
+COMMAND_KEYS = frozenset({"command", "suite", "ids", "min_tests", "criteria"})
 # Statuses that count as passing.  ``passed-uncounted`` (exit 0, output not
 # recognised) is allowed only for a regression command without ids or min_tests.
 PASSING = ("passed", "passed-uncounted")
@@ -71,10 +74,6 @@ def contract_path(action: str) -> str:
     return "tests/" + action + "-contract.json"
 
 
-def latest_path(action: str) -> str:
-    return "tests/" + action + "-latest.json"
-
-
 def terminal_path(action: str) -> str:
     return "tests/" + action + "-terminal.json"
 
@@ -86,18 +85,22 @@ def verify_path(action: str, number: int) -> str:
 def normalise_commands(value: Any) -> List[Dict[str, Any]]:
     """Validate a step plan's ``test_commands``.
 
-    Each entry is ``{"command": str, "suite": focused|regression}`` plus optional
-    ``ids`` (test IDs the command must visibly run) and ``min_tests`` (int >= 1).
+    Each entry is ``{"command": str, "suite": focused|regression|check}`` plus
+    optional ``ids`` (test IDs the command must visibly run), ``min_tests``
+    (int >= 1) and ``criteria`` (the step plan's criterion IDs it confirms).  A
+    ``check`` is judged by its exit code, so it takes no ids or min_tests.
     """
     _need(isinstance(value, list), "test_commands must be a list")
     commands: List[Dict[str, Any]] = []
     for entry in value:
         _need(isinstance(entry, Mapping) and {"command", "suite"} <= set(entry) <= COMMAND_KEYS,
-              "each test command has command and suite, and optionally ids and min_tests")
+              "each test command has command and suite, and optionally ids, min_tests and criteria")
         command = entry.get("command")
         _need(isinstance(command, str) and command.strip() != "" and "\n" not in command
               and "\0" not in command, "a test command must be one nonblank line")
-        _need(entry.get("suite") in SUITES, "a test command's suite must be focused or regression")
+        _need(entry.get("suite") in SUITES, "a test command's suite must be focused, regression or check")
+        _need(entry.get("suite") != "check" or not {"ids", "min_tests"} & set(entry),
+              "a check command is judged by its exit code and takes no ids or min_tests")
         row: Dict[str, Any] = {"command": command.strip(), "suite": str(entry["suite"])}
         if "ids" in entry:
             ids = entry["ids"]
@@ -112,6 +115,13 @@ def normalise_commands(value: Any) -> List[Dict[str, Any]]:
             _need(isinstance(minimum, int) and not isinstance(minimum, bool) and minimum >= 1,
                   "a test command's min_tests must be an integer of at least 1")
             row["min_tests"] = minimum
+        if "criteria" in entry:
+            criteria = entry["criteria"]
+            _need(isinstance(criteria, list) and criteria and all(
+                isinstance(item, str) and item.strip() and not any(ch.isspace() for ch in item.strip())
+                for item in criteria) and len(set(criteria)) == len(criteria),
+                "a test command's criteria must be a nonempty list of distinct criterion IDs")
+            row["criteria"] = [item.strip() for item in criteria]
         commands.append(row)
     return commands
 
@@ -127,12 +137,34 @@ def _step_plan(state: Mapping[str, Any], work_item: str) -> Tuple[Optional[str],
     return None, {}
 
 
+# OUTER stages whose done reruns commands another stage recorded:
+# stage -> (recording stage, result field).
+OUTER_SOURCES = {
+    "system-test": ("system-test-author", "system_commands"),
+    "release-verify": ("release-plan", "consumer_checks"),
+}
+
+
+def _latest_root_result(state: Mapping[str, Any], stage: str) -> Mapping[str, Any]:
+    """The latest accepted done result of a root stage, or an empty mapping."""
+    for row in reversed(state.get("history", ())):
+        if row.get("stage") == stage and row.get("workitem") is None and row.get("outcome") == "done":
+            result = state.get("accepted", {}).get(row.get("action"))
+            return result if isinstance(result, Mapping) else {}
+    return {}
+
+
 def stage_commands(state: Mapping[str, Any], stage: str, work_item: str) -> Tuple[List[Dict[str, str]], str]:
     """This stage's commands and, when there are none, why.
 
     test-green and test-red run the focused commands; every other stage runs
     every command.
     """
+    if stage in OUTER_SOURCES:
+        source, field = OUTER_SOURCES[stage]
+        result = _latest_root_result(state, source)
+        commands = [dict(row) for row in result.get(field) or ()]
+        return commands, ("" if commands else str(result.get(field + "_na") or ""))
     _action, result = _step_plan(state, work_item)
     if "test_commands" not in result:
         return [], ""
@@ -185,7 +217,9 @@ def build_contract(root: Path, state: Mapping[str, Any], work_item: str, action:
                           "callbacks belong to the parent; the loop never calls them."),
             "environment": "Run every command from " + repo + ".",
             "resources": [{"purpose": "accepted step plan: test_commands and completion criteria",
-                           "locator": str(root / "results" / (str(step_action) + ".md"))}],
+                           "locator": str(root / "results" / (str(step_action) + ".md"))},
+                          {"purpose": "this action's pass log: append what each iteration checked and what is left",
+                           "locator": str(root / "notes" / (action + ".md"))}],
         },
     }
 
@@ -206,15 +240,15 @@ def render_lines(root: Path, state: Mapping[str, Any], work_item: str, action: s
     """Read-only packet lines: runtime, start command, packet paths and the command list."""
     root = Path(root)
     commands, reason = stage_commands(state, stage, work_item)
-    lines = ["", "Test loop (bound Until Loop; the loop script counts iterations, at most "
-             + str(guidance3.TEST_LOOP_LIMIT) + "):"]
+    lines = ["", "Test loop (bound Until Loop; the loop script counts iterations; there is no "
+             "iteration limit):"]
     if not commands:
         if reason:
             lines.append("No command to run: " + reason.rstrip(".") + ". Report done with that reason; there is no "
                          "loop to run.")
         else:
-            lines.append("The accepted step plan recorded no test_commands. Report outcome blocked so "
-                         "the step plan can be revised.")
+            lines.append("The accepted step plan recorded no test_commands. Report outcome revise so "
+                         "the step plan records them.")
         return lines
     try:
         runtime = quality._runtime(state)
@@ -227,10 +261,10 @@ def render_lines(root: Path, state: Mapping[str, Any], work_item: str, action: s
         lines += [
             "Bound Until Loop card (open it if its rules are not already in your context): " + runtime["runtime_card"],
             "Loop contract (written by ShipLoop; pass it unchanged): " + str(contract),
-            "Start: " + shlex.join([sys.executable, runtime["runtime_cli"], "start"]) + " < "
+            "Start: " + shlex.join([sys.executable, runtime["runtime_cli"], "start",
+                                     "--receipt", str(root / terminal_path(action))]) + " < "
             + shlex.quote(str(contract)),
-            "Save every returned packet (stdout) to: " + str(root / latest_path(action)),
-            "Save the terminal packet (stdout) to: " + str(root / terminal_path(action)),
+            quality.RECEIPT_LINE + str(root / terminal_path(action)),
         ]
         if not contract.is_file():
             lines.append("The loop contract is missing; report outcome blocked naming this path.")
@@ -248,7 +282,7 @@ def rerun_lines(state: Mapping[str, Any], work_item: str, stage: str) -> List[st
         return []
     return (["", "Test rerun: on done, ShipLoop runs every test command the step plan recorded from "
              + str(state["repo"]) + " and refuses unless each passes (at most " + str(MAX_REFUSED_RUNS)
-             + " refused runs, then only blocked):"]
+             + " refused runs, then the item goes back to its step plan with revise):"]
             + ["  " + str(number) + ". " + _listing(row) for number, row in enumerate(commands, 1)]
             + [COUNT_RULE])
 
@@ -285,15 +319,17 @@ def check_terminal(root: Path, state: Mapping[str, Any], work_item: str, action:
     check; the command rerun still applies to ``done``.
     """
     outcome = result.get("outcome") if isinstance(result, Mapping) else None
-    _need(outcome in ("done", "blocked"),
-          stage + " accepts only done or blocked; the bound Until Loop repeats the tests, not the graph")
+    _need(outcome in ("done", "revise", "blocked"),
+          stage + " accepts only done, revise or blocked; the bound Until Loop repeats the tests, not the graph")
     if outcome == "blocked":
-        return  # Always accepted: giving up honestly never needs a matching packet.
+        return  # Blocked needs blocked_by (user, access, external), checked by the navigator.
     commands, reason = stage_commands(state, stage, work_item)
     if not commands:
-        _need(outcome == "blocked" or bool(reason),
-              "the accepted step plan recorded no test_commands; report blocked so it can be revised")
+        _need(outcome == "revise" or bool(reason),
+              "the accepted step plan recorded no test_commands; report revise so the step plan records them")
         return
+    if outcome == "revise" and refused_runs(root, action) >= MAX_REFUSED_RUNS:
+        return  # ShipLoop's own runs already failed MAX_REFUSED_RUNS times.
     if not state.get("improve_skill"):
         return
     root = Path(root)
@@ -302,7 +338,7 @@ def check_terminal(root: Path, state: Mapping[str, Any], work_item: str, action:
         return
     try:
         quality.check_loop_packet(path, result, build_contract(root, state, work_item, action, stage),
-                                  guidance3.TEST_LOOP_LIMIT, "test loop", str(root / contract_path(action)))
+                                  "test loop", str(root / contract_path(action)))
     except quality.QualityError as exc:
         raise TestLoopError(str(exc)) from exc
 
@@ -322,6 +358,8 @@ def judge(row: Mapping[str, Any], code: Optional[int], output: str, *, red: bool
     (test-red): ``red`` needs a non-zero exit with at least one failing test (or,
     uncounted, every listed ID shown) and no refusal for zero tests.
     """
+    if row.get("suite") == "check" and not red:
+        return {"counts": None, "ids_missing": [], "status": "passed" if code == 0 else "failed"}
     tally = counts.count(output, code)
     ids = list(row.get("ids") or ())
     names = counts.named(output, ids) if ids else {"shown": [], "missing": []}
@@ -392,6 +430,23 @@ def _explain(run: Mapping[str, Any]) -> str:
     return "exit " + str(run["exit"])
 
 
+def _verify_count(root: Path, action: str) -> int:
+    """How many ShipLoop test-run records this action has."""
+    number = 0
+    while (Path(root) / verify_path(action, number + 1)).exists():
+        number += 1
+    return number
+
+
+def refused_runs(root: Path, action: str) -> int:
+    """How many of this action's ShipLoop test runs were refused."""
+    refused = 0
+    for number in range(1, _verify_count(root, action) + 1):
+        prior = store.read_record(Path(root) / verify_path(action, number))
+        refused += 0 if isinstance(prior, Mapping) and prior.get("passed") else 1
+    return refused
+
+
 def verify(root: Path, state: Mapping[str, Any], work_item: str, action: str, stage: str, *,
            runner: Optional[Runner] = None, env: Optional[Mapping[str, str]] = None,
            clock: Optional[Callable[[], float]] = None,
@@ -412,16 +467,13 @@ def verify(root: Path, state: Mapping[str, Any], work_item: str, action: str, st
     if not commands:
         return {}, ""
     red = stage == RED_STAGE and not red_na
-    refused = 0
-    number = 1
-    while (root / verify_path(action, number)).exists():
-        prior = store.read_record(root / verify_path(action, number))
-        refused += 0 if isinstance(prior, Mapping) and prior.get("passed") else 1
-        number += 1
+    refused = refused_runs(root, action)
+    number = _verify_count(root, action) + 1
     if refused >= MAX_REFUSED_RUNS:
         return {}, ("ShipLoop test run: " + stage + " was refused " + str(refused) + " times; done is no longer "
-                    "accepted for this action. Report outcome blocked, naming the failing command from "
-                    + str(root / verify_path(action, number - 1)) + ", so the step plan can be revised.")
+                    "accepted for this action. Report outcome revise, naming the failing command from "
+                    + str(root / verify_path(action, number - 1)) + ", so the step plan is revised; report "
+                    "blocked only if the user, an access grant or an outside dependency must unblock it.")
     runner = runner or lint.run_argv
     clock = clock or time.monotonic
     repo = Path(str(state["repo"]))
@@ -471,17 +523,16 @@ def verify(root: Path, state: Mapping[str, Any], work_item: str, action: str, st
         tail = (run["stdout"] + "\n" + run["stderr"]).strip().splitlines()[-15:]
         lines += ["    | " + line for line in tail]
     attempts = ("Refused runs for this action: " + str(refused + 1) + " of " + str(MAX_REFUSED_RUNS)
-                + "; after that only blocked is accepted.")
+                + "; after that the item goes back to its step plan (revise).")
     if stage in STAGES:
         lines.append("Fix the code, start the test loop again with the packet's start command (its terminal "
-                     "packet is replaced), then submit done again; or report blocked. " + attempts
+                     "packet is replaced), then submit done again. " + attempts
                      + " Full output: " + str(root / relative) + ".")
     elif red:
-        lines.append("Fix the tests or their setup (not the product code), then submit done again; or report "
-                     "blocked. " + attempts + " Full output: " + str(root / relative) + ".")
+        lines.append("Fix the tests or their setup (not the product code), then submit done again. " + attempts + " Full output: " + str(root / relative) + ".")
     else:
         lines.append("Fix the code so every command passes (never change a check to get green), then submit "
-                     "done again; or report blocked. " + attempts + " Full output: " + str(root / relative) + ".")
+                     "done again. " + attempts + " Full output: " + str(root / relative) + ".")
     return writes, "\n".join(lines)
 
 
@@ -496,7 +547,6 @@ __all__ = (
     "build_contract",
     "check_terminal",
     "contract_path",
-    "latest_path",
     "judge",
     "normalise_commands",
     "red_lines",
