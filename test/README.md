@@ -8,7 +8,7 @@ passed; offline fixtures do not establish live model or host behavior.
 | Selection | Command | Scope |
 |---|---|---|
 | Focused | `python3 -B test/<name>.test.py` | One module; useful while changing its contract |
-| Quick | `bash test/run-all.sh --group quick [--changed-from REF]` | A fixed light baseline (3 core, 10 ShipLoop boundary suites) plus the light suites matching files changed since REF |
+| Quick | `bash test/run-all.sh --group quick [--changed-from REF]` | A fixed light baseline (3 core, 10 ShipLoop boundary suites) plus the light suites matching files changed since REF, uncommitted and untracked included |
 | Ask-Agent component | `bash test/run-all.sh --group ask-agent` | Supported helper tests and ShipLoop consumers |
 | Composition component | `bash test/run-all.sh --group shiploop-composition` | Chain and Improve integration boundaries |
 | Full hermetic | `bash test/run-all.sh` | Core, all ShipLoop suites and the source E2E apparatus |

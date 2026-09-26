@@ -186,13 +186,34 @@ class TestGroupTests(unittest.TestCase):
                                  "--changed-from", "HEAD", "--list"],
                                 cwd=ROOT, capture_output=True, text=True, check=False)
         self.assertEqual(listed.returncode, 0, listed.stderr)
+        # A local checkout may carry uncommitted edits, which quick counts.
         self.assertEqual([line.split("\t")[1] for line in listed.stdout.splitlines()],
-                         [suite.id for suite in suite_catalog.quick()])
+                         [suite.id for suite in suite_catalog.quick(run_suites.changed_paths(ROOT, "HEAD"))])
         refused = subprocess.run(["bash", str(ROOT / "test/run-all.sh"), "--group", "core",
                                   "--changed-from", "HEAD", "--list"],
                                  cwd=ROOT, capture_output=True, text=True, check=False)
         self.assertEqual(refused.returncode, 64)
         self.assertIn("--changed-from applies only to --group quick", refused.stderr)
+
+    def test_changed_paths_include_uncommitted_and_untracked_work(self) -> None:
+        with tempfile.TemporaryDirectory() as tmp:
+            repo = Path(tmp)
+            def git(*args: str) -> None:
+                subprocess.run(["git", "-c", "user.name=t", "-c", "user.email=t@t", *args],
+                               cwd=repo, check=True, capture_output=True)
+            git("init", "-q")
+            (repo / "committed.py").write_text("a\n")
+            (repo / "staged.md").write_text("a\n")
+            (repo / ".gitignore").write_text("ignored.log\n")
+            git("add", ".")
+            git("commit", "-q", "-m", "base")
+            (repo / "committed.py").write_text("b\n")
+            (repo / "staged.md").write_text("b\n")
+            git("add", "staged.md")
+            (repo / "new_module.py").write_text("c\n")
+            (repo / "ignored.log").write_text("d\n")
+            self.assertEqual(sorted(run_suites.changed_paths(repo, "HEAD")),
+                             ["committed.py", "new_module.py", "staged.md"])
 
     def test_lpt_shards_are_disjoint_exhaustive_and_catalog_ordered(self) -> None:
         canonical = suite_catalog.SHIPLOOP_SUITES

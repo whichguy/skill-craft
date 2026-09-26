@@ -67,7 +67,8 @@ def _parser() -> UsageParser:
     parser.add_argument("--group", action="append", metavar="GROUP",
                         help="repeatable group; unions are deduplicated in catalog order")
     parser.add_argument("--changed-from", metavar="REF",
-                        help="with --group quick: also run the suites matching files changed since REF")
+                        help="with --group quick: also run the suites matching files changed since REF, "
+                             "including uncommitted and untracked files")
     parser.add_argument("--list", action="store_true", help="list selected catalog entries without executing")
     parser.add_argument("--output", type=Path, help="new external receipt directory")
     return parser
@@ -90,11 +91,18 @@ def parse_args(argv: Sequence[str] | None = None) -> tuple[argparse.Namespace, t
 
 
 def changed_paths(root: Path, ref: str) -> tuple[str, ...]:
-    """Paths changed between REF and HEAD, both sides of a rename included."""
+    """Paths changed since REF in the checkout, both sides of a rename included.
 
-    data = subprocess.check_output(
-        ["git", "diff", "--no-renames", "--name-only", "-z", ref, "HEAD"], cwd=root)
-    return tuple(p.decode("utf-8", "surrogateescape") for p in data.split(b"\0") if p)
+    Uncommitted and untracked files count, so a local run covers the edit being
+    tested; a CI checkout is clean, where this equals REF..HEAD.
+    """
+
+    tracked = subprocess.check_output(
+        ["git", "diff", "--no-renames", "--name-only", "-z", ref], cwd=root)
+    untracked = subprocess.check_output(
+        ["git", "ls-files", "--others", "--exclude-standard", "-z"], cwd=root)
+    names = (p.decode("utf-8", "surrogateescape") for p in (tracked + untracked).split(b"\0") if p)
+    return tuple(dict.fromkeys(names))
 
 
 def _inside(path: Path, possible_parent: Path) -> bool:
@@ -337,7 +345,7 @@ def main(argv: Sequence[str] | None = None) -> int:
         try:
             changed = changed_paths(ROOT, args.changed_from)
         except subprocess.CalledProcessError:
-            _parser().error(f"--changed-from: cannot diff {args.changed_from} against HEAD")
+            _parser().error(f"--changed-from: cannot diff {args.changed_from} against the checkout")
     selected = suite_catalog.select(groups, changed)
     if args.list:
         _print_list(selected)
