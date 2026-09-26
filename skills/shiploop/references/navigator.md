@@ -49,13 +49,16 @@ result, including a justified N/A output. The planning producers (`spec`,
 `release-plan`) and the successful `carry-forward` that leaves no work item
 pending are then followed by the actual Improve skill; every other result is
 accepted on its own checks and the script selects the next producer directly.
-`static-checks` is the one inner stage whose loop the script counts: it runs the
-bound Until Loop with a ShipLoop-authored quality contract, and ShipLoop accepts
-`done` only with a matching terminal packet ([quality loop](../SKILL.md#static-checks-quality-loop)).
+Three inner stages run a loop the script counts, each on the bound Until Loop
+with a ShipLoop-authored contract: `test-green` and `regression` run the
+[test loop](../SKILL.md#test-loop) on the step plan's recorded commands, and
+`static-checks` runs the [quality loop](../SKILL.md#static-checks-quality-loop).
+ShipLoop accepts their `done` only with a matching terminal packet, and for the
+test loops only after it has run every command itself and each exited 0.
 `implement` is accepted as done only through the
-[lint gate](../SKILL.md#script-owned-lint), and the test-running stages carry
-the [pass-or-stop loop](../SKILL.md#tests-pass-or-the-step-stops) in their
-prompts.
+[lint gate](../SKILL.md#script-owned-lint); `implement`, `test-refine` and
+`integration-verify` carry the [pass-or-stop loop](../SKILL.md#tests-pass-or-the-step-stops)
+in their prompts.
 No stage contains a copied Improve policy or independently counts review passes.
 
 ## Whole-run map
@@ -68,10 +71,12 @@ flowchart TD
   end
   prepare --> SW
   subgraph INNER[Inner loop: once per work item, the item record owns the cursor]
-    SW[select-work] --> SP[step-plan ✦] --> TS[test-spec ✦] --> BL[baseline → test-author → test-red]
+    SW[select-work] --> SP[step-plan ✦ records test commands] --> TS[test-spec ✦] --> BL[baseline → test-author → test-red]
     BL --> IM[implement ⛔ lint gate, pass-or-stop]
-    IM --> TG[test-green → test-refine → regression ⟳ pass-or-stop]
-    TG --> DOC[document → skill-assess → skill-validate]
+    IM --> TG[test-green ⟳⛔ test loop, at most 4]
+    TG --> TR[test-refine pass-or-stop]
+    TR --> RG[regression ⟳⛔ test loop, at most 4]
+    RG --> DOC[document → skill-assess → skill-validate]
     DOC --> SC[static-checks ⟳ quality loop, at most 3]
     SC --> VI[verify → integrate → integration-verify ⟳]
     VI --> CF[carry-forward]
@@ -87,18 +92,20 @@ flowchart TD
 ```
 
 ✦ starts an actual Improve child. ⛔ is script-enforced: `implement` is not
-accepted while the lint gate reports an unwaived new finding. ⟳ loops inside the
-stage: the bound Until Loop drives the `static-checks` quality loop, and the
-pass-or-stop prompt loop reruns failing checks until they pass or the step
-stops as `blocked`.
+accepted while the lint gate reports an unwaived new finding, and `test-green`
+or `regression` is not accepted until ShipLoop has run every recorded test
+command itself and each exited 0. ⟳ loops inside the stage: the bound Until Loop
+drives the test loops and the `static-checks` quality loop, and the pass-or-stop
+prompt loop reruns failing checks at `implement`, `test-refine` and
+`integration-verify` until they pass or the step stops as `blocked`.
 
 | | Inner loop | Outer loop |
 | --- | --- | --- |
 | Runs | once per work item, over one shared graph | once, unless `replan` reopens it |
 | Improve children | `step-plan`, `test-spec`, last `carry-forward` | `system-test-author`, `release-plan` |
-| Outcomes | `done`, `repeat`, `blocked` (`static-checks`: `done`, `blocked`) | adds `replan` with new work items |
+| Outcomes | `done`, `repeat`, `blocked` (`test-green`, `regression`, `static-checks`: `done`, `blocked`) | adds `replan` with new work items |
 | Going back | `carry-forward` replaces the future queue | `replan` appends items; after their end review, outer restarts at `system-test-author` |
-| Script-owned checks | lint gate at `implement`, quality-loop terminal packet at `static-checks` | none |
+| Script-owned checks | recorded test commands at `step-plan`; lint gate at `implement`; test-loop terminal packet and ShipLoop's own command run at `test-green` and `regression`; quality-loop terminal packet at `static-checks` | none |
 
 The graph describes order, not a substitute for engineering judgment. The prompt
 does not dictate exact prose, a check-manifest layout, a byte comparison, or a

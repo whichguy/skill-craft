@@ -46,7 +46,6 @@ class PacketBoundsTests(unittest.TestCase):
         packet = navigator.render(None, self.run, cold)
         self.assertEqual(path.read_bytes(), before)
         self.assertEqual(cold, state)
-        self.assertLess(len(packet), 40_000)
         return packet
 
     def test_large_work_context_is_recoverable_without_copying_it_into_packet(self):

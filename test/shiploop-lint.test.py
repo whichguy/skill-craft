@@ -904,6 +904,8 @@ def complete(run: Path, state: dict, result: dict = DONE) -> str:
     stage = nav.current_stage(state)
     if stage == "plan" and result.get("outcome") == "done" and "assumptions" not in result:
         result = dict(result, assumptions=[])
+    if stage == "step-plan" and result.get("outcome") == "done" and "test_commands" not in result:
+        result = dict(result, test_commands=[], test_commands_na="Synthetic fixture; no test commands.")
     inbox = run / "inbox"
     inbox.mkdir(exist_ok=True)
     path = inbox / (action + ".md")
@@ -1314,11 +1316,13 @@ class GateTests(Fixture):
 class PromptContractTests(unittest.TestCase):
     def test_test_stages_carry_the_pass_or_stop_loop(self):
         import shiploop_navigator_v3_prompts as guidance
-        for stage in ("test-green", "test-refine", "regression", "integration-verify"):
+        for stage in ("test-refine", "integration-verify"):
             text = guidance.prompt(stage, delegation=guidance.INLINE)
             self.assertIn("Pass-or-stop loop: this stage is done only when every check it runs passes", text)
             self.assertIn("the same check\nstill failing after 3 genuine fix attempts → outcome blocked", text)
-        self.assertNotIn("Pass-or-stop loop", guidance.prompt("verify", delegation=guidance.INLINE))
+        # test-green and regression run the script-enforced test loop instead.
+        for stage in ("verify", "test-green", "regression"):
+            self.assertNotIn("Pass-or-stop loop", guidance.prompt(stage, delegation=guidance.INLINE))
         implement = guidance.prompt("implement", delegation=guidance.INLINE)
         self.assertIn("Lint every step: after a step's last edit, run the packet's printed lint command", implement)
         self.assertIn("`lint_waivers`", implement)

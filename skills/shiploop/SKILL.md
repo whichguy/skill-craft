@@ -352,17 +352,44 @@ when new findings remain or a file is uncovered, and 3 when the pass could not
 run; ShipLoop never gates on that exit code (the implement gate runs its own
 pass).
 
+### Test loop
+
+`step-plan` records the work item's test command list in its result:
+`"test_commands": [{"command": "<shell command>", "suite": "focused" | "regression"}]`.
+ShipLoop refuses a done `step-plan` without it; an empty list needs
+`test_commands_na` with the reason. `test-green` loops on the focused commands
+and `regression` on every command, each on the Until Loop bound to the selected
+Improve card:
+
+1. On the `complete` that enters the stage, ShipLoop writes the loop contract
+   `tests/<action>-contract.json`, whose work embeds the exact command list.
+2. The packet prints the start command, the packet paths and the list. Each
+   iteration runs every command, finds the cause of each failure, fixes the
+   product code (never a check to get green) and reruns the whole list after
+   its last edit. The loop ends after an iteration in which every command
+   exited 0 and nothing changed; iteration 4 that still fails stops it.
+3. The stage accepts only `done` or `blocked`. `done` needs the saved terminal
+   packet `tests/<action>-terminal.json`, checked against the contract rebuilt
+   from run state. Then ShipLoop runs every listed command itself with
+   `/bin/sh -c` from the repository (at most 10 minutes each, 30 per stage),
+   records the output in `tests/<action>-verify<N>.md`, and refuses `done`
+   unless each exits 0. The refusal prints each failing command and the end of
+   its output.
+
+These are commands the step plan recorded; ShipLoop runs them outside the host's
+permission prompts, and the step plan's Improve review is their check. With an
+empty list the stage has no loop and accepts `done` with the recorded reason.
+
 ### Tests pass or the step stops
 
-`implement`, `test-green`, `test-refine`, `regression` and `integration-verify`
-share one loop in their prompts: run the checks; when one fails, diagnose it,
-fix the product code and rerun; change a check only for an independent reason
-that the check itself is wrong. Only a final full pass after the last edit
-counts. The step ends on exactly one of: every check passes (`done`); a check
-proven unachievable (`blocked`, for plan revision); or the same check still
-failing after 3 genuine fix attempts (`blocked`). A red check never leaves the
-step as `done`. ShipLoop cannot run the tests itself, so this is prompt duty;
-the script-owned parts are the lint gate and the static-checks quality loop.
+`implement`, `test-refine` and `integration-verify` carry the same loop in their
+prompts: run the checks; when one fails, diagnose it, fix the product code and
+rerun; change a check only for an independent reason that the check itself is
+wrong. Only a final full pass after the last edit counts. The step ends on
+exactly one of: every check passes (`done`); a check proven unachievable
+(`blocked`, for plan revision); or the same check still failing after 3 genuine
+fix attempts (`blocked`). At these stages it is prompt duty; `test-green` and
+`regression` run the script-enforced [test loop](#test-loop).
 
 ## Durable handoff
 
@@ -459,8 +486,9 @@ question about the loop is not a stop: answer it and continue the packet.
    pass after the last edit, and stop only when all are confirmed, one is proven
    unachievable (route it to planning), or the same check still fails after 3
    genuine fix attempts ([step exit criteria](references/parallel-chain.md#step-exit-criteria)).
-   At `static-checks`, run the packet's [quality loop](#static-checks-quality-loop)
-   on the bound Until Loop and save its terminal packet where the packet says.
+   At `test-green` and `regression`, run the packet's [test loop](#test-loop),
+   and at `static-checks` its [quality loop](#static-checks-quality-loop), on
+   the bound Until Loop, and save each terminal packet where the packet says.
    A ShipLoop lint block printed after a `static-checks` or `verify` callback is
    supporting output, not exit-criteria evidence, and never replaces the checks
    you select ([script-owned lint](#script-owned-lint)).

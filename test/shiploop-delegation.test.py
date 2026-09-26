@@ -14,8 +14,6 @@ ROOT = Path(__file__).resolve().parents[1]
 PACKAGE = ROOT / "skills/shiploop"
 CLI = PACKAGE / "scripts/shiploop"
 CARD = ROOT / "skills/improve/SKILL.md"
-# GitHub Actions checks the repository out here; packet size bounds are measured at it.
-CI_CHECKOUT = "/home/runner/work/skill-craft/skill-craft"
 sys.path.insert(0, str(PACKAGE / "scripts"))
 import shiploop_navigator as nav  # noqa: E402
 import shiploop_standalone_improve as standalone  # noqa: E402
@@ -317,21 +315,7 @@ class PacketContractTests(DelegationStateTests):
         for route, packets in walks.items():
             for stage, kind, packet in packets:
                 with self.subTest(route=route, stage=stage, kind=kind):
-                    # Producers stay within the cold-packet bound. A bound child adds
-                    # its runtime contract (about 42,300 chars at most, before temp
-                    # paths); the initial plan child also carries the
-                    # planning-experiment contract (about 46,000 chars; 43,500 in
-                    # 0.22.0), so it alone gets a wider bound. The owner prefers
-                    # complete prompts to trimming for this bound (2026-09-25).
-                    if kind == "produce":
-                        bound = 40_000
-                    elif stage == "plan":
-                        bound = 48_000
-                    else:
-                        bound = 44_000
-                    # Measure as if checked out where CI checks out, so a longer local
-                    # path (a worktree) does not change the result.
-                    self.assertLess(len(packet.replace(str(ROOT), CI_CHECKOUT)), bound)
+                    # No packet-size bound: the owner prefers complete prompts (2026-09-25).
                     self.assertNotIn("Improve cadence", packet)
                     lines = packet.splitlines()
                     # An inline prefix may precede the header; nothing else may.

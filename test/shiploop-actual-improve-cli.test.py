@@ -174,6 +174,9 @@ class ImproveCliFixture(unittest.TestCase):
         }
         if stage == "plan":
             self.producer["assumptions"] = []
+        if stage == "step-plan":
+            self.producer["test_commands"] = []
+            self.producer["test_commands_na"] = "Synthetic fixture; no test commands."
         self.input = self.run / "inbox" / (self.action + ".md")
         store.write_record(self.input, self.producer)
         self.invoke(CLI, "complete", "--run-dir", self.run, "--action", self.action, "--result", self.input)

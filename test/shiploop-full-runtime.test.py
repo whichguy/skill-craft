@@ -379,6 +379,10 @@ class FullRuntimeCompositionTests(unittest.TestCase):
             producer.update(payload)
         if stage == "plan" and producer.get("outcome") == "done" and "assumptions" not in producer:
             producer["assumptions"] = []
+        if stage == "step-plan" and producer.get("outcome") == "done" and "test_commands" not in producer:
+            # Real commands: test-green and regression loop on them, then ShipLoop reruns them.
+            producer["test_commands"] = [{"command": "test -d .", "suite": "focused"},
+                                         {"command": "true", "suite": "regression"}]
         result_path = run / "inbox" / f"{action_id}.md"
         _write_record(result_path, producer, "Synthetic ShipLoop producer callback")
         self._run(
@@ -675,7 +679,7 @@ class FullRuntimeCompositionTests(unittest.TestCase):
             }
             if payload:
                 result.update(payload)
-            if stage == "static-checks":
+            if stage in ("static-checks", "test-green", "regression"):
                 result["evidence_refs"] = [self._run_quality_loop(shiploop, run, action_id)]
         if stage == "plan" and result.get("outcome") == "done" and "assumptions" not in result:
             result["assumptions"] = []
@@ -689,6 +693,12 @@ class FullRuntimeCompositionTests(unittest.TestCase):
         result_path = run / "inbox" / f"{action_id}.md"
         _write_record(result_path, result, "Synthetic ShipLoop producer callback")
         self._run(self._script(shiploop), "complete", "--run-dir", run, "--action", action_id, "--result", result_path)
+        if stage in ("test-green", "regression") and result.get("outcome") == "done":
+            # ShipLoop itself ran the stage's commands before accepting done.
+            verified = _read_record(run / "tests" / f"{action_id}-verify1.md")
+            self.assertTrue(verified["passed"])
+            self.assertEqual([row["command"] for row in verified["runs"]],
+                             ["test -d ."] if stage == "test-green" else ["test -d .", "true"])
         new_state = self._state(run)
         self.assertIsNone(new_state["active_improve"])
         context = {"stage": stage, "action": action_id, "run": run, "shiploop": shiploop}
