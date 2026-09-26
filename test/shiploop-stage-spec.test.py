@@ -80,7 +80,8 @@ class StageTableTest(unittest.TestCase):
         self.assertEqual(lint.GATE_STAGE, "implement")
         self.assertEqual(lint.LINT_STAGES, ("static-checks", "verify"))
         self.assertEqual(test_loop.STAGES, ("test-green", "regression"))
-        self.assertEqual(test_loop.RERUN_STAGES, ("test-refine", "static-checks", "integration-verify"))
+        self.assertEqual(test_loop.RERUN_STAGES, ("test-refine", "static-checks", "verify", "integration-verify",
+                                                 "system-test", "release-verify"))
         self.assertEqual(test_loop.RED_STAGE, "test-red")
         self.assertEqual(quality.STAGE, "static-checks")
         self.assertEqual(spec.with_entry_run("lint-base"), ("select-work",))

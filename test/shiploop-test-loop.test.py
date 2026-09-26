@@ -106,7 +106,13 @@ class TestLoopTests(unittest.TestCase):
 
     def drive_to(self, stage: str, *, step_plan: dict | None = None) -> dict:
         """Advance with synthetic results; the step plan records ``step_plan`` (default: COMMANDS)."""
-        recorded = {"test_commands": COMMANDS, "paths": ["a.py"]} if step_plan is None else step_plan
+        recorded = ({"test_commands": [dict(COMMANDS[0], criteria=["C1"]), *COMMANDS[1:]], "paths": ["a.py"],
+                     "criteria": [{"id": "C1", "text": "The item's focused check passes."}]}
+                    if step_plan is None else step_plan)
+        if recorded.get("test_commands") and "criteria" not in recorded:
+            recorded = dict(recorded, test_commands=[dict(recorded["test_commands"][0], criteria=["C1"]),
+                                                     *recorded["test_commands"][1:]],
+                            criteria=[{"id": "C1", "text": "The item's focused check passes."}])
         for _ in range(200):
             state = self.state()
             if state.get("active_improve") is not None:
@@ -120,7 +126,10 @@ class TestLoopTests(unittest.TestCase):
             if current == "step-plan":
                 self.complete(dict(DONE, **recorded))
             elif current == "release-plan":
-                self.complete(dict(DONE, consumer_entry={"how": "run python3 a.py", "sources": ["a.py"]}))
+                self.complete(dict(DONE, consumer_entry={"how": "run python3 a.py", "sources": ["a.py"]},
+                                   consumer_checks=[COMMANDS[1]]))
+            elif current == "system-test-author":
+                self.complete(dict(DONE, system_commands=[COMMANDS[1]]))
             elif current in test_loop.STAGES:
                 self.pass_loop()
             elif current == "static-checks":
@@ -184,9 +193,9 @@ class TestLoopTests(unittest.TestCase):
         self.assert_refused(DONE, "a done step-plan result must list test_commands")
         canonical = nav._canonical_result
         for bad, message in (
-            ([{"command": "pytest", "suite": "unit"}], "suite must be focused or regression"),
+            ([{"command": "pytest", "suite": "unit"}], "suite must be focused, regression or check"),
             ([{"command": "pytest\nrm -rf x", "suite": "focused"}], "one nonblank line"),
-            ([{"command": "pytest"}], "command and suite, and optionally ids and min_tests"),
+            ([{"command": "pytest"}], "command and suite, and optionally ids, min_tests and criteria"),
             ([], "an empty test_commands list needs test_commands_na"),
         ):
             with self.subTest(bad=bad), self.assertRaisesRegex(nav.NavigatorError, message):
@@ -337,7 +346,8 @@ class TestLoopTests(unittest.TestCase):
         self.assert_refused(dict(DONE, consumer_entry={"how": "App Launcher: Fleet command",
                                                        "sources": ["force-app/main/default/tabs/Fleet.tab-meta.xml"]}),
                             "consumer_entry sources do not exist in the repository: force-app/main/default/tabs/")
-        self.complete(dict(DONE, consumer_entry={"how": "run python3 a.py", "sources": ["a.py"]}))
+        self.complete(dict(DONE, consumer_entry={"how": "run python3 a.py", "sources": ["a.py"]},
+                           consumer_checks=[], consumer_checks_na="Synthetic fixture."))
 
     def test_outer_stages_after_a_non_code_replan_are_scoped_to_the_delta(self):
         self.start()
@@ -363,6 +373,7 @@ class TestLoopTests(unittest.TestCase):
         self.start()
         self.drive_to("step-plan")
         self.assert_refused(dict(DONE, test_commands=COMMANDS), "must list paths")
+        self.assert_refused(dict(DONE, test_commands=COMMANDS, paths=["a.py"]), "must list criteria")
         self.assert_refused(dict(DONE, test_commands=COMMANDS, paths=["../x"]), "inside the repository")
 
     def test_without_a_bound_runtime_the_script_still_runs_the_commands(self):

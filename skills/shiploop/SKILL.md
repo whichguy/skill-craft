@@ -461,6 +461,19 @@ These are commands the step plan recorded; ShipLoop runs them outside the host's
 permission prompts, and the step plan's Improve review is their check. With an
 empty list the stage has no loop and accepts `done` with the recorded reason.
 
+### Confirmation is a passing command
+
+A passing test that ShipLoop runs is the only confirmation of a completion
+criterion. `step-plan` lists the item's `criteria` and names, in each test
+command's `criteria`, the ones that command confirms; ShipLoop refuses a step plan
+with an uncovered criterion. Content with no test runner gets a `check` command
+(suite `check`, judged by exit code), for example a `grep` that a README documents a
+flag. `verify` reruns every recorded command. `system-test-author` records
+`system_commands` and `release-plan` records `consumer_checks`; ShipLoop runs them
+when `system-test` and `release-verify` report done and refuses unless each passes.
+An empty list needs its `_na` reason. The run records under `tests/` are the
+evidence; a result's summary is not.
+
 ### Tests pass or the step stops
 
 `implement`, `test-refine` and `integration-verify` carry the same loop in their

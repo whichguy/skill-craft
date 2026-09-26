@@ -46,8 +46,10 @@ RERUN_STAGES = stage_spec.with_complete_run("test-rerun")
 VERIFY_STAGES = STAGES + RERUN_STAGES
 # Refused command runs per action before done is no longer accepted (then revise or blocked).
 MAX_REFUSED_RUNS = 3
-SUITES = ("focused", "regression")
-COMMAND_KEYS = frozenset({"command", "suite", "ids", "min_tests"})
+# focused and regression commands run tests; a check (for example a search that a
+# document names a required term) is judged by its exit code alone.
+SUITES = ("focused", "regression", "check")
+COMMAND_KEYS = frozenset({"command", "suite", "ids", "min_tests", "criteria"})
 # Statuses that count as passing.  ``passed-uncounted`` (exit 0, output not
 # recognised) is allowed only for a regression command without ids or min_tests.
 PASSING = ("passed", "passed-uncounted")
@@ -83,18 +85,22 @@ def verify_path(action: str, number: int) -> str:
 def normalise_commands(value: Any) -> List[Dict[str, Any]]:
     """Validate a step plan's ``test_commands``.
 
-    Each entry is ``{"command": str, "suite": focused|regression}`` plus optional
-    ``ids`` (test IDs the command must visibly run) and ``min_tests`` (int >= 1).
+    Each entry is ``{"command": str, "suite": focused|regression|check}`` plus
+    optional ``ids`` (test IDs the command must visibly run), ``min_tests``
+    (int >= 1) and ``criteria`` (the step plan's criterion IDs it confirms).  A
+    ``check`` is judged by its exit code, so it takes no ids or min_tests.
     """
     _need(isinstance(value, list), "test_commands must be a list")
     commands: List[Dict[str, Any]] = []
     for entry in value:
         _need(isinstance(entry, Mapping) and {"command", "suite"} <= set(entry) <= COMMAND_KEYS,
-              "each test command has command and suite, and optionally ids and min_tests")
+              "each test command has command and suite, and optionally ids, min_tests and criteria")
         command = entry.get("command")
         _need(isinstance(command, str) and command.strip() != "" and "\n" not in command
               and "\0" not in command, "a test command must be one nonblank line")
-        _need(entry.get("suite") in SUITES, "a test command's suite must be focused or regression")
+        _need(entry.get("suite") in SUITES, "a test command's suite must be focused, regression or check")
+        _need(entry.get("suite") != "check" or not {"ids", "min_tests"} & set(entry),
+              "a check command is judged by its exit code and takes no ids or min_tests")
         row: Dict[str, Any] = {"command": command.strip(), "suite": str(entry["suite"])}
         if "ids" in entry:
             ids = entry["ids"]
@@ -109,6 +115,13 @@ def normalise_commands(value: Any) -> List[Dict[str, Any]]:
             _need(isinstance(minimum, int) and not isinstance(minimum, bool) and minimum >= 1,
                   "a test command's min_tests must be an integer of at least 1")
             row["min_tests"] = minimum
+        if "criteria" in entry:
+            criteria = entry["criteria"]
+            _need(isinstance(criteria, list) and criteria and all(
+                isinstance(item, str) and item.strip() and not any(ch.isspace() for ch in item.strip())
+                for item in criteria) and len(set(criteria)) == len(criteria),
+                "a test command's criteria must be a nonempty list of distinct criterion IDs")
+            row["criteria"] = [item.strip() for item in criteria]
         commands.append(row)
     return commands
 
@@ -124,12 +137,34 @@ def _step_plan(state: Mapping[str, Any], work_item: str) -> Tuple[Optional[str],
     return None, {}
 
 
+# OUTER stages whose done reruns commands another stage recorded:
+# stage -> (recording stage, result field).
+OUTER_SOURCES = {
+    "system-test": ("system-test-author", "system_commands"),
+    "release-verify": ("release-plan", "consumer_checks"),
+}
+
+
+def _latest_root_result(state: Mapping[str, Any], stage: str) -> Mapping[str, Any]:
+    """The latest accepted done result of a root stage, or an empty mapping."""
+    for row in reversed(state.get("history", ())):
+        if row.get("stage") == stage and row.get("workitem") is None and row.get("outcome") == "done":
+            result = state.get("accepted", {}).get(row.get("action"))
+            return result if isinstance(result, Mapping) else {}
+    return {}
+
+
 def stage_commands(state: Mapping[str, Any], stage: str, work_item: str) -> Tuple[List[Dict[str, str]], str]:
     """This stage's commands and, when there are none, why.
 
     test-green and test-red run the focused commands; every other stage runs
     every command.
     """
+    if stage in OUTER_SOURCES:
+        source, field = OUTER_SOURCES[stage]
+        result = _latest_root_result(state, source)
+        commands = [dict(row) for row in result.get(field) or ()]
+        return commands, ("" if commands else str(result.get(field + "_na") or ""))
     _action, result = _step_plan(state, work_item)
     if "test_commands" not in result:
         return [], ""
@@ -323,6 +358,8 @@ def judge(row: Mapping[str, Any], code: Optional[int], output: str, *, red: bool
     (test-red): ``red`` needs a non-zero exit with at least one failing test (or,
     uncounted, every listed ID shown) and no refusal for zero tests.
     """
+    if row.get("suite") == "check" and not red:
+        return {"counts": None, "ids_missing": [], "status": "passed" if code == 0 else "failed"}
     tally = counts.count(output, code)
     ids = list(row.get("ids") or ())
     names = counts.named(output, ids) if ids else {"shown": [], "missing": []}

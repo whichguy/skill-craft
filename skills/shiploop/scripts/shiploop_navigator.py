@@ -50,6 +50,7 @@ _STATUSES = frozenset(("active", "paused", "blocked", "halted", "done"))
 _RESULT_KEYS = frozenset((
     "outcome", "summary", "evidence_refs", "work_items", "choices", "delivery_assessment",
     "reconciliation_target", "assumptions", "lint_waivers", "test_commands", "test_commands_na",
+    "criteria", "system_commands", "system_commands_na", "consumer_checks", "consumer_checks_na",
     "blocked_by", "red_na", "awaiting", "paths", "consumer_entry",
 ))
 # A bare "carry on" is not an answer to the question a blocked run is waiting on.
@@ -479,20 +480,24 @@ def _canonical_result(
         result["work_items"] = _normalise_work_items(
             value["work_items"], allow_empty=stage == "carry-forward"
         )
-    if "test_commands" in value or "test_commands_na" in value:
-        _need(stage == "step-plan" and outcome == "done",
-              "test_commands are allowed only on a done step-plan result")
-        _need("test_commands" in value, "test_commands_na needs an empty test_commands list")
+    for field, owner in RECORDED_COMMANDS.items():
+        if field not in value and field + "_na" not in value:
+            continue
+        _need(stage == owner and outcome == "done",
+              f"{field} are allowed only on a done {owner} result")
+        _need(field in value, f"{field}_na needs an empty {field} list")
         try:
-            result["test_commands"] = test_loop.normalise_commands(value["test_commands"])
+            result[field] = test_loop.normalise_commands(value[field])
         except test_loop.TestLoopError as exc:
             raise NavigatorError(str(exc)) from exc
-        if result["test_commands"]:
-            _need("test_commands_na" not in value, "test_commands_na is only for an empty test_commands list")
+        if result[field]:
+            _need(field + "_na" not in value, f"{field}_na is only for an empty {field} list")
         else:
-            _need("test_commands_na" in value,
-                  "an empty test_commands list needs test_commands_na with the reason")
-            result["test_commands_na"] = _text(value["test_commands_na"], "test_commands_na")
+            _need(field + "_na" in value, f"an empty {field} list needs {field}_na with the reason")
+            result[field + "_na"] = _text(value[field + "_na"], field + "_na")
+    if "criteria" in value:
+        _need(stage == "step-plan" and outcome == "done", "criteria are allowed only on a done step-plan result")
+        result["criteria"] = _normalise_criteria(value["criteria"], result.get("test_commands") or [])
     if "awaiting" in value:
         _need(outcome == "blocked", "awaiting is allowed only on a blocked result")
         result["awaiting"] = _normalise_awaiting(value["awaiting"])
@@ -1146,6 +1151,53 @@ def _planning_sources_current(state: Mapping[str, Any]) -> None:
           "prepare requires current projected planning sources: " + ", ".join(missing))
 
 
+# Command lists a stage records for a later stage that ShipLoop runs itself:
+# field -> the stage that records it.
+RECORDED_COMMANDS = {
+    "test_commands": "step-plan",
+    "system_commands": "system-test-author",
+    "consumer_checks": "release-plan",
+}
+
+
+def _normalise_criteria(value: Any, commands: list) -> list[dict[str, str]]:
+    """A step plan's completion criteria; each must be confirmed by a recorded command.
+
+    ``[{"id": "C1", "text": "..."}]``.  Every criterion ID must be named by at
+    least one test command's ``criteria``, and every such name must be a listed
+    criterion: a passing command ShipLoop runs is the only confirmation.
+    """
+    _need(isinstance(value, list) and value, "criteria must be a nonempty list")
+    rows = []
+    for entry in value:
+        _need(isinstance(entry, Mapping) and set(entry) == {"id", "text"},
+              "each criterion is {\"id\": \"C1\", \"text\": \"...\"}")
+        criterion_id = _text(entry["id"], "criterion id")
+        _need(not any(ch.isspace() for ch in criterion_id), "a criterion id has no spaces")
+        rows.append({"id": criterion_id, "text": _text(entry["text"], "criterion text")})
+    ids = [row["id"] for row in rows]
+    _need(len(set(ids)) == len(ids), "criterion ids must be unique")
+    named = {name for command in commands for name in command.get("criteria", ())}
+    unknown = sorted(named - set(ids))
+    _need(not unknown, "test_commands name criteria that are not listed: " + ", ".join(unknown))
+    uncovered = [criterion for criterion in ids if criterion not in named]
+    _need(not uncovered, "every criterion needs a test command that confirms it (a check command is enough "
+          "for documents or other non-test content); uncovered: " + ", ".join(uncovered))
+    return rows
+
+
+def _check_submitted_recorded_commands(stage: str, result: Any) -> None:
+    """Refuse a done system-test-author or release-plan result without the commands ShipLoop will run."""
+    if not isinstance(result, Mapping) or result.get("outcome") != "done":
+        return
+    for field in ("system_commands", "consumer_checks"):
+        if stage == RECORDED_COMMANDS[field]:
+            _need(field in result, f"a done {stage} result must list {field}: [{{\"command\": \"<shell command>\", "
+                  f"\"suite\": \"focused\" | \"regression\" | \"check\"}}] that ShipLoop runs at "
+                  + ("system-test" if field == "system_commands" else "release-verify")
+                  + f", or an empty list with {field}_na giving the reason")
+
+
 def _check_submitted_test_commands(stage: str, result: Any) -> None:
     """Refuse a submitted done step-plan result without its test command list.
 
@@ -1166,6 +1218,10 @@ def _check_submitted_test_commands(stage: str, result: Any) -> None:
         item_scope.normalise_paths(result["paths"])
     except item_scope.ItemScopeError as exc:
         raise NavigatorError(str(exc)) from exc
+    if result.get("test_commands"):
+        _need("criteria" in result,
+              "a done step-plan result must list criteria: [{\"id\": \"C1\", \"text\": \"...\"}], each named by "
+              "at least one test command's criteria list; ShipLoop runs those commands to confirm them")
 
 
 def _check_submitted_consumer_entry(repo: str, stage: str, result: Any) -> None:
@@ -1883,8 +1939,14 @@ def _result_template(state: Mapping[str, Any], stage: str) -> str:
         result["work_items"] = [{"id": "W1", "title": "...", "context": "..."}]
     if stage == "step-plan":
         result["paths"] = ["<repository-relative file or glob>"]
-        result["test_commands"] = [{"command": "...", "suite": "focused", "ids": ["TC-1"]},
+        result["criteria"] = [{"id": "C1", "text": "..."}, {"id": "C2", "text": "README documents ..."}]
+        result["test_commands"] = [{"command": "...", "suite": "focused", "ids": ["TC-1"], "criteria": ["C1"]},
+                                   {"command": "grep -q '...' README.md", "suite": "check", "criteria": ["C2"]},
                                    {"command": "...", "suite": "regression"}]
+    if stage == "system-test-author":
+        result["system_commands"] = [{"command": "...", "suite": "focused", "ids": ["ST-1"]}]
+    if stage == "release-plan":
+        result["consumer_checks"] = [{"command": "...", "suite": "check"}]
     if stage in assumptions.STAGES:
         result["assumptions"] = [
             {"id": "A1", "assumption": "...", "disposition": "evidenced",
@@ -3401,6 +3463,8 @@ def dispatch(core: Any, root: Path, state: Mapping[str, Any], args: Any,
                     _check_submitted_consumer_entry(
                         state["repo"], child["stage"],
                         child["seed_result"] if final_result is None else final_result)
+                    _check_submitted_recorded_commands(
+                        child["stage"], child["seed_result"] if final_result is None else final_result)
                     _knowledge_gate(state, child["stage"],
                                     child["seed_result"] if final_result is None else final_result)
                     _improve_change_gate(root, state, action_id, child, receipt)
@@ -3466,6 +3530,7 @@ def dispatch(core: Any, root: Path, state: Mapping[str, Any], args: Any,
             _check_submitted_assumptions(state, current_stage(state), submitted)
             _check_submitted_test_commands(current_stage(state), submitted)
             _check_submitted_consumer_entry(state["repo"], current_stage(state), submitted)
+            _check_submitted_recorded_commands(current_stage(state), submitted)
             _knowledge_gate(state, current_stage(state), submitted)
             # Lint first, so the tests run on any code the lint gate auto-fixed.
             if cursor_stage in lint.GATE_STAGES:
