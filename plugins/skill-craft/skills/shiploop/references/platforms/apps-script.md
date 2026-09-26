@@ -34,3 +34,24 @@ header name, not position, and add a column through the same header change the
 readers expect. Properties are small string key-value stores scoped to the
 script, user or document; choose the scope deliberately, prefix the keys, and
 keep large or tabular data out of them.
+
+## Projects deployed with mcp-gas-deploy
+
+A project deployed with mcp-gas-deploy carries a vendored layer. `require.gs`
+loads modules declared as `_main(module, exports)` with `__defineModule__`;
+`module.exports.__events__` routes `doGet`, `doPost` and triggers to module
+handlers that pass on requests they do not own; pages include
+`common-js/gas_client` and call the server as `srv.<module>.<fn>()`; and
+`ConfigManager` wraps script, user and document properties. New code follows
+these forms.
+
+The `srv` proxy is not a trust boundary. It sends a client-built dispatch
+expression to the top-level `apiExec`, which runs it with `new Function`, so
+anyone who can open the web app can run any server code as the identity the
+deployment executes as, including reading every stored game or record. Checks
+inside module functions do not stop a caller who skips them. When the product
+must keep information from a user or enforce per-user authority, the plan names
+how callers are kept from running arbitrary code and a probe that sends a raw
+`apiExec` call as an ordinary user and must fail to read hidden data. If the
+plan cannot close it, report that requirement blocked instead of planning
+around it.
