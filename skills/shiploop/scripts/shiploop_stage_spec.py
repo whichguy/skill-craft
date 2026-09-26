@@ -26,6 +26,8 @@ BLOCKS = frozenset({
     "reconciliation",          # selected-case reconciliation
     "code-craft",              # the Code craft rubric
     "pass-or-stop",            # the prompt-only pass-or-stop loop
+    "interaction-design",      # actors, channels, events and UI planning
+    "work-items",              # how a plan or carry-forward records work-item context
 })
 
 # Assistive tool runs the script performs around a stage.
@@ -126,7 +128,7 @@ _ROWS = (
         deploy="Find how a change reaches its consumer, and whether returning to the source branch triggers CI or a deploy.",
         tools="Record the linters, formatters, type checkers and test runners the repository configures.",
         reads=("intake",),
-        blocks=frozenset({"environment-discovery"}),
+        blocks=frozenset({"environment-discovery", "interaction-design"}),
     ),
     Stage(
         "research", "prelude",
@@ -138,7 +140,7 @@ _ROWS = (
         develop="Prefer reuse: map each need to an existing library, service or skill where one fits.",
         deploy="Confirm access to each delivery target early with a safe, non-mutating probe.",
         reads=("intake", "discovery"),
-        blocks=frozenset({"environment-discovery"}),
+        blocks=frozenset({"environment-discovery", "interaction-design"}),
     ),
     Stage(
         "spec", "prelude",
@@ -154,7 +156,7 @@ _ROWS = (
         deploy="Name the consumer surface where each criterion must be observed.",
         improve="always",
         reads=("intake", "discovery", "research"),
-        blocks=frozenset({"backchain"}),
+        blocks=frozenset({"backchain", "interaction-design"}),
     ),
     Stage(
         "test-strategy", "prelude",
@@ -184,7 +186,7 @@ _ROWS = (
         deploy="Include environment preparation and delivery work; ask for delivery authority at the first concrete boundary.",
         improve="always",
         reads=("intake", "discovery", "research", "spec", "test-strategy"),
-        blocks=frozenset({"test-facility", "backchain"}),
+        blocks=frozenset({"test-facility", "backchain", "interaction-design", "work-items"}),
     ),
     Stage(
         "prepare", "prelude",
@@ -226,7 +228,7 @@ _ROWS = (
         tools="Name the linters and type checks that cover the changed files.",
         improve="always",
         reads=("spec", "test-strategy", "plan", "prepare"),
-        blocks=frozenset({"test-facility", "test-decision", "backchain", "code-craft"}),
+        blocks=frozenset({"test-facility", "test-decision", "backchain", "interaction-design"}),
     ),
     Stage(
         "test-spec", "inner",
@@ -238,7 +240,7 @@ _ROWS = (
         test="Specify cases before code: positive, failure and boundary.",
         improve="always",
         reads=("spec", "test-strategy", "plan", "item:step-plan"),
-        blocks=frozenset({"test-facility", "test-decision", "code-craft"}),
+        blocks=frozenset({"test-facility", "test-decision"}),
     ),
     Stage(
         "baseline", "inner",
@@ -428,7 +430,7 @@ _ROWS = (
         edits=frozenset({"docs"}),
         improve="last-item",
         reads=("spec", "plan", "item:integration-verify"),
-        blocks=frozenset({"test-facility", "backchain"}),
+        blocks=frozenset({"test-facility", "backchain", "work-items"}),
     ),
     # ------------------------------------------------------------------ outer
     Stage(

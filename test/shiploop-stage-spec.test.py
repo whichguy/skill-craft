@@ -64,9 +64,14 @@ class StageTableTest(unittest.TestCase):
             "spec", "step-plan", "carry-forward", "product-acceptance"}))
         self.assertEqual(prompts.RECONCILIATION_STAGES, frozenset({
             "verify", "integration-verify", "system-test", "product-acceptance", "release-verify", "handoff"}))
+        # Code craft goes where code or tests are written or reviewed, not to
+        # the planning stages step-plan and test-spec.
         self.assertEqual(prompts.IMPLEMENTATION_STAGES, frozenset({
-            "step-plan", "test-spec", "test-author", "test-red", "implement", "test-green", "test-refine",
+            "test-author", "test-red", "implement", "test-green", "test-refine",
             "regression", "document", "static-checks", "verify", "integrate", "integration-verify"}))
+        self.assertEqual(spec.with_block("interaction-design"),
+                         frozenset({"discovery", "research", "spec", "plan", "step-plan"}))
+        self.assertEqual(spec.with_block("work-items"), frozenset({"plan", "carry-forward"}))
         self.assertEqual(prompts.PASS_OR_STOP_STAGES, frozenset({"test-refine", "integration-verify"}))
         self.assertEqual(set(prompts.ENVIRONMENT_DISCOVERY_REQUIREMENTS), {"discovery", "research"})
 

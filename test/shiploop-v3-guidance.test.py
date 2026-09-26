@@ -1419,8 +1419,12 @@ class V3GuidanceTests(unittest.TestCase):
         ):
             self.assertIn(clause, facility_handoff)
         for stage in TEST_FACILITY_STAGES:
-            self.assertIn(prompts.TEST_FACILITY_HANDOFF, prompts.prompt(stage))
+            text = prompts.prompt(stage)
+            self.assertIn(prompts.TEST_FACILITY_HANDOFF.split("Carry relevant")[0], text)
             self.assertIn(prompts.TEST_FACILITY_HANDOFF, prompts.improve_prompt(stage))
+            # Only stages that start an Improve child are told to carry locators into it.
+            has_child = stage in prompts.PLANNING_REVIEW_STAGES or stage == "carry-forward"
+            self.assertEqual("Improve child's context/notes" in text, has_child, stage)
         self.assertIn(
             "A missing test facility is a prerequisite gap, not meaningful RED.",
             normalized(prompts.prompt("test-red")),

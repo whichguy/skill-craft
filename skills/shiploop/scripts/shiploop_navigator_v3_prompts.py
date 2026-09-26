@@ -459,6 +459,26 @@ Later clarifications must be actual user instructions for this same request with
 their durable user-source/decision basis; an unverified host summary is not an
 instruction. Use the active correction/revision route for affected frozen contracts.
 
+Return the packet's concise producer result with a truthful outcome, summary,
+and useful evidence locators. For relevant product work, include the selected
+maintained requirement sections and test/evidence locators in the result's
+existing evidence_refs so the next Improve packet can recover them. If a required
+source is missing, report the gap rather than inventing a locator or omitting it.
+A justified N/A is still an output that states
+what was assessed and why it does not apply.  Do not embed an Improve review
+campaign in this result. Only planning results (spec, test-strategy, plan,
+step-plan, test-spec, system-test-author, release-plan) and the carry-forward that
+leaves no work item pending get an actual Improve-skill handoff; every other result
+is accepted on this step's own checks and the graph advances directly. Run only the checks this step's change needs. When this step changes no
+product file, its check is the named command, its exit code and its required output
+substrings: record them, cite the earlier accepted stage that ran the same command,
+and do not reread history to repeat it.
+"""
+
+
+# Stage-specific paragraphs, carried only by the stages the stage table names
+# (blocks "interaction-design" and "work-items").
+INTERACTION_DESIGN = """\
 During discovery, research, spec development, global planning and step planning,
 use the packet's Interaction design guide and its incoming-events, UI-specific planning
 and review sections as applicable. Identify actors, channels, incoming/outgoing events,
@@ -470,30 +490,14 @@ and deployment fit. Prefer existing capabilities; no UI does not skip applicable
 machine interactions. Put exact relevant source/section locators and short decisions
 in each affected work-item context and evidence_refs, including planned check locators,
 for cold recovery and the normal Improve handoff; do not start a nested review.
+"""
 
+WORK_ITEM_CONTEXT = """\
 Where a plan creates or revises work
 items, retain only the relevant compact locator, decision, rationale, scope, and
 revalidation condition in existing plan notes and that item's `context`; retain
 the supporting source locator in the ordinary `evidence_refs`. Do not copy source
 transcripts, invent a decision ledger, or treat a context summary as proof.
-
-Return the packet's concise producer result with a truthful outcome, summary,
-and useful evidence locators. For relevant product work, include the selected
-maintained requirement sections and test/evidence locators in the result's
-existing evidence_refs so the next Improve packet can recover them. If a required
-source is missing, report the gap rather than inventing a locator or omitting it.
-A justified N/A is still an output that states
-what was assessed and why it does not apply.  Do not embed an Improve review
-campaign in this result. Only planning results (spec, test-strategy, plan,
-step-plan, test-spec, system-test-author, release-plan) and the carry-forward that
-leaves no work item pending get an actual Improve-skill handoff; every other result
-is accepted on this step's own checks and the graph advances directly. Where this
-guidance mentions this action's Improve checkpoint, handoff or review at another
-stage, keep that evidence in evidence_refs for the single end-of-work Improve
-instead. Run only the checks this step's change needs. When this step changes no
-product file, its check is the named command, its exit code and its required output
-substrings: record them, cite the earlier accepted stage that ran the same command,
-and do not reread history to repeat it.
 """
 
 
@@ -1301,7 +1305,7 @@ accepts the step and removes its worktree. Retain conflicts and cleanup blockers
 never repeat accepted work because removal failed. Keep observable combined status; only
 accepted steps are done. Continue until every required step is accepted and the
 combined return is verified, or retain an explicit incomplete blocker. Finish
-before this action's normal completion callback and Improve checkpoint.
+before this action's normal completion callback.
 On the initial frontier and every returned event, claim and start every listed
 candidate that is actually safe up to the packet's available capacity. Refresh
 immediately after each callback. Do not wait on a native reconciliation,
@@ -1608,7 +1612,7 @@ or promotion simply to complete the graph.
 Use Release operation guidance: distinguish accepted/running from terminal and
 verified; retain partial receipts and reconcile with supported provider lookup,
 retry, parameter-binding, and conditional-mutation semantics before proceeding.
-Check operation postconditions here, then return through this stage's Improve.
+Check operation postconditions here before completing this stage.
 The script-selected release-verify owns final consumer behavior checks afterward.
 """,
     "release-verify": """\
@@ -1899,7 +1903,7 @@ accepts the step and removes its worktree. Retain conflicts and cleanup blockers
 never repeat accepted work because removal failed. Keep observable combined status; only
 accepted steps are done. Continue until every required step is accepted and the
 combined return is verified, or retain an explicit incomplete blocker. Finish
-before this action's normal completion callback and Improve checkpoint.
+before this action's normal completion callback.
 On the initial frontier and every returned event, claim and start every listed
 candidate that is actually safe up to the packet's available capacity. Refresh
 immediately after each callback. Do not wait on a native reconciliation,
@@ -1980,15 +1984,23 @@ def prompt(stage: str, *, delegation: str = ASK_AGENT) -> str:
     _require_stage(stage)
     _require_delegation(delegation)
     parts = [COMMON, duty(stage, delegation=delegation)]
+    if stage in stage_spec.with_block("interaction-design"):
+        parts.append(INTERACTION_DESIGN)
+    if stage in stage_spec.with_block("work-items"):
+        parts.append(WORK_ITEM_CONTEXT)
     if stage in PRELUDE or stage in PLANNING_REVIEW_STAGES:
         parts.append(_PLANNING_HANDOFF if delegation == ASK_AGENT
                      else _PLANNING_HANDOFF.replace(*_INLINE_PLANNING_DIRECTIVE))
+    improves = stage_spec.stage(stage).improve is not None
     if stage in TEST_FACILITY_STAGES:
-        parts.append(TEST_FACILITY_HANDOFF)
+        parts.append(TEST_FACILITY_HANDOFF if improves else TEST_FACILITY_HANDOFF.replace(
+            "Carry relevant locators into item context and the\nImprove child's context/notes.",
+            "Carry relevant locators into item context."))
     if stage in TEST_DECISION_STAGES:
         parts.append(TEST_DECISION_HANDOFF)
     if stage in OUTER:
-        parts.append(OUTER_TEST_HANDOFF)
+        parts.append(OUTER_TEST_HANDOFF if improves else OUTER_TEST_HANDOFF.replace(
+            "in this result and the Improve child's context/notes.", "in this result."))
     if stage in BACKCHAIN_STAGES:
         parts.append(_backchain_guidance(stage))
     if stage in RECONCILIATION_STAGES:
