@@ -62,7 +62,6 @@ import shiploop_workspace as workspace
 SCHEMA = "shiploop-lint/v1"
 MODES = ("fix", "report", "off")
 DEFAULT_MODE = "fix"
-LEGACY_MODE = "off"
 LINT_STAGES = ("static-checks", "verify")
 SUPPORTING = "supporting output; not exit-criteria evidence"
 GATE_STAGE = "implement"
@@ -2382,7 +2381,7 @@ def on_transition(run_dir: Path, before: Mapping[str, Any], after: Mapping[str, 
         if stage == "static-checks" and new_action and item:
             writes.update(inventory_writes(run_dir, Path(after["repo"]), str(item), str(after["action"]),
                                            timeout=min(GIT_TIMEOUT_SECONDS, max(1.0, budget))))
-        mode = after.get("mode", LEGACY_MODE)
+        mode = after["mode"]
         if mode not in ("fix", "report") or after.get("status") != "active":
             return writes, None
         if stage not in LINT_STAGES or not new_action:

@@ -87,7 +87,9 @@ def loads(text: str) -> Any:
     if not isinstance(text, str):
         raise StorageError("record text must be a string")
 
-    lines = text.splitlines()
+    # Split on newline only: str.splitlines() also breaks on U+2028, U+2029 and
+    # U+0085, which dumps() writes unescaped inside JSON strings.
+    lines = [line[:-1] if line.endswith("\r") else line for line in text.split("\n")]
     openings: List[int] = []
     for index, line in enumerate(lines):
         if _OPEN_FENCE.match(line):

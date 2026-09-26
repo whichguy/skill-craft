@@ -371,7 +371,7 @@ disk) before advancing. The end-of-work Improve
 reviews every item's change against the same rubric.
 
 `--lint fix|report|off` at `init` or `workspace start` selects the option; a
-saved run without the key behaves as `off` and is never migrated. `report`
+saved run without the key is refused (start a fresh run), never migrated. `report`
 shows would-be fixes as NOT APPLIED. An `init` or `workspace start` retry cannot
 change it. For an existing run:
 

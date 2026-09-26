@@ -113,7 +113,7 @@ def _git(
             stderr=subprocess.PIPE,
             check=False,
             env=merged,
-            timeout=45,
+            timeout=_git_timeout(),
         )
     except FileNotFoundError as exc:
         _fail("git is not available on PATH")
@@ -252,13 +252,26 @@ def _git_path(repo: Path, name: str) -> Path:
     return path
 
 
-def _index_digest(repo: Path) -> str:
-    path = _git_path(repo, "index")
+def _git_timeout() -> float:
+    """Seconds one Git command may take: SHIPLOOP_GIT_TIMEOUT, default 45."""
+    raw = os.environ.get("SHIPLOOP_GIT_TIMEOUT", "")
     try:
-        return _sha256(path.read_bytes())
-    except OSError as exc:
-        _fail(f"cannot read Git index: {exc}")
-        raise AssertionError from exc
+        value = float(raw) if raw else 45.0
+    except ValueError:
+        _fail("SHIPLOOP_GIT_TIMEOUT must be a number of seconds")
+        raise AssertionError
+    if value <= 0:
+        _fail("SHIPLOOP_GIT_TIMEOUT must be positive")
+    return value
+
+
+def _index_digest(repo: Path) -> str:
+    """Digest of the index's staged entries (mode, object ID, stage, path).
+
+    Hashing the raw index file made a stat-only rewrite (``touch`` then ``git
+    status``) look like a source change; the entries are what the return uses.
+    """
+    return _sha256(_git_bytes(repo, "ls-files", "--stage", "-z", readonly=True))
 
 
 def _ensure_supported(repo: Path, *, reject_runtime: bool = True) -> None:
@@ -412,7 +425,7 @@ def _fingerprint(repo: Path, root: Path, extras: Sequence[str] = ()) -> Dict[str
     return {
         "head": _head(repo),
         "branch": _branch(repo),
-        "index_sha256": _index_digest(repo),
+        "index_entries_sha256": _index_digest(repo),
         "index_paths": _index_paths(repo),
         "tracked_tree": tracked_tree,
         "working_tree": working_tree,
@@ -559,7 +572,7 @@ def _fingerprint_matches_snapshot(
         current = {
             "head": _head(repo),
             "branch": _branch(repo),
-            "index_sha256": _index_digest(repo),
+            "index_entries_sha256": _index_digest(repo),
             "index_paths": _index_paths(repo),
             "tracked_tree": tracked_tree,
             "working_tree": working_tree,
@@ -761,6 +774,9 @@ def _validate_manifest(root: Path, manifest: Mapping[str, Any]) -> Dict[str, Any
     initial = manifest.get("initial_fingerprint")
     if not isinstance(initial, dict):
         _fail("workspace manifest has no initial fingerprint")
+    if "index_entries_sha256" not in initial:
+        _fail("workspace manifest was written by an older ShipLoop (its fingerprint hashes the raw "
+              "Git index); return that workspace by hand or start a fresh one")
     if initial.get("head") != manifest["source_head"] or initial.get("branch") != manifest["source_branch"]:
         _fail("workspace manifest initial fingerprint identity mismatch")
     if manifest["start_clean"] and (

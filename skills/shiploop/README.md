@@ -948,7 +948,7 @@ shiploop graph-dry-run [--list] [--scenario NAME | --script STEPS.json] [--deleg
 Improve checkpoint keep their issued route. It is refused on halted or done runs;
 setting the recorded value is a no-op.
 `lint-mode` changes the run's script-owned lint option (new runs record `fix`;
-a saved run without it behaves as `off`) and is refused on halted or done runs.
+a saved run without it is refused) and is refused on halted or done runs.
 `lint` reruns the pass report-only for the current action, or `--show` prints
 one part of a stored record (`--gate N` for implement gate pass N); it exits 0
 clean, 1 with new findings or an uncovered file, 3 when it could not run, and

@@ -215,6 +215,13 @@ class NavigatorV4Tests(unittest.TestCase):
             "stale_check_note": "Synthetic stopped receipt for navigator-only projection testing.",
         }
 
+    def test_a_saved_state_without_a_lint_option_is_refused(self) -> None:
+        state = navigator.new_state("/tmp/repo", "Build it.")
+        navigator.validate(state)
+        del state["lint"]
+        with self.assertRaisesRegex(navigator.NavigatorError, "no recorded lint option"):
+            navigator.validate(state)
+
     def test_actual_stopped_cli_settlement_archives_and_replays_without_live_child_reads(self) -> None:
         _waiting, action, receipt, path, evidence, binding = self.real_stopped_plan()
 

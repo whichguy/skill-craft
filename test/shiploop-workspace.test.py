@@ -280,6 +280,40 @@ class ShipLoopWorkspaceTests(unittest.TestCase):
         self.assertEqual(store.read_record(root / "return-receipt.md"), receipt)
         return receipt
 
+    def test_a_stat_only_index_rewrite_is_not_a_source_change(self) -> None:
+        root = self.base / "fingerprint root"
+        root.mkdir()
+        tracked = next(path for path in self.repo.iterdir() if path.is_file())
+        before = workspace._fingerprint(self.repo, root)
+        os.utime(tracked, (1, 1))  # same content, new timestamp
+        self.git("status", "--porcelain")  # Git rewrites the index's stat data
+        self.assertTrue(workspace._fingerprint_equal(before, workspace._fingerprint(self.repo, root)))
+        tracked.write_text(tracked.read_text(encoding="utf-8") + "staged change\n", encoding="utf-8")
+        self.git("add", "--", tracked.name)
+        after = workspace._fingerprint(self.repo, root)
+        self.assertNotEqual(before["index_entries_sha256"], after["index_entries_sha256"])
+
+    def test_a_manifest_with_the_raw_index_fingerprint_is_refused(self) -> None:
+        record = self._prepare()
+        root = (self.base / "isolated workspace").resolve()
+        manifest_path = root / "workspace.md"
+        manifest = store.read_record(manifest_path)
+        fingerprint = manifest["initial_fingerprint"]
+        fingerprint["index_sha256"] = fingerprint.pop("index_entries_sha256")
+        manifest_path.write_text(store.dumps(manifest, "ShipLoop workspace"), encoding="utf-8")
+        with self.assertRaisesRegex(workspace.WorkspaceError, "written by an older ShipLoop"):
+            workspace._manifest(root)
+        self.assertTrue(record)
+
+    def test_git_timeout_is_configurable(self) -> None:
+        for value, expected in (("", 45.0), ("120", 120.0)):
+            with self.subTest(value=value), mock.patch.dict(os.environ, {"SHIPLOOP_GIT_TIMEOUT": value}):
+                self.assertEqual(workspace._git_timeout(), expected)
+        for bad in ("soon", "0", "-3"):
+            with self.subTest(bad=bad), mock.patch.dict(os.environ, {"SHIPLOOP_GIT_TIMEOUT": bad}):
+                with self.assertRaisesRegex(workspace.WorkspaceError, "SHIPLOOP_GIT_TIMEOUT"):
+                    workspace._git_timeout()
+
     def test_prepare_replays_selected_dirty_inputs_without_touching_source_index(self) -> None:
         self._seed_dirty_source()
         before = self._source_snapshot()

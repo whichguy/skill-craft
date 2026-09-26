@@ -99,11 +99,10 @@ _STATE_KEYS = frozenset(
 DELEGATIONS = guidance3.DELEGATIONS
 DEFAULT_DELEGATION = guidance3.INLINE
 # Run-level script-owned lint option.  New CLI-created runs record ``fix``; a
-# saved run without the key behaves as ``off`` and is never migrated.
+# saved run without the key is refused (one supported version), never migrated.
 # ``lint-mode --set`` changes it mid-run.
 LINT_MODES = lint.MODES
 DEFAULT_LINT = lint.DEFAULT_MODE
-LEGACY_LINT = lint.LEGACY_MODE
 # Printed for any saved run this navigator cannot load.
 FRESH_RUN_HINT = ("Preserve it; this ShipLoop cannot resume it. Start new work with init or "
                   "workspace start in a fresh --run-dir.")
@@ -145,8 +144,8 @@ def recorded_delegation(state: Mapping[str, Any]) -> str:
 
 
 def lint_mode(state: Mapping[str, Any]) -> str:
-    """Return the run's lint option; an unrecorded setting behaves as off."""
-    return state.get("lint", LEGACY_LINT)
+    """Return the run's lint option (every supported run records one)."""
+    return state["lint"]
 
 
 def lint_view(state: Mapping[str, Any]) -> dict[str, Any]:
@@ -600,8 +599,8 @@ def new_state(
     """Create an unpersisted navigator cursor with one initial work item.
 
     ``delegation`` records the run's execution route (inline or ask-agent).
-    ``lint_option`` records the script-owned lint option; ``None`` leaves it
-    unrecorded (off) and the CLI passes DEFAULT_LINT for new runs.
+    ``lint_option`` records the script-owned lint option; ``None`` records off,
+    and the CLI passes DEFAULT_LINT for new runs.
     """
     _need(type(delivery_contract) is bool, "delivery_contract must be boolean")
     _need(type(worktree) is bool, "worktree must be boolean")
@@ -646,8 +645,9 @@ def new_state(
             raise NavigatorError("cannot make the selected Improve locator absolute") from exc
     state.update(improve_skill=selected, active_improve=None, improve_results={},
                  delegation=delegation)
-    if lint_option is not None:
-        state["lint"] = lint_option
+    # Every run records its lint option; a caller that chooses none records off
+    # (the CLI always passes its fix default).
+    state["lint"] = lint_option if lint_option is not None else "off"
     validate(state)
     return state
 
@@ -673,8 +673,11 @@ def _validate_v2(state: Mapping[str, Any]) -> None:
           "navigator state has no recorded delegation; it was saved by an older ShipLoop that "
           "routed such runs through ask-agent. " + FRESH_RUN_HINT)
     unexpected = sorted(keys - allowed)
+    _need("lint" in keys,
+          "navigator state has no recorded lint option; it was saved by an older ShipLoop. "
+          + FRESH_RUN_HINT)
     missing = sorted(allowed - {"status_reason", "delivery_contract_version", "chain_bindings",
-                                "delegation_hold", "lint"} - keys)
+                                "delegation_hold"} - keys)
     _need(not unexpected and not missing,
           "navigator state has unsupported or missing fields ("
           + "; ".join(part for part in (
@@ -824,7 +827,7 @@ def _validate_v2(state: Mapping[str, Any]) -> None:
                            and hold["route"] in DELEGATIONS
                            and hold["route"] != recorded_delegation(state)),
           "invalid delegation hold")
-    _need("lint" not in state or state["lint"] in LINT_MODES,
+    _need(state["lint"] in LINT_MODES,
           "unsupported lint option; expected one of " + ", ".join(LINT_MODES))
     _text(state.get("improve_skill"), "improve_skill", allow_empty=True)
     records = state.get("improve_results")

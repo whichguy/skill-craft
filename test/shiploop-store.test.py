@@ -46,6 +46,12 @@ class ShipLoopStoreTests(unittest.TestCase):
             self.assertEqual(store.read_record(path), record)
             self.assertIn("# Run state", path.read_text(encoding="utf-8"))
 
+    def test_line_and_paragraph_separators_round_trip(self) -> None:
+        # dumps() writes these unescaped; str.splitlines() used to break the record on them.
+        value = {"summary": "a\u2028b\u2029c\u0085d", "crlf": "kept"}
+        self.assertEqual(store.loads(store.dumps(value)), value)
+        self.assertEqual(store.loads(store.dumps(value).replace("\n", "\r\n")), value)
+
     def test_rejects_malformed_duplicate_or_ambiguous_payloads(self) -> None:
         malformed = (
             '# Broken\n\n```shiploop-state\n{"phase": "plan"}\n',

@@ -1082,17 +1082,18 @@ class HookTests(Fixture):
         self.assertIn("Change inventory for W1", packet)
         self.assertIn("  M a.py", packet)
 
-    def test_saved_run_without_the_key_behaves_as_off_and_prints_nothing(self):
+    def test_a_saved_run_without_the_key_is_refused_not_read_as_off(self):
+        # One supported version: an older run without a lint option is refused, never defaulted.
         self.commit({"a.py": "x = 1\n"})
         self.start(None)
-        with self.patched_env():
-            state = drive(self.run_dir, "static-checks", edit=self.edit_item)
-        self.assertNotIn("lint", state)
-        self.assertEqual(nav.lint_mode(state), "off")
-        self.assertEqual(self.logged(), [])
-        packet = nav.render(CORE, self.run_dir, state)
-        self.assertNotIn("ShipLoop lint (", packet)
-        self.assertNotIn("ShipLoop lint: off", packet)
+        state = store.read_record(self.run_dir / "state.md")
+        self.assertEqual(state["lint"], "off")  # new runs always record it
+        del state["lint"]
+        (self.run_dir / "state.md").write_text(store.dumps(state, "ShipLoop navigator state"))
+        before = (self.run_dir / "state.md").read_bytes()
+        with self.assertRaisesRegex(nav.NavigatorError, "no recorded lint option.*fresh --run-dir"):
+            nav.validate(store.read_record(self.run_dir / "state.md"))
+        self.assertEqual((self.run_dir / "state.md").read_bytes(), before)
 
     def test_hook_exception_never_fails_complete(self):
         self.commit({"a.py": "x = 1\n"})

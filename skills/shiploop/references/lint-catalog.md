@@ -1,8 +1,8 @@
 # Script-owned lint catalog
 
 ShipLoop lints each work item itself on runs whose run option `lint` is `fix`
-or `report` (new runs record `fix`; a saved run without the key behaves as
-`off` and is never migrated). One pass gates: `implement` is not accepted as
+or `report` (new runs record `fix`; a saved run without the key is refused,
+never migrated). One pass gates: `implement` is not accepted as
 done while a new finding on a line the item changed has no waiver. The other
 passes are advisory, and ShipLoop never gates on the `shiploop lint` exit code.
 The step still selects and runs its own checks. See
