@@ -60,6 +60,65 @@ already available or cheap. State supported syntax and unresolved dynamic behavi
 before enforcement; structural matches do not prove runtime behavior or
 authorization. Do not add a checker merely to restate a preference.
 
+## Namespaces and placement
+
+A namespace is set by the runtime, not by the folder tree. Before adding a
+file, module or public name, map what exists: the package or directory layout,
+naming prefixes, what each module exports, where similar responsibilities
+already live, and the runtime's actual name space. Examples: an Apps Script
+project's server files share one global scope, and libraries are reached by
+identifier; a Python module's import path must not shadow the standard library
+or an installed distribution; sourced Bash functions and variables join the
+caller's shell; Salesforce class and metadata API names are org-wide, under any
+package namespace prefix; browser globals, custom elements and CSS classes are
+page-wide. Environment variables, CLI command names, config and storage keys,
+table, queue and event names are namespaces too, shared with other programs.
+
+List the libraries and services the new code imports, is called by, or shares
+that space with. Check their exported names, reserved prefixes and conventions,
+and avoid shadowing, redefining or monkeypatching their names. Reach an outside
+library through one adapter module when several files need it.
+
+Give each new name the narrowest visibility a present consumer needs: local or
+module-private first, exported only for a named consumer. A public name is a
+contract. Place code by responsibility and dependency direction, next to its
+nearest collaborators. Forecast where the next planned siblings will go, from
+the queued work items and accepted spec, so the first file does not set a
+layout the second must break; do not create empty packages or directories for
+hypothetical futures. Follow the house casing and prefixes. Avoid generic
+buckets (`utils`, `common`, `misc`) unless the house already uses one with a
+clear rule. Confirm with the runtime's own check where one exists: an import or
+load test, a deploy validation, or a search for the new name across the
+project and its dependencies.
+
+## Schema and storage
+
+Start from where the runtime actually stores this data and who owns its shape:
+a spreadsheet's header row and column order, Apps Script script, user or
+document properties, a Salesforce object and its fields, a database table and
+its migration tool, a browser's origin storage or IndexedDB version, a file
+format. Find any existing schema for the same entity and the destination
+schema the data must reach. Extend them through their own change mechanism
+(migration, metadata deploy, header change), following their names, types,
+keys and relationships. Do not open a parallel store or a second source of
+truth for data that already has a home.
+
+For a new schema, choose the store from the access pattern, volume,
+consistency, sharing and permission needs, and lifetime. Define the identity
+key, each field's type and whether it is required, uniqueness and other
+constraints, relationships, indexes for the planned queries, and a version
+marker with a forward migration that readers of older data survive. Stored
+names (tables, objects, fields, property and storage keys) are namespaces that
+outlive the code: follow the house prefixes, and treat a rename as a migration.
+
+Write the storage policy beside the schema: which copy is authoritative and
+which are caches, retention and deletion, sensitive fields and who may read
+them, size and quota limits, backup and recovery, and concurrent writers.
+Confirm with a round trip through the real store, a migration or deploy
+validation, and a read of existing data after the change. The [State and data
+assessment](requirements-definition.md#state-and-data-change-assessment) still
+rules out persistence the change does not need.
+
 ## Flyweight and shared resources
 
 Measure the repeated cost and expected workload before sharing anything. Share

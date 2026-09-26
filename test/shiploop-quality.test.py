@@ -303,6 +303,38 @@ class PromptTests(unittest.TestCase):
         self.assertIn("Keep log text, error codes and machine identifiers stable and untranslated", rubric)
         self.assertIn("bypasses the repository's catalog", " ".join(prompts.QUALITY_ITERATION.split()))
 
+    def test_namespace_placement_is_planned_and_reviewed(self):
+        rubric = " ".join(prompts.CODE_CRAFT.split())
+        self.assertIn("8. Put it where it belongs.", rubric)
+        self.assertIn("narrowest visibility a present consumer needs", rubric)
+        self.assertIn("outside the planned namespace", " ".join(prompts.QUALITY_ITERATION.split()))
+        plan = " ".join(prompts.prompt("plan").split())
+        self.assertIn("Forecast the code's namespace layout.", plan)
+        self.assertIn("Record both as a short", plan)
+        step = " ".join(prompts.prompt("step-plan").split())
+        self.assertIn("Reopen the plan's Namespace and data map and the current tree.", step)
+        self.assertIn("Stored data follows the planned schema", rubric)
+        self.assertIn("Use Schema and storage guidance", plan)
+        self.assertIn("Namespace and data map", plan)
+        self.assertIn("its schema change mechanism and the round-trip check", step)
+        routes = (
+            ("Namespace and placement guidance", "coding-practices.md#namespaces-and-placement"),
+            ("Schema and storage guidance", "coding-practices.md#schema-and-storage"),
+        )
+        for stage in ("plan", "step-plan"):
+            for route in routes:
+                with self.subTest(stage=stage, route=route[0]):
+                    self.assertIn(route, prompts.STAGE_REFERENCES[stage])
+
+    def test_ui_work_defaults_to_a_rich_interactive_interface(self):
+        self.assertIn("or the rich UI interaction the plan calls for", " ".join(prompts.CODE_CRAFT.split()))
+        self.assertIn("a plain or static interaction where the plan called for a rich one",
+                      " ".join(prompts.QUALITY_ITERATION.split()))
+        for stage in ("plan", "step-plan"):
+            with self.subTest(stage=stage):
+                self.assertIn("Default to an ambitious, highly interactive UI",
+                              " ".join(prompts.prompt(stage).split()))
+
     def test_supporting_stages_carry_their_code_quality_duties(self):
         expected = {
             "step-plan": "each such entry point checks its arguments and carries a contract",

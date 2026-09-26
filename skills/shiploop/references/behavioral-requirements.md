@@ -207,14 +207,16 @@ applicable decisions. Do not wait until post-implementation skill assessment.
 An absent optional skill uses repository guidance and this section as fallback;
 do not install a skill, hard-code host paths or claim unexecuted skill use.
 
-Aim for the most polished, elegant and richly interactive experience feasible
-within the user's goals, accepted scope and target constraints. Reuse should
-raise quality, not settle for a bare functional screen. Plan distinctive visual
-hierarchy, polished reusable components, responsive composition, complete
-loading/empty/error/success states and useful task-specific interactions. Keep
-effort proportional to expected user value. For meaningful async
+Push hard for the most polished, elegant and richly interactive experience the
+target can deliver within the user's goals and accepted scope. A bare functional
+screen is incomplete; reuse should raise quality, not set the ceiling. Plan
+distinctive visual hierarchy, polished reusable components, responsive
+composition, complete loading/empty/error/success states and task-specific rich
+interactions: direct manipulation, inline editing, live preview, keyboard
+paths and animated state transitions. Scale ambition back only for a stated user
+constraint, a target limit or accessibility, and record which. For meaningful async
 activity, map trigger -> truthful state -> cue/status -> outcome/recovery.
-Use restrained motion to communicate pending work, accepted confirmation or a
+Use expressive, purposeful motion to communicate pending work, accepted confirmation or a
 relevant remote change; preserve focus, input and reading position. Distinguish
 saved locally, queued and confirmed where applicable. A timer or completed
 animation cannot confirm domain success or own required domain processing.

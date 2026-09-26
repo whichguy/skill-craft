@@ -21,3 +21,10 @@ oracle justify them; do not mandate another framework for a few concrete cases.
 Lint, types, and behavioral tests answer different questions. Review automated
 fixes against the accepted contract, including empty inputs, error behavior, and
 iterator side effects. An unsafe fix needs explicit review and relevant tests.
+
+
+Place a module inside the repository's existing package, not beside it on the
+import path. A module named like a standard-library or installed module (for
+example `json.py`, `logging.py`) shadows it whenever that directory comes
+first on the import path, as a script's own directory does. Mark module-private names with a leading underscore and, where the
+package defines one, keep `__all__` to the names consumers need.

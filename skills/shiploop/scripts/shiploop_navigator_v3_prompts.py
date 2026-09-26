@@ -293,6 +293,8 @@ STAGE_REFERENCES: dict[str, tuple[tuple[str, str], ...]] = {
         ("Service discovery guidance", "service-discovery.md#development-handoff"),
         ("Current-system baseline guide", "current-system-baseline.md#planning-and-review-handoff"),
         ("Dependency-planning guidance", "backchain-planning.md#dependency-audit"),
+        ("Namespace and placement guidance", "coding-practices.md#namespaces-and-placement"),
+        ("Schema and storage guidance", "coding-practices.md#schema-and-storage"),
         ("Git-history investigation guide", "project-knowledge.md#investigate-git-history-for-planning"),
         ("Decision carry-forward guidance", "project-knowledge.md#carry-context-into-the-new-plan"),
         ("State and data assessment", "requirements-definition.md#state-and-data-change-assessment"),
@@ -312,6 +314,8 @@ STAGE_REFERENCES: dict[str, tuple[tuple[str, str], ...]] = {
         ("Service discovery guidance", "service-discovery.md#development-handoff"),
         ("Current-system baseline guide", "current-system-baseline.md#planning-and-review-handoff"),
         ("Coding decision guide", "coding-guidance.md#select-guidance"),
+        ("Namespace and placement guidance", "coding-practices.md#namespaces-and-placement"),
+        ("Schema and storage guidance", "coding-practices.md#schema-and-storage"),
         ("Git-history investigation guide", "project-knowledge.md#investigate-git-history-for-planning"),
         ("Parallel-chain guide", "parallel-chain.md#parallel-implementation-chains"),
         ("Repeatable test-suite guide", "repeatable-test-suites.md#select-or-revalidate-the-harness"),
@@ -630,7 +634,8 @@ file cold with no run history. Every rule serves that reader.
    or the next line. No banners, change history or commented-out code. Prefer a
    precise name to a comment and one authoritative explanation to several.
 5. Small, not thin. KISS and YAGNI limit features and abstractions. They never
-   remove an argument check, an error path or a contract docstring.
+   remove an argument check, an error path, a contract docstring, or the rich
+   UI interaction the plan calls for.
 6. Make failure diagnosable. Check a response's contract, not only transport
    success. Before mutation or cleanup, keep the context that explains a
    failure: operation, relevant IDs, expected versus observed. Errors name the
@@ -643,6 +648,12 @@ file cold with no run history. Every rule serves that reader.
    from fragments, so it can be externalized later. Format numbers, dates,
    currency and plurals through locale-aware APIs. Keep log text, error codes
    and machine identifiers stable and untranslated.
+8. Put it where it belongs. New code lives in the namespace the step plan
+   chose, with the narrowest visibility a present consumer needs. A new name
+   must not collide with or shadow one in the runtime's shared space (globals,
+   import path, shell, org) or in a library the code uses. No new generic
+   bucket such as `utils`. Stored data follows the planned schema and storage
+   policy.
 """
 
 
@@ -668,8 +679,11 @@ inventory in context, plus tests for those files.
    unhandled or untested is a finding; add a test for an untested path.
 4. Review against the Code craft rubric: each entry point's argument checks and
    contract docstring, then the rest of the change for missing error paths,
-   silent failures, comments that restate code, stale comments, dead code, and
-   user-facing text that is concatenated or bypasses the repository's catalog.
+   silent failures, comments that restate code, stale comments, dead code,
+   user-facing text that is concatenated or bypasses the repository's catalog,
+   names placed outside the planned namespace or exported wider than needed,
+   stored data that departs from the planned schema, and, for a UI change, a
+   plain or static interaction where the plan called for a rich one.
 5. Classify. Material: wrong behavior on a traced path; a missing or wrong
    argument check, contract, error path or test; a failing check; a misleading
    comment. Trivial: wording, ordering, a sharper name. Do not reopen a finding
@@ -926,7 +940,10 @@ recovery checks (including a crash after acknowledgment but before processing
 accepted work where applicable); and source/check locators. For UI, include component/interaction/skin
 premises, selected design guidance locator plus identity/version or digest (or
 named fallback), and meaningful async cues with their purpose and reduced-motion
-alternative, or an explicit static choice. For consequential UI choices, include
+alternative, or an explicit static choice. Default to an ambitious, highly
+interactive UI: name the rich interactions planned (direct manipulation, inline
+editing, live preview, keyboard paths, animated transitions) and any scaled
+back, with its user, target or accessibility reason. For consequential UI choices, include
 the guide's ambition, reuse/evolve/upgrade decision, rough effort/benefit and
 compatibility check; reuse accepted choices for unaffected scope and the existing
 design/test facilities.
@@ -973,6 +990,21 @@ query/cache, worker/status, business/UI, logging, tests and operator files only 
 needed. Order their actual prerequisites and checks. Retain exact current note
 locators and revalidation conditions in evidence_refs and item context; earlier
 stage references are not automatically replayed in every later packet.
+Forecast the code's namespace layout. Use Namespace and placement guidance to
+map the current library structure (packages, modules, prefixes, exported
+surfaces, where similar responsibilities live), the runtime's actual name space
+(shared globals, import path, org, shell, page, keys shared with other
+programs) and the libraries and services the new code will import, be called
+by, or share that space with. Then decide a home namespace and visibility for
+each new responsibility across all work items, so later items extend the layout
+instead of breaking it, and how new names avoid collisions in that space.
+Use Schema and storage guidance to decide how the data is stored in that
+runtime: the existing schema and the destination schema it must integrate with
+and their change mechanism, or, for a new schema, its store, keys, field types,
+constraints, relationships, version and migration, plus its storage policy
+(authority, retention, sensitive fields, quotas). Record both as a short
+Namespace and data map in the plan note and put each item's entries in its
+`context`. Plan no empty package or directory for a hypothetical future.
 Before finalizing work-item IDs, check the draft once for coherent implementation
 increments. Split deliverables when they need different prerequisites, expose a
 useful intermediate contract/artifact, or can be implemented and checked
@@ -1054,7 +1086,13 @@ sufficient. Give content criteria (docs, changelogs, test coverage) a
 command-checkable confirmation, such as a search for required terms, so they are
 re-observed rather than recalled. Mark a criterion that no available check can
 confirm as `Confirm by: unconfirmable here — <what would confirm it>` rather
-than dropping it. When the item adds or changes a public entry point, include
+than dropping it. Reopen the plan's Namespace and data map and the current tree. Name
+each file, module and public symbol this item adds or moves, with its home
+namespace, its visibility, and the collision check for the runtime's shared
+space and the libraries it touches (an import or load test, deploy validation,
+or a project-wide search for the name). Name each stored field, key or table
+it adds or changes, its schema change mechanism and the round-trip check.
+Record a changed placement or schema and its reason in the plan note. When the item adds or changes a public entry point, include
 this criterion: each such entry point checks its arguments and carries a contract
 docstring (Code craft 2-3). Confirm by: inspecting the diff for each entry point
 and running its rejection tests; pass when every entry point has both.
@@ -1085,7 +1123,10 @@ recovery checks (including a crash after acknowledgment but before processing
 accepted work where applicable); and source/check locators. For UI, include component/interaction/skin
 premises, selected design guidance locator plus identity/version or digest (or
 named fallback), and meaningful async cues with their purpose and reduced-motion
-alternative, or an explicit static choice. For consequential UI choices, include
+alternative, or an explicit static choice. Default to an ambitious, highly
+interactive UI: name the rich interactions planned (direct manipulation, inline
+editing, live preview, keyboard paths, animated transitions) and any scaled
+back, with its user, target or accessibility reason. For consequential UI choices, include
 the guide's ambition, reuse/evolve/upgrade decision, rough effort/benefit and
 compatibility check; reuse accepted choices for unaffected scope and the existing
 design/test facilities. The next review is the packet's automatic Improve handoff immediately after this producer result, before
