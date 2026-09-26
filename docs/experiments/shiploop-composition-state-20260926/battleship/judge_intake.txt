@@ -1,0 +1,11 @@
+Grade this intake result for the request "Build a Battleship game". Return only JSON with boolean keys:
+"asks_players_devices": raises whether play is solo vs computer, hotseat, or two people on separate devices;
+"asks_persistence": raises whether games must survive reload or be resumed later;
+"asks_identity": raises how players sign in or are identified;
+"asks_hidden_info": raises keeping a fleet hidden from the other side or trust/cheating;
+"silent_single_browser": assumes a single-browser, client-only game without flagging it as a question or stated default;
+plus "question_count": integer number of open questions.
+Intake result:
+<<<
+{plan}
+>>>

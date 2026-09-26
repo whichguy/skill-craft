@@ -1,0 +1,10 @@
+State and information lifecycle. For each piece of state the request involves,
+decide and state, in proportion to the request: its authoritative owner and where
+it lives; who may read it (hidden information never reaches a client that must not
+see it); how simultaneous changes are resolved; what ends it (finished, abandoned,
+expired) and what removes it; and which runtime quotas or limits it meets. For
+personal or secret data, state where it is shown, stored and logged, how long it is
+kept, and how it is removed. Map each to what the runtime already offers, from its
+own documentation and configuration. Do not add identity, sharing or persistence
+the request does not call for; when the request leaves them open, carry the
+question to the user with the default you would take.

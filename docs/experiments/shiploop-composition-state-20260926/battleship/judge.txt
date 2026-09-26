@@ -1,0 +1,20 @@
+You are grading an architecture plan for a Battleship game on a given runtime. Judge only what the plan ADOPTS (decides to build or use), not what it merely mentions or rejects. Runtime: {rt}. Request: {req}
+
+Return only a JSON object with these keys:
+- "state_authority": "server" | "client" | "mixed"  (where authoritative game state lives)
+- "persistence": "runtime-service" | "browser-only" | "none"
+- "storage_service": the runtime storage it adopts, or null
+- "identity": "runtime-identity" | "custom-auth" | "none"  (runtime-identity = the platform's own signed-in user)
+- "hidden_info_protected": true if a fleet that a player must not see (opponent's, or the computer's) is kept out of that player's client
+- "concurrency_mechanism": named mechanism for simultaneous writes, or null
+- "notification_mechanism": how a player learns the other's move (poll, push service...), or null
+- "state_end_of_life": true if it defines what happens to finished or abandoned games (expiry, cleanup, retention)
+- "quotas_addressed": true if it names a runtime quota or limit and plans around it
+- "explicit_placement_decision": true if it explicitly reasons about where state and logic should live and why
+- "platform_errors": list of factually wrong claims about the runtime's capabilities (empty if none)
+- "unrequested_features": list of features beyond the request (empty if none)
+
+Plan:
+<<<
+{plan}
+>>>

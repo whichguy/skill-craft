@@ -1,0 +1,11 @@
+You are reading a research result about a draft architecture. For each numbered claim below, say how the research result treats it. Return only JSON mapping each claim id to one of:
+"flagged_wrong" (says it is false or corrects it), "confirmed" (accepts it as true, with or without a source), "unverified" (marks it as needing a check), "not_mentioned".
+Also include "sources": the number of distinct documentation URLs the result cites.
+
+Claims:
+{claims}
+
+Research result:
+<<<
+{plan}
+>>>
