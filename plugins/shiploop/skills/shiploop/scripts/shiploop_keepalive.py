@@ -230,7 +230,11 @@ def _strings(value: Any) -> Iterator[str]:
 
 # A ShipLoop command in the tool input names its run even when the model
 # filtered the output and the packet's marker never reached the hook.
-COMMAND_RUN_DIR = re.compile(r"\bshiploop\b[^\n|;&]*?--run-dir[= ]['\"]?([^\s'\"|;&]+)")
+# Only commands that drive the run bind; a read-only query (hook-status, status,
+# report, context) from another session must never claim someone else's run.
+COMMAND_RUN_DIR = re.compile(
+    r"\bshiploop\s+(?:init|next|resume|complete|improve-bind|improve-complete|improve-reconcile)\b"
+    r"[^\n|;&]*?--run-dir[= ]['\"]?([^\s'\"|;&]+)")
 
 
 def command_run_dir(payload: Any) -> str | None:
