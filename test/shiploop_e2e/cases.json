@@ -1,0 +1,17 @@
+{
+  "hello": {
+    "prompt": "Create hello.py that prints exactly \"Hello, world!\" when run, plus a unittest test in test_hello.py that verifies that output.",
+    "checks": [
+      "test \"$(python3 hello.py)\" = 'Hello, world!'",
+      "python3 -m unittest -q"
+    ]
+  },
+  "battleship": {
+    "prompt": "Build a small single-player Battleship game served by a Node.js HTTP server with no npm dependencies. server.js starts the server on the port in the PORT environment variable (default 3000). GET / serves a playable HTML page titled \"Battleship\" where the player fires at a computer-placed fleet on a 10x10 grid. GET /api/new starts a game and returns JSON with a game id; POST /api/fire with JSON {\"game\": id, \"row\": r, \"col\": c} returns JSON with \"result\" set to \"miss\", \"hit\" or \"sunk\" and \"gameOver\" true once every ship is sunk. Keep the game rules in a module the server uses, and cover them with node:test tests under test/ that run with `node --test`.",
+    "checks": [
+      "node --test",
+      "PORT=39171 node server.js > server.log 2>&1 & pid=$!; ok=1; for i in $(seq 1 20); do curl -fsS http://127.0.0.1:39171/ -o page.html 2>/dev/null && ok=0 && break; sleep 0.5; done; [ $ok -eq 0 ] && grep -qi battleship page.html; rc=$?; kill $pid 2>/dev/null; rm -f page.html; exit $rc",
+      "PORT=39172 node server.js > server.log 2>&1 & pid=$!; for i in $(seq 1 20); do curl -fsS http://127.0.0.1:39172/api/new -o new.json 2>/dev/null && break; sleep 0.5; done; node -e 'const g=JSON.parse(require(\"fs\").readFileSync(\"new.json\",\"utf8\")); const id=g.game??g.id??g.gameId; if(id===undefined) process.exit(2); fetch(\"http://127.0.0.1:39172/api/fire\",{method:\"POST\",headers:{\"content-type\":\"application/json\"},body:JSON.stringify({game:id,row:0,col:0})}).then(r=>r.json()).then(j=>process.exit([\"miss\",\"hit\",\"sunk\"].includes(j.result)?0:3)).catch(()=>process.exit(4))'; rc=$?; kill $pid 2>/dev/null; rm -f new.json; exit $rc"
+    ]
+  }
+}

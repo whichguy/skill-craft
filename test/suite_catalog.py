@@ -127,6 +127,7 @@ _SHIPLOOP_PATHS = (
     "test/shiploop-keepalive.test.py",
     "test/shiploop-planning-handoff.test.py",
     "test/shiploop-package-integrity.test.py",
+    "test/shiploop-e2e.test.py",
 )
 
 # Measured in the audited full GitHub qualification.  Every known duration is
@@ -186,6 +187,7 @@ _DURATION_SECONDS = {
     "test/shiploop-capability-runtime.test.py": 0.996,
     "test/shiploop-planning-handoff.test.py": 0.2,
     "test/shiploop-package-integrity.test.py": 0.2,
+    "test/shiploop-e2e.test.py": 0.7,
 }
 _FALLBACK_DURATION_SECONDS = 60.0
 
@@ -402,6 +404,12 @@ _PATH_SUITE_IDS = {
     "scripts/check-release-boundary.py": ("release-boundary",),
     "scripts/release-push.py": ("release-push",),
     "catalog/external-plugins.json": ("marketplace-package", "native-marketplace-adapters"),
+    "catalog/skill-craft-plugin.json": ("marketplace-package", "native-marketplace-adapters", "release-flow"),
+}
+
+# Directories whose files have names too common to select by (run.py, hosts.py).
+_PREFIX_SUITE_IDS = {
+    "test/shiploop_e2e/": ("shiploop-e2e",),
 }
 
 
@@ -527,6 +535,9 @@ def targeted(changed: Iterable[str]) -> set[str]:
             continue
         ids.update(suite.id for suite in SUITES if suite.path == path)
         ids.update(_PATH_SUITE_IDS.get(path, ()))
+        for prefix, prefixed_ids in _PREFIX_SUITE_IDS.items():
+            if path.startswith(prefix):
+                ids.update(prefixed_ids)
         leaf = None
         if parts[0] in ("skills", "changes") and len(parts) > 2:
             leaf = parts[1]

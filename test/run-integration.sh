@@ -19,6 +19,14 @@ Optional commands (never part of default CI):
   marketplace-grok    Install local candidate plugins in a disposable Grok profile.
   marketplace-codex   Install local candidate plugins in a disposable Codex profile.
   marketplace-codex-ask-agent  Exercise installed Ask Agent in a disposable Codex profile.
+  shiploop-e2e [--case NAME | --prompt TEXT --check CMD] [run.py options]
+                    Run ShipLoop live from one prompt in a new empty directory
+                    (Grok, medium effort, by default) and grade it. Costs money.
+  shiploop-e2e-review RUN_DIR [review.py options]
+                    Ask a reviewer model what that run teaches about the skill.
+  shiploop-e2e-iterate [--case NAME] [--iterations N] [iterate.py options]
+                    Run, review, improve and rerun ShipLoop in a dedicated
+                    worktree until clean or capped. Publishes nothing.
   current-dispatcher --dispatcher-skill /absolute/SKILL.md --output /new/absolute/dir
                     Qualify the offline native-pilot composition against a
                     clean, explicitly selected current Dispatcher checkout.
@@ -68,6 +76,18 @@ case "${1:-list}" in
   marketplace-codex-ask-agent)
     [[ "$#" == "1" ]] || { usage >&2; exit 64; }
     exec python3 "$root/test/marketplace-host-smoke.py" --host codex --ask-agent
+    ;;
+  shiploop-e2e)
+    shift
+    exec python3 -B "$root/test/shiploop_e2e/run.py" "$@"
+    ;;
+  shiploop-e2e-review)
+    shift
+    exec python3 -B "$root/test/shiploop_e2e/review.py" "$@"
+    ;;
+  shiploop-e2e-iterate)
+    shift
+    exec python3 -B "$root/test/shiploop_e2e/iterate.py" "$@"
     ;;
   current-dispatcher)
     shift
