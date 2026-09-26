@@ -99,3 +99,11 @@ Do not hard-code a Salesforce hostname as the universal consumer boundary.
 and [page types](https://developer.salesforce.com/docs/platform/lwc/guide/reference-page-reference-type.html)
 define the supported navigation contract. This supplements the generic
 [browser evidence guidance](../testing-and-documentation.md#lightweight-and-browser-checks).
+
+Open that browser session from the org's existing CLI authentication rather than
+asking the user to sign in: `sf org open --target-org <alias> --url-only --path
+<page>` prints a one-time front-door URL for the page, which a browser tool can
+open directly. At discovery, run it once (without opening the page) to prove the
+route, and record the alias and page path. Keep the URL out of evidence and
+logs: it is a session credential. Ask the user only when the CLI has no working
+authentication for the target org.

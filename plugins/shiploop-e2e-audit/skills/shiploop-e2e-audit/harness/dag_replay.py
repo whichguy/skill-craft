@@ -225,6 +225,8 @@ def _result(stage: str, *, outcome: str = "done", work_items: list[dict[str, str
     }
     if work_items is not None:
         value["work_items"] = work_items
+    if outcome == "blocked":
+        value["blocked_by"] = "external"
     return value
 
 
