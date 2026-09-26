@@ -4,6 +4,41 @@ Written by scripts/release.py.
 
 ## 2026-09-25
 
+### shiploop 0.30.0
+
+- Every stage now gets the run's global picture. Each save writes
+  `context-index.md`, a derived index of the request, every accepted planning
+  result with its summary, notes and Improve lessons, the plan's assumptions, each
+  work item's accepted results, the outer loop and superseded results. Every packet
+  names it right after the callback line, and active packets add a script-owned
+  "Read first" list of the accepted results that stage builds on (for example,
+  `verify` reads the spec, test strategy and the item's step-plan and test-spec).
+  `pause` now refuses context-housekeeping reasons (a clear, context boundary,
+  compaction or fresh conversation), and the keepalive log records why a run paused.
+- Tests now run on a script-enforced loop. `step-plan` must record the work
+  item's test commands in its result (`test_commands`, each `focused` or
+  `regression`; an empty list needs `test_commands_na` with the reason).
+  `test-green` loops on the focused commands and `regression` on all of them, on
+  the Until Loop bound to the selected Improve card: ShipLoop writes the loop
+  contract with the exact commands, and each iteration runs every command, fixes
+  the code (never a check) and reruns the whole list, for at most 4 iterations.
+  Both stages accept only `done` or `blocked`. `done` needs the loop's terminal
+  packet, checked against the contract, and then ShipLoop runs every command
+  itself from the repository (10 minutes each, 30 per stage) and refuses unless
+  each exits 0, printing the failures. The prompt-only pass-or-stop loop now
+  covers `implement`, `test-refine` and `integration-verify`.
+
+  The packet-size caps in the test suite are removed; complete prompts take
+  priority over packet length.
+- Tests stay green after every stage that can edit code. On done at
+  `test-refine`, `static-checks` and `integration-verify`, ShipLoop reruns every
+  test command the step plan recorded and refuses unless each exits 0; the packet
+  lists the commands. Each action allows 3 refused test runs (at these stages and
+  the test loops); after that only `blocked` is accepted, so a restarted loop can
+  no longer retry forever. The lint gate now also runs on done at `test-green`
+  and `regression`, before the test run, since the test loops edit code too;
+  `lint_waivers` are accepted there as at `implement`.
+
 ### shiploop 0.29.0
 
 - Lint now runs right after implementation and gates it. When `implement` is

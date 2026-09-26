@@ -683,6 +683,65 @@ QUALITY_REPEAT_CONDITION = (
     "the scope or authority in context, or a required check cannot run."
 )
 
+# Script-enforced test loops (test-green, regression) on the same bound Until Loop.
+TEST_LOOP_LIMIT = 4
+
+TEST_ITERATION = """\
+One test iteration over this work item's test command list (below).
+1. Run every command in the list, in order, from the workspace. Record each
+   command, its exit code and the names of failing tests.
+2. If every command exited 0 and this iteration changed nothing, classify it
+   trivial and assess the exit condition satisfied. Stop here.
+3. For each failure, find the cause with one small observation: product
+   defect, invalid test, or environment.
+4. Fix product defects in the product code. Change a test, fixture, golden file
+   or threshold only when an independent reason shows the check itself is
+   wrong, and record that reason. Never change a check to get green.
+5. After your last edit, rerun the whole list once and record every command's
+   exit code in the handoff.
+Classify the iteration non-trivial when you changed anything, and unresolved
+when a command could not run.
+"""
+
+TEST_EXIT_CONDITION = (
+    "One complete iteration ran every command in the test command list after the "
+    "last edit, each exited 0, and the iteration changed nothing."
+)
+
+TEST_REPEAT_CONDITION = (
+    "Repeat while the latest iteration found a failing command and changed code to "
+    "fix it. Stop cancelled when iteration " + str(TEST_LOOP_LIMIT) + " still has a "
+    "failing command, naming it. Stop blocked when a failure is proven unachievable: "
+    "it contradicts the specification or another requirement, needs a tool, access "
+    "or authority that is absent, or would exceed the item."
+)
+
+_TEST_LOOP_DUTY = """\
+Purpose: run this work item's test loop on the bound Until Loop until every
+command in its test command list passes. ShipLoop wrote the loop contract from
+the accepted step plan's test_commands; the Until Loop script counts iterations
+and decides when the loop ends; you execute each iteration and report it
+honestly.
+Do:
+1. Read the bound Until Loop card in full once per context and follow it. Start
+   the run with the printed command. Do not edit, retype or extend the contract.
+2. Execute each returned iteration exactly as its work says, then call its done
+   command. Save every returned packet from stdout to the printed latest-packet
+   path, so a reset can recover the run through its next_argv. Continue until
+   the runtime returns complete or stopped.
+3. Save the terminal packet, byte for byte from stdout, to the printed terminal
+   path and list that path in evidence_refs.
+Report: done when the loop completed; blocked when it stopped, naming the
+failing command for plan revision. On done, ShipLoop checks the terminal packet
+against the contract and then runs every listed command itself; it refuses done
+unless each exits 0 and prints the failures. After a refusal, fix the code,
+start the loop again with the printed command (its terminal packet is replaced)
+and submit again, or report blocked. After 3 refused runs only blocked is
+accepted. Before the test run, ShipLoop lints this item's changes as at
+implement: it refuses done once after an auto-fix and while a new finding on a
+changed line has no `lint_waivers` entry.
+"""
+
 
 DUTIES = {
     "intake": """\
@@ -1059,6 +1118,12 @@ and content digest in existing plan notes/evidence_refs. This producer's mandato
 actual Improve loop must review the created steps and graph before they are used
 for execution. Use the Parallel-chain guide for late creation or revision;
 planning never starts the dispatcher or expands this item's scope.
+Record the item's test command list in the result's `test_commands`:
+`[{"command": "<shell command>", "suite": "focused" | "regression"}]`. Focused
+commands exercise this item's tests; regression commands run the retained suites.
+test-green and regression loop on these exact commands, and ShipLoop runs them
+itself before accepting either stage, so each must be runnable from the
+repository root. An empty list needs `test_commands_na` with the reason.
 Give every completion criterion a confirmation: `<condition>. Confirm by:
 <command, observation, or inspection>; pass when <expected result>.` It must pass
 the two-people test: two people running it separately would be forced to agree.
@@ -1294,12 +1359,9 @@ discovery guidance. Revalidate target state and authority before effects; preser
 unrelated remote fields and existing operational owners. Unresolved cache access
 or async completion semantics require their recorded safe fallback or correction.
 """,
-    "test-green": """\
-Run focused checks against the implemented candidate and establish meaningful
-GREEN evidence for the specified behavior.  Diagnose failures before changing
-code or tests, preserve the test oracle, and rerun affected checks after a
-justified repair.  A passing command only supports the outcomes it actually
-exercises.
+    "test-green": _TEST_LOOP_DUTY + """\
+Scope: the step plan's focused commands. A passing command only supports the
+outcomes it actually exercises.
 """,
     "test-refine": """\
 Recheck the Run-wide test strategy source against the current item context and
@@ -1318,18 +1380,14 @@ Reassess setup/teardown and safe sharing from actual behavior; preserve stateles
 cases without boilerplate. Keep refined tests registered in the repeatable suites
 and refresh their case, fixture, command, and cost notes when those change.
 """,
-    "regression": """\
-Use the Run-wide test strategy source and current item context to recover the
-applicable retained suites, target prerequisites and justified decision changes.
-Revalidate retained facility definitions and readiness for this regression target;
-reuse the existing route when it still fits and retain any required correction.
-Execute relevant regression, negative, compatibility, and boundary checks on the
-current candidate.  Include selected error and recovery behavior.  Distinguish a
-product defect, invalid test, and environment issue with a small discriminating
-observation; repeated unchanged failure is not progress.
-Use the retained suite commands and report the selected scope. Check rerun and
-cleanup isolation when state or fixture sharing changed; exercise relevant order
-and parallel hazards. A smoke pass cannot stand for the required full suite.
+    "regression": _TEST_LOOP_DUTY + """\
+Scope: every command the step plan lists, focused and regression (the retained
+suites selected from the Run-wide test strategy source). Revalidate retained
+facility definitions and readiness for this regression target; reuse the existing
+route when it still fits and retain any required correction. Distinguish a product
+defect, invalid test and environment issue with a small discriminating
+observation; repeated unchanged failure is not progress. A smoke pass cannot
+stand for the required full suite.
 """,
     "document": """\
 Update necessary code, API, user, operator, design, and decision documentation
@@ -1934,7 +1992,8 @@ def duty(stage: str, *, delegation: str = ASK_AGENT) -> str:
 
 
 # Stages that run tests: none is done while a check it runs is red.
-TEST_LOOP_STAGES = frozenset({"test-green", "test-refine", "regression", "integration-verify"})
+# test-green and regression run the script-enforced test loop instead.
+TEST_LOOP_STAGES = frozenset({"test-refine", "integration-verify"})
 
 PASS_OR_STOP = """\
 Pass-or-stop loop: this stage is done only when every check it runs passes on

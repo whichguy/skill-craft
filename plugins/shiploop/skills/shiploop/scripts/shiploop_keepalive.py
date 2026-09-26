@@ -324,7 +324,9 @@ def _decide(host: str, session: str, binding: dict) -> dict:
         return {"decision": "allow", "drop": True,
                 "why": f"run cannot be read: {status.get('error', 'run changed')}"}
     if status["status"] != "active":
-        return {"decision": "allow", "drop": True, "why": f"run is {status['status']}"}
+        reason = status.get("status_reason")
+        return {"decision": "allow", "drop": True,
+                "why": f"run is {status['status']}" + (f": {reason}" if reason else "")}
     if not claim_owner(binding["run_dir"], host, session):
         return {"decision": "allow", "why": "another session owns this run"}
     if binding.get("last_block_rev") == status["revision"]:

@@ -184,6 +184,21 @@ def check_terminal(root: Path, state: Mapping[str, Any], work_item: str, action:
     path = root / terminal_path(action)
     if outcome == "blocked" and not os.path.lexists(path):
         return
+    check_loop_packet(path, result, build_contract(root, state, work_item, action),
+                      guidance3.QUALITY_LOOP_LIMIT, "quality loop", str(root / contract_path(action)))
+
+
+def check_loop_packet(path: Path, result: Mapping[str, Any], expected: Mapping[str, Any], limit: int,
+                      label: str, contract_file: str) -> None:
+    """Refuse a loop stage's result that its saved Until Loop terminal packet does not support.
+
+    Shared by every script-enforced loop (the quality loop and the test loops).
+    The packet must come from a run of ``expected`` (rebuilt from ShipLoop
+    state, so editing the contract file cannot reshape the loop); ``complete``
+    within ``limit`` iterations supports only ``done``, anything else only
+    ``blocked``.
+    """
+    outcome = result.get("outcome")
     refs = result.get("evidence_refs")
     _need(isinstance(refs, list) and str(path) in refs,
           "list the saved terminal packet in evidence_refs: " + str(path))
@@ -192,15 +207,13 @@ def check_terminal(root: Path, state: Mapping[str, Any], work_item: str, action:
     conditions, progress = packet.get("conditions"), packet.get("progress")
     _need(isinstance(conditions, Mapping) and isinstance(progress, Mapping),
           "the Until Loop terminal packet lacks its conditions or progress")
-    expected = build_contract(root, state, work_item, action)
     _need(packet.get("workspace") == expected["workspace"]
           and packet.get("work") == expected["work"]
           and conditions.get("exit") == expected["exit_condition"]
           and conditions.get("repeat") == expected["repeat_condition"]
           and progress.get("required_trivial_reviews") == expected["required_trivial_reviews"]
           and packet.get("context") == expected["context"],
-          "the terminal packet is not from a run of this action's contract "
-          + str(root / contract_path(action)))
+          "the terminal packet is not from a run of this action's contract " + contract_file)
     status = packet.get("status")
     _need(status in ("complete", "stopped"),
           "the terminal packet must have status complete or stopped, found " + repr(status))
@@ -208,17 +221,18 @@ def check_terminal(root: Path, state: Mapping[str, Any], work_item: str, action:
         iterations = progress.get("action_number")
         _need(isinstance(iterations, int) and not isinstance(iterations, bool) and iterations >= 1,
               "the terminal packet has no iteration count")
-        if iterations > guidance3.QUALITY_LOOP_LIMIT:
-            _need(outcome == "blocked", "the quality loop ran " + str(iterations) + " iterations; more than "
-                  + str(guidance3.QUALITY_LOOP_LIMIT) + " is outside the contract, report blocked")
+        if iterations > limit:
+            _need(outcome == "blocked", "the " + label + " ran " + str(iterations) + " iterations; more than "
+                  + str(limit) + " is outside the contract, report blocked")
         else:
-            _need(outcome == "done", "a complete quality loop reports outcome done")
+            _need(outcome == "done", "a complete " + label + " reports outcome done")
     else:
-        _need(outcome == "blocked", "a stopped quality loop reports outcome blocked")
+        _need(outcome == "blocked", "a stopped " + label + " reports outcome blocked")
 
 
 __all__ = (
     "QualityError",
+    "check_loop_packet",
     "RUBRIC_PATH",
     "STAGE",
     "build_contract",

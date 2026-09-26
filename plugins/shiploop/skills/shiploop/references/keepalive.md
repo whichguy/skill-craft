@@ -29,7 +29,10 @@ and the driver never read `state.md` themselves.
 | Grok session-end stop, subagent stop | Allow. |
 
 A user stops a run by asking to stop or pause: the agent runs the packet's pause
-command, the run becomes `paused`, and the next stop is allowed. A question about
+command, the run becomes `paused`, and the next stop is allowed. The script
+refuses a pause whose reason is context housekeeping (a clear, a context
+boundary, compaction, a fresh conversation), and the decision log records each
+pause's reason. A question about
 the loop is not a stop. Host interrupts (Ctrl+C, Esc) skip stop hooks entirely.
 `SHIPLOOP_KEEPALIVE=off` in the host's environment disables the hooks.
 Each stop decision is appended to

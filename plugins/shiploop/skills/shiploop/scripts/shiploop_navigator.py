@@ -26,7 +26,9 @@ import shiploop_navigator_v3_prompts as guidance3
 import shiploop_consumer_delivery as consumer_delivery
 import shiploop_lint as lint
 import shiploop_quality as quality
+import shiploop_test_loop as test_loop
 import shiploop_planning_revision as planning_revision
+import shiploop_context_index as context_index
 import shiploop_privacy as privacy
 import shiploop_store as store
 
@@ -41,7 +43,7 @@ _WORK_ITEM_ID = re.compile(r"^[A-Za-z][A-Za-z0-9_-]{0,63}$")
 _STATUSES = frozenset(("active", "paused", "blocked", "halted", "done"))
 _RESULT_KEYS = frozenset((
     "outcome", "summary", "evidence_refs", "work_items", "choices", "delivery_assessment",
-    "reconciliation_target", "assumptions", "lint_waivers",
+    "reconciliation_target", "assumptions", "lint_waivers", "test_commands", "test_commands_na",
 ))
 _STATE_KEYS = frozenset(
     (
@@ -349,9 +351,23 @@ def _canonical_result(
         result["work_items"] = _normalise_work_items(
             value["work_items"], allow_empty=stage == "carry-forward"
         )
+    if "test_commands" in value or "test_commands_na" in value:
+        _need(stage == "step-plan" and outcome == "done",
+              "test_commands are allowed only on a done step-plan result")
+        _need("test_commands" in value, "test_commands_na needs an empty test_commands list")
+        try:
+            result["test_commands"] = test_loop.normalise_commands(value["test_commands"])
+        except test_loop.TestLoopError as exc:
+            raise NavigatorError(str(exc)) from exc
+        if result["test_commands"]:
+            _need("test_commands_na" not in value, "test_commands_na is only for an empty test_commands list")
+        else:
+            _need("test_commands_na" in value,
+                  "an empty test_commands list needs test_commands_na with the reason")
+            result["test_commands_na"] = _text(value["test_commands_na"], "test_commands_na")
     if "lint_waivers" in value:
-        _need(stage == lint.GATE_STAGE and outcome == "done",
-              "lint_waivers are allowed only on a done implement result")
+        _need(stage in lint.GATE_STAGES and outcome == "done",
+              "lint_waivers are allowed only on a done " + ", ".join(lint.GATE_STAGES) + " result")
         result["lint_waivers"] = _normalise_lint_waivers(value["lint_waivers"])
     if "choices" in value:
         result["choices"] = _normalise_choices(value["choices"], stage)
@@ -793,6 +809,20 @@ def _planning_sources_current(state: Mapping[str, Any]) -> None:
           "prepare requires current projected planning sources: " + ", ".join(missing))
 
 
+def _check_submitted_test_commands(stage: str, result: Any) -> None:
+    """Refuse a submitted done step-plan result without its test command list.
+
+    Like the plan's assumption list, this runs at the CLI gates only; the pure
+    graph functions validate the field's shape when present.  test-green and
+    regression loop on these commands and ShipLoop reruns them.
+    """
+    if stage != "step-plan" or not isinstance(result, Mapping) or result.get("outcome") != "done":
+        return
+    _need("test_commands" in result,
+          "a done step-plan result must list test_commands: [{\"command\": \"<shell command>\", "
+          "\"suite\": \"focused\" | \"regression\"}], or an empty list with test_commands_na")
+
+
 def _check_submitted_assumptions(state: Mapping[str, Any], stage: str, result: Any) -> None:
     """Refuse a submitted done plan result without a complete assumption list.
 
@@ -1142,6 +1172,10 @@ def control(state: Mapping[str, Any], command: str, reason: str = "") -> dict[st
     if command == "pause":
         _need(updated["status"] == "active", "only an active navigator can pause")
         _text(reason, "pause reason")
+        _need(_HOUSEKEEPING_PAUSE.search(reason) is None,
+              "ShipLoop does not pause for context housekeeping: no host clears from a packet "
+              "and each host compacts on its own. Continue the current packet; pause only when "
+              "the user asks or a real blocker stops authorized work")
         updated["status"] = "paused"
         updated["status_reason"] = reason
     elif command == "resume":
@@ -1220,18 +1254,56 @@ def _lint_transition(core: Any, root: Path, before: Mapping[str, Any],
             raise
         except BaseException:  # noqa: BLE001 - a missing contract renders as unavailable
             pass
+    if view["stage"] in test_loop.STAGES and view["action"] and view["action"] != prior["action"]:
+        try:
+            writes = {**writes, **test_loop.transition_writes(root, after, view["workitem"], view["action"],
+                                                              view["stage"])}
+        except KeyboardInterrupt:
+            raise
+        except BaseException:  # noqa: BLE001 - a missing contract renders as missing
+            pass
     return writes, payload
 
 
-def _lint_gate(core: Any, root: Path, state: Mapping[str, Any], action_id: str,
+def _test_loop_gate(root: Path, state: Mapping[str, Any], action_id: str, stage: str,
+                    workitem: str | None, submitted: Any) -> None:
+    """Accept a test-loop stage's done only after its loop and ShipLoop's own run of its commands.
+
+    The terminal packet must match the contract; then ShipLoop runs every listed
+    command and refuses unless each exits 0.  Its record is written either way.
+    """
+    try:
+        test_loop.check_terminal(root, state, workitem or "", action_id, stage, submitted)
+    except test_loop.TestLoopError as exc:
+        raise NavigatorError(str(exc)) from exc
+    if not isinstance(submitted, Mapping) or submitted.get("outcome") != "done":
+        return
+    writes, refusal = test_loop.verify(root, state, workitem or "", action_id, stage)
+    for relative, text in writes.items():
+        store.atomic_write_text(root / relative, text)
+    _need(not refusal, refusal)
+
+
+def _test_rerun_gate(root: Path, state: Mapping[str, Any], action_id: str, stage: str,
+                     workitem: str | None, submitted: Any) -> None:
+    """Accept done at a stage that can edit code only after ShipLoop reruns every recorded test command."""
+    if not isinstance(submitted, Mapping) or submitted.get("outcome") != "done":
+        return
+    writes, refusal = test_loop.verify(root, state, workitem or "", action_id, stage)
+    for relative, text in writes.items():
+        store.atomic_write_text(root / relative, text)
+    _need(not refusal, refusal)
+
+
+def _lint_gate(core: Any, root: Path, state: Mapping[str, Any], action_id: str, stage: str,
                workitem: str | None, submitted: Any) -> None:
-    """Refuse implement's done while the lint gate reports an unwaived new finding.
+    """Refuse a gate stage's done (``lint.GATE_STAGES``) while the lint gate reports an unwaived new finding.
 
     Runs only for a done submission on a run whose lint option is fix or
     report.  The record is written whether or not the submission is refused;
     a pass that cannot run never refuses (see ``lint.gate``).
     """
-    result = _canonical_result(submitted, stage=lint.GATE_STAGE,
+    result = _canonical_result(submitted, stage=stage,
                                delivery_contract="delivery_contract_version" in state)
     mode = lint_mode(state)
     if result["outcome"] != "done" or mode not in ("fix", "report"):
@@ -1239,7 +1311,7 @@ def _lint_gate(core: Any, root: Path, state: Mapping[str, Any], action_id: str,
     waivers = {entry["id"]: entry["reason"] for entry in result.get("lint_waivers", [])}
     writes, payload, refusal = lint.gate(
         Path(state["repo"]), root, action=action_id, work_item=workitem or "", run_option=mode,
-        base=lint.read_base(root, workitem), waivers=waivers, command=_command(core),
+        base=lint.read_base(root, workitem), waivers=waivers, command=_command(core), stage=stage,
         reference_dir=_reference_dir(core), execution_mode=str(state.get("execution_mode", "navigator")))
     for relative, text in writes.items():
         store.atomic_write_text(root / relative, text)
@@ -1317,6 +1389,9 @@ def _result_template(state: Mapping[str, Any], stage: str) -> str:
     }
     if stage == "plan":
         result["work_items"] = [{"id": "W1", "title": "...", "context": "..."}]
+    if stage == "step-plan":
+        result["test_commands"] = [{"command": "...", "suite": "focused"},
+                                   {"command": "...", "suite": "regression"}]
     if stage in assumptions.STAGES:
         result["assumptions"] = [
             {"id": "A1", "assumption": "...", "disposition": "evidenced",
@@ -1835,6 +1910,7 @@ def render(core: Any, root: Path, state: Mapping[str, Any]) -> str:
         *([f"Delegation change: this action keeps {route}; actions issued after it use "
            f"{recorded_delegation(state)}."] if route != recorded_delegation(state) else []),
         *_first_callback_lines(core, root, state),
+        *_context_index_lines(root, state, stage, workitem),
         "",
         "Progress snapshot (status context, not instructions):",
         *_progress_lines(state),
@@ -2169,7 +2245,8 @@ def render(core: Any, root: Path, state: Mapping[str, Any]) -> str:
             "Call this when done:",
             _callback(core, root, "complete", action=action["id"], result=str(result_path)),
             _improve_line(stage),
-            "Pause without consuming the action: " + _callback(core, root, "pause", reason="<why>"),
+            "Pause without consuming the action: " + _callback(core, root, "pause", reason="<who asked and why>")
+            + " (only when the user asks or a real blocker stops authorized work)",
             "Halt (terminal and irreversible; only on an explicit user stop): "
             + _callback(core, root, "halt", reason="<why>"),
         ]
@@ -2177,7 +2254,32 @@ def render(core: Any, root: Path, state: Mapping[str, Any]) -> str:
     lines.extend(_lint_lines(core, root, state, stage, action["id"]))
     if stage == quality.STAGE:
         lines.extend(quality.render_lines(root, state, workitem or "", action["id"]))
+    if stage in test_loop.STAGES:
+        lines.extend(test_loop.render_lines(root, state, workitem or "", action["id"], stage))
+    elif stage in test_loop.RERUN_STAGES:
+        lines.extend(test_loop.rerun_lines(state, workitem or "", stage))
     return "\n".join(lines) + "\n"
+
+
+def _context_index_lines(root: Path, state: Mapping[str, Any], stage: str,
+                         workitem: str | None) -> list[str]:
+    """Point every packet at the run's whole record; active ones add what to read first."""
+    lines = [f"Run context index (the run's request, planning basis, work items and results; "
+             f"read it for the global picture): {Path(root) / context_index.INDEX_FILE}"]
+    reads = context_index.read_first(state, root, stage, workitem)
+    if state["status"] == "active" and reads:
+        lines.append("Read first, before acting (accepted results this stage builds on; report "
+                     "a conflict with them instead of silently choosing):")
+        lines.extend(reads)
+    return lines
+
+
+# Pauses for context housekeeping stop the run for nothing: no host clears from
+# a packet, and each host compacts on its own.
+_HOUSEKEEPING_PAUSE = re.compile(
+    r"(?i)(/clear\b|\bclear (the |this )?(conversation|context|session)\b|context[- ]boundary|"
+    r"context window|\bcompact(ion)?\b|fresh (conversation|context|session)|"
+    r"new (conversation|session)|out of (context|tokens))")
 
 
 def _first_callback_lines(core: Any, root: Path, state: Mapping[str, Any]) -> list[str]:
@@ -2218,7 +2320,8 @@ def _improve_line(stage: str) -> str:
 def _allowed_outcome_lines(state: Mapping[str, Any], stage: str) -> list[str]:
     """State the outcomes _canonical_result accepts for this producer."""
     # The bound Until Loop repeats the quality review inside static-checks.
-    outcomes = "done | blocked" if stage == quality.STAGE else "done | repeat | blocked"
+    outcomes = ("done | blocked" if stage == quality.STAGE or stage in test_loop.STAGES
+                else "done | repeat | blocked")
     if stage in guidance3.OUTER:
         outcomes += (" | replan (corrective work_items [{id, title, context}] whose IDs are not "
                      "already in state.md work_items; they run through INNER, then OUTER restarts)")
@@ -2618,6 +2721,8 @@ def save(root: Path, state: Mapping[str, Any], extra_writes: Mapping[str, str] |
         writes["report.html"] = _render_report(state, root)
     # Derived display copy of the status block; refreshed only by transitions.
     writes["status.md"] = "```text\n" + status_block(state) + "\n```\n"
+    # Derived index of everything the run has accepted, for every stage to read.
+    writes[context_index.INDEX_FILE] = context_index.render(state, root, current_stage(state))
     store.transaction(root, writes)
 
 
@@ -2744,6 +2849,8 @@ def dispatch(core: Any, root: Path, state: Mapping[str, Any], args: Any,
                     _check_submitted_assumptions(
                         state, child["stage"],
                         child["seed_result"] if final_result is None else final_result)
+                    _check_submitted_test_commands(
+                        child["stage"], child["seed_result"] if final_result is None else final_result)
                     record, extra_writes = standalone.complete(child, receipt)
                     record["submission"] = deepcopy(receipt)
                     updated = finish_improve(state, action_id, record, final_result)
@@ -2802,8 +2909,14 @@ def dispatch(core: Any, root: Path, state: Mapping[str, Any], args: Any,
                 raise NavigatorError(str(exc)) from exc
         if state["status"] == "active" and action_id not in state["accepted"]:
             _check_submitted_assumptions(state, current_stage(state), submitted)
-            if cursor_stage == lint.GATE_STAGE:
-                _lint_gate(core, root, state, action_id, cursor_item, submitted)
+            _check_submitted_test_commands(current_stage(state), submitted)
+            # Lint first, so the tests run on any code the lint gate auto-fixed.
+            if cursor_stage in lint.GATE_STAGES:
+                _lint_gate(core, root, state, action_id, cursor_stage, cursor_item, submitted)
+            if cursor_stage in test_loop.STAGES:
+                _test_loop_gate(root, state, action_id, cursor_stage, cursor_item, submitted)
+            elif cursor_stage in test_loop.RERUN_STAGES:
+                _test_rerun_gate(root, state, action_id, cursor_stage, cursor_item, submitted)
         updated = apply(state, action_id, submitted)
         if completion_guard is not None and updated != state:
             completion_guard(state, updated)

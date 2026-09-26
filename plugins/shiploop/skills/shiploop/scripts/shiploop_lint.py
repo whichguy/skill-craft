@@ -66,6 +66,9 @@ LEGACY_MODE = "off"
 LINT_STAGES = ("static-checks", "verify")
 SUPPORTING = "supporting output; not exit-criteria evidence"
 GATE_STAGE = "implement"
+# Stages whose done passes through the lint gate: implement and the two test loops,
+# which also edit code.
+GATE_STAGES = (GATE_STAGE, "test-green", "regression")
 BUDGET_SECONDS = 120.0
 TOOL_TIMEOUT_SECONDS = 60.0
 MAX_FILES = 200
@@ -1143,7 +1146,7 @@ def _run_pass(invoker: _Invoker, catalog: Mapping[str, Any], top: Path, run_dir:
                      + "; ".join(invoker.skipped) + ".")
     lines.append("END lint data")
     lines.append(result_line)
-    if stage == GATE_STAGE:
+    if stage in GATE_STAGES:
         lines.append("Gate: ShipLoop refuses this step's done while a new finding on a line this item changed "
                      "remains. Fix each one, or list it in the result's lint_waivers as {\"id\": \"<ID>\", "
                      "\"reason\": \"<why it stays>\"}. Pre-existing findings, other files, uncovered files, tool "
@@ -2220,13 +2223,13 @@ def render_lines(run_dir: Path, action: str, *, stage: str, run_option: Optional
                      "step's static checks yourself.")
     record = _record_path(run_dir, action)
     gate_number = 0
-    if stage == GATE_STAGE:
+    if stage in GATE_STAGES:
         while _record_path(run_dir, action + ".gate" + str(gate_number + 1)).is_file():
             gate_number += 1
         record = _record_path(run_dir, action + ".gate" + str(gate_number))
         if gate_number:
             lines.append("")
-            lines.append("Latest implement lint gate (pass " + str(gate_number) + "); ShipLoop reruns it when you "
+            lines.append("Latest " + stage + " lint gate (pass " + str(gate_number) + "); ShipLoop reruns it when you "
                          "submit done:")
     if record.is_file():
         payload = store.read_record(record)
@@ -2441,11 +2444,12 @@ def on_transition(run_dir: Path, before: Mapping[str, Any], after: Mapping[str, 
 
 def gate(repo: Path, run_dir: Path, *, action: str, work_item: str, run_option: str,
          base: Optional[Mapping[str, Any]], waivers: Mapping[str, str], command: str,
+         stage: str = GATE_STAGE,
          env: Optional[Mapping[str, str]] = None, runner: Optional[Runner] = None,
          clock: Optional[Callable[[], float]] = None, budget: float = BUDGET_SECONDS,
          tool_timeout: float = TOOL_TIMEOUT_SECONDS, reference_dir: Optional[Path] = None,
          execution_mode: str = "navigator") -> Tuple[Dict[str, str], Optional[Dict[str, Any]], str]:
-    """Lint the work item's changes before ``implement`` is accepted as done.
+    """Lint the work item's changes before a gate stage (``GATE_STAGES``) is accepted as done.
 
     Returns (record writes, payload to finalize, refusal text).  An empty
     refusal accepts the submission.  The submission is refused once after an
@@ -2460,7 +2464,7 @@ def gate(repo: Path, run_dir: Path, *, action: str, work_item: str, run_option: 
         number += 1
     name = action + ".gate" + str(number)
     try:
-        payload = lint_pass(Path(repo), run_dir, action=action, work_item=work_item, stage=GATE_STAGE,
+        payload = lint_pass(Path(repo), run_dir, action=action, work_item=work_item, stage=stage,
                             mode=run_option, run_option=run_option, base=base, allow_fix=base is not None,
                             command=command, record_name=name, env=env, runner=runner, clock=clock,
                             budget=budget, tool_timeout=tool_timeout, reference_dir=reference_dir,
@@ -2468,7 +2472,7 @@ def gate(repo: Path, run_dir: Path, *, action: str, work_item: str, run_option: 
     except KeyboardInterrupt:
         raise
     except BaseException as exc:  # noqa: BLE001 - a pass that cannot run never refuses
-        failure = failure_payload(action, GATE_STAGE, work_item, run_option, exc, command, run_dir)
+        failure = failure_payload(action, stage, work_item, run_option, exc, command, run_dir)
         failure["record"] = name
         return record_writes(failure), None, ""
     show = shlex.join(["python3", command, "lint", "--run-dir=" + os.fspath(run_dir), "--action=" + action,
@@ -2489,7 +2493,7 @@ def gate(repo: Path, run_dir: Path, *, action: str, work_item: str, run_option: 
     elif remaining:
         listed = remaining[:40]
         refusal = "\n".join([
-            "ShipLoop lint gate: implement is not done while " + str(len(remaining)) + " new lint finding"
+            "ShipLoop lint gate: " + stage + " is not done while " + str(len(remaining)) + " new lint finding"
             + ("" if len(remaining) == 1 else "s") + " on lines this work item changed remain"
             + (" (" + str(len(waived)) + " waived)" if waived else "") + ":",
             *["- " + finding["id"] + " " + _redact(_one_line(finding["path"] + ":" + str(finding["line"]) + ": "

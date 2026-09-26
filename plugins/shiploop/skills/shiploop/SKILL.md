@@ -5,7 +5,7 @@ description: >-
   script's current action packet, and submit its exact completion call until
   the script reports completion with an HTML achievement report. Use when the
   user says shiploop, ship the project, or requests a durable delivery loop.
-version: 0.29.0
+version: 0.30.0
 allowed-tools: all
 license: MIT
 platforms:
@@ -296,14 +296,17 @@ and `npm run lint` or `make lint` for a changed file no other linter covers.
 Repository-configured linters run repository code; pre-commit is never run,
 because it may download environments. Nothing is ever installed.
 
-- **Implement gate.** The `complete` that submits `implement` as done lints
+- **Lint gate.** The `complete` that submits `implement`, `test-green` or
+  `regression` as done (each of them edits code) lints
   every changed file and applies safe fixes on lines the item changed. It
   refuses that submission once after an auto-fix (rerun the step's checks, then
   submit again), and while a new finding on a line the item changed has no
   entry in the result's `lint_waivers` (`[{"id", "reason"}]`, using the IDs the
   refusal prints). Findings present at the base or elsewhere in a file, missing
-  tools, tool errors, timeouts and a pass that cannot run never refuse. The
-  implement packet prints the report-only `lint` command to run after each step.
+  tools, tool errors, timeouts and a pass that cannot run never refuse. At the
+  test loops the gate runs before ShipLoop's test run, so the tests cover any
+  auto-fix. The implement packet prints the report-only `lint` command to run
+  after each step.
 - **Later passes (advisory).** The `complete` that enters `static-checks` lints
   again and, on the item's first entry only, applies safe fixes to later edits;
   the `complete` that enters `verify` reruns it report-only (or repeats the
@@ -352,17 +355,51 @@ when new findings remain or a file is uncovered, and 3 when the pass could not
 run; ShipLoop never gates on that exit code (the implement gate runs its own
 pass).
 
+### Test loop
+
+`step-plan` records the work item's test command list in its result:
+`"test_commands": [{"command": "<shell command>", "suite": "focused" | "regression"}]`.
+ShipLoop refuses a done `step-plan` without it; an empty list needs
+`test_commands_na` with the reason. `test-green` loops on the focused commands
+and `regression` on every command, each on the Until Loop bound to the selected
+Improve card:
+
+1. On the `complete` that enters the stage, ShipLoop writes the loop contract
+   `tests/<action>-contract.json`, whose work embeds the exact command list.
+2. The packet prints the start command, the packet paths and the list. Each
+   iteration runs every command, finds the cause of each failure, fixes the
+   product code (never a check to get green) and reruns the whole list after
+   its last edit. The loop ends after an iteration in which every command
+   exited 0 and nothing changed; iteration 4 that still fails stops it.
+3. The stage accepts only `done` or `blocked`. `done` needs the saved terminal
+   packet `tests/<action>-terminal.json`, checked against the contract rebuilt
+   from run state. Then ShipLoop runs every listed command itself with
+   `/bin/sh -c` from the repository (at most 10 minutes each, 30 per stage),
+   records the output in `tests/<action>-verify<N>.md`, and refuses `done`
+   unless each exits 0. The refusal prints each failing command and the end of
+   its output.
+
+Every stage after the test loops that can edit code reruns them too: on `done`
+at `test-refine`, `static-checks` (after its quality-loop check) and
+`integration-verify`, ShipLoop runs every recorded command and refuses unless
+each exits 0. There is no loop at those stages; the packet lists the commands.
+Each action allows 3 refused runs; after that ShipLoop accepts only `blocked`,
+so a failing command goes back to plan revision instead of an endless retry.
+
+These are commands the step plan recorded; ShipLoop runs them outside the host's
+permission prompts, and the step plan's Improve review is their check. With an
+empty list the stage has no loop and accepts `done` with the recorded reason.
+
 ### Tests pass or the step stops
 
-`implement`, `test-green`, `test-refine`, `regression` and `integration-verify`
-share one loop in their prompts: run the checks; when one fails, diagnose it,
-fix the product code and rerun; change a check only for an independent reason
-that the check itself is wrong. Only a final full pass after the last edit
-counts. The step ends on exactly one of: every check passes (`done`); a check
-proven unachievable (`blocked`, for plan revision); or the same check still
-failing after 3 genuine fix attempts (`blocked`). A red check never leaves the
-step as `done`. ShipLoop cannot run the tests itself, so this is prompt duty;
-the script-owned parts are the lint gate and the static-checks quality loop.
+`implement`, `test-refine` and `integration-verify` carry the same loop in their
+prompts: run the checks; when one fails, diagnose it, fix the product code and
+rerun; change a check only for an independent reason that the check itself is
+wrong. Only a final full pass after the last edit counts. The step ends on
+exactly one of: every check passes (`done`); a check proven unachievable
+(`blocked`, for plan revision); or the same check still failing after 3 genuine
+fix attempts (`blocked`). At these stages it is prompt duty; `test-green` and
+`regression` run the script-enforced [test loop](#test-loop).
 
 ## Durable handoff
 
@@ -417,6 +454,12 @@ the host handoff, or force any host tool call.
 
 ## Follow the current packet
 
+Every packet names the run's **context index** (`context-index.md`): the request,
+the accepted planning basis, each work item's results and their notes. Active
+packets add **Read first**: the accepted results the current stage builds on.
+Read those before acting, use the index for the global picture, and report a
+conflict with an accepted decision instead of silently choosing.
+
 Each packet carries a script-rendered **status block** (`=== ShipLoop status ===`):
 where the run is, what just finished, what comes next and what is complete.
 Show it to the user unchanged unless a host status hook already did; see
@@ -459,8 +502,9 @@ question about the loop is not a stop: answer it and continue the packet.
    pass after the last edit, and stop only when all are confirmed, one is proven
    unachievable (route it to planning), or the same check still fails after 3
    genuine fix attempts ([step exit criteria](references/parallel-chain.md#step-exit-criteria)).
-   At `static-checks`, run the packet's [quality loop](#static-checks-quality-loop)
-   on the bound Until Loop and save its terminal packet where the packet says.
+   At `test-green` and `regression`, run the packet's [test loop](#test-loop),
+   and at `static-checks` its [quality loop](#static-checks-quality-loop), on
+   the bound Until Loop, and save each terminal packet where the packet says.
    A ShipLoop lint block printed after a `static-checks` or `verify` callback is
    supporting output, not exit-criteria evidence, and never replaces the checks
    you select ([script-owned lint](#script-owned-lint)).

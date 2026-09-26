@@ -54,6 +54,10 @@ def activity(*, two=False):
                          'status': 'done' if target == 'done' else 'active'})
             continue
         producer = {'outcome': 'done', 'summary': 'Synthetic declaration; no work executed.'}
+        if stage == 'step-plan':
+            producer['test_commands'] = [
+                {'command': 'python3 -m unittest discover -s tests', 'suite': 'focused'},
+            ]
         if stage == 'plan' and two:
             producer['work_items'] = [
                 {'id': 'W1', 'title': 'First fixture'},
