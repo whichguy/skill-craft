@@ -440,6 +440,23 @@ _SHIPLOOP_WIDE_PATHS = frozenset({
     "skills/shiploop/scripts/shiploop_protocol.py",
 })
 
+# A file most suites reference (the navigator, the store, the prompt catalog,
+# the CLI entrypoint) is a hub: selecting every consumer runs most of ShipLoop
+# for any edit.  A hub selects this fixed set of its representative consumers
+# instead; the full tier on release commits still runs everything.
+HUB_REFERENCE_LIMIT = 8
+_HUB_SUITE_IDS = (
+    "shiploop-delegation",
+    "shiploop-lint",
+    "shiploop-actual-improve-cli",
+    "shiploop-v3-guidance",
+    "shiploop-quality",
+    "shiploop-store",
+    "shiploop-privacy",
+    "shiploop-keepalive",
+    "shiploop-planning-handoff",
+)
+
 # Code paths whose names suites mention; a document's name says nothing.
 _REFERENCE_PREFIXES = ("skills/", "agents/", "scripts/", "test/")
 
@@ -490,9 +507,10 @@ def targeted(changed: Iterable[str]) -> set[str]:
     named after the leaf, except ShipLoop's, whose leaf name prefixes every
     one of its suites.  A changed file also
     selects the suites whose source names it, so a shared module such as
-    shiploop_navigator.py or a test helper reaches its consumers.  ShipLoop's
-    prompt surface selects the packet suites, and its entrypoint selects
-    every ShipLoop suite.
+    shiploop_navigator.py or a test helper reaches its consumers; a hub that more
+    than HUB_REFERENCE_LIMIT suites reference, and ShipLoop's entrypoint, select
+    the fixed hub consumer set instead.  ShipLoop's prompt surface selects the
+    packet suites.
     """
 
     ids: set[str] = set()
@@ -513,11 +531,12 @@ def targeted(changed: Iterable[str]) -> set[str]:
         if leaf:
             ids.update(_prefixed(leaf, (suite for suite in SUITES if suite.family != "shiploop")))
         if path not in {suite.path for suite in SUITES}:
-            ids.update(_referencing(path))
+            consumers = _referencing(path)
+            ids.update(consumers if len(consumers) <= HUB_REFERENCE_LIMIT else _HUB_SUITE_IDS)
         if path == "skills/shiploop/SKILL.md" or path.startswith(_SHIPLOOP_PROMPT_PREFIXES):
             ids.update(_SHIPLOOP_PROMPT_IDS)
         if path in _SHIPLOOP_WIDE_PATHS:
-            ids.update(suite.id for suite in SHIPLOOP_SUITES)
+            ids.update(_HUB_SUITE_IDS)
     return ids
 
 

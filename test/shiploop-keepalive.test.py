@@ -262,6 +262,36 @@ class ProgressAndTurnTests(KeepaliveTestCase):
         self.assertIn(".", self.status()["progress"])
 
 
+class HealthNoticeTests(KeepaliveTestCase):
+    """A session that keeps printing packets without ever binding is told its hooks are off."""
+
+    def env(self, session: str) -> dict:
+        return {"GROK_AGENT": "1", "GROK_SESSION_ID": session}
+
+    def test_the_second_unbound_packet_warns_once(self) -> None:
+        run = str(self.run_dir)
+        self.assertIsNone(keepalive.health_notice(run, self.env("h1")))
+        notice = keepalive.health_notice(run, self.env("h1"))
+        self.assertIn("keepalive is not active in this grok session", notice)
+        self.assertIn("restart Grok", notice)
+        self.assertIsNone(keepalive.health_notice(run, self.env("h1")))
+
+    def test_a_bound_session_never_warns(self) -> None:
+        self.hook("observe", "grok", self.payload("grok", "observe", "h2"))
+        for _ in range(3):
+            self.assertIsNone(keepalive.health_notice(str(self.run_dir), self.env("h2")))
+        self.assertIsNone(keepalive.health_notice(str(self.run_dir), {}))
+
+    def test_the_cli_prints_the_warning_on_stderr(self) -> None:
+        env = {**os.environ, **self.env("h3")}
+        argv = [sys.executable, str(SCRIPTS / "shiploop"), "next", "--run-dir", str(self.run_dir)]
+        first = subprocess.run(argv, capture_output=True, text=True, env=env, check=False)
+        second = subprocess.run(argv, capture_output=True, text=True, env=env, check=False)
+        self.assertNotIn("keepalive is not active", first.stderr)
+        self.assertIn("keepalive is not active in this grok session", second.stderr)
+        self.assertEqual(first.stdout, second.stdout)
+
+
 class ConcurrencyTests(KeepaliveTestCase):
     """Several agents on one run: only the owner is kept alive."""
 

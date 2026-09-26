@@ -178,6 +178,7 @@ def workspace_completion_guard(root, previous, updated):
 
 
 CALLBACK_ATTEMPTS = "callback-attempts"
+PACKET_VERBS = frozenset({"next", "resume", "complete", "improve-bind", "improve-complete", "improve-reconcile"})
 CALLBACK_VERBS = frozenset({"complete", "improve-bind", "improve-complete", "improve-reconcile"})
 
 
@@ -384,10 +385,16 @@ def main(core, argv=None):
                     _count_callback_attempt(root)
                 _require_retry_delegation(existing, getattr(args, "delegation", None), root)
                 _require_retry_lint(existing, getattr(args, "lint", None), root)
-                return navigator.dispatch(
+                code = navigator.dispatch(
                     core, root, existing, args,
                     completion_guard=lambda before, after: workspace_completion_guard(root, before, after),
                 )
+                if args.command in PACKET_VERBS:
+                    import shiploop_keepalive
+                    health = shiploop_keepalive.health_notice(str(root))
+                    if health:
+                        print(health, file=sys.stderr)
+                return code
             if (root / "state.json").exists():
                 print(f"ShipLoop blocked: {navigator.retired_json_run_reason(root)}", file=sys.stderr)
                 return 2

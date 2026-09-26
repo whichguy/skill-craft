@@ -173,6 +173,15 @@ class TestGroupTests(unittest.TestCase):
             with self.subTest(path=path):
                 self.assertLessEqual(expected, {suite.id for suite in suite_catalog.quick((path,))})
 
+    def test_a_hub_file_selects_a_bounded_consumer_set(self) -> None:
+        baseline = {suite.id for suite in suite_catalog.quick()}
+        for path in ("skills/shiploop/scripts/shiploop_navigator.py",
+                     "skills/shiploop/scripts/shiploop_store.py",
+                     "skills/shiploop/scripts/shiploop"):
+            with self.subTest(path=path):
+                extra = {suite.id for suite in suite_catalog.quick((path,))} - baseline
+                self.assertLessEqual(len(extra), len(suite_catalog._HUB_SUITE_IDS) + 2)
+
     def test_quick_never_runs_heavy_suites_or_the_apparatus(self) -> None:
         everything = tuple(suite.path for suite in suite_catalog.SUITES)
         selected = suite_catalog.quick(everything)

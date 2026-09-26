@@ -628,6 +628,62 @@ def install(host: str, *, remove: bool = False, dry_run: bool = False) -> str:
     return f"{host}: {done[0] if dry_run else done[1]} {path}"
 
 
+# Each host's marker and session variables in the shell commands it runs.  Grok
+# comes first: a Grok started from a Claude shell inherits Claude's variables.
+SESSION_ENV = (("grok", "GROK_AGENT", "GROK_SESSION_ID"),
+               ("claude", "CLAUDECODE", "CLAUDE_CODE_SESSION_ID"))
+HEALTH_REMEDY = {
+    "grok": ("restart Grok so its leader loads the ShipLoop plugin hooks (or run "
+             "`scripts/shiploop-hook install --host grok`)"),
+    "claude": "check /hooks lists ShipLoop's Stop hook, and restart Claude Code after a plugin update",
+}
+
+
+def _host_session(env: Mapping[str, str]) -> tuple[str, str] | None:
+    for host, marker, variable in SESSION_ENV:
+        if env.get(marker) and env.get(variable):
+            return host, env[variable]
+    return None
+
+
+def health_notice(run_dir: str, env: Mapping[str, str] | None = None) -> str | None:
+    """Warn once when this host session has printed packets but its keepalive never bound.
+
+    The observe hook binds a session after its first ShipLoop command, so a
+    second packet with no binding ever seen means the host is not running the
+    hooks.  A session bound once and later released (a pause, a block) never warns.
+    Never raises.
+    """
+    try:
+        env = os.environ if env is None else env
+        found = _host_session(env)
+        if disabled() or found is None:
+            return None
+        host, session = found
+        path = home() / "health" / f"{host}-{hashlib.sha256(session.encode()).hexdigest()[:32]}.json"
+        with _locked(path):
+            try:
+                record = _read_json(path)
+            except (OSError, ValueError):
+                record = {}
+            if record.get("run_dir") != run_dir:
+                record = {"run_dir": run_dir}
+            binding = load_binding(host, session)
+            if binding is not None and binding.get("run_dir") == run_dir:
+                record["bound"] = True
+            record["packets"] = int(record.get("packets", 0)) + 1
+            notice = None
+            if not record.get("bound") and record["packets"] >= 2 and not record.get("warned"):
+                record["warned"] = True
+                notice = (f"ShipLoop keepalive is not active in this {host} session: its hooks have "
+                          "not bound this run, so the host may end the turn mid-run. To fix it, "
+                          + HEALTH_REMEDY.get(host, "check the host's hooks") + ".")
+            _write_json(path, record)
+        return notice
+    except Exception:  # noqa: BLE001 - a diagnostic must never block ShipLoop
+        return None
+
+
 # Hosts that never run a plugin's hooks, keyed to the variable the host sets
 # in every shell command it runs.  Grok 1.0.41 lists the ShipLoop plugin's
 # hooks but never dispatches them (headless or interactive, trusted or not),
