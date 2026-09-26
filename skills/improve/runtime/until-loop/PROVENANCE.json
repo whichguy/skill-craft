@@ -28,7 +28,7 @@
     {
       "bundled_path": "references/runtime-ephemeral.md",
       "upstream_path": "references/runtime-ephemeral.md",
-      "sha256": "027a14ea79e926806f3c37781c56fc341130ac2578524c40d550beb85ac8880d",
+      "sha256": "90ad9f9a06f193779b9beae8e4748362c8163ef5691a9b27268d226cfd2e0385",
       "upstream_sha256": "095206ed5e6278e7c93a46a5c2e1936e66d65693f0db8b1471cb0c68f2ee6d25",
       "adaptation_reason": "Owner decision 2026-09-26: with a gate of two or more trivial reviews, a trivial, satisfied first review that leaves the workspace's Git content tree unchanged since start completes the loop (progress.unchanged_first_pass); the runtime checks the tree, not the report."
     }

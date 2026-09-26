@@ -6,14 +6,14 @@ flowchart LR
     Contract --> Packet[Bundled Until Loop returns one action]
     Packet --> Cycle[Review, improve, check, and record one cycle]
     Cycle --> Report[Submit the exact done callback with handoff]
-    Report --> Gate{Two qualifying reviews?}
+    Report --> Gate{Two passes with no changes, or a first pass with no change?}
     Gate -->|No| Packet
     Gate -->|Yes| Terminal[Terminal packet and state deletion]
 ~~~
 
 Improve reviews a repository candidate, makes worthwhile changes, checks the
-result, and continues until two distinct consecutive review cycles find only
-trivial issues or no changes. It reads the last seven full Git commit messages
+result, and repeats until two consecutive passes make no changes, or the first
+pass completes with no change (the runtime confirms "no change" from Git). It reads the last seven full Git commit messages
 for every review. A material finding or fix resets the count, even when the fix
 is small and succeeds.
 
@@ -21,7 +21,7 @@ The user-facing interface stays natural language. The selected Improve card
 binds a package-local Until Loop card, which owns internal start, next, and done
 calls. The agent owns the review judgment and reports what actually happened;
 the runtime validates action identity, preserves the latest contract and
-handoff, applies the two-review gate, and selects the next packet.
+handoff, applies the exit rule, and selects the next packet.
 
 ## Start with a normal request
 
@@ -69,9 +69,11 @@ Each completed cycle reports factual observations and a rolling handoff:
 }
 ~~~
 
-The first qualifying trivial report leaves the run active with a streak of one.
-The second distinct qualifying report can be terminal only when the substantive
-exit condition also has current evidence. The terminal response retains the
+A first trivial report that left the workspace unchanged ends the run at once
+when the exit condition has current evidence. Otherwise the first qualifying
+trivial report leaves the run active with a streak of one, and the second
+distinct qualifying report can be terminal only when the substantive exit
+condition also has current evidence. The terminal response retains the
 last report and context, then deletes the temporary state file.
 
 ## Context, handoff, and cold recovery
@@ -115,7 +117,7 @@ completion. A worker never executes parent callbacks.
 | What is material? | Behavior fixes, public-contract changes, security or data-integrity corrections, and missing required regression coverage are material. Non-semantic spelling, formatting, or explanatory polish can be trivial only with evidence behavior is unchanged. |
 | When are commits made? | After applicable checks pass, commit authorized scoped work with Review, Plan, Changes, Validation, Key learnings, and Remaining work. Preserve unrelated staged and unstaged hunks. |
 | What if a review changes nothing? | Keep an honest host record. Do not manufacture an edit or empty commit unless an explicit audit-commit-every-iteration request authorizes the identified no-change audit commit. |
-| When is it complete? | The exit condition, current relevant checks, and every other requested condition are satisfied, with two distinct consecutive qualifying trivial/no-change reviews and no unresolved material finding. |
+| When is it complete? | The exit condition, current relevant checks, and every other requested condition are satisfied, with two consecutive passes that make no changes (or a first pass that completes with no change) and no unresolved material finding. |
 
 ### Influences, decisions, and new learnings
 

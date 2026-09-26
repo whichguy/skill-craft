@@ -13,7 +13,7 @@ Use the available Python interpreter. A start call needs JSON on stdin:
 {
   "workspace": "/actual/existing/workspace",
   "work": "Review the scoped candidate and last seven full commit messages, plan worthwhile fixes, implement them, run relevant checks and record the iteration under the requested commit policy.",
-  "exit_condition": "Two consecutive full reviews find only trivial or no changes (or the first full review is trivial and leaves the workspace unchanged), relevant current checks pass, and no material issue remains.",
+  "exit_condition": "Two consecutive full reviews make no changes, or the first full review completes with no change; relevant current checks pass, and no material issue remains.",
   "repeat_condition": "Repeat while useful authorized work or a required distinct review remains; stop incomplete on an actual blocker or requested stop.",
   "required_trivial_reviews": 2,
   "context": {
