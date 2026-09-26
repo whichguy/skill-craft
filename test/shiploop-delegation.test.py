@@ -311,16 +311,17 @@ class PacketContractTests(DelegationStateTests):
             for stage, kind, packet in packets:
                 with self.subTest(route=route, stage=stage, kind=kind):
                     # Producers stay within the cold-packet bound. A bound child adds
-                    # its runtime contract (about 39,300 chars at most, before temp
+                    # its runtime contract (about 42,300 chars at most, before temp
                     # paths); the initial plan child also carries the
-                    # planning-experiment contract (about 44,700 chars; 43,500 in
-                    # 0.22.0), so it alone gets a wider bound.
+                    # planning-experiment contract (about 46,000 chars; 43,500 in
+                    # 0.22.0), so it alone gets a wider bound. The owner prefers
+                    # complete prompts to trimming for this bound (2026-09-25).
                     if kind == "produce":
                         bound = 40_000
                     elif stage == "plan":
-                        bound = 46_000
+                        bound = 48_000
                     else:
-                        bound = 42_000
+                        bound = 44_000
                     self.assertLess(len(packet), bound)
                     self.assertNotIn("Improve cadence", packet)
                     lines = packet.splitlines()
