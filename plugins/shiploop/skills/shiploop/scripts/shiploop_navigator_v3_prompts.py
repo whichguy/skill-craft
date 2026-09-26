@@ -231,12 +231,14 @@ STAGE_REFERENCES: dict[str, tuple[tuple[str, str], ...]] = {
         ("Delivery authority guidance", "delivery-authority.md#ask-at-the-first-concrete-boundary"),
     ),
     "discovery": (
+        ("Delivery authority guidance", "delivery-authority.md#ask-at-the-first-concrete-boundary"),
         ("Connected knowledge discovery", "project-knowledge.md#connected-knowledge-discovery"),
         ("Discovery evidence handoff", "project-knowledge.md#discovery-evidence-handoff"),
         ("Discovery investigation guidance", "research-loop.md#plan-the-investigation"),
         ("Service discovery guidance", "service-discovery.md#select-scope"),
         ("Current-system baseline guide", "current-system-baseline.md#establish-or-refresh"),
         ("Persistent project-context guidance", "project-knowledge.md#discover-persistent-context-before-planning"),
+        ("House-style guidance", "house-style.md#extract-the-house-style"),
         ("Repository-local skill guidance", "testing-and-documentation.md#reusable-product-skills"),
         ("Environment and source-return discovery", "environment-lifecycle.md#discover-before-planning-code"),
         ("UI planning ownership when applicable", "behavioral-requirements.md#allocate-ui-decisions-to-their-planning-owner"),
@@ -267,6 +269,7 @@ STAGE_REFERENCES: dict[str, tuple[tuple[str, str], ...]] = {
         ("State and data assessment", "requirements-definition.md#state-and-data-change-assessment"),
     ),
     "plan": (
+        ("Delivery authority guidance", "delivery-authority.md#ask-at-the-first-concrete-boundary"),
         ("Service discovery guidance", "service-discovery.md#development-handoff"),
         ("Current-system baseline guide", "current-system-baseline.md#planning-and-review-handoff"),
         ("Dependency-planning guidance", "backchain-planning.md#dependency-audit"),
@@ -291,6 +294,7 @@ STAGE_REFERENCES: dict[str, tuple[tuple[str, str], ...]] = {
         ("Service discovery guidance", "service-discovery.md#development-handoff"),
         ("Current-system baseline guide", "current-system-baseline.md#planning-and-review-handoff"),
         ("Coding decision guide", "coding-guidance.md#select-guidance"),
+        ("House-style guidance", "house-style.md#write-the-match-contract"),
         ("Namespace and placement guidance", "coding-practices.md#namespaces-and-placement"),
         ("Schema and storage guidance", "coding-practices.md#schema-and-storage"),
         ("Git-history investigation guide", "project-knowledge.md#investigate-git-history-for-planning"),
@@ -312,6 +316,7 @@ STAGE_REFERENCES: dict[str, tuple[tuple[str, str], ...]] = {
     ),
     "test-author": (
         ("Repeatable test-suite guide", "repeatable-test-suites.md#select-or-revalidate-the-harness"),
+        ("House-style guidance", "house-style.md#match-while-building"),
         ("Test-case planning guidance", "testing-and-documentation.md#test-cases"),
     ),
     "test-red": (
@@ -321,6 +326,7 @@ STAGE_REFERENCES: dict[str, tuple[tuple[str, str], ...]] = {
     "implement": (
         ("Service discovery guidance", "service-discovery.md#development-handoff"),
         ("Coding decision guide", "coding-guidance.md#select-guidance"),
+        ("House-style guidance", "house-style.md#match-while-building"),
         ("Target-native test selection", "repeatable-test-suites.md#select-target-native-tests"),
         ("Parallel-chain guide", "parallel-chain.md#parallel-implementation-chains"),
         ("Repeatable test-suite guide", "repeatable-test-suites.md#select-or-revalidate-the-harness"),
@@ -358,6 +364,7 @@ STAGE_REFERENCES: dict[str, tuple[tuple[str, str], ...]] = {
     "verify": (
         ("Service discovery guidance", "service-discovery.md#verification"),
         ("Coding decision guide", "coding-guidance.md#select-guidance"),
+        ("House-style guidance", "house-style.md#check-the-diff-against-the-contract"),
         ("Repeatable test-suite guide", "repeatable-test-suites.md#select-or-revalidate-the-harness"),
         ("Test-case planning guidance", "testing-and-documentation.md#test-cases"),
         ("Real-boundary test guidance", "testing-and-documentation.md#layers-and-real-boundaries"),
@@ -373,6 +380,7 @@ STAGE_REFERENCES: dict[str, tuple[tuple[str, str], ...]] = {
         ("Current-system baseline guide", "current-system-baseline.md#retain-across-runs"),
         ("Carry-forward mapping guidance", "carry-forward.md#mandatory-post-inner-mapping"),
         ("Persistent project-knowledge guidance", "project-knowledge.md#retain-learnings-for-the-next-invocation"),
+        ("House-style guidance", "house-style.md#retain-the-house-style"),
         ("State and data assessment", "requirements-definition.md#state-and-data-change-assessment"),
     ),
     "system-test-author": (
