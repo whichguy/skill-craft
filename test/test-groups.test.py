@@ -94,7 +94,7 @@ class TestGroupTests(unittest.TestCase):
     def test_audited_catalog_counts_and_fixed_commands(self) -> None:
         self.assertEqual(len(suite_catalog.SHIPLOOP_SUITES), 52)
         self.assertEqual(len([suite for suite in suite_catalog.SUITES if suite.family == "core"]), 34)
-        self.assertEqual(len(suite_catalog.SUITES), 87)
+        self.assertEqual(len(suite_catalog.SUITES), 88)
         self.assertTrue(all(suite.hermetic for suite in suite_catalog.SUITES))
         self.assertTrue(all(suite.path in suite.argv for suite in suite_catalog.SUITES))
         self.assertTrue(all(suite.argv[0] in {"python3", "node", "bash"} for suite in suite_catalog.SUITES))
@@ -133,8 +133,9 @@ class TestGroupTests(unittest.TestCase):
     def test_quick_is_a_light_baseline_plus_the_suites_matching_changed_files(self) -> None:
         baseline = {suite.id for suite in suite_catalog.quick()}
         self.assertEqual(baseline, {suite.id for suite in suite_catalog.select(("quick",))})
-        self.assertTrue({"test-groups", "ci-policy", "skill-frontmatter", "shiploop-navigator-v4"} <= baseline)
-        self.assertLess(len(baseline), 15)
+        self.assertTrue({"test-groups", "ci-policy", "skill-frontmatter", "shiploop-mock-replay",
+                         "shiploop-navigator-v4"} <= baseline)
+        self.assertLess(len(baseline), 17)
         cases = {
             "skills/shiploop/scripts/shiploop_keepalive.py": {"shiploop-keepalive"},
             "scripts/release.py": {"release-push", "release-flow", "release-boundary"},
@@ -177,12 +178,13 @@ class TestGroupTests(unittest.TestCase):
         selected = suite_catalog.quick(everything)
         self.assertTrue(selected)
         for suite in selected:
-            self.assertNotEqual(suite.family, "e2e-apparatus")
+            self.assertNotEqual(suite.id, "shiploop-e2e-apparatus")
             self.assertLessEqual(suite_catalog._DURATION_SECONDS.get(suite.path, 0.0),
                                  suite_catalog.QUICK_MAX_SECONDS, suite.id)
         ids = {suite.id for suite in selected}
         self.assertNotIn("shiploop-chain-lifecycle", ids)
         self.assertIn("shiploop-chain-git", ids)
+        self.assertIn("shiploop-mock-replay", ids)
 
     def test_changed_from_lists_quick_suites_and_is_refused_for_other_groups(self) -> None:
         listed = subprocess.run(["bash", str(ROOT / "test/run-all.sh"), "--group", "quick",

@@ -292,7 +292,25 @@ _APPARATUS_SUITE = _suite(
     timeout_seconds=1_200,
 )
 
-SUITES = (*_CORE_SUITES, *SHIPLOOP_SUITES, _APPARATUS_SUITE)
+# The apparatus's no-model replay slice: captured agent results drive the real
+# navigator, and each stage, action, owner and status must match its fixture.
+# It takes seconds, so quick runs it for every change; full also runs it
+# inside the apparatus's ``--suite all``.
+_MOCK_REPLAY_SUITE = _suite(
+    "shiploop-mock-replay",
+    "e2e-apparatus",
+    "skills/shiploop-e2e-audit/harness/check_suite.py",
+    "python3",
+    "-B",
+    "skills/shiploop-e2e-audit/harness/check_suite.py",
+    "--suite",
+    "mock",
+    "--skill-root",
+    "skills/shiploop",
+    timeout_seconds=300,
+)
+
+SUITES = (*_CORE_SUITES, *SHIPLOOP_SUITES, _MOCK_REPLAY_SUITE, _APPARATUS_SUITE)
 
 GROUPS = (
     "all",
@@ -339,9 +357,9 @@ def validate_catalog() -> None:
     identifiers = [suite.id for suite in SUITES]
     if len(identifiers) != len(set(identifiers)):
         raise ValueError("catalog contains duplicate suite ids")
-    paths = [suite.path for suite in SUITES]
-    if len(paths) != len(set(paths)):
-        raise ValueError("catalog contains duplicate suite paths")
+    commands = [(suite.path, suite.argv) for suite in SUITES]
+    if len(commands) != len(set(commands)):
+        raise ValueError("catalog contains duplicate suite commands")
     if not all(suite.hermetic for suite in SUITES):
         raise ValueError("every catalog entry must be explicitly hermetic")
     for suite in SUITES:
@@ -368,7 +386,7 @@ def validate_catalog() -> None:
 # commits and manual dispatch).
 
 QUICK_MAX_SECONDS = 120.0
-_QUICK_CORE_IDS = frozenset({"test-groups", "ci-policy", "skill-frontmatter"})
+_QUICK_CORE_IDS = frozenset({"test-groups", "ci-policy", "skill-frontmatter", "shiploop-mock-replay"})
 
 # Repository files whose suites a name match would not find.
 _PATH_SUITE_IDS = {
@@ -381,7 +399,7 @@ _PATH_SUITE_IDS = {
 
 
 def _light(suite: Suite) -> bool:
-    return (suite.family != "e2e-apparatus"
+    return (suite.id != _APPARATUS_SUITE.id
             and _DURATION_SECONDS.get(suite.path, 0.0) <= QUICK_MAX_SECONDS)
 
 
