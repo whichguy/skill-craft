@@ -218,11 +218,11 @@ def validate_hooks(package: Path, name: str, errors: list[str]) -> None:
                 entries.extend(item.get("hooks", [item]) if isinstance(item, dict) else [item])
         if not entries:
             errors.append(f"hooks/{file_name}: declares no hook commands")
-        prefix = f'"{variable}/skills/{name}/scripts/'
+        prefix = f"{variable}/skills/{name}/scripts/"
         for entry in entries:
             command = entry.get("command") if isinstance(entry, dict) else None
-            script = (command[len(prefix):-1] if isinstance(command, str) and command.startswith(prefix)
-                      and command.endswith('"') else "")
+            script = (command[len(prefix):] if isinstance(command, str) and command.startswith(prefix)
+                      else "")
             target = package / "skills" / name / "scripts" / script
             if not script or "/" in script or not target.is_file() or not os.access(target, os.X_OK):
                 errors.append(f"hooks/{file_name}: command must run an executable in "

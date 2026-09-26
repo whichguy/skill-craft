@@ -317,7 +317,9 @@ function readHostHooks(leaf) {
 function buildHostHooks(leaf, decl) {
   if (!decl) return {};
   const files = {};
-  const command = (variable, hook) => `"${variable}/skills/${leaf}/${hook.script}"`;
+  // Unquoted: Grok does not strip quotes and would read the quoted path as a file
+  // name relative to the hooks folder. Plugin roots contain no spaces.
+  const command = (variable, hook) => `${variable}/skills/${leaf}/${hook.script}`;
   const entry = (variable, hook) => ({ type: "command", command: command(variable, hook), timeout: hook.timeout });
   const claudeShaped = (variable, hooks) => {
     const shell = hooks.filter((hook) => hook.event === "after-shell");

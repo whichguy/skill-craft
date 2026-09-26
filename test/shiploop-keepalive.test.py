@@ -391,6 +391,10 @@ class MarketplacePackageTests(KeepaliveTestCase):
                 observe = self.commands(hooks, "afterShellExecution" if cursor else "PostToolUse")
                 stop = self.commands(hooks, "stop" if cursor else "Stop")
                 self.assertEqual((len(observe), len(stop)), (1, 1))
+                # Grok does not strip quotes: a quoted command becomes a file name
+                # relative to the hooks folder ("command not found").
+                for command in (*observe, *stop):
+                    self.assertFalse(command.startswith(('"', "'")), command)
                 env = {**os.environ, variable: str(plugin), **extra}
                 if variable != "CURSOR_PLUGIN_ROOT":
                     env.pop("CURSOR_PLUGIN_ROOT", None)
