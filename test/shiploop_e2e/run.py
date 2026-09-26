@@ -279,10 +279,10 @@ def parser() -> argparse.ArgumentParser:
     p.add_argument("--plugin-dir", type=Path, help="skill-craft plugin build to test (default: build this checkout)")
     p.add_argument("--installed", action="store_true",
                    help="claude only: use the installed skill-craft plugin instead of a build")
-    p.add_argument("--max-turns", type=int, default=150)
+    p.add_argument("--max-turns", type=int, default=600)
     p.add_argument("--max-budget-usd", type=float, default=10.0, help="claude only; grok has no spend cap")
     p.add_argument("--permission-mode", default="auto")
-    p.add_argument("--timeout", type=int, default=2700, help="seconds before the host is killed")
+    p.add_argument("--timeout", type=int, default=10800, help="seconds before the host is killed")
     p.add_argument("--quiet", action="store_true", help="do not print the live progress view")
     p.add_argument("--grok-bin", default="grok")
     p.add_argument("--claude-bin", default="claude")
