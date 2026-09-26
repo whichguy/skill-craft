@@ -92,9 +92,9 @@ class TestGroupTests(unittest.TestCase):
         return root, env, parent
 
     def test_audited_catalog_counts_and_fixed_commands(self) -> None:
-        self.assertEqual(len(suite_catalog.SHIPLOOP_SUITES), 51)
+        self.assertEqual(len(suite_catalog.SHIPLOOP_SUITES), 52)
         self.assertEqual(len([suite for suite in suite_catalog.SUITES if suite.family == "core"]), 34)
-        self.assertEqual(len(suite_catalog.SUITES), 86)
+        self.assertEqual(len(suite_catalog.SUITES), 87)
         self.assertTrue(all(suite.hermetic for suite in suite_catalog.SUITES))
         self.assertTrue(all(suite.path in suite.argv for suite in suite_catalog.SUITES))
         self.assertTrue(all(suite.argv[0] in {"python3", "node", "bash"} for suite in suite_catalog.SUITES))
@@ -143,7 +143,7 @@ class TestGroupTests(unittest.TestCase):
             "test/shiploop-lint.test.py": {"shiploop-lint"},
             "docs/notes.md": set(),
             "skills/shiploop/SKILL.md": {"shiploop-v3-guidance", "shiploop-reference-routing",
-                                         "shiploop-delegation"},
+                                         "shiploop-delegation", "shiploop-package-integrity"},
             "test/shiploop_consumer_delivery_support.py": {"shiploop-consumer-delivery"},
         }
         for path, expected in cases.items():
@@ -164,6 +164,9 @@ class TestGroupTests(unittest.TestCase):
             "skills/shiploop/commands/shiploop.md": {"shiploop-delegation"},
             "skills/shiploop/scripts/shiploop": {"shiploop-store", "shiploop-privacy",
                                                  "shiploop-keepalive"},
+            "skills/shiploop/scripts/shiploop_protocol.py": {"shiploop-delegation", "shiploop-lint"},
+            "skills/shiploop/host-hooks.json": {"shiploop-package-integrity"},
+            "skills/shiploop/hooks/opencode-keepalive.js": {"shiploop-package-integrity"},
         }
         for path, expected in cases.items():
             with self.subTest(path=path):

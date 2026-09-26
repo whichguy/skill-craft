@@ -33,8 +33,9 @@ suites named after the leaf; a changed file under `skills/`, `agents/`,
 `scripts/` or `test/` also selects the suites whose source, or a test helper
 they import, names it, so `shiploop_navigator.py` and
 `test/shiploop_*_support.py` reach their consumers; ShipLoop's `SKILL.md`,
-`references/` and `commands/` select its packet and guidance suites; and the
-`scripts/shiploop` entrypoint selects every light ShipLoop suite). Suites measured above two minutes and the E2E
+`references/` and `commands/` select its packet, guidance and package-integrity
+suites; and the `scripts/shiploop` entrypoint and `shiploop_protocol.py` select
+every light ShipLoop suite). Suites measured above two minutes and the E2E
 apparatus never run in quick. A pull request diffs from its merge base and a push
 from the previous `main` head. Only a push that contains a release commit (its
 `Skill-Craft-Release:` trailer), even under later ordinary commits, runs the
@@ -92,6 +93,12 @@ it checks relocation and package binding. The apparatus uses synthetic evidence
 and portable recorded source fixtures, with no model calls. The recorded GAS
 products carry provenance and run everywhere; missing fixtures fail instead of
 skipping a required regression case.
+
+`shiploop-package-integrity` statically checks the ShipLoop package: every
+relative Markdown link resolves, every reference is reachable by name from the
+card, README, a command, script or hook, `host-hooks.json` names executable
+scripts for known events, Python scripts compile and the OpenCode hook parses.
+It runs in well under a second and reads files only.
 
 ## Fixture ownership and intentional overlap
 

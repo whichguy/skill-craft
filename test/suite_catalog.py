@@ -123,6 +123,7 @@ _SHIPLOOP_PATHS = (
     "test/shiploop-reference-routing.test.py",
     "test/shiploop-keepalive.test.py",
     "test/shiploop-planning-handoff.test.py",
+    "test/shiploop-package-integrity.test.py",
 )
 
 # Measured in the audited full GitHub qualification.  Every known duration is
@@ -178,6 +179,7 @@ _DURATION_SECONDS = {
     "test/experiments/shiploop_delivery/browser_consumer/serve_fixture.test.py": 2.53,
     "test/shiploop-capability-runtime.test.py": 0.996,
     "test/shiploop-planning-handoff.test.py": 0.2,
+    "test/shiploop-package-integrity.test.py": 0.2,
 }
 _FALLBACK_DURATION_SECONDS = 60.0
 
@@ -404,6 +406,7 @@ _ROOT = Path(__file__).resolve().parents[1]
 # ShipLoop's prompt surface: the skill card, its references and its commands
 # reach models through packets that these suites render and check.
 _SHIPLOOP_PROMPT_IDS = (
+    "shiploop-package-integrity",
     "shiploop-v3-guidance",
     "shiploop-reference-routing",
     "shiploop-delegation",
@@ -412,8 +415,12 @@ _SHIPLOOP_PROMPT_IDS = (
 )
 _SHIPLOOP_PROMPT_PREFIXES = ("skills/shiploop/references/", "skills/shiploop/commands/")
 
-# The ShipLoop entrypoint every CLI suite runs through; no file name finds them.
-_SHIPLOOP_WIDE_PATHS = frozenset({"skills/shiploop/scripts/shiploop"})
+# The ShipLoop entrypoint and the protocol module it hands every command to;
+# every CLI suite runs through them, and no file name finds those suites.
+_SHIPLOOP_WIDE_PATHS = frozenset({
+    "skills/shiploop/scripts/shiploop",
+    "skills/shiploop/scripts/shiploop_protocol.py",
+})
 
 # Code paths whose names suites mention; a document's name says nothing.
 _REFERENCE_PREFIXES = ("skills/", "agents/", "scripts/", "test/")
