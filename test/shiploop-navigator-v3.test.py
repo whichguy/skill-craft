@@ -1714,7 +1714,7 @@ class NavigatorV3Tests(unittest.TestCase):
         submitted = result(summary="Synthetic intake result.")
         updated = navigator.apply(state, action["id"], submitted)
         self.assertEqual(navigator.current_stage(updated), "discovery")
-        expected_targets = (f"results/{action['id']}.md", "state.md", "status.md")
+        expected_targets = ("context-index.md", f"results/{action['id']}.md", "state.md", "status.md")
         expected_status = "```text\n" + navigator.status_block(updated) + "\n```\n"
         core = SimpleNamespace(PACKAGE_ROOT=SCRIPTS.parent)
         real_transaction = store.transaction
@@ -1737,7 +1737,8 @@ class NavigatorV3Tests(unittest.TestCase):
                     navigator.save(root, updated)
             return observed
 
-        for fault_index, label in ((1, "receipt-before-state"), (2, "after-state")):
+        # Targets are written in sorted order; the derived index comes first.
+        for fault_index, label in ((2, "receipt-before-state"), (3, "after-state")):
             with self.subTest(interruption=label):
                 root = (Path(self.temp.name) / f"transaction-{fault_index}").resolve()
                 root.mkdir()
@@ -1753,6 +1754,8 @@ class NavigatorV3Tests(unittest.TestCase):
                 self.assertEqual(recovered, updated)
                 # The derived status copy rolls forward with the state it describes.
                 self.assertEqual((root / "status.md").read_text(encoding="utf-8"), expected_status)
+                self.assertIn(f"revision {updated['revision']}",
+                              (root / "context-index.md").read_text(encoding="utf-8"))
                 receipt_record = store.read_record(root / "results" / f"{action['id']}.md")
                 self.assertEqual(receipt_record["navigator_protocol_version"], 4)
                 self.assertIsNone(receipt_record["workitem"])

@@ -50,6 +50,24 @@ the steps, tests and release steps are planned from the accepted plan rather
 than from memory. `test/shiploop-planning-handoff.test.py` pins which results
 each stage's packet names.
 
+## Run context index
+
+Every save regenerates `context-index.md` in the run directory from `state.md`:
+the request, each current accepted planning result (result file, summary,
+registered notes, Improve receipt and lessons, and the plan's assumptions), the
+work-item queue with each item's accepted results, the outer loop, and
+superseded results. It is a derived view with pointers and short summaries, not
+another record; `state.md` stays the authority, and nothing writes the index
+but the script.
+
+Every packet prints the index path right after its callback line, so no stage is
+limited to the result of the stage before it. Active packets also print **Read
+first**: the accepted results this stage builds on, resolved to their result
+files from the script-owned `STAGE_READS` map in `shiploop_context_index.py`
+(for example `verify` reads the spec, test strategy and the item's step-plan and
+test-spec). A stage reads those before acting and reports a conflict with them
+rather than choosing silently.
+
 ## Delegation
 
 Every run records the run-level `delegation` key, `inline` or `ask-agent`. New

@@ -209,6 +209,7 @@ def hook_status(core, argv):
         "repo": state["repo"],
         "status": state["status"],
         "status_reason": state.get("status_reason", ""),
+        "status_reason": state.get("status_reason", ""),
         "stage": stage,
         "action": (action or {}).get("id"),
         "revision": state["revision"],

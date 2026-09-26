@@ -138,7 +138,7 @@ class HookDecisionTests(KeepaliveTestCase):
             self.hook("stop", "claude", self.payload("claude", "stop"))
         log = [json.loads(line) for line in (self.temp / "state" / "decisions.log").read_text().splitlines()]
         self.assertEqual([(entry["decision"], entry["why"]) for entry in log],
-                         [("continue", "run can move"), ("allow", "run is paused")])
+                         [("continue", "run can move"), ("allow", "run is paused: user asked")])
         self.assertNotIn("session-1", json.dumps(log))
 
     def test_a_second_registration_in_the_same_moment_repeats_the_decision(self) -> None:

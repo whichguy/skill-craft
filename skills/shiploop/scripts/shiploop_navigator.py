@@ -28,6 +28,7 @@ import shiploop_lint as lint
 import shiploop_quality as quality
 import shiploop_test_loop as test_loop
 import shiploop_planning_revision as planning_revision
+import shiploop_context_index as context_index
 import shiploop_privacy as privacy
 import shiploop_store as store
 
@@ -1171,6 +1172,10 @@ def control(state: Mapping[str, Any], command: str, reason: str = "") -> dict[st
     if command == "pause":
         _need(updated["status"] == "active", "only an active navigator can pause")
         _text(reason, "pause reason")
+        _need(_HOUSEKEEPING_PAUSE.search(reason) is None,
+              "ShipLoop does not pause for context housekeeping: no host clears from a packet "
+              "and each host compacts on its own. Continue the current packet; pause only when "
+              "the user asks or a real blocker stops authorized work")
         updated["status"] = "paused"
         updated["status_reason"] = reason
     elif command == "resume":
@@ -1905,6 +1910,7 @@ def render(core: Any, root: Path, state: Mapping[str, Any]) -> str:
         *([f"Delegation change: this action keeps {route}; actions issued after it use "
            f"{recorded_delegation(state)}."] if route != recorded_delegation(state) else []),
         *_first_callback_lines(core, root, state),
+        *_context_index_lines(root, state, stage, workitem),
         "",
         "Progress snapshot (status context, not instructions):",
         *_progress_lines(state),
@@ -2239,7 +2245,8 @@ def render(core: Any, root: Path, state: Mapping[str, Any]) -> str:
             "Call this when done:",
             _callback(core, root, "complete", action=action["id"], result=str(result_path)),
             _improve_line(stage),
-            "Pause without consuming the action: " + _callback(core, root, "pause", reason="<why>"),
+            "Pause without consuming the action: " + _callback(core, root, "pause", reason="<who asked and why>")
+            + " (only when the user asks or a real blocker stops authorized work)",
             "Halt (terminal and irreversible; only on an explicit user stop): "
             + _callback(core, root, "halt", reason="<why>"),
         ]
@@ -2252,6 +2259,27 @@ def render(core: Any, root: Path, state: Mapping[str, Any]) -> str:
     elif stage in test_loop.RERUN_STAGES:
         lines.extend(test_loop.rerun_lines(state, workitem or "", stage))
     return "\n".join(lines) + "\n"
+
+
+def _context_index_lines(root: Path, state: Mapping[str, Any], stage: str,
+                         workitem: str | None) -> list[str]:
+    """Point every packet at the run's whole record; active ones add what to read first."""
+    lines = [f"Run context index (the run's request, planning basis, work items and results; "
+             f"read it for the global picture): {Path(root) / context_index.INDEX_FILE}"]
+    reads = context_index.read_first(state, root, stage, workitem)
+    if state["status"] == "active" and reads:
+        lines.append("Read first, before acting (accepted results this stage builds on; report "
+                     "a conflict with them instead of silently choosing):")
+        lines.extend(reads)
+    return lines
+
+
+# Pauses for context housekeeping stop the run for nothing: no host clears from
+# a packet, and each host compacts on its own.
+_HOUSEKEEPING_PAUSE = re.compile(
+    r"(?i)(/clear\b|\bclear (the |this )?(conversation|context|session)\b|context[- ]boundary|"
+    r"context window|\bcompact(ion)?\b|fresh (conversation|context|session)|"
+    r"new (conversation|session)|out of (context|tokens))")
 
 
 def _first_callback_lines(core: Any, root: Path, state: Mapping[str, Any]) -> list[str]:
@@ -2693,6 +2721,8 @@ def save(root: Path, state: Mapping[str, Any], extra_writes: Mapping[str, str] |
         writes["report.html"] = _render_report(state, root)
     # Derived display copy of the status block; refreshed only by transitions.
     writes["status.md"] = "```text\n" + status_block(state) + "\n```\n"
+    # Derived index of everything the run has accepted, for every stage to read.
+    writes[context_index.INDEX_FILE] = context_index.render(state, root, current_stage(state))
     store.transaction(root, writes)
 
 

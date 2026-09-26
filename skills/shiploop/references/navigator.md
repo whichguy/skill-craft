@@ -355,6 +355,8 @@ After an interruption, run `next`, inspect durable evidence and actual effects,
 and reconcile work that may already have happened before deciding what remains.
 If the reprinted packet is paused or blocked, resolve its stated condition and
 use its printed `resume` command once. A halted or done packet remains stopped.
+Pause only when the user asks or a real blocker stops authorized work; the script
+refuses a pause for context housekeeping.
 If the CLI, repository, or run path is unavailable or relocated, recover the
 same run and verify its task/repository identity first; otherwise leave the
 delivery incomplete. Never use `init` as a replacement for missing state.

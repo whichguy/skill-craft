@@ -454,6 +454,12 @@ the host handoff, or force any host tool call.
 
 ## Follow the current packet
 
+Every packet names the run's **context index** (`context-index.md`): the request,
+the accepted planning basis, each work item's results and their notes. Active
+packets add **Read first**: the accepted results the current stage builds on.
+Read those before acting, use the index for the global picture, and report a
+conflict with an accepted decision instead of silently choosing.
+
 Each packet carries a script-rendered **status block** (`=== ShipLoop status ===`):
 where the run is, what just finished, what comes next and what is complete.
 Show it to the user unchanged unless a host status hook already did; see
