@@ -36,7 +36,12 @@ they import, names it, so `shiploop_navigator.py` and
 `references/` and `commands/` select its packet, guidance and package-integrity
 suites; and the `scripts/shiploop` entrypoint and `shiploop_protocol.py` select
 every light ShipLoop suite). Suites measured above two minutes and the E2E
-apparatus never run in quick. A pull request diffs from its merge base and a push
+apparatus never run in quick. The `chain`, `chain-lifecycle` and
+`chain-planning-context` files keep their multi-worker cases (about ten seconds
+or more each in CI) in a `...SlowTests` class: the catalog runs the other
+classes under the suite's id, which quick can select, and the slow class as
+`<id>-slow`, which runs only in full. Running such a file directly still runs
+every class. A new slow case belongs in the slow class. A pull request diffs from its merge base and a push
 from the previous `main` head. Only a push that contains a release commit (its
 `Skill-Craft-Release:` trailer), even under later ordinary commits, runs the
 full tier. Manual dispatch offers `quick` (the last commit's

@@ -3,6 +3,7 @@
 
 from __future__ import annotations
 
+import ast
 import json
 import os
 from pathlib import Path
@@ -92,9 +93,9 @@ class TestGroupTests(unittest.TestCase):
         return root, env, parent
 
     def test_audited_catalog_counts_and_fixed_commands(self) -> None:
-        self.assertEqual(len(suite_catalog.SHIPLOOP_SUITES), 52)
+        self.assertEqual(len(suite_catalog.SHIPLOOP_SUITES), 55)
         self.assertEqual(len([suite for suite in suite_catalog.SUITES if suite.family == "core"]), 34)
-        self.assertEqual(len(suite_catalog.SUITES), 88)
+        self.assertEqual(len(suite_catalog.SUITES), 91)
         self.assertTrue(all(suite.hermetic for suite in suite_catalog.SUITES))
         self.assertTrue(all(suite.path in suite.argv for suite in suite_catalog.SUITES))
         self.assertTrue(all(suite.argv[0] in {"python3", "node", "bash"} for suite in suite_catalog.SUITES))
@@ -179,10 +180,12 @@ class TestGroupTests(unittest.TestCase):
         self.assertTrue(selected)
         for suite in selected:
             self.assertNotEqual(suite.id, "shiploop-e2e-apparatus")
-            self.assertLessEqual(suite_catalog._DURATION_SECONDS.get(suite.path, 0.0),
-                                 suite_catalog.QUICK_MAX_SECONDS, suite.id)
+            self.assertLessEqual(suite_catalog.duration(suite), suite_catalog.QUICK_MAX_SECONDS, suite.id)
         ids = {suite.id for suite in selected}
-        self.assertNotIn("shiploop-chain-lifecycle", ids)
+        for split_id in ("shiploop-chain", "shiploop-chain-lifecycle", "shiploop-chain-planning-context"):
+            self.assertIn(split_id, ids)
+            self.assertNotIn(split_id + "-slow", ids)
+        self.assertIn("shiploop-chain-lifecycle", ids)
         self.assertIn("shiploop-chain-git", ids)
         self.assertIn("shiploop-mock-replay", ids)
 
@@ -219,6 +222,25 @@ class TestGroupTests(unittest.TestCase):
             (repo / "ignored.log").write_text("d\n")
             self.assertEqual(sorted(run_suites.changed_paths(repo, "HEAD")),
                              ["committed.py", "new_module.py", "staged.md"])
+
+    def test_split_suites_run_every_test_class_exactly_once(self) -> None:
+        # A split file's catalog entries name its classes; a class named by
+        # neither entry would silently never run.
+        for path, (fast, slow) in suite_catalog._SPLIT_CLASSES.items():
+            with self.subTest(path=path):
+                tree = ast.parse((ROOT / path).read_text())
+                with_tests = {
+                    node.name for node in tree.body
+                    if isinstance(node, ast.ClassDef) and any(
+                        isinstance(item, ast.FunctionDef) and item.name.startswith("test_")
+                        for item in node.body)
+                }
+                self.assertFalse(set(fast) & set(slow))
+                self.assertEqual(set(fast) | set(slow), with_tests)
+                entries = [suite for suite in suite_catalog.SUITES if suite.path == path]
+                self.assertEqual([suite.argv[2:] for suite in entries], [fast, slow])
+                self.assertLessEqual(suite_catalog.duration(entries[0]), suite_catalog.QUICK_MAX_SECONDS)
+                self.assertGreater(suite_catalog.duration(entries[1]), 0.0)
 
     def test_lpt_shards_are_disjoint_exhaustive_and_catalog_ordered(self) -> None:
         canonical = suite_catalog.SHIPLOOP_SUITES

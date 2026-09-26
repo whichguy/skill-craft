@@ -42,7 +42,8 @@ from shiploop_chain_support import digest
 import shiploop_chain_support as fixture
 
 
-class PlanningContextChainTests(unittest.TestCase):
+class _PlanningContextChainCase(unittest.TestCase):
+    """Shared setup and helpers for the fast and slow planning-context chain cases."""
     def setUp(self) -> None:
         self.f = self.new_fixture()
 
@@ -341,81 +342,6 @@ class PlanningContextChainTests(unittest.TestCase):
         self.assertEqual(result["phase"], "completed")
         return result
 
-    def test_failed_barrier_worker_stops_before_fixture_worktree_cleanup(self) -> None:
-        observations = []
-        state = {}
-
-        class FailedLaunch(PlanningContextChainTests):
-            def setUp(inner) -> None:
-                super().setUp()
-                inner.bind(inner.f, mode="parallel", capacity=1)
-                attempt = inner.claim(inner.f, "A")["A"]
-                inner.start_parallel(inner.f, "A", attempt, ["context_alpha.py"])
-                workspace = Path(inner.f.packets["A"]["context"]["workspace"])
-                process_ref = {}
-
-                def observe_cleanup() -> None:
-                    process = process_ref["process"]
-                    stopped = process.poll() is not None
-                    observations.append((stopped, workspace.exists()))
-                    inner.assertTrue(stopped, "worker must stop before fixture cleanup")
-                    inner.assertTrue(workspace.exists(), "fixture cleanup ran before worker cleanup")
-
-                # This observer is registered before Popen.  The worker's own
-                # cleanup must be added immediately after Popen, so it runs
-                # first; the fixture cleanup is older still.
-                inner.addCleanup(observe_cleanup)
-                process = inner.launch_context_worker(inner.f, "A")
-                process_ref["process"] = process
-                state["process"] = process
-                state["workspace"] = workspace
-
-            def runTest(inner) -> None:
-                inner.fail("intentional assertion after barrier-worker launch")
-
-        result = unittest.TestResult()
-        FailedLaunch().run(result)
-        self.assertEqual(len(result.failures), 1)
-        self.assertEqual(result.errors, [])
-        self.assertIn("intentional assertion after barrier-worker launch", result.failures[0][1])
-        self.assertEqual(observations, [(True, True)])
-        process = state["process"]
-        self.assertIsNotNone(process.poll())
-        self.assertTrue(all(
-            stream is None or stream.closed
-            for stream in (process.stdin, process.stdout, process.stderr)
-        ))
-        self.assertFalse(state["workspace"].exists())
-
-    def test_partial_nested_fixture_setup_runs_registered_cleanup(self) -> None:
-        observed = {}
-        original_setup = fixture.ChainFixture.setUp
-
-        def partial_setup(test) -> None:
-            original_setup(test)
-            observed["fixture"] = test
-            observed["base"] = test.base
-            raise RuntimeError("intentional partial fixture setup failure")
-
-        class PartialFixtureSetup(PlanningContextChainTests):
-            def setUp(inner) -> None:
-                with patch.object(fixture.ChainFixture, "setUp", partial_setup):
-                    super().setUp()
-
-            def runTest(inner) -> None:
-                inner.fail("partial fixture setup unexpectedly completed")
-
-        result = unittest.TestResult()
-        PartialFixtureSetup().run(result)
-        self.assertEqual(result.failures, [])
-        self.assertEqual(len(result.errors), 1)
-        self.assertIn("intentional partial fixture setup failure", result.errors[0][1])
-        nested = observed["fixture"]
-        try:
-            self.assertFalse(observed["base"].exists())
-        finally:
-            nested.doCleanups()
-
     def collect(self, test, step: str, result: dict, *, expect_prepare: bool = True):
         imported = test.call("import-handoff", {
             "attempt": test.packets[step]["attempt"],
@@ -504,6 +430,83 @@ class PlanningContextChainTests(unittest.TestCase):
         self.assertEqual(cleaned["cleanup"]["close"]["status"], "closed")
         self.assertFalse(workspace.exists())
         return accepted
+
+
+class PlanningContextChainTests(_PlanningContextChainCase):
+    def test_failed_barrier_worker_stops_before_fixture_worktree_cleanup(self) -> None:
+        observations = []
+        state = {}
+
+        class FailedLaunch(PlanningContextChainTests):
+            def setUp(inner) -> None:
+                super().setUp()
+                inner.bind(inner.f, mode="parallel", capacity=1)
+                attempt = inner.claim(inner.f, "A")["A"]
+                inner.start_parallel(inner.f, "A", attempt, ["context_alpha.py"])
+                workspace = Path(inner.f.packets["A"]["context"]["workspace"])
+                process_ref = {}
+
+                def observe_cleanup() -> None:
+                    process = process_ref["process"]
+                    stopped = process.poll() is not None
+                    observations.append((stopped, workspace.exists()))
+                    inner.assertTrue(stopped, "worker must stop before fixture cleanup")
+                    inner.assertTrue(workspace.exists(), "fixture cleanup ran before worker cleanup")
+
+                # This observer is registered before Popen.  The worker's own
+                # cleanup must be added immediately after Popen, so it runs
+                # first; the fixture cleanup is older still.
+                inner.addCleanup(observe_cleanup)
+                process = inner.launch_context_worker(inner.f, "A")
+                process_ref["process"] = process
+                state["process"] = process
+                state["workspace"] = workspace
+
+            def runTest(inner) -> None:
+                inner.fail("intentional assertion after barrier-worker launch")
+
+        result = unittest.TestResult()
+        FailedLaunch().run(result)
+        self.assertEqual(len(result.failures), 1)
+        self.assertEqual(result.errors, [])
+        self.assertIn("intentional assertion after barrier-worker launch", result.failures[0][1])
+        self.assertEqual(observations, [(True, True)])
+        process = state["process"]
+        self.assertIsNotNone(process.poll())
+        self.assertTrue(all(
+            stream is None or stream.closed
+            for stream in (process.stdin, process.stdout, process.stderr)
+        ))
+        self.assertFalse(state["workspace"].exists())
+
+    def test_partial_nested_fixture_setup_runs_registered_cleanup(self) -> None:
+        observed = {}
+        original_setup = fixture.ChainFixture.setUp
+
+        def partial_setup(test) -> None:
+            original_setup(test)
+            observed["fixture"] = test
+            observed["base"] = test.base
+            raise RuntimeError("intentional partial fixture setup failure")
+
+        class PartialFixtureSetup(PlanningContextChainTests):
+            def setUp(inner) -> None:
+                with patch.object(fixture.ChainFixture, "setUp", partial_setup):
+                    super().setUp()
+
+            def runTest(inner) -> None:
+                inner.fail("partial fixture setup unexpectedly completed")
+
+        result = unittest.TestResult()
+        PartialFixtureSetup().run(result)
+        self.assertEqual(result.failures, [])
+        self.assertEqual(len(result.errors), 1)
+        self.assertIn("intentional partial fixture setup failure", result.errors[0][1])
+        nested = observed["fixture"]
+        try:
+            self.assertFalse(observed["base"].exists())
+        finally:
+            nested.doCleanups()
 
     def test_readonly_inventory_and_bind_freeze_consolidated_planning_material(self) -> None:
         graph_bytes = self.f.graph.read_bytes()
@@ -703,6 +706,169 @@ class PlanningContextChainTests(unittest.TestCase):
         self.assertFalse((workspace / "context_alpha.py").exists())
         self.assertEqual(self.f.git(workspace, "status", "--porcelain"), "")
 
+    def test_changed_required_context_blocks_start_and_acceptance_but_preserves_recovery(self) -> None:
+        self.bind(self.f, mode="parallel", capacity=1)
+        attempts = self.claim(self.f, "A")
+        initial_head = self.f.git(self.f.target, "rev-parse", "HEAD")
+        original_contract = self.f.planning_contract.read_bytes()
+        self.f.planning_contract.unlink()
+        before_worktrees = self.f.git(self.f.target, "worktree", "list", "--porcelain")
+        refused = self.f.call("start", self.f.start_value("A", attempts["A"]), ok=False)
+        self.assertIn("planning context", refused.stderr)
+        self.assertEqual(self.f.git(self.f.target, "worktree", "list", "--porcelain"), before_worktrees)
+        self.assertEqual(self.f.child_record(attempts["A"])["status"], "claimed")
+        view = self.f.call("next")
+        self.assertIn("A", view["planning_blocked_steps"])
+        self.assertFalse(view["planning_context_check"]["ok"])
+        self.assertTrue(any(row["action"] == "inspect-planning-context"
+                            for row in view["navigation"]["actions"]))
+
+        self.f.planning_contract.write_bytes(original_contract)
+        packet = self.start_parallel(self.f, "A", attempts["A"], ["context_alpha.py"])
+        result = self.finish_context_worker(self.launch_context_worker(self.f, "A"))
+        # Import is durable evidence capture, not a new execution or
+        # integration gate. It must remain usable even when a required source
+        # disappears after the worker has stopped.
+        self.f.planning_contract.unlink()
+        self.collect(self.f, "A", result, expect_prepare=False)
+        prepare_refusal = self.f.call(
+            "prepare", {"attempt": attempts["A"], "confirmed_stopped": True}, ok=False
+        )
+        self.assertIn("planning context", prepare_refusal.stderr)
+        self.assertEqual(self.f.git(self.f.target, "rev-parse", "HEAD"), initial_head)
+        self.f.planning_contract.write_bytes(original_contract)
+        prepared = self.f.call("prepare", {"attempt": attempts["A"], "confirmed_stopped": True})
+        binding, _context, _manifest = self.binding_and_manifest(self.f)
+        receipt = fixture.chain._node(binding, "receipt", {"attempt": attempts["A"]})
+        proof = self.f.write("context-stale-positive.json", {
+            "passed": True, "integration": prepared["integration"], "checks": ["candidate prepared before source drift"],
+        })
+        positive = {
+            "attempt": attempts["A"], "confirmed_stopped": True,
+            "integration": prepared["integration"],
+            "verification": {
+                "receipt_sha256": receipt["sha256"], "passed": True,
+                "reason": "Would accept the prepared candidate",
+                "evidence": {"path": str(proof), "sha256": digest(proof)},
+            },
+        }
+        self.f.planning_contract.unlink()
+        refusal = self.f.call("done", positive, ok=False)
+        self.assertIn("planning context", refusal.stderr)
+        self.assertEqual(self.f.git(self.f.target, "rev-parse", "HEAD"), initial_head)
+        self.assertTrue(Path(packet["context"]["workspace"]).exists())
+        # Inspection, terminal negative settlement, and retry remain available
+        # after a required material fault.  None can turn the stale positive
+        # result into a merge.
+        self.assertEqual(self.f.call("packet", {"attempt": attempts["A"]})["packet"], packet)
+        negative = json.loads(json.dumps(positive))
+        negative["verification"]["passed"] = False
+        rejected = self.f.call("done", negative)
+        self.assertEqual(rejected["outcome"], "rejected")
+        retried = self.f.call("retry", {
+            "attempt": attempts["A"], "confirmed_stopped": True,
+            "reason": "Restore planning material before a new attempt",
+        })
+        self.assertEqual(retried["retry"]["status"], "retried")
+        self.assertEqual(self.f.git(self.f.target, "rev-parse", "HEAD"), initial_head)
+
+    def test_invalid_handoff_is_rejected_before_import_state_then_valid_retry_succeeds(self) -> None:
+        self.bind(self.f, mode="parallel", capacity=1)
+        attempt = self.claim(self.f, "A")["A"]
+        self.start_parallel(self.f, "A", attempt, ["context_alpha.py"])
+        result = self.finish_context_worker(self.launch_context_worker(self.f, "A"))
+        handoff = Path(result["handoff"])
+        valid = handoff.read_bytes()
+        malformed = json.loads(valid)
+        malformed["status"] = "succeeded"
+        handoff.write_text(json.dumps(malformed) + "\n")
+        rejected = self.f.call("import-handoff", {
+            "attempt": attempt,
+            "confirmed_stopped": True,
+            "handoff": {"path": str(handoff), "sha256": digest(handoff)},
+        }, ok=False)
+        self.assertIn("status", rejected.stderr.lower())
+        events = fixture.chain_ledger.read_events(
+            self.f.run / "chains" / self.f.action / "events"
+        )
+        kinds = [row["event"]["kind"] for row in events]
+        self.assertNotIn("handoff_import_intent", kinds)
+        self.assertNotIn("handoff_archived", kinds)
+        self.assertFalse((self.f.run / "chains" / self.f.action / "handoffs" / attempt).exists())
+
+        handoff.write_bytes(valid)
+        restored = dict(result, sha256=digest(handoff))
+        imported = self.collect(self.f, "A", restored)
+        self.assertEqual(imported["import"]["status"], "SUCCEEDED")
+        self.assertFalse(handoff.exists())
+
+    def test_legacy_dispatcher_refusal_and_existing_v1_binding_is_refused(self) -> None:
+        context_only = self.new_fixture()
+        context_helper = context_only.dispatcher / "scripts" / "dispatch.js"
+        context_helper.write_text(context_helper.read_text().replace(
+            "    graph_validation: 'execution-graph/v1',\n", ""
+        ))
+        before = context_only.run_bytes()
+        refused = self.bind(context_only, ok=False)
+        self.assertIn("does not support graph_validation", refused.stderr)
+        self.assertEqual(context_only.run_bytes(), before)
+        self.assertFalse((context_only.run / "chains").exists())
+
+        old = self.new_fixture()
+        # A dispatcher package without the planning-context helper is an old release.
+        (old.dispatcher / "scripts" / "planning-context.js").unlink()
+        before = old.run_bytes()
+        extra = (
+            "--graph", str(old.graph), "--dispatcher-skill", str(old.dispatcher / "SKILL.md"),
+            "--ask-agent-skill", str(old.ask / "SKILL.md"), "--worktree-parent", str(old.parent),
+            "--mode", "parallel",
+        )
+        refused = old.call("bind", ok=False, extra=extra)
+        self.assertIn("cannot resolve dispatcher scripts/planning-context.js", refused.stderr)
+        self.assertEqual(old.run_bytes(), before)
+        self.assertFalse((old.run / "chains").exists())
+
+        legacy = self.new_fixture()
+        graph, graph_source = fixture.chain._freeze_graph(str(legacy.graph))
+        chain_dir = legacy.run / "chains" / legacy.action
+        binding = {
+            "schema": "shiploop-chain-binding/v1",
+            "run_id": legacy.state["run_id"],
+            "action_id": legacy.action,
+            "root": str(legacy.run),
+            "created_at": "2026-09-19T00:00:00Z",
+            "owner": "legacy-owner",
+            "capacity": 2,
+            "graph": graph,
+            "graph_source": graph_source,
+            "node": fixture.chain._node_path(),
+            "target": fixture.chain._git_identity(legacy.target),
+            "worktree_parent": str(legacy.parent),
+            "dispatcher_run": str(chain_dir / "dispatcher"),
+        }
+        raw = fixture.store.dumps(binding, "ShipLoop chain binding")
+        state = fixture.store.read_record(legacy.run / "state.md")
+        state["chain_bindings"] = dict(state.get("chain_bindings", {}))
+        state["chain_bindings"][legacy.action] = hashlib.sha256(raw.encode("utf-8")).hexdigest()
+        state["revision"] += 1
+        fixture.nav.save(legacy.run, state, {
+            str((chain_dir / "binding.md").relative_to(legacy.run)): raw,
+        })
+        before = legacy.run_bytes()
+        head = legacy.git(legacy.target, "rev-parse", "HEAD")
+        worktrees = legacy.git(legacy.primary, "worktree", "list", "--porcelain")
+        for operation in ("history", "pending", "next"):
+            with self.subTest(operation=operation):
+                refused = legacy.call(operation, ok=False)
+                self.assertIn("chain binding schema shiploop-chain-binding/v1 is retired", refused.stderr)
+                self.assertEqual(legacy.run_bytes(), before)
+                self.assertEqual(legacy.git(legacy.target, "rev-parse", "HEAD"), head)
+                self.assertEqual(legacy.git(legacy.primary, "worktree", "list", "--porcelain"), worktrees)
+
+
+class PlanningContextChainSlowTests(_PlanningContextChainCase):
+    """Cases measured above about ten seconds in CI; they run only in the full tier."""
+
     def test_parallel_context_workers_derive_code_then_join_and_cleanup(self) -> None:
         self.f.graph = self.f.write("context-graph.json", {
             "version": 1,
@@ -803,102 +969,6 @@ class PlanningContextChainTests(unittest.TestCase):
         for packet in packets:
             self.assertFalse(Path(packet["context"]["workspace"]).exists())
 
-    def test_changed_required_context_blocks_start_and_acceptance_but_preserves_recovery(self) -> None:
-        self.bind(self.f, mode="parallel", capacity=1)
-        attempts = self.claim(self.f, "A")
-        initial_head = self.f.git(self.f.target, "rev-parse", "HEAD")
-        original_contract = self.f.planning_contract.read_bytes()
-        self.f.planning_contract.unlink()
-        before_worktrees = self.f.git(self.f.target, "worktree", "list", "--porcelain")
-        refused = self.f.call("start", self.f.start_value("A", attempts["A"]), ok=False)
-        self.assertIn("planning context", refused.stderr)
-        self.assertEqual(self.f.git(self.f.target, "worktree", "list", "--porcelain"), before_worktrees)
-        self.assertEqual(self.f.child_record(attempts["A"])["status"], "claimed")
-        view = self.f.call("next")
-        self.assertIn("A", view["planning_blocked_steps"])
-        self.assertFalse(view["planning_context_check"]["ok"])
-        self.assertTrue(any(row["action"] == "inspect-planning-context"
-                            for row in view["navigation"]["actions"]))
-
-        self.f.planning_contract.write_bytes(original_contract)
-        packet = self.start_parallel(self.f, "A", attempts["A"], ["context_alpha.py"])
-        result = self.finish_context_worker(self.launch_context_worker(self.f, "A"))
-        # Import is durable evidence capture, not a new execution or
-        # integration gate. It must remain usable even when a required source
-        # disappears after the worker has stopped.
-        self.f.planning_contract.unlink()
-        self.collect(self.f, "A", result, expect_prepare=False)
-        prepare_refusal = self.f.call(
-            "prepare", {"attempt": attempts["A"], "confirmed_stopped": True}, ok=False
-        )
-        self.assertIn("planning context", prepare_refusal.stderr)
-        self.assertEqual(self.f.git(self.f.target, "rev-parse", "HEAD"), initial_head)
-        self.f.planning_contract.write_bytes(original_contract)
-        prepared = self.f.call("prepare", {"attempt": attempts["A"], "confirmed_stopped": True})
-        binding, _context, _manifest = self.binding_and_manifest(self.f)
-        receipt = fixture.chain._node(binding, "receipt", {"attempt": attempts["A"]})
-        proof = self.f.write("context-stale-positive.json", {
-            "passed": True, "integration": prepared["integration"], "checks": ["candidate prepared before source drift"],
-        })
-        positive = {
-            "attempt": attempts["A"], "confirmed_stopped": True,
-            "integration": prepared["integration"],
-            "verification": {
-                "receipt_sha256": receipt["sha256"], "passed": True,
-                "reason": "Would accept the prepared candidate",
-                "evidence": {"path": str(proof), "sha256": digest(proof)},
-            },
-        }
-        self.f.planning_contract.unlink()
-        refusal = self.f.call("done", positive, ok=False)
-        self.assertIn("planning context", refusal.stderr)
-        self.assertEqual(self.f.git(self.f.target, "rev-parse", "HEAD"), initial_head)
-        self.assertTrue(Path(packet["context"]["workspace"]).exists())
-        # Inspection, terminal negative settlement, and retry remain available
-        # after a required material fault.  None can turn the stale positive
-        # result into a merge.
-        self.assertEqual(self.f.call("packet", {"attempt": attempts["A"]})["packet"], packet)
-        negative = json.loads(json.dumps(positive))
-        negative["verification"]["passed"] = False
-        rejected = self.f.call("done", negative)
-        self.assertEqual(rejected["outcome"], "rejected")
-        retried = self.f.call("retry", {
-            "attempt": attempts["A"], "confirmed_stopped": True,
-            "reason": "Restore planning material before a new attempt",
-        })
-        self.assertEqual(retried["retry"]["status"], "retried")
-        self.assertEqual(self.f.git(self.f.target, "rev-parse", "HEAD"), initial_head)
-
-    def test_invalid_handoff_is_rejected_before_import_state_then_valid_retry_succeeds(self) -> None:
-        self.bind(self.f, mode="parallel", capacity=1)
-        attempt = self.claim(self.f, "A")["A"]
-        self.start_parallel(self.f, "A", attempt, ["context_alpha.py"])
-        result = self.finish_context_worker(self.launch_context_worker(self.f, "A"))
-        handoff = Path(result["handoff"])
-        valid = handoff.read_bytes()
-        malformed = json.loads(valid)
-        malformed["status"] = "succeeded"
-        handoff.write_text(json.dumps(malformed) + "\n")
-        rejected = self.f.call("import-handoff", {
-            "attempt": attempt,
-            "confirmed_stopped": True,
-            "handoff": {"path": str(handoff), "sha256": digest(handoff)},
-        }, ok=False)
-        self.assertIn("status", rejected.stderr.lower())
-        events = fixture.chain_ledger.read_events(
-            self.f.run / "chains" / self.f.action / "events"
-        )
-        kinds = [row["event"]["kind"] for row in events]
-        self.assertNotIn("handoff_import_intent", kinds)
-        self.assertNotIn("handoff_archived", kinds)
-        self.assertFalse((self.f.run / "chains" / self.f.action / "handoffs" / attempt).exists())
-
-        handoff.write_bytes(valid)
-        restored = dict(result, sha256=digest(handoff))
-        imported = self.collect(self.f, "A", restored)
-        self.assertEqual(imported["import"]["status"], "SUCCEEDED")
-        self.assertFalse(handoff.exists())
-
     def test_legacy_failed_import_intent_recovers_only_without_partial_effects(self) -> None:
         def legacy_case(effect: str | None):
             test = self.new_fixture()
@@ -985,69 +1055,6 @@ class PlanningContextChainTests(unittest.TestCase):
                 refused = blocked.call("import-handoff", input_value, ok=False)
                 self.assertIn("import", refused.stderr.lower())
                 self.assertEqual(blocked.run_bytes(), before)
-
-    def test_legacy_dispatcher_refusal_and_existing_v1_binding_is_refused(self) -> None:
-        context_only = self.new_fixture()
-        context_helper = context_only.dispatcher / "scripts" / "dispatch.js"
-        context_helper.write_text(context_helper.read_text().replace(
-            "    graph_validation: 'execution-graph/v1',\n", ""
-        ))
-        before = context_only.run_bytes()
-        refused = self.bind(context_only, ok=False)
-        self.assertIn("does not support graph_validation", refused.stderr)
-        self.assertEqual(context_only.run_bytes(), before)
-        self.assertFalse((context_only.run / "chains").exists())
-
-        old = self.new_fixture()
-        # A dispatcher package without the planning-context helper is an old release.
-        (old.dispatcher / "scripts" / "planning-context.js").unlink()
-        before = old.run_bytes()
-        extra = (
-            "--graph", str(old.graph), "--dispatcher-skill", str(old.dispatcher / "SKILL.md"),
-            "--ask-agent-skill", str(old.ask / "SKILL.md"), "--worktree-parent", str(old.parent),
-            "--mode", "parallel",
-        )
-        refused = old.call("bind", ok=False, extra=extra)
-        self.assertIn("cannot resolve dispatcher scripts/planning-context.js", refused.stderr)
-        self.assertEqual(old.run_bytes(), before)
-        self.assertFalse((old.run / "chains").exists())
-
-        legacy = self.new_fixture()
-        graph, graph_source = fixture.chain._freeze_graph(str(legacy.graph))
-        chain_dir = legacy.run / "chains" / legacy.action
-        binding = {
-            "schema": "shiploop-chain-binding/v1",
-            "run_id": legacy.state["run_id"],
-            "action_id": legacy.action,
-            "root": str(legacy.run),
-            "created_at": "2026-09-19T00:00:00Z",
-            "owner": "legacy-owner",
-            "capacity": 2,
-            "graph": graph,
-            "graph_source": graph_source,
-            "node": fixture.chain._node_path(),
-            "target": fixture.chain._git_identity(legacy.target),
-            "worktree_parent": str(legacy.parent),
-            "dispatcher_run": str(chain_dir / "dispatcher"),
-        }
-        raw = fixture.store.dumps(binding, "ShipLoop chain binding")
-        state = fixture.store.read_record(legacy.run / "state.md")
-        state["chain_bindings"] = dict(state.get("chain_bindings", {}))
-        state["chain_bindings"][legacy.action] = hashlib.sha256(raw.encode("utf-8")).hexdigest()
-        state["revision"] += 1
-        fixture.nav.save(legacy.run, state, {
-            str((chain_dir / "binding.md").relative_to(legacy.run)): raw,
-        })
-        before = legacy.run_bytes()
-        head = legacy.git(legacy.target, "rev-parse", "HEAD")
-        worktrees = legacy.git(legacy.primary, "worktree", "list", "--porcelain")
-        for operation in ("history", "pending", "next"):
-            with self.subTest(operation=operation):
-                refused = legacy.call(operation, ok=False)
-                self.assertIn("chain binding schema shiploop-chain-binding/v1 is retired", refused.stderr)
-                self.assertEqual(legacy.run_bytes(), before)
-                self.assertEqual(legacy.git(legacy.target, "rev-parse", "HEAD"), head)
-                self.assertEqual(legacy.git(legacy.primary, "worktree", "list", "--porcelain"), worktrees)
 
 if __name__ == "__main__":
     unittest.main(verbosity=2)

@@ -137,7 +137,8 @@ _DURATION_SECONDS = {
     "test/experiments/shiploop_ui_allocation/test_evidence.py": 0.602,
     "test/shiploop-auth-readiness.test.py": 29.207,
     "test/shiploop-workspace.test.py": 19.448,
-    "test/shiploop-chain.test.py": 191.262,
+    "test/shiploop-chain.test.py": 73.1,
+    "test/shiploop-chain.test.py::slow": 118.1,
     "test/shiploop-chain-async.test.py": 35.083,
     "test/experiments/shiploop_chain/test_trace.py": 0.701,
     "test/shiploop-consumer-delivery.test.py": 1.165,
@@ -151,8 +152,10 @@ _DURATION_SECONDS = {
     "test/shiploop-navigator-dry-run.test.py": 3.603,
     "test/shiploop-cross-run.test.py": 20.313,
     "test/shiploop-chain-git.test.py": 27.248,
-    "test/shiploop-chain-lifecycle.test.py": 803.023,
-    "test/shiploop-chain-planning-context.test.py": 118.442,
+    "test/shiploop-chain-lifecycle.test.py": 57.6,
+    "test/shiploop-chain-lifecycle.test.py::slow": 745.4,
+    "test/shiploop-chain-planning-context.test.py": 34.1,
+    "test/shiploop-chain-planning-context.test.py::slow": 84.4,
     "test/experiments/shiploop_chain/test_native_pilot.py": 72.521,
     "test/shiploop-store.test.py": 0.015,
     "test/shiploop-discovery.test.py": 10.128,
@@ -182,6 +185,19 @@ _DURATION_SECONDS = {
     "test/shiploop-package-integrity.test.py": 0.2,
 }
 _FALLBACK_DURATION_SECONDS = 60.0
+
+# Suites whose slow cases (measured above about ten seconds in CI) live in their
+# own TestCase class.  The fast classes keep the suite id and can run in quick;
+# the slow classes form "<id>-slow" and run only in the full tier.  Estimates for
+# the halves split the audited whole-suite time by measured per-case shares; a
+# "::slow" key holds the slow half.
+_SPLIT_CLASSES = {
+    "test/shiploop-chain.test.py": (
+        ("ChainIntegrationTests", "PacketReplayIdentityTests"), ("ChainIntegrationSlowTests",)),
+    "test/shiploop-chain-lifecycle.test.py": (("PerStepChainTests",), ("PerStepChainSlowTests",)),
+    "test/shiploop-chain-planning-context.test.py": (
+        ("PlanningContextChainTests",), ("PlanningContextChainSlowTests",)),
+}
 
 # The quick tier's fixed ShipLoop baseline: fast graph, packet and boundary checks.
 _QUICK_PATHS = frozenset({
@@ -227,7 +243,7 @@ _COMPOSITION_PATHS = frozenset({
 })
 
 
-def _shiploop(path: str) -> Suite:
+def _shiploop(path: str) -> tuple[Suite, ...]:
     groups: set[str] = set()
     if path in _QUICK_PATHS:
         groups.add("quick")
@@ -236,7 +252,11 @@ def _shiploop(path: str) -> Suite:
     if path in _COMPOSITION_PATHS:
         groups.add("shiploop-composition")
     interpreter = "node" if path.endswith(".cjs") else "python3"
-    return _suite(_identifier(path), "shiploop", path, interpreter, path, groups=groups)
+    if path not in _SPLIT_CLASSES:
+        return (_suite(_identifier(path), "shiploop", path, interpreter, path, groups=groups),)
+    fast, slow = _SPLIT_CLASSES[path]
+    return (_suite(_identifier(path), "shiploop", path, interpreter, path, *fast, groups=groups),
+            _suite(_identifier(path) + "-slow", "shiploop", path, interpreter, path, *slow, groups=groups))
 
 
 _CORE_SUITES = (
@@ -276,7 +296,7 @@ _CORE_SUITES = (
     _suite("plan-dispatcher-compound", "core", "test/plan-dispatcher-compound.test.js", "node", "test/plan-dispatcher-compound.test.js"),
 )
 
-SHIPLOOP_SUITES = tuple(_shiploop(path) for path in _SHIPLOOP_PATHS)
+SHIPLOOP_SUITES = tuple(suite for path in _SHIPLOOP_PATHS for suite in _shiploop(path))
 
 _APPARATUS_SUITE = _suite(
     "shiploop-e2e-apparatus",
@@ -328,6 +348,17 @@ GROUPS = (
 _ID_RE = re.compile(r"^[a-z0-9][a-z0-9-]*$")
 
 
+def _slow_half(suite: Suite) -> bool:
+    return suite.path in _SPLIT_CLASSES and suite.argv[2:] == _SPLIT_CLASSES[suite.path][1]
+
+
+def duration(suite: Suite, default: float = 0.0) -> float:
+    """The committed CI duration estimate for one catalog entry."""
+
+    key = suite.path + "::slow" if _slow_half(suite) else suite.path
+    return _DURATION_SECONDS.get(key, default)
+
+
 def _lpt_shards(suites: tuple[Suite, ...]) -> tuple[tuple[Suite, ...], ...]:
     """Use a deterministic longest-processing-time partition, then re-order.
 
@@ -337,14 +368,14 @@ def _lpt_shards(suites: tuple[Suite, ...]) -> tuple[tuple[Suite, ...], ...]:
     """
 
     indexed = list(enumerate(suites))
-    indexed.sort(key=lambda item: (-_DURATION_SECONDS.get(item[1].path, _FALLBACK_DURATION_SECONDS), item[0]))
+    indexed.sort(key=lambda item: (-duration(item[1], _FALLBACK_DURATION_SECONDS), item[0]))
     loads = [0.0] * SHIPLOOP_SHARD_COUNT
     members: list[set[str]] = [set() for _ in range(SHIPLOOP_SHARD_COUNT)]
     for original_index, suite in indexed:
         del original_index
         shard = min(range(SHIPLOOP_SHARD_COUNT), key=lambda index: (loads[index], index))
         members[shard].add(suite.id)
-        loads[shard] += _DURATION_SECONDS.get(suite.path, _FALLBACK_DURATION_SECONDS)
+        loads[shard] += duration(suite, _FALLBACK_DURATION_SECONDS)
     return tuple(tuple(suite for suite in suites if suite.id in member) for member in members)
 
 
@@ -399,8 +430,10 @@ _PATH_SUITE_IDS = {
 
 
 def _light(suite: Suite) -> bool:
-    return (suite.id != _APPARATUS_SUITE.id
-            and _DURATION_SECONDS.get(suite.path, 0.0) <= QUICK_MAX_SECONDS)
+    # A slow half is full-only even when its total fits under the ceiling: its
+    # cases were moved there for their individual cost.
+    return (suite.id != _APPARATUS_SUITE.id and not _slow_half(suite)
+            and duration(suite) <= QUICK_MAX_SECONDS)
 
 
 def _stem(path: str) -> str:
