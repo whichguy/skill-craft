@@ -145,6 +145,18 @@ CURRENT_SYSTEM_BASELINE_ROUTES = {
     )
     for stage, anchor in CURRENT_SYSTEM_BASELINE_STAGE_ANCHORS.items()
 }
+HOUSE_STYLE_GUIDE = "house-style.md"
+HOUSE_STYLE_GUIDANCE_LABEL = "House-style guidance"
+# Deliberately independent of the prompt catalog: extract at discovery, contract
+# at step planning, reread while building, check at verify, retain at carry-forward.
+HOUSE_STYLE_STAGE_ANCHORS = {
+    "discovery": "extract-the-house-style",
+    "step-plan": "write-the-match-contract",
+    "test-author": "match-while-building",
+    "implement": "match-while-building",
+    "verify": "check-the-diff-against-the-contract",
+    "carry-forward": "retain-the-house-style",
+}
 if str(SCRIPTS) not in sys.path:
     sys.path.insert(0, str(SCRIPTS))
 
@@ -300,6 +312,27 @@ class V3GuidanceTests(unittest.TestCase):
                     )
                     observed.append(stage)
         self.assertEqual(tuple(observed), tuple(CURRENT_SYSTEM_BASELINE_STAGE_ANCHORS))
+
+    def test_house_style_stage_routes_are_exact_and_selective(self) -> None:
+        """Only the stages that extract, contract, build, check or retain the style get it."""
+        observed: list[str] = []
+        for stage in prompts.STAGES:
+            with self.subTest(stage=stage):
+                entries = [
+                    (label, locator)
+                    for label, locator in prompts.STAGE_REFERENCES[stage]
+                    if label == HOUSE_STYLE_GUIDANCE_LABEL
+                ]
+                anchor = HOUSE_STYLE_STAGE_ANCHORS.get(stage)
+                if anchor is None:
+                    self.assertEqual(entries, [])
+                else:
+                    self.assertEqual(
+                        entries,
+                        [(HOUSE_STYLE_GUIDANCE_LABEL, HOUSE_STYLE_GUIDE + "#" + anchor)],
+                    )
+                    observed.append(stage)
+        self.assertEqual(tuple(observed), tuple(HOUSE_STYLE_STAGE_ANCHORS))
 
     def test_current_system_baseline_guide_relocates_with_recovery_cue(self) -> None:
         """The portable guide retains anchors and a minimal stale/missing recovery cue.

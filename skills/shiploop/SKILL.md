@@ -134,6 +134,9 @@ For item planning, coding and verification, use the
 accepted plan and load only applicable engineering practices and UI, Apps Script,
 Salesforce, Python or Bash cards. Retain decision and check locators through the
 existing result/review notes; the guide does not change stage order or edit authority.
+Use [house style](references/house-style.md) to extract the repository's evidenced
+coding conventions at discovery, carry each item's nearest exemplars as a match
+contract from step planning through build and verification, and keep the record current.
 During discovery and planning, use [service discovery](references/service-discovery.md#select-scope)
 to assess owned observability for local or remote flows and, when relevant, follow
 MCP/API boundaries into schema, query, cache and asynchronous service needs.

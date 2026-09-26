@@ -62,6 +62,7 @@ evidence, budget limitations and recovery. No separate experiment loop is added.
 - [Isolated workspace and artifact return policy](references/workspace-lifecycle.md)
 - [Delivery-authority readiness](references/delivery-authority.md)
 - [README-led current-system baseline and planning handoff](references/current-system-baseline.md)
+- [House style: evidenced conventions and per-item exemplar match contracts](references/house-style.md)
 - [Optional parallel or serial implementation chains](references/parallel-chain.md) — on
   a `delegation: ask-agent` run, bind the selected Plan Dispatcher/Ask-Agent
   packages to one current implementation action; `chain bind` refuses a fresh
