@@ -752,7 +752,9 @@ def ensure_hooks(env: Mapping[str, str] | None = None) -> str | None:
             return None
         verb = "installed" if current == "absent" else "updated"
         return (f"ShipLoop keepalive: {verb} the {host} hooks in {config_path(host)} ({host} does not "
-                f"run plugin hooks). New {host} sessions load them; in this session open /hooks and press r.")
+                f"run plugin hooks). New {host} sessions load them; this session is not protected until "
+                f"you open /hooks and press r, and a headless session never is, so do not end the turn "
+                f"while a ShipLoop command runs.")
     return None
 
 

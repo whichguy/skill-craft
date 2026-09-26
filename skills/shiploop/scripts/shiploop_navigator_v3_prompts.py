@@ -387,9 +387,13 @@ command, answer it, and resume only on an explicit continue. A question or comme
 about this skill, the loop, its progress or its cost is not a stop: answer it
 briefly and keep following the current packet. Do not pause on your own to ask
 whether the run is worth continuing or to confirm the process for a small task;
-the user's request already authorizes the run. If a host keepalive hook refuses to
-end the turn, its reason names this run's next command: run it and follow the
-packet. Resolve recoverable conditions through the
+the user's request already authorizes the run. Never end the turn while a ShipLoop
+command is still running: keep each one in the foreground until it returns, and if
+the host moves it to a background task, wait for that task in this same turn before
+anything else. A `complete` that reruns tests can take minutes, and a headless host
+ends the whole session when the turn ends, losing the callback. If a host keepalive
+hook refuses to end the turn, its reason names this run's next command: run it and
+follow the packet. Resolve recoverable conditions through the
 printed route and ask only for an actually missing decision, authority, or access.
 """
 
