@@ -11,7 +11,8 @@ rebuilt and run again. The heavier Grok campaign lives in
 flowchart LR
     B[Build the worktree's skill-craft plugin] --> R[Run ShipLoop in an empty directory]
     R --> V[Review: learnings, gaps, optimizations]
-    V -->|material findings that keep the premise| I[Improve skills/shiploop and commit]
+    V --> L[Commit the learnings to LEARNINGS.md]
+    L -->|material findings that keep the premise| I[Improve skills/shiploop and commit]
     I --> T[Quick test tier]
     T -->|green| B
     V -->|two clean reviews| S[Stop: branch ready to merge and release]
@@ -47,7 +48,12 @@ pre-created. It grades five verdicts into `result.json`:
 - **checks**: each case check command exits 0 in `work/`.
 
 The output directory keeps the prompt, argv, raw events, a readable
-`transcript.md`, stderr and the result. Nothing is retried or resumed.
+`transcript.md` (built from the text the model actually saw), stderr and the
+result. `result.json` also lists tool outputs the host truncated before the
+model saw them (Grok cuts shell output at about 20 KB). When ShipLoop has not
+yet returned its candidate to `work/`, the result names ShipLoop's worktree and
+reports, for information only, how many checks already pass there. Nothing is
+retried or resumed.
 
 ### Isolation
 
@@ -69,7 +75,8 @@ bash test/run-integration.sh shiploop-e2e-review /tmp/shiploop-e2e/battleship-..
 ```
 
 `review.py` gives the reviewer the run's transcript, result, product and
-`.shiploop` state plus the skill source, and asks:
+`.shiploop` state, the skill source and the last three commit messages of the
+checkout (the learnings recorded so far), and asks:
 
 1. What were the key learnings about the skill that we could improve?
 2. Which considerations should the skill take into account but does not?
@@ -92,7 +99,12 @@ bash test/run-integration.sh shiploop-e2e-iterate --case battleship --iterations
 branch `auto/auto-shiploop-e2e-<rand>` from the current `HEAD` (commit what you
 want tested first), then per iteration: builds that worktree's plugin, runs the
 case, reviews it, and hands the **material, premise-preserving** findings to an
-improver agent. The improver may change only `skills/shiploop/`,
+improver agent. Before the improver starts, the iteration appends its outcome
+and every finding to `test/shiploop_e2e/LEARNINGS.md` and commits it with a
+detailed message (outcome, evidence, proposals, rejected findings, what to
+apply next). Reviewer and improver both read the last three commit messages, so
+each iteration builds on the learnings of the ones before. The improver may
+change only `skills/shiploop/`,
 `changes/shiploop/` and `test/`, and commits with explicit paths. The harness
 then checks the commit's scope itself and runs the quick test tier.
 
@@ -110,8 +122,17 @@ each host's `skill-craft@whichguy` plugin.
 
 Cases live in `cases.json` (`prompt` plus shell `checks`): `hello` (Python
 hello-world with a unittest) and `battleship` (a dependency-free Node HTTP
-server, graded by its own `node --test` suite and by live requests to `/`,
-`/api/new` and `/api/fire`). Add a case there to make another request repeatable.
+server, graded by its own `node --test` suite with at least one passing test,
+by live requests to `/`, `/api/new` and `/api/fire`, and by a full game played
+through the API until `gameOver`, then a repeat shot that must still report
+`gameOver: true`). Add a case there to make another request repeatable.
 
 `test/shiploop-e2e.test.py` checks the harness with fake `grok` and `claude`
 executables. It runs in normal CI; the live stages never do.
+
+## Learnings history
+
+`LEARNINGS.md` holds one entry per live run or iteration, each committed on its
+own with a detailed message. Before starting another run or changing the skill
+or harness, read the last three commit messages
+(`git log -3 --format='%h %s%n%b'`) and carry their learnings forward.

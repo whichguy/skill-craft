@@ -195,6 +195,42 @@ def summarize_events(path: Path) -> dict:
     return seen
 
 
+def model_visible_output(raw) -> str:
+    """The text a host showed the model for one tool result.
+
+    Grok stores shell output twice: `output` as a list of byte values and
+    `output_for_prompt` as the (possibly truncated) text the model saw.
+    """
+    if isinstance(raw, str):
+        return raw
+    if isinstance(raw, dict):
+        for key in ("output_for_prompt", "content", "text"):
+            if isinstance(raw.get(key), str):
+                return raw[key]
+    return ""
+
+
+def host_truncations(events_path: Path) -> list[dict]:
+    """Tool results the host cut off before the model saw them (Grok's ~20 KB cap)."""
+    calls, cut = {}, {}
+    for line in events_path.read_text(errors="replace").splitlines():
+        try:
+            event = json.loads(line)
+        except ValueError:
+            continue
+        if not isinstance(event, dict):
+            continue
+        if event.get("type") == "tool_call":
+            arg = event.get("rawInput") if isinstance(event.get("rawInput"), dict) else {}
+            calls[event.get("toolCallId")] = str(arg.get("command") or arg.get("target_file") or "")[-160:]
+        elif event.get("type") == "tool_call_update" and isinstance(event.get("rawOutput"), dict):
+            raw = event["rawOutput"]
+            if raw.get("truncated"):
+                cut[event.get("toolCallId")] = {"total_bytes": raw.get("total_bytes"),
+                                                "shown_chars": len(model_visible_output(raw))}
+    return [dict(item, call=calls.get(call_id, "")) for call_id, item in cut.items()]
+
+
 def write_transcript(events_path: Path, path: Path) -> None:
     """A readable transcript (messages and tool calls) for people and the reviewer."""
     lines: list[str] = []
@@ -213,7 +249,9 @@ def write_transcript(events_path: Path, path: Path) -> None:
                         text = content if isinstance(content, str) else json.dumps(content)
                         lines.append("out   " + " ".join(str(text).split())[:400])
             elif event.get("type") == "tool_call_update" and event.get("status"):  # Grok
-                lines.append(f"out   {event.get('status')} " + " ".join(json.dumps(event.get("rawOutput", ""))[:400].split()))
+                shown = model_visible_output(event.get("rawOutput"))
+                if shown:
+                    lines.append(f"out   {event.get('status')} " + " ".join(shown[:400].split()))
             view.event(event)
     view.flush_text()
     path.write_text("\n".join(lines) + "\n")
@@ -245,12 +283,17 @@ def grade_shiploop(out: Path) -> dict:
             continue
         if isinstance(state, dict) and "status" in state:
             runs.append({"run_dir": str(state_path.parent), "status": state.get("status"),
+                         "stage": state.get("stage"),
                          "report_html": (state_path.parent / "report.html").is_file()})
     if not runs:
         return {"pass": False, "reason": "no ShipLoop state.md under the output directory"}
     done = [run for run in runs if run["status"] == "done" and run["report_html"]]
     chosen = done[0] if done else runs[0]
-    return {"pass": bool(done), **chosen, "runs": len(runs)}
+    # ShipLoop builds in its own worktree beside the run and returns it to the
+    # source only at release; name it so an unreturned product can be inspected.
+    worktree = Path(chosen["run_dir"]).parent / "worktree"
+    return {"pass": bool(done), **chosen, "runs": len(runs),
+            "worktree": str(worktree) if worktree.is_dir() else None}
 
 
 def run_checks(work: Path, checks: list[str], timeout: int = 180) -> list[dict]:
@@ -329,12 +372,17 @@ def main(argv: list[str] | None = None) -> int:
     process["pass"] = process["status"] == "exited"
     cli_seen = summarize_events(out / "events.jsonl")
     write_transcript(out / "events.jsonl", out / "transcript.md")
+    cli_seen["truncated_outputs"] = host_truncations(out / "events.jsonl")
     invoked = {"pass": args.skill in cli_seen.pop("commands"), "skill": args.skill}
     plugins = cli_seen.pop("plugins")
     if plugin is None:
         plugin = grade_claude_plugin(plugins, plugin_dir)
     shiploop = grade_shiploop(out)
     check_results = run_checks(work, checks)
+    if not shiploop["pass"] and shiploop.get("worktree"):
+        # Informational only: does the unreturned candidate already pass?
+        shiploop["worktree_checks"] = [{k: c[k] for k in ("command", "pass")}
+                                       for c in run_checks(Path(shiploop["worktree"]), checks)]
     verdicts = [invoked["pass"], plugin["pass"], process["pass"], shiploop["pass"],
                 *(c["pass"] for c in check_results)]
     result = {"case": name, "host": args.host, "model": args.model, "effort": args.effort,
@@ -349,6 +397,12 @@ def main(argv: list[str] | None = None) -> int:
     print(f"  process   {mark(process['pass'])}  {process['status']} rc={process['returncode']} "
           f"{process['elapsed_seconds']}s cost=${cli_seen.get('cost_usd')}")
     print(f"  shiploop  {mark(shiploop['pass'])}  {shiploop.get('status') or shiploop.get('reason')}")
+    if shiploop.get("worktree_checks") is not None:
+        passed = sum(c["pass"] for c in shiploop["worktree_checks"])
+        print(f"            unreturned product in {shiploop['worktree']}: "
+              f"{passed}/{len(shiploop['worktree_checks'])} checks pass there")
+    if cli_seen["truncated_outputs"]:
+        print(f"  note      host truncated {len(cli_seen['truncated_outputs'])} tool outputs the model saw")
     for check in check_results:
         print(f"  check     {mark(check['pass'])}  {check['command']}")
     return 0 if result["pass"] else 1

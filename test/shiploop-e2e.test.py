@@ -17,6 +17,7 @@ import json
 import os
 from pathlib import Path
 import stat
+import subprocess
 import sys
 import tempfile
 import unittest
@@ -24,6 +25,7 @@ import unittest
 ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT / "test" / "shiploop_e2e"))
 import hosts  # noqa: E402
+import iterate  # noqa: E402
 import review  # noqa: E402
 import run  # noqa: E402
 
@@ -231,6 +233,85 @@ class ReviewParsingTest(unittest.TestCase):
         self.assertIn("the script is the\norchestrator", prompt)
         for key in review.CATEGORIES:
             self.assertIn(key, prompt)
+
+
+class LearningsTest(unittest.TestCase):
+    RESULT = {"host": "grok", "model": "grok-4.7", "effort": "medium", "pass": False,
+              "process": {"status": "failed", "returncode": 1, "elapsed_seconds": 12.5},
+              "shiploop": {"status": "active", "stage": "regression", "report_html": False,
+                           "worktree_checks": [{"command": "node --test", "pass": True}]},
+              "checks": [{"command": "node --test", "pass": False}],
+              "cli": {"num_turns": 150, "cost_usd": 10.88,
+                      "truncated_outputs": [{"total_bytes": 36000, "shown_chars": 20467, "call": "x"}]}}
+    VERDICT = {"outcome": "Capped before return.",
+               "learnings": [{"title": "Return earlier", "evidence": "work/ empty", "proposal": "p",
+                              "files": ["skills/shiploop/SKILL.md"], "severity": "material",
+                              "preserves_premise": True, "premise_note": "script decides"}],
+               "optimizations": [{"title": "Let the model pick stages", "severity": "material",
+                                  "preserves_premise": False}]}
+
+    def message(self) -> str:
+        verdict = dict(self.VERDICT, actionable=review.actionable(self.VERDICT))
+        args = iterate.argparse.Namespace(case="battleship")
+        return iterate.learnings_message(2, args, "0123456789ab", self.RESULT, verdict, ["aaa1111", "bbb2222"])
+
+    def test_message_details_outcome_findings_and_prior_learnings(self):
+        message = self.message()
+        self.assertTrue(message.startswith(
+            "test(shiploop): record E2E iteration 2 learnings (battleship, grok medium)\n\n"))
+        for text in ("150 turns", "stage regression", "unreturned product in ShipLoop's worktree: 1/1",
+                     "host truncated 1 tool outputs", "Evidence: work/ empty", "breaks premise: rejected",
+                     "- apply: Return earlier", "Built on the learnings of aaa1111, bbb2222."):
+            self.assertIn(text, message)
+        self.assertTrue(message.rstrip().endswith("<shiploop-e2e@example.invalid>"))
+
+    def test_record_learnings_appends_and_commits_only_the_journal(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            repo = Path(tmp) / "repo"
+            (repo / "test" / "shiploop_e2e").mkdir(parents=True)
+            (repo / "test" / "shiploop_e2e" / "LEARNINGS.md").write_text("# ShipLoop E2E learnings\n")
+            (repo / "untracked.txt").write_text("stay out")
+            for cmd in (["init", "-q", "-b", "main"], ["config", "user.name", "t"],
+                        ["config", "user.email", "t@example.invalid"], ["add", "test"],
+                        ["commit", "-q", "-m", "base"]):
+                subprocess.run(["git", "-C", str(repo), *cmd], check=True)
+            stage = Path(tmp) / "stage"
+            stage.mkdir()
+            iterate.record_learnings(repo, self.message(), stage)
+            journal = (repo / "test" / "shiploop_e2e" / "LEARNINGS.md").read_text()
+            self.assertIn("## E2E iteration 2 learnings (battleship, grok medium)", journal)
+            self.assertNotIn("Co-Authored-By", journal)
+            files = subprocess.run(["git", "-C", str(repo), "show", "--name-only", "--format=", "HEAD"],
+                                   capture_output=True, text=True, check=True).stdout.split()
+            self.assertEqual(files, ["test/shiploop_e2e/LEARNINGS.md"])
+            body = subprocess.run(["git", "-C", str(repo), "log", "-1", "--format=%B"],
+                                  capture_output=True, text=True, check=True).stdout
+            self.assertIn("Built on the learnings of aaa1111, bbb2222.", body)
+
+    def test_reviewer_and_improver_prompts_carry_prior_learnings(self):
+        prior = "commit abc1234\nRun 1 learned the graph is fixed.\n"
+        self.assertIn("Run 1 learned the graph is fixed.", review.reviewer_prompt(Path("/r"), Path("/s"), prior))
+        self.assertNotIn("Learnings recorded", review.reviewer_prompt(Path("/r"), Path("/s")))
+        self.assertIn("Run 1 learned the graph is fixed.", iterate.improver_prompt(Path("/w"), [], "base", prior))
+
+
+class HostOutputTest(unittest.TestCase):
+    def test_visible_output_and_truncations_use_what_the_model_saw(self):
+        raw = {"output": [104, 105], "output_for_prompt": "hi", "truncated": True, "total_bytes": 30000}
+        self.assertEqual(run.model_visible_output(raw), "hi")
+        with tempfile.TemporaryDirectory() as tmp:
+            events = Path(tmp) / "events.jsonl"
+            events.write_text("\n".join(json.dumps(e) for e in (
+                {"type": "tool_call", "toolCallId": "a", "rawInput": {"command": "shiploop next"}},
+                {"type": "tool_call_update", "toolCallId": "a", "status": "completed", "rawOutput": raw},
+                {"type": "tool_call", "toolCallId": "b", "rawInput": {"command": "ls"}},
+                {"type": "tool_call_update", "toolCallId": "b", "rawOutput": {"output_for_prompt": "x",
+                                                                              "truncated": False}})))
+            self.assertEqual(run.host_truncations(events),
+                             [{"total_bytes": 30000, "shown_chars": 2, "call": "shiploop next"}])
+            transcript = Path(tmp) / "t.md"
+            run.write_transcript(events, transcript)
+            self.assertIn("out   completed hi", transcript.read_text())
 
 
 if __name__ == "__main__":

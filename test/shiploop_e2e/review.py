@@ -22,6 +22,7 @@ import argparse
 import json
 import os
 from pathlib import Path
+import subprocess
 import sys
 
 HERE = Path(__file__).resolve().parent
@@ -66,12 +67,19 @@ FINDING = {
 CATEGORIES = ("learnings", "missing_considerations", "optimizations")
 
 
-def reviewer_prompt(run_dir: Path, skill_root: Path) -> str:
+def reviewer_prompt(run_dir: Path, skill_root: Path, prior_learnings: str = "") -> str:
+    prior = (f"""
+Learnings recorded by earlier iterations (the last three commit messages). Build on them:
+check whether this run confirms, contradicts or moves past them, and do not re-report a
+finding that was already applied unless this run shows it did not work.
+
+{prior_learnings.strip()}
+""" if prior_learnings.strip() else "")
     return f"""You are reviewing one end-to-end run of the ShipLoop skill so the skill can be improved.
 Do not modify any file. Read only.
 
 {PREMISE}
-
+{prior}
 The run: a headless agent was started in an empty directory and asked to run ShipLoop
 on the request in {run_dir / 'prompt.txt'}.
 - Graded result: {run_dir / 'result.json'}
@@ -90,6 +98,12 @@ this one. Set preserves_premise=false for anything that moves navigation into th
 End your reply with exactly one ```json fenced block matching:
 {SCHEMA}
 """
+
+
+def last_commit_messages(repo: Path, count: int = 3) -> str:
+    """The last `count` full commit messages: the learnings the next step builds on."""
+    return subprocess.run(["git", "-C", str(repo), "log", f"-{count}", "--format=commit %h%n%B"],
+                          check=True, capture_output=True, text=True).stdout
 
 
 def render_markdown(review: dict) -> str:
@@ -117,13 +131,13 @@ def actionable(review: dict) -> list[dict]:
 
 def review(run_dir: Path, *, host: str = "grok", model: str | None = None, effort: str | None = None,
            skill_root: Path = ROOT / "skills" / "shiploop", max_turns: int = 60, timeout: int = 1200,
-           grok_bin: str = "grok", claude_bin: str = "claude") -> dict:
+           prior_learnings: str = "", grok_bin: str = "grok", claude_bin: str = "claude") -> dict:
     run_dir = run_dir.resolve()
     defaults = hosts.HOST_DEFAULTS[host]
     stage = run_dir / "review"
     stage.mkdir(exist_ok=False)
     env = hosts.grok_env(stage / "home") if host == "grok" else dict(os.environ)
-    argv = hosts.argv_for(host, prompt=reviewer_prompt(run_dir, skill_root.resolve()),
+    argv = hosts.argv_for(host, prompt=reviewer_prompt(run_dir, skill_root.resolve(), prior_learnings),
                           prompt_file=stage / "prompt.txt", cwd=run_dir, model=model or defaults["model"],
                           effort=effort or defaults["effort"], permission_mode="auto", max_turns=max_turns,
                           grok_bin=grok_bin, claude_bin=claude_bin)
@@ -145,9 +159,12 @@ def main(argv: list[str] | None = None) -> int:
     p.add_argument("--model")
     p.add_argument("--effort")
     p.add_argument("--skill-root", type=Path, default=ROOT / "skills" / "shiploop")
+    p.add_argument("--no-prior-learnings", action="store_true",
+                   help="do not give the reviewer the last three commit messages of this checkout")
     args = p.parse_args(argv)
+    prior = "" if args.no_prior_learnings else last_commit_messages(ROOT)
     result = review(args.run_dir, host=args.host, model=args.model, effort=args.effort,
-                    skill_root=args.skill_root)
+                    skill_root=args.skill_root, prior_learnings=prior)
     print((args.run_dir / "review.md").read_text())
     print(f"actionable findings: {len(result['actionable'])}")
     return 0 if result["process"]["status"] == "exited" and "learnings" in result else 1

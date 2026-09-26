@@ -5,11 +5,15 @@ Each iteration, in a dedicated worktree of this repository:
 
   1. build   the worktree's skill-craft plugin (scripts/build-packages.py)
   2. run     run.py with that build, from a new empty directory
-  3. review  review.py answers the three questions; only material findings
-             that keep the core premise (script-owned SDLC navigation) count
-  4. improve a headless agent applies those findings to skills/shiploop in the
+  3. review  review.py answers the three questions, building on the last three
+             commit messages; only material findings that keep the core premise
+             (script-owned SDLC navigation) count
+  4. record  append the run and review to test/shiploop_e2e/LEARNINGS.md and
+             commit it with a detailed message: what was learned, key findings
+             and considerations. That history is what the next iteration reads
+  5. improve a headless agent applies those findings to skills/shiploop in the
              worktree, adds a change note and commits
-  5. verify  the harness itself checks the commit's scope and runs the quick
+  6. verify  the harness itself checks the commit's scope and runs the quick
              test tier; a red suite stops the loop (nothing is reverted)
 
 It stops at --iterations, after two consecutive clean reviews of passing runs,
@@ -57,11 +61,17 @@ def new_worktree(name: str) -> tuple[Path, str]:
     return path, branch
 
 
-def improver_prompt(worktree: Path, findings: list[dict], base: str) -> str:
+def improver_prompt(worktree: Path, findings: list[dict], base: str, prior_learnings: str = "") -> str:
+    prior = (f"""
+Learnings from the last three commits in this worktree (build on them; do not undo an
+earlier improvement unless the findings below show it failed):
+
+{prior_learnings.strip()}
+""" if prior_learnings.strip() else "")
     return f"""You are improving the ShipLoop skill in the git worktree {worktree} (your working directory).
 
 {reviewer.PREMISE}
-
+{prior}
 An end-to-end run was reviewed. Apply these material findings, each of which keeps the premise:
 
 ```json
@@ -93,7 +103,8 @@ def improve(worktree: Path, findings: list[dict], stage: Path, args) -> dict:
     env = (hosts.grok_env(stage / "home", git_config if git_config.is_file() else None)
            if args.host == "grok" else dict(os.environ))
     base = git(worktree, "rev-parse", "HEAD")
-    argv = hosts.argv_for(args.host, prompt=improver_prompt(worktree, findings, base),
+    argv = hosts.argv_for(args.host, prompt=improver_prompt(worktree, findings, base,
+                                                              reviewer.last_commit_messages(worktree)),
                           prompt_file=stage / "prompt.txt", cwd=worktree, model=args.model or defaults["model"],
                           effort=args.effort or defaults["effort"], permission_mode=args.permission_mode,
                           max_turns=args.improve_max_turns, max_budget_usd=args.max_budget_usd)
@@ -106,6 +117,72 @@ def improve(worktree: Path, findings: list[dict], stage: Path, args) -> dict:
     return {"process": process, "report": report, "base": base, "commits": commits, "changed": changed,
             "out_of_scope": [path for path in changed if not path.startswith(ALLOWED_PREFIXES)],
             "uncommitted": dirty.splitlines()}
+
+
+def _finding_lines(finding: dict) -> list[str]:
+    lines = [f"- {finding.get('title')} ({finding.get('severity')}, "
+             f"{'keeps premise' if finding.get('preserves_premise') else 'breaks premise: rejected'})"]
+    for label, key in (("Evidence", "evidence"), ("Proposal", "proposal"), ("Premise", "premise_note")):
+        if finding.get(key):
+            lines.append(f"  {label}: {finding[key]}")
+    if finding.get("files"):
+        lines.append(f"  Files: {', '.join(finding['files'])}")
+    return lines
+
+
+def learnings_message(index: int, args, sha: str, result: dict, verdict: dict, prior: list[str]) -> str:
+    """A detailed commit message for one iteration: outcome, what was learned, what to try next."""
+    process, shiploop, cli = result["process"], result["shiploop"], result["cli"]
+    checks = result["checks"]
+    driver = result["host"] + (f" {result['effort']}" if result.get("effort") else "")
+    lines = [f"test(shiploop): record E2E iteration {index} learnings ({args.case}, {driver})", "",
+             f"Iteration {index} ran ShipLoop built from {sha[:8]} with {result['host']} "
+             f"{result['model']} (effort {result.get('effort')}) from an empty directory on the "
+             f"{args.case} case.", "",
+             "Outcome", "",
+             f"- run: {'PASS' if result['pass'] else 'FAIL'}; host {process['status']} "
+             f"(rc {process['returncode']}) after {process['elapsed_seconds']} s, "
+             f"{cli.get('num_turns')} turns, reported cost ${cli.get('cost_usd')}",
+             f"- ShipLoop: status {shiploop.get('status') or shiploop.get('reason')}, "
+             f"stage {shiploop.get('stage')}, report {shiploop.get('report_html')}",
+             f"- checks in work/: {sum(c['pass'] for c in checks)}/{len(checks)} pass"]
+    if shiploop.get("worktree_checks") is not None:
+        wt = shiploop["worktree_checks"]
+        lines.append(f"- unreturned product in ShipLoop's worktree: {sum(c['pass'] for c in wt)}/{len(wt)} pass")
+    for check in checks:
+        if not check["pass"]:
+            lines.append(f"  failed: {check['command'][:120]}")
+    if cli.get("truncated_outputs"):
+        lines.append(f"- host truncated {len(cli['truncated_outputs'])} tool outputs before the model saw them")
+    lines += ["", "Reviewer outcome", "", str(verdict.get("outcome", ""))]
+    for category in reviewer.CATEGORIES:
+        found = [f for f in verdict.get(category) or [] if isinstance(f, dict)]
+        if found:
+            lines += ["", category.replace("_", " ").capitalize(), ""]
+            for finding in found:
+                lines += _finding_lines(finding)
+    actionable = verdict.get("actionable") or []
+    lines += ["", "Next", ""]
+    lines += ([f"- apply: {f.get('title')}" for f in actionable] if actionable
+              else ["- no material, premise-preserving finding to apply"])
+    if prior:
+        lines += ["", "Built on the learnings of " + ", ".join(prior) + "."]
+    lines += ["", "Co-Authored-By: ShipLoop E2E harness <shiploop-e2e@example.invalid>"]
+    return "\n".join(lines) + "\n"
+
+
+def record_learnings(worktree: Path, message: str, stage: Path) -> str:
+    """Append the iteration's message to LEARNINGS.md in the worktree and commit it."""
+    path = worktree / "test" / "shiploop_e2e" / "LEARNINGS.md"
+    subject, _, body = message.partition("\n\n")
+    body = body.split("\nCo-Authored-By:", 1)[0].rstrip()
+    heading = subject.removeprefix("test(shiploop): record ")
+    with path.open("a") as out:
+        out.write(f"\n## {heading}\n\n{body}\n")
+    (stage / "learnings-commit.txt").write_text(message)
+    git(worktree, "add", "test/shiploop_e2e/LEARNINGS.md")
+    git(worktree, "commit", "-q", "-F", str(stage / "learnings-commit.txt"))
+    return git(worktree, "rev-parse", "--short", "HEAD")
 
 
 def quick_suite(worktree: Path, base: str, log: Path) -> bool:
@@ -159,6 +236,8 @@ def main(argv: list[str] | None = None) -> int:
         stage = out / f"iter-{index}"
         stage.mkdir()
         sha = git(worktree, "rev-parse", "HEAD")
+        prior_learnings = reviewer.last_commit_messages(worktree)
+        prior = git(worktree, "log", "-3", "--format=%h").split()
         subprocess.run([sys.executable, "-B", str(worktree / "scripts/build-packages.py"), str(stage / "build")],
                        check=True, stdout=subprocess.DEVNULL)
         run_args = ["--case", args.case, "--host", args.host, "--output", str(stage / "run"),
@@ -181,7 +260,8 @@ def main(argv: list[str] | None = None) -> int:
 
         print(f"== iteration {index}: review", flush=True)
         verdict = reviewer.review(stage / "run", host=args.host, model=args.model, effort=args.effort,
-                                  skill_root=worktree / "skills" / "shiploop")
+                                  skill_root=worktree / "skills" / "shiploop", prior_learnings=prior_learnings)
+        recorded = record_learnings(worktree, learnings_message(index, args, sha, result, verdict, prior), stage)
         findings = verdict["actionable"]
         rejected = [f.get("title") for c in reviewer.CATEGORIES for f in verdict.get(c) or []
                     if isinstance(f, dict) and f.get("preserves_premise") is False]
@@ -189,7 +269,8 @@ def main(argv: list[str] | None = None) -> int:
                   f"- actionable: {len(findings)}; premise-breaking (rejected): {len(rejected)}"]
         entry += [f"  - [{f['category']}] {f.get('title')}" for f in findings]
         entry += [f"  - rejected: {title}" for title in rejected]
-        entry.append(f"- review: {stage / 'run' / 'review.md'}")
+        entry.append(f"- review: {stage / 'run' / 'review.md'}; learnings commit {recorded} "
+                     f"(built on {', '.join(prior)})")
         if not findings:
             clean_streak = clean_streak + 1 if result["pass"] else 0
             journal(learnings, entry + [f"- clean review (streak {clean_streak})"])
