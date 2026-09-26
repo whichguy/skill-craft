@@ -82,7 +82,6 @@ Before claiming a clean residual×2 streak:
 
 If plan-oversight is installed, residual hooks are **optional adapters**. Product success =
 directive in the plan + residual×2 after implement + current-candidate Finalization.
-Prefer hooks that recognize
-`## Review Coverage` and/or call this skill’s CLI — legacy
-`## Post-Implementation Residual Loop` only is incomplete. Do not claim Review Coverage
-support if the nudge only matches the legacy H2.
+Hooks must recognize
+`## Review Coverage` and/or call this skill’s CLI; the retired
+`## Post-Implementation Residual Loop` heading is not read.

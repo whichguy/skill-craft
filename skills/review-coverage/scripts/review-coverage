@@ -41,7 +41,7 @@ def _strip_fences(text: str) -> str:
 
 
 def _section_body(text: str) -> Optional[str]:
-    """Return body under a level-2 ``## Review Coverage`` (or legacy residual) heading.
+    """Return body under a level-2 ``## Review Coverage`` heading.
 
     Only **H2** headings are accepted (SKILL.md durable H2 contract). H1/H3+ are ignored
     so they surface as a missing section. Fences are skipped when *locating* the heading
@@ -64,11 +64,9 @@ def _section_body(text: str) -> Optional[str]:
         if start is None:
             if level != 2:
                 continue
-            # The legacy Residual Loop H2 stays readable only while the external
-            # plan-oversight residual_loop.md template still emits it.
-            if re.search(r"(?i)^Review\s+Coverage\b", title) or re.search(
-                r"(?i)^(?:Post[- ]?Implementation\s+)?Residual\s+Loop\b", title
-            ):
+            # Only ``## Review Coverage``: the retired ``Post-Implementation Residual
+            # Loop`` heading is not read (plan-oversight refuses it too).
+            if re.search(r"(?i)^Review\s+Coverage\b", title):
                 start = i + 1
                 start_level = level
             continue

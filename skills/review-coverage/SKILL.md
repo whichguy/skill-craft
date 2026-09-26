@@ -152,11 +152,9 @@ Skip pure doc-only one-line plans unless the user asks.
 
    Use these labels exactly. The retired short labels `Base`, `Target path` and
    `Max rounds` fail validation; rename them to the labels above.
-5. Heading must be level-2 `## Review Coverage` only — not `#` / `###`, and not
-   `## Post-Implementation Residual Loop` (collides with review-plan Q-E2).
-   **If the plan still has legacy `## Post-Implementation Residual Loop`:** rewrite
-   it to `## Review Coverage` (same fields; Driver `review-converge under /goal`).
-   Do not leave dual residual H2s.
+5. Heading must be level-2 `## Review Coverage` only — not `#` / `###`. The retired
+   `## Post-Implementation Residual Loop` heading is not read: a plan that has only
+   it reports a missing section.
 
 **Filled** means: Base ref, Target paths, Test command, Driver are present and not
 placeholders; Materiality or material+residual×2 language present; positive Forward

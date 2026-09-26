@@ -912,12 +912,31 @@ if grep -qi 'user-typed' "$ROOT/skills/review-coverage/SKILL.md" \
 else
   bad skill_md_grok_goal_user_typed
 fi
-if grep -q 'Post-Implementation Residual Loop' "$ROOT/skills/review-coverage/SKILL.md" \
-  && grep -qiE 'rewrite|migrate|legacy' "$ROOT/skills/review-coverage/SKILL.md"; then
-  ok skill_md_migrate_legacy_h2
+# The retired Residual Loop heading is not read: a plan with only it has no section.
+TMPRL=$(mktemp)
+cat >"$TMPRL" <<'RLPLAN'
+## Post-Implementation Residual Loop
+
+| Field | Value |
+|-------|--------|
+| Base ref | abcdef1234567890deadbeef |
+| Target paths | src/foo.ts |
+| Test command | npm test |
+| Materiality bar | material (P0/P1) |
+| Driver | review-converge under /goal |
+
+1. Forward audit
+2. Reverse audit
+two consecutive clean residual rounds
+RLPLAN
+RLERR=$(python3 "$CLI" validate "$TMPRL" 2>&1 >/dev/null || true)
+if ! python3 "$CLI" validate "$TMPRL" >/dev/null 2>&1 \
+  && printf '%s\n' "$RLERR" | grep -qi 'missing ## Review Coverage'; then
+  ok retired_residual_loop_heading_not_read
 else
-  bad skill_md_migrate_legacy_h2
+  bad retired_residual_loop_heading_not_read
 fi
+rm -f "$TMPRL"
 
 # Exercise Cursor skill-dir discovery in a disposable fixture. Actual host
 # imports belong to test/run-integration.sh cursor-imports.
