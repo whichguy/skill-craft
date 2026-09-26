@@ -3,17 +3,17 @@
   "hooks": {
     "afterShellExecution": [
       {
-        "command": "\"${CURSOR_PLUGIN_ROOT}/skills/shiploop/scripts/shiploop-status-hook\"",
+        "command": "${CURSOR_PLUGIN_ROOT}/skills/shiploop/scripts/shiploop-status-hook",
         "timeout": 10
       },
       {
-        "command": "\"${CURSOR_PLUGIN_ROOT}/skills/shiploop/scripts/shiploop-keepalive-observe\"",
+        "command": "${CURSOR_PLUGIN_ROOT}/skills/shiploop/scripts/shiploop-keepalive-observe",
         "timeout": 30
       }
     ],
     "stop": [
       {
-        "command": "\"${CURSOR_PLUGIN_ROOT}/skills/shiploop/scripts/shiploop-keepalive-stop\"",
+        "command": "${CURSOR_PLUGIN_ROOT}/skills/shiploop/scripts/shiploop-keepalive-stop",
         "timeout": 30,
         "loop_limit": 50
       }

@@ -6,12 +6,12 @@
         "hooks": [
           {
             "type": "command",
-            "command": "\"$PLUGIN_ROOT/skills/shiploop/scripts/shiploop-status-hook\"",
+            "command": "$PLUGIN_ROOT/skills/shiploop/scripts/shiploop-status-hook",
             "timeout": 10
           },
           {
             "type": "command",
-            "command": "\"$PLUGIN_ROOT/skills/shiploop/scripts/shiploop-keepalive-observe\"",
+            "command": "$PLUGIN_ROOT/skills/shiploop/scripts/shiploop-keepalive-observe",
             "timeout": 30
           }
         ]
@@ -22,7 +22,7 @@
         "hooks": [
           {
             "type": "command",
-            "command": "\"$PLUGIN_ROOT/skills/shiploop/scripts/shiploop-keepalive-stop\"",
+            "command": "$PLUGIN_ROOT/skills/shiploop/scripts/shiploop-keepalive-stop",
             "timeout": 30
           }
         ]
