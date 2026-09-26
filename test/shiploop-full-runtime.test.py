@@ -385,10 +385,15 @@ class FullRuntimeCompositionTests(unittest.TestCase):
             producer["assumptions"] = []
         if stage == "step-plan" and producer.get("outcome") == "done" and "test_commands" not in producer:
             # Real commands: test-green and regression loop on them, then ShipLoop reruns them.
-            producer["test_commands"] = [{"command": FOCUSED, "suite": "focused"},
+            producer["test_commands"] = [{"command": FOCUSED, "suite": "focused", "criteria": ["C1"]},
                                          {"command": "true", "suite": "regression"}]
+            producer.setdefault("criteria", [{"id": "C1", "text": "The focused check passes."}])
         if stage == "step-plan" and producer.get("outcome") == "done" and "paths" not in producer:
             producer["paths"] = ["src/**"]
+        if stage == "system-test-author" and producer.get("outcome") == "done" and "system_commands" not in producer:
+            producer.update(system_commands=[], system_commands_na="Synthetic fixture: no system command.")
+        if stage == "release-plan" and producer.get("outcome") == "done" and "consumer_checks" not in producer:
+            producer.update(consumer_checks=[], consumer_checks_na="Synthetic fixture: no consumer command.")
         if stage == "release-plan" and producer.get("outcome") == "done" and "consumer_entry" not in producer:
             producer["consumer_entry"] = {"how": "Synthetic fixture: read the repository files.", "sources": ["*"]}
         if stage == "test-red" and producer.get("outcome") == "done" and "red_na" not in producer:

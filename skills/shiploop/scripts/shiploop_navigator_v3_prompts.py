@@ -1058,6 +1058,12 @@ and content digest in existing plan notes/evidence_refs. This producer's mandato
 actual Improve loop must review the created steps and graph before they are used
 for execution. Use the Parallel-chain guide for late creation or revision;
 planning never starts the dispatcher or expands this item's scope.
+List the item's completion criteria in `criteria` (`[{"id": "C1", "text": "..."}]`)
+and name, in each test command's `criteria`, the criteria that command confirms.
+Every criterion needs a command: a passing test ShipLoop runs is the only
+confirmation. For content that has no test runner, such as a README that must
+document a flag, add a `check` command (suite `check`, judged by its exit code),
+for example `grep -q -- '--greeting' README.md`.
 Record the item's test command list in the result's `test_commands`:
 `[{"command": "<shell command>", "suite": "focused" | "regression", "ids": ["TC-9", ...]}]`.
 Focused commands exercise this item's tests; regression commands run the retained
@@ -1419,6 +1425,9 @@ keep or revert any auto-fix it names, and still run the step's own checks inside
 the loop.
 """,
     "verify": """\
+On done, ShipLoop runs every command the step plan recorded, each tied to the criteria it confirms and refuses done unless each passes; the
+record it writes is the evidence, so a criterion is confirmed by its passing
+command, not by this result's summary.
 Verify the complete work item against its acceptance criteria and current evidence.
 Check evidence applies to the current candidate, command, configuration and target;
 stale, missing or skipped required evidence is incomplete. Use the authoritative
@@ -1496,6 +1505,10 @@ locators forward. Preserve historical snapshots and pending persistence work;
 new observations do not silently replace approved intent or old evidence.
 """,
     "system-test-author": """\
+Record the system tests in `system_commands` (same shape as a step plan's
+test_commands; suite `focused`, `regression` or `check`). ShipLoop runs every one
+itself when system-test reports done and refuses unless each passes. When no
+system test applies, give an empty list with `system_commands_na` and the reason.
 Reopen the Run-wide test strategy source. From accepted history, select the
 latest done test-decision record for every relevant completed item: step-plan,
 test-spec, test-author, test-refine or regression, with its retained prior locators.
@@ -1522,6 +1535,9 @@ Identify which checks run now and which require the authorized release first;
 required post-release checks stay assigned to release-verify, not silently waived.
 """,
     "system-test": """\
+On done, ShipLoop runs the system commands system-test-author recorded and refuses done unless each passes; the
+record it writes is the evidence, so a criterion is confirmed by its passing
+command, not by this result's summary.
 Execute authorized end-to-end, runtime, integration, or system tests against the
 actual intended candidate and boundary.  Verify prerequisites, fixtures, target,
 identity, authorization, and observed behavior.  Do not substitute a planned case
@@ -1553,6 +1569,11 @@ incoming spec. Check durable knowledge and remaining gaps; a recovered descripti
 or planned check alone does not establish product acceptance.
 """,
     "release-plan": """\
+Record the post-release consumer checks as commands in `consumer_checks` (same
+shape; a `check` command is judged by its exit code). ShipLoop runs every one
+itself when release-verify reports done and refuses unless each passes. A check
+only a person can make stays in the plan as a blocked `awaiting` step; when no
+command applies, give an empty list with `consumer_checks_na` and the reason.
 Create an authorized release/recovery plan: target and candidate identity,
 permission, prerequisites, user impact, rollback, monitoring, pre/post-release
 checks, and stop conditions. List every operation the user-visible outcome needs as
@@ -1616,6 +1637,9 @@ Check operation postconditions here before completing this stage.
 The script-selected release-verify owns final consumer behavior checks afterward.
 """,
     "release-verify": """\
+On done, ShipLoop runs the consumer checks release-plan recorded and refuses done unless each passes; the
+record it writes is the evidence, so a criterion is confirmed by its passing
+command, not by this result's summary.
 Verify the actual release and required deployed consumer/runtime behavior using
 current target evidence.  Distinguish source synchronization, artifact identity,
 operation receipt, and real consumer behavior.  A blocked or unknown post-release
