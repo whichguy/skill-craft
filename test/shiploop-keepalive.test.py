@@ -171,6 +171,11 @@ class HookDecisionTests(KeepaliveTestCase):
         binding = keepalive.load_binding("grok", "filtered-1")
         self.assertIsNotNone(binding)
         self.assertEqual(binding["run_id"], self.status()["run_id"])
+        for query in ("hook-status", "status", "report"):
+            payload = {"hookEventName": "PostToolUse", "sessionId": f"reader-{query}",
+                       "toolInput": {"command": f"python3 shiploop {query} --run-dir {self.run_dir}"}}
+            self.hook("observe", "grok", payload)
+            self.assertIsNone(keepalive.load_binding("grok", f"reader-{query}"), query)
 
     def test_marker_copied_from_elsewhere_does_not_bind(self) -> None:
         payload = self.payload("claude", "observe")
