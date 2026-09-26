@@ -62,6 +62,14 @@ class CIPolicyTests(unittest.TestCase):
         self.assertEqual(policy.select(self.root, "push", {"before": change}, "")[0], "full")
         self.assertTrue(policy.is_release(self.root))
         self.assertFalse(policy.is_release(self.root, change))
+        # A release pushed under a later ordinary commit still runs full.
+        self.write("code.py", "after the release\n")
+        after = self.commit()
+        self.assertEqual(policy.select(self.root, "push", {"before": change}, "")[0], "full")
+        self.assertEqual(policy.select(self.root, "push", {}, "")[0], "quick")
+        self.write("code.py", "later again\n")
+        self.commit()
+        self.assertEqual(policy.select(self.root, "push", {"before": after}, "")[0], "quick")
 
     def test_push_without_a_known_previous_commit_diffs_the_last_commit(self):
         self.write("code.py", "changed\n")

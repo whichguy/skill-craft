@@ -36,8 +36,9 @@ they import, names it, so `shiploop_navigator.py` and
 `references/` and `commands/` select its packet and guidance suites; and the
 `scripts/shiploop` entrypoint selects every light ShipLoop suite). Suites measured above two minutes and the E2E
 apparatus never run in quick. A pull request diffs from its merge base and a push
-from the previous `main` head. Only a release commit (its `Skill-Craft-Release:`
-trailer) runs the full tier. Manual dispatch offers `quick` (the last commit's
+from the previous `main` head. Only a push that contains a release commit (its
+`Skill-Craft-Release:` trailer), even under later ordinary commits, runs the
+full tier. Manual dispatch offers `quick` (the last commit's
 changes) or `full`. The `hermetic` aggregate requires both the planner and all
 selected jobs to succeed; its summary states the tier and tested SHA.
 Server-side merge protection is a separate repository setting; this workflow

@@ -138,7 +138,7 @@ host checkout into a tree that is bind-mounted into the container as `/opt/data`
   build instead.
 - CI: `.github/workflows/ci.yml` (**implemented**); `test/ci_policy.py` selects
   the tier. Pull requests, ordinary `main` pushes and unclassified events run
-  quick against their changed files; only a release commit runs full. Manual
+  quick against their changed files; only a push containing a release commit runs full. Manual
   dispatch requires an explicit `tier=quick` or `tier=full`. Full runs `core`,
   three deterministic ShipLoop shards and `e2e-apparatus`, one job per group. The
   fail-closed `hermetic` status is the aggregate gate; its summary states the

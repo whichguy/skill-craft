@@ -30,6 +30,18 @@ def is_release(root, rev="HEAD"):
     return any(line.startswith(RELEASE_TRAILER) for line in body.splitlines())
 
 
+def pushes_release(root, before):
+    """Whether any commit in before..HEAD (or HEAD alone) is a release commit.
+
+    scripts/release.py never pushes, so a release commit can reach main under
+    a later ordinary commit; it still needs the full tier.
+    """
+    if not commit_exists(root, before):
+        return is_release(root)
+    revs = git(root, "rev-list", f"{before}..HEAD").split()
+    return any(is_release(root, rev) for rev in revs)
+
+
 def parent(root):
     return git(root, "rev-parse", "HEAD^1") if commit_exists(root, "HEAD^1") else ""
 
@@ -44,7 +56,8 @@ def select(root, event_name, event, requested):
         if requested not in {"quick", "full"}:
             raise ValueError("manual CI requires an explicit quick or full tier")
         return requested, "explicit manual selection", parent(root) if requested == "quick" else ""
-    if event_name == "push" and is_release(root):
+    if event_name == "push" and pushes_release(
+            root, event.get("before", "") if isinstance(event, dict) else ""):
         return "full", "release commit", ""
     if event_name == "pull_request":
         try:
