@@ -167,16 +167,11 @@ transition is context and does not replace the current action.
 Active INNER packets begin with a context prefix selected by the run's
 delegation. Paused, blocked, halted and completed packets do not carry it.
 
-Under `delegation: inline`, the default for new runs, the `select-work` producer
-packet begins with **Clear and then execute the prompt.** then `Delegation: inline.`
-It opens a work item and is that item's only INNER context boundary. Clear once
-there: use an actual callable host reset with continuation if the host has one,
-then run the Recovery command; otherwise follow the
-[pause and manual handoff](#packet-only-context-boundary). A conversation that
-began from that reset or recovery is already fresh and does not clear again
-when the prefix repeats. Every other INNER producer packet of the item begins
+Under `delegation: inline`, the default for new runs, every INNER producer
+packet, including the `select-work` packet that opens each work item, begins
 with **Continue in this context and execute the prompt.** Execute it in this
-conversation without clearing, pausing for a clear or delegating. This
+conversation without clearing, pausing for a clear or delegating (see
+[context boundaries](#context-boundaries)). This
 conversation is the only writer and alone submits ShipLoop callbacks. After an
 unplanned reset or lost context, run the Recovery command and continue from the
 reprinted packet. `implement` executes a reviewed multi-step plan directly, one
@@ -193,8 +188,8 @@ For an `implement` producer, select the chain route first. During that producer,
 its bound mode and executor take precedence: parallel chains keep their capacity and bypass this boundary;
 explicit serial chains execute in the main context without spawning workers.
 Do not wrap a chain in another worker. Both modes recover the existing attempt
-rather than rerunning `start`. Serial chains use only a callable reset or the
-manual handoff below; the [chain mode contract](parallel-chain.md#serial-execution-in-the-main-context)
+rather than rerunning `start`. Serial chains execute in this conversation; the
+[chain mode contract](parallel-chain.md#serial-execution-in-the-main-context)
 remains authoritative. Chain precedence ends at producer completion. Improve follows
 its own selected context and ownership policy even when the historical chain binding
 remains. For other serial work where delegation is permitted,
@@ -204,8 +199,9 @@ and a return route to the live parent. The parent supplies the current packet,
 selected skill locators and necessary durable references, waits, verifies its
 return and alone submits the ShipLoop callback. Keep one candidate writer and
 collect or confirm an existing owner stopped before replacement. Apply the
-boundary once per assignment; an already-fresh worker does not clear or delegate
-again because the packet repeats.
+boundary once per assignment; an already-fresh worker does not delegate again
+because the packet repeats. When no fresh worker is usable, execute the
+assignment in this conversation.
 
 Active INNER Improve packets never clear the invoking parent. Under
 `delegation: inline` they begin with **Keep the invoking parent alive and run
@@ -252,28 +248,27 @@ work under that packet, but does not initialize another ShipLoop run or advance
 its parent's graph. The selected Improve owner follows its separately bound
 Until Loop runtime.
 
-### Packet-only context boundary
+### Context boundaries
 
-A returned packet can instruct the host agent to use an available native tool;
-it cannot execute a host command by printing its name. `/clear` embedded in tool
-output is text, not a reset. In a
+ShipLoop never pauses a run for a context clear. A returned packet can instruct
+the host agent to use an available native tool; it cannot execute a host command
+by printing its name, and neither can a hook. `/clear` is a command only when the
+user types it. In a
 [live Claude Code ledger study](https://github.com/whichguy/skill-craft/blob/main/docs/shiploop-clear-ledger-experiments-2026-09-21.md),
 packet text reset the context in 0/2 cases, while an external host clear did in
-3/3 resets.
+3/3 resets. On Grok 1.0.41, `/clear` followed by a prompt did not clear the
+conversation when it came from tool output, a Stop hook's block reason
+(headless or interactive) or a headless prompt: 0/4 (same study, Grok section).
 
-Under `delegation: inline`, the boundary is taken once per work item, at its
-`select-work` packet, in the same conversation. Use a context clear only when a
-real callable reset and continuation route are exposed. When none is usable,
-use the existing pause command and display the saved operator handoff. The user
-clears through the host or opens a fresh context, runs the exact Recovery
-command, then follows the printed Resume command. Recovery with `next` only
-reads state and does not unpause. Keep the action pending until this boundary is
-satisfied; never simulate a reset or shell-launch another model. The same
-callable-reset or pause-and-handoff route serves a serial chain, or any
-ask-agent assignment that must stay in the conversation.
+A pause for a clear therefore stopped every work item until the user came back.
+Instead, an inline run executes every INNER stage in the same conversation, and
+the host's own compaction manages the context (Claude Code and Grok compact
+automatically). The durable run state and self-contained packets make that
+safe: after any compaction, reset or lost context, the Recovery command reprints
+the current packet.
 
-Under `delegation: ask-agent`, each INNER producer assignment takes the
-boundary. Claude documents both
+Under `delegation: ask-agent`, each INNER producer assignment takes a fresh
+worker where one is usable. Claude documents both
 [sequential subagents](https://code.claude.com/docs/en/sub-agents#chain-subagents)
 and [fresh context without parent history for non-fork subagents](https://code.claude.com/docs/en/sub-agents#what-loads-at-startup).
 Where the assignment permits delegation, use a non-fork worker, such as a fresh
@@ -282,7 +277,8 @@ no-history mode on another host only when its
 actual schema supports it. Wait for collection before advancing the serial run.
 This keeps the worker's intermediate history out of the parent; it does not
 erase the parent's conversation or guarantee lower total tokens. An inherited
-conversation fork does not satisfy the boundary.
+conversation fork does not satisfy the boundary. When no fresh worker is usable,
+execute the assignment in this conversation.
 
 Packets keep long request/context fields, prior evidence lists and producer
 results compact. An excerpt identifies the exact field in `state.md`; read the

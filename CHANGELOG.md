@@ -4,6 +4,40 @@ Written by scripts/release.py.
 
 ## 2026-09-25
 
+### shiploop 0.28.0
+
+- Keepalive now works on Grok without an installer. Grok lists a plugin's hooks but
+  never runs them, so the marketplace install left Grok runs with no keepalive. Any
+  `shiploop` command that runs under Grok now writes
+  `~/.grok/hooks/shiploop-keepalive.json` when it is missing, or repairs it when its
+  script is gone, and says so once on stderr. New Grok sessions load it; an open
+  session picks it up from `/hooks`, then `r`. `SHIPLOOP_KEEPALIVE=off` skips it.
+- Planning now decides where new code and its data live, in every execution
+  environment the change runs in or reaches: the local checkout, a remote runtime
+  behind an MCP server, API or CLI, a hosted platform, and each service of a
+  multi-service system. The `plan` stage maps each environment's library
+  structure, how it resolves names, the libraries and services the code shares
+  names with, and how it stores data (existing and destination schema with their
+  owner, or a new schema with its storage policy), and records a Namespace and
+  data map. `step-plan` names each new file, module, public symbol and stored
+  field with its environment, home, visibility and collision or round-trip
+  check. Code craft gains rule 8, "Put it where it belongs", which the quality
+  loop reviews. New stack-neutral Namespaces and placement and Schema and storage
+  practice cards; the platform cards give Apps Script, Python, Bash, Salesforce
+  and UI examples.
+
+  UI work now defaults to an ambitious, highly interactive interface: plans name
+  the rich interactions they deliver and any they scale back with a reason, and
+  KISS/YAGNI no longer justify trimming the planned UI.
+- A run no longer stops at the start of each work item. The `select-work` packet
+  used to ask for a context clear and, since no host lets a packet, script or hook
+  clear the conversation, offered a "context-boundary" pause that left the user
+  to type `/clear` and two recovery commands before every item. Every inline
+  stage now continues in the same conversation and the host's own compaction
+  manages context; an ask-agent producer without a usable fresh worker runs in
+  the conversation too. No packet offers a pause for a clear, and serial chains
+  no longer have a manual-handoff route.
+
 ### shiploop 0.27.0
 
 - The plan result now carries an `assumptions` list, and the navigator enforces

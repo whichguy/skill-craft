@@ -292,6 +292,10 @@ def main(core, argv=None):
     if args.command == "graph-dry-run":
         # Deliberately before run-directory discovery, locking or state access.
         return navigator_dry_run.run(args)
+    import shiploop_keepalive
+    notice = shiploop_keepalive.ensure_hooks()
+    if notice:
+        print(notice, file=sys.stderr)
     raw_root = args.run_dir
     if args.command == "init" and not raw_root and args.repo:
         raw_root = str(Path(args.repo) / ".shiploop")

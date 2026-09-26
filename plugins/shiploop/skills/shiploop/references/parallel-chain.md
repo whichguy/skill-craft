@@ -449,14 +449,13 @@ precedence over the navigator's generic producer context boundary, which for an
 ask-agent run prefers a native fresh worker. This precedence
 ends at producer completion: Improve follows its own selected context and ownership
 policy even when the historical chain binding remains. Parallel chains retain their capacity and have no serial
-reset wrapper. Serial chains do not spawn a fresh worker. If fresh context is
-required, use only a real callable host reset with a recovery route, or the
-[pause and operator handoff](navigator.md#packet-only-context-boundary).
-Preserve the parent Recovery command and printed Chain recovery command; settle
-or stop step-owned activity before clearing. Recover the same binding and
-attempt, then follow its returned resume/reconcile action. Do not rebind, change
-mode/executor or rerun `start` to obtain another execution grant. Printed `/clear`
-text does not perform the host operation.
+reset wrapper. Serial chains do not spawn a fresh worker; they execute in this
+conversation and never pause for a context clear (see
+[context boundaries](navigator.md#context-boundaries)). Preserve the parent
+Recovery command and printed Chain recovery command. After a compaction or lost
+context, recover the same binding and attempt, then follow its returned
+resume/reconcile action. Do not rebind, change mode/executor or rerun `start` to
+obtain another execution grant.
 
 Bind a new chain with `--mode serial`; omit `--capacity` or set it to `1`.
 Without `--mode`, a fresh binding uses `parallel`, which retains native

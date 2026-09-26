@@ -17,7 +17,6 @@ While executing that producer, its bound mode and executor take precedence: para
 chains retain their capacity and bypass this serial context boundary; serial
 chains execute in the main context without spawning workers. Do not wrap a chain
 in an extra worker. Both modes recover the existing attempt, never rerun start.
-Serial chains may use only the callable-reset or manual-handoff route below.
 Chain precedence ends at producer completion. Improve follows its own selected
 context and ownership policy even when the historical chain binding remains.
 For other serial INNER assignments where delegation is permitted, begin
@@ -29,14 +28,10 @@ this packet, selected skill locators and necessary durable references in the
 existing workspace. Run one assignment worker at a time; the parent waits for
 its result, verifies it and alone submits the ShipLoop callback. Keep one writer;
 collect or confirm an existing owner stopped before replacement. Once fresh for
-this assignment, do not clear again or delegate it again when this prefix repeats.
-Use a same-conversation clear only if the host exposes an actual callable reset
-and continuation route; then recover this same run. Printing `/clear` in a packet
-does not invoke it. If neither route is usable, use the printed pause command and
-give the user a durable handoff: clear through the host or open a fresh context,
-run the Recovery command, then follow the printed Resume command. Do not claim
-a clear or execute the pending assignment before that boundary is satisfied.
-ShipLoop emits this instruction; the host performs the context clear.
+this assignment, do not delegate it again when this prefix repeats. If no fresh
+worker is usable, execute the assignment in this conversation. Never pause for a
+context clear: no packet, script or hook output can clear a host conversation,
+and the host's own compaction manages its context.
 """
 
 
@@ -78,32 +73,16 @@ PLANNING_REVIEW_STAGES = frozenset({
     "system-test-author", "release-plan",
 })
 
-INLINE_ITEM_CONTEXT = """\
-Clear and then execute the prompt.
-
-Delegation: inline. This select-work packet opens a work item and is its only
-INNER context boundary. Clear once here, then execute this packet and every
-later INNER stage and Improve checkpoint of this work item in this conversation.
-If the host exposes an actual callable context reset with continuation, use it,
-then run the Recovery command below. Otherwise run the printed pause command and
-give the user this handoff: clear through the host (for example `/clear`) or
-open a fresh conversation, run the Recovery command, then the printed Resume
-command. Printing `/clear` does not clear. A conversation that began with that
-reset or recovery for this work item is already fresh: when this prefix repeats,
-execute without clearing or pausing again. Do not hand this assignment to Ask
-Agent or a native worker; this conversation is the only writer and alone submits
-ShipLoop callbacks. Retain the CLI, repository, run-directory locators and exact Recovery
-command in durable host handoff material.
-"""
-
 INLINE_STAGE_CONTEXT = """\
 Continue in this context and execute the prompt.
 
-Delegation: inline. This work item's context boundary was its select-work
-packet. Execute this INNER stage in this conversation without clearing, pausing
-for a clear, or handing it to Ask Agent or a native worker. This conversation is
-the only writer and alone submits ShipLoop callbacks. After an unplanned reset
-or lost context, run the Recovery command and continue from the reprinted packet.
+Delegation: inline. Execute this INNER stage in this conversation, including the
+select-work stage that opens each work item. Do not clear, pause for a clear, or
+hand it to Ask Agent or a native worker: no packet, script or hook output can
+clear a host conversation, and the host's own compaction manages its context.
+This conversation is the only writer and alone submits ShipLoop callbacks. After
+an unplanned reset or lost context, run the Recovery command and continue from
+the reprinted packet.
 """
 
 INLINE_IMPROVE_CONTEXT = """\
@@ -123,14 +102,12 @@ Recovery command and child receipt locator for interruption recovery.
 """
 
 
-def inner_context(delegation: str, stage: str, *, improve: bool) -> str:
+def inner_context(delegation: str, *, improve: bool) -> str:
     """Return the context prefix for an active INNER producer or Improve packet."""
     _require_delegation(delegation)
     if delegation == ASK_AGENT:
         return IMPROVE_INNER_CONTEXT if improve else SERIAL_INNER_CONTEXT
-    if improve:
-        return INLINE_IMPROVE_CONTEXT
-    return INLINE_ITEM_CONTEXT if stage == INNER[0] else INLINE_STAGE_CONTEXT
+    return INLINE_IMPROVE_CONTEXT if improve else INLINE_STAGE_CONTEXT
 
 
 PRELUDE = (
@@ -293,6 +270,8 @@ STAGE_REFERENCES: dict[str, tuple[tuple[str, str], ...]] = {
         ("Service discovery guidance", "service-discovery.md#development-handoff"),
         ("Current-system baseline guide", "current-system-baseline.md#planning-and-review-handoff"),
         ("Dependency-planning guidance", "backchain-planning.md#dependency-audit"),
+        ("Namespace and placement guidance", "coding-practices.md#namespaces-and-placement"),
+        ("Schema and storage guidance", "coding-practices.md#schema-and-storage"),
         ("Git-history investigation guide", "project-knowledge.md#investigate-git-history-for-planning"),
         ("Decision carry-forward guidance", "project-knowledge.md#carry-context-into-the-new-plan"),
         ("State and data assessment", "requirements-definition.md#state-and-data-change-assessment"),
@@ -312,6 +291,8 @@ STAGE_REFERENCES: dict[str, tuple[tuple[str, str], ...]] = {
         ("Service discovery guidance", "service-discovery.md#development-handoff"),
         ("Current-system baseline guide", "current-system-baseline.md#planning-and-review-handoff"),
         ("Coding decision guide", "coding-guidance.md#select-guidance"),
+        ("Namespace and placement guidance", "coding-practices.md#namespaces-and-placement"),
+        ("Schema and storage guidance", "coding-practices.md#schema-and-storage"),
         ("Git-history investigation guide", "project-knowledge.md#investigate-git-history-for-planning"),
         ("Parallel-chain guide", "parallel-chain.md#parallel-implementation-chains"),
         ("Repeatable test-suite guide", "repeatable-test-suites.md#select-or-revalidate-the-harness"),
@@ -630,7 +611,8 @@ file cold with no run history. Every rule serves that reader.
    or the next line. No banners, change history or commented-out code. Prefer a
    precise name to a comment and one authoritative explanation to several.
 5. Small, not thin. KISS and YAGNI limit features and abstractions. They never
-   remove an argument check, an error path or a contract docstring.
+   remove an argument check, an error path, a contract docstring, or the rich
+   UI interaction the plan calls for.
 6. Make failure diagnosable. Check a response's contract, not only transport
    success. Before mutation or cleanup, keep the context that explains a
    failure: operation, relevant IDs, expected versus observed. Errors name the
@@ -643,6 +625,12 @@ file cold with no run history. Every rule serves that reader.
    from fragments, so it can be externalized later. Format numbers, dates,
    currency and plurals through locale-aware APIs. Keep log text, error codes
    and machine identifiers stable and untranslated.
+8. Put it where it belongs. New code lives in the namespace the step plan
+   chose, with the narrowest visibility a present consumer needs. A new name
+   must not collide with or shadow one in the shared space of any runtime it
+   runs in (such as globals, an import path, a shell or a platform org) or in a
+   library the code uses. No new generic bucket such as `utils`. Stored data
+   follows the planned schema and storage policy.
 """
 
 
@@ -668,8 +656,11 @@ inventory in context, plus tests for those files.
    unhandled or untested is a finding; add a test for an untested path.
 4. Review against the Code craft rubric: each entry point's argument checks and
    contract docstring, then the rest of the change for missing error paths,
-   silent failures, comments that restate code, stale comments, dead code, and
-   user-facing text that is concatenated or bypasses the repository's catalog.
+   silent failures, comments that restate code, stale comments, dead code,
+   user-facing text that is concatenated or bypasses the repository's catalog,
+   names placed outside the planned namespace or exported wider than needed,
+   stored data that departs from the planned schema, and, for a UI change, a
+   plain or static interaction where the plan called for a rich one.
 5. Classify. Material: wrong behavior on a traced path; a missing or wrong
    argument check, contract, error path or test; a failing check; a misleading
    comment. Trivial: wording, ordering, a sharper name. Do not reopen a finding
@@ -926,7 +917,11 @@ recovery checks (including a crash after acknowledgment but before processing
 accepted work where applicable); and source/check locators. For UI, include component/interaction/skin
 premises, selected design guidance locator plus identity/version or digest (or
 named fallback), and meaningful async cues with their purpose and reduced-motion
-alternative, or an explicit static choice. For consequential UI choices, include
+alternative, or an explicit static choice. For a human-facing UI, default to an
+ambitious, highly interactive design: name the rich interactions planned
+(direct manipulation, inline editing, live preview, keyboard paths, animated
+transitions) and any scaled back, with its user, target or accessibility
+reason. For consequential UI choices, include
 the guide's ambition, reuse/evolve/upgrade decision, rough effort/benefit and
 compatibility check; reuse accepted choices for unaffected scope and the existing
 design/test facilities.
@@ -973,6 +968,24 @@ query/cache, worker/status, business/UI, logging, tests and operator files only 
 needed. Order their actual prerequisites and checks. Retain exact current note
 locators and revalidation conditions in evidence_refs and item context; earlier
 stage references are not automatically replayed in every later packet.
+When the work adds code or stored data, forecast where it lives. List every
+execution environment it runs in or reaches: the local checkout, a remote
+runtime behind an MCP server, API or CLI, a hosted platform, and each service
+of a multi-service system. Using Namespace and placement guidance, map for each
+one its current library structure (packages, modules, prefixes, exported
+surfaces, where similar responsibilities live), how it resolves names, and the
+libraries and services the new code will import, be called by, or share names
+with. Inspect a remote environment through its interface, not the local tree.
+Decide a home namespace and visibility for each new responsibility across all
+work items, so later items extend the layout instead of breaking it, and how
+new names, including names shared between services, avoid collisions. Using
+Schema and storage guidance, decide how each environment stores the data: the
+existing and destination schema, their owner and change mechanism, or for a new
+schema its store, keys, field types, constraints, relationships, version and
+migration, plus its storage policy (authority, retention, sensitive fields,
+quotas). Record both as a short Namespace and data map in the plan note and put
+each item's entries in its `context`. Plan no empty package or directory for a
+hypothetical future.
 Before finalizing work-item IDs, check the draft once for coherent implementation
 increments. Split deliverables when they need different prerequisites, expose a
 useful intermediate contract/artifact, or can be implemented and checked
@@ -1054,7 +1067,16 @@ sufficient. Give content criteria (docs, changelogs, test coverage) a
 command-checkable confirmation, such as a search for required terms, so they are
 re-observed rather than recalled. Mark a criterion that no available check can
 confirm as `Confirm by: unconfirmable here — <what would confirm it>` rather
-than dropping it. When the item adds or changes a public entry point, include
+than dropping it.
+When the item adds or moves code or stored data, reopen the plan's Namespace
+and data map and the current tree of each environment it touches. Name each
+file, module and public symbol with its environment, home namespace,
+visibility, and the collision check run there (an import or load test, a deploy
+validation, or a search for the name). Name each stored field, key, table or
+payload it adds or changes, the owning environment, the schema change mechanism
+and the round-trip check. Record a changed placement or schema and its reason
+in the plan note.
+When the item adds or changes a public entry point, include
 this criterion: each such entry point checks its arguments and carries a contract
 docstring (Code craft 2-3). Confirm by: inspecting the diff for each entry point
 and running its rejection tests; pass when every entry point has both.
@@ -1085,7 +1107,11 @@ recovery checks (including a crash after acknowledgment but before processing
 accepted work where applicable); and source/check locators. For UI, include component/interaction/skin
 premises, selected design guidance locator plus identity/version or digest (or
 named fallback), and meaningful async cues with their purpose and reduced-motion
-alternative, or an explicit static choice. For consequential UI choices, include
+alternative, or an explicit static choice. For a human-facing UI, default to an
+ambitious, highly interactive design: name the rich interactions planned
+(direct manipulation, inline editing, live preview, keyboard paths, animated
+transitions) and any scaled back, with its user, target or accessibility
+reason. For consequential UI choices, include
 the guide's ambition, reuse/evolve/upgrade decision, rough effort/benefit and
 compatibility check; reuse accepted choices for unaffected scope and the existing
 design/test facilities. The next review is the packet's automatic Improve handoff immediately after this producer result, before

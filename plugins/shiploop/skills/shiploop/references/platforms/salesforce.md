@@ -22,6 +22,20 @@ and rendered states. JavaScript doubles do not establish Apex execution,
 permission behavior, governor use, or org behavior; exercise those boundaries
 in an identified disposable org when required.
 
+Apex class, trigger and metadata API names are org-wide unless a package
+namespace prefix qualifies them; check the org and installed packages for a
+clash before choosing one. In a managed package, a `global` member is a
+permanent contract once released, so prefer `public` until a subscriber needs
+it. Without a package namespace, LWC components share the org's default `c`
+namespace.
+
+Model stored data in the org's schema: extend an existing standard or custom
+object before creating one, and choose field types, required flags, uniqueness,
+lookup or master-detail relationships and sharing deliberately; renaming a
+custom field's API name breaks the code, reports and integrations that use it.
+Keep configuration in custom metadata types, which deploy with the code, rather
+than in records.
+
 ## Service discovery
 
 Before choosing component, tab or app names, list what the target org already has

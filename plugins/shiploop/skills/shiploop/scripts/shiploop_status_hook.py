@@ -38,9 +38,8 @@ PACKET_VERBS = {
 INTERPRETER = re.compile(r"python(\d+(\.\d+)*)?$")
 ASSIGNMENT = re.compile(r"[A-Za-z_][A-Za-z0-9_]*=")
 PREFIXES = {
-    guidance3.inner_context(route, stage, improve=improve)
+    guidance3.inner_context(route, improve=improve)
     for route in guidance3.DELEGATIONS
-    for stage in guidance3.INNER
     for improve in (False, True)
 }
 

@@ -565,6 +565,61 @@ def install(host: str, *, remove: bool = False, dry_run: bool = False) -> str:
     return f"{host}: {done[0] if dry_run else done[1]} {path}"
 
 
+# Hosts that never run a plugin's hooks, keyed to the variable the host sets
+# in every shell command it runs.  Grok 1.0.41 lists the ShipLoop plugin's
+# hooks but never dispatches them (headless or interactive, trusted or not),
+# so ShipLoop installs its global hooks there the first time it runs.
+SELF_INSTALL = {"grok": "GROK_AGENT"}
+
+
+def _script_free(command: str) -> str:
+    """An owned command with its shiploop-hook path left out."""
+    argv = shlex.split(command)
+    return shlex.join(argv[:1] + argv[2:])
+
+
+def _working_copy(host: str) -> bool:
+    """True when this host's owned hooks are the wanted set from any existing ShipLoop copy.
+
+    A host can load ShipLoop from more than one installed copy; a hook that
+    already runs a present copy is left alone rather than rewritten each time
+    another copy runs.
+    """
+    data = _load_config(config_path(host))
+    owned = [command for entries in data.get("hooks", {}).values() if isinstance(entries, list)
+             for entry in entries for command in _entry_commands(entry)
+             if _is_owned_command(command, host)]
+    wanted = {_script_free(command) for entry in _desired(host).values()
+              for command in _entry_commands(entry)}
+    return ({_script_free(command) for command in owned} == wanted
+            and all(Path(shlex.split(command)[1]).is_file() for command in owned))
+
+
+def ensure_hooks(env: Mapping[str, str] | None = None) -> str | None:
+    """Install or repair the calling host's global hooks when its plugin hooks never run.
+
+    Returns a one-line notice when it wrote a file, else None.  Never raises:
+    keepalive is optional, and a failure here must not block ShipLoop.
+    """
+    env = os.environ if env is None else env
+    if disabled():
+        return None
+    for host, variable in SELF_INSTALL.items():
+        if env.get(variable) != "1":
+            continue
+        try:
+            current = status(host)
+            if current in ("installed", "foreign") or (current == "stale" and _working_copy(host)):
+                return None
+            install(host)
+        except (InstallError, OSError, ValueError):
+            return None
+        verb = "installed" if current == "absent" else "updated"
+        return (f"ShipLoop keepalive: {verb} the {host} hooks in {config_path(host)} ({host} does not "
+                f"run plugin hooks). New {host} sessions load them; in this session open /hooks and press r.")
+    return None
+
+
 TRUST_NOTES = {
     "codex": "Codex asks you to trust new hooks once; approve the ShipLoop entries when prompted.",
     "cursor": "Cursor's stop hook does not fire in `cursor-agent -p`; use shiploop-drive for unattended runs.",

@@ -1766,7 +1766,7 @@ def render(core: Any, root: Path, state: Mapping[str, Any]) -> str:
     lines = []
     route = delegation(state)
     if state["status"] == "active" and stage in inner:
-        context_guidance = guidance3.inner_context(route, stage, improve=bool(state.get("active_improve")))
+        context_guidance = guidance3.inner_context(route, improve=bool(state.get("active_improve")))
         lines.extend([context_guidance, ""])
     lines += [
         f"ShipLoop navigator | {stage} | revision {state['revision']}",
@@ -2102,9 +2102,6 @@ def render(core: Any, root: Path, state: Mapping[str, Any]) -> str:
             "Call this when done:",
             _callback(core, root, "complete", action=action["id"], result=str(result_path)),
             _improve_line(stage),
-            *(["Context-boundary pause (no callable host reset): "
-               + _callback(core, root, "pause", reason=CONTEXT_BOUNDARY_PAUSE)]
-              if route == guidance3.INLINE and stage == guidance3.INNER[0] else []),
             "Pause without consuming the action: " + _callback(core, root, "pause", reason="<why>"),
             "Halt (terminal and irreversible; only on an explicit user stop): "
             + _callback(core, root, "halt", reason="<why>"),
@@ -2114,9 +2111,6 @@ def render(core: Any, root: Path, state: Mapping[str, Any]) -> str:
     if stage == quality.STAGE:
         lines.extend(quality.render_lines(root, state, workitem or "", action["id"]))
     return "\n".join(lines) + "\n"
-
-
-CONTEXT_BOUNDARY_PAUSE = "context-boundary: clear, then run Recovery and Resume"
 
 
 def _first_callback_lines(core: Any, root: Path, state: Mapping[str, Any]) -> list[str]:

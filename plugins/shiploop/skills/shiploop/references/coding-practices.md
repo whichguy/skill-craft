@@ -60,6 +60,81 @@ already available or cheap. State supported syntax and unresolved dynamic behavi
 before enforcement; structural matches do not prove runtime behavior or
 authorization. Do not add a checker merely to restate a preference.
 
+## Namespaces and placement
+
+Code runs in one or more execution environments, and each has its own name
+space. The environment is often not the checkout you edit: a remote runtime
+reached through an MCP server, API or CLI, a hosted platform, a container, a
+browser, or several services of a multi-service system, each with its own
+installed libraries, versions, globals and stored names. List every environment
+the change runs in or reaches, and inspect each through its actual interface
+(see [Platform discovery](platform-discovery.md#discover-before-choosing-a-mechanism));
+the local tree does not show what a remote runtime already defines.
+
+For each environment, map what exists before adding a file, module or public
+name: the package or directory layout, naming prefixes, what each module
+exports, where similar responsibilities already live, and how the runtime
+resolves names. Examples of that last point: files that share one global scope,
+an import path where a local module can shadow a library, a shell that sourced
+files join, platform-wide class or metadata names, page-wide element and style
+names. Names are also shared across environments and with other programs:
+environment variables, CLI commands, config and storage keys, API routes,
+tables, queues, topics and event types. Give each cross-service name one
+owning service and a versioned contract.
+
+List the libraries and services the new code imports, is called by, or shares
+a space with, in each environment. Check their exported names, reserved
+prefixes and conventions; do not shadow, redefine or monkeypatch their names.
+Where the house already reaches an outside library or service through an
+adapter, use it rather than calling around it.
+
+Give each new name the narrowest visibility a present consumer needs: local or
+module-private first, exported only for a named consumer. A public name is a
+contract. Place code by responsibility and dependency direction, in the
+environment where it must run, next to its nearest collaborators. Forecast
+where the next planned siblings will go, from the queued work items and
+accepted spec, so the first file does not set a layout the second must break;
+do not create empty packages or directories for hypothetical futures. Follow
+the house casing and prefixes, and avoid generic buckets (`utils`, `common`,
+`misc`) unless the house already uses one with a clear rule. Confirm with each
+environment's own check: an import or load test, a deploy validation, or a
+search for the new name in that environment and its dependencies. The
+[platform cards](coding-guidance.md#conditional-index) give runtime-specific
+examples.
+
+## Schema and storage
+
+Start from where each environment actually stores this data and who owns its
+shape. Examples: a spreadsheet's header row, a key-value property store, a
+platform object and its fields, a database table and its migration tool,
+browser origin storage, a document or file format, a message or event payload.
+In a multi-service system, find which service owns each entity and which
+services only read or copy it. Find any existing schema for the entity and the
+destination schema the data must reach, including one that lives only in a
+remote environment reached through an MCP server or API. Extend them through
+their own change mechanism (migration, metadata deploy, header change, schema
+registry), following their names, types, keys and relationships. Do not open a
+parallel store or a second source of truth for data that already has a home.
+
+For a new schema, choose the store from the access pattern, volume,
+consistency, sharing and permission needs, and lifetime. Define the identity
+key, each field's type and whether it is required, uniqueness and other
+constraints, relationships, indexes for the planned queries, and a version
+marker with a forward migration that readers of older data survive. When
+services exchange the data, version the payload and keep old readers working
+through the rollout. Stored names (tables, objects, fields, keys, topics) are
+namespaces that outlive the code: follow the house prefixes, and treat a rename
+as a migration.
+
+Write the storage policy beside the schema: which copy is authoritative and
+which are caches or replicas, retention and deletion, sensitive fields and who
+may read them, size and quota limits, backup and recovery, and concurrent
+writers. Confirm with a round trip through the real store in the environment
+that owns it, a migration or deploy validation, and a read of existing data
+after the change. The [State and data
+assessment](requirements-definition.md#state-and-data-change-assessment) still
+rules out persistence the change does not need.
+
 ## Flyweight and shared resources
 
 Measure the repeated cost and expected workload before sharing anything. Share

@@ -63,9 +63,19 @@ own file: `hooks/hooks.json` for Claude and Grok, `hooks/codex.json`,
 `hooks/cursor.json`. Their argument-free entry scripts
 (`scripts/shiploop-keepalive-observe`, `scripts/shiploop-keepalive-stop`) run
 `shiploop-hook … --host auto`, which tells Grok (`GROK_PLUGIN_ROOT`), Cursor
-(`CURSOR_PLUGIN_ROOT`), Codex and Claude apart. Codex asks you to trust new
-plugin hooks, and Grok runs a plugin's hooks only once it is enabled and trusted;
-neither host's plugin-hook loading has been observed live yet.
+(`CURSOR_PLUGIN_ROOT`), Codex and Claude apart. Claude Code runs them as
+installed. Codex asks you once, in an interactive session, to trust the new
+plugin hooks; approve the ShipLoop entries.
+
+Grok (1.0.41) lists a plugin's hooks but never runs them, headless or
+interactive, even for a plugin installed with `--trust` (observed 2026-09-25).
+So ShipLoop installs its Grok hooks itself: any `shiploop` command that runs
+under Grok (`GROK_AGENT=1`, which Grok sets for every shell command) writes
+`~/.grok/hooks/shiploop-keepalive.json` when it is missing, or repairs it when
+its script is gone, and says so on stderr. Global hooks are always trusted. New
+Grok sessions load them; a session that is already open picks them up from
+`/hooks`, then `r`. `SHIPLOOP_KEEPALIVE=off` skips this, and
+`scripts/shiploop-hook uninstall --host grok` removes it.
 
 A skill-directory install adds them with `scripts/shiploop-hook install --host HOST`
 (repeat `--host`; `status` and `uninstall` take the same form), the only route
@@ -76,7 +86,7 @@ Hermes is not supported.
 |------|---------------|-----------------|-----------------------|
 | Claude Code | `~/.claude/settings.json` (`PostToolUse` Bash, `Stop`) | `{"decision":"block","reason":…}` | Hook alone keeps `claude -p` going. |
 | Codex | `~/.codex/hooks.json` (`PostToolUse`, `Stop`); approve once when Codex asks | `{"decision":"block","reason":…}` | Hook alone keeps `codex exec` going. |
-| Grok | `~/.grok/hooks/shiploop-keepalive.json` (global hooks are always trusted) | `{"decision":"block","reason":…}`; at most 8 per turn | Hook alone keeps `grok -p` going. |
+| Grok | `~/.grok/hooks/shiploop-keepalive.json`, written by ShipLoop on its first command under Grok | `{"decision":"block","reason":…}`; at most 8 per turn | Hook alone keeps `grok -p` going. |
 | Cursor | `~/.cursor/hooks.json` (`afterShellExecution`, `stop`) | `{"followup_message":…}` | `cursor-agent -p` never fires `stop`: use `shiploop-drive`, which resumes the chat. |
 | OpenCode | `~/.config/opencode/plugins/shiploop-keepalive.js` | The plugin sends the next message on `session.idle` | `opencode run` exits first: use `shiploop-drive`, which resumes the session. |
 

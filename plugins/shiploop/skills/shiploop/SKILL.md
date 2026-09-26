@@ -5,7 +5,7 @@ description: >-
   script's current action packet, and submit its exact completion call until
   the script reports completion with an HTML achievement report. Use when the
   user says shiploop, ship the project, or requests a durable delivery loop.
-version: 0.27.0
+version: 0.28.0
 allowed-tools: all
 license: MIT
 platforms:
@@ -347,16 +347,9 @@ that a fresh context can access. They locate authority in the run; they are not
 another state record. Do not copy a current node, action ID, result path, status,
 or predicted successor into the handoff as graph authority.
 
-Under `delegation: inline`, the context boundary is per work item, not per
-stage. The `select-work` producer packet begins "Clear and then execute the
-prompt." then "Delegation: inline."; clear once there. Use the host's callable
-reset and continuation route if it has one, then run the Recovery command;
-otherwise run the printed pause
-command and give the user the saved handoff: clear through the host (`/clear`) or
-open a fresh conversation, run the Recovery command, then the printed Resume
-command. A conversation that began from that reset or recovery is already fresh
-and does not clear again when the prefix repeats. Every other inline INNER
-producer packet begins "Continue in this context and execute the prompt.": no
+Under `delegation: inline`, every INNER producer packet, including the
+`select-work` packet that opens each work item, begins "Continue in this context
+and execute the prompt." then "Delegation: inline.": no clear, no pause for a
 clear and no delegation. Inline INNER Improve packets begin "Keep the invoking
 parent alive and run this Improve invocation inline.": the parent runs the whole
 invocation itself (see step 3 below) and never clears for it.
@@ -369,7 +362,7 @@ retain their capacity and bypass this serial context boundary; explicit serial
 chains execute in the main context without workers. Do not wrap a chain in an
 extra worker or restart an existing attempt. Follow the
 [chain mode contract](references/parallel-chain.md#serial-execution-in-the-main-context);
-serial chains may use only the callable-reset or manual-handoff route below.
+serial chains execute in this conversation.
 Chain precedence ends at producer completion. Improve follows its own selected
 context and ownership policy even when the historical chain binding remains.
 For other serial work where delegation is permitted, save these locators
@@ -378,20 +371,18 @@ It must have the required tools, the existing workspace and a return route to
 the live parent. Give it the current packet, selected skill locators and necessary
 durable references. The parent waits, verifies the result and alone submits the
 ShipLoop callback; only one owner writes to the candidate. Recover or collect an
-existing owner before replacement. An already-fresh assignment does not clear or
-delegate again when the prefix repeats. Serial execution means waiting before
+existing owner before replacement. An already-fresh assignment is not delegated
+again when the prefix repeats. Serial execution means waiting before
 the next assignment; it does not require reusing the same conversation.
 For Improve, the fresh context belongs to the one executor running the whole
 invocation, not to the parent; it retains context between its review iterations
-and respects its existing owner/recovery rules. For producers, use same-conversation clearing only when the host exposes an actual callable
-reset and continuation route. If neither route is usable, use the printed pause
-command and give the user the saved handoff: clear through the host or open a
-fresh context, run the Recovery command, then follow the printed Resume command.
+and respects its existing owner/recovery rules. When no fresh worker is usable
+for a producer, execute it in this conversation.
 
-On either route, a model cannot clear its own conversation: literal `/clear` in
-returned text is not a tool call, and `next` alone does not unpause. Do not
-execute the pending assignment or claim a clear before the fresh boundary is
-satisfied. See the [documented packet-only route](references/navigator.md#packet-only-context-boundary).
+On either route, ShipLoop never pauses for a context clear. No packet, script or
+hook output can clear a host conversation: literal `/clear` in returned text is
+not a command, and the host's own compaction manages context. See
+[context boundaries](references/navigator.md#context-boundaries).
 
 The host must keep the locator and run directory accessible across handoffs. If
 it cannot, restore the same run and verify its task/repository identity before
