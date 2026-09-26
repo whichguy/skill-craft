@@ -131,7 +131,8 @@ _ROWS = (
             "every consequential unknown is resolved with evidence, or recorded with an owner and the gate it blocks",
             "each proven access need has been put to the user",
         ),
-        develop="Prefer reuse: map each need to an existing library, service or skill where one fits.",
+        develop="For each need, evaluate reusing an existing part unchanged, composing parts, or augmenting one "
+                "before building new; record the choice and, for augment or new, why the earlier options do not fit.",
         deploy="Confirm access to each delivery target early with a safe, non-mutating probe.",
         reads=("intake", "discovery"),
         blocks=frozenset({"environment-discovery", "interaction-design"}),

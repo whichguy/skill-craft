@@ -494,6 +494,16 @@ and deployment fit. Prefer existing capabilities; no UI does not skip applicable
 machine interactions. Put exact relevant source/section locators and short decisions
 in each affected work-item context and evidence_refs, including planned check locators,
 for cold recovery and the normal Improve handoff; do not start a nested review.
+State and information lifecycle. For each piece of state the request involves,
+decide and state, in proportion to the request: its authoritative owner and where
+it lives; who may read it (hidden information never reaches a client that must not
+see it); how simultaneous changes are resolved; what ends it (finished, abandoned,
+expired) and what removes it; and which runtime quotas or limits it meets. For
+personal or secret data, state where it is shown, stored and logged, how long it is
+kept, and how it is removed. Map each to what the runtime and the project's own
+layers already offer, from their documentation, configuration and code. Do not add
+identity, sharing or persistence the request does not call for; when the request
+leaves them open, carry the question to the user with the default you would take.
 """
 
 WORK_ITEM_CONTEXT = """\
@@ -532,7 +542,8 @@ Code craft. Write for the next maintainer, a person or a model, who opens one
 file cold with no run history. Every rule serves that reader.
 1. Match the house. The repository's error types, validation helpers, docstring
    style and logging come first; record any justified departure. Add no
-   dependency, option or fallback without a present need.
+   dependency, option or fallback without a present need. An argument that
+   lets an existing unit serve this change instead of a copy is a present need.
 2. Fail at the door. A function reachable from outside its module (exported
    API, CLI handler, request or event handler, callback) checks its arguments
    before any effect: required values present, type and shape, range or allowed
@@ -549,9 +560,9 @@ file cold with no run history. Every rule serves that reader.
 4. Spend tokens on information. Delete comments that restate a name, signature
    or the next line. No banners, change history or commented-out code. Prefer a
    precise name to a comment and one authoritative explanation to several.
-5. Small, not thin. KISS and YAGNI limit features and abstractions. They never
-   remove an argument check, an error path, a contract docstring, or the rich
-   UI interaction the plan calls for.
+5. Small, not thin. KISS and YAGNI limit features and speculative
+   abstractions. They never remove an argument check, an error path, a
+   contract docstring, or the rich UI interaction the plan calls for.
 6. Make failure diagnosable. Check a response's contract, not only transport
    success. Before mutation or cleanup, keep the context that explains a
    failure: operation, relevant IDs, expected versus observed. Errors name the
@@ -570,6 +581,13 @@ file cold with no run history. Every rule serves that reader.
    runs in (such as globals, an import path, a shell or a platform org) or in a
    library the code uses. No new generic bucket such as `utils`. Stored data
    follows the planned schema and storage policy.
+9. Compose before you build. Before writing a new unit, evaluate reusing an
+   existing one unchanged, composing existing ones, or augmenting one (a new
+   argument, an extension point, or a shared piece extracted from existing
+   code) while its current callers keep working. Augment only when the units
+   share one meaning, not merely similar code: a near-copy of existing logic
+   is a defect, and so is a parameter that fuses two different rules. State
+   the option chosen and why in one line.
 """
 
 
@@ -597,12 +615,15 @@ inventory in context, plus tests for those files.
    silent failures, comments that restate code, stale comments, dead code,
    user-facing text that is concatenated or bypasses the repository's catalog,
    names placed outside the planned namespace or exported wider than needed,
-   stored data that departs from the planned schema, and, for a UI change, a
-   plain or static interaction where the plan called for a rich one.
+   stored data that departs from the planned schema, a near-copy of existing
+   logic or a new unit where an existing one could be reused, composed or
+   augmented, and, for a UI change, a plain or static interaction where the
+   plan called for a rich one.
 5. Classify. Material: wrong behavior on a traced path; a missing or wrong
    argument check, contract, error path or test; a failing check; a misleading
-   comment. Trivial: wording, ordering, a sharper name. Do not reopen a finding
-   an earlier iteration fixed unless its code changed again.
+   comment; duplicated logic that should have been composed. Trivial:
+   wording, ordering, a sharper name. Do not reopen a finding an earlier
+   iteration fixed unless its code changed again.
 6. Fix every finding within scope, changing the work and never a check or its
    expected result. If anything changed, rerun the step 1 checks once and
    record the results in the handoff.
@@ -702,6 +723,12 @@ source checkout stays at its starting snapshot until the final return, and an
 outcome that lives in a deployed target (an org, a site, a store) exists only
 after release; say both in this result so a long INNER run is not read as idle,
 and do not call a source-level check the user's requested outcome.
+For a product people interact with, record the open questions of its interaction
+and state model: who the actors are and how the runtime identifies them; whether
+state is shared across people, devices or sessions; how long it must live and what
+ends it; what information must stay hidden from whom; and what the runtime already
+provides for each. Answer from the request where it says so; otherwise ask, naming
+the default you would take and what it rules out.
 Do not implement or silently broaden scope here.
 """,
     "discovery": """\
@@ -2062,6 +2089,9 @@ end. Look for these conditions and fix them within scope:
   run it once and record the exit code and the cases it executes;
 - a required requirement, test ID or case dropped or weakened compared with the
   prior accepted version;
+- a claim about what the runtime, platform or a library can do that a decision
+  depends on, with no primary-documentation source or probe result: check it,
+  and correct the plan where it is wrong;
 - a missing prerequisite, wrong order or unowned verification in the steps.
 Do not reread history or rerun a check already recorded green at this commit
 unless a finding depends on it. A pass that finds none of these is trivial.
