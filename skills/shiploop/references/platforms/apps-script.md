@@ -21,7 +21,6 @@ Caches are expendable derivatives, not authority. Small read-only work does not
 automatically need a lock, cache, or queue. Verify host-only behavior in an
 authorized disposable project.
 
-
 Every server file in a project shares one global scope, so a top-level name in
 one file can silently replace another; keep top-level code to declarations and
 group related functions under one namespace object or a clear prefix. A

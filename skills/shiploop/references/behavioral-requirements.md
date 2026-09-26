@@ -212,18 +212,18 @@ target can deliver within the user's goals and accepted scope. A bare functional
 screen is incomplete; reuse should raise quality, not set the ceiling. Plan
 distinctive visual hierarchy, polished reusable components, responsive
 composition, complete loading/empty/error/success states and task-specific rich
-interactions: direct manipulation, inline editing, live preview, keyboard
-paths and animated state transitions. Scale ambition back only for a stated user
-constraint, a target limit or accessibility, and record which. For meaningful async
-activity, map trigger -> truthful state -> cue/status -> outcome/recovery.
-Use expressive, purposeful motion to communicate pending work, accepted confirmation or a
-relevant remote change; preserve focus, input and reading position. Distinguish
-saved locally, queued and confirmed where applicable. A timer or completed
-animation cannot confirm domain success or own required domain processing.
-Define interruption/supersession, event-burst coalescing, accessible status and
-reduced-motion alternatives. Keep unresolved failures and necessary actions
-available beyond a transient toast; apply pause/dismiss/update controls where
-needed. Avoid replaying stale success animations after resume.
+interactions: direct manipulation, inline editing, live preview, keyboard paths
+and animated state transitions. Scale ambition back only for a stated user
+constraint, a target limit or accessibility, and record which. For meaningful
+async activity, map trigger -> truthful state -> cue/status -> outcome/recovery.
+Use expressive, purposeful motion to communicate pending work, accepted
+confirmation or a relevant remote change; preserve focus, input and reading
+position. Distinguish saved locally, queued and confirmed where applicable. A
+timer or completed animation cannot confirm domain success or own required
+domain processing. Define interruption/supersession, event-burst coalescing,
+accessible status and reduced-motion alternatives. Keep unresolved failures and
+necessary actions available beyond a transient toast; apply pause/dismiss/update
+controls where needed. Avoid replaying stale success animations after resume.
 
 Evaluate the existing UI toolkit first, then suitable alternatives such as
 Bootstrap or a runtime-appropriate Material implementation only for an actual

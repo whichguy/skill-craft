@@ -85,8 +85,8 @@ owning service and a versioned contract.
 List the libraries and services the new code imports, is called by, or shares
 a space with, in each environment. Check their exported names, reserved
 prefixes and conventions; do not shadow, redefine or monkeypatch their names.
-Reach an outside library or service through one adapter module when several
-files need it.
+Where the house already reaches an outside library or service through an
+adapter, use it rather than calling around it.
 
 Give each new name the narrowest visibility a present consumer needs: local or
 module-private first, exported only for a named consumer. A public name is a

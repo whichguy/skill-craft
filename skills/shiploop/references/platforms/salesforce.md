@@ -32,8 +32,9 @@ namespace.
 Model stored data in the org's schema: extend an existing standard or custom
 object before creating one, and choose field types, required flags, uniqueness,
 lookup or master-detail relationships and sharing deliberately; renaming a
-custom field's API name breaks the code, reports and integrations that use it. Keep configuration in
-custom metadata types, which deploy with the code, rather than in records.
+custom field's API name breaks the code, reports and integrations that use it.
+Keep configuration in custom metadata types, which deploy with the code, rather
+than in records.
 
 ## Service discovery
 

@@ -22,7 +22,6 @@ actual shell tests, including negative controls. Keep orchestration small;
 consider an existing Python path when parsing, state, or recovery complexity
 outgrows shell's simplicity.
 
-
 A sourced file's functions and non-`local` variables join the caller's shell and
 can replace its names or those of other sourced files. Give library functions a
 shared prefix, declare function variables `local`, and export only the
