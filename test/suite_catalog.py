@@ -413,7 +413,7 @@ _SHIPLOOP_PROMPT_PREFIXES = ("skills/shiploop/references/", "skills/shiploop/com
 # The ShipLoop entrypoint every CLI suite runs through; no file name finds them.
 _SHIPLOOP_WIDE_PATHS = frozenset({"skills/shiploop/scripts/shiploop"})
 
-
+# Code paths whose names suites mention; a document's name says nothing.
 _REFERENCE_PREFIXES = ("skills/", "agents/", "scripts/", "test/")
 
 
@@ -460,8 +460,8 @@ def targeted(changed: Iterable[str]) -> set[str]:
     A changed suite runs itself.  A changed file selects the suites named after
     it (shiploop_chain.py selects the shiploop-chain suites).  A change under
     skills/<leaf>/, agents/<leaf>.md or changes/<leaf>/ selects the core suites
-    named after the leaf; ShipLoop's own suites are chosen by file name only,
-    since its leaf name prefixes every one of them.  A changed file also
+    named after the leaf, except ShipLoop's, whose leaf name prefixes every
+    one of its suites.  A changed file also
     selects the suites whose source names it, so a shared module such as
     shiploop_navigator.py or a test helper reaches its consumers.  ShipLoop's
     prompt surface selects the packet suites, and its entrypoint selects
