@@ -493,6 +493,13 @@ Blocked means work this stage cannot do: a missing target or account, a missing
 approval, or a command with no replacement available inside the stage. A retained
 command that does not run what it claims (for example a test path the runner does
 not expand) is a documentation fix made in this stage, then rerun, not a blocker.
+When the next step needs a person, and no independent work is left, report
+blocked with `awaiting`: `{"kind": "answer", "question": "...", "options": [...]}`
+for a decision, or `{"kind": "present", "steps": [...], "report": "..."}` for
+something only a person can do, such as opening a page in a signed-in browser.
+Ask one decision per question, in words the user can answer in one reply. The
+run then stops quietly until the user's own reply resumes it; while independent
+work remains, keep going and carry the question in your summary instead.
 
 For identity or access discovery, use supported non-mutating probes and
 sanitized evidence. Normal supported tool-managed authentication and tool
@@ -1676,6 +1683,12 @@ account/target, visible feature and actual action/outcome for each required clau
 Retain non-secret routing state; require app chrome/branding only when specified.
 An embedded feature can satisfy its accepted boundary. Source or local test passes
 cannot discharge an unobserved required deployed interaction.
+When a required case needs a signed-in browser or a person's action that this host
+cannot perform, do not loop on it. Report blocked with `awaiting` kind `present`:
+the steps written to that person (where to go, for example the App Launcher name and
+the `/lightning/n/<Tab>` path, and what to do), and what they should report back.
+Keep every case you could observe recorded; the person's report resumes the run,
+and only the blocked cases are checked again against the same release.
 """,
     "operations": """\
 Verify applicable operational readiness: monitoring, alerting, logging/diagnostic

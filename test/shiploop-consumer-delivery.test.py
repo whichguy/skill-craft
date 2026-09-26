@@ -176,6 +176,18 @@ class ConsumerDeliveryTests(unittest.TestCase):
             ],
         }
 
+    def test_grant_scope_defaults_to_this_run_and_standing_needs_a_policy(self) -> None:
+        base = {"status": "approved", "kind": "user-decision", "reference": "decisions/A1.md",
+                "target": "org de", "operation": "deploy"}
+        self.assertNotIn("scope", consumer_delivery._authority(base))
+        self.assertEqual(consumer_delivery._authority(dict(base, scope="run"))["scope"], "run")
+        with self.assertRaisesRegex(consumer_delivery.ConsumerDeliveryError, "standing delivery grant"):
+            consumer_delivery._authority(dict(base, scope="standing"))
+        policy = dict(base, kind="repo-policy", approval_ref="decisions/A1.md", scope="standing")
+        self.assertEqual(consumer_delivery._authority(policy)["scope"], "standing")
+        with self.assertRaisesRegex(consumer_delivery.ConsumerDeliveryError, "run or standing"):
+            consumer_delivery._authority(dict(base, scope="forever"))
+
     def test_opt_in_marker_is_explicit_and_unmarked_shapes_stay_unchanged(self) -> None:
         plain = navigator.new_state(str(self.repo), "Ordinary navigator fixture.")
         self.assertNotIn("delivery_contract_version", plain)

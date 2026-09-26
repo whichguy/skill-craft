@@ -24,6 +24,7 @@ FIXTURES = ROOT / "test" / "fixtures" / "shiploop-keepalive"
 sys.path.insert(0, str(SCRIPTS))
 
 import shiploop_keepalive as keepalive  # noqa: E402
+import shiploop_store as store  # noqa: E402
 
 RECORDED_HOSTS = ("claude", "codex", "cursor", "grok")
 
@@ -105,6 +106,70 @@ class HookStatusAndMarkerTests(KeepaliveTestCase):
         result = shiploop("init", "--run-dir", str(spaced), "--repo", str(self.repo), "--prompt", "Other work.")
         self.assertEqual(keepalive.last_marker(result.stdout)["run_dir"], str(spaced))
 
+
+
+class AwaitingUserTests(KeepaliveTestCase):
+    """A run blocked on the user's reply stops quietly and resumes only with that reply."""
+
+    QUESTION = {"kind": "answer", "question": "May this run deploy to org de?", "options": ["yes", "no"]}
+
+    def block_on(self, awaiting: dict) -> str:
+        action = self.status()["action"]
+        path = self.run_dir / "inbox" / (action + ".md")
+        path.parent.mkdir(exist_ok=True)
+        path.write_text(store.dumps({"outcome": "blocked", "summary": "Needs the deploy decision.",
+                                     "awaiting": awaiting}, "test result"))
+        result = shiploop("complete", "--run-dir", str(self.run_dir), "--action", action, "--result", str(path))
+        self.assertEqual(result.returncode, 0, result.stderr)
+        return action
+
+    def test_the_stop_is_quiet_and_only_the_users_reply_resumes(self) -> None:
+        self.hook("observe", "claude", self.payload("claude", "observe"))
+        blocked = self.block_on(self.QUESTION)
+        self.assertEqual(self.status()["awaiting"], "answer")
+        self.assertIsNone(self.hook("stop", "claude", self.payload("claude", "stop")))
+        self.assertIsNone(keepalive.load_binding("claude", "session-1"))
+        packet = shiploop("next", "--run-dir", str(self.run_dir)).stdout
+        self.assertIn("Question for the user: May this run deploy to org de?", packet)
+        self.assertIn('--answer "<their words>"', packet)
+        self.assertIn("Waiting on you: May this run deploy to org de? (yes / no)",
+                      shiploop("status", "--run-dir", str(self.run_dir)).stdout)
+        for argv, message in ((["resume"], "A request to continue does not answer it"),
+                              (["resume", "--answer", "Continue."], "Ask the user, then resume with --answer"),
+                              (["resume", "--observed", "done"], "waits for --answer")):
+            with self.subTest(argv=argv):
+                refused = shiploop(*argv, "--run-dir", str(self.run_dir))
+                self.assertNotEqual(refused.returncode, 0)
+                self.assertIn(message, refused.stderr)
+        self.assertEqual(self.status()["status"], "blocked")
+        resumed = shiploop("resume", "--run-dir", str(self.run_dir), "--answer", "yes, this run only")
+        self.assertEqual(resumed.returncode, 0, resumed.stderr)
+        decision = store.read_record(self.run_dir / "decisions" / (blocked + ".md"))
+        self.assertEqual((decision["kind"], decision["reply"]), ("answer", "yes, this run only"))
+        self.assertIn("Reply: yes, this run only", shiploop("next", "--run-dir", str(self.run_dir)).stdout)
+
+    def test_a_person_present_wait_takes_their_observation(self) -> None:
+        self.block_on({"kind": "present", "steps": ["Open the App Launcher and choose Fleet command.",
+                                                    "Place a fleet, then reload the page."],
+                       "report": "whether the board appears and the fleet is still there"})
+        self.assertIn("Waiting on you: 1. Open the App Launcher",
+                      shiploop("status", "--run-dir", str(self.run_dir)).stdout)
+        refused = shiploop("resume", "--run-dir", str(self.run_dir), "--answer", "yes")
+        self.assertIn("waits for --observed", refused.stderr)
+        ok = shiploop("resume", "--run-dir", str(self.run_dir), "--observed", "Board shows; fleet kept after reload.")
+        self.assertEqual(ok.returncode, 0, ok.stderr)
+
+    def test_a_run_not_waiting_refuses_a_reply_and_awaiting_needs_blocked(self) -> None:
+        shiploop("pause", "--run-dir", str(self.run_dir), "--reason", "user asked")
+        refused = shiploop("resume", "--run-dir", str(self.run_dir), "--answer", "yes")
+        self.assertIn("not waiting on an answer", refused.stderr)
+        self.assertEqual(shiploop("resume", "--run-dir", str(self.run_dir)).returncode, 0)
+        action = self.status()["action"]
+        path = self.run_dir / "inbox" / (action + ".md")
+        path.parent.mkdir(exist_ok=True)
+        path.write_text(store.dumps({"outcome": "done", "summary": "x", "awaiting": self.QUESTION}, "test result"))
+        done = shiploop("complete", "--run-dir", str(self.run_dir), "--action", action, "--result", str(path))
+        self.assertIn("awaiting is allowed only on a blocked result", done.stderr)
 
 class HookDecisionTests(KeepaliveTestCase):
     def test_recorded_payloads_bind_and_continue_in_each_host_format(self) -> None:

@@ -596,7 +596,10 @@ question about the loop is not a stop: answer it and continue the packet.
    any already-applied work, then follow the reprinted current packet. An
    identical accepted result is an idempotent retry; a conflicting result cannot
    reuse its ID. If a packet is paused or blocked, resolve its stated condition
-   and use its printed `resume` command once. Halted or done packets stop.
+   and use its printed `resume` command once. A packet blocked on the user
+   (`awaiting`) prints the question or steps: end the turn with them and resume
+   only with the user's own reply (`--answer` or `--observed`). "Continue" and a
+   question about the skill are not replies. Halted or done packets stop.
 6. Completion records the host's declaration. It is not independent proof that
    software was tested, deployed, or accepted by a consumer.
 
@@ -617,8 +620,9 @@ not make hosted delivery optional; it also does not grant remote-write authority
 Keep update necessity, scoped authority, and consumer verification distinct.
 Once discovery makes the consumer, target/account, and necessary operation
 concrete, follow [delivery authority readiness](references/delivery-authority.md):
-promptly ask for an applicable explicit grant when needed, including whether it
-is for this run or standing. Do not defer that question merely until release.
+promptly ask for an applicable explicit grant when needed, as one yes/no
+question whose yes covers this run only unless the user says "standing". Do not
+defer that question merely until release.
 Retain the assessment, owner, earliest gate, and actual binding evidence in the
 canonical environment-lifecycle note; independent authorized work can continue,
 but do not write or complete `release-plan` while required authority is

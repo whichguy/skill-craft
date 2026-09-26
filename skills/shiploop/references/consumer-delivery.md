@@ -100,7 +100,8 @@ readiness; it is not evidence that no delivery work is needed.
 `authority` has `status` (`approved`, `not-required`, `unresolved`), `kind`
 (`request`, `user-decision`, `repo-policy`), `reference`, `target`, and `operation`.
 For `repo-policy`, also supply `approval_ref` identifying the user instruction
-that approved it. Its target/operation must match the contract. Agent-authored
+that approved it. Optional `scope` is `run` (a plain yes covers this run only) or
+`standing`; `standing` requires `kind: repo-policy` with its `approval_ref`. Its target/operation must match the contract. Agent-authored
 policy cannot authorize itself; a nonempty reference is not authentication.
 Correction sources use the same kind/reference/approval convention.
 
@@ -184,8 +185,11 @@ disposition; editing generated plan text is not authority to change it.
 
 For example, source synchronization succeeds and target identity matches, but a
 browser check reaches login. Preserve effect/identity and mark behavior blocked.
-After appropriate access is restored within authority, resume verification of
-the same candidate. The feature remains unverified; do not automatically repush
+When this host cannot sign in, report `release-verify` blocked with `awaiting`
+kind `present`: the steps for the person (entry URL, App Launcher name, the
+action) and what they should report back. The run stops quietly; the person's
+report (`resume --observed "<their words>"`) resumes it. Then resume verification
+of the same candidate. The feature remains unverified; do not automatically repush
 or upload again just to create a fresh receipt. If the candidate/target changes
 instead, follow the replanning boundary.
 

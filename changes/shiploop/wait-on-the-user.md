@@ -1,0 +1,4 @@
+---
+bump: minor
+---
+A stage that needs a person now reports `blocked` with `awaiting`: a question (`kind: answer`, with optional options) or steps only a person can take (`kind: present`, such as opening a page in a signed-in browser, with what to report back). The run stops quietly: the keepalive allows the stop, and `status` prints "Waiting on you". `resume` then requires the user's own reply with `--answer` or `--observed`. It refuses a bare "continue", records the reply in `decisions/<action>.md`, and shows it in the next packet. `release-verify` uses this for browser cases the host cannot sign in to, instead of looping. The deploy question is now one yes/no question whose yes covers this run only unless the user says "standing". The delivery authority accepts an optional `scope` (`run` or `standing`), and `standing` must be a repo policy.

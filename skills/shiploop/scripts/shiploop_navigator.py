@@ -44,7 +44,12 @@ _STATUSES = frozenset(("active", "paused", "blocked", "halted", "done"))
 _RESULT_KEYS = frozenset((
     "outcome", "summary", "evidence_refs", "work_items", "choices", "delivery_assessment",
     "reconciliation_target", "assumptions", "lint_waivers", "test_commands", "test_commands_na",
-    "blocked_by", "red_na",
+    "blocked_by", "red_na", "awaiting",
+))
+# A bare "carry on" is not an answer to the question a blocked run is waiting on.
+_NOT_AN_ANSWER = frozenset((
+    "continue", "go", "go on", "go ahead", "resume", "proceed", "keep going", "carry on",
+    "next", "ok", "okay", "k", "sure",
 ))
 # Who can unblock a blocked result.  Anything the run can fix itself is not blocked.
 BLOCKED_BY = ("user", "access", "external")
@@ -315,6 +320,74 @@ def _normalise_lint_waivers(value: Any) -> list[dict[str, str]]:
     return waivers
 
 
+def _normalise_awaiting(value: Any) -> dict[str, Any]:
+    """A blocked result's question for the user, or the steps a person must take.
+
+    ``{"kind": "answer", "question": str, "options": [str, ...]?}`` or
+    ``{"kind": "present", "steps": [str, ...], "report": str}``.
+    """
+    _need(isinstance(value, Mapping), "awaiting must be an object")
+    kind = value.get("kind")
+    if kind == "answer":
+        _need(set(value) <= {"kind", "question", "options"} and "question" in value,
+              "an answer wait has kind, question and optional options")
+        awaiting: dict[str, Any] = {"kind": kind, "question": _text(value["question"], "awaiting question")}
+        if "options" in value:
+            options = value["options"]
+            _need(isinstance(options, list) and len(options) >= 2,
+                  "awaiting options must list at least two choices")
+            awaiting["options"] = [_text(option, "awaiting option") for option in options]
+        return awaiting
+    _need(kind == "present", "awaiting kind must be answer or present")
+    _need(set(value) == {"kind", "steps", "report"}, "a present wait has kind, steps and report")
+    steps = value["steps"]
+    _need(isinstance(steps, list) and steps, "awaiting steps must be a nonempty list")
+    return {"kind": kind, "steps": [_text(step, "awaiting step") for step in steps],
+            "report": _text(value["report"], "awaiting report")}
+
+
+def awaiting(state: Mapping[str, Any]) -> tuple[str, dict[str, Any]] | None:
+    """The blocked action and what it waits on, when the run is blocked on a person."""
+    if state.get("status") != "blocked" or not state.get("history"):
+        return None
+    action = state["history"][-1]["action"]
+    wait = state["accepted"].get(action, {}).get("awaiting")
+    return (action, dict(wait)) if isinstance(wait, Mapping) else None
+
+
+def decision_path(action: str) -> str:
+    return "decisions/" + action + ".md"
+
+
+def _answered_lines(root: Path, state: Mapping[str, Any]) -> list[str]:
+    """After a resume, the user's recorded reply to the wait this stage last blocked on."""
+    history = state.get("history") or ()
+    if not history or history[-1].get("outcome") != "blocked":
+        return []
+    action = history[-1]["action"]
+    if not isinstance(state["accepted"].get(action, {}).get("awaiting"), Mapping):
+        return []
+    path = root / decision_path(action)
+    try:
+        decision = store.read_record(path)
+    except Exception:  # noqa: BLE001 - a missing record renders as no reply
+        return []
+    return ["", "The user's reply to the question this stage waited on (" + str(path) + "):",
+            "  Asked: " + str(decision.get("asked", "")),
+            "  Reply: " + str(decision.get("reply", "")),
+            "Act on this reply; it is the user's decision, recorded verbatim."]
+
+
+def _awaiting_text(wait: Mapping[str, Any]) -> str:
+    if wait["kind"] == "answer":
+        text = wait["question"]
+        if wait.get("options"):
+            text += " (" + " / ".join(wait["options"]) + ")"
+        return text
+    return " ".join(str(number) + ". " + step for number, step in enumerate(wait["steps"], 1)) + (
+        " Then report: " + wait["report"])
+
+
 def _canonical_result(
     value: Any, *, stage: str, delivery_contract: bool = False
 ) -> dict[str, Any]:
@@ -376,6 +449,9 @@ def _canonical_result(
             _need("test_commands_na" in value,
                   "an empty test_commands list needs test_commands_na with the reason")
             result["test_commands_na"] = _text(value["test_commands_na"], "test_commands_na")
+    if "awaiting" in value:
+        _need(outcome == "blocked", "awaiting is allowed only on a blocked result")
+        result["awaiting"] = _normalise_awaiting(value["awaiting"])
     if "red_na" in value:
         _need(stage == test_loop.RED_STAGE and outcome == "done",
               "red_na is allowed only on a done test-red result")
@@ -1182,8 +1258,13 @@ def reconcile(
     return updated
 
 
-def control(state: Mapping[str, Any], command: str, reason: str = "") -> dict[str, Any]:
-    """Return a new state for a pause, resume, or terminal halt."""
+def control(state: Mapping[str, Any], command: str, reason: str = "", *,
+            answer: str = "", observed: str = "") -> dict[str, Any]:
+    """Return a new state for a pause, resume, or terminal halt.
+
+    A run blocked on a person resumes only with that person's reply: ``answer``
+    for a question, ``observed`` for steps they had to take.
+    """
     validate(state)
     _need(command in ("pause", "resume", "halt"), "unsupported navigator control")
     _need(state["status"] not in ("halted", "done"),
@@ -1201,6 +1282,17 @@ def control(state: Mapping[str, Any], command: str, reason: str = "") -> dict[st
     elif command == "resume":
         _need(updated["status"] in ("paused", "blocked"),
               "navigator is not paused or blocked")
+        pending = awaiting(state)
+        if pending is None:
+            _need(not answer and not observed, "this run is not waiting on an answer; resume without one")
+        else:
+            wait = pending[1]
+            flag, reply = ("--answer", answer) if wait["kind"] == "answer" else ("--observed", observed)
+            other = observed if wait["kind"] == "answer" else answer
+            _need(not other, "this run waits for " + flag + ", not the other reply flag")
+            _need(bool(reply.strip()) and reply.strip().lower().strip(" .!") not in _NOT_AN_ANSWER,
+                  "This run is waiting on the user: " + _awaiting_text(wait) + " A request to continue "
+                  "does not answer it. Ask the user, then resume with " + flag + " \"<their words>\".")
         updated["status"] = "active"
         updated.pop("status_reason", None)
     else:
@@ -1796,6 +1888,8 @@ def status_block(state: Mapping[str, Any]) -> str:
                          "(the Improve skill runs its own review loop)")
         else:
             lines.append(f"Next:      {stage}: {guidance3.STAGE_PURPOSE[stage]}")
+    elif awaiting(state) is not None:
+        lines.append("Waiting on you: " + _status_text(_awaiting_text(awaiting(state)[1]), 300))
     elif status in ("paused", "blocked"):
         lines.append(f"Stopped:   {status}: {_status_text(state['status_reason'], 140).rstrip('.')}. "
                      "The packet prints the resume command.")
@@ -2211,6 +2305,28 @@ def render(core: Any, root: Path, state: Mapping[str, Any]) -> str:
             ]
         )
         return "\n".join(lines) + "\n"
+    pending = awaiting(state)
+    if pending is not None:
+        wait = pending[1]
+        flag = "--answer" if wait["kind"] == "answer" else "--observed"
+        if wait["kind"] == "answer":
+            ask = ["Question for the user: " + wait["question"]]
+            ask += ["  - " + option for option in wait.get("options", ())]
+        else:
+            ask = ["Steps for the user:"] + ["  " + str(number) + ". " + step
+                                             for number, step in enumerate(wait["steps"], 1)]
+            ask.append("Ask them to report: " + wait["report"])
+        lines.extend(
+            [
+                "Blocked, waiting on the user: " + _required_excerpt(state["status_reason"], root,
+                                                                     "status_reason"),
+                *ask,
+                "End your turn with this, written to the user, and wait for their reply. Do not answer "
+                "it yourself, and do not treat \"continue\" or a question about the skill as the reply.",
+                "When they reply: " + _callback(core, root, "resume") + " " + flag + " \"<their words>\"",
+            ]
+        )
+        return "\n".join(lines) + "\n"
     if state["status"] in ("paused", "blocked"):
         label = "Paused" if state["status"] == "paused" else "Blocked"
         lines.extend(
@@ -2226,6 +2342,7 @@ def render(core: Any, root: Path, state: Mapping[str, Any]) -> str:
     if state.get("active_improve") is not None:
         text = _render_improve(core, root, state, lines)
         return text + "".join(line + "\n" for line in _lint_pending(root))
+    lines.extend(_answered_lines(root, state))
     instruction = guidance3.prompt(stage, delegation=route)
     _need(isinstance(instruction, str) and bool(instruction.strip()),
           f"navigator prompt is unavailable for {stage}")
@@ -2967,7 +3084,17 @@ def dispatch(core: Any, root: Path, state: Mapping[str, Any], args: Any,
     elif command == "lint-mode":
         updated = set_lint_mode(state, getattr(args, "lint_value", None))
     else:
-        updated = control(state, command, getattr(args, "reason", ""))
+        answer = getattr(args, "answer", None) or ""
+        observed = getattr(args, "observed", None) or ""
+        pending = awaiting(state) if command == "resume" else None
+        updated = control(state, command, getattr(args, "reason", ""), answer=answer, observed=observed)
+        if pending is not None:
+            blocked_action, wait = pending
+            decision = {"action": blocked_action, "kind": wait["kind"], "asked": _awaiting_text(wait),
+                        "reply": (answer or observed).strip(),
+                        "recorded_at": datetime.now(timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ")}
+            store.atomic_write_text(root / decision_path(blocked_action),
+                                    store.dumps(decision, "ShipLoop user decision"))
     if updated != state:
         # Only ``complete`` enters static-checks or verify (neither follows a
         # planning stage, so no Improve completion reaches them).
