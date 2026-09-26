@@ -1,0 +1,3 @@
+- a trust boundary the plan relies on but has not traced: follow one client request through every
+  layer to the code it runs, and check whether a caller can reach more than the intended functions
+  (hidden state, other users' data, arbitrary code); correct the plan where a layer defeats a requirement;

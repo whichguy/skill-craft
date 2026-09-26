@@ -1,0 +1,13 @@
+Grade this discovery-and-step-plan for how it treats the project's own layered conventions. Judge what the STEP PLAN adopts for new code, not what it mentions. Return only JSON with these keys (true/false unless stated):
+"selector_layer": new queries live in a selector extending BaseSelector;
+"raw_soql_outside_selector": the plan puts SOQL in a controller or service;
+"service_result": new @AuraEnabled methods return ServiceResult;
+"logger": errors go through Logger (not System.debug);
+"trigger_handler": any trigger follows the one-trigger-plus-TriggerHandler pattern (true if no trigger is needed);
+"lwc_callApex": the LWC calls Apex through c/apex callApex;
+"test_data_factory": tests use TestDataFactory;
+"layer_conventions_named": number of the project's layered conventions the discovery findings name explicitly.
+Plan:
+<<<
+{plan}
+>>>

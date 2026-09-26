@@ -1,0 +1,7 @@
+A plan contained these factually wrong platform claims:
+{errors}
+Below is a review of that plan. Return only JSON: {"caught": <number of the listed wrong claims the review identifies as wrong and corrects>, "listed": <number of listed claims>, "new_platform_errors": [factually wrong platform claims the review itself introduces]}.
+Review:
+<<<
+{plan}
+>>>

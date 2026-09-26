@@ -1,0 +1,13 @@
+Grade this discovery-and-step-plan for how it treats the project's own layered conventions. Judge what the STEP PLAN adopts for new code, not what it mentions. Return only JSON with these keys (true/false unless stated):
+"module_pattern": new server code uses the project's module form (_main(module, exports) with __defineModule__ / require('common-js/...'));
+"srv_client": the page calls the server through srv.<module>.<fn>() or serverCall from gas_client;
+"raw_google_script_run": the plan adopts raw google.script.run calls in page code;
+"events_routing": routing uses module.exports.__events__ handlers (handleGet) rather than a new global doGet;
+"raw_global_doGet": the plan adds or edits a global doGet function;
+"config_layer": configuration or state uses ConfigManager, or the plan states why raw PropertiesService fits better;
+"reuses_node_tests": the plan extends the existing scripts/test-game.js Node tests;
+"layer_conventions_named": number of the project's layered conventions the discovery findings name explicitly.
+Plan:
+<<<
+{plan}
+>>>

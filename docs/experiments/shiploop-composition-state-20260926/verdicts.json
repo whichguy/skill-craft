@@ -1,0 +1,3205 @@
+{
+ "E1_architecture": {
+  "CF_multi_control_1": {
+   "concurrency_mechanism": "Durable Object single-writer/serialized execution",
+   "explicit_placement_decision": true,
+   "hidden_info_protected": true,
+   "identity": "custom-auth",
+   "notification_mechanism": "WebSocket (DO hibernatable WebSockets, push)",
+   "persistence": "runtime-service",
+   "platform_errors": [],
+   "quotas_addressed": false,
+   "state_authority": "server",
+   "state_end_of_life": false,
+   "storage_service": "D1 + Durable Objects storage",
+   "unrequested_features": [
+    "D1 games table maintained for 'discoverability and history' beyond the single requested match",
+    "Disconnect/reconnect handling during play"
+   ]
+  },
+  "CF_multi_control_2": {
+   "concurrency_mechanism": "Durable Object single-threaded actor (one GameRoom DO per game serializes all place/fire RPCs)",
+   "explicit_placement_decision": true,
+   "hidden_info_protected": true,
+   "identity": "custom-auth",
+   "notification_mechanism": "WebSocket push (DO broadcasts state deltas to both connected sockets)",
+   "persistence": "runtime-service",
+   "platform_errors": [],
+   "quotas_addressed": false,
+   "state_authority": "server",
+   "state_end_of_life": true,
+   "storage_service": "Durable Object (in-memory + state.storage) for live game state, D1 for accounts/history",
+   "unrequested_features": [
+    "game history / 'my games' persistence and lobby in D1",
+    "reconnection/full-state-resync handling",
+    "magic-link auth as an alternative sign-in method",
+    "invite code expiry and cleanup"
+   ]
+  },
+  "CF_multi_control_3": {
+   "concurrency_mechanism": "Durable Object single-threaded request serialization (one DO instance per game)",
+   "explicit_placement_decision": true,
+   "hidden_info_protected": true,
+   "identity": "custom-auth",
+   "notification_mechanism": "WebSockets per player, DO broadcasts to both connected sockets (with Hibernation API for idle cost)",
+   "persistence": "runtime-service",
+   "platform_errors": [
+    "Claims scrypt is 'available in-runtime' via Web Crypto for password hashing \u2014 scrypt is not part of the Web Crypto API spec and is not exposed by Workers' SubtleCrypto implementation (only PBKDF2/HKDF/digest are)."
+   ],
+   "quotas_addressed": false,
+   "state_authority": "server",
+   "state_end_of_life": false,
+   "storage_service": "Durable Objects storage (per-game state) + D1 (accounts/matchmaking)",
+   "unrequested_features": [
+    "WebSocket reconnection/resync handling for dropped connections (item 13)",
+    "Automated end-to-end smoke test suite via Playwright/wscat (item 18)"
+   ]
+  },
+  "CF_multi_current-inline_1": {
+   "concurrency_mechanism": "Durable Object single-threaded write serialization (one instance per game)",
+   "explicit_placement_decision": true,
+   "hidden_info_protected": true,
+   "identity": "custom-auth",
+   "notification_mechanism": "WebSocket (Durable Objects hibernatable WebSockets)",
+   "persistence": "runtime-service",
+   "platform_errors": [],
+   "quotas_addressed": false,
+   "state_authority": "server",
+   "state_end_of_life": false,
+   "storage_service": "Durable Object storage (GameDO built-in storage)",
+   "unrequested_features": [
+    "WebSocket reconnect/resume with full-state resync (item 8)"
+   ]
+  },
+  "CF_multi_current-inline_2": {
+   "concurrency_mechanism": "Durable Object single-threaded execution (per-instance serialization of requests)",
+   "explicit_placement_decision": true,
+   "hidden_info_protected": true,
+   "identity": "custom-auth",
+   "notification_mechanism": "WebSocket push via Durable Object Hibernation API",
+   "persistence": "runtime-service",
+   "platform_errors": [],
+   "quotas_addressed": false,
+   "state_authority": "server",
+   "state_end_of_life": true,
+   "storage_service": "Durable Objects storage (this.state.storage)",
+   "unrequested_features": [
+    "Cross-device game resumption (player can resume an in-progress game from any device by re-authenticating and reopening the socket)"
+   ]
+  },
+  "CF_multi_current-inline_3": {
+   "concurrency_mechanism": "Durable Object single-threaded per-instance execution (serializes concurrent fire attempts)",
+   "explicit_placement_decision": true,
+   "hidden_info_protected": true,
+   "identity": "custom-auth",
+   "notification_mechanism": "WebSocket push (DO-pushed state snapshots/events)",
+   "persistence": "runtime-service",
+   "platform_errors": [],
+   "quotas_addressed": false,
+   "state_authority": "server",
+   "state_end_of_life": false,
+   "storage_service": "Durable Object storage (transactional KV/SQLite)",
+   "unrequested_features": [
+    "Reconnect/resume handling with opponent disconnect/reconnect status notifications"
+   ]
+  },
+  "CF_multi_current-linked_1": {
+   "concurrency_mechanism": "Durable Object per-game sole authoritative writer (single-threaded actor)",
+   "explicit_placement_decision": true,
+   "hidden_info_protected": true,
+   "identity": "custom-auth",
+   "notification_mechanism": "WebSocket (client-to-DO push)",
+   "persistence": "runtime-service",
+   "platform_errors": [],
+   "quotas_addressed": false,
+   "state_authority": "server",
+   "state_end_of_life": false,
+   "storage_service": "D1 (user store) and Durable Object transactional storage (game state)",
+   "unrequested_features": [
+    "Observability plan via wrangler tail for auth failures and unhandled errors",
+    "Disconnect/reconnect handling with full authoritative snapshot resend",
+    "UI motion/animation design guidance (turn-change motion, hit/miss/sunk feedback) beyond core gameplay"
+   ]
+  },
+  "CF_multi_current-linked_2": {
+   "concurrency_mechanism": "Durable Object single-writer-per-instance serialization",
+   "explicit_placement_decision": true,
+   "hidden_info_protected": true,
+   "identity": "custom-auth",
+   "notification_mechanism": "WebSocket push via Durable Object hibernation API",
+   "persistence": "runtime-service",
+   "platform_errors": [],
+   "quotas_addressed": false,
+   "state_authority": "server",
+   "state_end_of_life": false,
+   "storage_service": "D1 and Durable Objects",
+   "unrequested_features": []
+  },
+  "CF_multi_current-linked_3": {
+   "concurrency_mechanism": "Durable Object single-writer per game instance (serializes concurrent fire/command submissions)",
+   "explicit_placement_decision": true,
+   "hidden_info_protected": true,
+   "identity": "custom-auth",
+   "notification_mechanism": "WebSocket push from the game's Durable Object (with Workers WebSocket hibernation) for moves; plain pull/reload for invites",
+   "persistence": "runtime-service",
+   "platform_errors": [],
+   "quotas_addressed": false,
+   "state_authority": "server",
+   "state_end_of_life": false,
+   "storage_service": "Durable Object transactional storage (live game state) + D1 (accounts, invites, game index/results)",
+   "unrequested_features": []
+  },
+  "CF_multi_lifecycle_1": {
+   "concurrency_mechanism": "Durable Object single-threaded execution model as the turn-lock (no separate mutex)",
+   "explicit_placement_decision": true,
+   "hidden_info_protected": true,
+   "identity": "custom-auth",
+   "notification_mechanism": "WebSocket per player, DO broadcasts filtered state on state change",
+   "persistence": "runtime-service",
+   "platform_errors": [],
+   "quotas_addressed": false,
+   "state_authority": "server",
+   "state_end_of_life": true,
+   "storage_service": "Durable Objects (per-game GameRoom) + D1 (accounts, games index)",
+   "unrequested_features": []
+  },
+  "CF_multi_lifecycle_2": {
+   "concurrency_mechanism": "Durable Object single-threaded execution with transactional storage (one DO per game)",
+   "explicit_placement_decision": true,
+   "hidden_info_protected": true,
+   "identity": "custom-auth",
+   "notification_mechanism": "WebSocket push via Durable Object Hibernation API",
+   "persistence": "runtime-service",
+   "platform_errors": [],
+   "quotas_addressed": true,
+   "state_authority": "server",
+   "state_end_of_life": false,
+   "storage_service": "Durable Objects (game state) + D1 (users/sessions)",
+   "unrequested_features": []
+  },
+  "CF_multi_lifecycle_3": {
+   "concurrency_mechanism": "Durable Object single-threaded execution (serialized writer per game via its own DO instance)",
+   "explicit_placement_decision": true,
+   "hidden_info_protected": true,
+   "identity": "custom-auth",
+   "notification_mechanism": "WebSocket push (Hibernation API)",
+   "persistence": "runtime-service",
+   "platform_errors": [],
+   "quotas_addressed": true,
+   "state_authority": "server",
+   "state_end_of_life": true,
+   "storage_service": "D1 (accounts/sessions/game index) + Durable Object storage (live game state)",
+   "unrequested_features": []
+  },
+  "CF_multi_rebalanced_1": {
+   "concurrency_mechanism": "Durable Object single-threaded per-instance request processing (serializes concurrent fire attempts, no extra locking)",
+   "explicit_placement_decision": true,
+   "hidden_info_protected": true,
+   "identity": "custom-auth",
+   "notification_mechanism": "WebSocket push from the game's Durable Object, with a pull-based /game/:id/state endpoint as reconnect/resync fallback",
+   "persistence": "runtime-service",
+   "platform_errors": [],
+   "quotas_addressed": false,
+   "state_authority": "server",
+   "state_end_of_life": false,
+   "storage_service": "D1 (accounts/invites/game index) and Durable Objects storage (authoritative game state)",
+   "unrequested_features": []
+  },
+  "CF_multi_rebalanced_2": {
+   "concurrency_mechanism": "Durable Object single-threaded execution serializing concurrent fire/placement messages (no separate lock or queue)",
+   "explicit_placement_decision": true,
+   "hidden_info_protected": true,
+   "identity": "custom-auth",
+   "notification_mechanism": "WebSocket push (per-player connection to the Game DO, using Workers' hibernatable WebSockets)",
+   "persistence": "runtime-service",
+   "platform_errors": [],
+   "quotas_addressed": false,
+   "state_authority": "server",
+   "state_end_of_life": false,
+   "storage_service": "Durable Objects (SQLite-backed transactional storage)",
+   "unrequested_features": []
+  },
+  "CF_multi_rebalanced_3": {
+   "concurrency_mechanism": "Durable Object single-threaded execution for in-game writes; D1 conditional write (guest_user_id IS NULL) for the invite-accept race",
+   "explicit_placement_decision": true,
+   "hidden_info_protected": true,
+   "identity": "custom-auth",
+   "notification_mechanism": "WebSocket push via Durable Object, using the WebSocket Hibernation API",
+   "persistence": "runtime-service",
+   "platform_errors": [],
+   "quotas_addressed": false,
+   "state_authority": "server",
+   "state_end_of_life": true,
+   "storage_service": "Durable Object transactional storage (live game state) + D1 (accounts/sessions/lobby/game history)",
+   "unrequested_features": [
+    "lobby listing of open invites",
+    "reconnect/recovery snapshot for dropped connections"
+   ]
+  },
+  "CF_solo_control_1": {
+   "concurrency_mechanism": null,
+   "explicit_placement_decision": true,
+   "hidden_info_protected": true,
+   "identity": "none",
+   "notification_mechanism": "synchronous HTTP request/response \u2014 the AI's move and result are returned within the same response as the player's shot submission, no polling or push needed",
+   "persistence": "runtime-service",
+   "platform_errors": [],
+   "quotas_addressed": false,
+   "state_authority": "server",
+   "state_end_of_life": false,
+   "storage_service": "Durable Objects (DO storage API)",
+   "unrequested_features": []
+  },
+  "CF_solo_control_2": {
+   "concurrency_mechanism": null,
+   "explicit_placement_decision": true,
+   "hidden_info_protected": true,
+   "identity": "none",
+   "notification_mechanism": null,
+   "persistence": "runtime-service",
+   "platform_errors": [],
+   "quotas_addressed": false,
+   "state_authority": "server",
+   "state_end_of_life": false,
+   "storage_service": "Durable Objects (DO storage)",
+   "unrequested_features": [
+    "Session persistence/resume across page reload and Worker restart (session token in localStorage, DO storage rehydration) beyond the base single-session gameplay request"
+   ]
+  },
+  "CF_solo_control_3": {
+   "concurrency_mechanism": null,
+   "explicit_placement_decision": true,
+   "hidden_info_protected": true,
+   "identity": "none",
+   "notification_mechanism": null,
+   "persistence": "none",
+   "platform_errors": [],
+   "quotas_addressed": false,
+   "state_authority": "client",
+   "state_end_of_life": false,
+   "storage_service": null,
+   "unrequested_features": []
+  },
+  "CF_solo_current-inline_1": {
+   "concurrency_mechanism": null,
+   "explicit_placement_decision": true,
+   "hidden_info_protected": false,
+   "identity": "none",
+   "notification_mechanism": null,
+   "persistence": "none",
+   "platform_errors": [],
+   "quotas_addressed": false,
+   "state_authority": "client",
+   "state_end_of_life": true,
+   "storage_service": null,
+   "unrequested_features": []
+  },
+  "CF_solo_current-inline_2": {
+   "concurrency_mechanism": null,
+   "explicit_placement_decision": true,
+   "hidden_info_protected": false,
+   "identity": "none",
+   "notification_mechanism": null,
+   "persistence": "browser-only",
+   "platform_errors": [],
+   "quotas_addressed": false,
+   "state_authority": "client",
+   "state_end_of_life": true,
+   "storage_service": null,
+   "unrequested_features": [
+    "localStorage game-resume on reload"
+   ]
+  },
+  "CF_solo_current-inline_3": {
+   "concurrency_mechanism": "Durable Object single-threaded actor model (serialized writes per game instance)",
+   "explicit_placement_decision": true,
+   "hidden_info_protected": true,
+   "identity": "none",
+   "notification_mechanism": "synchronous HTTP response (computer's move returned in the same response as the player's shot)",
+   "persistence": "runtime-service",
+   "platform_errors": [],
+   "quotas_addressed": false,
+   "state_authority": "server",
+   "state_end_of_life": false,
+   "storage_service": "Durable Objects (transactional storage)",
+   "unrequested_features": [
+    "reload-to-resume via game-id cookie"
+   ]
+  },
+  "CF_solo_lifecycle_1": {
+   "concurrency_mechanism": "Durable Object single-threaded execution (per-object serialization)",
+   "explicit_placement_decision": true,
+   "hidden_info_protected": true,
+   "identity": "none",
+   "notification_mechanism": null,
+   "persistence": "runtime-service",
+   "platform_errors": [],
+   "quotas_addressed": false,
+   "state_authority": "server",
+   "state_end_of_life": true,
+   "storage_service": "Durable Objects (transactional storage)",
+   "unrequested_features": []
+  },
+  "CF_solo_lifecycle_2": {
+   "concurrency_mechanism": "Durable Object single-writer consistency per game",
+   "explicit_placement_decision": true,
+   "hidden_info_protected": true,
+   "identity": "none",
+   "notification_mechanism": "synchronous request/response (computer's counter-move returned in the same response as the player's fire)",
+   "persistence": "runtime-service",
+   "platform_errors": [],
+   "quotas_addressed": false,
+   "state_authority": "server",
+   "state_end_of_life": false,
+   "storage_service": "Durable Objects (storage API)",
+   "unrequested_features": []
+  },
+  "CF_solo_lifecycle_3": {
+   "concurrency_mechanism": null,
+   "explicit_placement_decision": true,
+   "hidden_info_protected": false,
+   "identity": "none",
+   "notification_mechanism": null,
+   "persistence": "none",
+   "platform_errors": [],
+   "quotas_addressed": false,
+   "state_authority": "client",
+   "state_end_of_life": true,
+   "storage_service": null,
+   "unrequested_features": [
+    "ARIA live-region accessibility announcements",
+    "artificial ~600ms 'Computer is thinking' delay for UX pacing",
+    "mobile-width viewport test pass"
+   ]
+  },
+  "GAS_multi_control_1": {
+   "concurrency_mechanism": "LockService.getScriptLock()",
+   "explicit_placement_decision": true,
+   "hidden_info_protected": true,
+   "identity": "runtime-identity",
+   "notification_mechanism": "poll",
+   "persistence": "runtime-service",
+   "platform_errors": [],
+   "quotas_addressed": false,
+   "state_authority": "server",
+   "state_end_of_life": false,
+   "storage_service": "Google Sheets",
+   "unrequested_features": [
+    "rematch/new-game action (item 11)"
+   ]
+  },
+  "GAS_multi_control_2": {
+   "concurrency_mechanism": "LockService.getScriptLock()",
+   "explicit_placement_decision": true,
+   "hidden_info_protected": false,
+   "identity": "runtime-identity",
+   "notification_mechanism": "polling",
+   "persistence": "runtime-service",
+   "platform_errors": [],
+   "quotas_addressed": false,
+   "state_authority": "server",
+   "state_end_of_life": true,
+   "storage_service": "Google Sheets",
+   "unrequested_features": []
+  },
+  "GAS_multi_control_3": {
+   "concurrency_mechanism": "LockService.getScriptLock() (withGameLock wrapper)",
+   "explicit_placement_decision": true,
+   "hidden_info_protected": false,
+   "identity": "runtime-identity",
+   "notification_mechanism": "poll",
+   "persistence": "runtime-service",
+   "platform_errors": [],
+   "quotas_addressed": false,
+   "state_authority": "server",
+   "state_end_of_life": false,
+   "storage_service": "Google Sheets",
+   "unrequested_features": [
+    "Rematch / 'new game' button after game completion"
+   ]
+  },
+  "GAS_multi_current-inline_1": {
+   "concurrency_mechanism": "LockService",
+   "explicit_placement_decision": true,
+   "hidden_info_protected": true,
+   "identity": "runtime-identity",
+   "notification_mechanism": "client-side polling of getGameState() every 3-5s",
+   "persistence": "runtime-service",
+   "platform_errors": [
+    "Describes google.script.run as 'synchronous RPC (request/response)'; it is actually asynchronous/callback-based and non-blocking."
+   ],
+   "quotas_addressed": false,
+   "state_authority": "server",
+   "state_end_of_life": true,
+   "storage_service": "Google Sheets",
+   "unrequested_features": [
+    "Lobby/dashboard page listing all games a user is part of (inviter or invitee), beyond the requested sign-in/invite/place/turn flow"
+   ]
+  },
+  "GAS_multi_current-inline_2": {
+   "concurrency_mechanism": "LockService.getScriptLock()",
+   "explicit_placement_decision": true,
+   "hidden_info_protected": false,
+   "identity": "runtime-identity",
+   "notification_mechanism": "poll",
+   "persistence": "runtime-service",
+   "platform_errors": [],
+   "quotas_addressed": false,
+   "state_authority": "server",
+   "state_end_of_life": false,
+   "storage_service": "PropertiesService",
+   "unrequested_features": []
+  },
+  "GAS_multi_current-inline_3": {
+   "concurrency_mechanism": "LockService.getScriptLock()",
+   "explicit_placement_decision": true,
+   "hidden_info_protected": true,
+   "identity": "runtime-identity",
+   "notification_mechanism": "client-side polling (getGameState every ~2-3s)",
+   "persistence": "runtime-service",
+   "platform_errors": [],
+   "quotas_addressed": false,
+   "state_authority": "server",
+   "state_end_of_life": false,
+   "storage_service": "Google Sheets",
+   "unrequested_features": []
+  },
+  "GAS_multi_current-linked_1": {
+   "concurrency_mechanism": "LockService.getScriptLock()",
+   "explicit_placement_decision": true,
+   "hidden_info_protected": false,
+   "identity": "runtime-identity",
+   "notification_mechanism": "client polling of getGameState",
+   "persistence": "runtime-service",
+   "platform_errors": [],
+   "quotas_addressed": false,
+   "state_authority": "server",
+   "state_end_of_life": false,
+   "storage_service": "Google Sheets",
+   "unrequested_features": []
+  },
+  "GAS_multi_current-linked_2": {
+   "concurrency_mechanism": "LockService.getScriptLock()",
+   "explicit_placement_decision": true,
+   "hidden_info_protected": false,
+   "identity": "runtime-identity",
+   "notification_mechanism": "client-side polling (google.script.run to a getGameState-style endpoint)",
+   "persistence": "runtime-service",
+   "platform_errors": [],
+   "quotas_addressed": true,
+   "state_authority": "server",
+   "state_end_of_life": false,
+   "storage_service": "ScriptProperties",
+   "unrequested_features": [
+    "Dedicated observability/logging work item (execution transcript/Stackdriver logging for invite/placement/fire/win events) \u2014 not part of the requested feature set"
+   ]
+  },
+  "GAS_multi_current-linked_3": {
+   "concurrency_mechanism": "LockService.getScriptLock()",
+   "explicit_placement_decision": true,
+   "hidden_info_protected": true,
+   "identity": "runtime-identity",
+   "notification_mechanism": "poll",
+   "persistence": "runtime-service",
+   "platform_errors": [],
+   "quotas_addressed": true,
+   "state_authority": "server",
+   "state_end_of_life": false,
+   "storage_service": "PropertiesService (ScriptProperties)",
+   "unrequested_features": []
+  },
+  "GAS_multi_lifecycle_1": {
+   "concurrency_mechanism": "LockService.getScriptLock()",
+   "explicit_placement_decision": true,
+   "hidden_info_protected": true,
+   "identity": "runtime-identity",
+   "notification_mechanism": "poll",
+   "persistence": "runtime-service",
+   "platform_errors": [],
+   "quotas_addressed": true,
+   "state_authority": "server",
+   "state_end_of_life": true,
+   "storage_service": "PropertiesService (ScriptProperties)",
+   "unrequested_features": [
+    "Daily time-driven trigger for stale-game cleanup/48h expiry (retention policy not requested)"
+   ]
+  },
+  "GAS_multi_lifecycle_2": {
+   "concurrency_mechanism": "LockService.getScriptLock()",
+   "explicit_placement_decision": true,
+   "hidden_info_protected": true,
+   "identity": "runtime-identity",
+   "notification_mechanism": "client-initiated polling via google.script.run to getGameState",
+   "persistence": "runtime-service",
+   "platform_errors": [],
+   "quotas_addressed": true,
+   "state_authority": "server",
+   "state_end_of_life": false,
+   "storage_service": "Google Sheets (SpreadsheetApp)",
+   "unrequested_features": []
+  },
+  "GAS_multi_lifecycle_3": {
+   "concurrency_mechanism": "LockService.getScriptLock()",
+   "explicit_placement_decision": true,
+   "hidden_info_protected": true,
+   "identity": "runtime-identity",
+   "notification_mechanism": "client-side polling of getGameState (2-3s interval)",
+   "persistence": "runtime-service",
+   "platform_errors": [],
+   "quotas_addressed": false,
+   "state_authority": "server",
+   "state_end_of_life": true,
+   "storage_service": "Google Sheets (Spreadsheet)",
+   "unrequested_features": []
+  },
+  "GAS_multi_rebalanced_1": {
+   "concurrency_mechanism": "LockService.getScriptLock()",
+   "explicit_placement_decision": true,
+   "hidden_info_protected": true,
+   "identity": "runtime-identity",
+   "notification_mechanism": "poll",
+   "persistence": "runtime-service",
+   "platform_errors": [],
+   "quotas_addressed": true,
+   "state_authority": "server",
+   "state_end_of_life": false,
+   "storage_service": "ScriptProperties",
+   "unrequested_features": []
+  },
+  "GAS_multi_rebalanced_2": {
+   "concurrency_mechanism": "LockService.getScriptLock()",
+   "explicit_placement_decision": true,
+   "hidden_info_protected": true,
+   "identity": "runtime-identity",
+   "notification_mechanism": "short-interval client polling of a getGameState RPC",
+   "persistence": "runtime-service",
+   "platform_errors": [],
+   "quotas_addressed": true,
+   "state_authority": "server",
+   "state_end_of_life": false,
+   "storage_service": "PropertiesService",
+   "unrequested_features": [
+    "Optional MailApp email invite notification (beyond a shareable link)",
+    "Reconnect/resume flow recovering full state after reload/disconnect"
+   ]
+  },
+  "GAS_multi_rebalanced_3": {
+   "concurrency_mechanism": "LockService.getScriptLock()",
+   "explicit_placement_decision": true,
+   "hidden_info_protected": true,
+   "identity": "runtime-identity",
+   "notification_mechanism": "client polling of getGameState every ~2-3s",
+   "persistence": "runtime-service",
+   "platform_errors": [],
+   "quotas_addressed": false,
+   "state_authority": "server",
+   "state_end_of_life": false,
+   "storage_service": "ScriptProperties",
+   "unrequested_features": []
+  },
+  "GAS_solo_control_1": {
+   "concurrency_mechanism": null,
+   "explicit_placement_decision": true,
+   "hidden_info_protected": false,
+   "identity": "none",
+   "notification_mechanism": null,
+   "persistence": "none",
+   "platform_errors": [],
+   "quotas_addressed": false,
+   "state_authority": "client",
+   "state_end_of_life": true,
+   "storage_service": null,
+   "unrequested_features": [
+    "New game/reset control that re-randomizes both boards without a page reload"
+   ]
+  },
+  "GAS_solo_control_2": {
+   "concurrency_mechanism": null,
+   "explicit_placement_decision": true,
+   "hidden_info_protected": false,
+   "identity": "none",
+   "notification_mechanism": null,
+   "persistence": "none",
+   "platform_errors": [],
+   "quotas_addressed": false,
+   "state_authority": "client",
+   "state_end_of_life": true,
+   "storage_service": null,
+   "unrequested_features": []
+  },
+  "GAS_solo_control_3": {
+   "concurrency_mechanism": null,
+   "explicit_placement_decision": true,
+   "hidden_info_protected": false,
+   "identity": "none",
+   "notification_mechanism": null,
+   "persistence": "none",
+   "platform_errors": [],
+   "quotas_addressed": false,
+   "state_authority": "client",
+   "state_end_of_life": false,
+   "storage_service": null,
+   "unrequested_features": []
+  },
+  "GAS_solo_current-inline_1": {
+   "concurrency_mechanism": null,
+   "explicit_placement_decision": true,
+   "hidden_info_protected": false,
+   "identity": "none",
+   "notification_mechanism": null,
+   "persistence": "none",
+   "platform_errors": [],
+   "quotas_addressed": false,
+   "state_authority": "client",
+   "state_end_of_life": true,
+   "storage_service": null,
+   "unrequested_features": []
+  },
+  "GAS_solo_current-inline_2": {
+   "concurrency_mechanism": null,
+   "explicit_placement_decision": true,
+   "hidden_info_protected": false,
+   "identity": "runtime-identity",
+   "notification_mechanism": null,
+   "persistence": "none",
+   "platform_errors": [],
+   "quotas_addressed": true,
+   "state_authority": "client",
+   "state_end_of_life": false,
+   "storage_service": null,
+   "unrequested_features": [
+    "auto-place option for ship placement",
+    "deployment access restricted to Workspace domain"
+   ]
+  },
+  "GAS_solo_current-inline_3": {
+   "concurrency_mechanism": null,
+   "explicit_placement_decision": true,
+   "hidden_info_protected": false,
+   "identity": "none",
+   "notification_mechanism": null,
+   "persistence": "none",
+   "platform_errors": [],
+   "quotas_addressed": false,
+   "state_authority": "client",
+   "state_end_of_life": true,
+   "storage_service": null,
+   "unrequested_features": [
+    "Accessibility/ARIA/live-region/keyboard pass with axe/screen-reader scan",
+    "Deployment verification scoped to reachability within a Workspace domain"
+   ]
+  },
+  "GAS_solo_lifecycle_1": {
+   "concurrency_mechanism": null,
+   "explicit_placement_decision": true,
+   "hidden_info_protected": false,
+   "identity": "runtime-identity",
+   "notification_mechanism": null,
+   "persistence": "none",
+   "platform_errors": [],
+   "quotas_addressed": false,
+   "state_authority": "client",
+   "state_end_of_life": true,
+   "storage_service": null,
+   "unrequested_features": []
+  },
+  "GAS_solo_lifecycle_2": {
+   "concurrency_mechanism": null,
+   "explicit_placement_decision": true,
+   "hidden_info_protected": false,
+   "identity": "runtime-identity",
+   "notification_mechanism": null,
+   "persistence": "none",
+   "platform_errors": [],
+   "quotas_addressed": false,
+   "state_authority": "client",
+   "state_end_of_life": true,
+   "storage_service": null,
+   "unrequested_features": [
+    "Domain-restricted deployment access / identity gating (Workspace-only sign-in requirement) \u2014 not asked for in the request",
+    "Accessibility requirements (ARIA-labeled grid cells, keyboard-operable selection) \u2014 added as a fallback convention, not requested"
+   ]
+  },
+  "GAS_solo_lifecycle_3": {
+   "concurrency_mechanism": "LockService",
+   "explicit_placement_decision": true,
+   "hidden_info_protected": true,
+   "identity": "runtime-identity",
+   "notification_mechanism": "synchronous google.script.run response (computer's counter-move is resolved and returned in the same fireShot call)",
+   "persistence": "runtime-service",
+   "platform_errors": [
+    "Describes the google.script.run request/response as 'synchronous' ('a synchronous google.script.run request/response per player action is sufficient'), but google.script.run is inherently asynchronous/callback-based (.withSuccessHandler/.withFailureHandler) \u2014 a claim the plan itself contradicts later in Work Item 8, which specifies 'success/failure handlers' for the same calls."
+   ],
+   "quotas_addressed": false,
+   "state_authority": "server",
+   "state_end_of_life": true,
+   "storage_service": "CacheService",
+   "unrequested_features": [
+    "Restricting webapp access to a Google Workspace domain ('access restricted to the Workspace domain') \u2014 an audience/deployment constraint not present in the request, which only asked for a browser game against the computer."
+   ]
+  },
+  "SF_multi_control_1": {
+   "concurrency_mechanism": "SequenceNumber__c-based shot ordering as a tie-break for simultaneous/near-simultaneous writes",
+   "explicit_placement_decision": true,
+   "hidden_info_protected": true,
+   "identity": "runtime-identity",
+   "notification_mechanism": "Platform Events (Game_Update__e) published by Apex, consumed via empApi subscription in LWC, triggering a refetch",
+   "persistence": "runtime-service",
+   "platform_errors": [],
+   "quotas_addressed": false,
+   "state_authority": "server",
+   "state_end_of_life": false,
+   "storage_service": "Salesforce custom objects (Database.com / Force.com persistence layer: Game__c, Ship__c, Shot__c)",
+   "unrequested_features": []
+  },
+  "SF_multi_control_2": {
+   "concurrency_mechanism": null,
+   "explicit_placement_decision": true,
+   "hidden_info_protected": true,
+   "identity": "runtime-identity",
+   "notification_mechanism": "Platform Events (Game_Update__e) pushed to clients via lightning/empApi",
+   "persistence": "runtime-service",
+   "platform_errors": [],
+   "quotas_addressed": false,
+   "state_authority": "server",
+   "state_end_of_life": false,
+   "storage_service": "Salesforce Custom Objects (SObjects)",
+   "unrequested_features": []
+  },
+  "SF_multi_control_3": {
+   "concurrency_mechanism": null,
+   "explicit_placement_decision": true,
+   "hidden_info_protected": true,
+   "identity": "runtime-identity",
+   "notification_mechanism": "Platform Events (GameUpdate__e) pushed via lightning/empApi",
+   "persistence": "runtime-service",
+   "platform_errors": [],
+   "quotas_addressed": false,
+   "state_authority": "server",
+   "state_end_of_life": false,
+   "storage_service": "Salesforce Custom Objects (Game__c, Shot__c)",
+   "unrequested_features": []
+  },
+  "SF_multi_current-inline_1": {
+   "concurrency_mechanism": "Apex locking read (SELECT ... FOR UPDATE) on Game plus turn-owner check, combined with a uniqueness constraint on (Game, row, col, shooter) for Shot",
+   "explicit_placement_decision": true,
+   "hidden_info_protected": true,
+   "identity": "runtime-identity",
+   "notification_mechanism": "poll (wire refresh on view-load/return-to-tab plus short client-side polling while waiting for opponent)",
+   "persistence": "runtime-service",
+   "platform_errors": [
+    "Claims a native 'uniqueness constraint on (Game, row, col, shooter)' for the Shot custom object; Salesforce does not support declarative composite (multi-field) unique constraints on custom objects \u2014 only single-field Unique attributes are natively enforced, so a composite key like this would require a workaround (e.g., a concatenated formula/external-ID field or trigger-enforced check) that the plan does not describe."
+   ],
+   "quotas_addressed": false,
+   "state_authority": "server",
+   "state_end_of_life": true,
+   "storage_service": "Custom sObjects (Salesforce Platform database) \u2014 Game__c, Ship__c, Shot__c",
+   "unrequested_features": []
+  },
+  "SF_multi_current-inline_2": {
+   "concurrency_mechanism": "Apex transaction re-validation (re-check current turn + coordinate uniqueness before insert) relying on standard row-level DML locking",
+   "explicit_placement_decision": true,
+   "hidden_info_protected": true,
+   "identity": "runtime-identity",
+   "notification_mechanism": "client-side polling (5-8s) over a wire-adapted Apex query, refreshed on load",
+   "persistence": "runtime-service",
+   "platform_errors": [],
+   "quotas_addressed": false,
+   "state_authority": "server",
+   "state_end_of_life": false,
+   "storage_service": "Salesforce Custom Objects (Game__c, Placement__c, Shot__c)",
+   "unrequested_features": []
+  },
+  "SF_multi_current-inline_3": {
+   "concurrency_mechanism": "conditional/locking update on Game__c.CurrentTurn__c (record-locking guard against concurrent fire attempts)",
+   "explicit_placement_decision": true,
+   "hidden_info_protected": true,
+   "identity": "runtime-identity",
+   "notification_mechanism": "Platform Event (GameUpdate__e) consumed via empApi/CometD as a refresh signal",
+   "persistence": "runtime-service",
+   "platform_errors": [],
+   "quotas_addressed": false,
+   "state_authority": "server",
+   "state_end_of_life": false,
+   "storage_service": "Salesforce Custom Objects (Game__c, Board__c, Shot__c)",
+   "unrequested_features": [
+    "Post-game 'start-new-game path' / replay flow not part of the original request"
+   ]
+  },
+  "SF_multi_current-linked_1": {
+   "concurrency_mechanism": "turn-counter conditional update (optimistic locking on DML)",
+   "explicit_placement_decision": true,
+   "hidden_info_protected": true,
+   "identity": "runtime-identity",
+   "notification_mechanism": "Salesforce Platform Event (GameUpdate__e) consumed via empApi, triggering server re-query",
+   "persistence": "runtime-service",
+   "platform_errors": [],
+   "quotas_addressed": false,
+   "state_authority": "server",
+   "state_end_of_life": false,
+   "storage_service": "Salesforce Custom Objects (Game__c, Shot__c, fleet-placement records)",
+   "unrequested_features": []
+  },
+  "SF_multi_current-linked_2": {
+   "concurrency_mechanism": "single Apex transaction re-querying state before write, with turn-ownership check rejecting out-of-turn/duplicate writes",
+   "explicit_placement_decision": true,
+   "hidden_info_protected": true,
+   "identity": "runtime-identity",
+   "notification_mechanism": "poll (interval refresh of authoritative Apex query, paused on own turn/game end, plus manual refresh)",
+   "persistence": "runtime-service",
+   "platform_errors": [],
+   "quotas_addressed": false,
+   "state_authority": "server",
+   "state_end_of_life": false,
+   "storage_service": "Salesforce custom objects (Game__c, placement child object, Shot__c) via standard platform DML",
+   "unrequested_features": []
+  },
+  "SF_multi_current-linked_3": {
+   "concurrency_mechanism": null,
+   "explicit_placement_decision": true,
+   "hidden_info_protected": true,
+   "identity": "runtime-identity",
+   "notification_mechanism": "Apex-fired Salesforce Custom Notification (push) plus LWC client poll/refresh",
+   "persistence": "runtime-service",
+   "platform_errors": [],
+   "quotas_addressed": false,
+   "state_authority": "server",
+   "state_end_of_life": false,
+   "storage_service": "Salesforce Custom Objects (Game__c/Shot__c/Ship__c on the platform database)",
+   "unrequested_features": []
+  },
+  "SF_multi_lifecycle_1": {
+   "concurrency_mechanism": "Apex SELECT ... FOR UPDATE row locking on the game record",
+   "explicit_placement_decision": true,
+   "hidden_info_protected": true,
+   "identity": "runtime-identity",
+   "notification_mechanism": "Platform Events consumed via lightning/empApi (CometD push)",
+   "persistence": "runtime-service",
+   "platform_errors": [],
+   "quotas_addressed": true,
+   "state_authority": "server",
+   "state_end_of_life": true,
+   "storage_service": "Salesforce Custom Objects (Game__c, Ship__c, Shot__c)",
+   "unrequested_features": []
+  },
+  "SF_multi_lifecycle_2": {
+   "concurrency_mechanism": "SOQL FOR UPDATE row-locking on the Game record inside fireShot",
+   "explicit_placement_decision": true,
+   "hidden_info_protected": true,
+   "identity": "runtime-identity",
+   "notification_mechanism": "Platform Event + empApi (push)",
+   "persistence": "runtime-service",
+   "platform_errors": [],
+   "quotas_addressed": false,
+   "state_authority": "server",
+   "state_end_of_life": true,
+   "storage_service": "Salesforce Custom Objects (Battleship_Game__c, Battleship_Ship__c, Battleship_Shot__c)",
+   "unrequested_features": []
+  },
+  "SF_multi_lifecycle_3": {
+   "concurrency_mechanism": "row-level locking via SOQL 'SELECT ... FOR UPDATE' on Game__c during turn transitions",
+   "explicit_placement_decision": true,
+   "hidden_info_protected": true,
+   "identity": "runtime-identity",
+   "notification_mechanism": "custom Platform Event (GameUpdate__e) pushed via EventBus.publish and consumed by both clients through lightning/empApi (CometD) subscriptions",
+   "persistence": "runtime-service",
+   "platform_errors": [],
+   "quotas_addressed": false,
+   "state_authority": "server",
+   "state_end_of_life": true,
+   "storage_service": "Salesforce Custom Objects (Game__c, Ship_Placement__c, Shot__c)",
+   "unrequested_features": []
+  },
+  "SF_multi_rebalanced_1": {
+   "concurrency_mechanism": "row locking via SOQL FOR UPDATE on Game__c",
+   "explicit_placement_decision": true,
+   "hidden_info_protected": true,
+   "identity": "runtime-identity",
+   "notification_mechanism": "Platform Events (GameEvent__e) pushed via empApi, client refetches state on receipt",
+   "persistence": "runtime-service",
+   "platform_errors": [],
+   "quotas_addressed": false,
+   "state_authority": "server",
+   "state_end_of_life": false,
+   "storage_service": "Salesforce custom objects (Game__c, Ship_Placement__c, Shot__c)",
+   "unrequested_features": []
+  },
+  "SF_multi_rebalanced_2": {
+   "concurrency_mechanism": "Re-validate CurrentTurn__c inside the same transaction as the shot DML, relying on Apex's automatic record lock on the Game__c row during update",
+   "explicit_placement_decision": true,
+   "hidden_info_protected": true,
+   "identity": "runtime-identity",
+   "notification_mechanism": "Platform Event (GameUpdate__e) published by Apex, pushed to LWC via empApi/Streaming API",
+   "persistence": "runtime-service",
+   "platform_errors": [
+    "Claims field-level security (FLS) can restrict a fleet's visibility to 'the owning player' \u2014 FLS is a profile/permission-set-wide control over a field across all records of an object; it cannot scope visibility per-record by ownership. The plan's own architecture text correctly relies on `with sharing` + explicit ownership checks in SOQL for that, contradicting the FLS claim in work item 1."
+   ],
+   "quotas_addressed": false,
+   "state_authority": "server",
+   "state_end_of_life": false,
+   "storage_service": "Custom Objects (Salesforce Platform database, via SOQL/DML)",
+   "unrequested_features": []
+  },
+  "SF_multi_rebalanced_3": {
+   "concurrency_mechanism": "Apex record-locking query on Game__c for turn/lock validation, plus Shot__c uniqueness constraint (game+row+col) as idempotency guard",
+   "explicit_placement_decision": true,
+   "hidden_info_protected": true,
+   "identity": "runtime-identity",
+   "notification_mechanism": "Platform Events published via Apex, consumed by LWC empApi subscription, with re-query to Apex on receipt as source of truth",
+   "persistence": "runtime-service",
+   "platform_errors": [],
+   "quotas_addressed": false,
+   "state_authority": "server",
+   "state_end_of_life": false,
+   "storage_service": "Salesforce Custom Objects (Game__c, Shot__c)",
+   "unrequested_features": []
+  },
+  "SF_solo_control_1": {
+   "concurrency_mechanism": null,
+   "explicit_placement_decision": true,
+   "hidden_info_protected": false,
+   "identity": "none",
+   "notification_mechanism": null,
+   "persistence": "none",
+   "platform_errors": [],
+   "quotas_addressed": false,
+   "state_authority": "client",
+   "state_end_of_life": false,
+   "storage_service": null,
+   "unrequested_features": []
+  },
+  "SF_solo_control_2": {
+   "concurrency_mechanism": null,
+   "explicit_placement_decision": true,
+   "hidden_info_protected": false,
+   "identity": "none",
+   "notification_mechanism": null,
+   "persistence": "none",
+   "platform_errors": [],
+   "quotas_addressed": false,
+   "state_authority": "client",
+   "state_end_of_life": true,
+   "storage_service": null,
+   "unrequested_features": []
+  },
+  "SF_solo_control_3": {
+   "concurrency_mechanism": null,
+   "explicit_placement_decision": true,
+   "hidden_info_protected": true,
+   "identity": "none",
+   "notification_mechanism": null,
+   "persistence": "none",
+   "platform_errors": [],
+   "quotas_addressed": false,
+   "state_authority": "client",
+   "state_end_of_life": false,
+   "storage_service": null,
+   "unrequested_features": [
+    "Accessibility work (ARIA labels, keyboard-operable cells, axe/Lighthouse scan)",
+    "CI gate combining lint/test/deploy-validate into one script"
+   ]
+  },
+  "SF_solo_current-inline_1": {
+   "concurrency_mechanism": null,
+   "explicit_placement_decision": true,
+   "hidden_info_protected": false,
+   "identity": "none",
+   "notification_mechanism": null,
+   "persistence": "none",
+   "platform_errors": [],
+   "quotas_addressed": false,
+   "state_authority": "client",
+   "state_end_of_life": false,
+   "storage_service": null,
+   "unrequested_features": [
+    "Play Again / replay feature that reinitializes the board"
+   ]
+  },
+  "SF_solo_current-inline_2": {
+   "concurrency_mechanism": null,
+   "explicit_placement_decision": true,
+   "hidden_info_protected": false,
+   "identity": "none",
+   "notification_mechanism": null,
+   "persistence": "none",
+   "platform_errors": [],
+   "quotas_addressed": false,
+   "state_authority": "client",
+   "state_end_of_life": false,
+   "storage_service": null,
+   "unrequested_features": []
+  },
+  "SF_solo_current-inline_3": {
+   "concurrency_mechanism": null,
+   "explicit_placement_decision": true,
+   "hidden_info_protected": false,
+   "identity": "none",
+   "notification_mechanism": null,
+   "persistence": "none",
+   "platform_errors": [],
+   "quotas_addressed": false,
+   "state_authority": "client",
+   "state_end_of_life": true,
+   "storage_service": null,
+   "unrequested_features": []
+  },
+  "SF_solo_lifecycle_1": {
+   "concurrency_mechanism": null,
+   "explicit_placement_decision": true,
+   "hidden_info_protected": false,
+   "identity": "runtime-identity",
+   "notification_mechanism": null,
+   "persistence": "none",
+   "platform_errors": [],
+   "quotas_addressed": false,
+   "state_authority": "client",
+   "state_end_of_life": true,
+   "storage_service": null,
+   "unrequested_features": [
+    "Keyboard accessibility pass (focusable cells, keyboard-triggered fire, aria-live announcements)"
+   ]
+  },
+  "SF_solo_lifecycle_2": {
+   "concurrency_mechanism": null,
+   "explicit_placement_decision": true,
+   "hidden_info_protected": false,
+   "identity": "runtime-identity",
+   "notification_mechanism": null,
+   "persistence": "none",
+   "platform_errors": [],
+   "quotas_addressed": false,
+   "state_authority": "client",
+   "state_end_of_life": true,
+   "storage_service": null,
+   "unrequested_features": [
+    "Accessibility/SLDS conformance pass with axe/Lighthouse audit (keyboard focus order, aria-labels, WCAG checks) beyond the basic browser game request"
+   ]
+  },
+  "SF_solo_lifecycle_3": {
+   "concurrency_mechanism": null,
+   "explicit_placement_decision": true,
+   "hidden_info_protected": false,
+   "identity": "runtime-identity",
+   "notification_mechanism": null,
+   "persistence": "none",
+   "platform_errors": [],
+   "quotas_addressed": false,
+   "state_authority": "client",
+   "state_end_of_life": true,
+   "storage_service": null,
+   "unrequested_features": []
+  }
+ },
+ "E3_intake": {
+  "CF_intake_current_1": {
+   "asks_hidden_info": false,
+   "asks_identity": false,
+   "asks_persistence": false,
+   "asks_players_devices": true,
+   "question_count": 4,
+   "silent_single_browser": false
+  },
+  "CF_intake_current_2": {
+   "asks_hidden_info": false,
+   "asks_identity": false,
+   "asks_persistence": false,
+   "asks_players_devices": true,
+   "question_count": 3,
+   "silent_single_browser": false
+  },
+  "CF_intake_current_3": {
+   "asks_hidden_info": false,
+   "asks_identity": false,
+   "asks_persistence": false,
+   "asks_players_devices": true,
+   "question_count": 4,
+   "silent_single_browser": false
+  },
+  "CF_intake_lifecycle_1": {
+   "asks_hidden_info": true,
+   "asks_identity": true,
+   "asks_persistence": true,
+   "asks_players_devices": true,
+   "question_count": 5,
+   "silent_single_browser": false
+  },
+  "CF_intake_lifecycle_2": {
+   "asks_hidden_info": true,
+   "asks_identity": false,
+   "asks_persistence": true,
+   "asks_players_devices": true,
+   "question_count": 2,
+   "silent_single_browser": false
+  },
+  "CF_intake_lifecycle_3": {
+   "asks_hidden_info": true,
+   "asks_identity": false,
+   "asks_persistence": true,
+   "asks_players_devices": true,
+   "question_count": 4,
+   "silent_single_browser": false
+  },
+  "GAS_intake_current_1": {
+   "asks_hidden_info": false,
+   "asks_identity": false,
+   "asks_persistence": false,
+   "asks_players_devices": true,
+   "question_count": 4,
+   "silent_single_browser": false
+  },
+  "GAS_intake_current_2": {
+   "asks_hidden_info": false,
+   "asks_identity": false,
+   "asks_persistence": false,
+   "asks_players_devices": true,
+   "question_count": 3,
+   "silent_single_browser": false
+  },
+  "GAS_intake_current_3": {
+   "asks_hidden_info": false,
+   "asks_identity": false,
+   "asks_persistence": true,
+   "asks_players_devices": true,
+   "question_count": 4,
+   "silent_single_browser": false
+  },
+  "GAS_intake_lifecycle_1": {
+   "asks_hidden_info": false,
+   "asks_identity": false,
+   "asks_persistence": true,
+   "asks_players_devices": true,
+   "question_count": 3,
+   "silent_single_browser": false
+  },
+  "GAS_intake_lifecycle_2": {
+   "asks_hidden_info": true,
+   "asks_identity": true,
+   "asks_persistence": true,
+   "asks_players_devices": true,
+   "question_count": 3,
+   "silent_single_browser": false
+  },
+  "GAS_intake_lifecycle_3": {
+   "asks_hidden_info": true,
+   "asks_identity": true,
+   "asks_persistence": true,
+   "asks_players_devices": true,
+   "question_count": 5,
+   "silent_single_browser": false
+  },
+  "SF_intake_current_1": {
+   "asks_hidden_info": false,
+   "asks_identity": false,
+   "asks_persistence": true,
+   "asks_players_devices": true,
+   "question_count": 5,
+   "silent_single_browser": false
+  },
+  "SF_intake_current_2": {
+   "asks_hidden_info": false,
+   "asks_identity": false,
+   "asks_persistence": false,
+   "asks_players_devices": true,
+   "question_count": 4,
+   "silent_single_browser": true
+  },
+  "SF_intake_current_3": {
+   "asks_hidden_info": false,
+   "asks_identity": false,
+   "asks_persistence": true,
+   "asks_players_devices": true,
+   "question_count": 4,
+   "silent_single_browser": false
+  },
+  "SF_intake_lifecycle_1": {
+   "asks_hidden_info": false,
+   "asks_identity": false,
+   "asks_persistence": true,
+   "asks_players_devices": true,
+   "question_count": 3,
+   "silent_single_browser": false
+  },
+  "SF_intake_lifecycle_2": {
+   "asks_hidden_info": true,
+   "asks_identity": false,
+   "asks_persistence": true,
+   "asks_players_devices": true,
+   "question_count": 2,
+   "silent_single_browser": false
+  },
+  "SF_intake_lifecycle_3": {
+   "asks_hidden_info": true,
+   "asks_identity": false,
+   "asks_persistence": true,
+   "asks_players_devices": true,
+   "question_count": 4,
+   "silent_single_browser": false
+  }
+ },
+ "E4_E5_lifecycle_v2": {
+  "CF_invite_current_1": {
+   "concurrency_mechanism": "Durable Object per game as single-threaded authoritative actor (clients send intents only, never board mutations)",
+   "deletion_path": false,
+   "explicit_placement_decision": true,
+   "hidden_info_protected": true,
+   "identity": "custom-auth",
+   "invite_expiry": true,
+   "logs_redacted": false,
+   "notification_mechanism": "WebSocket (DO broadcasts ShotResult/TurnChanged/etc. to connected sockets)",
+   "persistence": "runtime-service",
+   "pii_identified": false,
+   "platform_errors": [],
+   "quotas_addressed": false,
+   "retention_defined": false,
+   "state_authority": "server",
+   "state_end_of_life": false,
+   "storage_service": "D1 (plus Durable Object storage for live game state)",
+   "unrequested_features": []
+  },
+  "CF_invite_current_2": {
+   "concurrency_mechanism": "Durable Object per-game actor (single-threaded instance serializes all reads/writes for that game's live state)",
+   "deletion_path": false,
+   "explicit_placement_decision": true,
+   "hidden_info_protected": false,
+   "identity": "custom-auth",
+   "invite_expiry": true,
+   "logs_redacted": false,
+   "notification_mechanism": "WebSocket push from the game Durable Object (shot_result/turn_change/opponent_status events broadcast to connected sockets)",
+   "persistence": "runtime-service",
+   "pii_identified": false,
+   "platform_errors": [],
+   "quotas_addressed": false,
+   "retention_defined": false,
+   "state_authority": "server",
+   "state_end_of_life": true,
+   "storage_service": "D1",
+   "unrequested_features": []
+  },
+  "CF_invite_current_3": {
+   "concurrency_mechanism": "Durable Object (single instance per game, single-threaded)",
+   "deletion_path": false,
+   "explicit_placement_decision": true,
+   "hidden_info_protected": true,
+   "identity": "custom-auth",
+   "invite_expiry": true,
+   "logs_redacted": false,
+   "notification_mechanism": "WebSocket",
+   "persistence": "runtime-service",
+   "pii_identified": false,
+   "platform_errors": [],
+   "quotas_addressed": false,
+   "retention_defined": false,
+   "state_authority": "server",
+   "state_end_of_life": false,
+   "storage_service": "D1 and Durable Object storage",
+   "unrequested_features": []
+  },
+  "CF_invite_life1_1": {
+   "concurrency_mechanism": "Durable Object single-threaded execution (per-game DO serializes all reads/writes, no external locking)",
+   "deletion_path": false,
+   "explicit_placement_decision": true,
+   "hidden_info_protected": true,
+   "identity": "custom-auth",
+   "invite_expiry": true,
+   "logs_redacted": false,
+   "notification_mechanism": "DO WebSocket Hibernation push, with an always-authoritative GET-state endpoint as fallback/reconnect source",
+   "persistence": "runtime-service",
+   "pii_identified": true,
+   "platform_errors": [],
+   "quotas_addressed": false,
+   "retention_defined": true,
+   "state_authority": "server",
+   "state_end_of_life": true,
+   "storage_service": "D1 and Durable Objects",
+   "unrequested_features": [
+    "Rate-limiting of magic-link/invite requests (work item 12)",
+    "Real-time WebSocket Hibernation push updates for a 'real-time feel' (beyond the polling/GET-state that would satisfy the request)"
+   ]
+  },
+  "CF_invite_life1_2": {
+   "concurrency_mechanism": "Durable Object single-writer consistency for game state; atomic D1 UPDATE ... WHERE used=0 for invite-token consumption",
+   "deletion_path": false,
+   "explicit_placement_decision": true,
+   "hidden_info_protected": true,
+   "identity": "custom-auth",
+   "invite_expiry": true,
+   "logs_redacted": true,
+   "notification_mechanism": "WebSocket push from the game Durable Object",
+   "persistence": "runtime-service",
+   "pii_identified": true,
+   "platform_errors": [],
+   "quotas_addressed": false,
+   "retention_defined": false,
+   "state_authority": "server",
+   "state_end_of_life": true,
+   "storage_service": "Durable Objects (live game state) + D1 (users/invites/history)",
+   "unrequested_features": []
+  },
+  "CF_invite_life1_3": {
+   "concurrency_mechanism": "Durable Object single-threaded execution (serializes concurrent moves)",
+   "deletion_path": true,
+   "explicit_placement_decision": true,
+   "hidden_info_protected": true,
+   "identity": "custom-auth",
+   "invite_expiry": true,
+   "logs_redacted": true,
+   "notification_mechanism": "WebSocket push from the game's Durable Object (with hibernation API)",
+   "persistence": "runtime-service",
+   "pii_identified": true,
+   "platform_errors": [],
+   "quotas_addressed": false,
+   "retention_defined": true,
+   "state_authority": "server",
+   "state_end_of_life": false,
+   "storage_service": "Durable Objects (live game state) + D1 (users/sessions/invites/game index)",
+   "unrequested_features": []
+  },
+  "CF_invite_life2_1": {
+   "concurrency_mechanism": "Durable Object single-threaded execution (per-game DO serializes moves)",
+   "deletion_path": false,
+   "explicit_placement_decision": true,
+   "hidden_info_protected": true,
+   "identity": "custom-auth",
+   "invite_expiry": true,
+   "logs_redacted": true,
+   "notification_mechanism": "WebSocket (DO push to clients)",
+   "persistence": "runtime-service",
+   "pii_identified": true,
+   "platform_errors": [],
+   "quotas_addressed": false,
+   "retention_defined": true,
+   "state_authority": "server",
+   "state_end_of_life": true,
+   "storage_service": "D1 + Durable Objects",
+   "unrequested_features": []
+  },
+  "CF_invite_life2_2": {
+   "concurrency_mechanism": "Durable Object single-threaded execution (in-order message processing per game)",
+   "deletion_path": false,
+   "explicit_placement_decision": true,
+   "hidden_info_protected": true,
+   "identity": "custom-auth",
+   "invite_expiry": true,
+   "logs_redacted": true,
+   "notification_mechanism": "WebSocket",
+   "persistence": "runtime-service",
+   "pii_identified": true,
+   "platform_errors": [
+    "Plan defaults to 'MailChannels (free, Workers-native)' for email delivery without qualification; MailChannels ended its free unauthenticated send-on-behalf API for new Workers customers in 2024 (now requires domain lockdown/DKIM setup and is not a no-setup default), so presenting it as a frictionless free default is inaccurate."
+   ],
+   "quotas_addressed": true,
+   "retention_defined": true,
+   "state_authority": "server",
+   "state_end_of_life": true,
+   "storage_service": "D1 and Durable Objects storage",
+   "unrequested_features": []
+  },
+  "CF_invite_life2_3": {
+   "concurrency_mechanism": "Durable Object single-writer event loop (per-game DO serializes all writes)",
+   "deletion_path": true,
+   "explicit_placement_decision": true,
+   "hidden_info_protected": true,
+   "identity": "custom-auth",
+   "invite_expiry": true,
+   "logs_redacted": true,
+   "notification_mechanism": "WebSocket (via Worker-forwarded connection to the game's Durable Object, with hibernation)",
+   "persistence": "runtime-service",
+   "pii_identified": true,
+   "platform_errors": [],
+   "quotas_addressed": true,
+   "retention_defined": false,
+   "state_authority": "server",
+   "state_end_of_life": true,
+   "storage_service": "Cloudflare D1 + Durable Object storage",
+   "unrequested_features": [
+    "Per-user daily invite rate limiting/cap"
+   ]
+  },
+  "CF_multi_life2_1": {
+   "concurrency_mechanism": "Durable Object serialized/single-threaded execution",
+   "deletion_path": true,
+   "explicit_placement_decision": true,
+   "hidden_info_protected": true,
+   "identity": "custom-auth",
+   "invite_expiry": false,
+   "logs_redacted": true,
+   "notification_mechanism": "WebSocket push (Hibernation API)",
+   "persistence": "runtime-service",
+   "pii_identified": true,
+   "platform_errors": [],
+   "quotas_addressed": true,
+   "retention_defined": true,
+   "state_authority": "server",
+   "state_end_of_life": true,
+   "storage_service": "Durable Objects storage",
+   "unrequested_features": []
+  },
+  "CF_multi_life2_2": {
+   "concurrency_mechanism": "Durable Object single-threaded instance execution (serialized message ordering, no explicit locking)",
+   "deletion_path": false,
+   "explicit_placement_decision": true,
+   "hidden_info_protected": true,
+   "identity": "custom-auth",
+   "invite_expiry": true,
+   "logs_redacted": false,
+   "notification_mechanism": "WebSocket push (DO broadcasts results to both connected sockets)",
+   "persistence": "runtime-service",
+   "pii_identified": false,
+   "platform_errors": [],
+   "quotas_addressed": true,
+   "retention_defined": false,
+   "state_authority": "server",
+   "state_end_of_life": true,
+   "storage_service": "Durable Object storage (this.state.storage) + D1",
+   "unrequested_features": [
+    "per-user rate limiting on invite creation to prevent spam",
+    "disconnect/reconnect-with-resume flow (5-minute timer, session-based resume)"
+   ]
+  },
+  "CF_multi_life2_3": {
+   "concurrency_mechanism": "Durable Object single-threaded execution (per-instance serialization of requests)",
+   "deletion_path": true,
+   "explicit_placement_decision": true,
+   "hidden_info_protected": true,
+   "identity": "custom-auth",
+   "invite_expiry": true,
+   "logs_redacted": true,
+   "notification_mechanism": "WebSocket (Hibernation API) push per-socket broadcast",
+   "persistence": "runtime-service",
+   "pii_identified": true,
+   "platform_errors": [],
+   "quotas_addressed": true,
+   "retention_defined": true,
+   "state_authority": "server",
+   "state_end_of_life": true,
+   "storage_service": "Durable Objects (DO storage)",
+   "unrequested_features": []
+  },
+  "CF_solo_current_1": {
+   "concurrency_mechanism": null,
+   "deletion_path": false,
+   "explicit_placement_decision": true,
+   "hidden_info_protected": false,
+   "identity": "none",
+   "invite_expiry": null,
+   "logs_redacted": false,
+   "notification_mechanism": null,
+   "persistence": "none",
+   "pii_identified": false,
+   "platform_errors": [],
+   "quotas_addressed": false,
+   "retention_defined": false,
+   "state_authority": "client",
+   "state_end_of_life": true,
+   "storage_service": null,
+   "unrequested_features": [
+    "Accessibility/keyboard operability (ARIA labels, full keyboard navigation) as a formal work item",
+    "Responsive styling for desktop and mobile viewports"
+   ]
+  },
+  "CF_solo_current_2": {
+   "concurrency_mechanism": null,
+   "deletion_path": false,
+   "explicit_placement_decision": true,
+   "hidden_info_protected": false,
+   "identity": "none",
+   "invite_expiry": null,
+   "logs_redacted": false,
+   "notification_mechanism": null,
+   "persistence": "none",
+   "pii_identified": false,
+   "platform_errors": [],
+   "quotas_addressed": false,
+   "retention_defined": false,
+   "state_authority": "client",
+   "state_end_of_life": true,
+   "storage_service": null,
+   "unrequested_features": []
+  },
+  "CF_solo_current_3": {
+   "concurrency_mechanism": null,
+   "deletion_path": true,
+   "explicit_placement_decision": true,
+   "hidden_info_protected": true,
+   "identity": "none",
+   "invite_expiry": null,
+   "logs_redacted": false,
+   "notification_mechanism": null,
+   "persistence": "runtime-service",
+   "pii_identified": false,
+   "platform_errors": [
+    "Plan states 'Idle games expire via DO storage TTL', but Durable Object storage (state.storage put/get/delete) has no built-in TTL/expiration parameter \u2014 that is a KV namespace feature (expirationTtl). Scheduled cleanup of an idle DO requires the Alarms API, not a storage TTL."
+   ],
+   "quotas_addressed": false,
+   "retention_defined": true,
+   "state_authority": "server",
+   "state_end_of_life": true,
+   "storage_service": "Durable Objects",
+   "unrequested_features": [
+    "Accessibility pass (ARIA roles/labels, full keyboard-only play, Lighthouse accessibility audit) beyond basic playability",
+    "Mobile-responsive layout / mobile-first CSS",
+    "Ship placement 'Randomize' auto-placement convenience option for the player"
+   ]
+  },
+  "CF_solo_life1_1": {
+   "concurrency_mechanism": "Durable Object single-threaded request serialization (one DO instance per session)",
+   "deletion_path": true,
+   "explicit_placement_decision": true,
+   "hidden_info_protected": true,
+   "identity": "none",
+   "invite_expiry": null,
+   "logs_redacted": true,
+   "notification_mechanism": null,
+   "persistence": "runtime-service",
+   "pii_identified": false,
+   "platform_errors": [],
+   "quotas_addressed": false,
+   "retention_defined": true,
+   "state_authority": "server",
+   "state_end_of_life": true,
+   "storage_service": "Durable Objects (SQLite-backed storage)",
+   "unrequested_features": [
+    "randomize ship-placement button"
+   ]
+  },
+  "CF_solo_life1_2": {
+   "concurrency_mechanism": "Durable Object single-threaded-per-instance execution (serializes fire attempts, no extra locking)",
+   "deletion_path": false,
+   "explicit_placement_decision": true,
+   "hidden_info_protected": true,
+   "identity": "custom-auth",
+   "invite_expiry": null,
+   "logs_redacted": false,
+   "notification_mechanism": null,
+   "persistence": "runtime-service",
+   "pii_identified": false,
+   "platform_errors": [],
+   "quotas_addressed": false,
+   "retention_defined": true,
+   "state_authority": "server",
+   "state_end_of_life": true,
+   "storage_service": "Durable Objects",
+   "unrequested_features": [
+    "rematch flow after game over",
+    "reload/resume mid-game via session cookie + state fetch"
+   ]
+  },
+  "CF_solo_life1_3": {
+   "concurrency_mechanism": "Durable Object single-writer model (per-game DO serializes all mutations) with transactional storage.put/get",
+   "deletion_path": false,
+   "explicit_placement_decision": true,
+   "hidden_info_protected": true,
+   "identity": "custom-auth",
+   "invite_expiry": null,
+   "logs_redacted": false,
+   "notification_mechanism": "synchronous same-request response (computer's counter-move returned inline with the player's shot response; no poll/push)",
+   "persistence": "runtime-service",
+   "pii_identified": false,
+   "platform_errors": [],
+   "quotas_addressed": false,
+   "retention_defined": true,
+   "state_authority": "server",
+   "state_end_of_life": true,
+   "storage_service": "Durable Objects (storage.put/get)",
+   "unrequested_features": [
+    "WCAG-AA accessibility compliance work (ARIA grid/gridcell roles, keyboard-only playthrough testing, axe/contrast checks)"
+   ]
+  },
+  "CF_solo_life2_1": {
+   "concurrency_mechanism": "Durable Object per-instance request serialization (single-threaded execution)",
+   "deletion_path": true,
+   "explicit_placement_decision": true,
+   "hidden_info_protected": true,
+   "identity": "none",
+   "invite_expiry": null,
+   "logs_redacted": false,
+   "notification_mechanism": "synchronous response \u2014 computer's counter-shot is embedded in the same /api/fire HTTP response",
+   "persistence": "runtime-service",
+   "pii_identified": false,
+   "platform_errors": [],
+   "quotas_addressed": false,
+   "retention_defined": true,
+   "state_authority": "server",
+   "state_end_of_life": true,
+   "storage_service": "Durable Objects (DO storage + Alarms)",
+   "unrequested_features": []
+  },
+  "CF_solo_life2_2": {
+   "concurrency_mechanism": "Durable Object single-threaded execution model (per-game DO instance serializes requests)",
+   "deletion_path": true,
+   "explicit_placement_decision": true,
+   "hidden_info_protected": true,
+   "identity": "none",
+   "invite_expiry": null,
+   "logs_redacted": true,
+   "notification_mechanism": null,
+   "persistence": "runtime-service",
+   "pii_identified": false,
+   "platform_errors": [],
+   "quotas_addressed": true,
+   "retention_defined": true,
+   "state_authority": "server",
+   "state_end_of_life": true,
+   "storage_service": "Durable Objects (transactional storage)",
+   "unrequested_features": []
+  },
+  "CF_solo_life2_3": {
+   "concurrency_mechanism": "Durable Object single-threaded execution (one DO instance per game, no external locking)",
+   "deletion_path": true,
+   "explicit_placement_decision": true,
+   "hidden_info_protected": true,
+   "identity": "none",
+   "invite_expiry": null,
+   "logs_redacted": false,
+   "notification_mechanism": "synchronous same-request HTTP response (computer's move returned inline with the player's shot response; no push/poll needed)",
+   "persistence": "runtime-service",
+   "pii_identified": false,
+   "platform_errors": [],
+   "quotas_addressed": true,
+   "retention_defined": true,
+   "state_authority": "server",
+   "state_end_of_life": true,
+   "storage_service": "Durable Object storage (with alarms)",
+   "unrequested_features": [
+    "randomize/auto-placement convenience button for ship placement"
+   ]
+  },
+  "GAS_invite_current_1": {
+   "concurrency_mechanism": null,
+   "deletion_path": false,
+   "explicit_placement_decision": true,
+   "hidden_info_protected": false,
+   "identity": "runtime-identity",
+   "invite_expiry": true,
+   "logs_redacted": false,
+   "notification_mechanism": "poll",
+   "persistence": "runtime-service",
+   "pii_identified": false,
+   "platform_errors": [],
+   "quotas_addressed": true,
+   "retention_defined": false,
+   "state_authority": "server",
+   "state_end_of_life": false,
+   "storage_service": "Google Sheets",
+   "unrequested_features": []
+  },
+  "GAS_invite_current_2": {
+   "concurrency_mechanism": "LockService",
+   "deletion_path": false,
+   "explicit_placement_decision": true,
+   "hidden_info_protected": true,
+   "identity": "runtime-identity",
+   "invite_expiry": false,
+   "logs_redacted": false,
+   "notification_mechanism": "client-side polling (google.script.run interval)",
+   "persistence": "runtime-service",
+   "pii_identified": false,
+   "platform_errors": [],
+   "quotas_addressed": false,
+   "retention_defined": false,
+   "state_authority": "server",
+   "state_end_of_life": false,
+   "storage_service": "Google Sheets",
+   "unrequested_features": []
+  },
+  "GAS_invite_current_3": {
+   "concurrency_mechanism": null,
+   "deletion_path": false,
+   "explicit_placement_decision": true,
+   "hidden_info_protected": false,
+   "identity": "runtime-identity",
+   "invite_expiry": false,
+   "logs_redacted": false,
+   "notification_mechanism": "poll",
+   "persistence": "runtime-service",
+   "pii_identified": false,
+   "platform_errors": [],
+   "quotas_addressed": true,
+   "retention_defined": false,
+   "state_authority": "server",
+   "state_end_of_life": true,
+   "storage_service": "Google Sheets",
+   "unrequested_features": []
+  },
+  "GAS_invite_life1_1": {
+   "concurrency_mechanism": "LockService.getScriptLock()",
+   "deletion_path": false,
+   "explicit_placement_decision": true,
+   "hidden_info_protected": true,
+   "identity": "runtime-identity",
+   "invite_expiry": false,
+   "logs_redacted": true,
+   "notification_mechanism": "poll",
+   "persistence": "runtime-service",
+   "pii_identified": false,
+   "platform_errors": [],
+   "quotas_addressed": true,
+   "retention_defined": true,
+   "state_authority": "server",
+   "state_end_of_life": true,
+   "storage_service": "Google Sheets",
+   "unrequested_features": []
+  },
+  "GAS_invite_life1_2": {
+   "concurrency_mechanism": "LockService.getScriptLock()",
+   "deletion_path": false,
+   "explicit_placement_decision": true,
+   "hidden_info_protected": true,
+   "identity": "runtime-identity",
+   "invite_expiry": false,
+   "logs_redacted": true,
+   "notification_mechanism": "poll",
+   "persistence": "runtime-service",
+   "pii_identified": true,
+   "platform_errors": [],
+   "quotas_addressed": true,
+   "retention_defined": true,
+   "state_authority": "server",
+   "state_end_of_life": true,
+   "storage_service": "Google Sheets (Spreadsheet)",
+   "unrequested_features": [
+    "Restricting access to a single Google Workspace domain ('Anyone within [domain]') rather than generic sign-in, which also bakes in domain-validation logic (invitee-domain checks, non-domain rejection) not requested"
+   ]
+  },
+  "GAS_invite_life1_3": {
+   "concurrency_mechanism": "LockService.getScriptLock()",
+   "deletion_path": false,
+   "explicit_placement_decision": true,
+   "hidden_info_protected": true,
+   "identity": "runtime-identity",
+   "invite_expiry": false,
+   "logs_redacted": false,
+   "notification_mechanism": "client-side polling via google.script.run",
+   "persistence": "runtime-service",
+   "pii_identified": false,
+   "platform_errors": [
+    "Plan states Session.getActiveUser().getEmail() will reliably identify both players when the app is deployed to 'Anyone with a Google account' (not domain-restricted). In practice, getActiveUser() commonly returns an empty string for users outside the script owner's Workspace domain \u2014 it is not guaranteed to resolve identity for arbitrary personal Google accounts, which is exactly the invitee scenario the plan relies on it for."
+   ],
+   "quotas_addressed": false,
+   "retention_defined": false,
+   "state_authority": "server",
+   "state_end_of_life": false,
+   "storage_service": "Google Sheets",
+   "unrequested_features": []
+  },
+  "GAS_invite_life2_1": {
+   "concurrency_mechanism": "LockService.getScriptLock()",
+   "deletion_path": false,
+   "explicit_placement_decision": true,
+   "hidden_info_protected": true,
+   "identity": "runtime-identity",
+   "invite_expiry": true,
+   "logs_redacted": false,
+   "notification_mechanism": "poll",
+   "persistence": "runtime-service",
+   "pii_identified": true,
+   "platform_errors": [],
+   "quotas_addressed": true,
+   "retention_defined": true,
+   "state_authority": "server",
+   "state_end_of_life": true,
+   "storage_service": "Google Sheets",
+   "unrequested_features": []
+  },
+  "GAS_invite_life2_2": {
+   "concurrency_mechanism": "LockService",
+   "deletion_path": false,
+   "explicit_placement_decision": true,
+   "hidden_info_protected": true,
+   "identity": "runtime-identity",
+   "invite_expiry": true,
+   "logs_redacted": true,
+   "notification_mechanism": "poll",
+   "persistence": "runtime-service",
+   "pii_identified": true,
+   "platform_errors": [],
+   "quotas_addressed": true,
+   "retention_defined": true,
+   "state_authority": "server",
+   "state_end_of_life": true,
+   "storage_service": "Sheets",
+   "unrequested_features": []
+  },
+  "GAS_invite_life2_3": {
+   "concurrency_mechanism": "LockService.getScriptLock()",
+   "deletion_path": false,
+   "explicit_placement_decision": true,
+   "hidden_info_protected": true,
+   "identity": "runtime-identity",
+   "invite_expiry": true,
+   "logs_redacted": false,
+   "notification_mechanism": "client-side polling (google.script.run poll loop, 3-5s)",
+   "persistence": "runtime-service",
+   "pii_identified": true,
+   "platform_errors": [],
+   "quotas_addressed": true,
+   "retention_defined": true,
+   "state_authority": "server",
+   "state_end_of_life": true,
+   "storage_service": "Google Sheets",
+   "unrequested_features": []
+  },
+  "GAS_multi_life2_1": {
+   "concurrency_mechanism": "LockService.getScriptLock()",
+   "deletion_path": true,
+   "explicit_placement_decision": true,
+   "hidden_info_protected": true,
+   "identity": "runtime-identity",
+   "invite_expiry": true,
+   "logs_redacted": false,
+   "notification_mechanism": "poll",
+   "persistence": "runtime-service",
+   "pii_identified": false,
+   "platform_errors": [],
+   "quotas_addressed": true,
+   "retention_defined": true,
+   "state_authority": "server",
+   "state_end_of_life": true,
+   "storage_service": "PropertiesService (Script Properties)",
+   "unrequested_features": []
+  },
+  "GAS_multi_life2_2": {
+   "concurrency_mechanism": "LockService.getScriptLock()",
+   "deletion_path": true,
+   "explicit_placement_decision": true,
+   "hidden_info_protected": true,
+   "identity": "runtime-identity",
+   "invite_expiry": true,
+   "logs_redacted": false,
+   "notification_mechanism": "poll",
+   "persistence": "runtime-service",
+   "pii_identified": false,
+   "platform_errors": [],
+   "quotas_addressed": true,
+   "retention_defined": true,
+   "state_authority": "server",
+   "state_end_of_life": true,
+   "storage_service": "Google Sheets",
+   "unrequested_features": []
+  },
+  "GAS_multi_life2_3": {
+   "concurrency_mechanism": "LockService.getScriptLock()",
+   "deletion_path": true,
+   "explicit_placement_decision": true,
+   "hidden_info_protected": true,
+   "identity": "runtime-identity",
+   "invite_expiry": false,
+   "logs_redacted": false,
+   "notification_mechanism": "client-side polling of getGameState every 2-3s",
+   "persistence": "runtime-service",
+   "pii_identified": false,
+   "platform_errors": [],
+   "quotas_addressed": true,
+   "retention_defined": true,
+   "state_authority": "server",
+   "state_end_of_life": true,
+   "storage_service": "PropertiesService",
+   "unrequested_features": [
+    "forfeit/abandon game flow",
+    "truthful async UI feedback (disabled controls, spinners, error toasts during in-flight calls)"
+   ]
+  },
+  "GAS_solo_current_1": {
+   "concurrency_mechanism": null,
+   "deletion_path": false,
+   "explicit_placement_decision": true,
+   "hidden_info_protected": false,
+   "identity": "none",
+   "invite_expiry": null,
+   "logs_redacted": false,
+   "notification_mechanism": null,
+   "persistence": "none",
+   "pii_identified": false,
+   "platform_errors": [],
+   "quotas_addressed": false,
+   "retention_defined": false,
+   "state_authority": "client",
+   "state_end_of_life": true,
+   "storage_service": null,
+   "unrequested_features": [
+    "New game / restart control (re-initialize without reload)"
+   ]
+  },
+  "GAS_solo_current_2": {
+   "concurrency_mechanism": null,
+   "deletion_path": false,
+   "explicit_placement_decision": true,
+   "hidden_info_protected": false,
+   "identity": "none",
+   "invite_expiry": null,
+   "logs_redacted": false,
+   "notification_mechanism": null,
+   "persistence": "none",
+   "pii_identified": false,
+   "platform_errors": [],
+   "quotas_addressed": false,
+   "retention_defined": false,
+   "state_authority": "client",
+   "state_end_of_life": true,
+   "storage_service": null,
+   "unrequested_features": []
+  },
+  "GAS_solo_current_3": {
+   "concurrency_mechanism": null,
+   "deletion_path": false,
+   "explicit_placement_decision": true,
+   "hidden_info_protected": false,
+   "identity": "none",
+   "invite_expiry": null,
+   "logs_redacted": false,
+   "notification_mechanism": null,
+   "persistence": "none",
+   "pii_identified": false,
+   "platform_errors": [],
+   "quotas_addressed": false,
+   "retention_defined": false,
+   "state_authority": "client",
+   "state_end_of_life": false,
+   "storage_service": null,
+   "unrequested_features": [
+    "Accessibility pass (keyboard focus states, non-color-only hit/miss/sunk indicators)"
+   ]
+  },
+  "GAS_solo_life1_1": {
+   "concurrency_mechanism": null,
+   "deletion_path": false,
+   "explicit_placement_decision": true,
+   "hidden_info_protected": false,
+   "identity": "runtime-identity",
+   "invite_expiry": null,
+   "logs_redacted": true,
+   "notification_mechanism": null,
+   "persistence": "none",
+   "pii_identified": false,
+   "platform_errors": [],
+   "quotas_addressed": false,
+   "retention_defined": true,
+   "state_authority": "client",
+   "state_end_of_life": true,
+   "storage_service": null,
+   "unrequested_features": [
+    "Workspace domain-restricted deployment/access gating \u2014 the request was for a browser Battleship game against the computer; restricting who may open the app to a Google Workspace domain is an access-control decision the user never asked for."
+   ]
+  },
+  "GAS_solo_life1_2": {
+   "concurrency_mechanism": null,
+   "deletion_path": false,
+   "explicit_placement_decision": true,
+   "hidden_info_protected": false,
+   "identity": "none",
+   "invite_expiry": null,
+   "logs_redacted": false,
+   "notification_mechanism": null,
+   "persistence": "none",
+   "pii_identified": false,
+   "platform_errors": [],
+   "quotas_addressed": false,
+   "retention_defined": false,
+   "state_authority": "client",
+   "state_end_of_life": true,
+   "storage_service": null,
+   "unrequested_features": []
+  },
+  "GAS_solo_life1_3": {
+   "concurrency_mechanism": "LockService.getUserLock()",
+   "deletion_path": true,
+   "explicit_placement_decision": true,
+   "hidden_info_protected": true,
+   "identity": "runtime-identity",
+   "invite_expiry": null,
+   "logs_redacted": false,
+   "notification_mechanism": null,
+   "persistence": "runtime-service",
+   "pii_identified": false,
+   "platform_errors": [],
+   "quotas_addressed": true,
+   "retention_defined": true,
+   "state_authority": "server",
+   "state_end_of_life": true,
+   "storage_service": "CacheService",
+   "unrequested_features": []
+  },
+  "GAS_solo_life2_1": {
+   "concurrency_mechanism": null,
+   "deletion_path": false,
+   "explicit_placement_decision": true,
+   "hidden_info_protected": false,
+   "identity": "none",
+   "invite_expiry": null,
+   "logs_redacted": true,
+   "notification_mechanism": null,
+   "persistence": "none",
+   "pii_identified": false,
+   "platform_errors": [],
+   "quotas_addressed": false,
+   "retention_defined": true,
+   "state_authority": "client",
+   "state_end_of_life": true,
+   "storage_service": null,
+   "unrequested_features": [
+    "Accessibility/ARIA/keyboard-operability pass beyond the base game request"
+   ]
+  },
+  "GAS_solo_life2_2": {
+   "concurrency_mechanism": null,
+   "deletion_path": false,
+   "explicit_placement_decision": true,
+   "hidden_info_protected": false,
+   "identity": "none",
+   "invite_expiry": null,
+   "logs_redacted": true,
+   "notification_mechanism": null,
+   "persistence": "none",
+   "pii_identified": false,
+   "platform_errors": [],
+   "quotas_addressed": true,
+   "retention_defined": true,
+   "state_authority": "client",
+   "state_end_of_life": true,
+   "storage_service": null,
+   "unrequested_features": [
+    "New Game / in-place reset control that reinitializes state without reload",
+    "Cosmetic pre-reveal delay (UX pacing polish) on computer's shot"
+   ]
+  },
+  "GAS_solo_life2_3": {
+   "concurrency_mechanism": null,
+   "deletion_path": true,
+   "explicit_placement_decision": true,
+   "hidden_info_protected": true,
+   "identity": "none",
+   "invite_expiry": null,
+   "logs_redacted": true,
+   "notification_mechanism": null,
+   "persistence": "runtime-service",
+   "pii_identified": false,
+   "platform_errors": [],
+   "quotas_addressed": true,
+   "retention_defined": true,
+   "state_authority": "mixed",
+   "state_end_of_life": true,
+   "storage_service": "CacheService",
+   "unrequested_features": []
+  },
+  "SF_invite_current_1": {
+   "concurrency_mechanism": null,
+   "deletion_path": false,
+   "explicit_placement_decision": true,
+   "hidden_info_protected": true,
+   "identity": "runtime-identity",
+   "invite_expiry": true,
+   "logs_redacted": false,
+   "notification_mechanism": "Platform Event (ShotResult__e) via empApi push, treated as a refresh nudge with re-fetch on subscribe/reconnect",
+   "persistence": "runtime-service",
+   "pii_identified": false,
+   "platform_errors": [],
+   "quotas_addressed": true,
+   "retention_defined": false,
+   "state_authority": "server",
+   "state_end_of_life": false,
+   "storage_service": "Salesforce Custom Objects (Game__c, Shot__c)",
+   "unrequested_features": []
+  },
+  "SF_invite_current_2": {
+   "concurrency_mechanism": null,
+   "deletion_path": false,
+   "explicit_placement_decision": true,
+   "hidden_info_protected": true,
+   "identity": "runtime-identity",
+   "invite_expiry": true,
+   "logs_redacted": false,
+   "notification_mechanism": "Platform Events (GameUpdate__e) pushed via lightning/empApi (CometD), client re-queries Apex on receipt",
+   "persistence": "runtime-service",
+   "pii_identified": false,
+   "platform_errors": [],
+   "quotas_addressed": false,
+   "retention_defined": false,
+   "state_authority": "server",
+   "state_end_of_life": false,
+   "storage_service": "Salesforce custom objects (Game__c, Ship__c, Shot__c)",
+   "unrequested_features": []
+  },
+  "SF_invite_current_3": {
+   "concurrency_mechanism": null,
+   "deletion_path": false,
+   "explicit_placement_decision": true,
+   "hidden_info_protected": true,
+   "identity": "runtime-identity",
+   "invite_expiry": false,
+   "logs_redacted": false,
+   "notification_mechanism": "Platform Events (GameUpdate__e) pushed to LWCs via empApi",
+   "persistence": "runtime-service",
+   "pii_identified": false,
+   "platform_errors": [],
+   "quotas_addressed": false,
+   "retention_defined": false,
+   "state_authority": "server",
+   "state_end_of_life": false,
+   "storage_service": "Salesforce custom objects (org database via Apex/SOQL) \u2014 Game__c, Shot__c",
+   "unrequested_features": []
+  },
+  "SF_invite_life1_1": {
+   "concurrency_mechanism": "SOQL FOR UPDATE row-locking on Game__c during move processing",
+   "deletion_path": false,
+   "explicit_placement_decision": true,
+   "hidden_info_protected": true,
+   "identity": "runtime-identity",
+   "invite_expiry": true,
+   "logs_redacted": false,
+   "notification_mechanism": "Platform Events + empApi push triggering client refetch",
+   "persistence": "runtime-service",
+   "pii_identified": true,
+   "platform_errors": [],
+   "quotas_addressed": false,
+   "retention_defined": false,
+   "state_authority": "server",
+   "state_end_of_life": false,
+   "storage_service": "Salesforce Custom Objects (Game__c, GameInvite__c, PlayerBoard__c) via SOQL",
+   "unrequested_features": []
+  },
+  "SF_invite_life1_2": {
+   "concurrency_mechanism": "SOQL `FOR UPDATE` row lock on Game__c inside the makeMove Apex transaction",
+   "deletion_path": false,
+   "explicit_placement_decision": true,
+   "hidden_info_protected": true,
+   "identity": "runtime-identity",
+   "invite_expiry": true,
+   "logs_redacted": true,
+   "notification_mechanism": "Platform Events (GameUpdate__e) pushed via empApi/LWC platform-event adapter, with manual refresh fallback",
+   "persistence": "runtime-service",
+   "pii_identified": true,
+   "platform_errors": [],
+   "quotas_addressed": false,
+   "retention_defined": true,
+   "state_authority": "server",
+   "state_end_of_life": false,
+   "storage_service": "Salesforce custom objects (sObjects) with sharing rules / OWD",
+   "unrequested_features": []
+  },
+  "SF_invite_life1_3": {
+   "concurrency_mechanism": "Apex transactional row-locking (SOQL FOR UPDATE) for token consumption and turn transitions",
+   "deletion_path": false,
+   "explicit_placement_decision": true,
+   "hidden_info_protected": true,
+   "identity": "runtime-identity",
+   "invite_expiry": true,
+   "logs_redacted": false,
+   "notification_mechanism": "Platform Events (GameUpdate__e) pushed via lightning/empApi, client re-fetches authoritative state on receipt",
+   "persistence": "runtime-service",
+   "pii_identified": true,
+   "platform_errors": [],
+   "quotas_addressed": true,
+   "retention_defined": false,
+   "state_authority": "server",
+   "state_end_of_life": true,
+   "storage_service": "Salesforce custom objects (Force.com/Platform database)",
+   "unrequested_features": []
+  },
+  "SF_invite_life2_1": {
+   "concurrency_mechanism": "SOQL 'SELECT ... FOR UPDATE' row locking on Game__c in Apex",
+   "deletion_path": false,
+   "explicit_placement_decision": true,
+   "hidden_info_protected": true,
+   "identity": "runtime-identity",
+   "invite_expiry": false,
+   "logs_redacted": false,
+   "notification_mechanism": "Platform Event (GameMove__e) consumed via empApi/Lightning Message Service, with @wire polling fallback",
+   "persistence": "runtime-service",
+   "pii_identified": false,
+   "platform_errors": [],
+   "quotas_addressed": true,
+   "retention_defined": false,
+   "state_authority": "server",
+   "state_end_of_life": false,
+   "storage_service": "Salesforce Platform Database (custom objects: Game__c, Fleet__c, Shot__c)",
+   "unrequested_features": []
+  },
+  "SF_invite_life2_2": {
+   "concurrency_mechanism": "Apex SOQL row locking (SELECT ... FOR UPDATE) inside a single transaction on fireShot",
+   "deletion_path": false,
+   "explicit_placement_decision": true,
+   "hidden_info_protected": true,
+   "identity": "runtime-identity",
+   "invite_expiry": true,
+   "logs_redacted": true,
+   "notification_mechanism": "Platform Events (GameEvent__e) pushed to LWC via lightning/empApi",
+   "persistence": "runtime-service",
+   "pii_identified": false,
+   "platform_errors": [],
+   "quotas_addressed": false,
+   "retention_defined": true,
+   "state_authority": "server",
+   "state_end_of_life": true,
+   "storage_service": "Salesforce custom objects (sObjects): Game__c, GameBoard__c, Shot__c",
+   "unrequested_features": []
+  },
+  "SF_invite_life2_3": {
+   "concurrency_mechanism": "SOQL row locking via SELECT ... FOR UPDATE in Apex",
+   "deletion_path": true,
+   "explicit_placement_decision": true,
+   "hidden_info_protected": true,
+   "identity": "runtime-identity",
+   "invite_expiry": true,
+   "logs_redacted": false,
+   "notification_mechanism": "Change Data Capture subscription (with Lightning Message Service) while both UIs are open, falling back to a 'your turn' transactional email",
+   "persistence": "runtime-service",
+   "pii_identified": true,
+   "platform_errors": [],
+   "quotas_addressed": true,
+   "retention_defined": true,
+   "state_authority": "server",
+   "state_end_of_life": false,
+   "storage_service": "Salesforce Custom Objects (sObjects) on the platform database",
+   "unrequested_features": []
+  },
+  "SF_multi_life2_1": {
+   "concurrency_mechanism": "SOQL 'FOR UPDATE' row locking on Game__c inside the fireShot Apex transaction",
+   "deletion_path": false,
+   "explicit_placement_decision": true,
+   "hidden_info_protected": true,
+   "identity": "runtime-identity",
+   "invite_expiry": false,
+   "logs_redacted": false,
+   "notification_mechanism": "Platform Events (GameUpdate__e) pushed via lightning/empApi, with clients re-fetching authoritative state on receipt",
+   "persistence": "runtime-service",
+   "pii_identified": false,
+   "platform_errors": [],
+   "quotas_addressed": true,
+   "retention_defined": true,
+   "state_authority": "server",
+   "state_end_of_life": true,
+   "storage_service": "Salesforce Custom Objects (sObjects) via standard database (Game__c, Fleet__c, Shot__c)",
+   "unrequested_features": []
+  },
+  "SF_multi_life2_2": {
+   "concurrency_mechanism": "SOQL row locking (SELECT ... FOR UPDATE on Game__c)",
+   "deletion_path": false,
+   "explicit_placement_decision": true,
+   "hidden_info_protected": true,
+   "identity": "runtime-identity",
+   "invite_expiry": false,
+   "logs_redacted": false,
+   "notification_mechanism": "Platform Events (Battleship_Event__e) pushed via lightning/empApi",
+   "persistence": "runtime-service",
+   "pii_identified": true,
+   "platform_errors": [],
+   "quotas_addressed": true,
+   "retention_defined": false,
+   "state_authority": "server",
+   "state_end_of_life": false,
+   "storage_service": "Salesforce custom objects (sObjects: Game__c, Fleet_Ship__c, Shot__c)",
+   "unrequested_features": []
+  },
+  "SF_multi_life2_3": {
+   "concurrency_mechanism": "Apex SOQL `FOR UPDATE` row lock on Game__c plus a Shot__c uniqueness check (Game+Shooter+Cell) in one transaction",
+   "deletion_path": true,
+   "explicit_placement_decision": true,
+   "hidden_info_protected": true,
+   "identity": "runtime-identity",
+   "invite_expiry": true,
+   "logs_redacted": true,
+   "notification_mechanism": "Platform Event (GameUpdate__e) published by Apex, consumed via lightning/empApi to trigger a client refetch",
+   "persistence": "runtime-service",
+   "pii_identified": true,
+   "platform_errors": [],
+   "quotas_addressed": false,
+   "retention_defined": true,
+   "state_authority": "server",
+   "state_end_of_life": true,
+   "storage_service": "Salesforce Custom Objects (Game__c, ShipPlacement__c, Shot__c) on the org database",
+   "unrequested_features": [
+    "Automatic invite/game expiry and abandonment via a scheduled Apex housekeeping job",
+    "Keyboard/label accessibility pass on the board UI"
+   ]
+  },
+  "SF_solo_current_1": {
+   "concurrency_mechanism": null,
+   "deletion_path": false,
+   "explicit_placement_decision": true,
+   "hidden_info_protected": false,
+   "identity": "none",
+   "invite_expiry": null,
+   "logs_redacted": false,
+   "notification_mechanism": null,
+   "persistence": "none",
+   "pii_identified": false,
+   "platform_errors": [],
+   "quotas_addressed": false,
+   "retention_defined": false,
+   "state_authority": "client",
+   "state_end_of_life": true,
+   "storage_service": null,
+   "unrequested_features": [
+    "Keyboard/screen-reader accessibility work (aria-labels, keyboard operability, live a11y verification) beyond the core gameplay request"
+   ]
+  },
+  "SF_solo_current_2": {
+   "concurrency_mechanism": null,
+   "deletion_path": false,
+   "explicit_placement_decision": true,
+   "hidden_info_protected": false,
+   "identity": "none",
+   "invite_expiry": null,
+   "logs_redacted": false,
+   "notification_mechanism": null,
+   "persistence": "browser-only",
+   "pii_identified": false,
+   "platform_errors": [],
+   "quotas_addressed": false,
+   "retention_defined": false,
+   "state_authority": "client",
+   "state_end_of_life": true,
+   "storage_service": null,
+   "unrequested_features": [
+    "ship randomize button",
+    "artificial 'Computer is aiming\u2026' pacing delay on AI turns",
+    "accessibility (WCAG AA / axe/Lighthouse) audit pass"
+   ]
+  },
+  "SF_solo_current_3": {
+   "concurrency_mechanism": null,
+   "deletion_path": false,
+   "explicit_placement_decision": true,
+   "hidden_info_protected": false,
+   "identity": "none",
+   "invite_expiry": null,
+   "logs_redacted": false,
+   "notification_mechanism": null,
+   "persistence": "none",
+   "pii_identified": false,
+   "platform_errors": [],
+   "quotas_addressed": false,
+   "retention_defined": false,
+   "state_authority": "client",
+   "state_end_of_life": true,
+   "storage_service": null,
+   "unrequested_features": []
+  },
+  "SF_solo_life1_1": {
+   "concurrency_mechanism": null,
+   "deletion_path": false,
+   "explicit_placement_decision": true,
+   "hidden_info_protected": false,
+   "identity": "runtime-identity",
+   "invite_expiry": null,
+   "logs_redacted": true,
+   "notification_mechanism": null,
+   "persistence": "none",
+   "pii_identified": false,
+   "platform_errors": [],
+   "quotas_addressed": false,
+   "retention_defined": true,
+   "state_authority": "client",
+   "state_end_of_life": true,
+   "storage_service": null,
+   "unrequested_features": [
+    "Randomize fleet placement action",
+    "Keyboard/ARIA accessibility pass"
+   ]
+  },
+  "SF_solo_life1_2": {
+   "concurrency_mechanism": null,
+   "deletion_path": false,
+   "explicit_placement_decision": true,
+   "hidden_info_protected": false,
+   "identity": "runtime-identity",
+   "invite_expiry": null,
+   "logs_redacted": true,
+   "notification_mechanism": null,
+   "persistence": "none",
+   "pii_identified": false,
+   "platform_errors": [],
+   "quotas_addressed": false,
+   "retention_defined": false,
+   "state_authority": "client",
+   "state_end_of_life": true,
+   "storage_service": null,
+   "unrequested_features": []
+  },
+  "SF_solo_life1_3": {
+   "concurrency_mechanism": null,
+   "deletion_path": false,
+   "explicit_placement_decision": true,
+   "hidden_info_protected": true,
+   "identity": "runtime-identity",
+   "invite_expiry": null,
+   "logs_redacted": false,
+   "notification_mechanism": null,
+   "persistence": "runtime-service",
+   "pii_identified": true,
+   "platform_errors": [],
+   "quotas_addressed": false,
+   "retention_defined": true,
+   "state_authority": "server",
+   "state_end_of_life": true,
+   "storage_service": "Custom Object (Battleship_Game__c)",
+   "unrequested_features": []
+  },
+  "SF_solo_life2_1": {
+   "concurrency_mechanism": null,
+   "deletion_path": false,
+   "explicit_placement_decision": true,
+   "hidden_info_protected": false,
+   "identity": "none",
+   "invite_expiry": null,
+   "logs_redacted": false,
+   "notification_mechanism": null,
+   "persistence": "none",
+   "pii_identified": false,
+   "platform_errors": [],
+   "quotas_addressed": true,
+   "retention_defined": false,
+   "state_authority": "client",
+   "state_end_of_life": true,
+   "storage_service": null,
+   "unrequested_features": []
+  },
+  "SF_solo_life2_2": {
+   "concurrency_mechanism": null,
+   "deletion_path": true,
+   "explicit_placement_decision": true,
+   "hidden_info_protected": true,
+   "identity": "runtime-identity",
+   "invite_expiry": null,
+   "logs_redacted": true,
+   "notification_mechanism": null,
+   "persistence": "runtime-service",
+   "pii_identified": false,
+   "platform_errors": [
+    "Claims 'single-writer-per-request semantics' plus a re-read-then-write check on Platform Cache naturally rejects duplicate/rapid double-clicks with 'no separate locking mechanism needed' \u2014 but Platform Cache has no built-in compare-and-swap/locking, so two near-simultaneous Apex transactions can both read pre-shot state before either writes back, producing a real race that the design doesn't actually prevent."
+   ],
+   "quotas_addressed": true,
+   "retention_defined": true,
+   "state_authority": "server",
+   "state_end_of_life": true,
+   "storage_service": "Platform Cache",
+   "unrequested_features": [
+    "Optional manual click-to-place/rotate ship-placement UI beyond the default random placement"
+   ]
+  },
+  "SF_solo_life2_3": {
+   "concurrency_mechanism": null,
+   "deletion_path": true,
+   "explicit_placement_decision": true,
+   "hidden_info_protected": true,
+   "identity": "runtime-identity",
+   "invite_expiry": null,
+   "logs_redacted": false,
+   "notification_mechanism": null,
+   "persistence": "runtime-service",
+   "pii_identified": true,
+   "platform_errors": [],
+   "quotas_addressed": true,
+   "retention_defined": true,
+   "state_authority": "server",
+   "state_end_of_life": true,
+   "storage_service": "Custom Object (Battleship_Game__c)",
+   "unrequested_features": []
+  }
+ },
+ "E6_research_claims": {
+  "CF_research_current-web_1": {
+   "F1": "flagged_wrong",
+   "F2": "flagged_wrong",
+   "T1": "confirmed",
+   "T2": "unverified",
+   "sources": 6
+  },
+  "CF_research_current-web_2": {
+   "F1": "flagged_wrong",
+   "F2": "flagged_wrong",
+   "T1": "confirmed",
+   "T2": "unverified",
+   "sources": 7
+  },
+  "CF_research_current-web_3": {
+   "F1": "flagged_wrong",
+   "F2": "flagged_wrong",
+   "T1": "confirmed",
+   "T2": "confirmed",
+   "sources": 5
+  },
+  "CF_research_current_1": {
+   "F1": "flagged_wrong",
+   "F2": "flagged_wrong",
+   "T1": "confirmed",
+   "T2": "confirmed",
+   "sources": 3
+  },
+  "CF_research_current_2": {
+   "F1": "flagged_wrong",
+   "F2": "flagged_wrong",
+   "T1": "confirmed",
+   "T2": "confirmed",
+   "sources": 0
+  },
+  "CF_research_current_3": {
+   "F1": "flagged_wrong",
+   "F2": "flagged_wrong",
+   "T1": "unverified",
+   "T2": "unverified",
+   "sources": 3
+  },
+  "CF_research_verify-web_1": {
+   "F1": "flagged_wrong",
+   "F2": "flagged_wrong",
+   "T1": "confirmed",
+   "T2": "confirmed",
+   "sources": 9
+  },
+  "CF_research_verify-web_2": {
+   "F1": "flagged_wrong",
+   "F2": "flagged_wrong",
+   "T1": "confirmed",
+   "T2": "confirmed",
+   "sources": 3
+  },
+  "CF_research_verify-web_3": {
+   "F1": "flagged_wrong",
+   "F2": "flagged_wrong",
+   "T1": "confirmed",
+   "T2": "confirmed",
+   "sources": 5
+  },
+  "GAS_research_current-web_1": {
+   "F1": "flagged_wrong",
+   "F2": "flagged_wrong",
+   "T1": "confirmed",
+   "T2": "confirmed",
+   "sources": 4
+  },
+  "GAS_research_current-web_2": {
+   "F1": "flagged_wrong",
+   "F2": "flagged_wrong",
+   "T1": "confirmed",
+   "T2": "confirmed",
+   "sources": 4
+  },
+  "GAS_research_current-web_3": {
+   "F1": "flagged_wrong",
+   "F2": "flagged_wrong",
+   "T1": "confirmed",
+   "T2": "confirmed",
+   "sources": 1
+  },
+  "GAS_research_current_1": {
+   "F1": "flagged_wrong",
+   "F2": "flagged_wrong",
+   "T1": "confirmed",
+   "T2": "unverified",
+   "sources": 0
+  },
+  "GAS_research_current_2": {
+   "F1": "flagged_wrong",
+   "F2": "flagged_wrong",
+   "T1": "flagged_wrong",
+   "T2": "confirmed",
+   "sources": 4
+  },
+  "GAS_research_current_3": {
+   "F1": "flagged_wrong",
+   "F2": "flagged_wrong",
+   "T1": "confirmed",
+   "T2": "unverified",
+   "sources": 0
+  },
+  "GAS_research_verify-web_1": {
+   "F1": "flagged_wrong",
+   "F2": "flagged_wrong",
+   "T1": "confirmed",
+   "T2": "confirmed",
+   "sources": 4
+  },
+  "GAS_research_verify-web_2": {
+   "F1": "flagged_wrong",
+   "F2": "flagged_wrong",
+   "T1": "confirmed",
+   "T2": "confirmed",
+   "sources": 4
+  },
+  "GAS_research_verify-web_3": {
+   "F1": "flagged_wrong",
+   "F2": "flagged_wrong",
+   "T1": "confirmed",
+   "T2": "confirmed",
+   "sources": 5
+  },
+  "SF_research_current-web_1": {
+   "F1": "flagged_wrong",
+   "F2": "flagged_wrong",
+   "T1": "confirmed",
+   "T2": "confirmed",
+   "sources": 6
+  },
+  "SF_research_current-web_2": {
+   "F1": "flagged_wrong",
+   "F2": "flagged_wrong",
+   "T1": "confirmed",
+   "T2": "not_mentioned",
+   "sources": 4
+  },
+  "SF_research_current-web_3": {
+   "F1": "flagged_wrong",
+   "F2": "flagged_wrong",
+   "T1": "flagged_wrong",
+   "T2": "not_mentioned",
+   "sources": 3
+  },
+  "SF_research_current_1": {
+   "F1": "flagged_wrong",
+   "F2": "flagged_wrong",
+   "T1": "confirmed",
+   "T2": "confirmed",
+   "sources": 0
+  },
+  "SF_research_current_2": {
+   "F1": "flagged_wrong",
+   "F2": "flagged_wrong",
+   "T1": "unverified",
+   "T2": "not_mentioned",
+   "sources": 0
+  },
+  "SF_research_current_3": {
+   "F1": "flagged_wrong",
+   "F2": "flagged_wrong",
+   "T1": "confirmed",
+   "T2": "unverified",
+   "sources": 3
+  },
+  "SF_research_verify-web_1": {
+   "F1": "flagged_wrong",
+   "F2": "flagged_wrong",
+   "T1": "flagged_wrong",
+   "T2": "confirmed",
+   "sources": 3
+  },
+  "SF_research_verify-web_2": {
+   "F1": "flagged_wrong",
+   "F2": "flagged_wrong",
+   "T1": "confirmed",
+   "T2": "confirmed",
+   "sources": 5
+  },
+  "SF_research_verify-web_3": {
+   "F1": "flagged_wrong",
+   "F2": "flagged_wrong",
+   "T1": "flagged_wrong",
+   "T2": "confirmed",
+   "sources": 4
+  }
+ },
+ "E6b_planning_review": {
+  "CF_multi_control_3__focus-claims_1": {
+   "caught": 1,
+   "listed": 1,
+   "new_platform_errors": [
+    "Claims Cloudflare documents 100,000 PBKDF2 iterations as the 'practical max' for crypto.subtle \u2014 no such specific documented limit exists; Workers CPU-time limits vary by plan and PBKDF2 iteration guidance is not pinned to that number.",
+    "Cites a specific version gate '@cloudflare/vitest-pool-workers \u22650.16.20' for evictDurableObject/evictAllDurableObjects \u2014 this precise version number is asserted without a verifiable source and is likely fabricated specificity."
+   ]
+  },
+  "CF_multi_control_3__focus-claims_2": {
+   "caught": 1,
+   "listed": 1,
+   "new_platform_errors": [
+    "Claims '@cloudflare/vitest-pool-workers (\u22650.16.20)' exports 'evictDurableObject'/'evictAllDurableObjects' from 'cloudflare:test', citing a specific '2026-06-25' Cloudflare changelog entry \u2014 this exact package version, function names, and changelog date are asserted with unverified precision and are not confirmed accurate."
+   ]
+  },
+  "CF_multi_control_3__focus-claims_3": {
+   "caught": 1,
+   "listed": 1,
+   "new_platform_errors": [
+    "Claims Cloudflare's `@cloudflare/vitest-pool-workers` package exports `evictDurableObject`/`evictAllDurableObjects` from `cloudflare:test`, citing a specific version floor (0.16.20+) and changelog date (2026-06-25) \u2014 this specific API name/version/date is not a verifiable real feature and appears fabricated.",
+    "Claims Miniflare 'historically never evicted DOs from memory even when hibernatable WebSocket events fired' \u2014 an unverified, overly specific historical claim about Miniflare's internal eviction behavior."
+   ]
+  },
+  "CF_multi_control_3__focus-current_1": {
+   "caught": 0,
+   "listed": 1,
+   "new_platform_errors": []
+  },
+  "CF_multi_control_3__focus-current_2": {
+   "caught": 0,
+   "listed": 1,
+   "new_platform_errors": []
+  },
+  "CF_multi_control_3__focus-current_3": {
+   "caught": 0,
+   "listed": 1,
+   "new_platform_errors": []
+  },
+  "GAS_multi_current-inline_1__focus-claims_1": {
+   "caught": 1,
+   "listed": 1,
+   "new_platform_errors": []
+  },
+  "GAS_multi_current-inline_1__focus-claims_2": {
+   "caught": 0,
+   "listed": 1,
+   "new_platform_errors": []
+  },
+  "GAS_multi_current-inline_1__focus-claims_3": {
+   "caught": 0,
+   "listed": 1,
+   "new_platform_errors": []
+  },
+  "GAS_multi_current-inline_1__focus-current_1": {
+   "caught": 0,
+   "listed": 1,
+   "new_platform_errors": []
+  },
+  "GAS_multi_current-inline_1__focus-current_2": {
+   "caught": 0,
+   "listed": 1,
+   "new_platform_errors": []
+  },
+  "GAS_multi_current-inline_1__focus-current_3": {
+   "caught": 0,
+   "listed": 1,
+   "new_platform_errors": []
+  },
+  "GAS_solo_lifecycle_3__focus-claims_1": {
+   "caught": 0,
+   "listed": 1,
+   "new_platform_errors": [
+    "Review claims CacheService.getScriptCache() has a 'global 1,000-item cap' \u2014 this is not a documented Apps Script CacheService quota; no such fixed item-count limit exists in the official docs."
+   ]
+  },
+  "GAS_solo_lifecycle_3__focus-claims_2": {
+   "caught": 1,
+   "listed": 1,
+   "new_platform_errors": []
+  },
+  "GAS_solo_lifecycle_3__focus-claims_3": {
+   "caught": 0,
+   "listed": 1,
+   "new_platform_errors": [
+    "The review claims CacheService has 'a soft 1,000-item cap shared across all callers of getScriptCache()' \u2014 this is not a documented Google Apps Script CacheService limit; Google's documented constraints are per-key value size (100KB) and per-put expiration (max 21600s/6h), not a fixed item-count cap."
+   ]
+  },
+  "GAS_solo_lifecycle_3__focus-current_1": {
+   "caught": 0,
+   "listed": 1,
+   "new_platform_errors": []
+  },
+  "GAS_solo_lifecycle_3__focus-current_2": {
+   "caught": 0,
+   "listed": 1,
+   "new_platform_errors": []
+  },
+  "GAS_solo_lifecycle_3__focus-current_3": {
+   "caught": 0,
+   "listed": 1,
+   "new_platform_errors": []
+  },
+  "SF_multi_current-inline_1__focus-claims_1": {
+   "caught": 1,
+   "listed": 1,
+   "new_platform_errors": [
+    "Claims the Apex FOR UPDATE lock-contention failure throws a DmlException after a 10-second timeout \u2014 the documented failure mode is a QueryException with message 'UNABLE_TO_LOCK_ROW', not a DmlException.",
+    "Claims 'ORDER BY can't be combined with' FOR UPDATE \u2014 Salesforce's documented FOR UPDATE restrictions cover things like aggregate functions/GROUP BY/counting queries, not ORDER BY; this restriction is not a real, documented limitation."
+   ]
+  },
+  "SF_multi_current-inline_1__focus-claims_2": {
+   "caught": 1,
+   "listed": 1,
+   "new_platform_errors": []
+  },
+  "SF_multi_current-inline_1__focus-claims_3": {
+   "caught": 1,
+   "listed": 1,
+   "new_platform_errors": [
+    "Finding 5's correction says to concatenate Game+row+col+shooter into a 'formula/text field and mark that field Unique' \u2014 but Salesforce does not allow the Unique attribute on formula fields (only on stored field types like Text, Number, Email); a formula field's value isn't stored, so it can't be flagged Unique. The concatenated key must live in a regular stored field (e.g., populated via trigger/flow) for Unique to apply, which the review's own correction elides by lumping 'formula/text' together."
+   ]
+  },
+  "SF_multi_current-inline_1__focus-current_1": {
+   "caught": 0,
+   "listed": 1,
+   "new_platform_errors": []
+  },
+  "SF_multi_current-inline_1__focus-current_2": {
+   "caught": 0,
+   "listed": 1,
+   "new_platform_errors": []
+  },
+  "SF_multi_current-inline_1__focus-current_3": {
+   "caught": 0,
+   "listed": 1,
+   "new_platform_errors": []
+  },
+  "SF_multi_rebalanced_2__focus-claims_1": {
+   "caught": 0,
+   "listed": 1,
+   "new_platform_errors": []
+  },
+  "SF_multi_rebalanced_2__focus-claims_2": {
+   "caught": 1,
+   "listed": 1,
+   "new_platform_errors": []
+  },
+  "SF_multi_rebalanced_2__focus-claims_3": {
+   "caught": 1,
+   "listed": 1,
+   "new_platform_errors": []
+  },
+  "SF_multi_rebalanced_2__focus-current_1": {
+   "caught": 0,
+   "listed": 1,
+   "new_platform_errors": []
+  },
+  "SF_multi_rebalanced_2__focus-current_2": {
+   "caught": 0,
+   "listed": 1,
+   "new_platform_errors": []
+  },
+  "SF_multi_rebalanced_2__focus-current_3": {
+   "caught": 0,
+   "listed": 1,
+   "new_platform_errors": [
+    "Review's fix for Finding 3 assigns Item 1 as 'a field-level security check via Schema.sObjectField.isAccessible()/FLS-enforced SOQL' to confirm that a specific opponent's fleet records/fields are inaccessible to a specific test user \u2014 but FLS is a profile/permission-set-wide restriction on a field across all records of an object, not a per-record/per-owner control, so FLS cannot be the mechanism that denies one player visibility into a specific opponent's records while allowing visibility into others; that separation can only come from sharing/ownership rules, which the review misattributes as the Item 9 (not Item 1) concern."
+   ]
+  }
+ },
+ "E7_layered": {
+  "gas_card_1.trust": {
+   "how": "Plan notes apiExec/srv is 'not a trust boundary' and adds named srv.ttt.* wrapper functions, but never restricts apiExec itself \u2014 arbitrary new Function() execution remains reachable directly, so any client can still bypass the wrapper and read/write PropertiesService state (hidden fleets) directly.",
+   "identified": true,
+   "mitigated": false
+  },
+  "gas_card_2.trust": {
+   "how": "Plan names apiExec/new Function as a known open trust gap (any signed-in caller can bypass game-server and hit apiExec directly), but takes no action to close it\u2014just documents it as an accepted risk in README.",
+   "identified": true,
+   "mitigated": false
+  },
+  "gas_card_3.trust": {
+   "how": "Plan notes apiExec lets clients invoke any server function directly, and adds seat/turn checks inside game-store.gs's play()/getState(), but doesn't close the underlying new Function exec hole itself \u2014 a caller can still bypass those checks by directly invoking PropertiesService/game internals through the same apiExec bridge to read hidden fleet state.",
+   "identified": true,
+   "mitigated": false
+  },
+  "gas_control_1": {
+   "config_layer": true,
+   "events_routing": true,
+   "layer_conventions_named": 5,
+   "module_pattern": true,
+   "raw_global_doGet": false,
+   "raw_google_script_run": false,
+   "reuses_node_tests": true,
+   "srv_client": true
+  },
+  "gas_control_1.trust": {
+   "how": "Plan relies on USER_ACCESSING identity and per-game role checks in game-store.gs, but never addresses that the srv/apiExec RPC bridge executes arbitrary client-supplied code via new Function, which would let any authenticated user bypass role checks and read/write any game's PropertiesService state directly.",
+   "identified": false,
+   "mitigated": false
+  },
+  "gas_control_2": {
+   "config_layer": true,
+   "events_routing": true,
+   "layer_conventions_named": 5,
+   "module_pattern": true,
+   "raw_global_doGet": false,
+   "raw_google_script_run": false,
+   "reuses_node_tests": true,
+   "srv_client": true
+  },
+  "gas_control_2.trust": {
+   "how": "Plan treats Session.getActiveUser() identity as sufficient and adds turn/membership checks inside game-state.gs, but never addresses that apiExec's new Function() lets any signed-in user call require() directly (bypassing srv.gameState and its checks) or call getState(gid) for any guessable gameId with no membership check, exposing hidden per-player state; no sandboxing/allowlisting of apiExec or per-viewer state filtering is proposed.",
+   "identified": false,
+   "mitigated": false
+  },
+  "gas_control_3": {
+   "config_layer": true,
+   "events_routing": true,
+   "layer_conventions_named": 6,
+   "module_pattern": true,
+   "raw_global_doGet": false,
+   "raw_google_script_run": false,
+   "reuses_node_tests": true,
+   "srv_client": true
+  },
+  "gas_control_3.trust": {
+   "how": "Plan adds participant checks (resolveMark/joinRecord) only inside the intended game-store.gs RPC functions, but never addresses that apiExec's `new Function` execution lets any authenticated caller invoke arbitrary code (e.g. call PropertiesService.getScriptProperties().getProperty('TTT_GAME_<id>') directly) bypassing those checks entirely; it also targets tic-tac-toe with a fully public board, so hidden-fleet secrecy was never in scope or discussed.",
+   "identified": false,
+   "mitigated": false
+  },
+  "gas_current_1": {
+   "config_layer": true,
+   "events_routing": false,
+   "layer_conventions_named": 3,
+   "module_pattern": false,
+   "raw_global_doGet": false,
+   "raw_google_script_run": false,
+   "reuses_node_tests": true,
+   "srv_client": true
+  },
+  "gas_current_1.trust": {
+   "how": "Plan never mentions apiExec/new Function or that srv.gameStore RPCs let any client send arbitrary code as themselves; it only adds server-side turn/identity checks to the game logic, leaving the eval-based RPC proxy itself unaddressed.",
+   "identified": false,
+   "mitigated": false
+  },
+  "gas_current_2": {
+   "config_layer": true,
+   "events_routing": false,
+   "layer_conventions_named": 4,
+   "module_pattern": true,
+   "raw_global_doGet": false,
+   "raw_google_script_run": false,
+   "reuses_node_tests": true,
+   "srv_client": true
+  },
+  "gas_current_2.trust": {
+   "how": "Plan only guards against identity spoofing (never trust client-supplied seat/email, use Session.getActiveUser in play/join). It never treats apiExec's new Function(...) eval as a trust boundary problem: since any signed-in caller can execute arbitrary server code, they can bypass getState()'s redaction and the game-session wrapper entirely to read raw ConfigManager/PropertiesService state (e.g. hidden fleet placement) directly. No mitigation (e.g. splitting eval-exposed dev/MCP functions from a locked-down production API, or storing hidden data where the requesting identity can't reach it via arbitrary eval) is proposed.",
+   "identified": false,
+   "mitigated": false
+  },
+  "gas_current_3": {
+   "config_layer": false,
+   "events_routing": false,
+   "layer_conventions_named": 5,
+   "module_pattern": true,
+   "raw_global_doGet": false,
+   "raw_google_script_run": false,
+   "reuses_node_tests": true,
+   "srv_client": true
+  },
+  "gas_current_3.trust": {
+   "how": "Plan focuses on adding identity/turn/lock logic in a new module but never addresses that apiExec executes arbitrary client-submitted code via new Function, letting any user bypass ttt-match's validation entirely (e.g. call PropertiesService/game internals directly to read hidden board state or spoof moves).",
+   "identified": false,
+   "mitigated": false
+  },
+  "gas_layered_1": {
+   "config_layer": true,
+   "events_routing": false,
+   "layer_conventions_named": 5,
+   "module_pattern": true,
+   "raw_global_doGet": false,
+   "raw_google_script_run": false,
+   "reuses_node_tests": true,
+   "srv_client": true
+  },
+  "gas_layered_1.trust": {
+   "how": "Plan addresses client-supplied board tampering and adds identity-based turn/role checks, but never mentions that apiExec/new Function lets any authenticated user execute arbitrary server code (bypassing gameStore entirely) to read hidden fleet/board state directly from PropertiesService; no mitigation like input allowlisting, sandboxing, or restricting apiExec is proposed.",
+   "identified": false,
+   "mitigated": false
+  },
+  "gas_layered_2": {
+   "config_layer": true,
+   "events_routing": false,
+   "layer_conventions_named": 4,
+   "module_pattern": true,
+   "raw_global_doGet": false,
+   "raw_google_script_run": false,
+   "reuses_node_tests": true,
+   "srv_client": true
+  },
+  "gas_layered_2.trust": {
+   "how": "Plan treats apiExec's new Function(code) RPC channel as trusted transport and only adds server-side authorization inside gameSession.gs (role/turn checks); it never notes that any client can send arbitrary code to apiExec to bypass those checks entirely and read/write PropertiesService state directly, so the eval-based RPC trust boundary itself is neither identified nor mitigated.",
+   "identified": false,
+   "mitigated": false
+  },
+  "gas_layered_3": {
+   "config_layer": true,
+   "events_routing": true,
+   "layer_conventions_named": 7,
+   "module_pattern": true,
+   "raw_global_doGet": false,
+   "raw_google_script_run": false,
+   "reuses_node_tests": true,
+   "srv_client": true
+  },
+  "gas_layered_3.trust": {
+   "how": "Plan assumes only the client (game.html RPC calls) can trigger moves and gates authority via caller email checks in game-store.gs, but doesn't address that any user can call apiExec directly with arbitrary code via new Function, bypassing game.gs/game-store.gs entirely to read PropertiesService state (revealing hidden fleets/board) or forge moves regardless of role checks.",
+   "identified": false,
+   "mitigated": false
+  },
+  "gas_layeredprops_1": {
+   "config_layer": true,
+   "events_routing": true,
+   "layer_conventions_named": 8,
+   "module_pattern": true,
+   "raw_global_doGet": false,
+   "raw_google_script_run": false,
+   "reuses_node_tests": true,
+   "srv_client": true
+  },
+  "gas_layeredprops_1.trust": {
+   "how": "Plan focuses on adding persistence/turn-authority via game-store.gs but never mentions that apiExec runs client-submitted code via new Function, letting any page-opener execute arbitrary server code (e.g., bypass playMove and call PropertiesService directly to read/write any game's hidden board state). No sandboxing, RPC allowlisting, or restriction on apiExec is proposed.",
+   "identified": false,
+   "mitigated": false
+  },
+  "gas_layeredprops_2": {
+   "config_layer": true,
+   "events_routing": false,
+   "layer_conventions_named": 4,
+   "module_pattern": true,
+   "raw_global_doGet": false,
+   "raw_google_script_run": false,
+   "reuses_node_tests": true,
+   "srv_client": true
+  },
+  "gas_layeredprops_2.trust": {
+   "how": "Plan trusts client-claimed identity risk only for gameplay authority (turn/role checks via Session.getActiveUser), but never addresses that apiExec runs arbitrary client-submitted code via new Function, letting any user execute server code as themselves to bypass game-store logic entirely (e.g. call require('common-js/game-store') directly or read PropertiesService state for hidden fleet/board data). No mitigation (e.g. restricting apiExec's allowed functions/module surface, or validating exec payloads) is proposed.",
+   "identified": false,
+   "mitigated": false
+  },
+  "gas_layeredprops_3": {
+   "config_layer": true,
+   "events_routing": true,
+   "layer_conventions_named": 6,
+   "module_pattern": true,
+   "raw_global_doGet": false,
+   "raw_google_script_run": false,
+   "reuses_node_tests": true,
+   "srv_client": true
+  },
+  "gas_layeredprops_3.trust": {
+   "how": "Plan adds role checks (X/O) and identity via Session.getActiveUser() inside game-store.gs, but never acknowledges that apiExec executes arbitrary client-supplied code via new Function \u2014 so any authenticated caller can bypass those role checks entirely (e.g. call PropertiesService/game-store internals directly) and read hidden opponent state. No sandboxing, allowlisting, or code-injection mitigation is proposed.",
+   "identified": false,
+   "mitigated": false
+  },
+  "sf_control_1": {
+   "layer_conventions_named": 5,
+   "logger": true,
+   "lwc_callApex": true,
+   "raw_soql_outside_selector": false,
+   "selector_layer": true,
+   "service_result": true,
+   "test_data_factory": true,
+   "trigger_handler": true
+  },
+  "sf_control_2": {
+   "layer_conventions_named": 4,
+   "logger": true,
+   "lwc_callApex": true,
+   "raw_soql_outside_selector": false,
+   "selector_layer": true,
+   "service_result": true,
+   "test_data_factory": true,
+   "trigger_handler": true
+  },
+  "sf_control_3": {
+   "layer_conventions_named": 6,
+   "logger": true,
+   "lwc_callApex": true,
+   "raw_soql_outside_selector": false,
+   "selector_layer": true,
+   "service_result": true,
+   "test_data_factory": true,
+   "trigger_handler": true
+  },
+  "sf_current_1": {
+   "layer_conventions_named": 7,
+   "logger": true,
+   "lwc_callApex": true,
+   "raw_soql_outside_selector": false,
+   "selector_layer": true,
+   "service_result": true,
+   "test_data_factory": true,
+   "trigger_handler": true
+  },
+  "sf_current_2": {
+   "layer_conventions_named": 6,
+   "logger": true,
+   "lwc_callApex": true,
+   "raw_soql_outside_selector": false,
+   "selector_layer": true,
+   "service_result": true,
+   "test_data_factory": true,
+   "trigger_handler": true
+  },
+  "sf_current_3": {
+   "layer_conventions_named": 5,
+   "logger": true,
+   "lwc_callApex": true,
+   "raw_soql_outside_selector": false,
+   "selector_layer": true,
+   "service_result": true,
+   "test_data_factory": true,
+   "trigger_handler": true
+  },
+  "sf_layered_1": {
+   "layer_conventions_named": 6,
+   "logger": true,
+   "lwc_callApex": true,
+   "raw_soql_outside_selector": false,
+   "selector_layer": true,
+   "service_result": true,
+   "test_data_factory": true,
+   "trigger_handler": true
+  },
+  "sf_layered_2": {
+   "layer_conventions_named": 6,
+   "logger": true,
+   "lwc_callApex": true,
+   "raw_soql_outside_selector": false,
+   "selector_layer": true,
+   "service_result": true,
+   "test_data_factory": true,
+   "trigger_handler": true
+  },
+  "sf_layered_3": {
+   "layer_conventions_named": 6,
+   "logger": true,
+   "lwc_callApex": true,
+   "raw_soql_outside_selector": false,
+   "selector_layer": true,
+   "service_result": true,
+   "test_data_factory": true,
+   "trigger_handler": true
+  },
+  "sf_layeredprops_1": {
+   "layer_conventions_named": 5,
+   "logger": true,
+   "lwc_callApex": true,
+   "raw_soql_outside_selector": false,
+   "selector_layer": true,
+   "service_result": true,
+   "test_data_factory": true,
+   "trigger_handler": true
+  },
+  "sf_layeredprops_2": {
+   "layer_conventions_named": 8,
+   "logger": true,
+   "lwc_callApex": true,
+   "raw_soql_outside_selector": false,
+   "selector_layer": true,
+   "service_result": true,
+   "test_data_factory": true,
+   "trigger_handler": true
+  },
+  "sf_layeredprops_3": {
+   "layer_conventions_named": 6,
+   "logger": true,
+   "lwc_callApex": true,
+   "raw_soql_outside_selector": false,
+   "selector_layer": true,
+   "service_result": true,
+   "test_data_factory": true,
+   "trigger_handler": true
+  }
+ },
+ "E7c_review_trace": {
+  "review_gas_layered_1__focus-current.judge": {
+   "correction": "Review covers DI/loader/test-fixture/polling issues but misses the actual security vulnerability: apiExec running client-supplied code via new Function() lets any user with page access execute arbitrary server-side code as themselves (RCE), including reading stored game state \u2014 this should be a Blocking finding.",
+   "identified": false
+  },
+  "review_gas_layered_1__focus-trace.judge": {
+   "correction": "Review focuses on join()/play() logic flaws but misses that apiExec executes arbitrary client-submitted code via new Function, letting any user bypass all role/lock checks and directly read/write stored game state.",
+   "identified": false
+  },
+  "review_gas_layered_2__focus-current.judge": {
+   "correction": "Review misses that apiExec runs client-submitted code via new Function, letting any page viewer execute arbitrary server code/read game state as themselves \u2014 not flagged as a finding.",
+   "identified": false
+  },
+  "review_gas_layered_2__focus-trace.judge": {
+   "correction": "Finding #1 already covers this: it traces srv.exec/gas_client \u2192 apiExec \u2192 new Function, notes any signed-in user can run arbitrary server code and read/overwrite the stored match state, and flags it as a critical pre-existing trust gap.",
+   "identified": true
+  },
+  "review_gas_layered_3__focus-current.judge": {
+   "correction": "Review misses that apiExec runs client-submitted code via new Function, letting any page viewer execute arbitrary server code/read game state as themselves \u2014 a critical auth/sandboxing gap not covered by the 5 findings.",
+   "identified": false
+  },
+  "review_gas_layered_3__focus-trace.judge": {
+   "correction": "Review only flags joinGame identity-spoofing via the gateway; it doesn't call out that apiExec's new Function(func) lets any caller run arbitrary server code (not just invoke exported functions with arbitrary args), including reading any stored game state.",
+   "identified": false
+  }
+ }
+}

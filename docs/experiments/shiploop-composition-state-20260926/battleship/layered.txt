@@ -1,0 +1,10 @@
+
+Layered conventions. The published runtime is only the floor. Find what this
+project has layered on it: vendored or packaged frameworks and shared libraries,
+wrappers around platform calls, module and loading systems, base classes, utility
+modules, deployment tools and MCP servers that shape the code they write, and the
+tests that exercise them. For each, record the paradigm it imposes: how modules are
+declared and loaded, how the client calls the server, how requests are routed, how
+configuration and state are read and written, how errors are logged and reported.
+Cite one canonical example for each. New code follows that paradigm; calling the
+raw platform API that a layer wraps is a departure that needs a recorded reason.

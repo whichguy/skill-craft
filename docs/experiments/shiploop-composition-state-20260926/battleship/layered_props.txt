@@ -1,0 +1,5 @@
+For each layer, also record what it guarantees and what it exposes: the identity
+it runs as, which callers can reach it and what they can reach through it, and what
+it validates or leaves to the caller. When a new requirement (hidden information,
+per-user authority, untrusted callers) is defeated by a layer's properties, that is
+a finding to resolve in the plan, not a convention to follow.
