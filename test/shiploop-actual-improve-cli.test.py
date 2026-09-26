@@ -659,8 +659,7 @@ class EphemeralImproveCliTests(ImproveCliFixture):
 
                 cold = self.invoke(CLI, "next", "--run-dir", self.run).stdout
                 self.assertIn("ShipLoop navigator | implement |", cold)
-                # Cold recovery is the full packet: the locators are inline, not behind rules.md.
-                self.assertNotIn("Run rules: " + str(self.run / "rules.md"), cold)
+                # Cold recovery is the full packet: the locators are inline.
                 self.assertIn("State: " + str(self.run / "state.md"), cold)
                 self.assertIn(
                     "If this action depends on earlier accepted context, read the durable state and the relevant result record",

@@ -57,11 +57,8 @@ a bare "continue". The reply is recorded in `decisions/<action>.md` and shown in
 the next packet. Host interrupts (Ctrl+C, Esc) skip stop hooks entirely.
 `SHIPLOOP_KEEPALIVE=off` in the host's environment disables the hooks.
 
-On Claude, a third hook runs on `SessionStart` with the `compact` matcher: after
-the host compacts a bound session's context it removes the run's
-`last-packet.json`, so even a `next --brief` prints the full packet (run rules
-included). Plain `next`, the recovery command every stop reason names, prints the
-full packet on every host, with or without a compaction event.
+No hook is needed after a host compacts context: `next`, the recovery command
+every stop reason names, always prints the full packet.
 Each stop decision is appended to
 `${XDG_STATE_HOME:-~/.local/state}/shiploop/keepalive/decisions.log` with its
 reason, and hook failures to `errors.log` beside it.

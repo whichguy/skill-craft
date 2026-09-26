@@ -110,7 +110,7 @@ class HookStatusAndMarkerTests(KeepaliveTestCase):
 
 
 class RepeatPacketTests(KeepaliveTestCase):
-    """next is the recovery command and prints the full packet; --brief is the in-context short reprint."""
+    """next is the recovery command: every packet is the full packet."""
 
     def test_plain_next_after_a_packet_is_the_full_packet(self) -> None:
         # The script cannot know whether the host lost the rules since this packet was shown.
@@ -134,56 +134,15 @@ class RepeatPacketTests(KeepaliveTestCase):
         self.assertEqual(sum(line.startswith("Write the structured result to: ") for line in lines), 1)
         self.assertEqual(sum(line.startswith("Allowed outcomes: ") for line in lines), 1)
 
-    def test_a_brief_repeat_is_short_and_keeps_the_stage_prompt_and_marker(self) -> None:
-        self.assertIn("Original request (preserve user scope", self.packet)
-        short = shiploop("next", "--run-dir", str(self.run_dir), "--brief").stdout
-        self.assertIn("Same action as revision 0; nothing has changed since.", short)
-        self.assertIn("Run rules: " + str(self.run_dir / "rules.md"), short)
-        self.assertNotIn("Original request (preserve user scope", short)
-        self.assertNotIn("Recovery command:", short)
-        self.assertIn("ShipLoop navigator | intake | revision 0", short)
-        full_prompt_tail = self.packet.rstrip().splitlines()[-1]
-        self.assertTrue(short.rstrip().endswith(full_prompt_tail))  # the stage prompt and callback are whole
-        self.assertEqual(keepalive.last_marker(short)["rev"], 0)
-        rules = (self.run_dir / "rules.md").read_text()
-        self.assertIn("Original request (preserve user scope", rules)
-        self.assertIn("Recovery command:", rules)
-
-    def test_a_new_status_or_a_new_action_prints_the_full_packet_even_brief(self) -> None:
-        self.assertIn("Original request", shiploop("next", "--run-dir", str(self.run_dir)).stdout)
+    def test_every_next_is_the_full_packet_and_writes_no_display_records(self) -> None:
         shiploop("pause", "--run-dir", str(self.run_dir), "--reason", "user asked")
         shiploop("resume", "--run-dir", str(self.run_dir))
-        after = shiploop("next", "--run-dir", str(self.run_dir), "--brief").stdout
-        self.assertIn("Same action as revision 2; nothing has changed since.", after)  # resume printed rev 2
-        action = self.status()["action"]
-        path = self.run_dir / "inbox" / (action + ".md")
-        path.parent.mkdir(exist_ok=True)
-        path.write_text(store.dumps({"outcome": "done", "summary": "Intake recorded."}, "test result"))
-        moved = shiploop("complete", "--run-dir", str(self.run_dir), "--action", action, "--result", str(path))
-        self.assertIn("Original request (preserve user scope", moved.stdout)
-        self.assertIn("Same action as revision", shiploop("next", "--run-dir", str(self.run_dir), "--brief").stdout)
+        again = shiploop("next", "--run-dir", str(self.run_dir)).stdout
+        self.assertIn("Original request (preserve user scope", again)
+        self.assertEqual(again, shiploop("next", "--run-dir", str(self.run_dir)).stdout)
+        for name in ("rules.md", "last-packet.json"):
+            self.assertFalse((self.run_dir / name).exists(), name)
 
-
-class CompactionTests(KeepaliveTestCase):
-    """After the host compacts context, the next packet is full again."""
-
-    def test_a_compacted_session_gets_the_full_packet_next(self) -> None:
-        self.hook("observe", "claude", self.payload("claude", "observe"))
-        self.assertIn("Same action as revision 0", shiploop("next", "--run-dir", str(self.run_dir), "--brief").stdout)
-        compact = {**self.payload("claude", "stop"), "hook_event_name": "SessionStart", "source": "compact"}
-        self.assertEqual(keepalive.run_hook("compacted", "claude", json.dumps(compact)), "")
-        self.assertFalse((self.run_dir / "last-packet.json").exists())
-        self.assertIn("Original request (preserve user scope",
-                      shiploop("next", "--run-dir", str(self.run_dir), "--brief").stdout)
-
-    def test_other_session_starts_and_unbound_sessions_change_nothing(self) -> None:
-        self.hook("observe", "claude", self.payload("claude", "observe"))
-        resume = {**self.payload("claude", "stop"), "hook_event_name": "SessionStart", "source": "resume"}
-        keepalive.run_hook("compacted", "claude", json.dumps(resume))
-        self.assertTrue((self.run_dir / "last-packet.json").exists())
-        other = {**self.payload("claude", "stop", "someone-else"), "source": "compact"}
-        keepalive.run_hook("compacted", "claude", json.dumps(other))
-        self.assertTrue((self.run_dir / "last-packet.json").exists())
 
 class AwaitingUserTests(KeepaliveTestCase):
     """A run blocked on the user's reply stops quietly and resumes only with that reply."""
@@ -651,13 +610,8 @@ class MarketplacePackageTests(KeepaliveTestCase):
                 observe = self.commands(hooks, "afterShellExecution" if cursor else "PostToolUse")
                 stop = self.commands(hooks, "stop" if cursor else "Stop")
                 self.assertEqual((len(observe), len(stop)), (1, 1))
-                # Claude-format files (Claude and Grok) reset the repeat packet after compaction.
-                compact = [group for group in hooks["hooks"].get("SessionStart", [])
-                           if group.get("matcher") == "compact"]
-                self.assertEqual(len(compact), 1 if file_name == "hooks.json" else 0)
-                if compact:
-                    self.assertTrue(compact[0]["hooks"][0]["command"].endswith(
-                        "skills/shiploop/scripts/shiploop-keepalive-compacted"))
+                # Every packet is full, so no host needs a compaction hook.
+                self.assertNotIn("SessionStart", hooks["hooks"])
                 # Grok does not strip quotes: a quoted command becomes a file name
                 # relative to the hooks folder ("command not found").
                 for command in (*observe, *stop):

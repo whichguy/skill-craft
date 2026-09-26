@@ -566,18 +566,12 @@ context, use the index when you need the global picture, and report a conflict
 with an accepted decision instead of silently choosing. Packets point at material
 rather than asking you to reread it at every stage.
 
-`next` always prints the full packet. It is the recovery command, and the
-script cannot know whether the run rules survived a clear or compaction since
-they were last shown. Every producer packet prints its result path, result
-template and allowed outcomes directly under the callback line, so a host that
-keeps only the head of long output still has the contract the callback checks.
-`next --brief` is for an in-context reprint of an action already shown: it
-prints the status, callback, keepalive marker, what changed, the stage references
-and the full stage prompt, and refers to `rules.md` for the run-level rules
-(locators, recovery, delegation rule, original request). On Claude, a
-`SessionStart` hook with the `compact` matcher clears the display record after
-the host compacts, so even `--brief` then prints the full packet. A new action,
-a status change or a changed rules block always prints the full packet.
+Every packet is the full packet, and `next` reprints it. It is the recovery
+command, and the script cannot know what survived a clear or compaction, so no
+packet ever refers back to an earlier one. Every producer packet prints its
+result path, result template and allowed outcomes directly under the callback
+line, so a host that keeps only the head of long output still has the contract
+the callback checks.
 
 Each packet carries a script-rendered **status block** (`=== ShipLoop status ===`):
 where the run is, what just finished, what comes next and what is complete.

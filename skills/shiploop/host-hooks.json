@@ -35,15 +35,6 @@
         "cursor",
         "grok"
       ]
-    },
-    {
-      "id": "keepalive-compacted",
-      "event": "context-compacted",
-      "script": "scripts/shiploop-keepalive-compacted",
-      "timeout": 10,
-      "hosts": [
-        "claude"
-      ]
     }
   ]
 }

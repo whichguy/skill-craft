@@ -1071,63 +1071,13 @@ def _run_rules(core: Any, root: Path, state: Mapping[str, Any]) -> list[str]:
     ]
 
 
-def _rules_lines(core: Any, root: Path, state: Mapping[str, Any]) -> list[str]:
-    """The rules block as ``rules.md`` holds it (the keepalive marker stays in every packet)."""
-    return [line for line in _run_rules(core, root, state) if not line.startswith("Keepalive marker: ")]
+def emit(core: Any, root: Path, state: Mapping[str, Any]) -> str:
+    """Print the full packet.
 
-
-def _repeat_note(state: Mapping[str, Any], repeat: Mapping[str, Any]) -> str:
-    since = int(repeat.get("revision", state["revision"]))
-    rows = state["history"][int(repeat.get("history", len(state["history"]))):]
-    if since == state["revision"] and not rows:
-        return f"Same action as revision {since}; nothing has changed since."
-    changes = [row["stage"] + ": " + row["outcome"] for row in rows]
-    return (f"Same action as revision {since}; since then: "
-            + ("; ".join(changes) if changes else "no accepted result")
-            + f"; status {state['status']}.")
-
-
-def emit(core: Any, root: Path, state: Mapping[str, Any], *, allow_short: bool = False) -> str:
-    """Print a packet and record it; ``next --brief`` for an action already shown prints the short form.
-
-    Plain ``next`` is the recovery command, so it always prints the full packet:
-    the script cannot know whether the host lost the rules since they were shown.
-
-    ``rules.md`` holds the run-level rules block, rewritten when it changes.
-    ``last-packet.json`` records the action, stage, revision and rules digest
-    of the last packet printed.  Neither is state: recovery never needs them.
+    Every packet is complete: ``next`` is the recovery command, and the script
+    cannot know whether the host kept anything from an earlier packet.
     """
-    root = Path(root)
-    action = current_action(state)
-    record = {"action": (action or {}).get("id"), "stage": current_stage(state), "status": state["status"],
-              "revision": state["revision"], "history": len(state["history"]),
-              "improve": bool(state.get("active_improve"))}
-    repeat = None
-    rules_text = ""
-    rules_text = "\n".join(_rules_lines(core, root, state)) + "\n"
-    digest = hashlib.sha256(rules_text.encode("utf-8")).hexdigest()
-    record["rules"] = digest
-    if allow_short and rules_text and (root / RULES_FILE).is_file():
-        try:
-            last = json.loads((root / LAST_PACKET_FILE).read_text(encoding="utf-8"))
-        except (OSError, ValueError):
-            last = None
-        if (isinstance(last, dict) and all(last.get(key) == record[key]
-                                           for key in ("action", "stage", "status", "improve", "rules"))):
-            repeat = last
-    text = render(core, root, state, repeat=repeat)
-    if state["status"] != "active":
-        # Only an active run repeats packets; a paused, blocked or finished run is left as saved.
-        print(text, end="")
-        return text
-    try:
-        if rules_text and (not (root / RULES_FILE).is_file()
-                           or (root / RULES_FILE).read_text(encoding="utf-8") != rules_text):
-            store.atomic_write_text(root / RULES_FILE, rules_text)
-        if repeat is None:
-            store.atomic_write_text(root / LAST_PACKET_FILE, json.dumps(record, sort_keys=True) + "\n")
-    except OSError:
-        pass  # a packet is never withheld because its display record could not be written
+    text = render(core, root, state)
     print(text, end="")
     return text
 
@@ -1811,9 +1761,11 @@ def _test_red_gate(root: Path, state: Mapping[str, Any], action_id: str,
 
 def _unchanged_first_pass(child: Mapping[str, Any]) -> bool:
     """Whether the child's saved terminal packet ended on one unchanged trivial pass."""
+    import shiploop_standalone_improve as standalone
+
     try:
         packet = json.loads(standalone.receipt_path(child).read_text(encoding="utf-8"))
-    except Exception:  # noqa: BLE001 - no readable packet claims nothing
+    except (OSError, ValueError):  # no readable packet claims nothing
         return False
     return bool(isinstance(packet, dict) and (packet.get("progress") or {}).get("unchanged_first_pass"))
 
@@ -2441,19 +2393,8 @@ def _progress_lines(state: Mapping[str, Any]) -> list[str]:
     return lines
 
 
-RULES_FILE = "rules.md"
-LAST_PACKET_FILE = "last-packet.json"
-
-
-def render(core: Any, root: Path, state: Mapping[str, Any], *,
-           repeat: Mapping[str, Any] | None = None) -> str:
-    """Render a packet; worktree packets derive a read-only return projection.
-
-    ``repeat`` (the last printed packet's record) renders the short form of a
-    repeated ``next`` for the same action: the run-level rules block becomes a
-    reference to ``rules.md`` and a note of what changed; every other line,
-    including the whole stage prompt, is unchanged.
-    """
+def render(core: Any, root: Path, state: Mapping[str, Any]) -> str:
+    """Render a packet; worktree packets derive a read-only return projection."""
     validate(state)
     root = Path(root)
     try:
@@ -2493,18 +2434,7 @@ def render(core: Any, root: Path, state: Mapping[str, Any], *,
         "",
         progress_guidance,
     ]
-    rules = _run_rules(core, root, state)
-    if repeat is None:
-        lines += rules
-    else:
-        lines += [
-            _repeat_note(state, repeat),
-            "Run rules: " + str(root / RULES_FILE) + " (locators, recovery, delegation rule and the original "
-            "request; unchanged since you last saw them). Open it only if they are not already in your "
-            "context, for example after compaction. The full packet: " + _callback(core, root, "next"),
-            # Keepalive hooks bind a host session to this run from this exact line.
-            f"Keepalive marker: {KEEPALIVE_MARKER} run={state['run_id']} rev={state['revision']} dir={root}",
-        ]
+    lines += _run_rules(core, root, state)
     lines.extend(
         label + ": " + str(reference_dir / reference)
         for label, reference in guidance3.STAGE_REFERENCES.get(stage, ())
@@ -3400,7 +3330,7 @@ def dispatch(core: Any, root: Path, state: Mapping[str, Any], args: Any,
         emit(core, root, state)
         return 0
     if command == "next":
-        emit(core, root, state, allow_short=getattr(args, "brief", False))
+        emit(core, root, state)
         return 0
     if command == "context":
         section = getattr(args, "section", "navigator")

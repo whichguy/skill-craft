@@ -160,6 +160,9 @@ class StandaloneImproveBridgeTests(unittest.TestCase):
         self.assertEqual(record["runtime_phase"], "complete")
         with self.assertRaisesRegex(bridge.StandaloneImproveError, "ended on one unchanged trivial pass"):
             bridge.complete(self.ephemeral_binding, self.receipt())
+        # The navigator's change gate reads the same receipt; it used to hit a NameError that
+        # an except-everything swallowed, so the cross-check never ran.
+        self.assertTrue(navigator._unchanged_first_pass(self.ephemeral_binding))
 
     def test_created_plans_wait_for_two_reviews_after_material_repair(self) -> None:
         """Real callback/import mechanics; review judgments are synthetic, not LLM quality evidence."""
