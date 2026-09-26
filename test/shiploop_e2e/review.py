@@ -45,14 +45,27 @@ QUESTIONS = """\
 2. missing_considerations: Are there considerations the skill should take into
    account but does not?
 3. optimizations: What could be optimized (speed, cost, turns, prompt size,
-   clarity, reliability) without removing key functionality?"""
+   clarity, reliability) without removing key functionality?
+
+Then, separately, about this E2E harness (not ShipLoop), answer in "harness":
+4. learning_retention: Should the harness retain key learnings or keep state in
+   a different way?
+5. further_learning: Is there something more we could learn from during
+   subsequent passes?
+6. evaluation_criteria: Are more evaluation criteria needed to re-evaluate
+   ShipLoop's efficacy?"""
 
 SCHEMA = """\
 {
   "outcome": "one sentence: did the run deliver the request, and how well",
   "learnings": [FINDING, ...],
   "missing_considerations": [FINDING, ...],
-  "optimizations": [FINDING, ...]
+  "optimizations": [FINDING, ...],
+  "harness": {
+    "learning_retention": {"answer": "...", "proposals": ["..."]},
+    "further_learning": {"answer": "...", "proposals": ["..."]},
+    "evaluation_criteria": {"answer": "...", "proposals": ["..."]}
+  }
 }
 FINDING = {
   "title": "short imperative title",
@@ -65,6 +78,8 @@ FINDING = {
 }"""
 
 CATEGORIES = ("learnings", "missing_considerations", "optimizations")
+# About the harness itself; recorded in the learnings, never handed to the ShipLoop improver.
+HARNESS_QUESTIONS = ("learning_retention", "further_learning", "evaluation_criteria")
 
 
 def reviewer_prompt(run_dir: Path, skill_root: Path, prior_learnings: str = "") -> str:
@@ -118,6 +133,13 @@ def render_markdown(review: dict) -> str:
             if finding.get("files"):
                 lines.append(f"  - Files: {', '.join(finding['files'])}")
         lines.append("")
+    harness = review.get("harness") if isinstance(review.get("harness"), dict) else {}
+    lines += ["## Harness", ""]
+    for key in HARNESS_QUESTIONS:
+        row = harness.get(key) if isinstance(harness.get(key), dict) else {}
+        lines.append(f"- **{key.replace('_', ' ').capitalize()}:** {row.get('answer', 'not answered')}")
+        lines += [f"  - {proposal}" for proposal in row.get("proposals") or []]
+    lines.append("")
     return "\n".join(lines)
 
 

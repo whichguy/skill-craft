@@ -161,6 +161,12 @@ def learnings_message(index: int, args, sha: str, result: dict, verdict: dict, p
             lines += ["", category.replace("_", " ").capitalize(), ""]
             for finding in found:
                 lines += _finding_lines(finding)
+    harness = verdict.get("harness") if isinstance(verdict.get("harness"), dict) else {}
+    lines += ["", "Harness questions", ""]
+    for key in reviewer.HARNESS_QUESTIONS:
+        row = harness.get(key) if isinstance(harness.get(key), dict) else {}
+        lines.append(f"- {key.replace('_', ' ')}: {row.get('answer', 'not answered')}")
+        lines += [f"  proposal: {proposal}" for proposal in row.get("proposals") or []]
     actionable = verdict.get("actionable") or []
     lines += ["", "Next", ""]
     lines += ([f"- apply: {f.get('title')}" for f in actionable] if actionable

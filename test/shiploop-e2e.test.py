@@ -280,6 +280,11 @@ class ReviewParsingTest(unittest.TestCase):
         self.assertIn("the script is the\norchestrator", prompt)
         for key in review.CATEGORIES:
             self.assertIn(key, prompt)
+        for key in review.HARNESS_QUESTIONS:
+            self.assertIn(key, prompt)
+        rendered = review.render_markdown({"harness": {"learning_retention": {"answer": "Keep it", "proposals": ["p1"]}}})
+        self.assertIn("**Learning retention:** Keep it", rendered)
+        self.assertIn("**Evaluation criteria:** not answered", rendered)
 
 
 class LearningsTest(unittest.TestCase):
@@ -295,7 +300,8 @@ class LearningsTest(unittest.TestCase):
                               "files": ["skills/shiploop/SKILL.md"], "severity": "material",
                               "preserves_premise": True, "premise_note": "script decides"}],
                "optimizations": [{"title": "Let the model pick stages", "severity": "material",
-                                  "preserves_premise": False}]}
+                                  "preserves_premise": False}],
+               "harness": {"further_learning": {"answer": "Compare stage costs", "proposals": ["track per stage"]}}}
 
     def message(self) -> str:
         verdict = dict(self.VERDICT, actionable=review.actionable(self.VERDICT))
@@ -308,7 +314,9 @@ class LearningsTest(unittest.TestCase):
             "test(shiploop): record E2E iteration 2 learnings (battleship, grok medium)\n\n"))
         for text in ("150 turns", "stage regression", "unreturned product in ShipLoop's worktree: 1/1",
                      "host truncated 1 tool outputs", "Evidence: work/ empty", "breaks premise: rejected",
-                     "- apply: Return earlier", "Built on the learnings of aaa1111, bbb2222."):
+                     "- apply: Return earlier", "Built on the learnings of aaa1111, bbb2222.",
+                     "- further learning: Compare stage costs", "  proposal: track per stage",
+                     "- evaluation criteria: not answered"):
             self.assertIn(text, message)
         self.assertTrue(message.rstrip().endswith("<shiploop-e2e@example.invalid>"))
 
