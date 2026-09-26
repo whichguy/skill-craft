@@ -33,12 +33,14 @@ set it deliberately, as design decisions with their rationale.
    versions the code is written against. Record the exact commands the
    repository runs for build, lint and test, confirmed by running them in the
    initial baseline rather than copied from prose.
-3. **Sample load-bearing code, not the whole tree.** Choose the files that are
-   most often changed and most often referenced, plus the recent history of
-   the area the request touches. For example,
-   `git log --format= --name-only -n 300 | sort | uniq -c | sort -rn | head -20`
+3. **Sample load-bearing code, not the whole tree.** Choose the hand-written
+   files that are most often changed and most often referenced, plus the
+   recent history of the area the request touches. For example,
+   `git log --format= --name-only -n 300 -- <source and test paths> | sort | uniq -c | sort -rn | head -20`
    lists recently busy files, and a few full recent diffs show which style is
-   current. Add the files nearest the requested change.
+   current. Leave out generated, vendored and release-output files, lockfiles
+   and changelogs: they change often but show no one's coding habits. Add the
+   files nearest the requested change.
 4. **Cover each category that the change can touch:**
    - runtime and language versions, and the library already used for each job
      (HTTP, parsing, CLI, dates, subprocesses, test doubles);
