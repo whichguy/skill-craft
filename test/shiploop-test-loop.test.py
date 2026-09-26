@@ -113,6 +113,7 @@ class TestLoopTests(unittest.TestCase):
             recorded = dict(recorded, test_commands=[dict(recorded["test_commands"][0], criteria=["C1"]),
                                                      *recorded["test_commands"][1:]],
                             criteria=[{"id": "C1", "text": "The item's focused check passes."}])
+        recorded = {"steps": [{"id": "S1", "task": "Make the planned change."}], **recorded}
         for _ in range(200):
             state = self.state()
             if state.get("active_improve") is not None:

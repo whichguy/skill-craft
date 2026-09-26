@@ -79,8 +79,9 @@ untouched starting result.
 ## Step plans in the navigator
 
 `step-plan` writes the selected work item's execution plan as its producer
-result: ordered steps with direct dependencies, readiness and completion
-criteria, and checks. It is a planning stage, so the selected actual Improve
+result: its `steps` in the order to do them, plus completion criteria and the
+test commands that confirm them. On the inline route ShipLoop issues one
+`implement` packet per step. It is a planning stage, so the selected actual Improve
 skill reviews the plan before the script releases `test-spec`; ShipLoop runs no
 convergence loop of its own. Product edits wait for `implement`. A step is not
 ready to code merely because its work item is next, and a plan is not ready

@@ -148,9 +148,9 @@ class DelegationStateTests(unittest.TestCase):
 
     def test_inline_implement_runs_reviewed_steps_directly_without_a_chain(self):
         inline = self.render(advance(self.state(), "implement"))
-        self.assertIn("Delegation is inline: execute a reviewed multi-step plan directly", inline)
+        self.assertIn("Delegation is inline: this packet is for the one step named in its Step line.", inline)
         step_plan = self.render(advance(self.state(), "step-plan"))
-        self.assertIn("record its ordered steps here", step_plan)
+        self.assertIn("Record every implementation step in the result's steps list", step_plan)
         self.assertIn("Each reviewed step's task/ready/done criteria", step_plan)
         for packet in (inline, step_plan):
             for text in DELEGATED_ROUTE_TEXT:
@@ -218,6 +218,82 @@ class DelegationStateTests(unittest.TestCase):
         bad = dict(self.state(), delegation_hold={"action": "x", "route": "inline"})
         with self.assertRaisesRegex(nav.NavigatorError, "invalid delegation hold"):
             nav.validate(bad)
+
+
+class StepTests(DelegationStateTests):
+    """The script, not the host, walks a work item's step plan: one implement packet per step."""
+
+    STEPS = [{"id": "S1", "task": "Add divide() to calc.py."}, {"id": "S2", "task": "Document divide in README."}]
+
+    def at_implement(self, delegation="inline", steps=None):
+        state = advance(self.state(delegation), "step-plan")
+        action = nav.current_action(state)["id"]
+        state = nav.apply(state, action, {"outcome": "done", "summary": "Synthetic step plan.",
+                                          "steps": steps or self.STEPS})
+        if state.get("active_improve") is not None:
+            state = nav.finish_improve(state, action, {"summary": "Synthetic receipt; no review claim."})
+        return advance(state, "implement")
+
+    def done(self, state, summary):
+        return nav.apply(state, nav.current_action(state)["id"], {"outcome": "done", "summary": summary})
+
+    def test_inline_implement_issues_one_packet_per_step_in_order(self):
+        state = self.at_implement()
+        first = self.render(state)
+        self.assertIn("Step S1 (1 of 2), the only work for this packet: Add divide() to calc.py.", first)
+        self.assertIn("Later steps (ShipLoop issues each one after this callback; do not start them): "
+                      "S2 Document divide in README.", first)
+        self.assertNotIn("one step at a time in dependency order", first)
+        first_action = nav.current_action(state)["id"]
+        state = self.done(state, "divide() added.")
+        self.assertEqual(nav.current_stage(state), "implement")
+        self.assertNotEqual(nav.current_action(state)["id"], first_action)
+        second = self.render(state)
+        self.assertIn("Step S2 (2 of 2), the only work for this packet: Document divide in README.", second)
+        self.assertIn("Accepted step S1: divide() added.", second)
+        self.assertNotIn("Later steps", second)
+        # Recovery is a re-render of the saved state: the same step comes back.
+        self.assertEqual(self.render(nav.loads(nav.dumps(state))) if hasattr(nav, "loads") else second, second)
+        state = self.done(state, "README documents divide.")
+        self.assertNotEqual(nav.current_stage(state), "implement")
+
+    def test_one_step_is_one_implement_packet(self):
+        state = self.at_implement(steps=[{"id": "S1", "task": "Make the change."}])
+        self.assertIn("Step S1 (1 of 1)", self.render(state))
+        self.assertNotEqual(nav.current_stage(self.done(state, "Changed.")), "implement")
+
+    def test_ask_agent_implement_stays_one_action(self):
+        # The chain executes every step inside the one implement action.
+        state = self.at_implement("ask-agent")
+        self.assertNotIn("Step S1", self.render(state))
+        self.assertNotEqual(nav.current_stage(self.done(state, "Chain finished.")), "implement")
+
+    def test_a_revised_step_plan_restarts_its_steps(self):
+        state = self.done(self.at_implement(), "divide() added.")
+        state = nav.apply(state, nav.current_action(state)["id"],
+                          {"outcome": "revise", "summary": "S2 cannot be done as planned."})
+        self.assertEqual(nav.current_stage(state), "step-plan")
+        action = nav.current_action(state)["id"]
+        state = nav.apply(state, action, {"outcome": "done", "summary": "Revised plan.",
+                                          "steps": [{"id": "T1", "task": "Do it differently."}]})
+        if state.get("active_improve") is not None:
+            state = nav.finish_improve(state, action, {"summary": "Synthetic receipt; no review claim."})
+        state = advance(state, "implement")
+        self.assertIn("Step T1 (1 of 1)", self.render(state))
+
+    def test_steps_are_required_and_well_formed(self):
+        plan = {"outcome": "done", "summary": "s", "paths": ["calc.py"], "test_commands": [],
+                "test_commands_na": "synthetic"}
+        with self.assertRaisesRegex(nav.NavigatorError, "must list steps"):
+            nav._check_submitted_test_commands("step-plan", plan)
+        nav._check_submitted_test_commands("step-plan", dict(plan, steps=self.STEPS))
+        for steps, message in (([], "nonempty"), ([{"id": "S1"}], "each step is"),
+                               ([{"id": "S 1", "task": "t"}], "no spaces"),
+                               ([{"id": "S1", "task": "a"}, {"id": "S1", "task": "b"}], "unique")):
+            with self.subTest(steps=steps), self.assertRaisesRegex(nav.NavigatorError, message):
+                nav._canonical_result(dict(plan, steps=steps), stage="step-plan")
+        with self.assertRaisesRegex(nav.NavigatorError, "only on a done step-plan"):
+            nav._canonical_result({"outcome": "done", "summary": "s", "steps": self.STEPS}, stage="implement")
 
 
 class PacketContractTests(DelegationStateTests):

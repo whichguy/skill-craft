@@ -212,7 +212,7 @@ _ROWS = (
         goal="plan this item's concrete changes and checks",
         done_when=(
             "the result opens with one sentence naming the change and the checks that prove it",
-            "ordered steps have dependencies, readiness and completion criteria, each with a Confirm by",
+            "steps lists every implementation step in the order to do them (one step is fine)",
             "test_commands are recorded (focused and regression), or test_commands_na gives the reason",
             "the files the item will change are declared in paths",
         ),

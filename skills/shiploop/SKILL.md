@@ -394,7 +394,9 @@ pass).
 `"test_commands": [{"command": "<shell command>", "suite": "focused" | "regression", "ids": ["TC-9"], "min_tests": 1}]`
 (`ids` and `min_tests` optional).
 It also records `"paths"`: the repository-relative files or globs the item will
-change. ShipLoop refuses a done `step-plan` without either; an empty list needs
+change, and `"steps": [{"id": "S1", "task": "..."}]`: every implementation step in
+the order to do them (one step is fine). ShipLoop refuses a done `step-plan`
+without any of these; an empty command list needs
 `test_commands_na` with the reason. `test-green` loops on the focused commands
 and `regression` on every command, each on the Until Loop bound to the selected
 Improve card:
@@ -772,13 +774,14 @@ incomplete rather than creating a hidden success edge.
 ## Parallel implementation chains
 
 Implementation chains are the opt-in `delegation: ask-agent` route. Under
-`delegation: inline`, `step-plan` records a multi-step plan as ordered steps with
-direct dependencies, readiness and completion criteria, and checks, without a
-Plan Dispatcher execution graph; its actual Improve loop reviews them. Within the
-current `implement` action, execute the reviewed steps directly, one at a
-time in dependency order, in the execution checkout in this conversation: no
-chain binding, Ask Agent or native workers, and no Plan Dispatcher. Only verified
-steps are done. `chain bind` refuses a fresh binding on an inline run before any
+`delegation: inline`, `step-plan` records its `steps` in order, without a Plan
+Dispatcher execution graph; its actual Improve loop reviews them. ShipLoop then
+issues one `implement` packet per step, in that order, in the execution checkout
+in this conversation: each packet names its step, the steps already accepted and
+the ones still to come, and the callback after the last step moves to the test
+stages. No chain binding, Ask Agent or native workers, and no Plan Dispatcher.
+Which steps are done is read from the run's history, so recovery reprints the
+current step. `chain bind` refuses a fresh binding on an inline run before any
 side effect; a replay of an existing binding keeps its recorded mode. To use a
 chain, first switch the run with `delegation --set ask-agent`.
 

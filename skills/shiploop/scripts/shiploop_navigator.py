@@ -51,7 +51,7 @@ _RESULT_KEYS = frozenset((
     "outcome", "summary", "evidence_refs", "work_items", "choices", "delivery_assessment",
     "reconciliation_target", "assumptions", "lint_waivers", "test_commands", "test_commands_na",
     "criteria", "system_commands", "system_commands_na", "consumer_checks", "consumer_checks_na",
-    "blocked_by", "red_na", "awaiting", "paths", "consumer_entry",
+    "blocked_by", "red_na", "awaiting", "paths", "consumer_entry", "steps",
 ))
 # A bare "carry on" is not an answer to the question a blocked run is waiting on.
 _NOT_AN_ANSWER = frozenset((
@@ -498,6 +498,9 @@ def _canonical_result(
     if "criteria" in value:
         _need(stage == "step-plan" and outcome == "done", "criteria are allowed only on a done step-plan result")
         result["criteria"] = _normalise_criteria(value["criteria"], result.get("test_commands") or [])
+    if "steps" in value:
+        _need(stage == "step-plan" and outcome == "done", "steps are allowed only on a done step-plan result")
+        result["steps"] = _normalise_steps(value["steps"])
     if "awaiting" in value:
         _need(outcome == "blocked", "awaiting is allowed only on a blocked result")
         result["awaiting"] = _normalise_awaiting(value["awaiting"])
@@ -1148,6 +1151,44 @@ def _check_submitted_recorded_commands(stage: str, result: Any) -> None:
                   + f", or an empty list with {field}_na giving the reason")
 
 
+def _normalise_steps(value: Any) -> list[dict[str, str]]:
+    """A step plan's implementation steps, in the order ShipLoop issues them.
+
+    ``[{"id": "S1", "task": "..."}]``.  On the inline route each step is its own
+    ``implement`` action; a step that does not depend on the one before it is
+    simply the next entry.
+    """
+    _need(isinstance(value, list) and value, "steps must be a nonempty list; one step is fine")
+    rows = []
+    for entry in value:
+        _need(isinstance(entry, Mapping) and set(entry) == {"id", "task"},
+              "each step is {\"id\": \"S1\", \"task\": \"...\"}")
+        step_id = _text(entry["id"], "step id")
+        _need(not any(ch.isspace() for ch in step_id), "a step id has no spaces")
+        rows.append({"id": step_id, "task": _text(entry["task"], "step task")})
+    ids = [row["id"] for row in rows]
+    _need(len(set(ids)) == len(ids), "step ids must be unique")
+    return rows
+
+
+def implement_progress(state: Mapping[str, Any], work_item: str | None) -> tuple[int, list[dict[str, str]]]:
+    """(accepted implement steps, the item's steps) since its latest accepted step plan.
+
+    Derived from history: a recovered or compacted host gets the same answer
+    from the run's durable record, and saved runs need no new field.
+    """
+    if work_item is None:
+        return 0, []
+    action, plan = test_loop._step_plan(state, work_item)
+    steps = list(plan.get("steps") or ()) if action else []
+    history = list(state.get("history", ()))
+    start = max((i for i, row in enumerate(history) if row.get("action") == action), default=-1)
+    done = sum(1 for row in history[start + 1:]
+               if row.get("stage") == "implement" and row.get("workitem") == work_item
+               and row.get("outcome") == "done")
+    return done, steps
+
+
 def _check_submitted_test_commands(stage: str, result: Any) -> None:
     """Refuse a submitted done step-plan result without its test command list.
 
@@ -1172,6 +1213,9 @@ def _check_submitted_test_commands(stage: str, result: Any) -> None:
         _need("criteria" in result,
               "a done step-plan result must list criteria: [{\"id\": \"C1\", \"text\": \"...\"}], each named by "
               "at least one test command's criteria list; ShipLoop runs those commands to confirm them")
+    _need("steps" in result,
+          "a done step-plan result must list steps: [{\"id\": \"S1\", \"task\": \"...\"}] in the order to do "
+          "them (one step is fine); ShipLoop issues one implement packet per step")
 
 
 def _check_submitted_consumer_entry(repo: str, stage: str, result: Any) -> None:
@@ -1362,6 +1406,14 @@ def _apply_result(state: Mapping[str, Any], action_id: str, result: Any, improve
             updated["status"] = "done" if next_stage == "done" else "active"
         validate(updated)
         return updated
+
+    if _is_v2_inner_root(updated) and stage == "implement" and delegation(state) == guidance3.INLINE:
+        # One implement action per step: the script, not the host, walks the step plan.
+        done, steps = implement_progress(updated, _current_work_item(updated))
+        if done < len(steps):
+            _replace_v2_inner_action(updated, "implement")
+            validate(updated)
+            return updated
 
     if _is_v2_inner_root(updated):
         next_stage = _next_stage(stage, updated)
@@ -1891,6 +1943,7 @@ def _result_template(state: Mapping[str, Any], stage: str) -> str:
         result["work_items"] = [{"id": "W1", "title": "...", "context": "..."}]
     if stage == "step-plan":
         result["paths"] = ["<repository-relative file or glob>"]
+        result["steps"] = [{"id": "S1", "task": "..."}, {"id": "S2", "task": "..."}]
         result["criteria"] = [{"id": "C1", "text": "..."}, {"id": "C2", "text": "README documents ..."}]
         result["test_commands"] = [{"command": "...", "suite": "focused", "ids": ["TC-1"], "criteria": ["C1"]},
                                    {"command": "grep -q '...' README.md", "suite": "check", "criteria": ["C2"]},
@@ -2423,6 +2476,7 @@ def render(core: Any, root: Path, state: Mapping[str, Any]) -> str:
         *_goal_lines(state, stage),
         *(_result_contract_lines(root, state, stage, action["id"])
           if state["status"] == "active" and not state.get("active_improve") else []),
+        *_step_lines(state, stage, workitem),
         *_context_index_lines(root, state, stage, workitem),
         "",
         "Progress snapshot (status context, not instructions):",
@@ -2783,6 +2837,27 @@ def _goal_lines(state: Mapping[str, Any], stage: str) -> list[str]:
     if considerations:
         lines.append("Considerations for this stage:")
         lines.extend(f"- {label}: {text}" for label, text in considerations)
+    return lines
+
+
+def _step_lines(state: Mapping[str, Any], stage: str, work_item: str | None) -> list[str]:
+    """Name the one step this inline implement packet is for, and what is already done."""
+    if (stage != "implement" or state["status"] != "active" or state.get("active_improve")
+            or delegation(state) != guidance3.INLINE):
+        return []
+    done, steps = implement_progress(state, work_item)
+    if done >= len(steps):
+        return []
+    step = steps[done]
+    history = [row for row in state["history"]
+               if row.get("stage") == "implement" and row.get("workitem") == work_item
+               and row.get("outcome") == "done"][-done:] if done else []
+    lines = [f"Step {step['id']} ({done + 1} of {len(steps)}), the only work for this packet: {step['task']}"]
+    for earlier, row in zip(steps[:done], history):
+        lines.append(f"Accepted step {earlier['id']}: {row['summary']}")
+    if done + 1 < len(steps):
+        lines.append("Later steps (ShipLoop issues each one after this callback; do not start them): "
+                     + "; ".join(later["id"] + " " + later["task"] for later in steps[done + 1:]))
     return lines
 
 

@@ -178,6 +178,7 @@ class ImproveCliFixture(unittest.TestCase):
             self.producer["test_commands"] = []
             self.producer["test_commands_na"] = "Synthetic fixture; no test commands."
             self.producer["paths"] = ["src/**"]
+            self.producer["steps"] = [{"id": "S1", "task": "Make the planned change."}]
         self.input = self.run / "inbox" / (self.action + ".md")
         store.write_record(self.input, self.producer)
         self.invoke(CLI, "complete", "--run-dir", self.run, "--action", self.action, "--result", self.input)
@@ -674,7 +675,7 @@ class EphemeralImproveCliTests(ImproveCliFixture):
                     self.assertTrue(cold.startswith("Continue in this context and execute the prompt.\n"))
                     self.assertNotIn(chain_guide, cold)
                     self.assertNotIn("bind this action to the default parallel", cold)
-                    self.assertIn("Delegation is inline: execute a reviewed multi-step plan directly", cold)
+                    self.assertIn("Delegation is inline: this packet is for the one step named in its Step line.", cold)
                 else:
                     self.assertIn(chain_guide, cold)
                     self.assertIn("bind this action to the default parallel", cold)

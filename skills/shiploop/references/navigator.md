@@ -237,11 +237,10 @@ conversation without clearing, pausing for a clear or delegating (see
 [context boundaries](#context-boundaries)). This
 conversation is the only writer and alone submits ShipLoop callbacks. After an
 unplanned reset or lost context, run the Recovery command and continue from the
-reprinted packet. `implement` executes a reviewed multi-step plan directly, one
-step at a time in dependency order, in the execution checkout. It binds no
-chain and uses no Ask Agent, native worker or Plan Dispatcher; `step-plan`
-records ordered steps with dependencies, readiness, completion criteria and
-checks rather than a dispatcher execution graph.
+reprinted packet. ShipLoop issues one `implement` packet per step of the
+accepted step plan, in its order, in the execution checkout. It binds no chain
+and uses no Ask Agent, native worker or Plan Dispatcher; `step-plan` records
+ordered `steps` rather than a dispatcher execution graph.
 
 Under the opt-in `delegation: ask-agent` route, every active INNER producer
 packet begins with

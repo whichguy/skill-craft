@@ -1897,11 +1897,11 @@ actual Improve loop must review the created steps and graph before they are used
 for execution. Use the Parallel-chain guide for late creation or revision;
 planning never starts the dispatcher or expands this item's scope.
 """, """\
-For a plan with more than one implementation step, record its ordered steps here
-for linear execution in this conversation: each step's direct dependencies,
-readiness and completion criteria, and the checks that show it is done. Link the
-step list in existing plan notes/evidence_refs. This producer's mandatory actual
-Improve loop must review the steps before they are used for execution.
+Record every implementation step in the result's steps list, in the order to
+do them; an item with one change has one step. ShipLoop issues one implement
+packet per step in that order, in this conversation, so each step names one
+bounded piece of work. This producer's mandatory actual Improve loop must review
+the steps before they are used for execution.
 Delegation is inline: do not create a Plan Dispatcher execution graph or plan
 parallel worker branches; planning never expands this item's scope.
 """),
@@ -1933,15 +1933,13 @@ immediately after each callback. Do not wait on a native reconciliation,
 preparation, verification, or collection while an independent safe worker can
 start; defer only a candidate with a concrete recorded blocker.
 """, """\
-Delegation is inline: execute a reviewed multi-step plan directly, one step at a
-time in dependency order, in the execution checkout in this conversation. Do not
-bind an implementation chain or dispatch Ask Agent or native workers; chains are
-available only when the run's delegation is ask-agent. Confirm each step's
-readiness before starting it and its completion checks before starting a
-dependent step. Keep observable per-step status in the result; only verified
-steps are done. Continue until every required step is done and verified, or
-retain an explicit incomplete blocker, before this action's normal completion
-callback and Improve checkpoint.
+Delegation is inline: this packet is for the one step named in its Step line.
+Do that step in the execution checkout in this conversation, then run this
+packet's callback; ShipLoop issues the next step, and after the last one the
+test stages. Do not start a later step, bind an implementation chain, or dispatch
+Ask Agent or native workers; chains are available only when the run's delegation
+is ask-agent. If the step cannot be done as planned, report revise so the step
+plan is corrected.
 """),
 }
 for _stage, (_delegated, _inline) in _INLINE_DUTY_PARAGRAPHS.items():

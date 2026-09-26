@@ -390,6 +390,8 @@ class FullRuntimeCompositionTests(unittest.TestCase):
             producer.setdefault("criteria", [{"id": "C1", "text": "The focused check passes."}])
         if stage == "step-plan" and producer.get("outcome") == "done" and "paths" not in producer:
             producer["paths"] = ["src/**"]
+        if stage == "step-plan" and producer.get("outcome") == "done" and "steps" not in producer:
+            producer["steps"] = [{"id": "S1", "task": "Make the planned change."}]
         if stage == "system-test-author" and producer.get("outcome") == "done" and "system_commands" not in producer:
             producer.update(system_commands=[], system_commands_na="Synthetic fixture: no system command.")
         if stage == "release-plan" and producer.get("outcome") == "done" and "consumer_checks" not in producer:
