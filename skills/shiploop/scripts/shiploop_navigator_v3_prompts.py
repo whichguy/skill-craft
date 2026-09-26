@@ -494,7 +494,7 @@ approval, or a command with no replacement available inside the stage. A retaine
 command that does not run what it claims (for example a test path the runner does
 not expand) is a documentation fix made in this stage, then rerun, not a blocker.
 When the next step needs a person, and no independent work is left, report
-blocked with `awaiting`: `{"kind": "answer", "question": "...", "options": [...]}`
+blocked with `blocked_by` user (or access, for a sign-in) and `awaiting`: `{"kind": "answer", "question": "...", "options": [...]}`
 for a decision, or `{"kind": "present", "steps": [...], "report": "..."}` for
 something only a person can do, such as opening a page in a signed-in browser.
 Ask one decision per question, in words the user can answer in one reply. The

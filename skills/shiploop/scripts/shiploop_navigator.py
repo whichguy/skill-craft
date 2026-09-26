@@ -491,6 +491,9 @@ def _canonical_result(
     if "awaiting" in value:
         _need(outcome == "blocked", "awaiting is allowed only on a blocked result")
         result["awaiting"] = _normalise_awaiting(value["awaiting"])
+        # Only a person can answer or act, so the unblocker is the user (or their access grant).
+        _need(value.get("blocked_by") in ("user", "access"),
+              "a result awaiting a person has blocked_by user (a decision) or access (a sign-in or grant)")
     if "paths" in value:
         _need(stage == "step-plan" and outcome == "done", "paths are allowed only on a done step-plan result")
         try:
@@ -1087,6 +1090,10 @@ def emit(core: Any, root: Path, state: Mapping[str, Any], *, allow_short: bool =
                                            for key in ("action", "stage", "status", "improve", "rules"))):
             repeat = last
     text = render(core, root, state, repeat=repeat)
+    if state["status"] != "active":
+        # Only an active run repeats packets; a paused, blocked or finished run is left as saved.
+        print(text, end="")
+        return text
     try:
         if rules_text and (not (root / RULES_FILE).is_file()
                            or (root / RULES_FILE).read_text(encoding="utf-8") != rules_text):

@@ -38,9 +38,9 @@ Ask one yes/no question that names the exact operation, target/account,
 environment, exclusions, and expected effect, and states the scope default, so a
 single "yes" cannot be misread:
 
-> May this run deploy the Battleship changes to org `de` (dev@example.com,
-> Developer Edition)? It adds components, a tab and an app; it deletes nothing.
-> Reply yes or no. A yes covers this run only. Say "standing" if it should also
+> May this run deploy this feature's changes to the development target
+> `<name>` (`<account>`)? It adds the new components and the navigation entry;
+> it deletes nothing. Reply yes or no. A yes covers this run only. Say "standing" if it should also
 > cover future runs of this kind.
 
 A plain "yes" is a grant for this run only (`scope: run`). Record `scope:

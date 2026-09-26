@@ -12,6 +12,7 @@ import os
 from pathlib import Path
 import shlex
 import shutil
+import re
 import subprocess
 import sys
 import tempfile
@@ -153,7 +154,14 @@ class CrossRunTests(unittest.TestCase):
             if path.is_file() and path.name != ".lock"
         }
 
+    @staticmethod
+    def _with_rules(packet: str) -> str:
+        """A repeated next refers to rules.md for the run rules; read them from there."""
+        match = re.search(r"(?m)^Run rules: (.+?/rules\.md) \(", packet)
+        return packet if match is None else packet + "\n" + Path(match.group(1)).read_text(encoding="utf-8")
+
     def _assert_knowledge_locators(self, packet: str) -> None:
+        packet = self._with_rules(packet)
         policy = "Cross-run knowledge policy: " + str(self.policy)
         index = "Repository knowledge index (host-authored, if present): " + str(
             self.index.resolve()
@@ -164,6 +172,7 @@ class CrossRunTests(unittest.TestCase):
 
     def _assert_requirements_policy(self, packet: str) -> None:
         """Assert a packet exposes its selected policy rather than model behavior."""
+        packet = self._with_rules(packet)
         policy = (
             "Maintained requirements policy: "
             + str(self.policy)
@@ -274,7 +283,7 @@ class CrossRunTests(unittest.TestCase):
         self.assertIn(marker, policy)
         section = policy.split(marker, 1)[1].split("\n## ", 1)[0]
         self.assertRegex(section, r"(?is)first.{0,120}maintained requirements")
-        self.assertIn("docs/requirements.md", section)
+        self.assertIn("docs/shiploop/spec.md", section)
         self.assertRegex(section, r"(?is)(?:README.{0,200}link|link.{0,200}README)")
         self.assertRegex(
             section, r"(?is)(?:outside|not|never).{0,160}(?:prior|run|workspace).{0,160}state"
@@ -416,7 +425,7 @@ class CrossRunTests(unittest.TestCase):
         self.assertEqual(fresh["accepted"], {})
         self.assertEqual(self._snapshot(old_run), old_files)
 
-        recovered = self._cli(old_run, "next")
+        recovered = self._cli(old_run, "next", "--full")
         self.assertEqual(recovered.stdout, initial.stdout)
         self.assertEqual(self._snapshot(old_run), old_files)
         self.assertEqual(self._snapshot(fresh_run), fresh_files)
@@ -434,8 +443,8 @@ class CrossRunTests(unittest.TestCase):
         self._assert_knowledge_locators(initial.stdout)
         new_before_next = self._snapshot(new_run)
         cold = self._cli(new_run, "next")
-        self._assert_knowledge_locators(cold.stdout)
-        self.assertEqual(cold.stdout, initial.stdout)
+        self._assert_knowledge_locators(cold.stdout)  # the short repeat packet refers to rules.md
+        self.assertEqual(self._cli(new_run, "next", "--full").stdout, initial.stdout)
         self.assertEqual(self._snapshot(new_run), new_before_next)
         self.assertEqual(self._snapshot(old_run), old_snapshot)
 

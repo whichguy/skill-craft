@@ -151,7 +151,7 @@ class AwaitingUserTests(KeepaliveTestCase):
         path = self.run_dir / "inbox" / (action + ".md")
         path.parent.mkdir(exist_ok=True)
         path.write_text(store.dumps({"outcome": "blocked", "summary": "Needs the deploy decision.",
-                                     "awaiting": awaiting}, "test result"))
+                                     "blocked_by": "user", "awaiting": awaiting}, "test result"))
         result = shiploop("complete", "--run-dir", str(self.run_dir), "--action", action, "--result", str(path))
         self.assertEqual(result.returncode, 0, result.stderr)
         return action
@@ -191,6 +191,15 @@ class AwaitingUserTests(KeepaliveTestCase):
         self.assertIn("waits for --observed", refused.stderr)
         ok = shiploop("resume", "--run-dir", str(self.run_dir), "--observed", "Board shows; fleet kept after reload.")
         self.assertEqual(ok.returncode, 0, ok.stderr)
+
+    def test_awaiting_needs_a_person_as_the_unblocker(self) -> None:
+        action = self.status()["action"]
+        path = self.run_dir / "inbox" / (action + ".md")
+        path.parent.mkdir(exist_ok=True)
+        path.write_text(store.dumps({"outcome": "blocked", "summary": "x", "blocked_by": "external",
+                                     "awaiting": self.QUESTION}, "test result"))
+        refused = shiploop("complete", "--run-dir", str(self.run_dir), "--action", action, "--result", str(path))
+        self.assertIn("a result awaiting a person has blocked_by user", refused.stderr)
 
     def test_a_run_not_waiting_refuses_a_reply_and_awaiting_needs_blocked(self) -> None:
         shiploop("pause", "--run-dir", str(self.run_dir), "--reason", "user asked")

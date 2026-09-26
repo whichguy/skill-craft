@@ -136,6 +136,9 @@ class AuthReadinessNavigatorTests(unittest.TestCase):
 
     def _assert_access_policy(self, packet: str, run_dir: Path) -> None:
         expected = self._policy_locator()
+        if "Run rules: " + str(run_dir.resolve() / "rules.md") in packet:
+            # A repeated next refers to the run rules; the policy lives in rules.md then.
+            packet = (run_dir / "rules.md").read_text(encoding="utf-8")
         self.assertEqual(packet.count(expected), 1, packet)
         self.assertEqual(packet.count(ACCESS_POLICY_LABEL), 1, packet)
         self.assertNotIn(

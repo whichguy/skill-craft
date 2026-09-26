@@ -78,6 +78,8 @@ def learnings(state: Mapping[str, Any]) -> Dict[str, str]:
 
 def recent_commits(repo: Path, count: int = 3) -> List[str]:
     """The last ``count`` commit messages (subject and body) of the checkout, newest first."""
+    if not (Path(repo) / ".git").exists():
+        return []  # not a checkout (for example a graph dry run): nothing to read, nothing run
     shown = _git(Path(repo), "log", "-" + str(count), "--format=%h %B%x00")
     if shown.returncode:
         return []
