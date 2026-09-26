@@ -121,8 +121,8 @@ def changed_paths(run_dir: Path, work_item: str, *, timeout: float = 60.0) -> Op
 
 
 def outside(paths: Sequence[str], allowed: Sequence[str]) -> List[str]:
-    """Changed paths that match none of the declared paths or globs."""
-    return [path for path in paths if not any(path == rule or _matches(path, rule)
+    """Changed paths that match none of the declared paths or globs (ShipLoop's knowledge home aside)."""
+    return [path for path in paths if not path.startswith("docs/shiploop/") and not any(path == rule or _matches(path, rule)
                                               or fnmatch.fnmatchcase(path, rule) for rule in allowed)]
 
 

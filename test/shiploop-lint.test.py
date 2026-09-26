@@ -27,6 +27,8 @@ ROOT = Path(__file__).resolve().parents[1]
 PACKAGE = ROOT / "skills/shiploop"
 CLI = PACKAGE / "scripts/shiploop"
 sys.path.insert(0, str(PACKAGE / "scripts"))
+sys.path.insert(0, str(Path(__file__).resolve().parent))
+import shiploop_knowledge_support as knowledge_support  # noqa: E402
 import shiploop_lint as lint  # noqa: E402
 import shiploop_navigator as nav  # noqa: E402
 import shiploop_store as store  # noqa: E402
@@ -907,6 +909,8 @@ def complete(run: Path, state: dict, result: dict = DONE) -> str:
     if stage == "step-plan" and result.get("outcome") == "done" and "test_commands" not in result:
         result = dict(result, test_commands=[], test_commands_na="Synthetic fixture; no test commands.",
                       paths=["src/**"])
+    if stage in knowledge_support.knowledge.CLOSES:
+        knowledge_support.write(state)
     inbox = run / "inbox"
     inbox.mkdir(exist_ok=True)
     path = inbox / (action + ".md")

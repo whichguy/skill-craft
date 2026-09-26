@@ -298,6 +298,18 @@ completed item's recorded test commands only when it changed the tree; an
 unchanged tree keeps the recorded passes. A result that is unchanged by the
 review needs no `final_result`: ShipLoop reuses the submitted result.
 
+### Repository knowledge home
+
+Planning knowledge outlives the run. Planning stages keep `docs/shiploop/` in the
+product repository up to date: `README.md` (index), `spec.md` (the living spec,
+stable `R-<n>` IDs), `environment.md` (targets by alias, working commands,
+platform facts), `test-strategy.md`, and this run's `features/<slug>/` record.
+At `prepare`, each `test-spec`, `release-plan` and `release-verify`, ShipLoop
+refuses `done` until that close's files exist, screens them for credentials,
+refuses a living spec that drops an earlier committed ID, and commits exactly
+`docs/shiploop/`. The next run starts from these files; see
+[repository knowledge home](references/project-knowledge.md#repository-knowledge-home).
+
 ### Script-owned lint
 
 A new run records `lint: fix`. ShipLoop then lints each work item itself. When

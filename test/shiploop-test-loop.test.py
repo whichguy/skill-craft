@@ -23,6 +23,8 @@ ROOT = Path(__file__).resolve().parents[1]
 PACKAGE = ROOT / "skills/shiploop"
 IMPROVE_CARD = ROOT / "skills/improve/SKILL.md"
 sys.path.insert(0, str(PACKAGE / "scripts"))
+sys.path.insert(0, str(Path(__file__).resolve().parent))
+import shiploop_knowledge_support as knowledge_support  # noqa: E402
 import shiploop_navigator as nav  # noqa: E402
 import shiploop_navigator_v3_prompts as prompts  # noqa: E402
 import shiploop_store as store  # noqa: E402
@@ -113,6 +115,8 @@ class TestLoopTests(unittest.TestCase):
             current = nav.current_stage(state)
             if current == stage:
                 return state
+            if current in knowledge_support.knowledge.CLOSES:
+                knowledge_support.write(state)
             if current == "step-plan":
                 self.complete(dict(DONE, **recorded))
             elif current == "release-plan":
@@ -345,6 +349,14 @@ class TestLoopTests(unittest.TestCase):
                       "paths: docs/fleet.md, force-app/main/default/tabs/Fleet_command.tab-meta.xml.", packet)
         self.assertRegex(packet, r"This stage's result before the replan: .*/results/nav-[0-9a-f]+\.md\. Keep its "
                                  r"evidence")
+
+    def test_prepare_commits_the_repository_knowledge_home(self):
+        self.start()
+        self.drive_to("select-work")
+        log = git(self.repo, "log", "--format=%s", "-n", "3")
+        self.assertIn("docs(shiploop): record", log)
+        self.assertIn("knowledge at prepare", log)
+        self.assertIn("docs/shiploop/spec.md", git(self.repo, "ls-files", "docs/shiploop"))
 
     def test_a_done_step_plan_must_declare_its_paths(self):
         self.start()

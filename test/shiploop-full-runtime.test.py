@@ -23,6 +23,7 @@ import tempfile
 import unittest
 
 import package_build
+import shiploop_knowledge_support as knowledge_support
 
 
 ROOT = Path(__file__).resolve().parents[1]
@@ -393,6 +394,8 @@ class FullRuntimeCompositionTests(unittest.TestCase):
         if stage == "test-red" and producer.get("outcome") == "done" and "red_na" not in producer:
             # The synthetic focused command already passes, so declare it and let ShipLoop check it ran.
             producer["red_na"] = "synthetic fixture: the focused check already passes"
+        if stage in knowledge_support.knowledge.CLOSES:
+            knowledge_support.write(self._state(run))
         result_path = run / "inbox" / f"{action_id}.md"
         _write_record(result_path, producer, "Synthetic ShipLoop producer callback")
         self._run(
@@ -693,6 +696,8 @@ class FullRuntimeCompositionTests(unittest.TestCase):
                 result["evidence_refs"] = [self._run_quality_loop(shiploop, run, action_id)]
         if stage == "plan" and result.get("outcome") == "done" and "assumptions" not in result:
             result["assumptions"] = []
+        if stage in knowledge_support.knowledge.CLOSES:
+            knowledge_support.write(state)
         if stage == "test-red" and result.get("outcome") == "done" and "red_na" not in result:
             # The synthetic focused command already passes, so declare it and let ShipLoop check it ran.
             result["red_na"] = "synthetic fixture: the focused check already passes"

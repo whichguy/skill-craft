@@ -1,5 +1,7 @@
 # Preserve product requirements across repeated ShipLoop runs
 
+> Superseded 2026-09-26 by the owner's decision to keep each run's spec and environment knowledge in `docs/shiploop/`, committed at planning closes (see `skills/shiploop/references/project-knowledge.md#repository-knowledge-home` and `docs/shiploop-run-feedback-plan-2026-09-26.md`, S7).
+
 ## Decision and evidence
 
 Use **one maintained product contract**, not a permanent copy of every run spec.

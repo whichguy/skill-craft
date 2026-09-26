@@ -22,6 +22,8 @@ ROOT = Path(__file__).resolve().parents[1]
 PACKAGE = ROOT / "skills/shiploop"
 IMPROVE_CARD = ROOT / "skills/improve/SKILL.md"
 sys.path.insert(0, str(PACKAGE / "scripts"))
+sys.path.insert(0, str(Path(__file__).resolve().parent))
+import shiploop_knowledge_support as knowledge_support  # noqa: E402
 import shiploop_lint as lint  # noqa: E402
 import shiploop_navigator as nav  # noqa: E402
 import shiploop_navigator_v3_prompts as prompts  # noqa: E402
@@ -74,6 +76,8 @@ class QualityLoopTests(unittest.TestCase):
                 and "test_commands" not in result):
             result = dict(result, test_commands=[], test_commands_na="Synthetic fixture; no test commands.",
                           paths=["src/**"])
+        if nav.current_stage(state) in knowledge_support.knowledge.CLOSES:
+            knowledge_support.write(state)
         path = self.run_dir / "inbox" / (action + ".md")
         path.parent.mkdir(exist_ok=True)
         path.write_text(store.dumps(result, "result"))

@@ -399,6 +399,41 @@ test (the close commits reach the source branch; `docs/shiploop/**` is never
 dropped), a consolidation test (a dropped prior ID is refused; a retired ID needs a
 reason), and a second-run test (a new run's intake packet lists the committed files).
 
+### S8 Learnings commit per run, read back at the next start (owner to-do 2026-09-26)
+
+The owner asked for every run to end with a commit whose message records, in
+detail, what was learned and the key considerations identified, and for the next
+run (or next change) to start by reading the last three commit messages as
+inherited lessons.
+
+- **Write:** the `release-verify` close (S7's last commit before the workspace
+  return) uses a message body built from the feature's `outcome.md`, under the
+  headings `Learned`, `Key considerations` and `Open for the next run`. The
+  model writes those sections in `outcome.md`, and the script refuses the close
+  while any of them is empty. The commit subject stays
+  `docs(shiploop): record <feature> knowledge at release-verify`.
+- **Read:** intake and discovery packets print the last three commit messages of
+  the execution checkout (`git log -3 --format=%B`), labelled as inherited
+  learnings to weigh, not instructions. Unlike S7's files, these are short and
+  already in Git, so the packet quotes them instead of referring to them.
+- **Tests:** a close refused for an empty `Learned` section; the commit body
+  carries the three sections; an intake packet shows the last three messages.
+
+## Implementation notes (2026-09-26)
+
+- S2 needed no printed applicability gate. Once step plans declare `paths`, the
+  script can prove every skip itself, so the M3/M4 not-applicable-with-check
+  mechanism is not built. It stays available if a later stage needs a look the
+  script cannot take.
+- S4: the delivery contract requires fresh `system-test` and `release-plan`
+  evidence after a material change, so the outer stages still run after a
+  metadata-only replan. The packet scopes them to the delta and cites the result
+  each stage accepted before the replan. Removing those stages would need a
+  change to that contract rule.
+- S7: the last close moved from `handoff` to `release-verify`. In a worktree run
+  the return happens before handoff is accepted, so a commit at handoff would
+  miss the return and invalidate its receipt.
+
 ## Prompt wording
 
 New and changed text follows the house tone of the existing prompts: plain sentences,
@@ -468,6 +503,7 @@ does not mark the case passed from its own reading.
 | 4 | S5 references and repeat packet | — | After 3, so the packet text is converted once. |
 | 5 | S4 release after a replan, consumer entry | 1, 3 | Uses records, tree ids and path classes. |
 | 6 | S7 planning knowledge kept in the repository | 4 (references) | Independent of the test work; can start after 4. |
+| 6b | S8 learnings commit and read-back | S7 | Builds on S7's release-verify close. |
 | 7 | S6 Improve single pass | owner decision, 3 | Policy change in Improve too. |
 
 Each PR registers new suites in `test/suite_catalog.py` (group list and timing map),

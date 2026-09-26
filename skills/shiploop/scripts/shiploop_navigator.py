@@ -14,6 +14,7 @@ from copy import deepcopy
 from datetime import datetime, timezone
 import hashlib
 import json
+import sys
 import html
 import re
 import shlex
@@ -29,6 +30,7 @@ import shiploop_lint as lint
 import shiploop_quality as quality
 import shiploop_improve_changes as improve_changes
 import shiploop_item_scope as item_scope
+import shiploop_knowledge as knowledge
 import shiploop_test_loop as test_loop
 import shiploop_planning_revision as planning_revision
 import shiploop_context_index as context_index
@@ -1153,6 +1155,26 @@ def _check_submitted_consumer_entry(repo: str, stage: str, result: Any) -> None:
                and not any(Path(repo).glob(path)) and not (Path(repo) / path).exists()]
     _need(not missing, "consumer_entry sources do not exist in the repository: " + ", ".join(missing)
           + ". Create the entry's source files before the release plan, or correct the paths.")
+
+
+def _knowledge_gate(state: Mapping[str, Any], stage: str, result: Any) -> None:
+    """Refuse a close stage's done while the repository knowledge home is incomplete, leaky or drops an ID."""
+    if isinstance(result, Mapping) and result.get("outcome") == "done":
+        refusal = knowledge.check(state, stage)
+        _need(not refusal, refusal)
+
+
+def _knowledge_close(before: Mapping[str, Any], after: Mapping[str, Any]) -> None:
+    """Commit the knowledge home once a close stage's done has been accepted and saved."""
+    rows = after["history"][len(before["history"]):]
+    stages = [row["stage"] for row in rows if row["outcome"] == "done" and row["stage"] in knowledge.CLOSES]
+    if not stages:
+        return
+    try:
+        knowledge.commit(after, stages[-1])
+    except RuntimeError as exc:
+        # The transition stands; the next close commits the same files.
+        print("ShipLoop knowledge: " + str(exc) + "; the next close commits it.", file=sys.stderr)
 
 
 def _check_submitted_assumptions(state: Mapping[str, Any], stage: str, result: Any) -> None:
@@ -2558,6 +2580,7 @@ def render(core: Any, root: Path, state: Mapping[str, Any], *,
         return text + "".join(line + "\n" for line in _lint_pending(root))
     lines.extend(_answered_lines(root, state))
     lines.extend(_replan_delta_lines(root, state, stage))
+    lines.extend(knowledge.stage_lines(state, stage))
     instruction = guidance3.prompt(stage, delegation=route)
     _need(isinstance(instruction, str) and bool(instruction.strip()),
           f"navigator prompt is unavailable for {stage}")
@@ -3248,6 +3271,8 @@ def dispatch(core: Any, root: Path, state: Mapping[str, Any], args: Any,
                     _check_submitted_consumer_entry(
                         state["repo"], child["stage"],
                         child["seed_result"] if final_result is None else final_result)
+                    _knowledge_gate(state, child["stage"],
+                                    child["seed_result"] if final_result is None else final_result)
                     _improve_change_gate(root, state, action_id, child, receipt)
                     record, extra_writes = standalone.complete(child, receipt)
                     record["submission"] = deepcopy(receipt)
@@ -3285,6 +3310,7 @@ def dispatch(core: Any, root: Path, state: Mapping[str, Any], args: Any,
                 lint_writes, lint_payload = _lint_transition(core, root, state, updated)
                 save(root, updated, {**lint_writes, **extra_writes})
                 _lint_finish(root, lint_payload)
+                _knowledge_close(state, updated)
             emit(core, root, updated)
             return 0
         except standalone.StandaloneImproveError as exc:
@@ -3309,6 +3335,7 @@ def dispatch(core: Any, root: Path, state: Mapping[str, Any], args: Any,
             _check_submitted_assumptions(state, current_stage(state), submitted)
             _check_submitted_test_commands(current_stage(state), submitted)
             _check_submitted_consumer_entry(state["repo"], current_stage(state), submitted)
+            _knowledge_gate(state, current_stage(state), submitted)
             # Lint first, so the tests run on any code the lint gate auto-fixed.
             if cursor_stage in lint.GATE_STAGES:
                 _lint_gate(core, root, state, action_id, cursor_stage, cursor_item, submitted)
@@ -3348,5 +3375,6 @@ def dispatch(core: Any, root: Path, state: Mapping[str, Any], args: Any,
                                      if command == "complete" else ({}, None))
         save(root, updated, lint_writes)
         _lint_finish(root, lint_payload)
+        _knowledge_close(state, updated)
     emit(core, root, updated)
     return 0
