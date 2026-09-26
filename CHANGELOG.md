@@ -4,6 +4,18 @@ Written by scripts/release.py.
 
 ## 2026-09-26
 
+### skill-craft 1.0.1
+
+- Skills: backchain 0.6.1, review-coverage 0.3.3
+
+### backchain 0.6.1
+
+- The trigger evals drop the `coexistence-devloop` case: DevLoop was archived on 2026-09-26.
+
+### review-coverage 0.3.3
+
+- The clean/residual×2 rule no longer refers to DevLoop or `docs/LOOP-ENGINEERING.md`, which were archived on 2026-09-26.
+
 ### skill-craft 1.0.0
 
 - Skills: review-coverage 0.3.2, shiploop 0.33.1, skill-interop 0.2.6
