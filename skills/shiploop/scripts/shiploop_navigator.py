@@ -490,6 +490,9 @@ def _canonical_result(
             result[field] = test_loop.normalise_commands(value[field])
         except test_loop.TestLoopError as exc:
             raise NavigatorError(str(exc)) from exc
+        # Only the step plan lists criteria, so only its commands can name them.
+        _need(field == "test_commands" or not any("criteria" in row for row in result[field]),
+              f"{field} cannot name criteria; only the step plan's test_commands confirm its criteria")
         if result[field]:
             _need(field + "_na" not in value, f"{field}_na is only for an empty {field} list")
         else:

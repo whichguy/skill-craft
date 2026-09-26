@@ -1260,6 +1260,7 @@ class ShipLoopWorkspaceTests(unittest.TestCase):
         self._resolve_plan(root, exclude={"tool-state.log"})
         before_head = self.git("rev-parse", "HEAD").stdout.strip()
         before_index = (self.repo / ".git" / "index").read_bytes()
+        self.assertFalse(workspace.returned_before(root))
         first = self._execute(root)
         self.assertEqual(first["kind"], "working-tree-return")
 
@@ -1270,6 +1271,12 @@ class ShipLoopWorkspaceTests(unittest.TestCase):
         self._commit_all(worktree, "post-deploy fix")
         (worktree / "tool-state.log").write_text("more untracked tool output\n", encoding="utf-8")
         self.assertIsNone(self._call(workspace.completed_receipt, root, self.repo))
+        # handoff is refused, and the refusal names the follow-up return to run.
+        self.assertTrue(workspace.returned_before(root))
+        import shiploop_protocol as protocol
+        with self.assertRaisesRegex(protocol.ProtocolError, "recorded one is stale.*workspace plan-return"):
+            self._call(protocol.workspace_completion_guard, root / "run",
+                       {"execution_mode": "navigator-worktree", "repo": str(self.repo)}, {"status": "done"})
         self._plan(root)
         self._resolve_plan(root, exclude={"tool-state.log"})
 
@@ -1771,6 +1778,8 @@ class ShipLoopWorkspaceTests(unittest.TestCase):
         )
 
         self.assertIn("verified workspace return", refused.stderr)
+        self.assertIn("workspace plan-return --workspace-root", refused.stderr)
+        self.assertNotIn("stale", refused.stderr)
         self.assertEqual((run / "state.md").read_bytes(), before)
         self.assertFalse((run / "report.html").exists())
 

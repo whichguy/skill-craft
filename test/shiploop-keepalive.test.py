@@ -330,6 +330,26 @@ class ProgressAndTurnTests(KeepaliveTestCase):
         self.assertEqual(self.grok_stop(True)["decision"], "continue")
         self.assertEqual(self.grok_stop(True)["decision"], "allow")
 
+    def test_refusals_without_an_accepted_result_stop_being_progress(self) -> None:
+        # A state that can never be accepted must not keep a session alive forever.
+        import shiploop_test_loop as test_loop
+        self.assertEqual(keepalive.STUCK_CONTINUATIONS, 2 * test_loop.MAX_REFUSED_RUNS)
+        self.hook("observe", "claude", self.payload("claude", "observe"))
+        stop = lambda: keepalive.stop("claude", self.payload("claude", "stop"))  # noqa: E731
+        with mock.patch.object(keepalive, "DUPLICATE_WINDOW_SECONDS", 0):
+            for attempt in range(keepalive.STUCK_CONTINUATIONS):
+                (self.run_dir / "callback-attempts").write_text(str(attempt + 1))
+                self.assertEqual(stop()["decision"], "continue", attempt)
+            (self.run_dir / "callback-attempts").write_text("99")
+            stuck = stop()
+            self.assertEqual((stuck["decision"], stuck["why"]), ("allow", "stuck: no accepted result"))
+            self.assertIn("submit outcome blocked (or revise)", stuck["notice"])
+            # An accepted result (a new revision) starts the count again.
+            shiploop("pause", "--run-dir", str(self.run_dir), "--reason", "user asked")
+            shiploop("resume", "--run-dir", str(self.run_dir))
+            (self.run_dir / "callback-attempts").write_text("100")
+            self.assertEqual(stop()["decision"], "continue")
+
     def test_a_running_background_task_is_a_wait_not_a_stop(self) -> None:
         self.bind_grok()
         self.grok_stop(False)

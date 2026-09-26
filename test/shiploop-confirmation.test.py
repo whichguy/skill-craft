@@ -77,6 +77,11 @@ class CommandShapeTests(unittest.TestCase):
         unknown = [dict(COMMANDS[0], criteria=["C9"]), COMMANDS[1]]
         with self.assertRaisesRegex(nav.NavigatorError, "not listed: C9"):
             nav._canonical_result(step_plan(test_commands=unknown), stage="step-plan")
+        # Stages without a criteria list cannot name criteria (they would never be checked).
+        for stage, field in (("system-test-author", "system_commands"), ("release-plan", "consumer_checks")):
+            with self.subTest(field=field), self.assertRaisesRegex(nav.NavigatorError, "cannot name criteria"):
+                nav._canonical_result({"outcome": "done", "summary": "s", field: [
+                    {"command": "pytest -q", "suite": "regression", "criteria": ["NOPE-9"]}]}, stage=stage)
         with self.assertRaisesRegex(nav.NavigatorError, "criteria are allowed only on a done step-plan"):
             nav._canonical_result({"outcome": "done", "summary": "x", "criteria": CRITERIA}, stage="verify")
 

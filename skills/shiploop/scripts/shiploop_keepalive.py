@@ -307,6 +307,12 @@ def observe(host: str, payload: Mapping[str, Any]) -> dict | None:
 
 # Hosts that force a turn to end after this many stop-hook continuations.
 CONTINUATION_CAPS = {"grok": 8}
+# A refused callback counts as progress so the host fixes and resubmits it.  But
+# after this many continuations with no accepted result (the revision unchanged)
+# the stop is allowed, so a state that can never be accepted does not keep a
+# session alive forever.  Twice shiploop_test_loop.MAX_REFUSED_RUNS: the script
+# stops accepting test runs for an action well before keepalive gives up on it.
+STUCK_CONTINUATIONS = 14
 # From this many continuations before a cap, the reason asks harder not to stop.
 CAP_WARNING_MARGIN = 2
 
@@ -390,6 +396,16 @@ def _decide(host: str, session: str, binding: dict, *, waiting: bool = False) ->
         return {"decision": "allow", "why": "no progress",
                 "notice": ("ShipLoop keepalive: the run made no progress since the last "
                            "continuation, so the turn may end. Resume with: " + status["next"])}
+    if binding.get("block_revision") != status["revision"]:
+        binding["block_revision"], binding["blocks_at_revision"] = status["revision"], 0
+    if not waiting:
+        binding["blocks_at_revision"] = int(binding.get("blocks_at_revision", 0)) + 1
+        if binding["blocks_at_revision"] > STUCK_CONTINUATIONS:
+            return {"decision": "allow", "why": "stuck: no accepted result",
+                    "notice": ("ShipLoop keepalive: " + str(STUCK_CONTINUATIONS) + " continuations "
+                               "produced no accepted result for this action, so the turn may end. Read "
+                               "the last refusal; if it cannot be fixed in this run, submit outcome "
+                               "blocked (or revise) with the reason. Resume with: " + status["next"])}
     binding["last_block_progress"] = progress
     binding["turn_blocks"] = int(binding.get("turn_blocks", 0)) + 1
     cap = CONTINUATION_CAPS.get(host)

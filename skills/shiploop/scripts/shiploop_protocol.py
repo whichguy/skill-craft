@@ -171,8 +171,16 @@ def workspace_completion_guard(root, previous, updated):
         import shiploop_workspace as workspace
         try:
             receipt = workspace.completed_receipt(root.parent, Path(previous["repo"]))
-            need(receipt is not None,
-                 "handoff requires a verified workspace return; read the workspace policy")
+            if receipt is None:
+                cli = shlex.quote(str(Path(__file__).resolve().parent / "shiploop"))
+                where = shlex.quote(str(root.parent))
+                commands = (f"python3 {cli} workspace plan-return --workspace-root {where}, review the plan, "
+                            f"then python3 {cli} workspace return --workspace-root {where}")
+                if workspace.returned_before(root.parent):
+                    need(False, "handoff requires a current workspace return, and the recorded one is stale: "
+                         "the candidate or source changed after it (for example ShipLoop's own docs/shiploop/ "
+                         "commit at release-verify). Run a follow-up return: " + commands)
+                need(False, "handoff requires a verified workspace return: " + commands)
         except workspace.WorkspaceError as exc:
             raise ProtocolError(str(exc)) from exc
 
