@@ -174,9 +174,12 @@ class InteractionGuidanceTests(unittest.TestCase):
             "channels",
             "state ownership",
         )
-        normalized = " ".join(navigator_v3_prompts.COMMON.split()).lower()
+        normalized = " ".join(navigator_v3_prompts.INTERACTION_DESIGN.split()).lower()
         for term in shared_terms:
             self.assertIn(term, normalized)
+        # Stages that do not plan interactions do not carry the paragraph.
+        for stage in ("test-red", "release", "operations"):
+            self.assertNotIn("Interaction design guide and its", navigator_v3_prompts.prompt(stage))
 
         for stage in ("discovery", "spec", "plan", "step-plan"):
             self.assertIn("Interaction design guide", navigator_v3_prompts.prompt(stage))

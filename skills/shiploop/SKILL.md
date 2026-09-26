@@ -539,6 +539,12 @@ the host handoff, or force any host tool call.
 
 ## Follow the current packet
 
+Every producer packet opens, right after its callback, with the stage's **Goal**,
+its **Done when** conditions and its fixed **Considerations** (develop, test,
+deploy, tools), all from the stage table in `scripts/shiploop_stage_spec.py`.
+Work toward that goal and keep going until every condition holds; a passing
+test that ShipLoop ran is the evidence.
+
 Every packet names the run's **context index** (`context-index.md`): the request,
 the accepted planning basis, each work item's results and their notes. Active
 packets add **Results this stage builds on**: references to the accepted results

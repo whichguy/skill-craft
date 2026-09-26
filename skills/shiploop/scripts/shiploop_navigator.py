@@ -2417,6 +2417,7 @@ def render(core: Any, root: Path, state: Mapping[str, Any], *,
         *([f"Delegation change: this action keeps {route}; actions issued after it use "
            f"{recorded_delegation(state)}."] if route != recorded_delegation(state) else []),
         *_first_callback_lines(core, root, state),
+        *_goal_lines(state, stage),
         *(_result_contract_lines(root, state, stage, action["id"])
           if state["status"] == "active" and not state.get("active_improve") else []),
         *_context_index_lines(root, state, stage, workitem),
@@ -2775,6 +2776,22 @@ def _result_contract_lines(root: Path, state: Mapping[str, Any], stage: str, act
         "A blocked result adds blocked_by: user | access | external (who can unblock it); "
         "a problem this run can fix itself is repaired in this stage, not blocked.",
     ]
+
+
+def _goal_lines(state: Mapping[str, Any], stage: str) -> list[str]:
+    """Lead an active producer packet with the stage's goal, done-when and fixed considerations."""
+    if state["status"] != "active" or state.get("active_improve"):
+        return []
+    row = stage_spec.stage(stage)
+    lines = ["Goal: " + row.goal[0].upper() + row.goal[1:] + ".",
+             "Done when (confirm each before calling done; keep going until all hold):",
+             *("- " + condition for condition in row.done_when)]
+    considerations = [(label, text) for label, text in (
+        ("Develop", row.develop), ("Test", row.test), ("Deploy", row.deploy), ("Tools", row.tools)) if text]
+    if considerations:
+        lines.append("Considerations for this stage:")
+        lines.extend(f"- {label}: {text}" for label, text in considerations)
+    return lines
 
 
 def _first_callback_lines(core: Any, root: Path, state: Mapping[str, Any]) -> list[str]:

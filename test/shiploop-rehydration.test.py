@@ -93,6 +93,33 @@ class PacketTests(unittest.TestCase):
         self.assertIn(str(dry_run.RUN / "notes" / (action + ".md")), nav.render(dry_run.CORE, dry_run.RUN, paused))
 
 
+class GoalFirstTests(unittest.TestCase):
+    def test_every_producer_packet_leads_with_its_goal_and_done_when(self) -> None:
+        import shiploop_stage_spec as spec
+        state = nav.new_state("/simulation-only/repo", "Goal-first fixture.", delegation=nav.DEFAULT_DELEGATION)
+        seen = set()
+        for step in dry_run.activity():
+            stage = nav.current_stage(state)
+            if step["command"] == "produce" and stage not in seen:
+                seen.add(stage)
+                packet = nav.render(dry_run.CORE, dry_run.RUN, state)
+                row = spec.stage(stage)
+                lines = packet.splitlines()
+                header = next(i for i, line in enumerate(lines) if line.startswith("ShipLoop navigator |"))
+                with self.subTest(stage=stage):
+                    self.assertTrue(lines[header + 1].startswith("Callback for this stage"))
+                    self.assertEqual(lines[header + 2], "Goal: " + row.goal[0].upper() + row.goal[1:] + ".")
+                    for condition in row.done_when:
+                        self.assertIn("- " + condition, packet)
+            action = nav.current_action(state)["id"]
+            if step["command"] == "produce":
+                state = nav.apply(state, action, step["result"])
+            else:
+                self.assertNotIn("Done when (confirm each", nav.render(dry_run.CORE, dry_run.RUN, state))
+                state = nav.finish_improve(state, action, step["receipt"], step.get("final_result"))
+        self.assertEqual(len(seen), 34)
+
+
 class EvidenceGateTests(unittest.TestCase):
     def test_missing_local_files_are_refused_and_other_locators_pass(self) -> None:
         with tempfile.TemporaryDirectory() as temporary:
