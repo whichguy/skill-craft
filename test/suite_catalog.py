@@ -273,6 +273,7 @@ _CORE_SUITES = (
     _suite("improve", "core", "test/improve.test.sh", "bash", "test/improve.test.sh"),
     _suite("improve-plugin", "core", "test/improve-plugin.test.py", "python3", "test/improve-plugin.test.py"),
     _suite("improve-agent", "core", "test/improve-agent.test.py", "python3", "test/improve-agent.test.py"),
+    _suite("improve-runtime", "core", "test/improve-runtime.test.py", "python3", "test/improve-runtime.test.py"),
     _suite("review-coverage", "core", "test/review-coverage.test.sh", "bash", "test/review-coverage.test.sh"),
     _suite("dual-body-guard", "core", "test/dual-body-guard.test.sh", "bash", "test/dual-body-guard.test.sh"),
     _suite("plan-dispatcher-state", "core", "test/plan-dispatcher-state.test.js", "node", "test/plan-dispatcher-state.test.js"),

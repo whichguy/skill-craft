@@ -527,7 +527,16 @@ runs the full tier.
 - Decision and note items still walk implement, document and the rest of INNER.
   After c5ac103 such an item should rarely exist, so revisit only if a run shows one.
 
-## Open decision
+## S6 decision (owner, 2026-09-26)
+
+An Improve pass with no changes is enough; the check belongs to the Until Loop
+exit condition and the Improve skill itself. Implemented as a bundled-runtime
+adaptation: with a gate of two or more, a trivial satisfied first report whose
+workspace Git content tree is unchanged since `start` completes the loop
+(`progress.unchanged_first_pass`). ShipLoop imports it with one review and
+cross-checks the claim against its `improve-bind` snapshot.
+
+## Open decision (resolved above)
 
 - **Improve single pass (S6):** when pass 1 changes nothing and the tree still
   matches, can that one pass end the Improve review? Recommended: yes for planning

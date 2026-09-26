@@ -21,12 +21,16 @@
     {
       "bundled_path": "scripts/until_loop_ephemeral.py",
       "upstream_path": "scripts/until_loop_ephemeral.py",
-      "sha256": "066de07327d44c4cb58d44556ee2d3d6610fb5508ae0d14f92557ef90347298e"
+      "sha256": "0efab0d976d272e8a956561356efa5c14d11b300617b1219482d20164cba8fe9",
+      "upstream_sha256": "066de07327d44c4cb58d44556ee2d3d6610fb5508ae0d14f92557ef90347298e",
+      "adaptation_reason": "Owner decision 2026-09-26: with a gate of two or more trivial reviews, a trivial, satisfied first review that leaves the workspace's Git content tree unchanged since start completes the loop (progress.unchanged_first_pass); the runtime checks the tree, not the report."
     },
     {
       "bundled_path": "references/runtime-ephemeral.md",
       "upstream_path": "references/runtime-ephemeral.md",
-      "sha256": "095206ed5e6278e7c93a46a5c2e1936e66d65693f0db8b1471cb0c68f2ee6d25"
+      "sha256": "027a14ea79e926806f3c37781c56fc341130ac2578524c40d550beb85ac8880d",
+      "upstream_sha256": "095206ed5e6278e7c93a46a5c2e1936e66d65693f0db8b1471cb0c68f2ee6d25",
+      "adaptation_reason": "Owner decision 2026-09-26: with a gate of two or more trivial reviews, a trivial, satisfied first review that leaves the workspace's Git content tree unchanged since start completes the loop (progress.unchanged_first_pass); the runtime checks the tree, not the report."
     }
   ]
 }

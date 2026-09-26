@@ -384,14 +384,14 @@ def _receipt(receipt: Mapping[str, Any], workspace: Path, locator: str) -> dict[
           "Improve receipt has unsupported or missing fields")
     review_raw = receipt["review_refs"]
     check_raw = receipt["check_refs"]
-    _need(isinstance(review_raw, list) and len(review_raw) == 2,
-          "Improve receipt requires exactly two review references, got "
-          + (str(len(review_raw)) if isinstance(review_raw, list) else "a non-list")
-          + "; list only the two trivial-streak reviews and leave earlier material reviews on disk")
+    _need(isinstance(review_raw, list) and len(review_raw) in (1, 2),
+          "Improve receipt requires the trivial-streak review references (two, or one when the first pass "
+          "changed nothing), got " + (str(len(review_raw)) if isinstance(review_raw, list) else "a non-list")
+          + "; leave earlier material reviews on disk")
     _need(isinstance(check_raw, list) and bool(check_raw),
           "Improve receipt requires at least one check reference")
     reviews = [_local_reference(workspace, locator, value, "review reference") for value in review_raw]
-    _need(len(set(reviews)) == 2, "Improve review references must be distinct")
+    _need(len(set(reviews)) == len(reviews), "Improve review references must be distinct")
     checks = [_local_reference(workspace, locator, value, "check reference") for value in check_raw]
     copied: dict[str, Any] = {
         "summary": _text(receipt["summary"], "receipt summary"),
@@ -598,9 +598,12 @@ def _ephemeral_terminal_packet(
     _text(conditions.get("exit"), "Until Loop terminal exit condition")
     _text(conditions.get("repeat"), "Until Loop terminal repeat condition")
     progress = packet.get("progress")
-    _need(isinstance(progress, Mapping) and set(progress) == {
+    _need(isinstance(progress, Mapping) and set(progress) in ({
         "action_number", "trivial_streak", "required_trivial_reviews",
-    }, "Until Loop terminal progress has an invalid schema")
+    }, {"action_number", "trivial_streak", "required_trivial_reviews", "unchanged_first_pass"}),
+        "Until Loop terminal progress has an invalid schema")
+    unchanged_first_pass = progress.get("unchanged_first_pass", False)
+    _need(isinstance(unchanged_first_pass, bool), "Until Loop terminal unchanged_first_pass must be a boolean")
     action_number = _integer(progress.get("action_number"), "Until Loop terminal action number", minimum=1)
     trivial_streak = _integer(progress.get("trivial_streak"), "Until Loop terminal trivial streak")
     required_reviews = _integer(
@@ -608,7 +611,9 @@ def _ephemeral_terminal_packet(
     )
     _need(required_reviews >= 2,
           "Until Loop terminal packet does not meet Improve's two-review minimum")
-    _need(trivial_streak >= required_reviews,
+    # The runtime closes on one trivial pass only when it saw the workspace unchanged (Git tree).
+    _need(trivial_streak >= required_reviews
+          or (unchanged_first_pass and trivial_streak == 1 and action_number == 1),
           "Until Loop terminal packet does not meet its required trivial-review gate")
     _need(trivial_streak <= action_number,
           "Until Loop terminal progress has an incoherent trivial streak")
@@ -700,6 +705,11 @@ def _complete_ephemeral(
         _json(packet_raw, "Until Loop terminal packet"), workspace=workspace, binding_id=binding_id,
     )
     checked_receipt = _receipt(receipt, workspace, workspace_value)
+    single = bool(packet["progress"].get("unchanged_first_pass"))
+    _need(len(checked_receipt["review_refs"]) == (1 if single else 2),
+          "Improve receipt lists " + str(len(checked_receipt["review_refs"])) + " review references; this run "
+          + ("ended on one unchanged trivial pass, so list that one review"
+             if single else "needs the two trivial-streak reviews"))
     evidence_digests = _reference_digests(workspace, checked_receipt)
     prefix = f"improve/{action}"
     archive: dict[str, str] = {

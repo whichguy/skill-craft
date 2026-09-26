@@ -287,6 +287,10 @@ new last item's carry-forward. An isolated run's workspace return happens at
 
 The two consecutive trivial passes an Improve child needs are self-passes by the
 same executor, not independent reviews; packets and reports call them passes.
+When the first pass is trivial and the runtime sees from Git that the workspace
+is unchanged, the loop completes after that one pass (`unchanged_first_pass` in
+the terminal packet) and the receipt lists that one review. ShipLoop cross-checks
+it against the tree it recorded at `improve-bind`.
 
 An Improve review makes the changes it finds warranted, in code, tests or
 documentation, and commits them. At `improve-bind` ShipLoop snapshots the

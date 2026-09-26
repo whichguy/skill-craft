@@ -1684,6 +1684,15 @@ def _test_red_gate(root: Path, state: Mapping[str, Any], action_id: str,
     _need(not refusal, refusal)
 
 
+def _unchanged_first_pass(child: Mapping[str, Any]) -> bool:
+    """Whether the child's saved terminal packet ended on one unchanged trivial pass."""
+    try:
+        packet = json.loads(standalone.receipt_path(child).read_text(encoding="utf-8"))
+    except Exception:  # noqa: BLE001 - no readable packet claims nothing
+        return False
+    return bool(isinstance(packet, dict) and (packet.get("progress") or {}).get("unchanged_first_pass"))
+
+
 def _improve_change_gate(root: Path, state: Mapping[str, Any], action_id: str,
                          child: Mapping[str, Any], receipt: Any) -> None:
     """Refuse an Improve import that left its own edits uncommitted; rerun tests after a changing end review.
@@ -1696,6 +1705,10 @@ def _improve_change_gate(root: Path, state: Mapping[str, Any], action_id: str,
     changes = improve_changes.review_changes(root, Path(state["repo"]), action_id)
     refusal = improve_changes.commit_refusal(changes, receipt if isinstance(receipt, Mapping) else {})
     _need(not refusal, refusal)
+    if changes is not None and changes[0] and _unchanged_first_pass(child):
+        raise NavigatorError("The Improve runtime ended on one unchanged trivial pass, but these files changed "
+                             "since the review was bound: " + ", ".join(changes[0]) + ". Report the pass "
+                             "non-trivial and run the loop's next review.")
     if child.get("stage") != "carry-forward" or (changes is not None and not changes[0]):
         return
     commands = improve_changes.rerun_commands(state)
@@ -2942,9 +2955,9 @@ def _render_improve(core: Any, root: Path, state: Mapping[str, Any], lines: list
         guidance3.improve_prompt(child["stage"], delegation=delegation(state)),
         exclusion,
         "The prior result and relevant accepted Improve lessons are in state.md improve_results and improve/<parent-action>/ receipts. Carry forward relevant verified conclusions and material unresolved findings, hypotheses, failed attempts and pitfalls, clearly labeled with evidence status. Preserve essential meaning in the context opening and later handoffs; keep detailed blocked-attempt notes in the child notebook.",
-        "Review passes: the two consecutive trivial passes the runtime requires are self-passes by this same executor, not independent reviewers; report them as passes, never as independent reviews.",
+        "Review passes: the two consecutive trivial passes the runtime requires are self-passes by this same executor, not independent reviewers; report them as passes, never as independent reviews. When the first pass is trivial and leaves the workspace unchanged, the runtime checks that from Git and completes after that one pass.",
         "Changes: change what is warranted in code, tests or documentation, and commit it; ShipLoop reruns the affected checks. The import is refused while files this review changed are still uncommitted (work that was uncommitted before the review is not counted). If the user or repository said not to commit, put that instruction in the receipt's no_commit.",
-        "On completion, review_refs is exactly the two files of those final consecutive trivial passes (write each pass to its own file); an earlier material review stays on disk and is not a third entry. check_refs holds the current check evidence. A plan/RED disposition is checked against its own criteria, not future product success.",
+        "On completion, review_refs is exactly the two files of those final consecutive trivial passes (write each pass to its own file), or the one file when the terminal packet reports unchanged_first_pass; an earlier material review stays on disk and is not a third entry. check_refs holds the current check evidence. A plan/RED disposition is checked against its own criteria, not future product success.",
         "The child may write the completion evidence file; only the parent imports it. Before the callback the parent checks that the runtime packet status is complete, every referenced file exists under Child workspace, the scoped commit (git show) matches the handoff, and the source checkout is unchanged.",
         "Receipt review_refs and check_refs must be absolute regular single-link non-symlink files under Child workspace above; the importer rejects sibling run/inbox/control paths outside that root. For example: "
         + str(evidence_root / "review-one.md"),

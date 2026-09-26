@@ -148,9 +148,11 @@ assert manifest["upstream"] == {
 }
 entries = {entry["bundled_path"]: entry for entry in manifest["default_ephemeral_runtime"]}
 script = root / "runtime/until-loop/scripts/until_loop_ephemeral.py"
-assert entries["scripts/until_loop_ephemeral.py"]["sha256"] == (
+# Bundled adaptation (owner decision 2026-09-26): an unchanged trivial first pass completes the loop.
+assert entries["scripts/until_loop_ephemeral.py"]["upstream_sha256"] == (
     "066de07327d44c4cb58d44556ee2d3d6610fb5508ae0d14f92557ef90347298e"
 )
+assert entries["scripts/until_loop_ephemeral.py"]["adaptation_reason"].strip()
 assert hashlib.sha256(script.read_bytes()).hexdigest() == entries[
     "scripts/until_loop_ephemeral.py"
 ]["sha256"]
@@ -211,7 +213,7 @@ contract = {
     "context": {
         "request": "Relocated Improve callback test with two distinct clean reviews.",
         "scope": "Frozen initial candidate: tracked.txt only; preserve all other files.",
-        "authority": "Do not commit, push, publish, or change files for this protocol test.",
+        "authority": "Do not commit, push or publish for this protocol test.",
         "environment": "Use the relocated bundled runtime and the initialized test workspace.",
         "resources": [
             {"purpose": "candidate", "locator": str(workspace / "tracked.txt")},
@@ -278,6 +280,10 @@ Path(sys.argv[1]).write_text(
     encoding="utf-8",
 )
 PY
+# The first review edits the candidate, so a second distinct review is required.
+# (A first trivial review that leaves the workspace unchanged completes at once;
+# test/improve-runtime.test.py covers that path.)
+printf 'reviewed\n' >>"$workspace/tracked.txt"
 ephemeral_second="$tmpdir/ephemeral second packet.json"
 run_python - "$ephemeral_initial" "$ephemeral_first_report" >"$ephemeral_second" <<'PY'
 import json

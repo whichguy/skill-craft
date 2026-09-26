@@ -271,7 +271,7 @@ class ReceiptCountTests(unittest.TestCase):
                 path.write_text(name)
                 refs.append(str(path))
             with self.assertRaisesRegex(standalone.StandaloneImproveError,
-                                        "got 3; list only the two trivial-streak reviews"):
+                                        "got 3; leave earlier material reviews on disk"):
                 standalone._receipt({"summary": "s", "review_refs": refs, "check_refs": [refs[0]]},
                                     workspace, "receipt")
 

@@ -133,6 +133,26 @@ class StandaloneImproveBridgeTests(unittest.TestCase):
         self.assertEqual((record, writes), bridge.complete(self.ephemeral_binding, self.receipt()))
         self.assertEqual(packet["last_report"]["classification"], "trivial")
 
+    def test_an_unchanged_first_pass_imports_with_its_one_review(self) -> None:
+        for args in (("init", "-q"), ("config", "user.email", "s@example.invalid"), ("config", "user.name", "S")):
+            subprocess.run(["git", "-C", str(self.workspace), *args], check=True, capture_output=True)
+        (self.workspace / "candidate.py").write_text("x = 1\n")
+        subprocess.run(["git", "-C", str(self.workspace), "add", "-A"], check=True, capture_output=True)
+        subprocess.run(["git", "-C", str(self.workspace), "commit", "-qm", "base"], check=True, capture_output=True)
+        packet, _raw = self.ephemeral_start()
+        packet, raw = self.ephemeral_done(packet, {
+            "classification": "trivial", "exit_assessment": "satisfied", "continuation_assessment": "allowed",
+            "evidence": "One full review found nothing worth changing.", "handoff": "Nothing remains."})
+        self.assertEqual(packet["status"], "complete")
+        self.assertTrue(packet["progress"]["unchanged_first_pass"])
+        self.save_terminal_packet(raw)
+        self.write_evidence()
+        one = dict(self.receipt(), review_refs=["review-a.md"])
+        record, _writes = bridge.complete(self.ephemeral_binding, one)
+        self.assertEqual(record["runtime_phase"], "complete")
+        with self.assertRaisesRegex(bridge.StandaloneImproveError, "ended on one unchanged trivial pass"):
+            bridge.complete(self.ephemeral_binding, self.receipt())
+
     def test_created_plans_wait_for_two_reviews_after_material_repair(self) -> None:
         """Real callback/import mechanics; review judgments are synthetic, not LLM quality evidence."""
         for stage, successor in (("plan", "prepare"), ("step-plan", "test-spec")):

@@ -93,8 +93,8 @@ class TestGroupTests(unittest.TestCase):
 
     def test_audited_catalog_counts_and_fixed_commands(self) -> None:
         self.assertEqual(len(suite_catalog.SHIPLOOP_SUITES), 55)
-        self.assertEqual(len([suite for suite in suite_catalog.SUITES if suite.family == "core"]), 34)
-        self.assertEqual(len(suite_catalog.SUITES), 91)
+        self.assertEqual(len([suite for suite in suite_catalog.SUITES if suite.family == "core"]), 35)
+        self.assertEqual(len(suite_catalog.SUITES), 92)
         self.assertTrue(all(suite.hermetic for suite in suite_catalog.SUITES))
         self.assertTrue(all(suite.path in suite.argv for suite in suite_catalog.SUITES))
         self.assertTrue(all(suite.argv[0] in {"python3", "node", "bash"} for suite in suite_catalog.SUITES))
@@ -139,7 +139,7 @@ class TestGroupTests(unittest.TestCase):
         cases = {
             "skills/shiploop/scripts/shiploop_keepalive.py": {"shiploop-keepalive"},
             "scripts/release.py": {"release-push", "release-flow", "release-boundary"},
-            "skills/improve/SKILL.md": {"improve", "improve-plugin", "improve-agent"},
+            "skills/improve/SKILL.md": {"improve", "improve-plugin", "improve-agent", "improve-runtime"},
             "install.sh": {"install-targets", "install-arbitrary-skill", "install-status-uninstall"},
             "test/shiploop-lint.test.py": {"shiploop-lint"},
             "docs/notes.md": set(),

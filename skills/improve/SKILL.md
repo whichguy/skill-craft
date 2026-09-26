@@ -3,7 +3,8 @@ name: improve
 description: >-
   Use when a repository candidate needs a deliberate review-and-improvement
   loop: use recent Git history, make warranted changes, run meaningful checks,
-  and require two consecutive trivial-only review passes. Supports a read-only
+  and require two consecutive trivial-only review passes (one, when the first
+  pass changes nothing). Supports a read-only
   interpretation preview; not a one-off code review.
 version: 0.3.0-rc.5
 license: MIT
@@ -231,7 +232,11 @@ original learnings with selective references to prior commits in one account.
   `unresolved` if work, evidence, required commit, or assessment is incomplete.
   Report the substantive exit assessment and whether continuation is allowed,
   blocked, or cancelled. The configured gate is two consecutive qualifying
-  trivial reviews; a material or unresolved report resets it. Only the runtime
+  trivial reviews; a material or unresolved report resets it. When the first
+  review is trivial and the runtime sees from Git that the workspace content is
+  unchanged since `start` (tracked and untracked files; runtime and ignored files
+  aside), that one review meets the gate and the loop completes: a second pass
+  would review the same tree. The runtime decides this, not the report. Only the runtime
   can accept a terminal transition. A blocker, requested stop, exhausted
   budget, failed required commit, stale check, or unresolved evidence remains
   incomplete rather than satisfying the review policy.
@@ -395,7 +400,8 @@ context.
 Preserve the shared policy and every standalone binding above in the interpreted
 contract, including conditional commit overrides and negative constraints. The
 execution condition must contain the complete ordered review cycle; the exit
-condition must include current evidence plus two consecutive qualifying reviews;
+condition must include current evidence plus two consecutive qualifying reviews
+(or one qualifying first review that left the workspace unchanged);
 and the continuation condition must retain useful authorized work and incomplete
 stops. Before start, check that required exit outcomes can be achieved during
 execution. If the task requires an authorized deployment or other external
