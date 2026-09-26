@@ -299,6 +299,106 @@ carry-forward keep two passes. Edits: `shiploop_standalone_improve.py` (streak a
 `skills/improve/references/review-policy.md`. That last one needs its own
 `changes/improve/` note.
 
+### S7 Planning knowledge kept in the repository (owner to-do 2026-09-26)
+
+**Goal.** Planning produces a spec and environment knowledge that outlive the run.
+The script stages and commits it in the product repository at the end of planning.
+A later run that adds another feature starts from it instead of rediscovering it.
+
+**Today** (verified): every planning result lives in the run directory, which is
+outside the repo and never committed. The durable homes (`docs/requirements.md`,
+`docs/current-system.md`, `SHIPLOOP.md`) are written only when the model follows
+prose, and `references/project-knowledge.md` says "No commit/push is implied".
+No script reads earlier knowledge; a new run finds it only through
+`SHIPLOOP.md` links. `.shiploop/` cannot hold it, because the workspace return
+refuses that path (`shiploop_workspace.FORBIDDEN_PARTS`).
+
+**One home, `docs/shiploop/`:**
+
+| Path | Contents | Lifetime |
+|---|---|---|
+| `docs/shiploop/README.md` | Index: what each file answers, the feature list, when each was last updated | Living |
+| `docs/shiploop/spec.md` | The consolidated product spec: every accepted requirement with a stable ID, grouped by capability, and a `Retired` section | Living; each run preserves, adds, modifies or retires by ID |
+| `docs/shiploop/environment.md` | Targets and accounts (non-secret names and aliases), the working test, deploy, dry-run and confirm commands, platform facts learned the hard way (for example "`lightning__Tab` does not create a tab; confirm with `sf org list metadata --metadata-type CustomTab`") | Living; facts carry the run and date that verified them |
+| `docs/shiploop/test-strategy.md` | Harnesses, suites, the commands that own them, the ID convention | Living |
+| `docs/shiploop/features/<YYYY-MM-DD>-<slug>/` | This run's feature record: `spec.md` (the delta: added, modified and retired IDs), `plan.md` (work items and each step plan), `test-spec.md` (case IDs to requirement IDs), `system-tests.md`, `release-plan.md`, `outcome.md` | Written once per run, then kept as history |
+
+`SHIPLOOP.md` at the root stays the short index the packets already print, and
+links to `docs/shiploop/README.md`. A product's own docs (README, an existing
+requirements file the team maintains) are linked, never copied. Files that earlier
+runs wrote in the old homes (`docs/requirements.md`, `docs/current-system.md`,
+ShipLoop-authored only) move into `docs/shiploop/` at the first close, and
+`SHIPLOOP.md` is repointed. That is the consolidation, done once per repository.
+
+**Closes (script-owned; each stages exactly its paths and commits):**
+
+| Close | When | Writes | Commit |
+|---|---|---|---|
+| C1 planning | `prepare` accepted (the execution worktree now exists) | `spec.md`, `environment.md`, `test-strategy.md`, the feature's `spec.md` and `plan.md`, README | `docs(shiploop): record <feature> spec and environment` |
+| C2 item | each `test-spec` accepted | the feature's `plan.md` (that item's step plan) and `test-spec.md` | with a `docs(shiploop): record <item> test spec` commit |
+| C3 release plan | `release-plan` accepted | `system-tests.md`, `release-plan.md`, environment updates | `docs(shiploop): record <feature> release plan` |
+| C4 outcome | `handoff` accepted | `outcome.md` (what shipped, where, what a person still has to check), environment facts learned this run, README | `docs(shiploop): record <feature> outcome` |
+
+- The script renders these files from accepted results, which the Improve reviews
+  already checked. The model does not hand-copy them. Each close runs `git add --
+  <exact paths>` and `git commit` in the execution worktree with hooks disabled
+  (the `shiploop_workspace._git` helper). It never uses `git add -A`.
+- Before committing, `shiploop_privacy` screens every file; a hit refuses the close
+  and names the line. The environment file records alias names, never tokens,
+  passwords or session URLs.
+- The return plan marks `docs/shiploop/**` as `keep`, and the return is refused if
+  a close commit would be dropped. A user's or repository's no-commit override is
+  honoured: the files are still written and the status says they are uncommitted.
+
+**Consolidating the living spec (the model's part, script-checked):**
+
+- The spec stage's result must carry the full consolidated spec
+  (`results/<action>-spec.md`). The model builds it from the prior
+  `docs/shiploop/spec.md` plus this feature, keeping IDs stable.
+- The script refuses a consolidated spec that drops a prior ID: every ID in the
+  committed `spec.md` must appear as kept or modified, or under `Retired` with a
+  reason. New IDs must not reuse retired ones. The feature `spec.md` delta is
+  derived by the script from the ID diff.
+- `environment.md` follows the same rule for its fact IDs. A fact this run could not
+  re-verify stays, marked with the run that last verified it.
+
+**Using it in this run:**
+
+- **intake / discovery:** the packet lists `docs/shiploop/README.md`,
+  `environment.md` and `spec.md` as references (M5), with "open when". Discovery
+  re-verifies recorded environment facts with one cheap probe each, instead of
+  rediscovering them, and records what changed.
+- **spec / test-strategy / plan:** start from the committed spec and test strategy.
+  The plan names which requirement IDs each work item touches.
+- **step-plan / test-spec:** test IDs map to requirement IDs. Commands come from
+  `test-strategy.md`, so an earlier run's working commands, with their `ids` and
+  runner flags, are reused.
+- **system-test-author:** existing cases for unchanged IDs are cited, not rewritten.
+- **release-plan / release-check:** deploy, dry-run and confirm commands start from
+  `environment.md`, including facts such as the CustomTab probe. That is what would
+  have saved the Battleship replan.
+- **handoff:** C4 writes what the next run needs: what shipped, what a person still
+  has to check (for example TC-13 and TC-14 in a browser), and new environment facts.
+
+**Using it in a later run:** a new feature run starts with the index and three living
+files as references, a feature list for context, and requirement IDs to extend. It
+does not import an earlier run's state; the files are evidence to read, consistent
+with "an old artifact is evidence, not a protocol to import".
+
+**Policy text to update** (it contradicts the owner's request):
+`references/project-knowledge.md` ("No commit/push is implied"; "do not become a
+second permanent product contract"), `references/state-files.md`,
+`references/requirements-definition.md`, `references/current-system-baseline.md`,
+and a superseded note on `docs/shiploop-requirements-retention-2026-09-17.md`
+("not a permanent copy of every run spec"). The owner's 2026-09-26 decision keeps
+both the living spec and each feature's record.
+
+**Tests:** `test/shiploop-planning-handoff.test.py` (C1–C4 render, stage only
+`docs/shiploop/**`, commit, privacy refusal, no-commit override), a real-Git return
+test (the close commits reach the source branch; `docs/shiploop/**` is never
+dropped), a consolidation test (a dropped prior ID is refused; a retired ID needs a
+reason), and a second-run test (a new run's intake packet lists the committed files).
+
 ## Prompt wording
 
 New and changed text follows the house tone of the existing prompts: plain sentences,
@@ -367,7 +467,8 @@ does not mark the case passed from its own reading.
 | 3 | S2 test stages by evidence | 1 | Ship 1 and 3 in one release with the single version bump. |
 | 4 | S5 references and repeat packet | — | After 3, so the packet text is converted once. |
 | 5 | S4 release after a replan, consumer entry | 1, 3 | Uses records, tree ids and path classes. |
-| 6 | S6 Improve single pass | owner decision, 3 | Policy change in Improve too. |
+| 6 | S7 planning knowledge kept in the repository | 4 (references) | Independent of the test work; can start after 4. |
+| 7 | S6 Improve single pass | owner decision, 3 | Policy change in Improve too. |
 
 Each PR registers new suites in `test/suite_catalog.py` (group list and timing map),
 runs its footprint suites locally and CI's quick tier on push. The release commit
@@ -409,3 +510,5 @@ runs the full tier.
 - Stale or conflicting action IDs and wrong verbs stay refused; the script picks the
   successor.
 - Older runs are refused, not migrated.
+- Planning knowledge is committed only under `docs/shiploop/`, by exact path, after a
+  privacy screen; a prior requirement ID is never silently dropped.
