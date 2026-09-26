@@ -348,8 +348,6 @@ def main(core, argv=None):
         return 2
     try:
         with core.run_lock(root):
-            if args.command in CALLBACK_VERBS and (root / "state.md").exists():
-                _count_callback_attempt(root)
             if (root / "state.md").exists():
                 existing = core.load_state(root)
                 # A run saved by a removed protocol or mode is refused before
@@ -381,6 +379,9 @@ def main(core, argv=None):
                     need(not args.delivery_contract
                          or existing.get("delivery_contract_version") == 1,
                          "--delivery-contract cannot retrofit an existing run; preserve it and use its recorded settings")
+                if args.command in CALLBACK_VERBS:
+                    # Only a loadable current run counts attempts; refused runs stay untouched.
+                    _count_callback_attempt(root)
                 _require_retry_delegation(existing, getattr(args, "delegation", None), root)
                 _require_retry_lint(existing, getattr(args, "lint", None), root)
                 return navigator.dispatch(

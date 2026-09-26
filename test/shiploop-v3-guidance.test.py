@@ -641,7 +641,7 @@ class V3GuidanceTests(unittest.TestCase):
                 release_blocked_once = True
                 blocked, _action = self.produce(
                     recovered,
-                    outcome="blocked",
+                    outcome="blocked", blocked_by="external",
                     summary="Synthetic release evidence is partial.",
                     evidence_refs=partial_release_refs,
                 )
@@ -974,7 +974,7 @@ class V3GuidanceTests(unittest.TestCase):
         self.assertIn(locator, packet)
         self.assertIn(context, packet)
         action = dict(navigator.current_action(state))
-        blocked = {"outcome": "blocked", "summary": "Host storage prerequisite is unavailable; supplier decision pending.",
+        blocked = {"outcome": "blocked", "blocked_by": "external", "summary": "Host storage prerequisite is unavailable; supplier decision pending.",
                    "evidence_refs": sources}
         waiting = navigator.apply(state, action["id"], blocked)
         waiting, review_packet = self.cold_packet(waiting)
@@ -1172,6 +1172,7 @@ class V3GuidanceTests(unittest.TestCase):
                         state,
                         outcome=outcome,
                         evidence_refs=["unrelated://test-strategy-" + outcome],
+                        **({"blocked_by": "external"} if outcome == "blocked" else {}),
                     )
                     rejected_actions.append(action_id)
                     state = self.save_reload(state)

@@ -1306,7 +1306,7 @@ class GateTests(Fixture):
         state = self.start()
         self.edit({"a.py": "x = 1\ny = 2  # lint\n"})
         with self.patched_env(), mock.patch.object(lint, "lint_pass", side_effect=AssertionError("no pass")):
-            complete(self.run_dir, state, dict(DONE, outcome="blocked"))
+            complete(self.run_dir, state, dict(DONE, outcome="blocked", blocked_by="external"))
 
     def test_a_pass_that_cannot_run_never_refuses(self):
         self.commit({"a.py": "x = 1\n"})
@@ -1323,7 +1323,7 @@ class GateTests(Fixture):
         with self.assertRaisesRegex(nav.NavigatorError, "only on a done implement, test-green, regression result"):
             nav._canonical_result(dict(DONE, lint_waivers=waivers), stage="verify")
         with self.assertRaisesRegex(nav.NavigatorError, "only on a done implement, test-green, regression result"):
-            nav._canonical_result(dict(DONE, outcome="blocked", lint_waivers=waivers), stage="implement")
+            nav._canonical_result(dict(DONE, outcome="blocked", blocked_by="external", lint_waivers=waivers), stage="implement")
         self.assertEqual(nav._canonical_result(dict(DONE, lint_waivers=waivers), stage="implement")["lint_waivers"],
                          waivers)
 

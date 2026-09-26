@@ -235,7 +235,7 @@ class TestLoopTests(unittest.TestCase):
         (self.repo / "fixed.txt").write_text("fixed\n")
         # A complete packet never traps the step: blocked is still accepted.
         blocked = self.state()
-        self.complete(dict(DONE, outcome="blocked", evidence_refs=[str(self.terminal())]))
+        self.complete(dict(DONE, outcome="blocked", blocked_by="external", evidence_refs=[str(self.terminal())]))
         self.assertEqual(self.state()["status"], "blocked")
         nav.save(self.run_dir, blocked)
         self.complete(done)
@@ -255,7 +255,7 @@ class TestLoopTests(unittest.TestCase):
         self.run_loop([MATERIAL] * 4 + [TRIVIAL])
         self.assert_refused(dict(DONE, evidence_refs=[str(self.terminal())]),
                             "ran 5 iterations; more than 4 is outside the contract")
-        self.complete(dict(DONE, outcome="blocked", evidence_refs=[str(self.terminal())]))
+        self.complete(dict(DONE, outcome="blocked", blocked_by="external", evidence_refs=[str(self.terminal())]))
         self.assertEqual(self.state()["status"], "blocked")
 
     def test_stopped_loop_reports_blocked_and_runs_no_command(self):
@@ -266,7 +266,7 @@ class TestLoopTests(unittest.TestCase):
         with mock.patch.object(test_loop, "verify", side_effect=AssertionError("no command runs")):
             self.assert_refused(dict(DONE, evidence_refs=[str(self.terminal())]),
                                 "a stopped test loop reports outcome blocked")
-            self.complete(dict(DONE, outcome="blocked", evidence_refs=[str(self.terminal())]))
+            self.complete(dict(DONE, outcome="blocked", blocked_by="external", evidence_refs=[str(self.terminal())]))
         self.assertEqual(self.state()["status"], "blocked")
 
     def test_an_empty_command_list_skips_the_loop_with_its_reason(self):
@@ -320,7 +320,7 @@ class TestLoopTests(unittest.TestCase):
         with mock.patch.object(test_loop, "lint", wraps=test_loop.lint) as runner:
             self.assert_refused(DONE, "was refused 3 times; done is no longer accepted")
             runner.run_argv.assert_not_called()
-        self.complete(dict(DONE, outcome="blocked"))
+        self.complete(dict(DONE, outcome="blocked", blocked_by="external"))
         self.assertEqual(self.state()["status"], "blocked")
 
     def run_quality_loop(self) -> None:

@@ -229,7 +229,7 @@ class QualityLoopTests(unittest.TestCase):
         refs = [str(self.terminal())]
         with self.assertRaisesRegex(nav.NavigatorError, "more than 3 is outside the contract"):
             self.complete(dict(DONE, evidence_refs=refs))
-        self.complete(dict(DONE, outcome="blocked", summary="Loop exceeded its limit.", evidence_refs=refs))
+        self.complete(dict(DONE, outcome="blocked", blocked_by="external", summary="Loop exceeded its limit.", evidence_refs=refs))
         self.assertEqual(self.state()["status"], "blocked")
 
     def test_stopped_loop_reports_blocked(self):
@@ -239,7 +239,7 @@ class QualityLoopTests(unittest.TestCase):
         refs = [str(self.terminal())]
         with self.assertRaisesRegex(nav.NavigatorError, "stopped quality loop reports outcome blocked"):
             self.complete(dict(DONE, evidence_refs=refs))
-        self.complete(dict(DONE, outcome="blocked", summary="Material finding at iteration 1.",
+        self.complete(dict(DONE, outcome="blocked", blocked_by="external", summary="Material finding at iteration 1.",
                            evidence_refs=refs))
         self.assertEqual(self.state()["status"], "blocked")
 
@@ -248,7 +248,7 @@ class QualityLoopTests(unittest.TestCase):
         self.start()
         self.drive_to(quality.STAGE)
         self.assertFalse(self.terminal().exists())
-        self.complete(dict(DONE, outcome="blocked", summary="Until Loop runtime unavailable."))
+        self.complete(dict(DONE, outcome="blocked", blocked_by="external", summary="Until Loop runtime unavailable."))
         self.assertEqual(self.state()["status"], "blocked")
 
     def test_run_without_improve_card_says_unavailable(self):

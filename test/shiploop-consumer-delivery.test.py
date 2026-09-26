@@ -391,7 +391,7 @@ class ConsumerDeliveryTests(unittest.TestCase):
         self.refused_at_apply(
             state,
             "negative delivery observation",
-            outcome="blocked",
+            outcome="blocked", blocked_by="external",
             summary="The not-yet-due release effect was not observed.",
             delivery_assessment=self.observation(state, "update-effect", status="failed"),
         )
@@ -399,7 +399,7 @@ class ConsumerDeliveryTests(unittest.TestCase):
         state = self.advance(
             state,
             "product-acceptance",
-            outcome="blocked",
+            outcome="blocked", blocked_by="external",
             summary="Product acceptance found the completed pre-update check no longer passes.",
             delivery_assessment=self.observation(state, "pre-drag", status="failed"),
         )
@@ -417,7 +417,7 @@ class ConsumerDeliveryTests(unittest.TestCase):
         state = self.advance(
             state,
             "release-check",
-            outcome="blocked",
+            outcome="blocked", blocked_by="external",
             summary="Release readiness found the earlier pre-update check is stale.",
             delivery_assessment=self.observation(state, "pre-drag", status="failed"),
         )
@@ -446,7 +446,7 @@ class ConsumerDeliveryTests(unittest.TestCase):
         state = self.advance(
             state,
             "operations",
-            outcome="blocked",
+            outcome="blocked", blocked_by="external",
             summary="Operations found the observed consumer behavior is no longer current.",
             delivery_assessment=self.observation(state, "visual-drag", status="failed"),
         )
@@ -582,7 +582,7 @@ class ConsumerDeliveryTests(unittest.TestCase):
         state = self.advance(
             state,
             "release-check",
-            outcome="blocked",
+            outcome="blocked", blocked_by="external",
             summary="The candidate changed after release planning.",
             delivery_assessment={
                 "kind": "contract",
@@ -628,7 +628,7 @@ class ConsumerDeliveryTests(unittest.TestCase):
         state = self.advance(
             state,
             "operations",
-            outcome="blocked",
+            outcome="blocked", blocked_by="external",
             summary="Operations found a corrected candidate after release planning.",
             delivery_assessment={
                 "kind": "contract",
@@ -854,7 +854,7 @@ class ConsumerDeliveryTests(unittest.TestCase):
         self.refused_at_apply(
             state,
             "positive delivery observation",
-            outcome="blocked",
+            outcome="blocked", blocked_by="external",
             summary="A later action cannot invent an earlier passing receipt.",
             delivery_assessment=self.observation(state, "update-effect"),
         )
@@ -865,7 +865,7 @@ class ConsumerDeliveryTests(unittest.TestCase):
                 state,
                 action["id"],
                 self.result(
-                    outcome="blocked",
+                    outcome="blocked", blocked_by="external",
                     summary="The later check found that the recorded update effect is not current.",
                     delivery_assessment=self.observation(
                         state, "update-effect", status=status
@@ -1033,7 +1033,7 @@ class ConsumerDeliveryTests(unittest.TestCase):
             state,
             action["id"],
             self.result(
-                outcome="blocked",
+                outcome="blocked", blocked_by="external",
                 summary="The browser check is recorded but a requirement changed.",
                 delivery_assessment=self.observation(state, "visual-drag"),
             ),
@@ -1047,7 +1047,7 @@ class ConsumerDeliveryTests(unittest.TestCase):
             state,
             action["id"],
             self.result(
-                outcome="blocked",
+                outcome="blocked", blocked_by="external",
                 summary="The consumer behavior changed after release planning.",
                 delivery_assessment={
                     "kind": "contract",
@@ -1106,7 +1106,7 @@ class ConsumerDeliveryTests(unittest.TestCase):
             state,
             action["id"],
             self.result(
-                outcome="blocked",
+                outcome="blocked", blocked_by="external",
                 summary="The fresh pre-update check currently fails.",
                 delivery_assessment=self.observation(state, "pre-drag", status="failed"),
             ),

@@ -387,7 +387,7 @@ class NavigatorV3Tests(unittest.TestCase):
                 self.assertNotIn(expected_prefix, navigator.render(None, root, stopped))
         # select-work is not a checkpoint stage, so a blocked result advances
         # directly; no Improve child completes in between.
-        blocked = navigator.apply(state, action["id"], result(outcome="blocked"))
+        blocked = navigator.apply(state, action["id"], result(outcome="blocked", blocked_by="external"))
         self.assertEqual(blocked["status"], "blocked")
         self.assertNotIn(prefix, navigator.render(None, root, blocked))
         resumed = navigator.control(blocked, "resume")
@@ -503,7 +503,7 @@ class NavigatorV3Tests(unittest.TestCase):
         blocked_action = self._action(blocked_state)
         waiting_blocked = navigator.apply(
             blocked_state, blocked_action["id"],
-            result(outcome="blocked", summary="Synthetic prerequisite missing."),
+            result(outcome="blocked", blocked_by="external", summary="Synthetic prerequisite missing."),
         )
         self.assertEqual(waiting_blocked["status"], "active")
         self.assertEqual(waiting_blocked["active_improve"]["action_id"], blocked_action["id"])
@@ -511,7 +511,7 @@ class NavigatorV3Tests(unittest.TestCase):
             waiting_blocked,
             blocked_action["id"],
             receipt("spec"),
-            result(outcome="blocked", summary="Synthetic prerequisite missing."),
+            result(outcome="blocked", blocked_by="external", summary="Synthetic prerequisite missing."),
         )
         self.assertEqual(blocked["status"], "blocked")
         self.assertEqual(navigator.current_stage(blocked), "spec")
@@ -1473,7 +1473,7 @@ class NavigatorV3Tests(unittest.TestCase):
                 blocked_state = navigator.apply(
                     state,
                     action["id"],
-                    result(outcome="blocked", summary="Audit target is temporarily unavailable."),
+                    result(outcome="blocked", blocked_by="external", summary="Audit target is temporarily unavailable."),
                 )
                 self.assertEqual(blocked_state["status"], "blocked")
                 self.assertEqual(navigator.current_stage(blocked_state), "verify")
@@ -1863,7 +1863,7 @@ class NavigatorV3Tests(unittest.TestCase):
         self.assertEqual(self._progress(repeated), progress)
 
         blocked = navigator.apply(state, self._action(state)["id"],
-                                  result(outcome="blocked", summary="A synthetic prerequisite is unresolved."))
+                                  result(outcome="blocked", blocked_by="external", summary="A synthetic prerequisite is unresolved."))
         paused = navigator.control(state, "pause", "Pause the held verification.")
         for stopped in (blocked, paused):
             with self.subTest(status=stopped["status"]):

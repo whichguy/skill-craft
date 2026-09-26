@@ -279,7 +279,7 @@ class AuthReadinessNavigatorTests(unittest.TestCase):
         cold = self._cold_packet(run_dir)
         blocked_result = self._result(
             "discovery",
-            outcome="blocked",
+            outcome="blocked", blocked_by="external",
             evidence_refs=[note_ref],
         )
         blocked_packet, blocked_callback, blocked_command = self._submit(

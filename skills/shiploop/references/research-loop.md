@@ -237,6 +237,15 @@ speculative technology or merely available connector is not a reason to sign in.
 For a selected downstream test or delivery dependency, surface known access needs
 now even if that later activity need not run yet.
 
+Check every planned verification surface, not only what discovery itself reads:
+the deploy target, and each post-deploy browser, API or remote-test check the
+test strategy names. For each, find the route the run can use without the user,
+such as a browser session the platform CLI issues from its existing
+authentication, and prove it with one bounded read. Ask the user only for access
+no such route provides, and ask once, now, together with any other open
+question, so a later stage never stops to ask for a sign-in. Record each route
+in the discovery evidence so the checking stage reuses it.
+
 Independent work stays within the current action and granted scope. Discovery
 may continue local inspection, not future implementation; do not skip graph
 stages or begin another action while this one is paused/blocked. When only a

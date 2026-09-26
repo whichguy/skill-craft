@@ -191,10 +191,10 @@ class StatusBlockTests(unittest.TestCase):
         paused = navigator.control(state, "pause", "Waiting for API access.")
         self.assertEqual(line(navigator.status_block(paused), "Stopped"),
                          "Stopped:   paused: Waiting for API access. The packet prints the resume command.")
-        blocked = self.act(state, outcome="blocked", summary="No credentials for the staging org.")
+        blocked = self.act(state, outcome="blocked", blocked_by="external", summary="No credentials for the staging org.")
         block = navigator.status_block(blocked)
         self.assertEqual(line(block, "Done"), "Done:      research (blocked): No credentials for the staging org.")
-        self.assertEqual(line(block, "Stopped"), "Stopped:   blocked: No credentials for the staging org. "
+        self.assertEqual(line(block, "Stopped"), "Stopped:   blocked: external: No credentials for the staging org. "
                                                  "The packet prints the resume command.")
         halted = navigator.control(state, "halt", "User stopped the run.")
         self.assertEqual(line(navigator.status_block(halted), "Stopped"),

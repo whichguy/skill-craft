@@ -44,7 +44,15 @@ _STATUSES = frozenset(("active", "paused", "blocked", "halted", "done"))
 _RESULT_KEYS = frozenset((
     "outcome", "summary", "evidence_refs", "work_items", "choices", "delivery_assessment",
     "reconciliation_target", "assumptions", "lint_waivers", "test_commands", "test_commands_na",
+    "blocked_by",
 ))
+# Who can unblock a blocked result.  Anything the run can fix itself is not blocked.
+BLOCKED_BY = ("user", "access", "external")
+BLOCKED_BY_RULE = (
+    "a blocked result must say who can unblock it in blocked_by: user (a decision only the user "
+    "can make), access (a sign-in or permission the user must grant) or external (a service or "
+    "dependency outside this run). Anything this run can fix itself -- a missing tool, a failed "
+    "install, a broken baseline, a failing test -- is not blocked: repair it in this stage")
 _STATE_KEYS = frozenset(
     (
         "version",
@@ -327,6 +335,9 @@ def _canonical_result(
     if outcome == "replan":
         _need(stage in guidance3.OUTER and "work_items" in value,
               "replan requires corrective work_items at an outer stage")
+    if "blocked_by" in value:
+        _need(outcome == "blocked" and value["blocked_by"] in BLOCKED_BY,
+              "blocked_by is only for a blocked result and must be user, access or external")
     result: dict[str, Any] = {
         "outcome": outcome,
         "summary": _text(value.get("summary"), "result summary"),
@@ -387,6 +398,8 @@ def _canonical_result(
             )
         except consumer_delivery.ConsumerDeliveryError as exc:
             raise NavigatorError(str(exc)) from exc
+    if "blocked_by" in value:
+        result["blocked_by"] = value["blocked_by"]
     return result
 
 
@@ -882,8 +895,10 @@ def _apply_result(state: Mapping[str, Any], action_id: str, result: Any, improve
     updated["revision"] += 1
 
     if canonical["outcome"] == "blocked":
+        # Enforced for new results only; replays and saved history keep their shape.
+        _need(canonical.get("blocked_by") in BLOCKED_BY, BLOCKED_BY_RULE)
         updated["status"] = "blocked"
-        updated["status_reason"] = canonical["summary"]
+        updated["status_reason"] = canonical["blocked_by"] + ": " + canonical["summary"]
         if _is_v2_inner_root(updated):
             _replace_v2_inner_action(updated, stage)
         else:
@@ -2244,6 +2259,8 @@ def render(core: Any, root: Path, state: Mapping[str, Any]) -> str:
             *_allowed_outcome_lines(state, stage),
             "Call this when done:",
             _callback(core, root, "complete", action=action["id"], result=str(result_path)),
+            "A blocked result adds blocked_by: user | access | external (who can unblock it); "
+            "a problem this run can fix itself is repaired in this stage, not blocked.",
             _improve_line(stage),
             "Pause without consuming the action: " + _callback(core, root, "pause", reason="<who asked and why>")
             + " (only when the user asks or a real blocker stops authorized work)",

@@ -150,7 +150,7 @@ class ImproveScheduleTests(unittest.TestCase):
         self.assertEqual(len(state["work_items"]), 1)
         action = nav.current_action(state)["id"]
         records = copy.deepcopy(state["improve_results"])
-        blocked = nav.apply(state, action, dict(DONE, outcome="blocked", summary="Synthetic block."))
+        blocked = nav.apply(state, action, dict(DONE, outcome="blocked", blocked_by="external", summary="Synthetic block."))
         self.assertIsNone(blocked["active_improve"])
         self.assertEqual(blocked["status"], "blocked")
         self.assertEqual(blocked["improve_results"], records)
@@ -249,7 +249,7 @@ class ImproveScheduleTests(unittest.TestCase):
             "paused": nav.control(fresh, "pause", "Synthetic pause."),
             "paused-child": nav.control(waiting, "pause", "Synthetic pause with a parked child."),
             "blocked": nav.apply(fresh, nav.current_action(fresh)["id"],
-                                 dict(DONE, outcome="blocked", summary="Synthetic block.")),
+                                 dict(DONE, outcome="blocked", blocked_by="external", summary="Synthetic block.")),
             "halted": nav.control(self.new(), "halt", "Synthetic stop."),
             "done": done,
         }

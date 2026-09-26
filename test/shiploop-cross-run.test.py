@@ -186,7 +186,7 @@ class CrossRunTests(unittest.TestCase):
         callback.write_text(
             store.dumps(
                 {
-                    "outcome": "blocked",
+                    "outcome": "blocked", "blocked_by": "external",
                     "summary": "Synthetic blocker retained for packet recovery coverage.",
                 },
                 "ShipLoop cross-run blocked callback",

@@ -97,7 +97,7 @@ def scenarios():
         'blocked-resume': {
             'steps': [
                 {'at': 'intake', 'result': {
-                    'outcome': 'blocked', 'summary': 'Synthetic prerequisite missing.'},
+                    'outcome': 'blocked', 'blocked_by': 'external', 'summary': 'Synthetic prerequisite missing.'},
                  'command': 'produce', 'expect': 'intake', 'status': 'blocked'},
                 {'at': 'intake', 'command': 'resume', 'expect': 'intake'},
                 *activity(),
