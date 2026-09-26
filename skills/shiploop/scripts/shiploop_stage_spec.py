@@ -389,7 +389,8 @@ _ROWS = (
         test="Rerun or inspect each criterion's confirmation; reconcile every selected case.",
         tools="ShipLoop reruns lint report-only on entry.",
         entry_runs=("report-lint",),
-        reads=("spec", "test-strategy", "item:step-plan", "item:test-spec"),
+        reads=("spec", "test-strategy", "item:step-plan", "item:test-spec", "item:implement",
+               "item:test-green", "item:regression", "item:static-checks"),
         blocks=frozenset({"reconciliation", "code-craft"}),
     ),
     Stage(
@@ -517,7 +518,7 @@ _ROWS = (
             "the handoff states source, test, release and consumer status with evidence",
             "the workspace return is verified (worktree runs)",
         ),
-        reads=("intake", "spec", "plan", "release-verify"),
+        reads=("intake", "spec", "plan", "product-acceptance", "release-verify", "operations"),
         blocks=frozenset({"reconciliation"}),
     ),
 )

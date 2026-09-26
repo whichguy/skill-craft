@@ -101,6 +101,8 @@ def build_contract(root: Path, state: Mapping[str, Any], work_item: str, action:
          "locator": str(root / lint.inventory_path(action))},
         {"purpose": "ShipLoop lint record for this action, when lint ran",
          "locator": str(root / "lint" / (action + ".md"))},
+        {"purpose": "this action's pass log: append what each iteration checked and what is left",
+         "locator": str(root / "notes" / (action + ".md"))},
     ]
     step_plan = _step_plan_result(root, state, work_item)
     if step_plan is not None:

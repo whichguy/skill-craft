@@ -1205,6 +1205,34 @@ def _knowledge_close(before: Mapping[str, Any], after: Mapping[str, Any]) -> Non
         print("ShipLoop knowledge: " + str(exc) + "; the next close commits it.", file=sys.stderr)
 
 
+# A locator may add an anchor, a line (and column) or a test ID after the file path:
+# file.md#section, file.py:12:4, test_x.py::Class::test_y.
+_EVIDENCE_SUFFIX = re.compile(r"(#.*|::.*|:\d+(?::\d+)?)$")
+
+
+def _check_submitted_evidence(result: Any) -> None:
+    """Refuse a submitted result that cites a local file that does not exist.
+
+    Runs at the CLI gates only (history is revalidated on every load, and a
+    file may later be removed).  Only absolute local paths are checked, after
+    dropping a ``#anchor`` or ``:line`` suffix; URLs and other locators pass.
+    An existing file is not proof of anything: test evidence is ShipLoop's
+    own test-run record.
+    """
+    if not isinstance(result, Mapping):
+        return
+    missing = []
+    for ref in result.get("evidence_refs") or ():
+        if not isinstance(ref, str) or not ref.startswith("/"):
+            continue
+        path = Path(_EVIDENCE_SUFFIX.sub("", ref))
+        if not path.exists():
+            missing.append(ref)
+    _need(not missing, "evidence_refs cite files that do not exist: " + ", ".join(missing[:5])
+          + ("" if len(missing) <= 5 else f" (and {len(missing) - 5} more)")
+          + ". Write the file or remove the reference.")
+
+
 def _check_submitted_assumptions(state: Mapping[str, Any], stage: str, result: Any) -> None:
     """Refuse a submitted done plan result without a complete assumption list.
 
@@ -2703,6 +2731,10 @@ def _context_index_lines(root: Path, state: Mapping[str, Any], stage: str,
     lines = [f"Run context index (the run's request, planning basis, work items and results; "
              f"open it when you need the global picture, for example after compaction): "
              f"{Path(root) / context_index.INDEX_FILE}"]
+    if state["status"] in ("active", "paused", "blocked") and state["status"] != "done":
+        action_id = current_action(state)["id"]
+        lines.append("This action's pass log (after each pass, append what you checked and what is left; "
+                     "open it first after a reset): " + str(context_index.pass_log_path(root, action_id)))
     reads = context_index.read_first(state, root, stage, workitem)
     if state["status"] == "active" and reads:
         lines.append("Results this stage builds on (open each one whose content is not already in "
@@ -3342,6 +3374,8 @@ def dispatch(core: Any, root: Path, state: Mapping[str, Any], args: Any,
                           and action_id == child["action_id"] and child["skill"] is not None,
                           "no bound current Improve child")
                     final_result = receipt.get("final_result")
+                    if final_result is not None:
+                        _check_submitted_evidence(final_result)
                     _check_submitted_assumptions(
                         state, child["stage"],
                         child["seed_result"] if final_result is None else final_result)
@@ -3411,6 +3445,7 @@ def dispatch(core: Any, root: Path, state: Mapping[str, Any], args: Any,
             except quality.QualityError as exc:
                 raise NavigatorError(str(exc)) from exc
         if state["status"] == "active" and action_id not in state["accepted"]:
+            _check_submitted_evidence(submitted)
             _check_submitted_assumptions(state, current_stage(state), submitted)
             _check_submitted_test_commands(current_stage(state), submitted)
             _check_submitted_consumer_entry(state["repo"], current_stage(state), submitted)

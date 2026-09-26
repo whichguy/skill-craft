@@ -182,7 +182,9 @@ def build_contract(root: Path, state: Mapping[str, Any], work_item: str, action:
                           "callbacks belong to the parent; the loop never calls them."),
             "environment": "Run every command from " + repo + ".",
             "resources": [{"purpose": "accepted step plan: test_commands and completion criteria",
-                           "locator": str(root / "results" / (str(step_action) + ".md"))}],
+                           "locator": str(root / "results" / (str(step_action) + ".md"))},
+                          {"purpose": "this action's pass log: append what each iteration checked and what is left",
+                           "locator": str(root / "notes" / (action + ".md"))}],
         },
     }
 
