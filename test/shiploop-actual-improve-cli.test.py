@@ -679,7 +679,7 @@ class EphemeralImproveCliTests(ImproveCliFixture):
         """Cumulative report transport, not proof of model review or summarization."""
         self.assertEqual(self.state["navigator_protocol_version"], 4)
         self.assertEqual(self.bound["skill"]["runtime_cli"], str(EPHEMERAL.resolve()))
-        self.assertEqual(self.bound["skill"]["runtime_version"], "0.5.1")
+        self.assertEqual(self.bound["skill"]["runtime_version"], "0.6.0")
         selected_frontmatter = CARD.read_text(encoding="utf-8").split("---", 2)[1]
         selected_version = next(
             line.partition(":")[2].strip().strip("\"'")
