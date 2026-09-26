@@ -1,14 +1,14 @@
 # Test runners
 
-Use `bash test/run-all.sh --group smoke` for partial feedback and
-`bash test/run-all.sh` for complete hermetic regression. Local runs and GitHub CI
+Use `bash test/run-all.sh --group quick --changed-from origin/main` for fast,
+targeted feedback and `bash test/run-all.sh` for complete hermetic regression. Local runs and GitHub CI
 use the same [suite catalog](suite_catalog.py). A pass means the selected checks
 passed; offline fixtures do not establish live model or host behavior.
 
 | Selection | Command | Scope |
 |---|---|---|
 | Focused | `python3 -B test/<name>.test.py` | One module; useful while changing its contract |
-| Smoke | `bash test/run-all.sh --group smoke` | Core plus eight selected ShipLoop boundary suites |
+| Quick | `bash test/run-all.sh --group quick [--changed-from REF]` | A fixed light baseline (3 core, 9 ShipLoop boundary suites) plus the light suites matching files changed since REF |
 | Ask-Agent component | `bash test/run-all.sh --group ask-agent` | Supported helper tests and ShipLoop consumers |
 | Composition component | `bash test/run-all.sh --group shiploop-composition` | Chain and Improve integration boundaries |
 | Full hermetic | `bash test/run-all.sh` | Core, all ShipLoop suites and the source E2E apparatus |
@@ -17,25 +17,26 @@ passed; offline fixtures do not establish live model or host behavior.
 
 ```mermaid
 flowchart TD
-    Change[Change under test] --> Local[Focused or component checks locally]
-    Local --> PR[Pull request]
-    PR --> Docs{Only allowlisted documents?}
-    Docs -->|Yes| Smoke[Smoke: partial feedback]
-    Docs -->|No or uncertain| Full[Full hermetic regression]
-    Full --> Merge[Merge after candidate passes]
-    Smoke --> Merge
-    Merge --> Main[Main: full hermetic regression]
+    Change[Change under test] --> Local[Focused or quick checks locally]
+    Local --> Push[Pull request or main push]
+    Push --> Quick[Quick: baseline plus suites matching the changed files]
+    Quick --> Release[scripts/release.py release commit]
+    Release --> Full[Full hermetic regression]
     External[Current dependency or live boundary] --> Explicit[Separate explicit qualification]
 ```
 
-CI runs full regression for code, skill prompts, generated packages, tests,
-scripts, workflow changes and unclassified paths. Only root/test README files
-and Markdown/CSV documents under `docs/` qualify for automatic PR smoke. Renames
-consider both paths; an unavailable diff selects full. Every `main` push selects
-full. Manual dispatch still offers `smoke` or `full`. The `hermetic` aggregate
-requires both the planner and all selected jobs to succeed; its summary states
-the tier and tested SHA. Server-side merge protection is a separate repository
-setting; this workflow does not enable it.
+Pull requests and ordinary `main` pushes run the quick tier: the fixed baseline
+plus the suites that match the changed files (a changed suite runs itself; a
+changed file selects the suites named after it, so `shiploop_chain.py` selects
+the `shiploop-chain*` suites; a change under `skills/<leaf>/` selects the core
+suites named after the leaf). Suites measured above two minutes and the E2E
+apparatus never run in quick. A pull request diffs from its merge base and a push
+from the previous `main` head. Only a release commit (its `Skill-Craft-Release:`
+trailer) runs the full tier. Manual dispatch offers `quick` (the last commit's
+changes) or `full`. The `hermetic` aggregate requires both the planner and all
+selected jobs to succeed; its summary states the tier and tested SHA.
+Server-side merge protection is a separate repository setting; this workflow
+does not enable it.
 
 CI uses `ubuntu-latest`, latest stable Python 3 and latest stable Node, resolving
 fresh versions through setup actions. Receipts record the versions actually used.
@@ -48,7 +49,7 @@ package versions are not kept: refusal cases mutate copies of current fixtures.
 ```sh
 bash test/run-all.sh --list
 bash test/run-all.sh --group ask-agent --group shiploop-composition --list
-bash test/run-all.sh --group smoke --output /tmp/skill-craft-smoke-unique
+bash test/run-all.sh --group quick --changed-from origin/main --output /tmp/skill-craft-quick-unique
 bash test/run-all.sh --group shiploop --list
 bash test/run-all.sh --group shiploop-1 --list
 ```
@@ -61,9 +62,10 @@ also run separately. The three `shiploop-1`/`2`/`3` groups partition ShipLoop us
 checked-in duration estimates and a deterministic fallback. They are scheduling
 slices of the same full inventory, not additional coverage.
 
-The eight ShipLoop smoke suites are `no-model-launch`, `navigator-v3`,
-`navigator-v4`, `stopped-improve`, `v4-consumers`, `packet-bounds`,
-`navigator-dry-run`, and `chain-async`. `smoke` also runs all of core.
+The quick baseline is three core suites (`test-groups`, `ci-policy`,
+`skill-frontmatter`) and nine ShipLoop suites (`no-model-launch`,
+`navigator-v3`, `navigator-v4`, `stopped-improve`, `v4-consumers`,
+`packet-bounds`, `navigator-dry-run`, `status-display` and `chain-async`).
 The Ask-Agent workspace, delivery and managed-harness checks run in core.
 
 An optional `--output` directory must be new and outside the checkout. It retains
@@ -172,8 +174,8 @@ different working directory. Each case owns its repositories, worker processes,
 callback processes and pipe barriers; teardown stops remaining children before
 removing fixture directories. It verifies the initiating linked checkout, source
 commit ancestry, immutable event history, and both filesystem and Git worktree
-cleanup. The suite belongs to **smoke and full/sharded** inventories, so routine
-PR CI exercises this boundary. Native host completion delivery remains a separate
+cleanup. The suite belongs to the **quick baseline and full/sharded** inventories, so
+routine PR CI exercises this boundary. Native host completion delivery remains a separate
 opt-in qualification. See the [asynchronous test plan](../docs/async-orchestrator-test-plan-2026-09-20.md).
 
 Planning-material transport has two focused suites:
@@ -371,7 +373,7 @@ The core `installed-skill-invocation` check includes the bundled mock path from
 an empty unrelated directory, covering marketplace-style audit binding without
 launching a model. Live Grok audits remain separate opt-in E2E work: use the
 audit harness's `xhigh` setting and its 7,200-second cap, then assess retained
-stdout/stderr and product evidence independently of smoke or full hermetic CI.
+stdout/stderr and product evidence independently of quick or full hermetic CI.
 
 ### Host and environment targets
 
@@ -420,9 +422,9 @@ not part of any test tier: no suite installs into or asserts on Hermes, even
 though `install.sh` and DevLoop still support it.
 
 CI selects its tier with `test/ci_policy.py`, as described at the top of this
-guide: documentation-only pull requests run `smoke`; every other pull request
-and every `main` push runs full. It ignores tag and feature-branch pushes. A
-manual dispatch accepts `tier=smoke` (the default) or `tier=full`. Full runs
+guide: pull requests and ordinary `main` pushes run `quick`; a release commit
+runs full. It ignores tag and feature-branch pushes. A manual dispatch accepts
+`tier=quick` (the default) or `tier=full`. Full runs
 `core`, the three deterministic ShipLoop shards and `e2e-apparatus`, one job per
 group. Select qualification by changed behavior and dependencies:
 runtime, state, graph, callback and recovery changes need their affected suites.
@@ -435,7 +437,7 @@ gh workflow run ci.yml --ref <candidate-branch> -f tier=full
 
 Before treating that run as qualification evidence, check that its tested SHA
 and tree still match the final candidate. A manual full run is qualification
-evidence; it does not replace the required pull-request smoke check. Delegate
+evidence; it does not replace the required pull-request quick check. Delegate
 established-suite execution through **test-runner**, supplying exact source/run
 identity, commands, expected evidence, deadline and retry policy; the parent owns
 selection and diagnosis. Do not repeat local full, PR full, and post-merge full

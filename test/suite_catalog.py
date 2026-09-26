@@ -2,13 +2,14 @@
 """The one declarative inventory for the repository's hermetic checks.
 
 The shell entrypoints deliberately contain no test membership.  Keeping that
-membership here lets local component runs, smoke, full qualification and CI
+membership here lets local component runs, quick, full qualification and CI
 shards answer the same question without maintaining parallel lists.
 """
 
 from __future__ import annotations
 
 from dataclasses import dataclass
+from pathlib import PurePosixPath
 import re
 from typing import Iterable
 
@@ -175,7 +176,8 @@ _DURATION_SECONDS = {
 }
 _FALLBACK_DURATION_SECONDS = 60.0
 
-_SMOKE_PATHS = frozenset({
+# The quick tier's fixed ShipLoop baseline: fast graph, packet and boundary checks.
+_QUICK_PATHS = frozenset({
     "test/shiploop-no-model-launch.test.py",
     "test/shiploop-navigator-v3.test.py",
     "test/shiploop-navigator-v4.test.py",
@@ -219,8 +221,8 @@ _COMPOSITION_PATHS = frozenset({
 
 def _shiploop(path: str) -> Suite:
     groups: set[str] = set()
-    if path in _SMOKE_PATHS:
-        groups.add("smoke")
+    if path in _QUICK_PATHS:
+        groups.add("quick")
     if path in _ASK_AGENT_PATHS:
         groups.add("ask-agent")
     if path in _COMPOSITION_PATHS:
@@ -286,7 +288,7 @@ SUITES = (*_CORE_SUITES, *SHIPLOOP_SUITES, _APPARATUS_SUITE)
 
 GROUPS = (
     "all",
-    "smoke",
+    "quick",
     "core",
     "shiploop",
     "shiploop-1",
@@ -350,8 +352,91 @@ def validate_catalog() -> None:
         raise ValueError("ShipLoop shard partition is not exhaustive and disjoint")
 
 
-def select(groups: Iterable[str]) -> tuple[Suite, ...]:
-    """Return the deduplicated union in catalog order for named local groups."""
+# ---------------------------------------------------------------- quick tier
+#
+# The quick tier is what an ordinary push or pull request runs: a small fixed
+# baseline plus the suites that match the changed files.  Suites measured above
+# QUICK_MAX_SECONDS and the E2E apparatus run only in the full tier (release
+# commits and manual dispatch).
+
+QUICK_MAX_SECONDS = 120.0
+_QUICK_CORE_IDS = frozenset({"test-groups", "ci-policy", "skill-frontmatter"})
+
+# Repository files whose suites a name match would not find.
+_PATH_SUITE_IDS = {
+    "install.sh": ("install-targets", "install-arbitrary-skill", "install-status-uninstall"),
+    "scripts/build-packages.py": ("marketplace-package",),
+    "scripts/check-release-boundary.py": ("release-boundary",),
+    "scripts/release-push.py": ("release-push",),
+    "catalog/external-plugins.json": ("marketplace-package", "native-marketplace-adapters"),
+}
+
+
+def _light(suite: Suite) -> bool:
+    return (suite.family != "e2e-apparatus"
+            and _DURATION_SECONDS.get(suite.path, 0.0) <= QUICK_MAX_SECONDS)
+
+
+def _stem(path: str) -> str:
+    """A file name as a suite-id stem: shiploop_keepalive.py -> shiploop-keepalive."""
+
+    name = PurePosixPath(path).name
+    for suffix in (".test.py", ".test.cjs", ".test.js", ".test.sh"):
+        name = name.removesuffix(suffix)
+    return PurePosixPath(name).stem.replace("_", "-").lower()
+
+
+def _prefixed(stem: str, suites: Iterable[Suite]) -> set[str]:
+    return {suite.id for suite in suites if suite.id == stem or suite.id.startswith(stem + "-")}
+
+
+# File names that say nothing about which suite covers them.
+_GENERIC_STEMS = frozenset({"skill", "readme", "changelog", "license", "--init--"})
+
+
+def targeted(changed: Iterable[str]) -> set[str]:
+    """Suite ids that a set of changed repository paths points at.
+
+    A changed suite runs itself.  A changed file selects the suites named after
+    it (shiploop_chain.py selects the shiploop-chain suites).  A change under
+    skills/<leaf>/, agents/<leaf>.md or changes/<leaf>/ selects the core suites
+    named after the leaf; ShipLoop's own suites are chosen by file name only,
+    since its leaf name prefixes every one of them.
+    """
+
+    ids: set[str] = set()
+    for path in changed:
+        parts = PurePosixPath(path).parts
+        if not parts:
+            continue
+        ids.update(suite.id for suite in SUITES if suite.path == path)
+        ids.update(_PATH_SUITE_IDS.get(path, ()))
+        leaf = None
+        if parts[0] in ("skills", "changes") and len(parts) > 2:
+            leaf = parts[1]
+        elif parts[0] == "agents" and len(parts) == 2:
+            leaf = PurePosixPath(parts[1]).stem
+        stem = _stem(path)
+        if stem and stem != leaf and stem not in _GENERIC_STEMS:
+            ids.update(_prefixed(stem, SUITES))
+        if leaf:
+            ids.update(_prefixed(leaf, (suite for suite in SUITES if suite.family != "shiploop")))
+    return ids
+
+
+def quick(changed: Iterable[str] = ()) -> tuple[Suite, ...]:
+    """The quick tier: the fixed baseline plus light suites matching the changed paths."""
+
+    ids = set(_QUICK_CORE_IDS) | {suite.id for suite in SHIPLOOP_SUITES if "quick" in suite.groups}
+    ids |= targeted(changed)
+    return tuple(suite for suite in SUITES if suite.id in ids and _light(suite))
+
+
+def select(groups: Iterable[str], changed: Iterable[str] = ()) -> tuple[Suite, ...]:
+    """Return the deduplicated union in catalog order for named local groups.
+
+    ``changed`` (repository-relative paths) only affects the quick group.
+    """
 
     requested = tuple(groups)
     unknown = set(requested) - set(GROUPS)
@@ -361,9 +446,8 @@ def select(groups: Iterable[str]) -> tuple[Suite, ...]:
         return SUITES
     selected: set[str] = set()
     for group in requested:
-        if group == "smoke":
-            selected.update(suite.id for suite in _CORE_SUITES)
-            selected.update(suite.id for suite in SHIPLOOP_SUITES if "smoke" in suite.groups)
+        if group == "quick":
+            selected.update(suite.id for suite in quick(changed))
         elif group.startswith("shiploop-") and group[-1:] in {"1", "2", "3"}:
             selected.update(suite.id for suite in SHIPLOOP_SHARDS[int(group[-1]) - 1])
         else:

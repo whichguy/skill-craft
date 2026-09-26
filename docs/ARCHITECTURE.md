@@ -125,9 +125,9 @@ host checkout into a tree that is bind-mounted into the container as `/opt/data`
   command and, with no group, the complete local aggregate. Named groups
   (`core`, `shiploop`, `shiploop-1|2|3`, `ask-agent`, `shiploop-composition`,
   `e2e-apparatus`) select from the one canonical inventory in
-  `test/suite_catalog.py`. `--group smoke` runs core plus eight selected ShipLoop
-  graph and boundary suites; it is partial evidence, never a full-regression
-  claim. No installed AI host or engine is required; core's bundled mock also
+  `test/suite_catalog.py`. `--group quick [--changed-from REF]` runs a light
+  fixed baseline plus the light suites matching the files changed since REF; it
+  is partial evidence, never a full-regression claim. No installed AI host or engine is required; core's bundled mock also
   covers marketplace-style binding from an empty unrelated directory.
 - Release boundary: `python3 scripts/check-release-boundary.py --base REV` (**implemented**)
   runs in CI's separate `release-boundary` job. Ordinary commits need a
@@ -137,11 +137,10 @@ host checkout into a tree that is bind-mounted into the container as `/opt/data`
   `plugins/` lags source, so package tests read a `scripts/build-packages.py`
   build instead.
 - CI: `.github/workflows/ci.yml` (**implemented**); `test/ci_policy.py` selects
-  the tier. Pull requests that change only allowlisted explanatory documents
-  (root/test README, Markdown/CSV under `docs/`) run smoke; every other pull
-  request, every `main` push and any unclassified event run full. Manual dispatch
-  requires an explicit `tier=smoke` or `tier=full`. Full runs `core`, three
-  deterministic ShipLoop shards and `e2e-apparatus`, one job per group. The
+  the tier. Pull requests, ordinary `main` pushes and unclassified events run
+  quick against their changed files; only a release commit runs full. Manual
+  dispatch requires an explicit `tier=quick` or `tier=full`. Full runs `core`,
+  three deterministic ShipLoop shards and `e2e-apparatus`, one job per group. The
   fail-closed `hermetic` status is the aggregate gate; its summary states the
   tier and tested SHA. After its suites, including failed suites, each job's
   guard rejects a moved HEAD, staged or unstaged tracked changes, and untracked
@@ -256,18 +255,17 @@ Foreign trees are never clobbered; refusals are **nonzero** so automation cannot
 ## Residual / quality review discipline
 
 Hermetic residual×2 and similar loops should run in a **detached git worktree**
-at a pinned SHA (not a dirty shared checkout). Use smoke for routine iteration;
+at a pinned SHA (not a dirty shared checkout). Use quick for routine iteration;
 use full regression for runtime/state/graph/callback changes and release
 qualification. Capture the chosen suite status mechanically:
 
 ```bash
 set -o pipefail
-test_tier=smoke
-bash test/run-all.sh --group "$test_tier" 2>&1 | tee run-all.log
+bash test/run-all.sh --group quick --changed-from origin/main 2>&1 | tee run-all.log
 echo "EXIT=${PIPESTATUS[0]}" | tee -a run-all.log
 ```
 
-A smoke cycle may not claim full-regression coverage. Any cycle may not claim
+A quick cycle may not claim full-regression coverage. Any cycle may not claim
 PASS without a trailing `EXIT=0` line (or attributed non-packaging failures only).
 
 ## devloop engine setup (operator-only)

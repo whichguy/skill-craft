@@ -8,11 +8,11 @@ on:
   workflow_dispatch:
     inputs:
       tier:
-        description: Smoke is partial; full qualifies the complete hermetic inventory
+        description: Quick runs a fixed baseline plus suites matching the last commit; full runs the complete hermetic inventory
         type: choice
         required: true
-        default: smoke
-        options: [smoke, full]
+        default: quick
+        options: [quick, full]
 
 concurrency:
   group: ci-${{ github.workflow }}-${{ github.event_name }}-${{ github.event.pull_request.number || github.run_id }}
@@ -29,6 +29,7 @@ jobs:
       tier: ${{ steps.select.outputs.tier }}
       groups: ${{ steps.select.outputs.groups }}
       source_sha: ${{ steps.select.outputs.source_sha }}
+      base: ${{ steps.select.outputs.base }}
     steps:
       - uses: actions/checkout@v7
         with:
@@ -57,6 +58,8 @@ jobs:
       - uses: actions/checkout@v7
         with:
           ref: ${{ needs.plan.outputs.source_sha }}
+          # Quick diffs against the plan's base commit.
+          fetch-depth: ${{ needs.plan.outputs.tier == 'quick' && '0' || '1' }}
       - uses: actions/setup-python@v7
         with:
           python-version: '3.x'
@@ -69,7 +72,11 @@ jobs:
       - name: Hermetic group
         env:
           TEST_GROUP: ${{ matrix.group }}
-        run: bash test/run-all.sh --group "$TEST_GROUP" --output "$RUNNER_TEMP/hermetic-$TEST_GROUP"
+          BASE: ${{ needs.plan.outputs.base }}
+        run: |
+          set -- --group "$TEST_GROUP" --output "$RUNNER_TEMP/hermetic-$TEST_GROUP"
+          if [ "$TEST_GROUP" = quick ] && [ -n "$BASE" ]; then set -- "$@" --changed-from "$BASE"; fi
+          bash test/run-all.sh "$@"
       - name: Checkout unchanged
         if: ${{ always() }}
         env:

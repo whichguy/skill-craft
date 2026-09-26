@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Conservative CI tier selection and exact-checkout qualification guards."""
+"""CI tier selection (quick for ordinary changes, full for releases) and exact-checkout guards."""
 import argparse
 import json
 import os
@@ -13,41 +13,52 @@ def git(root, *args):
     return subprocess.check_output(["git", *args], cwd=root).decode("utf-8", "surrogateescape").strip()
 
 
-def docs_only(paths):
-    """Only explanatory documents qualify; skill Markdown is executable policy."""
-    if not paths or not all(paths):
+RELEASE_TRAILER = "Skill-Craft-Release:"
+ZERO_SHA = "0" * 40
+
+
+def commit_exists(root, rev):
+    if not rev or rev == ZERO_SHA:
         return False
-    return all(path in {"README.md", "test/README.md"} or (
-        PurePosixPath(path).parts[0] == "docs" and PurePosixPath(path).suffix in {".md", ".csv"}
-    ) for path in paths)
+    return subprocess.run(["git", "cat-file", "-e", f"{rev}^{{commit}}"], cwd=root,
+                          stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL).returncode == 0
 
 
-def pr_paths(root, base, head):
-    if not base or not head:
-        raise ValueError("PR base/head identity missing")
-    merge_base = git(root, "merge-base", base, head)
-    # No rename detection: preserve both source and destination names.
-    data = subprocess.check_output(
-        ["git", "diff", "--no-renames", "--name-only", "-z", merge_base, head], cwd=root
-    )
-    return [p.decode("utf-8", "surrogateescape") for p in data.split(b"\0") if p]
+def is_release(root, rev="HEAD"):
+    """A release commit (scripts/release.py) carries the Skill-Craft-Release trailer."""
+    body = git(root, "log", "-1", "--format=%B", rev)
+    return any(line.startswith(RELEASE_TRAILER) for line in body.splitlines())
+
+
+def parent(root):
+    return git(root, "rev-parse", "HEAD^1") if commit_exists(root, "HEAD^1") else ""
 
 
 def select(root, event_name, event, requested):
+    """Return (tier, reason, base).  Quick runs the suites matching base..HEAD; full ignores base.
+
+    Ordinary pushes and pull requests run quick.  Only release commits and an
+    explicit manual full run the complete inventory.
+    """
     if event_name == "workflow_dispatch":
-        if requested not in {"smoke", "full"}:
-            raise ValueError("manual CI requires an explicit smoke or full tier")
-        return requested, "explicit manual selection"
+        if requested not in {"quick", "full"}:
+            raise ValueError("manual CI requires an explicit quick or full tier")
+        return requested, "explicit manual selection", parent(root) if requested == "quick" else ""
+    if event_name == "push" and is_release(root):
+        return "full", "release commit", ""
     if event_name == "pull_request":
         try:
             pr = event["pull_request"]
-            paths = pr_paths(root, pr["base"]["sha"], pr["head"]["sha"])
-        except (KeyError, TypeError, ValueError, subprocess.CalledProcessError):
-            return "full", "PR changes could not be determined"
-        if docs_only(paths):
-            return "smoke", "only allowlisted explanatory documents changed"
-        return "full", "code, test, package, workflow or unclassified changes"
-    return "full", "main push or unclassified event"
+            base = git(root, "merge-base", pr["base"]["sha"], pr["head"]["sha"])
+        except (KeyError, TypeError, subprocess.CalledProcessError):
+            return "quick", "pull request base unknown; quick baseline only", ""
+        return "quick", "pull request changes", base
+    if event_name == "push":
+        before = event.get("before", "") if isinstance(event, dict) else ""
+        if commit_exists(root, before):
+            return "quick", "pushed changes", before
+        return "quick", "push without a known previous commit; last commit only", parent(root)
+    return "quick", "unclassified event; last commit only", parent(root)
 
 
 def guard(root, expected):
@@ -83,16 +94,17 @@ def main():
         if source != args.expected_sha:
             raise ValueError("planner checkout does not match the event's candidate SHA")
         event = json.loads(Path(os.environ["GITHUB_EVENT_PATH"]).read_text())
-        tier, reason = select(root, os.environ["GITHUB_EVENT_NAME"], event, os.environ.get("REQUESTED_TIER", ""))
-        groups = FULL_GROUPS if tier == "full" else ["smoke"]
-        result = {"tier": tier, "groups": groups, "source_sha": source, "reason": reason}
+        tier, reason, base = select(root, os.environ["GITHUB_EVENT_NAME"], event, os.environ.get("REQUESTED_TIER", ""))
+        groups = FULL_GROUPS if tier == "full" else ["quick"]
+        result = {"tier": tier, "groups": groups, "source_sha": source, "base": base, "reason": reason}
         print(json.dumps(result, indent=2))
         with open(os.environ["GITHUB_OUTPUT"], "a") as output:
-            for key in ("tier", "source_sha"):
+            for key in ("tier", "source_sha", "base"):
                 output.write(f"{key}={result[key]}\n")
             output.write("groups=" + json.dumps(groups) + "\n")
         with open(os.environ["GITHUB_STEP_SUMMARY"], "a") as summary:
-            summary.write(f"### CI {tier}\n\n{reason}.\n\nCandidate: `{source}`\n\nGroups: {', '.join(groups)}\n")
+            summary.write(f"### CI {tier}\n\n{reason}.\n\nCandidate: `{source}`\n\n"
+                          f"Groups: {', '.join(groups)}\n" + (f"\nChanges since: `{base}`\n" if base else ""))
         return 0
     except (ValueError, KeyError, OSError, subprocess.CalledProcessError) as exc:
         parser.exit(1, f"ci-policy: {exc}\n")

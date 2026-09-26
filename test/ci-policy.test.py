@@ -44,44 +44,41 @@ class CIPolicyTests(unittest.TestCase):
     def event(self, base=None, head=None):
         return {"pull_request": {"base": {"sha": base or self.base}, "head": {"sha": head or self.git("rev-parse", "HEAD")}}}
 
-    def test_allowlist_excludes_executable_markdown_and_unknown_paths(self):
-        for paths in (["README.md"], ["docs/report.md", "docs/inventory.csv"], ["test/README.md"]):
-            self.assertTrue(policy.docs_only(paths))
-        for path in ("skills/ask-agent/SKILL.md", "plugins/shiploop/README.md", "test/test-groups.test.py",
-                     "scripts/sync-plugin-views.sh", ".github/workflows/ci.yml", "docs/fixture.py", "AGENTS.md", "new.md"):
-            self.assertFalse(policy.docs_only(["README.md", path]), path)
-        self.assertFalse(policy.docs_only([]))
-        self.assertFalse(policy.docs_only([""]))
-
-    def test_main_unknown_and_manual_events(self):
-        for event in ("push", "unknown"):
-            self.assertEqual(policy.select(self.root, event, {}, "smoke")[0], "full")
-        for tier in ("smoke", "full"):
+    def test_manual_dispatch_requires_quick_or_full(self):
+        for tier in ("quick", "full"):
             self.assertEqual(policy.select(self.root, "workflow_dispatch", {}, tier)[0], tier)
-        with self.assertRaises(ValueError):
-            policy.select(self.root, "workflow_dispatch", {}, "")
-        self.assertEqual(policy.select(self.root, "pull_request", {}, "")[0], "full")
-        event = self.event(base="f" * 40)
-        self.assertEqual(policy.select(self.root, "pull_request", event, "")[0], "full")
+        for tier in ("", "smoke"):
+            with self.assertRaises(ValueError):
+                policy.select(self.root, "workflow_dispatch", {}, tier)
 
-    def test_pr_diff_uses_merge_base_not_unrelated_main_changes(self):
+    def test_only_a_release_commit_push_runs_full(self):
+        self.write("code.py", "changed\n")
+        change = self.commit()
+        self.assertEqual(policy.select(self.root, "push", {"before": self.base}, ""),
+                         ("quick", "pushed changes", self.base))
+        self.write("CHANGELOG.md", "release\n")
+        self.git("add", ".")
+        self.git("commit", "-qm", "release: demo 1.0.0\n\nSkill-Craft-Release: demo@1.0.0")
+        self.assertEqual(policy.select(self.root, "push", {"before": change}, "")[0], "full")
+        self.assertTrue(policy.is_release(self.root))
+        self.assertFalse(policy.is_release(self.root, change))
+
+    def test_push_without_a_known_previous_commit_diffs_the_last_commit(self):
+        self.write("code.py", "changed\n")
+        self.commit()
+        for event in ({}, {"before": "0" * 40}, {"before": "f" * 40}):
+            self.assertEqual(policy.select(self.root, "push", event, "")[2], self.base)
+        self.assertEqual(policy.select(self.root, "unknown", {}, "")[:1], ("quick",))
+
+    def test_pr_diffs_from_the_merge_base_not_unrelated_main_changes(self):
         self.write("code.py", "main moved\n")
         main = self.commit()
         self.git("checkout", "-q", "--detach", self.base)
         self.write("docs/report.md", "explanation\n")
         head = self.commit()
-        self.assertEqual(policy.pr_paths(self.root, main, head), ["docs/report.md"])
-        self.assertEqual(policy.select(self.root, "pull_request", self.event(main, head), "")[0], "smoke")
-
-    def test_rename_keeps_both_paths_and_deletion_selects_full(self):
-        self.git("mv", "code.py", "docs-renamed.md")
-        head = self.commit()
-        self.assertEqual(set(policy.pr_paths(self.root, self.base, head)), {"code.py", "docs-renamed.md"})
-        self.assertEqual(policy.select(self.root, "pull_request", self.event(), "")[0], "full")
-        self.git("reset", "--hard", self.base)
-        (self.root / "code.py").unlink()
-        self.commit()
-        self.assertEqual(policy.select(self.root, "pull_request", self.event(), "")[0], "full")
+        self.assertEqual(policy.select(self.root, "pull_request", self.event(main, head), ""),
+                         ("quick", "pull request changes", self.base))
+        self.assertEqual(policy.select(self.root, "pull_request", {}, "")[::2], ("quick", ""))
 
     def test_guard_accepts_only_clean_source_and_declared_bytecode(self):
         self.write("__pycache__/module.pyc", "bytecode")
@@ -162,7 +159,8 @@ class CIPolicyTests(unittest.TestCase):
         command = ["python3", "-B", str(ROOT / "test/ci_policy.py"), "plan", "--expected-sha"]
         result = subprocess.run([*command, self.base], cwd=self.root, env=env, capture_output=True, text=True)
         self.assertEqual(result.returncode, 0, result.stderr)
-        self.assertIn("tier=full", output.read_text())
+        self.assertIn("tier=quick", output.read_text())
+        self.assertIn('groups=["quick"]', output.read_text())
         self.assertEqual(json.loads(result.stdout)["source_sha"], self.base)
         output.unlink()
         result = subprocess.run([*command, "f" * 40], cwd=self.root, env=env, capture_output=True, text=True)

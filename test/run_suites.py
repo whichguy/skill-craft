@@ -66,6 +66,8 @@ def _parser() -> UsageParser:
     )
     parser.add_argument("--group", action="append", metavar="GROUP",
                         help="repeatable group; unions are deduplicated in catalog order")
+    parser.add_argument("--changed-from", metavar="REF",
+                        help="with --group quick: also run the suites matching files changed since REF")
     parser.add_argument("--list", action="store_true", help="list selected catalog entries without executing")
     parser.add_argument("--output", type=Path, help="new external receipt directory")
     return parser
@@ -82,7 +84,17 @@ def parse_args(argv: Sequence[str] | None = None) -> tuple[argparse.Namespace, t
     unknown = set(groups) - set(suite_catalog.GROUPS)
     if unknown:
         parser.error("unknown group: " + ", ".join(sorted(unknown)))
+    if args.changed_from is not None and "quick" not in groups:
+        parser.error("--changed-from applies only to --group quick")
     return args, groups
+
+
+def changed_paths(root: Path, ref: str) -> tuple[str, ...]:
+    """Paths changed between REF and HEAD, both sides of a rename included."""
+
+    data = subprocess.check_output(
+        ["git", "diff", "--no-renames", "--name-only", "-z", ref, "HEAD"], cwd=root)
+    return tuple(p.decode("utf-8", "surrogateescape") for p in data.split(b"\0") if p)
 
 
 def _inside(path: Path, possible_parent: Path) -> bool:
@@ -320,7 +332,13 @@ def _print_list(selected: Iterable[suite_catalog.Suite]) -> None:
 
 def main(argv: Sequence[str] | None = None) -> int:
     args, groups = parse_args(argv)
-    selected = suite_catalog.select(groups)
+    changed: tuple[str, ...] = ()
+    if args.changed_from:
+        try:
+            changed = changed_paths(ROOT, args.changed_from)
+        except subprocess.CalledProcessError:
+            _parser().error(f"--changed-from: cannot diff {args.changed_from} against HEAD")
+    selected = suite_catalog.select(groups, changed)
     if args.list:
         _print_list(selected)
         return 0
@@ -341,6 +359,8 @@ def main(argv: Sequence[str] | None = None) -> int:
         "schema": "skill-craft-hermetic-receipt/1",
         "entrypoint": "run-all",
         "groups": list(groups),
+        "changed_from": args.changed_from,
+        "changed": list(changed),
         "source": source_identity(ROOT),
         "runtimes": runtime_versions(ROOT),
         "selected": [_command_record(suite) for suite in selected],

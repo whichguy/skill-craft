@@ -130,6 +130,50 @@ class TestGroupTests(unittest.TestCase):
         with self.assertRaises(ValueError):
             suite_catalog.select(("experiments",))
 
+    def test_quick_is_a_light_baseline_plus_the_suites_matching_changed_files(self) -> None:
+        baseline = {suite.id for suite in suite_catalog.quick()}
+        self.assertEqual(baseline, {suite.id for suite in suite_catalog.select(("quick",))})
+        self.assertTrue({"test-groups", "ci-policy", "skill-frontmatter", "shiploop-navigator-v4"} <= baseline)
+        self.assertLess(len(baseline), 15)
+        cases = {
+            "skills/shiploop/scripts/shiploop_keepalive.py": {"shiploop-keepalive"},
+            "scripts/release.py": {"release-push", "release-flow", "release-boundary"},
+            "skills/improve/SKILL.md": {"improve", "improve-plugin", "improve-agent"},
+            "install.sh": {"install-targets", "install-arbitrary-skill", "install-status-uninstall"},
+            "test/shiploop-lint.test.py": {"shiploop-lint"},
+            "docs/notes.md": set(),
+            "skills/shiploop/SKILL.md": set(),
+        }
+        for path, expected in cases.items():
+            with self.subTest(path=path):
+                extra = {suite.id for suite in suite_catalog.quick((path,))} - baseline
+                self.assertEqual(extra, expected)
+
+    def test_quick_never_runs_heavy_suites_or_the_apparatus(self) -> None:
+        everything = tuple(suite.path for suite in suite_catalog.SUITES)
+        selected = suite_catalog.quick(everything)
+        self.assertTrue(selected)
+        for suite in selected:
+            self.assertNotEqual(suite.family, "e2e-apparatus")
+            self.assertLessEqual(suite_catalog._DURATION_SECONDS.get(suite.path, 0.0),
+                                 suite_catalog.QUICK_MAX_SECONDS, suite.id)
+        ids = {suite.id for suite in selected}
+        self.assertNotIn("shiploop-chain-lifecycle", ids)
+        self.assertIn("shiploop-chain-git", ids)
+
+    def test_changed_from_lists_quick_suites_and_is_refused_for_other_groups(self) -> None:
+        listed = subprocess.run(["bash", str(ROOT / "test/run-all.sh"), "--group", "quick",
+                                 "--changed-from", "HEAD", "--list"],
+                                cwd=ROOT, capture_output=True, text=True, check=False)
+        self.assertEqual(listed.returncode, 0, listed.stderr)
+        self.assertEqual([line.split("\t")[1] for line in listed.stdout.splitlines()],
+                         [suite.id for suite in suite_catalog.quick()])
+        refused = subprocess.run(["bash", str(ROOT / "test/run-all.sh"), "--group", "core",
+                                  "--changed-from", "HEAD", "--list"],
+                                 cwd=ROOT, capture_output=True, text=True, check=False)
+        self.assertEqual(refused.returncode, 64)
+        self.assertIn("--changed-from applies only to --group quick", refused.stderr)
+
     def test_lpt_shards_are_disjoint_exhaustive_and_catalog_ordered(self) -> None:
         canonical = suite_catalog.SHIPLOOP_SUITES
         shards = suite_catalog.SHIPLOOP_SHARDS
