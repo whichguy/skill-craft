@@ -120,10 +120,14 @@ class RepeatPacketTests(KeepaliveTestCase):
         self.assertIn("Recovery command:", recovered)
 
     def test_the_result_contract_is_printed_under_the_callback(self) -> None:
+        # Only the short stage-goal block sits between the callback and the contract.
         lines = self.packet.splitlines()
         callback = next(i for i, line in enumerate(lines) if line.startswith("Callback for this stage"))
-        self.assertTrue(lines[callback + 1].startswith("Write the structured result to: "))
-        self.assertEqual(lines[callback + 2], "Result template:")
+        contract = next(i for i, line in enumerate(lines) if line.startswith("Write the structured result to: "))
+        self.assertTrue(lines[callback + 1].startswith("Goal: "))
+        for line in lines[callback + 2:contract]:
+            self.assertTrue(line.startswith(("Done when", "Considerations for this stage:", "- ")), line)
+        self.assertEqual(lines[contract + 1], "Result template:")
         outcomes = next(i for i, line in enumerate(lines) if line.startswith("Allowed outcomes: "))
         guidance = lines.index("Current stage guidance:")
         self.assertLess(outcomes, guidance)
