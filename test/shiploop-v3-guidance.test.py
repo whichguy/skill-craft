@@ -160,6 +160,7 @@ HOUSE_STYLE_STAGE_ANCHORS = {
 if str(SCRIPTS) not in sys.path:
     sys.path.insert(0, str(SCRIPTS))
 
+import shiploop_context_index as context_index  # noqa: E402
 import shiploop_navigator as navigator  # noqa: E402
 import shiploop_navigator_v3_prompts as prompts  # noqa: E402
 import shiploop_standalone_improve as standalone_improve  # noqa: E402
@@ -336,7 +337,6 @@ class V3GuidanceTests(unittest.TestCase):
 
     def test_match_contract_reaches_every_stage_that_builds_or_checks_the_item(self) -> None:
         """The contract lives in the step-plan result; work items take context only at plan."""
-        import shiploop_context_index as context_index
         for stage in ("test-author", "implement", "static-checks", "verify", "document"):
             with self.subTest(stage=stage):
                 self.assertIn("item:step-plan", context_index.STAGE_READS[stage])
