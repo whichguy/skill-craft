@@ -23,8 +23,9 @@ set it deliberately, as design decisions with their rationale.
 
 1. **Reuse a sufficient record.** Look for an existing style record: a
    CONTRIBUTING or AGENTS section, a style guide, or the house-style section of
-   the repository knowledge index. Reuse it when the commit it was taken at is
-   recorded and nothing in *When to refresh* below has happened since. Refresh
+   the repository knowledge index. Reuse a category when the commit it was
+   checked at is recorded and nothing in *When to refresh* below has happened
+   since. Refresh
    only the affected categories of a stale record; a missing record is
    extracted as described here.
 2. **Start from tool configuration.** Read the formatter, linter,
@@ -80,14 +81,15 @@ Keep the record in the repository, where later runs and people find it.
 Prefer an existing style section and extend it in place. Otherwise add a
 **House style** section to the repository knowledge index (`SHIPLOOP.md`), or
 a linked `docs/house-style.md` when the section would crowd the index. Record
-the commit the extraction was taken at. The record describes the repository;
+the commit each category was last checked at (one commit when all were checked
+together). The record describes the repository;
 run-specific plans and decisions stay in the run's notes.
 
 ### When to refresh
 
 Refresh the affected categories when the formatter, linter, type-checker, CI
-or manifest configuration has changed since the recorded commit; when the
-area the request touches has changed materially since then; or when a work
+or manifest configuration has changed since a category's recorded commit; when
+the area the request touches has changed materially since then; or when a work
 item finds a rule contradicted by current code. Old records are evidence, not
 instructions: recheck a rule before relying on it.
 
