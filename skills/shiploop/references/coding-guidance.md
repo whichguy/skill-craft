@@ -37,8 +37,8 @@ change.
 | [Documentation](coding-practices.md#documentation) | Contract, recovery, public behavior, or example. |
 | [Libraries](coding-practices.md#libraries) | Dependency, helper, adapter, or upgrade. |
 | [Composition and layers](coding-practices.md#composition-and-layers) | Ownership, boundary, or entry point. |
-| [Namespaces and placement](coding-practices.md#namespaces-and-placement) | New file, module, package, public name, or shared key. |
-| [Schema and storage](coding-practices.md#schema-and-storage) | Stored data, a new or changed schema, migration, or storage policy. |
+| [Namespaces and placement](coding-practices.md#namespaces-and-placement) | New file, module, package, public name, or shared key, in any runtime the code runs in or reaches. |
+| [Schema and storage](coding-practices.md#schema-and-storage) | Stored data in any environment, a new or changed schema, migration, or storage policy. |
 | [Flyweight and shared resources](coding-practices.md#flyweight-and-shared-resources) | Shared data or repeated cost. |
 | [State](coding-practices.md#state) | Mutation, persistence, cache, concurrency, or recovery. |
 | [Security](coding-practices.md#security) | Trust boundary, identity, permission, input, or sensitive data. |

@@ -62,60 +62,76 @@ authorization. Do not add a checker merely to restate a preference.
 
 ## Namespaces and placement
 
-A namespace is set by the runtime, not by the folder tree. Before adding a
-file, module or public name, map what exists: the package or directory layout,
-naming prefixes, what each module exports, where similar responsibilities
-already live, and the runtime's actual name space. Examples: an Apps Script
-project's server files share one global scope, and libraries are reached by
-identifier; a Python module's import path must not shadow the standard library
-or an installed distribution; sourced Bash functions and variables join the
-caller's shell; Salesforce class and metadata API names are org-wide, under any
-package namespace prefix; browser globals, custom elements and CSS classes are
-page-wide. Environment variables, CLI command names, config and storage keys,
-table, queue and event names are namespaces too, shared with other programs.
+Code runs in one or more execution environments, and each has its own name
+space. The environment is often not the checkout you edit: a remote runtime
+reached through an MCP server, API or CLI, a hosted platform, a container, a
+browser, or several services of a multi-service system, each with its own
+installed libraries, versions, globals and stored names. List every environment
+the change runs in or reaches, and inspect each through its actual interface
+(see [Platform discovery](platform-discovery.md#discover-before-choosing-a-mechanism));
+the local tree does not show what a remote runtime already defines.
+
+For each environment, map what exists before adding a file, module or public
+name: the package or directory layout, naming prefixes, what each module
+exports, where similar responsibilities already live, and how the runtime
+resolves names. Examples of that last point: files that share one global scope,
+an import path where a local module can shadow a library, a shell that sourced
+files join, platform-wide class or metadata names, page-wide element and style
+names. Names are also shared across environments and with other programs:
+environment variables, CLI commands, config and storage keys, API routes,
+tables, queues, topics and event types. Give each cross-service name one
+owning service and a versioned contract.
 
 List the libraries and services the new code imports, is called by, or shares
-that space with. Check their exported names, reserved prefixes and conventions,
-and avoid shadowing, redefining or monkeypatching their names. Reach an outside
-library through one adapter module when several files need it.
+a space with, in each environment. Check their exported names, reserved
+prefixes and conventions; do not shadow, redefine or monkeypatch their names.
+Reach an outside library or service through one adapter module when several
+files need it.
 
 Give each new name the narrowest visibility a present consumer needs: local or
 module-private first, exported only for a named consumer. A public name is a
-contract. Place code by responsibility and dependency direction, next to its
-nearest collaborators. Forecast where the next planned siblings will go, from
-the queued work items and accepted spec, so the first file does not set a
-layout the second must break; do not create empty packages or directories for
-hypothetical futures. Follow the house casing and prefixes. Avoid generic
-buckets (`utils`, `common`, `misc`) unless the house already uses one with a
-clear rule. Confirm with the runtime's own check where one exists: an import or
-load test, a deploy validation, or a search for the new name across the
-project and its dependencies.
+contract. Place code by responsibility and dependency direction, in the
+environment where it must run, next to its nearest collaborators. Forecast
+where the next planned siblings will go, from the queued work items and
+accepted spec, so the first file does not set a layout the second must break;
+do not create empty packages or directories for hypothetical futures. Follow
+the house casing and prefixes, and avoid generic buckets (`utils`, `common`,
+`misc`) unless the house already uses one with a clear rule. Confirm with each
+environment's own check: an import or load test, a deploy validation, or a
+search for the new name in that environment and its dependencies. The
+[platform cards](coding-guidance.md#conditional-index) give runtime-specific
+examples.
 
 ## Schema and storage
 
-Start from where the runtime actually stores this data and who owns its shape:
-a spreadsheet's header row and column order, Apps Script script, user or
-document properties, a Salesforce object and its fields, a database table and
-its migration tool, a browser's origin storage or IndexedDB version, a file
-format. Find any existing schema for the same entity and the destination
-schema the data must reach. Extend them through their own change mechanism
-(migration, metadata deploy, header change), following their names, types,
-keys and relationships. Do not open a parallel store or a second source of
-truth for data that already has a home.
+Start from where each environment actually stores this data and who owns its
+shape. Examples: a spreadsheet's header row, a key-value property store, a
+platform object and its fields, a database table and its migration tool,
+browser origin storage, a document or file format, a message or event payload.
+In a multi-service system, find which service owns each entity and which
+services only read or copy it. Find any existing schema for the entity and the
+destination schema the data must reach, including one that lives only in a
+remote environment reached through an MCP server or API. Extend them through
+their own change mechanism (migration, metadata deploy, header change, schema
+registry), following their names, types, keys and relationships. Do not open a
+parallel store or a second source of truth for data that already has a home.
 
 For a new schema, choose the store from the access pattern, volume,
 consistency, sharing and permission needs, and lifetime. Define the identity
 key, each field's type and whether it is required, uniqueness and other
 constraints, relationships, indexes for the planned queries, and a version
-marker with a forward migration that readers of older data survive. Stored
-names (tables, objects, fields, property and storage keys) are namespaces that
-outlive the code: follow the house prefixes, and treat a rename as a migration.
+marker with a forward migration that readers of older data survive. When
+services exchange the data, version the payload and keep old readers working
+through the rollout. Stored names (tables, objects, fields, keys, topics) are
+namespaces that outlive the code: follow the house prefixes, and treat a rename
+as a migration.
 
 Write the storage policy beside the schema: which copy is authoritative and
-which are caches, retention and deletion, sensitive fields and who may read
-them, size and quota limits, backup and recovery, and concurrent writers.
-Confirm with a round trip through the real store, a migration or deploy
-validation, and a read of existing data after the change. The [State and data
+which are caches or replicas, retention and deletion, sensitive fields and who
+may read them, size and quota limits, backup and recovery, and concurrent
+writers. Confirm with a round trip through the real store in the environment
+that owns it, a migration or deploy validation, and a read of existing data
+after the change. The [State and data
 assessment](requirements-definition.md#state-and-data-change-assessment) still
 rules out persistence the change does not need.
 

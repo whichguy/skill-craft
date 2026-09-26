@@ -309,14 +309,16 @@ class PromptTests(unittest.TestCase):
         self.assertIn("narrowest visibility a present consumer needs", rubric)
         self.assertIn("outside the planned namespace", " ".join(prompts.QUALITY_ITERATION.split()))
         plan = " ".join(prompts.prompt("plan").split())
-        self.assertIn("Forecast the code's namespace layout.", plan)
+        self.assertIn("When the work adds code or stored data, forecast where it lives.", plan)
+        self.assertIn("a remote runtime behind an MCP server", plan)
+        self.assertIn("each service of a multi-service system", plan)
         self.assertIn("Record both as a short", plan)
         step = " ".join(prompts.prompt("step-plan").split())
-        self.assertIn("Reopen the plan's Namespace and data map and the current tree.", step)
+        self.assertIn("reopen the plan's Namespace and data map and the current tree of each environment it touches.", step)
         self.assertIn("Stored data follows the planned schema", rubric)
-        self.assertIn("Use Schema and storage guidance", plan)
+        self.assertIn("Using Schema and storage guidance, decide how each environment stores the data", plan)
         self.assertIn("Namespace and data map", plan)
-        self.assertIn("its schema change mechanism and the round-trip check", step)
+        self.assertIn("the owning environment, the schema change mechanism and the round-trip check", step)
         routes = (
             ("Namespace and placement guidance", "coding-practices.md#namespaces-and-placement"),
             ("Schema and storage guidance", "coding-practices.md#schema-and-storage"),
@@ -332,7 +334,7 @@ class PromptTests(unittest.TestCase):
                       " ".join(prompts.QUALITY_ITERATION.split()))
         for stage in ("plan", "step-plan"):
             with self.subTest(stage=stage):
-                self.assertIn("Default to an ambitious, highly interactive UI",
+                self.assertIn("For a human-facing UI, default to an ambitious, highly interactive design",
                               " ".join(prompts.prompt(stage).split()))
 
     def test_supporting_stages_carry_their_code_quality_duties(self):
