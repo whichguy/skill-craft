@@ -35,6 +35,7 @@ import shiploop_test_loop as test_loop
 import shiploop_planning_revision as planning_revision
 import shiploop_context_index as context_index
 import shiploop_privacy as privacy
+import shiploop_stage_spec as stage_spec
 import shiploop_store as store
 
 
@@ -221,7 +222,7 @@ def _improve_checkpoint(state: Mapping[str, Any], stage: str, result: Mapping[st
     """
     if stage in guidance3.PLANNING_REVIEW_STAGES:
         return True
-    if stage != "carry-forward" or result["outcome"] != "done":
+    if stage not in stage_spec.with_improve("last-item") or result["outcome"] != "done":
         return False
     if "work_items" in result:
         return not result["work_items"]

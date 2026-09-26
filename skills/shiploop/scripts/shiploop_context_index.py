@@ -18,48 +18,14 @@ from typing import Any, Iterable, Mapping
 
 import shiploop_navigator_v3_prompts as prompts
 import shiploop_planning_revision as planning_revision
+import shiploop_stage_spec as stage_spec
 
 INDEX_FILE = "context-index.md"
 SUMMARY_LIMIT = 400
 
 # Entries each stage reads first.  A bare name is the run's root result for
 # that stage; "item:<stage>" is the current work item's result.
-STAGE_READS: dict[str, tuple[str, ...]] = {
-    "intake": (),
-    "discovery": ("intake",),
-    "research": ("intake", "discovery"),
-    "spec": ("intake", "discovery", "research"),
-    "test-strategy": ("spec", "research"),
-    "plan": ("intake", "discovery", "research", "spec", "test-strategy"),
-    "prepare": ("plan", "test-strategy"),
-    "select-work": ("spec", "plan"),
-    "step-plan": ("spec", "test-strategy", "plan", "prepare"),
-    "test-spec": ("spec", "test-strategy", "plan", "item:step-plan"),
-    "baseline": ("test-strategy", "item:step-plan", "item:test-spec"),
-    "test-author": ("test-strategy", "item:step-plan", "item:test-spec"),
-    "test-red": ("item:test-spec", "item:test-author"),
-    "implement": ("spec", "plan", "item:step-plan", "item:test-spec"),
-    "test-green": ("item:test-spec", "item:implement"),
-    "test-refine": ("spec", "item:test-spec", "item:implement"),
-    "regression": ("test-strategy", "item:baseline"),
-    "document": ("spec", "plan", "item:step-plan", "item:implement"),
-    "skill-assess": ("plan", "item:step-plan"),
-    "skill-validate": ("item:skill-assess",),
-    "static-checks": ("item:step-plan", "item:implement"),
-    "verify": ("spec", "test-strategy", "item:step-plan", "item:test-spec"),
-    "integrate": ("plan", "item:step-plan", "item:verify"),
-    "integration-verify": ("spec", "item:integrate"),
-    "carry-forward": ("spec", "plan", "item:integration-verify"),
-    "system-test-author": ("spec", "test-strategy", "plan"),
-    "system-test": ("spec", "system-test-author"),
-    "product-acceptance": ("intake", "spec", "system-test"),
-    "release-plan": ("spec", "plan", "system-test"),
-    "release-check": ("release-plan",),
-    "release": ("release-plan", "release-check"),
-    "release-verify": ("spec", "release-plan", "release"),
-    "operations": ("release-plan", "release-verify"),
-    "handoff": ("intake", "spec", "plan", "release-verify"),
-}
+STAGE_READS: dict[str, tuple[str, ...]] = {name: row.reads for name, row in stage_spec.STAGE_SPEC.items()}
 
 _ROOT_STAGES = ("intake", *planning_revision.PLANNING_STAGES)
 

@@ -55,6 +55,7 @@ from pathlib import Path
 from typing import Any, Callable, Dict, List, Mapping, Optional, Sequence, Set, Tuple
 
 import shiploop_privacy as privacy
+import shiploop_stage_spec as stage_spec
 import shiploop_store as store
 import shiploop_workspace as workspace
 
@@ -62,12 +63,12 @@ import shiploop_workspace as workspace
 SCHEMA = "shiploop-lint/v1"
 MODES = ("fix", "report", "off")
 DEFAULT_MODE = "fix"
-LINT_STAGES = ("static-checks", "verify")
+LINT_STAGES = (stage_spec.with_entry_run("advisory-lint") + stage_spec.with_entry_run("report-lint"))
 SUPPORTING = "supporting output; not exit-criteria evidence"
-GATE_STAGE = "implement"
-# Stages whose done passes through the lint gate: implement and the two test loops,
-# which also edit code.
-GATE_STAGES = (GATE_STAGE, "test-green", "regression")
+# Stages whose done passes through the lint gate (the stage table's "lint-gate" run):
+# implement and the two test loops, which also edit code.
+GATE_STAGES = stage_spec.with_complete_run("lint-gate")
+GATE_STAGE = GATE_STAGES[0]
 BUDGET_SECONDS = 120.0
 TOOL_TIMEOUT_SECONDS = 60.0
 MAX_FILES = 200

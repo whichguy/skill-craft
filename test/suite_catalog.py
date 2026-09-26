@@ -86,6 +86,7 @@ _SHIPLOOP_PATHS = (
     "test/shiploop-full-runtime.test.py",
     "test/shiploop-navigator-dry-run.test.py",
     "test/shiploop-status-display.test.py",
+    "test/shiploop-stage-spec.test.py",
     "test/shiploop-auth-readiness.test.py",
     "test/shiploop-cross-run.test.py",
     "test/shiploop-workspace.test.py",
@@ -135,6 +136,7 @@ _SHIPLOOP_PATHS = (
 # deterministic fallback retains that property for a newly added suite until a
 # later audit supplies an observed duration.
 _DURATION_SECONDS = {
+    "test/shiploop-stage-spec.test.py": 1.0,
     "test/shiploop-navigator-v3.test.py": 2.793,
     "test/shiploop-v4-consumers.test.py": 1.048,
     "test/shiploop-packet-bounds.test.py": 0.167,
@@ -193,6 +195,7 @@ _FALLBACK_DURATION_SECONDS = 60.0
 
 # The quick tier's fixed ShipLoop baseline: fast graph, packet and boundary checks.
 _QUICK_PATHS = frozenset({
+    "test/shiploop-stage-spec.test.py",
     "test/shiploop-no-model-launch.test.py",
     "test/shiploop-navigator-v3.test.py",
     "test/shiploop-navigator-v4.test.py",
