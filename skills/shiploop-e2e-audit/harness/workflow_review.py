@@ -22,6 +22,12 @@ DIMENSIONS = (
     "incremental-behavior-and-source-lineage", "performance-and-model-settings-observable",
 )
 STATUSES = {"supported-pass", "supported-gap", "unverified", "not-applicable"}
+# Asked after every run about the harness itself, not about ShipLoop.
+HARNESS_QUESTIONS = {
+    "learning_retention": "Should the harness retain key learnings or keep state in a different way?",
+    "further_learning": "Is there something more we could learn from during subsequent passes?",
+    "evaluation_criteria": "Are more evaluation criteria needed to re-evaluate ShipLoop's efficacy?",
+}
 METHODS = {"interaction", "engine", "http", "dom", "source", "none"}
 
 
@@ -267,6 +273,23 @@ def validate_review(review: dict, result: dict, evidence_root: Path) -> dict:
                 unknown.append(f"{key}: independent reviewer availability unknown")
         if expected_improves is not None and ids != expected_improves:
             gaps.append("Improve records do not cover the pinned inventory exactly")
+    reflection = review.get("harness_reflection")
+    if reflection is None:
+        unknown.append("harness reflection not recorded")
+    elif not isinstance(reflection, dict) or set(reflection) != set(HARNESS_QUESTIONS):
+        errors.append("harness_reflection must answer exactly " + ", ".join(HARNESS_QUESTIONS))
+    else:
+        for key in HARNESS_QUESTIONS:
+            row = reflection[key]
+            if not isinstance(row, dict) or not set(row) <= {"question", "answer", "proposals"}:
+                errors.append(f"harness_reflection.{key}: must be {{answer, proposals}}")
+                continue
+            if not isinstance(row.get("answer"), str) or not row["answer"].strip():
+                errors.append(f"harness_reflection.{key}: missing answer")
+            proposals = row.get("proposals", [])
+            if not isinstance(proposals, list) or any(not isinstance(item, str) or not item.strip()
+                                                       for item in proposals):
+                errors.append(f"harness_reflection.{key}: proposals must be non-empty strings")
     status = "invalid" if errors else "supported-gap" if gaps else "unverified" if unknown else "supported-pass"
     return {"schema": "shiploop-e2e-workflow-assessment/1", "status": status,
             "errors": errors, "gaps": gaps, "unverified": sorted(set(unknown)),

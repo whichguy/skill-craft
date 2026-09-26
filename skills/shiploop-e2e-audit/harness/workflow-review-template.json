@@ -86,5 +86,22 @@
     "selected_test_ids": [],
     "improve_action_ids": [],
     "evidence": []
+  },
+  "harness_reflection": {
+    "learning_retention": {
+      "question": "Should the harness retain key learnings or keep state in a different way?",
+      "answer": "",
+      "proposals": []
+    },
+    "further_learning": {
+      "question": "Is there something more we could learn from during subsequent passes?",
+      "answer": "",
+      "proposals": []
+    },
+    "evaluation_criteria": {
+      "question": "Are more evaluation criteria needed to re-evaluate ShipLoop's efficacy?",
+      "answer": "",
+      "proposals": []
+    }
   }
 }

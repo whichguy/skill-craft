@@ -320,6 +320,14 @@ hosted UI checks, or candidate linkage stay explicit limitations. Follow the
 README's review-validation example.
 Use an observed clock value for `reviewed_at`; do not infer or invent timestamps.
 
+After every run, also reflect on the harness itself and fill the review's
+`harness_reflection`: whether the harness should retain key learnings or keep
+state in a different way; whether there is more to learn from on subsequent
+passes; and whether more evaluation criteria are needed to re-evaluate
+ShipLoop's efficacy. Answer each from this run's evidence and list concrete
+proposals (possibly none). These are harness findings, not ShipLoop repairs;
+the validator reports a review without them as unverified.
+
 Return the exact commands, checkout/selected skill identity, output/product
 paths, test counts including skips, graph prefix and last accepted action,
 separate product/incrementality/workflow verdicts, and specific improvements
