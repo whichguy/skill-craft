@@ -8,6 +8,8 @@ Neither prompt contains a copied Improve algorithm or a second review counter.
 
 from __future__ import annotations
 
+import shiploop_stage_spec as stage_spec
+
 
 SERIAL_INNER_CONTEXT = """\
 Clear and then execute the prompt.
@@ -68,10 +70,7 @@ DELEGATIONS = (INLINE, ASK_AGENT)
 # the carry-forward that leaves no work item pending (the navigator's pending-queue
 # check).  Planning stages write the contracts later work is built on: a sentence,
 # example or expected result there can look done and still be wrong.
-PLANNING_REVIEW_STAGES = frozenset({
-    "spec", "test-strategy", "plan", "step-plan", "test-spec",
-    "system-test-author", "release-plan",
-})
+PLANNING_REVIEW_STAGES = stage_spec.with_improve("always")
 
 INLINE_STAGE_CONTEXT = """\
 Continue in this context and execute the prompt.
@@ -110,89 +109,16 @@ def inner_context(delegation: str, *, improve: bool) -> str:
     return INLINE_IMPROVE_CONTEXT if improve else INLINE_STAGE_CONTEXT
 
 
-PRELUDE = (
-    "intake",
-    "discovery",
-    "research",
-    "spec",
-    "test-strategy",
-    "plan",
-    "prepare",
-)
-
-INNER = (
-    "select-work",
-    "step-plan",
-    "test-spec",
-    "baseline",
-    "test-author",
-    "test-red",
-    "implement",
-    "test-green",
-    "test-refine",
-    "regression",
-    "document",
-    "skill-assess",
-    "skill-validate",
-    "static-checks",
-    "verify",
-    "integrate",
-    "integration-verify",
-    "carry-forward",
-)
-
-OUTER = (
-    "system-test-author",
-    "system-test",
-    "product-acceptance",
-    "release-plan",
-    "release-check",
-    "release",
-    "release-verify",
-    "operations",
-    "handoff",
-)
+# The graph and each stage's fixed considerations live in shiploop_stage_spec.
+PRELUDE = stage_spec.PRELUDE
+INNER = stage_spec.INNER
+OUTER = stage_spec.OUTER
 
 STAGES = PRELUDE + INNER + OUTER
 
 # User-facing status display only: one plain purpose per stage and the INNER
 # stages grouped for the item map.  Neither is a prompt, graph, or state.
-STAGE_PURPOSE = {
-    "intake": "confirm the request, boundaries and open questions",
-    "discovery": "inspect the current repository, environment and baseline tests",
-    "research": "resolve the unknowns that matter with evidence",
-    "spec": "define required behavior and acceptance criteria",
-    "test-strategy": "map requirements to the checks that will prove them",
-    "plan": "build the dependency plan and the work-item queue",
-    "prepare": "ready the development and test environment",
-    "select-work": "confirm this work item is still the right next item",
-    "step-plan": "plan this item's concrete changes and checks",
-    "test-spec": "specify the tests this item needs before code changes",
-    "baseline": "record the relevant checks before any change",
-    "test-author": "write the tests the item's test spec calls for",
-    "test-red": "run the new tests and confirm they fail for the right reason",
-    "implement": "make the planned change",
-    "test-green": "run the focused tests and confirm they pass",
-    "test-refine": "tighten the tests against the actual implementation",
-    "regression": "rerun the retained suites for regressions",
-    "document": "update the documentation this change affects",
-    "skill-assess": "decide whether a reusable skill or helper change is warranted",
-    "skill-validate": "validate any skill or helper change against real inputs",
-    "static-checks": "run formatting, lint, type and build checks",
-    "verify": "verify the item against its acceptance criteria",
-    "integrate": "integrate the candidate into the working branch",
-    "integration-verify": "verify the integrated result and shared interfaces",
-    "carry-forward": "record lessons and revise the remaining queue",
-    "system-test-author": "prepare end-to-end and system tests",
-    "system-test": "run end-to-end and system tests on the real candidate",
-    "product-acceptance": "assess the product against the original outcome",
-    "release-plan": "plan the release, rollback and checks",
-    "release-check": "confirm release readiness without releasing",
-    "release": "perform the planned release",
-    "release-verify": "verify the release where consumers use it",
-    "operations": "confirm monitoring, recovery and support readiness",
-    "handoff": "write the final handoff with status and evidence",
-}
+STAGE_PURPOSE = {name: row.goal for name, row in stage_spec.STAGE_SPEC.items()}
 
 INNER_GROUPS = (
     ("Plan", ("select-work", "step-plan")),
@@ -215,11 +141,10 @@ ENVIRONMENT_DISCOVERY_REQUIREMENTS = {
         "Mandatory while resolving relevant environment unknowns in this stage."
     ),
 }
+if set(ENVIRONMENT_DISCOVERY_REQUIREMENTS) != stage_spec.with_block("environment-discovery"):
+    raise RuntimeError("ENVIRONMENT_DISCOVERY_REQUIREMENTS must match the stage table")
 
-TEST_FACILITY_STAGES = frozenset({
-    "test-strategy", "plan", "step-plan", "test-spec", "test-author", "test-red",
-    "test-refine", "regression", "carry-forward", "system-test-author", "release-plan",
-})
+TEST_FACILITY_STAGES = stage_spec.with_block("test-facility")
 
 
 # Keep stage routing declarative and package-relative.  The navigator renders
@@ -588,16 +513,7 @@ all requirements met while required observations remain unrun.
 """
 
 
-RECONCILIATION_STAGES = frozenset(
-    {
-        "verify",
-        "integration-verify",
-        "system-test",
-        "product-acceptance",
-        "release-verify",
-        "handoff",
-    }
-)
+RECONCILIATION_STAGES = stage_spec.with_block("reconciliation")
 
 
 # One rubric for writing and reviewing code.  Implementation-stage packets,
@@ -653,7 +569,7 @@ file cold with no run history. Every rule serves that reader.
 # Improve card.  ShipLoop writes these three texts into the loop contract
 # verbatim; the Until Loop script counts iterations and ends the loop, and
 # ShipLoop checks the saved terminal packet against them before accepting.
-QUALITY_LOOP_LIMIT = 3
+QUALITY_LOOP_LIMIT = stage_spec.stage("static-checks").loop_limit
 
 QUALITY_ITERATION = """\
 One quality iteration over this work item's change. Scope: the change
@@ -699,7 +615,7 @@ QUALITY_REPEAT_CONDITION = (
 )
 
 # Script-enforced test loops (test-green, regression) on the same bound Until Loop.
-TEST_LOOP_LIMIT = 4
+TEST_LOOP_LIMIT = stage_spec.stage("test-green").loop_limit
 
 TEST_ITERATION = """\
 One test iteration over this work item's test command list (below).
@@ -1776,27 +1692,11 @@ IMPROVE_SCOPES = {
 }
 
 
-IMPLEMENTATION_STAGES = frozenset(
-    {
-        "step-plan",
-        "test-spec",
-        "test-author",
-        "test-red",
-        "implement",
-        "test-green",
-        "test-refine",
-        "regression",
-        "document",
-        "static-checks",
-        "verify",
-        "integrate",
-        "integration-verify",
-    }
-)
+IMPLEMENTATION_STAGES = stage_spec.with_block("code-craft")
 
 
-BACKCHAIN_STAGES = frozenset({"spec", "plan", "step-plan", "carry-forward", "product-acceptance"})
-TEST_DECISION_STAGES = frozenset({"step-plan", "test-spec", "test-author", "test-refine", "regression"})
+BACKCHAIN_STAGES = stage_spec.with_block("backchain")
+TEST_DECISION_STAGES = stage_spec.with_block("test-decision")
 TEST_FACILITY_HANDOFF = """\
 Use the packet's Reusable test facilities guide. Read applicable selected skill
 and MCP capability references; reuse, configure or extend existing frameworks,
@@ -1844,9 +1744,7 @@ route. Reuse unaffected evidence only with its identity and relevance establishe
 BACKCHAIN_NATIVE_CALLS = {
     "plan": ("plan", "draft"),
 }
-BACKCHAIN_AUDIT_STAGES = frozenset(
-    {"spec", "step-plan", "carry-forward", "product-acceptance"}
-)
+BACKCHAIN_AUDIT_STAGES = BACKCHAIN_STAGES - set(BACKCHAIN_NATIVE_CALLS)
 
 
 def _backchain_guidance(stage: str, *, improve_owner: bool = False) -> str:
@@ -2045,7 +1943,7 @@ def duty(stage: str, *, delegation: str = ASK_AGENT) -> str:
 
 # Stages that run tests: none is done while a check it runs is red.
 # test-green and regression run the script-enforced test loop instead.
-TEST_LOOP_STAGES = frozenset({"test-refine", "integration-verify"})
+PASS_OR_STOP_STAGES = stage_spec.with_block("pass-or-stop")
 
 PASS_OR_STOP = """\
 Pass-or-stop loop: this stage is done only when every check it runs passes on
@@ -2090,7 +1988,7 @@ def prompt(stage: str, *, delegation: str = ASK_AGENT) -> str:
         parts.append(_backchain_guidance(stage))
     if stage in RECONCILIATION_STAGES:
         parts.append(SELECTED_CASE_RECONCILIATION)
-    if stage in TEST_LOOP_STAGES:
+    if stage in PASS_OR_STOP_STAGES:
         parts.append(PASS_OR_STOP)
     if stage in IMPLEMENTATION_STAGES:
         parts.append(CODE_CRAFT)

@@ -20,9 +20,10 @@ from typing import Any, Mapping, Optional
 
 import shiploop_lint as lint
 import shiploop_navigator_v3_prompts as guidance3
+import shiploop_stage_spec as stage_spec
 import shiploop_standalone_improve as standalone
 
-STAGE = "static-checks"
+STAGE, = stage_spec.with_complete_run("quality-terminal")
 RUBRIC_PATH = "quality/code-craft.md"
 
 

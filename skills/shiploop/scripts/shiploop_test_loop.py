@@ -33,15 +33,16 @@ from typing import Any, Callable, Dict, List, Mapping, Optional, Tuple
 import shiploop_lint as lint
 import shiploop_navigator_v3_prompts as guidance3
 import shiploop_quality as quality
+import shiploop_stage_spec as stage_spec
 import shiploop_store as store
 import shiploop_test_counts as counts
 
-STAGES = ("test-green", "regression")
+STAGES = stage_spec.with_complete_run("test-loop")
 # The expected-RED control: ShipLoop runs the focused commands and expects a test failure.
-RED_STAGE = "test-red"
+RED_STAGE, = stage_spec.with_complete_run("test-red")
 # Stages that can edit code after the test loops: on done ShipLoop reruns every
 # recorded command (no loop).
-RERUN_STAGES = ("test-refine", "static-checks", "integration-verify")
+RERUN_STAGES = stage_spec.with_complete_run("test-rerun")
 VERIFY_STAGES = STAGES + RERUN_STAGES
 # Refused command runs per action before only blocked is accepted.
 MAX_REFUSED_RUNS = 3
