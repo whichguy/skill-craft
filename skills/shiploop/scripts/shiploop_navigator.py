@@ -30,7 +30,7 @@ import shiploop_lint as lint
 import shiploop_quality as quality
 import shiploop_improve_changes as improve_changes
 import shiploop_item_scope as item_scope
-import shiploop_knowledge as knowledge
+import shiploop_knowledge_home as knowledge
 import shiploop_test_loop as test_loop
 import shiploop_planning_revision as planning_revision
 import shiploop_context_index as context_index

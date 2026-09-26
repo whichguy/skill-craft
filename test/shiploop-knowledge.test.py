@@ -14,7 +14,7 @@ from pathlib import Path
 ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT / "skills/shiploop/scripts"))
 sys.path.insert(0, str(ROOT / "test"))
-import shiploop_knowledge as knowledge  # noqa: E402
+import shiploop_knowledge_home as knowledge  # noqa: E402
 import shiploop_knowledge_support as support  # noqa: E402
 import shiploop_workspace as workspace  # noqa: E402
 

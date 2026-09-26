@@ -6,7 +6,7 @@ import sys
 from typing import Any, Mapping
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[1] / "skills/shiploop/scripts"))
-import shiploop_knowledge as knowledge  # noqa: E402
+import shiploop_knowledge_home as knowledge  # noqa: E402
 
 
 def write(state: Mapping[str, Any]) -> None:
