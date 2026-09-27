@@ -336,13 +336,35 @@ def recheck(run_dir: str | Path, src: str = "judge", dest: str | None = None) ->
 # ---------------------------------------------------------------- analyze
 
 def load_verdicts(run_dir: str | Path, dest: str = "judge") -> dict:
-    return {f.stem: json.loads(f.read_text()) for f in sorted((Path(run_dir) / dest).glob("*.json"))}
+    """Verdicts by output stem. `dest` may name several grading passes, comma-separated ("p1,p2,p3"): each
+    output graded in every pass gets the first pass's verdict with all passes under "passes", and `score`
+    averages them (grading noise falls by about the square root of the number of passes)."""
+    dirs = [d for d in dest.split(",") if d]
+    loaded = [{f.stem: json.loads(f.read_text()) for f in sorted((Path(run_dir) / d).glob("*.json"))} for d in dirs]
+    if len(loaded) == 1:
+        return loaded[0]
+    return {s: {**loaded[0][s], "passes": [p[s] for p in loaded]} for s in loaded[0] if all(s in p for p in loaded)}
 
 
 def score(verdict: dict, crits=None) -> float | None:
-    """Percentage of available rubric points earned (met 2, partial 1, missed or overbuilt 0), 0-100."""
+    """Percentage of available rubric points earned (met 2, partial 1, missed or overbuilt 0), 0-100; the mean
+    over grading passes when the verdict carries several."""
+    if "passes" in verdict:
+        xs = [x for x in (score({"grades": p["grades"]}, crits) for p in verdict["passes"]) if x is not None]
+        return sum(xs) / len(xs) if xs else None
     xs = [VAL[g] for c, g in verdict["grades"].items() if g in VAL and (crits is None or c in crits)]
     return 100 * sum(xs) / (2 * len(xs)) if xs else None
+
+
+def pass_noise(verdicts: dict) -> float | None:
+    """Test-retest noise measured on this round's own outputs: the mean absolute score difference between two
+    grading passes of the same output, over every output and pass pair. None with fewer than two passes."""
+    d = []
+    for v in verdicts.values():
+        ps = [score({"grades": p["grades"]}) for p in v.get("passes", [])]
+        ps = [x for x in ps if x is not None]
+        d += [abs(a - b) for i, a in enumerate(ps) for b in ps[i + 1:]]
+    return round(sum(d) / len(d), 2) if d else None
 
 
 def bootstrap(diffs: list[float], n: int = 4000, seed: int = 3, clusters: list[str] | None = None) -> tuple[float, float, float]:
@@ -580,19 +602,27 @@ def analyze(run_dir: str | Path, suite: dict, baseline: str, dest: str = "judge"
     groups = {"overall": None, **suite["rubric"]["groups"]}
     sc = {x["id"]: x for x in suite["scenarios"]["scenarios"]}
     problems = check_condition(run_dir, baseline)
-    judges = {spec(v["judge_model"]) for v in verdicts.values() if v.get("judge_model")}
+    judges = {spec(p["judge_model"]) for v in verdicts.values() for p in v.get("passes", [v]) if p.get("judge_model")}
     if len(judges) > 1:
         problems.append(f"verdicts come from more than one judge {sorted(judges)}; a round keeps one judge")
     checked = {"quote_check" in v for v in verdicts.values()}
     if len(checked) > 1:
         problems.append("some verdicts carry the quote check and some do not; re-grade or re-check the round")
+    passes = max((len(v.get("passes", [v])) for v in verdicts.values()), default=1)
+    measured = pass_noise(verdicts)
+    if noise is None and measured is not None:
+        # Noise measured on these outputs, for a mean of `passes` gradings: the difference between two such
+        # means shrinks by the square root of the number of passes.
+        noise = round(measured / passes ** 0.5, 2)
     if noise is None and len(judges) == 1:
         noise = judge_noise(next(iter(judges)))
     use = usage(run_dir)
     tokens = {s: u["tokens"] for s, u in use.items()}; secs = {s: u["seconds"] for s, u in use.items()}
-    per_plan = {"overbuilt scope grades": {s: sum(v["grades"].get(c) == "overbuilt" for c in ("P1", "P3")) for s, v in verdicts.items()},
-                "platform errors": {s: len(v.get("platform_errors") or []) for s, v in verdicts.items()}}
-    report = {"baseline": baseline, "judge_dir": dest, "judges": sorted(judges), "judge_noise_points": noise,
+    mean = lambda xs: sum(xs) / len(xs)
+    per_plan = {"overbuilt scope grades": {s: mean([sum(p["grades"].get(c) == "overbuilt" for c in ("P1", "P3")) for p in v.get("passes", [v])]) for s, v in verdicts.items()},
+                "platform errors": {s: mean([len(p.get("platform_errors") or []) for p in v.get("passes", [v])]) for s, v in verdicts.items()}}
+    report = {"baseline": baseline, "judge_dir": dest, "judges": sorted(judges), "judge_passes": passes,
+              "measured_pass_noise_points": measured, "judge_noise_points": noise,
               "scale": "percentage of rubric points (met 2, partial 1, missed or overbuilt 0)",
               "cluster": cluster or "cell", "condition_problems": problems, "arms": {}}
     prompts = {}
@@ -648,7 +678,7 @@ def analyze(run_dir: str | Path, suite: dict, baseline: str, dest: str = "judge"
             entry["decision"] = decide(cmp_, suite["rubric"]["guardrails"], noise, checks=checks, tokens=tok, seconds=sec,
                                        scenarios=len({s.split("_")[0] for s in vs}))
         report["arms"][a] = entry
-    name = "analysis" + ("" if dest == "judge" else "_" + dest) + ("" if not cluster else "_" + cluster)
+    name = "analysis" + ("" if dest == "judge" else "_" + dest.replace(",", "+")) + ("" if not cluster else "_" + cluster)
     (Path(run_dir) / f"{name}.json").write_text(json.dumps(report, indent=1) + "\n")
     return report
 

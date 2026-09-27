@@ -152,6 +152,16 @@ class Statistics(unittest.TestCase):
             self.assertTrue(any("valuable items" in r for r in e["decision"]["reasons"]))
             self.assertFalse(e["decision"]["ship"])
 
+    def test_multi_pass_grading_averages_and_measures_noise(self):
+        with tempfile.TemporaryDirectory() as d:
+            for dest, g in (("p1", "met"), ("p2", "partial")):
+                (Path(d) / dest).mkdir()
+                (Path(d) / dest / "S01_GAS_a_1.json").write_text(json.dumps(verdict({"P1": g, "D1": "met"})))
+            v = R.load_verdicts(d, "p1,p2")
+            self.assertEqual(R.score(v["S01_GAS_a_1"]), 87.5)          # mean of 100 and 75
+            self.assertEqual(R.pass_noise(v), 25.0)
+            self.assertIsNone(R.pass_noise(R.load_verdicts(d, "p1")))
+
     def test_parse_diff(self):
         good = '{"removed_required": 0, "added_unrequested": 2, "contradictions": 0, "invented_numbers": 1}'
         self.assertEqual(R.parse_diff("x " + good)["added_unrequested"], 2)
