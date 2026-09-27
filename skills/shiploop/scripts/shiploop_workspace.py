@@ -145,6 +145,11 @@ def _sha256(data: bytes) -> str:
     return hashlib.sha256(data).hexdigest()
 
 
+
+def workspace_branch(root: Path) -> str:
+    """The execution branch for a workspace root; host-neutral, one per root."""
+    return "shiploop/run-" + _sha256(os.fspath(root).encode())[:16]
+
 def _inside(child: Path, parent: Path) -> bool:
     try:
         child.relative_to(parent)
@@ -761,7 +766,7 @@ def _validate_manifest(root: Path, manifest: Mapping[str, Any]) -> Dict[str, Any
             _fail(f"workspace manifest has invalid {key}")
     if not isinstance(manifest.get("source_branch"), str) or not manifest["source_branch"]:
         _fail("workspace manifest has invalid source branch")
-    expected_branch = "codex/shiploop-" + _sha256(os.fspath(root).encode())[:16]
+    expected_branch = workspace_branch(root)
     if manifest.get("branch") != expected_branch:
         _fail("workspace manifest has invalid workspace branch")
     if type(manifest.get("start_clean")) is not bool:
@@ -901,7 +906,7 @@ def _prepare_locked(
     # folded into a snapshot merely because it raced an expensive Git command.
     if not _fingerprint_equal(before, _fingerprint(source, root, selected)):
         _fail("source checkout changed during workspace capture; use a fresh root")
-    branch = "codex/shiploop-" + _sha256(os.fspath(root).encode())[:16]
+    branch = workspace_branch(root)
     if _git(source, "show-ref", "--verify", "--quiet", f"refs/heads/{branch}", readonly=True).returncode == 0:
         _fail("workspace branch already exists without a matching workspace record")
     worktree = root / "worktree"
