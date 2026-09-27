@@ -328,6 +328,36 @@ exact keys, and its tests use the pinned dispatcher fixture
 (`test/fixtures/plan-dispatcher-v3/`). Chain handling of `replan` needs that
 fixture re-pinned to the live package (gap 4).
 
+## Go-forward plan (2026-09-27, after the KISS triage)
+
+How far each layer can be tested today:
+
+| Layer | Tests without a model | Live | Gap |
+|---|---|---|---|
+| Plan Dispatcher | Strong: 8 suites, T1 scenarios with context loss, 37 mutants | Not needed | None worth chasing |
+| Chain bridge + Ask Agent | About 30 real-Git lifecycle tests, one 4-node graph, pinned to a frozen Plan Dispatcher 0.3.0 | Opt-in Grok pilot (09-20) | Unknown whether it works with dispatcher 0.5.0 |
+| ShipLoop inline route | Fast in-process walks; refusal and recovery invariants | `shiploop_e2e` cases | Not graph-shaped, by design |
+| Backchain export | None in this repo | None | Export never checked against `validate-graph` |
+| End to end, real fan-out/fan-in | None | Only the 09-20 pilot | Never run through the current release |
+
+Steps, smallest first:
+
+1. **Chain against the live dispatcher.** Re-pin
+   `test/fixtures/plan-dispatcher-v3/` to the current package and run the chain
+   suites; fix the chain if they break. Add `replan` pass-through only if it is
+   trivial.
+2. **Backchain conformance.** One test: a sample Backchain export passes
+   `validate-graph`.
+3. **One live, graph-shaped run.** Add a `shiploop_e2e` case with two
+   independent modules and an integration step on the Ask-Agent parallel
+   route. Run it once on Grok (opt-in; recent runs cost about $25 and 60–90
+   minutes) and commit its learnings.
+4. **D1.** Recommended: close as not doing. The inline route is simple and
+   works; routing it through the dispatcher pays off only if parallel inline
+   steps are wanted. Awaiting the owner's confirmation.
+5. **Stop.** Port the harness to the chain (T2) only if step 1 or 3 shows a
+   problem. Leave the gate machinery as is; it runs only on release commits.
+
 ## Next steps (2026-09-27, executed)
 
 1. **N1: exact calls (audit condition 6, X8). Done.**

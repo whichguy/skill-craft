@@ -1,0 +1,6 @@
+# Runs write snapshots, temp repositories and outputs here; keep only the scripts.
+*
+!*/
+!*.py
+!*.js
+!.gitignore
