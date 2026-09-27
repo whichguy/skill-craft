@@ -820,6 +820,8 @@ class MetricsTest(unittest.TestCase):
             'cp /tmp/x.json /x/wt/.shiploop-improve/n/a/start.json': ["shell write into a ShipLoop-owned path"],
             # check output the packet asks the model to record as evidence
             'npm test > /x/.shiploop-runs/a/run/evidence/w1-verify.txt': [],
+            # the run's scratch directory is the model's own (P13)
+            'python3 -m unittest > /x/.shiploop-runs/a/run/scratch/baseline.txt 2>&1': [],
             # reading ShipLoop's own contract is not building one
             'python3 -c \'import json; p=json.load(open("/x/run/quality/c-contract.json")); print(p["exit_condition"])\'': [],
             'python3 -c \'import json; json.dump({"exit_condition": 1}, open("/x/c.json", "w"))\'': ["hand-built loop contract"],
