@@ -20,6 +20,18 @@ from pathlib import Path
 HERE = Path(__file__).resolve().parent
 
 
+def app_module(work: Path) -> str:
+    """The file a consumer gets when importing the package, or "" when none."""
+    pkg = json.loads((work / "package.json").read_text())
+    exp = pkg.get("exports")
+    if isinstance(exp, dict):
+        exp = exp.get(".", exp)
+    while isinstance(exp, dict):
+        exp = exp.get("import") or exp.get("default") or exp.get("node") or next(iter(exp.values()), None)
+    entry = exp or pkg.get("module") or pkg.get("main")
+    return str((work / entry).resolve()) if entry else ""
+
+
 def app_cmd(work: Path) -> str | None:
     pkg = work / "package.json"
     if not pkg.is_file():
@@ -37,6 +49,7 @@ def score(work: Path, oracle: Path, out: Path) -> dict:
         subprocess.run(["npm", "install", "--no-audit", "--no-fund", "--silent"], cwd=work,
                        stdin=subprocess.DEVNULL, capture_output=True)
     proc = subprocess.run([sys.executable, str(HERE / "oracle_run.py"), str(oracle), "--app-cmd", cmd,
+                           "--app-module", app_module(work),
                            "--json", str(out / "results.json"), "--tap", str(out / "oracle.tap")],
                           capture_output=True, text=True)
     return json.loads((out / "results.json").read_text())
@@ -49,7 +62,9 @@ def main() -> int:
     ap.add_argument("--out", type=Path, required=True)
     ap.add_argument("--score-only", action="store_true", help="skip the build; rescore DIR/work")
     ap.add_argument("--forbid", action="append", default=[],
-                    help="string whose appearance in the builder's transcript voids the run (original name, path)")
+                    help="string whose appearance in the builder's tool calls voids the run (original name, path)")
+    ap.add_argument("--forbid-dep", action="append", default=[],
+                    help="package name the rebuild must not depend on (the original's published package)")
     args = ap.parse_args()
     out = args.out.resolve()
     work = out / "work"
@@ -80,7 +95,7 @@ def main() -> int:
     if pkg.is_file():
         data = json.loads(pkg.read_text())
         deps = {**data.get("dependencies", {}), **data.get("devDependencies", {})}
-        leaks += [f"depends on {d}" for d in deps if d.lower() in (f.lower() for f in args.forbid)]
+        leaks += [f"depends on {d}" for d in deps if d.lower() in (f.lower() for f in args.forbid + args.forbid_dep)]
     result = score(work, args.oracle.resolve(), out)
     result["clean_room_leaks"] = leaks
     result["recognised"] = recognised

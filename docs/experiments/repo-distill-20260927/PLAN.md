@@ -69,36 +69,38 @@ and iterate ShipLoop on a fixed spec file.
 
 ## Case
 
-**typicode/json-server @89a34a4** (75.7k stars, MIT): TypeScript Node HTTP
-service with an HTML landing page and a CLI, ~1.9k lines, 128 `node:test`
-tests on Node 25: 127 pass; one file (`src/adapters/normalized-adapter.test.ts`)
-imports a path that does not exist and is never run by upstream's `npm test`.
-Chosen over tiny libraries (too little to plan) and large apps (too slow to
-iterate). http-server (static server + listing UI)
-and ni (CLI) come only after the pilot holds.
+**markedjs/marked @ef0704c** (37.2k stars, MIT): a Markdown parser and
+compiler (TypeScript, 3,201 own lines, zero runtime dependencies) with a
+library API (parse, lexer/parser/renderer, options, hooks, extensions) and a
+CLI. Its 1,861 spec tests (CommonMark 0.31.2, GFM 0.29, marked's own
+fixtures) and 192 unit tests pass on Node 25. Chosen as the first repository,
+in descending star order, to pass every selection gate (below).
+
+The pilot started on typicode/json-server; the owner switched away because
+it fails the gate on size (733 own lines, 13 dependencies, one from the same
+owner). Its round-1 E0/E1 results and learnings are kept in RESULTS.md.
 
 ## Selection gate: material value of its own
 
-A candidate must carry material logic of its own, not be a thin layer that
-composes other packages (a rebuild of that mostly re-composes the same
-packages and says little about the builder). `scripts/repo_value.py`
-measures it from files: own non-test source lines, runtime dependencies,
-monorepo/aggregation (disqualifying), and, once a spec exists, the share of
-the spec's evidence that cites dependency code. Starting bar (owner may
-reset it): own code >= 1,000 lines, not a monorepo, dependency evidence
-<= 25%.
+A case must carry material logic of its own, not be a thin layer that
+composes other packages or its owner's other repositories: a rebuild of that
+mostly re-composes the same packages and says little about the builder.
+Serving static files or wrapping another product is too trivial (owner).
 
-| Repo | Own lines | Runtime deps | Dependency evidence | Gate |
-|---|---|---|---|---|
-| json-server | 733 | 13 | 18% | fails on size; kept as the pilot (below) |
-| http-server | 1,288 | 14 | n/a yet | passes |
-| ni | 1,720 | 4 | n/a yet | passes |
+`scripts/select_repos.py` walks the most-starred JavaScript/TypeScript
+repositories in descending order (owner: choose by stars) and takes the first
+that passes, cheapest gate first: maintained (pushed within a year, not
+archived or a fork); a rebuildable interface (`bin`: a CLI, or a server
+started from one); not a monorepo; no git submodules and no runtime
+dependency published from the same owner's other repositories; has tests;
+material own code (`repo_value.py`: >= 1,000 own lines) and a feasible size
+(<= 10,000). After distilling, `repo_value.py --spec` also reports the share
+of spec evidence citing dependency code (starting bar <= 25%). The bars are
+proposals the owner may reset.
 
-json-server stays the pilot because the pilot tests the pipeline, not the
-builder, and what its oracle exercises is mostly its own logic (the REST
-query semantics: filter operators, pagination, embedding, cascade delete);
-82% of its spec's evidence cites its own files. Cases after the pilot must
-pass the gate.
+Walk of 2026-09-27 (237+ repos): code-server fails (wraps VS Code as a
+submodule), prettier (10 same-owner dependencies), hexo (7), json-server
+(`lowdb`, and thin); **marked passes first**, then Modernizr and mocha.
 
 ## Experiments
 
@@ -200,3 +202,8 @@ prune. Wording only: intro, case paragraph reflow, who drops failing checks.
 | 29 | Distiller cites dependency source without the `node_modules/@` prefix | E1 spec_check (10 of 141 citations) | checker only | Checker resolves dependency paths; not a distill fault |
 | 30 | An observable value embeds the original's name (`$schema: ./node_modules/json-server/schema.json`); the distiller split the string to pass the leak check, and the porter asserted the exact value | E1 spec D-18, E0 normalized-adapter check | yes for the clean room (name recoverable); accepted for round 1 | Round-2 prompts: branded values are specified with the new name and asserted only by presence/shape |
 | 31 | A candidate may be a thin composition of other packages, so a rebuild re-composes them and measures little | owner, 2026-09-27 | yes, for case selection | Selection gate (`repo_value.py`); json-server fails on size, kept as pilot; later cases must pass |
+| 32 | Static file serving (http-server) passes the size gate but is still trivial; size alone does not measure material logic | owner | yes | Switched to star-ordered selection with aggregation gates; marked chosen |
+| 33 | A repo can hide aggregation from the size gate: submodules (code-server wraps VS Code) or its owner's split-out packages (hexo, prettier, json-server's `lowdb`) | selection walk | yes | Gates for submodules and same-owner runtime dependencies |
+| 34 | marked is mainly a library: its hooks/extensions API is reachable only by importing it, not through the CLI | case switch | yes | Oracle and build contract reach the program through `APP_CMD` and/or `APP_MODULE` (the package's import entry); stubs for both |
+| 35 | A watcher's expiry killed the run it launched (json-server E3 died at 30 min) | E3 round 1 | yes | Chains run detached (new session); watchers only tail their logs |
+| 36 | "marked" is an ordinary word, so grepping tool calls for it would void innocent runs | case switch | yes | Tool calls are checked for `markedjs` and paths; the package name is checked only as a dependency (`--forbid-dep`) |

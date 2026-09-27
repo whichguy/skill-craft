@@ -65,16 +65,5 @@
       "printf '' | python3 measure.py > out.txt 2> err.txt; rc=$?; [ $rc -eq 1 ] && [ ! -s out.txt ] && ! grep -q Traceback err.txt; r=$?; rm -f out.txt err.txt; exit $r",
       "printf '32\\nabc\\n' | python3 measure.py > out.txt 2> err.txt; rc=$?; [ $rc -eq 2 ] && grep -q 'line 2: not a number' err.txt && grep -q '\"count\": 1' out.txt; r=$?; rm -f out.txt err.txt; exit $r"
     ]
-  },
-  "tinyrest": {
-    "style": "reference-oracle",
-    "seed": {
-      "SPEC.md": "seeds/tinyrest/SPEC.md"
-    },
-    "prompt": "Build the program specified in `SPEC.md` in this directory. The specification is the whole requirement; there is no other source, and you must not look for one. Implement the program yourself: general-purpose libraries are fine, but do not install or wrap an existing package that already is this program.  Delivery contract: after `npm install`, the program starts with `node <entry> <arguments>`, where `<entry>` is the file named by the `bin` field of `package.json` (no build step). Test your work as you see fit and finish when you are confident every behaviour in the specification holds.",
-    "checks": [
-      "cmd=$(node \"$E2E_CHECKS/app_cmd.mjs\") && APP_CMD=\"$cmd\" node --test \"$E2E_CHECKS\"/tinyrest/*.test.mjs > oracle.log 2>&1; rc=$?; tail -15 oracle.log; rm -f oracle.log; exit $rc",
-      "node -e \"const p=require('./package.json');const d={...p.dependencies,...p.devDependencies};if('json-server' in d){console.error('clean room: depends on the original package');process.exit(1)}\""
-    ]
   }
 }

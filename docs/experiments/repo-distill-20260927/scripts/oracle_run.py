@@ -20,8 +20,8 @@ import sys
 from pathlib import Path
 
 
-def run(oracle: Path, app_cmd: str, timeout: int = 600, tap: Path | None = None) -> dict:
-    env = {**os.environ, "APP_CMD": app_cmd}
+def run(oracle: Path, app_cmd: str, app_module: str = "", timeout: int = 600, tap: Path | None = None) -> dict:
+    env = {**os.environ, "APP_CMD": app_cmd, "APP_MODULE": app_module}
     files = sorted(str(p) for p in oracle.glob("*.test.mjs"))
     # A program that never becomes ready (the stub) makes every check wait out
     # its start retries; stop at `timeout` and keep what was reported. A check
@@ -59,6 +59,9 @@ def main() -> int:
     ap = argparse.ArgumentParser()
     ap.add_argument("oracle", type=Path)
     ap.add_argument("--app-cmd")
+    ap.add_argument("--app-module", default="", help="file a consumer gets when importing the package")
+    ap.add_argument("--original-module", default="")
+    ap.add_argument("--stub-module", default=str(Path(__file__).resolve().parent / "stub_module.mjs"))
     ap.add_argument("--admit", action="store_true")
     ap.add_argument("--original")
     ap.add_argument("--stub")
@@ -69,8 +72,9 @@ def main() -> int:
     args = ap.parse_args()
     if args.admit:
         # Twice on the original: a check that differs between runs is flaky.
-        first, second = run(args.oracle, args.original), run(args.oracle, args.original)
-        stub = run(args.oracle, args.stub, timeout=args.stub_timeout)
+        first = run(args.oracle, args.original, args.original_module)
+        second = run(args.oracle, args.original, args.original_module)
+        stub = run(args.oracle, args.stub, args.stub_module, timeout=args.stub_timeout)
         # The oracle's own start retries may leave stub processes behind.
         subprocess.run(["pkill", "-f", args.stub.split()[-1]], capture_output=True)
         flaky = sorted(k for k in first["tests"] if first["tests"][k] != second["tests"].get(k))
@@ -85,7 +89,7 @@ def main() -> int:
                   "stub_timed_out": stub["timed_out"], "original_timed_out": first["timed_out"] or second["timed_out"],
                   "failing_on_original": failing, "flaky": flaky, "passing_on_stub": stub_pass}
     else:
-        report = run(args.oracle, args.app_cmd, tap=args.tap)
+        report = run(args.oracle, args.app_cmd, args.app_module, tap=args.tap)
     text = json.dumps(report, indent=2)
     if args.json:
         args.json.write_text(text + "\n")

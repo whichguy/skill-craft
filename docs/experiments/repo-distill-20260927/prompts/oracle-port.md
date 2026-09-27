@@ -23,13 +23,21 @@ Change nothing outside `{ORACLE_DIR}`.
 
 ## How the oracle reaches the program
 
-The program under test is started only through its command line. The
-environment variable `APP_CMD` holds the shell command that starts it (for
-this original: `{APP_CMD_ORIGINAL}`); the oracle appends the arguments it
-needs (data files, port, options). Each test that needs a running program
-creates its own temporary files, starts the program on a free port, waits
-until it answers (fail after 10 seconds), and stops it afterwards. Never assume
-a fixed port or leave a process running.
+The oracle reaches the program only through its public interfaces, given in
+environment variables (both are set; use the ones this program has):
+
+- `APP_CMD`: the shell command that runs the program's command line (for
+  this original: `{APP_CMD_ORIGINAL}`). The oracle appends arguments and may
+  write standard input; it checks standard output, standard error, exit
+  status and files. For a server, each test starts it on a free port, waits
+  until it answers (fail after 10 seconds), and stops it afterwards; never
+  assume a fixed port or leave a process running.
+- `APP_MODULE`: the absolute path of the file a consumer gets when importing
+  the package (for this original: `{APP_MODULE_ORIGINAL}`). For a library,
+  the oracle loads it with `await import(pathToFileURL(process.env.APP_MODULE))`
+  and uses only its public exports, as a consumer would.
+
+Each test creates its own temporary files and cleans up after itself.
 
 ## Rules
 
@@ -54,7 +62,7 @@ a fixed port or leave a process running.
 
 ## Before you finish: grade your own result
 
-Run `APP_CMD='{APP_CMD_ORIGINAL}' node --test {ORACLE_DIR}` and fix the
+Run `APP_CMD='{APP_CMD_ORIGINAL}' APP_MODULE='{APP_MODULE_ORIGINAL}' node --test {ORACLE_DIR}` and fix the
 oracle until every test passes against the original. Check that `MAPPING.md`
 lists every original test. End with one line:
 `ORACLE WRITTEN: <oracle test count> tests, <mapped> mapped, <not observable> not observable, <excluded> excluded`.
