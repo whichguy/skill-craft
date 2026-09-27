@@ -198,9 +198,12 @@ them:
   when the default changes.
 - **Run one grading loop per round.** Before starting another, list the running
   processes and stop the old loop.
-- **Verify stops from the process list**, not from the kill command: a pattern
-  that does not match leaves the loop running. After stopping, confirm no
-  `rubric-eval run`/`judge` process or model call for that round remains.
+- **Verify stops by process ID**, not from the kill command or a text search:
+  a kill pattern that does not match leaves the loop running, and a search for
+  the loop's text can match the searching shell itself. Record each loop's PID
+  when starting it, stop it by PID (with its children), and confirm those PIDs
+  are gone; then list `rubric-eval run`/`judge` processes and account for each
+  one before starting another.
 - A round's verdict count only means something with one judge; if mixed judges
   are found, remove the verdicts written after the change and re-grade them.
 
