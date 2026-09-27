@@ -98,13 +98,18 @@ bash test/run-integration.sh shiploop-e2e --suite breadth       # one case per s
 
 Each case in `cases.json` has a `style`; `suites.json` groups them into focused
 suites (one style) and the `breadth` suite (one case per style). `--suite`
-runs the cases in order into one directory; a follow-on case starts from its
-predecessor's output and is skipped when that predecessor failed. Every run
+runs the cases into one directory, each in its own folder; independent chains
+(a case with its follow-ons) run concurrently, up to `--max-parallel` (default
+3), quietly; `--serial` runs one at a time. A follow-on case starts from its
+predecessor's output and is skipped when that predecessor failed. With
+`--source marketplace`, a suite first runs the marketplace preflight once
+(`--preflight-only` runs just that): it installs skill-craft the host's way
+and prints what origin/main publishes and what the host got. Every run
 (suite or `--case`) appends one summary row to `baselines.jsonl`
 (case, style, source, ShipLoop version, verdicts, turns, cost, sessions,
 cancellations, model glue, ShipLoop failures) and prints the change against
 the case's previous row from the same source. Commit the new rows with the
-run's learnings entry. See SPEC.md, "E2E suites".
+run's learnings entry. See SPEC.md, "E2E suites" and "Parallel work".
 
 `metrics.json` also reports `script_verifications` (the checks ShipLoop itself
 ran and recorded, from its `*-verify*.md` records) and `model_glue`: shell

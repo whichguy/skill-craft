@@ -52,6 +52,7 @@ This launches a real model and costs money; it is never part of default CI.
 from __future__ import annotations
 
 import argparse
+from concurrent.futures import ThreadPoolExecutor
 import json
 import os
 from pathlib import Path
@@ -569,6 +570,11 @@ def parser() -> argparse.ArgumentParser:
     p.add_argument("--max-resumes", type=int, default=20,
                    help="grok only: resume the same session this many times while ShipLoop is still active")
     p.add_argument("--quiet", action="store_true", help="do not print the live progress view")
+    p.add_argument("--max-parallel", type=int, default=3,
+                   help="suites: run up to this many independent case chains at once (default 3)")
+    p.add_argument("--serial", action="store_true",
+                   help="suites: run every case one after another (rerun a failure that appears only in parallel "
+                        "this way before attributing it to ShipLoop)")
     p.add_argument("--suite-name", help=argparse.SUPPRESS)
     p.add_argument("--grok-bin", default="grok")
     p.add_argument("--claude-bin", default="claude")
@@ -609,6 +615,22 @@ def previous_row(path: Path, case: str, source: str | None) -> dict | None:
     return found
 
 
+def suite_chains(order: list[str], cases: dict) -> list[list[str]]:
+    """Independent chains: a case with its follow-ons, in suite order. Chains share nothing, so they may run
+    concurrently; a follow-on always runs after its predecessor, in the same chain."""
+    chains: list[list[str]] = []
+    home: dict[str, list[str]] = {}
+    for case in order:
+        follows = cases[case].get("follows")
+        chain = home.get(follows) if follows else None
+        if chain is None:
+            chain = []
+            chains.append(chain)
+        chain.append(case)
+        home[case] = chain
+    return chains
+
+
 def run_suite(args, argv: list[str]) -> int:
     """Run a suite's cases in order; a follow-on starts from its predecessor and is skipped if it failed."""
     suites = json.loads(SUITES.read_text())
@@ -616,7 +638,7 @@ def run_suite(args, argv: list[str]) -> int:
         raise SystemExit(f"unknown suite {args.suite!r}; known: {', '.join(k for k in suites if not k.startswith('_'))}")
     cases = json.loads(CASES.read_text())
     base = new_output_dir(args.output, "suite-" + args.suite)
-    passthrough, skip = [], {"--suite", "--output", "--case", "--continue-from"}
+    passthrough, skip = [], {"--suite", "--output", "--case", "--continue-from", "--max-parallel"}
     it = iter(argv)
     for token in it:
         name = token.split("=", 1)[0]
@@ -633,24 +655,36 @@ def run_suite(args, argv: list[str]) -> int:
         (check / "preflight.json").write_text(json.dumps(versions, indent=2) + "\n")
         if versions["gate"]:
             raise SystemExit("suite not started, version gate: " + "; ".join(versions["gate"]))
-    outputs: dict[str, Path] = {}
-    summary = []
-    for case in suites[args.suite]["cases"]:
-        follows = cases[case].get("follows")
-        prior = outputs.get(follows) if follows else None
-        if follows and prior is None:
-            summary.append({"case": case, "skipped": f"its predecessor {follows!r} is not in this suite run"})
-            continue
-        if prior is not None and not json.loads((prior / "result.json").read_text()).get("pass"):
-            summary.append({"case": case, "skipped": f"its predecessor {follows!r} failed; nothing to build on"})
-            continue
-        out = base / case
-        case_argv = [*passthrough, "--case", case, "--output", str(out), "--suite-name", args.suite]
-        if prior is not None:
-            case_argv += ["--continue-from", str(prior)]
-        code = main(case_argv)
-        outputs[case] = out
-        summary.append({"case": case, "pass": code == 0, "output": str(out)})
+    order = suites[args.suite]["cases"]
+    chains = suite_chains(order, cases)
+    if len(chains) > 1 and not args.serial and "--quiet" not in passthrough:
+        passthrough.append("--quiet")  # concurrent live views would interleave
+
+    def run_chain(chain: list[str]) -> list[dict]:
+        outputs: dict[str, Path] = {}
+        rows = []
+        for case in chain:
+            follows = cases[case].get("follows")
+            prior = outputs.get(follows) if follows else None
+            if follows and prior is None:
+                rows.append({"case": case, "skipped": f"its predecessor {follows!r} is not in this suite run"})
+                continue
+            if prior is not None and not json.loads((prior / "result.json").read_text()).get("pass"):
+                rows.append({"case": case, "skipped": f"its predecessor {follows!r} failed; nothing to build on"})
+                continue
+            out = base / case
+            case_argv = [*passthrough, "--case", case, "--output", str(out), "--suite-name", args.suite]
+            if prior is not None:
+                case_argv += ["--continue-from", str(prior)]
+            code = main(case_argv)
+            outputs[case] = out
+            rows.append({"case": case, "pass": code == 0, "output": str(out)})
+        return rows
+
+    workers = 1 if args.serial else max(1, min(args.max_parallel, len(chains)))
+    with ThreadPoolExecutor(max_workers=workers) as pool:
+        rows = [row for chain_rows in pool.map(run_chain, chains) for row in chain_rows]
+    summary = sorted(rows, key=lambda row: order.index(row["case"]))
     (base / "suite-result.json").write_text(json.dumps({"suite": args.suite, "cases": summary}, indent=2) + "\n")
     print(f"suite {args.suite}: " + ", ".join(
         f"{row['case']} {'SKIP' if 'skipped' in row else 'PASS' if row['pass'] else 'FAIL'}" for row in summary))

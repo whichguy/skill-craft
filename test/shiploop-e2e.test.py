@@ -22,6 +22,7 @@ import subprocess
 import sys
 import tempfile
 import unittest
+from unittest import mock
 
 ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT / "test" / "shiploop_e2e"))
@@ -505,6 +506,28 @@ class SuiteTest(HarnessCase):
         self.assertEqual(code, 1)
         self.assertIn("failed", result["cases"][1]["skipped"])
         self.assertFalse((self.tmp / "suite-out" / "second").exists())
+
+    def test_independent_chains_run_concurrently_and_report_in_suite_order(self):
+        cases = {"a": {"style": "s", "prompt": "p", "checks": []},
+                 "b": {"style": "t", "prompt": "p", "checks": []},
+                 "a2": {"style": "s", "follows": "a", "prompt": "q", "checks": []}}
+        self.assertEqual(run.suite_chains(["a", "b", "a2"], cases), [["a", "a2"], ["b"]])
+        self.use_catalog(cases, {"wide": {"kind": "breadth", "cases": ["a", "b", "a2"]}})
+        started = []
+        real_main = run.main
+
+        def spy(argv=None):
+            if argv and "--case" in argv:
+                started.append(argv[argv.index("--case") + 1])
+                self.assertIn("--quiet", argv)  # concurrent live views would interleave
+            return real_main(argv)
+
+        with mock.patch.object(run, "main", side_effect=spy):
+            code, result = self.run_suite("wide")
+        self.assertEqual(code, 0, result)
+        self.assertEqual([row["case"] for row in result["cases"]], ["a", "b", "a2"])
+        self.assertLess(started.index("a"), started.index("a2"))
+        self.assertTrue(all((self.tmp / "suite-out" / name / "result.json").is_file() for name in ("a", "b", "a2")))
 
     def test_committed_suites_name_known_cases_and_breadth_covers_every_focused_style(self):
         cases = json.loads(run.CASES.read_text())

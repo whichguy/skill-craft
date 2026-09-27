@@ -225,3 +225,37 @@ harness-FAIL, 7 cancelled; 8b on 1.6.0 PASS committed, 4 cancelled, 0 ShipLoop f
 - Harness learnings: the glue metric needed two precision fixes during these runs (heredoc bodies are not
   commands; evidence notes are model output); rows appended from a suite run go to the checkout the runner
   lives in (move them before committing when a session shares a checkout).
+
+## web-p5 — 2026-09-27 — web-service focused suite, checkout build (skill-craft 1.8.0, ShipLoop 0.41.0: P3-P5)
+
+- battleship FAIL on `committed` only: ShipLoop reached done (process, invocation, plugin, shiploop all PASS),
+  but the user's branch held 21 uncommitted product paths and none of the run's 16 commits.
+  battleship-scoring was skipped (predecessor failed). 320 turns, $27.18, 2 sessions, 1 compaction,
+  9/9 ShipLoop-run checks passed, 16 Improve children, asked a person 0.
+- Root cause (engine): `system/browser-check.js`, written after the last work item, was untracked in the
+  candidate at return. Any untracked product file forces the working-tree return route, so every run
+  commit stayed on the run branch. Fix: `workspace plan-return` commits leftover product files through
+  the one commit helper first; the reviewed plan then fast-forwards (f2c80133).
+- Glue (engine): the model hand-committed `SHIPLOOP.md`, the knowledge index the references ask it to keep,
+  because ShipLoop committed only `docs/shiploop/`. Fix: the index is knowledge, committed and screened with
+  the home (bf8febce).
+- Crash (engine): a release-plan `consumer_entry` with an absolute source path raised pathlib's
+  NotImplementedError. Absolute paths are now refused with a message (f2c80133).
+- P3b worked: the knowledge home was committed by ShipLoop after verify, document, step-plan,
+  system-test-author and at every close; the glue fix to the metric (52e37e45) removed the /tmp start-file
+  false positives.
+- Harness: a checkout run is not release evidence (SPEC). The marketplace preflight (bbbb5242) now shows,
+  before any run, what origin/main publishes and what the host actually installed.
+- Forensics of the remaining signals (read-only analysis of the event log):
+  - 4 of 6 glue entries were the old substring false positive (fixed by 52e37e45; the current metric counts
+    2, both the SHIPLOOP.md hand commits fixed in bf8febce).
+  - Refusals that the model recovered from in the same turn, with guidance already in the packet: an
+    Improve receipt submitted with an uncommitted review edit; release-plan and release-verify submitted
+    before their knowledge files existed.
+  - Engine friction (next item): ShipLoop's own knowledge commit at release-verify stales the return receipt
+    taken at release, so handoff refuses and the model runs a follow-up return by hand. Candidate fix: the
+    script performs the follow-up return itself when only knowledge paths changed since the receipt.
+  - Engine (upstream Until Loop): each non-terminal Until Loop packet prints the full report schema and fixed
+    instruction; 3 outputs were truncated at the host's ~10k-character cap. Belongs with the until-loop
+    short-output / `--report-file` item.
+  - The one cancelled tool call was the host cancelling a `--help` probe at session start.

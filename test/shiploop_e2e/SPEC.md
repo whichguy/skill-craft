@@ -222,6 +222,33 @@ Reliability (sessions, cancellations, failures) and cost (turns, dollars, per
 stage) are scored beside them and compared with the previous run of the same
 case.
 
+## Parallel work
+
+E2E runs are long, so the loop spends its waiting time in parallel.
+
+- Before executing a list of steps, decide which are independent. Run
+  independent steps together, and hand read-only work (run forensics,
+  host inventories, learnings drafts, reviews against this spec) to
+  background agents or tasks while a long job (a test tier, a run) is
+  running. Name the steps that must stay in order and the dependency that
+  orders them (for example: release after the full tier; host updates and
+  the preflight after the release is published; a rerun after the
+  preflight).
+- Independent runs execute in parallel. Every case writes only into its
+  own output folder, so a suite runs its independent chains (a case with
+  its follow-ons) concurrently, up to `--max-parallel` (default 3); a
+  follow-on always waits for its predecessor in the same chain. Separate
+  suites or cases started by hand may also run at once, each in its own
+  output folder.
+- Concurrency must not change a verdict. Concurrent runs are quiet (no
+  interleaved live view), share no files, and pass the same checks. A
+  failure seen only in a parallel run (for example two products' own tests
+  binding the same fixed port, or a host rate limit) is rerun alone
+  (`--serial`) before it is attributed to ShipLoop.
+- Agents do not replace evidence: an agent's analysis is a lead, and a
+  claim it makes is checked against the event log or a script before it
+  drives a change (Change admission).
+
 ## Evolving this spec
 
 ShipLoop will evolve, and so will this spec. When a planned change needs a

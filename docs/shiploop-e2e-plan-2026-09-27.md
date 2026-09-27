@@ -377,6 +377,27 @@ cost are unchanged; the metric only reads existing files. Evidence: hermetic
 metrics tests with Claude and Grok event streams; the next focused-suite run
 records the first baseline.
 
+### P11 Follow-up return after ShipLoop's own knowledge commit (ShipLoop; S-5) — proposed
+
+Evidence: web-p5 battleship. The release-verify knowledge commit lands after the return taken at
+release, so handoff refuses with "the recorded one is stale" and the model runs plan-return and return
+by hand: a mechanical step done by the model on every worktree run whose release-verify updates
+`docs/shiploop/`.
+
+Proposal: when the only paths changed since the recorded receipt are knowledge paths
+(`knowledge_home.in_home`), ShipLoop performs the follow-up return itself after that commit, by the
+receipt's own route (fast-forward stays fast-forward), and prints the new receipt.
+
+Adversarial evaluation (to finish before implementing):
+- It writes to the user's branch without a model-run command. Bound: only knowledge paths, only after a
+  verified return the run already made, and the same drift checks refuse a moved source.
+- A working-tree receipt would get knowledge files as uncommitted changes in the user's checkout, which
+  is what the first return already did for the product.
+- If the source drifted after the first return, the automatic follow-up must refuse and fall back to
+  today's message, never retry or roll back.
+- Anchor: S-5 (mechanical steps are the scripts'); non-regression: the guard and message stay for any
+  other change.
+
 ## Status
 
 - P6 in progress (2026-09-27): `csv-report` and `seat-reservations` cases,
