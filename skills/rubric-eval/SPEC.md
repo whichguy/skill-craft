@@ -83,13 +83,21 @@ than a run this round (the unreviewed plans of a review experiment) is marked
 
 ## 6. Models
 
-- **Subject** (the model the prompt runs on): `sonnet`, or `grok` (grok-4.7 at
-  medium effort, ShipLoop's real host). Name it in every result. A result on
-  one subject is not assumed to hold on the other.
-- **Judge**: `sonnet` with the evidence-first prompt (section 7).
+- **Subject (execution): `grok`** (grok-4.7, medium effort), ShipLoop's real
+  host. `sonnet` is allowed for exploratory rounds; name the subject in every
+  result, and never assume a result on one subject holds on another.
+- **Judge: `opus`** (claude-opus-5-5, medium effort), exactly one per round,
+  never two. It is a different model family from the Grok subject, so it cannot
+  favour its own family's phrasing. A round keeps the judge it started with;
+  switching mid-round makes its arms incomparable. A new judge must pass the
+  section 7 acceptance check before its first decision-making round.
+- **Ship decisions** rest on a fresh confirmation run with Grok as subject and
+  Opus as judge.
 - **Adversarial reviewer**: a model family other than the one that proposed the
   change (see the `adversarial-review` skill).
 - Never Haiku.
+- History: architecture rounds 1–5 used Sonnet as subject and judge; they are
+  exploratory evidence for choosing what to confirm.
 
 ## 7. Judge
 

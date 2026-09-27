@@ -151,6 +151,17 @@ class Statistics(unittest.TestCase):
             self.assertEqual(R.check_condition(d, "base"), [])
             self.assertTrue(R.check_condition(d, "cand"))          # an input arm that is not the baseline
 
+    def test_mixed_judges_void_the_comparison(self):
+        s = R.load_suite(SUITE)
+        with tempfile.TemporaryDirectory() as d:
+            (Path(d) / "judge").mkdir(); (Path(d) / "prompts").mkdir()
+            (Path(d) / "manifest.json").write_text(json.dumps({"condition": {"model": "sonnet", "tools": ""}, "arms": {}}))
+            for i, (arm, j) in enumerate([("base", "sonnet"), ("cand", "grok")] * 3):
+                v = verdict({"P1": "met"}); v["judge_model"] = j
+                (Path(d) / "judge" / f"S01_GAS_{arm}_{i}.json").write_text(json.dumps(v))
+            r = R.analyze(d, s, "base")
+            self.assertTrue(any("more than one judge" in p for p in r["condition_problems"]))
+
     def test_decide(self):
         up = {"mean": .03, "low": .01, "high": .05}
         self.assertTrue(R.decide({"overall": up, "proportion": {"mean": 0, "low": -.03, "high": .02}}, ["proportion"], scenarios=19)["ship"])

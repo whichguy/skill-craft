@@ -26,7 +26,7 @@ def main(argv=None):
     ap = argparse.ArgumentParser(prog="rubric-eval", description=__doc__)
     sub = ap.add_subparsers(dest="cmd", required=True)
     c = sub.add_parser("call", help="one isolated model call; prompt on stdin")
-    c.add_argument("--model", choices=R.MODELS, default="sonnet")
+    c.add_argument("--model", choices=R.MODELS, default="grok")
     c.add_argument("--timeout", type=int, default=600)
     e = sub.add_parser("extract", help="print a string constant or file exactly, with its hash")
     e.add_argument("source"); e.add_argument("--symbol")
@@ -38,13 +38,14 @@ def main(argv=None):
     b.add_argument("--plans-arm", help="review frame: the arm in --plans-from to review")
     b.add_argument("--scenario", action="append"); b.add_argument("--runtime", action="append")
     r = sub.add_parser("run", help="run the subject model over pending prompts")
-    r.add_argument("run_dir"); r.add_argument("--model", choices=R.MODELS, default="sonnet")
+    r.add_argument("run_dir"); r.add_argument("--model", choices=R.MODELS, default="grok", help="subject model (default grok-4.7, medium effort)")
     r.add_argument("--workers", type=int, default=8)
     r.add_argument("--tools", choices=("", "Read"), default="", help="'Read' (empty directory) for prompts that ask the model to check things")
     j = sub.add_parser("judge", help="grade finished outputs (evidence first)")
     j.add_argument("run_dir"); j.add_argument("--suite", default="architecture"); j.add_argument("--workers", type=int, default=10)
-    j.add_argument("--model", choices=R.MODELS, default="sonnet", help="judge model (a second family checks the first)")
+    j.add_argument("--model", choices=R.MODELS, default="opus", help="the single judge (default opus 5.5, medium effort; a round keeps one judge)")
     j.add_argument("--dest", default=None, help="verdict folder (default judge, or judge_<model> for a non-sonnet judge)")
+    j.add_argument("--only-file", help="grade only the output stems listed in this file (a sample for a slow second judge)")
     a = sub.add_parser("analyze", help="composites, paired intervals and the ship decision")
     a.add_argument("run_dir"); a.add_argument("--suite", default="architecture"); a.add_argument("--baseline", required=True)
     a.add_argument("--judge-dir", default="judge")
@@ -74,8 +75,9 @@ def main(argv=None):
     elif args.cmd == "run":
         print(json.dumps(R.run(args.run_dir, args.model, workers=args.workers, tools=args.tools)))
     elif args.cmd == "judge":
-        dest = args.dest or ("judge" if args.model == "sonnet" else f"judge_{args.model}")
-        print(json.dumps(R.judge(args.run_dir, suite_arg(args.suite), model=args.model, workers=args.workers, dest=dest)))
+        dest = args.dest or "judge"
+        only = Path(args.only_file).read_text().split() if args.only_file else None
+        print(json.dumps(R.judge(args.run_dir, suite_arg(args.suite), model=args.model, workers=args.workers, dest=dest, only=only)))
     elif args.cmd == "analyze":
         print(json.dumps(R.analyze(args.run_dir, suite_arg(args.suite), args.baseline, dest=args.judge_dir, cluster=None if args.cluster == "cell" else args.cluster), indent=1))
     elif args.cmd == "diffcheck":

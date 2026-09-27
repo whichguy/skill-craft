@@ -27,7 +27,8 @@ from pathlib import Path
 
 VAL = {"met": 1.0, "partial": 0.5, "missed": 0.0, "overbuilt": 0.0}
 STUB_WORDS = 150
-MODELS = ("sonnet", "grok")
+MODELS = ("grok", "opus", "sonnet")
+OPUS_MODEL, OPUS_EFFORT = "claude-opus-5-5", "medium"
 NO_MCP = ["--strict-mcp-config", "--mcp-config", '{"mcpServers":{}}']
 GROK_MODEL, GROK_EFFORT = "grok-4.7", "medium"
 
@@ -60,8 +61,9 @@ def call(model: str, prompt: str, *, timeout: int = 600, tools: str = "") -> str
         raise ValueError(f"call: model must be one of {MODELS}, got {model!r}")
     with tempfile.TemporaryDirectory(prefix="rubric-eval-") as cwd:
         try:
-            if model == "sonnet":
-                argv = ["claude", "-p", "--model", "sonnet", "--tools", tools, *NO_MCP] + (["--allowedTools", tools] if tools else [])
+            if model in ("sonnet", "opus"):
+                pick = ["--model", "sonnet"] if model == "sonnet" else ["--model", OPUS_MODEL, "--effort", OPUS_EFFORT]
+                argv = ["claude", "-p", *pick, "--tools", tools, *NO_MCP] + (["--allowedTools", tools] if tools else [])
                 return subprocess.run(argv, input=prompt, capture_output=True, text=True, timeout=timeout, cwd=cwd).stdout
             home = _grok_home()
             pf = Path(cwd) / "prompt.txt"
@@ -261,7 +263,7 @@ def parse_verdict(output: str) -> dict | None:
         return None
 
 
-def judge(run_dir: str | Path, suite: dict, *, model: str = "sonnet", workers: int = 10, attempts: int = 3,
+def judge(run_dir: str | Path, suite: dict, *, model: str = "opus", workers: int = 10, attempts: int = 3,
           dest: str = "judge", only: list[str] | None = None) -> dict:
     """Grade every finished output not yet graded; log (never drop) outputs that cannot be graded."""
     run_ = Path(run_dir); jd = run_ / dest; jd.mkdir(exist_ok=True)
@@ -282,8 +284,10 @@ def judge(run_dir: str | Path, suite: dict, *, model: str = "sonnet", workers: i
         sid, rt = stem.split("_")[:2]
         p = judge_prompt(suite, sid, rt, plan)
         for _ in range(attempts):
-            v = parse_verdict(call(model, p, timeout=300))
+            # Grok at medium effort took about 6.5 minutes per rubric grade in round 4; give it room.
+            v = parse_verdict(call(model, p, timeout=900 if model == "grok" else 300))
             if v:
+                v["judge_model"] = model  # a run's verdicts must come from one judge (checked by analyze)
                 d.write_text(json.dumps(v, indent=1)); return True
         with open(jd / "failures.log", "a") as log:
             log.write(f"{stem}\n")
@@ -400,6 +404,9 @@ def analyze(run_dir: str | Path, suite: dict, baseline: str, dest: str = "judge"
     groups = {"overall": None, **suite["rubric"]["groups"]}
     sc = {x["id"]: x for x in suite["scenarios"]["scenarios"]}
     problems = check_condition(run_dir, baseline)
+    judges = {v["judge_model"] for v in verdicts.values() if v.get("judge_model")}
+    if len(judges) > 1:
+        problems.append(f"verdicts come from more than one judge {sorted(judges)}; a round keeps one judge")
     report = {"baseline": baseline, "judge_dir": dest, "cluster": cluster or "cell", "condition_problems": problems, "arms": {}}
     prompts = {}
     for f in (run_ / "prompts").glob("*.txt"):
@@ -439,7 +446,7 @@ def analyze(run_dir: str | Path, suite: dict, baseline: str, dest: str = "judge"
     return report
 
 
-def reliability(run_dir: str | Path, suite: dict, n: int = 30, seed: int = 11, model: str = "sonnet") -> dict:
+def reliability(run_dir: str | Path, suite: dict, n: int = 30, seed: int = 11, model: str = "opus") -> dict:
     """Re-grade a random sample and report grade agreement and per-plan score change."""
     run_ = Path(run_dir); first = load_verdicts(run_)
     sample = random.Random(seed).sample(sorted(first), min(n, len(first)))
