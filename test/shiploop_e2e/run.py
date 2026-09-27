@@ -39,6 +39,7 @@ import argparse
 import json
 import os
 from pathlib import Path
+import re
 import secrets
 import signal
 import subprocess
@@ -79,6 +80,48 @@ def new_output_dir(requested: Path | None, name: str) -> Path:
         raise SystemExit(f"output must be outside the checkout: {out}")
     out.mkdir(parents=True, exist_ok=False)
     return out
+
+
+def git(*args: str) -> str:
+    return subprocess.run(["git", "-C", str(ROOT), *args], check=True, capture_output=True, text=True).stdout
+
+
+def card_version(card: Path) -> str | None:
+    """The top-level `version:` of a SKILL.md front matter."""
+    match = re.match(r"---\n(?:(?!---\n).*\n)*?version:[ \t]*(\S+)", card.read_text()) if card.is_file() else None
+    return match.group(1) if match else None
+
+
+def released_versions() -> dict:
+    """What the marketplace serves now: the catalog and ShipLoop versions on origin/main."""
+    git("fetch", "-q", "origin")
+    catalog = json.loads(git("show", "origin/main:.claude-plugin/marketplace.json"))
+    plugin = next(p for p in catalog["plugins"] if p["name"] == PLUGIN_NAME)
+    shiploop = re.search(r"^version:[ \t]*(\S+)", git("show", f"origin/main:plugins/{PLUGIN_NAME}/skills/shiploop/SKILL.md"), re.M)
+    return {"origin_main": git("rev-parse", "origin/main").strip(), "local_head": git("rev-parse", "HEAD").strip(),
+            "catalog_version": plugin.get("version"), "shiploop_version": shiploop.group(1) if shiploop else None}
+
+
+def version_gate(released: dict, plugin_version: str | None, shiploop_version: str | None) -> list[str]:
+    """Why a marketplace run would not test what main and the marketplace publish, if at all."""
+    problems = []
+    if released["local_head"] != released["origin_main"]:
+        problems.append(f"local HEAD {released['local_head'][:8]} is not origin/main {released['origin_main'][:8]}")
+    if plugin_version != released["catalog_version"]:
+        problems.append(f"installed skill-craft {plugin_version} is not the catalog's {released['catalog_version']}")
+    if shiploop_version != released["shiploop_version"]:
+        problems.append(f"installed ShipLoop {shiploop_version} is not the released {released['shiploop_version']}")
+    return problems
+
+
+def export_released(out: Path) -> Path:
+    """origin/main's plugins/skill-craft, byte for byte: the payload the marketplace serves."""
+    target = out / "marketplace"
+    target.mkdir()
+    archive = subprocess.run(["git", "-C", str(ROOT), "archive", "origin/main", f"plugins/{PLUGIN_NAME}"],
+                             check=True, capture_output=True).stdout
+    subprocess.run(["tar", "-x", "-C", str(target)], input=archive, check=True)
+    return target / "plugins" / PLUGIN_NAME
 
 
 def build_candidate(out: Path) -> Path:
@@ -355,9 +398,10 @@ def parser() -> argparse.ArgumentParser:
     p.add_argument("--model", help="default: grok-4.7 (grok) or sonnet (claude)")
     p.add_argument("--effort", help="reasoning effort; default: medium (grok), host default (claude)")
     p.add_argument("--skill", help="command that invokes ShipLoop; default: shiploop (grok), skill-craft:shiploop (claude)")
-    p.add_argument("--plugin-dir", type=Path, help="skill-craft plugin build to test (default: build this checkout)")
-    p.add_argument("--installed", action="store_true",
-                   help="claude only: use the installed skill-craft plugin instead of a build")
+    p.add_argument("--source", choices=("marketplace", "checkout"), default="marketplace",
+                   help="marketplace (default): test what the whichguy marketplace publishes now, gated on "
+                        "local HEAD == origin/main and matching versions; checkout: build this checkout")
+    p.add_argument("--plugin-dir", type=Path, help="test this skill-craft plugin build (implies --source checkout)")
     p.add_argument("--max-turns", type=int, default=10000)
     p.add_argument("--max-budget-usd", type=float, default=10.0, help="claude only; grok has no spend cap")
     p.add_argument("--permission-mode", default="auto")
@@ -376,8 +420,8 @@ def main(argv: list[str] | None = None) -> int:
     args.model = args.model or defaults["model"]
     args.effort = args.effort or defaults["effort"]
     args.skill = args.skill or SKILL_COMMAND[args.host]
-    if args.installed and (args.host != "claude" or args.plugin_dir):
-        raise SystemExit("--installed is claude-only and excludes --plugin-dir")
+    if args.plugin_dir:
+        args.source = "checkout"
     if args.plugin_dir and not (args.plugin_dir / ".claude-plugin" / "plugin.json").is_file():
         raise SystemExit(f"--plugin-dir has no .claude-plugin/plugin.json: {args.plugin_dir}")
 
@@ -385,15 +429,33 @@ def main(argv: list[str] | None = None) -> int:
     out = new_output_dir(args.output, name)
     work = out / "work"
     work.mkdir()
-    plugin_dir = None if args.installed else (args.plugin_dir or build_candidate(out))
     env = dict(os.environ, GIT_TERMINAL_PROMPT="0", NO_COLOR="1")
     plugin = None
+    released = released_versions() if args.source == "marketplace" else None
     if args.host == "grok":
         env = hosts.grok_env(out / "home")
-        plugin = hosts.grok_install(env, plugin_dir, args.grok_bin)
-        keepalive = hosts.grok_keepalive(env, plugin_dir)
+    if args.source == "marketplace" and args.host == "grok":
+        installed = hosts.grok_install_marketplace(env, grok_bin=args.grok_bin)
+        plugin_dir = Path(installed["path"]) if installed["path"] else out / "missing-plugin"
+        plugin = {"pass": installed["pass"], "loaded": installed["loaded"], "source": installed["source"]}
+    elif args.source == "marketplace":
+        plugin_dir = export_released(out)
     else:
-        keepalive = None
+        plugin_dir = args.plugin_dir or build_candidate(out)
+        if args.host == "grok":
+            plugin = hosts.grok_install(env, plugin_dir, args.grok_bin)
+    manifest = plugin_dir / ".claude-plugin" / "plugin.json"
+    versions = {"source": args.source,
+                "plugin_version": json.loads(manifest.read_text()).get("version") if manifest.is_file() else None,
+                "shiploop_version": card_version(plugin_dir / "skills" / "shiploop" / "SKILL.md"),
+                **({"released": released} if released else {"local_head": git("rev-parse", "HEAD").strip()})}
+    if released:
+        versions["gate"] = version_gate(released, versions["plugin_version"], versions["shiploop_version"])
+        if versions["gate"]:
+            (out / "result.json").write_text(json.dumps({"case": name, "pass": False, "versions": versions,
+                                                         "output": str(out)}, indent=2) + "\n")
+            raise SystemExit("version gate: " + "; ".join(versions["gate"]) + f" (see {out / 'result.json'})")
+    keepalive = hosts.grok_keepalive(env, plugin_dir) if args.host == "grok" else None
     cli = hosts.argv_for(args.host, prompt=f"/{args.skill} {prompt}", prompt_file=out / "host-prompt.txt",
                          cwd=work, model=args.model, effort=args.effort,
                          permission_mode=args.permission_mode, max_turns=args.max_turns,
@@ -403,7 +465,7 @@ def main(argv: list[str] | None = None) -> int:
     (out / "prompt.txt").write_text(prompt + "\n")
     (out / "invocation.json").write_text(json.dumps(
         {"case": name, "host": args.host, "model": args.model, "effort": args.effort, "argv": cli,
-         "cwd": str(work), "plugin_dir": str(plugin_dir) if plugin_dir else None, "checks": checks},
+         "cwd": str(work), "plugin_dir": str(plugin_dir), "versions": versions, "checks": checks},
         indent=2) + "\n")
     if not args.quiet:
         print(f"shiploop e2e case={name} host={args.host} model={args.model} effort={args.effort} "
@@ -451,13 +513,16 @@ def main(argv: list[str] | None = None) -> int:
     if keepalive is not None:
         keepalive["decisions"] = hosts.keepalive_decisions(out / "home")
     result = {"case": name, "host": args.host, "model": args.model, "effort": args.effort,
-              "pass": all(verdicts), "invoked": invoked, "plugin": plugin, "process": process,
+              "pass": all(verdicts), "invoked": invoked, "plugin": plugin, "versions": versions,
+              "process": process,
               "keepalive": keepalive,
               "shiploop": shiploop, "checks": check_results, "cli": cli_seen, "output": str(out)}
     (out / "result.json").write_text(json.dumps(result, indent=2) + "\n")
 
     mark = lambda ok: "PASS" if ok else "FAIL"  # noqa: E731
     print(f"{mark(result['pass'])}  shiploop e2e case={name} host={args.host}  output={out}")
+    print(f"  versions  {versions['source']}: skill-craft {versions['plugin_version']}, "
+          f"ShipLoop {versions['shiploop_version']}")
     print(f"  invoked   {mark(invoked['pass'])}  /{args.skill}")
     print(f"  plugin    {mark(plugin['pass'])}  {', '.join(map(str, plugin['loaded'])) or 'none loaded'}")
     print(f"  process   {mark(process['pass'])}  {process['status']} rc={process['returncode']} "

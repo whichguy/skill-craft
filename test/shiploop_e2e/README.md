@@ -32,7 +32,7 @@ bash test/run-integration.sh shiploop-e2e --prompt "Create fizzbuzz.py with test
 ```
 
 `run.py` creates a new output directory (default `$TMPDIR/shiploop-e2e/<case>-<time>-<rand>`)
-with an empty `work/`, builds this checkout's plugin (or takes `--plugin-dir`),
+with an empty `work/`, installs the published plugin (or builds this checkout),
 and starts one host process in `work/`, printing each message and tool call as it
 happens. It refuses to launch if `work/` is not empty; nothing, not even `.git`, is
 pre-created. It grades five verdicts into `result.json`:
@@ -54,6 +54,22 @@ model saw them (Grok cuts shell output at about 20 KB). When ShipLoop has not
 yet returned its candidate to `work/`, the result names ShipLoop's worktree and
 reports, for information only, how many checks already pass there. Nothing is
 retried or resumed.
+
+### What version is tested
+
+By default (`--source marketplace`) a run tests exactly what the `whichguy`
+marketplace publishes now. Grok runs add `whichguy/skill-craft` and install
+`skill-craft` inside the isolated profile, the way a user does; Claude runs use
+an exact export of `origin/main`'s `plugins/skill-craft`, the payload the
+marketplace serves. Before launching, the harness fetches `origin` and refuses
+to run unless this checkout's `HEAD` is `origin/main`, the installed plugin
+version equals the catalog's, and the installed ShipLoop version equals the
+released one. `result.json` records all of them under `versions`.
+
+`--source checkout` (implied by `--plugin-dir`) builds this checkout instead, to
+test unreleased changes; it records versions but does not gate. `iterate.py`
+uses it on purpose. Publish (`scripts/release.py`, then
+`scripts/release-push.py`) before a marketplace run should include a change.
 
 ### Isolation
 

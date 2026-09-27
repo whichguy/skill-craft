@@ -57,6 +57,29 @@ def grok_install(env: dict, plugin_dir: Path, grok_bin: str = "grok") -> dict:
             "loaded": [f"{name} {path}" for name, path in loaded], "wanted": wanted}
 
 
+MARKETPLACE_SOURCE = "whichguy/skill-craft"
+
+
+def grok_install_marketplace(env: dict, source: str = MARKETPLACE_SOURCE, grok_bin: str = "grok") -> dict:
+    """Install skill-craft the way a user does: add the marketplace, then install the plugin by name.
+
+    Returns the installed plugin's version and directory from Grok's own registry.
+    """
+    added = subprocess.run([grok_bin, "plugin", "marketplace", "add", source], env=env,
+                           capture_output=True, text=True)
+    installed = subprocess.run([grok_bin, "plugin", "install", "skill-craft", "--trust"], env=env,
+                               capture_output=True, text=True)
+    registry = Path(env["GROK_CONFIG_DIR"]) / "installed-plugins" / "registry.json"
+    repos = json.loads(registry.read_text()).get("repos", {}) if registry.is_file() else {}
+    entries = [(repo, meta) for repo, meta in repos.items() if "skill-craft" in (meta.get("plugins") or {})]
+    version = entries[0][1]["plugins"]["skill-craft"].get("version") if len(entries) == 1 else None
+    path = Path(entries[0][1]["path"]) if len(entries) == 1 else None
+    return {"pass": added.returncode == 0 and installed.returncode == 0 and len(entries) == 1 and len(repos) == 1,
+            "source": source, "version": version, "path": str(path) if path else None,
+            "loaded": [f"{repo} {meta.get('path')}" for repo, meta in repos.items()],
+            "output": (added.stdout + added.stderr + installed.stdout + installed.stderr).strip()[-400:]}
+
+
 def grok_keepalive(env: dict, plugin_dir: Path) -> dict:
     """Install ShipLoop's global Grok keepalive hooks before the session starts.
 

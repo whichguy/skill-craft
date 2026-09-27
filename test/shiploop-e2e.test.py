@@ -225,6 +225,28 @@ class GrokResumeTest(HarnessCase):
             self.assertEqual(hosts.keepalive_decisions(home), {"allow": 1, "continue": 2})
 
 
+class VersionGateTest(unittest.TestCase):
+    RELEASED = {"origin_main": "a" * 40, "local_head": "a" * 40, "catalog_version": "1.4.0",
+                "shiploop_version": "0.37.0"}
+
+    def test_marketplace_is_the_default_source_and_a_plugin_dir_means_checkout(self):
+        self.assertEqual(run.parser().parse_args([]).source, "marketplace")
+
+    def test_gate_passes_only_when_head_catalog_and_installed_versions_agree(self):
+        self.assertEqual(run.version_gate(self.RELEASED, "1.4.0", "0.37.0"), [])
+        behind = dict(self.RELEASED, local_head="b" * 40)
+        self.assertIn("is not origin/main", " ".join(run.version_gate(behind, "1.4.0", "0.37.0")))
+        self.assertIn("installed skill-craft 1.3.0", " ".join(run.version_gate(self.RELEASED, "1.3.0", "0.37.0")))
+        self.assertIn("installed ShipLoop 0.36.0", " ".join(run.version_gate(self.RELEASED, "1.4.0", "0.36.0")))
+
+    def test_card_version_reads_only_the_front_matter(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            card = Path(tmp) / "SKILL.md"
+            card.write_text("---\nname: shiploop\nversion: 0.37.0\n---\nversion: 9.9.9 in the body\n")
+            self.assertEqual(run.card_version(card), "0.37.0")
+            self.assertIsNone(run.card_version(Path(tmp) / "missing.md"))
+
+
 class ClaudeRunTest(HarnessCase):
     def test_done_run_invokes_the_namespaced_skill_with_isolated_settings(self):
         code, result = self.invoke("claude", "done")
