@@ -117,9 +117,13 @@ def collect(out: Path, run_dir: Path | None = None) -> dict:
     truncated: set = set()
     cancelled: list[str] = []
     reads: list[str] = []
+    # A session that reports no per-call usage (Codex) contributes its own turn count.
+    unreported, calls_in_session = 0, 0
     for number, event in events(out / "events.jsonl"):
         kind = event.get("type")
         t = stamps.get(number)
+        if kind in ("usage", "assistant"):
+            calls_in_session += 1
         if kind == "usage":
             usage = event.get("usage") or {}
             turns.append({"t": t, "input": (usage.get("input_tokens") or 0) + (usage.get("cache_read_input_tokens") or 0),
@@ -165,12 +169,15 @@ def collect(out: Path, run_dir: Path | None = None) -> dict:
         elif kind in ("end", "result"):
             sessions.append({"stop": event.get("stopReason") or event.get("subtype"),
                              "turns": event.get("num_turns"), "cost_usd": event.get("total_cost_usd")})
+            if not calls_in_session:
+                unreported += event.get("num_turns") or 0
+            calls_in_session = 0
     cost = round(sum(s["cost_usd"] or 0 for s in sessions), 4) if sessions else None
     stages = per_stage(stage_results(run_dir), turns, calls, stamps, cost)
     improve = run_dir / "improve" if run_dir else None
     return {
         "sessions": sessions,
-        "turns": len(turns) or sum(s["turns"] or 0 for s in sessions),
+        "turns": len(turns) + unreported,
         "tokens": {"input_peak": max((x["input"] for x in turns), default=0),
                    "output_total": sum(x["output"] for x in turns)},
         "cost_usd": cost,

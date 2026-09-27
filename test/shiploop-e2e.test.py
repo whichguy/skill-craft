@@ -949,6 +949,14 @@ class CodexHostTest(unittest.TestCase):
             self.assertEqual(collected["turns"], 4)
             self.assertTrue(any("git commit" in g["command"] for g in collected["model_glue"]))
 
+    def test_turns_add_a_codex_session_to_a_grok_run_it_resumed(self):
+        grok = [{"type": "usage", "usage": {"input_tokens": 1}}, {"type": "usage", "usage": {"input_tokens": 2}},
+                {"type": "end", "stopReason": "cancelled", "num_turns": 91, "total_cost_usd": 1.0}]
+        with tempfile.TemporaryDirectory() as temp:
+            out = Path(temp)
+            (out / "events.jsonl").write_text("".join(json.dumps(e) + "\n" for e in grok + self.translated()))
+            self.assertEqual(metrics.collect(out)["turns"], 2 + 4)
+
     def test_every_host_is_selectable_by_name(self):
         self.assertEqual(sorted(hosts.HOSTS), ["claude", "codex", "grok"])
         for name in hosts.HOSTS:

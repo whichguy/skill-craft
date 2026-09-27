@@ -286,3 +286,29 @@ harness-FAIL, 7 cancelled; 8b on 1.6.0 PASS committed, 4 cancelled, 0 ShipLoop f
 - Next: resume this run on another host (Claude Sonnet, budget-capped) from its recorded run
   directory, or rerun on Grok when credits return. The harness cannot switch hosts mid-run;
   `--continue-from` copies only the source checkout.
+
+## temperature-report resumed on Codex — 2026-09-27 — gpt-5.6-luna xhigh, marketplace skill-craft 1.11.1 (ShipLoop 0.44.1)
+
+- How: the first multi-host run. `--resume-run` continued the stopped Grok run in place on
+  Codex, from inner-loop revision 17, using the ShipLoop CLI of the host that started it. The
+  Codex session ran 34 min (2,048 s, 127 items); Codex reports no dollar cost.
+- Outcome: **FAIL, paused at revision 20**, still before `implement`, so no chain was bound
+  and the fan-out is still untested.
+  - Verdicts: invoked, plugin and process pass; the ShipLoop and product verdicts fail.
+  - Checks: 1 of 6 pass in the work directory.
+- What worked: the test-spec Improve review ran and committed the test specification.
+  Translating the Codex stream into Grok's shape gave a readable transcript, the model text,
+  and tool calls. The harness saw ShipLoop was paused and correctly did not resume.
+- **Defect, a normal-run failure:**
+  - On the Ask-Agent route the model builds the Improve review's Until Loop contract by hand;
+    `improve-start` writes it only on the inline route.
+  - Luna's contract left the standalone ShipLoop binding marker out of `context.request`, so
+    `improve-complete` refused the completed review's terminal packet. Neither can be
+    regenerated, and the model paused the run: "Parent Improve import is blocked because the
+    completed runtime context omitted the required standalone ShipLoop binding marker".
+  - The Grok run showed the same risk as "hand-built loop contract" model glue, but got it right.
+  - This matches the open 09-26 audit follow-up "ShipLoop-written Improve contract".
+- Harness: a mixed-host run's turn count ignored the Codex session (it read 303, Grok's count).
+  Fixed in metrics: a session that reports no per-call usage adds its own `num_turns`.
+- Next: have ShipLoop write the Improve contract on the Ask-Agent route too, then run
+  `temperature-report` fresh on Codex to reach `implement` and the chain.
