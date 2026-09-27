@@ -23,5 +23,8 @@ committed.
   the broken-import adapter file (its two behaviours ported as black-box
   checks). Readiness is a seeded token served at `/oracleReady`, so a check
   knows it reached the program it started.
-- First admission crashed: the stub run cannot finish (item 28); rerun with
-  the bounded stub run pending.
+- First admission crashed: the stub run cannot finish (item 28).
+- Admission rerun (bounded stub): **admitted**. 123 checks pass on the
+  original in both runs (no flakes, ~8 s per run, well inside the harness's
+  180 s check timeout); none pass on the stub (it timed out after 180 s
+  with 7 file-level failures reported and every other check unreported).
