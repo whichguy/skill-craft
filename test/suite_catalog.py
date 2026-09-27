@@ -284,6 +284,7 @@ _CORE_SUITES = (
     _suite("improve-agent", "core", "test/improve-agent.test.py", "python3", "test/improve-agent.test.py"),
     _suite("improve-runtime", "core", "test/improve-runtime.test.py", "python3", "test/improve-runtime.test.py"),
     _suite("review-coverage", "core", "test/review-coverage.test.sh", "bash", "test/review-coverage.test.sh"),
+    _suite("rubric-eval", "core", "test/rubric-eval.test.py", "python3", "test/rubric-eval.test.py"),
     _suite("dual-body-guard", "core", "test/dual-body-guard.test.sh", "bash", "test/dual-body-guard.test.sh"),
     _suite("plan-dispatcher-state", "core", "test/plan-dispatcher-state.test.js", "node", "test/plan-dispatcher-state.test.js"),
     _suite("plan-dispatcher-cli", "core", "test/plan-dispatcher-cli.test.js", "node", "test/plan-dispatcher-cli.test.js"),

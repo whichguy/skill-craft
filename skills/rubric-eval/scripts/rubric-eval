@@ -1,0 +1,76 @@
+#!/usr/bin/env python3
+"""rubric-eval command line: one subcommand per composable step. See ../SPEC.md."""
+import argparse, json, sys
+from pathlib import Path
+sys.path.insert(0, str(Path(__file__).resolve().parent))
+import rubric_eval as R
+
+SUITES = Path(__file__).resolve().parent.parent / "suites"
+
+
+def suite_arg(name):
+    p = Path(name)
+    return R.load_suite(p if p.is_dir() else SUITES / name)
+
+
+def arm_arg(spec):
+    """NAME=PATH[::SYMBOL] or NAME=@run/ARM (review: plans from that run's arm)."""
+    name, _, src = spec.partition("=")
+    if not name or not src:
+        raise SystemExit(f"rubric-eval: arm must be NAME=PATH[::SYMBOL], got {spec!r}")
+    path, _, symbol = src.partition("::")
+    return name, {"text": R.extract(path, symbol or None), "source": src}
+
+
+def main(argv=None):
+    ap = argparse.ArgumentParser(prog="rubric-eval", description=__doc__)
+    sub = ap.add_subparsers(dest="cmd", required=True)
+    c = sub.add_parser("call", help="one isolated model call; prompt on stdin")
+    c.add_argument("--model", choices=R.MODELS, default="sonnet")
+    c.add_argument("--timeout", type=int, default=600)
+    e = sub.add_parser("extract", help="print a string constant or file exactly, with its hash")
+    e.add_argument("source"); e.add_argument("--symbol")
+    b = sub.add_parser("build", help="write prompts for every cell, arm and trial")
+    b.add_argument("run_dir"); b.add_argument("--suite", default="architecture")
+    b.add_argument("--arm", action="append", required=True, help="NAME=PATH[::SYMBOL]")
+    b.add_argument("--frame", default="plan"); b.add_argument("--trials", type=int, default=2)
+    b.add_argument("--plans-from", help="review frame: run folder whose outputs are reviewed")
+    b.add_argument("--plans-arm", help="review frame: the arm in --plans-from to review")
+    b.add_argument("--scenario", action="append"); b.add_argument("--runtime", action="append")
+    r = sub.add_parser("run", help="run the subject model over pending prompts")
+    r.add_argument("run_dir"); r.add_argument("--model", choices=R.MODELS, default="sonnet")
+    r.add_argument("--workers", type=int, default=8)
+    j = sub.add_parser("judge", help="grade finished outputs (evidence first)")
+    j.add_argument("run_dir"); j.add_argument("--suite", default="architecture"); j.add_argument("--workers", type=int, default=10)
+    a = sub.add_parser("analyze", help="composites, paired intervals and the ship decision")
+    a.add_argument("run_dir"); a.add_argument("--suite", default="architecture"); a.add_argument("--baseline", required=True)
+    rel = sub.add_parser("reliability", help="re-grade a sample and report judge agreement")
+    rel.add_argument("run_dir"); rel.add_argument("--suite", default="architecture"); rel.add_argument("--n", type=int, default=30)
+    args = ap.parse_args(argv)
+
+    if args.cmd == "call":
+        print(R.call(args.model, sys.stdin.read(), timeout=args.timeout))
+    elif args.cmd == "extract":
+        text = R.extract(args.source, args.symbol)
+        print(f"# sha {R.sha(text)}, {R.words(text)} words", file=sys.stderr); sys.stdout.write(text)
+    elif args.cmd == "build":
+        arms = dict(arm_arg(s) for s in args.arm)
+        if args.frame == "review":
+            if not (args.plans_from and args.plans_arm):
+                raise SystemExit("rubric-eval: the review frame needs --plans-from and --plans-arm")
+            for v in arms.values():
+                v["plans_arm"] = args.plans_arm
+        print(json.dumps(R.build(args.run_dir, suite_arg(args.suite), arms, frame=args.frame, trials=args.trials,
+                                 plans_from=args.plans_from, scenarios=args.scenario, runtimes=args.runtime), indent=1))
+    elif args.cmd == "run":
+        print(json.dumps(R.run(args.run_dir, args.model, workers=args.workers)))
+    elif args.cmd == "judge":
+        print(json.dumps(R.judge(args.run_dir, suite_arg(args.suite), workers=args.workers)))
+    elif args.cmd == "analyze":
+        print(json.dumps(R.analyze(args.run_dir, suite_arg(args.suite), args.baseline), indent=1))
+    elif args.cmd == "reliability":
+        print(json.dumps(R.reliability(args.run_dir, suite_arg(args.suite), n=args.n), indent=1))
+
+
+if __name__ == "__main__":
+    main()
