@@ -75,7 +75,7 @@ do not copy this table into every work item or create a second acceptance ledger
 | product-acceptance | Original outcome and whole-product evidence | All due criteria may establish pre-release readiness; distinguish corrective or blocked work from release-only behaviors that remain pending and are not yet observed |
 | release-plan, release-check | Current candidate, authority and pending delivery cases | Release route and readiness established with post-release checks and recovery; no implied external operation |
 | release | Current authorized operation and target | Actual effect and candidate/target identity recorded separately from behavior |
-| release-verify | Actual release and applicable consumer prerequisites | Required post-release consumer observations recorded or left incomplete |
+| release-verify | Actual release and applicable consumer prerequisites | Required post-release consumer observations recorded or left incomplete; design decisions changed during the run are carried into `docs/shiploop/architecture.md` alongside the outcome's next-run learnings |
 | operations, handoff | Current results and applicable operational/return duties | Due evidence reconciled, remaining limits retained, applicable consumer entry identified, current workspace return taken from its verified receipt |
 
 Completion is phase-specific. A post-release case that is **not yet due** stays
@@ -427,7 +427,10 @@ environment notes, or give a concrete unchanged reason. Always assess the repo
 README (record absence and decide whether this step needs one). Use AGENTS.md for
 short stable project navigation/conventions when useful, not run state, secrets,
 raw observations or copied manuals. Link detailed durable knowledge once from
-the existing appropriate index instead of duplicating it.
+the existing appropriate index instead of duplicating it. When a consequential
+choice changes a recorded architecture decision, update its `A-<n>` in
+`docs/shiploop/architecture.md` or add the next unused ID with its rationale and
+evidence; the run plan alone is not its durable home.
 
 ### Reusable product skills
 
@@ -598,9 +601,11 @@ in the existing plan and review notes. The rules below and the
    parent. A material change reopens affected evidence.
 
 In the plan note, record consequential design choices; record changes or
-justified exceptions in the result summary and its evidence notes. Personal
-style preferences alone are trivial; behavior/security/contract changes are
-material. This is host judgment, not a new field, score or proof of quality.
+justified exceptions in the result summary and its evidence notes. Carry a
+changed durable decision into `docs/shiploop/architecture.md` by updating its
+`A-<n>` or adding the next unused one. Personal style preferences alone are
+trivial; behavior/security/contract changes are material. This is host judgment,
+not a new field, score or proof of quality.
 
 ## Iteration
 

@@ -22,7 +22,10 @@ Before product edits, retain a compact accepted plan in the existing step-plan
 or authorized note: outcome and invariants; changed responsibility and
 contract; reuse or augmentation; applicable operational decisions; ordered
 edits; independent checks; source `evidence_refs`; readiness, completion, and
-revalidation. Planning records intended work; it does not edit the product.
+revalidation. Cite the `A-<n>` decisions in `docs/shiploop/architecture.md` the
+step plan preserves or changes, and update that file when an accepted plan
+changes a recorded decision. Planning records intended work; it does not edit
+the product.
 
 Run the authorized existing baseline before feature edits and retain failures as
 prerequisites. A pass establishes initial readiness only; revalidate when the

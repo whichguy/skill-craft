@@ -165,7 +165,7 @@ is not applicable rather than inventing a client, service, library, or cache.
 | Message passing | Producers, consumers, operation/event contract, serialization, ordering, retries, duplicates, cancellation, errors, and the durable or user-visible effect. |
 | Client connections | How a client reaches the actual callable boundary, including transport/session lifecycle, cleanup, and reconnect/offline behavior when relevant. |
 | Service authentication | Discovery and runtime identities, delegation, credential-chain/refresh behavior, effective permissions, audience/scope, and proof limits without recording secrets. |
-| Design | Existing architecture, ownership, state flow, code conventions, and relevant UI loading, error, accessibility, and interaction patterns. |
+| Design | Existing architecture, ownership, state flow, code conventions, and relevant UI loading, error, accessibility, and interaction patterns; retain or reopen structural findings in `docs/shiploop/architecture.md`, linking existing architecture/ADR sections rather than copying them, while code conventions stay in the house-style record. |
 | Client-side libraries | Shipped dependencies and versions, initialization/wrappers, compatibility limits, and supported use before adding another dependency. |
 | Storage | Source of truth, schema/access path, ownership, authorization, transaction/concurrency, failure, retention, and migration boundaries. |
 | Caching | Relevant cache layers, scope/keys/TTL/invalidation, read-after-write and failure behavior, and separation from authoritative state. |
