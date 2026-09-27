@@ -32,6 +32,7 @@ import shiploop_improve_changes as improve_changes
 import shiploop_item_scope as item_scope
 import shiploop_git as shiploop_git
 import shiploop_knowledge_home as knowledge
+import shiploop_loop_contract as loop_contract
 import shiploop_test_loop as test_loop
 import shiploop_planning_revision as planning_revision
 import shiploop_context_index as context_index
@@ -3591,15 +3592,11 @@ def improve_start_contract(core: Any, root: Path, state: Mapping[str, Any], open
         {"purpose": "ShipLoop completion evidence path", "locator": str(completion)},
         {"purpose": "exact parent return instructions", "locator": str(parent_return)},
     ]
-    return {
-        "workspace": child["workspace"],
-        "work": work,
-        "exit_condition": exit_condition,
-        "repeat_condition": repeat,
-        "required_trivial_reviews": 2,
-        "context": {"request": request, "scope": scope, "authority": authority,
-                    "environment": sections["Environment"], "resources": resources},
-    }
+    return loop_contract.contract(
+        workspace=child["workspace"], work=work,
+        exit_condition=exit_condition + loop_contract.stage_exit(child["stage"]),
+        repeat_condition=repeat, required_trivial_reviews=2, request=request, scope=scope,
+        authority=authority, environment=sections["Environment"], resources=resources)
 
 
 def improve_commit_message_path(child: Mapping[str, Any]) -> Path:
@@ -3691,7 +3688,7 @@ def _improve_start(core: Any, root: Path, state: Mapping[str, Any], args: Any) -
         "2. Run: " + _callback(core, root, "improve-complete", action=action_id, result=str(completion)),
         "The child never runs these; a stopped or blocked child leaves the parent pending.", ""]))
     start = receipt.with_name("start.json")
-    store.atomic_write_text(start, json.dumps(contract, indent=2, ensure_ascii=False) + "\n")
+    store.atomic_write_text(start, loop_contract.dumps(contract))
     state_dir = root / "until-loop"
     state_dir.mkdir(exist_ok=True)
     done = subprocess.run(

@@ -874,6 +874,11 @@ class EphemeralImproveCliTests(ImproveCliFixture):
         contract = json.loads(receipt.with_name("start.json").read_text(encoding="utf-8"))
         self.assertEqual(contract["workspace"], self.bound["workspace"])
         self.assertEqual(contract["required_trivial_reviews"], 2)
+        # S-10: the review loop's exit carries the reviewed stage's own done-when criteria.
+        stage = self.bound["stage"]
+        for criterion in navigator.stage_spec.stage(stage).done_when:
+            self.assertIn(criterion, contract["exit_condition"])
+        self.assertIn("The " + stage + " result meets its own done-when criteria", contract["exit_condition"])
         request = contract["context"]["request"]
         self.assertEqual(request.splitlines()[0], self.bound["contract_marker"])
         self.assertIn("Tighten the spec examples.", request)
