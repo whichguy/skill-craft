@@ -50,6 +50,12 @@ works. Do not use the web.
   formats, errors and failure cases, ordering and edge behaviour a caller
   can see. Put that detail as short bullets under the requirement, each with
   its own anchor. Leave out internal mechanisms no caller can observe.
+- **Verify each bullet before you write it.** Open the code path that
+  decides it, including its guard conditions and the options that change it
+  (a flag that cannot be unset, a fallback that also fires on other falsy
+  values, a rule that holds for one form but not another), or a test that
+  exercises it. A citation must point at the text that says it. A bullet you
+  could not verify goes under unknowns.
 - **Anchor or omit.** Every requirement and every bullet cites `path:line`
   (or a test name or README line). If you cannot anchor it, it is an unknown,
   not a requirement. Never state an inferred default or behaviour as fact.
