@@ -169,11 +169,13 @@ def request_text(s: dict, ui: str | None) -> str:
 
 
 def build(run_dir: str | Path, suite: dict, arms: dict[str, dict], *, frame: str = "plan", trials: int = 2,
-          plans_from: str | Path | None = None, scenarios=None, runtimes=None) -> dict:
+          plans_from: str | Path | None = None, scenarios=None, runtimes=None, input_arm: str | None = None) -> dict:
     """Write prompts/<cell>_<arm>_<trial>.txt for every cell, arm and trial, and manifest.json.
 
     `arms` maps an arm name to {"text": ..., "source": ...}. For the review frame, `plans_from`
     is a run folder whose finished outputs (one arm, named in arm["plans_arm"]) are the plans reviewed.
+    `input_arm` (review frames) also writes each input plan, unreviewed, as output `<cell>_<input_arm>_<k>`:
+    the no-review baseline, marked "role": "input" and costing nothing this round.
     """
     run = Path(run_dir); (run / "prompts").mkdir(parents=True, exist_ok=True)
     tpl = suite["frames"][frame]; n = 0
@@ -191,13 +193,27 @@ def build(run_dir: str | Path, suite: dict, arms: dict[str, dict], *, frame: str
                     if not src.exists():
                         continue
                     plan = json.loads(src.read_text())["text"]
+                    if input_arm:
+                        (run / "out").mkdir(exist_ok=True)
+                        (run / "out" / f"{s['id']}_{rt}_{input_arm}_{k}.json").write_text(json.dumps(
+                            {"model": "input", "text": "## Findings\nNone\n\n## Revised plan\n" + plan}) + "\n")
                 text = fill(tpl, request=request_text(s, ui), environment=env, arm=arm["text"], plan=plan)
                 (run / "prompts" / f"{s['id']}_{rt}_{name}_{k}.txt").write_text(text); n += 1
+    if input_arm and not reviews:
+        raise ValueError("build: an input arm is only for review frames")
+    if input_arm and "_" in input_arm:
+        raise ValueError(f"build: arm names cannot contain '_' ({input_arm!r})")
     if reviews and n == 0:
         raise ValueError(f"build: frame {frame!r} reviews plans but none were found in {plans_from}")
     manifest = {"suite": suite["dir"], "frame": frame, "reviews": reviews, "trials": trials, "prompts": n,
                 "arms": {k: {"sha": sha(v["text"]), "source": v.get("source", ""), "words": words(v["text"]),
                              **({"plans_arm": v["plans_arm"]} if "plans_arm" in v else {})} for k, v in arms.items()}}
+    if input_arm:
+        pa = next(iter(arms.values()))["plans_arm"]
+        manifest["arms"][input_arm] = {"sha": "", "source": f"the unreviewed {pa} plan", "words": 0, "plans_arm": pa, "role": "input"}
+    prev = run / "manifest.json"
+    if prev.exists() and "condition" in json.loads(prev.read_text()):
+        manifest["condition"] = json.loads(prev.read_text())["condition"]  # a rebuild keeps the recorded condition
     (run / "manifest.json").write_text(json.dumps(manifest, indent=1) + "\n")
     return manifest
 

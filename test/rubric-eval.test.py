@@ -197,6 +197,19 @@ class Statistics(unittest.TestCase):
         self.assertIsNone(R.wilcoxon([1, 2]))
         self.assertLess(R.two_proportion_p(30, 100, 5, 100), 0.001); self.assertEqual(R.two_proportion_p(5, 100, 5, 100), 1.0)
 
+    def test_build_writes_an_unreviewed_input_baseline(self):
+        s = R.load_suite(SUITE)
+        with tempfile.TemporaryDirectory() as d:
+            plans = Path(d) / "plans" / "out"; plans.mkdir(parents=True)
+            (plans / "S01_GAS_v5_1.json").write_text(json.dumps({"text": "PLAN " * 200}))
+            run = Path(d) / "rev"
+            m = R.build(run, s, {"cand": {"text": "focus", "plans_arm": "v5"}}, frame="review-bare", trials=1,
+                        plans_from=Path(d) / "plans", input_arm="none")
+            self.assertEqual(m["arms"]["none"]["role"], "input")
+            out = json.loads((run / "out" / "S01_GAS_none_1.json").read_text())["text"]
+            self.assertEqual(R.words(R.plan_text(out, True)), 203)   # the plan, under "## Revised plan"
+            self.assertEqual(R.check_condition(run, "none"), ["manifest records no run condition (model, tools); rerun with this version of `run`"])
+
     def test_quote_check_lowers_unsupported_grades(self):
         plan = "## Revised plan\nState lives in the **browser tab**; a LockService lock guards writes."
         v = {"criteria": {"P1": {"evidence": "state lives in the browser tab", "grade": "met"},

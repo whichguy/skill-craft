@@ -36,6 +36,7 @@ def main(argv=None):
     b.add_argument("--frame", default="plan"); b.add_argument("--trials", type=int, default=2)
     b.add_argument("--plans-from", help="review frame: run folder whose outputs are reviewed")
     b.add_argument("--plans-arm", help="review frame: the arm in --plans-from to review")
+    b.add_argument("--input-arm", help="review frame: also write the unreviewed plans as this baseline arm (role input)")
     b.add_argument("--scenario", action="append"); b.add_argument("--runtime", action="append")
     r = sub.add_parser("run", help="run the subject model over pending prompts")
     r.add_argument("run_dir"); r.add_argument("--model", choices=R.MODELS, default="grok", help="subject model (default grok-4.7, medium effort)")
@@ -76,7 +77,8 @@ def main(argv=None):
             for v in arms.values():
                 v["plans_arm"] = args.plans_arm
         print(json.dumps(R.build(args.run_dir, suite, arms, frame=args.frame, trials=args.trials,
-                                 plans_from=args.plans_from, scenarios=args.scenario, runtimes=args.runtime), indent=1))
+                                 plans_from=args.plans_from, scenarios=args.scenario, runtimes=args.runtime,
+                                 input_arm=args.input_arm), indent=1))
     elif args.cmd == "run":
         print(json.dumps(R.run(args.run_dir, args.model, workers=args.workers, tools=args.tools)))
     elif args.cmd == "judge":
