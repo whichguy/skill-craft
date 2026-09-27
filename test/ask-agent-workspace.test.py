@@ -947,6 +947,53 @@ raise SystemExit(module.main(sys.argv[2:]))
                     )
                     self.assertEqual(sorted(path.name for path in attempts.iterdir()), attempts_before)
 
+    def test_prepare_accepts_sandbox_injected_config_and_refuses_anything_wider(self) -> None:
+        # Claude Code's Bash sandbox injects exactly this kind of transport-only
+        # configuration, in either environment form.
+        proxy = {
+            "parameters": {"GIT_CONFIG_PARAMETERS":
+                           "'http.proxyAuthMethod'='basic' 'credential.http://localhost:50700.helper'=''"},
+            "count": {"GIT_CONFIG_COUNT": "2", "GIT_CONFIG_KEY_0": "http.proxyAuthMethod",
+                      "GIT_CONFIG_VALUE_0": "basic", "GIT_CONFIG_KEY_1": "credential.http://localhost:50700.helper",
+                      "GIT_CONFIG_VALUE_1": ""},
+            # Exactly what Claude Code's Bash sandbox injects: proxy keys in
+            # one form and safe.directory for the current directory in the other.
+            "claude-sandbox": {"GIT_CONFIG_PARAMETERS":
+                               "'http.proxyAuthMethod'='basic' 'credential.http://localhost:50700.helper'=''",
+                               "GIT_CONFIG_COUNT": "2", "GIT_CONFIG_KEY_0": "safe.directory",
+                               "GIT_CONFIG_VALUE_0": str(self.invoke_from), "GIT_CONFIG_KEY_1": "safe.directory",
+                               "GIT_CONFIG_VALUE_1": str(self.invoke_from) + "/*"},
+        }
+        for name, environment in proxy.items():
+            with self.subTest(accepted=name):
+                result, payload = self._cli(*self._prepare_args(f"proxy-{name}"), environment_overrides=environment)
+                self.assertEqual(result.returncode, 0, payload)
+                self.assertEqual(payload["status"], "prepared", payload)
+        refused = {
+            "non-transport parameter": {"GIT_CONFIG_PARAMETERS": "'http.proxyAuthMethod'='basic' 'core.worktree'='/elsewhere'"},
+            "non-transport count key": {"GIT_CONFIG_COUNT": "1", "GIT_CONFIG_KEY_0": "core.hooksPath",
+                                        "GIT_CONFIG_VALUE_0": "/elsewhere"},
+            "key beyond count": {"GIT_CONFIG_COUNT": "1", "GIT_CONFIG_KEY_0": "http.proxyAuthMethod",
+                                 "GIT_CONFIG_VALUE_0": "basic", "GIT_CONFIG_KEY_1": "core.bare", "GIT_CONFIG_VALUE_1": "true"},
+            "malformed count": {"GIT_CONFIG_COUNT": "one", "GIT_CONFIG_KEY_0": "http.proxyAuthMethod",
+                                "GIT_CONFIG_VALUE_0": "basic"},
+            "unparseable parameters": {"GIT_CONFIG_PARAMETERS": "'http.proxyAuthMethod=basic"},
+            "proxy plus a context variable": {"GIT_CONFIG_PARAMETERS": "'http.proxyAuthMethod'='basic'",
+                                              "GIT_NAMESPACE": "hostile"},
+            "safe.directory wildcard": {"GIT_CONFIG_PARAMETERS": "'safe.directory'='*'"},
+            "safe.directory elsewhere": {"GIT_CONFIG_PARAMETERS": f"'safe.directory'='{self.root}'"},
+            "safe.directory below cwd": {"GIT_CONFIG_PARAMETERS": f"'safe.directory'='{self.invoke_from}/sub'"},
+            "safe.directory without value": {"GIT_CONFIG_PARAMETERS": "'safe.directory'"},
+        }
+        attempts = self.store / "attempts"
+        before = sorted(path.name for path in attempts.iterdir())
+        for name, environment in refused.items():
+            with self.subTest(refused=name):
+                result, payload = self._cli(*self._prepare_args("proxy-refused"), environment_overrides=environment)
+                self.assertEqual(result.returncode, 2, payload)
+                self.assertIn("refuses Git context environment overrides", payload["error"])
+                self.assertEqual(sorted(path.name for path in attempts.iterdir()), before)
+
     def test_inspect_rejects_prepared_drift_and_returned_delta_excludes_inheritance(self) -> None:
         self._make_dirty_caller()
         source_before = self._snapshot(self.source)
@@ -1999,32 +2046,34 @@ raise SystemExit(module.main(sys.argv[2:]))
         branches = self._run(self.primary, "for-each-ref", "--format=%(refname)", "refs/heads/").stdout
         return branches, self._run(self.primary, "worktree", "list", "--porcelain").stdout
 
-    def _assert_grant_needed(self, args: Iterable[str], roles: Mapping[str, Path],
+    def _assert_grant_needed(self, args: Iterable[str], blocked: Mapping[str, Path], grants: Iterable[Path],
                              environment_overrides: Mapping[str, str] | None = None) -> dict[str, Any]:
         before = self._repository_snapshot()
         result, payload = self._cli(*args, environment_overrides=environment_overrides)
         self.assertEqual(result.returncode, 3, payload)
         self.assertEqual(payload["status"], "grant-needed", payload)
-        blocked = {row["role"]: row for row in payload["blocked"]}
-        self.assertEqual(set(blocked), set(roles), payload)
-        for role, path in roles.items():
-            self.assertEqual(Path(blocked[role]["path"]), path.resolve(), payload)
-            self.assertIn(str(path.resolve()), payload["error"])
-        for text in ("==== ASK-AGENT-GRANT-NEEDED ====", "==== END ASK-AGENT-GRANT-NEEDED ====",
-                     "Intention:", "Claude: /add-dir", "additionalDirectories",
-                     "Codex: restart with",
-                     "~/.grok/sandbox.toml", "--sandbox off"):
-            self.assertIn(text, payload["error"])
-        self.assertIn(payload["error"], result.stderr)
-        self.assertEqual(self._repository_snapshot(), before, "a refused prepare changed the repository")
+        self.assertEqual({row["role"]: Path(row["path"]) for row in payload["blocked"]},
+                         {role: path.resolve() for role, path in blocked.items()}, payload)
+        self.assertEqual([Path(path) for path in payload["grants"]], [path.resolve() for path in grants], payload)
+        message = payload["error"]
+        self.assertTrue(message.startswith("ASK-AGENT-GRANT-NEEDED: "), message)
+        for text in ("Repair intent:", "/add-dir", "additionalDirectories", "writable_roots",
+                     "~/.grok/sandbox.toml", "[profiles.ask-agent]", "--sandbox off",
+                     "Then rerun: python3 ", "Agent: stop and show the user"):
+            self.assertIn(text, message)
+        for path in [*blocked.values(), *grants]:
+            self.assertIn(str(path.resolve()), message)
+        self.assertIn(message, result.stderr)
+        self.assertEqual(self._repository_snapshot(), before, "a refused command changed the repository")
         return payload
 
     def test_prepare_refuses_a_read_only_store_parent_before_creating_anything(self) -> None:
         self.store.mkdir()
         self._read_only(self.store)
-        payload = self._assert_grant_needed(self._prepare_args("sandboxed"), {"workspace-store": self.store})
+        payload = self._assert_grant_needed(self._prepare_args("sandboxed"), {"workspace-store": self.store},
+                                            [self.store])
         self.assertEqual(list(self.store.iterdir()), [])
-        self.assertNotIn("does not exist yet", payload["error"])
+        self.assertNotIn("mkdir -p", payload["error"])
 
     def test_prepare_refuses_a_missing_store_under_a_read_only_parent(self) -> None:
         parent = self.root / "state-home"
@@ -2032,25 +2081,24 @@ raise SystemExit(module.main(sys.argv[2:]))
         self._read_only(parent)
         store = parent / "nested" / "store"
         args = ("prepare", "--source", str(self.source.resolve()), "--store", str(store), "--writers-quiescent")
-        payload = self._assert_grant_needed(args, {"workspace-store": parent})
-        self.assertEqual(payload["blocked"][0]["target"], str(parent.resolve() / "nested" / "store"))
-        self.assertIn("does not exist yet", payload["error"])
+        payload = self._assert_grant_needed(args, {"workspace-store": parent}, [store])
+        self.assertIn("mkdir -p " + str(store.resolve()), payload["error"])
         self.assertEqual(list(parent.iterdir()), [])
 
-    def test_prepare_refuses_a_read_only_default_state_home(self) -> None:
+    def test_prepare_refuses_a_read_only_default_state_home_and_grants_its_stable_base(self) -> None:
         state_home = self.root / "xdg-state"
         state_home.mkdir()
         self._read_only(state_home)
         args = ("prepare", "--source", str(self.source.resolve()), "--writers-quiescent")
-        self._assert_grant_needed(args, {"workspace-store": state_home},
+        # One grant of <state>/ask-agent covers every repository's store.
+        self._assert_grant_needed(args, {"workspace-store": state_home}, [state_home / "ask-agent"],
                                   environment_overrides={"XDG_STATE_HOME": str(state_home)})
         self.assertEqual(list(state_home.iterdir()), [])
 
     def test_prepare_refuses_a_read_only_git_common_dir(self) -> None:
         common = self.primary / ".git"
         self._read_only(common)
-        payload = self._assert_grant_needed(self._prepare_args("sandboxed"), {"git-common-dir": common})
-        self.assertIn("writable_roots=[", payload["error"])
+        self._assert_grant_needed(self._prepare_args("sandboxed"), {"git-common-dir": common}, [common])
         self.assertFalse(self.store.exists())
 
     def test_prepare_reports_every_blocked_path_at_once(self) -> None:
@@ -2058,7 +2106,32 @@ raise SystemExit(module.main(sys.argv[2:]))
         self._read_only(self.store)
         self._read_only(self.primary / ".git")
         self._assert_grant_needed(self._prepare_args("sandboxed"),
-                                  {"workspace-store": self.store, "git-common-dir": self.primary / ".git"})
+                                  {"workspace-store": self.store, "git-common-dir": self.primary / ".git"},
+                                  [self.store, self.primary / ".git"])
+
+    def test_grant_report_names_the_detected_host_first(self) -> None:
+        self.store.mkdir()
+        self._read_only(self.store)
+        for environment, first in (({"CLAUDECODE": "1", "CODEX_SANDBOX": "seatbelt"}, "Codex"),
+                                   ({"CLAUDECODE": "1", "CODEX_SANDBOX": None, "CODEX_THREAD_ID": None,
+                                     "GROK_AGENT": None, "GROK_SESSION_ID": None, "GROK_SANDBOX": None}, "Claude Code"),
+                                   ({"GROK_AGENT": "1", "CODEX_SANDBOX": None, "CODEX_THREAD_ID": None}, "Grok")):
+            with self.subTest(first=first):
+                payload = self._assert_grant_needed(self._prepare_args("sandboxed"), {"workspace-store": self.store},
+                                                    [self.store], environment_overrides=environment)
+                fixes = [row for row in payload["error"].splitlines() if row.startswith("  * ")]
+                self.assertTrue(fixes[0].startswith("  * " + first), fixes)
+
+    def test_existing_attempt_commands_recheck_grants_before_writing(self) -> None:
+        prepared = self._prepare(label="regrant")
+        receipt = str(Path(prepared["receipt"]).resolve())
+        self._read_only(self.primary / ".git")
+        for args in (("prepare", "--receipt", receipt, "--writers-quiescent"),
+                     ("inspect", "--receipt", receipt, "--phase", "prepared"),
+                     ("close", "--receipt", receipt),
+                     ("check-context", "--receipt", receipt)):
+            with self.subTest(command=args[0]):
+                self._assert_grant_needed(args, {"git-common-dir": self.primary / ".git"}, [self.primary / ".git"])
 
     def test_preflight_reports_grants_without_creating_anything(self) -> None:
         extra = self.root / "caller-runs"
@@ -2071,7 +2144,7 @@ raise SystemExit(module.main(sys.argv[2:]))
         self.assertEqual(list(extra.iterdir()), [])
         self._read_only(extra)
         self._assert_grant_needed(("preflight", "--source", str(self.source.resolve()), "--store", str(self.store),
-                                   "--path", str(extra)), {"caller-path": extra})
+                                   "--path", str(extra)), {"caller-path": extra}, [extra])
 
     def test_interrupted_inspection_build_is_rebuilt_not_trusted(self) -> None:
         prepared = self._prepare(label="interrupted inspection")

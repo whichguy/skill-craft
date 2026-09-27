@@ -25,7 +25,7 @@ import signal
 import stat
 import subprocess
 import sys
-import tempfile
+import types
 import uuid
 from contextlib import contextmanager
 from dataclasses import dataclass
@@ -50,10 +50,39 @@ MANAGED_WORKTREE_CAPABILITIES = (
     "ignored-output-report",
 )
 VERSION = 1
-# Exit status for a host sandbox that denies a write prepare needs.  It differs
-# from the generic failure (2) so a caller can route it to the user as a grant.
-GRANT_NEEDED_EXIT = 3
-GRANT_NEEDED_MARKER = "ASK-AGENT-GRANT-NEEDED"
+
+
+def _load_host_write_grants() -> Any:
+    """Load the write-grant probe vendored beside this helper.
+
+    host_write_grants.py is shared byte-identically with ShipLoop.  It is
+    loaded by path rather than imported: the helper also runs under
+    `python -I`, which leaves the script directory off sys.path, and it must
+    not write bytecode into its package.
+    """
+    path = Path(__file__).resolve().parent / "host_write_grants.py"
+    module = types.ModuleType("ask_agent_host_write_grants")
+    module.__file__ = os.fspath(path)
+    sys.modules[module.__name__] = module
+    exec(compile(path.read_bytes(), os.fspath(path), "exec"), module.__dict__)
+    return module
+
+
+host_write_grants = _load_host_write_grants()
+# Exit status for a host sandbox that denies a write the workspace needs.  It
+# differs from the generic failure (2) so a caller routes it to the user.
+GRANT_NEEDED_EXIT = host_write_grants.EXIT_GRANT_NEEDED
+GRANT_PRODUCT = host_write_grants.Product(
+    marker="ASK-AGENT-GRANT-NEEDED",
+    outcome="Ask Agent stopped before writing its worker workspace.",
+    profile="ask-agent",
+    workarounds="choosing another --store, preparing inside the source checkout, switching to another workspace route",
+)
+GRANT_PURPOSES = {
+    "workspace-store": "worker worktree, receipts and reports",
+    "git-common-dir": "git worktree add and every worker commit",
+    "caller-path": "directory named by the caller",
+}
 # Derived evidence (contribution patch, inspection and delivery records) is
 # stored per fingerprint and reused.  It lives one level below the stable
 # `inspections/` and `delivery-evidence/` roots, in a directory named for the
@@ -417,11 +446,65 @@ def _is_git_context_environment_name(key: str) -> bool:
     return key in GIT_CONTEXT_ENVIRONMENT or key.startswith(("GIT_CONFIG_KEY_", "GIT_CONFIG_VALUE_"))
 
 
+# Host sandboxes inject Git configuration into every command.  Claude Code's
+# Bash sandbox sets http.proxyAuthMethod and a credential helper for its
+# localhost proxy (GIT_CONFIG_PARAMETERS) and safe.directory for the current
+# directory and everything under it (GIT_CONFIG_COUNT/KEY_n).  Transport keys
+# cannot change which repository, index or worktree Git uses, and a
+# safe.directory limited to the current directory only waives Git's ownership
+# check there, so injected configuration made only of those is not a context
+# override.  Any other key, or safe.directory naming `*` or another path, still
+# is.  The helper's own Git calls drop all of it (`_clean_git_environment`).
+TRANSPORT_CONFIG_PREFIXES = ("http.", "credential.")
+
+
+def _injected_config() -> list[tuple[str, str | None]] | None:
+    """(key, value) pairs injected through the environment, or None when they cannot be read exactly."""
+    count = os.environ.get("GIT_CONFIG_COUNT", "0")
+    if not count.isdigit():
+        return None
+    indexed = {key for key in os.environ if key.startswith(("GIT_CONFIG_KEY_", "GIT_CONFIG_VALUE_"))}
+    expected = {f"GIT_CONFIG_{kind}_{index}" for index in range(int(count)) for kind in ("KEY", "VALUE")}
+    if indexed != expected:
+        return None
+    pairs: list[tuple[str, str | None]] = [
+        (os.environ[f"GIT_CONFIG_KEY_{index}"], os.environ[f"GIT_CONFIG_VALUE_{index}"])
+        for index in range(int(count))
+    ]
+    parameters = os.environ.get("GIT_CONFIG_PARAMETERS")
+    if parameters is not None:
+        try:
+            tokens = shlex.split(parameters)
+        except ValueError:
+            return None
+        for token in tokens:
+            key, separator, value = token.partition("=")
+            pairs.append((key, value if separator else None))
+    return pairs
+
+
+def _harmless_injected_config(key: str, value: str | None) -> bool:
+    if key.lower().startswith(TRANSPORT_CONFIG_PREFIXES):
+        return True
+    if key.lower() != "safe.directory" or not value:
+        return False
+    here = os.path.realpath(os.getcwd())
+    directory = value[:-2] if value.endswith("/*") else value
+    return "*" not in directory and os.path.realpath(directory) == here
+
+
 def _git_context_environment_overrides() -> list[str]:
-    return sorted(
-        key for key in os.environ
-        if _is_git_context_environment_name(key)
+    names = sorted(key for key in os.environ if _is_git_context_environment_name(key))
+    injected_only = all(
+        name in ("GIT_CONFIG_COUNT", "GIT_CONFIG_PARAMETERS")
+        or name.startswith(("GIT_CONFIG_KEY_", "GIT_CONFIG_VALUE_"))
+        for name in names
     )
+    if names and injected_only:
+        pairs = _injected_config()
+        if pairs is not None and all(_harmless_injected_config(key, value) for key, value in pairs):
+            return []
+    return names
 
 
 def _require_no_git_context_environment_overrides(operation: str) -> None:
@@ -1107,11 +1190,14 @@ def _label_fragment(label: str | None) -> str:
     return value or "worker"
 
 
-def _default_store_path(common: Path) -> Path:
-    digest = _sha256(os.fsencode(os.fspath(common)))[:20]
+def _state_base() -> Path:
     configured = os.environ.get("XDG_STATE_HOME")
     state_home = Path(configured).expanduser() if configured else Path.home() / ".local" / "state"
-    return state_home / "ask-agent" / "workspaces" / digest
+    return state_home / "ask-agent"
+
+
+def _default_store_path(common: Path) -> Path:
+    return _state_base() / "workspaces" / _sha256(os.fsencode(os.fspath(common)))[:20]
 
 
 def _resolve_store(source: Path, common: Path, store: Path | None) -> Path:
@@ -1135,98 +1221,42 @@ def _resolve_store(source: Path, common: Path, store: Path | None) -> Path:
 
 
 class GrantNeeded(WorkspaceError):
-    """A host sandbox denies a write that the workspace needs; the user must grant it."""
+    """A host sandbox denies a write the workspace needs; the user must grant it."""
 
-    def __init__(self, blocked: Sequence[Mapping[str, str]]) -> None:
-        self.blocked = [dict(row) for row in blocked]
-        super().__init__(_grant_needed_block(self.blocked))
-
-
-def _nearest_existing(path: Path) -> Path:
-    candidate = path.expanduser()
-    if not candidate.is_absolute():
-        candidate = Path.cwd() / candidate
-    while not candidate.exists() and candidate.parent != candidate:
-        candidate = candidate.parent
-    return candidate
+    def __init__(self, error: Any) -> None:
+        self.error = error
+        roles = {purpose: role for role, purpose in GRANT_PURPOSES.items()}
+        self.blocked = [{"role": roles[purpose], "path": os.fspath(path), "reason": reason}
+                        for path, purpose, reason in error.blocked]
+        self.grants = [os.fspath(path) for path in error.grants]
+        super().__init__(str(error))
 
 
-def _probe_writable(path: Path) -> str | None:
-    """Create and delete one temporary file in `path`; return why that failed, or None."""
-    if not path.is_dir():
-        return "not a directory"
+def _store_grant(store: Path) -> Path:
+    """Grant the stable default base, not one repository's store, so one grant covers later runs."""
+    candidate = store.expanduser().absolute()
+    base = _state_base().absolute()
+    return base if _is_under(candidate, base) else candidate
+
+
+def _require_write_grants(targets: Sequence[tuple[str, Path, Path]]) -> None:
+    """Refuse before writing anything when a host sandbox denies a needed write."""
     try:
-        handle, name = tempfile.mkstemp(prefix=".ask-agent-grant-probe-", dir=os.fspath(path))
-    except OSError as exc:
-        return f"{type(exc).__name__}: {exc.strerror or exc}"
-    os.close(handle)
-    try:
-        os.unlink(name)
-    except OSError as exc:
-        return f"created a file but could not delete it ({type(exc).__name__}: {exc.strerror or exc}): {name}"
-    return None
+        host_write_grants.require([(path, GRANT_PURPOSES[role], grant) for role, path, grant in targets])
+    except host_write_grants.GrantError as exc:
+        raise GrantNeeded(exc) from exc
 
 
-def _blocked_lines(row: Mapping[str, str]) -> list[str]:
-    lines = [f"  - {row['role']}: {row['path']} ({row['reason']})"]
-    if row["target"] != row["path"]:
-        lines.append(f"    ({row['target']} does not exist yet; for a narrower grant, run"
-                     f" mkdir -p {shlex.quote(row['target'])} outside the sandbox and grant that instead)")
-    return lines
-
-
-def _grant_needed_block(blocked: Sequence[Mapping[str, str]]) -> str:
-    paths = [row["path"] for row in blocked]
-    common = [row["path"] for row in blocked if row["role"] == "git-common-dir"]
-    others = [row["path"] for row in blocked if row["role"] != "git-common-dir"]
-    codex = []
-    if others:
-        codex.append(" ".join(f"--add-dir {shlex.quote(path)}" for path in others))
-    if common:
-        roots = ",".join(json.dumps(path) for path in common)
-        codex.append("-c " + shlex.quote(f"sandbox_workspace_write.writable_roots=[{roots}]"))
-    lines = [
-        f"==== {GRANT_NEEDED_MARKER} ====",
-        "Ask Agent cannot prepare a worker workspace: this session's sandbox denies writes it needs.",
-        "Blocked (a probe file could not be created and deleted):",
-        *(line for row in blocked for line in _blocked_lines(row)),
-        "Intention: grant this session write access to exactly these paths, then rerun the same prepare.",
-        "Nothing was created. Native subagents inherit the parent's grants, so grant them in the parent session.",
-        "Per-host fixes:",
-        "  Claude: /add-dir " + " ".join(shlex.quote(path) for path in paths)
-        + " (or add them to permissions.additionalDirectories in settings; launch flag --add-dir).",
-        "  Codex: restart with " + " ".join(codex)
-        + " (workspace-write keeps .git read-only even under --add-dir).",
-        "  Grok: add a profile to ~/.grok/sandbox.toml -- [profiles.ask-agent] extends = \"workspace\" read_write = ["
-        + ", ".join(json.dumps(path) for path in paths) + "] -- and restart with --sandbox ask-agent, or use --sandbox off.",
-        f"==== END {GRANT_NEEDED_MARKER} ====",
-    ]
-    return "\n".join(lines)
-
-
-def _require_write_grants(targets: Sequence[tuple[str, Path]]) -> None:
-    """Refuse before creating anything when a host sandbox denies a needed write."""
-    blocked: list[dict[str, str]] = []
-    seen: set[str] = set()
-    for role, target in targets:
-        probe = _nearest_existing(target)
-        key = os.fspath(probe.resolve())
-        if key in seen:
-            continue
-        seen.add(key)
-        reason = _probe_writable(probe)
-        if reason is not None:
-            intended = os.fspath(probe.resolve() / target.expanduser().absolute().relative_to(probe))
-            blocked.append({"role": role, "path": key, "target": intended, "reason": reason})
-    if blocked:
-        raise GrantNeeded(blocked)
-
-
-def _write_grant_targets(common: Path, store: Path | None) -> list[tuple[str, Path]]:
+def _write_grant_targets(common: Path, store: Path) -> list[tuple[str, Path, Path]]:
     return [
-        ("workspace-store", _default_store_path(common) if store is None else store),
-        ("git-common-dir", common),
+        ("workspace-store", store, _store_grant(store)),
+        ("git-common-dir", common, common),
     ]
+
+
+def _require_record_grants(record: Mapping[str, Any]) -> None:
+    """Recheck an existing attempt's grants: a session restarted without them fails here, not mid-write."""
+    _require_write_grants(_write_grant_targets(Path(record["source"]["common_dir"]), Path(record["store"])))
 
 
 def preflight(*, source: Path, store: Path | None = None, paths: Sequence[str] = ()) -> dict[str, Any]:
@@ -1234,11 +1264,13 @@ def preflight(*, source: Path, store: Path | None = None, paths: Sequence[str] =
     _require_no_git_context_environment_overrides("preflight")
     root = _repo_root(source)
     common = _common_dir(root)
-    targets = _write_grant_targets(common, store) + [("caller-path", Path(path)) for path in paths]
+    targets = _write_grant_targets(common, store or _default_store_path(common))
+    targets += [("caller-path", Path(path), Path(path)) for path in paths]
     _require_write_grants(targets)
     return {
         "status": "granted",
-        "probed": [{"role": role, "path": os.fspath(_nearest_existing(path).resolve())} for role, path in targets],
+        "probed": [{"role": role, "path": os.fspath(host_write_grants.nearest_existing(path.resolve()))}
+                   for role, path, _ in targets],
     }
 
 
@@ -1295,7 +1327,7 @@ def _base_output(record: Mapping[str, Any], status: str) -> dict[str, Any]:
 def _new_prepare(source_argument: Path, store_argument: Path | None, label: str | None) -> dict[str, Any]:
     source = _repo_root(source_argument)
     common = _common_dir(source)
-    _require_write_grants(_write_grant_targets(common, store_argument))
+    _require_write_grants(_write_grant_targets(common, store_argument or _default_store_path(common)))
     store = _resolve_store(source, common, store_argument)
     capture_before = _capture_source(source)
     attempt_id, attempt = _new_attempt(store)
@@ -2084,7 +2116,7 @@ def prepare(
         if source is not None and _repo_root(source) != _repo_root(Path(record["source"]["root"])):
             _fail("prepare --source does not match the receipt source")
         source_root, _ = _validate_binding(record)
-        _require_write_grants([("workspace-store", Path(record["store"])), ("git-common-dir", Path(record["source"]["common_dir"]))])
+        _require_record_grants(record)
         current_source = _capture_source(source_root)
         expected_source = record["baseline_data"]["source_capture"]
         if current_source.comparable() != expected_source:
@@ -2110,6 +2142,7 @@ def inspect(
 ) -> dict[str, Any]:
     """Verify the pre-dispatch baseline or inspect a returned worker state."""
     record = _load_receipt(receipt)
+    _require_record_grants(record)
     with _attempt_lock(record["attempt"]):
         return _inspect_record(record, phase, artifacts, discard, delivery_mode, commit_base, commits)
 
@@ -2237,6 +2270,7 @@ def check_context(*, receipt: Path) -> dict[str, Any]:
     not establish a native agent's startup directory or sandbox isolation.
     """
     record = _load_receipt(receipt)
+    _require_record_grants(record)
     with _attempt_lock(record["attempt"]):
         if _read_closed_outcome(record) is not None:
             _fail("workspace is closed; cannot check its current operation context")
@@ -2369,6 +2403,7 @@ def _retained(record: Mapping[str, Any], reason: str, **details: Any) -> dict[st
 def close(*, receipt: Path, acceptance: Path | None = None) -> dict[str, Any]:
     """Archive explicitly approved artifacts and remove only an eligible worker tree."""
     record = _load_receipt(receipt)
+    _require_record_grants(record)
     with _attempt_lock(record["attempt"]):
         prior = _read_closed_outcome(record)
         if prior is not None:
@@ -2681,8 +2716,11 @@ def main(argv: Sequence[str] | None = None) -> int:
         _emit(result)
         return 0
     except GrantNeeded as exc:
-        sys.stderr.write(str(exc) + "\n")
-        _emit({"status": "grant-needed", "error": str(exc), "blocked": exc.blocked})
+        rerun = shlex.join(["python3", os.fspath(Path(__file__).resolve()),
+                            *(sys.argv[1:] if argv is None else argv)])
+        message = host_write_grants.report(exc.error, rerun, GRANT_PRODUCT)
+        sys.stderr.write(message + "\n")
+        _emit({"status": "grant-needed", "error": message, "blocked": exc.blocked, "grants": exc.grants})
         return GRANT_NEEDED_EXIT
     except (WorkspaceError, OSError, ValueError, OverflowError) as exc:
         _emit({"status": "error", "error": str(exc)})

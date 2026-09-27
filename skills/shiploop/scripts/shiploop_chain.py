@@ -56,6 +56,7 @@ ASK_AGENT_OPTIONAL_INSPECTION_KEYS = frozenset({"ignored_paths"})
 _MANAGED_ASK_AGENT_FILES = frozenset({
     "SKILL.md",
     "scripts/ask_agent_workspace.py",
+    "scripts/host_write_grants.py",
     "references/git-integration.md",
     "references/workspace-operations.md",
     "references/native-lifecycle.md",

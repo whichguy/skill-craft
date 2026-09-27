@@ -126,31 +126,41 @@ roots and temp; Grok `--sandbox workspace|strict` writes only cwd, `~/.grok`
 and temp; Claude Code prompts for or denies writes outside its working
 directories. A native subagent inherits its parent's grants.
 
-So `prepare` (fresh or `--receipt`) first creates and deletes one probe file
-in the store, or its nearest existing ancestor when the store does not exist
-yet, and in the Git common directory. If any probe fails it creates nothing,
-prints a block delimited by `==== ASK-AGENT-GRANT-NEEDED ====` to stderr, and
-exits **3** with JSON `{"status": "grant-needed", "blocked": [...], "error": <the block>}`.
-Each `blocked` row has `role` (`workspace-store`, `git-common-dir`), the
-probed `path`, the intended `target` and the `reason`. The block states the
-intention (grant exactly these paths, then rerun the same prepare) and the
-per-host fix:
+So before writing anything, `prepare` (fresh or `--receipt`), `inspect`,
+`close` and `check-context` create and delete one probe file in the store (or
+its nearest existing ancestor when the store does not exist yet) and in the Git
+common directory. The later commands recheck because a session restarted
+without its grants would otherwise fail mid-write. If any probe fails the
+command creates nothing, prints the repair message to stderr, and exits **3**
+with JSON `{"status": "grant-needed", "blocked": [...], "grants": [...], "error": <the message>}`.
+Each `blocked` row has `role` (`workspace-store`, `git-common-dir`,
+`caller-path`), the probed `path` and the `reason`. `grants` lists only what to
+grant for the refused paths. For the default store that is the stable base
+`$XDG_STATE_HOME/ask-agent` (or `~/.local/state/ask-agent`), so one grant covers
+every repository.
+
+The message starts with `ASK-AGENT-GRANT-NEEDED:`. It lists the blocked paths
+and the repair intent: grant exactly these directories, then rerun the same
+command. It adds a `mkdir -p` line for grants that do not exist yet, the fix for
+each host with the detected host first, the exact rerun command, and a line
+telling the agent to stop rather than work around it:
 
 | Host | Grant |
 | --- | --- |
-| Claude Code | `/add-dir <path>` in the session, or `permissions.additionalDirectories` in settings (`--add-dir` at launch). With the Bash sandbox enabled the helper currently refuses to run at all; see [Claude Code](host-capabilities.md#claude-code) |
-| Codex | restart with `--add-dir <store>` and `-c 'sandbox_workspace_write.writable_roots=["<git-common-dir>"]'` (`.git` stays read-only under `--add-dir`) |
-| Grok | a `~/.grok/sandbox.toml` profile `[profiles.ask-agent]` with `extends = "workspace"` and `read_write = [<paths>]`, run with `--sandbox ask-agent`; or `--sandbox off` |
+| Claude Code | no restart: `/add-dir <path>` (an existing directory) in the session; to persist, `permissions.additionalDirectories`. Bash sandbox details under [Claude Code](host-capabilities.md#claude-code) |
+| Codex | no restart: Full access in `/permissions`; scoped (restart): `-c 'sandbox_workspace_write.writable_roots=[...]'` including the Git common directory (`.git` stays read-only under `--add-dir`) |
+| Grok | restart: a `~/.grok/sandbox.toml` profile `[profiles.ask-agent]` with `extends = "workspace"` and `read_write = [...]`, run with `--sandbox ask-agent`; or `--sandbox off` |
 
-Show the block to the user and stop; do not retry with another store or fall
-back to another workspace route. Exit 2 remains every other failure.
+Show the message to the user and stop; do not retry with another store or fall
+back to another workspace route. Exit 2 remains every other failure. The probe
+and message come from `scripts/host_write_grants.py`, which ShipLoop ships
+byte-identically for its own workspace.
 
 To check grants without preparing, run
 `preflight --source <checkout> [--store <dir>] [--path <dir> ...]`. It probes the
 same paths plus any caller-named `--path` (role `caller-path`), creates
 nothing, and returns `{"status": "granted", "probed": [...]}` or the same exit-3
-result. A consumer such as ShipLoop can probe its own directories through
-`--path` rather than reimplementing the probe.
+result.
 
 A same-attempt delivery retry can validate its existing preparation with
 `prepare --receipt /actual/receipt.json --writers-quiescent`. A fresh delegation gets a fresh

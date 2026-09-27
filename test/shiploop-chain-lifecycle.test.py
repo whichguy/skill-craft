@@ -482,7 +482,8 @@ class PerStepChainTests(PerStepChainFixture):
             "fingerprint-bound-close",
         } <= set(declared["capabilities"]))
         self.assertEqual(set(binding["ask_agent"]["files"]), {
-            "SKILL.md", "scripts/ask_agent_workspace.py", "references/git-integration.md",
+            "SKILL.md", "scripts/ask_agent_workspace.py", "scripts/host_write_grants.py",
+            "references/git-integration.md",
             "references/workspace-operations.md", "references/native-lifecycle.md",
             "references/result-handoff.md",
         })

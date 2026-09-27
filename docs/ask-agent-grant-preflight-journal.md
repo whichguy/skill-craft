@@ -23,7 +23,7 @@ sandboxes deny those writes:
 Before this change the failure surfaced mid-`prepare` (or later, at the worker's
 first commit) as a generic exit-2 error, with no statement of which path to grant.
 
-## Relationship to the ShipLoop preflight (2026-09-27, interim)
+## Relationship to the ShipLoop preflight (2026-09-27, superseded 2026-09-27 by "One shared module")
 
 The task named ShipLoop's `_probe_writable` / `SHIPLOOP-GRANT-NEEDED` in
 `skills/shiploop/scripts/shiploop_workspace.py` and
@@ -48,7 +48,7 @@ that, so ShipLoop should prefer the structured `blocked` rows. The helper does n
 yet declare a `write-grant-preflight` capability; add it together with the
 ShipLoop code that requires it, since ShipLoop's contract tests pin the set.
 
-## Design (2026-09-27, firm)
+## Design (2026-09-27, superseded 2026-09-27 by "One shared module": message format, `target` field and store grant changed)
 
 - Probe = create and delete one `tempfile.mkstemp` file. It tests the store, or
   its nearest existing ancestor when the store does not exist yet, and
@@ -133,7 +133,7 @@ Side observation, not ask-agent: that Grok session's stop hook reported the
 ShipLoop hook script missing at its path, and the stop hook re-prompted the model
 several times.
 
-### R6 — live Claude Code Bash sandbox (2026-09-27, firm; blocks Claude)
+### R6 — live Claude Code Bash sandbox (2026-09-27, firm; the block is resolved by R7 + R9)
 
 `claude -p` with settings `sandbox.enabled=true, autoAllowBashIfSandboxed=true,
 allowUnsandboxedCommands=false`, with and without `--add-dir <exp>`: the probe
@@ -158,7 +158,7 @@ a security check, so it needs the owner's decision. Documented instead as a know
 limitation in `references/host-capabilities.md` (Claude Code) and the
 workspace-operations grant table.
 
-### ShipLoop preflight landed separately (2026-09-27, interim)
+### ShipLoop preflight landed separately (2026-09-27, superseded 2026-09-27 by "One shared module")
 
 Supersedes part of "Relationship to the ShipLoop preflight" above: branch
 `worktree-shiploop-grant-preflight-a3f9c1` has since committed `70a174e6`,
@@ -176,12 +176,100 @@ Until Loop runtime, pinned by SHA-256 in a provenance manifest and checked by
 `test/improve.test.sh`. Unifying the two needs a decision on the ShipLoop branch's
 unmerged code; see Open.
 
+### R7 — transport-only injected Git config (2026-09-27, firm)
+
+Owner decision (2026-09-27): accept injected Git configuration made only of
+`http.*` and `credential.*` keys. `_git_context_environment_overrides` now
+parses `GIT_CONFIG_COUNT`/`KEY_n`/`VALUE_n` and `GIT_CONFIG_PARAMETERS` exactly.
+It returns no override only when every present `GIT_CONFIG_*` variable belongs to
+those forms, the indexed set matches the count exactly, and every key is
+transport. Anything else, including unparseable quoting, a key beyond the count,
+a non-numeric count or any other context variable, is still refused.
+Test: `test_prepare_accepts_sandbox_injected_config_and_refuses_anything_wider`
+(2 accepted forms, 6 refused cases). The earlier attempt was denied by the
+permission classifier (R6); it was applied after the owner's explicit approval.
+
+### R8 — Claude sandbox also injects `safe.directory` (2026-09-27, firm; the block is resolved by R9)
+
+Live `claude -p` with the Bash sandbox, printing key names only:
+`GIT_CONFIG_PARAMETERS` carries `http.proxyAuthMethod` and
+`credential.http://localhost:<port>.helper`; `GIT_CONFIG_COUNT=2` carries
+`safe.directory` twice, with values `<cwd>` and `<cwd>/*`. This held for plain,
+piped and `cd &&` command shapes. An inline `python3 -c` dump in one session
+showed no COUNT form; the file-based probe showed it in every shape. After R7 the
+helper still refuses because `safe.directory` is not transport. It is a trust
+setting (it waives Git's ownership check for those paths), not a repository
+redirect. Whether to accept it is the owner's call; until then Claude's Bash
+sandbox remains a documented limitation.
+
+### One shared module (2026-09-27, firm)
+
+Owner decision (2026-09-27): one probe, vendored. ShipLoop's preflight shipped to
+main (`70a174e6`, `1c92ca7d`, release `355aa513`). Its `shiploop_grants.py` was
+generalized into `host_write_grants.py`: `Product(marker, outcome, profile,
+workarounds)` parameterizes `report()`. The module is vendored byte-identically as
+`skills/ask-agent/scripts/host_write_grants.py` and
+`skills/shiploop/scripts/host_write_grants.py`; `test/host-write-grants.test.py`
+(new core suite, groups ask-agent + quick) fails when they differ.
+`shiploop_grants.py` keeps only ShipLoop's wording.
+
+Integrity: the ask-agent helper was single-file. ShipLoop freezes an explicit
+ask-agent file list (`_MANAGED_ASK_AGENT_FILES`) and the helper's `identity`
+binds one helper hash. So `scripts/host_write_grants.py` joined the frozen list,
+and a chain bound earlier is refused and must bind again (one supported
+version). The helper loads the module by path with `compile`/`exec`, not
+import. That works under `python -I` (covered by the copied-package test) and
+writes no bytecode into the package.
+
+Lessons adopted from the ShipLoop session (cross-session note, 2026-09-27):
+- Grant only refused paths. The default store grants the stable
+  `<state>/ask-agent` base, so one grant covers every repository.
+- Recheck on every write path: `prepare --receipt`, `inspect`, `close` and
+  `check-context` probe before `_attempt_lock` (which itself writes a lock file).
+  Test: `test_existing_attempt_commands_recheck_grants_before_writing`.
+- Detect the innermost host first (Codex, then Grok, then Claude) and list its fix
+  first. Test: `test_grant_report_names_the_detected_host_first`.
+- An explicit agent stop line forbidding workarounds (another `--store`, the
+  source checkout, another route).
+
+Live (codex sandbox, workspace-write): exit 3; `Detected host: codex` with
+Codex's fix first; grants = store + `.git`; `mkdir -p` for the missing store;
+nothing created.
+
+### R9 — cwd-scoped `safe.directory`; Claude sandbox works end to end (2026-09-27, firm)
+
+Owner decision (2026-09-27): accept `safe.directory` only when every value is
+the process's current directory or `<cwd>/*`, compared after `realpath`.
+`*`, any other path, a subdirectory and an empty value are refused. The ShipLoop
+session noted that its Git runners strip all injected `GIT_CONFIG_*`, which is why
+ShipLoop was never blocked. The owner chose the narrower acceptance for ask-agent,
+because a worker inherits the environment.
+Test: `test_prepare_accepts_sandbox_injected_config_and_refuses_anything_wider`
+(3 accepted forms including Claude's exact combination; 10 refused cases).
+
+Live `claude -p`, Bash sandbox on (`enabled`, `autoAllowBashIfSandboxed`,
+`allowUnsandboxedCommands=false`), full `prepare`:
+- No grant: `grant-needed`, blocked `['workspace-store']` only. `.git` of the repo
+  in cwd is writable under Claude's sandbox, as ShipLoop measured.
+- `--add-dir <store>` with the store not yet created: still `grant-needed`.
+  `/add-dir` of a missing directory does not grant it, so the message's
+  `mkdir -p` line matters.
+- `mkdir -p <store>` then `--add-dir <store>`: `STATUS=prepared`,
+  `ask-agent/worker-048e471a8123`, worktree registered under the store.
+
+### R10 — suites after the shared module (2026-09-27, firm)
+
+- `test/run_suites.py --group quick --group ask-agent --changed-from main`:
+  37/37 PASS, including `host-write-grants`, `shiploop-workspace` (57),
+  `shiploop-chain-planning-context`, `test-groups` (core 39, total 102 suites)
+  and `ci-policy`.
+- `test/shiploop-chain-lifecycle.test.py` run directly (the selection missed it
+  although it pins the frozen ask-agent file set): 51 tests OK, 1360 s.
+- After R9's helper change: `--group ask-agent` 10/10 PASS.
+
 ## Open
 
-- Claude Bash sandbox (R6): decide whether transport-only injected Git config
-  (`http.*`, `credential.*`) may pass the override guard.
-- One probe, not two: vendor a shared grants module into both packages with a
-  hash-pinned provenance test, or keep two and add a parity test on the report
-  content. Either way, port ShipLoop's host-first, no-restart and do-not-work-around
-  wording into the ask-agent block.
-- Grok stop hook reports a missing ShipLoop hook script (R5 side observation).
+- Grok stop hook reports a missing ShipLoop hook script (R5 side observation;
+  filed as a separate task).
+- Not exercised live: a Claude native subagent (rather than `claude -p`) inheriting
+  the parent's `/add-dir` grant.
