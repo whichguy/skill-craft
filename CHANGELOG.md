@@ -4,6 +4,14 @@ Written by scripts/release.py.
 
 ## 2026-09-27
 
+### skill-craft 1.7.0
+
+- Skills: shiploop 0.40.0
+
+### shiploop 0.40.0
+
+- Planning now keeps safeguards when it simplifies. The interaction-design guidance asks for the simplest placement that meets the request (a single-user product runs entirely in the client), the lightest channel for the freshness the request states, and native caching with a matching expiry. It also says simplicity removes machinery, never safeguards: personal-data handling, server-side checks on callers the product does not control, abuse limits on anonymous input, and background failures that reach someone who can act. Across 19 scenarios on seven environments this raised plan quality (winning about twice as many scenarios as it lost against the previous wording) without the privacy loss an earlier draft caused. The Apps Script card now states that executions run concurrently, that properties need a LockService lock for read-modify-write, that google.script.run is asynchronous, and when Session.getActiveUser() returns a blank email. Evidence: docs/shiploop-architecture-rubric-results-2026-09-26.md.
+
 ### skill-craft 1.6.0
 
 - Skills: improve 0.3.0-rc.9, shiploop 0.39.0, shiploop-e2e-audit 0.5.2

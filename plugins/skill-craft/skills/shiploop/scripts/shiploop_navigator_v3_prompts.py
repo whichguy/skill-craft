@@ -496,14 +496,31 @@ in each affected work-item context and evidence_refs, including planned check lo
 for cold recovery and the normal Improve handoff; do not start a nested review.
 State and information lifecycle. For each piece of state the request involves,
 decide and state, in proportion to the request: its authoritative owner and where
-it lives; who may read it (hidden information never reaches a client that must not
-see it); how simultaneous changes are resolved; what ends it (finished, abandoned,
+it lives; who may read it (information one user must not see, such as an opponent's
+hidden game state or another person's record, stays off that user's client;
+information a lone user could only misuse against themselves may stay on their
+client); how simultaneous changes are resolved; what ends it (finished, abandoned,
 expired) and what removes it; and which runtime quotas or limits it meets. For
 personal or secret data, state where it is shown, stored and logged, how long it is
 kept, and how it is removed. Map each to what the runtime and the project's own
 layers already offer, from their documentation, configuration and code. Do not add
 identity, sharing or persistence the request does not call for; when the request
 leaves them open, carry the question to the user with the default you would take.
+Choose the simplest placement that meets the request: a single-user game or tool
+with no shared or lasting state runs entirely in the client. Add server state,
+identity, a store or a live channel only for a requirement that needs it, and use
+the runtime's native storage, identity, cache, workflow and notification services
+before building your own.
+Simplicity removes machinery, never safeguards: at every placement, keep the
+personal-data handling above, a server-side check on every action by a caller the
+product does not control, validation and abuse limits on anonymous input, and a
+record of every background or asynchronous failure that reaches whoever must act. For each hop, pick the lightest channel that meets the
+freshness the request states: request/response; polling at a stated interval;
+email or platform notification for changes hours apart; server-sent events,
+WebSockets or platform push only when seconds matter. After a push, poll gap or
+reconnect, read the authoritative state back. Cache only derived data, in the
+runtime's cache, with an expiry that matches the staleness the request allows.
+State each channel's and cache's cost against the runtime's quotas.
 """
 
 WORK_ITEM_CONTEXT = """\

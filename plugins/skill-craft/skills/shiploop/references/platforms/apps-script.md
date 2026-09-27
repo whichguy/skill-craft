@@ -14,6 +14,25 @@ and current [service quotas](https://developers.google.com/apps-script/guides/se
 inform the applicable budget; do not hard-code remembered limits. Bound work
 and retain restart progress when an operation requires it.
 
+Executions of one script run concurrently: two users' `google.script.run` calls
+can overlap, up to a [per-user cap on simultaneous executions](https://developers.google.com/apps-script/guides/services/quotas),
+and nothing serializes them per project. Properties are not documented as
+atomic, so a read-modify-write of a counter, a game state or a seat count is a
+race unless it runs inside a [LockService](https://developers.google.com/apps-script/reference/lock)
+lock (`getScriptLock`, `getUserLock` or `getDocumentLock`, then `tryLock` or
+`waitLock`); properties also have per-value, per-store and daily
+[quotas](https://developers.google.com/apps-script/guides/services/quotas).
+`google.script.run` is [asynchronous](https://developers.google.com/apps-script/guides/html/reference/run):
+results arrive in a success or failure handler, and a `Date`, function or DOM
+element (other than a form) cannot cross it. For identity,
+[`Session.getActiveUser()`](https://developers.google.com/apps-script/reference/base/session)
+returns a blank email wherever the script runs without that user's
+authorization, including a web app deployed to execute as the developer, simple
+triggers and custom functions; in a web app executing as the developer,
+`getEffectiveUser()` is the developer. Google publishes no full table of results
+for every deployment and account type, so probe the deployed identity rather
+than assuming it.
+
 For shared mutable data, use the supported lock scope only around the critical
 section and release it on failure. Define retry identity and partial-commit
 recovery separately: a lock is not a transaction or an exactly-once guarantee.
