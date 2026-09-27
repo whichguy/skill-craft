@@ -537,6 +537,11 @@ class SuiteTest(HarnessCase):
         self.assertEqual(len(self.baselines.read_text().splitlines()), 2)
 
 class CheckHygieneTest(unittest.TestCase):
+    def test_checks_run_with_standard_input_closed(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            result = run.run_checks(Path(tmp), ["read line; test -z \"$line\""], timeout=10)[0]
+        self.assertTrue(result["pass"], result)  # reading stdin returns at once instead of waiting
+
     def test_checks_leave_no_untracked_file_behind(self):
         with tempfile.TemporaryDirectory() as tmp:
             work = Path(tmp)
@@ -581,6 +586,8 @@ class MetricsTest(unittest.TestCase):
                 {"type": "tool_call_update", "toolCallId": "c", "status": "failed", "rawOutput": None, "content": [
                     {"type": "content", "content": {"type": "text",
                                                     "text": "User cancelled the execution for tool `run_terminal_command`"}}]},
+                {"type": "tool_call", "toolCallId": "q", "toolName": "ask_user_question",
+                 "rawInput": {"question": "Which port?"}},
                 {"type": "auto_compact_completed"},
                 {"type": "usage", "usage": {"input_tokens": 500, "output_tokens": 5}},
                 {"type": "end", "stopReason": "end_turn", "num_turns": 3, "total_cost_usd": 3.0},
@@ -599,6 +606,7 @@ class MetricsTest(unittest.TestCase):
         self.assertEqual(m["truncated_outputs"], 2)
         self.assertEqual(m["script_verifications"], {"records": 0, "passed": 0, "commands": 0})
         self.assertEqual(m["cancelled_tool_calls"], ["git init -b main"])
+        self.assertEqual(m["asked_user"], ["Which port?"])
         self.assertEqual(m["improve_children"], 1)
         self.assertEqual(m["shiploop_failures"], [{"verb": "complete", "exit": 2, "line": "error: result refused"}])
         self.assertEqual([(s["stage"], s["turns"]) for s in m["stages"]], [("intake", 2), ("spec", 1)])

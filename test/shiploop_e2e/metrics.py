@@ -25,6 +25,8 @@ SHIPLOOP_COMMAND = re.compile(r"shiploop\S*\s+(?P<verb>complete|next|improve-[\w
 SHIPLOOP_OWNED = re.compile(r"(?:\.shiploop-improve|/\.shiploop(?:/|[\"'\s]|$)|\.shiploop-runs/[^/\s\"']+/run\b|"
                             r"/run/(?:state\.md|results|packets|tests|quality)|until-loop|"
                             r"packet\.json|start\.json|parent-return\.md|terminal\.json)")
+# Host tools that put a question to a person (Grok ask_user_question, Claude AskUserQuestion).
+ASK_PERSON = re.compile(r"ask_?user", re.I)
 # Files the packets ask the model itself to write (its result, evidence notes, Improve
 # review evidence, an Improve opening or commit message): writing them is the step, not glue.
 MODEL_INPUT = re.compile(r"/inbox/|/run/notes/|/reviews/|opening\.md|commit-message\.md")
@@ -111,6 +113,7 @@ def collect(out: Path, run_dir: Path | None = None) -> dict:
     turns: list[dict] = []
     sessions, failures, compactions = [], [], 0
     glue: list[dict] = []
+    asked: list[str] = []
     truncated: set = set()
     cancelled: list[str] = []
     reads: list[str] = []
@@ -122,11 +125,17 @@ def collect(out: Path, run_dir: Path | None = None) -> dict:
             turns.append({"t": t, "input": (usage.get("input_tokens") or 0) + (usage.get("cache_read_input_tokens") or 0),
                           "output": usage.get("output_tokens") or 0})
         elif kind == "assistant":  # Claude: one message per turn
+            for block in (event.get("message") or {}).get("content") or []:
+                if isinstance(block, dict) and block.get("type") == "tool_use" and ASK_PERSON.search(str(block.get("name"))):
+                    asked.append(" ".join(str(block.get("input") or "").split())[:160])
             usage = (event.get("message") or {}).get("usage") or {}
             turns.append({"t": t, "input": (usage.get("input_tokens") or 0) + (usage.get("cache_read_input_tokens") or 0),
                           "output": usage.get("output_tokens") or 0})
         elif kind == "tool_call":
             arg = event.get("rawInput") if isinstance(event.get("rawInput"), dict) else {}
+            tool = str(event.get("toolName") or event.get("title") or "")
+            if ASK_PERSON.search(tool):  # SPEC S-14: an unattended run never asks a person
+                asked.append(" ".join(str(arg.get("question") or arg or "").split())[:160])
             command = str(arg.get("command") or "")
             calls[event.get("toolCallId")] = {"t": t, "command": command}
             reasons = glue_reasons(command) if command else []
@@ -171,6 +180,7 @@ def collect(out: Path, run_dir: Path | None = None) -> dict:
         "shiploop_failures": failures,
         "script_verifications": verifications(run_dir),
         "model_glue": glue,
+        "asked_user": asked,
         "improve_children": len(list(improve.iterdir())) if improve and improve.is_dir() else 0,
         "knowledge_reads": sorted({r[r.index("docs/shiploop"):] for r in reads if "docs/shiploop" in r}),
         "stages": stages,
@@ -216,7 +226,7 @@ def summary_lines(metrics: dict, top: int = 5) -> list[str]:
              f"cancelled tool calls {len(metrics['cancelled_tool_calls'])}, "
              f"ShipLoop command failures {len(metrics['shiploop_failures'])}, "
              f"script verifications {metrics['script_verifications']['passed']}/{metrics['script_verifications']['records']} passed, "
-             f"model glue {len(metrics['model_glue'])}, "
+             f"model glue {len(metrics['model_glue'])}, asked a person {len(metrics['asked_user'])}, "
              f"Improve children {metrics['improve_children']}"]
     timed = [s for s in metrics["stages"] if "turns" in s]
     if timed:

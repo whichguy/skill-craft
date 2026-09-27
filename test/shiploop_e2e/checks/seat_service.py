@@ -41,7 +41,7 @@ def free_port() -> int:
 def server(data_file: Path, port: int | None = None):
     port = port or free_port()
     env = dict(os.environ, PORT=str(port), DATA_FILE=str(data_file))
-    proc = subprocess.Popen([sys.executable, "server.py"], env=env, stdout=subprocess.DEVNULL,
+    proc = subprocess.Popen([sys.executable, "server.py"], env=env, stdin=subprocess.DEVNULL, stdout=subprocess.DEVNULL,
                             stderr=subprocess.PIPE, text=True)
     base = f"http://127.0.0.1:{port}"
     try:
@@ -90,7 +90,7 @@ def expect(got: tuple[int, dict], status: int, what: str, **fields) -> dict:
 
 
 def unit() -> None:
-    done = subprocess.run([sys.executable, "-m", "unittest"], capture_output=True, text=True, timeout=300)
+    done = subprocess.run([sys.executable, "-m", "unittest"], capture_output=True, text=True, stdin=subprocess.DEVNULL, timeout=300)
     ran = re.search(r"Ran (\d+) tests?", done.stderr)
     if done.returncode != 0 or not ran or int(ran.group(1)) < 1:
         fail("python3 -m unittest must pass and run at least one test:\n" + done.stderr[-800:])

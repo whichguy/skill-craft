@@ -476,7 +476,7 @@ def run_checks(work: Path, checks: list[str], timeout: int = 180, env: dict | No
     results = []
     for command in checks:
         try:
-            done = subprocess.run(command, shell=True, cwd=work, capture_output=True,
+            done = subprocess.run(command, shell=True, cwd=work, capture_output=True, stdin=subprocess.DEVNULL,
                                   text=True, timeout=timeout,
                                   env=dict(os.environ, E2E_CHECKS=str(HERE / "checks"), **(env or {})))
             code, output = done.returncode, (done.stdout + done.stderr)[-2000:]
@@ -717,6 +717,7 @@ def main(argv: list[str] | None = None) -> int:
                                                       "improve_children")}
               | {"script_verifications": run_metrics["script_verifications"],
                  "model_glue": len(run_metrics["model_glue"]),
+                 "asked_user": len(run_metrics["asked_user"]),
                  "shiploop_failures": len(run_metrics["shiploop_failures"]),
                  "cancelled_tool_calls": len(run_metrics["cancelled_tool_calls"])},
               "output": str(out)}
