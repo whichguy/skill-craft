@@ -127,7 +127,9 @@ def build(run_dir: str | Path, suite: dict, arms: dict[str, dict], *, frame: str
                         (run / "out").mkdir(exist_ok=True)
                         (run / "out" / f"{s['id']}_{rt}_{input_arm}_{k}.json").write_text(json.dumps(
                             {"model": "input", "text": "## Findings\nNone\n\n## Revised plan\n" + plan}) + "\n")
-                text = fill(tpl, request=request_text(s, ui), environment=env, arm=arm["text"], plan=plan)
+                # {card} (in a frame or an arm) names this runtime's platform card(s), from the suite's runtime_cards.
+                card = suite["scenarios"].get("runtime_cards", {}).get(rt, "")
+                text = fill(tpl, request=request_text(s, ui), environment=env, arm=arm["text"], card=card, plan=plan)
                 (run / "prompts" / f"{s['id']}_{rt}_{name}_{k}.txt").write_text(text); n += 1
     if input_arm and not reviews:
         raise ValueError("build: an input arm is only for review frames")

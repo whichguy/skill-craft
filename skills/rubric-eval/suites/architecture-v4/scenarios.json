@@ -811,5 +811,16 @@
   "NODE": "self-hosted Node.js with Express",
   "SF+GAS": "Salesforce DX with a separate Google Apps Script project",
   "CF+SF": "Cloudflare Workers with a Salesforce org"
+ },
+ "runtime_cards": {
+  "GAS": "references/platforms/apps-script.md",
+  "SF": "references/platforms/salesforce.md",
+  "CF": "references/platforms/cloudflare-workers.md",
+  "VERCEL": "references/platforms/vercel.md",
+  "AWS": "references/platforms/aws.md",
+  "GCP": "references/platforms/gcp.md",
+  "NODE": "references/platforms/node-express.md",
+  "SF+GAS": "references/platforms/salesforce.md and references/platforms/apps-script.md",
+  "CF+SF": "references/platforms/cloudflare-workers.md and references/platforms/salesforce.md"
  }
 }
