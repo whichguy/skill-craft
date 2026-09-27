@@ -35,6 +35,7 @@ import subprocess
 import tempfile
 
 import shiploop_git
+import shiploop_grants
 import shiploop_knowledge_home as knowledge_home
 import threading
 from contextlib import contextmanager
@@ -623,6 +624,11 @@ def _workspace_root(repo: Path, requested: Path, common: Path) -> Tuple[Path, bo
         if manifest.exists() and not manifest.is_symlink():
             return _resolved_directory(root, label="workspace root"), True
         _fail("workspace root is occupied; use a new dedicated root")
+    # Before the first write: a host sandbox that refuses either location
+    # would otherwise fail mid-creation.  Nothing exists yet to clean up.
+    shiploop_grants.require(
+        [(root.parent, "isolated worktree and run state", root.parent),
+         (common, "git worktree add and every commit", common)])
     if not root.parent.is_dir():
         # The usual layout (<beside the repo>/.shiploop-runs/<name>) needs one new
         # directory; create exactly that level, never a deeper missing tree.
@@ -637,6 +643,44 @@ def _workspace_root(repo: Path, requested: Path, common: Path) -> Tuple[Path, bo
     except OSError as exc:
         _fail(f"cannot create workspace root: {exc}")
     return _resolved_directory(root, label="workspace root"), False
+
+
+RUNS_DIR = ".shiploop-runs"
+
+
+def require_grants(workspace_root: Path) -> None:
+    """Resume-time check: a harness restarted without its grants fails here, not mid-commit."""
+    worktree = Path(workspace_root) / "worktree"
+    if not worktree.is_dir():
+        return
+    common = _common_dir(worktree)
+    parent = Path(workspace_root).parent
+    shiploop_grants.require(
+        [(Path(workspace_root) / "run", "run state", parent), (worktree, "product changes", parent),
+         (common, "every commit", common)])
+
+
+def default_root(repo: Path, stamp: str) -> Path:
+    """``<main-checkout-parent>/.shiploop-runs/<name>-<stamp>``: one stable directory to grant once.
+
+    Anchored at the main checkout, not the caller's checkout: started from a
+    linked worktree such as ``<main>/.claude/worktrees/x``, the caller's
+    parent lies inside the main checkout.
+    """
+    candidate = _resolved_directory(Path(repo), label="repository")
+    if _git(candidate, "rev-parse", "--is-inside-work-tree", readonly=True).returncode:
+        main = candidate  # an empty directory start will bootstrap here
+    else:
+        source = _repo_root(candidate)
+        common = _common_dir(source)
+        main = common.parent if common.name == ".git" else source
+    return main.parent / RUNS_DIR / f"{main.name}-{stamp}"
+
+
+def require_parent_grant(workspace_root: Path) -> None:
+    """Start-time check that needs no repository yet: the root's parent is writable."""
+    parent = Path(workspace_root).absolute().parent
+    shiploop_grants.require([(parent, "isolated worktree and run state", parent)])
 
 
 def _record(root: Path, name: str, title: str) -> Dict[str, Any]:

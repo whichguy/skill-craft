@@ -12,8 +12,10 @@ from __future__ import annotations
 import argparse
 import json
 import os
+import secrets
 import shlex
 import sys
+import time
 from pathlib import Path
 
 import shiploop_git
@@ -60,7 +62,8 @@ def workspace_command(core, argv):
     subs = parser.add_subparsers(dest="operation", required=True)
     start = subs.add_parser("start", help="isolate the current branch and begin a new run")
     start.add_argument("--repo", required=True)
-    start.add_argument("--workspace-root", required=True)
+    start.add_argument("--workspace-root", default="",
+                       help="default: <repo-parent>/.shiploop-runs/<repo>-<utc stamp>-<hex>")
     start.add_argument("--prompt", required=True)
     start.add_argument("--include-untracked", action="append", default=[])
     start.add_argument("--exclude", action="append", default=[])
@@ -74,8 +77,18 @@ def workspace_command(core, argv):
         child = subs.add_parser(name)
         child.add_argument("--workspace-root", required=True)
     args = parser.parse_args(argv)
-    root = Path(args.workspace_root).absolute()
+    import shiploop_grants as grants
+    rerun = ["python3", str(core.PACKAGE_ROOT / "scripts" / "shiploop"), "workspace", *argv]
     try:
+        if args.operation == "start" and not args.workspace_root:
+            # A new root under one stable parent, so a sandbox grant made once covers later runs.
+            stamp = time.strftime("%Y%m%d-%H%M%S", time.gmtime()) + "-" + secrets.token_hex(3)
+            args.workspace_root = str(workspace.default_root(Path(args.repo), stamp))
+            rerun += ["--workspace-root", args.workspace_root]
+            print(f"Workspace root: {args.workspace_root}")
+        root = Path(args.workspace_root).absolute()
+        if args.operation != "start":
+            workspace.require_grants(root)
         if args.operation == "start":
             need(bool(args.prompt.strip()), "prompt must not be empty")
             # Screen before workspace.prepare creates a worktree and branch.
@@ -106,6 +119,9 @@ def workspace_command(core, argv):
                 # Identical re-entry is recovery, not another capture of the
                 # source after product work or a completed integration.
                 return main(core, ["next", "--run-dir", str(root / "run")])
+            # The parent grant is proven before an empty directory becomes a
+            # repository, so a refusal leaves the source exactly as it was.
+            workspace.require_parent_grant(root)
             baseline = workspace.bootstrap_empty(Path(args.repo))
             if baseline:
                 print(f"Initialized a Git repository in the empty directory {Path(args.repo).resolve()} "
@@ -168,6 +184,9 @@ def workspace_command(core, argv):
             print(shlex.join(["python3", str(core.PACKAGE_ROOT / "scripts" / "shiploop"),
                               "next", "--run-dir", str(root / "run")]))
         return 0
+    except grants.GrantError as exc:
+        print(grants.report(exc, shlex.join(rerun)), file=sys.stderr)
+        return grants.EXIT_GRANT_NEEDED
     except (workspace.WorkspaceError, ProtocolError, store.StorageError, OSError, ValueError) as exc:
         print(f"ShipLoop workspace blocked: {exc}", file=sys.stderr)
         print("Preserve the workspace and source checkout; do not force, stash, reset, "
@@ -276,12 +295,44 @@ def hook_status(core, argv):
     return 0
 
 
+def _grant_refusal(core, raw_argv, run_dir):
+    """Exit 3 with the repair when an isolated run's grants are gone; else None."""
+    if run_dir is None or not (Path(run_dir).parent / "workspace.md").is_file():
+        return None
+    import shiploop_grants as grants
+    import shiploop_workspace as workspace
+    try:
+        workspace.require_grants(Path(run_dir).parent)
+    except grants.GrantError as exc:
+        print(grants.report(exc, shlex.join(["python3", str(core.PACKAGE_ROOT / "scripts" / "shiploop"),
+                                             *raw_argv])), file=sys.stderr)
+        return grants.EXIT_GRANT_NEEDED
+    except workspace.WorkspaceError:
+        pass  # binding problems are reported by the verb's own checks
+    return None
+
+
+def _argv_run_dir(raw_argv):
+    """The --run-dir value of a chain/lint command line, if given."""
+    for index, value in enumerate(raw_argv):
+        if value == "--run-dir" and index + 1 < len(raw_argv):
+            return Path(raw_argv[index + 1]).resolve()
+        if value.startswith("--run-dir="):
+            return Path(value.split("=", 1)[1]).resolve()
+    return None
+
+
 def main(core, argv=None):
     raw_argv = list(sys.argv[1:] if argv is None else argv)
     if raw_argv and raw_argv[0] == "hook-status":
         return hook_status(core, raw_argv[1:])
     if raw_argv and raw_argv[0] == "workspace":
         return workspace_command(core, raw_argv[1:])
+    if raw_argv and raw_argv[0] in ("chain", "lint"):
+        # Both write run state; a lost grant gets the same repair as next.
+        refused = _grant_refusal(core, raw_argv, _argv_run_dir(raw_argv))
+        if refused is not None:
+            return refused
     if raw_argv and raw_argv[0] == "chain":
         import shiploop_chain
         return shiploop_chain.main(core, raw_argv[1:])
@@ -390,6 +441,10 @@ def main(core, argv=None):
         print(f"error: no ShipLoop run directory at {root}; check --run-dir",
               file=sys.stderr)
         return 2
+    if args.command not in ("init", "status", "report", "context"):
+        refused = _grant_refusal(core, raw_argv, root)
+        if refused is not None:
+            return refused
     try:
         with core.run_lock(root):
             if (root / "state.md").exists():
