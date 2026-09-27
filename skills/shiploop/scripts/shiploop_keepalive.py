@@ -239,10 +239,15 @@ COMMAND_RUN_DIR = re.compile(
 
 
 def command_run_dir(payload: Any) -> str | None:
+    """The run a driving command names, read from the command only, never its output.
+
+    Output text (a log, a transcript, a packet that prints its own callbacks)
+    names runs the session is only reading.
+    """
+    command = invoking_command(payload) if isinstance(payload, Mapping) else None
     found = None
-    for text in _strings(payload):
-        for match in COMMAND_RUN_DIR.finditer(text):
-            found = match[1]
+    for match in COMMAND_RUN_DIR.finditer(command or ""):
+        found = match[1]
     return found
 
 

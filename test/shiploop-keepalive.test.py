@@ -340,6 +340,13 @@ class HookDecisionTests(KeepaliveTestCase):
                     payload[key]["command"] = command
             self.hook("observe", host, payload)
             self.assertIsNone(keepalive.load_binding(host, f"reader-{host}"), host)
+        # Callback text in the output of a reading command names the run but must not bind either.
+        dump = self.payload("claude", "observe", "dumper")
+        dump["tool_input"]["command"] = "python3 - < summarize-events.py"
+        dump["tool_response"]["stdout"] = (f"python3 shiploop improve-bind --run-dir={self.run_dir} "
+                                           "--action=nav-1 --skill-card=/x/SKILL.md")
+        self.hook("observe", "claude", dump)
+        self.assertIsNone(keepalive.load_binding("claude", "dumper"))
         # The same live marker from a driving command still binds.
         self.hook("observe", "claude", self.payload("claude", "observe", "driver"))
         self.assertIsNotNone(keepalive.load_binding("claude", "driver"))
