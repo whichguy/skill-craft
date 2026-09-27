@@ -41,9 +41,10 @@ Completed: 1 item; W1 "Config loader refactor": loader split, 12 tests added
    `status.md` during an interrupted save can show the previous step.
 3. **Host status hook**: `scripts/shiploop-status-hook` reads the block from a
    ShipLoop command's own stdout and puts a two-line summary in the hook's
-   `systemMessage`, which the Claude Code terminal CLI and the Codex TUI show
-   to the user as a warning (the Claude desktop app and the VS Code panel do not
-   show hook messages at all):
+   `systemMessage`. Only the Claude Code terminal CLI shows it, in dim text
+   after `PostToolUse:Bash says:`; the Claude desktop app, the VS Code panel
+   and the Codex TUI (0.157.1) drop a PostToolUse `systemMessage`, and the
+   model never sees it:
 
    ```text
    ShipLoop ▶ Work items > W2 "Add --version flag" (2 of 4) > Tests first > test-author
@@ -52,8 +53,8 @@ Completed: 1 item; W1 "Config loader refactor": loader split, 12 tests added
 
    The second line takes `Waiting on you` or `Stopped` in place of `Next` when
    the run waits or stops. The full block stays in `status.md` and `status`. A marketplace install sets it up; see
-   [host hooks](#host-hooks). At a milestone the hook shows the plain-text
-   narrative instead.
+   [host hooks](#host-hooks). At a milestone the hook shows the narrative
+   instead, with terminal bold in place of the Markdown.
 
 ## Run narrative
 
@@ -101,7 +102,7 @@ The section's first line tells the owner who shows it:
 
 | Where the owner runs | First line | Who shows it |
 |---|---|---|
-| Claude Code terminal CLI (`CLAUDE_CODE_ENTRYPOINT=cli`) | the host's hook already shows it; do not repeat it | the status hook, as plain text |
+| Claude Code terminal CLI (`CLAUDE_CODE_ENTRYPOINT=cli`) | the host's hook already shows it; do not repeat it | the status hook, as styled terminal text |
 | every other host and surface, including the Claude desktop app, the VS Code panel, Codex, Grok, Cursor and OpenCode | show it exactly as written, as Markdown in your own message | the owner, once per milestone |
 
 Pasting the narrative costs the owner its output tokens at each milestone,
@@ -124,7 +125,7 @@ generated hook file per host, so installing the ShipLoop plugin sets it up:
 | Host | Package file | After installing | Shows the summary to you |
 |---|---|---|---|
 | Claude Code | `hooks/hooks.json` | active once the plugin is enabled | terminal CLI only; the desktop app and the VS Code panel drop hook messages |
-| Codex | `hooks/codex.json` (manifest `hooks`) | review and trust it once in `/hooks` | yes, as a UI warning |
+| Codex | `hooks/codex.json` (manifest `hooks`) | review and trust it once in `/hooks` | no: the 0.157.1 TUI drops a PostToolUse `systemMessage` (measured 2026-09-27) |
 | Grok | `hooks/hooks.json` (Claude format) | install with `--trust` | no: Grok never shows a successful hook's output |
 
 On Grok, a same-named plugin from Claude's marketplace clone

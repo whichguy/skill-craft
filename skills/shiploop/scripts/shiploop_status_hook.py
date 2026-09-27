@@ -22,6 +22,9 @@ import shiploop_navigator_v3_prompts as guidance3  # noqa: E402
 
 BEGIN = "=== ShipLoop status ==="
 END = "=== end ShipLoop status ==="
+# The Claude Code terminal CLI keeps a hook message's own SGR styling (measured
+# on 2.1.283); host text in the narrative is already stripped of control codes.
+BOLD, PLAIN = "\x1b[1m", "\x1b[22m"
 NARRATIVE_BEGIN = "=== ShipLoop narrative ==="
 NARRATIVE_END = "=== end ShipLoop narrative ==="
 HEADER = "ShipLoop navigator | "
@@ -94,9 +97,12 @@ def _output(response: Any, *keys: str) -> str | None:
     return None
 
 
-# Hosts whose after-shell hook output can reach the user.  Grok never shows a
-# successful PostToolUse hook's output and Cursor's afterShellExecution has no
-# output field, so there the in-packet block remains the display.
+# Payload shapes whose after-shell hook output can reach the user.  Claude Code
+# and Codex share one shape; of their surfaces only the Claude Code terminal CLI
+# displays the message (the desktop app, the VS Code panel and the Codex 0.157.1
+# TUI drop it), which is why the packet itself routes the narrative to the owner
+# everywhere else.  Grok never shows a successful PostToolUse hook's output and
+# Cursor's afterShellExecution has no output field.
 DISPLAY_HOSTS = {"claude-or-codex"}
 
 
@@ -194,9 +200,13 @@ def narrative_text(stdout: str) -> str | None:
         return None
     lines = []
     for line in body[0].strip().splitlines():
-        line = line.replace("**", "").replace("`", "")
         if line.startswith("#"):
-            line = line.lstrip("#").strip()
+            line = BOLD + line.lstrip("#").strip().replace("**", "") + PLAIN
+        else:
+            # Markdown bold becomes terminal bold; code spans lose their backticks.
+            parts = line.replace("`", "").split("**")
+            line = "".join(part if index % 2 == 0 else BOLD + part + PLAIN
+                           for index, part in enumerate(parts))
         lines.append(line)
     text = "\n".join(lines).strip()
     return re.sub(r"\n{3,}", "\n\n", text) or None

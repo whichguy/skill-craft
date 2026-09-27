@@ -191,8 +191,11 @@ class TimelineAndPacketTests(unittest.TestCase):
                    "tool_input": {"command": f"python3 {self.cli} next --run-dir={self.run_dir}"},
                    "tool_response": {"stdout": cli_head, "stderr": ""}}
         message = hook.status_message(payload)
-        self.assertTrue(message.startswith("\U0001f6a2 ShipLoop — Add a --version flag."))
+        # Terminal bold replaces Markdown: the Claude Code CLI keeps a hook message's SGR codes.
+        self.assertTrue(message.startswith(hook.BOLD + "\U0001f6a2 ShipLoop — Add a --version flag." + hook.PLAIN))
+        self.assertIn(hook.BOLD + "Preparation 0/7" + hook.PLAIN, message)
         self.assertNotIn("**", message)
+        self.assertNotIn("`", message)
         self.assertNotIn("Show the user", message)
         self.assertNotIn(narrative.BEGIN, message)
 

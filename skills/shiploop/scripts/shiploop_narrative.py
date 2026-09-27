@@ -1,8 +1,8 @@
 """Render ShipLoop's run narrative: what is achieved, what is happening, what comes next.
 
 The navigator gathers the facts from saved state (``narrative_facts``); this
-module only formats them, as Markdown for hosts that show the model's own text
-and as plain text for a host status hook. Every value is already cleaned and
+module only formats them as Markdown; the status hook turns that Markdown into
+styled terminal text for the one host that displays hook messages. Every value is already cleaned and
 capped by the navigator; nothing here reads files or run state.
 """
 
@@ -111,21 +111,3 @@ def markdown(facts: Mapping[str, Any]) -> str:
     if pace:
         lines.append(f"**⏱ Pace** — {pace}")
     return "\n".join(lines).rstrip()
-
-
-def plain(facts: Mapping[str, Any]) -> str:
-    _, phases_plain = _phase_line(facts["phases"])
-    lines = [f"ShipLoop — {facts['goal']}", phases_plain]
-    for heading, rows in _rows(facts):
-        name = heading.split(" ", 1)[1]
-        if isinstance(rows, str):
-            lines.append(f"{name}: {rows}")
-        elif name == "Now":
-            lines.append(f"Now: {rows[0][0]}: {rows[0][1]}")
-        else:
-            lines.append(f"{name}: " + " | ".join(f"{label} — {text}" if text else label
-                                               for label, text in rows))
-    pace = pace_line(facts.get("pace"))
-    if pace:
-        lines.append(f"Pace: {pace}")
-    return "\n".join(lines)
