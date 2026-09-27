@@ -122,3 +122,24 @@ at the guard that decides it, and state a rule for every form it applies to.
 Correction (owner): "Luna" means **GPT-6 Luna** (`gpt-6-luna`) at xhigh. The
 Luna T1 above ran `gpt-5.6-luna` (a stale local model reference), so it does
 not measure GPT-6 Luna; T1 is rerun on `gpt-6-luna` (rebuilds/l2).
+
+## T3 ShipLoop on marked, Claude Sonnet 5 (partial), 2026-09-27
+
+Released ShipLoop 0.44.1 (checkout build), seeded evidence-stripped spec, same
+oracle. Session 1 ended on an account rate limit (240 turns, $10.29); resumed
+in place with `--resume-run`; the resumed session stopped at its $30 cap.
+Total 701 turns, $36.47, ~88 min, 0 model glue. ShipLoop paused cleanly after
+**work item 1 of 4** (core CommonMark engine) and starting item 2.
+
+- Oracle on the product at that point: **1,171 / 1,759 (66.6%)**, vs the
+  plain Sonnet session's 82.5% for $8.88 in 37 min. Items 2-4 (GFM variants
+  and extensions, pedantic, CLI/extension surfaces) were not built.
+- Costliest stages: implement 65 turns/16.0 min, step-plan 59/8.7,
+  static-checks 54/5.0, implement 49/8.7, spec 37/4.6.
+- Not resumed: the owner moved builders to GPT-6 Luna, and finishing three
+  more items on Sonnet would cost real spend; the GPT-6 Luna max pair
+  carries the ShipLoop comparison.
+
+Waste review (owner, 15:20): the Luna xhigh ShipLoop run was stopped in
+preparation (superseded by the max pair); the Luna xhigh T1 finishes as the
+xhigh-vs-max datapoint.
