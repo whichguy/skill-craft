@@ -409,6 +409,13 @@ class ShipLoopWorkspaceTests(unittest.TestCase):
         # Already a repository now: a second call does nothing.
         self.assertIsNone(self._call(workspace.bootstrap_empty, empty))
 
+    def test_one_missing_workspace_parent_level_is_created_but_not_a_deeper_tree(self) -> None:
+        record = self._call(workspace.prepare, self.repo, self.base / ".shiploop-runs" / "feature")
+        self.assertTrue(Path(record["worktree"]).is_dir())
+        with self.assertRaises(workspace.WorkspaceError):
+            self._call(workspace.prepare, self.repo, self.base / "missing" / "deeper" / "root")
+        self.assertFalse((self.base / "missing").exists())
+
     def test_bootstrap_leaves_non_empty_and_nested_directories_alone(self) -> None:
         loose = self.base / "loose files"
         loose.mkdir()

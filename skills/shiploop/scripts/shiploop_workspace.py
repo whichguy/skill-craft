@@ -621,7 +621,14 @@ def _workspace_root(repo: Path, requested: Path, common: Path) -> Tuple[Path, bo
             return _resolved_directory(root, label="workspace root"), True
         _fail("workspace root is occupied; use a new dedicated root")
     if not root.parent.is_dir():
-        _fail("workspace root parent does not exist")
+        # The usual layout (<beside the repo>/.shiploop-runs/<name>) needs one new
+        # directory; create exactly that level, never a deeper missing tree.
+        if root.parent.exists() or root.parent.is_symlink() or not root.parent.parent.is_dir():
+            _fail("workspace root parent does not exist")
+        try:
+            root.parent.mkdir(mode=0o700)
+        except OSError as exc:
+            _fail(f"cannot create workspace root parent: {exc}")
     try:
         root.mkdir(mode=0o700)
     except OSError as exc:
