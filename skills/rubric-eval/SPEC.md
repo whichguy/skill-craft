@@ -134,7 +134,7 @@ than a run this round (the unreviewed plans of a review experiment) is marked
 Every model is named by a spec, `host:model@effort`, or by an alias that pins
 one (`scripts/model_call.py`): `grok` = `grok:grok-4.7@medium`, `opus` =
 `claude:claude-opus-5-5@medium`, `sonnet` = `claude:sonnet`, `luna` =
-`codex:gpt-5.6-luna@xhigh`. Manifests and verdicts record the resolved spec, so
+`codex:gpt-6-luna@xhigh`. Manifests and verdicts record the resolved spec, so
 an alias and its spec are one model, and a round cannot silently mix hosts,
 models or efforts. `model_call` gives every host one interface (text, tokens,
 seconds, and what the call touched outside its directory) and holds all
