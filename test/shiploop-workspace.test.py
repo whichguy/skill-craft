@@ -668,6 +668,30 @@ class ShipLoopWorkspaceTests(unittest.TestCase):
         self.assertEqual((self.repo / ".git" / "index").read_bytes(), drift_index)
         self.assertEqual(self._common_object_snapshot(), drift_objects)
 
+    def test_files_left_uncommitted_are_committed_before_the_return_so_it_fast_forwards(self) -> None:
+        record = self._prepare(name="leftover files")
+        root = self.base / "leftover files"
+        worktree = self._worktree(record)
+        (worktree / "app.txt").write_text("work item\n", encoding="utf-8")
+        self._commit_all(worktree, "work item")
+        (worktree / "system").mkdir()
+        (worktree / "system" / "check.js").write_text("late system test\n", encoding="utf-8")
+        (worktree / "settings.env").write_text("Authorization: Bearer 0123456789abcdefghij\n", encoding="utf-8")
+        evidence = worktree / ".shiploop-improve" / "child" / "review.md"
+        evidence.parent.mkdir(parents=True)
+        evidence.write_text("run evidence\n", encoding="utf-8")
+        committed = self._call(workspace.commit_leftovers, root)
+        self.assertEqual(committed.paths, ["system/check.js"])
+        self.assertEqual(committed.skipped, ["settings.env"])
+        self.assertTrue(evidence.is_file())
+        (worktree / "settings.env").unlink()
+        self._plan(root)
+        self._resolve_plan(root)
+        receipt = self._execute(root)
+        self.assertEqual(receipt["kind"], "fast-forward-merge")
+        self.assertEqual((self.repo / "system" / "check.js").read_text(encoding="utf-8"), "late system test\n")
+        self.assertEqual(self._call(workspace.commit_leftovers, root).commit, "")  # nothing left
+
     def test_clean_candidate_fast_forwards_when_every_path_is_kept(self) -> None:
         record = self._prepare(name="clean fast forward")
         root = self.base / "clean fast forward"

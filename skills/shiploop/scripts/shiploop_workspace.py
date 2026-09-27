@@ -1104,6 +1104,34 @@ RETURN_POLICY = (
 
 
 @_locked_existing_root
+def commit_leftovers(workspace_root: Path) -> shiploop_git.Committed:
+    """Commit product files still uncommitted in the candidate before the return is planned.
+
+    A file written after the last work item (a system test, a release note) is
+    otherwise untracked at return, which forces the working-tree route and keeps
+    every run commit off the user's branch.  Committing it here lets the reviewed
+    plan fast-forward; a path the review then excludes still falls back to the
+    working-tree route.  Run evidence, protected paths, caller exclusions and
+    files the credential screen flags are never committed.
+    """
+    root = _resolved_directory(Path(workspace_root), label="workspace root")
+    manifest = _manifest(root)
+    worktree = _resolved_directory(Path(manifest["worktree"]), label="workspace worktree")
+    if _branch(worktree) != manifest["branch"]:
+        _fail("workspace branch changed after preparation")
+    tracked = [name for name in _git_bytes(worktree, "diff", "--name-only", "-z", "HEAD").decode(
+        "utf-8", "surrogateescape").split("\0") if name]
+    paths = sorted({*tracked, *(row["path"] for row in _untracked(worktree))})
+    chosen = [path for path in paths if not _forbidden(path) and not _matches_exclusion(path, manifest["excluded"])]
+    if not chosen:
+        return shiploop_git.Committed("", [], [])
+    try:
+        return shiploop_git.commit_paths(worktree, chosen, "chore(shiploop): commit files written after the last "
+                                         "work item, before the return")
+    except shiploop_git.CommitError as exc:
+        _fail(str(exc))
+
+
 def plan_return(workspace_root: Path) -> Dict[str, Any]:
     """Generate the exact reviewed return surface; no source mutation occurs."""
     root = _resolved_directory(Path(workspace_root), label="workspace root")

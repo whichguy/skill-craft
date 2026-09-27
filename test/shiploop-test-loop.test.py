@@ -375,6 +375,9 @@ class TestLoopTests(unittest.TestCase):
         self.assert_refused(dict(DONE, consumer_entry={"how": "App Launcher: Fleet command",
                                                        "sources": ["force-app/main/default/tabs/Fleet.tab-meta.xml"]}),
                             "consumer_entry sources do not exist in the repository: force-app/main/default/tabs/")
+        self.assert_refused(dict(DONE, consumer_entry={"how": "run the tool",
+                                                       "sources": [str(self.repo / "missing.py")]}),
+                            "must be repository-relative paths")  # refused by name, never globbed (pathlib raises)
         self.complete(dict(DONE, consumer_entry={"how": "run python3 a.py", "sources": ["a.py"]},
                            consumer_checks=[], consumer_checks_na="Synthetic fixture."))
 
