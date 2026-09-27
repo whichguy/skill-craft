@@ -337,6 +337,46 @@ Anchor: S-8, S-13, Purpose. Evidence: rubric rerun; breadth suite.
 - A `loop-start` verb now: no evidence of a start problem; churn and adapter
   risk without an anchor in run evidence.
 
+### P10 Measure the run narrative (harness; S-15) — requested by the owner 2026-09-27
+ShipLoop 0.44.0 renders a milestone narrative (achieved, now, ahead, pace)
+and asks each step for a one-line `headline`. Headless E2E hosts never set
+`CLAUDE_CODE_ENTRYPOINT=cli`, so every milestone packet asks the model to
+show the narrative as written.
+
+Change (harness only): `metrics.narrative` counts, from the event stream,
+the narratives ShipLoop emitted for the model to show, how many the model
+showed (the heading line appears in its following text) and how many it
+showed verbatim (every narrative line appears), and names the stages it
+skipped; from the run's result records, the share of accepted results that
+carry a headline. It is written to metrics.json, result.json and each
+baseline row, printed in the report and compared with the case's previous
+row. Not a verdict yet.
+
+Adversarial evaluation:
+- *Packet text leaks into metrics or reports* -> **mitigated**: only counts
+  and stage names are kept; tested.
+- *A host splits text into chunks (Grok) or blocks (Claude), so a shown
+  narrative is missed* -> **mitigated**: all assistant text between one
+  emission and the next is joined before matching; both formats tested.
+- *Repeated tool updates (Grok) count one packet twice* -> **mitigated**:
+  one emission per tool call; tested.
+- *The model pastes an older narrative, or only the heading* ->
+  **mitigated**: `shown` and `verbatim` are separate counts; verbatim needs
+  every line of that emission.
+- *Gamed: the model pastes every narrative and the run gets longer* ->
+  **accepted**: pasting is what S-15 asks for; its cost appears in output
+  tokens and turns, compared per case.
+- *A run on a ShipLoop before 0.44.0 reads as zero shown* -> **mitigated**:
+  zero emitted reads as "no narrative", not as a failure.
+- *Making it a verdict too early fails runs that ship correct software* ->
+  **mitigated**: scored beside reliability until each style has a baseline;
+  promotion to a verdict goes through Change admission.
+
+Anchor: S-15 (owner request). Non-regression: verdicts, glue, failures and
+cost are unchanged; the metric only reads existing files. Evidence: hermetic
+metrics tests with Claude and Grok event streams; the next focused-suite run
+records the first baseline.
+
 ## Status
 
 - P6 in progress (2026-09-27): `csv-report` and `seat-reservations` cases,
@@ -370,6 +410,8 @@ Anchor: S-8, S-13, Purpose. Evidence: rubric rerun; breadth suite.
    case's baseline.
 6. P9 (unattended by default; design approved), then P8 (engine neutrality) after owner review, confirmed by the rubric rerun and
    `breadth`.
+6a. P10 (narrative metric, harness only) lands with the next focused-suite
+   run, which records each style's first narrative baseline.
 7. Later, each through Change admission: tool knowledge into one catalog;
    Grok refusal probe (host-neutral outcome); Until Loop short output
    upstream.

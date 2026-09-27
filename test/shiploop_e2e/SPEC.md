@@ -121,6 +121,16 @@ person does it prompt them: it ends its turn with the question (the
 It never blocks on standard input and never asks as a first resort (owner,
 2026-09-27).
 
+**S-15 The user can follow the run without the model composing status.** What
+the user sees about progress is rendered by ShipLoop's scripts from saved
+state: a short status at every step and, at milestones, a narrative of what is
+achieved, what is happening, what comes next and the observed pace. Each
+accepted step states its own one-line headline for that narrative. Where the
+host displays hook output, a hook shows it; everywhere else the model shows the
+script's text as written, once per milestone. The model never composes,
+paraphrases or estimates progress itself, and never repeats unchanged status
+(owner, 2026-09-27).
+
 ## Change admission
 
 No change is planned, let alone made, before its negative consequences have
@@ -131,7 +141,7 @@ the plan item and summarised in the commit message:
 - **Adversarial evaluation first.** Before the change is planned, attack it:
   argue the case against it as a hostile reviewer would. At minimum ask how it
   could:
-  - weaken any clause S-1..S-14, including ones it does not target;
+  - weaken any clause S-1..S-15, including ones it does not target;
   - break another style, host, language or platform than the one that
     motivated it;
   - fail silently, or pass the tests while failing a live run;
@@ -204,6 +214,7 @@ on quickly before the breadth of everything is checked.
 | S-11 | `committed` verdict; follow-on retention checks (earlier files, spec IDs, tests grew) |
 | S-8, S-12, S-13 | review of the diff under test: no technology in prompts, no second implementation |
 | S-14 | host and checks run with standard input closed; `asked_user` (host ask-a-person tool calls); a run ending blocked or awaiting a person is reported as such, never resumed as if answered |
+| S-15 | `narrative`: milestone narratives ShipLoop emitted for the model to show, how many the model showed (heading present) and showed verbatim (every line), the stages whose narrative it skipped, and the share of accepted step results that carry a headline. Scored beside reliability, not a verdict, until a style has a baseline |
 
 Verdicts (invoked, plugin, process, shiploop, committed, checks) must all pass.
 Reliability (sessions, cancellations, failures) and cost (turns, dollars, per

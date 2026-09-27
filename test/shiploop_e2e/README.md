@@ -26,9 +26,10 @@ and costs money; none of it runs in default CI.
 
 **Start with [SPEC.md](SPEC.md).** It is the standing specification every run,
 review and fix is judged against: the purpose of this loop (verify ShipLoop, not
-the probe product) and the design clauses S-1..S-13 (scripts own the graph and
+the probe product) and the design clauses S-1..S-15 (scripts own the graph and
 state, packets stand alone and stay small, prompts stay technology-agnostic,
-one implementation per mechanism, ...). `review.py` and `iterate.py` load it as
+one implementation per mechanism, unattended by default, the user follows the
+run through script-rendered status, ...). `review.py` and `iterate.py` load it as
 their premise; learnings entries cite its clause IDs.
 
 ## One run
