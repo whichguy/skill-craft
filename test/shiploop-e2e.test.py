@@ -631,6 +631,9 @@ class MetricsTest(unittest.TestCase):
             'node --test > "/x/.shiploop-runs/a/run/notes/test-green.txt" 2>&1': [],
             'cp /tmp/r.txt /x/wt/.shiploop-improve/n/a/reviews/checks.md': [],
             'echo x > /x/.shiploop-runs/a/run/results/nav-1.md': ["shell write into a ShipLoop-owned path"],
+            # a file of the model's own that merely ends like a ShipLoop name
+            'python3 /p/shiploop improve-start --action=a --opening=/x/o.md > /tmp/plan-start.json': [],
+            'cp /tmp/x.json /x/wt/.shiploop-improve/n/a/start.json': ["shell write into a ShipLoop-owned path"],
         }
         for command, reasons in cases.items():
             with self.subTest(command=command):

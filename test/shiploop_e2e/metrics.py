@@ -24,7 +24,7 @@ SHIPLOOP_COMMAND = re.compile(r"shiploop\S*\s+(?P<verb>complete|next|improve-[\w
 # The execution worktree under a workspace root is product space, not ShipLoop's.
 SHIPLOOP_OWNED = re.compile(r"(?:\.shiploop-improve|/\.shiploop(?:/|[\"'\s]|$)|\.shiploop-runs/[^/\s\"']+/run\b|"
                             r"/run/(?:state\.md|results|packets|tests|quality)|until-loop|"
-                            r"packet\.json|start\.json|parent-return\.md|terminal\.json)")
+                            r"/(?:packet|start)\.json\b|/parent-return\.md\b|-terminal\.json\b)")
 # Host tools that put a question to a person (Grok ask_user_question, Claude AskUserQuestion).
 ASK_PERSON = re.compile(r"ask_?user", re.I)
 # Files the packets ask the model itself to write (its result, evidence notes, Improve
