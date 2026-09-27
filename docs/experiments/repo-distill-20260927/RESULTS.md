@@ -94,3 +94,27 @@ export `Mdkit`/`mdkit`. Scoring now loads the rebuild through an alias module
 `ALIASES=`) that falls back to the new name only where the original name is
 missing. Attribution's first attempt read nothing: its inputs were symlinks
 outside the sandboxed judge's directory; they are now copied in.
+
+## T2 attribution of the Sonnet T1 rebuild, 2026-09-27
+
+One Opus 5.5 judge (medium), copied inputs: 621 s, $24.74 (above the $15
+cap passed to the CLI: the cap is checked after the fact, plan item 42).
+Every one of the 307 failing checks attributed exactly once, 26 root causes:
+
+- **distill:error — 2 checks, 1 cause.** D-658 says a duplicate link
+  definition overwrites the earlier one; the original keeps the first
+  (`src/Lexer.ts:218`). The rebuild followed the claim. Verified by hand.
+- **build:implementation — 305 checks, 25 causes.** Largest: emphasis
+  without the delimiter stack (70), link masking left as a no-op stub (34,
+  verified: `maskReflinks` returns its input), block grammar (32), HTML
+  blocks (27), block quotes (24), a list/tab crash hidden by silent mode (17),
+  fenced code (17), lists (14), pedantic mode (13), ReDoS timing (7).
+- **distill:omission / ambiguity, oracle, unattributed: 0.**
+
+Reading: the spec carried the product (0.7% of failures trace to it). The
+builder's losses share one generic shape: it did not turn the spec's named
+conformance suites and stated claims into tests before finishing, and it
+shipped a stub. That is exactly what ShipLoop's test-first and Until-Loop
+stages are meant to prevent, which T3 measures on the same spec and model.
+Two judge fixes also carry a distiller lesson: verify a code-derived claim
+at the guard that decides it, and state a rule for every form it applies to.
