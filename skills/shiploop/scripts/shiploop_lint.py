@@ -2012,7 +2012,7 @@ def _not_run(top: Path, catalog: Mapping[str, Any], tools: Mapping[str, Tuple[Op
                        "download hook environments, and ShipLoop never installs or downloads tools)")
     if not entries:
         return []
-    return ["Not run by ShipLoop (ask the user before running any of these):"] + _data("\n".join(entries))
+    return ["Not run by ShipLoop (they may rewrite files or download; the run does not start them, and the handoff lists them for the user):"] + _data("\n".join(entries))
 
 
 def _recommendations(top: Path, catalog: Mapping[str, Any], tools: Mapping[str, Tuple[Optional[str], str]],

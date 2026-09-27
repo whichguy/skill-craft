@@ -131,7 +131,8 @@ a changed file is reported as not compared with the base and never gates.
 
 ## Not run by ShipLoop
 
-Listed with "ask the user before running": `package.json` scripts other than
+Listed as not run (the run does not start them and the handoff lists them for the
+user, since runs are unattended): `package.json` scripts other than
 `lint` that look like lint or format scripts (a format script may rewrite
 files), Makefile targets named `lint-*` or `format-check`, and pre-commit hooks
 (pre-commit may download hook environments). Missing tools produce install

@@ -720,7 +720,7 @@ class LintPassTests(Fixture):
         self.edit({"a.py": "x = 2\n"})
         payload = self.run_pass()
         block = payload["block"]
-        self.assertIn("Not run by ShipLoop (ask the user before running any of these):", block)
+        self.assertIn("Not run by ShipLoop (they may rewrite files or download; the run does not start them, and the handoff lists them for the user):", block)
         self.assertIn("| npm run format (package.json scripts.format; not run: only the script named lint runs", block)
         self.assertIn("| make format-check (Makefile; not run: only the lint target runs, first line: echo fc)", block)
         self.assertNotIn("make check", block)
