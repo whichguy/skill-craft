@@ -117,6 +117,14 @@ thought loop talking to an imagined user). The most dire tests, in order:
   up (the E2E harness needs a Codex host for Luna). The automatic Claude T3
   is held until both T1s score.
 
+Owner, 14:35: move the builder to GPT-6 (Luna, `gpt-6-luna` at xhigh) instead
+of Sonnet. The Sonnet T3 already running finishes as the matched pair of the
+Sonnet T1; a GPT-6 Luna pair runs beside it on Codex credits: T1 rerun
+(`rebuilds/l2`) and T3 through the harness's Codex host (`--host codex
+--model gpt-6-luna --effort xhigh`; the host's own defaults are the stale
+`gpt-5.6-luna`/`high`, so both are passed explicitly). Later rounds default
+to GPT-6 Luna.
+
 Deferred: distill round 2, the second repository, repeats. Stall detector
 (no tool call for N minutes = failed step) before any unattended run.
 
