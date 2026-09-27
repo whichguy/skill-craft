@@ -3,6 +3,12 @@
 
     spec_judge.py sample --repo REPO --spec SPEC [--architecture FILE] --out DIR [--n 40] [--seed 1]
     spec_judge.py score --out DIR
+    spec_judge.py combine --out DIR --from DIR_A --from DIR_B
+
+`combine` merges independent judges of the same sample: per item it keeps
+the worse verdict (an error any judge demonstrates with evidence stands),
+except that coverage shown with requirement IDs beats a failure to find it;
+then it scores the result into DIR.
 
 `sample` does the mechanical half and draws the samples the judge verdicts:
 it checks every requirement (`R-n`) cites `path:line` anchors that resolve in
@@ -199,6 +205,50 @@ def cmd_score(args) -> int:
     return 0 if grade["complete"] else 1
 
 
+# Worse first: an item keeps the first of these that any judge gave it.
+SEVERITY = {
+    "requirements": ("wrong", "partial", "unverifiable", "correct"),
+    "tests": ("missing", "partly", "covered", "internal"),
+    "sources": ("missing", "partly", "covered", "internal"),
+    "readme": ("missing", "partly", "covered", "not-a-requirement"),
+    "architecture": ("answered-false", "absent", "vague", "answered-true"),
+}
+KEYS = {"requirements": ("id",), "tests": ("test", "file"), "sources": ("file",), "readme": ("section",),
+        "architecture": ("item",)}
+
+
+def cmd_combine(args) -> int:
+    import shutil
+    sources = [Path(d) for d in args.sources]
+    args.out.mkdir(parents=True, exist_ok=True)
+    for name in ("sample.json", "spec.md", "architecture.md"):
+        if (sources[0] / name).is_file():
+            shutil.copy(sources[0] / name, args.out / name)
+    if (sources[0] / "repo").is_dir() and not (args.out / "repo").exists():
+        (args.out / "repo").symlink_to((sources[0] / "repo").resolve())
+    judged = [json.loads((d / "verdicts.json").read_text()) for d in sources]
+    merged: dict = {}
+    for section, order in SEVERITY.items():
+        items: dict = {}
+        for verdicts in judged:
+            for v in verdicts.get(section, []):
+                key = tuple(v.get(k) for k in KEYS[section])
+                rank = order.index(v.get("verdict")) if v.get("verdict") in order else len(order)
+                # Coverage shown with requirement IDs beats a failure to find it.
+                if section in ("tests", "sources", "readme") and v.get("verdict") == "covered" and v.get("ids"):
+                    rank = -1
+                best = items.get(key)
+                if best is None or rank < best[0]:
+                    items[key] = (rank, dict(v))
+                flags = items[key][1]
+                flags["leaks"] = flags.get("leaks") or v.get("leaks") or False
+                flags["restates_behaviour"] = flags.get("restates_behaviour") or v.get("restates_behaviour") or False
+        merged[section] = [v for _, v in items.values()]
+    (args.out / "verdicts.json").write_text(json.dumps(merged, indent=2) + "\n")
+    args.out_dir = args.out
+    return cmd_score(args)
+
+
 def main() -> int:
     ap = argparse.ArgumentParser()
     sub = ap.add_subparsers(dest="cmd", required=True)
@@ -211,8 +261,11 @@ def main() -> int:
     s.add_argument("--seed", type=int, default=1)
     c = sub.add_parser("score")
     c.add_argument("--out", type=Path, required=True)
+    m = sub.add_parser("combine")
+    m.add_argument("--out", type=Path, required=True)
+    m.add_argument("--from", dest="sources", action="append", required=True)
     args = ap.parse_args()
-    return cmd_sample(args) if args.cmd == "sample" else cmd_score(args)
+    return {"sample": cmd_sample, "score": cmd_score, "combine": cmd_combine}[args.cmd](args)
 
 
 if __name__ == "__main__":

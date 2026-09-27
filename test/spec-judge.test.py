@@ -88,5 +88,26 @@ class SpecJudgeTest(unittest.TestCase):
         self.assertTrue(any(p.startswith("tests:") for p in grade["problems"]))
 
 
+    def test_combine_keeps_proven_errors_and_proven_coverage(self):
+        a, b = self.verdicts(), self.verdicts()
+        b["requirements"][0]["verdict"] = "partial"          # b proves an error a missed
+        a["tests"][0].update(verdict="covered", ids=["R-1"])   # a proves coverage b could not find
+        dirs = []
+        for name, verdicts in (("a", a), ("b", b)):
+            d = self.out.parent / name
+            d.mkdir()
+            (d / "sample.json").write_text((self.out / "sample.json").read_text())
+            (d / "verdicts.json").write_text(json.dumps(verdicts))
+            dirs += ["--from", str(d)]
+        rc, grade = call("combine", "--out", str(self.out.parent / "combined"), *dirs)
+        self.assertEqual(rc, 0, grade)
+        merged = json.loads((self.out.parent / "combined" / "verdicts.json").read_text())
+        req = {v["id"]: v["verdict"] for v in merged["requirements"]}
+        self.assertEqual((req["R-1"], req["R-2"]), ("partial", "wrong"))
+        first = self.sample["tests"][0]
+        test = next(v for v in merged["tests"] if (v["test"], v["file"]) == (first["test"], first["file"]))
+        self.assertEqual(test["verdict"], "covered")
+
+
 if __name__ == "__main__":
     unittest.main()

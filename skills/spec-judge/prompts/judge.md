@@ -17,8 +17,10 @@ anchor check; it is context, not something to redo.
 
 ## Verdicts
 
-**requirements** (over-spec). Read the requirement, follow its anchors and
-check the code, tests or docs that decide it.
+**requirements** (over-spec). Read the requirement and **every bullet under
+it**, follow each anchor, and check each statement against the code, tests or
+docs that decide it; a wrong detail in any bullet makes the requirement
+`partial`, and a wrong citation counts too.
 `correct` every statement holds · `partial` the main statement holds but a
 detail is wrong or missing (name it) · `wrong` the main statement does not
 hold · `unverifiable` the repository does not decide it. Separately set
