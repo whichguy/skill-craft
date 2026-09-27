@@ -218,7 +218,11 @@ def last_session_id(events_path: Path) -> str | None:
     return found
 
 
-def resume_prompt(out: Path, run_dir: str) -> str:
+def resume_prompt(out: Path, run_dir: str | None) -> str:
+    if run_dir is None:
+        return ("This session ended before the ShipLoop run was started. Continue the original "
+                "request now: start the ShipLoop run as its skill directs and follow each packet to "
+                "the end of the run. Never end the turn while a ShipLoop command is still running.")
     cli = next((out / "home" / ".grok" / "installed-plugins").glob("skill-craft-*/skills/shiploop/scripts/shiploop"),
                None)
     command = f'python3 "{cli}" next --run-dir "{run_dir}"' if cli else f'shiploop next --run-dir "{run_dir}"'
@@ -414,12 +418,14 @@ def main(argv: list[str] | None = None) -> int:
         state = grade_shiploop(out)
         session_id = last_session_id(out / "events.jsonl")
         remaining = int(deadline - time.time())
-        if state.get("status") != "active" or not session_id or remaining <= 60:
+        # No run yet means the session ended before ShipLoop wrote its state; a
+        # run that is paused, blocked, awaiting, halted or done is not resumed.
+        if state.get("status") not in ("active", None) or not session_id or remaining <= 60:
             break
         if not args.quiet:
             print(f"resume {len(sessions)}/{args.max_resumes}: session {session_id} ended with ShipLoop "
-                  f"active at revision {state.get('revision')}, stage {state.get('stage')}", flush=True)
-        argv = hosts.argv_for(args.host, prompt=resume_prompt(out, state["run_dir"]),
+                  f"{'not yet started' if state.get('status') is None else 'active at revision ' + str(state.get('revision')) + ', stage ' + str(state.get('stage'))}", flush=True)
+        argv = hosts.argv_for(args.host, prompt=resume_prompt(out, state.get("run_dir")),
                               prompt_file=out / f"resume-{len(sessions)}.txt", cwd=work, model=args.model,
                               effort=args.effort, permission_mode=args.permission_mode,
                               max_turns=args.max_turns, resume=session_id, grok_bin=args.grok_bin)

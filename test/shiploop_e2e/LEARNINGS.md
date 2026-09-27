@@ -71,3 +71,11 @@ detailed message; read the last three commit messages before the next run or cha
 - Improve: 7 children with records; 4 made material changes (spec, test-strategy, step-plan,
   system-test-author), 2-3 were cheap confirmations. The step plan split the item into three implement steps.
 - Improve's loop state lives in the system temp directory (innerloop-*.json via mkstemp), not the run.
+
+## Run 4 — 2026-09-26 — battleship, Grok grok-4.7 medium, skill-craft 1.2.0 (ShipLoop 0.35.0)
+
+- Outcome: FAIL after 54 s and 5 turns ($0.06): the first Grok session ended with an empty final reply
+  while setting up git in the empty directory, before ShipLoop had written any state. The harness resumed
+  only `active` runs, so it stopped. The keepalive recorded one allow (shutdown).
+- Learned: the empty-reply session end can happen at any point, including before the run exists; resume
+  must cover "no run yet" too. Paused, blocked, awaiting, halted and done runs are still never resumed.

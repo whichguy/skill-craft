@@ -99,6 +99,10 @@ if mode == "done" or (mode == "resume" and resumed):
     import shutil
     shutil.rmtree(".shiploop", ignore_errors=True)  # a resumed session finishes the same run
     product()
+elif mode == "early" and not resumed:
+    pass  # the first session ends before ShipLoop writes any state
+elif mode == "early":
+    product()
 elif mode in ("resume", "stuck"):
     Path(".shiploop").mkdir(exist_ok=True)
     store.write_record(Path(".shiploop/state.md"), {{"status": "active", "stage": "test-refine", "revision": 25}})
@@ -199,6 +203,12 @@ class GrokResumeTest(HarnessCase):
         self.assertEqual(result["process"]["resumes"], 2)
         self.assertEqual(len(self.sessions()), 3)
         self.assertEqual(result["shiploop"]["status"], "active")
+
+    def test_session_that_ends_before_the_run_starts_is_resumed(self):
+        code, result = self.invoke("grok", "early")
+        self.assertEqual(code, 0, result)
+        self.assertEqual(result["process"]["resumes"], 1)
+        self.assertIn("ended before the ShipLoop run was started", self.sessions()[1]["prompt"])
 
     def test_no_resume_when_the_run_is_done(self):
         code, result = self.invoke("grok", "done")
