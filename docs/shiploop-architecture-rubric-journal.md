@@ -178,6 +178,14 @@ Status: **firm** (decision-grade evidence), **interim**, **exploratory** (Sonnet
 - **S3:** the round-3 "61/15" figure I stated.
   - The committed data support 60/15 [+0.018, +0.047]; the results doc keeps 60/15.
 
+**Interim (round 7)**
+- **I1: in-context reviews are rigorous and grounded, and add product scope on small requests (2026-09-27, 9 GPT-6 Luna reviews, first grading pass).**
+  - Reviews grow plans 1.6× to 2.8×.
+  - S02 (two-person checkers on one computer), in both `current` and `v4`: correct fixes with citations (clasp does not update a versioned deployment; forced capture and promotion rules defined), but also draw-offer and resignation flows and draw adjudication. The judge flags these under P3; score 67–75 against 100 unreviewed. S03 `current` added a "delete my score" feature.
+  - Evidence: round-7 `judge_p1` verdicts and outputs (bundle when the round ends).
+  - **Owner direction:** ShipLoop is enterprise-grade tooling. Engineering rigour (tests against the real runtime, deployment correctness, quotas, failure ownership, retention, security) is the expected standard even for small requests. Only product scope beyond the request is overbuilding. The earlier idea of "a small request needs a small plan" is withdrawn.
+  - Value-audit wording changed to match, before round 7's audit (see the commit "value audit judges rigour against an enterprise standard").
+
 ## Open questions (round 7 and after)
 
 - **Q1:** Do the narrow checks (v4) still add value inside the real packet's global guidance?

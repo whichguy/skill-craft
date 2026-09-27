@@ -811,11 +811,15 @@ service, sign-in or access rule, check, safeguard, limit, step or channel. Ignor
   clearly implied one (security, correctness, data integrity, reliability, accessibility, cost, operability).
 - "against": the strongest case that it does not: not needed for this request, or it adds scope, cost, risk,
   maintenance or friction for the user.
-- "verdict": weigh both honestly, at the scale the request states (its users, players, data and stakes). For an
-  addition: "valuable" (a reasonable owner of this request would want it at that scale), "optional" (defensible,
-  but the request is complete without it) or "unwanted" (costs more than it gives). An addition out of proportion
-  to the request's scale is at most "optional", however good it would be for a larger product. For a removal:
-  "loss" (the removed item had value at that scale) or "fine" (removing it cost nothing of value).
+- "verdict": weigh both honestly. The plan comes from enterprise-grade delivery tooling, so tell two kinds of item
+  apart. Engineering rigour (tests against the real runtime, correct deployment steps, quotas, failure routing and
+  ownership, data retention, security checks, marked assumptions) is judged against an enterprise standard, even
+  for a small request. Product capability (features, stores, services, sign-in, channels the user sees or the
+  product runs) is judged at the scale the request states (its users, players, data and stakes): capability out of
+  proportion to that scale is at most "optional", however good it would be for a larger product. For an addition:
+  "valuable" (a reasonable owner would want it), "optional" (defensible, but the request is complete without it) or
+  "unwanted" (costs more than it gives). For a removal: "loss" (the removed item had value) or "fine" (removing it
+  cost nothing of value).
 
 Original plan:
 <<<
