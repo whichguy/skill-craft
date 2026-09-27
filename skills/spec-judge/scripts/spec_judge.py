@@ -116,6 +116,8 @@ def cmd_sample(args) -> int:
     if not ids:
         raise SystemExit(f"no requirement IDs (R-n) in {args.spec}")
     tests, sources, docs = test_names(args.repo), source_files(args.repo), readme_sections(args.repo)
+    # Same-named tests in one file are one item to a judge: sample each (name, file) once.
+    tests = list({(t["test"], t["file"]): t for t in tests}.values())
     sample = {"repo": str(args.repo.resolve()), "spec": str(args.spec.resolve()),
               "architecture_file": str(args.architecture.resolve()) if args.architecture else None,
               "requirements": sorted(rng.sample(ids, min(args.n, len(ids))), key=lambda s: int(s[2:])),
@@ -137,16 +139,18 @@ def cmd_sample(args) -> int:
 def cmd_score(args) -> int:
     sample = json.loads((args.out / "sample.json").read_text())
     verdicts = json.loads((args.out / "verdicts.json").read_text())
+    # Tests are keyed by name and file: the same name often appears in several files.
     keys = {"requirements": ("id", sample["requirements"]),
-            "tests": ("test", [t["test"] for t in sample["tests"]]),
+            "tests": (("test", "file"), [(t["test"], t["file"]) for t in sample["tests"]]),
             "sources": ("file", sample["sources"]),
             "readme": ("section", [d["section"] for d in sample["readme"]]),
             "architecture": ("item", sample["architecture"])}
     problems, tallies = [], {}
     for section, (key, wanted) in keys.items():
-        got = [v.get(key) for v in verdicts.get(section, [])]
-        missing = [w for w in wanted if got.count(w) == 0]
-        duplicated = sorted({g for g in got if got.count(g) > 1})
+        got = [tuple(v.get(k) for k in key) if isinstance(key, tuple) else v.get(key)
+               for v in verdicts.get(section, [])]
+        missing = [w for w in wanted if got.count(w) < wanted.count(w)]
+        duplicated = sorted({g for g in got if got.count(g) > wanted.count(g)}, key=str)
         if missing:
             problems.append(f"{section}: no verdict for {missing[:5]}")
         if duplicated:

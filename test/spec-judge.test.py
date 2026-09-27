@@ -20,6 +20,7 @@ def repo() -> Path:
         "src/main.js": "export function run() {\n  return 1\n}\n",
         "src/util.js": "export const x = 1\n",
         "test/main.test.js": "test('runs once', () => {})\nit('handles empty input', () => {})\n",
+        "test/other.test.js": "it('runs once', () => {})\n",
     }
     for name, text in files.items():
         (root / name).parent.mkdir(parents=True, exist_ok=True)
@@ -47,7 +48,9 @@ class SpecJudgeTest(unittest.TestCase):
 
     def test_sample_draws_every_kind_and_checks_anchors(self):
         self.assertEqual(self.sample["requirements"], ["R-1", "R-2", "R-3"])
-        self.assertEqual(sorted(t["test"] for t in self.sample["tests"]), ["handles empty input", "runs once"])
+        self.assertEqual(sorted((t["test"], t["file"]) for t in self.sample["tests"]),
+                         [("handles empty input", "test/main.test.js"), ("runs once", "test/main.test.js"),
+                          ("runs once", "test/other.test.js")])
         self.assertEqual(self.sample["sources"], ["src/main.js", "src/util.js"])
         self.assertEqual({d["section"] for d in self.sample["readme"]}, {"tool", "Usage", "License"})
         anchors = self.sample["anchors"]
@@ -57,7 +60,7 @@ class SpecJudgeTest(unittest.TestCase):
     def verdicts(self, drop_one: bool = False) -> dict:
         s = self.sample
         v = {"requirements": [{"id": i, "verdict": "correct"} for i in s["requirements"]],
-             "tests": [{"test": t["test"], "verdict": "missing"} for t in s["tests"]],
+             "tests": [{"test": t["test"], "file": t["file"], "verdict": "missing"} for t in s["tests"]],
              "sources": [{"file": f, "verdict": "internal" if "util" in f else "covered"} for f in s["sources"]],
              "readme": [{"section": d["section"], "verdict": "not-a-requirement" if d["section"] == "License"
                          else "covered"} for d in s["readme"]],
