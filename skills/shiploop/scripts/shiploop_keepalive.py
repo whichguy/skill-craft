@@ -6,8 +6,9 @@ and, while it can, refuse the stop and hand back the run's next command.
 
 Two hook events per host:
 
-* observe -- after a shell command.  When its output carries the packet's
-  ``SHIPLOOP-RUN`` marker, bind this host session to that run.
+* observe -- after a shell command.  When a ShipLoop command that drives the
+  run prints the packet's ``SHIPLOOP-RUN`` marker, bind this host session to
+  that run (a marker another command merely displays never binds).
 * stop    -- when the host is about to end the turn.  Continue while the bound
   run is active and its revision moved since the last refusal; otherwise allow.
 
@@ -245,6 +246,22 @@ def command_run_dir(payload: Any) -> str | None:
     return found
 
 
+# The program that prints a packet: the ShipLoop CLI (or a wrapper named after
+# it) with a verb that drives the run.  Printing a packet file, a log or a
+# transcript that happens to contain a marker is not one.
+DRIVING_COMMAND = re.compile(
+    r"shiploop[\w.-]*['\"]?\s+(?:workspace\s+start|init|next|resume|complete|improve-bind|"
+    r"improve-complete|improve-reconcile)\b")
+
+
+def invoking_command(payload: Mapping[str, Any]) -> str | None:
+    """The shell command whose output the hook sees, when the host names it."""
+    for container in (payload.get("tool_input"), payload.get("toolInput"), payload):
+        if isinstance(container, Mapping) and isinstance(container.get("command"), str):
+            return container["command"]
+    return None
+
+
 def last_marker(payload: Any) -> dict | None:
     found = None
     for text in _strings(payload):
@@ -271,6 +288,12 @@ def observe(host: str, payload: Mapping[str, Any]) -> dict | None:
         # A subagent works for its parent; it never owns the parent's run.
         return None
     marker = last_marker(payload)
+    command = invoking_command(payload)
+    if marker is not None and command is not None and not DRIVING_COMMAND.search(command):
+        # A marker shown by some other command (cat of a packet file, a log, a
+        # transcript) is how a watching session got bound to a run it was only
+        # reading.  Hosts that do not report the command keep marker binding.
+        marker = None
     if marker is None:
         run_dir = command_run_dir(payload)
         if run_dir is not None:

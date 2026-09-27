@@ -11,7 +11,7 @@ optional; runs work without it.
 |------|--------------|
 | Packet marker | Every packet prints `Keepalive marker: SHIPLOOP-RUN run=<id> rev=<n> dir=<run dir>`. |
 | `shiploop hook-status --run-dir DIR` | Read-only, lock-free JSON: `status`, `stage`, `action`, `revision`, `repo`, `next`. Exit 2 with an `error` field when the run cannot be read. |
-| `scripts/shiploop-hook observe` | After a shell command: if the output has a marker whose run id matches the live run, bind this host session to that run. |
+| `scripts/shiploop-hook observe` | After a shell command: if the output has a marker whose run id matches the live run, and the command was a ShipLoop command that drives the run (`workspace start`, `init`, `next`, `resume`, `complete`, the Improve bind/complete/reconcile verbs), bind this host session to that run. A marker printed by any other command (reading a packet file, a log or a transcript) never binds; hosts that do not report the command keep marker binding. |
 | `scripts/shiploop-hook stop` | When the host is about to end a turn: while the bound run is `active` and its revision moved since the last refusal, refuse the stop and name the run's next command. |
 | `scripts/shiploop-drive` | Outer driver for unattended runs: starts or resumes host sessions until the run is not active. |
 

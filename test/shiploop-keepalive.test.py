@@ -329,6 +329,21 @@ class HookDecisionTests(KeepaliveTestCase):
         self.hook("observe", "claude", payload)
         self.assertIsNone(keepalive.load_binding("claude", "session-1"))
 
+    def test_live_marker_printed_by_a_reading_command_does_not_bind(self) -> None:
+        """A session that only reads a packet file or log must not be kept alive for the run."""
+        for host, command in (("claude", f"cat {self.run_dir}/packets/next.md"),
+                              ("grok", f"tail -50 {self.run_dir}/../events.jsonl"),
+                              ("codex", "python3 progress.py out | grep SHIPLOOP")):
+            payload = self.payload(host, "observe", f"reader-{host}")
+            for key in ("tool_input", "toolInput"):
+                if isinstance(payload.get(key), dict):
+                    payload[key]["command"] = command
+            self.hook("observe", host, payload)
+            self.assertIsNone(keepalive.load_binding(host, f"reader-{host}"), host)
+        # The same live marker from a driving command still binds.
+        self.hook("observe", "claude", self.payload("claude", "observe", "driver"))
+        self.assertIsNotNone(keepalive.load_binding("claude", "driver"))
+
     def test_disabled_and_malformed_input_never_reply(self) -> None:
         self.hook("observe", "claude", self.payload("claude", "observe"))
         with mock.patch.dict(os.environ, {"SHIPLOOP_KEEPALIVE": "off"}):
