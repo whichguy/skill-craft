@@ -121,3 +121,26 @@ detailed message; read the last three commit messages before the next run or cha
 - Harness: learning retention — per-stage metrics now make run-to-run comparison possible; keep them in each
   entry. Further learning — the follow-on (6b) tests whether the committed spec and modules are reused.
   Evaluation criteria — add cancelled tool calls and sessions per run as reliability scores next to cost.
+
+## Run 6b — 2026-09-26 — battleship-scoring follow-on in run 6's repository, marketplace 1.4.0 (ShipLoop 0.37.0)
+
+- First follow-on run (P53): a copy of run 6's committed checkout, prompt "add scoring" (sunk ship name,
+  shots, hits, accuracy on the page). Outcome: PASS on all 11 checks — 4 regression, 3 feature, 4 retention.
+  4,996 s (83 min), 370 turns, $28.50 (run 6: 480 turns, $35.32), 8 sessions (7 cancelled), 16 Improve
+  children, 49 test runs, 1 compaction, 0 truncated outputs.
+- Retention held: discovery read docs/shiploop/spec.md and environment.md first; the spec kept R-1..R-7 and
+  added R-8, R-9; reviews cited run 6's commit lessons (7acd322: headless Chrome cannot load this page) and
+  reused test/system-browser.swift; the change extended rules.js, server.js and the existing test files (11
+  files, +328/-111); no file removed, no dependency added. Weak point: the passing test count only went
+  14 -> 15 (tests were restructured rather than added).
+- Every model-written `git commit` at integrate was cancelled by Grok's auto permission check (three
+  attempts, each ending a session); the model then accepted integrate without a commit. Result: a
+  working-tree return, HEAD still at run 6's last commit, 11 modified files and the new feature record
+  untracked in the source. This is the evidence for the branch fix that commits the item's declared paths
+  when integrate is accepted.
+- Also refused once: workspace start ("workspace root parent does not exist" for .shiploop-runs/<name>),
+  fixed on the branch; three refused `complete` calls, all recovered.
+- Costliest stages: implement 37 turns (the scoring step), spec 34, test-strategy 26, carry-forward 22,
+  research 20. No system-test struggle this time: run 6's browser check was reused (6 turns).
+- Harness: the retention checks worked and would have caught a rebuild. Next evaluation criterion to add:
+  "source ends committed" (HEAD moved, nothing untracked) as a scored check, not only a fact.
