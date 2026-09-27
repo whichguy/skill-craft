@@ -204,3 +204,24 @@ detailed message; read the last three commit messages before the next run or cha
 
 Comparison of follow-ons (same prompt): 6b on 1.4.0 PASS but uncommitted, 7 cancelled sessions; 7b on 1.5.0
 harness-FAIL, 7 cancelled; 8b on 1.6.0 PASS committed, 4 cancelled, 0 ShipLoop failures.
+
+## P6 baselines — 2026-09-27 — cli-files and stateful-service focused suites, marketplace 1.7.0 (ShipLoop 0.40.0)
+
+- First runs outside the browser-game style. Both PASS on every verdict including `committed`.
+  - csv-report (cli-files, Python CLI): 328 turns, $25.46, 3 sessions (2 cancelled), 9/9 ShipLoop-run checks
+    passed, glue 2, asked a person 0; spec kept 14 requirement IDs; HEAD 12 commits, nothing untracked.
+  - seat-reservations (stateful-service, Python HTTP + SQLite, concurrency rule): 386 turns, $32.23,
+    4 sessions (3 cancelled), 10/10 checks passed, glue 2, asked 0; 11 requirement IDs; 13 commits.
+- The engine generalised: spec, test-first, implement, Improve reviews, system tests, release and return all
+  worked for a CLI and a stateful service without any game-shaped guidance. The concurrency rule was
+  planned (research probed SQLite locking) and the product passed the 50-request oversell check.
+- Same cost shape as the web style: planning dominates (spec 42 and 55 turns, test-strategy 31), implement
+  steps stay cheap. The quality loop found a real defect (non-numeric Content-Length crashed the handler).
+- Remaining glue (both runs): the model's own `git add/commit` of docs between knowledge closes — the P3b
+  behaviour already fixed on main (0.42.0). Cancellations: model probes and one Until Loop report written
+  as a Python heredoc on stdin (candidate for an until-loop `--report-file`, upstream item).
+- ShipLoop refusals worth reading: plan-stage improve-complete refused a final_result without the full
+  work_items queue (the model recovered); one refused `complete` recovered on resubmit.
+- Harness learnings: the glue metric needed two precision fixes during these runs (heredoc bodies are not
+  commands; evidence notes are model output); rows appended from a suite run go to the checkout the runner
+  lives in (move them before committing when a session shares a checkout).
