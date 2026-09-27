@@ -259,3 +259,30 @@ harness-FAIL, 7 cancelled; 8b on 1.6.0 PASS committed, 4 cancelled, 0 ShipLoop f
     instruction; 3 outputs were truncated at the host's ~10k-character cap. Belongs with the until-loop
     short-output / `--report-file` item.
   - The one cancelled tool call was the host cancelling a `--help` probe at session start.
+
+## temperature-report — 2026-09-27 — first graph-shaped case, Grok grok-4.7 medium, marketplace skill-craft 1.11.0 (ShipLoop 0.44.0)
+
+- Outcome: **stopped, not graded.** Grok ran out of credits at 97 min (303 turns, peak context
+  399 K, $7.91 reported). The run was killed deliberately to stop a resume loop; the output
+  directory is kept. ShipLoop was active at revision 17, in the inner loop at the test
+  specification, with 0 of 1 work items done. No product checks ran.
+- Purpose: the validation plan's step 3 (docs/plan-orchestrator-validation-plan-2026-09-27.md),
+  the first live fan-out/fan-in through the current release on the Ask-Agent parallel route.
+- What it proved: asked for Ask-Agent delegation, ShipLoop recorded `delegation: ask-agent`, and
+  Grok's step plan was exactly the intended graph. `S-convert` and `S-stats` were marked "may run
+  in parallel", and `S-measure` "only after S-convert and S-stats are accepted". The dependency is
+  carried only in step-task text; step plans have no `depends_on` since the 09-26 KISS change.
+- What it did not reach: `implement`, where `chain bind` would happen. No chain binding exists, so
+  the dispatcher fan-out itself is still unexercised by a real model.
+- Time: intake 4.3, discovery 2.7, research 13.4, spec 29.6, test-strategy 5.8, plan 8.1,
+  prepare 0.6, select-work 0.2, step-plan 28.9 minutes. Planning was about 94 of the 97 minutes;
+  spec and step-plan dominate.
+- Friction:
+  - one `improve-bind` and one `complete` were refused;
+  - the model hand-built loop contracts and ran its own `git commit`s ("model glue");
+  - 4 tool outputs were truncated by the host;
+  - the first session ended "cancelled after 91 turns" on a host permission check and was resumed
+    once.
+- Next: resume this run on another host (Claude Sonnet, budget-capped) from its recorded run
+  directory, or rerun on Grok when credits return. The harness cannot switch hosts mid-run;
+  `--continue-from` copies only the source checkout.
