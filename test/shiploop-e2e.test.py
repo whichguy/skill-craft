@@ -853,6 +853,8 @@ class CodexRunTest(HarnessCase):
         events = (out / "events.jsonl").read_text()
         self.assertIn('"sessionId": "sess-1"', events)          # the Grok session is kept
         self.assertIn('"sessionId": "codex-thread-1"', events)  # the Codex session is appended
+        rows = [json.loads(line) for line in self.baselines.read_text().splitlines()]
+        self.assertEqual(len(rows), 1, "only the original run writes a baseline row; a resume does not")
 
     def test_resume_run_refuses_a_run_that_is_not_active(self):
         code, finished = self.invoke("grok", "done")

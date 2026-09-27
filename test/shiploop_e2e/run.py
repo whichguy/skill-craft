@@ -872,9 +872,11 @@ def main(argv: list[str] | None = None) -> int:
     (out / "result.json").write_text(json.dumps(result, indent=2) + "\n")
     style = json.loads(CASES.read_text()).get(name, {}).get("style") if name != "custom" else None
     row = baseline_row(result, style, args.suite_name)
-    before = previous_row(args.baseline, name, versions["source"]) if args.baseline else None
-    if args.baseline:
-        with args.baseline.open("a") as handle:
+    # A baseline measures one host running a case from the start; a resumed run is not one.
+    baseline_file = args.baseline if not resumed else None
+    before = previous_row(baseline_file, name, versions["source"]) if baseline_file else None
+    if baseline_file:
+        with baseline_file.open("a") as handle:
             handle.write(json.dumps(row) + "\n")
 
     mark = lambda ok: "PASS" if ok else "FAIL"  # noqa: E731
