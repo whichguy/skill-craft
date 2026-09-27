@@ -178,6 +178,18 @@ do not change when that judge re-grades it.
 | Sonnet | 0.759 | substantial | 1.69 points | 30 round-3 plans |
 | Opus vs Sonnet | 0.443 | moderate | 7.3 points apart | same 30 round-4 reviews |
 
+**Noise depends on output length.** On round 6's reviews of 2,000–3,500 words,
+one Opus re-grade moved a plan's score by 4.1 points on average, twice the 2.07
+measured on round 4's shorter outputs. At about 16 scenarios, that single
+re-grade erased a +5.8 effect. So a decision round grades every output in at
+least three passes (`judge --dest judge_p1`, `judge_p2`, `judge_p3`) and
+analyses them together (`analyze --judge-dir judge_p1,judge_p2,judge_p3`).
+Each output's score is its mean over the passes. The noise is measured on the
+round's own outputs (mean pairwise difference between passes) and divided by
+the square root of the pass count, then used as the near-identical bound in
+place of `references/judges.json`. All passes of a round run under one judge
+condition.
+
 The last row is why a round never mixes judges: each judge agrees with itself
 far better than with the other.
 
