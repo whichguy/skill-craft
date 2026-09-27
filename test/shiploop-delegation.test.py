@@ -434,8 +434,19 @@ class PacketContractTests(DelegationStateTests):
                             self.assertIn("Improve: This result advances directly; no Improve child "
                                           "runs for this stage.", packet)
                         continue
-                    self.assertTrue(lead.startswith("Callback for this Improve child "), lead)
-                    argv = shlex.split(lead.split("): ", 1)[1])
+                    if route == "inline":
+                        # A bound inline child that has not started leads with improve-start;
+                        # the improve-complete callback follows in the packet body.
+                        self.assertTrue(lead.startswith("Next command (start the bound Improve child "), lead)
+                        start = shlex.split(lead.split("): ", 1)[1])
+                        self.assertEqual(start[2], "improve-start")
+                        self.assertTrue(any(arg.startswith("--opening=") and arg.endswith("/opening.md")
+                                            for arg in start), start)
+                        argv = shlex.split(next(line for line in lines if " improve-complete " in line
+                                                and line.startswith("python3 ")))
+                    else:
+                        self.assertTrue(lead.startswith("Callback for this Improve child "), lead)
+                        argv = shlex.split(lead.split("): ", 1)[1])
                     self.assertEqual(argv[2], "improve-complete")
                     evidence = next(line for line in lines
                                     if line.startswith("Write completion evidence to: "))

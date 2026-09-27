@@ -106,7 +106,11 @@ move. Keep explicitly excluded scratch or pre-existing user paths outside that
 candidate. When the inventory is large, retain one exact inventory locator
 rather than recopying every path into each review record.
 
-Start the bound runtime with `--receipt <the printed host receipt path>`: the
+When the ShipLoop packet prints an `improve-start` command, write the opening
+file it names and run that command: ShipLoop freezes the child contract (binding
+line, workspace, conditions, commit policy and return locators) and starts the
+bound runtime with the receipt for you. Otherwise start the bound runtime with
+`--receipt <the printed host receipt path>`: the
 runtime then writes every child packet there itself, the terminal packet before
 it deletes its state, and ShipLoop imports only a packet written that way. Never
 write or edit that receipt by hand.

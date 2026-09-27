@@ -56,18 +56,27 @@ Before start, verify the process cwd and Git root against the packet and follow
 the unchanged workspace and commit rules below. Freeze the exact candidate
 scope, selected packages, explicit user/repository authority including any
 no-commit override, and evidence paths; carry current approvals, declines and
-pending decisions into `context.authority`. Write the context-first opening
-below. Put the packet's binding line alone and first in the frozen
-`context.request`, with the opening after it; import rejects a marker embedded
-in a sentence. Include `context.resources` locators for the receipt, parent
-`state.md`, completion evidence path and exact parent return instructions, so
-the terminal packet can locate the parent return after context loss. An existing
+pending decisions into the opening's Authority section. Write the opening file
+the packet names (beside the receipt) with four sections: `## Current context
+and desired improvements` (the context-first opening below), `## Scope`,
+`## Authority` and `## Environment`. Then run the packet's `improve-start`
+command. ShipLoop freezes the child contract from it: the binding line alone and
+first in `context.request`, the workspace, work, exit and repeat conditions,
+commit policy, exclusions, and `context.resources` locators for the receipt,
+review evidence directory, parent `state.md`, completion evidence path and the
+exact parent return (`parent-return.md` beside the receipt), so the terminal
+packet can locate the parent return after context loss. It writes that contract
+to `start.json` beside the receipt. Never write the contract or start the
+runtime yourself; never copy the binding line into the opening. An existing
 invocation keeps its frozen authority.
 
-Start the runtime once, before any review work, with `--receipt` set to the
-printed **Child latest packet receipt**: the runtime writes every start, next and
-done packet there itself, the terminal one before it deletes its state, so the
-receipt survives a lost context. Do not write or edit it. Only after the runtime
+`improve-start` starts the runtime once, before any review work, with
+`--receipt` set to the printed **Child latest packet receipt** and its state in
+the run directory's `until-loop/`, and prints the child's first packet: the
+runtime writes every start, next and done packet to the receipt itself, the
+terminal one before it deletes its state, so the receipt survives a lost
+context. Do not write or edit it. `improve-start` refuses once the receipt
+exists; recover a started child from its receipt instead. Only after the runtime
 has written the terminal packet, write
 the completion evidence described below, then run the packet's parent return and
 callback. Runtime completion alone never advances the action, and no ShipLoop

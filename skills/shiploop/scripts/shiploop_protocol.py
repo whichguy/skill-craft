@@ -190,7 +190,8 @@ def workspace_completion_guard(root, previous, updated):
 
 
 CALLBACK_ATTEMPTS = "callback-attempts"
-PACKET_VERBS = frozenset({"next", "resume", "complete", "improve-bind", "improve-complete", "improve-reconcile"})
+PACKET_VERBS = frozenset({"next", "resume", "complete", "improve-bind", "improve-start", "improve-complete",
+                          "improve-reconcile"})
 CALLBACK_VERBS = frozenset({"complete", "improve-bind", "improve-complete", "improve-reconcile"})
 
 
@@ -296,6 +297,7 @@ def main(core, argv=None):
         "delegation",
         "lint-mode",
         "improve-bind",
+        "improve-start",
         "improve-complete",
         "improve-reconcile",
         "next",
@@ -330,7 +332,10 @@ def main(core, argv=None):
                              help="script-owned advisory lint for this run's later passes")
         if name == "improve-bind":
             sub.add_argument("--skill-card", required=True)
-        if name in ("complete", "improve-bind", "improve-complete", "improve-reconcile"):
+        if name == "improve-start":
+            sub.add_argument("--opening", required=True,
+                             help="the printed opening file: the four sections only the parent knows")
+        if name in ("complete", "improve-bind", "improve-start", "improve-complete", "improve-reconcile"):
             sub.add_argument("--action", required=True)
         if name in ("complete", "improve-complete", "improve-reconcile"):
             sub.add_argument("--result", required=True)

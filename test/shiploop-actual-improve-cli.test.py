@@ -397,12 +397,14 @@ class EphemeralImproveCliTests(ImproveCliFixture):
         for _ in range(2):
             packet = self.invoke(CLI, "next", "--run-dir", self.run).stdout
             if self.inline():
-                self.assertIn("Context-first opening: before start, write 'Current context and desired improvements'", packet)
+                self.assertIn("Context-first opening: before start, write the opening file", packet)
+                self.assertIn("## Current context and desired improvements\n...", packet)
+                self.assertIn(" improve-start ", packet)
                 self.assertIn("Run the selected Improve card's ShipLoop whole-skill subcall in this conversation", packet)
                 self.assertIn("Return order:", packet)
                 self.assertIn("keep the frozen launch context unchanged", packet)
-                self.assertIn("Binding line: copy the next line verbatim into frozen context.request exactly once, "
-                              "first, alone on its own line", packet)
+                self.assertIn("Binding line: improve-start writes the next line first in the frozen "
+                              "context.request, alone on its own line", packet)
             else:
                 self.assertIn("Parent assignment preparation:", packet)
                 self.assertIn("Run /improve", packet)
@@ -814,6 +816,62 @@ class EphemeralImproveCliTests(ImproveCliFixture):
         store.write_record(completion, dict(receipt, summary="Conflicting callback"))
         self.invoke(CLI, "improve-complete", "--run-dir", self.run, "--action", self.action, "--result", completion, status=2)
         self.assertEqual(after, (self.run / "state.md").read_bytes())
+
+    def test_improve_start_freezes_the_contract_and_starts_the_runtime(self):
+        """The parent writes four opening sections; ShipLoop writes the contract and starts the child."""
+        if not self.inline():
+            self.skipTest("improve-start is the inline route")
+        receipt = bridge.receipt_path(self.bound)
+        opening = receipt.with_name("opening.md")
+        start = [CLI, "improve-start", "--run-dir", self.run, "--action", self.action, "--opening", opening]
+        refused = self.invoke(*start, status=2)
+        self.assertIn("write the opening file first", refused.stderr)
+        opening.parent.mkdir(parents=True, exist_ok=True)
+        opening.write_text("## Current context and desired improvements\nTighten the spec.\n\n## Scope\nspec.md\n",
+                           encoding="utf-8")
+        self.assertIn("## Authority", self.invoke(*start, status=2).stderr)
+        sections = ("## Current context and desired improvements\nTighten the spec examples.\n\n"
+                    "## Scope\nproduct/contracts/cold-recovery.md and test/product_contract_test.py\n\n"
+                    "## Authority\nUser launch instruction: local edits and scoped commits; no push.\n\n"
+                    "## Environment\nPython 3 fixture; no network.\n")
+        opening.write_text(sections + self.bound["contract_marker"] + "\n", encoding="utf-8")
+        self.assertIn("must not contain the binding line", self.invoke(*start, status=2).stderr)
+        self.assertFalse(receipt.exists())
+        before = (self.run / "state.md").read_bytes()
+
+        opening.write_text(sections, encoding="utf-8")
+        started = self.invoke(*start)
+        head, _, body = started.stdout.partition("\n")
+        self.assertIn("Improve child started from the frozen contract", head)
+        first = json.loads(body)
+        self.assertEqual(first["status"], "active")
+        self.assertEqual(receipt.read_text(encoding="utf-8"), body)
+        self.assertEqual(Path(first["state_file"]).parent, self.run / "until-loop")
+        contract = json.loads(receipt.with_name("start.json").read_text(encoding="utf-8"))
+        self.assertEqual(contract["workspace"], self.bound["workspace"])
+        self.assertEqual(contract["required_trivial_reviews"], 2)
+        request = contract["context"]["request"]
+        self.assertEqual(request.splitlines()[0], self.bound["contract_marker"])
+        self.assertIn("Tighten the spec examples.", request)
+        self.assertIn("Always excluded: .until-loop, .shiploop-improve", contract["context"]["scope"])
+        self.assertIn("No push or merge", contract["context"]["authority"])
+        locators = {r["purpose"]: r["locator"] for r in contract["context"]["resources"]}
+        self.assertEqual(locators["latest child packet receipt"], str(receipt))
+        self.assertEqual(locators["ShipLoop completion evidence path"], str(self.completion_path))
+        route = Path(locators["exact parent return instructions"]).read_text(encoding="utf-8")
+        self.assertIn("improve-complete", route)
+        self.assertEqual(first["context"], contract["context"])
+        self.assertEqual((self.run / "state.md").read_bytes(), before)
+        again = self.invoke(*start, status=2)
+        self.assertIn("already started", again.stderr)
+
+        self.packet_path = receipt
+        self.finish_ephemeral(first)
+        completion, _receipt = self.completion_receipt()
+        self.invoke(CLI, "improve-complete", "--run-dir", self.run, "--action", self.action, "--result", completion)
+        state = store.read_record(self.run / "state.md")
+        self.assertIsNone(state["active_improve"])
+        self.assertEqual(state["improve_results"][self.action]["runtime_phase"], "complete")
 
     def test_empty_initial_commit_retains_selected_untracked_scope_through_child_recovery(self):
         """Exercise immutable transport; synthetic reports do not prove review conduct."""
