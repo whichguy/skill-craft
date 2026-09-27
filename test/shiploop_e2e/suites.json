@@ -1,5 +1,5 @@
 {
-  "_doc": "Focused suites iterate one style in depth; breadth runs one case per style (SPEC: E2E suites).",
+  "_doc": "Focused suites iterate one style in depth; breadth runs one case per style; a batch suite verifies one release's batch of changes: its gate cases run first and alone, and the rest run only if the gate passed (SPEC: E2E suites, Batch changes, then verify the batch).",
   "web-service": {
     "kind": "focused",
     "style": "web-service",
@@ -36,5 +36,22 @@
     "cases": [
       "seat-reservations"
     ]
+  },
+  "batch": {
+    "kind": "batch",
+    "gate": [
+      "hello"
+    ],
+    "cases": [
+      "seat-reservations",
+      "battleship",
+      "battleship-scoring"
+    ],
+    "covers": {
+      "hello": "cheap gate: new interfaces end to end (Improve completion, knowledge follow-up return, the driver)",
+      "seat-reservations": "stateful style; concurrency with the web chain (no shared /tmp names)",
+      "battleship": "web style; concurrency with seat-reservations",
+      "battleship-scoring": "follow-on: retention of spec, environment and architecture across runs"
+    }
   }
 }

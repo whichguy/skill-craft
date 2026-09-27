@@ -14,6 +14,7 @@ from __future__ import annotations
 import contextlib
 import io
 import json
+import shutil
 import os
 from pathlib import Path
 import re
@@ -599,6 +600,21 @@ class SuiteTest(HarnessCase):
         self.assertEqual([row["case"] for row in result["cases"]], ["a", "b", "a2"])
         self.assertLess(started.index("a"), started.index("a2"))
         self.assertTrue(all((self.tmp / "suite-out" / name / "result.json").is_file() for name in ("a", "b", "a2")))
+
+    def test_a_batch_gate_runs_first_and_a_failed_gate_stops_the_rest(self):
+        cases = {"g": {"style": "s", "prompt": "p", "checks": ["false"]},
+                 "a": {"style": "t", "prompt": "p", "checks": []}}
+        self.use_catalog(cases, {"b": {"kind": "batch", "gate": ["g"], "cases": ["a"]}})
+        code, result = self.run_suite("b")
+        self.assertEqual(code, 1)
+        self.assertEqual([(r["case"], r.get("skipped")) for r in result["cases"]], [("g", None), ("a", "the gate failed")])
+        self.assertFalse((self.tmp / "suite-out" / "a").exists())
+        cases["g"]["checks"] = []
+        self.use_catalog(cases, {"b": {"kind": "batch", "gate": ["g"], "cases": ["a"]}})
+        shutil.rmtree(self.tmp / "suite-out")
+        code, result = self.run_suite("b")
+        self.assertEqual(code, 0, result)
+        self.assertEqual([r["case"] for r in result["cases"]], ["g", "a"])
 
     def test_committed_suites_name_known_cases_and_breadth_covers_every_focused_style(self):
         cases = json.loads(run.CASES.read_text())

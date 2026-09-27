@@ -296,6 +296,14 @@ stands at the commit under test.
   it), every host's preflight on the new version, then the live runs, smallest
   first (a smoke case before a full product). A failure there is fixed forward
   into the next batch, not by a release per fix.
+- **Choose the verification runs from a coverage map.** Before a batch's live
+  runs, map every change to the one run that proves it; each run must prove
+  something no other run in the set does, and a change covered only by hermetic
+  tests says so. Prefer a case that has not passed on a recent version over one
+  that just did; a change that shows only under concurrency (shared state,
+  temporary files) needs two runs at once. The map lives in the `batch` suite
+  (`gate`, `cases`, `covers`) and the plan; the gate runs first and alone and a
+  failed gate stops the costlier runs.
 - **The driver is a parameter, not a code path.** The host (Grok, Claude,
   Codex), its model and its effort are chosen per run; everything that differs
   between hosts lives in one host class, and the rest of the harness reads one

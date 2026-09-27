@@ -463,6 +463,23 @@ Adversarial evaluation:
   file tool by web battleship and seat-reservations).
 Anchor: S-14 (unattended, no hidden coupling), Parallel work (concurrency must not change a verdict).
 
+### Batch 1.12.0 — verification map (`--suite batch`, driver Codex Luna xhigh)
+
+| Change | hello (gate) | seat-reservations | battleship -> battleship-scoring | Hermetic only |
+| --- | --- | --- | --- | --- |
+| P12 improve-complete derives the record | first live proof | | | |
+| P11 knowledge follow-up return | yes | | | |
+| Host interface: Codex end to end | yes | | | |
+| P13 scratch directory, no shared /tmp | | concurrent with the web chain | concurrent | |
+| Stateful style (persistence, concurrency check) | | not finished on recent versions | | |
+| Web style + retention across runs (follow-on) | | | not verified since 1.6.0 | |
+| SHIPLOOP.md commit, leftover commit (`committed`) | every run's verdict | | | |
+| Absolute consumer_entry refusal, clearer record error | | | | yes |
+| cli-files (csv-report) | | | | skipped: passed on 1.11.1 |
+
+Order: hello alone; if it passes, seat-reservations and the battleship chain run in parallel. Acceptance:
+every verdict passes; 0 ShipLoop failures; glue 0; asked a person 0; `tmp_writes` shared by no two runs.
+
 ## Status
 
 - P6 in progress (2026-09-27): `csv-report` and `seat-reservations` cases,

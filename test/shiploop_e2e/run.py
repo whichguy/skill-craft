@@ -721,6 +721,19 @@ def run_suite(args, argv: list[str]) -> int:
         (check / "preflight.json").write_text(json.dumps(versions, indent=2) + "\n")
         if versions["gate"]:
             raise SystemExit("suite not started, version gate: " + "; ".join(versions["gate"]))
+    gate = suites[args.suite].get("gate") or []
+    gate_rows = []
+    for case in gate:
+        # A batch suite's gate runs first and alone: a cheap case that fails stops the costly ones.
+        out = base / case
+        code = main([*passthrough, "--case", case, "--output", str(out), "--suite-name", args.suite])
+        gate_rows.append({"case": case, "pass": code == 0, "output": str(out), "gate": True})
+    if not all(row["pass"] for row in gate_rows):
+        summary = gate_rows + [{"case": case, "skipped": "the gate failed"} for case in suites[args.suite]["cases"]]
+        (base / "suite-result.json").write_text(json.dumps({"suite": args.suite, "cases": summary}, indent=2) + "\n")
+        print(f"suite {args.suite}: gate failed ({', '.join(r['case'] for r in gate_rows if not r['pass'])}); "
+              "the other cases did not run")
+        return 1
     order = suites[args.suite]["cases"]
     chains = suite_chains(order, cases)
     if len(chains) > 1 and not args.serial and "--quiet" not in passthrough:
@@ -750,7 +763,7 @@ def run_suite(args, argv: list[str]) -> int:
     workers = 1 if args.serial else max(1, min(args.max_parallel, len(chains)))
     with ThreadPoolExecutor(max_workers=workers) as pool:
         rows = [row for chain_rows in pool.map(run_chain, chains) for row in chain_rows]
-    summary = sorted(rows, key=lambda row: order.index(row["case"]))
+    summary = gate_rows + sorted(rows, key=lambda row: order.index(row["case"]))
     shared = shared_tmp_writes([Path(row["output"]) for row in summary if row.get("output")])
     if shared:
         # Concurrent runs that wrote the same /tmp name may have read each other's files (plan P13).
