@@ -149,14 +149,39 @@ def released_versions() -> dict:
     # A pending change note on main is source the marketplace does not serve yet: release.py has not run.
     pending = [name for name in git("ls-tree", "-r", "--name-only", "origin/main", "changes/").split()
                if name.endswith(".md") and name != "changes/README.md"]
-    return {"origin_main": git("rev-parse", "origin/main").strip(), "local_head": git("rev-parse", "HEAD").strip(),
+    origin_main = git("rev-parse", "origin/main").strip()
+    return {"origin_main": origin_main, "local_head": git("rev-parse", "HEAD").strip(),
             "catalog_version": plugin.get("version"), "shiploop_version": shiploop.group(1) if shiploop else None,
-            "unreleased": pending}
+            "unreleased": pending, "ci": main_ci(origin_main)}
+
+
+def main_ci(commit: str) -> str:
+    """origin/main's CI result: success, failure, pending, or unknown (no gh, or no run found).
+
+    The full hermetic tier runs in CI on release commits, not locally; the E2E runs wait for it.
+    """
+    try:
+        done = subprocess.run(["gh", "run", "list", "--repo", "whichguy/skill-craft", "--commit", commit,
+                               "--json", "status,conclusion"], capture_output=True, text=True, timeout=60)
+        runs = json.loads(done.stdout) if done.returncode == 0 else None
+    except (OSError, ValueError, subprocess.TimeoutExpired):
+        runs = None
+    if not runs:
+        return "unknown"
+    if any(run.get("conclusion") == "failure" for run in runs):
+        return "failure"
+    if any(run.get("status") != "completed" for run in runs):
+        return "pending"
+    return "success" if all(run.get("conclusion") == "success" for run in runs) else "failure"
 
 
 def version_gate(released: dict, plugin_version: str | None, shiploop_version: str | None) -> list[str]:
     """Why a marketplace run would not test what main and the marketplace publish, if at all."""
     problems = []
+    ci = released.get("ci", "success")
+    if ci in ("failure", "pending"):
+        problems.append(f"origin/main's CI is {ci}: the full test tier runs in CI on the release commit; "
+                        "wait for it to pass (or fix it) before spending a live run")
     if released.get("unreleased"):
         problems.append("origin/main has unreleased changes (" + ", ".join(released["unreleased"][:5])
                         + "): run scripts/release.py and push so the marketplace serves them")
@@ -227,6 +252,7 @@ def preflight_line(versions: dict) -> str:
             f"{released['catalog_version']} / ShipLoop {released['shiploop_version']}; "
             f"{versions['installed_by']} got skill-craft {versions['plugin_version']} / ShipLoop "
             f"{versions['shiploop_version']}; unreleased notes: {len(released.get('unreleased') or [])}; "
+            f"main CI: {released.get('ci', 'unknown')}; "
             + ("OK" if not versions["gate"] else "REFUSED: " + "; ".join(versions["gate"])))
 
 

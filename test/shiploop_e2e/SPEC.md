@@ -284,7 +284,25 @@ stands at the commit under test.
      source change on main is released), and the installed plugin and
      ShipLoop versions equal the ones origin/main's catalog publishes.
   After a release, also update the user's own hosts (Claude, Grok, Codex) so
-  their installs match what the harness tested.
+  their installs match what the harness tested. Before a rerun on any host,
+  `run.py --preflight-only --host all` shows what each host gets; a run is not
+  started on a host whose preflight refuses.
+- **Batch changes, then verify the batch.** Fixes found in a round of runs
+  collect on one branch; each is admitted (Change admission) and checked on its
+  own footprint: the suites it touches, in parallel, plus the quick tier over
+  what changed. The full hermetic tier is not run locally; it runs in CI on the
+  release commit. The batch ships as one release, and the whole group is then
+  verified together: CI green on the release commit (the version gate waits for
+  it), every host's preflight on the new version, then the live runs, smallest
+  first (a smoke case before a full product). A failure there is fixed forward
+  into the next batch, not by a release per fix.
+- **The driver is a parameter, not a code path.** The host (Grok, Claude,
+  Codex), its model and its effort are chosen per run; everything that differs
+  between hosts lives in one host class, and the rest of the harness reads one
+  normalized event stream. A verdict must not depend on which host produced it,
+  and a baseline compares only with rows from the same host, model and effort.
+  What a host adds on its own (for example account-enabled plugins in a Codex
+  profile) is recorded with the run, never silently removed or ignored.
 - Run unattended (S-14): the host and every check get closed standard input and
   a timeout; a case prompt never needs a person, and a check never waits for
   input.
