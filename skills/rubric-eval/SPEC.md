@@ -42,6 +42,7 @@ rerun or replaced on its own, and other skills can call it.
 | Analyze | `analyze RUN --baseline ARM` | verdicts | `RUN/analysis.json` |
 | Reliability | `reliability RUN --model M --n 30` | verdicts | `RUN/judge_regrade/*.json`, kappa and noise |
 | Quote check | `recheck RUN [--judge-dir D]` | verdicts, outputs | `RUN/<D>_qc/*.json` |
+| Value audit | `valuecheck RUN --plans-from PLANS --model opus` | reviews, input plans, verdicts | `RUN/value/*.json`, `RUN/value_summary.json` |
 
 Names: an output or verdict file is `<scenario>_<runtime>_<arm>_<trial>`; arm
 names contain no underscore.
@@ -248,6 +249,17 @@ strong evidence, and a warning is enough to stop it.
 - the judge has no measured noise, or verdicts come from more than one judge;
 - the run's manifest does not record one condition (model, tools) for every arm
   run this round, or an arm other than the baseline is an input.
+
+**Question the value of every change.** "Not requested" is not "no value", and
+"removed" is not "tidy". For review rounds, `valuecheck` lists every item each
+review added or removed, with the strongest case for it, the strongest case
+against it, and a verdict: valuable, optional or unwanted for an addition; loss
+or fine for a removal. It then checks the additions the judge graded overbuilt
+against those verdicts. When the judge often penalises additions the audit
+finds valuable, the overbuilt count and the proportion guardrail are suspect
+for that round: record it, and loosen the scenario's overbuild note rather
+than trust the penalty. A review that removes valuable items is a loss even
+when nothing required went.
 
 Cost comparisons name their counts `arm_higher` and `arm_lower`, not won and
 lost, because for tokens and seconds the higher side is the worse one. Outputs
