@@ -33,6 +33,8 @@ import shutil
 import stat
 import subprocess
 import tempfile
+
+import shiploop_git
 import threading
 from contextlib import contextmanager
 from functools import wraps
@@ -838,12 +840,7 @@ def assert_binding(root: Path, repo: Path) -> Dict[str, Any]:
     return _assert_binding(root, repo)
 
 
-_WORKSPACE_IDENTITY = {
-    "GIT_AUTHOR_NAME": "ShipLoop Workspace",
-    "GIT_AUTHOR_EMAIL": "shiploop-workspace@local.invalid",
-    "GIT_COMMITTER_NAME": "ShipLoop Workspace",
-    "GIT_COMMITTER_EMAIL": "shiploop-workspace@local.invalid",
-}
+_WORKSPACE_IDENTITY = shiploop_git.WORKSPACE_IDENTITY
 
 
 def bootstrap_empty(repo: Path) -> Optional[str]:
@@ -863,10 +860,9 @@ def bootstrap_empty(repo: Path) -> Optional[str]:
         return None
     if _git(candidate, "init", "-q", "-b", "main").returncode:
         _fail("cannot initialize a Git repository in the empty starting directory")
-    configured = _git(candidate, "config", "user.email", readonly=True)
-    env = None if configured.returncode == 0 and configured.stdout.strip() else _WORKSPACE_IDENTITY
-    if _git(candidate, "commit", "-q", "--allow-empty", "-m", "Empty baseline for the first ShipLoop run",
-            env=env).returncode:
+    try:
+        shiploop_git.commit_paths(candidate, [], "Empty baseline for the first ShipLoop run", allow_empty=True)
+    except shiploop_git.CommitError:
         _fail("cannot create the empty baseline commit")
     return _head(candidate)
 

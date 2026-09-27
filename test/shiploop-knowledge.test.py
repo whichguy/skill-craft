@@ -14,6 +14,7 @@ from pathlib import Path
 ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT / "skills/shiploop/scripts"))
 sys.path.insert(0, str(ROOT / "test"))
+import shiploop_git  # noqa: E402
 import shiploop_knowledge_home as knowledge  # noqa: E402
 import shiploop_knowledge_support as support  # noqa: E402
 import shiploop_workspace as workspace  # noqa: E402
@@ -56,13 +57,13 @@ class KnowledgeTests(unittest.TestCase):
         (self.repo / "app.py").write_text("x = 2\n")
         git(self.repo, "add", "app.py")  # the user's own staged work stays out of the knowledge commit
         self.assertEqual(knowledge.check(self.state, "prepare"), "")
-        commit = knowledge.commit(self.state, "prepare")
+        commit = knowledge.commit(self.state, "prepare").commit
         self.assertTrue(commit)
         files = git(self.repo, "show", "--name-only", "--format=%s", commit).split("\n")
         self.assertEqual(files[0], "docs(shiploop): record add-a-fleet-command-tab-to-abcdef knowledge at prepare")
         self.assertTrue(all(name.startswith("docs/shiploop/") for name in files[1:] if name))
         self.assertIn("app.py", git(self.repo, "diff", "--cached", "--name-only"))
-        self.assertEqual(knowledge.commit(self.state, "test-spec"), "")  # nothing changed
+        self.assertEqual(knowledge.commit(self.state, "test-spec").commit, "")  # nothing changed
 
     def test_the_living_spec_keeps_every_committed_requirement_id(self) -> None:
         support.write(self.state)
@@ -85,7 +86,7 @@ class KnowledgeTests(unittest.TestCase):
                            "## Key considerations\n\nConfirm tabs with sf org list metadata.\n\n"
                            "## Open for the next run\n\nTC-13 and TC-14 need a person in a browser.\n")
         self.assertEqual(knowledge.check(self.state, "release-verify"), "")
-        commit = knowledge.commit(self.state, "release-verify")
+        commit = knowledge.commit(self.state, "release-verify").commit
         body = git(self.repo, "log", "-1", "--format=%B", commit)
         self.assertIn("knowledge at release-verify\n\nLearned\nlightning__Tab creates no tab.", body)
         self.assertIn("Open for the next run\nTC-13 and TC-14 need a person in a browser.", body)
@@ -111,6 +112,87 @@ class KnowledgeTests(unittest.TestCase):
         rows = workspace._plan_rows({"docs/shiploop/spec.md": "added", "src/a.py": "added"}, [], [])
         self.assertEqual({row["path"]: row["disposition"] for row in rows},
                          {"docs/shiploop/spec.md": "keep", "src/a.py": "pending"})
+
+
+class KnowledgeAfterEveryStageTests(KnowledgeTests):
+    """P3b: ShipLoop commits the home after any accepted stage that changed it, with the closes' checks."""
+
+    def test_a_non_close_stage_that_changed_the_home_is_committed(self) -> None:
+        support.write(self.state)
+        knowledge.commit(self.state, "prepare")
+        notes = self.repo / "docs/shiploop/environment.md"
+        notes.write_text(notes.read_text() + "\nThe service listens on PORT.\n")
+        self.assertEqual(knowledge.check(self.state, "integration-verify"), "")
+        committed = knowledge.commit(self.state, "integration-verify")
+        self.assertTrue(committed.commit)
+        self.assertEqual(committed.paths, ["docs/shiploop/environment.md"])
+        subject = git(self.repo, "log", "-1", "--format=%s")
+        self.assertTrue(subject.endswith("knowledge after integration-verify\n"), subject)
+        self.assertEqual(knowledge.commit(self.state, "handoff").commit, "")  # unchanged: no empty commit
+
+    def test_a_non_close_stage_that_drops_an_id_is_refused(self) -> None:
+        support.write(self.state)
+        spec = self.repo / "docs/shiploop/spec.md"
+        spec.write_text("# spec\n\nR-1: Import files.\nR-2: Report totals.\n")
+        knowledge.commit(self.state, "prepare")
+        spec.write_text("# spec\n\nR-1: Import files.\n")
+        self.assertIn("no longer mentions R-2", knowledge.check(self.state, "verify"))
+
+    def test_an_unchanged_home_is_not_checked_outside_a_close(self) -> None:
+        self.assertEqual(knowledge.check(self.state, "implement"), "")  # no home at all: nothing to require
+
+
+class CommitHelperTests(unittest.TestCase):
+    """The one commit path (shiploop_git.commit_paths) every ShipLoop commit uses."""
+
+    def setUp(self) -> None:
+        temp = tempfile.TemporaryDirectory(prefix="shiploop-git-")
+        self.addCleanup(temp.cleanup)
+        self.repo = Path(temp.name).resolve() / "repo"
+        self.repo.mkdir()
+        git(self.repo, "init", "-q")
+        git(self.repo, "-c", "user.email=u@example.invalid", "-c", "user.name=U", "commit", "-q",
+            "--allow-empty", "-m", "base")
+
+    def test_stages_exactly_the_given_paths_and_names_a_file_that_looks_like_a_secret(self) -> None:
+        git(self.repo, "config", "user.email", "u@example.invalid")
+        git(self.repo, "config", "user.name", "U")
+        (self.repo / "lib.py").write_text("VALUE = 1\n")
+        (self.repo / "settings.env").write_text("Authorization: Bearer 0123456789abcdefghij\n")
+        (self.repo / "other.txt").write_text("not part of this commit\n")
+        committed = shiploop_git.commit_paths(self.repo, ["lib.py", "settings.env"], "feat: lib")
+        self.assertEqual(committed.paths, ["lib.py"])
+        self.assertEqual(committed.skipped, ["settings.env"])
+        self.assertEqual(git(self.repo, "show", "--name-only", "--format=", "HEAD").split(), ["lib.py"])
+        status = git(self.repo, "status", "--porcelain")
+        self.assertIn("?? settings.env", status)
+        self.assertIn("?? other.txt", status)
+        notice = shiploop_git.skipped_notice(committed.skipped)
+        self.assertIn("settings.env", notice)
+        self.assertNotIn("0123456789abcdefghij", notice)
+
+    def test_workspace_identity_only_without_a_configured_identity(self) -> None:
+        (self.repo / "a.txt").write_text("a\n")
+        env = {"GIT_CONFIG_GLOBAL": "/dev/null", "GIT_CONFIG_NOSYSTEM": "1"}
+        import os
+        from unittest import mock
+        with mock.patch.dict(os.environ, env):
+            committed = shiploop_git.commit_paths(self.repo, ["a.txt"], "docs: a")
+        self.assertEqual(git(self.repo, "log", "-1", "--format=%ae", committed.commit).strip(),
+                         "shiploop-workspace@local.invalid")
+        git(self.repo, "config", "user.email", "u@example.invalid")
+        git(self.repo, "config", "user.name", "U")
+        (self.repo / "a.txt").write_text("b\n")
+        with mock.patch.dict(os.environ, env):
+            again = shiploop_git.commit_paths(self.repo, ["a.txt"], "docs: b")
+        self.assertEqual(git(self.repo, "log", "-1", "--format=%ae", again.commit).strip(), "u@example.invalid")
+
+    def test_empty_commit_and_nothing_to_commit(self) -> None:
+        git(self.repo, "config", "user.email", "u@example.invalid")
+        git(self.repo, "config", "user.name", "U")
+        self.assertEqual(shiploop_git.commit_paths(self.repo, ["absent.txt"], "x").commit, "")
+        empty = shiploop_git.commit_paths(self.repo, [], "baseline", allow_empty=True)
+        self.assertEqual(git(self.repo, "rev-parse", "HEAD").strip(), empty.commit)
 
 
 if __name__ == "__main__":

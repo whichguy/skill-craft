@@ -30,6 +30,7 @@ import shiploop_lint as lint
 import shiploop_quality as quality
 import shiploop_improve_changes as improve_changes
 import shiploop_item_scope as item_scope
+import shiploop_git as shiploop_git
 import shiploop_knowledge_home as knowledge
 import shiploop_test_loop as test_loop
 import shiploop_planning_revision as planning_revision
@@ -1301,7 +1302,7 @@ def _item_commit(root: Path, before: Mapping[str, Any], after: Mapping[str, Any]
         message = ("feat: " + str(row.get("workitem")) + " " + _item_title(after, row["workitem"])
                    + "\n\n" + str(row.get("summary") or "").strip())
         try:
-            commit, undeclared = item_scope.commit_item(root, after, row["workitem"], message.strip())
+            commit, undeclared, skipped = item_scope.commit_item(root, after, row["workitem"], message.strip())
         except item_scope.ItemScopeError as exc:
             print("ShipLoop integrate: " + str(exc) + "; commit the item's files before release.", file=sys.stderr)
             continue
@@ -1310,6 +1311,8 @@ def _item_commit(root: Path, before: Mapping[str, Any], after: Mapping[str, Any]
         if undeclared:
             print("Not committed (changed, but not in the step plan's paths): " + ", ".join(undeclared)
                   + ". Commit the ones the product needs, delete generated output.")
+        if skipped:
+            print(shiploop_git.skipped_notice(skipped))
 
 
 def _item_title(state: Mapping[str, Any], work_item: str) -> str:
@@ -1322,14 +1325,18 @@ def _item_title(state: Mapping[str, Any], work_item: str) -> str:
 def _knowledge_close(before: Mapping[str, Any], after: Mapping[str, Any]) -> None:
     """Commit the knowledge home once a close stage's done has been accepted and saved."""
     rows = after["history"][len(before["history"]):]
-    stages = [row["stage"] for row in rows if row["outcome"] == "done" and row["stage"] in knowledge.CLOSES]
+    stages = [row["stage"] for row in rows if row["outcome"] == "done"]
     if not stages:
         return
     try:
-        knowledge.commit(after, stages[-1])
+        committed = knowledge.commit(after, stages[-1])
     except RuntimeError as exc:
-        # The transition stands; the next close commits the same files.
-        print("ShipLoop knowledge: " + str(exc) + "; the next close commits it.", file=sys.stderr)
+        # The transition stands; the next accepted stage commits the same files.
+        print("ShipLoop knowledge: " + str(exc) + "; the next accepted stage commits it.", file=sys.stderr)
+        return
+    notice = shiploop_git.skipped_notice(committed.skipped)
+    if notice:
+        print("ShipLoop knowledge: " + notice)
 
 
 # A locator may add an anchor, a line (and column) or a test ID after the file path:
@@ -3603,8 +3610,6 @@ def improve_commit_message_path(child: Mapping[str, Any]) -> Path:
 
 def _improve_commit(core: Any, root: Path, state: Mapping[str, Any], args: Any) -> int:
     """Commit exactly the files the bound Improve review changed and has not committed yet."""
-    import os
-    import subprocess
     child = state.get("active_improve")
     action_id = getattr(args, "action", None)
     _need(state["status"] == "active" and child is not None and action_id == child["action_id"]
@@ -3624,23 +3629,18 @@ def _improve_commit(core: Any, root: Path, state: Mapping[str, Any], args: Any) 
         print("Nothing to commit: every file this review changed is already committed"
               + (" (" + ", ".join(changes[0]) + ")." if changes[0] else "; the review changed no file."))
         return 0
-    repo = Path(state["repo"])
-
-    def git(*argv: str, env: dict | None = None) -> Any:
-        return subprocess.run(["git", "-C", str(repo), "-c", "core.hooksPath=/dev/null", *argv],
-                              capture_output=True, text=True, check=False,
-                              env=None if env is None else {**os.environ, **env})
-
-    added = git("add", "-A", "--", *pending)
-    _need(added.returncode == 0, "cannot stage the review's files: " + added.stderr.strip())
-    identity = git("config", "user.email")
-    env = None if identity.returncode == 0 and identity.stdout.strip() else {
-        "GIT_AUTHOR_NAME": "ShipLoop Workspace", "GIT_AUTHOR_EMAIL": "shiploop-workspace@local.invalid",
-        "GIT_COMMITTER_NAME": "ShipLoop Workspace", "GIT_COMMITTER_EMAIL": "shiploop-workspace@local.invalid"}
-    done = git("commit", "-q", "-F", str(message_path), "--", *pending, env=env)
-    _need(done.returncode == 0, "cannot commit the review's files: " + (done.stderr or done.stdout).strip())
-    head = git("rev-parse", "HEAD").stdout.strip()
+    try:
+        committed = shiploop_git.commit_paths(Path(state["repo"]), pending, "", message_file=message_path)
+    except shiploop_git.CommitError as exc:
+        raise NavigatorError(str(exc)) from exc
+    notice = shiploop_git.skipped_notice(committed.skipped)
+    if not committed.commit:
+        print("Nothing committed. " + notice)
+        return 0
     message_path.unlink()
+    head, pending = committed.commit, committed.paths
+    if notice:
+        print(notice)
     print("Committed this review's changes as " + head[:12] + ": " + ", ".join(pending) + ".")
     return 0
 

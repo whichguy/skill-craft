@@ -313,7 +313,9 @@ platform facts), `test-strategy.md`, and this run's `features/<slug>/` record.
 At `prepare`, each `test-spec`, `release-plan` and `release-verify`, ShipLoop
 refuses `done` until that close's files exist, screens them for credentials,
 refuses a living spec that drops an earlier committed ID, and commits exactly
-`docs/shiploop/`. The `release-verify` commit's message is the feature
+`docs/shiploop/`. After any other accepted stage that changed `docs/shiploop/`,
+ShipLoop runs the same credential and ID checks and commits it too, so never
+commit it yourself. The `release-verify` commit's message is the feature
 `outcome.md`'s `Learned`, `Key considerations` and `Open for the next run`
 sections, and intake and discovery packets quote the last three commit messages
 as inherited learnings. The next run starts from these files; see
