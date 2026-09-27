@@ -4,6 +4,14 @@ Written by scripts/release.py.
 
 ## 2026-09-26
 
+### skill-craft 1.4.0
+
+- Skills: shiploop 0.37.0
+
+### shiploop 0.37.0
+
+- Packets now live in files. For an active run, ShipLoop writes the complete packet to `<run>/packets/<action>.md` and prints only a short head: the callback, goal and done-when, the result contract, the packet file's path, recovery and pause commands, the keepalive marker and the status block (about 3 KB instead of 20-50 KB). The host reads the file on demand and consults only the reference sections a step needs, instead of printing whole packets that Grok cut at about 20 KB and reading whole reference files into context. Paused, blocked, awaiting, halted and done packets still print whole. `next` rewrites the file and reprints the head.
+
 ### skill-craft 1.3.0
 
 - Skills: shiploop 0.36.0, shiploop-e2e-audit 0.5.0

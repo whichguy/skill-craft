@@ -1077,15 +1077,62 @@ def _run_rules(core: Any, root: Path, state: Mapping[str, Any]) -> list[str]:
     ]
 
 
-def emit(core: Any, root: Path, state: Mapping[str, Any]) -> str:
-    """Print the full packet.
+PACKET_DIR = "packets"
 
-    Every packet is complete: ``next`` is the recovery command, and the script
-    cannot know whether the host kept anything from an earlier packet.
+
+def packet_path(root: Path, state: Mapping[str, Any]) -> Path:
+    """Where the full packet for the current action is kept for the host to read."""
+    action = state.get("active_improve") or {}
+    action_id = action.get("id") or current_action(state).get("id") or f"rev-{state['revision']}"
+    return Path(root) / PACKET_DIR / f"{action_id}.md"
+
+
+def emit(core: Any, root: Path, state: Mapping[str, Any]) -> str:
+    """Write the full packet to a file and print a short head that points at it.
+
+    Every packet is complete, in its file: ``next`` is the recovery command and
+    rewrites it, since the script cannot know what the host kept. Printing only
+    the head keeps packets out of the host's shell-output limit and context; the
+    host reads the file, and the references it names, only as far as it needs.
+    Paused, blocked, awaiting, halted and done packets are short and print whole.
     """
     text = render(core, root, state)
-    print(text, end="")
+    path = packet_path(root, state)
+    store.atomic_write_text(path, text)
+    if state["status"] != "active":
+        print(text, end="")
+    else:
+        print(packet_head(core, root, state, path), end="")
     return text
+
+
+def packet_head(core: Any, root: Path, state: Mapping[str, Any], path: Path) -> str:
+    """The printed part of an active packet: what to run, the goal, and where the rest is."""
+    stage = current_stage(state)
+    action = current_action(state)
+    lines = [
+        f"ShipLoop navigator | {stage} | revision {state['revision']}",
+        *_first_callback_lines(core, root, state),
+        *_goal_lines(state, stage),
+        *(_result_contract_lines(root, state, stage, action["id"])
+          if not state.get("active_improve") else []),
+        "",
+        f"Full packet: {path}",
+        "Read the full packet before acting: it holds this stage's steps, run rules and the "
+        "references to consult. Read it with a file-reading tool, not by printing it to the "
+        "shell. References it names are for lookup: open only the section a step needs, "
+        "never a whole reference file, and do not re-read the ShipLoop or Improve skill cards.",
+        "Never end the turn while a ShipLoop command is still running.",
+        "Recovery (reprints this head and rewrites the full packet): " + _callback(core, root, "next"),
+        "Pause without consuming the action: " + _callback(core, root, "pause", reason="<who asked and why>")
+        + " (only when the user asks or a real blocker stops authorized work)",
+        # Keepalive hooks bind a host session to this run from this exact line.
+        f"Keepalive marker: {KEEPALIVE_MARKER} run={state['run_id']} rev={state['revision']} dir={root}",
+        "",
+        status_block(state),
+        "",
+    ]
+    return "\n".join(lines)
 
 
 def _replace_v2_inner_action(state: dict[str, Any], stage: str) -> None:
@@ -3128,10 +3175,14 @@ def _render_improve(core: Any, root: Path, state: Mapping[str, Any], lines: list
         "Bound Until Loop card: " + skill["runtime_card"],
         "Bound Until Loop CLI locator: " + skill["runtime_cli"],
         "Child workspace: " + child["workspace"],
-        ("Read the selected Improve skill and its bound runtime instructions in full once per context "
-         "(again after a reset or if the card changed), then follow them. The skill owns all internal "
-         "improvement iterations." if inline else
-         "Read the selected Improve skill and its bound runtime instructions in full, then follow them. The skill owns all internal improvement iterations."),
+        ("Read the selected Improve skill's \"ShipLoop whole-skill subcall\" section and the bound "
+         "runtime card's \"Follow the returned action\" section with a file-reading tool, once per "
+         "context (again after a reset or if the card changed), then follow them; open other sections "
+         "only when a step needs them, and never print either card to the shell. The skill owns all "
+         "internal improvement iterations." if inline else
+         "Read the selected Improve skill's \"ShipLoop whole-skill subcall\" section and the bound runtime "
+         "card's \"Follow the returned action\" section with a file-reading tool, then follow them; open "
+         "other sections only when a step needs them. The skill owns all internal improvement iterations."),
         *planning_lines,
         *runtime_lines,
         *([guidance3.PLANNING_REVIEW_FOCUS.rstrip()]

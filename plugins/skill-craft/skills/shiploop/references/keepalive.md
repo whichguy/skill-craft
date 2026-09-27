@@ -62,7 +62,7 @@ the next packet. Host interrupts (Ctrl+C, Esc) skip stop hooks entirely.
 `SHIPLOOP_KEEPALIVE=off` in the host's environment disables the hooks.
 
 No hook is needed after a host compacts context: `next`, the recovery command
-every stop reason names, always prints the full packet.
+every stop reason names, always rewrites the full packet file and prints its head.
 Each stop decision is appended to
 `${XDG_STATE_HOME:-~/.local/state}/shiploop/keepalive/decisions.log` with its
 reason, and hook failures to `errors.log` beside it.
