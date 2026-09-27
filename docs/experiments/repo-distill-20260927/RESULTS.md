@@ -192,3 +192,12 @@ evidence-stripped spec and aliased oracle: **1,385 / 1,759 (78.7%)**, 3,133 s,
 Clean room clean, no recognition. Plain-session ranking on marked so far:
 Sonnet 5 82.5% (37 min) > GPT-6 Luna max 78.7% (52 min) > GPT-5.6 Luna xhigh
 68.2% (35 min); GPT-6 Luna xhigh still running.
+
+## T1 on marked, GPT-6 Luna at xhigh, 2026-09-27
+
+**1,334 / 1,759 (75.8%)**; 6486.9 s, 158 commands, 38880036 input (38206464 cached), 280790 output. Clean room clean. So on marked,
+**max beat xhigh by 2.9 points (78.7% vs 75.8%) and finished far sooner**
+(52 min vs about 1 h 50 min): the extra reasoning per step cut the
+run-and-fix cycling (73 commands vs over 300). Plain-session ranking:
+Sonnet 5 82.5% > GPT-6 Luna max 78.7% > GPT-6 Luna xhigh 75.8% > GPT-5.6
+Luna xhigh 68.2%. One run each; not repeated.
