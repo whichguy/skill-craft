@@ -71,3 +71,26 @@ had a `package.json`, `src/` and a `schema.json`.
   it before the builder view existed); it was stopped after ~3 min and
   voided (`rebuilds/m1-void-evidence-leak`). E3 restarted on the 3,042-line
   builder view.
+
+## T1 baseline rebuild on marked, two builders, 2026-09-27
+
+Same evidence-stripped spec (3,042 lines), empty directory, web off, host
+isolation (Claude: project settings only; Codex: CODEX_HOME with only the
+sign-in). Both clean-room checks clean; neither transcript names the original.
+
+| Builder | Oracle (1,759) | Wall | Spend |
+|---|---|---|---|
+| Claude Sonnet 5 | **1,452 pass (82.5%)**, 307 fail | 2,241 s, 103 turns | $8.88 |
+| Codex gpt-5.6-luna, xhigh | 1,199 pass (68.2%), 560 fail | 2,110 s, 89 commands | 17.0M input (16.7M cached), 102k output tokens |
+
+Failures concentrate in the CommonMark/GFM spec examples (Sonnet: 96/652
+CommonMark, 99/680 GFM; Luna about twice that). Sonnet is the T3 builder.
+
+Scoring finding (plan item 40): raw scores were 35 and 31 because the oracle,
+admitted against the original, imports the original's export names (`Marked`,
+`marked`), while the spec renamed the product and both rebuilds correctly
+export `Mdkit`/`mdkit`. Scoring now loads the rebuild through an alias module
+(`--rename marked=mdkit --rename Marked=Mdkit`; the case check uses
+`ALIASES=`) that falls back to the new name only where the original name is
+missing. Attribution's first attempt read nothing: its inputs were symlinks
+outside the sandboxed judge's directory; they are now copied in.

@@ -11,6 +11,7 @@ this script then checks every failing test is attributed exactly once.
 from __future__ import annotations
 
 import argparse
+import shutil
 import json
 import os
 import sys
@@ -32,10 +33,16 @@ def main() -> int:
     out = args.out.resolve()
     judge = out / "judge"
     judge.mkdir(parents=True)
-    for link, target in {"original": args.original, "spec.md": args.spec, "rebuild": args.rebuild,
+    # Real copies, not links: a sandboxed judge may not read outside its
+    # directory. Dependencies are left out of the original and the rebuild.
+    for name, source in {"original": args.original, "spec.md": args.spec, "rebuild": args.rebuild,
                          "oracle": args.oracle, "results.json": args.scored / "results.json",
                          "oracle.tap": args.scored / "oracle.tap"}.items():
-        (judge / link).symlink_to(target.resolve())
+        if source.is_dir():
+            shutil.copytree(source, judge / name, symlinks=True,
+                            ignore=shutil.ignore_patterns("node_modules", ".git"))
+        else:
+            shutil.copy(source, judge / name)
     failing = sorted(k for k, v in json.loads((args.scored / "results.json").read_text())["tests"].items()
                      if v == "fail")
     if not failing:

@@ -44,6 +44,9 @@ def app_cmd(work: Path) -> str | None:
     return f"node {(work / entry).resolve()}" if entry else None
 
 
+RENAMES: list[str] = []
+
+
 def score(work: Path, oracle: Path, out: Path) -> dict:
     cmd = app_cmd(work)
     if cmd is None:
@@ -52,7 +55,7 @@ def score(work: Path, oracle: Path, out: Path) -> dict:
         subprocess.run(["npm", "install", "--no-audit", "--no-fund", "--silent"], cwd=work,
                        stdin=subprocess.DEVNULL, capture_output=True)
     proc = subprocess.run([sys.executable, str(HERE / "oracle_run.py"), str(oracle), "--app-cmd", cmd,
-                           "--app-module", app_module(work),
+                           "--app-module", app_module(work), *[a for r in RENAMES for a in ("--rename", r)],
                            "--json", str(out / "results.json"), "--tap", str(out / "oracle.tap")],
                           capture_output=True, text=True)
     return json.loads((out / "results.json").read_text())
@@ -121,6 +124,8 @@ def main() -> int:
     ap.add_argument("--out", type=Path, required=True)
     ap.add_argument("--score-only", action="store_true", help="skip the build; rescore DIR/work")
     ap.add_argument("--host", choices=("grok", "claude", "codex"), default="grok")
+    ap.add_argument("--rename", action="append", default=[],
+                    help="old=new export rename between the original and the rebuild (oracle aliasing)")
     ap.add_argument("--codex-model", default="gpt-5.6-luna")
     ap.add_argument("--codex-effort", default="xhigh")
     ap.add_argument("--model", default="claude-sonnet-5", help="claude host only (grok uses grok_step defaults)")
@@ -130,6 +135,7 @@ def main() -> int:
     ap.add_argument("--forbid-dep", action="append", default=[],
                     help="package name the rebuild must not depend on (the original's published package)")
     args = ap.parse_args()
+    RENAMES.extend(args.rename)
     out = args.out.resolve()
     work = out / "work"
     if not args.score_only:
