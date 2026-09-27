@@ -231,6 +231,11 @@ def launch(argv: list[str], work: Path, out: Path, env: dict, timeout: int, watc
     mode = "wb" if first else "ab"  # a resumed session appends to the same streams
     events_path = out / "events.jsonl"
     line = 0 if first else sum(1 for _ in events_path.open("rb"))
+    # A run takes an hour or more; on macOS keep the machine from idle-sleeping, which
+    # otherwise freezes the host mid-stage and stretches every stage timing.
+    caffeinate = shutil.which("caffeinate")
+    if caffeinate:
+        argv = [caffeinate, "-i", *argv]
     with events_path.open(mode) as events, (out / "stderr.txt").open(mode) as stderr, \
             (out / "timeline.jsonl").open("w" if first else "a") as stamps:
         proc = subprocess.Popen(argv, cwd=work, stdin=subprocess.DEVNULL, stdout=subprocess.PIPE,
