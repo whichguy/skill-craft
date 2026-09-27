@@ -1,4 +1,4 @@
-# ShipLoop plan after E2E runs 1-8b (2026-09-27, revision 4)
+# ShipLoop plan after E2E runs 1-8b (2026-09-27, revision 5)
 
 Execute: ask
 
@@ -108,6 +108,37 @@ Anchor: S-12 (four copies), S-11 (commits never carry secrets to the user's
 branch), S-5. Non-regression: identical staged paths and messages for clean
 files. Evidence: per-caller tests; token file skipped and named; `web-service`
 focused suite keeps `committed` and glue 0.
+
+### P3b ShipLoop commits the knowledge home after every accepted stage that changed it (ShipLoop)
+Change: after any accepted stage (not only the four knowledge closes), if
+`docs/shiploop/` changed in the execution checkout, ShipLoop commits it through
+the P3 helper, with the same checks the closes use (no dropped requirement
+ID, privacy screen).
+
+Evidence: run 8b's remaining model glue is 3 `git add/commit` of docs during
+integrate, integration-verify and handoff, stages that edit the knowledge
+home between closes; the return needs those files committed.
+
+Adversarial evaluation:
+- *More, smaller commits in the product history* -> **accepted**: one commit
+  per stage that changed knowledge, message names the stage (S-11 asks for
+  committed knowledge); no empty commits.
+- *A half-written spec is committed mid-stage* -> **mitigated**: commit only
+  after the stage is accepted, never during it.
+- *A dropped requirement ID slips in between closes* -> **mitigated**: the
+  same ID check the closes use runs first; on refusal the stage's done is
+  refused, as at the closes.
+- *Model still commits docs itself out of habit* -> **mitigated**: the packets
+  already say ShipLoop commits the knowledge home; glue metric shows whether
+  the habit persists.
+- *Conflict with the integrate item commit (both touching docs)* ->
+  **mitigated**: both go through one helper; whichever runs second finds
+  nothing staged and makes no commit.
+
+Anchor: S-5, S-11, S-12. Non-regression: the four closes behave as today;
+other stages gain a commit only when the knowledge home changed. Evidence:
+navigator test (a docs edit in integration-verify is committed on accept, an
+ID drop is refused); web-service focused suite: glue from docs commits 0.
 
 ### P4 One loop-contract builder (ShipLoop)
 Change: test loop, quality loop and Improve contracts come from one module;
@@ -264,6 +295,12 @@ Anchor: S-8, S-13, Purpose. Evidence: rubric rerun; breadth suite.
 
 ## Status
 
+- P6 in progress (2026-09-27): `csv-report` and `seat-reservations` cases,
+  checks validated against reference and race-prone implementations; baseline
+  runs of both focused suites on 1.7.0 running. Their results are reviewed
+  against the spec before P3 starts; findings enter this plan only through
+  Change admission.
+
 - P1 done: styles in `cases.json`, `suites.json` (web-service, smoke, breadth),
   `--suite` with follow-on chaining and skip-on-failed-predecessor,
   `baselines.jsonl` seeded from runs 6-8b and appended per run.
@@ -276,5 +313,19 @@ Anchor: S-8, S-13, Purpose. Evidence: rubric rerun; breadth suite.
 
 ## Order
 
-P1 -> P2 -> P6 -> P3 -> P4 -> P5 (each iterated on the `web-service` focused
-suite) -> P7 -> P8 -> later items.
+1. Finish P6: record both baselines, review them against the spec (clauses
+   confirmed or violated per style), admit any new findings.
+2. P3 + P3b (one commit path, secret screen, knowledge commits after every
+   stage), iterated on the `web-service` focused suite until it passes with
+   docs-commit glue 0.
+3. P4 (contract builder, stage done_when exits), same suite; turns/cost
+   compared with runs 7/8b.
+4. P5 (Improve packets state each obligation once), same suite; packet sizes.
+5. P7: one release for P3-P5 after the full hermetic tier; hosts; then the
+   `breadth` suite (battleship, csv-report, seat-reservations) against each
+   case's baseline.
+6. P8 (engine neutrality) after owner review, confirmed by the rubric rerun and
+   `breadth`.
+7. Later, each through Change admission: tool knowledge into one catalog;
+   Grok refusal probe (host-neutral outcome); Until Loop short output
+   upstream.
