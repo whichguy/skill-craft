@@ -38,6 +38,9 @@ ALIASES = {
 }
 HOSTS = ("grok", "claude", "codex")
 NO_MCP = ["--strict-mcp-config", "--mcp-config", '{"mcpServers":{}}']
+# No user, project or local settings: no hooks, plugins, skills or CLAUDE.md instructions reach the call.
+# (--bare would also do it but skips subscription sign-in.) Verified: without it, ~/.claude/CLAUDE.md loads.
+CLAUDE_CLEAN = ["--setting-sources", "", "--disable-slash-commands"]
 PATH_KEYS = ("target_file", "target_directory", "path", "file_path")
 GROK_READ_TOOLS = ("read_file", "list_dir", "grep")
 CLAUDE_READ_TOOLS = ("Read", "Grep", "Glob")
@@ -142,7 +145,7 @@ def claude_outside(events: list[dict], cwd: str) -> list[str]:
 def _claude(m: dict, prompt: str, cwd: str, tools: str, timeout: int, rec: dict) -> None:
     allowed = ",".join(CLAUDE_READ_TOOLS) if tools else ""
     argv = ["claude", "-p", "--model", m["model"], "--output-format", "stream-json", "--verbose",
-            "--tools", allowed, *NO_MCP] + (["--effort", m["effort"]] if m["effort"] else []) + (["--allowedTools", allowed] if tools else [])
+            "--tools", allowed, *NO_MCP, *CLAUDE_CLEAN] + (["--effort", m["effort"]] if m["effort"] else []) + (["--allowedTools", allowed] if tools else [])
     out = subprocess.run(argv, input=prompt, capture_output=True, text=True, timeout=timeout, cwd=cwd).stdout
     events = []
     for line in out.splitlines():
@@ -196,7 +199,8 @@ def _codex(m: dict, prompt: str, cwd: str, tools: str, timeout: int, rec: dict) 
     # prompt still reaches a model that could run commands, so both modes are audited the same way.
     argv = ["codex", "exec", "--ignore-user-config", "--skip-git-repo-check", "-m", m["model"], "-s", "read-only",
             "-C", cwd, "--json"] + (["-c", f'model_reasoning_effort="{m["effort"]}"'] if m["effort"] else []) + [prompt]
-    out = subprocess.run(argv, capture_output=True, text=True, timeout=timeout, stdin=subprocess.DEVNULL).stdout
+    env = {k: os.environ[k] for k in ("PATH", "HOME", "LANG", "TERM") if k in os.environ}  # no host secrets
+    out = subprocess.run(argv, capture_output=True, text=True, timeout=timeout, stdin=subprocess.DEVNULL, env=env).stdout
     events = []
     for line in out.splitlines():
         try:
