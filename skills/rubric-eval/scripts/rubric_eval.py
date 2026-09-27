@@ -272,8 +272,12 @@ def plan_text(output: str, reviews: bool) -> str:
 # ---------------------------------------------------------------- run
 
 def run(run_dir: str | Path, model: str, *, workers: int = 8, attempts: int = 3, tools: str = "",
-        workspace: str | Path | None = None) -> dict:
-    """Run every prompt without a finished output; rerun a stub up to `attempts` times."""
+        workspace: str | Path | None = None, timeout: int | None = None) -> dict:
+    """Run every prompt without a finished output; rerun a stub up to `attempts` times.
+
+    timeout (seconds per call) defaults to 600, or 1800 with tools: a review that reads its references took
+    13 minutes, and a call cut off by the timeout is a stub, rerun into the same wall."""
+    timeout = timeout or (1800 if tools else 600)
     run_ = Path(run_dir); out = run_ / "out"; out.mkdir(exist_ok=True)
     reviews = json.loads((run_ / "manifest.json").read_text()).get("reviews", False)
 
@@ -283,7 +287,7 @@ def run(run_dir: str | Path, model: str, *, workers: int = 8, attempts: int = 3,
             return "done"
         text = ""; used = {"input_tokens": 0, "output_tokens": 0, "seconds": 0.0}
         for n in range(1, attempts + 1):
-            r = call_full(model, p.read_text(), tools=tools, workspace=workspace); text = r["text"]
+            r = call_full(model, p.read_text(), tools=tools, workspace=workspace, timeout=timeout); text = r["text"]
             for k in used:  # stub reruns are real cost, so usage sums every attempt; unknown stays unknown
                 used[k] = None if used[k] is None or r[k] is None else used[k] + r[k]
             if r.get("outside_paths") or (tools and model == "grok" and r.get("outside_paths") is None and text):
@@ -294,7 +298,7 @@ def run(run_dir: str | Path, model: str, *, workers: int = 8, attempts: int = 3,
                 used["seconds"] = round(used["seconds"], 1)
                 dest.write_text(json.dumps({"model": model, "text": text, "attempts": n, **used}) + "\n"); return "ok"
         with open(run_ / "stubs.log", "a") as log:
-            log.write(f"{p.stem}\t{words(text)} words\n")
+            log.write(f"{p.stem}\t{words(text)} words\t{used['seconds']}s over {attempts} attempts\n")
         return "stub"
 
     man_path = run_ / "manifest.json"; man = json.loads(man_path.read_text())
