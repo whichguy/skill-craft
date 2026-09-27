@@ -7,3 +7,6 @@ either, it exits 3 with status `grant-needed` and an `ASK-AGENT-GRANT-NEEDED`
 block naming the blocked paths and the Claude, Codex and Grok grants to add.
 The new `preflight` command runs the same probe (plus caller-named `--path`
 directories) without preparing.
+Known limitation, now documented: under Claude Code's Bash sandbox the helper
+still refuses to run, because the sandbox injects proxy Git configuration that
+the helper's override guard rejects.

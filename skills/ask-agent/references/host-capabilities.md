@@ -123,6 +123,14 @@ Claude Code prompts for, or in a sandbox denies, writes outside its working
 directories. Grant the store and Git common directory with `/add-dir` or
 `permissions.additionalDirectories` before preparing.
 
+Known limitation: with Claude Code's Bash sandbox enabled, every helper
+operation currently fails with exit 2, `refuses Git context environment
+overrides`, whatever is granted. The sandbox injects proxy configuration
+(`http.proxyAuthMethod` and a localhost `credential.*.helper`) through
+`GIT_CONFIG_PARAMETERS` or `GIT_CONFIG_COUNT`/`KEY_n`, and the helper refuses all
+injected Git configuration. Until that is resolved, run the helper-managed route
+from a Claude session without the Bash sandbox.
+
 Launch checklist for the observed Agent schema: general-purpose; fresh/no resume;
 `run_in_background=true`; no `isolation`; no invented `cwd`.
 

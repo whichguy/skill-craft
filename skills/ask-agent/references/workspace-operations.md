@@ -138,7 +138,7 @@ per-host fix:
 
 | Host | Grant |
 | --- | --- |
-| Claude Code | `/add-dir <path>` in the session, or `permissions.additionalDirectories` in settings (`--add-dir` at launch) |
+| Claude Code | `/add-dir <path>` in the session, or `permissions.additionalDirectories` in settings (`--add-dir` at launch). With the Bash sandbox enabled the helper currently refuses to run at all; see [Claude Code](host-capabilities.md#claude-code) |
 | Codex | restart with `--add-dir <store>` and `-c 'sandbox_workspace_write.writable_roots=["<git-common-dir>"]'` (`.git` stays read-only under `--add-dir`) |
 | Grok | a `~/.grok/sandbox.toml` profile `[profiles.ask-agent]` with `extends = "workspace"` and `read_write = [<paths>]`, run with `--sandbox ask-agent`; or `--sandbox off` |
 

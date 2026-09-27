@@ -112,11 +112,76 @@ grants sufficient? Setup: toy repo at `~/ask-agent-grant-exp-24cb4f/toy`
 After R3 the "does not exist yet" note moved directly under its own row (it
 printed after the `.git` row, which misattributed it).
 
+### R4 — worker commit inside the Codex sandbox (2026-09-27, firm)
+
+Same setup as R3, after a granted `prepare`, run with `codex sandbox` in
+workspace-write mode:
+
+- Grants `writable_roots=[store, toy/.git]`: the worker's `git add` + `git commit` in
+  the prepared worktree succeeds (`6519542 work`).
+- Grant `writable_roots=[store]` only: the commit fails, `Unable to create
+  '.../toy/.git/worktrees/worktree/index.lock': Operation not permitted`, exit 128.
+
+So the `.git` grant is needed by the worker itself, not only by `prepare`. A
+worktree's index lives under the common directory's `worktrees/`.
+
+### R5 — live Grok `--sandbox workspace` (2026-09-27, firm)
+
+`grok -p` (default model) ran `preflight --source toy --store <exp>/store`
+from `toy`: `STATUS=grant-needed EXIT=3`. The store parent lies outside cwd.
+Side observation, not ask-agent: that Grok session's stop hook reported the
+ShipLoop hook script missing at its path, and the stop hook re-prompted the model
+several times.
+
+### R6 — live Claude Code Bash sandbox (2026-09-27, firm; blocks Claude)
+
+`claude -p` with settings `sandbox.enabled=true, autoAllowBashIfSandboxed=true,
+allowUnsandboxedCommands=false`, with and without `--add-dir <exp>`: the probe
+never ran. `preflight` exited 2 with `refuses Git context environment overrides:
+GIT_CONFIG_COUNT, GIT_CONFIG_KEY_0, GIT_CONFIG_KEY_1, GIT_CONFIG_PARAMETERS,
+GIT_CONFIG_VALUE_0, GIT_CONFIG_VALUE_1`. A second session showed only
+`GIT_CONFIG_PARAMETERS`. `git config --list --show-scope` there listed the
+command-scope keys `http.proxyauthmethod` and
+`credential.http://localhost:<port>.helper`: the sandbox's network proxy. The
+same session without the sandbox has no `GIT_CONFIG_*`.
+
+Consequence: under Claude's Bash sandbox every helper operation (prepare,
+preflight, current-state, context checks) fails, whatever is granted. The
+`/add-dir` advice is necessary but not sufficient there. This predates the
+preflight (`853254fe` introduced the refusal).
+
+Attempted fix, not applied: treat injected configuration made only of `http.*` and
+`credential.*` keys, parsed exactly from both forms and failing closed on anything
+unparseable, as not a context override. The helper's own Git calls already strip
+these variables. The session's permission classifier denied the edit as weakening
+a security check, so it needs the owner's decision. Documented instead as a known
+limitation in `references/host-capabilities.md` (Claude Code) and the
+workspace-operations grant table.
+
+### ShipLoop preflight landed separately (2026-09-27, interim)
+
+Supersedes part of "Relationship to the ShipLoop preflight" above: branch
+`worktree-shiploop-grant-preflight-a3f9c1` has since committed `70a174e6`,
+adding `skills/shiploop/scripts/shiploop_grants.py` (`require`, `GrantError`,
+`detect_host`, `report`, exit 3, `SHIPLOOP-GRANT-NEEDED`). There are now two
+probes. Its report adds things the ask-agent block lacks: host detection with the
+detected host's fix first; no-restart options (Claude `/add-dir`; Codex Full
+access in `/permissions`); a `mkdir -p` line for grants that do not exist yet; the
+exact rerun command; and an explicit "do not work around it" line for the agent.
+
+The packages cannot import each other. The ask-agent helper must run as one file,
+including under `python -I` (tested), which drops the script directory from
+`sys.path`. The only in-repo precedent for cross-package reuse is Improve's vendored
+Until Loop runtime, pinned by SHA-256 in a provenance manifest and checked by
+`test/improve.test.sh`. Unifying the two needs a decision on the ShipLoop branch's
+unmerged code; see Open.
+
 ## Open
 
-- Grok and Claude live confirmation (exploratory): not run here because both need a
-  model call. The ShipLoop branch's `test/experiments/shiploop_write_grants/run.sh`
-  variants (`grok-workspace`, `grok-strict`, `claude-sandbox`) are the natural
-  harness once committed.
-- The worker's own first commit inside the granted Codex sandbox was not exercised;
-  R3 covers `prepare` (worktree add writes to the same common directory).
+- Claude Bash sandbox (R6): decide whether transport-only injected Git config
+  (`http.*`, `credential.*`) may pass the override guard.
+- One probe, not two: vendor a shared grants module into both packages with a
+  hash-pinned provenance test, or keep two and add a parity test on the report
+  content. Either way, port ShipLoop's host-first, no-restart and do-not-work-around
+  wording into the ask-agent block.
+- Grok stop hook reports a missing ShipLoop hook script (R5 side observation).
