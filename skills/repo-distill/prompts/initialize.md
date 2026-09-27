@@ -16,7 +16,7 @@ works. Do not use the web.
 |---|---|
 | `README.md` | Index: what each file answers; links to the repository's README and any formal requirements, API or design documents |
 | `spec.md` | The living spec: requirements with stable IDs `R-1`, `R-2`, ... and an empty `## Retired` section |
-| `architecture.md` | Stack, ownership, contracts and numbered decisions `A-n` (below) |
+| `architecture.md` | Stack, ownership, contracts, configuration, error model, conventions and numbered decisions `A-n` (below) |
 | `environment.md` | Runtime targets, the working install, build, test and run commands (each one you actually ran, with its result), platform facts |
 | `test-strategy.md` | Existing test harnesses and suites, the command that runs each, how tests are named and organised, what they cover and what they do not |
 
@@ -62,6 +62,12 @@ works. Do not use the web.
     and the main data flow in a few lines;
   - **Contracts and boundaries:** public APIs, file formats, layering and
     anything a change must not break;
+  - **Configuration:** where options come from (defaults, files, arguments,
+    environment) and which source wins;
+  - **Error model:** how failures are represented inside and how they reach
+    a caller (thrown, returned, logged, exit status), and what is swallowed;
+  - **Conventions:** naming, layering and placement rules, and the lint,
+    format and type-check gates a change must pass;
   - **Decisions:** numbered `A-1`, `A-2`, ... (stable, never reused), each
     with the decision, its rationale, `rationale: stated` (docs, comments,
     commit messages; cite them) or `rationale: inferred`, and `path:line`
