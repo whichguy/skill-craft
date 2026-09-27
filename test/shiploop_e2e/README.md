@@ -88,6 +88,30 @@ failed ShipLoop commands, truncations, compactions, ended sessions). It never
 prints packet text or run markers, so a ShipLoop keepalive in the watching
 session cannot bind to the run.
 
+### Suites and baselines
+
+```sh
+bash test/run-integration.sh shiploop-e2e --suite web-service   # focused: one style, in depth
+bash test/run-integration.sh shiploop-e2e --suite breadth       # one case per style: the generality gate
+```
+
+Each case in `cases.json` has a `style`; `suites.json` groups them into focused
+suites (one style) and the `breadth` suite (one case per style). `--suite`
+runs the cases in order into one directory; a follow-on case starts from its
+predecessor's output and is skipped when that predecessor failed. Every run
+(suite or `--case`) appends one summary row to `baselines.jsonl`
+(case, style, source, ShipLoop version, verdicts, turns, cost, sessions,
+cancellations, model glue, ShipLoop failures) and prints the change against
+the case's previous row from the same source. Commit the new rows with the
+run's learnings entry. See SPEC.md, "E2E suites".
+
+`metrics.json` also reports `script_verifications` (the checks ShipLoop itself
+ran and recorded, from its `*-verify*.md` records) and `model_glue`: shell
+commands that did a step ShipLoop owns (`git commit`/`add`, shell writes into
+the run directory or Improve receipts, hand-built loop contracts), listed with
+the reason so a reviewer can confirm them. Both are defined by ShipLoop's own
+paths and verbs, never by a case's tools.
+
 ### A second feature in the same repository
 
 ```sh

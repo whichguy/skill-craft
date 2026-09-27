@@ -219,6 +219,18 @@ Anchor: S-8, S-13, Purpose. Evidence: rubric rerun; breadth suite.
 - A `loop-start` verb now: no evidence of a start problem; churn and adapter
   risk without an anchor in run evidence.
 
+## Status
+
+- P1 done: styles in `cases.json`, `suites.json` (web-service, smoke, breadth),
+  `--suite` with follow-on chaining and skip-on-failed-predecessor,
+  `baselines.jsonl` seeded from runs 6-8b and appended per run.
+- P2 done: `script_verifications` from ShipLoop's verify records;
+  requirement IDs through ShipLoop's own pattern; `model_glue` defined by
+  ShipLoop paths and verbs. Recomputed on past runs: glue 31/39 (1.4.0),
+  17/35 (1.5.0), 5 (1.6.0). Run 8b's remaining glue: model `git add/commit`
+  on docs outside Improve reviews and one `rm -rf .shiploop-improve`: input
+  for P3.
+
 ## Order
 
 P1 -> P2 -> P6 -> P3 -> P4 -> P5 (each iterated on the `web-service` focused

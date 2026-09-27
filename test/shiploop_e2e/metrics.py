@@ -16,7 +16,34 @@ from pathlib import Path
 import re
 
 SHIPLOOP_COMMAND = re.compile(r"shiploop\S*\s+(?P<verb>complete|next|improve-[\w-]+|init|workspace|lint|resume|pause)\b")
-TEST_COMMAND = re.compile(r"node --test|python3? -m (unittest|pytest)|\bpytest\b|npm (run )?test")
+# Model-written glue (SPEC S-4, S-5): shell commands that do a mechanical step
+# ShipLoop owns. Defined by ShipLoop's own paths and verbs, never by product
+# tools, so it means the same thing for every case. A heuristic signal: the
+# matching commands are listed so a reviewer can confirm them.
+# ShipLoop-owned: its run directory, Improve receipts and its own record files.
+# The execution worktree under a workspace root is product space, not ShipLoop's.
+SHIPLOOP_OWNED = re.compile(r"(?:\.shiploop-improve|/\.shiploop(?:/|[\"'\s]|$)|\.shiploop-runs/[^/\s\"']+/run\b|"
+                            r"/run/(?:state\.md|results|packets|tests|quality)|until-loop|"
+                            r"packet\.json|start\.json|parent-return\.md|terminal\.json)")
+# Files the packets ask the model itself to write (its result, an Improve opening or
+# commit message): writing them is the step, not glue.
+MODEL_INPUT = re.compile(r"/inbox/|opening\.md|commit-message\.md")
+GLUE_COMMIT = re.compile(r"\bgit\b[^\n;&|]*\s(?:commit|add)\b")
+GLUE_WRITE = re.compile(r"(?:>>?|\btee\b|\bcp\b|\bmv\b|\bmkdir\b|\brm\b)\s+[^\n;&|]*")
+GLUE_CONTRACT = re.compile(r"exit_condition|repeat_condition|required_trivial_reviews")
+
+
+def glue_reasons(command: str) -> list[str]:
+    """Why a shell command counts as model-written glue ([] when it does not)."""
+    reasons = []
+    if GLUE_COMMIT.search(command):
+        reasons.append("git commit/add by the model")
+    if any(SHIPLOOP_OWNED.search(m.group(0)) and not MODEL_INPUT.search(m.group(0))
+           for m in GLUE_WRITE.finditer(command)):
+        reasons.append("shell write into a ShipLoop-owned path")
+    if GLUE_CONTRACT.search(command):
+        reasons.append("hand-built loop contract")
+    return reasons
 FAILURE_LINE = re.compile(r"error|refus|reject|required|must|invalid", re.I)
 MARKER = re.compile(r"SHIPLOOP-RUN")
 
@@ -72,7 +99,8 @@ def collect(out: Path, run_dir: Path | None = None) -> dict:
     stamps = timeline(out / "timeline.jsonl")
     calls: dict[str, dict] = {}
     turns: list[dict] = []
-    sessions, failures, tests, compactions = [], [], 0, 0
+    sessions, failures, compactions = [], [], 0
+    glue: list[dict] = []
     truncated: set = set()
     cancelled: list[str] = []
     reads: list[str] = []
@@ -91,8 +119,9 @@ def collect(out: Path, run_dir: Path | None = None) -> dict:
             arg = event.get("rawInput") if isinstance(event.get("rawInput"), dict) else {}
             command = str(arg.get("command") or "")
             calls[event.get("toolCallId")] = {"t": t, "command": command}
-            if TEST_COMMAND.search(command):
-                tests += 1
+            reasons = glue_reasons(command) if command else []
+            if reasons:
+                glue.append({"reasons": reasons, "command": " ".join(command.split())[:200]})
             target = arg.get("target_file") or arg.get("file_path") or arg.get("path")
             if target:
                 reads.append(str(target))
@@ -130,11 +159,23 @@ def collect(out: Path, run_dir: Path | None = None) -> dict:
         "truncated_outputs": len(truncated),
         "cancelled_tool_calls": cancelled,
         "shiploop_failures": failures,
-        "test_runs": tests,
+        "script_verifications": verifications(run_dir),
+        "model_glue": glue,
         "improve_children": len(list(improve.iterdir())) if improve and improve.is_dir() else 0,
         "knowledge_reads": sorted({r[r.index("docs/shiploop"):] for r in reads if "docs/shiploop" in r}),
         "stages": stages,
     }
+
+
+def verifications(run_dir: Path | None) -> dict:
+    """The checks ShipLoop itself ran and recorded (tests/<action>-verify<N>.md), case-agnostic."""
+    records = sorted(run_dir.rglob("*-verify*.md")) if run_dir and run_dir.is_dir() else []
+    passed = commands = 0
+    for path in records:
+        text = path.read_text(errors="replace")
+        passed += bool(re.search(r'"passed"\s*:\s*true', text))
+        commands += len(re.findall(r'"command"\s*:', text))
+    return {"records": len(records), "passed": passed, "commands": commands}
 
 
 def per_stage(accepted: list[dict], turns: list[dict], calls: dict, stamps: dict, cost: float | None) -> list[dict]:
@@ -163,7 +204,9 @@ def summary_lines(metrics: dict, top: int = 5) -> list[str]:
              f"({', '.join(str(s['stop']) for s in metrics['sessions']) or 'none ended'}), "
              f"compactions {metrics['compactions']}, truncated outputs {metrics['truncated_outputs']}, "
              f"cancelled tool calls {len(metrics['cancelled_tool_calls'])}, "
-             f"ShipLoop command failures {len(metrics['shiploop_failures'])}, test runs {metrics['test_runs']}, "
+             f"ShipLoop command failures {len(metrics['shiploop_failures'])}, "
+             f"script verifications {metrics['script_verifications']['passed']}/{metrics['script_verifications']['records']} passed, "
+             f"model glue {len(metrics['model_glue'])}, "
              f"Improve children {metrics['improve_children']}"]
     timed = [s for s in metrics["stages"] if "turns" in s]
     if timed:

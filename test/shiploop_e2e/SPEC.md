@@ -182,10 +182,10 @@ on quickly before the breadth of everything is checked.
 | Clause | Evidence the harness records (result.json, metrics.json, review) |
 |---|---|
 | S-1, S-2 | ShipLoop command failures and refusals; resumed sessions continue from `next`; no state edits outside ShipLoop verbs |
-| S-4, S-5 | host-cancelled tool calls and model-written glue (heredoc, `git commit`, `mv`, hand-built JSON) in the transcript |
+| S-4, S-5 | host-cancelled tool calls; `model_glue` (model `git commit`/`add`, shell writes into ShipLoop-owned paths, hand-built loop contracts) |
 | S-6 | runs survive compaction and session resumes without losing their place |
 | S-7 | truncated outputs, peak context, compactions, packet head size |
-| S-9, S-10 | test runs, Improve children, verify records; a zero-test pass fails |
+| S-9, S-10 | `script_verifications` (ShipLoop's own verify records), Improve children; a zero-test pass fails |
 | S-11 | `committed` verdict; follow-on retention checks (earlier files, spec IDs, tests grew) |
 | S-8, S-12, S-13 | review of the diff under test: no technology in prompts, no second implementation |
 
@@ -193,6 +193,14 @@ Verdicts (invoked, plugin, process, shiploop, committed, checks) must all pass.
 Reliability (sessions, cancellations, failures) and cost (turns, dollars, per
 stage) are scored beside them and compared with the previous run of the same
 case.
+
+## Evolving this spec
+
+ShipLoop will evolve, and so will this spec. When a planned change needs a
+clause this spec does not have, or conflicts with one, amend the spec first,
+in its own commit, stating what changed, why, and which runs or behaviours
+the amendment affects. The harness always judges against the spec as it
+stands at the commit under test.
 
 ## Rules for the harness itself
 

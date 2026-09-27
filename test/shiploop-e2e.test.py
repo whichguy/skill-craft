@@ -53,7 +53,7 @@ def product():
     if not Path(".git").exists():
         subprocess.run(["git", "init", "-q"], check=True)
     subprocess.run(["git", "add", "-A"], check=True)
-    subprocess.run(["git", *ident, "commit", "-qm", "product"], check=True)
+    subprocess.run(["git", *ident, "commit", "-q", "--allow-empty", "-m", "product"], check=True)
 """
 
 # FAKE_MODE: done (product + done run), nothing (exit 0, no work), no-skill (done,
@@ -136,6 +136,7 @@ class HarnessCase(unittest.TestCase):
         (self.plugin / ".claude-plugin").mkdir(parents=True)
         (self.plugin / ".claude-plugin" / "plugin.json").write_text("{}")
         self.log = self.tmp / "fake-log.json"
+        self.baselines = self.tmp / "baselines.jsonl"  # never the committed file
         os.environ["FAKE_LOG"] = str(self.log)
         self.addCleanup(os.environ.pop, "FAKE_MODE", None)
         auth = self.tmp / "auth.json"
@@ -148,7 +149,7 @@ class HarnessCase(unittest.TestCase):
         out = self.tmp / f"out-{host}-{mode}"
         with contextlib.redirect_stdout(io.StringIO()):
             code = run.main(["--host", host, f"--{host}-bin", str(self.fakes[host]), "--output", str(out),
-                             "--plugin-dir", str(self.plugin), *extra])
+                             "--plugin-dir", str(self.plugin), "--baseline", str(self.baselines), *extra])
         return code, json.loads((out / "result.json").read_text())
 
     def seen(self) -> dict:
@@ -460,6 +461,70 @@ class FollowOnTest(HarnessCase):
         self.assertTrue(all("PRIOR_WORK" in check for check in case["retention"]))
 
 
+class SuiteTest(HarnessCase):
+    def use_catalog(self, cases: dict, suites: dict) -> None:
+        for attr, data in (("CASES", cases), ("SUITES", suites)):
+            path = self.tmp / (attr.lower() + ".json")
+            path.write_text(json.dumps(data))
+            saved = getattr(run, attr)
+            setattr(run, attr, path)
+            self.addCleanup(setattr, run, attr, saved)
+
+    def run_suite(self, name: str) -> tuple[int, dict]:
+        os.environ["FAKE_MODE"] = "done"
+        out = self.tmp / "suite-out"
+        with contextlib.redirect_stdout(io.StringIO()):
+            code = run.main(["--suite", name, "--host", "grok", "--grok-bin", str(self.fakes["grok"]),
+                             "--output", str(out), "--plugin-dir", str(self.plugin),
+                             "--baseline", str(self.baselines)])
+        return code, json.loads((out / "suite-result.json").read_text())
+
+    def test_follow_on_starts_from_its_predecessor_and_rows_record_the_suite(self):
+        self.use_catalog(
+            {"first": {"style": "s", "prompt": "p", "checks": ["test -f hello.py"]},
+             "second": {"style": "s", "follows": "first", "prompt": "q", "checks": [], "retention": []}},
+            {"focus": {"kind": "focused", "style": "s", "cases": ["first", "second"]}})
+        code, result = self.run_suite("focus")
+        self.assertEqual(code, 0, result)
+        self.assertEqual([row["case"] for row in result["cases"]], ["first", "second"])
+        second = json.loads((self.tmp / "suite-out" / "second" / "result.json").read_text())
+        self.assertEqual(second["follow_on"]["prior"], str((self.tmp / "suite-out" / "first").resolve()))
+        rows = [json.loads(line) for line in self.baselines.read_text().splitlines()]
+        self.assertEqual([(r["case"], r["style"], r["suite"], r["pass"]) for r in rows],
+                         [("first", "s", "focus", True), ("second", "s", "focus", True)])
+
+    def test_follow_on_is_skipped_when_its_predecessor_failed(self):
+        self.use_catalog(
+            {"first": {"style": "s", "prompt": "p", "checks": ["false"]},
+             "second": {"style": "s", "follows": "first", "prompt": "q", "checks": []}},
+            {"focus": {"kind": "focused", "style": "s", "cases": ["first", "second"]}})
+        code, result = self.run_suite("focus")
+        self.assertEqual(code, 1)
+        self.assertIn("failed", result["cases"][1]["skipped"])
+        self.assertFalse((self.tmp / "suite-out" / "second").exists())
+
+    def test_committed_suites_name_known_cases_and_breadth_covers_every_focused_style(self):
+        cases = json.loads(run.CASES.read_text())
+        suites = {k: v for k, v in json.loads(run.SUITES.read_text()).items() if not k.startswith("_")}
+        for name, suite in suites.items():
+            for case in suite["cases"]:
+                self.assertIn(case, cases, name)
+                if suite["kind"] == "focused":
+                    self.assertEqual(cases[case]["style"], suite["style"], (name, case))
+        focused = {s["style"] for s in suites.values() if s["kind"] == "focused" and s["style"] != "smoke"}
+        breadth = {cases[c]["style"] for c in suites["breadth"]["cases"]}
+        self.assertEqual(breadth, focused)
+
+    def test_a_second_run_reports_the_change_against_the_previous_row(self):
+        self.invoke("grok", "done")
+        output = io.StringIO()
+        os.environ["FAKE_MODE"] = "done"
+        with contextlib.redirect_stdout(output):
+            run.main(["--host", "grok", "--grok-bin", str(self.fakes["grok"]), "--output", str(self.tmp / "again"),
+                      "--plugin-dir", str(self.plugin), "--baseline", str(self.baselines)])
+        self.assertIn("baseline  vs", output.getvalue())
+        self.assertEqual(len(self.baselines.read_text().splitlines()), 2)
+
 class CheckHygieneTest(unittest.TestCase):
     def test_checks_leave_no_untracked_file_behind(self):
         with tempfile.TemporaryDirectory() as tmp:
@@ -521,12 +586,38 @@ class MetricsTest(unittest.TestCase):
         self.assertEqual(m["cost_usd"], 3.0)
         self.assertEqual(m["compactions"], 1)
         self.assertEqual(m["truncated_outputs"], 2)
-        self.assertEqual(m["test_runs"], 1)
+        self.assertEqual(m["script_verifications"], {"records": 0, "passed": 0, "commands": 0})
         self.assertEqual(m["cancelled_tool_calls"], ["git init -b main"])
         self.assertEqual(m["improve_children"], 1)
         self.assertEqual(m["shiploop_failures"], [{"verb": "complete", "exit": 2, "line": "error: result refused"}])
         self.assertEqual([(s["stage"], s["turns"]) for s in m["stages"]], [("intake", 2), ("spec", 1)])
         self.assertEqual(m["stages"][0]["cost_share_usd"], 2.0)
+
+    def test_glue_is_defined_by_shiploop_paths_and_verbs_not_by_product_tools(self):
+        cases = {
+            'cd /x/.shiploop-runs/a/worktree && node --test > "/x/.shiploop-runs/a/worktree/out.txt"': [],
+            'npm test > report.txt': [],
+            'cat > /x/.shiploop-runs/a/run/inbox/r.md <<EOF': [],  # the model's own result file
+            'rm -rf "/x/.shiploop-improve"': ["shell write into a ShipLoop-owned path"],
+            'mv /x/wt/.shiploop-improve/n/packet.json /x/p.old': ["shell write into a ShipLoop-owned path"],
+            'echo x > /x/.shiploop/state.md': ["shell write into a ShipLoop-owned path"],
+            'git -C /x/wt commit -F /tmp/m': ["git commit/add by the model"],
+            'python3 - <<PY\n{"exit_condition": 1}\nPY': ["hand-built loop contract"],
+            'python3 /p/shiploop improve-commit --run-dir=/x/run --action=a --message=/x/m.md': [],
+        }
+        for command, reasons in cases.items():
+            with self.subTest(command=command):
+                self.assertEqual(metrics.glue_reasons(command), reasons)
+
+    def test_verifications_come_from_shiploop_records_not_tool_names(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            tests = Path(tmp) / "run" / "tests"
+            tests.mkdir(parents=True)
+            (tests / "nav-1-verify1.md").write_text('{"passed": true, "runs": [{"command": "a"}, {"command": "b"}]}')
+            (tests / "nav-2-verify1.md").write_text('{"passed": false, "runs": [{"command": "c"}]}')
+            (tests / "nav-2-contract.json").write_text("{}")
+            self.assertEqual(metrics.verifications(Path(tmp) / "run"),
+                             {"records": 2, "passed": 1, "commands": 3})
 
     def test_progress_reports_only_what_is_new_and_never_a_run_marker(self):
         with tempfile.TemporaryDirectory() as tmp:

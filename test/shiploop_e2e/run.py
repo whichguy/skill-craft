@@ -71,9 +71,12 @@ sys.path.insert(0, str(ROOT / "skills/shiploop/scripts"))
 sys.path.insert(0, str(HERE))
 import hosts  # noqa: E402
 import metrics  # noqa: E402
+import shiploop_knowledge_home as knowledge_home  # noqa: E402
 import shiploop_store as store  # noqa: E402
 
 CASES = HERE / "cases.json"
+SUITES = HERE / "suites.json"
+BASELINES = HERE / "baselines.jsonl"
 PLUGIN_NAME = "skill-craft"
 # Grok does not namespace plugin skills; Claude prefixes them with the plugin name.
 SKILL_COMMAND = {"grok": "shiploop", "claude": "skill-craft:shiploop"}
@@ -450,7 +453,8 @@ def knowledge_facts(work: Path) -> dict:
             "head": g("rev-parse", "HEAD").strip() or None,
             "uncommitted": uncommitted,
             "spec_tracked": bool(g("ls-files", "--", "docs/shiploop/spec.md").strip()),
-            "requirement_ids": sorted(set(re.findall(r"^#+\s*(R-\d+)\b", spec.read_text(), re.M))) if spec.is_file() else [],
+            "requirement_ids": sorted(set(knowledge_home._REQUIREMENT_ID.findall(spec.read_text())),
+                                      key=lambda value: int(value.split("-")[1])) if spec.is_file() else [],
             "head_commits": len(g("rev-list", "HEAD").split()),
             "untracked_files": len(untracked),
             "branches": g("branch", "--format=%(refname:short)").split()}
@@ -486,6 +490,10 @@ def run_checks(work: Path, checks: list[str], timeout: int = 180, env: dict | No
 def parser() -> argparse.ArgumentParser:
     p = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
     p.add_argument("--case", default="hello", help="case name from cases.json (default: hello)")
+    p.add_argument("--suite", help="run a suite from suites.json in order (focused: one style in depth; "
+                                   "breadth: one case per style); --output becomes the suite directory")
+    p.add_argument("--baseline", type=Path, default=BASELINES,
+                   help="append one summary row per run to this file (default: the committed baselines.jsonl)")
     p.add_argument("--prompt", help="run this prompt instead of a named case")
     p.add_argument("--continue-from", type=Path,
                    help="an earlier run's output directory: start in a copy of its source checkout "
@@ -507,13 +515,90 @@ def parser() -> argparse.ArgumentParser:
     p.add_argument("--max-resumes", type=int, default=20,
                    help="grok only: resume the same session this many times while ShipLoop is still active")
     p.add_argument("--quiet", action="store_true", help="do not print the live progress view")
+    p.add_argument("--suite-name", help=argparse.SUPPRESS)
     p.add_argument("--grok-bin", default="grok")
     p.add_argument("--claude-bin", default="claude")
     return p
 
 
+def baseline_row(result: dict, style: str | None, suite: str | None) -> dict:
+    """One comparable summary of a run: the per-case history the suites judge against (SPEC: E2E suites)."""
+    m = result.get("metrics") or {}
+    versions = result.get("versions") or {}
+    return {"date": time.strftime("%Y-%m-%dT%H:%M:%S%z"), "case": result.get("case"), "style": style,
+            "suite": suite, "source": versions.get("source"), "plugin_version": versions.get("plugin_version"),
+            "shiploop_version": versions.get("shiploop_version"), "pass": result.get("pass"),
+            "verdicts": {k: (result.get(k) or {}).get("pass") for k in ("invoked", "plugin", "process",
+                                                                       "shiploop", "committed")},
+            "checks_passed": sum(bool(c.get("pass")) for c in result.get("checks") or []),
+            "checks": len(result.get("checks") or []),
+            "turns": m.get("turns"), "cost_usd": m.get("cost_usd"),
+            "sessions": len((result.get("process") or {}).get("sessions") or []),
+            "cancelled_tool_calls": m.get("cancelled_tool_calls"), "model_glue": m.get("model_glue"),
+            "shiploop_failures": m.get("shiploop_failures"), "compactions": m.get("compactions"),
+            "truncated_outputs": m.get("truncated_outputs"), "output": result.get("output")}
+
+
+def previous_row(path: Path, case: str, source: str | None) -> dict | None:
+    """The last recorded row for this case from the same source (marketplace vs checkout)."""
+    if not path.is_file():
+        return None
+    found = None
+    for line in path.read_text().splitlines():
+        try:
+            row = json.loads(line)
+        except ValueError:
+            continue
+        if row.get("case") == case and row.get("source") == source:
+            found = row
+    return found
+
+
+def run_suite(args, argv: list[str]) -> int:
+    """Run a suite's cases in order; a follow-on starts from its predecessor and is skipped if it failed."""
+    suites = json.loads(SUITES.read_text())
+    if args.suite not in suites or args.suite.startswith("_"):
+        raise SystemExit(f"unknown suite {args.suite!r}; known: {', '.join(k for k in suites if not k.startswith('_'))}")
+    cases = json.loads(CASES.read_text())
+    base = new_output_dir(args.output, "suite-" + args.suite)
+    passthrough, skip = [], {"--suite", "--output", "--case", "--continue-from"}
+    it = iter(argv)
+    for token in it:
+        name = token.split("=", 1)[0]
+        if name in skip:
+            if "=" not in token:
+                next(it, None)
+            continue
+        passthrough.append(token)
+    outputs: dict[str, Path] = {}
+    summary = []
+    for case in suites[args.suite]["cases"]:
+        follows = cases[case].get("follows")
+        prior = outputs.get(follows) if follows else None
+        if follows and prior is None:
+            summary.append({"case": case, "skipped": f"its predecessor {follows!r} is not in this suite run"})
+            continue
+        if prior is not None and not json.loads((prior / "result.json").read_text()).get("pass"):
+            summary.append({"case": case, "skipped": f"its predecessor {follows!r} failed; nothing to build on"})
+            continue
+        out = base / case
+        case_argv = [*passthrough, "--case", case, "--output", str(out), "--suite-name", args.suite]
+        if prior is not None:
+            case_argv += ["--continue-from", str(prior)]
+        code = main(case_argv)
+        outputs[case] = out
+        summary.append({"case": case, "pass": code == 0, "output": str(out)})
+    (base / "suite-result.json").write_text(json.dumps({"suite": args.suite, "cases": summary}, indent=2) + "\n")
+    print(f"suite {args.suite}: " + ", ".join(
+        f"{row['case']} {'SKIP' if 'skipped' in row else 'PASS' if row['pass'] else 'FAIL'}" for row in summary))
+    return 0 if all(row.get("pass") for row in summary) else 1
+
+
 def main(argv: list[str] | None = None) -> int:
+    argv = list(sys.argv[1:] if argv is None else argv)
     args = parser().parse_args(argv)
+    if args.suite:
+        return run_suite(args, argv)
     defaults = hosts.HOST_DEFAULTS[args.host]
     args.model = args.model or defaults["model"]
     args.effort = args.effort or defaults["effort"]
@@ -628,11 +713,19 @@ def main(argv: list[str] | None = None) -> int:
               "keepalive": keepalive,
               "shiploop": shiploop, "committed": committed, "checks": check_results, "cli": cli_seen, "follow_on": follow_on,
               "metrics": {k: run_metrics[k] for k in ("turns", "cost_usd", "compactions", "truncated_outputs",
-                                                      "test_runs", "improve_children")}
-              | {"shiploop_failures": len(run_metrics["shiploop_failures"]),
+                                                      "improve_children")}
+              | {"script_verifications": run_metrics["script_verifications"],
+                 "model_glue": len(run_metrics["model_glue"]),
+                 "shiploop_failures": len(run_metrics["shiploop_failures"]),
                  "cancelled_tool_calls": len(run_metrics["cancelled_tool_calls"])},
               "output": str(out)}
     (out / "result.json").write_text(json.dumps(result, indent=2) + "\n")
+    style = json.loads(CASES.read_text()).get(name, {}).get("style") if name != "custom" else None
+    row = baseline_row(result, style, args.suite_name)
+    before = previous_row(args.baseline, name, versions["source"]) if args.baseline else None
+    if args.baseline:
+        with args.baseline.open("a") as handle:
+            handle.write(json.dumps(row) + "\n")
 
     mark = lambda ok: "PASS" if ok else "FAIL"  # noqa: E731
     print(f"{mark(result['pass'])}  shiploop e2e case={name} host={args.host}  output={out}")
@@ -666,6 +759,10 @@ def main(argv: list[str] | None = None) -> int:
               f"{follow_on['prior_turns']}, cost ${run_metrics['cost_usd']} vs ${follow_on['prior_cost_usd']}")
     for check in check_results:
         print(f"  check     {mark(check['pass'])}  {check['command']}")
+    if before:
+        print(f"  baseline  vs {before['date'][:10]} (ShipLoop {before['shiploop_version']}): "
+              f"turns {before['turns']} -> {row['turns']}, cost ${before['cost_usd']} -> ${row['cost_usd']}, "
+              f"sessions {before['sessions']} -> {row['sessions']}, glue {before['model_glue']} -> {row['model_glue']}")
     return 0 if result["pass"] else 1
 
 

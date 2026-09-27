@@ -1,0 +1,24 @@
+{
+  "_doc": "Focused suites iterate one style in depth; breadth runs one case per style (SPEC: E2E suites).",
+  "web-service": {
+    "kind": "focused",
+    "style": "web-service",
+    "cases": [
+      "battleship",
+      "battleship-scoring"
+    ]
+  },
+  "smoke": {
+    "kind": "focused",
+    "style": "smoke",
+    "cases": [
+      "hello"
+    ]
+  },
+  "breadth": {
+    "kind": "breadth",
+    "cases": [
+      "battleship"
+    ]
+  }
+}

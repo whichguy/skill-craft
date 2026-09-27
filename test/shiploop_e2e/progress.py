@@ -69,9 +69,15 @@ def report(out: Path) -> str:
     for failure in m["shiploop_failures"][memo.get("failures", 0):]:
         lines.append(f"  ShipLoop {failure['verb']} failed (exit {failure['exit']}): {failure['line']}")
     for key, label in (("truncated_outputs", "host truncated outputs"), ("compactions", "compactions"),
-                       ("improve_children", "Improve children"), ("test_runs", "test runs")):
+                       ("improve_children", "Improve children")):
         if m[key] > memo.get(key, 0):
             lines.append(f"  {label}: {m[key]} (+{m[key] - memo.get(key, 0)})")
+    verified = m["script_verifications"]
+    if verified["records"] > memo.get("verified", 0):
+        lines.append(f"  ShipLoop-run checks: {verified['passed']}/{verified['records']} passed "
+                     f"(+{verified['records'] - memo.get('verified', 0)})")
+    for item in m["model_glue"][memo.get("glue", 0):]:
+        lines.append("  model glue (" + "; ".join(item["reasons"]) + "): " + item["command"][:120])
     for command in m["cancelled_tool_calls"][memo.get("cancelled", 0):]:
         lines.append("  host cancelled a tool call (permission check): " + " ".join(command.split())[:120])
     for session in m["sessions"][memo.get("sessions", 0):]:
@@ -82,7 +88,9 @@ def report(out: Path) -> str:
     memo_path.write_text(json.dumps({"stages": len(m["stages"]), "failures": len(m["shiploop_failures"]),
                                      "sessions": len(m["sessions"]), "cancelled": len(m["cancelled_tool_calls"]),
                                      **{k: m[k] for k in ("truncated_outputs", "compactions",
-                                                          "improve_children", "test_runs")}}))
+                                                          "improve_children")},
+                                     "verified": m["script_verifications"]["records"],
+                                     "glue": len(m["model_glue"])}))
     return "\n".join(lines)
 
 

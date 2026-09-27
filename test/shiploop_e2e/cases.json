@@ -1,5 +1,6 @@
 {
   "hello": {
+    "style": "smoke",
     "prompt": "Create hello.py that prints exactly \"Hello, world!\" when run, plus a unittest test in test_hello.py that verifies that output.",
     "checks": [
       "test \"$(python3 hello.py)\" = 'Hello, world!'",
@@ -7,6 +8,7 @@
     ]
   },
   "battleship": {
+    "style": "web-service",
     "prompt": "Build a small single-player Battleship game served by a Node.js HTTP server with no npm dependencies. server.js starts the server on the port in the PORT environment variable (default 3000). GET / serves a playable HTML page titled \"Battleship\" where the player fires at a computer-placed fleet on a 10x10 grid. GET /api/new starts a game and returns JSON with a game id; POST /api/fire with JSON {\"game\": id, \"row\": r, \"col\": c} returns JSON with \"result\" set to \"miss\", \"hit\" or \"sunk\" and \"gameOver\" true once every ship is sunk. Keep the game rules in a module the server uses, and cover them with node:test tests under test/ that run with `node --test`.",
     "checks": [
       "node --test > node-test.log 2>&1; rc=$?; grep -Eq '^(ℹ|#) pass [1-9]' node-test.log && [ $rc -eq 0 ]; r=$?; rm -f node-test.log; exit $r",
@@ -16,6 +18,7 @@
     ]
   },
   "battleship-scoring": {
+    "style": "web-service",
     "follows": "battleship",
     "prompt": "Add scoring to the existing Battleship game. When a shot sinks a ship, the POST /api/fire response also includes \"ship\" with the name of the ship that sank. Every /api/fire response includes \"shots\" (shots fired so far in this game) and \"hits\" (shots that hit, including sinking shots). The page shows shots, hits and accuracy (hits divided by shots, as a percentage) and names each ship as it sinks. Everything the game already does keeps working.",
     "checks": [
