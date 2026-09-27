@@ -4,6 +4,30 @@ Written by scripts/release.py.
 
 ## 2026-09-27
 
+### skill-craft 1.6.0
+
+- Skills: improve 0.3.0-rc.9, shiploop 0.39.0, shiploop-e2e-audit 0.5.2
+
+### improve 0.3.0-rc.9
+
+- The ShipLoop whole-skill subcall commits a review's changes through ShipLoop's
+  `improve-commit` when the packet prints it (message written with a file tool).
+
+### shiploop 0.39.0
+
+- New `improve-commit` command for the inline Improve route: the parent writes the
+  review's commit message to `commit-message.md` beside the receipt with a file
+  tool, and ShipLoop stages and commits exactly the files the review changed and
+  has not committed (earlier uncommitted work is left alone). Inline Improve
+  packets print the command.
+- `improve-start` prints only the runtime's JSON packet on stdout (its status and
+  archive lines go to stderr), so a host can parse the output as JSON, as it can
+  the runtime's own `start`.
+
+### shiploop-e2e-audit 0.5.2
+
+- The Grok adapter recognizes ShipLoop's `improve-commit` verb.
+
 ### skill-craft 1.5.1
 
 - Skills: shiploop-e2e-audit 0.5.1

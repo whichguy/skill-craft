@@ -6,7 +6,7 @@ description: >-
   and repeat until two consecutive passes make no changes, or the first pass
   completes with no change. Supports a read-only interpretation preview; not a
   one-off code review.
-version: 0.3.0-rc.8
+version: 0.3.0-rc.9
 license: MIT
 platforms:
   - linux
@@ -124,7 +124,10 @@ different route from a remembered parent state.
 
 The ShipLoop child follows the standalone binding's ordinary commit policy: after
 required checks pass, commit authorized scoped changes in the bound candidate
-worktree and retain the commit SHA in its handoff. Stage only intended paths;
+worktree and retain the commit SHA in its handoff. When the ShipLoop packet
+prints an `improve-commit` command, write the commit message to the file it names
+with a file-writing tool and run that command: ShipLoop commits exactly the files
+the review changed; do not use a shell heredoc or `git commit` for it. Stage only intended paths;
 never include runtime receipts or unrelated inherited staging. An explicit
 user- or repository-authorized no-commit override, including a frozen override
 from an existing invocation, remains binding. Commit authority does not grant
