@@ -17,11 +17,38 @@ import re
 import signal
 import subprocess
 import sys
+import tempfile
 from pathlib import Path
 
 
-def run(oracle: Path, app_cmd: str, app_module: str = "", timeout: int = 600, tap: Path | None = None) -> dict:
-    env = {**os.environ, "APP_CMD": app_cmd, "APP_MODULE": app_module}
+def alias_module(app_module: str, renames: list[str]) -> str:
+    """A module that re-exports `app_module` and adds the original's names.
+
+    A clean-room rebuild carries the new product name in its interface
+    (`Mdkit`, `mdkit`), while the oracle, admitted against the original,
+    imports the original's (`Marked`, `marked`). Each `old=new` adds `old` as an
+    alias of the rebuild's `new` export.
+    """
+    if not app_module or not renames:
+        return app_module
+    target = Path(app_module).resolve().as_uri()
+    lines = [f"export * from {json.dumps(target)}", f"import * as m from {json.dumps(target)}"]
+    names = []
+    for pair in renames:
+        old, new = pair.split("=", 1)
+        lines.append(f"const {old}_ = m[{json.dumps(old)}] ?? m[{json.dumps(new)}]")
+        names.append(f"{old}_ as {old}")
+    lines.append(f"export {{ {', '.join(names)} }}")
+    if any(p.split("=", 1)[0] == "default" for p in renames) is False:
+        lines.append("export default m.default")
+    shim = Path(tempfile.mkdtemp()) / "alias.mjs"
+    shim.write_text("\n".join(lines) + "\n")
+    return str(shim)
+
+
+def run(oracle: Path, app_cmd: str, app_module: str = "", timeout: int = 600, tap: Path | None = None,
+        renames: list[str] | None = None) -> dict:
+    env = {**os.environ, "APP_CMD": app_cmd, "APP_MODULE": alias_module(app_module, renames or [])}
     files = sorted(str(p) for p in oracle.glob("*.test.mjs"))
     # A program that never becomes ready (the stub) makes every check wait out
     # its start retries; stop at `timeout` and keep what was reported. A check
@@ -69,6 +96,8 @@ def main() -> int:
                     help="seconds to let the oracle run against the stub; unreported checks did not pass")
     ap.add_argument("--json", type=Path)
     ap.add_argument("--tap", type=Path, help="save the full TAP output (failure messages)")
+    ap.add_argument("--rename", action="append", default=[],
+                    help="old=new: the rebuild's export `new` stands for the original's `old`")
     args = ap.parse_args()
     if args.admit:
         # Twice on the original: a check that differs between runs is flaky.
@@ -89,7 +118,7 @@ def main() -> int:
                   "stub_timed_out": stub["timed_out"], "original_timed_out": first["timed_out"] or second["timed_out"],
                   "failing_on_original": failing, "flaky": flaky, "passing_on_stub": stub_pass}
     else:
-        report = run(args.oracle, args.app_cmd, args.app_module, tap=args.tap)
+        report = run(args.oracle, args.app_cmd, args.app_module, tap=args.tap, renames=args.rename)
     text = json.dumps(report, indent=2)
     if args.json:
         args.json.write_text(text + "\n")

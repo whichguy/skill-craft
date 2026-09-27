@@ -100,5 +100,23 @@ class OracleAdmissionTest(unittest.TestCase):
         self.assertEqual(report["stub"]["pass"], 0)
 
 
+class AliasTest(unittest.TestCase):
+    def test_renamed_rebuild_and_original_both_pass_through_the_alias_module(self):
+        oracle = Path(tempfile.mkdtemp())
+        (oracle / "lib.test.mjs").write_text(
+            "import test from 'node:test'\nimport assert from 'node:assert/strict'\n"
+            "import { pathToFileURL } from 'node:url'\n"
+            "const { Orig } = await import(pathToFileURL(process.env.APP_MODULE).href)\n"
+            "test('class works', () => assert.equal(new Orig().name(), 'ok'))\n")
+        lib = Path(tempfile.mkdtemp())
+        (lib / "orig.mjs").write_text("export class Orig { name() { return 'ok' } }\n")
+        (lib / "renamed.mjs").write_text("export class Renamed { name() { return 'ok' } }\n")
+        for module in ("orig.mjs", "renamed.mjs"):
+            with self.subTest(module=module):
+                rc, report = run(str(SCRIPTS / "oracle_run.py"), str(oracle), "--app-cmd", "true",
+                                 "--app-module", str(lib / module), "--rename", "Orig=Renamed")
+                self.assertEqual(report, {"pass": 1, "fail": 0, "skip": 0})
+
+
 if __name__ == "__main__":
     unittest.main()
