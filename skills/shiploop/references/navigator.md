@@ -136,7 +136,8 @@ printed original goal and repository identity before acting. Do not replace a
 missing or relocated run with a new one.
 
 A later feature is a different request: preserve the earlier run, select a fresh
-external `--workspace-root` (or empty `--run-dir` for direct mode), and initialize
+external workspace root (omit `--workspace-root` to get a new default one; an
+empty `--run-dir` for direct mode), and initialize
 with the new prompt verbatim against the existing product repo. Changed
 prompt/repository re-entry is refused, while
 matching retries do not reopen completed work. Every packet links the project
@@ -147,13 +148,13 @@ documents at document/carry-forward/handoff. Shared knowledge is context, not
 a second source of traversal state.
 
 ```sh
-python3 "$CLI" workspace start --repo="$REPO" --workspace-root="$WORKSPACE_ROOT" --prompt='requested outcome'
+python3 "$CLI" workspace start --repo="$REPO" --prompt='requested outcome'
 # Explicit direct/non-Git mode, without automatic workspace-return protection:
 python3 "$CLI" init --repo="$REPO" --run-dir="$RUN_DIR" --prompt='requested outcome'
 # Optional explicit selected actual Improve card for a new run:
 python3 "$CLI" init --repo="$REPO" --run-dir="$RUN_DIR" --improve-skill="$IMPROVE_SKILL" --prompt='requested outcome'
 # Opt a new run in to Ask-Agent delegation (the default is inline):
-python3 "$CLI" workspace start --repo="$REPO" --workspace-root="$WORKSPACE_ROOT" --delegation=ask-agent --prompt='requested outcome'
+python3 "$CLI" workspace start --repo="$REPO" --delegation=ask-agent --prompt='requested outcome'
 # Change an existing run's delegation for its future assignments:
 python3 "$CLI" delegation --run-dir="$RUN_DIR" --set=inline
 python3 "$CLI" next --run-dir="$RUN_DIR"
