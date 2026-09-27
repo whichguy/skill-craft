@@ -3249,6 +3249,8 @@ def _render_improve(core: Any, root: Path, state: Mapping[str, Any], lines: list
         *runtime_lines,
         *([guidance3.PLANNING_REVIEW_FOCUS.rstrip()]
           if child["stage"] in guidance3.PLANNING_REVIEW_STAGES else []),
+        *([guidance3.DESIGN_REVIEW_CHECKS.rstrip()]
+          if child["stage"] in guidance3.DESIGN_REVIEW_STAGES else []),
         *([guidance3.END_REVIEW_FOCUS.rstrip()] if child["stage"] == "carry-forward" else []),
         guidance3.improve_prompt(child["stage"], delegation=delegation(state)),
         exclusion,

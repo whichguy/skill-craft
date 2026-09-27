@@ -2115,6 +2115,34 @@ unless a finding depends on it. A pass that finds none of these is trivial.
 """
 
 
+# Design review checks, attached only for the stages that decide what gets built.
+# Evidence and the adversarial review behind the wording:
+# docs/shiploop-architecture-rubric-results-2026-09-26.md (rounds 3 and 4).
+DESIGN_REVIEW_STAGES = frozenset({"plan", "step-plan"})
+
+DESIGN_REVIEW_CHECKS = """\
+Design review checks. This result decides what gets built. Judge it against the
+accepted request and spec it serves (read them; they are the standard, not this
+plan) and fix these within scope:
+- personal data the plan holds, shows, logs or sends to a third party without
+  saying how long it is kept, how it is removed, and that it stays out of logs
+  and error messages;
+- a runtime quota or limit the design depends on that the plan does not name
+  and plan within;
+- a background or asynchronous failure the plan does not record where someone
+  who can act will see it;
+- anything the plan adds that the request and spec do not need (a feature, a
+  store, sign-in, a live channel, a debug path, a higher placement tier):
+  remove it, but keep everything they require, including test data and example
+  identifiers.
+Meet a finding by changing or removing what the plan already has before adding
+anything, and change only what a finding requires. Never invent a number: take a
+retention period or limit from the request, the spec or a primary source, or
+record it as an open question. A pass that finds nothing to fix returns the plan
+unchanged.
+"""
+
+
 END_REVIEW_FOCUS = """\
 End-of-work code review focus. Across every executed work item's change, trace
 each new or changed public entry point with a valid, a boundary and an invalid
@@ -2349,6 +2377,8 @@ __all__ = (
     "DELEGATIONS",
     "DUTIES",
     "END_REVIEW_FOCUS",
+    "DESIGN_REVIEW_CHECKS",
+    "DESIGN_REVIEW_STAGES",
     "ENVIRONMENT_DISCOVERY_REQUIREMENTS",
     "CODE_CRAFT",
     "IMPLEMENTATION_STAGES",

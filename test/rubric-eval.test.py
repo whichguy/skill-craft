@@ -46,7 +46,8 @@ class Suite(unittest.TestCase):
             for rt in sc["runtimes"] + sc.get("runtimes_ext", []):
                 self.assertIn(rt, s["scenarios"]["runtimes"], sc["id"])
                 self.assertIn(rt, s["scenarios"]["runtime_names"], sc["id"])
-        self.assertEqual(set(s["frames"]), {"plan", "review"})
+        self.assertTrue({"plan", "review", "review-bare"} <= set(s["frames"]))
+        self.assertNotIn("Change only what a finding requires", s["frames"]["review-bare"])
 
     def test_fill_keeps_braces_in_values(self):
         self.assertEqual(R.fill("a {arm} b {plan}", arm="{x}", plan="{arm}"), "a {x} b {arm}")
@@ -74,13 +75,21 @@ class Suite(unittest.TestCase):
                     trials=1, plans_from=src, scenarios=["S01"], runtimes=["GAS"])
             p = (Path(d) / "rev" / "prompts" / "S01_GAS_prune_1.txt").read_text()
             self.assertIn("THE PLAN", p); self.assertIn("FOCUS", p)
+            # Any frame that wraps {plan} is a review frame, whatever its name (review-bare once got an empty plan).
+            m = R.build(Path(d) / "bare", s, {"prune": {"text": "FOCUS", "plans_arm": "v5"}}, frame="review-bare",
+                        trials=1, plans_from=src, scenarios=["S01"], runtimes=["GAS"])
+            self.assertTrue(m["reviews"])
+            self.assertIn("THE PLAN", (Path(d) / "bare" / "prompts" / "S01_GAS_prune_1.txt").read_text())
+            with self.assertRaises(ValueError):
+                R.build(Path(d) / "none", s, {"prune": {"text": "F", "plans_arm": "missing"}}, frame="review",
+                        trials=1, plans_from=src, scenarios=["S01"], runtimes=["GAS"])
 
 
 class Outputs(unittest.TestCase):
     def test_revised_plan_extraction(self):
-        self.assertEqual(R.plan_text("## Findings\nx\n## Revised plan\nY", "review"), "## Revised plan\nY")
-        self.assertEqual(R.plan_text("no section", "review"), "")
-        self.assertEqual(R.plan_text("whole", "plan"), "whole")
+        self.assertEqual(R.plan_text("## Findings\nx\n## Revised plan\nY", True), "## Revised plan\nY")
+        self.assertEqual(R.plan_text("no section", True), "")
+        self.assertEqual(R.plan_text("whole", False), "whole")
 
     def test_parse_verdict(self):
         ok = '{"tier_chosen": "client-only", "criteria": {"P1": {"evidence": "q", "grade": "met"}}}'
@@ -104,11 +113,49 @@ class Statistics(unittest.TestCase):
         self.assertLessEqual(c["low"], c["mean"]); self.assertLessEqual(c["mean"], c["high"])
         self.assertEqual(R.paired(self.verdicts(), "cand", "base"), c)  # deterministic
 
+    def test_scenario_clustering_widens_or_keeps_interval(self):
+        v = {}
+        for sid, bump in (("S01", "met"), ("S02", "missed"), ("S04", "met")):
+            for k in range(6):
+                v[f"{sid}_GAS_base_{k}"] = verdict({"P1": "partial"})
+                v[f"{sid}_GAS_cand_{k}"] = verdict({"P1": bump})
+        cell = R.paired(v, "cand", "base"); clus = R.paired(v, "cand", "base", cluster="scenario")
+        self.assertEqual(cell["mean"], clus["mean"])
+        self.assertGreaterEqual(clus["high"] - clus["low"], cell["high"] - cell["low"])
+
+    def test_parse_diff(self):
+        good = '{"removed_required": 0, "added_unrequested": 2, "contradictions": 0, "invented_numbers": 1}'
+        self.assertEqual(R.parse_diff("x " + good)["added_unrequested"], 2)
+        self.assertIsNone(R.parse_diff('{"removed_required": -1, "added_unrequested": 0, "contradictions": 0, "invented_numbers": 0}'))
+        self.assertIsNone(R.parse_diff('{"removed_required": 0}'))
+
+    def test_adversarial_fixtures_never_ship(self):
+        # From the adversarial review of rubric-eval itself (F1, F3, F7): each of these must return ship false.
+        up = {"mean": .03, "low": .01, "high": .05}
+        g = ["safeguards", "proportion"]
+        ok = {"mean": 0, "low": -.01, "high": .01}
+        self.assertTrue(R.decide({"overall": up, "safeguards": ok, "proportion": ok}, g, scenarios=19)["ship"])
+        bad_mean = {"mean": -.06, "low": -.12, "high": -.01}   # interval not wholly below -0.02, mean is
+        self.assertFalse(R.decide({"overall": up, "safeguards": bad_mean, "proportion": ok}, g, scenarios=19)["ship"])
+        self.assertFalse(R.decide({"overall": up, "proportion": ok}, g, scenarios=19)["ship"])  # guardrail missing
+        self.assertFalse(R.decide({"overall": up, "safeguards": ok, "proportion": ok}, g, scenarios=19,
+                                  counts={"platform errors": (9, 3, 2)})["ship"])
+        self.assertFalse(R.decide({"overall": up, "safeguards": ok, "proportion": ok}, g, scenarios=1)["ship"])
+
+    def test_condition_is_recorded_and_checked(self):
+        with tempfile.TemporaryDirectory() as d:
+            (Path(d) / "manifest.json").write_text(json.dumps({"arms": {"base": {}, "cand": {}}}))
+            self.assertTrue(R.check_condition(d, "base"))          # no recorded condition: void
+            (Path(d) / "manifest.json").write_text(json.dumps({"condition": {"model": "sonnet", "tools": ""},
+                                                               "arms": {"base": {"role": "input"}, "cand": {}}}))
+            self.assertEqual(R.check_condition(d, "base"), [])
+            self.assertTrue(R.check_condition(d, "cand"))          # an input arm that is not the baseline
+
     def test_decide(self):
         up = {"mean": .03, "low": .01, "high": .05}
-        self.assertTrue(R.decide({"overall": up, "proportion": {"mean": 0, "low": -.03, "high": .02}}, ["proportion"])["ship"])
+        self.assertTrue(R.decide({"overall": up, "proportion": {"mean": 0, "low": -.03, "high": .02}}, ["proportion"], scenarios=19)["ship"])
         self.assertFalse(R.decide({"overall": {"mean": .02, "low": -.001, "high": .04}}, [])["ship"])
-        d = R.decide({"overall": up, "proportion": {"mean": -.05, "low": -.08, "high": -.03}}, ["proportion"])
+        d = R.decide({"overall": up, "proportion": {"mean": -.05, "low": -.08, "high": -.03}}, ["proportion"], scenarios=19)
         self.assertFalse(d["ship"]); self.assertIn("proportion", d["reasons"][0])
 
 

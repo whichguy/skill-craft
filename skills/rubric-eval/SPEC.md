@@ -43,7 +43,11 @@ A suite is a folder: `rubric.json` (criteria, grade `anchors`, composite
 `overbuild`; plus `tiers`, `runtimes` descriptions and `runtime_names`), and
 `frames/*.txt` (templates with `{request}`, `{environment}`, `{arm}` and, for
 review frames, `{plan}`). Frames are filled by token replacement, never
-`str.format`. The first suite is `suites/architecture`.
+`str.format`. Any frame containing `{plan}` is a review frame, whatever its
+name: it needs `--plans-from` and `--plans-arm`, and only the output's
+`## Revised plan` section is graded. The first suite is `suites/architecture`,
+with frames `plan`, `review` (adds a scope guard) and `review-bare` (none, so
+the review focus under test must carry its own guard).
 
 A new scenario needs a request in a user's words, an expected tier, its
 applicable criteria and an overbuild note. Include scenarios on both sides of
@@ -59,14 +63,22 @@ text differs from the tested text in any way, say how in the results.
 ## 5. Condition invariants
 
 Every arm in a comparison runs under one condition. Break any of these and the
-comparison is void:
+comparison is void. `run` records the model and tool setting in the manifest
+and refuses to mix conditions in one run folder; `analyze` refuses to ship a
+comparison whose manifest records none. A baseline that is an input rather
+than a run this round (the unreviewed plans of a review experiment) is marked
+`"role": "input"`.
 
-- the same frame, scenarios, runtimes, trials, subject model and judge;
+- the same frame, scenarios, runtimes, trials, subject model, tool setting and
+  judge;
 - the baseline rerun in the same round, not reused from another condition;
 - no MCP servers or plugins in any headless call (`call` enforces this);
 - a control cannot read the treatment (no shared readable directory);
 - stubs (graded text under 150 words) rerun with the same prompt up to three
   times, then excluded and logged, never graded as failures;
+- a prompt that asks the model to check something (a review focus that says to
+  run a command) runs with `--tools Read` from an empty directory; with no tools
+  a model may announce a tool call and stop, which is a stub, not a result;
 - the judge sees one output at a time, never the arm name.
 
 ## 6. Models
@@ -87,7 +99,16 @@ the plan that decides it, then grade from that quote (`met`, `partial`,
 stated before and after the plan. Each call times out, retries up to three
 times and logs a final failure. A new judge version must be re-graded on at
 least 30 plans before use; accept it if the mean per-plan score change is 0.03
-or less (judge v2: 0.017; v1: 0.041).
+or less (judge v2: 0.017; v1: 0.041) and the ship decisions of the last
+completed comparison do not change under it.
+
+Known weakness (adversarial review of this skill, F4): only 77% of judge v2's
+quotes are exact substrings of the plan (89% after normalising whitespace and
+markdown); most misses are quotes shortened with "...". Judge v3 will forbid
+ellipses, verify each quote fragment against the plan, and downgrade a met or
+partial grade whose quote is not found. It must pass the acceptance check
+above before use. The judge is shown the expected tier and overbuild note by
+design, because proportion cannot be graded without them.
 
 ## 8. Statistics and the ship rule
 
@@ -96,21 +117,43 @@ criteria. Compare arms **paired** on the same scenario-runtime-trial cells:
 mean difference, a 95% bootstrap interval (4,000 resamples), and cells won and
 lost. Report composites for every group in the suite.
 
-A change **ships** only when:
-1. the overall 95% interval against the baseline lies above zero, and
-2. no guardrail group (`guardrails` in the rubric; for architecture:
-   proportion and safeguards) has an interval wholly below −0.02, and
-3. the adversarial-review loop (section 9) is complete, and
-4. a confirmation run on the text as it will ship reproduces condition 1.
+Intervals resample whole scenarios by default (`--cluster scenario`), so
+repeated trials and runtimes of one scenario are not counted as independent.
+Under shuffled labels (no true effect) on round-3 data, this rule falsely
+shipped 3.3% of the time (cell resampling: 2.5%).
 
-`analyze` applies rules 1 and 2 and reports them as `decision`.
+A change **ships** only when all of these hold:
+1. the overall 95% interval against the baseline lies above zero, over at least
+   8 scenarios;
+2. every guardrail group (`guardrails` in the rubric; for architecture:
+   proportion and safeguards) has a comparison, its mean is not below −0.02,
+   and its interval is not wholly below zero;
+3. overbuilt-scope grades and platform errors do not rise by more than a
+   quarter of the baseline's count (at least 2), and stub and `na` rates differ
+   by no more than 5 points between arms;
+4. the run's manifest records one condition (model, tools) for every arm run
+   this round, and only the baseline may be an input from an earlier round;
+5. the adversarial-review loop (section 9) is complete;
+6. a **fresh** confirmation run on the text as it will ship passes rules 1–4.
+   Revising and retesting until something clears is a search, so the result
+   that ships is the fresh confirmation, never the run that selected it.
+
+`analyze` applies rules 1–4 and reports them, with every failing reason, as
+`decision`.
 
 ## 9. Change lifecycle
+
+The lifecycle applies to any change a suite can measure. A change needs a
+suite whose criteria measure what the change affects; if none exists, build one
+first, or record why the change is not evaluated this way. Grading a platform
+card, a judge or a non-architecture packet block against the architecture suite
+alone is not evidence about it.
 
 1. **Hypothesis**: what the change should improve, and what it might harm.
 2. **Experiment**: arms extracted from source; build, run, judge, analyze.
 3. **Adversarial review** of the proposed change and its evidence
-   (`adversarial-review review`), by a different model family.
+   (`adversarial-review review`), by a different model family. An empty
+   findings list completes this step only with the reviewer's output recorded.
 4. **Experiments on findings**: every testable high or medium finding becomes an
    experiment (a scenario, an arm, a metric or a judge check) with the refuting
    result stated in advance. Untestable findings are decided by judgement, with
@@ -138,5 +181,11 @@ the pool.
 ## 12. Open items
 
 - Human calibration: 30–50 human-labelled criterion grades, Cohen's kappa per
-  criterion group; criteria with low kappa get better anchors.
-- A second judge family on the lowest-agreement criteria.
+  criterion group (at least 0.6 for guardrail groups); criteria with low kappa
+  get better anchors.
+- Judge v3 (quote verification), above.
+- Reproduce shipped results on the Grok subject (adversarial review F5): a
+  change shipped on Sonnet evidence is not assumed to hold on Grok.
+- Review grading reads only the `## Revised plan` section (F6); `diffcheck`
+  compares whole plans, and reviewers are not adversarial, so this is accepted
+  for now and recorded.
