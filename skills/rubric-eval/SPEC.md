@@ -280,6 +280,10 @@ them:
 - **Name every model explicitly** in every `run` and `judge` command, even when
   it equals the default. A loop that relies on the default changes behaviour
   when the default changes.
+- **Keep every long job visible.** Start it as a tracked background task (or
+  attach a tracked watcher that ends when its process ends), never only as a
+  detached process: the owner must be able to see what is running, and the
+  finish is the signal to report, not a timer.
 - **Run one grading loop per round.** Before starting another, list the running
   processes and stop the old loop.
 - **Verify stops by process ID**, not from the kill command or a text search:
