@@ -34,7 +34,7 @@ EXTERNAL/
 The packet's repository is the **execution checkout**. `workspace.md` is the
 source of truth for the original checkout and branch; do not choose `main`,
 `origin/main`, another checkout or a remote merely because it seems conventional.
-The helper uses a separate `codex/shiploop-…` branch. It does not pull or push.
+The helper uses a separate `shiploop/run-…` branch. It does not pull or push.
 The private baseline remains reachable locally through that branch. Never use
 `git push --all`, wildcard refspecs, or publish the private workspace branch as a
 shortcut; those operations can disclose previously uncommitted inputs. Push

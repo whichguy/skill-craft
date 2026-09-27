@@ -5,7 +5,7 @@ description: >-
   script's current action packet, and submit its exact completion call until
   the script reports completion with an HTML achievement report. Use when the
   user says shiploop, ship the project, or requests a durable delivery loop.
-version: 0.37.0
+version: 0.38.0
 allowed-tools: all
 license: MIT
 platforms:
@@ -184,8 +184,10 @@ failure/missing-coverage evidence before its scoped edits; dependent feature wor
 waits for the required passing checks. Reuse only applicable same-run evidence;
 a new follow-up request runs a fresh baseline.
 
-For a genuinely new/non-Git repository, investigate/bootstrap Git within scope
-first if appropriate, then use the workspace route. An explicitly selected
+An empty starting directory needs no setup: `workspace start` makes it a Git
+repository on `main` with one empty baseline commit, so do not run `git init` or
+change Git configuration yourself. For a non-empty non-Git directory, bootstrap
+Git within scope first if appropriate, then use the workspace route. An explicitly selected
 in-place/non-Git run may instead use the direct entry, documenting why
 isolation is not used; it has no automatic workspace-return protection:
 
@@ -669,9 +671,11 @@ question about the loop is not a stop: answer it and continue the packet.
    imitate Improve's algorithm in ShipLoop, substitute a hand-written review loop
    for the selected skill, create
    a child phase graph/counter, or advance the parent while the child is active.
-   Start the ephemeral Until Loop with `--receipt` set to the parent packet's
-   per-action receipt path: the runtime writes every packet there before printing
-   it. The one temporary `state_file` owns the child's live counters; the receipt
+   On the default inline route, write the packet's four-section opening file and
+   run its `improve-start` command: ShipLoop freezes the child contract and starts
+   the ephemeral Until Loop with `--receipt` set to the parent packet's
+   per-action receipt path; the runtime writes every packet there before printing
+   it. A delegated worker starts it with that `--receipt` itself. The one temporary `state_file` owns the child's live counters; the receipt
    retains its recovery command and final completion evidence, and ShipLoop
    imports only a packet the runtime wrote there. Preserve parent identity, scoped authority and
    return locators in frozen child `context`, and replace `handoff` on each `done`.

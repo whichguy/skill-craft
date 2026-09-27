@@ -392,7 +392,10 @@ _ROWS = (
         "integrate", "inner",
         goal="integrate the candidate into the working branch",
         done_when=("the item's changes are assembled in the execution checkout, or a justified no-op is recorded",),
-        develop="Integrate only through authorized Git operations; keep run state and logs out of product commits.",
+        develop=("When this stage is accepted done, ShipLoop commits the item's changed files that the step plan's "
+                 "paths declare (and docs/shiploop/); do not write that commit yourself. It names any other "
+                 "changed file: commit the ones the product needs, delete generated output. Keep run state and "
+                 "logs out of product commits."),
         deploy="The original branch is returned only at the final workspace return.",
         edits=frozenset({"code"}),
         reads=("plan", "item:step-plan", "item:verify"),

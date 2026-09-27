@@ -105,6 +105,10 @@ def workspace_command(core, argv):
                 # Identical re-entry is recovery, not another capture of the
                 # source after product work or a completed integration.
                 return main(core, ["next", "--run-dir", str(root / "run")])
+            baseline = workspace.bootstrap_empty(Path(args.repo))
+            if baseline:
+                print(f"Initialized a Git repository in the empty directory {Path(args.repo).resolve()} "
+                      f"with an empty baseline commit {baseline[:12]}.")
             record = workspace.prepare(Path(args.repo), root,
                                        args.include_untracked, args.exclude)
             init = ["init", "--repo", record["worktree"],
@@ -186,7 +190,8 @@ def workspace_completion_guard(root, previous, updated):
 
 
 CALLBACK_ATTEMPTS = "callback-attempts"
-PACKET_VERBS = frozenset({"next", "resume", "complete", "improve-bind", "improve-complete", "improve-reconcile"})
+PACKET_VERBS = frozenset({"next", "resume", "complete", "improve-bind", "improve-start", "improve-complete",
+                          "improve-reconcile"})
 CALLBACK_VERBS = frozenset({"complete", "improve-bind", "improve-complete", "improve-reconcile"})
 
 
@@ -292,6 +297,7 @@ def main(core, argv=None):
         "delegation",
         "lint-mode",
         "improve-bind",
+        "improve-start",
         "improve-complete",
         "improve-reconcile",
         "next",
@@ -326,7 +332,12 @@ def main(core, argv=None):
                              help="script-owned advisory lint for this run's later passes")
         if name == "improve-bind":
             sub.add_argument("--skill-card", required=True)
-        if name in ("complete", "improve-bind", "improve-complete", "improve-reconcile"):
+        if name == "improve-start":
+            sub.add_argument("--opening", required=True,
+                             help="the printed opening file: the four sections only the parent knows")
+            sub.add_argument("--restart-stopped", action="store_true",
+                             help="archive a stopped child's receipt and reviews, then start a new child")
+        if name in ("complete", "improve-bind", "improve-start", "improve-complete", "improve-reconcile"):
             sub.add_argument("--action", required=True)
         if name in ("complete", "improve-complete", "improve-reconcile"):
             sub.add_argument("--result", required=True)

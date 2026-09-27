@@ -4,6 +4,56 @@ Written by scripts/release.py.
 
 ## 2026-09-26
 
+### skill-craft 1.5.0
+
+- Skills: improve 0.3.0-rc.8, shiploop 0.38.0
+
+### improve 0.3.0-rc.8
+
+- The ShipLoop whole-skill subcall uses ShipLoop's `improve-start` command when
+  the packet prints one: write the named opening file and run it instead of
+  writing the start contract and starting the runtime by hand.
+
+### shiploop 0.38.0
+
+- `workspace start` on an empty, non-Git directory initializes it as a Git
+  repository on `main` with one empty baseline commit (the user's identity when
+  configured, otherwise the workspace identity). The model no longer writes Git
+  setup commands for a new product, which on Grok's auto permission mode were
+  cancelled and ended the session three times in one run.
+- ShipLoop commits a work item's changes itself when `integrate` is accepted: the
+  files the item changed that its step plan's `paths` declare, plus
+  `docs/shiploop/`, with the item title and integrate summary as the message
+  (the configured identity, else the workspace identity). It prints the commit
+  and names every other changed file for the model to commit or delete. The
+  model no longer writes the item commit, which headless hosts refused, and a
+  run no longer ends with its product uncommitted in the execution worktree.
+- `workspace start` creates one missing parent level of the workspace root (the
+  usual `<beside the repo>/.shiploop-runs/<name>` layout) instead of refusing it;
+  a deeper missing tree is still refused.
+- The execution worktree branch is `shiploop/run-<id>` on every host instead of
+  `codex/shiploop-<id>`, which named Codex on Grok and Claude runs. Workspace
+  records made with the old name are refused.
+- New `improve-start` command for the default inline route. The parent writes a
+  four-section opening file (current context and desired improvements, scope,
+  authority, environment) beside the receipt; ShipLoop freezes the Until Loop
+  child contract from it (binding line first, workspace, work, exit and repeat
+  conditions, commit policy, exclusions, and locators for the receipt, evidence
+  directory, parent state, completion evidence and a written `parent-return.md`),
+  stores it as `start.json`, starts the bound runtime with `--receipt` and its
+  state under the run directory's `until-loop/`, and prints the child's first
+  packet. The model no longer hand-writes a ~6 KB JSON contract per child.
+
+  `improve-start --restart-stopped` restarts a stopped child: ShipLoop archives its
+  `packet.json` and `reviews/` with a UTC stamp itself and starts the new child,
+  instead of the model renaming them by hand.
+- Keepalive binds a session to a run from a packet marker only when the command
+  that printed it drives the run (`workspace start`, `init`, `next`, `resume`,
+  `complete`, Improve bind/complete/reconcile). A session that merely reads a
+  packet file, log or transcript containing a live marker is no longer bound and
+  kept alive for a run it does not drive. The `--run-dir` fallback also reads only the command that ran, never its
+  output, so callback text printed in a log or event dump no longer binds.
+
 ### skill-craft 1.4.0
 
 - Skills: shiploop 0.37.0
