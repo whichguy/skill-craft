@@ -7,6 +7,10 @@ Prefer compact handoffs without imposing fixed word, line, duration, concurrency
 or delegation-depth limits. Let the task and the native harness determine how
 much work, evidence and output are needed. Explicit user constraints still apply.
 
+A current-workspace worker returns the inline shape in
+[Current workspace](current-workspace.md#return-and-acceptance) instead of a
+delivery clause and receipt.
+
 Every **helper-managed** fresh native worker assignment includes the filled
 delivery clause from
 [Git integration](git-integration.md#reusable-fresh-worker-launch-clause).

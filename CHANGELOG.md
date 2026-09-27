@@ -4,6 +4,49 @@ Written by scripts/release.py.
 
 ## 2026-09-27
 
+### skill-craft 1.9.0
+
+- Skills: ask-agent 0.8.0, plan-dispatcher 0.5.0, shiploop 0.42.0
+
+### ask-agent 0.8.0
+
+- New explicit route `workspace_route: current` ("in place", `--in-place`, "just use the current worktree"): a fresh worker runs in the caller's own checkout and branch, with no helper worktree, receipt or close. It defaults to `report-only`; `in-place` writes need a declared write set. The helper's new read-only `current-state` command records a baseline and reports `unchanged`, `changed-within-write-set` or `drift`. An explicitly requested cheaper model or read-only agent type is honored and disclosed. Plan Dispatcher, ShipLoop and improve-agent keep the helper-managed route.
+
+### plan-dispatcher 0.5.0
+
+- Every action now carries its exact `call`: the argv plus an input whose
+  `"<...>"` placeholders the caller fills. The settle call pre-fills the receipt
+  digest, and the claim and start responses carry the follow-up calls. A
+  completed run returns no `next_argv`.
+
+  `init` accepts an optional `capacity`. The claim action then offers only free
+  slots, and an over-capacity claim fails with `ECAPACITY`.
+
+  Planning-blocked steps are no longer offered for claim, and a claim for one is
+  refused. Cleaning up a rejected attempt's workspace or evidence no longer
+  breaks the run. Concurrent writers wait briefly for the lock instead of failing
+  with `ELOCKED`.
+
+### shiploop 0.42.0
+
+- Inline Improve packets no longer restate steps ShipLoop now performs (binding
+  inputs, the binding line, start inputs, the runtime start command, the planning
+  repeat clause); each remaining obligation is stated once. The delegated route
+  keeps its manual start instructions.
+- One commit path for every ShipLoop commit (knowledge home, the integrate item
+  commit, `improve-commit`, the empty-repository baseline): it stages exactly the
+  named paths, leaves any text file that looks like it holds a credential
+  uncommitted and names it (never its value), and uses the configured identity or
+  else the workspace identity. The knowledge-home commit gains that fallback.
+  ShipLoop now also commits `docs/shiploop/` after any accepted stage that changed
+  it (not only at the four closes), with the same credential and requirement-ID
+  checks; packets tell the model not to commit it itself.
+- The test loop, quality loop and Improve child contracts are built and
+  serialized by one module (the test and quality contracts are byte-identical to
+  before). An Improve child's exit condition now also requires the reviewed
+  stage's own done-when criteria, so a review loop ends on what that stage must
+  achieve, not only on two quiet passes.
+
 ### skill-craft 1.8.0
 
 - Skills: plan-dispatcher 0.4.0, shiploop 0.41.0

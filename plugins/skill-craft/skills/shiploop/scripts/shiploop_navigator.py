@@ -30,7 +30,9 @@ import shiploop_lint as lint
 import shiploop_quality as quality
 import shiploop_improve_changes as improve_changes
 import shiploop_item_scope as item_scope
+import shiploop_git as shiploop_git
 import shiploop_knowledge_home as knowledge
+import shiploop_loop_contract as loop_contract
 import shiploop_test_loop as test_loop
 import shiploop_planning_revision as planning_revision
 import shiploop_context_index as context_index
@@ -1301,7 +1303,7 @@ def _item_commit(root: Path, before: Mapping[str, Any], after: Mapping[str, Any]
         message = ("feat: " + str(row.get("workitem")) + " " + _item_title(after, row["workitem"])
                    + "\n\n" + str(row.get("summary") or "").strip())
         try:
-            commit, undeclared = item_scope.commit_item(root, after, row["workitem"], message.strip())
+            commit, undeclared, skipped = item_scope.commit_item(root, after, row["workitem"], message.strip())
         except item_scope.ItemScopeError as exc:
             print("ShipLoop integrate: " + str(exc) + "; commit the item's files before release.", file=sys.stderr)
             continue
@@ -1310,6 +1312,8 @@ def _item_commit(root: Path, before: Mapping[str, Any], after: Mapping[str, Any]
         if undeclared:
             print("Not committed (changed, but not in the step plan's paths): " + ", ".join(undeclared)
                   + ". Commit the ones the product needs, delete generated output.")
+        if skipped:
+            print(shiploop_git.skipped_notice(skipped))
 
 
 def _item_title(state: Mapping[str, Any], work_item: str) -> str:
@@ -1322,14 +1326,18 @@ def _item_title(state: Mapping[str, Any], work_item: str) -> str:
 def _knowledge_close(before: Mapping[str, Any], after: Mapping[str, Any]) -> None:
     """Commit the knowledge home once a close stage's done has been accepted and saved."""
     rows = after["history"][len(before["history"]):]
-    stages = [row["stage"] for row in rows if row["outcome"] == "done" and row["stage"] in knowledge.CLOSES]
+    stages = [row["stage"] for row in rows if row["outcome"] == "done"]
     if not stages:
         return
     try:
-        knowledge.commit(after, stages[-1])
+        committed = knowledge.commit(after, stages[-1])
     except RuntimeError as exc:
-        # The transition stands; the next close commits the same files.
-        print("ShipLoop knowledge: " + str(exc) + "; the next close commits it.", file=sys.stderr)
+        # The transition stands; the next accepted stage commits the same files.
+        print("ShipLoop knowledge: " + str(exc) + "; the next accepted stage commits it.", file=sys.stderr)
+        return
+    notice = shiploop_git.skipped_notice(committed.skipped)
+    if notice:
+        print("ShipLoop knowledge: " + notice)
 
 
 # A locator may add an anchor, a line (and column) or a test ID after the file path:
@@ -3109,7 +3117,6 @@ def _render_improve(core: Any, root: Path, state: Mapping[str, Any], lines: list
             "Then run: " + _callback(core, root, "improve-start", action=action_id, opening=str(improve_opening_path(child)))
             + " . ShipLoop freezes the child contract from the opening (binding line, workspace, work, exit and repeat conditions, commit policy, exclusions and every return locator; written to start.json beside the receipt), starts the bound runtime with the receipt below and prints the child's first packet. Do not write the start contract or start the runtime yourself. If this child already started, recover it from its receipt as described below instead.",
             "Delegation: inline. Run the selected Improve card's ShipLoop whole-skill subcall in this conversation, in the exact Child workspace; verify the process cwd and Git root before task work. Do not hand the invocation to Ask Agent, a native worker or an extra worktree. Run its reviews and checks in this conversation too; start no reviewer, test-runner or executor agent unless the user asked for independent review. This conversation is the only candidate writer until the runtime returns a terminal packet; stop competing writes there, including checks that generate files. Read that reference's default-route section before start or recovery.",
-            "Freeze the exact candidate scope, selected packages, explicit user/repository authority including any no-commit override, and evidence paths before start. An existing invocation keeps its frozen authority.",
             "Carry current approvals, declines and pending decisions into child context.authority with action/target, conditions and authorization source; summarize their implications in the opening. Do not ask again for an applicable approval or treat a decline as optional advice. A later user decision in this conversation applies from the next review iteration: record its receipt and effect in the review notes and handoff; keep the frozen launch context unchanged.",
             "Return order: only after the runtime has written the terminal packet to the receipt below, write the completion evidence and run the parent return and callback below. Runtime completion alone never advances this action.",
         ]
@@ -3129,18 +3136,24 @@ def _render_improve(core: Any, root: Path, state: Mapping[str, Any], lines: list
         *ownership_lines,
         "Child runtime authority: the unique temporary state_file returned by the selected runtime. ShipLoop does not write or count child state.",
         "Child latest packet receipt: " + str(packet_path),
-        f"Binding inputs: before {start_word}, verify the selected cards, runtime and referenced inputs exist and match this candidate and action. Keep workspace, scope, authority and return ownership explicit. The child packet receipt and completion evidence are output destinations for a new child, not pre-start inputs; a resumed child requires its saved receipt. A missing input leaves {start_word} pending; never substitute an ambient skill or another workspace.",
-        ("improve-start does this for a new child: " if inline else "")
-        + "Start the child runtime with --receipt " + shlex.quote(str(packet_path)) + ": the runtime writes every "
-        "packet it returns to that receipt before printing it, and the terminal packet before it deletes its "
-        "state, so the callback handle and terminal evidence survive a lost context. Do not write or edit the "
-        "receipt; ShipLoop imports only a packet the runtime wrote there. It is not a second runtime state machine."
-        + (" Start before any review work." if inline else ""),
+        # Inline: improve-bind pins the card and runtime, improve-start freezes the contract (binding line,
+        # start inputs, planning repeat clause) and starts the runtime with the receipt; only the
+        # model's remaining obligations are stated here (SPEC S-5, S-7).
+        *([] if inline else [
+            f"Binding inputs: before {start_word}, verify the selected cards, runtime and referenced inputs exist and match this candidate and action. Keep workspace, scope, authority and return ownership explicit. The child packet receipt and completion evidence are output destinations for a new child, not pre-start inputs; a resumed child requires its saved receipt. A missing input leaves {start_word} pending; never substitute an ambient skill or another workspace.",
+        ]),
+        ("The runtime writes every packet it returns to the receipt above, the terminal one before it deletes "
+         "its state. Never write or edit the receipt; ShipLoop imports only a packet the runtime wrote there. "
+         "Start before any review work." if inline else
+         "Start the child runtime with --receipt " + shlex.quote(str(packet_path)) + ": the runtime writes every "
+         "packet it returns to that receipt before printing it, and the terminal packet before it deletes its "
+         "state, so the callback handle and terminal evidence survive a lost context. Do not write or edit the "
+         "receipt; ShipLoop imports only a packet the runtime wrote there. It is not a second runtime state machine."),
         *(["Freeze in repeat_condition: if a finding invalidates an accepted discovery, research, spec "
            "or test-strategy premise, finish the current bounded work and report classification "
            "unresolved or non-trivial, exit_assessment unsatisfied or unknown, and "
            "continuation_assessment cancelled. A blocked stop cannot use improve-reconcile or "
-           "improve-complete and leaves the parent incomplete."] if planning_reconcile else []),
+           "improve-complete and leaves the parent incomplete."] if planning_reconcile and not inline else []),
         "For a genuinely new child, read the selected skills and start once. If this child has already started, read its saved receipt: for active status use its exact next_argv once to recover, then follow the returned instruction; for complete status import its retained receipt without starting or reviewing again. "
         + ("For a cancelled stopped status preserve the receipt and keep successful completion unresolved; only "
            "this initial plan child may use the printed parent-only improve-reconcile route "
@@ -3164,13 +3177,13 @@ def _render_improve(core: Any, root: Path, state: Mapping[str, Any], lines: list
         + "If an existing active child's receipt or temporary state is unavailable, report incomplete; "
         "never infer completion or silently create a replacement. Terminal recovery uses the retained "
         "raw packet because terminal state is deleted.",
-        ("Binding line: improve-start writes the next line first in the frozen context.request, alone on its "
-         "own line; never copy it into the opening; import matches the whole line:" if inline else
-         "Binding line: copy the next line verbatim into frozen context.request exactly once, "
-         "alone on its own line with no bullet, quote, backticks, indentation or trailing text; import matches the whole line:"),
-        child["contract_marker"],
-        "Start inputs owned by ShipLoop: required_trivial_reviews 2 (import rejects fewer); workspace: "
-        "the Child workspace above.",
+        *([] if inline else [
+            "Binding line: copy the next line verbatim into frozen context.request exactly once, "
+            "alone on its own line with no bullet, quote, backticks, indentation or trailing text; import matches the whole line:",
+            child["contract_marker"],
+            "Start inputs owned by ShipLoop: required_trivial_reviews 2 (import rejects fewer); workspace: "
+            "the Child workspace above.",
+        ]),
         *(
             [
                 "Put the original request, step result, permitted paths, expected check state, authority and "
@@ -3584,15 +3597,11 @@ def improve_start_contract(core: Any, root: Path, state: Mapping[str, Any], open
         {"purpose": "ShipLoop completion evidence path", "locator": str(completion)},
         {"purpose": "exact parent return instructions", "locator": str(parent_return)},
     ]
-    return {
-        "workspace": child["workspace"],
-        "work": work,
-        "exit_condition": exit_condition,
-        "repeat_condition": repeat,
-        "required_trivial_reviews": 2,
-        "context": {"request": request, "scope": scope, "authority": authority,
-                    "environment": sections["Environment"], "resources": resources},
-    }
+    return loop_contract.contract(
+        workspace=child["workspace"], work=work,
+        exit_condition=exit_condition + loop_contract.stage_exit(child["stage"]),
+        repeat_condition=repeat, required_trivial_reviews=2, request=request, scope=scope,
+        authority=authority, environment=sections["Environment"], resources=resources)
 
 
 def improve_commit_message_path(child: Mapping[str, Any]) -> Path:
@@ -3603,8 +3612,6 @@ def improve_commit_message_path(child: Mapping[str, Any]) -> Path:
 
 def _improve_commit(core: Any, root: Path, state: Mapping[str, Any], args: Any) -> int:
     """Commit exactly the files the bound Improve review changed and has not committed yet."""
-    import os
-    import subprocess
     child = state.get("active_improve")
     action_id = getattr(args, "action", None)
     _need(state["status"] == "active" and child is not None and action_id == child["action_id"]
@@ -3624,23 +3631,18 @@ def _improve_commit(core: Any, root: Path, state: Mapping[str, Any], args: Any) 
         print("Nothing to commit: every file this review changed is already committed"
               + (" (" + ", ".join(changes[0]) + ")." if changes[0] else "; the review changed no file."))
         return 0
-    repo = Path(state["repo"])
-
-    def git(*argv: str, env: dict | None = None) -> Any:
-        return subprocess.run(["git", "-C", str(repo), "-c", "core.hooksPath=/dev/null", *argv],
-                              capture_output=True, text=True, check=False,
-                              env=None if env is None else {**os.environ, **env})
-
-    added = git("add", "-A", "--", *pending)
-    _need(added.returncode == 0, "cannot stage the review's files: " + added.stderr.strip())
-    identity = git("config", "user.email")
-    env = None if identity.returncode == 0 and identity.stdout.strip() else {
-        "GIT_AUTHOR_NAME": "ShipLoop Workspace", "GIT_AUTHOR_EMAIL": "shiploop-workspace@local.invalid",
-        "GIT_COMMITTER_NAME": "ShipLoop Workspace", "GIT_COMMITTER_EMAIL": "shiploop-workspace@local.invalid"}
-    done = git("commit", "-q", "-F", str(message_path), "--", *pending, env=env)
-    _need(done.returncode == 0, "cannot commit the review's files: " + (done.stderr or done.stdout).strip())
-    head = git("rev-parse", "HEAD").stdout.strip()
+    try:
+        committed = shiploop_git.commit_paths(Path(state["repo"]), pending, "", message_file=message_path)
+    except shiploop_git.CommitError as exc:
+        raise NavigatorError(str(exc)) from exc
+    notice = shiploop_git.skipped_notice(committed.skipped)
+    if not committed.commit:
+        print("Nothing committed. " + notice)
+        return 0
     message_path.unlink()
+    head, pending = committed.commit, committed.paths
+    if notice:
+        print(notice)
     print("Committed this review's changes as " + head[:12] + ": " + ", ".join(pending) + ".")
     return 0
 
@@ -3691,7 +3693,7 @@ def _improve_start(core: Any, root: Path, state: Mapping[str, Any], args: Any) -
         "2. Run: " + _callback(core, root, "improve-complete", action=action_id, result=str(completion)),
         "The child never runs these; a stopped or blocked child leaves the parent pending.", ""]))
     start = receipt.with_name("start.json")
-    store.atomic_write_text(start, json.dumps(contract, indent=2, ensure_ascii=False) + "\n")
+    store.atomic_write_text(start, loop_contract.dumps(contract))
     state_dir = root / "until-loop"
     state_dir.mkdir(exist_ok=True)
     done = subprocess.run(

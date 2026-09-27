@@ -22,6 +22,7 @@ import subprocess
 from pathlib import Path
 from typing import Any, Dict, List, Mapping, Optional, Sequence, Tuple
 
+import shiploop_git as shiploop_git
 import shiploop_privacy as privacy
 
 HOME = "docs/shiploop"
@@ -129,6 +130,9 @@ def stage_lines(state: Mapping[str, Any], stage: str) -> List[str]:
     if stage in CLOSES:
         lines.append("On done ShipLoop checks these files, screens them for credentials and commits "
                      + HOME + "/ in the execution checkout.")
+    else:
+        lines.append("If this stage changes " + HOME + "/, ShipLoop checks and commits it when the stage is "
+                     "accepted; do not commit it yourself.")
     return lines
 
 
@@ -142,14 +146,23 @@ def _committed_spec(repo: Path) -> str:
     return shown.stdout if shown.returncode == 0 else ""
 
 
+def _home_changed(repo: Path) -> bool:
+    """Whether the knowledge home differs from HEAD (edited, added or removed files)."""
+    return bool(_git(repo, "status", "--porcelain", "--untracked-files=all", "--", HOME).stdout.strip())
+
+
 def check(state: Mapping[str, Any], stage: str) -> str:
-    """Refusal text for a close whose knowledge files are missing, leak a credential or drop an ID."""
-    if stage not in CLOSES:
-        return ""
+    """Refusal text when a stage's done would commit knowledge that is missing, leaks a credential or drops an ID.
+
+    A close requires its files; any other stage is checked only when it changed the home,
+    because ShipLoop commits the home after every accepted stage that changed it.
+    """
     repo = Path(str(state["repo"]))
     if _git(repo, "rev-parse", "--is-inside-work-tree").returncode != 0:
         return ""
-    required = _expand(CLOSES[stage], state)
+    if stage not in CLOSES and not ((repo / HOME).is_dir() and _home_changed(repo)):
+        return ""
+    required = _expand(CLOSES.get(stage, ()), state)
     missing = [path for path in required if not (repo / path).is_file() or not (repo / path).read_text(
         encoding="utf-8", errors="replace").strip()]
     if missing:
@@ -181,25 +194,21 @@ def check(state: Mapping[str, Any], stage: str) -> str:
     return ""
 
 
-def commit(state: Mapping[str, Any], stage: str) -> str:
-    """Stage and commit exactly the knowledge home; return the commit ID, '' when nothing changed."""
+def commit(state: Mapping[str, Any], stage: str) -> shiploop_git.Committed:
+    """Commit exactly the knowledge home after an accepted stage that changed it (every stage, not only closes)."""
     repo = Path(str(state["repo"]))
-    if stage not in CLOSES or not (repo / HOME).is_dir():
-        return ""
-    added = _git(repo, "add", "--", HOME)
-    if added.returncode:
-        raise RuntimeError("cannot stage " + HOME + ": " + added.stderr.strip())
-    if _git(repo, "diff", "--cached", "--quiet", "--", HOME).returncode == 0:
-        return ""
-    message = "docs(shiploop): record " + feature_dir(state).rsplit("/", 1)[-1] + " knowledge at " + stage
+    if not (repo / HOME).is_dir() or not _home_changed(repo):
+        return shiploop_git.Committed("", [], [])
+    message = ("docs(shiploop): record " + feature_dir(state).rsplit("/", 1)[-1] + " knowledge "
+               + ("at " if stage in CLOSES else "after ") + stage)
     if stage == "release-verify":
         body = "\n\n".join(name + "\n" + text for name, text in learnings(state).items() if text)
         if body:
             message += "\n\n" + body
-    done = _git(repo, "commit", "-q", "-m", message, "--", HOME)
-    if done.returncode:
-        raise RuntimeError("cannot commit " + HOME + ": " + (done.stderr or done.stdout).strip())
-    return _git(repo, "rev-parse", "HEAD").stdout.strip()
+    try:
+        return shiploop_git.commit_paths(repo, [HOME], message)
+    except shiploop_git.CommitError as exc:
+        raise RuntimeError(str(exc)) from exc
 
 
 def in_home(path: str) -> bool:
