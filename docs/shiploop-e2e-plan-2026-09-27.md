@@ -263,6 +263,62 @@ Acceptance: every verdict passes in every style; 0 ShipLoop command failures;
 glue 0 for mechanical steps; per-case cost no worse than baseline, or the
 increase attributed to a stated intended change.
 
+### P9 Unattended by default (ShipLoop; S-14)
+Change: ShipLoop's default stops presuming a person is present.
+- The `awaiting` mechanism stays for an attended run, but the default route
+  for an open question is a stated, recorded default decision (an assumption
+  with its alternatives and why the default was chosen) that the handoff
+  reports; for a step only a person can perform (sign-in, grant, physical or
+  visual observation, authority the run lacks) the default is an open item on
+  the item and the handoff, and the run continues with every stage that does
+  not depend on it.
+- A run blocks only when nothing further can proceed without that input or
+  proceeding would exceed its authority; it then ends with a clear report
+  (what is needed, who can supply it, the resume command), never waiting on
+  standard input.
+- Prompts (SKILL.md, stage duties, the 1.7.0 lifecycle "carry the question to
+  the user with the default you would take") are reworded to "take the
+  default, record it as an assumption, and surface it" unless the run is
+  attended.
+- How "attended" is known: an explicit run setting recorded at `init` /
+  `workspace start` (default unattended), never inferred by the model.
+
+Evidence behind it: S-14 (owner directive); the engine today instructs
+`blocked` + `awaiting` for decisions and observations, which stalls an
+unattended run; hosts offer ask-a-person tools (Grok headless lists
+`ask_user_question`).
+
+Adversarial evaluation:
+- *A wrong default silently builds the wrong thing* -> **mitigated**: the
+  default is recorded as an assumption with alternatives; plan and review
+  stages list open assumptions; the handoff surfaces them first; S-9 checks
+  still gate completion.
+- *Security/authority: proceeding where a person should decide (deploy to
+  production, spend money, delete data)* -> **mitigated**: authority limits
+  stay hard blocks; unattended never widens what the run may do; those end
+  the run with a report.
+- *Attended users lose the ability to answer questions* -> **mitigated**: an
+  explicit attended setting keeps today's `awaiting` behaviour, tested.
+- *Existing saved runs with `awaiting` state* -> **mitigated**: one supported
+  version; resume keeps working for runs already awaiting; new runs record the
+  setting.
+- *Prompt churn and pinned tests* -> **accepted**: update pins in the same
+  change; full tier before release.
+- *Model still calls a host ask-a-person tool* -> **mitigated**: packets say
+  runs are unattended; `asked_user` metric measures it; hosts can disable the
+  tool where supported (host-neutral statement, no host logic).
+- *Open items pile up and the run "passes" with the key behaviour
+  unverified* -> **mitigated**: an open item on a criterion keeps that
+  criterion unconfirmed (S-9); the committed verdict and product checks still
+  apply.
+
+Anchor: S-14, S-2 (the model does one step and does not stall), S-9.
+Non-regression: attended runs keep `awaiting`; authority blocks unchanged.
+Evidence: navigator tests (default recorded as assumption; person-only step
+becomes an open item and the run continues; nothing-can-continue ends with a
+report; attended setting keeps awaiting); breadth suite with `asked_user` 0
+and no run ending blocked on a question.
+
 ### P8 Engine neutrality (ShipLoop prompts/cards; owner review first)
 Change: restate the 1.7.0 lifecycle rule in SDLC terms with at most one
 labelled example; vary one-domain illustrations.
@@ -324,7 +380,7 @@ Anchor: S-8, S-13, Purpose. Evidence: rubric rerun; breadth suite.
 5. P7: one release for P3-P5 after the full hermetic tier; hosts; then the
    `breadth` suite (battleship, csv-report, seat-reservations) against each
    case's baseline.
-6. P8 (engine neutrality) after owner review, confirmed by the rubric rerun and
+6. P9 (unattended by default) after owner review of its design, then P8 (engine neutrality) after owner review, confirmed by the rubric rerun and
    `breadth`.
 7. Later, each through Change admission: tool knowledge into one catalog;
    Grok refusal probe (host-neutral outcome); Until Loop short output
