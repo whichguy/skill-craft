@@ -24,9 +24,9 @@ import shiploop_chain_ledger as chain_ledger
 import shiploop_chain as chain
 
 CLI = SCRIPTS / "shiploop"
-# Bindings always carry the immutable planning-context contract of this one
-# pinned Plan Dispatcher package.
-CONTEXT_FIXTURE = ROOT / "test/fixtures/plan-dispatcher-v3"
+# Chains bind the repository's own Plan Dispatcher package: the one supported
+# version, so a dispatcher change is exercised by the chain suites at once.
+CONTEXT_FIXTURE = ROOT / "skills/plan-dispatcher"
 FIXTURE = CONTEXT_FIXTURE
 SERIAL_FIXTURE = CONTEXT_FIXTURE
 def digest(path):
@@ -174,9 +174,7 @@ class ChainFixture(unittest.TestCase):
         self.counter = 0
 
     def assert_fixture(self, fixture):
-        provenance = json.loads((fixture / "PROVENANCE.json").read_text())
-        for relative, expected in provenance["files_sha256"].items():
-            self.assertEqual(digest(fixture / relative), expected, "Pinned dispatcher drift: " + relative)
+        self.assertTrue((fixture / "scripts/dispatch.js").is_file(), "no Plan Dispatcher package at " + str(fixture))
 
     def select_dispatcher(self, fixture):
         self.assert_fixture(fixture)

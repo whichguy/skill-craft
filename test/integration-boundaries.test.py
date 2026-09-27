@@ -18,7 +18,7 @@ import current_dispatcher
 
 ROOT = Path(__file__).resolve().parents[1]
 RUNNER = ROOT / "test" / "run-integration.sh"
-DISPATCHER_V3 = ROOT / "test" / "fixtures" / "plan-dispatcher-v3" / "SKILL.md"
+DISPATCHER_V3 = ROOT / "skills" / "plan-dispatcher" / "SKILL.md"
 
 
 def invoke(argv: list[str], env: dict[str, str]) -> subprocess.CompletedProcess[str]:
