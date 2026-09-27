@@ -61,11 +61,11 @@ def score(work: Path, oracle: Path, out: Path) -> dict:
     return json.loads((out / "results.json").read_text())
 
 
-def codex_step(work: Path, step: Path, model: str, effort: str) -> None:
-    """One headless Codex session (web search off by default) building from SPEC.md."""
+def codex_step(work: Path, step: Path, model: str, effort: str, prompt_file: Path | None = None) -> None:
+    """One headless Codex session (web search off by default) in `work` running a prompt."""
     import time
     step.mkdir(parents=True)
-    prompt = (HERE.parent / "prompts" / "build.md").read_text()
+    prompt = (prompt_file or HERE.parent / "prompts" / "build.md").read_text()
     (step / "prompt.md").write_text(prompt)
     argv = ["codex", "exec", "-m", model, "-c", f"model_reasoning_effort={effort}", "-s", "workspace-write",
             "--skip-git-repo-check", "--json", "-C", str(work), prompt]
