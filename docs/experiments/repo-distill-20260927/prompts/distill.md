@@ -43,6 +43,9 @@ to confirm a behaviour. Do not use the web.
 - Pin what is observable, leave free what is not. When a behaviour is only
   reachable through internals (a function no user can call), say how a user
   reaches it, or put it under Left free.
+- A value that embeds the original's name (a path, header, default file,
+  banner) is branding: specify it with **{PRODUCT_NAME}** substituted, and
+  never spell, split or hint at the original name.
 - The program's observed behaviour is the truth. When a test, comment or
   document disagrees with what the program does (or a test cannot run),
   specify what the program does and record the disagreement under Unknowns.

@@ -37,8 +37,10 @@ a fixed port or leave a process running.
   the same behaviours the original tests check, reached from outside. A unit
   test of an internal function becomes a check of the user-visible behaviour
   that function produces, when there is one.
-- Do not assert on branding (product name, logos, banner text) or on exact
-  log wording; the rebuild uses another name. Do assert on everything the
+- Do not assert on branding (product name, logos, banner text, or any value
+  that embeds the product's name, such as a default path) or on exact log
+  wording; the rebuild uses another name. Assert the value's presence and
+  shape instead. Do assert on everything the
   interface promises: status codes, bodies, headers, ordering, persistence.
 - Keep one oracle test per original behaviour where you can, named so a
   failure says which behaviour broke.
