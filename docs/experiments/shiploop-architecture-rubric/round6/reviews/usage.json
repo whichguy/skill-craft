@@ -1,0 +1,198 @@
+{
+"S13_SF_v3_1": {
+"tokens": 226459,
+"seconds": 765.9
+},
+"S12_CF_ground_1": {
+"tokens": 169139,
+"seconds": 468.3
+},
+"S06_SF_v3_1": {
+"tokens": 305608,
+"seconds": 683.4
+},
+"S09_GAS_ground_1": {
+"tokens": 186907,
+"seconds": 579.3
+},
+"S15_GAS_ground_1": {
+"tokens": 240820,
+"seconds": 669.1
+},
+"S07_SF_v3_1": {
+"tokens": 267881,
+"seconds": 893.8
+},
+"S11_GAS_ground_1": {
+"tokens": 309291,
+"seconds": 582.9
+},
+"S04_SF_ground_1": {
+"tokens": 223979,
+"seconds": 619.8
+},
+"S05_CF_v3_1": {
+"tokens": 195582,
+"seconds": 578.1
+},
+"S08_GAS_ground_1": {
+"tokens": 204467,
+"seconds": 781.3
+},
+"S10_CF_v3_1": {
+"tokens": 277399,
+"seconds": 468.7
+},
+"S09_GAS_v3_1": {
+"tokens": 225245,
+"seconds": 566.1
+},
+"S12_CF_prune3_1": {
+"tokens": 284913,
+"seconds": 581.9
+},
+"S03_GAS_v3_1": {
+"tokens": 270069,
+"seconds": 732.8
+},
+"S09_GAS_prune3_1": {
+"tokens": 179022,
+"seconds": 705.0
+},
+"S15_GAS_prune3_1": {
+"tokens": 352750,
+"seconds": 797.1
+},
+"S04_SF_prune3_1": {
+"tokens": 222523,
+"seconds": 653.0
+},
+"S11_GAS_prune3_1": {
+"tokens": 169771,
+"seconds": 603.2
+},
+"S08_GAS_prune3_1": {
+"tokens": 317191,
+"seconds": 774.2
+},
+"S03_GAS_ground_1": {
+"tokens": 197001,
+"seconds": 564.0
+},
+"S01_GAS_prune3_1": {
+"tokens": 288813,
+"seconds": 776.4
+},
+"S05_CF_prune3_1": {
+"tokens": null,
+"seconds": 1052.9
+},
+"S16_SF_ground_1": {
+"tokens": 393703,
+"seconds": 900.3
+},
+"S17_VERCEL_ground_1": {
+"tokens": 412521,
+"seconds": 650.1
+},
+"S01_GAS_v3_1": {
+"tokens": 153610,
+"seconds": 709.9
+},
+"S18_GCP_ground_1": {
+"tokens": 178899,
+"seconds": 556.6
+},
+"S10_CF_ground_1": {
+"tokens": 278292,
+"seconds": 511.1
+},
+"S11_GAS_v3_1": {
+"tokens": 214791,
+"seconds": 533.5
+},
+"S02_GAS_ground_1": {
+"tokens": 222467,
+"seconds": 436.1
+},
+"S13_SF_prune3_1": {
+"tokens": 294133,
+"seconds": 677.3
+},
+"S02_GAS_v3_1": {
+"tokens": null,
+"seconds": 1199.5
+},
+"S15_GAS_v3_1": {
+"tokens": 201431,
+"seconds": 680.6
+},
+"S06_SF_ground_1": {
+"tokens": 288927,
+"seconds": 609.6
+},
+"S07_SF_prune3_1": {
+"tokens": 243349,
+"seconds": 728.2
+},
+"S01_GAS_ground_1": {
+"tokens": null,
+"seconds": 1122.4
+},
+"S03_GAS_prune3_1": {
+"tokens": 343987,
+"seconds": 721.8
+},
+"S05_CF_ground_1": {
+"tokens": 243503,
+"seconds": 492.3
+},
+"S17_VERCEL_prune3_1": {
+"tokens": 171981,
+"seconds": 539.3
+},
+"S08_GAS_v3_1": {
+"tokens": 184723,
+"seconds": 745.1
+},
+"S16_SF_prune3_1": {
+"tokens": 263719,
+"seconds": 761.0
+},
+"S10_CF_prune3_1": {
+"tokens": 204657,
+"seconds": 548.8
+},
+"S12_CF_v3_1": {
+"tokens": 269354,
+"seconds": 533.2
+},
+"S13_SF_ground_1": {
+"tokens": 175532,
+"seconds": 703.4
+},
+"S02_GAS_prune3_1": {
+"tokens": 148583,
+"seconds": 588.6
+},
+"S16_SF_v3_1": {
+"tokens": 175437,
+"seconds": 550.5
+},
+"S04_SF_v3_1": {
+"tokens": 171615,
+"seconds": 339.3
+},
+"S06_SF_prune3_1": {
+"tokens": 299171,
+"seconds": 745.1
+},
+"S17_VERCEL_v3_1": {
+"tokens": 132137,
+"seconds": 581.9
+},
+"S07_SF_ground_1": {
+"tokens": 351165,
+"seconds": 795.0
+}
+}

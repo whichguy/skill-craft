@@ -1,0 +1,127 @@
+{
+ "totals": {
+  "current": {
+   "reviews": 30,
+   "added_valuable": 239,
+   "added_optional": 92,
+   "added_unwanted": 11,
+   "removed_loss": 41,
+   "removed_fine": 68
+  },
+  "design": {
+   "reviews": 30,
+   "added_valuable": 233,
+   "added_optional": 88,
+   "added_unwanted": 3,
+   "removed_loss": 38,
+   "removed_fine": 78
+  },
+  "prune3": {
+   "reviews": 30,
+   "added_valuable": 206,
+   "added_optional": 107,
+   "added_unwanted": 1,
+   "removed_loss": 40,
+   "removed_fine": 64
+  }
+ },
+ "judge_overbuilt_matched": 16,
+ "judge_overbuilt_verdicts": {
+  "valuable": 13,
+  "optional": 2,
+  "unwanted": 1
+ },
+ "judge_overbuilt_but_valuable": [
+  {
+   "review": "S01_VERCEL_current_2",
+   "judge_overbuilt": "Server-side encrypted computer fleet (AES-256-GCM token round-trip) to hide the computer's board from its only player",
+   "audit_item": "Player's fleet submitted to the server at /api/game/new and held in encrypted server-authoritative state (moved out of client-only state)",
+   "audit_verdict": "valuable",
+   "for": "Playing 'against the computer' means the computer shoots back. The original had the server resolve the computer's turn without ever holding the player's board. With both fleets in state, the server resolves both sides consistently and the win/loss result can be trusted."
+  },
+  {
+   "review": "S01_VERCEL_current_2",
+   "judge_overbuilt": "POST /api/game/new and /api/game/shoot route handlers instead of client-only game logic",
+   "audit_item": "Player's fleet submitted to the server at /api/game/new and held in encrypted server-authoritative state (moved out of client-only state)",
+   "audit_verdict": "valuable",
+   "for": "Playing 'against the computer' means the computer shoots back. The original had the server resolve the computer's turn without ever holding the player's board. With both fleets in state, the server resolves both sides consistently and the win/loss result can be trusted."
+  },
+  {
+   "review": "S01_VERCEL_current_2",
+   "judge_overbuilt": "GAME_STATE_KEY provisioning across all Vercel environments via vercel env add for a single-player game",
+   "audit_item": "Explicit key management: generate GAME_STATE_KEY with openssl, set it in .env.local, run `vercel env add` for every environment before deploy, and verify with `vercel env ls`",
+   "audit_verdict": "valuable",
+   "for": "The game fails at runtime without the key. Setting it in every environment before deploy prevents a broken preview or production deploy."
+  },
+  {
+   "review": "S01_VERCEL_design_2",
+   "judge_overbuilt": "AES-256-GCM encrypted/authenticated opaque game-state token with expiry logic",
+   "audit_item": "AES-256-GCM encrypted-and-authenticated token (via Node crypto) in place of an HMAC-signed token",
+   "audit_verdict": "valuable",
+   "for": "The original HMAC token signed the computer's fleet but did not encrypt it. The fleet would have been readable in the browser by base64-decoding the token, which defeats the plan's own secrecy goal. GCM adds confidentiality and keeps tamper detection, so the computer's board stays hidden."
+  },
+  {
+   "review": "S01_VERCEL_prune3_2",
+   "judge_overbuilt": "Server-side computer-fleet resolution via /api/game/new and /api/game/shoot Route Handlers, to hide the fleet from DevTools",
+   "audit_item": "Explicit request/response schemas for /api/game/new and /api/game/shoot",
+   "audit_verdict": "valuable",
+   "for": "It pins the client/server contract and makes the leak tests precise, supporting correctness."
+  },
+  {
+   "review": "S01_VERCEL_prune3_2",
+   "judge_overbuilt": "AES-256-GCM encrypted opaque state token round-tripped every request in lieu of storage",
+   "audit_item": "AES-256-GCM authenticated encryption of the game-state token, replacing HMAC-only signing",
+   "audit_verdict": "valuable",
+   "for": "The whole design exists so the player cannot see the computer's fleet. An HMAC-signed token is only base64-encoded plaintext. Anyone can decode it in DevTools and read the fleet, which defeats the stated reason for moving state server-side. GCM keeps the tamper rejection and adds confidentiality, using only Node's built-in crypto."
+  },
+  {
+   "review": "S04_GAS_current_2",
+   "judge_overbuilt": "\"My games\" list view \u2014 full multi-game listing feature not requested by the scenario",
+   "audit_item": "My-games test includes a game the user is not in (G2 between bob and carol) and asserts it is excluded",
+   "audit_verdict": "valuable",
+   "for": "This is an access and privacy check. It proves the list filters by membership rather than showing every game, which is the actual risk."
+  },
+  {
+   "review": "S12_GCP_current_1",
+   "judge_overbuilt": "Firestore-backed rate limiter (rateLimits/{uid}, 10 posts/10s) added for abuse prevention that the simple chat request never asked for",
+   "audit_item": "Rate limit set to 10 posts per rolling 10 seconds per uid, stored in a Firestore counter document `rateLimits/{uid}` instead of in memory",
+   "audit_verdict": "valuable",
+   "for": "Cloud Run autoscales, so an in-memory counter would under-enforce when a user's requests land on different instances. The original required a per-user rate limit but did not say where it lived, which left that bug open. A number also makes the limit testable."
+  },
+  {
+   "review": "S13_CF_design_2",
+   "judge_overbuilt": "correction/amendment flow via corrects_submission_id \u2014 not requested by the scenario, which only requires no-loss no-duplication of a single submission",
+   "audit_item": "`corrects_submission_id` column and a schema-level correction flow, with a test that a correcting row inserts and can be queried",
+   "audit_verdict": "valuable",
+   "for": "The original plan already said a correction is 'a new submission referencing the original ID' but gave the schema nowhere to store that reference. Adding the column makes the stated immutability model implementable, and office staff can tell corrections apart from duplicates, which supports the 'without ... duplicating' goal."
+  },
+  {
+   "review": "S13_CF_prune3_2",
+   "judge_overbuilt": "Workers Rate Limiting binding at 30 req/min per token \u2014 abuse/traffic protection not requested by the scenario",
+   "audit_item": "Rate limiting via the Workers Rate Limiting binding, declared through `[[unsafe.bindings]] type = \"ratelimit\"`, keyed by inspector token",
+   "audit_verdict": "valuable",
+   "for": "The original plan required rate limiting but had no mechanism, and it excluded KV and Durable Objects. A native binding fills that gap without new infrastructure."
+  },
+  {
+   "review": "S17_AWS_current_2",
+   "judge_overbuilt": "self-service customer cancellation endpoint (`GET/DELETE /c/{bookingToken}`) \u2014 not requested; the prompt only asks that customers book slots by link",
+   "audit_item": "Defined public link shapes /b/{businessId} (booking page) and /c/{bookingToken} (confirmation/cancellation)",
+   "audit_verdict": "valuable",
+   "for": "The request says customers \"book slots by link\". This pins down what that link is and separates it from the private per-booking link."
+  },
+  {
+   "review": "S17_AWS_prune3_2",
+   "judge_overbuilt": "SQS DLQ + CloudWatch alarm + SNS email subscription for notification-failure paging \u2014 more ops/reliability machinery than a small booking service's stated notification need requires",
+   "audit_item": "SNS topic with email subscription on the DLQ-depth alarm so a human is actually notified",
+   "audit_verdict": "valuable",
+   "for": "The original claimed failures alarm 'so a human sees them', but a CloudWatch alarm with no action only changes state. SNS email makes that stated reliability safeguard real, and the Work Item 8 check now verifies delivery."
+  },
+  {
+   "review": "S17_VERCEL_prune3_1",
+   "judge_overbuilt": "Postgres RLS session-variable wiring as a second enforcement layer alongside app-layer business_id scoping \u2014 the overbuild note calls app-layer scoping-with-negative-test the requirement; RLS is extra infrastructure on top of that",
+   "audit_item": "RLS wiring: set app.business_id per request with SET LOCAL inside the same transaction, as part of Item 1",
+   "audit_verdict": "valuable",
+   "for": "Without this wiring the RLS defense-in-depth for the core isolation requirement does nothing, or fails. SET LOCAL scoped to a transaction is also what works safely with a transaction pooler."
+  }
+ ]
+}

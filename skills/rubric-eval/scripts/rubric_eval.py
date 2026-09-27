@@ -902,3 +902,41 @@ def valuecheck(run_dir: str | Path, suite: dict, plans_from: str | Path, *, mode
                "judge_overbuilt_but_valuable": [d for d in disputed if d["audit_verdict"] == "valuable"]}
     (run_ / f"{dest}_summary.json").write_text(json.dumps(summary, indent=1) + "\n")
     return {"checked": sum(ok), "failed": ok.count(False), **summary}
+
+
+# ---------------------------------------------------------------- export (evidence for results and the journal)
+
+def export(run_dir: str | Path, dest: str | Path, *, outputs: bool = False) -> dict:
+    """Write a round's evidence to `dest` in a compact, citable form: manifest.json, every analysis*.json and
+    *_summary.json, verdicts.jsonl.gz (every grading folder: stem, folder, grades, quotes, overbuilt items,
+    platform errors, judge), audits.jsonl.gz (value and diff audits), usage.json (tokens and seconds per output),
+    and, with outputs=True, outputs.jsonl.gz (the graded text). Prompts are left out: build rebuilds them from
+    the manifest's frame, arms and plans."""
+    import gzip
+    run_, d = Path(run_dir), Path(dest); d.mkdir(parents=True, exist_ok=True)
+    n = {}
+    for f in [run_ / "manifest.json", *sorted(run_.glob("analysis*.json")), *sorted(run_.glob("*_summary.json"))]:
+        if f.exists():
+            (d / f.name).write_text(f.read_text()); n[f.name] = 1
+    with gzip.open(d / "verdicts.jsonl.gz", "wt") as out:
+        for jd in sorted(p for p in run_.iterdir() if p.is_dir() and p.name.startswith("judge")):
+            for f in sorted(jd.glob("*.json")):
+                v = json.loads(f.read_text())
+                out.write(json.dumps({"stem": f.stem, "folder": jd.name, "judge": v.get("judge_model"), "grades": v["grades"],
+                                      "evidence": {c: e.get("evidence") for c, e in v.get("criteria", {}).items()},
+                                      "overbuilt_items": v.get("overbuilt_items"), "platform_errors": v.get("platform_errors"),
+                                      "quote_check": v.get("quote_check")}) + "\n")
+                n["verdicts"] = n.get("verdicts", 0) + 1
+    with gzip.open(d / "audits.jsonl.gz", "wt") as out:
+        for kind in ("value", "value_b", "diff"):
+            for f in sorted((run_ / kind).glob("*.json")) if (run_ / kind).is_dir() else []:
+                out.write(json.dumps({"stem": f.stem, "audit": kind, **json.loads(f.read_text())}) + "\n"); n[kind] = n.get(kind, 0) + 1
+    (d / "usage.json").write_text(json.dumps(usage(run_), indent=0) + "\n")
+    if outputs:
+        with gzip.open(d / "outputs.jsonl.gz", "wt") as out:
+            for f in sorted((run_ / "out").glob("*.json")):
+                out.write(json.dumps({"stem": f.stem, **json.loads(f.read_text())}) + "\n"); n["outputs"] = n.get("outputs", 0) + 1
+    for log in ("stubs.log", "isolation.log", "stubs-timeout-bug.log"):
+        if (run_ / log).exists():
+            (d / log).write_text((run_ / log).read_text())
+    return n

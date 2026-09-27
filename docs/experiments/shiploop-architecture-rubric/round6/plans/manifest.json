@@ -1,0 +1,18 @@
+{
+ "suite": "skills/rubric-eval/suites/architecture-v3",
+ "frame": "plan",
+ "reviews": false,
+ "trials": 1,
+ "prompts": 56,
+ "arms": {
+  "v5": {
+   "sha": "dd2c80135340fe32",
+   "source": "/private/tmp/claude-501/-Users-dadleet-src-skill-craft/dbaecc77-9afa-4c51-ab4f-7cd8be19140f/scratchpad/r6/arms/v5.txt",
+   "words": 467
+  }
+ },
+ "condition": {
+  "model": "grok",
+  "tools": ""
+ }
+}

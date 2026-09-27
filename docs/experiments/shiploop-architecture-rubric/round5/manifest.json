@@ -1,0 +1,92 @@
+{
+ "suite": "skills/rubric-eval/suites/architecture-v2",
+ "frame": "plan",
+ "reviews": false,
+ "trials": 3,
+ "prompts": 195,
+ "arms": {
+  "base": {
+   "sha": "4e599ab042e2a94b",
+   "source": "arms/base.txt",
+   "words": 466
+  },
+  "expand": {
+   "sha": "e24b29b3290f308e",
+   "source": "arms/expand.txt",
+   "words": 583
+  },
+  "expprune": {
+   "sha": "6b625f5b4b3fa5f6",
+   "source": "arms/expprune.txt",
+   "words": 638
+  },
+  "outcome": {
+   "sha": "151d15ef1b2264fe",
+   "source": "arms/outcome.txt",
+   "words": 722
+  },
+  "negative": {
+   "sha": "cf98b5f22bb26e4e",
+   "source": "arms/negative.txt",
+   "words": 780
+  }
+ },
+ "cells": [
+  [
+   "S01",
+   "GAS"
+  ],
+  [
+   "S02",
+   "CF"
+  ],
+  [
+   "S04",
+   "SF"
+  ],
+  [
+   "S06",
+   "NODE"
+  ],
+  [
+   "S09",
+   "AWS"
+  ],
+  [
+   "S10",
+   "CF"
+  ],
+  [
+   "S17",
+   "VERCEL"
+  ],
+  [
+   "S18",
+   "GCP"
+  ],
+  [
+   "S19",
+   "NODE"
+  ],
+  [
+   "S20",
+   "SF+GAS"
+  ],
+  [
+   "S21",
+   "SF+GAS"
+  ],
+  [
+   "S22",
+   "CF+SF"
+  ],
+  [
+   "S23",
+   "GCP"
+  ]
+ ],
+ "condition": {
+  "model": "sonnet",
+  "tools": "Read"
+ }
+}

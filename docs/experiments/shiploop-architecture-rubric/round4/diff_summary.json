@@ -1,0 +1,23 @@
+{
+ "prune3": {
+  "reviews": 104,
+  "removed_required": 5,
+  "added_unrequested": 119,
+  "contradictions": 16,
+  "invented_numbers": 222
+ },
+ "design": {
+  "reviews": 104,
+  "removed_required": 7,
+  "added_unrequested": 105,
+  "contradictions": 19,
+  "invented_numbers": 161
+ },
+ "current": {
+  "reviews": 104,
+  "removed_required": 5,
+  "added_unrequested": 52,
+  "contradictions": 23,
+  "invented_numbers": 200
+ }
+}

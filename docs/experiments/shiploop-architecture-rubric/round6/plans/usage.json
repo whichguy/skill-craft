@@ -1,0 +1,226 @@
+{
+"S09_AWS_v5_1": {
+"tokens": 23662,
+"seconds": 235.9
+},
+"S08_GCP_v5_1": {
+"tokens": 19451,
+"seconds": 183.9
+},
+"S10_GAS_v5_1": {
+"tokens": 81604,
+"seconds": 355.1
+},
+"S07_GAS_v5_1": {
+"tokens": 24871,
+"seconds": 246.4
+},
+"S03_GAS_v5_1": {
+"tokens": 24515,
+"seconds": 268.2
+},
+"S14_GAS_v5_1": {
+"tokens": 27074,
+"seconds": 298.3
+},
+"S04_GAS_v5_1": {
+"tokens": 19659,
+"seconds": 207.6
+},
+"S01_VERCEL_v5_1": {
+"tokens": 20770,
+"seconds": 197.9
+},
+"S18_GCP_v5_1": {
+"tokens": 15517,
+"seconds": 140.7
+},
+"S09_CF_v5_1": {
+"tokens": 17177,
+"seconds": 158.3
+},
+"S04_AWS_v5_1": {
+"tokens": 26220,
+"seconds": 291.4
+},
+"S03_CF_v5_1": {
+"tokens": 24710,
+"seconds": 272.3
+},
+"S10_VERCEL_v5_1": {
+"tokens": 16165,
+"seconds": 137.8
+},
+"S17_AWS_v5_1": {
+"tokens": 108826,
+"seconds": 511.6
+},
+"S12_GCP_v5_1": {
+"tokens": 14596,
+"seconds": 117.3
+},
+"S05_GCP_v5_1": {
+"tokens": 23166,
+"seconds": 249.0
+},
+"S01_SF_v5_1": {
+"tokens": 22901,
+"seconds": 255.2
+},
+"S06_SF_v5_1": {
+"tokens": 28075,
+"seconds": 313.4
+},
+"S13_SF_v5_1": {
+"tokens": 19273,
+"seconds": 205.8
+},
+"S10_CF_v5_1": {
+"tokens": 30663,
+"seconds": 310.5
+},
+"S09_GAS_v5_1": {
+"tokens": 13989,
+"seconds": 111.4
+},
+"S05_CF_v5_1": {
+"tokens": 25430,
+"seconds": 265.2
+},
+"S02_CF_v5_1": {
+"tokens": 23036,
+"seconds": 228.5
+},
+"S10_AWS_v5_1": {
+"tokens": 13114,
+"seconds": 96.1
+},
+"S12_SF_v5_1": {
+"tokens": 24821,
+"seconds": 246.1
+},
+"S07_SF_v5_1": {
+"tokens": 25407,
+"seconds": 282.7
+},
+"S12_CF_v5_1": {
+"tokens": 17939,
+"seconds": 155.7
+},
+"S08_GAS_v5_1": {
+"tokens": 29834,
+"seconds": 333.3
+},
+"S22_CF+SF_v5_1": {
+"tokens": 28349,
+"seconds": 338.5
+},
+"S19_NODE_v5_1": {
+"tokens": 18207,
+"seconds": 162.6
+},
+"S21_SF+GAS_v5_1": {
+"tokens": 24145,
+"seconds": 239.6
+},
+"S05_SF_v5_1": {
+"tokens": 32721,
+"seconds": 398.5
+},
+"S04_GCP_v5_1": {
+"tokens": 17870,
+"seconds": 177.3
+},
+"S18_NODE_v5_1": {
+"tokens": 17916,
+"seconds": 154.2
+},
+"S14_CF_v5_1": {
+"tokens": 18440,
+"seconds": 161.6
+},
+"S17_VERCEL_v5_1": {
+"tokens": 21076,
+"seconds": 200.1
+},
+"S13_CF_v5_1": {
+"tokens": 28968,
+"seconds": 303.2
+},
+"S05_AWS_v5_1": {
+"tokens": 38307,
+"seconds": 455.0
+},
+"S04_SF_v5_1": {
+"tokens": 26325,
+"seconds": 302.8
+},
+"S16_SF_v5_1": {
+"tokens": 21164,
+"seconds": 197.0
+},
+"S11_SF_v5_1": {
+"tokens": 20134,
+"seconds": 210.5
+},
+"S01_GAS_v5_1": {
+"tokens": 25819,
+"seconds": 278.1
+},
+"S06_VERCEL_v5_1": {
+"tokens": 23800,
+"seconds": 242.4
+},
+"S08_NODE_v5_1": {
+"tokens": 25970,
+"seconds": 259.9
+},
+"S19_CF_v5_1": {
+"tokens": 14127,
+"seconds": 109.8
+},
+"S20_SF+GAS_v5_1": {
+"tokens": 13274,
+"seconds": 106.6
+},
+"S12_NODE_v5_1": {
+"tokens": 13655,
+"seconds": 105.4
+},
+"S06_NODE_v5_1": {
+"tokens": 16759,
+"seconds": 141.7
+},
+"S08_SF_v5_1": {
+"tokens": 14356,
+"seconds": 122.3
+},
+"S09_VERCEL_v5_1": {
+"tokens": 25288,
+"seconds": 252.1
+},
+"S23_GCP_v5_1": {
+"tokens": 24723,
+"seconds": 291.5
+},
+"S15_GAS_v5_1": {
+"tokens": 14797,
+"seconds": 129.0
+},
+"S01_NODE_v5_1": {
+"tokens": 15106,
+"seconds": 104.2
+},
+"S02_GAS_v5_1": {
+"tokens": 35940,
+"seconds": 229.5
+},
+"S06_GAS_v5_1": {
+"tokens": 26023,
+"seconds": 292.5
+},
+"S11_GAS_v5_1": {
+"tokens": 16984,
+"seconds": 166.0
+}
+}

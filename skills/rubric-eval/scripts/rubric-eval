@@ -65,6 +65,8 @@ def main(argv=None):
     va.add_argument("run_dir"); va.add_argument("--suite", default="architecture"); va.add_argument("--plans-from", required=True)
     va.add_argument("--model", type=R.spec, default="opus"); va.add_argument("--workers", type=int, default=8)
     va.add_argument("--only-file", help="audit only the output stems listed in this file"); va.add_argument("--dest", default="value")
+    ex = sub.add_parser("export", help="write a round's evidence (manifest, analyses, verdicts, audits, usage) for citing")
+    ex.add_argument("run_dir"); ex.add_argument("dest"); ex.add_argument("--outputs", action="store_true", help="include the graded outputs")
     rel = sub.add_parser("reliability", help="re-grade a sample with the same judge: Cohen's kappa and the judge's noise")
     rel.add_argument("run_dir"); rel.add_argument("--suite", default="architecture"); rel.add_argument("--n", type=int, default=30)
     rel.add_argument("--model", type=R.spec, required=True, help="the judge that graded --judge-dir")
@@ -103,6 +105,8 @@ def main(argv=None):
         only = Path(args.only_file).read_text().split() if args.only_file else None
         print(json.dumps(R.valuecheck(args.run_dir, suite_arg(args.suite), args.plans_from, model=args.model,
                                       workers=args.workers, only=only, dest=args.dest), indent=1))
+    elif args.cmd == "export":
+        print(json.dumps(R.export(args.run_dir, args.dest, outputs=args.outputs)))
     elif args.cmd == "reliability":
         print(json.dumps(R.reliability(args.run_dir, suite_arg(args.suite), n=args.n, model=args.model,
                                        first_dest=args.judge_dir, second_dest=args.dest), indent=1))

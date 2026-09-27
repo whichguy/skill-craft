@@ -1,0 +1,35 @@
+{
+ "totals": {
+  "current": {
+   "reviews": 5,
+   "added_valuable": 37,
+   "added_optional": 10,
+   "added_unwanted": 4,
+   "removed_loss": 4,
+   "removed_fine": 14
+  },
+  "design": {
+   "reviews": 5,
+   "added_valuable": 32,
+   "added_optional": 19,
+   "added_unwanted": 1,
+   "removed_loss": 9,
+   "removed_fine": 11
+  },
+  "prune3": {
+   "reviews": 5,
+   "added_valuable": 39,
+   "added_optional": 16,
+   "added_unwanted": 0,
+   "removed_loss": 8,
+   "removed_fine": 9
+  }
+ },
+ "judge_overbuilt_matched": 1,
+ "judge_overbuilt_verdicts": {
+  "valuable": 0,
+  "optional": 0,
+  "unwanted": 1
+ },
+ "judge_overbuilt_but_valuable": []
+}

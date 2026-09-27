@@ -1,0 +1,42 @@
+{
+ "suite": "skills/rubric-eval/suites/architecture-v3",
+ "frame": "review-ref",
+ "reviews": true,
+ "trials": 1,
+ "prompts": 168,
+ "arms": {
+  "prune3": {
+   "sha": "e3563f0188e22e8c",
+   "source": "/private/tmp/claude-501/-Users-dadleet-src-skill-craft/dbaecc77-9afa-4c51-ab4f-7cd8be19140f/scratchpad/r6/arms/prune3.txt",
+   "words": 353,
+   "plans_arm": "v5"
+  },
+  "v3": {
+   "sha": "b72bade32035ebef",
+   "source": "/private/tmp/claude-501/-Users-dadleet-src-skill-craft/dbaecc77-9afa-4c51-ab4f-7cd8be19140f/scratchpad/r6/arms/v3.txt",
+   "words": 422,
+   "plans_arm": "v5"
+  },
+  "ground": {
+   "sha": "c80578a20a703e66",
+   "source": "/private/tmp/claude-501/-Users-dadleet-src-skill-craft/dbaecc77-9afa-4c51-ab4f-7cd8be19140f/scratchpad/r6/arms/ground.txt",
+   "words": 409,
+   "plans_arm": "v5"
+  },
+  "none": {
+   "sha": "",
+   "source": "the unreviewed v5 plan",
+   "words": 0,
+   "plans_arm": "v5",
+   "role": "input"
+  }
+ },
+ "condition": {
+  "model": "grok",
+  "tools": "Read",
+  "workspace": {
+   "files": 43,
+   "sha": "74b54bf97a818520"
+  }
+ }
+}
