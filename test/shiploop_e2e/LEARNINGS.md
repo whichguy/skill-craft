@@ -95,3 +95,29 @@ detailed message; read the last three commit messages before the next run or cha
   zero-test `node --test` would pass release-verify; the model rewrote them to counted regression tests.
 - release-verify was accepted "done" with "No browser session was available"; the page test only matches the
   title and counts 100 buttons, never running the click handler.
+
+## Run 6 — 2026-09-26 — battleship, Grok grok-4.7 medium, marketplace skill-craft 1.4.0 (ShipLoop 0.37.0)
+
+- First run through the marketplace version gate: installed 1.4.0 / 0.37.0 == catalog, HEAD == origin/main.
+- Outcome: PASS, all four checks. 6,775 s (113 min), 480 turns, $35.32 over 6 host sessions; done; 16 Improve
+  children, 42 test runs, 2 compactions, 2 truncated outputs (run 5: 17), 1 refused `complete`.
+- Returned committed: HEAD has 16 commits, 0 untracked files, docs/shiploop/spec.md tracked (7 requirement IDs).
+  Run 5 had returned only a working-tree delta because its product files were never committed in the worktree.
+- Five sessions ended `cancelled`: Grok's auto permission mode refused model-written shell twice for Git setup
+  in the empty directory (before any state) and twice for `mv packet.json packet.stopped-<stamp>.json` on the
+  stopped-child restart route; one more at start. A refused tool call ends a headless turn; resume recovered
+  every time. Fixed on the unreleased branch: workspace start bootstraps an empty directory, and
+  `improve-start --restart-stopped` archives a stopped child itself.
+- Costliest stages (turns/minutes): carry-forward 76/17.7 (the end-of-work Improve), system-test-author
+  63/16.9 (a headless-browser check that first could not load the page; its Improve child stopped), product-
+  acceptance 31/6.9, release-plan 29/6.0, spec 26/7.7. Implement steps: 5 + 21 turns.
+- Context: peak ~400 K twice. Each Improve child's start contract (~6 KB) was hand-written by the model, and
+  the Until Loop runtime reprints its ~6 KB frozen context after every `done` (resources alone 3.1 KB).
+  improve-start (unreleased) removes the first; the second belongs to until-loop (print a head, point at the
+  receipt).
+- The analysis session was bound by keepalive again: event-dump output contained `improve-bind --run-dir=`
+  and the observe fallback searched output text. Fixed on the branch: markers and --run-dir are read only
+  from a driving command.
+- Harness: learning retention — per-stage metrics now make run-to-run comparison possible; keep them in each
+  entry. Further learning — the follow-on (6b) tests whether the committed spec and modules are reused.
+  Evaluation criteria — add cancelled tool calls and sessions per run as reliability scores next to cost.
