@@ -837,6 +837,12 @@ def main(argv: list[str] | None = None) -> int:
                              if not problem.startswith("installed ")]}
         if versions["gate"]:
             raise SystemExit("version gate: " + "; ".join(versions["gate"]))
+        if host.name == "codex" and versions["plugin_version"] != released["catalog_version"]:
+            # Codex syncs installed plugins to its marketplace's current release when a session starts and
+            # deletes the old version's files, which the run's CLI and any bound Improve child point to.
+            raise SystemExit(f"a Codex run started on skill-craft {versions['plugin_version']} cannot resume after "
+                             f"release {released['catalog_version']}: Codex replaces the plugin at session start. "
+                             "Start the case again.")
     elif args.source == "marketplace":
         plugin_dir, plugin, versions = marketplace_preflight(args, out, env)
         if resumed:
