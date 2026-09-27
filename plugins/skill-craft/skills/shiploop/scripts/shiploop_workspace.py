@@ -1705,6 +1705,45 @@ def execute_return(workspace_root: Path) -> Dict[str, Any]:
 
 
 @_locked_existing_root
+def follow_up_knowledge_return(workspace_root: Path) -> Optional[Dict[str, Any]]:
+    """Return ShipLoop's own knowledge commit after a verified return, by that return's route (plan P11).
+
+    Runs only when a return was recorded and every path changed since its candidate
+    head is ShipLoop knowledge (docs/shiploop/, SHIPLOOP.md) with nothing else dirty
+    in the candidate; then it plans and executes the follow-up return, whose own
+    checks refuse a moved source. Returns the new receipt, or None when it does not
+    apply. A refusal (WorkspaceError) propagates; the caller leaves the return to the
+    handoff guard. It never commits leftovers, retries or rolls back.
+    """
+    root = _resolved_directory(Path(workspace_root), label="workspace root")
+    receipt = _receipt(root)
+    if not receipt or receipt.get("status") != "returned":
+        return None
+    manifest = _manifest(root)
+    worktree = _resolved_directory(Path(manifest["worktree"]), label="workspace worktree")
+    head = str((receipt.get("candidate_fingerprint") or {}).get("head") or "")
+    if not _SHA.fullmatch(head):
+        return None
+    changed = [name for name in _git_bytes(worktree, "diff", "--name-only", "-z", head, "HEAD").decode(
+        "utf-8", "surrogateescape").split("\0") if name]
+    dirty = [line[3:] for line in _git_bytes(worktree, "status", "--porcelain=v1", "--untracked-files=all").decode(
+        "utf-8", "surrogateescape").splitlines() if line and not _forbidden(line[3:])]
+    if not changed or dirty or not all(knowledge_home.in_home(path) for path in changed):
+        return None
+    # The new plan reviews the whole delta again: paths the last reviewed plan decided keep that
+    # decision; the only new paths are knowledge, which the plan keeps.
+    reviewed = {row["path"]: row["disposition"] for row in _record(root, RETURN_PLAN, "return plan")["paths"]}
+    plan = plan_return(root)
+    for row in plan["paths"]:
+        if row["disposition"] == "pending":
+            if reviewed.get(row["path"], "pending") == "pending":
+                return None
+            row["disposition"] = reviewed[row["path"]]
+    plan["status"] = "ready"
+    _write(root, {RETURN_PLAN: (plan, "ShipLoop return plan")})
+    return execute_return(root)
+
+
 def returned_before(workspace_root: Path) -> bool:
     """Whether a return was recorded at all (a stale receipt still counts)."""
     try:

@@ -5,7 +5,7 @@ description: >-
   conversation: start one agent that runs /improve in its own context, keep
   useful parent work going, then verify and relay its result. For Improve in
   this conversation, use improve.
-version: 0.1.1
+version: 0.1.2
 license: MIT
 platforms:
   - linux

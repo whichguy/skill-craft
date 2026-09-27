@@ -4,6 +4,25 @@ Written by scripts/release.py.
 
 ## 2026-09-27
 
+### skill-craft 1.12.0
+
+- Skills: improve 0.3.0-rc.10, improve-agent 0.1.2, shiploop 0.45.0
+
+### improve 0.3.0-rc.10
+
+- The ShipLoop subcall guidance describes the new completion: write `review-<n>.md` per pass and `checks.md`; ShipLoop imports them, with optional `--notes` and `--final-result`.
+
+### improve-agent 0.1.2
+
+- Names the child's reviews directory as the locator to return, matching ShipLoop's derived Improve completion.
+
+### shiploop 0.45.0
+
+- A ShipLoop record without exactly one `shiploop-state` JSON fence is refused with its path, the fence count and the expected shape, instead of a bare "exactly one fence" message.
+- `improve-complete --action <id>` no longer takes a completion record. Each review pass writes `reviews/review-<n>.md` and the check output `reviews/checks.md`; ShipLoop imports the last two passes (the last one when the first pass changed nothing) and `checks.md`, and writes the summary itself. The model supplies only optional `--notes` (lessons), `--final-result` (when the review changed a decision) and `--no-commit`. `parent-return.md` is the one command. The `--result` flag of `improve-complete` is removed; stopped and reconcile receipts are unchanged.
+- After a verified workspace return, ShipLoop returns its own later knowledge commit (for example at release-verify) by the same route when everything changed since that return is `docs/shiploop/` or `SHIPLOOP.md`, keeping the earlier reviewed dispositions; handoff no longer finds a stale receipt and asks the model for a manual follow-up. Anything else changed, or a moved source, leaves the follow-up to handoff as before.
+- Every run has a scratch directory, `<run>/scratch/`, named in each packet's locators; the common rule and the Improve packet send temporary files there (including the report piped to the Until Loop runtime), because `/tmp` is shared with other runs and a fixed `/tmp` name can read another run's file.
+
 ### skill-craft 1.11.1
 
 - Skills: shiploop 0.44.1
