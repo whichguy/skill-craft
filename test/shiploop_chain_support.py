@@ -33,6 +33,23 @@ def digest(path):
     return hashlib.sha256(Path(path).read_bytes()).hexdigest()
 
 
+def with_packet_file(stdout: str) -> str:
+    """Append the full packet's file text when stdout only printed the head.
+
+    An active-state ``emit()`` prints a short head with a ``Full packet:
+    <path>`` line and writes the complete packet to that file; a non-active
+    print (paused/blocked/halted/done) already carries the full text and has
+    no such line, so it passes through unchanged.
+    """
+    marker = "Full packet: "
+    for line in stdout.splitlines():
+        if line.startswith(marker):
+            packet_file = Path(line[len(marker):])
+            if packet_file.is_file():
+                return stdout + "\n" + packet_file.read_text(encoding="utf-8")
+    return stdout
+
+
 class ChainFixture(unittest.TestCase):
     def setUp(self):
         self.assert_fixture(FIXTURE)

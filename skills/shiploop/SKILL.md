@@ -568,12 +568,18 @@ context, use the index when you need the global picture, and report a conflict
 with an accepted decision instead of silently choosing. Packets point at material
 rather than asking you to reread it at every stage.
 
-Every packet is the full packet, and `next` reprints it. It is the recovery
-command, and the script cannot know what survived a clear or compaction, so no
-packet ever refers back to an earlier one. Every producer packet prints its
-result path, result template and allowed outcomes directly under the callback
-line, so a host that keeps only the head of long output still has the contract
-the callback checks.
+Every packet is complete, and it lives in a file: ShipLoop writes the full
+packet to `<run>/packets/<action>.md` and prints only a short head, with the
+callback, the goal and done-when, the result path, template and allowed
+outcomes, the packet file's path, the recovery and pause commands and the status
+block. Read the packet file with a file-reading tool before acting; do not print
+it to the shell, where hosts cut long output (Grok keeps about 20 KB) and every
+byte stays in context. References a packet names are for lookup: open only the
+section a step needs, never a whole reference file, and do not re-read this card
+or the Improve card. `next` is the recovery command: it rewrites the file and
+reprints the head, and the script cannot know what survived a clear or
+compaction, so no packet ever refers back to an earlier one. Paused, blocked,
+awaiting, halted and done packets are short and print whole.
 
 Each packet carries a script-rendered **status block** (`=== ShipLoop status ===`):
 where the run is, what just finished, what comes next and what is complete.

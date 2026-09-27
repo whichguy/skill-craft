@@ -901,6 +901,20 @@ class ToolResolutionTests(Fixture):
         self.assertTrue(tier0 and os.path.isabs(tier0[0].split("] ", 1)[1].split(" ", 1)[0]), tier0)
 
 
+def _packet_file_text(stdout: str) -> str:
+    """The complete packet text: the file an active-state head's ``Full packet:``
+    line points at, or the stdout itself for a paused/blocked/halted/done print,
+    which already carries the full text and prints no such line.
+    """
+    marker = "Full packet: "
+    for line in stdout.splitlines():
+        if line.startswith(marker):
+            path = Path(line[len(marker):])
+            if path.is_file():
+                return path.read_text(encoding="utf-8")
+    return stdout
+
+
 def complete(run: Path, state: dict, result: dict = DONE) -> str:
     action = nav.current_action(state)["id"]
     stage = nav.current_stage(state)
@@ -919,7 +933,7 @@ def complete(run: Path, state: dict, result: dict = DONE) -> str:
     buffer = io.StringIO()
     with contextlib.redirect_stdout(buffer):
         nav.dispatch(CORE, run, state, types.SimpleNamespace(command="complete", action=action, result=str(path)))
-    return buffer.getvalue()
+    return _packet_file_text(buffer.getvalue())
 
 
 def complete_implement(run: Path, state: dict) -> str:

@@ -42,6 +42,23 @@ LIFECYCLE_NOTE_LABEL = "Environment lifecycle note (host-authored, if present): 
 LIFECYCLE_NOTE = "notes/environment-lifecycle.md"
 
 
+def _with_packet_file(stdout: str) -> str:
+    """Append the full packet's file text when stdout only printed the head.
+
+    An active-state ``emit()`` prints a short head with a ``Full packet:
+    <path>`` line and writes the complete packet to that file; a non-active
+    print (paused/blocked/halted/done) already carries the full text and has
+    no such line, so it passes through unchanged.
+    """
+    marker = "Full packet: "
+    for line in stdout.splitlines():
+        if line.startswith(marker):
+            packet_file = Path(line[len(marker):])
+            if packet_file.is_file():
+                return stdout + "\n" + packet_file.read_text(encoding="utf-8")
+    return stdout
+
+
 class AuthReadinessNavigatorTests(unittest.TestCase):
     """Check public packets and callbacks without adding an auth executor."""
 
@@ -92,7 +109,7 @@ class AuthReadinessNavigatorTests(unittest.TestCase):
         return completed
 
     def _cli(self, run_dir: Path, *args: str) -> str:
-        return self._run(
+        return _with_packet_file(self._run(
             [
                 sys.executable,
                 "-B",
@@ -101,7 +118,7 @@ class AuthReadinessNavigatorTests(unittest.TestCase):
                 "--run-dir",
                 str(run_dir),
             ]
-        ).stdout
+        ).stdout)
 
     def _start(self, run_dir: Path) -> str:
         packet = self._cli(
@@ -200,7 +217,7 @@ class AuthReadinessNavigatorTests(unittest.TestCase):
             store.dumps(result, "Synthetic host declaration"), encoding="utf-8"
         )
         completed = self._run([sys.executable, "-B", *command[1:]])
-        return completed.stdout, callback, command
+        return _with_packet_file(completed.stdout), callback, command
 
     @staticmethod
     def _result(stage: str, *, outcome: str = "done", **extra) -> dict:

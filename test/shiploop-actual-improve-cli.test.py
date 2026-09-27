@@ -19,6 +19,30 @@ import shiploop_store as store  # noqa: E402
 
 
 CLI = ROOT / "skills/shiploop/scripts/shiploop"
+
+
+def _packet_path_from_stdout(stdout: str) -> Path | None:
+    """The ``Full packet: <path>`` locator an active-state head prints, if any."""
+    marker = "Full packet: "
+    for line in stdout.splitlines():
+        if line.startswith(marker):
+            return Path(line[len(marker):])
+    return None
+
+
+def _with_packet_file(stdout: str) -> str:
+    """Append the full packet's file text when stdout only printed the head.
+
+    An active-state ``emit()`` prints a short head with a ``Full packet:
+    <path>`` line and writes the complete packet to that file; a non-active
+    print (paused/blocked/halted/done) already carries the full text and has
+    no such line, so it passes through unchanged.
+    """
+    packet_file = _packet_path_from_stdout(stdout)
+    if packet_file is not None and packet_file.is_file():
+        return stdout + "\n" + packet_file.read_text(encoding="utf-8")
+    return stdout
+
 CARD = ROOT / "skills/improve/SKILL.md"
 EPHEMERAL = ROOT / "skills/improve/runtime/until-loop/scripts/until_loop_ephemeral.py"
 DEFAULT_COMMIT_AUTHORITY = (
@@ -76,6 +100,8 @@ class ImproveCliFixture(unittest.TestCase):
             capture_output=True, cwd=self.base, timeout=30, env=self.environment,
         )
         self.assertEqual(result.returncode, status, result.stdout + result.stderr)
+        if result.stdout:
+            result.stdout = _with_packet_file(result.stdout)
         return result
 
     def invoke_argv(self, argv, payload=None, status=0):
@@ -672,7 +698,17 @@ class EphemeralImproveCliTests(ImproveCliFixture):
                     + "#parallel-implementation-chains"
                 )
                 if self.inline():
-                    self.assertTrue(cold.startswith("Continue in this context and execute the prompt.\n"))
+                    # The printed head no longer starts with the context prefix
+                    # (it is not a stage step or run rule), but render() is
+                    # unchanged, so the full packet file it writes still leads
+                    # with it for a host that opens the file before acting.
+                    cold_packet_path = _packet_path_from_stdout(cold)
+                    self.assertIsNotNone(cold_packet_path, cold)
+                    self.assertTrue(
+                        cold_packet_path.read_text(encoding="utf-8").startswith(
+                            "Continue in this context and execute the prompt.\n"),
+                        cold,
+                    )
                     self.assertNotIn(chain_guide, cold)
                     self.assertNotIn("bind this action to the default parallel", cold)
                     self.assertIn("Delegation is inline: this packet is for the one step named in its Step line.", cold)

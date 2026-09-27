@@ -20,6 +20,23 @@ import shiploop_standalone_improve as standalone  # noqa: E402
 import shiploop_navigator_dry_run as dry_run  # noqa: E402
 import shiploop_store as store  # noqa: E402
 
+
+def _with_packet_file(stdout: str) -> str:
+    """Append the full packet's file text when stdout only printed the head.
+
+    An active-state ``emit()`` prints a short head with a ``Full packet:
+    <path>`` line and writes the complete packet to that file; a non-active
+    print (paused/blocked/halted/done) already carries the full text and has
+    no such line, so it passes through unchanged.
+    """
+    marker = "Full packet: "
+    for line in stdout.splitlines():
+        if line.startswith(marker):
+            packet_file = Path(line[len(marker):])
+            if packet_file.is_file():
+                return stdout + "\n" + packet_file.read_text(encoding="utf-8")
+    return stdout
+
 # Instructions that route work to a delegated executor.  Inline packets may
 # name Ask Agent only to forbid it, so these are the positive route phrases.
 DELEGATED_ROUTE_TEXT = (
@@ -447,8 +464,11 @@ class DelegationCliTests(unittest.TestCase):
                     "GIT_CONFIG_GLOBAL": os.devnull}
 
     def cli(self, *args):
-        return subprocess.run([sys.executable, "-B", str(CLI), *map(str, args)], cwd=self.base,
-                              text=True, capture_output=True, timeout=60, env=self.env)
+        completed = subprocess.run([sys.executable, "-B", str(CLI), *map(str, args)], cwd=self.base,
+                                   text=True, capture_output=True, timeout=60, env=self.env)
+        if completed.stdout:
+            completed.stdout = _with_packet_file(completed.stdout)
+        return completed
 
     def init(self, *args):
         return self.cli("init", "--repo", self.repo, "--run-dir", self.run,

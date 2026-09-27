@@ -326,8 +326,8 @@ A pause for a clear therefore stopped every work item until the user came back.
 Instead, an inline run executes every INNER stage in the same conversation, and
 the host's own compaction manages the context (Claude Code and Grok compact
 automatically). The durable run state and self-contained packets make that
-safe: after any compaction, reset or lost context, the Recovery command reprints
-the current packet.
+safe: after any compaction, reset or lost context, the Recovery command rewrites
+the current packet file (`<run>/packets/<action>.md`) and reprints its head.
 
 Under `delegation: ask-agent`, each INNER producer assignment takes a fresh
 worker where one is usable. Claude documents both

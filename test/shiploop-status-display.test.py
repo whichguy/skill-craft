@@ -289,7 +289,17 @@ class StatusBlockTests(unittest.TestCase):
         nxt = subprocess.run(cli + ["next", "--run-dir", str(root)], env=ENV,
                              text=True, capture_output=True, timeout=30)
         self.assertEqual(nxt.returncode, 0, nxt.stderr)
-        self.assertEqual(files(), before)
+        # An active-state `next` now writes the full packet to packets/<action>.md
+        # and prints only a head that points at it; that file is the one
+        # intended new write, and every other existing file is untouched.
+        after = files()
+        packet_path = navigator.packet_path(root, state)
+        self.assertEqual(set(after) - set(before), {packet_path})
+        self.assertEqual({path: data for path, data in after.items() if path != packet_path}, before)
+        self.assertIn(f"Full packet: {packet_path}", nxt.stdout)
+        written = packet_path.read_text(encoding="utf-8")
+        self.assertEqual(written.count(BEGIN), 1)
+        self.assertIn(block, written)
 
     def test_every_dry_run_packet_carries_the_block_inside_the_kept_head(self) -> None:
         for delegation in prompts.DELEGATIONS:
@@ -350,8 +360,16 @@ class StatusHookTests(unittest.TestCase):
                           self.packet),
             "wrapper": (f"{wrapper} --run-dir={self.run_dir} --action=a --result=r",
                         "shiploop complete — close the increment and print the next stdout\n" + self.packet),
-            # Claude Code keeps the head of oversized output and persists the rest.
-            "truncated": (self.command, (self.packet * 3)[:30000]),
+            # Claude Code keeps the head of oversized output and persists the
+            # rest. Since emit() now prints only the short head for an active
+            # packet, self.packet alone (~3 KB) is well under the hook's 8000-
+            # char safety window, so repeating it (the old way of manufacturing
+            # oversized stdout) would place a second real status block inside
+            # that window too and the hook would correctly refuse the ambiguous
+            # match. Pad with block-free filler after the one real packet
+            # instead, so the fixture still simulates a truncated, oversized
+            # single command's stdout with exactly one status block up front.
+            "truncated": (self.command, (self.packet + "x" * 40000)[:30000]),
         }
         for label, (command, stdout) in cases.items():
             with self.subTest(label):

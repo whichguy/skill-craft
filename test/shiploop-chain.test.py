@@ -20,6 +20,7 @@ from shiploop_chain_support import (
     ChainFixture,
     SERIAL_FIXTURE,
     digest,
+    with_packet_file,
 )
 
 ROOT = Path(__file__).resolve().parents[1]
@@ -384,7 +385,7 @@ class ChainIntegrationTests(ChainFixture):
             if mode == "parallel" else
             "serial chains execute in the main context without spawning workers"
         )
-        for packet in (fresh, cold.stdout):
+        for packet in (fresh, with_packet_file(cold.stdout)):
             normalized = " ".join(packet.split())
             self.assertIn("Chain recovery:", packet)
             self.assertIn(rule, normalized)

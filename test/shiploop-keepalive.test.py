@@ -34,6 +34,24 @@ def shiploop(*argv: str) -> subprocess.CompletedProcess:
                           capture_output=True, text=True, check=False)
 
 
+def _packet_path_from_stdout(stdout: str) -> Path | None:
+    """The ``Full packet: <path>`` locator an active-state head prints, if any."""
+    marker = "Full packet: "
+    for line in stdout.splitlines():
+        if line.startswith(marker):
+            return Path(line[len(marker):])
+    return None
+
+
+def _packet_file_text(stdout: str) -> str:
+    """The complete packet text: the referenced file for an active-state head,
+    or the stdout itself for a paused/blocked/halted/done print, which already
+    carries the full text and prints no ``Full packet:`` line.
+    """
+    path = _packet_path_from_stdout(stdout)
+    return path.read_text(encoding="utf-8") if path is not None and path.is_file() else stdout
+
+
 class KeepaliveTestCase(unittest.TestCase):
     def setUp(self) -> None:
         temp = tempfile.TemporaryDirectory(prefix="shiploop-keepalive-")
@@ -116,11 +134,15 @@ class RepeatPacketTests(KeepaliveTestCase):
         # The script cannot know whether the host lost the rules since this packet was shown.
         recovered = shiploop("next", "--run-dir", str(self.run_dir)).stdout
         self.assertEqual(recovered, self.packet)
-        self.assertIn("Original request (preserve user scope", recovered)
-        self.assertIn("Recovery command:", recovered)
+        full = _packet_file_text(recovered)
+        self.assertIn("Original request (preserve user scope", full)
+        self.assertIn("Recovery command:", full)
 
     def test_the_result_contract_is_printed_under_the_callback(self) -> None:
-        # Only the short stage-goal block sits between the callback and the contract.
+        # Only the short stage-goal block sits between the callback and the
+        # contract, in the head ShipLoop prints for this active, non-checkpoint
+        # stage (an intake packet has no active_improve, so the head IS this
+        # whole callback/goal/contract section).
         lines = self.packet.splitlines()
         callback = next(i for i, line in enumerate(lines) if line.startswith("Callback for this stage"))
         contract = next(i for i, line in enumerate(lines) if line.startswith("Write the structured result to: "))
@@ -129,17 +151,30 @@ class RepeatPacketTests(KeepaliveTestCase):
             self.assertTrue(line.startswith(("Done when", "Considerations for this stage:", "- ")), line)
         self.assertEqual(lines[contract + 1], "Result template:")
         outcomes = next(i for i, line in enumerate(lines) if line.startswith("Allowed outcomes: "))
-        guidance = lines.index("Current stage guidance:")
-        self.assertLess(outcomes, guidance)
         self.assertEqual(sum(line.startswith("Write the structured result to: ") for line in lines), 1)
         self.assertEqual(sum(line.startswith("Allowed outcomes: ") for line in lines), 1)
+        self.assertGreater(outcomes, callback)
+
+        # The full packet file (what the head's "Full packet:" line points at)
+        # still carries the stage guidance after the outcomes, even though the
+        # printed head stops at the result contract.
+        full_lines = _packet_file_text(self.packet).splitlines()
+        guidance = full_lines.index("Current stage guidance:")
+        full_outcomes = next(i for i, line in enumerate(full_lines) if line.startswith("Allowed outcomes: "))
+        self.assertLess(full_outcomes, guidance)
 
     def test_every_next_is_the_full_packet_and_writes_no_display_records(self) -> None:
         shiploop("pause", "--run-dir", str(self.run_dir), "--reason", "user asked")
         shiploop("resume", "--run-dir", str(self.run_dir))
         again = shiploop("next", "--run-dir", str(self.run_dir)).stdout
-        self.assertIn("Original request (preserve user scope", again)
-        self.assertEqual(again, shiploop("next", "--run-dir", str(self.run_dir)).stdout)
+        packet_path = _packet_path_from_stdout(again)
+        self.assertIsNotNone(packet_path, again)
+        self.assertIn(f"Full packet: {packet_path}", again)
+        full = packet_path.read_text(encoding="utf-8")
+        self.assertIn("Original request (preserve user scope", full)
+        repeated = shiploop("next", "--run-dir", str(self.run_dir))
+        self.assertEqual(repeated.stdout, again)
+        self.assertEqual(packet_path.read_text(encoding="utf-8"), full)
         for name in ("rules.md", "last-packet.json"):
             self.assertFalse((self.run_dir / name).exists(), name)
 
@@ -182,7 +217,8 @@ class AwaitingUserTests(KeepaliveTestCase):
         self.assertEqual(resumed.returncode, 0, resumed.stderr)
         decision = store.read_record(self.run_dir / "decisions" / (blocked + ".md"))
         self.assertEqual((decision["kind"], decision["reply"]), ("answer", "yes, this run only"))
-        self.assertIn("Reply: yes, this run only", shiploop("next", "--run-dir", str(self.run_dir)).stdout)
+        self.assertIn("Reply: yes, this run only",
+                      _packet_file_text(shiploop("next", "--run-dir", str(self.run_dir)).stdout))
 
     def test_a_person_present_wait_takes_their_observation(self) -> None:
         self.block_on({"kind": "present", "steps": ["Open the App Launcher and choose Fleet command.",

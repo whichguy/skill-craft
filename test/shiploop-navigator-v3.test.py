@@ -83,6 +83,31 @@ def result(*, outcome: str = "done", summary: str = "Synthetic producer result."
     return {"outcome": outcome, "summary": summary, **extra}
 
 
+def _packet_path_from_stdout(stdout: str) -> Path | None:
+    """The ``Full packet: <path>`` locator an active-state head prints, if any."""
+    marker = "Full packet: "
+    for line in stdout.splitlines():
+        if line.startswith(marker):
+            return Path(line[len(marker):])
+    return None
+
+
+def _with_packet_file(stdout: str) -> str:
+    """Append the full packet's file text when stdout only printed the head.
+
+    An active-state ``emit()`` now prints a short head with a ``Full packet:
+    <path>`` line and writes the complete packet to that file; a non-active
+    print (paused/blocked/halted/done) already carries the full text and has
+    no such line, so it passes through unchanged. Tests that used to find
+    packet content directly in CLI stdout can keep their assertions by
+    checking this combined text instead.
+    """
+    packet_file = _packet_path_from_stdout(stdout)
+    if packet_file is not None and packet_file.is_file():
+        return stdout + "\n" + packet_file.read_text(encoding="utf-8")
+    return stdout
+
+
 class SimulatedCrash(RuntimeError):
     """Models a process interruption after one transaction target reaches disk."""
 
@@ -195,7 +220,7 @@ class NavigatorV3Tests(unittest.TestCase):
             timeout=30,
         )
         self.assertEqual(completed.returncode, 0, completed.stdout + completed.stderr)
-        return completed.stdout
+        return _with_packet_file(completed.stdout)
 
     def _complete_improve(self, state: dict, action: dict, stage: str) -> dict:
         return navigator.finish_improve(state, action["id"], receipt(stage))
@@ -381,7 +406,15 @@ class NavigatorV3Tests(unittest.TestCase):
             navigator.save(root, current)
             expected_prefix = (prompts.IMPROVE_INNER_CONTEXT if current.get("active_improve")
                                else prompts.SERIAL_INNER_CONTEXT)
-            self.assertTrue(self._cold_next(root).startswith(expected_prefix))
+            # The printed head no longer starts with the context prefix (it is
+            # not a stage step or run rule), but the full packet file render()
+            # writes is unchanged and still leads with it, so a host that opens
+            # the file before acting sees it first, as the recovery contract
+            # requires.
+            cold = self._cold_next(root)
+            packet_path = _packet_path_from_stdout(cold)
+            self.assertIsNotNone(packet_path, cold)
+            self.assertTrue(packet_path.read_text(encoding="utf-8").startswith(expected_prefix), cold)
             for command in ("pause", "halt"):
                 stopped = navigator.control(current, command, "Synthetic stop")
                 self.assertNotIn(expected_prefix, navigator.render(None, root, stopped))
@@ -1948,7 +1981,7 @@ class NavigatorV3Tests(unittest.TestCase):
             with redirect_stdout(output):
                 self.assertEqual(navigator.dispatch(
                     core, run, current, SimpleNamespace(command=command, **extra)), 0)
-            return output.getvalue()
+            return _with_packet_file(output.getvalue())
 
         initial_bytes = (run / "state.md").read_bytes()
         dispatch(unsafe, "init")
@@ -2087,9 +2120,12 @@ class CliBoundaryRegressionTests(unittest.TestCase):
         self._temporary.cleanup()
 
     def cli(self, *argv: str, cwd: Path | None = None) -> subprocess.CompletedProcess:
-        return subprocess.run([sys.executable, "-B", str(SCRIPTS / "shiploop"), *argv],
-                              cwd=cwd or self.base, env=self.env,
-                              capture_output=True, text=True)
+        completed = subprocess.run([sys.executable, "-B", str(SCRIPTS / "shiploop"), *argv],
+                                   cwd=cwd or self.base, env=self.env,
+                                   capture_output=True, text=True)
+        if completed.stdout:
+            completed.stdout = _with_packet_file(completed.stdout)
+        return completed
 
     def init(self, run: Path, prompt: str = "add hello") -> str:
         result = self.cli("init", "--repo", str(self.repo), "--run-dir", str(run),
@@ -2261,8 +2297,11 @@ class CliBoundaryRegressionTests(unittest.TestCase):
         goal = "Build <unsafe> flow without losing the original goal."
 
         def shell(command: str) -> subprocess.CompletedProcess:
-            return subprocess.run(command, shell=True, cwd=unrelated, env=self.env,
-                                  text=True, capture_output=True, timeout=30)
+            completed = subprocess.run(command, shell=True, cwd=unrelated, env=self.env,
+                                       text=True, capture_output=True, timeout=30)
+            if completed.stdout:
+                completed.stdout = _with_packet_file(completed.stdout)
+            return completed
 
         started = subprocess.run(
             [sys.executable, "-B", str(cli), "init", "--repo", str(repo), "--prompt", goal,
@@ -2270,7 +2309,7 @@ class CliBoundaryRegressionTests(unittest.TestCase):
             cwd=repo, env=self.env, text=True, capture_output=True, timeout=30,
         )
         self.assertEqual(started.returncode, 0, started.stdout + started.stderr)
-        initial = started.stdout
+        initial = _with_packet_file(started.stdout)
         before = store.read_record(run_dir / "state.md")
         before_bytes = (run_dir / "state.md").read_bytes()
         action_id = before["action"]["id"]

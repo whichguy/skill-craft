@@ -200,10 +200,11 @@ class PerStepChainFixture(unittest.TestCase):
         result = subprocess.run(navigation["next_argv"], cwd=self.f.primary,
                                 text=True, capture_output=True, timeout=30)
         self.assertEqual(result.returncode, 0, result.stderr + result.stdout)
+        full = fixture.with_packet_file(result.stdout)
         self.assertIn("ShipLoop navigator | implement |", result.stdout)
-        self.assertIn("State: " + str(self.f.run / "state.md"), result.stdout)
+        self.assertIn("State: " + str(self.f.run / "state.md"), full)
         self.assertIn(self.f.action, result.stdout)
-        return result.stdout
+        return full
 
     def action_rows(self, response, semantic):
         return [row for row in response["navigation"]["actions"] if row["action"] == semantic]

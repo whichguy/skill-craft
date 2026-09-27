@@ -28,6 +28,23 @@ import shiploop_navigator as navigator  # noqa: E402
 import shiploop_store as store  # noqa: E402
 
 
+def _with_packet_file(stdout: str) -> str:
+    """Append the full packet's file text when stdout only printed the head.
+
+    An active-state ``emit()`` prints a short head with a ``Full packet:
+    <path>`` line and writes the complete packet to that file; a non-active
+    print (paused/blocked/halted/done) already carries the full text and has
+    no such line, so it passes through unchanged.
+    """
+    marker = "Full packet: "
+    for line in stdout.splitlines():
+        if line.startswith(marker):
+            packet_file = Path(line[len(marker):])
+            if packet_file.is_file():
+                return stdout + "\n" + packet_file.read_text(encoding="utf-8")
+    return stdout
+
+
 OLD_PROMPT = "Create the original checkers board."
 NEW_PROMPT = "Add visual dragging while moving a checker."
 THIRD_PROMPT = "Add keyboard navigation without changing legal-move rules."
@@ -105,6 +122,8 @@ class CrossRunTests(unittest.TestCase):
                 expected,
                 completed.stdout + completed.stderr,
             )
+        if completed.stdout:
+            completed.stdout = _with_packet_file(completed.stdout)
         return completed
 
     def _cli(
@@ -146,11 +165,18 @@ class CrossRunTests(unittest.TestCase):
 
     @staticmethod
     def _snapshot(run_dir: Path) -> dict[str, bytes]:
-        """Capture every durable run file, excluding only a transient lock."""
+        """Capture every durable run file.
+
+        Excludes the transient lock and ``packets/``: every ``emit()`` call
+        (any dispatch verb, on any status) rewrites the current action's full
+        packet there as the printed head's locator target, so it is a derived,
+        always-refreshed display cache, not part of the run's durable record.
+        """
         return {
             path.relative_to(run_dir).as_posix(): path.read_bytes()
             for path in sorted(run_dir.rglob("*"))
             if path.is_file() and path.name != ".lock"
+            and path.relative_to(run_dir).parts[0] != "packets"
         }
 
     def _assert_knowledge_locators(self, packet: str) -> None:
