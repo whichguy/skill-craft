@@ -116,6 +116,42 @@ Use `--store /writable/owned/location` only when the default is unsuitable; keep
 it outside the source checkout and host automatic-cleanup roots. Retain the
 receipt path. Do not launch on a nonzero exit or unsuccessful preparation.
 
+### Write-grant preflight
+
+The worker's worktree lives in the store, and every commit it makes writes
+objects and refs into the source repository's Git common directory
+(`git rev-parse --git-common-dir`). Host sandboxes often deny both: Codex
+`workspace-write` keeps `.git` read-only and writes only cwd, `--add-dir`
+roots and temp; Grok `--sandbox workspace|strict` writes only cwd, `~/.grok`
+and temp; Claude Code prompts for or denies writes outside its working
+directories. A native subagent inherits its parent's grants.
+
+So `prepare` (fresh or `--receipt`) first creates and deletes one probe file
+in the store, or its nearest existing ancestor when the store does not exist
+yet, and in the Git common directory. If any probe fails it creates nothing,
+prints a block delimited by `==== ASK-AGENT-GRANT-NEEDED ====` to stderr, and
+exits **3** with JSON `{"status": "grant-needed", "blocked": [...], "error": <the block>}`.
+Each `blocked` row has `role` (`workspace-store`, `git-common-dir`), the
+probed `path`, the intended `target` and the `reason`. The block states the
+intention (grant exactly these paths, then rerun the same prepare) and the
+per-host fix:
+
+| Host | Grant |
+| --- | --- |
+| Claude Code | `/add-dir <path>` in the session, or `permissions.additionalDirectories` in settings (`--add-dir` at launch) |
+| Codex | restart with `--add-dir <store>` and `-c 'sandbox_workspace_write.writable_roots=["<git-common-dir>"]'` (`.git` stays read-only under `--add-dir`) |
+| Grok | a `~/.grok/sandbox.toml` profile `[profiles.ask-agent]` with `extends = "workspace"` and `read_write = [<paths>]`, run with `--sandbox ask-agent`; or `--sandbox off` |
+
+Show the block to the user and stop; do not retry with another store or fall
+back to another workspace route. Exit 2 remains every other failure.
+
+To check grants without preparing, run
+`preflight --source <checkout> [--store <dir>] [--path <dir> ...]`. It probes the
+same paths plus any caller-named `--path` (role `caller-path`), creates
+nothing, and returns `{"status": "granted", "probed": [...]}` or the same exit-3
+result. A consumer such as ShipLoop can probe its own directories through
+`--path` rather than reimplementing the probe.
+
 A same-attempt delivery retry can validate its existing preparation with
 `prepare --receipt /actual/receipt.json --writers-quiescent`. A fresh delegation gets a fresh
 preparation. Do not reuse a workspace by matching its task label.

@@ -4,6 +4,12 @@ Read the current host's section before preparing or launching. The live tool
 schema is authoritative: model names and `Task` capitalization do not identify
 capabilities. These are native-tool recipes, not a runtime launcher API.
 
+Every helper-managed route needs write access to the workspace store and the
+source repository's Git common directory. `prepare` probes both and exits 3
+with an `ASK-AGENT-GRANT-NEEDED` block when the sandbox denies either; the
+per-host grants are under [Write-grant preflight](workspace-operations.md#write-grant-preflight).
+Grant them in the parent session: native workers inherit its sandbox.
+
 ## Consumer-owned workspace: Codex pilot
 
 For an explicitly selected `workspace_route: consumer-owned`, read
@@ -72,6 +78,11 @@ history or forwarded child text alone is not parent collection. Describe this
 route as a native join when that is how results were obtained. Native stop is
 `kill_command_or_subagent` where exposed; confirm stop before cleanup.
 
+Under `--sandbox workspace` or `strict`, Grok writes only cwd, `~/.grok` and
+temp directories, so the default store and `.git` of a repository outside cwd are
+blocked. Grant them with a custom `~/.grok/sandbox.toml` profile that extends
+`workspace` and lists both under `read_write`, or run with `--sandbox off`.
+
 Grok Build 1.0.34 passed the earlier managed snapshot/operation/delivery lifecycle
 with native cwd and join. Keep checking the live schema on other versions.
 [Official subagent guide](https://docs.x.ai/build/features/subagents).
@@ -88,6 +99,11 @@ an explicit `workdir` on every shell call and absolute paths for file operations
 Run the context check from that workdir. Continue parent work before native
 wait/completion collection; keep required collection inside the live invocation.
 
+In `workspace-write`, Codex writes cwd, `--add-dir` roots and temp, and keeps
+`.git` read-only even inside those roots. Grant the store with `--add-dir` and
+the Git common directory with
+`-c 'sandbox_workspace_write.writable_roots=["<git-common-dir>"]'`.
+
 The tested CLI 0.155.1 route passed with explicit operations and native join.
 App worktree creation does not change the calling agent's cwd. A separate
 user-visible app task or App Server thread is not automatically a native subagent
@@ -102,6 +118,10 @@ with native background mode. Do not use a fork type that inherits parent history
 For the helper-prepared route, **omit `isolation: worktree`**: that option creates
 another checkout, not a binding to the supplied helper path. Do not invent a
 `cwd` argument. Use native cwd only if the actual schema supports it.
+
+Claude Code prompts for, or in a sandbox denies, writes outside its working
+directories. Grant the store and Git common directory with `/add-dir` or
+`permissions.additionalDirectories` before preparing.
 
 Launch checklist for the observed Agent schema: general-purpose; fresh/no resume;
 `run_in_background=true`; no `isolation`; no invented `cwd`.

@@ -25,6 +25,7 @@ import signal
 import stat
 import subprocess
 import sys
+import tempfile
 import uuid
 from contextlib import contextmanager
 from dataclasses import dataclass
@@ -49,6 +50,10 @@ MANAGED_WORKTREE_CAPABILITIES = (
     "ignored-output-report",
 )
 VERSION = 1
+# Exit status for a host sandbox that denies a write prepare needs.  It differs
+# from the generic failure (2) so a caller can route it to the user as a grant.
+GRANT_NEEDED_EXIT = 3
+GRANT_NEEDED_MARKER = "ASK-AGENT-GRANT-NEEDED"
 # Derived evidence (contribution patch, inspection and delivery records) is
 # stored per fingerprint and reused.  It lives one level below the stable
 # `inspections/` and `delivery-evidence/` roots, in a directory named for the
@@ -1102,16 +1107,18 @@ def _label_fragment(label: str | None) -> str:
     return value or "worker"
 
 
-def _default_store(source: Path, common: Path) -> Path:
+def _default_store_path(common: Path) -> Path:
     digest = _sha256(os.fsencode(os.fspath(common)))[:20]
     configured = os.environ.get("XDG_STATE_HOME")
     state_home = Path(configured).expanduser() if configured else Path.home() / ".local" / "state"
-    base = state_home / "ask-agent" / "workspaces" / digest
-    return _make_private_directory(base, label="default workspace store")
+    return state_home / "ask-agent" / "workspaces" / digest
 
 
 def _resolve_store(source: Path, common: Path, store: Path | None) -> Path:
-    root = _default_store(source, common) if store is None else _make_private_directory(store, label="workspace store")
+    if store is None:
+        root = _make_private_directory(_default_store_path(common), label="default workspace store")
+    else:
+        root = _make_private_directory(store, label="workspace store")
     if _is_under(root, source) or root == source:
         _fail("workspace store must be outside the source working tree")
     for worktree in _registered_worktrees(source):
@@ -1125,6 +1132,114 @@ def _resolve_store(source: Path, common: Path, store: Path | None) -> Path:
         if _is_under(root, registered) or root == registered:
             _fail("workspace store must be outside every registered repository worktree")
     return root
+
+
+class GrantNeeded(WorkspaceError):
+    """A host sandbox denies a write that the workspace needs; the user must grant it."""
+
+    def __init__(self, blocked: Sequence[Mapping[str, str]]) -> None:
+        self.blocked = [dict(row) for row in blocked]
+        super().__init__(_grant_needed_block(self.blocked))
+
+
+def _nearest_existing(path: Path) -> Path:
+    candidate = path.expanduser()
+    if not candidate.is_absolute():
+        candidate = Path.cwd() / candidate
+    while not candidate.exists() and candidate.parent != candidate:
+        candidate = candidate.parent
+    return candidate
+
+
+def _probe_writable(path: Path) -> str | None:
+    """Create and delete one temporary file in `path`; return why that failed, or None."""
+    if not path.is_dir():
+        return "not a directory"
+    try:
+        handle, name = tempfile.mkstemp(prefix=".ask-agent-grant-probe-", dir=os.fspath(path))
+    except OSError as exc:
+        return f"{type(exc).__name__}: {exc.strerror or exc}"
+    os.close(handle)
+    try:
+        os.unlink(name)
+    except OSError as exc:
+        return f"created a file but could not delete it ({type(exc).__name__}: {exc.strerror or exc}): {name}"
+    return None
+
+
+def _blocked_lines(row: Mapping[str, str]) -> list[str]:
+    lines = [f"  - {row['role']}: {row['path']} ({row['reason']})"]
+    if row["target"] != row["path"]:
+        lines.append(f"    ({row['target']} does not exist yet; for a narrower grant, run"
+                     f" mkdir -p {shlex.quote(row['target'])} outside the sandbox and grant that instead)")
+    return lines
+
+
+def _grant_needed_block(blocked: Sequence[Mapping[str, str]]) -> str:
+    paths = [row["path"] for row in blocked]
+    common = [row["path"] for row in blocked if row["role"] == "git-common-dir"]
+    others = [row["path"] for row in blocked if row["role"] != "git-common-dir"]
+    codex = []
+    if others:
+        codex.append(" ".join(f"--add-dir {shlex.quote(path)}" for path in others))
+    if common:
+        roots = ",".join(json.dumps(path) for path in common)
+        codex.append("-c " + shlex.quote(f"sandbox_workspace_write.writable_roots=[{roots}]"))
+    lines = [
+        f"==== {GRANT_NEEDED_MARKER} ====",
+        "Ask Agent cannot prepare a worker workspace: this session's sandbox denies writes it needs.",
+        "Blocked (a probe file could not be created and deleted):",
+        *(line for row in blocked for line in _blocked_lines(row)),
+        "Intention: grant this session write access to exactly these paths, then rerun the same prepare.",
+        "Nothing was created. Native subagents inherit the parent's grants, so grant them in the parent session.",
+        "Per-host fixes:",
+        "  Claude: /add-dir " + " ".join(shlex.quote(path) for path in paths)
+        + " (or add them to permissions.additionalDirectories in settings; launch flag --add-dir).",
+        "  Codex: restart with " + " ".join(codex)
+        + " (workspace-write keeps .git read-only even under --add-dir).",
+        "  Grok: add a profile to ~/.grok/sandbox.toml -- [profiles.ask-agent] extends = \"workspace\" read_write = ["
+        + ", ".join(json.dumps(path) for path in paths) + "] -- and restart with --sandbox ask-agent, or use --sandbox off.",
+        f"==== END {GRANT_NEEDED_MARKER} ====",
+    ]
+    return "\n".join(lines)
+
+
+def _require_write_grants(targets: Sequence[tuple[str, Path]]) -> None:
+    """Refuse before creating anything when a host sandbox denies a needed write."""
+    blocked: list[dict[str, str]] = []
+    seen: set[str] = set()
+    for role, target in targets:
+        probe = _nearest_existing(target)
+        key = os.fspath(probe.resolve())
+        if key in seen:
+            continue
+        seen.add(key)
+        reason = _probe_writable(probe)
+        if reason is not None:
+            intended = os.fspath(probe.resolve() / target.expanduser().absolute().relative_to(probe))
+            blocked.append({"role": role, "path": key, "target": intended, "reason": reason})
+    if blocked:
+        raise GrantNeeded(blocked)
+
+
+def _write_grant_targets(common: Path, store: Path | None) -> list[tuple[str, Path]]:
+    return [
+        ("workspace-store", _default_store_path(common) if store is None else store),
+        ("git-common-dir", common),
+    ]
+
+
+def preflight(*, source: Path, store: Path | None = None, paths: Sequence[str] = ()) -> dict[str, Any]:
+    """Report whether prepare's writes (plus caller-named paths) are granted, creating nothing."""
+    _require_no_git_context_environment_overrides("preflight")
+    root = _repo_root(source)
+    common = _common_dir(root)
+    targets = _write_grant_targets(common, store) + [("caller-path", Path(path)) for path in paths]
+    _require_write_grants(targets)
+    return {
+        "status": "granted",
+        "probed": [{"role": role, "path": os.fspath(_nearest_existing(path).resolve())} for role, path in targets],
+    }
 
 
 def _new_attempt(store: Path) -> tuple[str, Path]:
@@ -1180,6 +1295,7 @@ def _base_output(record: Mapping[str, Any], status: str) -> dict[str, Any]:
 def _new_prepare(source_argument: Path, store_argument: Path | None, label: str | None) -> dict[str, Any]:
     source = _repo_root(source_argument)
     common = _common_dir(source)
+    _require_write_grants(_write_grant_targets(common, store_argument))
     store = _resolve_store(source, common, store_argument)
     capture_before = _capture_source(source)
     attempt_id, attempt = _new_attempt(store)
@@ -1968,6 +2084,7 @@ def prepare(
         if source is not None and _repo_root(source) != _repo_root(Path(record["source"]["root"])):
             _fail("prepare --source does not match the receipt source")
         source_root, _ = _validate_binding(record)
+        _require_write_grants([("workspace-store", Path(record["store"])), ("git-common-dir", Path(record["source"]["common_dir"]))])
         current_source = _capture_source(source_root)
         expected_source = record["baseline_data"]["source_capture"]
         if current_source.comparable() != expected_source:
@@ -2485,6 +2602,10 @@ def _parser() -> argparse.ArgumentParser:
     close_parser = commands.add_parser("close")
     close_parser.add_argument("--receipt", required=True)
     close_parser.add_argument("--acceptance")
+    preflight_parser = commands.add_parser("preflight")
+    preflight_parser.add_argument("--source", required=True)
+    preflight_parser.add_argument("--store")
+    preflight_parser.add_argument("--path", action="append", default=[])
     current_parser = commands.add_parser("current-state")
     current_parser.add_argument("--source")
     current_parser.add_argument("--expect-root")
@@ -2533,6 +2654,12 @@ def main(argv: Sequence[str] | None = None) -> int:
                 commit_base=parsed.commit_base,
                 commits=parsed.commit,
             )
+        elif parsed.command == "preflight":
+            result = preflight(
+                source=Path(parsed.source),
+                store=Path(parsed.store) if parsed.store else None,
+                paths=parsed.path,
+            )
         elif parsed.command == "check-context":
             result = check_context(receipt=Path(parsed.receipt))
         elif parsed.command == "close":
@@ -2553,6 +2680,10 @@ def main(argv: Sequence[str] | None = None) -> int:
             _fail("unknown workspace command")
         _emit(result)
         return 0
+    except GrantNeeded as exc:
+        sys.stderr.write(str(exc) + "\n")
+        _emit({"status": "grant-needed", "error": str(exc), "blocked": exc.blocked})
+        return GRANT_NEEDED_EXIT
     except (WorkspaceError, OSError, ValueError, OverflowError) as exc:
         _emit({"status": "error", "error": str(exc)})
         return 2

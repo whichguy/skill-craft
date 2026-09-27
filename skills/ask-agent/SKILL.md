@@ -194,7 +194,13 @@ complete reference instead.
    `prepare --source` with the actual caller checkout, including a linked worktree.
    The helper creates and verifies a new workspace carrying staged, unstaged,
    and non-ignored untracked inputs. The caller must not supply a worktree or
-   reproduce the Git recipe. Do not begin independent caller edits until the
+   reproduce the Git recipe. Before creating anything, `prepare` probes that the
+   worktree store and the Git common directory are writable. Exit 3 with status
+   `grant-needed` means the host sandbox denies one of them: show the user the
+   `ASK-AGENT-GRANT-NEEDED` block (blocked paths and per-host grants) and rerun
+   after the grant; do not substitute another store, checkout or route. Native
+   workers inherit the parent's grants, so the grant belongs to the parent
+   session. Do not begin independent caller edits until the
    snapshot returns. Keep the verified receipt and baseline in the pending job.
    Immediately before dispatch, record `inspect --phase prepared --receipt ...`
    for each receipt and stop if its inherited baseline has drifted. For a batch

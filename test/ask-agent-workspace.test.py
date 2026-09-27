@@ -1989,6 +1989,90 @@ raise SystemExit(module.main(sys.argv[2:]))
                                   "--store", str(self.store.resolve()), "--writers-quiescent")
         self.assertIn("empty repository or unborn branch", payload["error"])
 
+    def _read_only(self, path: Path) -> None:
+        mode = path.stat().st_mode
+        path.chmod(0o555)
+        # Cleanups run after tearDown, which may already have removed the tree.
+        self.addCleanup(lambda: path.exists() and path.chmod(mode))
+
+    def _repository_snapshot(self) -> tuple[str, str]:
+        branches = self._run(self.primary, "for-each-ref", "--format=%(refname)", "refs/heads/").stdout
+        return branches, self._run(self.primary, "worktree", "list", "--porcelain").stdout
+
+    def _assert_grant_needed(self, args: Iterable[str], roles: Mapping[str, Path],
+                             environment_overrides: Mapping[str, str] | None = None) -> dict[str, Any]:
+        before = self._repository_snapshot()
+        result, payload = self._cli(*args, environment_overrides=environment_overrides)
+        self.assertEqual(result.returncode, 3, payload)
+        self.assertEqual(payload["status"], "grant-needed", payload)
+        blocked = {row["role"]: row for row in payload["blocked"]}
+        self.assertEqual(set(blocked), set(roles), payload)
+        for role, path in roles.items():
+            self.assertEqual(Path(blocked[role]["path"]), path.resolve(), payload)
+            self.assertIn(str(path.resolve()), payload["error"])
+        for text in ("==== ASK-AGENT-GRANT-NEEDED ====", "==== END ASK-AGENT-GRANT-NEEDED ====",
+                     "Intention:", "Claude: /add-dir", "additionalDirectories",
+                     "Codex: restart with",
+                     "~/.grok/sandbox.toml", "--sandbox off"):
+            self.assertIn(text, payload["error"])
+        self.assertIn(payload["error"], result.stderr)
+        self.assertEqual(self._repository_snapshot(), before, "a refused prepare changed the repository")
+        return payload
+
+    def test_prepare_refuses_a_read_only_store_parent_before_creating_anything(self) -> None:
+        self.store.mkdir()
+        self._read_only(self.store)
+        payload = self._assert_grant_needed(self._prepare_args("sandboxed"), {"workspace-store": self.store})
+        self.assertEqual(list(self.store.iterdir()), [])
+        self.assertNotIn("does not exist yet", payload["error"])
+
+    def test_prepare_refuses_a_missing_store_under_a_read_only_parent(self) -> None:
+        parent = self.root / "state-home"
+        parent.mkdir()
+        self._read_only(parent)
+        store = parent / "nested" / "store"
+        args = ("prepare", "--source", str(self.source.resolve()), "--store", str(store), "--writers-quiescent")
+        payload = self._assert_grant_needed(args, {"workspace-store": parent})
+        self.assertEqual(payload["blocked"][0]["target"], str(parent.resolve() / "nested" / "store"))
+        self.assertIn("does not exist yet", payload["error"])
+        self.assertEqual(list(parent.iterdir()), [])
+
+    def test_prepare_refuses_a_read_only_default_state_home(self) -> None:
+        state_home = self.root / "xdg-state"
+        state_home.mkdir()
+        self._read_only(state_home)
+        args = ("prepare", "--source", str(self.source.resolve()), "--writers-quiescent")
+        self._assert_grant_needed(args, {"workspace-store": state_home},
+                                  environment_overrides={"XDG_STATE_HOME": str(state_home)})
+        self.assertEqual(list(state_home.iterdir()), [])
+
+    def test_prepare_refuses_a_read_only_git_common_dir(self) -> None:
+        common = self.primary / ".git"
+        self._read_only(common)
+        payload = self._assert_grant_needed(self._prepare_args("sandboxed"), {"git-common-dir": common})
+        self.assertIn("writable_roots=[", payload["error"])
+        self.assertFalse(self.store.exists())
+
+    def test_prepare_reports_every_blocked_path_at_once(self) -> None:
+        self.store.mkdir()
+        self._read_only(self.store)
+        self._read_only(self.primary / ".git")
+        self._assert_grant_needed(self._prepare_args("sandboxed"),
+                                  {"workspace-store": self.store, "git-common-dir": self.primary / ".git"})
+
+    def test_preflight_reports_grants_without_creating_anything(self) -> None:
+        extra = self.root / "caller-runs"
+        extra.mkdir()
+        payload = self._cli_success("preflight", "--source", str(self.source.resolve()),
+                                    "--store", str(self.store), "--path", str(extra))
+        self.assertEqual(payload["status"], "granted")
+        self.assertEqual({row["role"] for row in payload["probed"]}, {"workspace-store", "git-common-dir", "caller-path"})
+        self.assertFalse(self.store.exists())
+        self.assertEqual(list(extra.iterdir()), [])
+        self._read_only(extra)
+        self._assert_grant_needed(("preflight", "--source", str(self.source.resolve()), "--store", str(self.store),
+                                   "--path", str(extra)), {"caller-path": extra})
+
     def test_interrupted_inspection_build_is_rebuilt_not_trusted(self) -> None:
         prepared = self._prepare(label="interrupted inspection")
         receipt = Path(prepared["receipt"])
