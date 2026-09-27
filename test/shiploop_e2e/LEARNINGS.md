@@ -144,3 +144,22 @@ detailed message; read the last three commit messages before the next run or cha
   research 20. No system-test struggle this time: run 6's browser check was reused (6 turns).
 - Harness: the retention checks worked and would have caught a rebuild. Next evaluation criterion to add:
   "source ends committed" (HEAD moved, nothing untracked) as a scored check, not only a fact.
+
+## Run 7 — 2026-09-26 — battleship, Grok grok-4.7 medium, marketplace skill-craft 1.5.0 (ShipLoop 0.38.0)
+
+- Outcome: PASS on every verdict, including the new `committed` (HEAD 7e86ce3e from an empty directory, 0
+  uncommitted product paths). 3,937 s (66 min), 303 turns, $22.66, 4 sessions — against run 6 on 1.4.0:
+  113 min, 480 turns, $35.32, 6 sessions. 0 ShipLoop command failures (run 6: 1), 0 truncated outputs (2),
+  1 compaction (2), 16 Improve children, 59 test runs.
+- Every 1.5.0 change was exercised and worked: workspace start bootstrapped the empty directory (no Git glue,
+  no cancellation before state existed); improve-start started all 16 Improve children (no hand-written
+  contract, no Until Loop start by hand); integrate committed the product itself (8cb0c599).
+- The 3 remaining cancellations were the model's own inline probes and checks (a heredoc Node server for a
+  planning experiment, a `node -e` check in the end-of-work review), not mechanical steps. Hypothesis to
+  test: packets that say "write probe scripts to a file and run the file" draw fewer auto-mode refusals.
+- Costliest stages: spec 40 turns/10.9 min, carry-forward 32/6.0 (run 6: 76), integration-verify 22,
+  integrate 17, research 16. System-test-author 14 (run 6: 63).
+- Release CI of 1.5.0 failed on two tests not updated for improve-start (Grok adapter allowlist, Improve
+  schedule lead line) plus the adapter-hash-bound trace fixtures; the local quick tier had not selected
+  them. Fix pending as 1.5.1 after a local full tier. Lesson: run `--group all` before release.py when a
+  CLI verb is added.
