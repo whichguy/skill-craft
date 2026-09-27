@@ -136,7 +136,10 @@ class ImproveScheduleTests(unittest.TestCase):
             state["active_improve"] = standalone.binding(
                 state, action, "spec", child["seed_result"], standalone.resolve_skill(str(CARD)))
             packet = nav.render(None, run, state)
-        self.assertIn("improve-complete", packet.splitlines()[1])
+        # A bound inline child that has not started leads with improve-start; the
+        # improve-complete callback follows in the body.
+        self.assertIn("improve-start", packet.splitlines()[1])
+        self.assertIn("improve-complete", packet)
         self.assertIn("Planning review focus", packet)
         self.assertIn("self-passes by this same executor, not independent reviewers", packet)
         self.assertNotIn("Capture separate durable review files", packet)

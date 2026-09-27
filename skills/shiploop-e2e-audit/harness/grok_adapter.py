@@ -35,6 +35,7 @@ SHIPLOOP_DIRECT_SUBCOMMANDS = frozenset(
         "lint-mode",
         "lint",
         "improve-bind",
+        "improve-start",
         "improve-complete",
         "improve-reconcile",
         "next",
