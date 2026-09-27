@@ -81,7 +81,7 @@ sign-in). Both clean-room checks clean; neither transcript names the original.
 | Builder | Oracle (1,759) | Wall | Spend |
 |---|---|---|---|
 | Claude Sonnet 5 | **1,452 pass (82.5%)**, 307 fail | 2,241 s, 103 turns | $8.88 |
-| Codex gpt-5.6-luna, xhigh | 1,199 pass (68.2%), 560 fail | 2,110 s, 89 commands | 17.0M input (16.7M cached), 102k output tokens |
+| Codex **gpt-5.6-luna** (wrong model; owner wants GPT-6 Luna), xhigh | 1,199 pass (68.2%), 560 fail | 2,110 s, 89 commands | 17.0M input (16.7M cached), 102k output tokens |
 
 Failures concentrate in the CommonMark/GFM spec examples (Sonnet: 96/652
 CommonMark, 99/680 GFM; Luna about twice that). Sonnet is the T3 builder.
@@ -118,3 +118,7 @@ shipped a stub. That is exactly what ShipLoop's test-first and Until-Loop
 stages are meant to prevent, which T3 measures on the same spec and model.
 Two judge fixes also carry a distiller lesson: verify a code-derived claim
 at the guard that decides it, and state a rule for every form it applies to.
+
+Correction (owner): "Luna" means **GPT-6 Luna** (`gpt-6-luna`) at xhigh. The
+Luna T1 above ran `gpt-5.6-luna` (a stale local model reference), so it does
+not measure GPT-6 Luna; T1 is rerun on `gpt-6-luna` (rebuilds/l2).
