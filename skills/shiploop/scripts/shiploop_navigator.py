@@ -2199,6 +2199,14 @@ def _reference_dir(core: Any) -> Path:
     return Path(__file__).resolve().parents[1] / "references"
 
 
+def _improve_completion_example(evidence_root: Path) -> str:
+    """The completion evidence record's shape: a Markdown file with one shiploop-state JSON fence."""
+    return store.dumps({"summary": "...", "review_refs": [str(evidence_root / "review-one.md"),
+                                                          str(evidence_root / "review-two.md")],
+                        "check_refs": [str(evidence_root / "checks.md")], "lessons": "..."},
+                       "Actual Improve completion evidence").rstrip()
+
+
 def _callback(core: Any, root: Path, command: str, **flags: str) -> str:
     argv = ["python3", _command(core), command, f"--run-dir={root}"]
     argv.extend(f"--{name}={value}" for name, value in flags.items())
@@ -3483,10 +3491,7 @@ def _render_improve(core: Any, root: Path, state: Mapping[str, Any], lines: list
         "Receipt review_refs and check_refs must be absolute regular single-link non-symlink files under Child workspace above; the importer rejects sibling run/inbox/control paths outside that root. For example: "
         + str(evidence_root / "review-one.md"),
         "Write completion evidence to: " + str(result_path),
-        store.dumps({"summary": "...", "review_refs": [str(evidence_root / "review-one.md"),
-                                                           str(evidence_root / "review-two.md")],
-                     "check_refs": [str(evidence_root / "checks.md")], "lessons": "..."},
-                    "Actual Improve completion evidence").rstrip(),
+        _improve_completion_example(evidence_root),
         "If Improve changes decisions or decision-relevant evidence needed by a successor, include "
         "final_result: a complete step result with the same fields as the Step result record above "
         "(outcome done, repeat, blocked or, at OUTER stages, replan; never reconcile), preserving "
@@ -3937,7 +3942,9 @@ def _improve_start(core: Any, root: Path, state: Mapping[str, Any], args: Any) -
     store.atomic_write_text(receipt.with_name("parent-return.md"), "\n".join([
         "# Parent return for Improve child " + action_id, "",
         "Only after the runtime wrote a complete terminal packet to " + str(receipt) + ":",
-        "1. Write the completion evidence to " + str(completion) + " (summary, review_refs, check_refs, lessons).",
+        "1. Write the completion evidence to " + str(completion) + " (summary, review_refs, check_refs, lessons) "
+        "as a Markdown record with one shiploop-state JSON fence, shaped like:", "",
+        _improve_completion_example(receipt.parent / "reviews"), "",
         "2. Run: " + _callback(core, root, "improve-complete", action=action_id, result=str(completion)),
         "The child never runs these; a stopped or blocked child leaves the parent pending.", ""]))
     start = receipt.with_name("start.json")
