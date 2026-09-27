@@ -109,9 +109,31 @@ harness's case catalog.
 
 ## Change admission
 
-Every change to ShipLoop, to its skills and cards, or to this harness is
-admitted only with an **anchor** and a **non-regression statement**, recorded
-in the plan item and repeated in the commit message:
+No change is planned, let alone made, before its negative consequences have
+been sought out and addressed. Every change to ShipLoop, to its skills and
+cards, or to this harness goes through these steps, in this order, recorded in
+the plan item and summarised in the commit message:
+
+- **Adversarial evaluation first.** Before the change is planned, attack it:
+  argue the case against it as a hostile reviewer would. At minimum ask how it
+  could:
+  - weaken any clause S-1..S-13, including ones it does not target;
+  - break another style, host, language or platform than the one that
+    motivated it;
+  - fail silently, or pass the tests while failing a live run;
+  - add model-written glue, host refusals or recovery dead ends;
+  - enlarge printed or filed packet text, or context over a whole run;
+  - leak or commit secrets, touch user work outside the run, or change the
+    user's repository or history unexpectedly;
+  - break saved runs, existing callers, tests, adapters or catalogs that pin
+    today's behaviour;
+  - cost more turns, time or money than it saves;
+  - be gamed: make a metric improve while the behaviour gets worse.
+  Each consequence found gets a disposition: **mitigated** (how, and how the
+  mitigation is tested), **accepted** (why the cost is worth it, and which
+  clause asks for it), or **change rejected**. A change with an unaddressed
+  consequence is not planned. The evaluation must name concrete scenarios;
+  "no risk" without a scenario considered is not an evaluation.
 
 - **Anchor**: the clause or clauses (S-n) the change serves, and the run
   evidence that motivated it (run, metric, transcript line). A change with no

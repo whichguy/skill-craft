@@ -79,6 +79,13 @@ An end-to-end run was reviewed. Apply these material findings, each of which kee
 ```
 
 Rules:
+- Follow the specification's Change admission before editing: for each finding, first write an
+  adversarial evaluation (how the change could weaken any clause, break another style or host,
+  fail silently, add glue or refusals, grow packets or context, leak secrets or touch user work,
+  break saved runs or pinned tests, cost more than it saves, or game a metric), give every
+  consequence a disposition (mitigated and tested / accepted with the clause that asks for it /
+  rejected), then state the anchor, the non-regression statement and the evidence. Apply only
+  findings whose consequences are all addressed; put that record in the commit message.
 - Change only skills/shiploop/, its tests under test/, and add one note
   changes/shiploop/<short-slug>.md (front matter `bump: patch` or `bump: minor`, then one or
   more lines describing the change for people who install the skill). Never edit plugins/,
@@ -92,7 +99,7 @@ Rules:
 - Do not push, release or touch other branches.
 
 End with exactly one ```json fenced block:
-{{"applied": ["finding titles"], "skipped": [{{"title": "...", "reason": "..."}}], "tests": "quick tier summary line"}}
+{{"applied": [{{"title": "...", "anchor": ["S-n"], "adversarial": [{{"consequence": "...", "disposition": "mitigated|accepted|rejected", "how": "..."}}]}}], "skipped": [{{"title": "...", "reason": "..."}}], "tests": "quick tier summary line"}}
 """
 
 

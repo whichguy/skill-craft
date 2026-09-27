@@ -395,6 +395,10 @@ class LearningsTest(unittest.TestCase):
         self.assertIn("Run 1 learned the graph is fixed.", review.reviewer_prompt(Path("/r"), Path("/s"), prior))
         self.assertNotIn("Learnings recorded", review.reviewer_prompt(Path("/r"), Path("/s")))
         self.assertIn("Run 1 learned the graph is fixed.", iterate.improver_prompt(Path("/w"), [], "base", prior))
+        improver = iterate.improver_prompt(Path("/w"), [], "base")
+        self.assertIn("adversarial evaluation", improver)
+        self.assertIn("mitigated and tested / accepted with the clause that asks for it", improver)
+        self.assertIn("**Adversarial evaluation first.**", improver)  # the spec, loaded as the premise
 
 
 class HostOutputTest(unittest.TestCase):
