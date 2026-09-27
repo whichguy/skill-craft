@@ -35,6 +35,7 @@ import subprocess
 import tempfile
 
 import shiploop_git
+import shiploop_grants
 import shiploop_knowledge_home as knowledge_home
 import threading
 from contextlib import contextmanager
@@ -623,6 +624,12 @@ def _workspace_root(repo: Path, requested: Path, common: Path) -> Tuple[Path, bo
         if manifest.exists() and not manifest.is_symlink():
             return _resolved_directory(root, label="workspace root"), True
         _fail("workspace root is occupied; use a new dedicated root")
+    # Before the first write: a host sandbox that refuses either location
+    # would otherwise fail mid-creation.  Nothing exists yet to clean up.
+    shiploop_grants.require(
+        [(root.parent, "isolated worktree and run state"),
+         (common, "git worktree add and every commit")],
+        grants=[root.parent, common])
     if not root.parent.is_dir():
         # The usual layout (<beside the repo>/.shiploop-runs/<name>) needs one new
         # directory; create exactly that level, never a deeper missing tree.
@@ -637,6 +644,27 @@ def _workspace_root(repo: Path, requested: Path, common: Path) -> Tuple[Path, bo
     except OSError as exc:
         _fail(f"cannot create workspace root: {exc}")
     return _resolved_directory(root, label="workspace root"), False
+
+
+RUNS_DIR = ".shiploop-runs"
+
+
+def require_grants(workspace_root: Path) -> None:
+    """Resume-time check: a harness restarted without its grants fails here, not mid-commit."""
+    worktree = Path(workspace_root) / "worktree"
+    if not worktree.is_dir():
+        return
+    common = _common_dir(worktree)
+    shiploop_grants.require(
+        [(Path(workspace_root) / "run", "run state"), (worktree, "product changes"),
+         (common, "every commit")],
+        grants=[Path(workspace_root).parent, common])
+
+
+def default_root(repo: Path, stamp: str) -> Path:
+    """``<repo-parent>/.shiploop-runs/<repo>-<stamp>``: one stable directory to grant once."""
+    source = _repo_root(Path(repo))
+    return source.parent / RUNS_DIR / f"{source.name}-{stamp}"
 
 
 def _record(root: Path, name: str, title: str) -> Dict[str, Any]:
