@@ -1254,6 +1254,12 @@ class EphemeralImproveCliTests(ImproveCliFixture):
         self.invoke(CLI, "improve-complete", "--run-dir", self.run, "--action", self.action, *completion, status=2)
         self.assertEqual(before, (self.run / "state.md").read_bytes())
 
+    def test_a_wrong_result_path_is_refused_with_the_expected_path(self):
+        """Batch 1.12.1: Luna passed the worktree as --result; the refusal now names the path to use."""
+        import types
+        with self.assertRaisesRegex(navigator.NavigatorError, re.escape(str(self.run / "inbox" / (self.action + ".md")))):
+            navigator._submitted_result(self.run, types.SimpleNamespace(action=self.action, result=str(self.repo)))
+
     def test_linked_review_file_cannot_be_imported_or_advance(self):
         self.finish_ephemeral()
         completion, receipt = self.completion_receipt()
