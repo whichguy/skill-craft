@@ -46,7 +46,10 @@ def main() -> int:
                              args.timeout)
     summary = summarize_events(out / "events.jsonl")
     (out / "final.txt").write_text(hosts.final_text(out / "events.jsonl"))
-    step = {**status, "num_turns": summary.get("num_turns"), "cost_usd": summary.get("cost_usd"),
+    import re
+    reported = sorted(set(re.findall(r"grok-[0-9][0-9a-z.-]*", (out / "events.jsonl").read_text(errors="replace"))))
+    step = {**status, "model": args.model, "effort": args.effort, "model_reported": reported,
+            "num_turns": summary.get("num_turns"), "cost_usd": summary.get("cost_usd"),
             "stop": summary.get("stop")}
     (out / "step.json").write_text(json.dumps(step, indent=2) + "\n")
     print(json.dumps(step))
