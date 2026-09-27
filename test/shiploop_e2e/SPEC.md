@@ -107,6 +107,54 @@ tested in general terms; its tests use neutral fixtures, not the probe's
 product. A case's specifics (its prompt and product checks) stay in the
 harness's case catalog.
 
+## Change admission
+
+Every change to ShipLoop, to its skills and cards, or to this harness is
+admitted only with an **anchor** and a **non-regression statement**, recorded
+in the plan item and repeated in the commit message:
+
+- **Anchor**: the clause or clauses (S-n) the change serves, and the run
+  evidence that motivated it (run, metric, transcript line). A change with no
+  anchor is not made; if it is still wanted, this spec is amended first, in its
+  own commit, stating why.
+- **Non-regression**: which clauses and existing behaviours the change could
+  touch, and why it does not weaken any of them. "Removes duplication" or
+  "shortens a packet" must say which obligation, check or safeguard is kept and
+  where.
+- **Evidence**: the hermetic tests that prove the statement, plus the E2E
+  suite that confirms it live (see below). A change that alters behaviour on
+  purpose names the behaviour, the clause that asks for it, and the runs whose
+  results it is expected to change.
+
+A reviewer (or the review step of `iterate.py`) rejects a change whose anchor
+does not hold or whose non-regression statement is missing or contradicted by
+evidence.
+
+## E2E suites: depth before breadth
+
+End-to-end testing is organised as suites, so one style of work can be iterated
+on quickly before the breadth of everything is checked.
+
+- **Case**: one repeatable request with its product checks (`cases.json`).
+  Cases are grouped by **style**: the shape of software and delivery they
+  probe (for example: a browser UI over an HTTP service; a command-line
+  tool over files; a stateful service with concurrent writers; a follow-on
+  feature in an existing repository).
+- **Focused suite** (depth): the cases of one style, run repeatedly while a
+  change is developed for the behaviour that style exposes. It is the tight
+  loop: run, measure, fix, rerun, one style at a time.
+- **Breadth suite**: one case of every style, run once each. It is the
+  generality gate: a change that improved a focused suite is not "general"
+  (S-13) until the breadth suite shows no regression in any other style.
+- **Promotion**: work on a style stays in its focused suite until that suite's
+  acceptance holds (every verdict passes, reliability and cost no worse than
+  the style's baseline); then the breadth suite runs before a release is called
+  good. A style whose focused suite has never passed has no baseline and is
+  not used to judge other changes.
+- Each suite records its own baselines (per case: verdicts, turns, cost,
+  sessions, cancellations, glue, ShipLoop failures) so a run is compared with
+  the same case's history, never across styles.
+
 ## How the harness checks the clauses
 
 | Clause | Evidence the harness records (result.json, metrics.json, review) |
@@ -141,4 +189,4 @@ case.
 - Never print packet text or run markers into a session that is not the run's
   host.
 - After each run, record learnings in LEARNINGS.md with a detailed commit that
-  names the clauses the run confirmed or violated.
+  names the suite, the case, and the clauses the run confirmed or violated.
