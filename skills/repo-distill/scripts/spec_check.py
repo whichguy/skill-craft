@@ -1,0 +1,72 @@
+#!/usr/bin/env python3
+"""Check a distilled spec mechanically: claims, citations that resolve, leaks.
+
+    spec_check.py SPEC REPO --forbid NAME [--forbid NAME ...]
+
+A citation is `path:line` or `path:start-end` inside an `Evidence:` line; it
+resolves when the file exists in REPO and the lines are within it.
+"""
+
+from __future__ import annotations
+
+import argparse
+import json
+import re
+import sys
+from pathlib import Path
+
+
+def builder_view(text: str) -> str:
+    """The spec a builder receives: every Evidence/Test citation removed.
+
+    Citations exist to verify the distill; their file paths often carry the
+    original's name, so the builder never sees them.
+    """
+    text = re.sub(r"(?m)^\s*(Evidence|Tests?):.*\n?", "", text)
+    return re.sub(r"\s*(Evidence|Tests?):.*$", "", text, flags=re.M)
+
+
+def main() -> int:
+    ap = argparse.ArgumentParser()
+    ap.add_argument("spec", type=Path)
+    ap.add_argument("repo", type=Path)
+    ap.add_argument("--forbid", action="append", default=[])
+    args = ap.parse_args()
+    text = args.spec.read_text()
+    claims = re.findall(r"^\s*(?:[-*]\s*)?\**(D-\d+)\b", text, re.M)
+    # Split into claim blocks to see which claims carry evidence.
+    blocks = re.split(r"(?m)^(?=\s*(?:[-*]\s*)?\**D-\d+\b)", text)
+    no_evidence, bad, good = [], [], 0
+    for block in blocks:
+        m = re.match(r"\s*(?:[-*]\s*)?\**(D-\d+)", block)
+        if not m:
+            continue
+        cites = re.findall(r"([\w./-]+\.[\w]+):(\d+)(?:-(\d+))?", block)
+        whole = [p for p in re.findall(r"`([\w./@-]+\.\w+)`", block) if (args.repo / p).is_file()]
+        if "Evidence" not in block or not (cites or whole):
+            no_evidence.append(m.group(1))
+        for path, start, end in cites:
+            # Evidence in a dependency is valid; distillers cite it with or
+            # without the node_modules/ (and scope @) prefix.
+            f = next((c for c in (args.repo / path, args.repo / "node_modules" / path,
+                                  args.repo / "node_modules" / ("@" + path)) if c.is_file()), args.repo / path)
+            if not f.is_file():
+                bad.append(f"{m.group(1)} {path}:{start} (no such file)")
+                continue
+            n = len(f.read_text(errors="replace").splitlines())
+            if int(start) > n + 1 or (end and int(end) > n + 1):
+                bad.append(f"{m.group(1)} {path}:{start}{'-' + end if end else ''} (file has {n} lines)")
+            else:
+                good += 1
+    # Leaks matter in what the builder sees; citations are stripped from it.
+    view = builder_view(text)
+    leaks = [w for w in args.forbid if re.search(re.escape(w), view, re.I)]
+    report = {"claims": len(set(claims)), "claims_without_evidence": no_evidence,
+              "citations_resolved": good, "citations_bad": bad, "leaks": leaks,
+              "unknowns_section": bool(re.search(r"(?im)^#+\s*\d*\.?\s*unknowns", text))}
+    print(json.dumps(report, indent=2))
+    return 0 if report["claims"] and not no_evidence and not bad and not leaks else 1
+
+
+if __name__ == "__main__":
+    sys.exit(main())
