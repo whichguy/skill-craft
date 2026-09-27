@@ -143,3 +143,43 @@ Total 701 turns, $36.47, ~88 min, 0 model glue. ShipLoop paused cleanly after
 Waste review (owner, 15:20): the Luna xhigh ShipLoop run was stopped in
 preparation (superseded by the max pair); the Luna xhigh T1 finishes as the
 xhigh-vs-max datapoint.
+
+# Phase 2A: initializer distill audit, round 1 (GPT-6 Luna max), 2026-09-27
+
+Four repositories from the star-ordered walk, each distilled by
+`skills/repo-distill/prompts/initialize.md` (README primary; architecture
+with A-n; pre-orthogonality wording) in a temporary clone, then graded by
+the spec-judge skill under one Opus 5.5 judge (sample n=40; about $1.60 per
+judge run).
+
+| Repo (shape) | Reqs | Unanchored | Wrong/partial | Tests missing | Sources missing | README missing | Arch true |
+|---|---|---|---|---|---|---|---|
+| marked (library + CLI) | 37 | 5.4% | 2.7% | 12.8% | 31% | 0% | 90% |
+| Figma-Context-MCP (MCP server) | 34 | 0% | 2.9% | 15% | 40% | 0% | 90% |
+| webpack-bundle-analyzer (CLI + UI), v1 / v2 grader | 27 | 7.4% | 3.7% / 14.8% | 10% / 0% | 53% / 60% | 0% / 6% | 80% / 90% |
+| mocha (test runner), v1 grader | 34 | 50% | 17.6% | 45% | 95% | 0% | 80% |
+
+marked also got the leakage measures: spec names implementation 2.7% (one
+requirement names TypeScript declarations and `test:types`), architecture
+restates behaviour 0%.
+
+Readings:
+- Accuracy is good where anchors are present; mocha's misses are inferred
+  behaviour stated as fact (a CI-driven `--forbid-only` default that no code
+  implements).
+- The README rule holds everywhere (0-6% missing).
+- Under-spec concentrates in source files: partly the v1 grader counting
+  internal mechanisms (fixed: only contract-level gaps count), partly real
+  coarseness (topic-level requirements from "group related behaviour").
+- The judge varies: re-grading the same webpack-bundle-analyzer spec moved
+  wrong/partial from 1 to 4 of 27. Round 2 grades each spec twice on the
+  same sample.
+
+Grader defects fixed during round 1: the judge saw only spec and
+architecture (build/test commands live in environment.md); skipped tests
+counted as missing; duplicate test names across and within files broke the
+score step.
+
+Round 2 (running): the same commits, the contract-level orthogonal
+initializer (spec survives a stack change, architecture survives a spec
+change; anchor or omit), each spec judged twice.
