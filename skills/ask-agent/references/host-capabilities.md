@@ -28,6 +28,14 @@ and check the live capabilities for the actual invocation. Do not infer support
 on Claude, Grok, Cursor, OpenCode, or another host from this Codex pilot or older
 managed-route evidence.
 
+## Current workspace
+
+For an explicitly selected `workspace_route: current`, use the launch table in
+[Current workspace](current-workspace.md#record-the-baseline-and-launch). The
+worker runs in the caller's checkout, so no workspace owner or binding mode
+below applies. The evidence in this file is for the helper-managed route and
+does not qualify the current route on any host.
+
 ## Choose one workspace owner and a binding mode
 
 **Helper-managed default only.** The skill helper prepares the current caller

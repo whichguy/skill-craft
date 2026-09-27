@@ -264,6 +264,7 @@ _CORE_SUITES = (
     _suite("ask-agent-workspace", "core", "test/ask-agent-workspace.test.py", "python3", "test/ask-agent-workspace.test.py", groups=("ask-agent",)),
     _suite("ask-agent-delivery", "core", "test/ask-agent-delivery.test.py", "python3", "test/ask-agent-delivery.test.py", groups=("ask-agent",)),
     _suite("ask-agent-managed-harness", "core", "test/ask-agent-managed-harness.test.py", "python3", "test/ask-agent-managed-harness.test.py", groups=("ask-agent",)),
+    _suite("ask-agent-current-workspace", "core", "test/ask-agent-current-workspace.test.py", "python3", "test/ask-agent-current-workspace.test.py", groups=("ask-agent",)),
     _suite("skill-interop-hygiene", "core", "test/skill-interop-hygiene.test.sh", "bash", "test/skill-interop-hygiene.test.sh"),
     _suite("sync-plugin-views", "core", "test/sync-plugin-views.test.sh", "bash", "test/sync-plugin-views.test.sh"),
     _suite("release-flow", "core", "test/release-flow.test.sh", "bash", "test/release-flow.test.sh"),

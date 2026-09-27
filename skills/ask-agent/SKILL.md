@@ -11,6 +11,7 @@ metadata:
     kind: mixed
     capabilities:
       - ask-agent/consumer-owned-workspace/v1
+      - ask-agent/current-workspace/v1
 ---
 
 # Ask agent
@@ -22,9 +23,9 @@ skill, not an agent type. Do not implement another model launcher, SDK client,
 subprocess harness, scheduler, or file watcher to simulate native delegation.
 
 The helper-managed workspace route is the default for delegation. A
-consumer-owned workspace is an explicit invoking-consumer contract, never an
-automatic interpretation of an existing worktree, a speed request, or a request
-for fresh context.
+consumer-owned workspace and the current workspace are explicit selections,
+never an automatic interpretation of an existing worktree, a speed request, or
+a request for fresh context.
 
 Default to a fresh background worker while the parent continues useful work.
 An explicit request to wait takes precedence. Each invocation adds to the
@@ -43,8 +44,9 @@ approval step. Follow the declared delivery mode and preserve caller dirty state
 
 ## Select the route before preparing
 
-This card declares `ask-agent/consumer-owned-workspace/v1`. Select exactly one
-route before any helper preparation or native dispatch:
+This card declares `ask-agent/consumer-owned-workspace/v1` and
+`ask-agent/current-workspace/v1`. Select exactly one route before any helper
+preparation or native dispatch:
 
 - **Helper-managed** is the default. It uses the existing helper-created
   snapshot, one of `patch`, `commits`, or `report-only`, and the procedures below.
@@ -54,6 +56,15 @@ route before any helper preparation or native dispatch:
   [Consumer-owned workspace](references/consumer-owned-workspace.md). Its worker
   writes in the consumer's already-bound candidate; helper delivery modes do not
   apply.
+- **Current workspace** runs a fresh worker in the caller's own checkout and
+  branch, with no helper worktree, receipt or close. It is selected only when
+  the user or an invoking skill explicitly says `workspace_route: current`,
+  "in place", `--in-place` or "just use the current worktree". It defaults to
+  `report-only`; `in-place` writes need a declared write set. The helper's
+  `current-state` command records a baseline and reports drift. Read
+  [Current workspace](references/current-workspace.md) in full; the
+  helper-managed steps below do not apply. Plan Dispatcher, ShipLoop and
+  improve-agent never select it.
 
 An ordinary invocation that does not select consumer-owned uses the
 helper-managed default. A consumer that explicitly requests consumer-owned but
@@ -87,7 +98,9 @@ model choice unless the user requests another supported model.
 
 Inherit tools, MCP access, skills, permissions and execution facilities where the host
 supports it. Do not independently add tool restrictions, read-only modes,
-model downgrades, or fixed depth/concurrency/output limits. Scope and write
+model downgrades, or fixed depth/concurrency/output limits. A cheaper model or
+read-only agent type that the user or invoking skill explicitly requests, for
+example for a status digest, is honored and disclosed. Scope and write
 ownership still apply. Some hosts filter child tools; disclose differences.
 A delegated coding skill such as Improve retains normal coding-agent capability,
 including deployment and other external operations already authorized for its
@@ -98,7 +111,7 @@ and handoff constraints. It must collect its delegates before returning.
 
 ## Carry current learnings inline
 
-Before either route launches a fresh worker, the invoking parent distills the
+Before any route launches a fresh worker, the invoking parent distills the
 task-relevant learnings from its current conversation and applicable skill
 guidance into a compact **Current learnings** block in the native assignment.
 Treat it as a current-state brief: what is known, what has already changed, and
@@ -167,8 +180,8 @@ operation, acceptance or delivery.
 ## Helper-managed default: prepare, launch, continue, collect
 
 The six steps in this section apply only to the helper-managed default. They do
-not apply to a selected consumer-owned workspace; use its complete route
-reference instead.
+not apply to a selected consumer-owned or current workspace; use that route's
+complete reference instead.
 
 1. **Prepare through the skill.** Read [Workspace operations](references/workspace-operations.md)
    and [Git integration](references/git-integration.md). Obtain the host-selected,
@@ -304,6 +317,16 @@ use a native current-session wakeup or wait timeout if the host exposes one, as
 described in [Native lifecycle](references/native-lifecycle.md); otherwise say
 that timed return is unavailable. Ordinary delegation does not require a timer.
 Do not promise notification after the current parent session exits.
+
+### Current workspace
+
+The worker returns its result inline with `Route: current`, the delivery mode,
+root, branch, HEAD before and after, and the paths it changed. The parent runs
+`current-state --baseline` and accepts only an `unchanged` result, or for
+`in-place` a `changed-within-write-set` result whose edits it has verified; it
+refuses `drift`. The final answer names the route, delivery mode, verdict and
+changed paths. There is nothing to close. See
+[Current workspace](references/current-workspace.md#return-and-acceptance).
 
 ### Consumer-owned workspace
 
