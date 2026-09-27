@@ -101,7 +101,7 @@ def call_full(model: str, prompt: str, *, timeout: int = 600, tools: str = "", w
                 # todo_write touches no files. With tools, it may read, list and search; never a shell, never
                 # auto-approval. Grok's kernel sandbox cannot start on a Mac whose /var/run/docker.sock is a
                 # symlink, so reads are audited instead: see outside_paths.
-                argv += (["--tools", "read_file,list_dir,grep", "--max-turns", "12"] if tools
+                argv += (["--tools", "read_file,list_dir,grep", "--max-turns", "40"] if tools
                          else ["--tools", "todo_write", "--max-turns", "6"]) + ["--disallowed-tools", "search_tool,use_tool"]
                 out = subprocess.run(argv, capture_output=True, text=True, timeout=timeout, env=env).stdout
                 d = json.loads(out) if out.strip() else {}
