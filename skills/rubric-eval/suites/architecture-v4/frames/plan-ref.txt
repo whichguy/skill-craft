@@ -1,5 +1,5 @@
 You are running the discovery, spec and plan stages of ShipLoop, an SDLC harness, for this request.
-Your working directory holds the ShipLoop packet's reference files under references/ (platform cards under references/platforms/); read what you need with your file tools. There is no project to open and no command to run. Answer in this reply.
+Your working directory holds the ShipLoop platform cards under references/platforms/. Read the card for this runtime, and the UI card when the plan has a user interface, with your file tools; read another card only when a finding needs it. There is no project to open and no command to run. Answer in this reply.
 
 Request: {request}
 

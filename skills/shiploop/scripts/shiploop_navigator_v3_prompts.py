@@ -2121,8 +2121,7 @@ unless a finding depends on it. A pass that finds none of these is trivial.
 DESIGN_REVIEW_STAGES = frozenset({"plan", "step-plan"})
 
 DESIGN_REVIEW_CHECKS = """\
-Design review checks, for the stages that decide what gets built. Also look for
-these conditions and fix them within scope:
+Design review checks, for the stages that decide what gets built. Also look for:
 - personal data the plan holds, shows, logs or sends to a third party without
   saying how long it is kept, how it is removed, and that it stays out of logs
   and error messages;
@@ -2132,22 +2131,17 @@ these conditions and fix them within scope:
   who can act will see it;
 - anything the plan adds that the request does not need (a feature, a store,
   sign-in, a live channel, a debug path, a higher placement tier): remove it.
-Change only what a finding requires. Do not add features, infrastructure or a
-higher placement tier that the request does not need. Before adding anything,
-check whether a finding can be met by changing or removing what the plan
-already has. A review that finds nothing to fix returns the plan unchanged.
+Change only what a finding requires, and before adding anything, check whether
+the finding can be met by changing or removing what the plan already has.
 
-Before you return the plan, check each change you made. Keep it only if it
-serves a request sentence, spec clause or directive you can name, and if any
-number it adds (a retention period, a limit, a rate, a threshold) comes from
-the request, the spec or a cited source, or is marked as an assumption for the
-user to confirm. Undo a change that fails this check.
-
-Removing is a change too. Never remove or weaken an existing safeguard (a
-limit, a check or test, an access or retention rule, a failure route) unless it
+Before you return the plan, check each change you made, additions and removals
+alike. Keep an addition only if it serves a request sentence, spec clause or
+directive you can name. Never remove or weaken an existing safeguard (a limit, a
+check or test, an access or retention rule, a failure route) unless it
 contradicts the request or spec, and remove a feature only when you can say why
-this request does not need it. A number without a source stays, marked as an
-assumption for the user to confirm; it is not a reason to remove what it limits.
+this request does not need it. A number without a source, added or existing, is
+marked as an assumption for the user to confirm; it is never a reason to remove
+what it limits. Undo a change that fails this check.
 """
 
 
