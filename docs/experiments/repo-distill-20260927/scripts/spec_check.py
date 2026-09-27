@@ -35,7 +35,10 @@ def main() -> int:
         if "Evidence" not in block or not cites:
             no_evidence.append(m.group(1))
         for path, start, end in cites:
-            f = args.repo / path
+            # Evidence in a dependency is valid; distillers cite it with or
+            # without the node_modules/ (and scope @) prefix.
+            f = next((c for c in (args.repo / path, args.repo / "node_modules" / path,
+                                  args.repo / "node_modules" / ("@" + path)) if c.is_file()), args.repo / path)
             if not f.is_file():
                 bad.append(f"{m.group(1)} {path}:{start} (no such file)")
                 continue

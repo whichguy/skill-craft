@@ -168,3 +168,10 @@ patched by hand.
 
 No new material unknown, flow gap or error condition; nothing further to
 prune. Wording only: intro, case paragraph reflow, who drops failing checks.
+
+## Review 6: learnings from E0/E1 round 1
+
+| # | Unknown or failure case | Source | Material? | Decision |
+|---|---|---|---|---|
+| 28 | Against the stub, each oracle check retries startup (8 × 10 s, a good token-based readiness probe), so the stub run never finishes and admission crashed | E0 admission | yes, blocked admission | Stub run bounded (180 s); a check that never reported did not pass; leftover stub processes killed |
+| 29 | Distiller cites dependency source without the `node_modules/@` prefix | E1 spec_check (10 of 141 citations) | checker only | Checker resolves dependency paths; not a distill fault |

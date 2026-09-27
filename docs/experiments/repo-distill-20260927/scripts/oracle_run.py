@@ -14,6 +14,7 @@ import argparse
 import json
 import os
 import re
+import signal
 import subprocess
 import sys
 from pathlib import Path
@@ -22,13 +23,24 @@ from pathlib import Path
 def run(oracle: Path, app_cmd: str, timeout: int = 600, tap: Path | None = None) -> dict:
     env = {**os.environ, "APP_CMD": app_cmd}
     files = sorted(str(p) for p in oracle.glob("*.test.mjs"))
-    proc = subprocess.run(["node", "--test", "--test-reporter=tap", *files], env=env,
-                          capture_output=True, text=True, timeout=timeout, stdin=subprocess.DEVNULL)
+    # A program that never becomes ready (the stub) makes every check wait out
+    # its start retries; stop at `timeout` and keep what was reported. A check
+    # that never reported did not pass.
+    proc = subprocess.Popen(["node", "--test", "--test-reporter=tap", *files], env=env, text=True,
+                            stdout=subprocess.PIPE, stderr=subprocess.PIPE, stdin=subprocess.DEVNULL,
+                            start_new_session=True)
+    try:
+        stdout, stderr = proc.communicate(timeout=timeout)
+        timed_out = False
+    except subprocess.TimeoutExpired:
+        os.killpg(proc.pid, signal.SIGKILL)
+        stdout, stderr = proc.communicate()
+        timed_out = True
     if tap:
-        tap.write_text(proc.stdout + "\n# stderr\n" + proc.stderr)
+        tap.write_text(stdout + "\n# stderr\n" + stderr)
     results = {}
     stack: list[str] = []
-    for line in proc.stdout.splitlines():
+    for line in stdout.splitlines():
         m = re.match(r"^(\s*)(not ok|ok) \d+ - (.*?)(\s+#\s*(SKIP|TODO).*)?$", line)
         if not m:
             continue
@@ -39,8 +51,8 @@ def run(oracle: Path, app_cmd: str, timeout: int = 600, tap: Path | None = None)
     # Only leaves are behaviours; a parent's status is the union of its children.
     leaves = {k: v for k, v in results.items() if not any(o.startswith(k + " > ") for o in results)}
     counts = {s: sum(1 for v in leaves.values() if v == s) for s in ("pass", "fail", "skip")}
-    return {"app_cmd": app_cmd, "returncode": proc.returncode, "counts": counts, "tests": leaves,
-            "stderr_tail": proc.stderr[-2000:]}
+    return {"app_cmd": app_cmd, "returncode": proc.returncode, "timed_out": timed_out, "counts": counts,
+            "tests": leaves, "stderr_tail": stderr[-2000:]}
 
 
 def main() -> int:
@@ -50,21 +62,27 @@ def main() -> int:
     ap.add_argument("--admit", action="store_true")
     ap.add_argument("--original")
     ap.add_argument("--stub")
+    ap.add_argument("--stub-timeout", type=int, default=180,
+                    help="seconds to let the oracle run against the stub; unreported checks did not pass")
     ap.add_argument("--json", type=Path)
     ap.add_argument("--tap", type=Path, help="save the full TAP output (failure messages)")
     args = ap.parse_args()
     if args.admit:
         # Twice on the original: a check that differs between runs is flaky.
         first, second = run(args.oracle, args.original), run(args.oracle, args.original)
-        stub = run(args.oracle, args.stub)
+        stub = run(args.oracle, args.stub, timeout=args.stub_timeout)
+        # The oracle's own start retries may leave stub processes behind.
+        subprocess.run(["pkill", "-f", args.stub.split()[-1]], capture_output=True)
         flaky = sorted(k for k in first["tests"] if first["tests"][k] != second["tests"].get(k))
         failing = sorted(k for k, v in first["tests"].items() if v != "pass" and k not in flaky)
         # Correct negative checks (unknown id -> 404) may pass on a do-nothing stub;
         # they are listed, and most checks must still fail there.
         stub_pass = sorted(k for k, v in stub["tests"].items() if v == "pass")
         total = len(first["tests"])
-        report = {"admitted": total > 0 and not failing and not flaky and len(stub_pass) * 2 < total,
+        report = {"admitted": total > 0 and not failing and not flaky and len(stub_pass) * 2 < total
+                  and not (first["timed_out"] or second["timed_out"]),
                   "total": total, "original": first["counts"], "stub": stub["counts"],
+                  "stub_timed_out": stub["timed_out"], "original_timed_out": first["timed_out"] or second["timed_out"],
                   "failing_on_original": failing, "flaky": flaky, "passing_on_stub": stub_pass}
     else:
         report = run(args.oracle, args.app_cmd, tap=args.tap)
