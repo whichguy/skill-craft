@@ -192,7 +192,8 @@ actual card. If omitted, the first checkpoint remains pending until the packet
 instructs the owner to use `improve-bind --action ... --skill-card ...`. The
 packet is authoritative for argument values and recovery. It then supplies one
 actual Improve handoff; a recorded child is resumed through its own state, and
-`improve-complete` imports matching successful completion evidence once. New
+`improve-complete` imports its last review pass(es) and check output once, with
+no separate record to submit. New
 children commit verified scoped improvements in their bound worktree under
 the selected Improve policy, unless an explicit user or repository no-commit
 override applies. The parent verifies the commit evidence and owns integration;
@@ -515,7 +516,7 @@ planning retains that section and its test selector in work-item context. The
 producer includes those locators and relevant run evidence in `evidence_refs`;
 the host passes them into the selected Improve skill's existing contract prose
 and review notes. Its bound Until Loop runtime persists that contract for child
-recovery. ShipLoop imports completion evidence, not a new product specification.
+recovery. ShipLoop imports the child's own review and check files, not a new product specification.
 This last transfer is a host duty, not an automatic semantic guarantee.
 
 [Backchain planning guidance](references/backchain-planning.md#navigator-planning)
@@ -922,7 +923,7 @@ shiploop report   --run-dir RUN
 # Callbacks the packet prints
 shiploop complete --run-dir RUN --action ACTION --result RESULT.md
 shiploop improve-bind --run-dir RUN --action ACTION --skill-card ABSOLUTE_SKILL_CARD
-shiploop improve-complete --run-dir RUN --action ACTION --result SKILL_COMPLETION.md
+shiploop improve-complete --run-dir RUN --action ACTION [--notes LESSONS.md] [--final-result RESULT.md] [--no-commit=TEXT]
 shiploop improve-reconcile --run-dir RUN --action ACTION --result RECONCILIATION.md
 # Run control
 shiploop pause    --run-dir RUN --reason=TEXT

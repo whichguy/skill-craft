@@ -168,7 +168,7 @@ directly. Any other producer `done` advances to the next producer. When a skill
 was not selected at initialization, the checkpoint's packet supplies the exact
 `improve-bind --action ... --skill-card ...` command. Follow that command and
 the selected card's bound runtime rather than guessing an adapter. Only an
-accepted matching completion passed to `improve-complete` imports the child and
+accepted matching completion run through `improve-complete` imports the child and
 releases the next graph edge.
 An explicit relative `--improve-skill` locator is made absolute at initialization,
 so a later shell cwd cannot change which card the checkpoint selects.
@@ -277,8 +277,9 @@ unless the user asked for independent review.
 Its review iterations share this context. Save each raw start, next and done
 packet to the printed receipt, the start packet before any review work. Put the
 binding line alone and first in frozen `context.request`. Only after the
-terminal packet is saved, write the completion evidence and run the parent
-return and `improve-complete`. A later user decision applies from the next
+terminal packet is saved, run the parent
+return and `improve-complete --action <id>`, with no separate record: it
+imports the reviews directory's own `review-<n>.md`/`checks.md` files. A later user decision applies from the next
 review iteration and is recorded in the review notes and handoff; the frozen
 launch context stays unchanged. Recover an existing child from its receipt's
 exact `next_argv`; start another runtime only through the stopped-child restart

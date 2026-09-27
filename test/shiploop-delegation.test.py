@@ -448,9 +448,9 @@ class PacketContractTests(DelegationStateTests):
                         self.assertTrue(lead.startswith("Callback for this Improve child "), lead)
                         argv = shlex.split(lead.split("): ", 1)[1])
                     self.assertEqual(argv[2], "improve-complete")
-                    evidence = next(line for line in lines
-                                    if line.startswith("Write completion evidence to: "))
-                    self.assertIn("--result=" + evidence.split(": ", 1)[1], argv)
+                    # P12: no completion record; ShipLoop derives it from the review files.
+                    self.assertFalse(any(arg.startswith("--result") for arg in argv), argv)
+                    self.assertTrue(any(line.startswith("Evidence: write each review pass to ") for line in lines))
                     parent = next(i for i, line in enumerate(lines)
                                   if line.startswith(("Parent callback;", "Parent-only callback;")))
                     self.assertEqual(argv, shlex.split(lines[parent + 1]))
