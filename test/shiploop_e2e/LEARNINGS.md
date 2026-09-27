@@ -330,3 +330,28 @@ harness-FAIL, 7 cancelled; 8b on 1.6.0 PASS committed, 4 cancelled, 0 ShipLoop f
   The earlier evidence was the 09-20 Grok pilot on older packages. ShipLoop's Ask-Agent chain
   route is still unexercised live; its Improve-contract defect (see the Codex resume entry)
   blocks it before `implement`.
+
+## 1111 — 2026-09-27 — web-service + breadth suites in parallel, marketplace 1.11.1 (ShipLoop 0.44.1)
+
+- First parallel run: the web-service suite and the breadth suite's three chains ran together (four Grok
+  sessions, each with its own marketplace preflight: all installed 1.11.1). Grok credits ran out after
+  about 62 minutes; three runs were stopped, unfinished.
+- csv-report (cli-files) PASS on every verdict, including `committed`: 261 turns, $18.58, 1 session,
+  0 ShipLoop failures, 0 cancellations. The return fix (commit leftovers, knowledge index) worked live;
+  web-p5 had failed exactly there. Its row records glue 3; all three were metric false positives fixed
+  during the run (e1539b8b, 339abaea, a5ccea84); recomputed glue is 0.
+- seat-reservations reached release-plan with 9/9 ShipLoop-run checks and a real defect found by review
+  (a Content-Length hang). The two battleship runs reached system tests and page work; review found real
+  defects (`shipCells(null)` TypeError, `random()` == 1 off-board placement).
+- Concurrency defect (plan P13): web battleship and seat-reservations both wrote their Until Loop report
+  to the literal /tmp/improve-done-1.json; battleship then read the other run's report. That review
+  loop's evidence is suspect. Models pick fixed /tmp names because the report goes on stdin and no packet
+  names a scratch location. Parallel runs wait for P13.
+- Engine refusal worth the fix (plan P12): the breadth battleship wrote the Improve completion record as
+  raw JSON and was refused; the owner judged the hand-off over-precise. improve-complete now derives the
+  record (730dfcda).
+- Correction to an earlier claim: the truncated `opening.md` read was a model-built composite command
+  (git log -7 --format=full plus several cats), not an oversized ShipLoop file (847 and 4,269 bytes).
+  Real truncations remain the Until Loop action responses (~21 KB), the upstream --report-file item.
+- Metric fixes from this round: run/evidence/ is model input; a contract counts as hand-built only when a
+  command writes it or feeds it to the Until Loop runtime (json.dump(, not json.dumps).

@@ -432,6 +432,24 @@ Adversarial evaluation:
 Anchor: S-1 (scripts own state), S-5 (mechanical steps are the scripts'), S-7 (small packets).
 Non-regression: the same files are imported, hashed and archived; no verdict changes.
 
+### P13 A run-local scratch directory; no shared /tmp names (ShipLoop; S-14, Parallel work) — proposed
+
+Evidence: suites web-1111 and breadth-1111 ran concurrently on 1.11.1. The web-service battleship run and
+seat-reservations both wrote their Until Loop report to the literal path /tmp/improve-done-1.json; the
+battleship run then read the other run's report ("the returned report mentions a different server").
+The same collision hits a user running two ShipLoop sessions. Models choose fixed /tmp names because the
+Until Loop report goes on standard input and no packet says where temporary files belong; TMPDIR does not
+help, since the paths are literal.
+
+Proposal: ShipLoop creates <run>/scratch/ and every packet's common rule says temporary files go there
+(/tmp is shared with other runs). The Until Loop report is written to a path ShipLoop names and passed as a
+file (the upstream until-loop --report-file item), not piped from a fixed /tmp name.
+
+Adversarial evaluation (to finish before implementing): a scratch directory inside the run dir must be
+excluded from the workspace return and from knowledge commits; the line costs every packet a sentence;
+the Until Loop change is upstream (vendored runtime), so the ShipLoop half must stand alone; harness
+evidence from concurrent runs before this fix is marked suspect where a /tmp name was shared.
+
 ## Status
 
 - P6 in progress (2026-09-27): `csv-report` and `seat-reservations` cases,
