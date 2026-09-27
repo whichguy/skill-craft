@@ -43,19 +43,20 @@ LIFECYCLE_NOTE = "notes/environment-lifecycle.md"
 
 
 def _with_packet_file(stdout: str) -> str:
-    """Append the full packet's file text when stdout only printed the head.
+    """The complete packet: its file when stdout printed a ``Full packet:`` pointer.
 
-    An active-state ``emit()`` prints a short head with a ``Full packet:
-    <path>`` line and writes the complete packet to that file; a non-active
-    print (paused/blocked/halted/done) already carries the full text and has
-    no such line, so it passes through unchanged.
+    An active packet prints a short head, and a paused, blocked, halted or done
+    packet longer than the print limit prints the start of its text; either way
+    the file holds the whole packet, so it is read instead of stdout (reading both
+    would count the printed part twice, as long local temp paths make happen).
+    A packet printed whole has no pointer and passes through unchanged.
     """
     marker = "Full packet: "
     for line in stdout.splitlines():
         if line.startswith(marker):
             packet_file = Path(line[len(marker):])
             if packet_file.is_file():
-                return stdout + "\n" + packet_file.read_text(encoding="utf-8")
+                return packet_file.read_text(encoding="utf-8")
     return stdout
 
 
