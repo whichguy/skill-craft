@@ -3252,13 +3252,14 @@ def _first_callback_lines(core: Any, root: Path, state: Mapping[str, Any]) -> li
         card = state.get("improve_skill") or "/absolute/path/to/selected/improve/SKILL.md"
         return ["Next command (bind the selected Improve card; details below): "
                 + _callback(core, root, "improve-bind", action=action_id, **{"skill-card": card})]
-    if delegation(state) == guidance3.INLINE:
-        import shiploop_standalone_improve as standalone
-        if not standalone.receipt_path(child).exists():
-            opening = improve_opening_path(child)
-            return ["Next command (start the bound Improve child after writing its opening file "
-                    + str(opening) + "; details below): "
-                    + _callback(core, root, "improve-start", action=action_id, opening=str(opening))]
+    import shiploop_standalone_improve as standalone
+    if not standalone.receipt_path(child).exists():
+        # Both routes: ShipLoop writes the contract and starts the child (the Ask-Agent
+        # route's hand-built contract lost its binding line, 551b8b49).
+        opening = improve_opening_path(child)
+        return ["Next command (start the bound Improve child after writing its opening file "
+                + str(opening) + "; details below): "
+                + _callback(core, root, "improve-start", action=action_id, opening=str(opening))]
     return ["Callback for this Improve child (parent only; after the runtime returns complete; "
             "never 'complete'): " + _callback(core, root, "improve-complete", action=action_id)]
 
@@ -3399,26 +3400,32 @@ def _render_improve(core: Any, root: Path, state: Mapping[str, Any], lines: list
 
     packet_path = standalone_improve.receipt_path(child)
     evidence_root = packet_path.parent / "reviews"
-    if inline:
-        ownership_lines = [
+    # Both routes: the parent writes the opening and ShipLoop freezes the contract and starts
+    # the child (improve-start); a model never writes the start contract (149ed901, 551b8b49).
+    start_lines = [
             "Context-first opening: before start, write the opening file " + str(improve_opening_path(child))
             + " with exactly these four sections, each filled from this conversation and the candidate:\n"
             + improve_opening_template()
             + "'Current context and desired improvements' holds current learnings, decisions, unresolved concerns and suggested improvements to assess; 'Scope' the exact candidate paths (including untracked ones) and anything excluded; 'Authority' current approvals, declines, pending decisions and any no-commit override, with their source; 'Environment' the runtime, commands and checks that apply. Supply essential meaning inline and existing locators for supporting detail; do not copy this packet or restate the skill's execution instructions.",
             "Then run: " + _callback(core, root, "improve-start", action=action_id, opening=str(improve_opening_path(child)))
             + " . ShipLoop freezes the child contract from the opening (binding line, workspace, work, exit and repeat conditions, commit policy, exclusions and every return locator; written to start.json beside the receipt), starts the bound runtime with the receipt below and prints the child's first packet. Do not write the start contract or start the runtime yourself. If this child already started, recover it from its receipt as described below instead.",
+    ]
+    if inline:
+        ownership_lines = [
+            *start_lines,
             "Delegation: inline. Run the selected Improve card's ShipLoop whole-skill subcall in this conversation, in the exact Child workspace; verify the process cwd and Git root before task work. Do not hand the invocation to Ask Agent, a native worker or an extra worktree. Run its reviews and checks in this conversation too; start no reviewer, test-runner or executor agent unless the user asked for independent review. This conversation is the only candidate writer until the runtime returns a terminal packet; stop competing writes there, including checks that generate files. Read that reference's default-route section before start or recovery.",
             "Carry current approvals, declines and pending decisions into child context.authority with action/target, conditions and authorization source; summarize their implications in the opening. Do not ask again for an applicable approval or treat a decline as optional advice. A later user decision in this conversation applies from the next review iteration: record its receipt and effect in the review notes and handoff; keep the frozen launch context unchanged.",
             "Return order: only after the runtime has written the terminal packet to the receipt below, run the parent return and callback below. Runtime completion alone never advances this action.",
         ]
     else:
         ownership_lines = [
-            "Parent assignment preparation: fill 'Current context and desired improvements' with current learnings, decisions and unresolved concerns from the conversation and candidate. Then say 'Run /improve' with the selected card and concrete run binding. Retain the opening once in child context.request. Supply essential meaning inline and existing locators for supporting detail; the navigator cannot supply conversation-only learnings. Do not forward this entire parent packet or repeat the skill's execution instructions.",
-            "For a genuinely new invocation, run the host-selected improve-agent card for this bound child: it starts one fresh native worker for the entire Improve loop with exclusive write ownership in the exact Child workspace, through the host-selected Ask Agent's ask-agent/consumer-owned-workspace/v1 route; never use Ask Agent's default extra-worktree route for this bound child. Read the context-ownership reference before launch or recovery.",
+            *start_lines,
+            "Parent assignment preparation: the opening carries the conversation-only learnings, decisions and unresolved concerns (the navigator cannot supply conversation-only learnings). Then say 'Run /improve' with the selected card, the concrete run binding and this started child's receipt. Do not forward this entire parent packet or repeat the skill's execution instructions.",
+            "For a genuinely new invocation, after improve-start has started the child, run the host-selected improve-agent card for this bound child: it starts one fresh native worker that continues the already-started loop from the receipt's next_argv, with exclusive write ownership in the exact Child workspace, through the host-selected Ask Agent's ask-agent/consumer-owned-workspace/v1 route; never use Ask Agent's default extra-worktree route for this bound child. Read the context-ownership reference before launch or recovery.",
             "Workspace route: consumer-owned; delivery mode: in-place. Native assignment: execution_role: improve-executor; delegation_owner: parent. Freeze the exact candidate scope, selected packages, explicit user/repository authority including any no-commit override, evidence paths and parent continuation before dispatch. Existing invocations keep their recorded owner and frozen authority; unknown ownership blocks replacement.",
             "Native owner record: " + str(packet_path.with_name("host-owner.md")),
             "Carry current approvals, declines and pending decisions into child context.authority with action/target, conditions and authorization source; summarize their implications in the opening. Do not ask again for an applicable approval or treat a decline as optional advice. Forward later user decisions through the native channel and record receipt/effect in host-owner.md and the worker handoff; keep launch context immutable and continue the same child.",
-            "Parent-only return: the worker starts the child with the receipt below and writes its review files, then returns their locators without executing ShipLoop callbacks or workspace return. The parent collects and verifies the result before executing the exact return route below. Worker completion alone never advances this action.",
+            "Parent-only return: the worker continues the child from the receipt below and writes its review files, then returns their locators without executing ShipLoop callbacks other than improve-commit, or workspace return. The parent collects and verifies the result before executing the exact return route below. Worker completion alone never advances this action.",
         ]
     start_word = "start" if inline else "dispatch"
     runtime_lines = [
@@ -3435,16 +3442,7 @@ def _render_improve(core: Any, root: Path, state: Mapping[str, Any], lines: list
         ]),
         ("The runtime writes every packet it returns to the receipt above, the terminal one before it deletes "
          "its state. Never write or edit the receipt; ShipLoop imports only a packet the runtime wrote there. "
-         "Start before any review work." if inline else
-         "Start the child runtime with --receipt " + shlex.quote(str(packet_path)) + ": the runtime writes every "
-         "packet it returns to that receipt before printing it, and the terminal packet before it deletes its "
-         "state, so the callback handle and terminal evidence survive a lost context. Do not write or edit the "
-         "receipt; ShipLoop imports only a packet the runtime wrote there. It is not a second runtime state machine."),
-        *(["Freeze in repeat_condition: if a finding invalidates an accepted discovery, research, spec "
-           "or test-strategy premise, finish the current bounded work and report classification "
-           "unresolved or non-trivial, exit_assessment unsatisfied or unknown, and "
-           "continuation_assessment cancelled. A blocked stop cannot use improve-reconcile or "
-           "improve-complete and leaves the parent incomplete."] if planning_reconcile and not inline else []),
+         "Start before any review work."),
         "For a genuinely new child, read the selected skills and start once. If this child has already started, read its saved receipt: for active status use its exact next_argv once to recover, then follow the returned instruction; for complete status import its retained receipt without starting or reviewing again. "
         + ("For a cancelled stopped status preserve the receipt and keep successful completion unresolved; only "
            "this initial plan child may use the printed parent-only improve-reconcile route "
@@ -3457,24 +3455,13 @@ def _render_improve(core: Any, root: Path, state: Mapping[str, Any], lines: list
         + (", record the decision in the opening file and rerun the improve-start command with "
            "--restart-stopped: ShipLoop archives packet.json as packet.stopped-<UTC timestamp>.json and "
            "the sibling reviews directory as reviews.stopped-<same timestamp>, then starts a new child with "
-           "the same binding line. Do not rename them yourself. "
-           if inline else
-           ", rename packet.json to packet.stopped-<UTC timestamp>.json and the sibling reviews "
-           "directory to reviews.stopped-<same timestamp>, record the decision in the new context "
-           "opening and start a new child with the same binding line. ")
+           "the same binding line. Do not rename them yourself. ")
         + "Its review-<n>.md files and checks.md must be ones the new child writes. "
         "To pause instead, run the parent pause command below and leave the child active; never "
         "report cancelled for a pause. "
         + "If an existing active child's receipt or temporary state is unavailable, report incomplete; "
         "never infer completion or silently create a replacement. Terminal recovery uses the retained "
         "raw packet because terminal state is deleted.",
-        *([] if inline else [
-            "Binding line: copy the next line verbatim into frozen context.request exactly once, "
-            "alone on its own line with no bullet, quote, backticks, indentation or trailing text; import matches the whole line:",
-            child["contract_marker"],
-            "Start inputs owned by ShipLoop: required_trivial_reviews 2 (import rejects fewer); workspace: "
-            "the Child workspace above.",
-        ]),
         *(
             [
                 "Put the original request, step result, permitted paths, expected check state, authority and "
@@ -3490,8 +3477,7 @@ def _render_improve(core: Any, root: Path, state: Mapping[str, Any], lines: list
                             message=str(improve_commit_message_path(child)))
                 + " . ShipLoop commits exactly the files this review changed and has not committed. Do not "
                 "write the message with a shell heredoc or run git commit yourself.",
-            ] if inline and not planning_reconcile else
-            [
+            ] if not planning_reconcile else [
                 "Freeze the original request, step result and execution/exit/repeat conditions, permitted paths, expected check state, authority and relevant environment in the child's context.",
                 "For this planning Improve child, use the context-first opening as the compact planning summary plus locators for "
                 "the planning experiments guide, investigation notebook, latest packet, "
@@ -3500,12 +3486,6 @@ def _render_improve(core: Any, root: Path, state: Mapping[str, Any], lines: list
                 "Keep the full parent packet, prompts and verbose "
                 "logs behind those locators; do not duplicate them in the child context.",
                 "Commit policy: use the selected Improve card's scoped-commit policy with the task's explicit overrides; retain existing frozen authority on recovery.",
-            ] if planning_reconcile else [
-                "Freeze the original request, step result and execution/exit/repeat conditions, permitted paths, expected check state, authority and relevant environment in the child's context.",
-                "Commit policy: use the selected Improve card's scoped-commit policy with the task's explicit overrides; retain existing frozen authority on recovery.",
-                "Include context.resources locators for this latest-packet receipt, "
-                + ("" if inline else "native owner record (parent coordination data), ")
-                + "parent state.md and exact parent return instructions below. The child terminal packet must be sufficient to locate and perform the parent return after context loss.",
             ]
         ),
         "Completion deletes the child's temporary state. Preserve the complete terminal packet at the receipt above before calling improve-complete. If terminal output is lost, stop incomplete; a missing state file is not completion evidence.",
@@ -3924,6 +3904,8 @@ def improve_start_contract(core: Any, root: Path, state: Mapping[str, Any], open
         {"purpose": "ShipLoop parent state", "locator": str(root / "state.md")},
         {"purpose": "review evidence directory (review-<n>.md per pass, checks.md)", "locator": str(reviews)},
         {"purpose": "exact parent return instructions", "locator": str(parent_return)},
+        *([{"purpose": "native owner record (parent coordination data)",
+            "locator": str(receipt.with_name("host-owner.md"))}] if delegation(state) != guidance3.INLINE else []),
     ]
     return loop_contract.contract(
         workspace=child["workspace"], work=work,
@@ -3983,8 +3965,6 @@ def _improve_start(core: Any, root: Path, state: Mapping[str, Any], args: Any) -
     action_id = getattr(args, "action", None)
     _need(state["status"] == "active" and child is not None and action_id == child["action_id"]
           and child["skill"] is not None, "no bound current Improve child; run the printed improve-bind first")
-    _need(delegation(state) == guidance3.INLINE,
-          "improve-start is the inline route; an ask-agent child is started by its worker")
     receipt = standalone.receipt_path(child)
     restart = bool(getattr(args, "restart_stopped", False))
     if receipt.exists():

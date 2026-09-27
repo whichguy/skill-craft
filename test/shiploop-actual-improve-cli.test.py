@@ -420,13 +420,13 @@ class EphemeralImproveCliTests(ImproveCliFixture):
                 self.assertIn("navigator cannot supply conversation-only learnings", packet)
                 self.assertIn("Parent-only return:", packet)
                 self.assertIn("keep launch context immutable and continue the same child", packet)
-                self.assertIn("Binding line: copy the next line verbatim into frozen context.request exactly once, "
-                              "alone on its own line", packet)
-            if not self.inline():
-                marker = packet.index(self.bound["contract_marker"] + "\n")
-                self.assertIn("import matches the whole line:\n", packet[marker - 40:marker])
-                self.assertIn("Start inputs owned by ShipLoop: required_trivial_reviews 2 (import rejects fewer)",
-                              packet)
+                # ShipLoop starts this child too; the worker continues it (551b8b49).
+                self.assertIn(" improve-start ", packet)
+                self.assertIn("continues the already-started loop from the receipt's next_argv", packet)
+            # Neither route asks the model to copy the binding line or state start inputs.
+            self.assertNotIn(self.bound["contract_marker"], packet)
+            self.assertNotIn("Start inputs owned by ShipLoop", packet)
+            self.assertNotIn("Start the child runtime with --receipt", packet)
             self.assertIn("Selected Improve skill: " + str(CARD.resolve()), packet)
             self.assertIn("material unresolved findings, hypotheses, failed attempts", packet)
             self.assertIn("approvals, declines and pending decisions into child context.authority", packet)
@@ -539,13 +539,10 @@ class EphemeralImproveCliTests(ImproveCliFixture):
     def test_user_stopped_child_restarts_with_the_same_binding_then_imports(self):
         """A cancelled non-plan child is archived, restarted once and imported; no halt needed."""
         packet = self.invoke(CLI, "next", "--run-dir", self.run).stdout
-        if self.inline():
-            self.assertIn("rerun the improve-start command with --restart-stopped: ShipLoop archives "
-                          "packet.json as packet.stopped-<UTC timestamp>.json", packet)
-            self.assertIn("Do not rename them yourself.", packet)
-        else:
-            self.assertIn("rename packet.json to packet.stopped-<UTC timestamp>.json and the sibling reviews "
-                          "directory to reviews.stopped-<same timestamp>", packet)
+        # Both routes restart through ShipLoop; neither renames files by hand (29786109, 551b8b49).
+        self.assertIn("rerun the improve-start command with --restart-stopped: ShipLoop archives "
+                      "packet.json as packet.stopped-<UTC timestamp>.json", packet)
+        self.assertIn("Do not rename them yourself.", packet)
         self.assertIn("must be ones the new child writes", packet)
         self.assertIn("never report cancelled for a pause", packet)
         _raw, first = self.start_ephemeral_child()
@@ -557,30 +554,22 @@ class EphemeralImproveCliTests(ImproveCliFixture):
         self.invoke(CLI, "improve-complete", "--run-dir", self.run, "--action", self.action,
                     *completion, status=2)
         self.assertEqual((self.run / "state.md").read_bytes(), before)
-        if self.inline():
-            opening = self.packet_path.with_name("opening.md")
-            opening.write_text("## Current context and desired improvements\nThe user authorized continuing.\n\n"
-                               "## Scope\nproduct/contracts/cold-recovery.md\n\n## Authority\nUser: continue.\n\n"
-                               "## Environment\nPython fixture.\n", encoding="utf-8")
-            start = [CLI, "improve-start", "--run-dir", self.run, "--action", self.action, "--opening", opening]
-            self.assertIn("already started", self.invoke(*start, status=2).stderr)
-            restarted_run = self.invoke(*start, "--restart-stopped")
-            self.assertIn("Archived the stopped child", restarted_run.stderr)
-            restarted = restarted_run.stdout
-            json.loads(restarted)
-            archived = next(self.packet_path.parent.glob("packet.stopped-*.json"))
-            stopped_reviews = self.packet_path.parent / archived.name.replace("packet.", "reviews.").removesuffix(".json")
-            self.assertTrue(stopped_reviews.is_dir())
-            first = json.loads(restarted[restarted.index("{"):])
-            self.assertEqual(first["status"], "active")
-            self.finish_ephemeral(first)
-        else:
-            archived = self.packet_path.with_name("packet.stopped-20260923T000000Z.json")
-            self.packet_path.rename(archived)
-            reviews = self.packet_path.with_name("reviews")
-            stopped_reviews = reviews.with_name("reviews.stopped-20260923T000000Z")
-            reviews.rename(stopped_reviews)
-            self.finish_ephemeral()
+        opening = self.packet_path.with_name("opening.md")
+        opening.write_text("## Current context and desired improvements\nThe user authorized continuing.\n\n"
+                           "## Scope\nproduct/contracts/cold-recovery.md\n\n## Authority\nUser: continue.\n\n"
+                           "## Environment\nPython fixture.\n", encoding="utf-8")
+        start = [CLI, "improve-start", "--run-dir", self.run, "--action", self.action, "--opening", opening]
+        self.assertIn("already started", self.invoke(*start, status=2).stderr)
+        restarted_run = self.invoke(*start, "--restart-stopped")
+        self.assertIn("Archived the stopped child", restarted_run.stderr)
+        restarted = restarted_run.stdout
+        json.loads(restarted)
+        archived = next(self.packet_path.parent.glob("packet.stopped-*.json"))
+        stopped_reviews = self.packet_path.parent / archived.name.replace("packet.", "reviews.").removesuffix(".json")
+        self.assertTrue(stopped_reviews.is_dir())
+        first = json.loads(restarted[restarted.index("{"):])
+        self.assertEqual(first["status"], "active")
+        self.finish_ephemeral(first)
         completion, _receipt = self.completion_receipt()
         self.invoke(CLI, "improve-complete", "--run-dir", self.run, "--action", self.action,
                     *completion)
@@ -879,9 +868,11 @@ class EphemeralImproveCliTests(ImproveCliFixture):
         self.assertEqual(full.count("Never write or edit the receipt"), 1)
 
     def test_improve_start_freezes_the_contract_and_starts_the_runtime(self):
-        """The parent writes four opening sections; ShipLoop writes the contract and starts the child."""
-        if not self.inline():
-            self.skipTest("improve-start is the inline route")
+        """The parent writes four opening sections; ShipLoop writes the contract and starts the child.
+
+        On both routes: the Ask-Agent route's hand-built contract omitted the binding line in the
+        Codex E2E run (551b8b49), so ShipLoop starts that child too.
+        """
         receipt = bridge.receipt_path(self.bound)
         opening = receipt.with_name("opening.md")
         start = [CLI, "improve-start", "--run-dir", self.run, "--action", self.action, "--opening", opening]
@@ -912,6 +903,11 @@ class EphemeralImproveCliTests(ImproveCliFixture):
         contract = json.loads(receipt.with_name("start.json").read_text(encoding="utf-8"))
         self.assertEqual(contract["workspace"], self.bound["workspace"])
         self.assertEqual(contract["required_trivial_reviews"], 2)
+        owner = str(receipt.with_name("host-owner.md"))
+        locators = [row["locator"] for row in contract["context"]["resources"]]
+        # The delegated route's worker coordinates through the owner record; inline has none.
+        self.assertEqual(owner in locators, not self.inline())
+        self.assertEqual(contract["context"]["request"].splitlines()[0], self.bound["contract_marker"])
         # S-10: the review loop's exit carries the reviewed stage's own done-when criteria.
         stage = self.bound["stage"]
         for criterion in navigator.stage_spec.stage(stage).done_when:
@@ -1417,6 +1413,8 @@ class AskAgentEphemeralImproveCliTests(ImproveCliFixture):
         EphemeralImproveCliTests.test_planning_improve_packet_carries_graph_identity_through_real_child_callbacks)
     test_user_stopped_child_restarts_with_the_same_binding_then_imports = (
         EphemeralImproveCliTests.test_user_stopped_child_restarts_with_the_same_binding_then_imports)
+    test_improve_start_freezes_the_contract_and_starts_the_runtime = (
+        EphemeralImproveCliTests.test_improve_start_freezes_the_contract_and_starts_the_runtime)
 
 
 if __name__ == "__main__":

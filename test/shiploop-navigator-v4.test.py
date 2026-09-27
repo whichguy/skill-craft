@@ -408,25 +408,25 @@ class NavigatorV4Tests(unittest.TestCase):
         self.assertIn("collect or confirm the recorded native worker owner", improve)
         self.assertIn("do not duplicate the full parent packet", improve)
         self.assertIn("use the context-first opening as the compact planning summary", improve)
-        context_pos = improve.index("fill 'Current context and desired improvements'")
+        context_pos = improve.index("Context-first opening: before start, write the opening file")
         invoke_pos = improve.index("Then say 'Run /improve'")
         self.assertLess(context_pos, invoke_pos)
         self.assertIn("improve-reconcile", improve)
         cancel_rule = ("Freeze in repeat_condition: if a finding invalidates an accepted discovery, "
                        "research, spec or test-strategy premise")
         inline = navigator.render(None, root, dict(waiting, delegation="inline"))
-        # A blocked stop cannot reconcile; the child must report cancelled. The delegated worker
-        # freezes that rule itself; inline, improve-start writes it into the contract's repeat
-        # condition, which the runtime reprints in every child packet.
-        self.assertLess(improve.index(cancel_rule), improve.index("start once"))
-        self.assertIn("continuation_assessment cancelled", improve)
+        # A blocked stop cannot reconcile; the child must report cancelled. On both routes
+        # improve-start writes that rule into the contract's repeat condition, which the runtime
+        # reprints in every child packet; no packet asks a model to freeze it by hand (551b8b49).
+        self.assertNotIn(cancel_rule, improve)
         self.assertNotIn(cancel_rule, inline)
         opening = ("## Current context and desired improvements\nx\n\n## Scope\nx\n\n## Authority\nx\n\n"
                    "## Environment\nx\n")
-        contract = navigator.improve_start_contract(None, root, dict(waiting, delegation="inline"), opening)
-        self.assertIn("finish the current bounded work and report classification unresolved or non-trivial",
-                      contract["repeat_condition"])
-        self.assertIn("continuation_assessment cancelled", contract["repeat_condition"])
+        for route in ("inline", "ask-agent"):
+            contract = navigator.improve_start_contract(None, root, dict(waiting, delegation=route), opening)
+            self.assertIn("finish the current bounded work and report classification unresolved or non-trivial",
+                          contract["repeat_condition"])
+            self.assertIn("continuation_assessment cancelled", contract["repeat_condition"])
         for packet in (improve, inline):
             self.assertIn("the exact parent return instructions below", packet)
         self.assertIn("once the runtime has returned that stopped packet", inline)
