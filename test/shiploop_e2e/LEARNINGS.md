@@ -184,3 +184,23 @@ detailed message; read the last three commit messages before the next run or cha
   external workspace root). Hypothesis, not yet confirmed.
 - improve-start printed a status line before its JSON packet; the model parsed the output with json.load
   and failed. Fixed (unreleased): stdout is only the runtime packet.
+
+## Run 8b — 2026-09-27 — battleship-scoring follow-on of run 7, marketplace 1.6.0 (ShipLoop 0.39.0)
+
+- Outcome: PASS on every verdict and all 11 checks — the first follow-on to end fully committed: HEAD moved
+  7e86ce3e -> 442af8c4 (26 commits), 0 uncommitted product paths, 0 untracked files. 363 turns, $28.24,
+  5 sessions (4 cancelled), 0 ShipLoop command failures, 1 compaction, 1 truncated output, 16 Improve
+  children. Wall time 21,384 s includes a 4 h 49 min machine sleep (01:50-06:39); active time ~66 min.
+- Retention: every earlier file kept, no dependency added, tests 9 -> 10, spec kept R-1..R-9 and added R-10
+  (feature in spec: yes).
+- improve-commit worked: Improve reviews committed only through it (no model-written git commit), so no
+  session was lost to review commits (run 7b: 3). improve-start's stdout parsed as JSON.
+- The 4 cancellations were the model's own actions: two `git checkout HEAD -- <file>` (discarding its own
+  intake edit, reasonably refused) with a cp to /tmp, and two other model scripts.
+- Implementation was cheap: four implement steps of 4-5 turns each; integrate 5 turns. Costliest: spec 49,
+  step-plan 22, product-acceptance 22, release-plan 21. Regression's 290.8 min is the sleep.
+- Harness: caffeinate now keeps the machine awake during a run (bd9c75a5); run 7b's harness defects (check
+  leftovers, strict spec IDs) are fixed and did not recur.
+
+Comparison of follow-ons (same prompt): 6b on 1.4.0 PASS but uncommitted, 7 cancelled sessions; 7b on 1.5.0
+harness-FAIL, 7 cancelled; 8b on 1.6.0 PASS committed, 4 cancelled, 0 ShipLoop failures.
