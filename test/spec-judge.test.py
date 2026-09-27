@@ -28,7 +28,8 @@ def repo() -> Path:
     subprocess.run(["git", "init", "-q"], cwd=root, check=True)
     subprocess.run(["git", "add", "-A"], cwd=root, check=True)
     (root / "spec.md").write_text("### R-1 Runs\nEvidence: `src/main.js:1-3`\n\n### R-2 Empty input\n"
-                                  "No anchor here.\n\n### R-3 Broken\nEvidence: `src/main.js:99`\n")
+                                  "No anchor here.\n\n### R-3 Broken\nEvidence: `src/main.js:99`\n\n"
+                                  "### R-4 Test-named\n- runs once (evidence: test `test/main.test.js`, \"runs once\")\n")
     return root
 
 
@@ -47,14 +48,15 @@ class SpecJudgeTest(unittest.TestCase):
         self.sample = json.loads((self.out / "sample.json").read_text())
 
     def test_sample_draws_every_kind_and_checks_anchors(self):
-        self.assertEqual(self.sample["requirements"], ["R-1", "R-2", "R-3"])
+        self.assertEqual(self.sample["requirements"], ["R-1", "R-2", "R-3", "R-4"])
         self.assertEqual(sorted((t["test"], t["file"]) for t in self.sample["tests"]),
                          [("handles empty input", "test/main.test.js"), ("runs once", "test/main.test.js"),
                           ("runs once", "test/other.test.js")])
         self.assertEqual(self.sample["sources"], ["src/main.js", "src/util.js"])
         self.assertEqual({d["section"] for d in self.sample["readme"]}, {"tool", "Usage", "License"})
         anchors = self.sample["anchors"]
-        self.assertEqual((anchors["requirements"], anchors["anchored"], anchors["all_anchors_resolve"]), (3, 2, 1))
+        # R-4 cites an existing test file by name without a line: an anchor.
+        self.assertEqual((anchors["requirements"], anchors["anchored"], anchors["all_anchors_resolve"]), (4, 3, 2))
         self.assertEqual(anchors["unanchored"], ["R-2"])
 
     def verdicts(self, drop_one: bool = False) -> dict:
@@ -74,7 +76,7 @@ class SpecJudgeTest(unittest.TestCase):
         (self.out / "verdicts.json").write_text(json.dumps(self.verdicts()))
         rc, grade = call("score", "--out", str(self.out))
         self.assertEqual(rc, 0, grade)
-        self.assertEqual(grade["over_spec"], {"unanchored": 0.333, "broken_anchors": 0.333, "unsupported": 0.333})
+        self.assertEqual(grade["over_spec"], {"unanchored": 0.25, "broken_anchors": 0.25, "unsupported": 0.25})
         self.assertEqual(grade["under_spec"], {"tests_missing": 1.0, "sources_missing": 0.0, "readme_missing": 0.0})
         self.assertEqual(grade["architecture_true"], 0.0)
 

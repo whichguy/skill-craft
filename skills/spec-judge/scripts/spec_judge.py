@@ -78,6 +78,10 @@ def anchors(repo: Path, spec: str) -> dict:
             continue
         total += 1
         cites = re.findall(r"([\w./@-]+\.\w+):(\d+)(?:-(\d+))?", block)
+        # A cited file without a line (a test file with the test's name, a whole
+        # fixture) is an anchor too when the file exists.
+        cites += [(p, "1", "") for p in re.findall(r"`([\w./@-]+\.\w+)`", block)
+                  if (repo / p).is_file() and not any(c[0] == p for c in cites)]
         if not cites:
             unanchored.append(m.group(1))
             continue
@@ -159,13 +163,18 @@ def cmd_score(args) -> int:
         for v in verdicts.get(section, []):
             tallies[section][v.get("verdict")] = tallies[section].get(v.get("verdict"), 0) + 1
     req, tst, src, doc, arc = (tallies[k] for k in ("requirements", "tests", "sources", "readme", "architecture"))
-    anchors_ = sample["anchors"]
+    # Recompute the mechanical anchors from the copies next to the sample, so a
+    # checker fix re-scores a finished judgement without judging again.
+    spec_copy, repo_copy = args.out / str(sample.get("spec", "")), args.out / str(sample.get("repo", ""))
+    anchors_ = (anchors(repo_copy, spec_copy.read_text()) if spec_copy.is_file() and repo_copy.is_dir()
+                else sample["anchors"])
 
     def share(part: int, whole: int) -> float:
         return round(part / whole, 3) if whole > 0 else 0.0
 
     grade = {
         "complete": not problems, "problems": problems, "totals": sample["totals"], "tallies": tallies,
+        "anchors": {k: v for k, v in anchors_.items() if not isinstance(v, list)},
         "over_spec": {
             "unanchored": share(anchors_["requirements"] - anchors_["anchored"], anchors_["requirements"]),
             "broken_anchors": share(anchors_["anchored"] - anchors_["all_anchors_resolve"], anchors_["requirements"]),
