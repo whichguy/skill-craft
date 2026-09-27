@@ -102,6 +102,24 @@ Walk of 2026-09-27 (237+ repos): code-server fails (wraps VS Code as a
 submodule), prettier (10 same-owner dependencies), hexo (7), json-server
 (`lowdb`, and thin); **marked passes first**, then Modernizr and mocha.
 
+## Replan 2026-09-27: Grok credits exhausted
+
+Grok ran out mid-E3 (that run had also stalled: 4 tool calls in 25 min, a
+thought loop talking to an imagined user). The most dire tests, in order:
+
+- **T1 baseline rebuild on marked** — the first end-to-end rebuild → score →
+  attribute; everything later assumes it works. Run on two builders in
+  parallel, same spec: Claude Sonnet 5 (budget cap $15) and Codex
+  `gpt-5.6-luna` at xhigh (owner has Codex credits), each isolated (Claude:
+  project settings only; Codex: a CODEX_HOME holding only the sign-in).
+- **T2 attribution** (one Opus 5.5 judge) on T1's failures, spot-checked.
+- **T3 ShipLoop E2E on the mdkit case**, once, with the T1 builder that held
+  up (the E2E harness needs a Codex host for Luna). The automatic Claude T3
+  is held until both T1s score.
+
+Deferred: distill round 2, the second repository, repeats. Stall detector
+(no tool call for N minutes = failed step) before any unattended run.
+
 ## Experiments
 
 Execution Grok 4.7 medium; judge Opus 5.5 medium, one judge per round.
@@ -208,3 +226,5 @@ prune. Wording only: intro, case paragraph reflow, who drops failing checks.
 | 35 | A watcher's expiry killed the run it launched (json-server E3 died at 30 min) | E3 round 1 | yes | Chains run detached (new session); watchers only tail their logs |
 | 36 | "marked" is an ordinary word, so grepping tool calls for it would void innocent runs | case switch | yes | Tool calls are checked for `markedjs` and paths; the package name is checked only as a dependency (`--forbid-dep`) |
 | 37 | Evidence citations carry the original's name in file paths (`src/marked.ts`), so a spec that cites well leaks by construction | marked E1 | yes, clean room | Builder receives the evidence-stripped view; leak check runs on that view |
+| 38 | A step can stall in a thought loop without failing (Grok E3: 4 tool calls in 25 min) | marked E3 on Grok | yes, for unattended runs | Stall detector before unattended runs; recorded |
+| 39 | The builder host's global setup leaks into the clean room (Codex: global AGENTS.md, hooks, memories, browser/GitHub plugins) | Codex host | yes | Isolated CODEX_HOME with only the sign-in |
