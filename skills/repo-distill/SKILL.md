@@ -8,7 +8,8 @@ description: >
   tests into an admitted black-box oracle, and pick candidate repositories by
   star rank through material-value gates. Invoke as /repo-distill <repo path>,
   "distill a spec from this repo", "what does this repo do and how does it
-  relate", or "port these tests into a black-box oracle".
+  relate", "initialize ShipLoop's spec for this repo", or "port these
+  tests into a black-box oracle".
 version: 0.1.0
 license: MIT
 platforms:
@@ -29,6 +30,7 @@ tests and docs are evidence, not authority.
 
 ```
 /repo-distill <repo>                    # spec only (default)
+/repo-distill <repo> --init             # initialize ShipLoop's knowledge home for an existing repo
 /repo-distill <repo> --oracle           # also port its tests into a black-box oracle
 /repo-distill --select                  # pick a candidate repository by stars and gates
 ```
@@ -59,6 +61,17 @@ commit). Scripts live in `scripts/` next to this file; run them with
 
 Report: claim count, unknowns, citation result, and anything the original
 does that its tests or docs contradict.
+
+## 1b. Initialize (with `--init`)
+
+For a repository that has never run ShipLoop: run `prompts/initialize.md` in
+the repository. It writes only `docs/shiploop/` (index, `spec.md` with
+requirements `R-n` marked `Status: observed` and anchored to `path:line`,
+`architecture.md` with structure and decisions, `environment.md` with the
+commands it actually ran, `test-strategy.md`). The README is a primary
+source: its purposes, features, options and promises become requirements.
+Grade the result with `/spec-judge <repo> docs/shiploop/spec.md --architecture docs/shiploop/architecture.md`
+before relying on it.
 
 ## 2. Oracle (with `--oracle`)
 
