@@ -1523,8 +1523,12 @@ def _item_title(state: Mapping[str, Any], work_item: str) -> str:
     return ""
 
 
-def _knowledge_close(before: Mapping[str, Any], after: Mapping[str, Any]) -> None:
-    """Commit the knowledge home once a close stage's done has been accepted and saved."""
+def _knowledge_close(before: Mapping[str, Any], after: Mapping[str, Any], root: Path | None = None) -> None:
+    """Commit the knowledge home once a close stage's done has been accepted and saved.
+
+    In a worktree run whose work was already returned, that commit is then returned
+    too (plan P11), so the handoff's return check does not find a stale receipt.
+    """
     rows = after["history"][len(before["history"]):]
     stages = [row["stage"] for row in rows if row["outcome"] == "done"]
     if not stages:
@@ -1538,6 +1542,18 @@ def _knowledge_close(before: Mapping[str, Any], after: Mapping[str, Any]) -> Non
     notice = shiploop_git.skipped_notice(committed.skipped)
     if notice:
         print("ShipLoop knowledge: " + notice)
+    if committed.commit and root is not None and after.get("execution_mode") == "navigator-worktree":
+        import shiploop_workspace as workspace
+        try:
+            receipt = workspace.follow_up_knowledge_return(Path(root).parent)
+        except workspace.WorkspaceError as exc:
+            # The handoff check still requires a current return and prints the commands.
+            print("ShipLoop knowledge: the follow-up return was not made (" + str(exc) + "); "
+                  "handoff will ask for it.", file=sys.stderr)
+            return
+        if receipt is not None:
+            print("ShipLoop knowledge: returned the knowledge commit with the earlier work ("
+                  + str(receipt.get("kind")) + ").")
 
 
 # A locator may add an anchor, a line (and column) or a test ID after the file path:
@@ -4156,7 +4172,7 @@ def dispatch(core: Any, root: Path, state: Mapping[str, Any], args: Any,
                 lint_writes, lint_payload = _lint_transition(core, root, state, updated)
                 save(root, updated, {**lint_writes, **extra_writes})
                 _lint_finish(root, lint_payload)
-                _knowledge_close(state, updated)
+                _knowledge_close(state, updated, root)
             emit(core, root, updated)
             return 0
         except standalone.StandaloneImproveError as exc:
@@ -4225,6 +4241,6 @@ def dispatch(core: Any, root: Path, state: Mapping[str, Any], args: Any,
         save(root, updated, lint_writes)
         _lint_finish(root, lint_payload)
         _item_commit(root, state, updated)
-        _knowledge_close(state, updated)
+        _knowledge_close(state, updated, root)
     emit(core, root, updated)
     return 0

@@ -174,6 +174,12 @@ source state the previous receipt recorded, not from the preparation baseline:
   or untracked product output is refused rather than mixed into a merged branch.
 - After a **no-change return**, the source is still the preparation state, so
   the follow-up is an ordinary first return.
+- ShipLoop makes one follow-up itself: when its own knowledge commit (for
+  example at release-verify) lands after a verified return and everything
+  changed since that return is `docs/shiploop/` or `SHIPLOOP.md`, it returns that
+  commit by the same route, keeping the earlier reviewed dispositions. Anything
+  else changed, or a moved source, leaves the follow-up to you: handoff asks for
+  it with the commands.
 
 The new receipt keeps the previous one as `previous_receipt`. If the source
 already holds exactly the result the follow-up would produce (the fix was copied

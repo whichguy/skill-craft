@@ -377,7 +377,7 @@ cost are unchanged; the metric only reads existing files. Evidence: hermetic
 metrics tests with Claude and Grok event streams; the next focused-suite run
 records the first baseline.
 
-### P11 Follow-up return after ShipLoop's own knowledge commit (ShipLoop; S-5) — proposed
+### P11 Follow-up return after ShipLoop's own knowledge commit (ShipLoop; S-5) — implemented 2026-09-27
 
 Evidence: web-p5 battleship. The release-verify knowledge commit lands after the return taken at
 release, so handoff refuses with "the recorded one is stale" and the model runs plan-return and return
@@ -397,6 +397,11 @@ Adversarial evaluation (to finish before implementing):
   today's message, never retry or roll back.
 - Anchor: S-5 (mechanical steps are the scripts'); non-regression: the guard and message stay for any
   other change.
+Implemented: `workspace.follow_up_knowledge_return` runs from `_knowledge_close` after a knowledge commit in a
+worktree run; it acts only when every path changed since the returned candidate head is knowledge and
+nothing else is dirty, carries the reviewed plan's dispositions, and lets execute_return's own checks refuse
+a moved source (the refusal is printed and handoff asks for the return as before). It never commits
+leftovers, retries or rolls back.
 
 ### P12 improve-complete derives the completion record (ShipLoop; S-1, S-5) — approved by the owner 2026-09-27
 

@@ -692,6 +692,49 @@ class ShipLoopWorkspaceTests(unittest.TestCase):
         self.assertEqual((self.repo / "system" / "check.js").read_text(encoding="utf-8"), "late system test\n")
         self.assertEqual(self._call(workspace.commit_leftovers, root).commit, "")  # nothing left
 
+    def _returned_once(self, name: str) -> tuple[Path, Path]:
+        record = self._prepare(name=name)
+        root = self.base / name
+        worktree = self._worktree(record)
+        (worktree / "app.txt").write_text("product\n", encoding="utf-8")
+        self._commit_all(worktree, "product")
+        self._plan(root)
+        self._resolve_plan(root)
+        self.assertEqual(self._execute(root)["kind"], "fast-forward-merge")
+        return root, worktree
+
+    def test_knowledge_committed_after_a_return_is_returned_by_the_same_route(self) -> None:
+        root, worktree = self._returned_once("knowledge follow-up")
+        (worktree / "docs" / "shiploop").mkdir(parents=True)
+        (worktree / "docs" / "shiploop" / "outcome.md").write_text("learned\n", encoding="utf-8")
+        head = self._commit_all(worktree, "docs(shiploop): knowledge at release-verify")
+        receipt = self._call(workspace.follow_up_knowledge_return, root)
+        self.assertEqual(receipt["kind"], "fast-forward-merge")
+        self.assertEqual(self.git("rev-parse", "HEAD").stdout.strip(), head)
+        self.assertEqual((self.repo / "docs" / "shiploop" / "outcome.md").read_text(encoding="utf-8"), "learned\n")
+        self.assertIsNotNone(self._call(workspace.completed_receipt, root, self.repo))
+        self.assertIsNone(self._call(workspace.follow_up_knowledge_return, root))  # nothing new
+
+    def test_knowledge_follow_up_skips_anything_but_knowledge(self) -> None:
+        root, worktree = self._returned_once("knowledge with product")
+        (worktree / "SHIPLOOP.md").write_text("index\n", encoding="utf-8")
+        self._commit_all(worktree, "index")
+        (worktree / "app.txt").write_text("uncommitted product change\n", encoding="utf-8")
+        self.assertIsNone(self._call(workspace.follow_up_knowledge_return, root))  # dirty product file
+        (worktree / "app.txt").write_text("committed product change\n", encoding="utf-8")
+        self._commit_all(worktree, "product fix")
+        self.assertIsNone(self._call(workspace.follow_up_knowledge_return, root))  # a product commit: review it
+
+    def test_knowledge_follow_up_refuses_a_moved_source(self) -> None:
+        root, worktree = self._returned_once("knowledge drift")
+        (worktree / "SHIPLOOP.md").write_text("index\n", encoding="utf-8")
+        self._commit_all(worktree, "index")
+        (self.repo / "user-note.txt").write_text("the user kept working\n", encoding="utf-8")
+        before = self.git("rev-parse", "HEAD").stdout
+        with self.assertRaises(workspace.WorkspaceError):
+            self._call(workspace.follow_up_knowledge_return, root)
+        self.assertEqual(self.git("rev-parse", "HEAD").stdout, before)
+
     def test_clean_candidate_fast_forwards_when_every_path_is_kept(self) -> None:
         record = self._prepare(name="clean fast forward")
         root = self.base / "clean fast forward"
