@@ -80,7 +80,9 @@ SUITES = HERE / "suites.json"
 BASELINES = HERE / "baselines.jsonl"
 PLUGIN_NAME = "skill-craft"
 # Grok does not namespace plugin skills; Claude prefixes them with the plugin name.
-SKILL_COMMAND = {"grok": "shiploop", "claude": "skill-craft:shiploop"}
+def the_host(args) -> "hosts.Host":
+    """The selected host, with the binary its --<host>-bin flag names."""
+    return hosts.host(args.host, getattr(args, args.host + "_bin"))
 
 
 def load_case(args) -> tuple[str, str, list[str], str | None]:
@@ -201,12 +203,13 @@ def marketplace_preflight(args, out: Path, env: dict) -> tuple[Path, dict | None
     """
     released = released_versions()
     plugin = None
-    if args.host == "grok":
-        installed = hosts.grok_install_marketplace(env, grok_bin=args.grok_bin)
+    host = the_host(args)
+    if host.marketplace:
+        installed = host.install_marketplace(env)
         plugin_dir = Path(installed["path"]) if installed["path"] else out / "missing-plugin"
         plugin = {"pass": installed["pass"], "loaded": installed["loaded"], "source": installed["source"],
                   "registry_version": installed["version"]}
-        how = "grok marketplace add + install (fresh profile)"
+        how = f"{host.name} marketplace add + install (fresh profile)"
     else:
         plugin_dir = export_released(out)
         how = "origin/main export"
@@ -274,7 +277,7 @@ class LiveView:
 
 
 def launch(argv: list[str], work: Path, out: Path, env: dict, timeout: int, watch: bool,
-           first: bool = True, fresh: bool = True) -> dict:
+           first: bool = True, fresh: bool = True, translate=None) -> dict:
     if first and fresh:
         # The skill must start from a directory with nothing in it.
         leftover = sorted(p.name for p in work.iterdir())
@@ -284,7 +287,11 @@ def launch(argv: list[str], work: Path, out: Path, env: dict, timeout: int, watc
     view = LiveView(start, watch)
     mode = "wb" if first else "ab"  # a resumed session appends to the same streams
     events_path = out / "events.jsonl"
-    line = 0 if first else sum(1 for _ in events_path.open("rb"))
+    if first:
+        line = 0
+    else:
+        with events_path.open("rb") as existing:
+            line = sum(1 for _ in existing)
     # A run takes an hour or more; on macOS keep the machine from idle-sleeping, which
     # otherwise freezes the host mid-stage and stretches every stage timing.
     caffeinate = shutil.which("caffeinate")
@@ -295,22 +302,27 @@ def launch(argv: list[str], work: Path, out: Path, env: dict, timeout: int, watc
         proc = subprocess.Popen(argv, cwd=work, stdin=subprocess.DEVNULL, stdout=subprocess.PIPE,
                                 stderr=stderr, env=env, start_new_session=True)
 
-        def pump():
+        def record(raw: bytes):
             nonlocal line
-            for raw in proc.stdout:
-                events.write(raw)
-                events.flush()
-                number, line = line, line + 1
-                try:
-                    event = json.loads(raw)
-                except ValueError:
-                    continue
-                if isinstance(event, dict):
-                    # Grok events carry no time; stamp the ones metrics.py attributes.
-                    if event.get("type") not in ("text", "thought"):
-                        stamps.write(json.dumps({"line": number, "t": round(time.time(), 3)}) + "\n")
-                        stamps.flush()
-                    view.event(event)
+            events.write(raw)
+            events.flush()
+            number, line = line, line + 1
+            try:
+                event = json.loads(raw)
+            except ValueError:
+                return
+            if isinstance(event, dict):
+                # Grok events carry no time; stamp the ones metrics.py attributes.
+                if event.get("type") not in ("text", "thought"):
+                    stamps.write(json.dumps({"line": number, "t": round(time.time(), 3)}) + "\n")
+                    stamps.flush()
+                view.event(event)
+
+        def pump():
+            # The host's translator turns its stream into the shared event shape.
+            for original in proc.stdout:
+                for raw in (translate or (lambda b: [b]))(original):
+                    record(raw)
             view.flush_text()
 
         reader = threading.Thread(target=pump, daemon=True)
@@ -358,6 +370,20 @@ def summarize_events(path: Path) -> dict:
     return seen
 
 
+def shiploop_cli_ran(events_path: Path) -> bool:
+    """Whether any tool call ran the installed ShipLoop CLI."""
+    for line in events_path.read_text(errors="replace").splitlines():
+        try:
+            event = json.loads(line)
+        except ValueError:
+            continue
+        if isinstance(event, dict) and event.get("type") == "tool_call":
+            arg = event.get("rawInput") if isinstance(event.get("rawInput"), dict) else {}
+            if "skills/shiploop/scripts/shiploop" in str(arg.get("command") or ""):
+                return True
+    return False
+
+
 def last_session_id(events_path: Path) -> str | None:
     """The host session to resume: the last session id the event stream carried."""
     found = None
@@ -371,13 +397,12 @@ def last_session_id(events_path: Path) -> str | None:
     return found
 
 
-def resume_prompt(out: Path, run_dir: str | None) -> str:
+def resume_prompt(out: Path, run_dir: str | None, host: "hosts.Host | None" = None) -> str:
     if run_dir is None:
         return ("This session ended before the ShipLoop run was started. Continue the original "
                 "request now: start the ShipLoop run as its skill directs and follow each packet to "
                 "the end of the run. Never end the turn while a ShipLoop command is still running.")
-    cli = next((out / "home" / ".grok" / "installed-plugins").glob("skill-craft-*/skills/shiploop/scripts/shiploop"),
-               None)
+    cli = (host or hosts.host("grok")).plugin_cli(out / "home")
     command = f'python3 "{cli}" next --run-dir "{run_dir}"' if cli else f'shiploop next --run-dir "{run_dir}"'
     return ("This session ended while the ShipLoop run was still active. Continue it now: run "
             f"`{command}` and follow the packet it prints, to the end of the run. Never end the turn "
@@ -547,12 +572,16 @@ def parser() -> argparse.ArgumentParser:
     p.add_argument("--baseline", type=Path, default=BASELINES,
                    help="append one summary row per run to this file (default: the committed baselines.jsonl)")
     p.add_argument("--prompt", help="run this prompt instead of a named case")
+    p.add_argument("--resume-run", type=Path,
+                   help="an earlier run's output directory whose ShipLoop run stopped while active (a host ran "
+                        "out of credits, a machine slept): continue that same run in place, on --host, and grade "
+                        "it as usual. The case and checks come from the earlier run.")
     p.add_argument("--continue-from", type=Path,
                    help="an earlier run's output directory: start in a copy of its source checkout "
                         "(required by follow-on cases, which name the case they follow)")
     p.add_argument("--check", action="append", help="extra shell check run in the work dir (repeatable)")
     p.add_argument("--output", type=Path, help="new directory for this attempt (default: under $TMPDIR)")
-    p.add_argument("--host", choices=sorted(hosts.HOST_DEFAULTS), default="grok")
+    p.add_argument("--host", choices=sorted(hosts.HOSTS), default="grok")
     p.add_argument("--model", help="default: grok-4.7 (grok) or sonnet (claude)")
     p.add_argument("--effort", help="reasoning effort; default: medium (grok), host default (claude)")
     p.add_argument("--skill", help="command that invokes ShipLoop; default: shiploop (grok), skill-craft:shiploop (claude)")
@@ -578,6 +607,7 @@ def parser() -> argparse.ArgumentParser:
     p.add_argument("--suite-name", help=argparse.SUPPRESS)
     p.add_argument("--grok-bin", default="grok")
     p.add_argument("--claude-bin", default="claude")
+    p.add_argument("--codex-bin", default="codex")
     return p
 
 
@@ -650,7 +680,7 @@ def run_suite(args, argv: list[str]) -> int:
     if args.source == "marketplace" and not args.plugin_dir:
         check = base / "preflight"
         check.mkdir()
-        env = hosts.grok_env(check / "home") if args.host == "grok" else dict(os.environ)
+        env = the_host(args).env(check / "home")
         _, _, versions = marketplace_preflight(args, check, env)
         (check / "preflight.json").write_text(json.dumps(versions, indent=2) + "\n")
         if versions["gate"]:
@@ -696,31 +726,43 @@ def main(argv: list[str] | None = None) -> int:
     args = parser().parse_args(argv)
     if args.preflight_only:
         out = new_output_dir(args.output, "preflight")
-        env = hosts.grok_env(out / "home") if args.host == "grok" else dict(os.environ)
+        env = the_host(args).env(out / "home")
         _, _, versions = marketplace_preflight(args, out, env)
         (out / "preflight.json").write_text(json.dumps(versions, indent=2) + "\n")
         return 1 if versions["gate"] else 0
     if args.suite:
         return run_suite(args, argv)
-    defaults = hosts.HOST_DEFAULTS[args.host]
-    args.model = args.model or defaults["model"]
-    args.effort = args.effort or defaults["effort"]
-    args.skill = args.skill or SKILL_COMMAND[args.host]
+    host = the_host(args)
+    args.model = args.model or host.model
+    args.effort = args.effort or host.effort
+    args.skill = args.skill or host.skill
     if args.plugin_dir:
         args.source = "checkout"
     if args.plugin_dir and not (args.plugin_dir / ".claude-plugin" / "plugin.json").is_file():
         raise SystemExit(f"--plugin-dir has no .claude-plugin/plugin.json: {args.plugin_dir}")
 
-    name, prompt, checks, follows = load_case(args)
-    if follows and not args.continue_from:
-        raise SystemExit(f"case {name!r} follows {follows!r}: pass --continue-from <that run's output directory>")
-    out = new_output_dir(args.output, name)
-    work = out / "work"
-    work.mkdir()
-    follow_on = continue_from(args.continue_from.expanduser().resolve(), work) if args.continue_from else None
-    env = dict(os.environ, GIT_TERMINAL_PROMPT="0", NO_COLOR="1")
-    if args.host == "grok":
-        env = hosts.grok_env(out / "home")
+    resumed = None
+    if args.resume_run:
+        # Continue a stopped run in place: same work directory, run state and event stream.
+        out = args.resume_run.expanduser().resolve()
+        earlier = json.loads((out / "invocation.json").read_text())
+        name, checks, follow_on = earlier["case"], earlier["checks"], earlier.get("follow_on")
+        prompt = (out / "prompt.txt").read_text().strip()
+        work = out / "work"
+        state = grade_shiploop(out)
+        if state.get("status") != "active":
+            raise SystemExit(f"--resume-run needs an active ShipLoop run; found {state.get('status')!r} in {out}")
+        resumed = {"from_host": earlier["host"], "from_model": earlier.get("model"), "run_dir": state.get("run_dir"),
+                   "revision": state.get("revision"), "stage": state.get("stage")}
+    else:
+        name, prompt, checks, follows = load_case(args)
+        if follows and not args.continue_from:
+            raise SystemExit(f"case {name!r} follows {follows!r}: pass --continue-from <that run's output directory>")
+        out = new_output_dir(args.output, name)
+        work = out / "work"
+        work.mkdir()
+        follow_on = continue_from(args.continue_from.expanduser().resolve(), work) if args.continue_from else None
+    env = host.env(out / "home")
     if args.source == "marketplace":
         plugin_dir, plugin, versions = marketplace_preflight(args, out, env)
         if versions["gate"]:
@@ -730,32 +772,39 @@ def main(argv: list[str] | None = None) -> int:
     else:
         plugin = None
         plugin_dir = args.plugin_dir or build_candidate(out)
-        if args.host == "grok":
-            plugin = hosts.grok_install(env, plugin_dir, args.grok_bin)
+        plugin = host.install_plugin(env, plugin_dir)
         versions = {"source": "checkout", **installed_versions(plugin_dir), "local_head": git("rev-parse", "HEAD").strip()}
-    keepalive = hosts.grok_keepalive(env, plugin_dir) if args.host == "grok" else None
-    cli = hosts.argv_for(args.host, prompt=f"/{args.skill} {prompt}", prompt_file=out / "host-prompt.txt",
-                         cwd=work, model=args.model, effort=args.effort,
-                         permission_mode=args.permission_mode, max_turns=args.max_turns,
-                         max_budget_usd=args.max_budget_usd,
-                         plugin_dir=plugin_dir if args.host == "claude" else None,
-                         grok_bin=args.grok_bin, claude_bin=args.claude_bin)
-    (out / "prompt.txt").write_text(prompt + "\n")
-    (out / "invocation.json").write_text(json.dumps(
-        {"case": name, "host": args.host, "model": args.model, "effort": args.effort, "argv": cli,
-         "cwd": str(work), "plugin_dir": str(plugin_dir), "versions": versions, "checks": checks,
-         "follow_on": follow_on},
-        indent=2) + "\n")
+    keepalive = hosts.grok_keepalive(env, plugin_dir) if host.keepalive else None
+    # A resumed run keeps the ShipLoop CLI of the host that started it, so its version does not change.
+    opening = (resume_prompt(out, resumed["run_dir"], hosts.host(resumed["from_host"])) if resumed
+               else host.invoke(args.skill, prompt))
+    cli = host.argv(prompt=opening, prompt_file=out / ("host-prompt.txt" if not resumed else
+                                                       f"resume-{host.name}-{int(time.time())}.txt"),
+                    cwd=work, model=args.model, effort=args.effort,
+                    permission_mode=args.permission_mode, max_turns=args.max_turns,
+                    max_budget_usd=args.max_budget_usd,
+                    plugin_dir=None if host.marketplace else plugin_dir)
+    invocation = {"case": name, "host": args.host, "model": args.model, "effort": args.effort, "argv": cli,
+                  "cwd": str(work), "plugin_dir": str(plugin_dir), "versions": versions, "checks": checks,
+                  "follow_on": follow_on, "resumed_run": resumed}
+    if resumed:
+        # The original invocation stays as it was; each resume is recorded beside it.
+        (out / f"invocation-resume-{host.name}-{int(time.time())}.json").write_text(
+            json.dumps(invocation, indent=2) + "\n")
+    else:
+        (out / "prompt.txt").write_text(prompt + "\n")
+        (out / "invocation.json").write_text(json.dumps(invocation, indent=2) + "\n")
     if not args.quiet:
         print(f"shiploop e2e case={name} host={args.host} model={args.model} effort={args.effort} "
               f"work={work}", flush=True)
 
     deadline = time.time() + args.timeout
-    process = launch(cli, work, out, env, args.timeout, watch=not args.quiet, fresh=follow_on is None)
-    sessions = [dict(process, resumed=None)]
+    process = launch(cli, work, out, env, args.timeout, watch=not args.quiet, fresh=follow_on is None,
+                     first=resumed is None, translate=host.translator())
+    sessions = [dict(process, resumed=None, host=host.name)]
     # A headless Grok session ends whenever the model ends its turn. While ShipLoop's
     # run is still active, resume that same session (bounded) instead of losing the run.
-    while args.host == "grok" and len(sessions) <= args.max_resumes:
+    while host.resumable and len(sessions) <= args.max_resumes:
         state = grade_shiploop(out)
         session_id = last_session_id(out / "events.jsonl")
         remaining = int(deadline - time.time())
@@ -766,18 +815,24 @@ def main(argv: list[str] | None = None) -> int:
         if not args.quiet:
             print(f"resume {len(sessions)}/{args.max_resumes}: session {session_id} ended with ShipLoop "
                   f"{'not yet started' if state.get('status') is None else 'active at revision ' + str(state.get('revision')) + ', stage ' + str(state.get('stage'))}", flush=True)
-        argv = hosts.argv_for(args.host, prompt=resume_prompt(out, state.get("run_dir")),
-                              prompt_file=out / f"resume-{len(sessions)}.txt", cwd=work, model=args.model,
-                              effort=args.effort, permission_mode=args.permission_mode,
-                              max_turns=args.max_turns, resume=session_id, grok_bin=args.grok_bin)
-        process = launch(argv, work, out, env, remaining, watch=not args.quiet, first=False)
-        sessions.append(dict(process, resumed=session_id))
+        argv = host.argv(prompt=resume_prompt(out, state.get("run_dir"), host),
+                         prompt_file=out / f"resume-{len(sessions)}.txt", cwd=work, model=args.model,
+                         effort=args.effort, permission_mode=args.permission_mode,
+                         max_turns=args.max_turns, resume=session_id)
+        process = launch(argv, work, out, env, remaining, watch=not args.quiet, first=False,
+                         translate=host.translator())
+        sessions.append(dict(process, resumed=session_id, host=host.name))
     process = dict(process, sessions=sessions, resumes=len(sessions) - 1)
     process["pass"] = process["status"] == "exited"
     cli_seen = summarize_events(out / "events.jsonl")
     write_transcript(out / "events.jsonl", out / "transcript.md")
     cli_seen["truncated_outputs"] = host_truncations(out / "events.jsonl")
-    invoked = {"pass": args.skill in cli_seen.pop("commands"), "skill": args.skill}
+    commands = cli_seen.pop("commands")
+    invoked = {"pass": args.skill in commands, "skill": args.skill}
+    if not commands or resumed:
+        # A host that lists no commands (Codex), or a run continued on another host whose
+        # stream mixes both hosts' command lists: the skill was invoked if its CLI ran.
+        invoked.update({"pass": shiploop_cli_ran(out / "events.jsonl"), "evidence": "ShipLoop CLI ran"})
     plugins = cli_seen.pop("plugins")
     if plugin is None:
         plugin = grade_claude_plugin(plugins, plugin_dir)
@@ -804,6 +859,7 @@ def main(argv: list[str] | None = None) -> int:
               "process": process,
               "keepalive": keepalive,
               "shiploop": shiploop, "committed": committed, "checks": check_results, "cli": cli_seen, "follow_on": follow_on,
+              "resumed_run": resumed,
               "metrics": {k: run_metrics[k] for k in ("turns", "cost_usd", "compactions", "truncated_outputs",
                                                       "improve_children")}
               | {"script_verifications": run_metrics["script_verifications"],

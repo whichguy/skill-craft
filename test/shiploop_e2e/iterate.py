@@ -105,18 +105,16 @@ End with exactly one ```json fenced block:
 
 def improve(worktree: Path, findings: list[dict], stage: Path, args) -> dict:
     stage.mkdir()
-    defaults = hosts.HOST_DEFAULTS[args.host]
+    agent = hosts.host(args.host)
     git_config = Path.home() / ".gitconfig"
-    env = (hosts.grok_env(stage / "home", git_config if git_config.is_file() else None)
-           if args.host == "grok" else dict(os.environ))
+    env = agent.env(stage / "home", git_config if git_config.is_file() else None)
     base = git(worktree, "rev-parse", "HEAD")
-    argv = hosts.argv_for(args.host, prompt=improver_prompt(worktree, findings, base,
-                                                              reviewer.last_commit_messages(worktree)),
-                          prompt_file=stage / "prompt.txt", cwd=worktree, model=args.model or defaults["model"],
-                          effort=args.effort or defaults["effort"], permission_mode=args.permission_mode,
-                          max_turns=args.improve_max_turns, max_budget_usd=args.max_budget_usd)
+    argv = agent.argv(prompt=improver_prompt(worktree, findings, base, reviewer.last_commit_messages(worktree)),
+                      prompt_file=stage / "prompt.txt", cwd=worktree, model=args.model or agent.model,
+                      effort=args.effort or agent.effort, permission_mode=args.permission_mode,
+                      max_turns=args.improve_max_turns, max_budget_usd=args.max_budget_usd)
     process = hosts.run_agent(argv, worktree, env, stage / "events.jsonl", stage / "stderr.txt",
-                              args.improve_timeout)
+                              args.improve_timeout, translate=agent.translator())
     report = hosts.last_json_object(hosts.final_text(stage / "events.jsonl")) or {}
     commits = git(worktree, "rev-list", f"{base}..HEAD").split()
     changed = git(worktree, "diff", "--name-only", base, "HEAD").split() if commits else []
@@ -214,7 +212,7 @@ def main(argv: list[str] | None = None) -> int:
     p = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
     p.add_argument("--case", default="battleship")
     p.add_argument("--iterations", type=int, default=3, help=f"hard cap, at most {MAX_ITERATIONS}")
-    p.add_argument("--host", choices=sorted(hosts.HOST_DEFAULTS), default="grok",
+    p.add_argument("--host", choices=sorted(hosts.HOSTS), default="grok",
                    help="host for the run, the review and the improvement")
     p.add_argument("--model")
     p.add_argument("--effort")

@@ -19,9 +19,34 @@ flowchart LR
     T -->|red| S
 ```
 
-All three stages default to **Grok (`grok-4.7`) at medium reasoning effort**;
-`--host claude` switches to Claude (Sonnet). Every stage launches a real model
-and costs money; none of it runs in default CI.
+All three stages default to **Grok (`grok-4.7`) at medium reasoning effort**.
+`--host claude` switches to Claude (Sonnet), and `--host codex` to Codex
+(`gpt-5.6-luna` at high effort). `--model` and `--effort` override either one, so
+switching model or effort is a flag, for example
+`--host codex --model gpt-5.6-sol --effort xhigh`. Every stage launches a real
+model and costs money; none of it runs in default CI.
+
+Each host is one class in `hosts.py` (`HOSTS`); nothing else branches on the
+host name. A host builds its argv, its isolated profile (Grok and Codex get a
+throwaway HOME whose profile links only the user's `auth.json`), its plugin
+install, how a prompt invokes the skill (`/skill-craft:shiploop` or Codex's
+`$skill-craft:shiploop`), and a translator. Codex's `codex exec --json` stream is
+translated into Grok's event shape as it is captured, so metrics, the transcript
+and the reviewer read one format. Codex reports no dollar cost, so its cost is
+unknown, and it has no turn cap. Adding a host means adding one class.
+
+A run that stops while ShipLoop is still active, for example because a host ran
+out of credits, can continue in place on any host:
+
+```sh
+bash test/run-integration.sh shiploop-e2e --resume-run <that run's output directory> --host codex --effort xhigh
+```
+
+It keeps the same work directory, run state and event stream, and prompts with
+the ShipLoop CLI of the host that started the run, so the run's version does not
+change. The case and checks come from the earlier run, and the result is graded
+as usual. The original `invocation.json` is kept, and each resume is recorded
+beside it as `invocation-resume-<host>-<time>.json`.
 
 
 **Start with [SPEC.md](SPEC.md).** It is the standing specification every run,
@@ -37,6 +62,7 @@ their premise; learnings entries cite its clause IDs.
 ```sh
 bash test/run-integration.sh shiploop-e2e --case battleship
 bash test/run-integration.sh shiploop-e2e --case hello --host claude
+bash test/run-integration.sh shiploop-e2e --case hello --host codex --effort xhigh
 bash test/run-integration.sh shiploop-e2e --prompt "Create fizzbuzz.py with tests" --check "python3 -m unittest -q"
 ```
 

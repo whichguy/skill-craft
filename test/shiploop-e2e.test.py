@@ -123,13 +123,56 @@ print(json.dumps({{"type": "end", "stopReason": "cancelled", "sessionId": "sess-
 """
 
 
+# A fake Codex CLI: plugin marketplace add / plugin add / plugin list --json, and
+# `exec --json ... [resume ID] PROMPT` emitting Codex's JSON event stream.
+FAKE_CODEX = f"""#!{sys.executable}
+import json, os, sys
+from pathlib import Path
+{PRODUCT}
+argv = sys.argv[1:]
+home = Path(os.environ["CODEX_HOME"])
+state = home / "fake-plugin.json"
+if argv[:3] == ["plugin", "marketplace", "add"]:
+    state.write_text(json.dumps({{"marketplace": argv[3]}}))
+    sys.exit(0)
+if argv[:2] == ["plugin", "add"]:
+    root = home / "plugins" / "cache" / "whichguy" / "skill-craft" / "9.9.9"
+    (root / "skills" / "shiploop" / "scripts").mkdir(parents=True, exist_ok=True)
+    (root / "skills" / "shiploop" / "scripts" / "shiploop").write_text("")
+    sys.exit(0)
+if argv[:2] == ["plugin", "list"]:
+    rows = [{{"pluginId": "skill-craft@whichguy", "name": "skill-craft", "version": "9.9.9",
+             "installed": True}}] if state.exists() else []
+    print(json.dumps({{"installed": rows}}))
+    sys.exit(0)
+assert argv[:2] == ["exec", "--json"], argv
+os.chdir(argv[argv.index("-C") + 1])
+resumed = argv[argv.index("resume") + 1] if "resume" in argv else None
+prompt = argv[-1]
+Path(os.environ["FAKE_LOG"]).write_text(json.dumps({{"argv": argv, "prompt": prompt, "resumed": resumed,
+    "cwd_listing": os.listdir("."), "codex_home": str(home),
+    "auth_is_symlink": (home / "auth.json").is_symlink()}}))
+def emit(event):
+    print(json.dumps(event), flush=True)
+emit({{"type": "thread.started", "thread_id": resumed or "codex-thread-1"}})
+cli = "python3 /x/skills/shiploop/scripts/shiploop next"
+emit({{"type": "item.completed", "item": {{"id": "item_0", "type": "command_execution", "command": cli,
+      "aggregated_output": "ShipLoop navigator\\n", "exit_code": 0, "status": "completed"}}}})
+if os.environ.get("FAKE_MODE") == "done":
+    import shutil
+    shutil.rmtree(".shiploop", ignore_errors=True)  # a resumed session finishes the same run
+    product()
+emit({{"type": "item.completed", "item": {{"id": "item_1", "type": "agent_message", "text": "Shipped."}}}})
+emit({{"type": "turn.completed", "usage": {{"input_tokens": 10, "cached_input_tokens": 5, "output_tokens": 2}}}})
+"""
+
 class HarnessCase(unittest.TestCase):
     def setUp(self):
         tmp = tempfile.TemporaryDirectory()
         self.addCleanup(tmp.cleanup)
         self.tmp = Path(tmp.name)
         self.fakes = {}
-        for name, body in (("claude", FAKE_CLAUDE), ("grok", FAKE_GROK)):
+        for name, body in (("claude", FAKE_CLAUDE), ("grok", FAKE_GROK), ("codex", FAKE_CODEX)):
             path = self.tmp / name
             path.write_text(body)
             path.chmod(path.stat().st_mode | stat.S_IXUSR)
@@ -145,6 +188,12 @@ class HarnessCase(unittest.TestCase):
         auth.write_text("{}")
         saved, hosts.GROK_AUTH = hosts.GROK_AUTH, auth
         self.addCleanup(setattr, hosts, "GROK_AUTH", saved)
+        codex_home = self.tmp / "real-codex"
+        codex_home.mkdir()
+        (codex_home / "auth.json").write_text("{}")
+        patched = mock.patch.dict(os.environ, {"CODEX_HOME": str(codex_home)})
+        patched.start()
+        self.addCleanup(patched.stop)
 
     def invoke(self, host: str, mode: str, *extra: str) -> tuple[int, dict]:
         os.environ["FAKE_MODE"] = mode
@@ -757,6 +806,155 @@ class MetricsTest(unittest.TestCase):
         self.assertNotIn("SHIPLOOP-RUN", first + second)
         self.assertIn("no run state yet", second)
 
+
+
+class CodexRunTest(HarnessCase):
+    def test_codex_run_passes_in_an_isolated_codex_home(self):
+        code, result = self.invoke("codex", "done")
+        self.assertEqual(code, 0, result)
+        seen = self.seen()
+        self.assertEqual(seen["cwd_listing"], [])
+        self.assertTrue(seen["prompt"].startswith("$skill-craft:shiploop "), seen["prompt"])
+        self.assertTrue(seen["auth_is_symlink"])
+        self.assertEqual(Path(seen["codex_home"]), Path(result["output"]) / "home" / ".codex")
+        argv = seen["argv"]
+        self.assertEqual(argv[argv.index("-m") + 1], "gpt-5.6-luna")
+        self.assertIn("model_reasoning_effort=high", argv)
+        self.assertTrue(result["invoked"]["pass"], result["invoked"])
+        self.assertTrue(result["plugin"]["pass"], result["plugin"])
+        self.assertTrue(result["committed"]["pass"], result["committed"])
+        self.assertEqual(result["cli"]["num_turns"], 2)
+
+    def test_model_and_effort_toggle_by_flag(self):
+        code, result = self.invoke("codex", "done", "--model", "gpt-5.6-sol", "--effort", "xhigh")
+        self.assertEqual(code, 0, result)
+        argv = self.seen()["argv"]
+        self.assertEqual(argv[argv.index("-m") + 1], "gpt-5.6-sol")
+        self.assertIn("model_reasoning_effort=xhigh", argv)
+        self.assertEqual((result["model"], result["effort"]), ("gpt-5.6-sol", "xhigh"))
+
+    def test_resume_run_continues_a_stopped_grok_run_on_codex(self):
+        code, stopped = self.invoke("grok", "stuck", "--max-resumes", "0")
+        self.assertEqual(code, 1)
+        out = Path(stopped["output"])
+        original = (out / "invocation.json").read_text()
+        os.environ["FAKE_MODE"] = "done"
+        with contextlib.redirect_stdout(io.StringIO()):
+            code = run.main(["--host", "codex", "--codex-bin", str(self.fakes["codex"]), "--resume-run", str(out),
+                             "--plugin-dir", str(self.plugin), "--baseline", str(self.baselines)])
+        result = json.loads((out / "result.json").read_text())
+        self.assertEqual(code, 0, result)
+        self.assertEqual(result["host"], "codex")
+        self.assertEqual(result["resumed_run"]["from_host"], "grok")
+        self.assertEqual(result["resumed_run"]["stage"], "test-refine")
+        self.assertIn("next --run-dir", self.seen()["prompt"])
+        self.assertEqual((out / "invocation.json").read_text(), original)
+        self.assertEqual(len(list(out.glob("invocation-resume-codex-*.json"))), 1)
+        events = (out / "events.jsonl").read_text()
+        self.assertIn('"sessionId": "sess-1"', events)          # the Grok session is kept
+        self.assertIn('"sessionId": "codex-thread-1"', events)  # the Codex session is appended
+
+    def test_resume_run_refuses_a_run_that_is_not_active(self):
+        code, finished = self.invoke("grok", "done")
+        self.assertEqual(code, 0)
+        with self.assertRaisesRegex(SystemExit, "needs an active ShipLoop run"):
+            run.main(["--host", "codex", "--codex-bin", str(self.fakes["codex"]),
+                      "--resume-run", finished["output"], "--plugin-dir", str(self.plugin)])
+
+
+class CodexHostTest(unittest.TestCase):
+    """Codex runs through the same host interface; its stream is translated to Grok's shape."""
+
+    STREAM = [
+        {"type": "thread.started", "thread_id": "thread-1"},
+        {"type": "turn.started"},
+        {"type": "item.started", "item": {"id": "item_0", "type": "command_execution",
+                                          "command": "/bin/zsh -lc 'python3 /x/skills/shiploop/scripts/shiploop next'",
+                                          "aggregated_output": "", "exit_code": None, "status": "in_progress"}},
+        {"type": "item.completed", "item": {"id": "item_0", "type": "command_execution",
+                                            "command": "/bin/zsh -lc 'python3 /x/skills/shiploop/scripts/shiploop next'",
+                                            "aggregated_output": "ShipLoop navigator | intake | revision 0\n",
+                                            "exit_code": 0, "status": "completed"}},
+        {"type": "item.completed", "item": {"id": "item_1", "type": "file_change", "status": "completed",
+                                            "changes": [{"path": "/w/convert.py", "kind": "add"}]}},
+        {"type": "item.completed", "item": {"id": "item_2", "type": "command_execution",
+                                            "command": "git commit -am wip", "aggregated_output": "fatal\n",
+                                            "exit_code": 128, "status": "failed"}},
+        {"type": "item.completed", "item": {"id": "item_3", "type": "agent_message", "text": "Done for now."}},
+        {"type": "turn.completed", "usage": {"input_tokens": 100, "cached_input_tokens": 80,
+                                             "output_tokens": 7, "reasoning_output_tokens": 2}},
+    ]
+
+    def translated(self) -> list[dict]:
+        translate = hosts.host("codex").translator()
+        lines = [raw for event in self.STREAM for raw in translate((json.dumps(event) + "\n").encode())]
+        return [json.loads(raw) for raw in lines]
+
+    def test_argv_invocation_and_resume_order(self):
+        codex = hosts.host("codex", "codex-bin")
+        with tempfile.TemporaryDirectory() as temp:
+            argv = codex.argv(prompt="$skill-craft:shiploop build it", prompt_file=Path(temp) / "p.txt",
+                              cwd=Path("/w"), model="gpt-5.6-luna", effort="xhigh", permission_mode="auto",
+                              max_turns=10)
+            resumed = codex.argv(prompt="continue", prompt_file=Path(temp) / "r.txt", cwd=Path("/w"),
+                                 model="gpt-5.6-luna", effort="xhigh", permission_mode="auto", max_turns=10,
+                                 resume="thread-1")
+        self.assertEqual(argv[:3], ["codex-bin", "exec", "--json"])
+        self.assertIn("model_reasoning_effort=xhigh", argv)
+        self.assertEqual(argv[argv.index("-m") + 1], "gpt-5.6-luna")
+        self.assertEqual(argv[-1], "$skill-craft:shiploop build it")
+        # Codex takes its options before the resume subcommand.
+        self.assertEqual(resumed[-3:], ["resume", "thread-1", "continue"])
+        self.assertLess(resumed.index("--json"), resumed.index("resume"))
+        self.assertEqual(codex.invoke("skill-craft:shiploop", "x"), "$skill-craft:shiploop x")
+        self.assertEqual((codex.model, codex.effort, codex.resumable), ("gpt-5.6-luna", "high", True))
+
+    def test_env_is_an_isolated_codex_home_linking_only_auth(self):
+        with tempfile.TemporaryDirectory() as temp:
+            real = Path(temp) / "real"
+            real.mkdir()
+            (real / "auth.json").write_text("{}")
+            with mock.patch.dict(os.environ, {"CODEX_HOME": str(real), "CODEX_SECRET": "x"}):
+                env = hosts.host("codex").env(Path(temp) / "home")
+            codex_home = Path(env["CODEX_HOME"])
+            self.assertEqual(codex_home, Path(temp) / "home" / ".codex")
+            self.assertEqual((codex_home / "auth.json").resolve(), (real / "auth.json").resolve())
+            self.assertNotIn("CODEX_SECRET", env)
+            self.assertEqual(env["HOME"], str(Path(temp) / "home"))
+
+    def test_translated_stream_reads_like_grok_for_every_parser(self):
+        events = self.translated()
+        kinds = [e["type"] for e in events]
+        self.assertEqual(kinds, ["available_commands", "tool_call", "tool_call_update", "tool_call",
+                                 "tool_call_update", "tool_call", "tool_call_update", "text", "end"])
+        self.assertEqual(events[2]["rawOutput"]["exit_code"], 0)
+        self.assertEqual(events[3]["rawInput"]["target_file"], "/w/convert.py")
+        self.assertEqual(events[6]["status"], "failed")
+        end = events[-1]
+        self.assertEqual((end["sessionId"], end["num_turns"], end["total_cost_usd"]), ("thread-1", 4, None))
+        with tempfile.TemporaryDirectory() as temp:
+            out = Path(temp)
+            path = out / "events.jsonl"
+            path.write_text("".join(json.dumps(e) + "\n" for e in events))
+            self.assertEqual(run.last_session_id(path), "thread-1")
+            self.assertTrue(run.shiploop_cli_ran(path))
+            seen = run.summarize_events(path)
+            self.assertEqual((seen["num_turns"], seen["cost_usd"], seen["commands"]), (4, 0, []))
+            self.assertEqual(hosts.final_text(path).strip(), "Done for now.")
+            run.write_transcript(path, out / "transcript.md")
+            transcript = (out / "transcript.md").read_text()
+            self.assertIn("tool  run_terminal_command:", transcript)
+            self.assertIn("say   Done for now.", transcript)
+            collected = metrics.collect(out)
+            self.assertEqual(collected["turns"], 4)
+            self.assertTrue(any("git commit" in g["command"] for g in collected["model_glue"]))
+
+    def test_every_host_is_selectable_by_name(self):
+        self.assertEqual(sorted(hosts.HOSTS), ["claude", "codex", "grok"])
+        for name in hosts.HOSTS:
+            agent = hosts.host(name)
+            self.assertEqual(agent.name, name)
+            self.assertEqual(hosts.HOST_DEFAULTS[name], {"model": agent.model, "effort": agent.effort})
 
 if __name__ == "__main__":
     unittest.main()
