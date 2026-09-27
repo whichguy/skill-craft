@@ -30,15 +30,11 @@ ROOT = HERE.parents[1]
 sys.path.insert(0, str(HERE))
 import hosts  # noqa: E402
 
-PREMISE = """\
-ShipLoop's core premise, which no proposal may weaken: the script is the
-orchestrator. It keeps durable Markdown navigation state, walks the SDLC graph,
-and returns the prompt for the current step together with the one completion
-callback. The model is a library call: it performs that one step, runs the
-printed callback and follows the next packet. It never chooses a successor,
-reorders stages or decides which prompt comes next. A proposal that moves graph
-navigation, successor choice or prompt selection into the model does not
-preserve the premise."""
+SPEC = Path(__file__).resolve().parent / "SPEC.md"
+# The standing E2E specification is the premise: one copy, loaded, never restated.
+PREMISE = ("Judge this run against the ShipLoop E2E specification below. Cite its clause IDs "
+           "(S-1 ...) in every finding; a proposal that weakens a clause does not preserve the "
+           "premise.\n\n" + SPEC.read_text(encoding="utf-8"))
 
 QUESTIONS = """\
 1. learnings: What were the key learnings about the skill that we could improve?

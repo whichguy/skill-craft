@@ -321,7 +321,10 @@ class ReviewParsingTest(unittest.TestCase):
 
     def test_reviewer_prompt_states_the_premise_and_the_three_questions(self):
         prompt = review.reviewer_prompt(Path("/tmp/run"), Path("/tmp/skill"))
-        self.assertIn("the script is the\norchestrator", prompt)
+        # The standing spec is the premise, loaded from the one file, with clause IDs to cite.
+        self.assertIn("**S-1 Scripts own the graph and the state.**", prompt)
+        self.assertIn("**S-7 Packets are small where they are printed", prompt)
+        self.assertIn("Cite its clause IDs", prompt)
         for key in review.CATEGORIES:
             self.assertIn(key, prompt)
         for key in review.HARNESS_QUESTIONS:

@@ -23,6 +23,14 @@ All three stages default to **Grok (`grok-4.7`) at medium reasoning effort**;
 `--host claude` switches to Claude (Sonnet). Every stage launches a real model
 and costs money; none of it runs in default CI.
 
+
+**Start with [SPEC.md](SPEC.md).** It is the standing specification every run,
+review and fix is judged against: the purpose of this loop (verify ShipLoop, not
+the probe product) and the design clauses S-1..S-13 (scripts own the graph and
+state, packets stand alone and stay small, prompts stay technology-agnostic,
+one implementation per mechanism, ...). `review.py` and `iterate.py` load it as
+their premise; learnings entries cite its clause IDs.
+
 ## One run
 
 ```sh
