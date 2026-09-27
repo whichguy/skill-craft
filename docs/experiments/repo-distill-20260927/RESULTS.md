@@ -201,3 +201,46 @@ Sonnet 5 82.5% (37 min) > GPT-6 Luna max 78.7% (52 min) > GPT-5.6 Luna xhigh
 run-and-fix cycling (73 vs 158 commands; half the input tokens, 19.0M vs 38.9M). Plain-session ranking:
 Sonnet 5 82.5% > GPT-6 Luna max 78.7% > GPT-6 Luna xhigh 75.8% > GPT-5.6
 Luna xhigh 68.2%. One run each; not repeated.
+
+# Phase 2A: round 2 (contract-level, orthogonal initializer), 2026-09-27
+
+Same four commits; `initialize.md` at 561273ed (spec = contract that survives a
+stack change, architecture = how that survives a spec change; contract-level
+bullets; anchor or omit). Each spec judged by two Opus 5.5 judges on the same
+sample and combined (`spec_judge.py combine`: an error either judge proves
+stands; coverage either judge shows with IDs stands). Anchors counted at file
+level too (a cited test file plus the test's name).
+
+| Repo | Round | Reqs | Unanchored | Wrong/partial | Tests missing | Sources missing | README missing | Spec leaks impl. | Arch true |
+|---|---|---|---|---|---|---|---|---|---|
+| marked | 1 | 37 | 5.4% | 2.7%* | 12.8% | 31% | 0% | 2.7% | 90% |
+| marked | 2 | 30 | 0% | 26.7% | 25.6% | 21.4% | 0% | 10% | 90% |
+| mocha | 1 | 34 | 50% | 17.6%* | 45% | 95% | 0% | n/a | 80% |
+| mocha | 2 | 38 | 0% | 18.4% | 26% | 20% | 0% | 5% | 90% |
+| Figma-Context-MCP | 1 | 34 | 0% | 2.9%* | 15% | 40% | 0% | n/a | 90% |
+| Figma-Context-MCP | 2 | 28 | 0% | 3.6% | 0% | 23.5% | 0% | 0% | 80% |
+| webpack-bundle-analyzer | 1 | 27 | 0% | 14.8%* | 0% | 60% | 6% | n/a | 90% |
+| webpack-bundle-analyzer | 2 | 30 | 0% | 10% | 0% | 43.8% | 0% | 10% | 70% |
+
+\* round 1 had one judge; the judge-agreement study below shows a single
+judge can miss bullet-level errors, so round-1 accuracy is optimistic.
+
+Readings:
+- Anchoring and README coverage are solved (0% everywhere).
+- Under-spec fell on the source sample for all four (mocha 95% -> 20%) and on
+  tests for three of four.
+- Accuracy did not improve: contract-level bullets carry more checkable
+  detail, and a thorough judge finds wrong details (marked: `async` does not
+  reset once set; any falsy tokenizer return falls through; a wrong doc
+  citation; not every removed option has an extension).
+- Leakage is low but present (5-10%): requirements naming a Logger class or
+  the WebSocket transport, which belong in the architecture.
+- Architecture dipped on two repos because the prompt listed only stack,
+  ownership, contracts and decisions; configuration, error model and
+  conventions were added at 34fe6659.
+
+Judge agreement: two judges of the same sample differed by up to 23 points
+(marked accuracy 3.3% vs 26.7%). The gap is judge recall on bullet-level
+detail, not noise: the stricter judge's findings are evidence-backed and
+check out. The judge prompt now requires checking every bullet, and grades
+are reported combined.
