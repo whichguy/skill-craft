@@ -786,6 +786,8 @@ class MetricsTest(unittest.TestCase):
             # reading ShipLoop's own contract is not building one
             'python3 -c \'import json; p=json.load(open("/x/run/quality/c-contract.json")); print(p["exit_condition"])\'': [],
             'python3 -c \'import json; json.dump({"exit_condition": 1}, open("/x/c.json", "w"))\'': ["hand-built loop contract"],
+            # json.dumps only formats text for printing
+            "python3 - <<'PY'\nd=json.load(open('/x/packet.json'))\nprint(json.dumps(d['exit_condition'], indent=2))\nPY": [],
         }
         for command, reasons in cases.items():
             with self.subTest(command=command):
