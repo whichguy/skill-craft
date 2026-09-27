@@ -1470,8 +1470,12 @@ def _check_submitted_consumer_entry(repo: str, stage: str, result: Any) -> None:
           "is not reachable; plan the entry as source files.")
     entry = result["consumer_entry"]
     sources = entry.get("sources") if isinstance(entry, Mapping) else None
-    missing = [path for path in (sources or []) if isinstance(path, str)
-               and not any(Path(repo).glob(path)) and not (Path(repo) / path).exists()]
+    named = [path for path in (sources or []) if isinstance(path, str)]
+    absolute = [path for path in named if Path(path).is_absolute()]
+    _need(not absolute, "consumer_entry sources must be repository-relative paths (for example src/app.py), not "
+          + ", ".join(absolute))
+    missing = [path for path in named if not path.strip()
+               or not ((Path(repo) / path).exists() or any(Path(repo).glob(path)))]
     _need(not missing, "consumer_entry sources do not exist in the repository: " + ", ".join(missing)
           + ". Create the entry's source files before the release plan, or correct the paths.")
 
