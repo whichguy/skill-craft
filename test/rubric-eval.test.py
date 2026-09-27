@@ -137,6 +137,21 @@ class Statistics(unittest.TestCase):
         self.assertIsNone(R.parse_value('{"added": []}'))
         self.assertGreaterEqual(R._overlap("Resign button and resign result state not requested", "Resign button"), 0.3)
 
+    def test_valuable_removals_block_against_a_reviewed_baseline(self):
+        s = R.load_suite(SUITE)
+        with tempfile.TemporaryDirectory() as d:
+            run = Path(d); (run / "judge").mkdir(); (run / "prompts").mkdir(); (run / "value").mkdir()
+            (run / "manifest.json").write_text(json.dumps({"condition": {"model": "x", "tools": ""}, "arms": {"cur": {}, "cand": {}}}))
+            for i in range(1, 10):
+                for arm, losses in (("cur", 0), ("cand", 2 + i % 2)):
+                    v = verdict({"P1": "met"}); v["judge_model"] = "opus"
+                    (run / "judge" / f"S0{i}_GAS_{arm}_1.json").write_text(json.dumps(v))
+                    (run / "value" / f"S0{i}_GAS_{arm}_1.json").write_text(json.dumps(
+                        {"added": [], "removed": [{"item": "limit", "verdict": "loss"}] * losses}))
+            e = R.analyze(run, s, "cur")["arms"]["cand"]
+            self.assertTrue(any("valuable items" in r for r in e["decision"]["reasons"]))
+            self.assertFalse(e["decision"]["ship"])
+
     def test_parse_diff(self):
         good = '{"removed_required": 0, "added_unrequested": 2, "contradictions": 0, "invented_numbers": 1}'
         self.assertEqual(R.parse_diff("x " + good)["added_unrequested"], 2)

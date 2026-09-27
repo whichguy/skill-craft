@@ -2117,13 +2117,12 @@ unless a finding depends on it. A pass that finds none of these is trivial.
 
 # Design review checks, attached only for the stages that decide what gets built.
 # Evidence and the adversarial review behind the wording:
-# docs/shiploop-architecture-rubric-results-2026-09-26.md (rounds 3 and 4).
+# docs/shiploop-architecture-rubric-results-2026-09-26.md (rounds 3 to 7).
 DESIGN_REVIEW_STAGES = frozenset({"plan", "step-plan"})
 
 DESIGN_REVIEW_CHECKS = """\
-Design review checks. This result decides what gets built. Judge it against the
-accepted request and spec it serves (read them; they are the standard, not this
-plan) and fix these within scope:
+Design review checks, for the stages that decide what gets built. Also look for
+these conditions and fix them within scope:
 - personal data the plan holds, shows, logs or sends to a third party without
   saying how long it is kept, how it is removed, and that it stays out of logs
   and error messages;
@@ -2131,15 +2130,24 @@ plan) and fix these within scope:
   and plan within;
 - a background or asynchronous failure the plan does not record where someone
   who can act will see it;
-- anything the plan adds that the request and spec do not need (a feature, a
-  store, sign-in, a live channel, a debug path, a higher placement tier):
-  remove it, but keep everything they require, including test data and example
-  identifiers.
-Meet a finding by changing or removing what the plan already has before adding
-anything, and change only what a finding requires. Never invent a number: take a
-retention period or limit from the request, the spec or a primary source, or
-record it as an open question. A pass that finds nothing to fix returns the plan
-unchanged.
+- anything the plan adds that the request does not need (a feature, a store,
+  sign-in, a live channel, a debug path, a higher placement tier): remove it.
+Change only what a finding requires. Do not add features, infrastructure or a
+higher placement tier that the request does not need. Before adding anything,
+check whether a finding can be met by changing or removing what the plan
+already has. A review that finds nothing to fix returns the plan unchanged.
+
+Before you return the plan, check each change you made. Keep it only if it
+serves a request sentence, spec clause or directive you can name, and if any
+number it adds (a retention period, a limit, a rate, a threshold) comes from
+the request, the spec or a cited source, or is marked as an assumption for the
+user to confirm. Undo a change that fails this check.
+
+Removing is a change too. Never remove or weaken an existing safeguard (a
+limit, a check or test, an access or retention rule, a failure route) unless it
+contradicts the request or spec, and remove a feature only when you can say why
+this request does not need it. A number without a source stays, marked as an
+assumption for the user to confirm; it is not a reason to remove what it limits.
 """
 
 

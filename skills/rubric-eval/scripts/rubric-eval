@@ -14,12 +14,14 @@ def suite_arg(name):
 
 
 def arm_arg(spec):
-    """NAME=PATH[::SYMBOL] or NAME=@run/ARM (review: plans from that run's arm)."""
+    """NAME=PATH[::SYMBOL[+SYMBOL...]]. Several symbols are joined as a packet joins its blocks
+    (each right-stripped, one newline between), so an arm is the exact text the product sends."""
     name, _, src = spec.partition("=")
     if not name or not src:
-        raise SystemExit(f"rubric-eval: arm must be NAME=PATH[::SYMBOL], got {spec!r}")
-    path, _, symbol = src.partition("::")
-    return name, {"text": R.extract(path, symbol or None), "source": src}
+        raise SystemExit(f"rubric-eval: arm must be NAME=PATH[::SYMBOL[+SYMBOL...]], got {spec!r}")
+    path, _, symbols = src.partition("::")
+    text = "\n".join(R.extract(path, s).rstrip() for s in symbols.split("+")) if symbols else R.extract(path)
+    return name, {"text": text, "source": src}
 
 
 def main(argv=None):

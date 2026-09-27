@@ -61,6 +61,12 @@ name: it needs `--plans-from` and `--plans-arm`, and only the output's
 with frames `plan`, `review` (adds a scope guard) and `review-bare` (none, so
 the review focus under test must carry its own guard).
 
+Suite `architecture-v4` (from round 7) corrects overbuilding: an addition
+that makes a stated requirement work, or that correctness, security, data
+integrity or failure visibility demands at the request's scale, is not
+overbuilt. Scenario overbuild notes, the owner's proportionality line, are
+unchanged.
+
 A new scenario needs a request in a user's words, an expected tier, its
 applicable criteria and an overbuild note. Include scenarios on both sides of
 any new pressure, so overbuilding and underbuilding are both visible.
@@ -255,6 +261,10 @@ strong evidence, and a warning is enough to stop it.
   lies above zero);
 - stub or `na` rates differ between arms, compared paired per output (the
   interval excludes zero), not as independent grades;
+- against a baseline that is itself a review, the arm removes more valuable
+  items per review (value audit `loss`), paired interval above zero. Against an
+  unreviewed input the arm's valuable removals per review are reported, not
+  compared, since the input removes nothing;
 - fewer than 8 scenarios were compared (a cluster bootstrap over fewer is
   unreliable);
 - the judge has no measured noise, or verdicts come from more than one judge;
