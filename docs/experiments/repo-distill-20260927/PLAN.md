@@ -1,0 +1,170 @@
+# Repo distill and clean-room reproduction: plan (rev 3)
+
+Owner request (2026-09-27): distill a specification from a real GitHub
+repository, have ShipLoop rebuild it from that specification alone, compare
+the rebuild with the original, and learn what to change: in ShipLoop **or in
+the distillation**. Distilling a spec is also wanted on its own, for
+understanding any repository we reference.
+
+Start small, iterate often. Each revision reviewed unknowns, flow and error
+conditions and pruned by KISS/YAGNI; the review tables at the bottom record
+every item and its decision.
+
+## Goal and exit criteria
+
+The pilot is done when, for json-server, scripts show:
+
+1. a distilled spec whose claims all cite evidence that resolves, with the
+   original name absent (`spec_check.py`);
+2. an admitted oracle: 100% pass on the original, twice (no flakes), and
+   most checks fail on a stub; stub-passing checks listed (`oracle_run.py --admit`);
+3. a baseline rebuild from the spec alone, oracle-scored (`rebuild.py`);
+4. every failing check attributed to one fault location, with a spot-check
+   of the verdicts by hand;
+5. the json-server harness case built, and its first ShipLoop run (E4)
+   scored and attributed.
+
+Nothing else is in scope.
+
+## Pipeline
+
+```
+repo ──distill──▶ spec.md (claims + evidence + pinned interface + unknowns)
+repo ──port────▶ oracle/ (black-box node:test checks, run via $APP_CMD)
+spec ──build───▶ rebuild (plain Grok session, then ShipLoop), repo never visible
+oracle(rebuild) ──attribute (one Opus judge)──▶ distill fixes | builder fixes
+```
+
+- **Pinned interface, free internals.** The spec fixes what a user or client
+  observes; the oracle checks only that, through the command line and HTTP.
+- **Evidence per claim** (D-n with `path:line`); unknowns listed, not guessed.
+- **Clean room.** The builder gets SPEC.md only, in an empty directory under a
+  neutral path, product renamed (`tinyrest`), web search off. The run is void
+  when the builder's tool calls reach the original's name or path, or its
+  `package.json` depends on the original's published package (json-server is
+  on npm; wrapping it would pass every check). The name in the builder's
+  own reasoning is recognition, not access: recorded, not voiding.
+- **The oracle is a port**, because original tests are white-box and their
+  toolchains rot (mitt's `esm` loader no longer runs on Node 25). Only Node
+  built-ins; the program starts through `$APP_CMD`.
+- **Ground truth is the original's observed behaviour**, not its tests or
+  docs: original tests can be broken (json-server ships one). A check that
+  fails on the original is not admitted; it is listed in `MAPPING.md` as
+  excluded, with the reason.
+
+## Fault attribution
+
+| Location | Evidence |
+|---|---|
+| distill: omission | no spec claim covers the checked behaviour |
+| distill: error | a claim covers it; the original contradicts the claim |
+| distill: ambiguity | the claim also admits the rebuild's reading |
+| build: intake / plan | (ShipLoop only) claim lost from the living spec / not planned or tested |
+| build: implementation | covered (and planned), built wrong |
+| oracle | the check depends on something the spec left free, or is flaky |
+| unattributed | none holds; reported, never defaulted to the builder |
+
+Change one side per comparison: iterate the distiller with the builder fixed,
+and iterate ShipLoop on a fixed spec file.
+
+## Case
+
+**typicode/json-server @89a34a4** (75.7k stars, MIT): TypeScript Node HTTP
+service with an HTML landing page and a CLI, ~1.9k lines, 128 `node:test`
+tests on Node 25: 127 pass; one file (`src/adapters/normalized-adapter.test.ts`)
+imports a path that does not exist and is never run by upstream's `npm test`.
+Chosen over tiny libraries (too little to plan) and large apps (too slow to
+iterate). http-server (static server + listing UI)
+and ni (CLI) come only after the pilot holds.
+
+## Experiments
+
+Execution Grok 4.7 medium; judge Opus 5.5 medium, one judge per round.
+
+- **E0 oracle port** → admission gate. If the port cannot reach 100% on the
+  original after one repair pass, the porter drops the failing checks and
+  lists them in `MAPPING.md`.
+- **E1 distill** → `spec_check.py`.
+- **E3 baseline rebuild** → oracle → attribution (`attribute.py`: one Opus
+  judge over the original, spec, rebuild, oracle and its TAP output). If
+  distill faults appear, revise `prompts/distill.md`, redistill, rebuild: at most two rounds.
+- **E4 = the harness case's first run.** Not a separate experiment path: build
+  the case (below), run it once on the released ShipLoop with the last spec,
+  then attribution. Compare with E3 descriptively only.
+
+Round 1 of E0/E1 runs on the rev-1 prompts; the prompts now carry the plan's
+later decisions (observed behaviour is the truth, `excluded` mapping rows,
+positive checks, no wrapping the original). Round 1 is kept rather than
+restarted: the admission gate and `spec_check.py` enforce those decisions
+anyway, and any gap they show is a direct measure of what the prompt change
+buys.
+
+Every Grok step records turns, cost and wall time; a step that ends without
+its output file is a failed step (inspect, fix the prompt, rerun), never
+patched by hand.
+
+## Then build (shape fixed by rev 2)
+
+- **`skills/repo-distill/`**: the distill prompt (general repo → spec, with
+  relationships and unknowns) plus an oracle-port mode, and `spec_check.py`.
+  The attribution prompt stays in the harness; it is not part of distilling.
+- **No new harness.** A json-server case in `test/shiploop_e2e/cases.json`:
+  the prompt builds from a seeded `SPEC.md` (one new `seed` field copies it
+  into the empty work directory), and the checks are the committed oracle
+  (run via `$E2E_CHECKS`) plus the clean-room dependency check. Attribution
+  is one post-run script over the run's work directory. The harness already
+  provides runs, baselines, review and learnings. The oracle's run time is
+  measured at admission; the harness's 180 s per-check timeout is raised for
+  this case only if it needs more.
+
+## Review of rev 1: unknowns and failure cases
+
+| # | Unknown or failure case | Material? | Decision |
+|---|---|---|---|
+| 1 | Correct negative checks (e.g. unknown id → 404) pass on a 404 stub, so "no check passes on the stub" rejects a good oracle | yes, blocks admission | Admit on 100% original + most fail on stub; list stub-passers |
+| 2 | Oracle flakiness (ports, file-watch timing) is read as build failures | yes, corrupts attribution | Run on the original twice; flaky checks dropped |
+| 3 | Builder reads the original (it sits on the same disk) or recalls it | leak: yes; recall: no for the pilot | Transcript grep voids a leaking run; memorisation accepted, noted |
+| 4 | Attribution judge is wrong | yes, it steers every fix | Spot-check verdicts by hand in the pilot; calibration by planted spec defects deferred until the loop runs repeatedly |
+| 5 | Single runs are noisy, so E3 vs E4 differences may be chance | only for claims about ShipLoop vs baseline | Report descriptively; repeat only if a decision depends on it |
+| 6 | E2 (a separate judge mapping oracle checks to claims) duplicates what attribution finds after a cheap baseline rebuild | no | **E2 removed** |
+| 7 | A new `test/repo_oracle/` harness duplicates run, baseline and review machinery (S-12) | no | **Removed**: a case + seed field + oracle check instead |
+| 8 | Later tiers (http-server, ni, less famous repos) | not yet | **Deferred** to after the pilot |
+| 9 | Oracle files are derived from MIT-licensed tests | yes, if committed | Keep the copyright notice in the oracle directory |
+| 10 | The rebuild needs a build step or a runtime other than Node | no for this case | Delivery contract pins `node <bin>`; revisit per case |
+| 11 | "Relationships" section is unused by the rebuild | no, but the owner wants general use | Kept: one prompt section, no extra machinery |
+
+## Review 2 (rev 3): what the first runs and E2E history add
+
+| # | Unknown or failure case | Source | Material? | Decision |
+|---|---|---|---|---|
+| 12 | The builder installs the original's published package and wraps it | json-server is on npm (1.0.0-beta.15) | yes, voids the comparison silently | Dependency check in scoring and in the harness case |
+| 13 | Distill and port are slow (8+ min, still reading at 48 file reads) | E0/E1 runs | only for iteration speed | Record time and cost per step; no change until a step exceeds ~20 min |
+| 14 | A Grok step ends without writing its output (turn cap 150, or a summary instead of the file) | E2E history (cancelled sessions) | yes, else a missing file looks like an empty result | Missing output = failed step; rerun after a prompt fix |
+| 15 | The oracle exceeds the harness's 180 s check timeout | harness `run_checks` | only if slow | Measure at admission, raise per case if needed |
+| 16 | Spec and oracle both come from the same tests, so untested behaviour is neither specified well nor measured | E1 reads the tests | no: known coverage limit | Accepted; results state "tested surface only" |
+| 17 | Distiller or porter edits the repository or leaves servers running | E1 runs the program | no: none observed (only my own lockfile; no orphan servers) | Nothing added; `git status` glance per run |
+| 18 | E4 as a separate ShipLoop invocation duplicates the harness case | rev 2 | no | **Merged**: E4 is the case's first run |
+| 19 | ShipLoop run cost/time ($25–35, ~1 h, sleep stalls) | E2E LEARNINGS runs 8b, P6 | once only | One run; harness already keeps the machine awake |
+| 20 | Citation formats the checker cannot parse (ranges with en-dash, backticks) | spec_check regex | unknown until E1 lands | Fix the checker, not the prompt, if it misparses |
+
+## Review 3 (until-loop pass 1)
+
+| # | Unknown or failure case | Source | Material? | Decision |
+|---|---|---|---|---|
+| 21 | Original tests can be broken (json-server: 1 of 128 imports a missing path; upstream's glob never runs it) | E1 transcript, rerun by hand | yes, defines the oracle's truth | Ground truth = observed behaviour; failing original checks excluded and listed |
+| 22 | Attribution had no runner and its prompt named a `failures.txt` nothing writes | flow check | yes, E3 could not complete | `scripts/attribute.py`; prompt reads `oracle.tap` |
+| 23 | Distiller and porter probe the running original and write scratch files under `/tmp` | E0/E1 transcripts | no: grounding is good, scratch is harmless | Nothing added |
+| 24 | Stub never exits, so CLI-error checks (bad file, bad option) wait out their start timeout against it | stub design | no: only slower admission (~10 s per such check) | Accepted |
+
+## Review 4 (until-loop pass 2)
+
+| # | Unknown or failure case | Source | Material? | Decision |
+|---|---|---|---|---|
+| 25 | Transcript-wide grep voids a run whenever the builder merely recognises the product (the name in its reasoning), conflating accepted memorisation with access | rebuild.py design vs item 3 | yes, would void most runs of a famous repo | Void only on tool calls reaching the name/path, or the dependency; record recognition separately |
+| 26 | Builder writes no `package.json` bin, so the program cannot start | delivery contract | no: scored as a failed rebuild with the error recorded | Nothing added |
+| 27 | npm installs in the isolated HOME start from an empty cache | grok_step design | no: slower only | Accepted |
+
+## Review 5 (until-loop pass 3)
+
+No new material unknown, flow gap or error condition; nothing further to
+prune. Wording only: intro, case paragraph reflow, who drops failing checks.
