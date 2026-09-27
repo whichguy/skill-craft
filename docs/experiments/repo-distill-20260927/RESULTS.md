@@ -183,3 +183,12 @@ score step.
 Round 2 (running): the same commits, the contract-level orthogonal
 initializer (spec survives a stack change, architecture survives a spec
 change; anchor or omit), each spec judged twice.
+
+## T1 on marked, GPT-6 Luna at max, 2026-09-27
+
+`gpt-6-luna`, `model_reasoning_effort=max`, isolated CODEX_HOME, same
+evidence-stripped spec and aliased oracle: **1,385 / 1,759 (78.7%)**, 3,133 s,
+73 commands, 19.0M input tokens (18.6M cached), 154k output (98k reasoning).
+Clean room clean, no recognition. Plain-session ranking on marked so far:
+Sonnet 5 82.5% (37 min) > GPT-6 Luna max 78.7% (52 min) > GPT-5.6 Luna xhigh
+68.2% (35 min); GPT-6 Luna xhigh still running.
