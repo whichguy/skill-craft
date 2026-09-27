@@ -2911,7 +2911,8 @@ def render(core: Any, root: Path, state: Mapping[str, Any],
         workspace_root = root.parent
         lines.extend([
             "Execution checkout: " + state["repo"]
-            + " (isolated worktree; not the original branch checkout)",
+            + " (isolated worktree; not the original branch checkout; a working directory, never a "
+            "--result value)",
             "Workspace authority and original branch: " + str(workspace_root / "workspace.md"),
             "Return plan: " + str(workspace_root / "return-plan.md"),
             *_workspace_return_packet_lines(root, state),
