@@ -128,6 +128,30 @@ to GPT-6 Luna.
 Deferred: distill round 2, the second repository, repeats. Stall detector
 (no tool call for N minutes = failed step) before any unattended run.
 
+## Phase 2: prove distill as a spec initializer (owner, 15:00)
+
+Intended use: initialize ShipLoop's spec for an existing repository that has
+never run ShipLoop. The clean-room results prove only the tested surface of
+one repository (marked: 2 of 307 rebuild failures traced to the spec), never
+audit claims directly, and the clean-room prompt deliberately leaves
+architecture out. Each repository is cloned into a temporary folder at a
+pinned commit and distilled there; clones and specs are disposable.
+
+- **A. Distill audit (no rebuilds):** 4 repositories of different shapes
+  from the star-ordered walk; distill on GPT-6 Luna xhigh; measure accuracy
+  (a judge verifies a random 40-claim sample against source), coverage (the
+  repository's own test names mapped to claims), and architecture coverage
+  (entry points, modules and responsibilities, data flow, key dependencies
+  and why, configuration, errors, extension points, build and test).
+- **B. Initializer mode** in `skills/repo-distill`: real names, evidence
+  kept, an architecture-and-decisions section, written as ShipLoop's
+  knowledge home (`docs/shiploop/README.md`, `spec.md` with stable `R-n`
+  IDs, `environment.md`, `test-strategy.md`, per `skills/shiploop/references/project-knowledge.md`).
+- **C. Proof of use:** one never-ShipLooped repository, one feature request,
+  ShipLoop run cold vs after initialization (harness follow-on style);
+  compare planning cost and turns, existing tests kept passing, feature
+  checks, and whether ShipLoop reused the initialized spec. Only after A/B.
+
 ## Experiments
 
 Execution Grok 4.7 medium; judge Opus 5.5 medium, one judge per round.
