@@ -5,7 +5,7 @@ from pathlib import Path
 import tempfile
 import unittest
 
-from workflow_review import DIMENSIONS, validate_review
+from workflow_review import DIMENSIONS, HARNESS_QUESTIONS, validate_review
 
 
 class WorkflowReviewTests(unittest.TestCase):
@@ -25,7 +25,8 @@ class WorkflowReviewTests(unittest.TestCase):
                        "selected_tests": [{"id": "A9", "required_method": "interaction", "observed_method": "interaction",
                                            "disposition": "passed", "evidence": [self.ref]}],
                        "improve_reviews": [{"action_id": "i1", "independent_availability": "available", "fresh_review_completed": True,
-                                            "scope": "Current source", "current_candidate": True, "evidence": [self.ref]}]}
+                                            "scope": "Current source", "current_candidate": True, "evidence": [self.ref]}],
+                       "harness_reflection": {key: {"answer": "Observed", "proposals": []} for key in HARNESS_QUESTIONS}}
 
     def assess(self, review=None):
         return validate_review(review or self.review, self.result, self.root)
@@ -215,6 +216,22 @@ class WorkflowReviewTests(unittest.TestCase):
 
     def test_real_interaction_and_fresh_scoped_review_support_declarations(self):
         self.assertEqual(self.assess()["status"], "supported-pass")
+
+    def test_missing_harness_reflection_is_unverified_and_empty_answers_are_invalid(self):
+        review = deepcopy(self.review)
+        del review["harness_reflection"]
+        result = self.assess(review)
+        self.assertEqual(result["status"], "unverified")
+        self.assertIn("harness reflection not recorded", result["unverified"])
+        review["harness_reflection"] = {key: {"answer": " ", "proposals": []} for key in HARNESS_QUESTIONS}
+        self.assertEqual(self.assess(review)["status"], "invalid")
+        review["harness_reflection"] = {"learning_retention": {"answer": "x", "proposals": []}}
+        self.assertIn("harness_reflection must answer exactly", " ".join(self.assess(review)["errors"]))
+
+    def test_template_asks_every_harness_question(self):
+        import json
+        template = json.loads((Path(__file__).parent / "workflow-review-template.json").read_text())
+        self.assertEqual({k: v["question"] for k, v in template["harness_reflection"].items()}, HARNESS_QUESTIONS)
 
     def test_dom_http_or_engine_do_not_satisfy_selected_ui_interaction(self):
         for method in ("dom", "http", "engine"):

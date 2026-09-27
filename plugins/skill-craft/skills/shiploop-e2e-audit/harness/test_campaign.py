@@ -7,7 +7,7 @@ import unittest
 
 from campaign import summarize, _settings
 from grading import write_template, validate_receipt
-from workflow_review import DIMENSIONS
+from workflow_review import DIMENSIONS, HARNESS_QUESTIONS
 import hashlib
 
 
@@ -67,7 +67,8 @@ class CampaignTests(unittest.TestCase):
                       "dimensions": [{"id": key, "status": "supported-pass", "evidence": [ref], "notes": "Observed"} for key in DIMENSIONS],
                       "selected_tests": [{"id": "A1", "required_method": "interaction", "observed_method": "interaction", "disposition": "passed", "evidence": [ref]}],
                       "improve_reviews": [{"action_id": "i1", "independent_availability": "available", "fresh_review_completed": True,
-                                           "scope": "Current source", "current_candidate": True, "evidence": [ref]}]}
+                                           "scope": "Current source", "current_candidate": True, "evidence": [ref]}],
+                      "harness_reflection": {key: {"answer": "Observed", "proposals": []} for key in HARNESS_QUESTIONS}}
             (evidence / "review.json").write_text(json.dumps(review))
             case["workflow_review"] = str((evidence / "review.json").relative_to(self.root))
 

@@ -8,7 +8,7 @@ description: >-
   Google Apps Script and Salesforce game cases require an authorized test deployment and hosted
   behavior evidence.
   Includes its harness for source and marketplace installs; tests a separately selected ShipLoop.
-version: 0.4.6
+version: 0.5.0
 license: MIT
 platforms:
   - linux
@@ -319,6 +319,14 @@ Missing nested tool events, return receipts, MCP deployment receipts, rendered
 hosted UI checks, or candidate linkage stay explicit limitations. Follow the
 README's review-validation example.
 Use an observed clock value for `reviewed_at`; do not infer or invent timestamps.
+
+After every run, also reflect on the harness itself and fill the review's
+`harness_reflection`: whether the harness should retain key learnings or keep
+state in a different way; whether there is more to learn from on subsequent
+passes; and whether more evaluation criteria are needed to re-evaluate
+ShipLoop's efficacy. Answer each from this run's evidence and list concrete
+proposals (possibly none). These are harness findings, not ShipLoop repairs;
+the validator reports a review without them as unverified.
 
 Return the exact commands, checkout/selected skill identity, output/product
 paths, test counts including skips, graph prefix and last accepted action,

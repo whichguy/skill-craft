@@ -4,6 +4,18 @@ Written by scripts/release.py.
 
 ## 2026-09-26
 
+### skill-craft 1.3.0
+
+- Skills: shiploop 0.36.0, shiploop-e2e-audit 0.5.0
+
+### shiploop 0.36.0
+
+- Planning now has platform cards for Cloudflare Workers, Vercel and Next.js, AWS serverless, Google Cloud, a self-hosted Node.js and Express server, and web UI frameworks (Bootstrap, Material Design 3, React, Next.js, Vue, Svelte, Tailwind, and fitting them to Apps Script and Salesforce hosts). Each card covers identity, state, concurrency, channels, caching, secrets, background work and limits, with dated current facts and claims to check, all linked to official sources. The coding guidance index lists them. The architecture rubric, scenario catalog and results are in docs/shiploop-architecture-rubric.md.
+
+### shiploop-e2e-audit 0.5.0
+
+- Every workflow review now reflects on the harness itself in a required `harness_reflection` block: should the harness retain key learnings or keep state differently, is there more to learn from on subsequent passes, and are more evaluation criteria needed to re-evaluate ShipLoop's efficacy. Each answer comes from the run's evidence with concrete proposals. The template carries the three questions, and the validator reports a review without them as unverified and one with empty answers as invalid.
+
 ### skill-craft 1.2.0
 
 - Skills: shiploop 0.35.0

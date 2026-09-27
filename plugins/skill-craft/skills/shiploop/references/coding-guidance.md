@@ -51,6 +51,12 @@ change.
 | [UI](platforms/ui.md) | Rendered interaction, state, accessibility, or artifact. |
 | [Google Apps Script](platforms/apps-script.md) | Server, HTML Service, trigger, or deployment boundary. |
 | [Salesforce](platforms/salesforce.md) | Apex, LWC, permissions, transaction, or cache boundary. |
+| [Cloudflare Workers](platforms/cloudflare-workers.md) | Workers, Durable Objects, KV, D1, R2, Queues, or Access boundary. |
+| [Vercel and Next.js](platforms/vercel.md) | Next.js on Vercel: functions, Server Actions, caching, cron, or storage boundary. |
+| [AWS serverless](platforms/aws.md) | Lambda, API Gateway, DynamoDB, Cognito, queues, or scheduler boundary. |
+| [Google Cloud](platforms/gcp.md) | Cloud Run, Firestore, Identity Platform, Pub/Sub, Tasks, or Scheduler boundary. |
+| [Node.js and Express](platforms/node-express.md) | A self-hosted Node server: sessions, storage, sockets, jobs, or process boundary. |
+| [Web UI frameworks](platforms/ui-frameworks.md) | Bootstrap, Material Design 3, React, Next.js, Vue, Svelte, Tailwind, or a framework in a restricted host. |
 | [Python](platforms/python.md) | Runtime, subprocess, resources, async work, or automated fix. |
 | [Bash](platforms/bash.md) | Script, command boundary, cleanup, or pipeline behavior. |
 

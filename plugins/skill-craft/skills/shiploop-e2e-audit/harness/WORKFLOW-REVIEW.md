@@ -60,6 +60,25 @@ retain the original result and explain why the interpretation changed.
    Do not add streaming usage chunks or child durations to terminal totals.
    Identify useful material corrections before calling review time waste.
 
+## Reflect on the harness
+
+After the workflow findings, answer three questions about the harness and
+record them in `harness_reflection`, each with an evidence-based answer and
+concrete proposals (possibly none):
+
+- **Learning retention:** should the harness retain key learnings or keep state
+  in a different way (for example what a later pass or a fresh operator could
+  not reconstruct from this trial's retained files)?
+- **Further learning:** is there something more we could learn from during
+  subsequent passes (a signal captured but unused, a comparison not made, a
+  variable not held fixed)?
+- **Evaluation criteria:** are more evaluation criteria needed to re-evaluate
+  ShipLoop's efficacy (a behavior this run showed matters that no check or
+  dimension measures)?
+
+Keep these separate from ShipLoop findings: they change how the next trial is
+run and judged, not the skill under test.
+
 ## Findings and follow-up experiments
 
 For each finding record the concrete trigger, observed behavior, supporting
