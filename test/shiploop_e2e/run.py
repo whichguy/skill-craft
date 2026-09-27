@@ -607,7 +607,8 @@ def parser() -> argparse.ArgumentParser:
                         "(required by follow-on cases, which name the case they follow)")
     p.add_argument("--check", action="append", help="extra shell check run in the work dir (repeatable)")
     p.add_argument("--output", type=Path, help="new directory for this attempt (default: under $TMPDIR)")
-    p.add_argument("--host", choices=sorted(hosts.HOSTS), default="grok")
+    p.add_argument("--host", choices=[*sorted(hosts.HOSTS), "all"], default="grok",
+                   help="the host that drives ShipLoop; 'all' only with --preflight-only (checks every host)")
     p.add_argument("--model", help="default: grok-4.7 (grok) or sonnet (claude)")
     p.add_argument("--effort", help="reasoning effort; default: medium (grok), host default (claude)")
     p.add_argument("--skill", help="command that invokes ShipLoop; default: shiploop (grok), skill-craft:shiploop (claude)")
@@ -780,11 +781,19 @@ def main(argv: list[str] | None = None) -> int:
     argv = list(sys.argv[1:] if argv is None else argv)
     args = parser().parse_args(argv)
     if args.preflight_only:
+        # Before a rerun, every host must get the latest release (SPEC: publish, refresh, then run).
         out = new_output_dir(args.output, "preflight")
-        env = the_host(args).env(out / "home")
-        _, _, versions = marketplace_preflight(args, out, env)
-        (out / "preflight.json").write_text(json.dumps(versions, indent=2) + "\n")
-        return 1 if versions["gate"] else 0
+        refused = False
+        for name in (sorted(hosts.HOSTS) if args.host == "all" else [args.host]):
+            args.host = name
+            check = out / name
+            check.mkdir()
+            _, _, versions = marketplace_preflight(args, check, the_host(args).env(check / "home"))
+            (check / "preflight.json").write_text(json.dumps(versions, indent=2) + "\n")
+            refused = refused or bool(versions["gate"])
+        return 1 if refused else 0
+    if args.host == "all":
+        raise SystemExit("--host all is only for --preflight-only; a run needs one host")
     if args.suite:
         return run_suite(args, argv)
     host = the_host(args)
