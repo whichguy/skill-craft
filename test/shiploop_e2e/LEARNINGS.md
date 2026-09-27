@@ -79,3 +79,19 @@ detailed message; read the last three commit messages before the next run or cha
   only `active` runs, so it stopped. The keepalive recorded one allow (shutdown).
 - Learned: the empty-reply session end can happen at any point, including before the run exists; resume
   must cover "no run yet" too. Paused, blocked, awaiting, halted and done runs are still never resumed.
+
+## Run 5 — 2026-09-26 — battleship, Grok grok-4.7 medium, skill-craft 1.2.0 (ShipLoop 0.35.0, dae33e4b)
+
+- Outcome: PASS in one Grok session, no resumes: 4,291 s (71.5 min), 314 turns, $25.09 reported; done at
+  revision 52; all four checks pass in work/. The handoff returned the game as working-tree changes, not a commit.
+- Timeline: preparation ~28 min (spec 8, test-strategy 6: checks are "planned until they actually run"),
+  W1 through carry-forward ~26 min with three implement steps, outer stages ~18 min (release-plan 7.3).
+- Intake's new interaction/state questions went to discovery, not the user; no awaiting stall.
+- Context: one compaction at ~392 K (-> 52 K); 17 truncated outputs, including Improve's SKILL.md (~49 KB
+  printed with cat) and Improve bind packets up to 52.6 KB.
+- Starting an Improve child still needs model-written glue: a SyntaxError in an inline Python snippet at
+  test-spec (recovered), and twice Until Loop's "receipt's parent must be an existing directory".
+- Release-plan's Improve review found that consumer_checks default to suite "check" (exit code only), so a
+  zero-test `node --test` would pass release-verify; the model rewrote them to counted regression tests.
+- release-verify was accepted "done" with "No browser session was available"; the page test only matches the
+  title and counts 100 buttons, never running the click handler.
