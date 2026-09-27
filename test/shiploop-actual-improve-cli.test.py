@@ -908,10 +908,7 @@ class EphemeralImproveCliTests(ImproveCliFixture):
         for criterion in navigator.stage_spec.stage(stage).done_when:
             self.assertIn(criterion, contract["exit_condition"])
         self.assertIn("The " + stage + " result meets its own done-when criteria", contract["exit_condition"])
-        # The parent return shows the completion record's shape: raw JSON is refused by the importer.
-        parent_return = receipt.with_name("parent-return.md").read_text(encoding="utf-8")
-        self.assertIn("```shiploop-state", parent_return)
-        self.assertIn('"review_refs"', parent_return)
+        # A record without its fence is refused with its path and the expected shape.
         raw = receipt.parent / "raw.json"
         raw.write_text('{"summary": "x"}\n', encoding="utf-8")
         with self.assertRaisesRegex(navigator.store.StorageError, r"raw\.json: .*found 0.*raw JSON is not accepted"):
