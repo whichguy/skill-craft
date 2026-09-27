@@ -1,0 +1,21 @@
+During discovery, research, spec development, global planning and step planning,
+use the packet's Interaction design guide and its incoming-events, UI-specific planning
+and review sections as applicable. Identify actors, channels, incoming/outgoing events,
+connection lifecycle and state ownership; retain the existing baseline/delta.
+For affected UI, read and apply suitable available design guidance before consequential
+decisions; record its identity/version or digest, or the repository-guidance fallback.
+Establish or preserve component, interaction and skin premises, truthful async feedback
+and deployment fit. Prefer existing capabilities; no UI does not skip applicable
+machine interactions. Put exact relevant source/section locators and short decisions
+in each affected work-item context and evidence_refs, including planned check locators,
+for cold recovery and the normal Improve handoff; do not start a nested review.
+State and information lifecycle. For each piece of state the request involves,
+decide and state, in proportion to the request: its authoritative owner and where
+it lives; who may read it (hidden information never reaches a client that must not
+see it); how simultaneous changes are resolved; what ends it (finished, abandoned,
+expired) and what removes it; and which runtime quotas or limits it meets. For
+personal or secret data, state where it is shown, stored and logged, how long it is
+kept, and how it is removed. Map each to what the runtime and the project's own
+layers already offer, from their documentation, configuration and code. Do not add
+identity, sharing or persistence the request does not call for; when the request
+leaves them open, carry the question to the user with the default you would take.

@@ -38,13 +38,15 @@ def claude(t):
 def job(f):
     dest = EXP / JDIR / (f.stem + ".json")
     if dest.exists() and dest.stat().st_size: return
+    plan = plan_text(f)
+    if len(plan.split()) < 150: return  # unfinished or stub: never grade it
     sid, rt, var, k = f.stem.split("_"); s = SCN[sid]
     ext = rt in s.get("runtimes_ext", [])
     applies = s["applies"] + (s.get("applies_ui", []) if ext and s.get("ui") else [])
     req = s["request"] + (f" Use {s['ui']} for the UI." if ext and s.get("ui") else "")
     crit = "\n".join(f"{c} {R['criteria'][c][0]}: {R['criteria'][c][1]}" for c in applies)
     t = PROMPT.format(rt=RT[rt], req=req, tier=s["tier"], tierdef=SC["tiers"][s["tier"]], over=s["overbuild"],
-                      grades="; ".join(f"{k} = {v}" for k, v in R["grades"].items()), crit=crit, tiers=list(SC["tiers"]), plan=plan_text(f))
+                      grades="; ".join(f"{k} = {v}" for k, v in R["grades"].items()), crit=crit, tiers=list(SC["tiers"]), plan=plan)
     dest.write_text(claude(t))
 if __name__ == "__main__":
     (EXP / JDIR).mkdir(exist_ok=True)
@@ -64,7 +66,7 @@ if __name__ == "__main__":
             if g == "overbuilt": over[var][c] += 1
         tier_hit[sid][var].append(j["tier_chosen"] == SCN[sid]["tier"])
         errs[var] += len(j.get("platform_errors") or [])
-    (EXP / f"verdicts_{JDIR}.json").write_text(json.dumps(rows, indent=1, sort_keys=True))
+    (EXP / f"verdicts_{JDIR.replace('/', '_')}.json").write_text(json.dumps(rows, indent=1, sort_keys=True))
     mean = lambda xs: sum(xs) / len(xs) if xs else float("nan")
     print("Overall score:", {v: f"{mean(x):.2f} (n={len(x)})" for v, x in by_var.items()}, "platform errors:", dict(errs))
     V = sorted(by_var)

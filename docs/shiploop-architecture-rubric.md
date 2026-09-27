@@ -21,6 +21,7 @@ decides the rung; the plan's job is to land on that rung, not above or below it.
 | --- | --- | --- |
 | client-only | One person, or people sharing one screen; nothing shared or trusted outlives the page | All logic in the browser; browser storage only if resuming is asked for |
 | client-plus-light-server | A client product with one shared or trusted piece (a leaderboard, a saved preference that must follow the user) | The client does the work; a small endpoint validates and stores the shared piece |
+| host-scoped | The product extends a host record or document (a Docs sidebar, a Salesforce record page) | State lives with the host (document properties, the record's related data) and follows the host's sharing; no separate store or access model |
 | server-shared-async | Several people share state; changes matter on the next visit or within hours | Server-held state, runtime identity, notification by email or platform notification |
 | server-shared-live | Several people share state and must see changes within seconds or a minute | Server-held state, runtime identity, polling or a push channel justified by the stated freshness |
 | server-batch | Scheduled or triggered work with no interactive client | Idempotent, retried, rate-limited, observable jobs |
@@ -194,6 +195,11 @@ that apply and what counts as overbuilt. Full definitions: [scenarios.json](expe
 | S12 | Team chat room | server-shared-live | CF, SF | Channel, history retention, no unrequested presence |
 | S13 | Offline field checklist | server-shared-async | SF, CF | Durable local queue, idempotent upload, conflicts |
 | S14 | AI summarizer button | server-shared-async | GAS, CF | Secret custody, cost, third-party data |
+| S15 | Docs sidebar that tags sections | host-scoped | GAS | Document properties and sharing, not a database |
+| S16 | Account record-page panel of open cases | host-scoped | SF | Standard objects and the org's sharing are the authority |
+| S17 | Multi-tenant appointment booking | server-shared-async | VERCEL, AWS | Tenant isolation on every query, with a negative test |
+| S18 | 200-seat registration, never oversold | server-public | GCP, NODE | Atomic conditional write under a rush |
+| S19 | Payment webhook, duplicates and reordering | server-public | NODE, CF | Signature check, idempotency by event ID |
 
 ## Running the harness
 
@@ -208,6 +214,15 @@ that apply and what counts as overbuilt. Full definitions: [scenarios.json](expe
   read a directory, run the control from a directory without that access; a
   control that could see the cards read them in 22 of 32 trials.
 - Pin Sonnet for trials and judges; grade blind, one plan at a time.
+- The judge skips any output without a finished plan of at least 150 words, so
+  a file still being written is never graded.
+- Compare variants under one condition. Rerun the baseline alongside the
+  candidates rather than reusing results from another condition, and report
+  paired wins and losses per scenario-runtime cell as well as means.
+- Judge reliability (40 plans graded twice): 91% of criterion grades and 39 of
+  40 tier calls agree; a plan's score moves 0.04 on average. Differences of a
+  few hundredths across one variant's 100 plans are therefore not judge noise,
+  but trial-to-trial variation is larger: confirm a leader with a second trial.
 
 ## Adding to the rubric
 
@@ -218,9 +233,7 @@ that apply and what counts as overbuilt. Full definitions: [scenarios.json](expe
   expected tier, the applicable criteria and an overbuild note. Include at
   least one scenario at the tier below and one above any new pressure, so
   overbuilding and underbuilding are both visible.
-- Candidate scenarios not yet in the catalog: an Apps Script add-on sidebar
-  bound to one document (host-scoped state); a Salesforce record-page component
-  reading related records (the host's sharing model is the authority); a
-  multi-tenant SaaS on Workers (tenant isolation); an event-registration page
-  with a capacity limit (oversell under concurrency); a webhook receiver from a
-  payment provider (signature check, replay and idempotency).
+- Candidate scenarios not yet in the catalog: a mobile web app with push
+  notifications; a data-export feature with large files; a scheduled report
+  emailed to managers; an admin console with audit logging; a feature flag
+  rollout.

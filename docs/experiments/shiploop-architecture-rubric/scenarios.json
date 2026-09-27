@@ -5,7 +5,8 @@
   "server-shared-async": "Authoritative shared state on the server with runtime identity; other parties learn of changes on their next visit or by notification (email, platform notification); no live channel.",
   "server-shared-live": "Authoritative shared state on the server with runtime identity and a live or near-live channel (short poll, SSE, WebSocket or platform push) justified by the latency the request states.",
   "server-batch": "Scheduled or triggered server work with no interactive client in the loop; idempotent, retried, observable.",
-  "server-public": "Server state reachable by anonymous or untrusted callers; abuse controls and validation are central."
+  "server-public": "Server state reachable by anonymous or untrusted callers; abuse controls and validation are central.",
+  "host-scoped": "State lives with one host record or document (document properties, the host record's related data) and follows the host's own sharing; no separate database or access model."
  },
  "scenarios": [
   {
@@ -464,6 +465,146 @@
     "O1"
    ],
    "overbuild": "Storing every summary permanently or a shared database is overbuilt unless reuse is asked; the API key must never reach the client."
+  },
+  {
+   "id": "S15",
+   "name": "docs-sidebar-addon",
+   "tier": "host-scoped",
+   "runtimes": [
+    "GAS"
+   ],
+   "request": "Add a sidebar to a Google Doc where the author tags sections with a status; the tags stay with that document and anyone who can edit the document sees them.",
+   "applies": [
+    "P1",
+    "P2",
+    "P3",
+    "I1",
+    "I3",
+    "S1",
+    "S2",
+    "S4",
+    "R1",
+    "R2",
+    "R3",
+    "V1"
+   ],
+   "overbuild": "A spreadsheet or external database, or a custom access list, is overbuilt; the document's own properties and sharing are the home and the authority."
+  },
+  {
+   "id": "S16",
+   "name": "record-page-panel",
+   "tier": "host-scoped",
+   "runtimes": [
+    "SF"
+   ],
+   "request": "On the Account record page, show a panel with the account's open cases and let support agents add a quick note to a case.",
+   "applies": [
+    "P1",
+    "P2",
+    "P3",
+    "I2",
+    "I3",
+    "S1",
+    "S2",
+    "C1",
+    "C2",
+    "R1",
+    "R2",
+    "R3",
+    "V1"
+   ],
+   "overbuild": "A custom object for notes or custom sharing logic is overbuilt where standard objects and the org's sharing already apply; the user's record access is the authority."
+  },
+  {
+   "id": "S17",
+   "name": "multi-tenant-booking",
+   "tier": "server-shared-async",
+   "runtimes": [
+    "VERCEL",
+    "AWS"
+   ],
+   "request": "Build a small appointment-booking service where each business signs up, invites its staff and manages its own calendar; customers book slots by link. Businesses must never see each other's data.",
+   "applies": [
+    "P1",
+    "P2",
+    "P3",
+    "I1",
+    "I2",
+    "I3",
+    "I4",
+    "S1",
+    "S2",
+    "S4",
+    "C1",
+    "C3",
+    "D1",
+    "D2",
+    "D3",
+    "D4",
+    "R1",
+    "R2",
+    "R3",
+    "V1"
+   ],
+   "overbuild": "Per-tenant infrastructure is overbuilt for a small service; tenant scoping enforced on every server query, with a negative test, is the requirement."
+  },
+  {
+   "id": "S18",
+   "name": "capacity-registration",
+   "tier": "server-public",
+   "runtimes": [
+    "GCP",
+    "NODE"
+   ],
+   "request": "Build an event registration page with 200 seats: people sign in with a Google account to register, and the event must never be oversold, even when registration opens and hundreds try at once.",
+   "applies": [
+    "P1",
+    "P2",
+    "P3",
+    "I1",
+    "I2",
+    "I4",
+    "S1",
+    "S2",
+    "S3",
+    "C1",
+    "C3",
+    "C5",
+    "D1",
+    "D2",
+    "R1",
+    "R2",
+    "R3",
+    "V1"
+   ],
+   "overbuild": "A queue or live channel is overbuilt if an atomic conditional write enforces the seat count; a load or concurrency test is expected."
+  },
+  {
+   "id": "S19",
+   "name": "payment-webhook",
+   "tier": "server-public",
+   "runtimes": [
+    "NODE",
+    "CF"
+   ],
+   "request": "Receive payment-succeeded webhooks from our payment provider and mark the matching order as paid. The same webhook can arrive twice or out of order.",
+   "applies": [
+    "P1",
+    "P3",
+    "I4",
+    "S1",
+    "S2",
+    "C3",
+    "D1",
+    "D3",
+    "D4",
+    "R1",
+    "R2",
+    "R3",
+    "V1",
+    "O1"
+   ],
+   "overbuild": "A client UI or live channel is overbuilt; signature verification, idempotent processing keyed by event ID, and ordering rules are the requirement."
   }
  ],
  "runtimes": {
