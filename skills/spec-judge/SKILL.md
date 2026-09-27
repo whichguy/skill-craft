@@ -22,7 +22,10 @@ metadata:
 # /spec-judge
 
 A spec is only useful if what it says is true of the repository and it says
-what the repository does. This skill measures both, from the source, with
+what the repository does. The spec is the contract (it must survive a rebuild
+on another stack); the architecture record is the stack and structure (it
+must survive a change of the spec). Gaps are judged at contract level, and
+leakage between the two is a defect. This skill measures both, from the source, with
 samples a script draws so the judge cannot pick easy items.
 
 ## Invocation
@@ -62,6 +65,8 @@ this file.
 | `under_spec.sources_missing` | under | a file's visible responsibility the spec does not state |
 | `under_spec.readme_missing` | under | README promises the spec does not state |
 | `architecture_true` | coverage | checklist items answered and true |
+| `leakage.spec_names_implementation` | orthogonality | sampled requirements naming stack or implementation a rebuild on another stack would not share |
+| `leakage.architecture_restates_behaviour` | orthogonality | architecture items restating the spec instead of how it is built |
 
 Lower is better for every over- and under-spec share; report each with the
 sample size behind it. Quote the notes of `wrong`, `missing` and `partly`

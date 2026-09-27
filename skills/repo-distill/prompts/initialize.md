@@ -37,9 +37,22 @@ works. Do not use the web.
   when documentation promises it, `evidence: code` when only the code shows
   it. The owner accepts intent later; never present an observation as a
   decision someone made.
-- **Requirements are behaviour.** Each `R-n` is one observable outcome with
-  its preconditions, failure and negative cases. Group closely related
-  behaviour under one ID; keep IDs stable and never reuse one.
+- **Spec and architecture are orthogonal, big-ticket documents.** The spec
+  is the contract: complete enough that a rebuild on a **different stack**
+  would behave identically, so it names no language, library, module,
+  function or algorithm. The architecture is the stack, structure,
+  ownership and decisions: complete enough that a **changed spec** would be
+  built on the **same stack**, so it does not restate behaviour. Neither is
+  a guide to reconstructing this exact code.
+- **Requirements are the contract, at contract level.** Each `R-n` is one
+  capability a user or caller relies on, stated with the observable detail
+  that decides it: inputs and options with their defaults, outputs and
+  formats, errors and failure cases, ordering and edge behaviour a caller
+  can see. Put that detail as short bullets under the requirement, each with
+  its own anchor. Leave out internal mechanisms no caller can observe.
+- **Anchor or omit.** Every requirement and every bullet cites `path:line`
+  (or a test name or README line). If you cannot anchor it, it is an unknown,
+  not a requirement. Never state an inferred default or behaviour as fact.
 - **Architecture is where design lives, kept short.** `architecture.md`
   holds what an agent cannot cheaply read for itself: short, non-obvious,
   actionable facts, not a tour of the code. Sections:

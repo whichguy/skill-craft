@@ -178,6 +178,12 @@ def cmd_score(args) -> int:
                                      len(sample["sources"]) - src.get("internal", 0)),
             "readme_missing": share(doc.get("missing", 0) + doc.get("partly", 0),
                                     len(sample["readme"]) - doc.get("not-a-requirement", 0))},
+        # Orthogonality: the spec must survive a stack change, the architecture a spec change.
+        "leakage": {
+            "spec_names_implementation": share(sum(1 for v in verdicts.get("requirements", []) if v.get("leaks")),
+                                               len(sample["requirements"])),
+            "architecture_restates_behaviour": share(sum(1 for v in verdicts.get("architecture", [])
+                                                         if v.get("restates_behaviour")), len(sample["architecture"]))},
         "architecture_true": share(arc.get("answered-true", 0), len(sample["architecture"]))}
     (args.out / "grade.json").write_text(json.dumps(grade, indent=2) + "\n")
     print(json.dumps(grade))

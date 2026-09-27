@@ -152,6 +152,15 @@ pinned commit and distilled there; clones and specs are disposable.
   kept, an architecture-and-decisions section, written as ShipLoop's
   knowledge home (`docs/shiploop/README.md`, `spec.md` with stable `R-n`
   IDs, `environment.md`, `test-strategy.md`, per `skills/shiploop/references/project-knowledge.md`).
+- **Orthogonality (owner, 16:00).** Spec and architecture are big-ticket and
+  independent: the spec is the contract and must survive a rebuild on a
+  different stack; the architecture is stack, structure and decisions and
+  must survive a change of the spec. Both must hold; neither reconstructs
+  the exact code. Tests: (1) spec sufficiency, a clean-room rebuild from the
+  spec alone on a different stack, scored by the same black-box oracle;
+  (2) architecture sufficiency, a spec change run through ShipLoop that keeps
+  the recorded stack and decisions (part C). The judge grades leakage both
+  ways and counts only contract-level gaps as under-spec.
 - **C. Proof of use:** one never-ShipLooped repository, one feature request,
   ShipLoop run cold vs after initialization (harness follow-on style);
   compare planning cost and turns, existing tests kept passing, feature
