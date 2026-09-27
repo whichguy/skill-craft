@@ -88,7 +88,11 @@ def call_full(model: str, prompt: str, *, timeout: int = 600, tools: str = "") -
                        "GROK_CLAUDE_SKILLS_ENABLED": "false", "GROK_CURSOR_SKILLS_ENABLED": "false", "NO_COLOR": "1"}
                 argv = ["grok", "--cwd", cwd, "--prompt-file", str(pf), "--verbatim", "--model", GROK_MODEL,
                         "--reasoning-effort", GROK_EFFORT, "--output-format", "json", "--no-auto-update",
-                        "--disable-web-search", "--tools", "", "--max-turns", "3"]
+                        "--disable-web-search"]
+                # Grok reads `--tools ""` as no restriction (every tool, shell included), so name an allowlist:
+                # todo_write touches no files. With tools, list_dir alone lets it look at the empty directory,
+                # find nothing and answer; it cannot read files, so no run can see another's prompt.
+                argv += ["--tools", "list_dir" if tools else "todo_write", "--disallowed-tools", "search_tool,use_tool", "--max-turns", "6"]
                 out = subprocess.run(argv, capture_output=True, text=True, timeout=timeout, env=env).stdout
                 d = json.loads(out) if out.strip() else {}
                 u = d.get("usage") or {}

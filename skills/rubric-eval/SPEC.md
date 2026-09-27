@@ -84,6 +84,13 @@ than a run this round (the unreviewed plans of a review experiment) is marked
   judge;
 - the baseline rerun in the same round, not reused from another condition;
 - no MCP servers or plugins in any headless call (`call` enforces this);
+- no tools beyond what the condition names, **verified** by asking the subject
+  to list its tools, never assumed from a flag. Grok reads `--tools ""` as no
+  restriction: every Grok call had its shell and file tools until 2026-09-27,
+  when it was found (no decision-making result was run on Grok before then).
+  `call` now names an allowlist (`todo_write`, or `list_dir` for `--tools Read`)
+  and removes the tool-loading meta-tools, so no call can read another call's
+  prompt;
 - a control cannot read the treatment (no shared readable directory);
 - stubs (graded text under 150 words) rerun with the same prompt up to three
   times, then excluded and logged, never graded as failures;

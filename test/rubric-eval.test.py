@@ -209,6 +209,25 @@ class Statistics(unittest.TestCase):
         self.assertEqual(v["grades"], {"P1": "met", "D1": "met", "D2": "partial", "D3": "missed", "D4": "missed"})
         self.assertEqual(v["quote_check"]["unverified"], ["D2", "D3"])
 
+    def test_grok_calls_name_a_tool_allowlist(self):
+        # Grok reads `--tools ""` as no restriction (shell and file tools included); every call must name
+        # an allowlist and remove the meta-tools that load other tools.
+        seen = []
+        class Done:
+            stdout = '{"text": "ok", "usage": {"input_tokens": 3, "output_tokens": 2}}'
+        real = R.subprocess.run
+        R.subprocess.run = lambda argv, **kw: (seen.append(argv), Done())[1]
+        old_home = R._grok_home
+        R._grok_home = lambda: Path(tempfile.gettempdir())
+        try:
+            r = R.call_full("grok", "hi"); R.call_full("grok", "hi", tools="Read")
+        finally:
+            R.subprocess.run = real; R._grok_home = old_home
+        self.assertEqual((r["text"], r["input_tokens"], r["output_tokens"]), ("ok", 3, 2))
+        for argv, allowed in zip(seen, ("todo_write", "list_dir")):
+            self.assertEqual(argv[argv.index("--tools") + 1], allowed)
+            self.assertEqual(argv[argv.index("--disallowed-tools") + 1], "search_tool,use_tool")
+
     def test_costs_compare_paired_and_against_a_free_input(self):
         vals = {f"S0{i}_GAS_base_1": 1000.0 for i in range(1, 9)} | {f"S0{i}_GAS_cand_1": 700.0 + i for i in range(1, 9)}
         c = R.paired_values(vals, "cand", "base", "scenario")
