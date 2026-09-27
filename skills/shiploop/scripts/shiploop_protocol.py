@@ -16,6 +16,7 @@ import shlex
 import sys
 from pathlib import Path
 
+import shiploop_git
 import shiploop_navigator as navigator
 import shiploop_navigator_dry_run as navigator_dry_run
 import shiploop_store as store
@@ -128,6 +129,12 @@ def workspace_command(core, argv):
             saved = store.read_record(root / "run" / "state.md")
             navigator.validate(saved)
             workspace.assert_binding(root, Path(saved["repo"]))
+            leftover = workspace.commit_leftovers(root)
+            if leftover.commit:
+                print("Committed files left uncommitted in the candidate: " + ", ".join(leftover.paths)
+                      + f" ({leftover.commit[:12]}).")
+            if leftover.skipped:
+                print(shiploop_git.skipped_notice(leftover.skipped))
             workspace.plan_return(root)
             print(f"Review all keep/exclude dispositions in {root / 'return-plan.md'}.")
             print("Keep only intended product changes and durable knowledge, not run artifacts.")

@@ -225,3 +225,64 @@ harness-FAIL, 7 cancelled; 8b on 1.6.0 PASS committed, 4 cancelled, 0 ShipLoop f
 - Harness learnings: the glue metric needed two precision fixes during these runs (heredoc bodies are not
   commands; evidence notes are model output); rows appended from a suite run go to the checkout the runner
   lives in (move them before committing when a session shares a checkout).
+
+## web-p5 — 2026-09-27 — web-service focused suite, checkout build (skill-craft 1.8.0, ShipLoop 0.41.0: P3-P5)
+
+- battleship FAIL on `committed` only: ShipLoop reached done (process, invocation, plugin, shiploop all PASS),
+  but the user's branch held 21 uncommitted product paths and none of the run's 16 commits.
+  battleship-scoring was skipped (predecessor failed). 320 turns, $27.18, 2 sessions, 1 compaction,
+  9/9 ShipLoop-run checks passed, 16 Improve children, asked a person 0.
+- Root cause (engine): `system/browser-check.js`, written after the last work item, was untracked in the
+  candidate at return. Any untracked product file forces the working-tree return route, so every run
+  commit stayed on the run branch. Fix: `workspace plan-return` commits leftover product files through
+  the one commit helper first; the reviewed plan then fast-forwards (f2c80133).
+- Glue (engine): the model hand-committed `SHIPLOOP.md`, the knowledge index the references ask it to keep,
+  because ShipLoop committed only `docs/shiploop/`. Fix: the index is knowledge, committed and screened with
+  the home (bf8febce).
+- Crash (engine): a release-plan `consumer_entry` with an absolute source path raised pathlib's
+  NotImplementedError. Absolute paths are now refused with a message (f2c80133).
+- P3b worked: the knowledge home was committed by ShipLoop after verify, document, step-plan,
+  system-test-author and at every close; the glue fix to the metric (52e37e45) removed the /tmp start-file
+  false positives.
+- Harness: a checkout run is not release evidence (SPEC). The marketplace preflight (bbbb5242) now shows,
+  before any run, what origin/main publishes and what the host actually installed.
+- Forensics of the remaining signals (read-only analysis of the event log):
+  - 4 of 6 glue entries were the old substring false positive (fixed by 52e37e45; the current metric counts
+    2, both the SHIPLOOP.md hand commits fixed in bf8febce).
+  - Refusals that the model recovered from in the same turn, with guidance already in the packet: an
+    Improve receipt submitted with an uncommitted review edit; release-plan and release-verify submitted
+    before their knowledge files existed.
+  - Engine friction (next item): ShipLoop's own knowledge commit at release-verify stales the return receipt
+    taken at release, so handoff refuses and the model runs a follow-up return by hand. Candidate fix: the
+    script performs the follow-up return itself when only knowledge paths changed since the receipt.
+  - Engine (upstream Until Loop): each non-terminal Until Loop packet prints the full report schema and fixed
+    instruction; 3 outputs were truncated at the host's ~10k-character cap. Belongs with the until-loop
+    short-output / `--report-file` item.
+  - The one cancelled tool call was the host cancelling a `--help` probe at session start.
+
+## temperature-report — 2026-09-27 — first graph-shaped case, Grok grok-4.7 medium, marketplace skill-craft 1.11.0 (ShipLoop 0.44.0)
+
+- Outcome: **stopped, not graded.** Grok ran out of credits at 97 min (303 turns, peak context
+  399 K, $7.91 reported). The run was killed deliberately to stop a resume loop; the output
+  directory is kept. ShipLoop was active at revision 17, in the inner loop at the test
+  specification, with 0 of 1 work items done. No product checks ran.
+- Purpose: the validation plan's step 3 (docs/plan-orchestrator-validation-plan-2026-09-27.md),
+  the first live fan-out/fan-in through the current release on the Ask-Agent parallel route.
+- What it proved: asked for Ask-Agent delegation, ShipLoop recorded `delegation: ask-agent`, and
+  Grok's step plan was exactly the intended graph. `S-convert` and `S-stats` were marked "may run
+  in parallel", and `S-measure` "only after S-convert and S-stats are accepted". The dependency is
+  carried only in step-task text; step plans have no `depends_on` since the 09-26 KISS change.
+- What it did not reach: `implement`, where `chain bind` would happen. No chain binding exists, so
+  the dispatcher fan-out itself is still unexercised by a real model.
+- Time: intake 4.3, discovery 2.7, research 13.4, spec 29.6, test-strategy 5.8, plan 8.1,
+  prepare 0.6, select-work 0.2, step-plan 28.9 minutes. Planning was about 94 of the 97 minutes;
+  spec and step-plan dominate.
+- Friction:
+  - one `improve-bind` and one `complete` were refused;
+  - the model hand-built loop contracts and ran its own `git commit`s ("model glue");
+  - 4 tool outputs were truncated by the host;
+  - the first session ended "cancelled after 91 turns" on a host permission check and was resumed
+    once.
+- Next: resume this run on another host (Claude Sonnet, budget-capped) from its recorded run
+  directory, or rerun on Grok when credits return. The harness cannot switch hosts mid-run;
+  `--continue-from` copies only the source checkout.

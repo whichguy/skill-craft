@@ -21,7 +21,8 @@ evidence about ShipLoop. What a probe reveals is fixed in the engine
 generically; nothing in the engine may know which probe exposed it.
 
 Each iteration: run a case on exactly what the marketplace publishes, measure,
-review against this spec, fix ShipLoop generically, release, rerun, and
+review against this spec, fix ShipLoop generically, release and refresh the
+marketplace install (see the harness rules), rerun, and
 record what was learned (one commit per run; read the last three commit
 messages before the next run or change).
 
@@ -221,6 +222,33 @@ Reliability (sessions, cancellations, failures) and cost (turns, dollars, per
 stage) are scored beside them and compared with the previous run of the same
 case.
 
+## Parallel work
+
+E2E runs are long, so the loop spends its waiting time in parallel.
+
+- Before executing a list of steps, decide which are independent. Run
+  independent steps together, and hand read-only work (run forensics,
+  host inventories, learnings drafts, reviews against this spec) to
+  background agents or tasks while a long job (a test tier, a run) is
+  running. Name the steps that must stay in order and the dependency that
+  orders them (for example: release after the full tier; host updates and
+  the preflight after the release is published; a rerun after the
+  preflight).
+- Independent runs execute in parallel. Every case writes only into its
+  own output folder, so a suite runs its independent chains (a case with
+  its follow-ons) concurrently, up to `--max-parallel` (default 3); a
+  follow-on always waits for its predecessor in the same chain. Separate
+  suites or cases started by hand may also run at once, each in its own
+  output folder.
+- Concurrency must not change a verdict. Concurrent runs are quiet (no
+  interleaved live view), share no files, and pass the same checks. A
+  failure seen only in a parallel run (for example two products' own tests
+  binding the same fixed port, or a host rate limit) is rerun alone
+  (`--serial`) before it is attributed to ShipLoop.
+- Agents do not replace evidence: an agent's analysis is a lead, and a
+  claim it makes is checked against the event log or a script before it
+  drives a change (Change admission).
+
 ## Evolving this spec
 
 ShipLoop will evolve, and so will this spec. When a planned change needs a
@@ -239,13 +267,35 @@ stands at the commit under test.
   so improvements cannot overfit one probe; a change justified by one case is
   re-checked on another before it is called general.
 
-- Test exactly what the marketplace publishes (`--source marketplace`, version
-  gate); build the checkout only to try an unreleased candidate.
+- Test exactly what the marketplace publishes (`--source marketplace`); build
+  the checkout (`--source checkout`) only to try an unreleased candidate, and
+  never record a checkout run as evidence about a release.
+- **Publish, then refresh, then run.** A change pushed to the repository is not
+  what a host runs until it is released and the host is refreshed. Every change
+  that should reach a marketplace run goes through, in order:
+  1. `scripts/release.py`, which builds `plugins/skill-craft/` and the catalogs
+     from source, then the push of that release commit (its CI must pass);
+  2. a refresh of the marketplace on the host the harness drives. The harness
+     does this itself: each marketplace run adds the published marketplace and
+     installs `skill-craft` into a fresh, isolated profile, so no cached or
+     earlier install is ever reused;
+  3. the run, which refuses to start (the version gate) unless the local
+     checkout is origin/main, origin/main has no pending change notes (every
+     source change on main is released), and the installed plugin and
+     ShipLoop versions equal the ones origin/main's catalog publishes.
+  After a release, also update the user's own hosts (Claude, Grok, Codex) so
+  their installs match what the harness tested.
 - Run unattended (S-14): the host and every check get closed standard input and
   a timeout; a case prompt never needs a person, and a check never waits for
   input.
 - Start from an empty directory, or for a follow-on case, from a clean copy of
   an earlier run's checkout. The harness leaves no files of its own behind.
+- Case products are disposable probes. The repository a run builds (and any
+  follow-on copy of it) lives outside skill-craft; the harness refuses an
+  output directory inside the checkout. A product is never committed to
+  skill-craft, merged into ShipLoop, or copied into a reference or fixture.
+  What skill-craft keeps is the harness: its code, case prompts, product
+  checks, baselines and learnings.
 - Never print packet text or run markers into a session that is not the run's
   host.
 - After each run, record learnings in LEARNINGS.md with a detailed commit that

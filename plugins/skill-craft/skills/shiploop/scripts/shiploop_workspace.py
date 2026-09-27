@@ -35,6 +35,7 @@ import subprocess
 import tempfile
 
 import shiploop_git
+import shiploop_knowledge_home as knowledge_home
 import threading
 from contextlib import contextmanager
 from functools import wraps
@@ -1062,7 +1063,7 @@ def _plan_rows(
                 "in_history": path in history,
                 # ShipLoop's committed knowledge home always returns with the candidate.
                 "disposition": ("exclude" if (_forbidden(path) or _matches_exclusion(path, excluded))
-                                else "keep" if path.startswith("docs/shiploop/") else "pending"),
+                                else "keep" if knowledge_home.in_home(path) else "pending"),
             }
         )
     return rows
@@ -1103,6 +1104,34 @@ RETURN_POLICY = (
 
 
 @_locked_existing_root
+def commit_leftovers(workspace_root: Path) -> shiploop_git.Committed:
+    """Commit product files still uncommitted in the candidate before the return is planned.
+
+    A file written after the last work item (a system test, a release note) is
+    otherwise untracked at return, which forces the working-tree route and keeps
+    every run commit off the user's branch.  Committing it here lets the reviewed
+    plan fast-forward; a path the review then excludes still falls back to the
+    working-tree route.  Run evidence, protected paths, caller exclusions and
+    files the credential screen flags are never committed.
+    """
+    root = _resolved_directory(Path(workspace_root), label="workspace root")
+    manifest = _manifest(root)
+    worktree = _resolved_directory(Path(manifest["worktree"]), label="workspace worktree")
+    if _branch(worktree) != manifest["branch"]:
+        _fail("workspace branch changed after preparation")
+    tracked = [name for name in _git_bytes(worktree, "diff", "--name-only", "-z", "HEAD").decode(
+        "utf-8", "surrogateescape").split("\0") if name]
+    paths = sorted({*tracked, *(row["path"] for row in _untracked(worktree))})
+    chosen = [path for path in paths if not _forbidden(path) and not _matches_exclusion(path, manifest["excluded"])]
+    if not chosen:
+        return shiploop_git.Committed("", [], [])
+    try:
+        return shiploop_git.commit_paths(worktree, chosen, "chore(shiploop): commit files written after the last "
+                                         "work item, before the return")
+    except shiploop_git.CommitError as exc:
+        _fail(str(exc))
+
+
 def plan_return(workspace_root: Path) -> Dict[str, Any]:
     """Generate the exact reviewed return surface; no source mutation occurs."""
     root = _resolved_directory(Path(workspace_root), label="workspace root")
@@ -1179,9 +1208,10 @@ def _validate_plan(
             _fail("return plan cannot keep a caller-excluded path")
         if _forbidden(path) and disposition != "exclude":
             _fail("return plan cannot keep a protected runtime path")
-        if path.startswith("docs/shiploop/") and disposition == "exclude" and not _matches_exclusion(
+        if knowledge_home.in_home(path) and disposition == "exclude" and not _matches_exclusion(
                 path, manifest["excluded"]):
-            _fail("return plan cannot exclude ShipLoop's knowledge home (docs/shiploop/); later runs inherit it")
+            _fail("return plan cannot exclude ShipLoop's knowledge (docs/shiploop/, SHIPLOOP.md); later runs "
+                  "inherit it")
         rows.append(dict(item))
     if any(row["disposition"] == "pending" for row in rows):
         _fail("return plan has unresolved path dispositions")

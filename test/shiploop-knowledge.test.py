@@ -138,6 +138,21 @@ class KnowledgeAfterEveryStageTests(KnowledgeTests):
         spec.write_text("# spec\n\nR-1: Import files.\n")
         self.assertIn("no longer mentions R-2", knowledge.check(self.state, "verify"))
 
+    def test_the_repository_index_is_committed_and_screened_with_the_home(self) -> None:
+        support.write(self.state)
+        knowledge.commit(self.state, "prepare")
+        index = self.repo / "SHIPLOOP.md"
+        index.write_text("# Knowledge index\n\nSpec: docs/shiploop/spec.md\n")
+        self.assertIn("SHIPLOOP.md", "\n".join(knowledge.stage_lines(self.state, "implement")))
+        self.assertEqual(knowledge.check(self.state, "implement"), "")
+        committed = knowledge.commit(self.state, "implement")
+        self.assertEqual(committed.paths, ["SHIPLOOP.md"])
+        self.assertEqual(git(self.repo, "status", "--porcelain").strip(), "")
+        index.write_text("Authorization: Bearer 0123456789abcdefghij\n")
+        self.assertIn("SHIPLOOP.md:1", knowledge.check(self.state, "implement"))
+        rows = workspace._plan_rows({"SHIPLOOP.md": "modified"}, [], [])
+        self.assertEqual(rows[0]["disposition"], "keep")
+
     def test_an_unchanged_home_is_not_checked_outside_a_close(self) -> None:
         self.assertEqual(knowledge.check(self.state, "implement"), "")  # no home at all: nothing to require
 

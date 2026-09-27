@@ -491,8 +491,9 @@ of knowledge needed after those runs are removed. Do not copy secrets, entire
 prompts, execution cursors or full result histories into the index. Avoid a
 duplicate environment document if the repository already has one. Preserve
 unrelated edits and reconcile concurrent knowledge edits; do not last-write-win
-another run's discoveries. ShipLoop commits `docs/shiploop/` at its closes and after
-any other accepted stage that changed it (below); it never pushes.
+another run's discoveries. ShipLoop commits `docs/shiploop/` and `SHIPLOOP.md` at its
+closes and after any other accepted stage that changed them (below); it never pushes.
+Do not commit them yourself.
 
 ## Repository knowledge home
 
@@ -512,9 +513,9 @@ Each packet names the home and the files its stage keeps up to date. At four
 closes (`prepare`, each `test-spec`, `release-plan`, `release-verify`) ShipLoop
 refuses `done` until that close's files exist, refuses lines that look like
 credentials, refuses a living spec that no longer mentions an earlier committed
-requirement ID, and then commits exactly `docs/shiploop/`
+requirement ID, and then commits exactly `docs/shiploop/` and `SHIPLOOP.md`
 (`docs(shiploop): record <feature> knowledge at <stage>`). After any other accepted
-stage that changed `docs/shiploop/`, ShipLoop applies the same credential and ID
+stage that changed `docs/shiploop/` or `SHIPLOOP.md`, ShipLoop applies the same credential and ID
 checks (refusing that stage's `done` on a failure) and commits it
 (`... knowledge after <stage>`); the model never commits the home itself. A file
 the credential screen flags is left uncommitted and named. The last close is at

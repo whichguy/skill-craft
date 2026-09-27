@@ -4,6 +4,15 @@ Written by scripts/release.py.
 
 ## 2026-09-27
 
+### skill-craft 1.11.1
+
+- Skills: shiploop 0.44.1
+
+### shiploop 0.44.1
+
+- ShipLoop now commits the repository knowledge index `SHIPLOOP.md` with `docs/shiploop/` after any accepted stage that changed it, screens it for credentials, and keeps it on the workspace return. The model no longer commits it by hand.
+- `workspace plan-return` first commits product files still uncommitted in the candidate onto the run branch, so a reviewed return fast-forwards instead of falling back to uncommitted working-tree changes. Run evidence, protected paths, caller exclusions and files that look like credentials are never committed. A release plan whose `consumer_entry` sources are absolute paths is refused with a clear message instead of crashing.
+
 ### skill-craft 1.11.0
 
 - Skills: shiploop 0.44.0

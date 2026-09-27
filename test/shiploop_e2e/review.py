@@ -158,17 +158,18 @@ def actionable(review: dict) -> list[dict]:
 
 def review(run_dir: Path, *, host: str = "grok", model: str | None = None, effort: str | None = None,
            skill_root: Path = ROOT / "skills" / "shiploop", max_turns: int = 60, timeout: int = 1200,
-           prior_learnings: str = "", grok_bin: str = "grok", claude_bin: str = "claude") -> dict:
+           prior_learnings: str = "", grok_bin: str = "grok", claude_bin: str = "claude",
+           codex_bin: str = "codex") -> dict:
     run_dir = run_dir.resolve()
-    defaults = hosts.HOST_DEFAULTS[host]
+    agent = hosts.host(host, {"grok": grok_bin, "claude": claude_bin, "codex": codex_bin}[host])
     stage = run_dir / "review"
     stage.mkdir(exist_ok=False)
-    env = hosts.grok_env(stage / "home") if host == "grok" else dict(os.environ)
-    argv = hosts.argv_for(host, prompt=reviewer_prompt(run_dir, skill_root.resolve(), prior_learnings),
-                          prompt_file=stage / "prompt.txt", cwd=run_dir, model=model or defaults["model"],
-                          effort=effort or defaults["effort"], permission_mode="auto", max_turns=max_turns,
-                          grok_bin=grok_bin, claude_bin=claude_bin)
-    process = hosts.run_agent(argv, run_dir, env, stage / "events.jsonl", stage / "stderr.txt", timeout)
+    env = agent.env(stage / "home")
+    argv = agent.argv(prompt=reviewer_prompt(run_dir, skill_root.resolve(), prior_learnings),
+                      prompt_file=stage / "prompt.txt", cwd=run_dir, model=model or agent.model,
+                      effort=effort or agent.effort, permission_mode="auto", max_turns=max_turns)
+    process = hosts.run_agent(argv, run_dir, env, stage / "events.jsonl", stage / "stderr.txt", timeout,
+                              translate=agent.translator())
     parsed = hosts.last_json_object(hosts.final_text(stage / "events.jsonl"))
     if parsed is None:
         parsed = {"outcome": f"reviewer produced no JSON ({process['status']})"}
@@ -182,7 +183,7 @@ def review(run_dir: Path, *, host: str = "grok", model: str | None = None, effor
 def main(argv: list[str] | None = None) -> int:
     p = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
     p.add_argument("run_dir", type=Path, help="a run.py output directory")
-    p.add_argument("--host", choices=sorted(hosts.HOST_DEFAULTS), default="grok")
+    p.add_argument("--host", choices=sorted(hosts.HOSTS), default="grok")
     p.add_argument("--model")
     p.add_argument("--effort")
     p.add_argument("--skill-root", type=Path, default=ROOT / "skills" / "shiploop")

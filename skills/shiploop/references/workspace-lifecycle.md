@@ -128,7 +128,10 @@ The helper never grants deployment, push or branch-policy authority. Source
 return is not evidence that a hosted consumer has been updated.
 
 1. Run the packet's `workspace plan-return --workspace-root EXTERNAL` command.
-   It binds a Markdown path review to the current candidate. Review **every**
+   It first commits product files still uncommitted in the candidate (for
+   example a system test written after the last work item) onto the run branch,
+   never run evidence, protected paths, caller exclusions or files that look
+   like credentials, then binds a Markdown path review to the candidate. Review **every**
    disposition: `keep` for intended lasting work, `exclude` for transient work.
    Pending decisions or an attempt to keep a forbidden runtime path block return.
    Changed candidates require a fresh plan; do not edit hashes to bypass it.
@@ -139,8 +142,8 @@ return is not evidence that a hosted consumer has been updated.
    - **Clean start:** a committed, clean, reviewed candidate can fast-forward
      into the exact original branch. Reachable candidate history is checked too:
      a transient file committed then deleted still must not enter branch history.
-     The helper never silently squashes, rewrites history or commits unreviewed
-     files. If the reviewed plan excludes paths or the candidate is uncommitted,
+     The helper never silently squashes or rewrites history, and nothing
+     reaches the original branch unreviewed. If the reviewed plan excludes paths or the candidate is uncommitted,
      it returns only kept working-tree changes instead, explicitly without a
      merge/commit. Known protected runtime history is refused outright.
    - **Dirty start:** only the selected delta relative to the captured working
