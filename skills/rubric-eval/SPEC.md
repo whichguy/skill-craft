@@ -90,7 +90,14 @@ than a run this round (the unreviewed plans of a review experiment) is marked
 - the same frame, scenarios, runtimes, trials, subject model, tool setting and
   judge;
 - the baseline rerun in the same round, not reused from another condition;
-- no MCP servers or plugins in any headless call (`call` enforces this);
+- no MCP servers, plugins, hooks, skills or user instructions in any headless
+  call, verified live per host. Grok runs from an isolated home holding only its
+  sign-in. Claude runs with `--setting-sources ""`, which drops the user's
+  settings and CLAUDE.md; `--bare` would too, but it breaks subscription
+  sign-in. Codex runs with an isolated `CODEX_HOME` holding only `auth.json` and
+  an empty `HOME`: `--ignore-user-config` alone still loaded the user's
+  AGENTS.md and `~/.agents/skills`, and a pilot review read one of those
+  skills. Codex's own bundled skills remain, the same for every call;
 - no tools beyond what the condition names, **verified** by asking the subject
   to list its tools, never assumed from a flag. Grok reads `--tools ""` as no
   restriction: every Grok call had its shell and file tools until 2026-09-27,

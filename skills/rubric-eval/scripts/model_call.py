@@ -164,6 +164,20 @@ def _claude(m: dict, prompt: str, cwd: str, tools: str, timeout: int, rec: dict)
 
 # ---------------------------------------------------------------- codex
 
+def codex_home() -> Path:
+    """An isolated CODEX_HOME holding only the sign-in: no AGENTS.md, skills, hooks, memories or config.
+    (--ignore-user-config alone skips config.toml but still offers the user's skills; seen in a pilot.)"""
+    home = Path(os.environ.get("RUBRIC_EVAL_CODEX_HOME") or Path(tempfile.gettempdir()) / "rubric-eval-codex-home")
+    auth = Path.home() / ".codex" / "auth.json"
+    home.mkdir(parents=True, exist_ok=True)
+    link = home / "auth.json"
+    if not link.exists():
+        if not auth.is_file():
+            raise SystemExit(f"model_call: Codex is not signed in ({auth} is missing)")
+        link.symlink_to(auth)
+    return home
+
+
 SYSTEM_PREFIXES = ("/bin/", "/usr/", "/dev/null", "/dev/stdin", "/dev/stdout", "/dev/stderr", "/opt/homebrew/bin/")
 
 
@@ -200,6 +214,8 @@ def _codex(m: dict, prompt: str, cwd: str, tools: str, timeout: int, rec: dict) 
     argv = ["codex", "exec", "--ignore-user-config", "--skip-git-repo-check", "-m", m["model"], "-s", "read-only",
             "-C", cwd, "--json"] + (["-c", f'model_reasoning_effort="{m["effort"]}"'] if m["effort"] else []) + [prompt]
     env = {k: os.environ[k] for k in ("PATH", "HOME", "LANG", "TERM") if k in os.environ}  # no host secrets
+    ch = codex_home(); (ch / "home").mkdir(exist_ok=True)
+    env.update(CODEX_HOME=str(ch), HOME=str(ch / "home"))  # an empty HOME: no ~/.agents/skills or other user files
     out = subprocess.run(argv, capture_output=True, text=True, timeout=timeout, stdin=subprocess.DEVNULL, env=env).stdout
     events = []
     for line in out.splitlines():
