@@ -21,7 +21,8 @@ evidence about ShipLoop. What a probe reveals is fixed in the engine
 generically; nothing in the engine may know which probe exposed it.
 
 Each iteration: run a case on exactly what the marketplace publishes, measure,
-review against this spec, fix ShipLoop generically, release, rerun, and
+review against this spec, fix ShipLoop generically, release and refresh the
+marketplace install (see the harness rules), rerun, and
 record what was learned (one commit per run; read the last three commit
 messages before the next run or change).
 
@@ -239,8 +240,24 @@ stands at the commit under test.
   so improvements cannot overfit one probe; a change justified by one case is
   re-checked on another before it is called general.
 
-- Test exactly what the marketplace publishes (`--source marketplace`, version
-  gate); build the checkout only to try an unreleased candidate.
+- Test exactly what the marketplace publishes (`--source marketplace`); build
+  the checkout (`--source checkout`) only to try an unreleased candidate, and
+  never record a checkout run as evidence about a release.
+- **Publish, then refresh, then run.** A change pushed to the repository is not
+  what a host runs until it is released and the host is refreshed. Every change
+  that should reach a marketplace run goes through, in order:
+  1. `scripts/release.py`, which builds `plugins/skill-craft/` and the catalogs
+     from source, then the push of that release commit (its CI must pass);
+  2. a refresh of the marketplace on the host the harness drives. The harness
+     does this itself: each marketplace run adds the published marketplace and
+     installs `skill-craft` into a fresh, isolated profile, so no cached or
+     earlier install is ever reused;
+  3. the run, which refuses to start (the version gate) unless the local
+     checkout is origin/main, origin/main has no pending change notes (every
+     source change on main is released), and the installed plugin and
+     ShipLoop versions equal the ones origin/main's catalog publishes.
+  After a release, also update the user's own hosts (Claude, Grok, Codex) so
+  their installs match what the harness tested.
 - Run unattended (S-14): the host and every check get closed standard input and
   a timeout; a case prompt never needs a person, and a check never waits for
   input.

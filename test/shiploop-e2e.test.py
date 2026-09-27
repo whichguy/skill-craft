@@ -252,6 +252,8 @@ class VersionGateTest(unittest.TestCase):
         self.assertIn("is not origin/main", " ".join(run.version_gate(behind, "1.4.0", "0.37.0")))
         self.assertIn("installed skill-craft 1.3.0", " ".join(run.version_gate(self.RELEASED, "1.3.0", "0.37.0")))
         self.assertIn("installed ShipLoop 0.36.0", " ".join(run.version_gate(self.RELEASED, "1.4.0", "0.36.0")))
+        pending = dict(self.RELEASED, unreleased=["changes/shiploop/fix.md"])
+        self.assertIn("unreleased changes (changes/shiploop/fix.md)", " ".join(run.version_gate(pending, "1.4.0", "0.37.0")))
 
     def test_card_version_reads_only_the_front_matter(self):
         with tempfile.TemporaryDirectory() as tmp:

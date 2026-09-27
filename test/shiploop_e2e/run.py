@@ -143,13 +143,20 @@ def released_versions() -> dict:
     catalog = json.loads(git("show", "origin/main:.claude-plugin/marketplace.json"))
     plugin = next(p for p in catalog["plugins"] if p["name"] == PLUGIN_NAME)
     shiploop = re.search(r"^version:[ \t]*(\S+)", git("show", f"origin/main:plugins/{PLUGIN_NAME}/skills/shiploop/SKILL.md"), re.M)
+    # A pending change note on main is source the marketplace does not serve yet: release.py has not run.
+    pending = [name for name in git("ls-tree", "-r", "--name-only", "origin/main", "changes/").split()
+               if name.endswith(".md") and name != "changes/README.md"]
     return {"origin_main": git("rev-parse", "origin/main").strip(), "local_head": git("rev-parse", "HEAD").strip(),
-            "catalog_version": plugin.get("version"), "shiploop_version": shiploop.group(1) if shiploop else None}
+            "catalog_version": plugin.get("version"), "shiploop_version": shiploop.group(1) if shiploop else None,
+            "unreleased": pending}
 
 
 def version_gate(released: dict, plugin_version: str | None, shiploop_version: str | None) -> list[str]:
     """Why a marketplace run would not test what main and the marketplace publish, if at all."""
     problems = []
+    if released.get("unreleased"):
+        problems.append("origin/main has unreleased changes (" + ", ".join(released["unreleased"][:5])
+                        + "): run scripts/release.py and push so the marketplace serves them")
     if released["local_head"] != released["origin_main"]:
         problems.append(f"local HEAD {released['local_head'][:8]} is not origin/main {released['origin_main'][:8]}")
     if plugin_version != released["catalog_version"]:
