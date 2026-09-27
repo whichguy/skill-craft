@@ -30,7 +30,7 @@ each with the evidence behind it. Edit entries when later evidence changes them:
   - `grok` = grok:grok-4.7@medium
   - `opus` = claude:claude-opus-5-5@medium
   - `sonnet` = claude:sonnet
-  - `luna` = codex:gpt-6-luna@xhigh (from 2026-09-27, owner direction; earlier Luna calls were codex:gpt-5.6-luna@xhigh, see the model log)
+  - `luna` = codex:gpt-6-luna@max (owner direction 2026-09-27; earlier Luna calls used other models or efforts, see the model log)
 
 ## Round ledger
 
@@ -40,7 +40,7 @@ each with the evidence behind it. Edit entries when later evidence changes them:
 | 4 | Review-pass wording | architecture / review-bare | current, design v2, prune3 (353); baseline: unreviewed round-2 v5 plans (input) | Sonnet | Sonnet (1); re-graded by Opus (1); quote check applied | Read, empty folder | 19 scenarios, 104 plans per arm | `round4/` |
 | 5 | Design-thinking steps on the plan pass (expand, prune, outcome, negative intents) | architecture-v2 (+ threat T1, load L1, integration X1) / plan | base, expand, expprune, outcome, negative | Sonnet | Sonnet (1) | none | 13 cells × 3 trials | `round5/` |
 | 6 | Review wording with reference files open | architecture-v3 (36 criteria, + grounding G1, unknowns Q1) / review-ref | prune3 (353, e3563f01), v3 (422, b72bade3), ground (409, c80578a2); baseline: unreviewed Grok plans (input) | **grok:grok-4.7@medium** | Opus: 1 pass (v3 rubric), 1 pass (v4 rubric), **3 fresh passes (v4 rubric, clean setup)** | Grok read_file, list_dir, grep; all 33 ShipLoop references; audited | 23 scenarios (first runtime), 16–17 per arm (Grok credits ran out at 49 of 69) | `round6/plans/`, `round6/reviews/` |
-| 7 | Review wording **inside the real plan-stage packet** | architecture-v4 / review-packet (made from ShipLoop source a99ba114577c) | current (200, d9bc1f86), v4 (451, aeeccca3), v4card (469, fa1ff003); baseline: the same unreviewed Grok plans | **codex:gpt-6-luna@xhigh** (restarted; 14 gpt-5.6-luna reviews set aside) | Opus, 3 passes | Codex read-only shell; all references as the packet points; audited | 23 scenarios | `round7/` (in progress) |
+| 7 | Review wording **inside the real plan-stage packet** | architecture-v4 / review-packet (made from ShipLoop source a99ba114577c) | current (200, d9bc1f86), v4 (451, aeeccca3), v4card (469, fa1ff003); baseline: the same unreviewed Grok plans | **codex:gpt-6-luna@max** (restarted twice; 14 gpt-5.6-luna@xhigh and 12 gpt-6-luna@xhigh reviews set aside) | Opus, 3 passes | Codex read-only shell; all references as the packet points; audited | 23 scenarios | `round7/` (in progress) |
 
 The round-6 base plans were written by grok:grok-4.7@medium with the shipped v5 INTERACTION_DESIGN (467 words, dd2c8013),
 using the plan frame from suite v3 with its written-exercise line. That was 56 cells; 23 were used as inputs.
@@ -69,7 +69,8 @@ Which model and effort did what. Every entry is also recorded in its run's manif
 | round 6 | subject (plans and reviews) | grok:grok-4.7@medium | Verified from Grok session records: 429 of 431 sessions ran 4.7 at medium; the 2 high-effort sessions were manual debugging calls |
 | v3 and Phase-0 adversarial reviews, cost probe, round-7 pilots | reviewer, subject | codex:gpt-5.6-luna@xhigh (probe also @medium, and codex:gpt-5.6-sol@low) | Before the owner set GPT-6 Luna |
 | round 7, first 14 reviews | subject | codex:gpt-5.6-luna@xhigh | Set aside: the wrong model generation. Kept as labelled evidence, not mixed into round 7 |
-| round 7 onwards, adversarial reviews | subject, reviewer | codex:gpt-6-luna@xhigh | Owner direction 2026-09-27 (bd3188b1): all Luna calls use GPT-6 Luna at xhigh |
+| round 7, second start (12 reviews) | subject | codex:gpt-6-luna@xhigh | Set aside when the owner moved Luna to max effort; kept as labelled evidence (16–30 min, about 0.9M tokens per review) |
+| round 7 onwards, adversarial reviews | subject, reviewer | codex:gpt-6-luna@max | Owner direction 2026-09-27: all Luna calls use GPT-6 Luna at max. Verified: `max` is a supported effort for gpt-6-luna in the Codex models cache, and the session log records `effort: max` |
 
 ## Harness change log (`skills/rubric-eval`, `skills/adversarial-review`)
 

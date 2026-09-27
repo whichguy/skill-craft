@@ -5,7 +5,7 @@ A model is named by a spec, "host:model@effort" (effort optional), or by a short
     grok    grok:grok-4.7@medium
     opus    claude:claude-opus-5-5@medium
     sonnet  claude:sonnet
-    luna    codex:gpt-6-luna@xhigh
+    luna    codex:gpt-6-luna@max
 
 `call_full(spec, prompt, tools=..., workspace=...)` returns the same record for every host:
     {"text", "input_tokens", "output_tokens", "seconds", "outside": [...] or None, "spec": resolved spec}
@@ -34,7 +34,7 @@ ALIASES = {
     "grok": "grok:grok-4.7@medium",
     "opus": "claude:claude-opus-5-5@medium",
     "sonnet": "claude:sonnet",
-    "luna": "codex:gpt-6-luna@xhigh",
+    "luna": "codex:gpt-6-luna@max",
 }
 HOSTS = ("grok", "claude", "codex")
 NO_MCP = ["--strict-mcp-config", "--mcp-config", '{"mcpServers":{}}']

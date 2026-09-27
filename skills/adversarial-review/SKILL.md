@@ -32,7 +32,7 @@ $A validate RUN/adversarial/findings.json
   subject and judge models, conditions).
 - `--reviewer`: a model alias or `host:model@effort` spec (see rubric-eval's
   `model_call.py`) from a family other than the one that proposed or produced
-  the change; default `luna` (Codex gpt-6-luna, xhigh effort).
+  the change; default `luna` (Codex gpt-6-luna, max effort).
 
 Then, for each testable high or medium finding, run its experiment with
 `rubric-eval` and record whether the stated refuting result occurred. A finding

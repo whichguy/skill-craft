@@ -308,7 +308,7 @@ class Statistics(unittest.TestCase):
             self.assertIsNone(M.grok_outside(Path(home), "missing", cwd))
 
     def test_specs_resolve_and_pin_effort(self):
-        self.assertEqual(M.resolve("luna"), {"host": "codex", "model": "gpt-6-luna", "effort": "xhigh", "spec": "codex:gpt-6-luna@xhigh"})
+        self.assertEqual(M.resolve("luna"), {"host": "codex", "model": "gpt-6-luna", "effort": "max", "spec": "codex:gpt-6-luna@max"})
         self.assertEqual(R.spec("opus"), "claude:claude-opus-5-5@medium"); self.assertEqual(R.spec("grok"), "grok:grok-4.7@medium")
         self.assertEqual(M.resolve("claude:sonnet")["effort"], None)
         with self.assertRaises(ValueError):
