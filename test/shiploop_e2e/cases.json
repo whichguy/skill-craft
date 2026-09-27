@@ -65,5 +65,16 @@
       "printf '' | python3 measure.py > out.txt 2> err.txt; rc=$?; [ $rc -eq 1 ] && [ ! -s out.txt ] && ! grep -q Traceback err.txt; r=$?; rm -f out.txt err.txt; exit $r",
       "printf '32\\nabc\\n' | python3 measure.py > out.txt 2> err.txt; rc=$?; [ $rc -eq 2 ] && grep -q 'line 2: not a number' err.txt && grep -q '\"count\": 1' out.txt; r=$?; rm -f out.txt err.txt; exit $r"
     ]
+  },
+  "mdkit": {
+    "style": "reference-oracle",
+    "seed": {
+      "SPEC.md": "seeds/mdkit/SPEC.md"
+    },
+    "prompt": "Build the program specified in `SPEC.md` in this directory. The specification is the whole requirement; there is no other source, and you must not look for one. Implement the program yourself: general-purpose libraries are fine, but do not install or wrap an existing package that already is this program.  Delivery contract: after `npm install`, the program starts with `node <entry> <arguments>`, where `<entry>` is the file named by the `bin` field of `package.json` (no build step). If the specification defines a library interface, importing the package (`package.json` `exports`, or `main`) must give that interface, also without a build step. Test your work as you see fit and finish when you are confident every behaviour in the specification holds.",
+    "checks": [
+      "o=$(mktemp -d) && cp -R \"$E2E_CHECKS/mdkit/.\" \"$o\" && gunzip \"$o\"/fixtures/*.gz && cmd=$(node \"$E2E_CHECKS/app_cmd.mjs\") && mod=$(node \"$E2E_CHECKS/app_module.mjs\") && APP_CMD=\"$cmd\" APP_MODULE=\"$mod\" node --test \"$o\"/*.test.mjs > \"$o/oracle.log\" 2>&1; rc=$?; tail -12 \"$o/oracle.log\"; rm -rf \"$o\"; exit $rc",
+      "node -e \"const p=require('./package.json');const d={...p.dependencies,...p.devDependencies};if('marked' in d){console.error('clean room: depends on the original package');process.exit(1)}\""
+    ]
   }
 }
