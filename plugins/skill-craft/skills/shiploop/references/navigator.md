@@ -450,11 +450,12 @@ the full queue/history and actual evidence for execution claims. Before
 Every packet also carries the script-rendered [status block](status-display.md)
 between `=== ShipLoop status ===` and `=== end ShipLoop status ===`: where the
 run is, the phase and item maps, what was just accepted, what comes next, the
-item's plan sentence and the completed items. The owner shows that block to the
-user unchanged at start/recovery and after each callback, unless a host status
-hook (such as the Claude Code hook in the status-display guide) already showed
-it. The owner may add one line, for example an observed test run in progress;
-it does not paraphrase, reorder or extend the block. During long actions or
+item's plan sentence and the completed items. The block orients the owner; the
+owner does not reprint it. Where the host supports one, a status hook (see the
+status-display guide) shows the user a two-line summary. At start/recovery and
+after each callback the owner tells the user at most one line, for example the
+stage just finished and the one starting, and shows the whole block unchanged
+only when the user asks for the full status. During long actions or
 waits, follow the host's update cadence with an actual observation, or the last
 known status and next check.
 

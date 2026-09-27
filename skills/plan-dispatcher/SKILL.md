@@ -5,7 +5,7 @@ description: >-
   dispatcher and parallel native workers: claim ready steps, preserve launch
   state, collect result evidence, verify outcomes, and identify successors.
   Planning belongs to Backchain or the caller; this skill executes the plan.
-version: 0.3.0
+version: 0.4.0
 author: Backchain
 license: MIT
 platforms:

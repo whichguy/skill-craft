@@ -13,7 +13,10 @@ node /absolute/skill/scripts/dispatch.js check-context /absolute/run context-che
 ```
 
 All successful operations emit JSON. Failure emits JSON on stderr and nonzero
-exit; `ELOCKED` means another writer or an orphan lock, not permission to relaunch.
+exit; `ELOCKED` means another live writer (or one this host cannot check), not
+permission to relaunch; its message names what to do. `EREPLAN` means the run
+is being replanned (see [Replanning](#replanning)). `ESTATELOST` means the
+run's state or a settled receipt is gone (see [Recovery and limits](#recovery-and-limits)).
 The internal state.js CLI exists for regression tests, not as a substitute for
 this contract. Keep the package code fixed for a run; no schema-upgrade mechanism.
 Every successful RUN-scoped response includes an `instruction`; a `next` response
@@ -500,6 +503,35 @@ reported `inspected` or `unconfirmable` whose `Confirm by:` required execution
 means the step contract cannot be met here: treat it as BLOCKED for planning,
 not as accepted. A BLOCKED result with a proven-unachievable item goes back to
 planning (plan revision, or a replan in a new run), not to a blind retry.
+Record that verified finding in the settlement as
+`verification.disposition: "replan"` with `passed: false`; the script then
+routes the run to replanning.
+
+### Replanning
+
+`verification` accepts one optional field, `disposition`, whose only value is
+`"replan"` and which requires `passed: false`. It is the parent's verified
+finding that the step cannot be done as planned: a BLOCKED receipt whose
+blocker holds, or any result whose criteria cannot be confirmed here. A
+BLOCKED claim that does not hold is settled without it and retried like a
+failure. Once any current attempt is settled for replanning, the run starts no
+new work:
+
+- `claim`, a fresh `start` of a claimed attempt, and a `retry` of the replan
+  attempt fail with `EREPLAN`; `ready` is empty;
+- `next` returns a `replan` action for each such step, a `release` action (with
+  a retry `call`) for each claimed attempt that has not started, the usual
+  observation actions for work already in flight, and no `retry` action for
+  other failed steps;
+- `next.replan` lists `steps` (`{step, attempt, reason}`), `accepted` and
+  `unfinished` graph IDs.
+
+In-flight attempts may still report and settle; accepted ones join
+`replan.accepted`. When nothing remains in flight, the instruction states that
+the run cannot complete. The caller revises the plan with the blocker reasons
+and starts a new run whose graph leaves out `replan.accepted`, whose work is
+already integrated. Takeover keeps the replan. A settled replan is never
+cleared inside the run: a plan change is a new run.
 
 ### Parent verification and settlement
 
@@ -612,6 +644,14 @@ and continue native completion collection. A rejected result blocks its descenda
 independent ready work can continue. Retrying that task is a separate explicit
 operation with a fresh attempt; dispatching its successors is not a retry.
 Retry a fixable failure only; a proven-unachievable item goes back to planning.
+There is no retry limit. For each rejected step `next` returns a `retry` action
+with the step's `attempts` count (every attempt, including retired ones), the
+rejection `reason`, and a `call`: write `call.input` to a JSON file with its
+`reason` placeholder replaced by what the next attempt changes, then run
+`call.argv` with that file's path appended. `progress.failed` rows carry the
+same `attempts` count and `needs_replan: true` for a replan step. Downstream
+blocking is transitive: every step below a rejected step is `blocked`, and a
+retry restores them to `pending`.
 
 A fresh attempt's packet carries `prior_attempts`, the step's earlier attempts
 oldest first, each `{attempt, status, reason, result, verification}`. `status` is
@@ -653,12 +693,24 @@ worktree after `start`. A replacement attempt needs a fresh capability gate,
 identity and preparation receipt before it can start. ShipLoop's superseded
 workspace retention and finish decision remain within its existing lifecycle.
 
-Lock acquisition fails immediately. Retry an identical receipt after the current
-writer finishes, or return it for parent collection. Never clear a lock based on
-elapsed time. After a process crash, first establish all old writers are stopped;
-only then may an operator remove that run's known orphan `.dispatcher.lock`.
-The helper intentionally has no automatic lock-clear command. Do not delete a run
-as a recovery shortcut for possibly launched work.
+Lock acquisition never waits. The lock file records its holder's `pid` and
+`host`. When the holder is a process that no longer exists on this host, the
+next writer removes the lock and proceeds; that removal runs under
+`.dispatcher.lock.recover` and only when the lock's bytes are unchanged, so it
+never removes a lock a live writer has just taken. Every other holder fails with
+`ELOCKED`: a live local process (retry an identical receipt after it finishes,
+or return it for parent collection), a holder on another host or an unreadable
+holder (the message names the file to remove once that writer is confirmed
+stopped), and a recovery in progress. A recovery file left by a stopped process
+is named in the refusal; removing it lets the lock recover. Never clear a lock
+based on elapsed time. A reused PID reads as alive and is refused. Do not
+delete a run as a recovery shortcut for possibly launched work.
+
+The state file and inbox receipts are the run's only authority and are never
+rebuilt. When the state file or a settled attempt's receipt is missing, every
+operation fails with `ESTATELOST`; start a new run in a new directory with the
+same graph, leaving out steps whose work the caller has verified is already
+integrated.
 
 State snapshots use atomic rename; inbox publication is immutable. Hydration
 checks graph/state identity and accepted evidence. Keep original evidence bytes

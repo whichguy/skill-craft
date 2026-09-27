@@ -5,7 +5,7 @@ description: >-
   dispatcher and parallel native workers: claim ready steps, preserve launch
   state, collect result evidence, verify outcomes, and identify successors.
   Planning belongs to Backchain or the caller; this skill executes the plan.
-version: 0.3.0
+version: 0.4.0
 author: Backchain
 license: MIT
 platforms:
@@ -328,7 +328,11 @@ selected package for recovery.
    `unconfirmable` whose `Confirm by:` required execution means the step
    contract cannot be met here: treat it as BLOCKED for planning, not as
    accepted. A BLOCKED result with a proven-unachievable item goes back to
-   planning (plan revision or replan), not to a blind retry.
+   planning (plan revision or replan), not to a blind retry: settle it with
+   `verification.disposition: "replan"` and `passed: false`, and the script
+   stops new work and returns `replan` actions (protocol "Replanning"). A
+   fixable failure is settled without it; `next` then returns a `retry` action
+   whose `call` you run as given, with no retry limit.
    For a main-context report handoff, it records that all task-owned commands
    finished at the bounded task-phase boundary in the current conversation. It
    reads the assigned handoff and independently checks the task's done contract,

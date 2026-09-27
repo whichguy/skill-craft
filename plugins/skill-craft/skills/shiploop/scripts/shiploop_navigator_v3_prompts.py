@@ -368,11 +368,11 @@ for _facility_stage in TEST_FACILITY_STAGES:
 
 
 PROGRESS_REPORTING = """\
-Progress: show the user this packet's ShipLoop status block unchanged, from its
-begin marker through its end marker, at start/recovery and after each callback. Skip it only
-when a host status hook already showed this same block (it arrives as a system
-reminder). Do not paraphrase, reorder or extend it; add at most one line of your
-own. Only the current owner reports overall progress. State labels say which action is assigned, not that work, tests, or
+Progress: do not reprint this packet's ShipLoop status block; it orients you.
+The user sees the run's status through a host status hook where one exists. At
+start/recovery and after each callback, tell the user at most one line of your
+own: the item, the stage just finished and the stage now starting. Show the whole
+block unchanged only when the user asks for the full status. Only the current owner reports overall progress. State labels say which action is assigned, not that work, tests, or
 Improve iterations have occurred.  Describe Improve activity only from its own
 observed records; do not infer a review count, completion percentage, or ETA.
 Run to completion by default within scope and authority. Emit progress as an

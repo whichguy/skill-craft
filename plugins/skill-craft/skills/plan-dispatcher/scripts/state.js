@@ -11,6 +11,7 @@
 
 const crypto = require('node:crypto');
 const fs = require('node:fs');
+const os = require('node:os');
 const path = require('node:path');
 const planningContext = require('./planning-context');
 
@@ -18,6 +19,11 @@ const STATE_FILE = 'plan-dispatcher-state.json';
 const RETIRED_STATE_FILE = 'state.json';
 const INBOX_DIR = 'inbox';
 const LOCK_FILE = '.dispatcher.lock';
+const LOCK_RECOVERY_FILE = '.dispatcher.lock.recover';
+const LOCK_ATTEMPTS = 3;
+const STATE_LOSS_RECOVERY = 'This run cannot be resumed: its state file and inbox receipts are its only ' +
+  'authority, and the dispatcher never rebuilds them. Start a new run in a new directory with the same ' +
+  'graph, leaving out steps whose work the caller has verified is already integrated.';
 const ACTIVE_STATUSES = new Set(['claimed', 'launching', 'running', 'rejected']);
 const RESERVED_STATUSES = new Set(['launching', 'running', 'rejected']);
 const STEP_STATUSES = new Set([
@@ -257,18 +263,125 @@ function writeAtomicImmutable(destination, contents) {
   }
 }
 
-function withLock(dir, operation) {
-  const lockPath = path.join(dir, LOCK_FILE);
-  let descriptor;
+/*
+ * The lock records its holder.  A writer that finds the lock held by a process
+ * that no longer exists on this host removes it and retries; every other
+ * holder is refused with ELOCKED.  Removal runs under a second exclusive file
+ * and only when the lock's bytes are unchanged since they were inspected, so
+ * two recovering writers cannot remove a lock a live writer has just taken.
+ * A reused PID reads as alive, which refuses rather than steals.
+ */
+function lockHolder() {
+  return JSON.stringify({ pid: process.pid, host: os.hostname() });
+}
+
+function processAlive(pid) {
   try {
-    descriptor = fs.openSync(lockPath, 'wx', 0o600);
-    fs.writeFileSync(descriptor, String(process.pid), 'utf8');
+    process.kill(pid, 0);
+    return true;
   } catch (error) {
-    if (error.code === 'EEXIST') {
-      fail('dispatcher lock is already held', 'ELOCKED');
+    return error.code !== 'ESRCH';
+  }
+}
+
+function readLockBytes(lockPath) {
+  try {
+    return fs.readFileSync(lockPath, 'utf8');
+  } catch (error) {
+    if (error.code === 'ENOENT') {
+      return null;
     }
     throw error;
   }
+}
+
+function deadLocalHolder(bytes) {
+  let holder;
+  try {
+    holder = JSON.parse(bytes);
+  } catch (_) {
+    return false;
+  }
+  return isPlainObject(holder) && Number.isSafeInteger(holder.pid) && holder.pid > 0 &&
+    holder.host === os.hostname() && !processAlive(holder.pid);
+}
+
+function lockRefusal(lockPath, bytes) {
+  let holder = null;
+  try {
+    holder = JSON.parse(bytes);
+  } catch (_) {
+    // Reported as unreadable below.
+  }
+  if (!isPlainObject(holder) || !Number.isSafeInteger(holder.pid) || typeof holder.host !== 'string') {
+    fail('dispatcher lock is held but its holder is unreadable (' + lockPath + '). Remove that file ' +
+      'only after confirming no dispatcher process is writing this run.', 'ELOCKED');
+  }
+  if (holder.host !== os.hostname()) {
+    fail('dispatcher lock is held by pid ' + holder.pid + ' on host ' + holder.host + '. Retry after ' +
+      'that process finishes; if it has stopped, remove ' + lockPath + ' from any host.', 'ELOCKED');
+  }
+  fail('dispatcher lock is held by running pid ' + holder.pid + '; retry after it finishes.', 'ELOCKED');
+}
+
+function removeDeadLock(dir, lockPath, inspected) {
+  const guardPath = path.join(dir, LOCK_RECOVERY_FILE);
+  let guard;
+  try {
+    guard = fs.openSync(guardPath, 'wx', 0o600);
+    fs.writeFileSync(guard, lockHolder(), 'utf8');
+  } catch (error) {
+    if (guard !== undefined) {
+      fs.closeSync(guard);
+      fs.unlinkSync(guardPath);
+    }
+    if (error.code === 'EEXIST') {
+      const guardBytes = readLockBytes(guardPath);
+      if (guardBytes !== null && deadLocalHolder(guardBytes)) {
+        fail('a stopped process left the dispatcher lock recovery file ' + guardPath + '. Remove it and ' +
+          'retry; the dispatcher lock itself is recovered automatically.', 'ELOCKED');
+      }
+      fail('another process is recovering the dispatcher lock; retry.', 'ELOCKED');
+    }
+    throw error;
+  }
+  try {
+    if (readLockBytes(lockPath) === inspected) {
+      fs.unlinkSync(lockPath);
+    }
+  } finally {
+    fs.closeSync(guard);
+    fs.unlinkSync(guardPath);
+  }
+}
+
+function acquireLock(dir) {
+  const lockPath = path.join(dir, LOCK_FILE);
+  for (let tries = 0; tries < LOCK_ATTEMPTS; tries += 1) {
+    try {
+      const descriptor = fs.openSync(lockPath, 'wx', 0o600);
+      fs.writeFileSync(descriptor, lockHolder(), 'utf8');
+      return descriptor;
+    } catch (error) {
+      if (error.code !== 'EEXIST') {
+        throw error;
+      }
+    }
+    const bytes = readLockBytes(lockPath);
+    if (bytes === null) {
+      continue;
+    }
+    if (!deadLocalHolder(bytes)) {
+      lockRefusal(lockPath, bytes);
+    }
+    removeDeadLock(dir, lockPath, bytes);
+  }
+  fail('dispatcher lock changed hands repeatedly; retry.', 'ELOCKED');
+}
+
+function withLock(dir, operation) {
+  const lockPath = path.join(dir, LOCK_FILE);
+  const descriptor = acquireLock(dir);
 
   try {
     return operation();
@@ -292,7 +405,7 @@ function readState(dir) {
   try {
     parsed = JSON.parse(fs.readFileSync(statePath(dir), 'utf8'));
   } catch (error) {
-    fail('could not read dispatcher state: ' + error.message);
+    fail('could not read dispatcher state: ' + error.message + '. ' + STATE_LOSS_RECOVERY, 'ESTATELOST');
   }
   if (!isPlainObject(parsed) || !isPlainObject(parsed.steps) ||
       !isPlainObject(parsed.attempts) || !isPlainObject(parsed.graph)) {
@@ -520,14 +633,26 @@ function envelopeShape(envelope) {
 }
 
 function verificationShape(verification) {
+  requireObject(verification, 'verification');
   assertExactObject(
     verification,
-    ['receipt_sha256', 'passed', 'reason', 'evidence'],
+    hasOwn(verification, 'disposition')
+      ? ['receipt_sha256', 'passed', 'reason', 'evidence', 'disposition']
+      : ['receipt_sha256', 'passed', 'reason', 'evidence'],
     'verification'
   );
   assertHexSha256(verification.receipt_sha256, 'verification.receipt_sha256');
   if (typeof verification.passed !== 'boolean') {
     fail('verification.passed must be boolean');
+  }
+  if (hasOwn(verification, 'disposition')) {
+    // The parent's verified finding that the step cannot be done as planned.
+    if (verification.disposition !== 'replan') {
+      fail('verification.disposition must be "replan" when present');
+    }
+    if (verification.passed !== false) {
+      fail('verification.disposition "replan" requires passed: false');
+    }
   }
   requireString(verification.reason, 'verification.reason');
   evidenceShape(verification.evidence, 'verification.evidence');
@@ -727,7 +852,7 @@ function readInbox(dir, attempt, missingIsNull) {
     if (missingIsNull && error.code === 'ENOENT') {
       return null;
     }
-    fail('could not inspect inbox receipt: ' + error.message);
+    fail('could not inspect inbox receipt: ' + error.message + '. ' + STATE_LOSS_RECOVERY, 'ESTATELOST');
   }
   if (details.isSymbolicLink() || !details.isFile()) {
     fail('inbox receipt must be a regular nonsymlink file');
@@ -768,6 +893,22 @@ function receiptMatchesRecord(receipt, state, record) {
   }
 }
 
+function needsReplan(record) {
+  return record.status === 'rejected' && isPlainObject(record.verification) &&
+    record.verification.disposition === 'replan';
+}
+
+function replanAttempts(state) {
+  return state.graph.steps
+    .map((step) => state.steps[step.id].current_attempt)
+    .filter((attempt) => attempt !== null && needsReplan(state.attempts[attempt]))
+    .map((attempt) => state.attempts[attempt]);
+}
+
+function attemptCount(state, step) {
+  return Object.values(state.attempts).filter((record) => record.step === step).length;
+}
+
 function recoveryFor(status, record) {
   if (status === 'claimed') {
     return 'start';
@@ -782,7 +923,7 @@ function recoveryFor(status, record) {
     return 'verify';
   }
   if (status === 'rejected') {
-    return 'retry';
+    return needsReplan(record) ? 'replan' : 'retry';
   }
   return 'investigate';
 }
@@ -897,6 +1038,10 @@ function progressFromState(state, snapshot, observedReports) {
       completed.push(row);
     } else if (stepState.status === 'rejected') {
       row.reason = record.rejection_reason;
+      row.attempts = attemptCount(state, step.id);
+      if (needsReplan(record)) {
+        row.needs_replan = true;
+      }
       failed.push(row);
     } else if (observedReport !== null) {
       row.reported_status = observedReport.envelope.status;
@@ -1240,7 +1385,8 @@ function snapshotFromState(dir, state) {
     if (stepState.status === 'accepted') {
       accepted.push(step.id);
     }
-    if (stepState.status === 'pending' && dependenciesAccepted(state, step)) {
+    if (stepState.status === 'pending' && dependenciesAccepted(state, step) &&
+        replanAttempts(state).length === 0) {
       ready.push(step.id);
     }
 
@@ -1259,7 +1405,12 @@ function snapshotFromState(dir, state) {
         const recovery = displayedStatus === 'receipt' && record.handle === null
           ? (hasOwn(record, 'executor') ? 'verify' : 'reconcile')
           : recoveryFor(displayedStatus, record);
-        active.push(attemptOutput(record, displayedStatus, recovery));
+        const output = attemptOutput(record, displayedStatus, recovery);
+        if (record.status === 'rejected') {
+          output.attempts = attemptCount(state, record.step);
+          output.rejection_reason = record.rejection_reason;
+        }
+        active.push(output);
       }
     }
   }
@@ -1275,6 +1426,20 @@ function snapshotFromState(dir, state) {
     accepted,
     complete: accepted.length === state.graph.steps.length,
   };
+  const replan = replanAttempts(state);
+  if (replan.length > 0) {
+    snapshot.replan = {
+      steps: replan.map((record) => ({
+        step: record.step,
+        attempt: record.attempt,
+        reason: record.rejection_reason,
+      })),
+      accepted: accepted.slice(),
+      unfinished: state.graph.steps
+        .map((step) => step.id)
+        .filter((id) => state.steps[id].status !== 'accepted'),
+    };
+  }
   if (hasOwn(state, 'planning_context')) {
     Object.assign(
       snapshot,
@@ -1435,6 +1600,7 @@ function claim(dir, owner, limit, stepIds) {
   return withLock(dir, () => {
     const state = readState(dir);
     assertOwner(state, owner);
+    assertNoReplan(state, 'claim');
     let candidates;
     if (selected !== undefined) {
       const graphById = new Map(state.graph.steps.map((step) => [step.id, step]));
@@ -1500,6 +1666,7 @@ function start(dir, owner, attempt, context, executor) {
     const stepState = state.steps[record.step];
 
     if (record.status === 'claimed') {
+      assertNoReplan(state, 'start');
       assertStepPlanningContextAvailable(state, record.step);
       let frozenContext;
       if (context !== undefined) {
@@ -1701,6 +1868,15 @@ function settle(dir, owner, attempt, verification) {
   });
 }
 
+function assertNoReplan(state, operation) {
+  const replan = replanAttempts(state);
+  if (replan.length > 0) {
+    fail(operation + ' refused: step ' + replan.map((record) => record.step).join(', ') +
+      ' was settled for replanning, so this run starts no new work. Revise the plan and start a new run.',
+      'EREPLAN');
+  }
+}
+
 function retry(dir, owner, attempt, options) {
   requireString(dir, 'dir');
   stopConfirmation(options, 'retry');
@@ -1711,6 +1887,10 @@ function retry(dir, owner, attempt, options) {
     const record = currentAttempt(state, attempt);
     if (!ACTIVE_STATUSES.has(record.status) || record.status === 'accepted') {
       fail('attempt is not retryable from status: ' + record.status);
+    }
+    if (needsReplan(record)) {
+      fail('attempt was settled for replanning; a retry cannot change the plan. Revise the plan and ' +
+        'start a new run.', 'EREPLAN');
     }
 
     record.status = 'retried';

@@ -29,16 +29,26 @@ Completed: 1 item; W1 "Config loader refactor": loader split, 12 tests added
 
 ## Where it appears
 
-1. **Every packet**, after the progress snapshot. The owner shows the block to
-   the user unchanged, unless a host status hook already showed it.
+1. **Every packet**, after the progress snapshot. The block orients the
+   owner, which does not reprint it: it tells the user at most one line per
+   step and shows the whole block unchanged only when the user asks for the
+   full status.
 2. **`<run>/status.md`**, rewritten by every saved transition in the same
    journaled transaction as `state.md`, and **`shiploop status --run-dir=…`**,
    which prints the block read-only. `status` takes the run lock like `next`,
    so it first finishes any interrupted save. Only a direct read of
    `status.md` during an interrupted save can show the previous step.
-3. **Host status hook**: `scripts/shiploop-status-hook` copies the block from a
-   ShipLoop command's own stdout into the hook's `systemMessage`, which Claude
-   Code and Codex show to the user. A marketplace install sets it up; see
+3. **Host status hook**: `scripts/shiploop-status-hook` reads the block from a
+   ShipLoop command's own stdout and puts a two-line summary in the hook's
+   `systemMessage`, which Claude Code and Codex show to the user as a warning:
+
+   ```text
+   ShipLoop ▶ Work items > W2 "Add --version flag" (2 of 4) > Tests first > test-author
+   Done: W2 baseline: existing suite 142/142 passing; no --version coverage yet. | Next: test-author: write the tests the item's test spec calls for
+   ```
+
+   The second line takes `Waiting on you` or `Stopped` in place of `Next` when
+   the run waits or stops. The full block stays in `status.md` and `status`. A marketplace install sets it up; see
    [host hooks](#host-hooks).
 
 ## Host text is untrusted
@@ -55,7 +65,7 @@ most 11 lines, and stays under about 1,500 characters for any queue.
 `host-hooks.json` declares the hook, and the marketplace package carries one
 generated hook file per host, so installing the ShipLoop plugin sets it up:
 
-| Host | Package file | After installing | Shows the block to you |
+| Host | Package file | After installing | Shows the summary to you |
 |---|---|---|---|
 | Claude Code | `hooks/hooks.json` | active once the plugin is enabled | yes |
 | Codex | `hooks/codex.json` (manifest `hooks`) | review and trust it once in `/hooks` | yes, as a UI warning |
@@ -71,14 +81,14 @@ session. Grok sends the command's output as a list of byte values.
 | Cursor | `hooks/cursor.json` (manifest `hooks`) | active in a trusted workspace | no: `afterShellExecution` has no output field |
 
 On Grok and Cursor the hook recognizes the call and stays silent, so the
-in-packet block and `status.md` remain the display there. OpenCode has no
-marketplace; it uses the in-packet block and `status.md`.
+owner's one-line updates, `shiploop status` and `status.md` are the display
+there. OpenCode has no marketplace and uses the same three.
 
 ### Skill-directory installs
 
 `install.sh` never writes host settings. For a symlinked Claude Code install,
 add the hook yourself to `~/.claude/settings.json` (adjust the path if the skill
-is installed elsewhere). Do not also enable the plugin, or each block shows twice:
+is installed elsewhere). Do not also enable the plugin, or each summary shows twice:
 
 ```json
 {

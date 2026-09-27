@@ -4,6 +4,33 @@ Written by scripts/release.py.
 
 ## 2026-09-27
 
+### skill-craft 1.8.0
+
+- Skills: plan-dispatcher 0.4.0, shiploop 0.41.0
+
+### plan-dispatcher 0.4.0
+
+- A verified BLOCKED result now routes the run to replanning. Settle it with
+  `verification.disposition: "replan"` (only with `passed: false`). The run then
+  starts no new work:
+
+  - `claim`, a fresh `start` and a retry of that attempt fail with `EREPLAN`;
+  - `next` returns `replan` and `release` actions plus a `replan` summary (steps,
+    accepted, unfinished);
+  - work already in flight can still settle.
+
+  Rejected steps get a `retry` action with an attempt count, the reason and an
+  exact `call`. There is no retry limit.
+
+  A lock left by a process that no longer exists on this host is recovered
+  automatically; any other holder is refused with a message that names what to
+  do. A lost state file or settled receipt fails with `ESTATELOST` and names the
+  recovery.
+
+### shiploop 0.41.0
+
+- The status hook now shows a two-line summary (where the run is; what finished and what comes next) instead of the full 11-line block, and the model no longer reprints the status block: it tells the user at most one line per step and shows the whole block only when asked. `shiploop status` and `status.md` still carry the full block.
+
 ### skill-craft 1.7.0
 
 - Skills: shiploop 0.40.0
