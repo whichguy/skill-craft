@@ -3153,7 +3153,8 @@ def render(core: Any, root: Path, state: Mapping[str, Any],
                 "Environment discovery requirement: "
                 + environment_discovery_requirement,
                 "One investigation allowance spans applicable discovery and research "
-                "review stages; a stage boundary does not refill it.",
+                "review stages; a stage boundary does not refill it. Reaching it stops exploration, "
+                "never the run: record the open gaps as assumptions or open items, submit, and continue.",
                 "Recursive discovery policy: "
                 + str(reference_dir / "research-loop.md")
                 + "#recursive-discovery-and-experiments",
