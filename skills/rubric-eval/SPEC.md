@@ -8,10 +8,18 @@ architecture-rubric results that shaped it are in
 ## 1. Purpose
 
 Decide, with evidence, whether a change to a prompt (a packet block, a review
-focus, a platform card, a judge) makes a model's output better against a rubric,
-without regressing what the rubric guards. It answers one question per
-experiment: does arm B beat arm A on the same scenarios, under the same
-condition, by more than the noise?
+focus, a platform card, a judge) makes a model's output better, without
+regressing what the rubric guards. It answers one question per experiment: is
+arm B better than arm A on the same scenarios, under the same condition? Three
+things decide it, in strict priority order:
+
+1. **Quality**: comprehensive value against the rubric.
+2. **Tokens**: the fewest tokens used (prompt and output, including reasoning).
+3. **Time**: the least wall-clock time consumed.
+
+A lower priority is consulted only when every higher one shows no difference.
+Every measure and threshold is a standard one, or a quantity measured for this
+judge; none is picked by hand (sections 7 and 8).
 
 It does not replace `compare-prompts` (a quick pairwise check of two prompts on
 a folder of inputs) or `adversarial-review` (which finds what an experiment
@@ -24,13 +32,13 @@ rerun or replaced on its own, and other skills can call it.
 
 | Step | Command | Reads | Writes |
 | --- | --- | --- | --- |
-| Model call | `call --model sonnet\|grok` | prompt on stdin | text on stdout |
+| Model call | `call --model grok\|opus\|sonnet` | prompt on stdin | text on stdout (the library's `call_full` also returns tokens and seconds) |
 | Exact text | `extract SOURCE [--symbol NAME]` | a source file | the text, and its hash on stderr |
 | Build | `build RUN --arm NAME=PATH[::SYMBOL] ...` | a suite, arm texts | `RUN/prompts/*.txt`, `RUN/manifest.json` |
-| Run | `run RUN --model M` | prompts | `RUN/out/*.json`, `RUN/stubs.log` |
-| Judge | `judge RUN` | outputs | `RUN/judge/*.json`, `RUN/judge/failures.log` |
+| Run | `run RUN --model M` | prompts | `RUN/out/*.json` (text, tokens, seconds, attempts), `RUN/stubs.log` |
+| Judge | `judge RUN --model M` | outputs | `RUN/judge/*.json`, `RUN/judge/failures.log` |
 | Analyze | `analyze RUN --baseline ARM` | verdicts | `RUN/analysis.json` |
-| Reliability | `reliability RUN --n 30` | verdicts | `RUN/judge_regrade/*.json`, a summary |
+| Reliability | `reliability RUN --model M --n 30` | verdicts | `RUN/judge_regrade/*.json`, kappa and noise |
 
 Names: an output or verdict file is `<scenario>_<runtime>_<arm>_<trial>`; arm
 names contain no underscore.
@@ -109,10 +117,29 @@ Evidence first: for each applicable criterion, quote the shortest exact span of
 the plan that decides it, then grade from that quote (`met`, `partial`,
 `missed`, `overbuilt`, `na`), with grade anchors in the prompt and the criteria
 stated before and after the plan. Each call times out, retries up to three
-times and logs a final failure. A new judge version must be re-graded on at
-least 30 plans before use; accept it if the mean per-plan score change is 0.03
-or less (judge v2: 0.017; v1: 0.041) and the ship decisions of the last
-completed comparison do not change under it.
+times and logs a final failure.
+
+**Judge reliability** is measured by test-retest: the same judge re-grades at
+least 30 plans (`reliability`). Two standard figures come out:
+- **Cohen's kappa**, linear-weighted over the ordinal grades (missed <
+  partial < met), read on the Landis and Koch (1977) bands. A judge is accepted
+  at **substantial** (above 0.60) or better.
+- **Noise**: the mean absolute change in a plan's score between the two
+  gradings, in points. It is the smallest difference this judge can tell apart,
+  and `analyze` uses it as the equivalence bound (section 8).
+
+Both go in `references/judges.json`. A judge (a new model or a new judge
+prompt) is also accepted only if the decisions of the last completed comparison
+do not change when that judge re-grades it.
+
+| Judge (prompt v2) | Kappa | Band | Noise | Measured |
+| --- | --- | --- | --- | --- |
+| Opus 5.5, medium | 0.835 | almost perfect | 2.07 points | 30 round-4 reviews |
+| Sonnet | 0.759 | substantial | 1.69 points | 30 round-3 plans |
+| Opus vs Sonnet | 0.443 | moderate | 7.3 points apart | same 30 round-4 reviews |
+
+The last row is why a round never mixes judges: each judge agrees with itself
+far better than with the other.
 
 Known weakness (adversarial review of this skill, F4): only 77% of judge v2's
 quotes are exact substrings of the plan (89% after normalising whitespace and
@@ -122,36 +149,61 @@ partial grade whose quote is not found. It must pass the acceptance check
 above before use. The judge is shown the expected tier and overbuild note by
 design, because proportion cannot be graded without them.
 
-## 8. Statistics and the ship rule
+## 8. Statistics and the decision rule
 
-Scores: met 1, partial 0.5, missed and overbuilt 0, averaged over graded
-criteria. Compare arms **paired** on the same scenario-runtime-trial cells:
-mean difference, a 95% bootstrap interval (4,000 resamples), and cells won and
-lost. Report composites for every group in the suite.
+**Scale.** Each criterion is graded on a three-level analytic rubric scored in
+points: met 2, partial 1, missed 0 (overbuilt also 0, and counted separately).
+A plan's score is the **percentage of available rubric points** it earned,
+0–100, over its applicable criteria; `na` criteria are left out. Composites
+(rubric groups) are the same percentage over the group's criteria.
 
-Intervals resample whole scenarios by default (`--cluster scenario`), so
-repeated trials and runtimes of one scenario are not counted as independent.
-Under shuffled labels (no true effect) on round-3 data, this rule falsely
-shipped 3.3% of the time (cell resampling: 2.5%).
+**Paired comparison.** Arms are compared **paired** on the same
+scenario-runtime-trial cells, by the mean difference in points with:
+- a 95% percentile-bootstrap interval (4,000 resamples) that resamples whole
+  scenarios by default (`--cluster scenario`), so repeated trials and runtimes
+  of one scenario are not counted as independent;
+- the **Wilcoxon signed-rank test** (two-sided, normal approximation,
+  tie-corrected) over per-scenario mean differences, the independent units;
+- cells won and lost.
 
-A change **ships** only when all of these hold:
-1. the overall 95% interval against the baseline lies above zero, over at least
-   8 scenarios;
-2. every guardrail group (`guardrails` in the rubric; for architecture:
-   proportion and safeguards) has a comparison, its mean is not below −0.02,
-   and its interval is not wholly below zero;
-3. overbuilt-scope grades and platform errors do not rise by more than a
-   quarter of the baseline's count (at least 2), and stub and `na` rates differ
-   by no more than 5 points between arms;
-4. the run's manifest records one condition (model, tools) for every arm run
-   this round, and only the baseline may be an input from an earlier round;
-5. the adversarial-review loop (section 9) is complete;
-6. a **fresh** confirmation run on the text as it will ship passes rules 1–4.
-   Revising and retesting until something clears is a search, so the result
-   that ships is the fresh confirmation, never the run that selected it.
+Token use (prompt plus output tokens, reasoning included, as each CLI reports
+them) and wall-clock seconds are compared the same way, per output. When the
+baseline is an input that costs nothing this round (the unreviewed plan in a
+review experiment), its cost counts as zero. Stub reruns count toward an
+output's cost, because they are real cost.
 
-`analyze` applies rules 1–4 and reports them, with every failing reason, as
-`decision`.
+**Decision.** `analyze` returns `winner` (`arm`, `baseline` or none),
+`decided_by` and every reason:
+1. **Quality.** The arm is better when the overall interval lies above zero
+   and the Wilcoxon test agrees (p < 0.05). It is worse when both show it below
+   zero. It is **equivalent** when the whole interval lies within ± the judge's
+   measured noise (section 7). Anything else is **inconclusive**: add scenarios
+   or trials; no decision is made.
+2. **Tokens**, only when quality is equivalent. The side whose paired token
+   interval lies wholly below zero uses fewer tokens and wins.
+3. **Time**, only when tokens show no difference: likewise for seconds.
+4. A tie at every level keeps the baseline; a change must earn its place.
+
+**Blocking checks.** The arm cannot win at any level while any of these holds:
+- a guardrail group (`guardrails` in the rubric; for architecture:
+  proportion and safeguards) has no comparison, its interval lies wholly below
+  zero, or its mean is worse than the judge's noise;
+- overbuilt-scope grades or platform errors per plan rose significantly (the
+  paired interval lies above zero);
+- stub or `na` rates differ between arms (two-proportion z-test, p < 0.05);
+- fewer than 8 scenarios were compared (a cluster bootstrap over fewer is
+  unreliable);
+- the judge has no measured noise, or verdicts come from more than one judge;
+- the run's manifest does not record one condition (model, tools) for every arm
+  run this round, or an arm other than the baseline is an input.
+
+**Shipping** needs, in addition, the adversarial-review loop (section 9) and a
+**fresh** confirmation run on the text as it will ship in which the arm wins.
+Revising and retesting until something clears is a search, so the result that
+ships is the fresh confirmation, never the run that selected it. Under shuffled
+labels (no true effect) on round-3 data, the earlier interval-only rule falsely
+shipped 3.3% of the time; the rank-test agreement makes the current rule
+stricter.
 
 ## 9. Change lifecycle
 
@@ -210,8 +262,10 @@ them:
 ## 12. Open items
 
 - Human calibration: 30–50 human-labelled criterion grades, Cohen's kappa per
-  criterion group (at least 0.6 for guardrail groups); criteria with low kappa
-  get better anchors.
+  criterion group against the judge (substantial or better for guardrail
+  groups); criteria with lower kappa get better anchors.
+- Rounds 1–5 predate token and time recording; their decisions rest on quality
+  alone.
 - Judge v3 (quote verification), above.
 - Reproduce shipped results on the Grok subject (adversarial review F5): a
   change shipped on Sonnet evidence is not assumed to hold on Grok.

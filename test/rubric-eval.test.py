@@ -130,17 +130,18 @@ class Statistics(unittest.TestCase):
         self.assertIsNone(R.parse_diff('{"removed_required": 0}'))
 
     def test_adversarial_fixtures_never_ship(self):
-        # From the adversarial review of rubric-eval itself (F1, F3, F7): each of these must return ship false.
-        up = {"mean": .03, "low": .01, "high": .05}
+        # From the adversarial review of rubric-eval itself (F1, F3, F7): each of these must not ship.
+        up = {"mean": 3, "low": 1, "high": 5, "wilcoxon_p": 0.01}
         g = ["safeguards", "proportion"]
-        ok = {"mean": 0, "low": -.01, "high": .01}
-        self.assertTrue(R.decide({"overall": up, "safeguards": ok, "proportion": ok}, g, scenarios=19)["ship"])
-        bad_mean = {"mean": -.06, "low": -.12, "high": -.01}   # interval not wholly below -0.02, mean is
-        self.assertFalse(R.decide({"overall": up, "safeguards": bad_mean, "proportion": ok}, g, scenarios=19)["ship"])
-        self.assertFalse(R.decide({"overall": up, "proportion": ok}, g, scenarios=19)["ship"])  # guardrail missing
-        self.assertFalse(R.decide({"overall": up, "safeguards": ok, "proportion": ok}, g, scenarios=19,
-                                  counts={"platform errors": (9, 3, 2)})["ship"])
-        self.assertFalse(R.decide({"overall": up, "safeguards": ok, "proportion": ok}, g, scenarios=1)["ship"])
+        ok = {"mean": 0, "low": -1, "high": 1}
+        self.assertTrue(R.decide({"overall": up, "safeguards": ok, "proportion": ok}, g, 2.0, scenarios=19)["ship"])
+        bad_mean = {"mean": -6, "low": -12, "high": 1}   # interval not wholly below 0, but mean worse than the noise
+        self.assertFalse(R.decide({"overall": up, "safeguards": bad_mean, "proportion": ok}, g, 2.0, scenarios=19)["ship"])
+        self.assertFalse(R.decide({"overall": up, "proportion": ok}, g, 2.0, scenarios=19)["ship"])  # guardrail missing
+        self.assertFalse(R.decide({"overall": up, "safeguards": ok, "proportion": ok}, g, 2.0, scenarios=19,
+                                  checks=["platform errors rose significantly"])["ship"])
+        self.assertFalse(R.decide({"overall": up, "safeguards": ok, "proportion": ok}, g, 2.0, scenarios=1)["ship"])
+        self.assertFalse(R.decide({"overall": up, "safeguards": ok, "proportion": ok}, g, None, scenarios=19)["ship"])  # unmeasured judge
 
     def test_condition_is_recorded_and_checked(self):
         with tempfile.TemporaryDirectory() as d:
@@ -162,12 +163,46 @@ class Statistics(unittest.TestCase):
             r = R.analyze(d, s, "base")
             self.assertTrue(any("more than one judge" in p for p in r["condition_problems"]))
 
-    def test_decide(self):
-        up = {"mean": .03, "low": .01, "high": .05}
-        self.assertTrue(R.decide({"overall": up, "proportion": {"mean": 0, "low": -.03, "high": .02}}, ["proportion"], scenarios=19)["ship"])
-        self.assertFalse(R.decide({"overall": {"mean": .02, "low": -.001, "high": .04}}, [])["ship"])
-        d = R.decide({"overall": up, "proportion": {"mean": -.05, "low": -.08, "high": -.03}}, ["proportion"], scenarios=19)
-        self.assertFalse(d["ship"]); self.assertIn("proportion", d["reasons"][0])
+    def test_decide_quality_then_tokens_then_time(self):
+        eq = {"mean": 0.2, "low": -1.5, "high": 1.8}           # within the judge's noise of 2 points
+        fewer = {"mean": -900, "low": -1200, "high": -600}; more = {"mean": 900, "low": 600, "high": 1200}
+        same = {"mean": 10, "low": -300, "high": 320}
+        d = R.decide({"overall": {"mean": 4, "low": 1, "high": 7, "wilcoxon_p": 0.01}}, [], 2.0, tokens=more, scenarios=19)
+        self.assertEqual((d["winner"], d["decided_by"]), ("arm", "quality"))   # quality outranks cost
+        d = R.decide({"overall": {"mean": -4, "low": -7, "high": -1, "wilcoxon_p": 0.01}}, [], 2.0, tokens=fewer, scenarios=19)
+        self.assertEqual((d["winner"], d["decided_by"]), ("baseline", "quality"))
+        d = R.decide({"overall": eq}, [], 2.0, tokens=fewer, seconds=more, scenarios=19)
+        self.assertEqual((d["winner"], d["decided_by"]), ("arm", "tokens"))    # tokens outrank time
+        d = R.decide({"overall": eq}, [], 2.0, tokens=more, scenarios=19)
+        self.assertEqual((d["winner"], d["ship"]), ("baseline", False))
+        d = R.decide({"overall": eq}, [], 2.0, tokens=same, seconds=fewer, scenarios=19)
+        self.assertEqual((d["winner"], d["decided_by"]), ("arm", "time"))
+        d = R.decide({"overall": eq}, [], 2.0, tokens=same, seconds=same, scenarios=19)
+        self.assertEqual((d["winner"], d["decided_by"]), ("baseline", "tie"))   # a change must earn its place
+        d = R.decide({"overall": {"mean": 1, "low": -3, "high": 5}}, [], 2.0, tokens=fewer, scenarios=19)
+        self.assertIsNone(d["winner"]); self.assertIn("inconclusive", d["reasons"][0])
+        d = R.decide({"overall": {"mean": 4, "low": 1, "high": 7, "wilcoxon_p": 0.2}}, [], 2.0, scenarios=19)
+        self.assertIsNone(d["winner"])                                          # the rank test must agree
+        d = R.decide({"overall": eq}, [], 2.0, tokens=fewer, checks=["na rates differ"], scenarios=19)
+        self.assertIsNone(d["winner"]); self.assertFalse(d["ship"])            # checks block a cost win too
+
+    def test_scale_kappa_and_wilcoxon(self):
+        self.assertEqual(R.score(verdict({"P1": "met", "P3": "partial", "D1": "missed", "D2": "na"})), 50.0)
+        self.assertEqual(R.kappa([("met", "met"), ("partial", "partial"), ("missed", "missed")] * 3), 1.0)
+        # linear-weighted kappa, checked by hand: po = 5/6, pe = 1/2, kappa = (5/6 - 1/2) / (1/2) = 0.667
+        self.assertEqual(R.kappa([("met", "met"), ("met", "partial"), ("missed", "missed")]), 0.667)
+        self.assertEqual(R.landis_koch(0.835), "almost perfect"); self.assertEqual(R.landis_koch(0.443), "moderate")
+        self.assertLess(R.wilcoxon([1, 2, 3, 4, 5, 6, 7, 8]), 0.05)
+        self.assertGreater(R.wilcoxon([1, -2, 3, -4, 5, -6, 7, -8]), 0.5)
+        self.assertIsNone(R.wilcoxon([1, 2]))
+        self.assertLess(R.two_proportion_p(30, 100, 5, 100), 0.001); self.assertEqual(R.two_proportion_p(5, 100, 5, 100), 1.0)
+
+    def test_costs_compare_paired_and_against_a_free_input(self):
+        vals = {f"S0{i}_GAS_base_1": 1000.0 for i in range(1, 9)} | {f"S0{i}_GAS_cand_1": 700.0 + i for i in range(1, 9)}
+        c = R.paired_values(vals, "cand", "base", "scenario")
+        self.assertLess(c["high"], 0); self.assertEqual(c["lost"], 8)
+        z = R.paired_values(vals, "cand", "base", "scenario", baseline_zero=True)   # an unreviewed plan costs no review
+        self.assertGreater(z["low"], 0)
 
 
 class Findings(unittest.TestCase):

@@ -46,15 +46,18 @@ def main(argv=None):
     j.add_argument("--model", choices=R.MODELS, default="opus", help="the single judge (default opus 5.5, medium effort; a round keeps one judge)")
     j.add_argument("--dest", default=None, help="verdict folder (default judge, or judge_<model> for a non-sonnet judge)")
     j.add_argument("--only-file", help="grade only the output stems listed in this file (a sample for a slow second judge)")
-    a = sub.add_parser("analyze", help="composites, paired intervals and the ship decision")
+    a = sub.add_parser("analyze", help="composites, paired intervals and the quality > tokens > time decision")
     a.add_argument("run_dir"); a.add_argument("--suite", default="architecture"); a.add_argument("--baseline", required=True)
     a.add_argument("--judge-dir", default="judge")
     a.add_argument("--cluster", choices=("scenario", "cell"), default="scenario", help="resample whole scenarios (default) or cells")
+    a.add_argument("--noise", type=float, help="the judge's noise in points (default: references/judges.json for the run's judge)")
     d = sub.add_parser("diffcheck", help="review runs: count what reviews removed, added, contradicted or invented")
     d.add_argument("run_dir"); d.add_argument("--suite", default="architecture"); d.add_argument("--plans-from", required=True)
     d.add_argument("--model", choices=R.MODELS, default="sonnet"); d.add_argument("--workers", type=int, default=10)
-    rel = sub.add_parser("reliability", help="re-grade a sample and report judge agreement")
+    rel = sub.add_parser("reliability", help="re-grade a sample with the same judge: Cohen's kappa and the judge's noise")
     rel.add_argument("run_dir"); rel.add_argument("--suite", default="architecture"); rel.add_argument("--n", type=int, default=30)
+    rel.add_argument("--model", choices=R.MODELS, required=True, help="the judge that graded --judge-dir")
+    rel.add_argument("--judge-dir", default="judge"); rel.add_argument("--dest", default="judge_regrade")
     args = ap.parse_args(argv)
 
     if args.cmd == "call":
@@ -79,11 +82,12 @@ def main(argv=None):
         only = Path(args.only_file).read_text().split() if args.only_file else None
         print(json.dumps(R.judge(args.run_dir, suite_arg(args.suite), model=args.model, workers=args.workers, dest=dest, only=only)))
     elif args.cmd == "analyze":
-        print(json.dumps(R.analyze(args.run_dir, suite_arg(args.suite), args.baseline, dest=args.judge_dir, cluster=None if args.cluster == "cell" else args.cluster), indent=1))
+        print(json.dumps(R.analyze(args.run_dir, suite_arg(args.suite), args.baseline, dest=args.judge_dir, cluster=None if args.cluster == "cell" else args.cluster, noise=args.noise), indent=1))
     elif args.cmd == "diffcheck":
         print(json.dumps(R.diffcheck(args.run_dir, suite_arg(args.suite), args.plans_from, model=args.model, workers=args.workers), indent=1))
     elif args.cmd == "reliability":
-        print(json.dumps(R.reliability(args.run_dir, suite_arg(args.suite), n=args.n), indent=1))
+        print(json.dumps(R.reliability(args.run_dir, suite_arg(args.suite), n=args.n, model=args.model,
+                                       first_dest=args.judge_dir, second_dest=args.dest), indent=1))
 
 
 if __name__ == "__main__":

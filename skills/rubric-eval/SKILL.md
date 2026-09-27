@@ -2,8 +2,8 @@
 name: rubric-eval
 description: >-
   Evaluate a prompt change against a rubric over a scenario catalog: run arms on
-  a subject model (Sonnet or Grok), grade blind with an evidence-first judge, and
-  decide with paired bootstrap intervals and guardrails. Use when deciding
+  a subject model (Grok by default), grade blind with one evidence-first judge,
+  and decide by quality, then tokens, then time, with paired standard tests. Use when deciding
   whether to ship a change to a packet block, review focus, platform card or
   judge; for "run the rubric", "rubric eval", "A/B this wording across the
   scenarios", or confirming a change on the text that ships. For a quick
@@ -33,8 +33,8 @@ $E extract skills/shiploop/scripts/shiploop_navigator_v3_prompts.py --symbol INT
 $E build RUN --arm base=OLD.py::INTERACTION_DESIGN --arm cand=NEW.py::INTERACTION_DESIGN --trials 2
 $E run RUN --model grok             # execution: grok-4.7, medium effort (sonnet for exploratory rounds)
 $E judge RUN --model opus           # the one judge for the round: claude-opus-5-5, medium effort
-$E analyze RUN --baseline base      # composites, paired intervals, decision
-$E reliability RUN --n 30           # when the judge changes
+$E analyze RUN --baseline base      # percent-of-points scores, paired tests, quality > tokens > time
+$E reliability RUN --model opus --n 30   # kappa and noise when the judge changes; record in references/judges.json
 echo "prompt" | $E call --model grok
 ```
 
@@ -50,8 +50,9 @@ Review experiments grade a review's revised plan: build with `--frame review
    other than the one proposing it.
 4. Turn each testable high or medium finding into an experiment with its
    refuting result stated first; run it; revise the change if a finding holds.
-5. Rerun on the exact text that will ship. Ship only when `analyze` says
-   `ship: true` there and the loop is complete (SPEC section 8).
+5. Rerun on the exact text that will ship. Ship only when `analyze` names the
+   arm as `winner` there and the loop is complete (SPEC section 8). Quality
+   decides first; tokens, then time, decide only between equivalent arms.
 6. Record everything in the results doc (SPEC section 10).
 
 Long runs:
