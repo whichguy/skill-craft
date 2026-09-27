@@ -28,3 +28,9 @@ committed.
   original in both runs (no flakes, ~8 s per run, well inside the harness's
   180 s check timeout); none pass on the stub (it timed out after 180 s
   with 7 file-level failures reported and every other check unreported).
+
+## E3 baseline rebuild on json-server: not completed
+
+Killed at ~30 min when the watcher that launched it expired (plan item 35);
+not rerun because the owner switched the pilot to marked. The partial build
+had a `package.json`, `src/` and a `schema.json`.
