@@ -18,6 +18,8 @@ import sys
 from pathlib import Path
 
 HERE = Path(__file__).resolve().parent
+sys.path.insert(0, str(HERE))
+from spec_check import builder_view  # noqa: E402
 
 
 def app_module(work: Path) -> str:
@@ -70,7 +72,7 @@ def main() -> int:
     work = out / "work"
     if not args.score_only:
         work.mkdir(parents=True)
-        shutil.copy(args.spec, work / "SPEC.md")
+        (work / "SPEC.md").write_text(builder_view(args.spec.read_text()))
         subprocess.run(["git", "init", "-q"], cwd=work, check=True)
         subprocess.run([sys.executable, str(HERE / "grok_step.py"), "--cwd", str(work),
                         "--prompt", str(HERE.parent / "prompts" / "build.md"), "--out", str(out / "step"),

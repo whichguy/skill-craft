@@ -48,3 +48,26 @@ had a `package.json`, `src/` and a `schema.json`.
 - Admission: **admitted** first time. 1,759/1,759 pass on the original in
   both runs, no flakes; 0 pass on the CLI and library stubs. One oracle run
   takes ~1 s, far inside the harness's 180 s check timeout.
+
+## E1 distill, round 1 (rev-3 prompts), 2026-09-27
+
+- Exit normal: 43 turns, $1.88, 1,832 s wall.
+- Spec: 4,262 lines, 1,200 claims, 1,799 resolving citations; CLI, module
+  API, class, pipeline, errors, extensions and hooks, then the Markdown
+  grammar and rendering rules.
+- `repo_value.py --spec`: 1% of evidence cites dependency code (material).
+- `spec_check.py` findings:
+  - leaks: the original name appears in **evidence file paths**
+    (`src/marked.ts`, `bin/marked.js`, ...). Structural, not a distill
+    fault: citations are for verification. Fix: the builder receives the
+    evidence-stripped view (`builder_view`), and leaks are checked there.
+  - one real prose leak in that view: "`--tokens` calls
+    `marked.lexer(...)`" (distill fault; the branded-value rule was in the
+    prompt). Recorded, not hand-patched.
+  - one citation to a nonexistent `hash.js` (distill fault).
+  - checker fixes: whole-file fixture citations count as evidence; a range
+    may end one line past a file's last line (trailing newline).
+- The first E3 launch received the evidence-bearing spec (the chain started
+  it before the builder view existed); it was stopped after ~3 min and
+  voided (`rebuilds/m1-void-evidence-leak`). E3 restarted on the 3,042-line
+  builder view.
