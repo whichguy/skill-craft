@@ -7,7 +7,9 @@ Status (2026-09-27):
 - N1 (exact calls; X8) and N2 (T1 scenario harness) are implemented with gates
   1–4.
 - D1 is reopened.
-- Phases 3–6 and the audit conditions other than X8 are not started.
+- Audit conditions: X8, X5, X10 and X11 fixed; the rest recorded as known
+  limits.
+- Phases 3–6 are not started.
 
 Goal: prove that Plan Orchestrator runs a dependency graph correctly under
 fan-out, fan-in, failure, recovery and context loss. Every stage should be
@@ -363,29 +365,51 @@ fixture re-pinned to the live package (gap 4).
    - Decide D1 again; its prerequisite, exact calls, now exists.
    - The remaining audit conditions below.
 
-## Audit conditions X1–X15 (relayed 2026-09-27; confirm with the owner)
+## Audit conditions X1–X15 (triaged 2026-09-27 under KISS/YAGNI)
 
-The audit session relayed an owner request to take the conditions in
-`docs/experiments/orchestrator-isolated-experiments-20260927/README.md` through
-the four gates, each via change admission (a failing scenario from the named
-script, an anchor, a non-regression statement, then the change). Status:
+The owner's rule: fix what breaks or misleads a normal run. Adversarial
+constructions and gaps nobody has hit are acceptable by design; record them
+here and revisit only when a real run shows them.
 
-| Item | Condition | Status |
+| Item | Condition | Outcome |
 |---|---|---|
-| 1 | X1: bind loop evidence to a real run (forged terminal packet passes) | Not started |
-| 2 | X2: racing `complete` calls; the loser must be refused | Not started |
-| 3 | X3/X4: a revised result counts as a change; blind spots | Not started (decision) |
-| 4 | X5: lint boundary for per-step implement | Not started (decision) |
-| 5 | X6/X7: script-check baseline, test-author and regression commands | Not started (decision) |
-| 6 | X8: dispatcher exact calls and dead ends | **Done** (N1) |
-| 7 | X9: in-place auto-commit takes user work | Not started (decision) |
-| 8 | X10/X12/X13: recovery at every boundary | Not started |
-| 9 | X11: printed packets over the host limit | Not started |
-| 10 | X14/X15: small guards | Not started (decision) |
-| 11 | Pin H1–H5 as regression scenarios | Not started |
+| 6 | X8: dispatcher exact calls and dead ends | **Done** in 1.9.0 (N1) |
+| 4 | X5: lint refused step S1 for a finding step S2 resolves | **Fixed.** Earlier implement steps report without auto-fix; the item's last step gates |
+| 8 | X10: after context loss mid-loop, nothing said to continue from the receipt | **Fixed.** Once the receipt exists, the loop packet says not to start again and to run the receipt's `next_argv` |
+| 9 | X11: paused, halted and blocked packets printed whole past Grok's ~20 KB cut | **Fixed.** Over 16,000 characters they print a pointer to the full packet file and what fits |
+| 1 | X1: a hand-forged terminal packet passes | Known limit |
+| 2 | X2: two simultaneous `complete` calls | Known limit |
+| 3 | X3: a revised result closes on one pass; X4: fingerprint blind spots | Known limit (X4 decided: no change) |
+| 5 | X6: bare `done` at judgment stages; X7: printed test summaries | Known limit (X7 decided: document) |
+| 7 | X9: in-place auto-commit includes the user's edits in declared files | Known limit (decided: document) |
+| 8 | X12, X13: step name not in the head; integrate notice not repeated | Known limit (runs did the right work) |
+| 10 | X14, X15: return-guard gaps; keepalive while a background task runs | Known limit (no harm observed) |
+| 11 | Pin H1–H5 | Not needed; existing suites cover the invariants that matter |
 
-Do not act on the three disproved claims listed in that document: the
-keepalive limit, the per-step packet size and the compaction hook.
+### Known limits (acceptable by design)
+
+ShipLoop and Plan Dispatcher trust the host model to follow the packets. They
+guard against drift and context loss, not against deliberate forgery. Each of
+these can happen, and none has been seen in a real run:
+
+- **Forged evidence.** A model that writes a loop's terminal packet by hand
+  (X1), or prints a fake test summary (X7), can pass the loop and test gates.
+- **Simultaneous callbacks.** One parent conversation drives a run. Two
+  `complete` calls started together can both exit 0, and one result is lost
+  (X2). Calls even 0.6 s apart are refused.
+- **One-pass exits.** An Improve review that rewrites a stage result can
+  close on one unchanged pass (X3). Edits to git-ignored files, files under
+  `.shiploop/`, or files outside the workspace are invisible to that exit (X4).
+- **Judgment stages.** About 18 stages accept `done` with no script check
+  (X6); their output is judged by later stages and reviews.
+- **In-place runs.** Auto-commit on an in-place run commits everything in the
+  item's declared files, including the user's own uncommitted edits there
+  (X9). The default workspace route is protected.
+- **Recovery details.** The printed head does not name the implement step
+  (X12). Integrate's "not committed" notice prints once (X13).
+- **Return guard and keepalive.** Git-ignored files are outside the return
+  fingerprint, and a refusal does not name the drifted path (X14). Keepalive
+  keeps continuing while a background task runs (X15).
 
 ## Audit-session experiment findings (2026-09-27, snapshot b3e466c7)
 

@@ -1108,6 +1108,11 @@ def packet_path(root: Path, state: Mapping[str, Any]) -> Path:
     return Path(root) / PACKET_DIR / f"{action_id}.md"
 
 
+# Printed characters at most: below the ~20,000-character cut some hosts (Grok)
+# apply to shell output.
+PRINT_LIMIT = 16_000
+
+
 def emit(core: Any, root: Path, state: Mapping[str, Any]) -> str:
     """Write the full packet to a file and print a short head that points at it.
 
@@ -1115,16 +1120,23 @@ def emit(core: Any, root: Path, state: Mapping[str, Any]) -> str:
     rewrites it, since the script cannot know what the host kept. Printing only
     the head keeps packets out of the host's shell-output limit and context; the
     host reads the file, and the references it names, only as far as it needs.
-    Paused, blocked, awaiting, halted and done packets are short and print whole.
+    Paused, blocked, awaiting, halted and done packets print whole unless they
+    pass ``PRINT_LIMIT``; then they print a pointer to the file and what fits.
     """
     text = render(core, root, state)
     path = packet_path(root, state)
     store.atomic_write_text(path, text)
-    if state["status"] != "active":
+    if state["status"] == "active":
+        print(packet_head(core, root, state, path), end="")
+    elif len(text) <= PRINT_LIMIT:
         print(text, end="")
     else:
-        print(packet_head(core, root, state, path), end="")
+        pointer = (f"Full packet: {path}\nThis packet is longer than a host's shell-output limit; the rest is "
+                   "in that file. Read it with a file-reading tool before acting.\n\n")
+        body = text[:PRINT_LIMIT - len(pointer)]
+        print(pointer + body[:body.rfind("\n") + 1], end="")
     return text
+
 
 
 def packet_head(core: Any, root: Path, state: Mapping[str, Any], path: Path) -> str:
@@ -1965,6 +1977,13 @@ def _lint_gate(core: Any, root: Path, state: Mapping[str, Any], action_id: str, 
     mode = lint_mode(state)
     if result["outcome"] != "done" or mode not in ("fix", "report"):
         return
+    # A later implement step may resolve an earlier step's finding (an import the
+    # next step uses), so earlier steps only report, without auto-fix, and the
+    # item's last step gates what is still there.
+    done, steps = implement_progress(state, workitem) if stage == lint.GATE_STAGE else (0, [])
+    gating = done + 1 >= len(steps)
+    if not gating:
+        mode = "report"
     waivers = {entry["id"]: entry["reason"] for entry in result.get("lint_waivers", [])}
     writes, payload, refusal = lint.gate(
         Path(state["repo"]), root, action=action_id, work_item=workitem or "", run_option=mode,
@@ -1973,7 +1992,7 @@ def _lint_gate(core: Any, root: Path, state: Mapping[str, Any], action_id: str, 
     for relative, text in writes.items():
         store.atomic_write_text(root / relative, text)
     _lint_finish(root, payload)
-    _need(not refusal, refusal)
+    _need(not gating or not refusal, refusal)
 
 
 def _lint_finish(root: Path, payload: Any) -> None:

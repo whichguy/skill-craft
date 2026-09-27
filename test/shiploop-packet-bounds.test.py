@@ -109,6 +109,24 @@ class PacketBoundsTests(unittest.TestCase):
         self.assertIn("status_reason", packet)
         self.assertIn("Resume:", packet)
 
+    def test_a_long_paused_packet_prints_within_the_host_output_limit(self):
+        """X11 (e12_head_size.py): paused, halted and blocked packets printed whole past ~20 KB."""
+        import contextlib, io
+        from unittest import mock
+        state = navigator.control(self.state(), "pause", reason="user asked")
+        store.write_record(self.run / "state.md", state)
+        for text, whole in (("short packet\n", True), (("x" * 60 + "\n") * 1000 + "TAIL\n", False)):
+            with self.subTest(whole=whole), mock.patch.object(navigator, "render", return_value=text):
+                printed = io.StringIO()
+                with contextlib.redirect_stdout(printed):
+                    navigator.emit(None, self.run, state)
+                if whole:
+                    self.assertEqual(printed.getvalue(), text)
+                else:
+                    self.assertLessEqual(len(printed.getvalue()), navigator.PRINT_LIMIT)
+                    self.assertIn("Full packet: " + str(navigator.packet_path(self.run, state)), printed.getvalue())
+                self.assertEqual(navigator.packet_path(self.run, state).read_text(), text)
+
     def test_oversized_delivery_template_is_not_truncated_into_invalid_json(self):
         state = navigator.new_state(str(self.repo), "Observe local behavior.", delivery_contract=True)
         while navigator.current_stage(state) != "plan":

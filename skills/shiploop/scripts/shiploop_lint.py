@@ -1148,7 +1148,8 @@ def _run_pass(invoker: _Invoker, catalog: Mapping[str, Any], top: Path, run_dir:
     lines.append(result_line)
     if stage in GATE_STAGES:
         lines.append("Gate: ShipLoop refuses this step's done while a new finding on a line this item changed "
-                     "remains. Fix each one, or list it in the result's lint_waivers as {\"id\": \"<ID>\", "
+                     "remains. For implement, only the item's last step is gated: an earlier step's findings "
+                     "are reported without auto-fix, since a later step may resolve them. Fix each one, or list it in the result's lint_waivers as {\"id\": \"<ID>\", "
                      "\"reason\": \"<why it stays>\"}. Pre-existing findings, other files, uncovered files, tool "
                      "errors and timeouts never block. This pass does not replace the checks you run for this step.")
     else:
