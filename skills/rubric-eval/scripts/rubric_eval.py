@@ -119,8 +119,13 @@ def call_full(model: str, prompt: str, *, timeout: int = 600, tools: str = "", w
     return rec
 
 
+PATH_KEYS = ("target_file", "target_directory", "path", "file_path")
+READ_TOOLS = ("read_file", "list_dir", "grep")
+
+
 def outside_paths(home: Path, session_id: str, cwd: str) -> list[str] | None:
-    """Every path a Grok session's tool calls touched that lies outside `cwd` (None if the log is missing)."""
+    """What a Grok session touched beyond its own directory: every path argument outside `cwd`, and any tool
+    outside the read-only allowlist (as "tool:<name>"). None if the session log is missing."""
     logs = list((home / ".grok" / "sessions").glob(f"*/{session_id}/updates.jsonl"))
     if not logs:
         return None
@@ -132,8 +137,11 @@ def outside_paths(home: Path, session_id: str, cwd: str) -> list[str] | None:
             continue
         if u.get("sessionUpdate") != "tool_call":
             continue
-        for k, v in (u.get("rawInput") or {}).items():
-            if isinstance(v, str) and k != "variant" and ("/" in v or k.startswith("target") or k == "path"):
+        if u.get("title") not in READ_TOOLS:
+            seen.add(f"tool:{u.get('title')}")
+        for k in PATH_KEYS:
+            v = (u.get("rawInput") or {}).get(k)
+            if isinstance(v, str) and v:
                 full = os.path.realpath(v if os.path.isabs(v) else os.path.join(root, v))
                 if full != root and not full.startswith(root + os.sep):
                     seen.add(v)

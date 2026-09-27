@@ -264,10 +264,13 @@ class Statistics(unittest.TestCase):
     def test_outside_paths_flags_reads_beyond_the_call_directory(self):
         with tempfile.TemporaryDirectory() as home, tempfile.TemporaryDirectory() as cwd:
             log = Path(home) / ".grok" / "sessions" / "x" / "sid1"; log.mkdir(parents=True)
-            ev = lambda inp: json.dumps({"params": {"update": {"sessionUpdate": "tool_call", "rawInput": inp}}})
-            (log / "updates.jsonl").write_text("\n".join([ev({"target_file": f"{cwd}/references/a.md"}), ev({"target_file": "references/b.md"}),
-                                                          ev({"target_directory": "/private/tmp"}), ev({"variant": "ListDir", "target_directory": "../other"})]))
-            self.assertEqual(R.outside_paths(Path(home), "sid1", cwd), ["../other", "/private/tmp"])
+            ev = lambda tool, inp: json.dumps({"params": {"update": {"sessionUpdate": "tool_call", "title": tool, "rawInput": inp}}})
+            (log / "updates.jsonl").write_text("\n".join([
+                ev("read_file", {"target_file": f"{cwd}/references/a.md"}), ev("read_file", {"target_file": "references/b.md"}),
+                ev("grep", {"pattern": "google/script|a/b", "path": "references"}),       # a slash in a pattern is not a path
+                ev("list_dir", {"target_directory": "/private/tmp"}), ev("list_dir", {"variant": "ListDir", "target_directory": "../other"}),
+                ev("run_terminal_command", {"command": "ls"})]))
+            self.assertEqual(R.outside_paths(Path(home), "sid1", cwd), ["../other", "/private/tmp", "tool:run_terminal_command"])
             self.assertIsNone(R.outside_paths(Path(home), "missing", cwd))
 
     def test_costs_compare_paired_and_against_a_free_input(self):
