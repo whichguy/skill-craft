@@ -391,6 +391,35 @@ class ShipLoopWorkspaceTests(unittest.TestCase):
             "",
         )
 
+    def test_an_empty_non_git_directory_is_bootstrapped_by_the_script(self) -> None:
+        """The model never writes Git setup glue for an empty start directory."""
+        empty = self.base / "brand new product"
+        empty.mkdir()
+        baseline = self._call(workspace.bootstrap_empty, empty)
+        self.assertEqual(self.git("rev-parse", "HEAD", cwd=empty).stdout.strip(), baseline)
+        self.assertEqual(self.git("rev-list", "--count", "HEAD", cwd=empty).stdout.strip(), "1")
+        self.assertEqual(self.git("symbolic-ref", "--short", "HEAD", cwd=empty).stdout.strip(), "main")
+        # No identity is configured here (GIT_CONFIG_GLOBAL is /dev/null), so the
+        # workspace identity signs the baseline.
+        self.assertEqual(self.git("log", "-1", "--format=%ae", cwd=empty).stdout.strip(),
+                         "shiploop-workspace@local.invalid")
+        self.assertEqual(self._file_tree(empty), {})
+        record = self._call(workspace.prepare, empty, self.base / "brand new workspace")
+        self.assertTrue(record["start_clean"])
+        # Already a repository now: a second call does nothing.
+        self.assertIsNone(self._call(workspace.bootstrap_empty, empty))
+
+    def test_bootstrap_leaves_non_empty_and_nested_directories_alone(self) -> None:
+        loose = self.base / "loose files"
+        loose.mkdir()
+        (loose / "notes.txt").write_text("x\n", encoding="utf-8")
+        self.assertIsNone(self._call(workspace.bootstrap_empty, loose))
+        self.assertFalse((loose / ".git").exists())
+        nested = self.repo / "empty subdirectory"
+        nested.mkdir()
+        self.assertIsNone(self._call(workspace.bootstrap_empty, nested))
+        self.assertFalse((nested / ".git").exists())
+
     def test_prepare_sanitizes_ambient_git_redirection_and_disables_checkout_hooks(self) -> None:
         """A caller environment or repository hook cannot redirect workspace capture."""
         hooks = self.base / "hostile hooks"

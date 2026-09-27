@@ -184,8 +184,10 @@ failure/missing-coverage evidence before its scoped edits; dependent feature wor
 waits for the required passing checks. Reuse only applicable same-run evidence;
 a new follow-up request runs a fresh baseline.
 
-For a genuinely new/non-Git repository, investigate/bootstrap Git within scope
-first if appropriate, then use the workspace route. An explicitly selected
+An empty starting directory needs no setup: `workspace start` makes it a Git
+repository on `main` with one empty baseline commit, so do not run `git init` or
+change Git configuration yourself. For a non-empty non-Git directory, bootstrap
+Git within scope first if appropriate, then use the workspace route. An explicitly selected
 in-place/non-Git run may instead use the direct entry, documenting why
 isolation is not used; it has no automatic workspace-return protection:
 

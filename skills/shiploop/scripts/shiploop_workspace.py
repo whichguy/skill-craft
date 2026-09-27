@@ -831,14 +831,42 @@ def assert_binding(root: Path, repo: Path) -> Dict[str, Any]:
     return _assert_binding(root, repo)
 
 
+_WORKSPACE_IDENTITY = {
+    "GIT_AUTHOR_NAME": "ShipLoop Workspace",
+    "GIT_AUTHOR_EMAIL": "shiploop-workspace@local.invalid",
+    "GIT_COMMITTER_NAME": "ShipLoop Workspace",
+    "GIT_COMMITTER_EMAIL": "shiploop-workspace@local.invalid",
+}
+
+
+def bootstrap_empty(repo: Path) -> Optional[str]:
+    """Make an empty, non-Git starting directory a repository with one empty commit.
+
+    Only a directory with no entries at all that is not inside any Git work
+    tree qualifies; anything else is left to the normal checks.  The commit
+    uses the user's configured identity when there is one, otherwise the
+    workspace identity.  Returns the baseline commit, or None when nothing
+    was done.
+    """
+    candidate = _resolved_directory(Path(repo), label="repository")
+    if any(candidate.iterdir()):
+        return None
+    inside = _git(candidate, "rev-parse", "--is-inside-work-tree", readonly=True)
+    if inside.returncode == 0:
+        return None
+    if _git(candidate, "init", "-q", "-b", "main").returncode:
+        _fail("cannot initialize a Git repository in the empty starting directory")
+    configured = _git(candidate, "config", "user.email", readonly=True)
+    env = None if configured.returncode == 0 and configured.stdout.strip() else _WORKSPACE_IDENTITY
+    if _git(candidate, "commit", "-q", "--allow-empty", "-m", "Empty baseline for the first ShipLoop run",
+            env=env).returncode:
+        _fail("cannot create the empty baseline commit")
+    return _head(candidate)
+
+
 def _private_commit(repo: Path, tree: str, parent: str) -> str:
-    env = {
-        "GIT_AUTHOR_NAME": "ShipLoop Workspace",
-        "GIT_AUTHOR_EMAIL": "shiploop-workspace@local.invalid",
-        "GIT_COMMITTER_NAME": "ShipLoop Workspace",
-        "GIT_COMMITTER_EMAIL": "shiploop-workspace@local.invalid",
-    }
-    result = _git(repo, "commit-tree", tree, "-p", parent, "-m", "ShipLoop private workspace baseline", env=env)
+    result = _git(repo, "commit-tree", tree, "-p", parent, "-m", "ShipLoop private workspace baseline",
+                  env=_WORKSPACE_IDENTITY)
     if result.returncode:
         _fail("cannot create private workspace baseline")
     value = result.stdout.decode("utf-8", "surrogateescape").strip()
