@@ -11,6 +11,8 @@ there with one headless host process, shows its progress live, and grades:
   process   the host exited 0 within the timeout
   shiploop  a ShipLoop state.md under the output directory reports status
             "done" and its report.html exists
+  committed the source checkout ends committed: HEAD moved past where the run
+            started and no product path is left uncommitted (logs aside)
   checks    every case check command exits 0 in the working directory
 
 A follow-on case (`follows` in cases.json) runs a second feature in a copy of an
@@ -104,7 +106,8 @@ def continue_from(prior: Path, work: Path) -> dict:
     shutil.rmtree(work / ".git" / "worktrees", ignore_errors=True)
     subprocess.run(["git", "-C", str(work), "worktree", "prune"], check=False, capture_output=True)
     earlier = json.loads((prior / "result.json").read_text()) if (prior / "result.json").is_file() else {}
-    return {"prior": str(prior), "prior_case": earlier.get("case"), "prior_pass": earlier.get("pass"),
+    head = subprocess.run(["git", "-C", str(work), "rev-parse", "HEAD"], capture_output=True, text=True)
+    return {"prior": str(prior), "start_head": head.stdout.strip() if head.returncode == 0 else None, "prior_case": earlier.get("case"), "prior_pass": earlier.get("pass"),
             "prior_turns": (earlier.get("metrics") or earlier.get("cli") or {}).get("turns")
             or (earlier.get("cli") or {}).get("num_turns"),
             "prior_cost_usd": (earlier.get("metrics") or earlier.get("cli") or {}).get("cost_usd")}
@@ -434,8 +437,13 @@ def knowledge_facts(work: Path) -> dict:
         return done.stdout if done.returncode == 0 else ""
 
     spec = work / "docs" / "shiploop" / "spec.md"
-    untracked = [ln[3:] for ln in g("status", "--porcelain", "--untracked-files=all").splitlines() if ln.startswith("??")]
+    status = g("status", "--porcelain", "--untracked-files=all").splitlines()
+    untracked = [ln[3:] for ln in status if ln.startswith("??")]
+    # Logs a server or test run leaves behind are not product; anything else uncommitted is.
+    uncommitted = [ln[3:] for ln in status if not ln[3:].endswith(".log")]
     return {"spec": spec.is_file(),
+            "head": g("rev-parse", "HEAD").strip() or None,
+            "uncommitted": uncommitted,
             "spec_tracked": bool(g("ls-files", "--", "docs/shiploop/spec.md").strip()),
             "requirement_ids": sorted(set(re.findall(r"^#+\s*(R-\d+)\b", spec.read_text(), re.M))) if spec.is_file() else [],
             "head_commits": len(g("rev-list", "HEAD").split()),
@@ -579,6 +587,10 @@ def main(argv: list[str] | None = None) -> int:
         plugin = grade_claude_plugin(plugins, plugin_dir)
     shiploop = grade_shiploop(out)
     shiploop["knowledge"] = knowledge_facts(work)
+    start_head = (follow_on or {}).get("start_head")
+    knowledge = shiploop["knowledge"]
+    committed = {"pass": bool(knowledge["head"]) and knowledge["head"] != start_head and not knowledge["uncommitted"],
+                 "start_head": start_head, "head": knowledge["head"], "uncommitted": knowledge["uncommitted"][:20]}
     run_metrics = metrics.collect(out, Path(shiploop["run_dir"]) if shiploop.get("run_dir") else None)
     (out / "metrics.json").write_text(json.dumps(run_metrics, indent=2) + "\n")
     check_env = {"PRIOR_WORK": str(Path(follow_on["prior"]) / "work")} if follow_on else {}
@@ -587,7 +599,7 @@ def main(argv: list[str] | None = None) -> int:
         # Informational only: does the unreturned candidate already pass?
         shiploop["worktree_checks"] = [{k: c[k] for k in ("command", "pass")}
                                        for c in run_checks(Path(shiploop["worktree"]), checks, env=check_env)]
-    verdicts = [invoked["pass"], plugin["pass"], process["pass"], shiploop["pass"],
+    verdicts = [invoked["pass"], plugin["pass"], process["pass"], shiploop["pass"], committed["pass"],
                 *(c["pass"] for c in check_results)]
     if keepalive is not None:
         keepalive["decisions"] = hosts.keepalive_decisions(out / "home")
@@ -595,7 +607,7 @@ def main(argv: list[str] | None = None) -> int:
               "pass": all(verdicts), "invoked": invoked, "plugin": plugin, "versions": versions,
               "process": process,
               "keepalive": keepalive,
-              "shiploop": shiploop, "checks": check_results, "cli": cli_seen, "follow_on": follow_on,
+              "shiploop": shiploop, "committed": committed, "checks": check_results, "cli": cli_seen, "follow_on": follow_on,
               "metrics": {k: run_metrics[k] for k in ("turns", "cost_usd", "compactions", "truncated_outputs",
                                                       "test_runs", "improve_children")}
               | {"shiploop_failures": len(run_metrics["shiploop_failures"]),
@@ -620,7 +632,9 @@ def main(argv: list[str] | None = None) -> int:
         passed = sum(c["pass"] for c in shiploop["worktree_checks"])
         print(f"            unreturned product in {shiploop['worktree']}: "
               f"{passed}/{len(shiploop['worktree_checks'])} checks pass there")
-    knowledge = shiploop["knowledge"]
+    print(f"  committed {mark(committed['pass'])}  HEAD {str(committed['head'])[:8]} (started at "
+          f"{str(committed['start_head'])[:8] if committed['start_head'] else 'no commit'}); "
+          f"{len(knowledge['uncommitted'])} uncommitted product paths")
     print(f"  knowledge docs/shiploop/spec.md {'present' if knowledge['spec'] else 'missing'}"
           f"{', tracked' if knowledge['spec_tracked'] else ', not committed'}; {len(knowledge['requirement_ids'])} "
           f"requirement ids; HEAD has {knowledge['head_commits']} commits, {knowledge['untracked_files']} untracked files")

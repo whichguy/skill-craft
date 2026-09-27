@@ -46,6 +46,14 @@ def product():
     Path(".shiploop").mkdir()
     store.write_record(Path(".shiploop/state.md"), {{"status": "done"}})
     Path(".shiploop/report.html").write_text("<html></html>")
+    # A finished run leaves its product committed, as ShipLoop's return does.
+    import subprocess
+    Path(".gitignore").write_text(".shiploop/\\n")
+    ident = ["-c", "user.name=Fake", "-c", "user.email=fake@example.invalid"]
+    if not Path(".git").exists():
+        subprocess.run(["git", "init", "-q"], check=True)
+    subprocess.run(["git", "add", "-A"], check=True)
+    subprocess.run(["git", *ident, "commit", "-qm", "product"], check=True)
 """
 
 # FAKE_MODE: done (product + done run), nothing (exit 0, no work), no-skill (done,
@@ -165,6 +173,7 @@ class GrokRunTest(HarnessCase):
         self.assertEqual(argv[argv.index("--reasoning-effort") + 1], "medium")
         self.assertEqual(argv[argv.index("--model") + 1], "grok-4.7")
         self.assertTrue(result["plugin"]["pass"], result["plugin"])
+        self.assertTrue(result["committed"]["pass"], result["committed"])
         transcript = (Path(result["output"]) / "transcript.md").read_text()
         self.assertIn("tool  run_terminal_command: shiploop next", transcript)
         self.assertIn("say   Shipped.", transcript)
@@ -176,6 +185,7 @@ class GrokRunTest(HarnessCase):
         self.assertTrue(result["invoked"]["pass"])
         self.assertFalse(result["shiploop"]["pass"])
         self.assertFalse(any(check["pass"] for check in result["checks"]))
+        self.assertFalse(result["committed"]["pass"])
 
     def test_missing_grok_sign_in_stops_before_launch(self):
         hosts.GROK_AUTH = self.tmp / "absent.json"

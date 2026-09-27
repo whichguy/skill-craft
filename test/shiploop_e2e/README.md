@@ -45,6 +45,8 @@ pre-created. It grades five verdicts into `result.json`:
 - **shiploop**: a ShipLoop `state.md` under the output directory (in `work/.shiploop` or
   an external workspace root the agent chose beside `work/`) has status `done`, with
   its `report.html`;
+- **committed**: the source checkout ends committed: HEAD moved past where the
+  run started, and no product path is left modified or untracked (`*.log` aside);
 - **checks**: each case check command exits 0 in `work/`.
 
 The output directory keeps the prompt, argv, raw events, a readable
