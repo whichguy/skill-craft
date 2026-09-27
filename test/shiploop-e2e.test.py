@@ -453,6 +453,31 @@ class FollowOnTest(HarnessCase):
         self.assertTrue(all("PRIOR_WORK" in check for check in case["retention"]))
 
 
+class CheckHygieneTest(unittest.TestCase):
+    def test_checks_leave_no_untracked_file_behind(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            work = Path(tmp)
+            subprocess.run(["git", "init", "-q", str(work)], check=True)
+            (work / "mine.txt").write_text("the user's own file\n")
+            results = run.run_checks(work, ["echo log > server.log", "echo page > page.html; false"])
+            self.assertEqual([r["pass"] for r in results], [True, False])
+            self.assertFalse((work / "server.log").exists())
+            self.assertFalse((work / "page.html").exists())
+            self.assertTrue((work / "mine.txt").exists(), "files present before the checks are kept")
+
+    def test_scoring_spec_check_accepts_in_place_requirement_updates(self):
+        check = json.loads(run.CASES.read_text())["battleship-scoring"]["retention"][3]
+        with tempfile.TemporaryDirectory() as tmp:
+            prior, work = Path(tmp) / "prior", Path(tmp) / "work"
+            for root, extra in ((prior, ""), (work, "Every fire returns shots, hits and accuracy.\n")):
+                (root / "docs" / "shiploop").mkdir(parents=True)
+                (root / "docs" / "shiploop" / "spec.md").write_text("## R-1 Fire\n" + extra)
+            ok = run.run_checks(work, [check], env={"PRIOR_WORK": str(prior)})[0]
+            self.assertTrue(ok["pass"], ok["output"])
+            (work / "docs" / "shiploop" / "spec.md").write_text("## R-2 Other\nshots and accuracy\n")
+            dropped = run.run_checks(work, [check], env={"PRIOR_WORK": str(prior)})[0]
+            self.assertFalse(dropped["pass"], "a dropped earlier id still fails")
+
 class MetricsTest(unittest.TestCase):
     def test_turns_failures_and_truncations_are_attributed_to_stages(self):
         with tempfile.TemporaryDirectory() as tmp:

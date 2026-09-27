@@ -163,3 +163,24 @@ detailed message; read the last three commit messages before the next run or cha
   schedule lead line) plus the adapter-hash-bound trace fixtures; the local quick tier had not selected
   them. Fix pending as 1.5.1 after a local full tier. Lesson: run `--group all` before release.py when a
   CLI verb is added.
+
+## Run 7b — 2026-09-27 — battleship-scoring follow-on of run 7, marketplace 1.5.0 (ShipLoop 0.38.0)
+
+- Outcome: FAIL on two harness-caused verdicts; the product passed every regression and feature check.
+  5,381 s (90 min), 415 turns, $34.19 (run 7: 303 turns, $22.66), 8 sessions (7 cancelled), 16 Improve
+  children, 3 ShipLoop command failures, 0 truncated outputs.
+- `committed` FAIL was the harness: its own checks left `server.log` untracked in run 7's checkout, the
+  copy started dirty (workspace start_clean False), and ShipLoop's return policy correctly fell back to a
+  working-tree delta. In the worktree ShipLoop committed the item at integrate (4c60aed) and every later
+  review. Fix: the harness deletes untracked files its checks create; server output goes to /dev/null.
+- Spec retention "FAIL" was the harness too: the spec kept all nine IDs and modified R-4, R-7 and R-9 in
+  place for scoring (allowed by the knowledge-home rule), with new test cases TC-9 and extended TC-2/6/8.
+  The check now accepts new IDs or an in-place update that carries the feature.
+- Other retention signals held: tests 9 -> 11, no dependency added, every earlier file present, and the
+  live-server system test was fixed to fire the whole grid so a sink and the ship name actually occur.
+- Cancellations: 3 of the first 4 were Improve review commits written as a heredoc message plus
+  `git commit`; fixed (unreleased) by `shiploop improve-commit`. Others were model probes/checks and one
+  `improve-start ... > /tmp/...` redirect: most refused commands write outside the host cwd (/tmp or the
+  external workspace root). Hypothesis, not yet confirmed.
+- improve-start printed a status line before its JSON packet; the model parsed the output with json.load
+  and failed. Fixed (unreleased): stdout is only the runtime packet.

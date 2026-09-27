@@ -451,7 +451,19 @@ def knowledge_facts(work: Path) -> dict:
             "branches": g("branch", "--format=%(refname:short)").split()}
 
 
+def untracked(work: Path) -> set[str]:
+    done = subprocess.run(["git", "-C", str(work), "status", "--porcelain", "--untracked-files=all"],
+                          capture_output=True, text=True)
+    return {ln[3:] for ln in done.stdout.splitlines() if ln.startswith("?? ")} if done.returncode == 0 else set()
+
+
 def run_checks(work: Path, checks: list[str], timeout: int = 180, env: dict | None = None) -> list[dict]:
+    """Run each check in `work`, then delete any untracked file the checks created.
+
+    A follow-on run copies this checkout; a leftover (a server log, say) would
+    make ShipLoop see a dirty start and return only a working-tree delta.
+    """
+    before = untracked(work)
     results = []
     for command in checks:
         try:
@@ -461,6 +473,8 @@ def run_checks(work: Path, checks: list[str], timeout: int = 180, env: dict | No
         except subprocess.TimeoutExpired:
             code, output = None, "timeout"
         results.append({"command": command, "pass": code == 0, "returncode": code, "output": output})
+    for leftover in sorted(untracked(work) - before):
+        (work / leftover).unlink(missing_ok=True)
     return results
 
 
