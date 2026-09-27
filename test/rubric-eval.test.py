@@ -197,6 +197,18 @@ class Statistics(unittest.TestCase):
         self.assertIsNone(R.wilcoxon([1, 2]))
         self.assertLess(R.two_proportion_p(30, 100, 5, 100), 0.001); self.assertEqual(R.two_proportion_p(5, 100, 5, 100), 1.0)
 
+    def test_quote_check_lowers_unsupported_grades(self):
+        plan = "## Revised plan\nState lives in the **browser tab**; a LockService lock guards writes."
+        v = {"criteria": {"P1": {"evidence": "state lives in the browser tab", "grade": "met"},
+                          "D1": {"evidence": "LockService lock ... guards writes", "grade": "met"},
+                          "D2": {"evidence": "retries with exponential backoff", "grade": "met"},
+                          "D3": {"evidence": "a queue absorbs bursts", "grade": "partial"},
+                          "D4": {"evidence": "none", "grade": "missed"}}}
+        v["grades"] = {c: e["grade"] for c, e in v["criteria"].items()}
+        R.verify_quotes(v, plan)
+        self.assertEqual(v["grades"], {"P1": "met", "D1": "met", "D2": "partial", "D3": "missed", "D4": "missed"})
+        self.assertEqual(v["quote_check"]["unverified"], ["D2", "D3"])
+
     def test_costs_compare_paired_and_against_a_free_input(self):
         vals = {f"S0{i}_GAS_base_1": 1000.0 for i in range(1, 9)} | {f"S0{i}_GAS_cand_1": 700.0 + i for i in range(1, 9)}
         c = R.paired_values(vals, "cand", "base", "scenario")

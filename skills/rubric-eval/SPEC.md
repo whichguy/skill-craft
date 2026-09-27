@@ -41,6 +41,7 @@ rerun or replaced on its own, and other skills can call it.
 | Judge | `judge RUN --model M` | outputs | `RUN/judge/*.json`, `RUN/judge/failures.log` |
 | Analyze | `analyze RUN --baseline ARM` | verdicts | `RUN/analysis.json` |
 | Reliability | `reliability RUN --model M --n 30` | verdicts | `RUN/judge_regrade/*.json`, kappa and noise |
+| Quote check | `recheck RUN [--judge-dir D]` | verdicts, outputs | `RUN/<D>_qc/*.json` |
 
 Names: an output or verdict file is `<scenario>_<runtime>_<arm>_<trial>`; arm
 names contain no underscore.
@@ -143,13 +144,26 @@ do not change when that judge re-grades it.
 The last row is why a round never mixes judges: each judge agrees with itself
 far better than with the other.
 
-Known weakness (adversarial review of this skill, F4): only 77% of judge v2's
-quotes are exact substrings of the plan (89% after normalising whitespace and
-markdown); most misses are quotes shortened with "...". Judge v3 will forbid
-ellipses, verify each quote fragment against the plan, and downgrade a met or
-partial grade whose quote is not found. It must pass the acceptance check
-above before use. The judge is shown the expected tier and overbuild note by
-design, because proportion cannot be graded without them.
+**Quote check** (from 2026-09-27; adversarial review of this skill, F4). The
+judge quotes before it grades, but only 77% of judge v2's quotes were exact
+substrings of the plan. `judge` now checks every met or partial grade's quote
+against the plan: whitespace and markdown are normalised, and a quote shortened
+with "..." must match fragment by fragment. A grade whose quote the plan does
+not contain drops one level (met to partial, partial to missed). The criteria
+it lowered are recorded in the verdict as `quote_check`. `recheck` applies the
+same check to verdicts graded before it existed. `analyze` refuses a round that
+mixes checked and unchecked verdicts.
+
+On round 4 (Sonnet judge), 5.2% of met or partial grades lost support. The
+share differed by arm: 6.9% for prune3, 3.5% for the unreviewed plans. That
+cut prune3's lead from +4.2 to +2.7 points, and its rank test no longer agreed,
+so an arm could gain from grades its plan did not support. A correction aimed
+at a known judge defect is expected to change some decisions. The acceptance
+rule above applies to judges that should grade alike, not to such a
+correction; record the decisions it changes in the results.
+
+The judge is shown the expected tier and overbuild note by design, because
+proportion cannot be graded without them.
 
 ## 8. Statistics and the decision rule
 
@@ -270,7 +284,6 @@ them:
   groups); criteria with lower kappa get better anchors.
 - Rounds 1–5 predate token and time recording; their decisions rest on quality
   alone.
-- Judge v3 (quote verification), above.
 - Reproduce shipped results on the Grok subject (adversarial review F5): a
   change shipped on Sonnet evidence is not assumed to hold on Grok.
 - Review grading reads only the `## Revised plan` section (F6); `diffcheck`

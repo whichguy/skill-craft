@@ -54,6 +54,8 @@ def main(argv=None):
     d = sub.add_parser("diffcheck", help="review runs: count what reviews removed, added, contradicted or invented")
     d.add_argument("run_dir"); d.add_argument("--suite", default="architecture"); d.add_argument("--plans-from", required=True)
     d.add_argument("--model", choices=R.MODELS, default="sonnet"); d.add_argument("--workers", type=int, default=10)
+    rc = sub.add_parser("recheck", help="apply the quote check to verdicts graded before it existed")
+    rc.add_argument("run_dir"); rc.add_argument("--judge-dir", default="judge"); rc.add_argument("--dest")
     rel = sub.add_parser("reliability", help="re-grade a sample with the same judge: Cohen's kappa and the judge's noise")
     rel.add_argument("run_dir"); rel.add_argument("--suite", default="architecture"); rel.add_argument("--n", type=int, default=30)
     rel.add_argument("--model", choices=R.MODELS, required=True, help="the judge that graded --judge-dir")
@@ -85,6 +87,8 @@ def main(argv=None):
         print(json.dumps(R.analyze(args.run_dir, suite_arg(args.suite), args.baseline, dest=args.judge_dir, cluster=None if args.cluster == "cell" else args.cluster, noise=args.noise), indent=1))
     elif args.cmd == "diffcheck":
         print(json.dumps(R.diffcheck(args.run_dir, suite_arg(args.suite), args.plans_from, model=args.model, workers=args.workers), indent=1))
+    elif args.cmd == "recheck":
+        print(json.dumps(R.recheck(args.run_dir, args.judge_dir, args.dest), indent=1))
     elif args.cmd == "reliability":
         print(json.dumps(R.reliability(args.run_dir, suite_arg(args.suite), n=args.n, model=args.model,
                                        first_dest=args.judge_dir, second_dest=args.dest), indent=1))

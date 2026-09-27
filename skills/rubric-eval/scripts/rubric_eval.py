@@ -291,6 +291,33 @@ def parse_verdict(output: str) -> dict | None:
         return None
 
 
+def _norm(s: str) -> str:
+    """Lower case, with whitespace and markdown punctuation collapsed, for quote matching."""
+    return re.sub(r"[\s*_`#>|-]+", " ", s.lower()).strip()
+
+
+def quote_found(quote: str, plan: str) -> bool:
+    """True when every fragment of the quote (split at ellipses) appears in the plan, after normalising."""
+    frags = [f for f in re.split(r"\.\.\.|\u2026", quote or "") if len(_norm(f)) >= 4]
+    p = _norm(plan)
+    return bool(frags) and all(_norm(f) in p for f in frags)
+
+
+def verify_quotes(verdict: dict, plan: str) -> dict:
+    """Quote check (judge v2 + check): a met or partial grade whose quote is not in the plan drops one level.
+
+    The judge must quote before it grades; a quote the plan does not contain is evidence the grade is not
+    supported by the plan (it credits what the plan never says). Records the criteria it changed.
+    """
+    changed = []
+    for c, e in verdict.get("criteria", {}).items():
+        g = verdict["grades"].get(c)
+        if g in ("met", "partial") and not quote_found(str(e.get("evidence", "")), plan):
+            verdict["grades"][c] = "partial" if g == "met" else "missed"; changed.append(c)
+    verdict["quote_check"] = {"unverified": changed}
+    return verdict
+
+
 def judge(run_dir: str | Path, suite: dict, *, model: str = "opus", workers: int = 10, attempts: int = 3,
           dest: str = "judge", only: list[str] | None = None) -> dict:
     """Grade every finished output not yet graded; log (never drop) outputs that cannot be graded."""
@@ -315,6 +342,7 @@ def judge(run_dir: str | Path, suite: dict, *, model: str = "opus", workers: int
             # Grok at medium effort took about 6.5 minutes per rubric grade in round 4; give it room.
             v = parse_verdict(call(model, p, timeout=900 if model == "grok" else 300))
             if v:
+                v = verify_quotes(v, plan)
                 v["judge_model"] = model  # a run's verdicts must come from one judge (checked by analyze)
                 d.write_text(json.dumps(v, indent=1)); return True
         with open(jd / "failures.log", "a") as log:
@@ -324,6 +352,20 @@ def judge(run_dir: str | Path, suite: dict, *, model: str = "opus", workers: int
     with ThreadPoolExecutor(workers) as ex:
         ok = list(ex.map(one, todo))
     return {"graded": sum(ok), "failed": ok.count(False)}
+
+
+def recheck(run_dir: str | Path, src: str = "judge", dest: str | None = None) -> dict:
+    """Apply the quote check to verdicts graded without it; write them to `dest` (default <src>_qc)."""
+    run_ = Path(run_dir); dest = dest or f"{src}_qc"; out = run_ / dest; out.mkdir(exist_ok=True)
+    reviews = json.loads((run_ / "manifest.json").read_text()).get("reviews", False)
+    n = changed = 0
+    for stem, v in load_verdicts(run_, src).items():
+        if "quote_check" in v:
+            raise SystemExit(f"recheck: {src}/{stem} already carries the quote check")
+        plan = plan_text(json.loads((run_ / "out" / f"{stem}.json").read_text())["text"], reviews)
+        v = verify_quotes(v, plan); n += 1; changed += len(v["quote_check"]["unverified"])
+        (out / f"{stem}.json").write_text(json.dumps(v, indent=1))
+    return {"verdicts": n, "grades_lowered": changed, "dest": dest}
 
 
 # ---------------------------------------------------------------- analyze
@@ -564,6 +606,9 @@ def analyze(run_dir: str | Path, suite: dict, baseline: str, dest: str = "judge"
     judges = {v["judge_model"] for v in verdicts.values() if v.get("judge_model")}
     if len(judges) > 1:
         problems.append(f"verdicts come from more than one judge {sorted(judges)}; a round keeps one judge")
+    checked = {"quote_check" in v for v in verdicts.values()}
+    if len(checked) > 1:
+        problems.append("some verdicts carry the quote check and some do not; re-grade or re-check the round")
     if noise is None and len(judges) == 1:
         noise = judge_noise(next(iter(judges)))
     use = usage(run_dir)
