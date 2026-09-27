@@ -860,3 +860,107 @@ def diffcheck(run_dir: str | Path, suite: dict, plans_from: str | Path, *, model
             t[k] += v[k]
     (run_ / "diff_summary.json").write_text(json.dumps(totals, indent=1) + "\n")
     return {"checked": sum(ok), "failed": ok.count(False), "totals": totals}
+
+
+# ---------------------------------------------------------------- value audit (review experiments)
+
+VALUE = """You audit what a review changed in an architecture plan. Question every change in both directions: an
+addition the request did not ask for may still be valuable, and a removal that looks like tidying may lose value.
+
+Request: {request}
+
+List every material item the revision ADDED and every material item it REMOVED or weakened: a feature, store,
+service, sign-in or access rule, check, safeguard, limit, step or channel. Ignore rewording. For each item:
+- "for": the strongest case that the item has value for THIS request: a stated need (quote the request), or a
+  clearly implied one (security, correctness, data integrity, reliability, accessibility, cost, operability).
+- "against": the strongest case that it does not: not needed for this request, or it adds scope, cost, risk,
+  maintenance or friction for the user.
+- "verdict": weigh both honestly. For an addition: "valuable" (a reasonable owner of this request would want it),
+  "optional" (defensible, but the request is complete without it) or "unwanted" (costs more than it gives). For a
+  removal: "loss" (the removed item had value) or "fine" (removing it cost nothing of value).
+
+Original plan:
+<<<
+{original}
+>>>
+
+Revised plan:
+<<<
+{revised}
+>>>
+
+Return only JSON: {{"added": [{{"item": "...", "for": "...", "against": "...", "verdict": "valuable|optional|unwanted"}}],
+ "removed": [{{"item": "...", "for": "...", "against": "...", "verdict": "loss|fine"}}]}}
+"""
+ADD_VERDICTS, REMOVE_VERDICTS = ("valuable", "optional", "unwanted"), ("loss", "fine")
+
+
+def parse_value(output: str) -> dict | None:
+    m = re.search(r"\{.*\}", output or "", re.S)
+    try:
+        j = json.loads(m.group(0))
+        ok = all(isinstance(j.get(k), list) for k in ("added", "removed"))
+        ok = ok and all(x.get("verdict") in ADD_VERDICTS and x.get("item") for x in j["added"])
+        ok = ok and all(x.get("verdict") in REMOVE_VERDICTS and x.get("item") for x in j["removed"])
+        return j if ok else None
+    except Exception:
+        return None
+
+
+def _overlap(a: str, b: str) -> float:
+    x, y = set(_norm(a).split()), set(_norm(b).split())
+    return len(x & y) / max(1, min(len(x), len(y)))
+
+
+def valuecheck(run_dir: str | Path, suite: dict, plans_from: str | Path, *, model: str = "opus", workers: int = 8,
+               only: list[str] | None = None, dest: str = "value") -> dict:
+    """For a review run, weigh every item each review added or removed (case for, case against, verdict), and
+    cross-check additions the judge graded overbuilt against the audit's verdict on them."""
+    run_ = Path(run_dir); vd = run_ / dest; vd.mkdir(exist_ok=True)
+    man = json.loads((run_ / "manifest.json").read_text())
+    sc = {x["id"]: x for x in suite["scenarios"]["scenarios"]}
+    todo = []
+    for f in sorted((run_ / "out").glob("*.json")):
+        d = vd / (f.stem + ".json")
+        sid, rt, arm, k = f.stem.split("_")
+        if d.exists() or man["arms"].get(arm, {}).get("role") == "input" or (only is not None and f.stem not in only):
+            continue
+        src = Path(plans_from) / "out" / f"{sid}_{rt}_{man['arms'][arm]['plans_arm']}_{k}.json"
+        revised = plan_text(json.loads(f.read_text())["text"], True)
+        if src.exists() and words(revised) >= STUB_WORDS:
+            s = sc[sid]; ui = s.get("ui") if rt in s.get("runtimes_ext", []) else None
+            todo.append((fill(VALUE, request=request_text(s, ui), original=json.loads(src.read_text())["text"],
+                              revised=revised).replace("{{", "{").replace("}}", "}"), d))
+
+    def one(job):
+        prompt, d = job
+        for _ in range(3):
+            v = parse_value(call(model, prompt, timeout=600))
+            if v:
+                v["model"] = model; d.write_text(json.dumps(v, indent=1)); return True
+        with open(vd / "failures.log", "a") as log:
+            log.write(d.stem + "\n")
+        return False
+
+    with ThreadPoolExecutor(workers) as ex:
+        ok = list(ex.map(one, todo))
+    verdicts = load_verdicts(run_dir)
+    totals, disputed = {}, []
+    for f in sorted(vd.glob("*.json")):
+        arm = f.stem.split("_")[2]; v = json.loads(f.read_text())
+        t = totals.setdefault(arm, {"reviews": 0, **{f"added_{x}": 0 for x in ADD_VERDICTS}, **{f"removed_{x}": 0 for x in REMOVE_VERDICTS}})
+        t["reviews"] += 1
+        for x in v["added"]:
+            t[f"added_{x['verdict']}"] += 1
+        for x in v["removed"]:
+            t[f"removed_{x['verdict']}"] += 1
+        for ob in (verdicts.get(f.stem, {}).get("overbuilt_items") or []):  # the judge penalised it; was it valuable?
+            match = max(v["added"], key=lambda x: _overlap(ob, x["item"]), default=None)
+            if match and _overlap(ob, match["item"]) >= 0.3:
+                disputed.append({"review": f.stem, "judge_overbuilt": ob, "audit_item": match["item"],
+                                 "audit_verdict": match["verdict"], "for": match["for"]})
+    summary = {"totals": totals, "judge_overbuilt_matched": len(disputed),
+               "judge_overbuilt_verdicts": {x: sum(d["audit_verdict"] == x for d in disputed) for x in ADD_VERDICTS},
+               "judge_overbuilt_but_valuable": [d for d in disputed if d["audit_verdict"] == "valuable"]}
+    (run_ / f"{dest}_summary.json").write_text(json.dumps(summary, indent=1) + "\n")
+    return {"checked": sum(ok), "failed": ok.count(False), **summary}

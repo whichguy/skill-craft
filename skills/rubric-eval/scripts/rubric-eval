@@ -59,6 +59,10 @@ def main(argv=None):
     d.add_argument("--model", choices=R.MODELS, default="sonnet"); d.add_argument("--workers", type=int, default=10)
     rc = sub.add_parser("recheck", help="apply the quote check to verdicts graded before it existed")
     rc.add_argument("run_dir"); rc.add_argument("--judge-dir", default="judge"); rc.add_argument("--dest")
+    va = sub.add_parser("valuecheck", help="review runs: weigh the value of every item a review added or removed")
+    va.add_argument("run_dir"); va.add_argument("--suite", default="architecture"); va.add_argument("--plans-from", required=True)
+    va.add_argument("--model", choices=R.MODELS, default="opus"); va.add_argument("--workers", type=int, default=8)
+    va.add_argument("--only-file", help="audit only the output stems listed in this file"); va.add_argument("--dest", default="value")
     rel = sub.add_parser("reliability", help="re-grade a sample with the same judge: Cohen's kappa and the judge's noise")
     rel.add_argument("run_dir"); rel.add_argument("--suite", default="architecture"); rel.add_argument("--n", type=int, default=30)
     rel.add_argument("--model", choices=R.MODELS, required=True, help="the judge that graded --judge-dir")
@@ -93,6 +97,10 @@ def main(argv=None):
         print(json.dumps(R.diffcheck(args.run_dir, suite_arg(args.suite), args.plans_from, model=args.model, workers=args.workers), indent=1))
     elif args.cmd == "recheck":
         print(json.dumps(R.recheck(args.run_dir, args.judge_dir, args.dest), indent=1))
+    elif args.cmd == "valuecheck":
+        only = Path(args.only_file).read_text().split() if args.only_file else None
+        print(json.dumps(R.valuecheck(args.run_dir, suite_arg(args.suite), args.plans_from, model=args.model,
+                                      workers=args.workers, only=only, dest=args.dest), indent=1))
     elif args.cmd == "reliability":
         print(json.dumps(R.reliability(args.run_dir, suite_arg(args.suite), n=args.n, model=args.model,
                                        first_dest=args.judge_dir, second_dest=args.dest), indent=1))

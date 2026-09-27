@@ -128,6 +128,14 @@ class Statistics(unittest.TestCase):
         self.assertEqual(cell["mean"], clus["mean"])
         self.assertGreaterEqual(clus["high"] - clus["low"], cell["high"] - cell["low"])
 
+    def test_parse_value(self):
+        good = ('{"added": [{"item": "Resign button", "for": "games need an exit", "against": "not asked", "verdict": "valuable"}],'
+                ' "removed": [{"item": "retry", "for": "reliability", "against": "", "verdict": "loss"}]}')
+        self.assertEqual(R.parse_value("x " + good)["added"][0]["verdict"], "valuable")
+        self.assertIsNone(R.parse_value('{"added": [{"item": "a", "verdict": "great"}], "removed": []}'))
+        self.assertIsNone(R.parse_value('{"added": []}'))
+        self.assertGreaterEqual(R._overlap("Resign button and resign result state not requested", "Resign button"), 0.3)
+
     def test_parse_diff(self):
         good = '{"removed_required": 0, "added_unrequested": 2, "contradictions": 0, "invented_numbers": 1}'
         self.assertEqual(R.parse_diff("x " + good)["added_unrequested"], 2)
