@@ -351,8 +351,14 @@ def main(core, argv=None):
         if name in ("complete", "improve-bind", "improve-start", "improve-commit", "improve-complete",
                     "improve-reconcile"):
             sub.add_argument("--action", required=True)
-        if name in ("complete", "improve-complete", "improve-reconcile"):
+        if name in ("complete", "improve-reconcile"):
             sub.add_argument("--result", required=True)
+        if name == "improve-complete":
+            sub.add_argument("--notes", help="optional plain-text lessons from the review, for later steps")
+            sub.add_argument("--final-result", dest="final_result",
+                             help="optional step-result record, only when the review changed a decision")
+            sub.add_argument("--no-commit", dest="no_commit",
+                             help="the user's or repository's instruction not to commit the review's edits")
         if name == "context":
             sub.add_argument("--section", default="navigator")
         if name in ("halt", "pause"):

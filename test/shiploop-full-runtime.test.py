@@ -449,8 +449,7 @@ class FullRuntimeCompositionTests(unittest.TestCase):
             "state": str(run / "state.md"),
             "completion_input": str(completion_path),
             "improve_complete_argv": [sys.executable, "-B", str(self._script(shiploop)),
-                                      "improve-complete", "--run-dir", str(run), "--action", action_id,
-                                      "--result", str(completion_path)],
+                                      "improve-complete", "--run-dir", str(run), "--action", action_id],
             "workspace_return_argv": [sys.executable, "-B", str(self._script(shiploop)),
                                         "workspace", "return", "--workspace-root", str(run.parent)],
         }, sort_keys=True) + "\n", encoding="utf-8")
@@ -518,29 +517,26 @@ class FullRuntimeCompositionTests(unittest.TestCase):
         context["packet_path"].write_bytes(cold_raw)
         return {"packet": cold, "state_file": state_file}
 
-    def _receipt(self, context: dict, *, final_result: dict | None = None) -> Path:
-        repo = context["repo"]
+    def _receipt(self, context: dict, *, final_result: dict | None = None) -> list[str]:
+        """Write the child's review files; return improve-complete's extra flags (plan P12)."""
         action = context["action"]
         review_root = context["packet_path"].parent / "reviews"
         review_root.mkdir(parents=True, exist_ok=True)
-        reviews = [review_root / f"{action}-review-a.md", review_root / f"{action}-review-b.md"]
-        check = review_root / f"{action}-checks.md"
-        for index, path in enumerate((*reviews, check), start=1):
+        for index, path in enumerate((review_root / "review-1.md", review_root / "review-2.md",
+                                      review_root / "checks.md"), start=1):
             path.write_text(
                 f"Synthetic fixture observation {index} for {context['stage']}; no semantic review claim.\n",
                 encoding="utf-8",
             )
-        receipt: dict[str, object] = {
-            "summary": f"Actual runtime completed a synthetic {context['stage']} fixture.",
-            "review_refs": [str(path) for path in reviews],
-            "check_refs": [str(check)],
-            "lessons": "This record proves callback composition, not review quality.",
-        }
+        notes = context["run"] / "inbox" / f"{action}-improve-notes.md"
+        notes.parent.mkdir(parents=True, exist_ok=True)
+        notes.write_text("This record proves callback composition, not review quality.\n", encoding="utf-8")
+        flags = ["--notes", str(notes)]
         if final_result is not None:
-            receipt["final_result"] = final_result
-        receipt_path = context["completion_path"]
-        _write_record(receipt_path, receipt, "Synthetic Improve terminal receipt")
-        return receipt_path
+            final = context["run"] / "inbox" / f"{action}-final-result.md"
+            _write_record(final, final_result, "Synthetic Improve final result")
+            flags += ["--final-result", str(final)]
+        return flags
 
     def _submit_child(self, context: dict, child: dict) -> None:
         def report(classification: str, exit_assessment: str, label: str) -> dict:
@@ -574,11 +570,11 @@ class FullRuntimeCompositionTests(unittest.TestCase):
         self.assertFalse(child["state_file"].exists())
         child["terminal"] = packet
 
-    def _reject_import(self, context: dict, receipt: Path, label: str) -> None:
+    def _reject_import(self, context: dict, receipt: list[str], label: str) -> None:
         before = (context["run"] / "state.md").read_bytes()
         self._run(
             self._script(context["shiploop"]), "improve-complete", "--run-dir", context["run"],
-            "--action", context["action"], "--result", receipt, code=2,
+            "--action", context["action"], *receipt, code=2,
         )
         self.assertEqual(before, (context["run"] / "state.md").read_bytes())
         self.trace["rejections"].append({
@@ -586,10 +582,10 @@ class FullRuntimeCompositionTests(unittest.TestCase):
         })
         self._flush_trace()
 
-    def _import_child(self, context: dict, receipt: Path) -> dict:
+    def _import_child(self, context: dict, receipt: list[str]) -> dict:
         self._run(
             self._script(context["shiploop"]), "improve-complete", "--run-dir", context["run"],
-            "--action", context["action"], "--result", receipt,
+            "--action", context["action"], *receipt,
         )
         state = self._state(context["run"])
         self.assertIsNone(state["active_improve"])
@@ -647,7 +643,7 @@ class FullRuntimeCompositionTests(unittest.TestCase):
         child_before = context["packet_path"].read_bytes()
         failed = self._run(
             self._script(context["shiploop"]), "improve-complete", "--run-dir", context["run"],
-            "--action", context["action"], "--result", receipt, code=2,
+            "--action", context["action"], *receipt, code=2,
         )
         self.assertIn("pre-update", failed.stdout + failed.stderr)
         self.assertEqual(state_before, (context["run"] / "state.md").read_bytes())
@@ -898,10 +894,9 @@ class FullRuntimeCompositionTests(unittest.TestCase):
         run = context["run"]
         state_before = (run / "state.md").read_bytes()
         child_before = context["packet_path"].read_bytes()
-        receipt = context["completion_path"]
         self._run(
             self._script(context["shiploop"]), "improve-complete", "--run-dir", run,
-            "--action", context["action"], "--result", receipt,
+            "--action", context["action"],
         )
         self._run(
             self._script(context["shiploop"]), "complete", "--run-dir", run,
