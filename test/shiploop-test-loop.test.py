@@ -304,6 +304,24 @@ class TestLoopTests(unittest.TestCase):
         self.assertEqual(nav.current_stage(self.state()), "test-refine")
         self.assertFalse((self.run_dir / test_loop.verify_path(action, 1)).exists())
 
+    def test_integrate_commits_the_items_declared_changes_and_names_the_rest(self):
+        """Committing is mechanical: ShipLoop does it when integrate is accepted, not model shell."""
+        self.start()
+        self.drive_to("integrate")
+        (self.repo / "a.py").write_text("x = 2\n")
+        (self.repo / "server.log").write_text("listening 3000\n")
+        before = git(self.repo, "rev-parse", "HEAD").strip()
+        output = self.complete(DONE)
+        head = git(self.repo, "rev-parse", "HEAD").strip()
+        self.assertNotEqual(head, before)
+        self.assertIn("ShipLoop committed W1's declared changes as " + head[:12], output)
+        self.assertIn("a.py", git(self.repo, "show", "--name-only", "--format=", "HEAD").split())
+        undeclared = next(line for line in output.splitlines() if line.startswith("Not committed"))
+        self.assertIn("server.log", undeclared)
+        self.assertNotIn("a.py", undeclared)
+        self.assertIn("?? server.log", git(self.repo, "status", "--porcelain"))
+        self.assertNotIn(" M a.py", git(self.repo, "status", "--porcelain"))
+
     NO_TESTS = {"test_commands": [], "test_commands_na": "Navigation metadata only.",
                 "paths": ["force-app/main/default/tabs/Fleet_command.tab-meta.xml", "docs/fleet.md"]}
 

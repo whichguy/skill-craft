@@ -1292,6 +1292,33 @@ def _knowledge_gate(state: Mapping[str, Any], stage: str, result: Any) -> None:
         _need(not refusal, refusal)
 
 
+def _item_commit(root: Path, before: Mapping[str, Any], after: Mapping[str, Any]) -> None:
+    """Commit an item's declared changes once its integrate stage is accepted done."""
+    rows = after["history"][len(before["history"]):]
+    for row in rows:
+        if row["stage"] != "integrate" or row["outcome"] != "done" or not row.get("workitem"):
+            continue
+        message = ("feat: " + str(row.get("workitem")) + " " + _item_title(after, row["workitem"])
+                   + "\n\n" + str(row.get("summary") or "").strip())
+        try:
+            commit, undeclared = item_scope.commit_item(root, after, row["workitem"], message.strip())
+        except item_scope.ItemScopeError as exc:
+            print("ShipLoop integrate: " + str(exc) + "; commit the item's files before release.", file=sys.stderr)
+            continue
+        if commit:
+            print("ShipLoop committed " + str(row["workitem"]) + "'s declared changes as " + commit[:12] + ".")
+        if undeclared:
+            print("Not committed (changed, but not in the step plan's paths): " + ", ".join(undeclared)
+                  + ". Commit the ones the product needs, delete generated output.")
+
+
+def _item_title(state: Mapping[str, Any], work_item: str) -> str:
+    for item in state.get("work_items") or []:
+        if isinstance(item, Mapping) and item.get("id") == work_item:
+            return str(item.get("title") or "")
+    return ""
+
+
 def _knowledge_close(before: Mapping[str, Any], after: Mapping[str, Any]) -> None:
     """Commit the knowledge home once a close stage's done has been accepted and saved."""
     rows = after["history"][len(before["history"]):]
@@ -3825,6 +3852,7 @@ def dispatch(core: Any, root: Path, state: Mapping[str, Any], args: Any,
                                      if command == "complete" else ({}, None))
         save(root, updated, lint_writes)
         _lint_finish(root, lint_payload)
+        _item_commit(root, state, updated)
         _knowledge_close(state, updated)
     emit(core, root, updated)
     return 0
