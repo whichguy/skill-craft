@@ -4,6 +4,14 @@ Written by scripts/release.py.
 
 ## 2026-09-27
 
+### skill-craft 1.12.2
+
+- Skills: shiploop 0.45.2
+
+### shiploop 0.45.2
+
+- A completion refused for naming the wrong result file now names the file to use.
+
 ### skill-craft 1.12.1
 
 - Skills: shiploop 0.45.1
