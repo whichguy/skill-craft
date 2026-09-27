@@ -35,6 +35,7 @@ import subprocess
 import tempfile
 
 import shiploop_git
+import shiploop_knowledge_home as knowledge_home
 import threading
 from contextlib import contextmanager
 from functools import wraps
@@ -1062,7 +1063,7 @@ def _plan_rows(
                 "in_history": path in history,
                 # ShipLoop's committed knowledge home always returns with the candidate.
                 "disposition": ("exclude" if (_forbidden(path) or _matches_exclusion(path, excluded))
-                                else "keep" if path.startswith("docs/shiploop/") else "pending"),
+                                else "keep" if knowledge_home.in_home(path) else "pending"),
             }
         )
     return rows
@@ -1179,9 +1180,10 @@ def _validate_plan(
             _fail("return plan cannot keep a caller-excluded path")
         if _forbidden(path) and disposition != "exclude":
             _fail("return plan cannot keep a protected runtime path")
-        if path.startswith("docs/shiploop/") and disposition == "exclude" and not _matches_exclusion(
+        if knowledge_home.in_home(path) and disposition == "exclude" and not _matches_exclusion(
                 path, manifest["excluded"]):
-            _fail("return plan cannot exclude ShipLoop's knowledge home (docs/shiploop/); later runs inherit it")
+            _fail("return plan cannot exclude ShipLoop's knowledge (docs/shiploop/, SHIPLOOP.md); later runs "
+                  "inherit it")
         rows.append(dict(item))
     if any(row["disposition"] == "pending" for row in rows):
         _fail("return plan has unresolved path dispositions")

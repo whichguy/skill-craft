@@ -816,7 +816,7 @@ class ShipLoopWorkspaceTests(unittest.TestCase):
         plan = self._plan(root)
         items = {item["path"]: item for item in plan["paths"]}
         self.assertEqual(items["reports/transient-output.html"]["disposition"], "exclude")
-        self.assertEqual(items["SHIPLOOP.md"]["disposition"], "pending")
+        self.assertEqual(items["SHIPLOOP.md"]["disposition"], "keep")  # ShipLoop's knowledge index always returns
         self.assertEqual(items["environment.md"]["disposition"], "pending")
         self.assertEqual(items["docs/requirements.md"]["disposition"], "pending")
         self._resolve_plan(
