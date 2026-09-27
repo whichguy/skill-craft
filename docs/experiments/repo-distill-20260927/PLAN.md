@@ -77,6 +77,29 @@ Chosen over tiny libraries (too little to plan) and large apps (too slow to
 iterate). http-server (static server + listing UI)
 and ni (CLI) come only after the pilot holds.
 
+## Selection gate: material value of its own
+
+A candidate must carry material logic of its own, not be a thin layer that
+composes other packages (a rebuild of that mostly re-composes the same
+packages and says little about the builder). `scripts/repo_value.py`
+measures it from files: own non-test source lines, runtime dependencies,
+monorepo/aggregation (disqualifying), and, once a spec exists, the share of
+the spec's evidence that cites dependency code. Starting bar (owner may
+reset it): own code >= 1,000 lines, not a monorepo, dependency evidence
+<= 25%.
+
+| Repo | Own lines | Runtime deps | Dependency evidence | Gate |
+|---|---|---|---|---|
+| json-server | 733 | 13 | 18% | fails on size; kept as the pilot (below) |
+| http-server | 1,288 | 14 | n/a yet | passes |
+| ni | 1,720 | 4 | n/a yet | passes |
+
+json-server stays the pilot because the pilot tests the pipeline, not the
+builder, and what its oracle exercises is mostly its own logic (the REST
+query semantics: filter operators, pagination, embedding, cascade delete);
+82% of its spec's evidence cites its own files. Cases after the pilot must
+pass the gate.
+
 ## Experiments
 
 Execution Grok 4.7 medium; judge Opus 5.5 medium, one judge per round.
@@ -176,3 +199,4 @@ prune. Wording only: intro, case paragraph reflow, who drops failing checks.
 | 28 | Against the stub, each oracle check retries startup (8 × 10 s, a good token-based readiness probe), so the stub run never finishes and admission crashed | E0 admission | yes, blocked admission | Stub run bounded (180 s); a check that never reported did not pass; leftover stub processes killed |
 | 29 | Distiller cites dependency source without the `node_modules/@` prefix | E1 spec_check (10 of 141 citations) | checker only | Checker resolves dependency paths; not a distill fault |
 | 30 | An observable value embeds the original's name (`$schema: ./node_modules/json-server/schema.json`); the distiller split the string to pass the leak check, and the porter asserted the exact value | E1 spec D-18, E0 normalized-adapter check | yes for the clean room (name recoverable); accepted for round 1 | Round-2 prompts: branded values are specified with the new name and asserted only by presence/shape |
+| 31 | A candidate may be a thin composition of other packages, so a rebuild re-composes them and measures little | owner, 2026-09-27 | yes, for case selection | Selection gate (`repo_value.py`); json-server fails on size, kept as pilot; later cases must pass |
