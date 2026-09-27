@@ -3942,9 +3942,7 @@ def _improve_start(core: Any, root: Path, state: Mapping[str, Any], args: Any) -
     store.atomic_write_text(receipt.with_name("parent-return.md"), "\n".join([
         "# Parent return for Improve child " + action_id, "",
         "Only after the runtime wrote a complete terminal packet to " + str(receipt) + ":",
-        "1. Write the completion evidence to " + str(completion) + " (summary, review_refs, check_refs, lessons) "
-        "as a Markdown record with one shiploop-state JSON fence, shaped like:", "",
-        _improve_completion_example(receipt.parent / "reviews"), "",
+        "1. Write the completion evidence to " + str(completion) + " (summary, review_refs, check_refs, lessons).",
         "2. Run: " + _callback(core, root, "improve-complete", action=action_id, result=str(completion)),
         "The child never runs these; a stopped or blocked child leaves the parent pending.", ""]))
     start = receipt.with_name("start.json")
