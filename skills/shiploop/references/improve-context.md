@@ -70,6 +70,13 @@ to `start.json` beside the receipt. Never write the contract or start the
 runtime yourself; never copy the binding line into the opening. An existing
 invocation keeps its frozen authority.
 
+To commit a review iteration's changes on this route, write the message to the
+packet's `commit-message.md` (beside the receipt) with a file-writing tool and
+run the packet's `improve-commit` command. ShipLoop stages and commits exactly the
+files this review changed and has not committed (work that was uncommitted before
+the review is left alone); never write the message with a shell heredoc or run
+`git commit` yourself.
+
 `improve-start` starts the runtime once, before any review work, with
 `--receipt` set to the printed **Child latest packet receipt** and its state in
 the run directory's `until-loop/`, and prints the child's first packet: the

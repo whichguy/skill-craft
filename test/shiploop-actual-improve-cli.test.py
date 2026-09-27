@@ -553,7 +553,10 @@ class EphemeralImproveCliTests(ImproveCliFixture):
                                "## Environment\nPython fixture.\n", encoding="utf-8")
             start = [CLI, "improve-start", "--run-dir", self.run, "--action", self.action, "--opening", opening]
             self.assertIn("already started", self.invoke(*start, status=2).stderr)
-            restarted = self.invoke(*start, "--restart-stopped").stdout
+            restarted_run = self.invoke(*start, "--restart-stopped")
+            self.assertIn("Archived the stopped child", restarted_run.stderr)
+            restarted = restarted_run.stdout
+            json.loads(restarted)
             archived = next(self.packet_path.parent.glob("packet.stopped-*.json"))
             stopped_reviews = self.packet_path.parent / archived.name.replace("packet.", "reviews.").removesuffix(".json")
             self.assertTrue(stopped_reviews.is_dir())
@@ -861,8 +864,9 @@ class EphemeralImproveCliTests(ImproveCliFixture):
 
         opening.write_text(sections, encoding="utf-8")
         started = self.invoke(*start)
-        head, _, body = started.stdout.partition("\n")
-        self.assertIn("Improve child started from the frozen contract", head)
+        # stdout is only the runtime packet, so a host can parse it as JSON.
+        self.assertIn("Improve child started from the frozen contract", started.stderr)
+        body = started.stdout
         first = json.loads(body)
         self.assertEqual(first["status"], "active")
         self.assertEqual(receipt.read_text(encoding="utf-8"), body)
@@ -892,6 +896,38 @@ class EphemeralImproveCliTests(ImproveCliFixture):
         state = store.read_record(self.run / "state.md")
         self.assertIsNone(state["active_improve"])
         self.assertEqual(state["improve_results"][self.action]["runtime_phase"], "complete")
+
+    def test_improve_commit_commits_only_the_reviews_uncommitted_changes(self):
+        """The model writes the message with a file tool; ShipLoop stages and commits."""
+        if not self.inline():
+            self.skipTest("improve-commit is the inline route")
+        git = lambda *a: subprocess.run(["git", "-C", str(self.repo), *a], check=True, capture_output=True,
+                                        text=True, env=self.environment).stdout
+        git("init", "-q")
+        git("-c", "user.name=T", "-c", "user.email=t@example.invalid", "add", "-A")
+        git("-c", "user.name=T", "-c", "user.email=t@example.invalid", "commit", "-qm", "base")
+        (self.repo / "scratch.txt").write_text("user's own uncommitted note\n", encoding="utf-8")
+        self._start_parent_at_stage("test-strategy", [str(self.product_contract)])
+        receipt = bridge.receipt_path(self.bound)
+        message = receipt.with_name("commit-message.md")
+        commit = [CLI, "improve-commit", "--run-dir", self.run, "--action", self.action, "--message", message]
+        self.assertIn("improve-commit", self.invoke(CLI, "next", "--run-dir", self.run).stdout)
+        self.assertIn("write the commit message with a file tool first", self.invoke(*commit, status=2).stderr)
+        message.parent.mkdir(parents=True, exist_ok=True)
+        message.write_text("docs: tighten the contract example\n\nReview found a vague example.\n", encoding="utf-8")
+        self.assertIn("Nothing to commit", self.invoke(*commit).stdout)
+        self.product_contract.write_text("# Product contract\n\n## child-contract-transfer\nExact.\n",
+                                         encoding="utf-8")
+        before = git("rev-parse", "HEAD").strip()
+        done = self.invoke(*commit).stdout
+        head = git("rev-parse", "HEAD").strip()
+        self.assertNotEqual(head, before)
+        self.assertIn("Committed this review's changes as " + head[:12], done)
+        self.assertEqual(git("show", "--name-only", "--format=", "HEAD").split(),
+                         ["product/contracts/cold-recovery.md"])
+        self.assertEqual(git("log", "-1", "--format=%s").strip(), "docs: tighten the contract example")
+        self.assertIn("?? scratch.txt", git("status", "--porcelain"))
+        self.assertFalse(message.exists())
 
     def test_empty_initial_commit_retains_selected_untracked_scope_through_child_recovery(self):
         """Exercise immutable transport; synthetic reports do not prove review conduct."""

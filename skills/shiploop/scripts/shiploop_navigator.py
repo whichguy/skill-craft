@@ -3180,6 +3180,12 @@ def _render_improve(core: Any, root: Path, state: Mapping[str, Any], lines: list
                 "parent-return.md beside the receipt), so the terminal packet can locate the parent return "
                 "after context loss.",
                 "Commit policy: use the selected Improve card's scoped-commit policy with the task's explicit overrides; retain existing frozen authority on recovery.",
+                "To commit a review iteration's changes, write the commit message (what the review fixed) to "
+                + str(improve_commit_message_path(child)) + " with a file-writing tool, then run: "
+                + _callback(core, root, "improve-commit", action=action_id,
+                            message=str(improve_commit_message_path(child)))
+                + " . ShipLoop commits exactly the files this review changed and has not committed. Do not "
+                "write the message with a shell heredoc or run git commit yourself.",
             ] if inline and not planning_reconcile else
             [
                 "Freeze the original request, step result and execution/exit/repeat conditions, permitted paths, expected check state, authority and relevant environment in the child's context.",
@@ -3589,6 +3595,56 @@ def improve_start_contract(core: Any, root: Path, state: Mapping[str, Any], open
     }
 
 
+def improve_commit_message_path(child: Mapping[str, Any]) -> Path:
+    """Where the parent writes an Improve review's commit message: beside the receipt."""
+    import shiploop_standalone_improve as standalone
+    return standalone.receipt_path(child).with_name("commit-message.md")
+
+
+def _improve_commit(core: Any, root: Path, state: Mapping[str, Any], args: Any) -> int:
+    """Commit exactly the files the bound Improve review changed and has not committed yet."""
+    import os
+    import subprocess
+    child = state.get("active_improve")
+    action_id = getattr(args, "action", None)
+    _need(state["status"] == "active" and child is not None and action_id == child["action_id"]
+          and child["skill"] is not None, "no bound current Improve child for this action")
+    message_path = improve_commit_message_path(child)
+    _need(getattr(args, "message", None) == str(message_path),
+          "the commit message must be the printed file " + str(message_path))
+    _need(message_path.is_file() and not message_path.is_symlink(),
+          "write the commit message with a file tool first: " + str(message_path))
+    message = message_path.read_text(encoding="utf-8").strip()
+    _need(bool(message), "the commit message file is empty")
+    _reject_credentials(message, "Improve commit message")
+    changes = improve_changes.review_changes(root, Path(state["repo"]), action_id)
+    _need(changes is not None, "ShipLoop cannot tell what this review changed (no bind snapshot)")
+    pending = changes[1]
+    if not pending:
+        print("Nothing to commit: every file this review changed is already committed"
+              + (" (" + ", ".join(changes[0]) + ")." if changes[0] else "; the review changed no file."))
+        return 0
+    repo = Path(state["repo"])
+
+    def git(*argv: str, env: dict | None = None) -> Any:
+        return subprocess.run(["git", "-C", str(repo), "-c", "core.hooksPath=/dev/null", *argv],
+                              capture_output=True, text=True, check=False,
+                              env=None if env is None else {**os.environ, **env})
+
+    added = git("add", "-A", "--", *pending)
+    _need(added.returncode == 0, "cannot stage the review's files: " + added.stderr.strip())
+    identity = git("config", "user.email")
+    env = None if identity.returncode == 0 and identity.stdout.strip() else {
+        "GIT_AUTHOR_NAME": "ShipLoop Workspace", "GIT_AUTHOR_EMAIL": "shiploop-workspace@local.invalid",
+        "GIT_COMMITTER_NAME": "ShipLoop Workspace", "GIT_COMMITTER_EMAIL": "shiploop-workspace@local.invalid"}
+    done = git("commit", "-q", "-F", str(message_path), "--", *pending, env=env)
+    _need(done.returncode == 0, "cannot commit the review's files: " + (done.stderr or done.stdout).strip())
+    head = git("rev-parse", "HEAD").stdout.strip()
+    message_path.unlink()
+    print("Committed this review's changes as " + head[:12] + ": " + ", ".join(pending) + ".")
+    return 0
+
+
 def _improve_start(core: Any, root: Path, state: Mapping[str, Any], args: Any) -> int:
     """Freeze the bound child's contract and start its runtime with the receipt."""
     import subprocess
@@ -3623,7 +3679,7 @@ def _improve_start(core: Any, root: Path, state: Mapping[str, Any], args: Any) -
         receipt.rename(receipt.with_name("packet.stopped-" + stamp + ".json"))
         if (receipt.parent / "reviews").is_dir():
             (receipt.parent / "reviews").rename(receipt.parent / ("reviews.stopped-" + stamp))
-        sys.stdout.write("Archived the stopped child as packet.stopped-" + stamp + ".json"
+        sys.stderr.write("Archived the stopped child as packet.stopped-" + stamp + ".json"
                          + " and reviews.stopped-" + stamp + ".\n")
     receipt.parent.mkdir(parents=True, exist_ok=True)
     (receipt.parent / "reviews").mkdir(exist_ok=True)
@@ -3642,8 +3698,9 @@ def _improve_start(core: Any, root: Path, state: Mapping[str, Any], args: Any) -
         [sys.executable, "-B", child["skill"]["runtime_cli"], "start", "--directory", str(state_dir),
          "--receipt", str(receipt)],
         input=json.dumps(contract, ensure_ascii=False).encode("utf-8"), capture_output=True, timeout=60)
-    sys.stdout.write("Improve child started from the frozen contract " + str(start)
-                     + ". Follow the runtime packet below; its receipt is " + str(receipt) + ".\n")
+    # stdout is exactly the runtime's packet (as from the runtime's own start), so it parses as JSON.
+    sys.stderr.write("Improve child started from the frozen contract " + str(start)
+                     + "; its receipt is " + str(receipt) + ". Follow the runtime packet on stdout.\n")
     sys.stdout.write(done.stdout.decode("utf-8", "replace"))
     if done.returncode:
         sys.stderr.write(done.stderr.decode("utf-8", "replace"))
@@ -3659,7 +3716,8 @@ def dispatch(core: Any, root: Path, state: Mapping[str, Any], args: Any,
     _need(isinstance(command, str), "navigator command is missing")
     _need(command in {
         "init", "next", "status", "context", "report", "complete", "pause", "resume", "halt",
-        "improve-bind", "improve-start", "improve-complete", "improve-reconcile", "delegation", "lint-mode"
+        "improve-bind", "improve-start", "improve-commit", "improve-complete", "improve-reconcile", "delegation",
+        "lint-mode"
     }, f"navigator does not support command {command!r}")
     validate(state)
     root = Path(root)
@@ -3695,6 +3753,8 @@ def dispatch(core: Any, root: Path, state: Mapping[str, Any], args: Any,
         return 0
     if command == "improve-start":
         return _improve_start(core, root, state, args)
+    if command == "improve-commit":
+        return _improve_commit(core, root, state, args)
     if command in ("improve-bind", "improve-complete", "improve-reconcile"):
         import shiploop_standalone_improve as standalone
         action_id = getattr(args, "action", None)
