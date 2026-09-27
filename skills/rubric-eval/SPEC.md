@@ -17,7 +17,9 @@ things decide it, in strict priority order:
 2. **Tokens**: the fewest tokens used (prompt and output, including reasoning).
 3. **Time**: the least wall-clock time consumed.
 
-A lower priority is consulted only when every higher one shows no difference.
+A material quality difference trumps everything. Only when quality is
+near-identical (the difference lies within what the judge can tell apart) are
+tokens, and then time, consulted.
 Every measure and threshold is a standard one, or a quantity measured for this
 judge; none is picked by hand (sections 7 and 8).
 
@@ -176,8 +178,10 @@ output's cost, because they are real cost.
 `decided_by` and every reason:
 1. **Quality.** The arm is better when the overall interval lies above zero
    and the Wilcoxon test agrees (p < 0.05). It is worse when both show it below
-   zero. It is **equivalent** when the whole interval lies within ± the judge's
-   measured noise (section 7). Anything else is **inconclusive**: add scenarios
+   zero. It is **equivalent** (near-identical, not a material difference) when
+   the whole interval lies within ± the judge's measured noise (section 7): a
+   difference smaller than the judge's own test-retest change is not one it can
+   see. Anything else is **inconclusive**: add scenarios
    or trials; no decision is made.
 2. **Tokens**, only when quality is equivalent. The side whose paired token
    interval lies wholly below zero uses fewer tokens and wins.
