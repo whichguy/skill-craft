@@ -32,6 +32,7 @@ import metrics  # noqa: E402
 import progress  # noqa: E402
 import review  # noqa: E402
 import run  # noqa: E402
+import fanout  # noqa: E402
 
 # Shared product writer for both fakes: the hello case's files plus a done run.
 PRODUCT = f"""
@@ -965,6 +966,49 @@ class CodexHostTest(unittest.TestCase):
             agent = hosts.host(name)
             self.assertEqual(agent.name, name)
             self.assertEqual(hosts.HOST_DEFAULTS[name], {"model": agent.model, "effort": agent.effort})
+
+
+class FanoutGradeTest(unittest.TestCase):
+    """The live fan-out/fan-in check is graded from stamps and dispatcher state, never by the model."""
+
+    def grade(self, stamps: dict, complete: bool = True, handles: bool = True) -> dict:
+        with tempfile.TemporaryDirectory() as temp:
+            root = Path(temp)
+            dispatch = root / "dispatch.js"
+            dispatch.write_text("process.stdout.write(JSON.stringify({complete: %s}))" % str(complete).lower())
+            run_dir, marks = root / "run", root / "stamps"
+            run_dir.mkdir()
+            marks.mkdir()
+            attempts = {f"att-{s}": {"step": s, "handle": "h" if handles else None,
+                                     **({} if handles else {"executor": {"kind": "main-context"}})} for s in "ABJ"}
+            (run_dir / "plan-dispatcher-state.json").write_text(json.dumps({
+                "steps": {s: {"current_attempt": f"att-{s}"} for s in "ABJ"}, "attempts": attempts}))
+            for step, (start, end) in stamps.items():
+                (marks / f"{step}.json").write_text(json.dumps({"step": step, "start": start, "end": end}))
+            return fanout.grade(dispatch, run_dir, marks)
+
+    def test_parallel_fan_out_then_fan_in_passes(self):
+        result = self.grade({"A": (0, 30), "B": (1, 31), "J": (32, 62)})
+        self.assertTrue(result["pass"], result)
+        self.assertTrue(result["fan_out_parallel"])
+        self.assertEqual(result["fan_out_overlap_seconds"], 29.0)
+        self.assertEqual(result["runner"], {"A": "native", "B": "native", "J": "native"})
+
+    def test_sequential_steps_pass_the_order_but_report_no_fan_out(self):
+        result = self.grade({"A": (0, 30), "B": (30, 60), "J": (61, 90)}, handles=False)
+        self.assertTrue(result["pass"], result)
+        self.assertFalse(result["fan_out_parallel"])
+        self.assertEqual(result["runner"]["A"], "main-context")
+
+    def test_join_before_both_suppliers_end_fails(self):
+        result = self.grade({"A": (0, 30), "B": (1, 45), "J": (40, 70)})
+        self.assertFalse(result["fan_in_order"])
+        self.assertFalse(result["pass"])
+
+    def test_incomplete_run_fails(self):
+        result = self.grade({"A": (0, 30), "B": (1, 31)}, complete=False)
+        self.assertFalse(result["pass"])
+        self.assertFalse(result["complete"])
 
 if __name__ == "__main__":
     unittest.main()

@@ -312,3 +312,21 @@ harness-FAIL, 7 cancelled; 8b on 1.6.0 PASS committed, 4 cancelled, 0 ShipLoop f
   Fixed in metrics: a session that reports no per-call usage adds its own `num_turns`.
 - Next: have ShipLoop write the Improve contract on the Ask-Agent route too, then run
   `temperature-report` fresh on Codex to reach `implement` and the chain.
+
+## fanout — 2026-09-27 — first live fan-out/fan-in, Codex gpt-5.6-luna medium, marketplace skill-craft 1.11.1 (Plan Dispatcher 0.5.0)
+
+- How: `test/shiploop_e2e/fanout.py`. Codex drove the published `plan-dispatcher` skill on dummy
+  steps: A and B independent, J after both. Each step recorded its start, slept 30 s, and
+  recorded its end. There was no ShipLoop SDLC and no product; per the owner, dummy steps are
+  enough as long as the order is verified.
+- Outcome: **PASS in 587 s.**
+  - The dispatcher reports the run complete, with one attempt per step and no retries.
+  - A and B ran as native Codex subagents, each with a launch handle, and overlapped 29.3 s of
+    their 30 s: a real parallel fan-out.
+  - J started about 240 s after both ended. The gap is the parent's verification and
+    settlement; fan-in order holds.
+- Meaning: the first live evidence through the current release that a real host follows the
+  dispatcher's exact calls, fans out to parallel native workers and joins in dependency order.
+  The earlier evidence was the 09-20 Grok pilot on older packages. ShipLoop's Ask-Agent chain
+  route is still unexercised live; its Improve-contract defect (see the Codex resume entry)
+  blocks it before `implement`.

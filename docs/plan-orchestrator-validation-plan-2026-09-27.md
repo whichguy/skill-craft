@@ -348,7 +348,17 @@ Steps, smallest first:
    trivial.
 2. **Backchain conformance.** One test: a sample Backchain export passes
    `validate-graph`.
-3. **One live, graph-shaped run.** Add a `shiploop_e2e` case with two
+3. **One live, graph-shaped run. Done by a narrower route.**
+   - The ShipLoop run (`temperature-report`) planned the right graph on Grok, and on Codex
+     after a host switch. Both stopped before `implement`: first Grok credits, then the
+     Ask-Agent Improve-contract defect.
+   - The owner's KISS route, dummy steps through Plan Dispatcher alone
+     (`test/shiploop_e2e/fanout.py`), **passed on Codex**: native A and B overlapped 29.3 s,
+     and J joined after both.
+   - Still open: ShipLoop's Ask-Agent chain route live. It is blocked by the Improve-contract
+     defect.
+
+   The original plan for this step was: add a `shiploop_e2e` case with two
    independent modules and an integration step on the Ask-Agent parallel
    route. Run it once on Grok (opt-in; recent runs cost about $25 and 60–90
    minutes) and commit its learnings.

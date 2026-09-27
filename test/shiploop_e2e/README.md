@@ -35,6 +35,18 @@ translated into Grok's event shape as it is captured, so metrics, the transcript
 and the reviewer read one format. Codex reports no dollar cost, so its cost is
 unknown, and it has no turn cap. Adding a host means adding one class.
 
+To check orchestration alone, without ShipLoop's SDLC or a product, run the
+fan-out/fan-in check. A host drives the published `plan-dispatcher` skill on
+dummy steps: A and B are independent, and J comes after both. Each step only
+records its start, sleeps 30 s and records its end. A script, not the model,
+grades whether the dispatcher completed, whether J started after both A and B
+ended, and whether A and B overlapped as native workers. It takes about 10
+minutes:
+
+```sh
+python3 test/shiploop_e2e/fanout.py --host codex --model gpt-5.6-luna --effort medium
+```
+
 A run that stops while ShipLoop is still active, for example because a host ran
 out of credits, can continue in place on any host:
 
