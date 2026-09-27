@@ -22,6 +22,8 @@ import shiploop_navigator_v3_prompts as guidance3  # noqa: E402
 
 BEGIN = "=== ShipLoop status ==="
 END = "=== end ShipLoop status ==="
+NARRATIVE_BEGIN = "=== ShipLoop narrative ==="
+NARRATIVE_END = "=== end ShipLoop narrative ==="
 HEADER = "ShipLoop navigator | "
 # The block must end this early in stdout; Claude Code keeps only the head of
 # oversized Bash output, and the block sits right after the callback line.
@@ -180,10 +182,38 @@ def compact(block: str) -> str:
     return "\n".join(["ShipLoop ▶ " + rows["Where"]] + ([" | ".join(second)] if second else []))
 
 
+def narrative_text(stdout: str) -> str | None:
+    """The packet's milestone narrative as plain text, or None when this packet has none."""
+    head = stdout[:WINDOW]
+    start, end = head.find(NARRATIVE_BEGIN), head.find(NARRATIVE_END)
+    if start < 0 or end < start or head.count(NARRATIVE_BEGIN) != 1:
+        return None
+    # Skip the begin marker and the owner's instruction line; keep the Markdown body.
+    body = head[start:end].split("\n", 2)[2:]
+    if not body:
+        return None
+    lines = []
+    for line in body[0].strip().splitlines():
+        line = line.replace("**", "").replace("`", "")
+        if line.startswith("#"):
+            line = line.lstrip("#").strip()
+        lines.append(line)
+    text = "\n".join(lines).strip()
+    return re.sub(r"\n{3,}", "\n\n", text) or None
+
+
 def status_message(payload: Any) -> str | None:
-    """Return the compact status to show the user, only on hosts that can display it."""
+    """Return what to show the user, only on hosts that can display it.
+
+    A milestone packet carries the run narrative; every other packet shows the
+    compact two-line status.
+    """
     found = status_block(payload)
-    return compact(found[1]) if found is not None and found[0] in DISPLAY_HOSTS else None
+    if found is None or found[0] not in DISPLAY_HOSTS:
+        return None
+    call = shell_call(payload)
+    story = narrative_text(call[2]) if call is not None else None
+    return story or compact(found[1])
 
 
 def main() -> int:

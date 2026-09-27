@@ -1747,7 +1747,7 @@ class NavigatorV3Tests(unittest.TestCase):
         submitted = result(summary="Synthetic intake result.")
         updated = navigator.apply(state, action["id"], submitted)
         self.assertEqual(navigator.current_stage(updated), "discovery")
-        expected_targets = ("context-index.md", f"results/{action['id']}.md", "state.md", "status.md")
+        expected_targets = ("context-index.md", f"results/{action['id']}.md", "state.md", "status.md", "timeline.json")
         expected_status = "```text\n" + navigator.status_block(updated) + "\n```\n"
         core = SimpleNamespace(PACKAGE_ROOT=SCRIPTS.parent)
         real_transaction = store.transaction

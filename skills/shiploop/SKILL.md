@@ -589,8 +589,10 @@ Each packet carries a script-rendered **status block** (`=== ShipLoop status ===
 where the run is, what just finished, what comes next and what is complete.
 Do not reprint it: a host status hook shows the user a two-line summary where
 the host supports one. Tell the user at most one line per completed step, and show
-the whole block unchanged only when they ask for the full status; see
-[status display](references/status-display.md).
+the whole block unchanged only when they ask for the full status. At milestones
+the packet also carries a script-rendered **narrative** (achieved, now, ahead,
+pace); its first line says whether to paste it to the user as written or whether
+the host already showed it; see [status display](references/status-display.md).
 
 Run to completion by default within the user's scope and existing authority.
 Progress reports are intermediate updates, not turn-ending handoffs or approval

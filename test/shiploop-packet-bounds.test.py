@@ -153,7 +153,8 @@ class PacketBoundsTests(unittest.TestCase):
         result_text = packet.split("Result template:\n", 1)[1].split("\nCall this when done:", 1)[0]
         # The minimal fallback keeps the placeholder the script refuses, never
         # an empty list a worker could copy verbatim.
-        self.assertEqual(store.loads(result_text), {"outcome": "done", "summary": "...",
+        self.assertEqual(store.loads(result_text), {"outcome": "done", "headline": navigator.HEADLINE_PLACEHOLDER,
+                                                    "summary": "...",
                                                     "evidence_refs": [navigator.EVIDENCE_PLACEHOLDER]})
         self.assertIn(navigator.current_action(state)["id"], packet)
 

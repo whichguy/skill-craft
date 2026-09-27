@@ -14,6 +14,7 @@ from copy import deepcopy
 from datetime import datetime, timezone
 import hashlib
 import json
+import os
 import sys
 import html
 import re
@@ -36,6 +37,7 @@ import shiploop_loop_contract as loop_contract
 import shiploop_test_loop as test_loop
 import shiploop_planning_revision as planning_revision
 import shiploop_context_index as context_index
+import shiploop_narrative as narrative
 import shiploop_privacy as privacy
 import shiploop_stage_spec as stage_spec
 import shiploop_store as store
@@ -50,7 +52,7 @@ _ACTION_ID = re.compile(r"^[A-Za-z][A-Za-z0-9_-]{0,159}$")
 _WORK_ITEM_ID = re.compile(r"^[A-Za-z][A-Za-z0-9_-]{0,63}$")
 _STATUSES = frozenset(("active", "paused", "blocked", "halted", "done"))
 _RESULT_KEYS = frozenset((
-    "outcome", "summary", "evidence_refs", "work_items", "choices", "delivery_assessment",
+    "outcome", "summary", "headline", "evidence_refs", "work_items", "choices", "delivery_assessment",
     "reconciliation_target", "assumptions", "lint_waivers", "test_commands", "test_commands_na",
     "criteria", "system_commands", "system_commands_na", "consumer_checks", "consumer_checks_na",
     "blocked_by", "red_na", "awaiting", "paths", "consumer_entry", "steps",
@@ -465,12 +467,19 @@ def _canonical_result(
               "revise sends a work item back to " + stage_spec.REVISE_TO + " and is allowed only at the "
               "INNER stages from test-spec to integration-verify")
     if outcome == "reconcile":
-        _need(stage == "plan" and set(value) == {
+        _need(stage == "plan" and set(value) - {"headline"} == {
             "outcome", "summary", "evidence_refs", "reconciliation_target",
         }, "reconcile is allowed only as the exact plan result")
     else:
         _need("reconciliation_target" not in value,
               "reconciliation_target is allowed only with a reconcile result")
+    if "headline" in value:
+        headline = _text(value["headline"], "result headline")
+        _need(headline != HEADLINE_PLACEHOLDER,
+              "headline still holds the template placeholder; write one line for the user saying "
+              "what this step established")
+        _need("\n" not in headline and len(headline.strip()) <= HEADLINE_LIMIT,
+              f"headline must be one line of at most {HEADLINE_LIMIT} characters")
     if outcome == "replan":
         _need(stage in guidance3.OUTER and "work_items" in value,
               "replan requires corrective work_items at an outer stage")
@@ -481,6 +490,8 @@ def _canonical_result(
         "outcome": outcome,
         "summary": _text(value.get("summary"), "result summary"),
     }
+    if "headline" in value:
+        result["headline"] = value["headline"].strip()
     refs = value.get("evidence_refs", [])
     _need(isinstance(refs, list), "evidence_refs must be a list")
     _need(EVIDENCE_PLACEHOLDER not in refs,
@@ -1123,11 +1134,12 @@ def emit(core: Any, root: Path, state: Mapping[str, Any]) -> str:
     Paused, blocked, awaiting, halted and done packets print whole unless they
     pass ``PRINT_LIMIT``; then they print a pointer to the file and what fits.
     """
-    text = render(core, root, state)
+    timeline = load_timeline(root)
+    text = render(core, root, state, timeline=timeline)
     path = packet_path(root, state)
     store.atomic_write_text(path, text)
     if state["status"] == "active":
-        print(packet_head(core, root, state, path), end="")
+        print(packet_head(core, root, state, path, timeline=timeline), end="")
     elif len(text) <= PRINT_LIMIT:
         print(text, end="")
     else:
@@ -1139,7 +1151,8 @@ def emit(core: Any, root: Path, state: Mapping[str, Any]) -> str:
 
 
 
-def packet_head(core: Any, root: Path, state: Mapping[str, Any], path: Path) -> str:
+def packet_head(core: Any, root: Path, state: Mapping[str, Any], path: Path,
+                timeline: Mapping[str, Any] | None = None) -> str:
     """The printed part of an active packet: what to run, the goal, and where the rest is."""
     stage = current_stage(state)
     action = current_action(state)
@@ -1164,8 +1177,153 @@ def packet_head(core: Any, root: Path, state: Mapping[str, Any], path: Path) -> 
         "",
         status_block(state),
         "",
+        *narrative_lines(state, timeline),
     ]
     return "\n".join(lines)
+
+
+_GROUP_ENDS = frozenset(stages[-1] for _, stages in guidance3.INNER_GROUPS)
+# Where the entry point says the host shows a status hook's message to the user.
+HOOK_DISPLAY_ENTRYPOINTS = frozenset(("cli",))
+
+
+def _headline(state: Mapping[str, Any], action_id: str) -> str:
+    result = state["accepted"][action_id]
+    if result.get("headline"):
+        return _status_text(result["headline"], 100)
+    return _first_sentence(result["summary"], 100)
+
+
+def narrative_facts(state: Mapping[str, Any], timeline: Mapping[str, Any] | None = None) -> dict[str, Any]:
+    """Collect the run narrative from saved state: achieved, now, ahead and pace."""
+    prelude, inner, outer = graph(state)
+    stage, _, owner = _active_cursor(state)
+    status = state["status"]
+    done, _ = _accepted_done(state)
+    items, index = state["work_items"], state["work_index"]
+    completed = items[:index]
+    phase = ("complete" if status == "done" else "preparation" if stage in prelude
+             else "inner" if stage in inner else "outer")
+    order = ("preparation", "inner", "outer")
+
+    def phase_state(name: str) -> str:
+        if phase == "complete" or order.index(name) < order.index(phase):
+            return "done"
+        return "current" if name == phase else "pending"
+
+    def title(item: Mapping[str, str], limit: int = 50) -> str:
+        return _status_text(item["id"], 32) + " " + _status_text(item["title"], limit)
+
+    prep_done = sum((None, node) in done for node in prelude)
+    item_steps = sum((owner, node) in done for node in inner) if owner is not None else 0
+    outer_done = sum((None, node) in done for node in outer)
+    planned = any(key[1] == "plan" for key in done)
+    phases = [
+        {"name": "Preparation", "done": prep_done, "done_label": prep_done, "total": len(prelude),
+         "state": phase_state("preparation")},
+        {"name": "Work items", "done": len(completed) + (item_steps / len(inner) if phase == "inner" else 0),
+         "done_label": len(completed), "total": len(items) if planned else 0, "state": phase_state("inner")},
+        {"name": "Release", "done": outer_done, "done_label": outer_done, "total": len(outer),
+         "state": phase_state("outer")},
+    ]
+
+    achieved: list[dict[str, str]] = []
+    if phase == "preparation":
+        achieved = [{"label": node, "text": _headline(state, done[(None, node)])}
+                    for node in prelude if (None, node) in done]
+    else:
+        for item in completed[-3:]:
+            action_id = done.get((item["id"], "carry-forward"))
+            achieved.append({"label": title(item), "text": _headline(state, action_id) if action_id else ""})
+        if len(completed) > 3:
+            achieved.insert(0, {"label": f"{len(completed) - 3} earlier work items", "text": "complete"})
+        if phase == "inner" and owner is not None:
+            steps = [node for node in inner if (owner, node) in done]
+            if steps:
+                achieved.append({"label": f"{_status_text(owner, 32)} {steps[-1]}",
+                                 "text": _headline(state, done[(owner, steps[-1])])})
+        if phase in ("outer", "complete"):
+            achieved += [{"label": node, "text": _headline(state, done[(None, node)])}
+                         for node in outer if (None, node) in done][-4:]
+
+    now_label = stage
+    if phase == "inner" and owner is not None:
+        group = next(name for name, stages in guidance3.INNER_GROUPS if stage in stages)
+        now_label = f"{title(items[index])} ({index + 1} of {len(items)}) \u203a {group} \u203a {stage}"
+    now_text = (f"Improve is reviewing the {state['active_improve']['stage']} result"
+                if state.get("active_improve") else guidance3.STAGE_PURPOSE.get(stage, ""))
+
+    stop = None
+    wait = awaiting(state)
+    if status == "done":
+        stop = {"kind": "done", "text": "the run is complete; the report is report.html"}
+    elif wait is not None:
+        stop = {"kind": "awaiting", "text": _status_text(_awaiting_text(wait[1]), 300)}
+    elif status in ("paused", "blocked", "halted"):
+        stop = {"kind": status, "text": _status_text(state["status_reason"], 200)}
+
+    ahead: list[dict[str, str]] = []
+    remaining = 0
+    if phase == "preparation":
+        pending = [node for node in prelude if (None, node) not in done and node != stage]
+        remaining = len(pending) + 1
+        ahead = [{"label": node, "text": guidance3.STAGE_PURPOSE[node]} for node in pending[:2]]
+        rest = pending[2:]
+        ahead.append({"label": "then " + ", ".join(rest + ["the work items", "release"]) if rest
+                      else "then the work items and release", "text": ""})
+    elif phase == "inner":
+        groups = [name for name, stages in guidance3.INNER_GROUPS
+                  if all((owner, node) not in done and node != stage for node in stages)]
+        if groups:
+            ahead.append({"label": "this item", "text": " \u2192 ".join(groups)})
+        upcoming = items[index + 1:]
+        ahead += [{"label": title(item), "text": ""} for item in upcoming[:3]]
+        if len(upcoming) > 3:
+            ahead.append({"label": f"{len(upcoming) - 3} more work items", "text": ""})
+        ahead.append({"label": "then release", "text": ", ".join(outer[:3]) + ", \u2026"})
+        remaining = sum(1 for node in inner if (owner, node) not in done) + len(inner) * len(upcoming)
+    elif phase == "outer":
+        pending = [node for node in outer if (None, node) not in done and node != stage]
+        remaining = len(pending) + 1
+        ahead = [{"label": node, "text": guidance3.STAGE_PURPOSE[node]} for node in pending[:3]]
+        if len(pending) > 3:
+            ahead.append({"label": "then " + ", ".join(pending[3:]), "text": ""})
+
+    pace = None
+    if timeline:
+        stamps = [timeline["accepted"][entry["action"]] for entry in state["history"]
+                  if entry["action"] in timeline.get("accepted", {})]
+        scope = {"preparation": "preparation", "inner": "the work items", "outer": "release"}.get(phase, "")
+        pace = {"started": timeline.get("started"), "stamps": stamps,
+                "remaining_steps": remaining if status == "active" else 0, "scope": scope}
+
+    last = state["history"][-1] if state["history"] else None
+    milestone = (status != "active" or last is None or last["stage"] in prelude
+                 or last["stage"] in outer or last["stage"] in _GROUP_ENDS)
+    return {
+        "goal": _status_text(_title_from_prompt(state["prompt"]), 90),
+        "phases": phases,
+        "achieved": achieved,
+        "now": {"label": now_label, "text": now_text},
+        "stop": stop,
+        "ahead": ahead if status == "active" else [],
+        "pace": pace,
+        "milestone": milestone,
+    }
+
+
+def narrative_lines(state: Mapping[str, Any], timeline: Mapping[str, Any] | None = None) -> list[str]:
+    """The packet's narrative section at milestones, with who shows it to the user."""
+    facts = narrative_facts(state, timeline)
+    if not facts["milestone"]:
+        return []
+    if os.environ.get("CLAUDE_CODE_ENTRYPOINT") in HOOK_DISPLAY_ENTRYPOINTS:
+        instruction = ("The host's status hook already shows the user this narrative; "
+                       "do not repeat it.")
+    else:
+        instruction = ("Show the user this narrative exactly as written, as Markdown in your "
+                       "own message, then continue; do not rewrite or extend it.")
+    return [narrative.BEGIN, instruction, "", narrative.markdown(facts), narrative.END, ""]
 
 
 def _replace_v2_inner_action(state: dict[str, Any], stage: str) -> None:
@@ -2054,12 +2212,16 @@ KEEPALIVE_MARKER = "SHIPLOOP-RUN"
 # An empty template list was copied verbatim; a placeholder the script refuses
 # makes the worker name the files instead.
 EVIDENCE_PLACEHOLDER = "<absolute path of each file this stage wrote, or of the check output it recorded>"
+# The user-facing line the run narrative shows for this step.
+HEADLINE_PLACEHOLDER = "<one line for the user, under 100 characters: what this step established>"
+HEADLINE_LIMIT = 100
 
 
 def _result_template(state: Mapping[str, Any], stage: str) -> str:
     """Render a current-action template without making the host track anchors."""
     result: dict[str, Any] = {
         "outcome": "done",
+        "headline": HEADLINE_PLACEHOLDER,
         "summary": "...",
         "evidence_refs": [EVIDENCE_PLACEHOLDER],
     }
@@ -2570,8 +2732,12 @@ def _progress_lines(state: Mapping[str, Any]) -> list[str]:
     return lines
 
 
-def render(core: Any, root: Path, state: Mapping[str, Any]) -> str:
-    """Render a packet; worktree packets derive a read-only return projection."""
+def render(core: Any, root: Path, state: Mapping[str, Any],
+           timeline: Mapping[str, Any] | None = None) -> str:
+    """Render a packet; worktree packets derive a read-only return projection.
+
+    Rendering reads no files: ``emit`` passes the display-only timeline in.
+    """
     validate(state)
     root = Path(root)
     try:
@@ -2610,6 +2776,7 @@ def render(core: Any, root: Path, state: Mapping[str, Any]) -> str:
         # notice above, and early enough to survive head-kept Bash output.
         status_block(state),
         "",
+        *narrative_lines(state, timeline),
         progress_guidance,
     ]
     lines += _run_rules(core, root, state)
@@ -2935,7 +3102,7 @@ def _result_contract_lines(root: Path, state: Mapping[str, Any], stage: str, act
                      "in state.md accepted/history and the Consumer-delivery schema before adding the "
                      "required delivery_assessment to the minimal result below. A partial template "
                      "does not waive any required observation.")
-        result_template = store.dumps({"outcome": "done", "summary": "...",
+        result_template = store.dumps({"outcome": "done", "headline": HEADLINE_PLACEHOLDER, "summary": "...",
                                        "evidence_refs": [EVIDENCE_PLACEHOLDER]},
                                       "ShipLoop navigator result").rstrip()
     return [
@@ -3475,6 +3642,41 @@ def _new_result_records(root: Path, state: Mapping[str, Any]) -> dict[str, str]:
     return writes
 
 
+TIMELINE_FILE = "timeline.json"
+
+
+def _utc_now() -> str:
+    return datetime.now(timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ")
+
+
+def load_timeline(root: Path) -> dict[str, Any]:
+    """Read the display-only timeline; anything unreadable starts a fresh one."""
+    try:
+        value = json.loads((Path(root) / TIMELINE_FILE).read_text(encoding="utf-8"))
+    except (OSError, ValueError):
+        return {}
+    if not (isinstance(value, dict) and isinstance(value.get("started"), str)
+            and isinstance(value.get("accepted"), dict)):
+        return {}
+    return value
+
+
+def _updated_timeline(root: Path, state: Mapping[str, Any]) -> dict[str, Any]:
+    """Stamp every newly accepted step with the current time.
+
+    The timeline is derived display data like status.md, not workflow state:
+    the pace line reads it, and nothing validates or resumes from it.
+    """
+    now = _utc_now()
+    timeline = load_timeline(root) or {"started": now, "accepted": {}}
+    history_ids = [entry["action"] for entry in state["history"]]
+    accepted = {action: stamp for action, stamp in timeline["accepted"].items()
+                if action in history_ids and isinstance(stamp, str)}
+    for action in history_ids:
+        accepted.setdefault(action, now)
+    return {"started": timeline["started"], "accepted": accepted}
+
+
 def save(root: Path, state: Mapping[str, Any], extra_writes: Mapping[str, str] | None = None) -> None:
     """Persist one state transition under the caller-held ShipLoop lock."""
     validate(state)
@@ -3496,6 +3698,9 @@ def save(root: Path, state: Mapping[str, Any], extra_writes: Mapping[str, str] |
     writes.update(_new_result_records(root, state))
     if state["status"] in ("done", "halted"):
         writes["report.html"] = _render_report(state, root)
+    # Derived display-only times: when the run started and each step was accepted.
+    timeline = _updated_timeline(root, state)
+    writes[TIMELINE_FILE] = json.dumps(timeline, indent=2, sort_keys=True) + "\n"
     # Derived display copy of the status block; refreshed only by transitions.
     writes["status.md"] = "```text\n" + status_block(state) + "\n```\n"
     # Derived index of everything the run has accepted, for every stage to read.

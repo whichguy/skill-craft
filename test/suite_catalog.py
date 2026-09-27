@@ -86,6 +86,7 @@ _SHIPLOOP_PATHS = (
     "test/shiploop-full-runtime.test.py",
     "test/shiploop-navigator-dry-run.test.py",
     "test/shiploop-status-display.test.py",
+    "test/shiploop-narrative.test.py",
     "test/shiploop-stage-spec.test.py",
     "test/shiploop-revise.test.py",
     "test/shiploop-rehydration.test.py",
@@ -214,6 +215,7 @@ _QUICK_PATHS = frozenset({
     "test/shiploop-packet-bounds.test.py",
     "test/shiploop-navigator-dry-run.test.py",
     "test/shiploop-status-display.test.py",
+    "test/shiploop-narrative.test.py",
     "test/shiploop-chain-async.test.py",
     "test/shiploop-planning-handoff.test.py",
 })
