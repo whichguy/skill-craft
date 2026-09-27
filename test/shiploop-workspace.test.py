@@ -438,6 +438,19 @@ class ShipLoopWorkspaceTests(unittest.TestCase):
         self.assertIn("--workspace-root " + str(runs / "feature"), result.stderr)
         self.assertEqual(list(runs.iterdir()), [])
         self.assertEqual(self._branches(), before)
+        grant = result.stderr.split("Grant:\n", 1)[1].split("\n\n", 1)[0]
+        self.assertNotIn(".git", grant, "only the refused directory is requested")
+        self.assertIn("plus the repository's .git directory", result.stderr,
+                      "a Codex reader is still told .git needs a grant there")
+
+    def test_default_root_from_a_nested_linked_worktree_sits_beside_the_main_checkout(self) -> None:
+        linked = self.repo / ".claude" / "worktrees" / "task"
+        self.git("worktree", "add", "-q", "-b", "task", str(linked))
+        result = self.cli("workspace", "start", "--repo", str(linked), "--prompt", "Nested default root.")
+        line = next(row for row in result.stdout.splitlines() if row.startswith("Workspace root: "))
+        root = Path(line.removeprefix("Workspace root: "))
+        self.assertEqual(root.parent, self.base.resolve() / ".shiploop-runs")
+        self.assertTrue(root.name.startswith(self.repo.name + "-"))
 
     def test_start_refuses_a_read_only_git_directory_before_any_worktree_exists(self) -> None:
         git_dir = self.repo / ".git"
@@ -465,6 +478,18 @@ class ShipLoopWorkspaceTests(unittest.TestCase):
         result = self.cli("next", "--run-dir", str(root / "run"), code=3)
         self.assertIn(f"{(root / 'run').resolve()}  (run state)", result.stderr)
         self.assertIn("Then rerun: python3", result.stderr)
+        # chain and lint write run state too and are dispatched before next's path.
+        for verb in (("chain", "next"), ("lint",)):
+            refused = self.cli(*verb, "--run-dir", str(root / "run"), code=3)
+            self.assertIn("SHIPLOOP-GRANT-NEEDED", refused.stderr, verb)
+
+    def test_an_empty_directory_start_refused_by_the_sandbox_stays_empty(self) -> None:
+        empty = self.base / "fresh project"
+        empty.mkdir()
+        self._read_only(self.base)  # the sandbox refuses the sibling .shiploop-runs
+        result = self.cli("workspace", "start", "--repo", str(empty), "--prompt", "Empty start.", code=3)
+        self.assertIn("SHIPLOOP-GRANT-NEEDED", result.stderr)
+        self.assertEqual(list(empty.iterdir()), [], "no git init before the grant is proven")
 
     def test_grant_report_lists_the_detected_host_first_and_names_nested_codex(self) -> None:
         import shiploop_grants as grants

@@ -30,5 +30,12 @@ case "$variant" in
                      -c "sandbox_workspace_write.writable_roots=[\"$base/src/.shiploop-runs\",\"$base/src/toy/.git\"]" -- \
                      python3 "$here/../../../skills/shiploop/scripts/shiploop" workspace start --repo . --prompt 'Grant acceptance.' | head -3
                    echo "exit=$?" ;;
+  # Acceptance through a real Claude model with the Bash sandbox on.
+  shiploop-claude-sandbox|shiploop-claude-sandbox-grant)
+                   start="python3 $here/../../../skills/shiploop/scripts/shiploop workspace start --repo . --prompt 'Grant acceptance.'"
+                   extra=""; [ "$variant" = shiploop-claude-sandbox-grant ] && extra="--add-dir $base/src/.shiploop-runs"
+                   claude -p "Run this exact shell command once, then reply with its exit code on a line 'EXIT=<n>' followed by its complete stderr and the first 2 lines of stdout, verbatim: $start" \
+                     --permission-mode bypassPermissions $extra \
+                     --settings '{"sandbox":{"enabled":true,"autoAllowBashIfSandboxed":true,"allowUnsandboxedCommands":false}}' 2>&1 ;;
   *) echo "unknown variant $variant" >&2; exit 2 ;;
 esac

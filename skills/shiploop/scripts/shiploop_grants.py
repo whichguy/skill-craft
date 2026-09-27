@@ -55,17 +55,23 @@ def nearest_existing(path: Path) -> Path:
     return current
 
 
-def require(targets: Sequence[Tuple[Path, str]], grants: Optional[Sequence[Path]] = None) -> None:
-    """Probe each (directory, purpose); raise GrantError listing every refusal."""
-    blocked = []
-    for directory, purpose in targets:
+def require(targets: Sequence[Tuple[Path, str, Path]]) -> None:
+    """Probe each (directory, purpose, grant); raise GrantError naming only refused grants.
+
+    ``grant`` is the directory the user should allow when ``directory`` is
+    refused: a stable parent rather than one run's own subdirectory.
+    """
+    blocked, grants = [], []
+    for directory, purpose, grant in targets:
         where = nearest_existing(Path(directory).resolve())
         reason = _try_write(where)
         if reason is not None:
             blocked.append((where, purpose, reason))
+            resolved = Path(grant).resolve()
+            if resolved not in grants:
+                grants.append(resolved)
     if blocked:
-        wanted = grants if grants is not None else [path for path, _ in targets]
-        raise GrantError(blocked, [Path(path).resolve() for path in wanted])
+        raise GrantError(blocked, grants)
 
 
 def detect_host(environ: Mapping[str, str] = os.environ) -> str:
@@ -82,14 +88,17 @@ def detect_host(environ: Mapping[str, str] = os.environ) -> str:
 def _fixes(grants: Sequence[Path]) -> List[Tuple[str, str]]:
     quoted = [shlex.quote(str(path)) for path in grants]
     toml = "[" + ", ".join('"' + str(path) + '"' for path in grants) + "]"
+    # Codex workspace-write keeps .git read-only even inside cwd; a list probed
+    # under another host may omit it, so say so rather than under-grant Codex.
+    git_note = ("" if any(path.name == ".git" for path in grants)
+                else " plus the repository's .git directory (workspace-write keeps it read-only)")
     return [
         ("claude", "Claude Code - no restart: the user runs "
          + " and ".join(f"/add-dir {q}" for q in quoted)
-         + " in this session, then rerun. To persist, add them to permissions.additionalDirectories"
-         " in .claude/settings.local.json (Bash sandbox users: sandbox write roots follow these)."),
+         + " in this session, then rerun. To persist, list them in permissions.additionalDirectories"
+         " in .claude/settings.local.json (Bash sandbox write roots follow these)."),
         ("codex", "Codex - no restart: the user picks Full access in /permissions. Scoped instead"
-         f" (restart): codex -c 'sandbox_workspace_write.writable_roots={toml}'"
-         " (the .git entry is required: workspace-write keeps .git read-only), or set"
+         f" (restart): codex -c 'sandbox_workspace_write.writable_roots={toml}'{git_note}, or set"
          f" [sandbox_workspace_write] writable_roots = {toml} in ~/.codex/config.toml."),
         ("grok", "Grok - restart required (a sandbox cannot be relaxed mid-session): in"
          f" ~/.grok/sandbox.toml add [profiles.shiploop] extends = \"workspace\" read_write = {toml},"

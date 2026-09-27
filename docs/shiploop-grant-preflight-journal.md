@@ -70,6 +70,41 @@ Findings:
 `run.sh shiploop-codex`: exit 3 with the block, nothing created.
 `run.sh shiploop-codex-grant`: exit 0, first packet. See results file.
 
+## Revision 2 (2026-09-27) — from self-review and Experiment 3
+
+- Default root is anchored at the **main** checkout (parent of the Git common
+  dir), not the caller's checkout: started from `<main>/.claude/worktrees/x`,
+  the old default put `.shiploop-runs` inside the main checkout. Test:
+  `test_default_root_from_a_nested_linked_worktree_sits_beside_the_main_checkout`.
+- The report requests only the refused directories (each probe carries its own
+  grant). Claude/Grok sandboxes refuse only the parent, so asking for `.git`
+  too was noise. The Codex line still tells a Codex reader `.git` needs a
+  grant when the list omits it.
+
+## Revision 3 (2026-09-27) — adversarial review (Opus code-reviewer, read-only)
+
+Two P1 findings, both normal-run failures, both fixed with regression tests:
+
+1. An empty non-Git start directory was `git init`-ed and committed *before*
+   the grant probe, so a refusal reported "Nothing was created" falsely. Now
+   `require_parent_grant` runs before `bootstrap_empty`, and `default_root`
+   no longer needs a repository. Test:
+   `test_an_empty_directory_start_refused_by_the_sandbox_stays_empty`.
+2. `chain` and `lint` were dispatched before the run-bound recheck, so a lost
+   grant surfaced as a raw PermissionError there. They now share
+   `_grant_refusal`. Test: `test_resume_refuses_a_run_whose_grant_was_lost`.
+
+Reviewed and left as documented limits (adversarial-only per KISS): a probe
+file briefly visible to a concurrent reader; a filesystem that allows create
+but refuses delete would leave one probe file behind.
+
+## Experiment 3 — live Claude acceptance (firm)
+
+Real `workspace start` through `claude -p` with the Bash sandbox on: exit 3 with
+only `.shiploop-runs` requested and Claude listed first; with `--add-dir` it
+starts (exit 0). The model stopped and reported rather than working around the
+block. Results file, section "Acceptance through a real Claude model".
+
 ## Open
 
 - Claude mid-session `/add-dir` extending Bash-sandbox write roots is inferred
