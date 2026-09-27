@@ -41,6 +41,11 @@ def main() -> int:
     shutil.copy(args.spec, judge / "spec.md")
     if args.architecture:
         shutil.copy(args.architecture, judge / "architecture.md")
+    # The rest of the knowledge home (environment, test strategy, index) can
+    # answer checklist items too: build/test commands belong in environment.md.
+    for other in sorted(args.spec.parent.glob("*.md")):
+        if other.name not in ("spec.md", "architecture.md"):
+            shutil.copy(other, judge / other.name)
     # Sample against the real checkout (git ls-files), then point the sample at the copies.
     sample_argv = [sys.executable, str(SKILL / "scripts" / "spec_judge.py"), "sample", "--repo", str(args.repo),
                    "--spec", str(args.spec), "--out", str(judge), "--n", str(args.n)]

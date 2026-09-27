@@ -23,7 +23,8 @@ hold · `unverifiable` the repository does not decide it.
 **tests** (under-spec). Find the requirement(s) that state the behaviour the
 test checks. `covered` (list IDs) · `partly` (a requirement exists but misses
 the tested case) · `missing` · `internal` (plumbing no user or caller can
-observe; say why).
+observe; say why). A skipped or disabled test (`it.skip`, `xit`, ...) states
+no current behaviour: mark it `internal` and say it is skipped.
 
 **sources** (under-spec). Name the user- or caller-visible responsibility
 the file carries (behaviour, option, output, error, contract) and whether the
@@ -36,8 +37,9 @@ examples and promises. For the section at `at`, is each requirement it states
 in the spec? `covered` (IDs) · `partly` (name what is missing) · `missing` ·
 `not-a-requirement` (badges, credits, contribution process, links).
 
-**architecture**. Is the item answered in the architecture file (or the spec)
-and true of the code? `answered-true` · `answered-false` · `vague` (too
+**architecture**. Is the item answered in the architecture file, the spec,
+or another knowledge file next to them (commands belong in an environment or
+test-strategy file), and true of the code? `answered-true` · `answered-false` · `vague` (too
 general to act on) · `absent`.
 
 ## Output
