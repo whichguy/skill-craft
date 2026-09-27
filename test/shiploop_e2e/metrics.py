@@ -41,7 +41,7 @@ def tmp_writes(command: str) -> list[str]:
     return TMP_WRITE.findall(shell_text(command))
 
 
-MODEL_INPUT = re.compile(r"/inbox/|/run/notes/|/run/evidence/|/run/scratch/|/reviews/|opening\.md|commit-message\.md")
+MODEL_INPUT = re.compile(r"/inbox/|/run/notes/|/run/evidence/|/run/scratch/|/reviews(?:/|$|[\"'\s])|opening\.md|commit-message\.md")
 # `git ... commit|add` as a command: at the start of a line or after ; && || |, optionally after VAR=value.
 GLUE_COMMIT = re.compile(r"(?:^|[;&|]\s*)(?:\w+=\S*\s+)*git\b[^\n;&|]*\s(?:commit|add)\b", re.M)
 GLUE_WRITE = re.compile(r"(?:>>?|\btee\b|\bcp\b|\bmv\b|\bmkdir\b|\brm\b)\s+[^\n;&|]*")

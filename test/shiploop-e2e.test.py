@@ -822,6 +822,8 @@ class MetricsTest(unittest.TestCase):
             'npm test > /x/.shiploop-runs/a/run/evidence/w1-verify.txt': [],
             # the run's scratch directory is the model's own (P13)
             'python3 -m unittest > /x/.shiploop-runs/a/run/scratch/baseline.txt 2>&1': [],
+            # the Improve child's review directory is where P12 asks it to write
+            "mkdir -p .shiploop-improve/n/a/reviews": [],
             # reading ShipLoop's own contract is not building one
             'python3 -c \'import json; p=json.load(open("/x/run/quality/c-contract.json")); print(p["exit_condition"])\'': [],
             'python3 -c \'import json; json.dump({"exit_condition": 1}, open("/x/c.json", "w"))\'': ["hand-built loop contract"],
