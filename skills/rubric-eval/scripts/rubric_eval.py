@@ -164,9 +164,10 @@ def run(run_dir: str | Path, model: str, *, workers: int = 8, attempts: int = 3,
         workspace: str | Path | None = None, timeout: int | None = None) -> dict:
     """Run every prompt without a finished output; rerun a stub up to `attempts` times.
 
-    timeout (seconds per call) defaults to 600, or 1800 with tools: a review that reads its references took
-    13 minutes, and a call cut off by the timeout is a stub, rerun into the same wall."""
-    timeout = timeout or (1800 if tools else 600)
+    timeout (seconds per call) defaults to 600, or 3600 with tools. A call cut off by the timeout is a stub,
+    rerun into the same wall, and a limit that only the slower arms hit biases them toward their shorter
+    attempts: GPT-6 Luna at xhigh took 16-30 minutes per in-context review (round 7)."""
+    timeout = timeout or (3600 if tools else 600)
     run_ = Path(run_dir); out = run_ / "out"; out.mkdir(exist_ok=True)
     reviews = json.loads((run_ / "manifest.json").read_text()).get("reviews", False)
 

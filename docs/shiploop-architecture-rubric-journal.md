@@ -103,6 +103,7 @@ Each entry: commit, then what changed, why, and its effect on earlier results.
 **Turn and timeout limits**
 - **daa27bb1:** read-mode Grok calls get 40 turns. At 12, reviews ran out of turns before writing.
 - **973e7784:** tool-mode calls get 1,800 seconds. At 600, reviews were cut off and retried.
+- **(this commit):** tool-mode calls get 3,600 seconds. GPT-6 Luna at xhigh took 16–30 minutes per in-context review. One call (S02 v4card) finished at 29.8 minutes, and at least one timed out and was retried (25 sessions for 24 reviews). A limit that only the slower arms (v4, v4card: 24–30 min) hit biases them toward their shorter attempts. Round 7 restarted with 3,600; its 12 finished reviews were kept and 12 in-flight calls discarded.
 
 **Tooling for arms and evidence**
 - **ab660526:** `build --input-arm` writes the unreviewed baseline, which had been made by hand in round 4.

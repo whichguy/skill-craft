@@ -44,7 +44,7 @@ def main(argv=None):
     r.add_argument("run_dir"); r.add_argument("--model", type=R.spec, default="grok", help="subject model (default grok-4.7, medium effort)")
     r.add_argument("--workers", type=int, default=8)
     r.add_argument("--tools", choices=("", "Read"), default="", help="'Read' (empty directory) for prompts that ask the model to check things")
-    r.add_argument("--timeout", type=int, help="seconds per call (default 600, or 1800 with --tools Read)")
+    r.add_argument("--timeout", type=int, help="seconds per call (default 600, or 3600 with --tools Read)")
     r.add_argument("--workspace", help="folder copied into every call's own directory (reference files), read with --tools Read")
     j = sub.add_parser("judge", help="grade finished outputs (evidence first)")
     j.add_argument("run_dir"); j.add_argument("--suite", default="architecture"); j.add_argument("--workers", type=int, default=10)
