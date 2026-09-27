@@ -36,7 +36,7 @@ def main() -> int:
     ap.add_argument("--out", type=Path, required=True)
     ap.add_argument("--commit")
     ap.add_argument("--model", default="gpt-6-luna")
-    ap.add_argument("--effort", default="xhigh")
+    ap.add_argument("--effort", default="max")
     args = ap.parse_args()
     out = args.out.resolve()
     repo = out / "repo"

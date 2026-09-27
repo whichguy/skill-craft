@@ -127,7 +127,7 @@ def main() -> int:
     ap.add_argument("--rename", action="append", default=[],
                     help="old=new export rename between the original and the rebuild (oracle aliasing)")
     ap.add_argument("--codex-model", default="gpt-6-luna")
-    ap.add_argument("--codex-effort", default="xhigh")
+    ap.add_argument("--codex-effort", default="max")
     ap.add_argument("--model", default="claude-sonnet-5", help="claude host only (grok uses grok_step defaults)")
     ap.add_argument("--max-budget-usd", type=float, default=15.0, help="claude host only")
     ap.add_argument("--forbid", action="append", default=[],

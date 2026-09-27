@@ -125,6 +125,11 @@ Sonnet T1; a GPT-6 Luna pair runs beside it on Codex credits: T1 rerun
 `gpt-5.6-luna`/`high`, so both are passed explicitly). Later rounds default
 to GPT-6 Luna.
 
+Owner, 15:11: GPT-6 Luna at `max` effort for everything. Defaults are `max`;
+the initializer distills restarted at `max`; the xhigh Luna pair (T1
+`rebuilds/l2`, T3 `mdkit-luna-1`) finishes as an xhigh datapoint while a
+`max` pair runs beside it (T1 `rebuilds/l3`, T3 `mdkit-luna-max-1`).
+
 Deferred: distill round 2, the second repository, repeats. Stall detector
 (no tool call for N minutes = failed step) before any unattended run.
 
