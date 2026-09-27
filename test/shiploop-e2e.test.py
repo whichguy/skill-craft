@@ -872,12 +872,12 @@ class CodexRunTest(HarnessCase):
         self.assertEqual(result["cli"]["num_turns"], 2)
 
     def test_model_and_effort_toggle_by_flag(self):
-        code, result = self.invoke("codex", "done", "--model", "gpt-5.6-sol", "--effort", "xhigh")
+        code, result = self.invoke("codex", "done", "--model", "gpt-6-sol", "--effort", "xhigh")
         self.assertEqual(code, 0, result)
         argv = self.seen()["argv"]
-        self.assertEqual(argv[argv.index("-m") + 1], "gpt-5.6-sol")
+        self.assertEqual(argv[argv.index("-m") + 1], "gpt-6-sol")
         self.assertIn("model_reasoning_effort=xhigh", argv)
-        self.assertEqual((result["model"], result["effort"]), ("gpt-5.6-sol", "xhigh"))
+        self.assertEqual((result["model"], result["effort"]), ("gpt-6-sol", "xhigh"))
 
     def test_resume_run_continues_a_stopped_grok_run_on_codex(self):
         code, stopped = self.invoke("grok", "stuck", "--max-resumes", "0")
