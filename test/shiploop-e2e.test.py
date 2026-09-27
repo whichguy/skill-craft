@@ -615,6 +615,10 @@ class MetricsTest(unittest.TestCase):
             'git -C /x/wt commit -F /tmp/m': ["git commit/add by the model"],
             'python3 - <<PY\n{"exit_condition": 1}\nPY': ["hand-built loop contract"],
             'python3 /p/shiploop improve-commit --run-dir=/x/run --action=a --message=/x/m.md': [],
+            # words inside a heredoc are a document, not commands
+            "python3 - << 'PY'\nreport = {'evidence': 'git log shows the commit'}\nPY\n": [],
+            'cd /x/wt && WT=/x git -C "$WT" add docs/a.md && git commit -m m': ["git commit/add by the model"],
+            'echo "run git commit later"': [],
         }
         for command, reasons in cases.items():
             with self.subTest(command=command):

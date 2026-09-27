@@ -28,18 +28,28 @@ SHIPLOOP_OWNED = re.compile(r"(?:\.shiploop-improve|/\.shiploop(?:/|[\"'\s]|$)|\
 # Files the packets ask the model itself to write (its result, an Improve opening or
 # commit message): writing them is the step, not glue.
 MODEL_INPUT = re.compile(r"/inbox/|opening\.md|commit-message\.md")
-GLUE_COMMIT = re.compile(r"\bgit\b[^\n;&|]*\s(?:commit|add)\b")
+# `git ... commit|add` as a command: at the start of a line or after ; && || |, optionally after VAR=value.
+GLUE_COMMIT = re.compile(r"(?:^|[;&|]\s*)(?:\w+=\S*\s+)*git\b[^\n;&|]*\s(?:commit|add)\b", re.M)
 GLUE_WRITE = re.compile(r"(?:>>?|\btee\b|\bcp\b|\bmv\b|\bmkdir\b|\brm\b)\s+[^\n;&|]*")
 GLUE_CONTRACT = re.compile(r"exit_condition|repeat_condition|required_trivial_reviews")
+
+
+HEREDOC = re.compile(r"<<-?\s*['\"]?(\w+)['\"]?[^\n]*\n.*?\n\s*\1\s*(?:\n|$)", re.S)
+
+
+def shell_text(command: str) -> str:
+    """The command with heredoc bodies removed: words inside a document are not commands."""
+    return HEREDOC.sub("\n", command)
 
 
 def glue_reasons(command: str) -> list[str]:
     """Why a shell command counts as model-written glue ([] when it does not)."""
     reasons = []
-    if GLUE_COMMIT.search(command):
+    shell = shell_text(command)
+    if GLUE_COMMIT.search(shell):
         reasons.append("git commit/add by the model")
     if any(SHIPLOOP_OWNED.search(m.group(0)) and not MODEL_INPUT.search(m.group(0))
-           for m in GLUE_WRITE.finditer(command)):
+           for m in GLUE_WRITE.finditer(shell)):
         reasons.append("shell write into a ShipLoop-owned path")
     if GLUE_CONTRACT.search(command):
         reasons.append("hand-built loop contract")
