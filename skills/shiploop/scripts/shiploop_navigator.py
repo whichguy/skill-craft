@@ -3123,10 +3123,15 @@ def _render_improve(core: Any, root: Path, state: Mapping[str, Any], lines: list
         + "To continue after a stop that cannot be reconciled, once its blocker is resolved or the user "
         "authorizes continuing, "
         + ("confirm no candidate write is in progress" if inline else "confirm the recorded owner stopped")
-        + ", rename packet.json to packet.stopped-<UTC timestamp>.json and the sibling reviews "
-        "directory to reviews.stopped-<same timestamp>, record the decision in the new context "
-        "opening and start a new child with the same binding line; its review_refs and check_refs "
-        "must be files the new child writes. "
+        + (", record the decision in the opening file and rerun the improve-start command with "
+           "--restart-stopped: ShipLoop archives packet.json as packet.stopped-<UTC timestamp>.json and "
+           "the sibling reviews directory as reviews.stopped-<same timestamp>, then starts a new child with "
+           "the same binding line. Do not rename them yourself. "
+           if inline else
+           ", rename packet.json to packet.stopped-<UTC timestamp>.json and the sibling reviews "
+           "directory to reviews.stopped-<same timestamp>, record the decision in the new context "
+           "opening and start a new child with the same binding line. ")
+        + "Its review_refs and check_refs must be files the new child writes. "
         "To pause instead, run the parent pause command below and leave the child active; never "
         "report cancelled for a pause. "
         + "If an existing active child's receipt or temporary state is unavailable, report incomplete; "
@@ -3568,13 +3573,31 @@ def _improve_start(core: Any, root: Path, state: Mapping[str, Any], args: Any) -
     _need(delegation(state) == guidance3.INLINE,
           "improve-start is the inline route; an ask-agent child is started by its worker")
     receipt = standalone.receipt_path(child)
-    _need(not receipt.exists(),
-          "this child already started; recover it from its saved receipt " + str(receipt)
-          + " (active: run its next_argv once; complete: write the completion evidence and run improve-complete)")
+    restart = bool(getattr(args, "restart_stopped", False))
+    if receipt.exists():
+        try:
+            saved_status = json.loads(receipt.read_text(encoding="utf-8")).get("status")
+        except (OSError, ValueError, AttributeError):
+            saved_status = None
+        _need(restart and saved_status == "stopped",
+              "this child already started; recover it from its saved receipt " + str(receipt)
+              + " (active: run its next_argv once; complete: write the completion evidence and run "
+              "improve-complete; stopped: once the blocker is resolved or the user authorizes continuing, "
+              "record that decision in the opening and rerun improve-start with --restart-stopped)")
+    else:
+        _need(not restart, "--restart-stopped needs a stopped child receipt at " + str(receipt))
     opening = improve_opening_path(child)
     _need(getattr(args, "opening", None) == str(opening), "Improve opening must use the printed path " + str(opening))
     _need(opening.is_file() and not opening.is_symlink(), "write the opening file first: " + str(opening))
     contract = improve_start_contract(core, root, state, opening.read_text(encoding="utf-8"))
+    if restart:
+        # Keep the stopped child's packet and evidence; the new child writes its own.
+        stamp = datetime.now(timezone.utc).strftime("%Y%m%dT%H%M%SZ")
+        receipt.rename(receipt.with_name("packet.stopped-" + stamp + ".json"))
+        if (receipt.parent / "reviews").is_dir():
+            (receipt.parent / "reviews").rename(receipt.parent / ("reviews.stopped-" + stamp))
+        sys.stdout.write("Archived the stopped child as packet.stopped-" + stamp + ".json"
+                         + " and reviews.stopped-" + stamp + ".\n")
     receipt.parent.mkdir(parents=True, exist_ok=True)
     (receipt.parent / "reviews").mkdir(exist_ok=True)
     completion = root / "inbox" / (action_id + "-improve.md")

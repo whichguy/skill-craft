@@ -528,8 +528,13 @@ class EphemeralImproveCliTests(ImproveCliFixture):
     def test_user_stopped_child_restarts_with_the_same_binding_then_imports(self):
         """A cancelled non-plan child is archived, restarted once and imported; no halt needed."""
         packet = self.invoke(CLI, "next", "--run-dir", self.run).stdout
-        self.assertIn("rename packet.json to packet.stopped-<UTC timestamp>.json and the sibling reviews "
-                      "directory to reviews.stopped-<same timestamp>", packet)
+        if self.inline():
+            self.assertIn("rerun the improve-start command with --restart-stopped: ShipLoop archives "
+                          "packet.json as packet.stopped-<UTC timestamp>.json", packet)
+            self.assertIn("Do not rename them yourself.", packet)
+        else:
+            self.assertIn("rename packet.json to packet.stopped-<UTC timestamp>.json and the sibling reviews "
+                          "directory to reviews.stopped-<same timestamp>", packet)
         self.assertIn("must be files the new child writes", packet)
         self.assertIn("never report cancelled for a pause", packet)
         _raw, first = self.start_ephemeral_child()
@@ -541,12 +546,27 @@ class EphemeralImproveCliTests(ImproveCliFixture):
         self.invoke(CLI, "improve-complete", "--run-dir", self.run, "--action", self.action,
                     "--result", completion, status=2)
         self.assertEqual((self.run / "state.md").read_bytes(), before)
-        archived = self.packet_path.with_name("packet.stopped-20260923T000000Z.json")
-        self.packet_path.rename(archived)
-        reviews = self.packet_path.with_name("reviews")
-        stopped_reviews = reviews.with_name("reviews.stopped-20260923T000000Z")
-        reviews.rename(stopped_reviews)
-        self.finish_ephemeral()
+        if self.inline():
+            opening = self.packet_path.with_name("opening.md")
+            opening.write_text("## Current context and desired improvements\nThe user authorized continuing.\n\n"
+                               "## Scope\nproduct/contracts/cold-recovery.md\n\n## Authority\nUser: continue.\n\n"
+                               "## Environment\nPython fixture.\n", encoding="utf-8")
+            start = [CLI, "improve-start", "--run-dir", self.run, "--action", self.action, "--opening", opening]
+            self.assertIn("already started", self.invoke(*start, status=2).stderr)
+            restarted = self.invoke(*start, "--restart-stopped").stdout
+            archived = next(self.packet_path.parent.glob("packet.stopped-*.json"))
+            stopped_reviews = self.packet_path.parent / archived.name.replace("packet.", "reviews.").removesuffix(".json")
+            self.assertTrue(stopped_reviews.is_dir())
+            first = json.loads(restarted[restarted.index("{"):])
+            self.assertEqual(first["status"], "active")
+            self.finish_ephemeral(first)
+        else:
+            archived = self.packet_path.with_name("packet.stopped-20260923T000000Z.json")
+            self.packet_path.rename(archived)
+            reviews = self.packet_path.with_name("reviews")
+            stopped_reviews = reviews.with_name("reviews.stopped-20260923T000000Z")
+            reviews.rename(stopped_reviews)
+            self.finish_ephemeral()
         completion, _receipt = self.completion_receipt()
         self.invoke(CLI, "improve-complete", "--run-dir", self.run, "--action", self.action,
                     "--result", completion)

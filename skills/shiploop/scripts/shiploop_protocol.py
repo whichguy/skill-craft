@@ -335,6 +335,8 @@ def main(core, argv=None):
         if name == "improve-start":
             sub.add_argument("--opening", required=True,
                              help="the printed opening file: the four sections only the parent knows")
+            sub.add_argument("--restart-stopped", action="store_true",
+                             help="archive a stopped child's receipt and reviews, then start a new child")
         if name in ("complete", "improve-bind", "improve-start", "improve-complete", "improve-reconcile"):
             sub.add_argument("--action", required=True)
         if name in ("complete", "improve-complete", "improve-reconcile"):

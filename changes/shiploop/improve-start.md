@@ -11,3 +11,7 @@ directory, parent state, completion evidence and a written `parent-return.md`),
 stores it as `start.json`, starts the bound runtime with `--receipt` and its
 state under the run directory's `until-loop/`, and prints the child's first
 packet. The model no longer hand-writes a ~6 KB JSON contract per child.
+
+`improve-start --restart-stopped` restarts a stopped child: ShipLoop archives its
+`packet.json` and `reviews/` with a UTC stamp itself and starts the new child,
+instead of the model renaming them by hand.

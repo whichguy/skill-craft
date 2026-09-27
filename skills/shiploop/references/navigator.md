@@ -203,10 +203,11 @@ parent. An active receipt supplies the exact read-only `next_argv`; a complete
 receipt survives temporary child state deletion and can be imported without
 another review. Missing or stopped child receipts leave the parent incomplete.
 The host never creates a replacement child to repair lost terminal output. A
-known stopped receipt is different: the Improve packet prints a restart route
-that archives it as `packet.stopped-<UTC timestamp>.json` (and `reviews/` as
-`reviews.stopped-<same timestamp>`) and starts a new child with the same binding line once the blocker is resolved or the user authorizes
-continuing. A pause keeps the child active and is never reported as `cancelled`.
+known stopped receipt is different: once the blocker is resolved or the user
+authorizes continuing, `improve-start --restart-stopped` (inline route) archives
+it as `packet.stopped-<UTC timestamp>.json` (and `reviews/` as
+`reviews.stopped-<same timestamp>`) and starts a new child with the same binding
+line; a delegated worker does the same by hand. A pause keeps the child active and is never reported as `cancelled`.
 See [the current runtime binding](../README.md#current-improve-and-until-loop-binding)
 for the transition example and validation limits.
 
