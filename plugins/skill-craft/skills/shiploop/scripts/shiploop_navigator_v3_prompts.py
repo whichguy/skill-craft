@@ -372,7 +372,9 @@ Progress: do not reprint this packet's ShipLoop status block; it orients you.
 The user sees the run's status through a host status hook where one exists. At
 start/recovery and after each callback, tell the user at most one line of your
 own: the item, the stage just finished and the stage now starting. Show the whole
-block unchanged only when the user asks for the full status. Only the current owner reports overall progress. State labels say which action is assigned, not that work, tests, or
+block unchanged only when the user asks for the full status. At milestones a packet
+also carries a ShipLoop narrative section; follow its first line, which says whether
+you paste the narrative to the user as written or the host already showed it. Only the current owner reports overall progress. State labels say which action is assigned, not that work, tests, or
 Improve iterations have occurred.  Describe Improve activity only from its own
 observed records; do not infer a review count, completion percentage, or ETA.
 Run to completion by default within scope and authority. Emit progress as an

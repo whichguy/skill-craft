@@ -22,6 +22,11 @@ import shiploop_navigator_v3_prompts as guidance3  # noqa: E402
 
 BEGIN = "=== ShipLoop status ==="
 END = "=== end ShipLoop status ==="
+# The Claude Code terminal CLI keeps a hook message's own SGR styling (measured
+# on 2.1.283); host text in the narrative is already stripped of control codes.
+BOLD, PLAIN = "\x1b[1m", "\x1b[22m"
+NARRATIVE_BEGIN = "=== ShipLoop narrative ==="
+NARRATIVE_END = "=== end ShipLoop narrative ==="
 HEADER = "ShipLoop navigator | "
 # The block must end this early in stdout; Claude Code keeps only the head of
 # oversized Bash output, and the block sits right after the callback line.
@@ -92,9 +97,12 @@ def _output(response: Any, *keys: str) -> str | None:
     return None
 
 
-# Hosts whose after-shell hook output can reach the user.  Grok never shows a
-# successful PostToolUse hook's output and Cursor's afterShellExecution has no
-# output field, so there the in-packet block remains the display.
+# Payload shapes whose after-shell hook output can reach the user.  Claude Code
+# and Codex share one shape; of their surfaces only the Claude Code terminal CLI
+# displays the message (the desktop app, the VS Code panel and the Codex 0.157.1
+# TUI drop it), which is why the packet itself routes the narrative to the owner
+# everywhere else.  Grok never shows a successful PostToolUse hook's output and
+# Cursor's afterShellExecution has no output field.
 DISPLAY_HOSTS = {"claude-or-codex"}
 
 
@@ -180,10 +188,42 @@ def compact(block: str) -> str:
     return "\n".join(["ShipLoop ▶ " + rows["Where"]] + ([" | ".join(second)] if second else []))
 
 
+def narrative_text(stdout: str) -> str | None:
+    """The packet's milestone narrative as plain text, or None when this packet has none."""
+    head = stdout[:WINDOW]
+    start, end = head.find(NARRATIVE_BEGIN), head.find(NARRATIVE_END)
+    if start < 0 or end < start or head.count(NARRATIVE_BEGIN) != 1:
+        return None
+    # Skip the begin marker and the owner's instruction line; keep the Markdown body.
+    body = head[start:end].split("\n", 2)[2:]
+    if not body:
+        return None
+    lines = []
+    for line in body[0].strip().splitlines():
+        if line.startswith("#"):
+            line = BOLD + line.lstrip("#").strip().replace("**", "") + PLAIN
+        else:
+            # Markdown bold becomes terminal bold; code spans lose their backticks.
+            parts = line.replace("`", "").split("**")
+            line = "".join(part if index % 2 == 0 else BOLD + part + PLAIN
+                           for index, part in enumerate(parts))
+        lines.append(line)
+    text = "\n".join(lines).strip()
+    return re.sub(r"\n{3,}", "\n\n", text) or None
+
+
 def status_message(payload: Any) -> str | None:
-    """Return the compact status to show the user, only on hosts that can display it."""
+    """Return what to show the user, only on hosts that can display it.
+
+    A milestone packet carries the run narrative; every other packet shows the
+    compact two-line status.
+    """
     found = status_block(payload)
-    return compact(found[1]) if found is not None and found[0] in DISPLAY_HOSTS else None
+    if found is None or found[0] not in DISPLAY_HOSTS:
+        return None
+    call = shell_call(payload)
+    story = narrative_text(call[2]) if call is not None else None
+    return story or compact(found[1])
 
 
 def main() -> int:

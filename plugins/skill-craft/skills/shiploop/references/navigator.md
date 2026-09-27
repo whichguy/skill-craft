@@ -378,6 +378,7 @@ The semantic result contract is small:
 | --- | --- |
 | `outcome` | `done`, `repeat`, or `blocked`; outer steps also allow `replan` with new corrective work items; `reconcile` is recorded only through the initial plan child's `improve-reconcile`. Planning results and the last carry-forward first wait for actual Improve; other results advance directly. The final disposition then determines the script-owned route. |
 | `summary` | Concise statement of the current action’s real result. |
+| `headline` | One line of at most 100 characters, for the user, saying what this step established; the [run narrative](status-display.md#run-narrative) lists it under Achieved. The template's placeholder is refused. Without it the narrative uses the summary's first sentence. |
 | `evidence_refs` | Absolute paths of the files this stage wrote or of the check output it recorded, or other safe references to source, test, note, or external-operation evidence. The template's placeholder is refused. |
 | `work_items` | Ordered `{id,title,context?}` items at `plan` before execution, at `carry-forward` for future-only work, or required new IDs for an outer `replan`. |
 | `delivery_assessment` | Only for runs initialized with `--delivery-contract`: a full consumer-delivery contract/correction or bound observations, using the packet template. See [consumer delivery](consumer-delivery.md). |
@@ -455,8 +456,10 @@ owner does not reprint it. Where the host supports one, a status hook (see the
 status-display guide) shows the user a two-line summary. At start/recovery and
 after each callback the owner tells the user at most one line, for example the
 stage just finished and the one starting, and shows the whole block unchanged
-only when the user asks for the full status. During long actions or
-waits, follow the host's update cadence with an actual observation, or the last
+only when the user asks for the full status. At milestones the packet also
+carries the [run narrative](status-display.md#run-narrative); its first line says
+whether the owner pastes it to the user as written or the host's hook already
+showed it. During long actions or waits, follow the host's update cadence with an actual observation, or the last
 known status and next check.
 
 Run to completion by default within the user's scope and existing authority.
