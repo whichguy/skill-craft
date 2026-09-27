@@ -411,10 +411,19 @@ class NavigatorV4Tests(unittest.TestCase):
         cancel_rule = ("Freeze in repeat_condition: if a finding invalidates an accepted discovery, "
                        "research, spec or test-strategy premise")
         inline = navigator.render(None, root, dict(waiting, delegation="inline"))
+        # A blocked stop cannot reconcile; the child must report cancelled. The delegated worker
+        # freezes that rule itself; inline, improve-start writes it into the contract's repeat
+        # condition, which the runtime reprints in every child packet.
+        self.assertLess(improve.index(cancel_rule), improve.index("start once"))
+        self.assertIn("continuation_assessment cancelled", improve)
+        self.assertNotIn(cancel_rule, inline)
+        opening = ("## Current context and desired improvements\nx\n\n## Scope\nx\n\n## Authority\nx\n\n"
+                   "## Environment\nx\n")
+        contract = navigator.improve_start_contract(None, root, dict(waiting, delegation="inline"), opening)
+        self.assertIn("finish the current bounded work and report classification unresolved or non-trivial",
+                      contract["repeat_condition"])
+        self.assertIn("continuation_assessment cancelled", contract["repeat_condition"])
         for packet in (improve, inline):
-            # A blocked stop cannot reconcile; the child must report cancelled.
-            self.assertLess(packet.index(cancel_rule), packet.index("start once"))
-            self.assertIn("continuation_assessment cancelled", packet)
             self.assertIn("the exact parent return instructions below", packet)
         self.assertIn("once the runtime has returned that stopped packet", inline)
         self.assertIn("confirm the runtime returned it in this conversation", inline)
