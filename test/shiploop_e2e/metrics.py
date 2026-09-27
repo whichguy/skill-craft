@@ -74,6 +74,7 @@ def collect(out: Path, run_dir: Path | None = None) -> dict:
     turns: list[dict] = []
     sessions, failures, tests, compactions = [], [], 0, 0
     truncated: set = set()
+    cancelled: list[str] = []
     reads: list[str] = []
     for number, event in events(out / "events.jsonl"):
         kind = event.get("type")
@@ -95,6 +96,10 @@ def collect(out: Path, run_dir: Path | None = None) -> dict:
             target = arg.get("target_file") or arg.get("file_path") or arg.get("path")
             if target:
                 reads.append(str(target))
+        elif kind == "tool_call_update" and event.get("status") == "failed" and "cancelled" in json.dumps(
+                event.get("content") or "").lower():
+            # Grok's headless permission check refused the call; the turn ends with it.
+            cancelled.append(((calls.get(event.get("toolCallId")) or {}).get("command") or "")[:160])
         elif kind == "tool_call_update" and isinstance(event.get("rawOutput"), dict):
             raw = event["rawOutput"]
             if raw.get("truncated"):  # Grok repeats the update; count each call once
@@ -123,6 +128,7 @@ def collect(out: Path, run_dir: Path | None = None) -> dict:
         "cost_usd": cost,
         "compactions": compactions,
         "truncated_outputs": len(truncated),
+        "cancelled_tool_calls": cancelled,
         "shiploop_failures": failures,
         "test_runs": tests,
         "improve_children": len(list(improve.iterdir())) if improve and improve.is_dir() else 0,
@@ -156,6 +162,7 @@ def summary_lines(metrics: dict, top: int = 5) -> list[str]:
     lines = [f"turns {metrics['turns']}, cost ${metrics['cost_usd']}, sessions {len(metrics['sessions'])} "
              f"({', '.join(str(s['stop']) for s in metrics['sessions']) or 'none ended'}), "
              f"compactions {metrics['compactions']}, truncated outputs {metrics['truncated_outputs']}, "
+             f"cancelled tool calls {len(metrics['cancelled_tool_calls'])}, "
              f"ShipLoop command failures {len(metrics['shiploop_failures'])}, test runs {metrics['test_runs']}, "
              f"Improve children {metrics['improve_children']}"]
     timed = [s for s in metrics["stages"] if "turns" in s]

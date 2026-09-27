@@ -459,6 +459,10 @@ class MetricsTest(unittest.TestCase):
                 {"type": "usage", "usage": {"input_tokens": 3000, "output_tokens": 20}},
                 {"type": "tool_call", "toolCallId": "b", "rawInput": {"command": "node --test"}},
                 {"type": "tool_call_update", "toolCallId": "b", "rawOutput": {"exit_code": 0, "truncated": True}},
+                {"type": "tool_call", "toolCallId": "c", "rawInput": {"command": "git init -b main"}},
+                {"type": "tool_call_update", "toolCallId": "c", "status": "failed", "rawOutput": None, "content": [
+                    {"type": "content", "content": {"type": "text",
+                                                    "text": "User cancelled the execution for tool `run_terminal_command`"}}]},
                 {"type": "auto_compact_completed"},
                 {"type": "usage", "usage": {"input_tokens": 500, "output_tokens": 5}},
                 {"type": "end", "stopReason": "end_turn", "num_turns": 3, "total_cost_usd": 3.0},
@@ -466,7 +470,7 @@ class MetricsTest(unittest.TestCase):
             (out / "events.jsonl").write_text("\n".join(json.dumps(e) for e in stream) + "\n")
             (out / "timeline.jsonl").write_text("\n".join(json.dumps({"line": n, "t": 100.0 + n})
                                                            for n in range(len(stream))) + "\n")
-            for name, stage, when in (("1-intake.md", "intake", 104.5), ("2-spec.md", "spec", 109.5)):
+            for name, stage, when in (("1-intake.md", "intake", 104.5), ("2-spec.md", "spec", 111.5)):
                 path = run_dir / "results" / name
                 path.write_text(f'```json\n{{"stage": "{stage}"}}\n```\n')
                 os.utime(path, (when, when))
@@ -476,6 +480,7 @@ class MetricsTest(unittest.TestCase):
         self.assertEqual(m["compactions"], 1)
         self.assertEqual(m["truncated_outputs"], 2)
         self.assertEqual(m["test_runs"], 1)
+        self.assertEqual(m["cancelled_tool_calls"], ["git init -b main"])
         self.assertEqual(m["improve_children"], 1)
         self.assertEqual(m["shiploop_failures"], [{"verb": "complete", "exit": 2, "line": "error: result refused"}])
         self.assertEqual([(s["stage"], s["turns"]) for s in m["stages"]], [("intake", 2), ("spec", 1)])

@@ -72,13 +72,15 @@ def report(out: Path) -> str:
                        ("improve_children", "Improve children"), ("test_runs", "test runs")):
         if m[key] > memo.get(key, 0):
             lines.append(f"  {label}: {m[key]} (+{m[key] - memo.get(key, 0)})")
+    for command in m["cancelled_tool_calls"][memo.get("cancelled", 0):]:
+        lines.append("  host cancelled a tool call (permission check): " + " ".join(command.split())[:120])
     for session in m["sessions"][memo.get("sessions", 0):]:
         lines.append(f"  session ended: {session['stop']} after {session['turns']} turns")
     remark = last_remark(out)
     if remark:
         lines.append("  model: " + remark)
     memo_path.write_text(json.dumps({"stages": len(m["stages"]), "failures": len(m["shiploop_failures"]),
-                                     "sessions": len(m["sessions"]),
+                                     "sessions": len(m["sessions"]), "cancelled": len(m["cancelled_tool_calls"]),
                                      **{k: m[k] for k in ("truncated_outputs", "compactions",
                                                           "improve_children", "test_runs")}}))
     return "\n".join(lines)

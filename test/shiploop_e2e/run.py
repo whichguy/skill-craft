@@ -598,7 +598,8 @@ def main(argv: list[str] | None = None) -> int:
               "shiploop": shiploop, "checks": check_results, "cli": cli_seen, "follow_on": follow_on,
               "metrics": {k: run_metrics[k] for k in ("turns", "cost_usd", "compactions", "truncated_outputs",
                                                       "test_runs", "improve_children")}
-              | {"shiploop_failures": len(run_metrics["shiploop_failures"])},
+              | {"shiploop_failures": len(run_metrics["shiploop_failures"]),
+                 "cancelled_tool_calls": len(run_metrics["cancelled_tool_calls"])},
               "output": str(out)}
     (out / "result.json").write_text(json.dumps(result, indent=2) + "\n")
 
