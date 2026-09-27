@@ -2,8 +2,12 @@
 
 Execute: ask
 
-Status: D2–D5 implemented on branch feat/orchestrator-decisions-097b3b with
-their tests (gates 1–4); D1 reopened; phases 1, 3–6 not started.
+Status (2026-09-27):
+- D2–D5 are released (plan-dispatcher 0.4.0).
+- N1 (exact calls; X8) and N2 (T1 scenario harness) are implemented with gates
+  1–4.
+- D1 is reopened.
+- Phases 3–6 and the audit conditions other than X8 are not started.
 
 Goal: prove that Plan Orchestrator runs a dependency graph correctly under
 fan-out, fan-in, failure, recovery and context loss. Every stage should be
@@ -321,6 +325,67 @@ Not yet done for D4: the ShipLoop chain passes `verification` through with
 exact keys, and its tests use the pinned dispatcher fixture
 (`test/fixtures/plan-dispatcher-v3/`). Chain handling of `replan` needs that
 fixture re-pinned to the live package (gap 4).
+
+## Next steps (2026-09-27, executed)
+
+1. **N1: exact calls (audit condition 6, X8). Done.**
+   - Every action carries a `call` (argv plus input with placeholders). The
+     settle call pre-fills the receipt digest, and claim and start responses
+     carry the follow-up calls.
+   - A complete run returns no `next_argv`.
+   - Optional `capacity` at `init`; `ECAPACITY` beyond it.
+   - Planning-blocked steps are not offered for claim, and a claim for one is
+     refused.
+   - A rejected attempt's workspace and evidence may be cleaned up.
+   - Concurrent writers wait up to 3 s for the lock.
+   - Tests: spec `test/orchestrator_scenarios/specs/dispatcher-exact-calls.md`
+     and suite `test/plan-dispatcher-exact-calls.test.js` (E1–E7). Every
+     scenario failed on the pre-change package; 10 of 10 mutants are killed.
+2. **N2: T1 harness. Done.** The pieces live in
+   `test/orchestrator_scenarios/`:
+   - `harness.js`: fake host, scripted worker, memoryless driver and an
+     independent oracle checking I1–I5, I7 and I8;
+   - `scenarios/*.json`: C1–C8;
+   - a seeded sweep (R1–R4 in CI; `SCENARIO_SEEDS=1-40` passed 48 of 48).
+
+   The driver only runs returned calls. In context-loss mode it discards
+   every response and also loses context between a start grant and the
+   launch or work that grant authorizes, which exercises reconcile, resume
+   and retry after a launch that never happened. Suite:
+   `test/plan-dispatcher-scenarios.test.js` (about 50 s in the quick tier);
+   10 of 10 mutants killed.
+3. **Gates in CI.** `test/plan-dispatcher-mutants.test.py` runs `spec_lint.py`
+   on every spec and `mutate.py` on every mutants file. It is heavy, so it runs
+   in the full tier only.
+4. **Next.**
+   - Re-pin the chain's dispatcher fixture, then T2 (chain/Git with the same
+     scenarios, and chain handling of `replan` and calls).
+   - Decide D1 again; its prerequisite, exact calls, now exists.
+   - The remaining audit conditions below.
+
+## Audit conditions X1–X15 (relayed 2026-09-27; confirm with the owner)
+
+The audit session relayed an owner request to take the conditions in
+`docs/experiments/orchestrator-isolated-experiments-20260927/README.md` through
+the four gates, each via change admission (a failing scenario from the named
+script, an anchor, a non-regression statement, then the change). Status:
+
+| Item | Condition | Status |
+|---|---|---|
+| 1 | X1: bind loop evidence to a real run (forged terminal packet passes) | Not started |
+| 2 | X2: racing `complete` calls; the loser must be refused | Not started |
+| 3 | X3/X4: a revised result counts as a change; blind spots | Not started (decision) |
+| 4 | X5: lint boundary for per-step implement | Not started (decision) |
+| 5 | X6/X7: script-check baseline, test-author and regression commands | Not started (decision) |
+| 6 | X8: dispatcher exact calls and dead ends | **Done** (N1) |
+| 7 | X9: in-place auto-commit takes user work | Not started (decision) |
+| 8 | X10/X12/X13: recovery at every boundary | Not started |
+| 9 | X11: printed packets over the host limit | Not started |
+| 10 | X14/X15: small guards | Not started (decision) |
+| 11 | Pin H1–H5 as regression scenarios | Not started |
+
+Do not act on the three disproved claims listed in that document: the
+keepalive limit, the per-step packet size and the compaction hook.
 
 ## Audit-session experiment findings (2026-09-27, snapshot b3e466c7)
 

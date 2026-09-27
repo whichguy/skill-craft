@@ -231,6 +231,11 @@ function assertProgress(progress, graph) {
 function assertProgressResponse(response, graph) {
   assert.ok(Object.hasOwn(response, 'progress'), 'parent response includes progress');
   assertProgress(response.progress, graph);
+  if (response.complete === true) {
+    // A completed run returns no next call.
+    assert.equal(Object.hasOwn(response, 'next_argv'), false);
+    return response.progress;
+  }
   assert.deepEqual(response.next_argv, [process.execPath, helper, 'next', response.next_argv[3]]);
   return response.progress;
 }

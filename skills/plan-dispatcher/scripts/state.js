@@ -20,7 +20,8 @@ const RETIRED_STATE_FILE = 'state.json';
 const INBOX_DIR = 'inbox';
 const LOCK_FILE = '.dispatcher.lock';
 const LOCK_RECOVERY_FILE = '.dispatcher.lock.recover';
-const LOCK_ATTEMPTS = 3;
+const LOCK_WAIT_MS = 3000;
+const LOCK_POLL_MS = 15;
 const STATE_LOSS_RECOVERY = 'This run cannot be resumed: its state file and inbox receipts are its only ' +
   'authority, and the dispatcher never rebuilds them. Start a new run in a new directory with the same ' +
   'graph, leaving out steps whose work the caller has verified is already integrated.';
@@ -355,46 +356,92 @@ function removeDeadLock(dir, lockPath, inspected) {
   }
 }
 
+function pause(milliseconds) {
+  Atomics.wait(new Int32Array(new SharedArrayBuffer(4)), 0, 0, milliseconds);
+}
+
+function liveLocalHolder(bytes) {
+  try {
+    const holder = JSON.parse(bytes);
+    return isPlainObject(holder) && Number.isSafeInteger(holder.pid) && holder.pid > 0 &&
+      holder.host === os.hostname() && processAlive(holder.pid);
+  } catch (_) {
+    return false;
+  }
+}
+
+/*
+ * Operations hold the lock for milliseconds, so a writer that meets a live
+ * local holder (or a recovery in progress) waits up to LOCK_WAIT_MS before
+ * refusing; concurrent callers queue instead of failing.  Holders it cannot
+ * check (another host, unreadable) are refused at once.
+ */
 function acquireLock(dir) {
   const lockPath = path.join(dir, LOCK_FILE);
-  for (let tries = 0; tries < LOCK_ATTEMPTS; tries += 1) {
+  const deadline = Date.now() + LOCK_WAIT_MS;
+  // The holder is written to a private file and hard-linked into place, so the
+  // lock never exists without its holder.
+  const pending = lockPath + '.' + process.pid + '.' + crypto.randomUUID();
+  fs.writeFileSync(pending, lockHolder(), { encoding: 'utf8', flag: 'wx', mode: 0o600 });
+  try {
+    for (;;) {
+      if (tryLink(pending, lockPath)) {
+        return;
+      }
+      waitForLock(dir, lockPath, deadline);
+    }
+  } finally {
+    fs.unlinkSync(pending);
+  }
+}
+
+function tryLink(pending, lockPath) {
+  try {
+    fs.linkSync(pending, lockPath);
+    return true;
+  } catch (error) {
+    if (error.code !== 'EEXIST') {
+      throw error;
+    }
+    return false;
+  }
+}
+
+// One wait step for a writer that found the lock held: recover a dead local
+// holder, refuse one it cannot check or past the deadline, else pause.
+function waitForLock(dir, lockPath, deadline) {
+  const bytes = readLockBytes(lockPath);
+  if (bytes === null) {
+    return;
+  }
+  if (deadLocalHolder(bytes)) {
     try {
-      const descriptor = fs.openSync(lockPath, 'wx', 0o600);
-      fs.writeFileSync(descriptor, lockHolder(), 'utf8');
-      return descriptor;
+      removeDeadLock(dir, lockPath, bytes);
+      return;
     } catch (error) {
-      if (error.code !== 'EEXIST') {
+      if (error.code !== 'ELOCKED' || Date.now() >= deadline ||
+          /stopped process left/.test(error.message)) {
         throw error;
       }
     }
-    const bytes = readLockBytes(lockPath);
-    if (bytes === null) {
-      continue;
-    }
-    if (!deadLocalHolder(bytes)) {
-      lockRefusal(lockPath, bytes);
-    }
-    removeDeadLock(dir, lockPath, bytes);
+  } else if (!liveLocalHolder(bytes) || Date.now() >= deadline) {
+    lockRefusal(lockPath, bytes);
   }
-  fail('dispatcher lock changed hands repeatedly; retry.', 'ELOCKED');
+  pause(LOCK_POLL_MS);
 }
 
 function withLock(dir, operation) {
   const lockPath = path.join(dir, LOCK_FILE);
-  const descriptor = acquireLock(dir);
+  acquireLock(dir);
 
   try {
     return operation();
   } finally {
     try {
-      fs.closeSync(descriptor);
-    } finally {
-      try {
-        fs.unlinkSync(lockPath);
-      } catch (error) {
-        if (error.code !== 'ENOENT') {
-          throw error;
-        }
+      fs.unlinkSync(lockPath);
+    } catch (error) {
+      if (error.code !== 'ENOENT') {
+        throw error;
       }
     }
   }
@@ -1158,11 +1205,15 @@ function hydrateState(dir, state) {
   if (state.version !== 1 && state.version !== 2) {
     fail('dispatcher state version is invalid');
   }
+  const stateKeys = state.version === 2 ? baseStateKeys.concat('planning_context') : baseStateKeys;
   assertExactObject(
     state,
-    state.version === 2 ? baseStateKeys.concat('planning_context') : baseStateKeys,
+    hasOwn(state, 'capacity') ? stateKeys.concat('capacity') : stateKeys,
     'dispatcher state'
   );
+  if (hasOwn(state, 'capacity')) {
+    requireCapacity(state.capacity);
+  }
   requireString(state.run_id, 'dispatcher state.run_id');
   const frozenGraph = validateGraph(state.graph);
   if (!sameJson(state.graph, frozenGraph)) {
@@ -1280,11 +1331,13 @@ function hydrateState(dir, state) {
       if (record.status === 'claimed') {
         fail(label + ' cannot have context before launch intent');
       }
+      // A rejected attempt keeps its reservation, but its workspace and
+      // evidence may already be cleaned up; only live work needs them.
       validateStoredContext(
         record.context,
         dir,
         label + '.context',
-        RESERVED_STATUSES.has(record.status)
+        record.status === 'launching' || record.status === 'running'
       );
     }
 
@@ -1426,6 +1479,10 @@ function snapshotFromState(dir, state) {
     accepted,
     complete: accepted.length === state.graph.steps.length,
   };
+  if (hasOwn(state, 'capacity')) {
+    snapshot.capacity = state.capacity;
+    snapshot.available_capacity = Math.max(0, state.capacity - inFlightCount(state));
+  }
   const replan = replanAttempts(state);
   if (replan.length > 0) {
     snapshot.replan = {
@@ -1463,9 +1520,25 @@ function stopConfirmation(options, label) {
   requireString(options.reason, label + '.reason');
 }
 
-function init(dir, graph, owner, contextReference) {
+function requireCapacity(capacity) {
+  if (!Number.isSafeInteger(capacity) || capacity < 1) {
+    fail('capacity must be a positive integer');
+  }
+  return capacity;
+}
+
+// Claimed, launching and running attempts occupy execution capacity.
+function inFlightCount(state) {
+  return Object.values(state.attempts).filter((record) =>
+    ['claimed', 'launching', 'running'].includes(record.status)).length;
+}
+
+function init(dir, graph, owner, contextReference, capacity) {
   requireString(dir, 'dir');
   requireString(owner, 'owner');
+  if (capacity !== undefined) {
+    requireCapacity(capacity);
+  }
   const frozenGraph = validateGraph(graph);
   const frozenPlanningContext = contextReference === undefined
     ? undefined
@@ -1497,6 +1570,9 @@ function init(dir, graph, owner, contextReference) {
   };
   if (frozenPlanningContext !== undefined) {
     state.planning_context = frozenPlanningContext;
+  }
+  if (capacity !== undefined) {
+    state.capacity = capacity;
   }
 
   return withLock(dir, () => {
@@ -1617,17 +1693,28 @@ function claim(dir, owner, limit, stepIds) {
       });
     } else {
       candidates = [];
+      const room = hasOwn(state, 'capacity')
+        ? Math.min(limit, Math.max(0, state.capacity - inFlightCount(state)))
+        : limit;
       for (const step of state.graph.steps) {
-        if (candidates.length >= limit) {
+        if (candidates.length >= room) {
           break;
         }
         const stepState = state.steps[step.id];
-        if (stepState.status === 'pending' && dependenciesAccepted(state, step)) {
+        if (stepState.status === 'pending' && dependenciesAccepted(state, step) &&
+            planningContextAvailability(state, step.id).ok) {
           candidates.push(step);
         }
       }
     }
 
+    for (const step of candidates) {
+      assertStepPlanningContextAvailable(state, step.id);
+    }
+    if (hasOwn(state, 'capacity') && inFlightCount(state) + candidates.length > state.capacity) {
+      fail('claim exceeds capacity: ' + inFlightCount(state) + ' of ' + state.capacity +
+        ' slots are in use', 'ECAPACITY');
+    }
     const claims = [];
     for (const step of candidates) {
       const stepState = state.steps[step.id];

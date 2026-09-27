@@ -29,6 +29,29 @@ reference defines fields, boundaries, and recovery semantics; it is not another
 scheduler.
 `capabilities` is package discovery rather than a RUN operation.
 
+### Exact calls
+
+Every action in a `next` response carries its exact `call`. A `claim`
+response carries a start `call` for each claim, and a `start` response carries
+its follow-up `call`: `launched` for a native launch, or `report` for
+main-context work. A call is `{argv, input?, input_path?}`:
+
+- Replace each `"<...>"` placeholder in `input` with your own step output: the
+  workspace, the native handle, the artifact digest, or your verification.
+- Remove a field whose placeholder begins `"<omit"` when it does not apply.
+  Examples are `executor` for a native start, and `disposition` when the
+  result is not a verified blocker.
+- Write `input` as JSON (to `input_path` when given) and run `argv` with that
+  file's path appended. A call with no `input` runs as given.
+- Never compose argv, choose an operation, or change a value the call already
+  carries. For example, the settle call pre-fills the receipt digest.
+- From a claim call, you may only remove steps you cannot run.
+
+A `reconcile` action also carries `retry_call`, for when native inventory proves
+the attempt never launched. `collect` carries the `next` call to run once the
+worker returns. A response with `complete: true` carries no `next_argv`: the run
+has no next call.
+
 For a fresh native launch, the parent passes the complete returned worker packet
 unchanged beside a compact Current learnings block with a Markdown heading and
 short labeled bullets from the current conversation, stating explicitly when none
@@ -185,8 +208,11 @@ or retrofitted with planning inputs.
 
 ## Graph
 
-An init request has `{owner, graph, planning_context?}`. Owner is a unique
-nonempty dispatcher ID.
+An init request has `{owner, graph, planning_context?, capacity?}`. Owner is a
+unique nonempty dispatcher ID. `capacity`, when given, is a positive integer
+limiting claimed, launching and running attempts together. The claim action then
+offers at most the free slots (`next.available_capacity`), and a claim beyond it
+fails with `ECAPACITY`. Without it, claiming is unlimited.
 Graph is `{version:1, steps:[...]}` with optional JSON `source` provenance:
 
 ```json
@@ -289,7 +315,9 @@ It returns `ok`, `issues`, and `planning_context` without throwing for a missing
 or drifted planning input. Each issue carries `required_for`, so a caller can see
 the affected graph IDs. A context-bound `next` also includes the exact
 `planning_context`, `planning_context_check`, and `planning_blocked_steps`.
-`ready` remains dependency-derived; it is not a launch grant.
+`ready` remains dependency-derived; it is not a launch grant. The claim action
+leaves out planning-blocked steps, and `claim` refuses one with
+`EPLANNING_CONTEXT`.
 
 ## Commands and inputs
 
@@ -297,7 +325,7 @@ the affected graph IDs. A context-bound `next` also includes the exact
 | --- | --- | --- |
 | capabilities | No RUN or file | Report selected-package context support |
 | validate-graph | No RUN; file contains `{graph}` | Validate graph and step contracts without creating a run; return canonical graph digest |
-| init | `{graph,owner,planning_context?}` | Exclusively create a new run; return next actions |
+| init | `{graph,owner,planning_context?,capacity?}` | Exclusively create a new run; return next actions |
 | next | No file | Read exhaustive categorical progress, ready IDs, active attempts, accepted IDs and recovery actions |
 | claim | `{owner,steps:["B","C"]}` | Reserve precisely these ready IDs atomically; return preparation packets, which never launch by themselves |
 | start | `{owner,attempt,context,executor?}` | Native path persists launch intent and returns launch; `main-context` executor atomically enters serial work and returns execute; exact replay reconciles |
@@ -310,7 +338,8 @@ the affected graph IDs. A context-bound `next` also includes the exact
 | retry | `{owner,attempt,confirmed_stopped:true,reason}` | Retire nonaccepted attempt; next claim gets a fresh token whose packet lists it in `prior_attempts` |
 | takeover | `{oldOwner,newOwner,confirmed_stopped:true,reason}` | Fence old dispatcher owner, retain workers/receipts |
 
-Every successful operation scoped to a RUN includes `next_argv`, exactly
+Every successful operation scoped to a RUN, except a response with
+`complete: true`, includes `next_argv`, exactly
 `[node-executable, selected-helper-absolute-path, "next", absolute-run-path]`,
 and a nonempty `instruction`. For a dispatcher-scoped response, the dispatcher
 carries out its instruction, then uses that exact argv to read current actions.
@@ -693,18 +722,25 @@ worktree after `start`. A replacement attempt needs a fresh capability gate,
 identity and preparation receipt before it can start. ShipLoop's superseded
 workspace retention and finish decision remain within its existing lifecycle.
 
-Lock acquisition never waits. The lock file records its holder's `pid` and
-`host`. When the holder is a process that no longer exists on this host, the
+The lock file records its holder's `pid` and `host`. It is written to a
+private file and hard-linked into place, so it never exists without its holder.
+A writer that meets a live local holder, or a recovery in progress, waits up to
+3 seconds before refusing, so concurrent callers queue instead of failing. When the holder is a process that no longer exists on this host, the
 next writer removes the lock and proceeds; that removal runs under
 `.dispatcher.lock.recover` and only when the lock's bytes are unchanged, so it
 never removes a lock a live writer has just taken. Every other holder fails with
 `ELOCKED`: a live local process (retry an identical receipt after it finishes,
-or return it for parent collection), a holder on another host or an unreadable
+or return it for parent collection; this is only after the wait), a holder on
+another host or an unreadable
 holder (the message names the file to remove once that writer is confirmed
 stopped), and a recovery in progress. A recovery file left by a stopped process
 is named in the refusal; removing it lets the lock recover. Never clear a lock
 based on elapsed time. A reused PID reads as alive and is refused. Do not
 delete a run as a recovery shortcut for possibly launched work.
+
+A rejected attempt keeps its resource reservation until it is retried, but its
+workspace and ready evidence may be cleaned up: only launching and running
+attempts need them on disk. An accepted attempt's evidence must stay available.
 
 The state file and inbox receipts are the run's only authority and are never
 rebuilt. When the state file or a settled attempt's receipt is missing, every

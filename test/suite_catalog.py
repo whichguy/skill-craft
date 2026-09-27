@@ -139,6 +139,10 @@ _SHIPLOOP_PATHS = (
 # deterministic fallback retains that property for a newly added suite until a
 # later audit supplies an observed duration.
 _DURATION_SECONDS = {
+    # Plan Dispatcher gates: the mutation run reruns whole suites per mutant,
+    # so it belongs to the full tier (measured locally 2026-09-27).
+    "test/plan-dispatcher-mutants.test.py": 420.0,
+    "test/plan-dispatcher-scenarios.test.js": 50.0,
     "test/shiploop-stage-spec.test.py": 1.0,
     "test/shiploop-revise.test.py": 1.0,
     "test/shiploop-rehydration.test.py": 2.0,
@@ -292,6 +296,8 @@ _CORE_SUITES = (
     _suite("plan-dispatcher-planning-context", "core", "test/plan-dispatcher-planning-context.test.js", "node", "test/plan-dispatcher-planning-context.test.js"),
     _suite("plan-dispatcher-compound", "core", "test/plan-dispatcher-compound.test.js", "node", "test/plan-dispatcher-compound.test.js"),
     _suite("plan-dispatcher-decisions", "core", "test/plan-dispatcher-decisions.test.js", "node", "test/plan-dispatcher-decisions.test.js"),
+    _suite("plan-dispatcher-exact-calls", "core", "test/plan-dispatcher-exact-calls.test.js", "node", "test/plan-dispatcher-exact-calls.test.js"),
+    _suite("plan-dispatcher-scenarios", "core", "test/plan-dispatcher-scenarios.test.js", "node", "test/plan-dispatcher-scenarios.test.js"),
     _suite("plan-dispatcher-mutants", "core", "test/plan-dispatcher-mutants.test.py", "python3", "test/plan-dispatcher-mutants.test.py"),
 )
 

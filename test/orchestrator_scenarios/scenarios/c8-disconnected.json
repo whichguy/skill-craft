@@ -1,0 +1,1 @@
+{"id":"C8","name":"disconnected components; one fails twice before succeeding","graph":[["A",[]],["B",["A"]],["X",[]],["Y",["X"]],["Z",[]]],"outcomes":{"X":["FAILED","FAILED","SUCCEEDED"]},"schedule":{"seed":8},"expect":{"complete":true}}

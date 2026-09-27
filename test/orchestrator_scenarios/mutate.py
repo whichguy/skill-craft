@@ -6,8 +6,8 @@ Usage: python3 test/orchestrator_scenarios/mutate.py MUTANTS.json [--only ID ...
 The mutants file names a package directory, the suite command, and mutants
 ({id, file, find, replace, killed_by}). The suite must pass against the unmodified
 package. Each mutant is applied to a fresh copy of the package, whose path is
-passed as PLAN_DISPATCHER_DIR, and the suite must then fail, printing
-`FAIL [<killed_by>]` for the scenario the spec says covers it; a failure only
+passed as PLAN_DISPATCHER_DIR, and the suite must then fail, printing a
+`FAIL ...` line tagged `[<killed_by>]` for the scenario the spec says covers it; a failure only
 elsewhere is reported as a wrong-reason kill. A `find` string
 that does not occur exactly once is an error, so mutants cannot silently rot
 when the code changes. Exits 1 when the baseline fails, a mutant is stale, or
@@ -82,7 +82,8 @@ def main() -> int:
             result = run_suite(command, copy)
             if result.returncode == 0:
                 return mutant["id"], "SURVIVED"
-            if f"FAIL [{mutant['killed_by']}]" not in result.stdout:
+            fail_lines = [line for line in result.stdout.splitlines() if line.startswith("FAIL ")]
+            if not any(f"[{mutant['killed_by']}]" in line for line in fail_lines):
                 return mutant["id"], "WRONG-REASON (expected FAIL [" + mutant["killed_by"] + "])"
             return mutant["id"], "killed"
 

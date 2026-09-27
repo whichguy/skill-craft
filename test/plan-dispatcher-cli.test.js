@@ -33,12 +33,15 @@ function cli(op, run, input, fails = false) {
   assert.equal(child.status, 0, child.stderr); assert.equal(child.stderr, ''); return JSON.parse(child.stdout);
 }
 function followNext(response, run) {
+  if (response.complete===true) {assert.equal(Object.hasOwn(response,'next_argv'),false); return response;}
   assert.deepEqual(response.next_argv,[process.execPath,helper,'next',run]);
   const child=spawnSync(response.next_argv[0],response.next_argv.slice(1),
     {cwd:unrelated,encoding:'utf8',timeout:15000});
   assert.ifError(child.error);assert.equal(child.status,0,child.stderr);assert.equal(child.stderr,'');
   const next=JSON.parse(child.stdout);
-  assert.deepEqual(next.next_argv,response.next_argv);
+  // A completed run returns no next call; every other response repeats it.
+  if (next.complete===true) assert.equal(Object.hasOwn(next,'next_argv'),false);
+  else assert.deepEqual(next.next_argv,response.next_argv);
   assert.equal(typeof next.instruction,'string');assert.match(next.instruction,/\S/);
   return next;
 }

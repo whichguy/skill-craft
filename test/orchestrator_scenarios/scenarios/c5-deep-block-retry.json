@@ -1,0 +1,1 @@
+{"id":"C5","name":"failure three levels up blocks everything below, then retries clear it","graph":[["A",[]],["B",["A"]],["C",["B"]],["D",["C"]],["E",["D"]],["X",[]]],"outcomes":{"B":["FAILED","FALSE_SUCCESS","SUCCEEDED"],"X":["BLOCKED","SUCCEEDED"]},"faults":{"stale_report":["B"]},"expect":{"complete":true,"min_refusals":2}}

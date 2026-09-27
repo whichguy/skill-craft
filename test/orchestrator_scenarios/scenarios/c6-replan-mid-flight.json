@@ -1,0 +1,1 @@
+{"id":"C6","name":"a verified blocker stops new work while siblings finish","graph":[["A",[]],["B",["A"]],["C",["B"]],["P",[]],["Q",["P"]],["R",[]]],"capacity":2,"outcomes":{"B":["BLOCKED:replan"]},"expect":{"complete":false,"replan":["B"]}}
