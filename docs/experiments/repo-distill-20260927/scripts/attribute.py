@@ -26,7 +26,7 @@ def main() -> int:
     ap = argparse.ArgumentParser()
     for name in ("original", "spec", "rebuild", "oracle", "scored", "out"):
         ap.add_argument(f"--{name}", type=Path, required=True)
-    ap.add_argument("--model", default="opus")
+    ap.add_argument("--model", default="claude-opus-5-5")
     ap.add_argument("--effort", default="medium")
     args = ap.parse_args()
     out = args.out.resolve()
@@ -45,6 +45,7 @@ def main() -> int:
     argv = hosts.argv_for("claude", prompt=prompt, prompt_file=out / "prompt.md", cwd=judge,
                           model=args.model, effort=args.effort, permission_mode="acceptEdits",
                           max_turns=120, max_budget_usd=15)
+    argv += ["--strict-mcp-config", "--mcp-config", '{"mcpServers":{}}']
     status = hosts.run_agent(argv, judge, dict(os.environ), out / "events.jsonl",
                              out / "stderr.txt", 3600)
     report = judge / "attribution.json"
