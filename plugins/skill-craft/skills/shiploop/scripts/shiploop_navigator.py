@@ -3783,7 +3783,7 @@ def _submitted_result(root: Path, args: Any, *, suffix: str = "") -> Any:
           "navigator complete requires a result Markdown path")
     expected = _result_input_path(Path(root), action_id + suffix)
     path = Path(raw_path)
-    _need(path == expected, "navigator result path must be the current generated path")
+    _need(path == expected, "navigator result path must be the current generated path: " + str(expected))
     try:
         metadata = path.lstat()
     except OSError as exc:

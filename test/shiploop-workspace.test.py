@@ -416,6 +416,95 @@ class ShipLoopWorkspaceTests(unittest.TestCase):
             self._call(workspace.prepare, self.repo, self.base / "missing" / "deeper" / "root")
         self.assertFalse((self.base / "missing").exists())
 
+    def _read_only(self, path: Path) -> None:
+        """Stand in for a host sandbox that refuses writes to ``path``."""
+        path.chmod(0o555)
+        self.addCleanup(path.chmod, 0o755)
+
+    def _branches(self) -> str:
+        return self.git("branch", "--format=%(refname:short)").stdout
+
+    def test_start_refuses_a_sandboxed_workspace_parent_with_the_exact_grant_and_creates_nothing(self) -> None:
+        runs = self.base / ".shiploop-runs"
+        runs.mkdir()
+        self._read_only(runs)
+        before = self._branches()
+        result = self.cli("workspace", "start", "--repo", str(self.repo), "--workspace-root",
+                          str(runs / "feature"), "--prompt", "Grant check.", code=3)
+        self.assertIn("SHIPLOOP-GRANT-NEEDED", result.stderr)
+        self.assertIn(f"{runs.resolve()}  (isolated worktree and run state)", result.stderr)
+        self.assertIn("Repair intent: give THIS session write access", result.stderr)
+        self.assertIn("Nothing was created; the source checkout is unchanged.", result.stderr)
+        self.assertIn("--workspace-root " + str(runs / "feature"), result.stderr)
+        self.assertEqual(list(runs.iterdir()), [])
+        self.assertEqual(self._branches(), before)
+        grant = result.stderr.split("Grant:\n", 1)[1].split("\n\n", 1)[0]
+        self.assertNotIn(".git", grant, "only the refused directory is requested")
+        self.assertIn("plus the repository's .git directory", result.stderr,
+                      "a Codex reader is still told .git needs a grant there")
+
+    def test_default_root_from_a_nested_linked_worktree_sits_beside_the_main_checkout(self) -> None:
+        linked = self.repo / ".claude" / "worktrees" / "task"
+        self.git("worktree", "add", "-q", "-b", "task", str(linked))
+        result = self.cli("workspace", "start", "--repo", str(linked), "--prompt", "Nested default root.")
+        line = next(row for row in result.stdout.splitlines() if row.startswith("Workspace root: "))
+        root = Path(line.removeprefix("Workspace root: "))
+        self.assertEqual(root.parent, self.base.resolve() / ".shiploop-runs")
+        self.assertTrue(root.name.startswith(self.repo.name + "-"))
+
+    def test_start_refuses_a_read_only_git_directory_before_any_worktree_exists(self) -> None:
+        git_dir = self.repo / ".git"
+        self._read_only(git_dir)
+        root = self.base / ".shiploop-runs" / "feature"
+        result = self.cli("workspace", "start", "--repo", str(self.repo), "--workspace-root", str(root),
+                          "--prompt", "Grant check.", code=3)
+        self.assertIn(f"{git_dir.resolve()}  (git worktree add and every commit)", result.stderr)
+        self.assertIn("sandbox_workspace_write.writable_roots", result.stderr)
+        self.assertFalse(root.parent.exists())
+
+    def test_default_workspace_root_is_a_fresh_directory_under_one_grantable_parent(self) -> None:
+        result = self.cli("workspace", "start", "--repo", str(self.repo), "--prompt", "Default root.")
+        line = next(row for row in result.stdout.splitlines() if row.startswith("Workspace root: "))
+        root = Path(line.removeprefix("Workspace root: "))
+        self.assertEqual(root.parent, self.base.resolve() / ".shiploop-runs")
+        self.assertTrue(root.name.startswith(self.repo.name + "-"))
+        self.assertTrue((root / "run" / "state.md").is_file())
+
+    def test_resume_refuses_a_run_whose_grant_was_lost(self) -> None:
+        root = self.base / ".shiploop-runs" / "feature"
+        self.cli("workspace", "start", "--repo", str(self.repo), "--workspace-root", str(root),
+                 "--prompt", "Resume grant check.")
+        self._read_only(root / "run")
+        result = self.cli("next", "--run-dir", str(root / "run"), code=3)
+        self.assertIn(f"{(root / 'run').resolve()}  (run state)", result.stderr)
+        self.assertIn("Then rerun: python3", result.stderr)
+        # chain and lint write run state too and are dispatched before next's path.
+        for verb in (("chain", "next"), ("lint",)):
+            refused = self.cli(*verb, "--run-dir", str(root / "run"), code=3)
+            self.assertIn("SHIPLOOP-GRANT-NEEDED", refused.stderr, verb)
+
+    def test_an_empty_directory_start_refused_by_the_sandbox_stays_empty(self) -> None:
+        empty = self.base / "fresh project"
+        empty.mkdir()
+        self._read_only(self.base)  # the sandbox refuses the sibling .shiploop-runs
+        result = self.cli("workspace", "start", "--repo", str(empty), "--prompt", "Empty start.", code=3)
+        self.assertIn("SHIPLOOP-GRANT-NEEDED", result.stderr)
+        self.assertEqual(list(empty.iterdir()), [], "no git init before the grant is proven")
+
+    def test_grant_report_lists_the_detected_host_first_and_names_nested_codex(self) -> None:
+        import shiploop_grants as grants
+        error = grants.GrantError([(Path("/r"), "run state", "Operation not permitted")],
+                                  [Path("/r"), Path("/g/.git")])
+        nested = grants.report(error, "rerun", {"CLAUDECODE": "1", "CODEX_SANDBOX": "seatbelt"})
+        self.assertIn("Detected host: codex.", nested)
+        fixes = [row for row in nested.splitlines() if row.startswith("  * ")]
+        self.assertTrue(fixes[0].startswith("  * Codex"), fixes)
+        claude = grants.report(error, "rerun", {"CLAUDECODE": "1"})
+        self.assertIn("/add-dir /r and /add-dir /g/.git", claude)
+        grok = grants.report(error, "rerun", {"GROK_AGENT": "1"})
+        self.assertIn("restart required", grok.splitlines()[[i for i, row in enumerate(grok.splitlines())
+                                                               if row.startswith("  * ")][0]])
+
     def test_bootstrap_leaves_non_empty_and_nested_directories_alone(self) -> None:
         loose = self.base / "loose files"
         loose.mkdir()

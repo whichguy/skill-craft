@@ -826,8 +826,28 @@ def main(argv: list[str] | None = None) -> int:
         work.mkdir()
         follow_on = continue_from(args.continue_from.expanduser().resolve(), work) if args.continue_from else None
     env = host.env(out / "home")
-    if args.source == "marketplace":
+    if resumed and earlier.get("host") == args.host and Path(earlier.get("plugin_dir") or "").is_dir():
+        # A resumed run keeps the plugin it started on: reinstalling would replace that version's files, and a
+        # bound Improve child records paths inside them. Only the CI and checkout checks still apply.
+        plugin_dir, plugin = Path(earlier["plugin_dir"]), None
+        released = released_versions()
+        versions = {"source": "marketplace (resumed on its original install)", **installed_versions(plugin_dir),
+                    "released": released,
+                    "gate": [problem for problem in version_gate(released, None, None)
+                             if not problem.startswith("installed ")]}
+        if versions["gate"]:
+            raise SystemExit("version gate: " + "; ".join(versions["gate"]))
+        if host.name == "codex" and versions["plugin_version"] != released["catalog_version"]:
+            # Codex syncs installed plugins to its marketplace's current release when a session starts and
+            # deletes the old version's files, which the run's CLI and any bound Improve child point to.
+            raise SystemExit(f"a Codex run started on skill-craft {versions['plugin_version']} cannot resume after "
+                             f"release {released['catalog_version']}: Codex replaces the plugin at session start. "
+                             "Start the case again.")
+    elif args.source == "marketplace":
         plugin_dir, plugin, versions = marketplace_preflight(args, out, env)
+        if resumed:
+            # No original install to reuse: a newer release is still not a reason to refuse the run.
+            versions["gate"] = [problem for problem in versions["gate"] if not problem.startswith("installed ")]
         if versions["gate"]:
             (out / "result.json").write_text(json.dumps({"case": name, "pass": False, "versions": versions,
                                                          "output": str(out)}, indent=2) + "\n")
