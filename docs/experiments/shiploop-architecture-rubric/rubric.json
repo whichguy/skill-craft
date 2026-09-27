@@ -1,0 +1,153 @@
+{
+ "grades": {
+  "met": "the plan adopts what the criterion asks, sized to the request",
+  "partial": "the plan names it but leaves a material part undecided or wrong",
+  "missed": "the criterion applies and the plan does not address it",
+  "overbuilt": "the plan builds more than the request needs for this criterion",
+  "na": "the criterion does not apply to this plan"
+ },
+ "criteria": {
+  "P1": [
+   "Proportion",
+   "Chooses the simplest placement that meets the request: the scenario's expected tier, no less (missing shared state, identity or server authority the request needs) and no more (server state, sign-in, database or live channel it does not need)."
+  ],
+  "P2": [
+   "Open choices",
+   "Where the request leaves players, devices, persistence, sign-in or freshness open, the plan asks or states the default it takes and what that rules out."
+  ],
+  "P3": [
+   "Scope",
+   "Adds no feature the request did not ask for."
+  ],
+  "I1": [
+   "Identity",
+   "Identifies users with the runtime's own sign-in where users must be told apart; adds no sign-in where they need not be."
+  ],
+  "I2": [
+   "Authorization",
+   "Checks on the server, per action, that the caller may do it; never trusts client-supplied identity, role or ownership."
+  ],
+  "I3": [
+   "Sharing model",
+   "States who may read and change each record (record-level sharing, roles, owners) using the runtime's native access model."
+  ],
+  "I4": [
+   "Untrusted callers",
+   "For anonymous or untrusted input: validation, rate limiting or abuse controls, and plausibility checks on submitted values, or an explicit accepted risk."
+  ],
+  "S1": [
+   "State home",
+   "Names each state's authoritative owner and the native store that holds it, and why that store fits (capacity, query, consistency)."
+  ],
+  "S2": [
+   "Concurrency",
+   "Names how simultaneous changes to shared state are resolved (lock, transaction, version check, single-writer object)."
+  ],
+  "S3": [
+   "Recovery",
+   "Defines what survives a reload, disconnect or crash mid-action, and how the client resynchronizes."
+  ],
+  "S4": [
+   "End of life",
+   "Defines what ends each state (finished, abandoned, expired) and what removes or archives it."
+  ],
+  "C1": [
+   "Channel choice",
+   "Picks a channel per interaction (request/response, polling, long-poll, SSE, WebSocket, platform push, email or platform notification, trigger or schedule) and justifies it by the freshness the request states."
+  ],
+  "C2": [
+   "Missed updates",
+   "After a push, poll gap or reconnect, the client reads authoritative state back rather than trusting the event stream alone."
+  ],
+  "C3": [
+   "Idempotency",
+   "Retries and duplicate deliveries cannot apply an action twice (idempotency keys, upserts, dedupe)."
+  ],
+  "C4": [
+   "Offline",
+   "Where connectivity is intermittent: a durable local queue, replay order and a conflict rule."
+  ],
+  "C5": [
+   "Channel cost",
+   "States the cost of the chosen channel against runtime quotas or limits (poll interval times users, connections, executions)."
+  ],
+  "K1": [
+   "Cache use",
+   "Caches derived or expensive data with the runtime's native cache or precomputation where it pays off."
+  ],
+  "K2": [
+   "Freshness",
+   "States the invalidation or expiry rule and matches it to the freshness the request allows."
+  ],
+  "K3": [
+   "Cache restraint",
+   "A cache is never the authority, and no cache is added where it does not pay off."
+  ],
+  "D1": [
+   "Personal data",
+   "Identifies personal or sensitive data the product holds or sends to a third party."
+  ],
+  "D2": [
+   "Retention and deletion",
+   "States how long personal data and records are kept and how they are removed."
+  ],
+  "D3": [
+   "Logs",
+   "Keeps personal data and secrets out of logs and error messages."
+  ],
+  "D4": [
+   "Secrets",
+   "Keeps credentials in the runtime's secret facility and never sends them to the client."
+  ],
+  "R1": [
+   "Leverage",
+   "Uses the runtime's native services (storage, identity, workflow, scheduling, cache, notification) before building custom equivalents."
+  ],
+  "R2": [
+   "Limits",
+   "Names the runtime quotas or limits the design meets and plans within them."
+  ],
+  "R3": [
+   "Accuracy",
+   "Makes no false claim about the runtime's or a library's capabilities."
+  ],
+  "V1": [
+   "Verification",
+   "Plans checks on the deployed runtime surface for the consequential behaviors, including negative cases for authorization and concurrency where they apply."
+  ],
+  "O1": [
+   "Failure visibility",
+   "A background or asynchronous failure is recorded and made visible to the person or operator who must act on it."
+  ],
+  "U1": [
+   "UI framework fit",
+   "Uses the requested or existing UI framework at its current version through its supported components, theming and loading path; no second UI stack; no component the framework already provides rebuilt by hand."
+  ],
+  "U2": [
+   "Interaction states",
+   "Designs loading, empty, error and success states and accessible names, focus and keyboard paths for the main interactions, with feedback for async work."
+  ],
+  "U3": [
+   "Host fit",
+   "Fits the framework to the host's constraints: build versus CDN, content security policy, sandboxed iframes, server versus client rendering, and the host's native design system where one exists."
+  ]
+ },
+ "measured_elsewhere": {
+  "M1": [
+   "Composition",
+   "Reuses, composes or augments existing units before writing new ones; no near-copies, no parameters that fuse different rules (E0)."
+  ],
+  "M2": [
+   "Project layers",
+   "Follows the conventions a project layers on its runtime and checks what each layer exposes (E7)."
+  ],
+  "M3": [
+   "Intake questions",
+   "Intake asks about actors, devices, persistence, sign-in and hidden information when the request leaves them open (E3)."
+  ],
+  "M4": [
+   "Claim review",
+   "The planning review catches platform claims the plan stage introduced (E6b)."
+  ]
+ }
+}

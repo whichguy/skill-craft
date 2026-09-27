@@ -1,0 +1,2609 @@
+{
+ "S01_GAS_candidate_1": {
+  "grades": {
+   "P1": "met",
+   "P2": "met",
+   "P3": "met",
+   "R3": "met"
+  },
+  "overbuilt_items": [],
+  "platform_errors": [],
+  "tier_chosen": "client-only"
+ },
+ "S01_GAS_candidate_2": {
+  "grades": {
+   "P1": "overbuilt",
+   "P2": "met",
+   "P3": "overbuilt",
+   "R3": "met"
+  },
+  "overbuilt_items": [
+   "Server-side authoritative game state in CacheService keyed by game ID, purely to hide the computer's fleet from its own single player",
+   "google.script.run RPC round-trip for every shot instead of local browser logic",
+   "Server-side turn/duplicate-shot validation guarding against a threat model (the player 'cheating' against themselves) that doesn't exist in single-player",
+   "Domain-restricted web app deployment / 'executing as the accessing user' framed as an identity layer for a game that needs no accounts or sharing"
+  ],
+  "platform_errors": [],
+  "tier_chosen": "client-plus-light-server"
+ },
+ "S01_GAS_shipped_1": {
+  "grades": {
+   "P1": "met",
+   "P2": "met",
+   "P3": "met",
+   "R3": "met"
+  },
+  "overbuilt_items": [],
+  "platform_errors": [],
+  "tier_chosen": "client-only"
+ },
+ "S01_GAS_shipped_2": {
+  "grades": {
+   "P1": "overbuilt",
+   "P2": "partial",
+   "P3": "met",
+   "R3": "partial"
+  },
+  "overbuilt_items": [
+   "Server-authoritative game state via CacheService for a single-player-vs-computer game \u2014 hiding the computer's fleet from its only player protects nothing, so no server authority is needed",
+   "Requires signed-in domain access (Execute as: User accessing, Who has access: domain) solely to key the cache, imposing an authentication/deployment constraint the request never asked for",
+   "Every shot round-trips through google.script.run RPC to a server-held game engine instead of running self-contained in the browser tab"
+  ],
+  "platform_errors": [
+   "Claims CacheService.getUserCache() is keyed automatically per '(script, deployment, signed-in user)' \u2014 the API scopes the user cache by script/add-on and effective user, not by deployment; 'deployment' as a distinguishing key element is not a documented CacheService behavior"
+  ],
+  "tier_chosen": "client-plus-light-server"
+ },
+ "S01_SF_candidate_1": {
+  "grades": {
+   "P1": "met",
+   "P2": "met",
+   "P3": "met",
+   "R3": "met"
+  },
+  "overbuilt_items": [],
+  "platform_errors": [],
+  "tier_chosen": "client-only"
+ },
+ "S01_SF_candidate_2": {
+  "grades": {
+   "P1": "met",
+   "P2": "met",
+   "P3": "met",
+   "R3": "met"
+  },
+  "overbuilt_items": [],
+  "platform_errors": [],
+  "tier_chosen": "client-only"
+ },
+ "S01_SF_shipped_1": {
+  "grades": {
+   "P1": "met",
+   "P2": "met",
+   "P3": "met",
+   "R3": "met"
+  },
+  "overbuilt_items": [],
+  "platform_errors": [],
+  "tier_chosen": "client-only"
+ },
+ "S01_SF_shipped_2": {
+  "grades": {
+   "P1": "overbuilt",
+   "P2": "met",
+   "P3": "met",
+   "R3": "met"
+  },
+  "overbuilt_items": [
+   "Entire match state (both boards, shot history, turn state) hosted in Apex/Platform Cache instead of client-only LWC state \u2014 justified by 'hiding' the computer fleet from devtools, but there is no other human player to hide it from, so this protects nothing",
+   "@AuraEnabled GameService controller validating every shot server-side (anti-cheat) for a single-player-vs-computer game with no stakes or opponent to cheat",
+   "Platform Cache partition provisioning as a deployable work item",
+   "Custom-object fallback schema stubbed for cache-miss scenarios"
+  ],
+  "platform_errors": [],
+  "tier_chosen": "server-shared-async"
+ },
+ "S02_CF_candidate_1": {
+  "grades": {
+   "P1": "met",
+   "P2": "met",
+   "P3": "met",
+   "R3": "met"
+  },
+  "overbuilt_items": [],
+  "platform_errors": [],
+  "tier_chosen": "client-only"
+ },
+ "S02_CF_candidate_2": {
+  "grades": {
+   "P1": "met",
+   "P2": "met",
+   "P3": "met",
+   "R3": "met"
+  },
+  "overbuilt_items": [],
+  "platform_errors": [],
+  "tier_chosen": "client-only"
+ },
+ "S02_CF_shipped_1": {
+  "grades": {
+   "P1": "met",
+   "P2": "met",
+   "P3": "met",
+   "R3": "met"
+  },
+  "overbuilt_items": [],
+  "platform_errors": [],
+  "tier_chosen": "client-only"
+ },
+ "S02_CF_shipped_2": {
+  "grades": {
+   "P1": "met",
+   "P2": "met",
+   "P3": "met",
+   "R3": "met"
+  },
+  "overbuilt_items": [],
+  "platform_errors": [],
+  "tier_chosen": "client-only"
+ },
+ "S02_GAS_candidate_1": {
+  "grades": {
+   "P1": "met",
+   "P2": "met",
+   "P3": "overbuilt",
+   "R3": "met"
+  },
+  "overbuilt_items": [
+   "Full keyboard-alternative input mode (arrow keys + Enter/Space) as a parallel interaction path to click/tap \u2014 not requested for a two-person, same-device, same-input-surface game",
+   "ARIA labels announcing selection/turn/game-over for screen readers \u2014 accessibility scope beyond what the request asked for"
+  ],
+  "platform_errors": [],
+  "tier_chosen": "client-only"
+ },
+ "S02_GAS_candidate_2": {
+  "grades": {
+   "P1": "met",
+   "P2": "met",
+   "P3": "met",
+   "R3": "met"
+  },
+  "overbuilt_items": [],
+  "platform_errors": [],
+  "tier_chosen": "client-only"
+ },
+ "S02_GAS_shipped_1": {
+  "grades": {
+   "P1": "met",
+   "P2": "met",
+   "P3": "met",
+   "R3": "met"
+  },
+  "overbuilt_items": [],
+  "platform_errors": [],
+  "tier_chosen": "client-only"
+ },
+ "S02_GAS_shipped_2": {
+  "grades": {
+   "P1": "met",
+   "P2": "met",
+   "P3": "met",
+   "R3": "met"
+  },
+  "overbuilt_items": [],
+  "platform_errors": [],
+  "tier_chosen": "client-only"
+ },
+ "S03_CF_candidate_1": {
+  "grades": {
+   "D1": "met",
+   "I1": "met",
+   "I4": "met",
+   "K1": "met",
+   "K2": "met",
+   "K3": "met",
+   "P1": "met",
+   "P2": "met",
+   "P3": "met",
+   "R1": "met",
+   "R2": "met",
+   "R3": "partial",
+   "S1": "met",
+   "S2": "met",
+   "V1": "met"
+  },
+  "overbuilt_items": [],
+  "platform_errors": [
+   "D1 free-tier quota cited as '25M rows read/day, 50k rows written/day' \u2014 published Cloudflare free-tier limits are closer to 5M rows read/day and 100k rows written/day (25B reads / 50M writes are Paid-plan monthly figures)"
+  ],
+  "tier_chosen": "client-plus-light-server"
+ },
+ "S03_CF_candidate_2": {
+  "grades": {
+   "D1": "met",
+   "I1": "met",
+   "I4": "partial",
+   "K1": "partial",
+   "K2": "met",
+   "K3": "met",
+   "P1": "met",
+   "P2": "met",
+   "P3": "met",
+   "R1": "met",
+   "R2": "missed",
+   "R3": "partial",
+   "S1": "met",
+   "S2": "met",
+   "V1": "met"
+  },
+  "overbuilt_items": [],
+  "platform_errors": [
+   "Claims a hand-built Worker Response with a `Cache-Control` header is automatically edge-cached by Cloudflare; dynamically constructed fetch-handler responses are not cached at the edge without explicit Cache API use (`caches.default.put`) or a matching Cache Rule."
+  ],
+  "tier_chosen": "client-plus-light-server"
+ },
+ "S03_CF_shipped_1": {
+  "grades": {
+   "D1": "met",
+   "I1": "met",
+   "I4": "partial",
+   "K1": "na",
+   "K2": "na",
+   "K3": "met",
+   "P1": "met",
+   "P2": "met",
+   "P3": "met",
+   "R1": "met",
+   "R2": "missed",
+   "R3": "met",
+   "S1": "met",
+   "S2": "met",
+   "V1": "met"
+  },
+  "overbuilt_items": [],
+  "platform_errors": [],
+  "tier_chosen": "client-plus-light-server"
+ },
+ "S03_CF_shipped_2": {
+  "grades": {
+   "D1": "met",
+   "I1": "met",
+   "I4": "met",
+   "K1": "na",
+   "K2": "na",
+   "K3": "met",
+   "P1": "met",
+   "P2": "met",
+   "P3": "met",
+   "R1": "met",
+   "R2": "missed",
+   "R3": "met",
+   "S1": "met",
+   "S2": "met",
+   "V1": "met"
+  },
+  "overbuilt_items": [],
+  "platform_errors": [],
+  "tier_chosen": "client-plus-light-server"
+ },
+ "S03_GAS_candidate_1": {
+  "grades": {
+   "D1": "met",
+   "I1": "met",
+   "I4": "met",
+   "K1": "na",
+   "K2": "met",
+   "K3": "met",
+   "P1": "met",
+   "P2": "met",
+   "P3": "met",
+   "R1": "met",
+   "R2": "partial",
+   "R3": "met",
+   "S1": "met",
+   "S2": "met",
+   "V1": "partial"
+  },
+  "overbuilt_items": [],
+  "platform_errors": [],
+  "tier_chosen": "client-plus-light-server"
+ },
+ "S03_GAS_candidate_2": {
+  "grades": {
+   "D1": "met",
+   "I1": "met",
+   "I4": "missed",
+   "K1": "na",
+   "K2": "met",
+   "K3": "met",
+   "P1": "met",
+   "P2": "met",
+   "P3": "met",
+   "R1": "met",
+   "R2": "met",
+   "R3": "met",
+   "S1": "met",
+   "S2": "met",
+   "V1": "met"
+  },
+  "overbuilt_items": [],
+  "platform_errors": [],
+  "tier_chosen": "client-plus-light-server"
+ },
+ "S03_GAS_shipped_1": {
+  "grades": {
+   "D1": "met",
+   "I1": "overbuilt",
+   "I4": "partial",
+   "K1": "na",
+   "K2": "na",
+   "K3": "met",
+   "P1": "overbuilt",
+   "P2": "partial",
+   "P3": "overbuilt",
+   "R1": "met",
+   "R2": "met",
+   "R3": "met",
+   "S1": "met",
+   "S2": "met",
+   "V1": "partial"
+  },
+  "overbuilt_items": [
+   "Mandates Workspace-domain sign-in (Session.getActiveUser) and domain-restricted deployment as inherent architecture rather than a discussed option, when a client-supplied nickname would satisfy a leaderboard 'visible to everyone who plays'",
+   "Domain-only access arguably narrows 'everyone who plays' to internal domain members without flagging that tradeoff as an open choice"
+  ],
+  "platform_errors": [],
+  "tier_chosen": "client-plus-light-server"
+ },
+ "S03_GAS_shipped_2": {
+  "grades": {
+   "D1": "met",
+   "I1": "met",
+   "I4": "met",
+   "K1": "na",
+   "K2": "na",
+   "K3": "met",
+   "P1": "met",
+   "P2": "met",
+   "P3": "met",
+   "R1": "met",
+   "R2": "missed",
+   "R3": "met",
+   "S1": "met",
+   "S2": "met",
+   "V1": "partial"
+  },
+  "overbuilt_items": [],
+  "platform_errors": [],
+  "tier_chosen": "client-plus-light-server"
+ },
+ "S04_GAS_candidate_1": {
+  "grades": {
+   "C1": "met",
+   "C2": "met",
+   "C3": "met",
+   "D1": "missed",
+   "D2": "met",
+   "I1": "met",
+   "I2": "met",
+   "I3": "met",
+   "P1": "met",
+   "P2": "met",
+   "P3": "partial",
+   "R1": "met",
+   "R2": "met",
+   "R3": "met",
+   "S1": "met",
+   "S2": "met",
+   "S3": "partial",
+   "S4": "met",
+   "V1": "met"
+  },
+  "overbuilt_items": [
+   "\"My games\" dashboard listing all active/finished games \u2014 a feature beyond the request's two-colleague-per-game scope, not needed since email notifications already carry a direct link"
+  ],
+  "platform_errors": [],
+  "tier_chosen": "server-shared-async"
+ },
+ "S04_GAS_candidate_2": {
+  "grades": {
+   "C1": "met",
+   "C2": "met",
+   "C3": "met",
+   "D1": "met",
+   "D2": "met",
+   "I1": "met",
+   "I2": "met",
+   "I3": "met",
+   "P1": "met",
+   "P2": "met",
+   "P3": "met",
+   "R1": "met",
+   "R2": "met",
+   "R3": "met",
+   "S1": "met",
+   "S2": "met",
+   "S3": "partial",
+   "S4": "met",
+   "V1": "met"
+  },
+  "overbuilt_items": [],
+  "platform_errors": [],
+  "tier_chosen": "server-shared-async"
+ },
+ "S04_GAS_shipped_1": {
+  "grades": {
+   "C1": "met",
+   "C2": "met",
+   "C3": "met",
+   "D1": "met",
+   "D2": "met",
+   "I1": "met",
+   "I2": "met",
+   "I3": "partial",
+   "P1": "met",
+   "P2": "met",
+   "P3": "met",
+   "R1": "met",
+   "R2": "partial",
+   "R3": "met",
+   "S1": "met",
+   "S2": "met",
+   "S3": "met",
+   "S4": "met",
+   "V1": "met"
+  },
+  "overbuilt_items": [],
+  "platform_errors": [],
+  "tier_chosen": "server-shared-async"
+ },
+ "S04_GAS_shipped_2": {
+  "grades": {
+   "C1": "met",
+   "C2": "met",
+   "C3": "met",
+   "D1": "met",
+   "D2": "met",
+   "I1": "met",
+   "I2": "met",
+   "I3": "met",
+   "P1": "met",
+   "P2": "met",
+   "P3": "met",
+   "R1": "met",
+   "R2": "met",
+   "R3": "met",
+   "S1": "met",
+   "S2": "met",
+   "S3": "met",
+   "S4": "met",
+   "V1": "met"
+  },
+  "overbuilt_items": [],
+  "platform_errors": [],
+  "tier_chosen": "server-shared-async"
+ },
+ "S04_SF_candidate_1": {
+  "grades": {
+   "C1": "met",
+   "C2": "met",
+   "C3": "partial",
+   "D1": "met",
+   "D2": "met",
+   "I1": "met",
+   "I2": "met",
+   "I3": "met",
+   "P1": "met",
+   "P2": "met",
+   "P3": "met",
+   "R1": "met",
+   "R2": "partial",
+   "R3": "met",
+   "S1": "met",
+   "S2": "met",
+   "S3": "met",
+   "S4": "met",
+   "V1": "met"
+  },
+  "overbuilt_items": [],
+  "platform_errors": [],
+  "tier_chosen": "server-shared-async"
+ },
+ "S04_SF_candidate_2": {
+  "grades": {
+   "C1": "met",
+   "C2": "met",
+   "C3": "met",
+   "D1": "met",
+   "D2": "missed",
+   "I1": "met",
+   "I2": "met",
+   "I3": "met",
+   "P1": "met",
+   "P2": "met",
+   "P3": "met",
+   "R1": "met",
+   "R2": "missed",
+   "R3": "met",
+   "S1": "met",
+   "S2": "met",
+   "S3": "met",
+   "S4": "partial",
+   "V1": "met"
+  },
+  "overbuilt_items": [],
+  "platform_errors": [],
+  "tier_chosen": "server-shared-async"
+ },
+ "S04_SF_shipped_2": {
+  "grades": {
+   "C1": "met",
+   "C2": "met",
+   "C3": "partial",
+   "D1": "missed",
+   "D2": "partial",
+   "I1": "met",
+   "I2": "partial",
+   "I3": "met",
+   "P1": "met",
+   "P2": "met",
+   "P3": "met",
+   "R1": "met",
+   "R2": "missed",
+   "R3": "met",
+   "S1": "met",
+   "S2": "met",
+   "S3": "partial",
+   "S4": "met",
+   "V1": "partial"
+  },
+  "overbuilt_items": [],
+  "platform_errors": [],
+  "tier_chosen": "server-shared-async"
+ },
+ "S05_CF_candidate_1": {
+  "grades": {
+   "C1": "met",
+   "C2": "met",
+   "C3": "missed",
+   "C5": "met",
+   "D1": "partial",
+   "I1": "partial",
+   "I2": "partial",
+   "P1": "met",
+   "P2": "met",
+   "P3": "met",
+   "R1": "met",
+   "R2": "met",
+   "R3": "met",
+   "S1": "met",
+   "S2": "met",
+   "S3": "partial",
+   "S4": "met",
+   "V1": "met"
+  },
+  "overbuilt_items": [],
+  "platform_errors": [],
+  "tier_chosen": "server-shared-live"
+ },
+ "S05_CF_candidate_2": {
+  "grades": {
+   "C1": "met",
+   "C2": "met",
+   "C3": "partial",
+   "C5": "partial",
+   "D1": "met",
+   "I1": "met",
+   "I2": "met",
+   "P1": "met",
+   "P2": "met",
+   "P3": "met",
+   "R1": "met",
+   "R2": "partial",
+   "R3": "met",
+   "S1": "met",
+   "S2": "met",
+   "S3": "met",
+   "S4": "met",
+   "V1": "met"
+  },
+  "overbuilt_items": [],
+  "platform_errors": [],
+  "tier_chosen": "server-shared-live"
+ },
+ "S05_CF_shipped_1": {
+  "grades": {
+   "C1": "met",
+   "C2": "met",
+   "C3": "partial",
+   "C5": "partial",
+   "D1": "met",
+   "I1": "met",
+   "I2": "met",
+   "P1": "met",
+   "P2": "met",
+   "P3": "met",
+   "R1": "met",
+   "R2": "partial",
+   "R3": "met",
+   "S1": "met",
+   "S2": "met",
+   "S3": "met",
+   "S4": "met",
+   "V1": "met"
+  },
+  "overbuilt_items": [],
+  "platform_errors": [],
+  "tier_chosen": "server-shared-live"
+ },
+ "S05_CF_shipped_2": {
+  "grades": {
+   "C1": "met",
+   "C2": "met",
+   "C3": "met",
+   "C5": "partial",
+   "D1": "partial",
+   "I1": "met",
+   "I2": "met",
+   "P1": "met",
+   "P2": "met",
+   "P3": "partial",
+   "R1": "met",
+   "R2": "missed",
+   "R3": "met",
+   "S1": "met",
+   "S2": "met",
+   "S3": "met",
+   "S4": "met",
+   "V1": "met"
+  },
+  "overbuilt_items": [
+   "D1 finished-game history/results storage beyond the live match (not requested)",
+   "Per-user rate limiting on fire_shot/reconnect (abuse throttling) added beyond the request"
+  ],
+  "platform_errors": [],
+  "tier_chosen": "server-shared-live"
+ },
+ "S05_SF_candidate_1": {
+  "grades": {
+   "C1": "met",
+   "C2": "met",
+   "C3": "met",
+   "C5": "met",
+   "D1": "missed",
+   "I1": "met",
+   "I2": "met",
+   "P1": "met",
+   "P2": "met",
+   "P3": "met",
+   "R1": "met",
+   "R2": "met",
+   "R3": "partial",
+   "S1": "met",
+   "S2": "met",
+   "S3": "met",
+   "S4": "partial",
+   "V1": "met"
+  },
+  "overbuilt_items": [],
+  "platform_errors": [
+   "Declarative Salesforce 'sharing rules' are criteria/role/group-based and cannot grant access to just the two specific participants of one particular record \u2014 that per-record, per-pair visibility requires Apex managed (manual) sharing, not a sharing rule."
+  ],
+  "tier_chosen": "server-shared-live"
+ },
+ "S05_SF_candidate_2": {
+  "grades": {
+   "C1": "met",
+   "C2": "met",
+   "C3": "missed",
+   "C5": "met",
+   "D1": "na",
+   "I1": "met",
+   "I2": "met",
+   "P1": "met",
+   "P2": "met",
+   "P3": "met",
+   "R1": "met",
+   "R2": "met",
+   "R3": "met",
+   "S1": "met",
+   "S2": "met",
+   "S3": "met",
+   "S4": "met",
+   "V1": "met"
+  },
+  "overbuilt_items": [],
+  "platform_errors": [],
+  "tier_chosen": "server-shared-live"
+ },
+ "S05_SF_shipped_1": {
+  "grades": {
+   "C1": "met",
+   "C2": "met",
+   "C3": "partial",
+   "C5": "met",
+   "D1": "met",
+   "I1": "met",
+   "I2": "met",
+   "P1": "met",
+   "P2": "met",
+   "P3": "met",
+   "R1": "met",
+   "R2": "met",
+   "R3": "met",
+   "S1": "met",
+   "S2": "met",
+   "S3": "met",
+   "S4": "met",
+   "V1": "met"
+  },
+  "overbuilt_items": [],
+  "platform_errors": [],
+  "tier_chosen": "server-shared-live"
+ },
+ "S05_SF_shipped_2": {
+  "grades": {
+   "C1": "met",
+   "C2": "partial",
+   "C3": "partial",
+   "C5": "met",
+   "D1": "missed",
+   "I1": "met",
+   "I2": "met",
+   "P1": "met",
+   "P2": "met",
+   "P3": "met",
+   "R1": "met",
+   "R2": "met",
+   "R3": "met",
+   "S1": "met",
+   "S2": "met",
+   "S3": "met",
+   "S4": "met",
+   "V1": "met"
+  },
+  "overbuilt_items": [],
+  "platform_errors": [],
+  "tier_chosen": "server-shared-live"
+ },
+ "S06_GAS_candidate_1": {
+  "grades": {
+   "C1": "met",
+   "C2": "met",
+   "C5": "met",
+   "D1": "met",
+   "D2": "met",
+   "I1": "met",
+   "I2": "met",
+   "I3": "met",
+   "K1": "met",
+   "K3": "met",
+   "P1": "met",
+   "P2": "met",
+   "P3": "met",
+   "R1": "met",
+   "R2": "met",
+   "R3": "partial",
+   "S1": "met",
+   "S2": "met",
+   "S3": "partial",
+   "S4": "met",
+   "V1": "met"
+  },
+  "overbuilt_items": [],
+  "platform_errors": [
+   "Claims HTML Service's sandboxed iframe itself lacks WebSocket/SSE support; the real constraint is that Apps Script's server side has no persistent process to push through, not that the iframe blocks outbound WebSocket connections"
+  ],
+  "tier_chosen": "server-shared-live"
+ },
+ "S06_GAS_candidate_2": {
+  "grades": {
+   "C1": "met",
+   "C2": "met",
+   "C5": "met",
+   "D1": "met",
+   "D2": "met",
+   "I1": "met",
+   "I2": "met",
+   "I3": "met",
+   "K1": "met",
+   "K3": "met",
+   "P1": "met",
+   "P2": "met",
+   "P3": "met",
+   "R1": "met",
+   "R2": "met",
+   "R3": "partial",
+   "S1": "met",
+   "S2": "met",
+   "S3": "met",
+   "S4": "met",
+   "V1": "met"
+  },
+  "overbuilt_items": [],
+  "platform_errors": [
+   "Cites 'URL-fetch quotas' as a relevant limit for the polling/RPC traffic, but google.script.run web-app calls aren't governed by the UrlFetchApp quota (which applies to outbound HTTP calls the script itself makes); the actually relevant limits are execution time/simultaneous-execution quotas and Sheets read/write limits."
+  ],
+  "tier_chosen": "server-shared-live"
+ },
+ "S06_GAS_shipped_1": {
+  "grades": {
+   "C1": "met",
+   "C2": "met",
+   "C5": "partial",
+   "D1": "met",
+   "D2": "met",
+   "I1": "met",
+   "I2": "met",
+   "I3": "met",
+   "K1": "na",
+   "K3": "met",
+   "P1": "met",
+   "P2": "met",
+   "P3": "met",
+   "R1": "met",
+   "R2": "met",
+   "R3": "met",
+   "S1": "met",
+   "S2": "met",
+   "S3": "partial",
+   "S4": "met",
+   "V1": "partial"
+  },
+  "overbuilt_items": [],
+  "platform_errors": [],
+  "tier_chosen": "server-shared-live"
+ },
+ "S06_GAS_shipped_2": {
+  "grades": {
+   "C1": "met",
+   "C2": "met",
+   "C5": "partial",
+   "D1": "met",
+   "D2": "partial",
+   "I1": "met",
+   "I2": "met",
+   "I3": "met",
+   "K1": "na",
+   "K3": "na",
+   "P1": "met",
+   "P2": "met",
+   "P3": "met",
+   "R1": "met",
+   "R2": "partial",
+   "R3": "met",
+   "S1": "met",
+   "S2": "met",
+   "S3": "met",
+   "S4": "met",
+   "V1": "met"
+  },
+  "overbuilt_items": [],
+  "platform_errors": [],
+  "tier_chosen": "server-shared-live"
+ },
+ "S06_SF_candidate_1": {
+  "grades": {
+   "C1": "met",
+   "C2": "met",
+   "C5": "met",
+   "D1": "missed",
+   "D2": "partial",
+   "I1": "met",
+   "I2": "partial",
+   "I3": "met",
+   "K1": "na",
+   "K3": "met",
+   "P1": "met",
+   "P2": "met",
+   "P3": "met",
+   "R1": "met",
+   "R2": "met",
+   "R3": "met",
+   "S1": "met",
+   "S2": "met",
+   "S3": "partial",
+   "S4": "met",
+   "V1": "partial"
+  },
+  "overbuilt_items": [],
+  "platform_errors": [],
+  "tier_chosen": "server-shared-live"
+ },
+ "S06_SF_candidate_2": {
+  "grades": {
+   "C1": "met",
+   "C2": "met",
+   "C5": "partial",
+   "D1": "partial",
+   "D2": "partial",
+   "I1": "met",
+   "I2": "partial",
+   "I3": "met",
+   "K1": "na",
+   "K3": "met",
+   "P1": "met",
+   "P2": "met",
+   "P3": "met",
+   "R1": "met",
+   "R2": "partial",
+   "R3": "missed",
+   "S1": "met",
+   "S2": "partial",
+   "S3": "partial",
+   "S4": "met",
+   "V1": "partial"
+  },
+  "overbuilt_items": [],
+  "platform_errors": [
+   "Claims Salesforce's 'built-in optimistic concurrency (via LastModifiedDate)' automatically resolves simultaneous writes for custom Apex DML/LWC saves \u2014 that stale-object check only applies to the standard Salesforce UI edit/save flow, not to custom Apex controller updates unless explicitly coded.",
+   "Claims polling traffic is 'trivial against org daily API limits' \u2014 @AuraEnabled Apex methods invoked from LWC via @wire/imperative calls do not consume the org's daily REST/SOAP API request quota; that limit governs external API integrations, not internal Lightning UI calls."
+  ],
+  "tier_chosen": "server-shared-live"
+ },
+ "S06_SF_shipped_1": {
+  "grades": {
+   "C1": "met",
+   "C2": "met",
+   "C5": "partial",
+   "D1": "missed",
+   "D2": "partial",
+   "I1": "met",
+   "I2": "partial",
+   "I3": "met",
+   "K1": "met",
+   "K3": "met",
+   "P1": "met",
+   "P2": "met",
+   "P3": "met",
+   "R1": "met",
+   "R2": "partial",
+   "R3": "met",
+   "S1": "met",
+   "S2": "met",
+   "S3": "partial",
+   "S4": "met",
+   "V1": "met"
+  },
+  "overbuilt_items": [],
+  "platform_errors": [],
+  "tier_chosen": "server-shared-live"
+ },
+ "S06_SF_shipped_2": {
+  "grades": {
+   "C1": "overbuilt",
+   "C2": "met",
+   "C5": "partial",
+   "D1": "missed",
+   "D2": "partial",
+   "I1": "met",
+   "I2": "met",
+   "I3": "met",
+   "K1": "na",
+   "K3": "met",
+   "P1": "met",
+   "P2": "met",
+   "P3": "met",
+   "R1": "met",
+   "R2": "partial",
+   "R3": "met",
+   "S1": "met",
+   "S2": "met",
+   "S3": "met",
+   "S4": "met",
+   "V1": "met"
+  },
+  "overbuilt_items": [
+   "CDC + empApi persistent push subscription (with replay-ID and reconnect handling) chosen for a 1-minute freshness bar, where a simple polling refresh would fit the quota and avoid subscribe/unsubscribe lifecycle complexity"
+  ],
+  "platform_errors": [],
+  "tier_chosen": "server-shared-live"
+ },
+ "S07_GAS_candidate_1": {
+  "grades": {
+   "C1": "met",
+   "C3": "partial",
+   "D1": "met",
+   "D2": "met",
+   "D3": "partial",
+   "I1": "met",
+   "I2": "met",
+   "I3": "met",
+   "P1": "met",
+   "P2": "met",
+   "P3": "met",
+   "R1": "met",
+   "R2": "met",
+   "R3": "met",
+   "S1": "met",
+   "S2": "met",
+   "S4": "met",
+   "V1": "met"
+  },
+  "overbuilt_items": [],
+  "platform_errors": [
+   "LockService has no automatic '~30s default wait' \u2014 a timeout must be explicitly passed to tryLock()/waitLock()."
+  ],
+  "tier_chosen": "server-shared-async"
+ },
+ "S07_GAS_candidate_2": {
+  "grades": {
+   "C1": "met",
+   "C3": "met",
+   "D1": "missed",
+   "D2": "met",
+   "D3": "missed",
+   "I1": "met",
+   "I2": "met",
+   "I3": "met",
+   "P1": "met",
+   "P2": "met",
+   "P3": "met",
+   "R1": "overbuilt",
+   "R2": "met",
+   "R3": "met",
+   "S1": "met",
+   "S2": "met",
+   "S4": "met",
+   "V1": "met"
+  },
+  "overbuilt_items": [
+   "Custom Sheets+LockService approval state machine built from scratch instead of considering Google Workspace's native approval/workflow automation features"
+  ],
+  "platform_errors": [],
+  "tier_chosen": "server-shared-async"
+ },
+ "S07_GAS_shipped_1": {
+  "grades": {
+   "C1": "met",
+   "C3": "partial",
+   "D1": "met",
+   "D2": "met",
+   "D3": "partial",
+   "I1": "met",
+   "I2": "met",
+   "I3": "met",
+   "P1": "met",
+   "P2": "met",
+   "P3": "met",
+   "R1": "met",
+   "R2": "met",
+   "R3": "partial",
+   "S1": "met",
+   "S2": "met",
+   "S4": "met",
+   "V1": "met"
+  },
+  "overbuilt_items": [],
+  "platform_errors": [
+   "Claims HtmlService 'doesn't support' polling \u2014 polling is achievable via client-side google.script.run calls on an interval; only persistent server-pushed WebSocket connections are unsupported."
+  ],
+  "tier_chosen": "server-shared-async"
+ },
+ "S07_GAS_shipped_2": {
+  "grades": {
+   "C1": "met",
+   "C3": "partial",
+   "D1": "met",
+   "D2": "met",
+   "D3": "met",
+   "I1": "met",
+   "I2": "met",
+   "I3": "met",
+   "P1": "met",
+   "P2": "met",
+   "P3": "met",
+   "R1": "met",
+   "R2": "missed",
+   "R3": "met",
+   "S1": "partial",
+   "S2": "met",
+   "S4": "met",
+   "V1": "met"
+  },
+  "overbuilt_items": [],
+  "platform_errors": [],
+  "tier_chosen": "server-shared-async"
+ },
+ "S07_SF_candidate_1": {
+  "grades": {
+   "C1": "met",
+   "C3": "partial",
+   "D1": "missed",
+   "D2": "partial",
+   "D3": "missed",
+   "I1": "met",
+   "I2": "met",
+   "I3": "met",
+   "P1": "met",
+   "P2": "met",
+   "P3": "met",
+   "R1": "met",
+   "R2": "met",
+   "R3": "partial",
+   "S1": "met",
+   "S2": "met",
+   "S4": "partial",
+   "V1": "met"
+  },
+  "overbuilt_items": [],
+  "platform_errors": [
+   "Claims 'native role-hierarchy inheritance' would grant managers access to reports' records if Manager__c is backed by User.ManagerId \u2014 Salesforce's native 'grant access using hierarchies' follows Role hierarchy, not the User.ManagerId field; sharing by manager relationship requires an explicit sharing rule or Apex-managed sharing, not automatic inheritance."
+  ],
+  "tier_chosen": "server-shared-async"
+ },
+ "S07_SF_candidate_2": {
+  "grades": {
+   "C1": "met",
+   "C3": "partial",
+   "D1": "missed",
+   "D2": "met",
+   "D3": "missed",
+   "I1": "met",
+   "I2": "met",
+   "I3": "met",
+   "P1": "met",
+   "P2": "met",
+   "P3": "met",
+   "R1": "met",
+   "R2": "partial",
+   "R3": "met",
+   "S1": "met",
+   "S2": "met",
+   "S4": "met",
+   "V1": "met"
+  },
+  "overbuilt_items": [],
+  "platform_errors": [],
+  "tier_chosen": "server-shared-async"
+ },
+ "S07_SF_shipped_1": {
+  "grades": {
+   "C1": "met",
+   "C3": "missed",
+   "D1": "partial",
+   "D2": "met",
+   "D3": "missed",
+   "I1": "met",
+   "I2": "met",
+   "I3": "met",
+   "P1": "met",
+   "P2": "met",
+   "P3": "met",
+   "R1": "met",
+   "R2": "missed",
+   "R3": "met",
+   "S1": "met",
+   "S2": "met",
+   "S4": "partial",
+   "V1": "met"
+  },
+  "overbuilt_items": [],
+  "platform_errors": [],
+  "tier_chosen": "server-shared-async"
+ },
+ "S07_SF_shipped_2": {
+  "grades": {
+   "C1": "met",
+   "C3": "partial",
+   "D1": "missed",
+   "D2": "missed",
+   "D3": "missed",
+   "I1": "met",
+   "I2": "met",
+   "I3": "met",
+   "P1": "met",
+   "P2": "met",
+   "P3": "met",
+   "R1": "met",
+   "R2": "met",
+   "R3": "met",
+   "S1": "met",
+   "S2": "met",
+   "S4": "partial",
+   "V1": "met"
+  },
+  "overbuilt_items": [],
+  "platform_errors": [],
+  "tier_chosen": "server-shared-async"
+ },
+ "S08_GAS_candidate_1": {
+  "grades": {
+   "C1": "met",
+   "C5": "met",
+   "I1": "met",
+   "I3": "met",
+   "K1": "met",
+   "K2": "met",
+   "K3": "met",
+   "P1": "met",
+   "P2": "met",
+   "P3": "met",
+   "R1": "met",
+   "R2": "met",
+   "R3": "met",
+   "S1": "met",
+   "V1": "met"
+  },
+  "overbuilt_items": [],
+  "platform_errors": [],
+  "tier_chosen": "server-shared-async"
+ },
+ "S08_GAS_candidate_2": {
+  "grades": {
+   "C1": "met",
+   "C5": "partial",
+   "I1": "met",
+   "I3": "met",
+   "K1": "met",
+   "K2": "met",
+   "K3": "met",
+   "P1": "met",
+   "P2": "met",
+   "P3": "met",
+   "R1": "met",
+   "R2": "met",
+   "R3": "met",
+   "S1": "met",
+   "V1": "met"
+  },
+  "overbuilt_items": [],
+  "platform_errors": [],
+  "tier_chosen": "server-shared-async"
+ },
+ "S08_GAS_shipped_1": {
+  "grades": {
+   "C1": "met",
+   "C5": "partial",
+   "I1": "met",
+   "I3": "met",
+   "K1": "met",
+   "K2": "met",
+   "K3": "met",
+   "P1": "met",
+   "P2": "met",
+   "P3": "met",
+   "R1": "met",
+   "R2": "partial",
+   "R3": "met",
+   "S1": "met",
+   "V1": "met"
+  },
+  "overbuilt_items": [],
+  "platform_errors": [],
+  "tier_chosen": "server-shared-async"
+ },
+ "S08_GAS_shipped_2": {
+  "grades": {
+   "C1": "met",
+   "C5": "partial",
+   "I1": "met",
+   "I3": "met",
+   "K1": "met",
+   "K2": "met",
+   "K3": "met",
+   "P1": "met",
+   "P2": "met",
+   "P3": "met",
+   "R1": "met",
+   "R2": "met",
+   "R3": "partial",
+   "S1": "met",
+   "V1": "met"
+  },
+  "overbuilt_items": [],
+  "platform_errors": [
+   "States a flat '6-minute execution ceiling' for Apps Script, but the domain-restricted deployment implies a Google Workspace account, where the script runtime limit is 30 minutes, not 6 \u2014 the plan's own quota check is inconsistent with its deployment target."
+  ],
+  "tier_chosen": "server-shared-async"
+ },
+ "S08_SF_candidate_1": {
+  "grades": {
+   "C1": "met",
+   "C5": "partial",
+   "I1": "met",
+   "I3": "met",
+   "K1": "met",
+   "K2": "met",
+   "K3": "met",
+   "P1": "met",
+   "P2": "met",
+   "P3": "overbuilt",
+   "R1": "met",
+   "R2": "partial",
+   "R3": "met",
+   "S1": "met",
+   "V1": "met"
+  },
+  "overbuilt_items": [
+   "Client-side 5-minute auto-refresh polling timer while the dashboard tab is open \u2014 the request only requires data to be no more than 15 minutes stale on view, not continuous background polling; a plain load-time fetch against the 900s cache already satisfies this."
+  ],
+  "platform_errors": [],
+  "tier_chosen": "server-shared-async"
+ },
+ "S08_SF_candidate_2": {
+  "grades": {
+   "C1": "met",
+   "C5": "met",
+   "I1": "met",
+   "I3": "met",
+   "K1": "met",
+   "K2": "met",
+   "K3": "met",
+   "P1": "met",
+   "P2": "met",
+   "P3": "met",
+   "R1": "met",
+   "R2": "met",
+   "R3": "met",
+   "S1": "met",
+   "V1": "met"
+  },
+  "overbuilt_items": [],
+  "platform_errors": [],
+  "tier_chosen": "server-shared-async"
+ },
+ "S08_SF_shipped_1": {
+  "grades": {
+   "C1": "overbuilt",
+   "C5": "met",
+   "I1": "met",
+   "I3": "met",
+   "K1": "missed",
+   "K2": "partial",
+   "K3": "met",
+   "P1": "met",
+   "P2": "met",
+   "P3": "partial",
+   "R1": "met",
+   "R2": "met",
+   "R3": "met",
+   "S1": "met",
+   "V1": "met"
+  },
+  "overbuilt_items": [
+   "5-minute client-side setInterval auto-polling layered on top of an already-live per-load aggregate query \u2014 the request only needs figures no more than 15 minutes stale, which a simple query-on-visit already satisfies without a standing refresh timer"
+  ],
+  "platform_errors": [],
+  "tier_chosen": "server-shared-async"
+ },
+ "S08_SF_shipped_2": {
+  "grades": {
+   "C1": "met",
+   "C5": "partial",
+   "I1": "met",
+   "I3": "met",
+   "K1": "met",
+   "K2": "met",
+   "K3": "met",
+   "P1": "met",
+   "P2": "met",
+   "P3": "met",
+   "R1": "met",
+   "R2": "met",
+   "R3": "met",
+   "S1": "met",
+   "V1": "met"
+  },
+  "overbuilt_items": [],
+  "platform_errors": [],
+  "tier_chosen": "server-shared-async"
+ },
+ "S09_CF_candidate_1": {
+  "grades": {
+   "C3": "met",
+   "C5": "met",
+   "D1": "missed",
+   "D3": "met",
+   "D4": "met",
+   "O1": "partial",
+   "P1": "partial",
+   "P3": "overbuilt",
+   "R1": "met",
+   "R2": "met",
+   "R3": "met",
+   "S1": "met",
+   "S4": "partial",
+   "V1": "met"
+  },
+  "overbuilt_items": [
+   "Authenticated GET /orders?date= endpoint (work item 7) \u2014 request only asks that reports can use the stored data; direct D1 binding from an in-account reports Worker suffices without adding an auth-protected HTTP surface"
+  ],
+  "platform_errors": [],
+  "tier_chosen": "server-batch"
+ },
+ "S09_CF_candidate_2": {
+  "grades": {
+   "C3": "met",
+   "C5": "met",
+   "D1": "missed",
+   "D3": "partial",
+   "D4": "met",
+   "O1": "partial",
+   "P1": "met",
+   "P3": "met",
+   "R1": "met",
+   "R2": "met",
+   "R3": "met",
+   "S1": "partial",
+   "S4": "met",
+   "V1": "partial"
+  },
+  "overbuilt_items": [],
+  "platform_errors": [],
+  "tier_chosen": "server-batch"
+ },
+ "S09_CF_shipped_1": {
+  "grades": {
+   "C3": "met",
+   "C5": "partial",
+   "D1": "met",
+   "D3": "met",
+   "D4": "met",
+   "O1": "partial",
+   "P1": "met",
+   "P3": "met",
+   "R1": "met",
+   "R2": "partial",
+   "R3": "met",
+   "S1": "met",
+   "S4": "partial",
+   "V1": "met"
+  },
+  "overbuilt_items": [],
+  "platform_errors": [],
+  "tier_chosen": "server-batch"
+ },
+ "S09_CF_shipped_2": {
+  "grades": {
+   "C3": "met",
+   "C5": "met",
+   "D1": "met",
+   "D3": "met",
+   "D4": "met",
+   "O1": "partial",
+   "P1": "met",
+   "P3": "overbuilt",
+   "R1": "met",
+   "R2": "met",
+   "R3": "partial",
+   "S1": "met",
+   "S4": "partial",
+   "V1": "met"
+  },
+  "overbuilt_items": [
+   "Authenticated backfill HTTP endpoint with shared-secret/Access auth \u2014 adds a request-driven access surface and credential-check feature the nightly batch request never asked for"
+  ],
+  "platform_errors": [
+   "Claim that 'Cloudflare won't overlap two invocations of the same cron schedule, so no cross-run locking is needed' is not a documented Cron Trigger guarantee \u2014 Cloudflare's own retry behavior on scheduled-handler failure is precisely why the plan needs idempotent upserts elsewhere, which contradicts treating overlap as impossible"
+  ],
+  "tier_chosen": "server-batch"
+ },
+ "S09_GAS_candidate_1": {
+  "grades": {
+   "C3": "met",
+   "C5": "met",
+   "D1": "met",
+   "D3": "met",
+   "D4": "met",
+   "O1": "met",
+   "P1": "met",
+   "P3": "met",
+   "R1": "met",
+   "R2": "met",
+   "R3": "met",
+   "S1": "met",
+   "S4": "partial",
+   "V1": "met"
+  },
+  "overbuilt_items": [],
+  "platform_errors": [],
+  "tier_chosen": "server-batch"
+ },
+ "S09_GAS_candidate_2": {
+  "grades": {
+   "C3": "met",
+   "C5": "met",
+   "D1": "missed",
+   "D3": "met",
+   "D4": "met",
+   "O1": "partial",
+   "P1": "met",
+   "P3": "met",
+   "R1": "met",
+   "R2": "met",
+   "R3": "met",
+   "S1": "met",
+   "S4": "partial",
+   "V1": "met"
+  },
+  "overbuilt_items": [],
+  "platform_errors": [],
+  "tier_chosen": "server-batch"
+ },
+ "S09_GAS_shipped_1": {
+  "grades": {
+   "C3": "met",
+   "C5": "met",
+   "D1": "missed",
+   "D3": "met",
+   "D4": "met",
+   "O1": "partial",
+   "P1": "met",
+   "P3": "met",
+   "R1": "met",
+   "R2": "met",
+   "R3": "met",
+   "S1": "met",
+   "S4": "partial",
+   "V1": "met"
+  },
+  "overbuilt_items": [],
+  "platform_errors": [],
+  "tier_chosen": "server-batch"
+ },
+ "S09_GAS_shipped_2": {
+  "grades": {
+   "C3": "met",
+   "C5": "met",
+   "D1": "partial",
+   "D3": "met",
+   "D4": "met",
+   "O1": "met",
+   "P1": "met",
+   "P3": "met",
+   "R1": "met",
+   "R2": "met",
+   "R3": "met",
+   "S1": "met",
+   "S4": "partial",
+   "V1": "met"
+  },
+  "overbuilt_items": [],
+  "platform_errors": [],
+  "tier_chosen": "server-batch"
+ },
+ "S10_CF_candidate_1": {
+  "grades": {
+   "C3": "partial",
+   "D1": "met",
+   "D2": "met",
+   "D3": "missed",
+   "I1": "met",
+   "I2": "met",
+   "I4": "met",
+   "P1": "met",
+   "P2": "met",
+   "P3": "met",
+   "R1": "met",
+   "R2": "met",
+   "R3": "partial",
+   "S1": "met",
+   "S4": "met",
+   "V1": "met"
+  },
+  "overbuilt_items": [],
+  "platform_errors": [
+   "Cloudflare D1 free tier is stated as '25M reads/day' \u2014 the actual free-tier limit is approximately 5 million rows read/day (25 billion rows read/month is a Workers Paid-plan monthly included allotment, not a free-tier daily figure)."
+  ],
+  "tier_chosen": "server-public"
+ },
+ "S10_CF_candidate_2": {
+  "grades": {
+   "C3": "partial",
+   "D1": "met",
+   "D2": "met",
+   "D3": "met",
+   "I1": "met",
+   "I2": "met",
+   "I4": "met",
+   "P1": "met",
+   "P2": "met",
+   "P3": "met",
+   "R1": "met",
+   "R2": "partial",
+   "R3": "met",
+   "S1": "met",
+   "S4": "met",
+   "V1": "met"
+  },
+  "overbuilt_items": [],
+  "platform_errors": [],
+  "tier_chosen": "server-public"
+ },
+ "S10_CF_shipped_1": {
+  "grades": {
+   "C3": "met",
+   "D1": "met",
+   "D2": "partial",
+   "D3": "met",
+   "I1": "met",
+   "I2": "met",
+   "I4": "met",
+   "P1": "met",
+   "P2": "met",
+   "P3": "met",
+   "R1": "met",
+   "R2": "missed",
+   "R3": "met",
+   "S1": "met",
+   "S4": "met",
+   "V1": "met"
+  },
+  "overbuilt_items": [],
+  "platform_errors": [],
+  "tier_chosen": "server-public"
+ },
+ "S10_CF_shipped_2": {
+  "grades": {
+   "C3": "partial",
+   "D1": "met",
+   "D2": "met",
+   "D3": "met",
+   "I1": "met",
+   "I2": "met",
+   "I4": "met",
+   "P1": "met",
+   "P2": "met",
+   "P3": "met",
+   "R1": "met",
+   "R2": "missed",
+   "R3": "met",
+   "S1": "met",
+   "S4": "met",
+   "V1": "met"
+  },
+  "overbuilt_items": [],
+  "platform_errors": [],
+  "tier_chosen": "server-public"
+ },
+ "S10_GAS_candidate_1": {
+  "grades": {
+   "C3": "missed",
+   "D1": "met",
+   "D2": "partial",
+   "D3": "met",
+   "I1": "met",
+   "I2": "partial",
+   "I4": "met",
+   "P1": "met",
+   "P2": "met",
+   "P3": "met",
+   "R1": "met",
+   "R2": "met",
+   "R3": "partial",
+   "S1": "met",
+   "S4": "partial",
+   "V1": "met"
+  },
+  "overbuilt_items": [],
+  "platform_errors": [
+   "'LockService.getScriptLock() waits \u226430s by default' is inaccurate \u2014 the lock has no default wait; a timeout must be explicitly passed to waitLock(timeoutInMillis)."
+  ],
+  "tier_chosen": "server-public"
+ },
+ "S10_GAS_candidate_2": {
+  "grades": {
+   "C3": "partial",
+   "D1": "met",
+   "D2": "met",
+   "D3": "met",
+   "I1": "met",
+   "I2": "met",
+   "I4": "partial",
+   "P1": "met",
+   "P2": "met",
+   "P3": "met",
+   "R1": "met",
+   "R2": "met",
+   "R3": "met",
+   "S1": "met",
+   "S4": "met",
+   "V1": "met"
+  },
+  "overbuilt_items": [],
+  "platform_errors": [],
+  "tier_chosen": "server-public"
+ },
+ "S10_GAS_shipped_1": {
+  "grades": {
+   "C3": "met",
+   "D1": "met",
+   "D2": "partial",
+   "D3": "met",
+   "I1": "partial",
+   "I2": "partial",
+   "I4": "met",
+   "P1": "met",
+   "P2": "met",
+   "P3": "overbuilt",
+   "R1": "met",
+   "R2": "missed",
+   "R3": "partial",
+   "S1": "met",
+   "S4": "met",
+   "V1": "met"
+  },
+  "overbuilt_items": [
+   "Optional reCAPTCHA v3 UrlFetchApp integration (work item 10) adds scope beyond the honeypot/timing/rate-limit controls that already satisfy the 'protected from spam' requirement"
+  ],
+  "platform_errors": [
+   "Session.getActiveUser().getEmail() is unlikely to reliably identify staff when the web app is deployed with Access: Anyone \u2014 Apps Script generally only exposes active-user identity when the deployment requires sign-in (e.g., restricted to a domain or 'Anyone with Google account'); under a fully open 'Anyone' deployment it commonly returns a blank string even for logged-in staff, so the described domain-gate check may fail to identify legitimate staff and cannot be trusted as the sole authorization mechanism"
+  ],
+  "tier_chosen": "server-public"
+ },
+ "S10_GAS_shipped_2": {
+  "grades": {
+   "C3": "partial",
+   "D1": "met",
+   "D2": "met",
+   "D3": "missed",
+   "I1": "met",
+   "I2": "met",
+   "I4": "met",
+   "P1": "met",
+   "P2": "met",
+   "P3": "met",
+   "R1": "met",
+   "R2": "missed",
+   "R3": "met",
+   "S1": "met",
+   "S4": "met",
+   "V1": "met"
+  },
+  "overbuilt_items": [
+   "reopenSubmission + resolver notes go slightly beyond the requested 'read and resolve' workflow"
+  ],
+  "platform_errors": [],
+  "tier_chosen": "server-public"
+ },
+ "S11_GAS_candidate_1": {
+  "grades": {
+   "C1": "met",
+   "C2": "na",
+   "C3": "missed",
+   "D1": "met",
+   "D2": "met",
+   "D4": "na",
+   "I1": "met",
+   "I2": "met",
+   "O1": "met",
+   "P1": "met",
+   "P2": "met",
+   "P3": "met",
+   "R1": "met",
+   "R2": "met",
+   "R3": "met",
+   "S1": "met",
+   "S3": "missed",
+   "S4": "met",
+   "V1": "met"
+  },
+  "overbuilt_items": [],
+  "platform_errors": [],
+  "tier_chosen": "server-shared-async"
+ },
+ "S11_GAS_candidate_2": {
+  "grades": {
+   "C1": "met",
+   "C2": "met",
+   "C3": "missed",
+   "D1": "partial",
+   "D2": "partial",
+   "D4": "met",
+   "I1": "met",
+   "I2": "met",
+   "O1": "met",
+   "P1": "met",
+   "P2": "met",
+   "P3": "met",
+   "R1": "met",
+   "R2": "met",
+   "R3": "met",
+   "S1": "met",
+   "S3": "partial",
+   "S4": "met",
+   "V1": "met"
+  },
+  "overbuilt_items": [],
+  "platform_errors": [],
+  "tier_chosen": "server-shared-async"
+ },
+ "S11_GAS_shipped_1": {
+  "grades": {
+   "C1": "met",
+   "C2": "na",
+   "C3": "na",
+   "D1": "met",
+   "D2": "met",
+   "D4": "na",
+   "I1": "met",
+   "I2": "met",
+   "O1": "met",
+   "P1": "missed",
+   "P2": "met",
+   "P3": "met",
+   "R1": "met",
+   "R2": "met",
+   "R3": "partial",
+   "S1": "missed",
+   "S3": "partial",
+   "S4": "met",
+   "V1": "met"
+  },
+  "overbuilt_items": [],
+  "platform_errors": [
+   "Describes Advanced Drive Service calls as going 'via UrlFetchApp' \u2014 Advanced Services are invoked through their generated wrapper methods (e.g. Drive.Files.insert) with OAuth handled internally, not via the developer calling UrlFetchApp directly."
+  ],
+  "tier_chosen": "client-plus-light-server"
+ },
+ "S11_GAS_shipped_2": {
+  "grades": {
+   "C1": "met",
+   "C2": "na",
+   "C3": "missed",
+   "D1": "partial",
+   "D2": "missed",
+   "D4": "met",
+   "I1": "met",
+   "I2": "met",
+   "O1": "met",
+   "P1": "partial",
+   "P2": "met",
+   "P3": "met",
+   "R1": "met",
+   "R2": "met",
+   "R3": "met",
+   "S1": "met",
+   "S3": "partial",
+   "S4": "missed",
+   "V1": "met"
+  },
+  "overbuilt_items": [
+   "Bound-Sheet audit log of every receipt (email, timestamp, Drive link, total, date) is added as a 'default' beyond the literal 'show the result' ask, without an explicit deletion/expiry policy"
+  ],
+  "platform_errors": [],
+  "tier_chosen": "server-shared-async"
+ },
+ "S11_SF_candidate_1": {
+  "grades": {
+   "C1": "met",
+   "C2": "met",
+   "C3": "met",
+   "D1": "met",
+   "D2": "partial",
+   "D4": "met",
+   "I1": "met",
+   "I2": "met",
+   "O1": "met",
+   "P1": "met",
+   "P2": "met",
+   "P3": "partial",
+   "R1": "met",
+   "R2": "met",
+   "R3": "met",
+   "S1": "met",
+   "S3": "partial",
+   "S4": "partial",
+   "V1": "met"
+  },
+  "overbuilt_items": [],
+  "platform_errors": [],
+  "tier_chosen": "server-shared-async"
+ },
+ "S11_SF_candidate_2": {
+  "grades": {
+   "C1": "met",
+   "C2": "met",
+   "C3": "partial",
+   "D1": "met",
+   "D2": "met",
+   "D4": "met",
+   "I1": "met",
+   "I2": "met",
+   "O1": "met",
+   "P1": "met",
+   "P2": "met",
+   "P3": "overbuilt",
+   "R1": "met",
+   "R2": "met",
+   "R3": "met",
+   "S1": "met",
+   "S3": "met",
+   "S4": "met",
+   "V1": "met"
+  },
+  "overbuilt_items": [
+   "Admin permission set with org-wide 'View All' visibility for Receipt__c \u2014 an admin/reviewer role was not requested; the scenario only asks for the uploading employee to see their own result"
+  ],
+  "platform_errors": [],
+  "tier_chosen": "server-shared-async"
+ },
+ "S11_SF_shipped_1": {
+  "grades": {
+   "C1": "overbuilt",
+   "C2": "met",
+   "C3": "partial",
+   "D1": "met",
+   "D2": "met",
+   "D4": "met",
+   "I1": "met",
+   "I2": "partial",
+   "O1": "partial",
+   "P1": "overbuilt",
+   "P2": "met",
+   "P3": "met",
+   "R1": "met",
+   "R2": "met",
+   "R3": "met",
+   "S1": "met",
+   "S3": "partial",
+   "S4": "met",
+   "V1": "met"
+  },
+  "overbuilt_items": [
+   "Platform Events + empApi/CometD live-push subscription to deliver a single-user async OCR result, when the request only needs the employee to see the result on next visit or via notification (expected tier explicitly excludes a live channel)"
+  ],
+  "platform_errors": [],
+  "tier_chosen": "server-shared-live"
+ },
+ "S11_SF_shipped_2": {
+  "grades": {
+   "C1": "overbuilt",
+   "C2": "met",
+   "C3": "missed",
+   "D1": "met",
+   "D2": "partial",
+   "D4": "met",
+   "I1": "met",
+   "I2": "partial",
+   "O1": "partial",
+   "P1": "partial",
+   "P2": "met",
+   "P3": "met",
+   "R1": "met",
+   "R2": "met",
+   "R3": "partial",
+   "S1": "met",
+   "S3": "met",
+   "S4": "partial",
+   "V1": "partial"
+  },
+  "overbuilt_items": [
+   "Platform Event + empApi/CometD live subscription channel for completion notice, exceeding the tier's 'no live channel' scope (next-visit re-query or a platform/email notification would suffice)"
+  ],
+  "platform_errors": [
+   "Claim that Change Data Capture (CDC) requires an edition/Shield entitlement is inaccurate \u2014 CDC availability is edition-gated (Enterprise/Unlimited/Performance/Developer), and Salesforce Shield (Platform Encryption/Event Monitoring/Field Audit Trail) is an unrelated add-on with no bearing on CDC access"
+  ],
+  "tier_chosen": "server-shared-async"
+ },
+ "S12_CF_candidate_1": {
+  "grades": {
+   "C1": "met",
+   "C2": "met",
+   "C3": "missed",
+   "C5": "partial",
+   "D1": "missed",
+   "D2": "partial",
+   "I1": "met",
+   "I2": "met",
+   "P1": "met",
+   "P2": "met",
+   "P3": "met",
+   "R1": "met",
+   "R2": "met",
+   "R3": "met",
+   "S1": "met",
+   "S2": "met",
+   "S3": "met",
+   "S4": "met",
+   "V1": "met"
+  },
+  "overbuilt_items": [],
+  "platform_errors": [],
+  "tier_chosen": "server-shared-live"
+ },
+ "S12_CF_candidate_2": {
+  "grades": {
+   "C1": "met",
+   "C2": "met",
+   "C3": "partial",
+   "C5": "met",
+   "D1": "missed",
+   "D2": "partial",
+   "I1": "partial",
+   "I2": "met",
+   "P1": "met",
+   "P2": "met",
+   "P3": "met",
+   "R1": "met",
+   "R2": "met",
+   "R3": "met",
+   "S1": "met",
+   "S2": "met",
+   "S3": "met",
+   "S4": "met",
+   "V1": "met"
+  },
+  "overbuilt_items": [],
+  "platform_errors": [],
+  "tier_chosen": "server-shared-live"
+ },
+ "S12_CF_shipped_1": {
+  "grades": {
+   "C1": "met",
+   "C2": "met",
+   "C3": "missed",
+   "C5": "partial",
+   "D1": "met",
+   "D2": "partial",
+   "I1": "met",
+   "I2": "partial",
+   "P1": "met",
+   "P2": "met",
+   "P3": "met",
+   "R1": "met",
+   "R2": "met",
+   "R3": "met",
+   "S1": "met",
+   "S2": "met",
+   "S3": "met",
+   "S4": "partial",
+   "V1": "met"
+  },
+  "overbuilt_items": [],
+  "platform_errors": [],
+  "tier_chosen": "server-shared-live"
+ },
+ "S12_CF_shipped_2": {
+  "grades": {
+   "C1": "met",
+   "C2": "met",
+   "C3": "partial",
+   "C5": "met",
+   "D1": "met",
+   "D2": "met",
+   "I1": "met",
+   "I2": "met",
+   "P1": "met",
+   "P2": "met",
+   "P3": "met",
+   "R1": "met",
+   "R2": "met",
+   "R3": "met",
+   "S1": "met",
+   "S2": "met",
+   "S3": "met",
+   "S4": "met",
+   "V1": "met"
+  },
+  "overbuilt_items": [],
+  "platform_errors": [],
+  "tier_chosen": "server-shared-live"
+ },
+ "S12_SF_candidate_1": {
+  "grades": {
+   "C1": "met",
+   "C2": "met",
+   "C3": "partial",
+   "C5": "met",
+   "D1": "missed",
+   "D2": "partial",
+   "I1": "met",
+   "I2": "met",
+   "P1": "met",
+   "P2": "met",
+   "P3": "met",
+   "R1": "met",
+   "R2": "met",
+   "R3": "met",
+   "S1": "met",
+   "S2": "met",
+   "S3": "met",
+   "S4": "met",
+   "V1": "met"
+  },
+  "overbuilt_items": [],
+  "platform_errors": [],
+  "tier_chosen": "server-shared-live"
+ },
+ "S12_SF_candidate_2": {
+  "grades": {
+   "C1": "met",
+   "C2": "met",
+   "C3": "missed",
+   "C5": "met",
+   "D1": "met",
+   "D2": "partial",
+   "I1": "met",
+   "I2": "partial",
+   "P1": "met",
+   "P2": "met",
+   "P3": "met",
+   "R1": "met",
+   "R2": "met",
+   "R3": "met",
+   "S1": "met",
+   "S2": "met",
+   "S3": "met",
+   "S4": "met",
+   "V1": "met"
+  },
+  "overbuilt_items": [],
+  "platform_errors": [],
+  "tier_chosen": "server-shared-live"
+ },
+ "S12_SF_shipped_1": {
+  "grades": {
+   "C1": "met",
+   "C2": "met",
+   "C3": "missed",
+   "C5": "missed",
+   "D1": "missed",
+   "D2": "met",
+   "I1": "met",
+   "I2": "met",
+   "P1": "met",
+   "P2": "met",
+   "P3": "partial",
+   "R1": "met",
+   "R2": "partial",
+   "R3": "partial",
+   "S1": "met",
+   "S2": "met",
+   "S3": "partial",
+   "S4": "met",
+   "V1": "met"
+  },
+  "overbuilt_items": [
+   "Author-only edit/delete permission modeling and negative-test coverage for a delete/edit capability the request never asked for (only post/view/scroll)"
+  ],
+  "platform_errors": [
+   "Claims a permission set can grant 'no Edit/Delete except author-owner' on Chat_Message__c \u2014 Salesforce permission-set/profile CRUD is all-or-nothing per object, not conditional on a custom Author__c lookup; per-record owner restriction needs the record's real OwnerId with sharing rules or explicit Apex/trigger enforcement, which the plan never specifies",
+   "Asserts empApi 'handles reconnection internally' as sufficient for resync, but CometD auto-reconnect does not guarantee delivery of events missed during the disconnect window without explicit replay/replayId handling, which the plan does not configure"
+  ],
+  "tier_chosen": "server-shared-live"
+ },
+ "S12_SF_shipped_2": {
+  "grades": {
+   "C1": "met",
+   "C2": "met",
+   "C3": "partial",
+   "C5": "missed",
+   "D1": "met",
+   "D2": "met",
+   "I1": "met",
+   "I2": "met",
+   "P1": "met",
+   "P2": "met",
+   "P3": "met",
+   "R1": "met",
+   "R2": "partial",
+   "R3": "met",
+   "S1": "met",
+   "S2": "met",
+   "S3": "met",
+   "S4": "met",
+   "V1": "met"
+  },
+  "overbuilt_items": [],
+  "platform_errors": [],
+  "tier_chosen": "server-shared-live"
+ },
+ "S13_CF_candidate_1": {
+  "grades": {
+   "C2": "met",
+   "C3": "met",
+   "C4": "met",
+   "D1": "met",
+   "I1": "partial",
+   "I2": "partial",
+   "P1": "met",
+   "P2": "met",
+   "P3": "met",
+   "R1": "met",
+   "R2": "missed",
+   "R3": "met",
+   "S1": "met",
+   "S2": "met",
+   "S3": "met",
+   "V1": "met"
+  },
+  "overbuilt_items": [],
+  "platform_errors": [],
+  "tier_chosen": "server-shared-async"
+ },
+ "S13_CF_candidate_2": {
+  "grades": {
+   "C2": "met",
+   "C3": "met",
+   "C4": "met",
+   "D1": "met",
+   "I1": "met",
+   "I2": "met",
+   "P1": "met",
+   "P2": "met",
+   "P3": "met",
+   "R1": "met",
+   "R2": "missed",
+   "R3": "met",
+   "S1": "met",
+   "S2": "met",
+   "S3": "met",
+   "V1": "met"
+  },
+  "overbuilt_items": [],
+  "platform_errors": [],
+  "tier_chosen": "server-shared-async"
+ },
+ "S13_CF_shipped_1": {
+  "grades": {
+   "C2": "met",
+   "C3": "met",
+   "C4": "partial",
+   "D1": "met",
+   "I1": "partial",
+   "I2": "partial",
+   "P1": "met",
+   "P2": "met",
+   "P3": "met",
+   "R1": "partial",
+   "R2": "met",
+   "R3": "met",
+   "S1": "met",
+   "S2": "met",
+   "S3": "met",
+   "V1": "met"
+  },
+  "overbuilt_items": [],
+  "platform_errors": [],
+  "tier_chosen": "server-shared-async"
+ },
+ "S13_CF_shipped_2": {
+  "grades": {
+   "C2": "met",
+   "C3": "met",
+   "C4": "met",
+   "D1": "met",
+   "I1": "met",
+   "I2": "met",
+   "P1": "met",
+   "P2": "met",
+   "P3": "met",
+   "R1": "met",
+   "R2": "partial",
+   "R3": "met",
+   "S1": "met",
+   "S2": "met",
+   "S3": "met",
+   "V1": "met"
+  },
+  "overbuilt_items": [],
+  "platform_errors": [],
+  "tier_chosen": "server-shared-async"
+ },
+ "S13_SF_candidate_1": {
+  "grades": {
+   "C2": "met",
+   "C3": "met",
+   "C4": "met",
+   "D1": "missed",
+   "I1": "met",
+   "I2": "met",
+   "P1": "met",
+   "P2": "met",
+   "P3": "met",
+   "R1": "met",
+   "R2": "met",
+   "R3": "met",
+   "S1": "met",
+   "S2": "met",
+   "S3": "met",
+   "V1": "met"
+  },
+  "overbuilt_items": [],
+  "platform_errors": [],
+  "tier_chosen": "server-shared-async"
+ },
+ "S13_SF_candidate_2": {
+  "grades": {
+   "C2": "na",
+   "C3": "met",
+   "C4": "met",
+   "D1": "missed",
+   "I1": "met",
+   "I2": "met",
+   "P1": "met",
+   "P2": "met",
+   "P3": "met",
+   "R1": "met",
+   "R2": "missed",
+   "R3": "met",
+   "S1": "met",
+   "S2": "met",
+   "S3": "met",
+   "V1": "met"
+  },
+  "overbuilt_items": [],
+  "platform_errors": [],
+  "tier_chosen": "server-shared-async"
+ },
+ "S13_SF_shipped_1": {
+  "grades": {
+   "C2": "na",
+   "C3": "met",
+   "C4": "partial",
+   "D1": "met",
+   "I1": "met",
+   "I2": "met",
+   "P1": "met",
+   "P2": "met",
+   "P3": "met",
+   "R1": "met",
+   "R2": "partial",
+   "R3": "partial",
+   "S1": "met",
+   "S2": "met",
+   "S3": "met",
+   "V1": "partial"
+  },
+  "overbuilt_items": [],
+  "platform_errors": [
+   "Claims Mobile Offline for LWC \"GA since Summer '23, supported at API 62.0\" \u2014 Summer '23 corresponds to API v58.0, not v62.0 (which is Winter '25); the release-season/API-version pairing is internally inconsistent."
+  ],
+  "tier_chosen": "server-shared-async"
+ },
+ "S13_SF_shipped_2": {
+  "grades": {
+   "C2": "met",
+   "C3": "met",
+   "C4": "met",
+   "D1": "met",
+   "I1": "met",
+   "I2": "met",
+   "P1": "met",
+   "P2": "met",
+   "P3": "met",
+   "R1": "met",
+   "R2": "partial",
+   "R3": "partial",
+   "S1": "met",
+   "S2": "met",
+   "S3": "met",
+   "V1": "partial"
+  },
+  "overbuilt_items": [],
+  "platform_errors": [
+   "Claims Salesforce Mobile App LWC offline support (offline pages, local draft cache, automatic sync via Lightning Data Service) has existed 'since Spring '23' \u2014 this Mobile Offline/LWC offline capability rolled out later (Summer '23 beta and subsequent GA), not Spring '23."
+  ],
+  "tier_chosen": "server-shared-async"
+ },
+ "S14_CF_candidate_1": {
+  "grades": {
+   "C1": "met",
+   "C3": "partial",
+   "C5": "met",
+   "D1": "met",
+   "D2": "met",
+   "D3": "met",
+   "D4": "met",
+   "I1": "missed",
+   "I2": "missed",
+   "K1": "na",
+   "K2": "na",
+   "K3": "met",
+   "O1": "na",
+   "P1": "missed",
+   "P2": "partial",
+   "P3": "met",
+   "R1": "met",
+   "R2": "met",
+   "R3": "met",
+   "S1": "missed",
+   "V1": "partial"
+  },
+  "overbuilt_items": [],
+  "platform_errors": [],
+  "tier_chosen": "client-plus-light-server"
+ },
+ "S14_CF_candidate_2": {
+  "grades": {
+   "C1": "met",
+   "C3": "na",
+   "C5": "met",
+   "D1": "missed",
+   "D2": "met",
+   "D3": "met",
+   "D4": "met",
+   "I1": "met",
+   "I2": "na",
+   "K1": "na",
+   "K2": "na",
+   "K3": "met",
+   "O1": "met",
+   "P1": "met",
+   "P2": "met",
+   "P3": "met",
+   "R1": "met",
+   "R2": "met",
+   "R3": "met",
+   "S1": "met",
+   "V1": "met"
+  },
+  "overbuilt_items": [],
+  "platform_errors": [],
+  "tier_chosen": "server-shared-async"
+ },
+ "S14_CF_shipped_1": {
+  "grades": {
+   "C1": "met",
+   "C3": "na",
+   "C5": "met",
+   "D1": "met",
+   "D2": "met",
+   "D3": "met",
+   "D4": "met",
+   "I1": "missed",
+   "I2": "na",
+   "K1": "na",
+   "K2": "na",
+   "K3": "met",
+   "O1": "met",
+   "P1": "missed",
+   "P2": "met",
+   "P3": "met",
+   "R1": "met",
+   "R2": "partial",
+   "R3": "met",
+   "S1": "partial",
+   "V1": "met"
+  },
+  "overbuilt_items": [],
+  "platform_errors": [],
+  "tier_chosen": "client-plus-light-server"
+ },
+ "S14_CF_shipped_2": {
+  "grades": {
+   "C1": "met",
+   "C3": "na",
+   "C5": "partial",
+   "D1": "met",
+   "D2": "met",
+   "D3": "met",
+   "D4": "met",
+   "I1": "missed",
+   "I2": "missed",
+   "K1": "na",
+   "K2": "na",
+   "K3": "met",
+   "O1": "na",
+   "P1": "partial",
+   "P2": "met",
+   "P3": "met",
+   "R1": "met",
+   "R2": "partial",
+   "R3": "met",
+   "S1": "partial",
+   "V1": "met"
+  },
+  "overbuilt_items": [],
+  "platform_errors": [],
+  "tier_chosen": "client-plus-light-server"
+ },
+ "S14_GAS_candidate_1": {
+  "grades": {
+   "C1": "met",
+   "C3": "na",
+   "C5": "met",
+   "D1": "missed",
+   "D2": "partial",
+   "D3": "met",
+   "D4": "met",
+   "I1": "met",
+   "I2": "met",
+   "K1": "na",
+   "K2": "na",
+   "K3": "met",
+   "O1": "met",
+   "P1": "met",
+   "P2": "met",
+   "P3": "met",
+   "R1": "met",
+   "R2": "met",
+   "R3": "met",
+   "S1": "met",
+   "V1": "met"
+  },
+  "overbuilt_items": [],
+  "platform_errors": [],
+  "tier_chosen": "server-shared-async"
+ },
+ "S14_GAS_candidate_2": {
+  "grades": {
+   "C1": "met",
+   "C3": "met",
+   "C5": "met",
+   "D1": "missed",
+   "D2": "met",
+   "D3": "met",
+   "D4": "met",
+   "I1": "met",
+   "I2": "met",
+   "K1": "na",
+   "K2": "met",
+   "K3": "met",
+   "O1": "met",
+   "P1": "met",
+   "P2": "met",
+   "P3": "met",
+   "R1": "met",
+   "R2": "met",
+   "R3": "partial",
+   "S1": "met",
+   "V1": "met"
+  },
+  "overbuilt_items": [],
+  "platform_errors": [
+   "Claims the Apps Script per-execution runtime cap is 6 minutes for Google Workspace accounts; Workspace accounts actually get a 30-minute execution cap, and 6 minutes is the consumer (gmail.com) account limit."
+  ],
+  "tier_chosen": "server-shared-async"
+ },
+ "S14_GAS_shipped_1": {
+  "grades": {
+   "C1": "met",
+   "C3": "na",
+   "C5": "met",
+   "D1": "met",
+   "D2": "met",
+   "D3": "met",
+   "D4": "met",
+   "I1": "na",
+   "I2": "missed",
+   "K1": "na",
+   "K2": "met",
+   "K3": "met",
+   "O1": "met",
+   "P1": "met",
+   "P2": "met",
+   "P3": "met",
+   "R1": "met",
+   "R2": "met",
+   "R3": "partial",
+   "S1": "met",
+   "V1": "partial"
+  },
+  "overbuilt_items": [],
+  "platform_errors": [
+   "The plan claims a 'fetch-level timeout budget' can be applied to UrlFetchApp via muteHttpExceptions; muteHttpExceptions only suppresses exceptions on non-2xx HTTP responses and has no relation to timeouts \u2014 Apps Script's UrlFetchApp does not expose a configurable timeout parameter at all."
+  ],
+  "tier_chosen": "client-plus-light-server"
+ },
+ "S14_GAS_shipped_2": {
+  "grades": {
+   "C1": "met",
+   "C3": "na",
+   "C5": "met",
+   "D1": "met",
+   "D2": "met",
+   "D3": "met",
+   "D4": "met",
+   "I1": "met",
+   "I2": "met",
+   "K1": "na",
+   "K2": "na",
+   "K3": "met",
+   "O1": "met",
+   "P1": "met",
+   "P2": "met",
+   "P3": "met",
+   "R1": "met",
+   "R2": "met",
+   "R3": "met",
+   "S1": "met",
+   "V1": "partial"
+  },
+  "overbuilt_items": [],
+  "platform_errors": [],
+  "tier_chosen": "server-shared-async"
+ }
+}
