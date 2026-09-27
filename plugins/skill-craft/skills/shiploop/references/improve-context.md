@@ -283,7 +283,7 @@ On the default route that evidence is the stopped packet returned in this
 conversation with no candidate write in progress. Resolve conflicting scope or
 stale checks before acceptance; changes after convergence require fresh review
 evidence, not an unchanged old receipt.
-To continue after a stop that cannot be reconciled, once its blocker is resolved or the user authorizes continuing, confirm no candidate write is in progress, record the decision in the opening file and rerun `improve-start` with `--restart-stopped`: ShipLoop archives `packet.json` as `packet.stopped-<UTC timestamp>.json` and the sibling `reviews` directory as `reviews.stopped-<same timestamp>`, then starts a new child with the same binding line. On the delegated route, once the recorded owner stopped, the worker renames those two itself and starts the new child; its `review-<n>.md` and `checks.md` files must be ones the new child writes, since ShipLoop imports those into `review_refs` and `check_refs` at completion. To pause instead, run the parent pause command and leave the child active; never report `cancelled` for a pause.
+To continue after a stop that cannot be reconciled, once its blocker is resolved or the user authorizes continuing, confirm no candidate write is in progress, record the decision in the opening file and rerun `improve-start` with `--restart-stopped`: ShipLoop archives `packet.json` as `packet.stopped-<UTC timestamp>.json` and the sibling `reviews` directory as `reviews.stopped-<same timestamp>`, then starts a new child with the same binding line. On the delegated route, confirm the recorded owner stopped first; the parent then runs the same `improve-start --restart-stopped` and dispatches a worker to continue the new child. Its `review-<n>.md` and `checks.md` files must be ones the new child writes, since ShipLoop imports those into `review_refs` and `check_refs` at completion. To pause instead, run the parent pause command and leave the child active; never report `cancelled` for a pause.
 On the delegated route, append the actual acceptance outcome,
 candidate/check/diff evidence, and any later caller-delivery outcome to
 `host-owner.md`; retain earlier launch and stop events. This record is not
@@ -395,17 +395,23 @@ authority including any no-commit override, the expected packet receipt and
 reviews directory paths, the exact `host-owner.md` locator, the exact parent
 return instruction, and the cleanup owner. Keep these facts inline with
 supporting locators; read full values at an existing input locator before
-freezing the child contract. Include the host-owner locator in the frozen child
+writing the opening. Include the host-owner locator in the frozen child
 `context.resources` as parent coordination data; the worker may inspect it for
 recovery orientation but does not update it or use it as authority to select a
 parent transition. The consumer-owned route does not call helper `prepare`,
 `inspect`, `check-context` or `close` for this workspace, invent a helper
 receipt, or perform a second patch/commit transfer; read-only package `identity`
 remains available. Route selection belongs to the parent, not Improve.
-The packet's ShipLoop callbacks and workspace-return commands are **parent-only**.
+The packet's ShipLoop callbacks and workspace-return commands are **parent-only**,
+except `improve-commit`, which the worker uses to commit a review iteration.
 Do not ask the worker to read the entire parent conversation or run another
-ShipLoop instance. It may start the bound Until Loop once for a genuinely new
-child; resume an existing child using its saved receipt, never by replacement.
+ShipLoop instance. For a genuinely new child the parent writes the opening and
+runs the packet's `improve-start` command before dispatch, as on the default
+route: ShipLoop freezes the contract (binding line first in `context.request`,
+the host-owner locator among its resources) and starts the runtime. The worker
+continues that child from the saved receipt's `next_argv` and never writes the
+contract, starts the runtime or replaces the child. (A hand-built contract lost
+its binding line in a live Codex run, so `improve-complete` refused the review.)
 
 When a relevant main-context decision changes, the parent appends its source,
 action/target, conditions and forwarding status to `host-owner.md`, then forwards
