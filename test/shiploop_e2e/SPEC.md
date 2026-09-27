@@ -115,9 +115,11 @@ an open question, it takes a stated, recorded default (an assumption the
 handoff reports) instead of waiting. When a step needs something only a person
 can supply (a sign-in, a grant, a physical observation, an authority the run
 does not hold), the run records it as an open item, continues with everything
-that does not depend on it, and, if nothing can continue, ends with a clear
-report of what is needed; it never hangs waiting for a reply. Asking a person
-is an explicit choice of an attended run, never the default.
+that does not depend on it. Only when the run truly cannot proceed without the
+person does it prompt them: it ends its turn with the question (the
+`awaiting` route) and the command to resume, stating why no default would do.
+It never blocks on standard input and never asks as a first resort (owner,
+2026-09-27).
 
 ## Change admission
 
