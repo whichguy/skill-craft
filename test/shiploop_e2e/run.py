@@ -178,10 +178,9 @@ def main_ci(commit: str) -> str:
 def version_gate(released: dict, plugin_version: str | None, shiploop_version: str | None) -> list[str]:
     """Why a marketplace run would not test what main and the marketplace publish, if at all."""
     problems = []
-    ci = released.get("ci", "success")
-    if ci in ("failure", "pending"):
-        problems.append(f"origin/main's CI is {ci}: the full test tier runs in CI on the release commit; "
-                        "wait for it to pass (or fix it) before spending a live run")
+    # Optimistic: a run starts while CI is still pending and is cancelled if CI then fails (SPEC).
+    if released.get("ci") == "failure":
+        problems.append("origin/main's CI failed: fix it (or revert) before spending a live run")
     if released.get("unreleased"):
         problems.append("origin/main has unreleased changes (" + ", ".join(released["unreleased"][:5])
                         + "): run scripts/release.py and push so the marketplace serves them")

@@ -292,9 +292,14 @@ stands at the commit under test.
   own footprint: the suites it touches, in parallel, plus the quick tier over
   what changed. The full hermetic tier is not run locally; it runs in CI on the
   release commit. The batch ships as one release, and the whole group is then
-  verified together: CI green on the release commit (the version gate waits for
-  it), every host's preflight on the new version, then the live runs, smallest
-  first (a smoke case before a full product). A failure there is fixed forward
+  verified together: every host's preflight on the new version, then the live
+  runs, smallest first (a smoke case before a full product), while CI runs on
+  the release commit.
+- **Proceed optimistically; cancel on failure.** Presume the pending checks
+  pass: release, refresh hosts and start the runs without waiting for CI, and
+  run independent work in parallel. Only a failure changes course: a run is
+  refused while CI has already failed, and runs in flight are cancelled (and the
+  change reverted or fixed) when CI or an earlier gate fails. A failure there is fixed forward
   into the next batch, not by a release per fix.
 - **Choose the verification runs from a coverage map.** Before a batch's live
   runs, map every change to the one run that proves it; each run must prove

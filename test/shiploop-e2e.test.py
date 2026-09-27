@@ -304,9 +304,9 @@ class VersionGateTest(unittest.TestCase):
         self.assertIn("is not origin/main", " ".join(run.version_gate(behind, "1.4.0", "0.37.0")))
         self.assertIn("installed skill-craft 1.3.0", " ".join(run.version_gate(self.RELEASED, "1.3.0", "0.37.0")))
         self.assertIn("installed ShipLoop 0.36.0", " ".join(run.version_gate(self.RELEASED, "1.4.0", "0.36.0")))
-        for ci in ("failure", "pending"):
-            self.assertIn(f"CI is {ci}", " ".join(run.version_gate(dict(self.RELEASED, ci=ci), "1.4.0", "0.37.0")))
-        self.assertEqual(run.version_gate(dict(self.RELEASED, ci="unknown"), "1.4.0", "0.37.0"), [])
+        self.assertIn("CI failed", " ".join(run.version_gate(dict(self.RELEASED, ci="failure"), "1.4.0", "0.37.0")))
+        for ci in ("pending", "unknown"):  # optimistic: proceed, cancel if CI then fails
+            self.assertEqual(run.version_gate(dict(self.RELEASED, ci=ci), "1.4.0", "0.37.0"), [])
         pending = dict(self.RELEASED, unreleased=["changes/shiploop/fix.md"])
         self.assertIn("unreleased changes (changes/shiploop/fix.md)", " ".join(run.version_gate(pending, "1.4.0", "0.37.0")))
 
