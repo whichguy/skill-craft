@@ -219,7 +219,11 @@ that apply and what counts as overbuilt. Full definitions: [scenarios.json](expe
 - Compare variants under one condition. Rerun the baseline alongside the
   candidates rather than reusing results from another condition, and report
   paired wins and losses per scenario-runtime cell as well as means.
-- Judge reliability (40 plans graded twice): 91% of criterion grades and 39 of
+- Use [judge2.py](experiments/shiploop-architecture-rubric/judge2.py): an evidence quote
+  before every grade, per-grade anchors, criteria before and after the plan, and a
+  five-minute timeout with logged failures. Re-grading 30 plans changed a plan's
+  score by 0.017 on average (judge v1: 0.041).
+- Judge v1 reliability (40 plans graded twice): 91% of criterion grades and 39 of
   40 tier calls agree; a plan's score moves 0.04 on average. Differences of a
   few hundredths across one variant's 100 plans are therefore not judge noise,
   but trial-to-trial variation is larger: confirm a leader with a second trial.

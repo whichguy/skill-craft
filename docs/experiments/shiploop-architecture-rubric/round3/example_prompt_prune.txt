@@ -1,0 +1,69 @@
+You are the Improve review of a ShipLoop plan-stage result. Review the plan against the focus below, fix what you find, and return the complete revised plan.
+
+Planning review focus. This planning result is
+the contract that later stages build on and that no other review sees until the
+end. Look for these conditions and fix them within scope:
+- a step, example or expected result that cannot be replayed exactly: name the
+  concrete inputs, values, identifiers and sample interactions;
+- an expected result or check that a weaker stand-in would pass: a hardcoded
+  value, a missing assertion, a title-only test, or an absent required name;
+- a documented command that does not run what it claims on the target runtime:
+  run it once and record the exit code and the cases it executes;
+- a required requirement, test ID or case dropped or weakened compared with the
+  prior accepted version;
+- a claim about what the runtime, platform or a library can do that a decision
+  depends on, with no primary-documentation source or probe result: check it,
+  and correct the plan where it is wrong;
+- personal data the plan holds, shows, logs or sends to a third party without
+  saying how long it is kept, how it is removed, and that it stays out of logs
+  and error messages;
+- a runtime quota or limit the design depends on that the plan does not name
+  and plan within;
+- a background or asynchronous failure the plan does not record where someone
+  who can act will see it;
+- anything the plan adds that the request does not need (a feature, a store,
+  sign-in, a live channel, a debug path, a higher placement tier): remove it;
+- a missing prerequisite, wrong order or unowned verification in the steps.
+Do not reread history or rerun a check already recorded green at this commit
+unless a finding depends on it. A pass that finds none of these is trivial.
+
+Change only what a finding requires. Do not add features, infrastructure or a higher placement tier that the request does not need.
+Before adding anything, check whether a finding can be met by changing or removing what the plan already has. A review that finds nothing to fix returns the plan unchanged.
+
+Request: Build a task board for a team of about 20 colleagues: create, assign, move and comment on tasks. Changes by others should appear without a manual reload within a minute.
+
+Environment: An empty Salesforce DX project (sfdx-project.json, API 62.0) with a connected scratch org via the sf CLI. Lightning Web Components is the UI framework. No other metadata yet.
+
+Plan under review:
+<<<
+No interaction design guide file exists in this empty project (confirmed via Read — no `sfdx-project.json` or docs present yet), so I'm applying the repository-guidance fallback: standard Salesforce/LWC platform conventions (Lightning Data Service, Chatter, Apex sharing/CRUD-FLS enforcement).
+
+## 1. Architecture Decision
+
+**Actors:** ~20 internal, authenticated org users (no anonymous access, no external Experience Cloud need stated).
+
+**State & ownership:** A single shared team task board, server-authoritative. `Task__c` custom object holds title, description, `Status__c` (picklist = board columns: New/In Progress/Done), `Assignee__c` (Lookup to User). Comments are **not** a custom object — reuse native Chatter (Feed Tracking enabled on `Task__c`) so commenting, feed visibility, and notifications come free from the platform instead of being built. Org-Wide Default = Public Read/Write for `Task__c` (a 20-person team board has no need for row-level privacy; all colleagues see/edit all tasks). No board/project grouping — single shared board, since the request doesn't call for multiples (assumed default; flag to user if they actually want per-team boards).
+
+**Concurrency:** Standard Salesforce record locking + last-write-wins on save is sufficient for a 20-person team; no custom optimistic-lock/merge logic is warranted at this scale.
+
+**Lifecycle/end of state:** Tasks persist indefinitely once created (no expiry stated); "Done" is a status, not a deletion. Deletion is manual via standard record delete, respecting object delete permission. No auto-archival — carried to user as an open question with this default (skip auto-archive).
+
+**Freshness channel:** The requirement is "within a minute," not sub-second — this rules out Platform Events/CometD/empApi (unnecessary Streaming API allocation cost) and points to **polling**, the lightest channel that meets the stated bound. LWC polls an `@AuraEnabled(cacheable=true)` Apex wire every ~20–30s and calls `refreshApex`, re-reading authoritative server state each cycle (not caching mutated data). Timer is cleared on `disconnectedCallback` to avoid leaks. Chatter comments render via the standard `lightning-feed` (embedded feed) component, which has its own native refresh; the same poll cadence is applied to keep it consistent with the ~1-minute bound rather than adding a second channel.
+
+**Server-side enforcement:** All Apex mutation methods (`createTask`, `updateTaskStatus`, `assignTask`) run `WITH SECURITY_ENFORCED`/`Security.stripInaccessible` and validate inputs (required title, assignee must be an active user) — this is a caller the org doesn't fully control (any of 20 users), so CRUD/FLS/sharing checks apply on every write even though there's no anonymous-input abuse-limiting need.
+
+**Personal/secret data:** Only user names and task text; no PII beyond standard user identity already in Salesforce. No custom logging of comment/task content; standard org data retention/backup applies — no additional storage/removal policy needed.
+
+**Quotas:** Polling per user every ~20–30s across 20 users stays well within Apex/API daily limits for a scratch org; no Streaming API or Platform Event allocation is consumed since polling (not push) is used.
+
+## 2. Work Items
+
+1. **`Task__c` custom object & fields** — `Status__c` (picklist: New/In Progress/Done), `Assignee__c` (Lookup(User)), `Title__c`/`Description__c`, Public Read/Write OWD, Feed Tracking enabled for Chatter comments. *Check:* deploy metadata, manually create/query a record in the scratch org confirming field-level access for a non-admin test user.
+2. **`TaskBoardController` Apex class** — `@AuraEnabled(cacheable=true) getTasks()`, `createTask`, `updateTaskStatus`, `assignTask`, each enforcing sharing/CRUD-FLS and required-field validation. *Check:* Apex unit tests covering positive path, missing-title rejection, and access-denied path for a user lacking edit rights; ≥75% coverage for scratch-org deploy.
+3. **`taskBoard` LWC (Kanban view)** — three-column layout wired to `getTasks`, buttons/drag to move status, "New Task" modal, assignee picker (user lookup). *Check:* manual test creating a task as User A, moving it, assigning to User B, confirming the DOM updates without page reload.
+4. **Comment surface** — embed `lightning-feed` (Chatter) on the task detail view, scoped to the `Task__c` record. *Check:* User A posts a comment; confirm it's visible immediately to A and to User B within one poll cycle.
+5. **Auto-refresh polling** — `setInterval` (~20–30s) driving `refreshApex` on the task wire and feed refresh, cleared in `disconnectedCallback`. *Check:* two browser sessions (different users); User A moves/edits a task; verify User B's board reflects the change within ≤60s with no manual reload; verify no console timer leaks after navigating away.
+6. **Error surfacing** — toast/banner on wire or DML failure (e.g., simulate a permission error) rather than silent failure. *Check:* force an Apex exception (e.g., revoke edit access to a test user) and confirm a visible error is shown, not swallowed.
+>>>
+
+Return two sections: "## Findings" (each finding and its fix, or "None"), then "## Revised plan" with the complete revised architecture decision and work items.

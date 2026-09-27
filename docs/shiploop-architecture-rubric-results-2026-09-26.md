@@ -191,11 +191,125 @@ Full per-criterion table: [final_analysis.txt](experiments/shiploop-architecture
   properties read-modify-write, `getActiveUser()` behaviour per deployment
   setting, and concurrent executions.
 
+## Shipped after round 2
+
+ShipLoop 0.40.0 (skill-craft 1.7.0) ships v5 as the interaction-design block,
+with one change from the tested text: the example "an opponent's fleet" became
+"an opponent's hidden game state", to keep the packet generic. The Apps Script
+card gained the facts plans kept getting wrong, each verified against Google's
+documentation ([gas_facts.md](experiments/shiploop-architecture-rubric/research/gas_facts.md)):
+executions run concurrently up to a per-user cap; properties are not documented
+as atomic, so a read-modify-write needs a LockService lock; `google.script.run`
+is asynchronous; and `Session.getActiveUser()` returns a blank email wherever
+the script runs without that user's authorization, including a web app that
+executes as the developer. Google publishes no full table of `getActiveUser()`
+results for every deployment and account type, so the card says to probe it.
+
+## Harness: judge v2
+
+A research pass ([prompt_research.md](experiments/shiploop-architecture-rubric/research/prompt_research.md))
+on LLM-as-a-judge reliability and on prompting for architecture decisions
+recommended per-grade anchors, an evidence quote before every grade
+(G-Eval-style form filling, evidence before verdict), criteria placed both
+before and after the plan (long-context position effects), and paired bootstrap
+confidence intervals. [judge2.py](experiments/shiploop-architecture-rubric/judge2.py)
+implements the first three; [round3/analyze.py](experiments/shiploop-architecture-rubric/round3/analyze.py)
+the fourth. Each judge call now times out after five minutes, retries up to
+three times and logs a final failure instead of dropping it (a hung call had
+stalled grading for fifteen minutes).
+
+| | Judge v1 | Judge v2 |
+| --- | --- | --- |
+| Same grade when a plan is re-graded | 91% (40 plans) | 92% (30 plans) |
+| Same tier when re-graded | 39/40 | 30/30 |
+| Mean change in a plan's score when re-graded | 0.041 | 0.017 |
+| Largest change | 0.25 | 0.068 |
+| Mean score on the same 75 v5 plans | 0.910 | 0.909 |
+
+Judge v2 is no stricter on average, so the earlier rounds stand, but a plan's
+score is about 2.4 times steadier, which is what paired comparisons need.
+Human calibration labels and a second judge family remain open.
+
+The subject model in every round so far is Sonnet. ShipLoop's real host is Grok
+(`grok-4.7`, medium effort); an isolated Grok runner
+([run_grok.sh](experiments/shiploop-architecture-rubric/run_grok.sh)) is
+included but not yet validated, so no result here has been reproduced on Grok.
+
+## Round 3: a planning review for detail safeguards
+
+Round 2 found that wording plateaus on detail safeguards (retention, logs,
+runtime limits, failure visibility). Round 3 tests checking them after planning
+instead. The inputs are the 104 v5 plans from round 2 (52 cells, two trials).
+Each was reviewed three ways, and each revised plan graded by judge v2 against
+the unreviewed plan:
+
+- **current**: ShipLoop's planning review focus as shipped (including the
+  platform-claim bullet).
+- **safeguards**: the current focus plus three bullets: personal data without a
+  retention period, removal path or log exclusion; a runtime quota the design
+  depends on but does not name; a background failure nobody who can act will
+  see ([focus_safeguards.txt](experiments/shiploop-architecture-rubric/round3/focus_safeguards.txt)).
+- **prune**: safeguards plus a fourth bullet, "anything the plan adds that the
+  request does not need (a feature, a store, sign-in, a live channel, a debug
+  path, a higher placement tier): remove it", and the instruction to meet a
+  finding by changing or removing what exists before adding anything, returning
+  the plan unchanged when nothing needs fixing
+  ([example prompt](experiments/shiploop-architecture-rubric/round3/example_prompt_prune.txt)).
+
+Every arm also had "change only what a finding requires; do not add features,
+infrastructure or a higher placement tier". 415 of 416 plans were graded.
+
+| | No review | current | safeguards | **prune** |
+| --- | --- | --- | --- | --- |
+| Overall | 0.911 | 0.904 | 0.937 | **0.944** |
+| Change against no review (95% CI) | — | −0.007 [−0.022, +0.006] | +0.026 [+0.012, +0.039] | **+0.033 [+0.018, +0.047]** |
+| Cells won / lost | — | 36 / 35 | 61 / 18 | **60 / 15** |
+| Safeguards (D1–D4, I2, I4) | 0.83 | 0.83 | 0.98 | 0.95 |
+| Detail targets (D1–D3, R2, O1) | 0.76 | 0.78 | 0.97 | 0.94 |
+| Proportion (P1–P3) | 0.966 | 0.938 | 0.933 | **0.976** |
+| Unrequested scope (P3 overbuilt grades) | 7 | 17 | 17 | **7** |
+| State (S1–S4) | 0.93 | 0.93 | 0.95 | 0.96 |
+| Platform errors | 3 | 8 | 5 | 6 |
+
+Per criterion, the prune review raised personal data from 0.74 to 0.97, logs
+from 0.77 to 1.00 and runtime limits from 0.68 to 0.92, with retention and end
+of life also up. Full table: [round3/final_analysis.txt](experiments/shiploop-architecture-rubric/round3/final_analysis.txt).
+
+### What round 3 shows
+
+1. **Checking after planning fixes what prompting could not.** Detail safeguards
+   that plateaued around 0.75 under every wording rise to 0.94–0.97 when a
+   review names them. The review reads a finished plan with nothing else to
+   attend to, as E6b found for platform claims.
+2. **A review adds scope unless told to remove it.** Both reviews without the
+   pruning bullet more than doubled unrequested-scope grades (7 to 17) despite
+   the "change only what a finding requires" guard, and grew plans by about
+   half. A reviewer asked to find gaps treats adding as success. Naming removal
+   as a finding, and preferring change over addition, brought scope back to
+   the unreviewed level at almost no safeguard cost.
+3. **The current review focus does not earn its cost on these criteria.** It
+   leaves safeguards unchanged, lowers proportion (−0.029, significant) and
+   more than doubles platform errors. Its value lies in the planning checks it
+   was written for (replayable examples, weak checks, dropped requirements),
+   which this rubric does not grade.
+4. **Reviews introduce some platform errors** (3 to 5–8 across 104 plans). The
+   claim-check bullet catches errors in the plan it reviews, not the ones it
+   writes.
+
+### Recommendation
+
+Add the prune arm's four bullets and its "change or remove before adding"
+instruction to ShipLoop's planning review focus. It is the only arm that
+improves safeguards, state and overall score while leaving proportion and scope
+where they were.
+
 ## Next
 
-1. Planning-review bullets for D1–D3, R2 and O1, measured on v5 plans.
-2. Lean cards (only current facts, claims to check and host or layer
-   constraints) against the full cards.
-3. The Apps Script facts above, then rerun the Apps Script cells.
-4. More scenarios: mobile push notifications, large data export, a scheduled
-   report email, an audited admin console, a feature-flag rollout.
+1. Ship the prune bullets in the planning review focus, then rerun this round's
+   prune arm against the shipped text to confirm.
+2. Validate the Grok runner and reproduce the v5 and prune results on Grok 4.7
+   at medium effort, ShipLoop's real host.
+3. A second judge family and a small human-labelled set, per criterion, for
+   calibration.
+4. Lean cards against full cards; more scenarios (mobile push, large exports,
+   scheduled report email, audited admin console, feature-flag rollout).

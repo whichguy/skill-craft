@@ -1,0 +1,2593 @@
+{
+ "S01_GAS_none_2": {
+  "criteria": {
+   "P1": {
+    "evidence": "all state lives in the browser tab's JS memory",
+    "grade": "met"
+   },
+   "P2": {
+    "evidence": "default: no persistence, refresh restarts a fresh game, since the request never asked for resume-after-close",
+    "grade": "met"
+   },
+   "P3": {
+    "evidence": "No PropertiesService, no Sheet/DB backing store, no user identity beyond whatever Workspace auth already gates the web app deployment.",
+    "grade": "met"
+   },
+   "R3": {
+    "evidence": "Apps Script `doGet()` serves an `HtmlService` template (HTML/CSS/JS) over request/response.",
+    "grade": "met"
+   }
+  },
+  "grades": {
+   "P1": "met",
+   "P2": "met",
+   "P3": "met",
+   "R3": "met"
+  },
+  "overbuilt_items": [],
+  "platform_errors": [],
+  "tier_chosen": "client-only"
+ },
+ "S01_SF_none_2": {
+  "criteria": {
+   "P1": {
+    "evidence": "No Apex controller, custom object, Platform Cache, or LDS record is created, because this is the \"single-user game with no shared or lasting state\" case",
+    "grade": "met"
+   },
+   "P2": {
+    "evidence": "Default taken; flag for confirmation: no save/resume was requested, so none is built.",
+    "grade": "met"
+   },
+   "P3": {
+    "evidence": "no save/resume was requested, so none is built",
+    "grade": "met"
+   },
+   "R3": {
+    "evidence": "No server endpoint exists, so there is no caller-supplied input crossing a trust boundary",
+    "grade": "met"
+   }
+  },
+  "grades": {
+   "P1": "met",
+   "P2": "met",
+   "P3": "met",
+   "R3": "met"
+  },
+  "overbuilt_items": [],
+  "platform_errors": [],
+  "tier_chosen": "client-only"
+ },
+ "S02_CF_none_1": {
+  "criteria": {
+   "P1": {
+    "evidence": "No API routes, no Durable Object, no KV/D1, no Queues.",
+    "grade": "met"
+   },
+   "P2": {
+    "evidence": "optionally `localStorage` for mid-game refresh survival",
+    "grade": "partial"
+   },
+   "P3": {
+    "evidence": "unit tests on the move-generation function for a sampled set of board positions",
+    "grade": "met"
+   },
+   "R3": {
+    "evidence": "Workers Assets is the native, zero-cost mechanism for serving a client-only app",
+    "grade": "met"
+   }
+  },
+  "grades": {
+   "P1": "met",
+   "P2": "partial",
+   "P3": "met",
+   "R3": "met"
+  },
+  "overbuilt_items": [],
+  "platform_errors": [],
+  "tier_chosen": "client-only"
+ },
+ "S02_GAS_none_2": {
+  "criteria": {
+   "P1": {
+    "evidence": "all game state \u2014 the 8\u00d78 board, piece positions/king status, whose turn, captured counts, and an optional move log \u2014 lives as a plain JavaScript object in the single browser tab both players share",
+    "grade": "met"
+   },
+   "P2": {
+    "evidence": "Open question, default taken: should a refresh lose the game? Default: yes, accept it (simplest, matches \"no shared or lasting state\")",
+    "grade": "met"
+   },
+   "P3": {
+    "evidence": "none",
+    "grade": "met"
+   },
+   "R3": {
+    "evidence": "This fits Apps Script's web-app quotas trivially (one `doGet` execution per game)",
+    "grade": "met"
+   }
+  },
+  "grades": {
+   "P1": "met",
+   "P2": "met",
+   "P3": "met",
+   "R3": "met"
+  },
+  "overbuilt_items": [],
+  "platform_errors": [],
+  "tier_chosen": "client-only"
+ },
+ "S03_CF_none_1": {
+  "criteria": {
+   "D1": {
+    "evidence": "the only personal item is a player-supplied display name, which is voluntarily public by design",
+    "grade": "met"
+   },
+   "I1": {
+    "evidence": "no auth required",
+    "grade": "met"
+   },
+   "I4": {
+    "evidence": "the server must independently validate (name length/charset, time bounds sane for the given difficulty, known difficulty enum) and rate-limit by source",
+    "grade": "met"
+   },
+   "K1": {
+    "evidence": "na",
+    "grade": "na"
+   },
+   "K2": {
+    "evidence": "fetch-on-load plus a re-fetch after a successful submit is the lightest channel that satisfies \"visible to everyone.\"",
+    "grade": "met"
+   },
+   "K3": {
+    "evidence": "na",
+    "grade": "na"
+   },
+   "P1": {
+    "evidence": "It runs entirely client-side \u2014 no server round-trip during play.",
+    "grade": "met"
+   },
+   "P2": {
+    "evidence": "the request doesn't state a retention/expiry policy for leaderboard rows. Default: keep entries indefinitely",
+    "grade": "met"
+   },
+   "P3": {
+    "evidence": "No WebSocket/SSE.",
+    "grade": "met"
+   },
+   "R1": {
+    "evidence": "Owner: the server, backed by D1 (not Durable Objects or KV)",
+    "grade": "met"
+   },
+   "R2": {
+    "evidence": "D1's free-tier storage/row limits and Workers' request limits are far above the scale this needs; no Durable Objects avoids their per-request billing entirely",
+    "grade": "met"
+   },
+   "R3": {
+    "evidence": "read-after-write consistency",
+    "grade": "met"
+   },
+   "S1": {
+    "evidence": "Owner: the server, backed by D1 (not Durable Objects or KV) \u2014 a leaderboard is sorted top-N reads over append-only rows, which D1's SQL (ORDER BY time_ms LIMIT N, indexed) handles directly with read-after-write consistency",
+    "grade": "met"
+   },
+   "S2": {
+    "evidence": "each submission is an independent INSERT; ranking is recomputed at read time, so there's no shared mutable row to lock or reconcile",
+    "grade": "met"
+   },
+   "V1": {
+    "evidence": "malformed/out-of-range payloads return 4xx and write nothing; rapid repeat submissions from one source are rejected past the limit",
+    "grade": "met"
+   }
+  },
+  "grades": {
+   "D1": "met",
+   "I1": "met",
+   "I4": "met",
+   "K1": "na",
+   "K2": "met",
+   "K3": "na",
+   "P1": "met",
+   "P2": "met",
+   "P3": "met",
+   "R1": "met",
+   "R2": "met",
+   "R3": "met",
+   "S1": "met",
+   "S2": "met",
+   "V1": "met"
+  },
+  "overbuilt_items": [],
+  "platform_errors": [],
+  "tier_chosen": "client-plus-light-server"
+ },
+ "S04_GAS_none_1": {
+  "criteria": {
+   "C1": {
+    "evidence": "Moves are \"often a day apart,\" which matches the spec's guidance for email/platform notification rather than push. Use `MailApp`/`GmailApp` (native, no external service) to email the opponent when the turn passes to them.",
+    "grade": "met"
+   },
+   "C2": {
+    "evidence": "because the app always reads authoritative state fresh on page load, a missed email never desyncs what either player sees",
+    "grade": "met"
+   },
+   "C3": {
+    "evidence": "a server-side recheck that the submitted move still matches the current move-count/turn before applying it",
+    "grade": "met"
+   },
+   "D1": {
+    "evidence": "already low-sensitivity (emails visible in the domain directory anyway)",
+    "grade": "met"
+   },
+   "D2": {
+    "evidence": "Default taken: keep indefinitely; no auto-deletion.",
+    "grade": "met"
+   },
+   "I1": {
+    "evidence": "this gives free, native identity (`Session.getActiveUser().getEmail()`) and blocks non-domain callers, so no custom auth is built",
+    "grade": "met"
+   },
+   "I2": {
+    "evidence": "Before returning or accepting anything for a game, the server checks the caller's email against that game's two player emails",
+    "grade": "met"
+   },
+   "I3": {
+    "evidence": "this keeps one player's view of an in-progress game off any client but the two participants, and rejects outsiders even though they're domain-authenticated",
+    "grade": "met"
+   },
+   "P1": {
+    "evidence": "Deploy the Apps Script project as a Web App with `Execute as: User accessing the web app` and `Access: Anyone within the domain`... Interaction is request/response via HTML Service + `google.script.run`; there is no persistent connection to manage.",
+    "grade": "met"
+   },
+   "P2": {
+    "evidence": "Open question carried to you: should finished games ever be purged/archived? Default taken: keep indefinitely; no auto-deletion.",
+    "grade": "met"
+   },
+   "P3": {
+    "evidence": "Game lifecycle actions \u2014 new-game creation (invite a colleague by email) and resignation; no deletion in this scope.",
+    "grade": "met"
+   },
+   "R1": {
+    "evidence": "This is the native Apps Script capability that fits the volume (colleagues, not the public) and needs no external database.",
+    "grade": "met"
+   },
+   "R2": {
+    "evidence": "MailApp's per-domain daily send quota, Apps Script's 6-minute execution cap, and Sheets' row limits are all far above what two colleagues playing chess will produce; no additional throttling is needed",
+    "grade": "met"
+   },
+   "R3": {
+    "evidence": "Apps Script's 6-minute execution cap",
+    "grade": "partial"
+   },
+   "S1": {
+    "evidence": "The authoritative store is the bound Google Sheet acting as a lightweight DB: a `Games` sheet (gameId, white/black email, status, timestamps) and a `Moves` sheet (gameId, moveNumber, move, resulting board state).",
+    "grade": "met"
+   },
+   "S2": {
+    "evidence": "double-submits (double-click, page left open) are handled with `LockService` around the write path plus a server-side recheck that the submitted move still matches the current move-count/turn before applying it",
+    "grade": "met"
+   },
+   "S3": {
+    "evidence": "both rendered strictly from server-fetched state on every load, never from client-held state",
+    "grade": "met"
+   },
+   "S4": {
+    "evidence": "A game ends on checkmate/stalemate/draw (detected by the rules engine) or explicit resignation; status is set accordingly and rows are kept, not deleted",
+    "grade": "met"
+   },
+   "V1": {
+    "evidence": "Checked by firing two near-simultaneous submissions at one game and confirming exactly one is applied and the other is rejected with a clear error.",
+    "grade": "met"
+   }
+  },
+  "grades": {
+   "C1": "met",
+   "C2": "met",
+   "C3": "met",
+   "D1": "met",
+   "D2": "met",
+   "I1": "met",
+   "I2": "met",
+   "I3": "met",
+   "P1": "met",
+   "P2": "met",
+   "P3": "met",
+   "R1": "met",
+   "R2": "met",
+   "R3": "partial",
+   "S1": "met",
+   "S2": "met",
+   "S3": "met",
+   "S4": "met",
+   "V1": "met"
+  },
+  "overbuilt_items": [],
+  "platform_errors": [
+   "\"Apps Script's 6-minute execution cap\" \u2014 Google Workspace domain deployments (implied by 'Access: Anyone within the domain') get a 30-minute execution limit, not 6 minutes; the 6-minute figure applies to consumer Google accounts."
+  ],
+  "tier_chosen": "server-shared-async"
+ },
+ "S04_GCP_none_1": {
+  "criteria": {
+   "C1": {
+    "evidence": "the lightest fitting channel is an email/platform notification sent server-side right after the opponent's move commits, linking back to the game. WebSockets/SSE/polling are unwarranted at this cadence.",
+    "grade": "met"
+   },
+   "C2": {
+    "evidence": "On following the notification link, the client reads the authoritative Firestore state fresh rather than trusting anything cached.",
+    "grade": "met"
+   },
+   "C3": {
+    "evidence": "preventing double-submits or stale-UI races from corrupting the game",
+    "grade": "met"
+   },
+   "D1": {
+    "evidence": "nothing here is secret/personal beyond the player's own email used for identity and notification, which is standard Google-account handling and not separately stored or logged beyond the game document",
+    "grade": "met"
+   },
+   "D2": {
+    "evidence": "Finished games are kept readable as history by default (proposed default, also open) since no retention limit was requested",
+    "grade": "partial"
+   },
+   "I1": {
+    "evidence": "sign-in uses Google Identity (Firebase Auth or IAP) rather than building custom accounts",
+    "grade": "met"
+   },
+   "I2": {
+    "evidence": "every route checks the signed-in identity against the game's two player fields \u2014 this is the server-side authorization check on every action",
+    "grade": "met"
+   },
+   "I3": {
+    "evidence": "both players may read the complete board, move list, and turn indicator",
+    "grade": "met"
+   },
+   "P1": {
+    "evidence": "Canonical state (position, move history, turn owner, status) lives in one Firestore document per game, using GCP's native serverless store instead of a custom database",
+    "grade": "met"
+   },
+   "P2": {
+    "evidence": "Open questions to confirm with the user (taking the stated defaults if no response): abandonment timeout length (default 30 days) and whether finished games should be retained indefinitely as history (default: yes) or purged after some period.",
+    "grade": "met"
+   },
+   "P3": {
+    "evidence": "Two colleagues per game (symmetric roles, no spectator/admin needed).",
+    "grade": "met"
+   },
+   "R1": {
+    "evidence": "using GCP's native serverless store instead of a custom database",
+    "grade": "met"
+   },
+   "R2": {
+    "evidence": "a quota/cost check confirming usage stays within Firestore/Cloud Run/notification free tiers at expected colleague volume",
+    "grade": "met"
+   },
+   "R3": {
+    "evidence": "this fits comfortably in Firestore's free tier at colleague-scale volume",
+    "grade": "met"
+   },
+   "S1": {
+    "evidence": "Canonical state (position, move history, turn owner, status) lives in one Firestore document per game, using GCP's native serverless store instead of a custom database; this fits comfortably in Firestore's free tier at colleague-scale volume.",
+    "grade": "met"
+   },
+   "S2": {
+    "evidence": "Each move is applied inside a Firestore transaction that re-checks \"caller is the player to move\" and \"move is legal\" before writing",
+    "grade": "met"
+   },
+   "S3": {
+    "evidence": "the client reads the authoritative Firestore state fresh rather than trusting anything cached",
+    "grade": "met"
+   },
+   "S4": {
+    "evidence": "A game ends on checkmate, stalemate, draw agreement, or resignation; it becomes \"abandoned\" after a no-move timeout (proposed default: 30 days, via a scheduled Cloud Scheduler job)",
+    "grade": "met"
+   },
+   "V1": {
+    "evidence": "attempting moves/reads as a third authenticated account and as the wrong-turn player, expecting rejection",
+    "grade": "met"
+   }
+  },
+  "grades": {
+   "C1": "met",
+   "C2": "met",
+   "C3": "met",
+   "D1": "met",
+   "D2": "partial",
+   "I1": "met",
+   "I2": "met",
+   "I3": "met",
+   "P1": "met",
+   "P2": "met",
+   "P3": "met",
+   "R1": "met",
+   "R2": "met",
+   "R3": "met",
+   "S1": "met",
+   "S2": "met",
+   "S3": "met",
+   "S4": "met",
+   "V1": "met"
+  },
+  "overbuilt_items": [],
+  "platform_errors": [],
+  "tier_chosen": "server-shared-async"
+ },
+ "S04_SF_none_2": {
+  "criteria": {
+   "C1": {
+    "evidence": "Two channels suffice: (1) request/response \u2014 the LWC calls Apex synchronously to load the board and submit a move; (2) a \"day-apart\" notification \u2014 a Salesforce Custom Notification",
+    "grade": "met"
+   },
+   "C2": {
+    "evidence": "each page load re-reads authoritative state, so a stale badge self-corrects on open",
+    "grade": "met"
+   },
+   "C3": {
+    "evidence": "a simulated rapid double-submit producing exactly one recorded move",
+    "grade": "met"
+   },
+   "D1": {
+    "evidence": "Only standard Salesforce User identifiers (name/username) already visible to the org are used; no new PII is introduced or cached",
+    "grade": "met"
+   },
+   "D2": {
+    "evidence": "the request states no retention or deletion requirement, so finished games are simply kept as ordinary Salesforce records under existing org data-retention policy",
+    "grade": "met"
+   },
+   "I1": {
+    "evidence": "Two Salesforce-authenticated colleague Users (participants) interact through an LWC UI inside the org.",
+    "grade": "met"
+   },
+   "I2": {
+    "evidence": "A single transactional Apex service validates, server-side, that the caller is a participant, that it is their turn, and that the submitted move is legal (rules engine)",
+    "grade": "met"
+   },
+   "I3": {
+    "evidence": "access is scoped only to keep unrelated colleagues out of a game they're not in (Private OWD + Apex-managed share to the two participants)",
+    "grade": "met"
+   },
+   "P1": {
+    "evidence": "No WebSockets/CDC/polling: moves land hours-to-a-day apart, well inside the \"notification, not push\" tier",
+    "grade": "met"
+   },
+   "P2": {
+    "evidence": "Open default flagged to user: no auto-delete/expiry of finished games unless told otherwise.",
+    "grade": "met"
+   },
+   "P3": {
+    "evidence": "Delta: 2 custom objects, an Apex sharing model, a move-validation/rules-engine Apex class, a transactional move-submission Apex class, a notification Apex class, 3 LWCs (board, my-turn list, new-game), and a permission set.",
+    "grade": "met"
+   },
+   "R1": {
+    "evidence": "a Salesforce Custom Notification (platform bell/mobile push, built on the standard `Messaging`/notification Apex API) fired after each committed move",
+    "grade": "met"
+   },
+   "R2": {
+    "evidence": "none",
+    "grade": "missed"
+   },
+   "R3": {
+    "evidence": "a Salesforce Custom Notification (platform bell/mobile push, built on the standard `Messaging`/notification Apex API)",
+    "grade": "met"
+   },
+   "S1": {
+    "evidence": "`Game__c` ... and `Move__c` ... are the sole authoritative stores, in the Salesforce database \u2014 no external store, no cache layer, since freshness tolerance is generous.",
+    "grade": "met"
+   },
+   "S2": {
+    "evidence": "validates, server-side, that the caller is a participant, that it is their turn, and that the submitted move is legal (rules engine) before inserting the `Move__c` and updating `Game__c` in one transaction \u2014 closing the double-submit race",
+    "grade": "met"
+   },
+   "S3": {
+    "evidence": "each page load re-reads authoritative state, so a stale badge self-corrects on open",
+    "grade": "partial"
+   },
+   "S4": {
+    "evidence": "Games end via checkmate/stalemate/draw/resignation (`Status__c`); ... finished games are simply kept as ordinary Salesforce records under existing org data-retention policy.",
+    "grade": "met"
+   },
+   "V1": {
+    "evidence": "System.runAs test asserting a non-participant gets zero rows",
+    "grade": "met"
+   }
+  },
+  "grades": {
+   "C1": "met",
+   "C2": "met",
+   "C3": "met",
+   "D1": "met",
+   "D2": "met",
+   "I1": "met",
+   "I2": "met",
+   "I3": "met",
+   "P1": "met",
+   "P2": "met",
+   "P3": "met",
+   "R1": "met",
+   "R2": "missed",
+   "R3": "met",
+   "S1": "met",
+   "S2": "met",
+   "S3": "partial",
+   "S4": "met",
+   "V1": "met"
+  },
+  "overbuilt_items": [],
+  "platform_errors": [],
+  "tier_chosen": "server-shared-async"
+ },
+ "S05_AWS_none_1": {
+  "criteria": {
+   "C1": {
+    "evidence": "WebSockets are chosen over polling/SSE because the requirement (\"sees the shot within a second or two\") needs bidirectional push",
+    "grade": "met"
+   },
+   "C2": {
+    "evidence": "on `$connect` (or an explicit \"sync\" action) the server reads the authoritative GameState and pushes a full redacted snapshot",
+    "grade": "met"
+   },
+   "C3": {
+    "evidence": "a conditional DynamoDB update (`turn == callerUserId AND status == ACTIVE`) makes a race between simultaneous fires safe without locks.",
+    "grade": "met"
+   },
+   "C5": {
+    "evidence": "none",
+    "grade": "missed"
+   },
+   "D1": {
+    "evidence": "no board data or PII in log lines",
+    "grade": "partial"
+   },
+   "I1": {
+    "evidence": "Amazon Cognito User Pool + App Client. `$connect` uses a Lambda authorizer validating the ID token passed as a query param",
+    "grade": "met"
+   },
+   "I2": {
+    "evidence": "Every action Lambda re-validates caller identity against the connection record and the game's participant list",
+    "grade": "met"
+   },
+   "P1": {
+    "evidence": "WebSockets are chosen over polling/SSE because the requirement (\"sees the shot within a second or two\") needs bidirectional push, and API Gateway WS is the native serverless primitive for this \u2014 no custom server to run or scale.",
+    "grade": "met"
+   },
+   "P2": {
+    "evidence": "Open item (default taken): the request doesn't specify matchmaking. Default: host creates a game and shares a short code; opponent joins by code \u2014 no queue/lobby.",
+    "grade": "met"
+   },
+   "P3": {
+    "evidence": "No cache layer is added \u2014 DynamoDB single-digit-ms reads and small per-game items don't warrant one.",
+    "grade": "met"
+   },
+   "R1": {
+    "evidence": "API Gateway WS is the native serverless primitive for this \u2014 no custom server to run or scale.",
+    "grade": "met"
+   },
+   "R2": {
+    "evidence": "none",
+    "grade": "missed"
+   },
+   "R3": {
+    "evidence": "WS lacks header auth",
+    "grade": "met"
+   },
+   "S1": {
+    "evidence": "**GameState** (DynamoDB, pk `gameId`): both players' ship placements, shot history, whose turn, status.",
+    "grade": "met"
+   },
+   "S2": {
+    "evidence": "a conditional DynamoDB update (`turn == callerUserId AND status == ACTIVE`) makes a race between simultaneous fires safe without locks.",
+    "grade": "met"
+   },
+   "S3": {
+    "evidence": "on `$connect` (or an explicit \"sync\" action) the server reads the authoritative GameState and pushes a full redacted snapshot, since messages sent during a disconnect gap are otherwise lost.",
+    "grade": "met"
+   },
+   "S4": {
+    "evidence": "`WAITING \u2192 SETUP \u2192 ACTIVE \u2192 FINISHED/ABANDONED`. `ABANDONED` set after a grace timeout once both connections for a game drop. DynamoDB **TTL** removes finished/abandoned rows after 24h",
+    "grade": "met"
+   },
+   "V1": {
+    "evidence": "two-client integration test alternating fire, confirming each shot is received in under 2 seconds, off-turn fire is rejected, and neither client ever receives the opponent's unrevealed ship coordinates.",
+    "grade": "met"
+   }
+  },
+  "grades": {
+   "C1": "met",
+   "C2": "met",
+   "C3": "met",
+   "C5": "missed",
+   "D1": "partial",
+   "I1": "met",
+   "I2": "met",
+   "P1": "met",
+   "P2": "met",
+   "P3": "met",
+   "R1": "met",
+   "R2": "missed",
+   "R3": "met",
+   "S1": "met",
+   "S2": "met",
+   "S3": "met",
+   "S4": "met",
+   "V1": "met"
+  },
+  "overbuilt_items": [],
+  "platform_errors": [],
+  "tier_chosen": "server-shared-live"
+ },
+ "S06_VERCEL_none_1": {
+  "criteria": {
+   "C1": {
+    "evidence": "not SSE/WebSockets, which the guide reserves for second-level freshness and which Vercel serverless functions don't hold open cheaply",
+    "grade": "met"
+   },
+   "C2": {
+    "evidence": "the client re-reads authoritative server state rather than trusting a local cache",
+    "grade": "met"
+   },
+   "C5": {
+    "evidence": "20 users polling every ~20s is \u22641 req/s peak, trivial against Vercel function-invocation quotas and a small Postgres instance.",
+    "grade": "met"
+   },
+   "D1": {
+    "evidence": "session exposes id/name/email server-side",
+    "grade": "met"
+   },
+   "D2": {
+    "evidence": "Nothing auto-expires; tasks/comments persist until an explicit future delete/archive action (not requested now).",
+    "grade": "partial"
+   },
+   "I1": {
+    "evidence": "Default: Auth.js (NextAuth) with Google OAuth restricted to the team domain",
+    "grade": "met"
+   },
+   "I2": {
+    "evidence": "Every mutation is server-checked: caller must be an authenticated member; assignee must be a valid member",
+    "grade": "met"
+   },
+   "I3": {
+    "evidence": "All 20 members may read all tasks/comments \u2014 internal team tool, no hidden-information requirement stated.",
+    "grade": "met"
+   },
+   "K1": {
+    "evidence": "Caching. None beyond polling itself",
+    "grade": "na"
+   },
+   "K3": {
+    "evidence": "Adding a Next.js Data Cache layer would only reintroduce staleness the guide says to avoid; a `revalidate` window tied to the poll interval is the escalation path if DB load ever becomes a concern, not a day-one need.",
+    "grade": "met"
+   },
+   "P1": {
+    "evidence": "Freshness (\"within a minute\") is met by client-driven **polling** (~15\u201320s interval, paused when the tab is hidden, immediate refetch on focus/reconnect and after every local mutation) \u2014 not SSE/WebSockets",
+    "grade": "met"
+   },
+   "P2": {
+    "evidence": "Open items carried forward with defaults taken: (a) identity provider \u2014 default Google OAuth via Auth.js; (b) single shared board vs. multiple \u2014 default single board; (c) task delete/archive \u2014 default out of scope for v1",
+    "grade": "met"
+   },
+   "P3": {
+    "evidence": "Nothing auto-expires; tasks/comments persist until an explicit future delete/archive action (not requested now).",
+    "grade": "met"
+   },
+   "R1": {
+    "evidence": "implemented via **MUI** (the maintained Material Design component library for React) rather than hand-building components, per \"prefer existing capabilities.\"",
+    "grade": "met"
+   },
+   "R2": {
+    "evidence": "20 simulated concurrent pollers complete without exhausting DB connections",
+    "grade": "met"
+   },
+   "R3": {
+    "evidence": "Vercel serverless functions don't hold open cheaply",
+    "grade": "met"
+   },
+   "S1": {
+    "evidence": "Postgres (Vercel Postgres/Neon, serverless driver) is system of record for Users (from auth), Tasks..., and Comments",
+    "grade": "met"
+   },
+   "S2": {
+    "evidence": "Concurrent edits (two people moving/assigning the same task) resolve **last-write-wins** with a server timestamp \u2014 sufficient for 20 people on a low-contention shared board; no CRDT/locking needed.",
+    "grade": "met"
+   },
+   "S3": {
+    "evidence": "After every mutation, poll cycle, and reconnect, the client re-reads authoritative server state rather than trusting a local cache.",
+    "grade": "partial"
+   },
+   "S4": {
+    "evidence": "Nothing auto-expires; tasks/comments persist until an explicit future delete/archive action (not requested now).",
+    "grade": "met"
+   },
+   "U1": {
+    "evidence": "implemented via **MUI** (the maintained Material Design component library for React) rather than hand-building components",
+    "grade": "met"
+   },
+   "U2": {
+    "evidence": "Failure visibility for async operations (failed poll, failed mutation) surfaced to the user, not just logged.",
+    "grade": "partial"
+   },
+   "U3": {
+    "evidence": "Vercel deployment configuration (env vars for DB connection + OAuth secrets, Postgres provisioning)",
+    "grade": "partial"
+   },
+   "V1": {
+    "evidence": "replaying each mutation without a valid session is rejected individually, not just at the page route",
+    "grade": "met"
+   }
+  },
+  "grades": {
+   "C1": "met",
+   "C2": "met",
+   "C5": "met",
+   "D1": "met",
+   "D2": "partial",
+   "I1": "met",
+   "I2": "met",
+   "I3": "met",
+   "K1": "na",
+   "K3": "met",
+   "P1": "met",
+   "P2": "met",
+   "P3": "met",
+   "R1": "met",
+   "R2": "met",
+   "R3": "met",
+   "S1": "met",
+   "S2": "met",
+   "S3": "partial",
+   "S4": "met",
+   "U1": "met",
+   "U2": "partial",
+   "U3": "partial",
+   "V1": "met"
+  },
+  "overbuilt_items": [],
+  "platform_errors": [],
+  "tier_chosen": "server-shared-live"
+ },
+ "S08_SF_none_1": {
+  "criteria": {
+   "C1": {
+    "evidence": "stateless request/response per fetch \u2014 no persistent connection to own or tear down",
+    "grade": "met"
+   },
+   "C5": {
+    "evidence": "~100 users \u00d7 a few reads/day of a single-row cacheable Apex method is trivial against API/CPU limits",
+    "grade": "met"
+   },
+   "I1": {
+    "evidence": "No external/anonymous access",
+    "grade": "met"
+   },
+   "I3": {
+    "evidence": "the snapshot is an org-wide rollup (Public Read/Write via a permission set), not filtered per-user by individual Order sharing",
+    "grade": "met"
+   },
+   "K1": {
+    "evidence": "This decouples the expensive full-table aggregate (paid for once per 15 min) from cheap per-view reads (single-row query)",
+    "grade": "met"
+   },
+   "K2": {
+    "evidence": "matches the stated 15\u2011minute staleness exactly \u2014 no cache-expiry math needed since recomputation cadence *is* the freshness bound",
+    "grade": "met"
+   },
+   "K3": {
+    "evidence": "Source of truth remains the existing ~50k Order (or OrderItem) records",
+    "grade": "met"
+   },
+   "P1": {
+    "evidence": "100 views/day and a 15\u2011minute staleness budget don't justify a live channel",
+    "grade": "met"
+   },
+   "P2": {
+    "evidence": "Open question I'm defaulting on: the snapshot is an org-wide rollup (Public Read/Write via a permission set), not filtered per-user by individual Order sharing",
+    "grade": "met"
+   },
+   "P3": {
+    "evidence": "unless trend-over-time is later requested (not asked for here, so not built)",
+    "grade": "met"
+   },
+   "R1": {
+    "evidence": "I chose a custom-object snapshot over Platform Cache because Platform Cache org-cache capacity/licensing is not guaranteed across every org tier the app may later run in",
+    "grade": "met"
+   },
+   "R2": {
+    "evidence": "One scheduled job (96 runs/day) is far under the 100-job org limit; one aggregate query per run is a single SOQL call",
+    "grade": "met"
+   },
+   "R3": {
+    "evidence": "Salesforce guarantees a scheduled job's executions don't overlap themselves",
+    "grade": "met"
+   },
+   "S1": {
+    "evidence": "Source of truth remains the existing ~50k Order (or OrderItem) records, already owned by Salesforce's data layer. Derived KPIs are owned by one new artifact: a singleton custom object `Sales_KPI_Snapshot__c`",
+    "grade": "met"
+   },
+   "V1": {
+    "evidence": "Apex test covers authorized/unauthorized access; code coverage \u226575% for deployment",
+    "grade": "met"
+   }
+  },
+  "grades": {
+   "C1": "met",
+   "C5": "met",
+   "I1": "met",
+   "I3": "met",
+   "K1": "met",
+   "K2": "met",
+   "K3": "met",
+   "P1": "met",
+   "P2": "met",
+   "P3": "met",
+   "R1": "met",
+   "R2": "met",
+   "R3": "met",
+   "S1": "met",
+   "V1": "met"
+  },
+  "overbuilt_items": [],
+  "platform_errors": [],
+  "tier_chosen": "server-shared-async"
+ },
+ "S09_GAS_none_2": {
+  "criteria": {
+   "C3": {
+    "evidence": "writes upsert by `order_id` so re-running a failed night is safe",
+    "grade": "met"
+   },
+   "C5": {
+    "evidence": "Apps Script per-execution ceiling (6 min consumer / up to 30 min Workspace) bounds how many orders one run can page through at \u226460 req/min.",
+    "grade": "met"
+   },
+   "D1": {
+    "evidence": "orders likely carry customer PII",
+    "grade": "met"
+   },
+   "D3": {
+    "evidence": "Never written to execution logs beyond `order_id` and HTTP status \u2014 failures are logged, payloads are not.",
+    "grade": "met"
+   },
+   "D4": {
+    "evidence": "owned by the script, stored in `PropertiesService.getScriptProperties()` \u2014 Google-encrypted at rest, readable only inside script execution, never logged or exposed to any client",
+    "grade": "met"
+   },
+   "O1": {
+    "evidence": "any unrecoverable error (auth failure, exhausted retries, partial page) is written to an \"errors\" tab and emailed to a configured admin via `MailApp`",
+    "grade": "met"
+   },
+   "P1": {
+    "evidence": "The only actor is a system actor: an Apps Script time-driven trigger firing once nightly.",
+    "grade": "met"
+   },
+   "P3": {
+    "evidence": "No cache layer is added: the Sheet itself is the durable, queryable copy; nightly fetches don't need separate caching.",
+    "grade": "met"
+   },
+   "R1": {
+    "evidence": "No cache layer is added: the Sheet itself is the durable, queryable copy; nightly fetches don't need separate caching.",
+    "grade": "met"
+   },
+   "R2": {
+    "evidence": "Apps Script per-execution ceiling (6 min consumer / up to 30 min Workspace) bounds how many orders one run can page through at \u226460 req/min.",
+    "grade": "met"
+   },
+   "R3": {
+    "evidence": "Apps Script per-execution ceiling (6 min consumer / up to 30 min Workspace)",
+    "grade": "met"
+   },
+   "S1": {
+    "evidence": "Default store: a Google Sheet, one row per order keyed by `order_id` \u2014 native, zero-setup, directly usable by reports.",
+    "grade": "met"
+   },
+   "S4": {
+    "evidence": "the request states no expiry; default is to keep rows indefinitely for historical reporting. **Flagged to user**: confirm whether order PII needs a retention/deletion policy.",
+    "grade": "partial"
+   },
+   "V1": {
+    "evidence": "manually invoking the function twice concurrently (or in quick succession) shows the second run blocked/skipped rather than corrupting data",
+    "grade": "met"
+   }
+  },
+  "grades": {
+   "C3": "met",
+   "C5": "met",
+   "D1": "met",
+   "D3": "met",
+   "D4": "met",
+   "O1": "met",
+   "P1": "met",
+   "P3": "met",
+   "R1": "met",
+   "R2": "met",
+   "R3": "met",
+   "S1": "met",
+   "S4": "partial",
+   "V1": "met"
+  },
+  "overbuilt_items": [],
+  "platform_errors": [],
+  "tier_chosen": "server-batch"
+ },
+ "S09_VERCEL_none_2": {
+  "criteria": {
+   "C3": {
+    "evidence": "resolved by upserting on the partner's order ID (unique constraint), making re-runs idempotent",
+    "grade": "met"
+   },
+   "C5": {
+    "evidence": "function duration is capped (10s Hobby, up to 300s Pro via `maxDuration`). Pagination + 60 req/min throttling must fit that window",
+    "grade": "met"
+   },
+   "D1": {
+    "evidence": "none",
+    "grade": "missed"
+   },
+   "D3": {
+    "evidence": "never logged (log call metadata, not the key or auth header)",
+    "grade": "met"
+   },
+   "D4": {
+    "evidence": "owned by Vercel's encrypted environment variables (per-environment), read only inside the server route handler, never sent to a client",
+    "grade": "met"
+   },
+   "O1": {
+    "evidence": "on a `job_runs` failure, send an email to the operator",
+    "grade": "met"
+   },
+   "P1": {
+    "evidence": "No UI is introduced \u2014 this is a backend batch job; a reporting UI would be a separate request.",
+    "grade": "met"
+   },
+   "P3": {
+    "evidence": "No UI is introduced \u2014 this is a backend batch job; a reporting UI would be a separate request.",
+    "grade": "met"
+   },
+   "R1": {
+    "evidence": "Vercel Postgres/Neon integration \u2014 native capability, no custom store needed",
+    "grade": "met"
+   },
+   "R2": {
+    "evidence": "function duration is capped (10s Hobby, up to 300s Pro via `maxDuration`)",
+    "grade": "met"
+   },
+   "R3": {
+    "evidence": "Vercel Cron on Hobby supports daily-granularity schedules; function duration is capped (10s Hobby, up to 300s Pro via `maxDuration`)",
+    "grade": "met"
+   },
+   "S1": {
+    "evidence": "authoritative copy lives in a Postgres database (Vercel Postgres/Neon integration \u2014 native capability, no custom store needed) so reports can query history",
+    "grade": "met"
+   },
+   "S4": {
+    "evidence": "default is to keep indefinitely for reporting unless told otherwise (flagging this default to you as well)",
+    "grade": "partial"
+   },
+   "V1": {
+    "evidence": "a curl without the secret returns 401/403",
+    "grade": "met"
+   }
+  },
+  "grades": {
+   "C3": "met",
+   "C5": "met",
+   "D1": "missed",
+   "D3": "met",
+   "D4": "met",
+   "O1": "met",
+   "P1": "met",
+   "P3": "met",
+   "R1": "met",
+   "R2": "met",
+   "R3": "met",
+   "S1": "met",
+   "S4": "partial",
+   "V1": "met"
+  },
+  "overbuilt_items": [],
+  "platform_errors": [],
+  "tier_chosen": "server-batch"
+ },
+ "S10_AWS_none_1": {
+  "criteria": {
+   "C3": {
+    "evidence": "Two staff resolving the same item concurrently is handled with a DynamoDB conditional write (status must still be \"open\"), returning a conflict instead of silently double-processing.",
+    "grade": "partial"
+   },
+   "D1": {
+    "evidence": "Since name/email/message are personal data",
+    "grade": "met"
+   },
+   "D2": {
+    "evidence": "default: 180-day DynamoDB TTL from creation**, after which items auto-expire",
+    "grade": "met"
+   },
+   "D3": {
+    "evidence": "CloudWatch logs record submission id/timestamp/status/outcome only \u2014 never raw message/name/email \u2014 to keep PII out of logs.",
+    "grade": "met"
+   },
+   "I1": {
+    "evidence": "Staff auth uses a Cognito User Pool with a \"staff\" group gating the read/resolve routes (existing AWS capability, no custom auth built).",
+    "grade": "met"
+   },
+   "I2": {
+    "evidence": "`GET /submissions` (staff-only) ... `POST /submissions/{id}/resolve` (staff-only) \u2014 conditional update requiring current status = open",
+    "grade": "met"
+   },
+   "I4": {
+    "evidence": "Server-side validation (required non-empty message, length cap) plus a rejected honeypot field; an AWS WAF rate-based rule + CAPTCHA/Challenge action on the API Gateway stage throttles/challenges bulk anonymous traffic",
+    "grade": "met"
+   },
+   "P1": {
+    "evidence": "A single DynamoDB table is the sole owner of submissions",
+    "grade": "met"
+   },
+   "P2": {
+    "evidence": "default: 180-day DynamoDB TTL from creation, after which items auto-expire \u2014 flagging this as a default for you to confirm or change",
+    "grade": "met"
+   },
+   "P3": {
+    "evidence": "No email/notification channel was requested, so none is added.",
+    "grade": "met"
+   },
+   "R1": {
+    "evidence": "TTL retention verification (native DynamoDB TTL, no custom code)",
+    "grade": "met"
+   },
+   "R2": {
+    "evidence": "an API Gateway usage plan is a cost backstop",
+    "grade": "partial"
+   },
+   "R3": {
+    "evidence": "an AWS WAF rate-based rule + CAPTCHA/Challenge action on the API Gateway stage",
+    "grade": "met"
+   },
+   "S1": {
+    "evidence": "A single DynamoDB table is the sole owner of submissions (id, name?, email?, message, createdAt, status, resolvedBy, resolvedAt, ttl); only the backend Lambdas write to it.",
+    "grade": "met"
+   },
+   "S4": {
+    "evidence": "A submission \"ends\" when marked resolved but is kept for an audit trail, not deleted. ... default: 180-day DynamoDB TTL from creation, after which items auto-expire",
+    "grade": "met"
+   },
+   "V1": {
+    "evidence": "resolving an already-resolved item returns 409, not a silent overwrite",
+    "grade": "met"
+   }
+  },
+  "grades": {
+   "C3": "partial",
+   "D1": "met",
+   "D2": "met",
+   "D3": "met",
+   "I1": "met",
+   "I2": "met",
+   "I4": "met",
+   "P1": "met",
+   "P2": "met",
+   "P3": "met",
+   "R1": "met",
+   "R2": "partial",
+   "R3": "met",
+   "S1": "met",
+   "S4": "met",
+   "V1": "met"
+  },
+  "overbuilt_items": [],
+  "platform_errors": [],
+  "tier_chosen": "server-public"
+ },
+ "S10_GAS_none_2": {
+  "criteria": {
+   "C3": {
+    "evidence": "Concurrent writes (simultaneous submits, or two staff resolving the same row) are serialized with `LockService.getScriptLock()` around append/update.",
+    "grade": "partial"
+   },
+   "D1": {
+    "evidence": "Name/email/message live only in the Sheet, restricted to domain editors; nothing is logged to Stackdriver/execution logs",
+    "grade": "met"
+   },
+   "D2": {
+    "evidence": "default is indefinite retention with staff able to delete rows manually \u2014 flagging this default to the user rather than inventing a retention policy",
+    "grade": "met"
+   },
+   "D3": {
+    "evidence": "nothing is logged to Stackdriver/execution logs (avoid `console.log`-ing message/email content)",
+    "grade": "met"
+   },
+   "I1": {
+    "evidence": "resolve endpoint updates status/resolver/resolvedAt under `LockService` lock, restricted to authenticated domain callers (`Session.getActiveUser()` domain check, reject others)",
+    "grade": "met"
+   },
+   "I2": {
+    "evidence": "restricted to authenticated domain callers (`Session.getActiveUser()` domain check, reject others)",
+    "grade": "met"
+   },
+   "I4": {
+    "evidence": "honeypot hidden field, minimum-fill-time check, message required with a length cap, email format validation when present, and a per-submitter rate limit via `CacheService`",
+    "grade": "met"
+   },
+   "P1": {
+    "evidence": "a single deployment can't also gate a staff page by identity. Resolution: use Apps Script's native support for multiple deployments of one project",
+    "grade": "met"
+   },
+   "P2": {
+    "evidence": "No expiry is specified by the request; default is indefinite retention with staff able to delete rows manually \u2014 flagging this default to the user rather than inventing a retention policy.",
+    "grade": "met"
+   },
+   "P3": {
+    "evidence": "Both share the same script project, code, and datastore \u2014 no custom auth layer built.",
+    "grade": "met"
+   },
+   "R1": {
+    "evidence": "Both share the same script project, code, and datastore \u2014 no custom auth layer built.",
+    "grade": "met"
+   },
+   "R2": {
+    "evidence": "Fits comfortably under Apps Script consumer/Workspace quotas: `doPost`/`doGet` executions (6-min cap, well under), `CacheService` (100KB/key, short TTL), `LockService` (short hold per write)",
+    "grade": "met"
+   },
+   "R3": {
+    "evidence": "An Apps Script web app has one access setting per *deployment*, not per page.",
+    "grade": "met"
+   },
+   "S1": {
+    "evidence": "The submission record ... is owned by a bound Google Sheet \u2014 Apps Script's native persistence, queryable, exportable, no external DB needed.",
+    "grade": "met"
+   },
+   "S4": {
+    "evidence": "default is indefinite retention with staff able to delete rows manually",
+    "grade": "met"
+   },
+   "V1": {
+    "evidence": "hitting the public URL anonymously (succeeds, form only) and the staff URL as a non-domain identity (rejected) vs. domain identity (succeeds)",
+    "grade": "met"
+   }
+  },
+  "grades": {
+   "C3": "partial",
+   "D1": "met",
+   "D2": "met",
+   "D3": "met",
+   "I1": "met",
+   "I2": "met",
+   "I4": "met",
+   "P1": "met",
+   "P2": "met",
+   "P3": "met",
+   "R1": "met",
+   "R2": "met",
+   "R3": "met",
+   "S1": "met",
+   "S4": "met",
+   "V1": "met"
+  },
+  "overbuilt_items": [],
+  "platform_errors": [],
+  "tier_chosen": "server-public"
+ },
+ "S10_VERCEL_none_2": {
+  "criteria": {
+   "C3": {
+    "evidence": "single status transition (open\u2192resolved) stamped server-side; last-write-wins is fine for a low-volume internal queue",
+    "grade": "partial"
+   },
+   "D1": {
+    "evidence": "Name/email/message are optional/PII-bearing, shown only on the auth-gated staff page, stored only in the DB row, never written to server logs",
+    "grade": "met"
+   },
+   "D2": {
+    "evidence": "Retention past resolution is an open policy point \u2014 default taken: keep resolved records indefinitely, filterable, since no deletion window was requested; flagging this for override.",
+    "grade": "partial"
+   },
+   "D3": {
+    "evidence": "never written to server logs (logs carry submission id + timestamp + outcome, not the PII fields)",
+    "grade": "met"
+   },
+   "I1": {
+    "evidence": "lightest fit is HTTP Basic Auth in Next.js middleware backed by env-var credentials",
+    "grade": "partial"
+   },
+   "I2": {
+    "evidence": "Only the staff route can read/update.",
+    "grade": "met"
+   },
+   "I4": {
+    "evidence": "a honeypot field; Cloudflare Turnstile verified server-side before insert; per-IP rate limiting via Vercel KV",
+    "grade": "met"
+   },
+   "P1": {
+    "evidence": "request/response with manual/on-load refresh is the lightest channel that fits; no polling, SSE, or websockets are needed.",
+    "grade": "met"
+   },
+   "P2": {
+    "evidence": "Nothing in the request implies seconds-level freshness \u2014 staff review happens asynchronously over hours \u2014 so request/response with manual/on-load refresh is the lightest channel that fits",
+    "grade": "met"
+   },
+   "P3": {
+    "evidence": "lightest fit is HTTP Basic Auth in Next.js middleware backed by env-var credentials, rather than standing up a full identity system the request didn't ask for",
+    "grade": "met"
+   },
+   "R1": {
+    "evidence": "per-IP rate limiting via Vercel KV (Redis-backed, native to Vercel \u2014 needed because serverless functions are stateless across invocations)",
+    "grade": "met"
+   },
+   "R2": {
+    "evidence": "none",
+    "grade": "missed"
+   },
+   "R3": {
+    "evidence": "Vercel KV (Redis-backed, native to Vercel \u2014 needed because serverless functions are stateless across invocations)",
+    "grade": "partial"
+   },
+   "S1": {
+    "evidence": "Single source of truth is a `feedback` table in a serverless Postgres database (Vercel Postgres/Neon \u2014 native to the already-linked Vercel project, reusing existing capability instead of building custom storage)",
+    "grade": "met"
+   },
+   "S4": {
+    "evidence": "default taken: keep resolved records indefinitely, filterable",
+    "grade": "met"
+   },
+   "V1": {
+    "evidence": "unauth request \u2192 401 with `WWW-Authenticate`; correct/incorrect credential cases both verified.",
+    "grade": "met"
+   }
+  },
+  "grades": {
+   "C3": "partial",
+   "D1": "met",
+   "D2": "partial",
+   "D3": "met",
+   "I1": "partial",
+   "I2": "met",
+   "I4": "met",
+   "P1": "met",
+   "P2": "met",
+   "P3": "met",
+   "R1": "met",
+   "R2": "missed",
+   "R3": "partial",
+   "S1": "met",
+   "S4": "met",
+   "V1": "met"
+  },
+  "overbuilt_items": [],
+  "platform_errors": [
+   "\"Vercel KV (Redis-backed, native to Vercel...)\" overstates current state \u2014 Vercel KV was deprecated/migrated to Marketplace-based Redis integrations (e.g. Upstash), so it isn't accurately a current first-party native product in the way Postgres/Neon is described."
+  ],
+  "tier_chosen": "server-public"
+ },
+ "S11_GAS_none_1": {
+  "criteria": {
+   "C1": {
+    "evidence": "a request/response pattern, not push or polling",
+    "grade": "met"
+   },
+   "C2": {
+    "evidence": "na",
+    "grade": "na"
+   },
+   "C3": {
+    "evidence": "none",
+    "grade": "missed"
+   },
+   "D1": {
+    "evidence": "so issues are diagnosable without exposing personal data",
+    "grade": "partial"
+   },
+   "D2": {
+    "evidence": "receipts are expense records, so default is indefinite retention",
+    "grade": "met"
+   },
+   "D4": {
+    "evidence": "never echoed to client HTML/JS, never logged",
+    "grade": "met"
+   },
+   "I1": {
+    "evidence": "Session.getActiveUser().getEmail()",
+    "grade": "met"
+   },
+   "I2": {
+    "evidence": "before any row is returned to a client, so one employee's receipt data is never sent to another employee's browser",
+    "grade": "met"
+   },
+   "O1": {
+    "evidence": "Failures are logged via Apps Script's Logger (status/error only, never image bytes or the API key)",
+    "grade": "met"
+   },
+   "P1": {
+    "evidence": "This is the lightest channel that fits",
+    "grade": "met"
+   },
+   "P2": {
+    "evidence": "flagging this default to you to confirm or override",
+    "grade": "met"
+   },
+   "P3": {
+    "evidence": "no other viewer role (e.g. finance/approver) is added since none was requested",
+    "grade": "met"
+   },
+   "R1": {
+    "evidence": "stays inside Apps Script's native capabilities (no new service to operate)",
+    "grade": "met"
+   },
+   "R2": {
+    "evidence": "Workspace deployments allow up to 30 minutes of script execution",
+    "grade": "met"
+   },
+   "R3": {
+    "evidence": "Workspace deployments allow up to 30 minutes of script execution",
+    "grade": "met"
+   },
+   "S1": {
+    "evidence": "Google Sheet acting as the datastore \u2014 simplest native store for a small structured record set, no external DB needed.",
+    "grade": "met"
+   },
+   "S3": {
+    "evidence": "none",
+    "grade": "missed"
+   },
+   "S4": {
+    "evidence": "receipts are expense records, so default is indefinite retention",
+    "grade": "met"
+   },
+   "V1": {
+    "evidence": "attempt to fetch another employee's row while logged in as a different account and confirm it's refused/not returned",
+    "grade": "met"
+   }
+  },
+  "grades": {
+   "C1": "met",
+   "C2": "na",
+   "C3": "missed",
+   "D1": "partial",
+   "D2": "met",
+   "D4": "met",
+   "I1": "met",
+   "I2": "met",
+   "O1": "met",
+   "P1": "met",
+   "P2": "met",
+   "P3": "met",
+   "R1": "met",
+   "R2": "met",
+   "R3": "met",
+   "S1": "met",
+   "S3": "missed",
+   "S4": "met",
+   "V1": "met"
+  },
+  "overbuilt_items": [],
+  "platform_errors": [],
+  "tier_chosen": "server-shared-async"
+ },
+ "S11_SF_none_2": {
+  "criteria": {
+   "C1": {
+    "evidence": "Polling, not Platform Events/CometD, is the right channel: receipt OCR latency is seconds-to-a-minute, not sub-second, so push infrastructure isn't warranted by the stated freshness need",
+    "grade": "met"
+   },
+   "C2": {
+    "evidence": "the LWC polls `getReceiptStatus` at a fixed interval (proposed 4s, capped at ~30 attempts/2min) until the record reaches a terminal state",
+    "grade": "met"
+   },
+   "C3": {
+    "evidence": "none",
+    "grade": "missed"
+   },
+   "D1": {
+    "evidence": "a receipt is personal financial data another employee has no reason to see",
+    "grade": "met"
+   },
+   "D2": {
+    "evidence": "No expiry or deletion behavior was requested; default is to let records persist under normal Salesforce data lifecycle (employee or admin can delete manually).",
+    "grade": "met"
+   },
+   "D4": {
+    "evidence": "call an external OCR/vision endpoint from the Queueable via a **Named Credential** (secrets never hardcoded, callout config only)",
+    "grade": "met"
+   },
+   "I1": {
+    "evidence": "Single actor: the Employee, authenticated in Salesforce, interacting via a Lightning Web Component",
+    "grade": "met"
+   },
+   "I2": {
+    "evidence": "Apex enforces `with sharing` plus explicit owner checks so no caller can read another user's receipt (server-side check on every action, not just OWD).",
+    "grade": "met"
+   },
+   "O1": {
+    "evidence": "Async failures (callout error, unparseable OCR response) are captured into `Error_Message__c` and surfaced to the same employee with a retry action",
+    "grade": "met"
+   },
+   "P1": {
+    "evidence": "Polling, not Platform Events/CometD, is the right channel: receipt OCR latency is seconds-to-a-minute, not sub-second, so push infrastructure isn't warranted by the stated freshness need \u2014 this keeps the design to native request/response plus a timed re-read, per the lightest-channel rule.",
+    "grade": "met"
+   },
+   "P2": {
+    "evidence": "flagging as an open question (default: receipts stay employee-only; broaden sharing only if asked)",
+    "grade": "met"
+   },
+   "P3": {
+    "evidence": "Retry action \u2014 Apex method resetting a Failed record to Processing and re-enqueuing extraction; exposed as a retry button in the LWC only when `Status__c = Failed`.",
+    "grade": "partial"
+   },
+   "R1": {
+    "evidence": "The photo itself lives in a `ContentVersion`/`ContentDocumentLink`, Salesforce's native file store \u2014 no custom blob storage.",
+    "grade": "met"
+   },
+   "R2": {
+    "evidence": "\u226590% org coverage",
+    "grade": "partial"
+   },
+   "R3": {
+    "evidence": "Salesforce has no built-in free-text OCR without an Einstein Document/Vision license, which isn't confirmed present in this scratch org.",
+    "grade": "met"
+   },
+   "S1": {
+    "evidence": "A new `Expense_Receipt__c` record is the single source of truth... The photo itself lives in a `ContentVersion`/`ContentDocumentLink`, Salesforce's native file store \u2014 no custom blob storage.",
+    "grade": "met"
+   },
+   "S3": {
+    "evidence": "none",
+    "grade": "missed"
+   },
+   "S4": {
+    "evidence": "No expiry or deletion behavior was requested; default is to let records persist under normal Salesforce data lifecycle (employee or admin can delete manually).",
+    "grade": "met"
+   },
+   "V1": {
+    "evidence": "second user's call to read/update is denied",
+    "grade": "met"
+   }
+  },
+  "grades": {
+   "C1": "met",
+   "C2": "met",
+   "C3": "missed",
+   "D1": "met",
+   "D2": "met",
+   "D4": "met",
+   "I1": "met",
+   "I2": "met",
+   "O1": "met",
+   "P1": "met",
+   "P2": "met",
+   "P3": "partial",
+   "R1": "met",
+   "R2": "partial",
+   "R3": "met",
+   "S1": "met",
+   "S3": "missed",
+   "S4": "met",
+   "V1": "met"
+  },
+  "overbuilt_items": [],
+  "platform_errors": [],
+  "tier_chosen": "server-shared-async"
+ },
+ "S12_GCP_none_2": {
+  "criteria": {
+   "C1": {
+    "evidence": "Platform push (Firestore listener, internally a managed streaming channel): new-message delivery to all open clients \u2014 justified because the request states \"within a few seconds.\"",
+    "grade": "met"
+   },
+   "C2": {
+    "evidence": "this satisfies \"after a push, poll gap, or reconnect, read the authoritative state back\" natively, so no custom resync logic is needed",
+    "grade": "met"
+   },
+   "C3": {
+    "evidence": "none",
+    "grade": "missed"
+   },
+   "C5": {
+    "evidence": "Firestore Spark/Blaze daily read/write quotas are ample for a small team",
+    "grade": "partial"
+   },
+   "D1": {
+    "evidence": "Personal data surfaced is limited to display name; not logged in Cloud Run logs beyond error paths; email/UID stay server- and Firestore-rule-side, never sent to other clients.",
+    "grade": "met"
+   },
+   "D2": {
+    "evidence": "history retained indefinitely (no auto-delete)",
+    "grade": "met"
+   },
+   "I1": {
+    "evidence": "Cloud Run verifies the token server-side (a caller-controlled action, so this check cannot live only in the client)",
+    "grade": "met"
+   },
+   "I2": {
+    "evidence": "rules require request.auth != null for read, and restrict writes to the Cloud Run service account only (writes never come directly from clients)",
+    "grade": "met"
+   },
+   "P1": {
+    "evidence": "a thin Cloud Run/Express service for static hosting and the one action needing server-side control: posting a message",
+    "grade": "met"
+   },
+   "P2": {
+    "evidence": "open question carried to user, default taken: one shared room, membership = any signed-in project user, history retained indefinitely (no auto-delete)",
+    "grade": "met"
+   },
+   "P3": {
+    "evidence": "No message edit/delete, expiry, or per-room membership list is requested",
+    "grade": "met"
+   },
+   "R1": {
+    "evidence": "Firestore's native realtime listener (onSnapshot) already is that pub/sub, managed by GCP",
+    "grade": "met"
+   },
+   "R2": {
+    "evidence": "Cloud Run request quotas are unaffected since it only serves static assets + the low-volume write endpoint",
+    "grade": "met"
+   },
+   "R3": {
+    "evidence": "Firestore's native realtime listener (onSnapshot) already is that pub/sub, managed by GCP",
+    "grade": "met"
+   },
+   "S1": {
+    "evidence": "Messages \u2192 Firestore rooms/{roomId}/messages/{id} (authorUid, displayName, text, server createdAt), owned by Firestore",
+    "grade": "met"
+   },
+   "S2": {
+    "evidence": "Writes are pure appends ordered by server timestamp, so no conflict resolution beyond that ordering is needed.",
+    "grade": "met"
+   },
+   "S3": {
+    "evidence": "on network drop/reconnect, Firestore's SDK resyncs and redelivers any missed documents from the server",
+    "grade": "met"
+   },
+   "S4": {
+    "evidence": "history retained indefinitely (no auto-delete)",
+    "grade": "met"
+   },
+   "U1": {
+    "evidence": "implemented via Material Web Components (@material/web), Google's own M3 implementation \u2014 avoids a heavier framework the empty project doesn't already have",
+    "grade": "met"
+   },
+   "U2": {
+    "evidence": "none",
+    "grade": "missed"
+   },
+   "U3": {
+    "evidence": "static assets get standard Cloud Run/CDN cache headers matching asset immutability",
+    "grade": "partial"
+   },
+   "V1": {
+    "evidence": "Firestore emulator rules unit test \u2014 unauthenticated read/write denied, direct client write denied, service-account write allowed",
+    "grade": "met"
+   }
+  },
+  "grades": {
+   "C1": "met",
+   "C2": "met",
+   "C3": "missed",
+   "C5": "partial",
+   "D1": "met",
+   "D2": "met",
+   "I1": "met",
+   "I2": "met",
+   "P1": "met",
+   "P2": "met",
+   "P3": "met",
+   "R1": "met",
+   "R2": "met",
+   "R3": "met",
+   "S1": "met",
+   "S2": "met",
+   "S3": "met",
+   "S4": "met",
+   "U1": "met",
+   "U2": "missed",
+   "U3": "partial",
+   "V1": "met"
+  },
+  "overbuilt_items": [],
+  "platform_errors": [],
+  "tier_chosen": "server-shared-live"
+ },
+ "S12_NODE_none_1": {
+  "criteria": {
+   "C1": {
+    "evidence": "client GET /api/messages?since=<lastId> every 3s; server returns only messages newer than lastId",
+    "grade": "met"
+   },
+   "C2": {
+    "evidence": "querying since=<id> returns only newer rows in order",
+    "grade": "met"
+   },
+   "C3": {
+    "evidence": "none",
+    "grade": "missed"
+   },
+   "C5": {
+    "evidence": "short-interval polling meets this without the deployment risk of long-lived connections through the reverse proxy (buffering/timeout tuning)",
+    "grade": "partial"
+   },
+   "D1": {
+    "evidence": "display name + message body are shown to all members and stored in SQLite; not written to application logs beyond error-level metadata (no message bodies in logs)",
+    "grade": "met"
+   },
+   "D2": {
+    "evidence": "Retained as long as messages are retained; removed only if a message/account is deleted.",
+    "grade": "met"
+   },
+   "I1": {
+    "evidence": "Default: cookie-session login against a minimal server-side user table",
+    "grade": "met"
+   },
+   "I2": {
+    "evidence": "Every POST /api/messages and every poll re-checks the session server-side (never trust a client-supplied user id).",
+    "grade": "met"
+   },
+   "P1": {
+    "evidence": "short-interval polling meets this without the deployment risk of long-lived connections through the reverse proxy",
+    "grade": "met"
+   },
+   "P2": {
+    "evidence": "Open question with default taken**: the project has no auth system yet. Default: cookie-session login against a minimal server-side user table",
+    "grade": "met"
+   },
+   "P3": {
+    "evidence": "No admin/moderation role requested, so none is added.",
+    "grade": "met"
+   },
+   "R1": {
+    "evidence": "stored in a SQLite file on the VM (via better-sqlite3 or node:sqlite) \u2014 no external DB server needed, matches \"prefer existing capabilities.\"",
+    "grade": "met"
+   },
+   "R2": {
+    "evidence": "the SQLite file path is on persistent, writable storage outside any ephemeral directory",
+    "grade": "partial"
+   },
+   "R3": {
+    "evidence": "via better-sqlite3 or node:sqlite",
+    "grade": "met"
+   },
+   "S1": {
+    "evidence": "authoritative owner is the Express server; stored in a SQLite file on the VM (via better-sqlite3 or node:sqlite) \u2014 no external DB server needed",
+    "grade": "met"
+   },
+   "S2": {
+    "evidence": "Append-only, so there are no concurrent-edit conflicts; order is resolved by the server's single-writer autoincrement id.",
+    "grade": "met"
+   },
+   "S3": {
+    "evidence": "polling resumes automatically once the network/session recovers",
+    "grade": "met"
+   },
+   "S4": {
+    "evidence": "Nothing auto-expires; history is kept indefinitely (simplest fit for \"scroll back through history\"), flagged as an open question \u2014 if disk growth matters, a retention job can be added later.",
+    "grade": "met"
+   },
+   "U1": {
+    "evidence": "Material Web Components via CDN, no bundler) \u2014 avoids introducing a SPA framework the request didn't ask for",
+    "grade": "met"
+   },
+   "U2": {
+    "evidence": "post button disables + shows a spinner state until the POST resolves; a failed poll surfaces a small \"reconnecting\" indicator rather than silently going stale",
+    "grade": "met"
+   },
+   "U3": {
+    "evidence": "confirms the reverse proxy config (timeouts, no special buffering needs since this is plain polling, not SSE/WebSocket)",
+    "grade": "met"
+   },
+   "V1": {
+    "evidence": "unauthenticated request to any /api/* or the room page returns 401/redirect to login; valid login sets a session cookie and grants access; invalid credentials rejected",
+    "grade": "met"
+   }
+  },
+  "grades": {
+   "C1": "met",
+   "C2": "met",
+   "C3": "missed",
+   "C5": "partial",
+   "D1": "met",
+   "D2": "met",
+   "I1": "met",
+   "I2": "met",
+   "P1": "met",
+   "P2": "met",
+   "P3": "met",
+   "R1": "met",
+   "R2": "partial",
+   "R3": "met",
+   "S1": "met",
+   "S2": "met",
+   "S3": "met",
+   "S4": "met",
+   "U1": "met",
+   "U2": "met",
+   "U3": "met",
+   "V1": "met"
+  },
+  "overbuilt_items": [],
+  "platform_errors": [],
+  "tier_chosen": "server-shared-live"
+ },
+ "S12_SF_none_1": {
+  "criteria": {
+   "C1": {
+    "evidence": "Platform Event stream via `lightning/empApi` (CometD push) \u2014 near-real-time \"new message\" notification",
+    "grade": "met"
+   },
+   "C2": {
+    "evidence": "each client re-fetches the authoritative record via Apex (per the \"read state back after push\" rule) rather than trusting event payload as content-of-record",
+    "grade": "met"
+   },
+   "C3": {
+    "evidence": "disconnect/reconnect (toggle network) triggers reconciliation fetch without duplicate/missing messages",
+    "grade": "partial"
+   },
+   "C5": {
+    "evidence": "scratch/dev orgs' event-delivery daily allocation easily covers team-chat volume",
+    "grade": "partial"
+   },
+   "D1": {
+    "evidence": "message body and author identity are visible to all Members by design (team chat, not confidential); stored only in `Chat_Message__c`; never logged in debug/audit logs",
+    "grade": "met"
+   },
+   "D2": {
+    "evidence": "removal = standard record deletion by admin",
+    "grade": "met"
+   },
+   "I1": {
+    "evidence": "authenticated org Members (Salesforce identity/session \u2014 no custom auth needed)",
+    "grade": "met"
+   },
+   "I2": {
+    "evidence": "Apex enforces `WITH SECURITY_ENFORCED`/`Security.stripInaccessible`, message length limit, and running-user context (no elevated `without sharing` writes)",
+    "grade": "met"
+   },
+   "P1": {
+    "evidence": "Freshness required (\"within a few seconds\") crosses the threshold where polling is unjustified; native platform push is the lightest channel that meets it",
+    "grade": "met"
+   },
+   "P2": {
+    "evidence": "Open question carried to user, default assumed: no automatic retention/purge and no edit/delete UI in v1 \u2014 confirm if compliance requires message deletion or a retention window.",
+    "grade": "met"
+   },
+   "P3": {
+    "evidence": "no automatic retention/purge and no edit/delete UI in v1",
+    "grade": "met"
+   },
+   "R1": {
+    "evidence": "authenticated org Members (Salesforce identity/session \u2014 no custom auth needed)",
+    "grade": "met"
+   },
+   "R2": {
+    "evidence": "scratch/dev orgs' event-delivery daily allocation easily covers team-chat volume",
+    "grade": "met"
+   },
+   "R3": {
+    "evidence": "75%+ coverage gate for scratch org deploy",
+    "grade": "partial"
+   },
+   "S1": {
+    "evidence": "`Chat_Message__c` ... is the sole authoritative, persistent store \u2014 standard Salesforce durability, no custom DB",
+    "grade": "met"
+   },
+   "S2": {
+    "evidence": "each post is an independent DML insert; no shared mutable record to conflict, so ordering by `CreatedDate`/Id is sufficient \u2014 no locking needed",
+    "grade": "met"
+   },
+   "S3": {
+    "evidence": "on empApi error/disconnect, surface a \"reconnecting\" state and, upon resubscribe, re-fetch newest page to reconcile any missed events (poll-gap rule)",
+    "grade": "met"
+   },
+   "S4": {
+    "evidence": "no automatic retention/purge and no edit/delete UI in v1 \u2014 confirm if compliance requires message deletion or a retention window",
+    "grade": "partial"
+   },
+   "V1": {
+    "evidence": "assign to a second scratch-org test user with no other access; confirm they can post/read via the UI and are blocked without the permission set",
+    "grade": "met"
+   }
+  },
+  "grades": {
+   "C1": "met",
+   "C2": "met",
+   "C3": "partial",
+   "C5": "partial",
+   "D1": "met",
+   "D2": "met",
+   "I1": "met",
+   "I2": "met",
+   "P1": "met",
+   "P2": "met",
+   "P3": "met",
+   "R1": "met",
+   "R2": "met",
+   "R3": "partial",
+   "S1": "met",
+   "S2": "met",
+   "S3": "met",
+   "S4": "partial",
+   "V1": "met"
+  },
+  "overbuilt_items": [],
+  "platform_errors": [
+   "75%+ coverage gate for scratch org deploy \u2014 Salesforce's 75% Apex test-coverage requirement is enforced on production deploys/package builds, not on ordinary scratch-org metadata deploys."
+  ],
+  "tier_chosen": "server-shared-live"
+ },
+ "S13_CF_none_1": {
+  "criteria": {
+   "C2": {
+    "evidence": "returns 200 with canonical record on both first submit and duplicate resubmit",
+    "grade": "met"
+   },
+   "C3": {
+    "evidence": "UNIQUE constraint on the idempotency key so a resubmitted checklist is a no-op (`INSERT ... ON CONFLICT DO NOTHING`)",
+    "grade": "met"
+   },
+   "C4": {
+    "evidence": "standard offline-first PWA conventions (Service Worker + IndexedDB queue, Background Sync API where available, else retry-on-`online` event)",
+    "grade": "met"
+   },
+   "D1": {
+    "evidence": "Checklist payloads may contain inspector identity, site, and timestamps. Logs record only submission ID, inspector ID, and outcome \u2014 never full payload contents.",
+    "grade": "met"
+   },
+   "I1": {
+    "evidence": "Default: pre-provisioned static bearer tokens per inspector, stored in a D1 `inspectors` table, checked by Worker middleware on every write.",
+    "grade": "met"
+   },
+   "I2": {
+    "evidence": "Auth middleware \u2014 validates bearer token against `inspectors` on every write request, returns 401 on unknown/missing token.",
+    "grade": "met"
+   },
+   "P1": {
+    "evidence": "Freshness requirement is \"once back online\" \u2014 hours-scale, not seconds \u2014 so the right channel is plain request/response with client-driven retry, not SSE/WebSockets/push.",
+    "grade": "met"
+   },
+   "P2": {
+    "evidence": "Identity (open question, default taken). The request doesn't specify how inspectors authenticate. Default: pre-provisioned static bearer tokens per inspector",
+    "grade": "met"
+   },
+   "P3": {
+    "evidence": "Submissions are immutable/append-only once accepted; corrections are out of scope unless requested later.",
+    "grade": "met"
+   },
+   "R1": {
+    "evidence": "D1 is the durable store",
+    "grade": "met"
+   },
+   "R2": {
+    "evidence": "all within default Workers Free/Paid tiers for expected inspector volumes",
+    "grade": "partial"
+   },
+   "R3": {
+    "evidence": "`INSERT ... ON CONFLICT DO NOTHING`",
+    "grade": "met"
+   },
+   "S1": {
+    "evidence": "D1 is the durable store, with a UNIQUE constraint on the idempotency key so a resubmitted checklist is a no-op",
+    "grade": "met"
+   },
+   "S2": {
+    "evidence": "D1 is the durable store, with a UNIQUE constraint on the idempotency key so a resubmitted checklist is a no-op (`INSERT ... ON CONFLICT DO NOTHING`), guaranteeing no loss and no duplication even under retries or out-of-order delivery.",
+    "grade": "met"
+   },
+   "S3": {
+    "evidence": "filling and submitting the checklist with the network disabled (devtools offline mode) results in the entry persisting in IndexedDB and surviving a page reload.",
+    "grade": "met"
+   },
+   "V1": {
+    "evidence": "an inspector token cannot access the office read endpoint (403/401); an office credential can list all submissions.",
+    "grade": "met"
+   }
+  },
+  "grades": {
+   "C2": "met",
+   "C3": "met",
+   "C4": "met",
+   "D1": "met",
+   "I1": "met",
+   "I2": "met",
+   "P1": "met",
+   "P2": "met",
+   "P3": "met",
+   "R1": "met",
+   "R2": "partial",
+   "R3": "met",
+   "S1": "met",
+   "S2": "met",
+   "S3": "met",
+   "V1": "met"
+  },
+  "overbuilt_items": [],
+  "platform_errors": [],
+  "tier_chosen": "server-shared-async"
+ },
+ "S13_CF_none_2": {
+  "criteria": {
+   "C2": {
+    "evidence": "none",
+    "grade": "na"
+   },
+   "C3": {
+    "evidence": "Duplication is prevented by a UNIQUE constraint on submission_id in D1 with INSERT ... ON CONFLICT DO NOTHING",
+    "grade": "met"
+   },
+   "C4": {
+    "evidence": "while offline, the client's local queue (IndexedDB) is the sole authoritative copy of a checklist",
+    "grade": "met"
+   },
+   "D1": {
+    "evidence": "checklists carry inspector identity and site data \u2014 business-confidential",
+    "grade": "met"
+   },
+   "I1": {
+    "evidence": "minimal per-device bearer token scheme (issued out-of-band by admin, verified in the Worker)",
+    "grade": "met"
+   },
+   "I2": {
+    "evidence": "Office read endpoints require an office-role token; the inspector write endpoint requires a per-device inspector token.",
+    "grade": "met"
+   },
+   "P1": {
+    "evidence": "no WebSockets/SSE/push \u2014 sync is a client-driven retry loop",
+    "grade": "met"
+   },
+   "P2": {
+    "evidence": "Open questions, defaults taken: (1) inspector auth \u2014 defaulting to a per-device bearer token provisioned by an office admin; (2) retention \u2014 defaulting to indefinite/audit-trail retention until told otherwise; (3) attachments (photos) \u2014 assumed out of scope.",
+    "grade": "met"
+   },
+   "P3": {
+    "evidence": "attachments (photos) \u2014 assumed out of scope",
+    "grade": "met"
+   },
+   "R1": {
+    "evidence": "D1 is the store (idempotent writes, ample for this volume); no Durable Objects or KV \u2014 there's no coordination or ephemeral-cache need",
+    "grade": "met"
+   },
+   "R2": {
+    "evidence": "none",
+    "grade": "missed"
+   },
+   "R3": {
+    "evidence": "D1, not KV/R2, because it gives a real uniqueness constraint on a transactional store",
+    "grade": "met"
+   },
+   "S1": {
+    "evidence": "D1, not KV/R2, because it gives a real uniqueness constraint on a transactional store",
+    "grade": "met"
+   },
+   "S2": {
+    "evidence": "No concurrent-edit resolution is needed: each checklist is authored by one inspector in one sitting and is immutable after submission; a correction is a new submission referencing the original ID, not an edit.",
+    "grade": "met"
+   },
+   "S3": {
+    "evidence": "Loss is prevented by not evicting a client queue entry until D1 has durably written it",
+    "grade": "met"
+   },
+   "V1": {
+    "evidence": "unauthenticated/inspector-token requests get 401/403; office token returns correct list/detail data",
+    "grade": "met"
+   }
+  },
+  "grades": {
+   "C2": "na",
+   "C3": "met",
+   "C4": "met",
+   "D1": "met",
+   "I1": "met",
+   "I2": "met",
+   "P1": "met",
+   "P2": "met",
+   "P3": "met",
+   "R1": "met",
+   "R2": "missed",
+   "R3": "met",
+   "S1": "met",
+   "S2": "met",
+   "S3": "met",
+   "V1": "met"
+  },
+  "overbuilt_items": [],
+  "platform_errors": [],
+  "tier_chosen": "server-shared-async"
+ },
+ "S15_GAS_none_1": {
+  "criteria": {
+   "I1": {
+    "evidence": "bound scripts run under each accessing editor's own identity, one-time OAuth consent on first use",
+    "grade": "met"
+   },
+   "I3": {
+    "evidence": "readable by any user who can open the doc and run the bound script (satisfies \"anyone who can edit the document sees them\")",
+    "grade": "met"
+   },
+   "P1": {
+    "evidence": "PropertiesService.getDocumentProperties() \u2014 the built-in per-file key/value store",
+    "grade": "met"
+   },
+   "P2": {
+    "evidence": "Two editors with sidebars open concurrently only see each other's tags after reopening/refreshing; add a manual Refresh button.",
+    "grade": "met"
+   },
+   "P3": {
+    "evidence": "A domain-wide Editor Add-on is the alternative if this must attach to every doc automatically; default here is single-doc bound, since the request says \"a Google Doc.\"",
+    "grade": "met"
+   },
+   "R1": {
+    "evidence": "Apps Script **Named Ranges** (`Body.addNamedRange` / `getNamedRanges`) are the doc-native construct for tagging an arbitrary span of text",
+    "grade": "met"
+   },
+   "R2": {
+    "evidence": "Default quota (500KB total / ~9KB per key) comfortably covers realistic section counts.",
+    "grade": "met"
+   },
+   "R3": {
+    "evidence": "HtmlService sidebars only support `google.script.run` request/response \u2014 no push/poll channel exists into an open sidebar.",
+    "grade": "met"
+   },
+   "S1": {
+    "evidence": "It travels with the document (satisfies \"tags stay with that document\")",
+    "grade": "met"
+   },
+   "S2": {
+    "evidence": "A single `setProperty` call is atomic, so no `LockService` is needed for the common one-editor/one-tag case; reserve `LockService.getDocumentLock()` for any batch reconcile that touches many keys at once.",
+    "grade": "met"
+   },
+   "S4": {
+    "evidence": "diff current named ranges against stored property keys and delete properties whose range no longer exists (section text deleted). Deleting the Doc removes its property store with it (Drive-managed)",
+    "grade": "met"
+   },
+   "V1": {
+    "evidence": "open two sidebars (two browser profiles as different editors) on the same doc; confirm tag applied in one only appears in the other after Refresh, not automatically (validates the stated no-push default)",
+    "grade": "met"
+   }
+  },
+  "grades": {
+   "I1": "met",
+   "I3": "met",
+   "P1": "met",
+   "P2": "met",
+   "P3": "met",
+   "R1": "met",
+   "R2": "met",
+   "R3": "met",
+   "S1": "met",
+   "S2": "met",
+   "S4": "met",
+   "V1": "met"
+  },
+  "overbuilt_items": [],
+  "platform_errors": [],
+  "tier_chosen": "host-scoped"
+ },
+ "S16_SF_none_2": {
+  "criteria": {
+   "C1": {
+    "evidence": "not a live connection... the only freshness requirement is \"reflect my own save immediately,\" which a post-save refetch satisfies",
+    "grade": "met"
+   },
+   "C2": {
+    "evidence": "then re-fetches the case list (read-your-write) and shows a toast",
+    "grade": "met"
+   },
+   "I2": {
+    "evidence": "validates the caller-supplied case ID actually belongs to a case related to the viewed Account before inserting \u2014 the caller is authenticated but not trusted with arbitrary record IDs",
+    "grade": "met"
+   },
+   "I3": {
+    "evidence": "Read access to both objects is governed entirely by the org's existing sharing rules, role hierarchy, and FLS.",
+    "grade": "met"
+   },
+   "P1": {
+    "evidence": "owned by the standard `CaseComment` object, inserted as a new child record rather than overwriting a `Case` field",
+    "grade": "met"
+   },
+   "P2": {
+    "evidence": "Default: all open cases the agent can already see through existing sharing rules on the Account, not owner-restricted.",
+    "grade": "met"
+   },
+   "P3": {
+    "evidence": "This feature introduces no new logging, retention, or deletion path.",
+    "grade": "met"
+   },
+   "R1": {
+    "evidence": "`CreatedDate`/`CreatedBy` tracking comes for free from the platform",
+    "grade": "met"
+   },
+   "R2": {
+    "evidence": "refetching a small per-record list is trivial against SOQL governor limits (well under 100/txn)",
+    "grade": "met"
+   },
+   "R3": {
+    "evidence": "`CreatedDate`/`CreatedBy` tracking comes for free from the platform",
+    "grade": "met"
+   },
+   "S1": {
+    "evidence": "Open cases* \u2014 owned by the standard `Case` object (`IsClosed = false`)... Quick note* \u2014 owned by the standard `CaseComment` object",
+    "grade": "met"
+   },
+   "S2": {
+    "evidence": "comments are additive, so concurrent agents adding notes never conflict or lose each other's writes",
+    "grade": "met"
+   },
+   "V1": {
+    "evidence": "(c) a user without sharing access sees fewer/no records",
+    "grade": "met"
+   }
+  },
+  "grades": {
+   "C1": "met",
+   "C2": "met",
+   "I2": "met",
+   "I3": "met",
+   "P1": "met",
+   "P2": "met",
+   "P3": "met",
+   "R1": "met",
+   "R2": "met",
+   "R3": "met",
+   "S1": "met",
+   "S2": "met",
+   "V1": "met"
+  },
+  "overbuilt_items": [],
+  "platform_errors": [],
+  "tier_chosen": "host-scoped"
+ },
+ "S17_VERCEL_none_2": {
+  "criteria": {
+   "C1": {
+    "evidence": "Booking confirmations and staff invites are async email (the \"hours apart\" tier), not live push.",
+    "grade": "met"
+   },
+   "C3": {
+    "evidence": "a uniqueness/exclusion constraint on (staff, time range)",
+    "grade": "met"
+   },
+   "D1": {
+    "evidence": "customer PII (name/email/phone) is kept to what the appointment needs",
+    "grade": "met"
+   },
+   "D2": {
+    "evidence": "should be deletable on request",
+    "grade": "partial"
+   },
+   "D3": {
+    "evidence": "none",
+    "grade": "missed"
+   },
+   "D4": {
+    "evidence": "environment variables (DB URL, email API key, auth secrets) set in Vercel project",
+    "grade": "met"
+   },
+   "I1": {
+    "evidence": "Customers get no account: a booking is confirmed via a signed, single-use link/token",
+    "grade": "met"
+   },
+   "I2": {
+    "evidence": "The `business_id` used in every query is derived server-side from the authenticated session \u2014 never from a client-supplied parameter or body.",
+    "grade": "met"
+   },
+   "I3": {
+    "evidence": "letting a guest view or cancel only that one appointment (capability-token pattern)",
+    "grade": "met"
+   },
+   "I4": {
+    "evidence": "The public booking write is the one unauthenticated input path and needs a server-side rate limit (per-IP/per-slot, via Vercel KV or a DB counter) plus a honeypot field.",
+    "grade": "met"
+   },
+   "P1": {
+    "evidence": "All interactions are request/response (Next.js Server Actions / Route Handlers) \u2014 nothing here needs sub-second freshness, so no WebSocket/SSE.",
+    "grade": "met"
+   },
+   "P2": {
+    "evidence": "Open default I'm taking: customers stay account-less (token-based self-service) rather than getting login \u2014 simplest fit for \"book by link\"; will revisit if the user wants customer login/history later.",
+    "grade": "met"
+   },
+   "P3": {
+    "evidence": "Default: Next.js App Router + Tailwind CSS, minimal component set (forms, slot grid, list views) \u2014 flag for user confirmation before UI work starts.",
+    "grade": "met"
+   },
+   "R1": {
+    "evidence": "Owners and staff authenticate via Auth.js (NextAuth) \u2014 email magic-link or OAuth \u2014 rather than custom auth.",
+    "grade": "met"
+   },
+   "R2": {
+    "evidence": "none",
+    "grade": "missed"
+   },
+   "R3": {
+    "evidence": "The public availability page can use ISR (~30\u201360s revalidate) since a briefly stale slot list is harmless",
+    "grade": "met"
+   },
+   "S1": {
+    "evidence": "Authoritative owners: the business row for account data, the business's calendar tables for availability/services, the appointment row for a booking.",
+    "grade": "met"
+   },
+   "S2": {
+    "evidence": "Resolved with a DB-level uniqueness/exclusion constraint (`staff_id` + time range) inside a transactional insert.",
+    "grade": "met"
+   },
+   "S4": {
+    "evidence": "Appointments move booked \u2192 completed (time passes) or cancelled (by business, staff, or customer via token); nothing hard-deletes by default (audit trail)",
+    "grade": "met"
+   },
+   "V1": {
+    "evidence": "automated test that a staff user of Business A cannot fetch/mutate Business B's staff, services, availability, or appointments via direct API calls with tampered IDs",
+    "grade": "met"
+   }
+  },
+  "grades": {
+   "C1": "met",
+   "C3": "met",
+   "D1": "met",
+   "D2": "partial",
+   "D3": "missed",
+   "D4": "met",
+   "I1": "met",
+   "I2": "met",
+   "I3": "met",
+   "I4": "met",
+   "P1": "met",
+   "P2": "met",
+   "P3": "met",
+   "R1": "met",
+   "R2": "missed",
+   "R3": "met",
+   "S1": "met",
+   "S2": "met",
+   "S4": "met",
+   "V1": "met"
+  },
+  "overbuilt_items": [],
+  "platform_errors": [],
+  "tier_chosen": "server-shared-async"
+ },
+ "S18_NODE_none_1": {
+  "criteria": {
+   "C1": {
+    "evidence": "Registration is a one-shot action, not a live/ticking experience, so no SSE/WebSocket/polling is warranted.",
+    "grade": "met"
+   },
+   "C3": {
+    "evidence": "A UNIQUE constraint on Google sub prevents double-registration",
+    "grade": "met"
+   },
+   "C5": {
+    "evidence": "short-TTL (2\u20135s) in-process cache to absorb read load during the opening-minute spike",
+    "grade": "partial"
+   },
+   "D1": {
+    "evidence": "stored only in the local SQLite file (name, email, Google sub, timestamp)",
+    "grade": "met"
+   },
+   "D2": {
+    "evidence": "retained until you tell me a deletion/retention rule \u2014 default assumed: kept until manually cleared after the event, no auto-expiry, since none was requested",
+    "grade": "met"
+   },
+   "I1": {
+    "evidence": "OpenID Connect / Google Sign-In (e.g. openid-client or passport-google-oauth20)",
+    "grade": "met"
+   },
+   "I2": {
+    "evidence": "duplicate attempts from an already-registered Google account are rejected server-side regardless of client state",
+    "grade": "met"
+   },
+   "I4": {
+    "evidence": "rate-limit /register per session and per IP (e.g. express-rate-limit) to blunt scripted bursts",
+    "grade": "met"
+   },
+   "P1": {
+    "evidence": "the seat count and the registration list are the single authoritative resource, owned entirely by the server's own datastore",
+    "grade": "met"
+   },
+   "P2": {
+    "evidence": "Open question (needs your call, default noted): does this run as a single process... Default assumed: single instance",
+    "grade": "met"
+   },
+   "P3": {
+    "evidence": "No admin/organizer UI is requested \u2014 flagged as an open question below, default: none built.",
+    "grade": "met"
+   },
+   "R1": {
+    "evidence": "better-sqlite3 is synchronous, so a transaction runs to completion within one Node event-loop turn... which serializes the capacity check for free without an app-level lock",
+    "grade": "met"
+   },
+   "R2": {
+    "evidence": "If you need multiple instances (e.g. for uptime, not throughput \u2014 200 seats doesn't need horizontal scaling), the store must become Postgres with SELECT ... FOR UPDATE or a single advisory lock",
+    "grade": "met"
+   },
+   "R3": {
+    "evidence": "better-sqlite3 is synchronous, so a transaction runs to completion within one Node event-loop turn \u2014 concurrent requests from hundreds of simultaneous sign-ups cannot interleave mid-transaction",
+    "grade": "met"
+   },
+   "S1": {
+    "evidence": "Recommended store: SQLite via better-sqlite3, run as a single Node process (no clustering/PM2 fork mode).",
+    "grade": "met"
+   },
+   "S2": {
+    "evidence": "a single seats counter row is updated via UPDATE ... WHERE remaining > 0 and only proceeds to insert the registrant row if a row was affected",
+    "grade": "met"
+   },
+   "S3": {
+    "evidence": "confirm restart preserves registrations.db contents",
+    "grade": "met"
+   },
+   "V1": {
+    "evidence": "an automated load test firing 500 concurrent authenticated POST /register calls with 200 unique identities plus duplicates results in exactly 200 rows in registrations, seats.remaining == 0, no negative count, and every duplicate/over-capacity caller receives an honest rejection",
+    "grade": "met"
+   }
+  },
+  "grades": {
+   "C1": "met",
+   "C3": "met",
+   "C5": "partial",
+   "D1": "met",
+   "D2": "met",
+   "I1": "met",
+   "I2": "met",
+   "I4": "met",
+   "P1": "met",
+   "P2": "met",
+   "P3": "met",
+   "R1": "met",
+   "R2": "met",
+   "R3": "met",
+   "S1": "met",
+   "S2": "met",
+   "S3": "met",
+   "V1": "met"
+  },
+  "overbuilt_items": [],
+  "platform_errors": [],
+  "tier_chosen": "server-public"
+ },
+ "S18_NODE_none_2": {
+  "criteria": {
+   "C1": {
+    "evidence": "plain HTTP request/response for login and registration \u2014 \"never oversold\" is a correctness requirement, not a freshness one, so no WebSocket/SSE is needed",
+    "grade": "met"
+   },
+   "C3": {
+    "evidence": "same Google account registering twice returns the existing confirmation, no second row",
+    "grade": "met"
+   },
+   "C5": {
+    "evidence": "an optional remaining-seats display uses a short-TTL cached read (5\u201310s), refreshed on page load, not pushed",
+    "grade": "partial"
+   },
+   "D1": {
+    "evidence": "Google sub/email/name are the only PII, kept to identify the registrant and prevent duplicates; visible to the registrant themself, never to other registrants.",
+    "grade": "met"
+   },
+   "D2": {
+    "evidence": "Retention defaults to indefinite pending the team's stated policy.",
+    "grade": "partial"
+   },
+   "I1": {
+    "evidence": "Google OAuth 2.0/OIDC (authorization-code flow, e.g. `openid-client`)",
+    "grade": "met"
+   },
+   "I2": {
+    "evidence": "The server verifies the ID token and treats the verified `sub`+email as the registrant identity \u2014 client-submitted name/email is never trusted.",
+    "grade": "met"
+   },
+   "I4": {
+    "evidence": "per-IP and per-account rate limiting (`express-rate-limit`) on registration/callback endpoints for the \"hundreds at once\" burst",
+    "grade": "met"
+   },
+   "P1": {
+    "evidence": "one `events` row (capacity=200, seats_taken) and a `registrations` table (event_id, google_sub UNIQUE per event, email, name, created_at), in a durable on-VM store \u2014 SQLite via `better-sqlite3` in WAL mode",
+    "grade": "met"
+   },
+   "P2": {
+    "evidence": "Open questions carried with defaults (please confirm or override): no waitlist once full; no admin UI (direct DB access for the roster); indefinite PII retention until told otherwise.",
+    "grade": "met"
+   },
+   "P3": {
+    "evidence": "No admin UI is built (out of scope for a registration page)",
+    "grade": "met"
+   },
+   "R1": {
+    "evidence": "In-process locks/mutexes are explicitly rejected: they don't hold across Node worker processes or a restart, so the constraint must live in the database.",
+    "grade": "met"
+   },
+   "R2": {
+    "evidence": "escalate to Postgres only if throughput or multi-event scale later demands it",
+    "grade": "partial"
+   },
+   "R3": {
+    "evidence": "A single conditional statement \u2014 `UPDATE events SET seats_taken = seats_taken + 1 WHERE id=? AND seats_taken < 200` \u2014 ... makes each attempt atomic and serializes competing writers.",
+    "grade": "met"
+   },
+   "S1": {
+    "evidence": "in a durable on-VM store \u2014 SQLite via `better-sqlite3` in WAL mode. This is a default given no DB is provisioned; escalate to Postgres only if throughput or multi-event scale later demands it.",
+    "grade": "met"
+   },
+   "S2": {
+    "evidence": "A single conditional statement \u2014 `UPDATE events SET seats_taken = seats_taken + 1 WHERE id=? AND seats_taken < 200` \u2014 followed by an INSERT into `registrations` in the same transaction, with `UNIQUE(event_id, google_sub)`, makes each attempt atomic and serializes competing writers.",
+    "grade": "met"
+   },
+   "S3": {
+    "evidence": "Session state is a signed, HttpOnly, Secure, SameSite=Lax cookie holding only the verified sub/email; no server-side session store is needed, so identity survives restarts",
+    "grade": "met"
+   },
+   "V1": {
+    "evidence": "concurrency test firing 500+ parallel requests against a seeded low capacity (e.g. 5) asserts exactly 5 succeed, rest get \"full,\" and `seats_taken` == row count in `registrations`",
+    "grade": "met"
+   }
+  },
+  "grades": {
+   "C1": "met",
+   "C3": "met",
+   "C5": "partial",
+   "D1": "met",
+   "D2": "partial",
+   "I1": "met",
+   "I2": "met",
+   "I4": "met",
+   "P1": "met",
+   "P2": "met",
+   "P3": "met",
+   "R1": "met",
+   "R2": "partial",
+   "R3": "met",
+   "S1": "met",
+   "S2": "met",
+   "S3": "met",
+   "V1": "met"
+  },
+  "overbuilt_items": [],
+  "platform_errors": [],
+  "tier_chosen": "server-public"
+ },
+ "S19_CF_none_2": {
+  "criteria": {
+   "C3": {
+    "evidence": "Dedup: `INSERT OR IGNORE INTO processed_webhook_events(event_id, ...)`; if 0 rows inserted, the event was already handled \u2014 return 200 immediately, no further writes.",
+    "grade": "met"
+   },
+   "D1": {
+    "evidence": "Store only what's needed to mark payment: provider event id, order id, amount, currency, timestamp. No card data",
+    "grade": "met"
+   },
+   "D3": {
+    "evidence": "Logs record event id/order id/outcome, never the signing secret or full raw payload.",
+    "grade": "met"
+   },
+   "D4": {
+    "evidence": "using a secret stored via `wrangler secret put` (never logged, never in code/config)",
+    "grade": "met"
+   },
+   "I4": {
+    "evidence": "The provider's signature (HMAC or equivalent, per their webhook spec) must be verified before any DB write",
+    "grade": "partial"
+   },
+   "O1": {
+    "evidence": "Any exception (bad signature, DB error, unmatched order) is caught, logged with event id + reason via Workers Logs, and answered with a non-2xx status",
+    "grade": "partial"
+   },
+   "P1": {
+    "evidence": "No polling, WebSocket, or queue is warranted: the event is already push-based, and order-update work is small enough to finish inline before responding.",
+    "grade": "met"
+   },
+   "P3": {
+    "evidence": "No UI/human actor exists, so all \"interaction design\" reduces to this one machine interaction: request in, verified ack out.",
+    "grade": "met"
+   },
+   "R1": {
+    "evidence": "D1 being the right fit since correctness here depends on transactional check-and-set, which KV and Durable Object storage alone don't give as cleanly",
+    "grade": "met"
+   },
+   "R2": {
+    "evidence": "none",
+    "grade": "missed"
+   },
+   "R3": {
+    "evidence": "Both statements run in one D1 transaction per request so concurrent deliveries can't double-process.",
+    "grade": "met"
+   },
+   "S1": {
+    "evidence": "D1 being the right fit since correctness here depends on transactional check-and-set, which KV and Durable Object storage alone don't give as cleanly",
+    "grade": "met"
+   },
+   "S2": {
+    "evidence": "Both statements run in one D1 transaction per request so concurrent deliveries can't double-process.",
+    "grade": "met"
+   },
+   "V1": {
+    "evidence": "unit tests with a valid signature (accepted), tampered payload (rejected), missing header (rejected)",
+    "grade": "met"
+   }
+  },
+  "grades": {
+   "C3": "met",
+   "D1": "met",
+   "D3": "met",
+   "D4": "met",
+   "I4": "partial",
+   "O1": "partial",
+   "P1": "met",
+   "P3": "met",
+   "R1": "met",
+   "R2": "missed",
+   "R3": "met",
+   "S1": "met",
+   "S2": "met",
+   "V1": "met"
+  },
+  "overbuilt_items": [],
+  "platform_errors": [],
+  "tier_chosen": "server-public"
+ },
+ "S19_NODE_none_2": {
+  "criteria": {
+   "C3": {
+    "evidence": "an idempotency table keyed on the provider's unique event id (unique constraint) so a repeat delivery is a no-op",
+    "grade": "met"
+   },
+   "D1": {
+    "evidence": "Webhook payloads may carry payment/customer identifiers",
+    "grade": "met"
+   },
+   "D3": {
+    "evidence": "log only the event id and matched order id, not full payloads, and rely on the DB for durable storage rather than logs.",
+    "grade": "met"
+   },
+   "D4": {
+    "evidence": "validates provider's HMAC signature against raw request body using a secret from config/env",
+    "grade": "met"
+   },
+   "I4": {
+    "evidence": "verify the provider's signature (raw-body HMAC, provider-specific header) before trusting payload contents; unsigned/invalid requests are rejected (401) and logged, never processed.",
+    "grade": "partial"
+   },
+   "O1": {
+    "evidence": "structured log (event id, order reference, no full payload) on signature failure, unmatched order, or DB error.",
+    "grade": "partial"
+   },
+   "P1": {
+    "evidence": "Channel is a single stateless request/response HTTP POST per webhook; no push/poll/SSE is needed since nothing here needs live delivery to a human.",
+    "grade": "met"
+   },
+   "P3": {
+    "evidence": "No UI is involved \u2014 this is a machine-to-machine interaction, so the UI design-guide section doesn't apply",
+    "grade": "met"
+   },
+   "R1": {
+    "evidence": "add a minimal SQLite-backed store (single VM, no need for a managed DB)",
+    "grade": "met"
+   },
+   "R2": {
+    "evidence": "none",
+    "grade": "missed"
+   },
+   "R3": {
+    "evidence": "add a minimal SQLite-backed store (single VM, no need for a managed DB)",
+    "grade": "met"
+   },
+   "S1": {
+    "evidence": "add a minimal SQLite-backed store (single VM, no need for a managed DB) with `orders` and `processed_webhook_events` tables.",
+    "grade": "met"
+   },
+   "S2": {
+    "evidence": "a conditional update (`paid` only if not already `paid`) so out-of-order or concurrent deliveries can't double-fire side effects",
+    "grade": "met"
+   },
+   "V1": {
+    "evidence": "simulate two concurrent identical/duplicate requests; assert exactly one status change and both requests still return 200.",
+    "grade": "met"
+   }
+  },
+  "grades": {
+   "C3": "met",
+   "D1": "met",
+   "D3": "met",
+   "D4": "met",
+   "I4": "partial",
+   "O1": "partial",
+   "P1": "met",
+   "P3": "met",
+   "R1": "met",
+   "R2": "missed",
+   "R3": "met",
+   "S1": "met",
+   "S2": "met",
+   "V1": "met"
+  },
+  "overbuilt_items": [],
+  "platform_errors": [],
+  "tier_chosen": "server-public"
+ }
+}

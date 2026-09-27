@@ -1,0 +1,68 @@
+plans graded: {'none': 104, 'current': 104, 'safeguards': 104, 'prune': 103}
+
+group                  none     current  safeguards       prune
+overall               0.911       0.904       0.937       0.944
+safeguards            0.831       0.830       0.977       0.951
+detail targets        0.758       0.782       0.965       0.944
+proportion            0.966       0.938       0.933       0.976
+state                 0.926       0.930       0.953       0.964
+connectivity          0.880       0.894       0.894       0.894
+accuracy              0.984       0.960       0.980       0.980
+
+overbuilt P1/P3 grades: {'none': 7, 'current': 17, 'safeguards': 17, 'prune': 7} | tier matched: {'none': '101/104', 'current': '100/104', 'safeguards': '99/104', 'prune': '100/103'} | platform errors: {'none': 3, 'current': 8, 'safeguards': 5, 'prune': 6}
+
+Change against no review (mean, 95% paired bootstrap interval, cells won/lost):
+  current    overall         -0.007  [-0.022, +0.006]   36/35   n=104
+  current    safeguards      -0.000  [-0.018, +0.017]   11/10   n=82
+  current    detail targets  +0.023  [-0.008, +0.057]   25/17   n=92
+  current    proportion      -0.029  [-0.054, -0.006]    4/12   n=104
+  current    state           +0.005  [-0.017, +0.028]   12/12   n=92
+  current    connectivity    +0.014  [-0.011, +0.041]    9/7    n=86
+  current    accuracy        -0.022  [-0.055, +0.011]    3/7    n=91
+  safeguards overall         +0.026  [+0.012, +0.039]   61/18   n=104
+  safeguards safeguards      +0.146  [+0.107, +0.187]   42/0    n=82
+  safeguards detail targets  +0.207  [+0.157, +0.260]   54/3    n=92
+  safeguards proportion      -0.034  [-0.056, -0.013]    3/17   n=104
+  safeguards state           +0.028  [+0.006, +0.049]   20/6    n=92
+  safeguards connectivity    +0.015  [-0.012, +0.042]   15/11   n=86
+  safeguards accuracy        -0.005  [-0.032, +0.022]    3/4    n=93
+  prune      overall         +0.033  [+0.018, +0.047]   60/15   n=103
+  prune      safeguards      +0.121  [+0.082, +0.163]   34/4    n=81
+  prune      detail targets  +0.184  [+0.135, +0.235]   47/5    n=91
+  prune      proportion      +0.010  [-0.008, +0.029]    8/3    n=103
+  prune      state           +0.039  [+0.017, +0.062]   23/6    n=91
+  prune      connectivity    +0.016  [-0.011, +0.041]   12/5    n=85
+  prune      accuracy        -0.005  [-0.032, +0.016]    2/3    n=93
+
+Per criterion:
+  C1      1.00     1.00     1.00     1.00
+  C2      0.97     0.97     0.95     0.99
+  C3      0.76     0.78     0.75     0.75
+  C4      1.00     1.00     1.00     1.00
+  C5      0.77     0.77     0.85     0.84
+  D1      0.74     0.74     0.99     0.97
+  D2      0.85     0.86     0.94     0.90
+  D3      0.77     0.80     1.00     1.00
+  D4      0.95     1.00     1.00     1.00
+  I1      0.97     0.98     0.97     0.97
+  I2      0.95     0.93     0.98     0.96
+  I3      0.96     0.93     0.97     0.90
+  I4      0.81     0.81     0.90     0.87
+  K1      0.95     1.00     1.00     1.00
+  K2      1.00     1.00     1.00     1.00
+  K3      1.00     1.00     1.00     1.00
+  O1      1.00     0.92     0.97     1.00
+  P1      0.97     0.97     0.98     0.98
+  P2      0.99     1.00     0.99     1.00
+  P3      0.94     0.85     0.82     0.95
+  R1      1.00     0.99     1.00     0.99
+  R2      0.68     0.74     0.93     0.92
+  R3      0.98     0.96     0.98     0.98
+  S1      0.98     0.97     0.99     1.00
+  S2      0.98     1.00     0.99     0.99
+  S3      0.81     0.85     0.86     0.88
+  S4      0.88     0.86     0.93     0.93
+  U1      0.97     0.94     0.97     0.94
+  U2      0.53     0.62     0.59     0.56
+  U3      0.69     0.81     0.62     0.69
+  V1      0.98     0.99     0.99     0.99

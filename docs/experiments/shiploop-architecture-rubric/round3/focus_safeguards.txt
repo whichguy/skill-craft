@@ -1,0 +1,24 @@
+Planning review focus. This planning result is
+the contract that later stages build on and that no other review sees until the
+end. Look for these conditions and fix them within scope:
+- a step, example or expected result that cannot be replayed exactly: name the
+  concrete inputs, values, identifiers and sample interactions;
+- an expected result or check that a weaker stand-in would pass: a hardcoded
+  value, a missing assertion, a title-only test, or an absent required name;
+- a documented command that does not run what it claims on the target runtime:
+  run it once and record the exit code and the cases it executes;
+- a required requirement, test ID or case dropped or weakened compared with the
+  prior accepted version;
+- a claim about what the runtime, platform or a library can do that a decision
+  depends on, with no primary-documentation source or probe result: check it,
+  and correct the plan where it is wrong;
+- personal data the plan holds, shows, logs or sends to a third party without
+  saying how long it is kept, how it is removed, and that it stays out of logs
+  and error messages;
+- a runtime quota or limit the design depends on that the plan does not name
+  and plan within;
+- a background or asynchronous failure the plan does not record where someone
+  who can act will see it;
+- a missing prerequisite, wrong order or unowned verification in the steps.
+Do not reread history or rerun a check already recorded green at this commit
+unless a finding depends on it. A pass that finds none of these is trivial.
