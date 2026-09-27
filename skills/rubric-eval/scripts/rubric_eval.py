@@ -20,137 +20,24 @@ import json
 import math
 import os
 import random
-import shutil
+import sys
 import re
 import subprocess
-import tempfile
-import time
 from concurrent.futures import ThreadPoolExecutor
 from pathlib import Path
+
+sys.path.insert(0, str(Path(__file__).resolve().parent))
 
 # Analytic-rubric points per criterion; a plan scores the percentage of available points it earned (0-100).
 VAL = {"met": 2, "partial": 1, "missed": 0, "overbuilt": 0}
 JUDGES = Path(__file__).resolve().parents[1] / "references" / "judges.json"
 STUB_WORDS = 150
-MODELS = ("grok", "opus", "sonnet")
-OPUS_MODEL, OPUS_EFFORT = "claude-opus-5-5", "medium"
-NO_MCP = ["--strict-mcp-config", "--mcp-config", '{"mcpServers":{}}']
-GROK_MODEL, GROK_EFFORT = "grok-4.7", "medium"
+from model_call import ALIASES, call, call_full, resolve  # one isolated call on any host (see model_call.py)
 
 
-# ---------------------------------------------------------------- model calls
-
-def _grok_home() -> Path:
-    """An isolated Grok home holding only the sign-in, so no plugins, skills or MCP servers load."""
-    home = Path(os.environ.get("RUBRIC_EVAL_GROK_HOME") or Path(tempfile.gettempdir()) / "rubric-eval-grok-home")
-    auth = Path.home() / ".grok" / "auth.json"
-    (home / ".grok").mkdir(parents=True, exist_ok=True)
-    link = home / ".grok" / "auth.json"
-    if not link.exists():
-        if not auth.is_file():
-            raise SystemExit(f"rubric-eval: Grok is not signed in ({auth} is missing)")
-        link.symlink_to(auth)
-    return home
-
-
-def call_full(model: str, prompt: str, *, timeout: int = 600, tools: str = "", workspace: str | Path | None = None) -> dict:
-    """Run one prompt on `model` with no MCP servers, from an empty directory.
-
-    Returns {"text", "input_tokens", "output_tokens", "seconds"}; text is '' on failure. Input tokens count
-    cached and uncached prompt tokens; output tokens include reasoning. Seconds is wall-clock time.
-    `tools` is "" (none) or "Read". A prompt that asks the model to check something (a review focus that says
-    to run a command) needs a tool to reach for; with none, a model may announce a call and stop, a stub.
-    Read from an empty directory lets it try, find nothing, and answer.
-    `workspace`: a folder whose contents are copied into the call's own directory (reference files the
-    prompt points to), read with the Read tools. Prompts are passed inline, so no prompt file exists on disk;
-    every path a Grok call touched is audited from its session log and returned as "outside_paths" when it
-    lies outside the call's own directory (`run` discards and reruns such a call).
-    """
-    if tools not in ("", "Read"):
-        raise ValueError(f"call: tools must be '' or 'Read', got {tools!r}")
-    if model not in MODELS:
-        raise ValueError(f"call: model must be one of {MODELS}, got {model!r}")
-    rec = {"text": "", "input_tokens": None, "output_tokens": None, "seconds": 0.0}
-    start = time.monotonic()
-    with tempfile.TemporaryDirectory(prefix="rubric-eval-") as cwd:
-        if workspace:
-            shutil.copytree(workspace, cwd, dirs_exist_ok=True)
-        try:
-            if model in ("sonnet", "opus"):
-                pick = ["--model", "sonnet"] if model == "sonnet" else ["--model", OPUS_MODEL, "--effort", OPUS_EFFORT]
-                allowed = "Read,Grep,Glob" if tools else ""
-                argv = ["claude", "-p", *pick, "--output-format", "json", "--tools", allowed, *NO_MCP] + (["--allowedTools", allowed] if tools else [])
-                out = subprocess.run(argv, input=prompt, capture_output=True, text=True, timeout=timeout, cwd=cwd).stdout
-                d = json.loads(out) if out.strip() else {}
-                u = d.get("usage")
-                rec["text"] = d.get("result", "") if not d.get("is_error") else ""
-                if isinstance(u, dict) and "input_tokens" in u and "output_tokens" in u:  # input_tokens excludes cache
-                    rec.update(input_tokens=u["input_tokens"] + u.get("cache_creation_input_tokens", 0) + u.get("cache_read_input_tokens", 0),
-                               output_tokens=u["output_tokens"])
-            else:
-                home = _grok_home()
-                env = {"PATH": os.environ.get("PATH", ""), "HOME": str(home), "GROK_CONFIG_DIR": str(home / ".grok"),
-                       "XDG_CONFIG_HOME": str(home / ".config"), "XDG_DATA_HOME": str(home / ".local/share"),
-                       "XDG_CACHE_HOME": str(home / ".cache"), "XDG_STATE_HOME": str(home / ".local/state"),
-                       "GROK_CLAUDE_SKILLS_ENABLED": "false", "GROK_CURSOR_SKILLS_ENABLED": "false", "NO_COLOR": "1"}
-                # The prompt goes inline (-p), so no prompt file sits on disk for any call to find.
-                argv = ["grok", "--cwd", cwd, "-p", prompt, "--verbatim", "--model", GROK_MODEL,
-                        "--reasoning-effort", GROK_EFFORT, "--output-format", "json", "--no-auto-update",
-                        "--disable-web-search"]
-                # Grok reads `--tools ""` as no restriction (every tool, shell included), so name an allowlist:
-                # todo_write touches no files. With tools, it may read, list and search; never a shell, never
-                # auto-approval. Grok's kernel sandbox cannot start on a Mac whose /var/run/docker.sock is a
-                # symlink, so reads are audited instead: see outside_paths.
-                argv += (["--tools", "read_file,list_dir,grep", "--max-turns", "40"] if tools
-                         else ["--tools", "todo_write", "--max-turns", "6"]) + ["--disallowed-tools", "search_tool,use_tool"]
-                out = subprocess.run(argv, capture_output=True, text=True, timeout=timeout, env=env).stdout
-                d = json.loads(out) if out.strip() else {}
-                u = d.get("usage")
-                rec["text"] = d.get("text", "")
-                if tools and d.get("sessionId"):
-                    rec["outside_paths"] = outside_paths(home, d["sessionId"], cwd)
-                if isinstance(u, dict) and "input_tokens" in u and "output_tokens" in u:
-                    # input_tokens excludes cache reads (total_tokens = input + cache read + output); output includes reasoning
-                    rec.update(input_tokens=u["input_tokens"] + u.get("cache_read_input_tokens", 0) + u.get("cache_creation_input_tokens", 0),
-                               output_tokens=u["output_tokens"])
-        except (subprocess.TimeoutExpired, json.JSONDecodeError, OSError):
-            pass
-    rec["seconds"] = round(time.monotonic() - start, 1)
-    return rec
-
-
-PATH_KEYS = ("target_file", "target_directory", "path", "file_path")
-READ_TOOLS = ("read_file", "list_dir", "grep")
-
-
-def outside_paths(home: Path, session_id: str, cwd: str) -> list[str] | None:
-    """What a Grok session touched beyond its own directory: every path argument outside `cwd`, and any tool
-    outside the read-only allowlist (as "tool:<name>"). None if the session log is missing."""
-    logs = list((home / ".grok" / "sessions").glob(f"*/{session_id}/updates.jsonl"))
-    if not logs:
-        return None
-    root = os.path.realpath(cwd); seen = set()
-    for line in logs[0].read_text(errors="replace").splitlines():
-        try:
-            u = json.loads(line)["params"]["update"]
-        except (ValueError, KeyError, TypeError):
-            continue
-        if u.get("sessionUpdate") != "tool_call":
-            continue
-        if u.get("title") not in READ_TOOLS:
-            seen.add(f"tool:{u.get('title')}")
-        for k in PATH_KEYS:
-            v = (u.get("rawInput") or {}).get(k)
-            if isinstance(v, str) and v:
-                full = os.path.realpath(v if os.path.isabs(v) else os.path.join(root, v))
-                if full != root and not full.startswith(root + os.sep):
-                    seen.add(v)
-    return sorted(seen)
-
-
-def call(model: str, prompt: str, *, timeout: int = 600, tools: str = "") -> str:
-    """The text of one isolated call ('' on failure); see call_full for usage and time."""
-    return call_full(model, prompt, timeout=timeout, tools=tools)["text"]
+def spec(model: str) -> str:
+    """The resolved host:model@effort spec for an alias or spec, as recorded in manifests and verdicts."""
+    return resolve(model)["spec"]
 
 
 def words(text: str) -> int:
@@ -290,20 +177,20 @@ def run(run_dir: str | Path, model: str, *, workers: int = 8, attempts: int = 3,
             r = call_full(model, p.read_text(), tools=tools, workspace=workspace, timeout=timeout); text = r["text"]
             for k in used:  # stub reruns are real cost, so usage sums every attempt; unknown stays unknown
                 used[k] = None if used[k] is None or r[k] is None else used[k] + r[k]
-            if r.get("outside_paths") or (tools and model == "grok" and r.get("outside_paths") is None and text):
-                with open(run_ / "isolation.log", "a") as log:  # read outside its own directory, or unaudited
-                    log.write(f"{p.stem}\t{r.get('outside_paths')}\n")
+            if r["outside"] or (tools and r["outside"] is None and text):
+                with open(run_ / "isolation.log", "a") as log:  # touched outside its own directory, or unaudited
+                    log.write(f"{p.stem}\t{r['outside']}\n")
                 text = ""; continue
             if words(plan_text(text, reviews)) >= STUB_WORDS:
                 used["seconds"] = round(used["seconds"], 1)
-                dest.write_text(json.dumps({"model": model, "text": text, "attempts": n, **used}) + "\n"); return "ok"
+                dest.write_text(json.dumps({"model": spec(model), "text": text, "attempts": n, **used}) + "\n"); return "ok"
         with open(run_ / "stubs.log", "a") as log:
             log.write(f"{p.stem}\t{words(text)} words\t{used['seconds']}s over {attempts} attempts\n")
         return "stub"
 
     man_path = run_ / "manifest.json"; man = json.loads(man_path.read_text())
     prev = man.get("condition")
-    cond = {"model": model, "tools": tools}
+    cond = {"model": spec(model), "tools": tools}
     if workspace:
         if not tools:
             raise SystemExit("run: a workspace needs --tools Read, or the model cannot open it")
@@ -418,10 +305,10 @@ def judge(run_dir: str | Path, suite: dict, *, model: str = "opus", workers: int
         p = judge_prompt(suite, sid, rt, plan)
         for _ in range(attempts):
             # Grok at medium effort took about 6.5 minutes per rubric grade in round 4; give it room.
-            v = parse_verdict(call(model, p, timeout=900 if model == "grok" else 300))
+            v = parse_verdict(call(model, p, timeout=300 if resolve(model)["host"] == "claude" else 900))
             if v:
                 v = verify_quotes(v, plan)
-                v["judge_model"] = model  # a run's verdicts must come from one judge (checked by analyze)
+                v["judge_model"] = spec(model)  # a run's verdicts must come from one judge (checked by analyze)
                 d.write_text(json.dumps(v, indent=1)); return True
         with open(jd / "failures.log", "a") as log:
             log.write(f"{stem}\n")
@@ -563,9 +450,13 @@ def landis_koch(k: float | None) -> str:
 def judge_noise(model: str) -> float | None:
     """The judge's measured test-retest noise: mean absolute per-plan score change (points) on re-grading."""
     try:
-        return json.loads(JUDGES.read_text())[model]["noise_points"]
-    except (OSError, KeyError, ValueError):
+        table = json.loads(JUDGES.read_text())
+    except (OSError, ValueError):
         return None
+    for name, row in table.items():
+        if name in ALIASES and spec(name) == spec(model) and "noise_points" in row:
+            return row["noise_points"]
+    return None
 
 
 MIN_SCENARIOS = 8
@@ -689,7 +580,7 @@ def analyze(run_dir: str | Path, suite: dict, baseline: str, dest: str = "judge"
     groups = {"overall": None, **suite["rubric"]["groups"]}
     sc = {x["id"]: x for x in suite["scenarios"]["scenarios"]}
     problems = check_condition(run_dir, baseline)
-    judges = {v["judge_model"] for v in verdicts.values() if v.get("judge_model")}
+    judges = {spec(v["judge_model"]) for v in verdicts.values() if v.get("judge_model")}
     if len(judges) > 1:
         problems.append(f"verdicts come from more than one judge {sorted(judges)}; a round keeps one judge")
     checked = {"quote_check" in v for v in verdicts.values()}

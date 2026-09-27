@@ -10,6 +10,7 @@ ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT / "skills" / "rubric-eval" / "scripts"))
 sys.path.insert(0, str(ROOT / "skills" / "adversarial-review" / "scripts"))
 import rubric_eval as R  # noqa: E402
+import model_call as M  # noqa: E402
 import adversarial_review as A  # noqa: E402
 
 SUITE = ROOT / "skills" / "rubric-eval" / "suites" / "architecture"
@@ -253,14 +254,14 @@ class Statistics(unittest.TestCase):
         seen = []
         class Done:
             stdout = '{"text": "ok", "usage": {"input_tokens": 3, "output_tokens": 2}}'
-        real = R.subprocess.run
-        R.subprocess.run = lambda argv, **kw: (seen.append(argv), Done())[1]
-        old_home = R._grok_home
-        R._grok_home = lambda: Path(tempfile.gettempdir())
+        real = M.subprocess.run
+        M.subprocess.run = lambda argv, **kw: (seen.append(argv), Done())[1]
+        old_home = M.grok_home
+        M.grok_home = lambda: Path(tempfile.gettempdir())
         try:
-            r = R.call_full("grok", "hi"); R.call_full("grok", "hi", tools="Read")
+            r = M.call_full("grok", "hi"); M.call_full("grok", "hi", tools="Read")
         finally:
-            R.subprocess.run = real; R._grok_home = old_home
+            M.subprocess.run = real; M.grok_home = old_home
         self.assertEqual((r["text"], r["input_tokens"], r["output_tokens"]), ("ok", 3, 2))
         for argv, allowed in zip(seen, ("todo_write", "read_file,list_dir,grep")):
             self.assertEqual(argv[argv.index("--tools") + 1], allowed)
@@ -278,8 +279,27 @@ class Statistics(unittest.TestCase):
                 ev("grep", {"pattern": "google/script|a/b", "path": "references"}),       # a slash in a pattern is not a path
                 ev("list_dir", {"target_directory": "/private/tmp"}), ev("list_dir", {"variant": "ListDir", "target_directory": "../other"}),
                 ev("run_terminal_command", {"command": "ls"})]))
-            self.assertEqual(R.outside_paths(Path(home), "sid1", cwd), ["../other", "/private/tmp", "tool:run_terminal_command"])
-            self.assertIsNone(R.outside_paths(Path(home), "missing", cwd))
+            self.assertEqual(M.grok_outside(Path(home), "sid1", cwd), ["../other", "/private/tmp", "tool:run_terminal_command"])
+            self.assertIsNone(M.grok_outside(Path(home), "missing", cwd))
+
+    def test_specs_resolve_and_pin_effort(self):
+        self.assertEqual(M.resolve("luna"), {"host": "codex", "model": "gpt-5.6-luna", "effort": "xhigh", "spec": "codex:gpt-5.6-luna@xhigh"})
+        self.assertEqual(R.spec("opus"), "claude:claude-opus-5-5@medium"); self.assertEqual(R.spec("grok"), "grok:grok-4.7@medium")
+        self.assertEqual(M.resolve("claude:sonnet")["effort"], None)
+        with self.assertRaises(ValueError):
+            M.resolve("gpt:foo")
+        self.assertEqual(R.judge_noise("claude:claude-opus-5-5@medium"), R.judge_noise("opus"))   # alias and spec are one judge
+
+    def test_claude_and_codex_audits_flag_reads_outside(self):
+        with tempfile.TemporaryDirectory() as cwd:
+            tu = lambda name, inp: {"type": "assistant", "message": {"content": [{"type": "tool_use", "name": name, "input": inp}]}}
+            ev = [tu("Read", {"file_path": f"{cwd}/references/a.md"}), tu("Read", {"file_path": "/private/tmp/x/prompt.txt"}),
+                  tu("Grep", {"pattern": "a/b", "path": "references"}), tu("Bash", {"command": "ls"})]
+            self.assertEqual(M.claude_outside(ev, cwd), ["/private/tmp/x/prompt.txt", "tool:Bash"])
+            cx = lambda cmd: {"type": "item.completed", "item": {"type": "command_execution", "command": cmd}}
+            ev = [cx("/bin/zsh -lc \"sed -n '1,40p' references/sf.md\""), cx("/bin/zsh -lc \"sed -n '1p' /private/tmp/x/p.txt\""),
+                  cx("/bin/zsh -lc 'cat ../other/prompt.txt'"), cx("/bin/zsh -lc 'ls ~/src'"), cx("/bin/zsh -lc 'echo ok > /dev/null'")]
+            self.assertEqual(M.codex_outside(ev, cwd), ["../other/prompt.txt", "/private/tmp/x/p.txt", "~/src"])
 
     def test_costs_compare_paired_and_against_a_free_input(self):
         vals = {f"S0{i}_GAS_base_1": 1000.0 for i in range(1, 9)} | {f"S0{i}_GAS_cand_1": 700.0 + i for i in range(1, 9)}

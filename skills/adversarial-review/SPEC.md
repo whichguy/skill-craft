@@ -13,10 +13,12 @@ the change lifecycle in `rubric-eval`'s SPEC.
 - `evidence`: the results the change rests on, with arms, subject and judge
   models, scenarios, trials and conditions.
 - `reviewer`: a model family independent of whoever proposed the change (the
-  session model that wrote it). `grok` by default, since changes are usually
-  proposed by a Claude session; use `sonnet` or `opus` when the proposer is
-  Grok. It may share a family with the experiment's judge; it must not share
-  the proposer's.
+  session model that wrote it), named by an alias or `host:model@effort` spec
+  (rubric-eval's `model_call.py`). `luna` (Codex gpt-5.6-luna, xhigh) by
+  default, since changes are usually proposed by a Claude session; `grok` is
+  also independent of Claude; use `sonnet` or `opus` when the proposer is Grok
+  or Codex. It may share a family with the experiment's judge; it must not
+  share the proposer's.
 
 ## Output contract
 

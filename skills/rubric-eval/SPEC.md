@@ -34,7 +34,7 @@ rerun or replaced on its own, and other skills can call it.
 
 | Step | Command | Reads | Writes |
 | --- | --- | --- | --- |
-| Model call | `call --model grok\|opus\|sonnet` | prompt on stdin | text on stdout (the library's `call_full` also returns tokens and seconds) |
+| Model call | `call --model SPEC` (`model_call.py`) | prompt on stdin | text on stdout; `call_full` also returns tokens, seconds and the audit |
 | Exact text | `extract SOURCE [--symbol NAME]` | a source file | the text, and its hash on stderr |
 | Build | `build RUN --arm NAME=PATH[::SYMBOL] ...` | a suite, arm texts | `RUN/prompts/*.txt`, `RUN/manifest.json` |
 | Run | `run RUN --model M` | prompts | `RUN/out/*.json` (text, tokens, seconds, attempts), `RUN/stubs.log` |
@@ -118,21 +118,32 @@ than a run this round (the unreviewed plans of a review experiment) is marked
 
 ## 6. Models
 
-- **Subject (execution): `grok`** (grok-4.7, medium effort), ShipLoop's real
-  host. `sonnet` is allowed for exploratory rounds; name the subject in every
+Every model is named by a spec, `host:model@effort`, or by an alias that pins
+one (`scripts/model_call.py`): `grok` = `grok:grok-4.7@medium`, `opus` =
+`claude:claude-opus-5-5@medium`, `sonnet` = `claude:sonnet`, `luna` =
+`codex:gpt-5.6-luna@xhigh`. Manifests and verdicts record the resolved spec, so
+an alias and its spec are one model, and a round cannot silently mix hosts,
+models or efforts. `model_call` gives every host one interface (text, tokens,
+seconds, and what the call touched outside its directory) and holds all
+host-specific flags.
+
+- **Subject (execution)**: a real ShipLoop host. `grok` by default; `luna`
+  (Codex) when Grok is unavailable or to test the Codex host. `sonnet` is a
+  Claude host, allowed for exploratory rounds. Name the subject in every
   result, and never assume a result on one subject holds on another.
-- **Judge: `opus`** (claude-opus-5-5, medium effort), exactly one per round,
-  never two. It is a different model family from the Grok subject, so it cannot
-  favour its own family's phrasing. A round keeps the judge it started with;
-  switching mid-round makes its arms incomparable. A new judge must pass the
-  section 7 acceptance check before its first decision-making round.
-- **Ship decisions** rest on a fresh confirmation run with Grok as subject and
-  Opus as judge.
+- **Judge: `opus`**, exactly one per round, never two. A round keeps the judge
+  it started with; switching mid-round makes its arms incomparable. A new
+  judge must pass the section 7 acceptance check before its first
+  decision-making round.
+- **Ship decisions** rest on a fresh confirmation run with a real host as
+  subject (Grok or Luna, named) and Opus as judge.
 - **Adversarial reviewer**: a model family other than the one that proposed the
-  change (see the `adversarial-review` skill).
+  change (see the `adversarial-review` skill); `luna` by default, since
+  changes are usually proposed in a Claude session.
 - Never Haiku.
 - History: architecture rounds 1–5 used Sonnet as subject and judge; they are
-  exploratory evidence for choosing what to confirm.
+  exploratory evidence for choosing what to confirm. Round 6 used Grok 4.7
+  medium as subject and Opus as judge.
 
 ## 7. Judge
 
