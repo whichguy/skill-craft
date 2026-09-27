@@ -2,6 +2,17 @@
 
 Written by scripts/release.py.
 
+## 2026-09-27
+
+### skill-craft 1.5.1
+
+- Skills: shiploop-e2e-audit 0.5.1
+
+### shiploop-e2e-audit 0.5.1
+
+- The Grok adapter recognizes ShipLoop's new `improve-start` verb, and the host
+  trace fixtures are rebound to the adapter's new source hash.
+
 ## 2026-09-26
 
 ### skill-craft 1.5.0
