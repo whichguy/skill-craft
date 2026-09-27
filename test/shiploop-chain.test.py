@@ -682,7 +682,7 @@ class ChainIntegrationTests(ChainFixture):
             if verb == "halt":
                 argv += ["--reason", "Synthetic stop"]
             else:
-                argv += ["--action", self.action, "--result", str(self.run / "inbox" / (self.action + "-improve.md"))]
+                argv += ["--action", self.action]
             p = subprocess.run(argv, text=True, capture_output=True)
             self.assertNotEqual(p.returncode, 0)
             self.assertIn("chain is unfinished", p.stderr + p.stdout)
