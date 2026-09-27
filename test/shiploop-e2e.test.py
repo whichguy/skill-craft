@@ -619,6 +619,10 @@ class MetricsTest(unittest.TestCase):
             "python3 - << 'PY'\nreport = {'evidence': 'git log shows the commit'}\nPY\n": [],
             'cd /x/wt && WT=/x git -C "$WT" add docs/a.md && git commit -m m': ["git commit/add by the model"],
             'echo "run git commit later"': [],
+            # evidence the packets ask the model to record
+            'node --test > "/x/.shiploop-runs/a/run/notes/test-green.txt" 2>&1': [],
+            'cp /tmp/r.txt /x/wt/.shiploop-improve/n/a/reviews/checks.md': [],
+            'echo x > /x/.shiploop-runs/a/run/results/nav-1.md': ["shell write into a ShipLoop-owned path"],
         }
         for command, reasons in cases.items():
             with self.subTest(command=command):

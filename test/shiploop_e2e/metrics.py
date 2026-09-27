@@ -25,9 +25,9 @@ SHIPLOOP_COMMAND = re.compile(r"shiploop\S*\s+(?P<verb>complete|next|improve-[\w
 SHIPLOOP_OWNED = re.compile(r"(?:\.shiploop-improve|/\.shiploop(?:/|[\"'\s]|$)|\.shiploop-runs/[^/\s\"']+/run\b|"
                             r"/run/(?:state\.md|results|packets|tests|quality)|until-loop|"
                             r"packet\.json|start\.json|parent-return\.md|terminal\.json)")
-# Files the packets ask the model itself to write (its result, an Improve opening or
-# commit message): writing them is the step, not glue.
-MODEL_INPUT = re.compile(r"/inbox/|opening\.md|commit-message\.md")
+# Files the packets ask the model itself to write (its result, evidence notes, Improve
+# review evidence, an Improve opening or commit message): writing them is the step, not glue.
+MODEL_INPUT = re.compile(r"/inbox/|/run/notes/|/reviews/|opening\.md|commit-message\.md")
 # `git ... commit|add` as a command: at the start of a line or after ; && || |, optionally after VAR=value.
 GLUE_COMMIT = re.compile(r"(?:^|[;&|]\s*)(?:\w+=\S*\s+)*git\b[^\n;&|]*\s(?:commit|add)\b", re.M)
 GLUE_WRITE = re.compile(r"(?:>>?|\btee\b|\bcp\b|\bmv\b|\bmkdir\b|\brm\b)\s+[^\n;&|]*")
