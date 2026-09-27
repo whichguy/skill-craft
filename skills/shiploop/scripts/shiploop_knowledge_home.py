@@ -1,15 +1,16 @@
 """The repository's ShipLoop knowledge home, kept and committed at the end of planning.
 
 Owner decision 2026-09-26: planning produces a spec and environment knowledge that
-outlive the run.  The model writes them under ``docs/shiploop/`` during planning;
+outlive the run. The model writes them under ``docs/shiploop/`` during planning;
 at four closes ShipLoop checks the expected files (prepare, test-spec, release-plan,
-release-verify), screens them for credentials,
-refuses a living spec that drops an earlier requirement ID, and commits exactly
+release-verify), screens them for credentials, refuses a living spec or
+architecture record that drops an earlier stable ID, and commits exactly
 ``docs/shiploop/`` and the repository index ``SHIPLOOP.md`` with its own message.
 A later run starts from these files.
 
     docs/shiploop/README.md          index: what each file answers, the feature list
     docs/shiploop/spec.md            living product spec; stable requirement IDs, a Retired section
+    docs/shiploop/architecture.md    stack, ownership, contracts/boundaries, stable decisions with rationale/evidence
     docs/shiploop/environment.md     targets, aliases, working commands, platform facts
     docs/shiploop/test-strategy.md   harnesses, suites, commands, the ID convention
     docs/shiploop/features/<slug>/   this run: spec.md (delta), plan.md, test-spec.md,
@@ -30,10 +31,10 @@ HOME = "docs/shiploop"
 # The repository's knowledge index; the references ask the model to keep it, so ShipLoop commits it with the home.
 INDEX = "SHIPLOOP.md"
 KNOWLEDGE = (HOME, INDEX)
-LIVING = ("README.md", "spec.md", "environment.md", "test-strategy.md")
+LIVING = ("README.md", "spec.md", "architecture.md", "environment.md", "test-strategy.md")
 # The close that commits, and the files it requires (``{feature}`` is this run's feature directory).
 CLOSES: Dict[str, Tuple[str, ...]] = {
-    "prepare": ("README.md", "spec.md", "environment.md", "test-strategy.md",
+    "prepare": ("README.md", "spec.md", "architecture.md", "environment.md", "test-strategy.md",
                 "{feature}/spec.md", "{feature}/plan.md"),
     "test-spec": ("{feature}/plan.md", "{feature}/test-spec.md"),
     "release-plan": ("{feature}/system-tests.md", "{feature}/release-plan.md", "environment.md"),
@@ -43,18 +44,26 @@ CLOSES: Dict[str, Tuple[str, ...]] = {
 # What each stage writes or updates, printed in its packet.
 STAGE_FILES: Dict[str, Tuple[str, ...]] = {
     "intake": ("README.md",),
-    "discovery": ("environment.md",),
+    "discovery": ("environment.md", "architecture.md"),
+    "research": ("architecture.md",),
     "spec": ("spec.md", "{feature}/spec.md"),
     "test-strategy": ("test-strategy.md",),
-    "plan": ("{feature}/plan.md", "README.md"),
+    "plan": ("{feature}/plan.md", "README.md", "architecture.md"),
     "prepare": CLOSES["prepare"],
-    "step-plan": ("{feature}/plan.md",),
+    "step-plan": ("{feature}/plan.md", "architecture.md"),
     "test-spec": ("{feature}/test-spec.md",),
     "system-test-author": ("{feature}/system-tests.md",),
     "release-plan": ("{feature}/release-plan.md", "environment.md"),
     "release-verify": CLOSES["release-verify"],
 }
 _REQUIREMENT_ID = re.compile(r"\b(R-\d+)\b")
+_ARCHITECTURE_DECISION_ID = re.compile(r"\b(A-\d+)\b")
+_STABLE_ID_FILES = (
+    ("spec.md", _REQUIREMENT_ID, "The living spec", "requirement ID",
+     "modify it in place, or move it under a 'Retired' heading with the reason"),
+    ("architecture.md", _ARCHITECTURE_DECISION_ID, "The architecture record", "decision ID",
+     "revise it in place, or retain it as superseded and link its replacement"),
+)
 # outcome.md sections that become the release-verify commit body (owner to-do 2026-09-26).
 LEARNING_SECTIONS = ("Learned", "Key considerations", "Open for the next run")
 
@@ -107,8 +116,8 @@ def stage_lines(state: Mapping[str, Any], stage: str) -> List[str]:
     """Packet lines: where the knowledge home is and what this stage keeps up to date there."""
     repo = Path(str(state["repo"]))
     lines = ["", "Repository knowledge home (committed, inherited by later runs): " + str(repo / HOME)
-             + "/README.md. Earlier runs' spec, environment and features are there; open a file when this "
-             "stage needs it."]
+             + "/README.md. Earlier runs' spec, architecture, environment and features are there; open a "
+             "file when this stage needs it."]
     files = STAGE_FILES.get(stage)
     if files:
         lines.append("This stage keeps these up to date (create them if missing): "
@@ -145,8 +154,8 @@ def _git(repo: Path, *args: str) -> subprocess.CompletedProcess:
                           capture_output=True, text=True, check=False)
 
 
-def _committed_spec(repo: Path) -> str:
-    shown = _git(repo, "show", "HEAD:" + HOME + "/spec.md")
+def _committed_file(repo: Path, relative: str) -> str:
+    shown = _git(repo, "show", "HEAD:" + HOME + "/" + relative)
     return shown.stdout if shown.returncode == 0 else ""
 
 
@@ -188,14 +197,14 @@ def check(state: Mapping[str, Any], stage: str) -> str:
             return ("Write these sections in " + str(repo / feature_dir(state) / "outcome.md") + ", in detail; "
                     "they become this run's learnings commit, which the next run reads first: "
                     + ", ".join("'## " + name + "'" for name in empty))
-    before = set(_REQUIREMENT_ID.findall(_committed_spec(repo)))
-    now = set(_REQUIREMENT_ID.findall((repo / HOME / "spec.md").read_text(encoding="utf-8", errors="replace"))
-              if (repo / HOME / "spec.md").is_file() else ())
-    dropped = sorted(before - now, key=lambda value: int(value.split("-")[1]))
-    if dropped:
-        return ("The living spec " + str(repo / HOME / "spec.md") + " no longer mentions " + ", ".join(dropped)
-                + ". Keep every earlier requirement ID: modify it in place, or move it under a 'Retired' "
-                "heading with the reason.")
+    for name, pattern, description, id_kind, preserve in _STABLE_ID_FILES:
+        path = repo / HOME / name
+        before = set(pattern.findall(_committed_file(repo, name)))
+        now = set(pattern.findall(path.read_text(encoding="utf-8", errors="replace")) if path.is_file() else ())
+        dropped = sorted(before - now, key=lambda value: int(value.split("-")[1]))
+        if dropped:
+            return (description + " " + str(path) + " no longer mentions " + ", ".join(dropped)
+                    + ". Keep every earlier " + id_kind + ": " + preserve + ".")
     return ""
 
 

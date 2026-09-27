@@ -14,6 +14,9 @@ what an agent can read for itself and does not make it more successful; short,
 non-obvious, actionable rules do. And adherence to up-front rules fades over a
 long session, so the rules that matter to one work item travel with that item
 and are reread when it is built, not only at discovery.
+This guide extracts code conventions; retain structural ownership and durable
+design decisions in the [architecture record](project-knowledge.md#repository-knowledge-home),
+linking existing architecture or ADR sections rather than copying them.
 
 ## Extract the house style
 

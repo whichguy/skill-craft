@@ -301,6 +301,9 @@ sections; do not create a competing copy. If a small repository explicitly keeps
 its contract in the README, that is an adequate home. Otherwise, when no suitable
 home exists, the living spec is **`docs/shiploop/spec.md`** in ShipLoop's
 [repository knowledge home](#repository-knowledge-home).
+For current structure and durable design decisions, use
+`docs/shiploop/architecture.md`; link relevant sections of existing architecture
+documents or ADRs there instead of copying them.
 Use the README as the overview and link to this home; also link it from the
 existing `SHIPLOOP.md` knowledge index. Neither link is a second specification.
 Keep these files in the product repository, outside disposable run/workspace
@@ -505,6 +508,7 @@ planning, and later runs inherit it.
 | --- | --- |
 | `docs/shiploop/README.md` | The index: what each file answers, the feature list |
 | `docs/shiploop/spec.md` | The living product spec: every accepted requirement with a stable ID (`R-<n>`), a `Retired` section with reasons |
+| `docs/shiploop/architecture.md` | Short, actionable runtime/framework/library choices with purpose and rationale; ownership, contracts/boundaries; stable, never-reused `A-<n>` decisions with stated (source-cited) or inferred rationale and `path:line` evidence. Commands stay in `environment.md`; link existing architecture/ADR sections instead of copying them |
 | `docs/shiploop/environment.md` | Targets and accounts by alias (never credentials), the working test, deploy, dry-run and confirm commands, platform facts and the run that verified each |
 | `docs/shiploop/test-strategy.md` | Harnesses, suites, the commands that own them, the test-ID convention |
 | `docs/shiploop/features/<slug>/` | This run's record: `spec.md` (IDs added, modified, retired), `plan.md`, `test-spec.md`, `system-tests.md`, `release-plan.md`, `outcome.md` |
@@ -512,8 +516,9 @@ planning, and later runs inherit it.
 Each packet names the home and the files its stage keeps up to date. At four
 closes (`prepare`, each `test-spec`, `release-plan`, `release-verify`) ShipLoop
 refuses `done` until that close's files exist, refuses lines that look like
-credentials, refuses a living spec that no longer mentions an earlier committed
-requirement ID, and then commits exactly `docs/shiploop/` and `SHIPLOOP.md`
+credentials, refuses the living spec or `architecture.md` when either drops an
+earlier committed `R-<n>` or `A-<n>` ID, and then commits exactly `docs/shiploop/`
+and `SHIPLOOP.md`
 (`docs(shiploop): record <feature> knowledge at <stage>`). After any other accepted
 stage that changed `docs/shiploop/` or `SHIPLOOP.md`, ShipLoop applies the same credential and ID
 checks (refusing that stage's `done` on a failure) and commits it

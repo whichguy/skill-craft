@@ -48,12 +48,24 @@ class KnowledgeTests(unittest.TestCase):
         self.assertIn("ShipLoop refuses a spec that loses an earlier ID", lines)
         self.assertNotIn("On done ShipLoop checks", lines)
         self.assertIn("On done ShipLoop checks these files", "\n".join(knowledge.stage_lines(self.state, "prepare")))
+        self.assertIn("docs/shiploop/architecture.md", knowledge.__doc__ or "")
+        for stage in ("discovery", "research", "plan", "step-plan"):
+            self.assertIn(str(self.repo / "docs/shiploop/architecture.md"),
+                          "\n".join(knowledge.stage_lines(self.state, stage)))
+        self.assertNotIn(str(self.repo / "docs/shiploop/architecture.md"), lines)
 
     def test_a_close_needs_its_files_and_commits_only_the_home(self) -> None:
         refusal = knowledge.check(self.state, "prepare")
         self.assertIn("Before prepare is done, write:", refusal)
         self.assertIn("docs/shiploop/spec.md", refusal)
         support.write(self.state)
+        architecture = self.repo / "docs/shiploop/architecture.md"
+        architecture.unlink()
+        refusal = knowledge.check(self.state, "prepare")
+        self.assertIn(str(architecture), refusal)
+        existing_architecture = self.repo / "docs/architecture.md"
+        existing_architecture.write_text("# Existing architecture\n\n## Boundaries\n\nKeep ownership explicit.\n")
+        architecture.write_text("# Architecture\n\nSee [existing boundaries](../architecture.md#boundaries).\n")
         (self.repo / "app.py").write_text("x = 2\n")
         git(self.repo, "add", "app.py")  # the user's own staged work stays out of the knowledge commit
         self.assertEqual(knowledge.check(self.state, "prepare"), "")
@@ -62,6 +74,8 @@ class KnowledgeTests(unittest.TestCase):
         files = git(self.repo, "show", "--name-only", "--format=%s", commit).split("\n")
         self.assertEqual(files[0], "docs(shiploop): record add-a-fleet-command-tab-to-abcdef knowledge at prepare")
         self.assertTrue(all(name.startswith("docs/shiploop/") for name in files[1:] if name))
+        self.assertTrue({"docs/shiploop/" + name for name in knowledge.LIVING}.issubset(set(files)))
+        self.assertIn("docs/shiploop/architecture.md", files)
         self.assertIn("app.py", git(self.repo, "diff", "--cached", "--name-only"))
         self.assertEqual(knowledge.commit(self.state, "test-spec").commit, "")  # nothing changed
 
@@ -74,6 +88,21 @@ class KnowledgeTests(unittest.TestCase):
         self.assertIn("no longer mentions R-2", knowledge.check(self.state, "release-plan"))
         spec.write_text("# spec\n\nR-1: Place a fleet on a 10x10 board.\nR-3: Show a tab.\n\n## Retired\n\n"
                         "R-2: replaced by R-1's board rule.\n")
+        self.assertEqual(knowledge.check(self.state, "release-plan"), "")
+
+    def test_the_architecture_record_keeps_every_committed_decision_id(self) -> None:
+        support.write(self.state)
+        architecture = self.repo / "docs/shiploop/architecture.md"
+        architecture.write_text("# Architecture\n\n## Decisions\n\n"
+                                "A-1: Keep ownership explicit.\nA-2: Preserve the boundary.\n")
+        knowledge.commit(self.state, "prepare")
+        architecture.write_text("# Architecture\n\n## Decisions\n\nA-1: Keep ownership explicit.\nA-3: Document a new boundary.\n")
+        refusal = knowledge.check(self.state, "release-plan")
+        self.assertIn("no longer mentions A-2", refusal)
+        self.assertIn("earlier decision ID", refusal)
+        architecture.write_text("# Architecture\n\n## Decisions\n\nA-1: Keep ownership explicit.\n"
+                                "A-3: Document a new boundary.\n\n## Superseded decisions\n\n"
+                                "A-2: Superseded by A-3; the prior boundary rationale remains.\n")
         self.assertEqual(knowledge.check(self.state, "release-plan"), "")
 
     def test_release_verify_commits_the_runs_learnings_as_its_message(self) -> None:
