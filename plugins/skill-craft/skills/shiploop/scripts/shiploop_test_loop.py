@@ -265,6 +265,8 @@ def render_lines(root: Path, state: Mapping[str, Any], work_item: str, action: s
             + shlex.quote(str(contract)),
             quality.RECEIPT_LINE + str(root / terminal_path(action)),
         ]
+        if (root / terminal_path(action)).exists():
+            lines.append(quality.RESUME_LINE)
         if not contract.is_file():
             lines.append("The loop contract is missing; report outcome blocked naming this path.")
     lines.append("Test command list (ShipLoop runs each one from " + str(state["repo"])

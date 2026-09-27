@@ -4,6 +4,32 @@ Written by scripts/release.py.
 
 ## 2026-09-27
 
+### skill-craft 1.10.0
+
+- Skills: shiploop 0.43.0
+
+### shiploop 0.43.0
+
+- The lint gate now blocks only an item's last implement step. Earlier steps
+  report their findings without auto-fix, since a later step may resolve them
+  (for example, an import the next step uses).
+
+  Once a loop's receipt exists, the loop packet says not to run Start again and
+  to continue from the receipt's `next_argv`.
+
+  Paused, halted and blocked packets longer than 16,000 characters now print a
+  pointer to the full packet file and what fits, so they stay under hosts'
+  shell-output limits.
+- ShipLoop runs unattended by default. An open decision takes a recorded default
+  (an assumption with its alternatives) and the run continues; a step only a
+  person can do becomes an open item while every independent stage continues.
+  The run prompts the user (`blocked` + `awaiting`) only when nothing further can
+  proceed without them, and a new `awaiting` must carry `no_default`, the reason
+  no default would do; ShipLoop refuses one without it. Saved runs that are
+  already waiting load and resume as before. Stage duties, the release-plan and
+  release-verify guidance, SKILL.md and the delivery references say so, and the
+  release-verify example is platform-neutral.
+
 ### skill-craft 1.9.0
 
 - Skills: ask-agent 0.8.0, plan-dispatcher 0.5.0, shiploop 0.42.0

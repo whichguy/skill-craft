@@ -45,9 +45,11 @@ single "yes" cannot be misread:
 
 A plain "yes" is a grant for this run only (`scope: run`). Record `scope:
 standing` only when the user says so in words, and then write the policy (see
-below). Never assume that a reply or one approval persists. When the run cannot
-continue without the answer, report blocked with an `awaiting` question, so the
-run stops quietly until the user's own reply resumes it.
+below). Never assume that a reply or one approval persists. A missing grant is
+never replaced by a default: the run continues with everything that does not
+need it, and when it cannot continue without the answer, reports blocked with an
+`awaiting` question (its `no_default` names the missing grant), so the run stops
+until the user's own reply resumes it.
 
 Silence, a login or access receipt, an old one-off approval/receipt, and an
 agent-written policy are not grants. Do not test write permission by making the

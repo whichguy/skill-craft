@@ -5,7 +5,7 @@ description: >-
   script's current action packet, and submit its exact completion call until
   the script reports completion with an HTML achievement report. Use when the
   user says shiploop, ship the project, or requests a durable delivery loop.
-version: 0.42.0
+version: 0.43.0
 allowed-tools: all
 license: MIT
 platforms:
@@ -709,9 +709,12 @@ question about the loop is not a stop: answer it and continue the packet.
    any already-applied work, then follow the reprinted current packet. An
    identical accepted result is an idempotent retry; a conflicting result cannot
    reuse its ID. If a packet is paused or blocked, resolve its stated condition
-   and use its printed `resume` command once. A packet blocked on the user
-   (`awaiting`) prints the question or steps: end the turn with them and resume
-   only with the user's own reply (`--answer` or `--observed`). "Continue" and a
+   and use its printed `resume` command once. ShipLoop runs unattended: take a
+   recorded default or record a person-only step as an open item and continue;
+   prompt the user only when nothing further can proceed without them. A packet
+   blocked on the user (`awaiting`, with its `no_default` reason) prints the
+   question or steps: end the turn with them and resume only with the user's own
+   reply (`--answer` or `--observed`). "Continue" and a
    question about the skill are not replies. Halted or done packets stop.
 6. Completion records the host's declaration. It is not independent proof that
    software was tested, deployed, or accepted by a consumer.

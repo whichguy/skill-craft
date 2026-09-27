@@ -51,6 +51,12 @@ def terminal_path(action: str) -> str:
 RECEIPT_LINE = ("Receipt (the runtime writes every packet here, the terminal one last; ShipLoop "
                 "checks this file, so do not write or edit it): ")
 
+# Shown once the receipt exists, so a host that lost its context continues the
+# loop instead of starting a second one.
+RESUME_LINE = ("The loop already started: do not run Start again. While the receipt's status is active, run "
+               "its next_argv once and follow the returned packet; once it is complete or stopped, submit this "
+               "stage's result.")
+
 # Every key the bound runtime puts in a packet (Until Loop 0.7.0).
 _PACKET_KEYS = frozenset({
     "status", "state_file", "workspace", "work", "conditions", "progress", "context",
@@ -161,6 +167,8 @@ def render_lines(root: Path, state: Mapping[str, Any], work_item: str, action: s
         + shlex.quote(str(contract)),
         RECEIPT_LINE + str(root / terminal_path(action)),
     ]
+    if (root / terminal_path(action)).exists():
+        lines.append(RESUME_LINE)
     if not contract.is_file():
         lines.append("The loop contract is missing; report outcome blocked naming this path.")
     return lines + lint.render_inventory_lines(root, action, work_item)

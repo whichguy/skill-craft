@@ -1148,7 +1148,8 @@ def _run_pass(invoker: _Invoker, catalog: Mapping[str, Any], top: Path, run_dir:
     lines.append(result_line)
     if stage in GATE_STAGES:
         lines.append("Gate: ShipLoop refuses this step's done while a new finding on a line this item changed "
-                     "remains. Fix each one, or list it in the result's lint_waivers as {\"id\": \"<ID>\", "
+                     "remains. For implement, only the item's last step is gated: an earlier step's findings "
+                     "are reported without auto-fix, since a later step may resolve them. Fix each one, or list it in the result's lint_waivers as {\"id\": \"<ID>\", "
                      "\"reason\": \"<why it stays>\"}. Pre-existing findings, other files, uncovered files, tool "
                      "errors and timeouts never block. This pass does not replace the checks you run for this step.")
     else:
@@ -2012,7 +2013,7 @@ def _not_run(top: Path, catalog: Mapping[str, Any], tools: Mapping[str, Tuple[Op
                        "download hook environments, and ShipLoop never installs or downloads tools)")
     if not entries:
         return []
-    return ["Not run by ShipLoop (ask the user before running any of these):"] + _data("\n".join(entries))
+    return ["Not run by ShipLoop (they may rewrite files or download; the run does not start them, and the handoff lists them for the user):"] + _data("\n".join(entries))
 
 
 def _recommendations(top: Path, catalog: Mapping[str, Any], tools: Mapping[str, Tuple[Optional[str], str]],

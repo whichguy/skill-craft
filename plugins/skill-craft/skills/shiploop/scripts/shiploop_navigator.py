@@ -332,15 +332,20 @@ def _normalise_lint_waivers(value: Any) -> list[dict[str, str]]:
 def _normalise_awaiting(value: Any) -> dict[str, Any]:
     """A blocked result's question for the user, or the steps a person must take.
 
-    ``{"kind": "answer", "question": str, "options": [str, ...]?}`` or
-    ``{"kind": "present", "steps": [str, ...], "report": str}``.
+    ``{"kind": "answer", "question": str, "options": [str, ...]?, "no_default": str}`` or
+    ``{"kind": "present", "steps": [str, ...], "report": str, "no_default": str}``.
+    ``no_default`` says why the run cannot proceed on a recorded default (SPEC S-14:
+    runs are unattended; a person is prompted only as a last resort). New
+    submissions must carry it (``_check_submitted_awaiting``); saved runs load without it.
     """
     _need(isinstance(value, Mapping), "awaiting must be an object")
     kind = value.get("kind")
     if kind == "answer":
-        _need(set(value) <= {"kind", "question", "options"} and "question" in value,
-              "an answer wait has kind, question and optional options")
+        _need(set(value) <= {"kind", "question", "options", "no_default"} and "question" in value,
+              "an answer wait has kind, question, no_default and optional options")
         awaiting: dict[str, Any] = {"kind": kind, "question": _text(value["question"], "awaiting question")}
+        if "no_default" in value:
+            awaiting["no_default"] = _text(value["no_default"], "awaiting no_default")
         if "options" in value:
             options = value["options"]
             _need(isinstance(options, list) and len(options) >= 2,
@@ -348,11 +353,25 @@ def _normalise_awaiting(value: Any) -> dict[str, Any]:
             awaiting["options"] = [_text(option, "awaiting option") for option in options]
         return awaiting
     _need(kind == "present", "awaiting kind must be answer or present")
-    _need(set(value) == {"kind", "steps", "report"}, "a present wait has kind, steps and report")
+    _need(set(value) - {"no_default"} == {"kind", "steps", "report"},
+          "a present wait has kind, steps, report and no_default")
     steps = value["steps"]
     _need(isinstance(steps, list) and steps, "awaiting steps must be a nonempty list")
-    return {"kind": kind, "steps": [_text(step, "awaiting step") for step in steps],
-            "report": _text(value["report"], "awaiting report")}
+    present: dict[str, Any] = {"kind": kind, "steps": [_text(step, "awaiting step") for step in steps],
+                               "report": _text(value["report"], "awaiting report")}
+    if "no_default" in value:
+        present["no_default"] = _text(value["no_default"], "awaiting no_default")
+    return present
+
+
+def _check_submitted_awaiting(result: Any) -> None:
+    """Refuse a new wait on a person that does not say why a recorded default would not do (S-14)."""
+    wait = result.get("awaiting") if isinstance(result, Mapping) else None
+    if isinstance(wait, Mapping):
+        _need(str(wait.get("no_default") or "").strip() != "",
+              "ShipLoop runs unattended: take a stated default, record it as an assumption and continue, "
+              "or record a person-only step as an open item and continue. Prompt the user (awaiting) only "
+              "when nothing further can proceed without them, and say why in awaiting.no_default.")
 
 
 def awaiting(state: Mapping[str, Any]) -> tuple[str, dict[str, Any]] | None:
@@ -1089,6 +1108,11 @@ def packet_path(root: Path, state: Mapping[str, Any]) -> Path:
     return Path(root) / PACKET_DIR / f"{action_id}.md"
 
 
+# Printed characters at most: below the ~20,000-character cut some hosts (Grok)
+# apply to shell output.
+PRINT_LIMIT = 16_000
+
+
 def emit(core: Any, root: Path, state: Mapping[str, Any]) -> str:
     """Write the full packet to a file and print a short head that points at it.
 
@@ -1096,16 +1120,23 @@ def emit(core: Any, root: Path, state: Mapping[str, Any]) -> str:
     rewrites it, since the script cannot know what the host kept. Printing only
     the head keeps packets out of the host's shell-output limit and context; the
     host reads the file, and the references it names, only as far as it needs.
-    Paused, blocked, awaiting, halted and done packets are short and print whole.
+    Paused, blocked, awaiting, halted and done packets print whole unless they
+    pass ``PRINT_LIMIT``; then they print a pointer to the file and what fits.
     """
     text = render(core, root, state)
     path = packet_path(root, state)
     store.atomic_write_text(path, text)
-    if state["status"] != "active":
+    if state["status"] == "active":
+        print(packet_head(core, root, state, path), end="")
+    elif len(text) <= PRINT_LIMIT:
         print(text, end="")
     else:
-        print(packet_head(core, root, state, path), end="")
+        pointer = (f"Full packet: {path}\nThis packet is longer than a host's shell-output limit; the rest is "
+                   "in that file. Read it with a file-reading tool before acting.\n\n")
+        body = text[:PRINT_LIMIT - len(pointer)]
+        print(pointer + body[:body.rfind("\n") + 1], end="")
     return text
+
 
 
 def packet_head(core: Any, root: Path, state: Mapping[str, Any], path: Path) -> str:
@@ -1447,7 +1478,8 @@ def _apply_result(state: Mapping[str, Any], action_id: str, result: Any, improve
         used = updated["revisions"].get(item_id, 0)
         _need(used < stage_spec.MAX_REVISES,
               "work item " + str(item_id) + " has used its " + str(stage_spec.MAX_REVISES) + " revisions; "
-              "report blocked with blocked_by user and an awaiting question so the user decides")
+              "nothing further can proceed without the user: report blocked with blocked_by user and an "
+              "awaiting question, with its no_default reason, so the user decides")
         updated["revisions"][item_id] = used + 1
         _replace_v2_inner_action(updated, stage_spec.REVISE_TO)
         validate(updated)
@@ -1945,6 +1977,13 @@ def _lint_gate(core: Any, root: Path, state: Mapping[str, Any], action_id: str, 
     mode = lint_mode(state)
     if result["outcome"] != "done" or mode not in ("fix", "report"):
         return
+    # A later implement step may resolve an earlier step's finding (an import the
+    # next step uses), so earlier steps only report, without auto-fix, and the
+    # item's last step gates what is still there.
+    done, steps = implement_progress(state, workitem) if stage == lint.GATE_STAGE else (0, [])
+    gating = done + 1 >= len(steps)
+    if not gating:
+        mode = "report"
     waivers = {entry["id"]: entry["reason"] for entry in result.get("lint_waivers", [])}
     writes, payload, refusal = lint.gate(
         Path(state["repo"]), root, action=action_id, work_item=workitem or "", run_option=mode,
@@ -1953,7 +1992,7 @@ def _lint_gate(core: Any, root: Path, state: Mapping[str, Any], action_id: str, 
     for relative, text in writes.items():
         store.atomic_write_text(root / relative, text)
     _lint_finish(root, payload)
-    _need(not refusal, refusal)
+    _need(not gating or not refusal, refusal)
 
 
 def _lint_finish(root: Path, payload: Any) -> None:
@@ -3808,6 +3847,7 @@ def dispatch(core: Any, root: Path, state: Mapping[str, Any], args: Any,
                         child["seed_result"] if final_result is None else final_result)
                     _check_submitted_recorded_commands(
                         child["stage"], child["seed_result"] if final_result is None else final_result)
+                    _check_submitted_awaiting(child["seed_result"] if final_result is None else final_result)
                     _knowledge_gate(state, child["stage"],
                                     child["seed_result"] if final_result is None else final_result)
                     _improve_change_gate(root, state, action_id, child, receipt)
@@ -3874,6 +3914,7 @@ def dispatch(core: Any, root: Path, state: Mapping[str, Any], args: Any,
             _check_submitted_test_commands(current_stage(state), submitted)
             _check_submitted_consumer_entry(state["repo"], current_stage(state), submitted)
             _check_submitted_recorded_commands(current_stage(state), submitted)
+            _check_submitted_awaiting(submitted)
             _knowledge_gate(state, current_stage(state), submitted)
             # Lint first, so the tests run on any code the lint gate auto-fixed.
             if cursor_stage in lint.GATE_STAGES:
