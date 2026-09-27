@@ -93,6 +93,16 @@ than a run this round (the unreviewed plans of a review experiment) is marked
   contents (not even its own prompt), and no todo state carried from one call
   to the next. Known limit: in `--tools Read` mode `list_dir` can list other
   directories by name, never their contents;
+- a **workspace** run (`run --tools Read --workspace DIR`) gives the subject its
+  own copy of reference files (for ShipLoop, `skills/shiploop/references` at a
+  pinned commit) and read-only tools: Grok gets `read_file`, `list_dir` and
+  `grep`, never a shell or auto-approval, with the prompt passed inline so no
+  prompt file is on disk. Grok's kernel sandbox cannot start on a Mac whose
+  `/var/run/docker.sock` is a symlink, so every path a call touched is audited
+  from its session log. A call that touched anything outside its own directory
+  is discarded, rerun and logged to `isolation.log`. The manifest records the
+  workspace's file count and hash in the condition. Frames `plan-ref` and
+  `review-ref` tell the subject where the references are;
 - a control cannot read the treatment (no shared readable directory);
 - stubs (graded text under 150 words) rerun with the same prompt up to three
   times, then excluded and logged, never graded as failures;

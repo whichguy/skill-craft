@@ -42,6 +42,7 @@ def main(argv=None):
     r.add_argument("run_dir"); r.add_argument("--model", choices=R.MODELS, default="grok", help="subject model (default grok-4.7, medium effort)")
     r.add_argument("--workers", type=int, default=8)
     r.add_argument("--tools", choices=("", "Read"), default="", help="'Read' (empty directory) for prompts that ask the model to check things")
+    r.add_argument("--workspace", help="folder copied into every call's own directory (reference files), read with --tools Read")
     j = sub.add_parser("judge", help="grade finished outputs (evidence first)")
     j.add_argument("run_dir"); j.add_argument("--suite", default="architecture"); j.add_argument("--workers", type=int, default=10)
     j.add_argument("--model", choices=R.MODELS, default="opus", help="the single judge (default opus 5.5, medium effort; a round keeps one judge)")
@@ -80,7 +81,7 @@ def main(argv=None):
                                  plans_from=args.plans_from, scenarios=args.scenario, runtimes=args.runtime,
                                  input_arm=args.input_arm), indent=1))
     elif args.cmd == "run":
-        print(json.dumps(R.run(args.run_dir, args.model, workers=args.workers, tools=args.tools)))
+        print(json.dumps(R.run(args.run_dir, args.model, workers=args.workers, tools=args.tools, workspace=args.workspace)))
     elif args.cmd == "judge":
         dest = args.dest or "judge"
         only = Path(args.only_file).read_text().split() if args.only_file else None

@@ -254,9 +254,21 @@ class Statistics(unittest.TestCase):
         finally:
             R.subprocess.run = real; R._grok_home = old_home
         self.assertEqual((r["text"], r["input_tokens"], r["output_tokens"]), ("ok", 3, 2))
-        for argv, allowed in zip(seen, ("todo_write", "list_dir")):
+        for argv, allowed in zip(seen, ("todo_write", "read_file,list_dir,grep")):
             self.assertEqual(argv[argv.index("--tools") + 1], allowed)
             self.assertEqual(argv[argv.index("--disallowed-tools") + 1], "search_tool,use_tool")
+            self.assertIn("-p", argv); self.assertNotIn("--prompt-file", argv)   # no prompt file on disk
+            self.assertNotIn("--always-approve", argv)
+        self.assertNotIn("--sandbox", seen[1])      # cannot start here; reads are audited instead
+
+    def test_outside_paths_flags_reads_beyond_the_call_directory(self):
+        with tempfile.TemporaryDirectory() as home, tempfile.TemporaryDirectory() as cwd:
+            log = Path(home) / ".grok" / "sessions" / "x" / "sid1"; log.mkdir(parents=True)
+            ev = lambda inp: json.dumps({"params": {"update": {"sessionUpdate": "tool_call", "rawInput": inp}}})
+            (log / "updates.jsonl").write_text("\n".join([ev({"target_file": f"{cwd}/references/a.md"}), ev({"target_file": "references/b.md"}),
+                                                          ev({"target_directory": "/private/tmp"}), ev({"variant": "ListDir", "target_directory": "../other"})]))
+            self.assertEqual(R.outside_paths(Path(home), "sid1", cwd), ["../other", "/private/tmp"])
+            self.assertIsNone(R.outside_paths(Path(home), "missing", cwd))
 
     def test_costs_compare_paired_and_against_a_free_input(self):
         vals = {f"S0{i}_GAS_base_1": 1000.0 for i in range(1, 9)} | {f"S0{i}_GAS_cand_1": 700.0 + i for i in range(1, 9)}
