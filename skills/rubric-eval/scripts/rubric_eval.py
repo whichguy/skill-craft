@@ -510,6 +510,8 @@ def diffcheck(run_dir: str | Path, suite: dict, plans_from: str | Path, *, model
         if d.exists():
             continue
         sid, rt, arm, k = f.stem.split("_")
+        if man["arms"].get(arm, {}).get("role") == "input":
+            continue  # an input arm (the unreviewed plan) has nothing to diff against itself
         src = Path(plans_from) / "out" / f"{sid}_{rt}_{man['arms'][arm]['plans_arm']}_{k}.json"
         revised = plan_text(json.loads(f.read_text())["text"], True)
         if src.exists() and words(revised) >= STUB_WORDS:
