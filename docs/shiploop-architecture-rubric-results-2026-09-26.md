@@ -424,37 +424,58 @@ was applied on top. Same points scale, same baseline (the unreviewed plan):
 
 | vs the unreviewed plan, Opus + quote check | current | design | **prune3** |
 | --- | --- | --- | --- |
-| Overall | +0.2 [−0.5, +1.0] | +2.8 [+1.4, +4.3] | **+3.9 [+2.1, +5.6]** |
-| Wilcoxon p | 0.83 | 0.001 | **0.0011** |
-| Cells won / lost | 46 / 38 | 62 / 21 | **69 / 21** |
-| Safeguards | — | +7.9 | **+14.0 [+8.7, +18.6]** |
-| Proportion | — | — | +1.3 |
-| Decision | equivalent to no review; tie keeps the baseline | quality better, but **blocked**: platform errors rose significantly (+0.20/plan, 95% [+0.01, +0.40]; 97 vs 76 total) | **ships: quality better** |
+| Overall | +0.4 [−0.4, +1.2] | +2.8 [+1.3, +4.3] | **+4.1 [+2.2, +5.8]** |
+| Wilcoxon p | 0.51 | 0.0016 | **0.0011** |
+| Cells won / lost | 44 / 36 | 60 / 21 | **69 / 20** |
+| Safeguards | −1.2 [−3.0, +1.0] | +8.0 [+3.7, +12.0] | **+14.3 [+9.1, +18.7]** |
+| Proportion | +0.8 | +1.3 | +1.6 |
+| Decision | near-identical to no review (within the judge's noise, ±2.07); tie keeps the baseline | materially better, but **blocked**: platform errors rose (+0.20/plan, 95% [+0.01, +0.40]; 97 vs 76 total) | **materially better** |
 
-The quote check itself moved only 44 of the 416 Opus grades; the composites
-above barely shift once it is applied. Judge acceptance: Opus test-retest
-kappa 0.835 (almost perfect, noise 2.07 points), Opus-vs-Sonnet kappa 0.443
-(moderate) — the pair the SPEC table above already reports. Against the
-Sonnet-judged table, prune3 and current land on the same decision (ship,
-non-ship); design flips from a win under Sonnet to blocked under Opus, on the
-same quality verdict — a stricter reading of its platform claims, not a
-disagreement about whether the text helps. The owner kept Opus as the round's
-judge; the flip is recorded rather than resolved by picking whichever judge
-agrees with the wording under review.
+Judge acceptance: Opus test-retest kappa 0.835 (almost perfect, noise 2.07
+points), Opus-vs-Sonnet kappa 0.443 (moderate). Against the Sonnet-judged
+table, prune3 and current land on the same decision (win; no win); design
+flips from a win under Sonnet to blocked under Opus, on the same quality
+verdict: a stricter reading of its platform claims, not a disagreement about
+whether the text helps. The owner kept Opus as the round's judge; the flip is
+recorded rather than resolved by picking whichever judge agrees with the
+wording under review.
 
-A quote check run on Sonnet's own round-4 verdicts found 5.2% of its met or
-partial grades cited text that is not an exact substring of the plan (prune3
-6.9%, design 5.0%, current 5.4%, unreviewed baseline 3.5%). Downgrading those
-grades cuts prune3's lead under Sonnet from +4.2 to +2.7 points (p = 0.059,
-no longer a win by the section 8 rule); design stays a win at +2.1 points
-(p = 0.045).
+**Quote check, corrected.** A first version of the quote check matched quotes
+after collapsing only whitespace and markdown. It flagged 5.2% of Sonnet's met
+or partial grades as unsupported (prune3 6.9%, unreviewed plans 3.5%) and cut
+prune3's lead under Sonnet to +2.7 points. The adversarial review of the check
+(F4) pointed out that curly apostrophes, dashes and commas would fail a true
+quote. With every non-alphanumeric character normalised, the check lowers 17
+of Sonnet's grades and 11 of Opus's across 416 verdicts each, and prune3 stays
+at +4.1 points under both judges. The earlier 5.2% was a matching artifact;
+both judges quote the plan accurately.
 
 **Conclusion for round 4.** Prune3's gain holds across two judge families and
-survives the quote check, but it is also the arm that invents the most
+the quote check, but it is also the arm that invents the most
 unsourced numbers and adds the most unrequested items. The next candidate
 (v3) keeps prune3's wording and adds a number-sourcing check and a
 no-unrequested-additions check, to be confirmed in round 6 (Grok subject,
 Opus judge, quote check, tokens and time recorded).
+
+## Adversarial review of the scoring change (2026-09-27)
+
+The standard scale, the quality > tokens > time rule, the quote check and the
+Grok tool lockdown were reviewed by Grok 4.7, a different family from their
+author. Grok had its tools locked down for this review; an earlier pass started
+before the lockdown was stopped and discarded. Eight findings, six high:
+
+| Finding | Held? | Experiment or reason | Change |
+| --- | --- | --- | --- |
+| F1 A significant difference inside the judge's noise won on quality | Held | Fixture: +0.8 [+0.2, +1.5], p = 0.01, noise 2.07, fewer tokens → was a quality win | Near-identical is checked first; wins need the rank test on the same side |
+| F2 Cost wins and blockers used the bootstrap alone | Partly | Cost wins now need both tests | Harm blockers keep the interval alone, a stated asymmetry |
+| F3 The `na` z-test treated grades as independent | Held | Grades nest in plans and scenarios | Stub and `na` rates compared paired per output |
+| F4 The quote check failed on punctuation and left `criteria[c].grade` stale | Held | Full normalisation: lowered grades fell from 329 to 17 (Sonnet), 44 to 11 (Opus); prune3 back to +4.1 | Normaliser fixed; both grade fields updated |
+| F5 `reliability` compared unchecked with checked grades | Held | Would bias future noise figures | Both sides checked before comparing |
+| F6 Grok isolation checked only against a mock | Tested | Live: no shell, no file reads, no state across calls; `list_dir` can list other directories by name | Limit recorded |
+| F7 Missing usage stored as 0 | Held | Would count a missing report as free | Stored as unknown and excluded |
+| F8 "won" read backwards for costs; blocked reasons led with "better" | Held | Wording | `arm_higher`/`arm_lower`; blocks listed first |
+
+Round 4's decisions are unchanged under the corrected rule, under both judges.
 
 ## Round 5: design-thinking arms, exploratory
 

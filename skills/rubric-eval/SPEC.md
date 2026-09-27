@@ -89,8 +89,10 @@ than a run this round (the unreviewed plans of a review experiment) is marked
   restriction: every Grok call had its shell and file tools until 2026-09-27,
   when it was found (no decision-making result was run on Grok before then).
   `call` now names an allowlist (`todo_write`, or `list_dir` for `--tools Read`)
-  and removes the tool-loading meta-tools, so no call can read another call's
-  prompt;
+  and removes the tool-loading meta-tools. Verified live: no shell, no file
+  contents (not even its own prompt), and no todo state carried from one call
+  to the next. Known limit: in `--tools Read` mode `list_dir` can list other
+  directories by name, never their contents;
 - a control cannot read the treatment (no shared readable directory);
 - stubs (graded text under 150 words) rerun with the same prompt up to three
   times, then excluded and logged, never graded as failures;
@@ -158,23 +160,22 @@ and current's loss. design v2 flipped from win to blocked: platform errors
 rose, +0.20 per plan, 95% [+0.01, +0.40], with the same quality verdict under
 both judges.
 
-**Quote check** (from 2026-09-27; adversarial review of this skill, F4). The
-judge quotes before it grades, but only 77% of judge v2's quotes were exact
-substrings of the plan. `judge` now checks every met or partial grade's quote
-against the plan: whitespace and markdown are normalised, and a quote shortened
-with "..." must match fragment by fragment. A grade whose quote the plan does
-not contain drops one level (met to partial, partial to missed). The criteria
-it lowered are recorded in the verdict as `quote_check`. `recheck` applies the
-same check to verdicts graded before it existed. `analyze` refuses a round that
-mixes checked and unchecked verdicts.
+**Quote check** (from 2026-09-27). The judge quotes before it grades. `judge`
+checks every met or partial grade's quote against the plan, with case and every
+non-alphanumeric character normalised; a quote shortened with "..." must match
+fragment by fragment. A grade whose quote the plan does not contain drops one
+level (met to partial, partial to missed); the verdict records the lowered
+criteria in `quote_check` and the judge's own grade as `judge_grade`. `recheck`
+applies the check to verdicts graded before it existed; `analyze` refuses a
+round that mixes checked and unchecked verdicts; `reliability` checks both sides
+before comparing them.
 
-On round 4 (Sonnet judge), 5.2% of met or partial grades lost support. The
-share differed by arm: 6.9% for prune3, 3.5% for the unreviewed plans. That
-cut prune3's lead from +4.2 to +2.7 points, and its rank test no longer agreed,
-so an arm could gain from grades its plan did not support. A correction aimed
-at a known judge defect is expected to change some decisions. The acceptance
-rule above applies to judges that should grade alike, not to such a
-correction; record the decisions it changes in the results.
+Measured on round 4: the check lowers 17 of Sonnet's and 11 of Opus's grades
+across 416 verdicts each, and no decision changes. Both judges quote
+accurately. An earlier matcher that normalised only whitespace and markdown
+flagged 5.2% of grades, mostly for apostrophes, dashes and commas, and wrongly
+cut prune3's lead to +2.7 points (adversarial review F4). Known limit: short
+ellipsis fragments can match by coincidence; it is recorded, not guarded.
 
 The judge is shown the expected tier and overbuild note by design, because
 proportion cannot be graded without them.
@@ -202,32 +203,46 @@ baseline is an input that costs nothing this round (the unreviewed plan in a
 review experiment), its cost counts as zero. Stub reruns count toward an
 output's cost, because they are real cost.
 
+**Significant** means both tests agree on a direction: the 95% interval
+excludes zero on that side, and the Wilcoxon test over scenario means rejects
+(p < 0.05) with the scenario mean on the same side. A percentile bootstrap over
+few clusters runs narrow on its own.
+
 **Decision.** `analyze` returns `winner` (`arm`, `baseline` or none),
 `decided_by` and every reason:
-1. **Quality.** The arm is better when the overall interval lies above zero
-   and the Wilcoxon test agrees (p < 0.05). It is worse when both show it below
-   zero. It is **equivalent** (near-identical, not a material difference) when
-   the whole interval lies within ± the judge's measured noise (section 7): a
-   difference smaller than the judge's own test-retest change is not one it can
-   see. Anything else is **inconclusive**: add scenarios
-   or trials; no decision is made.
-2. **Tokens**, only when quality is equivalent. The side whose paired token
-   interval lies wholly below zero uses fewer tokens and wins.
-3. **Time**, only when tokens show no difference: likewise for seconds.
-4. A tie at every level keeps the baseline; a change must earn its place.
+1. **Near-identical first.** When the whole overall interval lies within ± the
+   judge's measured noise (section 7), quality is near-identical and does not
+   decide, even if the difference is significant: a difference smaller than
+   the judge's own test-retest change is not material.
+   - **Tokens:** the side that significantly uses fewer tokens wins.
+   - **Time**, when tokens show no significant difference: likewise for seconds.
+   - A tie at every level keeps the baseline; a change must earn its place.
+2. **Otherwise, a material quality difference trumps everything.** The arm is
+   better when the overall difference is significantly above zero, worse when
+   it is significantly below.
+3. Anything else is **inconclusive**: add scenarios or trials; no decision.
 
-**Blocking checks.** The arm cannot win at any level while any of these holds:
+**Blocking checks.** The arm cannot win at any level while any of these holds,
+and a blocked decision lists the blocks first. A win needs both tests; a harm
+blocks on the interval alone. That asymmetry is deliberate: shipping needs
+strong evidence, and a warning is enough to stop it.
 - a guardrail group (`guardrails` in the rubric; for architecture:
   proportion and safeguards) has no comparison, its interval lies wholly below
   zero, or its mean is worse than the judge's noise;
-- overbuilt-scope grades or platform errors per plan rose significantly (the
-  paired interval lies above zero);
-- stub or `na` rates differ between arms (two-proportion z-test, p < 0.05);
+- overbuilt-scope grades or platform errors per plan rose (the paired interval
+  lies above zero);
+- stub or `na` rates differ between arms, compared paired per output (the
+  interval excludes zero), not as independent grades;
 - fewer than 8 scenarios were compared (a cluster bootstrap over fewer is
   unreliable);
 - the judge has no measured noise, or verdicts come from more than one judge;
 - the run's manifest does not record one condition (model, tools) for every arm
   run this round, or an arm other than the baseline is an input.
+
+Cost comparisons name their counts `arm_higher` and `arm_lower`, not won and
+lost, because for tokens and seconds the higher side is the worse one. Outputs
+whose CLI reported no usage have no token count and are left out; they never
+count as zero.
 
 **Shipping** needs, in addition, the adversarial-review loop (section 9) and a
 **fresh** confirmation run on the text as it will ship in which the arm wins.

@@ -65,7 +65,7 @@ def call_full(model: str, prompt: str, *, timeout: int = 600, tools: str = "") -
         raise ValueError(f"call: tools must be '' or 'Read', got {tools!r}")
     if model not in MODELS:
         raise ValueError(f"call: model must be one of {MODELS}, got {model!r}")
-    rec = {"text": "", "input_tokens": 0, "output_tokens": 0, "seconds": 0.0}
+    rec = {"text": "", "input_tokens": None, "output_tokens": None, "seconds": 0.0}
     start = time.monotonic()
     with tempfile.TemporaryDirectory(prefix="rubric-eval-") as cwd:
         try:
@@ -74,10 +74,11 @@ def call_full(model: str, prompt: str, *, timeout: int = 600, tools: str = "") -
                 argv = ["claude", "-p", *pick, "--output-format", "json", "--tools", tools, *NO_MCP] + (["--allowedTools", tools] if tools else [])
                 out = subprocess.run(argv, input=prompt, capture_output=True, text=True, timeout=timeout, cwd=cwd).stdout
                 d = json.loads(out) if out.strip() else {}
-                u = d.get("usage") or {}
-                rec.update(text=d.get("result", "") if not d.get("is_error") else "",
-                           input_tokens=u.get("input_tokens", 0) + u.get("cache_creation_input_tokens", 0) + u.get("cache_read_input_tokens", 0),
-                           output_tokens=u.get("output_tokens", 0))
+                u = d.get("usage")
+                rec["text"] = d.get("result", "") if not d.get("is_error") else ""
+                if isinstance(u, dict) and "input_tokens" in u and "output_tokens" in u:  # input_tokens excludes cache
+                    rec.update(input_tokens=u["input_tokens"] + u.get("cache_creation_input_tokens", 0) + u.get("cache_read_input_tokens", 0),
+                               output_tokens=u["output_tokens"])
             else:
                 home = _grok_home()
                 pf = Path(cwd) / "prompt.txt"
@@ -95,10 +96,12 @@ def call_full(model: str, prompt: str, *, timeout: int = 600, tools: str = "") -
                 argv += ["--tools", "list_dir" if tools else "todo_write", "--disallowed-tools", "search_tool,use_tool", "--max-turns", "6"]
                 out = subprocess.run(argv, capture_output=True, text=True, timeout=timeout, env=env).stdout
                 d = json.loads(out) if out.strip() else {}
-                u = d.get("usage") or {}
-                rec.update(text=d.get("text", ""),
-                           input_tokens=u.get("input_tokens", 0) + u.get("cache_read_input_tokens", 0) + u.get("cache_creation_input_tokens", 0),
-                           output_tokens=u.get("output_tokens", 0))  # Grok's output_tokens already include reasoning
+                u = d.get("usage")
+                rec["text"] = d.get("text", "")
+                if isinstance(u, dict) and "input_tokens" in u and "output_tokens" in u:
+                    # input_tokens excludes cache reads (total_tokens = input + cache read + output); output includes reasoning
+                    rec.update(input_tokens=u["input_tokens"] + u.get("cache_read_input_tokens", 0) + u.get("cache_creation_input_tokens", 0),
+                               output_tokens=u["output_tokens"])
         except (subprocess.TimeoutExpired, json.JSONDecodeError, OSError):
             pass
     rec["seconds"] = round(time.monotonic() - start, 1)
@@ -240,8 +243,8 @@ def run(run_dir: str | Path, model: str, *, workers: int = 8, attempts: int = 3,
         text = ""; used = {"input_tokens": 0, "output_tokens": 0, "seconds": 0.0}
         for n in range(1, attempts + 1):
             r = call_full(model, p.read_text(), tools=tools); text = r["text"]
-            for k in used:  # stub reruns are real cost, so usage sums every attempt
-                used[k] += r[k]
+            for k in used:  # stub reruns are real cost, so usage sums every attempt; unknown stays unknown
+                used[k] = None if used[k] is None or r[k] is None else used[k] + r[k]
             if words(plan_text(text, reviews)) >= STUB_WORDS:
                 used["seconds"] = round(used["seconds"], 1)
                 dest.write_text(json.dumps({"model": model, "text": text, "attempts": n, **used}) + "\n"); return "ok"
@@ -313,7 +316,7 @@ def parse_verdict(output: str) -> dict | None:
 
 def _norm(s: str) -> str:
     """Lower case, with whitespace and markdown punctuation collapsed, for quote matching."""
-    return re.sub(r"[\s*_`#>|-]+", " ", s.lower()).strip()
+    return re.sub(r"[^0-9a-z]+", " ", s.lower()).strip()
 
 
 def quote_found(quote: str, plan: str) -> bool:
@@ -333,7 +336,8 @@ def verify_quotes(verdict: dict, plan: str) -> dict:
     for c, e in verdict.get("criteria", {}).items():
         g = verdict["grades"].get(c)
         if g in ("met", "partial") and not quote_found(str(e.get("evidence", "")), plan):
-            verdict["grades"][c] = "partial" if g == "met" else "missed"; changed.append(c)
+            lowered = "partial" if g == "met" else "missed"
+            verdict["grades"][c] = lowered; e["judge_grade"] = g; e["grade"] = lowered; changed.append(c)
     verdict["quote_check"] = {"unverified": changed}
     return verdict
 
@@ -462,23 +466,20 @@ def paired_values(values: dict[str, float], arm: str, baseline: str, cluster: st
     for d, k in zip(diffs, keys):
         per.setdefault(k, []).append(d)
     base = [y for y in (by.get(baseline, {}).values() if not baseline_zero else []) if y is not None]
-    return {"mean": round(m, 4), "low": round(lo, 4), "high": round(hi, 4), "won": w, "lost": l, "n": len(diffs),
-            "scenarios": len(per), "wilcoxon_p": wilcoxon([sum(v) / len(v) for v in per.values()]),
+    smeans = [sum(v) / len(v) for v in per.values()]
+    return {"mean": round(m, 4), "low": round(lo, 4), "high": round(hi, 4), "arm_higher": w, "arm_lower": l, "n": len(diffs),
+            "scenarios": len(per), "scenario_mean": round(sum(smeans) / len(smeans), 4), "wilcoxon_p": wilcoxon(smeans),
             **({"baseline_mean": round(sum(base) / len(base), 4)} if base else {})}
 
 
 def paired(verdicts: dict, arm: str, baseline: str, crits=None, cluster: str | None = None) -> dict | None:
-    """Paired score comparison (percentage points) over matching cell-trials; see paired_values."""
-    return paired_values({s: score(v, crits) for s, v in verdicts.items()}, arm, baseline, cluster)
+    """Paired score comparison (percentage points) over matching cell-trials; see paired_values.
 
-
-def two_proportion_p(x1: int, n1: int, x2: int, n2: int) -> float | None:
-    """Two-sided p of the pooled two-proportion z-test."""
-    if not n1 or not n2:
-        return None
-    p = (x1 + x2) / (n1 + n2)
-    se = math.sqrt(p * (1 - p) * (1 / n1 + 1 / n2))
-    return 1.0 if se == 0 else round(math.erfc(abs(x1 / n1 - x2 / n2) / se / math.sqrt(2)), 4)
+    For scores, arm_higher and arm_lower are the cells the arm won and lost (also given as won and lost)."""
+    c = paired_values({s: score(v, crits) for s, v in verdicts.items()}, arm, baseline, cluster)
+    if c:
+        c["won"], c["lost"] = c["arm_higher"], c["arm_lower"]
+    return c
 
 
 def kappa(pairs: list[tuple[str, str]]) -> float | None:
@@ -517,33 +518,42 @@ MIN_SCENARIOS = 8
 ALPHA = 0.05
 
 
+def significant(c: dict | None, sign: int) -> bool:
+    """A difference counts only when both tests agree on its direction (sign +1 or -1): the 95% interval
+    excludes zero on that side, and the Wilcoxon test over scenario means rejects (p < ALPHA) with the
+    scenario mean on the same side. A percentile bootstrap over few clusters runs narrow on its own."""
+    if not c or c.get("wilcoxon_p") is None or c["wilcoxon_p"] >= ALPHA:
+        return False
+    return (c["low"] > 0 and c["scenario_mean"] > 0) if sign > 0 else (c["high"] < 0 and c["scenario_mean"] < 0)
+
+
 def _efficiency(c: dict | None, what: str):
     """Which side a paired cost comparison favours: 'arm' (costs less), 'baseline', or None (no difference)."""
     if not c:
         return None, f"{what}: not recorded for both arms"
-    if c["high"] < 0:
-        return "arm", f"{what}: arm uses less ({c['mean']:+.1f} per output, 95% [{c['low']:+.1f}, {c['high']:+.1f}])"
-    if c["low"] > 0:
-        return "baseline", f"{what}: arm uses more ({c['mean']:+.1f} per output, 95% [{c['low']:+.1f}, {c['high']:+.1f}])"
-    return None, f"{what}: no difference (95% [{c['low']:+.1f}, {c['high']:+.1f}] includes 0)"
+    span = f"{c['mean']:+.1f} per output, 95% [{c['low']:+.1f}, {c['high']:+.1f}], Wilcoxon p={c.get('wilcoxon_p')}"
+    if significant(c, -1):
+        return "arm", f"{what}: arm uses less ({span})"
+    if significant(c, +1):
+        return "baseline", f"{what}: arm uses more ({span})"
+    return None, f"{what}: no significant difference ({span})"
 
 
 def decide(comparison: dict, guardrails: list[str], noise: float | None, *, scenarios: int | None = None,
            checks: list[str] | None = None, tokens: dict | None = None, seconds: dict | None = None) -> dict:
-    """The SPEC section 8 rule: quality first, then tokens, then time.
+    """The SPEC section 8 rule: a material quality difference trumps; near-identical quality goes to tokens,
+    then time.
 
     comparison: paired score comparisons (points) by group, "overall" required. noise: the judge's measured
     test-retest noise in points, the smallest difference this judge can tell apart. checks: blocking problems
-    found elsewhere (conditions, significant rises in overbuilding or platform errors, stub or na rates).
+    found elsewhere (conditions, rises in overbuilding or platform errors, differing stub or na rates).
 
-    1. Quality. The arm is better when the overall 95% interval lies above 0 and the Wilcoxon signed-rank test
-       over scenarios agrees (p < ALPHA); worse when both show it below 0; equivalent when the interval lies
-       within +/- noise. Otherwise the result is inconclusive. (A percentile bootstrap over few clusters runs
-       narrow, so the rank test must agree before a difference counts.)
-    2. Tokens, only when quality is equivalent: the side whose paired token interval shows it uses fewer wins.
-    3. Time, only when tokens show no difference: likewise for wall-clock seconds.
-    A tie at every level keeps the baseline (a change must earn its place). Guardrail groups and the checks
-    block the arm from winning at any level.
+    1. Near-identical first: when the whole overall interval lies within +/- noise, quality does not decide.
+       2. Tokens: the side that significantly uses fewer wins. 3. Time, when tokens show no difference.
+       4. A tie at every level keeps the baseline (a change must earn its place).
+    Otherwise the difference is material if it is significant (see `significant`): better or worse on
+    quality alone. Anything else is inconclusive. Guardrails and checks block the arm from winning at any
+    level; a harm blocks on the interval alone, while a win needs both tests (a deliberate asymmetry).
     """
     reasons, blockers = [], list(checks or [])
     overall = comparison.get("overall")
@@ -561,27 +571,28 @@ def decide(comparison: dict, guardrails: list[str], noise: float | None, *, scen
             blockers.append(f"guardrail {g} mean {c['mean']:+.1f} points is worse than the judge's noise ({noise})")
     if not overall:
         return {"winner": None, "decided_by": None, "ship": False, "reasons": ["no overall comparison"] + blockers}
-    p = overall.get("wilcoxon_p")
-    q = f"quality {overall['mean']:+.1f} points, 95% [{overall['low']:+.1f}, {overall['high']:+.1f}], Wilcoxon p={p}"
-    agrees = p is not None and p < ALPHA
+    q = (f"quality {overall['mean']:+.1f} points, 95% [{overall['low']:+.1f}, {overall['high']:+.1f}], "
+         f"Wilcoxon p={overall.get('wilcoxon_p')}")
     winner = decided = None
-    if overall["low"] > 0 and agrees:
-        winner, decided = "arm", "quality"; reasons.append(q + ": arm better")
-    elif overall["high"] < 0 and agrees:
-        winner, decided = "baseline", "quality"; reasons.append(q + ": arm worse")
-    elif noise is not None and -noise <= overall["low"] and overall["high"] <= noise:
-        reasons.append(q + f": equivalent (within the judge's noise, +/-{noise})")
+    if noise is not None and -noise <= overall["low"] and overall["high"] <= noise:
+        reasons.append(q + f": near-identical (within the judge's noise, +/-{noise})")
         for what, c in (("tokens", tokens), ("time", seconds)):
             side, why = _efficiency(c, what); reasons.append(why)
             if side:
                 winner, decided = side, what; break
         if not winner:
             winner, decided = "baseline", "tie"; reasons.append("tie at every level: the baseline stays")
+    elif significant(overall, +1):
+        winner, decided = "arm", "quality"; reasons.append(q + ": materially better")
+    elif significant(overall, -1):
+        winner, decided = "baseline", "quality"; reasons.append(q + ": materially worse")
     else:
-        reasons.append(q + ": inconclusive (neither above 0 nor within the judge's noise); add scenarios or trials")
+        reasons.append(q + ": inconclusive (not near-identical, and the tests do not agree on a difference); "
+                       "add scenarios or trials")
     if winner == "arm" and blockers:
-        reasons.append("the arm cannot win while any check below fails")
         winner = None
+        return {"winner": None, "decided_by": None, "ship": False,
+                "reasons": ["blocked: the arm cannot win while these checks fail"] + blockers + reasons}
     return {"winner": winner, "decided_by": decided if winner else None, "ship": winner == "arm",
             "reasons": reasons + blockers}
 
@@ -604,7 +615,8 @@ def usage(run_dir: str | Path) -> dict[str, dict]:
     for f in (Path(run_dir) / "out").glob("*.json"):
         d = json.loads(f.read_text())
         if "seconds" in d:
-            out[f.stem] = {"tokens": d.get("input_tokens", 0) + d.get("output_tokens", 0), "seconds": d["seconds"]}
+            known = d.get("input_tokens") is not None and d.get("output_tokens") is not None
+            out[f.stem] = {"tokens": d["input_tokens"] + d["output_tokens"] if known else None, "seconds": d["seconds"]}
     return out
 
 
@@ -655,7 +667,7 @@ def analyze(run_dir: str | Path, suite: dict, baseline: str, dest: str = "judge"
                  "tier_matched": sum(v.get("tier_chosen") == sc[s.split("_")[0]]["tier"] for s, v in vs.items()),
                  "overbuilt_scope": sum(per_plan["overbuilt scope grades"][s] for s in vs),
                  "platform_errors": sum(per_plan["platform errors"][s] for s in vs),
-                 **({"mean_tokens": round(sum(u["tokens"] for u in mine) / len(mine)),
+                 **({"mean_tokens": round(sum(u["tokens"] for u in mine if u["tokens"] is not None) / max(1, sum(u["tokens"] is not None for u in mine))),
                      "mean_seconds": round(sum(u["seconds"] for u in mine) / len(mine), 1)} if mine else {})}
         if a != baseline:
             b = report["arms"].get(baseline) or {}
@@ -666,11 +678,12 @@ def analyze(run_dir: str | Path, suite: dict, baseline: str, dest: str = "judge"
                 c = paired_values(vals, a, baseline, cluster)
                 if c and c["low"] > 0:
                     checks.append(f"{what} rose significantly ({c['mean']:+.2f} per plan, 95% [{c['low']:+.2f}, {c['high']:+.2f}])")
-            for what, x1, n1, x2, n2 in (("stub", entry["stubs"], entry["prompts"], b.get("stubs", 0), b.get("prompts", 0)),
-                                         ("na", na, graded, b.get("na", 0), b.get("graded", 0))):
-                pv = None if base_is_input and what == "stub" else two_proportion_p(x1, n1, x2, n2)
-                if pv is not None and pv < ALPHA:
-                    checks.append(f"{what} rates differ between arms (two-proportion z-test p={pv})")
+            na_rate = {s: sum(g == "na" for g in v["grades"].values()) / max(len(v["grades"]), 1) for s, v in verdicts.items()}
+            stub_ind = {f.stem: float(f.stem in stubs.get(f.stem.split("_")[2], ())) for f in (run_ / "prompts").glob("*.txt")}
+            for what, vals, zero in (("na", na_rate, False), ("stub", stub_ind, base_is_input)):
+                c = paired_values(vals, a, baseline, cluster, baseline_zero=zero)
+                if c and (c["low"] > 0 or c["high"] < 0):
+                    checks.append(f"{what} rates differ between arms (paired 95% [{c['low']:+.3f}, {c['high']:+.3f}] per output)")
             tok = paired_values(tokens, a, baseline, cluster, baseline_zero=base_is_input)
             sec = paired_values(secs, a, baseline, cluster, baseline_zero=base_is_input)
             entry["cost_against_baseline"] = {"tokens": tok, "seconds": sec}
@@ -693,6 +706,10 @@ def reliability(run_dir: str | Path, suite: dict, n: int = 30, seed: int = 11, m
     sample = random.Random(seed).sample(sorted(first), min(n, len(first)))
     judge(run_, suite, model=model, dest=second_dest, only=sample)
     second = load_verdicts(run_, second_dest)
+    reviews = json.loads((run_ / "manifest.json").read_text()).get("reviews", False)
+    for s in sample:  # judge() applies the quote check; compare like with like
+        if s in first and "quote_check" not in first[s]:
+            first[s] = verify_quotes(first[s], plan_text(json.loads((run_ / "out" / f"{s}.json").read_text())["text"], reviews))
     return agreement(first, second, sample)
 
 

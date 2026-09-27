@@ -98,6 +98,11 @@ class Outputs(unittest.TestCase):
         self.assertIsNone(R.parse_verdict("not json"))
 
 
+def C(mean, low, high, p=0.01, sm=None):
+    """A paired comparison fixture: mean, 95% interval, Wilcoxon p and the scenario mean."""
+    return {"mean": mean, "low": low, "high": high, "wilcoxon_p": p, "scenario_mean": mean if sm is None else sm}
+
+
 class Statistics(unittest.TestCase):
     def verdicts(self):
         v = {}
@@ -131,15 +136,16 @@ class Statistics(unittest.TestCase):
 
     def test_adversarial_fixtures_never_ship(self):
         # From the adversarial review of rubric-eval itself (F1, F3, F7): each of these must not ship.
-        up = {"mean": 3, "low": 1, "high": 5, "wilcoxon_p": 0.01}
+        up = C(3, 1, 5)
         g = ["safeguards", "proportion"]
-        ok = {"mean": 0, "low": -1, "high": 1}
+        ok = C(0, -1, 1, p=0.9)
         self.assertTrue(R.decide({"overall": up, "safeguards": ok, "proportion": ok}, g, 2.0, scenarios=19)["ship"])
-        bad_mean = {"mean": -6, "low": -12, "high": 1}   # interval not wholly below 0, but mean worse than the noise
+        bad_mean = C(-6, -12, 1, p=0.2)   # interval not wholly below 0, but mean worse than the noise
         self.assertFalse(R.decide({"overall": up, "safeguards": bad_mean, "proportion": ok}, g, 2.0, scenarios=19)["ship"])
         self.assertFalse(R.decide({"overall": up, "proportion": ok}, g, 2.0, scenarios=19)["ship"])  # guardrail missing
-        self.assertFalse(R.decide({"overall": up, "safeguards": ok, "proportion": ok}, g, 2.0, scenarios=19,
-                                  checks=["platform errors rose significantly"])["ship"])
+        d = R.decide({"overall": up, "safeguards": ok, "proportion": ok}, g, 2.0, scenarios=19,
+                     checks=["platform errors rose significantly"])
+        self.assertFalse(d["ship"]); self.assertTrue(d["reasons"][0].startswith("blocked"))  # the block leads (F8)
         self.assertFalse(R.decide({"overall": up, "safeguards": ok, "proportion": ok}, g, 2.0, scenarios=1)["ship"])
         self.assertFalse(R.decide({"overall": up, "safeguards": ok, "proportion": ok}, g, None, scenarios=19)["ship"])  # unmeasured judge
 
@@ -164,12 +170,11 @@ class Statistics(unittest.TestCase):
             self.assertTrue(any("more than one judge" in p for p in r["condition_problems"]))
 
     def test_decide_quality_then_tokens_then_time(self):
-        eq = {"mean": 0.2, "low": -1.5, "high": 1.8}           # within the judge's noise of 2 points
-        fewer = {"mean": -900, "low": -1200, "high": -600}; more = {"mean": 900, "low": 600, "high": 1200}
-        same = {"mean": 10, "low": -300, "high": 320}
-        d = R.decide({"overall": {"mean": 4, "low": 1, "high": 7, "wilcoxon_p": 0.01}}, [], 2.0, tokens=more, scenarios=19)
-        self.assertEqual((d["winner"], d["decided_by"]), ("arm", "quality"))   # quality outranks cost
-        d = R.decide({"overall": {"mean": -4, "low": -7, "high": -1, "wilcoxon_p": 0.01}}, [], 2.0, tokens=fewer, scenarios=19)
+        eq = C(0.2, -1.5, 1.8, p=0.6)                          # within the judge's noise of 2 points
+        fewer, more, same = C(-900, -1200, -600), C(900, 600, 1200), C(10, -300, 320, p=0.7)
+        d = R.decide({"overall": C(4, 1, 7)}, [], 2.0, tokens=more, scenarios=19)
+        self.assertEqual((d["winner"], d["decided_by"]), ("arm", "quality"))   # a material difference trumps cost
+        d = R.decide({"overall": C(-4, -7, -1)}, [], 2.0, tokens=fewer, scenarios=19)
         self.assertEqual((d["winner"], d["decided_by"]), ("baseline", "quality"))
         d = R.decide({"overall": eq}, [], 2.0, tokens=fewer, seconds=more, scenarios=19)
         self.assertEqual((d["winner"], d["decided_by"]), ("arm", "tokens"))    # tokens outrank time
@@ -179,12 +184,23 @@ class Statistics(unittest.TestCase):
         self.assertEqual((d["winner"], d["decided_by"]), ("arm", "time"))
         d = R.decide({"overall": eq}, [], 2.0, tokens=same, seconds=same, scenarios=19)
         self.assertEqual((d["winner"], d["decided_by"]), ("baseline", "tie"))   # a change must earn its place
-        d = R.decide({"overall": {"mean": 1, "low": -3, "high": 5}}, [], 2.0, tokens=fewer, scenarios=19)
+        d = R.decide({"overall": C(1, -3, 5, p=0.3)}, [], 2.0, tokens=fewer, scenarios=19)
         self.assertIsNone(d["winner"]); self.assertIn("inconclusive", d["reasons"][0])
-        d = R.decide({"overall": {"mean": 4, "low": 1, "high": 7, "wilcoxon_p": 0.2}}, [], 2.0, scenarios=19)
-        self.assertIsNone(d["winner"])                                          # the rank test must agree
+        self.assertIsNone(R.decide({"overall": C(4, 1, 7, p=0.2)}, [], 2.0, scenarios=19)["winner"])  # rank test must agree
+        self.assertIsNone(R.decide({"overall": C(4, 1, 7, sm=-0.5)}, [], 2.0, scenarios=19)["winner"])  # and agree in direction
         d = R.decide({"overall": eq}, [], 2.0, tokens=fewer, checks=["na rates differ"], scenarios=19)
         self.assertIsNone(d["winner"]); self.assertFalse(d["ship"])            # checks block a cost win too
+        d = R.decide({"overall": eq}, [], 2.0, tokens=C(-900, -1200, -600, p=0.3), scenarios=19)
+        self.assertEqual(d["decided_by"], "tie")          # a cost win needs the rank test too (review F2)
+
+    def test_near_identical_is_checked_before_a_quality_win(self):
+        # Adversarial review F1: a significant difference that lies wholly inside the judge's noise is
+        # near-identical, so cost decides it.
+        a = C(0.8, 0.2, 1.5, p=0.01)
+        d = R.decide({"overall": a}, [], 2.07, tokens=C(-5000, -7000, -3000), scenarios=19)
+        self.assertEqual((d["winner"], d["decided_by"]), ("arm", "tokens"))
+        d = R.decide({"overall": a}, [], 2.07, tokens=C(5000, 3000, 7000), scenarios=19)
+        self.assertEqual((d["winner"], d["decided_by"]), ("baseline", "tokens"))
 
     def test_scale_kappa_and_wilcoxon(self):
         self.assertEqual(R.score(verdict({"P1": "met", "P3": "partial", "D1": "missed", "D2": "na"})), 50.0)
@@ -195,7 +211,6 @@ class Statistics(unittest.TestCase):
         self.assertLess(R.wilcoxon([1, 2, 3, 4, 5, 6, 7, 8]), 0.05)
         self.assertGreater(R.wilcoxon([1, -2, 3, -4, 5, -6, 7, -8]), 0.5)
         self.assertIsNone(R.wilcoxon([1, 2]))
-        self.assertLess(R.two_proportion_p(30, 100, 5, 100), 0.001); self.assertEqual(R.two_proportion_p(5, 100, 5, 100), 1.0)
 
     def test_build_writes_an_unreviewed_input_baseline(self):
         s = R.load_suite(SUITE)
@@ -221,6 +236,8 @@ class Statistics(unittest.TestCase):
         R.verify_quotes(v, plan)
         self.assertEqual(v["grades"], {"P1": "met", "D1": "met", "D2": "partial", "D3": "missed", "D4": "missed"})
         self.assertEqual(v["quote_check"]["unverified"], ["D2", "D3"])
+        self.assertEqual((v["criteria"]["D2"]["grade"], v["criteria"]["D2"]["judge_grade"]), ("partial", "met"))
+        self.assertTrue(R.quote_found("the player\u2019s board -- hidden", "The player's board: hidden."))  # punctuation
 
     def test_grok_calls_name_a_tool_allowlist(self):
         # Grok reads `--tools ""` as no restriction (shell and file tools included); every call must name
@@ -244,7 +261,7 @@ class Statistics(unittest.TestCase):
     def test_costs_compare_paired_and_against_a_free_input(self):
         vals = {f"S0{i}_GAS_base_1": 1000.0 for i in range(1, 9)} | {f"S0{i}_GAS_cand_1": 700.0 + i for i in range(1, 9)}
         c = R.paired_values(vals, "cand", "base", "scenario")
-        self.assertLess(c["high"], 0); self.assertEqual(c["lost"], 8)
+        self.assertLess(c["high"], 0); self.assertEqual(c["arm_lower"], 8)
         z = R.paired_values(vals, "cand", "base", "scenario", baseline_zero=True)   # an unreviewed plan costs no review
         self.assertGreater(z["low"], 0)
 
