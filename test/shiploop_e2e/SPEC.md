@@ -7,12 +7,18 @@ it elsewhere, cite its clause IDs (S-1 ... ) instead.
 
 ## Purpose
 
-The E2E loop exists to verify **ShipLoop and how it behaves**, not the product
-it happens to build. A case (Battleship, hello, the follow-on feature) is a
-probe: a small, repeatable request whose run exposes where ShipLoop's design
-holds or breaks. A run that ships a working product but violates a clause
-below is a ShipLoop defect. A product defect matters only as evidence about
-ShipLoop.
+ShipLoop is a **general software development life cycle execution engine**. It
+must carry any software request, in any language, framework, platform or
+domain, from intent to a verified, committed and returned change. It is never
+optimized for a particular product, game, stack or host.
+
+The E2E loop exists to verify **that engine and how it behaves**, not the
+product a run happens to build. A case (a game, a hello-world, a follow-on
+feature) is a probe: a small, repeatable request whose run exposes where the
+engine's design holds or breaks. A run that ships a working product but
+violates a clause below is a ShipLoop defect. A product defect matters only as
+evidence about ShipLoop. What a probe reveals is fixed in the engine
+generically; nothing in the engine may know which probe exposed it.
 
 Each iteration: run a case on exactly what the marketplace publishes, measure,
 review against this spec, fix ShipLoop generically, release, rerun, and
@@ -63,11 +69,17 @@ only the section a step needs and never re-reads whole cards or repeats
 unchanged run rules. Large planning context is acceptable when it sits in a
 file the packet names.
 
-**S-8 Prompts are technology-agnostic.** Stage prompts, packets and SKILL.md
-describe the work in general terms. A named technology may appear only as an
-illustrative example. Technology- and platform-specific facts live in
-reference files (`references/platforms/`, stack notes), used as cached
-knowledge the packet points to.
+**S-8 The engine is product- and technology-agnostic.** Scripts, stage prompts,
+packets, SKILL.md and the general reference cards state rules in general terms
+of the SDLC (state, owners, checks, boundaries, delivery), never in terms of a
+game, product type, language, framework or host. A concrete product or
+technology may appear only as a clearly labelled illustration ("for example
+..."), never as the rule itself, and illustrations should vary rather than
+repeat one domain. Technology-, platform- and tool-specific facts live in
+reference or catalog files (`references/platforms/`, stack notes, tool
+catalogs) that act as cached knowledge the packet points to. Script code
+that must know a tool (for example, how a test runner reports counts) keeps
+that knowledge in one catalog, not scattered through the logic.
 
 **S-9 A passing script-run check is the evidence.** Progress and completion are
 confirmed by a test or command the script runs and records, never by the
@@ -90,8 +102,10 @@ that every caller uses. New features extend it rather than copying it; old
 formats are refused, not shimmed.
 
 **S-13 Everything is generic.** Fixes address the ShipLoop behavior a run
-exposed, never the probe's product or platform. A case's specifics stay in
-the harness.
+exposed, never the probe's product or platform. A fix is stated, named and
+tested in general terms; its tests use neutral fixtures, not the probe's
+product. A case's specifics (its prompt and product checks) stay in the
+harness's case catalog.
 
 ## How the harness checks the clauses
 
@@ -111,6 +125,14 @@ stage) are scored beside them and compared with the previous run of the same
 case.
 
 ## Rules for the harness itself
+
+- The harness core (runner, metrics, grading, review) is case-agnostic: it
+  measures the engine through ShipLoop's own records and the clauses above.
+  Only `cases.json` knows a case's product.
+- Probe more than one kind of software. Rotate cases across domains and stacks
+  (for example a service, a command-line tool, a data transformation, a UI)
+  so improvements cannot overfit one probe; a change justified by one case is
+  re-checked on another before it is called general.
 
 - Test exactly what the marketplace publishes (`--source marketplace`, version
   gate); build the checkout only to try an unreleased candidate.
