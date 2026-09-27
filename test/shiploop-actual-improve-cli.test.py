@@ -403,8 +403,9 @@ class EphemeralImproveCliTests(ImproveCliFixture):
                 self.assertIn("Run the selected Improve card's ShipLoop whole-skill subcall in this conversation", packet)
                 self.assertIn("Return order:", packet)
                 self.assertIn("keep the frozen launch context unchanged", packet)
-                self.assertIn("Binding line: improve-start writes the next line first in the frozen "
-                              "context.request, alone on its own line", packet)
+                # improve-start writes the binding line and start inputs; the packet no longer restates them.
+                self.assertNotIn(self.bound["contract_marker"], packet)
+                self.assertNotIn("Start inputs owned by ShipLoop", packet)
             else:
                 self.assertIn("Parent assignment preparation:", packet)
                 self.assertIn("Run /improve", packet)
@@ -413,9 +414,11 @@ class EphemeralImproveCliTests(ImproveCliFixture):
                 self.assertIn("keep launch context immutable and continue the same child", packet)
                 self.assertIn("Binding line: copy the next line verbatim into frozen context.request exactly once, "
                               "alone on its own line", packet)
-            marker = packet.index(self.bound["contract_marker"] + "\n")
-            self.assertIn("import matches the whole line:\n", packet[marker - 40:marker])
-            self.assertIn("Start inputs owned by ShipLoop: required_trivial_reviews 2 (import rejects fewer)", packet)
+            if not self.inline():
+                marker = packet.index(self.bound["contract_marker"] + "\n")
+                self.assertIn("import matches the whole line:\n", packet[marker - 40:marker])
+                self.assertIn("Start inputs owned by ShipLoop: required_trivial_reviews 2 (import rejects fewer)",
+                              packet)
             self.assertIn("Selected Improve skill: " + str(CARD.resolve()), packet)
             self.assertIn("material unresolved findings, hypotheses, failed attempts", packet)
             self.assertIn("approvals, declines and pending decisions into child context.authority", packet)
@@ -754,10 +757,10 @@ class EphemeralImproveCliTests(ImproveCliFixture):
         )
         self.assertEqual(self.bound["skill"]["skill_version"], selected_version)
         parent_packet = self.invoke(CLI, "next", "--run-dir", self.run).stdout
-        for text in (self.bound["contract_marker"], "Bound Until Loop CLI locator: " + str(EPHEMERAL.resolve()),
+        for text in ("Bound Until Loop CLI locator: " + str(EPHEMERAL.resolve()),
                      "Child latest packet receipt: " + str(bridge.receipt_path(self.bound)),
                      "Commit policy:",
-                     "Start the child runtime with --receipt " + str(bridge.receipt_path(self.bound)),
+                     "Never write or edit the receipt",
                      "Completion deletes the child's temporary state"):
             self.assertIn(text, parent_packet)
 
@@ -839,6 +842,32 @@ class EphemeralImproveCliTests(ImproveCliFixture):
         store.write_record(completion, dict(receipt, summary="Conflicting callback"))
         self.invoke(CLI, "improve-complete", "--run-dir", self.run, "--action", self.action, "--result", completion, status=2)
         self.assertEqual(after, (self.run / "state.md").read_bytes())
+
+    def test_inline_improve_packet_states_every_remaining_obligation_once(self):
+        """P5 (SPEC S-6, S-7): script-owned steps are gone; each obligation the model keeps is stated once."""
+        if not self.inline():
+            self.skipTest("the delegated route keeps its manual start instructions")
+        packet = self.invoke(CLI, "next", "--run-dir", self.run).stdout
+        full = Path(next(line for line in packet.splitlines() if line.startswith("Full packet: "))[13:]).read_text()
+        obligations = {
+            "write the opening": "Context-first opening: before start, write the opening file",
+            "start through ShipLoop": " improve-start --run-dir=",
+            "follow the runtime": "\"Follow the returned action\" section",
+            "commit review edits through ShipLoop": " improve-commit --run-dir=",
+            "never edit the receipt": "Never write or edit the receipt",
+            "recover an active child": "use its exact next_argv once to recover",
+            "restart a stopped child": "--restart-stopped",
+            "return only after the terminal packet": "Return order:",
+            "pause without losing the child": "Pause parent without losing child",
+            "import through the parent callback": " improve-complete --run-dir=",
+        }
+        for name, text in obligations.items():
+            with self.subTest(obligation=name):
+                self.assertIn(text, full)
+        for gone in ("Binding inputs: before start", "Start inputs owned by ShipLoop",
+                     "Start the child runtime with --receipt", self.bound["contract_marker"]):
+            self.assertNotIn(gone, full)
+        self.assertEqual(full.count("Never write or edit the receipt"), 1)
 
     def test_improve_start_freezes_the_contract_and_starts_the_runtime(self):
         """The parent writes four opening sections; ShipLoop writes the contract and starts the child."""
