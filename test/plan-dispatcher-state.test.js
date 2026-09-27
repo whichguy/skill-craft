@@ -541,7 +541,7 @@ async function main() {
     assert.equal(readStateBytes(dir).equals(before), true);
   });
 
-  await test('snapshot crash around rename preserves old/new state and does not steal orphan lock', () => {
+  await test('snapshot crash around rename preserves old/new state and recovers the dead writer lock', () => {
     for (const when of ['before', 'after']) {
       const { dir } = init();
       const task = claim(dir)[0];
@@ -550,16 +550,15 @@ async function main() {
       assert.equal(result.status, 77, result.stderr);
       const snapshot = cli('inspect', dir);
       assert.equal(snapshot.active[0].status, when === 'before' ? 'claimed' : 'launching');
-      assert.ok(fs.existsSync(path.join(dir, '.dispatcher.lock')));
-      if (when === 'after') {
-        cli('claim', dir, { owner: 'parent-1', limit: 1 }, true);
-      }
-      // Exact test-owned process has exited. This is fixture cleanup only.
-      fs.unlinkSync(path.join(dir, '.dispatcher.lock'));
+      const lock = path.join(dir, '.dispatcher.lock');
+      assert.equal(JSON.parse(fs.readFileSync(lock, 'utf8')).pid > 0, true);
+      // The crashed writer's lock names a process that no longer exists, so
+      // the next writer recovers it instead of needing manual removal.
       assert.equal(
         cli('start', dir, { owner: 'parent-1', attempt: task.attempt }).action,
         when === 'before' ? 'launch' : 'reconcile'
       );
+      assert.equal(fs.existsSync(lock), false);
     }
   });
 
@@ -585,7 +584,6 @@ async function main() {
       if (when === 'after') {
         assert.deepEqual(JSON.parse(fs.readFileSync(target)), envelope);
       }
-      fs.unlinkSync(path.join(dir, '.dispatcher.lock'));
       cli('report', dir, envelope);
       independentlyVerify(dir, task);
       assert.deepEqual(cli('inspect', dir).ready, ['B', 'C']);
@@ -613,7 +611,6 @@ async function main() {
       const interrupted = cli('inspect', dir);
       assert.deepEqual(interrupted.accepted, when === 'after' ? ['A'] : []);
       assert.deepEqual(interrupted.ready, when === 'after' ? ['B', 'C'] : []);
-      fs.unlinkSync(path.join(dir, '.dispatcher.lock'));
       cli('settle', dir, { owner: 'parent-1', attempt: task.attempt, verification });
       const recovered = cli('inspect', dir);
       assert.deepEqual(recovered.ready, ['B', 'C']);

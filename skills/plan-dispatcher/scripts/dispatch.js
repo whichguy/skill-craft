@@ -43,6 +43,15 @@ function absoluteRun(dir) {
 function withNextArgv(dir, response) {
   return {...response, next_argv: [process.execPath, path.resolve(__filename), 'next', dir]};
 }
+// The exact call that settles a stalled step: the caller writes `input` to a
+// JSON file and runs `argv` with that file's path appended.
+function retryCall(dir, owner, attempt) {
+  return {
+    argv: [process.execPath, path.resolve(__filename), 'retry', dir],
+    input: {owner, attempt, confirmed_stopped: true, reason: '<why this attempt failed and what the next attempt changes>'},
+  };
+}
+const REPLAN_INSTRUCTION = 'The parent verified that this step cannot be done as planned. This run starts no new work: claims, fresh starts and a retry of this attempt are refused. Finish, settle or retry (to retire) the in-flight attempts listed here first. Then return the blocker to planning: revise the plan with the blocker reason as input, and start a new run whose graph leaves out the accepted steps listed in replan.accepted, because their work is already integrated.';
 function requireContracts(graph) {
   if (!graph || !Array.isArray(graph.steps) || !graph.steps.length || graph.steps.some(s => !s.contract)) {
     throw new Error('every graph step requires a task, ready and done contract; use the Backchain exporter or the documented graph format');
@@ -156,7 +165,21 @@ function next(dir) {
   const full = state.describe(dir);
   requireContracts(full.graph);
   const blockedSteps = new Set(view.planning_blocked_steps || []);
-  const actions = view.active.map(a => {
+  const replanning = Boolean(view.replan);
+  const actions = view.active.filter(a => !(replanning && a.recovery === 'retry')).map(a => {
+    if (a.recovery === 'replan') {
+      return {step: a.step, attempt: a.attempt, action: 'replan', reason: a.rejection_reason,
+        attempts: a.attempts, instruction: REPLAN_INSTRUCTION};
+    }
+    if (replanning && a.recovery === 'start') {
+      return {step: a.step, attempt: a.attempt, action: 'release', call: retryCall(dir, view.owner, a.attempt),
+        instruction: 'A replan is required, so this claimed attempt must not start. Retire the claim with the returned call; its reason is that the run is being replanned.'};
+    }
+    if (a.recovery === 'retry') {
+      return {step: a.step, attempt: a.attempt, action: 'retry', reason: a.rejection_reason,
+        attempts: a.attempts, call: retryCall(dir, view.owner, a.attempt),
+        instruction: `This step has had ${a.attempts} attempt(s); the latest was rejected: ${a.rejection_reason}. There is no retry limit. If the rejection shows the step cannot be done as planned, it should have been settled with verification.disposition "replan"; otherwise, after confirming the old worker stopped and inspecting its effects, run the returned call with a reason stating what the next attempt changes. The fresh attempt's packet lists every earlier attempt, its reason and its result and verification evidence in prior_attempts. A replacement attempt needs a fresh capability gate, identity and preparation receipt before start.`};
+    }
     const localVerification = a.recovery === 'verify' && a.executor;
     const blockedStart = a.recovery === 'start' && blockedSteps.has(a.step);
     return {
@@ -173,7 +196,6 @@ function next(dir) {
           resume: 'The executor is a caller attestation, not host-verifiable authentication. Confirm the current dispatcher may resume this entered main-context task, then do so in the current conversation. Do not call ask-agent, launch a native worker, or wait for native completion; retain the executor identity and report actual evidence when task work is finished.',
           collect: 'Collect this existing native task through host notification or join. On every native return, including failed, blocked or cancelled work, immediately publish a user-facing status with its task label and reported outcome, accepted (completed) work, remaining active, pending and blocked work, and that the returned result is not acceptance; batch only when every returned task and field is identified. Cadence, a native UI or notification, or equivalent visible progress cannot replace this update. Update the parent pending-job entry only from native events or collection; do not infer status from elapsed time or file existence. A native observation timeout is not completion. Before becoming waiting-only, select native timed collection, equivalent visible native progress, or a supported current-session wakeup under the selected Ask-Agent guidance and user cadence/quiet preference. On observation timeout give a combined visible pending-job update before collecting again; the worker keeps running. If no periodic mechanism is available, disclose that before becoming idle and continue native completion collection. A wakeup is never a completion substitute; do not create custom timers or external recurring tasks.',
           verify: `The parent dispatcher phase owns this returned report. On every native return, including failed, blocked or cancelled work, immediately publish a user-facing status with its task label and reported outcome, accepted (completed) work, remaining active, pending and blocked work, and that the returned result is not acceptance; batch only when every returned task and field is identified. Cadence, a native UI or notification, or equivalent visible progress cannot replace this update. A returned report is not acceptance: acknowledge its task label and reported outcome, update the parent pending-job entry, then collect and confirm native completion and that the worker has stopped before settlement can release its workspace and resources. A receipt or saved handle alone is insufficient. ${PARENT_HANDOFF_CONSUMPTION} For a managed Git result, inspect the returned contribution through its retained preparation receipt and declared delivery mode, complete the declared integration or report-consumption path, independently check the definition of done, and record both completion and task-check evidence before settling the exact dispatcher receipt. After accepted settlement, follow next and refill safe ready capacity. ShipLoop\'s existing completion/cleanup callback alone decides whether its accepted or superseded managed workspace is closed or retained; the dispatcher does not invent receipt retirement or close authority. If completion is unknown, keep this attempt reserved and use native collection or reconciliation.`,
-          retry: 'Preserve failed evidence; retry with a fresh attempt only after confirming the old worker stopped and inspecting effects. A rejection that proves an item unachievable goes back to planning, not to a retry. The fresh attempt\'s packet lists this attempt, its reason and its result and verification evidence in prior_attempts. A recovered managed Git attempt retains its same declared capability response, identity and preparation receipt; a replacement attempt needs a fresh capability gate, identity and preparation receipt before start.',
         }[a.recovery] || 'Inspect the durable attempt before continuing.'),
     };
   });
@@ -192,6 +214,10 @@ function next(dir) {
   // resume guards, but offer safe starts/claims before any waiting observation.
   const observations = new Set(['collect', 'verify', 'reconcile']);
   actions.sort((a, b) => Number(observations.has(a.action)) - Number(observations.has(b.action)));
+  const inFlight = view.active.some(a => !['retry', 'replan'].includes(a.recovery));
+  if (replanning && !inFlight) {
+    return {...view, actions, instruction: `${PARENT_STATUS_PRESENTATION} This run cannot complete: step ${view.replan.steps.map(r => r.step).join(', ')} needs replanning and no attempt is still in flight. ${REPLAN_INSTRUCTION}`};
+  }
   return {...view, actions, instruction: view.complete ? `${PARENT_STATUS_PRESENTATION} Every required step is accepted. Report verified outcomes and remaining host limitations.` :
     `The main conversation owns this run. ${PARENT_STATUS_PRESENTATION} Execute this response's current actions and instructions; workers report evidence but do not schedule work. On initialization, resume and every returned event, promptly process available results and refresh these actions. Start eligible existing claims and fill safe available capacity from the returned ready candidates before blocking on native collection, verification or reconciliation. If an observation cannot resolve immediately, keep its attempt reserved and continue other safe eligible work. Only verified acceptance unlocks dependencies. Follow exact next_argv after each action; never launch from an older action list.`};
 }

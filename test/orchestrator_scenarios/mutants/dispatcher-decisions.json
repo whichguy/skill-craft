@@ -1,0 +1,128 @@
+{
+  "package": "skills/plan-dispatcher",
+  "suite": [
+    "node",
+    "test/plan-dispatcher-decisions.test.js"
+  ],
+  "mutants": [
+    {
+      "id": "lock-ignores-host",
+      "file": "scripts/state.js",
+      "find": "    holder.host === os.hostname() && !processAlive(holder.pid);",
+      "replace": "    !processAlive(holder.pid);",
+      "killed_by": "S3"
+    },
+    {
+      "id": "lock-steals-live",
+      "file": "scripts/state.js",
+      "find": "    process.kill(pid, 0);\n    return true;",
+      "replace": "    process.kill(pid, 0);\n    return false;",
+      "killed_by": "S2"
+    },
+    {
+      "id": "lock-no-compare",
+      "file": "scripts/state.js",
+      "find": "    if (readLockBytes(lockPath) === inspected) {",
+      "replace": "    if (true) {",
+      "killed_by": "S6"
+    },
+    {
+      "id": "guard-leaks",
+      "file": "scripts/state.js",
+      "find": "  } finally {\n    fs.closeSync(guard);\n    fs.unlinkSync(guardPath);\n  }",
+      "replace": "  } finally {\n    fs.closeSync(guard);\n  }",
+      "killed_by": "S1"
+    },
+    {
+      "id": "unreadable-is-dead",
+      "file": "scripts/state.js",
+      "find": "  } catch (_) {\n    return false;\n  }\n  return isPlainObject(holder)",
+      "replace": "  } catch (_) {\n    return true;\n  }\n  return isPlainObject(holder)",
+      "killed_by": "S4"
+    },
+    {
+      "id": "replan-with-pass",
+      "file": "scripts/state.js",
+      "find": "    if (verification.passed !== false) {",
+      "replace": "    if (false) {",
+      "killed_by": "S10"
+    },
+    {
+      "id": "retry-replan",
+      "file": "scripts/state.js",
+      "find": "    if (needsReplan(record)) {\n      fail('attempt was settled for replanning",
+      "replace": "    if (false) {\n      fail('attempt was settled for replanning",
+      "killed_by": "S8"
+    },
+    {
+      "id": "claim-during-replan",
+      "file": "scripts/state.js",
+      "find": "    assertNoReplan(state, 'claim');\n",
+      "replace": "",
+      "killed_by": "S8"
+    },
+    {
+      "id": "ready-during-replan",
+      "file": "scripts/state.js",
+      "find": "        replanAttempts(state).length === 0) {",
+      "replace": "        true) {",
+      "killed_by": "S8"
+    },
+    {
+      "id": "start-during-replan",
+      "file": "scripts/state.js",
+      "find": "      assertNoReplan(state, 'start');\n",
+      "replace": "",
+      "killed_by": "S9"
+    },
+    {
+      "id": "shallow-block",
+      "file": "scripts/state.js",
+      "find": "        return dependencyStatus === 'rejected' || dependencyStatus === 'blocked';",
+      "replace": "        return dependencyStatus === 'rejected';",
+      "killed_by": "S7"
+    },
+    {
+      "id": "retry-offered-during-replan",
+      "file": "scripts/dispatch.js",
+      "find": "view.active.filter(a => !(replanning && a.recovery === 'retry'))",
+      "replace": "view.active.filter(a => true)",
+      "killed_by": "S12"
+    },
+    {
+      "id": "retry-call-verb",
+      "file": "scripts/dispatch.js",
+      "find": "'retry', dir],",
+      "replace": "'settle', dir],",
+      "killed_by": "S7"
+    },
+    {
+      "id": "attempt-count",
+      "file": "scripts/state.js",
+      "find": "filter((record) => record.step === step).length",
+      "replace": "filter((record) => record.step === step && record.status !== 'retried').length",
+      "killed_by": "S7"
+    },
+    {
+      "id": "state-lost-code",
+      "file": "scripts/state.js",
+      "find": "    fail('could not read dispatcher state: ' + error.message + '. ' + STATE_LOSS_RECOVERY, 'ESTATELOST');",
+      "replace": "    fail('could not read dispatcher state: ' + error.message);",
+      "killed_by": "S13"
+    },
+    {
+      "id": "replan-recovery",
+      "file": "scripts/state.js",
+      "find": "    return needsReplan(record) ? 'replan' : 'retry';",
+      "replace": "    return 'retry';",
+      "killed_by": "S8"
+    },
+    {
+      "id": "no-terminal-replan",
+      "file": "scripts/dispatch.js",
+      "find": "  if (replanning && !inFlight) {",
+      "replace": "  if (false) {",
+      "killed_by": "S8"
+    }
+  ]
+}

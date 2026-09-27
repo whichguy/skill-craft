@@ -290,6 +290,8 @@ _CORE_SUITES = (
     _suite("plan-dispatcher-progress", "core", "test/plan-dispatcher-progress.test.js", "node", "test/plan-dispatcher-progress.test.js"),
     _suite("plan-dispatcher-planning-context", "core", "test/plan-dispatcher-planning-context.test.js", "node", "test/plan-dispatcher-planning-context.test.js"),
     _suite("plan-dispatcher-compound", "core", "test/plan-dispatcher-compound.test.js", "node", "test/plan-dispatcher-compound.test.js"),
+    _suite("plan-dispatcher-decisions", "core", "test/plan-dispatcher-decisions.test.js", "node", "test/plan-dispatcher-decisions.test.js"),
+    _suite("plan-dispatcher-mutants", "core", "test/plan-dispatcher-mutants.test.py", "python3", "test/plan-dispatcher-mutants.test.py"),
 )
 
 SHIPLOOP_SUITES = tuple(_shiploop(path) for path in _SHIPLOOP_PATHS)
