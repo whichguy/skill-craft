@@ -1,9 +1,9 @@
 #!/usr/bin/env python3
-"""Claude Code PostToolUse adapter: show ShipLoop's own status block to the user.
+"""Claude Code PostToolUse adapter: show ShipLoop's own status to the user.
 
 Reads the hook payload on stdin. When the Bash call was a direct ShipLoop CLI
 invocation whose stdout carries the script-rendered status block, prints
-``{"systemMessage": <block>}``; otherwise prints nothing. It never reads run
+``{"systemMessage": <two-line compact status>}``; otherwise prints nothing. It never reads run
 state, resolves paths, or fails the tool call: every problem exits 0 silently.
 """
 
@@ -159,10 +159,31 @@ def status_block(payload: Any) -> tuple[str, str] | None:
     return host, head[start:end + len(END)]
 
 
+def compact(block: str) -> str:
+    """Two lines from the block: where the run is, then what finished and what comes next.
+
+    Hosts show a hook message as a warning, so the full block reads as an alarm
+    at every step; ``status`` and ``status.md`` keep the full block.
+    """
+    rows: dict[str, str] = {}
+    for row in block.splitlines()[1:-1]:
+        label, sep, value = row.partition(":")
+        if sep:
+            rows.setdefault(label.strip(), value.strip())
+    if not rows.get("Where"):
+        return block
+    second = [f"Done: {rows['Done']}"] if rows.get("Done") else []
+    for label in ("Waiting on you", "Stopped", "Next"):
+        if rows.get(label):
+            second.append(f"{label}: {rows[label]}")
+            break
+    return "\n".join(["ShipLoop ▶ " + rows["Where"]] + ([" | ".join(second)] if second else []))
+
+
 def status_message(payload: Any) -> str | None:
-    """Return the block to show the user, only on hosts that can display it."""
+    """Return the compact status to show the user, only on hosts that can display it."""
     found = status_block(payload)
-    return found[1] if found is not None and found[0] in DISPLAY_HOSTS else None
+    return compact(found[1]) if found is not None and found[0] in DISPLAY_HOSTS else None
 
 
 def main() -> int:

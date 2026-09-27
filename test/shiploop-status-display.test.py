@@ -377,7 +377,21 @@ class StatusHookTests(unittest.TestCase):
                          if label == "truncated" else {})
                 completed = self.run_hook(json.dumps(self.payload(command, stdout, **extra)))
                 self.assertEqual(completed.returncode, 0, completed.stderr)
-                self.assertEqual(json.loads(completed.stdout), {"systemMessage": self.block})
+                self.assertEqual(json.loads(completed.stdout), {"systemMessage": hook.compact(self.block)})
+
+    def test_hook_message_is_two_compact_lines(self) -> None:
+        compact = hook.compact(self.block)
+        self.assertEqual(compact.splitlines(), [
+            "ShipLoop ▶ " + line(self.block, "Where").split(":", 1)[1].strip(),
+            "Done: " + line(self.block, "Done").split(":", 1)[1].strip()
+            + " | Next: " + line(self.block, "Next").split(":", 1)[1].strip(),
+        ])
+        self.assertNotIn(BEGIN, compact)
+        stopped = "\n".join([BEGIN, "Where:     Release > deploy (2 of 3)", "Done:      W1 check: ok.",
+                             "Waiting on you: Which account?", "Stopped:   paused: x.", END])
+        self.assertEqual(hook.compact(stopped).splitlines()[1],
+                         "Done: W1 check: ok. | Waiting on you: Which account?")
+        self.assertEqual(hook.compact(BEGIN + "\nnoise\n" + END), BEGIN + "\nnoise\n" + END)
 
     def test_host_payload_shapes(self) -> None:
         """Claude and Codex display; Grok and Cursor are recognized but cannot display."""
@@ -410,7 +424,7 @@ class StatusHookTests(unittest.TestCase):
                 completed = self.run_hook(json.dumps(shape(self.command, self.packet)))
                 self.assertEqual(completed.returncode, 0, completed.stderr)
                 if name == "codex":
-                    self.assertEqual(json.loads(completed.stdout), {"systemMessage": self.block})
+                    self.assertEqual(json.loads(completed.stdout), {"systemMessage": hook.compact(self.block)})
                 else:
                     self.assertEqual(completed.stdout, "")
 

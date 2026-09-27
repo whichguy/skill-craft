@@ -585,7 +585,9 @@ awaiting, halted and done packets are short and print whole.
 
 Each packet carries a script-rendered **status block** (`=== ShipLoop status ===`):
 where the run is, what just finished, what comes next and what is complete.
-Show it to the user unchanged unless a host status hook already did; see
+Do not reprint it: a host status hook shows the user a two-line summary where
+the host supports one. Tell the user at most one line per completed step, and show
+the whole block unchanged only when they ask for the full status; see
 [status display](references/status-display.md).
 
 Run to completion by default within the user's scope and existing authority.
@@ -712,9 +714,9 @@ question about the loop is not a stop: answer it and continue the packet.
 6. Completion records the host's declaration. It is not independent proof that
    software was tested, deployed, or accepted by a consumer.
 
-Use each packet's derived progress snapshot to keep the user oriented: briefly
-group recorded completions, the current assignment, pending work and blockers
-at start/recovery and after each major completed step. During long work, report
+Use each packet's derived progress snapshot to keep the user oriented in one
+line at start/recovery and after each major completed step: what completed, the
+current assignment and any blocker. During long work, report
 observed activity and the next check at the host's normal update cadence. Only the owner
 reports overall progress; avoid repeating unchanged packets or worker updates.
 An active assignment does not establish execution. Keep paused, blocked, halted,
