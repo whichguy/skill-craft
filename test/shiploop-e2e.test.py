@@ -767,7 +767,8 @@ class MetricsTest(unittest.TestCase):
             'mv /x/wt/.shiploop-improve/n/packet.json /x/p.old': ["shell write into a ShipLoop-owned path"],
             'echo x > /x/.shiploop/state.md': ["shell write into a ShipLoop-owned path"],
             'git -C /x/wt commit -F /tmp/m': ["git commit/add by the model"],
-            'python3 - <<PY\n{"exit_condition": 1}\nPY': ["hand-built loop contract"],
+            'python3 until_loop.py start --directory /x <<PY\n{"exit_condition": 1}\nPY': ["hand-built loop contract"],
+            "python3 - <<'PY'\nd=json.load(open('/x/run/quality/c-contract.json'))\nprint(d['exit_condition'][:500])\nPY": [],
             'python3 /p/shiploop improve-commit --run-dir=/x/run --action=a --message=/x/m.md': [],
             # words inside a heredoc are a document, not commands
             "python3 - << 'PY'\nreport = {'evidence': 'git log shows the commit'}\nPY\n": [],

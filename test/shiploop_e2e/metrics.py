@@ -34,9 +34,8 @@ MODEL_INPUT = re.compile(r"/inbox/|/run/notes/|/run/evidence/|/reviews/|opening\
 GLUE_COMMIT = re.compile(r"(?:^|[;&|]\s*)(?:\w+=\S*\s+)*git\b[^\n;&|]*\s(?:commit|add)\b", re.M)
 GLUE_WRITE = re.compile(r"(?:>>?|\btee\b|\bcp\b|\bmv\b|\bmkdir\b|\brm\b)\s+[^\n;&|]*")
 GLUE_CONTRACT = re.compile(r"exit_condition|repeat_condition|required_trivial_reviews")
-# Reading ShipLoop's contract (json.load, cat, jq) is fine; writing or feeding one is glue.
-CONTRACT_READ = re.compile(r"json\.load\(|\bcat\b|\bjq\b|\bgrep\b")
-CONTRACT_WRITE = re.compile(r"json\.dump|write_text|open\([^)]*['\"][wa]|>\s*\S|<<")
+# Reading ShipLoop's contract is fine; writing one, or feeding one to the Until Loop runtime, is glue.
+CONTRACT_WRITE = re.compile(r"json\.dump|write_text|open\([^)]*['\"][wa]|[^-<>=]>\s*[^\s=&]|until[-_]loop")
 
 
 HEREDOC = re.compile(r"<<-?\s*['\"]?(\w+)['\"]?[^\n]*\n.*?\n\s*\1\s*(?:\n|$)", re.S)
@@ -56,7 +55,7 @@ def glue_reasons(command: str) -> list[str]:
     if any(SHIPLOOP_OWNED.search(m.group(0)) and not MODEL_INPUT.search(m.group(0))
            for m in GLUE_WRITE.finditer(shell)):
         reasons.append("shell write into a ShipLoop-owned path")
-    if GLUE_CONTRACT.search(command) and (CONTRACT_WRITE.search(command) or not CONTRACT_READ.search(command)):
+    if GLUE_CONTRACT.search(command) and CONTRACT_WRITE.search(command):
         reasons.append("hand-built loop contract")
     return reasons
 FAILURE_LINE = re.compile(r"error|refus|reject|required|must|invalid", re.I)
