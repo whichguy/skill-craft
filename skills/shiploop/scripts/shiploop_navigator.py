@@ -1043,6 +1043,7 @@ def _run_rules(core: Any, root: Path, state: Mapping[str, Any]) -> list[str]:
         f"CLI locator: {_command(core)}",
         "ShipLoop skill card: " + str(reference_dir.parent / "SKILL.md"),
         f"Run directory locator: {root}",
+        f"Scratch directory (your temporary files; /tmp is shared with other runs): {scratch_dir(root)}",
         # Keepalive hooks bind a host session to this run from this exact line.
         f"Keepalive marker: {KEEPALIVE_MARKER} run={state['run_id']} rev={state['revision']} dir={root}",
         "Access-readiness policy: "
@@ -1124,6 +1125,11 @@ def packet_path(root: Path, state: Mapping[str, Any]) -> Path:
 PRINT_LIMIT = 16_000
 
 
+def scratch_dir(root: Path) -> Path:
+    """The run's own place for the model's temporary files (plan P13)."""
+    return Path(root) / "scratch"
+
+
 def emit(core: Any, root: Path, state: Mapping[str, Any]) -> str:
     """Write the full packet to a file and print a short head that points at it.
 
@@ -1135,6 +1141,7 @@ def emit(core: Any, root: Path, state: Mapping[str, Any]) -> str:
     pass ``PRINT_LIMIT``; then they print a pointer to the file and what fits.
     """
     timeline = load_timeline(root)
+    scratch_dir(root).mkdir(exist_ok=True)
     text = render(core, root, state, timeline=timeline)
     path = packet_path(root, state)
     store.atomic_write_text(path, text)
@@ -3542,6 +3549,9 @@ def _render_improve(core: Any, root: Path, state: Mapping[str, Any], lines: list
         "one when the first pass changed nothing) and checks.md; nothing else to list. A plan/RED "
         "disposition is checked against its own criteria, not future product success.",
         "Optional, for later steps: lessons in a plain-text file passed as --notes " + str(notes_path) + ".",
+        "Temporary files, including each report you pass to the runtime on standard input, go in "
+        + str(scratch_dir(root)) + " with names of your own: /tmp is shared with other runs, so a fixed "
+        "/tmp name can read another run's file.",
         "If Improve changes decisions or decision-relevant evidence needed by a successor, include "
         "final_result: a complete step result with the same fields as the Step result record above "
         "(outcome done, repeat, blocked or, at OUTER stages, replan; never reconcile), preserving "

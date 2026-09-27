@@ -397,6 +397,10 @@ class NavigatorV4Tests(unittest.TestCase):
         notebook = self.repo / ".shiploop-improve" / state["run_id"] / "planning-investigation.md"
         self.assertIn(str(ROOT / "skills" / "shiploop" / "references" / "planning-experiments.md"), producer)
         self.assertIn(str(notebook), producer)
+        # P13: every packet names the run's scratch directory and says why /tmp is not used.
+        self.assertIn("Scratch directory (your temporary files; /tmp is shared with other runs): "
+                      + str(root / "scratch"), producer)
+        self.assertIn("packet's Scratch directory, not /tmp", " ".join(producer.split()))
 
         waiting, action, _child = self.bound_plan_child(state)
         improve = navigator.render(None, root, waiting)

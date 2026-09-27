@@ -625,6 +625,7 @@ def baseline_row(result: dict, style: str | None, suite: str | None) -> dict:
             "turns": m.get("turns"), "cost_usd": m.get("cost_usd"),
             "sessions": len((result.get("process") or {}).get("sessions") or []),
             "cancelled_tool_calls": m.get("cancelled_tool_calls"), "model_glue": m.get("model_glue"),
+            "tmp_writes": m.get("tmp_writes"),
             "shiploop_failures": m.get("shiploop_failures"), "compactions": m.get("compactions"),
             "truncated_outputs": m.get("truncated_outputs"), "narrative": m.get("narrative"),
             "output": result.get("output")}
@@ -643,6 +644,15 @@ def previous_row(path: Path, case: str, source: str | None) -> dict | None:
         if row.get("case") == case and row.get("source") == source:
             found = row
     return found
+
+
+def shared_tmp_writes(outputs: list[Path]) -> dict[str, list[str]]:
+    """Each literal /tmp path that more than one of these runs wrote, with the runs that wrote it."""
+    writers: dict[str, list[str]] = {}
+    for out in outputs:
+        for name in metrics.collect(out).get("tmp_writes") or []:
+            writers.setdefault(name, []).append(out.name)
+    return {name: runs for name, runs in sorted(writers.items()) if len(runs) > 1}
 
 
 def suite_chains(order: list[str], cases: dict) -> list[list[str]]:
@@ -715,7 +725,13 @@ def run_suite(args, argv: list[str]) -> int:
     with ThreadPoolExecutor(max_workers=workers) as pool:
         rows = [row for chain_rows in pool.map(run_chain, chains) for row in chain_rows]
     summary = sorted(rows, key=lambda row: order.index(row["case"]))
-    (base / "suite-result.json").write_text(json.dumps({"suite": args.suite, "cases": summary}, indent=2) + "\n")
+    shared = shared_tmp_writes([Path(row["output"]) for row in summary if row.get("output")])
+    if shared:
+        # Concurrent runs that wrote the same /tmp name may have read each other's files (plan P13).
+        print("suite " + args.suite + ": /tmp names written by more than one case (their evidence is suspect): "
+              + "; ".join(f"{name} ({', '.join(cases_)})" for name, cases_ in shared.items()), flush=True)
+    (base / "suite-result.json").write_text(json.dumps({"suite": args.suite, "cases": summary,
+                                                        "shared_tmp_writes": shared}, indent=2) + "\n")
     print(f"suite {args.suite}: " + ", ".join(
         f"{row['case']} {'SKIP' if 'skipped' in row else 'PASS' if row['pass'] else 'FAIL'}" for row in summary))
     return 0 if all(row.get("pass") for row in summary) else 1
@@ -864,6 +880,7 @@ def main(argv: list[str] | None = None) -> int:
                                                       "improve_children")}
               | {"script_verifications": run_metrics["script_verifications"],
                  "model_glue": len(run_metrics["model_glue"]),
+                 "tmp_writes": len(run_metrics["tmp_writes"]),
                  "asked_user": len(run_metrics["asked_user"]),
                  "narrative": {k: v for k, v in run_metrics["narrative"].items() if k != "skipped"},
                  "shiploop_failures": len(run_metrics["shiploop_failures"]),

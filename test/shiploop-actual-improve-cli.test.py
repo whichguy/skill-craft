@@ -853,6 +853,11 @@ class EphemeralImproveCliTests(ImproveCliFixture):
             self.skipTest("the delegated route keeps its manual start instructions")
         packet = self.invoke(CLI, "next", "--run-dir", self.run).stdout
         full = Path(next(line for line in packet.splitlines() if line.startswith("Full packet: "))[13:]).read_text()
+        # P13: the run's scratch directory exists and takes the reports piped to the runtime, not /tmp.
+        scratch = self.run / "scratch"
+        self.assertTrue(scratch.is_dir())
+        self.assertIn("Temporary files, including each report you pass to the runtime on standard input, go in "
+                      + str(scratch), " ".join(full.split()))
         obligations = {
             "write the opening": "Context-first opening: before start, write the opening file",
             "start through ShipLoop": " improve-start --run-dir=",

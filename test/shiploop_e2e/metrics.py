@@ -29,6 +29,18 @@ SHIPLOOP_OWNED = re.compile(r"(?:\.shiploop-improve|/\.shiploop(?:/|[\"'\s]|$)|\
 ASK_PERSON = re.compile(r"ask_?user", re.I)
 # Files the packets ask the model itself to write (its result, evidence notes, Improve
 # review evidence, an Improve opening or commit message): writing them is the step, not glue.
+# A write to a literal /tmp path (redirect, tee, cp or mv target): shared with every other run (plan P13).
+TMP_WRITE = re.compile(r"(?:>>?|\btee\s+(?:-a\s+)?|\b(?:cp|mv)\s+(?:-\S+\s+)*\S+\s+)\s*[\"']?(/tmp/[^\s\"';|&)]+)")
+
+
+WRITE_TOOL = re.compile(r"write|edit|replace|create", re.I)
+
+
+def tmp_writes(command: str) -> list[str]:
+    """The literal /tmp paths a shell command writes (heredoc bodies are documents, not commands)."""
+    return TMP_WRITE.findall(shell_text(command))
+
+
 MODEL_INPUT = re.compile(r"/inbox/|/run/notes/|/run/evidence/|/reviews/|opening\.md|commit-message\.md")
 # `git ... commit|add` as a command: at the start of a line or after ; && || |, optionally after VAR=value.
 GLUE_COMMIT = re.compile(r"(?:^|[;&|]\s*)(?:\w+=\S*\s+)*git\b[^\n;&|]*\s(?:commit|add)\b", re.M)
@@ -112,6 +124,7 @@ def stage_results(run_dir: Path | None) -> list[dict]:
 def collect(out: Path, run_dir: Path | None = None) -> dict:
     stamps = timeline(out / "timeline.jsonl")
     calls: dict[str, dict] = {}
+    shared: set[str] = set()
     turns: list[dict] = []
     sessions, failures, compactions = [], [], 0
     glue: list[dict] = []
@@ -145,11 +158,14 @@ def collect(out: Path, run_dir: Path | None = None) -> dict:
             command = str(arg.get("command") or "")
             calls[event.get("toolCallId")] = {"t": t, "command": command}
             reasons = glue_reasons(command) if command else []
+            shared.update(tmp_writes(command) if command else [])
             if reasons:
                 glue.append({"reasons": reasons, "command": " ".join(command.split())[:200]})
             target = arg.get("target_file") or arg.get("file_path") or arg.get("path")
             if target:
                 reads.append(str(target))
+                if WRITE_TOOL.search(tool) and str(target).startswith("/tmp/"):
+                    shared.add(str(target))
         elif kind == "tool_call_update" and event.get("status") == "failed" and "cancelled" in json.dumps(
                 event.get("content") or "").lower():
             # Grok's headless permission check refused the call; the turn ends with it.
@@ -178,6 +194,7 @@ def collect(out: Path, run_dir: Path | None = None) -> dict:
     stages = per_stage(stage_results(run_dir), turns, calls, stamps, cost)
     improve = run_dir / "improve" if run_dir else None
     return {
+        "tmp_writes": sorted(shared),
         "sessions": sessions,
         "turns": len(turns) + unreported,
         "tokens": {"input_peak": max((x["input"] for x in turns), default=0),

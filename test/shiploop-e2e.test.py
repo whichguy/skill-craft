@@ -557,6 +557,24 @@ class SuiteTest(HarnessCase):
         self.assertIn("failed", result["cases"][1]["skipped"])
         self.assertFalse((self.tmp / "suite-out" / "second").exists())
 
+    def test_tmp_writes_and_names_shared_across_runs(self):
+        """P13: a literal /tmp path is shared with every other run; the suite names any two that met."""
+        self.assertEqual(metrics.tmp_writes("node --test > /tmp/w1.txt 2>&1"), ["/tmp/w1.txt"])
+        self.assertEqual(metrics.tmp_writes("python3 x.py | tee /tmp/r.json"), ["/tmp/r.json"])
+        self.assertEqual(metrics.tmp_writes('mv out.json "/tmp/improve-done-1.json"'), ["/tmp/improve-done-1.json"])
+        self.assertEqual(metrics.tmp_writes("cat /tmp/a.txt"), [])  # a read
+        self.assertEqual(metrics.tmp_writes("x > /x/run/scratch/a.txt"), [])  # the run's own scratch
+        self.assertEqual(metrics.tmp_writes("python3 - <<'PY'\nopen('/tmp/x','w')\nPY"), [])  # a document
+        outs = []
+        for name, target in (("a", "/tmp/improve-done-1.json"), ("b", "/tmp/improve-done-1.json"),
+                             ("c", "/tmp/other.json")):
+            out = self.tmp / name
+            out.mkdir()
+            (out / "events.jsonl").write_text(json.dumps({"type": "tool_call", "toolCallId": "1", "toolName": "write",
+                                                          "rawInput": {"file_path": target, "content": "{}"}}) + "\n")
+            outs.append(out)
+        self.assertEqual(run.shared_tmp_writes(outs), {"/tmp/improve-done-1.json": ["a", "b"]})
+
     def test_independent_chains_run_concurrently_and_report_in_suite_order(self):
         cases = {"a": {"style": "s", "prompt": "p", "checks": []},
                  "b": {"style": "t", "prompt": "p", "checks": []},
