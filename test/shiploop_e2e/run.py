@@ -828,6 +828,9 @@ def main(argv: list[str] | None = None) -> int:
     env = host.env(out / "home")
     if args.source == "marketplace":
         plugin_dir, plugin, versions = marketplace_preflight(args, out, env)
+        if resumed:
+            # A resumed run keeps the version it started on (below); a newer release is not a reason to refuse it.
+            versions["gate"] = [problem for problem in versions["gate"] if not problem.startswith("installed ")]
         if versions["gate"]:
             (out / "result.json").write_text(json.dumps({"case": name, "pass": False, "versions": versions,
                                                          "output": str(out)}, indent=2) + "\n")
