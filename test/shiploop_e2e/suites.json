@@ -18,7 +18,23 @@
   "breadth": {
     "kind": "breadth",
     "cases": [
-      "battleship"
+      "battleship",
+      "csv-report",
+      "seat-reservations"
+    ]
+  },
+  "cli-files": {
+    "kind": "focused",
+    "style": "cli-files",
+    "cases": [
+      "csv-report"
+    ]
+  },
+  "stateful-service": {
+    "kind": "focused",
+    "style": "stateful-service",
+    "cases": [
+      "seat-reservations"
     ]
   }
 }

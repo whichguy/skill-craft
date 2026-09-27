@@ -477,7 +477,8 @@ def run_checks(work: Path, checks: list[str], timeout: int = 180, env: dict | No
     for command in checks:
         try:
             done = subprocess.run(command, shell=True, cwd=work, capture_output=True,
-                                  text=True, timeout=timeout, env=dict(os.environ, **(env or {})))
+                                  text=True, timeout=timeout,
+                                  env=dict(os.environ, E2E_CHECKS=str(HERE / "checks"), **(env or {})))
             code, output = done.returncode, (done.stdout + done.stderr)[-2000:]
         except subprocess.TimeoutExpired:
             code, output = None, "timeout"

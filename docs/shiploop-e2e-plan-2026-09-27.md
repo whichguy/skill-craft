@@ -156,22 +156,65 @@ Evidence: packet-contract, delegation, v3-guidance suites; packet sizes;
 `web-service` focused suite.
 
 ### P6 Baselines for the new styles (harness + runs)
-Change: write `cli-files` and `stateful-service` cases (product checks only in
-`cases.json`), run each focused suite once on the current release.
+Two cases, both Python 3 standard library (a different stack from the Node web
+case, nothing to install), each the only case of its focused suite and one of
+the three `breadth` cases. Product checks live in `test/shiploop_e2e/checks/`
+(`$E2E_CHECKS`), build their inputs in temporary directories and write
+nothing into the work directory. Both were validated before any live run:
+reference implementations pass every check; a race-prone service fails the
+concurrency check (43 of 50 reservations accepted on capacity 20).
+
+**`csv-report`** (style `cli-files`): `report.py FILE...` summarises sales CSV
+into JSON; invalid rows reported as `FILE:LINE: reason`, exit codes 0/2/1.
+
+| Check | What it proves | Anchor (what it lets the run show about ShipLoop) |
+|---|---|---|
+| unit | `python3 -m unittest` passes with at least one test | S-9: the product's own suite exists and runs |
+| totals | exact rows, revenue, per-region revenue, per-product units | S-9 on a spec-level example (the spec must pin arithmetic and rounding) |
+| invalid | bad rows reported with `FILE:LINE`, skipped, exit 2, valid rows across files still counted | edge cases carried from request to spec to tests (S-6: nothing lost between stages) |
+| missing | unreadable file: exit 1, stderr message, empty stdout, no traceback | error paths planned, not only the happy path |
+| empty | header-only file contributes nothing | boundary input |
+
+**`seat-reservations`** (style `stateful-service`): HTTP service with SQLite
+persistence (`PORT`, `DATA_FILE`) that must never oversell under concurrency.
+
+| Check | What it proves | Anchor |
+|---|---|---|
+| unit | `python3 -m unittest` passes with at least one test | S-9 |
+| contract | create, duplicate (409), reserve, over-capacity (409), read, unknown (404), invalid seats (400), state unchanged by rejections | S-9 on the full HTTP contract |
+| restart | reservations survive a server restart on the same `DATA_FILE` | the lifecycle/state decisions in planning (owner, persistence) reach the product |
+| concurrency | 50 parallel 1-seat requests on capacity 20: exactly 20 accepted, 30 refused, 20 reserved | a stated concurrency rule is planned and tested, not assumed |
+
+What the baseline runs measure about ShipLoop in each style (from metrics and
+review): verdicts including `committed`; turns, cost, sessions, cancellations;
+`model_glue`; ShipLoop failures; which stages cost most in a style with no UI
+(cli-files) and with a concurrency rule (stateful-service); whether the
+general planning guidance (state lifecycle, simultaneous changes) is applied
+without a game-shaped example.
 
 Adversarial evaluation:
-- *Cases need tools the machine lacks (a database, a package manager)* ->
-  **mitigated**: dependency-free prompts; stdlib only; a different language
-  from the web case to vary the stack.
-- *Concurrency checks are flaky and blame ShipLoop* -> **mitigated**:
-  deterministic invariants (N parallel writes -> exactly N records), no
-  timing assertions; a flaky check is a harness defect.
-- *A case fails for product reasons* -> **accepted**: product defects are
-  evidence only; review against the spec.
-- *Cost of two more runs (~$25-35 each)* -> **accepted**: required for S-13.
+- *Cases need tools the machine lacks* -> **mitigated**: Python standard
+  library only; confirmed present (Python 3.14, sqlite3).
+- *Concurrency check flakes* -> **mitigated**: invariant counts only, no
+  timing; validated both ways (correct service passes, racy one fails).
+- *Checks encode an implementation choice the prompt did not state* ->
+  **mitigated**: every asserted field, code and message shape is in the prompt;
+  rounding checked to 2 decimals; region revenue compared numerically.
+- *Checks leave files or servers behind* -> **mitigated**: temporary dirs;
+  servers terminated in `finally`; the harness deletes new untracked files.
+- *A port collision fails a check* -> **mitigated**: free port per server.
+- *A failure is the product's, not ShipLoop's* -> **accepted**: product
+  defects are evidence; the review judges against the spec.
+- *Two runs in parallel interfere* -> **mitigated**: separate isolated host
+  profiles, output directories and free ports; cost unchanged (~$25-35 each).
+- *A typo in a check silently fails a live run* -> **mitigated**: self-test
+  asserts every `$E2E_CHECKS` script and subcommand exists.
 
-Anchor: SPEC "E2E suites"; Purpose. Non-regression: new cases only.
-Evidence: two runs with baseline rows.
+Anchor: SPEC "E2E suites" (a baseline per style before judging changes);
+Purpose (generality). Non-regression: new cases, suites and checks only; the
+web-service cases are unchanged; `breadth` gains the two cases. Evidence:
+self-test (40 cases); reference/negative validation above; one run of each
+focused suite on the current release, rows in `baselines.jsonl`.
 
 ### P7 Release and breadth gate
 Change: one release for P3-P5 after the full hermetic tier; host updates;

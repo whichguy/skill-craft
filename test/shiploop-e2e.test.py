@@ -16,6 +16,7 @@ import io
 import json
 import os
 from pathlib import Path
+import re
 import stat
 import subprocess
 import sys
@@ -514,6 +515,16 @@ class SuiteTest(HarnessCase):
         focused = {s["style"] for s in suites.values() if s["kind"] == "focused" and s["style"] != "smoke"}
         breadth = {cases[c]["style"] for c in suites["breadth"]["cases"]}
         self.assertEqual(breadth, focused)
+
+    def test_case_checks_name_existing_helper_scripts_and_subcommands(self):
+        cases = json.loads(run.CASES.read_text())
+        for name, case in cases.items():
+            for check in case["checks"] + case.get("retention", []):
+                for script, sub in re.findall(r'"\$E2E_CHECKS/([\w.]+)" (\w+)', check):
+                    with self.subTest(case=name, check=check):
+                        path = run.HERE / "checks" / script
+                        self.assertTrue(path.is_file())
+                        self.assertIn('"' + sub + '":', path.read_text())
 
     def test_a_second_run_reports_the_change_against_the_previous_row(self):
         self.invoke("grok", "done")
