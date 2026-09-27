@@ -107,6 +107,18 @@ tested in general terms; its tests use neutral fixtures, not the probe's
 product. A case's specifics (its prompt and product checks) stay in the
 harness's case catalog.
 
+**S-14 Unattended by default.** Every implementation and every test case assumes
+ShipLoop runs unattended: no person is watching, nothing is typed on standard
+input, and no prompt is answered. The scripts never read a terminal or wait
+for input; hosts and checks run with standard input closed. When a step meets
+an open question, it takes a stated, recorded default (an assumption the
+handoff reports) instead of waiting. When a step needs something only a person
+can supply (a sign-in, a grant, a physical observation, an authority the run
+does not hold), the run records it as an open item, continues with everything
+that does not depend on it, and, if nothing can continue, ends with a clear
+report of what is needed; it never hangs waiting for a reply. Asking a person
+is an explicit choice of an attended run, never the default.
+
 ## Change admission
 
 No change is planned, let alone made, before its negative consequences have
@@ -117,11 +129,12 @@ the plan item and summarised in the commit message:
 - **Adversarial evaluation first.** Before the change is planned, attack it:
   argue the case against it as a hostile reviewer would. At minimum ask how it
   could:
-  - weaken any clause S-1..S-13, including ones it does not target;
+  - weaken any clause S-1..S-14, including ones it does not target;
   - break another style, host, language or platform than the one that
     motivated it;
   - fail silently, or pass the tests while failing a live run;
-  - add model-written glue, host refusals or recovery dead ends;
+  - add model-written glue, host refusals or recovery dead ends, or wait on a
+    person in an unattended run (S-14);
   - enlarge printed or filed packet text, or context over a whole run;
   - leak or commit secrets, touch user work outside the run, or change the
     user's repository or history unexpectedly;
@@ -188,6 +201,7 @@ on quickly before the breadth of everything is checked.
 | S-9, S-10 | `script_verifications` (ShipLoop's own verify records), Improve children; a zero-test pass fails |
 | S-11 | `committed` verdict; follow-on retention checks (earlier files, spec IDs, tests grew) |
 | S-8, S-12, S-13 | review of the diff under test: no technology in prompts, no second implementation |
+| S-14 | host and checks run with standard input closed; `asked_user` (host ask-a-person tool calls); a run ending blocked or awaiting a person is reported as such, never resumed as if answered |
 
 Verdicts (invoked, plugin, process, shiploop, committed, checks) must all pass.
 Reliability (sessions, cancellations, failures) and cost (turns, dollars, per
@@ -214,6 +228,9 @@ stands at the commit under test.
 
 - Test exactly what the marketplace publishes (`--source marketplace`, version
   gate); build the checkout only to try an unreleased candidate.
+- Run unattended (S-14): the host and every check get closed standard input and
+  a timeout; a case prompt never needs a person, and a check never waits for
+  input.
 - Start from an empty directory, or for a follow-on case, from a clean copy of
   an earlier run's checkout. The harness leaves no files of its own behind.
 - Never print packet text or run markers into a session that is not the run's
