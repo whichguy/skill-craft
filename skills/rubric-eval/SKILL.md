@@ -31,8 +31,8 @@ one step with a file contract, so other skills can call any step:
 E=scripts/rubric-eval
 $E extract skills/shiploop/scripts/shiploop_navigator_v3_prompts.py --symbol INTERACTION_DESIGN
 $E build RUN --arm base=OLD.py::INTERACTION_DESIGN --arm cand=NEW.py::INTERACTION_DESIGN --trials 2
-$E run RUN --model sonnet          # or --model grok (grok-4.7, medium effort)
-$E judge RUN
+$E run RUN --model grok             # execution: grok-4.7, medium effort (sonnet for exploratory rounds)
+$E judge RUN --model opus           # the one judge for the round: claude-opus-5-5, medium effort
 $E analyze RUN --baseline base      # composites, paired intervals, decision
 $E reliability RUN --n 30           # when the judge changes
 echo "prompt" | $E call --model grok
@@ -54,5 +54,11 @@ Review experiments grade a review's revised plan: build with `--frame review
    `ship: true` there and the loop is complete (SPEC section 8).
 6. Record everything in the results doc (SPEC section 10).
 
-Long runs: report progress at the interval the user asks for, with interim
-paired results; they stabilise as more cells finish.
+Long runs:
+- Name `--model` on every `run` and `judge` command, keep one grading loop per
+  round, and confirm from the process list that a stopped loop is gone
+  (SPEC section 11).
+- Report progress at the interval the user asks for, as a narrative: where the
+  work sits in the larger goal, what finished and showed, what is running and
+  why, the conclusions so far with their strength, the learnings, and what
+  comes next. Interim paired results stabilise as more cells finish.

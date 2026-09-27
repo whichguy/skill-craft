@@ -79,7 +79,11 @@ than a run this round (the unreviewed plans of a review experiment) is marked
 - a prompt that asks the model to check something (a review focus that says to
   run a command) runs with `--tools Read` from an empty directory; with no tools
   a model may announce a tool call and stop, which is a stub, not a result;
-- the judge sees one output at a time, never the arm name.
+- the judge sees one output at a time, never the arm name;
+- one judge for the whole round: every verdict records `judge_model`, and
+  `analyze` refuses to decide when a run's verdicts come from more than one
+  judge (a changed default once let running loops write Grok verdicts into a
+  Sonnet-graded round, invisibly).
 
 ## 6. Models
 
@@ -179,12 +183,26 @@ table with intervals, composites, the decision, the adversarial findings and
 what their experiments showed, and every deviation from these rules. Commit
 verdicts and the harness with the results; never commit private fixtures.
 
-## 11. Cost and throughput
+## 11. Cost, throughput and process hygiene
 
 Runs use worker pools (defaults: 8 subject, 10 judge). Parallel calls share the
 account's rate limits, so more workers stop helping past a point; watch
 progress rather than adding pools. A hung call times out rather than stalling
-the pool.
+the pool. Budget grading time for slower models (Grok at medium effort took
+about 6.5 minutes per rubric grade).
+
+Long rounds run as background loops, which outlive the command that started
+them:
+- **Name every model explicitly** in every `run` and `judge` command, even when
+  it equals the default. A loop that relies on the default changes behaviour
+  when the default changes.
+- **Run one grading loop per round.** Before starting another, list the running
+  processes and stop the old loop.
+- **Verify stops from the process list**, not from the kill command: a pattern
+  that does not match leaves the loop running. After stopping, confirm no
+  `rubric-eval run`/`judge` process or model call for that round remains.
+- A round's verdict count only means something with one judge; if mixed judges
+  are found, remove the verdicts written after the change and re-grade them.
 
 ## 12. Open items
 

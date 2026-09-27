@@ -12,9 +12,11 @@ the change lifecycle in `rubric-eval`'s SPEC.
   source; do not paraphrase.
 - `evidence`: the results the change rests on, with arms, subject and judge
   models, scenarios, trials and conditions.
-- `reviewer`: a model family independent of the proposer (the session model and
-  the experiment's subject); `grok` by default, `sonnet` when the proposer is
-  Grok.
+- `reviewer`: a model family independent of whoever proposed the change (the
+  session model that wrote it). `grok` by default, since changes are usually
+  proposed by a Claude session; use `sonnet` or `opus` when the proposer is
+  Grok. It may share a family with the experiment's judge; it must not share
+  the proposer's.
 
 ## Output contract
 
