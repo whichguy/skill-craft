@@ -612,6 +612,77 @@ class MetricsTest(unittest.TestCase):
         self.assertEqual([(s["stage"], s["turns"]) for s in m["stages"]], [("intake", 2), ("spec", 1)])
         self.assertEqual(m["stages"][0]["cost_share_usd"], 2.0)
 
+    NARRATIVE_BODY = ("#### \U0001f6a2 ShipLoop \u2014 Add a flag\n`\u2588\u2591` **Preparation 1/7**\n\n"
+                      "**\u25b6\ufe0f Now** \u2014 **spec**: define behavior\n")
+
+    def packet(self, stage: str, rule: str = "Show the user this narrative exactly as written, as Markdown.") -> str:
+        return (f"ShipLoop navigator | {stage} | revision 3\nCallback: x\n\n=== ShipLoop narrative ===\n{rule}\n\n"
+                f"{self.NARRATIVE_BODY}=== end ShipLoop narrative ===\n")
+
+    def result_record(self, run_dir: Path, name: str, result: dict) -> None:
+        body = json.dumps({"action": name, "result": result, "stage": "intake", "workitem": None}, indent=2)
+        (run_dir / "results" / f"{name}.md").write_text(f"# ShipLoop navigator result\n\n```shiploop-state\n{body}\n```\n")
+
+    def test_narrative_shown_verbatim_skipped_and_headlines_grok(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            out = Path(tmp)
+            run_dir = out / "run"
+            (run_dir / "results").mkdir(parents=True)
+            half = len(self.NARRATIVE_BODY) // 2
+            stream = [
+                {"type": "tool_call", "toolCallId": "a", "rawInput": {"command": "shiploop init"}},
+                {"type": "tool_call_update", "toolCallId": "a", "rawOutput": {"exit_code": 0, "output_for_prompt": self.packet("intake")}},
+                # Grok repeats an update; one tool call is one emission.
+                {"type": "tool_call_update", "toolCallId": "a", "rawOutput": {"exit_code": 0, "output_for_prompt": self.packet("intake")}},
+                {"type": "text", "data": "Starting.\n" + self.NARRATIVE_BODY[:half]},
+                {"type": "text", "data": self.NARRATIVE_BODY[half:]},
+                {"type": "tool_call", "toolCallId": "b", "rawInput": {"command": "shiploop complete"}},
+                {"type": "tool_call_update", "toolCallId": "b", "rawOutput": {"exit_code": 0, "output_for_prompt": self.packet("discovery")}},
+                {"type": "text", "data": "Moving on to discovery."},
+                {"type": "tool_call", "toolCallId": "c", "rawInput": {"command": "shiploop complete"}},
+                {"type": "tool_call_update", "toolCallId": "c", "rawOutput": {"exit_code": 0, "output_for_prompt": self.packet("research")}},
+                {"type": "text", "data": "\U0001f6a2 ShipLoop \u2014 Add a flag\nsomething else"},  # heading only
+                # The CLI hook shows this one; the model is not asked to.
+                {"type": "tool_call", "toolCallId": "d", "rawInput": {"command": "shiploop complete"}},
+                {"type": "tool_call_update", "toolCallId": "d", "rawOutput": {"exit_code": 0, "output_for_prompt": self.packet(
+                    "spec", rule="The host's status hook already shows the user this narrative; do not repeat it.")}},
+            ]
+            (out / "events.jsonl").write_text("\n".join(json.dumps(e) for e in stream) + "\n")
+            self.result_record(run_dir, "r1", {"outcome": "done", "summary": "s", "headline": "Scope set"})
+            self.result_record(run_dir, "r2", {"outcome": "done", "summary": "s"})
+            self.result_record(run_dir, "r3", {"outcome": "done", "summary": "Not applicable to this item: x."})
+            story = metrics.narrative(out, run_dir)
+            report = metrics.summary_lines({**metrics.collect(out, run_dir), "narrative": story})
+        self.assertEqual(story, {"emitted": 3, "shown": 2, "verbatim": 1, "skipped": ["discovery"],
+                                 "results": 2, "with_headline": 1})
+        self.assertIn("narrative shown 2/3 (verbatim 1), skipped at discovery; headlines 1/2 results", report[-1])
+        self.assertNotIn("Add a flag", json.dumps(story))
+
+    def test_narrative_reads_claude_tool_results_and_text_blocks(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            out = Path(tmp)
+            stream = [
+                {"type": "user", "message": {"content": [{"type": "tool_result", "tool_use_id": "t1",
+                                                          "content": [{"type": "text", "text": self.packet("intake")}]}]}},
+                {"type": "assistant", "message": {"content": [{"type": "text", "text": self.NARRATIVE_BODY.replace("#### ", "")}]}},
+                {"type": "user", "message": {"content": [{"type": "tool_result", "tool_use_id": "t2",
+                                                          "content": self.packet("discovery")}]}},
+            ]
+            (out / "events.jsonl").write_text("\n".join(json.dumps(e) for e in stream) + "\n")
+            story = metrics.narrative(out)
+        self.assertEqual((story["emitted"], story["shown"], story["verbatim"], story["skipped"]),
+                         (2, 1, 1, ["discovery"]))
+        self.assertEqual((story["results"], story["with_headline"]), (0, 0))
+
+    def test_run_without_narrative_reports_nothing(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            out = Path(tmp)
+            (out / "events.jsonl").write_text(json.dumps({"type": "text", "data": "hi"}) + "\n")
+            m = metrics.collect(out)
+        self.assertEqual(m["narrative"], {"emitted": 0, "shown": 0, "verbatim": 0, "skipped": [],
+                                          "results": 0, "with_headline": 0})
+        self.assertFalse(any(line.startswith("narrative") for line in metrics.summary_lines(m)))
+
     def test_glue_is_defined_by_shiploop_paths_and_verbs_not_by_product_tools(self):
         cases = {
             'cd /x/.shiploop-runs/a/worktree && node --test > "/x/.shiploop-runs/a/worktree/out.txt"': [],

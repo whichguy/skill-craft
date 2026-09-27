@@ -183,8 +183,87 @@ def collect(out: Path, run_dir: Path | None = None) -> dict:
         "asked_user": asked,
         "improve_children": len(list(improve.iterdir())) if improve and improve.is_dir() else 0,
         "knowledge_reads": sorted({r[r.index("docs/shiploop"):] for r in reads if "docs/shiploop" in r}),
+        "narrative": narrative(out, run_dir),
         "stages": stages,
     }
+
+
+NARRATIVE = re.compile(r"=== ShipLoop narrative ===\n(?P<rule>[^\n]*)\n(?P<body>.*?)=== end ShipLoop narrative ===", re.S)
+PACKET_STAGE = re.compile(r"ShipLoop navigator \| (?P<stage>[\w-]+) \|")
+STATE_BLOCK = re.compile(r"```shiploop-state\n(?P<json>.*?)\n```", re.S)
+
+
+def _tool_output(event: dict) -> tuple[str | None, str]:
+    """(tool call id, text) of one tool result event, for Claude and Grok streams."""
+    if event.get("type") == "tool_call_update" and isinstance(event.get("rawOutput"), dict):
+        return event.get("toolCallId"), visible(event["rawOutput"])
+    if event.get("type") == "user":
+        for block in (event.get("message") or {}).get("content") or []:
+            if isinstance(block, dict) and block.get("type") == "tool_result":
+                content = block.get("content")
+                if isinstance(content, list):
+                    content = "".join(str(part.get("text") or "") for part in content if isinstance(part, dict))
+                return block.get("tool_use_id"), str(content or "")
+    return None, ""
+
+
+def _assistant_text(event: dict) -> str:
+    if event.get("type") == "text":  # Grok streams text in chunks
+        return str(event.get("data") or "")
+    if event.get("type") == "assistant":
+        return "".join(str(block.get("text") or "") for block in (event.get("message") or {}).get("content") or []
+                       if isinstance(block, dict) and block.get("type") == "text")
+    return ""
+
+
+def _lines(text: str) -> list[str]:
+    """Non-blank lines, whitespace-collapsed; a heading's leading marks do not change what it says."""
+    return [" ".join(line.lstrip("#").split()) for line in text.splitlines() if line.lstrip("#").strip()]
+
+
+def narrative(out: Path, run_dir: Path | None = None) -> dict:
+    """SPEC S-15: did the model show each milestone narrative ShipLoop asked it to show?
+
+    An emission is a ShipLoop tool result whose narrative section asks the model to
+    show it. It counts as shown when the narrative's heading appears in the model's
+    text before the next emission, and verbatim when every narrative line does.
+    Keeps counts and stage names only, never narrative text.
+    """
+    emissions: list[dict] = []
+    seen: set = set()
+    for _, event in events(out / "events.jsonl"):
+        call, output = _tool_output(event)
+        match = NARRATIVE.search(output) if output else None
+        if match and call not in seen and "Show the user" in match.group("rule"):
+            seen.add(call)
+            stage = PACKET_STAGE.search(output)
+            emissions.append({"stage": stage.group("stage") if stage else None,
+                              "lines": _lines(match.group("body")), "text": ""})
+        elif emissions:
+            emissions[-1]["text"] += _assistant_text(event)
+    shown = verbatim = 0
+    skipped = []
+    for emission in emissions:
+        said = set(_lines(emission["text"]))
+        if emission["lines"] and emission["lines"][0] in said:
+            shown += 1
+            verbatim += all(line in said for line in emission["lines"])
+        else:
+            skipped.append(emission["stage"])
+    results = with_headline = 0
+    for path in sorted((run_dir / "results").glob("*.md")) if run_dir and (run_dir / "results").is_dir() else []:
+        block = STATE_BLOCK.search(path.read_text(errors="replace"))
+        try:
+            result = json.loads(block.group("json"))["result"] if block else None
+        except (ValueError, KeyError, TypeError):
+            result = None
+        # ShipLoop records not-applicable stages itself; only steps the model reported count.
+        if not isinstance(result, dict) or str(result.get("summary", "")).startswith("Not applicable to this item"):
+            continue
+        results += 1
+        with_headline += bool(str(result.get("headline") or "").strip())
+    return {"emitted": len(emissions), "shown": shown, "verbatim": verbatim, "skipped": skipped,
+            "results": results, "with_headline": with_headline}
 
 
 def verifications(run_dir: Path | None) -> dict:
@@ -228,6 +307,11 @@ def summary_lines(metrics: dict, top: int = 5) -> list[str]:
              f"script verifications {metrics['script_verifications']['passed']}/{metrics['script_verifications']['records']} passed, "
              f"model glue {len(metrics['model_glue'])}, asked a person {len(metrics['asked_user'])}, "
              f"Improve children {metrics['improve_children']}"]
+    story = metrics.get("narrative") or {}
+    if story.get("emitted") or story.get("results"):
+        lines.append(f"narrative shown {story['shown']}/{story['emitted']} (verbatim {story['verbatim']})"
+                     + (f", skipped at {', '.join(str(s) for s in story['skipped'][:5])}" if story["skipped"] else "")
+                     + f"; headlines {story['with_headline']}/{story['results']} results")
     timed = [s for s in metrics["stages"] if "turns" in s]
     if timed:
         costly = sorted(timed, key=lambda s: s["turns"], reverse=True)[:top]

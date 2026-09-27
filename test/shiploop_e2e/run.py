@@ -537,7 +537,8 @@ def baseline_row(result: dict, style: str | None, suite: str | None) -> dict:
             "sessions": len((result.get("process") or {}).get("sessions") or []),
             "cancelled_tool_calls": m.get("cancelled_tool_calls"), "model_glue": m.get("model_glue"),
             "shiploop_failures": m.get("shiploop_failures"), "compactions": m.get("compactions"),
-            "truncated_outputs": m.get("truncated_outputs"), "output": result.get("output")}
+            "truncated_outputs": m.get("truncated_outputs"), "narrative": m.get("narrative"),
+            "output": result.get("output")}
 
 
 def previous_row(path: Path, case: str, source: str | None) -> dict | None:
@@ -718,6 +719,7 @@ def main(argv: list[str] | None = None) -> int:
               | {"script_verifications": run_metrics["script_verifications"],
                  "model_glue": len(run_metrics["model_glue"]),
                  "asked_user": len(run_metrics["asked_user"]),
+                 "narrative": {k: v for k, v in run_metrics["narrative"].items() if k != "skipped"},
                  "shiploop_failures": len(run_metrics["shiploop_failures"]),
                  "cancelled_tool_calls": len(run_metrics["cancelled_tool_calls"])},
               "output": str(out)}
@@ -764,7 +766,10 @@ def main(argv: list[str] | None = None) -> int:
     if before:
         print(f"  baseline  vs {before['date'][:10]} (ShipLoop {before['shiploop_version']}): "
               f"turns {before['turns']} -> {row['turns']}, cost ${before['cost_usd']} -> ${row['cost_usd']}, "
-              f"sessions {before['sessions']} -> {row['sessions']}, glue {before['model_glue']} -> {row['model_glue']}")
+              f"sessions {before['sessions']} -> {row['sessions']}, glue {before['model_glue']} -> {row['model_glue']}"
+              + (f", narrative shown {before['narrative']['shown']}/{before['narrative']['emitted']} -> "
+                 f"{row['narrative']['shown']}/{row['narrative']['emitted']}"
+                 if before.get("narrative") and row.get("narrative") else ""))
     return 0 if result["pass"] else 1
 
 
