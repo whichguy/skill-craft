@@ -301,7 +301,9 @@ class VersionGateTest(unittest.TestCase):
     def test_gate_passes_only_when_head_catalog_and_installed_versions_agree(self):
         self.assertEqual(run.version_gate(self.RELEASED, "1.4.0", "0.37.0"), [])
         behind = dict(self.RELEASED, local_head="b" * 40)
-        self.assertIn("is not origin/main", " ".join(run.version_gate(behind, "1.4.0", "0.37.0")))
+        self.assertIn("has commits origin/main", " ".join(run.version_gate(behind, "1.4.0", "0.37.0")))
+        # A checkout merely behind main runs: the plugin comes from the marketplace, not the checkout.
+        self.assertEqual(run.version_gate(dict(behind, local_behind_main=True), "1.4.0", "0.37.0"), [])
         self.assertIn("installed skill-craft 1.3.0", " ".join(run.version_gate(self.RELEASED, "1.3.0", "0.37.0")))
         self.assertIn("installed ShipLoop 0.36.0", " ".join(run.version_gate(self.RELEASED, "1.4.0", "0.36.0")))
         self.assertIn("CI failed", " ".join(run.version_gate(dict(self.RELEASED, ci="failure"), "1.4.0", "0.37.0")))

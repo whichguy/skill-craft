@@ -150,7 +150,10 @@ def released_versions() -> dict:
     pending = [name for name in git("ls-tree", "-r", "--name-only", "origin/main", "changes/").split()
                if name.endswith(".md") and name != "changes/README.md"]
     origin_main = git("rev-parse", "origin/main").strip()
-    return {"origin_main": origin_main, "local_head": git("rev-parse", "HEAD").strip(),
+    local = git("rev-parse", "HEAD").strip()
+    # Behind origin/main is fine (the plugin comes from the marketplace); unpublished local commits are not.
+    behind = subprocess.run(["git", "-C", str(ROOT), "merge-base", "--is-ancestor", local, origin_main]).returncode == 0
+    return {"origin_main": origin_main, "local_head": local, "local_behind_main": behind,
             "catalog_version": plugin.get("version"), "shiploop_version": shiploop.group(1) if shiploop else None,
             "unreleased": pending, "ci": main_ci(origin_main)}
 
@@ -184,8 +187,9 @@ def version_gate(released: dict, plugin_version: str | None, shiploop_version: s
     if released.get("unreleased"):
         problems.append("origin/main has unreleased changes (" + ", ".join(released["unreleased"][:5])
                         + "): run scripts/release.py and push so the marketplace serves them")
-    if released["local_head"] != released["origin_main"]:
-        problems.append(f"local HEAD {released['local_head'][:8]} is not origin/main {released['origin_main'][:8]}")
+    if released["local_head"] != released["origin_main"] and not released.get("local_behind_main"):
+        problems.append(f"local HEAD {released['local_head'][:8]} has commits origin/main "
+                        f"{released['origin_main'][:8]} does not: publish them first")
     if plugin_version != released["catalog_version"]:
         problems.append(f"installed skill-craft {plugin_version} is not the catalog's {released['catalog_version']}")
     if shiploop_version != released["shiploop_version"]:
