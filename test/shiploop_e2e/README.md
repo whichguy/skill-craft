@@ -52,8 +52,48 @@ The output directory keeps the prompt, argv, raw events, a readable
 result. `result.json` also lists tool outputs the host truncated before the
 model saw them (Grok cuts shell output at about 20 KB). When ShipLoop has not
 yet returned its candidate to `work/`, the result names ShipLoop's worktree and
-reports, for information only, how many checks already pass there. Nothing is
-retried or resumed.
+reports, for information only, how many checks already pass there. A Grok
+session that ends while the run is still active is resumed (`--max-resumes`).
+
+### What ShipLoop did
+
+Every run also writes `metrics.json`, derived from the event stream, the
+arrival times the runner stamps on each non-streaming event (`timeline.jsonl`;
+Grok events carry no time) and ShipLoop's run directory:
+
+- per accepted stage: minutes, turns, tool calls, output tokens and an estimated
+  cost share (turn-weighted);
+- sessions and how each ended, turns, peak context, cost, auto-compactions,
+  host-truncated outputs, test runs and Improve children;
+- every `shiploop` command that exited non-zero, with its failing line;
+- which `docs/shiploop/` files the model read.
+
+`result.json` also reports how the run left the source checkout
+(`shiploop.knowledge`): whether `docs/shiploop/spec.md` exists and is committed,
+its requirement IDs, the commits on HEAD, untracked files and branches.
+
+While a run is going, `python3 test/shiploop_e2e/progress.py <output>` prints
+what changed since its last call (new accepted stages with turns and minutes,
+failed ShipLoop commands, truncations, compactions, ended sessions). It never
+prints packet text or run markers, so a ShipLoop keepalive in the watching
+session cannot bind to the run.
+
+### A second feature in the same repository
+
+```sh
+bash test/run-integration.sh shiploop-e2e --case battleship-scoring --continue-from <battleship output>
+```
+
+A case with `follows` runs in a copy of an earlier run's source checkout, as
+that run left it (`.git` and untracked files included; stale worktree records
+dropped; the earlier output is never changed). It asks whether ShipLoop builds
+on what the first run decided. Its checks are the followed case's checks
+(regression), its own feature checks, and retention checks that see the earlier
+checkout as `$PRIOR_WORK`: every earlier file still exists, no dependency was
+added, the passing test count grew, and the living spec keeps every earlier
+requirement ID and adds at least one. The report compares turns and cost with
+the earlier run, and the reviewer judges whether the earlier spec, environment
+notes and modules were used.
 
 ### What version is tested
 
@@ -149,7 +189,9 @@ hello-world with a unittest) and `battleship` (a dependency-free Node HTTP
 server, graded by its own `node --test` suite with at least one passing test,
 by live requests to `/`, `/api/new` and `/api/fire`, and by a full game played
 through the API until `gameOver`, then a repeat shot that must still report
-`gameOver: true`). Add a case there to make another request repeatable.
+`gameOver: true`). `battleship-scoring` follows `battleship`: it adds the
+sunk ship's name, shot and hit counts and an accuracy display. Add a case there
+to make another request repeatable.
 
 `test/shiploop-e2e.test.py` checks the harness with fake `grok` and `claude`
 executables. It runs in normal CI; the live stages never do.

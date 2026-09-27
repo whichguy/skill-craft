@@ -26,6 +26,8 @@ ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT / "test" / "shiploop_e2e"))
 import hosts  # noqa: E402
 import iterate  # noqa: E402
+import metrics  # noqa: E402
+import progress  # noqa: E402
 import review  # noqa: E402
 import run  # noqa: E402
 
@@ -399,6 +401,97 @@ class HostOutputTest(unittest.TestCase):
             transcript = Path(tmp) / "t.md"
             run.write_transcript(events, transcript)
             self.assertIn("out   completed hi", transcript.read_text())
+
+
+class FollowOnTest(HarnessCase):
+    def prior_run(self) -> Path:
+        prior = self.tmp / "prior"
+        work = prior / "work"
+        work.mkdir(parents=True)
+        subprocess.run(["git", "init", "-q", str(work)], check=True)
+        (work / "prior.txt").write_text("kept\n")
+        (work / ".git" / "worktrees" / "stale").mkdir(parents=True)
+        (prior / "result.json").write_text(json.dumps({"case": "hello", "pass": True,
+                                                        "metrics": {"turns": 40, "cost_usd": 2.5}}))
+        return prior
+
+    def test_follow_on_starts_in_a_copy_of_the_earlier_checkout(self):
+        prior = self.prior_run()
+        code, result = self.invoke("grok", "done", "--continue-from", str(prior), "--prompt", "Add a feature.",
+                                   "--check", 'test -f "$PRIOR_WORK/prior.txt" && test -f prior.txt')
+        self.assertEqual(code, 0, result)
+        self.assertIn("prior.txt", self.seen()["cwd_listing"])
+        work = Path(result["output"]) / "work"
+        self.assertFalse((work / ".git" / "worktrees").exists())
+        self.assertTrue((prior / "work" / ".git" / "worktrees" / "stale").is_dir(), "the earlier run is untouched")
+        self.assertEqual(result["follow_on"]["prior_case"], "hello")
+        self.assertEqual(result["follow_on"]["prior_turns"], 40)
+        self.assertEqual(result["follow_on"]["prior_cost_usd"], 2.5)
+
+    def test_follow_on_case_needs_the_run_it_follows(self):
+        with self.assertRaises(SystemExit) as raised:
+            self.invoke("grok", "done", "--case", "battleship-scoring")
+        self.assertIn("--continue-from", str(raised.exception))
+
+    def test_follow_on_case_checks_regression_feature_and_retention(self):
+        cases = json.loads(run.CASES.read_text())
+        args = run.parser().parse_args(["--case", "battleship-scoring"])
+        name, _, checks, follows = run.load_case(args)
+        case = cases[name]
+        self.assertEqual(follows, "battleship")
+        self.assertEqual(checks, cases["battleship"]["checks"] + case["checks"] + case["retention"])
+        self.assertTrue(all("PRIOR_WORK" in check for check in case["retention"]))
+
+
+class MetricsTest(unittest.TestCase):
+    def test_turns_failures_and_truncations_are_attributed_to_stages(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            out = Path(tmp)
+            run_dir = out / "loop" / "run"
+            (run_dir / "results").mkdir(parents=True)
+            (run_dir / "improve" / "child-1").mkdir(parents=True)
+            stream = [
+                {"type": "usage", "usage": {"input_tokens": 1000, "output_tokens": 10}},
+                {"type": "tool_call", "toolCallId": "a", "rawInput": {"command": "python3 x/shiploop complete --run-dir r"}},
+                {"type": "tool_call_update", "toolCallId": "a", "rawOutput": {
+                    "exit_code": 2, "output_for_prompt": "SHIPLOOP-RUN run=x rev=1 dir=/r\nerror: result refused"}},
+                {"type": "tool_call_update", "toolCallId": "a", "rawOutput": {"exit_code": 2, "truncated": True}},
+                {"type": "usage", "usage": {"input_tokens": 3000, "output_tokens": 20}},
+                {"type": "tool_call", "toolCallId": "b", "rawInput": {"command": "node --test"}},
+                {"type": "tool_call_update", "toolCallId": "b", "rawOutput": {"exit_code": 0, "truncated": True}},
+                {"type": "auto_compact_completed"},
+                {"type": "usage", "usage": {"input_tokens": 500, "output_tokens": 5}},
+                {"type": "end", "stopReason": "end_turn", "num_turns": 3, "total_cost_usd": 3.0},
+            ]
+            (out / "events.jsonl").write_text("\n".join(json.dumps(e) for e in stream) + "\n")
+            (out / "timeline.jsonl").write_text("\n".join(json.dumps({"line": n, "t": 100.0 + n})
+                                                           for n in range(len(stream))) + "\n")
+            for name, stage, when in (("1-intake.md", "intake", 104.5), ("2-spec.md", "spec", 109.5)):
+                path = run_dir / "results" / name
+                path.write_text(f'```json\n{{"stage": "{stage}"}}\n```\n')
+                os.utime(path, (when, when))
+            m = metrics.collect(out, run_dir)
+        self.assertEqual(m["turns"], 3)
+        self.assertEqual(m["cost_usd"], 3.0)
+        self.assertEqual(m["compactions"], 1)
+        self.assertEqual(m["truncated_outputs"], 2)
+        self.assertEqual(m["test_runs"], 1)
+        self.assertEqual(m["improve_children"], 1)
+        self.assertEqual(m["shiploop_failures"], [{"verb": "complete", "exit": 2, "line": "error: result refused"}])
+        self.assertEqual([(s["stage"], s["turns"]) for s in m["stages"]], [("intake", 2), ("spec", 1)])
+        self.assertEqual(m["stages"][0]["cost_share_usd"], 2.0)
+
+    def test_progress_reports_only_what_is_new_and_never_a_run_marker(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            out = Path(tmp)
+            (out / "events.jsonl").write_text("\n".join(json.dumps(e) for e in (
+                {"type": "usage", "usage": {"input_tokens": 1, "output_tokens": 1}},
+                {"type": "text", "data": "SHIPLOOP-RUN run=x rev=1 dir=/r"})) + "\n")
+            first = progress.report(out)
+            second = progress.report(out)
+        self.assertIn("turns 1", first)
+        self.assertNotIn("SHIPLOOP-RUN", first + second)
+        self.assertIn("no run state yet", second)
 
 
 if __name__ == "__main__":

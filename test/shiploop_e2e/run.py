@@ -13,22 +13,36 @@ there with one headless host process, shows its progress live, and grades:
             "done" and its report.html exists
   checks    every case check command exits 0 in the working directory
 
-The default host is Grok at medium reasoning effort. By default the run tests a
-fresh build of this checkout (scripts/build-packages.py), never an installed
-plugin, and isolates the host from the user's configuration:
+A follow-on case (`follows` in cases.json) runs a second feature in a copy of an
+earlier run's source checkout (--continue-from <earlier output>), to see whether
+ShipLoop builds on what the first run decided. Its checks are the followed
+case's checks (regression), its own feature checks and retention checks, which
+get $PRIOR_WORK (the earlier checkout, read only).
+
+Besides the verdicts, metrics.json records where ShipLoop spent turns, tokens,
+cost and time (per accepted stage), its failed commands, host truncations,
+compactions and the knowledge-home facts (see metrics.py).
+
+The default host is Grok at medium reasoning effort. By default the run tests
+what the whichguy marketplace publishes now (--source marketplace, gated on
+local HEAD == origin/main and matching versions); --source checkout builds
+this checkout instead. The host is isolated from the user's configuration:
 
   grok    a throwaway HOME whose .grok holds only a symlink to the user's
-          auth.json and the candidate plugin, so neither the user's Grok
+          auth.json and the plugin under test, so neither the user's Grok
           plugins nor anything Grok inherits from ~/.claude load, and nothing
           is installed into the real profile
   claude  --setting-sources project,local plus --plugin-dir, so the user's
           plugins and hooks stay out (~/.claude/CLAUDE.md still loads)
 
-Nothing is resumed or retried. Every attempt keeps its prompt, argv, event
-stream, stderr and result.json in a new output directory outside the checkout.
+A Grok session that ends while the ShipLoop run is still active is resumed
+(bounded by --max-resumes). Every attempt keeps its prompt, argv, event
+stream, arrival timeline, stderr, metrics.json and result.json in a new
+output directory outside the checkout.
 This launches a real model and costs money; it is never part of default CI.
 
   python3 test/shiploop_e2e/run.py --case battleship
+  python3 test/shiploop_e2e/run.py --case battleship-scoring --continue-from <battleship output>
   python3 test/shiploop_e2e/run.py --case hello --host claude
   python3 test/shiploop_e2e/run.py --prompt "..." --check "python3 -m unittest"
 """
@@ -41,6 +55,7 @@ import os
 from pathlib import Path
 import re
 import secrets
+import shutil
 import signal
 import subprocess
 import sys
@@ -53,6 +68,7 @@ ROOT = HERE.parents[1]
 sys.path.insert(0, str(ROOT / "skills/shiploop/scripts"))
 sys.path.insert(0, str(HERE))
 import hosts  # noqa: E402
+import metrics  # noqa: E402
 import shiploop_store as store  # noqa: E402
 
 CASES = HERE / "cases.json"
@@ -61,14 +77,37 @@ PLUGIN_NAME = "skill-craft"
 SKILL_COMMAND = {"grok": "shiploop", "claude": "skill-craft:shiploop"}
 
 
-def load_case(args) -> tuple[str, str, list[str]]:
+def load_case(args) -> tuple[str, str, list[str], str | None]:
+    """Name, prompt, checks and the case it follows (None for a fresh start)."""
     if args.prompt:
-        return "custom", args.prompt, args.check or []
+        return "custom", args.prompt, args.check or [], None
     cases = json.loads(CASES.read_text())
     if args.case not in cases:
         raise SystemExit(f"unknown case {args.case!r}; known: {', '.join(sorted(cases))}")
     case = cases[args.case]
-    return args.case, case["prompt"], case["checks"] + (args.check or [])
+    follows = case.get("follows")
+    regression = cases[follows]["checks"] if follows else []
+    return args.case, case["prompt"], regression + case["checks"] + case.get("retention", []) + (args.check or []), follows
+
+
+def continue_from(prior: Path, work: Path) -> dict:
+    """Copy an earlier run's source checkout into `work`, as that run left it.
+
+    The copy keeps .git and every untracked file; worktree records point at the
+    earlier run's execution worktree, so they are dropped (the branches stay).
+    """
+    source = prior / "work"
+    if not (source / ".git").exists():
+        raise SystemExit(f"--continue-from has no work/.git: {prior}")
+    work.rmdir()
+    shutil.copytree(source, work, symlinks=True)
+    shutil.rmtree(work / ".git" / "worktrees", ignore_errors=True)
+    subprocess.run(["git", "-C", str(work), "worktree", "prune"], check=False, capture_output=True)
+    earlier = json.loads((prior / "result.json").read_text()) if (prior / "result.json").is_file() else {}
+    return {"prior": str(prior), "prior_case": earlier.get("case"), "prior_pass": earlier.get("pass"),
+            "prior_turns": (earlier.get("metrics") or earlier.get("cli") or {}).get("turns")
+            or (earlier.get("cli") or {}).get("num_turns"),
+            "prior_cost_usd": (earlier.get("metrics") or earlier.get("cli") or {}).get("cost_usd")}
 
 
 def new_output_dir(requested: Path | None, name: str) -> Path:
@@ -178,8 +217,8 @@ class LiveView:
 
 
 def launch(argv: list[str], work: Path, out: Path, env: dict, timeout: int, watch: bool,
-           first: bool = True) -> dict:
-    if first:
+           first: bool = True, fresh: bool = True) -> dict:
+    if first and fresh:
         # The skill must start from a directory with nothing in it.
         leftover = sorted(p.name for p in work.iterdir())
         if leftover:
@@ -187,19 +226,28 @@ def launch(argv: list[str], work: Path, out: Path, env: dict, timeout: int, watc
     start = time.time()
     view = LiveView(start, watch)
     mode = "wb" if first else "ab"  # a resumed session appends to the same streams
-    with (out / "events.jsonl").open(mode) as events, (out / "stderr.txt").open(mode) as stderr:
+    events_path = out / "events.jsonl"
+    line = 0 if first else sum(1 for _ in events_path.open("rb"))
+    with events_path.open(mode) as events, (out / "stderr.txt").open(mode) as stderr, \
+            (out / "timeline.jsonl").open("w" if first else "a") as stamps:
         proc = subprocess.Popen(argv, cwd=work, stdin=subprocess.DEVNULL, stdout=subprocess.PIPE,
                                 stderr=stderr, env=env, start_new_session=True)
 
         def pump():
+            nonlocal line
             for raw in proc.stdout:
                 events.write(raw)
                 events.flush()
+                number, line = line, line + 1
                 try:
                     event = json.loads(raw)
                 except ValueError:
                     continue
                 if isinstance(event, dict):
+                    # Grok events carry no time; stamp the ones metrics.py attributes.
+                    if event.get("type") not in ("text", "thought"):
+                        stamps.write(json.dumps({"line": number, "t": round(time.time(), 3)}) + "\n")
+                        stamps.flush()
                     view.event(event)
             view.flush_text()
 
@@ -375,12 +423,32 @@ def grade_shiploop(out: Path) -> dict:
             "worktree": str(worktree) if worktree.is_dir() else None}
 
 
-def run_checks(work: Path, checks: list[str], timeout: int = 180) -> list[dict]:
+def knowledge_facts(work: Path) -> dict:
+    """How the run left the source checkout: knowledge home, commits and branches.
+
+    Informational: it shows whether a later run could inherit the spec and
+    environment notes from the repository itself.
+    """
+    def g(*args: str) -> str:
+        done = subprocess.run(["git", "-C", str(work), *args], capture_output=True, text=True)
+        return done.stdout if done.returncode == 0 else ""
+
+    spec = work / "docs" / "shiploop" / "spec.md"
+    untracked = [ln[3:] for ln in g("status", "--porcelain", "--untracked-files=all").splitlines() if ln.startswith("??")]
+    return {"spec": spec.is_file(),
+            "spec_tracked": bool(g("ls-files", "--", "docs/shiploop/spec.md").strip()),
+            "requirement_ids": sorted(set(re.findall(r"^#+\s*(R-\d+)\b", spec.read_text(), re.M))) if spec.is_file() else [],
+            "head_commits": len(g("rev-list", "HEAD").split()),
+            "untracked_files": len(untracked),
+            "branches": g("branch", "--format=%(refname:short)").split()}
+
+
+def run_checks(work: Path, checks: list[str], timeout: int = 180, env: dict | None = None) -> list[dict]:
     results = []
     for command in checks:
         try:
             done = subprocess.run(command, shell=True, cwd=work, capture_output=True,
-                                  text=True, timeout=timeout)
+                                  text=True, timeout=timeout, env=dict(os.environ, **(env or {})))
             code, output = done.returncode, (done.stdout + done.stderr)[-2000:]
         except subprocess.TimeoutExpired:
             code, output = None, "timeout"
@@ -392,6 +460,9 @@ def parser() -> argparse.ArgumentParser:
     p = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
     p.add_argument("--case", default="hello", help="case name from cases.json (default: hello)")
     p.add_argument("--prompt", help="run this prompt instead of a named case")
+    p.add_argument("--continue-from", type=Path,
+                   help="an earlier run's output directory: start in a copy of its source checkout "
+                        "(required by follow-on cases, which name the case they follow)")
     p.add_argument("--check", action="append", help="extra shell check run in the work dir (repeatable)")
     p.add_argument("--output", type=Path, help="new directory for this attempt (default: under $TMPDIR)")
     p.add_argument("--host", choices=sorted(hosts.HOST_DEFAULTS), default="grok")
@@ -425,10 +496,13 @@ def main(argv: list[str] | None = None) -> int:
     if args.plugin_dir and not (args.plugin_dir / ".claude-plugin" / "plugin.json").is_file():
         raise SystemExit(f"--plugin-dir has no .claude-plugin/plugin.json: {args.plugin_dir}")
 
-    name, prompt, checks = load_case(args)
+    name, prompt, checks, follows = load_case(args)
+    if follows and not args.continue_from:
+        raise SystemExit(f"case {name!r} follows {follows!r}: pass --continue-from <that run's output directory>")
     out = new_output_dir(args.output, name)
     work = out / "work"
     work.mkdir()
+    follow_on = continue_from(args.continue_from.expanduser().resolve(), work) if args.continue_from else None
     env = dict(os.environ, GIT_TERMINAL_PROMPT="0", NO_COLOR="1")
     plugin = None
     released = released_versions() if args.source == "marketplace" else None
@@ -465,14 +539,15 @@ def main(argv: list[str] | None = None) -> int:
     (out / "prompt.txt").write_text(prompt + "\n")
     (out / "invocation.json").write_text(json.dumps(
         {"case": name, "host": args.host, "model": args.model, "effort": args.effort, "argv": cli,
-         "cwd": str(work), "plugin_dir": str(plugin_dir), "versions": versions, "checks": checks},
+         "cwd": str(work), "plugin_dir": str(plugin_dir), "versions": versions, "checks": checks,
+         "follow_on": follow_on},
         indent=2) + "\n")
     if not args.quiet:
         print(f"shiploop e2e case={name} host={args.host} model={args.model} effort={args.effort} "
               f"work={work}", flush=True)
 
     deadline = time.time() + args.timeout
-    process = launch(cli, work, out, env, args.timeout, watch=not args.quiet)
+    process = launch(cli, work, out, env, args.timeout, watch=not args.quiet, fresh=follow_on is None)
     sessions = [dict(process, resumed=None)]
     # A headless Grok session ends whenever the model ends its turn. While ShipLoop's
     # run is still active, resume that same session (bounded) instead of losing the run.
@@ -503,11 +578,15 @@ def main(argv: list[str] | None = None) -> int:
     if plugin is None:
         plugin = grade_claude_plugin(plugins, plugin_dir)
     shiploop = grade_shiploop(out)
-    check_results = run_checks(work, checks)
+    shiploop["knowledge"] = knowledge_facts(work)
+    run_metrics = metrics.collect(out, Path(shiploop["run_dir"]) if shiploop.get("run_dir") else None)
+    (out / "metrics.json").write_text(json.dumps(run_metrics, indent=2) + "\n")
+    check_env = {"PRIOR_WORK": str(Path(follow_on["prior"]) / "work")} if follow_on else {}
+    check_results = run_checks(work, checks, env=check_env)
     if not shiploop["pass"] and shiploop.get("worktree"):
         # Informational only: does the unreturned candidate already pass?
         shiploop["worktree_checks"] = [{k: c[k] for k in ("command", "pass")}
-                                       for c in run_checks(Path(shiploop["worktree"]), checks)]
+                                       for c in run_checks(Path(shiploop["worktree"]), checks, env=check_env)]
     verdicts = [invoked["pass"], plugin["pass"], process["pass"], shiploop["pass"],
                 *(c["pass"] for c in check_results)]
     if keepalive is not None:
@@ -516,7 +595,11 @@ def main(argv: list[str] | None = None) -> int:
               "pass": all(verdicts), "invoked": invoked, "plugin": plugin, "versions": versions,
               "process": process,
               "keepalive": keepalive,
-              "shiploop": shiploop, "checks": check_results, "cli": cli_seen, "output": str(out)}
+              "shiploop": shiploop, "checks": check_results, "cli": cli_seen, "follow_on": follow_on,
+              "metrics": {k: run_metrics[k] for k in ("turns", "cost_usd", "compactions", "truncated_outputs",
+                                                      "test_runs", "improve_children")}
+              | {"shiploop_failures": len(run_metrics["shiploop_failures"])},
+              "output": str(out)}
     (out / "result.json").write_text(json.dumps(result, indent=2) + "\n")
 
     mark = lambda ok: "PASS" if ok else "FAIL"  # noqa: E731
@@ -536,8 +619,17 @@ def main(argv: list[str] | None = None) -> int:
         passed = sum(c["pass"] for c in shiploop["worktree_checks"])
         print(f"            unreturned product in {shiploop['worktree']}: "
               f"{passed}/{len(shiploop['worktree_checks'])} checks pass there")
-    if cli_seen["truncated_outputs"]:
-        print(f"  note      host truncated {len(cli_seen['truncated_outputs'])} tool outputs the model saw")
+    knowledge = shiploop["knowledge"]
+    print(f"  knowledge docs/shiploop/spec.md {'present' if knowledge['spec'] else 'missing'}"
+          f"{', tracked' if knowledge['spec_tracked'] else ', not committed'}; {len(knowledge['requirement_ids'])} "
+          f"requirement ids; HEAD has {knowledge['head_commits']} commits, {knowledge['untracked_files']} untracked files")
+    for line in metrics.summary_lines(run_metrics):
+        print(f"  metrics   {line}")
+    for failure in run_metrics["shiploop_failures"][:5]:
+        print(f"  failed    shiploop {failure['verb']} exit {failure['exit']}: {failure['line']}")
+    if follow_on:
+        print(f"  follow-on of {follow_on['prior_case']} ({follow_on['prior']}): turns {run_metrics['turns']} vs "
+              f"{follow_on['prior_turns']}, cost ${run_metrics['cost_usd']} vs ${follow_on['prior_cost_usd']}")
     for check in check_results:
         print(f"  check     {mark(check['pass'])}  {check['command']}")
     return 0 if result["pass"] else 1

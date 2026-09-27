@@ -100,8 +100,17 @@ on the request in {run_dir / 'prompt.txt'}.
 - Graded result: {run_dir / 'result.json'}
 - Readable transcript (messages, tool calls, outputs): {run_dir / 'transcript.md'}
 - Raw event stream: {run_dir / 'events.jsonl'}; host stderr: {run_dir / 'stderr.txt'}
-- The product and its ShipLoop run state: {run_dir / 'work'} (see work/.shiploop/)
+- The product: {run_dir / 'work'}; the ShipLoop run directory is named by result.json
+  shiploop.run_dir (it may sit beside work/, in an external workspace root)
+- Where ShipLoop spent turns, time and cost per accepted stage, its failed commands,
+  truncations and compactions: {run_dir / 'metrics.json'}
 - The ShipLoop skill source that ran: {skill_root} (SKILL.md, references/, scripts/)
+
+If result.json has a follow_on block, this run added a feature in a copy of an earlier
+run's repository (follow_on.prior). Then also judge retention: did ShipLoop find and use
+the earlier docs/shiploop/ spec, environment and test-strategy notes and extend the
+existing modules and tests, or did it rediscover or rebuild beside them? Compare its
+turns and cost with the earlier run.
 
 Answer, from evidence in this run:
 {QUESTIONS}
