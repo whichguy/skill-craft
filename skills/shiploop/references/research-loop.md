@@ -470,24 +470,25 @@ claim of a script watchdog.
 
 Record the investigation scope, start, elapsed active work, observed counters,
 remaining allowance, conclusions, and best next gap in the existing authored
-Markdown. Use the closing reserve to checkpoint before pausing:
+Markdown. The allowance bounds exploration, not the run: ShipLoop runs
+unattended, so reaching it never pauses the run. Use the closing reserve to
+finish the current action:
 
-- If the current action's duties can be completed honestly within the reserve,
-  submit its valid result through the exact callback, retaining open/blocked
-  questions and budget accounting, then pause at the returned packet. Do not
-  submit an incomplete review or manufacture passing checks merely to checkpoint.
-- Otherwise, write the partial result to the current packet's existing inbox
-  path. Pause with a non-secret reason that includes that path, labels it an
-  **unaccepted draft**, and records the remaining allowance and next gap. The
-  accepted candidate remains unchanged. If the draft could not be written, say
-  what was not retained; do not claim the discoveries were checkpointed.
+- Stop launching exploration. Write the action's result from the evidence you
+  have; record each unanswered question as an assumption (the default you take
+  and why) or an open item (what is unknown, what it would take, who can
+  answer it), with the remaining allowance and the best next gap.
+- Submit that result through the exact callback and continue with the returned
+  packet. Do not submit an incomplete review or manufacture passing checks; a
+  duty the evidence cannot support is an open item, not a pass.
+- Pause only when nothing further can proceed without a person (see the
+  packet's unattended rule); a spent allowance is not that.
 
-Use the existing `pause` command. A bound Improve child keeps its own unfinished
-status; do not invent a `stopped` result or edit child state. `halt` is for deliberately ending the run unfinished, not the
-default resumable budget checkpoint. On a later authorized resume, read the
-recorded draft and accepted candidate, finish the current action's duties, and
-use its current callback. Resuming does not replenish the exploration allowance.
-At the allowance/deadline, do not autonomously renew, restart, or claim convergence.
+A bound Improve child keeps its own unfinished status; do not invent a
+`stopped` result or edit child state. `halt` is for deliberately ending the
+run unfinished. A later stage does not replenish this investigation's
+allowance; at the allowance, do not restart the same exploration or claim
+convergence the evidence does not show.
 An exhausted budget, failed probe, or repeated action never counts as a trivial
 pass.
 
