@@ -52,3 +52,22 @@ detailed message; read the last three commit messages before the next run or cha
 - Context reached 336 K tokens per call (34.5 M cached tokens), the same range as run 1.
 - Harness: the full-game check was stricter than the request. It now fails only when a shot after the game is
   over reports gameOver false (run 1's defect, exit 5); rejecting the shot passes (run 2's design).
+
+## Run 3 — 2026-09-26 — battleship, Grok grok-4.7 medium, ShipLoop source 8019f09 (0.33.1 + 501fbb8)
+
+- Outcome: PASS, the first complete run. ShipLoop reached done at revision 52 (15 prelude/inner/outer
+  stages beyond run 2's furthest point), returned the product to work/ (source main 8729150), and all four
+  checks pass there. 4,792 s over 4 Grok sessions (3 resumes), 295 turns, $22.90 reported.
+- Sessions: three ended mid-run (794 s, 107 s, 970 s; stop "cancelled") when grok-4.7's final inference
+  returned neither text nor a tool call. Grok dispatched only the `shutdown` Stop, never `end_turn`, so the
+  pre-installed keepalive (5 decisions, all allow) could not refuse; the harness's resume kept the run alive.
+- Foreground rule worked: test-refine's callback, which killed run 2, was accepted in 58 s; regression,
+  verify (reruns every step-plan command), integrate, carry-forward and all 9 outer stages followed.
+- Context: 33 K to 399 K tokens per call, then Grok auto-compacted at ~400 K to 56 K; the model re-read the
+  skill and references (+54 K in two minutes). 15 host-truncated outputs (25-50 KB ShipLoop packets).
+- Product: 10/10 node:test, all harness checks; shots after the win rejected with 400 {error} (documented as
+  spec D-6/T-4). A mutation that swaps the game-over and already-fired checks passes both the unit suite and
+  the harness: test-spec never combines two rejection rules on one cell.
+- Improve: 7 children with records; 4 made material changes (spec, test-strategy, step-plan,
+  system-test-author), 2-3 were cheap confirmations. The step plan split the item into three implement steps.
+- Improve's loop state lives in the system temp directory (innerloop-*.json via mkstemp), not the run.
