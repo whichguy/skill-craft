@@ -864,8 +864,8 @@ class CodexRunTest(HarnessCase):
         self.assertTrue(seen["auth_is_symlink"])
         self.assertEqual(Path(seen["codex_home"]), Path(result["output"]) / "home" / ".codex")
         argv = seen["argv"]
-        self.assertEqual(argv[argv.index("-m") + 1], "gpt-5.6-luna")
-        self.assertIn("model_reasoning_effort=high", argv)
+        self.assertEqual(argv[argv.index("-m") + 1], "gpt-6-luna")
+        self.assertIn("model_reasoning_effort=xhigh", argv)
         self.assertTrue(result["invoked"]["pass"], result["invoked"])
         self.assertTrue(result["plugin"]["pass"], result["plugin"])
         self.assertTrue(result["committed"]["pass"], result["committed"])
@@ -942,20 +942,20 @@ class CodexHostTest(unittest.TestCase):
         codex = hosts.host("codex", "codex-bin")
         with tempfile.TemporaryDirectory() as temp:
             argv = codex.argv(prompt="$skill-craft:shiploop build it", prompt_file=Path(temp) / "p.txt",
-                              cwd=Path("/w"), model="gpt-5.6-luna", effort="xhigh", permission_mode="auto",
+                              cwd=Path("/w"), model="gpt-6-luna", effort="xhigh", permission_mode="auto",
                               max_turns=10)
             resumed = codex.argv(prompt="continue", prompt_file=Path(temp) / "r.txt", cwd=Path("/w"),
-                                 model="gpt-5.6-luna", effort="xhigh", permission_mode="auto", max_turns=10,
+                                 model="gpt-6-luna", effort="xhigh", permission_mode="auto", max_turns=10,
                                  resume="thread-1")
         self.assertEqual(argv[:3], ["codex-bin", "exec", "--json"])
         self.assertIn("model_reasoning_effort=xhigh", argv)
-        self.assertEqual(argv[argv.index("-m") + 1], "gpt-5.6-luna")
+        self.assertEqual(argv[argv.index("-m") + 1], "gpt-6-luna")
         self.assertEqual(argv[-1], "$skill-craft:shiploop build it")
         # Codex takes its options before the resume subcommand.
         self.assertEqual(resumed[-3:], ["resume", "thread-1", "continue"])
         self.assertLess(resumed.index("--json"), resumed.index("resume"))
         self.assertEqual(codex.invoke("skill-craft:shiploop", "x"), "$skill-craft:shiploop x")
-        self.assertEqual((codex.model, codex.effort, codex.resumable), ("gpt-5.6-luna", "high", True))
+        self.assertEqual((codex.model, codex.effort, codex.resumable), ("gpt-6-luna", "xhigh", True))
 
     def test_env_is_an_isolated_codex_home_linking_only_auth(self):
         with tempfile.TemporaryDirectory() as temp:

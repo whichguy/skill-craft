@@ -288,7 +288,7 @@ class CodexHost(Host):
     ``danger-full-access`` and no approvals, as the other hosts run unattended.
     """
 
-    name, model, effort = "codex", "gpt-5.6-luna", "high"
+    name, model, effort = "codex", "gpt-6-luna", "xhigh"
     resumable = marketplace = True
 
     def __init__(self, binary: str = "codex"):

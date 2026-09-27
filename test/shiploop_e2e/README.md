@@ -21,9 +21,9 @@ flowchart LR
 
 All three stages default to **Grok (`grok-4.7`) at medium reasoning effort**.
 `--host claude` switches to Claude (Sonnet), and `--host codex` to Codex
-(`gpt-5.6-luna` at high effort). `--model` and `--effort` override either one, so
+(GPT-6 Luna, `gpt-6-luna`, at xhigh effort). `--model` and `--effort` override either one, so
 switching model or effort is a flag, for example
-`--host codex --model gpt-5.6-sol --effort xhigh`. Every stage launches a real
+`--host codex --model gpt-6-sol --effort xhigh`. Every stage launches a real
 model and costs money; none of it runs in default CI.
 
 Each host is one class in `hosts.py` (`HOSTS`); nothing else branches on the
@@ -44,7 +44,7 @@ ended, and whether A and B overlapped as native workers. It takes about 10
 minutes:
 
 ```sh
-python3 test/shiploop_e2e/fanout.py --host codex --model gpt-5.6-luna --effort medium
+python3 test/shiploop_e2e/fanout.py --host codex --model gpt-6-luna --effort medium
 ```
 
 A run that stops while ShipLoop is still active, for example because a host ran
