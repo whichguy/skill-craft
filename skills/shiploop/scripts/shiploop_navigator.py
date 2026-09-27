@@ -3175,10 +3175,14 @@ def _render_improve(core: Any, root: Path, state: Mapping[str, Any], lines: list
         "Bound Until Loop card: " + skill["runtime_card"],
         "Bound Until Loop CLI locator: " + skill["runtime_cli"],
         "Child workspace: " + child["workspace"],
-        ("Read the selected Improve skill and its bound runtime instructions in full once per context "
-         "(again after a reset or if the card changed), then follow them. The skill owns all internal "
-         "improvement iterations." if inline else
-         "Read the selected Improve skill and its bound runtime instructions in full, then follow them. The skill owns all internal improvement iterations."),
+        ("Read the selected Improve skill's \"ShipLoop whole-skill subcall\" section and the bound "
+         "runtime card's \"Follow the returned action\" section with a file-reading tool, once per "
+         "context (again after a reset or if the card changed), then follow them; open other sections "
+         "only when a step needs them, and never print either card to the shell. The skill owns all "
+         "internal improvement iterations." if inline else
+         "Read the selected Improve skill's \"ShipLoop whole-skill subcall\" section and the bound runtime "
+         "card's \"Follow the returned action\" section with a file-reading tool, then follow them; open "
+         "other sections only when a step needs them. The skill owns all internal improvement iterations."),
         *planning_lines,
         *runtime_lines,
         *([guidance3.PLANNING_REVIEW_FOCUS.rstrip()]
