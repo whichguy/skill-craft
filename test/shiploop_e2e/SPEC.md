@@ -263,6 +263,12 @@ stands at the commit under test.
   input.
 - Start from an empty directory, or for a follow-on case, from a clean copy of
   an earlier run's checkout. The harness leaves no files of its own behind.
+- Case products are disposable probes. The repository a run builds (and any
+  follow-on copy of it) lives outside skill-craft; the harness refuses an
+  output directory inside the checkout. A product is never committed to
+  skill-craft, merged into ShipLoop, or copied into a reference or fixture.
+  What skill-craft keeps is the harness: its code, case prompts, product
+  checks, baselines and learnings.
 - Never print packet text or run markers into a session that is not the run's
   host.
 - After each run, record learnings in LEARNINGS.md with a detailed commit that

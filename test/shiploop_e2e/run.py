@@ -183,6 +183,49 @@ def build_candidate(out: Path) -> Path:
     return out / "build" / "plugins" / PLUGIN_NAME
 
 
+def installed_versions(plugin_dir: Path) -> dict:
+    """The skill-craft and ShipLoop versions of the plugin a host will actually load."""
+    manifest = plugin_dir / ".claude-plugin" / "plugin.json"
+    return {"plugin_version": json.loads(manifest.read_text()).get("version") if manifest.is_file() else None,
+            "shiploop_version": card_version(plugin_dir / "skills" / "shiploop" / "SKILL.md")}
+
+
+def marketplace_preflight(args, out: Path, env: dict) -> tuple[Path, dict | None, dict]:
+    """Pull from the marketplace the way the host does, then report and gate what was actually installed.
+
+    Grok: add the published marketplace and install skill-craft into the fresh profile in ``env``.
+    Claude: load origin/main's plugins/skill-craft, the bytes the marketplace serves.
+    Prints one line naming what main publishes and what the host got, so a stale
+    marketplace is visible before any run starts (SPEC: publish, refresh, then run).
+    """
+    released = released_versions()
+    plugin = None
+    if args.host == "grok":
+        installed = hosts.grok_install_marketplace(env, grok_bin=args.grok_bin)
+        plugin_dir = Path(installed["path"]) if installed["path"] else out / "missing-plugin"
+        plugin = {"pass": installed["pass"], "loaded": installed["loaded"], "source": installed["source"],
+                  "registry_version": installed["version"]}
+        how = "grok marketplace add + install (fresh profile)"
+    else:
+        plugin_dir = export_released(out)
+        how = "origin/main export"
+    versions = {"source": "marketplace", "installed_by": how, **installed_versions(plugin_dir), "released": released}
+    versions["gate"] = version_gate(released, versions["plugin_version"], versions["shiploop_version"])
+    if plugin is not None and not plugin["pass"]:
+        versions["gate"].append("the marketplace install failed: " + ("; ".join(plugin["loaded"]) or "no plugin"))
+    print(preflight_line(versions), flush=True)
+    return plugin_dir, plugin, versions
+
+
+def preflight_line(versions: dict) -> str:
+    released = versions["released"]
+    return (f"marketplace preflight: origin/main {released['origin_main'][:8]} publishes skill-craft "
+            f"{released['catalog_version']} / ShipLoop {released['shiploop_version']}; "
+            f"{versions['installed_by']} got skill-craft {versions['plugin_version']} / ShipLoop "
+            f"{versions['shiploop_version']}; unreleased notes: {len(released.get('unreleased') or [])}; "
+            + ("OK" if not versions["gate"] else "REFUSED: " + "; ".join(versions["gate"])))
+
+
 class LiveView:
     """One short line per assistant message or tool call, from either host's stream."""
 
@@ -515,6 +558,9 @@ def parser() -> argparse.ArgumentParser:
     p.add_argument("--source", choices=("marketplace", "checkout"), default="marketplace",
                    help="marketplace (default): test what the whichguy marketplace publishes now, gated on "
                         "local HEAD == origin/main and matching versions; checkout: build this checkout")
+    p.add_argument("--preflight-only", action="store_true",
+                   help="pull skill-craft from the marketplace into a fresh profile, print what main publishes "
+                        "and what the host installed, and exit non-zero if the version gate refuses")
     p.add_argument("--plugin-dir", type=Path, help="test this skill-craft plugin build (implies --source checkout)")
     p.add_argument("--max-turns", type=int, default=10000)
     p.add_argument("--max-budget-usd", type=float, default=10.0, help="claude only; grok has no spend cap")
@@ -579,6 +625,14 @@ def run_suite(args, argv: list[str]) -> int:
                 next(it, None)
             continue
         passthrough.append(token)
+    if args.source == "marketplace" and not args.plugin_dir:
+        check = base / "preflight"
+        check.mkdir()
+        env = hosts.grok_env(check / "home") if args.host == "grok" else dict(os.environ)
+        _, _, versions = marketplace_preflight(args, check, env)
+        (check / "preflight.json").write_text(json.dumps(versions, indent=2) + "\n")
+        if versions["gate"]:
+            raise SystemExit("suite not started, version gate: " + "; ".join(versions["gate"]))
     outputs: dict[str, Path] = {}
     summary = []
     for case in suites[args.suite]["cases"]:
@@ -606,6 +660,12 @@ def run_suite(args, argv: list[str]) -> int:
 def main(argv: list[str] | None = None) -> int:
     argv = list(sys.argv[1:] if argv is None else argv)
     args = parser().parse_args(argv)
+    if args.preflight_only:
+        out = new_output_dir(args.output, "preflight")
+        env = hosts.grok_env(out / "home") if args.host == "grok" else dict(os.environ)
+        _, _, versions = marketplace_preflight(args, out, env)
+        (out / "preflight.json").write_text(json.dumps(versions, indent=2) + "\n")
+        return 1 if versions["gate"] else 0
     if args.suite:
         return run_suite(args, argv)
     defaults = hosts.HOST_DEFAULTS[args.host]
@@ -625,31 +685,20 @@ def main(argv: list[str] | None = None) -> int:
     work.mkdir()
     follow_on = continue_from(args.continue_from.expanduser().resolve(), work) if args.continue_from else None
     env = dict(os.environ, GIT_TERMINAL_PROMPT="0", NO_COLOR="1")
-    plugin = None
-    released = released_versions() if args.source == "marketplace" else None
     if args.host == "grok":
         env = hosts.grok_env(out / "home")
-    if args.source == "marketplace" and args.host == "grok":
-        installed = hosts.grok_install_marketplace(env, grok_bin=args.grok_bin)
-        plugin_dir = Path(installed["path"]) if installed["path"] else out / "missing-plugin"
-        plugin = {"pass": installed["pass"], "loaded": installed["loaded"], "source": installed["source"]}
-    elif args.source == "marketplace":
-        plugin_dir = export_released(out)
-    else:
-        plugin_dir = args.plugin_dir or build_candidate(out)
-        if args.host == "grok":
-            plugin = hosts.grok_install(env, plugin_dir, args.grok_bin)
-    manifest = plugin_dir / ".claude-plugin" / "plugin.json"
-    versions = {"source": args.source,
-                "plugin_version": json.loads(manifest.read_text()).get("version") if manifest.is_file() else None,
-                "shiploop_version": card_version(plugin_dir / "skills" / "shiploop" / "SKILL.md"),
-                **({"released": released} if released else {"local_head": git("rev-parse", "HEAD").strip()})}
-    if released:
-        versions["gate"] = version_gate(released, versions["plugin_version"], versions["shiploop_version"])
+    if args.source == "marketplace":
+        plugin_dir, plugin, versions = marketplace_preflight(args, out, env)
         if versions["gate"]:
             (out / "result.json").write_text(json.dumps({"case": name, "pass": False, "versions": versions,
                                                          "output": str(out)}, indent=2) + "\n")
             raise SystemExit("version gate: " + "; ".join(versions["gate"]) + f" (see {out / 'result.json'})")
+    else:
+        plugin = None
+        plugin_dir = args.plugin_dir or build_candidate(out)
+        if args.host == "grok":
+            plugin = hosts.grok_install(env, plugin_dir, args.grok_bin)
+        versions = {"source": "checkout", **installed_versions(plugin_dir), "local_head": git("rev-parse", "HEAD").strip()}
     keepalive = hosts.grok_keepalive(env, plugin_dir) if args.host == "grok" else None
     cli = hosts.argv_for(args.host, prompt=f"/{args.skill} {prompt}", prompt_file=out / "host-prompt.txt",
                          cwd=work, model=args.model, effort=args.effort,
