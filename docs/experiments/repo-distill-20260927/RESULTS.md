@@ -198,6 +198,6 @@ Sonnet 5 82.5% (37 min) > GPT-6 Luna max 78.7% (52 min) > GPT-5.6 Luna xhigh
 **1,334 / 1,759 (75.8%)**; 6486.9 s, 158 commands, 38880036 input (38206464 cached), 280790 output. Clean room clean. So on marked,
 **max beat xhigh by 2.9 points (78.7% vs 75.8%) and finished far sooner**
 (52 min vs about 1 h 50 min): the extra reasoning per step cut the
-run-and-fix cycling (73 commands vs over 300). Plain-session ranking:
+run-and-fix cycling (73 vs 158 commands; half the input tokens, 19.0M vs 38.9M). Plain-session ranking:
 Sonnet 5 82.5% > GPT-6 Luna max 78.7% > GPT-6 Luna xhigh 75.8% > GPT-5.6
 Luna xhigh 68.2%. One run each; not repeated.
