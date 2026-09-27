@@ -144,6 +144,13 @@ do not change when that judge re-grades it.
 The last row is why a round never mixes judges: each judge agrees with itself
 far better than with the other.
 
+The decisions-unchanged condition is for a new judge prompt meant to grade like
+the old one. A change of judge model is the owner's decision (section 6); its
+changed decisions are recorded, not hidden. Round 4 under Opus kept prune3's win
+and current's loss. design v2 flipped from win to blocked: platform errors
+rose, +0.20 per plan, 95% [+0.01, +0.40], with the same quality verdict under
+both judges.
+
 **Quote check** (from 2026-09-27; adversarial review of this skill, F4). The
 judge quotes before it grades, but only 77% of judge v2's quotes were exact
 substrings of the plan. `judge` now checks every met or partial grade's quote
