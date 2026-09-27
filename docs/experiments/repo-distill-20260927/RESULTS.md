@@ -34,3 +34,17 @@ committed.
 Killed at ~30 min when the watcher that launched it expired (plan item 35);
 not rerun because the owner switched the pilot to marked. The partial build
 had a `package.json`, `src/` and a `schema.json`.
+
+# Case markedjs/marked @ef0704c (the pilot from here on)
+
+## E0 oracle port, round 1 (rev-3 prompts), 2026-09-27
+
+- Exit normal: 53 turns, $1.37, 1,143 s wall.
+- 1,759 black-box checks across specs, lexer, parser, hooks, instance,
+  module and CLI; reached through `APP_CMD` (CLI) and `APP_MODULE` (the
+  package's import entry). MAPPING.md: every original test mapped; 4 not
+  observable (type checks, benchmark, regex dump, static ReDoS scan), 1
+  excluded (the fixture updater).
+- Admission: **admitted** first time. 1,759/1,759 pass on the original in
+  both runs, no flakes; 0 pass on the CLI and library stubs. One oracle run
+  takes ~1 s, far inside the harness's 180 s check timeout.
