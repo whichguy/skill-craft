@@ -44,7 +44,8 @@ bash test/run-integration.sh shiploop-e2e --prompt "Create fizzbuzz.py with test
 with an empty `work/`, installs the published plugin (or builds this checkout),
 and starts one host process in `work/`, printing each message and tool call as it
 happens. It refuses to launch if `work/` is not empty; nothing, not even `.git`, is
-pre-created. It grades five verdicts into `result.json`:
+pre-created — unless the case has a `seed` (below), which pre-creates exactly the
+seeded files and their commit. It grades five verdicts into `result.json`:
 
 - **invoked**: the host registered the ShipLoop command it was given (Grok
   `/shiploop`, since Grok does not namespace plugin skills; Claude
@@ -129,6 +130,18 @@ added, the passing test count grew, and the living spec keeps every earlier
 requirement ID and adds at least one. The report compares turns and cost with
 the earlier run, and the reviewer judges whether the earlier spec, environment
 notes and modules were used.
+
+### A request that starts from a file
+
+A case can carry `"seed": {"<dest in work/>": "<source relative to this directory>"}`,
+for a request whose input is a file (a distilled `SPEC.md`, say) rather than
+text in the prompt. Before the host launches, `run.py` copies each seed file
+into `work/` and commits them there as the starting point (`git init -b main`,
+`add`, `commit`), so `work/` is no longer literally empty but the case's
+`committed` verdict still measures progress made past that seed commit. A seed
+source that does not exist, or a destination that would land outside `work/`,
+stops the run before it starts. A case cannot have both `seed` and
+`--continue-from`; a case without `seed` behaves exactly as before.
 
 ### What version is tested
 

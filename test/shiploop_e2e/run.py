@@ -82,17 +82,42 @@ PLUGIN_NAME = "skill-craft"
 SKILL_COMMAND = {"grok": "shiploop", "claude": "skill-craft:shiploop"}
 
 
-def load_case(args) -> tuple[str, str, list[str], str | None]:
-    """Name, prompt, checks and the case it follows (None for a fresh start)."""
+def load_case(args) -> tuple[str, str, list[str], str | None, dict | None]:
+    """Name, prompt, checks, the case it follows (None for a fresh start) and its seed."""
     if args.prompt:
-        return "custom", args.prompt, args.check or [], None
+        return "custom", args.prompt, args.check or [], None, None
     cases = json.loads(CASES.read_text())
     if args.case not in cases:
         raise SystemExit(f"unknown case {args.case!r}; known: {', '.join(sorted(cases))}")
     case = cases[args.case]
     follows = case.get("follows")
     regression = cases[follows]["checks"] if follows else []
-    return args.case, case["prompt"], regression + case["checks"] + case.get("retention", []) + (args.check or []), follows
+    return (args.case, case["prompt"], regression + case["checks"] + case.get("retention", []) + (args.check or []),
+            follows, case.get("seed"))
+
+
+def apply_seed(work: Path, seed: dict) -> str:
+    """Copy a case's seed files into the empty `work` and commit them as the start.
+
+    `seed` maps a destination path (relative to `work`) to a source path
+    relative to this directory (test/shiploop_e2e/). Returns the seed commit's
+    HEAD, so a run's "committed" verdict measures progress beyond it.
+    """
+    for dest, src in seed.items():
+        source = HERE / src
+        if not source.is_file():
+            raise SystemExit(f"seed source not found: {source}")
+        destination = (work / dest).resolve()
+        if destination != work.resolve() and work.resolve() not in destination.parents:
+            raise SystemExit(f"seed destination escapes the work directory: {dest}")
+        destination.parent.mkdir(parents=True, exist_ok=True)
+        shutil.copy2(source, destination)
+    subprocess.run(["git", "-C", str(work), "init", "-q", "-b", "main"], check=True)
+    subprocess.run(["git", "-C", str(work), "add", "-A"], check=True)
+    subprocess.run(["git", "-C", str(work), "-c", "user.name=ShipLoop E2E Seed",
+                    "-c", "user.email=shiploop-e2e-seed@example.invalid", "commit", "-q", "-m", "seed"], check=True)
+    head = subprocess.run(["git", "-C", str(work), "rev-parse", "HEAD"], capture_output=True, text=True, check=True)
+    return head.stdout.strip()
 
 
 def continue_from(prior: Path, work: Path) -> dict:
@@ -610,13 +635,16 @@ def main(argv: list[str] | None = None) -> int:
     if args.plugin_dir and not (args.plugin_dir / ".claude-plugin" / "plugin.json").is_file():
         raise SystemExit(f"--plugin-dir has no .claude-plugin/plugin.json: {args.plugin_dir}")
 
-    name, prompt, checks, follows = load_case(args)
+    name, prompt, checks, follows, seed = load_case(args)
     if follows and not args.continue_from:
         raise SystemExit(f"case {name!r} follows {follows!r}: pass --continue-from <that run's output directory>")
+    if seed and args.continue_from:
+        raise SystemExit(f"case {name!r} has both a seed and --continue-from; pick one starting point")
     out = new_output_dir(args.output, name)
     work = out / "work"
     work.mkdir()
     follow_on = continue_from(args.continue_from.expanduser().resolve(), work) if args.continue_from else None
+    seed_head = apply_seed(work, seed) if seed else None
     env = dict(os.environ, GIT_TERMINAL_PROMPT="0", NO_COLOR="1")
     plugin = None
     released = released_versions() if args.source == "marketplace" else None
@@ -654,14 +682,14 @@ def main(argv: list[str] | None = None) -> int:
     (out / "invocation.json").write_text(json.dumps(
         {"case": name, "host": args.host, "model": args.model, "effort": args.effort, "argv": cli,
          "cwd": str(work), "plugin_dir": str(plugin_dir), "versions": versions, "checks": checks,
-         "follow_on": follow_on},
+         "follow_on": follow_on, "seed": {"files": sorted(seed), "head": seed_head} if seed else None},
         indent=2) + "\n")
     if not args.quiet:
         print(f"shiploop e2e case={name} host={args.host} model={args.model} effort={args.effort} "
               f"work={work}", flush=True)
 
     deadline = time.time() + args.timeout
-    process = launch(cli, work, out, env, args.timeout, watch=not args.quiet, fresh=follow_on is None)
+    process = launch(cli, work, out, env, args.timeout, watch=not args.quiet, fresh=follow_on is None and seed is None)
     sessions = [dict(process, resumed=None)]
     # A headless Grok session ends whenever the model ends its turn. While ShipLoop's
     # run is still active, resume that same session (bounded) instead of losing the run.
@@ -693,7 +721,7 @@ def main(argv: list[str] | None = None) -> int:
         plugin = grade_claude_plugin(plugins, plugin_dir)
     shiploop = grade_shiploop(out)
     shiploop["knowledge"] = knowledge_facts(work)
-    start_head = (follow_on or {}).get("start_head")
+    start_head = (follow_on or {}).get("start_head") or seed_head
     knowledge = shiploop["knowledge"]
     committed = {"pass": bool(knowledge["head"]) and knowledge["head"] != start_head and not knowledge["uncommitted"],
                  "start_head": start_head, "head": knowledge["head"], "uncommitted": knowledge["uncommitted"][:20]}

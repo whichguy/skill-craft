@@ -455,11 +455,86 @@ class FollowOnTest(HarnessCase):
     def test_follow_on_case_checks_regression_feature_and_retention(self):
         cases = json.loads(run.CASES.read_text())
         args = run.parser().parse_args(["--case", "battleship-scoring"])
-        name, _, checks, follows = run.load_case(args)
+        name, _, checks, follows, seed = run.load_case(args)
         case = cases[name]
         self.assertEqual(follows, "battleship")
         self.assertEqual(checks, cases["battleship"]["checks"] + case["checks"] + case["retention"])
         self.assertTrue(all("PRIOR_WORK" in check for check in case["retention"]))
+
+
+class SeedTest(HarnessCase):
+    def setUp(self):
+        super().setUp()
+        self.seed_root = self.tmp / "seed-src"
+        self.seed_root.mkdir()
+        (self.seed_root / "SPEC.md").write_text("# distilled spec\n")
+        saved_here = run.HERE
+        run.HERE = self.seed_root
+        self.addCleanup(setattr, run, "HERE", saved_here)
+        self.saved_cases = run.CASES
+        self.addCleanup(setattr, run, "CASES", self.saved_cases)
+
+    def use_cases(self, cases: dict) -> None:
+        path = self.tmp / "cases.json"
+        path.write_text(json.dumps(cases))
+        run.CASES = path
+
+    def test_load_case_returns_the_seed_map_or_none(self):
+        self.use_cases({"seeded": {"style": "s", "prompt": "p", "checks": [], "seed": {"SPEC.md": "SPEC.md"}},
+                        "plain": {"style": "s", "prompt": "p", "checks": []}})
+        args = run.parser().parse_args(["--case", "seeded"])
+        self.assertEqual(run.load_case(args)[4], {"SPEC.md": "SPEC.md"})
+        args = run.parser().parse_args(["--case", "plain"])
+        self.assertIsNone(run.load_case(args)[4])
+
+    def test_apply_seed_copies_and_commits_the_files(self):
+        work = self.tmp / "apply-work"
+        work.mkdir()
+        head = run.apply_seed(work, {"SPEC.md": "SPEC.md", "nested/note.txt": "SPEC.md"})
+        self.assertEqual((work / "SPEC.md").read_text(), "# distilled spec\n")
+        self.assertEqual((work / "nested" / "note.txt").read_text(), "# distilled spec\n")
+        status = subprocess.run(["git", "-C", str(work), "status", "--porcelain"],
+                                capture_output=True, text=True, check=True).stdout
+        self.assertEqual(status, "")
+        logged = subprocess.run(["git", "-C", str(work), "rev-parse", "HEAD"],
+                                capture_output=True, text=True, check=True).stdout.strip()
+        self.assertEqual(head, logged)
+
+    def test_apply_seed_refuses_a_missing_source(self):
+        work = self.tmp / "apply-work-missing"
+        work.mkdir()
+        with self.assertRaises(SystemExit):
+            run.apply_seed(work, {"SPEC.md": "no-such-file.md"})
+
+    def test_apply_seed_refuses_a_destination_that_escapes_the_work_directory(self):
+        work = self.tmp / "apply-work-escape"
+        work.mkdir()
+        with self.assertRaises(SystemExit):
+            run.apply_seed(work, {"../escape.md": "SPEC.md"})
+        with self.assertRaises(SystemExit):
+            run.apply_seed(work, {"/etc/escape.md": "SPEC.md"})
+
+    def test_seeded_case_starts_committed_and_the_host_sees_the_file(self):
+        self.use_cases({"seeded": {"style": "s", "prompt": "Build it.", "checks": ["test -f SPEC.md"],
+                                   "seed": {"SPEC.md": "SPEC.md"}}})
+        code, result = self.invoke("grok", "done", "--case", "seeded")
+        self.assertEqual(code, 0, result)
+        self.assertIn("SPEC.md", self.seen()["cwd_listing"])
+        self.assertTrue(all(c["pass"] for c in result["checks"]), result["checks"])
+        self.assertTrue(result["committed"]["pass"], result["committed"])
+        self.assertIsNotNone(result["committed"]["start_head"])
+        invocation = json.loads((Path(result["output"]) / "invocation.json").read_text())
+        self.assertEqual(invocation["seed"]["files"], ["SPEC.md"])
+        self.assertEqual(invocation["seed"]["head"], result["committed"]["start_head"])
+
+    def test_seed_and_continue_from_are_mutually_exclusive(self):
+        self.use_cases({"seeded": {"style": "s", "prompt": "p", "checks": [], "seed": {"SPEC.md": "SPEC.md"}}})
+        prior = self.tmp / "prior"
+        (prior / "work").mkdir(parents=True)
+        subprocess.run(["git", "init", "-q", str(prior / "work")], check=True)
+        (prior / "result.json").write_text("{}")
+        with self.assertRaises(SystemExit):
+            self.invoke("grok", "done", "--case", "seeded", "--continue-from", str(prior))
 
 
 class SuiteTest(HarnessCase):
