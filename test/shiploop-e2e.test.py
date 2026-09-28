@@ -89,6 +89,9 @@ argv = sys.argv[1:]
 home = Path(os.environ["HOME"])
 registry = home / ".grok" / "fake-plugins.txt"
 if argv[:2] == ["plugin", "install"]:
+    import shutil
+    installed = home / ".grok" / "installed-plugins" / "skill-craft-1.4.0"
+    shutil.copytree(Path(argv[2]), installed, dirs_exist_ok=True)
     registry.write_text(f"  skill-craft-1: skill-craft [local: {{Path(argv[2]).resolve()}}]\\n")
     print("Installed 1 plugin(s)")
     sys.exit(0)
@@ -138,13 +141,22 @@ if argv[:3] == ["plugin", "marketplace", "add"]:
     state.write_text(json.dumps({{"marketplace": argv[3]}}))
     sys.exit(0)
 if argv[:2] == ["plugin", "add"]:
-    root = home / "plugins" / "cache" / "whichguy" / "skill-craft" / "9.9.9"
-    (root / "skills" / "shiploop" / "scripts").mkdir(parents=True, exist_ok=True)
-    (root / "skills" / "shiploop" / "scripts" / "shiploop").write_text("")
+    import shutil
+    market = Path(json.loads(state.read_text())["marketplace"])
+    package = market / "plugins" / "skill-craft"
+    if not package.is_dir():
+        package = Path(os.environ["FAKE_PLUGIN_DIR"])
+    version = json.loads((package / ".claude-plugin" / "plugin.json").read_text())["version"]
+    root = home / "plugins" / "cache" / "whichguy" / "skill-craft" / version
+    shutil.copytree(package, root, dirs_exist_ok=True)
+    data = json.loads(state.read_text())
+    data["version"] = version
+    state.write_text(json.dumps(data))
     sys.exit(0)
 if argv[:2] == ["plugin", "list"]:
-    rows = [{{"pluginId": "skill-craft@whichguy", "name": "skill-craft", "version": "9.9.9",
-             "installed": True}}] if state.exists() else []
+    data = json.loads(state.read_text()) if state.exists() else {{}}
+    rows = [{{"pluginId": "skill-craft@whichguy", "name": "skill-craft", "version": data.get("version"),
+             "installed": True}}] if data.get("version") else []
     print(json.dumps({{"installed": rows}}))
     sys.exit(0)
 assert argv[:2] == ["exec", "--json"], argv
@@ -181,7 +193,14 @@ class HarnessCase(unittest.TestCase):
             self.fakes[name] = path
         self.plugin = self.tmp / "build" / "plugins" / "skill-craft"
         (self.plugin / ".claude-plugin").mkdir(parents=True)
-        (self.plugin / ".claude-plugin" / "plugin.json").write_text("{}")
+        (self.plugin / ".claude-plugin" / "plugin.json").write_text(json.dumps({"name": "skill-craft", "version": "1.4.0"}))
+        shiploop = self.plugin / "skills" / "shiploop"
+        (shiploop / "scripts").mkdir(parents=True)
+        (shiploop / "SKILL.md").write_text("---\nname: shiploop\nversion: 0.37.0\n---\n")
+        (shiploop / "scripts" / "shiploop").write_text("#!/usr/bin/env python3\n")
+        fake_plugin_env = mock.patch.dict(os.environ, {"FAKE_PLUGIN_DIR": str(self.plugin)})
+        fake_plugin_env.start()
+        self.addCleanup(fake_plugin_env.stop)
         self.log = self.tmp / "fake-log.json"
         self.baselines = self.tmp / "baselines.jsonl"  # never the committed file
         os.environ["FAKE_LOG"] = str(self.log)
@@ -917,6 +936,145 @@ class CodexRunTest(HarnessCase):
         with self.assertRaisesRegex(SystemExit, "needs an active ShipLoop run"):
             run.main(["--host", "codex", "--codex-bin", str(self.fakes["codex"]),
                       "--resume-run", finished["output"], "--plugin-dir", str(self.plugin)])
+
+
+class ResumeIdentityTest(HarnessCase):
+    """A resume either keeps the current bound runtime or refuses without changing evidence."""
+
+    def stopped(self, host, *, source="marketplace", label="run"):
+        out = self.tmp / label
+        package = out / "build" / "plugins" / "skill-craft"
+        shutil.copytree(self.plugin, package)
+        if host == "grok":
+            runtime = out / "home/.grok/installed-plugins/skill-craft-1.4.0"
+        elif host == "codex":
+            runtime = out / "home/.codex/plugins/cache/whichguy/skill-craft/1.4.0"
+        else:
+            runtime = package
+        if runtime != package:
+            shutil.copytree(package, runtime)
+        work = out / "work"
+        (work / ".shiploop").mkdir(parents=True)
+        run.store.write_record(work / ".shiploop/state.md",
+                               {"status": "active", "stage": "test-refine", "revision": 25})
+        (out / "prompt.txt").write_text("Finish the hello example.\n")
+        (out / "events.jsonl").write_text('{"type":"text","data":"prior evidence"}\n')
+        (out / "result.json").write_text('{"pass":false,"evidence":"keep me"}\n')
+        selected = package if source == "checkout" else runtime
+        versions = {"source": source, **run.installed_versions(selected)}
+        if source == "checkout":
+            versions.update(local_head=run.git("rev-parse", "HEAD").strip(),
+                            plugin_sha256=run.plugin_digest(package))
+        invocation = {"case": "hello", "host": host, "checks": [], "versions": versions,
+                      "plugin_dir": str(selected), "follow_on": None}
+        (out / "invocation.json").write_text(json.dumps(invocation))
+        return out, invocation, runtime, package
+
+    @staticmethod
+    def evidence(out):
+        return {str(p.relative_to(out)): p.read_bytes() for p in out.rglob("*") if p.is_file()}
+
+    @staticmethod
+    def released(**updates):
+        return {"origin_main": "current", "local_head": "current", "unreleased": [], "ci": "success",
+                "catalog_version": "1.4.0", "shiploop_version": "0.37.0", **updates}
+
+    def assert_refused_unchanged(self, out, host, pattern, *, plugin=None, released=None):
+        before = self.evidence(out)
+        argv = ["--resume-run", str(out), "--host", host, f"--{host}-bin", str(self.fakes[host])]
+        if plugin:
+            argv += ["--plugin-dir", str(plugin)]
+        with (mock.patch.object(run, "released_versions", return_value=released or self.released()),
+              mock.patch.object(hosts.HOSTS[host], "env") as env,
+              mock.patch.object(run, "launch") as launch):
+            with self.assertRaisesRegex(SystemExit, pattern):
+                run.main(argv)
+            env.assert_not_called()
+            launch.assert_not_called()
+        self.assertEqual(self.evidence(out), before)
+
+    def test_every_host_refuses_a_stale_release_without_changing_the_stopped_run(self):
+        for original, target in (("grok", "grok"), ("claude", "claude"), ("codex", "codex"),
+                                 ("grok", "codex"), ("claude", "codex")):
+            with self.subTest(original=original, target=target):
+                out, _, _, _ = self.stopped(original, label=f"stale-{original}-{target}")
+                self.assert_refused_unchanged(out, target, "recorded marketplace package is stale",
+                                             released=self.released(catalog_version="1.5.0"))
+
+    def test_missing_original_cli_refuses_before_any_host_setup(self):
+        for host in ("grok", "claude", "codex"):
+            with self.subTest(host=host):
+                out, _, runtime, _ = self.stopped(host, label=f"missing-cli-{host}")
+                (runtime / "skills/shiploop/scripts/shiploop").unlink()
+                self.assert_refused_unchanged(out, host, "original ShipLoop CLI path is missing")
+
+    def test_missing_package_or_identity_never_silently_rebinds(self):
+        for missing in ("package", "versions"):
+            with self.subTest(missing=missing):
+                out, earlier, runtime, _ = self.stopped("codex", label=f"missing-{missing}")
+                if missing == "package":
+                    shutil.rmtree(runtime)
+                else:
+                    del earlier["versions"]
+                    (out / "invocation.json").write_text(json.dumps(earlier))
+                self.assert_refused_unchanged(out, "codex", "bound plugin path is missing|no recorded package identity")
+
+    def test_checkout_refuses_changed_installed_bytes_at_the_same_version(self):
+        out, _, runtime, package = self.stopped("codex", source="checkout", label="changed-runtime")
+        (runtime / "skills/shiploop/scripts/shiploop").write_text("different runtime at the same version\n")
+        self.assert_refused_unchanged(out, "codex", "captured build|captured.*digest|runtime.*differ|runtime.*match",
+                                     plugin=package)
+
+    def test_checkout_refuses_an_unrecorded_or_different_candidate(self):
+        for mismatch in ("digest", "head", "candidate"):
+            with self.subTest(mismatch=mismatch):
+                out, earlier, _, package = self.stopped("claude", source="checkout", label=f"checkout-{mismatch}")
+                selected = package
+                if mismatch == "digest":
+                    del earlier["versions"]["plugin_sha256"]
+                elif mismatch == "head":
+                    earlier["versions"]["local_head"] = "different-head"
+                else:
+                    selected = self.tmp / "different-candidate"
+                    shutil.copytree(package, selected)
+                    (selected / "skills/shiploop/scripts/shiploop").write_text("different candidate\n")
+                (out / "invocation.json").write_text(json.dumps(earlier))
+                self.assert_refused_unchanged(out, "claude", "digest|HEAD differs|differs from the original candidate",
+                                             plugin=selected)
+
+    def test_same_checkout_with_python_cache_is_accepted_without_a_marketplace_gate(self):
+        out, earlier, runtime, package = self.stopped("codex", source="checkout", label="cache")
+        cache = runtime / "skills/shiploop/scripts/__pycache__"
+        cache.mkdir()
+        (cache / "generated.cpython-313.pyc").write_bytes(b"generated bytecode")
+        args = run.parser().parse_args(["--source", "checkout", "--plugin-dir", str(package)])
+        with mock.patch.object(run, "released_versions", side_effect=AssertionError("checkout must not fetch main")):
+            checked = run.resume_identity_preflight(earlier, out, args)
+        self.assertEqual(checked["plugin_dir"], package.resolve())
+
+    def test_same_host_current_package_resumes_without_reinstalling(self):
+        out, _, _, _ = self.stopped("codex", label="same-current")
+        original = (out / "invocation.json").read_bytes()
+        os.environ["FAKE_MODE"] = "done"
+        with (mock.patch.object(run, "released_versions", return_value=self.released()),
+              mock.patch.object(hosts.CodexHost, "install_marketplace") as install,
+              contextlib.redirect_stdout(io.StringIO())):
+            code = run.main(["--resume-run", str(out), "--host", "codex",
+                             "--codex-bin", str(self.fakes["codex"]), "--baseline", str(self.baselines)])
+        install.assert_not_called()
+        self.assertEqual(code, 0, (out / "result.json").read_text())
+        self.assertEqual((out / "invocation.json").read_bytes(), original)
+        self.assertFalse(self.baselines.exists())
+
+    def test_claude_origin_cross_host_resume_uses_the_verified_original_cli(self):
+        out, _, runtime, package = self.stopped("claude", source="checkout", label="claude-to-codex")
+        os.environ["FAKE_MODE"] = "done"
+        with contextlib.redirect_stdout(io.StringIO()):
+            code = run.main(["--resume-run", str(out), "--host", "codex",
+                             "--codex-bin", str(self.fakes["codex"]), "--plugin-dir", str(package),
+                             "--baseline", str(self.baselines)])
+        self.assertEqual(code, 0, (out / "result.json").read_text())
+        self.assertIn(str(runtime / "skills/shiploop/scripts/shiploop"), self.seen()["prompt"])
 
 
 class CodexHostTest(unittest.TestCase):

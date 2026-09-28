@@ -10,8 +10,11 @@ which this page supersedes.
 
 ## Hermetic: no model, runs in CI
 
-CI's quick tier runs these on every push when their files change. The full
-tier runs everything on release commits.
+CI's quick tier runs its baseline plus suites selected from changed files when
+the comparison base is available. If pull-request base metadata cannot be
+resolved, it runs only the quick baseline; that result does not establish
+coverage of every changed subsystem. The full tier runs everything on release
+commits. See [`ci_policy.py`](../test/ci_policy.py) for event-specific selection.
 
 | Part | What is proven | Suites |
 |---|---|---|

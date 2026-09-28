@@ -53,6 +53,7 @@ from __future__ import annotations
 
 import argparse
 from concurrent.futures import ThreadPoolExecutor
+import hashlib
 import json
 import os
 from pathlib import Path
@@ -221,7 +222,108 @@ def installed_versions(plugin_dir: Path) -> dict:
             "shiploop_version": card_version(plugin_dir / "skills" / "shiploop" / "SKILL.md")}
 
 
-def marketplace_preflight(args, out: Path, env: dict) -> tuple[Path, dict | None, dict]:
+def plugin_digest(plugin_dir: Path) -> str | None:
+    """A stable identity for the built plugin payload, including paths and symlinks."""
+    if not plugin_dir.is_dir():
+        return None
+    digest = hashlib.sha256()
+    for path in sorted(plugin_dir.rglob("*"), key=lambda item: item.relative_to(plugin_dir).as_posix()):
+        relative_path = path.relative_to(plugin_dir)
+        if "__pycache__" in relative_path.parts:
+            continue
+        relative = relative_path.as_posix().encode()
+        if path.is_symlink():
+            digest.update(b"link\0" + relative + b"\0" + os.readlink(path).encode() + b"\0")
+        elif path.is_file():
+            digest.update(b"file\0" + relative + b"\0" + path.read_bytes() + b"\0")
+        elif path.is_dir():
+            digest.update(b"dir\0" + relative + b"\0")
+    return digest.hexdigest()
+
+
+def resume_identity_preflight(earlier: dict, out: Path, args) -> dict:
+    """Validate the stopped run's selected package before creating host state or writing evidence."""
+    def refuse(reason: str):
+        raise SystemExit(f"--resume-run refused: {reason}. Start a new run under the selected package.")
+
+    recorded = earlier.get("versions")
+    if not isinstance(recorded, dict):
+        refuse("the original invocation has no recorded package identity")
+    source = recorded.get("source")
+    if source not in ("marketplace", "checkout"):
+        refuse(f"the original package source {source!r} is missing or unsupported")
+    if args.source != source:
+        refuse(f"the original run used --source {source}, but this resume selected --source {args.source}")
+
+    saved_path = earlier.get("plugin_dir")
+    if not isinstance(saved_path, str) or not saved_path:
+        refuse("the original invocation has no bound plugin path")
+    saved_plugin = Path(saved_path).expanduser().resolve()
+    if not saved_plugin.is_dir():
+        refuse(f"the bound plugin path is missing: {saved_plugin}")
+    saved_versions = installed_versions(saved_plugin)
+    identity = {key: recorded.get(key) for key in ("plugin_version", "shiploop_version")}
+    if not all(isinstance(value, str) and value for value in identity.values()):
+        refuse("the original invocation has incomplete plugin and ShipLoop versions")
+    captured_digest = recorded.get("plugin_sha256")
+    if source == "checkout" and (not isinstance(captured_digest, str) or len(captured_digest) != 64):
+        refuse("the checkout invocation has no recorded plugin digest")
+    if saved_versions != identity:
+        refuse(f"the bound plugin at {saved_plugin} no longer matches its recorded versions")
+
+    original_host = earlier.get("host")
+    if original_host not in hosts.HOSTS:
+        refuse(f"the original host {original_host!r} has no supported runtime path")
+    original = hosts.host(original_host)
+    bound_cli = original.plugin_cli(out / "home")
+    if bound_cli is None and original_host == "claude":
+        # Claude loads the package directly with --plugin-dir; this is its bound CLI.
+        bound_cli = saved_plugin / "skills" / "shiploop" / "scripts" / "shiploop"
+    if bound_cli is None or not bound_cli.is_file():
+        refuse(f"the original ShipLoop CLI path is missing for {original_host}")
+    try:
+        runtime_plugin = bound_cli.resolve().parents[3]
+    except IndexError:
+        refuse(f"the original ShipLoop CLI path is malformed: {bound_cli}")
+    if installed_versions(runtime_plugin) != identity:
+        refuse(f"the original ShipLoop CLI at {bound_cli} no longer matches the recorded package")
+    if source == "checkout" and plugin_digest(runtime_plugin) != captured_digest:
+        refuse(f"the original ShipLoop runtime at {runtime_plugin} no longer matches its captured build")
+    if source == "marketplace":
+        released = released_versions()
+        problems = version_gate(released, identity["plugin_version"], identity["shiploop_version"])
+        if problems:
+            refuse("the recorded marketplace package is stale: " + "; ".join(problems))
+        return {"source": source, "plugin_dir": saved_plugin, "saved_plugin_dir": saved_plugin,
+                "bound_cli": bound_cli, "runtime_plugin": runtime_plugin, "recorded": recorded,
+                "released": released}
+
+    if plugin_digest(saved_plugin) != captured_digest:
+        refuse("the bound checkout plugin no longer matches its captured build")
+    if not recorded.get("local_head") or git("rev-parse", "HEAD").strip() != recorded["local_head"]:
+        refuse("the selected checkout HEAD differs from the original candidate")
+
+    if args.plugin_dir:
+        selected_plugin = args.plugin_dir.expanduser().resolve()
+    else:
+        selected_plugin = None
+        try:
+            with tempfile.TemporaryDirectory(prefix="shiploop-e2e-resume-build-") as temp:
+                current_plugin = build_candidate(Path(temp))
+                if plugin_digest(current_plugin) != captured_digest:
+                    refuse("a fresh build of the selected checkout differs from the original candidate")
+        except (OSError, subprocess.CalledProcessError) as exc:
+            refuse(f"could not build the selected checkout for identity comparison: {exc}")
+        selected_plugin = saved_plugin
+    if not selected_plugin.is_dir():
+        refuse(f"the selected checkout plugin path is missing: {selected_plugin}")
+    if installed_versions(selected_plugin) != identity or plugin_digest(selected_plugin) != captured_digest:
+        refuse(f"the selected checkout plugin at {selected_plugin} differs from the original candidate")
+    return {"source": source, "plugin_dir": selected_plugin, "saved_plugin_dir": saved_plugin,
+            "bound_cli": bound_cli, "runtime_plugin": runtime_plugin, "recorded": recorded, "released": None}
+
+
+def marketplace_preflight(args, out: Path, env: dict, released: dict | None = None) -> tuple[Path, dict | None, dict]:
     """Pull from the marketplace the way the host does, then report and gate what was actually installed.
 
     Grok: add the published marketplace and install skill-craft into the fresh profile in ``env``.
@@ -229,7 +331,7 @@ def marketplace_preflight(args, out: Path, env: dict) -> tuple[Path, dict | None
     Prints one line naming what main publishes and what the host got, so a stale
     marketplace is visible before any run starts (SPEC: publish, refresh, then run).
     """
-    released = released_versions()
+    released = released or released_versions()
     plugin = None
     host = the_host(args)
     if host.marketplace:
@@ -426,12 +528,13 @@ def last_session_id(events_path: Path) -> str | None:
     return found
 
 
-def resume_prompt(out: Path, run_dir: str | None, host: "hosts.Host | None" = None) -> str:
+def resume_prompt(out: Path, run_dir: str | None, host: "hosts.Host | None" = None,
+                  cli: Path | None = None) -> str:
     if run_dir is None:
         return ("This session ended before the ShipLoop run was started. Continue the original "
                 "request now: start the ShipLoop run as its skill directs and follow each packet to "
                 "the end of the run. Never end the turn while a ShipLoop command is still running.")
-    cli = (host or hosts.host("grok")).plugin_cli(out / "home")
+    cli = cli or (host or hosts.host("grok")).plugin_cli(out / "home")
     command = f'python3 "{cli}" next --run-dir "{run_dir}"' if cli else f'shiploop next --run-dir "{run_dir}"'
     return ("This session ended while the ShipLoop run was still active. Continue it now: run "
             f"`{command}` and follow the packet it prints, to the end of the run. Never end the turn "
@@ -809,6 +912,7 @@ def main(argv: list[str] | None = None) -> int:
         raise SystemExit(f"--plugin-dir has no .claude-plugin/plugin.json: {args.plugin_dir}")
 
     resumed = None
+    resume_identity = None
     if args.resume_run:
         # Continue a stopped run in place: same work directory, run state and event stream.
         out = args.resume_run.expanduser().resolve()
@@ -819,6 +923,7 @@ def main(argv: list[str] | None = None) -> int:
         state = grade_shiploop(out)
         if state.get("status") != "active":
             raise SystemExit(f"--resume-run needs an active ShipLoop run; found {state.get('status')!r} in {out}")
+        resume_identity = resume_identity_preflight(earlier, out, args)
         resumed = {"from_host": earlier["host"], "from_model": earlier.get("model"), "run_dir": state.get("run_dir"),
                    "revision": state.get("revision"), "stage": state.get("stage")}
     else:
@@ -830,28 +935,41 @@ def main(argv: list[str] | None = None) -> int:
         work.mkdir()
         follow_on = continue_from(args.continue_from.expanduser().resolve(), work) if args.continue_from else None
     env = host.env(out / "home")
-    if resumed and earlier.get("host") == args.host and Path(earlier.get("plugin_dir") or "").is_dir():
-        # A resumed run keeps the plugin it started on: reinstalling would replace that version's files, and a
-        # bound Improve child records paths inside them. Only the CI and checkout checks still apply.
-        plugin_dir, plugin = Path(earlier["plugin_dir"]), None
-        released = released_versions()
-        versions = {"source": "marketplace (resumed on its original install)", **installed_versions(plugin_dir),
-                    "released": released,
-                    "gate": [problem for problem in version_gate(released, None, None)
-                             if not problem.startswith("installed ")]}
-        if versions["gate"]:
-            raise SystemExit("version gate: " + "; ".join(versions["gate"]))
-        if host.name == "codex" and versions["plugin_version"] != released["catalog_version"]:
-            # Codex syncs installed plugins to its marketplace's current release when a session starts and
-            # deletes the old version's files, which the run's CLI and any bound Improve child point to.
-            raise SystemExit(f"a Codex run started on skill-craft {versions['plugin_version']} cannot resume after "
-                             f"release {released['catalog_version']}: Codex replaces the plugin at session start. "
-                             "Start the case again.")
+    if resumed and args.host == resumed["from_host"]:
+        # Reuse the validated install and report the identity checked immediately before this resume.
+        plugin_dir = resume_identity["saved_plugin_dir"]
+        recorded = resume_identity["recorded"]
+        plugin = {"pass": True, "loaded": [str(resume_identity["runtime_plugin"])],
+                  "source": "validated original runtime",
+                  "identity": {key: recorded.get(key) for key in
+                               ("plugin_version", "shiploop_version", "plugin_sha256") if key in recorded}}
+        if resume_identity["source"] == "marketplace":
+            versions = {"source": "marketplace (resumed on its validated install)",
+                        **installed_versions(plugin_dir), "released": resume_identity["released"], "gate": []}
+        else:
+            versions = {"source": "checkout", **installed_versions(plugin_dir),
+                        "local_head": git("rev-parse", "HEAD").strip(),
+                        "plugin_sha256": plugin_digest(plugin_dir)}
+    elif resumed and resume_identity["source"] == "marketplace":
+        if host.marketplace:
+            plugin_dir, plugin, versions = marketplace_preflight(args, out, env, resume_identity["released"])
+            recorded = resume_identity["recorded"]
+            if versions["gate"]:
+                raise SystemExit("--resume-run refused: " + "; ".join(versions["gate"]))
+            if any(versions.get(key) != recorded.get(key) for key in ("plugin_version", "shiploop_version")):
+                raise SystemExit("--resume-run refused: the selected host installed a different marketplace package")
+        else:
+            # Claude loads the saved, already-validated package directly by path.
+            plugin_dir, plugin = resume_identity["plugin_dir"], None
+            versions = {"source": "marketplace (resumed on the recorded package)",
+                        **installed_versions(plugin_dir), "released": resume_identity["released"], "gate": []}
+    elif resumed:
+        plugin_dir = resume_identity["plugin_dir"]
+        plugin = host.install_plugin(env, plugin_dir)
+        versions = {"source": "checkout", **installed_versions(plugin_dir),
+                    "local_head": git("rev-parse", "HEAD").strip(), "plugin_sha256": plugin_digest(plugin_dir)}
     elif args.source == "marketplace":
         plugin_dir, plugin, versions = marketplace_preflight(args, out, env)
-        if resumed:
-            # No original install to reuse: a newer release is still not a reason to refuse the run.
-            versions["gate"] = [problem for problem in versions["gate"] if not problem.startswith("installed ")]
         if versions["gate"]:
             (out / "result.json").write_text(json.dumps({"case": name, "pass": False, "versions": versions,
                                                          "output": str(out)}, indent=2) + "\n")
@@ -860,10 +978,21 @@ def main(argv: list[str] | None = None) -> int:
         plugin = None
         plugin_dir = args.plugin_dir or build_candidate(out)
         plugin = host.install_plugin(env, plugin_dir)
-        versions = {"source": "checkout", **installed_versions(plugin_dir), "local_head": git("rev-parse", "HEAD").strip()}
+        versions = {"source": "checkout", **installed_versions(plugin_dir),
+                    "local_head": git("rev-parse", "HEAD").strip(), "plugin_sha256": plugin_digest(plugin_dir)}
+    if resumed:
+        selected_cli = host.plugin_cli(out / "home")
+        if selected_cli is None and host.name == "claude":
+            selected_cli = plugin_dir / "skills" / "shiploop" / "scripts" / "shiploop"
+        if selected_cli is None or not selected_cli.is_file():
+            raise SystemExit(f"--resume-run refused: the selected {host.name} ShipLoop CLI path is missing")
+        selected_runtime = selected_cli.resolve().parents[3]
+        if installed_versions(selected_runtime) != installed_versions(plugin_dir):
+            raise SystemExit(f"--resume-run refused: the selected {host.name} runtime differs from the validated package")
     keepalive = hosts.grok_keepalive(env, plugin_dir) if host.keepalive else None
     # A resumed run keeps the ShipLoop CLI of the host that started it, so its version does not change.
-    opening = (resume_prompt(out, resumed["run_dir"], hosts.host(resumed["from_host"])) if resumed
+    opening = (resume_prompt(out, resumed["run_dir"], hosts.host(resumed["from_host"]), resume_identity["bound_cli"])
+               if resumed
                else host.invoke(args.skill, prompt))
     cli = host.argv(prompt=opening, prompt_file=out / ("host-prompt.txt" if not resumed else
                                                        f"resume-{host.name}-{int(time.time())}.txt"),

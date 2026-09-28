@@ -47,18 +47,24 @@ minutes:
 python3 test/shiploop_e2e/fanout.py --host codex --model gpt-6-luna --effort medium
 ```
 
-A run that stops while ShipLoop is still active, for example because a host ran
-out of credits, can continue in place on any host:
+A run that stops while ShipLoop is still active can continue in place on a
+supported host when its recorded package is still the selected current candidate:
 
 ```sh
 bash test/run-integration.sh shiploop-e2e --resume-run <that run's output directory> --host codex --effort xhigh
 ```
 
-It keeps the same work directory, run state and event stream, and prompts with
-the ShipLoop CLI of the host that started the run, so the run's version does not
-change. The case and checks come from the earlier run, and the result is graded
-as usual. The original `invocation.json` is kept, and each resume is recorded
-beside it as `invocation-resume-<host>-<time>.json`.
+It keeps the same work directory, run state and event stream, and uses the
+verified original ShipLoop CLI path. Every host rejects an older marketplace
+release before starting a session. A checkout run needs `--source checkout`
+(or the same `--plugin-dir`), its recorded HEAD, and matching built package bytes;
+Python bytecode caches are excluded. Missing identity or bound runtime paths
+require a fresh run. Refusal preserves the earlier invocation, results and run
+evidence; it does not migrate or rebind the run. Switching hosts is allowed only
+while the original runtime remains available. Same-host resumes reuse that
+validated install. The case and checks come from the earlier run. Each accepted
+resume is recorded beside the original `invocation.json` as
+`invocation-resume-<host>-<time>.json`.
 
 
 **Start with [SPEC.md](SPEC.md).** It is the standing specification every run,
