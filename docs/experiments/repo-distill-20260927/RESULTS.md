@@ -244,3 +244,35 @@ Judge agreement: two judges of the same sample differed by up to 23 points
 detail, not noise: the stricter judge's findings are evidence-backed and
 check out. The judge prompt now requires checking every bullet, and grades
 are reported combined.
+
+# Interrupted at 17:40, 2026-09-27
+
+## Round 3 (bullet verification; architecture adds configuration, error model, conventions)
+
+All four distills finished (GPT-6 Luna max). Only webpack-bundle-analyzer
+was graded before the Opus judges hit the account's weekly Claude limit
+("You've hit your weekly limit · resets Oct 1 at 3am"); the marked, mocha and
+Figma-Context-MCP judges wrote nothing. Their distills are intact in the
+session scratchpad (init3/).
+
+webpack-bundle-analyzer, round 2 -> round 3 (combined): architecture true
+70% -> 90% (architecture.md 54 -> 133 lines; the three added sections
+worked); wrong/partial 10% -> 13.8%; tests missing 0% -> 2.6%; sources
+missing 44%; leakage 10%. Remaining errors: rules generalised from a test
+fixture (an "empty chart without entrypoints" rule read off a fixture that
+has no assets), a mis-cited test, a missed async failure path, and
+implementation names in spec bullets. Next lever: a test proves only its own
+case; state a general rule only from the code path that enforces it.
+Status: interim (one repository).
+
+## T3 ShipLoop on marked, GPT-6 Luna max (Codex host): paused, no product
+
+9,168 s, 517 turns, 11 commits, still in preparation (plan, Improve review);
+no work item built. ShipLoop refused `improve-commit` ("the commit message
+must be the printed file") and then `improve-start`; the model paused and
+wrote a host handoff: the stopped Improve child reported `blocked` while the
+reconciliation route accepts only `cancelled`, and the run lacked its
+action-selected Backchain and Until Loop resource bindings on the Codex host.
+A recovery dead end in ShipLoop (E2E SPEC S-1/S-2): status firm, needs a
+ShipLoop fix. Evidence: e2e/mdkit-luna-max-1 (scratchpad),
+run/notes/host-handoff.md.
