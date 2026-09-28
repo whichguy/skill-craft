@@ -12,6 +12,7 @@ import tempfile
 import time
 import unittest
 from unittest import mock
+from urllib.parse import unquote, urlsplit
 
 ROOT = Path(__file__).resolve().parents[1]
 SCRIPTS = ROOT / "skills/shiploop/scripts"
@@ -151,13 +152,23 @@ class ProgressTests(unittest.TestCase):
             if path.is_file():
                 path.unlink()
         # Existing navigator.save created directories; use a genuinely fresh run.
-        self.run = self.base / "automatic run"
+        self.run = self.base / "automatic #1? <run>"
         result = self.cli("init", "--repo", str(self.repo), "--run-dir", str(self.run),
                           "--prompt", "Default progress creation", auto="watch")
         self.assertEqual(result.returncode, 0, result.stderr)
         self.wait_for(lambda: self.page_contains("Default progress creation"))
         self.assertTrue(progress.running(self.run))
-        self.assertIn("progress.html", result.stdout)
+        link = next(line for line in result.stdout.splitlines()
+                    if line.startswith("Progress view: "))
+        target = link.split("[HTML file](<", 1)[1].split(">)", 1)[0]
+        parsed = urlsplit(target)
+        self.assertEqual(parsed.query, "")
+        self.assertEqual(parsed.fragment, "")
+        self.assertNotIn("<", target)
+        self.assertNotIn(">", target)
+        page = Path(unquote(parsed.path))
+        self.assertEqual(page, self.run / "progress.html")
+        self.assertTrue(page.is_file())
 
     def test_terminal_snapshot_reconciles_and_stops(self):
         process = self.watch()

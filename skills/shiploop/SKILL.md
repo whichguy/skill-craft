@@ -58,10 +58,10 @@ start/stop controls, draft-versus-accepted labels, and freshness limits.
 
 After the first successful `workspace start` or `init`, show the user the
 packet's absolute progress-view link in your startup message: "You can use this
-HTML file to track changes during this ShipLoop run." Make "HTML file" a Markdown
-link using the actual absolute path from the packet, including angle brackets
-for paths with spaces. Show it once per run; keep following the current action
-afterward. If the observer is unavailable or disabled and the file has not been created,
+HTML file to track changes during this ShipLoop run." Make "HTML file" the link
+by copying the packet's Markdown link verbatim, preserving its encoded target
+and angle brackets. Show it once per run; keep following the current action afterward. If
+the observer is unavailable or disabled and the file has not been created,
 report that status instead of presenting a working tracking link.
 
 Keep ShipLoop's control channel in the conversation that invoked this skill.
