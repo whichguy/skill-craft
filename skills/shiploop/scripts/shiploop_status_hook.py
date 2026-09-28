@@ -18,7 +18,7 @@ from typing import Any
 
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 
-import shiploop_navigator_v3_prompts as guidance3  # noqa: E402
+import shiploop_prompts as guidance  # noqa: E402
 
 BEGIN = "=== ShipLoop status ==="
 END = "=== end ShipLoop status ==="
@@ -43,8 +43,8 @@ PACKET_VERBS = {
 INTERPRETER = re.compile(r"python(\d+(\.\d+)*)?$")
 ASSIGNMENT = re.compile(r"[A-Za-z_][A-Za-z0-9_]*=")
 PREFIXES = {
-    guidance3.inner_context(route, improve=improve)
-    for route in guidance3.DELEGATIONS
+    guidance.inner_context(route, improve=improve)
+    for route in guidance.DELEGATIONS
     for improve in (False, True)
 }
 

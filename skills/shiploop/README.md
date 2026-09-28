@@ -989,7 +989,7 @@ phase diagram.
 
 | Question | Decisive implementation |
 |---|---|
-| What action runs next, and what must a completion prove? | [Navigator graph, validation, packets and dispatch](scripts/shiploop_navigator.py), [stage prompts and reference catalog](scripts/shiploop_navigator_v3_prompts.py), the [CLI entry and run lock](scripts/shiploop) and its [verb routing](scripts/shiploop_protocol.py). |
+| What action runs next, and what must a completion prove? | [Navigator graph, validation, packets and dispatch](scripts/shiploop_navigator.py), [stage prompts and reference catalog](scripts/shiploop_prompts.py), the [CLI entry and run lock](scripts/shiploop) and its [verb routing](scripts/shiploop_protocol.py). |
 | How is an Improve child bound, completed and imported? | [Standalone Improve binding and import](scripts/shiploop_standalone_improve.py). |
 | What persists across a cold context? | [Markdown transactions](scripts/shiploop_store.py) and the [state-file guide](references/state-files.md). |
 | How does isolated work return to the source checkout? | [Workspace start, return plan and guarded return](scripts/shiploop_workspace.py). |
@@ -1009,7 +1009,7 @@ bash test/run-all.sh --group shiploop
 Focused examples:
 
 ```sh
-python3 test/shiploop-navigator-v3.test.py
+python3 test/shiploop-navigator-contract.test.py
 python3 test/shiploop-improve-schedule.test.py
 python3 test/shiploop-delegation.test.py
 python3 test/shiploop-reference-routing.test.py

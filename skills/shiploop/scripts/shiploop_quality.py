@@ -20,7 +20,7 @@ from typing import Any, Mapping, Optional
 
 import shiploop_lint as lint
 import shiploop_loop_contract as loop_contract
-import shiploop_navigator_v3_prompts as guidance3
+import shiploop_prompts as guidance
 import shiploop_stage_spec as stage_spec
 import shiploop_standalone_improve as standalone
 
@@ -117,9 +117,9 @@ def build_contract(root: Path, state: Mapping[str, Any], work_item: str, action:
                           "locator": step_plan})
     return loop_contract.contract(
         workspace=repo,
-        work=guidance3.QUALITY_ITERATION.strip(),
-        exit_condition=guidance3.QUALITY_EXIT_CONDITION,
-        repeat_condition=guidance3.QUALITY_REPEAT_CONDITION,
+        work=guidance.QUALITY_ITERATION.strip(),
+        exit_condition=guidance.QUALITY_EXIT_CONDITION,
+        repeat_condition=guidance.QUALITY_REPEAT_CONDITION,
         required_trivial_reviews=1,
         request=("Quality loop for ShipLoop work item " + work_item + " ("
                  + _work_title(state, work_item) + "): trace, verify and improve its change "
@@ -144,7 +144,7 @@ def transition_writes(root: Path, after: Mapping[str, Any], work_item: Optional[
     contract = build_contract(Path(root), after, work_item, action)
     return {
         contract_path(action): loop_contract.dumps(contract),
-        RUBRIC_PATH: guidance3.CODE_CRAFT,
+        RUBRIC_PATH: guidance.CODE_CRAFT,
     }
 
 

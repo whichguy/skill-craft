@@ -2,7 +2,7 @@
 import sys, json, pathlib, os
 SK = pathlib.Path(os.environ["SHIPLOOP_SRC"]) / "skills" / "shiploop"
 sys.path.insert(0, str(SK / "scripts"))
-import shiploop_navigator_v3_prompts as p
+import shiploop_prompts as p
 HERE = pathlib.Path(__file__).resolve().parent
 CARDS = pathlib.Path(os.environ["CARDS_DIR"])
 SC = json.loads((HERE / "scenarios.json").read_text())

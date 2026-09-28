@@ -74,12 +74,12 @@ class PlanningHandoffTests(unittest.TestCase):
                                          f"missing: {sorted(required - seen[stage])}")
 
     def test_every_planning_stage_registers_its_files_for_the_next_stage(self) -> None:
-        planning = set(nav.guidance3.PRELUDE) | set(nav.guidance3.PLANNING_REVIEW_STAGES)
+        planning = set(nav.guidance.PRELUDE) | set(nav.guidance.PLANNING_REVIEW_STAGES)
         for delegation in ("inline", "ask-agent"):
             for stage in sorted(planning):
                 with self.subTest(delegation=delegation, stage=stage):
                     self.assertIn("Register every produced planning file",
-                                  nav.guidance3.prompt(stage, delegation=delegation))
+                                  nav.guidance.prompt(stage, delegation=delegation))
 
     def test_the_step_planning_set_is_the_planning_reviews_after_the_prelude(self) -> None:
         self.assertEqual(nav.STEP_PLANNING_STAGES,
@@ -107,9 +107,9 @@ def full_walk(run: Path, repo: Path, delegation: str):
 
 class ContextIndexTests(unittest.TestCase):
     def test_every_stage_has_a_read_map_of_earlier_results(self) -> None:
-        stages = nav.guidance3.STAGES
+        stages = nav.guidance.STAGES
         self.assertEqual(set(context_index.STAGE_READS), set(stages))
-        inner = nav.guidance3.INNER
+        inner = nav.guidance.INNER
         for stage, reads in context_index.STAGE_READS.items():
             for name in reads:
                 with self.subTest(stage=stage, read=name):
@@ -138,7 +138,7 @@ class ContextIndexTests(unittest.TestCase):
                         index = (run / context_index.INDEX_FILE).read_text()
                         for action in planning_revision.current_actions(state).values():
                             self.assertIn(str(run / "results" / (action + ".md")), index)
-                self.assertEqual(visited, set(nav.guidance3.STAGES))
+                self.assertEqual(visited, set(nav.guidance.STAGES))
 
     def test_the_index_is_derived_and_regenerates_identically(self) -> None:
         with tempfile.TemporaryDirectory(prefix="shiploop-index-") as temp:

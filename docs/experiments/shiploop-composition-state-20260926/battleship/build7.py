@@ -2,7 +2,7 @@
 import sys, pathlib
 SK = pathlib.Path(__file__).resolve().parents[4] / "skills" / "shiploop"
 sys.path.insert(0, str(SK / "scripts"))
-import shiploop_navigator_v3_prompts as p
+import shiploop_prompts as p
 LAYERED = """
 Layered conventions. The published runtime is only the floor. Find what this
 project has layered on it: vendored or packaged frameworks and shared libraries,

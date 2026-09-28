@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Protocol-v3 acceptance tests for ShipLoop-owned action/Improve handoff.
+"""Current navigator contract tests for ShipLoop-owned action/Improve handoff.
 
 The expected graph is intentionally declared here instead of imported from the
 navigator.  These are synthetic protocol tests: no child Improve runtime,
@@ -31,11 +31,11 @@ SCRIPTS = ROOT / "skills" / "shiploop" / "scripts"
 sys.path.insert(0, str(SCRIPTS))
 
 import shiploop_navigator as navigator  # noqa: E402
-import shiploop_navigator_v3_prompts as prompts  # noqa: E402
+import shiploop_prompts as prompts  # noqa: E402
 import shiploop_store as store  # noqa: E402
 
 
-# This is the public v3 contract.  Never derive it from the implementation:
+# This is the public navigator contract.  Never derive it from the implementation:
 # otherwise a routing regression could silently change the test expectation.
 EXPECTED_PRELUDE = (
     "intake", "discovery", "research", "spec", "test-strategy", "plan", "prepare",
@@ -147,7 +147,7 @@ class ForbiddenAccess:
 
 
 def receipt(stage: str) -> dict:
-    """Synthetic child completion accepted only by the pure v3 state API."""
+    """Synthetic child completion accepted only by the pure navigator state API."""
     return {
         "summary": f"Synthetic Improve completion for {stage}.",
         "review_refs": [f"synthetic://review/{stage}"],
@@ -156,9 +156,9 @@ def receipt(stage: str) -> dict:
     }
 
 
-class NavigatorV3Tests(unittest.TestCase):
+class NavigatorContractTests(unittest.TestCase):
     def setUp(self) -> None:
-        self.temp = tempfile.TemporaryDirectory(prefix="shiploop-navigator-v3-")
+        self.temp = tempfile.TemporaryDirectory(prefix="shiploop-navigator-contract-")
         self.addCleanup(self.temp.cleanup)
         self.repo = Path(self.temp.name) / "project"
         self.repo.mkdir()
@@ -348,8 +348,8 @@ class NavigatorV3Tests(unittest.TestCase):
             state = self._produce(state, navigator.current_stage(state))
         return state
 
-    def test_v3_cold_producer_and_bound_reviewer_packets_keep_generic_access_boundary(self) -> None:
-        """One generic policy reaches both v3 packet owners without new state."""
+    def test_cold_producer_and_bound_reviewer_packets_keep_generic_access_boundary(self) -> None:
+        """One generic policy reaches both current packet owners without new state."""
         root = self.repo / ".shiploop"
         state = self.state()
         producer_packet = navigator.render(None, root, state)
@@ -361,7 +361,7 @@ class NavigatorV3Tests(unittest.TestCase):
         )
         self.assertIn(GENERIC_ACCESS_STORE_BOUNDARY, " ".join(reviewer_packet.split()))
 
-    def test_v3_declares_the_flat_sdlc_graph_independently(self) -> None:
+    def test_declares_the_flat_sdlc_graph_independently(self) -> None:
         self.assertEqual(tuple(prompts.PRELUDE), EXPECTED_PRELUDE)
         self.assertEqual(tuple(prompts.INNER), EXPECTED_INNER)
         self.assertEqual(tuple(prompts.OUTER), EXPECTED_OUTER)
@@ -458,7 +458,7 @@ class NavigatorV3Tests(unittest.TestCase):
         resumed = navigator.control(blocked, "resume")
         self.assertTrue(navigator.render(None, root, resumed).startswith(prefix))
 
-    def test_every_v3_stage_carries_generic_policy_content_in_both_packet_views(self) -> None:
+    def test_every_stage_carries_generic_policy_content_in_both_packet_views(self) -> None:
         """Producer and Improve-pending packets keep the same policy routing.
 
         Only planning/contract stages and the end-of-work carry-forward start
@@ -525,7 +525,7 @@ class NavigatorV3Tests(unittest.TestCase):
             navigator.apply(waiting, action["id"], result(summary="Conflicting producer report."))
 
     def test_skill_assess_rejects_legacy_skill_result_carriers_without_mutation(self) -> None:
-        """V3 retains reusable-skill evidence in its generic envelope only."""
+        """ShipLoop retains reusable-skill evidence in its generic envelope only."""
         state = self.state()
         while navigator.current_stage(state) != "skill-assess":
             stage = navigator.current_stage(state)
@@ -584,7 +584,7 @@ class NavigatorV3Tests(unittest.TestCase):
     def test_cold_recovery_preserves_the_pending_child_binding_without_advancing(self) -> None:
         state = self._at_spec()
         waiting = self._pending(state)
-        with tempfile.TemporaryDirectory(prefix="shiploop-v3-cold-") as temporary:
+        with tempfile.TemporaryDirectory(prefix="shiploop-contract-cold-") as temporary:
             root = Path(temporary)
             navigator.save(root, waiting)
             before = (root / "state.md").read_bytes()
@@ -595,7 +595,7 @@ class NavigatorV3Tests(unittest.TestCase):
             self.assertEqual(navigator.current_stage(recovered), "spec")
             self.assertEqual(recovered["active_improve"], waiting["active_improve"])
 
-    def test_v3_requirements_policy_routes_through_unbound_and_bound_improve_recovery(self) -> None:
+    def test_requirements_policy_routes_through_unbound_and_bound_improve_recovery(self) -> None:
         """Both child forms retain packet locators before and after cold recovery."""
         unbound = self._pending(self._at_spec())
         self.assertIsNone(unbound["active_improve"]["skill"])
@@ -622,7 +622,7 @@ class NavigatorV3Tests(unittest.TestCase):
                     self.assertIn("Follow the packet's Maintained requirements policy", cold)
                     self.assertIn("requirement and test locators", cold)
 
-    def test_v3_cold_next_retains_requirements_definition_child_context(self) -> None:
+    def test_cold_next_retains_requirements_definition_child_context(self) -> None:
         """A recovered Improve packet retains the guide and an existing-spec locator."""
         self.assertTrue(self.requirements_guide.is_file())
         existing_spec = self.repo / "docs" / "existing-spec.md"
@@ -661,7 +661,7 @@ class NavigatorV3Tests(unittest.TestCase):
             self.assertIn(requirement_locator, packet)
             self.assertIn("Use the packet's Requirements definition guide", packet)
 
-    def test_v3_bound_child_carries_requirement_and_test_locators_through_cold_recovery(self) -> None:
+    def test_bound_child_carries_requirement_and_test_locators_through_cold_recovery(self) -> None:
         """Assert structural packet propagation, not that a model interpreted the sources."""
         docs = self.repo / "docs"
         docs.mkdir()
@@ -741,7 +741,7 @@ class NavigatorV3Tests(unittest.TestCase):
         self.assertEqual(cold.count(run_note_locator), 1, cold)
         self.assertEqual(run_note.read_bytes(), run_note_bytes)
 
-    def test_v3_common_and_improve_prompts_preserve_requirements_review_cues(self) -> None:
+    def test_common_and_improve_prompts_preserve_requirements_review_cues(self) -> None:
         """Keep concise review duties without inventing child state or counters."""
         producer = prompts.COMMON
         improve = prompts.improve_prompt("implement")
@@ -773,7 +773,7 @@ class NavigatorV3Tests(unittest.TestCase):
             prompts.IMPROVE_SCOPES["spec"],
         )
 
-    def test_v3_native_backchain_operations_reuse_selected_until_loop_subcall(self) -> None:
+    def test_native_backchain_operations_reuse_selected_until_loop_subcall(self) -> None:
         """Backchain owns dependency work; Until Loop owns its runtime and terminal."""
         operations = {
             "draft": "action `plan` / stage `draft`",
@@ -881,7 +881,7 @@ class NavigatorV3Tests(unittest.TestCase):
             fake_skills_root
             / "shiploop"
             / "scripts"
-            / "shiploop_navigator_v3_prompts.py"
+            / "shiploop_prompts.py"
         )
         fake_source.parent.mkdir(parents=True)
         fake_source.touch()
@@ -928,7 +928,7 @@ class NavigatorV3Tests(unittest.TestCase):
             with self.subTest(source=label):
                 self.assertIn("only Backchain", " ".join(texts[label].split()))
 
-    def test_v3_backchain_planning_guidance_is_scoped_to_selected_stages(self) -> None:
+    def test_backchain_planning_guidance_is_scoped_to_selected_stages(self) -> None:
         """Producer and actual Improve prompts use the guide only for planning decisions."""
         self.assertTrue(self.backchain_planning_guide.is_file())
         guide = self.backchain_planning_guide.read_text(encoding="utf-8")
@@ -960,7 +960,7 @@ class NavigatorV3Tests(unittest.TestCase):
                     self.assertNotIn(legacy, prompts.prompt(stage))
                     self.assertNotIn(legacy, prompts.improve_prompt(stage))
 
-    def test_v3_requirements_definition_duties_stay_in_existing_stages(self) -> None:
+    def test_requirements_definition_duties_stay_in_existing_stages(self) -> None:
         """Existing discovery, research, and spec nodes cover the new guide duties."""
         self.assertEqual(tuple(prompts.PRELUDE), EXPECTED_PRELUDE)
         self.assertIn(
@@ -976,7 +976,7 @@ class NavigatorV3Tests(unittest.TestCase):
             " ".join(prompts.DUTIES["spec"].split()),
         )
 
-    def test_v3_research_duty_lists_assumptions_for_the_plan(self) -> None:
+    def test_research_duty_lists_assumptions_for_the_plan(self) -> None:
         """Research records dispositions; the plan result is where they are enforced."""
         research = " ".join(prompts.DUTIES["research"].split())
         for phrase in (
@@ -989,7 +989,7 @@ class NavigatorV3Tests(unittest.TestCase):
         ):
             self.assertIn(phrase, research)
 
-    def test_v3_step_duties_carry_exit_criteria_authoring_loop_and_parent_check(self) -> None:
+    def test_step_duties_carry_exit_criteria_authoring_loop_and_parent_check(self) -> None:
         """Rule A, the worker loop W and parent check P live in the emitted duties.
 
         The script does not rerun exit-criteria checks, so each route's packet
@@ -1034,7 +1034,7 @@ class NavigatorV3Tests(unittest.TestCase):
                         self.assertEqual(text.count(phrase), 1)
         self.assertNotIn("Exit criteria:", " ".join(prompts.prompt("static-checks").split()))
 
-    def test_v3_test_strategy_requires_repeatable_harness_revalidation_and_suite_tiers(self) -> None:
+    def test_test_strategy_requires_repeatable_harness_revalidation_and_suite_tiers(self) -> None:
         """The global strategy chooses rerunnable coverage before item work starts."""
         strategy = " ".join(prompts.prompt("test-strategy").split())
         for duty in (
@@ -1047,7 +1047,7 @@ class NavigatorV3Tests(unittest.TestCase):
             with self.subTest(duty=duty):
                 self.assertIn(duty, strategy)
 
-    def test_v3_platform_testing_contract_routes_to_every_test_stage(self) -> None:
+    def test_platform_testing_contract_routes_to_every_test_stage(self) -> None:
         """The global choice and each testing checkpoint retain the same guide route."""
         strategy = " ".join(prompts.prompt("test-strategy").split())
         self.assertIn(GLOBAL_PLATFORM_TESTING_CLAUSE, strategy)
@@ -1078,7 +1078,7 @@ class NavigatorV3Tests(unittest.TestCase):
                 self.assertIn("Current item test-decision source", instruction)
                 self.assertIn("prior decision locators and any justified revision", instruction)
 
-    def test_v3_remote_test_routes_keep_local_and_remote_evidence_distinct(self) -> None:
+    def test_remote_test_routes_keep_local_and_remote_evidence_distinct(self) -> None:
         """Route remote test assets without treating a local result as their evidence."""
         strategy = " ".join(prompts.prompt("test-strategy").split())
         for duty in (
@@ -1122,7 +1122,7 @@ class NavigatorV3Tests(unittest.TestCase):
             with self.subTest(stage="system-test", duty=duty):
                 self.assertIn(duty, system_test)
 
-    def test_v3_test_lifecycle_and_child_handoff_keep_repeatable_suite_boundaries(self) -> None:
+    def test_test_lifecycle_and_child_handoff_keep_repeatable_suite_boundaries(self) -> None:
         """Check packet routing and boundaries, without claiming model compliance."""
         test_spec = " ".join(prompts.prompt("test-spec").split())
         for duty in (
@@ -1190,7 +1190,7 @@ class NavigatorV3Tests(unittest.TestCase):
             navigator.apply(state, self._action(state)["id"], result())["active_improve"]
         )
 
-    def test_v3_initial_baseline_guidance_survives_improve_and_cold_step_plan(self) -> None:
+    def test_initial_baseline_guidance_survives_improve_and_cold_step_plan(self) -> None:
         """Initial-baseline evidence stays in ordinary records without new graph state."""
         self.assertEqual(len(EXPECTED_STAGES), 34)
         self.assertTrue(self.initial_baseline_guide.is_file())
@@ -1290,7 +1290,7 @@ class NavigatorV3Tests(unittest.TestCase):
         self._assert_initial_baseline_locator(cold_packet)
         self.assertIn(prerequisite_context, cold_packet)
 
-    def test_v3_packets_keep_runtime_and_selected_case_evidence_visible(self) -> None:
+    def test_packets_keep_runtime_and_selected_case_evidence_visible(self) -> None:
         """Synthetic prompt traversal keeps runtime and real-boundary gaps explicit."""
         original_request = (
             "Deliver targetruntime through its requested entry point; localpreview "
@@ -1341,10 +1341,10 @@ class NavigatorV3Tests(unittest.TestCase):
                 extra["work_items"] = [{"id": "W1", "title": "Synthetic item"}]
             state = self._produce(state, stage, **extra)
 
-    def test_v3_current_and_cold_child_packets_retain_review_note_recovery_context(self) -> None:
+    def test_current_and_cold_child_packets_retain_review_note_recovery_context(self) -> None:
         """A selected child retains receipt-reference duties before and after recovery."""
         waiting = self._bind_synthetic_child(self._pending(self._at_spec()))
-        with tempfile.TemporaryDirectory(prefix="shiploop-v3-improve-notes-") as temporary:
+        with tempfile.TemporaryDirectory(prefix="shiploop-contract-improve-notes-") as temporary:
             root = Path(temporary)
             current_packet = navigator.render(None, root, waiting)
             navigator.save(root, waiting)
@@ -1408,8 +1408,8 @@ class NavigatorV3Tests(unittest.TestCase):
             packet,
         )
 
-    def test_v3_plan_omission_keeps_default_w1_compatibility(self) -> None:
-        """A v3 plan may omit work_items and retain its initial compatibility item."""
+    def test_plan_omission_keeps_default_w1_compatibility(self) -> None:
+        """A current plan may omit work_items and retain its initial compatibility item."""
         state = self._at_plan()
         default_items = copy.deepcopy(state["work_items"])
         action = self._action(state)
@@ -1421,7 +1421,7 @@ class NavigatorV3Tests(unittest.TestCase):
         self.assertNotIn("work_items", completed["accepted"][action["id"]])
         self.assertEqual(navigator.current_stage(completed), "prepare")
 
-    def test_v3_plan_final_result_keeps_multiple_items_through_cold_recovery(self) -> None:
+    def test_plan_final_result_keeps_multiple_items_through_cold_recovery(self) -> None:
         """The actual Improve revision, rather than its draft, owns the durable queue."""
         draft_items = [{"id": "W1", "title": "Draft feature item"}]
         final_items = [
@@ -1463,7 +1463,7 @@ class NavigatorV3Tests(unittest.TestCase):
         self.assertEqual((root / "state.md").read_bytes(), before)
         self.assertIn("Work items planned: 3", cold)
 
-    def test_v3_carry_forward_omission_retains_all_pending_items(self) -> None:
+    def test_carry_forward_omission_retains_all_pending_items(self) -> None:
         """Omitting work_items at carry-forward completes only the current item."""
         rows = [
             {"id": "W1", "title": "Feature item"},
@@ -1482,7 +1482,7 @@ class NavigatorV3Tests(unittest.TestCase):
         self.assertNotIn("work_items", completed["accepted"][action["id"]])
         self.assertEqual(navigator.current_stage(completed), "select-work")
 
-    def test_v3_carry_forward_replaces_only_future_queue_and_rejects_prior_ids(self) -> None:
+    def test_carry_forward_replaces_only_future_queue_and_rejects_prior_ids(self) -> None:
         """An explicit carry-forward array replaces future work; it cannot reuse prior IDs."""
         rows = [
             {"id": "W1", "title": "Feature item"},
@@ -1555,7 +1555,7 @@ class NavigatorV3Tests(unittest.TestCase):
             )
         self.assertEqual(prior_waiting, before_prior)
 
-    def test_v3_serial_queue_finishes_detached_audit_before_outer_work(self) -> None:
+    def test_serial_queue_finishes_detached_audit_before_outer_work(self) -> None:
         """Every required queued item has a complete inner lifecycle before outer stages."""
         rows = [
             {"id": "FEATURE", "title": "Feature implementation"},
@@ -1636,7 +1636,7 @@ class NavigatorV3Tests(unittest.TestCase):
         self.assertEqual(audit_outcomes.count("repeat"), 1)
         self.assertEqual(audit_outcomes.count("blocked"), 1)
 
-    def test_v3_queue_packet_contracts_are_durable_and_serial(self) -> None:
+    def test_queue_packet_contracts_are_durable_and_serial(self) -> None:
         """Packets expose the whole durable queue without inventing ready-item selection."""
         root = (Path(self.temp.name) / "queue-packet-contracts").resolve()
         root.mkdir()
@@ -1733,7 +1733,7 @@ class NavigatorV3Tests(unittest.TestCase):
             navigator.validate(waiting)
 
 
-    def test_v3_run_report_guidance_and_improve_schedule_sentence_are_pinned(self) -> None:
+    def test_run_report_guidance_and_improve_schedule_sentence_are_pinned(self) -> None:
         """Pin the run-report guidance fixes and keep the prose schedule on the table."""
         common = " ".join(prompts.COMMON.split())
         schedule = re.search(
@@ -1773,7 +1773,7 @@ class NavigatorV3Tests(unittest.TestCase):
                     for phrase in retired:
                         self.assertNotIn(phrase, text)
 
-    def test_v3_rejects_forged_results_and_corrupt_or_retired_state(self) -> None:
+    def test_rejects_forged_results_and_corrupt_or_retired_state(self) -> None:
         state = self.state()
         original = copy.deepcopy(state)
         action_id = self._action(state)["id"]
@@ -1829,7 +1829,7 @@ class NavigatorV3Tests(unittest.TestCase):
         self.assertEqual(default["navigator_protocol_version"], 4)
         self.assertEqual(default["delegation"], "inline")
 
-    def test_v3_save_is_transactional_recovers_via_cli_and_refuses_symlink_escape(self) -> None:
+    def test_save_is_transactional_recovers_via_cli_and_refuses_symlink_escape(self) -> None:
         """Recover the receipt-before-state and after-state interruption seams."""
         state = self.state()
         action = self._action(state)
@@ -1935,7 +1935,7 @@ class NavigatorV3Tests(unittest.TestCase):
         line = next(line for line in progress.splitlines() if line.startswith(prefix))
         return line.split(": ", 1)[1].split(", ")
 
-    def test_v3_progress_snapshot_and_report_are_read_only_bounded_and_escaped(self) -> None:
+    def test_progress_snapshot_and_report_are_read_only_bounded_and_escaped(self) -> None:
         """The projection reports graph facts only; reports escape host text."""
         rows = [{"id": "W1", "title": "Create the first small capability"},
                 {"id": "W2", "title": "Finish the second small capability"}]
@@ -2108,7 +2108,7 @@ class NavigatorV3Tests(unittest.TestCase):
         self.assertNotIn("<script>alert", report)
         self.assertNotIn("Build <unsafe> flow", report)
 
-    def test_v3_results_are_opaque_and_navigation_never_inspects_git_or_evidence(self) -> None:
+    def test_results_are_opaque_and_navigation_never_inspects_git_or_evidence(self) -> None:
         forbidden_names = ("subprocess", "git", "hashlib", "sha256_file", "sha256_bytes",
                            "validate_evidence", "validate_artifacts")
         references = ["does-not-exist/product-artifact.bin", "arbitrary://opaque-reference"]
@@ -2129,7 +2129,7 @@ class NavigatorV3Tests(unittest.TestCase):
         self.assertIn("Repository locator", packet)
         self.assertIn("arbitrary://opaque-reference", packet)
 
-    def test_v3_worktree_return_projection_escapes_reports_and_skips_direct_modes(self) -> None:
+    def test_worktree_return_projection_escapes_reports_and_skips_direct_modes(self) -> None:
         """Packets derive current return facts without adding navigator state."""
         workspace_root = Path(self.temp.name) / "workspace <unsafe>"
         report_root = workspace_root / "run"
@@ -2446,7 +2446,7 @@ class CliBoundaryRegressionTests(unittest.TestCase):
         self.assertNotEqual(conflicting.returncode, 0, conflicting.stdout + conflicting.stderr)
         self.assertEqual((run_dir / "state.md").read_bytes(), accepted_bytes)
 
-    def test_concurrent_v3_init_keeps_one_run_and_original_prompt(self) -> None:
+    def test_concurrent_init_keeps_one_run_and_original_prompt(self) -> None:
         command = [sys.executable, "-B", str(SCRIPTS / "shiploop"), "init", "--repo", str(self.repo)]
         racers = [subprocess.Popen(command + ["--prompt", prompt], cwd=self.repo, env=self.env,
                                    stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True)
@@ -2463,7 +2463,7 @@ class CliBoundaryRegressionTests(unittest.TestCase):
         self.assertIn("init request/repository differs from this saved run", loser)
         self.assertIn("fresh --run-dir", loser)
 
-    def test_v3_init_refuses_force_and_non_dedicated_run_directories(self) -> None:
+    def test_init_refuses_force_and_non_dedicated_run_directories(self) -> None:
         run = self.base / "run"
         self.init(run, "Original")
         before = self._listing(run)
@@ -2518,7 +2518,7 @@ class CliBoundaryRegressionTests(unittest.TestCase):
                               else "no authoritative state.md", refused.stderr)
                 self.assertEqual(self._listing(run), before)
 
-    def test_next_and_complete_wrappers_drive_a_v3_run(self) -> None:
+    def test_next_and_complete_wrappers_drive_a_run(self) -> None:
         run = self.base / "run"
         self.init(run)
         state_path = run / "state.md"

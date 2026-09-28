@@ -77,7 +77,7 @@ _MOCK_RESPONSE_TIMEOUT_SECONDS = 5.0
 # The navigator's top-level import closure.
 _ENGINE_MODULES = frozenset((
     "shiploop_navigator",
-    "shiploop_navigator_v3_prompts",
+    "shiploop_prompts",
     "shiploop_consumer_delivery",
     "shiploop_planning_revision",
     "shiploop_privacy",

@@ -36,7 +36,7 @@ REQUIRED_SHIPLOOP_FILES = frozenset(
         "shiploop/scripts/shiploop_consumer_delivery.py",
         "shiploop/scripts/shiploop_navigator.py",
         "shiploop/scripts/shiploop_navigator_dry_run.py",
-        "shiploop/scripts/shiploop_navigator_v3_prompts.py",
+        "shiploop/scripts/shiploop_prompts.py",
         "shiploop/scripts/shiploop_planning_revision.py",
         "shiploop/scripts/shiploop_privacy.py",
         "shiploop/scripts/shiploop_protocol.py",

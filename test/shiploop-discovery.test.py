@@ -16,7 +16,7 @@ if str(SCRIPTS) not in sys.path:
     sys.path.insert(0, str(SCRIPTS))
 
 import shiploop_navigator as navigator  # noqa: E402
-import shiploop_navigator_v3_prompts as navigator_v3_prompts  # noqa: E402
+import shiploop_prompts as navigator_prompts  # noqa: E402
 import shiploop_store as store  # noqa: E402
 
 
@@ -174,16 +174,16 @@ class InteractionGuidanceTests(unittest.TestCase):
             "channels",
             "state ownership",
         )
-        normalized = " ".join(navigator_v3_prompts.INTERACTION_DESIGN.split()).lower()
+        normalized = " ".join(navigator_prompts.INTERACTION_DESIGN.split()).lower()
         for term in shared_terms:
             self.assertIn(term, normalized)
         # Stages that do not plan interactions do not carry the paragraph.
         for stage in ("test-red", "release", "operations"):
-            self.assertNotIn("Interaction design guide and its", navigator_v3_prompts.prompt(stage))
+            self.assertNotIn("Interaction design guide and its", navigator_prompts.prompt(stage))
 
         for stage in ("discovery", "spec", "plan", "step-plan"):
-            self.assertIn("Interaction design guide", navigator_v3_prompts.prompt(stage))
-            improve = navigator_v3_prompts.improve_prompt(stage)
+            self.assertIn("Interaction design guide", navigator_prompts.prompt(stage))
+            improve = navigator_prompts.improve_prompt(stage)
             for term in ("actor interactions", "channels", "state ownership"):
                 self.assertIn(term, improve)
 
@@ -209,8 +209,8 @@ class InteractionGuidanceTests(unittest.TestCase):
 
     def test_v3_step_plan_and_improve_cue_shared_and_ui_interactions(self) -> None:
         """Routing cues name the applicable concerns without testing design quality."""
-        producer = navigator_v3_prompts.prompt("step-plan").lower()
-        improve = navigator_v3_prompts.improve_prompt("step-plan").lower()
+        producer = navigator_prompts.prompt("step-plan").lower()
+        improve = navigator_prompts.improve_prompt("step-plan").lower()
         for prompt_name, prompt in (("producer", producer), ("improve", improve)):
             with self.subTest(prompt=prompt_name):
                 for cue in (
@@ -237,12 +237,12 @@ class InteractionGuidanceTests(unittest.TestCase):
         )
         for stage in ("plan", "step-plan"):
             with self.subTest(stage=stage):
-                prompt = " ".join(navigator_v3_prompts.prompt(stage).split())
+                prompt = " ".join(navigator_prompts.prompt(stage).split())
                 for cue in required_cues:
                     self.assertIn(cue, prompt)
 
         implementation_prompt = " ".join(
-            navigator_v3_prompts.prompt("implement").split()
+            navigator_prompts.prompt("implement").split()
         )
         self.assertNotIn(required_cues[0], implementation_prompt)
 

@@ -1,7 +1,7 @@
 """Build prompts for the composability experiment: 2 scenarios x 2 rubric variants."""
 import sys, pathlib
 sys.path.insert(0, str(pathlib.Path(__file__).resolve().parents[4] / "skills" / "shiploop" / "scripts"))
-import shiploop_navigator_v3_prompts as p
+import shiploop_prompts as p
 
 A = p.CODE_CRAFT
 B = A.replace(

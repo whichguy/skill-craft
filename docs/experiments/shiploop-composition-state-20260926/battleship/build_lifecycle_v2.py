@@ -1,7 +1,7 @@
 """E4 information lifecycle, E5 overbuild guard (+ multi recheck) with refined lifecycle wording (v2)."""
 import sys, pathlib
 sys.path.insert(0, str(pathlib.Path(__file__).resolve().parents[4] / "skills" / "shiploop" / "scripts"))
-import shiploop_navigator_v3_prompts as p
+import shiploop_prompts as p
 src = pathlib.Path(__file__).with_name("build_architecture.py").read_text()
 LIFE1 = src.split('LIFECYCLE = """')[1].split('"""')[0]
 TASK = src.split('TASK = """')[1].split('"""')[0]

@@ -73,7 +73,7 @@ The quick baseline is three core suites (`test-groups`, `ci-policy`,
 `skill-frontmatter`), the apparatus's no-model mock replay
 (`shiploop-mock-replay`, `check_suite.py --suite mock`: captured agent results
 drive the real navigator, about two seconds) and ten ShipLoop suites
-(`no-model-launch`, `navigator-v3`, `navigator-v4`, `stopped-improve`,
+(`no-model-launch`, `navigator-contract`, `navigator-v4`, `stopped-improve`,
 `v4-consumers`, `packet-bounds`, `navigator-dry-run`, `status-display`,
 `chain-async` and `planning-handoff`).
 The Ask-Agent workspace, delivery and managed-harness checks run in core.
@@ -262,7 +262,7 @@ bundled Until Loop CLIs across the protocol 4 graph, including cold recovery and
 corrective outcomes. Its review judgments are synthetic: it proves local runtime
 composition, not semantic Improve quality, live host execution, or deployment.
 Copied-package cases exercise portable payloads from an unrelated CWD without a
-marketplace installation. The v3-guidance and packet-bounds suites check relevant
+marketplace installation. The guidance and packet-bounds suites check relevant
 reference routing and recovery of large context from complete durable records.
 
 `python3 -B test/shiploop-local-skills.test.py` is in the ordinary ShipLoop/CI
@@ -530,7 +530,7 @@ commit-pinned plugin in `catalog/external-plugins.json`, separately.
 
 ### Navigator protocol 4 and actual Improve
 
-`shiploop-navigator-v3.test.py` (named for its origin; it now drives protocol 4)
+`shiploop-navigator-contract.test.py` (named for its origin; it now drives protocol 4)
 and `graph-dry-run` exercise universal child handoffs and correction routes with synthetic receipts.
 `shiploop-standalone-improve.test.py` and `shiploop-actual-improve-cli.test.py`
 exercise the real bundled Until Loop runtime and parent import/recovery boundary.

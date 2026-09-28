@@ -2,7 +2,7 @@
 import sys, json, pathlib, re, os
 W = pathlib.Path(os.environ["SHIPLOOP_WT"]); SK = W / "skills" / "shiploop"
 sys.path.insert(0, str(SK / "scripts"))
-import shiploop_navigator_v3_prompts as p
+import shiploop_prompts as p
 assert "Compose before you build" in p.CODE_CRAFT and "State and information lifecycle" in p.INTERACTION_DESIGN
 assert "record the open questions of its interaction" in p.DUTIES["intake"] and "primary-documentation source" in p.PLANNING_REVIEW_FOCUS
 O = pathlib.Path("after/prompts")

@@ -26,7 +26,7 @@ sys.path.insert(0, str(Path(__file__).resolve().parent))
 import shiploop_knowledge_support as knowledge_support  # noqa: E402
 import shiploop_lint as lint  # noqa: E402
 import shiploop_navigator as nav  # noqa: E402
-import shiploop_navigator_v3_prompts as prompts  # noqa: E402
+import shiploop_prompts as prompts  # noqa: E402
 import shiploop_quality as quality  # noqa: E402
 import shiploop_store as store  # noqa: E402
 

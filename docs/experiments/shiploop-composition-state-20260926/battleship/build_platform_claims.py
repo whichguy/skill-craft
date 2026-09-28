@@ -1,7 +1,7 @@
 """E6: does the research stage catch false platform claims in a draft plan?"""
 import sys, pathlib, json
 sys.path.insert(0, str(pathlib.Path(__file__).resolve().parents[4] / "skills" / "shiploop" / "scripts"))
-import shiploop_navigator_v3_prompts as p
+import shiploop_prompts as p
 CLAIMS = {
  "GAS": {"env": "Google Apps Script web app, executing as the user accessing it, access limited to the Workspace domain.",
    "F1": "google.script.run calls are synchronous, so the page blocks until fire() returns and needs no callback handling.",
