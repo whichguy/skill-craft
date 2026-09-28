@@ -826,6 +826,9 @@ class MetricsTest(unittest.TestCase):
             'python3 -m unittest > /x/.shiploop-runs/a/run/scratch/baseline.txt 2>&1': [],
             # the Improve child's review directory is where P12 asks it to write
             "mkdir -p .shiploop-improve/n/a/reviews": [],
+            # the Improve child's own directory, where the model writes its opening file
+            'mkdir -p "/x/wt/.shiploop-improve/run1/nav-1"': [],
+            'rm -rf "/x/wt/.shiploop-improve"': ["shell write into a ShipLoop-owned path"],
             # reading ShipLoop's own contract is not building one
             'python3 -c \'import json; p=json.load(open("/x/run/quality/c-contract.json")); print(p["exit_condition"])\'': [],
             'python3 -c \'import json; json.dump({"exit_condition": 1}, open("/x/c.json", "w"))\'': ["hand-built loop contract"],
