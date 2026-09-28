@@ -34,19 +34,21 @@ KNOWLEDGE = (HOME, INDEX)
 LIVING = ("README.md", "spec.md", "architecture.md", "environment.md", "test-strategy.md")
 # The close that commits, and the files it requires (``{feature}`` is this run's feature directory).
 CLOSES: Dict[str, Tuple[str, ...]] = {
-    "prepare": ("README.md", "spec.md", "architecture.md", "environment.md", "test-strategy.md",
+    # The long-lived spec.md is not written during planning: the run works from its change
+    # spec ({feature}/spec.md) and merges it into spec.md at release-verify (owner 2026-09-27).
+    "prepare": ("README.md", "architecture.md", "environment.md", "test-strategy.md",
                 "{feature}/spec.md", "{feature}/plan.md"),
     "test-spec": ("{feature}/plan.md", "{feature}/test-spec.md"),
     "release-plan": ("{feature}/system-tests.md", "{feature}/release-plan.md", "environment.md"),
     # Before the workspace return: a commit at handoff would miss the return and stale its receipt.
-    "release-verify": ("{feature}/outcome.md", "environment.md", "README.md"),
+    "release-verify": ("{feature}/outcome.md", "spec.md", "environment.md", "README.md"),
 }
 # What each stage writes or updates, printed in its packet.
 STAGE_FILES: Dict[str, Tuple[str, ...]] = {
     "intake": ("README.md",),
     "discovery": ("environment.md", "architecture.md"),
     "research": ("architecture.md",),
-    "spec": ("spec.md", "{feature}/spec.md"),
+    "spec": ("{feature}/spec.md",),
     "test-strategy": ("test-strategy.md",),
     "plan": ("{feature}/plan.md", "README.md", "architecture.md"),
     "prepare": CLOSES["prepare"],
@@ -57,6 +59,10 @@ STAGE_FILES: Dict[str, Tuple[str, ...]] = {
     "release-verify": CLOSES["release-verify"],
 }
 _REQUIREMENT_ID = re.compile(r"\b(R-\d+)\b")
+# A change-spec line: "- add R-12: ...", "- modify R-3", "- retire R-5: reason", "- preserve R-7",
+# or a table row "| R-12 | add | ...".
+_CHANGE = re.compile(r"^\s*[-*]\s*\**(add|modify|retire|preserve)\**\s+(R-\d+)\b"
+                     r"|^\s*\|\s*(R-\d+)\s*\|\s*(add|modify|retire|preserve)\s*\|", re.M | re.I)
 _ARCHITECTURE_DECISION_ID = re.compile(r"\b(A-\d+)\b")
 _STABLE_ID_FILES = (
     ("spec.md", _REQUIREMENT_ID, "The living spec", "requirement ID",
@@ -80,6 +86,31 @@ def _sections(text: str) -> Dict[str, str]:
         elif current is not None:
             found[current] += line + "\n"
     return {key: value.strip() for key, value in found.items()}
+
+
+def changes(text: str) -> Dict[str, str]:
+    """Requirement ID -> add/modify/retire/preserve, from a change spec's action lines."""
+    found: Dict[str, str] = {}
+    for m in _CHANGE.finditer(text):
+        action, rid = (m.group(1), m.group(2)) if m.group(1) else (m.group(4), m.group(3))
+        found[rid] = action.lower()
+    return found
+
+
+def merge_problems(living: str, change: str) -> List[str]:
+    """What the long-lived spec lacks after merging a change spec (empty when merged)."""
+    retired_at = re.search(r"(?mi)^#{1,3}\s+Retired\b", living)
+    active = living[:retired_at.start()] if retired_at else living
+    retired = living[retired_at.start():] if retired_at else ""
+    problems = []
+    for rid, action in sorted(changes(change).items(), key=lambda item: int(item[0].split("-")[1])):
+        in_active = re.search(r"\b" + re.escape(rid) + r"\b", active) is not None
+        in_retired = re.search(r"\b" + re.escape(rid) + r"\b", retired) is not None
+        if action in ("add", "modify") and not in_active:
+            problems.append(rid + " (" + {"add": "added", "modify": "modified"}[action] + " by this run) is not in the spec")
+        if action == "retire" and not in_retired:
+            problems.append(rid + " (retired by this run) is not under the 'Retired' heading with its reason")
+    return problems
 
 
 def learnings(state: Mapping[str, Any]) -> Dict[str, str]:
@@ -136,10 +167,19 @@ def stage_lines(state: Mapping[str, Any], stage: str) -> List[str]:
                      "what a later run should pick up. ShipLoop commits them as the run's learnings commit "
                      "message, which the next run reads at intake.")
     if stage == "spec":
-        lines.append("spec.md is the living spec: start from the committed one, keep every requirement ID "
-                     "(R-<n>), change it in place, and move a dropped requirement under a 'Retired' heading "
-                     "with its reason. ShipLoop refuses a spec that loses an earlier ID. The feature's spec.md "
-                     "lists the IDs this run adds, modifies and retires.")
+        lines.append("Write this run's change spec only: " + str(repo / feature_dir(state) / "spec.md") + ". The "
+                     "long-lived " + str(repo / HOME / "spec.md") + " (when it exists) is the delivered baseline: "
+                     "read it, cite unchanged requirements by ID, and do not edit it now. List each affected "
+                     "requirement on one line, '- add R-<n>: ...', '- modify R-<n>: ...', '- retire R-<n>: "
+                     "<reason>' or '- preserve R-<n>', with before and after and its basis; a new requirement "
+                     "takes the next free R-<n>.")
+    if stage == "release-verify":
+        lines.append("Merge the change spec into the long-lived " + str(repo / HOME / "spec.md") + " now that "
+                     "the work is delivered (create it on a first run): apply each add and modify in place, "
+                     "move each retired requirement under a 'Retired' heading with its reason, keep every other "
+                     "requirement ID, and mark a requirement this run delivered or verified 'accepted' with its "
+                     "basis; untouched observed requirements stay observed. ShipLoop refuses done until every "
+                     "added, modified and retired ID is merged.")
     if stage in CLOSES:
         lines.append("On done ShipLoop checks these files, screens them for credentials and commits "
                      + HOME + "/ and " + INDEX + " in the execution checkout.")
@@ -197,6 +237,15 @@ def check(state: Mapping[str, Any], stage: str) -> str:
             return ("Write these sections in " + str(repo / feature_dir(state) / "outcome.md") + ", in detail; "
                     "they become this run's learnings commit, which the next run reads first: "
                     + ", ".join("'## " + name + "'" for name in empty))
+    if stage == "release-verify":
+        living = (repo / HOME / "spec.md").read_text(encoding="utf-8", errors="replace")
+        change_path = repo / feature_dir(state) / "spec.md"
+        change = change_path.read_text(encoding="utf-8", errors="replace") if change_path.is_file() else ""
+        unmerged = merge_problems(living, change)
+        if unmerged:
+            return ("Merge this run's change spec " + str(change_path) + " into the long-lived spec "
+                    + str(repo / HOME / "spec.md") + " before release-verify is done: "
+                    + "; ".join(unmerged) + ".")
     for name, pattern, description, id_kind, preserve in _STABLE_ID_FILES:
         path = repo / HOME / name
         before = set(pattern.findall(_committed_file(repo, name)))

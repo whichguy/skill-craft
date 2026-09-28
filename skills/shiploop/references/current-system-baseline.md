@@ -137,8 +137,12 @@ existing product documentation home. Reuse a small README or existing
 system/architecture section where sufficient, and link it from
 `docs/shiploop/architecture.md`; otherwise record recovered structure and
 decisions there. Keep targets, commands and platform facts in
-`docs/shiploop/environment.md`, and the living spec in the repository's
-[knowledge home](project-knowledge.md#repository-knowledge-home).
+`docs/shiploop/environment.md`. Recovered requirements the run touches enter the
+long-lived spec in the repository's
+[knowledge home](project-knowledge.md#repository-knowledge-home) through the
+end-of-run merge, marked `observed` unless the run verified them; untouched
+recovered behaviour stays in the run's notes rather than growing an exhaustive
+rewrite.
 Accepted requirements keep their existing home, with the
 [`docs/shiploop/spec.md` fallback](project-knowledge.md#choose-one-authoritative-home).
 Keep these roles distinct, even if both fit in one document. Link selected homes

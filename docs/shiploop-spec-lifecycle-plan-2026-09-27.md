@@ -128,11 +128,11 @@ repo-distill (`skills/repo-distill`):
 - **Non-regression:** the ID-drop protection, credential screen, and every
   other close are unchanged; `features/<slug>/` stays the per-run record.
 
-## Decisions for the owner
+## Owner decisions (2026-09-27)
 
-1. Merge at `release-verify` (after delivery is verified; recommended) or at
-   product acceptance.
-2. Observed requirements a run did not touch: stay `observed` (recommended)
-   or become `accepted` at the first run.
-3. Architecture decisions follow the same merge (recommended) or keep
-   today's "keep current during planning".
+1. Merge at `release-verify`, after delivery is verified.
+2. Observed requirements a run did not touch stay `observed`.
+3. **Architecture keeps today's rule**: discovery, research, plan and
+   step-plan keep `architecture.md` current during planning, and `prepare`
+   still requires it. Only the spec moves to the end-of-run merge; the
+   architecture rows of the target model and change 1 are dropped.

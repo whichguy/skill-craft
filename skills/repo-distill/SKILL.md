@@ -65,7 +65,9 @@ does that its tests or docs contradict.
 ## 1b. Initialize (with `--init`)
 
 For a repository that has never run ShipLoop: run `prompts/initialize.md` in
-the repository. It writes only `docs/shiploop/` (index, `spec.md` with
+the repository. It writes ShipLoop's **long-lived** baseline, which every later
+run reads and merges its delivered changes into (a run's own changes live in
+its `features/<slug>/spec.md` change spec). It writes only `docs/shiploop/` (index, `spec.md` with
 requirements `R-n` marked `Status: observed` and anchored to `path:line`,
 `architecture.md` with structure and decisions, `environment.md` with the
 commands it actually ran, `test-strategy.md`). The README is a primary

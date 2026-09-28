@@ -44,8 +44,13 @@ class KnowledgeTests(unittest.TestCase):
                          "docs/shiploop/features/add-a-fleet-command-tab-to-abcdef")
         lines = "\n".join(knowledge.stage_lines(self.state, "spec"))
         self.assertIn(str(self.repo / "docs/shiploop/README.md"), lines)
-        self.assertIn(str(self.repo / "docs/shiploop/spec.md"), lines)
-        self.assertIn("ShipLoop refuses a spec that loses an earlier ID", lines)
+        # The spec stage writes only the change spec and reads the long-lived baseline.
+        self.assertIn("Write this run's change spec only: " + str(self.repo / knowledge.feature_dir(self.state)
+                                                                   / "spec.md"), lines)
+        self.assertIn(str(self.repo / "docs/shiploop/spec.md") + " (when it exists) is the delivered baseline", lines)
+        self.assertIn("do not edit it now", lines)
+        self.assertIn("Merge the change spec into the long-lived",
+                      "\n".join(knowledge.stage_lines(self.state, "release-verify")))
         self.assertNotIn("On done ShipLoop checks", lines)
         self.assertIn("On done ShipLoop checks these files", "\n".join(knowledge.stage_lines(self.state, "prepare")))
         self.assertIn("docs/shiploop/architecture.md", knowledge.__doc__ or "")
@@ -57,7 +62,9 @@ class KnowledgeTests(unittest.TestCase):
     def test_a_close_needs_its_files_and_commits_only_the_home(self) -> None:
         refusal = knowledge.check(self.state, "prepare")
         self.assertIn("Before prepare is done, write:", refusal)
-        self.assertIn("docs/shiploop/spec.md", refusal)
+        # Planning closes on the change spec; the long-lived spec waits for release-verify.
+        self.assertIn(knowledge.feature_dir(self.state) + "/spec.md", refusal)
+        self.assertNotIn("docs/shiploop/spec.md\n", refusal)
         support.write(self.state)
         architecture = self.repo / "docs/shiploop/architecture.md"
         architecture.unlink()
@@ -104,6 +111,31 @@ class KnowledgeTests(unittest.TestCase):
                                 "A-3: Document a new boundary.\n\n## Superseded decisions\n\n"
                                 "A-2: Superseded by A-3; the prior boundary rationale remains.\n")
         self.assertEqual(knowledge.check(self.state, "release-plan"), "")
+
+    def test_release_verify_merges_the_change_spec_into_the_long_lived_spec(self) -> None:
+        support.write(self.state)
+        change = self.repo / knowledge.feature_dir(self.state) / "spec.md"
+        change.write_text("# change\n\n- modify R-1: a 10x10 board.\n- add R-2: show a fleet tab.\n"
+                          "- retire R-3: replaced by R-2.\n- preserve R-4\n")
+        living = self.repo / "docs/shiploop/spec.md"
+        living.write_text("# spec\n\nR-1: Place a fleet.\nR-3: Show a list.\nR-4: Reload keeps it.\n")
+        refusal = knowledge.check(self.state, "release-verify")
+        self.assertIn("R-2 (added by this run) is not in the spec", refusal)
+        self.assertIn("R-3 (retired by this run) is not under the 'Retired' heading", refusal)
+        living.write_text("# spec\n\nR-1: Place a fleet on a 10x10 board.\nR-2: Show a fleet tab.\n"
+                          "R-4: Reload keeps it.\n\n## Retired\n\nR-3: replaced by R-2.\n")
+        self.assertEqual(knowledge.check(self.state, "release-verify"), "")
+
+    def test_a_blank_repository_creates_the_long_lived_spec_only_at_release_verify(self) -> None:
+        support.write(self.state)
+        (self.repo / "docs/shiploop/spec.md").unlink()
+        self.assertEqual(knowledge.check(self.state, "prepare"), "")
+        refusal = knowledge.check(self.state, "release-verify")
+        self.assertIn(str(self.repo / "docs/shiploop/spec.md"), refusal)
+
+    def test_change_lines_read_bullets_and_table_rows(self) -> None:
+        self.assertEqual(knowledge.changes("- add R-7: x\n* **modify** R-2\n| R-9 | retire | old |\n- R-5 prose\n"),
+                         {"R-7": "add", "R-2": "modify", "R-9": "retire"})
 
     def test_release_verify_commits_the_runs_learnings_as_its_message(self) -> None:
         support.write(self.state)

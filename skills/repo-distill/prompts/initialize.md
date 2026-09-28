@@ -11,6 +11,10 @@ configuration, history (`git log`). Run its build and tests to confirm what
 works. Do not use the web.
 
 **Your output.** Only files under `docs/shiploop/`. Change nothing else.
+These are ShipLoop's **long-lived** files: the baseline every later run
+starts from and merges its delivered changes into. Do not write a
+`features/` directory (that is a run's change record), and state in
+`README.md` the commit this baseline describes (`git rev-parse HEAD`).
 
 | File | Holds |
 |---|---|
