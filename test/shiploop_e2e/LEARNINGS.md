@@ -355,3 +355,19 @@ harness-FAIL, 7 cancelled; 8b on 1.6.0 PASS committed, 4 cancelled, 0 ShipLoop f
   Real truncations remain the Until Loop action responses (~21 KB), the upstream --report-file item.
 - Metric fixes from this round: run/evidence/ is model input; a contract counts as hand-built only when a
   command writes it or feeds it to the Until Loop runtime (json.dump(, not json.dumps).
+
+## temperature-report on GPT-6 Luna max — 2026-09-27 — Codex gpt-6-luna max, marketplace skill-craft 1.13.0 (ShipLoop 0.46.0)
+
+- Fresh run (a `--resume-run` of the earlier xhigh run was refused across the 1.13.0 release, as designed).
+  Timed out at the harness's 3-hour limit while in the `plan` stage; the chain at `implement` was not reached.
+- Stage times: intake 2.3 m, discovery 11.9 m, research 20.0 m, spec 79.2 m (159 tool calls),
+  test-strategy 40.0 m, then about 27 m into plan. Four Improve children ran. Planning alone at max
+  effort takes longer than the default timeout, so a chain-reaching run on Codex max needs
+  `--timeout` of about 5 h or a lower effort for the planning stages.
+- `improve-start` on the Ask-Agent route worked live (fix 938cc3fc): children started from the receipt's
+  `next_argv`. Two `complete`/`improve-start` refusals were model misuse that the engine rejected without
+  advancing the graph; one `workspace` call failed on a zsh quoting error in model-built glue.
+- `turns 0` / `sessions 0` is expected for a killed Codex run: `codex exec` emits its turn and session
+  totals only when it ends.
+- Meaning: ShipLoop's parallel chain is still unproven live. Next attempt: Codex at a lower planning
+  effort (or high) with a longer timeout, same case.

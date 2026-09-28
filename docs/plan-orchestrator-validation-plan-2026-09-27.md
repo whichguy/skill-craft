@@ -1,5 +1,9 @@
 # Plan Orchestrator validation plan (2026-09-27)
 
+> **Superseded 2026-09-27** by [orchestrator-test-map.md](orchestrator-test-map.md), which maps
+> each part of the orchestrator to its tests and known limits. This plan is kept as the
+> decision record: it explains why each test exists. Its status lines below are not updated.
+
 Execute: ask
 
 Status (2026-09-27):
