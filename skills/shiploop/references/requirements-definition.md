@@ -53,11 +53,15 @@ needs no redundant approval. If wording or conflicting sources leave a material
 policy choice unresolved, identify it and obtain the missing decision before
 dependent work; do not guess, choose the newest file, or quietly weaken the rule.
 
-Edit the authoritative home narrowly when the active step permits product edits,
-preserving unrelated text, IDs, links, and concurrent changes. Until then retain
-the proposed delta in the assigned spec/result. Record supersession rationale
-next to the changed clause. Keep historical records and frozen run baselines
-intact; use the active protocol's correction/revision route when they must change.
+Planning records the delta in this run's change spec, never in the long-lived
+baseline. Edit the authoritative home narrowly at the end-of-run merge
+(`release-verify` for ShipLoop's `docs/shiploop/spec.md`), after the change is
+delivered, preserving unrelated text, IDs, links, and concurrent changes. Review
+the merged wording and status against the change spec and delivery evidence;
+ShipLoop's ID-placement check does not prove semantic equivalence. Record
+supersession rationale next to the changed clause. Keep historical records and
+frozen run baselines intact; use the active protocol's correction/revision route
+when they must change.
 
 ## State and data change assessment
 

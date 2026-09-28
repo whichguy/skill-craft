@@ -44,16 +44,27 @@ class KnowledgeTests(unittest.TestCase):
                          "docs/shiploop/features/add-a-fleet-command-tab-to-abcdef")
         lines = "\n".join(knowledge.stage_lines(self.state, "spec"))
         self.assertIn(str(self.repo / "docs/shiploop/README.md"), lines)
-        self.assertIn(str(self.repo / "docs/shiploop/spec.md"), lines)
-        self.assertIn("ShipLoop refuses a spec that loses an earlier ID", lines)
+        change_spec = self.repo / knowledge.feature_dir(self.state) / "spec.md"
+        living_spec = self.repo / "docs/shiploop/spec.md"
+        self.assertIn("Write this run's change spec only: " + str(change_spec), lines)
+        self.assertIn(str(living_spec) + " (when it exists) is the delivered baseline", lines)
+        self.assertIn("do not edit it now", lines)
+        self.assertIn("Earlier feature change specs are historical evidence, not accepted scope", lines)
+        release_lines = "\n".join(knowledge.stage_lines(self.state, "release-verify"))
+        self.assertIn("merge this run's change spec", release_lines)
+        self.assertIn("ShipLoop checks ID placement only", release_lines)
+        self.assertIn("does not prove semantic equivalence", release_lines)
         self.assertNotIn("On done ShipLoop checks", lines)
         self.assertIn("On done ShipLoop checks these files", "\n".join(knowledge.stage_lines(self.state, "prepare")))
 
     def test_a_close_needs_its_files_and_commits_only_the_home(self) -> None:
         refusal = knowledge.check(self.state, "prepare")
         self.assertIn("Before prepare is done, write:", refusal)
-        self.assertIn("docs/shiploop/spec.md", refusal)
+        self.assertIn(knowledge.feature_dir(self.state) + "/spec.md", refusal)
+        self.assertNotIn("docs/shiploop/spec.md\n", refusal)
         support.write(self.state)
+        # A blank repository has no delivered baseline to require during planning.
+        (self.repo / "docs/shiploop/spec.md").unlink()
         (self.repo / "app.py").write_text("x = 2\n")
         git(self.repo, "add", "app.py")  # the user's own staged work stays out of the knowledge commit
         self.assertEqual(knowledge.check(self.state, "prepare"), "")
@@ -75,6 +86,91 @@ class KnowledgeTests(unittest.TestCase):
         spec.write_text("# spec\n\nR-1: Place a fleet on a 10x10 board.\nR-3: Show a tab.\n\n## Retired\n\n"
                         "R-2: replaced by R-1's board rule.\n")
         self.assertEqual(knowledge.check(self.state, "release-plan"), "")
+
+    def test_release_verify_rejects_a_change_spec_not_merged_into_the_baseline(self) -> None:
+        support.write(self.state)
+        living = self.repo / "docs/shiploop/spec.md"
+        living.write_text("# spec\n\nR-1: Place a fleet.\nR-2: Show a list.\nR-3: Keep state on reload.\n")
+        change = self.repo / knowledge.feature_dir(self.state) / "spec.md"
+        change.write_text("# change\n\n- modify R-1: 10x10 board, replacing free placement.\n"
+                          "- add R-4: show a fleet tab.\n- retire R-3: state is stored per game instead.\n")
+        self.assertEqual(knowledge.check(self.state, "prepare"), "")
+        knowledge.commit(self.state, "prepare")
+
+        refusal = knowledge.check(self.state, "release-verify")
+        self.assertIn("R-4 (added by this run) is not in the spec", refusal)
+        self.assertIn("R-3 (retired by this run) is not listed under the 'Retired' heading", refusal)
+
+        living.write_text("# spec\n\nR-1: Place a fleet on a 10x10 board.\nR-2: Show a list.\n"
+                          "R-4: Show a fleet tab.\n\n## Retired\n\nR-3: State is stored per game.\n")
+        self.assertEqual(knowledge.check(self.state, "release-verify"), "")
+
+    def test_retired_id_can_be_cross_referenced_from_an_active_requirement(self) -> None:
+        living = ("# spec\n\nR-4: Per-game state replaces the shared state in R-3.\n\n"
+                  "## Retired\n\nR-3: Replaced by per-game state in R-4.\n")
+        change = "- retire R-3: state is stored per game instead.\n"
+        self.assertEqual(knowledge.merge_problems(living, change), [])
+
+    def test_a_stale_same_id_is_structurally_present_but_needs_semantic_review(self) -> None:
+        support.write(self.state)
+        living = self.repo / "docs/shiploop/spec.md"
+        living.write_text("# spec\n\nR-1: Place a fleet.\n")
+        change = self.repo / knowledge.feature_dir(self.state) / "spec.md"
+        change.write_text("# change\n\n- modify R-1: before free placement; after placement on a 10x10 board.\n")
+        knowledge.commit(self.state, "prepare")
+
+        # The script proves ID placement only; this old wording still contains R-1.
+        self.assertEqual(knowledge.merge_problems(living.read_text(), change.read_text()), [])
+        self.assertEqual(knowledge.check(self.state, "release-verify"), "")
+        guidance = "\n".join(knowledge.stage_lines(self.state, "release-verify"))
+        self.assertIn("Review the merged wording, status, and preserved conditions", guidance)
+        self.assertIn("does not prove semantic equivalence", guidance)
+
+    def test_new_run_treats_an_abandoned_change_spec_as_history(self) -> None:
+        abandoned = self.repo / knowledge.feature_dir(self.state) / "spec.md"
+        abandoned.parent.mkdir(parents=True, exist_ok=True)
+        abandoned.write_text("# abandoned change\n\n- add R-77: abandoned scope\n")
+        new_state = dict(self.state, prompt="Add a score summary panel.", run_id="nav-0123456789fedcba")
+
+        lines = "\n".join(knowledge.stage_lines(new_state, "spec"))
+        self.assertIn("Earlier feature change specs are historical evidence, not accepted scope", lines)
+        self.assertIn(str(self.repo / knowledge.feature_dir(new_state) / "spec.md"), lines)
+        self.assertNotIn(str(abandoned), lines)
+        self.assertNotIn("R-77", lines)
+
+    def test_change_lines_read_bullets_and_table_rows(self) -> None:
+        self.assertEqual(knowledge.changes("- add R-7: x\n* **modify** R-2\n| R-9 | retire | old |\n"
+                                           "- preserve R-5\n"),
+                         {"R-7": "add", "R-2": "modify", "R-9": "retire", "R-5": "preserve"})
+
+    def test_malformed_change_actions_do_not_bypass_release_verification(self) -> None:
+        support.write(self.state)
+        change = self.repo / knowledge.feature_dir(self.state) / "spec.md"
+        for body, message in (
+            ("- adds R-4: new behavior\n", "Unknown change action 'adds' for R-4"),
+            ("- preserve R-1\n| R-4 | adds | new behavior |\n", "Unknown change action 'adds' for R-4"),
+            ("R-4: new behavior\n", "Requirement IDs need change entries"),
+            ("- add R-4: new\n- retire R-4: old\n", "Conflicting change actions for R-4"),
+        ):
+            with self.subTest(body=body):
+                change.write_text(body)
+                refusal = knowledge.check(self.state, "release-verify")
+                self.assertIn(str(change), refusal)
+                self.assertIn(message, refusal)
+
+    def test_a_blank_repository_creates_the_baseline_only_at_release_verify(self) -> None:
+        support.write(self.state)
+        living = self.repo / "docs/shiploop/spec.md"
+        living.unlink()
+        change = self.repo / knowledge.feature_dir(self.state) / "spec.md"
+        change.write_text("# change\n\n- add R-2: show a fleet tab.\n")
+        self.assertEqual(knowledge.check(self.state, "prepare"), "")
+        knowledge.commit(self.state, "prepare")
+
+        refusal = knowledge.check(self.state, "release-verify")
+        self.assertIn(str(living), refusal)
+        living.write_text("# spec\n\nR-2: Show a fleet tab.\n")
+        self.assertEqual(knowledge.check(self.state, "release-verify"), "")
 
     def test_release_verify_commits_the_runs_learnings_as_its_message(self) -> None:
         support.write(self.state)

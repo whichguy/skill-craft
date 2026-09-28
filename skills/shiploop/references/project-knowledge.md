@@ -382,7 +382,7 @@ reference to skill guidance is not a reference to the product's actual contract.
 | Accepted product requirements in the existing repo-owned home, otherwise `docs/shiploop/spec.md` | Authorized product work in the execution checkout | Discovery/spec, affected plans, tests, Improve and acceptance read relevant sections; README and `SHIPLOOP.md` link to them for later runs. |
 | Product code, tests and enduring case documentation in the repository | Assigned implementation/test/documentation work | Requirement sections point to relevant test paths/selectors; plans and checks point back to the clauses they establish. Planned tests remain labeled planned until authored and executed. |
 | Reusable repo-local skills in the existing product skill layout | Authorized skill/documentation work | Later planners discover them through the repo index; [skill documentation](testing-and-documentation.md#reusable-product-skills) links the same product clauses/code/tests or accepts source locators as inputs, never another copied spec. |
-| This run's feature record and the living spec, environment and test strategy under `docs/shiploop/` | Planning stages write them; ShipLoop checks and commits them at each close | Later runs start from them ([repository knowledge home](#repository-knowledge-home)). |
+| This run's feature record, delivered spec, environment and test strategy under `docs/shiploop/` | Planning writes the feature record, including its change spec; `release-verify` merges delivered changes into the long-lived spec | Later runs start from the delivered baseline and this run's historical record ([repository knowledge home](#repository-knowledge-home)). |
 | Run evidence under the run directory | The active protocol's host/result and script-owned write routes | Dependent actions read result `evidence_refs`, work-item `context`, or that protocol's context reader. Anything a later run needs goes into `docs/shiploop/`. |
 | Prior current-system baseline in run notes or at a retrievable immutable source revision | Discovery/research within the active stage's authority | Spec, test strategy, plans and Improve reopen selected sections and evidence limits; authorized documentation work retains useful recovered knowledge in the durable product home. Preserve the prior as-of account when later evidence changes. |
 | Improve contract, `review-<n>.md` passes and `checks.md` under the packet's child locations | Selected Improve and its bound Until Loop adapter | Child recovery reads its own contract/state; ShipLoop imports the matching review and check files itself, with no separate record to submit. Child runtime files stay out of product returns. |
@@ -497,27 +497,35 @@ Do not commit them yourself.
 
 ## Repository knowledge home
 
-Owner decision 2026-09-26: planning knowledge outlives the run. ShipLoop keeps it
-in the product repository under `docs/shiploop/`, commits it at the end of
-planning, and later runs inherit it.
+Owner decision 2026-09-27: the delivered baseline and each run's change spec
+have separate roles. Planning writes the change spec in the run's feature record;
+the long-lived product spec changes only in the `release-verify` merge after
+delivery. A blank repository's first delivered spec is created by that same
+merge. An unmerged change spec remains historical evidence, not accepted scope
+for a later request.
 
 | Path | Holds |
 | --- | --- |
 | `docs/shiploop/README.md` | The index: what each file answers, the feature list |
-| `docs/shiploop/spec.md` | The living product spec: every accepted requirement with a stable ID (`R-<n>`), a `Retired` section with reasons |
+| `docs/shiploop/spec.md` | The long-lived delivered baseline: stable requirement IDs (`R-<n>`), status and basis (`observed` when recovered or initialized; `accepted` when delivered or verified), and retired requirements with reasons |
 | `docs/shiploop/environment.md` | Targets and accounts by alias (never credentials), the working test, deploy, dry-run and confirm commands, platform facts and the run that verified each |
 | `docs/shiploop/test-strategy.md` | Harnesses, suites, the commands that own them, the test-ID convention |
-| `docs/shiploop/features/<slug>/` | This run's record: `spec.md` (IDs added, modified, retired), `plan.md`, `test-spec.md`, `system-tests.md`, `release-plan.md`, `outcome.md` |
+| `docs/shiploop/features/<slug>/` | This run's record: `spec.md`, the change spec (one line per affected requirement: add, modify, retire with reason, or preserve; include before/after and basis; cite unchanged requirements by ID), `plan.md`, `test-spec.md`, `system-tests.md`, `release-plan.md`, `outcome.md` |
 
 Each packet names the home and the files its stage keeps up to date. At four
 closes (`prepare`, each `test-spec`, `release-plan`, `release-verify`) ShipLoop
 refuses `done` until that close's files exist, refuses lines that look like
-credentials, refuses a living spec that no longer mentions an earlier committed
-requirement ID, and then commits exactly `docs/shiploop/` and `SHIPLOOP.md`
+credentials, and refuses a living spec that no longer mentions an earlier committed
+requirement ID. At `release-verify` it also requires every changed ID in the
+change spec to be merged into the active or `Retired` section, then commits
+exactly `docs/shiploop/` and `SHIPLOOP.md`
 (`docs(shiploop): record <feature> knowledge at <stage>`). After any other accepted
 stage that changed `docs/shiploop/` or `SHIPLOOP.md`, ShipLoop applies the same credential and ID
 checks (refusing that stage's `done` on a failure) and commits it
-(`... knowledge after <stage>`); the model never commits the home itself. A file
+(`... knowledge after <stage>`); the model never commits the home itself. The
+merge check proves ID placement only. Release review still compares the merged
+wording, accepted status, reasons and preserved conditions with the change spec
+and delivery evidence; the script cannot prove semantic equivalence. A file
 the credential screen flags is left uncommitted and named. The last close is at
 `release-verify` so the commit returns with the workspace. The return plan keeps
 `docs/shiploop/**`. Files an earlier run wrote in older homes

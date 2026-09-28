@@ -73,8 +73,8 @@ Keep three logical records; reuse existing homes instead of copying full specs:
 | Record | Meaning and lifetime |
 | --- | --- |
 | Prior baseline for this run | As-of documented/observed behavior, evidence and limits, captured before the change; a frozen note or retrievable immutable revision. |
-| Incoming change spec | This request's delta, acceptance criteria and preserve/add/modify/retire decisions, with user-request/decision basis and baseline references. |
-| Maintained product knowledge | Current cumulative accepted intent and separately labeled recovered observations, outside disposable run storage, revalidated by later requests. |
+| Incoming change spec | This run's delta, acceptance criteria and preserve/add/modify/retire decisions, with user-request/decision basis and baseline references; it is not accepted scope for a later run by itself. |
+| Maintained product knowledge | The cumulative delivered spec plus separately labeled recovered observations, outside disposable run storage, revalidated by later requests. |
 
 Once consumed, do not silently rewrite the prior baseline to match changed code.
 Keep its original as-of account; record corrections/new evidence in an addendum
@@ -133,11 +133,13 @@ locator text; it does not prove that the model opened or understood the source.
 ## Retain across runs
 
 During authorized documentation work, retain useful recovered knowledge in the
-existing product documentation home. A small README or existing system/architecture
-section may suffice; otherwise record it in `docs/shiploop/environment.md` and
-the living spec in ShipLoop's
-[repository knowledge home](project-knowledge.md#repository-knowledge-home).
-Accepted requirements keep their existing home, with the
+existing product documentation home. A small README section may suffice;
+otherwise record system facts in `docs/shiploop/environment.md` and requirements
+touched by delivered work in the long-lived spec in ShipLoop's
+[repository knowledge home](project-knowledge.md#repository-knowledge-home),
+through the `release-verify` merge. Mark recovered requirements `observed` unless
+the run delivered or verified them; untouched recovered behavior stays in the
+run's notes rather than growing an exhaustive rewrite. Accepted requirements keep their existing home, with the
 [`docs/shiploop/spec.md` fallback](project-knowledge.md#choose-one-authoritative-home).
 Keep these roles distinct, even if both fit in one document. Link selected homes
 from README and `SHIPLOOP.md`; do not duplicate the full contents in both indexes.
