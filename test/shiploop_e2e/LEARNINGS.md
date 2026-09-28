@@ -286,3 +286,88 @@ harness-FAIL, 7 cancelled; 8b on 1.6.0 PASS committed, 4 cancelled, 0 ShipLoop f
 - Next: resume this run on another host (Claude Sonnet, budget-capped) from its recorded run
   directory, or rerun on Grok when credits return. The harness cannot switch hosts mid-run;
   `--continue-from` copies only the source checkout.
+
+## temperature-report resumed on Codex — 2026-09-27 — gpt-5.6-luna xhigh, marketplace skill-craft 1.11.1 (ShipLoop 0.44.1)
+
+- How: the first multi-host run. `--resume-run` continued the stopped Grok run in place on
+  Codex, from inner-loop revision 17, using the ShipLoop CLI of the host that started it. The
+  Codex session ran 34 min (2,048 s, 127 items); Codex reports no dollar cost.
+- Outcome: **FAIL, paused at revision 20**, still before `implement`, so no chain was bound
+  and the fan-out is still untested.
+  - Verdicts: invoked, plugin and process pass; the ShipLoop and product verdicts fail.
+  - Checks: 1 of 6 pass in the work directory.
+- What worked: the test-spec Improve review ran and committed the test specification.
+  Translating the Codex stream into Grok's shape gave a readable transcript, the model text,
+  and tool calls. The harness saw ShipLoop was paused and correctly did not resume.
+- **Defect, a normal-run failure:**
+  - On the Ask-Agent route the model builds the Improve review's Until Loop contract by hand;
+    `improve-start` writes it only on the inline route.
+  - Luna's contract left the standalone ShipLoop binding marker out of `context.request`, so
+    `improve-complete` refused the completed review's terminal packet. Neither can be
+    regenerated, and the model paused the run: "Parent Improve import is blocked because the
+    completed runtime context omitted the required standalone ShipLoop binding marker".
+  - The Grok run showed the same risk as "hand-built loop contract" model glue, but got it right.
+  - This matches the open 09-26 audit follow-up "ShipLoop-written Improve contract".
+- Harness: a mixed-host run's turn count ignored the Codex session (it read 303, Grok's count).
+  Fixed in metrics: a session that reports no per-call usage adds its own `num_turns`.
+- Next: have ShipLoop write the Improve contract on the Ask-Agent route too, then run
+  `temperature-report` fresh on Codex to reach `implement` and the chain.
+
+## fanout — 2026-09-27 — first live fan-out/fan-in, Codex gpt-5.6-luna medium, marketplace skill-craft 1.11.1 (Plan Dispatcher 0.5.0)
+
+- How: `test/shiploop_e2e/fanout.py`. Codex drove the published `plan-dispatcher` skill on dummy
+  steps: A and B independent, J after both. Each step recorded its start, slept 30 s, and
+  recorded its end. There was no ShipLoop SDLC and no product; per the owner, dummy steps are
+  enough as long as the order is verified.
+- Outcome: **PASS in 587 s.**
+  - The dispatcher reports the run complete, with one attempt per step and no retries.
+  - A and B ran as native Codex subagents, each with a launch handle, and overlapped 29.3 s of
+    their 30 s: a real parallel fan-out.
+  - J started about 240 s after both ended. The gap is the parent's verification and
+    settlement; fan-in order holds.
+- Meaning: the first live evidence through the current release that a real host follows the
+  dispatcher's exact calls, fans out to parallel native workers and joins in dependency order.
+  The earlier evidence was the 09-20 Grok pilot on older packages. ShipLoop's Ask-Agent chain
+  route is still unexercised live; its Improve-contract defect (see the Codex resume entry)
+  blocks it before `implement`.
+
+## 1111 — 2026-09-27 — web-service + breadth suites in parallel, marketplace 1.11.1 (ShipLoop 0.44.1)
+
+- First parallel run: the web-service suite and the breadth suite's three chains ran together (four Grok
+  sessions, each with its own marketplace preflight: all installed 1.11.1). Grok credits ran out after
+  about 62 minutes; three runs were stopped, unfinished.
+- csv-report (cli-files) PASS on every verdict, including `committed`: 261 turns, $18.58, 1 session,
+  0 ShipLoop failures, 0 cancellations. The return fix (commit leftovers, knowledge index) worked live;
+  web-p5 had failed exactly there. Its row records glue 3; all three were metric false positives fixed
+  during the run (e1539b8b, 339abaea, a5ccea84); recomputed glue is 0.
+- seat-reservations reached release-plan with 9/9 ShipLoop-run checks and a real defect found by review
+  (a Content-Length hang). The two battleship runs reached system tests and page work; review found real
+  defects (`shipCells(null)` TypeError, `random()` == 1 off-board placement).
+- Concurrency defect (plan P13): web battleship and seat-reservations both wrote their Until Loop report
+  to the literal /tmp/improve-done-1.json; battleship then read the other run's report. That review
+  loop's evidence is suspect. Models pick fixed /tmp names because the report goes on stdin and no packet
+  names a scratch location. Parallel runs wait for P13.
+- Engine refusal worth the fix (plan P12): the breadth battleship wrote the Improve completion record as
+  raw JSON and was refused; the owner judged the hand-off over-precise. improve-complete now derives the
+  record (730dfcda).
+- Correction to an earlier claim: the truncated `opening.md` read was a model-built composite command
+  (git log -7 --format=full plus several cats), not an oversized ShipLoop file (847 and 4,269 bytes).
+  Real truncations remain the Until Loop action responses (~21 KB), the upstream --report-file item.
+- Metric fixes from this round: run/evidence/ is model input; a contract counts as hand-built only when a
+  command writes it or feeds it to the Until Loop runtime (json.dump(, not json.dumps).
+
+## temperature-report on GPT-6 Luna max — 2026-09-27 — Codex gpt-6-luna max, marketplace skill-craft 1.13.0 (ShipLoop 0.46.0)
+
+- Fresh run (a `--resume-run` of the earlier xhigh run was refused across the 1.13.0 release, as designed).
+  Timed out at the harness's 3-hour limit while in the `plan` stage; the chain at `implement` was not reached.
+- Stage times: intake 2.3 m, discovery 11.9 m, research 20.0 m, spec 79.2 m (159 tool calls),
+  test-strategy 40.0 m, then about 27 m into plan. Four Improve children ran. Planning alone at max
+  effort takes longer than the default timeout, so a chain-reaching run on Codex max needs
+  `--timeout` of about 5 h or a lower effort for the planning stages.
+- `improve-start` on the Ask-Agent route worked live (fix 938cc3fc): children started from the receipt's
+  `next_argv`. Two `complete`/`improve-start` refusals were model misuse that the engine rejected without
+  advancing the graph; one `workspace` call failed on a zsh quoting error in model-built glue.
+- `turns 0` / `sessions 0` is expected for a killed Codex run: `codex exec` emits its turn and session
+  totals only when it ends.
+- Meaning: ShipLoop's parallel chain is still unproven live. Next attempt: Codex at a lower planning
+  effort (or high) with a longer timeout, same case.

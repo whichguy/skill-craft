@@ -174,19 +174,47 @@ def released_versions() -> dict:
     # A pending change note on main is source the marketplace does not serve yet: release.py has not run.
     pending = [name for name in git("ls-tree", "-r", "--name-only", "origin/main", "changes/").split()
                if name.endswith(".md") and name != "changes/README.md"]
-    return {"origin_main": git("rev-parse", "origin/main").strip(), "local_head": git("rev-parse", "HEAD").strip(),
+    origin_main = git("rev-parse", "origin/main").strip()
+    local = git("rev-parse", "HEAD").strip()
+    # Behind origin/main is fine (the plugin comes from the marketplace); unpublished local commits are not.
+    behind = subprocess.run(["git", "-C", str(ROOT), "merge-base", "--is-ancestor", local, origin_main]).returncode == 0
+    return {"origin_main": origin_main, "local_head": local, "local_behind_main": behind,
             "catalog_version": plugin.get("version"), "shiploop_version": shiploop.group(1) if shiploop else None,
-            "unreleased": pending}
+            "unreleased": pending, "ci": main_ci(origin_main)}
+
+
+def main_ci(commit: str) -> str:
+    """origin/main's CI result: success, failure, pending, or unknown (no gh, or no run found).
+
+    The full hermetic tier runs in CI on release commits, not locally; the E2E runs wait for it.
+    """
+    try:
+        done = subprocess.run(["gh", "run", "list", "--repo", "whichguy/skill-craft", "--commit", commit,
+                               "--json", "status,conclusion"], capture_output=True, text=True, timeout=60)
+        runs = json.loads(done.stdout) if done.returncode == 0 else None
+    except (OSError, ValueError, subprocess.TimeoutExpired):
+        runs = None
+    if not runs:
+        return "unknown"
+    if any(run.get("conclusion") == "failure" for run in runs):
+        return "failure"
+    if any(run.get("status") != "completed" for run in runs):
+        return "pending"
+    return "success" if all(run.get("conclusion") == "success" for run in runs) else "failure"
 
 
 def version_gate(released: dict, plugin_version: str | None, shiploop_version: str | None) -> list[str]:
     """Why a marketplace run would not test what main and the marketplace publish, if at all."""
     problems = []
+    # Optimistic: a run starts while CI is still pending and is cancelled if CI then fails (SPEC).
+    if released.get("ci") == "failure":
+        problems.append("origin/main's CI failed: fix it (or revert) before spending a live run")
     if released.get("unreleased"):
         problems.append("origin/main has unreleased changes (" + ", ".join(released["unreleased"][:5])
                         + "): run scripts/release.py and push so the marketplace serves them")
-    if released["local_head"] != released["origin_main"]:
-        problems.append(f"local HEAD {released['local_head'][:8]} is not origin/main {released['origin_main'][:8]}")
+    if released["local_head"] != released["origin_main"] and not released.get("local_behind_main"):
+        problems.append(f"local HEAD {released['local_head'][:8]} has commits origin/main "
+                        f"{released['origin_main'][:8]} does not: publish them first")
     if plugin_version != released["catalog_version"]:
         problems.append(f"installed skill-craft {plugin_version} is not the catalog's {released['catalog_version']}")
     if shiploop_version != released["shiploop_version"]:
@@ -252,6 +280,7 @@ def preflight_line(versions: dict) -> str:
             f"{released['catalog_version']} / ShipLoop {released['shiploop_version']}; "
             f"{versions['installed_by']} got skill-craft {versions['plugin_version']} / ShipLoop "
             f"{versions['shiploop_version']}; unreleased notes: {len(released.get('unreleased') or [])}; "
+            f"main CI: {released.get('ci', 'unknown')}; "
             + ("OK" if not versions["gate"] else "REFUSED: " + "; ".join(versions["gate"])))
 
 
@@ -606,7 +635,8 @@ def parser() -> argparse.ArgumentParser:
                         "(required by follow-on cases, which name the case they follow)")
     p.add_argument("--check", action="append", help="extra shell check run in the work dir (repeatable)")
     p.add_argument("--output", type=Path, help="new directory for this attempt (default: under $TMPDIR)")
-    p.add_argument("--host", choices=sorted(hosts.HOSTS), default="grok")
+    p.add_argument("--host", choices=[*sorted(hosts.HOSTS), "all"], default="grok",
+                   help="the host that drives ShipLoop; 'all' only with --preflight-only (checks every host)")
     p.add_argument("--model", help="default: grok-4.7 (grok) or sonnet (claude)")
     p.add_argument("--effort", help="reasoning effort; default: medium (grok), host default (claude)")
     p.add_argument("--skill", help="command that invokes ShipLoop; default: shiploop (grok), skill-craft:shiploop (claude)")
@@ -650,6 +680,7 @@ def baseline_row(result: dict, style: str | None, suite: str | None) -> dict:
             "turns": m.get("turns"), "cost_usd": m.get("cost_usd"),
             "sessions": len((result.get("process") or {}).get("sessions") or []),
             "cancelled_tool_calls": m.get("cancelled_tool_calls"), "model_glue": m.get("model_glue"),
+            "tmp_writes": m.get("tmp_writes"),
             "shiploop_failures": m.get("shiploop_failures"), "compactions": m.get("compactions"),
             "truncated_outputs": m.get("truncated_outputs"), "narrative": m.get("narrative"),
             "output": result.get("output")}
@@ -668,6 +699,15 @@ def previous_row(path: Path, case: str, source: str | None) -> dict | None:
         if row.get("case") == case and row.get("source") == source:
             found = row
     return found
+
+
+def shared_tmp_writes(outputs: list[Path]) -> dict[str, list[str]]:
+    """Each literal /tmp path that more than one of these runs wrote, with the runs that wrote it."""
+    writers: dict[str, list[str]] = {}
+    for out in outputs:
+        for name in metrics.collect(out).get("tmp_writes") or []:
+            writers.setdefault(name, []).append(out.name)
+    return {name: runs for name, runs in sorted(writers.items()) if len(runs) > 1}
 
 
 def suite_chains(order: list[str], cases: dict) -> list[list[str]]:
@@ -710,6 +750,19 @@ def run_suite(args, argv: list[str]) -> int:
         (check / "preflight.json").write_text(json.dumps(versions, indent=2) + "\n")
         if versions["gate"]:
             raise SystemExit("suite not started, version gate: " + "; ".join(versions["gate"]))
+    gate = suites[args.suite].get("gate") or []
+    gate_rows = []
+    for case in gate:
+        # A batch suite's gate runs first and alone: a cheap case that fails stops the costly ones.
+        out = base / case
+        code = main([*passthrough, "--case", case, "--output", str(out), "--suite-name", args.suite])
+        gate_rows.append({"case": case, "pass": code == 0, "output": str(out), "gate": True})
+    if not all(row["pass"] for row in gate_rows):
+        summary = gate_rows + [{"case": case, "skipped": "the gate failed"} for case in suites[args.suite]["cases"]]
+        (base / "suite-result.json").write_text(json.dumps({"suite": args.suite, "cases": summary}, indent=2) + "\n")
+        print(f"suite {args.suite}: gate failed ({', '.join(r['case'] for r in gate_rows if not r['pass'])}); "
+              "the other cases did not run")
+        return 1
     order = suites[args.suite]["cases"]
     chains = suite_chains(order, cases)
     if len(chains) > 1 and not args.serial and "--quiet" not in passthrough:
@@ -739,8 +792,14 @@ def run_suite(args, argv: list[str]) -> int:
     workers = 1 if args.serial else max(1, min(args.max_parallel, len(chains)))
     with ThreadPoolExecutor(max_workers=workers) as pool:
         rows = [row for chain_rows in pool.map(run_chain, chains) for row in chain_rows]
-    summary = sorted(rows, key=lambda row: order.index(row["case"]))
-    (base / "suite-result.json").write_text(json.dumps({"suite": args.suite, "cases": summary}, indent=2) + "\n")
+    summary = gate_rows + sorted(rows, key=lambda row: order.index(row["case"]))
+    shared = shared_tmp_writes([Path(row["output"]) for row in summary if row.get("output")])
+    if shared:
+        # Concurrent runs that wrote the same /tmp name may have read each other's files (plan P13).
+        print("suite " + args.suite + ": /tmp names written by more than one case (their evidence is suspect): "
+              + "; ".join(f"{name} ({', '.join(cases_)})" for name, cases_ in shared.items()), flush=True)
+    (base / "suite-result.json").write_text(json.dumps({"suite": args.suite, "cases": summary,
+                                                        "shared_tmp_writes": shared}, indent=2) + "\n")
     print(f"suite {args.suite}: " + ", ".join(
         f"{row['case']} {'SKIP' if 'skipped' in row else 'PASS' if row['pass'] else 'FAIL'}" for row in summary))
     return 0 if all(row.get("pass") for row in summary) else 1
@@ -750,11 +809,19 @@ def main(argv: list[str] | None = None) -> int:
     argv = list(sys.argv[1:] if argv is None else argv)
     args = parser().parse_args(argv)
     if args.preflight_only:
+        # Before a rerun, every host must get the latest release (SPEC: publish, refresh, then run).
         out = new_output_dir(args.output, "preflight")
-        env = the_host(args).env(out / "home")
-        _, _, versions = marketplace_preflight(args, out, env)
-        (out / "preflight.json").write_text(json.dumps(versions, indent=2) + "\n")
-        return 1 if versions["gate"] else 0
+        refused = False
+        for name in (sorted(hosts.HOSTS) if args.host == "all" else [args.host]):
+            args.host = name
+            check = out / name
+            check.mkdir()
+            _, _, versions = marketplace_preflight(args, check, the_host(args).env(check / "home"))
+            (check / "preflight.json").write_text(json.dumps(versions, indent=2) + "\n")
+            refused = refused or bool(versions["gate"])
+        return 1 if refused else 0
+    if args.host == "all":
+        raise SystemExit("--host all is only for --preflight-only; a run needs one host")
     if args.suite:
         return run_suite(args, argv)
     host = the_host(args)
@@ -793,8 +860,28 @@ def main(argv: list[str] | None = None) -> int:
         follow_on = continue_from(args.continue_from.expanduser().resolve(), work) if args.continue_from else None
         seed_head = apply_seed(work, seed) if seed else None
     env = host.env(out / "home")
-    if args.source == "marketplace":
+    if resumed and earlier.get("host") == args.host and Path(earlier.get("plugin_dir") or "").is_dir():
+        # A resumed run keeps the plugin it started on: reinstalling would replace that version's files, and a
+        # bound Improve child records paths inside them. Only the CI and checkout checks still apply.
+        plugin_dir, plugin = Path(earlier["plugin_dir"]), None
+        released = released_versions()
+        versions = {"source": "marketplace (resumed on its original install)", **installed_versions(plugin_dir),
+                    "released": released,
+                    "gate": [problem for problem in version_gate(released, None, None)
+                             if not problem.startswith("installed ")]}
+        if versions["gate"]:
+            raise SystemExit("version gate: " + "; ".join(versions["gate"]))
+        if host.name == "codex" and versions["plugin_version"] != released["catalog_version"]:
+            # Codex syncs installed plugins to its marketplace's current release when a session starts and
+            # deletes the old version's files, which the run's CLI and any bound Improve child point to.
+            raise SystemExit(f"a Codex run started on skill-craft {versions['plugin_version']} cannot resume after "
+                             f"release {released['catalog_version']}: Codex replaces the plugin at session start. "
+                             "Start the case again.")
+    elif args.source == "marketplace":
         plugin_dir, plugin, versions = marketplace_preflight(args, out, env)
+        if resumed:
+            # No original install to reuse: a newer release is still not a reason to refuse the run.
+            versions["gate"] = [problem for problem in versions["gate"] if not problem.startswith("installed ")]
         if versions["gate"]:
             (out / "result.json").write_text(json.dumps({"case": name, "pass": False, "versions": versions,
                                                          "output": str(out)}, indent=2) + "\n")
@@ -895,6 +982,7 @@ def main(argv: list[str] | None = None) -> int:
                                                       "improve_children")}
               | {"script_verifications": run_metrics["script_verifications"],
                  "model_glue": len(run_metrics["model_glue"]),
+                 "tmp_writes": len(run_metrics["tmp_writes"]),
                  "asked_user": len(run_metrics["asked_user"]),
                  "narrative": {k: v for k, v in run_metrics["narrative"].items() if k != "skipped"},
                  "shiploop_failures": len(run_metrics["shiploop_failures"]),
@@ -903,9 +991,11 @@ def main(argv: list[str] | None = None) -> int:
     (out / "result.json").write_text(json.dumps(result, indent=2) + "\n")
     style = json.loads(CASES.read_text()).get(name, {}).get("style") if name != "custom" else None
     row = baseline_row(result, style, args.suite_name)
-    before = previous_row(args.baseline, name, versions["source"]) if args.baseline else None
-    if args.baseline:
-        with args.baseline.open("a") as handle:
+    # A baseline measures one host running a case from the start; a resumed run is not one.
+    baseline_file = args.baseline if not resumed else None
+    before = previous_row(baseline_file, name, versions["source"]) if baseline_file else None
+    if baseline_file:
+        with baseline_file.open("a") as handle:
             handle.write(json.dumps(row) + "\n")
 
     mark = lambda ok: "PASS" if ok else "FAIL"  # noqa: E731

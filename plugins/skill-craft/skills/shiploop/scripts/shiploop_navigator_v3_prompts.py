@@ -424,6 +424,9 @@ Blocked means work this stage cannot do: a missing target or account, a missing
 approval, or a command with no replacement available inside the stage. A retained
 command that does not run what it claims (for example a test path the runner does
 not expand) is a documentation fix made in this stage, then rerun, not a blocker.
+Write temporary files (command output, a report you pipe into a tool) in the
+packet's Scratch directory, not /tmp: /tmp is shared with other runs and
+sessions, and a fixed /tmp name can read another run's file.
 ShipLoop runs unattended: no one is watching and nothing arrives on standard
 input. When a decision is open, take the default that best fits the request and
 the recorded knowledge, record it as an assumption (the alternatives and why

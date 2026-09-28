@@ -16,27 +16,20 @@ const fs = require('node:fs');
 const os = require('node:os');
 const path = require('node:path');
 const { spawnSync } = require('node:child_process');
+const cli = require('./orchestrator_scenarios/dispatcher-cli');
 
-const pkg = path.resolve(process.env.PLAN_DISPATCHER_DIR ||
-  path.join(__dirname, '../skills/plan-dispatcher'));
-const helper = path.join(pkg, 'scripts/dispatch.js');
-const statePath = path.join(pkg, 'scripts/state.js');
-const root = fs.realpathSync(fs.mkdtempSync(path.join(os.tmpdir(), 'dispatcher-decisions-')));
+// PLAN_DISPATCHER_DIR (read by dispatcher-cli) selects the package under test.
+const statePath = path.join(cli.pkg, 'scripts/state.js');
+const root = cli.makeRoot('dispatcher-decisions-');
 const OWNER = 'parent-1';
-const digest = (bytes) => crypto.createHash('sha256').update(bytes).digest('hex');
 let failures = 0;
 
-function saveJson(value, target) {
-  const file = target || path.join(root, 'files', crypto.randomUUID() + '.json');
-  fs.mkdirSync(path.dirname(file), { recursive: true });
-  fs.writeFileSync(file, JSON.stringify(value));
-  return file;
-}
-
-function evidence(value) {
-  const file = saveJson(value);
-  return { path: file, sha256: digest(fs.readFileSync(file)) };
-}
+const saveJson = (value, target) => cli.saveJson(root, value, target);
+const evidence = (value) => cli.evidence(root, value);
+const argvRun = cli.argvRun;
+const digest = cli.digest;
+const dispatch = (...args) => cli.dispatch(root, ...args);
+const contract = cli.contract;
 
 function parseError(stderr) {
   try {
@@ -46,37 +39,10 @@ function parseError(stderr) {
   }
 }
 
-// One cold process per call, run from an unrelated directory.
-function argvRun(argv, expectFailure = false) {
-  const child = spawnSync(argv[0], argv.slice(1), { cwd: os.tmpdir(), encoding: 'utf8', timeout: 15000 });
-  assert.ifError(child.error);
-  if (expectFailure) {
-    assert.notEqual(child.status, 0, argv.slice(2, 3) + ' unexpectedly succeeded');
-    return parseError(child.stderr);
-  }
-  assert.equal(child.status, 0, argv.slice(2, 3) + ': ' + child.stderr);
-  return JSON.parse(child.stdout);
-}
-
-function dispatch(operation, run, input, expectFailure = false) {
-  let file;
-  if (input !== undefined) {
-    file = operation === 'report'
-      ? saveJson(input, path.join(run, 'artifacts', input.attempt, 'envelope.json'))
-      : saveJson(input);
-  }
-  return argvRun([process.execPath, helper, operation, run, ...(file ? [file] : [])], expectFailure);
-}
-
 // Run a returned recovery call exactly, filling only its reason placeholder.
 function runCall(call, reason, expectFailure = false) {
-  assert.ok(call && Array.isArray(call.argv), 'action must carry a call');
   assert.match(call.input.reason, /^<.*>$/, 'reason must be a placeholder for the caller');
-  return argvRun([...call.argv, saveJson({ ...call.input, reason })], expectFailure);
-}
-
-function contract(id) {
-  return { task: 'Simulated task ' + id, ready: ['Inputs for ' + id + ' checked'], done: [id + ' verified'] };
+  return cli.runCall(root, call, { reason }, expectFailure);
 }
 
 function newRun(steps) {

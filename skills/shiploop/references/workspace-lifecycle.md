@@ -17,9 +17,13 @@ flowchart LR
 ## Entry, identity and storage
 
 Use the selected package's `shiploop workspace start --repo SOURCE
---workspace-root EXTERNAL --prompt='<new incoming request>'`. Choose a new,
-dedicated external directory outside the source checkout and Git metadata. It
-must survive context resets. Do not use an automatically purged temporary path
+--prompt='<new incoming request>'`. It creates and prints a new dedicated root,
+`EXTERNAL = <repo-parent>/.shiploop-runs/<repo>-<stamp>`, outside the source
+checkout and Git metadata; an explicit `--workspace-root EXTERNAL` must meet the
+same rules. Before creating anything, start proves this session may write that
+parent and the Git directory, and exits 3 with the exact grant when a host
+sandbox refuses; see [sandbox write grants](host-matrix.md#sandbox-write-grants).
+The root must survive context resets. Do not use an automatically purged temporary path
 for a real long-lived run. The helper creates:
 
 ```text
@@ -174,6 +178,12 @@ source state the previous receipt recorded, not from the preparation baseline:
   or untracked product output is refused rather than mixed into a merged branch.
 - After a **no-change return**, the source is still the preparation state, so
   the follow-up is an ordinary first return.
+- ShipLoop makes one follow-up itself: when its own knowledge commit (for
+  example at release-verify) lands after a verified return and everything
+  changed since that return is `docs/shiploop/` or `SHIPLOOP.md`, it returns that
+  commit by the same route, keeping the earlier reviewed dispositions. Anything
+  else changed, or a moved source, leaves the follow-up to you: handoff asks for
+  it with the commands.
 
 The new receipt keeps the previous one as `previous_receipt`. If the source
 already holds exactly the result the follow-up would produce (the fix was copied

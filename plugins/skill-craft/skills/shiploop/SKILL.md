@@ -5,7 +5,7 @@ description: >-
   script's current action packet, and submit its exact completion call until
   the script reports completion with an HTML achievement report. Use when the
   user says shiploop, ship the project, or requests a durable delivery loop.
-version: 0.44.1
+version: 0.46.0
 allowed-tools: all
 license: MIT
 platforms:
@@ -94,8 +94,9 @@ paths. Determine whether this
 is a genuinely new request or the same existing run. Never replace another run
 or substitute another repository.
 
-For a later feature request, keep the existing product repository but choose a
-fresh external workspace root (for example a new `<repo-parent>/.shiploop-runs/<name>`).
+For a later feature request, keep the existing product repository but start a
+fresh external workspace root: omit `--workspace-root` and the script picks a new
+`<repo-parent>/.shiploop-runs/<repo>-<stamp>` and prints it.
 Pass the **new incoming prompt verbatim**, not a prior run's goal. Preserve old
 runs, even completed ones. An `init` retry with a different prompt or a different
 explicitly supplied repository is rejected; an identical retry of a completed run stays complete.
@@ -153,8 +154,21 @@ known additional transient paths. Keep this external directory durable across
 context resets. Read [workspace lifecycle](references/workspace-lifecycle.md).
 
 ```sh
-python3 "$CLI" workspace start --repo "$REPO" --workspace-root "$WORKSPACE_ROOT" --prompt='<user request>'
+python3 "$CLI" workspace start --repo "$REPO" --prompt='<user request>'
 ```
+
+Before creating anything, start proves this session can write the
+`.shiploop-runs` parent and the repository's Git directory; every later
+run-bound command rechecks. A host sandbox that refuses either (Codex
+`workspace-write`, a Grok sandbox profile, Claude's Bash sandbox) makes it exit
+**3** with a `SHIPLOOP-GRANT-NEEDED` block: the blocked paths, the repair
+intent, the detected host's grant (Claude `/add-dir` needs no restart; Codex
+`/permissions` or `writable_roots`; Grok a restart with a sandbox profile) and
+the exact rerun command. Show that block to the user and stop until they grant
+it; then run the printed rerun command. Never work around it by editing the
+source checkout, running `init` in place, moving the workspace into the
+repository or changing sandbox settings yourself. See
+[host grants](references/host-matrix.md#sandbox-write-grants).
 
 The returned packet binds its repository locator to the execution worktree and
 its run directory to `WORKSPACE_ROOT/run`. `WORKSPACE_ROOT/workspace.md` retains
@@ -682,19 +696,20 @@ question about the loop is not a stop: answer it and continue the packet.
    the ephemeral Until Loop with `--receipt` set to the parent packet's
    per-action receipt path; the runtime writes every packet there before printing
    it. A delegated worker starts it with that `--receipt` itself. The one temporary `state_file` owns the child's live counters; the receipt
-   retains its recovery command and final completion evidence, and ShipLoop
+   retains its recovery command and final review/check locators, and ShipLoop
    imports only a packet the runtime wrote there. Preserve parent identity, scoped authority and
    return locators in frozen child `context`, and replace `handoff` on each `done`.
    Execute one work iteration, submit its truthful classification and assessments,
    then obey the returned instruction. A complete child deletes its state file
-   after the runtime has written its terminal packet to the receipt; then write
-   the completion evidence and run the parent return and import. On cold recovery,
+   after the runtime has written its terminal packet to the receipt; then
+   run the parent return and import. On cold recovery,
    read the receipt and use its exact `next_argv` for an active child. Missing
    state/output is incomplete, never evidence of success or permission to restart.
    Only the ephemeral runtime is supported; a card or saved binding that names a
    durable Until Loop runtime is refused.
-   On accepted success, use `improve-complete` with the
-   packet's completion evidence; the script imports it once and selects the next
+   On accepted success, run `improve-complete --action <id>` with no separate
+   record: ShipLoop imports the review's own `review-<n>.md` and `checks.md`
+   files and selects the next
    producer. A blocked or stopped child leaves the parent incomplete; follow the
    Improve packet's restart route (archive the stopped receipt and its reviews, start a new child
    with the same binding line) once the blocker is resolved or the user authorizes

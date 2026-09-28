@@ -35,6 +35,7 @@ import subprocess
 import tempfile
 
 import shiploop_git
+import shiploop_grants
 import shiploop_knowledge_home as knowledge_home
 import threading
 from contextlib import contextmanager
@@ -623,6 +624,11 @@ def _workspace_root(repo: Path, requested: Path, common: Path) -> Tuple[Path, bo
         if manifest.exists() and not manifest.is_symlink():
             return _resolved_directory(root, label="workspace root"), True
         _fail("workspace root is occupied; use a new dedicated root")
+    # Before the first write: a host sandbox that refuses either location
+    # would otherwise fail mid-creation.  Nothing exists yet to clean up.
+    shiploop_grants.require(
+        [(root.parent, "isolated worktree and run state", root.parent),
+         (common, "git worktree add and every commit", common)])
     if not root.parent.is_dir():
         # The usual layout (<beside the repo>/.shiploop-runs/<name>) needs one new
         # directory; create exactly that level, never a deeper missing tree.
@@ -637,6 +643,44 @@ def _workspace_root(repo: Path, requested: Path, common: Path) -> Tuple[Path, bo
     except OSError as exc:
         _fail(f"cannot create workspace root: {exc}")
     return _resolved_directory(root, label="workspace root"), False
+
+
+RUNS_DIR = ".shiploop-runs"
+
+
+def require_grants(workspace_root: Path) -> None:
+    """Resume-time check: a harness restarted without its grants fails here, not mid-commit."""
+    worktree = Path(workspace_root) / "worktree"
+    if not worktree.is_dir():
+        return
+    common = _common_dir(worktree)
+    parent = Path(workspace_root).parent
+    shiploop_grants.require(
+        [(Path(workspace_root) / "run", "run state", parent), (worktree, "product changes", parent),
+         (common, "every commit", common)])
+
+
+def default_root(repo: Path, stamp: str) -> Path:
+    """``<main-checkout-parent>/.shiploop-runs/<name>-<stamp>``: one stable directory to grant once.
+
+    Anchored at the main checkout, not the caller's checkout: started from a
+    linked worktree such as ``<main>/.claude/worktrees/x``, the caller's
+    parent lies inside the main checkout.
+    """
+    candidate = _resolved_directory(Path(repo), label="repository")
+    if _git(candidate, "rev-parse", "--is-inside-work-tree", readonly=True).returncode:
+        main = candidate  # an empty directory start will bootstrap here
+    else:
+        source = _repo_root(candidate)
+        common = _common_dir(source)
+        main = common.parent if common.name == ".git" else source
+    return main.parent / RUNS_DIR / f"{main.name}-{stamp}"
+
+
+def require_parent_grant(workspace_root: Path) -> None:
+    """Start-time check that needs no repository yet: the root's parent is writable."""
+    parent = Path(workspace_root).absolute().parent
+    shiploop_grants.require([(parent, "isolated worktree and run state", parent)])
 
 
 def _record(root: Path, name: str, title: str) -> Dict[str, Any]:
@@ -1705,6 +1749,45 @@ def execute_return(workspace_root: Path) -> Dict[str, Any]:
 
 
 @_locked_existing_root
+def follow_up_knowledge_return(workspace_root: Path) -> Optional[Dict[str, Any]]:
+    """Return ShipLoop's own knowledge commit after a verified return, by that return's route (plan P11).
+
+    Runs only when a return was recorded and every path changed since its candidate
+    head is ShipLoop knowledge (docs/shiploop/, SHIPLOOP.md) with nothing else dirty
+    in the candidate; then it plans and executes the follow-up return, whose own
+    checks refuse a moved source. Returns the new receipt, or None when it does not
+    apply. A refusal (WorkspaceError) propagates; the caller leaves the return to the
+    handoff guard. It never commits leftovers, retries or rolls back.
+    """
+    root = _resolved_directory(Path(workspace_root), label="workspace root")
+    receipt = _receipt(root)
+    if not receipt or receipt.get("status") != "returned":
+        return None
+    manifest = _manifest(root)
+    worktree = _resolved_directory(Path(manifest["worktree"]), label="workspace worktree")
+    head = str((receipt.get("candidate_fingerprint") or {}).get("head") or "")
+    if not _SHA.fullmatch(head):
+        return None
+    changed = [name for name in _git_bytes(worktree, "diff", "--name-only", "-z", head, "HEAD").decode(
+        "utf-8", "surrogateescape").split("\0") if name]
+    dirty = [line[3:] for line in _git_bytes(worktree, "status", "--porcelain=v1", "--untracked-files=all").decode(
+        "utf-8", "surrogateescape").splitlines() if line and not _forbidden(line[3:])]
+    if not changed or dirty or not all(knowledge_home.in_home(path) for path in changed):
+        return None
+    # The new plan reviews the whole delta again: paths the last reviewed plan decided keep that
+    # decision; the only new paths are knowledge, which the plan keeps.
+    reviewed = {row["path"]: row["disposition"] for row in _record(root, RETURN_PLAN, "return plan")["paths"]}
+    plan = plan_return(root)
+    for row in plan["paths"]:
+        if row["disposition"] == "pending":
+            if reviewed.get(row["path"], "pending") == "pending":
+                return None
+            row["disposition"] = reviewed[row["path"]]
+    plan["status"] = "ready"
+    _write(root, {RETURN_PLAN: (plan, "ShipLoop return plan")})
+    return execute_return(root)
+
+
 def returned_before(workspace_root: Path) -> bool:
     """Whether a return was recorded at all (a stale receipt still counts)."""
     try:

@@ -377,7 +377,7 @@ cost are unchanged; the metric only reads existing files. Evidence: hermetic
 metrics tests with Claude and Grok event streams; the next focused-suite run
 records the first baseline.
 
-### P11 Follow-up return after ShipLoop's own knowledge commit (ShipLoop; S-5) — proposed
+### P11 Follow-up return after ShipLoop's own knowledge commit (ShipLoop; S-5) — implemented 2026-09-27
 
 Evidence: web-p5 battleship. The release-verify knowledge commit lands after the return taken at
 release, so handoff refuses with "the recorded one is stale" and the model runs plan-return and return
@@ -397,6 +397,88 @@ Adversarial evaluation (to finish before implementing):
   today's message, never retry or roll back.
 - Anchor: S-5 (mechanical steps are the scripts'); non-regression: the guard and message stay for any
   other change.
+Implemented: `workspace.follow_up_knowledge_return` runs from `_knowledge_close` after a knowledge commit in a
+worktree run; it acts only when every path changed since the returned candidate head is knowledge and
+nothing else is dirty, carries the reviewed plan's dispositions, and lets execute_return's own checks refuse
+a moved source (the refusal is printed and handoff asks for the return as before). It never commits
+leftovers, retries or rolls back.
+
+### P12 improve-complete derives the completion record (ShipLoop; S-1, S-5) — approved by the owner 2026-09-27
+
+Evidence: breadth battleship on 1.11.1. The Improve child's completion record (a Markdown file with one
+`shiploop-state` JSON fence holding summary, review_refs, check_refs, lessons) was written as raw JSON and
+refused; the model then read ShipLoop's source to learn the format. Owner review: the hand-off is
+over-precise. The model restates paths ShipLoop already knows (its own `reviews/` directory, and the
+terminal packet's `unchanged_first_pass`, which fixes whether one or two review files count), in a
+storage format meant for authoritative state.
+
+Change: `improve-complete --action X`, with no record. ShipLoop takes review_refs from `reviews/`
+(the last one or two `review-<n>.md`, per the terminal packet) and check_refs from `reviews/checks.md`.
+The model writes only what needs judgement: optional plain-text notes (summary and lessons), and a
+`final_result` record only when the review changed a decision. `parent-return.md` becomes the command.
+One supported version: the `--result` record is removed, not kept beside the new form.
+
+Adversarial evaluation:
+- A child that names its review files differently cannot be matched. Guard: the packet states the names;
+  improve-complete refuses with the files it found and the names it expects, one clear step, never a
+  guess. Risk accepted: a model that ignores stated names gets one refusal, as today.
+- "The last two" must be the two trivial passes, not an earlier material one. Guard: order by the number
+  in the name (`review-<n>.md`), which the packet assigns per pass; the terminal packet's pass count and
+  `unchanged_first_pass` fix how many count; a gap or a missing file refuses.
+- Evidence integrity must not weaken: ShipLoop still copies and hashes the files it imports, and the
+  same workspace-containment checks apply to paths it derives.
+- The delegated (non-inline) route and reconcile/stopped receipts (target, evidence_refs) are separate
+  shapes. Scope: change only the success completion; leave incomplete/reconcile receipts unchanged, and
+  say so in the references.
+- Removing `--result` breaks any saved run mid-child at release time. Accepted under "one supported
+  version": a run on the old version finishes on that version.
+- Tests and references that describe the record must change with it; the delegation and navigator tests
+  pin packet text.
+Anchor: S-1 (scripts own state), S-5 (mechanical steps are the scripts'), S-7 (small packets).
+Non-regression: the same files are imported, hashed and archived; no verdict changes.
+
+### P13 A run-local scratch directory; no shared /tmp names (ShipLoop; S-14, Parallel work) — implemented 2026-09-27
+
+Evidence: suites web-1111 and breadth-1111 ran concurrently on 1.11.1. The web-service battleship run and
+seat-reservations both wrote their Until Loop report to the literal path /tmp/improve-done-1.json; the
+battleship run then read the other run's report ("the returned report mentions a different server").
+The same collision hits a user running two ShipLoop sessions. Models choose fixed /tmp names because the
+Until Loop report goes on standard input and no packet says where temporary files belong; TMPDIR does not
+help, since the paths are literal.
+
+Proposal: ShipLoop creates <run>/scratch/ and every packet's common rule says temporary files go there
+(/tmp is shared with other runs). The Until Loop report is written to a path ShipLoop names and passed as a
+file (the upstream until-loop --report-file item), not piped from a fixed /tmp name.
+
+Adversarial evaluation:
+- Leakage: the run directory is ShipLoop-owned (outside the product; `.shiploop`/`.shiploop-runs` are
+  protected return paths and knowledge commits take only docs/shiploop/ and SHIPLOOP.md), so scratch files
+  never reach the product or a commit.
+- Cost: one sentence in the common rule, one locator line, one line in the Improve packet. Accepted.
+- Guidance, not enforcement: a model can still write /tmp. Measured instead: `tmp_writes` per run, and a
+  suite prints any /tmp name two of its cases wrote (their evidence is suspect). The next parallel suite
+  judges whether the guidance holds; if not, the Until Loop half (a report path it names) becomes necessary.
+- The Until Loop `--report-file` stays upstream; the ShipLoop half stands alone.
+- Evidence from the 1111 round: the metric finds the collision (/tmp/improve-done-1.json, written with the
+  file tool by web battleship and seat-reservations).
+Anchor: S-14 (unattended, no hidden coupling), Parallel work (concurrency must not change a verdict).
+
+### Batch 1.12.0 — verification map (`--suite batch`, driver Codex Luna xhigh)
+
+| Change | hello (gate) | seat-reservations | battleship -> battleship-scoring | Hermetic only |
+| --- | --- | --- | --- | --- |
+| P12 improve-complete derives the record | first live proof | | | |
+| P11 knowledge follow-up return | yes | | | |
+| Host interface: Codex end to end | yes | | | |
+| P13 scratch directory, no shared /tmp | | concurrent with the web chain | concurrent | |
+| Stateful style (persistence, concurrency check) | | not finished on recent versions | | |
+| Web style + retention across runs (follow-on) | | | not verified since 1.6.0 | |
+| SHIPLOOP.md commit, leftover commit (`committed`) | every run's verdict | | | |
+| Absolute consumer_entry refusal, clearer record error | | | | yes |
+| cli-files (csv-report) | | | | skipped: passed on 1.11.1 |
+
+Order: hello alone; if it passes, seat-reservations and the battleship chain run in parallel. Acceptance:
+every verdict passes; 0 ShipLoop failures; glue 0; asked a person 0; `tmp_writes` shared by no two runs.
 
 ## Status
 

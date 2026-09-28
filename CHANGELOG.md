@@ -4,6 +4,81 @@ Written by scripts/release.py.
 
 ## 2026-09-27
 
+### skill-craft 1.14.0
+
+- Skills: ask-agent 0.9.0, improve-agent 0.1.3, plan-dispatcher 0.5.1
+
+### ask-agent 0.9.0
+
+- The current workspace is now the default route. An ordinary delegation runs a fresh worker in your own checkout and branch, with no second worktree or repository: `in-place` within a write set declared from the request for file changes, `report-only` for questions, digests and reviews. A separate helper-managed worktree now needs an explicit selection (`workspace_route: helper-managed` or asking for a separate worktree).
+
+### improve-agent 0.1.3
+
+- A standalone request explicitly selects Ask Agent's helper-managed route, since Ask Agent's default is now the current checkout.
+
+### plan-dispatcher 0.5.1
+
+- Git tasks explicitly select Ask Agent's helper-managed route, since it is no longer Ask Agent's default.
+
+### skill-craft 1.13.0
+
+- Skills: shiploop 0.46.0
+
+### shiploop 0.46.0
+
+- `workspace start` now checks, before creating anything, that the host sandbox lets
+  it write the `.shiploop-runs` parent and the repository's Git directory. When a
+  sandbox refuses (Codex `workspace-write`, a Grok sandbox profile, Claude's Bash
+  sandbox) it exits 3 with a `SHIPLOOP-GRANT-NEEDED` block naming the blocked
+  paths, the repair intent, the grant for the detected host and the exact rerun
+  command. Every later run-bound command rechecks, so a harness restarted without
+  its grants stops before a commit fails. `--workspace-root` is now optional: the
+  default is a new `<repo-parent>/.shiploop-runs/<repo>-<stamp>`, so one grant of
+  that parent covers every later run.
+
+### skill-craft 1.12.2
+
+- Skills: shiploop 0.45.2
+
+### shiploop 0.45.2
+
+- A completion refused for naming the wrong result file now names the file to use.
+
+### skill-craft 1.12.1
+
+- Skills: shiploop 0.45.1
+
+### shiploop 0.45.1
+
+- On the Ask-Agent route, ShipLoop now writes the Improve child's contract and
+  starts the child itself, as it already did on the inline route. The parent
+  writes the opening and runs `improve-start`. The improve-agent worker then
+  continues the started child from the receipt's `next_argv`; it no longer
+  hand-builds the contract or copies the binding line.
+
+  A stopped child restarts with `improve-start --restart-stopped` on both
+  routes. The frozen contract lists the `host-owner.md` owner record for a
+  delegated child.
+
+### skill-craft 1.12.0
+
+- Skills: improve 0.3.0-rc.10, improve-agent 0.1.2, shiploop 0.45.0
+
+### improve 0.3.0-rc.10
+
+- The ShipLoop subcall guidance describes the new completion: write `review-<n>.md` per pass and `checks.md`; ShipLoop imports them, with optional `--notes` and `--final-result`.
+
+### improve-agent 0.1.2
+
+- Names the child's reviews directory as the locator to return, matching ShipLoop's derived Improve completion.
+
+### shiploop 0.45.0
+
+- A ShipLoop record without exactly one `shiploop-state` JSON fence is refused with its path, the fence count and the expected shape, instead of a bare "exactly one fence" message.
+- `improve-complete --action <id>` no longer takes a completion record. Each review pass writes `reviews/review-<n>.md` and the check output `reviews/checks.md`; ShipLoop imports the last two passes (the last one when the first pass changed nothing) and `checks.md`, and writes the summary itself. The model supplies only optional `--notes` (lessons), `--final-result` (when the review changed a decision) and `--no-commit`. `parent-return.md` is the one command. The `--result` flag of `improve-complete` is removed; stopped and reconcile receipts are unchanged.
+- After a verified workspace return, ShipLoop returns its own later knowledge commit (for example at release-verify) by the same route when everything changed since that return is `docs/shiploop/` or `SHIPLOOP.md`, keeping the earlier reviewed dispositions; handoff no longer finds a stale receipt and asks the model for a manual follow-up. Anything else changed, or a moved source, leaves the follow-up to handoff as before.
+- Every run has a scratch directory, `<run>/scratch/`, named in each packet's locators; the common rule and the Improve packet send temporary files there (including the report piped to the Until Loop runtime), because `/tmp` is shared with other runs and a fixed `/tmp` name can read another run's file.
+
 ### skill-craft 1.11.1
 
 - Skills: shiploop 0.44.1

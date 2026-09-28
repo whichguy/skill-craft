@@ -14,6 +14,7 @@ from __future__ import annotations
 import contextlib
 import io
 import json
+import shutil
 import os
 from pathlib import Path
 import re
@@ -32,6 +33,7 @@ import metrics  # noqa: E402
 import progress  # noqa: E402
 import review  # noqa: E402
 import run  # noqa: E402
+import fanout  # noqa: E402
 
 # Shared product writer for both fakes: the hello case's files plus a done run.
 PRODUCT = f"""
@@ -299,9 +301,14 @@ class VersionGateTest(unittest.TestCase):
     def test_gate_passes_only_when_head_catalog_and_installed_versions_agree(self):
         self.assertEqual(run.version_gate(self.RELEASED, "1.4.0", "0.37.0"), [])
         behind = dict(self.RELEASED, local_head="b" * 40)
-        self.assertIn("is not origin/main", " ".join(run.version_gate(behind, "1.4.0", "0.37.0")))
+        self.assertIn("has commits origin/main", " ".join(run.version_gate(behind, "1.4.0", "0.37.0")))
+        # A checkout merely behind main runs: the plugin comes from the marketplace, not the checkout.
+        self.assertEqual(run.version_gate(dict(behind, local_behind_main=True), "1.4.0", "0.37.0"), [])
         self.assertIn("installed skill-craft 1.3.0", " ".join(run.version_gate(self.RELEASED, "1.3.0", "0.37.0")))
         self.assertIn("installed ShipLoop 0.36.0", " ".join(run.version_gate(self.RELEASED, "1.4.0", "0.36.0")))
+        self.assertIn("CI failed", " ".join(run.version_gate(dict(self.RELEASED, ci="failure"), "1.4.0", "0.37.0")))
+        for ci in ("pending", "unknown"):  # optimistic: proceed, cancel if CI then fails
+            self.assertEqual(run.version_gate(dict(self.RELEASED, ci=ci), "1.4.0", "0.37.0"), [])
         pending = dict(self.RELEASED, unreleased=["changes/shiploop/fix.md"])
         self.assertIn("unreleased changes (changes/shiploop/fix.md)", " ".join(run.version_gate(pending, "1.4.0", "0.37.0")))
 
@@ -631,6 +638,24 @@ class SuiteTest(HarnessCase):
         self.assertIn("failed", result["cases"][1]["skipped"])
         self.assertFalse((self.tmp / "suite-out" / "second").exists())
 
+    def test_tmp_writes_and_names_shared_across_runs(self):
+        """P13: a literal /tmp path is shared with every other run; the suite names any two that met."""
+        self.assertEqual(metrics.tmp_writes("node --test > /tmp/w1.txt 2>&1"), ["/tmp/w1.txt"])
+        self.assertEqual(metrics.tmp_writes("python3 x.py | tee /tmp/r.json"), ["/tmp/r.json"])
+        self.assertEqual(metrics.tmp_writes('mv out.json "/tmp/improve-done-1.json"'), ["/tmp/improve-done-1.json"])
+        self.assertEqual(metrics.tmp_writes("cat /tmp/a.txt"), [])  # a read
+        self.assertEqual(metrics.tmp_writes("x > /x/run/scratch/a.txt"), [])  # the run's own scratch
+        self.assertEqual(metrics.tmp_writes("python3 - <<'PY'\nopen('/tmp/x','w')\nPY"), [])  # a document
+        outs = []
+        for name, target in (("a", "/tmp/improve-done-1.json"), ("b", "/tmp/improve-done-1.json"),
+                             ("c", "/tmp/other.json")):
+            out = self.tmp / name
+            out.mkdir()
+            (out / "events.jsonl").write_text(json.dumps({"type": "tool_call", "toolCallId": "1", "toolName": "write",
+                                                          "rawInput": {"file_path": target, "content": "{}"}}) + "\n")
+            outs.append(out)
+        self.assertEqual(run.shared_tmp_writes(outs), {"/tmp/improve-done-1.json": ["a", "b"]})
+
     def test_independent_chains_run_concurrently_and_report_in_suite_order(self):
         cases = {"a": {"style": "s", "prompt": "p", "checks": []},
                  "b": {"style": "t", "prompt": "p", "checks": []},
@@ -652,6 +677,21 @@ class SuiteTest(HarnessCase):
         self.assertEqual([row["case"] for row in result["cases"]], ["a", "b", "a2"])
         self.assertLess(started.index("a"), started.index("a2"))
         self.assertTrue(all((self.tmp / "suite-out" / name / "result.json").is_file() for name in ("a", "b", "a2")))
+
+    def test_a_batch_gate_runs_first_and_a_failed_gate_stops_the_rest(self):
+        cases = {"g": {"style": "s", "prompt": "p", "checks": ["false"]},
+                 "a": {"style": "t", "prompt": "p", "checks": []}}
+        self.use_catalog(cases, {"b": {"kind": "batch", "gate": ["g"], "cases": ["a"]}})
+        code, result = self.run_suite("b")
+        self.assertEqual(code, 1)
+        self.assertEqual([(r["case"], r.get("skipped")) for r in result["cases"]], [("g", None), ("a", "the gate failed")])
+        self.assertFalse((self.tmp / "suite-out" / "a").exists())
+        cases["g"]["checks"] = []
+        self.use_catalog(cases, {"b": {"kind": "batch", "gate": ["g"], "cases": ["a"]}})
+        shutil.rmtree(self.tmp / "suite-out")
+        code, result = self.run_suite("b")
+        self.assertEqual(code, 0, result)
+        self.assertEqual([r["case"] for r in result["cases"]], ["g", "a"])
 
     def test_committed_suites_name_known_cases_and_breadth_covers_every_focused_style(self):
         cases = json.loads(run.CASES.read_text())
@@ -841,7 +881,8 @@ class MetricsTest(unittest.TestCase):
             'mv /x/wt/.shiploop-improve/n/packet.json /x/p.old': ["shell write into a ShipLoop-owned path"],
             'echo x > /x/.shiploop/state.md': ["shell write into a ShipLoop-owned path"],
             'git -C /x/wt commit -F /tmp/m': ["git commit/add by the model"],
-            'python3 - <<PY\n{"exit_condition": 1}\nPY': ["hand-built loop contract"],
+            'python3 until_loop.py start --directory /x <<PY\n{"exit_condition": 1}\nPY': ["hand-built loop contract"],
+            "python3 - <<'PY'\nd=json.load(open('/x/run/quality/c-contract.json'))\nprint(d['exit_condition'][:500])\nPY": [],
             'python3 /p/shiploop improve-commit --run-dir=/x/run --action=a --message=/x/m.md': [],
             # words inside a heredoc are a document, not commands
             "python3 - << 'PY'\nreport = {'evidence': 'git log shows the commit'}\nPY\n": [],
@@ -854,6 +895,20 @@ class MetricsTest(unittest.TestCase):
             # a file of the model's own that merely ends like a ShipLoop name
             'python3 /p/shiploop improve-start --action=a --opening=/x/o.md > /tmp/plan-start.json': [],
             'cp /tmp/x.json /x/wt/.shiploop-improve/n/a/start.json': ["shell write into a ShipLoop-owned path"],
+            # check output the packet asks the model to record as evidence
+            'npm test > /x/.shiploop-runs/a/run/evidence/w1-verify.txt': [],
+            # the run's scratch directory is the model's own (P13)
+            'python3 -m unittest > /x/.shiploop-runs/a/run/scratch/baseline.txt 2>&1': [],
+            # the Improve child's review directory is where P12 asks it to write
+            "mkdir -p .shiploop-improve/n/a/reviews": [],
+            # the Improve child's own directory, where the model writes its opening file
+            'mkdir -p "/x/wt/.shiploop-improve/run1/nav-1"': [],
+            'rm -rf "/x/wt/.shiploop-improve"': ["shell write into a ShipLoop-owned path"],
+            # reading ShipLoop's own contract is not building one
+            'python3 -c \'import json; p=json.load(open("/x/run/quality/c-contract.json")); print(p["exit_condition"])\'': [],
+            'python3 -c \'import json; json.dump({"exit_condition": 1}, open("/x/c.json", "w"))\'': ["hand-built loop contract"],
+            # json.dumps only formats text for printing
+            "python3 - <<'PY'\nd=json.load(open('/x/packet.json'))\nprint(json.dumps(d['exit_condition'], indent=2))\nPY": [],
         }
         for command, reasons in cases.items():
             with self.subTest(command=command):
@@ -893,20 +948,20 @@ class CodexRunTest(HarnessCase):
         self.assertTrue(seen["auth_is_symlink"])
         self.assertEqual(Path(seen["codex_home"]), Path(result["output"]) / "home" / ".codex")
         argv = seen["argv"]
-        self.assertEqual(argv[argv.index("-m") + 1], "gpt-5.6-luna")
-        self.assertIn("model_reasoning_effort=high", argv)
+        self.assertEqual(argv[argv.index("-m") + 1], "gpt-6-luna")
+        self.assertIn("model_reasoning_effort=max", argv)
         self.assertTrue(result["invoked"]["pass"], result["invoked"])
         self.assertTrue(result["plugin"]["pass"], result["plugin"])
         self.assertTrue(result["committed"]["pass"], result["committed"])
         self.assertEqual(result["cli"]["num_turns"], 2)
 
     def test_model_and_effort_toggle_by_flag(self):
-        code, result = self.invoke("codex", "done", "--model", "gpt-5.6-sol", "--effort", "xhigh")
+        code, result = self.invoke("codex", "done", "--model", "gpt-6-sol", "--effort", "xhigh")
         self.assertEqual(code, 0, result)
         argv = self.seen()["argv"]
-        self.assertEqual(argv[argv.index("-m") + 1], "gpt-5.6-sol")
+        self.assertEqual(argv[argv.index("-m") + 1], "gpt-6-sol")
         self.assertIn("model_reasoning_effort=xhigh", argv)
-        self.assertEqual((result["model"], result["effort"]), ("gpt-5.6-sol", "xhigh"))
+        self.assertEqual((result["model"], result["effort"]), ("gpt-6-sol", "xhigh"))
 
     def test_resume_run_continues_a_stopped_grok_run_on_codex(self):
         code, stopped = self.invoke("grok", "stuck", "--max-resumes", "0")
@@ -928,6 +983,8 @@ class CodexRunTest(HarnessCase):
         events = (out / "events.jsonl").read_text()
         self.assertIn('"sessionId": "sess-1"', events)          # the Grok session is kept
         self.assertIn('"sessionId": "codex-thread-1"', events)  # the Codex session is appended
+        rows = [json.loads(line) for line in self.baselines.read_text().splitlines()]
+        self.assertEqual(len(rows), 1, "only the original run writes a baseline row; a resume does not")
 
     def test_resume_run_refuses_a_run_that_is_not_active(self):
         code, finished = self.invoke("grok", "done")
@@ -969,20 +1026,20 @@ class CodexHostTest(unittest.TestCase):
         codex = hosts.host("codex", "codex-bin")
         with tempfile.TemporaryDirectory() as temp:
             argv = codex.argv(prompt="$skill-craft:shiploop build it", prompt_file=Path(temp) / "p.txt",
-                              cwd=Path("/w"), model="gpt-5.6-luna", effort="xhigh", permission_mode="auto",
+                              cwd=Path("/w"), model="gpt-6-luna", effort="xhigh", permission_mode="auto",
                               max_turns=10)
             resumed = codex.argv(prompt="continue", prompt_file=Path(temp) / "r.txt", cwd=Path("/w"),
-                                 model="gpt-5.6-luna", effort="xhigh", permission_mode="auto", max_turns=10,
+                                 model="gpt-6-luna", effort="xhigh", permission_mode="auto", max_turns=10,
                                  resume="thread-1")
         self.assertEqual(argv[:3], ["codex-bin", "exec", "--json"])
         self.assertIn("model_reasoning_effort=xhigh", argv)
-        self.assertEqual(argv[argv.index("-m") + 1], "gpt-5.6-luna")
+        self.assertEqual(argv[argv.index("-m") + 1], "gpt-6-luna")
         self.assertEqual(argv[-1], "$skill-craft:shiploop build it")
         # Codex takes its options before the resume subcommand.
         self.assertEqual(resumed[-3:], ["resume", "thread-1", "continue"])
         self.assertLess(resumed.index("--json"), resumed.index("resume"))
         self.assertEqual(codex.invoke("skill-craft:shiploop", "x"), "$skill-craft:shiploop x")
-        self.assertEqual((codex.model, codex.effort, codex.resumable), ("gpt-5.6-luna", "high", True))
+        self.assertEqual((codex.model, codex.effort, codex.resumable), ("gpt-6-luna", "max", True))
 
     def test_env_is_an_isolated_codex_home_linking_only_auth(self):
         with tempfile.TemporaryDirectory() as temp:
@@ -1024,12 +1081,63 @@ class CodexHostTest(unittest.TestCase):
             self.assertEqual(collected["turns"], 4)
             self.assertTrue(any("git commit" in g["command"] for g in collected["model_glue"]))
 
+    def test_turns_add_a_codex_session_to_a_grok_run_it_resumed(self):
+        grok = [{"type": "usage", "usage": {"input_tokens": 1}}, {"type": "usage", "usage": {"input_tokens": 2}},
+                {"type": "end", "stopReason": "cancelled", "num_turns": 91, "total_cost_usd": 1.0}]
+        with tempfile.TemporaryDirectory() as temp:
+            out = Path(temp)
+            (out / "events.jsonl").write_text("".join(json.dumps(e) + "\n" for e in grok + self.translated()))
+            self.assertEqual(metrics.collect(out)["turns"], 2 + 4)
+
     def test_every_host_is_selectable_by_name(self):
         self.assertEqual(sorted(hosts.HOSTS), ["claude", "codex", "grok"])
         for name in hosts.HOSTS:
             agent = hosts.host(name)
             self.assertEqual(agent.name, name)
             self.assertEqual(hosts.HOST_DEFAULTS[name], {"model": agent.model, "effort": agent.effort})
+
+
+class FanoutGradeTest(unittest.TestCase):
+    """The live fan-out/fan-in check is graded from stamps and dispatcher state, never by the model."""
+
+    def grade(self, stamps: dict, complete: bool = True, handles: bool = True) -> dict:
+        with tempfile.TemporaryDirectory() as temp:
+            root = Path(temp)
+            dispatch = root / "dispatch.js"
+            dispatch.write_text("process.stdout.write(JSON.stringify({complete: %s}))" % str(complete).lower())
+            run_dir, marks = root / "run", root / "stamps"
+            run_dir.mkdir()
+            marks.mkdir()
+            attempts = {f"att-{s}": {"step": s, "handle": "h" if handles else None,
+                                     **({} if handles else {"executor": {"kind": "main-context"}})} for s in "ABJ"}
+            (run_dir / "plan-dispatcher-state.json").write_text(json.dumps({
+                "steps": {s: {"current_attempt": f"att-{s}"} for s in "ABJ"}, "attempts": attempts}))
+            for step, (start, end) in stamps.items():
+                (marks / f"{step}.json").write_text(json.dumps({"step": step, "start": start, "end": end}))
+            return fanout.grade(dispatch, run_dir, marks)
+
+    def test_parallel_fan_out_then_fan_in_passes(self):
+        result = self.grade({"A": (0, 30), "B": (1, 31), "J": (32, 62)})
+        self.assertTrue(result["pass"], result)
+        self.assertTrue(result["fan_out_parallel"])
+        self.assertEqual(result["fan_out_overlap_seconds"], 29.0)
+        self.assertEqual(result["runner"], {"A": "native", "B": "native", "J": "native"})
+
+    def test_sequential_steps_pass_the_order_but_report_no_fan_out(self):
+        result = self.grade({"A": (0, 30), "B": (30, 60), "J": (61, 90)}, handles=False)
+        self.assertTrue(result["pass"], result)
+        self.assertFalse(result["fan_out_parallel"])
+        self.assertEqual(result["runner"]["A"], "main-context")
+
+    def test_join_before_both_suppliers_end_fails(self):
+        result = self.grade({"A": (0, 30), "B": (1, 45), "J": (40, 70)})
+        self.assertFalse(result["fan_in_order"])
+        self.assertFalse(result["pass"])
+
+    def test_incomplete_run_fails(self):
+        result = self.grade({"A": (0, 30), "B": (1, 31)}, complete=False)
+        self.assertFalse(result["pass"])
+        self.assertFalse(result["complete"])
 
 if __name__ == "__main__":
     unittest.main()

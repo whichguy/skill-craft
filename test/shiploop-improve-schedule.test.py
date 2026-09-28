@@ -144,8 +144,9 @@ class ImproveScheduleTests(unittest.TestCase):
         self.assertIn("self-passes by this same executor, not independent reviewers", packet)
         self.assertNotIn("Capture separate durable review files", packet)
         text = " ".join(packet.split())
-        self.assertIn("review_refs is exactly the two files of those final consecutive trivial passes", text)
-        self.assertIn("only the parent imports it", text)
+        # P12: the child writes review-<n>.md per pass; improve-complete picks the passes itself.
+        self.assertIn("improve-complete imports the last two passes", text)
+        self.assertIn("review-<n>.md", text)
         self.assertNotIn("review_refs length is exactly 2", text)
 
     def test_unsuccessful_last_carry_forward_advances_without_improve(self):

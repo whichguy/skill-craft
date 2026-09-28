@@ -11,7 +11,7 @@ For an explicitly selected `workspace_route: consumer-owned`, read
 provide the consumer's required fresh native context, operation-directory control,
 Git-root verification, collection, and stop evidence. If any required capability
 is unavailable, leave the action pending; do not substitute inherited context,
-the helper-managed default, a host-created worktree, or an external launcher.
+the helper-managed route, a host-created worktree, or an external launcher.
 
 The host-specific success evidence below is for the helper-managed route unless
 it expressly qualifies this complete consumer route. It may inform a live schema
@@ -38,7 +38,7 @@ does not qualify the current route on any host.
 
 ## Choose one workspace owner and a binding mode
 
-**Helper-managed default only.** The skill helper prepares the current caller
+**Helper-managed route only.** The skill helper prepares the current caller
 snapshot. Native tools launch and return the worker. After preparation, do not
 request a second host-created worktree: it may select a different branch, omit
 dirty inputs, and acquire a second cleanup owner.

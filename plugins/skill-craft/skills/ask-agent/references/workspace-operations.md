@@ -1,6 +1,6 @@
 # Workspace operations
 
-**Helper-managed default only.** Use the packaged Git helper for helper-managed
+**Helper-managed route only.** Use the packaged Git helper for helper-managed
 repository delegation. It creates and verifies the worktree; native host tools
 still launch and collect the worker. Prerequisites are Git and Python 3. Do not
 install tools during delegation. An explicit prohibition on filesystem writes
@@ -24,7 +24,7 @@ directory or worktree. See [Current workspace](current-workspace.md).
 
 ## Bind and verify the selected package
 
-**Helper-managed default only, except for the read-only identity check noted
+**Helper-managed route only, except for the read-only identity check noted
 above.**
 
 Obtain the absolute logical path of the selected, loaded `SKILL.md` from the
@@ -94,7 +94,7 @@ not a prompt transport or another job queue.
 
 ## Prepare before dispatch
 
-**Helper-managed default only.**
+**Helper-managed route only.**
 
 Coordinate active writers of the source checkout for the capture window after a
 successful package identity check. The
@@ -147,7 +147,7 @@ worktree project instructions and the host's actual permissions.
 
 ## Check the worker's operation context
 
-**Helper-managed default only.** A consumer-owned worker verifies its explicit
+**Helper-managed route only.** A consumer-owned worker verifies its explicit
 per-operation cwd and Git root against the consumer contract instead; it does
 not call `check-context` with an invented or consumer receipt.
 
@@ -174,7 +174,7 @@ nonzero check stops task writes; do not replace it with a reported path or with
 
 ## Snapshot limits
 
-**Helper-managed default only.**
+**Helper-managed route only.**
 
 Preparation preserves the caller's staged and unstaged layers and non-ignored
 untracked entries. Required ignored/generated inputs need an explicit task
@@ -207,7 +207,7 @@ review rather than treating an empty patch as no contribution.
 
 ## Inspect after the worker returns
 
-**Helper-managed default only.**
+**Helper-managed route only.**
 
 Collect native completion first. `inspect --phase returned` allows legitimate
 worker changes and reports a complete workspace `fingerprint` and the paths
@@ -304,7 +304,7 @@ separate parent acceptance and `close` step after reports are consumed.
 
 ## Close after acceptance
 
-**Helper-managed default only.** A consumer-owned workspace stays with its
+**Helper-managed route only.** A consumer-owned workspace stays with its
 consumer; Ask Agent does not call `close` or remove it.
 
 Calling `close --receipt /actual/receipt.json` without acceptance retains work.

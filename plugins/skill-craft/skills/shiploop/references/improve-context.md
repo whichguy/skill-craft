@@ -5,7 +5,8 @@ child using the ephemeral Until Loop runtime. At an Improve checkpoint, one
 valid producer submission parks the invoking parent and binds the child for the **whole Improve invocation**. The child owns
 its reviews, applicable experiments, and shared investigation allowance; do not
 create a worker or a fresh context for each review iteration. The parent remains
-ShipLoop's control channel and alone may run verified `improve-complete` after
+ShipLoop's control channel and alone may run verified `improve-complete`, with
+no separate record to submit, after
 the runtime has written the terminal packet to the receipt and every candidate writer has stopped. A parent
 pause retains the child; an unfinished child route is not proof that its
 executor stopped. A direct `/improve` call remains the normal standalone
@@ -50,7 +51,7 @@ not clear, hand off or pause for a clear during the invocation. This
 conversation is both executor and parent: the only candidate writer until the
 runtime returns a terminal packet, then the sole submitter of ShipLoop
 callbacks. No script checks who executes; `improve-complete` imports this child
-from its receipt and completion evidence.
+from its receipt and the reviews directory's `review-<n>.md`/`checks.md` files.
 
 Before start, verify the process cwd and Git root against the packet and follow
 the unchanged workspace and commit rules below. Freeze the exact candidate
@@ -63,7 +64,8 @@ and desired improvements` (the context-first opening below), `## Scope`,
 command. ShipLoop freezes the child contract from it: the binding line alone and
 first in `context.request`, the workspace, work, exit and repeat conditions,
 commit policy, exclusions, and `context.resources` locators for the receipt,
-review evidence directory, parent `state.md`, completion evidence path and the
+review evidence directory (where each pass writes `review-<n>.md` and `checks.md`),
+parent `state.md`, and the
 exact parent return (`parent-return.md` beside the receipt), so the terminal
 packet can locate the parent return after context loss. It writes that contract
 to `start.json` beside the receipt. Never write the contract or start the
@@ -84,9 +86,10 @@ runtime writes every start, next and done packet to the receipt itself, the
 terminal one before it deletes its state, so the receipt survives a lost
 context. Do not write or edit it. `improve-start` refuses once the receipt
 exists; recover a started child from its receipt instead. Only after the runtime
-has written the terminal packet, write
-the completion evidence described below, then run the packet's parent return and
-callback. Runtime completion alone never advances the action, and no ShipLoop
+has written the terminal packet,
+run the packet's parent return and
+callback (`improve-complete`, with no separate record: it imports the reviews
+directory's own `review-<n>.md`/`checks.md`). Runtime completion alone never advances the action, and no ShipLoop
 callback runs earlier. For the selected initial Plan Improve child, the
 parent-only `improve-reconcile` route applies once the runtime has returned its
 stopped packet in this conversation and no candidate write is in progress.
@@ -238,14 +241,17 @@ evidence and handoff on the default route, includes:
 
 - Improve's cumulative completion summary inline: key implemented changes and
   why they matter, what was learned or corrected across the run, actual
-  validation and remaining work; distinguish actual checks from claims. Only
-  for a successful terminal `complete` child, put the outcome and key changes
-  in the existing completion record's `summary`, and the learning synthesis in
-  `lessons`. An incomplete child returns a partial summary in its return and
+  validation and remaining work; distinguish actual checks from claims. For a
+  successful terminal `complete` child, ShipLoop derives the outcome and key
+  changes from the last one or two `review-<n>.md` files and `checks.md` and
+  writes the summary itself; pass lessons for later steps as a plain-text file
+  via `improve-complete --notes`, and a revised step result only when the review
+  changed a decision, via `--final-result`. An incomplete child returns a partial
+  summary in its return and
   retained handoff/evidence, following the existing recovery route without
   claiming or submitting successful completion.
-- Observed workspace, binding marker, exact latest packet receipt and completion
-  evidence paths, final trivial self-pass review/check locators and any revised producer
+- Observed workspace, binding marker, exact latest packet receipt and reviews
+  directory paths, final trivial self-pass review/check locators and any revised producer
   result. Include the unchanged parent return instruction as a locator for the
   parent to execute, not a worker action.
 - Confirmation that candidate writes and delegates have stopped, no parent
@@ -277,7 +283,7 @@ On the default route that evidence is the stopped packet returned in this
 conversation with no candidate write in progress. Resolve conflicting scope or
 stale checks before acceptance; changes after convergence require fresh review
 evidence, not an unchanged old receipt.
-To continue after a stop that cannot be reconciled, once its blocker is resolved or the user authorizes continuing, confirm no candidate write is in progress, record the decision in the opening file and rerun `improve-start` with `--restart-stopped`: ShipLoop archives `packet.json` as `packet.stopped-<UTC timestamp>.json` and the sibling `reviews` directory as `reviews.stopped-<same timestamp>`, then starts a new child with the same binding line. On the delegated route, once the recorded owner stopped, the worker renames those two itself and starts the new child; its `review_refs` and `check_refs` must be files the new child writes. To pause instead, run the parent pause command and leave the child active; never report `cancelled` for a pause.
+To continue after a stop that cannot be reconciled, once its blocker is resolved or the user authorizes continuing, confirm no candidate write is in progress, record the decision in the opening file and rerun `improve-start` with `--restart-stopped`: ShipLoop archives `packet.json` as `packet.stopped-<UTC timestamp>.json` and the sibling `reviews` directory as `reviews.stopped-<same timestamp>`, then starts a new child with the same binding line. On the delegated route, confirm the recorded owner stopped first; the parent then runs the same `improve-start --restart-stopped` and dispatches a worker to continue the new child. Its `review-<n>.md` and `checks.md` files must be ones the new child writes, since ShipLoop imports those into `review_refs` and `check_refs` at completion. To pause instead, run the parent pause command and leave the child active; never report `cancelled` for a pause.
 On the delegated route, append the actual acceptance outcome,
 candidate/check/diff evidence, and any later caller-delivery outcome to
 `host-owner.md`; retain earlier launch and stop events. This record is not
@@ -354,7 +360,7 @@ to `delegation: inline`; the switch applies from the next issued action.
 An existing bound parent packet or named source/evidence locator is an input:
 verify that it exists and identifies the intended candidate and content before
 relying on it, while keeping its essential meaning inline in the binding. The
-printed **Child latest packet receipt** and completion-evidence locations are
+printed **Child latest packet receipt** and reviews directory are
 output destinations for a genuinely new child; they need not exist before start
 and must not be fabricated. Before dispatch, derive `host-owner.md` beside the
 expected `packet.json` location in the same action directory and retain its
@@ -386,20 +392,26 @@ inherited staged/unstaged/untracked ownership, the selected absolute Ask Agent
 and Improve cards with their runtime identities, the current producer result,
 relevant work-item context and actual stage checks, explicit user/repository
 authority including any no-commit override, the expected packet receipt and
-completion-evidence paths, the exact `host-owner.md` locator, the exact parent
+reviews directory paths, the exact `host-owner.md` locator, the exact parent
 return instruction, and the cleanup owner. Keep these facts inline with
 supporting locators; read full values at an existing input locator before
-freezing the child contract. Include the host-owner locator in the frozen child
+writing the opening. Include the host-owner locator in the frozen child
 `context.resources` as parent coordination data; the worker may inspect it for
 recovery orientation but does not update it or use it as authority to select a
 parent transition. The consumer-owned route does not call helper `prepare`,
 `inspect`, `check-context` or `close` for this workspace, invent a helper
 receipt, or perform a second patch/commit transfer; read-only package `identity`
 remains available. Route selection belongs to the parent, not Improve.
-The packet's ShipLoop callbacks and workspace-return commands are **parent-only**.
+The packet's ShipLoop callbacks and workspace-return commands are **parent-only**,
+except `improve-commit`, which the worker uses to commit a review iteration.
 Do not ask the worker to read the entire parent conversation or run another
-ShipLoop instance. It may start the bound Until Loop once for a genuinely new
-child; resume an existing child using its saved receipt, never by replacement.
+ShipLoop instance. For a genuinely new child the parent writes the opening and
+runs the packet's `improve-start` command before dispatch, as on the default
+route: ShipLoop freezes the contract (binding line first in `context.request`,
+the host-owner locator among its resources) and starts the runtime. The worker
+continues that child from the saved receipt's `next_argv` and never writes the
+contract, starts the runtime or replaces the child. (A hand-built contract lost
+its binding line in a live Codex run, so `improve-complete` refused the review.)
 
 When a relevant main-context decision changes, the parent appends its source,
 action/target, conditions and forwarding status to `host-owner.md`, then forwards

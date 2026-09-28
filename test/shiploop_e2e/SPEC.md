@@ -284,7 +284,38 @@ stands at the commit under test.
      source change on main is released), and the installed plugin and
      ShipLoop versions equal the ones origin/main's catalog publishes.
   After a release, also update the user's own hosts (Claude, Grok, Codex) so
-  their installs match what the harness tested.
+  their installs match what the harness tested. Before a rerun on any host,
+  `run.py --preflight-only --host all` shows what each host gets; a run is not
+  started on a host whose preflight refuses.
+- **Batch changes, then verify the batch.** Fixes found in a round of runs
+  collect on one branch; each is admitted (Change admission) and checked on its
+  own footprint: the suites it touches, in parallel, plus the quick tier over
+  what changed. The full hermetic tier is not run locally; it runs in CI on the
+  release commit. The batch ships as one release, and the whole group is then
+  verified together: every host's preflight on the new version, then the live
+  runs, smallest first (a smoke case before a full product), while CI runs on
+  the release commit.
+- **Proceed optimistically; cancel on failure.** Presume the pending checks
+  pass: release, refresh hosts and start the runs without waiting for CI, and
+  run independent work in parallel. Only a failure changes course: a run is
+  refused while CI has already failed, and runs in flight are cancelled (and the
+  change reverted or fixed) when CI or an earlier gate fails. A failure there is fixed forward
+  into the next batch, not by a release per fix.
+- **Choose the verification runs from a coverage map.** Before a batch's live
+  runs, map every change to the one run that proves it; each run must prove
+  something no other run in the set does, and a change covered only by hermetic
+  tests says so. Prefer a case that has not passed on a recent version over one
+  that just did; a change that shows only under concurrency (shared state,
+  temporary files) needs two runs at once. The map lives in the `batch` suite
+  (`gate`, `cases`, `covers`) and the plan; the gate runs first and alone and a
+  failed gate stops the costlier runs.
+- **The driver is a parameter, not a code path.** The host (Grok, Claude,
+  Codex), its model and its effort are chosen per run; everything that differs
+  between hosts lives in one host class, and the rest of the harness reads one
+  normalized event stream. A verdict must not depend on which host produced it,
+  and a baseline compares only with rows from the same host, model and effort.
+  What a host adds on its own (for example account-enabled plugins in a Codex
+  profile) is recorded with the run, never silently removed or ignored.
 - Run unattended (S-14): the host and every check get closed standard input and
   a timeout; a case prompt never needs a person, and a check never waits for
   input.

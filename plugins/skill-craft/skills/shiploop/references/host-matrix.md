@@ -50,3 +50,26 @@ run on that host; hermetic CLI tests are not proof of that certification.
 |-------|----------|
 | Packaged multi-host | install + hermetic tests green |
 | Runtime verified on H | a live `init`/`next`/`complete` run on H |
+
+## Sandbox write grants
+
+An isolated run writes to two places outside a strict sandbox's default reach:
+the `<repo-parent>/.shiploop-runs` parent (worktree and run state) and the
+repository's shared Git directory (`git worktree add` and every commit). Start
+and every later run-bound command try one real write in each and exit **3** with
+a `SHIPLOOP-GRANT-NEEDED` block when refused. Nothing is created first.
+
+Observed on 2026-09-27 (evidence: `docs/shiploop-grant-preflight-journal.md`):
+
+| Host and mode | `.shiploop-runs` | `.git` (repo is cwd) | Grant that fixed it |
+|---|---|---|---|
+| Claude, default (no Bash sandbox) | writable | writable | none needed |
+| Claude, Bash sandbox on | refused | writable | `--add-dir` (mid-session: `/add-dir`) |
+| Codex `workspace-write` (its default) | refused | **refused** (kept read-only) | `-c 'sandbox_workspace_write.writable_roots=[runs, .git]'`; mid-session `/permissions` |
+| Grok, sandbox off (its default) | writable | writable | none needed |
+| Grok `--sandbox workspace` | refused | writable | restart with a `~/.grok/sandbox.toml` profile adding both; no mid-session change |
+
+Grant the stable `.shiploop-runs` parent, not a single run's root, so one grant
+covers later runs. The script names the host from `CODEX_SANDBOX`/`CODEX_THREAD_ID`,
+then `GROK_AGENT`, then `CLAUDECODE`, innermost first, because a nested host
+inherits its launcher's variables. Granting is the user's decision.

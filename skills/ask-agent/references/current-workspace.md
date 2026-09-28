@@ -9,19 +9,26 @@ declared set of files.
 
 ## Selection
 
-Select this route only when the user or an invoking skill says so explicitly:
-`workspace_route: current`, "in place", `--in-place`, or "just use the current
-worktree". Never infer it from a request for speed, for fresh context, or from
-an existing worktree. Orchestrated Git work (Plan Dispatcher, ShipLoop,
-improve-agent) never selects it; those keep the helper-managed route and its
-capability gate.
+This is Ask Agent's default route. An ordinary request runs here unless the
+user or an invoking skill explicitly selects another route: `workspace_route:
+helper-managed` or a separate or isolated worktree, or `workspace_route:
+consumer-owned`. Never create a second worktree or repository because a request
+asks for speed, fresh context or a code change. Orchestrated Git work (Plan
+Dispatcher, ShipLoop's parallel chain, improve-agent) explicitly selects the
+helper-managed or consumer-owned route and its capability gate, and never runs
+here.
 
 ## Delivery modes
 
 | Mode | Default | Worker may write | Parent before launch |
 |---|---|---|---|
-| `report-only` | yes | nothing tracked or untracked; the result returns inline | record a baseline |
-| `in-place` | no | only the declared write set (relative paths, directories or globs) | record a baseline; refuse if the parent's own dirty paths overlap the write set |
+| `report-only` | for a question, digest or review | nothing tracked or untracked; the result returns inline | record a baseline |
+| `in-place` | for a request to change files | only the declared write set (relative paths, directories or globs) | declare the write set from the request; record a baseline; refuse if the parent's own dirty paths overlap the write set |
+
+The parent declares the write set from the files the request names or
+clearly implies, kept as narrow as the task allows. When the request names no
+files and they cannot be inferred, run `report-only` and return the proposed
+changes instead of guessing a broad write set.
 
 Rules for both modes:
 

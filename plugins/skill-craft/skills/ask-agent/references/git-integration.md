@@ -1,6 +1,6 @@
 # Git integration for delegated work
 
-**Helper-managed default only.** Apply this workspace and removal contract to
+**Helper-managed route only.** Apply this workspace and removal contract to
 Ask Agent's helper-managed repository delegations, including research and
 review. Apply synchronization and integration to code contributions. Use the
 project's existing integration workflow; these instructions add ownership and
@@ -14,7 +14,7 @@ consumer candidate.
 
 ## Agree on the contribution before dispatch
 
-**Helper-managed default only.**
+**Helper-managed route only.**
 
 The parent names the repository and actual worker workspace, the requested
 outcome and write ownership, the starting revision, the intended integration
@@ -30,7 +30,7 @@ already within the assignment.
 
 ## Choose one delivery mode
 
-**Helper-managed default only.** Every fresh helper-managed native worker
+**Helper-managed route only.** Every fresh helper-managed native worker
 assignment declares exactly one delivery mode. This is a task-launch contract,
 not a global system-prompt change. A native return brings back a result message
 and references; it does not transfer worktree files or integrate a change by
@@ -91,7 +91,7 @@ its verified exact range.
 
 ## Reusable fresh-worker launch clause
 
-**Helper-managed default only.** Fill this concise clause into every fresh native
+**Helper-managed route only.** Fill this concise clause into every fresh native
 worker prompt after `prepare`. Use real absolute values and task-specific allowed
 writes; do not leave braces in a dispatched task.
 
@@ -116,7 +116,7 @@ Returning a message does not integrate or transfer files. Leave this worktree in
 
 ## Prepare an isolated copy of the current state
 
-**Helper-managed default only.**
+**Helper-managed route only.**
 
 Call the bundled helper's `prepare` operation as described in
 [Workspace operations](workspace-operations.md). The helper creates a uniquely
@@ -179,7 +179,7 @@ repository policy for commits, merge/rebase/cherry-pick, pushes and publication.
 
 ## Refresh and prepare the worker contribution
 
-**Helper-managed default only.**
+**Helper-managed route only.**
 
 Before handing back isolated code changes, check the latest designated target.
 For an explicitly pinned assignment, report target movement without changing
@@ -211,7 +211,7 @@ needed. A new assignment still follows the skill's fresh-context rule.
 
 ## Return enough state to resume integration
 
-**Helper-managed default only.**
+**Helper-managed route only.**
 
 Put a concise reminder and recommendation in the final native receipt, with the
 detailed state in the report. Use the self-contained
@@ -255,7 +255,7 @@ do not impose a fixed receipt length or require a report when writes are forbidd
 
 ## Accept the combined result
 
-**Helper-managed default only.**
+**Helper-managed route only.**
 
 The parent reads the handoff and verifies the contribution and current target.
 If the target has moved since the worker's check, reassess against its new exact
@@ -280,7 +280,7 @@ outstanding.
 
 ## Parent-owned worktree removal
 
-**Helper-managed default only.**
+**Helper-managed route only.**
 
 The parent decides eligibility; the bundled helper performs approved preservation
 and removal through `close`. Its default without acceptance is retention. See

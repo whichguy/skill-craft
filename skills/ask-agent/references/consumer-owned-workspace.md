@@ -2,7 +2,7 @@
 
 Use this complete route only when an invoking consumer deliberately delegates
 inside its already-bound candidate workspace. It is separate from Ask Agent's
-helper-managed default: `workspace_route: consumer-owned` pairs only with
+current-workspace default and helper-managed route: `workspace_route: consumer-owned` pairs only with
 `delivery_mode: in-place`, never with `patch`, `commits`, or `report-only`.
 The parent uses this reference for route selection, launch, recovery, acceptance
 and cleanup. A worker receives the route's complete concise binding; do not
@@ -54,11 +54,11 @@ must not be fabricated. On recovery, the saved child receipt is a required input
 verify it and its sibling `host-owner.md` before work resumes.
 
 An ordinary Ask Agent request that does not select this route uses the
-helper-managed default. If a consumer explicitly selects this route but its
+current-workspace default. If a consumer explicitly selects this route but its
 contract, capability, required fresh context, canonical workspace, or ownership
 evidence is missing, fail closed: retain the available locators, report the
 concrete gap, and leave the action pending. Do not prepare a helper workspace,
-fall back to the default route, create shared writes, invent a receipt, or infer
+fall back to another route, create shared writes, invent a receipt, or infer
 the contract from an existing worktree.
 
 ## Bind the existing candidate without the helper
@@ -73,7 +73,7 @@ or `close` on the consumer candidate. Do not create a worktree or branch, replay
 a snapshot, make a helper patch/commit transfer, cherry-pick, or perform a
 second transfer. This does not prohibit commits required by the consumer inside
 its bound candidate; report those SHAs as evidence for parent acceptance. The `patch`, `commits`, and `report-only` enum and its helper evidence
-belong only to the helper-managed default.
+belong only to the helper-managed route.
 
 Launch a fresh general-purpose native executor when the host supports the
 consumer's requirement. Do not replace it with inherited conversation context,

@@ -5,7 +5,7 @@ description: >-
   conversation: start one agent that runs /improve in its own context, keep
   useful parent work going, then verify and relay its result. For Improve in
   this conversation, use improve.
-version: 0.1.1
+version: 0.1.3
 license: MIT
 platforms:
   - linux
@@ -46,7 +46,8 @@ user's choice.
 
 ## Choose the workspace route
 
-- **Standalone request.** Use Ask Agent's helper-managed default route. Its
+- **Standalone request.** Select `workspace_route: helper-managed` explicitly;
+  it is not Ask Agent's default. Its
   helper prepares an isolated worktree from the current candidate snapshot.
   Choose the delivery mode before launch: `commits` when Improve's ordinary
   commit policy applies, `patch` for an explicit no-commit request, and
@@ -81,7 +82,7 @@ this card, a whole parent packet or a consumer reference to begin.
      explicit independent-review request (without one, the worker's Improve
      run keeps its inline self-review default);
    - the evidence root and, for a consumer-bound child, the exact child packet
-     receipt, completion evidence and `host-owner.md` locators and the binding
+     receipt, reviews directory and `host-owner.md` locators and the binding
      marker the consumer printed;
    - the return route in [Worker contract](#worker-contract), and the
      parent-only continuation it must leave unexecuted.

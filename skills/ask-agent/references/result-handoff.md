@@ -39,7 +39,7 @@ final delivery to its original caller and any cleanup.
 
 ## Caller-facing handoff
 
-**Helper-managed default only.**
+**Helper-managed route only.**
 
 Put a self-contained handoff in the final native return and keep it in the
 parent's response after collection. Do not make the caller discover paths or
@@ -128,7 +128,7 @@ integration and combined validation.
 
 ## Reports and native return
 
-**Helper-managed default only.** Consumer-owned workers retain evidence in the
+**Helper-managed route only.** Consumer-owned workers retain evidence in the
 consumer candidate and follow their separate in-place return contract.
 
 Use each worker's designated Git worktree for its in-progress work and result
@@ -203,7 +203,7 @@ follow-up/collection where available; do not invent its contents or silently
 replace it with a large inline dump. File existence is not a completion signal:
 keep using native notifications/collection, never file polling.
 
-**Helper-managed default only.** The parent owns integration and the decision to
+**Helper-managed route only.** The parent owns integration and the decision to
 remove a worktree; the bundled helper performs preservation and eligible removal.
 Wait until the worker and any delegates using it have stopped and all required
 use/verification is complete. For code changes, integrate and validate the
