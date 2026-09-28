@@ -298,6 +298,21 @@ class StepTests(DelegationStateTests):
         state = advance(state, "implement")
         self.assertIn("Step T1 (1 of 1)", self.render(state))
 
+    def test_step_dependencies_preserve_legacy_plans_and_reject_invalid_edges(self):
+        legacy = [{"id": "S1", "task": "First"}, {"id": "S2", "task": "Second"}]
+        self.assertEqual(nav._normalise_steps(legacy), legacy)
+        declared = [{"id": "S1", "task": "First", "deps": []},
+                    {"id": "S2", "task": "Second", "deps": ["S1"]}]
+        self.assertEqual(nav._normalise_steps(declared), declared)
+        state = self.at_implement(steps=declared)
+        nav.validate(state)
+        self.assertIn('"deps"', nav._result_template(state, "step-plan"))
+        for deps in (["S2"], ["unknown"], ["S1", "S1"], "S1", [7]):
+            with self.subTest(deps=deps), self.assertRaises(nav.NavigatorError):
+                nav._normalise_steps([declared[0], {"id": "S2", "task": "Second", "deps": deps}])
+        with self.assertRaisesRegex(nav.NavigatorError, "earlier steps"):
+            nav._normalise_steps([{"id": "S1", "task": "First", "deps": ["S2"]}, declared[1]])
+
     def test_steps_are_required_and_well_formed(self):
         plan = {"outcome": "done", "summary": "s", "paths": ["calc.py"], "test_commands": [],
                 "test_commands_na": "synthetic"}

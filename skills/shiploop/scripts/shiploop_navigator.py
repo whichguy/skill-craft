@@ -1171,6 +1171,7 @@ def packet_head(core: Any, root: Path, state: Mapping[str, Any], path: Path,
           if not state.get("active_improve") else []),
         "",
         f"Full packet: {path}",
+        f"Progress view: {root / 'progress.html'} (derived; updates independently)",
         "Read the full packet before acting: it holds this stage's steps, run rules and the "
         "references to consult. Read it with a file-reading tool, not by printing it to the "
         "shell. References it names are for lookup: open only the section a step needs, "
@@ -1399,27 +1400,41 @@ def _check_submitted_recorded_commands(stage: str, result: Any) -> None:
                   + f", or an empty list with {field}_na giving the reason")
 
 
-def _normalise_steps(value: Any) -> list[dict[str, str]]:
+def _normalise_steps(value: Any) -> list[dict[str, Any]]:
     """A step plan's implementation steps, in the order ShipLoop issues them.
 
-    ``[{"id": "S1", "task": "..."}]``.  On the inline route each step is its own
+    ``[{"id": "S1", "task": "...", "deps": []}]``. On the inline route each step is its own
     ``implement`` action; a step that does not depend on the one before it is
     simply the next entry.
     """
     _need(isinstance(value, list) and value, "steps must be a nonempty list; one step is fine")
     rows = []
     for entry in value:
-        _need(isinstance(entry, Mapping) and set(entry) == {"id", "task"},
-              "each step is {\"id\": \"S1\", \"task\": \"...\"}")
+        _need(isinstance(entry, Mapping) and {"id", "task"} <= set(entry) <= {"id", "task", "deps"},
+              "each step is {\"id\": \"S1\", \"task\": \"...\", \"deps\": []}; deps may be omitted in older plans")
         step_id = _text(entry["id"], "step id")
         _need(not any(ch.isspace() for ch in step_id), "a step id has no spaces")
-        rows.append({"id": step_id, "task": _text(entry["task"], "step task")})
+        row = {"id": step_id, "task": _text(entry["task"], "step task")}
+        if "deps" in entry:
+            deps = entry["deps"]
+            _need(isinstance(deps, list) and all(isinstance(dep, str) and dep for dep in deps),
+                  "step deps must be a list of step IDs")
+            _need(len(set(deps)) == len(deps), "step deps must be unique")
+            row["deps"] = list(deps)
+        # Preserve omission: saved results must retain their exact canonical
+        # payload, and missing dependencies do not mean independent steps.
+        rows.append(row)
     ids = [row["id"] for row in rows]
     _need(len(set(ids)) == len(ids), "step ids must be unique")
+    earlier: set[str] = set()
+    for row in rows:
+        _need(all(dep in earlier for dep in row.get("deps", [])),
+              "step deps must name earlier steps; unknown, self and forward dependencies are invalid")
+        earlier.add(row["id"])
     return rows
 
 
-def implement_progress(state: Mapping[str, Any], work_item: str | None) -> tuple[int, list[dict[str, str]]]:
+def implement_progress(state: Mapping[str, Any], work_item: str | None) -> tuple[int, list[dict[str, Any]]]:
     """(accepted implement steps, the item's steps) since its latest accepted step plan.
 
     Derived from history: a recovered or compacted host gets the same answer
@@ -1462,7 +1477,7 @@ def _check_submitted_test_commands(stage: str, result: Any) -> None:
               "a done step-plan result must list criteria: [{\"id\": \"C1\", \"text\": \"...\"}], each named by "
               "at least one test command's criteria list; ShipLoop runs those commands to confirm them")
     _need("steps" in result,
-          "a done step-plan result must list steps: [{\"id\": \"S1\", \"task\": \"...\"}] in the order to do "
+          "a done step-plan result must list steps: [{\"id\": \"S1\", \"task\": \"...\", \"deps\": []}] in the order to do "
           "them (one step is fine); ShipLoop issues one implement packet per step")
 
 
@@ -2315,7 +2330,8 @@ def _result_template(state: Mapping[str, Any], stage: str) -> str:
         result["work_items"] = [{"id": "W1", "title": "...", "context": "..."}]
     if stage == "step-plan":
         result["paths"] = ["<repository-relative file or glob>"]
-        result["steps"] = [{"id": "S1", "task": "..."}, {"id": "S2", "task": "..."}]
+        result["steps"] = [{"id": "S1", "task": "...", "deps": []},
+                           {"id": "S2", "task": "...", "deps": ["S1"]}]
         result["criteria"] = [{"id": "C1", "text": "..."}, {"id": "C2", "text": "README documents ..."}]
         result["test_commands"] = [{"command": "...", "suite": "focused", "ids": ["TC-1"], "criteria": ["C1"]},
                                    {"command": "grep -q '...' README.md", "suite": "check", "criteria": ["C2"]},

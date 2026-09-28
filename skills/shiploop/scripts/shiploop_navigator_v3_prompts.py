@@ -1965,6 +1965,10 @@ do them; an item with one change has one step. ShipLoop issues one implement
 packet per step in that order, in this conversation, so each step names one
 bounded piece of work. This producer's mandatory actual Improve loop must review
 the steps before they are used for execution.
+For every step include deps: the IDs of its actual prerequisite steps, or []
+when it has none. Prerequisites must appear earlier in the list. List order alone
+does not establish a dependency; do not invent an edge between independent steps.
+ShipLoop uses these declarations to visualize the generated plan as it changes.
 Delegation is inline: do not create a Plan Dispatcher execution graph or plan
 parallel worker branches; planning never expands this item's scope.
 """),
