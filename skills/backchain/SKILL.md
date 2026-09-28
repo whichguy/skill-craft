@@ -53,9 +53,10 @@ terminal receipt. Backchain does not implement a second loop, counter, or recove
 
 Read `references/convergence.md` and `references/technical-lenses.md` before planning.
 The full technical index must actually be loaded before a planning review, even when the
-request looks simple; classify inapplicable categories explicitly. Resolve the actual
-selected Until Loop card and its `references/runtime-ephemeral.md` in full, then use its
-package-relative ephemeral adapter. No Git prerequisite applies unless the planning task
+request looks simple; classify inapplicable categories explicitly. Read the selected
+Until Loop card (`SKILL.md`, or the caller's explicitly selected bundled `ADAPTER.md`)
+and its `references/runtime-ephemeral.md` in full. Resolve that reference and the
+ephemeral adapter relative to the selected card's directory. No Git prerequisite applies unless the planning task
 itself needs repository evidence.
 No ambient Until Loop installation, custom Backchain pass counter, pass ceiling,
 or substitute scheduler is allowed.
