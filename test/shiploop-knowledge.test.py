@@ -111,6 +111,14 @@ class KnowledgeTests(unittest.TestCase):
         change = "- retire R-3: state is stored per game instead.\n"
         self.assertEqual(knowledge.merge_problems(living, change), [])
 
+    def test_retired_section_ends_at_a_sibling_or_parent_heading(self) -> None:
+        for heading in ("## Notes", "# Notes"):
+            with self.subTest(heading=heading):
+                living = "## Retired\nR-2: old.\n### Earlier\nR-3: also old.\n" + heading + "\nR-4: current.\n"
+                self.assertEqual(knowledge.merge_problems(living, "- retire R-3: old\n"), [])
+                self.assertEqual(knowledge.merge_problems(living, "- add R-4: current\n"), [])
+                self.assertIn("not listed under", knowledge.merge_problems(living, "- retire R-4: old\n")[0])
+
     def test_a_stale_same_id_is_structurally_present_but_needs_semantic_review(self) -> None:
         support.write(self.state)
         living = self.repo / "docs/shiploop/spec.md"
@@ -150,6 +158,9 @@ class KnowledgeTests(unittest.TestCase):
             ("- adds R-4: new behavior\n", "Unknown change action 'adds' for R-4"),
             ("- preserve R-1\n| R-4 | adds | new behavior |\n", "Unknown change action 'adds' for R-4"),
             ("R-4: new behavior\n", "Requirement IDs need change entries"),
+            ("- preserve R-1\nR-4: new behavior\n", "Requirement IDs need change entries"),
+            ("- preserve R-1\n- R-4: new behavior\n", "Requirement IDs need change entries"),
+            ("- preserve R-1\n* r-4: new behavior\n", "Requirement IDs need change entries"),
             ("- add R-4: new\n- retire R-4: old\n", "Conflicting change actions for R-4"),
         ):
             with self.subTest(body=body):
@@ -157,6 +168,10 @@ class KnowledgeTests(unittest.TestCase):
                 refusal = knowledge.check(self.state, "release-verify")
                 self.assertIn(str(change), refusal)
                 self.assertIn(message, refusal)
+
+    def test_change_context_can_reference_unchanged_requirement_ids(self) -> None:
+        change = "- modify R-1: preserve the interaction with R-4.\nSee R-5 for unchanged behavior.\n"
+        self.assertEqual(knowledge.changes(change), {"R-1": "modify"})
 
     def test_a_blank_repository_creates_the_baseline_only_at_release_verify(self) -> None:
         support.write(self.state)

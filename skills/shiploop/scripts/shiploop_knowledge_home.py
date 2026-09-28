@@ -90,16 +90,24 @@ def changes(text: str) -> Dict[str, str]:
         if rid in found and found[rid] != action:
             raise ValueError(f"Conflicting change actions for {rid}: {found[rid]} and {action}")
         found[rid] = action
-    if not found and _REQUIREMENT_ID.search(text):
+    # A valid entry must not hide another definition that omitted its action.
+    # Ordinary prose references to IDs remain free-form context.
+    bare_definition = re.search(r"(?mi)^\s*(?:[-*]\s*)?R-\d+\s*:", text)
+    if bare_definition or (not found and _REQUIREMENT_ID.search(text)):
         raise ValueError("Requirement IDs need change entries such as '- modify R-1: ...' or '| R-1 | modify | ... |'")
     return found
 
 
 def merge_problems(living: str, change: str) -> List[str]:
     """Missing structural ID placements after merging a change spec; meaning needs review."""
-    retired_at = re.search(r"(?mi)^#{1,3}\s+Retired\b", living)
-    active = living[:retired_at.start()] if retired_at else living
-    retired = living[retired_at.start():] if retired_at else ""
+    retired_at = re.search(r"(?mi)^(#{1,3})\s+Retired\b[^\n]*", living)
+    active, retired = living, ""
+    if retired_at:
+        following = re.search(r"(?m)^#{1," + str(len(retired_at.group(1))) + r"}\s+",
+                              living[retired_at.end():])
+        end = retired_at.end() + following.start() if following else len(living)
+        active = living[:retired_at.start()] + living[end:]
+        retired = living[retired_at.start():end]
     problems = []
     for rid, action in sorted(changes(change).items(), key=lambda item: int(item[0].split("-")[1])):
         in_active = re.search(r"\b" + re.escape(rid) + r"\b", active) is not None
