@@ -1540,11 +1540,14 @@ def _item_title(state: Mapping[str, Any], work_item: str) -> str:
     return ""
 
 
-def _knowledge_close(before: Mapping[str, Any], after: Mapping[str, Any], root: Path | None = None) -> None:
-    """Commit the knowledge home once a close stage's done has been accepted and saved.
+def _knowledge_close(before: Mapping[str, Any], after: Mapping[str, Any], root: Path | None = None,
+                     *, terminal: bool = False) -> None:
+    """Commit knowledge after an accepted close, including terminal preflight.
 
-    In a worktree run whose work was already returned, that commit is then returned
-    too (plan P11), so the handoff's return check does not find a stale receipt.
+    Normally this runs after the state is saved. A new terminal handoff opts into
+    fail-closed handling before its guard and save. In a worktree run whose work
+    was already returned, that commit is returned too (plan P11); terminal retries
+    also run the follow-up return after an empty commit.
     """
     rows = after["history"][len(before["history"]):]
     stages = [row["stage"] for row in rows if row["outcome"] == "done"]
@@ -1553,17 +1556,23 @@ def _knowledge_close(before: Mapping[str, Any], after: Mapping[str, Any], root: 
     try:
         committed = knowledge.commit(after, stages[-1])
     except RuntimeError as exc:
+        if terminal:
+            raise NavigatorError("ShipLoop knowledge: " + str(exc) + "; handoff remains pending.") from exc
         # The transition stands; the next accepted stage commits the same files.
         print("ShipLoop knowledge: " + str(exc) + "; the next accepted stage commits it.", file=sys.stderr)
         return
     notice = shiploop_git.skipped_notice(committed.skipped)
     if notice:
         print("ShipLoop knowledge: " + notice)
-    if committed.commit and root is not None and after.get("execution_mode") == "navigator-worktree":
+    if (root is not None and after.get("execution_mode") == "navigator-worktree"
+            and (committed.commit or terminal)):
         import shiploop_workspace as workspace
         try:
             receipt = workspace.follow_up_knowledge_return(Path(root).parent)
         except workspace.WorkspaceError as exc:
+            if terminal:
+                raise NavigatorError("ShipLoop knowledge: the follow-up return was not made (" + str(exc)
+                                     + "); handoff remains pending.") from exc
             # The handoff check still requires a current return and prints the commands.
             print("ShipLoop knowledge: the follow-up return was not made (" + str(exc) + "); "
                   "handoff will ask for it.", file=sys.stderr)
@@ -1571,6 +1580,14 @@ def _knowledge_close(before: Mapping[str, Any], after: Mapping[str, Any], root: 
         if receipt is not None:
             print("ShipLoop knowledge: returned the knowledge commit with the earlier work ("
                   + str(receipt.get("kind")) + ").")
+
+
+def _is_new_terminal_handoff(before: Mapping[str, Any], after: Mapping[str, Any]) -> bool:
+    """Whether this transition newly accepts the final handoff as done."""
+    rows = after["history"][len(before["history"]):]
+    return (before.get("status") == "active" and before.get("stage") == "handoff"
+            and after.get("status") == "done" and after.get("stage") == "done"
+            and len(rows) == 1 and rows[0]["stage"] == "handoff" and rows[0]["outcome"] == "done")
 
 
 # A locator may add an anchor, a line (and column) or a test ID after the file path:
@@ -4040,6 +4057,7 @@ def dispatch(core: Any, root: Path, state: Mapping[str, Any], args: Any,
     """Execute one navigator CLI verb; callers hold the run lock."""
     command = getattr(args, "command", None)
     _need(isinstance(command, str), "navigator command is missing")
+    terminal_knowledge_closed = False
     _need(command in {
         "init", "next", "status", "context", "report", "complete", "pause", "resume", "halt",
         "improve-bind", "improve-start", "improve-commit", "improve-complete", "improve-reconcile", "delegation",
@@ -4213,8 +4231,12 @@ def dispatch(core: Any, root: Path, state: Mapping[str, Any], args: Any,
                 refusal = item_scope.scope_refusal(root, state, cursor_item)
                 _need(not refusal, refusal)
         updated = apply(state, action_id, submitted)
-        if completion_guard is not None and updated != state:
-            completion_guard(state, updated)
+        if updated != state:
+            terminal_knowledge_closed = _is_new_terminal_handoff(state, updated)
+            if terminal_knowledge_closed:
+                _knowledge_close(state, updated, root, terminal=True)
+            if completion_guard is not None:
+                completion_guard(state, updated)
     elif command == "delegation":
         updated = set_delegation(state, getattr(args, "delegation_value", None))
     elif command == "lint-mode":
@@ -4239,6 +4261,7 @@ def dispatch(core: Any, root: Path, state: Mapping[str, Any], args: Any,
         save(root, updated, lint_writes)
         _lint_finish(root, lint_payload)
         _item_commit(root, state, updated)
-        _knowledge_close(state, updated, root)
+        if not terminal_knowledge_closed:
+            _knowledge_close(state, updated, root)
     emit(core, root, updated)
     return 0

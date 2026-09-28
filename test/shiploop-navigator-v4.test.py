@@ -29,6 +29,7 @@ import shiploop_navigator as navigator  # noqa: E402
 import shiploop_planning_revision as revision  # noqa: E402
 import shiploop_standalone_improve as bridge  # noqa: E402
 import shiploop_store as store  # noqa: E402
+import shiploop_workspace as workspace  # noqa: E402
 
 
 
@@ -93,6 +94,15 @@ class NavigatorV4Tests(unittest.TestCase):
     def at_plan(self) -> dict:
         state = self.state()
         while navigator.current_stage(state) != "plan":
+            state = self.complete_synthetic(state)
+        return state
+
+    def at_handoff(self, *, worktree: bool = True) -> dict:
+        state = navigator.new_state(
+            str(self.repo.resolve()), "Complete an isolated worktree run.",
+            worktree=worktree, delegation="ask-agent",
+        )
+        while navigator.current_stage(state) != "handoff":
             state = self.complete_synthetic(state)
         return state
 
@@ -229,6 +239,162 @@ class NavigatorV4Tests(unittest.TestCase):
         del state["lint"]
         with self.assertRaisesRegex(navigator.NavigatorError, "no recorded lint option"):
             navigator.validate(state)
+
+    def test_terminal_worktree_handoff_recovers_knowledge_before_guard_and_save(self) -> None:
+        pending = self.at_handoff()
+        navigator.save(self.run, pending)
+        action = navigator.current_action(pending)["id"]
+        result_path = navigator._result_input_path(self.run, action)
+        result_path.write_text(store.dumps(self.result("handoff"), "ShipLoop navigator result"),
+                               encoding="utf-8")
+        args = SimpleNamespace(command="complete", action=action, result=str(result_path))
+        report = self.run / "report.html"
+        events: list[str] = []
+        latest_receipt: dict[str, object] = {"value": None}
+        commit_results = [
+            RuntimeError("knowledge index is unavailable"),
+            SimpleNamespace(commit="abc123", skipped=[]),
+            SimpleNamespace(commit="", skipped=[]),
+            SimpleNamespace(commit="", skipped=[]),
+        ]
+        follow_up_results = [
+            workspace.WorkspaceError("return was interrupted after the knowledge commit"),
+            None,
+            {"kind": "working-tree-return"},
+        ]
+        returned_commits: list[str] = []
+
+        def commit(after, stage):
+            self.assertEqual(stage, "handoff")
+            events.append("commit")
+            answer = commit_results.pop(0)
+            if isinstance(answer, BaseException):
+                raise answer
+            returned_commits.append(answer.commit)
+            return answer
+
+        def follow_up(workspace_root):
+            self.assertEqual(Path(workspace_root), self.temp_root)
+            events.append("follow-up")
+            answer = follow_up_results.pop(0)
+            latest_receipt["value"] = None
+            if isinstance(answer, BaseException):
+                raise answer
+            latest_receipt["value"] = answer
+            return answer
+
+        def guard(_before, _after):
+            events.append("guard")
+            self.assertFalse(report.exists(), "terminal report was written before the guard succeeded")
+            if latest_receipt["value"] is None:
+                raise navigator.NavigatorError("handoff requires a current workspace return")
+
+        def dispatch(state):
+            return navigator.dispatch(None, self.run, state, args, completion_guard=guard)
+
+        with (
+            mock.patch.object(navigator.knowledge, "commit", side_effect=commit) as commit_mock,
+            mock.patch.object(workspace, "follow_up_knowledge_return", side_effect=follow_up) as return_mock,
+            mock.patch.object(navigator, "_lint_transition", return_value=({}, None)),
+            mock.patch.object(navigator, "_lint_finish"),
+            mock.patch.object(navigator, "_knowledge_close", wraps=navigator._knowledge_close) as normal_close,
+            mock.patch.object(navigator, "emit"),
+        ):
+            with self.assertRaisesRegex(navigator.NavigatorError, "knowledge index is unavailable"):
+                dispatch(pending)
+            saved = store.read_record(self.run / "state.md")
+            self.assertEqual((saved["status"], saved["stage"]), ("active", "handoff"))
+            self.assertFalse(report.exists())
+
+            with self.assertRaisesRegex(navigator.NavigatorError, "follow-up return was not made"):
+                dispatch(pending)
+            saved = store.read_record(self.run / "state.md")
+            self.assertEqual((saved["status"], saved["stage"]), ("active", "handoff"))
+            self.assertFalse(report.exists())
+
+            with self.assertRaisesRegex(navigator.NavigatorError, "current workspace return"):
+                dispatch(pending)
+            saved = store.read_record(self.run / "state.md")
+            self.assertEqual((saved["status"], saved["stage"]), ("active", "handoff"))
+            self.assertFalse(report.exists())
+
+            self.assertEqual(dispatch(pending), 0)
+            completed = store.read_record(self.run / "state.md")
+            navigator.validate(completed)
+            self.assertEqual((completed["status"], completed["stage"]), ("done", "done"))
+            self.assertEqual(len([row for row in completed["history"] if row["stage"] == "handoff"]), 1)
+            self.assertTrue(report.is_file())
+            report_bytes = report.read_bytes()
+            self.assertEqual(events, [
+                "commit",
+                "commit", "follow-up",
+                "commit", "follow-up", "guard",
+                "commit", "follow-up", "guard",
+            ])
+            self.assertEqual(commit_mock.call_count, 4)
+            self.assertEqual(return_mock.call_count, 3)
+            self.assertEqual(returned_commits, ["abc123", "", ""])
+            self.assertEqual(normal_close.call_count, 4)
+            self.assertTrue(all(call.kwargs.get("terminal") is True
+                                for call in normal_close.call_args_list))
+
+            # A replay of the now accepted terminal result does not commit or return it again.
+            self.assertEqual(dispatch(completed), 0)
+            self.assertEqual(commit_mock.call_count, 4)
+            self.assertEqual(return_mock.call_count, 3)
+            self.assertEqual(report.read_bytes(), report_bytes)
+            self.assertEqual(len(store.read_record(self.run / "state.md")["history"]), len(completed["history"]))
+
+    def test_terminal_in_place_handoff_commit_failure_keeps_pending_then_retries(self) -> None:
+        pending = self.at_handoff(worktree=False)
+        navigator.save(self.run, pending)
+        action = navigator.current_action(pending)["id"]
+        result_path = navigator._result_input_path(self.run, action)
+        result_path.write_text(store.dumps(self.result("handoff"), "ShipLoop navigator result"),
+                               encoding="utf-8")
+        args = SimpleNamespace(command="complete", action=action, result=str(result_path))
+        report = self.run / "report.html"
+        events: list[str] = []
+        commit_results = [
+            RuntimeError("knowledge commit was interrupted"),
+            SimpleNamespace(commit="", skipped=[]),
+        ]
+
+        def commit(_after, stage):
+            self.assertEqual(stage, "handoff")
+            events.append("commit")
+            answer = commit_results.pop(0)
+            if isinstance(answer, BaseException):
+                raise answer
+            return answer
+
+        def guard(_before, _after):
+            events.append("guard")
+            self.assertFalse(report.exists(), "terminal report was written before the guard succeeded")
+
+        with (
+            mock.patch.object(navigator.knowledge, "commit", side_effect=commit) as commit_mock,
+            mock.patch.object(workspace, "follow_up_knowledge_return") as return_mock,
+            mock.patch.object(navigator, "_lint_transition", return_value=({}, None)),
+            mock.patch.object(navigator, "_lint_finish"),
+            mock.patch.object(navigator, "_knowledge_close", wraps=navigator._knowledge_close) as close_mock,
+            mock.patch.object(navigator, "emit"),
+        ):
+            with self.assertRaisesRegex(navigator.NavigatorError, "knowledge commit was interrupted"):
+                navigator.dispatch(None, self.run, pending, args, completion_guard=guard)
+            saved = store.read_record(self.run / "state.md")
+            self.assertEqual((saved["status"], saved["stage"]), ("active", "handoff"))
+            self.assertFalse(report.exists())
+
+            self.assertEqual(navigator.dispatch(None, self.run, pending, args, completion_guard=guard), 0)
+            completed = store.read_record(self.run / "state.md")
+            self.assertEqual((completed["status"], completed["stage"]), ("done", "done"))
+            self.assertTrue(report.is_file())
+            self.assertEqual(events, ["commit", "commit", "guard"])
+            self.assertEqual(commit_mock.call_count, 2)
+            return_mock.assert_not_called()
+            self.assertEqual(close_mock.call_count, 2)
+            self.assertTrue(all(call.kwargs.get("terminal") is True for call in close_mock.call_args_list))
 
     def test_actual_stopped_cli_settlement_archives_and_replays_without_live_child_reads(self) -> None:
         _waiting, action, receipt, path, evidence, binding = self.real_stopped_plan()
