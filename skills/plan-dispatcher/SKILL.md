@@ -41,8 +41,9 @@ schema with the full current capability set: `helper-managed-worktree`,
 `prepared-inspection`, `returned-commit-delivery`, `fingerprint-bound-close`
 and `ignored-output-report`. The capability set is the gate, not a version
 number; do not infer compatibility from a version, frontmatter or prose. Then use the existing `identity --skill-card ABS` binding and
-preserve that selected-card/helper identity. For every Git task, use that selected
-managed-worktree helper before freezing dispatcher context. Non-Git delegation
+preserve that selected-card/helper identity. For every Git task, explicitly select
+Ask Agent's helper-managed route (it is not Ask Agent's default) and use that
+selected managed-worktree helper before freezing dispatcher context. Non-Git delegation
 uses the same compatible selected package but retains its generic context without
 managed workspace preparation. The dispatcher is Ask-Agent's parent for Git
 preparation, integration ordering and acceptance; it may delegate integration

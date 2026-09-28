@@ -151,16 +151,28 @@ class CurrentStateTests(unittest.TestCase):
 
 
 class CardTests(unittest.TestCase):
-    def test_card_declares_the_route_as_explicit_only(self) -> None:
+    def test_card_makes_the_current_workspace_the_default(self) -> None:
         card = (SKILL / "SKILL.md").read_text()
         self.assertIn("      - ask-agent/consumer-owned-workspace/v1\n      - ask-agent/current-workspace/v1\n", card)
         flat = " ".join(card.split())
-        self.assertIn("explicitly says `workspace_route: current`", flat)
-        self.assertIn("improve-agent never select it", flat)
+        self.assertIn("The current workspace is the default for delegation", flat)
+        self.assertIn("**Helper-managed** requires an explicit selection: `workspace_route: helper-managed`", flat)
+        self.assertIn("uses the current-workspace default. Plan Dispatcher, ShipLoop and improve-agent never use it", flat)
+        self.assertNotIn("helper-managed default", flat.lower())
         reference = " ".join(REFERENCE.read_text().split())
-        for phrase in ("Never infer it from a request for speed", "| `report-only` | yes |",
+        for phrase in ("This is Ask Agent's default route", "| `in-place` | for a request to change files |",
+                       "| `report-only` | for a question, digest or review |",
                        "Claude Code | `Agent` without `isolation`", "refuse; report `changed_paths`"):
             self.assertIn(phrase, reference)
+        for path in sorted((SKILL / "references").glob("*.md")):
+            self.assertNotIn("helper-managed default", path.read_text().lower(), path.name)
+
+    def test_orchestrated_callers_select_the_managed_route_explicitly(self) -> None:
+        root = SKILL.parent
+        dispatcher = " ".join((root / "plan-dispatcher" / "SKILL.md").read_text().split())
+        self.assertIn("explicitly select Ask Agent's helper-managed route", dispatcher)
+        improve = " ".join((root / "improve-agent" / "SKILL.md").read_text().split())
+        self.assertIn("Select `workspace_route: helper-managed` explicitly", improve)
 
     def test_links_resolve(self) -> None:
         def anchors(path: Path) -> set[str]:

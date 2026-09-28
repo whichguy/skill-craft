@@ -46,7 +46,8 @@ user's choice.
 
 ## Choose the workspace route
 
-- **Standalone request.** Use Ask Agent's helper-managed default route. Its
+- **Standalone request.** Select `workspace_route: helper-managed` explicitly;
+  it is not Ask Agent's default. Its
   helper prepares an isolated worktree from the current candidate snapshot.
   Choose the delivery mode before launch: `commits` when Improve's ordinary
   commit policy applies, `patch` for an explicit no-commit request, and

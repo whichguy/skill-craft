@@ -22,14 +22,20 @@ return; the parent owns acceptance and integration. `ask-agent` selects this
 skill, not an agent type. Do not implement another model launcher, SDK client,
 subprocess harness, scheduler, or file watcher to simulate native delegation.
 
-The helper-managed workspace route is the default for delegation. A
-consumer-owned workspace and the current workspace are explicit selections,
-never an automatic interpretation of an existing worktree, a speed request, or
-a request for fresh context.
+The current workspace is the default for delegation: a fresh worker runs in
+the caller's own checkout and branch, with no second worktree or repository.
+A helper-managed worktree and a consumer-owned workspace are explicit
+selections, never an automatic interpretation of an existing worktree, a speed
+request, a request for fresh context, or a request to change code.
 
 Default to a fresh background worker while the parent continues useful work.
 An explicit request to wait takes precedence. Each invocation adds to the
 initiating conversation's pending work; it does not replace earlier jobs.
+
+On the default current-workspace route, a request to change files runs
+`in-place` within a write set the parent declares from the request, and the
+parent verifies the edits before reporting SUCCEEDED. A question, digest or
+review runs `report-only`.
 
 A helper-managed request to change repository code includes bringing the verified
 contribution back into the designated caller/integration checkout by default. The
@@ -39,7 +45,7 @@ acceptance followed by its consumer's separately owned final caller delivery. A
 successful worker return alone is not completion. If integration or final delivery
 is blocked, report the overall blocker, worker outcome and retained locations
 explicitly. An explicit review-only or return-without-integration request overrides
-the helper-managed default; do not turn ordinary delegation into an unrequested
+that integration default; do not turn ordinary delegation into an unrequested
 approval step. Follow the declared delivery mode and preserve caller dirty state.
 
 ## Select the route before preparing
@@ -48,26 +54,27 @@ This card declares `ask-agent/consumer-owned-workspace/v1` and
 `ask-agent/current-workspace/v1`. Select exactly one route before any helper
 preparation or native dispatch:
 
-- **Helper-managed** is the default. It uses the existing helper-created
-  snapshot, one of `patch`, `commits`, or `report-only`, and the procedures below.
+- **Current workspace** is the default. A fresh worker runs in the caller's
+  own checkout and branch, with no helper worktree, receipt or close. It uses
+  `in-place` for a request to change files, with a write set the parent
+  declares from the request, and `report-only` for a question, digest or
+  review. The helper's `current-state` command records a baseline and reports
+  drift. Read [Current workspace](references/current-workspace.md) in full; the
+  helper-managed steps below do not apply.
+- **Helper-managed** requires an explicit selection: `workspace_route:
+  helper-managed`, or the user asking for a separate or isolated worktree. It
+  uses a helper-created snapshot, one of `patch`, `commits`, or `report-only`,
+  and the procedures below. Plan Dispatcher, ShipLoop's parallel chain and a
+  standalone improve-agent request select it.
 - **Consumer-owned** requires an invoking consumer to explicitly set
   `workspace_route: consumer-owned` and `delivery_mode: in-place`, and to supply
   the complete workspace/ownership contract in
   [Consumer-owned workspace](references/consumer-owned-workspace.md). Its worker
   writes in the consumer's already-bound candidate; helper delivery modes do not
   apply.
-- **Current workspace** runs a fresh worker in the caller's own checkout and
-  branch, with no helper worktree, receipt or close. It is selected only when
-  the user or an invoking skill explicitly says `workspace_route: current`,
-  "in place", `--in-place` or "just use the current worktree". It defaults to
-  `report-only`; `in-place` writes need a declared write set. The helper's
-  `current-state` command records a baseline and reports drift. Read
-  [Current workspace](references/current-workspace.md) in full; the
-  helper-managed steps below do not apply. Plan Dispatcher, ShipLoop and
-  improve-agent never select it.
-
-An ordinary invocation that does not select consumer-owned uses the
-helper-managed default. A consumer that explicitly requests consumer-owned but
+An ordinary invocation that selects neither consumer-owned nor helper-managed
+uses the current-workspace default. Plan Dispatcher, ShipLoop and improve-agent
+never use it. A consumer that explicitly requests consumer-owned but
 lacks this card capability or any required contract field stays pending with its
 available locators. Do not silently switch that incomplete consumer request to
 the helper-managed route, shared writes, an inherited context, or a second
@@ -75,8 +82,8 @@ worktree.
 
 The currently declared consumer is the `improve-agent` skill, composing a
 ShipLoop whole-skill Improve child. It supplies one fresh executor for the
-complete bound Improve invocation. A standalone `improve-agent` request uses the
-helper-managed default instead, and inline `improve` starts no agent. This is a
+complete bound Improve invocation. A standalone `improve-agent` request selects the
+helper-managed route instead, and inline `improve` starts no agent. This is a
 Codex native pilot with evidence from bounded native fixtures. Earlier helper-managed host
 evidence does not qualify this composition on Codex, Claude, Grok, or another
 host.
@@ -177,9 +184,9 @@ affected work whose receipt cannot be established. An operation that may have
 started is possibly performed; reconcile its outcome before another affected
 operation, acceptance or delivery.
 
-## Helper-managed default: prepare, launch, continue, collect
+## Helper-managed route: prepare, launch, continue, collect
 
-The six steps in this section apply only to the helper-managed default. They do
+The six steps in this section apply only to the helper-managed route. They do
 not apply to a selected consumer-owned or current workspace; use that route's
 complete reference instead.
 
@@ -283,7 +290,7 @@ complete reference instead.
 
 ## Result and continuation by route
 
-### Helper-managed default
+### Helper-managed route
 
 Workers finish normally with their task label, assignment reminder,
 SUCCEEDED/BLOCKED/FAILED, result or blocker, observed workspace, receipt,
