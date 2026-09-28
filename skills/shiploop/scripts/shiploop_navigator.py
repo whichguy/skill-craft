@@ -23,6 +23,7 @@ import stat
 import uuid
 from pathlib import Path
 from typing import Any
+from urllib.parse import quote
 
 import shiploop_assumptions as assumptions
 import shiploop_navigator_v3_prompts as guidance3
@@ -1163,6 +1164,7 @@ def packet_head(core: Any, root: Path, state: Mapping[str, Any], path: Path,
     """The printed part of an active packet: what to run, the goal, and where the rest is."""
     stage = current_stage(state)
     action = current_action(state)
+    progress_target = quote(str(root / "progress.html"), safe="/ ")
     lines = [
         f"ShipLoop navigator | {stage} | revision {state['revision']}",
         *_first_callback_lines(core, root, state),
@@ -1171,7 +1173,7 @@ def packet_head(core: Any, root: Path, state: Mapping[str, Any], path: Path,
           if not state.get("active_improve") else []),
         "",
         f"Full packet: {path}",
-        f"Progress view: [HTML file](<{root / 'progress.html'}>) — use this file to track changes during this ShipLoop run.",
+        f"Progress view: [HTML file](<{progress_target}>) — use this file to track changes during this ShipLoop run.",
         "Read the full packet before acting: it holds this stage's steps, run rules and the "
         "references to consult. Read it with a file-reading tool, not by printing it to the "
         "shell. References it names are for lookup: open only the section a step needs, "
