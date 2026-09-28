@@ -301,6 +301,11 @@ sections; do not create a competing copy. If a small repository explicitly keeps
 its contract in the README, that is an adequate home. Otherwise, when no suitable
 home exists, the living spec is **`docs/shiploop/spec.md`** in ShipLoop's
 [repository knowledge home](#repository-knowledge-home).
+ShipLoop still requires that baseline file at release verification. When another
+home owns the requirement definitions, use the baseline to record stable
+requirement IDs, status, basis and exact links to those authoritative sections,
+without copying their definitions. Apply delivered definition changes in the
+selected home at the same end-of-run merge.
 Use the README as the overview and link to this home; also link it from the
 existing `SHIPLOOP.md` knowledge index. Neither link is a second specification.
 Keep these files in the product repository, outside disposable run/workspace
@@ -319,8 +324,10 @@ explanation. Do not copy implementation details or the full incoming transcript.
 
 Separate **accepted intent**, **observed implementation**, **proposals/open
 decisions**, and **verification status**. Code and passing tests establish what
-is implemented, not whether that behavior was approved. A newly accepted rule
-can be recorded before implementation, clearly marked pending verification.
+is implemented, not whether that behavior was approved. Record a newly approved
+rule before implementation in this run's change spec, clearly marked pending
+verification. Approval of intent does not merge it into the delivered baseline;
+that merge occurs at `release-verify` after delivery or verification.
 Do not rewrite the contract to bless a bug, a weakened test, or an unapproved
 proposal; do not claim a planned test has passed. Approval means supported by
 the current user request or an applicable accepted product decision, not an
@@ -345,9 +352,10 @@ into binding conditions merely because an earlier agent wrote them down.
    before dependent work; absence is not permission to guess or erase intent.
 2. **Spec/overall and step planning:** describe the requested delta. For affected
    requirements record **preserve, add, modify, or retire**, with the explicit
-   request/accepted decision that supports changes. Preserve unaffected rules
-   and subclauses in place; avoid rewriting the whole document. An explicit new
-   requirement can supersede its conflicting old condition without reapproval;
+   request/accepted decision that supports changes. Write these entries only in
+   this run's feature change spec; read the maintained baseline without editing
+   it for proposed changes. Cite unaffected rules and subclauses by ID or section.
+   An explicit new requirement can supersede its conflicting old condition without reapproval;
    it does not authorize relaxing unrelated privacy, security or failure rules.
    Carry requirement-section and test locators in work-item context so cold
    INNER/OUTER packets can recover intent without earlier conversations.
@@ -358,9 +366,10 @@ into binding conditions merely because an earlier agent wrote them down.
    Improve reviews requirement drift as part of its existing scoped campaign;
    no second review counter or extra campaign is introduced. Do not widen a
    step merely to audit every unrelated feature.
-4. **Document/carry-forward, product acceptance and handoff:** reconcile the
-   maintained record with accepted changes and actual evidence. Keep unmet
-   requirements, proposals and verification limits explicit. Check links and
+4. **Document/carry-forward, product acceptance and handoff:** keep the feature
+   record and actual evidence current. At `release-verify`, merge delivered changes
+   into the maintained baseline and review the resulting wording and status.
+   Keep unmet requirements, proposals and verification limits explicit. Check links and
    confirm required intent survives without old run folders; preserve unrelated
    content and reconcile concurrent edits. Summarize supersession rationale
    next to the replacement rather than accumulating a second current spec.

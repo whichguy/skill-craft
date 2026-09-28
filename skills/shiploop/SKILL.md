@@ -320,14 +320,22 @@ review needs no `final_result`: ShipLoop reuses the submitted result.
 
 ### Repository knowledge home
 
-Planning knowledge outlives the run. Planning stages keep `docs/shiploop/` in the
-product repository up to date: `README.md` (index), `spec.md` (the living spec,
-stable `R-<n>` IDs), `environment.md` (targets by alias, working commands,
-platform facts), `test-strategy.md`, and this run's `features/<slug>/` record.
+Planning knowledge outlives the run. Planning stages keep `docs/shiploop/README.md`
+(index), `environment.md` (targets by alias, working commands, platform facts),
+`test-strategy.md`, and this run's `features/<slug>/` record up to date.
+Write proposed requirement changes only in `features/<slug>/spec.md`, using
+stable `R-<n>` IDs and add, modify, retire or preserve actions. Read the long-lived
+`docs/shiploop/spec.md` as the delivered baseline; do not create or edit it for
+proposed changes during planning. When an existing requirements home owns the
+definitions, keep them there and link its exact sections from this baseline
+alongside the requirement IDs, status and basis; do not duplicate definitions.
+At `release-verify`, after delivery, merge the
+change spec into that baseline and mark delivered or verified requirements
+accepted with their basis. Earlier unmerged change specs remain history.
 At `prepare`, each `test-spec`, `release-plan` and `release-verify`, ShipLoop
 refuses `done` until that close's files exist, screens them for credentials,
 refuses a living spec that drops an earlier committed ID, and commits exactly
-`docs/shiploop/`. After any other accepted stage that changed `docs/shiploop/`,
+`docs/shiploop/` and `SHIPLOOP.md`. After any other accepted stage that changed either,
 ShipLoop runs the same credential and ID checks and commits it too, so never
 commit it yourself. The `release-verify` commit's message is the feature
 `outcome.md`'s `Learned`, `Key considerations` and `Open for the next run`
