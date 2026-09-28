@@ -117,6 +117,17 @@ Each entry: commit, then what changed, why, and its effect on earlier results.
 - **e45ef761** (branch): `DESIGN_REVIEW_CHECKS` is attached to the plan and step-plan reviews only (v2 wording).
 - **abb0d238, 72732860:** it becomes the v4 candidate. That is v3's checks with deduplicated wording, plus: "removing is a change too; never remove or weaken a safeguard unless it contradicts the request or spec; an unsourced number stays, marked as an assumption". Change note: `changes/shiploop/design-review-checks.md`. Unreleased, awaiting round 7.
 
+**Ship preparation (2026-09-27)**
+- **a13d8acf:** merged origin/main (72 commits) into this branch.
+  - No conflicts.
+  - Verified that the review text round 7 measures is unchanged on main: PLANNING_REVIEW_FOCUS has the same hash, and the review-packet frame regenerated from main's source is identical (2,015 words, 29 locators, 0 changed lines).
+  - Bound Improve packets after the merge: plan and step-plan reviews show focus, then design checks, then the Improve prompt, with text hash aeeccca36ae9bf26 (the round-7 v4 arm). Spec, test-strategy, test-spec, system-test-author and release-plan get the focus only. Carry-forward gets neither.
+  - 11 suites, 248 tests pass: ShipLoop navigator, guidance, delegation and packet-bounds, plus rubric-eval.
+- **3e14e613,** on draft branch `skills/platform-card-pointer-b6a76b`: the ShipLoop form of v4card.
+  - A "Platform cards: coding-guidance.md#conditional-index" locator for the plan and step-plan stages, plus one sentence in the design checks.
+  - ShipLoop has no structured runtime, so the pointer goes through the card index, one hop more than the tested arm. The plan producer also sees the locator.
+  - Needs its own confirmation run. Not merged.
+
 ## Findings register
 
 Status: **firm** (decision-grade evidence), **interim**, **exploratory** (Sonnet rounds), or **superseded**.
