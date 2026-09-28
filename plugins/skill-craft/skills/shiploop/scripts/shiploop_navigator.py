@@ -14,6 +14,7 @@ from copy import deepcopy
 from datetime import datetime, timezone
 import hashlib
 import json
+import os
 import sys
 import html
 import re
@@ -30,10 +31,13 @@ import shiploop_lint as lint
 import shiploop_quality as quality
 import shiploop_improve_changes as improve_changes
 import shiploop_item_scope as item_scope
+import shiploop_git as shiploop_git
 import shiploop_knowledge_home as knowledge
+import shiploop_loop_contract as loop_contract
 import shiploop_test_loop as test_loop
 import shiploop_planning_revision as planning_revision
 import shiploop_context_index as context_index
+import shiploop_narrative as narrative
 import shiploop_privacy as privacy
 import shiploop_stage_spec as stage_spec
 import shiploop_store as store
@@ -48,7 +52,7 @@ _ACTION_ID = re.compile(r"^[A-Za-z][A-Za-z0-9_-]{0,159}$")
 _WORK_ITEM_ID = re.compile(r"^[A-Za-z][A-Za-z0-9_-]{0,63}$")
 _STATUSES = frozenset(("active", "paused", "blocked", "halted", "done"))
 _RESULT_KEYS = frozenset((
-    "outcome", "summary", "evidence_refs", "work_items", "choices", "delivery_assessment",
+    "outcome", "summary", "headline", "evidence_refs", "work_items", "choices", "delivery_assessment",
     "reconciliation_target", "assumptions", "lint_waivers", "test_commands", "test_commands_na",
     "criteria", "system_commands", "system_commands_na", "consumer_checks", "consumer_checks_na",
     "blocked_by", "red_na", "awaiting", "paths", "consumer_entry", "steps",
@@ -330,15 +334,20 @@ def _normalise_lint_waivers(value: Any) -> list[dict[str, str]]:
 def _normalise_awaiting(value: Any) -> dict[str, Any]:
     """A blocked result's question for the user, or the steps a person must take.
 
-    ``{"kind": "answer", "question": str, "options": [str, ...]?}`` or
-    ``{"kind": "present", "steps": [str, ...], "report": str}``.
+    ``{"kind": "answer", "question": str, "options": [str, ...]?, "no_default": str}`` or
+    ``{"kind": "present", "steps": [str, ...], "report": str, "no_default": str}``.
+    ``no_default`` says why the run cannot proceed on a recorded default (SPEC S-14:
+    runs are unattended; a person is prompted only as a last resort). New
+    submissions must carry it (``_check_submitted_awaiting``); saved runs load without it.
     """
     _need(isinstance(value, Mapping), "awaiting must be an object")
     kind = value.get("kind")
     if kind == "answer":
-        _need(set(value) <= {"kind", "question", "options"} and "question" in value,
-              "an answer wait has kind, question and optional options")
+        _need(set(value) <= {"kind", "question", "options", "no_default"} and "question" in value,
+              "an answer wait has kind, question, no_default and optional options")
         awaiting: dict[str, Any] = {"kind": kind, "question": _text(value["question"], "awaiting question")}
+        if "no_default" in value:
+            awaiting["no_default"] = _text(value["no_default"], "awaiting no_default")
         if "options" in value:
             options = value["options"]
             _need(isinstance(options, list) and len(options) >= 2,
@@ -346,11 +355,25 @@ def _normalise_awaiting(value: Any) -> dict[str, Any]:
             awaiting["options"] = [_text(option, "awaiting option") for option in options]
         return awaiting
     _need(kind == "present", "awaiting kind must be answer or present")
-    _need(set(value) == {"kind", "steps", "report"}, "a present wait has kind, steps and report")
+    _need(set(value) - {"no_default"} == {"kind", "steps", "report"},
+          "a present wait has kind, steps, report and no_default")
     steps = value["steps"]
     _need(isinstance(steps, list) and steps, "awaiting steps must be a nonempty list")
-    return {"kind": kind, "steps": [_text(step, "awaiting step") for step in steps],
-            "report": _text(value["report"], "awaiting report")}
+    present: dict[str, Any] = {"kind": kind, "steps": [_text(step, "awaiting step") for step in steps],
+                               "report": _text(value["report"], "awaiting report")}
+    if "no_default" in value:
+        present["no_default"] = _text(value["no_default"], "awaiting no_default")
+    return present
+
+
+def _check_submitted_awaiting(result: Any) -> None:
+    """Refuse a new wait on a person that does not say why a recorded default would not do (S-14)."""
+    wait = result.get("awaiting") if isinstance(result, Mapping) else None
+    if isinstance(wait, Mapping):
+        _need(str(wait.get("no_default") or "").strip() != "",
+              "ShipLoop runs unattended: take a stated default, record it as an assumption and continue, "
+              "or record a person-only step as an open item and continue. Prompt the user (awaiting) only "
+              "when nothing further can proceed without them, and say why in awaiting.no_default.")
 
 
 def awaiting(state: Mapping[str, Any]) -> tuple[str, dict[str, Any]] | None:
@@ -444,12 +467,19 @@ def _canonical_result(
               "revise sends a work item back to " + stage_spec.REVISE_TO + " and is allowed only at the "
               "INNER stages from test-spec to integration-verify")
     if outcome == "reconcile":
-        _need(stage == "plan" and set(value) == {
+        _need(stage == "plan" and set(value) - {"headline"} == {
             "outcome", "summary", "evidence_refs", "reconciliation_target",
         }, "reconcile is allowed only as the exact plan result")
     else:
         _need("reconciliation_target" not in value,
               "reconciliation_target is allowed only with a reconcile result")
+    if "headline" in value:
+        headline = _text(value["headline"], "result headline")
+        _need(headline != HEADLINE_PLACEHOLDER,
+              "headline still holds the template placeholder; write one line for the user saying "
+              "what this step established")
+        _need("\n" not in headline and len(headline.strip()) <= HEADLINE_LIMIT,
+              f"headline must be one line of at most {HEADLINE_LIMIT} characters")
     if outcome == "replan":
         _need(stage in guidance3.OUTER and "work_items" in value,
               "replan requires corrective work_items at an outer stage")
@@ -460,6 +490,8 @@ def _canonical_result(
         "outcome": outcome,
         "summary": _text(value.get("summary"), "result summary"),
     }
+    if "headline" in value:
+        result["headline"] = value["headline"].strip()
     refs = value.get("evidence_refs", [])
     _need(isinstance(refs, list), "evidence_refs must be a list")
     _need(EVIDENCE_PLACEHOLDER not in refs,
@@ -1011,6 +1043,7 @@ def _run_rules(core: Any, root: Path, state: Mapping[str, Any]) -> list[str]:
         f"CLI locator: {_command(core)}",
         "ShipLoop skill card: " + str(reference_dir.parent / "SKILL.md"),
         f"Run directory locator: {root}",
+        f"Scratch directory (your temporary files; /tmp is shared with other runs): {scratch_dir(root)}",
         # Keepalive hooks bind a host session to this run from this exact line.
         f"Keepalive marker: {KEEPALIVE_MARKER} run={state['run_id']} rev={state['revision']} dir={root}",
         "Access-readiness policy: "
@@ -1087,6 +1120,16 @@ def packet_path(root: Path, state: Mapping[str, Any]) -> Path:
     return Path(root) / PACKET_DIR / f"{action_id}.md"
 
 
+# Printed characters at most: below the ~20,000-character cut some hosts (Grok)
+# apply to shell output.
+PRINT_LIMIT = 16_000
+
+
+def scratch_dir(root: Path) -> Path:
+    """The run's own place for the model's temporary files (plan P13)."""
+    return Path(root) / "scratch"
+
+
 def emit(core: Any, root: Path, state: Mapping[str, Any]) -> str:
     """Write the full packet to a file and print a short head that points at it.
 
@@ -1094,19 +1137,29 @@ def emit(core: Any, root: Path, state: Mapping[str, Any]) -> str:
     rewrites it, since the script cannot know what the host kept. Printing only
     the head keeps packets out of the host's shell-output limit and context; the
     host reads the file, and the references it names, only as far as it needs.
-    Paused, blocked, awaiting, halted and done packets are short and print whole.
+    Paused, blocked, awaiting, halted and done packets print whole unless they
+    pass ``PRINT_LIMIT``; then they print a pointer to the file and what fits.
     """
-    text = render(core, root, state)
+    timeline = load_timeline(root)
+    scratch_dir(root).mkdir(exist_ok=True)
+    text = render(core, root, state, timeline=timeline)
     path = packet_path(root, state)
     store.atomic_write_text(path, text)
-    if state["status"] != "active":
+    if state["status"] == "active":
+        print(packet_head(core, root, state, path, timeline=timeline), end="")
+    elif len(text) <= PRINT_LIMIT:
         print(text, end="")
     else:
-        print(packet_head(core, root, state, path), end="")
+        pointer = (f"Full packet: {path}\nThis packet is longer than a host's shell-output limit; the rest is "
+                   "in that file. Read it with a file-reading tool before acting.\n\n")
+        body = text[:PRINT_LIMIT - len(pointer)]
+        print(pointer + body[:body.rfind("\n") + 1], end="")
     return text
 
 
-def packet_head(core: Any, root: Path, state: Mapping[str, Any], path: Path) -> str:
+
+def packet_head(core: Any, root: Path, state: Mapping[str, Any], path: Path,
+                timeline: Mapping[str, Any] | None = None) -> str:
     """The printed part of an active packet: what to run, the goal, and where the rest is."""
     stage = current_stage(state)
     action = current_action(state)
@@ -1131,8 +1184,153 @@ def packet_head(core: Any, root: Path, state: Mapping[str, Any], path: Path) -> 
         "",
         status_block(state),
         "",
+        *narrative_lines(state, timeline),
     ]
     return "\n".join(lines)
+
+
+_GROUP_ENDS = frozenset(stages[-1] for _, stages in guidance3.INNER_GROUPS)
+# Where the entry point says the host shows a status hook's message to the user.
+HOOK_DISPLAY_ENTRYPOINTS = frozenset(("cli",))
+
+
+def _headline(state: Mapping[str, Any], action_id: str) -> str:
+    result = state["accepted"][action_id]
+    if result.get("headline"):
+        return _status_text(result["headline"], 100)
+    return _first_sentence(result["summary"], 100)
+
+
+def narrative_facts(state: Mapping[str, Any], timeline: Mapping[str, Any] | None = None) -> dict[str, Any]:
+    """Collect the run narrative from saved state: achieved, now, ahead and pace."""
+    prelude, inner, outer = graph(state)
+    stage, _, owner = _active_cursor(state)
+    status = state["status"]
+    done, _ = _accepted_done(state)
+    items, index = state["work_items"], state["work_index"]
+    completed = items[:index]
+    phase = ("complete" if status == "done" else "preparation" if stage in prelude
+             else "inner" if stage in inner else "outer")
+    order = ("preparation", "inner", "outer")
+
+    def phase_state(name: str) -> str:
+        if phase == "complete" or order.index(name) < order.index(phase):
+            return "done"
+        return "current" if name == phase else "pending"
+
+    def title(item: Mapping[str, str], limit: int = 50) -> str:
+        return _status_text(item["id"], 32) + " " + _status_text(item["title"], limit)
+
+    prep_done = sum((None, node) in done for node in prelude)
+    item_steps = sum((owner, node) in done for node in inner) if owner is not None else 0
+    outer_done = sum((None, node) in done for node in outer)
+    planned = any(key[1] == "plan" for key in done)
+    phases = [
+        {"name": "Preparation", "done": prep_done, "done_label": prep_done, "total": len(prelude),
+         "state": phase_state("preparation")},
+        {"name": "Work items", "done": len(completed) + (item_steps / len(inner) if phase == "inner" else 0),
+         "done_label": len(completed), "total": len(items) if planned else 0, "state": phase_state("inner")},
+        {"name": "Release", "done": outer_done, "done_label": outer_done, "total": len(outer),
+         "state": phase_state("outer")},
+    ]
+
+    achieved: list[dict[str, str]] = []
+    if phase == "preparation":
+        achieved = [{"label": node, "text": _headline(state, done[(None, node)])}
+                    for node in prelude if (None, node) in done]
+    else:
+        for item in completed[-3:]:
+            action_id = done.get((item["id"], "carry-forward"))
+            achieved.append({"label": title(item), "text": _headline(state, action_id) if action_id else ""})
+        if len(completed) > 3:
+            achieved.insert(0, {"label": f"{len(completed) - 3} earlier work items", "text": "complete"})
+        if phase == "inner" and owner is not None:
+            steps = [node for node in inner if (owner, node) in done]
+            if steps:
+                achieved.append({"label": f"{_status_text(owner, 32)} {steps[-1]}",
+                                 "text": _headline(state, done[(owner, steps[-1])])})
+        if phase in ("outer", "complete"):
+            achieved += [{"label": node, "text": _headline(state, done[(None, node)])}
+                         for node in outer if (None, node) in done][-4:]
+
+    now_label = stage
+    if phase == "inner" and owner is not None:
+        group = next(name for name, stages in guidance3.INNER_GROUPS if stage in stages)
+        now_label = f"{title(items[index])} ({index + 1} of {len(items)}) \u203a {group} \u203a {stage}"
+    now_text = (f"Improve is reviewing the {state['active_improve']['stage']} result"
+                if state.get("active_improve") else guidance3.STAGE_PURPOSE.get(stage, ""))
+
+    stop = None
+    wait = awaiting(state)
+    if status == "done":
+        stop = {"kind": "done", "text": "the run is complete; the report is report.html"}
+    elif wait is not None:
+        stop = {"kind": "awaiting", "text": _status_text(_awaiting_text(wait[1]), 300)}
+    elif status in ("paused", "blocked", "halted"):
+        stop = {"kind": status, "text": _status_text(state["status_reason"], 200)}
+
+    ahead: list[dict[str, str]] = []
+    remaining = 0
+    if phase == "preparation":
+        pending = [node for node in prelude if (None, node) not in done and node != stage]
+        remaining = len(pending) + 1
+        ahead = [{"label": node, "text": guidance3.STAGE_PURPOSE[node]} for node in pending[:2]]
+        rest = pending[2:]
+        ahead.append({"label": "then " + ", ".join(rest + ["the work items", "release"]) if rest
+                      else "then the work items and release", "text": ""})
+    elif phase == "inner":
+        groups = [name for name, stages in guidance3.INNER_GROUPS
+                  if all((owner, node) not in done and node != stage for node in stages)]
+        if groups:
+            ahead.append({"label": "this item", "text": " \u2192 ".join(groups)})
+        upcoming = items[index + 1:]
+        ahead += [{"label": title(item), "text": ""} for item in upcoming[:3]]
+        if len(upcoming) > 3:
+            ahead.append({"label": f"{len(upcoming) - 3} more work items", "text": ""})
+        ahead.append({"label": "then release", "text": ", ".join(outer[:3]) + ", \u2026"})
+        remaining = sum(1 for node in inner if (owner, node) not in done) + len(inner) * len(upcoming)
+    elif phase == "outer":
+        pending = [node for node in outer if (None, node) not in done and node != stage]
+        remaining = len(pending) + 1
+        ahead = [{"label": node, "text": guidance3.STAGE_PURPOSE[node]} for node in pending[:3]]
+        if len(pending) > 3:
+            ahead.append({"label": "then " + ", ".join(pending[3:]), "text": ""})
+
+    pace = None
+    if timeline:
+        stamps = [timeline["accepted"][entry["action"]] for entry in state["history"]
+                  if entry["action"] in timeline.get("accepted", {})]
+        scope = {"preparation": "preparation", "inner": "the work items", "outer": "release"}.get(phase, "")
+        pace = {"started": timeline.get("started"), "stamps": stamps,
+                "remaining_steps": remaining if status == "active" else 0, "scope": scope}
+
+    last = state["history"][-1] if state["history"] else None
+    milestone = (status != "active" or last is None or last["stage"] in prelude
+                 or last["stage"] in outer or last["stage"] in _GROUP_ENDS)
+    return {
+        "goal": _status_text(_title_from_prompt(state["prompt"]), 90),
+        "phases": phases,
+        "achieved": achieved,
+        "now": {"label": now_label, "text": now_text},
+        "stop": stop,
+        "ahead": ahead if status == "active" else [],
+        "pace": pace,
+        "milestone": milestone,
+    }
+
+
+def narrative_lines(state: Mapping[str, Any], timeline: Mapping[str, Any] | None = None) -> list[str]:
+    """The packet's narrative section at milestones, with who shows it to the user."""
+    facts = narrative_facts(state, timeline)
+    if not facts["milestone"]:
+        return []
+    if os.environ.get("CLAUDE_CODE_ENTRYPOINT") in HOOK_DISPLAY_ENTRYPOINTS:
+        instruction = ("The host's status hook already shows the user this narrative; "
+                       "do not repeat it.")
+    else:
+        instruction = ("Show the user this narrative exactly as written, as Markdown in your "
+                       "own message, then continue; do not rewrite or extend it.")
+    return [narrative.BEGIN, instruction, "", narrative.markdown(facts), narrative.END, ""]
 
 
 def _replace_v2_inner_action(state: dict[str, Any], stage: str) -> None:
@@ -1279,8 +1477,12 @@ def _check_submitted_consumer_entry(repo: str, stage: str, result: Any) -> None:
           "is not reachable; plan the entry as source files.")
     entry = result["consumer_entry"]
     sources = entry.get("sources") if isinstance(entry, Mapping) else None
-    missing = [path for path in (sources or []) if isinstance(path, str)
-               and not any(Path(repo).glob(path)) and not (Path(repo) / path).exists()]
+    named = [path for path in (sources or []) if isinstance(path, str)]
+    absolute = [path for path in named if Path(path).is_absolute()]
+    _need(not absolute, "consumer_entry sources must be repository-relative paths (for example src/app.py), not "
+          + ", ".join(absolute))
+    missing = [path for path in named if not path.strip()
+               or not ((Path(repo) / path).exists() or any(Path(repo).glob(path)))]
     _need(not missing, "consumer_entry sources do not exist in the repository: " + ", ".join(missing)
           + ". Create the entry's source files before the release plan, or correct the paths.")
 
@@ -1301,7 +1503,7 @@ def _item_commit(root: Path, before: Mapping[str, Any], after: Mapping[str, Any]
         message = ("feat: " + str(row.get("workitem")) + " " + _item_title(after, row["workitem"])
                    + "\n\n" + str(row.get("summary") or "").strip())
         try:
-            commit, undeclared = item_scope.commit_item(root, after, row["workitem"], message.strip())
+            commit, undeclared, skipped = item_scope.commit_item(root, after, row["workitem"], message.strip())
         except item_scope.ItemScopeError as exc:
             print("ShipLoop integrate: " + str(exc) + "; commit the item's files before release.", file=sys.stderr)
             continue
@@ -1310,6 +1512,8 @@ def _item_commit(root: Path, before: Mapping[str, Any], after: Mapping[str, Any]
         if undeclared:
             print("Not committed (changed, but not in the step plan's paths): " + ", ".join(undeclared)
                   + ". Commit the ones the product needs, delete generated output.")
+        if skipped:
+            print(shiploop_git.skipped_notice(skipped))
 
 
 def _item_title(state: Mapping[str, Any], work_item: str) -> str:
@@ -1319,17 +1523,37 @@ def _item_title(state: Mapping[str, Any], work_item: str) -> str:
     return ""
 
 
-def _knowledge_close(before: Mapping[str, Any], after: Mapping[str, Any]) -> None:
-    """Commit the knowledge home once a close stage's done has been accepted and saved."""
+def _knowledge_close(before: Mapping[str, Any], after: Mapping[str, Any], root: Path | None = None) -> None:
+    """Commit the knowledge home once a close stage's done has been accepted and saved.
+
+    In a worktree run whose work was already returned, that commit is then returned
+    too (plan P11), so the handoff's return check does not find a stale receipt.
+    """
     rows = after["history"][len(before["history"]):]
-    stages = [row["stage"] for row in rows if row["outcome"] == "done" and row["stage"] in knowledge.CLOSES]
+    stages = [row["stage"] for row in rows if row["outcome"] == "done"]
     if not stages:
         return
     try:
-        knowledge.commit(after, stages[-1])
+        committed = knowledge.commit(after, stages[-1])
     except RuntimeError as exc:
-        # The transition stands; the next close commits the same files.
-        print("ShipLoop knowledge: " + str(exc) + "; the next close commits it.", file=sys.stderr)
+        # The transition stands; the next accepted stage commits the same files.
+        print("ShipLoop knowledge: " + str(exc) + "; the next accepted stage commits it.", file=sys.stderr)
+        return
+    notice = shiploop_git.skipped_notice(committed.skipped)
+    if notice:
+        print("ShipLoop knowledge: " + notice)
+    if committed.commit and root is not None and after.get("execution_mode") == "navigator-worktree":
+        import shiploop_workspace as workspace
+        try:
+            receipt = workspace.follow_up_knowledge_return(Path(root).parent)
+        except workspace.WorkspaceError as exc:
+            # The handoff check still requires a current return and prints the commands.
+            print("ShipLoop knowledge: the follow-up return was not made (" + str(exc) + "); "
+                  "handoff will ask for it.", file=sys.stderr)
+            return
+        if receipt is not None:
+            print("ShipLoop knowledge: returned the knowledge commit with the earlier work ("
+                  + str(receipt.get("kind")) + ").")
 
 
 # A locator may add an anchor, a line (and column) or a test ID after the file path:
@@ -1439,7 +1663,8 @@ def _apply_result(state: Mapping[str, Any], action_id: str, result: Any, improve
         used = updated["revisions"].get(item_id, 0)
         _need(used < stage_spec.MAX_REVISES,
               "work item " + str(item_id) + " has used its " + str(stage_spec.MAX_REVISES) + " revisions; "
-              "report blocked with blocked_by user and an awaiting question so the user decides")
+              "nothing further can proceed without the user: report blocked with blocked_by user and an "
+              "awaiting question, with its no_default reason, so the user decides")
         updated["revisions"][item_id] = used + 1
         _replace_v2_inner_action(updated, stage_spec.REVISE_TO)
         validate(updated)
@@ -1888,6 +2113,65 @@ def _test_red_gate(root: Path, state: Mapping[str, Any], action_id: str,
     _need(not refusal, refusal)
 
 
+REVIEW_FILE = re.compile(r"review-([1-9][0-9]*)\.md")
+CHECK_FILE = "checks.md"
+
+
+def improve_reviews_dir(child: Mapping[str, Any]) -> Path:
+    """Where the child writes one review-<n>.md per pass and checks.md."""
+    import shiploop_standalone_improve as standalone
+
+    return standalone.receipt_path(child).parent / "reviews"
+
+
+def _optional_text_file(value: Any, label: str) -> str:
+    if value is None:
+        return ""
+    path = Path(str(value))
+    _need(path.is_file() and not path.is_symlink(), label + " must be a regular file: " + str(path))
+    text = path.read_text(encoding="utf-8", errors="replace").strip()
+    _reject_credentials(text, label)
+    return text
+
+
+def _derived_improve_receipt(child: Mapping[str, Any], args: Any) -> dict[str, Any]:
+    """The completion record, built from what ShipLoop already knows (plan P12).
+
+    The review references are the last one or two ``review-<n>.md`` files (one when the
+    terminal packet ended on an unchanged first pass), the check reference is
+    ``checks.md``; the model supplies only lessons, a changed decision and a
+    no-commit reason, each optional.
+    """
+    reviews = improve_reviews_dir(child)
+    found = sorted((int(match.group(1)), path) for path in (reviews.iterdir() if reviews.is_dir() else ())
+                   if (match := REVIEW_FILE.fullmatch(path.name)) and path.is_file())
+    count = 1 if _unchanged_first_pass(child) else 2
+    names = ", ".join(path.name for _, path in found) or "none"
+    _need(len(found) >= count,
+          "Improve completion needs the last " + str(count) + " review file(s) in " + str(reviews)
+          + ", named review-<n>.md by pass number; found: " + names)
+    checks = reviews / CHECK_FILE
+    _need(checks.is_file(), "Improve completion needs the check output in " + str(checks))
+    receipt: dict[str, Any] = {
+        "summary": "Improve reviewed the " + str(child["stage"]) + " result; it ended on "
+                   + str(count) + " trivial pass" + ("" if count == 1 else "es") + ".",
+        "review_refs": [str(path) for _, path in found[-count:]],
+        "check_refs": [str(checks)],
+    }
+    lessons = _optional_text_file(getattr(args, "notes", None), "Improve notes")
+    if lessons:
+        receipt["lessons"] = lessons
+    final = getattr(args, "final_result", None)
+    if final is not None:
+        record = store.read_record(Path(str(final)))
+        _reject_credentials(record, "Improve final result")
+        receipt["final_result"] = record
+    no_commit = getattr(args, "no_commit", None)
+    if no_commit:
+        receipt["no_commit"] = str(no_commit)
+    return receipt
+
+
 def _unchanged_first_pass(child: Mapping[str, Any]) -> bool:
     """Whether the child's saved terminal packet ended on one unchanged trivial pass."""
     import shiploop_standalone_improve as standalone
@@ -1937,6 +2221,13 @@ def _lint_gate(core: Any, root: Path, state: Mapping[str, Any], action_id: str, 
     mode = lint_mode(state)
     if result["outcome"] != "done" or mode not in ("fix", "report"):
         return
+    # A later implement step may resolve an earlier step's finding (an import the
+    # next step uses), so earlier steps only report, without auto-fix, and the
+    # item's last step gates what is still there.
+    done, steps = implement_progress(state, workitem) if stage == lint.GATE_STAGE else (0, [])
+    gating = done + 1 >= len(steps)
+    if not gating:
+        mode = "report"
     waivers = {entry["id"]: entry["reason"] for entry in result.get("lint_waivers", [])}
     writes, payload, refusal = lint.gate(
         Path(state["repo"]), root, action=action_id, work_item=workitem or "", run_option=mode,
@@ -1945,7 +2236,7 @@ def _lint_gate(core: Any, root: Path, state: Mapping[str, Any], action_id: str, 
     for relative, text in writes.items():
         store.atomic_write_text(root / relative, text)
     _lint_finish(root, payload)
-    _need(not refusal, refusal)
+    _need(not gating or not refusal, refusal)
 
 
 def _lint_finish(root: Path, payload: Any) -> None:
@@ -2007,12 +2298,16 @@ KEEPALIVE_MARKER = "SHIPLOOP-RUN"
 # An empty template list was copied verbatim; a placeholder the script refuses
 # makes the worker name the files instead.
 EVIDENCE_PLACEHOLDER = "<absolute path of each file this stage wrote, or of the check output it recorded>"
+# The user-facing line the run narrative shows for this step.
+HEADLINE_PLACEHOLDER = "<one line for the user, under 100 characters: what this step established>"
+HEADLINE_LIMIT = 100
 
 
 def _result_template(state: Mapping[str, Any], stage: str) -> str:
     """Render a current-action template without making the host track anchors."""
     result: dict[str, Any] = {
         "outcome": "done",
+        "headline": HEADLINE_PLACEHOLDER,
         "summary": "...",
         "evidence_refs": [EVIDENCE_PLACEHOLDER],
     }
@@ -2523,8 +2818,12 @@ def _progress_lines(state: Mapping[str, Any]) -> list[str]:
     return lines
 
 
-def render(core: Any, root: Path, state: Mapping[str, Any]) -> str:
-    """Render a packet; worktree packets derive a read-only return projection."""
+def render(core: Any, root: Path, state: Mapping[str, Any],
+           timeline: Mapping[str, Any] | None = None) -> str:
+    """Render a packet; worktree packets derive a read-only return projection.
+
+    Rendering reads no files: ``emit`` passes the display-only timeline in.
+    """
     validate(state)
     root = Path(root)
     try:
@@ -2563,6 +2862,7 @@ def render(core: Any, root: Path, state: Mapping[str, Any]) -> str:
         # notice above, and early enough to survive head-kept Bash output.
         status_block(state),
         "",
+        *narrative_lines(state, timeline),
         progress_guidance,
     ]
     lines += _run_rules(core, root, state)
@@ -2888,7 +3188,7 @@ def _result_contract_lines(root: Path, state: Mapping[str, Any], stage: str, act
                      "in state.md accepted/history and the Consumer-delivery schema before adding the "
                      "required delivery_assessment to the minimal result below. A partial template "
                      "does not waive any required observation.")
-        result_template = store.dumps({"outcome": "done", "summary": "...",
+        result_template = store.dumps({"outcome": "done", "headline": HEADLINE_PLACEHOLDER, "summary": "...",
                                        "evidence_refs": [EVIDENCE_PLACEHOLDER]},
                                       "ShipLoop navigator result").rstrip()
     return [
@@ -2952,17 +3252,16 @@ def _first_callback_lines(core: Any, root: Path, state: Mapping[str, Any]) -> li
         card = state.get("improve_skill") or "/absolute/path/to/selected/improve/SKILL.md"
         return ["Next command (bind the selected Improve card; details below): "
                 + _callback(core, root, "improve-bind", action=action_id, **{"skill-card": card})]
-    if delegation(state) == guidance3.INLINE:
-        import shiploop_standalone_improve as standalone
-        if not standalone.receipt_path(child).exists():
-            opening = improve_opening_path(child)
-            return ["Next command (start the bound Improve child after writing its opening file "
-                    + str(opening) + "; details below): "
-                    + _callback(core, root, "improve-start", action=action_id, opening=str(opening))]
-    return ["Callback for this Improve child (parent only; after the runtime returns complete and "
-            "the completion evidence below is written; never 'complete'): "
-            + _callback(core, root, "improve-complete", action=action_id,
-                        result=str(root / "inbox" / (action_id + "-improve.md")))]
+    import shiploop_standalone_improve as standalone
+    if not standalone.receipt_path(child).exists():
+        # Both routes: ShipLoop writes the contract and starts the child (the Ask-Agent
+        # route's hand-built contract lost its binding line, 551b8b49).
+        opening = improve_opening_path(child)
+        return ["Next command (start the bound Improve child after writing its opening file "
+                + str(opening) + "; details below): "
+                + _callback(core, root, "improve-start", action=action_id, opening=str(opening))]
+    return ["Callback for this Improve child (parent only; after the runtime returns complete; "
+            "never 'complete'): " + _callback(core, root, "improve-complete", action=action_id)]
 
 
 def _improve_line(stage: str) -> str:
@@ -3044,7 +3343,8 @@ def _render_improve(core: Any, root: Path, state: Mapping[str, Any], lines: list
         ])
         return "\n".join(lines) + "\n"
     skill = child["skill"]
-    result_path = root / "inbox" / (action_id + "-improve.md")
+    notes_path = root / "inbox" / (action_id + "-improve-notes.md")
+    final_path = root / "inbox" / (action_id + "-final-result.md")
     inline = delegation(state) == guidance3.INLINE
     planning_reconcile = child["stage"] == "plan"
     planning_lines: list[str] = []
@@ -3100,27 +3400,32 @@ def _render_improve(core: Any, root: Path, state: Mapping[str, Any], lines: list
 
     packet_path = standalone_improve.receipt_path(child)
     evidence_root = packet_path.parent / "reviews"
-    if inline:
-        ownership_lines = [
+    # Both routes: the parent writes the opening and ShipLoop freezes the contract and starts
+    # the child (improve-start); a model never writes the start contract (149ed901, 551b8b49).
+    start_lines = [
             "Context-first opening: before start, write the opening file " + str(improve_opening_path(child))
             + " with exactly these four sections, each filled from this conversation and the candidate:\n"
             + improve_opening_template()
             + "'Current context and desired improvements' holds current learnings, decisions, unresolved concerns and suggested improvements to assess; 'Scope' the exact candidate paths (including untracked ones) and anything excluded; 'Authority' current approvals, declines, pending decisions and any no-commit override, with their source; 'Environment' the runtime, commands and checks that apply. Supply essential meaning inline and existing locators for supporting detail; do not copy this packet or restate the skill's execution instructions.",
             "Then run: " + _callback(core, root, "improve-start", action=action_id, opening=str(improve_opening_path(child)))
             + " . ShipLoop freezes the child contract from the opening (binding line, workspace, work, exit and repeat conditions, commit policy, exclusions and every return locator; written to start.json beside the receipt), starts the bound runtime with the receipt below and prints the child's first packet. Do not write the start contract or start the runtime yourself. If this child already started, recover it from its receipt as described below instead.",
+    ]
+    if inline:
+        ownership_lines = [
+            *start_lines,
             "Delegation: inline. Run the selected Improve card's ShipLoop whole-skill subcall in this conversation, in the exact Child workspace; verify the process cwd and Git root before task work. Do not hand the invocation to Ask Agent, a native worker or an extra worktree. Run its reviews and checks in this conversation too; start no reviewer, test-runner or executor agent unless the user asked for independent review. This conversation is the only candidate writer until the runtime returns a terminal packet; stop competing writes there, including checks that generate files. Read that reference's default-route section before start or recovery.",
-            "Freeze the exact candidate scope, selected packages, explicit user/repository authority including any no-commit override, and evidence paths before start. An existing invocation keeps its frozen authority.",
             "Carry current approvals, declines and pending decisions into child context.authority with action/target, conditions and authorization source; summarize their implications in the opening. Do not ask again for an applicable approval or treat a decline as optional advice. A later user decision in this conversation applies from the next review iteration: record its receipt and effect in the review notes and handoff; keep the frozen launch context unchanged.",
-            "Return order: only after the runtime has written the terminal packet to the receipt below, write the completion evidence and run the parent return and callback below. Runtime completion alone never advances this action.",
+            "Return order: only after the runtime has written the terminal packet to the receipt below, run the parent return and callback below. Runtime completion alone never advances this action.",
         ]
     else:
         ownership_lines = [
-            "Parent assignment preparation: fill 'Current context and desired improvements' with current learnings, decisions and unresolved concerns from the conversation and candidate. Then say 'Run /improve' with the selected card and concrete run binding. Retain the opening once in child context.request. Supply essential meaning inline and existing locators for supporting detail; the navigator cannot supply conversation-only learnings. Do not forward this entire parent packet or repeat the skill's execution instructions.",
-            "For a genuinely new invocation, run the host-selected improve-agent card for this bound child: it starts one fresh native worker for the entire Improve loop with exclusive write ownership in the exact Child workspace, through the host-selected Ask Agent's ask-agent/consumer-owned-workspace/v1 route; never use Ask Agent's default extra-worktree route for this bound child. Read the context-ownership reference before launch or recovery.",
+            *start_lines,
+            "Parent assignment preparation: the opening carries the conversation-only learnings, decisions and unresolved concerns (the navigator cannot supply conversation-only learnings). Then say 'Run /improve' with the selected card, the concrete run binding and this started child's receipt. Do not forward this entire parent packet or repeat the skill's execution instructions.",
+            "For a genuinely new invocation, after improve-start has started the child, run the host-selected improve-agent card for this bound child: it starts one fresh native worker that continues the already-started loop from the receipt's next_argv, with exclusive write ownership in the exact Child workspace, through the host-selected Ask Agent's ask-agent/consumer-owned-workspace/v1 route; never use Ask Agent's default extra-worktree route for this bound child. Read the context-ownership reference before launch or recovery.",
             "Workspace route: consumer-owned; delivery mode: in-place. Native assignment: execution_role: improve-executor; delegation_owner: parent. Freeze the exact candidate scope, selected packages, explicit user/repository authority including any no-commit override, evidence paths and parent continuation before dispatch. Existing invocations keep their recorded owner and frozen authority; unknown ownership blocks replacement.",
             "Native owner record: " + str(packet_path.with_name("host-owner.md")),
             "Carry current approvals, declines and pending decisions into child context.authority with action/target, conditions and authorization source; summarize their implications in the opening. Do not ask again for an applicable approval or treat a decline as optional advice. Forward later user decisions through the native channel and record receipt/effect in host-owner.md and the worker handoff; keep launch context immutable and continue the same child.",
-            "Parent-only return: the worker starts the child with the receipt below and writes the completion evidence, then returns their locators without executing ShipLoop callbacks or workspace return. The parent collects and verifies the result before executing the exact return route below. Worker completion alone never advances this action.",
+            "Parent-only return: the worker continues the child from the receipt below and writes its review files, then returns their locators without executing ShipLoop callbacks other than improve-commit, or workspace return. The parent collects and verifies the result before executing the exact return route below. Worker completion alone never advances this action.",
         ]
     start_word = "start" if inline else "dispatch"
     runtime_lines = [
@@ -3129,18 +3434,15 @@ def _render_improve(core: Any, root: Path, state: Mapping[str, Any], lines: list
         *ownership_lines,
         "Child runtime authority: the unique temporary state_file returned by the selected runtime. ShipLoop does not write or count child state.",
         "Child latest packet receipt: " + str(packet_path),
-        f"Binding inputs: before {start_word}, verify the selected cards, runtime and referenced inputs exist and match this candidate and action. Keep workspace, scope, authority and return ownership explicit. The child packet receipt and completion evidence are output destinations for a new child, not pre-start inputs; a resumed child requires its saved receipt. A missing input leaves {start_word} pending; never substitute an ambient skill or another workspace.",
-        ("improve-start does this for a new child: " if inline else "")
-        + "Start the child runtime with --receipt " + shlex.quote(str(packet_path)) + ": the runtime writes every "
-        "packet it returns to that receipt before printing it, and the terminal packet before it deletes its "
-        "state, so the callback handle and terminal evidence survive a lost context. Do not write or edit the "
-        "receipt; ShipLoop imports only a packet the runtime wrote there. It is not a second runtime state machine."
-        + (" Start before any review work." if inline else ""),
-        *(["Freeze in repeat_condition: if a finding invalidates an accepted discovery, research, spec "
-           "or test-strategy premise, finish the current bounded work and report classification "
-           "unresolved or non-trivial, exit_assessment unsatisfied or unknown, and "
-           "continuation_assessment cancelled. A blocked stop cannot use improve-reconcile or "
-           "improve-complete and leaves the parent incomplete."] if planning_reconcile else []),
+        # Inline: improve-bind pins the card and runtime, improve-start freezes the contract (binding line,
+        # start inputs, planning repeat clause) and starts the runtime with the receipt; only the
+        # model's remaining obligations are stated here (SPEC S-5, S-7).
+        *([] if inline else [
+            f"Binding inputs: before {start_word}, verify the selected cards, runtime and referenced inputs exist and match this candidate and action. Keep workspace, scope, authority and return ownership explicit. The child packet receipt and review files are output destinations for a new child, not pre-start inputs; a resumed child requires its saved receipt. A missing input leaves {start_word} pending; never substitute an ambient skill or another workspace.",
+        ]),
+        ("The runtime writes every packet it returns to the receipt above, the terminal one before it deletes "
+         "its state. Never write or edit the receipt; ShipLoop imports only a packet the runtime wrote there. "
+         "Start before any review work."),
         "For a genuinely new child, read the selected skills and start once. If this child has already started, read its saved receipt: for active status use its exact next_argv once to recover, then follow the returned instruction; for complete status import its retained receipt without starting or reviewing again. "
         + ("For a cancelled stopped status preserve the receipt and keep successful completion unresolved; only "
            "this initial plan child may use the printed parent-only improve-reconcile route "
@@ -3153,30 +3455,19 @@ def _render_improve(core: Any, root: Path, state: Mapping[str, Any], lines: list
         + (", record the decision in the opening file and rerun the improve-start command with "
            "--restart-stopped: ShipLoop archives packet.json as packet.stopped-<UTC timestamp>.json and "
            "the sibling reviews directory as reviews.stopped-<same timestamp>, then starts a new child with "
-           "the same binding line. Do not rename them yourself. "
-           if inline else
-           ", rename packet.json to packet.stopped-<UTC timestamp>.json and the sibling reviews "
-           "directory to reviews.stopped-<same timestamp>, record the decision in the new context "
-           "opening and start a new child with the same binding line. ")
-        + "Its review_refs and check_refs must be files the new child writes. "
+           "the same binding line. Do not rename them yourself. ")
+        + "Its review-<n>.md files and checks.md must be ones the new child writes. "
         "To pause instead, run the parent pause command below and leave the child active; never "
         "report cancelled for a pause. "
         + "If an existing active child's receipt or temporary state is unavailable, report incomplete; "
         "never infer completion or silently create a replacement. Terminal recovery uses the retained "
         "raw packet because terminal state is deleted.",
-        ("Binding line: improve-start writes the next line first in the frozen context.request, alone on its "
-         "own line; never copy it into the opening; import matches the whole line:" if inline else
-         "Binding line: copy the next line verbatim into frozen context.request exactly once, "
-         "alone on its own line with no bullet, quote, backticks, indentation or trailing text; import matches the whole line:"),
-        child["contract_marker"],
-        "Start inputs owned by ShipLoop: required_trivial_reviews 2 (import rejects fewer); workspace: "
-        "the Child workspace above.",
         *(
             [
                 "Put the original request, step result, permitted paths, expected check state, authority and "
                 "relevant environment in the opening's sections. ShipLoop freezes the work, exit and repeat "
                 "conditions, the commit policy, the exclusions and the resources (receipt, evidence directory, "
-                "parent state, completion evidence path and the exact parent return, written to "
+                "parent state and the exact parent return, written to "
                 "parent-return.md beside the receipt), so the terminal packet can locate the parent return "
                 "after context loss.",
                 "Commit policy: use the selected Improve card's scoped-commit policy with the task's explicit overrides; retain existing frozen authority on recovery.",
@@ -3186,22 +3477,15 @@ def _render_improve(core: Any, root: Path, state: Mapping[str, Any], lines: list
                             message=str(improve_commit_message_path(child)))
                 + " . ShipLoop commits exactly the files this review changed and has not committed. Do not "
                 "write the message with a shell heredoc or run git commit yourself.",
-            ] if inline and not planning_reconcile else
-            [
+            ] if not planning_reconcile else [
                 "Freeze the original request, step result and execution/exit/repeat conditions, permitted paths, expected check state, authority and relevant environment in the child's context.",
                 "For this planning Improve child, use the context-first opening as the compact planning summary plus locators for "
                 "the planning experiments guide, investigation notebook, latest packet, "
                 + ("" if inline else "owner record, ")
-                + "parent state, completion evidence and the exact parent return instructions below. "
+                + "parent state and the exact parent return instructions below. "
                 "Keep the full parent packet, prompts and verbose "
                 "logs behind those locators; do not duplicate them in the child context.",
                 "Commit policy: use the selected Improve card's scoped-commit policy with the task's explicit overrides; retain existing frozen authority on recovery.",
-            ] if planning_reconcile else [
-                "Freeze the original request, step result and execution/exit/repeat conditions, permitted paths, expected check state, authority and relevant environment in the child's context.",
-                "Commit policy: use the selected Improve card's scoped-commit policy with the task's explicit overrides; retain existing frozen authority on recovery.",
-                "Include context.resources locators for this latest-packet receipt, "
-                + ("" if inline else "native owner record (parent coordination data), ")
-                + "parent state.md, completion evidence path and exact parent return instructions below. The child terminal packet must be sufficient to locate and perform the parent return after context loss.",
             ]
         ),
         "Completion deletes the child's temporary state. Preserve the complete terminal packet at the receipt above before calling improve-complete. If terminal output is lost, stop incomplete; a missing state file is not completion evidence.",
@@ -3254,16 +3538,16 @@ def _render_improve(core: Any, root: Path, state: Mapping[str, Any], lines: list
         exclusion,
         "The prior result and relevant accepted Improve lessons are in state.md improve_results and improve/<parent-action>/ receipts. Carry forward relevant verified conclusions and material unresolved findings, hypotheses, failed attempts and pitfalls, clearly labeled with evidence status. Preserve essential meaning in the context opening and later handoffs; keep detailed blocked-attempt notes in the child notebook.",
         "Review passes: the two consecutive trivial passes the runtime requires are self-passes by this same executor, not independent reviewers; report them as passes, never as independent reviews. When the first pass is trivial and leaves the workspace unchanged, the runtime checks that from Git and completes after that one pass.",
-        "Changes: change what is warranted in code, tests or documentation, and commit it; ShipLoop reruns the affected checks. The import is refused while files this review changed are still uncommitted (work that was uncommitted before the review is not counted). If the user or repository said not to commit, put that instruction in the receipt's no_commit.",
-        "On completion, review_refs is exactly the two files of those final consecutive trivial passes (write each pass to its own file), or the one file when the terminal packet reports unchanged_first_pass; an earlier material review stays on disk and is not a third entry. check_refs holds the current check evidence. A plan/RED disposition is checked against its own criteria, not future product success.",
-        "The child may write the completion evidence file; only the parent imports it. Before the callback the parent checks that the runtime packet status is complete, every referenced file exists under Child workspace, the scoped commit (git show) matches the handoff, and the source checkout is unchanged.",
-        "Receipt review_refs and check_refs must be absolute regular single-link non-symlink files under Child workspace above; the importer rejects sibling run/inbox/control paths outside that root. For example: "
-        + str(evidence_root / "review-one.md"),
-        "Write completion evidence to: " + str(result_path),
-        store.dumps({"summary": "...", "review_refs": [str(evidence_root / "review-one.md"),
-                                                           str(evidence_root / "review-two.md")],
-                     "check_refs": [str(evidence_root / "checks.md")], "lessons": "..."},
-                    "Actual Improve completion evidence").rstrip(),
+        "Changes: change what is warranted in code, tests or documentation, and commit it; ShipLoop reruns the affected checks. The import is refused while files this review changed are still uncommitted (work that was uncommitted before the review is not counted). If the user or repository said not to commit, pass that instruction to improve-complete with --no-commit.",
+        "Evidence: write each review pass to " + str(evidence_root / "review-<n>.md") + " (n = the pass "
+        "number: review-1.md, review-2.md, ...) and the current check output to "
+        + str(evidence_root / "checks.md") + ". improve-complete imports the last two passes (the last "
+        "one when the first pass changed nothing) and checks.md; nothing else to list. A plan/RED "
+        "disposition is checked against its own criteria, not future product success.",
+        "Optional, for later steps: lessons in a plain-text file passed as --notes " + str(notes_path) + ".",
+        "Temporary files, including each report you pass to the runtime on standard input, go in "
+        + str(scratch_dir(root)) + " with names of your own: /tmp is shared with other runs, so a fixed "
+        "/tmp name can read another run's file.",
         "If Improve changes decisions or decision-relevant evidence needed by a successor, include "
         "final_result: a complete step result with the same fields as the Step result record above "
         "(outcome done, repeat, blocked or, at OUTER stages, replan; never reconcile), preserving "
@@ -3274,17 +3558,18 @@ def _render_improve(core: Any, root: Path, state: Mapping[str, Any], lines: list
         "and add every planning file produced or revised, plus a compact decision note and required "
         "supporting evidence. Record the finding, applicable original constraints, affected decision "
         "and consumer, conclusion, limits and source locators. Ordinary qualifying review/check "
-        "evidence belongs in review_refs/check_refs; it alone does not require final_result. Do not "
+        "evidence belongs in the review-<n>.md files and checks.md; it alone does not require final_result. Do not "
         "register all scratch output or copy the whole mutable notebook into every "
         + ("context" if inline else "worker") + ". Retain "
         "key planning decisions, constraints and acceptance expectations as reference statements "
         "with source locators. The step definition remains the execution prompt; do not substitute "
-        "the original user request or a second consolidated directive.",
+        "the original user request or a second consolidated directive. Write such a final_result as a "
+        "step-result record to " + str(final_path) + " and pass --final-result with that path.",
         *reconcile_lines,
         ("Parent callback; run only after the runtime returned complete, its terminal packet is saved at "
-         "the receipt above and the completion evidence is written:" if inline else
+         "the receipt above:" if inline else
          "Parent-only callback; execute only after collecting and verifying successful bound runtime completion:"),
-        _callback(core, root, "improve-complete", action=action_id, result=str(result_path)),
+        _callback(core, root, "improve-complete", action=action_id),
         "If incomplete, retain the child, its packet receipt and review notes; do not call complete on the producer again or advance the graph.",
         "Pause parent without losing child: " + _callback(core, root, "pause", reason="reason"),
     ])
@@ -3423,6 +3708,41 @@ def _new_result_records(root: Path, state: Mapping[str, Any]) -> dict[str, str]:
     return writes
 
 
+TIMELINE_FILE = "timeline.json"
+
+
+def _utc_now() -> str:
+    return datetime.now(timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ")
+
+
+def load_timeline(root: Path) -> dict[str, Any]:
+    """Read the display-only timeline; anything unreadable starts a fresh one."""
+    try:
+        value = json.loads((Path(root) / TIMELINE_FILE).read_text(encoding="utf-8"))
+    except (OSError, ValueError):
+        return {}
+    if not (isinstance(value, dict) and isinstance(value.get("started"), str)
+            and isinstance(value.get("accepted"), dict)):
+        return {}
+    return value
+
+
+def _updated_timeline(root: Path, state: Mapping[str, Any]) -> dict[str, Any]:
+    """Stamp every newly accepted step with the current time.
+
+    The timeline is derived display data like status.md, not workflow state:
+    the pace line reads it, and nothing validates or resumes from it.
+    """
+    now = _utc_now()
+    timeline = load_timeline(root) or {"started": now, "accepted": {}}
+    history_ids = [entry["action"] for entry in state["history"]]
+    accepted = {action: stamp for action, stamp in timeline["accepted"].items()
+                if action in history_ids and isinstance(stamp, str)}
+    for action in history_ids:
+        accepted.setdefault(action, now)
+    return {"started": timeline["started"], "accepted": accepted}
+
+
 def save(root: Path, state: Mapping[str, Any], extra_writes: Mapping[str, str] | None = None) -> None:
     """Persist one state transition under the caller-held ShipLoop lock."""
     validate(state)
@@ -3444,6 +3764,9 @@ def save(root: Path, state: Mapping[str, Any], extra_writes: Mapping[str, str] |
     writes.update(_new_result_records(root, state))
     if state["status"] in ("done", "halted"):
         writes["report.html"] = _render_report(state, root)
+    # Derived display-only times: when the run started and each step was accepted.
+    timeline = _updated_timeline(root, state)
+    writes[TIMELINE_FILE] = json.dumps(timeline, indent=2, sort_keys=True) + "\n"
     # Derived display copy of the status block; refreshed only by transitions.
     writes["status.md"] = "```text\n" + status_block(state) + "\n```\n"
     # Derived index of everything the run has accepted, for every stage to read.
@@ -3460,7 +3783,7 @@ def _submitted_result(root: Path, args: Any, *, suffix: str = "") -> Any:
           "navigator complete requires a result Markdown path")
     expected = _result_input_path(Path(root), action_id + suffix)
     path = Path(raw_path)
-    _need(path == expected, "navigator result path must be the current generated path")
+    _need(path == expected, "navigator result path must be the current generated path: " + str(expected))
     try:
         metadata = path.lstat()
     except OSError as exc:
@@ -3541,7 +3864,6 @@ def improve_start_contract(core: Any, root: Path, state: Mapping[str, Any], open
     receipt = standalone.receipt_path(child)
     reviews = receipt.parent / "reviews"
     action_id = child["action_id"]
-    completion = root / "inbox" / (action_id + "-improve.md")
     parent_return = receipt.with_name("parent-return.md")
     planning = child["stage"] == "plan"
     request = (child["contract_marker"] + "\n\n## Current context and desired improvements\n"
@@ -3572,8 +3894,7 @@ def improve_start_contract(core: Any, root: Path, state: Mapping[str, Any], open
     authority = (sections["Authority"] + "\n\nCommit policy: the selected Improve card's scoped-commit "
                  "policy with the task's explicit overrides above; stage only intended paths, never runtime "
                  "receipts or unrelated staging, no empty commit. No push or merge. The child never runs a "
-                 "ShipLoop callback: after the terminal packet the parent writes the completion evidence and "
-                 "runs the return in " + str(parent_return) + ".")
+                 "ShipLoop callback: after the terminal packet the parent runs the return in " + str(parent_return) + ".")
     resources = [
         {"purpose": "selected Improve card", "locator": child["skill"]["skill_card"]},
         {"purpose": "bound Until Loop card", "locator": child["skill"]["runtime_card"]},
@@ -3581,18 +3902,16 @@ def improve_start_contract(core: Any, root: Path, state: Mapping[str, Any], open
         {"purpose": "latest child packet receipt", "locator": str(receipt)},
         {"purpose": "review and check evidence directory", "locator": str(reviews)},
         {"purpose": "ShipLoop parent state", "locator": str(root / "state.md")},
-        {"purpose": "ShipLoop completion evidence path", "locator": str(completion)},
+        {"purpose": "review evidence directory (review-<n>.md per pass, checks.md)", "locator": str(reviews)},
         {"purpose": "exact parent return instructions", "locator": str(parent_return)},
+        *([{"purpose": "native owner record (parent coordination data)",
+            "locator": str(receipt.with_name("host-owner.md"))}] if delegation(state) != guidance3.INLINE else []),
     ]
-    return {
-        "workspace": child["workspace"],
-        "work": work,
-        "exit_condition": exit_condition,
-        "repeat_condition": repeat,
-        "required_trivial_reviews": 2,
-        "context": {"request": request, "scope": scope, "authority": authority,
-                    "environment": sections["Environment"], "resources": resources},
-    }
+    return loop_contract.contract(
+        workspace=child["workspace"], work=work,
+        exit_condition=exit_condition + loop_contract.stage_exit(child["stage"]),
+        repeat_condition=repeat, required_trivial_reviews=2, request=request, scope=scope,
+        authority=authority, environment=sections["Environment"], resources=resources)
 
 
 def improve_commit_message_path(child: Mapping[str, Any]) -> Path:
@@ -3603,8 +3922,6 @@ def improve_commit_message_path(child: Mapping[str, Any]) -> Path:
 
 def _improve_commit(core: Any, root: Path, state: Mapping[str, Any], args: Any) -> int:
     """Commit exactly the files the bound Improve review changed and has not committed yet."""
-    import os
-    import subprocess
     child = state.get("active_improve")
     action_id = getattr(args, "action", None)
     _need(state["status"] == "active" and child is not None and action_id == child["action_id"]
@@ -3624,23 +3941,18 @@ def _improve_commit(core: Any, root: Path, state: Mapping[str, Any], args: Any) 
         print("Nothing to commit: every file this review changed is already committed"
               + (" (" + ", ".join(changes[0]) + ")." if changes[0] else "; the review changed no file."))
         return 0
-    repo = Path(state["repo"])
-
-    def git(*argv: str, env: dict | None = None) -> Any:
-        return subprocess.run(["git", "-C", str(repo), "-c", "core.hooksPath=/dev/null", *argv],
-                              capture_output=True, text=True, check=False,
-                              env=None if env is None else {**os.environ, **env})
-
-    added = git("add", "-A", "--", *pending)
-    _need(added.returncode == 0, "cannot stage the review's files: " + added.stderr.strip())
-    identity = git("config", "user.email")
-    env = None if identity.returncode == 0 and identity.stdout.strip() else {
-        "GIT_AUTHOR_NAME": "ShipLoop Workspace", "GIT_AUTHOR_EMAIL": "shiploop-workspace@local.invalid",
-        "GIT_COMMITTER_NAME": "ShipLoop Workspace", "GIT_COMMITTER_EMAIL": "shiploop-workspace@local.invalid"}
-    done = git("commit", "-q", "-F", str(message_path), "--", *pending, env=env)
-    _need(done.returncode == 0, "cannot commit the review's files: " + (done.stderr or done.stdout).strip())
-    head = git("rev-parse", "HEAD").stdout.strip()
+    try:
+        committed = shiploop_git.commit_paths(Path(state["repo"]), pending, "", message_file=message_path)
+    except shiploop_git.CommitError as exc:
+        raise NavigatorError(str(exc)) from exc
+    notice = shiploop_git.skipped_notice(committed.skipped)
+    if not committed.commit:
+        print("Nothing committed. " + notice)
+        return 0
     message_path.unlink()
+    head, pending = committed.commit, committed.paths
+    if notice:
+        print(notice)
     print("Committed this review's changes as " + head[:12] + ": " + ", ".join(pending) + ".")
     return 0
 
@@ -3653,8 +3965,6 @@ def _improve_start(core: Any, root: Path, state: Mapping[str, Any], args: Any) -
     action_id = getattr(args, "action", None)
     _need(state["status"] == "active" and child is not None and action_id == child["action_id"]
           and child["skill"] is not None, "no bound current Improve child; run the printed improve-bind first")
-    _need(delegation(state) == guidance3.INLINE,
-          "improve-start is the inline route; an ask-agent child is started by its worker")
     receipt = standalone.receipt_path(child)
     restart = bool(getattr(args, "restart_stopped", False))
     if receipt.exists():
@@ -3664,8 +3974,8 @@ def _improve_start(core: Any, root: Path, state: Mapping[str, Any], args: Any) -
             saved_status = None
         _need(restart and saved_status == "stopped",
               "this child already started; recover it from its saved receipt " + str(receipt)
-              + " (active: run its next_argv once; complete: write the completion evidence and run "
-              "improve-complete; stopped: once the blocker is resolved or the user authorizes continuing, "
+              + " (active: run its next_argv once; complete: run improve-complete; "
+              " stopped: once the blocker is resolved or the user authorizes continuing, "
               "record that decision in the opening and rerun improve-start with --restart-stopped)")
     else:
         _need(not restart, "--restart-stopped needs a stopped child receipt at " + str(receipt))
@@ -3683,15 +3993,13 @@ def _improve_start(core: Any, root: Path, state: Mapping[str, Any], args: Any) -
                          + " and reviews.stopped-" + stamp + ".\n")
     receipt.parent.mkdir(parents=True, exist_ok=True)
     (receipt.parent / "reviews").mkdir(exist_ok=True)
-    completion = root / "inbox" / (action_id + "-improve.md")
     store.atomic_write_text(receipt.with_name("parent-return.md"), "\n".join([
         "# Parent return for Improve child " + action_id, "",
-        "Only after the runtime wrote a complete terminal packet to " + str(receipt) + ":",
-        "1. Write the completion evidence to " + str(completion) + " (summary, review_refs, check_refs, lessons).",
-        "2. Run: " + _callback(core, root, "improve-complete", action=action_id, result=str(completion)),
-        "The child never runs these; a stopped or blocked child leaves the parent pending.", ""]))
+        "Only after the runtime wrote a complete terminal packet to " + str(receipt) + ", run:",
+        _callback(core, root, "improve-complete", action=action_id),
+        "The child never runs it; a stopped or blocked child leaves the parent pending.", ""]))
     start = receipt.with_name("start.json")
-    store.atomic_write_text(start, json.dumps(contract, indent=2, ensure_ascii=False) + "\n")
+    store.atomic_write_text(start, loop_contract.dumps(contract))
     state_dir = root / "until-loop"
     state_dir.mkdir(exist_ok=True)
     done = subprocess.run(
@@ -3779,20 +4087,18 @@ def dispatch(core: Any, root: Path, state: Mapping[str, Any], args: Any,
             elif command == "improve-complete":
                 _need(isinstance(action_id, str) and _ACTION_ID.fullmatch(action_id) is not None,
                       "unsafe Improve parent action")
-                path = root / "inbox" / (action_id + "-improve.md")
-                _need(getattr(args, "result", None) == str(path), "Improve receipt must use the printed inbox path")
-                receipt = _submitted_result(root, args, suffix="-improve")
                 prior = state["improve_results"].get(action_id)
                 if prior is not None:
+                    # A repeated call after a successful import changes nothing.
                     _need(prior.get("runtime_phase") != "stopped",
                           "stopped Improve imports replay only through improve-reconcile")
-                    _need(receipt == prior.get("submission"), "conflicting Improve result replay")
                     updated = deepcopy(dict(state))
                 else:
                     child = state["active_improve"]
                     _need(state["status"] == "active" and child is not None
                           and action_id == child["action_id"] and child["skill"] is not None,
                           "no bound current Improve child")
+                    receipt = _derived_improve_receipt(child, args)
                     final_result = receipt.get("final_result")
                     if final_result is not None:
                         _check_submitted_evidence(final_result)
@@ -3806,6 +4112,7 @@ def dispatch(core: Any, root: Path, state: Mapping[str, Any], args: Any,
                         child["seed_result"] if final_result is None else final_result)
                     _check_submitted_recorded_commands(
                         child["stage"], child["seed_result"] if final_result is None else final_result)
+                    _check_submitted_awaiting(child["seed_result"] if final_result is None else final_result)
                     _knowledge_gate(state, child["stage"],
                                     child["seed_result"] if final_result is None else final_result)
                     _improve_change_gate(root, state, action_id, child, receipt)
@@ -3845,7 +4152,7 @@ def dispatch(core: Any, root: Path, state: Mapping[str, Any], args: Any,
                 lint_writes, lint_payload = _lint_transition(core, root, state, updated)
                 save(root, updated, {**lint_writes, **extra_writes})
                 _lint_finish(root, lint_payload)
-                _knowledge_close(state, updated)
+                _knowledge_close(state, updated, root)
             emit(core, root, updated)
             return 0
         except standalone.StandaloneImproveError as exc:
@@ -3872,6 +4179,7 @@ def dispatch(core: Any, root: Path, state: Mapping[str, Any], args: Any,
             _check_submitted_test_commands(current_stage(state), submitted)
             _check_submitted_consumer_entry(state["repo"], current_stage(state), submitted)
             _check_submitted_recorded_commands(current_stage(state), submitted)
+            _check_submitted_awaiting(submitted)
             _knowledge_gate(state, current_stage(state), submitted)
             # Lint first, so the tests run on any code the lint gate auto-fixed.
             if cursor_stage in lint.GATE_STAGES:
@@ -3913,6 +4221,6 @@ def dispatch(core: Any, root: Path, state: Mapping[str, Any], args: Any,
         save(root, updated, lint_writes)
         _lint_finish(root, lint_payload)
         _item_commit(root, state, updated)
-        _knowledge_close(state, updated)
+        _knowledge_close(state, updated, root)
     emit(core, root, updated)
     return 0

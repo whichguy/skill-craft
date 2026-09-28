@@ -161,7 +161,7 @@ def _live_run_dependency_reason(root: Path, path: Path) -> str | None:
         return "state.md must be projected as planning-only material, not bound directly"
     if parts and parts[0] == "inbox":
         return "navigator inbox material is mutable and cannot be a planning dependency"
-    if name in {"state.json", "status.json", "status.md", "plan-dispatcher-state.json", "report.html"}:
+    if name in {"state.json", "status.json", "status.md", "timeline.json", "plan-dispatcher-state.json", "report.html"}:
         return "run-local status or dispatcher state cannot be a planning dependency"
     if len(parts) >= 3 and parts[0] == "chains" and parts[2] == "events":
         return "chain event history cannot be a planning dependency"

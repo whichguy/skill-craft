@@ -19,16 +19,54 @@ flowchart LR
     T -->|red| S
 ```
 
-All three stages default to **Grok (`grok-4.7`) at medium reasoning effort**;
-`--host claude` switches to Claude (Sonnet). Every stage launches a real model
-and costs money; none of it runs in default CI.
+All three stages default to **Grok (`grok-4.7`) at medium reasoning effort**.
+`--host claude` switches to Claude (Sonnet), and `--host codex` to Codex
+(GPT-6 Luna, `gpt-6-luna`, at max effort). `--model` and `--effort` override either one, so
+switching model or effort is a flag, for example
+`--host codex --model gpt-6-sol --effort xhigh`. Every stage launches a real
+model and costs money; none of it runs in default CI.
+
+Each host is one class in `hosts.py` (`HOSTS`); nothing else branches on the
+host name. A host builds its argv, its isolated profile (Grok and Codex get a
+throwaway HOME whose profile links only the user's `auth.json`), its plugin
+install, how a prompt invokes the skill (`/skill-craft:shiploop` or Codex's
+`$skill-craft:shiploop`), and a translator. Codex's `codex exec --json` stream is
+translated into Grok's event shape as it is captured, so metrics, the transcript
+and the reviewer read one format. Codex reports no dollar cost, so its cost is
+unknown, and it has no turn cap. Adding a host means adding one class.
+
+To check orchestration alone, without ShipLoop's SDLC or a product, run the
+fan-out/fan-in check. A host drives the published `plan-dispatcher` skill on
+dummy steps: A and B are independent, and J comes after both. Each step only
+records its start, sleeps 30 s and records its end. A script, not the model,
+grades whether the dispatcher completed, whether J started after both A and B
+ended, and whether A and B overlapped as native workers. It takes about 10
+minutes:
+
+```sh
+python3 test/shiploop_e2e/fanout.py --host codex --model gpt-6-luna --effort medium
+```
+
+A run that stops while ShipLoop is still active, for example because a host ran
+out of credits, can continue in place on any host:
+
+```sh
+bash test/run-integration.sh shiploop-e2e --resume-run <that run's output directory> --host codex --effort xhigh
+```
+
+It keeps the same work directory, run state and event stream, and prompts with
+the ShipLoop CLI of the host that started the run, so the run's version does not
+change. The case and checks come from the earlier run, and the result is graded
+as usual. The original `invocation.json` is kept, and each resume is recorded
+beside it as `invocation-resume-<host>-<time>.json`.
 
 
 **Start with [SPEC.md](SPEC.md).** It is the standing specification every run,
 review and fix is judged against: the purpose of this loop (verify ShipLoop, not
-the probe product) and the design clauses S-1..S-13 (scripts own the graph and
+the probe product) and the design clauses S-1..S-15 (scripts own the graph and
 state, packets stand alone and stay small, prompts stay technology-agnostic,
-one implementation per mechanism, ...). `review.py` and `iterate.py` load it as
+one implementation per mechanism, unattended by default, the user follows the
+run through script-rendered status, ...). `review.py` and `iterate.py` load it as
 their premise; learnings entries cite its clause IDs.
 
 ## One run
@@ -36,6 +74,7 @@ their premise; learnings entries cite its clause IDs.
 ```sh
 bash test/run-integration.sh shiploop-e2e --case battleship
 bash test/run-integration.sh shiploop-e2e --case hello --host claude
+bash test/run-integration.sh shiploop-e2e --case hello --host codex --effort xhigh
 bash test/run-integration.sh shiploop-e2e --prompt "Create fizzbuzz.py with tests" --check "python3 -m unittest -q"
 ```
 
@@ -97,13 +136,18 @@ bash test/run-integration.sh shiploop-e2e --suite breadth       # one case per s
 
 Each case in `cases.json` has a `style`; `suites.json` groups them into focused
 suites (one style) and the `breadth` suite (one case per style). `--suite`
-runs the cases in order into one directory; a follow-on case starts from its
-predecessor's output and is skipped when that predecessor failed. Every run
+runs the cases into one directory, each in its own folder; independent chains
+(a case with its follow-ons) run concurrently, up to `--max-parallel` (default
+3), quietly; `--serial` runs one at a time. A follow-on case starts from its
+predecessor's output and is skipped when that predecessor failed. With
+`--source marketplace`, a suite first runs the marketplace preflight once
+(`--preflight-only` runs just that): it installs skill-craft the host's way
+and prints what origin/main publishes and what the host got. Every run
 (suite or `--case`) appends one summary row to `baselines.jsonl`
 (case, style, source, ShipLoop version, verdicts, turns, cost, sessions,
 cancellations, model glue, ShipLoop failures) and prints the change against
 the case's previous row from the same source. Commit the new rows with the
-run's learnings entry. See SPEC.md, "E2E suites".
+run's learnings entry. See SPEC.md, "E2E suites" and "Parallel work".
 
 `metrics.json` also reports `script_verifications` (the checks ShipLoop itself
 ran and recorded, from its `*-verify*.md` records) and `model_glue`: shell

@@ -52,6 +52,7 @@ This launches a real model and costs money; it is never part of default CI.
 from __future__ import annotations
 
 import argparse
+from concurrent.futures import ThreadPoolExecutor
 import json
 import os
 from pathlib import Path
@@ -79,7 +80,9 @@ SUITES = HERE / "suites.json"
 BASELINES = HERE / "baselines.jsonl"
 PLUGIN_NAME = "skill-craft"
 # Grok does not namespace plugin skills; Claude prefixes them with the plugin name.
-SKILL_COMMAND = {"grok": "shiploop", "claude": "skill-craft:shiploop"}
+def the_host(args) -> "hosts.Host":
+    """The selected host, with the binary its --<host>-bin flag names."""
+    return hosts.host(args.host, getattr(args, args.host + "_bin"))
 
 
 def load_case(args) -> tuple[str, str, list[str], str | None]:
@@ -143,15 +146,50 @@ def released_versions() -> dict:
     catalog = json.loads(git("show", "origin/main:.claude-plugin/marketplace.json"))
     plugin = next(p for p in catalog["plugins"] if p["name"] == PLUGIN_NAME)
     shiploop = re.search(r"^version:[ \t]*(\S+)", git("show", f"origin/main:plugins/{PLUGIN_NAME}/skills/shiploop/SKILL.md"), re.M)
-    return {"origin_main": git("rev-parse", "origin/main").strip(), "local_head": git("rev-parse", "HEAD").strip(),
-            "catalog_version": plugin.get("version"), "shiploop_version": shiploop.group(1) if shiploop else None}
+    # A pending change note on main is source the marketplace does not serve yet: release.py has not run.
+    pending = [name for name in git("ls-tree", "-r", "--name-only", "origin/main", "changes/").split()
+               if name.endswith(".md") and name != "changes/README.md"]
+    origin_main = git("rev-parse", "origin/main").strip()
+    local = git("rev-parse", "HEAD").strip()
+    # Behind origin/main is fine (the plugin comes from the marketplace); unpublished local commits are not.
+    behind = subprocess.run(["git", "-C", str(ROOT), "merge-base", "--is-ancestor", local, origin_main]).returncode == 0
+    return {"origin_main": origin_main, "local_head": local, "local_behind_main": behind,
+            "catalog_version": plugin.get("version"), "shiploop_version": shiploop.group(1) if shiploop else None,
+            "unreleased": pending, "ci": main_ci(origin_main)}
+
+
+def main_ci(commit: str) -> str:
+    """origin/main's CI result: success, failure, pending, or unknown (no gh, or no run found).
+
+    The full hermetic tier runs in CI on release commits, not locally; the E2E runs wait for it.
+    """
+    try:
+        done = subprocess.run(["gh", "run", "list", "--repo", "whichguy/skill-craft", "--commit", commit,
+                               "--json", "status,conclusion"], capture_output=True, text=True, timeout=60)
+        runs = json.loads(done.stdout) if done.returncode == 0 else None
+    except (OSError, ValueError, subprocess.TimeoutExpired):
+        runs = None
+    if not runs:
+        return "unknown"
+    if any(run.get("conclusion") == "failure" for run in runs):
+        return "failure"
+    if any(run.get("status") != "completed" for run in runs):
+        return "pending"
+    return "success" if all(run.get("conclusion") == "success" for run in runs) else "failure"
 
 
 def version_gate(released: dict, plugin_version: str | None, shiploop_version: str | None) -> list[str]:
     """Why a marketplace run would not test what main and the marketplace publish, if at all."""
     problems = []
-    if released["local_head"] != released["origin_main"]:
-        problems.append(f"local HEAD {released['local_head'][:8]} is not origin/main {released['origin_main'][:8]}")
+    # Optimistic: a run starts while CI is still pending and is cancelled if CI then fails (SPEC).
+    if released.get("ci") == "failure":
+        problems.append("origin/main's CI failed: fix it (or revert) before spending a live run")
+    if released.get("unreleased"):
+        problems.append("origin/main has unreleased changes (" + ", ".join(released["unreleased"][:5])
+                        + "): run scripts/release.py and push so the marketplace serves them")
+    if released["local_head"] != released["origin_main"] and not released.get("local_behind_main"):
+        problems.append(f"local HEAD {released['local_head'][:8]} has commits origin/main "
+                        f"{released['origin_main'][:8]} does not: publish them first")
     if plugin_version != released["catalog_version"]:
         problems.append(f"installed skill-craft {plugin_version} is not the catalog's {released['catalog_version']}")
     if shiploop_version != released["shiploop_version"]:
@@ -174,6 +212,51 @@ def build_candidate(out: Path) -> Path:
     subprocess.run([sys.executable, "-B", str(ROOT / "scripts/build-packages.py"), str(out / "build")],
                    check=True, stdout=subprocess.DEVNULL)
     return out / "build" / "plugins" / PLUGIN_NAME
+
+
+def installed_versions(plugin_dir: Path) -> dict:
+    """The skill-craft and ShipLoop versions of the plugin a host will actually load."""
+    manifest = plugin_dir / ".claude-plugin" / "plugin.json"
+    return {"plugin_version": json.loads(manifest.read_text()).get("version") if manifest.is_file() else None,
+            "shiploop_version": card_version(plugin_dir / "skills" / "shiploop" / "SKILL.md")}
+
+
+def marketplace_preflight(args, out: Path, env: dict) -> tuple[Path, dict | None, dict]:
+    """Pull from the marketplace the way the host does, then report and gate what was actually installed.
+
+    Grok: add the published marketplace and install skill-craft into the fresh profile in ``env``.
+    Claude: load origin/main's plugins/skill-craft, the bytes the marketplace serves.
+    Prints one line naming what main publishes and what the host got, so a stale
+    marketplace is visible before any run starts (SPEC: publish, refresh, then run).
+    """
+    released = released_versions()
+    plugin = None
+    host = the_host(args)
+    if host.marketplace:
+        installed = host.install_marketplace(env)
+        plugin_dir = Path(installed["path"]) if installed["path"] else out / "missing-plugin"
+        plugin = {"pass": installed["pass"], "loaded": installed["loaded"], "source": installed["source"],
+                  "registry_version": installed["version"]}
+        how = f"{host.name} marketplace add + install (fresh profile)"
+    else:
+        plugin_dir = export_released(out)
+        how = "origin/main export"
+    versions = {"source": "marketplace", "installed_by": how, **installed_versions(plugin_dir), "released": released}
+    versions["gate"] = version_gate(released, versions["plugin_version"], versions["shiploop_version"])
+    if plugin is not None and not plugin["pass"]:
+        versions["gate"].append("the marketplace install failed: " + ("; ".join(plugin["loaded"]) or "no plugin"))
+    print(preflight_line(versions), flush=True)
+    return plugin_dir, plugin, versions
+
+
+def preflight_line(versions: dict) -> str:
+    released = versions["released"]
+    return (f"marketplace preflight: origin/main {released['origin_main'][:8]} publishes skill-craft "
+            f"{released['catalog_version']} / ShipLoop {released['shiploop_version']}; "
+            f"{versions['installed_by']} got skill-craft {versions['plugin_version']} / ShipLoop "
+            f"{versions['shiploop_version']}; unreleased notes: {len(released.get('unreleased') or [])}; "
+            f"main CI: {released.get('ci', 'unknown')}; "
+            + ("OK" if not versions["gate"] else "REFUSED: " + "; ".join(versions["gate"])))
 
 
 class LiveView:
@@ -223,7 +306,7 @@ class LiveView:
 
 
 def launch(argv: list[str], work: Path, out: Path, env: dict, timeout: int, watch: bool,
-           first: bool = True, fresh: bool = True) -> dict:
+           first: bool = True, fresh: bool = True, translate=None) -> dict:
     if first and fresh:
         # The skill must start from a directory with nothing in it.
         leftover = sorted(p.name for p in work.iterdir())
@@ -233,7 +316,11 @@ def launch(argv: list[str], work: Path, out: Path, env: dict, timeout: int, watc
     view = LiveView(start, watch)
     mode = "wb" if first else "ab"  # a resumed session appends to the same streams
     events_path = out / "events.jsonl"
-    line = 0 if first else sum(1 for _ in events_path.open("rb"))
+    if first:
+        line = 0
+    else:
+        with events_path.open("rb") as existing:
+            line = sum(1 for _ in existing)
     # A run takes an hour or more; on macOS keep the machine from idle-sleeping, which
     # otherwise freezes the host mid-stage and stretches every stage timing.
     caffeinate = shutil.which("caffeinate")
@@ -244,22 +331,27 @@ def launch(argv: list[str], work: Path, out: Path, env: dict, timeout: int, watc
         proc = subprocess.Popen(argv, cwd=work, stdin=subprocess.DEVNULL, stdout=subprocess.PIPE,
                                 stderr=stderr, env=env, start_new_session=True)
 
-        def pump():
+        def record(raw: bytes):
             nonlocal line
-            for raw in proc.stdout:
-                events.write(raw)
-                events.flush()
-                number, line = line, line + 1
-                try:
-                    event = json.loads(raw)
-                except ValueError:
-                    continue
-                if isinstance(event, dict):
-                    # Grok events carry no time; stamp the ones metrics.py attributes.
-                    if event.get("type") not in ("text", "thought"):
-                        stamps.write(json.dumps({"line": number, "t": round(time.time(), 3)}) + "\n")
-                        stamps.flush()
-                    view.event(event)
+            events.write(raw)
+            events.flush()
+            number, line = line, line + 1
+            try:
+                event = json.loads(raw)
+            except ValueError:
+                return
+            if isinstance(event, dict):
+                # Grok events carry no time; stamp the ones metrics.py attributes.
+                if event.get("type") not in ("text", "thought"):
+                    stamps.write(json.dumps({"line": number, "t": round(time.time(), 3)}) + "\n")
+                    stamps.flush()
+                view.event(event)
+
+        def pump():
+            # The host's translator turns its stream into the shared event shape.
+            for original in proc.stdout:
+                for raw in (translate or (lambda b: [b]))(original):
+                    record(raw)
             view.flush_text()
 
         reader = threading.Thread(target=pump, daemon=True)
@@ -307,6 +399,20 @@ def summarize_events(path: Path) -> dict:
     return seen
 
 
+def shiploop_cli_ran(events_path: Path) -> bool:
+    """Whether any tool call ran the installed ShipLoop CLI."""
+    for line in events_path.read_text(errors="replace").splitlines():
+        try:
+            event = json.loads(line)
+        except ValueError:
+            continue
+        if isinstance(event, dict) and event.get("type") == "tool_call":
+            arg = event.get("rawInput") if isinstance(event.get("rawInput"), dict) else {}
+            if "skills/shiploop/scripts/shiploop" in str(arg.get("command") or ""):
+                return True
+    return False
+
+
 def last_session_id(events_path: Path) -> str | None:
     """The host session to resume: the last session id the event stream carried."""
     found = None
@@ -320,13 +426,12 @@ def last_session_id(events_path: Path) -> str | None:
     return found
 
 
-def resume_prompt(out: Path, run_dir: str | None) -> str:
+def resume_prompt(out: Path, run_dir: str | None, host: "hosts.Host | None" = None) -> str:
     if run_dir is None:
         return ("This session ended before the ShipLoop run was started. Continue the original "
                 "request now: start the ShipLoop run as its skill directs and follow each packet to "
                 "the end of the run. Never end the turn while a ShipLoop command is still running.")
-    cli = next((out / "home" / ".grok" / "installed-plugins").glob("skill-craft-*/skills/shiploop/scripts/shiploop"),
-               None)
+    cli = (host or hosts.host("grok")).plugin_cli(out / "home")
     command = f'python3 "{cli}" next --run-dir "{run_dir}"' if cli else f'shiploop next --run-dir "{run_dir}"'
     return ("This session ended while the ShipLoop run was still active. Continue it now: run "
             f"`{command}` and follow the packet it prints, to the end of the run. Never end the turn "
@@ -476,7 +581,7 @@ def run_checks(work: Path, checks: list[str], timeout: int = 180, env: dict | No
     results = []
     for command in checks:
         try:
-            done = subprocess.run(command, shell=True, cwd=work, capture_output=True,
+            done = subprocess.run(command, shell=True, cwd=work, capture_output=True, stdin=subprocess.DEVNULL,
                                   text=True, timeout=timeout,
                                   env=dict(os.environ, E2E_CHECKS=str(HERE / "checks"), **(env or {})))
             code, output = done.returncode, (done.stdout + done.stderr)[-2000:]
@@ -496,18 +601,26 @@ def parser() -> argparse.ArgumentParser:
     p.add_argument("--baseline", type=Path, default=BASELINES,
                    help="append one summary row per run to this file (default: the committed baselines.jsonl)")
     p.add_argument("--prompt", help="run this prompt instead of a named case")
+    p.add_argument("--resume-run", type=Path,
+                   help="an earlier run's output directory whose ShipLoop run stopped while active (a host ran "
+                        "out of credits, a machine slept): continue that same run in place, on --host, and grade "
+                        "it as usual. The case and checks come from the earlier run.")
     p.add_argument("--continue-from", type=Path,
                    help="an earlier run's output directory: start in a copy of its source checkout "
                         "(required by follow-on cases, which name the case they follow)")
     p.add_argument("--check", action="append", help="extra shell check run in the work dir (repeatable)")
     p.add_argument("--output", type=Path, help="new directory for this attempt (default: under $TMPDIR)")
-    p.add_argument("--host", choices=sorted(hosts.HOST_DEFAULTS), default="grok")
+    p.add_argument("--host", choices=[*sorted(hosts.HOSTS), "all"], default="grok",
+                   help="the host that drives ShipLoop; 'all' only with --preflight-only (checks every host)")
     p.add_argument("--model", help="default: grok-4.7 (grok) or sonnet (claude)")
     p.add_argument("--effort", help="reasoning effort; default: medium (grok), host default (claude)")
     p.add_argument("--skill", help="command that invokes ShipLoop; default: shiploop (grok), skill-craft:shiploop (claude)")
     p.add_argument("--source", choices=("marketplace", "checkout"), default="marketplace",
                    help="marketplace (default): test what the whichguy marketplace publishes now, gated on "
                         "local HEAD == origin/main and matching versions; checkout: build this checkout")
+    p.add_argument("--preflight-only", action="store_true",
+                   help="pull skill-craft from the marketplace into a fresh profile, print what main publishes "
+                        "and what the host installed, and exit non-zero if the version gate refuses")
     p.add_argument("--plugin-dir", type=Path, help="test this skill-craft plugin build (implies --source checkout)")
     p.add_argument("--max-turns", type=int, default=10000)
     p.add_argument("--max-budget-usd", type=float, default=10.0, help="claude only; grok has no spend cap")
@@ -516,9 +629,15 @@ def parser() -> argparse.ArgumentParser:
     p.add_argument("--max-resumes", type=int, default=20,
                    help="grok only: resume the same session this many times while ShipLoop is still active")
     p.add_argument("--quiet", action="store_true", help="do not print the live progress view")
+    p.add_argument("--max-parallel", type=int, default=3,
+                   help="suites: run up to this many independent case chains at once (default 3)")
+    p.add_argument("--serial", action="store_true",
+                   help="suites: run every case one after another (rerun a failure that appears only in parallel "
+                        "this way before attributing it to ShipLoop)")
     p.add_argument("--suite-name", help=argparse.SUPPRESS)
     p.add_argument("--grok-bin", default="grok")
     p.add_argument("--claude-bin", default="claude")
+    p.add_argument("--codex-bin", default="codex")
     return p
 
 
@@ -536,8 +655,10 @@ def baseline_row(result: dict, style: str | None, suite: str | None) -> dict:
             "turns": m.get("turns"), "cost_usd": m.get("cost_usd"),
             "sessions": len((result.get("process") or {}).get("sessions") or []),
             "cancelled_tool_calls": m.get("cancelled_tool_calls"), "model_glue": m.get("model_glue"),
+            "tmp_writes": m.get("tmp_writes"),
             "shiploop_failures": m.get("shiploop_failures"), "compactions": m.get("compactions"),
-            "truncated_outputs": m.get("truncated_outputs"), "output": result.get("output")}
+            "truncated_outputs": m.get("truncated_outputs"), "narrative": m.get("narrative"),
+            "output": result.get("output")}
 
 
 def previous_row(path: Path, case: str, source: str | None) -> dict | None:
@@ -555,6 +676,31 @@ def previous_row(path: Path, case: str, source: str | None) -> dict | None:
     return found
 
 
+def shared_tmp_writes(outputs: list[Path]) -> dict[str, list[str]]:
+    """Each literal /tmp path that more than one of these runs wrote, with the runs that wrote it."""
+    writers: dict[str, list[str]] = {}
+    for out in outputs:
+        for name in metrics.collect(out).get("tmp_writes") or []:
+            writers.setdefault(name, []).append(out.name)
+    return {name: runs for name, runs in sorted(writers.items()) if len(runs) > 1}
+
+
+def suite_chains(order: list[str], cases: dict) -> list[list[str]]:
+    """Independent chains: a case with its follow-ons, in suite order. Chains share nothing, so they may run
+    concurrently; a follow-on always runs after its predecessor, in the same chain."""
+    chains: list[list[str]] = []
+    home: dict[str, list[str]] = {}
+    for case in order:
+        follows = cases[case].get("follows")
+        chain = home.get(follows) if follows else None
+        if chain is None:
+            chain = []
+            chains.append(chain)
+        chain.append(case)
+        home[case] = chain
+    return chains
+
+
 def run_suite(args, argv: list[str]) -> int:
     """Run a suite's cases in order; a follow-on starts from its predecessor and is skipped if it failed."""
     suites = json.loads(SUITES.read_text())
@@ -562,7 +708,7 @@ def run_suite(args, argv: list[str]) -> int:
         raise SystemExit(f"unknown suite {args.suite!r}; known: {', '.join(k for k in suites if not k.startswith('_'))}")
     cases = json.loads(CASES.read_text())
     base = new_output_dir(args.output, "suite-" + args.suite)
-    passthrough, skip = [], {"--suite", "--output", "--case", "--continue-from"}
+    passthrough, skip = [], {"--suite", "--output", "--case", "--continue-from", "--max-parallel"}
     it = iter(argv)
     for token in it:
         name = token.split("=", 1)[0]
@@ -571,25 +717,64 @@ def run_suite(args, argv: list[str]) -> int:
                 next(it, None)
             continue
         passthrough.append(token)
-    outputs: dict[str, Path] = {}
-    summary = []
-    for case in suites[args.suite]["cases"]:
-        follows = cases[case].get("follows")
-        prior = outputs.get(follows) if follows else None
-        if follows and prior is None:
-            summary.append({"case": case, "skipped": f"its predecessor {follows!r} is not in this suite run"})
-            continue
-        if prior is not None and not json.loads((prior / "result.json").read_text()).get("pass"):
-            summary.append({"case": case, "skipped": f"its predecessor {follows!r} failed; nothing to build on"})
-            continue
+    if args.source == "marketplace" and not args.plugin_dir:
+        check = base / "preflight"
+        check.mkdir()
+        env = the_host(args).env(check / "home")
+        _, _, versions = marketplace_preflight(args, check, env)
+        (check / "preflight.json").write_text(json.dumps(versions, indent=2) + "\n")
+        if versions["gate"]:
+            raise SystemExit("suite not started, version gate: " + "; ".join(versions["gate"]))
+    gate = suites[args.suite].get("gate") or []
+    gate_rows = []
+    for case in gate:
+        # A batch suite's gate runs first and alone: a cheap case that fails stops the costly ones.
         out = base / case
-        case_argv = [*passthrough, "--case", case, "--output", str(out), "--suite-name", args.suite]
-        if prior is not None:
-            case_argv += ["--continue-from", str(prior)]
-        code = main(case_argv)
-        outputs[case] = out
-        summary.append({"case": case, "pass": code == 0, "output": str(out)})
-    (base / "suite-result.json").write_text(json.dumps({"suite": args.suite, "cases": summary}, indent=2) + "\n")
+        code = main([*passthrough, "--case", case, "--output", str(out), "--suite-name", args.suite])
+        gate_rows.append({"case": case, "pass": code == 0, "output": str(out), "gate": True})
+    if not all(row["pass"] for row in gate_rows):
+        summary = gate_rows + [{"case": case, "skipped": "the gate failed"} for case in suites[args.suite]["cases"]]
+        (base / "suite-result.json").write_text(json.dumps({"suite": args.suite, "cases": summary}, indent=2) + "\n")
+        print(f"suite {args.suite}: gate failed ({', '.join(r['case'] for r in gate_rows if not r['pass'])}); "
+              "the other cases did not run")
+        return 1
+    order = suites[args.suite]["cases"]
+    chains = suite_chains(order, cases)
+    if len(chains) > 1 and not args.serial and "--quiet" not in passthrough:
+        passthrough.append("--quiet")  # concurrent live views would interleave
+
+    def run_chain(chain: list[str]) -> list[dict]:
+        outputs: dict[str, Path] = {}
+        rows = []
+        for case in chain:
+            follows = cases[case].get("follows")
+            prior = outputs.get(follows) if follows else None
+            if follows and prior is None:
+                rows.append({"case": case, "skipped": f"its predecessor {follows!r} is not in this suite run"})
+                continue
+            if prior is not None and not json.loads((prior / "result.json").read_text()).get("pass"):
+                rows.append({"case": case, "skipped": f"its predecessor {follows!r} failed; nothing to build on"})
+                continue
+            out = base / case
+            case_argv = [*passthrough, "--case", case, "--output", str(out), "--suite-name", args.suite]
+            if prior is not None:
+                case_argv += ["--continue-from", str(prior)]
+            code = main(case_argv)
+            outputs[case] = out
+            rows.append({"case": case, "pass": code == 0, "output": str(out)})
+        return rows
+
+    workers = 1 if args.serial else max(1, min(args.max_parallel, len(chains)))
+    with ThreadPoolExecutor(max_workers=workers) as pool:
+        rows = [row for chain_rows in pool.map(run_chain, chains) for row in chain_rows]
+    summary = gate_rows + sorted(rows, key=lambda row: order.index(row["case"]))
+    shared = shared_tmp_writes([Path(row["output"]) for row in summary if row.get("output")])
+    if shared:
+        # Concurrent runs that wrote the same /tmp name may have read each other's files (plan P13).
+        print("suite " + args.suite + ": /tmp names written by more than one case (their evidence is suspect): "
+              + "; ".join(f"{name} ({', '.join(cases_)})" for name, cases_ in shared.items()), flush=True)
+    (base / "suite-result.json").write_text(json.dumps({"suite": args.suite, "cases": summary,
+                                                        "shared_tmp_writes": shared}, indent=2) + "\n")
     print(f"suite {args.suite}: " + ", ".join(
         f"{row['case']} {'SKIP' if 'skipped' in row else 'PASS' if row['pass'] else 'FAIL'}" for row in summary))
     return 0 if all(row.get("pass") for row in summary) else 1
@@ -598,73 +783,115 @@ def run_suite(args, argv: list[str]) -> int:
 def main(argv: list[str] | None = None) -> int:
     argv = list(sys.argv[1:] if argv is None else argv)
     args = parser().parse_args(argv)
+    if args.preflight_only:
+        # Before a rerun, every host must get the latest release (SPEC: publish, refresh, then run).
+        out = new_output_dir(args.output, "preflight")
+        refused = False
+        for name in (sorted(hosts.HOSTS) if args.host == "all" else [args.host]):
+            args.host = name
+            check = out / name
+            check.mkdir()
+            _, _, versions = marketplace_preflight(args, check, the_host(args).env(check / "home"))
+            (check / "preflight.json").write_text(json.dumps(versions, indent=2) + "\n")
+            refused = refused or bool(versions["gate"])
+        return 1 if refused else 0
+    if args.host == "all":
+        raise SystemExit("--host all is only for --preflight-only; a run needs one host")
     if args.suite:
         return run_suite(args, argv)
-    defaults = hosts.HOST_DEFAULTS[args.host]
-    args.model = args.model or defaults["model"]
-    args.effort = args.effort or defaults["effort"]
-    args.skill = args.skill or SKILL_COMMAND[args.host]
+    host = the_host(args)
+    args.model = args.model or host.model
+    args.effort = args.effort or host.effort
+    args.skill = args.skill or host.skill
     if args.plugin_dir:
         args.source = "checkout"
     if args.plugin_dir and not (args.plugin_dir / ".claude-plugin" / "plugin.json").is_file():
         raise SystemExit(f"--plugin-dir has no .claude-plugin/plugin.json: {args.plugin_dir}")
 
-    name, prompt, checks, follows = load_case(args)
-    if follows and not args.continue_from:
-        raise SystemExit(f"case {name!r} follows {follows!r}: pass --continue-from <that run's output directory>")
-    out = new_output_dir(args.output, name)
-    work = out / "work"
-    work.mkdir()
-    follow_on = continue_from(args.continue_from.expanduser().resolve(), work) if args.continue_from else None
-    env = dict(os.environ, GIT_TERMINAL_PROMPT="0", NO_COLOR="1")
-    plugin = None
-    released = released_versions() if args.source == "marketplace" else None
-    if args.host == "grok":
-        env = hosts.grok_env(out / "home")
-    if args.source == "marketplace" and args.host == "grok":
-        installed = hosts.grok_install_marketplace(env, grok_bin=args.grok_bin)
-        plugin_dir = Path(installed["path"]) if installed["path"] else out / "missing-plugin"
-        plugin = {"pass": installed["pass"], "loaded": installed["loaded"], "source": installed["source"]}
-    elif args.source == "marketplace":
-        plugin_dir = export_released(out)
+    resumed = None
+    if args.resume_run:
+        # Continue a stopped run in place: same work directory, run state and event stream.
+        out = args.resume_run.expanduser().resolve()
+        earlier = json.loads((out / "invocation.json").read_text())
+        name, checks, follow_on = earlier["case"], earlier["checks"], earlier.get("follow_on")
+        prompt = (out / "prompt.txt").read_text().strip()
+        work = out / "work"
+        state = grade_shiploop(out)
+        if state.get("status") != "active":
+            raise SystemExit(f"--resume-run needs an active ShipLoop run; found {state.get('status')!r} in {out}")
+        resumed = {"from_host": earlier["host"], "from_model": earlier.get("model"), "run_dir": state.get("run_dir"),
+                   "revision": state.get("revision"), "stage": state.get("stage")}
     else:
-        plugin_dir = args.plugin_dir or build_candidate(out)
-        if args.host == "grok":
-            plugin = hosts.grok_install(env, plugin_dir, args.grok_bin)
-    manifest = plugin_dir / ".claude-plugin" / "plugin.json"
-    versions = {"source": args.source,
-                "plugin_version": json.loads(manifest.read_text()).get("version") if manifest.is_file() else None,
-                "shiploop_version": card_version(plugin_dir / "skills" / "shiploop" / "SKILL.md"),
-                **({"released": released} if released else {"local_head": git("rev-parse", "HEAD").strip()})}
-    if released:
-        versions["gate"] = version_gate(released, versions["plugin_version"], versions["shiploop_version"])
+        name, prompt, checks, follows = load_case(args)
+        if follows and not args.continue_from:
+            raise SystemExit(f"case {name!r} follows {follows!r}: pass --continue-from <that run's output directory>")
+        out = new_output_dir(args.output, name)
+        work = out / "work"
+        work.mkdir()
+        follow_on = continue_from(args.continue_from.expanduser().resolve(), work) if args.continue_from else None
+    env = host.env(out / "home")
+    if resumed and earlier.get("host") == args.host and Path(earlier.get("plugin_dir") or "").is_dir():
+        # A resumed run keeps the plugin it started on: reinstalling would replace that version's files, and a
+        # bound Improve child records paths inside them. Only the CI and checkout checks still apply.
+        plugin_dir, plugin = Path(earlier["plugin_dir"]), None
+        released = released_versions()
+        versions = {"source": "marketplace (resumed on its original install)", **installed_versions(plugin_dir),
+                    "released": released,
+                    "gate": [problem for problem in version_gate(released, None, None)
+                             if not problem.startswith("installed ")]}
+        if versions["gate"]:
+            raise SystemExit("version gate: " + "; ".join(versions["gate"]))
+        if host.name == "codex" and versions["plugin_version"] != released["catalog_version"]:
+            # Codex syncs installed plugins to its marketplace's current release when a session starts and
+            # deletes the old version's files, which the run's CLI and any bound Improve child point to.
+            raise SystemExit(f"a Codex run started on skill-craft {versions['plugin_version']} cannot resume after "
+                             f"release {released['catalog_version']}: Codex replaces the plugin at session start. "
+                             "Start the case again.")
+    elif args.source == "marketplace":
+        plugin_dir, plugin, versions = marketplace_preflight(args, out, env)
+        if resumed:
+            # No original install to reuse: a newer release is still not a reason to refuse the run.
+            versions["gate"] = [problem for problem in versions["gate"] if not problem.startswith("installed ")]
         if versions["gate"]:
             (out / "result.json").write_text(json.dumps({"case": name, "pass": False, "versions": versions,
                                                          "output": str(out)}, indent=2) + "\n")
             raise SystemExit("version gate: " + "; ".join(versions["gate"]) + f" (see {out / 'result.json'})")
-    keepalive = hosts.grok_keepalive(env, plugin_dir) if args.host == "grok" else None
-    cli = hosts.argv_for(args.host, prompt=f"/{args.skill} {prompt}", prompt_file=out / "host-prompt.txt",
-                         cwd=work, model=args.model, effort=args.effort,
-                         permission_mode=args.permission_mode, max_turns=args.max_turns,
-                         max_budget_usd=args.max_budget_usd,
-                         plugin_dir=plugin_dir if args.host == "claude" else None,
-                         grok_bin=args.grok_bin, claude_bin=args.claude_bin)
-    (out / "prompt.txt").write_text(prompt + "\n")
-    (out / "invocation.json").write_text(json.dumps(
-        {"case": name, "host": args.host, "model": args.model, "effort": args.effort, "argv": cli,
-         "cwd": str(work), "plugin_dir": str(plugin_dir), "versions": versions, "checks": checks,
-         "follow_on": follow_on},
-        indent=2) + "\n")
+    else:
+        plugin = None
+        plugin_dir = args.plugin_dir or build_candidate(out)
+        plugin = host.install_plugin(env, plugin_dir)
+        versions = {"source": "checkout", **installed_versions(plugin_dir), "local_head": git("rev-parse", "HEAD").strip()}
+    keepalive = hosts.grok_keepalive(env, plugin_dir) if host.keepalive else None
+    # A resumed run keeps the ShipLoop CLI of the host that started it, so its version does not change.
+    opening = (resume_prompt(out, resumed["run_dir"], hosts.host(resumed["from_host"])) if resumed
+               else host.invoke(args.skill, prompt))
+    cli = host.argv(prompt=opening, prompt_file=out / ("host-prompt.txt" if not resumed else
+                                                       f"resume-{host.name}-{int(time.time())}.txt"),
+                    cwd=work, model=args.model, effort=args.effort,
+                    permission_mode=args.permission_mode, max_turns=args.max_turns,
+                    max_budget_usd=args.max_budget_usd,
+                    plugin_dir=None if host.marketplace else plugin_dir)
+    invocation = {"case": name, "host": args.host, "model": args.model, "effort": args.effort, "argv": cli,
+                  "cwd": str(work), "plugin_dir": str(plugin_dir), "versions": versions, "checks": checks,
+                  "follow_on": follow_on, "resumed_run": resumed}
+    if resumed:
+        # The original invocation stays as it was; each resume is recorded beside it.
+        (out / f"invocation-resume-{host.name}-{int(time.time())}.json").write_text(
+            json.dumps(invocation, indent=2) + "\n")
+    else:
+        (out / "prompt.txt").write_text(prompt + "\n")
+        (out / "invocation.json").write_text(json.dumps(invocation, indent=2) + "\n")
     if not args.quiet:
         print(f"shiploop e2e case={name} host={args.host} model={args.model} effort={args.effort} "
               f"work={work}", flush=True)
 
     deadline = time.time() + args.timeout
-    process = launch(cli, work, out, env, args.timeout, watch=not args.quiet, fresh=follow_on is None)
-    sessions = [dict(process, resumed=None)]
+    process = launch(cli, work, out, env, args.timeout, watch=not args.quiet, fresh=follow_on is None,
+                     first=resumed is None, translate=host.translator())
+    sessions = [dict(process, resumed=None, host=host.name)]
     # A headless Grok session ends whenever the model ends its turn. While ShipLoop's
     # run is still active, resume that same session (bounded) instead of losing the run.
-    while args.host == "grok" and len(sessions) <= args.max_resumes:
+    while host.resumable and len(sessions) <= args.max_resumes:
         state = grade_shiploop(out)
         session_id = last_session_id(out / "events.jsonl")
         remaining = int(deadline - time.time())
@@ -675,18 +902,24 @@ def main(argv: list[str] | None = None) -> int:
         if not args.quiet:
             print(f"resume {len(sessions)}/{args.max_resumes}: session {session_id} ended with ShipLoop "
                   f"{'not yet started' if state.get('status') is None else 'active at revision ' + str(state.get('revision')) + ', stage ' + str(state.get('stage'))}", flush=True)
-        argv = hosts.argv_for(args.host, prompt=resume_prompt(out, state.get("run_dir")),
-                              prompt_file=out / f"resume-{len(sessions)}.txt", cwd=work, model=args.model,
-                              effort=args.effort, permission_mode=args.permission_mode,
-                              max_turns=args.max_turns, resume=session_id, grok_bin=args.grok_bin)
-        process = launch(argv, work, out, env, remaining, watch=not args.quiet, first=False)
-        sessions.append(dict(process, resumed=session_id))
+        argv = host.argv(prompt=resume_prompt(out, state.get("run_dir"), host),
+                         prompt_file=out / f"resume-{len(sessions)}.txt", cwd=work, model=args.model,
+                         effort=args.effort, permission_mode=args.permission_mode,
+                         max_turns=args.max_turns, resume=session_id)
+        process = launch(argv, work, out, env, remaining, watch=not args.quiet, first=False,
+                         translate=host.translator())
+        sessions.append(dict(process, resumed=session_id, host=host.name))
     process = dict(process, sessions=sessions, resumes=len(sessions) - 1)
     process["pass"] = process["status"] == "exited"
     cli_seen = summarize_events(out / "events.jsonl")
     write_transcript(out / "events.jsonl", out / "transcript.md")
     cli_seen["truncated_outputs"] = host_truncations(out / "events.jsonl")
-    invoked = {"pass": args.skill in cli_seen.pop("commands"), "skill": args.skill}
+    commands = cli_seen.pop("commands")
+    invoked = {"pass": args.skill in commands, "skill": args.skill}
+    if not commands or resumed:
+        # A host that lists no commands (Codex), or a run continued on another host whose
+        # stream mixes both hosts' command lists: the skill was invoked if its CLI ran.
+        invoked.update({"pass": shiploop_cli_ran(out / "events.jsonl"), "evidence": "ShipLoop CLI ran"})
     plugins = cli_seen.pop("plugins")
     if plugin is None:
         plugin = grade_claude_plugin(plugins, plugin_dir)
@@ -713,19 +946,25 @@ def main(argv: list[str] | None = None) -> int:
               "process": process,
               "keepalive": keepalive,
               "shiploop": shiploop, "committed": committed, "checks": check_results, "cli": cli_seen, "follow_on": follow_on,
+              "resumed_run": resumed,
               "metrics": {k: run_metrics[k] for k in ("turns", "cost_usd", "compactions", "truncated_outputs",
                                                       "improve_children")}
               | {"script_verifications": run_metrics["script_verifications"],
                  "model_glue": len(run_metrics["model_glue"]),
+                 "tmp_writes": len(run_metrics["tmp_writes"]),
+                 "asked_user": len(run_metrics["asked_user"]),
+                 "narrative": {k: v for k, v in run_metrics["narrative"].items() if k != "skipped"},
                  "shiploop_failures": len(run_metrics["shiploop_failures"]),
                  "cancelled_tool_calls": len(run_metrics["cancelled_tool_calls"])},
               "output": str(out)}
     (out / "result.json").write_text(json.dumps(result, indent=2) + "\n")
     style = json.loads(CASES.read_text()).get(name, {}).get("style") if name != "custom" else None
     row = baseline_row(result, style, args.suite_name)
-    before = previous_row(args.baseline, name, versions["source"]) if args.baseline else None
-    if args.baseline:
-        with args.baseline.open("a") as handle:
+    # A baseline measures one host running a case from the start; a resumed run is not one.
+    baseline_file = args.baseline if not resumed else None
+    before = previous_row(baseline_file, name, versions["source"]) if baseline_file else None
+    if baseline_file:
+        with baseline_file.open("a") as handle:
             handle.write(json.dumps(row) + "\n")
 
     mark = lambda ok: "PASS" if ok else "FAIL"  # noqa: E731
@@ -763,7 +1002,10 @@ def main(argv: list[str] | None = None) -> int:
     if before:
         print(f"  baseline  vs {before['date'][:10]} (ShipLoop {before['shiploop_version']}): "
               f"turns {before['turns']} -> {row['turns']}, cost ${before['cost_usd']} -> ${row['cost_usd']}, "
-              f"sessions {before['sessions']} -> {row['sessions']}, glue {before['model_glue']} -> {row['model_glue']}")
+              f"sessions {before['sessions']} -> {row['sessions']}, glue {before['model_glue']} -> {row['model_glue']}"
+              + (f", narrative shown {before['narrative']['shown']}/{before['narrative']['emitted']} -> "
+                 f"{row['narrative']['shown']}/{row['narrative']['emitted']}"
+                 if before.get("narrative") and row.get("narrative") else ""))
     return 0 if result["pass"] else 1
 
 

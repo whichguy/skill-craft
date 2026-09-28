@@ -17,9 +17,13 @@ flowchart LR
 ## Entry, identity and storage
 
 Use the selected package's `shiploop workspace start --repo SOURCE
---workspace-root EXTERNAL --prompt='<new incoming request>'`. Choose a new,
-dedicated external directory outside the source checkout and Git metadata. It
-must survive context resets. Do not use an automatically purged temporary path
+--prompt='<new incoming request>'`. It creates and prints a new dedicated root,
+`EXTERNAL = <repo-parent>/.shiploop-runs/<repo>-<stamp>`, outside the source
+checkout and Git metadata; an explicit `--workspace-root EXTERNAL` must meet the
+same rules. Before creating anything, start proves this session may write that
+parent and the Git directory, and exits 3 with the exact grant when a host
+sandbox refuses; see [sandbox write grants](host-matrix.md#sandbox-write-grants).
+The root must survive context resets. Do not use an automatically purged temporary path
 for a real long-lived run. The helper creates:
 
 ```text
@@ -128,7 +132,10 @@ The helper never grants deployment, push or branch-policy authority. Source
 return is not evidence that a hosted consumer has been updated.
 
 1. Run the packet's `workspace plan-return --workspace-root EXTERNAL` command.
-   It binds a Markdown path review to the current candidate. Review **every**
+   It first commits product files still uncommitted in the candidate (for
+   example a system test written after the last work item) onto the run branch,
+   never run evidence, protected paths, caller exclusions or files that look
+   like credentials, then binds a Markdown path review to the candidate. Review **every**
    disposition: `keep` for intended lasting work, `exclude` for transient work.
    Pending decisions or an attempt to keep a forbidden runtime path block return.
    Changed candidates require a fresh plan; do not edit hashes to bypass it.
@@ -139,8 +146,8 @@ return is not evidence that a hosted consumer has been updated.
    - **Clean start:** a committed, clean, reviewed candidate can fast-forward
      into the exact original branch. Reachable candidate history is checked too:
      a transient file committed then deleted still must not enter branch history.
-     The helper never silently squashes, rewrites history or commits unreviewed
-     files. If the reviewed plan excludes paths or the candidate is uncommitted,
+     The helper never silently squashes or rewrites history, and nothing
+     reaches the original branch unreviewed. If the reviewed plan excludes paths or the candidate is uncommitted,
      it returns only kept working-tree changes instead, explicitly without a
      merge/commit. Known protected runtime history is refused outright.
    - **Dirty start:** only the selected delta relative to the captured working
@@ -171,6 +178,12 @@ source state the previous receipt recorded, not from the preparation baseline:
   or untracked product output is refused rather than mixed into a merged branch.
 - After a **no-change return**, the source is still the preparation state, so
   the follow-up is an ordinary first return.
+- ShipLoop makes one follow-up itself: when its own knowledge commit (for
+  example at release-verify) lands after a verified return and everything
+  changed since that return is `docs/shiploop/` or `SHIPLOOP.md`, it returns that
+  commit by the same route, keeping the earlier reviewed dispositions. Anything
+  else changed, or a moved source, leaves the follow-up to you: handoff asks for
+  it with the commands.
 
 The new receipt keeps the previous one as `previous_receipt`. If the source
 already holds exactly the result the follow-up would produce (the fix was copied

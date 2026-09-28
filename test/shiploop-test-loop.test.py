@@ -186,6 +186,15 @@ class TestLoopTests(unittest.TestCase):
             self.complete(result)
         self.assertEqual((self.run_dir / "state.md").read_bytes(), before)
 
+    def test_a_started_loop_packet_says_to_continue_from_its_receipt(self):
+        """X10 (e9_loop_recovery.py): after context loss mid-loop the packet gave no way back but Start."""
+        self.start()
+        self.drive_to("test-green")
+        self.assertNotIn("already started", self.packet())
+        self.run_loop([])  # started; the receipt holds the active packet
+        self.assertIn("The loop already started: do not run Start again. While the receipt's status is "
+                      "active, run its next_argv once", self.packet())
+
     # -- step plan -----------------------------------------------------------------
 
     def test_step_plan_must_record_its_test_commands(self):
@@ -366,6 +375,9 @@ class TestLoopTests(unittest.TestCase):
         self.assert_refused(dict(DONE, consumer_entry={"how": "App Launcher: Fleet command",
                                                        "sources": ["force-app/main/default/tabs/Fleet.tab-meta.xml"]}),
                             "consumer_entry sources do not exist in the repository: force-app/main/default/tabs/")
+        self.assert_refused(dict(DONE, consumer_entry={"how": "run the tool",
+                                                       "sources": [str(self.repo / "missing.py")]}),
+                            "must be repository-relative paths")  # refused by name, never globbed (pathlib raises)
         self.complete(dict(DONE, consumer_entry={"how": "run python3 a.py", "sources": ["a.py"]},
                            consumer_checks=[], consumer_checks_na="Synthetic fixture."))
 

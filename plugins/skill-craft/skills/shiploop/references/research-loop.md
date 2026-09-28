@@ -241,10 +241,12 @@ Check every planned verification surface, not only what discovery itself reads:
 the deploy target, and each post-deploy browser, API or remote-test check the
 test strategy names. For each, find the route the run can use without the user,
 such as a browser session the platform CLI issues from its existing
-authentication, and prove it with one bounded read. Ask the user only for access
-no such route provides, and ask once, now, together with any other open
-question, so a later stage never stops to ask for a sign-in. Record each route
-in the discovery evidence so the checking stage reuses it.
+authentication, and prove it with one bounded read. Record each route in the
+discovery evidence so the checking stage reuses it. Runs are unattended: access
+no such route provides becomes an open item (what is needed, who can grant it),
+and the checks that need it wait while every other stage continues; prompt the
+user for it only when nothing further can proceed without it, once, together
+with any other open question.
 
 Independent work stays within the current action and granted scope. Discovery
 may continue local inspection, not future implementation; do not skip graph

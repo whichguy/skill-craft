@@ -204,3 +204,154 @@ detailed message; read the last three commit messages before the next run or cha
 
 Comparison of follow-ons (same prompt): 6b on 1.4.0 PASS but uncommitted, 7 cancelled sessions; 7b on 1.5.0
 harness-FAIL, 7 cancelled; 8b on 1.6.0 PASS committed, 4 cancelled, 0 ShipLoop failures.
+
+## P6 baselines — 2026-09-27 — cli-files and stateful-service focused suites, marketplace 1.7.0 (ShipLoop 0.40.0)
+
+- First runs outside the browser-game style. Both PASS on every verdict including `committed`.
+  - csv-report (cli-files, Python CLI): 328 turns, $25.46, 3 sessions (2 cancelled), 9/9 ShipLoop-run checks
+    passed, glue 2, asked a person 0; spec kept 14 requirement IDs; HEAD 12 commits, nothing untracked.
+  - seat-reservations (stateful-service, Python HTTP + SQLite, concurrency rule): 386 turns, $32.23,
+    4 sessions (3 cancelled), 10/10 checks passed, glue 2, asked 0; 11 requirement IDs; 13 commits.
+- The engine generalised: spec, test-first, implement, Improve reviews, system tests, release and return all
+  worked for a CLI and a stateful service without any game-shaped guidance. The concurrency rule was
+  planned (research probed SQLite locking) and the product passed the 50-request oversell check.
+- Same cost shape as the web style: planning dominates (spec 42 and 55 turns, test-strategy 31), implement
+  steps stay cheap. The quality loop found a real defect (non-numeric Content-Length crashed the handler).
+- Remaining glue (both runs): the model's own `git add/commit` of docs between knowledge closes — the P3b
+  behaviour already fixed on main (0.42.0). Cancellations: model probes and one Until Loop report written
+  as a Python heredoc on stdin (candidate for an until-loop `--report-file`, upstream item).
+- ShipLoop refusals worth reading: plan-stage improve-complete refused a final_result without the full
+  work_items queue (the model recovered); one refused `complete` recovered on resubmit.
+- Harness learnings: the glue metric needed two precision fixes during these runs (heredoc bodies are not
+  commands; evidence notes are model output); rows appended from a suite run go to the checkout the runner
+  lives in (move them before committing when a session shares a checkout).
+
+## web-p5 — 2026-09-27 — web-service focused suite, checkout build (skill-craft 1.8.0, ShipLoop 0.41.0: P3-P5)
+
+- battleship FAIL on `committed` only: ShipLoop reached done (process, invocation, plugin, shiploop all PASS),
+  but the user's branch held 21 uncommitted product paths and none of the run's 16 commits.
+  battleship-scoring was skipped (predecessor failed). 320 turns, $27.18, 2 sessions, 1 compaction,
+  9/9 ShipLoop-run checks passed, 16 Improve children, asked a person 0.
+- Root cause (engine): `system/browser-check.js`, written after the last work item, was untracked in the
+  candidate at return. Any untracked product file forces the working-tree return route, so every run
+  commit stayed on the run branch. Fix: `workspace plan-return` commits leftover product files through
+  the one commit helper first; the reviewed plan then fast-forwards (f2c80133).
+- Glue (engine): the model hand-committed `SHIPLOOP.md`, the knowledge index the references ask it to keep,
+  because ShipLoop committed only `docs/shiploop/`. Fix: the index is knowledge, committed and screened with
+  the home (bf8febce).
+- Crash (engine): a release-plan `consumer_entry` with an absolute source path raised pathlib's
+  NotImplementedError. Absolute paths are now refused with a message (f2c80133).
+- P3b worked: the knowledge home was committed by ShipLoop after verify, document, step-plan,
+  system-test-author and at every close; the glue fix to the metric (52e37e45) removed the /tmp start-file
+  false positives.
+- Harness: a checkout run is not release evidence (SPEC). The marketplace preflight (bbbb5242) now shows,
+  before any run, what origin/main publishes and what the host actually installed.
+- Forensics of the remaining signals (read-only analysis of the event log):
+  - 4 of 6 glue entries were the old substring false positive (fixed by 52e37e45; the current metric counts
+    2, both the SHIPLOOP.md hand commits fixed in bf8febce).
+  - Refusals that the model recovered from in the same turn, with guidance already in the packet: an
+    Improve receipt submitted with an uncommitted review edit; release-plan and release-verify submitted
+    before their knowledge files existed.
+  - Engine friction (next item): ShipLoop's own knowledge commit at release-verify stales the return receipt
+    taken at release, so handoff refuses and the model runs a follow-up return by hand. Candidate fix: the
+    script performs the follow-up return itself when only knowledge paths changed since the receipt.
+  - Engine (upstream Until Loop): each non-terminal Until Loop packet prints the full report schema and fixed
+    instruction; 3 outputs were truncated at the host's ~10k-character cap. Belongs with the until-loop
+    short-output / `--report-file` item.
+  - The one cancelled tool call was the host cancelling a `--help` probe at session start.
+
+## temperature-report — 2026-09-27 — first graph-shaped case, Grok grok-4.7 medium, marketplace skill-craft 1.11.0 (ShipLoop 0.44.0)
+
+- Outcome: **stopped, not graded.** Grok ran out of credits at 97 min (303 turns, peak context
+  399 K, $7.91 reported). The run was killed deliberately to stop a resume loop; the output
+  directory is kept. ShipLoop was active at revision 17, in the inner loop at the test
+  specification, with 0 of 1 work items done. No product checks ran.
+- Purpose: the validation plan's step 3 (docs/plan-orchestrator-validation-plan-2026-09-27.md),
+  the first live fan-out/fan-in through the current release on the Ask-Agent parallel route.
+- What it proved: asked for Ask-Agent delegation, ShipLoop recorded `delegation: ask-agent`, and
+  Grok's step plan was exactly the intended graph. `S-convert` and `S-stats` were marked "may run
+  in parallel", and `S-measure` "only after S-convert and S-stats are accepted". The dependency is
+  carried only in step-task text; step plans have no `depends_on` since the 09-26 KISS change.
+- What it did not reach: `implement`, where `chain bind` would happen. No chain binding exists, so
+  the dispatcher fan-out itself is still unexercised by a real model.
+- Time: intake 4.3, discovery 2.7, research 13.4, spec 29.6, test-strategy 5.8, plan 8.1,
+  prepare 0.6, select-work 0.2, step-plan 28.9 minutes. Planning was about 94 of the 97 minutes;
+  spec and step-plan dominate.
+- Friction:
+  - one `improve-bind` and one `complete` were refused;
+  - the model hand-built loop contracts and ran its own `git commit`s ("model glue");
+  - 4 tool outputs were truncated by the host;
+  - the first session ended "cancelled after 91 turns" on a host permission check and was resumed
+    once.
+- Next: resume this run on another host (Claude Sonnet, budget-capped) from its recorded run
+  directory, or rerun on Grok when credits return. The harness cannot switch hosts mid-run;
+  `--continue-from` copies only the source checkout.
+
+## temperature-report resumed on Codex — 2026-09-27 — gpt-5.6-luna xhigh, marketplace skill-craft 1.11.1 (ShipLoop 0.44.1)
+
+- How: the first multi-host run. `--resume-run` continued the stopped Grok run in place on
+  Codex, from inner-loop revision 17, using the ShipLoop CLI of the host that started it. The
+  Codex session ran 34 min (2,048 s, 127 items); Codex reports no dollar cost.
+- Outcome: **FAIL, paused at revision 20**, still before `implement`, so no chain was bound
+  and the fan-out is still untested.
+  - Verdicts: invoked, plugin and process pass; the ShipLoop and product verdicts fail.
+  - Checks: 1 of 6 pass in the work directory.
+- What worked: the test-spec Improve review ran and committed the test specification.
+  Translating the Codex stream into Grok's shape gave a readable transcript, the model text,
+  and tool calls. The harness saw ShipLoop was paused and correctly did not resume.
+- **Defect, a normal-run failure:**
+  - On the Ask-Agent route the model builds the Improve review's Until Loop contract by hand;
+    `improve-start` writes it only on the inline route.
+  - Luna's contract left the standalone ShipLoop binding marker out of `context.request`, so
+    `improve-complete` refused the completed review's terminal packet. Neither can be
+    regenerated, and the model paused the run: "Parent Improve import is blocked because the
+    completed runtime context omitted the required standalone ShipLoop binding marker".
+  - The Grok run showed the same risk as "hand-built loop contract" model glue, but got it right.
+  - This matches the open 09-26 audit follow-up "ShipLoop-written Improve contract".
+- Harness: a mixed-host run's turn count ignored the Codex session (it read 303, Grok's count).
+  Fixed in metrics: a session that reports no per-call usage adds its own `num_turns`.
+- Next: have ShipLoop write the Improve contract on the Ask-Agent route too, then run
+  `temperature-report` fresh on Codex to reach `implement` and the chain.
+
+## fanout — 2026-09-27 — first live fan-out/fan-in, Codex gpt-5.6-luna medium, marketplace skill-craft 1.11.1 (Plan Dispatcher 0.5.0)
+
+- How: `test/shiploop_e2e/fanout.py`. Codex drove the published `plan-dispatcher` skill on dummy
+  steps: A and B independent, J after both. Each step recorded its start, slept 30 s, and
+  recorded its end. There was no ShipLoop SDLC and no product; per the owner, dummy steps are
+  enough as long as the order is verified.
+- Outcome: **PASS in 587 s.**
+  - The dispatcher reports the run complete, with one attempt per step and no retries.
+  - A and B ran as native Codex subagents, each with a launch handle, and overlapped 29.3 s of
+    their 30 s: a real parallel fan-out.
+  - J started about 240 s after both ended. The gap is the parent's verification and
+    settlement; fan-in order holds.
+- Meaning: the first live evidence through the current release that a real host follows the
+  dispatcher's exact calls, fans out to parallel native workers and joins in dependency order.
+  The earlier evidence was the 09-20 Grok pilot on older packages. ShipLoop's Ask-Agent chain
+  route is still unexercised live; its Improve-contract defect (see the Codex resume entry)
+  blocks it before `implement`.
+
+## 1111 — 2026-09-27 — web-service + breadth suites in parallel, marketplace 1.11.1 (ShipLoop 0.44.1)
+
+- First parallel run: the web-service suite and the breadth suite's three chains ran together (four Grok
+  sessions, each with its own marketplace preflight: all installed 1.11.1). Grok credits ran out after
+  about 62 minutes; three runs were stopped, unfinished.
+- csv-report (cli-files) PASS on every verdict, including `committed`: 261 turns, $18.58, 1 session,
+  0 ShipLoop failures, 0 cancellations. The return fix (commit leftovers, knowledge index) worked live;
+  web-p5 had failed exactly there. Its row records glue 3; all three were metric false positives fixed
+  during the run (e1539b8b, 339abaea, a5ccea84); recomputed glue is 0.
+- seat-reservations reached release-plan with 9/9 ShipLoop-run checks and a real defect found by review
+  (a Content-Length hang). The two battleship runs reached system tests and page work; review found real
+  defects (`shipCells(null)` TypeError, `random()` == 1 off-board placement).
+- Concurrency defect (plan P13): web battleship and seat-reservations both wrote their Until Loop report
+  to the literal /tmp/improve-done-1.json; battleship then read the other run's report. That review
+  loop's evidence is suspect. Models pick fixed /tmp names because the report goes on stdin and no packet
+  names a scratch location. Parallel runs wait for P13.
+- Engine refusal worth the fix (plan P12): the breadth battleship wrote the Improve completion record as
+  raw JSON and was refused; the owner judged the hand-off over-precise. improve-complete now derives the
+  record (730dfcda).
+- Correction to an earlier claim: the truncated `opening.md` read was a model-built composite command
+  (git log -7 --format=full plus several cats), not an oversized ShipLoop file (847 and 4,269 bytes).
+  Real truncations remain the Until Loop action responses (~21 KB), the upstream --report-file item.
+- Metric fixes from this round: run/evidence/ is model input; a contract counts as hand-built only when a
+  command writes it or feeds it to the Until Loop runtime (json.dump(, not json.dumps).

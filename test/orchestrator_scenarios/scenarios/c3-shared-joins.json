@@ -1,0 +1,1 @@
+{"id":"C3","name":"joins that share suppliers","graph":[["A",[]],["B",[]],["C",[]],["J1",["A","B"]],["J2",["B","C"]],["J3",["A","C"]],["TOP",["J1","J2","J3"]]],"capacity":3,"schedule":{"seed":3},"expect":{"complete":true}}

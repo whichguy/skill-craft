@@ -5,7 +5,8 @@ outlive the run.  The model writes them under ``docs/shiploop/`` during planning
 at four closes ShipLoop checks the expected files (prepare, test-spec, release-plan,
 release-verify), screens them for credentials,
 refuses a living spec that drops an earlier requirement ID, and commits exactly
-``docs/shiploop/`` with its own message.  A later run starts from these files.
+``docs/shiploop/`` and the repository index ``SHIPLOOP.md`` with its own message.
+A later run starts from these files.
 
     docs/shiploop/README.md          index: what each file answers, the feature list
     docs/shiploop/spec.md            living product spec; stable requirement IDs, a Retired section
@@ -22,9 +23,13 @@ import subprocess
 from pathlib import Path
 from typing import Any, Dict, List, Mapping, Optional, Sequence, Tuple
 
+import shiploop_git as shiploop_git
 import shiploop_privacy as privacy
 
 HOME = "docs/shiploop"
+# The repository's knowledge index; the references ask the model to keep it, so ShipLoop commits it with the home.
+INDEX = "SHIPLOOP.md"
+KNOWLEDGE = (HOME, INDEX)
 LIVING = ("README.md", "spec.md", "environment.md", "test-strategy.md")
 # The close that commits, and the files it requires (``{feature}`` is this run's feature directory).
 CLOSES: Dict[str, Tuple[str, ...]] = {
@@ -128,7 +133,10 @@ def stage_lines(state: Mapping[str, Any], stage: str) -> List[str]:
                      "lists the IDs this run adds, modifies and retires.")
     if stage in CLOSES:
         lines.append("On done ShipLoop checks these files, screens them for credentials and commits "
-                     + HOME + "/ in the execution checkout.")
+                     + HOME + "/ and " + INDEX + " in the execution checkout.")
+    else:
+        lines.append("If this stage changes " + HOME + "/ or " + INDEX + ", ShipLoop checks and commits them when "
+                     "the stage is accepted; do not commit them yourself.")
     return lines
 
 
@@ -142,14 +150,23 @@ def _committed_spec(repo: Path) -> str:
     return shown.stdout if shown.returncode == 0 else ""
 
 
+def _home_changed(repo: Path) -> bool:
+    """Whether the knowledge home or index differs from HEAD (edited, added or removed files)."""
+    return bool(_git(repo, "status", "--porcelain", "--untracked-files=all", "--", *KNOWLEDGE).stdout.strip())
+
+
 def check(state: Mapping[str, Any], stage: str) -> str:
-    """Refusal text for a close whose knowledge files are missing, leak a credential or drop an ID."""
-    if stage not in CLOSES:
-        return ""
+    """Refusal text when a stage's done would commit knowledge that is missing, leaks a credential or drops an ID.
+
+    A close requires its files; any other stage is checked only when it changed the home,
+    because ShipLoop commits the home after every accepted stage that changed it.
+    """
     repo = Path(str(state["repo"]))
     if _git(repo, "rev-parse", "--is-inside-work-tree").returncode != 0:
         return ""
-    required = _expand(CLOSES[stage], state)
+    if stage not in CLOSES and not _home_changed(repo):
+        return ""
+    required = _expand(CLOSES.get(stage, ()), state)
     missing = [path for path in required if not (repo / path).is_file() or not (repo / path).read_text(
         encoding="utf-8", errors="replace").strip()]
     if missing:
@@ -157,7 +174,8 @@ def check(state: Mapping[str, Any], stage: str) -> str:
                 "Before " + stage + " is done, write:\n" + "".join("- " + str(repo / p) + "\n" for p in missing)
                 + "See the packet's knowledge-home lines for what each file holds.")
     leaks = []
-    for path in sorted((repo / HOME).rglob("*.md")):
+    screened = sorted((repo / HOME).rglob("*.md")) + ([repo / INDEX] if (repo / INDEX).is_file() else [])
+    for path in screened:
         for number, line in enumerate(path.read_text(encoding="utf-8", errors="replace").splitlines(), 1):
             if privacy.sensitive_text(line):
                 leaks.append(str(path.relative_to(repo)) + ":" + str(number))
@@ -181,30 +199,27 @@ def check(state: Mapping[str, Any], stage: str) -> str:
     return ""
 
 
-def commit(state: Mapping[str, Any], stage: str) -> str:
-    """Stage and commit exactly the knowledge home; return the commit ID, '' when nothing changed."""
+def commit(state: Mapping[str, Any], stage: str) -> shiploop_git.Committed:
+    """Commit exactly the knowledge home after an accepted stage that changed it (every stage, not only closes)."""
     repo = Path(str(state["repo"]))
-    if stage not in CLOSES or not (repo / HOME).is_dir():
-        return ""
-    added = _git(repo, "add", "--", HOME)
-    if added.returncode:
-        raise RuntimeError("cannot stage " + HOME + ": " + added.stderr.strip())
-    if _git(repo, "diff", "--cached", "--quiet", "--", HOME).returncode == 0:
-        return ""
-    message = "docs(shiploop): record " + feature_dir(state).rsplit("/", 1)[-1] + " knowledge at " + stage
+    if not _home_changed(repo):
+        return shiploop_git.Committed("", [], [])
+    message = ("docs(shiploop): record " + feature_dir(state).rsplit("/", 1)[-1] + " knowledge "
+               + ("at " if stage in CLOSES else "after ") + stage)
     if stage == "release-verify":
         body = "\n\n".join(name + "\n" + text for name, text in learnings(state).items() if text)
         if body:
             message += "\n\n" + body
-    done = _git(repo, "commit", "-q", "-m", message, "--", HOME)
-    if done.returncode:
-        raise RuntimeError("cannot commit " + HOME + ": " + (done.stderr or done.stdout).strip())
-    return _git(repo, "rev-parse", "HEAD").stdout.strip()
+    try:
+        return shiploop_git.commit_paths(repo, list(KNOWLEDGE), message)
+    except shiploop_git.CommitError as exc:
+        raise RuntimeError(str(exc)) from exc
 
 
 def in_home(path: str) -> bool:
-    return path == HOME or path.startswith(HOME + "/")
+    """A path ShipLoop commits as knowledge: the home directory or the repository index."""
+    return path in KNOWLEDGE or path.startswith(HOME + "/")
 
 
-__all__ = ("CLOSES", "HOME", "LEARNING_SECTIONS", "check", "commit", "feature_dir", "in_home", "learnings",
+__all__ = ("CLOSES", "HOME", "INDEX", "KNOWLEDGE", "LEARNING_SECTIONS", "check", "commit", "feature_dir", "in_home", "learnings",
            "recent_commits", "stage_lines")

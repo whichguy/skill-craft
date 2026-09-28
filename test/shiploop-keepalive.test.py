@@ -182,7 +182,8 @@ class RepeatPacketTests(KeepaliveTestCase):
 class AwaitingUserTests(KeepaliveTestCase):
     """A run blocked on the user's reply stops quietly and resumes only with that reply."""
 
-    QUESTION = {"kind": "answer", "question": "May this run deploy to org de?", "options": ["yes", "no"]}
+    QUESTION = {"kind": "answer", "question": "May this run deploy to org de?", "options": ["yes", "no"],
+                "no_default": "A deploy needs the user's grant; no default may stand in for it."}
 
     def block_on(self, awaiting: dict) -> str:
         action = self.status()["action"]
@@ -221,15 +222,29 @@ class AwaitingUserTests(KeepaliveTestCase):
                       _packet_file_text(shiploop("next", "--run-dir", str(self.run_dir)).stdout))
 
     def test_a_person_present_wait_takes_their_observation(self) -> None:
-        self.block_on({"kind": "present", "steps": ["Open the App Launcher and choose Fleet command.",
-                                                    "Place a fleet, then reload the page."],
-                       "report": "whether the board appears and the fleet is still there"})
-        self.assertIn("Waiting on you: 1. Open the App Launcher",
+        self.block_on({"kind": "present", "steps": ["Sign in and open the Reports page.",
+                                                    "Create a report, then reload the page."],
+                       "report": "whether the report is listed after the reload",
+                       "no_default": "Release acceptance needs a signed-in observation this host cannot make."})
+        self.assertIn("Waiting on you: 1. Sign in and open the Reports page",
                       shiploop("status", "--run-dir", str(self.run_dir)).stdout)
         refused = shiploop("resume", "--run-dir", str(self.run_dir), "--answer", "yes")
         self.assertIn("waits for --observed", refused.stderr)
         ok = shiploop("resume", "--run-dir", str(self.run_dir), "--observed", "Board shows; fleet kept after reload.")
         self.assertEqual(ok.returncode, 0, ok.stderr)
+
+    def test_a_wait_without_a_no_default_reason_is_refused(self) -> None:
+        """S-14: runs are unattended; prompting the user is the last resort and must say why."""
+        action = self.status()["action"]
+        path = self.run_dir / "inbox" / (action + ".md")
+        path.parent.mkdir(exist_ok=True)
+        question = {k: v for k, v in self.QUESTION.items() if k != "no_default"}
+        path.write_text(store.dumps({"outcome": "blocked", "summary": "Needs a decision.", "blocked_by": "user",
+                                     "awaiting": question}, "test result"))
+        refused = shiploop("complete", "--run-dir", str(self.run_dir), "--action", action, "--result", str(path))
+        self.assertNotEqual(refused.returncode, 0)
+        self.assertIn("ShipLoop runs unattended: take a stated default", refused.stderr)
+        self.assertEqual(self.status()["status"], "active")
 
     def test_awaiting_needs_a_person_as_the_unblocker(self) -> None:
         action = self.status()["action"]

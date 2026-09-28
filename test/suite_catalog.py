@@ -86,6 +86,7 @@ _SHIPLOOP_PATHS = (
     "test/shiploop-full-runtime.test.py",
     "test/shiploop-navigator-dry-run.test.py",
     "test/shiploop-status-display.test.py",
+    "test/shiploop-narrative.test.py",
     "test/shiploop-stage-spec.test.py",
     "test/shiploop-revise.test.py",
     "test/shiploop-rehydration.test.py",
@@ -139,6 +140,10 @@ _SHIPLOOP_PATHS = (
 # deterministic fallback retains that property for a newly added suite until a
 # later audit supplies an observed duration.
 _DURATION_SECONDS = {
+    # Plan Dispatcher gates: the mutation run reruns whole suites per mutant,
+    # so it belongs to the full tier (measured locally 2026-09-27).
+    "test/plan-dispatcher-mutants.test.py": 420.0,
+    "test/plan-dispatcher-scenarios.test.js": 50.0,
     "test/shiploop-stage-spec.test.py": 1.0,
     "test/shiploop-revise.test.py": 1.0,
     "test/shiploop-rehydration.test.py": 2.0,
@@ -210,6 +215,7 @@ _QUICK_PATHS = frozenset({
     "test/shiploop-packet-bounds.test.py",
     "test/shiploop-navigator-dry-run.test.py",
     "test/shiploop-status-display.test.py",
+    "test/shiploop-narrative.test.py",
     "test/shiploop-chain-async.test.py",
     "test/shiploop-planning-handoff.test.py",
 })
@@ -264,6 +270,7 @@ _CORE_SUITES = (
     _suite("ask-agent-workspace", "core", "test/ask-agent-workspace.test.py", "python3", "test/ask-agent-workspace.test.py", groups=("ask-agent",)),
     _suite("ask-agent-delivery", "core", "test/ask-agent-delivery.test.py", "python3", "test/ask-agent-delivery.test.py", groups=("ask-agent",)),
     _suite("ask-agent-managed-harness", "core", "test/ask-agent-managed-harness.test.py", "python3", "test/ask-agent-managed-harness.test.py", groups=("ask-agent",)),
+    _suite("ask-agent-current-workspace", "core", "test/ask-agent-current-workspace.test.py", "python3", "test/ask-agent-current-workspace.test.py", groups=("ask-agent",)),
     _suite("skill-interop-hygiene", "core", "test/skill-interop-hygiene.test.sh", "bash", "test/skill-interop-hygiene.test.sh"),
     _suite("sync-plugin-views", "core", "test/sync-plugin-views.test.sh", "bash", "test/sync-plugin-views.test.sh"),
     _suite("release-flow", "core", "test/release-flow.test.sh", "bash", "test/release-flow.test.sh"),
@@ -292,6 +299,8 @@ _CORE_SUITES = (
     _suite("plan-dispatcher-planning-context", "core", "test/plan-dispatcher-planning-context.test.js", "node", "test/plan-dispatcher-planning-context.test.js"),
     _suite("plan-dispatcher-compound", "core", "test/plan-dispatcher-compound.test.js", "node", "test/plan-dispatcher-compound.test.js"),
     _suite("plan-dispatcher-decisions", "core", "test/plan-dispatcher-decisions.test.js", "node", "test/plan-dispatcher-decisions.test.js"),
+    _suite("plan-dispatcher-exact-calls", "core", "test/plan-dispatcher-exact-calls.test.js", "node", "test/plan-dispatcher-exact-calls.test.js"),
+    _suite("plan-dispatcher-scenarios", "core", "test/plan-dispatcher-scenarios.test.js", "node", "test/plan-dispatcher-scenarios.test.js"),
     _suite("plan-dispatcher-mutants", "core", "test/plan-dispatcher-mutants.test.py", "python3", "test/plan-dispatcher-mutants.test.py"),
 )
 

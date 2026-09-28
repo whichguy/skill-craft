@@ -5,7 +5,7 @@ description: >-
   conversation: start one agent that runs /improve in its own context, keep
   useful parent work going, then verify and relay its result. For Improve in
   this conversation, use improve.
-version: 0.1.1
+version: 0.1.2
 license: MIT
 platforms:
   - linux
@@ -81,7 +81,7 @@ this card, a whole parent packet or a consumer reference to begin.
      explicit independent-review request (without one, the worker's Improve
      run keeps its inline self-review default);
    - the evidence root and, for a consumer-bound child, the exact child packet
-     receipt, completion evidence and `host-owner.md` locators and the binding
+     receipt, reviews directory and `host-owner.md` locators and the binding
      marker the consumer printed;
    - the return route in [Worker contract](#worker-contract), and the
      parent-only continuation it must leave unexecuted.

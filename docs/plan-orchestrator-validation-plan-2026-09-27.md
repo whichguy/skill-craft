@@ -2,8 +2,14 @@
 
 Execute: ask
 
-Status: D2–D5 implemented on branch feat/orchestrator-decisions-097b3b with
-their tests (gates 1–4); D1 reopened; phases 1, 3–6 not started.
+Status (2026-09-27):
+- D2–D5 are released (plan-dispatcher 0.4.0).
+- N1 (exact calls; X8) and N2 (T1 scenario harness) are implemented with gates
+  1–4.
+- D1 is reopened.
+- Audit conditions: X8, X5, X10 and X11 fixed; the rest recorded as known
+  limits.
+- Phases 3–6 are not started.
 
 Goal: prove that Plan Orchestrator runs a dependency graph correctly under
 fan-out, fan-in, failure, recovery and context loss. Every stage should be
@@ -321,6 +327,129 @@ Not yet done for D4: the ShipLoop chain passes `verification` through with
 exact keys, and its tests use the pinned dispatcher fixture
 (`test/fixtures/plan-dispatcher-v3/`). Chain handling of `replan` needs that
 fixture re-pinned to the live package (gap 4).
+
+## Go-forward plan (2026-09-27, after the KISS triage)
+
+How far each layer can be tested today:
+
+| Layer | Tests without a model | Live | Gap |
+|---|---|---|---|
+| Plan Dispatcher | Strong: 8 suites, T1 scenarios with context loss, 37 mutants | Not needed | None worth chasing |
+| Chain bridge + Ask Agent | About 30 real-Git lifecycle tests, one 4-node graph, pinned to a frozen Plan Dispatcher 0.3.0 | Opt-in Grok pilot (09-20) | Unknown whether it works with dispatcher 0.5.0 |
+| ShipLoop inline route | Fast in-process walks; refusal and recovery invariants | `shiploop_e2e` cases | Not graph-shaped, by design |
+| Backchain export | None in this repo | None | Export never checked against `validate-graph` |
+| End to end, real fan-out/fan-in | None | Only the 09-20 pilot | Never run through the current release |
+
+Steps, smallest first:
+
+1. **Chain against the live dispatcher.** Re-pin
+   `test/fixtures/plan-dispatcher-v3/` to the current package and run the chain
+   suites; fix the chain if they break. Add `replan` pass-through only if it is
+   trivial.
+2. **Backchain conformance.** One test: a sample Backchain export passes
+   `validate-graph`.
+3. **One live, graph-shaped run. Done by a narrower route.**
+   - The ShipLoop run (`temperature-report`) planned the right graph on Grok, and on Codex
+     after a host switch. Both stopped before `implement`: first Grok credits, then the
+     Ask-Agent Improve-contract defect.
+   - The owner's KISS route, dummy steps through Plan Dispatcher alone
+     (`test/shiploop_e2e/fanout.py`), **passed on Codex**: native A and B overlapped 29.3 s,
+     and J joined after both.
+   - Still open: ShipLoop's Ask-Agent chain route live. It is blocked by the Improve-contract
+     defect.
+
+   The original plan for this step was: add a `shiploop_e2e` case with two
+   independent modules and an integration step on the Ask-Agent parallel
+   route. Run it once on Grok (opt-in; recent runs cost about $25 and 60–90
+   minutes) and commit its learnings.
+4. **D1.** Recommended: close as not doing. The inline route is simple and
+   works; routing it through the dispatcher pays off only if parallel inline
+   steps are wanted. Awaiting the owner's confirmation.
+5. **Stop.** Port the harness to the chain (T2) only if step 1 or 3 shows a
+   problem. Leave the gate machinery as is; it runs only on release commits.
+
+## Next steps (2026-09-27, executed)
+
+1. **N1: exact calls (audit condition 6, X8). Done.**
+   - Every action carries a `call` (argv plus input with placeholders). The
+     settle call pre-fills the receipt digest, and claim and start responses
+     carry the follow-up calls.
+   - A complete run returns no `next_argv`.
+   - Optional `capacity` at `init`; `ECAPACITY` beyond it.
+   - Planning-blocked steps are not offered for claim, and a claim for one is
+     refused.
+   - A rejected attempt's workspace and evidence may be cleaned up.
+   - Concurrent writers wait up to 3 s for the lock.
+   - Tests: spec `test/orchestrator_scenarios/specs/dispatcher-exact-calls.md`
+     and suite `test/plan-dispatcher-exact-calls.test.js` (E1–E7). Every
+     scenario failed on the pre-change package; 10 of 10 mutants are killed.
+2. **N2: T1 harness. Done.** The pieces live in
+   `test/orchestrator_scenarios/`:
+   - `harness.js`: fake host, scripted worker, memoryless driver and an
+     independent oracle checking I1–I5, I7 and I8;
+   - `scenarios/*.json`: C1–C8;
+   - a seeded sweep (R1–R4 in CI; `SCENARIO_SEEDS=1-40` passed 48 of 48).
+
+   The driver only runs returned calls. In context-loss mode it discards
+   every response and also loses context between a start grant and the
+   launch or work that grant authorizes, which exercises reconcile, resume
+   and retry after a launch that never happened. Suite:
+   `test/plan-dispatcher-scenarios.test.js` (about 50 s in the quick tier);
+   10 of 10 mutants killed.
+3. **Gates in CI.** `test/plan-dispatcher-mutants.test.py` runs `spec_lint.py`
+   on every spec and `mutate.py` on every mutants file. It is heavy, so it runs
+   in the full tier only.
+4. **Next.**
+   - Re-pin the chain's dispatcher fixture, then T2 (chain/Git with the same
+     scenarios, and chain handling of `replan` and calls).
+   - Decide D1 again; its prerequisite, exact calls, now exists.
+   - The remaining audit conditions below.
+
+## Audit conditions X1–X15 (triaged 2026-09-27 under KISS/YAGNI)
+
+The owner's rule: fix what breaks or misleads a normal run. Adversarial
+constructions and gaps nobody has hit are acceptable by design; record them
+here and revisit only when a real run shows them.
+
+| Item | Condition | Outcome |
+|---|---|---|
+| 6 | X8: dispatcher exact calls and dead ends | **Done** in 1.9.0 (N1) |
+| 4 | X5: lint refused step S1 for a finding step S2 resolves | **Fixed.** Earlier implement steps report without auto-fix; the item's last step gates |
+| 8 | X10: after context loss mid-loop, nothing said to continue from the receipt | **Fixed.** Once the receipt exists, the loop packet says not to start again and to run the receipt's `next_argv` |
+| 9 | X11: paused, halted and blocked packets printed whole past Grok's ~20 KB cut | **Fixed.** Over 16,000 characters they print a pointer to the full packet file and what fits |
+| 1 | X1: a hand-forged terminal packet passes | Known limit |
+| 2 | X2: two simultaneous `complete` calls | Known limit |
+| 3 | X3: a revised result closes on one pass; X4: fingerprint blind spots | Known limit (X4 decided: no change) |
+| 5 | X6: bare `done` at judgment stages; X7: printed test summaries | Known limit (X7 decided: document) |
+| 7 | X9: in-place auto-commit includes the user's edits in declared files | Known limit (decided: document) |
+| 8 | X12, X13: step name not in the head; integrate notice not repeated | Known limit (runs did the right work) |
+| 10 | X14, X15: return-guard gaps; keepalive while a background task runs | Known limit (no harm observed) |
+| 11 | Pin H1–H5 | Not needed; existing suites cover the invariants that matter |
+
+### Known limits (acceptable by design)
+
+ShipLoop and Plan Dispatcher trust the host model to follow the packets. They
+guard against drift and context loss, not against deliberate forgery. Each of
+these can happen, and none has been seen in a real run:
+
+- **Forged evidence.** A model that writes a loop's terminal packet by hand
+  (X1), or prints a fake test summary (X7), can pass the loop and test gates.
+- **Simultaneous callbacks.** One parent conversation drives a run. Two
+  `complete` calls started together can both exit 0, and one result is lost
+  (X2). Calls even 0.6 s apart are refused.
+- **One-pass exits.** An Improve review that rewrites a stage result can
+  close on one unchanged pass (X3). Edits to git-ignored files, files under
+  `.shiploop/`, or files outside the workspace are invisible to that exit (X4).
+- **Judgment stages.** About 18 stages accept `done` with no script check
+  (X6); their output is judged by later stages and reviews.
+- **In-place runs.** Auto-commit on an in-place run commits everything in the
+  item's declared files, including the user's own uncommitted edits there
+  (X9). The default workspace route is protected.
+- **Recovery details.** The printed head does not name the implement step
+  (X12). Integrate's "not committed" notice prints once (X13).
+- **Return guard and keepalive.** Git-ignored files are outside the return
+  fingerprint, and a refusal does not name the drifted path (X14). Keepalive
+  keeps continuing while a background task runs (X15).
 
 ## Audit-session experiment findings (2026-09-27, snapshot b3e466c7)
 

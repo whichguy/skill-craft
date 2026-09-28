@@ -126,46 +126,26 @@ def outside(paths: Sequence[str], allowed: Sequence[str]) -> List[str]:
                                               or fnmatch.fnmatchcase(path, rule) for rule in allowed)]
 
 
-_IDENTITY = {"GIT_AUTHOR_NAME": "ShipLoop Workspace", "GIT_AUTHOR_EMAIL": "shiploop-workspace@local.invalid",
-             "GIT_COMMITTER_NAME": "ShipLoop Workspace", "GIT_COMMITTER_EMAIL": "shiploop-workspace@local.invalid"}
-
-
-def commit_item(run_dir: Path, state: Mapping[str, Any], work_item: str, message: str) -> Tuple[str, List[str]]:
+def commit_item(run_dir: Path, state: Mapping[str, Any], work_item: str,
+                message: str) -> Tuple[str, List[str], List[str]]:
     """Commit the item's changed files that its step plan declared, plus the knowledge home.
 
-    Returns the new commit ID ('' when nothing was left to commit) and the
-    changed paths it left alone because the step plan did not declare them.
-    The model never has to write the commit: committing is mechanical, and
-    headless hosts refuse model-written ``git commit`` shell.
+    Returns (new commit ID or '', changed paths left alone because the step plan did
+    not declare them, paths the privacy screen left uncommitted).  The model never
+    writes this commit: committing is mechanical (SPEC S-5), and headless hosts
+    refuse model-written ``git commit`` shell.
     """
-    import os
-    import subprocess
-    repo = Path(str(state["repo"]))
+    import shiploop_git
     changed = changed_paths(run_dir, work_item)
     if not changed:
-        return "", []
-    declared_paths = declared(state, work_item)
-    undeclared = outside(changed, declared_paths)
+        return "", [], []
+    undeclared = outside(changed, declared(state, work_item))
     chosen = [path for path in changed if path not in undeclared]
-    if not chosen:
-        return "", undeclared
-
-    def git(*args: str, env: Optional[Mapping[str, str]] = None) -> subprocess.CompletedProcess:
-        return subprocess.run(["git", "-C", str(repo), "-c", "core.hooksPath=/dev/null", *args],
-                              capture_output=True, text=True, check=False,
-                              env=None if env is None else {**os.environ, **env})
-
-    added = git("add", "-A", "--", *chosen)
-    if added.returncode:
-        raise ItemScopeError("cannot stage the item's files: " + added.stderr.strip())
-    if git("diff", "--cached", "--quiet", "--", *chosen).returncode == 0:
-        return "", undeclared
-    identity = git("config", "user.email")
-    env = None if identity.returncode == 0 and identity.stdout.strip() else _IDENTITY
-    done = git("commit", "-q", "-m", message, "--", *chosen, env=env)
-    if done.returncode:
-        raise ItemScopeError("cannot commit the item's files: " + (done.stderr or done.stdout).strip())
-    return git("rev-parse", "HEAD").stdout.strip(), undeclared
+    try:
+        committed = shiploop_git.commit_paths(Path(str(state["repo"])), chosen, message)
+    except shiploop_git.CommitError as exc:
+        raise ItemScopeError(str(exc)) from exc
+    return committed.commit, undeclared, committed.skipped
 
 
 def scope_refusal(run_dir: Path, state: Mapping[str, Any], work_item: str) -> str:

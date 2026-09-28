@@ -416,6 +416,95 @@ class ShipLoopWorkspaceTests(unittest.TestCase):
             self._call(workspace.prepare, self.repo, self.base / "missing" / "deeper" / "root")
         self.assertFalse((self.base / "missing").exists())
 
+    def _read_only(self, path: Path) -> None:
+        """Stand in for a host sandbox that refuses writes to ``path``."""
+        path.chmod(0o555)
+        self.addCleanup(path.chmod, 0o755)
+
+    def _branches(self) -> str:
+        return self.git("branch", "--format=%(refname:short)").stdout
+
+    def test_start_refuses_a_sandboxed_workspace_parent_with_the_exact_grant_and_creates_nothing(self) -> None:
+        runs = self.base / ".shiploop-runs"
+        runs.mkdir()
+        self._read_only(runs)
+        before = self._branches()
+        result = self.cli("workspace", "start", "--repo", str(self.repo), "--workspace-root",
+                          str(runs / "feature"), "--prompt", "Grant check.", code=3)
+        self.assertIn("SHIPLOOP-GRANT-NEEDED", result.stderr)
+        self.assertIn(f"{runs.resolve()}  (isolated worktree and run state)", result.stderr)
+        self.assertIn("Repair intent: give THIS session write access", result.stderr)
+        self.assertIn("Nothing was created; the source checkout is unchanged.", result.stderr)
+        self.assertIn("--workspace-root " + str(runs / "feature"), result.stderr)
+        self.assertEqual(list(runs.iterdir()), [])
+        self.assertEqual(self._branches(), before)
+        grant = result.stderr.split("Grant:\n", 1)[1].split("\n\n", 1)[0]
+        self.assertNotIn(".git", grant, "only the refused directory is requested")
+        self.assertIn("plus the repository's .git directory", result.stderr,
+                      "a Codex reader is still told .git needs a grant there")
+
+    def test_default_root_from_a_nested_linked_worktree_sits_beside_the_main_checkout(self) -> None:
+        linked = self.repo / ".claude" / "worktrees" / "task"
+        self.git("worktree", "add", "-q", "-b", "task", str(linked))
+        result = self.cli("workspace", "start", "--repo", str(linked), "--prompt", "Nested default root.")
+        line = next(row for row in result.stdout.splitlines() if row.startswith("Workspace root: "))
+        root = Path(line.removeprefix("Workspace root: "))
+        self.assertEqual(root.parent, self.base.resolve() / ".shiploop-runs")
+        self.assertTrue(root.name.startswith(self.repo.name + "-"))
+
+    def test_start_refuses_a_read_only_git_directory_before_any_worktree_exists(self) -> None:
+        git_dir = self.repo / ".git"
+        self._read_only(git_dir)
+        root = self.base / ".shiploop-runs" / "feature"
+        result = self.cli("workspace", "start", "--repo", str(self.repo), "--workspace-root", str(root),
+                          "--prompt", "Grant check.", code=3)
+        self.assertIn(f"{git_dir.resolve()}  (git worktree add and every commit)", result.stderr)
+        self.assertIn("sandbox_workspace_write.writable_roots", result.stderr)
+        self.assertFalse(root.parent.exists())
+
+    def test_default_workspace_root_is_a_fresh_directory_under_one_grantable_parent(self) -> None:
+        result = self.cli("workspace", "start", "--repo", str(self.repo), "--prompt", "Default root.")
+        line = next(row for row in result.stdout.splitlines() if row.startswith("Workspace root: "))
+        root = Path(line.removeprefix("Workspace root: "))
+        self.assertEqual(root.parent, self.base.resolve() / ".shiploop-runs")
+        self.assertTrue(root.name.startswith(self.repo.name + "-"))
+        self.assertTrue((root / "run" / "state.md").is_file())
+
+    def test_resume_refuses_a_run_whose_grant_was_lost(self) -> None:
+        root = self.base / ".shiploop-runs" / "feature"
+        self.cli("workspace", "start", "--repo", str(self.repo), "--workspace-root", str(root),
+                 "--prompt", "Resume grant check.")
+        self._read_only(root / "run")
+        result = self.cli("next", "--run-dir", str(root / "run"), code=3)
+        self.assertIn(f"{(root / 'run').resolve()}  (run state)", result.stderr)
+        self.assertIn("Then rerun: python3", result.stderr)
+        # chain and lint write run state too and are dispatched before next's path.
+        for verb in (("chain", "next"), ("lint",)):
+            refused = self.cli(*verb, "--run-dir", str(root / "run"), code=3)
+            self.assertIn("SHIPLOOP-GRANT-NEEDED", refused.stderr, verb)
+
+    def test_an_empty_directory_start_refused_by_the_sandbox_stays_empty(self) -> None:
+        empty = self.base / "fresh project"
+        empty.mkdir()
+        self._read_only(self.base)  # the sandbox refuses the sibling .shiploop-runs
+        result = self.cli("workspace", "start", "--repo", str(empty), "--prompt", "Empty start.", code=3)
+        self.assertIn("SHIPLOOP-GRANT-NEEDED", result.stderr)
+        self.assertEqual(list(empty.iterdir()), [], "no git init before the grant is proven")
+
+    def test_grant_report_lists_the_detected_host_first_and_names_nested_codex(self) -> None:
+        import shiploop_grants as grants
+        error = grants.GrantError([(Path("/r"), "run state", "Operation not permitted")],
+                                  [Path("/r"), Path("/g/.git")])
+        nested = grants.report(error, "rerun", {"CLAUDECODE": "1", "CODEX_SANDBOX": "seatbelt"})
+        self.assertIn("Detected host: codex.", nested)
+        fixes = [row for row in nested.splitlines() if row.startswith("  * ")]
+        self.assertTrue(fixes[0].startswith("  * Codex"), fixes)
+        claude = grants.report(error, "rerun", {"CLAUDECODE": "1"})
+        self.assertIn("/add-dir /r and /add-dir /g/.git", claude)
+        grok = grants.report(error, "rerun", {"GROK_AGENT": "1"})
+        self.assertIn("restart required", grok.splitlines()[[i for i, row in enumerate(grok.splitlines())
+                                                               if row.startswith("  * ")][0]])
+
     def test_bootstrap_leaves_non_empty_and_nested_directories_alone(self) -> None:
         loose = self.base / "loose files"
         loose.mkdir()
@@ -668,6 +757,73 @@ class ShipLoopWorkspaceTests(unittest.TestCase):
         self.assertEqual((self.repo / ".git" / "index").read_bytes(), drift_index)
         self.assertEqual(self._common_object_snapshot(), drift_objects)
 
+    def test_files_left_uncommitted_are_committed_before_the_return_so_it_fast_forwards(self) -> None:
+        record = self._prepare(name="leftover files")
+        root = self.base / "leftover files"
+        worktree = self._worktree(record)
+        (worktree / "app.txt").write_text("work item\n", encoding="utf-8")
+        self._commit_all(worktree, "work item")
+        (worktree / "system").mkdir()
+        (worktree / "system" / "check.js").write_text("late system test\n", encoding="utf-8")
+        (worktree / "settings.env").write_text("Authorization: Bearer 0123456789abcdefghij\n", encoding="utf-8")
+        evidence = worktree / ".shiploop-improve" / "child" / "review.md"
+        evidence.parent.mkdir(parents=True)
+        evidence.write_text("run evidence\n", encoding="utf-8")
+        committed = self._call(workspace.commit_leftovers, root)
+        self.assertEqual(committed.paths, ["system/check.js"])
+        self.assertEqual(committed.skipped, ["settings.env"])
+        self.assertTrue(evidence.is_file())
+        (worktree / "settings.env").unlink()
+        self._plan(root)
+        self._resolve_plan(root)
+        receipt = self._execute(root)
+        self.assertEqual(receipt["kind"], "fast-forward-merge")
+        self.assertEqual((self.repo / "system" / "check.js").read_text(encoding="utf-8"), "late system test\n")
+        self.assertEqual(self._call(workspace.commit_leftovers, root).commit, "")  # nothing left
+
+    def _returned_once(self, name: str) -> tuple[Path, Path]:
+        record = self._prepare(name=name)
+        root = self.base / name
+        worktree = self._worktree(record)
+        (worktree / "app.txt").write_text("product\n", encoding="utf-8")
+        self._commit_all(worktree, "product")
+        self._plan(root)
+        self._resolve_plan(root)
+        self.assertEqual(self._execute(root)["kind"], "fast-forward-merge")
+        return root, worktree
+
+    def test_knowledge_committed_after_a_return_is_returned_by_the_same_route(self) -> None:
+        root, worktree = self._returned_once("knowledge follow-up")
+        (worktree / "docs" / "shiploop").mkdir(parents=True)
+        (worktree / "docs" / "shiploop" / "outcome.md").write_text("learned\n", encoding="utf-8")
+        head = self._commit_all(worktree, "docs(shiploop): knowledge at release-verify")
+        receipt = self._call(workspace.follow_up_knowledge_return, root)
+        self.assertEqual(receipt["kind"], "fast-forward-merge")
+        self.assertEqual(self.git("rev-parse", "HEAD").stdout.strip(), head)
+        self.assertEqual((self.repo / "docs" / "shiploop" / "outcome.md").read_text(encoding="utf-8"), "learned\n")
+        self.assertIsNotNone(self._call(workspace.completed_receipt, root, self.repo))
+        self.assertIsNone(self._call(workspace.follow_up_knowledge_return, root))  # nothing new
+
+    def test_knowledge_follow_up_skips_anything_but_knowledge(self) -> None:
+        root, worktree = self._returned_once("knowledge with product")
+        (worktree / "SHIPLOOP.md").write_text("index\n", encoding="utf-8")
+        self._commit_all(worktree, "index")
+        (worktree / "app.txt").write_text("uncommitted product change\n", encoding="utf-8")
+        self.assertIsNone(self._call(workspace.follow_up_knowledge_return, root))  # dirty product file
+        (worktree / "app.txt").write_text("committed product change\n", encoding="utf-8")
+        self._commit_all(worktree, "product fix")
+        self.assertIsNone(self._call(workspace.follow_up_knowledge_return, root))  # a product commit: review it
+
+    def test_knowledge_follow_up_refuses_a_moved_source(self) -> None:
+        root, worktree = self._returned_once("knowledge drift")
+        (worktree / "SHIPLOOP.md").write_text("index\n", encoding="utf-8")
+        self._commit_all(worktree, "index")
+        (self.repo / "user-note.txt").write_text("the user kept working\n", encoding="utf-8")
+        before = self.git("rev-parse", "HEAD").stdout
+        with self.assertRaises(workspace.WorkspaceError):
+            self._call(workspace.follow_up_knowledge_return, root)
+        self.assertEqual(self.git("rev-parse", "HEAD").stdout, before)
+
     def test_clean_candidate_fast_forwards_when_every_path_is_kept(self) -> None:
         record = self._prepare(name="clean fast forward")
         root = self.base / "clean fast forward"
@@ -816,7 +972,7 @@ class ShipLoopWorkspaceTests(unittest.TestCase):
         plan = self._plan(root)
         items = {item["path"]: item for item in plan["paths"]}
         self.assertEqual(items["reports/transient-output.html"]["disposition"], "exclude")
-        self.assertEqual(items["SHIPLOOP.md"]["disposition"], "pending")
+        self.assertEqual(items["SHIPLOOP.md"]["disposition"], "keep")  # ShipLoop's knowledge index always returns
         self.assertEqual(items["environment.md"]["disposition"], "pending")
         self.assertEqual(items["docs/requirements.md"]["disposition"], "pending")
         self._resolve_plan(

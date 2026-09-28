@@ -14,6 +14,7 @@ from __future__ import annotations
 import contextlib
 import io
 import json
+import shutil
 import os
 from pathlib import Path
 import re
@@ -22,6 +23,7 @@ import subprocess
 import sys
 import tempfile
 import unittest
+from unittest import mock
 
 ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT / "test" / "shiploop_e2e"))
@@ -31,6 +33,7 @@ import metrics  # noqa: E402
 import progress  # noqa: E402
 import review  # noqa: E402
 import run  # noqa: E402
+import fanout  # noqa: E402
 
 # Shared product writer for both fakes: the hello case's files plus a done run.
 PRODUCT = f"""
@@ -122,13 +125,56 @@ print(json.dumps({{"type": "end", "stopReason": "cancelled", "sessionId": "sess-
 """
 
 
+# A fake Codex CLI: plugin marketplace add / plugin add / plugin list --json, and
+# `exec --json ... [resume ID] PROMPT` emitting Codex's JSON event stream.
+FAKE_CODEX = f"""#!{sys.executable}
+import json, os, sys
+from pathlib import Path
+{PRODUCT}
+argv = sys.argv[1:]
+home = Path(os.environ["CODEX_HOME"])
+state = home / "fake-plugin.json"
+if argv[:3] == ["plugin", "marketplace", "add"]:
+    state.write_text(json.dumps({{"marketplace": argv[3]}}))
+    sys.exit(0)
+if argv[:2] == ["plugin", "add"]:
+    root = home / "plugins" / "cache" / "whichguy" / "skill-craft" / "9.9.9"
+    (root / "skills" / "shiploop" / "scripts").mkdir(parents=True, exist_ok=True)
+    (root / "skills" / "shiploop" / "scripts" / "shiploop").write_text("")
+    sys.exit(0)
+if argv[:2] == ["plugin", "list"]:
+    rows = [{{"pluginId": "skill-craft@whichguy", "name": "skill-craft", "version": "9.9.9",
+             "installed": True}}] if state.exists() else []
+    print(json.dumps({{"installed": rows}}))
+    sys.exit(0)
+assert argv[:2] == ["exec", "--json"], argv
+os.chdir(argv[argv.index("-C") + 1])
+resumed = argv[argv.index("resume") + 1] if "resume" in argv else None
+prompt = argv[-1]
+Path(os.environ["FAKE_LOG"]).write_text(json.dumps({{"argv": argv, "prompt": prompt, "resumed": resumed,
+    "cwd_listing": os.listdir("."), "codex_home": str(home),
+    "auth_is_symlink": (home / "auth.json").is_symlink()}}))
+def emit(event):
+    print(json.dumps(event), flush=True)
+emit({{"type": "thread.started", "thread_id": resumed or "codex-thread-1"}})
+cli = "python3 /x/skills/shiploop/scripts/shiploop next"
+emit({{"type": "item.completed", "item": {{"id": "item_0", "type": "command_execution", "command": cli,
+      "aggregated_output": "ShipLoop navigator\\n", "exit_code": 0, "status": "completed"}}}})
+if os.environ.get("FAKE_MODE") == "done":
+    import shutil
+    shutil.rmtree(".shiploop", ignore_errors=True)  # a resumed session finishes the same run
+    product()
+emit({{"type": "item.completed", "item": {{"id": "item_1", "type": "agent_message", "text": "Shipped."}}}})
+emit({{"type": "turn.completed", "usage": {{"input_tokens": 10, "cached_input_tokens": 5, "output_tokens": 2}}}})
+"""
+
 class HarnessCase(unittest.TestCase):
     def setUp(self):
         tmp = tempfile.TemporaryDirectory()
         self.addCleanup(tmp.cleanup)
         self.tmp = Path(tmp.name)
         self.fakes = {}
-        for name, body in (("claude", FAKE_CLAUDE), ("grok", FAKE_GROK)):
+        for name, body in (("claude", FAKE_CLAUDE), ("grok", FAKE_GROK), ("codex", FAKE_CODEX)):
             path = self.tmp / name
             path.write_text(body)
             path.chmod(path.stat().st_mode | stat.S_IXUSR)
@@ -144,6 +190,12 @@ class HarnessCase(unittest.TestCase):
         auth.write_text("{}")
         saved, hosts.GROK_AUTH = hosts.GROK_AUTH, auth
         self.addCleanup(setattr, hosts, "GROK_AUTH", saved)
+        codex_home = self.tmp / "real-codex"
+        codex_home.mkdir()
+        (codex_home / "auth.json").write_text("{}")
+        patched = mock.patch.dict(os.environ, {"CODEX_HOME": str(codex_home)})
+        patched.start()
+        self.addCleanup(patched.stop)
 
     def invoke(self, host: str, mode: str, *extra: str) -> tuple[int, dict]:
         os.environ["FAKE_MODE"] = mode
@@ -249,9 +301,16 @@ class VersionGateTest(unittest.TestCase):
     def test_gate_passes_only_when_head_catalog_and_installed_versions_agree(self):
         self.assertEqual(run.version_gate(self.RELEASED, "1.4.0", "0.37.0"), [])
         behind = dict(self.RELEASED, local_head="b" * 40)
-        self.assertIn("is not origin/main", " ".join(run.version_gate(behind, "1.4.0", "0.37.0")))
+        self.assertIn("has commits origin/main", " ".join(run.version_gate(behind, "1.4.0", "0.37.0")))
+        # A checkout merely behind main runs: the plugin comes from the marketplace, not the checkout.
+        self.assertEqual(run.version_gate(dict(behind, local_behind_main=True), "1.4.0", "0.37.0"), [])
         self.assertIn("installed skill-craft 1.3.0", " ".join(run.version_gate(self.RELEASED, "1.3.0", "0.37.0")))
         self.assertIn("installed ShipLoop 0.36.0", " ".join(run.version_gate(self.RELEASED, "1.4.0", "0.36.0")))
+        self.assertIn("CI failed", " ".join(run.version_gate(dict(self.RELEASED, ci="failure"), "1.4.0", "0.37.0")))
+        for ci in ("pending", "unknown"):  # optimistic: proceed, cancel if CI then fails
+            self.assertEqual(run.version_gate(dict(self.RELEASED, ci=ci), "1.4.0", "0.37.0"), [])
+        pending = dict(self.RELEASED, unreleased=["changes/shiploop/fix.md"])
+        self.assertIn("unreleased changes (changes/shiploop/fix.md)", " ".join(run.version_gate(pending, "1.4.0", "0.37.0")))
 
     def test_card_version_reads_only_the_front_matter(self):
         with tempfile.TemporaryDirectory() as tmp:
@@ -504,6 +563,61 @@ class SuiteTest(HarnessCase):
         self.assertIn("failed", result["cases"][1]["skipped"])
         self.assertFalse((self.tmp / "suite-out" / "second").exists())
 
+    def test_tmp_writes_and_names_shared_across_runs(self):
+        """P13: a literal /tmp path is shared with every other run; the suite names any two that met."""
+        self.assertEqual(metrics.tmp_writes("node --test > /tmp/w1.txt 2>&1"), ["/tmp/w1.txt"])
+        self.assertEqual(metrics.tmp_writes("python3 x.py | tee /tmp/r.json"), ["/tmp/r.json"])
+        self.assertEqual(metrics.tmp_writes('mv out.json "/tmp/improve-done-1.json"'), ["/tmp/improve-done-1.json"])
+        self.assertEqual(metrics.tmp_writes("cat /tmp/a.txt"), [])  # a read
+        self.assertEqual(metrics.tmp_writes("x > /x/run/scratch/a.txt"), [])  # the run's own scratch
+        self.assertEqual(metrics.tmp_writes("python3 - <<'PY'\nopen('/tmp/x','w')\nPY"), [])  # a document
+        outs = []
+        for name, target in (("a", "/tmp/improve-done-1.json"), ("b", "/tmp/improve-done-1.json"),
+                             ("c", "/tmp/other.json")):
+            out = self.tmp / name
+            out.mkdir()
+            (out / "events.jsonl").write_text(json.dumps({"type": "tool_call", "toolCallId": "1", "toolName": "write",
+                                                          "rawInput": {"file_path": target, "content": "{}"}}) + "\n")
+            outs.append(out)
+        self.assertEqual(run.shared_tmp_writes(outs), {"/tmp/improve-done-1.json": ["a", "b"]})
+
+    def test_independent_chains_run_concurrently_and_report_in_suite_order(self):
+        cases = {"a": {"style": "s", "prompt": "p", "checks": []},
+                 "b": {"style": "t", "prompt": "p", "checks": []},
+                 "a2": {"style": "s", "follows": "a", "prompt": "q", "checks": []}}
+        self.assertEqual(run.suite_chains(["a", "b", "a2"], cases), [["a", "a2"], ["b"]])
+        self.use_catalog(cases, {"wide": {"kind": "breadth", "cases": ["a", "b", "a2"]}})
+        started = []
+        real_main = run.main
+
+        def spy(argv=None):
+            if argv and "--case" in argv:
+                started.append(argv[argv.index("--case") + 1])
+                self.assertIn("--quiet", argv)  # concurrent live views would interleave
+            return real_main(argv)
+
+        with mock.patch.object(run, "main", side_effect=spy):
+            code, result = self.run_suite("wide")
+        self.assertEqual(code, 0, result)
+        self.assertEqual([row["case"] for row in result["cases"]], ["a", "b", "a2"])
+        self.assertLess(started.index("a"), started.index("a2"))
+        self.assertTrue(all((self.tmp / "suite-out" / name / "result.json").is_file() for name in ("a", "b", "a2")))
+
+    def test_a_batch_gate_runs_first_and_a_failed_gate_stops_the_rest(self):
+        cases = {"g": {"style": "s", "prompt": "p", "checks": ["false"]},
+                 "a": {"style": "t", "prompt": "p", "checks": []}}
+        self.use_catalog(cases, {"b": {"kind": "batch", "gate": ["g"], "cases": ["a"]}})
+        code, result = self.run_suite("b")
+        self.assertEqual(code, 1)
+        self.assertEqual([(r["case"], r.get("skipped")) for r in result["cases"]], [("g", None), ("a", "the gate failed")])
+        self.assertFalse((self.tmp / "suite-out" / "a").exists())
+        cases["g"]["checks"] = []
+        self.use_catalog(cases, {"b": {"kind": "batch", "gate": ["g"], "cases": ["a"]}})
+        shutil.rmtree(self.tmp / "suite-out")
+        code, result = self.run_suite("b")
+        self.assertEqual(code, 0, result)
+        self.assertEqual([r["case"] for r in result["cases"]], ["g", "a"])
+
     def test_committed_suites_name_known_cases_and_breadth_covers_every_focused_style(self):
         cases = json.loads(run.CASES.read_text())
         suites = {k: v for k, v in json.loads(run.SUITES.read_text()).items() if not k.startswith("_")}
@@ -537,6 +651,11 @@ class SuiteTest(HarnessCase):
         self.assertEqual(len(self.baselines.read_text().splitlines()), 2)
 
 class CheckHygieneTest(unittest.TestCase):
+    def test_checks_run_with_standard_input_closed(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            result = run.run_checks(Path(tmp), ["read line; test -z \"$line\""], timeout=10)[0]
+        self.assertTrue(result["pass"], result)  # reading stdin returns at once instead of waiting
+
     def test_checks_leave_no_untracked_file_behind(self):
         with tempfile.TemporaryDirectory() as tmp:
             work = Path(tmp)
@@ -581,6 +700,8 @@ class MetricsTest(unittest.TestCase):
                 {"type": "tool_call_update", "toolCallId": "c", "status": "failed", "rawOutput": None, "content": [
                     {"type": "content", "content": {"type": "text",
                                                     "text": "User cancelled the execution for tool `run_terminal_command`"}}]},
+                {"type": "tool_call", "toolCallId": "q", "toolName": "ask_user_question",
+                 "rawInput": {"question": "Which port?"}},
                 {"type": "auto_compact_completed"},
                 {"type": "usage", "usage": {"input_tokens": 500, "output_tokens": 5}},
                 {"type": "end", "stopReason": "end_turn", "num_turns": 3, "total_cost_usd": 3.0},
@@ -599,10 +720,82 @@ class MetricsTest(unittest.TestCase):
         self.assertEqual(m["truncated_outputs"], 2)
         self.assertEqual(m["script_verifications"], {"records": 0, "passed": 0, "commands": 0})
         self.assertEqual(m["cancelled_tool_calls"], ["git init -b main"])
+        self.assertEqual(m["asked_user"], ["Which port?"])
         self.assertEqual(m["improve_children"], 1)
         self.assertEqual(m["shiploop_failures"], [{"verb": "complete", "exit": 2, "line": "error: result refused"}])
         self.assertEqual([(s["stage"], s["turns"]) for s in m["stages"]], [("intake", 2), ("spec", 1)])
         self.assertEqual(m["stages"][0]["cost_share_usd"], 2.0)
+
+    NARRATIVE_BODY = ("#### \U0001f6a2 ShipLoop \u2014 Add a flag\n`\u2588\u2591` **Preparation 1/7**\n\n"
+                      "**\u25b6\ufe0f Now** \u2014 **spec**: define behavior\n")
+
+    def packet(self, stage: str, rule: str = "Show the user this narrative exactly as written, as Markdown.") -> str:
+        return (f"ShipLoop navigator | {stage} | revision 3\nCallback: x\n\n=== ShipLoop narrative ===\n{rule}\n\n"
+                f"{self.NARRATIVE_BODY}=== end ShipLoop narrative ===\n")
+
+    def result_record(self, run_dir: Path, name: str, result: dict) -> None:
+        body = json.dumps({"action": name, "result": result, "stage": "intake", "workitem": None}, indent=2)
+        (run_dir / "results" / f"{name}.md").write_text(f"# ShipLoop navigator result\n\n```shiploop-state\n{body}\n```\n")
+
+    def test_narrative_shown_verbatim_skipped_and_headlines_grok(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            out = Path(tmp)
+            run_dir = out / "run"
+            (run_dir / "results").mkdir(parents=True)
+            half = len(self.NARRATIVE_BODY) // 2
+            stream = [
+                {"type": "tool_call", "toolCallId": "a", "rawInput": {"command": "shiploop init"}},
+                {"type": "tool_call_update", "toolCallId": "a", "rawOutput": {"exit_code": 0, "output_for_prompt": self.packet("intake")}},
+                # Grok repeats an update; one tool call is one emission.
+                {"type": "tool_call_update", "toolCallId": "a", "rawOutput": {"exit_code": 0, "output_for_prompt": self.packet("intake")}},
+                {"type": "text", "data": "Starting.\n" + self.NARRATIVE_BODY[:half]},
+                {"type": "text", "data": self.NARRATIVE_BODY[half:]},
+                {"type": "tool_call", "toolCallId": "b", "rawInput": {"command": "shiploop complete"}},
+                {"type": "tool_call_update", "toolCallId": "b", "rawOutput": {"exit_code": 0, "output_for_prompt": self.packet("discovery")}},
+                {"type": "text", "data": "Moving on to discovery."},
+                {"type": "tool_call", "toolCallId": "c", "rawInput": {"command": "shiploop complete"}},
+                {"type": "tool_call_update", "toolCallId": "c", "rawOutput": {"exit_code": 0, "output_for_prompt": self.packet("research")}},
+                {"type": "text", "data": "\U0001f6a2 ShipLoop \u2014 Add a flag\nsomething else"},  # heading only
+                # The CLI hook shows this one; the model is not asked to.
+                {"type": "tool_call", "toolCallId": "d", "rawInput": {"command": "shiploop complete"}},
+                {"type": "tool_call_update", "toolCallId": "d", "rawOutput": {"exit_code": 0, "output_for_prompt": self.packet(
+                    "spec", rule="The host's status hook already shows the user this narrative; do not repeat it.")}},
+            ]
+            (out / "events.jsonl").write_text("\n".join(json.dumps(e) for e in stream) + "\n")
+            self.result_record(run_dir, "r1", {"outcome": "done", "summary": "s", "headline": "Scope set"})
+            self.result_record(run_dir, "r2", {"outcome": "done", "summary": "s"})
+            self.result_record(run_dir, "r3", {"outcome": "done", "summary": "Not applicable to this item: x."})
+            story = metrics.narrative(out, run_dir)
+            report = metrics.summary_lines({**metrics.collect(out, run_dir), "narrative": story})
+        self.assertEqual(story, {"emitted": 3, "shown": 2, "verbatim": 1, "skipped": ["discovery"],
+                                 "results": 2, "with_headline": 1})
+        self.assertIn("narrative shown 2/3 (verbatim 1), skipped at discovery; headlines 1/2 results", report[-1])
+        self.assertNotIn("Add a flag", json.dumps(story))
+
+    def test_narrative_reads_claude_tool_results_and_text_blocks(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            out = Path(tmp)
+            stream = [
+                {"type": "user", "message": {"content": [{"type": "tool_result", "tool_use_id": "t1",
+                                                          "content": [{"type": "text", "text": self.packet("intake")}]}]}},
+                {"type": "assistant", "message": {"content": [{"type": "text", "text": self.NARRATIVE_BODY.replace("#### ", "")}]}},
+                {"type": "user", "message": {"content": [{"type": "tool_result", "tool_use_id": "t2",
+                                                          "content": self.packet("discovery")}]}},
+            ]
+            (out / "events.jsonl").write_text("\n".join(json.dumps(e) for e in stream) + "\n")
+            story = metrics.narrative(out)
+        self.assertEqual((story["emitted"], story["shown"], story["verbatim"], story["skipped"]),
+                         (2, 1, 1, ["discovery"]))
+        self.assertEqual((story["results"], story["with_headline"]), (0, 0))
+
+    def test_run_without_narrative_reports_nothing(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            out = Path(tmp)
+            (out / "events.jsonl").write_text(json.dumps({"type": "text", "data": "hi"}) + "\n")
+            m = metrics.collect(out)
+        self.assertEqual(m["narrative"], {"emitted": 0, "shown": 0, "verbatim": 0, "skipped": [],
+                                          "results": 0, "with_headline": 0})
+        self.assertFalse(any(line.startswith("narrative") for line in metrics.summary_lines(m)))
 
     def test_glue_is_defined_by_shiploop_paths_and_verbs_not_by_product_tools(self):
         cases = {
@@ -613,8 +806,34 @@ class MetricsTest(unittest.TestCase):
             'mv /x/wt/.shiploop-improve/n/packet.json /x/p.old': ["shell write into a ShipLoop-owned path"],
             'echo x > /x/.shiploop/state.md': ["shell write into a ShipLoop-owned path"],
             'git -C /x/wt commit -F /tmp/m': ["git commit/add by the model"],
-            'python3 - <<PY\n{"exit_condition": 1}\nPY': ["hand-built loop contract"],
+            'python3 until_loop.py start --directory /x <<PY\n{"exit_condition": 1}\nPY': ["hand-built loop contract"],
+            "python3 - <<'PY'\nd=json.load(open('/x/run/quality/c-contract.json'))\nprint(d['exit_condition'][:500])\nPY": [],
             'python3 /p/shiploop improve-commit --run-dir=/x/run --action=a --message=/x/m.md': [],
+            # words inside a heredoc are a document, not commands
+            "python3 - << 'PY'\nreport = {'evidence': 'git log shows the commit'}\nPY\n": [],
+            'cd /x/wt && WT=/x git -C "$WT" add docs/a.md && git commit -m m': ["git commit/add by the model"],
+            'echo "run git commit later"': [],
+            # evidence the packets ask the model to record
+            'node --test > "/x/.shiploop-runs/a/run/notes/test-green.txt" 2>&1': [],
+            'cp /tmp/r.txt /x/wt/.shiploop-improve/n/a/reviews/checks.md': [],
+            'echo x > /x/.shiploop-runs/a/run/results/nav-1.md': ["shell write into a ShipLoop-owned path"],
+            # a file of the model's own that merely ends like a ShipLoop name
+            'python3 /p/shiploop improve-start --action=a --opening=/x/o.md > /tmp/plan-start.json': [],
+            'cp /tmp/x.json /x/wt/.shiploop-improve/n/a/start.json': ["shell write into a ShipLoop-owned path"],
+            # check output the packet asks the model to record as evidence
+            'npm test > /x/.shiploop-runs/a/run/evidence/w1-verify.txt': [],
+            # the run's scratch directory is the model's own (P13)
+            'python3 -m unittest > /x/.shiploop-runs/a/run/scratch/baseline.txt 2>&1': [],
+            # the Improve child's review directory is where P12 asks it to write
+            "mkdir -p .shiploop-improve/n/a/reviews": [],
+            # the Improve child's own directory, where the model writes its opening file
+            'mkdir -p "/x/wt/.shiploop-improve/run1/nav-1"': [],
+            'rm -rf "/x/wt/.shiploop-improve"': ["shell write into a ShipLoop-owned path"],
+            # reading ShipLoop's own contract is not building one
+            'python3 -c \'import json; p=json.load(open("/x/run/quality/c-contract.json")); print(p["exit_condition"])\'': [],
+            'python3 -c \'import json; json.dump({"exit_condition": 1}, open("/x/c.json", "w"))\'': ["hand-built loop contract"],
+            # json.dumps only formats text for printing
+            "python3 - <<'PY'\nd=json.load(open('/x/packet.json'))\nprint(json.dumps(d['exit_condition'], indent=2))\nPY": [],
         }
         for command, reasons in cases.items():
             with self.subTest(command=command):
@@ -642,6 +861,208 @@ class MetricsTest(unittest.TestCase):
         self.assertNotIn("SHIPLOOP-RUN", first + second)
         self.assertIn("no run state yet", second)
 
+
+
+class CodexRunTest(HarnessCase):
+    def test_codex_run_passes_in_an_isolated_codex_home(self):
+        code, result = self.invoke("codex", "done")
+        self.assertEqual(code, 0, result)
+        seen = self.seen()
+        self.assertEqual(seen["cwd_listing"], [])
+        self.assertTrue(seen["prompt"].startswith("$skill-craft:shiploop "), seen["prompt"])
+        self.assertTrue(seen["auth_is_symlink"])
+        self.assertEqual(Path(seen["codex_home"]), Path(result["output"]) / "home" / ".codex")
+        argv = seen["argv"]
+        self.assertEqual(argv[argv.index("-m") + 1], "gpt-6-luna")
+        self.assertIn("model_reasoning_effort=max", argv)
+        self.assertTrue(result["invoked"]["pass"], result["invoked"])
+        self.assertTrue(result["plugin"]["pass"], result["plugin"])
+        self.assertTrue(result["committed"]["pass"], result["committed"])
+        self.assertEqual(result["cli"]["num_turns"], 2)
+
+    def test_model_and_effort_toggle_by_flag(self):
+        code, result = self.invoke("codex", "done", "--model", "gpt-6-sol", "--effort", "xhigh")
+        self.assertEqual(code, 0, result)
+        argv = self.seen()["argv"]
+        self.assertEqual(argv[argv.index("-m") + 1], "gpt-6-sol")
+        self.assertIn("model_reasoning_effort=xhigh", argv)
+        self.assertEqual((result["model"], result["effort"]), ("gpt-6-sol", "xhigh"))
+
+    def test_resume_run_continues_a_stopped_grok_run_on_codex(self):
+        code, stopped = self.invoke("grok", "stuck", "--max-resumes", "0")
+        self.assertEqual(code, 1)
+        out = Path(stopped["output"])
+        original = (out / "invocation.json").read_text()
+        os.environ["FAKE_MODE"] = "done"
+        with contextlib.redirect_stdout(io.StringIO()):
+            code = run.main(["--host", "codex", "--codex-bin", str(self.fakes["codex"]), "--resume-run", str(out),
+                             "--plugin-dir", str(self.plugin), "--baseline", str(self.baselines)])
+        result = json.loads((out / "result.json").read_text())
+        self.assertEqual(code, 0, result)
+        self.assertEqual(result["host"], "codex")
+        self.assertEqual(result["resumed_run"]["from_host"], "grok")
+        self.assertEqual(result["resumed_run"]["stage"], "test-refine")
+        self.assertIn("next --run-dir", self.seen()["prompt"])
+        self.assertEqual((out / "invocation.json").read_text(), original)
+        self.assertEqual(len(list(out.glob("invocation-resume-codex-*.json"))), 1)
+        events = (out / "events.jsonl").read_text()
+        self.assertIn('"sessionId": "sess-1"', events)          # the Grok session is kept
+        self.assertIn('"sessionId": "codex-thread-1"', events)  # the Codex session is appended
+        rows = [json.loads(line) for line in self.baselines.read_text().splitlines()]
+        self.assertEqual(len(rows), 1, "only the original run writes a baseline row; a resume does not")
+
+    def test_resume_run_refuses_a_run_that_is_not_active(self):
+        code, finished = self.invoke("grok", "done")
+        self.assertEqual(code, 0)
+        with self.assertRaisesRegex(SystemExit, "needs an active ShipLoop run"):
+            run.main(["--host", "codex", "--codex-bin", str(self.fakes["codex"]),
+                      "--resume-run", finished["output"], "--plugin-dir", str(self.plugin)])
+
+
+class CodexHostTest(unittest.TestCase):
+    """Codex runs through the same host interface; its stream is translated to Grok's shape."""
+
+    STREAM = [
+        {"type": "thread.started", "thread_id": "thread-1"},
+        {"type": "turn.started"},
+        {"type": "item.started", "item": {"id": "item_0", "type": "command_execution",
+                                          "command": "/bin/zsh -lc 'python3 /x/skills/shiploop/scripts/shiploop next'",
+                                          "aggregated_output": "", "exit_code": None, "status": "in_progress"}},
+        {"type": "item.completed", "item": {"id": "item_0", "type": "command_execution",
+                                            "command": "/bin/zsh -lc 'python3 /x/skills/shiploop/scripts/shiploop next'",
+                                            "aggregated_output": "ShipLoop navigator | intake | revision 0\n",
+                                            "exit_code": 0, "status": "completed"}},
+        {"type": "item.completed", "item": {"id": "item_1", "type": "file_change", "status": "completed",
+                                            "changes": [{"path": "/w/convert.py", "kind": "add"}]}},
+        {"type": "item.completed", "item": {"id": "item_2", "type": "command_execution",
+                                            "command": "git commit -am wip", "aggregated_output": "fatal\n",
+                                            "exit_code": 128, "status": "failed"}},
+        {"type": "item.completed", "item": {"id": "item_3", "type": "agent_message", "text": "Done for now."}},
+        {"type": "turn.completed", "usage": {"input_tokens": 100, "cached_input_tokens": 80,
+                                             "output_tokens": 7, "reasoning_output_tokens": 2}},
+    ]
+
+    def translated(self) -> list[dict]:
+        translate = hosts.host("codex").translator()
+        lines = [raw for event in self.STREAM for raw in translate((json.dumps(event) + "\n").encode())]
+        return [json.loads(raw) for raw in lines]
+
+    def test_argv_invocation_and_resume_order(self):
+        codex = hosts.host("codex", "codex-bin")
+        with tempfile.TemporaryDirectory() as temp:
+            argv = codex.argv(prompt="$skill-craft:shiploop build it", prompt_file=Path(temp) / "p.txt",
+                              cwd=Path("/w"), model="gpt-6-luna", effort="xhigh", permission_mode="auto",
+                              max_turns=10)
+            resumed = codex.argv(prompt="continue", prompt_file=Path(temp) / "r.txt", cwd=Path("/w"),
+                                 model="gpt-6-luna", effort="xhigh", permission_mode="auto", max_turns=10,
+                                 resume="thread-1")
+        self.assertEqual(argv[:3], ["codex-bin", "exec", "--json"])
+        self.assertIn("model_reasoning_effort=xhigh", argv)
+        self.assertEqual(argv[argv.index("-m") + 1], "gpt-6-luna")
+        self.assertEqual(argv[-1], "$skill-craft:shiploop build it")
+        # Codex takes its options before the resume subcommand.
+        self.assertEqual(resumed[-3:], ["resume", "thread-1", "continue"])
+        self.assertLess(resumed.index("--json"), resumed.index("resume"))
+        self.assertEqual(codex.invoke("skill-craft:shiploop", "x"), "$skill-craft:shiploop x")
+        self.assertEqual((codex.model, codex.effort, codex.resumable), ("gpt-6-luna", "max", True))
+
+    def test_env_is_an_isolated_codex_home_linking_only_auth(self):
+        with tempfile.TemporaryDirectory() as temp:
+            real = Path(temp) / "real"
+            real.mkdir()
+            (real / "auth.json").write_text("{}")
+            with mock.patch.dict(os.environ, {"CODEX_HOME": str(real), "CODEX_SECRET": "x"}):
+                env = hosts.host("codex").env(Path(temp) / "home")
+            codex_home = Path(env["CODEX_HOME"])
+            self.assertEqual(codex_home, Path(temp) / "home" / ".codex")
+            self.assertEqual((codex_home / "auth.json").resolve(), (real / "auth.json").resolve())
+            self.assertNotIn("CODEX_SECRET", env)
+            self.assertEqual(env["HOME"], str(Path(temp) / "home"))
+
+    def test_translated_stream_reads_like_grok_for_every_parser(self):
+        events = self.translated()
+        kinds = [e["type"] for e in events]
+        self.assertEqual(kinds, ["available_commands", "tool_call", "tool_call_update", "tool_call",
+                                 "tool_call_update", "tool_call", "tool_call_update", "text", "end"])
+        self.assertEqual(events[2]["rawOutput"]["exit_code"], 0)
+        self.assertEqual(events[3]["rawInput"]["target_file"], "/w/convert.py")
+        self.assertEqual(events[6]["status"], "failed")
+        end = events[-1]
+        self.assertEqual((end["sessionId"], end["num_turns"], end["total_cost_usd"]), ("thread-1", 4, None))
+        with tempfile.TemporaryDirectory() as temp:
+            out = Path(temp)
+            path = out / "events.jsonl"
+            path.write_text("".join(json.dumps(e) + "\n" for e in events))
+            self.assertEqual(run.last_session_id(path), "thread-1")
+            self.assertTrue(run.shiploop_cli_ran(path))
+            seen = run.summarize_events(path)
+            self.assertEqual((seen["num_turns"], seen["cost_usd"], seen["commands"]), (4, 0, []))
+            self.assertEqual(hosts.final_text(path).strip(), "Done for now.")
+            run.write_transcript(path, out / "transcript.md")
+            transcript = (out / "transcript.md").read_text()
+            self.assertIn("tool  run_terminal_command:", transcript)
+            self.assertIn("say   Done for now.", transcript)
+            collected = metrics.collect(out)
+            self.assertEqual(collected["turns"], 4)
+            self.assertTrue(any("git commit" in g["command"] for g in collected["model_glue"]))
+
+    def test_turns_add_a_codex_session_to_a_grok_run_it_resumed(self):
+        grok = [{"type": "usage", "usage": {"input_tokens": 1}}, {"type": "usage", "usage": {"input_tokens": 2}},
+                {"type": "end", "stopReason": "cancelled", "num_turns": 91, "total_cost_usd": 1.0}]
+        with tempfile.TemporaryDirectory() as temp:
+            out = Path(temp)
+            (out / "events.jsonl").write_text("".join(json.dumps(e) + "\n" for e in grok + self.translated()))
+            self.assertEqual(metrics.collect(out)["turns"], 2 + 4)
+
+    def test_every_host_is_selectable_by_name(self):
+        self.assertEqual(sorted(hosts.HOSTS), ["claude", "codex", "grok"])
+        for name in hosts.HOSTS:
+            agent = hosts.host(name)
+            self.assertEqual(agent.name, name)
+            self.assertEqual(hosts.HOST_DEFAULTS[name], {"model": agent.model, "effort": agent.effort})
+
+
+class FanoutGradeTest(unittest.TestCase):
+    """The live fan-out/fan-in check is graded from stamps and dispatcher state, never by the model."""
+
+    def grade(self, stamps: dict, complete: bool = True, handles: bool = True) -> dict:
+        with tempfile.TemporaryDirectory() as temp:
+            root = Path(temp)
+            dispatch = root / "dispatch.js"
+            dispatch.write_text("process.stdout.write(JSON.stringify({complete: %s}))" % str(complete).lower())
+            run_dir, marks = root / "run", root / "stamps"
+            run_dir.mkdir()
+            marks.mkdir()
+            attempts = {f"att-{s}": {"step": s, "handle": "h" if handles else None,
+                                     **({} if handles else {"executor": {"kind": "main-context"}})} for s in "ABJ"}
+            (run_dir / "plan-dispatcher-state.json").write_text(json.dumps({
+                "steps": {s: {"current_attempt": f"att-{s}"} for s in "ABJ"}, "attempts": attempts}))
+            for step, (start, end) in stamps.items():
+                (marks / f"{step}.json").write_text(json.dumps({"step": step, "start": start, "end": end}))
+            return fanout.grade(dispatch, run_dir, marks)
+
+    def test_parallel_fan_out_then_fan_in_passes(self):
+        result = self.grade({"A": (0, 30), "B": (1, 31), "J": (32, 62)})
+        self.assertTrue(result["pass"], result)
+        self.assertTrue(result["fan_out_parallel"])
+        self.assertEqual(result["fan_out_overlap_seconds"], 29.0)
+        self.assertEqual(result["runner"], {"A": "native", "B": "native", "J": "native"})
+
+    def test_sequential_steps_pass_the_order_but_report_no_fan_out(self):
+        result = self.grade({"A": (0, 30), "B": (30, 60), "J": (61, 90)}, handles=False)
+        self.assertTrue(result["pass"], result)
+        self.assertFalse(result["fan_out_parallel"])
+        self.assertEqual(result["runner"]["A"], "main-context")
+
+    def test_join_before_both_suppliers_end_fails(self):
+        result = self.grade({"A": (0, 30), "B": (1, 45), "J": (40, 70)})
+        self.assertFalse(result["fan_in_order"])
+        self.assertFalse(result["pass"])
+
+    def test_incomplete_run_fails(self):
+        result = self.grade({"A": (0, 30), "B": (1, 31)}, complete=False)
+        self.assertFalse(result["pass"])
+        self.assertFalse(result["complete"])
 
 if __name__ == "__main__":
     unittest.main()

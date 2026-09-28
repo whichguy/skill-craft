@@ -17,6 +17,7 @@ import hashlib
 import json
 import math
 import os
+import fnmatch
 import re
 import shlex
 import shutil
@@ -37,6 +38,7 @@ INSPECTION_SCHEMA = "ask-agent.workspace.inspection.v1"
 DELIVERY_SCHEMA = "ask-agent.workspace.delivery.v1"
 ACCEPTANCE_SCHEMA = "ask-agent.acceptance.v1"
 CONTEXT_SCHEMA = "ask-agent.workspace.context.v1"
+CURRENT_STATE_SCHEMA = "ask-agent.current-state.v1"
 SKILL_IDENTITY_SCHEMA = "ask-agent.skill.identity.v1"
 MANAGED_WORKTREE_CAPABILITIES_SCHEMA = "shiploop-chain-ask-agent-managed-worktree/v1"
 MANAGED_WORKTREE_CAPABILITIES = (
@@ -2366,6 +2368,97 @@ class _ArgumentParser(argparse.ArgumentParser):
         raise WorkspaceError(message)
 
 
+def _current_entry(repo: Path, relative: str, code: str) -> dict[str, Any]:
+    entry: dict[str, Any] = {"path": relative, "status": code}
+    path = repo.joinpath(*PurePosixPath(relative).parts)
+    try:
+        info = path.lstat()
+    except FileNotFoundError:
+        return {**entry, "type": "missing"}
+    if stat.S_ISREG(info.st_mode):
+        return {**entry, "type": "file", "mode": stat.S_IMODE(info.st_mode), "sha256": _sha256_file(path)}
+    if stat.S_ISLNK(info.st_mode):
+        return {**entry, "type": "symlink", "sha256": _sha256(os.fsencode(os.readlink(path)))}
+    # A nested repository, submodule or special file; its contents are not fingerprinted.
+    return {**entry, "type": "other"}
+
+
+def _dirty_entries(repo: Path) -> list[dict[str, Any]]:
+    """Every path Git reports as staged, unstaged or untracked (not ignored), with content digests."""
+    raw = _git(repo, "status", "--porcelain=v1", "-z", "--no-renames", "--untracked-files=all").stdout
+    if raw and not raw.endswith(b"\0"):
+        _fail("Git returned malformed status entries")
+    entries = []
+    for item in (os.fsdecode(part) for part in raw.split(b"\0") if part):
+        if len(item) < 4 or item[2] != " " or item[3:].startswith("/") or "\n" in item:
+            _fail("Git returned a malformed status entry")
+        entries.append(_current_entry(repo, item[3:], item[:2]))
+    return sorted(entries, key=lambda entry: entry["path"])
+
+
+def _in_write_set(path: str, write_set: Sequence[str]) -> bool:
+    for pattern in write_set:
+        prefix = pattern.rstrip("/")
+        if path == prefix or path.startswith(prefix + "/") or fnmatch.fnmatchcase(path, pattern):
+            return True
+    return False
+
+
+def current_state(
+    *,
+    source: Path | None = None,
+    expect_root: Path | None = None,
+    baseline: Mapping[str, Any] | None = None,
+    write_set: Sequence[str] = (),
+) -> dict[str, Any]:
+    """Describe the caller's own checkout for the current-workspace route.
+
+    Read-only: it creates no receipt, state directory or worktree. With a
+    baseline from an earlier call it reports what changed since then.
+    """
+    _require_no_git_context_environment_overrides("current-state")
+    cwd = _canonical_existing_directory(source or Path.cwd(), label="source directory")
+    write_set = _normal_paths(write_set, label="write-set path")
+    probe = _git(cwd, "rev-parse", "--is-inside-work-tree", check=False)
+    if probe.returncode or probe.stdout.strip() != b"true":
+        if expect_root is not None:
+            _fail("current directory is not inside a Git working tree, so it cannot match --expect-root")
+        return {
+            "schema": CURRENT_STATE_SCHEMA, "version": VERSION, "status": "not-git", "cwd": os.fspath(cwd),
+            "limitation": "not a Git working tree: changes cannot be fingerprinted; only report-only work may proceed",
+        }
+    root = _repo_root(cwd)
+    if expect_root is not None and root != _canonical_existing_directory(expect_root, label="expected root"):
+        _fail(f"current Git root {root} does not match the expected root {expect_root}")
+    entries = _dirty_entries(root)
+    result: dict[str, Any] = {
+        "schema": CURRENT_STATE_SCHEMA, "version": VERSION, "status": "ok",
+        "cwd": os.fspath(cwd), "root": os.fspath(root), "branch": _branch(root), "head": _head(root),
+        "entries": entries,
+    }
+    result["fingerprint"] = _sha256(_json_bytes({key: result[key] for key in ("root", "branch", "head", "entries")}))
+    if baseline is not None:
+        if baseline.get("schema") != CURRENT_STATE_SCHEMA or baseline.get("status") != "ok":
+            _fail("baseline is not an ok current-state record")
+        if baseline.get("root") != result["root"]:
+            _fail("baseline describes a different Git root")
+        before = {entry["path"]: entry for entry in baseline.get("entries", [])}
+        after = {entry["path"]: entry for entry in entries}
+        changed = sorted(path for path in before.keys() | after.keys() if before.get(path) != after.get(path))
+        outside = [path for path in changed if not _in_write_set(path, write_set)]
+        head_moved = baseline.get("head") != result["head"] or baseline.get("branch") != result["branch"]
+        result.update({
+            "baseline_fingerprint": baseline.get("fingerprint"),
+            "head_moved": head_moved,
+            "changed_paths": changed,
+            "write_set": list(write_set),
+            "outside_write_set": outside,
+            "verdict": ("drift" if head_moved or outside
+                        else "changed-within-write-set" if changed else "unchanged"),
+        })
+    return result
+
+
 def _parser() -> argparse.ArgumentParser:
     parser = _ArgumentParser(prog="ask_agent_workspace.py", description="Manage an Ask Agent Git worktree")
     commands = parser.add_subparsers(dest="command", required=True)
@@ -2392,6 +2485,11 @@ def _parser() -> argparse.ArgumentParser:
     close_parser = commands.add_parser("close")
     close_parser.add_argument("--receipt", required=True)
     close_parser.add_argument("--acceptance")
+    current_parser = commands.add_parser("current-state")
+    current_parser.add_argument("--source")
+    current_parser.add_argument("--expect-root")
+    current_parser.add_argument("--baseline", help="an earlier current-state record: a file path, or - for stdin")
+    current_parser.add_argument("--write-set", action="append", default=[])
     return parser
 
 
@@ -2439,6 +2537,18 @@ def main(argv: Sequence[str] | None = None) -> int:
             result = check_context(receipt=Path(parsed.receipt))
         elif parsed.command == "close":
             result = close(receipt=Path(parsed.receipt), acceptance=Path(parsed.acceptance) if parsed.acceptance else None)
+        elif parsed.command == "current-state":
+            baseline = None
+            if parsed.baseline == "-":
+                baseline = json.loads(sys.stdin.read())
+            elif parsed.baseline:
+                baseline = _read_json_file(Path(parsed.baseline), label="current-state baseline")
+            result = current_state(
+                source=Path(parsed.source) if parsed.source else None,
+                expect_root=Path(parsed.expect_root) if parsed.expect_root else None,
+                baseline=baseline,
+                write_set=parsed.write_set,
+            )
         else:  # argparse constrains this; retain a fail-closed guard for imports.
             _fail("unknown workspace command")
         _emit(result)

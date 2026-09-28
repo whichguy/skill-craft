@@ -1262,20 +1262,14 @@ class NavigatorV3Tests(unittest.TestCase):
             child = waiting["active_improve"]
             safe_reference = str(
                 self.repo / ".shiploop-improve" / waiting["run_id"] / child["action_id"]
-                / "reviews" / "review-one.md"
+                / "reviews" / "review-<n>.md"
             )
             for render_state, packet in (("current", current_packet), ("cold", cold_packet)):
                 with self.subTest(render_state=render_state):
                     normalized_packet = " ".join(packet.split())
                     self.assertIn("Child workspace: " + str(self.repo), normalized_packet)
-                    self.assertIn(
-                        "absolute regular single-link non-symlink files under Child workspace above",
-                        normalized_packet,
-                    )
+                    self.assertIn("improve-complete imports the last two passes", normalized_packet)
                     self.assertIn(safe_reference, normalized_packet)
-                    self.assertIn(
-                        "sibling run/inbox/control paths outside that root", normalized_packet
-                    )
                     # Review-note policy belongs to the selected Improve card;
                     # the parent retains its binding and receipt constraints.
                     self.assertIn(
@@ -1747,7 +1741,7 @@ class NavigatorV3Tests(unittest.TestCase):
         submitted = result(summary="Synthetic intake result.")
         updated = navigator.apply(state, action["id"], submitted)
         self.assertEqual(navigator.current_stage(updated), "discovery")
-        expected_targets = ("context-index.md", f"results/{action['id']}.md", "state.md", "status.md")
+        expected_targets = ("context-index.md", f"results/{action['id']}.md", "state.md", "status.md", "timeline.json")
         expected_status = "```text\n" + navigator.status_block(updated) + "\n```\n"
         core = SimpleNamespace(PACKAGE_ROOT=SCRIPTS.parent)
         real_transaction = store.transaction

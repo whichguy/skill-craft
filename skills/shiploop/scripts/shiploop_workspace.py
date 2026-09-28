@@ -33,6 +33,10 @@ import shutil
 import stat
 import subprocess
 import tempfile
+
+import shiploop_git
+import shiploop_grants
+import shiploop_knowledge_home as knowledge_home
 import threading
 from contextlib import contextmanager
 from functools import wraps
@@ -620,6 +624,11 @@ def _workspace_root(repo: Path, requested: Path, common: Path) -> Tuple[Path, bo
         if manifest.exists() and not manifest.is_symlink():
             return _resolved_directory(root, label="workspace root"), True
         _fail("workspace root is occupied; use a new dedicated root")
+    # Before the first write: a host sandbox that refuses either location
+    # would otherwise fail mid-creation.  Nothing exists yet to clean up.
+    shiploop_grants.require(
+        [(root.parent, "isolated worktree and run state", root.parent),
+         (common, "git worktree add and every commit", common)])
     if not root.parent.is_dir():
         # The usual layout (<beside the repo>/.shiploop-runs/<name>) needs one new
         # directory; create exactly that level, never a deeper missing tree.
@@ -634,6 +643,44 @@ def _workspace_root(repo: Path, requested: Path, common: Path) -> Tuple[Path, bo
     except OSError as exc:
         _fail(f"cannot create workspace root: {exc}")
     return _resolved_directory(root, label="workspace root"), False
+
+
+RUNS_DIR = ".shiploop-runs"
+
+
+def require_grants(workspace_root: Path) -> None:
+    """Resume-time check: a harness restarted without its grants fails here, not mid-commit."""
+    worktree = Path(workspace_root) / "worktree"
+    if not worktree.is_dir():
+        return
+    common = _common_dir(worktree)
+    parent = Path(workspace_root).parent
+    shiploop_grants.require(
+        [(Path(workspace_root) / "run", "run state", parent), (worktree, "product changes", parent),
+         (common, "every commit", common)])
+
+
+def default_root(repo: Path, stamp: str) -> Path:
+    """``<main-checkout-parent>/.shiploop-runs/<name>-<stamp>``: one stable directory to grant once.
+
+    Anchored at the main checkout, not the caller's checkout: started from a
+    linked worktree such as ``<main>/.claude/worktrees/x``, the caller's
+    parent lies inside the main checkout.
+    """
+    candidate = _resolved_directory(Path(repo), label="repository")
+    if _git(candidate, "rev-parse", "--is-inside-work-tree", readonly=True).returncode:
+        main = candidate  # an empty directory start will bootstrap here
+    else:
+        source = _repo_root(candidate)
+        common = _common_dir(source)
+        main = common.parent if common.name == ".git" else source
+    return main.parent / RUNS_DIR / f"{main.name}-{stamp}"
+
+
+def require_parent_grant(workspace_root: Path) -> None:
+    """Start-time check that needs no repository yet: the root's parent is writable."""
+    parent = Path(workspace_root).absolute().parent
+    shiploop_grants.require([(parent, "isolated worktree and run state", parent)])
 
 
 def _record(root: Path, name: str, title: str) -> Dict[str, Any]:
@@ -838,12 +885,7 @@ def assert_binding(root: Path, repo: Path) -> Dict[str, Any]:
     return _assert_binding(root, repo)
 
 
-_WORKSPACE_IDENTITY = {
-    "GIT_AUTHOR_NAME": "ShipLoop Workspace",
-    "GIT_AUTHOR_EMAIL": "shiploop-workspace@local.invalid",
-    "GIT_COMMITTER_NAME": "ShipLoop Workspace",
-    "GIT_COMMITTER_EMAIL": "shiploop-workspace@local.invalid",
-}
+_WORKSPACE_IDENTITY = shiploop_git.WORKSPACE_IDENTITY
 
 
 def bootstrap_empty(repo: Path) -> Optional[str]:
@@ -863,10 +905,9 @@ def bootstrap_empty(repo: Path) -> Optional[str]:
         return None
     if _git(candidate, "init", "-q", "-b", "main").returncode:
         _fail("cannot initialize a Git repository in the empty starting directory")
-    configured = _git(candidate, "config", "user.email", readonly=True)
-    env = None if configured.returncode == 0 and configured.stdout.strip() else _WORKSPACE_IDENTITY
-    if _git(candidate, "commit", "-q", "--allow-empty", "-m", "Empty baseline for the first ShipLoop run",
-            env=env).returncode:
+    try:
+        shiploop_git.commit_paths(candidate, [], "Empty baseline for the first ShipLoop run", allow_empty=True)
+    except shiploop_git.CommitError:
         _fail("cannot create the empty baseline commit")
     return _head(candidate)
 
@@ -1066,7 +1107,7 @@ def _plan_rows(
                 "in_history": path in history,
                 # ShipLoop's committed knowledge home always returns with the candidate.
                 "disposition": ("exclude" if (_forbidden(path) or _matches_exclusion(path, excluded))
-                                else "keep" if path.startswith("docs/shiploop/") else "pending"),
+                                else "keep" if knowledge_home.in_home(path) else "pending"),
             }
         )
     return rows
@@ -1107,6 +1148,34 @@ RETURN_POLICY = (
 
 
 @_locked_existing_root
+def commit_leftovers(workspace_root: Path) -> shiploop_git.Committed:
+    """Commit product files still uncommitted in the candidate before the return is planned.
+
+    A file written after the last work item (a system test, a release note) is
+    otherwise untracked at return, which forces the working-tree route and keeps
+    every run commit off the user's branch.  Committing it here lets the reviewed
+    plan fast-forward; a path the review then excludes still falls back to the
+    working-tree route.  Run evidence, protected paths, caller exclusions and
+    files the credential screen flags are never committed.
+    """
+    root = _resolved_directory(Path(workspace_root), label="workspace root")
+    manifest = _manifest(root)
+    worktree = _resolved_directory(Path(manifest["worktree"]), label="workspace worktree")
+    if _branch(worktree) != manifest["branch"]:
+        _fail("workspace branch changed after preparation")
+    tracked = [name for name in _git_bytes(worktree, "diff", "--name-only", "-z", "HEAD").decode(
+        "utf-8", "surrogateescape").split("\0") if name]
+    paths = sorted({*tracked, *(row["path"] for row in _untracked(worktree))})
+    chosen = [path for path in paths if not _forbidden(path) and not _matches_exclusion(path, manifest["excluded"])]
+    if not chosen:
+        return shiploop_git.Committed("", [], [])
+    try:
+        return shiploop_git.commit_paths(worktree, chosen, "chore(shiploop): commit files written after the last "
+                                         "work item, before the return")
+    except shiploop_git.CommitError as exc:
+        _fail(str(exc))
+
+
 def plan_return(workspace_root: Path) -> Dict[str, Any]:
     """Generate the exact reviewed return surface; no source mutation occurs."""
     root = _resolved_directory(Path(workspace_root), label="workspace root")
@@ -1183,9 +1252,10 @@ def _validate_plan(
             _fail("return plan cannot keep a caller-excluded path")
         if _forbidden(path) and disposition != "exclude":
             _fail("return plan cannot keep a protected runtime path")
-        if path.startswith("docs/shiploop/") and disposition == "exclude" and not _matches_exclusion(
+        if knowledge_home.in_home(path) and disposition == "exclude" and not _matches_exclusion(
                 path, manifest["excluded"]):
-            _fail("return plan cannot exclude ShipLoop's knowledge home (docs/shiploop/); later runs inherit it")
+            _fail("return plan cannot exclude ShipLoop's knowledge (docs/shiploop/, SHIPLOOP.md); later runs "
+                  "inherit it")
         rows.append(dict(item))
     if any(row["disposition"] == "pending" for row in rows):
         _fail("return plan has unresolved path dispositions")
@@ -1679,6 +1749,45 @@ def execute_return(workspace_root: Path) -> Dict[str, Any]:
 
 
 @_locked_existing_root
+def follow_up_knowledge_return(workspace_root: Path) -> Optional[Dict[str, Any]]:
+    """Return ShipLoop's own knowledge commit after a verified return, by that return's route (plan P11).
+
+    Runs only when a return was recorded and every path changed since its candidate
+    head is ShipLoop knowledge (docs/shiploop/, SHIPLOOP.md) with nothing else dirty
+    in the candidate; then it plans and executes the follow-up return, whose own
+    checks refuse a moved source. Returns the new receipt, or None when it does not
+    apply. A refusal (WorkspaceError) propagates; the caller leaves the return to the
+    handoff guard. It never commits leftovers, retries or rolls back.
+    """
+    root = _resolved_directory(Path(workspace_root), label="workspace root")
+    receipt = _receipt(root)
+    if not receipt or receipt.get("status") != "returned":
+        return None
+    manifest = _manifest(root)
+    worktree = _resolved_directory(Path(manifest["worktree"]), label="workspace worktree")
+    head = str((receipt.get("candidate_fingerprint") or {}).get("head") or "")
+    if not _SHA.fullmatch(head):
+        return None
+    changed = [name for name in _git_bytes(worktree, "diff", "--name-only", "-z", head, "HEAD").decode(
+        "utf-8", "surrogateescape").split("\0") if name]
+    dirty = [line[3:] for line in _git_bytes(worktree, "status", "--porcelain=v1", "--untracked-files=all").decode(
+        "utf-8", "surrogateescape").splitlines() if line and not _forbidden(line[3:])]
+    if not changed or dirty or not all(knowledge_home.in_home(path) for path in changed):
+        return None
+    # The new plan reviews the whole delta again: paths the last reviewed plan decided keep that
+    # decision; the only new paths are knowledge, which the plan keeps.
+    reviewed = {row["path"]: row["disposition"] for row in _record(root, RETURN_PLAN, "return plan")["paths"]}
+    plan = plan_return(root)
+    for row in plan["paths"]:
+        if row["disposition"] == "pending":
+            if reviewed.get(row["path"], "pending") == "pending":
+                return None
+            row["disposition"] = reviewed[row["path"]]
+    plan["status"] = "ready"
+    _write(root, {RETURN_PLAN: (plan, "ShipLoop return plan")})
+    return execute_return(root)
+
+
 def returned_before(workspace_root: Path) -> bool:
     """Whether a return was recorded at all (a stale receipt still counts)."""
     try:

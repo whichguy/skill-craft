@@ -21,7 +21,8 @@ evidence about ShipLoop. What a probe reveals is fixed in the engine
 generically; nothing in the engine may know which probe exposed it.
 
 Each iteration: run a case on exactly what the marketplace publishes, measure,
-review against this spec, fix ShipLoop generically, release, rerun, and
+review against this spec, fix ShipLoop generically, release and refresh the
+marketplace install (see the harness rules), rerun, and
 record what was learned (one commit per run; read the last three commit
 messages before the next run or change).
 
@@ -107,6 +108,30 @@ tested in general terms; its tests use neutral fixtures, not the probe's
 product. A case's specifics (its prompt and product checks) stay in the
 harness's case catalog.
 
+**S-14 Unattended by default.** Every implementation and every test case assumes
+ShipLoop runs unattended: no person is watching, nothing is typed on standard
+input, and no prompt is answered. The scripts never read a terminal or wait
+for input; hosts and checks run with standard input closed. When a step meets
+an open question, it takes a stated, recorded default (an assumption the
+handoff reports) instead of waiting. When a step needs something only a person
+can supply (a sign-in, a grant, a physical observation, an authority the run
+does not hold), the run records it as an open item, continues with everything
+that does not depend on it. Only when the run truly cannot proceed without the
+person does it prompt them: it ends its turn with the question (the
+`awaiting` route) and the command to resume, stating why no default would do.
+It never blocks on standard input and never asks as a first resort (owner,
+2026-09-27).
+
+**S-15 The user can follow the run without the model composing status.** What
+the user sees about progress is rendered by ShipLoop's scripts from saved
+state: a short status at every step and, at milestones, a narrative of what is
+achieved, what is happening, what comes next and the observed pace. Each
+accepted step states its own one-line headline for that narrative. Where the
+host displays hook output, a hook shows it; everywhere else the model shows the
+script's text as written, once per milestone. The model never composes,
+paraphrases or estimates progress itself, and never repeats unchanged status
+(owner, 2026-09-27).
+
 ## Change admission
 
 No change is planned, let alone made, before its negative consequences have
@@ -117,11 +142,12 @@ the plan item and summarised in the commit message:
 - **Adversarial evaluation first.** Before the change is planned, attack it:
   argue the case against it as a hostile reviewer would. At minimum ask how it
   could:
-  - weaken any clause S-1..S-13, including ones it does not target;
+  - weaken any clause S-1..S-15, including ones it does not target;
   - break another style, host, language or platform than the one that
     motivated it;
   - fail silently, or pass the tests while failing a live run;
-  - add model-written glue, host refusals or recovery dead ends;
+  - add model-written glue, host refusals or recovery dead ends, or wait on a
+    person in an unattended run (S-14);
   - enlarge printed or filed packet text, or context over a whole run;
   - leak or commit secrets, touch user work outside the run, or change the
     user's repository or history unexpectedly;
@@ -188,11 +214,40 @@ on quickly before the breadth of everything is checked.
 | S-9, S-10 | `script_verifications` (ShipLoop's own verify records), Improve children; a zero-test pass fails |
 | S-11 | `committed` verdict; follow-on retention checks (earlier files, spec IDs, tests grew) |
 | S-8, S-12, S-13 | review of the diff under test: no technology in prompts, no second implementation |
+| S-14 | host and checks run with standard input closed; `asked_user` (host ask-a-person tool calls); a run ending blocked or awaiting a person is reported as such, never resumed as if answered |
+| S-15 | `narrative`: milestone narratives ShipLoop emitted for the model to show, how many the model showed (heading present) and showed verbatim (every line), the stages whose narrative it skipped, and the share of accepted step results that carry a headline. Scored beside reliability, not a verdict, until a style has a baseline |
 
 Verdicts (invoked, plugin, process, shiploop, committed, checks) must all pass.
 Reliability (sessions, cancellations, failures) and cost (turns, dollars, per
 stage) are scored beside them and compared with the previous run of the same
 case.
+
+## Parallel work
+
+E2E runs are long, so the loop spends its waiting time in parallel.
+
+- Before executing a list of steps, decide which are independent. Run
+  independent steps together, and hand read-only work (run forensics,
+  host inventories, learnings drafts, reviews against this spec) to
+  background agents or tasks while a long job (a test tier, a run) is
+  running. Name the steps that must stay in order and the dependency that
+  orders them (for example: release after the full tier; host updates and
+  the preflight after the release is published; a rerun after the
+  preflight).
+- Independent runs execute in parallel. Every case writes only into its
+  own output folder, so a suite runs its independent chains (a case with
+  its follow-ons) concurrently, up to `--max-parallel` (default 3); a
+  follow-on always waits for its predecessor in the same chain. Separate
+  suites or cases started by hand may also run at once, each in its own
+  output folder.
+- Concurrency must not change a verdict. Concurrent runs are quiet (no
+  interleaved live view), share no files, and pass the same checks. A
+  failure seen only in a parallel run (for example two products' own tests
+  binding the same fixed port, or a host rate limit) is rerun alone
+  (`--serial`) before it is attributed to ShipLoop.
+- Agents do not replace evidence: an agent's analysis is a lead, and a
+  claim it makes is checked against the event log or a script before it
+  drives a change (Change admission).
 
 ## Evolving this spec
 
@@ -212,10 +267,66 @@ stands at the commit under test.
   so improvements cannot overfit one probe; a change justified by one case is
   re-checked on another before it is called general.
 
-- Test exactly what the marketplace publishes (`--source marketplace`, version
-  gate); build the checkout only to try an unreleased candidate.
+- Test exactly what the marketplace publishes (`--source marketplace`); build
+  the checkout (`--source checkout`) only to try an unreleased candidate, and
+  never record a checkout run as evidence about a release.
+- **Publish, then refresh, then run.** A change pushed to the repository is not
+  what a host runs until it is released and the host is refreshed. Every change
+  that should reach a marketplace run goes through, in order:
+  1. `scripts/release.py`, which builds `plugins/skill-craft/` and the catalogs
+     from source, then the push of that release commit (its CI must pass);
+  2. a refresh of the marketplace on the host the harness drives. The harness
+     does this itself: each marketplace run adds the published marketplace and
+     installs `skill-craft` into a fresh, isolated profile, so no cached or
+     earlier install is ever reused;
+  3. the run, which refuses to start (the version gate) unless the local
+     checkout is origin/main, origin/main has no pending change notes (every
+     source change on main is released), and the installed plugin and
+     ShipLoop versions equal the ones origin/main's catalog publishes.
+  After a release, also update the user's own hosts (Claude, Grok, Codex) so
+  their installs match what the harness tested. Before a rerun on any host,
+  `run.py --preflight-only --host all` shows what each host gets; a run is not
+  started on a host whose preflight refuses.
+- **Batch changes, then verify the batch.** Fixes found in a round of runs
+  collect on one branch; each is admitted (Change admission) and checked on its
+  own footprint: the suites it touches, in parallel, plus the quick tier over
+  what changed. The full hermetic tier is not run locally; it runs in CI on the
+  release commit. The batch ships as one release, and the whole group is then
+  verified together: every host's preflight on the new version, then the live
+  runs, smallest first (a smoke case before a full product), while CI runs on
+  the release commit.
+- **Proceed optimistically; cancel on failure.** Presume the pending checks
+  pass: release, refresh hosts and start the runs without waiting for CI, and
+  run independent work in parallel. Only a failure changes course: a run is
+  refused while CI has already failed, and runs in flight are cancelled (and the
+  change reverted or fixed) when CI or an earlier gate fails. A failure there is fixed forward
+  into the next batch, not by a release per fix.
+- **Choose the verification runs from a coverage map.** Before a batch's live
+  runs, map every change to the one run that proves it; each run must prove
+  something no other run in the set does, and a change covered only by hermetic
+  tests says so. Prefer a case that has not passed on a recent version over one
+  that just did; a change that shows only under concurrency (shared state,
+  temporary files) needs two runs at once. The map lives in the `batch` suite
+  (`gate`, `cases`, `covers`) and the plan; the gate runs first and alone and a
+  failed gate stops the costlier runs.
+- **The driver is a parameter, not a code path.** The host (Grok, Claude,
+  Codex), its model and its effort are chosen per run; everything that differs
+  between hosts lives in one host class, and the rest of the harness reads one
+  normalized event stream. A verdict must not depend on which host produced it,
+  and a baseline compares only with rows from the same host, model and effort.
+  What a host adds on its own (for example account-enabled plugins in a Codex
+  profile) is recorded with the run, never silently removed or ignored.
+- Run unattended (S-14): the host and every check get closed standard input and
+  a timeout; a case prompt never needs a person, and a check never waits for
+  input.
 - Start from an empty directory, or for a follow-on case, from a clean copy of
   an earlier run's checkout. The harness leaves no files of its own behind.
+- Case products are disposable probes. The repository a run builds (and any
+  follow-on copy of it) lives outside skill-craft; the harness refuses an
+  output directory inside the checkout. A product is never committed to
+  skill-craft, merged into ShipLoop, or copied into a reference or fixture.
+  What skill-craft keeps is the harness: its code, case prompts, product
+  checks, baselines and learnings.
 - Never print packet text or run markers into a session that is not the run's
   host.
 - After each run, record learnings in LEARNINGS.md with a detailed commit that

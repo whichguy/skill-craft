@@ -19,6 +19,7 @@ from pathlib import Path
 from typing import Any, Mapping, Optional
 
 import shiploop_lint as lint
+import shiploop_loop_contract as loop_contract
 import shiploop_navigator_v3_prompts as guidance3
 import shiploop_stage_spec as stage_spec
 import shiploop_standalone_improve as standalone
@@ -49,6 +50,12 @@ def terminal_path(action: str) -> str:
 # having saved stdout before a compaction.
 RECEIPT_LINE = ("Receipt (the runtime writes every packet here, the terminal one last; ShipLoop "
                 "checks this file, so do not write or edit it): ")
+
+# Shown once the receipt exists, so a host that lost its context continues the
+# loop instead of starting a second one.
+RESUME_LINE = ("The loop already started: do not run Start again. While the receipt's status is active, run "
+               "its next_argv once and follow the returned packet; once it is complete or stopped, submit this "
+               "stage's result.")
 
 # Every key the bound runtime puts in a packet (Until Loop 0.7.0).
 _PACKET_KEYS = frozenset({
@@ -108,27 +115,25 @@ def build_contract(root: Path, state: Mapping[str, Any], work_item: str, action:
     if step_plan is not None:
         resources.append({"purpose": "accepted step plan: criteria, focused tests and checks",
                           "locator": step_plan})
-    return {
-        "workspace": repo,
-        "work": guidance3.QUALITY_ITERATION.strip(),
-        "exit_condition": guidance3.QUALITY_EXIT_CONDITION,
-        "repeat_condition": guidance3.QUALITY_REPEAT_CONDITION,
-        "required_trivial_reviews": 1,
-        "context": {
-            "request": ("Quality loop for ShipLoop work item " + work_item + " ("
-                        + _work_title(state, work_item) + "): trace, verify and improve its change "
-                        "against the Code craft rubric until an iteration finds only trivial issues."),
-            "scope": ("Workspace " + repo + ". Only the files in the change inventory for " + work_item
-                      + ", plus tests for them. Preserve every other change."),
-            "authority": ("Edit in-scope product files and tests. Do not commit, push, install or "
-                          "download anything, change a check's expected result, or widen scope. "
-                          "ShipLoop callbacks belong to the parent; the loop never calls them."),
-            "environment": ("Run in " + repo + ". Use the focused test and static-check commands named "
-                            "in the accepted step plan and the current repository; recheck them "
-                            "before relying on them."),
-            "resources": resources,
-        },
-    }
+    return loop_contract.contract(
+        workspace=repo,
+        work=guidance3.QUALITY_ITERATION.strip(),
+        exit_condition=guidance3.QUALITY_EXIT_CONDITION,
+        repeat_condition=guidance3.QUALITY_REPEAT_CONDITION,
+        required_trivial_reviews=1,
+        request=("Quality loop for ShipLoop work item " + work_item + " ("
+                 + _work_title(state, work_item) + "): trace, verify and improve its change "
+                 "against the Code craft rubric until an iteration finds only trivial issues."),
+        scope=("Workspace " + repo + ". Only the files in the change inventory for " + work_item
+               + ", plus tests for them. Preserve every other change."),
+        authority=("Edit in-scope product files and tests. Do not commit, push, install or "
+                   "download anything, change a check's expected result, or widen scope. "
+                   "ShipLoop callbacks belong to the parent; the loop never calls them."),
+        environment=("Run in " + repo + ". Use the focused test and static-check commands named "
+                     "in the accepted step plan and the current repository; recheck them "
+                     "before relying on them."),
+        resources=resources,
+    )
 
 
 def transition_writes(root: Path, after: Mapping[str, Any], work_item: Optional[str],
@@ -138,7 +143,7 @@ def transition_writes(root: Path, after: Mapping[str, Any], work_item: Optional[
         return {}
     contract = build_contract(Path(root), after, work_item, action)
     return {
-        contract_path(action): json.dumps(contract, indent=2, sort_keys=True) + "\n",
+        contract_path(action): loop_contract.dumps(contract),
         RUBRIC_PATH: guidance3.CODE_CRAFT,
     }
 
@@ -162,6 +167,8 @@ def render_lines(root: Path, state: Mapping[str, Any], work_item: str, action: s
         + shlex.quote(str(contract)),
         RECEIPT_LINE + str(root / terminal_path(action)),
     ]
+    if (root / terminal_path(action)).exists():
+        lines.append(RESUME_LINE)
     if not contract.is_file():
         lines.append("The loop contract is missing; report outcome blocked naming this path.")
     return lines + lint.render_inventory_lines(root, action, work_item)

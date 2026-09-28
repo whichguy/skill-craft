@@ -27,7 +27,7 @@ def fail(reason: str) -> None:
 
 
 def report(*paths: Path) -> subprocess.CompletedProcess:
-    return subprocess.run([sys.executable, "report.py", *map(str, paths)], capture_output=True, text=True,
+    return subprocess.run([sys.executable, "report.py", *map(str, paths)], capture_output=True, text=True, stdin=subprocess.DEVNULL,
                           timeout=60)
 
 
@@ -38,7 +38,7 @@ def write(tmp: Path, name: str, text: str) -> Path:
 
 
 def unit() -> None:
-    done = subprocess.run([sys.executable, "-m", "unittest"], capture_output=True, text=True, timeout=300)
+    done = subprocess.run([sys.executable, "-m", "unittest"], capture_output=True, text=True, stdin=subprocess.DEVNULL, timeout=300)
     ran = re.search(r"Ran (\d+) tests?", done.stderr)
     if done.returncode != 0 or not ran or int(ran.group(1)) < 1:
         fail("python3 -m unittest must pass and run at least one test:\n" + done.stderr[-800:])

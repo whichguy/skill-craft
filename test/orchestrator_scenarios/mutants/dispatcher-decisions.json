@@ -92,8 +92,8 @@
     {
       "id": "retry-call-verb",
       "file": "scripts/dispatch.js",
-      "find": "'retry', dir],",
-      "replace": "'settle', dir],",
+      "find": "  return call(dir, 'retry', {owner, attempt, confirmed_stopped: true,",
+      "replace": "  return call(dir, 'settle', {owner, attempt, confirmed_stopped: true,",
       "killed_by": "S7"
     },
     {

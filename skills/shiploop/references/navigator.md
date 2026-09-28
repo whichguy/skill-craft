@@ -136,7 +136,8 @@ printed original goal and repository identity before acting. Do not replace a
 missing or relocated run with a new one.
 
 A later feature is a different request: preserve the earlier run, select a fresh
-external `--workspace-root` (or empty `--run-dir` for direct mode), and initialize
+external workspace root (omit `--workspace-root` to get a new default one; an
+empty `--run-dir` for direct mode), and initialize
 with the new prompt verbatim against the existing product repo. Changed
 prompt/repository re-entry is refused, while
 matching retries do not reopen completed work. Every packet links the project
@@ -147,13 +148,13 @@ documents at document/carry-forward/handoff. Shared knowledge is context, not
 a second source of traversal state.
 
 ```sh
-python3 "$CLI" workspace start --repo="$REPO" --workspace-root="$WORKSPACE_ROOT" --prompt='requested outcome'
+python3 "$CLI" workspace start --repo="$REPO" --prompt='requested outcome'
 # Explicit direct/non-Git mode, without automatic workspace-return protection:
 python3 "$CLI" init --repo="$REPO" --run-dir="$RUN_DIR" --prompt='requested outcome'
 # Optional explicit selected actual Improve card for a new run:
 python3 "$CLI" init --repo="$REPO" --run-dir="$RUN_DIR" --improve-skill="$IMPROVE_SKILL" --prompt='requested outcome'
 # Opt a new run in to Ask-Agent delegation (the default is inline):
-python3 "$CLI" workspace start --repo="$REPO" --workspace-root="$WORKSPACE_ROOT" --delegation=ask-agent --prompt='requested outcome'
+python3 "$CLI" workspace start --repo="$REPO" --delegation=ask-agent --prompt='requested outcome'
 # Change an existing run's delegation for its future assignments:
 python3 "$CLI" delegation --run-dir="$RUN_DIR" --set=inline
 python3 "$CLI" next --run-dir="$RUN_DIR"
@@ -168,7 +169,7 @@ directly. Any other producer `done` advances to the next producer. When a skill
 was not selected at initialization, the checkpoint's packet supplies the exact
 `improve-bind --action ... --skill-card ...` command. Follow that command and
 the selected card's bound runtime rather than guessing an adapter. Only an
-accepted matching completion passed to `improve-complete` imports the child and
+accepted matching completion run through `improve-complete` imports the child and
 releases the next graph edge.
 An explicit relative `--improve-skill` locator is made absolute at initialization,
 so a later shell cwd cannot change which card the checkpoint selects.
@@ -204,10 +205,11 @@ receipt survives temporary child state deletion and can be imported without
 another review. Missing or stopped child receipts leave the parent incomplete.
 The host never creates a replacement child to repair lost terminal output. A
 known stopped receipt is different: once the blocker is resolved or the user
-authorizes continuing, `improve-start --restart-stopped` (inline route) archives
+authorizes continuing, `improve-start --restart-stopped` archives
 it as `packet.stopped-<UTC timestamp>.json` (and `reviews/` as
 `reviews.stopped-<same timestamp>`) and starts a new child with the same binding
-line; a delegated worker does the same by hand. A pause keeps the child active and is never reported as `cancelled`.
+line, on both routes; on the delegated route the parent first confirms the
+recorded owner stopped. A pause keeps the child active and is never reported as `cancelled`.
 See [the current runtime binding](../README.md#current-improve-and-until-loop-binding)
 for the transition example and validation limits.
 
@@ -277,8 +279,9 @@ unless the user asked for independent review.
 Its review iterations share this context. Save each raw start, next and done
 packet to the printed receipt, the start packet before any review work. Put the
 binding line alone and first in frozen `context.request`. Only after the
-terminal packet is saved, write the completion evidence and run the parent
-return and `improve-complete`. A later user decision applies from the next
+terminal packet is saved, run the parent
+return and `improve-complete --action <id>`, with no separate record: it
+imports the reviews directory's own `review-<n>.md`/`checks.md` files. A later user decision applies from the next
 review iteration and is recorded in the review notes and handoff; the frozen
 launch context stays unchanged. Recover an existing child from its receipt's
 exact `next_argv`; start another runtime only through the stopped-child restart
@@ -378,6 +381,7 @@ The semantic result contract is small:
 | --- | --- |
 | `outcome` | `done`, `repeat`, or `blocked`; outer steps also allow `replan` with new corrective work items; `reconcile` is recorded only through the initial plan child's `improve-reconcile`. Planning results and the last carry-forward first wait for actual Improve; other results advance directly. The final disposition then determines the script-owned route. |
 | `summary` | Concise statement of the current action’s real result. |
+| `headline` | One line of at most 100 characters, for the user, saying what this step established; the [run narrative](status-display.md#run-narrative) lists it under Achieved. The template's placeholder is refused. Without it the narrative uses the summary's first sentence. |
 | `evidence_refs` | Absolute paths of the files this stage wrote or of the check output it recorded, or other safe references to source, test, note, or external-operation evidence. The template's placeholder is refused. |
 | `work_items` | Ordered `{id,title,context?}` items at `plan` before execution, at `carry-forward` for future-only work, or required new IDs for an outer `replan`. |
 | `delivery_assessment` | Only for runs initialized with `--delivery-contract`: a full consumer-delivery contract/correction or bound observations, using the packet template. See [consumer delivery](consumer-delivery.md). |
@@ -455,8 +459,10 @@ owner does not reprint it. Where the host supports one, a status hook (see the
 status-display guide) shows the user a two-line summary. At start/recovery and
 after each callback the owner tells the user at most one line, for example the
 stage just finished and the one starting, and shows the whole block unchanged
-only when the user asks for the full status. During long actions or
-waits, follow the host's update cadence with an actual observation, or the last
+only when the user asks for the full status. At milestones the packet also
+carries the [run narrative](status-display.md#run-narrative); its first line says
+whether the owner pastes it to the user as written or the host's hook already
+showed it. During long actions or waits, follow the host's update cadence with an actual observation, or the last
 known status and next check.
 
 Run to completion by default within the user's scope and existing authority.

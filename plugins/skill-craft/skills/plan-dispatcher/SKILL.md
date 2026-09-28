@@ -5,7 +5,7 @@ description: >-
   dispatcher and parallel native workers: claim ready steps, preserve launch
   state, collect result evidence, verify outcomes, and identify successors.
   Planning belongs to Backchain or the caller; this skill executes the plan.
-version: 0.4.0
+version: 0.5.0
 author: Backchain
 license: MIT
 platforms:
@@ -170,7 +170,10 @@ selected package for recovery.
    reserves work but does not mean an agent exists. For a context-bound run,
    inspect `planning_context_check` and `planning_blocked_steps`; `ready` remains
    a dependency view, not permission to start a step with unavailable planning
-   material.
+   material (the claim action already leaves those steps out). Every action
+   carries its exact `call`: fill only its placeholders and run it as given
+   (protocol "Exact calls"); pass `capacity` at init to have the script cap
+   in-flight work.
 3. Prepare a separate workspace per concurrent worker and an immutable readiness
    artifact describing the facts actually checked. Before allocating the workspace
    or integrating a target, run this dispatcher's `check-context` for the exact

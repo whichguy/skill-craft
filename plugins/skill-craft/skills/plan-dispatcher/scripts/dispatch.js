@@ -40,16 +40,41 @@ function absoluteRun(dir) {
   if (typeof dir !== 'string' || !path.isAbsolute(dir)) throw new Error('RUN must be an absolute path shared by all workers');
   return path.resolve(dir);
 }
+// A completed run has no next call: returning one would invite another loop.
 function withNextArgv(dir, response) {
+  if (response.complete === true) return response;
   return {...response, next_argv: [process.execPath, path.resolve(__filename), 'next', dir]};
 }
-// The exact call that settles a stalled step: the caller writes `input` to a
-// JSON file and runs `argv` with that file's path appended.
+// The exact call for an action. The caller replaces every "<...>" placeholder
+// in `input` with its own step's output, writes `input` as JSON to `input_path`
+// when given (otherwise to any new file), and runs `argv` with that file's path
+// appended. `argv` alone (no `input`) runs unchanged. The caller never composes
+// argv, chooses an operation, or fills a value the call already carries.
+const CALL_RULE = 'Every action carries its exact `call`. Replace only its "<...>" placeholders with your own step output (remove a field whose placeholder begins "<omit" when it does not apply), write `call.input` as JSON (to `call.input_path` when given), and run `call.argv` with that file path appended; never compose argv or choose an operation yourself.';
+function call(dir, operation, input, inputPath) {
+  const argv = [process.execPath, path.resolve(__filename), operation, dir];
+  if (input === undefined) return {argv};
+  return inputPath ? {argv, input, input_path: inputPath} : {argv, input};
+}
 function retryCall(dir, owner, attempt) {
-  return {
-    argv: [process.execPath, path.resolve(__filename), 'retry', dir],
-    input: {owner, attempt, confirmed_stopped: true, reason: '<why this attempt failed and what the next attempt changes>'},
-  };
+  return call(dir, 'retry', {owner, attempt, confirmed_stopped: true, reason: '<why this attempt failed and what the next attempt changes>'});
+}
+function startCall(dir, owner, attempt) {
+  return call(dir, 'start', {owner, attempt, context: {workspace: '<absolute workspace directory>', write_scope: ['<paths this task may write>'], resources: [], ready_evidence: {path: '<absolute readiness evidence file>', sha256: '<its SHA-256>'}},
+    executor: '<omit for a native worker, or {"kind": "main-context", "id": "<executor id>"} to run the task in this conversation>'});
+}
+function launchedCall(dir, owner, attempt) {
+  return call(dir, 'launched', {owner, attempt, handle: '<native task handle returned by the host>'});
+}
+function reportCall(dir, packetOutput) {
+  return call(dir, 'report', {...packetOutput.report_envelope, status: '<SUCCEEDED|FAILED|BLOCKED>',
+    evidence: {path: packetOutput.outputs.artifact, sha256: '<SHA-256 of the result artifact bytes>'}}, packetOutput.outputs.envelope);
+}
+function settleCall(dir, owner, attempt) {
+  const receipt = state.receipt(dir, attempt);
+  return call(dir, 'settle', {owner, attempt, verification: {receipt_sha256: receipt.sha256, passed: '<true|false>',
+    reason: '<what independent verification found>', evidence: {path: '<absolute verification evidence file>', sha256: '<its SHA-256>'},
+    disposition: '<omit, or "replan" (with passed false) when verification confirms the step cannot be done as planned>'}});
 }
 const REPLAN_INSTRUCTION = 'The parent verified that this step cannot be done as planned. This run starts no new work: claims, fresh starts and a retry of this attempt are refused. Finish, settle or retry (to retire) the in-flight attempts listed here first. Then return the blocker to planning: revise the plan with the blocker reason as input, and start a new run whose graph leaves out the accepted steps listed in replan.accepted, because their work is already integrated.';
 function requireContracts(graph) {
@@ -182,10 +207,19 @@ function next(dir) {
     }
     const localVerification = a.recovery === 'verify' && a.executor;
     const blockedStart = a.recovery === 'start' && blockedSteps.has(a.step);
+    const actionCall = blockedStart ? call(dir, 'check-context', {attempt: a.attempt}) : ({
+      start: () => startCall(dir, view.owner, a.attempt),
+      reconcile: () => launchedCall(dir, view.owner, a.attempt),
+      resume: () => reportCall(dir, packet(dir, a.attempt)),
+      collect: () => call(dir, 'next'),
+      verify: () => settleCall(dir, view.owner, a.attempt),
+    }[a.recovery] || (() => call(dir, 'next')))();
     return {
       step: a.step, attempt: a.attempt,
       action: blockedStart ? 'inspect-planning-context' : a.recovery,
       ...(blockedStart ? {recovery: a.recovery} : {}),
+      call: actionCall,
+      ...(a.recovery === 'reconcile' ? {retry_call: retryCall(dir, view.owner, a.attempt)} : {}),
       instruction: blockedStart ?
         'Run check-context for this attempt and restore every required planning input before preparing a workspace or starting it.' :
         localVerification ?
@@ -203,11 +237,17 @@ function next(dir) {
     actions.push({
       action: 'inspect-planning-context',
       steps: view.planning_blocked_steps,
+      calls: view.planning_blocked_steps.map(step => call(dir, 'check-context', {step})),
       instruction: 'Run check-context for each affected step before allocating a workspace, starting fresh work, or accepting a passing settlement. Observation, reporting, receipt, retry and takeover remain available.',
     });
   }
-  if (view.ready.length) actions.push({
-    action: 'claim', steps: view.ready,
+  // Offer only claimable steps: dependency-ready, not planning-blocked, and
+  // within the run's free capacity when it has one.
+  const claimable = view.ready.filter(step => !blockedSteps.has(step))
+    .slice(0, Object.hasOwn(view, 'available_capacity') ? view.available_capacity : undefined);
+  if (claimable.length) actions.push({
+    action: 'claim', steps: claimable,
+    call: call(dir, 'claim', {owner: view.owner, steps: claimable}),
     instruction: 'These step IDs are candidates, not a claim request to execute unchanged. Check readiness, planning-context availability, and safe resources, including work deferred earlier. Count claimed, launching and unresolved work against available execution capacity, including caller-enforced serial capacity one for main-context work. Claim and start as many eligible candidates as safely fit: fill every available slot before waiting, without exceeding capacity or shared-resource limits. Construct the claim request from that eligible subset; never claim an ineligible candidate just to fill a slot. Claim before start or ask-agent. Leave only capacity-limited or concretely blocked candidates pending and identify the reason for each deferral. Do not wait for an entire wave.',
   });
   // Native completion checks can block too. Keep reservations and serial
@@ -217,6 +257,10 @@ function next(dir) {
   const inFlight = view.active.some(a => !['retry', 'replan'].includes(a.recovery));
   if (replanning && !inFlight) {
     return {...view, actions, instruction: `${PARENT_STATUS_PRESENTATION} This run cannot complete: step ${view.replan.steps.map(r => r.step).join(', ')} needs replanning and no attempt is still in flight. ${REPLAN_INSTRUCTION}`};
+  }
+  for (const action of actions) {
+    action.instruction = `${action.instruction} ${CALL_RULE}` +
+      (action.action === 'claim' ? ' You may remove claim steps you cannot run safely; never add one.' : '');
   }
   return {...view, actions, instruction: view.complete ? `${PARENT_STATUS_PRESENTATION} Every required step is accepted. Report verified outcomes and remaining host limitations.` :
     `The main conversation owns this run. ${PARENT_STATUS_PRESENTATION} Execute this response's current actions and instructions; workers report evidence but do not schedule work. On initialization, resume and every returned event, promptly process available results and refresh these actions. Start eligible existing claims and fill safe available capacity from the returned ready candidates before blocking on native collection, verification or reconciliation. If an observation cannot resolve immediately, keep its attempt reserved and continue other safe eligible work. Only verified acceptance unlocks dependencies. Follow exact next_argv after each action; never launch from an older action list.`};
@@ -251,8 +295,8 @@ function run(operation, dir, input) {
   let response;
   switch (operation) {
     case 'init':
-      fields(input, ['graph', 'owner'], ['planning_context']); requireContracts(input.graph);
-      state.init(dir, input.graph, input.owner, input.planning_context); response = next(dir); break;
+      fields(input, ['graph', 'owner'], ['planning_context', 'capacity']); requireContracts(input.graph);
+      state.init(dir, input.graph, input.owner, input.planning_context, input.capacity); response = next(dir); break;
     case 'next':
       if (input !== undefined) throw new Error('next takes no input');
       response = next(dir); break;
@@ -266,6 +310,7 @@ function run(operation, dir, input) {
         ...claimed,
         action: 'prepare',
         packets: claimed.claims.map(c => packet(dir, c.attempt)),
+        calls: claimed.claims.map(c => ({step: c.step, attempt: c.attempt, call: startCall(dir, input.owner, c.attempt)})),
         instruction: 'Prepare only these exact claims: check their planning context and readiness, create workspace evidence, then call start for every eligible claim before waiting for running workers. Every Ask-Agent delegation binds the selected package, runs capabilities --skill-card ABS, and requires its declared schema shiploop-chain-ask-agent-managed-worktree/v1 with the full current capability set helper-managed-worktree, prepared-inspection, returned-commit-delivery, fingerprint-bound-close and ignored-output-report; the capability set is the gate, not a version number; then use the unchanged identity binding. For every Git claim, including main-context work, the dispatcher is that package\'s parent: helper prepare, inspect --phase prepared, then start. Retain that capability declaration, identity, preparation receipt and selected package binding in durable preparation evidence and the parent pending-job record, and freeze the exact returned worktree as context.workspace. Standalone Dispatcher uses ready_evidence; ShipLoop preserves caller ready_evidence and uses its existing attempt-bound preparation/allocation record and enriched launch packet. Do not adopt a caller-prepared Git workspace or allocate one when the declaration is missing or incompatible. Non-Git work retains its existing generic context under the same compatible selected package and does not invoke managed workspace preparation. If a new blocker prevents a claimed step from starting, identify it and retain its reservation while continuing other safe work. A packet alone never launches work; only a successful start action authorizes native launch or main-context execution. After each resulting response, execute its exact next_argv and obey its current actions.',
       }; break;
     }
@@ -285,7 +330,10 @@ function run(operation, dir, input) {
       // here leaves a claimed task startable; no external work has been issued.
       prepareOutputs(dir, input.attempt);
       const started = state.start(dir, input.owner, input.attempt, input.context, input.executor);
-      response = {...started, progress: state.inspect(dir).progress, packet: packet(dir, input.attempt), instruction: started.action === 'launch' ?
+      const startedPacket = packet(dir, input.attempt);
+      const followUp = started.action === 'launch' ? launchedCall(dir, input.owner, input.attempt) :
+        started.action === 'execute' ? reportCall(dir, startedPacket) : call(dir, 'next');
+      response = {...started, progress: state.inspect(dir).progress, packet: startedPacket, call: followUp, instruction: started.action === 'launch' ?
         `${PARENT_STATUS_PRESENTATION} Immediately before native launch, publish a user-facing status with this task label and assignment, accepted (completed) work, and remaining active, pending and blocked work. This applies to every native-agent call that starts or continues work, including an initial launch, retry or follow-up turn; it is intent, not confirmation until the native tool confirms that call, and cadence, a native UI or notification, or equivalent visible progress cannot replace it. For a managed Git native task, this first action=launch permits direct native launch only with the same declared capability response (schema shiploop-chain-ask-agent-managed-worktree/v1 with the full current capability set helper-managed-worktree, prepared-inspection, returned-commit-delivery, fingerprint-bound-close and ignored-output-report), selected package binding, identity, preparation receipt, frozen context.workspace and complete assignment recorded before start. The dispatcher is Ask-Agent's parent: do not rerun preparation or create a worktree after start. Then launch once through the selected Ask-Agent launch contract in a fresh general-purpose native context with no inherited history where the host supports it, unless the user requested an available named worker. Include the complete returned worker packet unchanged and a compact Current learnings block using a Markdown heading and short labeled bullets, distilled from the current conversation; say explicitly if none are relevant. Keep essential facts and rationale inline, with evidence locators for detail; the learnings block cannot grant broader scope or replace the frozen task contract. Preserve available host capabilities within task authorization; do not add arbitrary tool restrictions. Retain the effective assignment and launch identity in the existing parent record or retained handoff, durably outside the worker workspace (the pending-job record when one exists), save the confirmed native handle with launched, announce the assignment and parent next action, then execute that response's exact next_argv before collecting. This launch authorization is exactly once.` :
         started.action === 'execute' ?
           'Execute this complete packet as the bounded task in the current main conversation. For a Git task, use the same capability-gated helper-prepared frozen context and receipt recorded before start; do not repeat package binding, capability/identity checks, preparation, or worktree allocation. From context.workspace, run the selected helper\'s check-context --receipt before task work. The executor is a caller attestation, not host-verifiable authentication. Do not call ask-agent to launch a native worker, or record a native handle. When task-owned commands finish, report the exact evidence. That report handoff ends this bounded task phase: return the actual report response, including its next_argv, to the dispatcher phase in this same conversation. As the bounded task, do not execute next_argv, navigate the graph, perform dispatcher acceptance verification of the resulting receipt, or settle. The dispatcher\'s next response owns the distinct verification phase and any settlement.' :

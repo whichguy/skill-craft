@@ -194,11 +194,13 @@ disposition; editing generated plan text is not authority to change it.
 
 For example, source synchronization succeeds and target identity matches, but a
 browser check reaches login. Preserve effect/identity and mark behavior blocked.
-When this host cannot sign in, report `release-verify` blocked with `awaiting`
-kind `present`: the steps for the person (entry URL, App Launcher name, the
-action) and what they should report back. The run stops quietly; the person's
-report (`resume --observed "<their words>"`) resumes it. Then resume verification
-of the same candidate. The feature remains unverified; do not automatically repush
+When this host cannot sign in, record the signed-in check as an open item with
+the steps for the person (the entry point, for example a URL or menu entry, and
+the action) and what they should report back, and verify every other case. When
+the release cannot be accepted without that observation, report `release-verify`
+blocked with `awaiting` kind `present` and its `no_default`; the person's report
+(`resume --observed "<their words>"`) resumes it. Then resume verification of the
+same candidate. The feature remains unverified; do not automatically repush
 or upload again just to create a fresh receipt. If the candidate/target changes
 instead, follow the replanning boundary.
 

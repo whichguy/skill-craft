@@ -385,7 +385,7 @@ reference to skill guidance is not a reference to the product's actual contract.
 | This run's feature record and the living spec, environment and test strategy under `docs/shiploop/` | Planning stages write them; ShipLoop checks and commits them at each close | Later runs start from them ([repository knowledge home](#repository-knowledge-home)). |
 | Run evidence under the run directory | The active protocol's host/result and script-owned write routes | Dependent actions read result `evidence_refs`, work-item `context`, or that protocol's context reader. Anything a later run needs goes into `docs/shiploop/`. |
 | Prior current-system baseline in run notes or at a retrievable immutable source revision | Discovery/research within the active stage's authority | Spec, test strategy, plans and Improve reopen selected sections and evidence limits; authorized documentation work retains useful recovered knowledge in the durable product home. Preserve the prior as-of account when later evidence changes. |
-| Improve contract, review notebook, checks and completion evidence under the packet's child locations | Selected Improve and its bound Until Loop adapter | Child recovery reads its own contract/state; ShipLoop imports the matching completion evidence. Child runtime files stay out of product returns. |
+| Improve contract, `review-<n>.md` passes and `checks.md` under the packet's child locations | Selected Improve and its bound Until Loop adapter | Child recovery reads its own contract/state; ShipLoop imports the matching review and check files itself, with no separate record to submit. Child runtime files stay out of product returns. |
 
 **Resolve the root, then the section.** Package Markdown links are relative to
 the document containing the link. Product Markdown links should also be relative
@@ -491,8 +491,9 @@ of knowledge needed after those runs are removed. Do not copy secrets, entire
 prompts, execution cursors or full result histories into the index. Avoid a
 duplicate environment document if the repository already has one. Preserve
 unrelated edits and reconcile concurrent knowledge edits; do not last-write-win
-another run's discoveries. ShipLoop commits `docs/shiploop/` at its closes (below);
-it never pushes.
+another run's discoveries. ShipLoop commits `docs/shiploop/` and `SHIPLOOP.md` at its
+closes and after any other accepted stage that changed them (below); it never pushes.
+Do not commit them yourself.
 
 ## Repository knowledge home
 
@@ -512,8 +513,12 @@ Each packet names the home and the files its stage keeps up to date. At four
 closes (`prepare`, each `test-spec`, `release-plan`, `release-verify`) ShipLoop
 refuses `done` until that close's files exist, refuses lines that look like
 credentials, refuses a living spec that no longer mentions an earlier committed
-requirement ID, and then commits exactly `docs/shiploop/`
-(`docs(shiploop): record <feature> knowledge at <stage>`). The last close is at
+requirement ID, and then commits exactly `docs/shiploop/` and `SHIPLOOP.md`
+(`docs(shiploop): record <feature> knowledge at <stage>`). After any other accepted
+stage that changed `docs/shiploop/` or `SHIPLOOP.md`, ShipLoop applies the same credential and ID
+checks (refusing that stage's `done` on a failure) and commits it
+(`... knowledge after <stage>`); the model never commits the home itself. A file
+the credential screen flags is left uncommitted and named. The last close is at
 `release-verify` so the commit returns with the workspace. The return plan keeps
 `docs/shiploop/**`. Files an earlier run wrote in older homes
 (`docs/requirements.md`, `docs/current-system.md`, ShipLoop-authored only) move

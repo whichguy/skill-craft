@@ -31,6 +31,7 @@ from pathlib import Path
 from typing import Any, Callable, Dict, List, Mapping, Optional, Tuple
 
 import shiploop_lint as lint
+import shiploop_loop_contract as loop_contract
 import shiploop_navigator_v3_prompts as guidance3
 import shiploop_quality as quality
 import shiploop_stage_spec as stage_spec
@@ -200,28 +201,26 @@ def build_contract(root: Path, state: Mapping[str, Any], work_item: str, action:
     root = Path(root)
     repo = str(state["repo"])
     step_action, _result = _step_plan(state, work_item)
-    return {
-        "workspace": repo,
-        "work": _work(commands),
-        "exit_condition": guidance3.TEST_EXIT_CONDITION,
-        "repeat_condition": guidance3.TEST_REPEAT_CONDITION,
-        "required_trivial_reviews": 1,
-        "context": {
-            "request": ("Test loop (" + stage + ") for ShipLoop work item " + work_item + " ("
-                        + quality._work_title(state, work_item) + "): run its test command list and fix "
-                        "the code until every command exits 0."),
-            "scope": ("Workspace " + repo + ". The files in " + work_item + "'s change and their tests. "
-                      "Preserve every other change."),
-            "authority": ("Edit in-scope product code and tests. Never change a check's expected result "
-                          "to get green. Do not commit, push, install or download anything. ShipLoop "
-                          "callbacks belong to the parent; the loop never calls them."),
-            "environment": "Run every command from " + repo + ".",
-            "resources": [{"purpose": "accepted step plan: test_commands and completion criteria",
-                           "locator": str(root / "results" / (str(step_action) + ".md"))},
-                          {"purpose": "this action's pass log: append what each iteration checked and what is left",
-                           "locator": str(root / "notes" / (action + ".md"))}],
-        },
-    }
+    return loop_contract.contract(
+        workspace=repo,
+        work=_work(commands),
+        exit_condition=guidance3.TEST_EXIT_CONDITION,
+        repeat_condition=guidance3.TEST_REPEAT_CONDITION,
+        required_trivial_reviews=1,
+        request=("Test loop (" + stage + ") for ShipLoop work item " + work_item + " ("
+                 + quality._work_title(state, work_item) + "): run its test command list and fix "
+                 "the code until every command exits 0."),
+        scope=("Workspace " + repo + ". The files in " + work_item + "'s change and their tests. "
+               "Preserve every other change."),
+        authority=("Edit in-scope product code and tests. Never change a check's expected result "
+                   "to get green. Do not commit, push, install or download anything. ShipLoop "
+                   "callbacks belong to the parent; the loop never calls them."),
+        environment="Run every command from " + repo + ".",
+        resources=[{"purpose": "accepted step plan: test_commands and completion criteria",
+                    "locator": str(root / "results" / (str(step_action) + ".md"))},
+                   {"purpose": "this action's pass log: append what each iteration checked and what is left",
+                    "locator": str(root / "notes" / (action + ".md"))}],
+    )
 
 
 def transition_writes(root: Path, after: Mapping[str, Any], work_item: Optional[str],
@@ -233,7 +232,7 @@ def transition_writes(root: Path, after: Mapping[str, Any], work_item: Optional[
     if not commands:
         return {}
     contract = build_contract(Path(root), after, work_item, action, stage)
-    return {contract_path(action): json.dumps(contract, indent=2, sort_keys=True) + "\n"}
+    return {contract_path(action): loop_contract.dumps(contract)}
 
 
 def render_lines(root: Path, state: Mapping[str, Any], work_item: str, action: str, stage: str) -> List[str]:
@@ -266,6 +265,8 @@ def render_lines(root: Path, state: Mapping[str, Any], work_item: str, action: s
             + shlex.quote(str(contract)),
             quality.RECEIPT_LINE + str(root / terminal_path(action)),
         ]
+        if (root / terminal_path(action)).exists():
+            lines.append(quality.RESUME_LINE)
         if not contract.is_file():
             lines.append("The loop contract is missing; report outcome blocked naming this path.")
     lines.append("Test command list (ShipLoop runs each one from " + str(state["repo"])

@@ -47,8 +47,8 @@ does not enable it.
 
 CI uses `ubuntu-latest`, latest stable Python 3 and latest stable Node, resolving
 fresh versions through setup actions. Receipts record the versions actually used.
-The one pinned Dispatcher fixture (`test/fixtures/plan-dispatcher-v3`) is a fixed
-test input; it does not determine which current tool version to install. Older
+Chain and integration suites use the repository's own Plan Dispatcher package
+(`skills/plan-dispatcher`), so a dispatcher change is exercised by them at once. Older
 package versions are not kept: refusal cases mutate copies of current fixtures.
 
 ## Inventory, union and evidence
@@ -204,7 +204,7 @@ python3 -B test/shiploop-chain-planning-context.test.py
 
 The collector suite checks accepted planning records, reference resolution,
 immutable inputs, and exclusion of the original user prompt. The composed suite
-uses the one pinned Dispatcher fixture, `test/fixtures/plan-dispatcher-v3`, and
+uses the repository's Plan Dispatcher package, `skills/plan-dispatcher`, and
 controlled worker processes to
 check invalid-graph rejection before binding with no parent mutation, corrected
 retry, cold recovery, parallel/serial code generation from references, dependency
@@ -323,8 +323,8 @@ test. [Workspace experiments](experiments/shiploop_workspace/README.md) explain
 why starting at HEAD and deleting transient files at the tip were insufficient.
 
 The three `shiploop-chain{,-git,-ledger}.test.py` suites belong to the ordinary
-ShipLoop aggregate. They exercise the public bridge with the pinned
-`plan-dispatcher-v3` fixture, disposable real Git worktrees, eager fan-out and
+ShipLoop aggregate. They exercise the public bridge with the repository's
+`skills/plan-dispatcher` package, disposable real Git worktrees, eager fan-out and
 joins, per-step integration, and append-only event records under process
 contention. Serial cases use the same fixture: one main-context task at a time,
 no native launch/handle, dependency-respecting completion, stale attempts,

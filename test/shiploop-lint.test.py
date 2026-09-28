@@ -720,7 +720,7 @@ class LintPassTests(Fixture):
         self.edit({"a.py": "x = 2\n"})
         payload = self.run_pass()
         block = payload["block"]
-        self.assertIn("Not run by ShipLoop (ask the user before running any of these):", block)
+        self.assertIn("Not run by ShipLoop (they may rewrite files or download; the run does not start them, and the handoff lists them for the user):", block)
         self.assertIn("| npm run format (package.json scripts.format; not run: only the script named lint runs", block)
         self.assertIn("| make format-check (Makefile; not run: only the lint target runs, first line: echo fc)", block)
         self.assertNotIn("make check", block)
@@ -1286,6 +1286,35 @@ class GateTests(Fixture):
         record = store.read_record(self.run_dir / "lint" / (action + ".gate2.md"))
         self.assertEqual(record["waived"], found)
         self.assertEqual(saved["accepted"][action]["lint_waivers"], [{"id": found[0], "reason": "Kept on purpose."}])
+
+    def test_an_earlier_implement_step_reports_and_the_last_step_gates(self):
+        """X5 (e8_lint_steps.py): step S1 was refused (and auto-fixed) for an import step S2 uses."""
+        self.commit({"a.py": "x = 1\n"})
+        nav.save(self.run_dir, nav.new_state(str(self.repo), "Lint gate fixture.", improve_skill="",
+                                             lint_option="fix"))
+        steps = [{"id": "S1", "task": "Add the import."}, {"id": "S2", "task": "Use it."}]
+        with self.patched_env():
+            state = drive(self.run_dir, "step-plan")
+            complete(self.run_dir, state, dict(DONE, steps=steps, test_commands=[],
+                                               test_commands_na="Synthetic fixture.", paths=["a.py"]))
+            state = store.read_record(self.run_dir / "state.md")
+            if state.get("active_improve"):
+                action = state["active_improve"]["action_id"]
+                updated = nav.finish_improve(state, action, {"summary": "Synthetic Improve.",
+                                                             "review_refs": ["synthetic://r"],
+                                                             "check_refs": ["synthetic://c"]})
+                nav.save(self.run_dir, updated)
+            state = drive(self.run_dir, "implement")
+            self.edit({"a.py": "import os  # unused\nx = 1\n"})
+            complete(self.run_dir, state)  # S1: reported, not refused and not auto-fixed
+            self.assertEqual((self.repo / "a.py").read_text(), "import os  # unused\nx = 1\n")
+            state = store.read_record(self.run_dir / "state.md")
+            self.assertEqual(nav.current_stage(state), "implement")
+            with self.assertRaisesRegex(nav.NavigatorError, "ShipLoop lint gate"):
+                complete(self.run_dir, state)  # S2 is the last step: a finding still present gates it
+            self.edit({"a.py": "import os\nx = os.sep\n"})
+            complete(self.run_dir, state)
+        self.assertEqual(nav.current_stage(store.read_record(self.run_dir / "state.md")), "test-green")
 
     def test_auto_fix_refuses_once_then_accepts(self):
         self.commit({"a.py": "x = 1\n"})

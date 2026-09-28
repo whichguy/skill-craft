@@ -263,6 +263,50 @@ Acceptance: every verdict passes in every style; 0 ShipLoop command failures;
 glue 0 for mechanical steps; per-case cost no worse than baseline, or the
 increase attributed to a stated intended change.
 
+### P9 Unattended by default (ShipLoop; S-14) — design approved by the owner 2026-09-27
+Owner decision: unattended is the default; if a run really cannot proceed
+without the end user, it prompts the end user. No separate attended setting.
+
+Change:
+- Decisions: take a stated default, record it (with the alternatives and why
+  this one) as an assumption the handoff reports, and continue.
+- Steps only a person can perform (sign-in, grant, observation): record an
+  open item on the result and in the run's outcome, and continue with every
+  stage that does not depend on it.
+- Prompt the person (`blocked` + `awaiting`, end the turn with the question and
+  the resume command) only when nothing further can proceed without them. An
+  `awaiting` result must state why no default would do (`no_default`), which
+  ShipLoop refuses when blank.
+- Wording: SKILL.md, the stage duties that route decisions and observations to
+  `awaiting`, the navigator's refusal message, and the 1.7.0 lifecycle line
+  "carry the question to the user with the default you would take".
+
+Adversarial evaluation:
+- *A wrong default silently builds the wrong thing* -> **mitigated**: recorded
+  with alternatives; the handoff lists defaults first; S-9 checks still gate.
+- *Authority: proceeding where a person must decide (production, money,
+  deletion)* -> **mitigated**: authority limits are cases that cannot proceed,
+  so they still prompt; unattended never widens authority.
+- *The model keeps asking anyway* -> **mitigated**: `no_default` required and
+  refused when blank; `asked_user` and blocked-awaiting outcomes measured in
+  every suite.
+- *The model never asks when it truly must* -> **mitigated**: authority and
+  sign-in cases are named in the wording as cannot-proceed; resume path
+  unchanged.
+- *Saved runs already awaiting* -> **mitigated**: resume unchanged;
+  `no_default` is checked only on new submissions.
+- *Pinned tests and wording churn* -> **accepted**: updated in the same change,
+  full tier before release.
+- *An open item lets a run pass with key behaviour unverified* ->
+  **mitigated**: the criterion stays unconfirmed (S-9); product checks and the
+  committed verdict still apply.
+
+Anchor: S-14, S-2, S-9. Non-regression: the resume path and authority blocks
+are unchanged; `awaiting` remains valid with a reason. Evidence: navigator
+tests (blank `no_default` refused; reasoned awaiting accepted; resume
+unchanged); packet wording tests; breadth suite with `asked_user` 0 and no
+run ending awaiting a person.
+
 ### P8 Engine neutrality (ShipLoop prompts/cards; owner review first)
 Change: restate the 1.7.0 lifecycle rule in SDLC terms with at most one
 labelled example; vary one-domain illustrations.
@@ -292,6 +336,149 @@ Anchor: S-8, S-13, Purpose. Evidence: rubric rerun; breadth suite.
   request has hidden information.
 - A `loop-start` verb now: no evidence of a start problem; churn and adapter
   risk without an anchor in run evidence.
+
+### P10 Measure the run narrative (harness; S-15) — requested by the owner 2026-09-27
+ShipLoop 0.44.0 renders a milestone narrative (achieved, now, ahead, pace)
+and asks each step for a one-line `headline`. Headless E2E hosts never set
+`CLAUDE_CODE_ENTRYPOINT=cli`, so every milestone packet asks the model to
+show the narrative as written.
+
+Change (harness only): `metrics.narrative` counts, from the event stream,
+the narratives ShipLoop emitted for the model to show, how many the model
+showed (the heading line appears in its following text) and how many it
+showed verbatim (every narrative line appears), and names the stages it
+skipped; from the run's result records, the share of accepted results that
+carry a headline. It is written to metrics.json, result.json and each
+baseline row, printed in the report and compared with the case's previous
+row. Not a verdict yet.
+
+Adversarial evaluation:
+- *Packet text leaks into metrics or reports* -> **mitigated**: only counts
+  and stage names are kept; tested.
+- *A host splits text into chunks (Grok) or blocks (Claude), so a shown
+  narrative is missed* -> **mitigated**: all assistant text between one
+  emission and the next is joined before matching; both formats tested.
+- *Repeated tool updates (Grok) count one packet twice* -> **mitigated**:
+  one emission per tool call; tested.
+- *The model pastes an older narrative, or only the heading* ->
+  **mitigated**: `shown` and `verbatim` are separate counts; verbatim needs
+  every line of that emission.
+- *Gamed: the model pastes every narrative and the run gets longer* ->
+  **accepted**: pasting is what S-15 asks for; its cost appears in output
+  tokens and turns, compared per case.
+- *A run on a ShipLoop before 0.44.0 reads as zero shown* -> **mitigated**:
+  zero emitted reads as "no narrative", not as a failure.
+- *Making it a verdict too early fails runs that ship correct software* ->
+  **mitigated**: scored beside reliability until each style has a baseline;
+  promotion to a verdict goes through Change admission.
+
+Anchor: S-15 (owner request). Non-regression: verdicts, glue, failures and
+cost are unchanged; the metric only reads existing files. Evidence: hermetic
+metrics tests with Claude and Grok event streams; the next focused-suite run
+records the first baseline.
+
+### P11 Follow-up return after ShipLoop's own knowledge commit (ShipLoop; S-5) — implemented 2026-09-27
+
+Evidence: web-p5 battleship. The release-verify knowledge commit lands after the return taken at
+release, so handoff refuses with "the recorded one is stale" and the model runs plan-return and return
+by hand: a mechanical step done by the model on every worktree run whose release-verify updates
+`docs/shiploop/`.
+
+Proposal: when the only paths changed since the recorded receipt are knowledge paths
+(`knowledge_home.in_home`), ShipLoop performs the follow-up return itself after that commit, by the
+receipt's own route (fast-forward stays fast-forward), and prints the new receipt.
+
+Adversarial evaluation (to finish before implementing):
+- It writes to the user's branch without a model-run command. Bound: only knowledge paths, only after a
+  verified return the run already made, and the same drift checks refuse a moved source.
+- A working-tree receipt would get knowledge files as uncommitted changes in the user's checkout, which
+  is what the first return already did for the product.
+- If the source drifted after the first return, the automatic follow-up must refuse and fall back to
+  today's message, never retry or roll back.
+- Anchor: S-5 (mechanical steps are the scripts'); non-regression: the guard and message stay for any
+  other change.
+Implemented: `workspace.follow_up_knowledge_return` runs from `_knowledge_close` after a knowledge commit in a
+worktree run; it acts only when every path changed since the returned candidate head is knowledge and
+nothing else is dirty, carries the reviewed plan's dispositions, and lets execute_return's own checks refuse
+a moved source (the refusal is printed and handoff asks for the return as before). It never commits
+leftovers, retries or rolls back.
+
+### P12 improve-complete derives the completion record (ShipLoop; S-1, S-5) — approved by the owner 2026-09-27
+
+Evidence: breadth battleship on 1.11.1. The Improve child's completion record (a Markdown file with one
+`shiploop-state` JSON fence holding summary, review_refs, check_refs, lessons) was written as raw JSON and
+refused; the model then read ShipLoop's source to learn the format. Owner review: the hand-off is
+over-precise. The model restates paths ShipLoop already knows (its own `reviews/` directory, and the
+terminal packet's `unchanged_first_pass`, which fixes whether one or two review files count), in a
+storage format meant for authoritative state.
+
+Change: `improve-complete --action X`, with no record. ShipLoop takes review_refs from `reviews/`
+(the last one or two `review-<n>.md`, per the terminal packet) and check_refs from `reviews/checks.md`.
+The model writes only what needs judgement: optional plain-text notes (summary and lessons), and a
+`final_result` record only when the review changed a decision. `parent-return.md` becomes the command.
+One supported version: the `--result` record is removed, not kept beside the new form.
+
+Adversarial evaluation:
+- A child that names its review files differently cannot be matched. Guard: the packet states the names;
+  improve-complete refuses with the files it found and the names it expects, one clear step, never a
+  guess. Risk accepted: a model that ignores stated names gets one refusal, as today.
+- "The last two" must be the two trivial passes, not an earlier material one. Guard: order by the number
+  in the name (`review-<n>.md`), which the packet assigns per pass; the terminal packet's pass count and
+  `unchanged_first_pass` fix how many count; a gap or a missing file refuses.
+- Evidence integrity must not weaken: ShipLoop still copies and hashes the files it imports, and the
+  same workspace-containment checks apply to paths it derives.
+- The delegated (non-inline) route and reconcile/stopped receipts (target, evidence_refs) are separate
+  shapes. Scope: change only the success completion; leave incomplete/reconcile receipts unchanged, and
+  say so in the references.
+- Removing `--result` breaks any saved run mid-child at release time. Accepted under "one supported
+  version": a run on the old version finishes on that version.
+- Tests and references that describe the record must change with it; the delegation and navigator tests
+  pin packet text.
+Anchor: S-1 (scripts own state), S-5 (mechanical steps are the scripts'), S-7 (small packets).
+Non-regression: the same files are imported, hashed and archived; no verdict changes.
+
+### P13 A run-local scratch directory; no shared /tmp names (ShipLoop; S-14, Parallel work) — implemented 2026-09-27
+
+Evidence: suites web-1111 and breadth-1111 ran concurrently on 1.11.1. The web-service battleship run and
+seat-reservations both wrote their Until Loop report to the literal path /tmp/improve-done-1.json; the
+battleship run then read the other run's report ("the returned report mentions a different server").
+The same collision hits a user running two ShipLoop sessions. Models choose fixed /tmp names because the
+Until Loop report goes on standard input and no packet says where temporary files belong; TMPDIR does not
+help, since the paths are literal.
+
+Proposal: ShipLoop creates <run>/scratch/ and every packet's common rule says temporary files go there
+(/tmp is shared with other runs). The Until Loop report is written to a path ShipLoop names and passed as a
+file (the upstream until-loop --report-file item), not piped from a fixed /tmp name.
+
+Adversarial evaluation:
+- Leakage: the run directory is ShipLoop-owned (outside the product; `.shiploop`/`.shiploop-runs` are
+  protected return paths and knowledge commits take only docs/shiploop/ and SHIPLOOP.md), so scratch files
+  never reach the product or a commit.
+- Cost: one sentence in the common rule, one locator line, one line in the Improve packet. Accepted.
+- Guidance, not enforcement: a model can still write /tmp. Measured instead: `tmp_writes` per run, and a
+  suite prints any /tmp name two of its cases wrote (their evidence is suspect). The next parallel suite
+  judges whether the guidance holds; if not, the Until Loop half (a report path it names) becomes necessary.
+- The Until Loop `--report-file` stays upstream; the ShipLoop half stands alone.
+- Evidence from the 1111 round: the metric finds the collision (/tmp/improve-done-1.json, written with the
+  file tool by web battleship and seat-reservations).
+Anchor: S-14 (unattended, no hidden coupling), Parallel work (concurrency must not change a verdict).
+
+### Batch 1.12.0 — verification map (`--suite batch`, driver Codex Luna xhigh)
+
+| Change | hello (gate) | seat-reservations | battleship -> battleship-scoring | Hermetic only |
+| --- | --- | --- | --- | --- |
+| P12 improve-complete derives the record | first live proof | | | |
+| P11 knowledge follow-up return | yes | | | |
+| Host interface: Codex end to end | yes | | | |
+| P13 scratch directory, no shared /tmp | | concurrent with the web chain | concurrent | |
+| Stateful style (persistence, concurrency check) | | not finished on recent versions | | |
+| Web style + retention across runs (follow-on) | | | not verified since 1.6.0 | |
+| SHIPLOOP.md commit, leftover commit (`committed`) | every run's verdict | | | |
+| Absolute consumer_entry refusal, clearer record error | | | | yes |
+| cli-files (csv-report) | | | | skipped: passed on 1.11.1 |
+
+Order: hello alone; if it passes, seat-reservations and the battleship chain run in parallel. Acceptance:
+every verdict passes; 0 ShipLoop failures; glue 0; asked a person 0; `tmp_writes` shared by no two runs.
 
 ## Status
 
@@ -324,8 +511,10 @@ Anchor: S-8, S-13, Purpose. Evidence: rubric rerun; breadth suite.
 5. P7: one release for P3-P5 after the full hermetic tier; hosts; then the
    `breadth` suite (battleship, csv-report, seat-reservations) against each
    case's baseline.
-6. P8 (engine neutrality) after owner review, confirmed by the rubric rerun and
+6. P9 (unattended by default; design approved), then P8 (engine neutrality) after owner review, confirmed by the rubric rerun and
    `breadth`.
+6a. P10 (narrative metric, harness only) lands with the next focused-suite
+   run, which records each style's first narrative baseline.
 7. Later, each through Change admission: tool knowledge into one catalog;
    Grok refusal probe (host-neutral outcome); Until Loop short output
    upstream.

@@ -24,7 +24,7 @@ import native_pilot as pilot
 ROOT = Path(__file__).resolve().parents[3]
 PILOT = ROOT / "test" / "experiments" / "shiploop_chain" / "native_pilot.py"
 ASK_AGENT = ROOT / "skills" / "ask-agent" / "SKILL.md"
-DISPATCHER_V3 = ROOT / "test" / "fixtures" / "plan-dispatcher-v3" / "SKILL.md"
+DISPATCHER_V3 = ROOT / "skills" / "plan-dispatcher" / "SKILL.md"
 DEFAULT_DISPATCHER = DISPATCHER_V3
 
 

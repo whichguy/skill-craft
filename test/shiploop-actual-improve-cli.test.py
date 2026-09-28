@@ -214,13 +214,14 @@ class ImproveCliFixture(unittest.TestCase):
         self.invoke(CLI, "improve-bind", "--run-dir", self.run, "--action", self.action,
                     "--skill-card", card)
         self.bound = store.read_record(self.run / "state.md")["active_improve"]
-        self.completion_path = self.run / "inbox" / (self.action + "-improve.md")
+        self.notes_path = self.run / "inbox" / (self.action + "-improve-notes.md")
+        self.final_path = self.run / "inbox" / (self.action + "-final-result.md")
         self.parent_route_path = self.run / "parent-recovery.json"
         self._write_parent_route()
 
     def _parent_import_argv(self):
         return [sys.executable, "-B", str(CLI), "improve-complete", "--run-dir", str(self.run),
-                "--action", self.action, "--result", str(self.completion_path)]
+                "--action", self.action]
 
     def _workspace_return_argv(self):
         return [sys.executable, "-B", str(CLI), "workspace", "return", "--workspace-root", str(self.run.parent)]
@@ -228,7 +229,7 @@ class ImproveCliFixture(unittest.TestCase):
     def _write_parent_route(self):
         store.write_record(self.parent_route_path, {
             "state": str(self.run / "state.md"),
-            "completion_input": str(self.completion_path),
+            "review_evidence": str(bridge.receipt_path(self.bound).parent / "reviews"),
             "improve_complete_argv": self._parent_import_argv(),
             "workspace_return_argv": self._workspace_return_argv(),
         })
@@ -239,7 +240,7 @@ class ImproveCliFixture(unittest.TestCase):
             {"purpose": "selected Improve skill", "locator": self.bound["skill"]["skill_card"]},
             {"purpose": "bound Until Loop runtime", "locator": self.bound["skill"]["runtime_cli"]},
             {"purpose": "ShipLoop parent state", "locator": str(self.run / "state.md")},
-            {"purpose": "ShipLoop completion input", "locator": str(self.completion_path)},
+            {"purpose": "review evidence directory", "locator": str(bridge.receipt_path(self.bound).parent / "reviews")},
             {"purpose": "ShipLoop exact return commands", "locator": str(self.parent_route_path)},
             {"purpose": "latest child packet receipt", "locator": str(receipt)},
         ]
@@ -297,7 +298,7 @@ class ImproveCliFixture(unittest.TestCase):
             "handoff": (
                 "Synthetic only; this is not semantic review proof. Current packet receipt: "
                 + str(bridge.receipt_path(self.bound)) + ". Parent state: " + str(self.run / "state.md")
-                + ". Completion input: " + str(self.completion_path)
+                + ". Review evidence: " + str(bridge.receipt_path(self.bound).parent / "reviews")
                 + ". Parent route file: " + str(self.parent_route_path)
                 + ". Exact parent import argv: " + json.dumps(self._parent_import_argv())
                 + ". Exact workspace return argv: " + json.dumps(self._workspace_return_argv())
@@ -323,22 +324,29 @@ class ImproveCliFixture(unittest.TestCase):
         self.assertFalse(Path(terminal["state_file"]).exists())
         return terminal_raw, terminal
 
-    def completion_receipt(self, *, final_result=None):
+    def completion_receipt(self, *, final_result=None, lessons="A terminal callback receipt is structural "
+                           "evidence, not semantic proof."):
+        """Write the child's review files; return improve-complete's extra flags and the record ShipLoop derives."""
         evidence = bridge.receipt_path(self.bound).parent / "reviews"
         evidence.mkdir(parents=True, exist_ok=True)
-        review_one, review_two, checks = (evidence / "review-one.md", evidence / "review-two.md", evidence / "checks.md")
-        for path in (review_one, review_two, checks):
+        material, review_one, review_two, checks = (evidence / "review-1.md", evidence / "review-2.md",
+                                                    evidence / "review-3.md", evidence / "checks.md")
+        for path in (material, review_one, review_two, checks):
             path.write_text("Synthetic protocol evidence: " + path.name + "\n", encoding="utf-8")
+        self.notes_path.parent.mkdir(parents=True, exist_ok=True)
+        self.notes_path.write_text(lessons + "\n", encoding="utf-8")
+        flags = ["--notes", str(self.notes_path)]
         receipt = {
-            "summary": "Runtime mechanics completed; no actual review claim.",
+            "summary": "Improve reviewed the " + self.bound["stage"] + " result; it ended on 2 trivial passes.",
             "review_refs": [str(review_one), str(review_two)],
             "check_refs": [str(checks)],
-            "lessons": "A terminal callback receipt is structural evidence, not semantic proof.",
+            "lessons": lessons,
         }
         if final_result is not None:
+            store.write_record(self.final_path, final_result)
+            flags += ["--final-result", str(self.final_path)]
             receipt["final_result"] = final_result
-        store.write_record(self.completion_path, receipt)
-        return self.completion_path, receipt
+        return flags, receipt
 
     def complete_current_stage_through_actual_improve(self, evidence_refs, summary):
         """Advance one current checkpoint stage through its real Improve callbacks."""
@@ -358,7 +366,7 @@ class ImproveCliFixture(unittest.TestCase):
         self.finish_ephemeral()
         completion, _receipt = self.completion_receipt()
         self.invoke(CLI, "improve-complete", "--run-dir", self.run,
-                    "--action", self.action, "--result", completion)
+                    "--action", self.action, *completion)
         return stage, self.action, store.read_record(self.run / "state.md")
 
     def complete_current_stage_directly(self, evidence_refs, summary):
@@ -403,19 +411,22 @@ class EphemeralImproveCliTests(ImproveCliFixture):
                 self.assertIn("Run the selected Improve card's ShipLoop whole-skill subcall in this conversation", packet)
                 self.assertIn("Return order:", packet)
                 self.assertIn("keep the frozen launch context unchanged", packet)
-                self.assertIn("Binding line: improve-start writes the next line first in the frozen "
-                              "context.request, alone on its own line", packet)
+                # improve-start writes the binding line and start inputs; the packet no longer restates them.
+                self.assertNotIn(self.bound["contract_marker"], packet)
+                self.assertNotIn("Start inputs owned by ShipLoop", packet)
             else:
                 self.assertIn("Parent assignment preparation:", packet)
                 self.assertIn("Run /improve", packet)
                 self.assertIn("navigator cannot supply conversation-only learnings", packet)
                 self.assertIn("Parent-only return:", packet)
                 self.assertIn("keep launch context immutable and continue the same child", packet)
-                self.assertIn("Binding line: copy the next line verbatim into frozen context.request exactly once, "
-                              "alone on its own line", packet)
-            marker = packet.index(self.bound["contract_marker"] + "\n")
-            self.assertIn("import matches the whole line:\n", packet[marker - 40:marker])
-            self.assertIn("Start inputs owned by ShipLoop: required_trivial_reviews 2 (import rejects fewer)", packet)
+                # ShipLoop starts this child too; the worker continues it (551b8b49).
+                self.assertIn(" improve-start ", packet)
+                self.assertIn("continues the already-started loop from the receipt's next_argv", packet)
+            # Neither route asks the model to copy the binding line or state start inputs.
+            self.assertNotIn(self.bound["contract_marker"], packet)
+            self.assertNotIn("Start inputs owned by ShipLoop", packet)
+            self.assertNotIn("Start the child runtime with --receipt", packet)
             self.assertIn("Selected Improve skill: " + str(CARD.resolve()), packet)
             self.assertIn("material unresolved findings, hypotheses, failed attempts", packet)
             self.assertIn("approvals, declines and pending decisions into child context.authority", packet)
@@ -518,7 +529,7 @@ class EphemeralImproveCliTests(ImproveCliFixture):
         self.assertEqual((self.run / "state.md").read_bytes(), before)
         self.assertEqual(self.product_contract.read_text(encoding="utf-8"), updated)
         self.invoke(CLI, "improve-complete", "--run-dir", self.run,
-                    "--action", self.action, "--result", completion)
+                    "--action", self.action, *completion)
         after = store.read_record(self.run / "state.md")
         self.assertIsNone(after["active_improve"])
         self.assertEqual(navigator.current_stage(after), "test-strategy")
@@ -528,14 +539,11 @@ class EphemeralImproveCliTests(ImproveCliFixture):
     def test_user_stopped_child_restarts_with_the_same_binding_then_imports(self):
         """A cancelled non-plan child is archived, restarted once and imported; no halt needed."""
         packet = self.invoke(CLI, "next", "--run-dir", self.run).stdout
-        if self.inline():
-            self.assertIn("rerun the improve-start command with --restart-stopped: ShipLoop archives "
-                          "packet.json as packet.stopped-<UTC timestamp>.json", packet)
-            self.assertIn("Do not rename them yourself.", packet)
-        else:
-            self.assertIn("rename packet.json to packet.stopped-<UTC timestamp>.json and the sibling reviews "
-                          "directory to reviews.stopped-<same timestamp>", packet)
-        self.assertIn("must be files the new child writes", packet)
+        # Both routes restart through ShipLoop; neither renames files by hand (29786109, 551b8b49).
+        self.assertIn("rerun the improve-start command with --restart-stopped: ShipLoop archives "
+                      "packet.json as packet.stopped-<UTC timestamp>.json", packet)
+        self.assertIn("Do not rename them yourself.", packet)
+        self.assertIn("must be ones the new child writes", packet)
         self.assertIn("never report cancelled for a pause", packet)
         _raw, first = self.start_ephemeral_child()
         stopped_raw, stopped = self.done_ephemeral(
@@ -544,41 +552,34 @@ class EphemeralImproveCliTests(ImproveCliFixture):
         completion, stopped_receipt = self.completion_receipt()
         before = (self.run / "state.md").read_bytes()
         self.invoke(CLI, "improve-complete", "--run-dir", self.run, "--action", self.action,
-                    "--result", completion, status=2)
+                    *completion, status=2)
         self.assertEqual((self.run / "state.md").read_bytes(), before)
-        if self.inline():
-            opening = self.packet_path.with_name("opening.md")
-            opening.write_text("## Current context and desired improvements\nThe user authorized continuing.\n\n"
-                               "## Scope\nproduct/contracts/cold-recovery.md\n\n## Authority\nUser: continue.\n\n"
-                               "## Environment\nPython fixture.\n", encoding="utf-8")
-            start = [CLI, "improve-start", "--run-dir", self.run, "--action", self.action, "--opening", opening]
-            self.assertIn("already started", self.invoke(*start, status=2).stderr)
-            restarted_run = self.invoke(*start, "--restart-stopped")
-            self.assertIn("Archived the stopped child", restarted_run.stderr)
-            restarted = restarted_run.stdout
-            json.loads(restarted)
-            archived = next(self.packet_path.parent.glob("packet.stopped-*.json"))
-            stopped_reviews = self.packet_path.parent / archived.name.replace("packet.", "reviews.").removesuffix(".json")
-            self.assertTrue(stopped_reviews.is_dir())
-            first = json.loads(restarted[restarted.index("{"):])
-            self.assertEqual(first["status"], "active")
-            self.finish_ephemeral(first)
-        else:
-            archived = self.packet_path.with_name("packet.stopped-20260923T000000Z.json")
-            self.packet_path.rename(archived)
-            reviews = self.packet_path.with_name("reviews")
-            stopped_reviews = reviews.with_name("reviews.stopped-20260923T000000Z")
-            reviews.rename(stopped_reviews)
-            self.finish_ephemeral()
+        opening = self.packet_path.with_name("opening.md")
+        opening.write_text("## Current context and desired improvements\nThe user authorized continuing.\n\n"
+                           "## Scope\nproduct/contracts/cold-recovery.md\n\n## Authority\nUser: continue.\n\n"
+                           "## Environment\nPython fixture.\n", encoding="utf-8")
+        start = [CLI, "improve-start", "--run-dir", self.run, "--action", self.action, "--opening", opening]
+        self.assertIn("already started", self.invoke(*start, status=2).stderr)
+        restarted_run = self.invoke(*start, "--restart-stopped")
+        self.assertIn("Archived the stopped child", restarted_run.stderr)
+        restarted = restarted_run.stdout
+        json.loads(restarted)
+        archived = next(self.packet_path.parent.glob("packet.stopped-*.json"))
+        stopped_reviews = self.packet_path.parent / archived.name.replace("packet.", "reviews.").removesuffix(".json")
+        self.assertTrue(stopped_reviews.is_dir())
+        first = json.loads(restarted[restarted.index("{"):])
+        self.assertEqual(first["status"], "active")
+        self.finish_ephemeral(first)
         completion, _receipt = self.completion_receipt()
         self.invoke(CLI, "improve-complete", "--run-dir", self.run, "--action", self.action,
-                    "--result", completion)
+                    *completion)
         after = store.read_record(self.run / "state.md")
         self.assertIsNone(after["active_improve"])
         self.assertEqual(navigator.current_stage(after), "test-strategy")
         self.assertEqual(archived.read_bytes(), stopped_raw.stdout)
+        # The stopped child's whole review directory is archived, the material pass included.
         self.assertEqual(sorted(path.name for path in stopped_reviews.iterdir()),
-                         sorted(Path(ref).name for ref in stopped_receipt["review_refs"] + stopped_receipt["check_refs"]))
+                         ["checks.md", "review-1.md", "review-2.md", "review-3.md"])
 
     def test_renderer_preserves_an_explicit_user_no_commit_override(self):
         user_no_commit = "Explicit user no-commit instruction: do not commit this candidate."
@@ -672,7 +673,7 @@ class EphemeralImproveCliTests(ImproveCliFixture):
 
                 completion, _receipt = self.completion_receipt()
                 self.invoke(CLI, "improve-complete", "--run-dir", self.run,
-                            "--action", self.action, "--result", completion)
+                            "--action", self.action, *completion)
                 resumed = store.read_record(self.run / "state.md")
                 self.assertEqual(navigator.current_stage(resumed), expected_stage)
                 self.assertEqual(
@@ -754,10 +755,10 @@ class EphemeralImproveCliTests(ImproveCliFixture):
         )
         self.assertEqual(self.bound["skill"]["skill_version"], selected_version)
         parent_packet = self.invoke(CLI, "next", "--run-dir", self.run).stdout
-        for text in (self.bound["contract_marker"], "Bound Until Loop CLI locator: " + str(EPHEMERAL.resolve()),
+        for text in ("Bound Until Loop CLI locator: " + str(EPHEMERAL.resolve()),
                      "Child latest packet receipt: " + str(bridge.receipt_path(self.bound)),
                      "Commit policy:",
-                     "Start the child runtime with --receipt " + str(bridge.receipt_path(self.bound)),
+                     "Never write or edit the receipt",
                      "Completion deletes the child's temporary state"):
             self.assertIn(text, parent_packet)
 
@@ -815,11 +816,9 @@ class EphemeralImproveCliTests(ImproveCliFixture):
         self.assertIn(cumulative, terminal["last_report"]["handoff"])
         self.assertFalse((self.repo / ".until-loop").exists())
 
-        completion, receipt = self.completion_receipt()
-        receipt.update(summary="Synthetic completed run. " + changes, lessons=lessons)
-        store.write_record(completion, receipt)
+        completion, receipt = self.completion_receipt(lessons=lessons)
         before = (self.run / "state.md").read_bytes()
-        self.invoke(CLI, "improve-complete", "--run-dir", self.run, "--action", self.action, "--result", completion)
+        self.invoke(CLI, "improve-complete", "--run-dir", self.run, "--action", self.action, *completion)
         after = (self.run / "state.md").read_bytes()
         state = store.read_record(self.run / "state.md")
         record = state["improve_results"][self.action]
@@ -834,16 +833,46 @@ class EphemeralImproveCliTests(ImproveCliFixture):
         self.assertIn(cumulative, json.loads(archive.read_text())["last_report"]["handoff"])
         self.assertEqual(record["identities"]["terminal_packet_sha256"], hashlib.sha256(terminal_raw.stdout).hexdigest())
         self.assertNotEqual(before, after)
-        self.invoke(CLI, "improve-complete", "--run-dir", self.run, "--action", self.action, "--result", completion)
-        self.assertEqual(after, (self.run / "state.md").read_bytes())
-        store.write_record(completion, dict(receipt, summary="Conflicting callback"))
-        self.invoke(CLI, "improve-complete", "--run-dir", self.run, "--action", self.action, "--result", completion, status=2)
+        self.invoke(CLI, "improve-complete", "--run-dir", self.run, "--action", self.action, *completion)
         self.assertEqual(after, (self.run / "state.md").read_bytes())
 
-    def test_improve_start_freezes_the_contract_and_starts_the_runtime(self):
-        """The parent writes four opening sections; ShipLoop writes the contract and starts the child."""
+    def test_inline_improve_packet_states_every_remaining_obligation_once(self):
+        """P5 (SPEC S-6, S-7): script-owned steps are gone; each obligation the model keeps is stated once."""
         if not self.inline():
-            self.skipTest("improve-start is the inline route")
+            self.skipTest("the delegated route keeps its manual start instructions")
+        packet = self.invoke(CLI, "next", "--run-dir", self.run).stdout
+        full = Path(next(line for line in packet.splitlines() if line.startswith("Full packet: "))[13:]).read_text()
+        # P13: the run's scratch directory exists and takes the reports piped to the runtime, not /tmp.
+        scratch = self.run / "scratch"
+        self.assertTrue(scratch.is_dir())
+        self.assertIn("Temporary files, including each report you pass to the runtime on standard input, go in "
+                      + str(scratch), " ".join(full.split()))
+        obligations = {
+            "write the opening": "Context-first opening: before start, write the opening file",
+            "start through ShipLoop": " improve-start --run-dir=",
+            "follow the runtime": "\"Follow the returned action\" section",
+            "commit review edits through ShipLoop": " improve-commit --run-dir=",
+            "never edit the receipt": "Never write or edit the receipt",
+            "recover an active child": "use its exact next_argv once to recover",
+            "restart a stopped child": "--restart-stopped",
+            "return only after the terminal packet": "Return order:",
+            "pause without losing the child": "Pause parent without losing child",
+            "import through the parent callback": " improve-complete --run-dir=",
+        }
+        for name, text in obligations.items():
+            with self.subTest(obligation=name):
+                self.assertIn(text, full)
+        for gone in ("Binding inputs: before start", "Start inputs owned by ShipLoop",
+                     "Start the child runtime with --receipt", self.bound["contract_marker"]):
+            self.assertNotIn(gone, full)
+        self.assertEqual(full.count("Never write or edit the receipt"), 1)
+
+    def test_improve_start_freezes_the_contract_and_starts_the_runtime(self):
+        """The parent writes four opening sections; ShipLoop writes the contract and starts the child.
+
+        On both routes: the Ask-Agent route's hand-built contract omitted the binding line in the
+        Codex E2E run (551b8b49), so ShipLoop starts that child too.
+        """
         receipt = bridge.receipt_path(self.bound)
         opening = receipt.with_name("opening.md")
         start = [CLI, "improve-start", "--run-dir", self.run, "--action", self.action, "--opening", opening]
@@ -874,6 +903,21 @@ class EphemeralImproveCliTests(ImproveCliFixture):
         contract = json.loads(receipt.with_name("start.json").read_text(encoding="utf-8"))
         self.assertEqual(contract["workspace"], self.bound["workspace"])
         self.assertEqual(contract["required_trivial_reviews"], 2)
+        owner = str(receipt.with_name("host-owner.md"))
+        locators = [row["locator"] for row in contract["context"]["resources"]]
+        # The delegated route's worker coordinates through the owner record; inline has none.
+        self.assertEqual(owner in locators, not self.inline())
+        self.assertEqual(contract["context"]["request"].splitlines()[0], self.bound["contract_marker"])
+        # S-10: the review loop's exit carries the reviewed stage's own done-when criteria.
+        stage = self.bound["stage"]
+        for criterion in navigator.stage_spec.stage(stage).done_when:
+            self.assertIn(criterion, contract["exit_condition"])
+        self.assertIn("The " + stage + " result meets its own done-when criteria", contract["exit_condition"])
+        # A record without its fence is refused with its path and the expected shape.
+        raw = receipt.parent / "raw.json"
+        raw.write_text('{"summary": "x"}\n', encoding="utf-8")
+        with self.assertRaisesRegex(navigator.store.StorageError, r"raw\.json: .*found 0.*raw JSON is not accepted"):
+            navigator.store.read_record(raw)
         request = contract["context"]["request"]
         self.assertEqual(request.splitlines()[0], self.bound["contract_marker"])
         self.assertIn("Tighten the spec examples.", request)
@@ -881,7 +925,8 @@ class EphemeralImproveCliTests(ImproveCliFixture):
         self.assertIn("No push or merge", contract["context"]["authority"])
         locators = {r["purpose"]: r["locator"] for r in contract["context"]["resources"]}
         self.assertEqual(locators["latest child packet receipt"], str(receipt))
-        self.assertEqual(locators["ShipLoop completion evidence path"], str(self.completion_path))
+        self.assertEqual(locators["review evidence directory (review-<n>.md per pass, checks.md)"],
+                         str(receipt.parent / "reviews"))
         route = Path(locators["exact parent return instructions"]).read_text(encoding="utf-8")
         self.assertIn("improve-complete", route)
         self.assertEqual(first["context"], contract["context"])
@@ -892,7 +937,7 @@ class EphemeralImproveCliTests(ImproveCliFixture):
         self.packet_path = receipt
         self.finish_ephemeral(first)
         completion, _receipt = self.completion_receipt()
-        self.invoke(CLI, "improve-complete", "--run-dir", self.run, "--action", self.action, "--result", completion)
+        self.invoke(CLI, "improve-complete", "--run-dir", self.run, "--action", self.action, *completion)
         state = store.read_record(self.run / "state.md")
         self.assertIsNone(state["active_improve"])
         self.assertEqual(state["improve_results"][self.action]["runtime_phase"], "complete")
@@ -1016,7 +1061,7 @@ class EphemeralImproveCliTests(ImproveCliFixture):
         self.assertEqual(terminal["context"], manual_context)
 
         completion, _receipt = self.completion_receipt()
-        self.invoke(CLI, "improve-complete", "--run-dir", self.run, "--action", self.action, "--result", completion)
+        self.invoke(CLI, "improve-complete", "--run-dir", self.run, "--action", self.action, *completion)
         archive = self.run / "improve" / self.action / "terminal.json"
         archived = json.loads(archive.read_text(encoding="utf-8"))
         self.assertEqual(archive.read_bytes(), terminal_raw.stdout)
@@ -1086,7 +1131,7 @@ class EphemeralImproveCliTests(ImproveCliFixture):
         self.assertEqual(terminal["context"], context)
         completion, _receipt = self.completion_receipt()
         self.invoke(CLI, "improve-complete", "--run-dir", self.run,
-                    "--action", self.action, "--result", completion)
+                    "--action", self.action, *completion)
         resumed = store.read_record(self.run / "state.md")
         self.assertEqual(navigator.current_stage(resumed), "test-strategy")
         self.assertEqual(resumed["improve_results"][self.action]["seed_result"]["evidence_refs"], refs)
@@ -1187,7 +1232,7 @@ class EphemeralImproveCliTests(ImproveCliFixture):
         self.assertEqual(terminal["status"], "complete")
         self.assertEqual(terminal["context"], manual_context)
         completion, _receipt = self.completion_receipt()
-        self.invoke(CLI, "improve-complete", "--run-dir", self.run, "--action", self.action, "--result", completion)
+        self.invoke(CLI, "improve-complete", "--run-dir", self.run, "--action", self.action, *completion)
         resumed = store.read_record(self.run / "state.md")
         self.assertEqual(navigator.current_stage(resumed), "test-strategy")
         self.assertEqual(resumed["improve_results"][self.action]["seed_result"]["evidence_refs"], local_skill_refs)
@@ -1198,27 +1243,42 @@ class EphemeralImproveCliTests(ImproveCliFixture):
     def test_active_stopped_and_missing_ephemeral_receipts_do_not_release_parent(self):
         completion, _receipt = self.completion_receipt()
         before = (self.run / "state.md").read_bytes()
-        self.invoke(CLI, "improve-complete", "--run-dir", self.run, "--action", self.action, "--result", completion, status=2)
+        self.invoke(CLI, "improve-complete", "--run-dir", self.run, "--action", self.action, *completion, status=2)
         _raw, active = self.start_ephemeral_child()
-        self.invoke(CLI, "improve-complete", "--run-dir", self.run, "--action", self.action, "--result", completion, status=2)
+        self.invoke(CLI, "improve-complete", "--run-dir", self.run, "--action", self.action, *completion, status=2)
         _raw, stopped = self.done_ephemeral(active, self.child_report("unresolved", "unknown", "blocked", "fixture blocker"))
         self.assertEqual(stopped["status"], "stopped")
         self.assertFalse(Path(stopped["state_file"]).exists())
-        self.invoke(CLI, "improve-complete", "--run-dir", self.run, "--action", self.action, "--result", completion, status=2)
+        self.invoke(CLI, "improve-complete", "--run-dir", self.run, "--action", self.action, *completion, status=2)
         self.packet_path.unlink()
-        self.invoke(CLI, "improve-complete", "--run-dir", self.run, "--action", self.action, "--result", completion, status=2)
+        self.invoke(CLI, "improve-complete", "--run-dir", self.run, "--action", self.action, *completion, status=2)
         self.assertEqual(before, (self.run / "state.md").read_bytes())
 
-    def test_linked_completion_inbox_cannot_be_read_or_advance(self):
+    def test_a_wrong_result_path_is_refused_with_the_expected_path(self):
+        """Batch 1.12.1: Luna passed the worktree as --result; the refusal now names the path to use."""
+        import types
+        with self.assertRaisesRegex(navigator.NavigatorError, re.escape(str(self.run / "inbox" / (self.action + ".md")))):
+            navigator._submitted_result(self.run, types.SimpleNamespace(action=self.action, result=str(self.repo)))
+
+    def test_linked_review_file_cannot_be_imported_or_advance(self):
         self.finish_ephemeral()
-        completion, _receipt = self.completion_receipt()
-        original = completion.with_name("elsewhere.md")
-        completion.replace(original)
-        completion.symlink_to(original)
+        completion, receipt = self.completion_receipt()
+        review = Path(receipt["review_refs"][-1])
+        original = review.with_name("elsewhere.md")
+        review.replace(original)
+        review.symlink_to(original)
         before = (self.run / "state.md").read_bytes()
-        result = self.invoke(CLI, "improve-complete", "--run-dir", self.run, "--action", self.action,
-                             "--result", completion, status=2)
-        self.assertIn("non-symlink", result.stderr)
+        self.invoke(CLI, "improve-complete", "--run-dir", self.run, "--action", self.action, *completion, status=2)
+        self.assertEqual(before, (self.run / "state.md").read_bytes())
+
+    def test_completion_names_the_review_files_it_needs(self):
+        self.finish_ephemeral()
+        evidence = bridge.receipt_path(self.bound).parent / "reviews"
+        evidence.mkdir(parents=True, exist_ok=True)
+        (evidence / "first pass.md").write_text("misnamed\n", encoding="utf-8")
+        before = (self.run / "state.md").read_bytes()
+        result = self.invoke(CLI, "improve-complete", "--run-dir", self.run, "--action", self.action, status=2)
+        self.assertIn("named review-<n>.md by pass number; found: none", result.stderr)
         self.assertEqual(before, (self.run / "state.md").read_bytes())
 
     def test_relative_skill_selection_remains_bound_for_cold_recovery(self):
@@ -1301,7 +1361,7 @@ class EphemeralImproveCliTests(ImproveCliFixture):
                         "product.txt"], check=True, capture_output=True)
         terminal_raw, terminal = self.finish_ephemeral(active)
         self.assertEqual(terminal["status"], "complete")
-        self.invoke(CLI, "improve-complete", "--run-dir", self.run, "--action", self.action, "--result", completion)
+        self.invoke(CLI, "improve-complete", "--run-dir", self.run, "--action", self.action, *completion)
         self.assertEqual(self.packet_path.read_bytes(), terminal_raw.stdout)
 
         # Advance the remaining checkpoints and stages to handoff.  Every
@@ -1344,7 +1404,7 @@ class EphemeralImproveCliTests(ImproveCliFixture):
                                         "evidence_refs": self.parent_evidence_refs})
         self.invoke(CLI, "complete", "--run-dir", self.run, "--action", action, "--result", input_path)
         self.assertEqual(store.read_record(self.run / "state.md")["status"], "done")
-        self.assertEqual(receipt["summary"], "Runtime mechanics completed; no actual review claim.")
+        self.assertEqual(receipt["summary"], "Improve reviewed the spec result; it ended on 2 trivial passes.")
 
 
 class AskAgentEphemeralImproveCliTests(ImproveCliFixture):
@@ -1359,6 +1419,8 @@ class AskAgentEphemeralImproveCliTests(ImproveCliFixture):
         EphemeralImproveCliTests.test_planning_improve_packet_carries_graph_identity_through_real_child_callbacks)
     test_user_stopped_child_restarts_with_the_same_binding_then_imports = (
         EphemeralImproveCliTests.test_user_stopped_child_restarts_with_the_same_binding_then_imports)
+    test_improve_start_freezes_the_contract_and_starts_the_runtime = (
+        EphemeralImproveCliTests.test_improve_start_freezes_the_contract_and_starts_the_runtime)
 
 
 if __name__ == "__main__":

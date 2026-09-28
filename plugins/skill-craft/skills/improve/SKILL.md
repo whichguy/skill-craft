@@ -6,7 +6,7 @@ description: >-
   and repeat until two consecutive passes make no changes, or the first pass
   completes with no change. Supports a read-only interpretation preview; not a
   one-off code review.
-version: 0.3.0-rc.9
+version: 0.3.0-rc.10
 license: MIT
 platforms:
   - linux
@@ -272,9 +272,9 @@ For a long inventory, `context.scope` may cite an exact resource locator instead
 of repeating every path.
 Before `start`, reconcile every required output locator with the frozen scope
 and authority. Preserve any exact output path explicitly authorized by the
-invoking assignment, including a completion record outside the product candidate,
+invoking assignment, including a review or check file outside the product candidate,
 as a narrow write exception. Naming a resource alone does not grant write access;
-writing a completion record does not authorize callbacks, integration, or delivery.
+writing a review or check file does not authorize callbacks, integration, or delivery.
 
 Put the actual commit/no-commit, push/no-push and audit-commit rules in
 `context.authority`. Preserve these record sections and the full ordered cycle
@@ -376,8 +376,12 @@ approval/decline implications that affect subsequent work; do not discard them
 as orchestration detail. Keep essential conclusions inline and link to supporting
 detail; use the space needed to make the result useful without copying the whole
 iteration log. Preserve the exact terminal receipt separately. For the ShipLoop
-whole-skill subcall, populate the existing completion record's `summary` with the outcome
-and key changes, and `lessons` with the learning synthesis. Do not add runtime
+whole-skill subcall, write each review pass to its `review-<n>.md` and the current
+check output to `checks.md`, in the reviews directory beside the receipt; ShipLoop
+derives the outcome, key changes and check state itself from those files and
+writes the summary. Pass any lessons for later steps as a plain-text file to
+`improve-complete --notes`, and a revised step result only when the review changed
+a decision, via `--final-result`. Do not add runtime
 fields, reopen a completed loop, or issue another callback to format this report.
 A blocked, stopped or interrupted run returns the same useful account labeled
 partial, with its blocker or recovery action; it is not completion.

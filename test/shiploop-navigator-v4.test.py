@@ -397,6 +397,10 @@ class NavigatorV4Tests(unittest.TestCase):
         notebook = self.repo / ".shiploop-improve" / state["run_id"] / "planning-investigation.md"
         self.assertIn(str(ROOT / "skills" / "shiploop" / "references" / "planning-experiments.md"), producer)
         self.assertIn(str(notebook), producer)
+        # P13: every packet names the run's scratch directory and says why /tmp is not used.
+        self.assertIn("Scratch directory (your temporary files; /tmp is shared with other runs): "
+                      + str(root / "scratch"), producer)
+        self.assertIn("packet's Scratch directory, not /tmp", " ".join(producer.split()))
 
         waiting, action, _child = self.bound_plan_child(state)
         improve = navigator.render(None, root, waiting)
@@ -404,17 +408,26 @@ class NavigatorV4Tests(unittest.TestCase):
         self.assertIn("collect or confirm the recorded native worker owner", improve)
         self.assertIn("do not duplicate the full parent packet", improve)
         self.assertIn("use the context-first opening as the compact planning summary", improve)
-        context_pos = improve.index("fill 'Current context and desired improvements'")
+        context_pos = improve.index("Context-first opening: before start, write the opening file")
         invoke_pos = improve.index("Then say 'Run /improve'")
         self.assertLess(context_pos, invoke_pos)
         self.assertIn("improve-reconcile", improve)
         cancel_rule = ("Freeze in repeat_condition: if a finding invalidates an accepted discovery, "
                        "research, spec or test-strategy premise")
         inline = navigator.render(None, root, dict(waiting, delegation="inline"))
+        # A blocked stop cannot reconcile; the child must report cancelled. On both routes
+        # improve-start writes that rule into the contract's repeat condition, which the runtime
+        # reprints in every child packet; no packet asks a model to freeze it by hand (551b8b49).
+        self.assertNotIn(cancel_rule, improve)
+        self.assertNotIn(cancel_rule, inline)
+        opening = ("## Current context and desired improvements\nx\n\n## Scope\nx\n\n## Authority\nx\n\n"
+                   "## Environment\nx\n")
+        for route in ("inline", "ask-agent"):
+            contract = navigator.improve_start_contract(None, root, dict(waiting, delegation=route), opening)
+            self.assertIn("finish the current bounded work and report classification unresolved or non-trivial",
+                          contract["repeat_condition"])
+            self.assertIn("continuation_assessment cancelled", contract["repeat_condition"])
         for packet in (improve, inline):
-            # A blocked stop cannot reconcile; the child must report cancelled.
-            self.assertLess(packet.index(cancel_rule), packet.index("start once"))
-            self.assertIn("continuation_assessment cancelled", packet)
             self.assertIn("the exact parent return instructions below", packet)
         self.assertIn("once the runtime has returned that stopped packet", inline)
         self.assertIn("confirm the runtime returned it in this conversation", inline)

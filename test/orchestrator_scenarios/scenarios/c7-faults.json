@@ -1,0 +1,1 @@
+{"id":"C7","name":"duplicate reports and a lost launch response are harmless","graph":[["A",[]],["B",[]],["C",["A","B"]]],"faults":{"duplicate_report":["A"],"lose_launch_response":["B"]},"schedule":"lifo","expect":{"complete":true,"min_refusals":1}}

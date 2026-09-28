@@ -74,7 +74,7 @@ Use a fresh absolute directory outside the source checkout.
 SOURCE_ROOT="$(git rev-parse --show-toplevel)"
 PILOT_DIR=/private/tmp/shiploop-native-chain-pilot-$(uuidgen | tr '[:upper:]' '[:lower:]')
 PILOT="$SOURCE_ROOT/test/experiments/shiploop_chain/native_pilot.py"
-DISPATCHER_SKILL="$SOURCE_ROOT/test/fixtures/plan-dispatcher-v3/SKILL.md"
+DISPATCHER_SKILL="$SOURCE_ROOT/skills/plan-dispatcher/SKILL.md"
 ASK_AGENT_SKILL="$SOURCE_ROOT/skills/ask-agent/SKILL.md"
 
 python3 -B "$PILOT" prepare \

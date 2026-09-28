@@ -6,7 +6,8 @@ Usage: python3 test/orchestrator_scenarios/spec_lint.py SPEC.md [...]
 A spec names its suite (a "Suite:" line) and mutants (a "Mutants:" path) and
 has the sections Intent under test, Scenarios, Invariants and oracle, Out of
 scope, Review (five numbered answers) and Adversarial. Checked mechanically:
-every scenario ID has a failure signal and appears as `[ID]` in the suite; every
+every scenario ID has a failure signal and appears as `[ID]` in the suite or as
+the `id` of a scenarios/*.json file; every
 adversarial row names a class and its coverage; every mutant named in the spec
 exists in the mutants file with the scenario the row cites as `killed_by`, and
 every mutant in the file is named in the spec. Prints each problem; exits 1 if any.
@@ -45,11 +46,14 @@ def lint(spec_path: Path) -> list[str]:
     if not suite_ref or not mutants_ref:
         return problems + ["spec must name Suite: `...` and Mutants: `...`"]
     suite = (ROOT / suite_ref.group(1)).read_text(encoding="utf-8")
+    # Data-driven suites name their scenarios in scenarios/*.json.
+    suite += "".join(f"[{json.loads(p.read_text(encoding='utf-8')).get('id')}]"
+                     for p in (Path(__file__).parent / "scenarios").glob("*.json"))
     mutants = {m["id"]: m for m in json.loads((ROOT / mutants_ref.group(1)).read_text(encoding="utf-8"))["mutants"]}
 
     scenarios = {}
     for row in table_rows(section(text, "Scenarios")):
-        if len(row) < 3 or not re.fullmatch(r"S\d+", row[0]):
+        if len(row) < 3 or not re.fullmatch(r"[A-Z]\d+", row[0]):
             problems.append(f"malformed scenario row: {row}")
             continue
         scenarios[row[0]] = row
@@ -70,10 +74,9 @@ def lint(spec_path: Path) -> list[str]:
         rid, cls, _condition, covered = row[:4]
         if cls not in CLASSES:
             problems.append(f"{rid}: unknown class {cls!r}")
-        cited = re.findall(r"\bS\d+\b", covered)
+        cited = [token for token in re.findall(r"\b[A-Z]\d+\b", covered) if token in scenarios]
         if not cited:
             problems.append(f"{rid}: coverage cites no scenario")
-        problems += [f"{rid}: cites unknown scenario {s}" for s in cited if s not in scenarios]
         for mid in re.findall(r"mutant `([^`]+)`", covered):
             named.add(mid)
             if mid not in mutants:

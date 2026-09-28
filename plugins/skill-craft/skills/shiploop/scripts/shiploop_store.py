@@ -97,7 +97,9 @@ def loads(text: str) -> Any:
         elif _OPEN_FENCE_PREFIX.match(line):
             raise StorageError("malformed shiploop-state fence")
     if len(openings) != 1:
-        raise StorageError("record must contain exactly one shiploop-state fence")
+        raise StorageError("record must contain exactly one shiploop-state fence (found " + str(len(openings))
+                           + "): write Markdown whose JSON sits between a line ```shiploop-state and a line ```; "
+                           "raw JSON is not accepted")
 
     opening = openings[0]
     closing: Optional[int] = None
@@ -191,7 +193,10 @@ def read_record(path: RecordPath) -> Any:
         text = target.read_text(encoding="utf-8")
     except (OSError, UnicodeError) as exc:
         raise StorageError(f"cannot read record {target}: {exc}") from exc
-    return loads(text)
+    try:
+        return loads(text)
+    except StorageError as exc:
+        raise StorageError(f"{target}: {exc}") from exc
 
 
 def write_record(path: RecordPath, obj: Any, title: str = "ShipLoop record") -> None:

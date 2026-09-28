@@ -377,7 +377,11 @@ class StatusHookTests(unittest.TestCase):
                          if label == "truncated" else {})
                 completed = self.run_hook(json.dumps(self.payload(command, stdout, **extra)))
                 self.assertEqual(completed.returncode, 0, completed.stderr)
-                self.assertEqual(json.loads(completed.stdout), {"systemMessage": hook.compact(self.block)})
+                # init is a milestone packet, so the hook shows its narrative;
+                # the bare `status` block has none and shows the compact lines.
+                expected = hook.narrative_text(stdout) or hook.compact(self.block)
+                self.assertEqual(json.loads(completed.stdout), {"systemMessage": expected})
+                self.assertEqual(label == "status", expected == hook.compact(self.block))
 
     def test_hook_message_is_two_compact_lines(self) -> None:
         compact = hook.compact(self.block)
@@ -424,7 +428,8 @@ class StatusHookTests(unittest.TestCase):
                 completed = self.run_hook(json.dumps(shape(self.command, self.packet)))
                 self.assertEqual(completed.returncode, 0, completed.stderr)
                 if name == "codex":
-                    self.assertEqual(json.loads(completed.stdout), {"systemMessage": hook.compact(self.block)})
+                    self.assertEqual(json.loads(completed.stdout),
+                                     {"systemMessage": hook.narrative_text(self.packet)})
                 else:
                     self.assertEqual(completed.stdout, "")
 

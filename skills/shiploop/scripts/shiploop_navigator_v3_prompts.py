@@ -372,7 +372,9 @@ Progress: do not reprint this packet's ShipLoop status block; it orients you.
 The user sees the run's status through a host status hook where one exists. At
 start/recovery and after each callback, tell the user at most one line of your
 own: the item, the stage just finished and the stage now starting. Show the whole
-block unchanged only when the user asks for the full status. Only the current owner reports overall progress. State labels say which action is assigned, not that work, tests, or
+block unchanged only when the user asks for the full status. At milestones a packet
+also carries a ShipLoop narrative section; follow its first line, which says whether
+you paste the narrative to the user as written or the host already showed it. Only the current owner reports overall progress. State labels say which action is assigned, not that work, tests, or
 Improve iterations have occurred.  Describe Improve activity only from its own
 observed records; do not infer a review count, completion percentage, or ETA.
 Run to completion by default within scope and authority. Emit progress as an
@@ -422,13 +424,23 @@ Blocked means work this stage cannot do: a missing target or account, a missing
 approval, or a command with no replacement available inside the stage. A retained
 command that does not run what it claims (for example a test path the runner does
 not expand) is a documentation fix made in this stage, then rerun, not a blocker.
-When the next step needs a person, and no independent work is left, report
-blocked with `blocked_by` user (or access, for a sign-in) and `awaiting`: `{"kind": "answer", "question": "...", "options": [...]}`
-for a decision, or `{"kind": "present", "steps": [...], "report": "..."}` for
-something only a person can do, such as opening a page in a signed-in browser.
-Ask one decision per question, in words the user can answer in one reply. The
-run then stops quietly until the user's own reply resumes it; while independent
-work remains, keep going and carry the question in your summary instead.
+Write temporary files (command output, a report you pipe into a tool) in the
+packet's Scratch directory, not /tmp: /tmp is shared with other runs and
+sessions, and a fixed /tmp name can read another run's file.
+ShipLoop runs unattended: no one is watching and nothing arrives on standard
+input. When a decision is open, take the default that best fits the request and
+the recorded knowledge, record it as an assumption (the alternatives and why
+this one), and continue. When a step can only be done by a person (a sign-in, a
+grant, an observation in a signed-in browser), record it as an open item in the
+result, with who must do what and what they should report, and continue with
+everything that does not depend on it. Only when nothing further can proceed
+without the person, report blocked with `blocked_by` user (or access, for a
+sign-in) and `awaiting`: `{"kind": "answer", "question": "...", "options": [...], "no_default": "..."}`
+for a decision, or `{"kind": "present", "steps": [...], "report": "...", "no_default": "..."}`
+for something only a person can do; `no_default` says why no recorded default
+would do, and ShipLoop refuses a wait without it. Ask one decision per question,
+in words the user can answer in one reply. The run then stops until the user's
+own reply resumes it.
 
 For identity or access discovery, use supported non-mutating probes and
 sanitized evidence. Normal supported tool-managed authentication and tool
@@ -505,7 +517,8 @@ personal or secret data, state where it is shown, stored and logged, how long it
 kept, and how it is removed. Map each to what the runtime and the project's own
 layers already offer, from their documentation, configuration and code. Do not add
 identity, sharing or persistence the request does not call for; when the request
-leaves them open, carry the question to the user with the default you would take.
+leaves them open, take the default you would choose, record it as an assumption,
+and continue.
 Choose the simplest placement that meets the request: a single-user game or tool
 with no shared or lasting state runs entirely in the client. Add server state,
 identity, a store or a live channel only for a requirement that needs it, and use
@@ -1619,8 +1632,9 @@ or planned check alone does not establish product acceptance.
 Record the post-release consumer checks as commands in `consumer_checks` (same
 shape; a `check` command is judged by its exit code). ShipLoop runs every one
 itself when release-verify reports done and refuses unless each passes. A check
-only a person can make stays in the plan as a blocked `awaiting` step; when no
-command applies, give an empty list with `consumer_checks_na` and the reason.
+only a person can make is recorded in the plan as an open item for that person
+(who, where, what to report), not as a command; when no command applies, give an
+empty list with `consumer_checks_na` and the reason.
 Create an authorized release/recovery plan: target and candidate identity,
 permission, prerequisites, user impact, rollback, monitoring, pre/post-release
 checks, and stop conditions. List every operation the user-visible outcome needs as
@@ -1699,11 +1713,12 @@ Retain non-secret routing state; require app chrome/branding only when specified
 An embedded feature can satisfy its accepted boundary. Source or local test passes
 cannot discharge an unobserved required deployed interaction.
 When a required case needs a signed-in browser or a person's action that this host
-cannot perform, do not loop on it. Report blocked with `awaiting` kind `present`:
-the steps written to that person (where to go, for example the App Launcher name and
-the `/lightning/n/<Tab>` path, and what to do), and what they should report back.
-Keep every case you could observe recorded; the person's report resumes the run,
-and only the blocked cases are checked again against the same release.
+cannot perform, do not loop on it. Record it as an open item with the steps written
+to that person (where to go, for example a menu entry or a URL path, and what to
+do) and what they should report back, and verify every other case. Only when the
+release cannot be accepted without that observation, report blocked with
+`awaiting` kind `present` and its `no_default`; the person's report resumes the
+run, and only the blocked cases are checked again against the same release.
 """,
     "operations": """\
 Verify applicable operational readiness: monitoring, alerting, logging/diagnostic

@@ -15,6 +15,13 @@ reference's `prepare`, `inspect`, `check-context`, or `close` operations and
 never receives a helper receipt. `identity --skill-card` is the sole helper
 operation it may use, only as a read-only package identity check.
 
+A selected current workspace uses only `identity --skill-card` and the
+read-only `current-state` command, which prints the caller checkout's root,
+branch, HEAD and a digest of every staged, unstaged and untracked non-ignored
+path, and with `--baseline` and `--write-set` reports `changed_paths`,
+`outside_write_set`, `head_moved` and a `verdict`. It creates no receipt, state
+directory or worktree. See [Current workspace](current-workspace.md).
+
 ## Bind and verify the selected package
 
 **Helper-managed default only, except for the read-only identity check noted
