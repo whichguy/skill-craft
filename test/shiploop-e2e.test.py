@@ -651,6 +651,47 @@ class SuiteTest(HarnessCase):
         self.assertEqual(len(self.baselines.read_text().splitlines()), 2)
 
 class CheckHygieneTest(unittest.TestCase):
+    def test_temperature_unit_check_requires_tests_and_success(self):
+        check = json.loads(run.CASES.read_text())["temperature-report"]["checks"][0]
+        for name, source, expected in (
+            ("no tests", None, False),
+            ("passing", "import unittest\nclass T(unittest.TestCase):\n    def test_ok(self): self.assertTrue(True)\n", True),
+            ("failing", "import unittest\nclass T(unittest.TestCase):\n    def test_bad(self): self.fail('broken product')\n", False),
+        ):
+            with self.subTest(name=name), tempfile.TemporaryDirectory() as tmp:
+                work = Path(tmp)
+                if source is not None:
+                    (work / "test_product.py").write_text(source)
+                result = run.run_checks(work, [check])[0]
+                self.assertEqual(result["pass"], expected, result["output"])
+
+    def test_temperature_stats_check_rejects_missing_wrong_and_nonconforming_modules(self):
+        check = json.loads(run.CASES.read_text())["temperature-report"]["checks"][2]
+        correct = (
+            "def mean(values):\n"
+            "    if not values: raise ValueError('empty')\n"
+            "    return sum(values) / len(values)\n"
+            "def median(values):\n"
+            "    if not values: raise ValueError('empty')\n"
+            "    ordered = sorted(values); middle = len(ordered) // 2\n"
+            "    return ordered[middle] if len(ordered) % 2 else (ordered[middle - 1] + ordered[middle]) / 2\n"
+        )
+        variants = (
+            ("missing", None, False),
+            ("correct", correct, True),
+            ("wrong mean", correct.replace("sum(values) / len(values)", "99"), False),
+            ("wrong median", correct.replace("ordered = sorted(values)", "ordered = list(values)"), False),
+            ("wrong exception", correct.replace("ValueError", "TypeError"), False),
+            ("accepts empty", correct.replace("raise ValueError('empty')", "return 0"), False),
+        )
+        for name, source, expected in variants:
+            with self.subTest(name=name), tempfile.TemporaryDirectory() as tmp:
+                work = Path(tmp)
+                if source is not None:
+                    (work / "stats.py").write_text(source)
+                result = run.run_checks(work, [check])[0]
+                self.assertEqual(result["pass"], expected, result["output"])
+
     def test_checks_run_with_standard_input_closed(self):
         with tempfile.TemporaryDirectory() as tmp:
             result = run.run_checks(Path(tmp), ["read line; test -z \"$line\""], timeout=10)[0]
