@@ -205,6 +205,7 @@ STAGE_REFERENCES: dict[str, tuple[tuple[str, str], ...]] = {
         ("State and data assessment", "requirements-definition.md#state-and-data-change-assessment"),
         ("Initial-plan reconciliation", "requirements-definition.md#initial-plan-reconciliation"),
         ("UI planning ownership when applicable", "behavioral-requirements.md#allocate-ui-decisions-to-their-planning-owner"),
+        ("Platform cards", "coding-guidance.md#conditional-index"),
     ),
     "prepare": (
         ("Environment preparation guidance", "environment-lifecycle.md#plan-preparation-before-its-first-consumer"),
@@ -230,6 +231,7 @@ STAGE_REFERENCES: dict[str, tuple[tuple[str, str], ...]] = {
         ("Decision carry-forward guidance", "project-knowledge.md#carry-context-into-the-new-plan"),
         ("State and data assessment", "requirements-definition.md#state-and-data-change-assessment"),
         ("UI planning ownership when applicable", "behavioral-requirements.md#allocate-ui-decisions-to-their-planning-owner"),
+        ("Platform cards", "coding-guidance.md#conditional-index"),
     ),
     "test-spec": (
         ("Repeatable test-suite guide", "repeatable-test-suites.md#select-or-revalidate-the-harness"),
@@ -2157,6 +2159,9 @@ contradicts the request or spec, and remove a feature only when you can say why
 this request does not need it. A number without a source, added or existing, is
 marked as an assumption for the user to confirm; it is never a reason to remove
 what it limits. Undo a change that fails this check.
+
+Before judging any claim about what the runtime or a library can do, read the
+card for this runtime from the packet's Platform cards locator.
 """
 
 
