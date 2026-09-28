@@ -185,6 +185,13 @@ source state the previous receipt recorded, not from the preparation baseline:
   else changed, or a moved source, leaves the follow-up to you: handoff asks for
   it with the commands.
 
+Before saving final handoff completion, ShipLoop commits any remaining knowledge
+and retries an applicable knowledge-only follow-up return, then checks the current
+receipt. A failed commit or return leaves handoff pending. Retrying after the
+commit already succeeded still checks the return; it does not repeat product
+execution or create another knowledge commit. In-place runs use the same pending
+handoff recovery for the commit, without a workspace return.
+
 The new receipt keeps the previous one as `previous_receipt`. If the source
 already holds exactly the result the follow-up would produce (the fix was copied
 in by hand), `return` records that without writing and marks the receipt
