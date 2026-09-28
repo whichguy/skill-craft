@@ -480,6 +480,23 @@ Anchor: S-14 (unattended, no hidden coupling), Parallel work (concurrency must n
 Order: hello alone; if it passes, seat-reservations and the battleship chain run in parallel. Acceptance:
 every verdict passes; 0 ShipLoop failures; glue 0; asked a person 0; `tmp_writes` shared by no two runs.
 
+### Batch 1.13 findings on GPT-6 Luna max (next batch, branch next-batch-*)
+
+- P14 A spent investigation allowance never pauses the run (ShipLoop; S-14). Evidence: seat-reservations paused
+  itself at spec, "allowance ... exhausted"; research-loop.md said to pause and not renew, and Luna's
+  discovery/research run 4-5x Grok's time, so the 15-minute bound is reached routinely. Change: stop exploring,
+  record gaps as assumptions/open items, submit, continue (7a4cfe28). Adversarial: thinner research could weaken
+  a spec; gaps are recorded for later stages; exploration stays capped.
+- P15 The execution-checkout locator is never a --result value (ShipLoop). Evidence: the abandoned hello wrote
+  its result to the inbox file, then cited the worktree as --result; the full packet's bare "Execution checkout"
+  line was the only other directory locator. Change: the line says so (1a8c6c0d). A second slip (a retyped path)
+  is handled by the refusal that names the path (1.12.2).
+- Harness learnings: Codex prunes old plugin versions at session start (a Codex resume across a release is
+  refused); a same-host resume reuses its original install; the gate allows a checkout behind origin/main; stage
+  minutes are totalled per stage (result + Improve review).
+- Verification map for the next batch: rerun seat-reservations (P14: must not pause at the allowance) and any
+  case that reaches a worktree completion (P15); keep hello as the gate.
+
 ## Status
 
 - P6 in progress (2026-09-27): `csv-report` and `seat-reservations` cases,
