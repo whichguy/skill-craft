@@ -605,6 +605,9 @@ def analyze(run_dir: str | Path, suite: dict, baseline: str, dest: str = "judge"
     groups = {"overall": None, **suite["rubric"]["groups"]}
     sc = {x["id"]: x for x in suite["scenarios"]["scenarios"]}
     problems = check_condition(run_dir, baseline)
+    # An input arm (not run this round) that is not the baseline voids only its own comparison, not the others'.
+    input_problems = {a: p for p in problems for a in [p.split()[1]] if p.endswith("but is not the baseline")}
+    problems = [p for p in problems if p not in input_problems.values()]
     judges = {spec(p["judge_model"]) for v in verdicts.values() for p in v.get("passes", [v]) if p.get("judge_model")}
     if len(judges) > 1:
         problems.append(f"verdicts come from more than one judge {sorted(judges)}; a round keeps one judge")
@@ -659,7 +662,7 @@ def analyze(run_dir: str | Path, suite: dict, baseline: str, dest: str = "judge"
             b = report["arms"].get(baseline) or {}
             cmp_ = {g: paired(verdicts, a, baseline, cs, cluster) for g, cs in groups.items()}
             entry["against_baseline"] = cmp_
-            checks = list(problems)
+            checks = list(problems) + ([input_problems[a]] if a in input_problems else [])
             for what, vals in per_plan.items():  # a significant rise blocks the arm
                 c = paired_values(vals, a, baseline, cluster)
                 if c and c["low"] > 0:

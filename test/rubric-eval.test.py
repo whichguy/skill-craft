@@ -179,6 +179,20 @@ class Statistics(unittest.TestCase):
             self.assertTrue(any("no verdict in judge_p2" in x for x in r["condition_problems"]))
             self.assertFalse(r["arms"]["cand"]["decision"]["ship"])
 
+    def test_an_input_arm_blocks_only_its_own_comparison(self):
+        s = R.load_suite(SUITE)
+        with tempfile.TemporaryDirectory() as d:
+            run = Path(d); (run / "judge").mkdir(); (run / "prompts").mkdir(); (run / "out").mkdir()
+            (run / "manifest.json").write_text(json.dumps({"condition": {"model": "x", "tools": ""},
+                "arms": {"none": {"role": "input"}, "cur": {}, "cand": {}}}))
+            for i in range(1, 10):
+                for arm, g in (("none", "partial"), ("cur", "partial"), ("cand", "met")):
+                    v = verdict({"P1": g, "D1": g}); v["judge_model"] = "opus"
+                    (run / "judge" / f"S0{i}_GAS_{arm}_1.json").write_text(json.dumps(v))
+            r = R.analyze(run, s, "cur", noise=2.0)
+            self.assertFalse(any("is an input" in x for x in r["arms"]["cand"]["decision"]["reasons"]))
+            self.assertTrue(any("is an input" in x for x in r["arms"]["none"]["decision"]["reasons"]))
+
     def test_parse_diff(self):
         good = '{"removed_required": 0, "added_unrequested": 2, "contradictions": 0, "invented_numbers": 1}'
         self.assertEqual(R.parse_diff("x " + good)["added_unrequested"], 2)
