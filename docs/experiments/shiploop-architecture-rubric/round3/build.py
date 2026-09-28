@@ -3,7 +3,7 @@ import json, pathlib, sys, os
 HERE = pathlib.Path(__file__).resolve().parent
 SK = pathlib.Path(os.environ["SHIPLOOP_SRC"]) / "skills" / "shiploop"
 sys.path.insert(0, str(SK / "scripts"))
-import shiploop_navigator_v3_prompts as p
+import shiploop_prompts as p
 SC = json.loads((HERE.parent / "scenarios.json").read_text()); SCN = {s["id"]: s for s in SC["scenarios"]}
 ENV = SC["runtimes"]
 def plan_text(f):

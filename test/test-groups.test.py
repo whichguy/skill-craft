@@ -143,7 +143,7 @@ class TestGroupTests(unittest.TestCase):
             "install.sh": {"install-targets", "install-arbitrary-skill", "install-status-uninstall"},
             "test/shiploop-lint.test.py": {"shiploop-lint"},
             "docs/notes.md": set(),
-            "skills/shiploop/SKILL.md": {"shiploop-v3-guidance", "shiploop-reference-routing",
+            "skills/shiploop/SKILL.md": {"shiploop-guidance", "shiploop-reference-routing",
                                          "shiploop-delegation", "shiploop-package-integrity"},
             "test/shiploop_consumer_delivery_support.py": {"shiploop-consumer-delivery"},
         }
@@ -158,9 +158,9 @@ class TestGroupTests(unittest.TestCase):
         cases = {
             "skills/shiploop/scripts/shiploop_navigator.py": {"shiploop-lint", "shiploop-delegation",
                                                               "shiploop-actual-improve-cli"},
-            "skills/shiploop/scripts/shiploop_navigator_v3_prompts.py": {"shiploop-v3-guidance",
+            "skills/shiploop/scripts/shiploop_prompts.py": {"shiploop-guidance",
                                                                          "shiploop-quality"},
-            "skills/shiploop/references/research-loop.md": {"shiploop-v3-guidance",
+            "skills/shiploop/references/research-loop.md": {"shiploop-guidance",
                                                             "shiploop-reference-routing"},
             "skills/shiploop/commands/shiploop.md": {"shiploop-delegation"},
             "skills/shiploop/scripts/shiploop": {"shiploop-store", "shiploop-privacy",

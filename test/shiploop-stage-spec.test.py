@@ -18,7 +18,7 @@ sys.path.insert(0, str(SCRIPTS))
 
 import shiploop_context_index as context_index  # noqa: E402
 import shiploop_lint as lint  # noqa: E402
-import shiploop_navigator_v3_prompts as prompts  # noqa: E402
+import shiploop_prompts as prompts  # noqa: E402
 import shiploop_quality as quality  # noqa: E402
 import shiploop_stage_spec as spec  # noqa: E402
 import shiploop_test_loop as test_loop  # noqa: E402

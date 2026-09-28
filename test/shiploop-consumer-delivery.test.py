@@ -28,7 +28,7 @@ if str(SCRIPTS) not in sys.path:
 
 import shiploop_consumer_delivery as consumer_delivery  # noqa: E402
 import shiploop_navigator as navigator  # noqa: E402
-import shiploop_navigator_v3_prompts as guidance3  # noqa: E402
+import shiploop_prompts as guidance  # noqa: E402
 
 
 INNER_AFTER_PLAN = (
@@ -80,7 +80,7 @@ class ConsumerDeliveryTests(unittest.TestCase):
     @staticmethod
     def parks_improve(state: dict, stage: str, submitted: dict) -> bool:
         """Say whether this suite expects the result to park an Improve child."""
-        if stage in guidance3.PLANNING_REVIEW_STAGES:
+        if stage in guidance.PLANNING_REVIEW_STAGES:
             return True
         if stage != "carry-forward" or submitted["outcome"] != "done":
             return False
@@ -331,7 +331,7 @@ class ConsumerDeliveryTests(unittest.TestCase):
         self.assertLessEqual({row["action"] for row in history if row["stage"] == "plan"}, reviewed)
         self.assertEqual(
             {row["stage"] for row in history if row["action"] in reviewed},
-            set(guidance3.PLANNING_REVIEW_STAGES) | {"carry-forward"},
+            set(guidance.PLANNING_REVIEW_STAGES) | {"carry-forward"},
         )
 
         # Terminal validation rejects a completed history whose required

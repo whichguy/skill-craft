@@ -32,7 +32,7 @@ from typing import Any, Callable, Dict, List, Mapping, Optional, Tuple
 
 import shiploop_lint as lint
 import shiploop_loop_contract as loop_contract
-import shiploop_navigator_v3_prompts as guidance3
+import shiploop_prompts as guidance
 import shiploop_quality as quality
 import shiploop_stage_spec as stage_spec
 import shiploop_store as store
@@ -189,7 +189,7 @@ def _listing(row: Mapping[str, Any]) -> str:
 
 def _work(commands: List[Dict[str, Any]]) -> str:
     listing = "\n".join(str(number) + ". " + _listing(row) for number, row in enumerate(commands, 1))
-    return guidance3.TEST_ITERATION + "Test command list:\n" + listing + "\n"
+    return guidance.TEST_ITERATION + "Test command list:\n" + listing + "\n"
 
 
 def build_contract(root: Path, state: Mapping[str, Any], work_item: str, action: str,
@@ -204,8 +204,8 @@ def build_contract(root: Path, state: Mapping[str, Any], work_item: str, action:
     return loop_contract.contract(
         workspace=repo,
         work=_work(commands),
-        exit_condition=guidance3.TEST_EXIT_CONDITION,
-        repeat_condition=guidance3.TEST_REPEAT_CONDITION,
+        exit_condition=guidance.TEST_EXIT_CONDITION,
+        repeat_condition=guidance.TEST_REPEAT_CONDITION,
         required_trivial_reviews=1,
         request=("Test loop (" + stage + ") for ShipLoop work item " + work_item + " ("
                  + quality._work_title(state, work_item) + "): run its test command list and fix "

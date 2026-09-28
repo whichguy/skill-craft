@@ -22,7 +22,7 @@ SCRIPTS = ROOT / "skills" / "shiploop" / "scripts"
 sys.path.insert(0, str(SCRIPTS))
 
 import shiploop_navigator as navigator  # noqa: E402
-import shiploop_navigator_v3_prompts as prompts  # noqa: E402
+import shiploop_prompts as prompts  # noqa: E402
 import shiploop_status_hook as hook  # noqa: E402
 
 BEGIN, END = navigator.STATUS_BEGIN, navigator.STATUS_END

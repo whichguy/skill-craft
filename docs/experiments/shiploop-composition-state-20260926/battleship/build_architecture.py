@@ -2,7 +2,7 @@
 import sys, pathlib, re
 SK = pathlib.Path(__file__).resolve().parents[4] / "skills" / "shiploop"
 sys.path.insert(0, str(SK / "scripts"))
-import shiploop_navigator_v3_prompts as p
+import shiploop_prompts as p
 
 def section(path, start, stop):
     t = (SK / path).read_text()

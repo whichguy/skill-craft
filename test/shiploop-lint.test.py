@@ -1380,7 +1380,7 @@ class GateTests(Fixture):
 
 class PromptContractTests(unittest.TestCase):
     def test_test_stages_carry_the_pass_or_stop_loop(self):
-        import shiploop_navigator_v3_prompts as guidance
+        import shiploop_prompts as guidance
         for stage in ("test-refine", "integration-verify"):
             text = guidance.prompt(stage, delegation=guidance.INLINE)
             self.assertIn("Pass-or-stop loop: this stage is done only when every check it runs passes", text)

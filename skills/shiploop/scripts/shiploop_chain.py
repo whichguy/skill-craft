@@ -36,7 +36,7 @@ from typing import Any
 import uuid
 
 import shiploop_navigator as navigator
-import shiploop_navigator_v3_prompts as navigator_v3_prompts
+import shiploop_prompts as navigator_prompts
 import shiploop_store as store
 import shiploop_planning_revision as planning_revision
 
@@ -88,7 +88,7 @@ _GIT_ENV_KEYS = frozenset({
 # The parallel-chain guide is for the parent that owns chain selection and
 # scheduling, not a scoped worker packet.
 _WORKER_GUIDANCE_ROUTES = tuple(
-    route for route in navigator_v3_prompts.STAGE_REFERENCES["implement"]
+    route for route in navigator_prompts.STAGE_REFERENCES["implement"]
     if route[0] != "Parallel-chain guide"
 )
 

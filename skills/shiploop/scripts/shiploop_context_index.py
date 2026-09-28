@@ -16,7 +16,7 @@ from __future__ import annotations
 from pathlib import Path
 from typing import Any, Iterable, Mapping
 
-import shiploop_navigator_v3_prompts as prompts
+import shiploop_prompts as prompts
 import shiploop_planning_revision as planning_revision
 import shiploop_stage_spec as stage_spec
 

@@ -26,7 +26,7 @@ sys.path.insert(0, str(PACKAGE / "scripts"))
 sys.path.insert(0, str(Path(__file__).resolve().parent))
 import shiploop_knowledge_support as knowledge_support  # noqa: E402
 import shiploop_navigator as nav  # noqa: E402
-import shiploop_navigator_v3_prompts as prompts  # noqa: E402
+import shiploop_prompts as prompts  # noqa: E402
 import shiploop_store as store  # noqa: E402
 import shiploop_item_scope as item_scope  # noqa: E402
 import shiploop_test_loop as test_loop  # noqa: E402

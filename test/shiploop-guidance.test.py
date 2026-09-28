@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Focused v3 prompt, reference-routing, and cold-context guidance checks.
+"""Focused ShipLoop prompt, reference-routing, and cold-context guidance checks.
 
 These tests verify the durable material supplied to a fresh agent. They do not
 claim that an LLM interpreted a locator correctly or that Improve executed.
@@ -162,7 +162,7 @@ if str(SCRIPTS) not in sys.path:
 
 import shiploop_context_index as context_index  # noqa: E402
 import shiploop_navigator as navigator  # noqa: E402
-import shiploop_navigator_v3_prompts as prompts  # noqa: E402
+import shiploop_prompts as prompts  # noqa: E402
 import shiploop_standalone_improve as standalone_improve  # noqa: E402
 import shiploop_store as store  # noqa: E402
 
@@ -200,9 +200,9 @@ def receipt(stage: str) -> dict[str, object]:
     }
 
 
-class V3GuidanceTests(unittest.TestCase):
+class GuidanceTests(unittest.TestCase):
     def setUp(self) -> None:
-        self.temp = tempfile.TemporaryDirectory(prefix="shiploop-v3-guidance-")
+        self.temp = tempfile.TemporaryDirectory(prefix="shiploop-guidance-")
         self.addCleanup(self.temp.cleanup)
         self.repo = Path(self.temp.name) / "repo"
         self.repo.mkdir()
@@ -245,7 +245,7 @@ class V3GuidanceTests(unittest.TestCase):
     def complete_stage_with_final(
         self, state: dict, final_result: dict[str, object], **extra: object
     ) -> tuple[dict, str]:
-        """Import an Improve-revised result through the normal v3 parent transition."""
+        """Import an Improve-revised result through the normal current parent transition."""
         stage = navigator.current_stage(state)
         waiting, action = self.pending_improve(state, **extra)
         return (
@@ -554,7 +554,7 @@ class V3GuidanceTests(unittest.TestCase):
         baseline = normalized(prompts.improve_prompt("baseline"))
         self.assertIn("may not edit product source, tests", baseline)
 
-    def test_each_current_v3_packet_renders_its_selected_stage_references(self) -> None:
+    def test_each_current_packet_renders_its_selected_stage_references(self) -> None:
         state = self.state()
         while state["status"] != "done":
             stage = navigator.current_stage(state)
@@ -576,7 +576,7 @@ class V3GuidanceTests(unittest.TestCase):
             state, _action_id = self.complete_stage(state, **extra)
 
     def test_cold_packets_route_the_repeatable_test_suite_guide_to_each_testing_stage(self) -> None:
-        """Persisted v3 states retain the direct guide route at testing checkpoints."""
+        """Persisted current states retain the direct guide route at testing checkpoints."""
         state = self.state()
         observed: list[str] = []
         while state["status"] != "done":
@@ -1087,7 +1087,7 @@ class V3GuidanceTests(unittest.TestCase):
         self.assertIn("packet-selected reference locators", improve_packet)
         self.assertIn("compact current locator, decision, rationale", improve_packet)
 
-    def test_v3_cold_packets_keep_the_latest_done_root_test_strategy(self) -> None:
+    def test_cold_packets_keep_the_latest_done_root_test_strategy(self) -> None:
         """Strategy locators survive later evidence without reading it into packets."""
         item_context = (
             "Current item: retain the accepted fixture setup decision; revalidate it "
@@ -1754,10 +1754,10 @@ class V3GuidanceTests(unittest.TestCase):
         self.assertEqual(cold["accepted"][action["id"]]["evidence_refs"], refs)
         self.assertIn("Work item context: " + context, navigator.render(None, self.run, cold))
 
-    def test_v3_improve_and_source_return_guidance_keep_the_existing_boundary(self) -> None:
+    def test_improve_and_source_return_guidance_keep_the_existing_boundary(self) -> None:
         card = IMPROVE_CARD.read_text(encoding="utf-8")
         self.assertIn("## ShipLoop whole-skill subcall", card)
-        self.assertIn("When a ShipLoop v3 or v4 packet", card)
+        self.assertIn("When a ShipLoop packet", card)
         self.assertIn("parent-only stopped-child reconciliation callback", normalized(card))
         self.assertIn("no other stopped child advances the parent", normalized(card))
         self.assertIn("standalone whole-skill subcall", card)

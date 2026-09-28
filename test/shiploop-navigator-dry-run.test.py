@@ -15,7 +15,7 @@ SCRIPTS = ROOT / 'skills/shiploop/scripts'
 sys.path.insert(0, str(SCRIPTS))
 import shiploop_navigator_dry_run as driver  # noqa: E402
 import shiploop_navigator as navigator  # noqa: E402
-import shiploop_navigator_v3_prompts as guidance3  # noqa: E402
+import shiploop_prompts as guidance  # noqa: E402
 import shiploop_protocol as protocol  # noqa: E402
 import shiploop_store as store  # noqa: E402
 
@@ -89,7 +89,7 @@ class NavigatorDryRunTests(unittest.TestCase):
         policy_text = policy.read_text(encoding='utf-8')
         self.assertIn('## Recursive discovery and experiments', policy_text)
         self.assertIn('## Navigator execution mode adapter', policy_text)
-        requirements = guidance3.ENVIRONMENT_DISCOVERY_REQUIREMENTS
+        requirements = guidance.ENVIRONMENT_DISCOVERY_REQUIREMENTS
         self.assertEqual(set(requirements), {'discovery', 'research'})
         discovery_lines = (
             'One investigation allowance spans applicable discovery and research review stages; '
@@ -169,12 +169,12 @@ class NavigatorDryRunTests(unittest.TestCase):
                 # An actual Improve child starts only for a planning/contract
                 # stage result or the end-of-work carry-forward; every other
                 # produce advances directly with no paired finish-improve.
-                checkpoint_stages = guidance3.PLANNING_REVIEW_STAGES | {'carry-forward'}
+                checkpoint_stages = guidance.PLANNING_REVIEW_STAGES | {'carry-forward'}
                 self.assertTrue({event['from'] for event in finishes} <= checkpoint_stages)
                 planning_produces = sorted(event['from'] for event in produces
-                                           if event['from'] in guidance3.PLANNING_REVIEW_STAGES)
+                                           if event['from'] in guidance.PLANNING_REVIEW_STAGES)
                 planning_finishes = sorted(event['from'] for event in finishes
-                                           if event['from'] in guidance3.PLANNING_REVIEW_STAGES)
+                                           if event['from'] in guidance.PLANNING_REVIEW_STAGES)
                 self.assertEqual(planning_produces, planning_finishes)
                 self.assertTrue(all(event['simulation_only'] for event in report['events']))
 

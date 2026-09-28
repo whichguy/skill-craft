@@ -377,7 +377,7 @@ class PacketContractTests(DelegationStateTests):
     def test_integrate_assembles_direct_or_chain_work(self):
         for route in ("inline", "ask-agent"):
             with self.subTest(route=route):
-                text = " ".join(nav.guidance3.prompt("integrate", delegation=route).split())
+                text = " ".join(nav.guidance.prompt("integrate", delegation=route).split())
                 self.assertIn("confirm its finish commit is an ancestor of the execution checkout HEAD", text)
                 self.assertIn("assemble or commit this item's candidate in the execution checkout", text)
 
@@ -423,7 +423,7 @@ class PacketContractTests(DelegationStateTests):
             repo = Path(temp).resolve() / "repo"
             repo.mkdir()
             walks = {route: bound_walk(repo, route) for route in ("inline", "ask-agent")}
-        planning = nav.guidance3.PLANNING_REVIEW_STAGES
+        planning = nav.guidance.PLANNING_REVIEW_STAGES
         for route, packets in walks.items():
             for stage, kind, packet in packets:
                 with self.subTest(route=route, stage=stage, kind=kind):

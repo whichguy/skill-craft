@@ -17,7 +17,7 @@ from dataclasses import dataclass, field, replace
 from types import MappingProxyType
 from typing import Mapping
 
-# Shared prompt blocks a stage's packet carries (see shiploop_navigator_v3_prompts.prompt).
+# Shared prompt blocks a stage's packet carries (see shiploop_prompts.prompt).
 BLOCKS = frozenset({
     "environment-discovery",   # recursive discovery requirement and locators
     "test-facility",           # reuse and define test facilities
