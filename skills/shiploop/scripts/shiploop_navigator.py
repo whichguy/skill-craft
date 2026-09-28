@@ -3565,6 +3565,8 @@ def _render_improve(core: Any, root: Path, state: Mapping[str, Any], lines: list
         "Selected Improve skill: " + skill["skill_card"],
         "Bound Until Loop card: " + skill["runtime_card"],
         "Bound Until Loop CLI locator: " + skill["runtime_cli"],
+        "Until Loop root (its card's relative links, such as references/runtime-ephemeral.md, resolve here, "
+        "not under the Improve skill): " + str(Path(skill["runtime_cli"]).parents[1]),
         "Child workspace: " + child["workspace"],
         ("Read the selected Improve skill's \"ShipLoop whole-skill subcall\" section and the bound "
          "runtime card's \"Follow the returned action\" section with a file-reading tool, once per "
