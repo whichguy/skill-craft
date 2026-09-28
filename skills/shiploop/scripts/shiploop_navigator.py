@@ -2839,7 +2839,7 @@ def render(core: Any, root: Path, state: Mapping[str, Any],
            timeline: Mapping[str, Any] | None = None) -> str:
     """Render a packet; worktree packets derive a read-only return projection.
 
-    Rendering reads no files: ``emit`` passes the display-only timeline in.
+    Rendering does not mutate run or product state; ``emit`` supplies the display-only timeline.
     """
     validate(state)
     root = Path(root)
@@ -2935,6 +2935,14 @@ def render(core: Any, root: Path, state: Mapping[str, Any],
             "Backchain planning guide: "
             + str(reference_dir / "backchain-planning.md")
             + "#navigator-planning"
+        )
+        lines.append(
+            "Selected Backchain and Until Loop resources "
+            "(resolved by ShipLoop from its installed plugin):"
+        )
+        lines.extend(
+            f"  {label}: {path}"
+            for label, path in guidance3.resolved_backchain_resources()
         )
     if stage in ("plan", "select-work", "carry-forward"):
         lines.append("Full ordered work queue: " + str(root / "state.md") + "; field work_items.")

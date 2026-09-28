@@ -14,8 +14,12 @@ request:
 Backchain standalone Until Loop binding: <binding-id>
 ```
 
-Physically resolve and read the selected Until Loop `SKILL.md` and its package-relative
-`references/runtime-ephemeral.md` in full, then resolve `scripts/until_loop_ephemeral.py`.
+Physically resolve and read the selected Until Loop card in full: its `SKILL.md`, or
+the bundled `ADAPTER.md` explicitly selected by the caller. Resolve
+`references/runtime-ephemeral.md` and `scripts/until_loop_ephemeral.py` relative to
+that card's directory, and read the adapter reference in full. A caller's explicit
+bundled selection is sufficient; do not search for a separate `SKILL.md` or another
+installation.
 Record observed
 absolute locators and selected-card identity in `context.resources`. Do not substitute an
 ambient same-named runtime. If the selected card, adapter, Python, explicit plan candidate,

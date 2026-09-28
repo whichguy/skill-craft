@@ -77,6 +77,27 @@ GLOBAL_PLATFORM_TESTING_CLAUSE = (
 INNER_PLATFORM_TESTING_CLAUSE = (
     "Revalidate platform/library testing systems and available browser tools"
 )
+BACKCHAIN_RESOURCE_PATHS = (
+    ("Backchain SKILL.md", Path("backchain/SKILL.md")),
+    (
+        "Backchain backchain-caller/v1 resource",
+        Path("backchain/references/caller-contract.md"),
+    ),
+    ("Backchain references/convergence.md", Path("backchain/references/convergence.md")),
+    (
+        "Backchain prompts/convergence-review.prompt.md",
+        Path("backchain/prompts/convergence-review.prompt.md"),
+    ),
+    ("Until Loop ADAPTER.md", Path("improve/runtime/until-loop/ADAPTER.md")),
+    (
+        "Until Loop references/runtime-ephemeral.md",
+        Path("improve/runtime/until-loop/references/runtime-ephemeral.md"),
+    ),
+    (
+        "Until Loop scripts/until_loop_ephemeral.py",
+        Path("improve/runtime/until-loop/scripts/until_loop_ephemeral.py"),
+    ),
+)
 
 
 def result(*, outcome: str = "done", summary: str = "Synthetic producer result.", **extra):
@@ -189,6 +210,17 @@ class NavigatorV3Tests(unittest.TestCase):
             + "#navigator-planning"
         )
         self.assertEqual(packet.count(locator), 1 if expected else 0, packet)
+
+    def _expected_backchain_resource_block(self, skills_root: Path) -> str:
+        lines = [
+            "Selected Backchain and Until Loop resources "
+            "(resolved by ShipLoop from its installed plugin):"
+        ]
+        lines.extend(
+            f"  {label}: {(skills_root / relative_path).resolve()}"
+            for label, relative_path in BACKCHAIN_RESOURCE_PATHS
+        )
+        return "\n".join(lines)
 
     def _assert_initial_baseline_locator(self, packet: str) -> None:
         """Assert packet routing for the shared initial-baseline policy."""
@@ -771,7 +803,15 @@ class NavigatorV3Tests(unittest.TestCase):
         audit = " ".join(prompts.prompt("step-plan").split())
         for required in (
             "Backchain standalone Until Loop binding:",
-            "selected physical Until Loop root",
+            'packet\'s printed "Selected Backchain and Until Loop resources" '
+            "block below lists all required resources",
+            "That block is the selection for this action/stage",
+            "ShipLoop resolves and prints the Backchain and Until Loop files "
+            "from its own installed plugin",
+            "Any entry printed as `MISSING: ...` blocks this route for that specifically named "
+            "missing resource",
+            "`references/caller-contract.md`",
+            "Until Loop `ADAPTER.md`",
             "references/runtime-ephemeral.md",
             "scripts/until_loop_ephemeral.py",
             "references/convergence.md",
@@ -799,6 +839,8 @@ class NavigatorV3Tests(unittest.TestCase):
         self.assertIn("one-pass Backchain primitive", " ".join(prompts.improve_prompt("plan").split()))
         self.assertNotIn("Backchain standalone Improve binding:", plan)
         self.assertNotIn("selected physical Improve root", plan)
+        self.assertNotIn("run notes identify", plan)
+        self.assertNotIn("Until Loop `SKILL.md`", plan)
         self.assertNotIn("convergence_policy.max_passes", plan)
         self.assertNotIn("default maximum of six assessment passes", plan)
         for source in (self.backchain_planning_guide, SCRIPTS.parent / "SKILL.md"):
@@ -811,6 +853,59 @@ class NavigatorV3Tests(unittest.TestCase):
                     "old custom Backchain loop",
                 ):
                     self.assertIn(requirement, source_text)
+        guide_text = " ".join(
+            self.backchain_planning_guide.read_text(encoding="utf-8").split()
+        )
+        self.assertIn(
+            'packet\'s printed "Selected Backchain and Until Loop resources" block',
+            guide_text,
+        )
+        self.assertIn("`references/caller-contract.md`", guide_text)
+        self.assertIn("Until Loop `ADAPTER.md`", guide_text)
+        self.assertNotIn("run notes identify", guide_text)
+        self.assertNotIn("Until Loop `SKILL.md`", guide_text)
+
+
+    def test_plan_packet_prints_resolved_backchain_and_until_loop_resources(self) -> None:
+        """The plan packet reports the actual paths selected from this plugin install."""
+        skills_root = ROOT / "skills"
+        for _, relative_path in BACKCHAIN_RESOURCE_PATHS:
+            self.assertTrue((skills_root / relative_path).is_file(), relative_path)
+        packet = navigator.render(None, self.repo / ".shiploop", self._at_plan())
+        self.assertIn(self._expected_backchain_resource_block(skills_root), packet)
+
+    def test_plan_packet_names_missing_backchain_resource_as_route_blocker(self) -> None:
+        """A missing resolved file is named in the packet and blocks that route."""
+        fake_skills_root = Path(self.temp.name) / "fake-plugin" / "skills"
+        fake_source = (
+            fake_skills_root
+            / "shiploop"
+            / "scripts"
+            / "shiploop_navigator_v3_prompts.py"
+        )
+        fake_source.parent.mkdir(parents=True)
+        fake_source.touch()
+        missing_index = 3
+        missing_label, missing_relative = BACKCHAIN_RESOURCE_PATHS[missing_index]
+        for index, (_, relative_path) in enumerate(BACKCHAIN_RESOURCE_PATHS):
+            if index == missing_index:
+                continue
+            path = fake_skills_root / relative_path
+            path.parent.mkdir(parents=True, exist_ok=True)
+            path.touch()
+
+        with patch.object(prompts, "__file__", str(fake_source)):
+            packet = navigator.render(None, self.repo / ".shiploop", self._at_plan())
+
+        missing_line = (
+            f"  {missing_label}: MISSING: skills/{missing_relative.as_posix()}"
+        )
+        self.assertIn(missing_line, packet)
+        self.assertIn(
+            "Any entry printed as `MISSING: ...` blocks this route for that specifically named "
+            "missing resource",
+            " ".join(packet.split()),
+        )
 
 
     def test_source_aware_native_is_the_only_backchain_route(self) -> None:

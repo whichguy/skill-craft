@@ -54,7 +54,8 @@ unchanged reviewed execution graph.
 
 This guide is not a call to Backchain's standalone skill, generator, elaborator,
 or harness. Only a `source-aware-native` call binds the current host to the
-observed standalone skill and caller resources below.
+standalone skill and caller resources printed in the packet's resolved-resource
+block.
 Read only the sections selected by the current packet. Perform that one action
 and submit its exact callback; a planning review never authorizes implementation,
 deployment, a new credential, or a different writer.
@@ -229,19 +230,24 @@ request criteria and meaningful checks remains necessary.
 
 ## Source-aware native caller
 
-`source-aware-native` is the only Backchain route. A planning host may call it,
-recording the selection in ordinary run notes, when the host has observed the
-selected Backchain `SKILL.md`, its `backchain-caller/v1` action/stage resource,
-`references/convergence.md`, and `prompts/convergence-review.prompt.md`, plus a selected
-physical Until Loop root with its `SKILL.md`, `references/runtime-ephemeral.md`, and
-`scripts/until_loop_ephemeral.py` capability. Read the Backchain convergence resources:
+`source-aware-native` is the only Backchain route. The packet's printed
+"Selected Backchain and Until Loop resources" block is the selection: ShipLoop
+resolves these paths from its own installed plugin. It lists Backchain `SKILL.md`,
+the `backchain-caller/v1` resource in `references/caller-contract.md`,
+`references/convergence.md`, `prompts/convergence-review.prompt.md`, and the
+Until Loop `ADAPTER.md`, `references/runtime-ephemeral.md`, and
+`scripts/until_loop_ephemeral.py`. A planning host may call the route only when
+every listed resource is resolved. A `MISSING: ...` entry blocks it for that
+specifically named resource; retain that missing-resource reason instead of
+calling the route only unverifiable. Read the Backchain convergence resources:
 they must support the direct natural-language handoff under
 `Backchain standalone Until Loop binding: <binding-id>` for a plan-only child where the
 actual loaded Until Loop card starts its adapter, is the sole CLI caller, and returns the
 exact terminal packet. This is host-mediated prompt guidance, not navigator state, a
 callback, a controller, or a scheduler. Caller/v1 alone does not establish this
 capability; an observed old custom Backchain loop is incompatible even when an Until
-Loop package is installed.
+Loop package is installed. Do not guess a sibling, cache, or ambient package, or
+substitute a different Backchain/Until Loop install than the one printed in the packet.
 
 The durable selection record names mode, interface, action/stage, action ID and
 owner; selected Backchain and Until Loop card/resource locators and digests, including

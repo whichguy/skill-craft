@@ -82,8 +82,9 @@ frozen candidate to the selected actual Until Loop card under
 Backchain standalone Until Loop binding: <binding-id>
 ```
 
-Resolve and read in full the selected Until Loop `SKILL.md` and its package-relative
-`references/runtime-ephemeral.md`, then retain absolute observed locators for them and the
+Resolve and read in full the selected Until Loop card (`SKILL.md`, or a bundled
+`ADAPTER.md` explicitly selected by the caller) and `references/runtime-ephemeral.md`
+relative to that card's directory, then retain absolute observed locators for them and the
 ephemeral runtime script. The child scope is plan artifacts and their permitted companion evidence only:
 preserve original request, sources, lenses, action/action ID/owner/workflow stage,
 candidate identity, all edit bounds, and parent request/latest-packet/return-route/printed
