@@ -175,6 +175,9 @@ def codex_home() -> Path:
         if not auth.is_file():
             raise SystemExit(f"model_call: Codex is not signed in ({auth} is missing)")
         link.symlink_to(auth)
+    for name in ("AGENTS.md", "config.toml", "hooks.json"):  # this home must stay sign-in only (review F5)
+        if (home / name).exists():
+            raise SystemExit(f"model_call: {home / name} exists; the isolated Codex home must hold only the sign-in")
     return home
 
 

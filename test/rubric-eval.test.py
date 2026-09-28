@@ -162,6 +162,23 @@ class Statistics(unittest.TestCase):
             self.assertEqual(R.pass_noise(v), 25.0)
             self.assertIsNone(R.pass_noise(R.load_verdicts(d, "p1")))
 
+    def test_analyze_blocks_when_an_output_lacks_a_verdict_in_a_pass(self):
+        s = R.load_suite(SUITE)
+        with tempfile.TemporaryDirectory() as d:
+            run = Path(d)
+            for sub in ("out", "judge_p1", "judge_p2", "prompts"): (run / sub).mkdir()
+            (run / "manifest.json").write_text(json.dumps({"condition": {"model": "x", "tools": ""}, "arms": {"base": {}, "cand": {}}}))
+            for i in range(1, 10):
+                for arm in ("base", "cand"):
+                    stem = f"S0{i}_GAS_{arm}_1"; (run / "out" / f"{stem}.json").write_text(json.dumps({"text": "x"}))
+                    v = verdict({"P1": "met"}); v["judge_model"] = "opus"
+                    for p in ("judge_p1", "judge_p2"):
+                        if not (p == "judge_p2" and stem == "S03_GAS_cand_1"):   # one grade missing in pass 2
+                            (run / p / f"{stem}.json").write_text(json.dumps(v))
+            r = R.analyze(run, s, "base", dest="judge_p1,judge_p2")
+            self.assertTrue(any("no verdict in judge_p2" in x for x in r["condition_problems"]))
+            self.assertFalse(r["arms"]["cand"]["decision"]["ship"])
+
     def test_parse_diff(self):
         good = '{"removed_required": 0, "added_unrequested": 2, "contradictions": 0, "invented_numbers": 1}'
         self.assertEqual(R.parse_diff("x " + good)["added_unrequested"], 2)

@@ -611,6 +611,14 @@ def analyze(run_dir: str | Path, suite: dict, baseline: str, dest: str = "judge"
     checked = {"quote_check" in v for v in verdicts.values()}
     if len(checked) > 1:
         problems.append("some verdicts carry the quote check and some do not; re-grade or re-check the round")
+    # Every graded output must have a verdict in every pass: a silently dropped output (a grade that failed
+    # in one pass) could bias the comparison toward the outputs the judge found easy (adversarial review F3).
+    outputs = {f.stem for f in (run_ / "out").glob("*.json")}
+    for d in [x for x in dest.split(",") if x]:
+        missing = sorted(outputs - {f.stem for f in (run_ / d).glob("*.json")})
+        if missing:
+            problems.append(f"{len(missing)} output(s) have no verdict in {d} (e.g. {', '.join(missing[:3])}); "
+                            "grade them before deciding")
     passes = max((len(v.get("passes", [v])) for v in verdicts.values()), default=1)
     measured = pass_noise(verdicts)
     if noise is None and measured is not None:

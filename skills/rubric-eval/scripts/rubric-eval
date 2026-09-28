@@ -94,7 +94,10 @@ def main(argv=None):
     elif args.cmd == "judge":
         dest = args.dest or "judge"
         only = Path(args.only_file).read_text().split() if args.only_file else None
-        print(json.dumps(R.judge(args.run_dir, suite_arg(args.suite), model=args.model, workers=args.workers, dest=dest, only=only)))
+        res = R.judge(args.run_dir, suite_arg(args.suite), model=args.model, workers=args.workers, dest=dest, only=only)
+        print(json.dumps(res))
+        if res["failed"]:
+            sys.exit(1)  # some outputs could not be graded; see the pass's failures.log
     elif args.cmd == "analyze":
         print(json.dumps(R.analyze(args.run_dir, suite_arg(args.suite), args.baseline, dest=args.judge_dir, cluster=None if args.cluster == "cell" else args.cluster, noise=args.noise), indent=1))
     elif args.cmd == "diffcheck":
@@ -103,8 +106,11 @@ def main(argv=None):
         print(json.dumps(R.recheck(args.run_dir, args.judge_dir, args.dest), indent=1))
     elif args.cmd == "valuecheck":
         only = Path(args.only_file).read_text().split() if args.only_file else None
-        print(json.dumps(R.valuecheck(args.run_dir, suite_arg(args.suite), args.plans_from, model=args.model,
-                                      workers=args.workers, only=only, dest=args.dest), indent=1))
+        res = (R.valuecheck(args.run_dir, suite_arg(args.suite), args.plans_from, model=args.model,
+                                      workers=args.workers, only=only, dest=args.dest))
+        print(json.dumps(res, indent=1))
+        if res["failed"]:
+            sys.exit(1)  # some reviews could not be audited; see value/failures.log
     elif args.cmd == "export":
         print(json.dumps(R.export(args.run_dir, args.dest, outputs=args.outputs)))
     elif args.cmd == "reliability":

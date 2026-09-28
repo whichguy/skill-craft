@@ -372,6 +372,21 @@ them:
 - A round's verdict count only means something with one judge; if mixed judges
   are found, remove the verdicts written after the change and re-grade them.
 
+### Known limits (adversarial review of the harness, 2026-09-27)
+
+- **Correlated passes (F4).** Pass noise divided by the square root of the
+  pass count assumes the judge's errors are independent across passes. Repeat
+  calls to one judge can share interpretations, so the bound may understate
+  uncertainty. A decision near the bound needs more scenarios, not only more
+  passes.
+- **Reviewer family (F6).** `adversarial-review` defaults to `luna` because
+  changes here are usually written in Claude sessions. For a change written by
+  a GPT model, name another family (`opus`, `sonnet` or `grok`).
+- **Rigour standard (F1), kept by owner direction.** The value audit judges
+  engineering rigour against an enterprise standard even for small requests,
+  because ShipLoop is enterprise-grade tooling. Product capability is still
+  judged against the request's scale.
+
 ## 12. Open items
 
 - Human calibration: 30–50 human-labelled criterion grades, Cohen's kappa per
