@@ -28,60 +28,7 @@ import time
 # The user's Grok sign-in; the only file an isolated Grok HOME links to.
 GROK_AUTH = Path.home() / ".grok" / "auth.json"
 
-
-
-def grok_env(home: Path, git_config: Path | None = None) -> dict:
-    """Create an isolated Grok HOME at `home` and return the environment for it."""
-    (home / ".grok").mkdir(parents=True, exist_ok=True)
-    if not GROK_AUTH.is_file():
-        raise SystemExit(f"Grok is not signed in: {GROK_AUTH} is missing (run grok once to log in)")
-    link = home / ".grok" / "auth.json"
-    if not link.is_symlink():
-        link.symlink_to(GROK_AUTH)
-    if git_config is None:
-        git_config = home / ".gitconfig"
-        git_config.write_text("[user]\n\tname = ShipLoop E2E\n\temail = shiploop-e2e@example.invalid\n")
-    env = {k: v for k, v in os.environ.items() if not k.startswith(("CLAUDE", "GROK", "XDG_"))}
-    env.update(HOME=str(home), GROK_CONFIG_DIR=str(home / ".grok"), XDG_CONFIG_HOME=str(home / ".config"),
-               XDG_DATA_HOME=str(home / ".local/share"), XDG_CACHE_HOME=str(home / ".cache"),
-               XDG_STATE_HOME=str(home / ".local/state"),
-               GROK_CLAUDE_SKILLS_ENABLED="false", GROK_CURSOR_SKILLS_ENABLED="false",
-               GIT_CONFIG_GLOBAL=str(git_config), GIT_TERMINAL_PROMPT="0", NO_COLOR="1")
-    return env
-
-
-def grok_install(env: dict, plugin_dir: Path, grok_bin: str = "grok") -> dict:
-    """Install `plugin_dir` into the isolated profile; pass only if it is the one plugin there."""
-    install = subprocess.run([grok_bin, "plugin", "install", str(plugin_dir), "--trust"], env=env,
-                             capture_output=True, text=True)
-    listing = subprocess.run([grok_bin, "plugin", "list"], env=env, capture_output=True, text=True).stdout
-    loaded = re.findall(r"^\s*\S+: (\S+) \[local: (.+)\]", listing, re.M)
-    wanted = str(plugin_dir.resolve())
-    return {"pass": install.returncode == 0 and loaded == [("skill-craft", wanted)],
-            "loaded": [f"{name} {path}" for name, path in loaded], "wanted": wanted}
-
-
 MARKETPLACE_SOURCE = "whichguy/skill-craft"
-
-
-def grok_install_marketplace(env: dict, source: str = MARKETPLACE_SOURCE, grok_bin: str = "grok") -> dict:
-    """Install skill-craft the way a user does: add the marketplace, then install the plugin by name.
-
-    Returns the installed plugin's version and directory from Grok's own registry.
-    """
-    added = subprocess.run([grok_bin, "plugin", "marketplace", "add", source], env=env,
-                           capture_output=True, text=True)
-    installed = subprocess.run([grok_bin, "plugin", "install", "skill-craft", "--trust"], env=env,
-                               capture_output=True, text=True)
-    registry = Path(env["GROK_CONFIG_DIR"]) / "installed-plugins" / "registry.json"
-    repos = json.loads(registry.read_text()).get("repos", {}) if registry.is_file() else {}
-    entries = [(repo, meta) for repo, meta in repos.items() if "skill-craft" in (meta.get("plugins") or {})]
-    version = entries[0][1]["plugins"]["skill-craft"].get("version") if len(entries) == 1 else None
-    path = Path(entries[0][1]["path"]) if len(entries) == 1 else None
-    return {"pass": added.returncode == 0 and installed.returncode == 0 and len(entries) == 1 and len(repos) == 1,
-            "source": source, "version": version, "path": str(path) if path else None,
-            "loaded": [f"{repo} {meta.get('path')}" for repo, meta in repos.items()],
-            "output": (added.stdout + added.stderr + installed.stdout + installed.stderr).strip()[-400:]}
 
 
 def grok_keepalive(env: dict, plugin_dir: Path) -> dict:
@@ -239,7 +186,16 @@ class GrokHost(Host):
         self.binary = binary
 
     def env(self, home, git_config=None):
-        return grok_env(home, git_config)
+        """A throwaway HOME whose .grok links only the user's auth.json; no inherited skills."""
+        (home / ".grok").mkdir(parents=True, exist_ok=True)
+        if not GROK_AUTH.is_file():
+            raise SystemExit(f"Grok is not signed in: {GROK_AUTH} is missing (run grok once to log in)")
+        link = home / ".grok" / "auth.json"
+        if not link.is_symlink():
+            link.symlink_to(GROK_AUTH)
+        return _isolated_env(home, git_config, ("CLAUDE", "GROK", "XDG_"), {
+            "GROK_CONFIG_DIR": str(home / ".grok"), "GROK_CLAUDE_SKILLS_ENABLED": "false",
+            "GROK_CURSOR_SKILLS_ENABLED": "false"})
 
     def argv(self, *, prompt, prompt_file, cwd, model, effort, permission_mode, max_turns,
              max_budget_usd=10.0, plugin_dir=None, resume=None):
@@ -252,10 +208,34 @@ class GrokHost(Host):
         return argv + (["--reasoning-effort", effort] if effort else [])
 
     def install_marketplace(self, env, source=MARKETPLACE_SOURCE):
-        return grok_install_marketplace(env, source, self.binary)
+        """Install skill-craft the way a user does: add the marketplace, then install the plugin by name.
+
+        Returns the installed plugin's version and directory from Grok's own registry.
+        """
+        added = subprocess.run([self.binary, "plugin", "marketplace", "add", source], env=env,
+                               capture_output=True, text=True)
+        installed = subprocess.run([self.binary, "plugin", "install", "skill-craft", "--trust"], env=env,
+                                   capture_output=True, text=True)
+        registry = Path(env["GROK_CONFIG_DIR"]) / "installed-plugins" / "registry.json"
+        repos = json.loads(registry.read_text()).get("repos", {}) if registry.is_file() else {}
+        entries = [(repo, meta) for repo, meta in repos.items() if "skill-craft" in (meta.get("plugins") or {})]
+        version = entries[0][1]["plugins"]["skill-craft"].get("version") if len(entries) == 1 else None
+        path = Path(entries[0][1]["path"]) if len(entries) == 1 else None
+        return {"pass": added.returncode == 0 and installed.returncode == 0 and len(entries) == 1
+                and len(repos) == 1,
+                "source": source, "version": version, "path": str(path) if path else None,
+                "loaded": [f"{repo} {meta.get('path')}" for repo, meta in repos.items()],
+                "output": (added.stdout + added.stderr + installed.stdout + installed.stderr).strip()[-400:]}
 
     def install_plugin(self, env, plugin_dir):
-        return grok_install(env, plugin_dir, self.binary)
+        """Install a checkout build; pass only if it is the one plugin in the profile."""
+        install = subprocess.run([self.binary, "plugin", "install", str(plugin_dir), "--trust"], env=env,
+                                 capture_output=True, text=True)
+        listing = subprocess.run([self.binary, "plugin", "list"], env=env, capture_output=True, text=True).stdout
+        loaded = re.findall(r"^\s*\S+: (\S+) \[local: (.+)\]", listing, re.M)
+        wanted = str(plugin_dir.resolve())
+        return {"pass": install.returncode == 0 and loaded == [("skill-craft", wanted)],
+                "loaded": [f"{name} {path}" for name, path in loaded], "wanted": wanted}
 
     def plugin_cli(self, home):
         return next((home / ".grok" / "installed-plugins").glob("skill-craft-*/skills/shiploop/scripts/shiploop"), None)
@@ -447,9 +427,3 @@ def host(name: str, binary: str | None = None) -> Host:
     cls = HOSTS[name]
     return cls(binary) if binary else cls()
 
-
-def argv_for(name: str, *, grok_bin: str = "grok", claude_bin: str = "claude", codex_bin: str = "codex",
-             **kw) -> list[str]:
-    """``host(name).argv(**kw)`` with the binary chosen by name (kept for the reviewer and improver)."""
-    binary = {"grok": grok_bin, "claude": claude_bin, "codex": codex_bin}[name]
-    return host(name, binary).argv(**kw)
