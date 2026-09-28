@@ -109,6 +109,35 @@ card, README, a command, script or hook, `host-hooks.json` names executable
 scripts for known events, Python scripts compile and the OpenCode hook parses.
 It runs in well under a second and reads files only.
 
+## Check ShipLoop progress-view changes
+
+Run these commands from the selected checkout, in order. Before editing, freeze
+the comparison base below (or use the branch's agreed base commit). Keep that
+SHA through delivery: resolving `origin/main` again after a push can omit the
+changes being checked.
+
+```sh
+SHIPLOOP_TEST_BASE="$(git -C . rev-parse origin/main)"
+
+python3 -B skills/shiploop-e2e-audit/harness/check_suite.py \
+  --suite mock --skill-root skills/shiploop --list
+SHIPLOOP_PROGRESS=off PYTHONDONTWRITEBYTECODE=1 \
+  python3 -B test/shiploop-progress.test.py
+bash test/run-all.sh --group quick --changed-from "$SHIPLOOP_TEST_BASE"
+python3 -B scripts/check-release-boundary.py --base "$SHIPLOOP_TEST_BASE"
+```
+
+The first command validates and fingerprints the selected package's references;
+`--list` executes no tests. Run it before the focused tests so malformed package
+links fail early. The focused suite checks startup-link generation and the
+observer/HTML contract. The quick tier checks affected consumers before pushing;
+the final command checks the release boundary across the same range. A failed
+check needs investigation before delivery.
+
+These checks do not establish how a browser reloads an ordinary local file.
+Use the [local-file browser checklist](../docs/plans/shiploop-progress-view.md#local-file-browser-check)
+for that boundary and retain its results separately from automated test results.
+
 ## Fixture ownership and intentional overlap
 
 | Boundary | Why its tests remain separate |

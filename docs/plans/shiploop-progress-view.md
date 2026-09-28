@@ -77,3 +77,33 @@ pause and reading-position restoration. Actual local-file browser cache and
 position behavior requires a target-browser check; the available browser
 automation rejects file URLs. HTTP preview checks, when performed, establish
 layout only and must not be described as local-file refresh proof.
+
+### Local-file browser check
+
+Open the startup link in the browser normally used for saved HTML files. Use a
+disposable ShipLoop run for stop/restart and terminal checks; on a real run,
+observe its natural transitions. Keep the selected package CLI and exact run
+directory available as `CLI` and `RUN_DIR`, as described in
+[status-display.md](../../skills/shiploop/references/status-display.md#live-html-progress-view).
+Check observation with `python3 "$CLI" view --run-dir "$RUN_DIR" --status`.
+Do not edit authoritative state or ledgers to simulate workflow progress.
+
+| Check | Action and expected observation |
+| --- | --- |
+| Startup | Follow the first packet's HTML link. Confirm the browser opened the correct run's file from disk and shows its identity and pending or accepted plan. |
+| Documents | Save a normal edit to the selected spec or architecture file. Without completing the parent action, confirm the embedded draft preview and content hash update. The edit must not appear as newly accepted work. |
+| Generated dependencies | Observe a real accepted step plan or bound graph, then a dispatcher status update while the parent action remains parked. Confirm the page shows the recorded nodes, prerequisite edges and new status, with the matching text dependency list. |
+| Reading and controls | Expand a document and scroll. Pause browser updates, then save another document edit. Confirm observation continues while the page stays paused. Resume updates and confirm the new content appears with expansion and reading position restored; also check **Refresh now**. Clear text selection and leave editable controls before checking automatic reload. |
+| Background tab | Change a selected input while viewing another tab, then return. Record when the change becomes visible; background timers and run locks can delay it. Do not treat five seconds as a deadline. |
+| Stopped observer | Pause browser updates on the disposable run, then use `view --run-dir "$RUN_DIR" --stop` with the selected CLI. The loaded live page should become stale more than 30 seconds after its last observation. **Refresh now** should load the stopped snapshot with automatic updates disabled. Use `--start`, then **Refresh now**, to recover live updates and freshness. These commands control the observer, not workflow execution. |
+| Terminal snapshot | Let a disposable run reach a terminal state through its normal CLI. Confirm the final page contains the latest documents and delivery status, disables updates and the observer exits. If testing a halt, confirm the page still identifies the run as unfinished. |
+
+For each check, retain the source commit, browser name/version, OS, run path,
+action time, observed result and `PASS`, `FAIL` or `NOT RUN`. Include a screenshot
+or evidence locator when it helps explain a failure. Fix reproduced failures,
+then repeat the affected check; retain the original failure too.
+
+**Browser qualification is pending.** The available automation rejected local
+file URLs, so the checklist above is a procedure, not a passing result. Keep
+unperformed cases marked `NOT RUN`; an HTTP preview or successful file-publication
+test does not fill that gap.
