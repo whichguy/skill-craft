@@ -549,3 +549,46 @@ rather than a wording change.
   (Opus kappa 0.835, Sonnet kappa 0.759, Opus-vs-Sonnet kappa 0.443): never
   mix judges within a round, and expect a close decision to move when the
   judge changes even when the quality verdict does not.
+
+## Rounds 6 and 7: design review checks for plan and step-plan reviews (shipped in ShipLoop 0.47.0)
+
+The detailed journal and evidence are in the private research repository
+[shiploop-prompt-lab](https://github.com/whichguy/shiploop-prompt-lab/blob/main/journal.md). The method is in
+[skills/rubric-eval/SPEC.md](../skills/rubric-eval/SPEC.md).
+
+**Change.** `DESIGN_REVIEW_CHECKS` is attached to plan and step-plan Improve
+reviews after `PLANNING_REVIEW_FOCUS`. It checks personal data, quotas,
+background failures and unrequested additions. It ends with a self-check that
+keeps a change only when it serves a named request, spec clause or directive,
+and that never removes or weakens a safeguard. A number without a source is
+marked as an assumption.
+
+**Round 6** (grok:grok-4.7@medium reviews of Grok plans, reference files
+open, Opus judge in 3 passes, 16–17 scenarios per arm):
+- The grounding self-check made reviews help: v3 scored **+3.8** [+0.4, +7.1]
+  against the unreviewed plan (p = 0.044).
+- A lean checklist without the self-check leaned worse than no review
+  (−3.3, and it failed the proportion guardrail).
+- Every review arm cut about 2 valuable items per review. The value audit
+  found this; it led to v4's removal rule.
+
+**Round 7** is the confirmation, run inside the real ShipLoop plan-stage
+packet: its 29 reference locators and the verbatim plan-stage Improve prompt.
+- **Condition:** codex:gpt-6-luna@max reviews of the same 23 plans; Opus judge
+  in 3 passes (noise 2.2 per pass); suite architecture-v4.
+- **v4 against the wording ShipLoop shipped before:**
+  - overall **+5.1** [+3.0, +7.2], Wilcoxon p = 0.0006, 17 won / 3 lost;
+  - safeguards **+9.4**; proportion +2.9; grounding +8.3;
+  - **1.09 fewer valuable items removed per review** (p = 0.008).
+- **The previous wording** was no better than no review (−0.4) and cost
+  safeguards (−12.7).
+- **Naming the runtime's platform card on top of v4** made no difference
+  (+0.2), so it did not ship.
+- **Evidence:** [rounds/round7](https://github.com/whichguy/shiploop-prompt-lab/blob/main/rounds/round7/).
+
+**Measurement lessons** (all now in the SPEC):
+- a single grading pass is too noisy for long outputs;
+- every host needs audited isolation;
+- rigour is judged against an enterprise standard, and only unrequested
+  product scope counts as overbuilding;
+- quality decides first, and tokens only between near-identical arms.
