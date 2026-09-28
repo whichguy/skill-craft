@@ -1171,7 +1171,7 @@ def packet_head(core: Any, root: Path, state: Mapping[str, Any], path: Path,
           if not state.get("active_improve") else []),
         "",
         f"Full packet: {path}",
-        f"Progress view: {root / 'progress.html'} (derived; updates independently)",
+        f"Progress view: [HTML file](<{root / 'progress.html'}>) — use this file to track changes during this ShipLoop run.",
         "Read the full packet before acting: it holds this stage's steps, run rules and the "
         "references to consult. Read it with a file-reading tool, not by printing it to the "
         "shell. References it names are for lookup: open only the section a step needs, "

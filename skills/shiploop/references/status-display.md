@@ -37,6 +37,12 @@ publishes a complete page when recorded inputs change, plus a periodic heartbeat
 The open page reloads about every five seconds. No web server, browser file
 permission, external asset, or model call is required.
 
+At the first successful startup, the host shares the packet's absolute HTML link
+with the user: "You can use this HTML file to track changes during this ShipLoop
+run." It shares the link once per run and then continues the current action. If
+observation is unavailable or disabled and no page exists, it reports that status
+instead of offering a working link.
+
 The page shows the preparation/work/release outline, accepted items, the current
 stage and blocker, recent recorded activity, and expandable spec, architecture,
 plan and test-strategy previews. Before plan acceptance it says the work plan is

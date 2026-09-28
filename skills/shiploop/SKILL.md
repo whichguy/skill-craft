@@ -56,6 +56,14 @@ it never owns or backgrounds workflow execution. See
 [live progress view](references/status-display.md#live-html-progress-view) for
 start/stop controls, draft-versus-accepted labels, and freshness limits.
 
+After the first successful `workspace start` or `init`, show the user the
+packet's absolute progress-view link in your startup message: "You can use this
+[HTML file](<absolute progress.html path from the packet>) to track changes during
+this ShipLoop run." Use the actual path, including angle brackets for paths with
+spaces. Show it once per run; keep following the current action afterward. If
+the observer is unavailable or disabled and the file has not been created,
+report that status instead of presenting a working tracking link.
+
 Keep ShipLoop's control channel in the conversation that invoked this skill.
 Carry the user's selected automatic-approval mode and existing task authority
 through planning and child handoffs. Use that mode for already authorized work;
