@@ -119,6 +119,9 @@ class PerStepChainFixture(unittest.TestCase):
 
     def assert_navigation(self, operation, output):
         self.assertIn("navigation", output, operation + " must return script-owned navigation")
+        self.assertNotIn("actions", output, operation + " must not expose dispatcher call.argv controls")
+        self.assertNotIn("instruction", output, operation + " must not expose competing dispatcher instructions")
+        self.assertNotIn("next_argv", output, operation + " must resume through bridge navigation")
         navigation = output["navigation"]
         binding = self.binding()
         graph = binding["graph"]

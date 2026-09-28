@@ -463,7 +463,8 @@ class ChainIntegrationTests(ChainFixture):
 
         recovered = self.call("next")
         self.assert_completion(recovered, [], ["A", "B", "C", "J"])
-        active = [action for action in recovered["actions"] if action.get("attempt") == a]
+        active = [action for action in recovered["navigation"]["actions"]
+                  if action.get("attempt") == a]
         self.assertEqual([action["action"] for action in active], ["resume"])
         self.assertEqual(self.child_state_path().read_bytes(), before_state)
         self.assertEqual(self.ledger_bytes(), after_replay_ledger)

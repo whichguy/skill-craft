@@ -4507,12 +4507,14 @@ def main(core: Any, argv: list[str] | None = None) -> int:
                 snapshot = _next_response(root, binding, rows=rows)
                 if isinstance(result.get("attempt"), str):
                     result["step"] = _step_for_attempt(_child_full(binding), result["attempt"])["id"]
-                # A selected dispatcher may expose its own recovery argv.
-                # Per-step callers must resume through the bridge instead.
-                result.pop("next_argv", None)
-                result["navigation"] = _per_step_navigation(
+                navigation = _per_step_navigation(
                     root, binding, result, snapshot, rows, args.operation, state["status"],
                 )
+                # Public flow control belongs to the bridge projection. Keep
+                # raw dispatcher fields available until navigation is derived.
+                for key in ("actions", "instruction", "next_argv"):
+                    result.pop(key, None)
+                result["navigation"] = navigation
                 result["completion"] = _completion_projection(binding, snapshot)
         print(json.dumps(result, sort_keys=True, ensure_ascii=False, allow_nan=False))
         return 0

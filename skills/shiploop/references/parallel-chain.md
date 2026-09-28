@@ -199,20 +199,24 @@ stages. Packet delivery proves reference availability, not model adherence.
 Every successful per-step flow operation returns `navigation` computed from the
 selected dispatcher and bridge history. This is the skill's navigation authority;
 the skill performs the requested work and reports facts, rather than traversing
-dependencies or choosing its own next phase. `history` and `pending` remain
-read-only inspection views, not execution instructions.
+dependencies or choosing its own next phase. This is the only public flow-control
+surface: raw dispatcher `actions`, `instruction`, and `next_argv` are removed from
+the top-level response after projection. `history` and `pending` remain read-only
+inspection views, not execution instructions.
 
-- `actions` names the permitted semantic actions and their existing script
-  `operation` callbacks. For example, `action: launch` means call the native host,
+- `navigation.instruction` describes bridge control constraints; available
+  callbacks are limited to the listed `navigation.actions`.
+- `navigation.actions` names the permitted semantic actions and their existing
+  script `operation` callbacks. For example, `action: launch` means call the native host,
   then report the actual handle through `operation: launched`; it is not a
   nonexistent `chain launch` command. `action: verify` means perform the requested
   independent checks before submitting evidence through `operation: done`.
-- `next_argv` is the exact continuation to run after handling an action or when
-  resuming. Pass its argument array without shell interpolation. Inside a bound
+- `navigation.next_argv` is the exact continuation to run after handling an action
+  or when resuming. Pass its argument array without shell interpolation. Inside a bound
   chain it returns to the ShipLoop bridge, never directly to the selected Node
   helper. After recorded finish it returns to ShipLoop's parent navigation.
-- `complete` is true only after the durable chain finish receipt exists. All
-  steps being accepted can still require cleanup and final verification. The
+- `navigation.complete` is true only after the durable chain finish receipt
+  exists. All steps being accepted can still require cleanup and final verification. The
   older top-level `complete` retains its graph-acceptance meaning.
 
 Follow only current action identities. Every returned action with an `attempt`
