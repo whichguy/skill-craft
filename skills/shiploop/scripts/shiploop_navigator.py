@@ -2837,6 +2837,14 @@ def render(core: Any, root: Path, state: Mapping[str, Any],
             + str(reference_dir / "backchain-planning.md")
             + "#navigator-planning"
         )
+        lines.append(
+            "Selected Backchain and Until Loop resources "
+            "(resolved by ShipLoop from its installed plugin):"
+        )
+        lines.extend(
+            f"  {label}: {path}"
+            for label, path in guidance3.resolved_backchain_resources()
+        )
     if stage in ("plan", "select-work", "carry-forward"):
         lines.append("Full ordered work queue: " + str(root / "state.md") + "; field work_items.")
         child = state.get("active_improve")
