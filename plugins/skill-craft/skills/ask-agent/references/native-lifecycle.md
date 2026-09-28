@@ -3,7 +3,7 @@
 Read before launching background work. The host owns execution and completion;
 this reference governs the parent conversation, not a new scheduler.
 
-This lifecycle is shared by the helper-managed default and the selected
+This lifecycle is shared by the helper-managed route and the selected
 consumer-owned route. The latter adds its consumer-specific workspace, owner
 record, recovery, acceptance, and cleanup contract in
 [Consumer-owned workspace](consumer-owned-workspace.md); it does not use helper

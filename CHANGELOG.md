@@ -4,6 +4,22 @@ Written by scripts/release.py.
 
 ## 2026-09-27
 
+### skill-craft 1.14.0
+
+- Skills: ask-agent 0.9.0, improve-agent 0.1.3, plan-dispatcher 0.5.1
+
+### ask-agent 0.9.0
+
+- The current workspace is now the default route. An ordinary delegation runs a fresh worker in your own checkout and branch, with no second worktree or repository: `in-place` within a write set declared from the request for file changes, `report-only` for questions, digests and reviews. A separate helper-managed worktree now needs an explicit selection (`workspace_route: helper-managed` or asking for a separate worktree).
+
+### improve-agent 0.1.3
+
+- A standalone request explicitly selects Ask Agent's helper-managed route, since Ask Agent's default is now the current checkout.
+
+### plan-dispatcher 0.5.1
+
+- Git tasks explicitly select Ask Agent's helper-managed route, since it is no longer Ask Agent's default.
+
 ### skill-craft 1.13.0
 
 - Skills: shiploop 0.46.0

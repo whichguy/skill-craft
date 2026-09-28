@@ -5,7 +5,7 @@ description: >-
   conversation: start one agent that runs /improve in its own context, keep
   useful parent work going, then verify and relay its result. For Improve in
   this conversation, use improve.
-version: 0.1.2
+version: 0.1.3
 license: MIT
 platforms:
   - linux
@@ -46,7 +46,8 @@ user's choice.
 
 ## Choose the workspace route
 
-- **Standalone request.** Use Ask Agent's helper-managed default route. Its
+- **Standalone request.** Select `workspace_route: helper-managed` explicitly;
+  it is not Ask Agent's default. Its
   helper prepares an isolated worktree from the current candidate snapshot.
   Choose the delivery mode before launch: `commits` when Improve's ordinary
   commit policy applies, `patch` for an explicit no-commit request, and

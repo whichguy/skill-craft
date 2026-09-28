@@ -39,7 +39,8 @@ relays or delivers anything.
 
 ## Workspace routes
 
-A standalone request uses Ask Agent's helper-managed default: an isolated
+A standalone request explicitly selects Ask Agent's helper-managed route (not
+its default, which is the current checkout): an isolated
 worktree, with delivery as `commits`, `patch` or `report-only`. A consumer that
 supplies a complete consumer-owned contract, such as a ShipLoop
 `delegation: ask-agent` Improve packet, gets the in-place consumer-owned route.
