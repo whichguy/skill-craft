@@ -32,10 +32,10 @@
   },
   "id": "checkers-supported-python-heredoc-terminal-callback",
   "observer": {
-    "grok_adapter_sha256": "8321e280b4edfb2138bf112e1a8e149271811f5b906eac547950f097ec00f94a",
+    "grok_adapter_sha256": "c6fbad88c5ee6fb19d6c4167572ee4338030ed038f9c3a8a9b19de3901936613",
     "source_edit_policy": "parser-source-mismatch-invalidates-attribution",
-    "previous_grok_adapter_sha256": "4914e4249a0989ace3e287e03d37a67de37a877f42fcd4b032db051270f3c9be",
-    "revalidation": "The direct-form ShipLoop verb allowlist now also accepts lint-mode and lint, the new ShipLoop exit-criteria lint verbs. Every fixture uses only the retained complete verb; all five golden attribution expectations independently replayed unchanged. Original capture provenance and events are unchanged.",
+    "previous_grok_adapter_sha256": "8321e280b4edfb2138bf112e1a8e149271811f5b906eac547950f097ec00f94a",
+    "revalidation": "The direct-form ShipLoop verb allowlist now also accepts view, the progress-view command. All five golden attribution expectations independently replayed unchanged before this source rebind. Original capture provenance, events and expectations are unchanged.",
     "revalidation_history": [
       {
         "grok_adapter_sha256": "d1ff9c7208061a70857aa1ae95513823ebf26f69b0951f4890388d37011c8d66",
@@ -56,6 +56,11 @@
         "grok_adapter_sha256": "468208ab2e206934a3c65fd61850088e3ca7529b70f14182fe2a1ce361303d86",
         "previous_grok_adapter_sha256": "4914e4249a0989ace3e287e03d37a67de37a877f42fcd4b032db051270f3c9be",
         "revalidation": "The direct-form ShipLoop verb allowlist now matches the current CLI: chain, delegation and improve-reconcile were added and the retired verbs were removed. Every fixture uses only the retained complete verb; all five golden attribution expectations independently replayed unchanged. Original capture provenance and events are unchanged."
+      },
+      {
+        "grok_adapter_sha256": "8321e280b4edfb2138bf112e1a8e149271811f5b906eac547950f097ec00f94a",
+        "previous_grok_adapter_sha256": "4914e4249a0989ace3e287e03d37a67de37a877f42fcd4b032db051270f3c9be",
+        "revalidation": "The direct-form ShipLoop verb allowlist now also accepts lint-mode and lint, the new ShipLoop exit-criteria lint verbs. Every fixture uses only the retained complete verb; all five golden attribution expectations independently replayed unchanged. Original capture provenance and events are unchanged."
       }
     ]
   },

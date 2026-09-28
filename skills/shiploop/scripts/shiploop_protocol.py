@@ -324,6 +324,9 @@ def _argv_run_dir(raw_argv):
 
 def main(core, argv=None):
     raw_argv = list(sys.argv[1:] if argv is None else argv)
+    if raw_argv and raw_argv[0] == "view":
+        import shiploop_progress
+        return shiploop_progress.main(raw_argv[1:], core=core)
     if raw_argv and raw_argv[0] == "hook-status":
         return hook_status(core, raw_argv[1:])
     if raw_argv and raw_argv[0] == "workspace":
@@ -344,6 +347,7 @@ def main(core, argv=None):
         description="Markdown-authoritative, script-navigated session harness",
     )
     subs = parser.add_subparsers(dest="command", required=True)
+    subs.add_parser("view", help="portable HTML progress snapshot and read-only background observer")
     subs.add_parser("workspace", help="isolated start, return-plan review, and guarded return")
     subs.add_parser("chain", help="bind and operate a parallel or serial chain within the current implementation action")
     subs.add_parser("lint", help="advisory lint rerun for the current action, or show a stored record part (never gates)")
@@ -445,6 +449,7 @@ def main(core, argv=None):
         refused = _grant_refusal(core, raw_argv, root)
         if refused is not None:
             return refused
+    progress_ready = False
     try:
         with core.run_lock(root):
             if (root / "state.md").exists():
@@ -492,6 +497,7 @@ def main(core, argv=None):
                     health = shiploop_keepalive.health_notice(str(root))
                     if health:
                         print(health, file=sys.stderr)
+                progress_ready = code == 0 and args.command in (PACKET_VERBS | {"init", "pause", "halt"})
                 return code
             if (root / "state.json").exists():
                 print(f"ShipLoop blocked: {navigator.retired_json_run_reason(root)}", file=sys.stderr)
@@ -529,6 +535,7 @@ def main(core, argv=None):
             )
             navigator.save(root, state)
             navigator.emit(core, root, state)
+            progress_ready = True
             return 0
     except navigator.NavigatorError as exc:
         print(f"ShipLoop navigator: {exc}", file=sys.stderr)
@@ -559,3 +566,9 @@ def main(core, argv=None):
         )
         print(f"Recover the current durable action: {recovery}", file=sys.stderr)
         return 2
+    finally:
+        # The workflow lock has been released. Observation is a separate,
+        # best-effort file publisher and never owns an action or recovery.
+        if progress_ready:
+            import shiploop_progress
+            shiploop_progress.ensure(root)

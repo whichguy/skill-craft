@@ -80,7 +80,11 @@ untouched starting result.
 
 `step-plan` writes the selected work item's execution plan as its producer
 result: its `steps` in the order to do them, plus completion criteria and the
-test commands that confirm them. On the inline route ShipLoop issues one
+test commands that confirm them. Each newly generated step records its direct
+prerequisites in `deps`, using earlier step IDs, or `[]` if there are none. These
+declarations feed the progress diagram; serial list order is not itself evidence
+of dependency. Saved legacy steps may omit `deps` and display them as unknown.
+On the inline route ShipLoop issues one
 `implement` packet per step. It is a planning stage, so the selected actual Improve
 skill reviews the plan before the script releases `test-spec`; ShipLoop runs no
 convergence loop of its own. Product edits wait for `implement`. A step is not

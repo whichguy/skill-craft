@@ -5,6 +5,12 @@ targeted feedback and `bash test/run-all.sh` for complete hermetic regression. L
 use the same [suite catalog](suite_catalog.py). A pass means the selected checks
 passed; offline fixtures do not establish live model or host behavior.
 
+The hermetic runner sets `SHIPLOOP_PROGRESS=off` for ordinary suites so disposable
+run fixtures do not leave background HTML observers. The progress integration
+suite explicitly enables the default observer and stops its own processes.
+For a focused non-progress suite, the same environment variable can suppress
+automatic observation without changing workflow behavior.
+
 | Selection | Command | Scope |
 |---|---|---|
 | Focused | `python3 -B test/<name>.test.py` | One module; useful while changing its contract |

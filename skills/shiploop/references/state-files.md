@@ -18,6 +18,8 @@ inside its Markdown file, and there is no writable JSON mirror.
 | `improve/<action>/` | The imported Improve child record for one parent action: its receipt, terminal packet, the trivial-pass review files (two, or one for an unchanged first pass) and copied evidence. |
 | `workspace.md`, `return-plan.md`, `return-receipt.md` | For workspace runs (in the workspace root): the original checkout, branch and baseline, the reviewed return plan and the guarded return receipt that completion requires. |
 | `report.html` | Derived report written for done and halted runs; not workflow state. |
+| `progress.html` | Self-contained live plan, activity and key-file previews, published by a read-only observer. Browser refresh reads the whole file; no web server is needed. |
+| `progress-observer.json`, `.progress.lock`, `.progress-stop`, `.progress-disabled` | Display process status, singleton lock, cooperative stop request and restart preference. None owns workflow state or proves the workflow is running. See [live progress view](status-display.md#live-html-progress-view). |
 | `status.md` | Derived copy of the user-facing [status block](status-display.md), rewritten by every saved transition in the same transaction as `state.md`; not workflow state. |
 | `decisions/<action>.md` | The user's own reply to a question (or a person's report after steps) a blocked result was `awaiting`, recorded by `resume --answer`/`--observed`. |
 | `improve/<action>-bind.md` | The candidate's tree when that Improve child was bound; the import compares against it to find the review's own uncommitted edits. |

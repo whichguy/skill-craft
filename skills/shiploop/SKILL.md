@@ -48,6 +48,22 @@ a missing evidence file.
 
 ## Start or resume
 
+The CLI starts a read-only observer after a successful run initialization or
+packet command. Open the packet's `progress.html` to follow the plan, recorded
+activity, and embedded spec/architecture previews. The ordinary HTML file
+refreshes itself without a server. This observer only publishes display files;
+it never owns or backgrounds workflow execution. See
+[live progress view](references/status-display.md#live-html-progress-view) for
+start/stop controls, draft-versus-accepted labels, and freshness limits.
+
+After the first successful `workspace start` or `init`, show the user the
+packet's absolute progress-view link in your startup message: "You can use this
+[HTML file](<absolute progress.html path from the packet>) to track changes during
+this ShipLoop run." Use the actual path, including angle brackets for paths with
+spaces. Show it once per run; keep following the current action afterward. If
+the observer is unavailable or disabled and the file has not been created,
+report that status instead of presenting a working tracking link.
+
 Keep ShipLoop's control channel in the conversation that invoked this skill.
 Carry the user's selected automatic-approval mode and existing task authority
 through planning and child handoffs. Use that mode for already authorized work;
@@ -420,8 +436,11 @@ pass).
 `"test_commands": [{"command": "<shell command>", "suite": "focused" | "regression", "ids": ["TC-9"], "min_tests": 1}]`
 (`ids` and `min_tests` optional).
 It also records `"paths"`: the repository-relative files or globs the item will
-change, and `"steps": [{"id": "S1", "task": "..."}]`: every implementation step in
-the order to do them (one step is fine). ShipLoop refuses a done `step-plan`
+change, and `"steps": [{"id": "S1", "task": "...", "deps": []}]`: every implementation step in
+the order to do them (one step is fine). Declare each step's actual prerequisites
+as earlier step IDs in `deps`; use `[]` for independent steps. Order alone does
+not imply dependency. Older plans without `deps` remain valid and display
+dependencies as unknown. ShipLoop refuses a done `step-plan`
 without any of these; an empty command list needs
 `test_commands_na` with the reason. `test-green` loops on the focused commands
 and `regression` on every command, each on the Until Loop bound to the selected

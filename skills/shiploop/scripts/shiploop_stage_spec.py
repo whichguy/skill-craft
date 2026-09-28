@@ -214,6 +214,7 @@ _ROWS = (
         done_when=(
             "the result opens with one sentence naming the change and the checks that prove it",
             "steps lists every implementation step in the order to do them (one step is fine)",
+            "each step declares deps as the IDs of its actual earlier prerequisites, or [] when independent",
             "test_commands are recorded (focused and regression), or test_commands_na gives the reason",
             "the files the item will change are declared in paths",
         ),

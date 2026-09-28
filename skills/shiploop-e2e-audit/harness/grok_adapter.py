@@ -27,6 +27,7 @@ DEFAULT_REASONING_EFFORT = "xhigh"
 # The current ShipLoop CLI verbs, exactly as ``shiploop --help`` lists them.
 SHIPLOOP_DIRECT_SUBCOMMANDS = frozenset(
     {
+        "view",
         "workspace",
         "chain",
         "graph-dry-run",

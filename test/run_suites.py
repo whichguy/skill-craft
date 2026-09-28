@@ -238,6 +238,9 @@ def run_process(argv: Sequence[str], *, cwd: Path, timeout_seconds: float) -> Pr
         process = subprocess.Popen(
             list(argv), cwd=cwd, stdout=subprocess.PIPE, stderr=subprocess.PIPE,
             text=True, errors="replace", start_new_session=True,
+            # Ordinary hermetic fixtures must not leave per-run observers.
+            # Progress integration tests explicitly enable and stop their own.
+            env={**os.environ, "SHIPLOOP_PROGRESS": "off"},
         )
     except OSError as exc:
         return ProcessOutcome(
