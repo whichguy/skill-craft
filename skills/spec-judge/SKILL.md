@@ -60,7 +60,8 @@ this file.
 |---|---|---|
 | `over_spec.unanchored` | over | requirements with no `path:line` anchor |
 | `over_spec.broken_anchors` | over | anchors that do not resolve |
-| `over_spec.unsupported` | over | sampled requirements judged wrong or partial |
+| `over_spec.unsupported` | over | sampled requirements whose behaviour is wrong or partly wrong |
+| `over_spec.miscited` | over | sampled requirements with an anchor that does not say what is claimed (behaviour may still be right) |
 | `under_spec.tests_missing` | under | tested behaviour the spec does not state |
 | `under_spec.sources_missing` | under | a file's visible responsibility the spec does not state |
 | `under_spec.readme_missing` | under | README promises the spec does not state |

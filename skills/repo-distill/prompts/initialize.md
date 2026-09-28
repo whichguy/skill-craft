@@ -57,11 +57,15 @@ starts from and merges its delivered changes into. Do not write a
 - **Verify each bullet before you write it.** Open the code path that
   decides it, including its guard conditions and the options that change it
   (a flag that cannot be unset, a fallback that also fires on other falsy
-  values, a rule that holds for one form but not another), or a test that
-  exercises it. A citation must point at the text that says it. A bullet you
-  could not verify goes under unknowns.
-- **Anchor or omit.** Every requirement and every bullet cites `path:line`
-  (or a test name or README line). If you cannot anchor it, it is an unknown,
+  values, a rule that holds for one form but not another). A test proves only
+  its own case: state a general rule only from the code path that enforces
+  it, never from what one test or fixture happens to produce. A citation must
+  point at the text that says it. A bullet you could not verify goes under
+  unknowns.
+- **Anchor or omit.** Every requirement and every bullet cites its source:
+  for code, the file and the **function, method or test name**
+  (`lib/runner.js` `Runner#runTests`), adding a line range only when you have
+  just read it; for docs and the README, `path:line`. If you cannot anchor it, it is an unknown,
   not a requirement. Never state an inferred default or behaviour as fact.
 - **Architecture is where design lives, kept short.** `architecture.md`
   holds what an agent cannot cheaply read for itself: short, non-obvious,

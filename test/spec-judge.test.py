@@ -68,6 +68,7 @@ class SpecJudgeTest(unittest.TestCase):
                          else "covered"} for d in s["readme"]],
              "architecture": [{"item": a, "verdict": "absent"} for a in s["architecture"]]}
         v["requirements"][1]["verdict"] = "wrong"
+        v["requirements"][0]["miscited"] = True   # right behaviour, wrong citation: counted apart
         if drop_one:
             v["tests"].pop()
         return v
@@ -76,7 +77,8 @@ class SpecJudgeTest(unittest.TestCase):
         (self.out / "verdicts.json").write_text(json.dumps(self.verdicts()))
         rc, grade = call("score", "--out", str(self.out))
         self.assertEqual(rc, 0, grade)
-        self.assertEqual(grade["over_spec"], {"unanchored": 0.25, "broken_anchors": 0.25, "unsupported": 0.25})
+        self.assertEqual(grade["over_spec"], {"unanchored": 0.25, "broken_anchors": 0.25, "unsupported": 0.25,
+                                               "miscited": 0.25})
         self.assertEqual(grade["under_spec"], {"tests_missing": 1.0, "sources_missing": 0.0, "readme_missing": 0.0})
         self.assertEqual(grade["architecture_true"], 0.0)
 

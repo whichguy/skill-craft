@@ -185,7 +185,10 @@ def cmd_score(args) -> int:
             "unanchored": share(anchors_["requirements"] - anchors_["anchored"], anchors_["requirements"]),
             "broken_anchors": share(anchors_["anchored"] - anchors_["all_anchors_resolve"], anchors_["requirements"]),
             "unsupported": share(req.get("wrong", 0) + req.get("partial", 0),
-                                 len(sample["requirements"]) - req.get("unverifiable", 0))},
+                                 len(sample["requirements"]) - req.get("unverifiable", 0)),
+            # Citation quality, apart from behaviour: an anchor that does not say what is claimed.
+            "miscited": share(sum(1 for v in verdicts.get("requirements", []) if v.get("miscited")),
+                              len(sample["requirements"]))},
         "under_spec": {
             "tests_missing": share(tst.get("missing", 0) + tst.get("partly", 0),
                                    len(sample["tests"]) - tst.get("internal", 0)),
@@ -243,6 +246,7 @@ def cmd_combine(args) -> int:
                 flags = items[key][1]
                 flags["leaks"] = flags.get("leaks") or v.get("leaks") or False
                 flags["restates_behaviour"] = flags.get("restates_behaviour") or v.get("restates_behaviour") or False
+                flags["miscited"] = flags.get("miscited") or v.get("miscited") or False
         merged[section] = [v for _, v in items.values()]
     (args.out / "verdicts.json").write_text(json.dumps(merged, indent=2) + "\n")
     args.out_dir = args.out

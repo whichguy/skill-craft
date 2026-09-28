@@ -19,8 +19,12 @@ anchor check; it is context, not something to redo.
 
 **requirements** (over-spec). Read the requirement and **every bullet under
 it**, follow each anchor, and check each statement against the code, tests or
-docs that decide it; a wrong detail in any bullet makes the requirement
-`partial`, and a wrong citation counts too.
+docs that decide it. The verdict is about **behaviour**: a wrong detail in any
+bullet makes the requirement `partial`. Citations are judged separately: set
+`"miscited": true` (and name which) when an anchor does not say what the
+bullet claims (a wrong line range, function, test or document), even if the
+behaviour is right; a wrong citation alone does not make the verdict
+`partial`.
 `correct` every statement holds · `partial` the main statement holds but a
 detail is wrong or missing (name it) · `wrong` the main statement does not
 hold · `unverifiable` the repository does not decide it. Separately set
