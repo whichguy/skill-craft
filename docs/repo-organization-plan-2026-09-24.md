@@ -1,17 +1,25 @@
 ---
 Execute: ask
-Status: done for phases 1-3 (merged as 29413c1 on 2026-09-24; skill-craft-market archived). Phase 4 done on 2026-09-25: Backchain and Plan Dispatcher are ordinary skills, and the plugin-bundle mechanism is gone.
+Status: historical plan; superseded by docs/ARCHITECTURE.md and docs/distribution.md. Phases 1-3 were recorded as merged in 29413c1 on 2026-09-24; phase 4 was recorded as done on 2026-09-25.
 Date: 2026-09-24
 ---
 
 # Repository organization plan
+
+This document preserves an earlier proposal and its implementation history.
+Its editable `plugins/<leaf>/` layout and one-plugin-per-skill recommendation
+do not describe the current repository. Follow [ARCHITECTURE.md](ARCHITECTURE.md)
+and [distribution.md](distribution.md): edit `skills/<leaf>/`; only
+`scripts/release.py` writes the generated `plugins/skill-craft/` package,
+versions and marketplace catalogs. Do not execute the historical migration
+steps below against the current checkout.
 
 ## Purpose
 
 `skill-craft` is the one place to install these skills from, for **Claude Code,
 Codex, Grok and OpenCode** (Cursor comes along at no extra cost).
 
-## Recommendation
+## Historical recommendation (superseded)
 
 1. **One repository.** Separate repositories per skill would not make installs
    or releases more repeatable (idempotent). That comes from pinned versions,
@@ -70,7 +78,7 @@ Consequences:
 Because only one pair shares files, grouping skills into multi-skill plugins
 is unnecessary. One plugin per skill stays.
 
-## Target layout
+## Historical target layout (superseded)
 
 ```text
 skill-craft/
@@ -88,7 +96,7 @@ skill-craft/
   install.sh                         skill channel for every host, incl. OpenCode
 ```
 
-## Execution sequence
+## Historical execution sequence (do not rerun)
 
 Work happens in the worktree `.claude/worktrees/repo-layout-26fa71` on branch
 `refactor/repo-layout-26fa71`, one commit per phase. Nothing is pushed or
