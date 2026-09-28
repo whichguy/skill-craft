@@ -2,6 +2,36 @@
 
 Written by scripts/release.py.
 
+## 2026-09-28
+
+### skill-craft 1.15.0
+
+- Skills: shiploop 0.47.0, shiploop-e2e-audit 0.5.3
+
+### shiploop 0.47.0
+
+- Keep a self-contained progress.html current during each run using a read-only
+  background observer. Visualize generated implementation steps, dependency edges,
+  and recorded execution status. Show the accepted plan, recorded activity, and embedded
+  specification and architecture drafts with source and freshness labels. Add
+  explicit dependency lists to generated inline step plans while preserving saved
+  plans that omit dependency metadata. Add
+  view commands for snapshots, foreground watching, background start, stop and
+  status; preserve the terminal report and Markdown workflow authority.
+- Keep startup guidance compatible with package-reference validation by describing
+  the link without a placeholder target. Preserve the actual progress-file path
+  when run directories contain URL or Markdown delimiter characters.
+- Introduce the progress HTML file in the first startup message with a clickable
+  absolute link and an explanation that it tracks changes during the run. Keep the
+  link available in action packets for later reference.
+
+### shiploop-e2e-audit 0.5.3
+
+- Recognize ShipLoop's progress-view CLI command in the Grok audit adapter's
+  direct-command inventory, keeping it aligned with the current CLI help.
+  Revalidate the retained host-command shapes against the updated parser while
+  preserving their capture provenance and expected attribution.
+
 ## 2026-09-27
 
 ### skill-craft 1.14.0

@@ -28,6 +28,87 @@ Completed: 1 item; W1 "Config loader refactor": loader split, 12 tests added
 | Item plan | The first sentence of the item's accepted `step-plan` summary, or of the item's `context` before that. Omitted when neither exists. |
 | Completed | Completed items, the three most recent with the first sentence of their `carry-forward` summary. |
 
+## Live HTML progress view
+
+Open `<run>/progress.html` as an ordinary HTML file. After a successful `init`,
+`next`, `resume`, callback, `pause`, or `halt`, the CLI ensures one read-only
+background observer for that run. It samples about every two seconds and
+publishes a complete page when recorded inputs change, plus a periodic heartbeat.
+The open page reloads about every five seconds. No web server, browser file
+permission, external asset, or model call is required.
+
+At the first successful startup, the host shares the packet's absolute HTML link
+with the user: "You can use this HTML file to track changes during this ShipLoop
+run." It shares the link once per run and then continues the current action. If
+observation is unavailable or disabled and no page exists, it reports that status
+instead of offering a working link.
+
+The page shows the preparation/work/release outline, accepted items, the current
+stage and blocker, recent recorded activity, and expandable spec, architecture,
+plan and test-strategy previews. Before plan acceptance it says the work plan is
+pending. Current repository documents are **saved drafts** with a path, content
+hash and observation time. Accepted planning-result records appear separately;
+an updated document or worker report does not itself accept work. The observer
+cannot display unrecorded work or intermediate edits it did not sample. Each
+file is checked for a stable read; several document previews do not represent
+an atomic repository-wide snapshot.
+
+Generated implementation steps have their own dependency diagram. Inline step
+plans supply their recorded `deps` and accepted per-step progress. Each bound
+execution graph supplies its nodes and prerequisite edges; saved dispatcher
+state supplies their recorded status. The diagram is rebuilt when these inputs
+change, even while the parent action stays the same. Graphs are labeled by work
+item/action so identically named steps in separate plans remain distinct. A text
+dependency list accompanies each diagram. Older step plans without explicit
+`deps` can show their accepted tasks but label their dependencies unknown.
+The preparation/work/release outline is separate from these generated steps.
+
+Previews are embedded in the file so a saved copy remains useful offline. Source
+links can become unavailable when a worktree is moved or removed. Selected
+Markdown/text files are bounded, credential-screened and escaped; symlink,
+hardlink, special-file and out-of-root references are refused. Missing or withheld
+files have explicit placeholders. The existing privacy screen recognizes only
+specific credential patterns, not every possible secret.
+
+The page distinguishes last recorded activity from last successful observation.
+Its stale indicator means observation may have stopped; a fresh observation is
+not proof the agent is running. **Pause updates** affects only the browser, never
+ShipLoop. Browser storage restrictions may prevent restoring reading position;
+manual refresh and the full saved content remain available. Background-tab
+throttling and busy run locks can delay refresh, so timing is not a real-time
+guarantee.
+
+Use the same selected package's CLI and exact run directory:
+
+```sh
+python3 "$CLI" view --run-dir "$RUN_DIR"            # write one offline snapshot
+python3 "$CLI" view --run-dir "$RUN_DIR" --start    # start or reuse background observer
+python3 "$CLI" view --run-dir "$RUN_DIR" --watch    # watch in this foreground process
+python3 "$CLI" view --run-dir "$RUN_DIR" --status   # process status, read-only
+python3 "$CLI" view --run-dir "$RUN_DIR" --stop     # stop; disable automatic restarts
+```
+
+`--start` or an explicit `--watch` reenables observation after `--stop`. A one-shot
+snapshot refuses to compete with an existing observer. `--interval` selects the
+sampling interval (default two seconds); `--idle-timeout` defaults to 1800 seconds
+without changed inputs. An idle observer exits and a later packet can restart
+it. Set `SHIPLOOP_PROGRESS=off` in a command's environment to suppress automatic
+startup, for example in a hermetic harness. It does not stop an existing observer
+or disable explicit `view` commands.
+
+Only the observer writes `progress.html`. It holds a separate singleton lock and
+briefly takes the existing run lock for reading. It skips pending transactions
+without recovering them, never writes authoritative state, and never accepts
+results or launches workflow/model execution. Its heartbeat/process JSON is
+display metadata, not another workflow record. A failed read or render retains
+the last good page; a viewer failure cannot fail a ShipLoop transition.
+
+On a terminal state the observer re-samples to reconcile selected documents and
+workspace-return information, then freezes the page and exits. Unverified
+delivery remains visibly unverified; a halted run remains unfinished. The
+existing `report.html` stays the terminal report. An archived HTML snapshot has
+no ongoing observation unless an observer still owns its original path.
+
 ## Where it appears
 
 1. **Every packet**, after the progress snapshot. The block orients the
