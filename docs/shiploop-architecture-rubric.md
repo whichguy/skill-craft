@@ -6,9 +6,9 @@ and similar). It is the scoring standard for prompt experiments: every new
 experiment grades against these criteria, and a prompt change ships only when
 it raises the relevant scores without lowering proportion (P1).
 
-The machine-readable form is [rubric.json](experiments/shiploop-architecture-rubric/rubric.json)
-(criteria and grades) and [scenarios.json](experiments/shiploop-architecture-rubric/scenarios.json)
-(scenario catalog). The judge ([judge.py](experiments/shiploop-architecture-rubric/judge.py))
+The machine-readable form is [rubric.json](https://github.com/whichguy/shiploop-prompt-lab/blob/main/experiments/rubric.json)
+(criteria and grades) and [scenarios.json](https://github.com/whichguy/shiploop-prompt-lab/blob/main/experiments/scenarios.json)
+(scenario catalog). The judge ([judge.py](https://github.com/whichguy/shiploop-prompt-lab/blob/main/experiments/judge.py))
 reads both, so this page and the scorer cannot drift. Results:
 [2026-09-26](shiploop-architecture-rubric-results-2026-09-26.md).
 
@@ -159,7 +159,7 @@ Scenarios run on the hosted runtimes ShipLoop targets and on common general
 deployments. Each environment has a platform card in
 [references/platforms](../skills/shiploop/references/platforms/) that planning
 reads for background; the cards' dated facts and claims to check come from
-sourced fact sheets in [factsheets/](experiments/shiploop-architecture-rubric/factsheets/).
+sourced fact sheets in [factsheets/](https://github.com/whichguy/shiploop-prompt-lab/blob/main/experiments/factsheets/).
 
 | Key | Environment | Card |
 | --- | --- | --- |
@@ -177,7 +177,7 @@ Next.js, Vue, Svelte, Tailwind) share [ui-frameworks.md](../skills/shiploop/refe
 ## Scenario catalog
 
 Each scenario names its expected tier, the runtimes it is tried on, the criteria
-that apply and what counts as overbuilt. Full definitions: [scenarios.json](experiments/shiploop-architecture-rubric/scenarios.json).
+that apply and what counts as overbuilt. Full definitions: [scenarios.json](https://github.com/whichguy/shiploop-prompt-lab/blob/main/experiments/scenarios.json).
 
 | ID | Scenario | Tier | Hosted runtimes | Main pressure |
 | --- | --- | --- | --- | --- |
@@ -208,7 +208,7 @@ that apply and what counts as overbuilt. Full definitions: [scenarios.json](expe
   servers, including a Chrome DevTools server that opens a browser per trial.
 - A trial with no tools sometimes stops after announcing it will inspect the
   project. Treat any plan under 150 words as a stub: rerun it with the same
-  prompt ([redo.sh](experiments/shiploop-architecture-rubric/redo.sh)), and exclude it if it
+  prompt ([redo.sh](https://github.com/whichguy/shiploop-prompt-lab/blob/main/experiments/redo.sh)), and exclude it if it
   stays a stub, rather than grading it as missed.
 - A control must not be able to reach the treatment. When the card variant can
   read a directory, run the control from a directory without that access; a
@@ -219,7 +219,7 @@ that apply and what counts as overbuilt. Full definitions: [scenarios.json](expe
 - Compare variants under one condition. Rerun the baseline alongside the
   candidates rather than reusing results from another condition, and report
   paired wins and losses per scenario-runtime cell as well as means.
-- Use [judge2.py](experiments/shiploop-architecture-rubric/judge2.py): an evidence quote
+- Use [judge2.py](https://github.com/whichguy/shiploop-prompt-lab/blob/main/experiments/judge2.py): an evidence quote
   before every grade, per-grade anchors, criteria before and after the plan, and a
   five-minute timeout with logged failures. Re-grading 30 plans changed a plan's
   score by 0.017 on average (judge v1: 0.041).

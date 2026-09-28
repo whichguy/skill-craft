@@ -3,7 +3,7 @@
 First runs against the [architecture rubric](shiploop-architecture-rubric.md):
 a 14-scenario pilot on the hosted runtimes, and a platform-card experiment on
 four general deployments. Harness, fact sheets and every verdict:
-[experiments/shiploop-architecture-rubric](experiments/shiploop-architecture-rubric/).
+[experiments/shiploop-architecture-rubric](https://github.com/whichguy/shiploop-prompt-lab/blob/main/experiments/).
 
 Sonnet for trials and judge; blind grading, one plan at a time; scores are
 met = 1, partial = 0.5, missed or overbuilt = 0, averaged over applicable
@@ -16,7 +16,7 @@ differences under about 0.1 as noise unless they repeat across experiments.
 2 trials = 112 plans (111 graded; one stayed a stub after three reruns and was
 excluded). The **shipped** variant is ShipLoop 0.35.0's interaction-design
 block. The **candidate**
-([text](experiments/shiploop-architecture-rubric/candidate_interaction_design.txt))
+([text](https://github.com/whichguy/shiploop-prompt-lab/blob/main/experiments/candidate_interaction_design.txt))
 narrows the hidden-information clause to information one user must not see of
 another's, adds "choose the simplest placement that meets the request", and adds
 the channel ladder and caching rules.
@@ -103,7 +103,7 @@ was discarded and rerun without access.
 The first pilot's candidate improved proportion and connectivity but lowered
 personal data (D1), untrusted callers (I4) and logs (D3). Four hypotheses, one
 variant each, all built on the shipped block's first paragraph
-([variants.py](experiments/shiploop-architecture-rubric/round2/variants.py);
+([variants.py](https://github.com/whichguy/shiploop-prompt-lab/blob/main/experiments/round2/variants.py);
 the exact blocks are the `block_*.txt` files next to it):
 
 | Variant | Hypothesis | Change | Words |
@@ -140,7 +140,7 @@ of 40 tier calls agree, and a plan's score moves 0.04 on average.
 | Logs (D3) | 0.84 | 0.75 | 0.88 | 0.81 | 0.72 | 0.77 | 0.73 |
 | Criteria 0.1 or more below shipped | — | 4 | 2 | 3 | 4 | **1** | 3 |
 
-Full per-criterion table: [final_analysis.txt](experiments/shiploop-architecture-rubric/round2/final_analysis.txt).
+Full per-criterion table: [final_analysis.txt](https://github.com/whichguy/shiploop-prompt-lab/blob/main/experiments/round2/final_analysis.txt).
 
 ### What the evidence shows
 
@@ -197,7 +197,7 @@ ShipLoop 0.40.0 (skill-craft 1.7.0) ships v5 as the interaction-design block,
 with one change from the tested text: the example "an opponent's fleet" became
 "an opponent's hidden game state", to keep the packet generic. The Apps Script
 card gained the facts plans kept getting wrong, each verified against Google's
-documentation ([gas_facts.md](experiments/shiploop-architecture-rubric/research/gas_facts.md)):
+documentation ([gas_facts.md](https://github.com/whichguy/shiploop-prompt-lab/blob/main/experiments/research/gas_facts.md)):
 executions run concurrently up to a per-user cap; properties are not documented
 as atomic, so a read-modify-write needs a LockService lock; `google.script.run`
 is asynchronous; and `Session.getActiveUser()` returns a blank email wherever
@@ -207,13 +207,13 @@ results for every deployment and account type, so the card says to probe it.
 
 ## Harness: judge v2
 
-A research pass ([prompt_research.md](experiments/shiploop-architecture-rubric/research/prompt_research.md))
+A research pass ([prompt_research.md](https://github.com/whichguy/shiploop-prompt-lab/blob/main/experiments/research/prompt_research.md))
 on LLM-as-a-judge reliability and on prompting for architecture decisions
 recommended per-grade anchors, an evidence quote before every grade
 (G-Eval-style form filling, evidence before verdict), criteria placed both
 before and after the plan (long-context position effects), and paired bootstrap
-confidence intervals. [judge2.py](experiments/shiploop-architecture-rubric/judge2.py)
-implements the first three; [round3/analyze.py](experiments/shiploop-architecture-rubric/round3/analyze.py)
+confidence intervals. [judge2.py](https://github.com/whichguy/shiploop-prompt-lab/blob/main/experiments/judge2.py)
+implements the first three; [round3/analyze.py](https://github.com/whichguy/shiploop-prompt-lab/blob/main/experiments/round3/analyze.py)
 the fourth. Each judge call now times out after five minutes, retries up to
 three times and logs a final failure instead of dropping it (a hung call had
 stalled grading for fifteen minutes).
@@ -232,7 +232,7 @@ Human calibration labels and a second judge family remain open.
 
 The subject model in every round so far is Sonnet. ShipLoop's real host is Grok
 (`grok-4.7`, medium effort); an isolated Grok runner
-([run_grok.sh](experiments/shiploop-architecture-rubric/run_grok.sh)) is
+([run_grok.sh](https://github.com/whichguy/shiploop-prompt-lab/blob/main/experiments/run_grok.sh)) is
 included but not yet validated, so no result here has been reproduced on Grok.
 
 ## Round 3: a planning review for detail safeguards
@@ -248,13 +248,13 @@ the unreviewed plan:
 - **safeguards**: the current focus plus three bullets: personal data without a
   retention period, removal path or log exclusion; a runtime quota the design
   depends on but does not name; a background failure nobody who can act will
-  see ([focus_safeguards.txt](experiments/shiploop-architecture-rubric/round3/focus_safeguards.txt)).
+  see ([focus_safeguards.txt](https://github.com/whichguy/shiploop-prompt-lab/blob/main/experiments/round3/focus_safeguards.txt)).
 - **prune**: safeguards plus a fourth bullet, "anything the plan adds that the
   request does not need (a feature, a store, sign-in, a live channel, a debug
   path, a higher placement tier): remove it", and the instruction to meet a
   finding by changing or removing what exists before adding anything, returning
   the plan unchanged when nothing needs fixing
-  ([example prompt](experiments/shiploop-architecture-rubric/round3/example_prompt_prune.txt)).
+  ([example prompt](https://github.com/whichguy/shiploop-prompt-lab/blob/main/experiments/round3/example_prompt_prune.txt)).
 
 Every arm also had "change only what a finding requires; do not add features,
 infrastructure or a higher placement tier". 415 of 416 plans were graded.
@@ -273,7 +273,7 @@ infrastructure or a higher placement tier". 415 of 416 plans were graded.
 
 Per criterion, the prune review raised personal data from 0.74 to 0.97, logs
 from 0.77 to 1.00 and runtime limits from 0.68 to 0.92, with retention and end
-of life also up. Full table: [round3/final_analysis.txt](experiments/shiploop-architecture-rubric/round3/final_analysis.txt).
+of life also up. Full table: [round3/final_analysis.txt](https://github.com/whichguy/shiploop-prompt-lab/blob/main/experiments/round3/final_analysis.txt).
 
 ### What round 3 shows
 
