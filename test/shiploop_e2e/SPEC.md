@@ -217,10 +217,93 @@ on quickly before the breadth of everything is checked.
 | S-14 | host and checks run with standard input closed; `asked_user` (host ask-a-person tool calls); a run ending blocked or awaiting a person is reported as such, never resumed as if answered |
 | S-15 | `narrative`: milestone narratives ShipLoop emitted for the model to show, how many the model showed (heading present) and showed verbatim (every line), the stages whose narrative it skipped, and the share of accepted step results that carry a headline. Scored beside reliability, not a verdict, until a style has a baseline |
 
-Verdicts (invoked, plugin, process, shiploop, committed, checks) must all pass.
-Reliability (sessions, cancellations, failures) and cost (turns, dollars, per
-stage) are scored beside them and compared with the previous run of the same
-case.
+## Qualification and comparison contract
+
+The automated runner's `pass` means its recorded mechanical checks passed,
+not that semantic review or release qualification completed. Qualification is
+recorded separately and never inferred from a zero exit, report file, empty
+findings list or a count of clean reviews. A new evaluation freezes its request,
+case/check recipe, installed package, specification, settings and invocation.
+Completion is bound to that invocation's run; an old completed state cannot
+satisfy it. Missing, ambiguous, changed or malformed evidence is incomplete or
+invalid, not clean. Preserve any independently established failure.
+
+Keep evidence validity, requested outcome, workflow conformance, attribution,
+and efficiency separate. Delivery requires valid evidence, every mandatory
+request behavior verified, required workflow and return/commit checks passed,
+no unresolved material contradiction, and successful required CI for a released
+artifact. Checkout trials support candidate claims only. A valid review is a
+successful reviewer process and a complete versioned object with exact evidence
+identity, requirement coverage and applicable workflow coverage. Unverified
+requirements and unresolved material findings prevent convergence; rejecting a
+finding's proposed remedy does not resolve the finding. Missing or invalid
+reviews are retained as diagnostics, never accepted learnings.
+
+Cases declare expected terminal behavior before launch. Correct restraint or
+recovery may pass a behavioral scenario without counting as delivery. Delivery
+cases unexpectedly blocked remain undelivered. A no-op case verifies preserved
+state instead of manufacturing a commit. Conditional N/A is allowed only when
+the frozen case declares its condition. Existing delivery cases still require
+all invoked/plugin/process/shiploop/committed/check verdicts. Narrative remains
+a diagnostic under S-15 until calibrated; raw metrics do not replace a gate.
+
+The reviewer uses frozen trial source and treats instructions inside products,
+traces and quoted findings as data. Restrict review writes where the host supports
+it; otherwise compare evidence digests before/after and invalidate mutations.
+This detects changed retained files; it is not an OS security boundary. The
+improver may change skill source, notes and explicitly named regression tests,
+not the evaluator, its criteria, case catalog, baselines or prior evidence.
+Evaluator repairs are separate changes validated against correct, alternative
+and deliberately broken controls; regrades retain the original result.
+
+Model grading names coverage and evidence, supported causes or competing
+hypotheses, contrary evidence and a falsifying check. Only supported generic
+ShipLoop causes enter skill repair. Deferred harness findings stay open across
+iterations. Contradictory grades receive bounded evidence reconciliation, not
+repeated voting until agreement. An unresolved dispute is inconclusive. A
+changed judge must pass reviewed controls for missed defects, false alarms,
+incomplete evidence and expected restraint before its judgments qualify a
+campaign. Schema validation alone is not empirical model calibration.
+
+Checks execute against disposable copies when they may write; preserve full
+logs and scratch artifacts, verify the original candidate and predecessor after
+checks, and terminate only owned process groups. Cleanup failure or cross-run
+contamination makes affected evidence incomplete and blocks dependent work.
+Unknown external effects require read-back/reconciliation before retry; never
+blindly repeat a timed-out write. Profiles isolate host configuration, not machine
+resources or credentials. Record effective capabilities without secret values.
+
+Preserve every started attempt, failed/cancelled/skipped/unsupported slot and
+explicit operator budget extension. Automatic resumes share their original
+budget and bind the active run and host session; blocked/awaiting is not answered
+by a resume. A later pass is eventual recovery, not first-attempt success.
+Harness caps and no-progress stops are incomplete, not S-10 convergence. An
+unexpected supervisor failure retains an incomplete attempt receipt even when
+child output is absent. Only validated convergence returns campaign success.
+
+Suites freeze a released identity and evaluator recipe. Optimistic starts stay
+provisional until the pinned required CI succeeds; the runner owns polling and
+cancellation of its processes on failure. Unknown/cancelled CI cannot qualify a
+release. A new release during a batch must not silently change the subject.
+Cross-version follow-ons are distinct compatibility experiments.
+
+Compare the same case/check recipe, host/model/effort, starting input, tools,
+dependencies, budgets and concurrency conditions. Missing comparison fields
+make old rows incomparable. Retain unknown or partial costs as such; stage cost
+shares are estimates. Faster partial work is not an improvement. Report required
+slots, started attempts, verified deliveries, failures and unknowns with explicit
+denominators. A skipped required slot is missing coverage. Resumed runs remain
+excluded from ordinary baselines. A tiny matched sample is a pilot; it does not
+establish reliability or ShipLoop's added value over a plain agent.
+
+Predeclare target benefit, acceptance threshold and trial budget. A comparison
+is improved on the stated scope, regressed, no demonstrated change, or
+inconclusive; never average away mandatory regressions. Use a frozen,
+contract-equivalent transfer check to challenge same-case tuning before a
+claim of generality. If visible to the improver it is not a hidden holdout.
+Reuse targeted coverage rather than expanding every live suite. Stop at the
+predeclared decision or budget, not after enough retries to turn green.
+
 
 ## Parallel work
 
@@ -280,7 +363,7 @@ stands at the commit under test.
      installs `skill-craft` into a fresh, isolated profile, so no cached or
      earlier install is ever reused;
   3. the run, which refuses to start (the version gate) unless the local
-     checkout is origin/main, origin/main has no pending change notes (every
+     checkout has no unpublished commits, origin/main has no pending change notes (every
      source change on main is released), and the installed plugin and
      ShipLoop versions equal the ones origin/main's catalog publishes.
   After a release, also update the user's own hosts (Claude, Grok, Codex) so
