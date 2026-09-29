@@ -565,8 +565,8 @@ commit-pinned plugin in `catalog/external-plugins.json`, separately.
 
 ### Navigator protocol 4 and actual Improve
 
-`shiploop-navigator-contract.test.py` (named for its origin; it now drives protocol 4)
-and `graph-dry-run` exercise universal child handoffs and correction routes with synthetic receipts.
+`shiploop-navigator-contract.test.py` and `graph-dry-run` exercise the current
+protocol 4 contract, including universal child handoffs and correction routes with synthetic receipts.
 `shiploop-standalone-improve.test.py` and `shiploop-actual-improve-cli.test.py`
 exercise the real bundled Until Loop runtime and parent import/recovery boundary.
 Their review judgments are fixtures; they do not prove a live model followed
