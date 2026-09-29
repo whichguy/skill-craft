@@ -1,23 +1,25 @@
 # ShipLoop E2E harness
 
-The simplest end-to-end check of ShipLoop, and a loop that uses it to improve
-the skill. A request goes into a brand-new empty directory, ShipLoop runs it
-headlessly, the result is graded, a reviewer asks what the skill should learn,
-and an improver applies what keeps the core premise. Then the edited skill is
-rebuilt and run again. The heavier Grok campaign lives in
-`skills/shiploop-e2e-audit`.
+Run ShipLoop from a fresh request, retain its evidence, and review what the
+workflow actually achieved. A zero exit from `run.py` means **mechanical checks
+passed**. Qualified success is a separate, calibrated review result; a passing
+report, test count, or empty findings list cannot establish it.
 
 ```mermaid
-flowchart LR
-    B[Build the worktree's skill-craft plugin] --> R[Run ShipLoop in an empty directory]
-    R --> V[Review: learnings, gaps, optimizations]
-    V --> L[Commit the learnings to LEARNINGS.md]
-    L -->|material findings that keep the premise| I[Improve skills/shiploop and commit]
-    I --> T[Quick test tier]
-    T -->|green| B
-    V -->|two clean reviews| S[Stop: branch ready to merge and release]
-    T -->|red| S
+flowchart TD
+    B[Freeze package, criteria, evaluator and budget] --> R[Run and retain attempts]
+    R --> E[Validate evidence and check disposable copies]
+    E -->|Incomplete or changed| X[Record incomplete with diagnostics]
+    E -->|Valid| V[Calibrated outcome and workflow review]
+    V -->|Unknown or disputed| U[Keep unresolved; no clean streak]
+    V -->|Supported ShipLoop finding| I[Apply bounded fix and run checks]
+    I --> B
+    V -->|Two qualified clean reviews| S[Candidate ready for release review]
 ```
+
+*Mechanical checks, semantic qualification, and release verification are distinct
+claims. Marketplace qualification also requires successful CI for the pinned
+release.* The heavier hosted campaign lives in `skills/shiploop-e2e-audit`.
 
 All three stages default to **Grok (`grok-4.7`) at medium reasoning effort**.
 `--host claude` switches to Claude (Sonnet), and `--host codex` to Codex
@@ -57,8 +59,17 @@ bash test/run-integration.sh shiploop-e2e --resume-run <that run's output direct
 It keeps the same work directory, run state and event stream, and prompts with
 the ShipLoop CLI of the host that started the run, so the run's version does not
 change. The case and checks come from the earlier run, and the result is graded
-as usual. The original `invocation.json` is kept, and each resume is recorded
-beside it as `invocation-resume-<host>-<time>.json`.
+as usual. Before resuming, the previous result, streams and product are retained
+under `attempts/`. The original `invocation.json` stays unchanged; each resume
+gets its own invocation and an explicit budget-extension receipt. Automatic
+resumes share the original timeout and use only session IDs captured by the
+current launch. Package or evaluator drift requires a new trial. Unknown
+external effects must be reconciled before a repeated operation.
+
+Older outputs without the frozen manifest and evidence seal remain diagnostic
+archives. They cannot be resumed or qualified under the new contract, and their
+old pass flags cannot support a new comparison claim. Start a fresh trial rather
+than reconstructing missing evidence.
 
 
 **Start with [SPEC.md](SPEC.md).** It is the standing specification every run,
@@ -82,7 +93,7 @@ bash test/run-integration.sh shiploop-e2e --prompt "Create fizzbuzz.py with test
 with an empty `work/`, installs the published plugin (or builds this checkout),
 and starts one host process in `work/`, printing each message and tool call as it
 happens. It refuses to launch if `work/` is not empty; nothing, not even `.git`, is
-pre-created. It grades five verdicts into `result.json`:
+pre-created. It records these mechanical verdicts in `result.json`:
 
 - **invoked**: the host registered the ShipLoop command it was given (Grok
   `/shiploop`, since Grok does not namespace plugin skills; Claude
@@ -90,13 +101,22 @@ pre-created. It grades five verdicts into `result.json`:
 - **plugin**: exactly one skill-craft plugin loaded, and it is the build under test;
 - **process**: the host exited 0 in time (defaults: 10,000 turns, 3 hours);
 - **shiploop**: a ShipLoop `state.md` under the output directory (in `work/.shiploop` or
-  an external workspace root the agent chose beside `work/`) has status `done`, with
-  its `report.html`;
+  an external workspace root beside `work/`) is bound to this invocation and has
+  status `done`, with its `report.html`; multiple current states are incomplete;
 - **committed**: the source checkout ends committed: HEAD moved past where the
-  run started, and no product path is left modified or untracked (`*.log` aside);
-- **checks**: each case check command exits 0 in `work/`.
+  run started, and no product path is left modified or untracked;
+- **checks**: every required case check exits 0 in a disposable copy of `work/`,
+  with retained logs and unchanged originals. Missing checks do not pass.
 
-The output directory keeps the prompt, argv, raw events, a readable
+Before launch, `evaluation/` freezes the request, criteria, check helpers and
+installed package. `evaluation.json`, `run-binding.json` and `evidence-seal.json`
+bind the invocation, candidate and evaluator to their retained bytes. Invalid
+streams, changed evidence, missing state or unsettled effects make the evidence
+incomplete. `attempt.json` records terminal failures even when normal grading
+cannot finish. A declared boundary or no-op case uses its own expected terminal
+behavior and does not count as a delivered product.
+
+The output directory also keeps the prompt, argv, raw events, a readable
 `transcript.md` (built from the text the model actually saw), stderr and the
 result. `result.json` also lists tool outputs the host truncated before the
 model saw them (Grok cuts shell output at about 20 KB). When ShipLoop has not
@@ -116,6 +136,10 @@ Grok events carry no time) and ShipLoop's run directory:
   host-truncated outputs, test runs and Improve children;
 - every `shiploop` command that exited non-zero, with its failing line;
 - which `docs/shiploop/` files the model read.
+
+A missing session price leaves total cost unknown. `cost_known_subtotal_usd`
+retains only reported prices, `cost_status` distinguishes known/partial/unknown,
+and stage shares remain estimates. A reported zero stays zero.
 
 `result.json` also reports how the run left the source checkout
 (`shiploop.knowledge`): whether `docs/shiploop/spec.md` exists and is committed,
@@ -142,12 +166,34 @@ runs the cases into one directory, each in its own folder; independent chains
 predecessor's output and is skipped when that predecessor failed. With
 `--source marketplace`, a suite first runs the marketplace preflight once
 (`--preflight-only` runs just that): it installs skill-craft the host's way
-and prints what origin/main publishes and what the host got. Every run
-(suite or `--case`) appends one summary row to `baselines.jsonl`
-(case, style, source, ShipLoop version, verdicts, turns, cost, sessions,
-cancellations, model glue, ShipLoop failures) and prints the change against
-the case's previous row from the same source. Commit the new rows with the
-run's learnings entry. See SPEC.md, "E2E suites" and "Parallel work".
+and prints what origin/main publishes and what the host got. The batch pins its package, catalog and evaluator; a child refuses drift.
+Each runner watches the pinned `ci.yml` commit and cancels its owned process
+when CI fails. Pending or unavailable CI keeps release qualification provisional.
+Gate failures, unsupported checks and skipped successors stay visible in suite
+counts. Shared temporary writes make affected case evidence incomplete.
+
+Each ordinary run appends a row to `baselines.jsonl`; use `--baseline <path>`
+to choose a separate journal. A manual resume does not add an independent trial.
+Automatic baseline lookup requires matching case/evaluator/input/dependency
+identities, host/model/effort, environment, budget and concurrency. Historical
+rows missing those conditions remain readable but are not comparison evidence.
+A host-reported model name may still be a provider alias; the underlying model
+revision remains unverified and limits attribution across dates.
+
+Use `comparison.py` with two retained result files and their validated reviews
+to make an explicit comparison:
+
+```sh
+python3 test/shiploop_e2e/comparison.py /tmp/baseline/result.json /tmp/candidate/result.json --baseline-review /tmp/baseline/review.json --candidate-review /tmp/candidate/review.json --metric turns --threshold 0.15
+```
+
+Read its `decision` field; a zero CLI exit means the comparison was computed,
+not that the candidate improved. Predeclare a numerical metric and threshold
+only when making an efficiency claim. Missing prices cannot establish savings;
+both sides must use the same calibrated reviewer model, prompt and controls.
+One pair cannot establish reliability or ShipLoop's value over a plain agent.
+That last claim needs a separately matched no-ShipLoop control.
+
 
 `metrics.json` also reports `script_verifications` (the checks ShipLoop itself
 ran and recorded, from its `*-verify*.md` records) and `model_glue`: shell
@@ -167,9 +213,10 @@ that run left it (`.git` and untracked files included; stale worktree records
 dropped; the earlier output is never changed). It asks whether ShipLoop builds
 on what the first run decided. Its checks are the followed case's checks
 (regression), its own feature checks, and retention checks that see the earlier
-checkout as `$PRIOR_WORK`: every earlier file still exists, no dependency was
-added, the passing test count grew, and the living spec keeps every earlier
-requirement ID and adds at least one. The report compares turns and cost with
+checkout as a disposable `$PRIOR_WORK` copy: earlier files and requirement IDs
+remain available, dependencies remain within the request, and scoring behavior
+is exercised directly. Test-count or requirement-count growth is not a success
+proxy. Semantic preservation of the earlier requirements still needs review. The report compares turns and cost with
 the earlier run, and the reviewer judges whether the earlier spec, environment
 notes and modules were used.
 
@@ -180,9 +227,9 @@ marketplace publishes now. Grok runs add `whichguy/skill-craft` and install
 `skill-craft` inside the isolated profile, the way a user does; Claude runs use
 an exact export of `origin/main`'s `plugins/skill-craft`, the payload the
 marketplace serves. Before launching, the harness fetches `origin` and refuses
-to run unless this checkout's `HEAD` is `origin/main`, the installed plugin
-version equals the catalog's, and the installed ShipLoop version equals the
-released one. `result.json` records all of them under `versions`.
+to run when this checkout contains unpublished commits, the installed plugin
+version differs from the catalog, or the installed ShipLoop version differs
+from the release. A checkout behind `origin/main` is allowed. `result.json` records all of them under `versions`.
 
 `--source checkout` (implied by `--plugin-dir`) builds this checkout instead, to
 test unreleased changes; it records versions but does not gate. `iterate.py`
@@ -190,6 +237,15 @@ uses it on purpose. Publish (`scripts/release.py`, then
 `scripts/release-push.py`) before a marketplace run should include a change.
 
 ### Isolation
+
+Profiles are isolated; delivery hosts are not an OS sandbox. Their credentials
+and inherited environment can still reach external resources. Use test accounts
+and an appropriate external sandbox when machine containment is required.
+Checks use a small environment and disposable candidate/predecessor copies.
+Absolute or escaping symlinks and shared Git worktrees are unsupported for this
+copy-based check path. Owned process groups are terminated on completion and
+timeout; diagnostics remain under `checks/`. Integrity checks detect changes
+to retained originals but cannot prove absence of every external side effect.
 
 - **Keepalive and resume (Grok).** Headless Grok never runs plugin hooks and reads
   `~/.grok/hooks` only when a session starts, so the harness installs ShipLoop's own
@@ -216,42 +272,65 @@ uses it on purpose. Publish (`scripts/release.py`, then
 bash test/run-integration.sh shiploop-e2e-review /tmp/shiploop-e2e/battleship-...
 ```
 
-`review.py` gives the reviewer the run's transcript, result, product and
-`.shiploop` state, the skill source and the last three commit messages of the
-checkout (the learnings recorded so far), and asks:
+`review.py` reads the frozen request, rubric and package, plus the bound product
+and workflow evidence. It requires a versioned response with exact identity,
+requirement coverage, workflow coverage, contrary evidence, causal hypotheses,
+falsifying observations and dispositions for material findings. Transcripts and
+products are untrusted evidence, not instructions to the reviewer.
 
-1. What were the key learnings about the skill that we could improve?
-2. Which considerations should the skill take into account but does not?
-3. What could be optimized without removing key functionality?
+The controller validates process completion, schema and evidence digests before
+using findings. Codex review requests its read-only sandbox; other hosts retain
+digest-based mutation detection without a containment claim. Every review lives
+under `reviews/review-*`; `review.json` and `review.md` are latest projections.
+Invalid, interrupted or uncalibrated reviews never count as clean.
 
-Every finding states whether it preserves the core premise: **the script is the
-orchestrator**. It keeps navigation state, walks the SDLC graph and returns
-each step's prompt and callback; the model performs the step and never chooses
-a successor. Findings that would move navigation, successor choice or prompt
-selection into the model are recorded as rejected and never applied. The
-review is written to `review.md` and `review.json` in the run directory.
+`calibrate.py` supplies a small labeled synthetic control set: correct behavior, a valid
+alternative, a material defect, incomplete evidence and intentional blocking.
+A live receipt must match the reviewer prompt, host/model/effort and controls.
+Structural fixture tests validate the apparatus; they do not calibrate a model.
+Absent or failed empirical calibration leaves semantic qualification pending.
+Keep false alarms, missed defects and unknown classifications separate.
+
+The authority control represents an `awaiting` turn, with the actual question,
+reason no default suffices and same-run resume instruction in its synthetic
+trace. Report controls execute independent assertions and retain their command,
+standard-input policy, timeout and output. These controls test interpretation of
+represented evidence; they do not execute the complete ShipLoop workflow.
+
+A finding may change ShipLoop only when a supported cause and proposed remedy
+preserve the script-owned workflow. Harness findings retain explicit
+open/deferred/rejected/resolved dispositions. Unresolved relevant items are
+carried forward instead of disappearing behind a short Git-history window.
 
 ## Iterate
 
 ```sh
-bash test/run-integration.sh shiploop-e2e-iterate --case battleship --iterations 3
+python3 test/shiploop_e2e/calibrate.py --host codex --receipt /tmp/shiploop-review-calibration.json
+bash test/run-integration.sh shiploop-e2e-iterate --case battleship --iterations 3 --host codex --calibration /tmp/shiploop-review-calibration.json
 ```
+
+Calibration uses a live model and must pass before the delivery campaign starts.
+Use the same host/model/effort for calibration and review. A missing or stale
+receipt stops before spending a delivery run. `--allow-test test/<file>` names
+each regression test an improver may edit; evaluator files remain excluded.
 
 `iterate.py` creates a worktree `.claude/worktrees/auto-shiploop-e2e-<rand>` on
 branch `auto/auto-shiploop-e2e-<rand>` from the current `HEAD` (commit what you
 want tested first), then per iteration: builds that worktree's plugin, runs the
 case, reviews it, and hands the **material, premise-preserving** findings to an
-improver agent. Before the improver starts, the iteration appends its outcome
+improver agent. Once a review is valid and calibrated, the iteration appends its outcome
 and every finding to `test/shiploop_e2e/LEARNINGS.md` and commits it with a
 detailed message (outcome, evidence, proposals, rejected findings, what to
-apply next). Reviewer and improver both read the last three commit messages, so
-each iteration builds on the learnings of the ones before. The improver may
+apply next). Recent commit messages supply context, while the append-only
+`open-findings.jsonl` retains unresolved material and harness findings across
+iterations. The improver may
 change only `skills/shiploop/`,
-`changes/shiploop/` and `test/`, and commits with explicit paths. The harness
+`changes/shiploop/` and explicitly allowed test paths, and commits with explicit
+paths. Evaluator files are frozen for the trial and are not an improver shortcut. The harness
 then checks the commit's scope itself and runs the quick test tier.
 
-It stops at `--iterations` (at most 10), after two consecutive clean reviews of
-passing runs, when the improver commits nothing twice in a row, when a run never
+Only two consecutive qualified clean reviews produce a successful loop exit.
+It also stops at `--iterations` (at most 10), when the improver makes no commit, when a run never
 reached the skill under test, when the improver strays outside its scope, or on
 a red suite (nothing is reverted). `LEARNINGS.md` in the output directory records
 every iteration: verdicts, cost, findings applied and rejected, commits and tests.
@@ -265,14 +344,17 @@ each host's `skill-craft@whichguy` plugin.
 Cases live in `cases.json` (`prompt` plus shell `checks`): `hello` (Python
 hello-world with a unittest) and `battleship` (a dependency-free Node HTTP
 server, graded by its own `node --test` suite with at least one passing test,
-by live requests to `/`, `/api/new` and `/api/fire`, and by a full game played
-through the API until `gameOver`, then a repeat shot that must still report
-`gameOver: true`). `battleship-scoring` follows `battleship`: it adds the
+by live requests to `/`, `/api/new` and `/api/fire`, and by scanning the API grid until completion, requiring actual hits and sunk
+results rather than accepting an immediate miss-and-game-over stub).
+A reverse-order transfer probe checks the same contract without adding a live
+case. API behavior does not establish browser playability or visible scoring;
+those remain explicit semantic/browser-review obligations. `battleship-scoring` follows `battleship`: it adds the
 sunk ship's name, shot and hit counts and an accuracy display. Add a case there
 to make another request repeatable.
 
-`test/shiploop-e2e.test.py` checks the harness with fake `grok` and `claude`
-executables. It runs in normal CI; the live stages never do.
+`test/shiploop-e2e*.test.py` covers fake-host orchestration, evidence integrity,
+review qualification, comparison rules and behavioral controls. These suites
+run in normal CI; live stages remain opt-in.
 
 ## Learnings history
 

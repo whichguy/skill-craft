@@ -59,7 +59,7 @@ def report(out: Path) -> str:
     started = (out / "invocation.json").stat().st_mtime if (out / "invocation.json").is_file() else time.time()
     items = f"{len(state.get('completed_work_items') or [])}/{len(state.get('work_items') or [])}"
     lines = [f"[{int(time.time() - started) // 60} min] turns {m['turns']}, peak context "
-             f"{m['tokens']['input_peak'] // 1000}K, cost {('$' + format(m['cost_usd'], '.2f')) if m['cost_usd'] else 'n/a'} | "
+             f"{m['tokens']['input_peak'] // 1000}K, cost {('$' + format(m['cost_usd'], '.2f')) if m['cost_usd'] is not None else 'n/a'} | "
              + (f"{state.get('status')}, rev {state.get('revision')}, stage {state.get('stage')}, items {items}"
                 if state else "no run state yet")]
     stages = m["stages"][memo.get("stages", 0):]

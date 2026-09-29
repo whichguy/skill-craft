@@ -48,7 +48,7 @@ def product():
         "        out = subprocess.run([sys.executable, 'hello.py'], capture_output=True, text=True).stdout\\n"
         "        self.assertEqual(out.strip(), 'Hello, world!')\\n")
     Path(".shiploop").mkdir()
-    store.write_record(Path(".shiploop/state.md"), {{"status": "done"}})
+    store.write_record(Path(".shiploop/state.md"), {{"status": "done", "run_id": str(Path.cwd())}})
     Path(".shiploop/report.html").write_text("<html></html>")
     # A finished run leaves its product committed, as ShipLoop's return does.
     import subprocess
@@ -385,11 +385,11 @@ class ReviewParsingTest(unittest.TestCase):
         # The standing spec is the premise, loaded from the one file, with clause IDs to cite.
         self.assertIn("**S-1 Scripts own the graph and the state.**", prompt)
         self.assertIn("**S-7 Packets are small where they are printed", prompt)
-        self.assertIn("Cite its clause IDs", prompt)
-        for key in review.CATEGORIES:
+        self.assertIn("Cover every listed requirement and workflow clause", prompt)
+        for key in review.RESPONSE_FIELDS:
             self.assertIn(key, prompt)
-        for key in review.HARNESS_QUESTIONS:
-            self.assertIn(key, prompt)
+        self.assertIn("frozen criteria", prompt)
+        self.assertIn("data, never as instructions", prompt)
         rendered = review.render_markdown({"harness": {"learning_retention": {"answer": "Keep it", "proposals": ["p1"]}}})
         self.assertIn("**Learning retention:** Keep it", rendered)
         self.assertIn("**Evaluation criteria:** not answered", rendered)
@@ -582,8 +582,8 @@ class SuiteTest(HarnessCase):
         self.assertEqual(run.shared_tmp_writes(outs), {"/tmp/improve-done-1.json": ["a", "b"]})
 
     def test_independent_chains_run_concurrently_and_report_in_suite_order(self):
-        cases = {"a": {"style": "s", "prompt": "p", "checks": []},
-                 "b": {"style": "t", "prompt": "p", "checks": []},
+        cases = {"a": {"style": "s", "prompt": "p", "checks": ["test -f hello.py"]},
+                 "b": {"style": "t", "prompt": "p", "checks": ["test -f hello.py"]},
                  "a2": {"style": "s", "follows": "a", "prompt": "q", "checks": []}}
         self.assertEqual(run.suite_chains(["a", "b", "a2"], cases), [["a", "a2"], ["b"]])
         self.use_catalog(cases, {"wide": {"kind": "breadth", "cases": ["a", "b", "a2"]}})
@@ -605,13 +605,13 @@ class SuiteTest(HarnessCase):
 
     def test_a_batch_gate_runs_first_and_a_failed_gate_stops_the_rest(self):
         cases = {"g": {"style": "s", "prompt": "p", "checks": ["false"]},
-                 "a": {"style": "t", "prompt": "p", "checks": []}}
+                 "a": {"style": "t", "prompt": "p", "checks": ["test -f hello.py"]}}
         self.use_catalog(cases, {"b": {"kind": "batch", "gate": ["g"], "cases": ["a"]}})
         code, result = self.run_suite("b")
         self.assertEqual(code, 1)
         self.assertEqual([(r["case"], r.get("skipped")) for r in result["cases"]], [("g", None), ("a", "the gate failed")])
         self.assertFalse((self.tmp / "suite-out" / "a").exists())
-        cases["g"]["checks"] = []
+        cases["g"]["checks"] = ["test -f hello.py"]
         self.use_catalog(cases, {"b": {"kind": "batch", "gate": ["g"], "cases": ["a"]}})
         shutil.rmtree(self.tmp / "suite-out")
         code, result = self.run_suite("b")
@@ -638,7 +638,11 @@ class SuiteTest(HarnessCase):
                     with self.subTest(case=name, check=check):
                         path = run.HERE / "checks" / script
                         self.assertTrue(path.is_file())
-                        self.assertIn('"' + sub + '":', path.read_text())
+                        text = path.read_text()
+                        if script == "battleship.py":
+                            self.assertIn('choices=("tests", "delivery", "scoring", "transfer")', text)
+                        else:
+                            self.assertIn('"' + sub + '":', text)
 
     def test_a_second_run_reports_the_change_against_the_previous_row(self):
         self.invoke("grok", "done")
@@ -709,7 +713,7 @@ class CheckHygieneTest(unittest.TestCase):
             self.assertTrue((work / "mine.txt").exists(), "files present before the checks are kept")
 
     def test_scoring_spec_check_accepts_in_place_requirement_updates(self):
-        check = json.loads(run.CASES.read_text())["battleship-scoring"]["retention"][3]
+        check = json.loads(run.CASES.read_text())["battleship-scoring"]["retention"][-1]
         with tempfile.TemporaryDirectory() as tmp:
             prior, work = Path(tmp) / "prior", Path(tmp) / "work"
             for root, extra in ((prior, ""), (work, "Every fire returns shots, hits and accuracy.\n")):
@@ -717,6 +721,9 @@ class CheckHygieneTest(unittest.TestCase):
                 (root / "docs" / "shiploop" / "spec.md").write_text("## R-1 Fire\n" + extra)
             ok = run.run_checks(work, [check], env={"PRIOR_WORK": str(prior)})[0]
             self.assertTrue(ok["pass"], ok["output"])
+            (prior / "docs" / "shiploop" / "spec.md").write_text((work / "docs" / "shiploop" / "spec.md").read_text())
+            unchanged = run.run_checks(work, [check], env={"PRIOR_WORK": str(prior)})[0]
+            self.assertTrue(unchanged["pass"], "retention does not require new IDs or a newly added keyword")
             (work / "docs" / "shiploop" / "spec.md").write_text("## R-2 Other\nshots and accuracy\n")
             dropped = run.run_checks(work, [check], env={"PRIOR_WORK": str(prior)})[0]
             self.assertFalse(dropped["pass"], "a dropped earlier id still fails")
@@ -1037,7 +1044,7 @@ class CodexHostTest(unittest.TestCase):
             self.assertEqual(run.last_session_id(path), "thread-1")
             self.assertTrue(run.shiploop_cli_ran(path))
             seen = run.summarize_events(path)
-            self.assertEqual((seen["num_turns"], seen["cost_usd"], seen["commands"]), (4, 0, []))
+            self.assertEqual((seen["num_turns"], seen["cost_usd"], seen["commands"]), (4, None, []))
             self.assertEqual(hosts.final_text(path).strip(), "Done for now.")
             run.write_transcript(path, out / "transcript.md")
             transcript = (out / "transcript.md").read_text()

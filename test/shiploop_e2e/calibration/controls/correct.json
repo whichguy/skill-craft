@@ -1,0 +1,65 @@
+{
+  "schema": "shiploop-e2e-control/1",
+  "id": "correct",
+  "expected_class": "clean",
+  "rationale": "Every requested row is present, the grouped totals match the input, and the declared checks pass. The control executes its independent assertion script and retains its verification receipt; this is synthetic trace calibration, not evidence of an actual ShipLoop delivery.",
+  "criteria": {
+    "requirements": [
+      {
+        "id": "R-1",
+        "description": "Group every record by status and report exact totals."
+      },
+      {
+        "id": "R-2",
+        "description": "Include statuses with zero records."
+      }
+    ],
+    "workflow": [
+      "S-9",
+      "S-14"
+    ],
+    "kind": "delivery",
+    "expected_terminal": "done"
+  },
+  "run": {
+    "evidence_status": "valid",
+    "terminal": "done",
+    "request": "Summarize the supplied records by status, including statuses with zero rows.",
+    "primary_evidence": [
+      {
+        "locator": "work/input.json#/records",
+        "text": "{\"statuses\": [\"open\", \"closed\", \"blocked\"], \"records\": [{\"status\": \"open\"}, {\"status\": \"closed\"}, {\"status\": \"open\"}]}"
+      },
+      {
+        "locator": "work/report.json#/totals",
+        "text": "{\"totals\": {\"open\": 2, \"closed\": 1, \"blocked\": 0}}"
+      },
+      {
+        "locator": "result.json#/checks/0",
+        "text": "pass: output totals match the three input records"
+      },
+      {
+        "locator": "result.json#/checks/1",
+        "text": "pass: zero-count status is present"
+      },
+      {
+        "locator": "invocation.json#/stdin",
+        "text": "{\"stdin\": \"closed\", \"questions_awaiting_reply\": false, \"timeout_seconds\": 60}"
+      }
+    ],
+    "mechanical": {
+      "invoked": true,
+      "plugin": true,
+      "process": true,
+      "shiploop": true,
+      "committed": true,
+      "checks": true
+    },
+    "execution": {
+      "stdin": "closed",
+      "questions_awaiting_reply": false,
+      "timeout_seconds": 60
+    }
+  },
+  "verify_report": true
+}

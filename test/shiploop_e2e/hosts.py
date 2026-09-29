@@ -91,24 +91,47 @@ def last_json_object(text: str) -> dict | None:
     return None
 
 
+def stop_owned_process(proc) -> str | None:
+    """Bound cleanup even when the process group cannot be signalled."""
+    errors = []
+    try:
+        os.killpg(proc.pid, signal.SIGKILL)
+    except ProcessLookupError:
+        pass
+    except OSError as exc:
+        errors.append(f"process group cleanup failed: {exc}")
+        try:
+            proc.kill()
+        except ProcessLookupError:
+            pass
+        except OSError as fallback:
+            errors.append(f"process cleanup failed: {fallback}")
+    try:
+        proc.wait(timeout=3)
+    except subprocess.TimeoutExpired:
+        errors.append("owned process still running after cleanup deadline")
+    return "; ".join(errors) or None
+
+
+
 def run_agent(argv: list[str], cwd: Path, env: dict, events_path: Path, stderr_path: Path,
               timeout: int, translate=None) -> dict:
-    """Run one headless host process to completion (or kill it at `timeout`).
-
-    ``translate`` (a host's ``translator()``) rewrites each stdout line into the
-    shared event shape as it is written.
-    """
+    """Capture one bounded host process and settle its owned process group."""
     start = time.time()
     translate = translate or (lambda raw: [raw])
+    capture_errors = []
     with events_path.open("wb") as out, stderr_path.open("wb") as err:
         proc = subprocess.Popen(argv, cwd=cwd, stdin=subprocess.DEVNULL, stdout=subprocess.PIPE, stderr=err,
                                 env=env, start_new_session=True)
 
         def pump():
-            for raw in proc.stdout:
-                for line in translate(raw):
-                    out.write(line)
-            out.flush()
+            try:
+                for raw in proc.stdout:
+                    for line in translate(raw):
+                        out.write(line)
+                out.flush()
+            except Exception as exc:
+                capture_errors.append(str(exc))
 
         reader = threading.Thread(target=pump, daemon=True)
         reader.start()
@@ -116,12 +139,18 @@ def run_agent(argv: list[str], cwd: Path, env: dict, events_path: Path, stderr_p
             proc.wait(timeout=timeout)
             status = "exited" if proc.returncode == 0 else "failed"
         except subprocess.TimeoutExpired:
-            os.killpg(proc.pid, signal.SIGKILL)
-            proc.wait()
             status = "timeout"
+        finally:
+            cleanup_error = stop_owned_process(proc)
         reader.join(timeout=10)
-        proc.stdout.close()
-    return {"status": status, "returncode": proc.returncode, "elapsed_seconds": round(time.time() - start, 1)}
+        if reader.is_alive():
+            capture_errors.append("capture did not finish after owned process cleanup")
+        else:
+            proc.stdout.close()
+    import evidence
+    capture_errors.extend(evidence.stream_errors(events_path))
+    return {"status": status, "returncode": proc.returncode, "elapsed_seconds": round(time.time() - start, 1),
+            "capture_errors": capture_errors, "cleanup_error": cleanup_error}
 
 
 # ---------------------------------------------------------------- hosts
@@ -198,7 +227,7 @@ class GrokHost(Host):
             "GROK_CURSOR_SKILLS_ENABLED": "false"})
 
     def argv(self, *, prompt, prompt_file, cwd, model, effort, permission_mode, max_turns,
-             max_budget_usd=10.0, plugin_dir=None, resume=None):
+             max_budget_usd=10.0, plugin_dir=None, resume=None, read_only=False):
         prompt_file.write_text(prompt)
         argv = [self.binary, "--cwd", str(cwd), "--prompt-file", str(prompt_file), "--verbatim",
                 "--output-format", "streaming-json", "--model", model, "--max-turns", str(max_turns),
@@ -248,7 +277,7 @@ class ClaudeHost(Host):
         self.binary = binary
 
     def argv(self, *, prompt, prompt_file, cwd, model, effort, permission_mode, max_turns,
-             max_budget_usd=10.0, plugin_dir=None, resume=None):
+             max_budget_usd=10.0, plugin_dir=None, resume=None, read_only=False):
         argv = [self.binary, "-p", prompt, "--model", model, "--max-turns", str(max_turns),
                 "--max-budget-usd", str(max_budget_usd), "--permission-mode", permission_mode,
                 "--output-format", "stream-json", "--verbose", "--no-session-persistence",
@@ -289,10 +318,11 @@ class CodexHost(Host):
         return f"${skill} {prompt}"
 
     def argv(self, *, prompt, prompt_file, cwd, model, effort, permission_mode, max_turns,
-             max_budget_usd=10.0, plugin_dir=None, resume=None):
+             max_budget_usd=10.0, plugin_dir=None, resume=None, read_only=False):
         prompt_file.write_text(prompt)
+        sandbox = "read-only" if read_only else "danger-full-access"
         argv = [self.binary, "exec", "--json", "-m", model, "--skip-git-repo-check",
-                "-s", "danger-full-access", "-c", 'approval_policy="never"', "-C", str(cwd)]
+                "-s", sandbox, "-c", 'approval_policy="never"', "-C", str(cwd)]
         if effort:
             argv += ["-c", f"model_reasoning_effort={effort}"]
         return argv + (["resume", resume, prompt] if resume else [prompt])
@@ -426,4 +456,3 @@ def host(name: str, binary: str | None = None) -> Host:
     """The host object for ``name``, optionally with a non-default binary."""
     cls = HOSTS[name]
     return cls(binary) if binary else cls()
-

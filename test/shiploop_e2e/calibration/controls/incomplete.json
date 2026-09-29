@@ -1,0 +1,60 @@
+{
+  "schema": "shiploop-e2e-control/1",
+  "id": "incomplete",
+  "expected_class": "incomplete",
+  "rationale": "The event stream is truncated and the final check output is missing, so the claimed result cannot be established.",
+  "criteria": {
+    "requirements": [
+      {
+        "id": "R-1",
+        "description": "Group every record by status and report exact totals."
+      },
+      {
+        "id": "R-2",
+        "description": "Include statuses with zero records."
+      }
+    ],
+    "workflow": [
+      "S-9",
+      "S-14"
+    ],
+    "kind": "delivery",
+    "expected_terminal": "done"
+  },
+  "run": {
+    "evidence_status": "incomplete",
+    "terminal": "done",
+    "request": "Summarize the supplied records by status, including statuses with zero rows.",
+    "primary_evidence": [
+      {
+        "locator": "work/input.json#/records",
+        "text": "{\"statuses\": [\"open\", \"closed\", \"blocked\"], \"records\": [{\"status\": \"open\"}, {\"status\": \"closed\"}, {\"status\": \"open\"}]}"
+      },
+      {
+        "locator": "events.jsonl#last-line",
+        "text": "truncated JSON record: {\"type\":\"turn.completed\""
+      },
+      {
+        "locator": "result.json#/checks",
+        "text": "missing: the final check result was not retained"
+      },
+      {
+        "locator": "invocation.json#/stdin",
+        "text": "{\"stdin\": \"closed\", \"questions_awaiting_reply\": false, \"timeout_seconds\": 60}"
+      }
+    ],
+    "mechanical": {
+      "invoked": true,
+      "plugin": true,
+      "process": false,
+      "shiploop": true,
+      "committed": true,
+      "checks": true
+    },
+    "execution": {
+      "stdin": "closed",
+      "questions_awaiting_reply": false,
+      "timeout_seconds": 60
+    }
+  }
+}

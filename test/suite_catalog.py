@@ -136,6 +136,10 @@ _SHIPLOOP_PATHS = (
     "test/shiploop-planning-handoff.test.py",
     "test/shiploop-package-integrity.test.py",
     "test/shiploop-e2e.test.py",
+    "test/shiploop-e2e-evidence.test.py",
+    "test/shiploop-e2e-review.test.py",
+    "test/shiploop-e2e-comparison.test.py",
+    "test/shiploop-e2e-behavior.test.py",
 )
 
 # Measured in the audited full GitHub qualification.  Every known duration is
@@ -430,7 +434,8 @@ _PATH_SUITE_IDS = {
 
 # Directories whose files have names too common to select by (run.py, hosts.py).
 _PREFIX_SUITE_IDS = {
-    "test/shiploop_e2e/": ("shiploop-e2e",),
+    "test/shiploop_e2e/": ("shiploop-e2e", "shiploop-e2e-evidence", "shiploop-e2e-review",
+                          "shiploop-e2e-comparison", "shiploop-e2e-behavior"),
 }
 
 

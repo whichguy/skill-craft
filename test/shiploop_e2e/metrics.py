@@ -12,6 +12,7 @@ Never returns packet text: ShipLoop CLI output is reduced to the failing line.
 from __future__ import annotations
 
 import json
+import math
 from pathlib import Path
 import re
 
@@ -191,7 +192,19 @@ def collect(out: Path, run_dir: Path | None = None) -> dict:
             if not calls_in_session:
                 unreported += event.get("num_turns") or 0
             calls_in_session = 0
-    cost = round(sum(s["cost_usd"] or 0 for s in sessions), 4) if sessions else None
+    reported_costs = []
+    missing_costs = 0
+    for session in sessions:
+        value = session.get("cost_usd")
+        if (isinstance(value, (int, float)) and not isinstance(value, bool)
+                and math.isfinite(value) and value >= 0):
+            reported_costs.append(float(value))
+        else:
+            missing_costs += 1
+    known_subtotal = round(sum(reported_costs), 4)
+    cost_status = ("unknown" if not sessions or not reported_costs else
+                   "partial" if missing_costs else "known")
+    cost = known_subtotal if cost_status == "known" else None
     stages = per_stage(stage_results(run_dir), turns, calls, stamps, cost)
     improve = run_dir / "improve" if run_dir else None
     return {
@@ -201,6 +214,8 @@ def collect(out: Path, run_dir: Path | None = None) -> dict:
         "tokens": {"input_peak": max((x["input"] for x in turns), default=0),
                    "output_total": sum(x["output"] for x in turns)},
         "cost_usd": cost,
+        "cost_status": cost_status,
+        "cost_known_subtotal_usd": known_subtotal,
         "compactions": compactions,
         "truncated_outputs": len(truncated),
         "cancelled_tool_calls": cancelled,
@@ -317,16 +332,20 @@ def per_stage(accepted: list[dict], turns: list[dict], calls: dict, stamps: dict
     for item in accepted:
         window = [x for x in turns if x["t"] is not None and previous < x["t"] <= item["t"]]
         tools = [c for c in calls.values() if c["t"] is not None and previous < c["t"] <= item["t"]]
-        rows.append({"stage": item["stage"], "seconds": round(item["t"] - since, 1), "turns": len(window),
+        row = {"stage": item["stage"], "seconds": round(item["t"] - since, 1), "turns": len(window),
                      "tool_calls": len(tools), "output_tokens": sum(x["output"] for x in window),
-                     "cost_share_usd": round(cost * len(window) / total_turns, 2) if cost else None})
+                     "cost_share_usd": round(cost * len(window) / total_turns, 2) if cost is not None else None}
+        row["cost_share_estimated"] = cost is not None
+        rows.append(row)
         previous = since = item["t"]
     return rows
 
 
 def summary_lines(metrics: dict, top: int = 5) -> list[str]:
     """A few lines for the printed report: the costliest stages and the problems."""
-    lines = [f"turns {metrics['turns']}, cost ${metrics['cost_usd']}, sessions {len(metrics['sessions'])} "
+    cost = metrics.get("cost_usd")
+    cost_text = f"${cost}" if cost is not None else f"unknown ({metrics.get('cost_status', 'unreported')})"
+    lines = [f"turns {metrics['turns']}, cost {cost_text}, sessions {len(metrics['sessions'])} "
              f"({', '.join(str(s['stop']) for s in metrics['sessions']) or 'none ended'}), "
              f"compactions {metrics['compactions']}, truncated outputs {metrics['truncated_outputs']}, "
              f"cancelled tool calls {len(metrics['cancelled_tool_calls'])}, "
