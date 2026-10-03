@@ -45,7 +45,8 @@ MODEL_INPUT = re.compile(r"/inbox/|/run/notes/|/run/evidence/|/run/scratch/|/rev
                          r"commit-message\.md|\.shiploop-improve/[^/\s\"']+/nav-[0-9a-f]+/?(?:[\"'\s]|$)")
 # `git ... commit|add` as a command: at the start of a line or after ; && || |, optionally after VAR=value.
 GLUE_COMMIT = re.compile(r"(?:^|[;&|]\s*)(?:\w+=\S*\s+)*git\b[^\n;&|]*\s(?:commit|add)\b", re.M)
-GLUE_WRITE = re.compile(r"(?:>>?|\btee\b|\bcp\b|\bmv\b|\bmkdir\b|\brm\b)\s+[^\n;&|]*")
+# A redirect needs a path-like target (a slash, dot, $ or ~), so a `>` in prose inside a quoted string ("... > 0 must ...") is not a write.
+GLUE_WRITE = re.compile(r"(?:>>?(?=\s+[\"']?[^\s\"']*[/.$~])|\btee\b|\bcp\b|\bmv\b|\bmkdir\b|\brm\b)\s+[^\n;&|]*")
 GLUE_CONTRACT = re.compile(r"exit_condition|repeat_condition|required_trivial_reviews")
 # Reading ShipLoop's contract is fine; writing one, or feeding one to the Until Loop runtime, is glue.
 CONTRACT_WRITE = re.compile(r"json\.dump\(|write_text|open\([^)]*['\"][wa]|[^-<>=]>\s*[^\s=&]|until[-_]loop")
