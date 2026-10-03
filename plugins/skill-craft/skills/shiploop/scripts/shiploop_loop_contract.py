@@ -9,7 +9,7 @@ review loop adds from its stage's own ``done_when`` criteria.
 from __future__ import annotations
 
 import json
-from typing import Any, Dict, Mapping, Sequence
+from typing import Any, Dict, Mapping, Optional, Sequence
 
 import shiploop_stage_spec as stage_spec
 
@@ -29,6 +29,62 @@ def contract(*, workspace: str, work: str, exit_condition: str, repeat_condition
     }
 
 
+# The Until Loop runtime persists its whole state (frozen contract, latest report, progress) in at most
+# STATE_LIMIT bytes (until_loop_ephemeral.MAX_STATE_BYTES; a test pins the two together). A contract that
+# fills the file leaves no room for the first review report, which then cannot be saved. So a contract may
+# use only STATE_LIMIT minus two reserves:
+#   STATE_OVERHEAD  the state's own keys, run id, action number, streak, tree id and receipt path (about
+#                   420 bytes measured with a 250-character path), rounded up for longer paths;
+#   REPORT_RESERVE  the first report (evidence and a compact handoff). Observed sizes, batch 1003: a Luna
+#                   Backchain plan report of 5,335 bytes (rejected for size) and Improve child reports up to
+#                   2,928 bytes; a Codex xhigh child with a 12,448-byte contract had a report refused for size.
+STATE_LIMIT = 16 * 1024
+STATE_OVERHEAD = 1024
+REPORT_RESERVE = 6 * 1024
+CONTRACT_BUDGET = STATE_LIMIT - STATE_OVERHEAD - REPORT_RESERVE
+
+
+def _bytes(value: Any) -> int:
+    # Exactly the runtime's serialization: compact, sorted keys, and the default ensure_ascii, which writes a
+    # non-ASCII character as 6 bytes (12 for an emoji), not the 3 or 4 of its UTF-8 form.
+    return len(json.dumps(value, separators=(",", ":"), sort_keys=True).encode("utf-8"))
+
+
+def compact_bytes(value: Mapping[str, Any]) -> int:
+    """The contract's size as the runtime counts it in its state file."""
+    return _bytes(value)
+
+
+def size_problem(value: Mapping[str, Any], *, writable: Optional[Mapping[str, str]] = None,
+                 allowance: Optional[int] = None) -> Optional[str]:
+    """Why this contract would leave the loop no room for its first report, or None when it fits.
+
+    ``writable`` maps the contract parts a model wrote (for example ``context.environment``) to the name a
+    model knows them by (the opening's heading); only those parts are listed and told to be shortened, since
+    ShipLoop's own text is not the model's to change. ``allowance`` is how many bytes those parts may use in
+    all, known only to the caller (it depends on ShipLoop's fixed text and the run's paths).
+    """
+    total = _bytes(value)
+    if total <= CONTRACT_BUDGET:
+        return None
+    context = value.get("context") or {}
+    parts = {name: _bytes(value.get(name)) for name in ("work", "exit_condition", "repeat_condition")}
+    parts.update({"context." + name: _bytes(context.get(name))
+                  for name in ("request", "scope", "authority", "environment", "resources")})
+    named = {part: parts.get(part, 0) for part in writable} if writable else parts
+    largest = ", ".join((f"{writable[name]} {size:,}" if writable else f"{name} {size:,}")
+                        for name, size in sorted(named.items(), key=lambda kv: -kv[1])[:4])
+    room = f" The text you wrote may use about {allowance:,} bytes in all." if allowance else ""
+    remedy = ("Shorten the sections above" if writable else "Shorten the text you wrote") + (
+        ", starting with the largest, and put long detail in a file whose path you name (a path costs a few "
+        "bytes; keep the reasoning a later review needs inline)")
+    return (f"the loop contract is {total:,} bytes, {total - CONTRACT_BUDGET:,} over its {CONTRACT_BUDGET:,}-byte "
+            f"budget: the Until Loop keeps its whole state (contract, latest report, progress) in "
+            f"{STATE_LIMIT:,} bytes and needs about {REPORT_RESERVE + STATE_OVERHEAD:,} free for its bookkeeping and "
+            f"the first review report, so a larger contract can start yet fail to save that report. Largest "
+            f"parts you wrote (bytes): {largest}.{room} {remedy}")
+
+
 def dumps(value: Mapping[str, Any]) -> str:
     """The on-disk form of a contract: stable key order, so equal contracts are equal bytes."""
     return json.dumps(value, indent=2, sort_keys=True) + "\n"
@@ -40,4 +96,5 @@ def stage_exit(stage: str) -> str:
     return " The " + stage + " result meets its own done-when criteria: " + "; ".join(criteria) + "."
 
 
-__all__ = ("contract", "dumps", "stage_exit")
+__all__ = ("CONTRACT_BUDGET", "REPORT_RESERVE", "STATE_LIMIT", "STATE_OVERHEAD", "compact_bytes", "contract", "dumps",
+           "size_problem", "stage_exit")

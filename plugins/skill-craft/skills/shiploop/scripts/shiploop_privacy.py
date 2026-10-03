@@ -51,15 +51,25 @@ _DOCUMENTATION_PLACEHOLDER = re.compile(
     r"\$[A-Z][A-Z0-9_]*)$"
 )
 _DOCUMENTATION_FIELD_WORD = re.compile(
-    r"(?i)^(?:header|name|string|field|configuration|config|example|sample|value)$"
+    r"(?i)^(?:header|name|string|field|configuration|config|example|sample|value|"
+    # a label followed by a plain description is not a credential: "auth: none required",
+    # "session token: opaque UUID", "signature: n/a", "auth: oauth2"
+    r"none|n/?a|null|not|required|optional|opaque|disabled|enabled|true|false|unset|unused|tbd|redacted|"
+    r"public|anonymous|session|cookie|basic|bearer|jwt|oauth2?)$"
 )
+# Prose and markdown around a described value ("none.", "(none)", "*none*", "none;") are not part of it.
+_DESCRIPTION_EDGE = "*_()[]{}.,;:!?\u2026"
 
 
 def _documentation_value(value: str) -> bool:
     candidate = value.strip().strip("'\"")
+    described = candidate.strip(_DESCRIPTION_EDGE)
     return (
         _DOCUMENTATION_PLACEHOLDER.fullmatch(candidate) is not None
         or _DOCUMENTATION_FIELD_WORD.fullmatch(candidate) is not None
+        # only punctuation (a masked "***", an empty "()") or a plain description word
+        or not described
+        or _DOCUMENTATION_FIELD_WORD.fullmatch(described) is not None
     )
 
 

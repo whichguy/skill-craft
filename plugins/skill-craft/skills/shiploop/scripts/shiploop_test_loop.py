@@ -28,7 +28,7 @@ import sys
 import time
 from datetime import datetime, timezone
 from pathlib import Path
-from typing import Any, Callable, Dict, List, Mapping, Optional, Tuple
+from typing import Any, Callable, Dict, List, Mapping, Optional, Sequence, Tuple
 
 import shiploop_lint as lint
 import shiploop_loop_contract as loop_contract
@@ -192,6 +192,27 @@ def _work(commands: List[Dict[str, Any]]) -> str:
     return guidance.TEST_ITERATION + "Test command list:\n" + listing + "\n"
 
 
+def _contract(repo: str, title: str, work_item: str, stage: str, work: str,
+              resources: List[Dict[str, str]]) -> Dict[str, Any]:
+    return loop_contract.contract(
+        workspace=repo,
+        work=work,
+        exit_condition=guidance.TEST_EXIT_CONDITION,
+        repeat_condition=guidance.TEST_REPEAT_CONDITION,
+        required_trivial_reviews=1,
+        request=("Test loop (" + stage + ") for ShipLoop work item " + work_item + " ("
+                 + title + "): run its test command list and fix "
+                 "the code until every command exits 0."),
+        scope=("Workspace " + repo + ". The files in " + work_item + "'s change and their tests. "
+               "Preserve every other change."),
+        authority=("Edit in-scope product code and tests. Never change a check's expected result "
+                   "to get green. Do not commit, push, install or download anything. ShipLoop "
+                   "callbacks belong to the parent; the loop never calls them."),
+        environment="Run every command from " + repo + ".",
+        resources=resources,
+    )
+
+
 def build_contract(root: Path, state: Mapping[str, Any], work_item: str, action: str,
                    stage: str) -> Dict[str, Any]:
     """Return the Until Loop start contract for one test-green or regression action."""
@@ -201,26 +222,38 @@ def build_contract(root: Path, state: Mapping[str, Any], work_item: str, action:
     root = Path(root)
     repo = str(state["repo"])
     step_action, _result = _step_plan(state, work_item)
-    return loop_contract.contract(
-        workspace=repo,
-        work=_work(commands),
-        exit_condition=guidance.TEST_EXIT_CONDITION,
-        repeat_condition=guidance.TEST_REPEAT_CONDITION,
-        required_trivial_reviews=1,
-        request=("Test loop (" + stage + ") for ShipLoop work item " + work_item + " ("
-                 + quality._work_title(state, work_item) + "): run its test command list and fix "
-                 "the code until every command exits 0."),
-        scope=("Workspace " + repo + ". The files in " + work_item + "'s change and their tests. "
-               "Preserve every other change."),
-        authority=("Edit in-scope product code and tests. Never change a check's expected result "
-                   "to get green. Do not commit, push, install or download anything. ShipLoop "
-                   "callbacks belong to the parent; the loop never calls them."),
-        environment="Run every command from " + repo + ".",
-        resources=[{"purpose": "accepted step plan: test_commands and completion criteria",
-                    "locator": str(root / "results" / (str(step_action) + ".md"))},
-                   {"purpose": "this action's pass log: append what each iteration checked and what is left",
-                    "locator": str(root / "notes" / (action + ".md"))}],
-    )
+    return _contract(
+        repo, quality._work_title(state, work_item), work_item, stage, _work(commands),
+        [{"purpose": "accepted step plan: test_commands and completion criteria",
+          "locator": str(root / "results" / (str(step_action) + ".md"))},
+         {"purpose": "this action's pass log: append what each iteration checked and what is left",
+          "locator": str(root / "notes" / (action + ".md"))}])
+
+
+def listing_problem(rows: Sequence[Mapping[str, Any]]) -> Optional[str]:
+    """Why a submitted command list could never fit a test-loop contract, or None when it fits.
+
+    The contract is written at a transition, where nothing can be refused, so the list is checked where the
+    model submits it. Paths and the title are costed generously; every command is counted (the regression
+    stage lists them all, a superset of the focused list).
+    """
+    try:
+        listing = _work([dict(row) for row in rows])
+    except (KeyError, TypeError):
+        return None  # a malformed row is refused by the shape check
+    path = "/" + "x" * 300
+    resources = [{"purpose": "accepted step plan: test_commands and completion criteria", "locator": path},
+                 {"purpose": "this action's pass log: append what each iteration checked and what is left",
+                  "locator": path}]
+    empty = loop_contract.compact_bytes(_contract(path, "t" * 200, "W" * 8, "regression", _work([]), resources))
+    full = loop_contract.compact_bytes(_contract(path, "t" * 200, "W" * 8, "regression", listing, resources))
+    if full <= loop_contract.CONTRACT_BUDGET:
+        return None
+    room = loop_contract.CONTRACT_BUDGET - empty
+    return (f"the test command list renders to {full - empty:,} bytes, but the test loop's contract holds only about "
+            f"{room:,} bytes of it (the Until Loop keeps its whole state in {loop_contract.STATE_LIMIT:,} bytes and "
+            "needs room for its first report): shorten the ids lists, drop duplicate commands, or split this work "
+            "item into smaller steps")
 
 
 def transition_writes(root: Path, after: Mapping[str, Any], work_item: Optional[str],

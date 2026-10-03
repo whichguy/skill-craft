@@ -1481,6 +1481,9 @@ def _check_submitted_test_commands(stage: str, result: Any) -> None:
     _need("steps" in result,
           "a done step-plan result must list steps: [{\"id\": \"S1\", \"task\": \"...\", \"deps\": []}] in the order to do "
           "them (one step is fine); ShipLoop issues one implement packet per step")
+    # The test loop's contract carries this list and is written at a transition, where nothing can be refused.
+    problem = test_loop.listing_problem(result.get("test_commands") or [])
+    _need(problem is None, problem or "")
 
 
 def _check_submitted_consumer_entry(repo: str, stage: str, result: Any) -> None:
@@ -3447,11 +3450,18 @@ def _render_improve(core: Any, root: Path, state: Mapping[str, Any], lines: list
     evidence_root = packet_path.parent / "reviews"
     # Both routes: the parent writes the opening and ShipLoop freezes the contract and starts
     # the child (improve-start); a model never writes the start contract (149ed901, 551b8b49).
+    opening_allowance = improve_opening_allowance(core, root, state)
     start_lines = [
             "Context-first opening: before start, write the opening file " + str(improve_opening_path(child))
             + " with exactly these four sections, each filled from this conversation and the candidate:\n"
             + improve_opening_template()
-            + "'Current context and desired improvements' holds current learnings, decisions, unresolved concerns and suggested improvements to assess; 'Scope' the exact candidate paths (including untracked ones) and anything excluded; 'Authority' current approvals, declines, pending decisions and any no-commit override, with their source; 'Environment' the runtime, commands and checks that apply. Supply essential meaning inline and existing locators for supporting detail; do not copy this packet or restate the skill's execution instructions.",
+            + "'Current context and desired improvements' holds current learnings, decisions, unresolved concerns and suggested improvements to assess; 'Scope' the exact candidate paths (including untracked ones) and anything excluded; 'Authority' current approvals, declines, pending decisions and any no-commit override, with their source; 'Environment' the runtime, commands and checks that apply. Supply essential meaning inline and existing locators for supporting detail; do not copy this packet or restate the skill's execution instructions. "
+            "Size budget: the opening is frozen into the Until Loop's state, which the runtime caps at "
+            + f"{loop_contract.STATE_LIMIT:,} bytes in all (contract, latest report, progress). improve-start refuses a contract over "
+            + f"{loop_contract.CONTRACT_BUDGET:,} bytes so the first review report still fits; ShipLoop's own text leaves the four sections "
+            + (f"about {opening_allowance:,} bytes together" if opening_allowance else "little more than a few thousand bytes together")
+            + " (non-ASCII text counts several bytes per character). Put long detail in a file and name its path in the section; "
+            "keep inline the reasoning a later review needs. A refusal says how far over you are and which section to shorten.",
             "Then run: " + _callback(core, root, "improve-start", action=action_id, opening=str(improve_opening_path(child)))
             + " . ShipLoop freezes the child contract from the opening (binding line, workspace, work, exit and repeat conditions, commit policy, exclusions and every return locator; written to start.json beside the receipt), starts the bound runtime with the receipt below and prints the child's first packet. Do not write the start contract or start the runtime yourself. If this child already started, recover it from its receipt as described below instead.",
     ]
@@ -3877,6 +3887,25 @@ def improve_opening_template() -> str:
     return "\n\n".join("## " + name + "\n..." for name in OPENING_SECTIONS) + "\n"
 
 
+# The contract parts the parent's opening sections become, named as the parent knows them.
+OPENING_CONTRACT_PARTS = {
+    "context.request": "Current context and desired improvements",
+    "context.scope": "Scope",
+    "context.authority": "Authority",
+    "context.environment": "Environment",
+}
+
+
+def improve_opening_allowance(core: Any, root: Path, state: Mapping[str, Any]) -> int | None:
+    """Bytes the four opening sections may use together: the contract budget less ShipLoop's own text."""
+    minimal = "\n\n".join("## " + name + "\nx" for name in OPENING_SECTIONS) + "\n"
+    try:
+        contract = improve_start_contract(core, root, state, minimal)
+    except NavigatorError:
+        return None
+    return max(0, loop_contract.CONTRACT_BUDGET - loop_contract.compact_bytes(contract))
+
+
 def _opening_sections(text: str) -> dict[str, str]:
     """The four required `## ` sections of an opening file, each non-empty."""
     sections: dict[str, list[str]] = {}
@@ -4030,6 +4059,11 @@ def _improve_start(core: Any, root: Path, state: Mapping[str, Any], args: Any) -
     _need(getattr(args, "opening", None) == str(opening), "Improve opening must use the printed path " + str(opening))
     _need(opening.is_file() and not opening.is_symlink(), "write the opening file first: " + str(opening))
     contract = improve_start_contract(core, root, state, opening.read_text(encoding="utf-8"))
+    # Refuse here, before anything is written or archived: a contract that fills the runtime's state file
+    # leaves no room for the first review report, and that is only discovered after the review is done.
+    problem = loop_contract.size_problem(contract, writable=OPENING_CONTRACT_PARTS,
+                                         allowance=improve_opening_allowance(core, root, state))
+    _need(problem is None, problem or "")
     if restart:
         # Keep the stopped child's packet and evidence; the new child writes its own.
         stamp = datetime.now(timezone.utc).strftime("%Y%m%dT%H%M%SZ")

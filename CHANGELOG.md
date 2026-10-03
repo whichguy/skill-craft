@@ -4,6 +4,15 @@ Written by scripts/release.py.
 
 ## 2026-10-03
 
+### skill-craft 1.16.1
+
+- Skills: shiploop 0.48.1
+
+### shiploop 0.48.1
+
+- The credential check no longer refuses a label followed by a plain description (`session token: opaque UUID`, `auth: none required`, `auth: oauth2`, `signature: n/a.`), including punctuation or markdown around it; real secrets after the same labels are still refused. A GPT-6 Luna discovery result was refused twice for text that held no credential.
+- `improve-start` refuses an Improve contract over 9,216 bytes before anything is written, counting bytes the way the Until Loop does and telling the model how far over it is, which opening section to shorten and how many bytes the sections may use; the opening and Backchain packets state that budget, and a step plan whose test command list could not fit the test loop's contract is refused where it is submitted. The Until Loop saves its whole state in 16,384 bytes, so a larger contract can start yet fail to save its first review report. A GPT-6 Luna run wrote 12-16 KB contracts and its plan stage could not close.
+
 ### skill-craft 1.16.0
 
 - Skills: backchain 0.6.2, improve 0.3.0-rc.11, shiploop 0.48.0, shiploop-e2e-audit 0.5.4
