@@ -64,6 +64,47 @@
       "out=$(printf '32\\n212\\n\\n50\\n' | python3 measure.py) && python3 -c \"import json,sys; d=json.loads(sys.argv[1]); assert d == {'count': 3, 'mean_c': 36.67, 'median_c': 10.0}, d\" \"$out\"",
       "printf '' | python3 measure.py > out.txt 2> err.txt; rc=$?; [ $rc -eq 1 ] && [ ! -s out.txt ] && ! grep -q Traceback err.txt; r=$?; rm -f out.txt err.txt; exit $r",
       "printf '32\\nabc\\n' | python3 measure.py > out.txt 2> err.txt; rc=$?; [ $rc -eq 2 ] && grep -q 'line 2: not a number' err.txt && grep -q '\"count\": 1' out.txt; r=$?; rm -f out.txt err.txt; exit $r"
-    ]
+    ],
+    "chain": {
+      "min_steps": 3,
+      "min_in_flight": 2,
+      "min_depth": 2
+    }
+  },
+  "unit-converter": {
+    "style": "parallel-graph",
+    "prompt": "Build a small Python 3 unit converter (standard library only) as four independent modules and one command that uses all of them. length.py provides km_to_miles(x) and miles_to_km(x) (1 mile = 1.609344 km); mass.py provides kg_to_lb(x) and lb_to_kg(x) (1 lb = 0.45359237 kg); volume.py provides liters_to_gallons(x) and gallons_to_liters(x) (1 US gallon = 3.785411784 liters); speed.py provides kmh_to_mph(x) and mph_to_kmh(x). convert.py is a command: `python3 convert.py VALUE FROM TO` with units km, mi, kg, lb, l, gal, kmh, mph prints the converted value rounded to 4 decimals and exits 0; an unknown unit, a pair from different quantities, or a value that is not a number prints an error on stderr without a traceback and exits 2. Deliver it with ShipLoop's Ask-Agent delegation so modules that do not depend on each other are implemented in parallel as separate chain steps, and each module that uses others is implemented after them. Cover every module with unittest tests that run with `python3 -m unittest`.",
+    "checks": [
+      "python3 -c \"import sys, unittest; suite = unittest.defaultTestLoader.discover('.'); result = unittest.TextTestRunner(verbosity=0).run(suite); sys.exit(not (result.testsRun and result.wasSuccessful()))\"",
+      "python3 -c \"from length import km_to_miles, miles_to_km; assert abs(miles_to_km(1) - 1.609344) < 1e-9 and abs(km_to_miles(1.609344) - 1) < 1e-9\"",
+      "python3 -c \"from mass import kg_to_lb, lb_to_kg; assert abs(lb_to_kg(1) - 0.45359237) < 1e-9 and abs(kg_to_lb(0.45359237) - 1) < 1e-9\"",
+      "python3 -c \"from volume import liters_to_gallons, gallons_to_liters; assert abs(gallons_to_liters(1) - 3.785411784) < 1e-9\"",
+      "python3 -c \"from speed import kmh_to_mph, mph_to_kmh; assert abs(mph_to_kmh(1) - 1.609344) < 1e-9 and abs(kmh_to_mph(1.609344) - 1) < 1e-9\"",
+      "[ \"$(python3 convert.py 10 km mi)\" = \"6.2137\" ] && [ \"$(python3 convert.py 2 gal l)\" = \"7.5708\" ]",
+      "[ -f convert.py ] || exit 1; python3 convert.py 1 km kg > out.txt 2> err.txt; rc=$?; [ $rc -eq 2 ] && [ ! -s out.txt ] && [ -s err.txt ] && ! grep -q Traceback err.txt; r=$?; rm -f out.txt err.txt; exit $r"
+    ],
+    "chain": {
+      "min_steps": 5,
+      "min_in_flight": 3,
+      "min_depth": 2
+    }
+  },
+  "word-report": {
+    "style": "parallel-graph",
+    "prompt": "Build a small Python 3 word-frequency report (standard library only) in five modules with two levels of dependencies. tokens.py provides words(text): the lowercase words of text, where a word is a run of ASCII letters and apostrophes. stopwords.py provides STOPWORDS, a frozenset of at least \"the\", \"a\", \"an\", \"and\", \"of\", \"to\" and \"in\", and is_stopword(word). counts.py uses tokens.py: counts(text) returns a dict of word -> occurrences. filters.py uses stopwords.py: content_words(words) returns the list without stopwords, in order. report.py uses counts.py and filters.py and is a command: it reads text from stdin and prints the top N non-stopword words (N from the first argument, default 3), one `word count` line each, ordered by count descending then word ascending, exiting 0; a first argument that is not a positive integer prints an error on stderr without a traceback and exits 2. Deliver it with ShipLoop's Ask-Agent delegation so modules that do not depend on each other are implemented in parallel as separate chain steps, and each module that uses others is implemented after them. Cover every module with unittest tests that run with `python3 -m unittest`.",
+    "checks": [
+      "python3 -c \"import sys, unittest; suite = unittest.defaultTestLoader.discover('.'); result = unittest.TextTestRunner(verbosity=0).run(suite); sys.exit(not (result.testsRun and result.wasSuccessful()))\"",
+      "python3 -c \"from tokens import words; assert words(\\\"It's the cat, the CAT!\\\") == [\\\"it's\\\", 'the', 'cat', 'the', 'cat']\"",
+      "python3 -c \"from stopwords import STOPWORDS, is_stopword; assert {'the', 'a', 'an', 'and', 'of', 'to', 'in'} <= STOPWORDS and is_stopword('the') and not is_stopword('cat')\"",
+      "python3 -c \"from counts import counts; assert counts('a cat a dog') == {'a': 2, 'cat': 1, 'dog': 1}\"",
+      "python3 -c \"from filters import content_words; assert content_words(['the', 'cat', 'and', 'dog']) == ['cat', 'dog']\"",
+      "out=$(printf 'the cat and the dog\\nthe cat ran to a dog in the yard cat\\n' | python3 report.py 2) && [ \"$out\" = \"$(printf 'cat 3\\ndog 2')\" ]",
+      "[ -f report.py ] || exit 1; printf 'x' | python3 report.py zero > out.txt 2> err.txt; rc=$?; [ $rc -eq 2 ] && [ ! -s out.txt ] && [ -s err.txt ] && ! grep -q Traceback err.txt; r=$?; rm -f out.txt err.txt; exit $r"
+    ],
+    "chain": {
+      "min_steps": 5,
+      "min_in_flight": 2,
+      "min_depth": 3
+    }
   }
 }

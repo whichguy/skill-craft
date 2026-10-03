@@ -315,7 +315,8 @@ class LiveView:
 
 
 def launch(argv: list[str], work: Path, out: Path, env: dict, timeout: int, watch: bool,
-           first: bool = True, fresh: bool = True, translate=None) -> dict:
+           first: bool = True, fresh: bool = True, translate=None, stop_when=None) -> dict:
+    """Run one host session. `stop_when`, polled every 2 s, kills the session (status "interrupted")."""
     if first and fresh:
         # The skill must start from a directory with nothing in it.
         leftover = sorted(p.name for p in work.iterdir())
@@ -365,13 +366,21 @@ def launch(argv: list[str], work: Path, out: Path, env: dict, timeout: int, watc
 
         reader = threading.Thread(target=pump, daemon=True)
         reader.start()
-        try:
-            proc.wait(timeout=timeout)
+        deadline = time.time() + timeout
+        status = None
+        while proc.poll() is None:
+            if time.time() >= deadline:
+                status = "timeout"
+            elif stop_when is not None and stop_when():
+                status = "interrupted"
+            if status:
+                # The whole process group: the host and any native workers it started.
+                os.killpg(proc.pid, signal.SIGKILL)
+                proc.wait()
+                break
+            time.sleep(2)
+        if status is None:
             status = "exited" if proc.returncode == 0 else "failed"
-        except subprocess.TimeoutExpired:
-            os.killpg(proc.pid, signal.SIGKILL)
-            proc.wait()
-            status = "timeout"
         reader.join(timeout=10)
         proc.stdout.close()
     return {"status": status, "returncode": proc.returncode,
@@ -623,17 +632,39 @@ def seed_prompt(cli: Path, run_dir: str, prompt: str) -> str:
             f"is still running.\n\nThe request: {prompt}")
 
 
-def chain_facts(out: Path) -> dict:
+CHAIN_DEFAULTS = {"min_steps": 2, "min_in_flight": 2, "min_depth": 1}
+
+
+def _bindings(out: Path):
+    for binding_path in sorted(out.rglob("chains/*/binding.md")):
+        if binding_path.relative_to(out).parts[0] not in ("home", "build", "marketplace"):
+            yield binding_path
+
+
+def _depth(deps: dict[str, list[str]]) -> int:
+    """Steps on the longest dependency path (1 = no step depends on another)."""
+    memo: dict[str, int] = {}
+
+    def level(step: str, seen: frozenset = frozenset()) -> int:
+        if step not in memo:
+            memo[step] = 1 + max((level(d, seen | {step}) for d in deps.get(step, []) if d not in seen), default=0)
+        return memo[step]
+    return max((level(step) for step in deps), default=0)
+
+
+def chain_facts(out: Path, expect: dict | None = None) -> dict:
     """ShipLoop chain evidence from files only, never from the model's account.
 
-    For each binding under run/chains/<action>/: the dispatcher's step and
-    attempt records, and, in ledger order, the most launched workers whose
-    results were not yet imported (2 or more means the chain fanned out).
+    For each binding under run/chains/<action>/, from the dispatcher state and the
+    bridge ledger (in ledger order): steps accepted, native vs main-context
+    attempts, the most launched workers not yet imported (fan-out), each step's
+    integrations (contribution_recorded; exactly one each), and whether every step
+    launched only after each dependency was integrated. `expect` (a case's
+    "chain" entry) sets min_steps, min_in_flight and min_depth.
     """
+    expect = {**CHAIN_DEFAULTS, **(expect or {})}
     chains = []
-    for binding_path in sorted(out.rglob("chains/*/binding.md")):
-        if binding_path.relative_to(out).parts[0] in ("home", "build"):
-            continue
+    for binding_path in _bindings(out):
         fact = {"binding": str(binding_path)}
         try:
             binding = store.read_record(binding_path)
@@ -644,28 +675,67 @@ def chain_facts(out: Path) -> dict:
             chains.append(dict(fact, error=str(exc)))
             continue
         attempts = state.get("attempts", {})
+        steps = state.get("steps", {})
+        deps = {s["id"]: list(s.get("deps") or []) for s in (state.get("graph") or {}).get("steps", [])}
+        step_of = {attempt: record.get("step") for attempt, record in attempts.items()}
         in_flight, most = set(), 0
+        first_launch, integrated, integrations = {}, {}, {}
+        for row in events:
+            event = row["event"]
+            data = event.get("data") or {}
+            attempt = data.get("attempt")
+            step = data.get("step") or step_of.get(attempt)
+            if event["kind"] == "launched_result":
+                in_flight.add(attempt)
+                most = max(most, len(in_flight))
+                first_launch.setdefault(step, event["seq"])
+            elif event["kind"] == "handoff_import_result":
+                in_flight.discard(attempt)
+            elif event["kind"] == "contribution_recorded":
+                integrations[step] = integrations.get(step, 0) + 1
+                integrated.setdefault(step, event["seq"])
+        out_of_order = sorted(step for step, needs in deps.items() if step in first_launch and any(
+            dep not in integrated or integrated[dep] > first_launch[step] for dep in needs))
+        accepted = sum(1 for s in steps.values() if s.get("status") == "accepted")
+        fact.update({
+            "mode": binding.get("mode"),
+            "steps": len(steps),
+            "accepted": accepted,
+            "depth": _depth(deps),
+            "native_attempts": sum(1 for a in attempts.values() if a.get("handle")),
+            "main_context_attempts": sum(1 for a in attempts.values() if a.get("executor")),
+            "attempts": len(attempts),
+            "max_in_flight": most,
+            "out_of_order": out_of_order,
+            "integrated_twice": sorted(step for step, count in integrations.items() if count > 1),
+            "not_integrated": sorted(step for step in steps if integrations.get(step, 0) == 0),
+            "events": len(events),
+        })
+        fact["pass"] = (fact["steps"] >= expect["min_steps"] and accepted == fact["steps"]
+                        and fact["depth"] >= expect["min_depth"] and most >= expect["min_in_flight"]
+                        and not out_of_order and not fact["integrated_twice"] and not fact["not_integrated"])
+        chains.append(fact)
+    return {"pass": any(c.get("pass") for c in chains), "expect": expect, "bindings": chains}
+
+
+def chain_in_flight(out: Path) -> bool:
+    """Whether some chain worker has launched and its result is not yet imported."""
+    for binding_path in _bindings(out):
+        try:
+            events = chain_ledger.read_events(str(binding_path.parent / "events"))
+        except (ValueError, OSError):
+            continue
+        open_attempts = set()
         for row in events:
             event = row["event"]
             attempt = (event.get("data") or {}).get("attempt")
             if event["kind"] == "launched_result":
-                in_flight.add(attempt)
-                most = max(most, len(in_flight))
+                open_attempts.add(attempt)
             elif event["kind"] == "handoff_import_result":
-                in_flight.discard(attempt)
-        steps = state.get("steps", {})
-        fact.update({
-            "mode": binding.get("mode"),
-            "steps": len(steps),
-            "accepted": sum(1 for s in steps.values() if s.get("status") == "accepted"),
-            "native_attempts": sum(1 for a in attempts.values() if a.get("handle")),
-            "main_context_attempts": sum(1 for a in attempts.values() if a.get("executor")),
-            "max_in_flight": most,
-            "events": len(events),
-        })
-        chains.append(fact)
-    fanned = [c for c in chains if c.get("steps") and c["accepted"] == c["steps"] and c["max_in_flight"] >= 2]
-    return {"pass": bool(fanned), "bindings": chains}
+                open_attempts.discard(attempt)
+        if open_attempts:
+            return True
+    return False
 
 
 def knowledge_facts(work: Path) -> dict:
@@ -740,6 +810,9 @@ def parser() -> argparse.ArgumentParser:
     p.add_argument("--seed-at", choices=SEED_STAGES,
                    help="start an Ask-Agent run at this stage, with the earlier stages recorded without doing "
                         "them, to reach the implementation chain without hours of planning; also grades the chain")
+    p.add_argument("--interrupt-at", choices=("chain-launched",),
+                   help="kill the host (and its workers) as soon as a chain worker is in flight, then resume the "
+                        "run with a fresh session; graded as `recovery`")
     p.add_argument("--check", action="append", help="extra shell check run in the work dir (repeatable)")
     p.add_argument("--output", type=Path, help="new directory for this attempt (default: under $TMPDIR)")
     p.add_argument("--host", choices=[*sorted(hosts.HOSTS), "all"], default="claude",
@@ -942,6 +1015,7 @@ def main(argv: list[str] | None = None) -> int:
 
     resumed = None
     regrade = False
+    earlier = {}
     if args.resume_run:
         # Continue a stopped run in place: same work directory, run state and event stream.
         out = args.resume_run.expanduser().resolve()
@@ -997,7 +1071,8 @@ def main(argv: list[str] | None = None) -> int:
         plugin = host.install_plugin(env, plugin_dir)
         versions = {"source": "checkout", **installed_versions(plugin_dir), "local_head": git("rev-parse", "HEAD").strip()}
     keepalive = hosts.grok_keepalive(env, plugin_dir) if host.keepalive else None
-    seeded = None
+    seeded = earlier.get("seeded") if resumed else None
+    interrupt_at = earlier.get("interrupt_at") if resumed else args.interrupt_at
     if args.seed_at and not resumed:
         cli_path = host.plugin_cli(out / "home") or plugin_dir / "skills" / "shiploop" / "scripts" / "shiploop"
         seeded = seed_run(cli_path, work, out, prompt, args.seed_at)
@@ -1016,7 +1091,8 @@ def main(argv: list[str] | None = None) -> int:
                     plugin_dir=None if host.marketplace else plugin_dir)
     invocation = {"case": name, "host": args.host, "model": args.model, "effort": args.effort, "argv": cli,
                   "cwd": str(work), "plugin_dir": str(plugin_dir), "versions": versions, "checks": checks,
-                  "follow_on": follow_on, "resumed_run": resumed, "seeded": seeded}
+                  "follow_on": follow_on, "resumed_run": resumed, "seeded": seeded,
+                  "interrupt_at": interrupt_at}
     if resumed:
         # The original invocation stays as it was; each resume is recorded beside it.
         (out / f"invocation-resume-{host.name}-{int(time.time())}.json").write_text(
@@ -1033,10 +1109,27 @@ def main(argv: list[str] | None = None) -> int:
         # ShipLoop already reached done: no host is started, and the verdicts are computed from what is on disk.
         process = {"status": "exited", "returncode": 0, "elapsed_seconds": 0.0, "regraded": True}
     else:
+        interrupt_file = out / "interrupt.json"
+        stop_when = ((lambda: chain_in_flight(out)) if interrupt_at and not interrupt_file.exists() else None)
         process = launch(cli, work, out, env, args.timeout, watch=not args.quiet,
                          fresh=follow_on is None and seeded is None,
-                         first=resumed is None, translate=host.translator())
+                         first=resumed is None, translate=host.translator(), stop_when=stop_when)
     sessions = [dict(process, resumed=None, host=host.name)]
+    if process["status"] == "interrupted":
+        state = grade_shiploop(out)
+        interrupt_file.write_text(json.dumps({
+            "at": interrupt_at, "elapsed_seconds": process["elapsed_seconds"], "stage": state.get("stage"),
+            "revision": state.get("revision"), "chain": chain_facts(out)["bindings"]}, indent=2) + "\n")
+        if not args.quiet:
+            print(f"interrupted: killed the host at {process['elapsed_seconds']}s with a chain worker in flight; "
+                  "resuming with a fresh session", flush=True)
+        argv = host.argv(prompt=resume_prompt(out, state.get("run_dir"), host),
+                         prompt_file=out / "resume-after-interrupt.txt", cwd=work, model=args.model,
+                         effort=args.effort, permission_mode=args.permission_mode, max_turns=args.max_turns,
+                         max_budget_usd=args.max_budget_usd, plugin_dir=None if host.marketplace else plugin_dir)
+        process = launch(argv, work, out, env, max(60, int(deadline - time.time())), watch=not args.quiet,
+                         first=False, translate=host.translator())
+        sessions.append(dict(process, resumed="after-interrupt", host=host.name))
     # A headless Grok session ends whenever the model ends its turn. While ShipLoop's
     # run is still active, resume that same session (bounded) instead of losing the run.
     while host.resumable and len(sessions) <= args.max_resumes:
@@ -1085,9 +1178,15 @@ def main(argv: list[str] | None = None) -> int:
         # Informational only: does the unreturned candidate already pass?
         shiploop["worktree_checks"] = [{k: c[k] for k in ("command", "pass")}
                                        for c in run_checks(Path(shiploop["worktree"]), checks, env=check_env)]
-    chain = chain_facts(out) if seeded else None
+    expect = json.loads(CASES.read_text()).get(name, {}).get("chain") if name != "custom" else None
+    chain = chain_facts(out, expect) if (seeded or interrupt_at or expect) else None
+    recovery = None
+    if interrupt_at:
+        interrupt_file = out / "interrupt.json"
+        interrupted = json.loads(interrupt_file.read_text()) if interrupt_file.is_file() else None
+        recovery = {"pass": bool(interrupted) and chain["pass"], "interrupt": interrupted}
     verdicts = [invoked["pass"], plugin["pass"], process["pass"], shiploop["pass"], committed["pass"],
-                *([chain["pass"]] if chain else []),
+                *([chain["pass"]] if chain else []), *([recovery["pass"]] if recovery else []),
                 *(c["pass"] for c in check_results)]
     if keepalive is not None:
         keepalive["decisions"] = hosts.keepalive_decisions(out / "home")
@@ -1096,7 +1195,7 @@ def main(argv: list[str] | None = None) -> int:
               "process": process,
               "keepalive": keepalive,
               "shiploop": shiploop, "committed": committed, "checks": check_results, "cli": cli_seen, "follow_on": follow_on,
-              "resumed_run": resumed, "seeded": seeded, "chain": chain,
+              "resumed_run": resumed, "seeded": seeded, "chain": chain, "recovery": recovery,
               "metrics": {k: run_metrics[k] for k in ("turns", "cost_usd", "compactions", "truncated_outputs",
                                                       "improve_children")}
               | {"script_verifications": run_metrics["script_verifications"],
@@ -1143,10 +1242,17 @@ def main(argv: list[str] | None = None) -> int:
     if chain is not None:
         for binding in chain["bindings"] or [{}]:
             print(f"  chain     {mark(chain['pass'])}  " + (
-                f"{binding.get('mode')} {binding.get('accepted')}/{binding.get('steps')} steps accepted, "
-                f"native {binding.get('native_attempts')}, main-context {binding.get('main_context_attempts')}, "
-                f"most in flight {binding.get('max_in_flight')}" if binding.get("steps") is not None
-                else binding.get("error") or "no chain bound"))
+                f"{binding.get('mode')} {binding.get('accepted')}/{binding.get('steps')} steps accepted, depth "
+                f"{binding.get('depth')}, native {binding.get('native_attempts')}, main-context "
+                f"{binding.get('main_context_attempts')}, most in flight {binding.get('max_in_flight')}"
+                + "".join(f", {key} {binding[key]}" for key in ("out_of_order", "integrated_twice", "not_integrated")
+                          if binding.get(key))
+                if binding.get("steps") is not None else binding.get("error") or "no chain bound"))
+    if recovery is not None:
+        stop = recovery["interrupt"]
+        print(f"  recovery  {mark(recovery['pass'])}  " + (
+            f"killed at {stop['elapsed_seconds']}s in {stop['stage']}; a fresh session resumed the chain"
+            if stop else "the host was never interrupted (no chain worker was ever in flight)"))
     for line in metrics.summary_lines(run_metrics):
         print(f"  metrics   {line}")
     for failure in run_metrics["shiploop_failures"][:5]:

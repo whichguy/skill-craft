@@ -77,6 +77,28 @@ print(json.dumps({{"type": "assistant", "message": {{"content": [{{"type": "tool
                   "input": {{"command": "shiploop next"}}}}]}}}}))
 if mode in ("done", "no-skill"):
     product()
+if mode == "chain-hang":
+    sys.path.insert(0, {str(ROOT / 'skills/shiploop/scripts')!r})
+    import shiploop_chain_ledger as ledger, time
+    chain = Path.cwd().parent / ".shiploop-runs" / "seed" / "run" / "chains" / "nav-1"
+    child = chain / "child"
+    def ledger_events(*rows):
+        start = len(ledger.read_events(str(chain / "events")))
+        for number, (kind, data) in enumerate(rows, start):
+            ledger.append_event(str(chain / "events"), f"e{{number}}", kind, data)
+    if "This session ended" not in argv[argv.index("-p") + 1]:
+        child.mkdir(parents=True)
+        store.write_record(chain / "binding.md", {{"dispatcher_run": str(child), "mode": "parallel"}})
+        ledger_events(("launched_result", {{"attempt": "A-1"}}), ("launched_result", {{"attempt": "B-1"}}))
+        time.sleep(120)  # killed by --interrupt-at long before this ends
+    (child / "plan-dispatcher-state.json").write_text(json.dumps({{
+        "graph": {{"steps": [{{"id": "A", "deps": []}}, {{"id": "B", "deps": []}}]}},
+        "steps": {{"A": {{"status": "accepted"}}, "B": {{"status": "accepted"}}}},
+        "attempts": {{"A-1": {{"step": "A", "handle": "h"}}, "B-1": {{"step": "B", "handle": "h"}}}}}}))
+    ledger_events(("handoff_import_result", {{"attempt": "A-1"}}), ("handoff_import_result", {{"attempt": "B-1"}}),
+                  ("contribution_recorded", {{"attempt": "A-1", "step": "A"}}),
+                  ("contribution_recorded", {{"attempt": "B-1", "step": "B"}}))
+    product()
 print(json.dumps({{"type": "result", "subtype": "success", "num_turns": 3, "total_cost_usd": 0.0,
                   "result": "done"}}))
 """
@@ -441,42 +463,102 @@ class SeedTest(HarnessCase):
         self.assertIn(f'next --run-dir "{result["seeded"]["run_dir"]}"', prompt)
         self.assertIn("stages before step-plan without doing them", prompt)
         self.assertEqual(result["committed"]["start_head"], result["seeded"]["start_head"])
-        self.assertEqual(result["chain"], {"pass": False, "bindings": []})
+        self.assertEqual((result["chain"]["pass"], result["chain"]["bindings"]), (False, []))
         self.assertFalse(self.baselines.exists())
 
-    def chain(self, launches_then_imports: list[tuple[str, str]], accepted: dict[str, str]) -> dict:
+    def chain(self, events: list[tuple[str, str]], status: dict[str, str], deps: dict[str, list[str]] | None = None,
+              expect: dict | None = None) -> dict:
+        """A binding whose ledger holds `events` as (kind, step); contributions name their step."""
         import shiploop_chain_ledger as ledger
         out = self.tmp / "out"
         chain_dir = out / ".shiploop-runs" / "seed" / "run" / "chains" / "nav-1"
         dispatcher = chain_dir / "child"
         dispatcher.mkdir(parents=True)
         run.store.write_record(chain_dir / "binding.md", {"dispatcher_run": str(dispatcher), "mode": "parallel"})
+        deps = deps or {step: [] for step in status}
         (dispatcher / "plan-dispatcher-state.json").write_text(json.dumps({
-            "steps": {step: {"status": status} for step, status in accepted.items()},
-            "attempts": {f"{step}-1": {"step": step, "handle": f"h-{step}"} for step in accepted}}))
-        for number, (kind, step) in enumerate(launches_then_imports):
-            ledger.append_event(str(chain_dir / "events"), f"e{number}", kind, {"attempt": f"{step}-1"})
-        return run.chain_facts(out)
+            "graph": {"steps": [{"id": step, "deps": needs} for step, needs in deps.items()]},
+            "steps": {step: {"status": s} for step, s in status.items()},
+            "attempts": {f"{step}-1": {"step": step, "handle": f"h-{step}"} for step in status}}))
+        for number, (kind, step) in enumerate(events):
+            data = {"attempt": f"{step}-1", **({"step": step} if kind == "contribution_recorded" else {})}
+            ledger.append_event(str(chain_dir / "events"), f"e{number}", kind, data)
+        return run.chain_facts(out, expect)
 
-    def test_chain_passes_only_when_every_step_is_accepted_and_two_ran_together(self):
-        parallel = [("launched_result", "A"), ("launched_result", "B"), ("handoff_import_result", "A"),
-                    ("handoff_import_result", "B"), ("launched_result", "J"), ("handoff_import_result", "J")]
-        facts = self.chain(parallel, {"A": "accepted", "B": "accepted", "J": "accepted"})
+    @staticmethod
+    def worked(*steps: str) -> list[tuple[str, str]]:
+        """Launch every step together, then import and integrate each."""
+        return ([("launched_result", s) for s in steps] + [("handoff_import_result", s) for s in steps]
+                + [("contribution_recorded", s) for s in steps])
+
+    def test_chain_passes_when_all_accepted_in_order_once_and_two_ran_together(self):
+        events = self.worked("A", "B") + self.worked("J")
+        facts = self.chain(events, {"A": "accepted", "B": "accepted", "J": "accepted"},
+                           {"A": [], "B": [], "J": ["A", "B"]})
         self.assertTrue(facts["pass"], facts)
-        self.assertEqual(facts["bindings"][0]["max_in_flight"], 2)
-        self.assertEqual(facts["bindings"][0]["native_attempts"], 3)
+        binding = facts["bindings"][0]
+        self.assertEqual((binding["max_in_flight"], binding["depth"], binding["native_attempts"]), (2, 2, 3))
 
     def test_serial_chain_fails(self):
-        serial = [("launched_result", "A"), ("handoff_import_result", "A"),
-                  ("launched_result", "B"), ("handoff_import_result", "B")]
-        facts = self.chain(serial, {"A": "accepted", "B": "accepted"})
+        facts = self.chain(self.worked("A") + self.worked("B"), {"A": "accepted", "B": "accepted"})
         self.assertFalse(facts["pass"])
         self.assertEqual(facts["bindings"][0]["max_in_flight"], 1)
 
     def test_unaccepted_step_fails_even_after_fan_out(self):
-        facts = self.chain([("launched_result", "A"), ("launched_result", "B")],
-                           {"A": "accepted", "B": "running"})
+        facts = self.chain(self.worked("A", "B"), {"A": "accepted", "B": "running"})
         self.assertFalse(facts["pass"])
+
+    def test_a_step_launched_before_its_dependency_was_integrated_fails(self):
+        events = [("launched_result", "A"), ("launched_result", "B"), ("launched_result", "J"),
+                  ("handoff_import_result", "A"), ("handoff_import_result", "B"), ("handoff_import_result", "J"),
+                  ("contribution_recorded", "A"), ("contribution_recorded", "B"), ("contribution_recorded", "J")]
+        facts = self.chain(events, {"A": "accepted", "B": "accepted", "J": "accepted"},
+                           {"A": [], "B": [], "J": ["A", "B"]})
+        self.assertFalse(facts["pass"])
+        self.assertEqual(facts["bindings"][0]["out_of_order"], ["J"])
+
+    def test_a_step_integrated_twice_or_never_fails(self):
+        twice = self.chain(self.worked("A", "B") + [("contribution_recorded", "A")],
+                           {"A": "accepted", "B": "accepted"})
+        self.assertEqual(twice["bindings"][0]["integrated_twice"], ["A"])
+        self.assertFalse(twice["pass"])
+
+    def test_case_expectations_raise_the_bar(self):
+        events = self.worked("A", "B") + self.worked("J")
+        status = {"A": "accepted", "B": "accepted", "J": "accepted"}
+        facts = self.chain(events, status, {"A": [], "B": [], "J": ["A", "B"]},
+                           expect={"min_steps": 3, "min_in_flight": 3, "min_depth": 2})
+        self.assertFalse(facts["pass"])  # only two ran together
+        self.assertEqual(facts["expect"]["min_in_flight"], 3)
+
+    def test_chain_in_flight_is_true_only_between_launch_and_import(self):
+        self.chain([("launched_result", "A")], {"A": "running"})
+        self.assertTrue(run.chain_in_flight(self.tmp / "out"))
+        shutil.rmtree(self.tmp / "out")
+        self.chain(self.worked("A"), {"A": "accepted"})
+        self.assertFalse(run.chain_in_flight(self.tmp / "out"))
+
+    def test_launch_kills_the_session_when_its_stop_condition_holds(self):
+        out = self.tmp / "out-stop"
+        (out / "work").mkdir(parents=True)
+        result = run.launch([sys.executable, "-c", "import time; time.sleep(60)"], out / "work", out, dict(os.environ),
+                            120, watch=False, stop_when=lambda: True)
+        self.assertEqual(result["status"], "interrupted")
+        self.assertLess(result["elapsed_seconds"], 20)
+
+    def test_interrupt_kills_the_host_mid_chain_and_a_fresh_session_finishes(self):
+        code, result = self.invoke("claude", "chain-hang", "--interrupt-at", "chain-launched")
+        self.assertEqual(code, 0, {k: result.get(k) for k in ("process", "chain", "recovery", "shiploop")})
+        sessions = result["process"]["sessions"]
+        self.assertEqual([s["status"] for s in sessions], ["interrupted", "exited"])
+        self.assertTrue(result["recovery"]["pass"], result["recovery"])
+        self.assertEqual(result["recovery"]["interrupt"]["at"], "chain-launched")
+        self.assertIn("This session ended", (Path(result["output"]) / "resume-after-interrupt.txt").read_text()
+                      if (Path(result["output"]) / "resume-after-interrupt.txt").exists() else self.seen()["argv"][1])
+
+    def test_without_interrupt_no_recovery_verdict(self):
+        code, result = self.invoke("claude", "done")
+        self.assertIsNone(result["recovery"])
 
 
 class ReviewParsingTest(unittest.TestCase):
