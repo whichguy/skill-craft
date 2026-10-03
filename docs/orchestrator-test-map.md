@@ -62,6 +62,11 @@ Grouping:
   time, resumed after any 30-minute kill.
 - **C. Fixes from B**: plan all fixes against the evidence, one release, one
   verification run.
+- **B results (2026-10-03, 7 runs, see LEARNINGS "batch B"):** shapes pass (wide 2/2 with 4 in
+  flight, deep 2/2 at depth 3, temperature 1/1; every run in dependency order, each step integrated
+  once). Two ShipLoop defects: **F1** kill-and-resume 0/2, a fresh session cannot prove the dead
+  host's workers stopped and pauses for the user; **F2** a retried step leaves a workspace that can
+  never be closed, so chain finish is refused forever (1 of 1 runs with a retry). Group C fixes both.
 - **D. Other hosts (4)**: after decisions on Codex's runtime and Grok credits.
 
 ## Known limits (acceptable by design)

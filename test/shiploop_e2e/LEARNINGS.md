@@ -586,3 +586,44 @@ Marketplace skill-craft 1.16.0 (ShipLoop 0.48.0).
 - Baseline row for this run: appended to `baselines.jsonl` (host codex, plan blocked); not comparable to the Sonnet rows.
 - N1 (spent investigation allowance never pauses the run): Luna research took 23 minutes and did not pause the run, but no allowance message was
   recorded; N1 stays unproven rather than disproven.
+
+## batch B — 2026-10-03 — chain recovery, shape and repeat checks, Claude claude-sonnet-5-5, marketplace skill-craft 1.16.0 (ShipLoop 0.48.0)
+
+Plan: docs/orchestrator-test-map.md "Next live checks" (group B). Harness d9a229bb..(group A commit):
+`--interrupt-at chain-launched`, stricter chain grading (dependency order, integrated once, depth, per-case
+expectations), cases unit-converter (wide) and word-report (deep). All runs `--seed-at step-plan`, outputs
+under /Users/dadleet/shiploop-e2e-runs/.
+
+| Run | Result | Chain | Notes |
+|---|---|---|---|
+| b1-interrupt-temperature-5ed5a4 | FAIL, paused | 0/3 | killed at 735 s with S1, S2 in flight; F1 |
+| b2-interrupt-temperature-7459dc | FAIL, paused | 0/3 | killed at 476 s with S1, S2 in flight; F1 again |
+| b1-unit-converter-a1950c | **PASS** | 5/5, 4 in flight | 23 min, $9.60 |
+| b2-unit-converter-1df863 | **PASS** | 5/5, 4 in flight | host died at 28 min (SSL error, below); resumed, done |
+| b1-word-report-1c7a7e | FAIL, paused | 5/5, depth 3, 7 attempts | S4, S5 retried; F2 |
+| b2-word-report-b1f521 | **PASS** | 5/5, depth 3 | no retries; host died at 27 min (SSL); resumed in 54 s, done |
+| b3-temperature-5c5493 | **PASS** | 3/3, 2 in flight | 16 min, $8.62 |
+
+- **Shapes work.** Every chain the model planned was the expected shape: wide = four independent modules
+  plus a join at capacity 4 (4 in flight, both runs); deep = S1, S2 -> S3(S1), S4(S2) -> S5 (depth 3, in
+  dependency order, both runs). The stricter grader found no out-of-order launch and no double integration
+  in any run.
+- **F1 (2/2): losing the host mid-chain needs a person.** After the kill, the fresh session found both
+  attempts active, their worktrees clean, and `TaskStop` on each handle returned "No task found". The
+  chain guide forbids retry, import or cleanup until the original worker's stoppage is established, so it
+  submitted `implement` blocked on the user (refused: chain unfinished) and paused asking "may I treat both
+  workers as stopped and retry?". Native Claude workers die with their host, but nothing records which host
+  session launched them, so a later session can never prove it.
+- **F2 (1/1 runs with retries): a retried step blocks chain finish forever.** In b1-word-report S4 and S5
+  were each retried after test-oracle defects; both retries were accepted (5/5, 26 tests pass in the run's
+  worktree, 7/7 case checks) but the superseded attempts' Ask-Agent workspaces cannot be closed ("no
+  non-integrated close"), so `chain finish` refuses and `implement` cannot complete; the model paused
+  quoting "no completion-capable recovery route". The b2 repeat had no retries and finished. Retries are
+  normal, so this breaks ordinary runs.
+- **Environment:** both b2 shape runs lost their host at ~27 min to "API Error: Unable to connect to API:
+  SSL certificate has expired" at the same moment; the API certificate checked valid minutes later. Both
+  resumed in place with `--resume-run` and finished (resume works across a host death outside ShipLoop).
+- Cost: passing seeded runs $8.60-11.20 and 16-23 min. Interrupted runs report only the resumed session's
+  cost (a killed session reports none).
+- Next (group C): fix F2 first (ordinary runs), then F1; one release; one verification batch (the word
+  report with a retry, and kill-and-resume).
