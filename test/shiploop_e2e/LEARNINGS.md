@@ -396,3 +396,23 @@ harness-FAIL, 7 cancelled; 8b on 1.6.0 PASS committed, 4 cancelled, 0 ShipLoop f
   The nested `nav-` directories make that path easy to miss; watch for repeats before changing it.
 - Harness default changed to Claude Sonnet 5.5 (`claude-sonnet-5-5`) on 2026-10-03 because Grok credits ran
   out; Luna max stays available with `--host codex`. A comparison needs the same host on both sides.
+
+## chain-seeded — 2026-10-03 — first live ShipLoop parallel chain, Claude claude-sonnet-5-5, marketplace skill-craft 1.16.0 (ShipLoop 0.48.0)
+
+- `run.py --case temperature-report --host claude --seed-at step-plan` (6833b41d): stages before
+  step-plan recorded synthetically; the host followed ShipLoop's packets from step-plan.
+  Output /Users/dadleet/shiploop-e2e-runs/chain-seeded-claude-e57b4d (outside the temp folder).
+- **PASS on every verdict**: 1334 s (22 min), $11.75, 348 turns, 1 session, 0 ShipLoop command failures,
+  0 model glue, 10 Improve children; all 6 case checks pass on the returned, committed product.
+- **Chain PASS**: the model's step-plan graph was S1 convert, S2 stats (independent), S3 measure after
+  both. Ledger order: S1 and S2 `launched_result` at 16:26:22, imported 16:27:21/16:27:22, settled
+  16:28:34/16:28:50; S3 launched 16:29:18 only after both. 3/3 accepted, 3 native workers, 0
+  main-context, most in flight 2. Per-step integration commits are in the product history
+  (`ShipLoop chain prepared source=... target=...`).
+- Meaning: ShipLoop's parallel chain works live from step-plan through return, on the release that
+  includes 96d35fe2 (bridge-only navigation). Planning (intake to select-work) was not exercised by
+  this run; the full run from intake is the remaining check.
+- Cost shape: implement 5.2 m (114 turns) was the costliest stage; step-plan 2.4 m. Seeding removed
+  the 2.5 h planning cost seen on Luna max.
+- Expected gaps from seeding: docs/shiploop/spec.md missing (spec stage was synthetic); one of 11
+  script verifications failed (not investigated; the run still passed every gate).

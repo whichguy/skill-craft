@@ -30,11 +30,11 @@ tier runs everything on release commits.
 | Check | What it answers | Run | Latest result |
 |---|---|---|---|
 | Dispatcher fan-out and fan-in on dummy steps | Does a real host follow the dispatcher's calls, run A and B in parallel as native workers, and join J after both? | `python3 test/shiploop_e2e/fanout.py --host codex` | **PASS**, Codex, 2026-09-27: A and B native, 29.3 s of their 30 s overlapped, J after both (`f810a78f`) |
-| ShipLoop's own parallel chain | Does ShipLoop on the Ask-Agent route plan a graph, bind a chain at `implement`, and fan out and in? | `bash test/run-integration.sh shiploop-e2e --case temperature-report --host codex` | Not yet reached. Planning is proven on Grok and Codex. GPT-6 Luna at max, 2026-09-27: timed out at 3 h in `plan` (spec 79 m, test-strategy 40 m); needs a longer `--timeout` or lower planning effort (see LEARNINGS) |
+| ShipLoop's own parallel chain | Does ShipLoop on the Ask-Agent route plan a step graph, bind a chain at `implement`, fan out and join? | `python3 test/shiploop_e2e/run.py --case temperature-report --host claude --seed-at step-plan` (starts at step-plan, ~20 min) | **PASS**, Claude Sonnet 5.5, 2026-10-03: graph S1, S2 then S3; S1 and S2 in flight together, S3 after both; 3/3 accepted, all native; every case check passes (22 min, $11.75). A full run from intake is still to do |
 | ShipLoop cases (smoke, web-service, CLI, stateful) | End-to-end delivery by case style | `--suite <name>` (see `test/shiploop_e2e/suites.json`) | See LEARNINGS |
 
-Host defaults: Grok `grok-4.7` medium; Claude Sonnet; Codex GPT-6 Luna
-(`gpt-6-luna`) at max. `--host`, `--model` and `--effort` switch them. A run
+Default host: Claude Sonnet 5.5 (`claude-sonnet-5-5`). Others: Grok `grok-4.7` medium;
+Codex GPT-6 Luna (`gpt-6-luna`) at max (use `--effort xhigh` for ShipLoop runs). `--host`, `--model` and `--effort` switch them. A run
 that stops while still active continues in place with `--resume-run <output>`,
 on the same release.
 
