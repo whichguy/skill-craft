@@ -581,20 +581,23 @@ def seed_run(cli: Path, work: Path, out: Path, prompt: str, stop: str) -> dict:
     ShipLoop refuses a repository without a commit, so the seed commits a README first.
     """
     (work / "README.md").write_text("# Seeded ShipLoop E2E case\n")
+    # The seed must not depend on the machine's Git config: a global or system filter (for example git-lfs on a
+    # CI runner) would make ShipLoop's workspace refuse the repository.
+    git_env = {**os.environ, "GIT_CONFIG_GLOBAL": os.devnull, "GIT_CONFIG_NOSYSTEM": "1"}
     identity = ["-c", "user.name=ShipLoop E2E seed", "-c", "user.email=shiploop-e2e-seed@example.invalid"]
     for args in (["init", "-q"], ["add", "README.md"], [*identity, "commit", "-qm", "seed: baseline"]):
-        subprocess.run(["git", "-C", str(work), *args], check=True, capture_output=True, text=True)
+        subprocess.run(["git", "-C", str(work), *args], check=True, capture_output=True, text=True, env=git_env)
     head = subprocess.run(["git", "-C", str(work), "rev-parse", "HEAD"], check=True, capture_output=True,
-                          text=True).stdout.strip()
+                          text=True, env=git_env).stdout.strip()
     root = out / ".shiploop-runs" / "seed"
     started = subprocess.run([sys.executable, str(cli), "workspace", "start", f"--repo={work}",
                               f"--workspace-root={root}", "--delegation=ask-agent", f"--prompt={prompt}"],
-                             capture_output=True, text=True)
+                             capture_output=True, text=True, env=git_env)
     if started.returncode:
         raise SystemExit(f"seed: workspace start failed: {(started.stderr or started.stdout)[-2000:]}")
     run_dir = root / "run"
     advanced = subprocess.run([sys.executable, "-c", SEED_SCRIPT, str(cli.parent), str(run_dir), stop],
-                              capture_output=True, text=True)
+                              capture_output=True, text=True, env=git_env)
     if advanced.returncode:
         raise SystemExit(f"seed: could not advance the run to {stop}: {advanced.stderr[-2000:]}")
     return {"stage": stop, "run_dir": str(run_dir), "start_head": head, **json.loads(advanced.stdout)}
