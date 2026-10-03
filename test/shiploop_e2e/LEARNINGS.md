@@ -548,3 +548,22 @@ Marketplace skill-craft 1.16.0 (ShipLoop 0.48.0).
 - Open: (1) whether the report-size refusal is an engine defect (rerun the child's report or read its
   session); (2) how to run Codex past 30 minutes without detaching (owner preference: visible background
   tasks).
+
+### Batch 1003 — Luna max battleship, plan stage: the Backchain loop cannot persist its first callback (F3) — status: firm for this run, engine fix candidate
+
+- Observed (battleship, Codex gpt-6-luna max, skill-craft 1.16.0, 4h23m in): the plan packet gives the model ShipLoop-resolved locators for
+  Backchain and the Until Loop but no script to start the Backchain loop, so the model hand-built the start contract
+  (`run/scratch/backchain-until-loop-start.json`: workspace, work, exit and repeat conditions, required reviews, context) and validated it with
+  its own script. The metric called that glue (3 events: the start contract, a start command, and a blocker note), and it was right.
+- Result: after the plan review finished, the Until Loop rejected the first callback report twice with `state exceeds the small-file limit`.
+  The runtime's `MAX_STATE_BYTES` is 16,384; the frozen state was already 16,287 bytes (the model's own preflight only bounded the context at
+  15,000), so even a minimal report would be 28 bytes over. The model wrote `docs/shiploop/features/.../reviews/runtime-blocker-1.md`, did not
+  edit state or start a replacement loop, and recorded that the Backchain parent plan action cannot be submitted as complete.
+- Why it matters: a plan stage on a slow, thorough host can finish all its review work and still be unable to close, because a model sized a
+  contract by hand. Sonnet never hit it (its planning did not start a Backchain loop). This is the model-glue gap the ShipLoop purpose says scripts
+  should own, the way `improve-start` does for Improve children.
+- Candidate fix (after the batch, with its own test): a ShipLoop script builds the Backchain loop start contract with a context budget that leaves
+  at least the runtime's report headroom (the state limit minus the largest legal report), or the plan packet states that budget; verify with a
+  contract whose state sits just under the cap and a report that fits.
+- Evidence: `/Users/dadleet/e2e-runs/20261003/battleship-luna` (events.jsonl; the run's `scratch/backchain-until-loop-*.json` files and the
+  `runtime-blocker-1.md` note in the worktree).
