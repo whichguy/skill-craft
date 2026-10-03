@@ -499,3 +499,30 @@ Marketplace skill-craft 1.16.0 (ShipLoop 0.48.0).
   above plus the existing real-secret cases. Not changed mid-batch.
 - F2 launch limit: each background task is killed at the `timeout` it was given (10 min when set to the 600000 maximum), including the
   suite process, so a suite cannot be resumed as a whole; relaunch each case with `--resume-run <its output dir>`.
+
+### Batch 1003 — Sonnet 5.5 results (skill-craft 1.16.0, ShipLoop 0.48.0) — status: firm for these runs; Luna max battleship still running
+
+| Case | Verdicts | Turns | Improve children / review passes (max per child) | ShipLoop failures, glue |
+|---|---|---|---|---|
+| hello | all pass | 210 | 16 / 12 (3) | 0, 0 |
+| seat-reservations | all pass, 2 work items | 423 | 24 / 25 (3) | 0, 0 |
+| battleship | all pass | 353 | 20 / 24 (3) | 0, 0 |
+| battleship-scoring (follow-on of battleship) | all verdicts pass; 1 stored check reads FAIL (see below) | 320 | 16 / 18 (3) | 0, 0 |
+
+- seat-reservations' second work item came from two failed system-test verifications (and one expected red test); ShipLoop queued the
+  fix, then the system test passed: the outer loop caught what the inner loop missed.
+- battleship-scoring kept all 8 earlier requirement ids and added R-9 and R-10; the one failing stored check is a harness defect (the
+  retention check counted ids only as Markdown headings; fixed in 42ca61f9, passes by hand on the real outputs).
+- Costs in `metrics.json` count only sessions that ended; segments killed with their background task have no result event, so cost and
+  turns undercount the killed segments. Per-stage minutes likewise omit time between a kill and its resume.
+- N2 and N3 packet text reached the model (37 and 8 packet files in the first seat-reservations run); no checkout-path or Until Loop path
+  error occurred in any of the four runs. N1 was not exercised (Sonnet never reached the allowance).
+- Review passes: 79 passes across 76 children, at most 3 in any child, on Sonnet; the review-pass question therefore stays a Luna-only
+  question, answered by the Luna battleship run's `improve_reviews` when it finishes.
+- Harness defects found and fixed this batch (all pushed to main, 73 harness tests pass): (1) a Claude resume prompt named a bare
+  `shiploop`, the model found only old plugin caches and stopped after 13 turns (7c1f1014: name the run's own marketplace CLI);
+  (2) a run that finished after its parent was killed could not be graded (d09eb764: `--resume-run` on a done run regrades without a
+  host); (3) the retention check's heading-only id match (42ca61f9). Earlier same day: the CI git-lfs seed failure (9e937eb0) and the
+  resumed-run `invoked` grade (5fd875e1).
+- Launch lesson (F2): a background task is killed at its `timeout`, and killing it also stops the suite process; the host session may
+  carry the run on unobserved. After a kill, check the run's state: resume it if active, regrade it if done.
