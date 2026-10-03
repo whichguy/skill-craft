@@ -482,3 +482,20 @@ harness-FAIL, 7 cancelled; 8b on 1.6.0 PASS committed, 4 cancelled, 0 ShipLoop f
 - Meaning: the Plan Orchestrator's last unproven link, ShipLoop planning a graph and running it as a
   parallel chain on a real host, now passes both seeded (6833b41d run) and from intake on the same
   release. Next live gaps: other hosts (Codex at xhigh, Grok when credits allow) and a wider graph.
+
+## Batch 1003 (Sonnet breadth + Luna max battleship) — running findings, 2026-10-03 — status: interim (batch still running)
+
+Cases: Sonnet 5.5 hello (gate, passed after a resume), seat-reservations, battleship, battleship-scoring; Luna gpt-6-luna max
+battleship (detached, `--timeout 21600`) for review-pass data and a chance to exercise N1. Output in `/Users/dadleet/e2e-runs/20261003/`.
+Marketplace skill-craft 1.16.0 (ShipLoop 0.48.0).
+
+- F1 secret-detector false positive (engine, candidate fix after the batch): Luna's `complete` at discovery was refused twice with
+  "result.summary appears to contain a credential secret". `shiploop_privacy.sensitive_text` flags any `auth|token|secret|signature|sig`
+  label followed by a value, so descriptive text trips it: `auth: none required`, `session token: opaque UUID`, `secret=none` and
+  `signature: n/a` all return True (checked on 1.16.0), while `no authentication, token or password handling` and `token required` do
+  not. Battleship's design naturally mentions an opaque session token. Recoverable (the refusal names the cause; the model resubmits),
+  but it spends turns and says "credential secret" when none is present. Candidate: extend the documentation-value words
+  (`none`, `n/a`, `required`, `optional`, `opaque`, ...) in `_DOCUMENTATION_FIELD_WORD`; verify with a detector test of the four phrases
+  above plus the existing real-secret cases. Not changed mid-batch.
+- F2 launch limit: each background task is killed at the `timeout` it was given (10 min when set to the 600000 maximum), including the
+  suite process, so a suite cannot be resumed as a whole; relaunch each case with `--resume-run <its output dir>`.
