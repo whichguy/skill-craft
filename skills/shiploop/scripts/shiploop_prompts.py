@@ -10,6 +10,7 @@ from __future__ import annotations
 
 from pathlib import Path
 
+import shiploop_loop_contract as loop_contract
 import shiploop_stage_spec as stage_spec
 
 
@@ -1867,6 +1868,22 @@ def resolved_backchain_resources() -> tuple[tuple[str, str], ...]:
     return tuple(resolved)
 
 
+def _backchain_contract_budget() -> str:
+    """The size rule for the Until Loop start contract the plan stage's host writes for the Backchain child."""
+    return (
+        f"Until Loop state budget: the runtime saves its whole state (the start contract, the latest report and\n"
+        f"progress) in {loop_contract.STATE_LIMIT:,} bytes. The start contract you write for the Backchain child must\n"
+        f"serialize (compact JSON, sorted keys, default ASCII escaping) to at most {loop_contract.CONTRACT_BUDGET:,} bytes,\n"
+        f"so its bookkeeping and the first report (evidence and a compact handoff, up to about "
+        f"{loop_contract.REPORT_RESERVE:,} bytes) still fit;\n"
+        "a larger contract can start yet fail to save that report, and the plan then cannot close. Put long request,\n"
+        "scope or environment text in files and cite them by locator in `context.resources`. Measure the contract file\n"
+        "before starting (replace CONTRACT_FILE with its path):\n"
+        "`python3 -c \"import json,sys; print(len(json.dumps(json.load(open(sys.argv[1])), "
+        "separators=(',', ':'), sort_keys=True).encode()))\" CONTRACT_FILE`\n\n"
+    )
+
+
 def _backchain_guidance(stage: str, *, improve_owner: bool = False) -> str:
     """Return host-mediated caller guidance without adding navigator state."""
     selection = """\
@@ -1928,7 +1945,7 @@ primitive; do not start a whole Backchain→Until Loop child.
 """
     if stage in BACKCHAIN_NATIVE_CALLS:
         action, operation = BACKCHAIN_NATIVE_CALLS[stage]
-        return selection + f"""\
+        return selection + _backchain_contract_budget() + f"""\
 Through `source-aware-native`, the current stage host may
 request exactly one action `{action}` / stage `{operation}` within the packet's
 scope. Backchain invokes the selected actual Until Loop for its dependency-specific

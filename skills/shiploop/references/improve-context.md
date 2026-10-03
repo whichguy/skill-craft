@@ -200,7 +200,13 @@ workspace, authority and return facts in `context.authority` and
 
 Omit empty learning categories, or state when none are known. Preserve essential
 meaning inline with locators for supporting detail; there is no word or bullet
-quota. Be concise by removing repetition, not consequential context. The opening
+quota, only a size limit: the opening is frozen into the Until Loop's state, which
+the runtime caps at 16,384 bytes in all, so `improve-start` refuses a contract over
+9,216 bytes (the packet prints how many bytes the four sections may use, and a
+refusal says how far over they are and which section to shorten). Within that
+limit keep the reasoning a later review needs inline, and put long detail in a
+file whose path the section names; non-ASCII text counts several bytes per
+character. Be concise by removing repetition, not consequential context. The opening
 is orientation, not a second authority contract or an exhaustive review checklist.
 Improve may reject a suggestion, investigate beyond the supplied hypotheses,
 choose a better approach and make substantial warranted changes. Derive edit

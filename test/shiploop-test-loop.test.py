@@ -220,6 +220,28 @@ class TestLoopTests(unittest.TestCase):
         with self.assertRaisesRegex(nav.NavigatorError, "must list test_commands"):
             nav._check_submitted_test_commands("step-plan", DONE)
 
+    def test_a_command_list_too_large_for_the_loop_contract_is_refused_where_it_is_submitted(self):
+        """The test loop's contract is written at a transition, so an oversized list needs a refusal point (F3)."""
+        def rows(count, ids):
+            return [{"command": f"python3 -m unittest -v test_{n}", "suite": "focused",
+                     "ids": [f"test_{n}_{i}_" + "a" * 70 for i in range(ids)]} for n in range(count)]
+
+        def plan(commands):
+            return dict(DONE, test_commands=commands, paths=["src/a.py"], criteria=[{"id": "C1", "text": "x"}], steps=[])
+
+        self.assertIsNone(test_loop.listing_problem(rows(2, 3)))
+        nav._check_submitted_test_commands("step-plan", plan(rows(2, 3)))
+        problem = test_loop.listing_problem(rows(6, 15))
+        self.assertRegex(problem, r"renders to [\d,]+ bytes, but the test loop's contract holds only about [\d,]+")
+        self.assertIn("shorten the ids lists", problem)
+        with self.assertRaisesRegex(nav.NavigatorError, "test command list renders to"):
+            nav._check_submitted_test_commands("step-plan", plan(rows(6, 15)))
+        # the built contract for a list the check accepts stays inside the budget
+        self.assertIsNone(test_loop.listing_problem(rows(3, 6)))
+        self.assertIsNone(test_loop.listing_problem([]))
+        # a malformed row is the shape check's to refuse, not this one's
+        self.assertIsNone(test_loop.listing_problem([{"command": "pytest"}]))
+
     # -- contract and packet -------------------------------------------------------
 
     def test_each_stage_loops_on_its_exact_commands(self):

@@ -13,7 +13,9 @@ import unittest
 
 ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT / "skills/shiploop/scripts"))
+import shiploop_loop_contract as loop_contract  # noqa: E402
 import shiploop_navigator as navigator  # noqa: E402
+import shiploop_prompts as prompts  # noqa: E402
 import shiploop_standalone_improve as bridge  # noqa: E402
 import shiploop_store as store  # noqa: E402
 
@@ -423,6 +425,10 @@ class EphemeralImproveCliTests(ImproveCliFixture):
                 # ShipLoop starts this child too; the worker continues it (551b8b49).
                 self.assertIn(" improve-start ", packet)
                 self.assertIn("continues the already-started loop from the receipt's next_argv", packet)
+            # Both routes tell the model how many bytes its four opening sections may use (batch 1003, F3).
+            self.assertRegex(packet, r"Size budget: the opening is frozen into the Until Loop's state, which the "
+                                     r"runtime caps at 16,384 bytes.*refuses a contract over 9,216 bytes.*"
+                                     r"sections about [\d,]+ bytes together")
             # Neither route asks the model to copy the binding line or state start inputs.
             self.assertNotIn(self.bound["contract_marker"], packet)
             self.assertNotIn("Start inputs owned by ShipLoop", packet)
@@ -942,6 +948,34 @@ class EphemeralImproveCliTests(ImproveCliFixture):
         self.assertIsNone(state["active_improve"])
         self.assertEqual(state["improve_results"][self.action]["runtime_phase"], "complete")
 
+    def test_improve_start_refuses_an_oversized_opening_before_anything_is_written(self):
+        """A contract that fills the runtime's state file could never save its first report (batch 1003, F3)."""
+        receipt = bridge.receipt_path(self.bound)
+        opening = receipt.with_name("opening.md")
+        start = [CLI, "improve-start", "--run-dir", self.run, "--action", self.action, "--opening", opening]
+        opening.parent.mkdir(parents=True, exist_ok=True)
+
+        def sections(environment):
+            return ("## Current context and desired improvements\nTighten the spec examples.\n\n"
+                    "## Scope\nproduct/contracts/cold-recovery.md\n\n"
+                    "## Authority\nLocal edits and scoped commits; no push.\n\n"
+                    "## Environment\n" + environment + "\n")
+
+        opening.write_text(sections("Python 3 fixture; the long runtime inventory follows. " * 260), encoding="utf-8")
+        refused = self.invoke(*start, status=2)
+        self.assertIn("over its 9,216-byte budget", refused.stderr)
+        # The refusal names the opening's own headings and how many bytes the sections may use, not contract parts.
+        self.assertIn("Environment ", refused.stderr)
+        self.assertNotIn("context.environment", refused.stderr)
+        self.assertRegex(refused.stderr, r"may use about [\d,]+ bytes in all")
+        self.assertIn("put long detail in a file whose path you name", refused.stderr)
+        self.assertFalse(receipt.exists(), "nothing was started")
+        self.assertFalse(receipt.with_name("start.json").exists(), "no contract was written")
+
+        opening.write_text(sections("Python 3 fixture; no network."), encoding="utf-8")
+        started = self.invoke(*start)
+        self.assertEqual(json.loads(started.stdout)["status"], "active")
+
     def test_improve_commit_commits_only_the_reviews_uncommitted_changes(self):
         """The model writes the message with a file tool; ShipLoop stages and commits."""
         if not self.inline():
@@ -1407,6 +1441,97 @@ class EphemeralImproveCliTests(ImproveCliFixture):
         self.assertEqual(receipt["summary"], "Improve reviewed the spec result; it ended on 2 trivial passes.")
 
 
+class LoopContractSizeTests(unittest.TestCase):
+    """The Until Loop saves its whole state in 16 KiB; a contract must leave room for the first report."""
+
+    @staticmethod
+    def contract(request="r", environment="e"):
+        return loop_contract.contract(
+            workspace="/w", work="work", exit_condition="exit", repeat_condition="repeat",
+            required_trivial_reviews=2, request=request, scope="s", authority="a", environment=environment,
+            resources=[{"purpose": "p", "locator": "/l"}])
+
+    @staticmethod
+    def runtime():
+        import importlib.util
+        path = ROOT / "skills/improve/runtime/until-loop/scripts/until_loop_ephemeral.py"
+        spec = importlib.util.spec_from_file_location("until_loop_ephemeral_for_test", path)
+        module = importlib.util.module_from_spec(spec)
+        spec.loader.exec_module(module)
+        return module
+
+    def test_the_state_limit_is_the_bound_runtime_s_own(self):
+        runtime = (ROOT / "skills/improve/runtime/until-loop/scripts/until_loop_ephemeral.py").read_text()
+        match = re.search(r"^MAX_STATE_BYTES = (\d+) \* 1024$", runtime, re.M)
+        self.assertIsNotNone(match)
+        self.assertEqual(loop_contract.STATE_LIMIT, int(match.group(1)) * 1024)
+        self.assertEqual(loop_contract.CONTRACT_BUDGET + loop_contract.STATE_OVERHEAD + loop_contract.REPORT_RESERVE,
+                         loop_contract.STATE_LIMIT)
+
+    def test_contract_bytes_are_the_runtime_s_serialization_including_non_ascii_text(self):
+        runtime = self.runtime()
+        with tempfile.TemporaryDirectory() as workspace:  # the runtime requires an existing absolute directory
+            for text in ("plain ascii", "日本語の環境", "em dash \u2014 and \u201cquotes\u201d", "emoji \U0001f600 text"):
+                with self.subTest(text=text):
+                    contract = self.contract(request=text * 40, environment=text)
+                    contract["workspace"] = workspace
+                    normalized = runtime._validate_contract(contract, input_contract=True)
+                    expected = len(json.dumps(normalized, separators=(",", ":"), sort_keys=True).encode("utf-8"))
+                    self.assertEqual(loop_contract.compact_bytes(contract), expected)
+        # a non-ASCII character is escaped to 6 bytes (12 for an emoji), far above its UTF-8 length
+        self.assertGreater(loop_contract.compact_bytes(self.contract(request="\u2014" * 100)),
+                           loop_contract.compact_bytes(self.contract(request="x" * 100)) + 400)
+
+    def test_a_small_contract_fits_and_the_budget_is_an_exact_boundary(self):
+        self.assertIsNone(loop_contract.size_problem(self.contract()))
+        base = loop_contract.compact_bytes(self.contract(request=""))
+        exact = self.contract(request="x" * (loop_contract.CONTRACT_BUDGET - base))
+        self.assertEqual(loop_contract.compact_bytes(exact), loop_contract.CONTRACT_BUDGET)
+        self.assertIsNone(loop_contract.size_problem(exact))
+        over = self.contract(request="x" * (loop_contract.CONTRACT_BUDGET - base + 1))
+        self.assertIn("1 over its 9,216-byte budget", loop_contract.size_problem(over))
+
+    def test_a_japanese_opening_is_refused_at_its_real_size(self):
+        # 8,757 bytes counted as UTF-8 slipped through before; the runtime stores it at about 13.5 KB.
+        problem = loop_contract.size_problem(self.contract(environment="環境" * 1900))
+        self.assertIsNotNone(problem)
+
+    def test_the_refusal_names_the_sections_the_model_wrote_and_how_far_over_it_is(self):
+        contract = self.contract(environment="e" * 9000, request="r" * 4000)
+        problem = loop_contract.size_problem(
+            contract, writable={"context.request": "Current context and desired improvements",
+                                "context.environment": "Environment"}, allowance=4300)
+        total = loop_contract.compact_bytes(contract)
+        self.assertIn(f"{total - loop_contract.CONTRACT_BUDGET:,} over its 9,216-byte budget", problem)
+        self.assertLess(problem.index("Environment 9,"), problem.index("Current context and desired improvements 4,"))
+        self.assertNotIn("context.", problem)
+        self.assertIn("may use about 4,300 bytes in all", problem)
+        self.assertIn("16,384 bytes", problem)
+        # without a writable map the generic text lists contract parts
+        self.assertIn("context.environment", loop_contract.size_problem(contract))
+
+    def test_the_backchain_budget_is_stated_for_the_plan_stage_only(self):
+        guidance = prompts._backchain_guidance("plan")
+        self.assertIn("Until Loop state budget", guidance)
+        self.assertIn("16,384 bytes", guidance)
+        self.assertIn("at most 9,216 bytes", guidance)
+        self.assertIn("separators=(',', ':'), sort_keys=True", guidance)
+        self.assertNotIn("{state_limit", guidance)
+        # the audit stages and the Improve-owner text start no whole Backchain Until Loop child
+        self.assertNotIn("Until Loop state budget", prompts._backchain_guidance("plan", improve_owner=True))
+        self.assertNotIn("Until Loop state budget", prompts._backchain_guidance("spec"))
+
+    def test_the_measuring_command_in_the_guidance_gives_the_number_the_check_uses(self):
+        guidance = prompts._backchain_guidance("plan")
+        command = re.search(r"`(python3 -c \".*?\" CONTRACT_FILE)`", guidance).group(1)
+        with tempfile.TemporaryDirectory() as temp:
+            contract = Path(temp) / "contract.json"
+            contract.write_text(json.dumps(self.contract(request="日本語 \u2014 " * 50)), encoding="utf-8")
+            argv = [sys.executable, "-c", re.search(r'-c "(.*)" CONTRACT_FILE', command).group(1), str(contract)]
+            out = subprocess.run(argv, capture_output=True, text=True, check=True).stdout.strip()
+        self.assertEqual(int(out), loop_contract.compact_bytes(self.contract(request="日本語 \u2014 " * 50)))
+
+
 class AskAgentEphemeralImproveCliTests(ImproveCliFixture):
     """The opt-in delegated route keeps its Ask-Agent packet contract."""
 
@@ -1421,6 +1546,8 @@ class AskAgentEphemeralImproveCliTests(ImproveCliFixture):
         EphemeralImproveCliTests.test_user_stopped_child_restarts_with_the_same_binding_then_imports)
     test_improve_start_freezes_the_contract_and_starts_the_runtime = (
         EphemeralImproveCliTests.test_improve_start_freezes_the_contract_and_starts_the_runtime)
+    test_improve_start_refuses_an_oversized_opening_before_anything_is_written = (
+        EphemeralImproveCliTests.test_improve_start_refuses_an_oversized_opening_before_anything_is_written)
 
 
 if __name__ == "__main__":
