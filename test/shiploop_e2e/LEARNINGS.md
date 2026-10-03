@@ -526,3 +526,25 @@ Marketplace skill-craft 1.16.0 (ShipLoop 0.48.0).
   resumed-run `invoked` grade (5fd875e1).
 - Launch lesson (F2): a background task is killed at its `timeout`, and killing it also stops the suite process; the host session may
   carry the run on unobserved. After a kill, check the run's state: resume it if active, regrade it if done.
+
+## chain-seeded on Codex — 2026-10-03 — gpt-6-luna xhigh, marketplace skill-craft 1.16.0 (ShipLoop 0.48.0) — stopped, chain not reached
+
+- `run.py --case temperature-report --host codex --effort xhigh --seed-at step-plan`. Output
+  /Users/dadleet/shiploop-e2e-runs/chain-seeded-codex-21de3d. Three 30-minute background-task sessions
+  (each killed at the limit), resumed in place with `--resume-run`; stopped by rule after session 3 made
+  no stage progress.
+- Session 1: ~14 min reading the packet and confirming the synthetic records, then step-plan delegated to
+  one native planning worker; killed while waiting, worker lost, nothing accepted.
+- Session 2: step-plan accepted at ~17 min (revision 13; the same graph as Claude: S1 convert, S2 stats,
+  S3 measure after both). ~12 min binding the Improve card and writing the child's opening file; killed
+  just after dispatching the review worker.
+- Session 3: the review worker found real planning gaps (spec-to-test mapping, measure.py criteria) and
+  committed `b0c6132 Improve step plan: tighten acceptance contracts`, but its completion report was
+  rejected for exceeding a report-size limit and it was still fixing that at the kill. Not verified:
+  the refusal text is in the child's own session, not the parent stream.
+- Meaning: on Codex xhigh each ShipLoop stage with an Improve child costs about one 30-minute session, and
+  every kill loses the in-flight native worker, so a seeded run cannot finish under the background-task
+  limit. Compare Claude Sonnet 5.5: the same seeded run in 22 min. The chain on Codex is still unproven.
+- Open: (1) whether the report-size refusal is an engine defect (rerun the child's report or read its
+  session); (2) how to run Codex past 30 minutes without detaching (owner preference: visible background
+  tasks).
