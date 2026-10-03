@@ -567,3 +567,22 @@ Marketplace skill-craft 1.16.0 (ShipLoop 0.48.0).
   contract whose state sits just under the cap and a report that fits.
 - Evidence: `/Users/dadleet/e2e-runs/20261003/battleship-luna` (events.jsonl; the run's `scratch/backchain-until-loop-*.json` files and the
   `runtime-blocker-1.md` note in the worktree).
+
+### Batch 1003 — Luna max battleship final result — status: firm for this run
+
+- ShipLoop ended `blocked` at `plan` (revision 12) after 17,445 s (4h51m); the harness grades `shiploop` FAIL and `committed` PASS (nothing
+  was committed to the product: no code existed). 720 turns, 6 Improve children, 10 review passes in 3 children (spans 1,061 s, 1,254 s and
+  463 s), 5 ShipLoop refusals (2 secret-detector (F1), 2 inconsistent plan outcomes, 1 `improve-start`), 4 glue events (all the model-built
+  Backchain loop contract and its validation, F3). Cost is not reported for Codex.
+- Stage minutes (approximate, per accepted stage): intake 5.5, discovery 17.7, research 23.2, spec 65.9, test-strategy 142.1, plan 34.0, which is
+  289 of the 291 minutes; the same graph took Sonnet under 5 minutes to reach plan. The test-strategy figure includes the Backchain attempt and
+  its blocked callback (F3); treat per-stage minutes on a run with Improve imports as an upper bound.
+- ShipLoop stopped honestly: plan outcome `blocked` (category external) with a printed resume command, no state edits, no replacement loop. The
+  two plan refusals (`work_items require done or replan`, `assumptions are allowed only on a done plan result`) rejected an inconsistent blocked
+  result and the model corrected it.
+- Review-pass answer for Luna max: 10 repeat passes cost about 46 minutes of 291 (16%), and the stage's first-pass work, not repeat passes, is the
+  cost. A "later passes read only what changed" prompt would save at most that share of this run and risks losing what later passes catch, so the
+  review-pass prompt change stays unbuilt. The real Luna blocker was F3, not review depth.
+- Baseline row for this run: appended to `baselines.jsonl` (host codex, plan blocked); not comparable to the Sonnet rows.
+- N1 (spent investigation allowance never pauses the run): Luna research took 23 minutes and did not pause the run, but no allowance message was
+  recorded; N1 stays unproven rather than disproven.
