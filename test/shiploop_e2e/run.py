@@ -941,6 +941,7 @@ def main(argv: list[str] | None = None) -> int:
         raise SystemExit(f"--plugin-dir has no .claude-plugin/plugin.json: {args.plugin_dir}")
 
     resumed = None
+    regrade = False
     if args.resume_run:
         # Continue a stopped run in place: same work directory, run state and event stream.
         out = args.resume_run.expanduser().resolve()
@@ -949,8 +950,10 @@ def main(argv: list[str] | None = None) -> int:
         prompt = (out / "prompt.txt").read_text().strip()
         work = out / "work"
         state = grade_shiploop(out)
-        if state.get("status") != "active":
-            raise SystemExit(f"--resume-run needs an active ShipLoop run; found {state.get('status')!r} in {out}")
+        # A run that finished while no harness was watching (its parent was killed) is graded again, not resumed.
+        regrade = state.get("status") == "done"
+        if state.get("status") != "active" and not regrade:
+            raise SystemExit(f"--resume-run needs an active or finished ShipLoop run; found {state.get('status')!r} in {out}")
         resumed = {"from_host": earlier["host"], "from_model": earlier.get("model"), "run_dir": state.get("run_dir"),
                    "revision": state.get("revision"), "stage": state.get("stage")}
     else:
@@ -1026,9 +1029,13 @@ def main(argv: list[str] | None = None) -> int:
               f"work={work}", flush=True)
 
     deadline = time.time() + args.timeout
-    process = launch(cli, work, out, env, args.timeout, watch=not args.quiet,
-                     fresh=follow_on is None and seeded is None,
-                     first=resumed is None, translate=host.translator())
+    if regrade:
+        # ShipLoop already reached done: no host is started, and the verdicts are computed from what is on disk.
+        process = {"status": "exited", "returncode": 0, "elapsed_seconds": 0.0, "regraded": True}
+    else:
+        process = launch(cli, work, out, env, args.timeout, watch=not args.quiet,
+                         fresh=follow_on is None and seeded is None,
+                         first=resumed is None, translate=host.translator())
     sessions = [dict(process, resumed=None, host=host.name)]
     # A headless Grok session ends whenever the model ends its turn. While ShipLoop's
     # run is still active, resume that same session (bounded) instead of losing the run.

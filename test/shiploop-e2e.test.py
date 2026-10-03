@@ -1077,12 +1077,32 @@ class CodexRunTest(HarnessCase):
         rows = [json.loads(line) for line in self.baselines.read_text().splitlines()]
         self.assertEqual(len(rows), 1, "only the original run writes a baseline row; a resume does not")
 
-    def test_resume_run_refuses_a_run_that_is_not_active(self):
+    def test_resume_run_refuses_a_run_that_is_neither_active_nor_done(self):
         code, finished = self.invoke("grok", "done")
         self.assertEqual(code, 0)
-        with self.assertRaisesRegex(SystemExit, "needs an active ShipLoop run"):
-            run.main(["--host", "codex", "--codex-bin", str(self.fakes["codex"]),
-                      "--resume-run", finished["output"], "--plugin-dir", str(self.plugin)])
+        with mock.patch.object(run, "grade_shiploop", return_value={"status": "paused"}):
+            with self.assertRaisesRegex(SystemExit, "needs an active or finished ShipLoop run"):
+                run.main(["--host", "codex", "--codex-bin", str(self.fakes["codex"]),
+                          "--resume-run", finished["output"], "--plugin-dir", str(self.plugin)])
+
+    def test_resume_run_on_a_finished_run_regrades_it_without_starting_a_host(self):
+        code, finished = self.invoke("grok", "done")
+        self.assertEqual(code, 0)
+        out = Path(finished["output"])
+        (out / "result.json").write_text(json.dumps({"case": "stale", "pass": False}))
+        self.log.unlink()
+        with contextlib.redirect_stdout(io.StringIO()):
+            run.main(["--host", "grok", "--grok-bin", str(self.fakes["grok"]), "--resume-run", str(out),
+                      "--plugin-dir", str(self.plugin), "--baseline", str(self.baselines)])
+        self.assertFalse(self.log.exists(), "no host process was started")
+        regraded = json.loads((out / "result.json").read_text())
+        self.assertEqual(regraded["case"], finished["case"], "the stale result was replaced")
+        self.assertTrue(regraded["process"]["regraded"])
+        # Verdicts come from what is on disk: the finished run and the committed product pass. (The fake host's
+        # events carry no plugin or CLI evidence, which a real host's events do, so `pass` is not asserted.)
+        self.assertTrue(regraded["shiploop"]["pass"], regraded["shiploop"])
+        self.assertTrue(regraded["committed"]["pass"], regraded["committed"])
+        self.assertTrue(all(c["pass"] for c in regraded["checks"]), regraded["checks"])
 
 
 class CodexHostTest(unittest.TestCase):
