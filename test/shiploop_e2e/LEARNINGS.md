@@ -458,3 +458,27 @@ harness-FAIL, 7 cancelled; 8b on 1.6.0 PASS committed, 4 cancelled, 0 ShipLoop f
   compares findings per pass before and after; revert if later passes stop finding issues.
 - Caveat: review-note mtimes may reflect import time rather than authoring time on some routes; treat `seconds`
   as an upper-level hint, not a stopwatch.
+
+## chain-full — 2026-10-03 — full run from intake with the parallel chain, Claude claude-sonnet-5-5, marketplace skill-craft 1.16.0 (ShipLoop 0.48.0)
+
+- `run.py --case temperature-report --host claude` from intake (no seed). Output
+  /Users/dadleet/shiploop-e2e-runs/chain-full-claude-5b2cf8.
+- **Every verdict passes** once graded by the current harness: shiploop done, committed (20 commits, spec
+  committed with 9 requirement ids), all 6 case checks, plugin, process. The run's own grade said
+  `invoked FAIL` only because the resumed Claude stream was graded before 5fd875e1 taught
+  `shiploop_cli_ran` to read Claude `tool_use` events; the CLI ran 172 times.
+- **Chain PASS inside a real-planning run**: the model's step-plan graph again split convert and stats
+  (S1, S2) from measure (S3). S1 and S2 launched together at 17:02:10 and settled 17:05:08/17:05:28;
+  S3 launched 17:06:02, only after both. 3/3 accepted, all native, most in flight 2. The chain was
+  reached and passed within the first 30 minutes from intake.
+- Planning on Sonnet 5.5 is fast: spec 5.3 m, step-plan 3.1 m, implement 6.4 m (the costliest stage);
+  compare Luna max's spec 79 m on 2026-09-27. 475 turns, 16 Improve children, 0 ShipLoop command failures,
+  0 model glue.
+- Session handling: the first session was killed at 1798 s by the 30-minute background-task limit,
+  mid carry-forward Improve; `--resume-run` finished the run in place in 266 s ($1.79 for the resumed
+  session; a killed session reports no cost, so the total is unknown). Launch long runs as background
+  tasks and resume after each kill; never detach with nohup (owner preference). On Claude the resume
+  prompt names bare `shiploop next`, so the model spent ~17 s finding the CLI.
+- Meaning: the Plan Orchestrator's last unproven link, ShipLoop planning a graph and running it as a
+  parallel chain on a real host, now passes both seeded (6833b41d run) and from intake on the same
+  release. Next live gaps: other hosts (Codex at xhigh, Grok when credits allow) and a wider graph.
