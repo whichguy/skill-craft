@@ -355,6 +355,68 @@ class ClaudeRunTest(HarnessCase):
         self.assertFalse((ROOT / "test" / "never-created").exists())
 
 
+class SeedTest(HarnessCase):
+    """--seed-at: the host starts at step-plan of a real Ask-Agent run; the chain is graded from files."""
+    CLI = ROOT / "skills" / "shiploop" / "scripts" / "shiploop"
+
+    def test_seed_reaches_step_plan_on_an_ask_agent_run_the_cli_reads_back(self):
+        work = self.tmp / "work"
+        work.mkdir()
+        seeded = run.seed_run(self.CLI, work, self.tmp, "Build convert.py and stats.py", "step-plan")
+        self.assertEqual((seeded["stage"], seeded["delegation"]), ("step-plan", "ask-agent"))
+        self.assertEqual(seeded["skipped"][0], "intake")
+        self.assertNotIn("step-plan", seeded["skipped"])
+        packet = subprocess.run([sys.executable, str(self.CLI), "next", "--run-dir", seeded["run_dir"]],
+                                capture_output=True, text=True)
+        self.assertEqual(packet.returncode, 0, packet.stderr)
+        self.assertTrue(packet.stdout.startswith("ShipLoop navigator | step-plan |"), packet.stdout[:200])
+
+    def test_seeded_run_opens_at_the_run_and_writes_no_baseline(self):
+        (self.plugin / "skills").symlink_to(ROOT / "skills")
+        code, result = self.invoke("claude", "nothing", "--seed-at", "step-plan")
+        self.assertEqual(code, 1, result)
+        prompt = self.seen()["argv"][1]
+        self.assertIn(f'next --run-dir "{result["seeded"]["run_dir"]}"', prompt)
+        self.assertIn("stages before step-plan without doing them", prompt)
+        self.assertEqual(result["committed"]["start_head"], result["seeded"]["start_head"])
+        self.assertEqual(result["chain"], {"pass": False, "bindings": []})
+        self.assertFalse(self.baselines.exists())
+
+    def chain(self, launches_then_imports: list[tuple[str, str]], accepted: dict[str, str]) -> dict:
+        import shiploop_chain_ledger as ledger
+        out = self.tmp / "out"
+        chain_dir = out / ".shiploop-runs" / "seed" / "run" / "chains" / "nav-1"
+        dispatcher = chain_dir / "child"
+        dispatcher.mkdir(parents=True)
+        run.store.write_record(chain_dir / "binding.md", {"dispatcher_run": str(dispatcher), "mode": "parallel"})
+        (dispatcher / "plan-dispatcher-state.json").write_text(json.dumps({
+            "steps": {step: {"status": status} for step, status in accepted.items()},
+            "attempts": {f"{step}-1": {"step": step, "handle": f"h-{step}"} for step in accepted}}))
+        for number, (kind, step) in enumerate(launches_then_imports):
+            ledger.append_event(str(chain_dir / "events"), f"e{number}", kind, {"attempt": f"{step}-1"})
+        return run.chain_facts(out)
+
+    def test_chain_passes_only_when_every_step_is_accepted_and_two_ran_together(self):
+        parallel = [("launched_result", "A"), ("launched_result", "B"), ("handoff_import_result", "A"),
+                    ("handoff_import_result", "B"), ("launched_result", "J"), ("handoff_import_result", "J")]
+        facts = self.chain(parallel, {"A": "accepted", "B": "accepted", "J": "accepted"})
+        self.assertTrue(facts["pass"], facts)
+        self.assertEqual(facts["bindings"][0]["max_in_flight"], 2)
+        self.assertEqual(facts["bindings"][0]["native_attempts"], 3)
+
+    def test_serial_chain_fails(self):
+        serial = [("launched_result", "A"), ("handoff_import_result", "A"),
+                  ("launched_result", "B"), ("handoff_import_result", "B")]
+        facts = self.chain(serial, {"A": "accepted", "B": "accepted"})
+        self.assertFalse(facts["pass"])
+        self.assertEqual(facts["bindings"][0]["max_in_flight"], 1)
+
+    def test_unaccepted_step_fails_even_after_fan_out(self):
+        facts = self.chain([("launched_result", "A"), ("launched_result", "B")],
+                           {"A": "accepted", "B": "running"})
+        self.assertFalse(facts["pass"])
+
+
 class ReviewParsingTest(unittest.TestCase):
     def test_actionable_keeps_only_material_premise_preserving_findings(self):
         verdict = {

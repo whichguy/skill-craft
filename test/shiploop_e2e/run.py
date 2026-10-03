@@ -15,6 +15,13 @@ there with one headless host process, shows its progress live, and grades:
             started and no product path is left uncommitted (logs aside)
   checks    every case check command exits 0 in the working directory
 
+--seed-at step-plan starts an Ask-Agent run whose stages before step-plan are
+recorded without doing them (the case prompt is the specification), so a host
+reaches the implementation chain in minutes instead of hours of planning. The
+host then follows ShipLoop's own packets from step-plan. A seeded run is also
+graded on `chain` (every step accepted and at least two workers in flight
+together) and writes no baseline row, since it does not start from intake.
+
 A follow-on case (`follows` in cases.json) runs a second feature in a copy of an
 earlier run's source checkout (--continue-from <earlier output>), to see whether
 ShipLoop builds on what the first run decided. Its checks are the followed
@@ -46,6 +53,7 @@ This launches a real model and costs money; it is never part of default CI.
   python3 test/shiploop_e2e/run.py --case battleship
   python3 test/shiploop_e2e/run.py --case battleship-scoring --continue-from <battleship output>
   python3 test/shiploop_e2e/run.py --case hello --host claude
+  python3 test/shiploop_e2e/run.py --case temperature-report --host codex --effort xhigh --seed-at step-plan
   python3 test/shiploop_e2e/run.py --prompt "..." --check "python3 -m unittest"
 """
 
@@ -73,6 +81,7 @@ sys.path.insert(0, str(HERE))
 import hosts  # noqa: E402
 import metrics  # noqa: E402
 import shiploop_knowledge_home as knowledge_home  # noqa: E402
+import shiploop_chain_ledger as chain_ledger  # noqa: E402
 import shiploop_store as store  # noqa: E402
 
 CASES = HERE / "cases.json"
@@ -539,6 +548,111 @@ def grade_shiploop(out: Path) -> dict:
             "worktree": str(worktree) if worktree.is_dir() else None}
 
 
+SEED_STAGES = ("step-plan",)
+# Runs in a separate interpreter on the installed plugin's own navigator, so the
+# seeded state is exactly what that version's CLI reads back.
+SEED_SCRIPT = """
+import json, sys
+from pathlib import Path
+sys.path.insert(0, sys.argv[1])
+import shiploop_navigator as nav, shiploop_store as store
+run_dir, stop = Path(sys.argv[2]), sys.argv[3]
+state = store.read_record(run_dir / "state.md")
+skipped = []
+while nav.current_stage(state) != stop:
+    stage, action = nav.current_stage(state), str(nav.current_action(state)["id"])
+    result = {"outcome": "done", "summary": "Synthetic: recorded by the E2E seed without doing it; "
+              "the request is the specification."}
+    if stage == "plan":
+        result["work_items"] = [{"id": "seeded-request", "title": "The whole request"}]
+    state = nav.apply(state, action, result)
+    if state["active_improve"] is not None:
+        state = nav.finish_improve(state, action, {"summary": "Synthetic Improve receipt from the E2E seed."})
+    skipped.append(stage)
+    nav.save(run_dir, state)
+print(json.dumps({"skipped": skipped, "stage": nav.current_stage(state),
+                  "action": str(nav.current_action(state)["id"]), "delegation": state.get("delegation")}))
+"""
+
+
+def seed_run(cli: Path, work: Path, out: Path, prompt: str, stop: str) -> dict:
+    """Start an Ask-Agent run and record its stages before `stop` as synthetic.
+
+    ShipLoop refuses a repository without a commit, so the seed commits a README first.
+    """
+    (work / "README.md").write_text("# Seeded ShipLoop E2E case\n")
+    identity = ["-c", "user.name=ShipLoop E2E seed", "-c", "user.email=shiploop-e2e-seed@example.invalid"]
+    for args in (["init", "-q"], ["add", "README.md"], [*identity, "commit", "-qm", "seed: baseline"]):
+        subprocess.run(["git", "-C", str(work), *args], check=True, capture_output=True, text=True)
+    head = subprocess.run(["git", "-C", str(work), "rev-parse", "HEAD"], check=True, capture_output=True,
+                          text=True).stdout.strip()
+    root = out / ".shiploop-runs" / "seed"
+    started = subprocess.run([sys.executable, str(cli), "workspace", "start", f"--repo={work}",
+                              f"--workspace-root={root}", "--delegation=ask-agent", f"--prompt={prompt}"],
+                             capture_output=True, text=True)
+    if started.returncode:
+        raise SystemExit(f"seed: workspace start failed: {(started.stderr or started.stdout)[-2000:]}")
+    run_dir = root / "run"
+    advanced = subprocess.run([sys.executable, "-c", SEED_SCRIPT, str(cli.parent), str(run_dir), stop],
+                              capture_output=True, text=True)
+    if advanced.returncode:
+        raise SystemExit(f"seed: could not advance the run to {stop}: {advanced.stderr[-2000:]}")
+    return {"stage": stop, "run_dir": str(run_dir), "start_head": head, **json.loads(advanced.stdout)}
+
+
+def seed_prompt(cli: Path, run_dir: str, prompt: str) -> str:
+    return (f"A ShipLoop run for the request below is already active, with Ask-Agent delegation. The test "
+            "harness recorded its stages before step-plan without doing them, so the request itself is the "
+            f"specification. Continue the run now: run `python3 \"{cli}\" next --run-dir \"{run_dir}\"` and "
+            "follow the packet it prints, to the end of the run. Never end the turn while a ShipLoop command "
+            f"is still running.\n\nThe request: {prompt}")
+
+
+def chain_facts(out: Path) -> dict:
+    """ShipLoop chain evidence from files only, never from the model's account.
+
+    For each binding under run/chains/<action>/: the dispatcher's step and
+    attempt records, and, in ledger order, the most launched workers whose
+    results were not yet imported (2 or more means the chain fanned out).
+    """
+    chains = []
+    for binding_path in sorted(out.rglob("chains/*/binding.md")):
+        if binding_path.relative_to(out).parts[0] in ("home", "build"):
+            continue
+        fact = {"binding": str(binding_path)}
+        try:
+            binding = store.read_record(binding_path)
+            state_file = Path(binding["dispatcher_run"]) / "plan-dispatcher-state.json"
+            state = json.loads(state_file.read_text()) if state_file.is_file() else {"steps": {}, "attempts": {}}
+            events = chain_ledger.read_events(str(binding_path.parent / "events"))
+        except (store.StorageError, ValueError, KeyError, OSError) as exc:
+            chains.append(dict(fact, error=str(exc)))
+            continue
+        attempts = state.get("attempts", {})
+        in_flight, most = set(), 0
+        for row in events:
+            event = row["event"]
+            attempt = (event.get("data") or {}).get("attempt")
+            if event["kind"] == "launched_result":
+                in_flight.add(attempt)
+                most = max(most, len(in_flight))
+            elif event["kind"] == "handoff_import_result":
+                in_flight.discard(attempt)
+        steps = state.get("steps", {})
+        fact.update({
+            "mode": binding.get("mode"),
+            "steps": len(steps),
+            "accepted": sum(1 for s in steps.values() if s.get("status") == "accepted"),
+            "native_attempts": sum(1 for a in attempts.values() if a.get("handle")),
+            "main_context_attempts": sum(1 for a in attempts.values() if a.get("executor")),
+            "max_in_flight": most,
+            "events": len(events),
+        })
+        chains.append(fact)
+    fanned = [c for c in chains if c.get("steps") and c["accepted"] == c["steps"] and c["max_in_flight"] >= 2]
+    return {"pass": bool(fanned), "bindings": chains}
+
+
 def knowledge_facts(work: Path) -> dict:
     """How the run left the source checkout: knowledge home, commits and branches.
 
@@ -608,6 +722,9 @@ def parser() -> argparse.ArgumentParser:
     p.add_argument("--continue-from", type=Path,
                    help="an earlier run's output directory: start in a copy of its source checkout "
                         "(required by follow-on cases, which name the case they follow)")
+    p.add_argument("--seed-at", choices=SEED_STAGES,
+                   help="start an Ask-Agent run at this stage, with the earlier stages recorded without doing "
+                        "them, to reach the implementation chain without hours of planning; also grades the chain")
     p.add_argument("--check", action="append", help="extra shell check run in the work dir (repeatable)")
     p.add_argument("--output", type=Path, help="new directory for this attempt (default: under $TMPDIR)")
     p.add_argument("--host", choices=[*sorted(hosts.HOSTS), "all"], default="claude",
@@ -862,8 +979,16 @@ def main(argv: list[str] | None = None) -> int:
         plugin = host.install_plugin(env, plugin_dir)
         versions = {"source": "checkout", **installed_versions(plugin_dir), "local_head": git("rev-parse", "HEAD").strip()}
     keepalive = hosts.grok_keepalive(env, plugin_dir) if host.keepalive else None
+    seeded = None
+    if args.seed_at and not resumed:
+        cli_path = host.plugin_cli(out / "home") or plugin_dir / "skills" / "shiploop" / "scripts" / "shiploop"
+        seeded = seed_run(cli_path, work, out, prompt, args.seed_at)
+        if not args.quiet:
+            print(f"seeded: {', '.join(seeded['skipped'])} recorded without doing them; host starts at "
+                  f"{seeded['stage']} in {seeded['run_dir']}", flush=True)
     # A resumed run keeps the ShipLoop CLI of the host that started it, so its version does not change.
     opening = (resume_prompt(out, resumed["run_dir"], hosts.host(resumed["from_host"])) if resumed
+               else host.invoke(args.skill, seed_prompt(cli_path, seeded["run_dir"], prompt)) if seeded
                else host.invoke(args.skill, prompt))
     cli = host.argv(prompt=opening, prompt_file=out / ("host-prompt.txt" if not resumed else
                                                        f"resume-{host.name}-{int(time.time())}.txt"),
@@ -873,7 +998,7 @@ def main(argv: list[str] | None = None) -> int:
                     plugin_dir=None if host.marketplace else plugin_dir)
     invocation = {"case": name, "host": args.host, "model": args.model, "effort": args.effort, "argv": cli,
                   "cwd": str(work), "plugin_dir": str(plugin_dir), "versions": versions, "checks": checks,
-                  "follow_on": follow_on, "resumed_run": resumed}
+                  "follow_on": follow_on, "resumed_run": resumed, "seeded": seeded}
     if resumed:
         # The original invocation stays as it was; each resume is recorded beside it.
         (out / f"invocation-resume-{host.name}-{int(time.time())}.json").write_text(
@@ -886,7 +1011,8 @@ def main(argv: list[str] | None = None) -> int:
               f"work={work}", flush=True)
 
     deadline = time.time() + args.timeout
-    process = launch(cli, work, out, env, args.timeout, watch=not args.quiet, fresh=follow_on is None,
+    process = launch(cli, work, out, env, args.timeout, watch=not args.quiet,
+                     fresh=follow_on is None and seeded is None,
                      first=resumed is None, translate=host.translator())
     sessions = [dict(process, resumed=None, host=host.name)]
     # A headless Grok session ends whenever the model ends its turn. While ShipLoop's
@@ -925,7 +1051,7 @@ def main(argv: list[str] | None = None) -> int:
         plugin = grade_claude_plugin(plugins, plugin_dir)
     shiploop = grade_shiploop(out)
     shiploop["knowledge"] = knowledge_facts(work)
-    start_head = (follow_on or {}).get("start_head")
+    start_head = (follow_on or {}).get("start_head") or (seeded or {}).get("start_head")
     knowledge = shiploop["knowledge"]
     committed = {"pass": bool(knowledge["head"]) and knowledge["head"] != start_head and not knowledge["uncommitted"],
                  "start_head": start_head, "head": knowledge["head"], "uncommitted": knowledge["uncommitted"][:20]}
@@ -937,7 +1063,9 @@ def main(argv: list[str] | None = None) -> int:
         # Informational only: does the unreturned candidate already pass?
         shiploop["worktree_checks"] = [{k: c[k] for k in ("command", "pass")}
                                        for c in run_checks(Path(shiploop["worktree"]), checks, env=check_env)]
+    chain = chain_facts(out) if seeded else None
     verdicts = [invoked["pass"], plugin["pass"], process["pass"], shiploop["pass"], committed["pass"],
+                *([chain["pass"]] if chain else []),
                 *(c["pass"] for c in check_results)]
     if keepalive is not None:
         keepalive["decisions"] = hosts.keepalive_decisions(out / "home")
@@ -946,7 +1074,7 @@ def main(argv: list[str] | None = None) -> int:
               "process": process,
               "keepalive": keepalive,
               "shiploop": shiploop, "committed": committed, "checks": check_results, "cli": cli_seen, "follow_on": follow_on,
-              "resumed_run": resumed,
+              "resumed_run": resumed, "seeded": seeded, "chain": chain,
               "metrics": {k: run_metrics[k] for k in ("turns", "cost_usd", "compactions", "truncated_outputs",
                                                       "improve_children")}
               | {"script_verifications": run_metrics["script_verifications"],
@@ -961,7 +1089,7 @@ def main(argv: list[str] | None = None) -> int:
     style = json.loads(CASES.read_text()).get(name, {}).get("style") if name != "custom" else None
     row = baseline_row(result, style, args.suite_name)
     # A baseline measures one host running a case from the start; a resumed run is not one.
-    baseline_file = args.baseline if not resumed else None
+    baseline_file = args.baseline if not (resumed or seeded) else None
     before = previous_row(baseline_file, name, versions["source"]) if baseline_file else None
     if baseline_file:
         with baseline_file.open("a") as handle:
@@ -990,6 +1118,13 @@ def main(argv: list[str] | None = None) -> int:
     print(f"  knowledge docs/shiploop/spec.md {'present' if knowledge['spec'] else 'missing'}"
           f"{', tracked' if knowledge['spec_tracked'] else ', not committed'}; {len(knowledge['requirement_ids'])} "
           f"requirement ids; HEAD has {knowledge['head_commits']} commits, {knowledge['untracked_files']} untracked files")
+    if chain is not None:
+        for binding in chain["bindings"] or [{}]:
+            print(f"  chain     {mark(chain['pass'])}  " + (
+                f"{binding.get('mode')} {binding.get('accepted')}/{binding.get('steps')} steps accepted, "
+                f"native {binding.get('native_attempts')}, main-context {binding.get('main_context_attempts')}, "
+                f"most in flight {binding.get('max_in_flight')}" if binding.get("steps") is not None
+                else binding.get("error") or "no chain bound"))
     for line in metrics.summary_lines(run_metrics):
         print(f"  metrics   {line}")
     for failure in run_metrics["shiploop_failures"][:5]:
