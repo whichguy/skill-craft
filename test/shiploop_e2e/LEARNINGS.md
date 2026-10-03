@@ -371,3 +371,28 @@ harness-FAIL, 7 cancelled; 8b on 1.6.0 PASS committed, 4 cancelled, 0 ShipLoop f
   totals only when it ends.
 - Meaning: ShipLoop's parallel chain is still unproven live. Next attempt: Codex at a lower planning
   effort (or high) with a longer timeout, same case.
+
+## batch 1121 (hello, seat-reservations, battleship, battleship-scoring) — 2026-09-27 — Codex gpt-6-luna max, marketplace skill-craft 1.13.0 (ShipLoop 0.46.0) — status: interim, evidence lost
+
+- Outcome: hello passed (5 Improve imports, no `--result`). seat-reservations and battleship were still in
+  `test-strategy` / `plan` at about 19:45 when the session ended; battleship-scoring never started. The
+  scratch output directory was emptied by 2 Oct (no events, invocation or work history), so the runs cannot
+  be resumed and the per-run files are gone. Only the numbers below were kept, from live snapshots. Lesson:
+  keep the journal and exported evidence in the repo while a batch runs, never only in a scratchpad.
+- Luna max vs the latest Grok run, minutes: intake 4.4/3.8 vs 3.3/3.5 (x1.1-1.3); discovery 14.1/10.7 vs
+  3.2/2.4 (x4.4); research 45.0/26.9 vs 4.4/4.9 (x5.5-10); spec 105/99 vs 13/9.7 (x8-10); battleship
+  test-strategy 64.3 vs 5.4 (x11.8). Rows are seat-reservations/battleship.
+- Cost driver: each Improve review pass re-reads the whole contract (R-1..R-7, AC-01..AC-14, the planning
+  docs, baseline and last seven commits). battleship's test-strategy ran about 6 passes 4-10 minutes apart.
+  Stages without a review loop stay near Grok's time. Candidate fix, not yet built: a later pass reads what
+  changed since the previous pass (the "reference, not reread" rule applied to Improve reviews).
+- Engine defects with fixes queued (code on the branch that follows this entry, 1.14.0 base):
+  N1 a spent investigation allowance paused the run instead of stopping exploration (7a4cfe28 -> allowance-never-pauses);
+  N2 the execution-checkout path was mistaken for a `--result` value (1a8c6c0d);
+  N3 the Improve packet did not say where the Until Loop card's relative links resolve (7c2a27be).
+  Each is a one-line packet clarification with a change note; verify them together in the next batch.
+- Observed, not yet a defect: a refused `improve-commit` because the commit message came from the wrong
+  file; the refusal named the exact `nav-*/nav-*/commit-message.md` path and the model recovered at once.
+  The nested `nav-` directories make that path easy to miss; watch for repeats before changing it.
+- Harness default changed to Claude Sonnet 5.5 (`claude-sonnet-5-5`) on 2026-10-03 because Grok credits ran
+  out; Luna max stays available with `--host codex`. A comparison needs the same host on both sides.
