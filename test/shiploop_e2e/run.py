@@ -25,7 +25,7 @@ Besides the verdicts, metrics.json records where ShipLoop spent turns, tokens,
 cost and time (per accepted stage), its failed commands, host truncations,
 compactions and the knowledge-home facts (see metrics.py).
 
-The default host is Grok at medium reasoning effort. By default the run tests
+The default host is Claude (Sonnet 5.5, claude-sonnet-5-5). By default the run tests
 what the whichguy marketplace publishes now (--source marketplace, gated on
 local HEAD == origin/main and matching versions); --source checkout builds
 this checkout instead. The host is isolated from the user's configuration:
@@ -610,11 +610,11 @@ def parser() -> argparse.ArgumentParser:
                         "(required by follow-on cases, which name the case they follow)")
     p.add_argument("--check", action="append", help="extra shell check run in the work dir (repeatable)")
     p.add_argument("--output", type=Path, help="new directory for this attempt (default: under $TMPDIR)")
-    p.add_argument("--host", choices=[*sorted(hosts.HOSTS), "all"], default="grok",
+    p.add_argument("--host", choices=[*sorted(hosts.HOSTS), "all"], default="claude",
                    help="the host that drives ShipLoop; 'all' only with --preflight-only (checks every host)")
-    p.add_argument("--model", help="default: grok-4.7 (grok) or sonnet (claude)")
-    p.add_argument("--effort", help="reasoning effort; default: medium (grok), host default (claude)")
-    p.add_argument("--skill", help="command that invokes ShipLoop; default: shiploop (grok), skill-craft:shiploop (claude)")
+    p.add_argument("--model", help="default: claude-sonnet-5-5 (claude) or grok-4.7 (grok)")
+    p.add_argument("--effort", help="reasoning effort; default: host default (claude), medium (grok)")
+    p.add_argument("--skill", help="command that invokes ShipLoop; default: skill-craft:shiploop (claude), shiploop (grok)")
     p.add_argument("--source", choices=("marketplace", "checkout"), default="marketplace",
                    help="marketplace (default): test what the whichguy marketplace publishes now, gated on "
                         "local HEAD == origin/main and matching versions; checkout: build this checkout")

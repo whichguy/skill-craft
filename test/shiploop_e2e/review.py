@@ -183,7 +183,7 @@ def review(run_dir: Path, *, host: str = "grok", model: str | None = None, effor
 def main(argv: list[str] | None = None) -> int:
     p = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
     p.add_argument("run_dir", type=Path, help="a run.py output directory")
-    p.add_argument("--host", choices=sorted(hosts.HOSTS), default="grok")
+    p.add_argument("--host", choices=sorted(hosts.HOSTS), default="claude")
     p.add_argument("--model")
     p.add_argument("--effort")
     p.add_argument("--skill-root", type=Path, default=ROOT / "skills" / "shiploop")

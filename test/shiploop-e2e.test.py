@@ -210,8 +210,9 @@ class HarnessCase(unittest.TestCase):
 
 
 class GrokRunTest(HarnessCase):
-    def test_grok_is_the_default_host_at_medium_effort(self):
-        self.assertEqual(run.parser().parse_args([]).host, "grok")
+    def test_claude_sonnet_5_5_is_the_default_host_and_grok_stays_at_medium_effort(self):
+        self.assertEqual(run.parser().parse_args([]).host, "claude")
+        self.assertEqual(hosts.HOST_DEFAULTS["claude"]["model"], "claude-sonnet-5-5")
         self.assertEqual(hosts.HOST_DEFAULTS["grok"]["effort"], "medium")
 
     def test_done_run_passes_in_an_isolated_profile_from_an_empty_directory(self):
@@ -327,7 +328,7 @@ class ClaudeRunTest(HarnessCase):
         argv = self.seen()["argv"]
         prompt = json.loads(run.CASES.read_text())["hello"]["prompt"]
         self.assertEqual(argv[:2], ["-p", "/skill-craft:shiploop " + prompt])
-        self.assertEqual(argv[argv.index("--model") + 1], "sonnet")
+        self.assertEqual(argv[argv.index("--model") + 1], "claude-sonnet-5-5")
         self.assertEqual(argv[argv.index("--setting-sources") + 1], "project,local")
         self.assertEqual(argv[argv.index("--plugin-dir") + 1], str(self.plugin.resolve()))
 

@@ -242,7 +242,7 @@ class GrokHost(Host):
 
 
 class ClaudeHost(Host):
-    name, model, effort = "claude", "sonnet", None
+    name, model, effort = "claude", "claude-sonnet-5-5", None
 
     def __init__(self, binary: str = "claude"):
         self.binary = binary

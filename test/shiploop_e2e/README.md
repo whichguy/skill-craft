@@ -19,8 +19,8 @@ flowchart LR
     T -->|red| S
 ```
 
-All three stages default to **Grok (`grok-4.7`) at medium reasoning effort**.
-`--host claude` switches to Claude (Sonnet), and `--host codex` to Codex
+All three stages default to **Claude Sonnet 5.5 (`claude-sonnet-5-5`)**.
+`--host grok` switches to Grok (`grok-4.7`, medium effort), and `--host codex` to Codex
 (GPT-6 Luna, `gpt-6-luna`, at max effort). `--model` and `--effort` override either one, so
 switching model or effort is a flag, for example
 `--host codex --model gpt-6-sol --effort xhigh`. Every stage launches a real
