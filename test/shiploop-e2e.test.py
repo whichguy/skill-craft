@@ -321,6 +321,27 @@ class VersionGateTest(unittest.TestCase):
             self.assertIsNone(run.card_version(Path(tmp) / "missing.md"))
 
 
+class ClaudeResumeInvokedTest(unittest.TestCase):
+    def events(self, command):
+        return [{"type": "assistant", "message": {"content": [
+            {"type": "tool_use", "name": "Bash", "input": {"command": command}}]}}]
+
+    def graded(self, events):
+        with tempfile.TemporaryDirectory() as temp:
+            path = Path(temp) / "events.jsonl"
+            path.write_text("".join(json.dumps(e) + "\n" for e in events))
+            return run.shiploop_cli_ran(path)
+
+    def test_a_claude_tool_use_that_runs_the_shiploop_cli_counts_even_through_a_path_variable(self):
+        self.assertTrue(self.graded(self.events('"/p/skills/shiploop/scripts/shiploop" next --run-dir=/r')))
+        self.assertTrue(self.graded(self.events(
+            'SKILL_ROOT="/p/skills/shiploop"; CLI="$SKILL_ROOT/scripts/shiploop"; "$CLI" next --run-dir=/r')))
+
+    def test_other_claude_commands_do_not_count(self):
+        self.assertFalse(self.graded(self.events("ls -la /p/skills")))
+        self.assertFalse(self.graded([]))
+
+
 class ClaudeRunTest(HarnessCase):
     def test_done_run_invokes_the_namespaced_skill_with_isolated_settings(self):
         code, result = self.invoke("claude", "done")

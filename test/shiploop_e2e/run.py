@@ -408,17 +408,29 @@ def summarize_events(path: Path) -> dict:
     return seen
 
 
+def _runs_shiploop_cli(command: str) -> bool:
+    # Claude often builds the path from a variable (SKILL_ROOT=.../skills/shiploop; $SKILL_ROOT/scripts/shiploop).
+    return "skills/shiploop" in command and "scripts/shiploop" in command
+
+
 def shiploop_cli_ran(events_path: Path) -> bool:
-    """Whether any tool call ran the installed ShipLoop CLI."""
+    """Whether any tool call ran the installed ShipLoop CLI (Grok/Codex tool_call or Claude tool_use events)."""
     for line in events_path.read_text(errors="replace").splitlines():
         try:
             event = json.loads(line)
         except ValueError:
             continue
-        if isinstance(event, dict) and event.get("type") == "tool_call":
+        if not isinstance(event, dict):
+            continue
+        if event.get("type") == "tool_call":
             arg = event.get("rawInput") if isinstance(event.get("rawInput"), dict) else {}
             if "skills/shiploop/scripts/shiploop" in str(arg.get("command") or ""):
                 return True
+        elif event.get("type") == "assistant" and isinstance(event.get("message"), dict):
+            for block in event["message"].get("content") or []:
+                if isinstance(block, dict) and block.get("type") == "tool_use" and isinstance(block.get("input"), dict):
+                    if _runs_shiploop_cli(str(block["input"].get("command") or "")):
+                        return True
     return False
 
 
