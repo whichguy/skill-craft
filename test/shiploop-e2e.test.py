@@ -321,6 +321,23 @@ class VersionGateTest(unittest.TestCase):
             self.assertIsNone(run.card_version(Path(tmp) / "missing.md"))
 
 
+class ClaudeResumePromptTest(unittest.TestCase):
+    def test_a_claude_resume_names_the_run_s_own_marketplace_cli(self):
+        with tempfile.TemporaryDirectory() as temp:
+            out = Path(temp)
+            cli = out / "marketplace/plugins/skill-craft/skills/shiploop/scripts/shiploop"
+            cli.parent.mkdir(parents=True)
+            cli.write_text("#!/bin/sh\n")
+            prompt = run.resume_prompt(out, "/r/run", hosts.host("claude"))
+            self.assertIn(f'python3 "{cli}" next --run-dir "/r/run"', prompt)
+            self.assertNotIn("`shiploop next", prompt)
+
+    def test_without_an_installed_marketplace_build_the_bare_command_remains(self):
+        with tempfile.TemporaryDirectory() as temp:
+            prompt = run.resume_prompt(Path(temp), "/r/run", hosts.host("claude"))
+            self.assertIn("`shiploop next --run-dir \"/r/run\"`", prompt)
+
+
 class ImproveReviewsMetricTest(unittest.TestCase):
     def test_counts_review_passes_per_child_and_the_time_they_span(self):
         with tempfile.TemporaryDirectory() as temp:

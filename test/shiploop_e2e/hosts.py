@@ -247,6 +247,11 @@ class ClaudeHost(Host):
     def __init__(self, binary: str = "claude"):
         self.binary = binary
 
+    def plugin_cli(self, home):
+        """The CLI of the marketplace build the run loads with --plugin-dir (<output>/marketplace/...)."""
+        cli = home.parent / "marketplace" / "plugins" / "skill-craft" / "skills" / "shiploop" / "scripts" / "shiploop"
+        return cli if cli.is_file() else None
+
     def argv(self, *, prompt, prompt_file, cwd, model, effort, permission_mode, max_turns,
              max_budget_usd=10.0, plugin_dir=None, resume=None):
         argv = [self.binary, "-p", prompt, "--model", model, "--max-turns", str(max_turns),
