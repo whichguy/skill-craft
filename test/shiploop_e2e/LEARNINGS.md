@@ -416,3 +416,24 @@ harness-FAIL, 7 cancelled; 8b on 1.6.0 PASS committed, 4 cancelled, 0 ShipLoop f
   the 2.5 h planning cost seen on Luna max.
 - Expected gaps from seeding: docs/shiploop/spec.md missing (spec stage was synthetic); one of 11
   script verifications failed (not investigated; the run still passed every gate).
+
+## hello + seat-reservations on Sonnet 5.5 — 2026-10-03 — Claude claude-sonnet-5-5, marketplace skill-craft 1.16.0 (ShipLoop 0.48.0) — status: firm for these two runs
+
+- hello: all five verdicts pass; 7.4 min, 155 turns, $3.69; 0 ShipLoop failures, 0 glue, 0 truncations; 16 Improve
+  children; HEAD 9f36c0ee. Baseline row committed (bd1e4817).
+- seat-reservations: finished at revision 52 with every product check passing (unit, contract, restart,
+  concurrency), 13 requirement ids, 19 commits, 9/9 script verifications; 420 turns, $6.32, 0 ShipLoop failures,
+  0 glue, 0 truncations, 16 Improve children. The session was killed at the 10-minute background-task limit at
+  revision 28 and resumed in place (`--resume-run`; it writes into the original directory, not `--output`).
+- Pace: Sonnet reached the same graph in tens of minutes where Luna max spent 8-12x Grok's time on spec and
+  test-strategy (see the batch 1121 entry). Per-stage minutes here are not comparable to Grok's: the regression
+  stage's 22.1 min includes the time the run sat dead before the resume.
+- Queued fixes N1-N3 (released in 1.16.0): N2 and N3 text reached the model (37 and 8 packet files) and no
+  checkout-path or Until Loop path error occurred. N1's text reached 2 packets, but the run never hit the
+  investigation allowance, so N1 is NOT proven live; it needs a slower research-heavy run (Luna) or a mock test.
+- Harness defects found and fixed this round: (1) CI on 6833b41d failed because the seed inherited the runner's
+  git-lfs filter (fix 9e937eb0: isolate Git config); (2) a resumed Claude run graded `invoked: false` because
+  `shiploop_cli_ran` only read Grok/Codex `tool_call` events (fix 5fd875e1: also read Claude `tool_use`). The
+  seat-reservations result.json was graded before fix (2), so its `pass: false` is stale; re-grading it with the
+  fixed function returns invoked=true.
+- Launch lesson: background tasks stop at 10 minutes; start long runs detached (nohup) and watch them with a monitor.
