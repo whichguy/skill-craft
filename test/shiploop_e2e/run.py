@@ -755,7 +755,7 @@ def parser() -> argparse.ArgumentParser:
                         "and what the host installed, and exit non-zero if the version gate refuses")
     p.add_argument("--plugin-dir", type=Path, help="test this skill-craft plugin build (implies --source checkout)")
     p.add_argument("--max-turns", type=int, default=10000)
-    p.add_argument("--max-budget-usd", type=float, default=10.0, help="claude only; grok has no spend cap")
+    p.add_argument("--max-budget-usd", type=float, default=40.0, help="claude only; grok has no spend cap")
     p.add_argument("--permission-mode", default="auto")
     p.add_argument("--timeout", type=int, default=10800, help="seconds before the host is killed")
     p.add_argument("--max-resumes", type=int, default=20,

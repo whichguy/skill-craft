@@ -208,7 +208,17 @@ uses it on purpose. Publish (`scripts/release.py`, then
 - **Claude** runs with `--setting-sources project,local` and `--plugin-dir`, so
   your plugins and hooks stay out; `~/.claude/CLAUDE.md` still loads.
 - Grok has no spend cap; its runs are bounded by `--max-turns` and the timeout.
-  Claude runs also get `--max-budget-usd` (default 10).
+  Claude runs also get `--max-budget-usd` (default 40; a chained case such as battleship-scoring can cost
+  more than 10 across its resumes).
+
+### Launching long runs
+
+Launch a run as a Claude Desktop background task (`run_in_background`) so it can be tracked; a background task is
+killed after 18-30 minutes, taking the host with it, so relaunch with `--resume-run <output directory>` and the
+run continues in place (the output directory is reused; `--output` is ignored on a resume). A resume refuses to
+start while `origin/main`'s CI has failed, and a Codex resume across a release is refused. A multi-hour host such
+as Codex at max effort is the one case where a detached `nohup` launch is a deliberate, stated exception; watch it
+with a periodic status snapshot of its output directory.
 
 ## Review one run
 
