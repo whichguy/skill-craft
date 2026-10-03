@@ -8,6 +8,8 @@ Neither prompt contains a copied Improve algorithm or a second review counter.
 
 from __future__ import annotations
 
+from pathlib import Path
+
 import shiploop_stage_spec as stage_spec
 
 
@@ -736,6 +738,23 @@ changed line has no `lint_waivers` entry.
 """
 
 
+DESIGN_BASIS_DUTY = """\
+For affected interactions, recheck the guide's relevant subsections instead of
+copying the prior plan unchecked. Retain a compact Design basis paragraph or
+exact section links: baseline/delta; state/event/connection agreements and planned
+recovery checks (including a crash after acknowledgment but before processing
+accepted work where applicable); and source/check locators. For UI, include component/interaction/skin
+premises, selected design guidance locator plus identity/version or digest (or
+named fallback), and meaningful async cues with their purpose and reduced-motion
+alternative, or an explicit static choice. For a human-facing UI, default to an
+ambitious, highly interactive design: name the rich interactions planned
+(direct manipulation, inline editing, live preview, keyboard paths, animated
+transitions) and any scaled back, with its user, target or accessibility
+reason. For consequential UI choices, include
+the guide's ambition, reuse/evolve/upgrade decision, rough effort/benefit and
+compatibility check; reuse accepted choices for unaffected scope and the existing
+design/test facilities."""
+
 DUTIES = {
     "intake": """\
 Establish the requested outcome, repository and run boundaries, explicit user
@@ -968,23 +987,7 @@ State and data assessment. Map each applicable obligation to its responsible wor
 item, prerequisites, observing test and relevant release/recovery conditions, or
 retain a reasoned exclusion or unresolved need. Preserve the mapping in existing
 plan notes, item context and evidence_refs; a completed template is not proof.
-For affected interactions, recheck the guide's relevant subsections instead of
-copying the prior plan unchecked. Retain a compact Design basis paragraph or
-exact section links: baseline/delta; state/event/connection agreements and planned
-recovery checks (including a crash after acknowledgment but before processing
-accepted work where applicable); and source/check locators. For UI, include component/interaction/skin
-premises, selected design guidance locator plus identity/version or digest (or
-named fallback), and meaningful async cues with their purpose and reduced-motion
-alternative, or an explicit static choice. For a human-facing UI, default to an
-ambitious, highly interactive design: name the rich interactions planned
-(direct manipulation, inline editing, live preview, keyboard paths, animated
-transitions) and any scaled back, with its user, target or accessibility
-reason. For consequential UI choices, include
-the guide's ambition, reuse/evolve/upgrade decision, rough effort/benefit and
-compatibility check; reuse accepted choices for unaffected scope and the existing
-design/test facilities.
-
-After creating the initial steps, submit this producer result to its mandatory
+""" + DESIGN_BASIS_DUTY + "\n\n" + """After creating the initial steps, submit this producer result to its mandatory
 actual Improve handoff. The plan remains a draft until
 that loop completes; dependent work waits. Link the created plan and any execution
 graph in evidence_refs so Improve reviews their actual contents. Do not schedule
@@ -1182,21 +1185,7 @@ other features in the original request do not expand it. Apply UI planning
 ownership where relevant. An unresolved prerequisite outside this item's
 authorized scope needs its supplier/correction route and the packet's blocked
 disposition, not just a future implementation bullet.
-For affected interactions, recheck the guide's relevant subsections instead of
-copying the prior plan unchecked. Retain a compact Design basis paragraph or
-exact section links: baseline/delta; state/event/connection agreements and planned
-recovery checks (including a crash after acknowledgment but before processing
-accepted work where applicable); and source/check locators. For UI, include component/interaction/skin
-premises, selected design guidance locator plus identity/version or digest (or
-named fallback), and meaningful async cues with their purpose and reduced-motion
-alternative, or an explicit static choice. For a human-facing UI, default to an
-ambitious, highly interactive design: name the rich interactions planned
-(direct manipulation, inline editing, live preview, keyboard paths, animated
-transitions) and any scaled back, with its user, target or accessibility
-reason. For consequential UI choices, include
-the guide's ambition, reuse/evolve/upgrade decision, rough effort/benefit and
-compatibility check; reuse accepted choices for unaffected scope and the existing
-design/test facilities. The next review is the packet's automatic Improve handoff immediately after this producer result, before
+""" + DESIGN_BASIS_DUTY + """ The next review is the packet's automatic Improve handoff immediately after this producer result, before
 implementation. Do not schedule a review stage or claim it ran. Link this plan in
 evidence_refs; keep these as ordinary notes, not new result fields.
 Use the packet's Initial repository baseline guide. Revalidate the initial
@@ -1842,6 +1831,42 @@ BACKCHAIN_NATIVE_CALLS = {
 BACKCHAIN_AUDIT_STAGES = BACKCHAIN_STAGES - set(BACKCHAIN_NATIVE_CALLS)
 
 
+def resolved_backchain_resources() -> tuple[tuple[str, str], ...]:
+    """Resolve the fixed Backchain/Until Loop resources from this plugin install."""
+    skills_root = Path(__file__).resolve().parent.parent.parent
+    resources = (
+        ("Backchain SKILL.md", "backchain/SKILL.md"),
+        (
+            "Backchain backchain-caller/v1 resource",
+            "backchain/references/caller-contract.md",
+        ),
+        ("Backchain references/convergence.md", "backchain/references/convergence.md"),
+        (
+            "Backchain prompts/convergence-review.prompt.md",
+            "backchain/prompts/convergence-review.prompt.md",
+        ),
+        ("Until Loop ADAPTER.md", "improve/runtime/until-loop/ADAPTER.md"),
+        (
+            "Until Loop references/runtime-ephemeral.md",
+            "improve/runtime/until-loop/references/runtime-ephemeral.md",
+        ),
+        (
+            "Until Loop scripts/until_loop_ephemeral.py",
+            "improve/runtime/until-loop/scripts/until_loop_ephemeral.py",
+        ),
+    )
+    resolved = []
+    for label, relative_path in resources:
+        path = skills_root / relative_path
+        value = (
+            str(path.resolve())
+            if path.is_file()
+            else f"MISSING: skills/{relative_path}"
+        )
+        resolved.append((label, value))
+    return tuple(resolved)
+
+
 def _backchain_guidance(stage: str, *, improve_owner: bool = False) -> str:
     """Return host-mediated caller guidance without adding navigator state."""
     selection = """\
@@ -1850,19 +1875,26 @@ prerequisite and consumer review. Carry selected requirement sections and test
 locators through the plan and existing result/context fields. The only Backchain
 call route is `source-aware-native`; ShipLoop carries no embedded Backchain mode.
 
-A `source-aware-native` call is allowed only when run notes identify an observed
-selected Backchain `SKILL.md`, `backchain-caller/v1` resource for this action/stage,
-`references/convergence.md`, and `prompts/convergence-review.prompt.md`, plus a selected
-physical Until Loop root with its `SKILL.md`,
-`references/runtime-ephemeral.md`, and `scripts/until_loop_ephemeral.py` capability.
-Read the Backchain convergence resources and verify each selected identity and capability
-before use. They must support the direct natural-language handoff under
+A `source-aware-native` call is allowed only when the packet's printed
+"Selected Backchain and Until Loop resources" block below lists all required
+resources. That block is the selection for this action/stage: ShipLoop resolves
+and prints the Backchain and Until Loop files from its own installed plugin,
+including Backchain `SKILL.md`, the `backchain-caller/v1` resource in
+`references/caller-contract.md`, `references/convergence.md`,
+`prompts/convergence-review.prompt.md`, and the Until Loop `ADAPTER.md`,
+`references/runtime-ephemeral.md`, and `scripts/until_loop_ephemeral.py`.
+Any entry printed as `MISSING: ...` blocks this route for that specifically named
+missing resource; identify that resource as the blocker instead of calling the
+route only unverifiable. Read the Backchain convergence resources and verify each
+selected identity and capability before use. They must support the direct
+natural-language handoff under
 `Backchain standalone Until Loop binding: <binding-id>` for a plan-only child where the
 actual loaded Until Loop card starts its adapter, is the sole CLI caller, and returns the
 exact terminal packet. Caller/v1 alone is insufficient; an observed old custom Backchain
 loop is incompatible even when an Until Loop package is installed. Do not guess a sibling,
-cache, or ambient Until Loop. A missing, stale, ambiguous, or incompatible selected resource
-leaves the request incomplete/blocked with its recovery locator; there is no silent fallback.
+cache, or ambient package, or substitute a different Backchain/Until Loop install than the
+one printed in this packet. A stale, ambiguous, or incompatible selected resource leaves
+the request incomplete/blocked with its recovery locator; there is no silent fallback.
 This is host-judged semantic compatibility; the navigator does not machine-enforce it.
 
 Preserve selected Backchain/Until Loop identities, original source/candidate identities,

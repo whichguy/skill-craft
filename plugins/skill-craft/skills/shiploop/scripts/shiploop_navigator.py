@@ -26,7 +26,7 @@ from typing import Any
 from urllib.parse import quote
 
 import shiploop_assumptions as assumptions
-import shiploop_navigator_v3_prompts as guidance3
+import shiploop_prompts as guidance
 import shiploop_consumer_delivery as consumer_delivery
 import shiploop_lint as lint
 import shiploop_quality as quality
@@ -104,8 +104,8 @@ _STATE_KEYS = frozenset(
 )
 # Run-level execution delegation.  Every run records it; new runs default to
 # ``inline``.
-DELEGATIONS = guidance3.DELEGATIONS
-DEFAULT_DELEGATION = guidance3.INLINE
+DELEGATIONS = guidance.DELEGATIONS
+DEFAULT_DELEGATION = guidance.INLINE
 # Run-level script-owned lint option.  New CLI-created runs record ``fix``; a
 # saved run without the key is refused (one supported version), never migrated.
 # ``lint-mode --set`` changes it mid-run.
@@ -215,7 +215,7 @@ def retired_json_run_reason(run_dir: Path) -> str:
 # Stages whose accepted result can carry an Improve record: every planning
 # stage, plus carry-forward (only the final one starts a child, but an earlier
 # end review stays recorded when a later Improve added work items).
-_IMPROVE_STAGES = guidance3.PLANNING_REVIEW_STAGES | {"carry-forward"}
+_IMPROVE_STAGES = guidance.PLANNING_REVIEW_STAGES | {"carry-forward"}
 
 
 def _improve_checkpoint(state: Mapping[str, Any], stage: str, result: Mapping[str, Any]) -> bool:
@@ -227,7 +227,7 @@ def _improve_checkpoint(state: Mapping[str, Any], stage: str, result: Mapping[st
     tests and release.  A later Improve that adds work items moves that end
     review to the new last item's carry-forward.
     """
-    if stage in guidance3.PLANNING_REVIEW_STAGES:
+    if stage in guidance.PLANNING_REVIEW_STAGES:
         return True
     if stage not in stage_spec.with_improve("last-item") or result["outcome"] != "done":
         return False
@@ -251,7 +251,7 @@ def delegation(state: Mapping[str, Any]) -> str:
 
 def graph(state: Mapping[str, Any]) -> tuple[tuple[str, ...], tuple[str, ...], tuple[str, ...]]:
     """Return the protocol 4 execution graph."""
-    return guidance3.PRELUDE, guidance3.INNER, guidance3.OUTER
+    return guidance.PRELUDE, guidance.INNER, guidance.OUTER
 
 
 class NavigatorError(ValueError):
@@ -397,7 +397,7 @@ def _replan_delta_lines(root: Path, state: Mapping[str, Any], stage: str) -> lis
     packet names what changed and the result this stage accepted before the
     replan, so unchanged rows are cited rather than redone.
     """
-    if stage not in guidance3.OUTER:
+    if stage not in guidance.OUTER:
         return []
     history = state["history"]
     replans = [index for index, row in enumerate(history) if row["outcome"] == "replan"]
@@ -482,7 +482,7 @@ def _canonical_result(
         _need("\n" not in headline and len(headline.strip()) <= HEADLINE_LIMIT,
               f"headline must be one line of at most {HEADLINE_LIMIT} characters")
     if outcome == "replan":
-        _need(stage in guidance3.OUTER and "work_items" in value,
+        _need(stage in guidance.OUTER and "work_items" in value,
               "replan requires corrective work_items at an outer stage")
     if "blocked_by" in value:
         _need(outcome == "blocked" and value["blocked_by"] in BLOCKED_BY,
@@ -599,19 +599,19 @@ def _action_history(state: Mapping[str, Any], action_id: str) -> Mapping[str, An
 
 
 def _current_work_item(state: Mapping[str, Any]) -> str | None:
-    if state["stage"] not in graph(state)[1] and not _is_v2_inner_root(state):
+    if state["stage"] not in graph(state)[1] and not _is_inner_root(state):
         return None
     return state["work_items"][state["work_index"]]["id"]
 
 
-def _is_v2_inner_root(state: Mapping[str, Any]) -> bool:
+def _is_inner_root(state: Mapping[str, Any]) -> bool:
     return state.get("stage") == "inner-loop"
 
 
 def _active_cursor(state: Mapping[str, Any]) -> tuple[str, Mapping[str, str], str | None]:
     """Return the one effective stage, action, and owner without validating."""
     workitem = _current_work_item(state)
-    if _is_v2_inner_root(state):
+    if _is_inner_root(state):
         _need(workitem is not None, "inner-loop root has no current work item")
         loop = state["inner_loops"][workitem]
         return loop["stage"], loop["action"], workitem
@@ -713,7 +713,7 @@ def _validate_action(action: Any, stage: str, label: str) -> str:
     return action_id
 
 
-def _validate_v2(state: Mapping[str, Any]) -> None:
+def _validate_current_state(state: Mapping[str, Any]) -> None:
     """Validate a protocol 4 state (the inner-loop cursor shape began at v2)."""
     keys = set(state)
     version = state.get("navigator_protocol_version")
@@ -897,7 +897,7 @@ def _validate_v2(state: Mapping[str, Any]) -> None:
     # A test stage recorded as not applicable to its item (no test command, only
     # non-code paths; derived from the item's own step plan) had nothing to review.
     planning = {entry["action"] for entry in history
-                if entry["stage"] in guidance3.PLANNING_REVIEW_STAGES
+                if entry["stage"] in guidance.PLANNING_REVIEW_STAGES
                 and not (entry["stage"] in item_scope.TEST_STAGES and entry["workitem"]
                          and item_scope.no_test_item(state, entry["workitem"]))}
     _need(planning <= set(records) <= expected,
@@ -962,7 +962,7 @@ def validate(state: Any) -> None:
     protocol_version = state.get("navigator_protocol_version")
     _need(type(protocol_version) is int and protocol_version in _PROTOCOL_VERSIONS,
           "unsupported navigator protocol version; expected 4")
-    _validate_v2(state)
+    _validate_current_state(state)
 
 
 def _replace_plan_work_items(state: dict[str, Any], rows: list[dict[str, str]]) -> None:
@@ -997,8 +997,8 @@ def _record_acceptance(
     )
 
 
-def _begin_v2_inner_loop(state: dict[str, Any]) -> None:
-    _need(_is_v2_inner_root(state), "active item requires the inner-loop root")
+def _begin_inner_loop(state: dict[str, Any]) -> None:
+    _need(_is_inner_root(state), "active item requires the inner-loop root")
     item_id = _current_work_item(state)
     _need(item_id is not None and item_id not in state["inner_loops"],
           "inner loop already exists or has no current work item")
@@ -1102,7 +1102,7 @@ def _run_rules(core: Any, root: Path, state: Mapping[str, Any]) -> list[str]:
         "condition and follow the printed resume route; if halted or done, stop.",
         ("Execute this packet in this conversation, submit its current callback yourself and "
          "consume the returned packet; delegated subtasks do not advance this run or start another one."
-         if route == guidance3.INLINE else
+         if route == guidance.INLINE else
          "Give the executing agent only the current action packet and relevant context. "
          "The owner submits its current callback and consumes the returned packet; "
          "delegated subtasks do not advance this run or start another one."),
@@ -1192,7 +1192,7 @@ def packet_head(core: Any, root: Path, state: Mapping[str, Any], path: Path,
     return "\n".join(lines)
 
 
-_GROUP_ENDS = frozenset(stages[-1] for _, stages in guidance3.INNER_GROUPS)
+_GROUP_ENDS = frozenset(stages[-1] for _, stages in guidance.INNER_GROUPS)
 # Where the entry point says the host shows a status hook's message to the user.
 HOOK_DISPLAY_ENTRYPOINTS = frozenset(("cli",))
 
@@ -1258,10 +1258,10 @@ def narrative_facts(state: Mapping[str, Any], timeline: Mapping[str, Any] | None
 
     now_label = stage
     if phase == "inner" and owner is not None:
-        group = next(name for name, stages in guidance3.INNER_GROUPS if stage in stages)
+        group = next(name for name, stages in guidance.INNER_GROUPS if stage in stages)
         now_label = f"{title(items[index])} ({index + 1} of {len(items)}) \u203a {group} \u203a {stage}"
     now_text = (f"Improve is reviewing the {state['active_improve']['stage']} result"
-                if state.get("active_improve") else guidance3.STAGE_PURPOSE.get(stage, ""))
+                if state.get("active_improve") else guidance.STAGE_PURPOSE.get(stage, ""))
 
     stop = None
     wait = awaiting(state)
@@ -1277,12 +1277,12 @@ def narrative_facts(state: Mapping[str, Any], timeline: Mapping[str, Any] | None
     if phase == "preparation":
         pending = [node for node in prelude if (None, node) not in done and node != stage]
         remaining = len(pending) + 1
-        ahead = [{"label": node, "text": guidance3.STAGE_PURPOSE[node]} for node in pending[:2]]
+        ahead = [{"label": node, "text": guidance.STAGE_PURPOSE[node]} for node in pending[:2]]
         rest = pending[2:]
         ahead.append({"label": "then " + ", ".join(rest + ["the work items", "release"]) if rest
                       else "then the work items and release", "text": ""})
     elif phase == "inner":
-        groups = [name for name, stages in guidance3.INNER_GROUPS
+        groups = [name for name, stages in guidance.INNER_GROUPS
                   if all((owner, node) not in done and node != stage for node in stages)]
         if groups:
             ahead.append({"label": "this item", "text": " \u2192 ".join(groups)})
@@ -1295,7 +1295,7 @@ def narrative_facts(state: Mapping[str, Any], timeline: Mapping[str, Any] | None
     elif phase == "outer":
         pending = [node for node in outer if (None, node) not in done and node != stage]
         remaining = len(pending) + 1
-        ahead = [{"label": node, "text": guidance3.STAGE_PURPOSE[node]} for node in pending[:3]]
+        ahead = [{"label": node, "text": guidance.STAGE_PURPOSE[node]} for node in pending[:3]]
         if len(pending) > 3:
             ahead.append({"label": "then " + ", ".join(pending[3:]), "text": ""})
 
@@ -1336,9 +1336,9 @@ def narrative_lines(state: Mapping[str, Any], timeline: Mapping[str, Any] | None
     return [narrative.BEGIN, instruction, "", narrative.markdown(facts), narrative.END, ""]
 
 
-def _replace_v2_inner_action(state: dict[str, Any], stage: str) -> None:
+def _replace_inner_action(state: dict[str, Any], stage: str) -> None:
     item_id = _current_work_item(state)
-    _need(_is_v2_inner_root(state) and item_id is not None,
+    _need(_is_inner_root(state) and item_id is not None,
           "active item requires the inner-loop root")
     state["inner_loops"][item_id] = {
         "stage": stage,
@@ -1540,11 +1540,14 @@ def _item_title(state: Mapping[str, Any], work_item: str) -> str:
     return ""
 
 
-def _knowledge_close(before: Mapping[str, Any], after: Mapping[str, Any], root: Path | None = None) -> None:
-    """Commit the knowledge home once a close stage's done has been accepted and saved.
+def _knowledge_close(before: Mapping[str, Any], after: Mapping[str, Any], root: Path | None = None,
+                     *, terminal: bool = False) -> None:
+    """Commit knowledge after an accepted close, including terminal preflight.
 
-    In a worktree run whose work was already returned, that commit is then returned
-    too (plan P11), so the handoff's return check does not find a stale receipt.
+    Normally this runs after the state is saved. A new terminal handoff opts into
+    fail-closed handling before its guard and save. In a worktree run whose work
+    was already returned, that commit is returned too (plan P11); terminal retries
+    also run the follow-up return after an empty commit.
     """
     rows = after["history"][len(before["history"]):]
     stages = [row["stage"] for row in rows if row["outcome"] == "done"]
@@ -1553,17 +1556,23 @@ def _knowledge_close(before: Mapping[str, Any], after: Mapping[str, Any], root: 
     try:
         committed = knowledge.commit(after, stages[-1])
     except RuntimeError as exc:
+        if terminal:
+            raise NavigatorError("ShipLoop knowledge: " + str(exc) + "; handoff remains pending.") from exc
         # The transition stands; the next accepted stage commits the same files.
         print("ShipLoop knowledge: " + str(exc) + "; the next accepted stage commits it.", file=sys.stderr)
         return
     notice = shiploop_git.skipped_notice(committed.skipped)
     if notice:
         print("ShipLoop knowledge: " + notice)
-    if committed.commit and root is not None and after.get("execution_mode") == "navigator-worktree":
+    if (root is not None and after.get("execution_mode") == "navigator-worktree"
+            and (committed.commit or terminal)):
         import shiploop_workspace as workspace
         try:
             receipt = workspace.follow_up_knowledge_return(Path(root).parent)
         except workspace.WorkspaceError as exc:
+            if terminal:
+                raise NavigatorError("ShipLoop knowledge: the follow-up return was not made (" + str(exc)
+                                     + "); handoff remains pending.") from exc
             # The handoff check still requires a current return and prints the commands.
             print("ShipLoop knowledge: the follow-up return was not made (" + str(exc) + "); "
                   "handoff will ask for it.", file=sys.stderr)
@@ -1571,6 +1580,14 @@ def _knowledge_close(before: Mapping[str, Any], after: Mapping[str, Any], root: 
         if receipt is not None:
             print("ShipLoop knowledge: returned the knowledge commit with the earlier work ("
                   + str(receipt.get("kind")) + ").")
+
+
+def _is_new_terminal_handoff(before: Mapping[str, Any], after: Mapping[str, Any]) -> bool:
+    """Whether this transition newly accepts the final handoff as done."""
+    rows = after["history"][len(before["history"]):]
+    return (before.get("status") == "active" and before.get("stage") == "handoff"
+            and after.get("status") == "done" and after.get("stage") == "done"
+            and len(rows) == 1 and rows[0]["stage"] == "handoff" and rows[0]["outcome"] == "done")
 
 
 # A locator may add an anchor, a line (and column) or a test ID after the file path:
@@ -1664,8 +1681,8 @@ def _apply_result(state: Mapping[str, Any], action_id: str, result: Any, improve
         _need(canonical.get("blocked_by") in BLOCKED_BY, BLOCKED_BY_RULE)
         updated["status"] = "blocked"
         updated["status_reason"] = canonical["blocked_by"] + ": " + canonical["summary"]
-        if _is_v2_inner_root(updated):
-            _replace_v2_inner_action(updated, stage)
+        if _is_inner_root(updated):
+            _replace_inner_action(updated, stage)
         else:
             updated["action"] = _new_action(stage)
         validate(updated)
@@ -1683,13 +1700,13 @@ def _apply_result(state: Mapping[str, Any], action_id: str, result: Any, improve
               "nothing further can proceed without the user: report blocked with blocked_by user and an "
               "awaiting question, with its no_default reason, so the user decides")
         updated["revisions"][item_id] = used + 1
-        _replace_v2_inner_action(updated, stage_spec.REVISE_TO)
+        _replace_inner_action(updated, stage_spec.REVISE_TO)
         validate(updated)
         return updated
 
     if canonical["outcome"] == "repeat":
-        if _is_v2_inner_root(updated):
-            _replace_v2_inner_action(updated, stage)
+        if _is_inner_root(updated):
+            _replace_inner_action(updated, stage)
         else:
             updated["action"] = _new_action(stage)
         validate(updated)
@@ -1702,13 +1719,13 @@ def _apply_result(state: Mapping[str, Any], action_id: str, result: Any, improve
         updated["work_items"].extend(deepcopy(canonical["work_items"]))
         updated["stage"] = "inner-loop"
         updated["action"] = None
-        _begin_v2_inner_loop(updated)
+        _begin_inner_loop(updated)
         validate(updated)
         return updated
 
     if stage == "plan" and "work_items" in canonical:
         _replace_plan_work_items(updated, canonical["work_items"])
-    if _is_v2_inner_root(updated) and stage == "carry-forward":
+    if _is_inner_root(updated) and stage == "carry-forward":
         if "work_items" in canonical:
             _replace_future_work_items(updated, canonical["work_items"])
         current_id = updated["work_items"][updated["work_index"]]["id"]
@@ -1717,7 +1734,7 @@ def _apply_result(state: Mapping[str, Any], action_id: str, result: Any, improve
         updated["work_index"] += 1
 
         if updated["work_index"] < len(updated["work_items"]):
-            _begin_v2_inner_loop(updated)
+            _begin_inner_loop(updated)
         else:
             next_stage = _next_stage(stage, updated)
             updated["stage"] = next_stage
@@ -1726,19 +1743,19 @@ def _apply_result(state: Mapping[str, Any], action_id: str, result: Any, improve
         validate(updated)
         return updated
 
-    if _is_v2_inner_root(updated) and stage == "implement" and delegation(state) == guidance3.INLINE:
+    if _is_inner_root(updated) and stage == "implement" and delegation(state) == guidance.INLINE:
         # One implement action per step: the script, not the host, walks the step plan.
         done, steps = implement_progress(updated, _current_work_item(updated))
         if done < len(steps):
-            _replace_v2_inner_action(updated, "implement")
+            _replace_inner_action(updated, "implement")
             validate(updated)
             return updated
 
-    if _is_v2_inner_root(updated):
+    if _is_inner_root(updated):
         next_stage = _next_stage(stage, updated)
         _need(next_stage in graph(updated)[1], "inner loop cannot advance outside its graph")
         next_stage = _record_not_applicable_tests(updated, next_stage)
-        _replace_v2_inner_action(updated, next_stage)
+        _replace_inner_action(updated, next_stage)
         validate(updated)
         return updated
 
@@ -1748,7 +1765,7 @@ def _apply_result(state: Mapping[str, Any], action_id: str, result: Any, improve
     if stage == "prepare":
         updated["stage"] = "inner-loop"
         updated["action"] = None
-        _begin_v2_inner_loop(updated)
+        _begin_inner_loop(updated)
         validate(updated)
         return updated
 
@@ -2409,7 +2426,7 @@ def _latest_done_current_test_decision(state: Mapping[str, Any]) -> Mapping[str,
         return None
     current = planning_revision.current_actions(state)
     for entry in reversed(state["history"]):
-        if (entry["stage"] in guidance3.TEST_DECISION_STAGES and entry["workitem"] == workitem
+        if (entry["stage"] in guidance.TEST_DECISION_STAGES and entry["workitem"] == workitem
                 and current.get((workitem, entry["stage"])) == entry["action"]):
             return entry
     return None
@@ -2478,7 +2495,7 @@ def _test_context_lines(state: Mapping[str, Any], root: Path) -> list[str]:
 
 # Planning-review stages after the prelude: they derive the item's steps and
 # tests, the system tests and the release steps from the accepted planning basis.
-STEP_PLANNING_STAGES = frozenset(guidance3.PLANNING_REVIEW_STAGES - set(planning_revision.PLANNING_STAGES))
+STEP_PLANNING_STAGES = frozenset(guidance.PLANNING_REVIEW_STAGES - set(planning_revision.PLANNING_STAGES))
 
 
 def _step_planning_source_lines(state: Mapping[str, Any], root: Path) -> list[str]:
@@ -2661,7 +2678,7 @@ def status_block(state: Mapping[str, Any]) -> str:
     if phase == "complete":
         where = "Run complete"
     elif phase == "inner":
-        group = next(name for name, stages in guidance3.INNER_GROUPS if stage in stages)
+        group = next(name for name, stages in guidance.INNER_GROUPS if stage in stages)
         where = (f"Work items > {item_name(items[index])} ({index + 1} of {len(items)})"
                  f" > {group} > {stage}" + (" (Improve review)" if child else ""))
     else:
@@ -2678,7 +2695,7 @@ def status_block(state: Mapping[str, Any]) -> str:
     ]
     if phase == "inner":
         groups = []
-        for name, stages in guidance3.INNER_GROUPS:
+        for name, stages in guidance.INNER_GROUPS:
             state_marks = [mark(node, owner) for node in stages]
             symbol = (_STATUS_MARK["done"] if all(m == _STATUS_MARK["done"] for m in state_marks)
                       else _STATUS_MARK["current"] if stage in stages else _STATUS_MARK["pending"])
@@ -2710,7 +2727,7 @@ def status_block(state: Mapping[str, Any]) -> str:
             lines.append(f"Next:      Improve review of the {child['stage']} result "
                          "(the Improve skill runs its own review loop)")
         else:
-            lines.append(f"Next:      {stage}: {guidance3.STAGE_PURPOSE[stage]}")
+            lines.append(f"Next:      {stage}: {guidance.STAGE_PURPOSE[stage]}")
     elif awaiting(state) is not None:
         lines.append("Waiting on you: " + _status_text(_awaiting_text(awaiting(state)[1]), 300))
     elif status in ("paused", "blocked"):
@@ -2840,7 +2857,7 @@ def render(core: Any, root: Path, state: Mapping[str, Any],
            timeline: Mapping[str, Any] | None = None) -> str:
     """Render a packet; worktree packets derive a read-only return projection.
 
-    Rendering reads no files: ``emit`` passes the display-only timeline in.
+    Rendering does not mutate run or product state; ``emit`` supplies the display-only timeline.
     """
     validate(state)
     root = Path(root)
@@ -2853,14 +2870,14 @@ def render(core: Any, root: Path, state: Mapping[str, Any],
     action = current_action(state)
     workitem = _current_work_item(state)
     reference_dir = _reference_dir(core)
-    progress_guidance = guidance3.PROGRESS_REPORTING
+    progress_guidance = guidance.PROGRESS_REPORTING
     if state["status"] == "active" and not state.get("active_improve"):
         # The producer's current guidance already includes this instruction.
         progress_guidance = ""
     lines = []
     route = delegation(state)
     if state["status"] == "active" and stage in inner:
-        context_guidance = guidance3.inner_context(route, improve=bool(state.get("active_improve")))
+        context_guidance = guidance.inner_context(route, improve=bool(state.get("active_improve")))
         lines.extend([context_guidance, ""])
     lines += [
         f"ShipLoop navigator | {stage} | revision {state['revision']}",
@@ -2886,15 +2903,16 @@ def render(core: Any, root: Path, state: Mapping[str, Any],
     lines += _run_rules(core, root, state)
     lines.extend(
         label + ": " + str(reference_dir / reference)
-        for label, reference in guidance3.STAGE_REFERENCES.get(stage, ())
+        for label, reference in guidance.STAGE_REFERENCES.get(stage, ())
         # Inline runs execute reviewed steps directly and never bind a chain.
-        if not (route == guidance3.INLINE and label == "Parallel-chain guide")
+        if not (route == guidance.INLINE and label == "Parallel-chain guide")
     )
     if state["execution_mode"] == "navigator-worktree":
         workspace_root = root.parent
         lines.extend([
             "Execution checkout: " + state["repo"]
-            + " (isolated worktree; not the original branch checkout)",
+            + " (isolated worktree; not the original branch checkout; a working directory, never a "
+            "--result value)",
             "Workspace authority and original branch: " + str(workspace_root / "workspace.md"),
             "Return plan: " + str(workspace_root / "return-plan.md"),
             *_workspace_return_packet_lines(root, state),
@@ -2931,11 +2949,19 @@ def render(core: Any, root: Path, state: Mapping[str, Any],
             "Consumer-delivery schema and examples: "
             + str(reference_dir / "consumer-delivery.md")
         )
-    if stage in guidance3.BACKCHAIN_STAGES:
+    if stage in guidance.BACKCHAIN_STAGES:
         lines.append(
             "Backchain planning guide: "
             + str(reference_dir / "backchain-planning.md")
             + "#navigator-planning"
+        )
+        lines.append(
+            "Selected Backchain and Until Loop resources "
+            "(resolved by ShipLoop from its installed plugin):"
+        )
+        lines.extend(
+            f"  {label}: {path}"
+            for label, path in guidance.resolved_backchain_resources()
         )
     if stage in ("plan", "select-work", "carry-forward"):
         lines.append("Full ordered work queue: " + str(root / "state.md") + "; field work_items.")
@@ -3107,7 +3133,7 @@ def render(core: Any, root: Path, state: Mapping[str, Any],
     lines.extend(_answered_lines(root, state))
     lines.extend(_replan_delta_lines(root, state, stage))
     lines.extend(knowledge.stage_lines(state, stage))
-    instruction = guidance3.prompt(stage, delegation=route)
+    instruction = guidance.prompt(stage, delegation=route)
     _need(isinstance(instruction, str) and bool(instruction.strip()),
           f"navigator prompt is unavailable for {stage}")
     lines.extend(
@@ -3119,7 +3145,7 @@ def render(core: Any, root: Path, state: Mapping[str, Any],
         ]
     )
     environment_discovery_requirement = (
-        guidance3.ENVIRONMENT_DISCOVERY_REQUIREMENTS.get(stage)
+        guidance.ENVIRONMENT_DISCOVERY_REQUIREMENTS.get(stage)
     )
     if environment_discovery_requirement is not None:
         lines.extend(
@@ -3127,7 +3153,8 @@ def render(core: Any, root: Path, state: Mapping[str, Any],
                 "Environment discovery requirement: "
                 + environment_discovery_requirement,
                 "One investigation allowance spans applicable discovery and research "
-                "review stages; a stage boundary does not refill it.",
+                "review stages; a stage boundary does not refill it. Reaching it stops exploration, "
+                "never the run: record the open gaps as assumptions or open items, submit, and continue.",
                 "Recursive discovery policy: "
                 + str(reference_dir / "research-loop.md")
                 + "#recursive-discovery-and-experiments",
@@ -3238,7 +3265,7 @@ def _goal_lines(state: Mapping[str, Any], stage: str) -> list[str]:
 def _step_lines(state: Mapping[str, Any], stage: str, work_item: str | None) -> list[str]:
     """Name the one step this inline implement packet is for, and what is already done."""
     if (stage != "implement" or state["status"] != "active" or state.get("active_improve")
-            or delegation(state) != guidance3.INLINE):
+            or delegation(state) != guidance.INLINE):
         return []
     done, steps = implement_progress(state, work_item)
     if done >= len(steps):
@@ -3284,7 +3311,7 @@ def _first_callback_lines(core: Any, root: Path, state: Mapping[str, Any]) -> li
 
 def _improve_line(stage: str) -> str:
     """Tell a producer whether its result starts an Improve child."""
-    if stage in guidance3.PLANNING_REVIEW_STAGES:
+    if stage in guidance.PLANNING_REVIEW_STAGES:
         when = ("Every " + stage + " result, including blocked and repeat, starts this action's "
                 "Improve child.")
     elif stage == "carry-forward":
@@ -3363,7 +3390,7 @@ def _render_improve(core: Any, root: Path, state: Mapping[str, Any], lines: list
     skill = child["skill"]
     notes_path = root / "inbox" / (action_id + "-improve-notes.md")
     final_path = root / "inbox" / (action_id + "-final-result.md")
-    inline = delegation(state) == guidance3.INLINE
+    inline = delegation(state) == guidance.INLINE
     planning_reconcile = child["stage"] == "plan"
     planning_lines: list[str] = []
     exclusion = (
@@ -3538,6 +3565,8 @@ def _render_improve(core: Any, root: Path, state: Mapping[str, Any], lines: list
         "Selected Improve skill: " + skill["skill_card"],
         "Bound Until Loop card: " + skill["runtime_card"],
         "Bound Until Loop CLI locator: " + skill["runtime_cli"],
+        "Until Loop root (its card's relative links, such as references/runtime-ephemeral.md, resolve here, "
+        "not under the Improve skill): " + str(Path(skill["runtime_cli"]).parents[1]),
         "Child workspace: " + child["workspace"],
         ("Read the selected Improve skill's \"ShipLoop whole-skill subcall\" section and the bound "
          "runtime card's \"Follow the returned action\" section with a file-reading tool, once per "
@@ -3549,10 +3578,10 @@ def _render_improve(core: Any, root: Path, state: Mapping[str, Any], lines: list
          "other sections only when a step needs them. The skill owns all internal improvement iterations."),
         *planning_lines,
         *runtime_lines,
-        *([guidance3.PLANNING_REVIEW_FOCUS.rstrip()]
-          if child["stage"] in guidance3.PLANNING_REVIEW_STAGES else []),
-        *([guidance3.END_REVIEW_FOCUS.rstrip()] if child["stage"] == "carry-forward" else []),
-        guidance3.improve_prompt(child["stage"], delegation=delegation(state)),
+        *([guidance.PLANNING_REVIEW_FOCUS.rstrip()]
+          if child["stage"] in guidance.PLANNING_REVIEW_STAGES else []),
+        *([guidance.END_REVIEW_FOCUS.rstrip()] if child["stage"] == "carry-forward" else []),
+        guidance.improve_prompt(child["stage"], delegation=delegation(state)),
         exclusion,
         "The prior result and relevant accepted Improve lessons are in state.md improve_results and improve/<parent-action>/ receipts. Carry forward relevant verified conclusions and material unresolved findings, hypotheses, failed attempts and pitfalls, clearly labeled with evidence status. Preserve essential meaning in the context opening and later handoffs; keep detailed blocked-attempt notes in the child notebook.",
         "Review passes: the two consecutive trivial passes the runtime requires are self-passes by this same executor, not independent reviewers; report them as passes, never as independent reviews. When the first pass is trivial and leaves the workspace unchanged, the runtime checks that from Git and completes after that one pass.",
@@ -3923,7 +3952,7 @@ def improve_start_contract(core: Any, root: Path, state: Mapping[str, Any], open
         {"purpose": "review evidence directory (review-<n>.md per pass, checks.md)", "locator": str(reviews)},
         {"purpose": "exact parent return instructions", "locator": str(parent_return)},
         *([{"purpose": "native owner record (parent coordination data)",
-            "locator": str(receipt.with_name("host-owner.md"))}] if delegation(state) != guidance3.INLINE else []),
+            "locator": str(receipt.with_name("host-owner.md"))}] if delegation(state) != guidance.INLINE else []),
     ]
     return loop_contract.contract(
         workspace=child["workspace"], work=work,
@@ -4040,6 +4069,7 @@ def dispatch(core: Any, root: Path, state: Mapping[str, Any], args: Any,
     """Execute one navigator CLI verb; callers hold the run lock."""
     command = getattr(args, "command", None)
     _need(isinstance(command, str), "navigator command is missing")
+    terminal_knowledge_closed = False
     _need(command in {
         "init", "next", "status", "context", "report", "complete", "pause", "resume", "halt",
         "improve-bind", "improve-start", "improve-commit", "improve-complete", "improve-reconcile", "delegation",
@@ -4213,8 +4243,12 @@ def dispatch(core: Any, root: Path, state: Mapping[str, Any], args: Any,
                 refusal = item_scope.scope_refusal(root, state, cursor_item)
                 _need(not refusal, refusal)
         updated = apply(state, action_id, submitted)
-        if completion_guard is not None and updated != state:
-            completion_guard(state, updated)
+        if updated != state:
+            terminal_knowledge_closed = _is_new_terminal_handoff(state, updated)
+            if terminal_knowledge_closed:
+                _knowledge_close(state, updated, root, terminal=True)
+            if completion_guard is not None:
+                completion_guard(state, updated)
     elif command == "delegation":
         updated = set_delegation(state, getattr(args, "delegation_value", None))
     elif command == "lint-mode":
@@ -4239,6 +4273,7 @@ def dispatch(core: Any, root: Path, state: Mapping[str, Any], args: Any,
         save(root, updated, lint_writes)
         _lint_finish(root, lint_payload)
         _item_commit(root, state, updated)
-        _knowledge_close(state, updated, root)
+        if not terminal_knowledge_closed:
+            _knowledge_close(state, updated, root)
     emit(core, root, updated)
     return 0

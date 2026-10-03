@@ -2,6 +2,36 @@
 
 Written by scripts/release.py.
 
+## 2026-10-03
+
+### skill-craft 1.16.0
+
+- Skills: backchain 0.6.2, improve 0.3.0-rc.11, shiploop 0.48.0, shiploop-e2e-audit 0.5.4
+
+### backchain 0.6.2
+
+- Honor a caller's explicitly selected bundled Until Loop adapter card and resolve its runtime relative to that card. This lets ShipLoop planning use its selected package without searching for a nonexistent separate skill card or substituting another installation.
+- Clarify in the native procedure that an explicitly selected bundled Until Loop ADAPTER.md is the selected card, with its own package-relative reference and adapter.
+
+### improve 0.3.0-rc.11
+
+- Clarify that Improve's whole-skill subcall applies to the current ShipLoop packet regardless of navigator protocol label.
+
+### shiploop 0.48.0
+
+- Reaching the research investigation allowance stops exploration, never the run: the model records open gaps as assumptions or open items, submits the result and continues, instead of pausing an unattended run (a GPT-6 Luna run paused itself at the allowance).
+- Backchain-stage packets print the resolved Backchain and Until Loop resources from ShipLoop's installed plugin, identify missing resources by path, and name Until Loop's `ADAPTER.md` card correctly.
+- Per-step flow replies expose dispatcher control only through bridge navigation.
+  Raw dispatcher actions and continuation instructions are removed from the public response.
+- The execution-checkout locator in worktree packets says it is a working directory, never a `--result` value; a GPT-6 Luna run passed it as the result path.
+- Rename the current prompt module and navigator contract suites to version-neutral names. Update active consumers and suite labels, and share duplicated design-basis guidance without changing rendered packets.
+- Terminal handoffs retry knowledge commits and worktree follow-up returns before saving completion, leaving the handoff pending when either required operation fails.
+- The Improve packet names the Until Loop root, where its card's relative links resolve; a GPT-6 Luna run resolved `references/runtime-ephemeral.md` under the Improve skill, found nothing and paused, believing the runtime missing.
+
+### shiploop-e2e-audit 0.5.4
+
+- Update the audit harness module list to load ShipLoop's version-neutral prompt module.
+
 ## 2026-09-28
 
 ### skill-craft 1.15.0

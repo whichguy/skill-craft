@@ -36,7 +36,7 @@ from typing import Any
 import uuid
 
 import shiploop_navigator as navigator
-import shiploop_navigator_v3_prompts as navigator_v3_prompts
+import shiploop_prompts as navigator_prompts
 import shiploop_store as store
 import shiploop_planning_revision as planning_revision
 
@@ -88,7 +88,7 @@ _GIT_ENV_KEYS = frozenset({
 # The parallel-chain guide is for the parent that owns chain selection and
 # scheduling, not a scoped worker packet.
 _WORKER_GUIDANCE_ROUTES = tuple(
-    route for route in navigator_v3_prompts.STAGE_REFERENCES["implement"]
+    route for route in navigator_prompts.STAGE_REFERENCES["implement"]
     if route[0] != "Parallel-chain guide"
 )
 
@@ -4507,12 +4507,14 @@ def main(core: Any, argv: list[str] | None = None) -> int:
                 snapshot = _next_response(root, binding, rows=rows)
                 if isinstance(result.get("attempt"), str):
                     result["step"] = _step_for_attempt(_child_full(binding), result["attempt"])["id"]
-                # A selected dispatcher may expose its own recovery argv.
-                # Per-step callers must resume through the bridge instead.
-                result.pop("next_argv", None)
-                result["navigation"] = _per_step_navigation(
+                navigation = _per_step_navigation(
                     root, binding, result, snapshot, rows, args.operation, state["status"],
                 )
+                # Public flow control belongs to the bridge projection. Keep
+                # raw dispatcher fields available until navigation is derived.
+                for key in ("actions", "instruction", "next_argv"):
+                    result.pop(key, None)
+                result["navigation"] = navigation
                 result["completion"] = _completion_projection(binding, snapshot)
         print(json.dumps(result, sort_keys=True, ensure_ascii=False, allow_nan=False))
         return 0
