@@ -38,6 +38,32 @@ Codex GPT-6 Luna (`gpt-6-luna`) at max (use `--effort xhigh` for ShipLoop runs).
 that stops while still active continues in place with `--resume-run <output>`,
 on the same release.
 
+## Next live checks (planned 2026-10-03)
+
+Ordered by impact. Everything live so far is one passing run of one graph
+shape (two parallel steps, then a join) on Claude, with nothing going wrong.
+
+| # | Check | Why it matters | Pass when (script-graded) |
+|---|---|---|---|
+| 1 | Kill and resume during the chain | Surviving context loss is ShipLoop's purpose; a host dying mid-chain is only tested hermetically, and 30-minute kills happen in real use | the host is killed while a worker is in flight; a fresh session resumes; every step is accepted and integrated exactly once |
+| 2 | Wider and deeper graphs | Only one shape has been planned and run by a real model | the model's graph has the expected width or depth; workers in flight reach the case's minimum; every step launches after its dependencies settle |
+| 3 | Repeat runs | One pass does not show a reliable pass | the same verdicts hold across repeats |
+| 4 | Other hosts | The chain is proven on Claude only | as 1-3, on Codex (after a runtime decision) and Grok (after credits) |
+| 5 | Failure path live | Retry and replan have never happened live | deferred: a forced failure is hard to make realistic |
+
+Grouping:
+
+- **A. Harness, built together** (one change, hermetic tests first): `--interrupt-at
+  chain-launched` (1), per-case chain expectations and dependency-order grading,
+  plus two shape cases (2). Both extend the same chain grader.
+- **B. One live batch on Claude** (1-3 together, no engine changes mid-batch):
+  kill-and-resume on temperature-report x2, the wide case x2, the deep case x2, one
+  more seeded temperature-report. Each run is its own background task, three at a
+  time, resumed after any 30-minute kill.
+- **C. Fixes from B**: plan all fixes against the evidence, one release, one
+  verification run.
+- **D. Other hosts (4)**: after decisions on Codex's runtime and Grok credits.
+
 ## Known limits (acceptable by design)
 
 ShipLoop and Plan Dispatcher guard against drift and context loss, not against
