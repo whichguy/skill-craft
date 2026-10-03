@@ -437,3 +437,24 @@ harness-FAIL, 7 cancelled; 8b on 1.6.0 PASS committed, 4 cancelled, 0 ShipLoop f
   seat-reservations result.json was graded before fix (2), so its `pass: false` is stale; re-grading it with the
   fixed function returns invoked=true.
 - Launch lesson: background tasks stop at 10 minutes; start long runs detached (nohup) and watch them with a monitor.
+
+### Revision 2026-10-03 — the "review passes re-read everything" fix, status: superseded as a prompt change; metric built instead
+
+- Claim under revision (batch 1121 entry above, cost driver): later Improve passes should read only what changed.
+  Evidence against shipping that as a prompt change: in the finished Sonnet seat-reservations run, passes after
+  the first still found real issues (one child: pass 1 a material command fix, pass 2 a misleading statement, pass
+  3 a wrong count) and each came from re-reading the documents that had just changed, in full. A delta-only rule
+  would keep that and drop only re-reads of unchanged accepted documents, but nothing measured shows those are
+  costly on Sonnet: 17 passes across 8 children, at most 4 in one child, the longest child spanning about 96 s.
+  The 8-12x multiplier was Luna max reasoning time per pass, seen only in commit timestamps of one lost batch.
+- Decision: no packet change now. Built `metrics.improve_reviews` (passes per child, time between a child's first
+  and last review note, note bytes), shown in every run's metrics.json and summary line, so the next slow-host run
+  can show whether repeat passes spend real time before anyone trades review depth for speed. Seat-reservations
+  baseline on Sonnet: 8 children, 17 passes, max 4.
+- If a slow run shows a child spending hours on trivial repeat passes, the candidate packet line is: "After the
+  first review, read in full every path changed since the previous review (git diff --name-only since its commit,
+  plus uncommitted edits); re-check unchanged accepted documents only for the claims a changed path touches; the
+  clean pass still verifies every exit criterion against the current artifacts." Verify it with a Luna run that
+  compares findings per pass before and after; revert if later passes stop finding issues.
+- Caveat: review-note mtimes may reflect import time rather than authoring time on some routes; treat `seconds`
+  as an upper-level hint, not a stopwatch.

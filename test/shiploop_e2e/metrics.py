@@ -122,6 +122,25 @@ def stage_results(run_dir: Path | None) -> list[dict]:
     return accepted
 
 
+def improve_reviews(run_dir: Path | None) -> dict:
+    """Review passes per Improve child, from the review notes the run's worktree keeps.
+
+    A child's passes are its review-<n>.md files; seconds is the time between its first and last note, so a long
+    child shows where review passes, not stages, spent the run. Used to decide whether repeat passes are wasted.
+    """
+    root = run_dir.parent / "worktree" / ".shiploop-improve" if run_dir else None
+    children = []
+    for reviews in sorted(root.glob("*/*/reviews")) if root and root.is_dir() else []:
+        notes = sorted(reviews.glob("review-*.md"))
+        if notes:
+            stamps = [n.stat().st_mtime for n in notes]
+            children.append({"child": reviews.parent.name, "passes": len(notes),
+                             "seconds": round(max(stamps) - min(stamps), 1),
+                             "bytes": sum(n.stat().st_size for n in notes)})
+    return {"children": len(children), "passes": sum(c["passes"] for c in children),
+            "max_passes": max((c["passes"] for c in children), default=0), "per_child": children}
+
+
 def collect(out: Path, run_dir: Path | None = None) -> dict:
     stamps = timeline(out / "timeline.jsonl")
     calls: dict[str, dict] = {}
@@ -209,6 +228,7 @@ def collect(out: Path, run_dir: Path | None = None) -> dict:
         "model_glue": glue,
         "asked_user": asked,
         "improve_children": len(list(improve.iterdir())) if improve and improve.is_dir() else 0,
+        "improve_reviews": improve_reviews(run_dir),
         "knowledge_reads": sorted({r[r.index("docs/shiploop"):] for r in reads if "docs/shiploop" in r}),
         "narrative": narrative(out, run_dir),
         "stages": stages,
@@ -333,7 +353,10 @@ def summary_lines(metrics: dict, top: int = 5) -> list[str]:
              f"ShipLoop command failures {len(metrics['shiploop_failures'])}, "
              f"script verifications {metrics['script_verifications']['passed']}/{metrics['script_verifications']['records']} passed, "
              f"model glue {len(metrics['model_glue'])}, asked a person {len(metrics['asked_user'])}, "
-             f"Improve children {metrics['improve_children']}"]
+             f"Improve children {metrics['improve_children']}"
+             + (f" ({metrics['improve_reviews']['passes']} review passes, at most "
+                f"{metrics['improve_reviews']['max_passes']} in one child)"
+                if metrics.get("improve_reviews", {}).get("passes") else "")]
     story = metrics.get("narrative") or {}
     if story.get("emitted") or story.get("results"):
         lines.append(f"narrative shown {story['shown']}/{story['emitted']} (verbatim {story['verbatim']})"

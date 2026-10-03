@@ -321,6 +321,30 @@ class VersionGateTest(unittest.TestCase):
             self.assertIsNone(run.card_version(Path(tmp) / "missing.md"))
 
 
+class ImproveReviewsMetricTest(unittest.TestCase):
+    def test_counts_review_passes_per_child_and_the_time_they_span(self):
+        with tempfile.TemporaryDirectory() as temp:
+            run_dir = Path(temp) / "run"
+            run_dir.mkdir()
+            one = Path(temp) / "worktree" / ".shiploop-improve" / "nav-a" / "nav-1" / "reviews"
+            two = Path(temp) / "worktree" / ".shiploop-improve" / "nav-a" / "nav-2" / "reviews"
+            for reviews, count in ((one, 3), (two, 1)):
+                reviews.mkdir(parents=True)
+                for n in range(1, count + 1):
+                    note = reviews / f"review-{n}.md"
+                    note.write_text("x" * 10)
+                    os.utime(note, (1000 + 60 * n, 1000 + 60 * n))
+            got = metrics.improve_reviews(run_dir)
+            self.assertEqual((got["children"], got["passes"], got["max_passes"]), (2, 4, 3))
+            self.assertEqual([(c["passes"], c["seconds"], c["bytes"]) for c in got["per_child"]],
+                             [(3, 120.0, 30), (1, 0.0, 10)])
+
+    def test_no_worktree_means_no_children(self):
+        self.assertEqual(metrics.improve_reviews(None)["passes"], 0)
+        with tempfile.TemporaryDirectory() as temp:
+            self.assertEqual(metrics.improve_reviews(Path(temp) / "run")["children"], 0)
+
+
 class ClaudeResumeInvokedTest(unittest.TestCase):
     def events(self, command):
         return [{"type": "assistant", "message": {"content": [
