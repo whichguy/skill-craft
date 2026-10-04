@@ -717,7 +717,11 @@ longer be looked up (a host reports, for example, `TaskNotFound`), so no later
 session can prove they stopped. Retry such an attempt with `confirmed_stopped:
 false` and `native_status: "unavailable"`, stating that in `reason`. A retry never
 imports or deletes the old attempt's work, and its late report is refused as stale,
-so the fresh attempt is safe to start.
+so the step's accepted result stays correct. This relies on the lost worker having
+ended with its host session, as in-process native workers do. If the host's workers
+can outlive their session, or the step shares a checkout, port, database or other
+external resource with its replacement, a still-running old worker could collide with
+the new one: wait for proof that it stopped instead.
 
 For a managed Git attempt, recovery retains the same declared capability response,
 selected package binding, identity, preparation receipt and frozen workspace.

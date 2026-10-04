@@ -4,6 +4,19 @@ Written by scripts/release.py.
 
 ## 2026-10-04
 
+### skill-craft 1.18.0
+
+- Skills: plan-dispatcher 0.6.1, shiploop 0.50.0
+
+### plan-dispatcher 0.6.1
+
+- The protocol states the limit of `retry` with `native_status: "unavailable"`: it keeps the step's accepted result correct, but relies on the lost worker having ended with its host session. A step sharing a checkout, port, database or other external resource with its replacement waits for proof that the old worker stopped.
+
+### shiploop 0.50.0
+
+- The final report lists what the run left in your repository — merged attempt branches, kept (rejected or lost) attempt worktrees, and the run's own branch and workspace — with the command to remove each, and the completion packet says how many there are. ShipLoop still never deletes them itself. Commands use `git branch -d` wherever the branch is merged (it refuses to lose work) and never `--force`; nothing is offered for removal before the run is returned.
+- The chain guide states when retrying a lost worker without proof that it stopped is safe: when native workers end with their host session. A step holding something outside its worktree (a port, a database, a deployment) waits for proof instead.
+
 ### skill-craft 1.17.0
 
 - Skills: plan-dispatcher 0.6.0, shiploop 0.49.0

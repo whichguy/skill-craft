@@ -4341,6 +4341,28 @@ def _chain_next_argv(root: Path, action_id: str) -> str:
     ])
 
 
+def attempt_branches(root: Path, state: Mapping[str, Any]) -> list[str]:
+    """Every chain attempt branch this run allocated, in ledger order; read-only."""
+    branches: list[str] = []
+    bindings = state.get("chain_bindings", {})
+    if not isinstance(bindings, Mapping):
+        return branches
+    for action_id in bindings:
+        try:
+            rows = _events(_binding_dir(Path(root), action_id), recover=False)
+        except (ChainError, ValueError):
+            continue
+        for row in rows:
+            event = row.get("event") if isinstance(row, Mapping) else None
+            if not isinstance(event, Mapping) or event.get("kind") != "allocation_result":
+                continue
+            identity = _event_data(row).get("identity")
+            branch = identity.get("branch") if isinstance(identity, Mapping) else None
+            if isinstance(branch, str) and branch and branch not in branches:
+                branches.append(branch)
+    return branches
+
+
 def orientation(core: Any, root: Path, state: Mapping[str, Any]) -> list[str]:
     """Render only a durable recovery locator; never inspect child dispatcher state."""
     del core
