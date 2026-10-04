@@ -1,0 +1,36 @@
+{
+  "goal": "A final result is ready",
+  "initial_state": [],
+  "steps": [
+    {
+      "id": "S1",
+      "statement": "The first prerequisite is ready",
+      "produces": ["first prerequisite"],
+      "inputs": [],
+      "origin": "seed"
+    },
+    {
+      "id": "S2",
+      "statement": "The second prerequisite is ready",
+      "produces": ["second prerequisite"],
+      "inputs": [{"need": "first prerequisite", "from": "S1"}],
+      "origin": "seed"
+    },
+    {
+      "id": "S3",
+      "statement": "The third prerequisite is ready",
+      "produces": ["third prerequisite"],
+      "inputs": [{"need": "second prerequisite", "from": "S2"}],
+      "origin": "seed"
+    },
+    {
+      "id": "S4",
+      "statement": "The final result is ready",
+      "produces": ["final result"],
+      "inputs": [{"need": "third prerequisite", "from": "S3"}],
+      "origin": "seed"
+    }
+  ],
+  "parallel_groups": [],
+  "unresolved": []
+}

@@ -1,0 +1,21 @@
+{
+  "input": "structural/good/good-null-need-whitespace-normalized.json",
+  "input_sha256": "106578acc0ff6a4f102a17d9745e45219799a16beab62333e36fc7228bd94409",
+  "lib_js_sha256": "a9b99125d06d6aa8ea49216de68f803b9dfde3f3335acf83f47d960869b7585a",
+  "ok": true,
+  "failures": [],
+  "completion": "complete",
+  "parallel_groups": [],
+  "packaged_sha256": "271d9f802b2ae4228a2eb859d2f9ff368dcfd445fa7eebde08b1f9f8df4c790f",
+  "unconfirmed_produces": [
+    {
+      "stepId": "S1",
+      "produces": "agreed brief"
+    }
+  ],
+  "raw": {
+    "ok": true,
+    "failures": [],
+    "completion": "complete"
+  }
+}

@@ -1,0 +1,25 @@
+{
+  "input": "edge/ws-js-only.json",
+  "input_sha256": "71aa073c300e1422a5e1081712b6f6b2dbd31e0051167137eec918692ba3f054",
+  "lib_js_sha256": "a9b99125d06d6aa8ea49216de68f803b9dfde3f3335acf83f47d960869b7585a",
+  "ok": true,
+  "failures": [],
+  "completion": "complete",
+  "parallel_groups": [],
+  "packaged_sha256": "e0d0fff43b750f8930f4bafb8df7362c6e912d83e3e7c9256e7be92347025b2a",
+  "unconfirmed_produces": [
+    {
+      "stepId": "S1",
+      "produces": "report is built"
+    },
+    {
+      "stepId": "S2",
+      "produces": "report is published"
+    }
+  ],
+  "raw": {
+    "ok": true,
+    "failures": [],
+    "completion": "complete"
+  }
+}

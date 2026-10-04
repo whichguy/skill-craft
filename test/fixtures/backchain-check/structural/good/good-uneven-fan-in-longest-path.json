@@ -1,0 +1,46 @@
+{
+  "goal": "Longest-path depth places consumers of uneven supplier chains at the same tier",
+  "initial_state": [],
+  "steps": [
+    {
+      "id": "R",
+      "statement": "Root fact is ready",
+      "produces": ["root fact"],
+      "inputs": [],
+      "origin": "seed"
+    },
+    {
+      "id": "A",
+      "statement": "Mid chain is ready",
+      "produces": ["mid chain"],
+      "inputs": [{ "need": "root fact", "from": "R" }],
+      "origin": "seed"
+    },
+    {
+      "id": "B",
+      "statement": "Deep chain is ready",
+      "produces": ["deep chain"],
+      "inputs": [{ "need": "mid chain", "from": "A" }],
+      "origin": "seed"
+    },
+    {
+      "id": "C",
+      "statement": "Wide consumer uses root and deep",
+      "produces": ["wide consumer"],
+      "inputs": [
+        { "need": "root fact", "from": "R" },
+        { "need": "deep chain", "from": "B" }
+      ],
+      "origin": "seed"
+    },
+    {
+      "id": "D",
+      "statement": "Narrow consumer uses only deep",
+      "produces": ["narrow consumer"],
+      "inputs": [{ "need": "deep chain", "from": "B" }],
+      "origin": "seed"
+    }
+  ],
+  "parallel_groups": [["C", "D"]],
+  "unresolved": []
+}

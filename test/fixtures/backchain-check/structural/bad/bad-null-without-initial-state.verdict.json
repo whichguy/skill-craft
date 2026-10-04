@@ -1,0 +1,39 @@
+{
+  "input": "structural/bad/bad-null-without-initial-state.json",
+  "input_sha256": "389cbc2e8152177766988a4beb73a10ec629437286f0b58fa123e753144a6565",
+  "lib_js_sha256": "a9b99125d06d6aa8ea49216de68f803b9dfde3f3335acf83f47d960869b7585a",
+  "ok": false,
+  "failures": [
+    {
+      "invariant": 7,
+      "message": "Null-origin need is not declared in initial_state",
+      "detail": {
+        "stepId": "S1",
+        "need": "stakeholder roster is available"
+      }
+    }
+  ],
+  "completion": "invalid",
+  "parallel_groups": [],
+  "packaged_sha256": "cb3378150d042204ae224620ce5ca02b62a2d0bf6cf74fc94186e1a5cb75c0f4",
+  "unconfirmed_produces": [
+    {
+      "stepId": "S1",
+      "produces": "agreed brief"
+    }
+  ],
+  "raw": {
+    "ok": false,
+    "failures": [
+      {
+        "invariant": 7,
+        "message": "Null-origin need is not declared in initial_state",
+        "detail": {
+          "stepId": "S1",
+          "need": "stakeholder roster is available"
+        }
+      }
+    ],
+    "completion": "invalid"
+  }
+}

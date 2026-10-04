@@ -1,0 +1,41 @@
+{
+  "input": "edge/inv6-unknown-step.json",
+  "input_sha256": "59dce62b002df1942c47570eb442508c86b3e6c7f10c03b4bd4f7ba7778adee3",
+  "lib_js_sha256": "a9b99125d06d6aa8ea49216de68f803b9dfde3f3335acf83f47d960869b7585a",
+  "ok": false,
+  "failures": [
+    {
+      "invariant": 6,
+      "message": "unresolved entry references a nonexistent step",
+      "detail": {
+        "stepId": "S9"
+      }
+    }
+  ],
+  "completion": "invalid",
+  "parallel_groups": [],
+  "packaged_sha256": "c29fc7bff9641632d20c90ea379199a7da230e4110f6ee9e89c5d43c3bdf2458",
+  "unconfirmed_produces": [
+    {
+      "stepId": "S1",
+      "produces": "report is built"
+    },
+    {
+      "stepId": "S2",
+      "produces": "report is published"
+    }
+  ],
+  "raw": {
+    "ok": false,
+    "failures": [
+      {
+        "invariant": 6,
+        "message": "unresolved entry references a nonexistent step",
+        "detail": {
+          "stepId": "S9"
+        }
+      }
+    ],
+    "completion": "invalid"
+  }
+}

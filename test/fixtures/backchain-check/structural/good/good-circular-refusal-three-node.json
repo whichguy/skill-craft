@@ -1,0 +1,36 @@
+{
+  "goal": "Three-node circular refusal bookkeeping is valid when multi-hop loop-back is committed",
+  "initial_state": [],
+  "steps": [
+    {
+      "id": "A",
+      "statement": "State A is ready",
+      "produces": ["state a"],
+      "inputs": [{ "need": "state c", "from": "C" }],
+      "origin": "seed"
+    },
+    {
+      "id": "B",
+      "statement": "State B is ready",
+      "produces": ["state b"],
+      "inputs": [{ "need": "state a", "from": "A" }],
+      "origin": "seed"
+    },
+    {
+      "id": "C",
+      "statement": "State C is ready",
+      "produces": ["state c"],
+      "inputs": [],
+      "origin": "seed"
+    }
+  ],
+  "parallel_groups": [],
+  "unresolved": [
+    {
+      "step": "C",
+      "need": "refused three-node loop",
+      "reason": "circular",
+      "cycle": ["C", "B", "A"]
+    }
+  ]
+}

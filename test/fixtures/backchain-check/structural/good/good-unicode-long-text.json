@@ -1,0 +1,22 @@
+{
+  "goal": "A multilingual release record is ready",
+  "initial_state": [
+    "前提条件: the résumé, café inventory, and 🚀 deployment evidence remain available throughout a deliberately long cross-language validation request that preserves every character and does not impose an arbitrary width limit on legitimate planning text"
+  ],
+  "steps": [
+    {
+      "id": "S1",
+      "statement": "Überprüfung 完了 — the release record includes café notes, emoji 🚀, and a deliberately long description: this sentence repeats the operational expectation that every locale, every audit record, and every handoff remains readable without truncation across the entire validation path, including the unusually detailed evidence required for a production readiness review.",
+      "produces": ["multilingual release record"],
+      "inputs": [
+        {
+          "need": "前提条件: the résumé, café inventory, and 🚀 deployment evidence remain available throughout a deliberately long cross-language validation request that preserves every character and does not impose an arbitrary width limit on legitimate planning text",
+          "from": null
+        }
+      ],
+      "origin": "seed"
+    }
+  ],
+  "parallel_groups": [],
+  "unresolved": []
+}

@@ -1,0 +1,59 @@
+{
+  "goal": "Ship the report",
+  "initial_state": [
+    "source data exists"
+  ],
+  "goal_needs": [
+    "report is published"
+  ],
+  "steps": [
+    {
+      "id": "S1",
+      "statement": "Build the report",
+      "produces": [
+        "report is built"
+      ],
+      "inputs": [
+        {
+          "need": "source data exists",
+          "from": null
+        }
+      ],
+      "origin": "seed"
+    },
+    {
+      "id": "S2",
+      "statement": "Build the chart",
+      "produces": [
+        "chart is built"
+      ],
+      "inputs": [
+        {
+          "need": "source data exists",
+          "from": null
+        }
+      ],
+      "origin": "seed"
+    },
+    {
+      "id": "S3",
+      "statement": "Publish the report",
+      "produces": [
+        "report is published"
+      ],
+      "inputs": [
+        {
+          "need": "report is built",
+          "from": "S1"
+        },
+        {
+          "need": "chart is built",
+          "from": "S2"
+        }
+      ],
+      "origin": "seed"
+    }
+  ],
+  "parallel_groups": [],
+  "unresolved": []
+}

@@ -1,0 +1,15 @@
+{
+  "goal": "A discovered step may not count itself as its consumer",
+  "initial_state": [],
+  "steps": [
+    {
+      "id": "D1",
+      "statement": "Discovered state holds",
+      "produces": ["discovered state"],
+      "inputs": [{"need": "own state", "from": "D1"}],
+      "origin": "discovered"
+    }
+  ],
+  "parallel_groups": [],
+  "unresolved": []
+}

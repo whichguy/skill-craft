@@ -1,0 +1,49 @@
+{
+  "input": "structural/bad/bad-cycle-committed.json",
+  "input_sha256": "62d625133fdf4a318b743ef2338847429febb8b524190608ddd42a54a837a219",
+  "lib_js_sha256": "a9b99125d06d6aa8ea49216de68f803b9dfde3f3335acf83f47d960869b7585a",
+  "ok": false,
+  "failures": [
+    {
+      "invariant": 2,
+      "message": "Committed dependency graph contains a cycle",
+      "detail": {
+        "cycle": [
+          "S1",
+          "S2",
+          "S1"
+        ]
+      }
+    }
+  ],
+  "completion": "invalid",
+  "parallel_groups": [],
+  "packaged_sha256": "7204d5e56e49576383d09a3b6e8ab2324c5b63a3711afa4eebe9f6051548935d",
+  "unconfirmed_produces": [
+    {
+      "stepId": "S1",
+      "produces": "state one"
+    },
+    {
+      "stepId": "S2",
+      "produces": "state two"
+    }
+  ],
+  "raw": {
+    "ok": false,
+    "failures": [
+      {
+        "invariant": 2,
+        "message": "Committed dependency graph contains a cycle",
+        "detail": {
+          "cycle": [
+            "S1",
+            "S2",
+            "S1"
+          ]
+        }
+      }
+    ],
+    "completion": "invalid"
+  }
+}

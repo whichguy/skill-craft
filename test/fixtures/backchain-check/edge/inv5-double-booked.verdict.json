@@ -1,0 +1,43 @@
+{
+  "input": "edge/inv5-double-booked.json",
+  "input_sha256": "6c1af1b005db280d6f312380d0557442babc80605830065454a82fb70f55ebd2",
+  "lib_js_sha256": "a9b99125d06d6aa8ea49216de68f803b9dfde3f3335acf83f47d960869b7585a",
+  "ok": false,
+  "failures": [
+    {
+      "invariant": 5,
+      "message": "Need is tracked both as an input and unresolved for the same step",
+      "detail": {
+        "stepId": "S2",
+        "need": "report  is\tbuilt"
+      }
+    }
+  ],
+  "completion": "invalid",
+  "parallel_groups": [],
+  "packaged_sha256": "4849eb11328da688b95793228d7d81fcea476b8e58c21159708fd021e4f539d1",
+  "unconfirmed_produces": [
+    {
+      "stepId": "S1",
+      "produces": "report is built"
+    },
+    {
+      "stepId": "S2",
+      "produces": "report is published"
+    }
+  ],
+  "raw": {
+    "ok": false,
+    "failures": [
+      {
+        "invariant": 5,
+        "message": "Need is tracked both as an input and unresolved for the same step",
+        "detail": {
+          "stepId": "S2",
+          "need": "report  is\tbuilt"
+        }
+      }
+    ],
+    "completion": "invalid"
+  }
+}

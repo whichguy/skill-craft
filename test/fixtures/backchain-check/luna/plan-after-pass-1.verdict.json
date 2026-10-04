@@ -1,0 +1,85 @@
+{
+  "input": "luna/plan-after-pass-1.json",
+  "input_sha256": "b66d62f0d55fde04591a4c187210621633d6967dd09824c25844aa01b3c11aca",
+  "lib_js_sha256": "a9b99125d06d6aa8ea49216de68f803b9dfde3f3335acf83f47d960869b7585a",
+  "ok": true,
+  "failures": [],
+  "completion": "incomplete",
+  "parallel_groups": [
+    [
+      "S1",
+      "S2",
+      "S6"
+    ],
+    [
+      "S3",
+      "S4"
+    ],
+    [
+      "S5",
+      "S7",
+      "S8"
+    ],
+    [
+      "S10",
+      "S11",
+      "S13",
+      "S14",
+      "S15",
+      "S16",
+      "S17",
+      "S19",
+      "S20"
+    ],
+    [
+      "S12",
+      "S18"
+    ]
+  ],
+  "packaged_sha256": "f92da638e2110cd4222b89b075d1db09ccf354023ae693f821bb5e4b98fefaa6",
+  "unconfirmed_produces": [],
+  "raw": {
+    "ok": false,
+    "failures": [
+      {
+        "invariant": 6,
+        "message": "Stored parallel_groups does not match recomputed longest-path depth groups",
+        "detail": {
+          "expected": [
+            [
+              "S1",
+              "S2",
+              "S6"
+            ],
+            [
+              "S3",
+              "S4"
+            ],
+            [
+              "S5",
+              "S7",
+              "S8"
+            ],
+            [
+              "S10",
+              "S11",
+              "S13",
+              "S14",
+              "S15",
+              "S16",
+              "S17",
+              "S19",
+              "S20"
+            ],
+            [
+              "S12",
+              "S18"
+            ]
+          ],
+          "actual": []
+        }
+      }
+    ],
+    "completion": "invalid"
+  }
+}

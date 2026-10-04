@@ -1,0 +1,34 @@
+{
+  "input": "edge/inv6-stored-groups.fixed.json",
+  "input_sha256": "0577f7ad22174bc5eadac62d9c1c53ecea48e1eca9a05fa9d16cf8b8c09cc5ab",
+  "lib_js_sha256": "a9b99125d06d6aa8ea49216de68f803b9dfde3f3335acf83f47d960869b7585a",
+  "ok": true,
+  "failures": [],
+  "completion": "complete",
+  "parallel_groups": [
+    [
+      "S1",
+      "S2"
+    ]
+  ],
+  "packaged_sha256": "e423a483c213830461eef89ffafd07b5cec8e0c3e07207acedacf9fd7423a5ae",
+  "unconfirmed_produces": [
+    {
+      "stepId": "S1",
+      "produces": "report is built"
+    },
+    {
+      "stepId": "S2",
+      "produces": "chart is built"
+    },
+    {
+      "stepId": "S3",
+      "produces": "report is published"
+    }
+  ],
+  "raw": {
+    "ok": true,
+    "failures": [],
+    "completion": "complete"
+  }
+}

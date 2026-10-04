@@ -1,0 +1,43 @@
+{
+  "input": "structural/bad/bad-self-loop.json",
+  "input_sha256": "64823a8550af66e8105a45723f00bc01dba955ee904b5cfeec3ae08dcd0c09f1",
+  "lib_js_sha256": "a9b99125d06d6aa8ea49216de68f803b9dfde3f3335acf83f47d960869b7585a",
+  "ok": false,
+  "failures": [
+    {
+      "invariant": 2,
+      "message": "Committed dependency graph contains a cycle",
+      "detail": {
+        "cycle": [
+          "S1",
+          "S1"
+        ]
+      }
+    }
+  ],
+  "completion": "invalid",
+  "parallel_groups": [],
+  "packaged_sha256": "f3f851fe53c336898a9f05880234bde52654f84d050309486cb1cf5485824e8f",
+  "unconfirmed_produces": [
+    {
+      "stepId": "S1",
+      "produces": "foundation ready"
+    }
+  ],
+  "raw": {
+    "ok": false,
+    "failures": [
+      {
+        "invariant": 2,
+        "message": "Committed dependency graph contains a cycle",
+        "detail": {
+          "cycle": [
+            "S1",
+            "S1"
+          ]
+        }
+      }
+    ],
+    "completion": "invalid"
+  }
+}

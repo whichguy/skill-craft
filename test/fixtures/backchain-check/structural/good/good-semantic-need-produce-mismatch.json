@@ -1,0 +1,28 @@
+{
+  "goal": "A plan may link suppliers without textual need-produces match",
+  "initial_state": [],
+  "steps": [
+    {
+      "id": "S1",
+      "statement": "Alpha is produced",
+      "produces": ["alpha"],
+      "inputs": [],
+      "origin": "seed"
+    },
+    {
+      "id": "S2",
+      "statement": "Beta is produced from an unrelated-worded need",
+      "produces": ["beta"],
+      "inputs": [
+        {
+          "need": "unrelated prerequisite wording",
+          "from": "S1",
+          "match": "structural from edges are not semantic need matchers"
+        }
+      ],
+      "origin": "seed"
+    }
+  ],
+  "parallel_groups": [],
+  "unresolved": []
+}

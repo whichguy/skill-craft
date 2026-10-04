@@ -1,0 +1,92 @@
+{
+  "input": "luna/step-plan-final.json",
+  "input_sha256": "024b3dc39593c25034bccb53239d7806b27e3852178e4e94fcc203b8e9e22711",
+  "lib_js_sha256": "a9b99125d06d6aa8ea49216de68f803b9dfde3f3335acf83f47d960869b7585a",
+  "ok": false,
+  "failures": [
+    {
+      "invariant": 4,
+      "message": "Discovered step is neither consumed by another step nor satisfies a declared goal_needs entry",
+      "detail": {
+        "stepId": "D1"
+      }
+    }
+  ],
+  "completion": "invalid",
+  "parallel_groups": [
+    [
+      "S1",
+      "S2",
+      "S3"
+    ],
+    [
+      "S5",
+      "D2"
+    ],
+    [
+      "S7",
+      "S8",
+      "S10",
+      "S11",
+      "S12",
+      "S13",
+      "S14",
+      "S16",
+      "S17",
+      "D1"
+    ],
+    [
+      "S9",
+      "S15"
+    ]
+  ],
+  "packaged_sha256": "384a779f3da1921acd492cee477edd3030071d7cf2878bfdd2af16e73a7d9d95",
+  "unconfirmed_produces": [],
+  "raw": {
+    "ok": false,
+    "failures": [
+      {
+        "invariant": 4,
+        "message": "Discovered step is neither consumed by another step nor satisfies a declared goal_needs entry",
+        "detail": {
+          "stepId": "D1"
+        }
+      },
+      {
+        "invariant": 6,
+        "message": "Stored parallel_groups does not match recomputed longest-path depth groups",
+        "detail": {
+          "expected": [
+            [
+              "S1",
+              "S2",
+              "S3"
+            ],
+            [
+              "S5",
+              "D2"
+            ],
+            [
+              "S7",
+              "S8",
+              "S10",
+              "S11",
+              "S12",
+              "S13",
+              "S14",
+              "S16",
+              "S17",
+              "D1"
+            ],
+            [
+              "S9",
+              "S15"
+            ]
+          ],
+          "actual": []
+        }
+      }
+    ],
+    "completion": "invalid"
+  }
+}

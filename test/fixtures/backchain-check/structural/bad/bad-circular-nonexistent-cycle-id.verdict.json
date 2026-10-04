@@ -1,0 +1,63 @@
+{
+  "input": "structural/bad/bad-circular-nonexistent-cycle-id.json",
+  "input_sha256": "e087d0c15344c2f33a529e7e0b8fd135e126058e873e4247dbcdb418f667be04",
+  "lib_js_sha256": "a9b99125d06d6aa8ea49216de68f803b9dfde3f3335acf83f47d960869b7585a",
+  "ok": false,
+  "failures": [
+    {
+      "invariant": 2,
+      "message": "Circular unresolved cycle references a nonexistent step",
+      "detail": {
+        "stepId": "GHOST",
+        "cycle": [
+          "B",
+          "GHOST"
+        ]
+      }
+    },
+    {
+      "invariant": 6,
+      "message": "unresolved cycle references a nonexistent step",
+      "detail": {
+        "stepId": "GHOST"
+      }
+    }
+  ],
+  "completion": "invalid",
+  "parallel_groups": [],
+  "packaged_sha256": "c586aa66a6521c20eedd3d73ee1c78cbb4e128fa975038023d50101ca9bee99e",
+  "unconfirmed_produces": [
+    {
+      "stepId": "A",
+      "produces": "state a"
+    },
+    {
+      "stepId": "B",
+      "produces": "state b"
+    }
+  ],
+  "raw": {
+    "ok": false,
+    "failures": [
+      {
+        "invariant": 2,
+        "message": "Circular unresolved cycle references a nonexistent step",
+        "detail": {
+          "stepId": "GHOST",
+          "cycle": [
+            "B",
+            "GHOST"
+          ]
+        }
+      },
+      {
+        "invariant": 6,
+        "message": "unresolved cycle references a nonexistent step",
+        "detail": {
+          "stepId": "GHOST"
+        }
+      }
+    ],
+    "completion": "invalid"
+  }
+}

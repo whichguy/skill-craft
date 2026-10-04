@@ -1,0 +1,26 @@
+{
+  "run": "Luna max battleship run on skill-craft 1.16.1: e2e-runs/20261003/v1161-battleship-luna, work-20261003-225401-173a04",
+  "files": {
+    "plan-pre-loop.json": {
+      "source": "run/scratch/backchain-plan/pass-reports/pass-01-audit-input.md",
+      "extract": "the JSON block at character 25715 plus a newline (the freeze-log digest)",
+      "sha256": "9e321e3d2efb1bd03c8b29512fb3d117ba1eb9252b8c03897ae7e7688a2dc73c"
+    },
+    "plan-after-pass-1.json": {
+      "source": "run/scratch/backchain-plan/elaborated-candidate.json",
+      "sha256": "b66d62f0d55fde04591a4c187210621633d6967dd09824c25844aa01b3c11aca"
+    },
+    "plan-final.json": {
+      "source": "run/scratch/backchain-plan/candidate-plan.json",
+      "sha256": "3853b9786506b921570b829b40ecb392522622bf040ce54990b75b3da31638e1"
+    },
+    "step-plan-review-01.json": {
+      "source": "run/scratch/backchain-step-plan/review-records/review-01-candidate-plan.json",
+      "sha256": "6f97177017cf9b3eb0582e1099fa8f550227c17ad695497b4ad9adf2c431fe34"
+    },
+    "step-plan-final.json": {
+      "source": "run/scratch/backchain-step-plan/candidate-plan.json",
+      "sha256": "024b3dc39593c25034bccb53239d7806b27e3852178e4e94fcc203b8e9e22711"
+    }
+  }
+}

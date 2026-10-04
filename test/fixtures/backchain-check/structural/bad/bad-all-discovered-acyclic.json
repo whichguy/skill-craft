@@ -1,0 +1,22 @@
+{
+  "goal": "An all-discovered acyclic plan reaches its sink",
+  "initial_state": [],
+  "steps": [
+    {
+      "id": "D1",
+      "statement": "The discovered prerequisite is ready",
+      "produces": ["discovered prerequisite"],
+      "inputs": [],
+      "origin": "discovered"
+    },
+    {
+      "id": "D2",
+      "statement": "The discovered result is ready",
+      "produces": ["discovered result"],
+      "inputs": [{"need": "discovered prerequisite", "from": "D1"}],
+      "origin": "discovered"
+    }
+  ],
+  "parallel_groups": [],
+  "unresolved": []
+}

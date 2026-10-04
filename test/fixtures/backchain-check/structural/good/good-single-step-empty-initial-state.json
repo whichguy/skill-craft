@@ -1,0 +1,15 @@
+{
+  "goal": "A standalone result is ready",
+  "initial_state": [],
+  "steps": [
+    {
+      "id": "S1",
+      "statement": "The standalone result is prepared",
+      "produces": ["standalone result"],
+      "inputs": [],
+      "origin": "seed"
+    }
+  ],
+  "parallel_groups": [],
+  "unresolved": []
+}

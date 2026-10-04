@@ -1,0 +1,39 @@
+{
+  "input": "structural/bad/bad-dangling-from.json",
+  "input_sha256": "e243b68074362d87b15d1d3413bb32c339b0db70c3735c321a4576d993d08873",
+  "lib_js_sha256": "a9b99125d06d6aa8ea49216de68f803b9dfde3f3335acf83f47d960869b7585a",
+  "ok": false,
+  "failures": [
+    {
+      "invariant": 3,
+      "message": "Input supplier reference does not name an existing step",
+      "detail": {
+        "stepId": "S1",
+        "from": "S9"
+      }
+    }
+  ],
+  "completion": "invalid",
+  "parallel_groups": [],
+  "packaged_sha256": "54eda7170bb110b1565edbd958581598ab225fd9d2a8bc7dde6776d462a4da30",
+  "unconfirmed_produces": [
+    {
+      "stepId": "S1",
+      "produces": "result"
+    }
+  ],
+  "raw": {
+    "ok": false,
+    "failures": [
+      {
+        "invariant": 3,
+        "message": "Input supplier reference does not name an existing step",
+        "detail": {
+          "stepId": "S1",
+          "from": "S9"
+        }
+      }
+    ],
+    "completion": "invalid"
+  }
+}

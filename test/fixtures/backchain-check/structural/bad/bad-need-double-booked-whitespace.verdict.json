@@ -1,0 +1,39 @@
+{
+  "input": "structural/bad/bad-need-double-booked-whitespace.json",
+  "input_sha256": "d56582e3208fa51527dcf66b0a9a23fb64757e89bfa4d0ba9102cadd7184c77e",
+  "lib_js_sha256": "a9b99125d06d6aa8ea49216de68f803b9dfde3f3335acf83f47d960869b7585a",
+  "ok": false,
+  "failures": [
+    {
+      "invariant": 5,
+      "message": "Need is tracked both as an input and unresolved for the same step",
+      "detail": {
+        "stepId": "S1",
+        "need": "shared need"
+      }
+    }
+  ],
+  "completion": "invalid",
+  "parallel_groups": [],
+  "packaged_sha256": "7bdb20a8716a117577fc0a7bd4d342252b0622a5d9c7a89dc28d2e7ca7492b2d",
+  "unconfirmed_produces": [
+    {
+      "stepId": "S1",
+      "produces": "result"
+    }
+  ],
+  "raw": {
+    "ok": false,
+    "failures": [
+      {
+        "invariant": 5,
+        "message": "Need is tracked both as an input and unresolved for the same step",
+        "detail": {
+          "stepId": "S1",
+          "need": "shared need"
+        }
+      }
+    ],
+    "completion": "invalid"
+  }
+}

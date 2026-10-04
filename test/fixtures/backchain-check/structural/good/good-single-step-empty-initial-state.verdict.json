@@ -1,0 +1,21 @@
+{
+  "input": "structural/good/good-single-step-empty-initial-state.json",
+  "input_sha256": "548db1615aaa22d23cc25ca8836eb2a8fd6989aa24028b5c4e4d581b2b720274",
+  "lib_js_sha256": "a9b99125d06d6aa8ea49216de68f803b9dfde3f3335acf83f47d960869b7585a",
+  "ok": true,
+  "failures": [],
+  "completion": "complete",
+  "parallel_groups": [],
+  "packaged_sha256": "2cc2b30abe68b25efce9348285bb13f76862205ea574f6c347e431c9df384673",
+  "unconfirmed_produces": [
+    {
+      "stepId": "S1",
+      "produces": "standalone result"
+    }
+  ],
+  "raw": {
+    "ok": true,
+    "failures": [],
+    "completion": "complete"
+  }
+}

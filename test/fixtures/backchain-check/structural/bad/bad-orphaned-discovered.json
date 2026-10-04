@@ -1,0 +1,22 @@
+{
+  "goal": "An unused discovery is present",
+  "initial_state": [],
+  "steps": [
+    {
+      "id": "S1",
+      "statement": "A seed state holds",
+      "produces": ["seed state"],
+      "inputs": [],
+      "origin": "seed"
+    },
+    {
+      "id": "D1",
+      "statement": "A discovered state holds",
+      "produces": ["discovered state"],
+      "inputs": [],
+      "origin": "discovered"
+    }
+  ],
+  "parallel_groups": [["S1", "D1"]],
+  "unresolved": []
+}

@@ -1,0 +1,13 @@
+{
+  "goal": "Ship the report",
+  "initial_state": ["source data exists"],
+  "steps": [
+    {"statement": "Unnamed step", "produces": ["thing"], "inputs": [{"need": "source data exists"}], "origin": "seed"},
+    {"id": "S2", "statement": "Publish", "produces": ["report is published"],
+     "inputs": [{"need": "thing", "from": 7}, {"need": "other", "from": ""}, "not an object"]},
+    {"id": "S3", "statement": "Extra", "produces": [], "inputs": [], "origin": "discovered", "confirm": {}}
+  ],
+  "parallel_groups": [["S2", null, 5], "S3"],
+  "unresolved": [{"need": "x", "reason": "residual-risk"}, {"step": "S2", "need": "y", "reason": "circular"},
+                 {"step": "S2", "need": "z", "reason": "circular", "cycle": ["S2", 9]}, 4]
+}

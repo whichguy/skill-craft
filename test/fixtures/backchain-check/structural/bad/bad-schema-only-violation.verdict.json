@@ -1,0 +1,31 @@
+{
+  "input": "structural/bad/bad-schema-only-violation.json",
+  "input_sha256": "09e25f393d85eac2b46da312c9411d075a47b422770f9efd954c5a2af2aa0c62",
+  "lib_js_sha256": "a9b99125d06d6aa8ea49216de68f803b9dfde3f3335acf83f47d960869b7585a",
+  "ok": false,
+  "failures": [
+    {
+      "invariant": 1,
+      "message": "steps[0] has unknown property unexpected"
+    }
+  ],
+  "completion": "invalid",
+  "parallel_groups": [],
+  "packaged_sha256": "cc953dfd073b605db9458f397a13d63b4fa64e5de12aeb7137dc18601cb8e834",
+  "unconfirmed_produces": [
+    {
+      "stepId": "S1",
+      "produces": "required state"
+    }
+  ],
+  "raw": {
+    "ok": false,
+    "failures": [
+      {
+        "invariant": 1,
+        "message": "steps[0] has unknown property unexpected"
+      }
+    ],
+    "completion": "invalid"
+  }
+}

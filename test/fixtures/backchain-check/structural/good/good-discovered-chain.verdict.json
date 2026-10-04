@@ -1,0 +1,29 @@
+{
+  "input": "structural/good/good-discovered-chain.json",
+  "input_sha256": "3cadd80a7d37186e4615c819d099db5122ad6b33e3df51415694d971c7f49545",
+  "lib_js_sha256": "a9b99125d06d6aa8ea49216de68f803b9dfde3f3335acf83f47d960869b7585a",
+  "ok": true,
+  "failures": [],
+  "completion": "complete",
+  "parallel_groups": [],
+  "packaged_sha256": "4f97677b527242cf4b6c013dd35acc0099869fbd7d2eed99cdfbd6768f398cd0",
+  "unconfirmed_produces": [
+    {
+      "stepId": "S1",
+      "produces": "agreed brief"
+    },
+    {
+      "stepId": "D1",
+      "produces": "derived configuration"
+    },
+    {
+      "stepId": "S2",
+      "produces": "configured release"
+    }
+  ],
+  "raw": {
+    "ok": true,
+    "failures": [],
+    "completion": "complete"
+  }
+}

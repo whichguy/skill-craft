@@ -1,0 +1,25 @@
+{
+  "input": "structural/good/good-semantic-need-produce-mismatch.json",
+  "input_sha256": "42172f33e743eaead529f07bf1a56c664dcb05a8b3800bdcacf67c386d731d3a",
+  "lib_js_sha256": "a9b99125d06d6aa8ea49216de68f803b9dfde3f3335acf83f47d960869b7585a",
+  "ok": true,
+  "failures": [],
+  "completion": "complete",
+  "parallel_groups": [],
+  "packaged_sha256": "93e66560e9ce309f5001c80bec2bd2fb8f4e5aeb99efdad99516871f6544ec4f",
+  "unconfirmed_produces": [
+    {
+      "stepId": "S1",
+      "produces": "alpha"
+    },
+    {
+      "stepId": "S2",
+      "produces": "beta"
+    }
+  ],
+  "raw": {
+    "ok": true,
+    "failures": [],
+    "completion": "complete"
+  }
+}

@@ -1,0 +1,16 @@
+{
+  "goal": "A valid plan has one schema-only violation",
+  "initial_state": [],
+  "steps": [
+    {
+      "id": "S1",
+      "statement": "The required state holds",
+      "produces": ["required state"],
+      "inputs": [],
+      "origin": "seed",
+      "unexpected": true
+    }
+  ],
+  "parallel_groups": [],
+  "unresolved": []
+}

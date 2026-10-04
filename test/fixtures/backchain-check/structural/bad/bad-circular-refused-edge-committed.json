@@ -1,0 +1,29 @@
+{
+  "goal": "Circular bookkeeping must not claim a refused edge that is already committed",
+  "initial_state": [],
+  "steps": [
+    {
+      "id": "A",
+      "statement": "State A is ready",
+      "produces": ["state a"],
+      "inputs": [{ "need": "state b", "from": "B" }],
+      "origin": "seed"
+    },
+    {
+      "id": "B",
+      "statement": "State B is ready",
+      "produces": ["state b"],
+      "inputs": [{ "need": "state a", "from": "A" }],
+      "origin": "seed"
+    }
+  ],
+  "parallel_groups": [],
+  "unresolved": [
+    {
+      "step": "B",
+      "need": "refused mutual edge",
+      "reason": "circular",
+      "cycle": ["B", "A"]
+    }
+  ]
+}

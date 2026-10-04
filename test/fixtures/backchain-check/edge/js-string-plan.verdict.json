@@ -1,0 +1,26 @@
+{
+  "input": "edge/js-string-plan.json",
+  "input_sha256": "4354994c96acaaf7aae4ce88763bf1f192449b2d6d8867674a03262490df9a53",
+  "lib_js_sha256": "a9b99125d06d6aa8ea49216de68f803b9dfde3f3335acf83f47d960869b7585a",
+  "ok": false,
+  "failures": [
+    {
+      "invariant": 1,
+      "message": "plan must be an object"
+    }
+  ],
+  "completion": "invalid",
+  "parallel_groups": [],
+  "packaged_sha256": "dbf9868785714c2519824d5a01bea297a3ef16fa141bec86a4caff8320cdbc4c",
+  "unconfirmed_produces": [],
+  "raw": {
+    "ok": false,
+    "failures": [
+      {
+        "invariant": 1,
+        "message": "plan must be an object"
+      }
+    ],
+    "completion": "invalid"
+  }
+}

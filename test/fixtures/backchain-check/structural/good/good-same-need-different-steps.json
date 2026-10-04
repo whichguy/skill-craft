@@ -1,0 +1,31 @@
+{
+  "goal": "Identical need text may appear as an input on one step and unresolved on another without double-booking",
+  "initial_state": ["repository exists", "shared coordination token"],
+  "steps": [
+    {
+      "id": "S1",
+      "statement": "The left foundation is ready",
+      "produces": ["left foundation ready"],
+      "inputs": [
+        { "need": "repository exists", "from": null },
+        { "need": "shared coordination token", "from": null }
+      ],
+      "origin": "seed"
+    },
+    {
+      "id": "S2",
+      "statement": "The right deliverable is staged",
+      "produces": ["right deliverable staged"],
+      "inputs": [{ "need": "left foundation ready", "from": "S1" }],
+      "origin": "seed"
+    }
+  ],
+  "parallel_groups": [],
+  "unresolved": [
+    {
+      "step": "S2",
+      "need": "shared coordination token",
+      "reason": "residual-risk"
+    }
+  ]
+}

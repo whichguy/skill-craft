@@ -1,0 +1,28 @@
+{
+  "goal": "A plan may be structurally valid with a single residual risk",
+  "initial_state": ["repository exists"],
+  "steps": [
+    {
+      "id": "S1",
+      "statement": "The foundation is ready",
+      "produces": ["foundation ready"],
+      "inputs": [{ "need": "repository exists", "from": null }],
+      "origin": "seed"
+    },
+    {
+      "id": "S2",
+      "statement": "The release is staged",
+      "produces": ["release staged"],
+      "inputs": [{ "need": "foundation ready", "from": "S1" }],
+      "origin": "seed"
+    }
+  ],
+  "parallel_groups": [],
+  "unresolved": [
+    {
+      "step": "S2",
+      "need": "external change-window approval",
+      "reason": "residual-risk"
+    }
+  ]
+}

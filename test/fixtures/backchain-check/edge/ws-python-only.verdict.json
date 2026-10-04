@@ -1,0 +1,91 @@
+{
+  "input": "edge/ws-python-only.json",
+  "input_sha256": "c8e344938095f849cb0d6bfd13d08c7e3c216995a7e4394ccd9278b15e608686",
+  "lib_js_sha256": "a9b99125d06d6aa8ea49216de68f803b9dfde3f3335acf83f47d960869b7585a",
+  "ok": false,
+  "failures": [
+    {
+      "invariant": 7,
+      "message": "Null-origin need is not declared in initial_state",
+      "detail": {
+        "stepId": "S1",
+        "need": "source data exists"
+      }
+    },
+    {
+      "invariant": 7,
+      "message": "Null-origin need is not declared in initial_state",
+      "detail": {
+        "stepId": "S1",
+        "need": "\u001dflag one"
+      }
+    },
+    {
+      "invariant": 7,
+      "message": "Null-origin need is not declared in initial_state",
+      "detail": {
+        "stepId": "S1",
+        "need": "\u001eflag two\u001f"
+      }
+    },
+    {
+      "invariant": 7,
+      "message": "Null-origin need is not declared in initial_state",
+      "detail": {
+        "stepId": "S1",
+        "need": "flagthree"
+      }
+    }
+  ],
+  "completion": "invalid",
+  "parallel_groups": [],
+  "packaged_sha256": "4dcb1c9883e80b22794183cdc736f6967ff9c6412018312b8e596ebb10b65763",
+  "unconfirmed_produces": [
+    {
+      "stepId": "S1",
+      "produces": "report is built"
+    },
+    {
+      "stepId": "S2",
+      "produces": "report is published"
+    }
+  ],
+  "raw": {
+    "ok": false,
+    "failures": [
+      {
+        "invariant": 7,
+        "message": "Null-origin need is not declared in initial_state",
+        "detail": {
+          "stepId": "S1",
+          "need": "source data exists"
+        }
+      },
+      {
+        "invariant": 7,
+        "message": "Null-origin need is not declared in initial_state",
+        "detail": {
+          "stepId": "S1",
+          "need": "\u001dflag one"
+        }
+      },
+      {
+        "invariant": 7,
+        "message": "Null-origin need is not declared in initial_state",
+        "detail": {
+          "stepId": "S1",
+          "need": "\u001eflag two\u001f"
+        }
+      },
+      {
+        "invariant": 7,
+        "message": "Null-origin need is not declared in initial_state",
+        "detail": {
+          "stepId": "S1",
+          "need": "flagthree"
+        }
+      }
+    ],
+    "completion": "invalid"
+  }
+}

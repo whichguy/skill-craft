@@ -1,0 +1,34 @@
+{
+  "input": "structural/good/good-shared-supplier-two-consumers.json",
+  "input_sha256": "8bc8034fc836c3ee3f7555ccd7b70ff02124b50f7b528c7228f4f3b28a828fe6",
+  "lib_js_sha256": "a9b99125d06d6aa8ea49216de68f803b9dfde3f3335acf83f47d960869b7585a",
+  "ok": true,
+  "failures": [],
+  "completion": "complete",
+  "parallel_groups": [
+    [
+      "S2",
+      "S3"
+    ]
+  ],
+  "packaged_sha256": "42f78b6b261124d86d9d99ce4443f20847eb744d6a639ace08da34db469b04c3",
+  "unconfirmed_produces": [
+    {
+      "stepId": "S1",
+      "produces": "shared foundation ready"
+    },
+    {
+      "stepId": "S2",
+      "produces": "left consumer ready"
+    },
+    {
+      "stepId": "S3",
+      "produces": "right consumer ready"
+    }
+  ],
+  "raw": {
+    "ok": true,
+    "failures": [],
+    "completion": "complete"
+  }
+}

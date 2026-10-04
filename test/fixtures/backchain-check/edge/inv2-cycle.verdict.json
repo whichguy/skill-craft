@@ -1,0 +1,55 @@
+{
+  "input": "edge/inv2-cycle.json",
+  "input_sha256": "e1a4f084dba7bb26fe229b0717863a3d6f5be038ba1825a202681bd8d7f23942",
+  "lib_js_sha256": "a9b99125d06d6aa8ea49216de68f803b9dfde3f3335acf83f47d960869b7585a",
+  "ok": false,
+  "failures": [
+    {
+      "invariant": 2,
+      "message": "Committed dependency graph contains a cycle",
+      "detail": {
+        "cycle": [
+          "S1",
+          "S3",
+          "S2",
+          "S1"
+        ]
+      }
+    }
+  ],
+  "completion": "invalid",
+  "parallel_groups": [],
+  "packaged_sha256": "62163511f99102615cd99785a37dd087fee99097a2ffe239aa51e45d65ceaa17",
+  "unconfirmed_produces": [
+    {
+      "stepId": "S1",
+      "produces": "report is built"
+    },
+    {
+      "stepId": "S2",
+      "produces": "report is published"
+    },
+    {
+      "stepId": "S3",
+      "produces": "review notes"
+    }
+  ],
+  "raw": {
+    "ok": false,
+    "failures": [
+      {
+        "invariant": 2,
+        "message": "Committed dependency graph contains a cycle",
+        "detail": {
+          "cycle": [
+            "S1",
+            "S3",
+            "S2",
+            "S1"
+          ]
+        }
+      }
+    ],
+    "completion": "invalid"
+  }
+}

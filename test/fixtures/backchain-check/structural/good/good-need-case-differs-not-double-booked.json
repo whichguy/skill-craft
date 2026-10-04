@@ -1,0 +1,21 @@
+{
+  "goal": "Invariant 5 is case-sensitive after whitespace normalize",
+  "initial_state": ["Deploy Token"],
+  "steps": [
+    {
+      "id": "S1",
+      "statement": "Work proceeds with a case-distinct residual",
+      "produces": ["work result"],
+      "inputs": [{ "need": "Deploy Token", "from": null }],
+      "origin": "seed"
+    }
+  ],
+  "parallel_groups": [],
+  "unresolved": [
+    {
+      "step": "S1",
+      "need": "deploy token",
+      "reason": "residual-risk"
+    }
+  ]
+}

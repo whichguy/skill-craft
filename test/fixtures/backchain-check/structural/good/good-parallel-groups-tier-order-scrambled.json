@@ -1,0 +1,57 @@
+{
+  "goal": "Three tiers of concurrent work are complete",
+  "initial_state": [],
+  "steps": [
+    {
+      "id": "R1",
+      "statement": "Root one is ready",
+      "produces": ["root one"],
+      "inputs": [],
+      "origin": "seed"
+    },
+    {
+      "id": "R2",
+      "statement": "Root two is ready",
+      "produces": ["root two"],
+      "inputs": [],
+      "origin": "seed"
+    },
+    {
+      "id": "R3",
+      "statement": "Root three is ready",
+      "produces": ["root three"],
+      "inputs": [],
+      "origin": "seed"
+    },
+    {
+      "id": "M1",
+      "statement": "Middle one is ready",
+      "produces": ["middle one"],
+      "inputs": [{"need": "root one", "from": "R1"}],
+      "origin": "seed"
+    },
+    {
+      "id": "M2",
+      "statement": "Middle two is ready",
+      "produces": ["middle two"],
+      "inputs": [{"need": "root two", "from": "R2"}],
+      "origin": "seed"
+    },
+    {
+      "id": "T1",
+      "statement": "Top one is ready",
+      "produces": ["top one"],
+      "inputs": [{"need": "middle one", "from": "M1"}],
+      "origin": "seed"
+    },
+    {
+      "id": "T2",
+      "statement": "Top two is ready",
+      "produces": ["top two"],
+      "inputs": [{"need": "middle two", "from": "M2"}],
+      "origin": "seed"
+    }
+  ],
+  "parallel_groups": [["T2", "T1"], ["R3", "R2", "R1"], ["M2", "M1"]],
+  "unresolved": []
+}

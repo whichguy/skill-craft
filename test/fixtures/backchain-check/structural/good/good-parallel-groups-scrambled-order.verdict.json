@@ -1,0 +1,34 @@
+{
+  "input": "structural/good/good-parallel-groups-scrambled-order.json",
+  "input_sha256": "f8b544c684e3014a90db56de25144c2732d46d0267bb58dddbd3e81c841578ce",
+  "lib_js_sha256": "a9b99125d06d6aa8ea49216de68f803b9dfde3f3335acf83f47d960869b7585a",
+  "ok": true,
+  "failures": [],
+  "completion": "complete",
+  "parallel_groups": [
+    [
+      "S1",
+      "S2"
+    ]
+  ],
+  "packaged_sha256": "6b7ffb146ee2c1558807a91bba5c81fc929a6218bac94b2614b3fbc98c399002",
+  "unconfirmed_produces": [
+    {
+      "stepId": "S1",
+      "produces": "left ready"
+    },
+    {
+      "stepId": "S2",
+      "produces": "right ready"
+    },
+    {
+      "stepId": "S3",
+      "produces": "merge ready"
+    }
+  ],
+  "raw": {
+    "ok": true,
+    "failures": [],
+    "completion": "complete"
+  }
+}

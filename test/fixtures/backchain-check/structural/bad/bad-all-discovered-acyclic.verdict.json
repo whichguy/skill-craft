@@ -1,0 +1,41 @@
+{
+  "input": "structural/bad/bad-all-discovered-acyclic.json",
+  "input_sha256": "9b8b8ae7efb6b7652f40c8ec20e9e8442322356bc3fce66a512396143eb42e2c",
+  "lib_js_sha256": "a9b99125d06d6aa8ea49216de68f803b9dfde3f3335acf83f47d960869b7585a",
+  "ok": false,
+  "failures": [
+    {
+      "invariant": 4,
+      "message": "Discovered step is neither consumed by another step nor satisfies a declared goal_needs entry",
+      "detail": {
+        "stepId": "D2"
+      }
+    }
+  ],
+  "completion": "invalid",
+  "parallel_groups": [],
+  "packaged_sha256": "155c36208d1ce2b97dc0b09618e4e9a9d1de194f48b9a4b4d7e6c787c55e55d1",
+  "unconfirmed_produces": [
+    {
+      "stepId": "D1",
+      "produces": "discovered prerequisite"
+    },
+    {
+      "stepId": "D2",
+      "produces": "discovered result"
+    }
+  ],
+  "raw": {
+    "ok": false,
+    "failures": [
+      {
+        "invariant": 4,
+        "message": "Discovered step is neither consumed by another step nor satisfies a declared goal_needs entry",
+        "detail": {
+          "stepId": "D2"
+        }
+      }
+    ],
+    "completion": "invalid"
+  }
+}

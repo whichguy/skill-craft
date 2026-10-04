@@ -1,0 +1,29 @@
+{
+  "input": "edge/inv2-cycle.fixed.json",
+  "input_sha256": "81d5f374e9e0b8aef14164458186467b89efd185d864ebc7f574c37ba2c6d8ba",
+  "lib_js_sha256": "a9b99125d06d6aa8ea49216de68f803b9dfde3f3335acf83f47d960869b7585a",
+  "ok": true,
+  "failures": [],
+  "completion": "complete",
+  "parallel_groups": [],
+  "packaged_sha256": "c9db0af3e4197d92a20271fc1a3759337e693d063d55b776f93059044f1ad318",
+  "unconfirmed_produces": [
+    {
+      "stepId": "S1",
+      "produces": "report is built"
+    },
+    {
+      "stepId": "S2",
+      "produces": "report is published"
+    },
+    {
+      "stepId": "S3",
+      "produces": "review notes"
+    }
+  ],
+  "raw": {
+    "ok": true,
+    "failures": [],
+    "completion": "complete"
+  }
+}

@@ -1,0 +1,139 @@
+{
+  "input": "edge/js-numbers.json",
+  "input_sha256": "89c116a3cd1e7a7602b1ed0870adf3c36d7eb74616a86129e7b3f08352d97461",
+  "lib_js_sha256": "a9b99125d06d6aa8ea49216de68f803b9dfde3f3335acf83f47d960869b7585a",
+  "ok": false,
+  "failures": [
+    {
+      "invariant": 1,
+      "message": "steps[2] has unknown property numbers"
+    },
+    {
+      "invariant": 1,
+      "message": "steps[2].inputs[2].from must be null or a non-empty step ID other than \"initial\""
+    },
+    {
+      "invariant": 1,
+      "message": "steps[2].inputs[3].from must be null or a non-empty step ID other than \"initial\""
+    },
+    {
+      "invariant": 1,
+      "message": "steps[2].inputs[4].from must be null or a non-empty step ID other than \"initial\""
+    },
+    {
+      "invariant": 3,
+      "message": "Input supplier reference does not name an existing step",
+      "detail": {
+        "stepId": "S2",
+        "from": 12345678901234567000
+      }
+    },
+    {
+      "invariant": 3,
+      "message": "Input supplier reference does not name an existing step",
+      "detail": {
+        "stepId": "S2",
+        "from": 1
+      }
+    },
+    {
+      "invariant": 3,
+      "message": "Input supplier reference does not name an existing step",
+      "detail": {
+        "stepId": "S2",
+        "from": 0
+      }
+    }
+  ],
+  "completion": "invalid",
+  "parallel_groups": [
+    [
+      "1",
+      "S1"
+    ]
+  ],
+  "packaged_sha256": "60c48b7784b9d5254eb174ca1b4b77bc9d19a19ac4ef4c2fb5f79f61b893be4a",
+  "unconfirmed_produces": [
+    {
+      "stepId": "1",
+      "produces": "one is built"
+    },
+    {
+      "stepId": "S1",
+      "produces": "report is built"
+    },
+    {
+      "stepId": "S2",
+      "produces": "report is published"
+    }
+  ],
+  "raw": {
+    "ok": false,
+    "failures": [
+      {
+        "invariant": 1,
+        "message": "steps[1].inputs[0].from must be null or a non-empty step ID other than \"initial\""
+      },
+      {
+        "invariant": 1,
+        "message": "steps[2] has unknown property numbers"
+      },
+      {
+        "invariant": 1,
+        "message": "steps[2].inputs[2].from must be null or a non-empty step ID other than \"initial\""
+      },
+      {
+        "invariant": 1,
+        "message": "steps[2].inputs[3].from must be null or a non-empty step ID other than \"initial\""
+      },
+      {
+        "invariant": 1,
+        "message": "steps[2].inputs[4].from must be null or a non-empty step ID other than \"initial\""
+      },
+      {
+        "invariant": 1,
+        "message": "parallel_groups[0] must be an array of strings"
+      },
+      {
+        "invariant": 3,
+        "message": "Input supplier reference does not name an existing step",
+        "detail": {
+          "stepId": "S1",
+          "from": null
+        }
+      },
+      {
+        "invariant": 3,
+        "message": "Input supplier reference does not name an existing step",
+        "detail": {
+          "stepId": "S2",
+          "from": 12345678901234567000
+        }
+      },
+      {
+        "invariant": 3,
+        "message": "Input supplier reference does not name an existing step",
+        "detail": {
+          "stepId": "S2",
+          "from": 1
+        }
+      },
+      {
+        "invariant": 3,
+        "message": "Input supplier reference does not name an existing step",
+        "detail": {
+          "stepId": "S2",
+          "from": 0
+        }
+      },
+      {
+        "invariant": 6,
+        "message": "parallel_groups references a nonexistent step",
+        "detail": {
+          "stepId": 1
+        }
+      }
+    ],
+    "completion": "invalid"
+  }
+}

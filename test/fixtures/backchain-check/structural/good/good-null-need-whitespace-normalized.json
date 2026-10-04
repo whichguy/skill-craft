@@ -1,0 +1,20 @@
+{
+  "goal": "A configured release is ready",
+  "initial_state": ["workspace   exists"],
+  "steps": [
+    {
+      "id": "S1",
+      "statement": "The brief is agreed",
+      "produces": ["agreed brief"],
+      "inputs": [
+        {
+          "need": "  workspace exists  ",
+          "from": null
+        }
+      ],
+      "origin": "seed"
+    }
+  ],
+  "parallel_groups": [],
+  "unresolved": []
+}

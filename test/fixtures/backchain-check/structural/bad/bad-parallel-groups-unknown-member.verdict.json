@@ -1,0 +1,56 @@
+{
+  "input": "structural/bad/bad-parallel-groups-unknown-member.json",
+  "input_sha256": "7a1cc9900cc3829639b024927323d858784e9e8228b1159db50be3c61d3c2686",
+  "lib_js_sha256": "a9b99125d06d6aa8ea49216de68f803b9dfde3f3335acf83f47d960869b7585a",
+  "ok": true,
+  "failures": [],
+  "completion": "complete",
+  "parallel_groups": [
+    [
+      "S1",
+      "S2"
+    ]
+  ],
+  "packaged_sha256": "1a94c123f55bd4fe0db82c350f3c1ddc238b171ba593049df995237796dd682e",
+  "unconfirmed_produces": [
+    {
+      "stepId": "S1",
+      "produces": "left ready"
+    },
+    {
+      "stepId": "S2",
+      "produces": "right ready"
+    }
+  ],
+  "raw": {
+    "ok": false,
+    "failures": [
+      {
+        "invariant": 6,
+        "message": "parallel_groups references a nonexistent step",
+        "detail": {
+          "stepId": "GHOST"
+        }
+      },
+      {
+        "invariant": 6,
+        "message": "Stored parallel_groups does not match recomputed longest-path depth groups",
+        "detail": {
+          "expected": [
+            [
+              "S1",
+              "S2"
+            ]
+          ],
+          "actual": [
+            [
+              "S1",
+              "GHOST"
+            ]
+          ]
+        }
+      }
+    ],
+    "completion": "invalid"
+  }
+}

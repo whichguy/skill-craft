@@ -1,0 +1,25 @@
+{
+  "input": "structural/good/good-same-need-different-steps.json",
+  "input_sha256": "9a5277c951de13980907c659e9e5574ef9dd21c74a336a024060541be4a6ffb6",
+  "lib_js_sha256": "a9b99125d06d6aa8ea49216de68f803b9dfde3f3335acf83f47d960869b7585a",
+  "ok": true,
+  "failures": [],
+  "completion": "incomplete",
+  "parallel_groups": [],
+  "packaged_sha256": "156d112793389274732f512ec2b285430b87d95be28670a95e59a4524e10387d",
+  "unconfirmed_produces": [
+    {
+      "stepId": "S1",
+      "produces": "left foundation ready"
+    },
+    {
+      "stepId": "S2",
+      "produces": "right deliverable staged"
+    }
+  ],
+  "raw": {
+    "ok": true,
+    "failures": [],
+    "completion": "incomplete"
+  }
+}

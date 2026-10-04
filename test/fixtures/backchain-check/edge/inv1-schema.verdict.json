@@ -1,0 +1,91 @@
+{
+  "input": "edge/inv1-schema.json",
+  "input_sha256": "01d2ba4d6d62d1b8cb07bf9a22cd77e3b2f6d32079649677abbec7e0181c98c7",
+  "lib_js_sha256": "a9b99125d06d6aa8ea49216de68f803b9dfde3f3335acf83f47d960869b7585a",
+  "ok": false,
+  "failures": [
+    {
+      "invariant": 1,
+      "message": "steps[0] has unknown property 2"
+    },
+    {
+      "invariant": 1,
+      "message": "steps[0] has unknown property 10"
+    },
+    {
+      "invariant": 1,
+      "message": "steps[0] has unknown property 4294967294"
+    },
+    {
+      "invariant": 1,
+      "message": "steps[0] has unknown property zeta"
+    },
+    {
+      "invariant": 1,
+      "message": "steps[0] has unknown property alpha"
+    },
+    {
+      "invariant": 1,
+      "message": "steps[0] has unknown property 4294967295"
+    },
+    {
+      "invariant": 1,
+      "message": "steps[1] is missing required property statement"
+    },
+    {
+      "invariant": 1,
+      "message": "steps[1].statement must be a non-empty string"
+    }
+  ],
+  "completion": "invalid",
+  "parallel_groups": [],
+  "packaged_sha256": "7cb033c924f6bfb813ccf2a3cf3bbf3415b2b4ef850f8a10918e16e8251d968a",
+  "unconfirmed_produces": [
+    {
+      "stepId": "S1",
+      "produces": "report is built"
+    },
+    {
+      "stepId": "S2",
+      "produces": "report is published"
+    }
+  ],
+  "raw": {
+    "ok": false,
+    "failures": [
+      {
+        "invariant": 1,
+        "message": "steps[0] has unknown property 2"
+      },
+      {
+        "invariant": 1,
+        "message": "steps[0] has unknown property 10"
+      },
+      {
+        "invariant": 1,
+        "message": "steps[0] has unknown property 4294967294"
+      },
+      {
+        "invariant": 1,
+        "message": "steps[0] has unknown property zeta"
+      },
+      {
+        "invariant": 1,
+        "message": "steps[0] has unknown property alpha"
+      },
+      {
+        "invariant": 1,
+        "message": "steps[0] has unknown property 4294967295"
+      },
+      {
+        "invariant": 1,
+        "message": "steps[1] is missing required property statement"
+      },
+      {
+        "invariant": 1,
+        "message": "steps[1].statement must be a non-empty string"
+      }
+    ],
+    "completion": "invalid"
+  }
+}

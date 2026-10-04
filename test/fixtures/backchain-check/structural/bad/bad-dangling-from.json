@@ -1,0 +1,15 @@
+{
+  "goal": "A dangling supplier is present",
+  "initial_state": [],
+  "steps": [
+    {
+      "id": "S1",
+      "statement": "A result is prepared",
+      "produces": ["result"],
+      "inputs": [{"need": "missing prerequisite", "from": "S9"}],
+      "origin": "seed"
+    }
+  ],
+  "parallel_groups": [],
+  "unresolved": []
+}

@@ -1,0 +1,39 @@
+{
+  "input": "edge/ws-confirm-and-goal-needs.json",
+  "input_sha256": "2493d40caa12410a32f529becce5ec06fe2027c395fb65b7843bc7d7e7816873",
+  "lib_js_sha256": "a9b99125d06d6aa8ea49216de68f803b9dfde3f3335acf83f47d960869b7585a",
+  "ok": false,
+  "failures": [
+    {
+      "invariant": 1,
+      "message": "steps[0].confirm[0].by must be a non-blank string"
+    },
+    {
+      "invariant": 1,
+      "message": "goal_needs[1] must be non-empty after whitespace normalization"
+    }
+  ],
+  "completion": "invalid",
+  "parallel_groups": [],
+  "packaged_sha256": "00657547b83c1f02787974be618f23dad653cc6251703fb8e91dc496381be3fe",
+  "unconfirmed_produces": [
+    {
+      "stepId": "S2",
+      "produces": "report is published"
+    }
+  ],
+  "raw": {
+    "ok": false,
+    "failures": [
+      {
+        "invariant": 1,
+        "message": "steps[0].confirm[0].by must be a non-blank string"
+      },
+      {
+        "invariant": 1,
+        "message": "goal_needs[1] must be non-empty after whitespace normalization"
+      }
+    ],
+    "completion": "invalid"
+  }
+}

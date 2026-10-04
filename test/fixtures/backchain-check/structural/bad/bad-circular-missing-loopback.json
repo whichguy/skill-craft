@@ -1,0 +1,29 @@
+{
+  "goal": "Circular bookkeeping must include the committed loop-back path",
+  "initial_state": [],
+  "steps": [
+    {
+      "id": "A",
+      "statement": "State A is ready",
+      "produces": ["state a"],
+      "inputs": [{ "need": "state b", "from": "B" }],
+      "origin": "seed"
+    },
+    {
+      "id": "B",
+      "statement": "State B is ready",
+      "produces": ["state b"],
+      "inputs": [],
+      "origin": "seed"
+    }
+  ],
+  "parallel_groups": [],
+  "unresolved": [
+    {
+      "step": "A",
+      "need": "refused mutual dependency",
+      "reason": "circular",
+      "cycle": ["A", "B"]
+    }
+  ]
+}

@@ -1,0 +1,14 @@
+{
+  "goal": "Ship the report",
+  "initial_state": ["source data exists"],
+  "goal_needs": ["report is published"],
+  "steps": [
+    {"id": "S1", "statement": "Build the report", "produces": ["report is built"],
+     "inputs": [{"need": "source data exists", "from": null}], "origin": "seed",
+     "zeta": 1, "10": 1, "2": 1, "alpha": 1, "4294967295": 1, "4294967294": 1},
+    {"id": "S2", "produces": ["report is published"],
+     "inputs": [{"need": "report is built", "from": "S1"}], "origin": "seed"}
+  ],
+  "parallel_groups": [],
+  "unresolved": []
+}

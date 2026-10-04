@@ -1,0 +1,15 @@
+{
+  "goal": "The string initial is never a valid from value",
+  "initial_state": ["repository exists"],
+  "steps": [
+    {
+      "id": "S1",
+      "statement": "The foundation is ready",
+      "produces": ["foundation ready"],
+      "inputs": [{ "need": "repository exists", "from": "initial" }],
+      "origin": "seed"
+    }
+  ],
+  "parallel_groups": [],
+  "unresolved": []
+}

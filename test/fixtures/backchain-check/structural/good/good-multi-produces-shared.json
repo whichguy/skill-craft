@@ -1,0 +1,29 @@
+{
+  "goal": "One supplier may produce multiple artifacts consumed separately",
+  "initial_state": ["repository exists"],
+  "steps": [
+    {
+      "id": "S1",
+      "statement": "The build artifacts are prepared",
+      "produces": ["binary ready", "checksum ready"],
+      "inputs": [{ "need": "repository exists", "from": null }],
+      "origin": "seed"
+    },
+    {
+      "id": "S2",
+      "statement": "The binary is published",
+      "produces": ["binary published"],
+      "inputs": [{ "need": "binary ready", "from": "S1" }],
+      "origin": "seed"
+    },
+    {
+      "id": "S3",
+      "statement": "The checksum is published",
+      "produces": ["checksum published"],
+      "inputs": [{ "need": "checksum ready", "from": "S1" }],
+      "origin": "seed"
+    }
+  ],
+  "parallel_groups": [["S2", "S3"]],
+  "unresolved": []
+}

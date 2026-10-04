@@ -1,0 +1,34 @@
+{
+  "goal": "Circular bookkeeping and an independent risk are recorded",
+  "initial_state": [],
+  "steps": [
+    {
+      "id": "A",
+      "statement": "The dependent state is ready",
+      "produces": ["dependent state"],
+      "inputs": [{"need": "supplier state", "from": "B"}],
+      "origin": "seed"
+    },
+    {
+      "id": "B",
+      "statement": "The supplier state is ready",
+      "produces": ["supplier state"],
+      "inputs": [],
+      "origin": "seed"
+    }
+  ],
+  "parallel_groups": [],
+  "unresolved": [
+    {
+      "step": "B",
+      "need": "dependent approval",
+      "reason": "circular",
+      "cycle": ["B", "A"]
+    },
+    {
+      "step": "B",
+      "need": "external confirmation",
+      "reason": "residual-risk"
+    }
+  ]
+}

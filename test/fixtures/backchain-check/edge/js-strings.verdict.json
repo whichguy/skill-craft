@@ -1,0 +1,25 @@
+{
+  "input": "edge/js-strings.json",
+  "input_sha256": "f45c777d38b34ca33306965e9570a780e461e3e64fee03fa571191d8709f3479",
+  "lib_js_sha256": "a9b99125d06d6aa8ea49216de68f803b9dfde3f3335acf83f47d960869b7585a",
+  "ok": true,
+  "failures": [],
+  "completion": "complete",
+  "parallel_groups": [],
+  "packaged_sha256": "a4a35a38c21a57d22e3a8f85f168080534455b9b8284d6598ded9e923b05a5f3",
+  "unconfirmed_produces": [
+    {
+      "stepId": "S1",
+      "produces": "report is built"
+    },
+    {
+      "stepId": "S2",
+      "produces": "report is published"
+    }
+  ],
+  "raw": {
+    "ok": true,
+    "failures": [],
+    "completion": "complete"
+  }
+}

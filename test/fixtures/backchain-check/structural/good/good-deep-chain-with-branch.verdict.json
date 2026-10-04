@@ -1,0 +1,70 @@
+{
+  "input": "structural/good/good-deep-chain-with-branch.json",
+  "input_sha256": "6c647206344673af2541e5cf117708607928a8d5feccb35bb837f0c6e5cc66e8",
+  "lib_js_sha256": "a9b99125d06d6aa8ea49216de68f803b9dfde3f3335acf83f47d960869b7585a",
+  "ok": true,
+  "failures": [],
+  "completion": "complete",
+  "parallel_groups": [
+    [
+      "C6",
+      "B6"
+    ]
+  ],
+  "packaged_sha256": "67691cf4b3bf8bd0defcdcfe3840ba077d266f4814fd07fd062bc94f7a472b67",
+  "unconfirmed_produces": [
+    {
+      "stepId": "C1",
+      "produces": "chain state one"
+    },
+    {
+      "stepId": "C2",
+      "produces": "chain state two"
+    },
+    {
+      "stepId": "C3",
+      "produces": "chain state three"
+    },
+    {
+      "stepId": "C4",
+      "produces": "chain state four"
+    },
+    {
+      "stepId": "C5",
+      "produces": "chain state five"
+    },
+    {
+      "stepId": "C6",
+      "produces": "chain state six"
+    },
+    {
+      "stepId": "B6",
+      "produces": "branch state six"
+    },
+    {
+      "stepId": "C7",
+      "produces": "chain state seven"
+    },
+    {
+      "stepId": "C8",
+      "produces": "chain state eight"
+    },
+    {
+      "stepId": "C9",
+      "produces": "chain state nine"
+    },
+    {
+      "stepId": "C10",
+      "produces": "chain state ten"
+    },
+    {
+      "stepId": "C11",
+      "produces": "chain state eleven"
+    }
+  ],
+  "raw": {
+    "ok": true,
+    "failures": [],
+    "completion": "complete"
+  }
+}

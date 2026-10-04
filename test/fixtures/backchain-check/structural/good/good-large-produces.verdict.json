@@ -1,0 +1,113 @@
+{
+  "input": "structural/good/good-large-produces.json",
+  "input_sha256": "fe32b7b8f40f862fa5baee4d117c4faab2e0d919d4de4d8f2450059eeffa5cd0",
+  "lib_js_sha256": "a9b99125d06d6aa8ea49216de68f803b9dfde3f3335acf83f47d960869b7585a",
+  "ok": true,
+  "failures": [],
+  "completion": "complete",
+  "parallel_groups": [],
+  "packaged_sha256": "fafbf6c9c137b538c33478003c36d93fcb7c863b0d8afd192d820d37b66232f9",
+  "unconfirmed_produces": [
+    {
+      "stepId": "S1",
+      "produces": "artifact 01"
+    },
+    {
+      "stepId": "S1",
+      "produces": "artifact 02"
+    },
+    {
+      "stepId": "S1",
+      "produces": "artifact 03"
+    },
+    {
+      "stepId": "S1",
+      "produces": "artifact 04"
+    },
+    {
+      "stepId": "S1",
+      "produces": "artifact 05"
+    },
+    {
+      "stepId": "S1",
+      "produces": "artifact 06"
+    },
+    {
+      "stepId": "S1",
+      "produces": "artifact 07"
+    },
+    {
+      "stepId": "S1",
+      "produces": "artifact 08"
+    },
+    {
+      "stepId": "S1",
+      "produces": "artifact 09"
+    },
+    {
+      "stepId": "S1",
+      "produces": "artifact 10"
+    },
+    {
+      "stepId": "S1",
+      "produces": "artifact 11"
+    },
+    {
+      "stepId": "S1",
+      "produces": "artifact 12"
+    },
+    {
+      "stepId": "S1",
+      "produces": "artifact 13"
+    },
+    {
+      "stepId": "S1",
+      "produces": "artifact 14"
+    },
+    {
+      "stepId": "S1",
+      "produces": "artifact 15"
+    },
+    {
+      "stepId": "S1",
+      "produces": "artifact 16"
+    },
+    {
+      "stepId": "S1",
+      "produces": "artifact 17"
+    },
+    {
+      "stepId": "S1",
+      "produces": "artifact 18"
+    },
+    {
+      "stepId": "S1",
+      "produces": "artifact 19"
+    },
+    {
+      "stepId": "S1",
+      "produces": "artifact 20"
+    },
+    {
+      "stepId": "S1",
+      "produces": "artifact 21"
+    },
+    {
+      "stepId": "S1",
+      "produces": "artifact 22"
+    },
+    {
+      "stepId": "S1",
+      "produces": "artifact 23"
+    },
+    {
+      "stepId": "S1",
+      "produces": "artifact 24"
+    }
+  ],
+  "raw": {
+    "ok": true,
+    "failures": [],
+    "completion": "complete"
+  }
+}

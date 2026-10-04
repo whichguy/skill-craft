@@ -1,0 +1,29 @@
+{
+  "input": "edge/inv4-orphan.fixed.json",
+  "input_sha256": "826594605c18cc077756df5929fd02e66d54271fb7f3d1b90de203dc7b56ec8c",
+  "lib_js_sha256": "a9b99125d06d6aa8ea49216de68f803b9dfde3f3335acf83f47d960869b7585a",
+  "ok": true,
+  "failures": [],
+  "completion": "complete",
+  "parallel_groups": [],
+  "packaged_sha256": "f0c05b4217be59d7d4c6ae133c1f8b63bcfed055a42200bf9b6695fba3e35c98",
+  "unconfirmed_produces": [
+    {
+      "stepId": "S1",
+      "produces": "report is built"
+    },
+    {
+      "stepId": "S2",
+      "produces": "report is published"
+    },
+    {
+      "stepId": "D1",
+      "produces": "audit log is written"
+    }
+  ],
+  "raw": {
+    "ok": true,
+    "failures": [],
+    "completion": "complete"
+  }
+}

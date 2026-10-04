@@ -1,0 +1,36 @@
+{
+  "goal": "Two prepared deliverables exist",
+  "initial_state": ["workspace is available"],
+  "steps": [
+    {
+      "id": "S1",
+      "statement": "A foundation is available",
+      "produces": ["foundation"],
+      "inputs": [],
+      "origin": "seed"
+    },
+    {
+      "id": "S2",
+      "statement": "The first deliverable is prepared",
+      "produces": ["first deliverable"],
+      "inputs": [{"need": "foundation", "from": "S1"}],
+      "origin": "seed"
+    },
+    {
+      "id": "S3",
+      "statement": "The second deliverable is prepared",
+      "produces": ["second deliverable"],
+      "inputs": [{"need": "network", "from": "S4"}],
+      "origin": "seed"
+    },
+    {
+      "id": "S4",
+      "statement": "A network is available",
+      "produces": ["network"],
+      "inputs": [],
+      "origin": "seed"
+    }
+  ],
+  "parallel_groups": [["S1", "S4"], ["S2", "S3"]],
+  "unresolved": []
+}

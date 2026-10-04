@@ -1,0 +1,22 @@
+{
+  "goal": "Presence in parallel_groups is not consumption for discovered steps",
+  "initial_state": [],
+  "steps": [
+    {
+      "id": "S1",
+      "statement": "Seed work is ready",
+      "produces": ["seed work"],
+      "inputs": [],
+      "origin": "seed"
+    },
+    {
+      "id": "D",
+      "statement": "Discovered work is ready",
+      "produces": ["discovered work"],
+      "inputs": [],
+      "origin": "discovered"
+    }
+  ],
+  "parallel_groups": [["S1", "D"]],
+  "unresolved": []
+}

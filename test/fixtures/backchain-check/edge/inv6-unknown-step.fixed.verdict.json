@@ -1,0 +1,25 @@
+{
+  "input": "edge/inv6-unknown-step.fixed.json",
+  "input_sha256": "3345a9965ecfe839f7c5e937b923de3575744cc5c16ff0476a87304d633ad73e",
+  "lib_js_sha256": "a9b99125d06d6aa8ea49216de68f803b9dfde3f3335acf83f47d960869b7585a",
+  "ok": true,
+  "failures": [],
+  "completion": "incomplete",
+  "parallel_groups": [],
+  "packaged_sha256": "0e9963e166f89b3ca93e484bfc40c561b2bccba530e1c36de2c1b32ad2b27180",
+  "unconfirmed_produces": [
+    {
+      "stepId": "S1",
+      "produces": "report is built"
+    },
+    {
+      "stepId": "S2",
+      "produces": "report is published"
+    }
+  ],
+  "raw": {
+    "ok": true,
+    "failures": [],
+    "completion": "incomplete"
+  }
+}

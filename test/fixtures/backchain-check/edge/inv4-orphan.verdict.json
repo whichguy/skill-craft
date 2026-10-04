@@ -1,0 +1,63 @@
+{
+  "input": "edge/inv4-orphan.json",
+  "input_sha256": "856275d82e3740c5a0d9e3d22818152110abc6cf1ea5c7e5bcb9a84347b0334c",
+  "lib_js_sha256": "a9b99125d06d6aa8ea49216de68f803b9dfde3f3335acf83f47d960869b7585a",
+  "ok": false,
+  "failures": [
+    {
+      "invariant": 4,
+      "message": "Discovered step is neither consumed by another step nor satisfies a declared goal_needs entry",
+      "detail": {
+        "stepId": "D1"
+      }
+    }
+  ],
+  "completion": "invalid",
+  "parallel_groups": [
+    [
+      "S2",
+      "D1"
+    ]
+  ],
+  "packaged_sha256": "28e9438bbad6ab0740808528c55b3678734af7de8024d6dc7eac12d08c30e7a8",
+  "unconfirmed_produces": [
+    {
+      "stepId": "S1",
+      "produces": "report is built"
+    },
+    {
+      "stepId": "S2",
+      "produces": "report is published"
+    },
+    {
+      "stepId": "D1",
+      "produces": "audit log is written"
+    }
+  ],
+  "raw": {
+    "ok": false,
+    "failures": [
+      {
+        "invariant": 4,
+        "message": "Discovered step is neither consumed by another step nor satisfies a declared goal_needs entry",
+        "detail": {
+          "stepId": "D1"
+        }
+      },
+      {
+        "invariant": 6,
+        "message": "Stored parallel_groups does not match recomputed longest-path depth groups",
+        "detail": {
+          "expected": [
+            [
+              "S2",
+              "D1"
+            ]
+          ],
+          "actual": []
+        }
+      }
+    ],
+    "completion": "invalid"
+  }
+}

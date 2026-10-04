@@ -1,0 +1,631 @@
+{
+  "goal": "A local single-player Battleship candidate satisfies the accepted user outcomes and maintained AC-01\u2013AC-10 contract, with its implementation and verification path inside one ShipLoop W1 item.",
+  "initial_state": [
+    "The original request requires a single-player Battleship game, a Node.js HTTP server without npm dependencies, a playable 10x10 HTML board, GET /api/new, POST /api/fire, a separate rules module, and node:test coverage under test/.",
+    "The current isolated worktree is at HEAD 44269403489286800593d1fa77478eacb37b3669 on branch shiploop/run-df26f2e84f51cf0d; it contains no product implementation or product test files, and the observed baseline node --test exited 0 with zero discovered tests.",
+    "Node v25.9.0 and its built-in node:test runner are available on the host; this is the only observed Node version and establishes no broader support range.",
+    "Current source snapshots SRC-1 through SRC-8 have been refreshed from the worktree and their SHA-256 digests and Git blob identities are recorded in sources-metadata.json.",
+    "The current ShipLoop plan queue has one provisional outer work item W1, Build and verify the local Battleship game; all internal plan graph steps remain inside W1.",
+    "The host has no browser automation/control route; AC-02 and AC-08 still require a human browser observation after the local candidate is assembled.",
+    "The accepted maintained spec defines the same-origin page contract and GET /api/new plus POST /api/fire routes, JSON fields, shot result schema and 10x10 board behavior."
+  ],
+  "goal_needs": [
+    "AC-01 is satisfied: node server.js listens on 127.0.0.1:3000 with PORT unset, honors valid configured ports, rejects invalid PORT before listen with a clear error, and uses only Node built-ins with no npm dependencies.",
+    "AC-02 is satisfied: GET / returns an HTML document titled exactly Battleship, and a human browser observes a playable 10x10 grid where a player fires and sees the result.",
+    "AC-03 is satisfied: GET /api/new returns a fresh non-empty game ID with Cache-Control no-store, replaces the current game and makes the prior ID stale.",
+    "AC-04 is satisfied: fire responses distinguish miss, hit, sunk and final victory, duplicate shots replay idempotently, and a row-major sweep stops at victory within 100 unique shots.",
+    "AC-05 is satisfied: server.js uses a separate rules module that places valid random ships of lengths 5/4/3/3/2 and whose state transitions are covered by rule tests.",
+    "AC-06 is satisfied: root node --test discovers and passes a nonzero built-in node:test suite under test/ without an install step.",
+    "AC-07 is satisfied: invalid and terminal HTTP requests return the specified statuses and JSON shapes without mutation, including 1024/1025-byte limits and API-CONCURRENCY-15 races.",
+    "AC-08 is satisfied: human browser observation confirms pointer and arrow-key navigation with Enter/Space firing, restart, truthful status, safe timeout/retry handling and narrow-screen usability.",
+    "AC-09 is satisfied: responses and logs do not expose fleet or unhit ship locations or game IDs; replacement and restart discard old game state and no persistent/external state is introduced.",
+    "AC-10 is satisfied: server and tests verify loopback binding, the 1 KiB request bound and actual Node version without claiming support on unobserved versions."
+  ],
+  "steps": [
+    {
+      "id": "S1",
+      "statement": "The shared test-support facilities are present outside test/ and make rule/API tests deterministic and isolated.",
+      "produces": [
+        "test-support/http-server.js starts local test servers on 127.0.0.1 with an OS-assigned port and registers awaited teardown.",
+        "test-support/rules-fixture.js exports the documented seeded LCG and deterministic 17-cell createGame()/fire() adapter."
+      ],
+      "inputs": [],
+      "origin": "seed",
+      "confirm": [
+        {
+          "produces": "test-support/http-server.js starts local test servers on 127.0.0.1 with an OS-assigned port and registers awaited teardown.",
+          "by": "inspect test-support/http-server.js and test-support/rules-fixture.js; pass when the helpers bind only to 127.0.0.1:0, tear down, and expose the stated deterministic contracts",
+          "level": "inspect"
+        },
+        {
+          "produces": "test-support/rules-fixture.js exports the documented seeded LCG and deterministic 17-cell createGame()/fire() adapter.",
+          "by": "inspect test-support/http-server.js and test-support/rules-fixture.js; pass when the helpers bind only to 127.0.0.1:0, tear down, and expose the stated deterministic contracts",
+          "level": "inspect"
+        }
+      ]
+    },
+    {
+      "id": "S2",
+      "statement": "The production rules module owns placement, shot ledger, duplicate replay, ship sinking and terminal victory state.",
+      "produces": [
+        "rules.js exports createGame({random}) and fire(game,row,col) and owns randomized valid fleet creation, shot ledger, duplicate replay, sinking and victory."
+      ],
+      "inputs": [],
+      "origin": "seed",
+      "confirm": [
+        {
+          "produces": "rules.js exports createGame({random}) and fire(game,row,col) and owns randomized valid fleet creation, shot ledger, duplicate replay, sinking and victory.",
+          "by": "run node --test test/rules.test.js and inspect rules.js imports/exports; pass when fleet and state invariants hold and only built-in/relative imports are used",
+          "level": "execute"
+        }
+      ]
+    },
+    {
+      "id": "S3",
+      "statement": "Focused native rule tests cover valid randomized fleets and the full rules state transition.",
+      "produces": [
+        "test/rules.test.js uses node:test and node:assert/strict to cover fleet geometry, injected RNG repeatability, miss/hit/sunk/victory and duplicate-shot behavior."
+      ],
+      "inputs": [
+        {
+          "need": "test-support/rules-fixture.js exports the documented seeded LCG and deterministic 17-cell createGame()/fire() adapter.",
+          "from": "S1",
+          "artifact": "test-support/rules-fixture.js"
+        },
+        {
+          "need": "rules.js exports createGame({random}) and fire(game,row,col) and owns randomized valid fleet creation, shot ledger, duplicate replay, sinking and victory.",
+          "from": "S2",
+          "artifact": "rules.js"
+        }
+      ],
+      "origin": "seed",
+      "confirm": [
+        {
+          "produces": "test/rules.test.js uses node:test and node:assert/strict to cover fleet geometry, injected RNG repeatability, miss/hit/sunk/victory and duplicate-shot behavior.",
+          "by": "run node --test test/rules.test.js; pass when the runner discovers named RULE-* cases and reports zero failures",
+          "level": "execute"
+        }
+      ]
+    },
+    {
+      "id": "S4",
+      "statement": "The production server serves the page and API through one loopback-only built-in HTTP startup path that delegates state changes to rules.js.",
+      "produces": [
+        "server.js exports createServer({rules}) and startServer(), uses built-in modules only, serves GET /, GET /api/new and POST /api/fire, and strictly validates PORT and fire requests."
+      ],
+      "inputs": [
+        {
+          "need": "rules.js exports createGame({random}) and fire(game,row,col) and owns randomized valid fleet creation, shot ledger, duplicate replay, sinking and victory.",
+          "from": "S2",
+          "artifact": "rules.js"
+        },
+        {
+          "need": "index.html renders 100 labeled cells with pointer/touch activation, arrow-key focus movement, Enter/Space firing, visible focus, text and polite status, responsive layout, a keyboard New Game control and safe 10-second timeout/retry handling.",
+          "from": "S6",
+          "artifact": "index.html"
+        }
+      ],
+      "origin": "seed",
+      "confirm": [
+        {
+          "produces": "server.js exports createServer({rules}) and startServer(), uses built-in modules only, serves GET /, GET /api/new and POST /api/fire, and strictly validates PORT and fire requests.",
+          "by": "run node --test test/http.test.js and node --test test/server-startup.test.js; inspect every repository package.json, package-lock.json and npm-shrinkwrap.json if present plus server.js imports; pass when GET / serves the exact Battleship document through the production route, GET /api/new and POST /api/fire obey their tested schemas, strict PORT values and loopback startup pass, createServer({rules}) delegates to rules.js, every import resolves to built-in/relative modules, no inspected npm manifest/lockfile declares an npm package, and no npm install is required",
+          "level": "execute"
+        }
+      ]
+    },
+    {
+      "id": "S5",
+      "statement": "Native HTTP integration tests cover the API contracts, rejection behavior and serialized mutation races.",
+      "produces": [
+        "test/http.test.js covers page/API responses, validation, the exact body limit, no-mutation rejects, duplicate replay and API-CONCURRENCY-15: two concurrent requests for the same current game/coordinate return one stored outcome with one effective shot; an old-ID fire overlapping GET /api/new is decided by mutation order; after replacement the old ID returns 404 and the new ID accepts its first shot."
+      ],
+      "inputs": [
+        {
+          "need": "test-support/http-server.js starts local test servers on 127.0.0.1 with an OS-assigned port and registers awaited teardown.",
+          "from": "S1",
+          "artifact": "test-support/http-server.js"
+        },
+        {
+          "need": "test-support/rules-fixture.js exports the documented seeded LCG and deterministic 17-cell createGame()/fire() adapter.",
+          "from": "S1",
+          "artifact": "test-support/rules-fixture.js"
+        },
+        {
+          "need": "server.js exports createServer({rules}) and startServer(), uses built-in modules only, serves GET /, GET /api/new and POST /api/fire, and strictly validates PORT and fire requests.",
+          "from": "S4",
+          "artifact": "server.js"
+        },
+        {
+          "need": "index.html renders 100 labeled cells with pointer/touch activation, arrow-key focus movement, Enter/Space firing, visible focus, text and polite status, responsive layout, a keyboard New Game control and safe 10-second timeout/retry handling.",
+          "from": "S6",
+          "artifact": "index.html"
+        }
+      ],
+      "origin": "seed",
+      "confirm": [
+        {
+          "produces": "test/http.test.js covers page/API responses, validation, the exact body limit, no-mutation rejects, duplicate replay and API-CONCURRENCY-15: two concurrent requests for the same current game/coordinate return one stored outcome with one effective shot; an old-ID fire overlapping GET /api/new is decided by mutation order; after replacement the old ID returns 404 and the new ID accepts its first shot.",
+          "by": "run node --test test/http.test.js; pass when the API-CONCURRENCY-15 case proves same-coordinate concurrent posts return the one recorded result with one ledger mutation, records rules-call order for old-ID fire versus GET /api/new, permits either valid mutation ordering, then proves the old ID is 404 and the new ID accepts its first shot; all other named API-* statuses, response bodies, byte boundaries and no-mutation rejects also match test-strategy.md",
+          "level": "execute"
+        }
+      ]
+    },
+    {
+      "id": "S6",
+      "statement": "The browser page provides an accessible and recoverable 10x10 Battleship interaction over same-origin API requests.",
+      "produces": [
+        "index.html renders 100 labeled cells with pointer/touch activation, arrow-key focus movement, Enter/Space firing, visible focus, text and polite status, responsive layout, a keyboard New Game control and safe 10-second timeout/retry handling."
+      ],
+      "inputs": [
+        {
+          "need": "The accepted maintained spec defines the same-origin page contract and GET /api/new plus POST /api/fire routes, JSON fields, shot result schema and 10x10 board behavior.",
+          "from": null
+        }
+      ],
+      "origin": "seed",
+      "confirm": [
+        {
+          "produces": "index.html renders 100 labeled cells with pointer/touch activation, arrow-key focus movement, Enter/Space firing, visible focus, text and polite status, responsive layout, a keyboard New Game control and safe 10-second timeout/retry handling.",
+          "by": "inspect index.html and exercise it in a real browser; pass when 100 named cells have visible focus, arrow keys move focus, Enter/Space and pointer/touch fire, textual polite status reports outcomes, responsive layout works, New Game is keyboard-accessible, and 10-second unknown-result recovery safely limits retry to the same cell or a confirmed new ID",
+          "level": "execute"
+        }
+      ]
+    },
+    {
+      "id": "S7",
+      "statement": "The deterministic manual-browser fixture serves the real page/API contract and controlled late replies for recovery inspection.",
+      "produces": [
+        "test-support/browser-server.js serves the page/API using deterministic fleet state and supports opt-in one-shot 15-second post-mutation new-game/fire response delays."
+      ],
+      "inputs": [
+        {
+          "need": "test-support/rules-fixture.js exports the documented seeded LCG and deterministic 17-cell createGame()/fire() adapter.",
+          "from": "S1",
+          "artifact": "test-support/rules-fixture.js"
+        },
+        {
+          "need": "server.js exports createServer({rules}) and startServer(), uses built-in modules only, serves GET /, GET /api/new and POST /api/fire, and strictly validates PORT and fire requests.",
+          "from": "S4",
+          "artifact": "server.js"
+        },
+        {
+          "need": "index.html renders 100 labeled cells with pointer/touch activation, arrow-key focus movement, Enter/Space firing, visible focus, text and polite status, responsive layout, a keyboard New Game control and safe 10-second timeout/retry handling.",
+          "from": "S6",
+          "artifact": "index.html"
+        }
+      ],
+      "origin": "seed",
+      "confirm": [
+        {
+          "produces": "test-support/browser-server.js serves the page/API using deterministic fleet state and supports opt-in one-shot 15-second post-mutation new-game/fire response delays.",
+          "by": "run test-support/browser-server.js in the later local browser system test with the documented BATTLESHIP_TEST_DELAY_FIRST_NEW_MS=15000 and BATTLESHIP_TEST_DELAY_FIRST_FIRE_MS=15000; pass when first new/fire replies are delayed after mutation, retries yield the current ID or stored same-cell result, later requests are not delayed again, and late responses do not change the replacement page state",
+          "level": "execute"
+        }
+      ]
+    },
+    {
+      "id": "S8",
+      "statement": "Process and production-path test suites cover startup, privacy, restart and row-major terminal smoke behavior.",
+      "produces": [
+        "test/server-startup.test.js and test/smoke.test.js cover default/custom/invalid PORT, loopback and no-npm imports, response/log privacy, restart loss and production-rules victory smoke that stops at terminal response."
+      ],
+      "inputs": [
+        {
+          "need": "test-support/http-server.js starts local test servers on 127.0.0.1 with an OS-assigned port and registers awaited teardown.",
+          "from": "S1",
+          "artifact": "test-support/http-server.js"
+        },
+        {
+          "need": "rules.js exports createGame({random}) and fire(game,row,col) and owns randomized valid fleet creation, shot ledger, duplicate replay, sinking and victory.",
+          "from": "S2",
+          "artifact": "rules.js"
+        },
+        {
+          "need": "server.js exports createServer({rules}) and startServer(), uses built-in modules only, serves GET /, GET /api/new and POST /api/fire, and strictly validates PORT and fire requests.",
+          "from": "S4",
+          "artifact": "server.js"
+        },
+        {
+          "need": "index.html renders 100 labeled cells with pointer/touch activation, arrow-key focus movement, Enter/Space firing, visible focus, text and polite status, responsive layout, a keyboard New Game control and safe 10-second timeout/retry handling.",
+          "from": "S6",
+          "artifact": "index.html"
+        }
+      ],
+      "origin": "seed",
+      "confirm": [
+        {
+          "produces": "test/server-startup.test.js and test/smoke.test.js cover default/custom/invalid PORT, loopback and no-npm imports, response/log privacy, restart loss and production-rules victory smoke that stops at terminal response.",
+          "by": "run node --test test/server-startup.test.js and node --test test/smoke.test.js; pass when process cases and production row-major smoke stop on first gameOver",
+          "level": "execute"
+        }
+      ]
+    },
+    {
+      "id": "S9",
+      "statement": "The assembled candidate has recorded passing focused and full native test runs with exact runtime and source identity.",
+      "produces": [
+        "A retained verification report records all four focused node --test commands plus root node --test, nonzero test count, zero failures, Node version and candidate SHA-256."
+      ],
+      "inputs": [
+        {
+          "need": "test/rules.test.js uses node:test and node:assert/strict to cover fleet geometry, injected RNG repeatability, miss/hit/sunk/victory and duplicate-shot behavior.",
+          "from": "S3",
+          "artifact": "test/rules.test.js"
+        },
+        {
+          "need": "test/http.test.js covers page/API responses, validation, the exact body limit, no-mutation rejects, duplicate replay and API-CONCURRENCY-15: two concurrent requests for the same current game/coordinate return one stored outcome with one effective shot; an old-ID fire overlapping GET /api/new is decided by mutation order; after replacement the old ID returns 404 and the new ID accepts its first shot.",
+          "from": "S5",
+          "artifact": "test/http.test.js"
+        },
+        {
+          "need": "test/server-startup.test.js and test/smoke.test.js cover default/custom/invalid PORT, loopback and no-npm imports, response/log privacy, restart loss and production-rules victory smoke that stops at terminal response.",
+          "from": "S8",
+          "artifact": "test/server-startup.test.js and test/smoke.test.js"
+        }
+      ],
+      "origin": "seed",
+      "confirm": [
+        {
+          "produces": "A retained verification report records all four focused node --test commands plus root node --test, nonzero test count, zero failures, Node version and candidate SHA-256.",
+          "by": "run the four documented focused node --test commands and then node --test from the project root; pass when each exits 0, full discovery is nonzero, and the report records candidate SHA and Node version",
+          "level": "execute"
+        }
+      ]
+    },
+    {
+      "id": "S10",
+      "statement": "The required future human browser system-test record is specified with exact target identity and observed interactions.",
+      "produces": [
+        "A human system-test report for SYS-BROWSER-PLAY-13 and SYS-BROWSER-RECOVERY-14 records candidate SHA-256, browser/version, viewport and route; 100 named cells, visible focus, pointer/touch and arrow-key focus with Enter/Space firing, text/status and narrow-screen behavior; restart, truthful miss/hit/sunk/win feedback, stale-ID 404 with New Game recovery, terminal 409, suppression of a second shot while pending, 10-second new/fire timeout and retry, same-cell idempotent replay, and delayed first responses after mutation that cannot repaint or rebind the replacement game."
+      ],
+      "inputs": [
+        {
+          "need": "index.html renders 100 labeled cells with pointer/touch activation, arrow-key focus movement, Enter/Space firing, visible focus, text and polite status, responsive layout, a keyboard New Game control and safe 10-second timeout/retry handling.",
+          "from": "S6",
+          "artifact": "index.html"
+        },
+        {
+          "need": "test-support/browser-server.js serves the page/API using deterministic fleet state and supports opt-in one-shot 15-second post-mutation new-game/fire response delays.",
+          "from": "S7",
+          "artifact": "test-support/browser-server.js"
+        },
+        {
+          "need": "A retained verification report records all four focused node --test commands plus root node --test, nonzero test count, zero failures, Node version and candidate SHA-256.",
+          "from": "S9",
+          "artifact": "verification report"
+        }
+      ],
+      "origin": "seed",
+      "confirm": [
+        {
+          "produces": "A human system-test report for SYS-BROWSER-PLAY-13 and SYS-BROWSER-RECOVERY-14 records candidate SHA-256, browser/version, viewport and route; 100 named cells, visible focus, pointer/touch and arrow-key focus with Enter/Space firing, text/status and narrow-screen behavior; restart, truthful miss/hit/sunk/win feedback, stale-ID 404 with New Game recovery, terminal 409, suppression of a second shot while pending, 10-second new/fire timeout and retry, same-cell idempotent replay, and delayed first responses after mutation that cannot repaint or rebind the replacement game.",
+          "by": "a human system-test observer follows SYS-BROWSER-PLAY-13 and SYS-BROWSER-RECOVERY-14 against the pinned candidate SHA, including two fixture tabs, the stale-ID and terminal-409 checks, one-shot post-mutation 15-second new/fire delays, the 10-second timeout/retry windows, same-cell replay, and replacement before late replies; pass when the report records browser/version, viewport, route, candidate SHA, every requested action, exact observed status and whether the newer board remained unchanged",
+          "level": "execute"
+        }
+      ]
+    },
+    {
+      "id": "S11",
+      "statement": "The AC-01 acceptance outcome has an independent verification result tied to the completed W1 candidate.",
+      "produces": [
+        "AC-01 is satisfied: node server.js listens on 127.0.0.1:3000 with PORT unset, honors valid configured ports, rejects invalid PORT before listen with a clear error, and uses only Node built-ins with no npm dependencies."
+      ],
+      "inputs": [
+        {
+          "need": "server.js exports createServer({rules}) and startServer(), uses built-in modules only, serves GET /, GET /api/new and POST /api/fire, and strictly validates PORT and fire requests.",
+          "from": "S4"
+        },
+        {
+          "need": "test/server-startup.test.js and test/smoke.test.js cover default/custom/invalid PORT, loopback and no-npm imports, response/log privacy, restart loss and production-rules victory smoke that stops at terminal response.",
+          "from": "S8"
+        },
+        {
+          "need": "A retained verification report records all four focused node --test commands plus root node --test, nonzero test count, zero failures, Node version and candidate SHA-256.",
+          "from": "S9"
+        }
+      ],
+      "origin": "seed",
+      "confirm": [
+        {
+          "produces": "AC-01 is satisfied: node server.js listens on 127.0.0.1:3000 with PORT unset, honors valid configured ports, rejects invalid PORT before listen with a clear error, and uses only Node built-ins with no npm dependencies.",
+          "by": "run node --test test/server-startup.test.js; inspect every repository package.json, package-lock.json and npm-shrinkwrap.json if present plus server.js imports; pass when direct startup proves default 3000, custom valid port, clear invalid-port failures before listen and loopback address, every import resolves to Node built-ins/relative modules, no inspected npm manifest/lockfile declares an npm package, and no npm install is required",
+          "level": "execute"
+        }
+      ]
+    },
+    {
+      "id": "S12",
+      "statement": "The AC-02 acceptance outcome has an independent verification result tied to the completed W1 candidate.",
+      "produces": [
+        "AC-02 is satisfied: GET / returns an HTML document titled exactly Battleship, and a human browser observes a playable 10x10 grid where a player fires and sees the result."
+      ],
+      "inputs": [
+        {
+          "need": "server.js exports createServer({rules}) and startServer(), uses built-in modules only, serves GET /, GET /api/new and POST /api/fire, and strictly validates PORT and fire requests.",
+          "from": "S4"
+        },
+        {
+          "need": "index.html renders 100 labeled cells with pointer/touch activation, arrow-key focus movement, Enter/Space firing, visible focus, text and polite status, responsive layout, a keyboard New Game control and safe 10-second timeout/retry handling.",
+          "from": "S6"
+        },
+        {
+          "need": "A human system-test report for SYS-BROWSER-PLAY-13 and SYS-BROWSER-RECOVERY-14 records candidate SHA-256, browser/version, viewport and route; 100 named cells, visible focus, pointer/touch and arrow-key focus with Enter/Space firing, text/status and narrow-screen behavior; restart, truthful miss/hit/sunk/win feedback, stale-ID 404 with New Game recovery, terminal 409, suppression of a second shot while pending, 10-second new/fire timeout and retry, same-cell idempotent replay, and delayed first responses after mutation that cannot repaint or rebind the replacement game.",
+          "from": "S10"
+        }
+      ],
+      "origin": "seed",
+      "confirm": [
+        {
+          "produces": "AC-02 is satisfied: GET / returns an HTML document titled exactly Battleship, and a human browser observes a playable 10x10 grid where a player fires and sees the result.",
+          "by": "fetch GET / and perform human browser observation; pass when exact title and 10x10 board render and a cell fires with its result visible",
+          "level": "execute"
+        }
+      ]
+    },
+    {
+      "id": "S13",
+      "statement": "The AC-03 acceptance outcome has an independent verification result tied to the completed W1 candidate.",
+      "produces": [
+        "AC-03 is satisfied: GET /api/new returns a fresh non-empty game ID with Cache-Control no-store, replaces the current game and makes the prior ID stale."
+      ],
+      "inputs": [
+        {
+          "need": "server.js exports createServer({rules}) and startServer(), uses built-in modules only, serves GET /, GET /api/new and POST /api/fire, and strictly validates PORT and fire requests.",
+          "from": "S4"
+        },
+        {
+          "need": "test/http.test.js covers page/API responses, validation, the exact body limit, no-mutation rejects, duplicate replay and API-CONCURRENCY-15: two concurrent requests for the same current game/coordinate return one stored outcome with one effective shot; an old-ID fire overlapping GET /api/new is decided by mutation order; after replacement the old ID returns 404 and the new ID accepts its first shot.",
+          "from": "S5"
+        },
+        {
+          "need": "A retained verification report records all four focused node --test commands plus root node --test, nonzero test count, zero failures, Node version and candidate SHA-256.",
+          "from": "S9"
+        }
+      ],
+      "origin": "seed",
+      "confirm": [
+        {
+          "produces": "AC-03 is satisfied: GET /api/new returns a fresh non-empty game ID with Cache-Control no-store, replaces the current game and makes the prior ID stale.",
+          "by": "run node --test test/http.test.js; pass when two no-store new-game responses have distinct IDs, old ID returns 404, and new ID still works",
+          "level": "execute"
+        }
+      ]
+    },
+    {
+      "id": "S14",
+      "statement": "The AC-04 acceptance outcome has an independent verification result tied to the completed W1 candidate.",
+      "produces": [
+        "AC-04 is satisfied: fire responses distinguish miss, hit, sunk and final victory, duplicate shots replay idempotently, and a row-major sweep stops at victory within 100 unique shots."
+      ],
+      "inputs": [
+        {
+          "need": "rules.js exports createGame({random}) and fire(game,row,col) and owns randomized valid fleet creation, shot ledger, duplicate replay, sinking and victory.",
+          "from": "S2"
+        },
+        {
+          "need": "test/rules.test.js uses node:test and node:assert/strict to cover fleet geometry, injected RNG repeatability, miss/hit/sunk/victory and duplicate-shot behavior.",
+          "from": "S3"
+        },
+        {
+          "need": "test/http.test.js covers page/API responses, validation, the exact body limit, no-mutation rejects, duplicate replay and API-CONCURRENCY-15: two concurrent requests for the same current game/coordinate return one stored outcome with one effective shot; an old-ID fire overlapping GET /api/new is decided by mutation order; after replacement the old ID returns 404 and the new ID accepts its first shot.",
+          "from": "S5"
+        },
+        {
+          "need": "test/server-startup.test.js and test/smoke.test.js cover default/custom/invalid PORT, loopback and no-npm imports, response/log privacy, restart loss and production-rules victory smoke that stops at terminal response.",
+          "from": "S8"
+        },
+        {
+          "need": "A retained verification report records all four focused node --test commands plus root node --test, nonzero test count, zero failures, Node version and candidate SHA-256.",
+          "from": "S9"
+        }
+      ],
+      "origin": "seed",
+      "confirm": [
+        {
+          "produces": "AC-04 is satisfied: fire responses distinguish miss, hit, sunk and final victory, duplicate shots replay idempotently, and a row-major sweep stops at victory within 100 unique shots.",
+          "by": "run rule/API tests and production smoke; pass when miss/hit/sunk/final victory and duplicate replay hold, and sweep stops at first gameOver within 100 unique shots",
+          "level": "execute"
+        }
+      ]
+    },
+    {
+      "id": "S15",
+      "statement": "The AC-05 acceptance outcome has an independent verification result tied to the completed W1 candidate.",
+      "produces": [
+        "AC-05 is satisfied: server.js uses a separate rules module that places valid random ships of lengths 5/4/3/3/2 and whose state transitions are covered by rule tests."
+      ],
+      "inputs": [
+        {
+          "need": "rules.js exports createGame({random}) and fire(game,row,col) and owns randomized valid fleet creation, shot ledger, duplicate replay, sinking and victory.",
+          "from": "S2"
+        },
+        {
+          "need": "test/rules.test.js uses node:test and node:assert/strict to cover fleet geometry, injected RNG repeatability, miss/hit/sunk/victory and duplicate-shot behavior.",
+          "from": "S3"
+        },
+        {
+          "need": "server.js exports createServer({rules}) and startServer(), uses built-in modules only, serves GET /, GET /api/new and POST /api/fire, and strictly validates PORT and fire requests.",
+          "from": "S4"
+        },
+        {
+          "need": "test/server-startup.test.js and test/smoke.test.js cover default/custom/invalid PORT, loopback and no-npm imports, response/log privacy, restart loss and production-rules victory smoke that stops at terminal response.",
+          "from": "S8"
+        },
+        {
+          "need": "A retained verification report records all four focused node --test commands plus root node --test, nonzero test count, zero failures, Node version and candidate SHA-256.",
+          "from": "S9"
+        }
+      ],
+      "origin": "seed",
+      "confirm": [
+        {
+          "produces": "AC-05 is satisfied: server.js uses a separate rules module that places valid random ships of lengths 5/4/3/3/2 and whose state transitions are covered by rule tests.",
+          "by": "inspect production imports and run node --test test/rules.test.js plus smoke; pass when server uses separate rules.js and valid random fleet/state tests pass",
+          "level": "execute"
+        }
+      ]
+    },
+    {
+      "id": "S16",
+      "statement": "The AC-06 acceptance outcome has an independent verification result tied to the completed W1 candidate.",
+      "produces": [
+        "AC-06 is satisfied: root node --test discovers and passes a nonzero built-in node:test suite under test/ without an install step."
+      ],
+      "inputs": [
+        {
+          "need": "test/rules.test.js uses node:test and node:assert/strict to cover fleet geometry, injected RNG repeatability, miss/hit/sunk/victory and duplicate-shot behavior.",
+          "from": "S3"
+        },
+        {
+          "need": "test/http.test.js covers page/API responses, validation, the exact body limit, no-mutation rejects, duplicate replay and API-CONCURRENCY-15: two concurrent requests for the same current game/coordinate return one stored outcome with one effective shot; an old-ID fire overlapping GET /api/new is decided by mutation order; after replacement the old ID returns 404 and the new ID accepts its first shot.",
+          "from": "S5"
+        },
+        {
+          "need": "test/server-startup.test.js and test/smoke.test.js cover default/custom/invalid PORT, loopback and no-npm imports, response/log privacy, restart loss and production-rules victory smoke that stops at terminal response.",
+          "from": "S8"
+        },
+        {
+          "need": "A retained verification report records all four focused node --test commands plus root node --test, nonzero test count, zero failures, Node version and candidate SHA-256.",
+          "from": "S9"
+        }
+      ],
+      "origin": "seed",
+      "confirm": [
+        {
+          "produces": "AC-06 is satisfied: root node --test discovers and passes a nonzero built-in node:test suite under test/ without an install step.",
+          "by": "run node --test from root; pass when node:test discovers a nonzero test count under test/ and reports zero failures without install",
+          "level": "execute"
+        }
+      ]
+    },
+    {
+      "id": "S17",
+      "statement": "The AC-07 acceptance outcome has an independent verification result tied to the completed W1 candidate.",
+      "produces": [
+        "AC-07 is satisfied: invalid and terminal HTTP requests return the specified statuses and JSON shapes without mutation, including 1024/1025-byte limits and API-CONCURRENCY-15 races."
+      ],
+      "inputs": [
+        {
+          "need": "test/http.test.js covers page/API responses, validation, the exact body limit, no-mutation rejects, duplicate replay and API-CONCURRENCY-15: two concurrent requests for the same current game/coordinate return one stored outcome with one effective shot; an old-ID fire overlapping GET /api/new is decided by mutation order; after replacement the old ID returns 404 and the new ID accepts its first shot.",
+          "from": "S5"
+        },
+        {
+          "need": "A retained verification report records all four focused node --test commands plus root node --test, nonzero test count, zero failures, Node version and candidate SHA-256.",
+          "from": "S9"
+        }
+      ],
+      "origin": "seed",
+      "confirm": [
+        {
+          "produces": "AC-07 is satisfied: invalid and terminal HTTP requests return the specified statuses and JSON shapes without mutation, including 1024/1025-byte limits and API-CONCURRENCY-15 races.",
+          "by": "run node --test test/http.test.js; pass when invalid bodies/methods/paths and 1024/1025-byte boundaries match their statuses and leave state unchanged, and API-CONCURRENCY-15 verifies one effective duplicate shot, mutation-order race outcomes, stale old ID, and first accepted shot for the new ID",
+          "level": "execute"
+        }
+      ]
+    },
+    {
+      "id": "S18",
+      "statement": "The AC-08 acceptance outcome has an independent verification result tied to the completed W1 candidate.",
+      "produces": [
+        "AC-08 is satisfied: human browser observation confirms pointer and arrow-key navigation with Enter/Space firing, restart, truthful status, safe timeout/retry handling and narrow-screen usability."
+      ],
+      "inputs": [
+        {
+          "need": "index.html renders 100 labeled cells with pointer/touch activation, arrow-key focus movement, Enter/Space firing, visible focus, text and polite status, responsive layout, a keyboard New Game control and safe 10-second timeout/retry handling.",
+          "from": "S6"
+        },
+        {
+          "need": "test-support/browser-server.js serves the page/API using deterministic fleet state and supports opt-in one-shot 15-second post-mutation new-game/fire response delays.",
+          "from": "S7"
+        },
+        {
+          "need": "A human system-test report for SYS-BROWSER-PLAY-13 and SYS-BROWSER-RECOVERY-14 records candidate SHA-256, browser/version, viewport and route; 100 named cells, visible focus, pointer/touch and arrow-key focus with Enter/Space firing, text/status and narrow-screen behavior; restart, truthful miss/hit/sunk/win feedback, stale-ID 404 with New Game recovery, terminal 409, suppression of a second shot while pending, 10-second new/fire timeout and retry, same-cell idempotent replay, and delayed first responses after mutation that cannot repaint or rebind the replacement game.",
+          "from": "S10"
+        }
+      ],
+      "origin": "seed",
+      "confirm": [
+        {
+          "produces": "AC-08 is satisfied: human browser observation confirms pointer and arrow-key navigation with Enter/Space firing, restart, truthful status, safe timeout/retry handling and narrow-screen usability.",
+          "by": "a human system-test observer performs both SYS-BROWSER-PLAY-13 and SYS-BROWSER-RECOVERY-14 against the pinned candidate; pass when the retained report records pointer and arrow/Enter/Space actions, status beyond color, restart, 404 stale-ID recovery, 409 terminal handling, blocked double activation, each 10-second timeout/retry path, one-shot delayed new/fire reply behavior, same-cell replay, late-response suppression, and narrow-screen results with browser/version and viewport",
+          "level": "execute"
+        }
+      ]
+    },
+    {
+      "id": "S19",
+      "statement": "The AC-09 acceptance outcome has an independent verification result tied to the completed W1 candidate.",
+      "produces": [
+        "AC-09 is satisfied: responses and logs do not expose fleet or unhit ship locations or game IDs; replacement and restart discard old game state and no persistent/external state is introduced."
+      ],
+      "inputs": [
+        {
+          "need": "server.js exports createServer({rules}) and startServer(), uses built-in modules only, serves GET /, GET /api/new and POST /api/fire, and strictly validates PORT and fire requests.",
+          "from": "S4"
+        },
+        {
+          "need": "test/http.test.js covers page/API responses, validation, the exact body limit, no-mutation rejects, duplicate replay and API-CONCURRENCY-15: two concurrent requests for the same current game/coordinate return one stored outcome with one effective shot; an old-ID fire overlapping GET /api/new is decided by mutation order; after replacement the old ID returns 404 and the new ID accepts its first shot.",
+          "from": "S5"
+        },
+        {
+          "need": "test/server-startup.test.js and test/smoke.test.js cover default/custom/invalid PORT, loopback and no-npm imports, response/log privacy, restart loss and production-rules victory smoke that stops at terminal response.",
+          "from": "S8"
+        },
+        {
+          "need": "A retained verification report records all four focused node --test commands plus root node --test, nonzero test count, zero failures, Node version and candidate SHA-256.",
+          "from": "S9"
+        }
+      ],
+      "origin": "seed",
+      "confirm": [
+        {
+          "produces": "AC-09 is satisfied: responses and logs do not expose fleet or unhit ship locations or game IDs; replacement and restart discard old game state and no persistent/external state is introduced.",
+          "by": "run node --test test/server-startup.test.js and test/http.test.js; pass when response/log inspection hides fleet and IDs, new-game replacement and API-CONCURRENCY-15 retain current-ID mutation ordering, and restart causes the prior ID to return 404 with no persistent state",
+          "level": "execute"
+        }
+      ]
+    },
+    {
+      "id": "S20",
+      "statement": "The AC-10 acceptance outcome has an independent verification result tied to the completed W1 candidate.",
+      "produces": [
+        "AC-10 is satisfied: server and tests verify loopback binding, the 1 KiB request bound and actual Node version without claiming support on unobserved versions."
+      ],
+      "inputs": [
+        {
+          "need": "server.js exports createServer({rules}) and startServer(), uses built-in modules only, serves GET /, GET /api/new and POST /api/fire, and strictly validates PORT and fire requests.",
+          "from": "S4"
+        },
+        {
+          "need": "test/http.test.js covers page/API responses, validation, the exact body limit, no-mutation rejects, duplicate replay and API-CONCURRENCY-15: two concurrent requests for the same current game/coordinate return one stored outcome with one effective shot; an old-ID fire overlapping GET /api/new is decided by mutation order; after replacement the old ID returns 404 and the new ID accepts its first shot.",
+          "from": "S5"
+        },
+        {
+          "need": "test/server-startup.test.js and test/smoke.test.js cover default/custom/invalid PORT, loopback and no-npm imports, response/log privacy, restart loss and production-rules victory smoke that stops at terminal response.",
+          "from": "S8"
+        },
+        {
+          "need": "A retained verification report records all four focused node --test commands plus root node --test, nonzero test count, zero failures, Node version and candidate SHA-256.",
+          "from": "S9"
+        }
+      ],
+      "origin": "seed",
+      "confirm": [
+        {
+          "produces": "AC-10 is satisfied: server and tests verify loopback binding, the 1 KiB request bound and actual Node version without claiming support on unobserved versions.",
+          "by": "run node --test test/server-startup.test.js and test/http.test.js; pass when loopback binding, the 1024/1025-byte body boundary and actual Node version are recorded without an unobserved-version claim",
+          "level": "execute"
+        }
+      ]
+    }
+  ],
+  "parallel_groups": [],
+  "unresolved": [
+    {
+      "step": "S10",
+      "need": "A human system-test observer with a local browser must record the real rendered AC-02/AC-08 observations after W1 assembles the candidate.",
+      "reason": "residual-risk"
+    }
+  ]
+}

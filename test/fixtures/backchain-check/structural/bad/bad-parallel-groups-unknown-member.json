@@ -1,0 +1,22 @@
+{
+  "goal": "parallel_groups members must name existing steps",
+  "initial_state": ["repository exists"],
+  "steps": [
+    {
+      "id": "S1",
+      "statement": "Left is ready",
+      "produces": ["left ready"],
+      "inputs": [{ "need": "repository exists", "from": null }],
+      "origin": "seed"
+    },
+    {
+      "id": "S2",
+      "statement": "Right is ready",
+      "produces": ["right ready"],
+      "inputs": [{ "need": "repository exists", "from": null }],
+      "origin": "seed"
+    }
+  ],
+  "parallel_groups": [["S1", "GHOST"]],
+  "unresolved": []
+}

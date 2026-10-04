@@ -1,0 +1,57 @@
+{
+  "input": "structural/bad/bad-discovered-self-consumption.json",
+  "input_sha256": "42e18b5feb0b63f69f63cb71ce67f830801824443f2569b024e59ebbe5bb13e2",
+  "lib_js_sha256": "a9b99125d06d6aa8ea49216de68f803b9dfde3f3335acf83f47d960869b7585a",
+  "ok": false,
+  "failures": [
+    {
+      "invariant": 2,
+      "message": "Committed dependency graph contains a cycle",
+      "detail": {
+        "cycle": [
+          "D1",
+          "D1"
+        ]
+      }
+    },
+    {
+      "invariant": 4,
+      "message": "Discovered step is neither consumed by another step nor satisfies a declared goal_needs entry",
+      "detail": {
+        "stepId": "D1"
+      }
+    }
+  ],
+  "completion": "invalid",
+  "parallel_groups": [],
+  "packaged_sha256": "2f0abbe3cb42780083a59ba27cd4ea8a37e945f3b3b9d382043b6729151a6745",
+  "unconfirmed_produces": [
+    {
+      "stepId": "D1",
+      "produces": "discovered state"
+    }
+  ],
+  "raw": {
+    "ok": false,
+    "failures": [
+      {
+        "invariant": 2,
+        "message": "Committed dependency graph contains a cycle",
+        "detail": {
+          "cycle": [
+            "D1",
+            "D1"
+          ]
+        }
+      },
+      {
+        "invariant": 4,
+        "message": "Discovered step is neither consumed by another step nor satisfies a declared goal_needs entry",
+        "detail": {
+          "stepId": "D1"
+        }
+      }
+    ],
+    "completion": "invalid"
+  }
+}

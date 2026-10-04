@@ -1,0 +1,296 @@
+{
+  "input": "edge/js-missing-fields.json",
+  "input_sha256": "c3ad8e9de73c2731d22f4e7d4d6dd748235fe228bb2192b2af16bec05cc99a8b",
+  "lib_js_sha256": "a9b99125d06d6aa8ea49216de68f803b9dfde3f3335acf83f47d960869b7585a",
+  "ok": false,
+  "failures": [
+    {
+      "invariant": 1,
+      "message": "steps[0] is missing required property id"
+    },
+    {
+      "invariant": 1,
+      "message": "steps[0].id must be a non-empty string"
+    },
+    {
+      "invariant": 1,
+      "message": "steps[0].inputs[0] is missing required property from"
+    },
+    {
+      "invariant": 1,
+      "message": "steps[0].inputs[0].from must be null or a non-empty step ID other than \"initial\""
+    },
+    {
+      "invariant": 1,
+      "message": "steps[1] is missing required property origin"
+    },
+    {
+      "invariant": 1,
+      "message": "steps[1].inputs[0].from must be null or a non-empty step ID other than \"initial\""
+    },
+    {
+      "invariant": 1,
+      "message": "steps[1].inputs[1].from must be null or a non-empty step ID other than \"initial\""
+    },
+    {
+      "invariant": 1,
+      "message": "steps[1].inputs[2] must be an object"
+    },
+    {
+      "invariant": 1,
+      "message": "steps[1].origin must be seed or discovered"
+    },
+    {
+      "invariant": 1,
+      "message": "steps[2].produces must be a non-empty array of non-empty strings"
+    },
+    {
+      "invariant": 1,
+      "message": "steps[2].confirm must be an array"
+    },
+    {
+      "invariant": 1,
+      "message": "unresolved[0] is missing required property step"
+    },
+    {
+      "invariant": 1,
+      "message": "unresolved[0].step must be a non-empty string"
+    },
+    {
+      "invariant": 1,
+      "message": "unresolved[1] requires cycle when reason is circular"
+    },
+    {
+      "invariant": 1,
+      "message": "unresolved[2].cycle must be an array of at least two strings"
+    },
+    {
+      "invariant": 1,
+      "message": "unresolved[3] must be an object"
+    },
+    {
+      "invariant": 2,
+      "message": "Circular unresolved entry must carry a cycle array of at least two step IDs",
+      "detail": {
+        "entry": {
+          "step": "S2",
+          "need": "y",
+          "reason": "circular"
+        }
+      }
+    },
+    {
+      "invariant": 2,
+      "message": "Circular unresolved entry must carry a cycle array of at least two step IDs",
+      "detail": {
+        "entry": {
+          "step": "S2",
+          "need": "z",
+          "reason": "circular",
+          "cycle": [
+            "S2",
+            9
+          ]
+        }
+      }
+    },
+    {
+      "invariant": 3,
+      "message": "Input supplier reference does not name an existing step",
+      "detail": {}
+    },
+    {
+      "invariant": 3,
+      "message": "Input supplier reference does not name an existing step",
+      "detail": {
+        "stepId": "S2",
+        "from": 7
+      }
+    },
+    {
+      "invariant": 3,
+      "message": "Input supplier reference does not name an existing step",
+      "detail": {
+        "stepId": "S2",
+        "from": ""
+      }
+    },
+    {
+      "invariant": 4,
+      "message": "Discovered step is neither consumed by another step nor satisfies a declared goal_needs entry",
+      "detail": {
+        "stepId": "S3"
+      }
+    }
+  ],
+  "completion": "invalid",
+  "parallel_groups": [],
+  "packaged_sha256": "80900e962cd9f1045d640c6fd9797ada3b7c7cf7a871eba10be7fb99042a7e0d",
+  "unconfirmed_produces": [
+    {
+      "stepId": "S2",
+      "produces": "report is published"
+    }
+  ],
+  "raw": {
+    "ok": false,
+    "failures": [
+      {
+        "invariant": 1,
+        "message": "steps[0] is missing required property id"
+      },
+      {
+        "invariant": 1,
+        "message": "steps[0].id must be a non-empty string"
+      },
+      {
+        "invariant": 1,
+        "message": "steps[0].inputs[0] is missing required property from"
+      },
+      {
+        "invariant": 1,
+        "message": "steps[0].inputs[0].from must be null or a non-empty step ID other than \"initial\""
+      },
+      {
+        "invariant": 1,
+        "message": "steps[1] is missing required property origin"
+      },
+      {
+        "invariant": 1,
+        "message": "steps[1].inputs[0].from must be null or a non-empty step ID other than \"initial\""
+      },
+      {
+        "invariant": 1,
+        "message": "steps[1].inputs[1].from must be null or a non-empty step ID other than \"initial\""
+      },
+      {
+        "invariant": 1,
+        "message": "steps[1].inputs[2] must be an object"
+      },
+      {
+        "invariant": 1,
+        "message": "steps[1].origin must be seed or discovered"
+      },
+      {
+        "invariant": 1,
+        "message": "steps[2].produces must be a non-empty array of non-empty strings"
+      },
+      {
+        "invariant": 1,
+        "message": "steps[2].confirm must be an array"
+      },
+      {
+        "invariant": 1,
+        "message": "parallel_groups[0] must be an array of strings"
+      },
+      {
+        "invariant": 1,
+        "message": "parallel_groups[1] must be an array of strings"
+      },
+      {
+        "invariant": 1,
+        "message": "unresolved[0] is missing required property step"
+      },
+      {
+        "invariant": 1,
+        "message": "unresolved[0].step must be a non-empty string"
+      },
+      {
+        "invariant": 1,
+        "message": "unresolved[1] requires cycle when reason is circular"
+      },
+      {
+        "invariant": 1,
+        "message": "unresolved[2].cycle must be an array of at least two strings"
+      },
+      {
+        "invariant": 1,
+        "message": "unresolved[3] must be an object"
+      },
+      {
+        "invariant": 2,
+        "message": "Circular unresolved entry must carry a cycle array of at least two step IDs",
+        "detail": {
+          "entry": {
+            "step": "S2",
+            "need": "y",
+            "reason": "circular"
+          }
+        }
+      },
+      {
+        "invariant": 2,
+        "message": "Circular unresolved entry must carry a cycle array of at least two step IDs",
+        "detail": {
+          "entry": {
+            "step": "S2",
+            "need": "z",
+            "reason": "circular",
+            "cycle": [
+              "S2",
+              9
+            ]
+          }
+        }
+      },
+      {
+        "invariant": 3,
+        "message": "Input supplier reference does not name an existing step",
+        "detail": {}
+      },
+      {
+        "invariant": 3,
+        "message": "Input supplier reference does not name an existing step",
+        "detail": {
+          "stepId": "S2",
+          "from": 7
+        }
+      },
+      {
+        "invariant": 3,
+        "message": "Input supplier reference does not name an existing step",
+        "detail": {
+          "stepId": "S2",
+          "from": ""
+        }
+      },
+      {
+        "invariant": 4,
+        "message": "Discovered step is neither consumed by another step nor satisfies a declared goal_needs entry",
+        "detail": {
+          "stepId": "S3"
+        }
+      },
+      {
+        "invariant": 6,
+        "message": "parallel_groups references a nonexistent step",
+        "detail": {
+          "stepId": null
+        }
+      },
+      {
+        "invariant": 6,
+        "message": "parallel_groups references a nonexistent step",
+        "detail": {
+          "stepId": 5
+        }
+      },
+      {
+        "invariant": 6,
+        "message": "Stored parallel_groups does not match recomputed longest-path depth groups",
+        "detail": {
+          "expected": [],
+          "actual": [
+            [
+              "S2",
+              null,
+              5
+            ],
+            "S3"
+          ]
+        }
+      }
+    ],
+    "completion": "invalid"
+  }
+}

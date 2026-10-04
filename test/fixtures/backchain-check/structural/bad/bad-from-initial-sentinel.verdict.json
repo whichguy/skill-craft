@@ -1,0 +1,47 @@
+{
+  "input": "structural/bad/bad-from-initial-sentinel.json",
+  "input_sha256": "29fa8b45d6c8fb285347f9c49bf0c3b3331a9608850a69351ea5ebe961c9b3cf",
+  "lib_js_sha256": "a9b99125d06d6aa8ea49216de68f803b9dfde3f3335acf83f47d960869b7585a",
+  "ok": false,
+  "failures": [
+    {
+      "invariant": 1,
+      "message": "steps[0].inputs[0].from must be null or a non-empty step ID other than \"initial\""
+    },
+    {
+      "invariant": 3,
+      "message": "Input supplier reference does not name an existing step",
+      "detail": {
+        "stepId": "S1",
+        "from": "initial"
+      }
+    }
+  ],
+  "completion": "invalid",
+  "parallel_groups": [],
+  "packaged_sha256": "6999da7ee3ac1319190f4691fd41c659391b6023879d5314001bc146f70f36fc",
+  "unconfirmed_produces": [
+    {
+      "stepId": "S1",
+      "produces": "foundation ready"
+    }
+  ],
+  "raw": {
+    "ok": false,
+    "failures": [
+      {
+        "invariant": 1,
+        "message": "steps[0].inputs[0].from must be null or a non-empty step ID other than \"initial\""
+      },
+      {
+        "invariant": 3,
+        "message": "Input supplier reference does not name an existing step",
+        "detail": {
+          "stepId": "S1",
+          "from": "initial"
+        }
+      }
+    ],
+    "completion": "invalid"
+  }
+}

@@ -1,0 +1,92 @@
+{
+  "goal": "A deep chain with one concurrent branch is complete",
+  "initial_state": [],
+  "steps": [
+    {
+      "id": "C1",
+      "statement": "Chain state one is ready",
+      "produces": ["chain state one"],
+      "inputs": [],
+      "origin": "seed"
+    },
+    {
+      "id": "C2",
+      "statement": "Chain state two is ready",
+      "produces": ["chain state two"],
+      "inputs": [{"need": "chain state one", "from": "C1"}],
+      "origin": "seed"
+    },
+    {
+      "id": "C3",
+      "statement": "Chain state three is ready",
+      "produces": ["chain state three"],
+      "inputs": [{"need": "chain state two", "from": "C2"}],
+      "origin": "seed"
+    },
+    {
+      "id": "C4",
+      "statement": "Chain state four is ready",
+      "produces": ["chain state four"],
+      "inputs": [{"need": "chain state three", "from": "C3"}],
+      "origin": "seed"
+    },
+    {
+      "id": "C5",
+      "statement": "Chain state five is ready",
+      "produces": ["chain state five"],
+      "inputs": [{"need": "chain state four", "from": "C4"}],
+      "origin": "seed"
+    },
+    {
+      "id": "C6",
+      "statement": "Chain state six is ready",
+      "produces": ["chain state six"],
+      "inputs": [{"need": "chain state five", "from": "C5"}],
+      "origin": "seed"
+    },
+    {
+      "id": "B6",
+      "statement": "Branch state six is ready",
+      "produces": ["branch state six"],
+      "inputs": [{"need": "chain state five", "from": "C5"}],
+      "origin": "seed"
+    },
+    {
+      "id": "C7",
+      "statement": "Chain state seven is ready",
+      "produces": ["chain state seven"],
+      "inputs": [{"need": "chain state six", "from": "C6"}],
+      "origin": "seed"
+    },
+    {
+      "id": "C8",
+      "statement": "Chain state eight is ready",
+      "produces": ["chain state eight"],
+      "inputs": [{"need": "chain state seven", "from": "C7"}],
+      "origin": "seed"
+    },
+    {
+      "id": "C9",
+      "statement": "Chain state nine is ready",
+      "produces": ["chain state nine"],
+      "inputs": [{"need": "chain state eight", "from": "C8"}],
+      "origin": "seed"
+    },
+    {
+      "id": "C10",
+      "statement": "Chain state ten is ready",
+      "produces": ["chain state ten"],
+      "inputs": [{"need": "chain state nine", "from": "C9"}],
+      "origin": "seed"
+    },
+    {
+      "id": "C11",
+      "statement": "Chain state eleven is ready",
+      "produces": ["chain state eleven"],
+      "inputs": [{"need": "chain state ten", "from": "C10"}],
+      "origin": "seed"
+    }
+  ],
+  "parallel_groups": [["C6", "B6"]],
+  "unresolved": []
+}

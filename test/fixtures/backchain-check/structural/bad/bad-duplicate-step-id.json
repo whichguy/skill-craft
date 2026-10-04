@@ -1,0 +1,22 @@
+{
+  "goal": "Two well-formed steps accidentally share an ID",
+  "initial_state": ["the repository is available"],
+  "steps": [
+    {
+      "id": "S1",
+      "statement": "The first independent state is established",
+      "produces": ["first state"],
+      "inputs": [],
+      "origin": "seed"
+    },
+    {
+      "id": "S1",
+      "statement": "The second independent state is established",
+      "produces": ["second state"],
+      "inputs": [],
+      "origin": "seed"
+    }
+  ],
+  "parallel_groups": [],
+  "unresolved": []
+}

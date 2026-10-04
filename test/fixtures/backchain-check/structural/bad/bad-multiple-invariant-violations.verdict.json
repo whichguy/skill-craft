@@ -1,0 +1,55 @@
+{
+  "input": "structural/bad/bad-multiple-invariant-violations.json",
+  "input_sha256": "2d20351871e9b17673722c52fe820a88b2b67b7eff6e46a122e3d22ba9d2376e",
+  "lib_js_sha256": "a9b99125d06d6aa8ea49216de68f803b9dfde3f3335acf83f47d960869b7585a",
+  "ok": false,
+  "failures": [
+    {
+      "invariant": 3,
+      "message": "Input supplier reference does not name an existing step",
+      "detail": {
+        "stepId": "S1",
+        "from": "S9"
+      }
+    },
+    {
+      "invariant": 5,
+      "message": "Need is tracked both as an input and unresolved for the same step",
+      "detail": {
+        "stepId": "S1",
+        "need": "shared prerequisite"
+      }
+    }
+  ],
+  "completion": "invalid",
+  "parallel_groups": [],
+  "packaged_sha256": "77dc3972ca2f96c822ce560c33a669a7d39a5c67cf3b9a1b9aecef0b98c8b5e4",
+  "unconfirmed_produces": [
+    {
+      "stepId": "S1",
+      "produces": "result"
+    }
+  ],
+  "raw": {
+    "ok": false,
+    "failures": [
+      {
+        "invariant": 3,
+        "message": "Input supplier reference does not name an existing step",
+        "detail": {
+          "stepId": "S1",
+          "from": "S9"
+        }
+      },
+      {
+        "invariant": 5,
+        "message": "Need is tracked both as an input and unresolved for the same step",
+        "detail": {
+          "stepId": "S1",
+          "need": "shared prerequisite"
+        }
+      }
+    ],
+    "completion": "invalid"
+  }
+}

@@ -1,0 +1,49 @@
+{
+  "input": "structural/bad/bad-circular-mislabeled-noncycle.json",
+  "input_sha256": "b30df95f38d90885145a0c53b6d82dd4c4ad711f695e5295bf74c0d08281c28f",
+  "lib_js_sha256": "a9b99125d06d6aa8ea49216de68f803b9dfde3f3335acf83f47d960869b7585a",
+  "ok": false,
+  "failures": [
+    {
+      "invariant": 2,
+      "message": "Circular unresolved cycle must start with the refused step",
+      "detail": {
+        "stepId": "B",
+        "cycle": [
+          "A",
+          "B"
+        ]
+      }
+    }
+  ],
+  "completion": "invalid",
+  "parallel_groups": [],
+  "packaged_sha256": "52ddda413db0958d546047e878baccf18bf6b020184366d0979014bcbe920f8e",
+  "unconfirmed_produces": [
+    {
+      "stepId": "A",
+      "produces": "supplier deliverable"
+    },
+    {
+      "stepId": "B",
+      "produces": "dependent deliverable"
+    }
+  ],
+  "raw": {
+    "ok": false,
+    "failures": [
+      {
+        "invariant": 2,
+        "message": "Circular unresolved cycle must start with the refused step",
+        "detail": {
+          "stepId": "B",
+          "cycle": [
+            "A",
+            "B"
+          ]
+        }
+      }
+    ],
+    "completion": "invalid"
+  }
+}

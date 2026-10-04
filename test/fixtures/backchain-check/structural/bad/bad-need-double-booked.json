@@ -1,0 +1,17 @@
+{
+  "goal": "A need is double tracked",
+  "initial_state": ["shared need"],
+  "steps": [
+    {
+      "id": "S1",
+      "statement": "A result is prepared",
+      "produces": ["result"],
+      "inputs": [{ "need": "shared need", "from": null }],
+      "origin": "seed"
+    }
+  ],
+  "parallel_groups": [],
+  "unresolved": [
+    { "step": "S1", "need": "shared need", "reason": "residual-risk" }
+  ]
+}

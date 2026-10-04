@@ -1,0 +1,22 @@
+{
+  "goal": "Parallel groups are stale",
+  "initial_state": [],
+  "steps": [
+    {
+      "id": "S1",
+      "statement": "A prerequisite is ready",
+      "produces": ["prerequisite"],
+      "inputs": [],
+      "origin": "seed"
+    },
+    {
+      "id": "S2",
+      "statement": "A result is ready",
+      "produces": ["result"],
+      "inputs": [{"need": "prerequisite", "from": "S1"}],
+      "origin": "seed"
+    }
+  ],
+  "parallel_groups": [["S1", "S2"]],
+  "unresolved": []
+}

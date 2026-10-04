@@ -1,0 +1,25 @@
+{
+  "input": "structural/good/good-residual-risk-only.json",
+  "input_sha256": "9bc0b418a3dab59f14468b421f62aa57e9ebec7e965fc11a1d0b461f4632f6f2",
+  "lib_js_sha256": "a9b99125d06d6aa8ea49216de68f803b9dfde3f3335acf83f47d960869b7585a",
+  "ok": true,
+  "failures": [],
+  "completion": "incomplete",
+  "parallel_groups": [],
+  "packaged_sha256": "e717a0900ce213c88326af7f79b0f2500abc2c2c545d1e04b7e8b8ff426df3e2",
+  "unconfirmed_produces": [
+    {
+      "stepId": "S1",
+      "produces": "foundation ready"
+    },
+    {
+      "stepId": "S2",
+      "produces": "release staged"
+    }
+  ],
+  "raw": {
+    "ok": true,
+    "failures": [],
+    "completion": "incomplete"
+  }
+}

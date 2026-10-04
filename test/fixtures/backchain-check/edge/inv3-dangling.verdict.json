@@ -1,0 +1,43 @@
+{
+  "input": "edge/inv3-dangling.json",
+  "input_sha256": "e44676f751e958ac0ad611807c257e2bcf136eb306e37e19f9b985e50532a886",
+  "lib_js_sha256": "a9b99125d06d6aa8ea49216de68f803b9dfde3f3335acf83f47d960869b7585a",
+  "ok": false,
+  "failures": [
+    {
+      "invariant": 3,
+      "message": "Input supplier reference does not name an existing step",
+      "detail": {
+        "stepId": "S2",
+        "from": "S9"
+      }
+    }
+  ],
+  "completion": "invalid",
+  "parallel_groups": [],
+  "packaged_sha256": "a4095713400b4d6c3417cd0f3e01c38dfa05c68a465c8e6da6637ddd325c9018",
+  "unconfirmed_produces": [
+    {
+      "stepId": "S1",
+      "produces": "report is built"
+    },
+    {
+      "stepId": "S2",
+      "produces": "report is published"
+    }
+  ],
+  "raw": {
+    "ok": false,
+    "failures": [
+      {
+        "invariant": 3,
+        "message": "Input supplier reference does not name an existing step",
+        "detail": {
+          "stepId": "S2",
+          "from": "S9"
+        }
+      }
+    ],
+    "completion": "invalid"
+  }
+}

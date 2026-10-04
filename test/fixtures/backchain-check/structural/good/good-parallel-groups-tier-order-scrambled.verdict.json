@@ -1,0 +1,59 @@
+{
+  "input": "structural/good/good-parallel-groups-tier-order-scrambled.json",
+  "input_sha256": "4c7466a3b14ff7514cefa6ba32ea2f25f24840e4c93d16c5781918ec073506ae",
+  "lib_js_sha256": "a9b99125d06d6aa8ea49216de68f803b9dfde3f3335acf83f47d960869b7585a",
+  "ok": true,
+  "failures": [],
+  "completion": "complete",
+  "parallel_groups": [
+    [
+      "R1",
+      "R2",
+      "R3"
+    ],
+    [
+      "M1",
+      "M2"
+    ],
+    [
+      "T1",
+      "T2"
+    ]
+  ],
+  "packaged_sha256": "d22984d38b5b63b6cbbbb94d05f2d81d647adad83cf97cf17a9fc5b52ea7fcf6",
+  "unconfirmed_produces": [
+    {
+      "stepId": "R1",
+      "produces": "root one"
+    },
+    {
+      "stepId": "R2",
+      "produces": "root two"
+    },
+    {
+      "stepId": "R3",
+      "produces": "root three"
+    },
+    {
+      "stepId": "M1",
+      "produces": "middle one"
+    },
+    {
+      "stepId": "M2",
+      "produces": "middle two"
+    },
+    {
+      "stepId": "T1",
+      "produces": "top one"
+    },
+    {
+      "stepId": "T2",
+      "produces": "top two"
+    }
+  ],
+  "raw": {
+    "ok": true,
+    "failures": [],
+    "completion": "complete"
+  }
+}

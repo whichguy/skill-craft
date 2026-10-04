@@ -1,0 +1,33 @@
+{
+  "input": "structural/good/good-linear-chain-no-parallelism.json",
+  "input_sha256": "7c84a7f6442e96d1755e020921c3fc21de5c3dd71a3027029aa498d77e43a85e",
+  "lib_js_sha256": "a9b99125d06d6aa8ea49216de68f803b9dfde3f3335acf83f47d960869b7585a",
+  "ok": true,
+  "failures": [],
+  "completion": "complete",
+  "parallel_groups": [],
+  "packaged_sha256": "de30a6f58340c7caebe360fc8570de1330d571122d811ce41952bcf422c81992",
+  "unconfirmed_produces": [
+    {
+      "stepId": "S1",
+      "produces": "first prerequisite"
+    },
+    {
+      "stepId": "S2",
+      "produces": "second prerequisite"
+    },
+    {
+      "stepId": "S3",
+      "produces": "third prerequisite"
+    },
+    {
+      "stepId": "S4",
+      "produces": "final result"
+    }
+  ],
+  "raw": {
+    "ok": true,
+    "failures": [],
+    "completion": "complete"
+  }
+}

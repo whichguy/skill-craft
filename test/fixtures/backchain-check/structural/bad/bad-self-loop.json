@@ -1,0 +1,18 @@
+{
+  "goal": "A step must not depend on itself",
+  "initial_state": ["repository exists"],
+  "steps": [
+    {
+      "id": "S1",
+      "statement": "The foundation is ready",
+      "produces": ["foundation ready"],
+      "inputs": [
+        { "need": "repository exists", "from": null },
+        { "need": "foundation ready", "from": "S1" }
+      ],
+      "origin": "seed"
+    }
+  ],
+  "parallel_groups": [],
+  "unresolved": []
+}

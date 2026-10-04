@@ -1,0 +1,761 @@
+{
+  "goal": "Within one integrated W1 item, deliver the local Battleship application, reusable native test support, passing focused/full automated checks, and the specified human browser observation without npm dependencies or external state.",
+  "initial_state": [
+    "The original user request requires a single-player Battleship game served by a Node.js HTTP server with no npm dependencies, PORT or default 3000, a titled playable 10x10 page, GET /api/new, POST /api/fire, a separate server-used rules module, and built-in node:test tests under test/ runnable by node --test.",
+    "The maintained requirements and feature acceptance contract R-1 through R-10 and AC-01 through AC-10 are in docs/shiploop/spec.md and docs/shiploop/features/build-a-small-single-player-battleship-a55695/spec.md; user clauses and implementation defaults are distinguished there.",
+    "The accepted test strategy defines RULE-PLACE-01, RULE-STATE-02, RULE-DUPLICATE-03, API-PAGE-04, API-NEW-05, API-FIRE-06, API-NEGATIVE-07, API-CONCURRENCY-15, SYS-PORT-09, SYS-INFO-10, SYS-RESTART-11, SYS-SMOKE-12, SYS-BROWSER-PLAY-13 and SYS-BROWSER-RECOVERY-14, deterministic fixtures, test-support helper paths and required suite commands.",
+    "Focused test strategy commands use Node test reporter spec to print test titles; the user-required full suite remains exactly node --test. A host reporter probe and maintained-doc check passed for this worktree candidate.",
+    "The accepted W1 plan retains one integrated item. Its implementation files are server.js, rules.js and index.html; test files live under test/ and helpers under test-support/. No product package manifest, product tests or app source exists yet.",
+    "The initial node --test baseline exited 0 and discovered zero tests; this is missing coverage and not a pass. Current Node is v25.9.0 and no broader Node compatibility range is established.",
+    "No formatter, linter or type-checker configuration is present. Native Node syntax checks, the planned test suites, maintained-doc checks and git diff --check are the applicable local checks.",
+    "The browser interaction for AC-02 and AC-08 remains a required later human system-test observation; the available tool catalog exposes no browser-control capability.",
+    "The current isolated worktree is HEAD 7de198f093a15a1a4399194ad830a94d284b137e on shiploop/run-df26f2e84f51cf0d. Current status is M docs/shiploop/features/build-a-small-single-player-battleship-a55695/plan.md;  M docs/shiploop/test-strategy.md; ?? .shiploop-improve/. Only the scoped maintained plan/test-strategy edits and ShipLoop-owned runtime evidence are present; no unrelated product code needs preservation.",
+    "Port 3000 bind probe result: free. This is a current environment observation, not a reservation.",
+    "When the item adds or changes a public entry point, each such entry point checks its arguments and carries a contract docstring (Code craft 2-3); confirm by inspecting the diff for each entry point and running its rejection tests, and pass when every entry point has both.",
+    "The existing SHIPLOOP.md House style section records no application source or code conventions at baseline and says the first implementation should establish and document a small, deliberate style.",
+    "Parent step-plan packet lines 410-421 require reopening current repository README/AGENTS/skill guidance, recording fit/no-fit and entrypoint/default/product-contract/validation/revalidation details, and distinguishing pinned source-check fixtures from runtime controls.",
+    "The current isolated worktree inventory SRC-12 finds docs/shiploop/README.md as the only README and no root README.md, AGENTS.md, SKILL.md or .codex/skills directory; the project index links requirements, feature acceptance, test strategy, environment, research and this plan.",
+    "ShipLoop 1.16.1 testing-and-documentation.md#reusable-product-skills requires checking existing repository guidance and recording a no-skill decision when no cross-project reusable procedure fits.",
+    "Parent step-plan packet lines 423-442 and 477-487 require a scoped UI design basis with ambition, interactions, selected guidance identity/version, async/reduced-motion behavior, tradeoff and checks.",
+    "ShipLoop 1.16.1 behavioral-requirements.md#ui-specific-planning and #allocate-ui-decisions-to-their-planning-owner apply to the playable Battleship page and call for explicit interaction scope, alternatives, relative effort/benefit, compatibility and checks."
+  ],
+  "goal_needs": [
+    "AC-01 is satisfied: node server.js listens on 127.0.0.1:3000 with PORT unset, honors valid configured ports, rejects invalid PORT before listen with a clear error, and uses only Node built-ins with no npm dependencies.",
+    "AC-02 is satisfied: GET / returns an HTML document titled exactly Battleship, and a human browser observes a playable 10x10 grid where a player fires and sees the result.",
+    "AC-03 is satisfied: GET /api/new returns a fresh non-empty game ID with Cache-Control no-store, replaces the current game and makes the prior ID stale.",
+    "AC-04 is satisfied: fire responses distinguish miss, hit, sunk and final victory, duplicate shots replay idempotently, and a row-major sweep stops at victory within 100 unique shots.",
+    "AC-05 is satisfied: server.js uses a separate rules module that places valid random ships of lengths 5/4/3/3/2 and whose state transitions are covered by rule tests.",
+    "AC-06 is satisfied: root node --test discovers and passes a nonzero built-in node:test suite under test/ without an install step.",
+    "AC-07 is satisfied: invalid and terminal HTTP requests return the specified statuses and JSON shapes without mutation, including 1024/1025-byte limits and API-CONCURRENCY-15 races.",
+    "AC-08 is satisfied: human browser observation confirms pointer and arrow-key navigation with Enter/Space firing, restart, truthful status, safe timeout/retry handling and narrow-screen usability.",
+    "AC-09 is satisfied: responses and logs do not expose fleet or unhit ship locations or game IDs; replacement and restart discard old game state and no persistent/external state is introduced.",
+    "AC-10 is satisfied: server and tests verify loopback binding, the 1 KiB request bound and actual Node version without claiming support on unobserved versions."
+  ],
+  "steps": [
+    {
+      "id": "D3",
+      "statement": "The linked W1 plan records current repository-local skill/README fit and a source-backed UI/tooling decision before implementation.",
+      "produces": [
+        "The W1 linked plan records repository-local guidance fit: it reopened docs/shiploop/README.md and the hidden-inclusive README/AGENTS/skill inventory; records no local implementation skill fit and no new skill; distinguishes delivery/review tools from product-code guidance; names node server.js, the PORT source/default, product/rules contract, validation and browser locators, test-only source-check fixtures versus runtime controls, and a before-implementation/change-triggered revalidation condition.",
+        "The W1 UI design basis records the selected ShipLoop 1.16.1 guide, a polished chartroom board with direct pointer/touch and keyboard interactions and truthful async recovery, why inline editing/live preview are out of scope, reuse of native controls/fonts/colors versus adopting a UI framework with relative effort and user benefit, compatibility/accessibility checks, and reduced-motion behavior."
+      ],
+      "inputs": [
+        {
+          "need": "Parent step-plan packet lines 410-421 require reopening current repository README/AGENTS/skill guidance, recording fit/no-fit and entrypoint/default/product-contract/validation/revalidation details, and distinguishing pinned source-check fixtures from runtime controls.",
+          "from": null,
+          "artifact": "SRC-11 parent packet lines 410-421"
+        },
+        {
+          "need": "The current isolated worktree inventory SRC-12 finds docs/shiploop/README.md as the only README and no root README.md, AGENTS.md, SKILL.md or .codex/skills directory; the project index links requirements, feature acceptance, test strategy, environment, research and this plan.",
+          "from": null,
+          "artifact": "SRC-12 current repository guidance inventory"
+        },
+        {
+          "need": "ShipLoop 1.16.1 testing-and-documentation.md#reusable-product-skills requires checking existing repository guidance and recording a no-skill decision when no cross-project reusable procedure fits.",
+          "from": null,
+          "artifact": "SRC-14 ShipLoop 1.16.1 reusable product skill guidance"
+        },
+        {
+          "need": "Parent step-plan packet lines 423-442 and 477-487 require a scoped UI design basis with ambition, interactions, selected guidance identity/version, async/reduced-motion behavior, tradeoff and checks.",
+          "from": null,
+          "artifact": "SRC-11 parent packet lines 423-442 and 477-487"
+        },
+        {
+          "need": "ShipLoop 1.16.1 behavioral-requirements.md#ui-specific-planning and #allocate-ui-decisions-to-their-planning-owner apply to the playable Battleship page and call for explicit interaction scope, alternatives, relative effort/benefit, compatibility and checks.",
+          "from": null,
+          "artifact": "SRC-13 ShipLoop 1.16.1 behavioral requirements UI sections"
+        },
+        {
+          "need": "The maintained requirements and feature acceptance contract R-1 through R-10 and AC-01 through AC-10 are in docs/shiploop/spec.md and docs/shiploop/features/build-a-small-single-player-battleship-a55695/spec.md; user clauses and implementation defaults are distinguished there.",
+          "from": null,
+          "artifact": "SRC-1 / SRC-2 maintained product contracts"
+        },
+        {
+          "need": "The accepted test strategy defines RULE-PLACE-01, RULE-STATE-02, RULE-DUPLICATE-03, API-PAGE-04, API-NEW-05, API-FIRE-06, API-NEGATIVE-07, API-CONCURRENCY-15, SYS-PORT-09, SYS-INFO-10, SYS-RESTART-11, SYS-SMOKE-12, SYS-BROWSER-PLAY-13 and SYS-BROWSER-RECOVERY-14, deterministic fixtures, test-support helper paths and required suite commands.",
+          "from": null,
+          "artifact": "SRC-3 accepted test strategy"
+        }
+      ],
+      "origin": "discovered",
+      "confirm": [
+        {
+          "produces": "The W1 linked plan records repository-local guidance fit: it reopened docs/shiploop/README.md and the hidden-inclusive README/AGENTS/skill inventory; records no local implementation skill fit and no new skill; distinguishes delivery/review tools from product-code guidance; names node server.js, the PORT source/default, product/rules contract, validation and browser locators, test-only source-check fixtures versus runtime controls, and a before-implementation/change-triggered revalidation condition.",
+          "by": "Inspect the Repository guidance and design-basis revalidation section in docs/shiploop/features/build-a-small-single-player-battleship-a55695/plan.md against SRC-12 and the current product index, then run DOC-PLAN-GUIDANCE-19 from docs/shiploop/test-strategy.md; pass when README/AGENTS/skill findings, product entrypoint/config/defaults, contract/test/browser locators, fixture/runtime separation and explicit revalidation are all recorded and links resolve.",
+          "level": "execute"
+        },
+        {
+          "produces": "The W1 UI design basis records the selected ShipLoop 1.16.1 guide, a polished chartroom board with direct pointer/touch and keyboard interactions and truthful async recovery, why inline editing/live preview are out of scope, reuse of native controls/fonts/colors versus adopting a UI framework with relative effort and user benefit, compatibility/accessibility checks, and reduced-motion behavior.",
+          "by": "Inspect the UI and interaction decision in the linked W1 plan against SRC-13 and the accepted R-2/R-8 contract, then run DOC-PLAN-GUIDANCE-19; pass when the chosen polished interactions, scaled-back choices and user reason, native reuse/tooling alternative, relative effort/benefit, compatibility/accessibility checks and reduced-motion alternative are explicit.",
+          "level": "execute"
+        }
+      ]
+    },
+    {
+      "id": "S1",
+      "statement": "The native test-support fixtures and stable node:test suite files are present, isolated, and mapped to the accepted case matrix.",
+      "produces": [
+        "test-support/http-server.js starts local test servers on 127.0.0.1 with an OS-assigned port and registers awaited teardown; test-support/rules-fixture.js exports the documented seeded LCG and deterministic 17-cell createGame()/fire() adapter; test-support/browser-server.js is authored as the deterministic delayed-response browser fixture before implementation.",
+        "The four native test files under test/ carry the stable RULE, API, SYS and SUITE case coverage without helper JavaScript under test; RULE-PLACE-01, RULE-STATE-02, API-PAGE-04 and SYS-PORT-09 assert invalid arguments are rejected by every production Node entrypoint."
+      ],
+      "inputs": [
+        {
+          "need": "The accepted test strategy defines RULE-PLACE-01, RULE-STATE-02, RULE-DUPLICATE-03, API-PAGE-04, API-NEW-05, API-FIRE-06, API-NEGATIVE-07, API-CONCURRENCY-15, SYS-PORT-09, SYS-INFO-10, SYS-RESTART-11, SYS-SMOKE-12, SYS-BROWSER-PLAY-13 and SYS-BROWSER-RECOVERY-14, deterministic fixtures, test-support helper paths and required suite commands.",
+          "from": null
+        },
+        {
+          "need": "Focused test strategy commands use Node test reporter spec to print test titles; the user-required full suite remains exactly node --test. A host reporter probe and maintained-doc check passed for this worktree candidate.",
+          "from": null
+        },
+        {
+          "need": "The W1 linked plan records repository-local guidance fit: it reopened docs/shiploop/README.md and the hidden-inclusive README/AGENTS/skill inventory; records no local implementation skill fit and no new skill; distinguishes delivery/review tools from product-code guidance; names node server.js, the PORT source/default, product/rules contract, validation and browser locators, test-only source-check fixtures versus runtime controls, and a before-implementation/change-triggered revalidation condition.",
+          "from": "D3",
+          "artifact": "W1 plan repository guidance note"
+        }
+      ],
+      "origin": "seed",
+      "confirm": [
+        {
+          "produces": "test-support/http-server.js starts local test servers on 127.0.0.1 with an OS-assigned port and registers awaited teardown; test-support/rules-fixture.js exports the documented seeded LCG and deterministic 17-cell createGame()/fire() adapter; test-support/browser-server.js is authored as the deterministic delayed-response browser fixture before implementation.",
+          "by": "inspect the three test-support helpers, then run their consuming focused suites after implementation; pass when HTTP servers bind only to 127.0.0.1:0 and close in teardown, the seeded rules fixture matches the accepted fleet data, and the browser fixture source exposes only the documented opt-in delays",
+          "level": "execute"
+        },
+        {
+          "produces": "The four native test files under test/ carry the stable RULE, API, SYS and SUITE case coverage without helper JavaScript under test; RULE-PLACE-01, RULE-STATE-02, API-PAGE-04 and SYS-PORT-09 assert invalid arguments are rejected by every production Node entrypoint.",
+          "by": "inspect test/rules.test.js, test/http.test.js and test/server-startup.test.js and run their focused suites; pass when the four named cases cover invalid-argument rejection for createGame, fire, createServer and startServer, stable case IDs match the strategy, and helpers stay outside test/",
+          "level": "execute"
+        }
+      ]
+    },
+    {
+      "id": "S2",
+      "statement": "The separate production rules module owns placement, the shot ledger, duplicate replay, ship sinking and terminal victory state.",
+      "produces": [
+        "rules.js exports documented, argument-checked createGame({random}) and fire(game,row,col); it creates a random valid 5/4/3/3/2 fleet and owns shot results, duplicate replay, sinking and terminal victory."
+      ],
+      "inputs": [
+        {
+          "need": "The maintained requirements and feature acceptance contract R-1 through R-10 and AC-01 through AC-10 are in docs/shiploop/spec.md and docs/shiploop/features/build-a-small-single-player-battleship-a55695/spec.md; user clauses and implementation defaults are distinguished there.",
+          "from": null
+        },
+        {
+          "need": "When the item adds or changes a public entry point, each such entry point checks its arguments and carries a contract docstring (Code craft 2-3); confirm by inspecting the diff for each entry point and running its rejection tests, and pass when every entry point has both.",
+          "from": null,
+          "artifact": "SRC-11 parent ShipLoop step-plan packet"
+        },
+        {
+          "need": "The W1 linked plan records repository-local guidance fit: it reopened docs/shiploop/README.md and the hidden-inclusive README/AGENTS/skill inventory; records no local implementation skill fit and no new skill; distinguishes delivery/review tools from product-code guidance; names node server.js, the PORT source/default, product/rules contract, validation and browser locators, test-only source-check fixtures versus runtime controls, and a before-implementation/change-triggered revalidation condition.",
+          "from": "D3",
+          "artifact": "W1 plan entrypoint/default decision"
+        }
+      ],
+      "origin": "seed",
+      "confirm": [
+        {
+          "produces": "rules.js exports documented, argument-checked createGame({random}) and fire(game,row,col); it creates a random valid 5/4/3/3/2 fleet and owns shot results, duplicate replay, sinking and terminal victory.",
+          "by": "run node --test --test-reporter=spec test/rules.test.js and inspect rules.js exports/diff; pass when RULE-PLACE-01 and RULE-STATE-02 establish valid seeded layouts, documented rejection of invalid createGame/fire arguments without mutation, miss/hit/sunk/victory and read-only duplicate replay, and each export has an accurate contract docstring",
+          "level": "execute"
+        }
+      ]
+    },
+    {
+      "id": "S3",
+      "statement": "The browser page implements the accepted accessible, responsive and recoverable single-player 10x10 interaction over the documented same-origin API.",
+      "produces": [
+        "index.html renders the exact Battleship title and 100 labeled cell buttons in the accepted chartroom hierarchy, with the coordinate-framed board dominant and title/status/action scannable; native semantic colors and system fonts; cell targets at least 44 CSS pixels square with narrow layouts scrolling rather than compressing them; pointer/touch and roving arrow-key focus with Enter/Space firing; visible focus, distinct shot marks and polite textual status; and honest loading, pending, timeout/retry, stale-ID, terminal and victory states that ignore late superseded replies and honor reduced motion."
+      ],
+      "inputs": [
+        {
+          "need": "The maintained requirements and feature acceptance contract R-1 through R-10 and AC-01 through AC-10 are in docs/shiploop/spec.md and docs/shiploop/features/build-a-small-single-player-battleship-a55695/spec.md; user clauses and implementation defaults are distinguished there.",
+          "from": null
+        },
+        {
+          "need": "The W1 linked plan records repository-local guidance fit: it reopened docs/shiploop/README.md and the hidden-inclusive README/AGENTS/skill inventory; records no local implementation skill fit and no new skill; distinguishes delivery/review tools from product-code guidance; names node server.js, the PORT source/default, product/rules contract, validation and browser locators, test-only source-check fixtures versus runtime controls, and a before-implementation/change-triggered revalidation condition.",
+          "from": "D3",
+          "artifact": "W1 plan repository guidance note"
+        },
+        {
+          "need": "The W1 UI design basis records the selected ShipLoop 1.16.1 guide, a polished chartroom board with direct pointer/touch and keyboard interactions and truthful async recovery, why inline editing/live preview are out of scope, reuse of native controls/fonts/colors versus adopting a UI framework with relative effort and user benefit, compatibility/accessibility checks, and reduced-motion behavior.",
+          "from": "D3",
+          "artifact": "W1 plan UI design basis"
+        }
+      ],
+      "origin": "seed",
+      "confirm": [
+        {
+          "produces": "index.html renders the exact Battleship title and 100 labeled cell buttons in the accepted chartroom hierarchy, with the coordinate-framed board dominant and title/status/action scannable; native semantic colors and system fonts; cell targets at least 44 CSS pixels square with narrow layouts scrolling rather than compressing them; pointer/touch and roving arrow-key focus with Enter/Space firing; visible focus, distinct shot marks and polite textual status; and honest loading, pending, timeout/retry, stale-ID, terminal and victory states that ignore late superseded replies and honor reduced motion.",
+          "by": "human opens the exact served candidate in a browser and records SYS-BROWSER-PLAY-13 and SYS-BROWSER-RECOVERY-14; pass when 100 labeled cells work by pointer/touch and arrow keys plus Enter/Space, targets remain at least 44 CSS pixels square at narrow widths, statuses/retries are truthful, and reduced-motion behavior is observed",
+          "level": "unconfirmable"
+        }
+      ]
+    },
+    {
+      "id": "S4",
+      "statement": "The built-in HTTP server starts on the configured loopback port and serves the page/API while delegating game-state changes to rules.js.",
+      "produces": [
+        "server.js exports documented, argument-checked createServer({rules}) and no-argument startServer(), imports only built-ins/relative rules.js, serves index.html and the specified JSON routes, validates PORT and fire bodies before mutation, and binds production startup to loopback."
+      ],
+      "inputs": [
+        {
+          "need": "rules.js exports documented, argument-checked createGame({random}) and fire(game,row,col); it creates a random valid 5/4/3/3/2 fleet and owns shot results, duplicate replay, sinking and terminal victory.",
+          "from": "S2",
+          "artifact": "rules.js"
+        },
+        {
+          "need": "index.html renders the exact Battleship title and 100 labeled cell buttons in the accepted chartroom hierarchy, with the coordinate-framed board dominant and title/status/action scannable; native semantic colors and system fonts; cell targets at least 44 CSS pixels square with narrow layouts scrolling rather than compressing them; pointer/touch and roving arrow-key focus with Enter/Space firing; visible focus, distinct shot marks and polite textual status; and honest loading, pending, timeout/retry, stale-ID, terminal and victory states that ignore late superseded replies and honor reduced motion.",
+          "from": "S3",
+          "artifact": "index.html"
+        },
+        {
+          "need": "The maintained requirements and feature acceptance contract R-1 through R-10 and AC-01 through AC-10 are in docs/shiploop/spec.md and docs/shiploop/features/build-a-small-single-player-battleship-a55695/spec.md; user clauses and implementation defaults are distinguished there.",
+          "from": null
+        },
+        {
+          "need": "The initial node --test baseline exited 0 and discovered zero tests; this is missing coverage and not a pass. Current Node is v25.9.0 and no broader Node compatibility range is established.",
+          "from": null,
+          "artifact": "Node v25.9.0 executable"
+        },
+        {
+          "need": "Port 3000 bind probe result: free. This is a current environment observation, not a reservation.",
+          "from": null,
+          "artifact": "127.0.0.1:3000 bind probe"
+        },
+        {
+          "need": "When the item adds or changes a public entry point, each such entry point checks its arguments and carries a contract docstring (Code craft 2-3); confirm by inspecting the diff for each entry point and running its rejection tests, and pass when every entry point has both.",
+          "from": null,
+          "artifact": "SRC-11 parent ShipLoop step-plan packet"
+        },
+        {
+          "need": "The W1 linked plan records repository-local guidance fit: it reopened docs/shiploop/README.md and the hidden-inclusive README/AGENTS/skill inventory; records no local implementation skill fit and no new skill; distinguishes delivery/review tools from product-code guidance; names node server.js, the PORT source/default, product/rules contract, validation and browser locators, test-only source-check fixtures versus runtime controls, and a before-implementation/change-triggered revalidation condition.",
+          "from": "D3",
+          "artifact": "W1 plan entrypoint/default decision"
+        }
+      ],
+      "origin": "seed",
+      "confirm": [
+        {
+          "produces": "server.js exports documented, argument-checked createServer({rules}) and no-argument startServer(), imports only built-ins/relative rules.js, serves index.html and the specified JSON routes, validates PORT and fire bodies before mutation, and binds production startup to loopback.",
+          "by": "run node --test --test-reporter=spec test/http.test.js and node --test --test-reporter=spec test/server-startup.test.js; inspect server.js exports, guards and diff; pass when API-PAGE-04 and SYS-PORT-09 reject invalid createServer/startServer arguments before listener creation, HTTP schemas/statuses/body bounds/no-mutation races and PORT/loopback behavior pass, and each export has an accurate contract docstring",
+          "level": "execute"
+        }
+      ]
+    },
+    {
+      "id": "S5",
+      "statement": "The deterministic manual-browser fixture serves the actual page/API contract and controlled late replies for recovery inspection.",
+      "produces": [
+        "A fixture run confirms test-support/browser-server.js serves the actual page/API and delays only the configured first post-mutation GET /api/new or POST /api/fire response for 15000 ms."
+      ],
+      "inputs": [
+        {
+          "need": "test-support/http-server.js starts local test servers on 127.0.0.1 with an OS-assigned port and registers awaited teardown; test-support/rules-fixture.js exports the documented seeded LCG and deterministic 17-cell createGame()/fire() adapter; test-support/browser-server.js is authored as the deterministic delayed-response browser fixture before implementation.",
+          "from": "S1",
+          "artifact": "test-support/http-server.js and test-support/rules-fixture.js"
+        },
+        {
+          "need": "server.js exports documented, argument-checked createServer({rules}) and no-argument startServer(), imports only built-ins/relative rules.js, serves index.html and the specified JSON routes, validates PORT and fire bodies before mutation, and binds production startup to loopback.",
+          "from": "S4",
+          "artifact": "server.js"
+        },
+        {
+          "need": "index.html renders the exact Battleship title and 100 labeled cell buttons in the accepted chartroom hierarchy, with the coordinate-framed board dominant and title/status/action scannable; native semantic colors and system fonts; cell targets at least 44 CSS pixels square with narrow layouts scrolling rather than compressing them; pointer/touch and roving arrow-key focus with Enter/Space firing; visible focus, distinct shot marks and polite textual status; and honest loading, pending, timeout/retry, stale-ID, terminal and victory states that ignore late superseded replies and honor reduced motion.",
+          "from": "S3",
+          "artifact": "index.html"
+        },
+        {
+          "need": "The initial node --test baseline exited 0 and discovered zero tests; this is missing coverage and not a pass. Current Node is v25.9.0 and no broader Node compatibility range is established.",
+          "from": null,
+          "artifact": "Node v25.9.0 executable"
+        }
+      ],
+      "origin": "seed",
+      "confirm": [
+        {
+          "produces": "A fixture run confirms test-support/browser-server.js serves the actual page/API and delays only the configured first post-mutation GET /api/new or POST /api/fire response for 15000 ms.",
+          "by": "inspect and exercise test-support/browser-server.js with one configured delay; pass when it serves the actual GET / page and API and delays only the first post-mutation new-game/fire response for 15000 ms, with subsequent requests normal",
+          "level": "execute"
+        }
+      ]
+    },
+    {
+      "id": "D2",
+      "statement": "The repository knowledge index records the deliberate code and test conventions established by W1, with concrete examples from the completed candidate.",
+      "produces": [
+        "SHIPLOOP.md House style records concise, deliberate first-implementation conventions for CommonJS and Node built-ins, the native self-contained page, documented argument-checked production exports, and node:test naming/fixtures/cleanup; it preserves the no-prior-code-style baseline, cites exact W1 source/test path:line examples, and records that no formatter, linter or type checker is configured."
+      ],
+      "inputs": [
+        {
+          "need": "The existing SHIPLOOP.md House style section records no application source or code conventions at baseline and says the first implementation should establish and document a small, deliberate style.",
+          "from": null,
+          "artifact": "SRC-7 SHIPLOOP.md baseline House style section"
+        },
+        {
+          "need": "The four native test files under test/ carry the stable RULE, API, SYS and SUITE case coverage without helper JavaScript under test; RULE-PLACE-01, RULE-STATE-02, API-PAGE-04 and SYS-PORT-09 assert invalid arguments are rejected by every production Node entrypoint.",
+          "from": "S1",
+          "artifact": "test and support source files"
+        },
+        {
+          "need": "rules.js exports documented, argument-checked createGame({random}) and fire(game,row,col); it creates a random valid 5/4/3/3/2 fleet and owns shot results, duplicate replay, sinking and terminal victory.",
+          "from": "S2",
+          "artifact": "rules.js"
+        },
+        {
+          "need": "index.html renders the exact Battleship title and 100 labeled cell buttons in the accepted chartroom hierarchy, with the coordinate-framed board dominant and title/status/action scannable; native semantic colors and system fonts; cell targets at least 44 CSS pixels square with narrow layouts scrolling rather than compressing them; pointer/touch and roving arrow-key focus with Enter/Space firing; visible focus, distinct shot marks and polite textual status; and honest loading, pending, timeout/retry, stale-ID, terminal and victory states that ignore late superseded replies and honor reduced motion.",
+          "from": "S3",
+          "artifact": "index.html"
+        },
+        {
+          "need": "server.js exports documented, argument-checked createServer({rules}) and no-argument startServer(), imports only built-ins/relative rules.js, serves index.html and the specified JSON routes, validates PORT and fire bodies before mutation, and binds production startup to loopback.",
+          "from": "S4",
+          "artifact": "server.js"
+        },
+        {
+          "need": "The W1 linked plan records repository-local guidance fit: it reopened docs/shiploop/README.md and the hidden-inclusive README/AGENTS/skill inventory; records no local implementation skill fit and no new skill; distinguishes delivery/review tools from product-code guidance; names node server.js, the PORT source/default, product/rules contract, validation and browser locators, test-only source-check fixtures versus runtime controls, and a before-implementation/change-triggered revalidation condition.",
+          "from": "D3",
+          "artifact": "W1 plan no-prior-skill/style evidence"
+        }
+      ],
+      "origin": "discovered",
+      "confirm": [
+        {
+          "by": "inspect the SHIPLOOP.md House style section against its cited W1 source/test lines and run `python3 -c 'from pathlib import Path; import re; text=Path(\"SHIPLOOP.md\").read_text(); paths=(\"server.js\", \"rules.js\", \"index.html\", \"test/rules.test.js\", \"test/http.test.js\", \"test/server-startup.test.js\"); citations=[(m.group(1), int(m.group(2))) for m in re.finditer(r\"`([^`:]+):(\\d+)`\", text)]; missing=[path for path in paths if not any(p==path for p,n in citations)]; bad=[f\"{p}:{n}\" for p,n in citations if not Path(p).exists() or n>len(Path(p).read_text().splitlines())]; terms=(\"## House style\", \"CommonJS\", \"node:test\", \"first implementation\", \"baseline\", \"no observed JavaScript conventions\", \"no formatter, linter or type checker is configured\"); missing += [term for term in terms if term not in text]; assert not missing and not bad, (missing,bad); print(\"House style section and source citations present\")'`; pass when the first implementation is identified as a new deliberate convention, the no-prior-style baseline and absence of configured format/lint/type tools are preserved, every cited path:line resolves, and the command exits 0",
+          "level": "execute",
+          "produces": "SHIPLOOP.md House style records concise, deliberate first-implementation conventions for CommonJS and Node built-ins, the native self-contained page, documented argument-checked production exports, and node:test naming/fixtures/cleanup; it preserves the no-prior-code-style baseline, cites exact W1 source/test path:line examples, and records that no formatter, linter or type checker is configured."
+        }
+      ]
+    },
+    {
+      "id": "S6",
+      "statement": "The assembled W1 candidate has exact-candidate local rule, HTTP, startup/privacy/restart, production-smoke and full-suite verification evidence.",
+      "produces": [
+        "A retained candidate-specific verification note records Node version, exact worktree candidate SHA, all four named focused suite outputs, bare node --test output, the SHIPLOOP.md House style and DOC-PLAN-GUIDANCE-19 content-check outputs, nonzero test count, zero failures, source/import inspection, and the outstanding browser observation as pending."
+      ],
+      "inputs": [
+        {
+          "need": "test-support/http-server.js starts local test servers on 127.0.0.1 with an OS-assigned port and registers awaited teardown; test-support/rules-fixture.js exports the documented seeded LCG and deterministic 17-cell createGame()/fire() adapter; test-support/browser-server.js is authored as the deterministic delayed-response browser fixture before implementation.",
+          "from": "S1",
+          "artifact": "test-support/http-server.js and test-support/rules-fixture.js"
+        },
+        {
+          "need": "The four native test files under test/ carry the stable RULE, API, SYS and SUITE case coverage without helper JavaScript under test; RULE-PLACE-01, RULE-STATE-02, API-PAGE-04 and SYS-PORT-09 assert invalid arguments are rejected by every production Node entrypoint.",
+          "from": "S1",
+          "artifact": "test"
+        },
+        {
+          "need": "rules.js exports documented, argument-checked createGame({random}) and fire(game,row,col); it creates a random valid 5/4/3/3/2 fleet and owns shot results, duplicate replay, sinking and terminal victory.",
+          "from": "S2",
+          "artifact": "rules.js"
+        },
+        {
+          "need": "index.html renders the exact Battleship title and 100 labeled cell buttons in the accepted chartroom hierarchy, with the coordinate-framed board dominant and title/status/action scannable; native semantic colors and system fonts; cell targets at least 44 CSS pixels square with narrow layouts scrolling rather than compressing them; pointer/touch and roving arrow-key focus with Enter/Space firing; visible focus, distinct shot marks and polite textual status; and honest loading, pending, timeout/retry, stale-ID, terminal and victory states that ignore late superseded replies and honor reduced motion.",
+          "from": "S3",
+          "artifact": "index.html"
+        },
+        {
+          "need": "server.js exports documented, argument-checked createServer({rules}) and no-argument startServer(), imports only built-ins/relative rules.js, serves index.html and the specified JSON routes, validates PORT and fire bodies before mutation, and binds production startup to loopback.",
+          "from": "S4",
+          "artifact": "server.js"
+        },
+        {
+          "need": "A fixture run confirms test-support/browser-server.js serves the actual page/API and delays only the configured first post-mutation GET /api/new or POST /api/fire response for 15000 ms.",
+          "from": "S5",
+          "artifact": "test-support/browser-server.js exercise result"
+        },
+        {
+          "need": "The initial node --test baseline exited 0 and discovered zero tests; this is missing coverage and not a pass. Current Node is v25.9.0 and no broader Node compatibility range is established.",
+          "from": null,
+          "artifact": "Node v25.9.0 executable"
+        },
+        {
+          "need": "Port 3000 bind probe result: free. This is a current environment observation, not a reservation.",
+          "from": null,
+          "artifact": "127.0.0.1:3000 bind probe"
+        },
+        {
+          "need": "SHIPLOOP.md House style records concise, deliberate first-implementation conventions for CommonJS and Node built-ins, the native self-contained page, documented argument-checked production exports, and node:test naming/fixtures/cleanup; it preserves the no-prior-code-style baseline, cites exact W1 source/test path:line examples, and records that no formatter, linter or type checker is configured.",
+          "from": "D2",
+          "artifact": "SHIPLOOP.md House style update and content-check result"
+        },
+        {
+          "need": "The W1 linked plan records repository-local guidance fit: it reopened docs/shiploop/README.md and the hidden-inclusive README/AGENTS/skill inventory; records no local implementation skill fit and no new skill; distinguishes delivery/review tools from product-code guidance; names node server.js, the PORT source/default, product/rules contract, validation and browser locators, test-only source-check fixtures versus runtime controls, and a before-implementation/change-triggered revalidation condition.",
+          "from": "D3",
+          "artifact": "W1 plan DOC-PLAN-GUIDANCE-19 evidence"
+        },
+        {
+          "need": "The W1 UI design basis records the selected ShipLoop 1.16.1 guide, a polished chartroom board with direct pointer/touch and keyboard interactions and truthful async recovery, why inline editing/live preview are out of scope, reuse of native controls/fonts/colors versus adopting a UI framework with relative effort and user benefit, compatibility/accessibility checks, and reduced-motion behavior.",
+          "from": "D3",
+          "artifact": "W1 plan UI tradeoff and browser evidence"
+        }
+      ],
+      "origin": "seed",
+      "confirm": [
+        {
+          "produces": "A retained candidate-specific verification note records Node version, exact worktree candidate SHA, all four named focused suite outputs, bare node --test output, the SHIPLOOP.md House style and DOC-PLAN-GUIDANCE-19 content-check outputs, nonzero test count, zero failures, source/import inspection, and the outstanding browser observation as pending.",
+          "by": "run node --version; the four named focused spec-reporter suites; bare node --test; node --check server.js; node --check rules.js; the DOC-HOUSE-STYLE-18 and DOC-PLAN-GUIDANCE-19 Python content checks; and git diff --check; pass when at least 14 tests are discovered with zero failures, focused output names cases, the style citations check succeeds, and the retained note binds evidence to the candidate SHA",
+          "level": "execute"
+        }
+      ]
+    },
+    {
+      "id": "S7",
+      "statement": "The required human browser observations are recorded against the assembled exact W1 candidate by a human observer.",
+      "produces": [
+        "A human browser system-test record for SYS-BROWSER-PLAY-13 and SYS-BROWSER-RECOVERY-14 identifies the exact candidate SHA, browser/version, viewport and route and records the Battleship title, 100-cell board, pointer/touch, arrow-key focus with Enter/Space firing, 44 CSS pixel cell targets, narrow-board scrolling, visible focus, miss/hit/sunk/victory text status, restart, reduced motion, pending-action suppression, 10-second timeout/retry, stale-ID/terminal recovery and delayed-response outcomes."
+      ],
+      "inputs": [
+        {
+          "need": "index.html renders the exact Battleship title and 100 labeled cell buttons in the accepted chartroom hierarchy, with the coordinate-framed board dominant and title/status/action scannable; native semantic colors and system fonts; cell targets at least 44 CSS pixels square with narrow layouts scrolling rather than compressing them; pointer/touch and roving arrow-key focus with Enter/Space firing; visible focus, distinct shot marks and polite textual status; and honest loading, pending, timeout/retry, stale-ID, terminal and victory states that ignore late superseded replies and honor reduced motion.",
+          "from": "S3",
+          "artifact": "index.html"
+        },
+        {
+          "need": "A fixture run confirms test-support/browser-server.js serves the actual page/API and delays only the configured first post-mutation GET /api/new or POST /api/fire response for 15000 ms.",
+          "from": "S5",
+          "artifact": "test-support/browser-server.js exercise result"
+        },
+        {
+          "need": "A retained candidate-specific verification note records Node version, exact worktree candidate SHA, all four named focused suite outputs, bare node --test output, the SHIPLOOP.md House style and DOC-PLAN-GUIDANCE-19 content-check outputs, nonzero test count, zero failures, source/import inspection, and the outstanding browser observation as pending.",
+          "from": "S6",
+          "artifact": "run verification note"
+        }
+      ],
+      "origin": "seed",
+      "confirm": [
+        {
+          "produces": "A human browser system-test record for SYS-BROWSER-PLAY-13 and SYS-BROWSER-RECOVERY-14 identifies the exact candidate SHA, browser/version, viewport and route and records the Battleship title, 100-cell board, pointer/touch, arrow-key focus with Enter/Space firing, 44 CSS pixel cell targets, narrow-board scrolling, visible focus, miss/hit/sunk/victory text status, restart, reduced motion, pending-action suppression, 10-second timeout/retry, stale-ID/terminal recovery and delayed-response outcomes.",
+          "by": "human system-test observer records candidate SHA, browser/version, viewport, route and expected/observed outcomes for both named browser cases; pass when all keyboard/pointer/recovery behavior is observed, 44 CSS pixel targets remain usable at narrow widths, and failures are recorded",
+          "level": "unconfirmable"
+        }
+      ]
+    },
+    {
+      "id": "S8",
+      "statement": "The AC-01 outcome is independently confirmed against the exact assembled W1 candidate.",
+      "produces": [
+        "AC-01 is satisfied: node server.js listens on 127.0.0.1:3000 with PORT unset, honors valid configured ports, rejects invalid PORT before listen with a clear error, and uses only Node built-ins with no npm dependencies."
+      ],
+      "inputs": [
+        {
+          "need": "server.js exports documented, argument-checked createServer({rules}) and no-argument startServer(), imports only built-ins/relative rules.js, serves index.html and the specified JSON routes, validates PORT and fire bodies before mutation, and binds production startup to loopback.",
+          "from": "S4",
+          "artifact": "server.js"
+        },
+        {
+          "need": "A retained candidate-specific verification note records Node version, exact worktree candidate SHA, all four named focused suite outputs, bare node --test output, the SHIPLOOP.md House style and DOC-PLAN-GUIDANCE-19 content-check outputs, nonzero test count, zero failures, source/import inspection, and the outstanding browser observation as pending.",
+          "from": "S6",
+          "artifact": "startup and source checks"
+        }
+      ],
+      "origin": "seed",
+      "confirm": [
+        {
+          "produces": "AC-01 is satisfied: node server.js listens on 127.0.0.1:3000 with PORT unset, honors valid configured ports, rejects invalid PORT before listen with a clear error, and uses only Node built-ins with no npm dependencies.",
+          "by": "run node --test --test-reporter=spec test/server-startup.test.js and inspect server.js imports; pass when default 3000, a valid configured port, invalid-before-listen cases, loopback binding and absence of npm dependencies are confirmed",
+          "level": "execute"
+        }
+      ]
+    },
+    {
+      "id": "S9",
+      "statement": "The AC-02 outcome is independently confirmed against the exact assembled W1 candidate.",
+      "produces": [
+        "AC-02 is satisfied: GET / returns an HTML document titled exactly Battleship, and a human browser observes a playable 10x10 grid where a player fires and sees the result."
+      ],
+      "inputs": [
+        {
+          "need": "server.js exports documented, argument-checked createServer({rules}) and no-argument startServer(), imports only built-ins/relative rules.js, serves index.html and the specified JSON routes, validates PORT and fire bodies before mutation, and binds production startup to loopback.",
+          "from": "S4",
+          "artifact": "server.js"
+        },
+        {
+          "need": "index.html renders the exact Battleship title and 100 labeled cell buttons in the accepted chartroom hierarchy, with the coordinate-framed board dominant and title/status/action scannable; native semantic colors and system fonts; cell targets at least 44 CSS pixels square with narrow layouts scrolling rather than compressing them; pointer/touch and roving arrow-key focus with Enter/Space firing; visible focus, distinct shot marks and polite textual status; and honest loading, pending, timeout/retry, stale-ID, terminal and victory states that ignore late superseded replies and honor reduced motion.",
+          "from": "S3",
+          "artifact": "index.html"
+        },
+        {
+          "need": "A human browser system-test record for SYS-BROWSER-PLAY-13 and SYS-BROWSER-RECOVERY-14 identifies the exact candidate SHA, browser/version, viewport and route and records the Battleship title, 100-cell board, pointer/touch, arrow-key focus with Enter/Space firing, 44 CSS pixel cell targets, narrow-board scrolling, visible focus, miss/hit/sunk/victory text status, restart, reduced motion, pending-action suppression, 10-second timeout/retry, stale-ID/terminal recovery and delayed-response outcomes.",
+          "from": "S7",
+          "artifact": "browser report"
+        }
+      ],
+      "origin": "seed",
+      "confirm": [
+        {
+          "produces": "AC-02 is satisfied: GET / returns an HTML document titled exactly Battleship, and a human browser observes a playable 10x10 grid where a player fires and sees the result.",
+          "by": "run node --test --test-reporter=spec test/http.test.js and node --test --test-reporter=spec test/smoke.test.js, then record the human browser observation; pass when exact page title and served contract pass and the browser report shows a usable playable 10x10 board",
+          "level": "unconfirmable"
+        }
+      ]
+    },
+    {
+      "id": "S10",
+      "statement": "The AC-03 outcome is independently confirmed against the exact assembled W1 candidate.",
+      "produces": [
+        "AC-03 is satisfied: GET /api/new returns a fresh non-empty game ID with Cache-Control no-store, replaces the current game and makes the prior ID stale."
+      ],
+      "inputs": [
+        {
+          "need": "server.js exports documented, argument-checked createServer({rules}) and no-argument startServer(), imports only built-ins/relative rules.js, serves index.html and the specified JSON routes, validates PORT and fire bodies before mutation, and binds production startup to loopback.",
+          "from": "S4",
+          "artifact": "server.js"
+        },
+        {
+          "need": "A retained candidate-specific verification note records Node version, exact worktree candidate SHA, all four named focused suite outputs, bare node --test output, the SHIPLOOP.md House style and DOC-PLAN-GUIDANCE-19 content-check outputs, nonzero test count, zero failures, source/import inspection, and the outstanding browser observation as pending.",
+          "from": "S6",
+          "artifact": "HTTP verification"
+        }
+      ],
+      "origin": "seed",
+      "confirm": [
+        {
+          "produces": "AC-03 is satisfied: GET /api/new returns a fresh non-empty game ID with Cache-Control no-store, replaces the current game and makes the prior ID stale.",
+          "by": "run node --test --test-reporter=spec test/http.test.js; pass when two uncached IDs differ, the second is current, no-store is present and old-ID fire cannot mutate the current game",
+          "level": "execute"
+        }
+      ]
+    },
+    {
+      "id": "S11",
+      "statement": "The AC-04 outcome is independently confirmed against the exact assembled W1 candidate.",
+      "produces": [
+        "AC-04 is satisfied: fire responses distinguish miss, hit, sunk and final victory, duplicate shots replay idempotently, and a row-major sweep stops at victory within 100 unique shots."
+      ],
+      "inputs": [
+        {
+          "need": "rules.js exports documented, argument-checked createGame({random}) and fire(game,row,col); it creates a random valid 5/4/3/3/2 fleet and owns shot results, duplicate replay, sinking and terminal victory.",
+          "from": "S2",
+          "artifact": "rules.js"
+        },
+        {
+          "need": "A retained candidate-specific verification note records Node version, exact worktree candidate SHA, all four named focused suite outputs, bare node --test output, the SHIPLOOP.md House style and DOC-PLAN-GUIDANCE-19 content-check outputs, nonzero test count, zero failures, source/import inspection, and the outstanding browser observation as pending.",
+          "from": "S6",
+          "artifact": "rules and smoke results"
+        }
+      ],
+      "origin": "seed",
+      "confirm": [
+        {
+          "produces": "AC-04 is satisfied: fire responses distinguish miss, hit, sunk and final victory, duplicate shots replay idempotently, and a row-major sweep stops at victory within 100 unique shots.",
+          "by": "run node --test --test-reporter=spec test/rules.test.js and node --test --test-reporter=spec test/smoke.test.js; pass when all result transitions, duplicate replay and row-major terminal victory within 100 unique cells pass",
+          "level": "execute"
+        }
+      ]
+    },
+    {
+      "id": "S12",
+      "statement": "The AC-05 outcome is independently confirmed against the exact assembled W1 candidate.",
+      "produces": [
+        "AC-05 is satisfied: server.js uses a separate rules module that places valid random ships of lengths 5/4/3/3/2 and whose state transitions are covered by rule tests."
+      ],
+      "inputs": [
+        {
+          "need": "rules.js exports documented, argument-checked createGame({random}) and fire(game,row,col); it creates a random valid 5/4/3/3/2 fleet and owns shot results, duplicate replay, sinking and terminal victory.",
+          "from": "S2",
+          "artifact": "rules.js"
+        },
+        {
+          "need": "server.js exports documented, argument-checked createServer({rules}) and no-argument startServer(), imports only built-ins/relative rules.js, serves index.html and the specified JSON routes, validates PORT and fire bodies before mutation, and binds production startup to loopback.",
+          "from": "S4",
+          "artifact": "server.js"
+        },
+        {
+          "need": "A retained candidate-specific verification note records Node version, exact worktree candidate SHA, all four named focused suite outputs, bare node --test output, the SHIPLOOP.md House style and DOC-PLAN-GUIDANCE-19 content-check outputs, nonzero test count, zero failures, source/import inspection, and the outstanding browser observation as pending.",
+          "from": "S6",
+          "artifact": "rules/API verification"
+        }
+      ],
+      "origin": "seed",
+      "confirm": [
+        {
+          "produces": "AC-05 is satisfied: server.js uses a separate rules module that places valid random ships of lengths 5/4/3/3/2 and whose state transitions are covered by rule tests.",
+          "by": "run node --test --test-reporter=spec test/rules.test.js and node --test --test-reporter=spec test/http.test.js, then inspect server.js; pass when the server delegates to the separate rules module and valid fleet/state tests pass",
+          "level": "execute"
+        }
+      ]
+    },
+    {
+      "id": "S13",
+      "statement": "The AC-06 outcome is independently confirmed against the exact assembled W1 candidate.",
+      "produces": [
+        "AC-06 is satisfied: root node --test discovers and passes a nonzero built-in node:test suite under test/ without an install step."
+      ],
+      "inputs": [
+        {
+          "need": "The four native test files under test/ carry the stable RULE, API, SYS and SUITE case coverage without helper JavaScript under test; RULE-PLACE-01, RULE-STATE-02, API-PAGE-04 and SYS-PORT-09 assert invalid arguments are rejected by every production Node entrypoint.",
+          "from": "S1",
+          "artifact": "test"
+        },
+        {
+          "need": "A retained candidate-specific verification note records Node version, exact worktree candidate SHA, all four named focused suite outputs, bare node --test output, the SHIPLOOP.md House style and DOC-PLAN-GUIDANCE-19 content-check outputs, nonzero test count, zero failures, source/import inspection, and the outstanding browser observation as pending.",
+          "from": "S6",
+          "artifact": "full-suite result"
+        }
+      ],
+      "origin": "seed",
+      "confirm": [
+        {
+          "produces": "AC-06 is satisfied: root node --test discovers and passes a nonzero built-in node:test suite under test/ without an install step.",
+          "by": "run bare node --test; pass when it discovers at least 14 tests under test/ and reports zero failures without an install step",
+          "level": "execute"
+        }
+      ]
+    },
+    {
+      "id": "S14",
+      "statement": "The AC-07 outcome is independently confirmed against the exact assembled W1 candidate.",
+      "produces": [
+        "AC-07 is satisfied: invalid and terminal HTTP requests return the specified statuses and JSON shapes without mutation, including 1024/1025-byte limits and API-CONCURRENCY-15 races."
+      ],
+      "inputs": [
+        {
+          "need": "server.js exports documented, argument-checked createServer({rules}) and no-argument startServer(), imports only built-ins/relative rules.js, serves index.html and the specified JSON routes, validates PORT and fire bodies before mutation, and binds production startup to loopback.",
+          "from": "S4",
+          "artifact": "server.js"
+        },
+        {
+          "need": "A retained candidate-specific verification note records Node version, exact worktree candidate SHA, all four named focused suite outputs, bare node --test output, the SHIPLOOP.md House style and DOC-PLAN-GUIDANCE-19 content-check outputs, nonzero test count, zero failures, source/import inspection, and the outstanding browser observation as pending.",
+          "from": "S6",
+          "artifact": "negative/concurrency results"
+        }
+      ],
+      "origin": "seed",
+      "confirm": [
+        {
+          "produces": "AC-07 is satisfied: invalid and terminal HTTP requests return the specified statuses and JSON shapes without mutation, including 1024/1025-byte limits and API-CONCURRENCY-15 races.",
+          "by": "run node --test --test-reporter=spec test/http.test.js; pass when malformed/invalid/stale/post-win/oversized/wrong-method/unknown-route/race outcomes match the required status/body and rejected requests leave state unchanged",
+          "level": "execute"
+        }
+      ]
+    },
+    {
+      "id": "S15",
+      "statement": "The AC-08 outcome is independently confirmed against the exact assembled W1 candidate.",
+      "produces": [
+        "AC-08 is satisfied: human browser observation confirms pointer and arrow-key navigation with Enter/Space firing, restart, truthful status, safe timeout/retry handling and narrow-screen usability."
+      ],
+      "inputs": [
+        {
+          "need": "index.html renders the exact Battleship title and 100 labeled cell buttons in the accepted chartroom hierarchy, with the coordinate-framed board dominant and title/status/action scannable; native semantic colors and system fonts; cell targets at least 44 CSS pixels square with narrow layouts scrolling rather than compressing them; pointer/touch and roving arrow-key focus with Enter/Space firing; visible focus, distinct shot marks and polite textual status; and honest loading, pending, timeout/retry, stale-ID, terminal and victory states that ignore late superseded replies and honor reduced motion.",
+          "from": "S3",
+          "artifact": "index.html"
+        },
+        {
+          "need": "A human browser system-test record for SYS-BROWSER-PLAY-13 and SYS-BROWSER-RECOVERY-14 identifies the exact candidate SHA, browser/version, viewport and route and records the Battleship title, 100-cell board, pointer/touch, arrow-key focus with Enter/Space firing, 44 CSS pixel cell targets, narrow-board scrolling, visible focus, miss/hit/sunk/victory text status, restart, reduced motion, pending-action suppression, 10-second timeout/retry, stale-ID/terminal recovery and delayed-response outcomes.",
+          "from": "S7",
+          "artifact": "browser report"
+        }
+      ],
+      "origin": "seed",
+      "confirm": [
+        {
+          "produces": "AC-08 is satisfied: human browser observation confirms pointer and arrow-key navigation with Enter/Space firing, restart, truthful status, safe timeout/retry handling and narrow-screen usability.",
+          "by": "human performs SYS-BROWSER-PLAY-13 and SYS-BROWSER-RECOVERY-14 against the exact candidate and records browser/version/viewport/actions; pass when keyboard/pointer, truthful feedback, restart, timeout/retry, stale/terminal and narrow-screen behavior are observed",
+          "level": "unconfirmable"
+        }
+      ]
+    },
+    {
+      "id": "S16",
+      "statement": "The AC-09 outcome is independently confirmed against the exact assembled W1 candidate.",
+      "produces": [
+        "AC-09 is satisfied: responses and logs do not expose fleet or unhit ship locations or game IDs; replacement and restart discard old game state and no persistent/external state is introduced."
+      ],
+      "inputs": [
+        {
+          "need": "server.js exports documented, argument-checked createServer({rules}) and no-argument startServer(), imports only built-ins/relative rules.js, serves index.html and the specified JSON routes, validates PORT and fire bodies before mutation, and binds production startup to loopback.",
+          "from": "S4",
+          "artifact": "server.js"
+        },
+        {
+          "need": "A retained candidate-specific verification note records Node version, exact worktree candidate SHA, all four named focused suite outputs, bare node --test output, the SHIPLOOP.md House style and DOC-PLAN-GUIDANCE-19 content-check outputs, nonzero test count, zero failures, source/import inspection, and the outstanding browser observation as pending.",
+          "from": "S6",
+          "artifact": "privacy/restart results"
+        }
+      ],
+      "origin": "seed",
+      "confirm": [
+        {
+          "produces": "AC-09 is satisfied: responses and logs do not expose fleet or unhit ship locations or game IDs; replacement and restart discard old game state and no persistent/external state is introduced.",
+          "by": "run node --test --test-reporter=spec test/http.test.js and node --test --test-reporter=spec test/server-startup.test.js and inspect captured logs/source; pass when responses/logs omit fleet, unhit cells and game IDs, replacement/restart discard prior game, and no persistence/external state is present",
+          "level": "execute"
+        }
+      ]
+    },
+    {
+      "id": "S17",
+      "statement": "The AC-10 outcome is independently confirmed against the exact assembled W1 candidate.",
+      "produces": [
+        "AC-10 is satisfied: server and tests verify loopback binding, the 1 KiB request bound and actual Node version without claiming support on unobserved versions."
+      ],
+      "inputs": [
+        {
+          "need": "server.js exports documented, argument-checked createServer({rules}) and no-argument startServer(), imports only built-ins/relative rules.js, serves index.html and the specified JSON routes, validates PORT and fire bodies before mutation, and binds production startup to loopback.",
+          "from": "S4",
+          "artifact": "server.js"
+        },
+        {
+          "need": "A retained candidate-specific verification note records Node version, exact worktree candidate SHA, all four named focused suite outputs, bare node --test output, the SHIPLOOP.md House style and DOC-PLAN-GUIDANCE-19 content-check outputs, nonzero test count, zero failures, source/import inspection, and the outstanding browser observation as pending.",
+          "from": "S6",
+          "artifact": "startup/API bounds"
+        }
+      ],
+      "origin": "seed",
+      "confirm": [
+        {
+          "produces": "AC-10 is satisfied: server and tests verify loopback binding, the 1 KiB request bound and actual Node version without claiming support on unobserved versions.",
+          "by": "run node --test --test-reporter=spec test/server-startup.test.js and node --test --test-reporter=spec test/http.test.js and record node --version; pass when loopback, 1024/1025 boundary and actual runtime are verified without a broader compatibility claim",
+          "level": "execute"
+        }
+      ]
+    },
+    {
+      "id": "D1",
+      "statement": "The production Node entrypoint contract required by the parent step-plan packet is independently confirmed against the assembled W1 candidate.",
+      "produces": [
+        "The exported production Node entrypoint contract is independently confirmed on the assembled W1 candidate: createGame({random}), fire(game,row,col), createServer({rules}), and startServer() each reject invalid arguments before mutation or listening as applicable, and each carries a concise accurate contract docstring."
+      ],
+      "inputs": [
+        {
+          "need": "When the item adds or changes a public entry point, each such entry point checks its arguments and carries a contract docstring (Code craft 2-3); confirm by inspecting the diff for each entry point and running its rejection tests, and pass when every entry point has both.",
+          "from": null,
+          "artifact": "SRC-11 parent ShipLoop step-plan packet"
+        },
+        {
+          "need": "The four native test files under test/ carry the stable RULE, API, SYS and SUITE case coverage without helper JavaScript under test; RULE-PLACE-01, RULE-STATE-02, API-PAGE-04 and SYS-PORT-09 assert invalid arguments are rejected by every production Node entrypoint.",
+          "from": "S1",
+          "artifact": "test/rules.test.js, test/http.test.js, test/server-startup.test.js"
+        },
+        {
+          "need": "rules.js exports documented, argument-checked createGame({random}) and fire(game,row,col); it creates a random valid 5/4/3/3/2 fleet and owns shot results, duplicate replay, sinking and terminal victory.",
+          "from": "S2",
+          "artifact": "rules.js"
+        },
+        {
+          "need": "server.js exports documented, argument-checked createServer({rules}) and no-argument startServer(), imports only built-ins/relative rules.js, serves index.html and the specified JSON routes, validates PORT and fire bodies before mutation, and binds production startup to loopback.",
+          "from": "S4",
+          "artifact": "server.js"
+        },
+        {
+          "need": "A retained candidate-specific verification note records Node version, exact worktree candidate SHA, all four named focused suite outputs, bare node --test output, the SHIPLOOP.md House style and DOC-PLAN-GUIDANCE-19 content-check outputs, nonzero test count, zero failures, source/import inspection, and the outstanding browser observation as pending.",
+          "from": "S6",
+          "artifact": "candidate verification note"
+        }
+      ],
+      "origin": "discovered",
+      "confirm": [
+        {
+          "by": "run node --test --test-reporter=spec test/rules.test.js, node --test --test-reporter=spec test/http.test.js and node --test --test-reporter=spec test/server-startup.test.js; inspect the source diff for all production exports; pass when the tests reject invalid arguments to createGame, fire, createServer and startServer before state mutation/listening as applicable, and each export has an accurate concise contract docstring",
+          "level": "execute",
+          "produces": "The exported production Node entrypoint contract is independently confirmed on the assembled W1 candidate: createGame({random}), fire(game,row,col), createServer({rules}), and startServer() each reject invalid arguments before mutation or listening as applicable, and each carries a concise accurate contract docstring."
+        }
+      ]
+    }
+  ],
+  "parallel_groups": [],
+  "unresolved": [
+    {
+      "step": "S7",
+      "need": "A human system-test observer must record real rendered AC-02/AC-08 behavior after the assembled W1 candidate is available.",
+      "reason": "residual-risk"
+    }
+  ]
+}

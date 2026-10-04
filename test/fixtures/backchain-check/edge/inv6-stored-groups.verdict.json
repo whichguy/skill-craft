@@ -1,0 +1,48 @@
+{
+  "input": "edge/inv6-stored-groups.json",
+  "input_sha256": "74ffc87f62c212d741ba1c2774ca5461b53b049a12e3988cec6d84daaa396730",
+  "lib_js_sha256": "a9b99125d06d6aa8ea49216de68f803b9dfde3f3335acf83f47d960869b7585a",
+  "ok": true,
+  "failures": [],
+  "completion": "complete",
+  "parallel_groups": [
+    [
+      "S1",
+      "S2"
+    ]
+  ],
+  "packaged_sha256": "e423a483c213830461eef89ffafd07b5cec8e0c3e07207acedacf9fd7423a5ae",
+  "unconfirmed_produces": [
+    {
+      "stepId": "S1",
+      "produces": "report is built"
+    },
+    {
+      "stepId": "S2",
+      "produces": "chart is built"
+    },
+    {
+      "stepId": "S3",
+      "produces": "report is published"
+    }
+  ],
+  "raw": {
+    "ok": false,
+    "failures": [
+      {
+        "invariant": 6,
+        "message": "Stored parallel_groups does not match recomputed longest-path depth groups",
+        "detail": {
+          "expected": [
+            [
+              "S1",
+              "S2"
+            ]
+          ],
+          "actual": []
+        }
+      }
+    ],
+    "completion": "invalid"
+  }
+}

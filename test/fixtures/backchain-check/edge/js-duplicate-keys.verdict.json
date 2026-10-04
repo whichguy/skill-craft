@@ -1,0 +1,43 @@
+{
+  "input": "edge/js-duplicate-keys.json",
+  "input_sha256": "7673bef8e3d51f019229597bb693e2a8624a923d71970da803aff5ba297ee55a",
+  "lib_js_sha256": "a9b99125d06d6aa8ea49216de68f803b9dfde3f3335acf83f47d960869b7585a",
+  "ok": false,
+  "failures": [
+    {
+      "invariant": 3,
+      "message": "Input supplier reference does not name an existing step",
+      "detail": {
+        "stepId": "S2",
+        "from": "S1"
+      }
+    }
+  ],
+  "completion": "invalid",
+  "parallel_groups": [],
+  "packaged_sha256": "9cd973e7e28f95cf07b9250ed3b1e93cb0baa77d7ebae108750eb5970b30d3da",
+  "unconfirmed_produces": [
+    {
+      "stepId": "S0",
+      "produces": "report is built"
+    },
+    {
+      "stepId": "S2",
+      "produces": "report is published"
+    }
+  ],
+  "raw": {
+    "ok": false,
+    "failures": [
+      {
+        "invariant": 3,
+        "message": "Input supplier reference does not name an existing step",
+        "detail": {
+          "stepId": "S2",
+          "from": "S1"
+        }
+      }
+    ],
+    "completion": "invalid"
+  }
+}

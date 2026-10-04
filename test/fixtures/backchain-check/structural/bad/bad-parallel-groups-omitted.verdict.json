@@ -1,0 +1,48 @@
+{
+  "input": "structural/bad/bad-parallel-groups-omitted.json",
+  "input_sha256": "ff804ead687c234b83a17425ec81190eb82405026f208d5c02d03474c7416e5f",
+  "lib_js_sha256": "a9b99125d06d6aa8ea49216de68f803b9dfde3f3335acf83f47d960869b7585a",
+  "ok": true,
+  "failures": [],
+  "completion": "complete",
+  "parallel_groups": [
+    [
+      "S1",
+      "S2"
+    ]
+  ],
+  "packaged_sha256": "4112a475a5c4ad7992cc8330e662ed45d78152f4fae7ad47e9944a950ea265a0",
+  "unconfirmed_produces": [
+    {
+      "stepId": "S1",
+      "produces": "left ready"
+    },
+    {
+      "stepId": "S2",
+      "produces": "right ready"
+    },
+    {
+      "stepId": "S3",
+      "produces": "merge ready"
+    }
+  ],
+  "raw": {
+    "ok": false,
+    "failures": [
+      {
+        "invariant": 6,
+        "message": "Stored parallel_groups does not match recomputed longest-path depth groups",
+        "detail": {
+          "expected": [
+            [
+              "S1",
+              "S2"
+            ]
+          ],
+          "actual": []
+        }
+      }
+    ],
+    "completion": "invalid"
+  }
+}

@@ -1,0 +1,35 @@
+{
+  "input": "structural/bad/bad-duplicate-step-id.json",
+  "input_sha256": "355e33a800afe88c5e630546a29ceb3872d45f1bb8d4d6f9cd33a64ddd8578cf",
+  "lib_js_sha256": "a9b99125d06d6aa8ea49216de68f803b9dfde3f3335acf83f47d960869b7585a",
+  "ok": false,
+  "failures": [
+    {
+      "invariant": 1,
+      "message": "steps[1].id duplicates step ID S1"
+    }
+  ],
+  "completion": "invalid",
+  "parallel_groups": [],
+  "packaged_sha256": "ec292b99a62ce1bc69c756bcaa2979291c71d6a5128363f27a82699ee65a20a3",
+  "unconfirmed_produces": [
+    {
+      "stepId": "S1",
+      "produces": "first state"
+    },
+    {
+      "stepId": "S1",
+      "produces": "second state"
+    }
+  ],
+  "raw": {
+    "ok": false,
+    "failures": [
+      {
+        "invariant": 1,
+        "message": "steps[1].id duplicates step ID S1"
+      }
+    ],
+    "completion": "invalid"
+  }
+}

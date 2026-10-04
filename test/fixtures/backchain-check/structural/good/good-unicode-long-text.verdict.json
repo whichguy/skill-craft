@@ -1,0 +1,21 @@
+{
+  "input": "structural/good/good-unicode-long-text.json",
+  "input_sha256": "080abc6507ad603449fa6d3f17fbdab6beaf29b6297832c07b3097bc56733e25",
+  "lib_js_sha256": "a9b99125d06d6aa8ea49216de68f803b9dfde3f3335acf83f47d960869b7585a",
+  "ok": true,
+  "failures": [],
+  "completion": "complete",
+  "parallel_groups": [],
+  "packaged_sha256": "4f8033ed428837a0cae89ab4014760713c4d282ffcc5d88c751d9c3b63a45312",
+  "unconfirmed_produces": [
+    {
+      "stepId": "S1",
+      "produces": "multilingual release record"
+    }
+  ],
+  "raw": {
+    "ok": true,
+    "failures": [],
+    "completion": "complete"
+  }
+}

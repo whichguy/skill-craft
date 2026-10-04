@@ -1,0 +1,46 @@
+{
+  "input": "structural/bad/bad-discovered-in-parallel-group-not-consumed.json",
+  "input_sha256": "a5a8774ae9932b6fb37e85afc12f4b9bada3cd42c49538fe72a572233f2ebe67",
+  "lib_js_sha256": "a9b99125d06d6aa8ea49216de68f803b9dfde3f3335acf83f47d960869b7585a",
+  "ok": false,
+  "failures": [
+    {
+      "invariant": 4,
+      "message": "Discovered step is neither consumed by another step nor satisfies a declared goal_needs entry",
+      "detail": {
+        "stepId": "D"
+      }
+    }
+  ],
+  "completion": "invalid",
+  "parallel_groups": [
+    [
+      "S1",
+      "D"
+    ]
+  ],
+  "packaged_sha256": "7b0411f14ec54b6e1f08fb3a1b28a87ffab73934f18cf0c7166c81e4b9862ddb",
+  "unconfirmed_produces": [
+    {
+      "stepId": "S1",
+      "produces": "seed work"
+    },
+    {
+      "stepId": "D",
+      "produces": "discovered work"
+    }
+  ],
+  "raw": {
+    "ok": false,
+    "failures": [
+      {
+        "invariant": 4,
+        "message": "Discovered step is neither consumed by another step nor satisfies a declared goal_needs entry",
+        "detail": {
+          "stepId": "D"
+        }
+      }
+    ],
+    "completion": "invalid"
+  }
+}

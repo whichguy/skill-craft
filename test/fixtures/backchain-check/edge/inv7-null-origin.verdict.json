@@ -1,0 +1,43 @@
+{
+  "input": "edge/inv7-null-origin.json",
+  "input_sha256": "0ccf164466bf1b8877b19e5473437eaab5a9a31f24e5178b804b997c06e9b0ca",
+  "lib_js_sha256": "a9b99125d06d6aa8ea49216de68f803b9dfde3f3335acf83f47d960869b7585a",
+  "ok": false,
+  "failures": [
+    {
+      "invariant": 7,
+      "message": "Null-origin need is not declared in initial_state",
+      "detail": {
+        "stepId": "S1",
+        "need": "source data exists"
+      }
+    }
+  ],
+  "completion": "invalid",
+  "parallel_groups": [],
+  "packaged_sha256": "9e5cb3caf270e3e47c76998727be68b40d291a136333b2d6f42e143828a58039",
+  "unconfirmed_produces": [
+    {
+      "stepId": "S1",
+      "produces": "report is built"
+    },
+    {
+      "stepId": "S2",
+      "produces": "report is published"
+    }
+  ],
+  "raw": {
+    "ok": false,
+    "failures": [
+      {
+        "invariant": 7,
+        "message": "Null-origin need is not declared in initial_state",
+        "detail": {
+          "stepId": "S1",
+          "need": "source data exists"
+        }
+      }
+    ],
+    "completion": "invalid"
+  }
+}

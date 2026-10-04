@@ -1,0 +1,25 @@
+{
+  "input": "structural/good/good-dual-unresolved-reasons.json",
+  "input_sha256": "4cc01543f63c4e1b6653ca067198d974e46a5427775c055691c50faa59c5c3e0",
+  "lib_js_sha256": "a9b99125d06d6aa8ea49216de68f803b9dfde3f3335acf83f47d960869b7585a",
+  "ok": true,
+  "failures": [],
+  "completion": "incomplete",
+  "parallel_groups": [],
+  "packaged_sha256": "689c6170d1f0c360fb6285ca3396664a68dae2c49dd0d00efe3177c0e067606c",
+  "unconfirmed_produces": [
+    {
+      "stepId": "A",
+      "produces": "dependent state"
+    },
+    {
+      "stepId": "B",
+      "produces": "supplier state"
+    }
+  ],
+  "raw": {
+    "ok": true,
+    "failures": [],
+    "completion": "incomplete"
+  }
+}

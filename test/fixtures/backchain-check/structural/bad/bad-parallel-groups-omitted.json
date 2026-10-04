@@ -1,0 +1,32 @@
+{
+  "goal": "Stored parallel_groups must include real multi-member depth groups",
+  "initial_state": ["repository exists"],
+  "steps": [
+    {
+      "id": "S1",
+      "statement": "Left is ready",
+      "produces": ["left ready"],
+      "inputs": [{ "need": "repository exists", "from": null }],
+      "origin": "seed"
+    },
+    {
+      "id": "S2",
+      "statement": "Right is ready",
+      "produces": ["right ready"],
+      "inputs": [{ "need": "repository exists", "from": null }],
+      "origin": "seed"
+    },
+    {
+      "id": "S3",
+      "statement": "Merge is ready",
+      "produces": ["merge ready"],
+      "inputs": [
+        { "need": "left ready", "from": "S1" },
+        { "need": "right ready", "from": "S2" }
+      ],
+      "origin": "seed"
+    }
+  ],
+  "parallel_groups": [],
+  "unresolved": []
+}

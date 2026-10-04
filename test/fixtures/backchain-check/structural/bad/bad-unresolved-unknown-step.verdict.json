@@ -1,0 +1,37 @@
+{
+  "input": "structural/bad/bad-unresolved-unknown-step.json",
+  "input_sha256": "3ceb682cdcbb5eb90fa91f47323ccdf79fe78c997685ac22918d1f3d780282c2",
+  "lib_js_sha256": "a9b99125d06d6aa8ea49216de68f803b9dfde3f3335acf83f47d960869b7585a",
+  "ok": false,
+  "failures": [
+    {
+      "invariant": 6,
+      "message": "unresolved entry references a nonexistent step",
+      "detail": {
+        "stepId": "S99"
+      }
+    }
+  ],
+  "completion": "invalid",
+  "parallel_groups": [],
+  "packaged_sha256": "8494d773f133585d31489a1f19cf4d3cd9dd69d574d8ebd98bb47d2167cfd3a9",
+  "unconfirmed_produces": [
+    {
+      "stepId": "S1",
+      "produces": "foundation ready"
+    }
+  ],
+  "raw": {
+    "ok": false,
+    "failures": [
+      {
+        "invariant": 6,
+        "message": "unresolved entry references a nonexistent step",
+        "detail": {
+          "stepId": "S99"
+        }
+      }
+    ],
+    "completion": "invalid"
+  }
+}

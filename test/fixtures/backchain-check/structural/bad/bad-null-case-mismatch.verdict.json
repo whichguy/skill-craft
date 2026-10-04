@@ -1,0 +1,39 @@
+{
+  "input": "structural/bad/bad-null-case-mismatch.json",
+  "input_sha256": "f9f5aab6e4117d7fdcf784d0e3bae3e6663d3eb373a388d530d331d9f53e35d4",
+  "lib_js_sha256": "a9b99125d06d6aa8ea49216de68f803b9dfde3f3335acf83f47d960869b7585a",
+  "ok": false,
+  "failures": [
+    {
+      "invariant": 7,
+      "message": "Null-origin need is not declared in initial_state",
+      "detail": {
+        "stepId": "S1",
+        "need": "workspace exists"
+      }
+    }
+  ],
+  "completion": "invalid",
+  "parallel_groups": [],
+  "packaged_sha256": "06c5a1f647cca3dfb669e043f732f58369644c9483cdbdf43386d31c3303443f",
+  "unconfirmed_produces": [
+    {
+      "stepId": "S1",
+      "produces": "agreed brief"
+    }
+  ],
+  "raw": {
+    "ok": false,
+    "failures": [
+      {
+        "invariant": 7,
+        "message": "Null-origin need is not declared in initial_state",
+        "detail": {
+          "stepId": "S1",
+          "need": "workspace exists"
+        }
+      }
+    ],
+    "completion": "invalid"
+  }
+}

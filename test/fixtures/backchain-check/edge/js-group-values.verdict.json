@@ -1,0 +1,69 @@
+{
+  "input": "edge/js-group-values.json",
+  "input_sha256": "116ab4662dcb8197532c003a21f133c3de31f62db8d0d191881fbc09a935beea",
+  "lib_js_sha256": "a9b99125d06d6aa8ea49216de68f803b9dfde3f3335acf83f47d960869b7585a",
+  "ok": true,
+  "failures": [],
+  "completion": "complete",
+  "parallel_groups": [
+    [
+      "S1",
+      "true",
+      "A,B",
+      "1e-7"
+    ]
+  ],
+  "packaged_sha256": "8dd36ffc62de58214f7ebea13aae37f90e28c259be65a70536b1d1e40e799049",
+  "unconfirmed_produces": [
+    {
+      "stepId": "S1",
+      "produces": "a done"
+    },
+    {
+      "stepId": "true",
+      "produces": "b done"
+    },
+    {
+      "stepId": "A,B",
+      "produces": "c done"
+    },
+    {
+      "stepId": "1e-7",
+      "produces": "d done"
+    }
+  ],
+  "raw": {
+    "ok": false,
+    "failures": [
+      {
+        "invariant": 1,
+        "message": "parallel_groups[0] must be an array of strings"
+      },
+      {
+        "invariant": 6,
+        "message": "parallel_groups references a nonexistent step",
+        "detail": {
+          "stepId": true
+        }
+      },
+      {
+        "invariant": 6,
+        "message": "parallel_groups references a nonexistent step",
+        "detail": {
+          "stepId": [
+            "A",
+            "B"
+          ]
+        }
+      },
+      {
+        "invariant": 6,
+        "message": "parallel_groups references a nonexistent step",
+        "detail": {
+          "stepId": 1e-7
+        }
+      }
+    ],
+    "completion": "invalid"
+  }
+}

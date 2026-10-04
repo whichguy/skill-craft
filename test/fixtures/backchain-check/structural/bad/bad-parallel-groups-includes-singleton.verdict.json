@@ -1,0 +1,56 @@
+{
+  "input": "structural/bad/bad-parallel-groups-includes-singleton.json",
+  "input_sha256": "bdc0500b9ee96b522aaddcb809a87f97b3179c1c6a3258ecbd768ec7380518a1",
+  "lib_js_sha256": "a9b99125d06d6aa8ea49216de68f803b9dfde3f3335acf83f47d960869b7585a",
+  "ok": true,
+  "failures": [],
+  "completion": "complete",
+  "parallel_groups": [
+    [
+      "S2",
+      "S3"
+    ]
+  ],
+  "packaged_sha256": "40fa6b078d56f1dcd5cf31f1e14f7a023cc5d7f4753a6052e4d34aa7f879be67",
+  "unconfirmed_produces": [
+    {
+      "stepId": "S1",
+      "produces": "shared base"
+    },
+    {
+      "stepId": "S2",
+      "produces": "left branch"
+    },
+    {
+      "stepId": "S3",
+      "produces": "right branch"
+    }
+  ],
+  "raw": {
+    "ok": false,
+    "failures": [
+      {
+        "invariant": 6,
+        "message": "Stored parallel_groups does not match recomputed longest-path depth groups",
+        "detail": {
+          "expected": [
+            [
+              "S2",
+              "S3"
+            ]
+          ],
+          "actual": [
+            [
+              "S1"
+            ],
+            [
+              "S2",
+              "S3"
+            ]
+          ]
+        }
+      }
+    ],
+    "completion": "invalid"
+  }
+}

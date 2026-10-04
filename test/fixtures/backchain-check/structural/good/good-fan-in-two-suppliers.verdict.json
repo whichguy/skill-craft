@@ -1,0 +1,34 @@
+{
+  "input": "structural/good/good-fan-in-two-suppliers.json",
+  "input_sha256": "4d95501e613262caf31c520ba75f485baff00e4ed0d15fdd9840595cc92caa05",
+  "lib_js_sha256": "a9b99125d06d6aa8ea49216de68f803b9dfde3f3335acf83f47d960869b7585a",
+  "ok": true,
+  "failures": [],
+  "completion": "complete",
+  "parallel_groups": [
+    [
+      "S1",
+      "S2"
+    ]
+  ],
+  "packaged_sha256": "3f6b33f83d5fdd8f4dc6fa4c235a62d5ad32acc30e65b99f73a73c46a488e33f",
+  "unconfirmed_produces": [
+    {
+      "stepId": "S1",
+      "produces": "left artifact ready"
+    },
+    {
+      "stepId": "S2",
+      "produces": "right artifact ready"
+    },
+    {
+      "stepId": "S3",
+      "produces": "merged result ready"
+    }
+  ],
+  "raw": {
+    "ok": true,
+    "failures": [],
+    "completion": "complete"
+  }
+}

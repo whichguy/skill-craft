@@ -1,0 +1,29 @@
+{
+  "goal": "Singleton depth tiers must not appear in stored parallel_groups",
+  "initial_state": [],
+  "steps": [
+    {
+      "id": "S1",
+      "statement": "The shared base is ready",
+      "produces": ["shared base"],
+      "inputs": [],
+      "origin": "seed"
+    },
+    {
+      "id": "S2",
+      "statement": "Left branch is ready",
+      "produces": ["left branch"],
+      "inputs": [{"need": "shared base", "from": "S1"}],
+      "origin": "seed"
+    },
+    {
+      "id": "S3",
+      "statement": "Right branch is ready",
+      "produces": ["right branch"],
+      "inputs": [{"need": "shared base", "from": "S1"}],
+      "origin": "seed"
+    }
+  ],
+  "parallel_groups": [["S1"], ["S2", "S3"]],
+  "unresolved": []
+}

@@ -1,0 +1,29 @@
+{
+  "goal": "Two independent consumers are ready after a shared foundation",
+  "initial_state": ["repository exists"],
+  "steps": [
+    {
+      "id": "S1",
+      "statement": "The shared foundation is established",
+      "produces": ["shared foundation ready"],
+      "inputs": [{ "need": "repository exists", "from": null }],
+      "origin": "seed"
+    },
+    {
+      "id": "S2",
+      "statement": "The left consumer is ready",
+      "produces": ["left consumer ready"],
+      "inputs": [{ "need": "shared foundation ready", "from": "S1" }],
+      "origin": "seed"
+    },
+    {
+      "id": "S3",
+      "statement": "The right consumer is ready",
+      "produces": ["right consumer ready"],
+      "inputs": [{ "need": "shared foundation ready", "from": "S1" }],
+      "origin": "seed"
+    }
+  ],
+  "parallel_groups": [["S2", "S3"]],
+  "unresolved": []
+}

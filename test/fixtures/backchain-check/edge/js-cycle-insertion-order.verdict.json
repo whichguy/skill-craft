@@ -1,0 +1,71 @@
+{
+  "input": "edge/js-cycle-insertion-order.json",
+  "input_sha256": "477dc75f8970bdb0192ec9ceaed92e8ba99c019057a633bcdde1d265e0b2480b",
+  "lib_js_sha256": "a9b99125d06d6aa8ea49216de68f803b9dfde3f3335acf83f47d960869b7585a",
+  "ok": false,
+  "failures": [
+    {
+      "invariant": 2,
+      "message": "Committed dependency graph contains a cycle",
+      "detail": {
+        "cycle": [
+          "X",
+          "Z",
+          "X"
+        ]
+      }
+    }
+  ],
+  "completion": "invalid",
+  "parallel_groups": [
+    [
+      "Y",
+      "Z"
+    ]
+  ],
+  "packaged_sha256": "674a74082b7cd87b34c78300f631783e68c663c91a42220e38520b506fee0ee1",
+  "unconfirmed_produces": [
+    {
+      "stepId": "X",
+      "produces": "x done"
+    },
+    {
+      "stepId": "Y",
+      "produces": "y done"
+    },
+    {
+      "stepId": "Z",
+      "produces": "z done"
+    }
+  ],
+  "raw": {
+    "ok": false,
+    "failures": [
+      {
+        "invariant": 2,
+        "message": "Committed dependency graph contains a cycle",
+        "detail": {
+          "cycle": [
+            "X",
+            "Z",
+            "X"
+          ]
+        }
+      },
+      {
+        "invariant": 6,
+        "message": "Stored parallel_groups does not match recomputed longest-path depth groups",
+        "detail": {
+          "expected": [
+            [
+              "Y",
+              "Z"
+            ]
+          ],
+          "actual": []
+        }
+      }
+    ],
+    "completion": "invalid"
+  }
+}

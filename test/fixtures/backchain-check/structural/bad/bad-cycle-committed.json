@@ -1,0 +1,22 @@
+{
+  "goal": "A cycle is present",
+  "initial_state": [],
+  "steps": [
+    {
+      "id": "S1",
+      "statement": "State one holds",
+      "produces": ["state one"],
+      "inputs": [{"need": "state two", "from": "S2"}],
+      "origin": "seed"
+    },
+    {
+      "id": "S2",
+      "statement": "State two holds",
+      "produces": ["state two"],
+      "inputs": [{"need": "state one", "from": "S1"}],
+      "origin": "seed"
+    }
+  ],
+  "parallel_groups": [],
+  "unresolved": []
+}

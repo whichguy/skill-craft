@@ -1,0 +1,48 @@
+{
+  "input": "edge/inv4-goal-need.json",
+  "input_sha256": "f2b0307e22d300cce736233ab4f0d1a6eb59a57645547a321f29b5710ca71c5b",
+  "lib_js_sha256": "a9b99125d06d6aa8ea49216de68f803b9dfde3f3335acf83f47d960869b7585a",
+  "ok": true,
+  "failures": [],
+  "completion": "complete",
+  "parallel_groups": [
+    [
+      "S2",
+      "D1"
+    ]
+  ],
+  "packaged_sha256": "e97a1efa9186f9f3429e013bf876ddcdc6bafe9b3809419e452dc689023dda70",
+  "unconfirmed_produces": [
+    {
+      "stepId": "S1",
+      "produces": "report is built"
+    },
+    {
+      "stepId": "S2",
+      "produces": "report is published"
+    },
+    {
+      "stepId": "D1",
+      "produces": "  audit\tlog  is written "
+    }
+  ],
+  "raw": {
+    "ok": false,
+    "failures": [
+      {
+        "invariant": 6,
+        "message": "Stored parallel_groups does not match recomputed longest-path depth groups",
+        "detail": {
+          "expected": [
+            [
+              "S2",
+              "D1"
+            ]
+          ],
+          "actual": []
+        }
+      }
+    ],
+    "completion": "invalid"
+  }
+}

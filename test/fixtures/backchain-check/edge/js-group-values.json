@@ -1,0 +1,12 @@
+{
+  "goal": "Ship the report",
+  "initial_state": ["source data exists"],
+  "steps": [
+    {"id": "S1", "statement": "a", "produces": ["a done"], "inputs": [{"need": "source data exists", "from": null}], "origin": "seed"},
+    {"id": "true", "statement": "b", "produces": ["b done"], "inputs": [{"need": "source data exists", "from": null}], "origin": "seed"},
+    {"id": "A,B", "statement": "c", "produces": ["c done"], "inputs": [{"need": "source data exists", "from": null}], "origin": "seed"},
+    {"id": "1e-7", "statement": "d", "produces": ["d done"], "inputs": [{"need": "source data exists", "from": null}], "origin": "seed"}
+  ],
+  "parallel_groups": [[true, "S1", ["A", "B"], 1e-7, "S1"]],
+  "unresolved": []
+}

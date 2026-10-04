@@ -1,0 +1,38 @@
+{
+  "input": "structural/good/good-diamond-dag.json",
+  "input_sha256": "6d10474924549cf3ed93ed07674751ceb57575d806a7b64c549c4f2c5082e0bb",
+  "lib_js_sha256": "a9b99125d06d6aa8ea49216de68f803b9dfde3f3335acf83f47d960869b7585a",
+  "ok": true,
+  "failures": [],
+  "completion": "complete",
+  "parallel_groups": [
+    [
+      "S2",
+      "S3"
+    ]
+  ],
+  "packaged_sha256": "aaa57be7be2877e1ac6d13fcdcbe4ea9763310c394bd8d2c1fe9c11182533667",
+  "unconfirmed_produces": [
+    {
+      "stepId": "S1",
+      "produces": "root ready"
+    },
+    {
+      "stepId": "S2",
+      "produces": "left ready"
+    },
+    {
+      "stepId": "S3",
+      "produces": "right ready"
+    },
+    {
+      "stepId": "S4",
+      "produces": "merge ready"
+    }
+  ],
+  "raw": {
+    "ok": true,
+    "failures": [],
+    "completion": "complete"
+  }
+}

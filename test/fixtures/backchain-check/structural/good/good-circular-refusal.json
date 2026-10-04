@@ -1,0 +1,29 @@
+{
+  "goal": "The resulting deliverable is ready",
+  "initial_state": [],
+  "steps": [
+    {
+      "id": "A",
+      "statement": "The dependent deliverable is ready",
+      "produces": ["dependent deliverable"],
+      "inputs": [{"need": "supplier deliverable", "from": "B"}],
+      "origin": "seed"
+    },
+    {
+      "id": "B",
+      "statement": "The supplier deliverable is ready",
+      "produces": ["supplier deliverable"],
+      "inputs": [],
+      "origin": "seed"
+    }
+  ],
+  "parallel_groups": [],
+  "unresolved": [
+    {
+      "step": "B",
+      "need": "dependent approval",
+      "reason": "circular",
+      "cycle": ["B", "A"]
+    }
+  ]
+}

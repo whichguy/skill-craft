@@ -1,0 +1,15 @@
+{
+  "goal": "Case-sensitive null origin must match initial_state exactly after whitespace normalize",
+  "initial_state": ["Workspace exists"],
+  "steps": [
+    {
+      "id": "S1",
+      "statement": "The brief is agreed",
+      "produces": ["agreed brief"],
+      "inputs": [{ "need": "workspace exists", "from": null }],
+      "origin": "seed"
+    }
+  ],
+  "parallel_groups": [],
+  "unresolved": []
+}

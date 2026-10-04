@@ -1,0 +1,57 @@
+{
+  "goal": "Ship the report",
+  "initial_state": [
+    "source data exists"
+  ],
+  "goal_needs": [],
+  "steps": [
+    {
+      "id": "X",
+      "statement": "x",
+      "produces": [
+        "x done"
+      ],
+      "inputs": [
+        {
+          "need": "z done",
+          "from": "Z"
+        },
+        {
+          "need": "y done",
+          "from": "Y"
+        }
+      ],
+      "origin": "seed"
+    },
+    {
+      "id": "Y",
+      "statement": "y",
+      "produces": [
+        "y done"
+      ],
+      "inputs": [
+        {
+          "need": "x done",
+          "from": "X"
+        }
+      ],
+      "origin": "seed"
+    },
+    {
+      "id": "Z",
+      "statement": "z",
+      "produces": [
+        "z done"
+      ],
+      "inputs": [
+        {
+          "need": "x done",
+          "from": "X"
+        }
+      ],
+      "origin": "seed"
+    }
+  ],
+  "parallel_groups": [],
+  "unresolved": []
+}

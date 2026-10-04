@@ -1,0 +1,53 @@
+{
+  "input": "structural/bad/bad-circular-missing-cycle-array.json",
+  "input_sha256": "c8232db47f7c17a7639a68ede93ac38ff85d98f1187c54b2367a4c63def83c82",
+  "lib_js_sha256": "a9b99125d06d6aa8ea49216de68f803b9dfde3f3335acf83f47d960869b7585a",
+  "ok": false,
+  "failures": [
+    {
+      "invariant": 1,
+      "message": "unresolved[0] requires cycle when reason is circular"
+    },
+    {
+      "invariant": 2,
+      "message": "Circular unresolved entry must carry a cycle array of at least two step IDs",
+      "detail": {
+        "entry": {
+          "step": "S1",
+          "need": "unresolved state",
+          "reason": "circular"
+        }
+      }
+    }
+  ],
+  "completion": "invalid",
+  "parallel_groups": [],
+  "packaged_sha256": "51d2cef8e64ee63c26e3bfecae0f5c9a223f72027386dd1ab548ad9306bc0d64",
+  "unconfirmed_produces": [
+    {
+      "stepId": "S1",
+      "produces": "state"
+    }
+  ],
+  "raw": {
+    "ok": false,
+    "failures": [
+      {
+        "invariant": 1,
+        "message": "unresolved[0] requires cycle when reason is circular"
+      },
+      {
+        "invariant": 2,
+        "message": "Circular unresolved entry must carry a cycle array of at least two step IDs",
+        "detail": {
+          "entry": {
+            "step": "S1",
+            "need": "unresolved state",
+            "reason": "circular"
+          }
+        }
+      }
+    ],
+    "completion": "invalid"
+  }
+}

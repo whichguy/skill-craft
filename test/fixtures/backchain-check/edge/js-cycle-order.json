@@ -1,0 +1,117 @@
+{
+  "goal": "Ship the report",
+  "initial_state": [
+    "source data exists"
+  ],
+  "goal_needs": [],
+  "steps": [
+    {
+      "id": "A",
+      "statement": "a",
+      "produces": [
+        "a done"
+      ],
+      "inputs": [
+        {
+          "need": "c done",
+          "from": "C"
+        }
+      ],
+      "origin": "seed"
+    },
+    {
+      "id": "B",
+      "statement": "b",
+      "produces": [
+        "b done"
+      ],
+      "inputs": [
+        {
+          "need": "a done",
+          "from": "A"
+        }
+      ],
+      "origin": "seed"
+    },
+    {
+      "id": "C",
+      "statement": "c",
+      "produces": [
+        "c done"
+      ],
+      "inputs": [
+        {
+          "need": "b done",
+          "from": "B"
+        }
+      ],
+      "origin": "seed"
+    },
+    {
+      "id": "D",
+      "statement": "d",
+      "produces": [
+        "d done"
+      ],
+      "inputs": [
+        {
+          "need": "e done",
+          "from": "E"
+        },
+        {
+          "need": "a done",
+          "from": "A"
+        }
+      ],
+      "origin": "seed"
+    },
+    {
+      "id": "E",
+      "statement": "e",
+      "produces": [
+        "e done"
+      ],
+      "inputs": [
+        {
+          "need": "d done",
+          "from": "D"
+        }
+      ],
+      "origin": "seed"
+    },
+    {
+      "id": "F",
+      "statement": "f",
+      "produces": [
+        "f done"
+      ],
+      "inputs": [
+        {
+          "need": "a done",
+          "from": "A"
+        },
+        {
+          "need": "source data exists",
+          "from": null
+        }
+      ],
+      "origin": "seed"
+    },
+    {
+      "id": "G",
+      "statement": "g",
+      "produces": [
+        "g done"
+      ],
+      "inputs": [
+        {
+          "need": "source data exists",
+          "from": null
+        }
+      ],
+      "origin": "seed"
+    }
+  ],
+  "parallel_groups": [],
+  "unresolved": []
+}

@@ -1,0 +1,42 @@
+{
+  "input": "structural/good/good-uneven-fan-in-longest-path.json",
+  "input_sha256": "a0c76da8c94bfd21e4b3528672135d90159523002570570bfa442f886149d2f9",
+  "lib_js_sha256": "a9b99125d06d6aa8ea49216de68f803b9dfde3f3335acf83f47d960869b7585a",
+  "ok": true,
+  "failures": [],
+  "completion": "complete",
+  "parallel_groups": [
+    [
+      "C",
+      "D"
+    ]
+  ],
+  "packaged_sha256": "60fc39cfc0668d9031fc8da526bcbf0955d362dba81ac87f683b85c7ad7d39c6",
+  "unconfirmed_produces": [
+    {
+      "stepId": "R",
+      "produces": "root fact"
+    },
+    {
+      "stepId": "A",
+      "produces": "mid chain"
+    },
+    {
+      "stepId": "B",
+      "produces": "deep chain"
+    },
+    {
+      "stepId": "C",
+      "produces": "wide consumer"
+    },
+    {
+      "stepId": "D",
+      "produces": "narrow consumer"
+    }
+  ],
+  "raw": {
+    "ok": true,
+    "failures": [],
+    "completion": "complete"
+  }
+}

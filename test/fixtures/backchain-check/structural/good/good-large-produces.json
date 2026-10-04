@@ -1,0 +1,21 @@
+{
+  "goal": "A broad artifact collection is ready",
+  "initial_state": [],
+  "steps": [
+    {
+      "id": "S1",
+      "statement": "The complete artifact collection is prepared",
+      "produces": [
+        "artifact 01", "artifact 02", "artifact 03", "artifact 04", "artifact 05",
+        "artifact 06", "artifact 07", "artifact 08", "artifact 09", "artifact 10",
+        "artifact 11", "artifact 12", "artifact 13", "artifact 14", "artifact 15",
+        "artifact 16", "artifact 17", "artifact 18", "artifact 19", "artifact 20",
+        "artifact 21", "artifact 22", "artifact 23", "artifact 24"
+      ],
+      "inputs": [],
+      "origin": "seed"
+    }
+  ],
+  "parallel_groups": [],
+  "unresolved": []
+}

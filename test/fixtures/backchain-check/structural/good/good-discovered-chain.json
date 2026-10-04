@@ -1,0 +1,29 @@
+{
+  "goal": "A configured release is ready",
+  "initial_state": ["workspace exists"],
+  "steps": [
+    {
+      "id": "S1",
+      "statement": "The brief is agreed",
+      "produces": ["agreed brief"],
+      "inputs": [{"need": "workspace exists", "from": null}],
+      "origin": "seed"
+    },
+    {
+      "id": "D1",
+      "statement": "A configuration is derived",
+      "produces": ["derived configuration"],
+      "inputs": [{"need": "agreed brief", "from": "S1", "match": "the brief identifies the required configuration"}],
+      "origin": "discovered"
+    },
+    {
+      "id": "S2",
+      "statement": "The release is configured",
+      "produces": ["configured release"],
+      "inputs": [{"need": "derived configuration", "from": "D1", "artifact": "config.json"}],
+      "origin": "seed"
+    }
+  ],
+  "parallel_groups": [],
+  "unresolved": []
+}

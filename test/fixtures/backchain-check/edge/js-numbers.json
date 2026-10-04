@@ -1,0 +1,15 @@
+{
+  "goal": "Ship the report",
+  "initial_state": ["source data exists", "big input"],
+  "steps": [
+    {"id": "1", "statement": "Build one", "produces": ["one is built"], "inputs": [{"need": "source data exists", "from": null}], "origin": "seed"},
+    {"id": "S1", "statement": "Build the report", "produces": ["report is built"], "inputs": [{"need": "big input", "from": 1e999}], "origin": "seed"},
+    {"id": "S2", "statement": "Publish the report", "produces": ["report is published"],
+     "inputs": [{"need": "report is built", "from": "S1"}, {"need": "one is built", "from": "1"},
+                {"need": "huge", "from": 12345678901234567890}, {"need": "float", "from": 1.0}, {"need": "zero", "from": -0.0}],
+     "origin": "seed",
+     "numbers": [1e-6, 1e-7, 1.5, 1e21, 123e-20, 100, -0, 0.1, 5e-324, 1.7976931348623157e308, 2e53, 9007199254740993]}
+  ],
+  "parallel_groups": [[1, "S1"]],
+  "unresolved": []
+}

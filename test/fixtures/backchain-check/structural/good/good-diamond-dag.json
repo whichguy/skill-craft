@@ -1,0 +1,39 @@
+{
+  "goal": "A diamond dependency graph is structurally sound",
+  "initial_state": ["repository exists"],
+  "steps": [
+    {
+      "id": "S1",
+      "statement": "The root foundation is ready",
+      "produces": ["root ready"],
+      "inputs": [{ "need": "repository exists", "from": null }],
+      "origin": "seed"
+    },
+    {
+      "id": "S2",
+      "statement": "The left branch is ready",
+      "produces": ["left ready"],
+      "inputs": [{ "need": "root ready", "from": "S1" }],
+      "origin": "seed"
+    },
+    {
+      "id": "S3",
+      "statement": "The right branch is ready",
+      "produces": ["right ready"],
+      "inputs": [{ "need": "root ready", "from": "S1" }],
+      "origin": "seed"
+    },
+    {
+      "id": "S4",
+      "statement": "The merge result is ready",
+      "produces": ["merge ready"],
+      "inputs": [
+        { "need": "left ready", "from": "S2" },
+        { "need": "right ready", "from": "S3" }
+      ],
+      "origin": "seed"
+    }
+  ],
+  "parallel_groups": [["S2", "S3"]],
+  "unresolved": []
+}

@@ -1,0 +1,42 @@
+{
+  "input": "structural/good/good-two-independent-branches.json",
+  "input_sha256": "6a4b21f485d719ab952d8a50834a433e0e607e03f22075b8226ba1ef59bfc20e",
+  "lib_js_sha256": "a9b99125d06d6aa8ea49216de68f803b9dfde3f3335acf83f47d960869b7585a",
+  "ok": true,
+  "failures": [],
+  "completion": "complete",
+  "parallel_groups": [
+    [
+      "S1",
+      "S4"
+    ],
+    [
+      "S2",
+      "S3"
+    ]
+  ],
+  "packaged_sha256": "2af17d1beb4a413ecec3e21ac768dbcd8bb81088342cc1d181e76fa4aae65588",
+  "unconfirmed_produces": [
+    {
+      "stepId": "S1",
+      "produces": "foundation"
+    },
+    {
+      "stepId": "S2",
+      "produces": "first deliverable"
+    },
+    {
+      "stepId": "S3",
+      "produces": "second deliverable"
+    },
+    {
+      "stepId": "S4",
+      "produces": "network"
+    }
+  ],
+  "raw": {
+    "ok": true,
+    "failures": [],
+    "completion": "complete"
+  }
+}

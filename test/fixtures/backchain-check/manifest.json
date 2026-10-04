@@ -1,0 +1,448 @@
+{
+  "schema": "shiploop-backchain-check-corpus/v1",
+  "lib_js_sha256": "a9b99125d06d6aa8ea49216de68f803b9dfde3f3335acf83f47d960869b7585a",
+  "backchain_commit": "865547b9371918b16cdb8b48878c6a25d0801b1d",
+  "node": "v25.9.0",
+  "inputs": [
+    {
+      "input": "structural/good/good-circular-refusal-three-node.json",
+      "sha256": "9047638a98e936ff04e30ab91a5dcd684ff5b6af7c8cfb94f9839792acc972dd",
+      "ok": true
+    },
+    {
+      "input": "structural/good/good-circular-refusal.json",
+      "sha256": "a3b304a011ba9b80828e96d632488d874fd4cd9c517a23fc4ef0c0da87b02a2e",
+      "ok": true
+    },
+    {
+      "input": "structural/good/good-deep-chain-with-branch.json",
+      "sha256": "6c647206344673af2541e5cf117708607928a8d5feccb35bb837f0c6e5cc66e8",
+      "ok": true
+    },
+    {
+      "input": "structural/good/good-diamond-dag.json",
+      "sha256": "6d10474924549cf3ed93ed07674751ceb57575d806a7b64c549c4f2c5082e0bb",
+      "ok": true
+    },
+    {
+      "input": "structural/good/good-discovered-chain.json",
+      "sha256": "3cadd80a7d37186e4615c819d099db5122ad6b33e3df51415694d971c7f49545",
+      "ok": true
+    },
+    {
+      "input": "structural/good/good-dual-unresolved-reasons.json",
+      "sha256": "4cc01543f63c4e1b6653ca067198d974e46a5427775c055691c50faa59c5c3e0",
+      "ok": true
+    },
+    {
+      "input": "structural/good/good-fan-in-two-suppliers.json",
+      "sha256": "4d95501e613262caf31c520ba75f485baff00e4ed0d15fdd9840595cc92caa05",
+      "ok": true
+    },
+    {
+      "input": "structural/good/good-large-produces.json",
+      "sha256": "fe32b7b8f40f862fa5baee4d117c4faab2e0d919d4de4d8f2450059eeffa5cd0",
+      "ok": true
+    },
+    {
+      "input": "structural/good/good-linear-chain-no-parallelism.json",
+      "sha256": "7c84a7f6442e96d1755e020921c3fc21de5c3dd71a3027029aa498d77e43a85e",
+      "ok": true
+    },
+    {
+      "input": "structural/good/good-multi-produces-shared.json",
+      "sha256": "b501fb446d4737362521f8cfc348599f36e18ce0dd18335d8bcf8ae3dd8fc15a",
+      "ok": true
+    },
+    {
+      "input": "structural/good/good-need-case-differs-not-double-booked.json",
+      "sha256": "170d717ad97dfc354ba9b022b34f2e23f27dd681ca94c8ccadbbe2706d913e85",
+      "ok": true
+    },
+    {
+      "input": "structural/good/good-null-need-whitespace-normalized.json",
+      "sha256": "106578acc0ff6a4f102a17d9745e45219799a16beab62333e36fc7228bd94409",
+      "ok": true
+    },
+    {
+      "input": "structural/good/good-parallel-groups-scrambled-order.json",
+      "sha256": "f8b544c684e3014a90db56de25144c2732d46d0267bb58dddbd3e81c841578ce",
+      "ok": true
+    },
+    {
+      "input": "structural/good/good-parallel-groups-tier-order-scrambled.json",
+      "sha256": "4c7466a3b14ff7514cefa6ba32ea2f25f24840e4c93d16c5781918ec073506ae",
+      "ok": true
+    },
+    {
+      "input": "structural/good/good-residual-risk-only.json",
+      "sha256": "9bc0b418a3dab59f14468b421f62aa57e9ebec7e965fc11a1d0b461f4632f6f2",
+      "ok": true
+    },
+    {
+      "input": "structural/good/good-same-need-different-steps.json",
+      "sha256": "9a5277c951de13980907c659e9e5574ef9dd21c74a336a024060541be4a6ffb6",
+      "ok": true
+    },
+    {
+      "input": "structural/good/good-semantic-need-produce-mismatch.json",
+      "sha256": "42172f33e743eaead529f07bf1a56c664dcb05a8b3800bdcacf67c386d731d3a",
+      "ok": true
+    },
+    {
+      "input": "structural/good/good-shared-supplier-two-consumers.json",
+      "sha256": "8bc8034fc836c3ee3f7555ccd7b70ff02124b50f7b528c7228f4f3b28a828fe6",
+      "ok": true
+    },
+    {
+      "input": "structural/good/good-single-step-empty-initial-state.json",
+      "sha256": "548db1615aaa22d23cc25ca8836eb2a8fd6989aa24028b5c4e4d581b2b720274",
+      "ok": true
+    },
+    {
+      "input": "structural/good/good-three-tier-parallel-groups.json",
+      "sha256": "d7e000c4d18e228dc2108864053a91a2b7cf10225943f53d85efcc596b139e2a",
+      "ok": true
+    },
+    {
+      "input": "structural/good/good-two-independent-branches.json",
+      "sha256": "6a4b21f485d719ab952d8a50834a433e0e607e03f22075b8226ba1ef59bfc20e",
+      "ok": true
+    },
+    {
+      "input": "structural/good/good-uneven-fan-in-longest-path.json",
+      "sha256": "a0c76da8c94bfd21e4b3528672135d90159523002570570bfa442f886149d2f9",
+      "ok": true
+    },
+    {
+      "input": "structural/good/good-unicode-long-text.json",
+      "sha256": "080abc6507ad603449fa6d3f17fbdab6beaf29b6297832c07b3097bc56733e25",
+      "ok": true
+    },
+    {
+      "input": "structural/bad/bad-all-discovered-acyclic.json",
+      "sha256": "9b8b8ae7efb6b7652f40c8ec20e9e8442322356bc3fce66a512396143eb42e2c",
+      "ok": false
+    },
+    {
+      "input": "structural/bad/bad-circular-mislabeled-noncycle.json",
+      "sha256": "b30df95f38d90885145a0c53b6d82dd4c4ad711f695e5295bf74c0d08281c28f",
+      "ok": false
+    },
+    {
+      "input": "structural/bad/bad-circular-missing-cycle-array.json",
+      "sha256": "c8232db47f7c17a7639a68ede93ac38ff85d98f1187c54b2367a4c63def83c82",
+      "ok": false
+    },
+    {
+      "input": "structural/bad/bad-circular-missing-loopback.json",
+      "sha256": "abb924acbb3e57c108065d9ef1d866f2595c9095203f0235f0849bb988baf603",
+      "ok": false
+    },
+    {
+      "input": "structural/bad/bad-circular-nonexistent-cycle-id.json",
+      "sha256": "e087d0c15344c2f33a529e7e0b8fd135e126058e873e4247dbcdb418f667be04",
+      "ok": false
+    },
+    {
+      "input": "structural/bad/bad-circular-refused-edge-committed.json",
+      "sha256": "d6d65b314372dd9693d99e8355465d878f41a6318799a1653bc0b355f5f8899f",
+      "ok": false
+    },
+    {
+      "input": "structural/bad/bad-cycle-committed.json",
+      "sha256": "62d625133fdf4a318b743ef2338847429febb8b524190608ddd42a54a837a219",
+      "ok": false
+    },
+    {
+      "input": "structural/bad/bad-dangling-from.json",
+      "sha256": "e243b68074362d87b15d1d3413bb32c339b0db70c3735c321a4576d993d08873",
+      "ok": false
+    },
+    {
+      "input": "structural/bad/bad-discovered-in-parallel-group-not-consumed.json",
+      "sha256": "a5a8774ae9932b6fb37e85afc12f4b9bada3cd42c49538fe72a572233f2ebe67",
+      "ok": false
+    },
+    {
+      "input": "structural/bad/bad-discovered-self-consumption.json",
+      "sha256": "42e18b5feb0b63f69f63cb71ce67f830801824443f2569b024e59ebbe5bb13e2",
+      "ok": false
+    },
+    {
+      "input": "structural/bad/bad-duplicate-step-id.json",
+      "sha256": "355e33a800afe88c5e630546a29ceb3872d45f1bb8d4d6f9cd33a64ddd8578cf",
+      "ok": false
+    },
+    {
+      "input": "structural/bad/bad-from-initial-sentinel.json",
+      "sha256": "29fa8b45d6c8fb285347f9c49bf0c3b3331a9608850a69351ea5ebe961c9b3cf",
+      "ok": false
+    },
+    {
+      "input": "structural/bad/bad-multiple-invariant-violations.json",
+      "sha256": "2d20351871e9b17673722c52fe820a88b2b67b7eff6e46a122e3d22ba9d2376e",
+      "ok": false
+    },
+    {
+      "input": "structural/bad/bad-need-double-booked-whitespace.json",
+      "sha256": "d56582e3208fa51527dcf66b0a9a23fb64757e89bfa4d0ba9102cadd7184c77e",
+      "ok": false
+    },
+    {
+      "input": "structural/bad/bad-need-double-booked.json",
+      "sha256": "4dfd05b5d7f25c3a9ca5b8367efd008ecc44656f3345a3c7a38eea343f260f83",
+      "ok": false
+    },
+    {
+      "input": "structural/bad/bad-null-case-mismatch.json",
+      "sha256": "f9f5aab6e4117d7fdcf784d0e3bae3e6663d3eb373a388d530d331d9f53e35d4",
+      "ok": false
+    },
+    {
+      "input": "structural/bad/bad-null-without-initial-state.json",
+      "sha256": "389cbc2e8152177766988a4beb73a10ec629437286f0b58fa123e753144a6565",
+      "ok": false
+    },
+    {
+      "input": "structural/bad/bad-orphaned-discovered.json",
+      "sha256": "b74a0a58986d47e7b6749c42d6976060d2f603ee92d1598e5aab3f4b3f44e0c1",
+      "ok": false
+    },
+    {
+      "input": "structural/bad/bad-parallel-groups-includes-singleton.json",
+      "sha256": "bdc0500b9ee96b522aaddcb809a87f97b3179c1c6a3258ecbd768ec7380518a1",
+      "ok": true
+    },
+    {
+      "input": "structural/bad/bad-parallel-groups-mismatch.json",
+      "sha256": "e3917754d77bf75cdf2b37d8bc5552622d16457c2e28163e17c268fcb79ce657",
+      "ok": true
+    },
+    {
+      "input": "structural/bad/bad-parallel-groups-omitted.json",
+      "sha256": "ff804ead687c234b83a17425ec81190eb82405026f208d5c02d03474c7416e5f",
+      "ok": true
+    },
+    {
+      "input": "structural/bad/bad-parallel-groups-unknown-member.json",
+      "sha256": "7a1cc9900cc3829639b024927323d858784e9e8228b1159db50be3c61d3c2686",
+      "ok": true
+    },
+    {
+      "input": "structural/bad/bad-residual-with-cycle-array.json",
+      "sha256": "6d54b8a0cde27e31de04c921fcbafc52e790b37afb476fe96a5bffb62126b6db",
+      "ok": false
+    },
+    {
+      "input": "structural/bad/bad-root-not-object.json",
+      "sha256": "37517e5f3dc66819f61f5a7bb8ace1921282415f10551d2defa5c3eb0985b570",
+      "ok": false
+    },
+    {
+      "input": "structural/bad/bad-schema-only-violation.json",
+      "sha256": "09e25f393d85eac2b46da312c9411d075a47b422770f9efd954c5a2af2aa0c62",
+      "ok": false
+    },
+    {
+      "input": "structural/bad/bad-self-loop.json",
+      "sha256": "64823a8550af66e8105a45723f00bc01dba955ee904b5cfeec3ae08dcd0c09f1",
+      "ok": false
+    },
+    {
+      "input": "structural/bad/bad-unresolved-empty-need.json",
+      "sha256": "62334224e0ab26690956eca8ff11771b41f21c2aaa02d0b76b49ffd6e71d2d9d",
+      "ok": false
+    },
+    {
+      "input": "structural/bad/bad-unresolved-unknown-step.json",
+      "sha256": "3ceb682cdcbb5eb90fa91f47323ccdf79fe78c997685ac22918d1f3d780282c2",
+      "ok": false
+    },
+    {
+      "input": "luna/plan-after-pass-1.json",
+      "sha256": "b66d62f0d55fde04591a4c187210621633d6967dd09824c25844aa01b3c11aca",
+      "ok": true
+    },
+    {
+      "input": "luna/plan-final.json",
+      "sha256": "3853b9786506b921570b829b40ecb392522622bf040ce54990b75b3da31638e1",
+      "ok": true
+    },
+    {
+      "input": "luna/plan-pre-loop.json",
+      "sha256": "9e321e3d2efb1bd03c8b29512fb3d117ba1eb9252b8c03897ae7e7688a2dc73c",
+      "ok": true
+    },
+    {
+      "input": "luna/step-plan-final.json",
+      "sha256": "024b3dc39593c25034bccb53239d7806b27e3852178e4e94fcc203b8e9e22711",
+      "ok": false
+    },
+    {
+      "input": "luna/step-plan-review-01.json",
+      "sha256": "6f97177017cf9b3eb0582e1099fa8f550227c17ad695497b4ad9adf2c431fe34",
+      "ok": false
+    },
+    {
+      "input": "edge/inv1-schema.fixed.json",
+      "sha256": "5b3591ef4d327071f8ace65e3ef706dc52682c8411f77e1b5c1414ec224a2598",
+      "ok": true
+    },
+    {
+      "input": "edge/inv1-schema.json",
+      "sha256": "01d2ba4d6d62d1b8cb07bf9a22cd77e3b2f6d32079649677abbec7e0181c98c7",
+      "ok": false
+    },
+    {
+      "input": "edge/inv2-circular.fixed.json",
+      "sha256": "72e673fff665ffbba67378007f8e5e163b1343d6df24b7b8a426c85cf590202e",
+      "ok": true
+    },
+    {
+      "input": "edge/inv2-circular.json",
+      "sha256": "3bd6efa06178eb2b0b8c3b6389acb12774d8c7d7f11d5219116ee9db01346b0b",
+      "ok": false
+    },
+    {
+      "input": "edge/inv2-cycle.fixed.json",
+      "sha256": "81d5f374e9e0b8aef14164458186467b89efd185d864ebc7f574c37ba2c6d8ba",
+      "ok": true
+    },
+    {
+      "input": "edge/inv2-cycle.json",
+      "sha256": "e1a4f084dba7bb26fe229b0717863a3d6f5be038ba1825a202681bd8d7f23942",
+      "ok": false
+    },
+    {
+      "input": "edge/inv3-dangling.fixed.json",
+      "sha256": "5b3591ef4d327071f8ace65e3ef706dc52682c8411f77e1b5c1414ec224a2598",
+      "ok": true
+    },
+    {
+      "input": "edge/inv3-dangling.json",
+      "sha256": "e44676f751e958ac0ad611807c257e2bcf136eb306e37e19f9b985e50532a886",
+      "ok": false
+    },
+    {
+      "input": "edge/inv4-goal-need.json",
+      "sha256": "f2b0307e22d300cce736233ab4f0d1a6eb59a57645547a321f29b5710ca71c5b",
+      "ok": true
+    },
+    {
+      "input": "edge/inv4-goal-sentence.json",
+      "sha256": "72011301f7885a92206ee344217dd04f40b1af138614c7ad46fabd6fcec2c2cb",
+      "ok": true
+    },
+    {
+      "input": "edge/inv4-orphan.fixed.json",
+      "sha256": "826594605c18cc077756df5929fd02e66d54271fb7f3d1b90de203dc7b56ec8c",
+      "ok": true
+    },
+    {
+      "input": "edge/inv4-orphan.json",
+      "sha256": "856275d82e3740c5a0d9e3d22818152110abc6cf1ea5c7e5bcb9a84347b0334c",
+      "ok": false
+    },
+    {
+      "input": "edge/inv5-double-booked.fixed.json",
+      "sha256": "3345a9965ecfe839f7c5e937b923de3575744cc5c16ff0476a87304d633ad73e",
+      "ok": true
+    },
+    {
+      "input": "edge/inv5-double-booked.json",
+      "sha256": "6c1af1b005db280d6f312380d0557442babc80605830065454a82fb70f55ebd2",
+      "ok": false
+    },
+    {
+      "input": "edge/inv6-stored-groups.fixed.json",
+      "sha256": "0577f7ad22174bc5eadac62d9c1c53ecea48e1eca9a05fa9d16cf8b8c09cc5ab",
+      "ok": true
+    },
+    {
+      "input": "edge/inv6-stored-groups.json",
+      "sha256": "74ffc87f62c212d741ba1c2774ca5461b53b049a12e3988cec6d84daaa396730",
+      "ok": true
+    },
+    {
+      "input": "edge/inv6-unknown-step.fixed.json",
+      "sha256": "3345a9965ecfe839f7c5e937b923de3575744cc5c16ff0476a87304d633ad73e",
+      "ok": true
+    },
+    {
+      "input": "edge/inv6-unknown-step.json",
+      "sha256": "59dce62b002df1942c47570eb442508c86b3e6c7f10c03b4bd4f7ba7778adee3",
+      "ok": false
+    },
+    {
+      "input": "edge/inv7-null-origin.fixed.json",
+      "sha256": "21fe4d12957405c15ca3ab21ab4b2f80e4669272cf76614d004e804ecf969b84",
+      "ok": true
+    },
+    {
+      "input": "edge/inv7-null-origin.json",
+      "sha256": "0ccf164466bf1b8877b19e5473437eaab5a9a31f24e5178b804b997c06e9b0ca",
+      "ok": false
+    },
+    {
+      "input": "edge/js-cycle-insertion-order.json",
+      "sha256": "477dc75f8970bdb0192ec9ceaed92e8ba99c019057a633bcdde1d265e0b2480b",
+      "ok": false
+    },
+    {
+      "input": "edge/js-cycle-order.json",
+      "sha256": "1133c2e41ea138f9dde678fb5b65cb686dd7a5f7d056ff4f8cd96485bd43e94b",
+      "ok": false
+    },
+    {
+      "input": "edge/js-duplicate-keys.json",
+      "sha256": "7673bef8e3d51f019229597bb693e2a8624a923d71970da803aff5ba297ee55a",
+      "ok": false
+    },
+    {
+      "input": "edge/js-group-values.json",
+      "sha256": "116ab4662dcb8197532c003a21f133c3de31f62db8d0d191881fbc09a935beea",
+      "ok": true
+    },
+    {
+      "input": "edge/js-missing-fields.json",
+      "sha256": "c3ad8e9de73c2731d22f4e7d4d6dd748235fe228bb2192b2af16bec05cc99a8b",
+      "ok": false
+    },
+    {
+      "input": "edge/js-null-plan.json",
+      "sha256": "38e0b9de817f645c4bec37c0d4a3e58baecccb040f5718dc069a72c7385a0bed",
+      "ok": false
+    },
+    {
+      "input": "edge/js-numbers.json",
+      "sha256": "89c116a3cd1e7a7602b1ed0870adf3c36d7eb74616a86129e7b3f08352d97461",
+      "ok": false
+    },
+    {
+      "input": "edge/js-string-plan.json",
+      "sha256": "4354994c96acaaf7aae4ce88763bf1f192449b2d6d8867674a03262490df9a53",
+      "ok": false
+    },
+    {
+      "input": "edge/js-strings.json",
+      "sha256": "f45c777d38b34ca33306965e9570a780e461e3e64fee03fa571191d8709f3479",
+      "ok": true
+    },
+    {
+      "input": "edge/ws-confirm-and-goal-needs.json",
+      "sha256": "2493d40caa12410a32f529becce5ec06fe2027c395fb65b7843bc7d7e7816873",
+      "ok": false
+    },
+    {
+      "input": "edge/ws-js-only.json",
+      "sha256": "71aa073c300e1422a5e1081712b6f6b2dbd31e0051167137eec918692ba3f054",
+      "ok": true
+    },
+    {
+      "input": "edge/ws-python-only.json",
+      "sha256": "c8e344938095f849cb0d6bfd13d08c7e3c216995a7e4394ccd9278b15e608686",
+      "ok": false
+    }
+  ]
+}

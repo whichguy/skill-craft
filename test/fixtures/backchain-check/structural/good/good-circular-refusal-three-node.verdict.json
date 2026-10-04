@@ -1,0 +1,29 @@
+{
+  "input": "structural/good/good-circular-refusal-three-node.json",
+  "input_sha256": "9047638a98e936ff04e30ab91a5dcd684ff5b6af7c8cfb94f9839792acc972dd",
+  "lib_js_sha256": "a9b99125d06d6aa8ea49216de68f803b9dfde3f3335acf83f47d960869b7585a",
+  "ok": true,
+  "failures": [],
+  "completion": "incomplete",
+  "parallel_groups": [],
+  "packaged_sha256": "87f6496b67a5c112666b185b9e17e7925a7c9f6227d6e1de1cb42d9f2ed7ae9e",
+  "unconfirmed_produces": [
+    {
+      "stepId": "A",
+      "produces": "state a"
+    },
+    {
+      "stepId": "B",
+      "produces": "state b"
+    },
+    {
+      "stepId": "C",
+      "produces": "state c"
+    }
+  ],
+  "raw": {
+    "ok": true,
+    "failures": [],
+    "completion": "incomplete"
+  }
+}

@@ -1,0 +1,38 @@
+{
+  "input": "structural/good/good-multi-produces-shared.json",
+  "input_sha256": "b501fb446d4737362521f8cfc348599f36e18ce0dd18335d8bcf8ae3dd8fc15a",
+  "lib_js_sha256": "a9b99125d06d6aa8ea49216de68f803b9dfde3f3335acf83f47d960869b7585a",
+  "ok": true,
+  "failures": [],
+  "completion": "complete",
+  "parallel_groups": [
+    [
+      "S2",
+      "S3"
+    ]
+  ],
+  "packaged_sha256": "92efe4433140874d003eab898a3382d11642ba8041619cd196a4c58ace1e01a7",
+  "unconfirmed_produces": [
+    {
+      "stepId": "S1",
+      "produces": "binary ready"
+    },
+    {
+      "stepId": "S1",
+      "produces": "checksum ready"
+    },
+    {
+      "stepId": "S2",
+      "produces": "binary published"
+    },
+    {
+      "stepId": "S3",
+      "produces": "checksum published"
+    }
+  ],
+  "raw": {
+    "ok": true,
+    "failures": [],
+    "completion": "complete"
+  }
+}

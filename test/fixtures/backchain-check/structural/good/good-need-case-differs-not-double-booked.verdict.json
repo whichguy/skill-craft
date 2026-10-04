@@ -1,0 +1,21 @@
+{
+  "input": "structural/good/good-need-case-differs-not-double-booked.json",
+  "input_sha256": "170d717ad97dfc354ba9b022b34f2e23f27dd681ca94c8ccadbbe2706d913e85",
+  "lib_js_sha256": "a9b99125d06d6aa8ea49216de68f803b9dfde3f3335acf83f47d960869b7585a",
+  "ok": true,
+  "failures": [],
+  "completion": "incomplete",
+  "parallel_groups": [],
+  "packaged_sha256": "f267433a1003c07b88921b044fc12619e7abc1c79b341f632c4e1bfd22e361e3",
+  "unconfirmed_produces": [
+    {
+      "stepId": "S1",
+      "produces": "work result"
+    }
+  ],
+  "raw": {
+    "ok": true,
+    "failures": [],
+    "completion": "incomplete"
+  }
+}

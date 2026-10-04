@@ -1,0 +1,32 @@
+{
+  "goal": "A merged result is ready after two independent suppliers",
+  "initial_state": ["repository exists"],
+  "steps": [
+    {
+      "id": "S1",
+      "statement": "The left artifact is prepared",
+      "produces": ["left artifact ready"],
+      "inputs": [{ "need": "repository exists", "from": null }],
+      "origin": "seed"
+    },
+    {
+      "id": "S2",
+      "statement": "The right artifact is prepared",
+      "produces": ["right artifact ready"],
+      "inputs": [{ "need": "repository exists", "from": null }],
+      "origin": "seed"
+    },
+    {
+      "id": "S3",
+      "statement": "The merged result is prepared from both artifacts",
+      "produces": ["merged result ready"],
+      "inputs": [
+        { "need": "left artifact ready", "from": "S1" },
+        { "need": "right artifact ready", "from": "S2" }
+      ],
+      "origin": "seed"
+    }
+  ],
+  "parallel_groups": [["S1", "S2"]],
+  "unresolved": []
+}

@@ -1,0 +1,15 @@
+{
+  "goal": "A residual risk is recorded",
+  "initial_state": [],
+  "steps": [
+    {
+      "id": "S1",
+      "statement": "A state holds",
+      "produces": ["state"],
+      "inputs": [],
+      "origin": "seed"
+    }
+  ],
+  "parallel_groups": [],
+  "unresolved": [{"step": "S1", "need": "unresolved state", "reason": "residual-risk", "cycle": ["S1", "S1"]}]
+}

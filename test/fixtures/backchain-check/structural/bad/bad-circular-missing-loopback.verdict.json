@@ -1,0 +1,75 @@
+{
+  "input": "structural/bad/bad-circular-missing-loopback.json",
+  "input_sha256": "abb924acbb3e57c108065d9ef1d866f2595c9095203f0235f0849bb988baf603",
+  "lib_js_sha256": "a9b99125d06d6aa8ea49216de68f803b9dfde3f3335acf83f47d960869b7585a",
+  "ok": false,
+  "failures": [
+    {
+      "invariant": 2,
+      "message": "Circular unresolved cycle does not contain the committed loop-back path",
+      "detail": {
+        "from": "B",
+        "to": "A",
+        "cycle": [
+          "A",
+          "B"
+        ]
+      }
+    },
+    {
+      "invariant": 2,
+      "message": "Circular unresolved cycle has an already committed refused edge",
+      "detail": {
+        "from": "A",
+        "to": "B",
+        "cycle": [
+          "A",
+          "B"
+        ]
+      }
+    }
+  ],
+  "completion": "invalid",
+  "parallel_groups": [],
+  "packaged_sha256": "32937a27ca2cd2e212f2dd1bda4364a383e7b8854454aba17dd68e56ef55dd83",
+  "unconfirmed_produces": [
+    {
+      "stepId": "A",
+      "produces": "state a"
+    },
+    {
+      "stepId": "B",
+      "produces": "state b"
+    }
+  ],
+  "raw": {
+    "ok": false,
+    "failures": [
+      {
+        "invariant": 2,
+        "message": "Circular unresolved cycle does not contain the committed loop-back path",
+        "detail": {
+          "from": "B",
+          "to": "A",
+          "cycle": [
+            "A",
+            "B"
+          ]
+        }
+      },
+      {
+        "invariant": 2,
+        "message": "Circular unresolved cycle has an already committed refused edge",
+        "detail": {
+          "from": "A",
+          "to": "B",
+          "cycle": [
+            "A",
+            "B"
+          ]
+        }
+      }
+    ],
+    "completion": "invalid"
+  }
+}

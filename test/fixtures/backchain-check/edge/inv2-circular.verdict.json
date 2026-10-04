@@ -1,0 +1,75 @@
+{
+  "input": "edge/inv2-circular.json",
+  "input_sha256": "3bd6efa06178eb2b0b8c3b6389acb12774d8c7d7f11d5219116ee9db01346b0b",
+  "lib_js_sha256": "a9b99125d06d6aa8ea49216de68f803b9dfde3f3335acf83f47d960869b7585a",
+  "ok": false,
+  "failures": [
+    {
+      "invariant": 2,
+      "message": "Circular unresolved cycle does not contain the committed loop-back path",
+      "detail": {
+        "from": "S1",
+        "to": "S2",
+        "cycle": [
+          "S2",
+          "S1"
+        ]
+      }
+    },
+    {
+      "invariant": 2,
+      "message": "Circular unresolved cycle has an already committed refused edge",
+      "detail": {
+        "from": "S2",
+        "to": "S1",
+        "cycle": [
+          "S2",
+          "S1"
+        ]
+      }
+    }
+  ],
+  "completion": "invalid",
+  "parallel_groups": [],
+  "packaged_sha256": "52f680b562e88f0e4efd5285850a7d0e24b501b622d1c00d7e174364edfd6b08",
+  "unconfirmed_produces": [
+    {
+      "stepId": "S1",
+      "produces": "report is built"
+    },
+    {
+      "stepId": "S2",
+      "produces": "report is published"
+    }
+  ],
+  "raw": {
+    "ok": false,
+    "failures": [
+      {
+        "invariant": 2,
+        "message": "Circular unresolved cycle does not contain the committed loop-back path",
+        "detail": {
+          "from": "S1",
+          "to": "S2",
+          "cycle": [
+            "S2",
+            "S1"
+          ]
+        }
+      },
+      {
+        "invariant": 2,
+        "message": "Circular unresolved cycle has an already committed refused edge",
+        "detail": {
+          "from": "S2",
+          "to": "S1",
+          "cycle": [
+            "S2",
+            "S1"
+          ]
+        }
+      }
+    ],
+    "completion": "invalid"
+  }
+}

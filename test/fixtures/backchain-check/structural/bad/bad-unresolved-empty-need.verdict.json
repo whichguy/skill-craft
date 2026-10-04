@@ -1,0 +1,31 @@
+{
+  "input": "structural/bad/bad-unresolved-empty-need.json",
+  "input_sha256": "62334224e0ab26690956eca8ff11771b41f21c2aaa02d0b76b49ffd6e71d2d9d",
+  "lib_js_sha256": "a9b99125d06d6aa8ea49216de68f803b9dfde3f3335acf83f47d960869b7585a",
+  "ok": false,
+  "failures": [
+    {
+      "invariant": 1,
+      "message": "unresolved[0].need must be a non-empty string"
+    }
+  ],
+  "completion": "invalid",
+  "parallel_groups": [],
+  "packaged_sha256": "add87661a7222e6d1e9e1ba35118f1edb7c25a820b352f6b57991b904f803ac5",
+  "unconfirmed_produces": [
+    {
+      "stepId": "S1",
+      "produces": "a state"
+    }
+  ],
+  "raw": {
+    "ok": false,
+    "failures": [
+      {
+        "invariant": 1,
+        "message": "unresolved[0].need must be a non-empty string"
+      }
+    ],
+    "completion": "invalid"
+  }
+}

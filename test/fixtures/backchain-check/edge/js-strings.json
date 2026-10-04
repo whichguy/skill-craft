@@ -1,0 +1,41 @@
+{
+  "goal": "Ship the report",
+  "initial_state": [
+    "source data exists"
+  ],
+  "goal_needs": [
+    "report is published"
+  ],
+  "steps": [
+    {
+      "id": "S1",
+      "statement": "Escapes \u0001\b\f\n\r\t\"\\\u007f\u2028 \ud800 astral \ud83d\ude00 end",
+      "produces": [
+        "report is built"
+      ],
+      "inputs": [
+        {
+          "need": "source data exists",
+          "from": null
+        }
+      ],
+      "origin": "seed"
+    },
+    {
+      "id": "S2",
+      "statement": "Publish \u00e9t\u00e9",
+      "produces": [
+        "report is published"
+      ],
+      "inputs": [
+        {
+          "need": "report is built",
+          "from": "S1"
+        }
+      ],
+      "origin": "seed"
+    }
+  ],
+  "parallel_groups": [],
+  "unresolved": []
+}
