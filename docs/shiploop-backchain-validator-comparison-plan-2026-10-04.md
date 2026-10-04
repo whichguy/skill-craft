@@ -2,7 +2,7 @@
 
 Execute: inline
 
-Status: **plan v2, nothing built yet.** Revised after an independent adversarial review whose blockers I re-ran
+Status: **plan v2.1: I1 and I2 are built (local commits, unreleased); I2b is next.** Revised after an independent adversarial review whose blockers I re-ran
 against the run. Execute I1, I2 and I2b now (local commits; no release until the Luna run ends and the batch is
 verified). Later iterations stop at the points named in section 5. Numbers marked *measured* come from the Luna max
 battleship run on 1.16.1 (`/Users/dadleet/e2e-runs/20261003/v1161-battleship-luna`, one run, one model), so they
@@ -79,9 +79,10 @@ check is at :1321 to :1329). The marketplace install ships only the skill direct
 
 Port rules, from what the review found in `lib.js`:
 - **The arbiter is `lib.js` plus a recorded corpus, not SKILL.md alone.** SKILL.md's invariant 4 is strict; `lib.js`
-  exempts a discovered step whose produces satisfy a declared goal need, and has circular-bookkeeping rules.
-- **Validate a packaged clone** (recompute `parallel_groups` first); port `computeParallelGroups`, not all of `packagePlan`.
-- **Be deterministic:** sort every set; use an explicit ECMAScript whitespace class, because Python's `\s` and `strip`
+  exempts a discovered step whose produces satisfy a declared goal need or are a substring of the goal sentence (the
+  code does this although its own comment says goal-sentence matching does not work), and has circular-bookkeeping rules.
+- **Validate a packaged clone** (recompute `parallel_groups` first); port `computeParallelGroups` and the packaged clone of `packagePlan`, not the rest of it.
+- **Be deterministic:** reproduce JavaScript insertion order (group members, the reported cycle), never sorted sets, because the verdict text depends on it; use an explicit ECMAScript whitespace class, because Python's `\s` and `strip`
   differ from JS on `\x1c`-`\x1f`, `\x85` and U+FEFF.
 - **Keep the copies honest inside skill-craft CI:** commit a recorded corpus (the checkout's structural good and bad
   fixtures and the Luna candidates, with the JS verdict for each packaged plan and its provenance); the port must
@@ -93,7 +94,9 @@ Port rules, from what the review found in `lib.js`:
   unconfirmed produces. It writes an immutable snapshot of the bytes checked and a receipt (schema
   `shiploop-backchain-check/v1`: candidate sha256, `ok`, failures with invariant numbers, completion, groups, counts)
   under `run/backchain/<action>/`. Exit 0 valid, 1 invalid structure, 3 could not run (lint's convention).
-- One packet line, in Backchain routes only: run the check after each revision; a failing check is a finding for the
+- Two packet additions, in producer Backchain routes only (not while Improve is pending): a 131-byte guidance line
+  (size pinned by a test) and the navigator's printed command, which carries `--run-dir RUN` because walking up from
+  the working directory never finds workspace runs. The guidance: run the check after each revision; a failing check is a finding for the
   loop; cite the receipt in `evidence_refs`. The run review exporter's loop ledger reads the receipts. Nothing is refused.
 
 ### 3.3 Deferred: a refusal gate
@@ -108,11 +111,14 @@ intentionally invalid files); re-run at `improve-complete`; and never trust a re
 
 ### 3.4 Tests (hermetic unless noted)
 
-1. One minimal violating graph per invariant, each valid after the fix; the invariant-4 goal-need exemption.
+1. One minimal violating graph per invariant, each valid after the fix; both invariant-4 exemptions (a declared goal
+   need, and a produce that is a substring of the goal sentence).
 2. The deciding fixtures: pre-loop, after-pass-1 and final plan candidates (ok packaged) and both step-plan candidates
-   (fail invariant 4, D1), plus the raw-versus-packaged invariant-6 case.
+   (fail invariant 4, D1), plus the raw-versus-packaged invariant-6 case and the four stored-group fixtures that pass
+   only once packaged (their verdicts record the raw result too).
 3. The recorded corpus reproduced exactly; whitespace edge cases; identical output across runs and hash seeds.
-4. CLI exit codes 0, 1, 3; receipts and snapshots idempotent; no run state touched; packet line size pinned.
+4. CLI exit codes 0, 1, 3; receipts and snapshots idempotent; no run state touched; guidance line size pinned; the
+   printed command appears in producer packets only.
 5. Parity in the Backchain checkout on every fixture and single-edit mutations; register the new suite in
    `test/suite_catalog.py`.
 
@@ -214,7 +220,7 @@ I1, I2 and I2b run now. I3 onward costs money and starts only after I2 and I2b p
 | --- | --- | --- | --- | --- |
 | **I0** Replay the Luna 1.16.1 loops from what the run kept | Luna max battleship, 1.16.1 (still running) (no model cost) | The first productive pass changes most of the graph and later passes mostly refine confirmation clauses. A structural check and a requirement-id check would not have found the loop's findings. *(written after looking; exploratory)* | n/a (done: partly) | B1, B2, B4 |
 | **I1** Build the check and prove it against the reference verdicts | unit tests, recorded verdicts of the reference validator (no model cost) | A Python port of Backchain's seven invariants gives the same verdict as the reference validator on every recorded fixture (the structural good and bad corpus, and the Luna candidates, each packaged first): the same ok, failing invariant numbers and parallel groups. It passes the plan candidates and rejects both step-plan candidates on invariant 4 (discovered step D1 unconsumed), as the reference does. *(revised)* | A disagreement is settled against lib.js and the recorded corpus, not SKILL.md alone. The wrong side is fixed and the case joins the corpus. | B2 |
-| **I2** Wire it in, record only: verb, packet line, receipts, snapshots | hermetic tests, then the Sonnet hello gate (about $3 for the hello gate) | A run that never invokes the check behaves exactly as before: Sonnet hello passes with an unchanged packet. A run that invokes it gets a receipt and a snapshot written by the script, and a failing check is reported to the model as a finding for the loop. Nothing is refused. *(revised)* | A false report on a valid candidate blocks the release; the verb stays, the packet line goes. | B2, P2, P5 |
+| **I2** Wire it in, record only: verb, packet lines, receipts, snapshots | hermetic tests, then the Sonnet hello gate (about $3 for the hello gate) | A run that never invokes the check behaves exactly as before: Sonnet hello passes; its plan packet gains the two Backchain-check lines and nothing else. A run that invokes it gets a receipt and a snapshot written by the script, and a failing check is reported to the model as a finding for the loop. Nothing is refused. *(revised)* | A false report on a valid candidate blocks the release; the verb stays, the packet line goes. | B2, P2, P5 |
 | **I2b** Trim the planning prompts: step-plan route, repeated bookkeeping, copied lens screen | hermetic tests and graph-dry-run counts, then one seeded Luna run at step-plan (no model cost for the text; hours for the seeded run) | The step-plan packet no longer prints the six-file Backchain list or the loop text, and still offers the audit route and repair or revise after a material finding. At spec and step-plan the Backchain text falls from about 553 to about 75 words and the repeated identity and digest instructions at plan from about 339 to about 80. Review records point to the existing lens screen instead of copying it. Every justified obligation stays. A seeded Luna run at step-plan starts no whole plan/draft loop. | If the model still starts a whole loop at step-plan, the text is not the cause: revisit which route the packet makes reachable. | B1, B4, P3 |
 | **I3** Pilot Track 1 from the planted draft: arms A and B | one held-out case, packaged draft versus dependency review and elaborator plus the check (measured by the pilot) | Arms A (the packaged planted draft) and B (dependency review and elaborator on that draft, then the check) run headless on one held-out case and are scored by its expect.A.json checks. The loop arm C waits until the runner can start the Until Loop. The pilot measures minutes, variance and whether B beats A, as the casebook showed. *(revised)* | If an arm cannot be run or scored headless, stop and report. Do not build the screen on a runner that cannot hold its own arms. | B1 |
 | **I4** Screen A, B and C on the held-out cases, with a rule registered first | held-out casebook cases, three arms each (measured by the pilot) | C beats B in a majority of decisive held-out cases on the planted-defect checks. Otherwise, or when fewer than five cases are decisive, no policy changes and a confirmatory run is sized. *(revised)* | Skip I5. The loop stays optional and the script decides when to offer it. | B1, B4 |
