@@ -255,7 +255,7 @@ def total_cost(sessions: list[dict]) -> float | None:
 
     A host that reports no cost (Codex) has an unknown cost, not a free run, and a session that ended without
     one makes the rest a part, not a total. The one implementation: the metrics and the CLI summary both call it.
-    A session that never ended is not in ``sessions`` at all.
+    A session that never ended is not in ``sessions`` at all; ``unreported_sessions`` counts those.
     """
     costs = [s.get("cost_usd") for s in sessions if isinstance(s, dict)]
     if not costs or any(isinstance(c, bool) or not isinstance(c, (int, float)) for c in costs):
@@ -275,6 +275,7 @@ def collect(out: Path, run_dir: Path | None = None) -> dict:
     cancelled: list[str] = []
     reads: list[str] = []
     tool_blocks = 0  # Claude tool_use blocks: calls this collector cannot classify
+    starts = 0  # sessions the host began, to tell how many never reported an end
     # A session that reports no per-call usage (Codex) contributes its own turn count.
     unreported, calls_in_session = 0, 0
     for number, event in events(out / "events.jsonl"):
@@ -282,6 +283,8 @@ def collect(out: Path, run_dir: Path | None = None) -> dict:
         t = stamps.get(number)
         if kind in ("usage", "assistant"):
             calls_in_session += 1
+        if kind == "available_commands" or (kind == "system" and event.get("subtype") == "init"):
+            starts += 1  # Codex and Grok open a session with available_commands, Claude with system/init
         if kind == "usage":
             turns.append({"t": t, "input": context_tokens(event.get("usage"))})
         elif kind == "assistant":  # Claude: one message per turn
@@ -354,6 +357,7 @@ def collect(out: Path, run_dir: Path | None = None) -> dict:
         "tokens": {"input_peak": max((x["input"] for x in turns if x["input"] is not None), default=None)},
         "unmeasured": unmeasured,
         "cost_usd": total_cost(sessions),
+        "unreported_sessions": max(0, starts - len(sessions)),
         "compactions": compactions,
         "truncated_outputs": len(truncated),
         "cancelled_tool_calls": cancelled,
@@ -596,6 +600,15 @@ def money(value) -> str:
     return "not reported" if value is None else f"${value}"
 
 
+def cost_text(run_metrics: dict) -> str:
+    """The cost for a printed line, saying so when sessions that never reported make it a lower bound.
+
+    A cost that is unknown has nothing for a lower bound to bound, so it says only that it is not reported.
+    """
+    cost, never = run_metrics.get("cost_usd"), run_metrics.get("unreported_sessions") or 0
+    return money(cost) + (f" (lower bound: {never} session(s) never reported)" if never and cost is not None else "")
+
+
 def count(run_metrics: dict, name: str) -> int | None:
     """How many of a detected thing (a list in the metrics), or None when the host cannot show it."""
     return None if name in (run_metrics.get("unmeasured") or {}) else len(run_metrics[name])
@@ -616,7 +629,7 @@ def summary_lines(metrics: dict, top: int = 5) -> list[str]:
     def shown(name: str) -> str:
         return "not measured" if name in unmeasured else str(len(metrics[name]))
 
-    lines = [f"turns {metrics['turns']}, cost {money(metrics['cost_usd'])}, sessions {len(metrics['sessions'])} "
+    lines = [f"turns {metrics['turns']}, cost {cost_text(metrics)}, sessions {len(metrics['sessions'])} "
              f"({', '.join(str(s['stop']) for s in metrics['sessions']) or 'none ended'}), "
              f"compactions {metrics['compactions']}, truncated outputs {metrics['truncated_outputs']}, "
              f"cancelled tool calls {shown('cancelled_tool_calls')}, "

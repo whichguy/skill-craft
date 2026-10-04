@@ -1552,8 +1552,9 @@ def main(argv: list[str] | None = None) -> int:
               "shiploop": shiploop, "committed": committed, "checks": check_results, "cli": cli_seen, "follow_on": follow_on,
               "resumed_run": resumed, "seeded": seeded, "chain": chain, "recovery": recovery, "budget": budget,
               "expectations": expectations,
-              "metrics": {k: run_metrics[k] for k in ("turns", "cost_usd", "compactions", "truncated_outputs",
-                                                      "improve_children", "stages", "unmeasured")}
+              "metrics": {k: run_metrics[k] for k in ("turns", "cost_usd", "unreported_sessions", "compactions",
+                                                      "truncated_outputs", "improve_children", "stages",
+                                                      "unmeasured")}
               # None, not 0, where the host's events cannot show the thing counted.
               | {"script_verifications": run_metrics["script_verifications"],
                  "model_glue": metrics.count(run_metrics, "model_glue"),
@@ -1584,7 +1585,7 @@ def main(argv: list[str] | None = None) -> int:
     print(f"  process   {mark(process['pass'])}  " + (
         "no host ran: regraded from what is on disk" if process.get("regraded") else
         f"{process['status']} rc={process['returncode']} {sum(s['elapsed_seconds'] for s in sessions):.1f}s "
-        f"cost={metrics.money(cli_seen.get('cost_usd'))} sessions={len(sessions)}"))
+        f"cost={metrics.cost_text(run_metrics)} sessions={len(sessions)}"))
     if keepalive is not None:
         print(f"  keepalive {'installed' if keepalive['installed'] else 'NOT installed'}; "
               f"decisions {keepalive['decisions'] or 'none (hooks never ran)'}")

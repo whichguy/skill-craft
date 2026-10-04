@@ -123,7 +123,10 @@ Grok events carry no time) and ShipLoop's run directory:
 - sessions and how each ended (`sessions`: its stop, turns, cost and the host's own
   `usage`, kept as the host wrote it and never summed), turns, peak context (null when
   no call reported its context), cost (unknown, null, unless every session that ended
-  reported one), auto-compactions, host-truncated outputs, test runs and Improve
+  reported one), `unreported_sessions` (sessions that began and never reported an end,
+  such as one killed with the task: any above 0 makes turns and cost a lower bound, and
+  the printed cost says so; it is a field of `metrics.json` and `result.json`, not a
+  baseline key), auto-compactions, host-truncated outputs, test runs and Improve
   children;
 - every `shiploop` command that exited non-zero, with its failing line;
 - which `docs/shiploop/` files the model read.
@@ -208,7 +211,8 @@ product hang; it does not say the product is wrong.
 - No output-token figure is built from events: a Claude message's output count is a
   streaming snapshot (it summed to about 1/17 of the session's own total on a recorded
   run), and Codex has none per call. A session's tokens are the host's own `usage` in
-  `sessions`. Cost and turns add up across the sessions that reported.
+  `sessions`. Cost and turns add up across the sessions that reported; a session killed
+  before it reported is counted in `unreported_sessions`, not estimated.
 - The Run Review page's stage minutes come from the exporter's own accept-to-accept
   computation (`skills/shiploop-e2e-audit/run-review/export.py`), not from
   `metrics.json`. The first stage differs: the exporter starts at the engine's
@@ -262,7 +266,8 @@ uses it on purpose. Publish (`scripts/release.py`, then
   also ends whenever the model ends its turn; when that happens while ShipLoop's run is
   still `active`, the harness resumes the same session (`grok --resume`, default 20
   times, `--max-resumes`) with a prompt to run `shiploop next`, within the timeout.
-  Turns and cost add up across sessions.
+  Turns and cost add up across the sessions that reported (`unreported_sessions`
+  counts those that did not).
 - **Grok** runs with a throwaway `HOME`. Its `.grok` holds only a symlink to
   your `~/.grok/auth.json` and the plugin under test, so your Grok plugins, the
   running Grok leader and everything Grok inherits from `~/.claude` stay out.

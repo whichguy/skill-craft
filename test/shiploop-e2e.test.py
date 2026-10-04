@@ -73,7 +73,7 @@ mode = os.environ.get("FAKE_MODE")
 plugin = argv[argv.index("--plugin-dir") + 1] if "--plugin-dir" in argv else None
 print(json.dumps({{"type": "system", "subtype": "init", "model": "fake-model",
                   "slash_commands": [] if mode == "no-skill" else ["skill-craft:shiploop"],
-                  "plugins": [{{"name": "skill-craft", "path": plugin}}] if plugin else []}}))
+                  "plugins": [{{"name": "skill-craft", "path": plugin}}] if plugin else []}}), flush=True)
 print(json.dumps({{"type": "assistant", "message": {{"content": [{{"type": "tool_use", "name": "Bash",
                   "input": {{"command": "shiploop next"}}}}]}}}}))
 if mode in ("done", "no-skill"):
@@ -593,6 +593,8 @@ class SeedTest(HarnessCase):
         self.assertEqual(code, 0, {k: result.get(k) for k in ("process", "chain", "recovery", "shiploop")})
         sessions = result["process"]["sessions"]
         self.assertEqual([s["status"] for s in sessions], ["interrupted", "exited"])
+        # The killed session began and never reported: the cost is a lower bound by one session.
+        self.assertEqual(result["metrics"]["unreported_sessions"], 1)
         self.assertTrue(result["recovery"]["pass"], result["recovery"])
         self.assertEqual(result["recovery"]["interrupt"]["at"], "chain-launched")
         self.assertIn("This session ended", (Path(result["output"]) / "resume-after-interrupt.txt").read_text()
@@ -1401,6 +1403,30 @@ class MetricsTest(unittest.TestCase):
                           {"type": "usage", "usage": {"input_tokens": 200}}])
         self.assertEqual((m["turns"], m["tokens"]), (4, {"input_peak": 1500}))
 
+    def test_a_session_killed_before_it_reported_makes_the_cost_a_lower_bound(self):
+        init = {"type": "system", "subtype": "init", "model": "m"}
+        result = {"type": "result", "subtype": "success", "num_turns": 5, "total_cost_usd": 1.85}
+        opened = {"type": "available_commands", "commands": []}
+        end = {"type": "end", "stopReason": "end_turn", "num_turns": 5, "total_cost_usd": None}
+        for label, events, want in (
+                ("Claude: four sessions began and one reported", [init, init, init, init, result], 3),
+                ("Claude: the first was killed, the second finished", [init, init, result], 1),
+                ("Codex or Grok: two began and one reported", [opened, opened, end], 1),
+                ("Grok: killed before any end", [opened], 1),
+                ("every session reported", [init, result, opened, end], 0),
+                ("an end with no recorded start is never negative", [result, end], 0),
+                ("a Claude system event that is not an init is not a start",
+                 [{"type": "system", "subtype": "task_started"}, result], 0)):
+            m, _ = self.read(events)
+            self.assertEqual(m["unreported_sessions"], want, label)
+        m, _ = self.read([init, init, result])
+        self.assertEqual(metrics.cost_text(m), "$1.85 (lower bound: 1 session(s) never reported)")
+        self.assertIn("cost $1.85 (lower bound: 1 session(s) never reported)", metrics.summary_lines(m)[0])
+        whole, _ = self.read([init, result])
+        self.assertEqual(metrics.cost_text(whole), "$1.85")
+        unknown, _ = self.read([opened, opened, end])  # no figure, so nothing for a lower bound to bound
+        self.assertEqual(metrics.cost_text(unknown), "not reported")
+
     NARRATIVE_BODY = ("#### \U0001f6a2 ShipLoop \u2014 Add a flag\n`\u2588\u2591` **Preparation 1/7**\n\n"
                       "**\u25b6\ufe0f Now** \u2014 **spec**: define behavior\n")
 
@@ -1569,9 +1595,10 @@ class CodexRunTest(HarnessCase):
         self.assertTrue(result["plugin"]["pass"], result["plugin"])
         self.assertTrue(result["committed"]["pass"], result["committed"])
         self.assertEqual(result["cli"]["num_turns"], 2)
-        # Codex reports no dollar cost: unknown everywhere, not $0.
+        # Codex reports no dollar cost: unknown everywhere, not $0, and its one session reported its end.
         self.assertIsNone(result["cli"]["cost_usd"])
         self.assertIsNone(result["metrics"]["cost_usd"])
+        self.assertEqual(result["metrics"]["unreported_sessions"], 0)
 
     def test_model_and_effort_toggle_by_flag(self):
         code, result = self.invoke("codex", "done", "--model", "gpt-6-sol", "--effort", "xhigh")
@@ -2141,6 +2168,17 @@ class ReportedCostThroughMainTest(PrintedCase):
         self.assertIn("cost=not reported", process)
         self.assertNotIn("$0", process)
         self.assertIn("cost not reported", self.line(printed, "  metrics   turns"))
+
+    def test_a_session_the_run_killed_is_named_beside_the_cost_and_is_not_a_baseline_key(self):
+        code, result, printed = self.invoke_printed("claude", "chain-hang", "--interrupt-at", "chain-launched")
+        self.assertEqual(code, 0, result)
+        note = "(lower bound: 1 session(s) never reported)"
+        self.assertIn(f"cost=$0.0 {note}", self.line(printed, "  process"))
+        self.assertIn(f"cost $0.0 {note}", self.line(printed, "  metrics   turns"))
+        self.assertNotIn("unreported_sessions", run.baseline_row(result, None, None))
+        code, result, printed = self.invoke_printed("claude", "done")
+        self.assertEqual(result["metrics"]["unreported_sessions"], 0)
+        self.assertNotIn("lower bound", printed)
 
 
 class ResumedRunRecordTest(PrintedCase):
