@@ -83,8 +83,13 @@ pending through pre-release acceptance; that alone does not block reaching the
 release that supplies its prerequisite. A required case already due but failed,
 blocked or not run prevents declaring that boundary complete. Retain corrective
 work through the existing repeat/blocked/replan routes. Do not postpone an
-already-due check simply to advance. For an enabled delivery contract, preserve
-its fixed obligation phases and correction rules; this guidance does not move them.
+already-due check simply to advance. A required case that only a person can run,
+where the discovery and test-strategy records show this host has no route to it,
+is not such a check: it is an open item owned by that person and due at handoff
+(or the stage whose external effect it gates), reported unverified, and it does
+not prevent declaring the boundary complete. For an enabled delivery contract,
+preserve its fixed obligation phases and correction rules; this guidance does not
+move them.
 
 ## Test cases
 
