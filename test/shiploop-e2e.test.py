@@ -2212,6 +2212,106 @@ class PluginVerdictCarriedTest(PrintedCase):
         self.assertEqual(result["plugin"]["loaded"], [])
 
 
+# What ShipLoop leaves behind when a run ends before it has returned anything: its empty baseline commit and a
+# run directory that is done. The product (a file) never reached the source checkout.
+FAKE_CLAUDE_EMPTY_BASELINE = f"""#!{sys.executable}
+import json, subprocess, sys
+from pathlib import Path
+sys.path.insert(0, {str(ROOT / 'skills/shiploop/scripts')!r})
+import shiploop_store as store
+argv = sys.argv[1:]
+plugin = argv[argv.index("--plugin-dir") + 1]
+print(json.dumps({{"type": "system", "subtype": "init", "model": "fake-model",
+                  "slash_commands": ["skill-craft:shiploop"], "plugins": [{{"name": "skill-craft", "path": plugin}}]}}))
+print(json.dumps({{"type": "assistant", "message": {{"content": [{{"type": "tool_use", "name": "Bash",
+                  "input": {{"command": "shiploop next"}}}}]}}}}))
+subprocess.run(["git", "init", "-q"], check=True)
+subprocess.run(["git", "-c", "user.name=ShipLoop", "-c", "user.email=shiploop@example.invalid",
+                "-c", "commit.gpgsign=false", "commit", "-q", "--allow-empty",
+                "-m", "Empty baseline for the first ShipLoop run"], check=True)
+Path(".git/info").mkdir(exist_ok=True)
+Path(".git/info/exclude").write_text(".shiploop/\\n")  # the run directory is not a product path
+Path(".shiploop").mkdir()
+store.write_record(Path(".shiploop/state.md"), {{"status": "done"}})
+Path(".shiploop/report.html").write_text("<html></html>")
+print(json.dumps({{"type": "result", "subtype": "success", "num_turns": 1, "total_cost_usd": 0.0, "result": "done"}}))
+"""
+
+
+class CommittedVerdictTest(PrintedCase):
+    """`committed` means the product is in HEAD, not that HEAD differs from a start that had no commit.
+
+    On a fresh run ShipLoop's first act is an empty baseline commit, so HEAD always differs from "no commit".
+    Known limit, not guarded: any file counts as product, so a future ShipLoop that returned only knowledge
+    files (docs/shiploop/) to the source checkout before the product would pass early."""
+
+    def repo(self) -> Path:
+        repo = self.tmp / "source"
+        repo.mkdir()
+        self.git(repo, "init", "-q")
+        return repo
+
+    def git(self, repo: Path, *args: str) -> str:
+        done = subprocess.run(["git", "-C", str(repo), "-c", "user.name=T", "-c", "user.email=t@example.invalid",
+                               "-c", "commit.gpgsign=false", *args], check=True, capture_output=True, text=True)
+        return done.stdout.strip()
+
+    def verdict(self, repo: Path, start_head: str | None = None) -> dict:
+        return run.committed_facts(run.knowledge_facts(repo), start_head)
+
+    def test_a_repository_holding_only_the_empty_baseline_commit_has_no_product(self):
+        repo = self.repo()
+        self.git(repo, "commit", "-q", "--allow-empty", "-m", "Empty baseline for the first ShipLoop run")
+        got = self.verdict(repo)
+        self.assertEqual((got["pass"], got["head_files"]), (False, 0))
+        self.assertTrue(got["head"], "HEAD exists and differs from a start with no commit: only the files say no")
+
+    def test_one_committed_file_is_product(self):
+        repo = self.repo()
+        (repo / "hello.py").write_text("print('hi')\n")
+        self.git(repo, "add", "--", "hello.py")
+        self.git(repo, "commit", "-q", "-m", "product")
+        got = self.verdict(repo)
+        self.assertEqual((got["pass"], got["head_files"], got["uncommitted"]), (True, 1, []))
+
+    def test_head_must_still_move_past_the_start_and_leave_no_product_path_uncommitted(self):
+        repo = self.repo()
+        (repo / "hello.py").write_text("print('hi')\n")
+        self.git(repo, "add", "--", "hello.py")
+        self.git(repo, "commit", "-q", "-m", "product")
+        head = self.git(repo, "rev-parse", "HEAD")
+        self.assertFalse(self.verdict(repo, start_head=head)["pass"], "HEAD never moved past where the run started")
+        (repo / "extra.py").write_text("x = 1\n")
+        got = self.verdict(repo)
+        self.assertFalse(got["pass"], "a product path is left untracked")
+        self.assertEqual((got["head_files"], got["uncommitted"]), (1, ["extra.py"]))
+
+    def test_a_run_that_returned_nothing_fails_committed_in_the_result_the_row_and_the_report(self):
+        fake = self.tmp / "claude-empty-baseline"
+        fake.write_text(FAKE_CLAUDE_EMPTY_BASELINE)
+        fake.chmod(fake.stat().st_mode | stat.S_IXUSR)
+        out = self.tmp / "out-empty-baseline"
+        printed = io.StringIO()
+        with contextlib.redirect_stdout(printed):
+            code = run.main(["--host", "claude", "--claude-bin", str(fake), "--output", str(out),
+                             "--plugin-dir", str(self.plugin), "--baseline", str(self.baselines),
+                             "--prompt", "make hello", "--check", "true"])
+        result = json.loads((out / "result.json").read_text())
+        # Everything else is right: ShipLoop is done, the plugin loaded, the check passes. Only the product is absent.
+        self.assertTrue(result["shiploop"]["pass"], result["shiploop"])
+        self.assertTrue(result["plugin"]["pass"] and result["invoked"]["pass"], result)
+        self.assertTrue(all(c["pass"] for c in result["checks"]), result["checks"])
+        self.assertEqual(code, 1, "a run that returned no file to the source checkout is not a pass")
+        self.assertFalse(result["pass"])
+        self.assertEqual((result["committed"]["pass"], result["committed"]["head_files"]), (False, 0))
+        self.assertFalse(self.last_row()["verdicts"]["committed"])
+        self.assertIn("0 files in HEAD", next(ln for ln in printed.getvalue().splitlines()
+                                              if ln.startswith("  committed")))
+        mismatch = (out / "mismatch.md").read_text()
+        self.assertIn("**committed**", mismatch)
+        self.assertIn("files in HEAD", mismatch)
+
+
 class BaselineAbsentTest(PrintedCase):
     def test_rows_that_name_no_host_say_nothing_was_compared_instead_of_printing_nothing(self):
         self.baselines.write_text(json.dumps({"case": "hello", "source": "checkout", "turns": 3}) + "\n")

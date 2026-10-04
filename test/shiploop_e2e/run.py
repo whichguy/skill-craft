@@ -14,7 +14,9 @@ there with one headless host process, shows its progress live, and grades:
   shiploop  a ShipLoop state.md under the output directory reports status
             "done" and its report.html exists
   committed the source checkout ends committed: HEAD moved past where the run
-            started and no product path is left uncommitted (logs aside)
+            started, holds at least one file (ShipLoop's own empty baseline
+            commit is not product) and no product path is left uncommitted
+            (logs aside)
   checks    every case check command exits 0 in the working directory
 
 --seed-at step-plan starts an Ask-Agent run whose stages before step-plan are
@@ -855,8 +857,27 @@ def knowledge_facts(work: Path) -> dict:
             "requirement_ids": sorted(set(knowledge_home._REQUIREMENT_ID.findall(spec.read_text())),
                                       key=lambda value: int(value.split("-")[1])) if spec.is_file() else [],
             "head_commits": len(g("rev-list", "HEAD").split()),
+            "head_files": len(g("ls-tree", "-r", "--name-only", "HEAD").splitlines()),
             "untracked_files": len(untracked),
             "branches": g("branch", "--format=%(refname:short)").split()}
+
+
+def committed_facts(knowledge: dict, start_head: str | None) -> dict:
+    """The ``committed`` verdict: the product is in HEAD, and none of it is left outside.
+
+    HEAD must have moved past where the run started, hold at least one file and leave no product
+    path uncommitted (logs aside). The file count is what makes the first test mean something: on a
+    fresh run ShipLoop's first act is an empty baseline commit, so HEAD always differs from a start
+    with no commit, and a run that ended before it returned anything would otherwise pass.
+
+    Known limit, not guarded: any file counts. A future ShipLoop that returned only knowledge files
+    (docs/shiploop/) to the source checkout before the product would pass early; today those stay in
+    ShipLoop's worktree until the product is returned.
+    """
+    head, files = knowledge["head"], knowledge["head_files"]
+    return {"pass": bool(head) and head != start_head and files > 0 and not knowledge["uncommitted"],
+            "start_head": start_head, "head": head, "head_files": files,
+            "uncommitted": knowledge["uncommitted"][:20]}
 
 
 def review_export(out: Path) -> str:
@@ -1508,8 +1529,7 @@ def main(argv: list[str] | None = None) -> int:
     shiploop["knowledge"] = knowledge_facts(work)
     start_head = (follow_on or {}).get("start_head") or (seeded or {}).get("start_head")
     knowledge = shiploop["knowledge"]
-    committed = {"pass": bool(knowledge["head"]) and knowledge["head"] != start_head and not knowledge["uncommitted"],
-                 "start_head": start_head, "head": knowledge["head"], "uncommitted": knowledge["uncommitted"][:20]}
+    committed = committed_facts(knowledge, start_head)
     run_metrics = metrics.collect(out, Path(shiploop["run_dir"]) if shiploop.get("run_dir") else None)
     (out / "metrics.json").write_text(json.dumps(run_metrics, indent=2) + "\n")
     check_env = {"PRIOR_WORK": str(Path(follow_on["prior"]) / "work")} if follow_on else {}
@@ -1602,7 +1622,7 @@ def main(argv: list[str] | None = None) -> int:
               f"{passed}/{len(shiploop['worktree_checks'])} checks pass there")
     print(f"  committed {mark(committed['pass'])}  HEAD {str(committed['head'])[:8]} (started at "
           f"{str(committed['start_head'])[:8] if committed['start_head'] else 'no commit'}); "
-          f"{len(knowledge['uncommitted'])} uncommitted product paths")
+          f"{committed['head_files']} files in HEAD, {len(knowledge['uncommitted'])} uncommitted product paths")
     print(f"  knowledge docs/shiploop/spec.md {'present' if knowledge['spec'] else 'missing'}"
           f"{', tracked' if knowledge['spec_tracked'] else ', not committed'}; {len(knowledge['requirement_ids'])} "
           f"requirement ids; HEAD has {knowledge['head_commits']} commits, {knowledge['untracked_files']} untracked files")
@@ -1669,8 +1689,9 @@ def main(argv: list[str] | None = None) -> int:
              f"{process['status']} rc={process['returncode']}"),
             (shiploop["pass"], "shiploop", "ShipLoop reaches done and writes its report",
              str(shiploop.get("status") or shiploop.get("reason"))),
-            (committed["pass"], "committed", "HEAD moves past the start and no product path is uncommitted",
-             f"HEAD {str(committed['head'])[:8]}, {len(committed['uncommitted'])} uncommitted"),
+            (committed["pass"], "committed", "HEAD moves past the start, has files in HEAD and no product path is "
+             "uncommitted", f"HEAD {str(committed['head'])[:8]}, {committed['head_files']} files in HEAD, "
+             f"{len(committed['uncommitted'])} uncommitted"),
         ) if not ok]
         if chain is not None and not chain["pass"]:
             want = chain["expect"]

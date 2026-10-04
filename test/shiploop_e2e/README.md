@@ -98,7 +98,9 @@ pre-created. It grades five verdicts into `result.json`:
   an external workspace root the agent chose beside `work/`) has status `done`, with
   its `report.html`;
 - **committed**: the source checkout ends committed: HEAD moved past where the
-  run started, and no product path is left modified or untracked (`*.log` aside);
+  run started, holds at least one file (ShipLoop's own empty baseline commit is not
+  product; any file counts, so this is a floor, not a check of what the product is),
+  and no product path is left modified or untracked (`*.log` aside);
 - **checks**: each case check command exits 0 in `work/`.
 
 The output directory keeps the prompt, argv, raw events, a readable
