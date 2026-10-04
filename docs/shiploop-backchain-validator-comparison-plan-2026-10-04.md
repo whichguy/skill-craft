@@ -88,13 +88,12 @@ Port rules, from what the review found in `lib.js`:
 
 ### 3.2 First increment (I1, I2): record only
 
-- `shiploop backchain-check [--candidate PATH]`: packaged clone, seven invariants, completion status, advisory
+- `shiploop backchain-check --candidate PATH`: packaged clone, seven invariants, completion status, advisory
   unconfirmed produces. It writes an immutable snapshot of the bytes checked and a receipt (schema
   `shiploop-backchain-check/v1`: candidate sha256, `ok`, failures with invariant numbers, completion, groups, counts)
   under `run/backchain/<action>/`. Exit 0 valid, 1 invalid structure, 3 could not run (lint's convention).
 - One packet line, in Backchain routes only: run the check after each revision; a failing check is a finding for the
-  loop; cite the receipt in `evidence_refs`. The harness gains a `backchain` metrics block (receipts, candidate
-  revisions, steps and bytes changed per revision). Nothing is refused.
+  loop; cite the receipt in `evidence_refs`. The run review exporter's loop ledger reads the receipts. Nothing is refused.
 
 ### 3.3 Deferred: a refusal gate
 
