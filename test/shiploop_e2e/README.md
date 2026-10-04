@@ -111,18 +111,23 @@ Every run also writes `metrics.json`, derived from the event stream, the
 arrival times the runner stamps on each non-streaming event (`timeline.jsonl`;
 Grok events carry no time) and ShipLoop's run directory:
 
-- per accepted stage (`stages`): the stage, its outcome, seconds, host turns, tool
-  calls and output tokens. Stages come from ShipLoop's own records, never from
+- per accepted stage (`stages`): the stage, its outcome, seconds, host turns and tool
+  calls. Stages come from ShipLoop's own records, never from
   file times: `state.md` history joined to the run's `timeline.json` by action id,
   so a stage is bounded by the engine's acceptance stamps. A stage the engine did
   not stamp, and the stage right after it, report `timing: "unavailable"` instead
   of a zero. A run that stopped before accepting its current stage gets a last
-  `incomplete` row for it. No cost is split per stage (the earlier turn-weighted
-  `cost_share_usd` was one total redistributed, not a measurement); cost stays
+  `incomplete` row for it. No cost and no token count is split per stage; cost stays
   whole-run. "Reading per-stage figures" below says what these numbers can and
   cannot tell you;
-- sessions and how each ended, turns, peak context, cost, auto-compactions,
-  host-truncated outputs, test runs and Improve children;
+- sessions and how each ended (`sessions`: its stop, turns, cost and the host's own
+  `usage`, kept as the host wrote it and never summed), turns, peak context (null when
+  no call reported its context), cost (unknown, null, unless every session that ended
+  reported one), `unreported_sessions` (sessions that began and never reported an end,
+  such as one killed with the task: any above 0 makes turns and cost a lower bound, and
+  the printed cost says so; it is a field of `metrics.json` and `result.json`, not a
+  baseline key), auto-compactions, host-truncated outputs, test runs and Improve
+  children (the directories ShipLoop made, not their `-bind.md` receipts);
 - every `shiploop` command that exited non-zero, with its failing line;
 - which `docs/shiploop/` files the model read.
 
@@ -198,10 +203,16 @@ product hang; it does not say the product is wrong.
   two identical runs can differ by a turn in a stage.
 - Seconds are wall clock between two stamps. A `--resume-run` gap, a credit stop or
   a pause inside a stage is counted as that stage's time.
-- Turns count assistant content-block events, about 1.7 times the host's API calls
-  on Claude.
+- Turns count assistant content-block events, between 1.6 and 2 times the host's own
+  turn count (`result.num_turns`) on recorded Claude runs.
 - A host reports what it reports. Codex emits no per-call usage, so per-stage turns
-  and tokens are not available for it: read a 0 there as not measured.
+  are not available for it: they are null in `metrics.json` and named in `unmeasured`,
+  never 0.
+- No output-token figure is built from events: a Claude message's output count is a
+  streaming snapshot (it summed to about 1/17 of the session's own total on a recorded
+  run), and Codex has none per call. A session's tokens are the host's own `usage` in
+  `sessions`. Cost and turns add up across the sessions that reported; a session killed
+  before it reported is counted in `unreported_sessions`, not estimated.
 - The Run Review page's stage minutes come from the exporter's own accept-to-accept
   computation (`skills/shiploop-e2e-audit/run-review/export.py`), not from
   `metrics.json`. The first stage differs: the exporter starts at the engine's
@@ -255,7 +266,8 @@ uses it on purpose. Publish (`scripts/release.py`, then
   also ends whenever the model ends its turn; when that happens while ShipLoop's run is
   still `active`, the harness resumes the same session (`grok --resume`, default 20
   times, `--max-resumes`) with a prompt to run `shiploop next`, within the timeout.
-  Turns and cost add up across sessions.
+  Turns and cost add up across the sessions that reported (`unreported_sessions`
+  counts those that did not).
 - **Grok** runs with a throwaway `HOME`. Its `.grok` holds only a symlink to
   your `~/.grok/auth.json` and the plugin under test, so your Grok plugins, the
   running Grok leader and everything Grok inherits from `~/.claude` stay out.

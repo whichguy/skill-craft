@@ -1024,3 +1024,30 @@ Question: do the landed A1 to A3 changes hold up under adversarial review, inclu
 - **Unverified.** Live behaviour: whether a Luna max battleship run on a release carrying this text submits `done` at system-test, and whether it then still blocks at `release-verify` (whose route is unchanged: `blocked` with `awaiting` when the release cannot be accepted without the observation). It needs a live run; none was started. Residual text left as is: the testing reference's browser section says to keep an unavailable browser check "blocked/unverified", and "Deployment and handoff" says required blocked or not-run checks remain unfinished at product-acceptance; both read as the status of the check, which the open item keeps, not as the run's outcome. The stage's printed done-when line ("every due system test ran") is script text; the relabelled due stage is what makes the item not due there. Gaming risk (a runnable check labelled person-only) rests on the paragraph's requirement that the discovery and test-strategy records show no route, on the script's rerun of every recorded command, and on "Do not substitute a planned case or local mock"; in the Luna run Chrome and safaridriver were installed and the model only scanned its tool catalog, a separate question not addressed here.
 - **Deferred, phase two.** `DUTIES["test-strategy"]` and `DUTIES["system-test-author"]` plan a person-only case with no discovered route as an open item from the start, instead of a required pre-release gate. Only if a live run on this text still spends hours on person gates.
 - Related: 4b5d41dd (the Luna final entry and action a13), 3592b195 (I2b, the same Luna run), 6a59012c (A1 review follow-up, which rewrote the test-loop file this change extends).
+
+## Cost and counts that misled — 2026-10-04 (R3 to R5, chain B) — status: firm (hermetic tests; recorded runs recomputed); not yet seen in a live run
+
+Plan: `docs/shiploop-e2e-plan-reconciliation-2026-10-04.md` section 4. Commits: R3 `8de0bcb5`, R4 `ddf33967`, R5 `7eb7ee88`, on top of `ce32a143` (counters a host does not report are null) and `3c604304` (A2, A3). The plan was written before `ce32a143`; each item was re-checked against the code at `8b42ff18` first.
+
+**Disposition.**
+- R3, partly done by `ce32a143`: `metrics.collect` already gave a null cost when no session reported one, null Codex turns, and `input_peak` None for a stream with no usage events (progress already printed "peak context n/a"). Left, and fixed: `run.summarize_events` still summed `or 0`, so `result.json` `cli.cost_usd` was 0 and the process line printed `cost=$0` for the same Codex run (reproduced through `run.main` on the fake Codex); a mix of one session that reported and one that did not printed the part as the whole; the host's own usage was dropped; the output-token fields (null for Claude and Codex since `ce32a143`) were still summed from Grok-shaped usage events and read by nothing; a usage event without numbers added a 0 to the peak. One `metrics.total_cost(sessions)` now serves both sites; `sessions[].usage` keeps the host's dict as written; `tokens.output_total`, the per-stage `output_tokens` and the `output_tokens` unmeasured entry are gone (nothing read them: `progress.py` reads `input_peak` only and the Run Review exporter reads neither).
+- R4, open: no start count existed. `unreported_sessions = max(0, starts - ended)` is in `metrics.json` and `result.json` metrics, printed beside the cost, and is not a baseline key.
+- R5, open: `improve_children` counted `-bind.md` receipts.
+
+**Evidence** (copies of the finished run directories under `/Users/dadleet/e2e-runs`, `metrics.collect` rerun with this code, then `export.py` over each; the exporter ran on all three and its own counts agree with the metrics now):
+
+| Run | cost | unreported_sessions | improve_children | host's own usage in `sessions[0].usage` |
+|---|---|---|---|---|
+| `20261003/v1161-battleship-luna` (Codex) | null (was `cli.cost_usd` 0) | 1 (2 starts, 1 end) | 9 (was 18) | input 172,611,340, output 1,622,714 |
+| `20261003/batch-sonnet/seat-reservations` (Claude) | $1.8496, a lower bound | 3 (4 starts, 1 end) | 12 (was 24) | output 28,419 |
+| `20261004/v1190-hello-sonnet` (Claude) | $5.3678 | 0 | 8 (was 16) | output 69,770 |
+
+A scan of the 12 recorded run directories finds 6 with more session starts than ends; all 6 carry `resumed_run`. Five single-session Claude runs carry 1.60 to 1.72 harness turns per `result.num_turns` (the plan's 11-run range was 1.70 to 1.96; the README now says between 1.6 and 2).
+
+**Superseded by this entry** (not edited in place above, the journal is append-only here):
+- Any earlier reading of a Luna run's cost as $0 or its tokens as 0 (`v1161-battleship-luna` `result.json` and `metrics.json`, and committed `baselines.jsonl` row 12, which carries `cost_usd` 0 for a Codex run; it names no host so it is never compared, and it is left as written).
+- Any "Improve children" count from a metrics file written before `7eb7ee88`: each is double (the v1161 Luna 18 is 9; the Run Review exporter already said 9).
+- "$1.85 for 423 turns" for `batch-sonnet/seat-reservations` as a whole-run cost: it is the cost of the one session that reported, beside the turns of four.
+- Claude `tokens.output_total` and per-stage `output_tokens` in any `metrics.json` written before `ce32a143` (a streaming snapshot: 4,087 against the host's 69,770 on `v1190-hello-sonnet`, 5,459 against 86,188 on `v1190-hello-sonnet-2`: 16 to 17 times low).
+
+**Limits, not fixed.** Whether a real Grok host emits `available_commands` once per session is unobserved (it is dormant), so a Grok run could print a spurious lower-bound note, which fails safe. After `codex exec resume`, whether Codex usage covers only the new turn is unobserved, so `sessions[].usage` summed across a resumed Codex run may not be the whole run. A cost is null when any ended session reported none, even if another did (each session's own cost stays in `sessions`). `iterate.py`'s two cost lines now print "not reported" instead of `$None` (a two-line change outside the metrics files, forced by `cli.cost_usd` becoming null).

@@ -149,7 +149,7 @@ def learnings_message(index: int, args, sha: str, result: dict, verdict: dict, p
              "Outcome", "",
              f"- run: {'PASS' if result['pass'] else 'FAIL'}; host {process['status']} "
              f"(rc {process['returncode']}) after {process['elapsed_seconds']} s, "
-             f"{cli.get('num_turns')} turns, reported cost ${cli.get('cost_usd')}",
+             f"{cli.get('num_turns')} turns, cost {runner.metrics.money(cli.get('cost_usd'))}",
              f"- ShipLoop: status {shiploop.get('status') or shiploop.get('reason')}, "
              f"stage {shiploop.get('stage')}, report {shiploop.get('report_html')}",
              f"- checks in work/: {sum(c['pass'] for c in checks)}/{len(checks)} pass"]
@@ -287,7 +287,7 @@ def main(argv: list[str] | None = None) -> int:
         result = json.loads((stage / "run" / "result.json").read_text())
         entry = [f"## Iteration {index} ({sha[:8]})", "",
                  f"- run: {'PASS' if result['pass'] else 'FAIL'} ({result['process']['status']}, "
-                 f"{result['process']['elapsed_seconds']}s, cost ${result['cli'].get('cost_usd')}, "
+                 f"{result['process']['elapsed_seconds']}s, cost {runner.metrics.money(result['cli'].get('cost_usd'))}, "
                  f"shiploop {result['shiploop'].get('status') or result['shiploop'].get('reason')}, "
                  f"checks {sum(c['pass'] for c in result['checks'])}/{len(result['checks'])})"]
         if not (result["invoked"]["pass"] and result["plugin"]["pass"]):
