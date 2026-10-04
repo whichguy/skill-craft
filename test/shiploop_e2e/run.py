@@ -419,15 +419,19 @@ def summarize_events(path: Path) -> dict:
         elif kind == "available_commands" and not seen["commands"]:  # Grok
             seen["commands"] = [c for c in event.get("commands") or [] if isinstance(c, str)]
         elif kind in ("result", "end"):
+            # The stop is the host's own reason, an error never a success (metrics.session_stop, the one rule).
+            stop = metrics.session_stop(event)
             seen.setdefault("sessions", []).append(
-                {"num_turns": event.get("num_turns"), "cost_usd": event.get("total_cost_usd"),
-                 "stop": event.get("subtype") or event.get("stopReason")})
-            seen.update(stop=event.get("subtype") or event.get("stopReason"))
+                {"num_turns": event.get("num_turns"), "cost_usd": event.get("total_cost_usd"), "stop": stop})
+            seen.update(stop=stop)
     ended = seen.get("sessions") or []
     if ended:
         # Each host session reports its own totals; a resumed run adds them up. The cost is
-        # unknown unless every ended session reported one (metrics.total_cost, the one rule).
-        seen["num_turns"] = sum(s["num_turns"] or 0 for s in ended)
+        # unknown unless every ended session reported one (metrics.total_cost, the one rule),
+        # and the turns are unknown unless one did: a count nobody reported is not 0.
+        reported = [s["num_turns"] for s in ended if isinstance(s["num_turns"], int)
+                    and not isinstance(s["num_turns"], bool)]
+        seen["num_turns"] = sum(reported) if reported else None
         seen["cost_usd"] = metrics.total_cost(ended)
     return seen
 

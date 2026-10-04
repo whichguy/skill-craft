@@ -2617,5 +2617,36 @@ class UnknownTurnsTest(unittest.TestCase):
         self.assertNotIn("not measured on this host", again, "said once per run, not on every poll")
 
 
+class CliSummaryRecordTest(PrintedCase):
+    """result.json's `cli` agrees with `termination` and the metrics: the same stop reason, and no turn count that
+    nobody reported turned into 0 (review 2: summarize_events)."""
+
+    def test_a_claude_api_error_is_an_error_in_the_cli_record_too(self):
+        code, result, printed = self.invoke_printed("claude", "api-error")
+        stops = result["termination"]["session_stops"]
+        self.assertTrue(stops[0].startswith("error: api_error"), stops)
+        self.assertEqual(result["cli"]["stop"], stops[0])
+        self.assertEqual([s["stop"] for s in result["cli"]["sessions"]], stops)
+
+    def test_a_normal_stop_and_a_failed_codex_turn(self):
+        code, result, printed = self.invoke_printed("claude", "done")
+        self.assertEqual((result["cli"]["stop"], result["cli"]["sessions"][0]["stop"]), ("success", "success"))
+        with tempfile.TemporaryDirectory() as tmp:
+            path = Path(tmp) / "events.jsonl"
+            path.write_text(json.dumps({"type": "end", "stopReason": "error", "num_turns": 2,
+                                        "error": "You've hit your usage limit.\nTry later"}) + "\n")
+            seen = run.summarize_events(path)
+        self.assertEqual(seen["stop"], "error: You've hit your usage limit. Try later")
+        self.assertEqual(seen["sessions"][0]["stop"], seen["stop"])
+
+    def test_the_cli_summary_does_not_turn_a_missing_turn_count_into_zero(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            path = Path(tmp) / "events.jsonl"
+            path.write_text(json.dumps({"type": "end", "stopReason": "end_turn", "total_cost_usd": None}) + "\n")
+            seen = run.summarize_events(path)
+        self.assertIsNone(seen["num_turns"])
+        self.assertIsNone(seen["cost_usd"])
+
+
 if __name__ == "__main__":
     unittest.main()
