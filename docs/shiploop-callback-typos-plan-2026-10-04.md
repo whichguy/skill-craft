@@ -158,3 +158,20 @@ Steps 1-4: `git -C <repo> revert <sha>`; the journal section is edited with a re
 2. An Until Loop wrapper verb (S-5) for the 7 of 62 script-path errors: not planned; wanted?
 3. Land the journal commit before or after the f3 merge with origin/main (step 2)?
 4. Does baselines.jsonl need an explicit "failures unmeasured" marker for pre-M1 Claude rows? Decide at M1 admission.
+
+## Corrections after execution (2026-10-04)
+
+Steps 1 to 3 were executed (`docs/experiments/shiploop-callback-failures-20261004/`, journal section in
+`test/shiploop_e2e/LEARNINGS.md`). Re-measuring at recorded cutoffs (events.jsonl line counts; the Luna run kept
+growing) corrected these figures of the plan; the script and `failures.json` are the source of truth, and the
+decision and the reopen triggers R1 and R2 stand unchanged:
+
+- **Session 2 counts:** 52 callbacks and 1,532 typed paths at cutoff 7,171 (the plan's 47 and 1,442 came from a snapshot near line 6,752). Callback typos are 3 of 52 (5.8%); the six typo events and the four broken commands are unchanged.
+- **p-values:** on the plan's own counts a one-sided hypergeometric gives 0.0147 and 0.148; on the current counts 0.0176 and 0.17. The plan's 0.017 matched the later count.
+- **Typing intervals:** 334, 155, 246, 30, 247, 194 (the fifth was 249). After the last typo the session typed 326 more paths and 13 callbacks with no further typo.
+- **Refusals behind exit 0:** 28 in recognised ShipLoop commands and 40 in any command; neither matches the plan's "about 30" or the reviewer's 33.
+- **Run-dir variables:** 141 recognised `complete` commands use a shell-variable run dir (`$R`, `$W` or `$B`); only 99 use literal `$R`.
+- **Content refusals:** still exactly 15. The seat-reservations case the plan called a possible false positive is a real refusal line after a failed model shell step.
+- **The four "other":** two Until Loop rejected-input packets, one unmatched quote and one model bind script that returned 127.
+- **Verification 1** was not run (it would overwrite the shared scratch `records.json`); Verifications 2 to 4 were, with the results above.
+
