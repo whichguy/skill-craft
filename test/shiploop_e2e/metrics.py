@@ -11,6 +11,7 @@ Never returns packet text: ShipLoop CLI output is reduced to the failing line.
 
 from __future__ import annotations
 
+from datetime import datetime, timezone
 import json
 from pathlib import Path
 import re
@@ -112,15 +113,80 @@ def visible(raw) -> str:
     return ""
 
 
-def stage_results(run_dir: Path | None) -> list[dict]:
-    """Accepted stage results in the order ShipLoop wrote them."""
-    if run_dir is None or not (run_dir / "results").is_dir():
+def engine_state(run_dir: Path | None) -> dict:
+    """ShipLoop's own state.md record, or an empty mapping."""
+    if run_dir is None or not (run_dir / "state.md").is_file():
+        return {}
+    found = STATE_BLOCK.search((run_dir / "state.md").read_text(errors="replace"))
+    if not found:
+        return {}
+    try:
+        value = json.loads(found.group("json"))
+    except ValueError:
+        return {}
+    return value if isinstance(value, dict) else {}
+
+
+def _epoch(text: object) -> float | None:
+    """One ShipLoop UTC stamp as epoch seconds, or None when it cannot be read."""
+    if not isinstance(text, str):
+        return None
+    for shape in ("%Y-%m-%dT%H:%M:%S.%fZ", "%Y-%m-%dT%H:%M:%SZ"):
+        try:
+            naive = datetime.strptime(text, shape)
+        except ValueError:
+            continue
+        return naive.replace(tzinfo=timezone.utc).timestamp()
+    return None
+
+
+def acceptance_stamps(run_dir: Path | None) -> dict[str, float]:
+    """When ShipLoop accepted each action, by action id, from its own timeline.json.
+
+    Advisory, not authoritative: the engine recreates a missing timeline and
+    gives a missing historical action the current time, so a stamp can be a
+    recovery artefact. An entry that cannot be read is left out rather than
+    guessed, which makes its stage report unavailable downstream.
+    """
+    if run_dir is None or not (run_dir / "timeline.json").is_file():
+        return {}
+    try:
+        raw = json.loads((run_dir / "timeline.json").read_text(errors="replace"))
+    except ValueError:
+        return {}
+    accepted = raw.get("accepted") if isinstance(raw, dict) else None
+    if not isinstance(accepted, dict):
+        return {}
+    return {action: when for action, text in accepted.items()
+            if isinstance(action, str) and (when := _epoch(text)) is not None}
+
+
+def stage_results(run_dir: Path | None, state: dict | None = None) -> list[dict]:
+    """Accepted actions in ShipLoop's own order, with its own acceptance times.
+
+    The authority is state.md's history -- stage, outcome and action id -- joined
+    to timeline.json by action id. Result-file mtimes are deliberately not used:
+    rewriting a file would move a boundary the engine never moved, and the order
+    history records is the order the graph took. An action whose stamp cannot be
+    read carries ``t`` None, so attribution reports it unavailable instead of
+    inventing a zero-length window.
+
+    ``state`` lets a caller that already read state.md pass it in, so one
+    collection cannot read two different versions of a live run's state.
+    """
+    history = (engine_state(run_dir) if state is None else state).get("history")
+    if not isinstance(history, list):
         return []
-    accepted = []
-    for path in sorted((run_dir / "results").glob("*.md"), key=lambda p: p.stat().st_mtime):
-        match = re.search(r'"stage"\s*:\s*"([^"]+)"', path.read_text(errors="replace"))
-        accepted.append({"stage": match.group(1) if match else path.stem, "t": path.stat().st_mtime})
-    return accepted
+    stamps = acceptance_stamps(run_dir)
+    rows = []
+    for entry in history:
+        if not isinstance(entry, dict):
+            continue
+        action = entry.get("action")
+        rows.append({"stage": entry.get("stage") or "?", "outcome": entry.get("outcome"),
+                     "work_item": entry.get("workitem"), "action": action if isinstance(action, str) else None,
+                     "t": stamps.get(action) if isinstance(action, str) else None})
+    return rows
 
 
 def improve_reviews(run_dir: Path | None) -> dict:
@@ -212,7 +278,10 @@ def collect(out: Path, run_dir: Path | None = None) -> dict:
                 unreported += event.get("num_turns") or 0
             calls_in_session = 0
     cost = round(sum(s["cost_usd"] or 0 for s in sessions), 4) if sessions else None
-    stages = per_stage(stage_results(run_dir), turns, calls, stamps, cost)
+    # One read of state.md for both the accepted history and the pending stage: a
+    # live run rewrites it on every transition, so two reads could disagree.
+    state = engine_state(run_dir)
+    stages = per_stage(stage_results(run_dir, state), turns, calls, stamps, pending_stage(state))
     improve = run_dir / "improve" if run_dir else None
     return {
         "tmp_writes": sorted(shared),
@@ -315,33 +384,92 @@ def narrative(out: Path, run_dir: Path | None = None) -> dict:
 
 
 def verifications(run_dir: Path | None) -> dict:
-    """The checks ShipLoop itself ran and recorded (tests/<action>-verify<N>.md), case-agnostic."""
+    """The checks ShipLoop itself ran and recorded (tests/<action>-verify<N>.md), case-agnostic.
+
+    ``could_not_run`` counts the attempts where no command reached a verdict
+    about the product (it timed out, could not start, or was skipped on budget).
+    Those refuse their stage without being evidence against it, so a run with
+    any of them is reporting an environment problem, not a product one.
+    """
     records = sorted(run_dir.rglob("*-verify*.md")) if run_dir and run_dir.is_dir() else []
-    passed = commands = 0
+    passed = commands = could_not_run = 0
     for path in records:
         text = path.read_text(errors="replace")
         passed += bool(re.search(r'"passed"\s*:\s*true', text))
+        could_not_run += bool(re.search(r'"disposition"\s*:\s*"could-not-run"', text))
         commands += len(re.findall(r'"command"\s*:', text))
-    return {"records": len(records), "passed": passed, "commands": commands}
+    return {"records": len(records), "passed": passed, "could_not_run": could_not_run, "commands": commands}
 
 
-def per_stage(accepted: list[dict], turns: list[dict], calls: dict, stamps: dict, cost: float | None) -> list[dict]:
-    """Turns, tool calls and time between one accepted stage result and the next.
+def pending_stage(state: dict) -> str | None:
+    """The stage ShipLoop was on when the run stopped, if it never accepted it.
 
-    Needs the runner's timeline; without it (older runs) only the order is known.
+    A run left active or blocked stopped somewhere, and that stage is exactly the
+    one an attrition question is about, so it must not be dropped.
     """
-    if not accepted or not stamps:
-        return [{"stage": a["stage"]} for a in accepted]
+    if state.get("status") in (None, "done", "halted"):
+        return None
+    stage = state.get("stage")
+    if stage != "inner-loop":
+        return stage if isinstance(stage, str) else None
+    loops, items, index = state.get("inner_loops"), state.get("work_items"), state.get("work_index")
+    if not (isinstance(loops, dict) and isinstance(items, list) and isinstance(index, int)):
+        return None
+    if not 0 <= index < len(items) or not isinstance(items[index], dict):
+        return None
+    record = loops.get(items[index].get("id"))
+    inner = record.get("stage") if isinstance(record, dict) else None
+    return inner if isinstance(inner, str) else None
+
+
+def per_stage(accepted: list[dict], turns: list[dict], calls: dict, stamps: dict,
+              pending: str | None = None) -> list[dict]:
+    """Turns, tool calls and time between one accepted action and the next.
+
+    Needs the runner's timeline; without it only the order and outcome are known.
+    An action ShipLoop could not stamp reports ``timing: "unavailable"`` rather
+    than a zero-length window, because a recreated timeline can give a historical
+    action the current time. When the run stopped without accepting its current
+    stage, a final ``incomplete`` row carries the work after the last acceptance,
+    so the stage a run died in is still attributed.
+
+    No cost is apportioned here: a per-stage share of one total, divided by turn
+    count, moves when prices or unrelated work move, so it would not measure the
+    stage. Total cost stays whole-run.
+    """
+    if not accepted:
+        return []
+    if not stamps:
+        return [{"stage": a["stage"], "outcome": a.get("outcome"), "timing": "unavailable"} for a in accepted]
     start = min(stamps.values())
     rows, previous, since = [], start - 1, start  # the first stamped event belongs to the first stage
-    total_turns = len([x for x in turns if x["t"] is not None]) or 1
+    gap = False  # the preceding action had no stamp, so this row's lower boundary is unknown
     for item in accepted:
+        base = {"stage": item["stage"], "outcome": item.get("outcome")}
+        if item.get("t") is None:
+            rows.append({**base, "timing": "unavailable"})
+            gap = True
+            continue
+        if gap:
+            # Its window also covers the unstamped action before it, so attributing
+            # the whole window here would overstate this stage. Attribution resumes
+            # from this known boundary.
+            rows.append({**base, "timing": "unavailable"})
+            previous = since = item["t"]
+            gap = False
+            continue
         window = [x for x in turns if x["t"] is not None and previous < x["t"] <= item["t"]]
         tools = [c for c in calls.values() if c["t"] is not None and previous < c["t"] <= item["t"]]
-        rows.append({"stage": item["stage"], "seconds": round(item["t"] - since, 1), "turns": len(window),
-                     "tool_calls": len(tools), "output_tokens": sum(x["output"] for x in window),
-                     "cost_share_usd": round(cost * len(window) / total_turns, 2) if cost else None})
+        rows.append({**base, "seconds": round(item["t"] - since, 1), "turns": len(window),
+                     "tool_calls": len(tools), "output_tokens": sum(x["output"] for x in window)})
         previous = since = item["t"]
+    last = max((x["t"] for x in turns if x["t"] is not None), default=None)
+    if pending and last is not None and last > since:
+        window = [x for x in turns if x["t"] is not None and previous < x["t"] <= last]
+        tools = [c for c in calls.values() if c["t"] is not None and previous < c["t"] <= last]
+        rows.append({"stage": pending, "outcome": None, "incomplete": True,
+                     "seconds": round(last - since, 1), "turns": len(window), "tool_calls": len(tools),
+                     "output_tokens": sum(x["output"] for x in window)})
     return rows
 
 
@@ -352,7 +480,9 @@ def summary_lines(metrics: dict, top: int = 5) -> list[str]:
              f"compactions {metrics['compactions']}, truncated outputs {metrics['truncated_outputs']}, "
              f"cancelled tool calls {len(metrics['cancelled_tool_calls'])}, "
              f"ShipLoop command failures {len(metrics['shiploop_failures'])}, "
-             f"script verifications {metrics['script_verifications']['passed']}/{metrics['script_verifications']['records']} passed, "
+             f"script verifications {metrics['script_verifications']['passed']}/{metrics['script_verifications']['records']} passed"
+             + (f" ({metrics['script_verifications']['could_not_run']} could not run)"
+                if metrics["script_verifications"].get("could_not_run") else "") + ", "
              f"model glue {len(metrics['model_glue'])}, asked a person {len(metrics['asked_user'])}, "
              f"Improve children {metrics['improve_children']}"
              + (f" ({metrics['improve_reviews']['passes']} review passes, at most "

@@ -706,3 +706,34 @@ Run `/Users/dadleet/e2e-runs/20261003/v1161-battleship-luna`, Codex gpt-6-luna m
 - Expected: none was stated, so the run could not fail on time.
 - Decision: **expectation**. Seeded chain cases now carry a should-level budget of 30 minutes (one
   background-task session), reported beside the verdicts.
+
+## Harness contract change — 2026-10-04 — status: firm (hermetic tests); not yet seen in a live run
+
+Not a run entry. It changes what the next run records and what it compares against, so read it
+before the next baseline comparison. Full reasoning, measurements and the change-admission
+record: `docs/shiploop-graph-engineering-comparison-2026-10-04.md`.
+
+- **Baselines now compare only within one host, model and effort** (SPEC: the driver is a
+  parameter). `baselines.jsonl` rows gained `host`, `model`, `effort`, per-stage rows and
+  `termination`; `previous_row` requires all three to match. **The 12 existing rows name none of
+  them, so they are no longer used as baselines** — the next run per case/host/model/effort
+  prints no comparison and becomes the new first row. That is deliberate: those rows mixed hosts.
+- **Per-stage attribution reads ShipLoop's own records**, not result-file mtimes: `state.md`
+  history joined to `timeline.json` by action id, carrying each stage's `outcome`. A stage the
+  engine could not stamp reports `timing: "unavailable"` instead of a zero-length window, and so
+  does the stage straight after an unstamped one, whose window covers both.
+- **`cost_share_usd` is gone.** It was one total redistributed by turn count, so a price change
+  or expensive work elsewhere moved a stage's dollars. Total cost stays whole-run.
+- **An unfinished run now attributes the stage it never accepted** (an `incomplete` row), which is
+  the stage an attrition question is about. Of the 11 recorded protocol-4 runs, 7 reached
+  `handoff`, 1 blocked at `plan` and 3 were left active; the worst now reports
+  `carry-forward never accepted`.
+- **`result.json` and each baseline row carry `termination`**: process status and return code,
+  each session's own stop reason, why the driver stopped resuming, and the engine's status and
+  unaccepted stage. `unknown` is kept rather than guessed, and a ShipLoop refusal is never
+  reported as the cause.
+- **`script_verifications` gained `could_not_run`**: attempts where no command reached a verdict
+  about the product. ShipLoop no longer counts those toward its 7 refused runs, so an environment
+  problem cannot rewrite a work item's step plan. Expect `0` on a healthy run; any non-zero value
+  is an environment problem, not a product one. **No case exercises a slow or breakable suite, so
+  these paths have never run live** — that is the open evidence gap for that engine change.

@@ -12,6 +12,7 @@ They say nothing about live ShipLoop behavior.
 from __future__ import annotations
 
 import contextlib
+import datetime
 import io
 import json
 import shutil
@@ -970,6 +971,197 @@ class CheckHygieneTest(unittest.TestCase):
             dropped = run.run_checks(work, [check], env={"PRIOR_WORK": str(prior)})[0]
             self.assertFalse(dropped["pass"], "a dropped earlier id still fails")
 
+def write_engine_records(run_dir: Path, accepted: list, *, status: str = "done",
+                         stage: str | None = None, inner: dict | None = None) -> None:
+    """Write the state.md and timeline.json a run would leave behind.
+
+    ``accepted`` is (action, stage, outcome, epoch-or-None); an action with None
+    gets no acceptance stamp, which is how an unreadable or recreated timeline
+    looks to the reader.
+    """
+    run_dir.mkdir(parents=True, exist_ok=True)
+    state = {"navigator_protocol_version": 4, "status": status,
+             "stage": stage or (accepted[-1][1] if accepted else "intake"),
+             "history": [{"stage": s, "outcome": o, "workitem": None, "action": a}
+                         for a, s, o, _t in accepted]}
+    if inner:
+        state.update(inner)
+    (run_dir / "state.md").write_text("# state\n\n```shiploop-state\n"
+                                      + json.dumps(state, indent=2) + "\n```\n")
+    # Second precision, which is what the navigator's own _utc_now writes.
+    def stamp(epoch: float) -> str:
+        return datetime.datetime.fromtimestamp(epoch, datetime.timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ")
+
+    (run_dir / "timeline.json").write_text(json.dumps(
+        {"started": stamp(min((t for *_x, t in accepted if t is not None), default=0)),
+         "accepted": {a: stamp(t) for a, _s, _o, t in accepted if t is not None}}, indent=2) + "\n")
+
+
+class StageAttributionTest(unittest.TestCase):
+    """Per-stage attribution reads ShipLoop's own records and never invents timing."""
+
+    def collect(self, accepted: list, *, status: str = "done", stage: str | None = None,
+                inner: dict | None = None, events: int = 6) -> dict:
+        with tempfile.TemporaryDirectory() as tmp:
+            out = Path(tmp)
+            run_dir = out / "run"
+            stream = [{"type": "usage", "usage": {"input_tokens": 100, "output_tokens": 1}}
+                      for _n in range(events)]
+            (out / "events.jsonl").write_text("\n".join(json.dumps(e) for e in stream) + "\n")
+            (out / "timeline.jsonl").write_text("\n".join(json.dumps({"line": n, "t": 100.0 + n})
+                                                          for n in range(events)) + "\n")
+            write_engine_records(run_dir, accepted, status=status, stage=stage, inner=inner)
+            return metrics.collect(out, run_dir)
+
+    def test_an_action_without_a_readable_stamp_reports_unavailable_not_zero(self):
+        m = self.collect([("A1", "intake", "done", 101.0), ("A2", "spec", "done", None)])
+        self.assertEqual(m["stages"][1], {"stage": "spec", "outcome": "done", "timing": "unavailable"})
+        self.assertIn("seconds", m["stages"][0])
+
+    def test_without_any_runner_timeline_every_stage_is_unavailable(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            out = Path(tmp)
+            run_dir = out / "run"
+            (out / "events.jsonl").write_text(json.dumps(
+                {"type": "usage", "usage": {"input_tokens": 1, "output_tokens": 1}}) + "\n")
+            write_engine_records(run_dir, [("A1", "intake", "done", 101.0)])
+            m = metrics.collect(out, run_dir)
+        self.assertEqual(m["stages"], [{"stage": "intake", "outcome": "done", "timing": "unavailable"}])
+
+    def test_the_stage_an_active_run_never_accepted_is_still_attributed(self):
+        m = self.collect([("A1", "intake", "done", 101.0)], status="active", stage="spec")
+        self.assertEqual([s["stage"] for s in m["stages"]], ["intake", "spec"])
+        incomplete = m["stages"][-1]
+        self.assertTrue(incomplete["incomplete"])
+        self.assertGreater(incomplete["turns"], 0)  # the work after the last acceptance
+
+    def test_an_active_inner_loop_reports_the_items_own_stage(self):
+        m = self.collect([("A1", "intake", "done", 101.0)], status="active", stage="inner-loop",
+                         inner={"work_index": 0, "work_items": [{"id": "W1", "title": "t"}],
+                                "inner_loops": {"W1": {"stage": "implement", "action": None}}})
+        self.assertEqual(m["stages"][-1]["stage"], "implement")
+
+    def test_a_finished_run_adds_no_incomplete_row(self):
+        m = self.collect([("A1", "intake", "done", 101.0), ("A2", "handoff", "done", 102.0)])
+        self.assertTrue(all(not s.get("incomplete") for s in m["stages"]))
+
+    def test_a_stage_after_an_unstamped_one_is_not_credited_with_its_time(self):
+        """Its window covers both actions, so attributing it all here would overstate it."""
+        m = self.collect([("A1", "intake", "done", 101.0), ("A2", "spec", "done", None),
+                          ("A3", "plan", "done", 104.0), ("A4", "prepare", "done", 105.0)])
+        timing = [(s["stage"], s.get("timing", "measured")) for s in m["stages"]]
+        self.assertEqual(timing, [("intake", "measured"), ("spec", "unavailable"),
+                                  ("plan", "unavailable"), ("prepare", "measured")])
+        # Attribution resumes from the next known boundary, not from before the gap.
+        self.assertEqual(m["stages"][3]["seconds"], 1.0)
+
+    def test_both_stamp_precisions_the_engine_writes_are_read(self):
+        """The navigator writes second precision; other records use microseconds."""
+        self.assertEqual(metrics._epoch("1970-01-01T00:01:41Z"), 101.0)
+        self.assertEqual(metrics._epoch("1970-01-01T00:01:41.500000Z"), 101.5)
+        self.assertIsNone(metrics._epoch("not a time"))
+        self.assertIsNone(metrics._epoch(None))
+
+    def test_the_committed_baseline_keeps_only_comparable_stage_fields(self):
+        rows = [{"stage": "spec", "outcome": "done", "seconds": 1.0, "turns": 2,
+                 "tool_calls": 3, "output_tokens": 4},
+                {"stage": "plan", "outcome": "done", "timing": "unavailable"},
+                {"stage": "implement", "outcome": None, "incomplete": True, "seconds": 5.0, "turns": 6,
+                 "tool_calls": 7, "output_tokens": 8}]
+        kept = run.baseline_stages(rows)
+        self.assertEqual(kept[0], {"stage": "spec", "outcome": "done", "seconds": 1.0, "turns": 2})
+        # The markers that say a row is not comparable must survive.
+        self.assertEqual(kept[1], {"stage": "plan", "outcome": "done", "timing": "unavailable"})
+        self.assertTrue(kept[2]["incomplete"])
+        self.assertTrue(all("tool_calls" not in r and "output_tokens" not in r for r in kept))
+        self.assertIsNone(run.baseline_stages(None))
+
+
+class BaselineComparabilityTest(unittest.TestCase):
+    """SPEC: a baseline compares only with rows from the same host, model and effort."""
+
+    ROWS = [{"case": "hello", "source": "marketplace", "host": "claude", "model": "m", "effort": "high",
+             "turns": 1},
+            {"case": "hello", "source": "marketplace", "host": "codex", "model": "m", "effort": "high",
+             "turns": 2},
+            {"case": "hello", "source": "marketplace", "turns": 3}]  # written before the fields existed
+
+    def rows_file(self, tmp: str) -> Path:
+        path = Path(tmp) / "baselines.jsonl"
+        path.write_text("".join(json.dumps(r) + "\n" for r in self.ROWS))
+        return path
+
+    def test_only_the_same_host_model_and_effort_is_a_baseline(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            path = self.rows_file(tmp)
+            same = run.previous_row(path, "hello", "marketplace", "claude", "m", "high")
+            other_host = run.previous_row(path, "hello", "marketplace", "codex", "m", "high")
+            other_effort = run.previous_row(path, "hello", "marketplace", "claude", "m", "xhigh")
+        self.assertEqual(same["turns"], 1)
+        self.assertEqual(other_host["turns"], 2)
+        self.assertIsNone(other_effort)  # no row ran that effort: nothing to compare with
+
+    def test_a_row_without_the_identity_fields_is_not_used_as_a_baseline(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            path = self.rows_file(tmp)
+            self.assertIsNone(run.previous_row(path, "hello", "marketplace", None, None, "high"))
+            # The legacy row names no host/model/effort, so it matches only an all-None request.
+            self.assertEqual(run.previous_row(path, "hello", "marketplace")["turns"], 3)
+
+    def test_the_stage_diff_locates_a_regression_and_refuses_to_guess(self):
+        before = [{"stage": "spec", "turns": 10, "seconds": 600}, {"stage": "implement", "turns": 5, "seconds": 60}]
+        now = [{"stage": "spec", "turns": 40, "seconds": 2400}, {"stage": "implement", "turns": 5, "seconds": 60}]
+        lines = run.stage_diff_lines(before, now)
+        self.assertIn("spec 10->40", lines[0])
+        self.assertNotIn("implement", lines[0])  # unchanged stages are not noise
+        self.assertEqual(run.stage_diff_lines(before, [{"stage": "spec", "timing": "unavailable"}]),
+                         ["per-stage comparison unavailable (one run has no measured stage timing)"])
+        self.assertEqual(run.stage_diff_lines(before, before), ["no per-stage turn difference"])
+
+    def test_a_partial_comparison_says_how_much_it_covers(self):
+        before = [{"stage": "spec", "turns": 10, "seconds": 600}]
+        now = [{"stage": "spec", "turns": 40, "seconds": 2400},
+               {"stage": "plan", "timing": "unavailable"},
+               {"stage": "implement", "timing": "unavailable"}]
+        lines = run.stage_diff_lines(before, now)
+        self.assertIn("covers 1 of 3 stages (2 had no measured timing)", lines[0])
+        self.assertIn("spec 10->40", lines[1])
+
+    def test_repeated_visits_to_one_stage_are_summed(self):
+        before = [{"stage": "implement", "turns": 3, "seconds": 30}]
+        now = [{"stage": "implement", "turns": 4, "seconds": 40} for _n in range(3)]
+        self.assertIn("implement 3->12", run.stage_diff_lines(before, now)[0])
+
+
+class TerminationRecordTest(unittest.TestCase):
+    """Why a run stopped is the harness's to record, and unknown is kept."""
+
+    def facts(self, engine: dict, resume_stop: str | None, stops: list) -> dict:
+        return run.termination_facts({"status": "exited", "returncode": 0, "sessions": [1], "resumes": 0},
+                                     {"sessions": [{"stop": s} for s in stops]}, engine, resume_stop)
+
+    def test_an_abandoned_run_names_the_stage_it_never_accepted(self):
+        engine = {"status": "active", "stage": "inner-loop", "work_index": 0,
+                  "work_items": [{"id": "W1"}], "inner_loops": {"W1": {"stage": "test-green"}}}
+        facts = self.facts(engine, "resume budget spent (8)", ["end_turn"])
+        self.assertEqual(facts["engine_status"], "active")
+        self.assertEqual(facts["engine_unaccepted_stage"], "test-green")
+        self.assertEqual(facts["resume_stop"], "resume budget spent (8)")
+
+    def test_a_missing_reason_is_unknown_and_never_guessed(self):
+        facts = self.facts({}, None, [None])
+        self.assertEqual(facts["resume_stop"], "unknown")
+        self.assertEqual(facts["session_stops"], ["unknown"])
+        self.assertEqual(facts["engine_status"], "unknown")
+        self.assertEqual(facts["engine_stage"], "unknown")
+        self.assertIsNone(facts["engine_unaccepted_stage"])
+
+    def test_a_finished_run_has_no_unaccepted_stage(self):
+        facts = self.facts({"status": "done", "stage": "handoff"}, "ShipLoop run is done", ["end_turn"])
+        self.assertIsNone(facts["engine_unaccepted_stage"])
+        self.assertEqual(facts["engine_stage"], "handoff")
+
+
 class MetricsTest(unittest.TestCase):
     def test_turns_failures_and_truncations_are_attributed_to_stages(self):
         with tempfile.TemporaryDirectory() as tmp:
@@ -999,22 +1191,25 @@ class MetricsTest(unittest.TestCase):
             (out / "events.jsonl").write_text("\n".join(json.dumps(e) for e in stream) + "\n")
             (out / "timeline.jsonl").write_text("\n".join(json.dumps({"line": n, "t": 100.0 + n})
                                                            for n in range(len(stream))) + "\n")
-            for name, stage, when in (("1-intake.md", "intake", 104.5), ("2-spec.md", "spec", 111.5)):
-                path = run_dir / "results" / name
-                path.write_text(f'```json\n{{"stage": "{stage}"}}\n```\n')
-                os.utime(path, (when, when))
+            # Stage boundaries come from ShipLoop's own history and acceptance
+            # stamps, joined by action id -- not from result-file mtimes.
+            write_engine_records(run_dir, [("A1", "intake", "done", 104.5), ("A2", "spec", "done", 111.5)])
             m = metrics.collect(out, run_dir)
         self.assertEqual(m["turns"], 3)
         self.assertEqual(m["cost_usd"], 3.0)
         self.assertEqual(m["compactions"], 1)
         self.assertEqual(m["truncated_outputs"], 2)
-        self.assertEqual(m["script_verifications"], {"records": 0, "passed": 0, "commands": 0})
+        self.assertEqual(m["script_verifications"],
+                         {"records": 0, "passed": 0, "could_not_run": 0, "commands": 0})
         self.assertEqual(m["cancelled_tool_calls"], ["git init -b main"])
         self.assertEqual(m["asked_user"], ["Which port?"])
         self.assertEqual(m["improve_children"], 1)
         self.assertEqual(m["shiploop_failures"], [{"verb": "complete", "exit": 2, "line": "error: result refused"}])
         self.assertEqual([(s["stage"], s["turns"]) for s in m["stages"]], [("intake", 2), ("spec", 1)])
-        self.assertEqual(m["stages"][0]["cost_share_usd"], 2.0)
+        self.assertEqual([s["outcome"] for s in m["stages"]], ["done", "done"])
+        # No cost is apportioned per stage: a share of one total, split by turn
+        # count, moves when prices or unrelated work move.
+        self.assertTrue(all("cost_share_usd" not in s for s in m["stages"]))
 
     NARRATIVE_BODY = ("#### \U0001f6a2 ShipLoop \u2014 Add a flag\n`\u2588\u2591` **Preparation 1/7**\n\n"
                       "**\u25b6\ufe0f Now** \u2014 **spec**: define behavior\n")
@@ -1144,7 +1339,7 @@ class MetricsTest(unittest.TestCase):
             (tests / "nav-2-verify1.md").write_text('{"passed": false, "runs": [{"command": "c"}]}')
             (tests / "nav-2-contract.json").write_text("{}")
             self.assertEqual(metrics.verifications(Path(tmp) / "run"),
-                             {"records": 2, "passed": 1, "commands": 3})
+                             {"records": 2, "passed": 1, "could_not_run": 0, "commands": 3})
 
     def test_progress_reports_only_what_is_new_and_never_a_run_marker(self):
         with tempfile.TemporaryDirectory() as tmp:
