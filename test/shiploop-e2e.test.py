@@ -414,6 +414,7 @@ class ClaudeRunTest(HarnessCase):
         self.assertEqual(argv[:2], ["-p", "/skill-craft:shiploop " + prompt])
         self.assertEqual(argv[argv.index("--model") + 1], "claude-sonnet-5-5")
         self.assertEqual(argv[argv.index("--setting-sources") + 1], "project,local")
+        self.assertIn("--strict-mcp-config", argv)  # no account connector (claude.ai MCP server) loads into the run
         self.assertEqual(argv[argv.index("--plugin-dir") + 1], str(self.plugin.resolve()))
 
     def test_unregistered_skill_command_fails_even_when_the_product_is_right(self):

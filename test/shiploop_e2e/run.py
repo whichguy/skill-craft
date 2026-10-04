@@ -44,7 +44,8 @@ this checkout instead. The host is isolated from the user's configuration:
           plugins nor anything Grok inherits from ~/.claude load, and nothing
           is installed into the real profile
   claude  --setting-sources project,local plus --plugin-dir, so the user's
-          plugins and hooks stay out (~/.claude/CLAUDE.md still loads)
+          plugins and hooks stay out, and --strict-mcp-config, so none of the
+          account's claude.ai connectors load (~/.claude/CLAUDE.md still loads)
 
 A Grok session that ends while the ShipLoop run is still active is resumed
 (bounded by --max-resumes). Every attempt keeps its prompt, argv, event

@@ -257,7 +257,7 @@ class ClaudeHost(Host):
         argv = [self.binary, "-p", prompt, "--model", model, "--max-turns", str(max_turns),
                 "--max-budget-usd", str(max_budget_usd), "--permission-mode", permission_mode,
                 "--output-format", "stream-json", "--verbose", "--no-session-persistence",
-                "--setting-sources", "project,local"]
+                "--setting-sources", "project,local", "--strict-mcp-config"]
         if effort:
             argv += ["--effort", effort]
         if plugin_dir is not None:

@@ -206,8 +206,10 @@ uses it on purpose. Publish (`scripts/release.py`, then
   Nothing is installed into your real Grok profile (setting `GROK_CONFIG_DIR`
   alone is not enough: plugin installs still reach the real profile through the
   shared leader). Git commits use a stub identity.
-- **Claude** runs with `--setting-sources project,local` and `--plugin-dir`, so
-  your plugins and hooks stay out; `~/.claude/CLAUDE.md` still loads.
+- **Claude** runs with `--setting-sources project,local`, `--strict-mcp-config` and
+  `--plugin-dir`, so your plugins and hooks stay out and none of your account's
+  claude.ai connectors load (a plain launch loaded 15 of them and 174 tools,
+  some connected, into an unattended run); `~/.claude/CLAUDE.md` still loads.
 - Grok has no spend cap; its runs are bounded by `--max-turns` and the timeout.
   Claude runs also get `--max-budget-usd` (default 40; a chained case such as battleship-scoring can cost
   more than 10 across its resumes).
