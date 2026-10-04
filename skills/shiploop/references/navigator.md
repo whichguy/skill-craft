@@ -102,7 +102,8 @@ no longer accepted and the stage takes its own remedy: `revise` back to
 `step-plan` at an INNER stage, or `replan` with corrective work items at the two
 outer stages, which have no step plan to revise. A command that times out,
 cannot start, or is skipped on budget refuses the stage but is recorded
-`could-not-run` and does not spend one of the 7. ⟳ loops inside the stage: the bound Until Loop
+`could-not-run` and does not spend one of the 7; the stage's remedy is accepted
+after it on ShipLoop's own record, without a new loop packet. ⟳ loops inside the stage: the bound Until Loop
 drives the test loops and the `static-checks` quality loop, and the pass-or-stop
 prompt loop reruns failing checks at `implement`, `test-refine` and
 `integration-verify` until they pass or the step reports `revise` (or `blocked` for what only the user, an access grant or an outside dependency can resolve).

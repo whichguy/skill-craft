@@ -338,8 +338,13 @@ CONTINUATION_CAPS = {"grok": 8}
 # A refused callback counts as progress so the host fixes and resubmits it.  But
 # after this many continuations with no accepted result (the revision unchanged)
 # the stop is allowed, so a state that can never be accepted does not keep a
-# session alive forever.  Twice shiploop_test_loop.MAX_REFUSED_RUNS: the script
-# stops accepting test runs for an action well before keepalive gives up on it.
+# session alive forever.  This only releases one session's turn: nothing is
+# refused or accepted by it, and the run stays active and resumable.  It is twice
+# shiploop_test_loop.MAX_REFUSED_RUNS so that real failing test runs reach the
+# script's own remedy gate first.  A test run that could not run (timeout, cannot
+# start, skipped on budget) never counts toward that gate, so for it this release
+# is the only bound; the refusal names the remedy outcome that ShipLoop accepts on
+# its own record of that attempt (shiploop_test_loop.remedy_open).
 STUCK_CONTINUATIONS = 14
 # From this many continuations before a cap, the reason asks harder not to stop.
 CAP_WARNING_MARGIN = 2
@@ -433,7 +438,10 @@ def _decide(host: str, session: str, binding: dict, *, waiting: bool = False) ->
                     "notice": ("ShipLoop keepalive: " + str(STUCK_CONTINUATIONS) + " continuations "
                                "produced no accepted result for this action, so the turn may end. Read "
                                "the last refusal; if it cannot be fixed in this run, submit outcome "
-                               "blocked (or revise) with the reason. Resume with: " + status["next"])}
+                               "blocked (or revise) with the reason: blocked only for what the user, an "
+                               "access grant or an outside dependency must supply, and the outcome the "
+                               "refusal names (revise, or replan at the outer stages) when a recorded "
+                               "command or plan is what is wrong. Resume with: " + status["next"])}
     binding["last_block_progress"] = progress
     binding["turn_blocks"] = int(binding.get("turn_blocks", 0)) + 1
     cap = CONTINUATION_CAPS.get(host)
