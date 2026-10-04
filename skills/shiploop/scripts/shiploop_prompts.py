@@ -1884,6 +1884,11 @@ def _backchain_contract_budget() -> str:
     )
 
 
+# Record only: the navigator prints the command; nothing refuses a failing check.
+BACKCHAIN_CHECK = ("Run the printed `backchain-check` after each candidate revision; a failure is a loop finding; "
+                   "cite its receipt in `evidence_refs`.\n")
+
+
 def _backchain_guidance(stage: str, *, improve_owner: bool = False) -> str:
     """Return host-mediated caller guidance without adding navigator state."""
     selection = """\
@@ -1960,7 +1965,7 @@ child leaves this parent action incomplete and must not be submitted as a comple
 action. Only that exact `complete` receipt plus final candidate identity and domain evidence
 permits Backchain planning convergence. The draft is a proposed candidate; ShipLoop still owns
 acceptance and lifecycle state.
-"""
+""" + BACKCHAIN_CHECK
     if stage in BACKCHAIN_AUDIT_STAGES:
         return selection + """\
 At this stage, request action `review` / stage `audit` only for a material
@@ -1974,8 +1979,7 @@ review/fix/check cycle in the selected actual Until Loop. Audit itself remains r
 and does not start that child. A forbidden revision, nonterminal child, unresolved finding, or
 incompatible selected package remains incomplete and must not be submitted as a
 completed parent action.
-
-""" + _backchain_contract_budget().rstrip("\n") + "\n"
+""" + BACKCHAIN_CHECK + "\n" + _backchain_contract_budget().rstrip("\n") + "\n"
     return selection + """\
 This stage has no native Backchain action. Keep relevant findings in ordinary
 notes and route a material planning gap through its authorized owner.

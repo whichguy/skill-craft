@@ -2966,6 +2966,10 @@ def render(core: Any, root: Path, state: Mapping[str, Any],
             f"  {label}: {path}"
             for label, path in guidance.resolved_backchain_resources()
         )
+        if state["status"] == "active" and not state.get("active_improve"):
+            lines.append("Backchain graph check: " + shlex.join(
+                ["python3", _command(core), "backchain-check", "--run-dir", str(root), "--candidate"])
+                + " <your candidate file>")
     if stage in ("plan", "select-work", "carry-forward"):
         lines.append("Full ordered work queue: " + str(root / "state.md") + "; field work_items.")
         child = state.get("active_improve")

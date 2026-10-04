@@ -479,6 +479,10 @@ class NavigatorContractTests(unittest.TestCase):
             self._assert_backchain_planning_locator(
                 producer_packet, expected=stage in backchain_stages
             )
+            check = ("Backchain graph check: " + shlex.join(
+                ["python3", "shiploop", "backchain-check", "--run-dir", str(root), "--candidate"])
+                + " <your candidate file>")
+            self.assertEqual(producer_packet.count(check), int(stage in backchain_stages))
             self.assertIn("Follow the packet's Reference handoff policy", producer_packet)
             extra = {}
             if stage == "plan":
@@ -497,6 +501,7 @@ class NavigatorContractTests(unittest.TestCase):
             self._assert_backchain_planning_locator(
                 child_packet, expected=stage in backchain_stages
             )
+            self.assertNotIn("backchain-check", child_packet)
             self.assertIn("Follow the packet's Reference handoff policy", child_packet)
             state = self._complete_improve(bound, action, stage)
 
