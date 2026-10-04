@@ -1051,3 +1051,37 @@ Question: which limits will a normal run hit that the harness neither prevents n
 - **A retention check that runs a suite in `$PRIOR_WORK` could write there (unobserved).** `battleship-scoring` runs `node --test` inside `$PRIOR_WORK` to count the earlier tests (`count "$PRIOR_WORK"`), and `run.py` describes that directory as the earlier checkout, read only. A test that writes a file would write into the earlier product, which later follow-ons copy. `run_checks` removes untracked files only from the work directory. No run's prior checkout was compared before and after, so this has never been seen to happen.
 - **Run binding takes the first done run in path order if two states exist.** `grade_shiploop` sorts every `state.md` under the output directory (not `home/` or `build/`), chooses the first run that is `done` with a `report.html`, else the first of all, and reports how many it found as `shiploop.runs`; for `.shiploop-runs/work-<date>-<time>-<id>` that order is the oldest first. 0 of the 12 `result.json` files under `/Users/dadleet/e2e-runs` on 2026-10-04 show `runs` above 1 (the plan counted 23 results; the other 11 are not on this disk). Reopens when a result shows `runs` above 1.
 - **A resumed run's first-process row stays out of `baselines.jsonl` by hand.** The first process of a run that is later resumed writes its baseline row only if the harness itself finished (a `--timeout` end; a task kill writes nothing), and that row is a timeout row (process false), not the run's verdict. A resumed or seeded invocation writes no row (`baseline_file` is None when `resumed or seeded`). Leave such a row uncommitted, as the Luna 1.16.1 entry did, until a baseline policy for a failed row is decided (the plan's D5).
+
+### Batch plan and pre-registered readings - 2026-10-04 - status: pre-registered
+
+Registered before any Luna invocation of this batch, so no reading below can be chosen after the result. Plan: `docs/shiploop-e2e-plan-reconciliation-2026-10-04.md` (sections 3 and 4, increment R9); governing spec `test/shiploop_e2e/SPEC.md`. `suites.json` is not edited: its batch entry is stale and one suite means one host, so the order below is run by hand.
+
+**Timing evidence.** No Luna `invocation.json` of this batch exists when this entry is committed (no run directory of the batch exists). The only Luna ones on this machine are the 1.16.1 run's (`/Users/dadleet/e2e-runs/20261003/v1161-battleship-luna/invocation.json` and its `invocation-resume-codex-*.json`) and the earlier `battleship-luna` run's, all from before this batch (the newest mtime is 1791104159, the 1.16.1 resume file). The check that this entry was registered first: the commit that introduced it, `git log -S'a13 decision table' --format=%ct -- test/shiploop_e2e/LEARNINGS.md | tail -1`, is earlier than the batch Luna run's `invocation.json` mtime (`stat -f %m <that file>`). The plain `git log -1 --format=%ct -- test/shiploop_e2e/LEARNINGS.md` gives the same answer until the first journal entry written after the launch is committed.
+
+**The three-run map.** One release, one verification set, in this order:
+
+1. `run.py --preflight-only --host all` ($0): the published version on every host, and no unreleased note on the install under test.
+2. The Sonnet 5.5 hello gate (`--source marketplace`, about $5, 15 minutes). It shows the release, A2 (stage attribution from the engine's records, baselines compared within host, model and effort) and A3 (`termination`) live, and writes the first identity-carrying baseline row. Expected: every verdict true (invoked, plugin, process, shiploop, committed, checks) and both checks passing, as on the 1.19.0 gate.
+3. One unseeded Luna battleship (`--host codex`, model `gpt-6-luna` as on the 1.16.1 run, effort max as the plan words it; hours, no dollar cap). Baselines compare within one effort and a standing owner exception of 2026-09-27 says ShipLoop E2E runs pass `--effort xhigh`, so the launcher confirms the effort before launch and the close records the one used; the table below does not depend on it. It is the only run that can exercise a13 (the open item for a step that needs a person, action a13 on the Run Review page). If the owner declines this run, the hello gate alone verifies the harness and the release, and a13 ships labelled not exercised.
+
+**The a13 decision table.** How the Luna run's outcome is read, fixed now:
+
+| Outcome of the Luna run | Reading |
+|---|---|
+| a. system-test accepted done with a person-owned open item recorded and the run continuing | a13 confirmed for this case, host, model and effort; a later block is a separate finding |
+| b. done, no person-only case planned | a13 not exercised |
+| c. blocked at system-test on a person-only case again | a13 refuted for Luna; take the deferred test-strategy change |
+| d. blocked before system-test | new finding; a13 unexercised |
+| e. host died or deadline | inconclusive; `termination` says why |
+
+**Hold list while the Luna run is in flight** (the active-resume gate refuses on each): no release; no push to origin/main carrying a `changes/` note; run the harness from a checkout whose HEAD is an ancestor of origin/main; main CI not red before any `--resume-run`; Codex also refuses after any later release. Ordinary test and docs pushes are fine.
+
+**S-14 defaults, recorded and not asked** (SPEC S-14: unattended by default): `--timeout 36000` for the Luna run, and at most one `--resume-run` if the process ends while ShipLoop is active. A resume that is refused, or a second one, is a finding, not a retry.
+
+**Coverage: what is proved how.**
+- *Hermetic tests only, and said so:* A1 (a test run that reaches no verdict is could-not-run; no catalog case provokes it), R6 (a regrade claims no host exit) and R7 (the retention id check counts ids as the engine does; the next battleship to battleship-scoring chain confirms it on a product spec).
+- *The hello gate can show:* the release, A2 and A3 live, the first identity-carrying baseline row, and the Run Review export.
+- *Only the Luna run can show:* a13, per the table above. A Codex resume or regrade is the first live test of the plugin evidence carried across a resume (the plan's U6) and happens only if a resume is needed.
+- *Not re-qualified:* chain execution, retention across a follow-on, and concurrency. Their behaviour is unchanged since 1.17.0 except read-only report listing and wording, and this batch starts no chain, follow-on or parallel suite run.
+
+**How the close reads.** One journal entry after the Luna run maps its result to its row above. For Claude it cites `cost_usd` and `result.num_turns` (never the harness turn count) and no failure, glue, `/tmp`, cancelled or knowledge-read count; for Codex it cites wall minutes and `termination` only, never a dollar figure or per-stage turns. It notes the gate's init event once (Claude Code version, server count 0 expected).
