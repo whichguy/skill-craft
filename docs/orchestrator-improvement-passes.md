@@ -120,3 +120,29 @@ review of the open items.
 | 5 | The chain on Codex and Grok; script-made proof of host loss | earlier reviews | out of scope (owner decision; KISS) | — |
 
 **Pass 3 is clean** (trivial only): 1 of 2.
+
+## Pass 4 — 2026-10-04
+
+Base: main at 27c8872b.
+
+| # | Candidate | Evidence | Class | Action |
+|---|---|---|---|---|
+| 1 | Defects in this goal's code changes (`budget_facts`, the mismatch record, the step-plan prompt, the dispatcher card) | Re-read the diffs bc3046db..HEAD; nothing else reads the budget record (so its `pass: None` for interrupted runs breaks nothing) | none | — |
+| 2 | Conflicting changes by other sessions in these areas since pass 1 | `git log f7196d4e..origin/main` over the chain guide, prompts, Plan Dispatcher, Ask Agent, chain bridge, workspace and harness: only this work's commits | none | — |
+| 3 | The 1.19.2 release under the full CI tier | Run 37233329740: every job passed (release boundary, plan, hermetic, core, shiploop 1-3, e2e apparatus); 27c8872b also green | none | — |
+| 4 | Open items | Chain policy for small work, Codex/Grok chain, script-made proof of host loss | out of scope (owner decisions, unchanged) | — |
+
+**Pass 4 is clean** (no material or trivial items): 2 of 2 consecutive clean passes. The goal's stopping condition
+holds.
+
+## Summary of the four passes
+
+- Released: 1.19.1 (Ask-Agent step-plan splits independent changes; Plan Dispatcher card names the lost-worker
+  retry) and 1.19.2 (the chain guide's finish wording matches kept attempts). Deployed to Claude, Codex and Grok;
+  full CI green.
+- Harness: plain parallel case (`temperature-plain`), interrupted runs exempt from the time budget, mismatch
+  records show the failing check's output.
+- Verified live: the step-plan fix (p1v: independent steps on a plain request) and, for the first time, the
+  1.18.0 "Left in your repository" report section (p1).
+- Left for the owner: whether an Ask-Agent run should use the chain for small work, and who creates the
+  execution graph (options A-C in pass 1). temperature-plain keeps reporting it as an open failing verdict.
