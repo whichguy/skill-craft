@@ -929,3 +929,20 @@ Related commits: db61a4a7 (resource list at every Backchain stage), 112b239c (co
 - **Grading defect (open):** the resumed process graded `plugin` as failed with `loaded: []`, while the first process of the same run graded it true: the resume path carries no evidence of the original install. The process that graded it ran harness code from before the exporter and the regrade fix, so it wrote no `review-export/` either; the export above was produced afterwards from the run's own records.
 - **No baseline row.** A resumed run writes none. The `2026-10-04T01:54:32` row in the batch worktree's `baselines.jsonl` is the first process's timeout row (process false, turns 0), not a verdict for this run; it is not committed.
 - **Why it took 19 h against Sonnet's 19 min on the same request:** the loops and effort, not packet size (planning-size audit above). Two releases (1.17.0, 1.18.0) were published while it ran; the run kept its installed 1.16.1 copy, and a resume after a death would have been refused by the version gate.
+
+### Verification of skill-craft 1.19.0 — 2026-10-04 — status: measured (one to two hello samples per release)
+
+- **Published and refreshed.** Release commit `19fa890d` (skill-craft 1.19.0, ShipLoop 0.51.0, shiploop-e2e-audit 0.6.0) pushed through `release-push.py` with its head, tree and base pinned; the full CI tier on it passed in 18.8 min. `--preflight-only --host all` reported 1.19.0 / 0.51.0 and 0 unreleased notes on Claude (origin/main export), Codex and Grok (fresh-profile installs). The real installs were refreshed after CI went green: Claude 1.18.0 to 1.19.0 (a restart applies it), Grok 1.16.1 to 1.19.0 (`grok plugin update skill-craft` accepts the plain name), Codex last, with no live Codex session, to 1.19.0.
+- **Hello gate passes.** Sonnet 5.5 (`--source marketplace`): all five verdicts true, both checks pass, 0 ShipLoop failures, 0 glue, 0 questions to a person, a non-empty review export. Evidence: `test/shiploop_e2e/evidence/claude-claude-sonnet-5-5-1.19.0-hello-20261004.json`.
+- **The cost of the same request keeps rising (status: direction established, size not).** Four hello runs, every one passing with 0 failures:
+
+  | Release | Turns | Cost | Improve children / review passes | Children done in one pass |
+  | --- | --- | --- | --- | --- |
+  | 1.16.1 | 143 | $3.30 | 8 / 8 | 8 of 8 |
+  | 1.18.0 (checkout of `4f237af4`) | 167 | $4.39 | 8 / 18 | 3 of 8 |
+  | 1.19.0 gate | 194 | $5.37 | 8 / 14 | 5 of 8 |
+  | 1.19.0 repeat | 254 | $7.33 | 11 / 19 | 7 of 11 |
+
+  The rise starts before this batch (1.18.0 is already 17% above 1.16.1), the repeat split the request into two work items, and the largest per-stage growth is in the Improve-wrapped stages (carry-forward 4, 8, 18 and 12 turns; spec 18, 24, 24 and 36). With one or two samples per release only the direction is established. The earlier expectation of 143 to 155 turns and $3.3 to $3.7 was a band inferred from two runs; it is removed with its reason on the page (iteration I2r), and action a14 asks what Improve's first pass changes before any text is touched. Evidence for all four runs: `test/shiploop_e2e/evidence/` (the 1.18.0 run is a checkout of the published commit, not a marketplace install).
+- **Not verified live by this run.** A Sonnet hello starts no Backchain loop, so the `backchain-check` receipt, the size guard inside a looped stage and the I2b trim are covered by tests only until the next looped Luna run; the step-plan whole-loop question stays observational (observation o32).
+- **Baseline rows:** the two 1.19.0 marketplace rows (194 and 254 turns) are committed with this entry; the 1.18.0 checkout row is not (it is a checkout, kept in its evidence file).
