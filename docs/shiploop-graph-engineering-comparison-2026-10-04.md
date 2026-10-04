@@ -495,7 +495,7 @@ and explains why the corpus cannot reach it.
 | Gamed: a metric improves while behaviour worsens | A run could accumulate unavailable attempts invisibly | **mitigated**: `verifications()` reports `could_not_run`, surfaced in the run summary and the live progress line |
 | Waits on a person in an unattended run (S-14) | The previous path ended at `blocked_by: user` after two revisions; A1 removes that for environment problems. For an always-unavailable command the review found the unattended path ends active (the dead-end and keepalive rows) | **accepted** as an improvement to S-14, once the two rows above are fixed |
 | Breaks saved runs or existing callers | A verify record written before `disposition` existed still counts as a failure, which is what it meant. No test pinned it | **mitigated**, documented in `refused_runs()`; the review follow-up adds the missing test |
-| Breaks an existing caller — **answered wrongly the first time** | `_remedy()` looked a stage's outcomes up by subscript, reasoning that "the stage always comes from the navigator, so it is valid". It does not: the navigator also calls `verify` with the pseudo-stage label `end-of-work review` (`_improve_change_gate` in the navigator), which is not in `STAGE_SPEC`, so the gate raised `KeyError` | **mitigated**: `_remedy()` returns no remedy for a label that is not a graph stage, with a regression test. Found only by `run-all.sh --group shiploop`, not by the change's own footprint suites. The review added that this label then has *no* route out after 7 product failures (the text names only `blocked`): **mitigated by the review follow-up** |
+| Breaks an existing caller — **answered wrongly the first time** | `_remedy()` looked a stage's outcomes up by subscript, reasoning that "the stage always comes from the navigator, so it is valid". It does not: the navigator also calls `verify` with the pseudo-stage label `end-of-work review` (`_improve_change_gate` in the navigator), which is not in `STAGE_SPEC`, so the gate raised `KeyError` | **mitigated**: `_remedy()` returns no remedy for a label that is not a graph stage, with a regression test. Found only by `run-all.sh --group shiploop`, not by the change's own footprint suites. The review added that this label then has *no* route out after 7 product failures (`carry-forward` allows only `done`, `repeat` and `blocked`, and the text named only `blocked`): the review follow-up corrects the text, but the route itself is an **open owner decision** (§10.4) |
 | Mixed results: a timeout erases a real failure | Would hide a product defect | **mitigated**: `_disposition` returns `failed` whenever any command failed on its own merits; tested |
 | A timeout whose partial output already shows failing tests | `verify` records `timeout` without judging the partial output, so a runner that prints `FAILED (failures=3)` and then hangs on exit is `could-not-run` and spends none of the 7 | **accepted**: a timeout is not a diagnosis, and judging a half-written report reintroduces guessing (§10.4) |
 | A command that cannot start | The runner is `/bin/sh -c`, so a missing binary exits 126 or 127 through `judge` and counts as a product failure. `cannot start` (status `error`) covers only a failed spawn or a missing repository directory | **accepted**: stated here and in §10.4 so the change note's "cannot start" is read as "could not be spawned" |
@@ -680,6 +680,13 @@ helper is its callers *and*, for a stale-base merge, what landed on the line sin
   the process could not be spawned.
 - A harness killed with its host (parent-task kill, background-task limit) writes no termination
   record; only the engine's own state survives (§8.3).
+
+**Open owner decision, not made here.** The Improve import at `carry-forward` verifies the recorded
+commands under the label `end-of-work review`. That stage allows only `done`, `repeat` and
+`blocked`, so a command that cannot run (or 7 product failures) leaves `blocked`, which is illegal
+for a failure the run can fix, and no outcome that revises the plan. The skills follow-up corrects
+the refusal text; whether `carry-forward` should gain a remedy outcome is for the owner (the A1
+record, §8.1, "answered wrongly the first time" row).
 
 Other accepted limits are in §8: the exporter's second attribution (§8.2), stage seconds that
 include interruption gaps, and `turns` counting assistant content blocks (about 1.7 × API calls,

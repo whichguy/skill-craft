@@ -35,6 +35,6 @@ after merging.
 | G | change-admission records missing for A2 and A3 | 17, 26, 51 | fixed here (design doc sections 8.1 to 8.3, 9) |
 | H | keepalive stuck-stop premise broken by could-not-run | 31, 33, 38 | see follow-up (skills); recorded here in section 8.1 |
 | I | A2 edge cases (stamps, recreated timeline, seeded runs, incomplete-row edges) | 41, 42, 43, 45, 46, 47, 53, 54, 55, 58, 59, 61, 65, 67, 69, 72, 73, 75, 76 | 45, 53, 69, 73, 76: documented here (section 10.4); rest: see follow-up (harness) |
-| J | A1 minor (partial output, 126/127, wording, doc count) | 30, 32, 35, 36, 37, 39 | 30, 35: documented here (10.4); 37: fixed here; 32, 36, 39: see follow-up (skills) |
+| J | A1 minor (partial output, 126/127, wording, doc count) | 30, 32, 35, 36, 37, 39 | 30, 35: documented here (10.4); 37: fixed here; 32, 36: see follow-up (skills); 39: text see follow-up, route open (owner decision, 10.4) |
 | K | no comparable baseline; skipped comparison prints nothing | 60 | see follow-up (harness); README describes the rule |
 | L | stale docs (README, citations, journal, exporter duplicate, wall-clock) | 44, 49, 50, 52, 57, 63, 70, 71, 77 | 50, 52, 57, 63, 70, 71, 77: fixed here (52 as a stated limit); 44: see follow-up; 49: doc part fixed here, code part see follow-up |
