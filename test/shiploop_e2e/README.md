@@ -111,8 +111,16 @@ Every run also writes `metrics.json`, derived from the event stream, the
 arrival times the runner stamps on each non-streaming event (`timeline.jsonl`;
 Grok events carry no time) and ShipLoop's run directory:
 
-- per accepted stage: minutes, turns, tool calls, output tokens and an estimated
-  cost share (turn-weighted);
+- per accepted stage (`stages`): the stage, its outcome, seconds, host turns, tool
+  calls and output tokens. Stages come from ShipLoop's own records, never from
+  file times: `state.md` history joined to the run's `timeline.json` by action id,
+  so a stage is bounded by the engine's acceptance stamps. A stage the engine did
+  not stamp, and the stage right after it, report `timing: "unavailable"` instead
+  of a zero. A run that stopped before accepting its current stage gets a last
+  `incomplete` row for it. No cost is split per stage (the earlier turn-weighted
+  `cost_share_usd` was one total redistributed, not a measurement); cost stays
+  whole-run. "Reading per-stage figures" below says what these numbers can and
+  cannot tell you;
 - sessions and how each ended, turns, peak context, cost, auto-compactions,
   host-truncated outputs, test runs and Improve children;
 - every `shiploop` command that exited non-zero, with its failing line;
@@ -121,6 +129,17 @@ Grok events carry no time) and ShipLoop's run directory:
 `result.json` also reports how the run left the source checkout
 (`shiploop.knowledge`): whether `docs/shiploop/spec.md` exists and is committed,
 its requirement IDs, the commits on HEAD, untracked files and branches.
+
+`result.json` and each baseline row also carry `termination`: why the run is not
+still going, recorded by the harness that owns the host process. It holds the
+process status and return code, each session's own stop reason, why the driver
+stopped resuming (`host is not resumable`, `ShipLoop run is <status>`, `no host
+session id to resume`, `run deadline spent`, `resume budget spent (N)`), the
+engine's status and the stage it never accepted. `unknown` is kept rather than a
+guess, a ShipLoop refusal is never reported as the cause, and the printed report
+has a `stopped` line. A harness killed together with its host writes none of
+it (the observer is gone); only the engine's own state survives, and a later
+`--resume-run` records what that resume observed.
 
 While a run is going, `python3 test/shiploop_e2e/progress.py <output>` prints
 what changed since its last call (new accepted stages with turns and minutes,
@@ -144,18 +163,55 @@ predecessor's output and is skipped when that predecessor failed. With
 `--source marketplace`, a suite first runs the marketplace preflight once
 (`--preflight-only` runs just that): it installs skill-craft the host's way
 and prints what origin/main publishes and what the host got. Every run
-(suite or `--case`) appends one summary row to `baselines.jsonl`
-(case, style, source, ShipLoop version, verdicts, turns, cost, sessions,
-cancellations, model glue, ShipLoop failures) and prints the change against
-the case's previous row from the same source. Commit the new rows with the
-run's learnings entry. See SPEC.md, "E2E suites" and "Parallel work".
+(suite or `--case`) appends one summary row to `baselines.jsonl` (case, style,
+suite, host, model, effort, source, plugin and ShipLoop versions, verdicts, checks,
+turns, cost, sessions, cancellations, model glue, ShipLoop failures, the per-stage
+rows and the termination record) and prints the change against the previous row
+for the same case, source, host, model and effort (SPEC: a baseline compares only
+with rows from the same driver). Model and effort are recorded as passed, null when
+the flag was not given, so a run without `--effort` compares only with other runs
+without it. A row written before those fields existed names no host, model or
+effort and is never compared: every row through the 1.19.0 hello rows of
+2026-10-04 is in that state, so the first run per case, host, model and effort has
+nothing to compare with and becomes that identity's first row. A resumed or seeded
+run writes no row. When rows do compare, the stage lines show where a whole-run
+difference landed; they gate nothing. Commit the new rows with the run's learnings
+entry. See SPEC.md, "E2E suites" and "Parallel work".
 
 `metrics.json` also reports `script_verifications` (the checks ShipLoop itself
 ran and recorded, from its `*-verify*.md` records) and `model_glue`: shell
 commands that did a step ShipLoop owns (`git commit`/`add`, shell writes into
 the run directory or Improve receipts, hand-built loop contracts), listed with
 the reason so a reviewer can confirm them. Both are defined by ShipLoop's own
-paths and verbs, never by a case's tools.
+paths and verbs, never by a case's tools. `script_verifications` also counts
+`could_not_run`: attempts where no command reached a verdict about the product (a
+timeout, a command that could not be spawned, or one skipped when the invocation's
+budget ran out). They refuse their stage without counting as product failures. A
+non-zero count means the run could not tell, because of an environment problem or a
+product hang; it does not say the product is wrong.
+
+### Reading per-stage figures
+
+- Stage boundaries are the engine's acceptance stamps, which are whole seconds,
+  truncated. The turn that submits a stage's result can land just after its own
+  stamp and be counted in the next stage, so read stage turns as plus or minus one;
+  two identical runs can differ by a turn in a stage.
+- Seconds are wall clock between two stamps. A `--resume-run` gap, a credit stop or
+  a pause inside a stage is counted as that stage's time.
+- Turns count assistant content-block events, about 1.7 times the host's API calls
+  on Claude.
+- A host reports what it reports. Codex emits no per-call usage, so per-stage turns
+  and tokens are not available for it: read a 0 there as not measured.
+- The Run Review page's stage minutes come from the exporter's own accept-to-accept
+  computation (`skills/shiploop-e2e-audit/run-review/export.py`), not from
+  `metrics.json`. The first stage differs: the exporter starts at the engine's
+  `started` stamp, the harness at the first host event.
+- A recreated `timeline.json` (the engine stamps every historical action with the
+  current time) looks like real stamps and gives zero-length stages.
+
+The review of these limits and what was fixed is in
+[docs/shiploop-graph-engineering-comparison-2026-10-04.md](../../docs/shiploop-graph-engineering-comparison-2026-10-04.md),
+section 10.
 
 ### A second feature in the same repository
 
