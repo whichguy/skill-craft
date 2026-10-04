@@ -279,6 +279,26 @@ start while `origin/main`'s CI has failed, and a Codex resume across a release i
 as Codex at max effort is the one case where a detached `nohup` launch is a deliberate, stated exception; watch it
 with a periodic status snapshot of its output directory.
 
+A task kill stops the harness where it stands and no harness code runs: nothing is written afterwards (no
+termination record, no `result.json`, no baseline row), and nothing looks for what the host left behind. A
+model's background server can outlive its run by far more than the task limit: two (`python server.py` and
+`node server.js`) were found alive about 27 hours after their runs, parent pid 1, listening on all interfaces,
+and were stopped by hand. Claude Code gives each Bash call its own process group; the harness's kill is a
+group kill of the host's own session (`os.killpg`, on a timeout or an interrupt), which does not reach those
+groups. No verdict reads these processes. After a long run, list what still has its working directory under
+the run's output directory, check each one, and kill it by pid:
+
+```sh
+OUT=/Users/dadleet/e2e-runs/<day>/<suite>/<case>     # the run's output directory, no trailing slash
+lsof -nP -a -d cwd -Fpn | awk -v out="$OUT" '/^p/ {pid = substr($0, 2)} /^n/ {p = substr($0, 2); if (p == out || index(p, out "/") == 1) print pid, p}'
+ps -o pid,ppid,etime,command -p <pid>                # is it this run's server? ppid 1 and a long etime say a leftover
+lsof -nP -a -p <pid> -iTCP -sTCP:LISTEN              # what it listens on
+kill <pid>
+```
+
+Match on a path boundary (the directory itself, or a path under `$OUT/`), never on a bare prefix: sibling cases
+share a suite directory, and `.../batch-sonnet/battleship` is also a prefix of `.../batch-sonnet/battleship-scoring`.
+
 ## Review one run
 
 ```sh
