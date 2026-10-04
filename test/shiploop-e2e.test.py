@@ -628,6 +628,8 @@ class ExpectationTest(HarnessCase):
         over = run.budget_facts({"seeded_minutes": 20, "source": "x"}, True, str(run_dir))
         self.assertFalse(over["pass"])
         self.assertIsNone(run.budget_facts(budget, False, str(run_dir)))  # only seeded runs carry a budget
+        interrupted = run.budget_facts(budget, True, str(run_dir), interrupted=True)
+        self.assertEqual((interrupted["applies"], interrupted["pass"], interrupted["observed_minutes"]), (False, None, 21.5))
 
 
 class ReviewParsingTest(unittest.TestCase):
