@@ -961,13 +961,16 @@ class EphemeralImproveCliTests(ImproveCliFixture):
                     "## Authority\nLocal edits and scoped commits; no push.\n\n"
                     "## Environment\n" + environment + "\n")
 
-        opening.write_text(sections("Python 3 fixture; the long runtime inventory follows. " * 260), encoding="utf-8")
+        environment = ("Python 3 fixture; the long runtime inventory follows. " * 260).strip()
+        opening.write_text(sections(environment), encoding="utf-8")
         refused = self.invoke(*start, status=2)
         self.assertIn("over its 9,216-byte budget", refused.stderr)
         # The refusal names the opening's own headings and how many bytes the sections may use, not contract parts.
         self.assertIn("Environment ", refused.stderr)
         self.assertNotIn("context.environment", refused.stderr)
         self.assertRegex(refused.stderr, r"may use about [\d,]+ bytes in all")
+        # the sizes listed are the sections' own bytes, comparable to that allowance (F4), not whole contract fields
+        self.assertIn(f"Environment {loop_contract.text_bytes(environment):,}", refused.stderr)
         self.assertIn("put long detail in a file whose path you name", refused.stderr)
         self.assertFalse(receipt.exists(), "nothing was started")
         self.assertFalse(receipt.with_name("start.json").exists(), "no contract was written")
@@ -1504,22 +1507,36 @@ class LoopContractSizeTests(unittest.TestCase):
         total = loop_contract.compact_bytes(contract)
         self.assertIn(f"{total - loop_contract.CONTRACT_BUDGET:,} over its 9,216-byte budget", problem)
         self.assertLess(problem.index("Environment 9,"), problem.index("Current context and desired improvements 4,"))
+        # given the sections' own sizes, those are listed instead of the wrapped contract fields
+        own = loop_contract.size_problem(
+            contract, writable={"context.request": "Current context and desired improvements",
+                                "context.environment": "Environment"}, allowance=4300,
+            sizes={"Environment": 9000, "Current context and desired improvements": 2600})
+        self.assertIn("Environment 9,000, Current context and desired improvements 2,600", own)
+        self.assertEqual(loop_contract.text_bytes("日本"), 12)  # escaped like the runtime: 6 bytes per character
         self.assertNotIn("context.", problem)
         self.assertIn("may use about 4,300 bytes in all", problem)
         self.assertIn("16,384 bytes", problem)
         # without a writable map the generic text lists contract parts
         self.assertIn("context.environment", loop_contract.size_problem(contract))
 
-    def test_the_backchain_budget_is_stated_for_the_plan_stage_only(self):
+    def test_the_backchain_budget_is_stated_at_every_stage_that_can_start_a_loop(self):
         guidance = prompts._backchain_guidance("plan")
         self.assertIn("Until Loop state budget", guidance)
         self.assertIn("16,384 bytes", guidance)
         self.assertIn("at most 9,216 bytes", guidance)
         self.assertIn("separators=(',', ':'), sort_keys=True", guidance)
         self.assertNotIn("{state_limit", guidance)
-        # the audit stages and the Improve-owner text start no whole Backchain Until Loop child
+        # every stage that can start a Backchain Until Loop child states it: plan, and the repair/revise
+        # route at the audit stages (the 1.16.1 Luna run built an 11.9 KB step-plan contract without it)
+        self.assertEqual(set(prompts.BACKCHAIN_STAGES), {"plan", "spec", "step-plan", "carry-forward", "product-acceptance"})
+        for stage in prompts.BACKCHAIN_STAGES:
+            with self.subTest(stage=stage):
+                self.assertIn("Until Loop state budget", prompts._backchain_guidance(stage))
+        # the Improve-owner text starts no whole Backchain child, and a stage with no Backchain action has no loop
         self.assertNotIn("Until Loop state budget", prompts._backchain_guidance("plan", improve_owner=True))
-        self.assertNotIn("Until Loop state budget", prompts._backchain_guidance("spec"))
+        self.assertNotIn("Until Loop state budget", prompts._backchain_guidance("step-plan", improve_owner=True))
+        self.assertNotIn("Until Loop state budget", prompts._backchain_guidance("intake"))
 
     def test_the_measuring_command_in_the_guidance_gives_the_number_the_check_uses(self):
         guidance = prompts._backchain_guidance("plan")

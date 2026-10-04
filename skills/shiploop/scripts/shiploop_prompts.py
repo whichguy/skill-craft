@@ -1974,7 +1974,8 @@ review/fix/check cycle in the selected actual Until Loop. Audit itself remains r
 and does not start that child. A forbidden revision, nonterminal child, unresolved finding, or
 incompatible selected package remains incomplete and must not be submitted as a
 completed parent action.
-"""
+
+""" + _backchain_contract_budget().rstrip("\n") + "\n"
     return selection + """\
 This stage has no native Backchain action. Keep relevant findings in ordinary
 notes and route a material planning gap through its authorized owner.

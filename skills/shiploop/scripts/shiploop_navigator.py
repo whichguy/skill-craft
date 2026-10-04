@@ -4061,8 +4061,10 @@ def _improve_start(core: Any, root: Path, state: Mapping[str, Any], args: Any) -
     contract = improve_start_contract(core, root, state, opening.read_text(encoding="utf-8"))
     # Refuse here, before anything is written or archived: a contract that fills the runtime's state file
     # leaves no room for the first review report, and that is only discovered after the review is done.
-    problem = loop_contract.size_problem(contract, writable=OPENING_CONTRACT_PARTS,
-                                         allowance=improve_opening_allowance(core, root, state))
+    opening_text = opening.read_text(encoding="utf-8")
+    problem = loop_contract.size_problem(
+        contract, writable=OPENING_CONTRACT_PARTS, allowance=improve_opening_allowance(core, root, state),
+        sizes={name: loop_contract.text_bytes(body) for name, body in _opening_sections(opening_text).items()})
     _need(problem is None, problem or "")
     if restart:
         # Keep the stopped child's packet and evidence; the new child writes its own.

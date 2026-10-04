@@ -55,14 +55,21 @@ def compact_bytes(value: Mapping[str, Any]) -> int:
     return _bytes(value)
 
 
+def text_bytes(text: str) -> int:
+    """The bytes a piece of text costs inside the state file (escaped like the rest of the contract)."""
+    return _bytes(text) - 2  # the surrounding quotes belong to the field, not to the text
+
+
 def size_problem(value: Mapping[str, Any], *, writable: Optional[Mapping[str, str]] = None,
-                 allowance: Optional[int] = None) -> Optional[str]:
+                 allowance: Optional[int] = None, sizes: Optional[Mapping[str, int]] = None) -> Optional[str]:
     """Why this contract would leave the loop no room for its first report, or None when it fits.
 
     ``writable`` maps the contract parts a model wrote (for example ``context.environment``) to the name a
     model knows them by (the opening's heading); only those parts are listed and told to be shortened, since
     ShipLoop's own text is not the model's to change. ``allowance`` is how many bytes those parts may use in
-    all, known only to the caller (it depends on ShipLoop's fixed text and the run's paths).
+    all, known only to the caller (it depends on ShipLoop's fixed text and the run's paths). ``sizes`` gives
+    each model-written section's own bytes by the name the model knows it by; the contract fields wrap those
+    sections in ShipLoop's text, so only the section sizes are comparable to ``allowance``.
     """
     total = _bytes(value)
     if total <= CONTRACT_BUDGET:
@@ -71,9 +78,13 @@ def size_problem(value: Mapping[str, Any], *, writable: Optional[Mapping[str, st
     parts = {name: _bytes(value.get(name)) for name in ("work", "exit_condition", "repeat_condition")}
     parts.update({"context." + name: _bytes(context.get(name))
                   for name in ("request", "scope", "authority", "environment", "resources")})
-    named = {part: parts.get(part, 0) for part in writable} if writable else parts
-    largest = ", ".join((f"{writable[name]} {size:,}" if writable else f"{name} {size:,}")
-                        for name, size in sorted(named.items(), key=lambda kv: -kv[1])[:4])
+    if sizes:
+        shown = {name: size for name, size in sizes.items()}
+    elif writable:
+        shown = {writable[part]: parts.get(part, 0) for part in writable}
+    else:
+        shown = parts
+    largest = ", ".join(f"{name} {size:,}" for name, size in sorted(shown.items(), key=lambda kv: -kv[1])[:4])
     room = f" The text you wrote may use about {allowance:,} bytes in all." if allowance else ""
     remedy = ("Shorten the sections above" if writable else "Shorten the text you wrote") + (
         ", starting with the largest, and put long detail in a file whose path you name (a path costs a few "
@@ -97,4 +108,4 @@ def stage_exit(stage: str) -> str:
 
 
 __all__ = ("CONTRACT_BUDGET", "REPORT_RESERVE", "STATE_LIMIT", "STATE_OVERHEAD", "compact_bytes", "contract", "dumps",
-           "size_problem", "stage_exit")
+           "size_problem", "stage_exit", "text_bytes")
