@@ -50,7 +50,7 @@ shape (two parallel steps, then a join) on Claude, with nothing going wrong.
 | 2 | Wider and deeper graphs | Only one shape has been planned and run by a real model | the model's graph has the expected width or depth; workers in flight reach the case's minimum; every step launches after its dependencies settle |
 | 3 | Repeat runs | One pass does not show a reliable pass | the same verdicts hold across repeats |
 | 4 | Other hosts | The chain is proven on Claude only | as 1-3, on Codex (after a runtime decision) and Grok (after credits) |
-| 5 | Failure path live | Retry and replan have never happened live | deferred: a forced failure is hard to make realistic |
+| 5 | Failure path live | Retry has now happened live (b1-word-report: two steps retried after test-oracle defects; c1 and c2: lost workers retried after a kill). Replan has never happened live | replan deferred: a forced replan is hard to make realistic |
 
 Grouping:
 
@@ -90,6 +90,11 @@ real run. The detail is in the superseded plan's "Known limits" section.
 - Recovery details: the head does not name the implement step, and the integrate
   notice prints once (X12, X13). There are return-guard gaps (X14), and keepalive
   continues while a background task runs (X15).
+- A lost worker is retried without proof that it stopped (owner decision, 2026-10-03).
+  The model judges that its host session ended; the code stays safe in the attempt's
+  isolated worktree, but a worker that outlived its session, or a step holding a port,
+  database or deployment, could collide with its replacement. The guides tell such a
+  step to wait for proof instead.
 
 ## Adding a test
 

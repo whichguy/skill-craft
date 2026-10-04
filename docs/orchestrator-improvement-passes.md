@@ -102,3 +102,21 @@ Base: main after the 1.19.1 release (CI green for 3115b4ea).
 | 5 | Chain policy for small work | pass 1 | out of scope (owner decision, options A-C) | — |
 
 Pass 2 is not clean: it found one material item.
+
+## Pass 3 — 2026-10-04
+
+Base: main after the 1.19.2 release.
+
+Method: a consistency sweep over every behaviour changed in this work (the F1 retry rule, F2 kept attempts at
+finish, Ask Agent's default route, the step-plan split rule) across skills/, agents/ and the docs, plus a
+review of the open items.
+
+| # | Candidate | Evidence | Class | Action |
+|---|---|---|---|---|
+| 1 | Any skill text contradicting F1, F2, the Ask Agent default or the split rule | Sweep: no hits (the remaining "retry only after" lines are the updated dispatcher card and an unrelated lock rule) | none | — |
+| 2 | Test map says "Retry and replan have never happened live" | Retry happened live in b1-word-report, c1 and c2 | trivial (doc for humans) | Row updated: retry live, replan still not |
+| 3 | Test map's known limits omit retry-without-proof | The guides state it; the map did not | trivial | Added to known limits |
+| 4 | Chain policy for small work | pass 1 | out of scope (owner decision) | — |
+| 5 | The chain on Codex and Grok; script-made proof of host loss | earlier reviews | out of scope (owner decision; KISS) | — |
+
+**Pass 3 is clean** (trivial only): 1 of 2.
