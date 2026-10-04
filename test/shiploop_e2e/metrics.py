@@ -238,7 +238,19 @@ NO_PER_CALL_USAGE = ("the host reports no per-call usage events (one total per s
 CLAUDE_TOOL_BLOCKS = ("this host's tool calls arrive as Claude tool_use / tool_result blocks, which collect() does "
                       "not read, so a count of 0 is a lower bound and not a measurement")
 # What follows from reading only Grok-shaped tool_call events when the stream is Claude's.
-CLAUDE_BLIND = ("stage_tool_calls", "shiploop_failures", "model_glue", "cancelled_tool_calls", "tmp_writes")
+CLAUDE_BLIND = ("stage_tool_calls", "shiploop_failures", "model_glue", "tmp_writes")
+# Counters read only from an event shape Grok writes. A stream with no per-call usage events (Claude's, or Codex's
+# through the translator) is not Grok's, so there a 0 means the signal is missing, not that nothing happened, and a
+# list stays empty rather than hold what a look-alike matched (Codex prints "cancelled 0" in a failing node --test
+# summary, and its file_change is a write, not a read). Not read for Claude although its SDK names a
+# system/compact_boundary event: no recorded run contains one, so its shape is unverified; add the branch when a
+# recorded stream shows one. A stream that mixes hosts (a resume on another) is read as the host that wrote usage events.
+GROK_SIGNALS = {
+    "compactions": "an auto_compact_completed event",
+    "truncated_outputs": "rawOutput.truncated on a tool_call_update",
+    "cancelled_tool_calls": "a failed tool_call_update saying the user cancelled it, Grok's permission refusal",
+    "knowledge_reads": "a read tool call naming a file path",
+}
 
 
 def context_tokens(usage) -> int | None:
@@ -275,6 +287,7 @@ def collect(out: Path, run_dir: Path | None = None) -> dict:
     cancelled: list[str] = []
     reads: list[str] = []
     tool_blocks = 0  # Claude tool_use blocks: calls this collector cannot classify
+    grok = False  # per-call `usage` events: the one stream shape the Grok-only counters below can be read from
     starts = 0  # sessions the host began, to tell how many never reported an end
     # A session that reports no per-call usage (Codex) contributes its own turn count.
     unreported, calls_in_session = 0, 0
@@ -286,6 +299,7 @@ def collect(out: Path, run_dir: Path | None = None) -> dict:
         if kind == "available_commands" or (kind == "system" and event.get("subtype") == "init"):
             starts += 1  # Codex and Grok open a session with available_commands, Claude with system/init
         if kind == "usage":
+            grok = True
             turns.append({"t": t, "input": context_tokens(event.get("usage"))})
         elif kind == "assistant":  # Claude: one message per turn
             for block in (event.get("message") or {}).get("content") or []:
@@ -344,6 +358,11 @@ def collect(out: Path, run_dir: Path | None = None) -> dict:
     unmeasured: dict[str, str] = {}
     if not _timed(turns):
         unmeasured["stage_turns"] = NO_PER_CALL_USAGE
+    if not grok:
+        unmeasured.update({name: f"only Grok's events carry this signal ({signal}); this host's do not, so a "
+                                 f"count of 0 is a missing signal and not a measurement"
+                           for name, signal in GROK_SIGNALS.items()})
+        cancelled, reads = [], []
     if tool_blocks:
         unmeasured.update({name: CLAUDE_TOOL_BLOCKS for name in CLAUDE_BLIND})
     stages = per_stage(stage_results(run_dir, state), turns, calls, stamps, pending_stage(state), unmeasured)
@@ -358,8 +377,8 @@ def collect(out: Path, run_dir: Path | None = None) -> dict:
         "unmeasured": unmeasured,
         "cost_usd": total_cost(sessions),
         "unreported_sessions": max(0, starts - len(sessions)),
-        "compactions": compactions,
-        "truncated_outputs": len(truncated),
+        "compactions": None if "compactions" in unmeasured else compactions,
+        "truncated_outputs": None if "truncated_outputs" in unmeasured else len(truncated),
         "cancelled_tool_calls": cancelled,
         "shiploop_failures": failures,
         "script_verifications": verifications(run_dir),
@@ -611,8 +630,14 @@ def cost_text(run_metrics: dict) -> str:
 
 
 def count(run_metrics: dict, name: str) -> int | None:
-    """How many of a detected thing (a list in the metrics), or None when the host cannot show it."""
-    return None if name in (run_metrics.get("unmeasured") or {}) else len(run_metrics[name])
+    """How many of a detected thing (a list in the metrics), or None when the host cannot show it.
+
+    A counter that is already a number in the metrics (compactions, truncated outputs) is None there when unmeasured.
+    """
+    value = run_metrics.get(name)
+    if name in (run_metrics.get("unmeasured") or {}) or value is None:
+        return None
+    return len(value) if isinstance(value, (list, dict)) else value
 
 
 def stage_text(row: dict) -> str:
@@ -625,14 +650,14 @@ def stage_text(row: dict) -> str:
 
 def summary_lines(metrics: dict, top: int = 5) -> list[str]:
     """A few lines for the printed report: the costliest stages and the problems."""
-    unmeasured = metrics.get("unmeasured") or {}
 
     def shown(name: str) -> str:
-        return "not measured" if name in unmeasured else str(len(metrics[name]))
+        found = count(metrics, name)
+        return "not measured" if found is None else str(found)
 
     lines = [f"turns {metrics['turns']}, cost {cost_text(metrics)}, sessions {len(metrics['sessions'])} "
              f"({', '.join(str(s['stop']) for s in metrics['sessions']) or 'none ended'}), "
-             f"compactions {metrics['compactions']}, truncated outputs {metrics['truncated_outputs']}, "
+             f"compactions {shown('compactions')}, truncated outputs {shown('truncated_outputs')}, "
              f"cancelled tool calls {shown('cancelled_tool_calls')}, "
              f"ShipLoop command failures {shown('shiploop_failures')}, "
              f"script verifications {metrics['script_verifications']['passed']}/{metrics['script_verifications']['records']} passed"

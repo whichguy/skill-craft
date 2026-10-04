@@ -2474,5 +2474,104 @@ class RetentionIdCountTest(unittest.TestCase):
                                  sorted(set(run.knowledge_home._REQUIREMENT_ID.findall(text))))
 
 
+
+def codex_session(items: list[dict], *, end: bool = True, thread: str = "t1") -> list[dict]:
+    """One Codex session after the harness's translator; ``end=False`` is a session killed before turn.completed."""
+    translate = hosts.host("codex").translator()
+    raw = [{"type": "thread.started", "thread_id": thread}]
+    raw += [{"type": "item.completed", "item": item} for item in items]
+    if end:
+        raw.append({"type": "turn.completed", "usage": {"input_tokens": 10, "cached_input_tokens": 5,
+                                                        "output_tokens": 2}})
+    return [json.loads(line) for event in raw for line in translate((json.dumps(event) + "\n").encode())]
+
+
+def codex_command(n: int, command: str = "echo ok", output: str = "ok\n", code: int = 0) -> dict:
+    return {"id": f"item_{n}", "type": "command_execution", "command": command, "aggregated_output": output,
+            "exit_code": code, "status": "completed" if code == 0 else "failed"}
+
+
+class HostSignalCountersTest(unittest.TestCase):
+    """Counters read only from Grok's event shapes are unmeasured on every other host (review 2: compactions,
+    truncated_outputs, cancelled_tool_calls, knowledge_reads), never a 0 or a look-alike that reads as a measurement."""
+
+    GROK_ONLY = ("compactions", "truncated_outputs", "cancelled_tool_calls", "knowledge_reads")
+    ACCEPTED = [("A1", "intake", "done", 105.0), ("A2", "spec", "done", 113.0)]
+
+    def codex(self) -> dict:
+        items = [codex_command(0), codex_command(1, "node --test", "ℹ tests 3\nℹ fail 1\nℹ cancelled 0\n", 1),
+                 {"id": "item_2", "type": "file_change", "status": "completed",
+                  "changes": [{"path": "/w/docs/shiploop/spec.md", "kind": "update"}]}]
+        return collect_stream(codex_session(items), self.ACCEPTED)
+
+    def test_a_codex_failing_test_run_is_not_a_host_refusal_and_a_write_is_not_a_read(self):
+        m = self.codex()
+        for name in self.GROK_ONLY:
+            self.assertIn(name, m["unmeasured"], name)
+        self.assertEqual(m["cancelled_tool_calls"], [], "'cancelled 0' in a node --test summary is not a refusal")
+        self.assertEqual(m["knowledge_reads"], [], "Codex's file_change is a write, listed as a read")
+        self.assertIsNone(m["compactions"])
+        self.assertIsNone(m["truncated_outputs"])
+        self.assertIsNone(metrics.count(m, "cancelled_tool_calls"))
+        self.assertNotIn("model_glue", m["unmeasured"], "Codex's tool calls are still read")
+        first = metrics.summary_lines(m)[0]
+        for text in ("compactions not measured", "truncated outputs not measured", "cancelled tool calls not measured"):
+            self.assertIn(text, first)
+
+    def test_a_claude_run_cannot_show_them_either_with_or_without_tool_calls(self):
+        compact = {"type": "system", "subtype": "compact_boundary", "compact_metadata": {"trigger": "auto"}}
+        read = {"type": "assistant", "message": {"usage": {"input_tokens": 5}, "content": [
+            {"type": "tool_use", "id": "r1", "name": "Read", "input": {"file_path": "/w/docs/shiploop/spec.md"}}]}}
+        text_only = {"type": "assistant", "message": {"usage": {"input_tokens": 5},
+                                                      "content": [{"type": "text", "text": "hello"}]}}
+        for label, stream in (("tool calls", [compact, read, *claude_stream(["ls"])]),
+                              ("text only", [text_only, {"type": "result", "subtype": "success", "num_turns": 1}])):
+            with self.subTest(label):
+                m = collect_stream(stream, self.ACCEPTED)
+                for name in self.GROK_ONLY:
+                    self.assertIn(name, m["unmeasured"], name)
+                self.assertIsNone(m["compactions"])
+                self.assertIsNone(m["truncated_outputs"])
+                self.assertIn("compactions not measured", metrics.summary_lines(m)[0])
+
+    def test_a_grok_stream_still_counts_each_one(self):
+        stream = [
+            {"type": "usage", "usage": {"input_tokens": 1000, "output_tokens": 10}},
+            {"type": "tool_call", "toolCallId": "a", "toolName": "read_file",
+             "rawInput": {"target_file": "/w/docs/shiploop/spec.md"}},
+            {"type": "tool_call_update", "toolCallId": "a", "rawOutput": {"exit_code": 0, "truncated": True}},
+            {"type": "tool_call", "toolCallId": "c", "rawInput": {"command": "git init -b main"}},
+            {"type": "tool_call_update", "toolCallId": "c", "status": "failed", "rawOutput": None, "content": [
+                {"type": "content", "content": {"type": "text",
+                                                "text": "User cancelled the execution for tool `run_terminal_command`"}}]},
+            {"type": "auto_compact_completed"},
+            {"type": "end", "stopReason": "end_turn", "num_turns": 1, "total_cost_usd": 1.0}]
+        m = collect_stream(stream, self.ACCEPTED)
+        self.assertEqual(m["unmeasured"], {})
+        self.assertEqual((m["compactions"], m["truncated_outputs"]), (1, 1))
+        self.assertEqual(m["cancelled_tool_calls"], ["git init -b main"])
+        self.assertEqual(m["knowledge_reads"], ["docs/shiploop/spec.md"])
+        first = metrics.summary_lines(m)[0]
+        self.assertIn("compactions 1, truncated outputs 1, cancelled tool calls 1", first)
+
+
+class HostSignalCountersThroughMainTest(PrintedCase):
+    """result.json, the baseline row and the printed line carry null, not 0, for what the host cannot show."""
+
+    def test_claude_and_codex_runs_commit_null_for_the_grok_only_counters(self):
+        for host in ("claude", "codex"):
+            with self.subTest(host):
+                code, result, printed = self.invoke_printed(host, "done")
+                self.assertEqual(code, 0, result)
+                row = self.last_row()
+                for name in HostSignalCountersTest.GROK_ONLY:
+                    self.assertIn(name, result["metrics"]["unmeasured"], name)
+                for name in ("compactions", "truncated_outputs", "cancelled_tool_calls"):
+                    self.assertIsNone(result["metrics"][name], name)
+                    self.assertIsNone(row[name], name)
+                self.assertIn("compactions not measured", printed)
+                self.assertIn("truncated outputs not measured", printed)
+
+
 if __name__ == "__main__":
     unittest.main()
