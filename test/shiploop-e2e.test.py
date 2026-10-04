@@ -1080,6 +1080,10 @@ class MetricsTest(unittest.TestCase):
             # reading ShipLoop's own contract is not building one
             'python3 -c \'import json; p=json.load(open("/x/run/quality/c-contract.json")); print(p["exit_condition"])\'': [],
             'python3 -c \'import json; json.dump({"exit_condition": 1}, open("/x/c.json", "w"))\'': ["hand-built loop contract"],
+            # making the model's own directories is not a write into a ShipLoop-owned path (batch 1003 / 1.16.1 run)
+            "mkdir -p '/x/.shiploop-runs/a/run/notes' && cat > '/x/.shiploop-runs/a/run/notes/w1.md' <<'EOF'\nx\nEOF": [],
+            "mkdir -p /x/.shiploop-runs/a/run/evidence": [],
+            "mkdir -p /x/.shiploop-runs/a/run/scratch": [],
             # a `>` in prose inside a quoted string is not a redirect, and run/scratch is the model's own
             "python3 -c 'import pathlib; pathlib.Path(\"/x/.shiploop-runs/a/run/scratch/r.json\").write_text(\"each > 0 must pass; see /x/.shiploop-runs/a/run/results\")'": [],
             'echo x > "/x/.shiploop-runs/a/run/state.md"': ["shell write into a ShipLoop-owned path"],
