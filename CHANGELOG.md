@@ -4,6 +4,14 @@ Written by scripts/release.py.
 
 ## 2026-10-04
 
+### skill-craft 1.19.2
+
+- Skills: shiploop 0.51.2
+
+### shiploop 0.51.2
+
+- The chain guide's `finish` row and worked example no longer say finish needs every worker's worktree removed. Since 0.49.0 a retried or lost attempt's workspace is kept and listed under `retained_superseded`; the old wording could lead a model to remove it directly or to stop.
+
 ### skill-craft 1.19.1
 
 - Skills: plan-dispatcher 0.6.2, shiploop 0.51.1
