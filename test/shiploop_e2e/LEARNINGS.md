@@ -1122,3 +1122,35 @@ Registered before any Luna invocation of this batch, so no reading below can be 
 - *Not re-qualified:* chain execution, retention across a follow-on, and concurrency. Their behaviour is unchanged since 1.17.0 except read-only report listing and wording, and this batch starts no chain, follow-on or parallel suite run.
 
 **How the close reads.** One journal entry after the Luna run maps its result to its row above. For Claude it cites `cost_usd` and `result.num_turns` (never the harness turn count) and no failure, glue, `/tmp`, cancelled or knowledge-read count; for Codex it cites wall minutes and `termination` only, never a dollar figure or per-stage turns. It notes the gate's init event once (Claude Code version, server count 0 expected).
+
+
+### Counters a host cannot show, second pass (review 2, metrics, chain E) - 2026-10-04 - status: firm (hermetic tests; two recorded runs recomputed and exported); not yet seen in a live run
+
+Base: the integration branch at `ed005f11`. Commits: Grok-only counters `1a35bc50`, whole-run turns `40f349c8`, `summarize_events` `7741df81`, the suite `/tmp` check `ea21092e`, error subtype `3a84d137`, cache writes in context `fa1ea772`. Builds on `ce32a143` (null counters, the `unmeasured` map) and `8de0bcb5` (cost unknown unless reported). Each finding below is from `docs/experiments` review pass 2 of the A1 to A3 work, re-checked against the code first.
+
+**Disposition.**
+- *Fixed, `1a35bc50`: compactions, truncated outputs and knowledge reads are Grok-only detections (3 findings, plus the progress one).* `GROK_SIGNALS` names the four counters read only from a Grok event shape (compactions, truncated outputs, cancelled tool calls, knowledge reads). `collect` marks them unmeasured, with the reason, unless the stream carries per-call `usage` events (Grok's; the signal `stage_turns` already uses). The two ints are null in `metrics.json`, `result.json` and the baseline row; the two lists are emptied; `progress.py` says once which counters the host cannot show and skips a null counter.
+- *Fixed, same commit: `cancelled_tool_calls` counts any failing command whose output contains "cancelled" (2 findings).* It is one of the four. The Grok half of the findings could not be reproduced (no Grok stream is recorded); the Codex half is fixed by not reading the Grok detector on a Codex stream at all.
+- *Fixed, `40f349c8`: whole-run turns are a measured 0 for a killed Codex session.* `turns` is null unless a call or an ended session reported a count; with a session that never reported beside one that did it is a lower bound, printed "N (lower bound)" through `metrics.turns_text`.
+- *Fixed, `7741df81`: `summarize_events` still records cost 0 and stop "success" (8 findings).* Chain B's `total_cost` had already fixed the cost and the process line (`8de0bcb5`, `cost_text`); left, and fixed: the stop reason now comes from `metrics.session_stop` and `num_turns` is null when no session reported one.
+- *Fixed, `ea21092e`: `shared_tmp_writes` ignores `unmeasured["tmp_writes"]` (4 findings).* A run with unmeasured writes is left out of the comparison, named in `suite-result.json` as `tmp_writes_unmeasured`, and printed as not checked.
+- *Fixed, `3a84d137`, beyond the list: an error result dropped its subtype (3 findings in `session_stop`).* Pinned by tests only; the recorded runs hold only subtype "success".
+- *Fixed, `fa1ea772`, added by the coordinator: `context_tokens` left out `cache_creation_input_tokens`.*
+- *Rejected, with evidence:* deriving the Claude tool-call marking from assistant events rather than `tool_use` blocks (part of one finding): a Claude stream with no `tool_use` block has no tool call to miss, so its tool-call counters are true zeros; the Grok-only marking no longer depends on tool calls at all. Reading Claude's `system/compact_boundary`: the SDK names it, but no recorded run contains one, so the shape is unverified. Tightening the cancelled detector's substring: no recorded Grok stream exists to check a narrower text against.
+- *Not touched (outside my hunks of `run.py`, or outside the list):* `LiveView.event`'s "done" line still prints subtype or stopReason; `main`'s `cli["truncated_outputs"]` comes from `host_truncations`, a Grok-shaped detector that returns an empty list for Claude and Codex; `main`'s "baseline vs" and follow-on lines format `before['turns']` and `run_metrics['turns']` directly, so a null prints "None" (the fix is `metrics.turns_text`); a resumed Codex run loses per-stage `tool_calls` because item ids restart each session and `collect` keys calls by `toolCallId`; a stream with no `timeline.jsonl` labels per-call usage as absent.
+
+**Evidence** (copies of the finished run directories, `metrics.collect` rerun before and after on the same input, then `export.py` over the regenerated `metrics.json`):
+
+| Run | Before | After |
+|---|---|---|
+| `20261003/v1161-battleship-luna` (Codex) | `cancelled_tool_calls` 23 (19 `node --test` summaries printing "cancelled 0", 4 reads of SKILL.md prose; none a refusal), 9 knowledge reads from 144 `search_replace` calls (writes), compactions and truncated outputs 0, "turns 2189" with `unreported_sessions` 1, `unmeasured` = [stage_turns] | the four counters null or empty and named in `unmeasured` with `stage_turns`; "turns 2189 (lower bound)" |
+| `20261004/v1190-hello-sonnet` (Claude) | "compactions 0, truncated outputs 0" beside "cancelled tool calls not measured"; `input_peak` 238,400 | the same two null and the map holds 8 names (was 5); `input_peak` 239,826 (per-turn undercount up to 60.7%, peak 0.6%) |
+
+The exporter ran on both. Its documents are identical to the ones built from the earlier metrics except the output path in `writes.json`, because it reads only `shiploop_failures`, `model_glue` and `improve_reviews`; it still publishes Claude's blind counters as measured zeros (refusals 0, glue 0 on the hello run), which is the separate Run Review design track, and `metrics.json` now carries the complete `unmeasured` map for it.
+
+**Superseded by this entry** (the journal is append-only here):
+- Any `compactions 0`, `truncated outputs 0`, `cancelled tool calls N` or knowledge-read list in a Codex or Claude `metrics.json`, `result.json` or baseline row written before `1a35bc50`, and the Luna run's "23 cancelled tool calls" in particular (none was a refusal); committed `baselines.jsonl` rows are left as written (none names a host, so none is compared).
+- Any Claude `input_peak` or per-turn context written before `fa1ea772`: low by the cache writes.
+- Any `cli.stop` of "success" in a `result.json` written before `7741df81` for a session that ended on an API error.
+
+**Limits, not fixed.** A stream that mixes hosts (a resume on another host) is read as the host that wrote usage events. A Grok session killed before its first usage event reads as not Grok, which fails safe (its Grok-only counters become unmeasured). A Claude compaction would show only as a `system/compact_boundary` event this harness does not read.
