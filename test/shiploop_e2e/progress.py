@@ -62,7 +62,9 @@ def report(out: Path) -> str:
              f"{m['tokens']['input_peak'] // 1000}K, cost {('$' + format(m['cost_usd'], '.2f')) if m['cost_usd'] else 'n/a'} | "
              + (f"{state.get('status')}, rev {state.get('revision')}, stage {state.get('stage')}, items {items}"
                 if state else "no run state yet")]
-    stages = m["stages"][memo.get("stages", 0):]
+    # The in-progress stage is already on the first line from the run state, and its
+    # row moves with every poll, so only accepted stages are listed here.
+    stages = [s for s in m["stages"] if not s.get("incomplete")][memo.get("stages", 0):]
     if stages:
         lines.append("  accepted: " + ", ".join(
             f"{s['stage']} {s['turns']}t/{s['seconds'] / 60:.1f}m" if "turns" in s else s["stage"] for s in stages))
@@ -75,7 +77,10 @@ def report(out: Path) -> str:
     verified = m["script_verifications"]
     if verified["records"] > memo.get("verified", 0):
         lines.append(f"  ShipLoop-run checks: {verified['passed']}/{verified['records']} passed "
-                     f"(+{verified['records'] - memo.get('verified', 0)})")
+                     f"(+{verified['records'] - memo.get('verified', 0)})"
+                     # An attempt that never reached a verdict is an environment problem, not a
+                     # product one, so it must be visible while the run is still going.
+                     + (f"; {verified['could_not_run']} could not run" if verified.get("could_not_run") else ""))
     for item in m["model_glue"][memo.get("glue", 0):]:
         lines.append("  model glue (" + "; ".join(item["reasons"]) + "): " + item["command"][:120])
     for command in m["cancelled_tool_calls"][memo.get("cancelled", 0):]:
@@ -85,7 +90,8 @@ def report(out: Path) -> str:
     remark = last_remark(out)
     if remark:
         lines.append("  model: " + remark)
-    memo_path.write_text(json.dumps({"stages": len(m["stages"]), "failures": len(m["shiploop_failures"]),
+    memo_path.write_text(json.dumps({"stages": len([s for s in m["stages"] if not s.get("incomplete")]),
+                                     "failures": len(m["shiploop_failures"]),
                                      "sessions": len(m["sessions"]), "cancelled": len(m["cancelled_tool_calls"]),
                                      **{k: m[k] for k in ("truncated_outputs", "compactions",
                                                           "improve_children")},

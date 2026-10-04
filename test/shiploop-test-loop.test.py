@@ -29,6 +29,7 @@ import shiploop_navigator as nav  # noqa: E402
 import shiploop_prompts as prompts  # noqa: E402
 import shiploop_store as store  # noqa: E402
 import shiploop_item_scope as item_scope  # noqa: E402
+import shiploop_stage_spec as stage_spec  # noqa: E402
 import shiploop_test_loop as test_loop  # noqa: E402
 
 CORE = types.SimpleNamespace(PACKAGE_ROOT=PACKAGE, REF_DIR=PACKAGE / "references")
@@ -549,6 +550,156 @@ class VerifyLimitTests(unittest.TestCase):
             _writes, refusal = test_loop.verify(root, self.state(root, "true"), "W1", "A1", "test-green",
                                                 budget=0.5)
         self.assertIn("[focused] true -> skipped", refusal)
+
+
+class UnavailableExecutionTests(unittest.TestCase):
+    """A command that never reached a verdict refuses its stage without blaming the product.
+
+    Each case writes its own record through the real ``verify``, so the recorded
+    disposition and the refusal text are checked together.
+    """
+
+    def state(self, repo: Path, *commands: str) -> dict:
+        """A state whose INNER step plan and both OUTER sources record the same commands.
+
+        The outer verify stages take their commands from ``system-test-author``
+        and ``release-plan``, not from the step plan, so every VERIFY_STAGES
+        case needs all three seeded.
+        """
+        rows = [{"command": command, "suite": "focused"} for command in commands]
+        regression = [dict(row, suite="regression") for row in rows]
+        return {"repo": str(repo),
+                "history": [{"stage": "step-plan", "workitem": "W1", "action": "S1", "outcome": "done"},
+                            {"stage": "system-test-author", "workitem": None, "action": "S2",
+                             "outcome": "done"},
+                            {"stage": "release-plan", "workitem": None, "action": "S3", "outcome": "done"}],
+                "accepted": {"S1": dict(DONE, test_commands=rows),
+                             "S2": dict(DONE, system_commands=regression),
+                             "S3": dict(DONE, consumer_checks=regression)}}
+
+    def record(self, writes: dict, number: int = 1) -> dict:
+        return store.loads(writes["tests/A1-verify" + str(number) + ".md"])
+
+    def test_a_command_that_cannot_start_is_recorded_as_error_not_as_a_test_failure(self):
+        def explode(*_args, **_kwargs):
+            raise OSError("no such interpreter")
+
+        with tempfile.TemporaryDirectory() as temp:
+            root = Path(temp)
+            writes, refusal = test_loop.verify(root, self.state(root, "pytest -q"), "W1", "A1", "test-green",
+                                               runner=explode)
+            record = self.record(writes)
+            for relative, text in writes.items():
+                (root / relative).parent.mkdir(parents=True, exist_ok=True)
+                (root / relative).write_text(text)
+            self.assertEqual(test_loop.refused_runs(root, "A1"), 0)
+        self.assertEqual(record["runs"][0]["status"], "error")
+        self.assertEqual(record["disposition"], "could-not-run")
+        self.assertFalse(record["passed"])
+        self.assertIn("could not start", refusal)
+        self.assertIn("says nothing about the product", refusal)
+
+    def assert_unavailable(self, root: Path, stage: str, **kwargs) -> str:
+        """Run one attempt that cannot reach a verdict; return its refusal text."""
+        writes, refusal = test_loop.verify(root, self.state(root, "sleep 5"), "W1", "A1", stage, **kwargs)
+        record = self.record(writes, test_loop._verify_count(root, "A1") + 1)
+        self.assertEqual(record["disposition"], "could-not-run")
+        for relative, text in writes.items():
+            (root / relative).parent.mkdir(parents=True, exist_ok=True)
+            (root / relative).write_text(text)
+        return refusal
+
+    def test_unavailable_attempts_never_reach_the_refused_run_cap(self):
+        with tempfile.TemporaryDirectory() as temp:
+            root = Path(temp)
+            for _attempt in range(test_loop.MAX_REFUSED_RUNS + 3):
+                refusal = self.assert_unavailable(root, "test-green", command_timeout=0.2)
+                self.assertIn("does not count toward the 7 refused runs", refusal)
+                self.assertEqual(test_loop.refused_runs(root, "A1"), 0)
+            # The gate never closed, so ShipLoop still runs the commands.
+            self.assertNotIn("done is no longer accepted", refusal)
+
+    def test_an_always_unavailable_command_is_given_routes_out_not_a_dead_end(self):
+        """The gate cannot fire on could-not-run attempts, so the packet must name the exits.
+
+        Otherwise a command that always hangs loops forever: it can never pass,
+        its own hang is run-fixable so `blocked` would be illegal, and the
+        refusal cap it would need to reach the stage's remedy never advances.
+        """
+        for stage, remedy in (("test-green", "revise"), ("system-test", "replan")):
+            with self.subTest(stage=stage), tempfile.TemporaryDirectory() as temp:
+                root = Path(temp)
+                _writes, refusal = test_loop.verify(root, self.state(root, "sleep 5"), "W1", "A1", stage,
+                                                    command_timeout=0.2)
+                self.assertIn("is yours to fix here and is not a blocker", refusal)
+                self.assertIn("report " + remedy + " rather than retrying it", refusal)
+                self.assertIn("blocked only for what the user, an access grant or an outside dependency",
+                              refusal)
+                self.assertNotIn("step plan's command", refusal)  # outer stages have no step plan
+
+    def test_a_real_failure_beside_a_timeout_is_still_a_product_failure(self):
+        with tempfile.TemporaryDirectory() as temp:
+            root = Path(temp)
+            writes, refusal = test_loop.verify(root, self.state(root, "false", "sleep 5"), "W1", "A1",
+                                               "test-green", command_timeout=0.2)
+            record = self.record(writes)
+            for relative, text in writes.items():
+                (root / relative).parent.mkdir(parents=True, exist_ok=True)
+                (root / relative).write_text(text)
+            self.assertEqual(test_loop.refused_runs(root, "A1"), 1)
+        self.assertEqual(record["disposition"], "failed")
+        self.assertIn("Refused runs for this action: 1 of 7", refusal)
+        self.assertNotIn("does not count toward", refusal)
+
+    def test_the_remedy_named_at_the_cap_is_the_one_its_stage_allows(self):
+        for stage in test_loop.VERIFY_STAGES:
+            outcomes = stage_spec.STAGE_SPEC[stage].outcomes
+            expected = "revise" if "revise" in outcomes else "replan"
+            with self.subTest(stage=stage), tempfile.TemporaryDirectory() as temp:
+                root = Path(temp)
+                (root / "tests").mkdir()
+                for number in range(1, test_loop.MAX_REFUSED_RUNS + 1):
+                    store.write_record(root / test_loop.verify_path("A1", number),
+                                       {"schema": test_loop.SCHEMA, "passed": False, "disposition": "failed",
+                                        "runs": [{"status": "failed"}]})
+                writes, refusal = test_loop.verify(root, self.state(root, "true"), "W1", "A1", stage)
+                self.assertEqual(writes, {})  # the gate refuses before running anything
+                self.assertIn("was refused 7 times; done is no longer accepted", refusal)
+                self.assertIn("Report outcome " + expected, refusal)
+                self.assertNotIn("Report outcome " + ("replan" if expected == "revise" else "revise"), refusal)
+                self.assertIn(expected, stage_spec.STAGE_SPEC[stage].outcomes)
+                if expected == "replan":
+                    self.assertIn("corrective work_items", refusal)
+
+    def test_a_label_that_is_not_a_graph_stage_has_no_remedy_and_does_not_raise(self):
+        """`verify` is also called with the navigator's `end-of-work review` gate label.
+
+        It is not in STAGE_SPEC, so looking its outcomes up by subscript raised
+        KeyError and broke the gate (caught by shiploop-improve-changes, not by
+        this file's own stages).
+        """
+        self.assertEqual(test_loop._remedy("end-of-work review"), "")
+        self.assertEqual(test_loop._remedy_sentence("end-of-work review"), "the stage reports blocked")
+        with tempfile.TemporaryDirectory() as temp:
+            root = Path(temp)
+            commands = [{"command": "false", "suite": "regression"}]
+            writes, refusal = test_loop.verify(root, self.state(root, "false"), "", "A1",
+                                               "end-of-work review", commands=commands)
+            self.assertIn("tests/A1-verify1.md", writes)
+            self.assertIn("end-of-work review is not done", refusal)
+            # No remedy outcome is named for something that is not a graph stage.
+            self.assertNotIn("revise", refusal)
+            self.assertNotIn("replan", refusal)
+
+    def test_the_rerun_packet_names_its_own_stage_remedy(self):
+        with tempfile.TemporaryDirectory() as temp:
+            root = Path(temp)
+            state = self.state(root, "true")
+            self.assertIn("the item goes back to its step plan (revise)",
+                          "\n".join(test_loop.rerun_lines(state, "W1", "test-refine")))
+            outer = "\n".join(test_loop.rerun_lines(state, "W1", "system-test"))
+            self.assertIn("the outer loop takes corrective work items (replan)", outer)
+            self.assertNotIn("step plan (revise)", outer)
 
 
 if __name__ == "__main__":

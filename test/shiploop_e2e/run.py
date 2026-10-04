@@ -936,12 +936,35 @@ def parser() -> argparse.ArgumentParser:
     return p
 
 
+def baseline_stages(stages: list | None) -> list | None:
+    """The per-stage fields worth committing: enough to locate a regression, no more.
+
+    `tool_calls` and `output_tokens` stay in the run's own metrics.json, which is
+    disposable; a committed baseline only needs what a comparison reads, plus the
+    markers that say a row is not comparable.
+    """
+    if stages is None:
+        return None
+    keep = ("stage", "outcome", "seconds", "turns", "timing", "incomplete")
+    return [{k: row[k] for k in keep if k in row} for row in stages if isinstance(row, dict)]
+
+
 def baseline_row(result: dict, style: str | None, suite: str | None) -> dict:
-    """One comparable summary of a run: the per-case history the suites judge against (SPEC: E2E suites)."""
+    """One comparable summary of a run: the per-case history the suites judge against (SPEC: E2E suites).
+
+    Carries host, model and effort because a baseline compares only with rows
+    from the same three (SPEC: the driver is a parameter, not a code path), and
+    per-stage rows so a regression can be located in a stage rather than only in
+    a whole-run total. ``baseline_stages`` decides which stage fields are worth
+    committing; the full rows stay in the run's own metrics.json.
+    """
     m = result.get("metrics") or {}
     versions = result.get("versions") or {}
     return {"date": time.strftime("%Y-%m-%dT%H:%M:%S%z"), "case": result.get("case"), "style": style,
-            "suite": suite, "source": versions.get("source"), "plugin_version": versions.get("plugin_version"),
+            "suite": suite, "host": result.get("host"), "model": result.get("model"),
+            "effort": result.get("effort"), "stages": baseline_stages(m.get("stages")),
+            "termination": result.get("termination"),
+            "source": versions.get("source"), "plugin_version": versions.get("plugin_version"),
             "shiploop_version": versions.get("shiploop_version"), "pass": result.get("pass"),
             "verdicts": {k: (result.get(k) or {}).get("pass") for k in ("invoked", "plugin", "process",
                                                                        "shiploop", "committed")},
@@ -956,8 +979,15 @@ def baseline_row(result: dict, style: str | None, suite: str | None) -> dict:
             "output": result.get("output")}
 
 
-def previous_row(path: Path, case: str, source: str | None) -> dict | None:
-    """The last recorded row for this case from the same source (marketplace vs checkout)."""
+def previous_row(path: Path, case: str, source: str | None, host: str | None = None,
+                 model: str | None = None, effort: str | None = None) -> dict | None:
+    """The last recorded row for this case that is actually comparable with this run.
+
+    SPEC: a baseline compares only with rows from the same host, model and
+    effort, so a row that does not name all three, or names different ones, is
+    not a baseline for this run. Rows written before those fields existed are
+    therefore skipped rather than compared against.
+    """
     if not path.is_file():
         return None
     found = None
@@ -966,9 +996,79 @@ def previous_row(path: Path, case: str, source: str | None) -> dict | None:
             row = json.loads(line)
         except ValueError:
             continue
-        if row.get("case") == case and row.get("source") == source:
-            found = row
+        if row.get("case") != case or row.get("source") != source:
+            continue
+        if (row.get("host"), row.get("model"), row.get("effort")) != (host, model, effort):
+            continue
+        found = row
     return found
+
+
+def termination_facts(process: dict, run_metrics: dict, engine: dict, resume_stop: str | None) -> dict:
+    """Why this run is not still going, from the observer that owns the process.
+
+    ShipLoop cannot answer this: it is not running when its host times out, runs
+    out of credits, or is killed, so only the harness around the process can say
+    what happened. Every field keeps ``unknown`` rather than a guess, and the
+    last ShipLoop refusal is never reported as the cause -- a refusal is a
+    rejected callback, not a terminated run.
+    """
+    stops = [s.get("stop") for s in run_metrics.get("sessions") or []]
+    pending = metrics.pending_stage(engine)
+    return {
+        "process_status": process.get("status") or "unknown",
+        "returncode": process.get("returncode"),
+        "sessions": len(process.get("sessions") or []),
+        "resumes": process.get("resumes"),
+        # The host's own reason per session; None means that session never reported one.
+        "session_stops": [s if s is not None else "unknown" for s in stops] or ["unknown"],
+        "resume_stop": resume_stop or "unknown",
+        "engine_status": engine.get("status") or "unknown",
+        # Where the graph actually stopped: the stage it never accepted, when there is one.
+        "engine_stage": pending or engine.get("stage") or "unknown",
+        "engine_unaccepted_stage": pending,
+    }
+
+
+def stage_diff_lines(before: list | None, now: list | None, top: int = 5) -> list[str]:
+    """Where a whole-run difference actually landed, by stage.
+
+    Reports only what is measured on both sides: a stage missing timing on
+    either run is listed as not comparable rather than counted as zero. Stages
+    are summed per name because a stage can be visited more than once (one
+    `implement` action per planned step), and the largest turn differences come
+    first. This prints; it gates nothing, because no threshold is calibrated yet.
+    """
+    def totals(rows: list | None) -> dict[str, dict]:
+        out: dict[str, dict] = {}
+        for row in rows or []:
+            if not isinstance(row, dict) or "turns" not in row:
+                continue
+            seen = out.setdefault(row.get("stage") or "?", {"turns": 0, "seconds": 0.0, "visits": 0})
+            seen["turns"] += row.get("turns") or 0
+            seen["seconds"] += row.get("seconds") or 0
+            seen["visits"] += 1
+        return out
+
+    was, became = totals(before), totals(now)
+    if not was or not became:
+        return ["per-stage comparison unavailable (one run has no measured stage timing)"]
+    shared = sorted(set(was) & set(became), key=lambda s: abs(became[s]["turns"] - was[s]["turns"]), reverse=True)
+    moved = [s for s in shared if became[s]["turns"] != was[s]["turns"]]
+    lines = []
+    # Say how much of each run this covers, so a partial comparison is not read as a whole one.
+    skipped = sum(1 for r in (now or []) if isinstance(r, dict) and "turns" not in r)
+    if skipped:
+        lines.append(f"per-stage comparison covers {len(became)} of {len(became) + skipped} stages "
+                     f"({skipped} had no measured timing)")
+    if moved:
+        lines.append("stage turns: " + ", ".join(
+            f"{s} {was[s]['turns']}->{became[s]['turns']}"
+            f" ({was[s]['seconds'] / 60:.0f}->{became[s]['seconds'] / 60:.0f}m)" for s in moved[:top]))
+    for label, names in (("only now", sorted(set(became) - set(was))), ("only before", sorted(set(was) - set(became)))):
+        if names:
+            lines.append(f"{label}: " + ", ".join(names[:top]))
+    return lines or ["no per-stage turn difference"]
 
 
 def shared_tmp_writes(outputs: list[Path]) -> dict[str, list[str]]:
@@ -1222,13 +1322,23 @@ def main(argv: list[str] | None = None) -> int:
         sessions.append(dict(process, resumed="after-interrupt", host=host.name))
     # A headless Grok session ends whenever the model ends its turn. While ShipLoop's
     # run is still active, resume that same session (bounded) instead of losing the run.
+    resume_stop = None if host.resumable else "host is not resumable"
     while host.resumable and len(sessions) <= args.max_resumes:
         state = grade_shiploop(out)
         session_id = last_session_id(out / "events.jsonl")
         remaining = int(deadline - time.time())
         # No run yet means the session ended before ShipLoop wrote its state; a
         # run that is paused, blocked, awaiting, halted or done is not resumed.
-        if state.get("status") not in ("active", None) or not session_id or remaining <= 60:
+        # Each reason is recorded, because "why did this run stop?" is answerable
+        # only here: the engine is not running when its host goes away.
+        if state.get("status") not in ("active", None):
+            resume_stop = f"ShipLoop run is {state.get('status')}"
+            break
+        if not session_id:
+            resume_stop = "no host session id to resume"
+            break
+        if remaining <= 60:
+            resume_stop = "run deadline spent"
             break
         if not args.quiet:
             print(f"resume {len(sessions)}/{args.max_resumes}: session {session_id} ended with ShipLoop "
@@ -1240,6 +1350,8 @@ def main(argv: list[str] | None = None) -> int:
         process = launch(argv, work, out, env, remaining, watch=not args.quiet, first=False,
                          translate=host.translator())
         sessions.append(dict(process, resumed=session_id, host=host.name))
+    if resume_stop is None and host.resumable:
+        resume_stop = f"resume budget spent ({args.max_resumes})"
     process = dict(process, sessions=sessions, resumes=len(sessions) - 1)
     process["pass"] = process["status"] == "exited"
     cli_seen = summarize_events(out / "events.jsonl")
@@ -1292,15 +1404,19 @@ def main(argv: list[str] | None = None) -> int:
                 *(c["pass"] for c in check_results)]
     if keepalive is not None:
         keepalive["decisions"] = hosts.keepalive_decisions(out / "home")
+    termination = termination_facts(process, run_metrics,
+                                    metrics.engine_state(Path(shiploop["run_dir"]) if shiploop.get("run_dir")
+                                                         else None),
+                                    resume_stop)
     result = {"case": name, "host": args.host, "model": args.model, "effort": args.effort,
               "pass": all(verdicts), "invoked": invoked, "plugin": plugin, "versions": versions,
-              "process": process,
+              "process": process, "termination": termination,
               "keepalive": keepalive,
               "shiploop": shiploop, "committed": committed, "checks": check_results, "cli": cli_seen, "follow_on": follow_on,
               "resumed_run": resumed, "seeded": seeded, "chain": chain, "recovery": recovery, "budget": budget,
               "expectations": expectations,
               "metrics": {k: run_metrics[k] for k in ("turns", "cost_usd", "compactions", "truncated_outputs",
-                                                      "improve_children")}
+                                                      "improve_children", "stages")}
               | {"script_verifications": run_metrics["script_verifications"],
                  "model_glue": len(run_metrics["model_glue"]),
                  "tmp_writes": len(run_metrics["tmp_writes"]),
@@ -1315,7 +1431,8 @@ def main(argv: list[str] | None = None) -> int:
     row = baseline_row(result, style, args.suite_name)
     # A baseline measures one host running a case from the start; a resumed run is not one.
     baseline_file = args.baseline if not (resumed or seeded) else None
-    before = previous_row(baseline_file, name, versions["source"]) if baseline_file else None
+    before = (previous_row(baseline_file, name, versions["source"], args.host, args.model, args.effort)
+              if baseline_file else None)
     if baseline_file:
         with baseline_file.open("a") as handle:
             handle.write(json.dumps(row) + "\n")
@@ -1333,6 +1450,11 @@ def main(argv: list[str] | None = None) -> int:
         print(f"  keepalive {'installed' if keepalive['installed'] else 'NOT installed'}; "
               f"decisions {keepalive['decisions'] or 'none (hooks never ran)'}")
     print(f"  shiploop  {mark(shiploop['pass'])}  {shiploop.get('status') or shiploop.get('reason')}")
+    print(f"  stopped   host {termination['process_status']} rc={termination['returncode']}; "
+          f"session stops {', '.join(termination['session_stops'])}; no further resume: "
+          f"{termination['resume_stop']}; engine {termination['engine_status']}"
+          + (f" with {termination['engine_unaccepted_stage']} never accepted"
+             if termination["engine_unaccepted_stage"] else ""))
     if shiploop.get("worktree_checks") is not None:
         passed = sum(c["pass"] for c in shiploop["worktree_checks"])
         print(f"            unreturned product in {shiploop['worktree']}: "
@@ -1376,12 +1498,15 @@ def main(argv: list[str] | None = None) -> int:
         print(f"  check     {mark(check['pass'])}  {check['command']}")
     print(f"  {exported}")
     if before:
-        print(f"  baseline  vs {before['date'][:10]} (ShipLoop {before['shiploop_version']}): "
+        print(f"  baseline  vs {before['date'][:10]} (ShipLoop {before['shiploop_version']}, same "
+              f"{args.host}/{args.model}/{args.effort}): "
               f"turns {before['turns']} -> {row['turns']}, cost ${before['cost_usd']} -> ${row['cost_usd']}, "
               f"sessions {before['sessions']} -> {row['sessions']}, glue {before['model_glue']} -> {row['model_glue']}"
               + (f", narrative shown {before['narrative']['shown']}/{before['narrative']['emitted']} -> "
                  f"{row['narrative']['shown']}/{row['narrative']['emitted']}"
                  if before.get("narrative") and row.get("narrative") else ""))
+        for line in stage_diff_lines(before.get("stages"), row.get("stages")):
+            print(f"            {line}")
     if not result["pass"]:
         failed = [(verdict, want, got) for ok, verdict, want, got in (
             (invoked["pass"], "invoked", "the host registers the invoked ShipLoop skill", "not registered"),

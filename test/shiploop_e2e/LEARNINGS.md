@@ -955,3 +955,34 @@ Related commits: db61a4a7 (resource list at every Backchain stage), 112b239c (co
 - **The environment was not controlled, and that is now fixed.** The 1.18.0 and 1.19.0 gate runs loaded 15 claude.ai connectors (174 tools, several shown connected, among them Interactive Brokers and Docusign) into an unattended run, while 1.16.1 and the 1.19.0 repeat loaded none (28 tools); Claude Code moved from 2.1.288 to 2.1.289; two of the runs ran concurrently; initial context was about 60k tokens against 54k. A probe with one turn confirmed the cause: a plain launch with `--setting-sources project,local` loads 15 connectors and 174 tools, and adding `--strict-mcp-config` loads 0 and 28. `ClaudeHost.argv` now passes `--strict-mcp-config` (test pinned in `test/shiploop-e2e.test.py`, README isolation paragraph updated).
 - **Measurement caveats for these tables.** `metrics.json` `turns` counts assistant content-block events, about 1.7 times the API calls (84, 94, 113 and 149 real calls for the four runs); `cost_share_usd` is the run's cost times a stage's turn share, not a measured stage cost; stage turns come from result-file mtimes and jitter between neighbouring stages, so a stage showing 0 turns is boundary jitter. The stage tables above are indicative only.
 - **Status and next measurement.** The release-linked reading of the hello cost rise is not supported; noise between the two same-release 1.19.0 runs ($1.96) is larger than the release-to-release steps ($1.10 and $0.98). If the owner wants it settled: an interleaved serial A/B of three 1.16.1 and three 1.19.0 hello runs on Sonnet 5.5 with the connector isolation (about $28); a clean 1.16.1 that now changes at least 25% of children means drift, one that stays at 2 of 8 or fewer and costs $1 or more less in two of three pairs means bisect (`1ff8c841`, `b97c3a0a`, `19fa890d`). Observations o37 to o39 and actions a14 to a16 on the page.
+
+## Harness contract change — 2026-10-04 — status: firm (hermetic tests); not yet seen in a live run
+
+Not a run entry. It changes what the next run records and what it compares against, so read it
+before the next baseline comparison. Full reasoning, measurements and the change-admission
+record: `docs/shiploop-graph-engineering-comparison-2026-10-04.md`.
+
+- **Baselines now compare only within one host, model and effort** (SPEC: the driver is a
+  parameter). `baselines.jsonl` rows gained `host`, `model`, `effort`, per-stage rows and
+  `termination`; `previous_row` requires all three to match. **The 12 existing rows name none of
+  them, so they are no longer used as baselines** — the next run per case/host/model/effort
+  prints no comparison and becomes the new first row. That is deliberate: those rows mixed hosts.
+- **Per-stage attribution reads ShipLoop's own records**, not result-file mtimes: `state.md`
+  history joined to `timeline.json` by action id, carrying each stage's `outcome`. A stage the
+  engine could not stamp reports `timing: "unavailable"` instead of a zero-length window, and so
+  does the stage straight after an unstamped one, whose window covers both.
+- **`cost_share_usd` is gone.** It was one total redistributed by turn count, so a price change
+  or expensive work elsewhere moved a stage's dollars. Total cost stays whole-run.
+- **An unfinished run now attributes the stage it never accepted** (an `incomplete` row), which is
+  the stage an attrition question is about. Of the 11 recorded protocol-4 runs, 7 reached
+  `handoff`, 1 blocked at `plan` and 3 were left active; the worst now reports
+  `carry-forward never accepted`.
+- **`result.json` and each baseline row carry `termination`**: process status and return code,
+  each session's own stop reason, why the driver stopped resuming, and the engine's status and
+  unaccepted stage. `unknown` is kept rather than guessed, and a ShipLoop refusal is never
+  reported as the cause.
+- **`script_verifications` gained `could_not_run`**: attempts where no command reached a verdict
+  about the product. ShipLoop no longer counts those toward its 7 refused runs, so an environment
+  problem cannot rewrite a work item's step plan. Expect `0` on a healthy run; any non-zero value
+  is an environment problem, not a product one. **No case exercises a slow or breakable suite, so
+  these paths have never run live** — that is the open evidence gap for that engine change.

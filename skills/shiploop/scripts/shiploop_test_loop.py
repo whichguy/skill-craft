@@ -45,7 +45,9 @@ RED_STAGE, = stage_spec.with_complete_run("test-red")
 # recorded command (no loop).
 RERUN_STAGES = stage_spec.with_complete_run("test-rerun")
 VERIFY_STAGES = STAGES + RERUN_STAGES
-# Refused command runs per action before done is no longer accepted (then revise or blocked).
+# Product failures per action before done is no longer accepted (then the stage's own
+# remedy outcome, or blocked).  Attempts that only failed to run do not count: see
+# UNAVAILABLE and refused_runs.
 MAX_REFUSED_RUNS = 7
 # focused and regression commands run tests; a check (for example a search that a
 # document names a required term) is judged by its exit code alone.
@@ -54,6 +56,14 @@ COMMAND_KEYS = frozenset({"command", "suite", "ids", "min_tests", "criteria"})
 # Statuses that count as passing.  ``passed-uncounted`` (exit 0, output not
 # recognised) is allowed only for a regression command without ids or min_tests.
 PASSING = ("passed", "passed-uncounted")
+# Statuses where the command never reached a verdict about the product: it timed
+# out, could not start, or was skipped because the invocation's budget ran out.
+# These still refuse the stage -- nothing is accepted on unrun tests -- but they
+# are not evidence that the product or its step plan is wrong, so they do not
+# count toward MAX_REFUSED_RUNS.  A timeout is not a diagnosis: it can mean a
+# product deadlock, a broken test, a slow valid suite or an external dependency,
+# so it never asserts who must repair it.
+UNAVAILABLE = ("timeout", "skipped", "error")
 COMMAND_TIMEOUT_SECONDS = 600.0
 STAGE_BUDGET_SECONDS = 1800.0
 TAIL_CHARS = 6000
@@ -316,7 +326,8 @@ def rerun_lines(state: Mapping[str, Any], work_item: str, stage: str) -> List[st
         return []
     return (["", "Test rerun: on done, ShipLoop runs every test command the step plan recorded from "
              + str(state["repo"]) + " and refuses unless each passes (at most " + str(MAX_REFUSED_RUNS)
-             + " refused runs, then the item goes back to its step plan with revise):"]
+             + " refused runs, then " + _remedy_sentence(stage) + "; a command that times out, cannot "
+             "start or is skipped on budget refuses the stage without counting):"]
             + ["  " + str(number) + ". " + _listing(row) for number, row in enumerate(commands, 1)]
             + [COUNT_RULE])
 
@@ -458,9 +469,14 @@ def _explain(run: Mapping[str, Any]) -> str:
         return ("failed without any failing test" + seen + ": a syntax, import or setup error is not a "
                 "meaningful RED. Fix the test setup so the tests run and fail on the missing behaviour.")
     if status == "timeout":
-        return "timed out"
+        return ("timed out, so it reached no verdict about the product. This is not a diagnosis: it can mean a "
+                "deadlock, a broken test, a suite too slow for this budget or an external dependency.")
     if status == "skipped":
         return "skipped (" + str(run.get("stderr") or "the stage budget ran out") + ")"
+    if status == "error":
+        detail = ((run.get("stderr") or "").strip().splitlines() or ["no detail"])[-1]
+        return ("could not start: " + detail
+                + ". The command never ran, so this says nothing about the product.")
     return "exit " + str(run["exit"])
 
 
@@ -472,12 +488,68 @@ def _verify_count(root: Path, action: str) -> int:
     return number
 
 
+def _disposition(runs: List[Dict[str, Any]], good: Tuple[str, ...]) -> str:
+    """One attempt's verdict: ``passed``, ``failed`` or ``could-not-run``.
+
+    A real failing check beside a timeout is still ``failed``: an unavailable
+    command never erases a verdict another command did reach.
+    """
+    if all(run["status"] in good for run in runs):
+        return "passed"
+    if any(run["status"] not in good and run["status"] not in UNAVAILABLE for run in runs):
+        return "failed"
+    return "could-not-run"
+
+
+def _remedy(stage: str) -> str:
+    """The outcome this stage offers when its own runs keep refusing, from the stage contract.
+
+    INNER verify stages take the item back to its step plan (``revise``).  The
+    OUTER ``system-test`` and ``release-verify`` have no step plan to revise and
+    take corrective work items instead (``replan``), which the navigator requires
+    with the result.
+
+    ``verify`` is also called with a label that is not a graph stage at all --
+    the navigator's ``end-of-work review`` gate -- which has no remedy outcome
+    and must not raise here.
+    """
+    row = stage_spec.STAGE_SPEC.get(stage)
+    if row is None:
+        return ""
+    for candidate in ("revise", "replan"):
+        if candidate in row.outcomes:
+            return candidate
+    return ""
+
+
+def _remedy_sentence(stage: str) -> str:
+    """What the packet says the stage's remedy outcome does, in the stage's own terms."""
+    remedy = _remedy(stage)
+    if remedy == "revise":
+        return "the item goes back to its step plan (revise)"
+    if remedy == "replan":
+        return "the outer loop takes corrective work items (replan)"
+    return "the stage reports blocked"
+
+
 def refused_runs(root: Path, action: str) -> int:
-    """How many of this action's ShipLoop test runs were refused."""
+    """How many of this action's ShipLoop test runs the product failed.
+
+    An attempt whose only non-passing commands were unavailable (``UNAVAILABLE``:
+    timed out, could not start, skipped on budget) is not evidence against the
+    product, so it does not count here.  It still refused its stage at the time.
+    A record written before the disposition field existed counts as a failure,
+    which is what it meant then.
+    """
     refused = 0
     for number in range(1, _verify_count(root, action) + 1):
         prior = store.read_record(Path(root) / verify_path(action, number))
-        refused += 0 if isinstance(prior, Mapping) and prior.get("passed") else 1
+        if not isinstance(prior, Mapping):
+            refused += 1
+            continue
+        if prior.get("passed") or prior.get("disposition") == "could-not-run":
+            continue
+        refused += 1
     return refused
 
 
@@ -492,8 +564,10 @@ def verify(root: Path, state: Mapping[str, Any], work_item: str, action: str, st
     An empty refusal means every command passed (``judge``).  At test-red each
     focused command must fail inside a test, unless ``red_na`` gives the reason
     the tests already pass; then they must pass and must have run.  A command
-    that times out, cannot start or is skipped because the stage budget ran out
-    refuses.
+    that times out, cannot start or is skipped because the invocation's budget
+    ran out refuses the stage, but the attempt is recorded ``could-not-run`` and
+    does not count toward ``MAX_REFUSED_RUNS``: see ``_disposition``.  ``budget``
+    and ``command_timeout`` bound this one invocation, not the stage's total time.
     """
     root = Path(root)
     if commands is None:
@@ -504,10 +578,15 @@ def verify(root: Path, state: Mapping[str, Any], work_item: str, action: str, st
     refused = refused_runs(root, action)
     number = _verify_count(root, action) + 1
     if refused >= MAX_REFUSED_RUNS:
+        remedy = _remedy(stage)
+        instruction = ("Report outcome " + remedy + ", naming the failing command from "
+                       + str(root / verify_path(action, number - 1))
+                       + (", so the step plan is revised" if remedy == "revise"
+                          else ", with the corrective work_items the outer loop must run")
+                       + "; report ") if remedy else "Report "
         return {}, ("ShipLoop test run: " + stage + " was refused " + str(refused) + " times; done is no longer "
-                    "accepted for this action. Report outcome revise, naming the failing command from "
-                    + str(root / verify_path(action, number - 1)) + ", so the step plan is revised; report "
-                    "blocked only if the user, an access grant or an outside dependency must unblock it.")
+                    "accepted for this action. " + instruction + "blocked only if the user, an access grant "
+                    "or an outside dependency must unblock it.")
     runner = runner or lint.run_argv
     clock = clock or time.monotonic
     repo = Path(str(state["repo"]))
@@ -528,8 +607,11 @@ def verify(root: Path, state: Mapping[str, Any], work_item: str, action: str, st
             status, code, out, err = "error", None, b"", (type(exc).__name__ + ": " + str(exc)).encode()
         run: Dict[str, Any] = {**row, "exit": code, "seconds": round(clock() - started, 3),
                                "stdout": _tail(out), "stderr": _tail(err)}
-        if status == "timeout":
-            run["status"] = "timeout"
+        if status in UNAVAILABLE:
+            # Keep the runner's own unavailable status, including the "error" an
+            # OSError set above: it exits with no code, so the next branch would
+            # otherwise record a spawn failure as a test failure.
+            run["status"] = status
         elif code is None:
             run["status"] = "failed"
         else:
@@ -537,10 +619,12 @@ def verify(root: Path, state: Mapping[str, Any], work_item: str, action: str, st
             run.update(judge(row, code, output, red=red))
         runs.append(run)
     good = ("red",) if red else PASSING
+    disposition = _disposition(runs, good)
     record = {
         "schema": SCHEMA, "action": action, "stage": stage, "work_item": work_item,
         "created_at": datetime.now(timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ"),
-        "cwd": str(repo), "passed": all(run["status"] in good for run in runs), "runs": runs,
+        "cwd": str(repo), "passed": disposition == "passed", "disposition": disposition,
+        "runs": runs,
     }
     if stage == RED_STAGE:
         record["expect"] = "red" if red else "green (red_na: " + str(red_na) + ")"
@@ -556,8 +640,22 @@ def verify(root: Path, state: Mapping[str, Any], work_item: str, action: str, st
         lines.append("- [" + run["suite"] + "] " + run["command"] + " -> " + _explain(run))
         tail = (run["stdout"] + "\n" + run["stderr"]).strip().splitlines()[-15:]
         lines += ["    | " + line for line in tail]
-    attempts = ("Refused runs for this action: " + str(refused + 1) + " of " + str(MAX_REFUSED_RUNS)
-                + "; after that the item goes back to its step plan (revise).")
+    if disposition == "could-not-run":
+        # This attempt does not spend one of the refused runs, so the gate that would
+        # otherwise force the stage's remedy cannot fire on it.  Name the routes out
+        # explicitly instead, or a command that always hangs has none.
+        remedy = _remedy(stage)
+        attempts = ("No command reached a verdict about the product, so this attempt does not count toward "
+                    "the " + str(MAX_REFUSED_RUNS) + " refused runs (still at " + str(refused) + "). Nothing is "
+                    "accepted on unrun tests. A command that hangs or fails to start because of this item's "
+                    "own code, test or fixture is yours to fix here and is not a blocker"
+                    + ("; if the recorded command or its budget is itself wrong, report " + remedy
+                       + " rather than retrying it" if remedy else "")
+                    + ". Report blocked only for what the user, an access grant or an outside dependency "
+                      "must supply.")
+    else:
+        attempts = ("Refused runs for this action: " + str(refused + 1) + " of " + str(MAX_REFUSED_RUNS)
+                    + "; after that " + _remedy_sentence(stage) + ".")
     if stage in STAGES:
         lines.append("Fix the code, start the test loop again with the packet's start command (its terminal "
                      "packet is replaced), then submit done again. " + attempts
@@ -576,6 +674,7 @@ __all__ = (
     "RED_STAGE",
     "RERUN_STAGES",
     "STAGES",
+    "UNAVAILABLE",
     "VERIFY_STAGES",
     "TestLoopError",
     "build_contract",
