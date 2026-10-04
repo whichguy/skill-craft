@@ -610,6 +610,7 @@ class ExpectationTest(HarnessCase):
             self.assertIn(section, mismatch)
         self.assertIn("**shiploop**: ShipLoop reaches done", mismatch)
         self.assertIn("(source: the request", mismatch)
+        self.assertRegex(mismatch, r"\*\*check\*\*: exit [0-9]+(: .+)?\n")  # the failing check's exit and last output line
 
     def test_a_passing_run_writes_no_mismatch(self):
         code, result = self.invoke("claude", "done")

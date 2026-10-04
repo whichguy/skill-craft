@@ -88,3 +88,17 @@ Base: main at bc3046db (skill-craft 1.19.0, ShipLoop 0.51.0).
   outweighs parallel running"), making the model's choice explicit instead of a silent deviation.
 - **Until decided:** temperature-plain keeps its must-level chain expectation, so it reports this open question
   as a failing verdict rather than hiding it.
+
+## Pass 2 — 2026-10-04
+
+Base: main after the 1.19.1 release (CI green for 3115b4ea).
+
+| # | Candidate | Evidence | Class | Action |
+|---|---|---|---|---|
+| 1 | The chain guide's `finish` row says finish needs "completed cleanup"; its worked example says finish "confirms every owned worker worktree was removed" | Both false since 0.49.0 when an attempt was retried or lost (kept, listed under `retained_superseded`); a model reading them in a retry run could remove a kept workspace directly (forbidden) or stop again | material (wrong guidance in a normal run) | Both lines now say accepted workers' worktrees are removed and superseded ones are kept and listed; change note |
+| 2 | `mismatch.md` records a failing check only as "non-zero exit" | p1v: the cause (`No module named 'convert'`) was in the captured output but not the record | trivial (no verdict changes; diagnosis convenience) | The record shows the exit code and the output's last line; test |
+| 3 | Test map and ledger lack the plain case | pass 1 | trivial | Row in each |
+| 4 | Both pass-1 runs, my areas | 0 ShipLoop failures, 0 glue, 0 questions, all script verifications passed | none | — |
+| 5 | Chain policy for small work | pass 1 | out of scope (owner decision, options A-C) | — |
+
+Pass 2 is not clean: it found one material item.

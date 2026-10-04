@@ -1417,7 +1417,12 @@ def main(argv: list[str] | None = None) -> int:
         if recovery is not None and not recovery["pass"]:
             failed.append(("recovery", f"a fresh session finishes the chain after the kill (source: {RECOVERY_SOURCE})",
                            "never interrupted" if not recovery["interrupt"] else "the chain did not finish"))
-        failed.extend(("check", f"`{c['command']}` exits 0 (source: {expectations['checks']})", "non-zero exit")
+        def check_observed(check: dict) -> str:
+            lines = [line for line in str(check.get("output") or "").splitlines() if line.strip()]
+            last = f": {lines[-1].strip()[:300]}" if lines else ""
+            return ("timed out" if check.get("returncode") is None else f"exit {check['returncode']}") + last
+
+        failed.extend(("check", f"`{c['command']}` exits 0 (source: {expectations['checks']})", check_observed(c))
                       for c in check_results if not c["pass"])
         print(f"  mismatch  {write_mismatch(out, name, args.host, failed)}")
     return 0 if result["pass"] else 1
