@@ -2259,6 +2259,82 @@ class CouldNotRunCountTest(unittest.TestCase):
             self.assertIn("1 could not run", progress.report(out))
 
 
+class RetentionIdCountTest(unittest.TestCase):
+    """The scoring case's retention check counts requirement ids the way the engine does (plan R7).
+
+    The check is the catalog's own shell command, run through `run.run_checks`, and the engine's
+    `_REQUIREMENT_ID` is the oracle: a spec form the engine accepts must not fail a correct run.
+    """
+
+    # A spec records its ids in any of these forms; the engine reads an id anywhere on a line.
+    FORMS = {
+        "heading": "## R-1 Fire\n## R-2 Board\n",  # the one form the earlier line-start pattern also read
+        "bullet": "- R-1 Fire\n- R-2 Board\n",
+        "bold bullet": "- **R-1** Fire\n- **R-2** Board\n",
+        "table row": "| R-1 | Fire |\n| R-2 | Board |\n",
+        "mixed line": "Requirements: R-1 R-1a R-2\n",  # R-1a is not an id: BSD `grep -ow` reads 1 of the 2 here
+    }
+    NEW = "R-3 Accuracy\nEvery fire returns shots, hits and accuracy.\n"
+
+    @staticmethod
+    def retention_check() -> str:
+        retention = json.loads(run.CASES.read_text())["battleship-scoring"]["retention"]
+        found = [command for command in retention if "ids()" in command]
+        assert len(found) == 1, "the requirement-id retention check moved: update this test"
+        return found[0]
+
+    @staticmethod
+    def earlier_ids(result: dict) -> int:
+        """The count the check printed (BSD `wc -l` pads it with spaces, so read it as a number)."""
+        found = re.search(r"earlier ids:\s*(\d+);", result["output"])
+        assert found, "the check no longer prints its id count: " + result["output"]
+        return int(found.group(1))
+
+    def verdict(self, prior_spec: str, current_spec: str) -> dict:
+        with tempfile.TemporaryDirectory() as tmp:
+            prior, work = Path(tmp) / "prior", Path(tmp) / "work"
+            for root, text in ((prior, prior_spec), (work, current_spec)):
+                (root / "docs" / "shiploop").mkdir(parents=True)
+                (root / "docs" / "shiploop" / "spec.md").write_text(text)
+            return run.run_checks(work, [self.retention_check()], env={"PRIOR_WORK": str(prior)})[0]
+
+    def test_a_correct_spec_passes_in_every_form_and_the_count_is_the_engines(self):
+        for name, form in self.FORMS.items():
+            with self.subTest(form=name):
+                engine = run.knowledge_home._REQUIREMENT_ID.findall(form)
+                self.assertEqual(len(set(engine)), 2, "the form must hold two ids for the engine")
+                result = self.verdict(form, form + self.NEW)
+                self.assertTrue(result["pass"], result["output"])
+                self.assertEqual(self.earlier_ids(result), 2, "the engine's count, not a pattern's: " + result["output"])
+
+    def test_a_dropped_id_fails_in_every_form_and_is_named(self):
+        for name, form in self.FORMS.items():
+            with self.subTest(form=name):
+                kept = form.replace("R-2", "R-9") if name != "mixed line" else "Requirements: R-1 R-1a R-9\n"
+                result = self.verdict(form, kept + self.NEW)
+                self.assertFalse(result["pass"], "a dropped earlier id must still fail: " + result["output"])
+                self.assertIn("missing: R-2", result["output"])
+
+    def test_a_spec_with_no_ids_still_fails_because_nothing_was_retained(self):
+        result = self.verdict("Fire and board.\n", "Fire and board.\n" + self.NEW)
+        self.assertFalse(result["pass"], result["output"])
+        self.assertEqual(self.earlier_ids(result), 0)
+
+    def test_the_catalog_pattern_is_written_verbatim_and_matches_the_engine_regex(self):
+        # Drift guard: the engine's `\b(R-\d+)\b` is the oracle, so a change to either side fails here.
+        found = re.search(r"grep -oE '([^']*)' \"\$1/docs/shiploop/spec\.md\"", self.retention_check())
+        self.assertIsNotNone(found, "ids() no longer reads the spec with one `grep -oE '<pattern>'`")
+        pattern = found.group(1)
+        self.assertEqual(pattern, r"\bR-[0-9]+\b", "verbatim, with a real backslash (JSON-escaped in the catalog)")
+        samples = ("R-1 R-1a R-2\n", "XR-3 R-4_ R-5\n", "[R-6] (R-7).\n", "R-8R-9\n", "R-10.2 R-007\n",
+                   "| R-11 | x |\n- **R-12** y\n## R-13 z\n", "r-1 R- R-x R-\n", "no ids here\n")
+        for text in samples:
+            with self.subTest(text=text):
+                from_grep = subprocess.run(["grep", "-oE", pattern], input=text, capture_output=True,
+                                           text=True).stdout.split()
+                self.assertEqual(sorted(set(from_grep)),
+                                 sorted(set(run.knowledge_home._REQUIREMENT_ID.findall(text))))
+
 
 if __name__ == "__main__":
     unittest.main()
