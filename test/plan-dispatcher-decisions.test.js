@@ -3,7 +3,7 @@
 /*
  * Dispatcher decisions D2-D5 (docs/plan-orchestrator-validation-plan-2026-09-27.md).
  * Spec, review and adversarial table: test/orchestrator_scenarios/specs/dispatcher-decisions.md.
- * Scenario IDs [S1]..[S14] match that spec. Workers are simulated: they write a
+ * Scenario IDs [S1]..[S15] match that spec. Workers are simulated: they write a
  * result file and call the public report command; nothing launches a model.
  *
  * PLAN_DISPATCHER_DIR selects the package under test so
@@ -349,6 +349,32 @@ async function main() {
     assert.deepEqual(view.replan.steps.map((row) => row.step), ['B']);
     const claim = dispatch('claim', run, { owner: 'parent-2', steps: ['E'] }, true);
     assert.equal(claim.code, 'EREPLAN');
+  });
+
+  await test('[S15] a lost native worker is retried without a confirmed stop and its late report is refused', () => {
+    const run = newRun([['A', []], ['J', ['A']]]);
+    const attempt = claimOne(run, 'A');
+    const started = launch(run, 'A', attempt);
+    const reason = 'host session ended; the worker handle can no longer be looked up';
+    for (const bad of [
+      { confirmed_stopped: false, reason },
+      { confirmed_stopped: false, native_status: 'gone', reason },
+      { confirmed_stopped: true, native_status: 'unavailable', reason },
+    ]) {
+      dispatch('retry', run, { owner: OWNER, attempt, ...bad }, true);
+    }
+    dispatch('retry', run, { owner: OWNER, attempt, confirmed_stopped: false, native_status: 'unavailable', reason });
+    const record = JSON.parse(fs.readFileSync(path.join(run, 'plan-dispatcher-state.json'), 'utf8')).attempts[attempt];
+    assert.equal(record.status, 'retried');
+    assert.deepEqual(record.retry, { confirmed_stopped: false, native_status: 'unavailable', reason });
+    const artifact = started.packet.outputs.artifact;
+    fs.writeFileSync(artifact, JSON.stringify({ step: 'A', attempt, status: 'SUCCEEDED' }));
+    dispatch('report', run, {
+      run_id: started.run_id, step: 'A', attempt, status: 'SUCCEEDED',
+      evidence: { path: artifact, sha256: digest(fs.readFileSync(artifact)) },
+    }, true);
+    const fresh = claimOne(run, 'A');
+    assert.notEqual(fresh, attempt);
   });
 
   if (failures) {

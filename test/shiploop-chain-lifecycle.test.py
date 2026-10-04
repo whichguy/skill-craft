@@ -226,11 +226,13 @@ class PerStepChainTests(PerStepChainFixture):
         self.complete_step("J")
         self.assert_contiguous_integrations((attempts["A"], c_attempt, replacement, j_attempt))
         proof = self.f.write("late-retried-b-finish.json", {"passed": True, "commit": self.head()})
-        blocked = self.call("finish", {
+        finished = self.call("finish", {
             "commit": self.head(), "confirmed_stopped": True,
             "verification": {"path": str(proof), "sha256": fixture.digest(proof)},
-        }, ok=False)
-        self.assertRegex(blocked.stderr.lower(), r"retain|cleanup|unfinished|managed")
+        })
+        self.assertIs(finished["complete"], True)
+        self.assertEqual(len(finished["retained_superseded"]), 1)
+        self.assertTrue(old_worker.exists(), "finish keeps the superseded workspace as evidence")
 
         def remove_retained_workspace():
             if old_worker.exists():
@@ -710,13 +712,10 @@ class PerStepChainTests(PerStepChainFixture):
         self.assertEqual(rejected["outcome"], "rejected")
         retrying = self.call("retry", {"attempt": old_attempt, "confirmed_stopped": True,
                                       "reason": "Replacement managed attempt is required"})
-        blocked = self.action_rows(retrying, "blocked")
-        self.assertEqual([row["attempt"] for row in blocked], [old_attempt])
-        self.assertNotIn("operation", blocked[0])
+        self.assertFalse(any(row.get("attempt") == old_attempt for row in retrying["navigation"]["actions"]),
+                         "a superseded attempt needs no callback; it is kept, not acted on")
         self.assertTrue(self.action_rows(retrying, "claim"),
                         "retaining the failed worker must not hide the ready replacement")
-        self.assertLess(retrying["navigation"]["actions"].index(self.action_rows(retrying, "claim")[0]),
-                        retrying["navigation"]["actions"].index(blocked[0]))
         self.assertFalse(any(row.get("attempt") == old_attempt
                              for row in self.action_rows(retrying, "cleanup")))
         retained_receipt = Path(old_packet["ask_agent_workspace"]["receipt"])
@@ -748,23 +747,24 @@ class PerStepChainTests(PerStepChainFixture):
         assert_late_refusal("done", old_positive)
         self.assertTrue(old_workspace.exists(), "late receipts must not remove the retained old workspace")
         pending = self.call("pending")
-        self.assertIn(old_attempt, pending["lifecycle"]["retained_workers"])
+        self.assertNotIn(old_attempt, pending["lifecycle"]["retained_workers"])
+        self.assertEqual(pending["lifecycle"]["superseded_cleanup_pending"], [old_attempt])
         retained_actions = [row for row in pending["lifecycle"]["actions"]
                             if row.get("attempt") == old_attempt]
-        self.assertEqual([row["action"] for row in retained_actions], ["blocked"])
+        self.assertEqual([row["action"] for row in retained_actions], ["retained"])
+        self.assertIn("does not block chain finish", retained_actions[0]["instruction"])
         next_response = self.call("next")
-        self.assertEqual([row["action"] for row in next_response["navigation"]["actions"]], ["blocked"])
-        self.assertIn("incomplete", next_response["navigation"]["instruction"])
-        self.assertIn("no non-integrated cleanup", retained_actions[0]["instruction"])
+        self.assertEqual([row["action"] for row in next_response["navigation"]["actions"]], ["finish"])
+        self.assertIn("Superseded attempts keep their workspaces", next_response["navigation"]["actions"][0]["instruction"])
         final_proof = self.f.write("managed-retried-final.json", {
             "passed": True, "commit": self.head(), "checks": ["replacement A integrated"],
         })
-        refused_finish = self.call("finish", {
+        finished = self.call("finish", {
             "commit": self.head(), "confirmed_stopped": True,
             "verification": {"path": str(final_proof), "sha256": fixture.digest(final_proof)},
-        }, ok=False)
-        self.assertIn("cleanup", refused_finish.stderr.lower())
-        self.assertIn("no non-integrated cleanup", refused_finish.stderr)
+        })
+        self.assertIs(finished["complete"], True)
+        self.assertEqual(finished["retained_superseded"], [old_attempt])
         self.assertTrue(old_workspace.exists())
         self.assertEqual(retained_receipt.read_bytes(), retained_receipt_bytes)
         self.assertEqual(self.f.git(old_workspace, "rev-parse", "HEAD"), retained_head)
@@ -1611,11 +1611,13 @@ class PerStepChainTests(PerStepChainFixture):
         proof = self.f.write("semantic-conflict-retained-finish.json", {
             "passed": True, "commit": self.head(),
         })
-        blocked = self.call("finish", {
+        finished = self.call("finish", {
             "commit": self.head(), "confirmed_stopped": True,
             "verification": {"path": str(proof), "sha256": fixture.digest(proof)},
-        }, ok=False)
-        self.assertRegex(blocked.stderr.lower(), r"retain|cleanup|unfinished|managed")
+        })
+        self.assertIs(finished["complete"], True)
+        self.assertEqual(len(finished["retained_superseded"]), 1)
+        self.assertTrue(b_worker.exists(), "finish keeps the superseded workspace as evidence")
 
         def remove_retained_workspace():
             if b_worker.exists():
@@ -1966,11 +1968,51 @@ class PerStepChainTests(PerStepChainFixture):
             cwd=self.f.target, capture_output=True).returncode, 0)
         self.assertEqual(self.f.child_record(old_attempt)["status"], "retried")
         proof = self.f.write("retained-superseded-final.json", {"passed": True, "commit": self.head()})
-        blocked_finish = self.call("finish", {
+        finished = self.call("finish", {
             "commit": self.head(), "confirmed_stopped": True,
             "verification": {"path": str(proof), "sha256": fixture.digest(proof)},
-        }, ok=False)
-        self.assertRegex(blocked_finish.stderr.lower(), r"retain|cleanup|unfinished|managed")
+        })
+        self.assertIs(finished["complete"], True)
+        self.assertEqual(finished["retained_superseded"], [old_attempt])
+        self.assertTrue(old_workspace.exists(), "finish must keep the superseded workspace as evidence")
+        self.assertNotEqual(subprocess.run(["git", "merge-base", "--is-ancestor", rejected_commit, self.head()],
+            cwd=self.f.target, capture_output=True).returncode, 0)
+
+        def remove_retained_workspace():
+            if old_workspace.exists():
+                self.f.git(self.f.target, "worktree", "remove", "--force", str(old_workspace))
+
+        self.addCleanup(remove_retained_workspace)
+
+    def test_lost_native_worker_is_retried_without_a_confirmed_stop_and_finish_keeps_it(self):
+        # Batch B F1: a host session dies with this worker in flight; a fresh session
+        # cannot look its handle up, so it can never prove the worker stopped.
+        self.bind(single=True)
+        old_attempt = self.claim("A")["A"]
+        old_packet = self.start("A", old_attempt)
+        old_workspace = Path(old_packet["context"]["workspace"])
+        reason = "the host session that launched this worker ended; its handle can no longer be looked up"
+        for bad in ({"confirmed_stopped": False}, {"confirmed_stopped": False, "native_status": "gone"},
+                    {"confirmed_stopped": True, "native_status": "unavailable"}):
+            refused = self.call("retry", {"attempt": old_attempt, "reason": reason, **bad}, ok=False)
+            self.assertRegex(refused.stderr, r"confirmed_stopped|native_status|unsupported")
+        self.call("retry", {"attempt": old_attempt, "confirmed_stopped": False,
+                            "native_status": "unavailable", "reason": reason})
+        self.assertEqual(self.f.child_record(old_attempt)["retry"],
+                         {"confirmed_stopped": False, "native_status": "unavailable", "reason": reason})
+        self.assertTrue(old_workspace.exists(), "a retry keeps the lost worker's workspace")
+        replacement = self.claim("A")["A"]
+        self.assertNotEqual(replacement, old_attempt)
+        self.start("A", replacement)
+        self.complete_step("A")
+        proof = self.f.write("lost-worker-final.json", {"passed": True, "commit": self.head()})
+        finished = self.call("finish", {
+            "commit": self.head(), "confirmed_stopped": True,
+            "verification": {"path": str(proof), "sha256": fixture.digest(proof)},
+        })
+        self.assertIs(finished["complete"], True)
+        self.assertEqual(finished["retained_superseded"], [old_attempt])
+        self.assertTrue(old_workspace.exists())
 
         def remove_retained_workspace():
             if old_workspace.exists():

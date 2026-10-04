@@ -266,8 +266,8 @@ time and an empty ready list never authorize acceptance or completion.
 | `import-handoff` | `attempt`, `confirmed_stopped:true`, `handoff:{path,sha256}`; parent archives worker-local results and publishes the existing dispatcher report. |
 | `prepare` | `attempt`, `confirmed_stopped:true`; inspect original contribution, reconcile current target into the stopped worker checkout, and return the exact combined candidate for independent checks. |
 | `done` | `attempt`, `confirmed_stopped:true`, candidate-bound `integration` and `verification:{receipt_sha256,passed,reason,evidence:{path,sha256}}`; verify, merge into the invoking checkout, accept and return the ready frontier. Rejected verification leaves the step not done. Managed cleanup is deferred in both execution modes. |
-| `cleanup` | `attempt`, `confirmed_stopped:true`; close or retry accepted-worker removal after refilling safe capacity. Superseded managed attempts remain blocked and have no supported cleanup callback (a `superseded` disposition is refused). Cleanup never executes the task again. |
-| `retry` | `attempt`, `confirmed_stopped:true`, `reason`; preserve failed evidence/worktree, then claim a fresh attempt. |
+| `cleanup` | `attempt`, `confirmed_stopped:true`; close or retry accepted-worker removal after refilling safe capacity. Superseded managed attempts keep their workspace and have no cleanup callback (a `superseded` disposition is refused); they do not block `finish`. Cleanup never executes the task again. |
+| `retry` | `attempt`, `confirmed_stopped:true`, `reason` (or `confirmed_stopped:false` with `native_status:"unavailable"` for a worker lost with its host session); preserve failed evidence/worktree, then claim a fresh attempt. |
 | `next` | Inspect durable child state, bridge events and unresolved operations, and recover an interrupted parent transaction. No automatic relaunch. |
 | `history` | No input file. Read the timestamped bridge audit in append sequence, including past indexed actions; no recovery or child invocation. |
 | `pending` | No input file. List every unaccepted step with current status and unmet direct dependencies, plus capacity; no claim, launch or acceptance. |
@@ -341,10 +341,16 @@ file appearance or elapsed lease does not establish completion.
 If host collection reports `TaskNotFound` or another unavailable handle, append
 its timestamp/error with the original task, attempt, handle, and workspace receipt to
 the existing parent-pending record and say `native status unavailable; cannot
-attest stopped`. Preserve that attempt, its reservation and workspace. Do not
-infer completion from files, relaunch, retry, import or clean it until its
-original native identity, completion and stoppage are established. Continue
-other safe ready work within remaining capacity.
+attest stopped`. Never infer completion from its files, and never import or clean
+it. When the handle belongs to a host session that has ended (for example, this
+session resumed a run after the earlier session was lost), the worker cannot be
+reached again: `retry` the attempt with `confirmed_stopped: false`, `native_status:
+"unavailable"` and a reason naming the lost session. The retry keeps the old
+workspace and receipt as evidence, refuses any later callback for that attempt,
+and makes the step claimable for a fresh worker; chain finish lists the kept
+workspace. A handle that may still belong to a live session in this host is not
+lost: keep waiting for it. Continue other safe ready work within remaining
+capacity.
 
 In either managed execution mode, `start` calls the frozen Ask Agent workspace helper
 to prepare and inspect one worktree in a dedicated attempt store. It persists
@@ -579,14 +585,13 @@ operations or remaining consumers block removal. The managed helper owns removal
 only after these acceptance checks; the bridge does not bypass it. Retain branches as recovery references; deleting
 them is a separate decision. Accepted-but-unremoved attempts appear as cleanup
 work; `cleanup` retries removal without rerunning the step. Failed attempts stay
-visible and preserve their workspace during `retry`. The managed adapter retains
+visible and preserve their workspace during `retry`. The managed adapter keeps
 superseded helper-owned workspaces because it has no accepted non-integrated close
-disposition. This adapter cannot finish that chain even after the replacement
-succeeds: it reports an attempt-bound blocker, not another cleanup callback, and
-provides no completion-capable recovery route for that superseded workspace.
-Preserve its receipt, results and worktree; do not bypass the receipt owner with
-direct Git removal or claim final cleanup is complete. Ready replacement and
-independent work remain visible before this finalization blocker.
+disposition. They are evidence, not work: once the replacement and every other
+step are accepted and their workers removed, `finish` completes and lists the
+superseded attempts under `retained_superseded`. Preserve their receipts, results
+and worktrees; do not bypass the receipt owner with direct Git removal, and report
+them as kept rather than cleaned up.
 
 Pre-v6 bindings are refused by every chain operation, including `history` and
 `pending`. Do not convert their binding or invent receipt ownership for an

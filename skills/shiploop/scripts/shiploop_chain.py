@@ -1439,13 +1439,22 @@ def _parse_per_step_done(value: dict[str, Any]) -> tuple[str, dict[str, Any], di
     )
 
 
-def _parse_retry(value: dict[str, Any]) -> tuple[str, str]:
-    row = _exact_keys(value, {"attempt", "confirmed_stopped", "reason"}, "retry input")
-    if row["confirmed_stopped"] is not True:
-        _fail("retry requires confirmed_stopped: true")
+def _parse_retry(value: dict[str, Any]) -> tuple[str, str, dict[str, Any]]:
+    """Attempt, reason and the stop record: confirmed, or a lost worker whose handle is unavailable."""
+    row = _optional_keys(value, {"attempt", "confirmed_stopped", "reason"}, {"native_status"}, "retry input")
+    if row["confirmed_stopped"] is True and "native_status" not in row:
+        stop: dict[str, Any] = {"confirmed_stopped": True}
+    elif row["confirmed_stopped"] is False and row.get("native_status") == "unavailable":
+        # The host session that launched the worker ended, so its handle cannot be looked
+        # up and nobody can prove it stopped. Retrying is still safe: the old workspace is
+        # kept, never imported, and every later callback for that attempt is refused.
+        stop = {"confirmed_stopped": False, "native_status": "unavailable"}
+    else:
+        _fail('retry requires confirmed_stopped: true, or confirmed_stopped: false with native_status: '
+              '"unavailable" when the worker\'s handle can no longer be looked up')
     if not isinstance(row["reason"], str) or not row["reason"].strip():
         _fail("retry.reason must be nonempty text")
-    return _attempt(row["attempt"]), row["reason"]
+    return _attempt(row["attempt"]), row["reason"], stop
 
 
 def _parse_packet(value: dict[str, Any]) -> str:
@@ -1914,7 +1923,9 @@ def _per_step_lifecycle_status(binding: Mapping[str, Any], rows: list[dict[str, 
     }
     cleanup_pending = [attempt for attempt in allocations if attempt in integrated and attempt not in cleaned]
     superseded_pending = [attempt for attempt in allocations if attempt in retried and attempt not in cleaned]
-    retained = [attempt for attempt in allocations if attempt not in cleaned]
+    # A superseded attempt's workspace is kept as evidence (never deleted without
+    # authority), but it does not hold the chain open: finish reports it instead.
+    retained = [attempt for attempt in allocations if attempt not in cleaned and attempt not in retried]
     open_intent = _per_step_open_integration(rows)
     actions: list[dict[str, Any]] = []
     if open_intent is not None:
@@ -1927,11 +1938,11 @@ def _per_step_lifecycle_status(binding: Mapping[str, Any], rows: list[dict[str, 
         "instruction": "Retry only the accepted worker removal; do not launch, merge, or settle the task again.",
     } for attempt in cleanup_pending)
     actions.extend({
-        "action": "blocked", "attempt": attempt,
+        "action": "retained", "attempt": attempt,
         "disposition": "superseded",
         "instruction": (
-            "Retain this helper-managed failed workspace and its receipt. There is no non-integrated cleanup "
-            "for superseded managed attempts; chain finish remains blocked even after the replacement succeeds."
+            "Keep this superseded helper-managed workspace and its receipt as evidence; there is no "
+            "non-integrated cleanup. It does not block chain finish, which lists it."
         ),
     } for attempt in superseded_pending)
     return {
@@ -2722,19 +2733,13 @@ def _per_step_navigation(root: Path, binding: Mapping[str, Any], result: Mapping
             required=("confirmed_stopped: true",),
             instruction="Retry only this accepted worker removal. Cleanup never authorizes re-execution, merge, or settlement.",
         ))
-    for attempt in superseded_pending:
-        cleanup_actions.append(_navigation_action(
-            "blocked", attempt=attempt, disposition="superseded",
-            required=("receipt-owner-supported non-integrated cleanup, unavailable in this adapter",),
-            instruction="Retain this superseded managed workspace and its receipt. This adapter has no non-integrated cleanup; "
-                        "a successful replacement does not authorize deletion or chain finish. Report this blocker without retrying cleanup.",
-        ))
-
     if snapshot.get("complete") is True and not retained and unresolved is None:
         dispatch_actions.append(_navigation_action(
             "finish", operation="finish",
             required=("confirmed_stopped: true", "the current integrated target commit", "independent final verification evidence"),
-            instruction="Every dispatcher step is accepted and all worker cleanup is resolved. Verify the current target independently, then finish the chain.",
+            instruction="Every dispatcher step is accepted and all accepted-worker cleanup is resolved. Verify the current target independently, then finish the chain."
+                        + (" Superseded attempts keep their workspaces and receipts as evidence; finish lists them and they need no callback."
+                           if superseded_pending else ""),
         ))
     elif not block_start_or_claim:
         available = capacity - len(active)
@@ -2773,16 +2778,10 @@ def _per_step_navigation(root: Path, binding: Mapping[str, Any], result: Mapping
                 _fail("per-step navigation attempt references a step outside the bound graph")
             action["step"] = step
     only_collect = bool(actions) and all(action["action"] == "collect" for action in actions)
-    only_retention_blocked = bool(actions) and all(
-        action["action"] == "blocked" and action.get("disposition") == "superseded" for action in actions
-    )
     return {
         "complete": False,
         "actions": actions,
         "instruction": (
-            "The chain is incomplete. Report the listed blockers and preserve their workspaces and receipts; "
-            "no supported cleanup or finish callback is available for these superseded managed attempts."
-            if only_retention_blocked else
             "No non-waiting bridge callback is currently granted. Await any native completion or host notification, not a particular listed worker, then refresh this view."
             if only_collect else
             "Resolve only parent/owner or unresolved-integration recovery before claim or start. Process already available returns promptly, then start existing claims and fill safe eligible capacity before waiting on an unresolved per-attempt observation. Refresh this derived view after each callback; an unknown native attempt remains reserved."
@@ -4043,17 +4042,15 @@ def _per_step_done(root: Path, binding: Mapping[str, Any], value: dict[str, Any]
 
 def _retry(root: Path, binding: Mapping[str, Any], value: dict[str, Any]) -> dict[str, Any]:
     _verify_frozen(binding)
-    attempt, reason = _parse_retry(value)
+    attempt, reason, stop = _parse_retry(value)
     _per_step_require_dispatcher_owner(binding, "retry")
     chain_dir = _binding_dir(root, binding["action_id"])
-    intent = {"attempt": attempt, "reason": reason, "confirmed_stopped": True}
+    intent = {"attempt": attempt, "reason": reason, **stop}
     rows = _events(chain_dir)
     _per_step_require_no_open_integration(rows, "retry")
-    prior_intent = _event(rows, "retry_intent", attempt=attempt, reason=reason,
-                          confirmed_stopped=True)
+    prior_intent = _event(rows, "retry_intent", **intent)
     if prior_intent is not None:
-        prior_result = _event(rows, "retry_result", attempt=attempt, reason=reason,
-                              confirmed_stopped=True)
+        prior_result = _event(rows, "retry_result", **intent)
         if prior_result is not None:
             response = _next_response(root, binding)
             response["retry"] = _event_data(prior_result).get("response", {}).get("retry")
@@ -4061,7 +4058,7 @@ def _retry(root: Path, binding: Mapping[str, Any], value: dict[str, Any]) -> dic
         record = _record_for_attempt(_child_full(binding), attempt)
         retry_record = record.get("retry")
         if (record.get("status") == "retried" and isinstance(retry_record, Mapping)
-                and retry_record.get("confirmed_stopped") is True and retry_record.get("reason") == reason):
+                and dict(retry_record) == {**stop, "reason": reason}):
             response = _next_response(root, binding)
             recovered = dict(intent, response=response, reconciled=True)
             _append(chain_dir, _event_id("retry-result", recovered), "retry_result", recovered)
@@ -4069,8 +4066,7 @@ def _retry(root: Path, binding: Mapping[str, Any], value: dict[str, Any]) -> dic
             return response
     _append(chain_dir, _event_id("retry-intent", intent), "retry_intent", intent)
     try:
-        result = _node(binding, "retry", {"owner": binding["owner"], "attempt": attempt,
-                                            "confirmed_stopped": True, "reason": reason})
+        result = _node(binding, "retry", {"owner": binding["owner"], "attempt": attempt, **stop, "reason": reason})
     except ChainError as exc:
         _append_error(chain_dir, "retry", intent, exc)
         raise
@@ -4134,11 +4130,7 @@ def _per_step_finish(root: Path, binding: Mapping[str, Any], value: dict[str, An
     if lifecycle["unresolved_integration"] is not None:
         _fail("per-step finish is blocked by an unresolved integration intent")
     if lifecycle["retained_workers"]:
-        if lifecycle["superseded_cleanup_pending"]:
-            _fail("per-step finish is blocked by retained superseded Ask-Agent workspaces: this adapter has no "
-                  "non-integrated cleanup; preserve these attempts and their receipts: "
-                  + ", ".join(lifecycle["superseded_cleanup_pending"]))
-        _fail("per-step finish requires every owned worker to be removed; retry cleanup first")
+        _fail("per-step finish requires every accepted worker to be removed; retry cleanup first")
     child = _node(binding, "next")
     if child.get("complete") is not True:
         _fail("per-step finish requires the selected dispatcher to report complete")
@@ -4188,6 +4180,8 @@ def _per_step_finish(root: Path, binding: Mapping[str, Any], value: dict[str, An
     _require_independent_finish_verification(verification, contributions)
     intent = {
         "commit": commit, "verification": verification, "target": target,
+        # Kept as evidence, never deleted: superseded attempts and their workspaces.
+        "retained_superseded": list(lifecycle["superseded_cleanup_pending"]),
         "contributions": [
             {"attempt": item["attempt"], "step": item["step"],
              "source_commit": item["source_commit"], "candidate_commit": item["candidate_commit"]}
@@ -4199,6 +4193,7 @@ def _per_step_finish(root: Path, binding: Mapping[str, Any], value: dict[str, An
         if _event_data(previous_result) != dict(intent, child_complete=True):
             _fail("per-step finish replay conflicts with the immutable finish receipt")
         return {"complete": True, "commit": commit, "verification": verification,
+                "retained_superseded": intent["retained_superseded"],
                 "shiploop_chain": _binding_summary(root, binding, rows)}
     previous_intent = _event(rows, "finish_intent")
     if previous_intent is None:
@@ -4208,6 +4203,7 @@ def _per_step_finish(root: Path, binding: Mapping[str, Any], value: dict[str, An
     result = dict(intent, child_complete=True)
     _append(chain_dir, "finish-result", "finish_result", result)
     return {"complete": True, "commit": commit, "verification": verification,
+            "retained_superseded": intent["retained_superseded"],
             "shiploop_chain": _binding_summary(root, binding, _events(chain_dir))}
 
 

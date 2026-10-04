@@ -1,4 +1,4 @@
-# Test spec: dispatcher decisions D2–D5
+# Test spec: dispatcher decisions D2–D6
 
 Suite: `test/plan-dispatcher-decisions.test.js`. Mutants:
 `test/orchestrator_scenarios/mutants/dispatcher-decisions.json`, run by
@@ -33,6 +33,12 @@ Suite: `test/plan-dispatcher-decisions.test.js`. Mutants:
 - **D5 (fail closed with the recovery named).** A lost state file or a lost
   settled receipt fails with `ESTATELOST`. The message says to start a new run
   and leave out integrated steps. Nothing is rebuilt.
+- **D6 (a lost native worker can be retried).** When the worker's host session
+  ended, its handle can no longer be looked up, so nobody can prove it stopped.
+  `retry` then accepts `confirmed_stopped: false` with `native_status:
+  "unavailable"` and records both. Any other unconfirmed retry is refused.
+  The retired attempt's late report is refused, and the step is claimable with
+  a fresh attempt. (Evidence: ShipLoop E2E batch B, kill-and-resume 0/2.)
 
 ## Scenarios
 
@@ -52,6 +58,7 @@ Suite: `test/plan-dispatcher-decisions.test.js`. Mutants:
 | S12 | E FAILED while B needs replanning | A retry action is offered for E |
 | S13 | State file deleted; settled receipt deleted | Wrong code, or no new-run recovery in the message |
 | S14 | Owner takeover while replanning | Replan lost, or claims allowed after takeover |
+| S15 | A launched attempt whose handle is unavailable is retried without a confirmed stop | The retry is refused; an unconfirmed retry without `native_status: "unavailable"` is accepted; the record loses `native_status`; the old attempt's late report is accepted; the step is not claimable again |
 
 ## Invariants and oracle
 
@@ -75,7 +82,8 @@ dispatcher internals to decide an expected value.
    - D2 → S1–S6;
    - D3 → S7;
    - D4 → S8–S12 and S14;
-   - D5 → S13.
+   - D5 → S13;
+   - D6 → S15.
 2. **Are invariants observable?** Yes: exit status, error `code`, stderr
    text, lock-file bytes, `next` fields, and whether the returned call
    succeeds. None depend on internal calls.
@@ -108,6 +116,7 @@ dispatcher internals to decide an expected value.
 | M15 | contrary | A lost state file loses its recovery code | mutant `state-lost-code` (S13) |
 | M16 | contrary | Recovery is `retry` for replan attempts | mutant `replan-recovery` (S8) |
 | M17 | contrary | The terminal replan instruction is never given | mutant `no-terminal-replan` (S8) |
+| M18 | contrary | Any unconfirmed retry is accepted | mutant `unconfirmed-retry-any` (S15) |
 | H1 | hostile | A disposition other than `"replan"` | S10 |
 | H2 | hostile | A lock PID as a string, or negative | S4 |
 | H3 | hostile | A settlement replay with a changed disposition | S11 |

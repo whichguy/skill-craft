@@ -123,6 +123,13 @@
       "find": "  if (replanning && !inFlight) {",
       "replace": "  if (false) {",
       "killed_by": "S8"
+    },
+    {
+      "id": "unconfirmed-retry-any",
+      "file": "scripts/state.js",
+      "find": "  const unavailable = options.confirmed_stopped === false && options.native_status === 'unavailable';",
+      "replace": "  const unavailable = options.confirmed_stopped !== true;",
+      "killed_by": "S15"
     }
   ]
 }
