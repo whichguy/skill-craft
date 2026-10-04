@@ -80,7 +80,7 @@
     "checks_source": "the request: each check tests a sentence of the prompt",
     "budget": {
       "seeded_minutes": 30,
-      "source": "a seeded chain case should fit one background-task session (about 30 minutes); a longer run is killed and needs a resume, which loses any worker in flight"
+      "source": "owner (2026-09-27): a small request should not take hours. The 30-minute figure is one background-task session, so a longer seeded run also needs a resume, which loses any worker in flight"
     }
   },
   "unit-converter": {
@@ -104,7 +104,7 @@
     "checks_source": "the request: each check tests a sentence of the prompt",
     "budget": {
       "seeded_minutes": 30,
-      "source": "a seeded chain case should fit one background-task session (about 30 minutes); a longer run is killed and needs a resume, which loses any worker in flight"
+      "source": "owner (2026-09-27): a small request should not take hours. The 30-minute figure is one background-task session, so a longer seeded run also needs a resume, which loses any worker in flight"
     }
   },
   "word-report": {
@@ -128,7 +128,7 @@
     "checks_source": "the request: each check tests a sentence of the prompt",
     "budget": {
       "seeded_minutes": 30,
-      "source": "a seeded chain case should fit one background-task session (about 30 minutes); a longer run is killed and needs a resume, which loses any worker in flight"
+      "source": "owner (2026-09-27): a small request should not take hours. The 30-minute figure is one background-task session, so a longer seeded run also needs a resume, which loses any worker in flight"
     }
   }
 }

@@ -679,7 +679,7 @@ def chain_facts(out: Path, expect: dict | None = None) -> dict:
         steps = state.get("steps", {})
         deps = {s["id"]: list(s.get("deps") or []) for s in (state.get("graph") or {}).get("steps", [])}
         step_of = {attempt: record.get("step") for attempt, record in attempts.items()}
-        in_flight, most = set(), 0
+        in_flight, most, after_retry, retried = set(), 0, 0, False
         first_launch, integrated, integrations = {}, {}, {}
         for row in events:
             event = row["event"]
@@ -689,9 +689,13 @@ def chain_facts(out: Path, expect: dict | None = None) -> dict:
             if event["kind"] == "launched_result":
                 in_flight.add(attempt)
                 most = max(most, len(in_flight))
+                if retried:
+                    after_retry = max(after_retry, len(in_flight))
                 first_launch.setdefault(step, event["seq"])
-            elif event["kind"] == "handoff_import_result":
+            elif event["kind"] in ("handoff_import_result", "retry_result"):
+                # A retried attempt was lost or rejected; it is no longer running work for the chain.
                 in_flight.discard(attempt)
+                retried = retried or event["kind"] == "retry_result"
             elif event["kind"] == "contribution_recorded":
                 integrations[step] = integrations.get(step, 0) + 1
                 integrated.setdefault(step, event["seq"])
@@ -707,6 +711,7 @@ def chain_facts(out: Path, expect: dict | None = None) -> dict:
             "main_context_attempts": sum(1 for a in attempts.values() if a.get("executor")),
             "attempts": len(attempts),
             "max_in_flight": most,
+            "max_in_flight_after_retry": after_retry if retried else None,
             "out_of_order": out_of_order,
             "integrated_twice": sorted(step for step, count in integrations.items() if count > 1),
             "not_integrated": sorted(step for step in steps if integrations.get(step, 0) == 0),
@@ -759,13 +764,13 @@ Fill in every field, then record the decision in test/shiploop_e2e/LEARNINGS.md.
 {observed}
 
 ## Triage (answer in order; stop at the first yes)
-1. Is the check itself wrong? (Does it pass a reference solution and fail an empty one?)
+1. Is the check itself wrong? (Does it pass a reference solution and fail an empty one? If not, fix the test.)
 2. Is it the environment? (Network, session limits, host outages: fix the harness or ops; the expectation stands.)
-3. Is it reproduced, or is its trigger condition clear? (If not, rerun before changing anything.)
-4. Does the expectation trace to its source above? (Yes: the product changes.)
-5. Does the observed behaviour come from a deliberate design rule? (Then two intents conflict: the owner decides.)
-6. Would a normal run ever hit it? (No: document it as a known limit.)
-7. Does the expectation describe how instead of what? (Then the expectation changes.)
+3. Is it reproduced, or is its trigger clear? (If not, rerun before changing anything.)
+4. Does the expectation describe how instead of what? (Then the expectation changes.)
+5. Would a normal run hit it? (If not, document it as a known limit.)
+6. Does the behaviour come from a deliberate design rule? (Then two intents conflict: the owner decides.)
+7. Does the expectation trace to its source? (Then the product changes. An expectation with no source gets one first, or is dropped.)
 
 ## Why
 
@@ -797,7 +802,7 @@ def chain_in_flight(out: Path) -> bool:
             attempt = (event.get("data") or {}).get("attempt")
             if event["kind"] == "launched_result":
                 open_attempts.add(attempt)
-            elif event["kind"] == "handoff_import_result":
+            elif event["kind"] in ("handoff_import_result", "retry_result"):
                 open_attempts.discard(attempt)
         if open_attempts:
             return True

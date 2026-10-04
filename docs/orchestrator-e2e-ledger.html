@@ -147,7 +147,7 @@ flowchart LR
   <div class="prose">
     <div class="eyebrow">Graph shapes</div>
     <h2>The graphs we expected the model to plan, and the graphs it planned</h2>
-    <p>The case prompts describe modules and what each uses; the model writes the graph itself. In every run the observed graph matched the expected one, and the grader found no step launched before its dependencies were merged in, and no step merged twice.</p>
+    <p>The case prompts describe modules and what each uses, and they ask for independent modules to run in parallel; the model writes the graph itself. So these runs prove the mechanism when the request spells out the structure, not that ShipLoop finds parallel work on its own. In every run the observed graph matched the expected one, and the grader found no step launched before its dependencies were merged in, and no step merged twice.</p>
   </div>
   <div class="shapes">
     <div class="panel shape">
@@ -215,7 +215,7 @@ flowchart LR
       <dt>Expected</dt><dd>After the host dies with workers in flight, a fresh session retries those steps and finishes, unattended (E2E spec S-6 and S-14).</dd>
       <dt>Observed</dt><dd>In 2 of 2 runs the fresh session found the workers gone (<span class="mono">TaskStop: No task found</span>), could not prove they had stopped, and paused to ask whether it may retry.</dd>
       <dt>Why</dt><dd>Retry requires <span class="mono">confirmed_stopped</span>. Native workers die with their host, but nothing records which session launched them, so a later session can never prove it.</dd>
-      <dt>Change</dt><dd>Allow retry when a handle is unavailable, recorded as <span class="mono">native_status: unavailable</span>. This is safe for code: the old workspace is kept, never merged, and the bridge already refuses any late callback from a retried attempt. Chosen by the owner on 2026-10-03.</dd>
+      <dt>Change</dt><dd>Allow retry when a handle is unavailable, recorded as <span class="mono">native_status: unavailable</span>. This is safe for the code in an isolated Git workspace: the old workspace is kept, never merged, and any late callback from the retried attempt is refused. It assumes the lost worker died with its host session; a worker that could outlive its session, or one sharing a checkout, port or database, is not covered. Chosen by the owner on 2026-10-03.</dd>
       <dt>Decision</dt><dd>Owner, then product: the behaviour came from a deliberate rule, so the owner weighed it against S-14.</dd>
       <dt>Verified by</dt><dd>Plan Dispatcher scenario S15 (with a mutant it catches) and a chain-bridge test that loses a worker, retries it and finishes. Then the two kill-and-resume runs again.</dd>
     </dl>
@@ -252,7 +252,7 @@ flowchart LR
     <li><strong>Every expectation names its source.</strong> In <span class="mono">cases.json</span>: <span class="mono">checks_source</span> (the request), <span class="mono">chain.source</span> (a spec clause), <span class="mono">budget.source</span>. Recovery runs cite S-6 and S-14.</li>
     <li><strong>Must and should are separate.</strong> Must-level verdicts fail a run. The time budget is should-level: reported, never failing.</li>
     <li><strong>Every grade prints expected beside observed.</strong> For example: "expected ≥ 3 in flight (S-1, S-2) · observed 4".</li>
-    <li><strong>A failing run writes <span class="mono">mismatch.md</span>.</strong> Expected and observed are filled in; the triage questions follow in order: is the check wrong, is it the environment, is it reproduced, does the expectation trace to its source, is it a deliberate rule, would a normal run hit it, does it describe how instead of what.</li>
+    <li><strong>A failing run writes <span class="mono">mismatch.md</span>.</strong> Expected and observed are filled in; the triage questions follow in order: is the check wrong, is it the environment, is it reproduced, does the expectation describe how instead of what, would a normal run hit it, is it a deliberate rule (the owner decides), and only then does the expectation trace to its source (the product changes).</li>
     <li><strong>The decision is recorded.</strong> Product, expectation, owner, known limit or environment, with why and what verified it, in <span class="mono">LEARNINGS.md</span>. Changing an expectation needs the same evidence as changing the product.</li>
   </ol>
   <p class="foot">Sources: <span class="mono">test/shiploop_e2e/LEARNINGS.md</span>, <span class="mono">docs/orchestrator-test-map.md</span>, run outputs under <span class="mono">~/shiploop-e2e-runs/</span>. Snapshot of 2026-10-04.</p>

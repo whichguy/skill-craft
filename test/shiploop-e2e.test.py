@@ -531,6 +531,32 @@ class SeedTest(HarnessCase):
         self.assertFalse(facts["pass"])  # only two ran together
         self.assertEqual(facts["expect"]["min_in_flight"], 3)
 
+    def test_a_retried_worker_stops_counting_as_in_flight(self):
+        # Kill-and-resume: A-1 and B-1 are lost (never imported) and retried; their
+        # replacements then run one after the other. Only one worker ever really ran
+        # after the kill, so the lost attempts must not inflate the count.
+        import shiploop_chain_ledger as ledger
+        out = self.tmp / "out"
+        chain_dir = out / ".shiploop-runs" / "seed" / "run" / "chains" / "nav-1"
+        dispatcher = chain_dir / "child"
+        dispatcher.mkdir(parents=True)
+        run.store.write_record(chain_dir / "binding.md", {"dispatcher_run": str(dispatcher), "mode": "parallel"})
+        attempts = {"A-1": "A", "B-1": "B", "A-2": "A", "B-2": "B"}
+        (dispatcher / "plan-dispatcher-state.json").write_text(json.dumps({
+            "graph": {"steps": [{"id": "A", "deps": []}, {"id": "B", "deps": []}]},
+            "steps": {"A": {"status": "accepted"}, "B": {"status": "accepted"}},
+            "attempts": {a: {"step": s, "handle": "h"} for a, s in attempts.items()}}))
+        events = [("launched_result", "A-1"), ("launched_result", "B-1"), ("retry_result", "A-1"),
+                  ("retry_result", "B-1"), ("launched_result", "A-2"), ("handoff_import_result", "A-2"),
+                  ("contribution_recorded", "A-2"), ("launched_result", "B-2"), ("handoff_import_result", "B-2"),
+                  ("contribution_recorded", "B-2")]
+        for number, (kind, attempt) in enumerate(events):
+            data = {"attempt": attempt, **({"step": attempts[attempt]} if kind == "contribution_recorded" else {})}
+            ledger.append_event(str(chain_dir / "events"), f"e{number}", kind, data)
+        facts = run.chain_facts(out)
+        self.assertEqual(facts["bindings"][0]["max_in_flight"], 2)  # A-1 and B-1 before the kill
+        self.assertEqual(facts["bindings"][0]["max_in_flight_after_retry"], 1)
+
     def test_chain_in_flight_is_true_only_between_launch_and_import(self):
         self.chain([("launched_result", "A")], {"A": "running"})
         self.assertTrue(run.chain_in_flight(self.tmp / "out"))

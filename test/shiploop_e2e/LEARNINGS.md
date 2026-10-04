@@ -14,12 +14,13 @@ A run that fails writes `mismatch.md` beside its output with Expected and Observ
 filled in. Record each mismatch here in that shape:
 
 - **Expected** (and its source) / **Observed** (with evidence paths)
-- **Triage**, in order, stopping at the first yes: the check is wrong (fix the test);
-  the environment (fix the harness or ops, keep the expectation); not reproduced and
-  no clear trigger (rerun first); the expectation traces to its source (change the
-  product); the behaviour comes from a deliberate rule (the owner decides); a normal
-  run never hits it (known limit); the expectation describes how, not what (change
-  the expectation)
+- **Triage**, in order, stopping at the first yes: the check is wrong (fix the test); the
+  environment (fix the harness or ops, keep the expectation); not reproduced and no clear
+  trigger (rerun first); the expectation describes how, not what (change the expectation);
+  a normal run never hits it (known limit); the behaviour comes from a deliberate rule (the
+  owner decides); the expectation traces to its source (change the product). Corrected
+  2026-10-04: the first version asked about the source before the known-limit and owner
+  questions, so a spec-traced mismatch would have skipped both.
 - **Decision**: product / expectation / owner / known limit / environment, and **why**
 - **Verified by**: the hermetic test and the rerun that confirm it
 
