@@ -322,7 +322,12 @@ class LiveView:
 
 def launch(argv: list[str], work: Path, out: Path, env: dict, timeout: int, watch: bool,
            first: bool = True, fresh: bool = True, translate=None, stop_when=None) -> dict:
-    """Run one host session. `stop_when`, polled every 2 s, kills the session (status "interrupted")."""
+    """Run one host session. `stop_when`, polled every 2 s, kills the session (status "interrupted").
+
+    The result carries ``stop``: the host's own reason from the last end/result event this
+    session wrote, or None when it wrote none (killed, crashed), so a termination record can
+    hold one entry per session and say unknown for the ones that never reported.
+    """
     if first and fresh:
         # The skill must start from a directory with nothing in it.
         leftover = sorted(p.name for p in work.iterdir())
@@ -331,6 +336,7 @@ def launch(argv: list[str], work: Path, out: Path, env: dict, timeout: int, watc
     start = time.time()
     view = LiveView(start, watch)
     mode = "wb" if first else "ab"  # a resumed session appends to the same streams
+    stop = None
     events_path = out / "events.jsonl"
     if first:
         line = 0
@@ -348,7 +354,7 @@ def launch(argv: list[str], work: Path, out: Path, env: dict, timeout: int, watc
                                 stderr=stderr, env=env, start_new_session=True)
 
         def record(raw: bytes):
-            nonlocal line
+            nonlocal line, stop
             events.write(raw)
             events.flush()
             number, line = line, line + 1
@@ -357,6 +363,8 @@ def launch(argv: list[str], work: Path, out: Path, env: dict, timeout: int, watc
             except ValueError:
                 return
             if isinstance(event, dict):
+                if event.get("type") in ("end", "result"):
+                    stop = metrics.session_stop(event)
                 # Grok events carry no time; stamp the ones metrics.py attributes.
                 if event.get("type") not in ("text", "thought"):
                     stamps.write(json.dumps({"line": number, "t": round(time.time(), 3)}) + "\n")
@@ -390,7 +398,7 @@ def launch(argv: list[str], work: Path, out: Path, env: dict, timeout: int, watc
         reader.join(timeout=10)
         proc.stdout.close()
     return {"status": status, "returncode": proc.returncode,
-            "elapsed_seconds": round(time.time() - start, 1)}
+            "elapsed_seconds": round(time.time() - start, 1), "stop": stop}
 
 
 def summarize_events(path: Path) -> dict:
@@ -936,12 +944,20 @@ def parser() -> argparse.ArgumentParser:
     return p
 
 
+def host_given(argv: list[str]) -> bool:
+    """Whether --host was passed at all (argparse cannot tell a default from the same value given)."""
+    probe = parser()
+    probe.set_defaults(host=None)
+    return probe.parse_args(argv).host is not None
+
+
 def baseline_stages(stages: list | None) -> list | None:
     """The per-stage fields worth committing: enough to locate a regression, no more.
 
     `tool_calls` and `output_tokens` stay in the run's own metrics.json, which is
     disposable; a committed baseline only needs what a comparison reads, plus the
-    markers that say a row is not comparable.
+    markers that say a row is not comparable. A counter the host did not report is
+    committed as null (see metrics.per_stage), never as 0.
     """
     if stages is None:
         return None
@@ -956,14 +972,16 @@ def baseline_row(result: dict, style: str | None, suite: str | None) -> dict:
     from the same three (SPEC: the driver is a parameter, not a code path), and
     per-stage rows so a regression can be located in a stage rather than only in
     a whole-run total. ``baseline_stages`` decides which stage fields are worth
-    committing; the full rows stay in the run's own metrics.json.
+    committing; the full rows stay in the run's own metrics.json. A counter the host's
+    events cannot show is null here and named in ``unmeasured``, so a later run on that
+    host compares it as not measured and never as 0 -> 0.
     """
     m = result.get("metrics") or {}
     versions = result.get("versions") or {}
     return {"date": time.strftime("%Y-%m-%dT%H:%M:%S%z"), "case": result.get("case"), "style": style,
             "suite": suite, "host": result.get("host"), "model": result.get("model"),
             "effort": result.get("effort"), "stages": baseline_stages(m.get("stages")),
-            "termination": result.get("termination"),
+            "termination": result.get("termination"), "unmeasured": sorted(m.get("unmeasured") or {}),
             "source": versions.get("source"), "plugin_version": versions.get("plugin_version"),
             "shiploop_version": versions.get("shiploop_version"), "pass": result.get("pass"),
             "verdicts": {k: (result.get(k) or {}).get("pass") for k in ("invoked", "plugin", "process",
@@ -979,18 +997,19 @@ def baseline_row(result: dict, style: str | None, suite: str | None) -> dict:
             "output": result.get("output")}
 
 
-def previous_row(path: Path, case: str, source: str | None, host: str | None = None,
-                 model: str | None = None, effort: str | None = None) -> dict | None:
-    """The last recorded row for this case that is actually comparable with this run.
+def scan_baseline(path: Path, case: str, source: str | None, host: str | None = None,
+                  model: str | None = None, effort: str | None = None) -> tuple[dict | None, int]:
+    """(the last comparable row, how many rows were recorded for this case and source).
 
     SPEC: a baseline compares only with rows from the same host, model and
     effort, so a row that does not name all three, or names different ones, is
     not a baseline for this run. Rows written before those fields existed are
-    therefore skipped rather than compared against.
+    therefore skipped rather than compared against. The count lets a caller say
+    "rows exist but none is comparable" instead of printing nothing.
     """
     if not path.is_file():
-        return None
-    found = None
+        return None, 0
+    found, seen = None, 0
     for line in path.read_text().splitlines():
         try:
             row = json.loads(line)
@@ -998,13 +1017,23 @@ def previous_row(path: Path, case: str, source: str | None, host: str | None = N
             continue
         if row.get("case") != case or row.get("source") != source:
             continue
+        seen += 1
         if (row.get("host"), row.get("model"), row.get("effort")) != (host, model, effort):
             continue
         found = row
-    return found
+    return found, seen
 
 
-def termination_facts(process: dict, run_metrics: dict, engine: dict, resume_stop: str | None) -> dict:
+def previous_row(path: Path, case: str, source: str | None, host: str | None = None,
+                 model: str | None = None, effort: str | None = None) -> dict | None:
+    """The last recorded row for this case that is actually comparable with this run."""
+    return scan_baseline(path, case, source, host, model, effort)[0]
+
+
+NOT_OBSERVED = "not observed (regraded: no host ran)"
+
+
+def termination_facts(process: dict, engine: dict, resume_stop: str | None, earlier: dict | None = None) -> dict:
     """Why this run is not still going, from the observer that owns the process.
 
     ShipLoop cannot answer this: it is not running when its host times out, runs
@@ -1012,63 +1041,133 @@ def termination_facts(process: dict, run_metrics: dict, engine: dict, resume_sto
     what happened. Every field keeps ``unknown`` rather than a guess, and the
     last ShipLoop refusal is never reported as the cause -- a refusal is a
     rejected callback, not a terminated run.
+
+    ``session_stops`` has one entry per session this invocation launched, in
+    launch order, the same population ``sessions`` counts: the host's own reason,
+    or ``unknown`` for a session that wrote no terminal event (killed, crashed).
+    A resumed invocation describes its own sessions; the ones before it stay in the
+    result's ``earlier_terminations``.
+
+    A regrade (``process.regraded``) started no host, so nothing was observed: it
+    keeps ``earlier`` (the termination the original run recorded) when there is one,
+    and otherwise says no host ran. It never reports an exit that nobody saw.
     """
-    stops = [s.get("stop") for s in run_metrics.get("sessions") or []]
     pending = metrics.pending_stage(engine)
+    reason = engine.get("status_reason")
+    engine_facts = {
+        "engine_status": engine.get("status") or "unknown",
+        # Where the graph stopped: the stage it never accepted, when there is one, else the stage it is in.
+        "engine_stage": metrics.current_stage(engine) or "unknown",
+        "engine_unaccepted_stage": pending,
+        # The engine's own recorded cause for a blocked, paused or halted run.
+        "engine_status_reason": " ".join(reason.split())[:200] if isinstance(reason, str) and reason.strip() else None,
+    }
+    if process.get("regraded"):
+        if isinstance(earlier, dict) and earlier.get("process_status"):
+            return {**earlier, "regraded": True, "engine_status_at_regrade": engine_facts["engine_status"]}
+        return {"process_status": NOT_OBSERVED, "returncode": None, "sessions": 0, "resumes": None,
+                "session_stops": [], "resume_stop": "not evaluated (regraded)", **engine_facts, "regraded": True}
+    sessions = process.get("sessions") or []
     return {
         "process_status": process.get("status") or "unknown",
         "returncode": process.get("returncode"),
-        "sessions": len(process.get("sessions") or []),
+        "sessions": len(sessions),
         "resumes": process.get("resumes"),
-        # The host's own reason per session; None means that session never reported one.
-        "session_stops": [s if s is not None else "unknown" for s in stops] or ["unknown"],
+        "session_stops": [(s.get("stop") if isinstance(s, dict) else None) or "unknown" for s in sessions],
         "resume_stop": resume_stop or "unknown",
-        "engine_status": engine.get("status") or "unknown",
-        # Where the graph actually stopped: the stage it never accepted, when there is one.
-        "engine_stage": pending or engine.get("stage") or "unknown",
-        "engine_unaccepted_stage": pending,
+        **engine_facts,
     }
+
+
+def stopped_line(t: dict) -> str:
+    """The printed answer to why the run is not still going."""
+    if t["process_status"] == NOT_OBSERVED:
+        line = f"no host ran (regraded); engine {t['engine_status']}"
+    else:
+        line = (f"host {t['process_status']} rc={t['returncode']}; "
+                f"session stops {', '.join(str(s) for s in t['session_stops']) or 'none'}; "
+                f"no further resume: {t['resume_stop']}; engine {t['engine_status']}")
+    if t["engine_unaccepted_stage"]:
+        line += f" with {t['engine_unaccepted_stage']} never accepted"
+    elif t["engine_status"] in ("blocked", "paused", "halted") and t["engine_stage"] != "unknown":
+        line += f" at {t['engine_stage']}"  # the engine recorded that stage's own result: nothing was lost
+    if t.get("engine_status_reason"):
+        line += f" ({t['engine_status_reason'][:100]})"
+    if t.get("regraded") and t["process_status"] != NOT_OBSERVED:
+        line += f"; the original record, regraded with engine {t.get('engine_status_at_regrade')}"
+    return line
+
+
+def _minutes(seconds: float) -> str:
+    return f"{seconds / 60:.0f}" if seconds >= 600 else f"{seconds / 60:.1f}"
 
 
 def stage_diff_lines(before: list | None, now: list | None, top: int = 5) -> list[str]:
     """Where a whole-run difference actually landed, by stage.
 
-    Reports only what is measured on both sides: a stage missing timing on
-    either run is listed as not comparable rather than counted as zero. Stages
-    are summed per name because a stage can be visited more than once (one
-    `implement` action per planned step), and the largest turn differences come
-    first. This prints; it gates nothing, because no threshold is calibrated yet.
+    Compares whole, measured stage rows only. A row the run stopped in
+    (``incomplete``) or that has no measured timing is never counted as a visit, so a
+    stage with any such row on either side is not comparable: it is named and counted
+    in the coverage line, which covers both runs. Stages are summed per name because
+    a stage can be visited more than once (one `implement` action per planned step).
+    Turns rank the differences where both runs report them; a host that reports no
+    per-stage turns is compared by minutes, and the line says so. Stage turns are good
+    to about one per boundary and minutes are wall clock, interruption gaps included
+    (see metrics.per_stage). This prints; it gates nothing, because no threshold is
+    calibrated yet.
     """
-    def totals(rows: list | None) -> dict[str, dict]:
+    def sides(rows: list | None) -> dict[str, dict]:
         out: dict[str, dict] = {}
         for row in rows or []:
-            if not isinstance(row, dict) or "turns" not in row:
+            if not isinstance(row, dict):
                 continue
-            seen = out.setdefault(row.get("stage") or "?", {"turns": 0, "seconds": 0.0, "visits": 0})
-            seen["turns"] += row.get("turns") or 0
-            seen["seconds"] += row.get("seconds") or 0
-            seen["visits"] += 1
+            seen = out.setdefault(row.get("stage") or "?", {"turns": 0, "seconds": 0.0, "whole": True,
+                                                              "has_turns": True})
+            if row.get("incomplete") or row.get("seconds") is None:
+                seen["whole"] = False
+                continue
+            seen["seconds"] += row["seconds"]
+            if row.get("turns") is None:
+                seen["has_turns"] = False
+            else:
+                seen["turns"] += row["turns"]
         return out
 
-    was, became = totals(before), totals(now)
-    if not was or not became:
+    was, became = sides(before), sides(now)
+    if not any(s["whole"] for s in was.values()) or not any(s["whole"] for s in became.values()):
         return ["per-stage comparison unavailable (one run has no measured stage timing)"]
-    shared = sorted(set(was) & set(became), key=lambda s: abs(became[s]["turns"] - was[s]["turns"]), reverse=True)
-    moved = [s for s in shared if became[s]["turns"] != was[s]["turns"]]
+    names = set(was) | set(became)
+    comparable = sorted(s for s in set(was) & set(became) if was[s]["whole"] and became[s]["whole"])
+    not_comparable = sorted(s for s in names if not was.get(s, {"whole": True})["whole"]
+                            or not became.get(s, {"whole": True})["whole"])
+    only_now = sorted(s for s in set(became) - set(was) if became[s]["whole"])
+    only_before = sorted(s for s in set(was) - set(became) if was[s]["whole"])
     lines = []
-    # Say how much of each run this covers, so a partial comparison is not read as a whole one.
-    skipped = sum(1 for r in (now or []) if isinstance(r, dict) and "turns" not in r)
-    if skipped:
-        lines.append(f"per-stage comparison covers {len(became)} of {len(became) + skipped} stages "
-                     f"({skipped} had no measured timing)")
-    if moved:
+    if not_comparable or only_now or only_before:
+        lines.append(f"per-stage comparison covers {len(comparable)} of {len(names)} stages"
+                     + (f" ({len(not_comparable)} not comparable, incomplete or unmeasured on a side: "
+                        f"{', '.join(not_comparable[:top])})" if not_comparable else ""))
+    by_turns = [s for s in comparable if was[s]["has_turns"] and became[s]["has_turns"]]
+    by_minutes = [s for s in comparable if s not in by_turns]
+    turn_moves = sorted((s for s in by_turns if became[s]["turns"] != was[s]["turns"]),
+                        key=lambda s: abs(became[s]["turns"] - was[s]["turns"]), reverse=True)
+    minute_moves = sorted((s for s in by_minutes if became[s]["seconds"] != was[s]["seconds"]),
+                          key=lambda s: abs(became[s]["seconds"] - was[s]["seconds"]), reverse=True)
+    if turn_moves:
         lines.append("stage turns: " + ", ".join(
             f"{s} {was[s]['turns']}->{became[s]['turns']}"
-            f" ({was[s]['seconds'] / 60:.0f}->{became[s]['seconds'] / 60:.0f}m)" for s in moved[:top]))
-    for label, names in (("only now", sorted(set(became) - set(was))), ("only before", sorted(set(was) - set(became)))):
-        if names:
-            lines.append(f"{label}: " + ", ".join(names[:top]))
-    return lines or ["no per-stage turn difference"]
+            f" ({_minutes(was[s]['seconds'])}->{_minutes(became[s]['seconds'])}m)" for s in turn_moves[:top]))
+    if minute_moves:
+        lines.append("stage minutes (this host reports no per-stage turns): " + ", ".join(
+            f"{s} {_minutes(was[s]['seconds'])}->{_minutes(became[s]['seconds'])}" for s in minute_moves[:top]))
+    for label, listed in (("only now", only_now), ("only before", only_before)):
+        if listed:
+            lines.append(f"{label}: " + ", ".join(listed[:top]))
+    if not turn_moves and not minute_moves:
+        lines.append("no per-stage turn difference" if by_turns else
+                     "no per-stage minute difference (turns not measured)" if by_minutes else
+                     "no stage is comparable on both runs")
+    return lines
 
 
 def shared_tmp_writes(outputs: list[Path]) -> dict[str, list[str]]:
@@ -1194,10 +1293,6 @@ def main(argv: list[str] | None = None) -> int:
         raise SystemExit("--host all is only for --preflight-only; a run needs one host")
     if args.suite:
         return run_suite(args, argv)
-    host = the_host(args)
-    args.model = args.model or host.model
-    args.effort = args.effort or host.effort
-    args.skill = args.skill or host.skill
     if args.plugin_dir:
         args.source = "checkout"
     if args.plugin_dir and not (args.plugin_dir / ".claude-plugin" / "plugin.json").is_file():
@@ -1206,6 +1301,7 @@ def main(argv: list[str] | None = None) -> int:
     resumed = None
     regrade = False
     earlier = {}
+    earlier_result: dict = {}
     if args.resume_run:
         # Continue a stopped run in place: same work directory, run state and event stream.
         out = args.resume_run.expanduser().resolve()
@@ -1218,6 +1314,15 @@ def main(argv: list[str] | None = None) -> int:
         regrade = state.get("status") == "done"
         if state.get("status") != "active" and not regrade:
             raise SystemExit(f"--resume-run needs an active or finished ShipLoop run; found {state.get('status')!r} in {out}")
+        try:
+            earlier_result = json.loads((out / "result.json").read_text())
+        except (OSError, ValueError):
+            earlier_result = {}
+        if regrade and not host_given(argv):
+            # Nothing is launched, so the host is not a choice: keep the one the run recorded, not the default.
+            args.host = earlier["host"]
+            args.model = args.model or earlier.get("model")
+            args.effort = args.effort or earlier.get("effort")
         resumed = {"from_host": earlier["host"], "from_model": earlier.get("model"), "run_dir": state.get("run_dir"),
                    "revision": state.get("revision"), "stage": state.get("stage")}
     else:
@@ -1228,8 +1333,17 @@ def main(argv: list[str] | None = None) -> int:
         work = out / "work"
         work.mkdir()
         follow_on = continue_from(args.continue_from.expanduser().resolve(), work) if args.continue_from else None
+    host = the_host(args)
+    args.model = args.model or host.model
+    args.effort = args.effort or host.effort
+    args.skill = args.skill or host.skill
     env = host.env(out / "home")
-    if resumed and earlier.get("host") == args.host and Path(earlier.get("plugin_dir") or "").is_dir():
+    if regrade:
+        # No host starts, so nothing is installed or gated: a regrade keeps the plugin identity the run recorded.
+        plugin_dir, plugin = Path(earlier.get("plugin_dir") or out / "missing-plugin"), None
+        versions = {"source": None, "plugin_version": None, "shiploop_version": None,
+                    **(earlier.get("versions") or {}), "regraded": True}
+    elif resumed and earlier.get("host") == args.host and Path(earlier.get("plugin_dir") or "").is_dir():
         # A resumed run keeps the plugin it started on: reinstalling would replace that version's files, and a
         # bound Improve child records paths inside them. Only the CI and checkout checks still apply.
         plugin_dir, plugin = Path(earlier["plugin_dir"]), None
@@ -1238,9 +1352,9 @@ def main(argv: list[str] | None = None) -> int:
                     "released": released,
                     "gate": [problem for problem in version_gate(released, None, None)
                              if not problem.startswith("installed ")]}
-        if versions["gate"] and not regrade:       # a regrade starts no host, so there is nothing to gate
+        if versions["gate"]:
             raise SystemExit("version gate: " + "; ".join(versions["gate"]))
-        if host.name == "codex" and not regrade and versions["plugin_version"] != released["catalog_version"]:
+        if host.name == "codex" and versions["plugin_version"] != released["catalog_version"]:
             # Codex syncs installed plugins to its marketplace's current release when a session starts and
             # deletes the old version's files, which the run's CLI and any bound Improve child point to.
             raise SystemExit(f"a Codex run started on skill-craft {versions['plugin_version']} cannot resume after "
@@ -1252,6 +1366,9 @@ def main(argv: list[str] | None = None) -> int:
             # No original install to reuse: a newer release is still not a reason to refuse the run.
             versions["gate"] = [problem for problem in versions["gate"] if not problem.startswith("installed ")]
         if versions["gate"]:
+            if resumed:
+                # The run already has a result.json worth more than a refusal stub; leave it as it was.
+                raise SystemExit("version gate: " + "; ".join(versions["gate"]))
             (out / "result.json").write_text(json.dumps({"case": name, "pass": False, "versions": versions,
                                                          "output": str(out)}, indent=2) + "\n")
             raise SystemExit("version gate: " + "; ".join(versions["gate"]) + f" (see {out / 'result.json'})")
@@ -1304,7 +1421,7 @@ def main(argv: list[str] | None = None) -> int:
         process = launch(cli, work, out, env, args.timeout, watch=not args.quiet,
                          fresh=follow_on is None and seeded is None,
                          first=resumed is None, translate=host.translator(), stop_when=stop_when)
-    sessions = [dict(process, resumed=None, host=host.name)]
+    sessions = [] if regrade else [dict(process, resumed=None, host=host.name)]  # a regrade launched no session
     if process["status"] == "interrupted":
         state = grade_shiploop(out)
         interrupt_file.write_text(json.dumps({
@@ -1322,8 +1439,9 @@ def main(argv: list[str] | None = None) -> int:
         sessions.append(dict(process, resumed="after-interrupt", host=host.name))
     # A headless Grok session ends whenever the model ends its turn. While ShipLoop's
     # run is still active, resume that same session (bounded) instead of losing the run.
-    resume_stop = None if host.resumable else "host is not resumable"
-    while host.resumable and len(sessions) <= args.max_resumes:
+    resume_stop = ("not evaluated (regraded)" if regrade
+                   else None if host.resumable else "host is not resumable")
+    while host.resumable and not regrade and len(sessions) <= args.max_resumes:
         state = grade_shiploop(out)
         session_id = last_session_id(out / "events.jsonl")
         remaining = int(deadline - time.time())
@@ -1351,8 +1469,12 @@ def main(argv: list[str] | None = None) -> int:
                          translate=host.translator())
         sessions.append(dict(process, resumed=session_id, host=host.name))
     if resume_stop is None and host.resumable:
-        resume_stop = f"resume budget spent ({args.max_resumes})"
-    process = dict(process, sessions=sessions, resumes=len(sessions) - 1)
+        # The loop also ends on its budget without grading the run again, and the last session it
+        # was allowed may have finished it: say what the run is, not that the budget was spent.
+        status = grade_shiploop(out).get("status")
+        resume_stop = (f"ShipLoop run is {status}" if status not in ("active", None)
+                       else f"resume budget spent ({args.max_resumes})")
+    process = dict(process, sessions=sessions, resumes=len(sessions) - 1 if sessions else None)
     process["pass"] = process["status"] == "exited"
     cli_seen = summarize_events(out / "events.jsonl")
     write_transcript(out / "events.jsonl", out / "transcript.md")
@@ -1404,26 +1526,32 @@ def main(argv: list[str] | None = None) -> int:
                 *(c["pass"] for c in check_results)]
     if keepalive is not None:
         keepalive["decisions"] = hosts.keepalive_decisions(out / "home")
-    termination = termination_facts(process, run_metrics,
+    termination = termination_facts(process,
                                     metrics.engine_state(Path(shiploop["run_dir"]) if shiploop.get("run_dir")
                                                          else None),
-                                    resume_stop)
+                                    resume_stop, earlier_result.get("termination") if regrade else None)
+    # A resumed run overwrites result.json: keep the termination each earlier invocation recorded.
+    earlier_terminations = list(earlier_result.get("earlier_terminations") or []) if resumed else []
+    if resumed and not regrade and isinstance(earlier_result.get("termination"), dict):
+        earlier_terminations.append(earlier_result["termination"])
     result = {"case": name, "host": args.host, "model": args.model, "effort": args.effort,
               "pass": all(verdicts), "invoked": invoked, "plugin": plugin, "versions": versions,
               "process": process, "termination": termination,
+              **({"earlier_terminations": earlier_terminations} if earlier_terminations else {}),
               "keepalive": keepalive,
               "shiploop": shiploop, "committed": committed, "checks": check_results, "cli": cli_seen, "follow_on": follow_on,
               "resumed_run": resumed, "seeded": seeded, "chain": chain, "recovery": recovery, "budget": budget,
               "expectations": expectations,
               "metrics": {k: run_metrics[k] for k in ("turns", "cost_usd", "compactions", "truncated_outputs",
-                                                      "improve_children", "stages")}
+                                                      "improve_children", "stages", "unmeasured")}
+              # None, not 0, where the host's events cannot show the thing counted.
               | {"script_verifications": run_metrics["script_verifications"],
-                 "model_glue": len(run_metrics["model_glue"]),
-                 "tmp_writes": len(run_metrics["tmp_writes"]),
+                 "model_glue": metrics.count(run_metrics, "model_glue"),
+                 "tmp_writes": metrics.count(run_metrics, "tmp_writes"),
                  "asked_user": len(run_metrics["asked_user"]),
                  "narrative": {k: v for k, v in run_metrics["narrative"].items() if k != "skipped"},
-                 "shiploop_failures": len(run_metrics["shiploop_failures"]),
-                 "cancelled_tool_calls": len(run_metrics["cancelled_tool_calls"])},
+                 "shiploop_failures": metrics.count(run_metrics, "shiploop_failures"),
+                 "cancelled_tool_calls": metrics.count(run_metrics, "cancelled_tool_calls")},
               "output": str(out)}
     (out / "result.json").write_text(json.dumps(result, indent=2) + "\n")
     exported = review_export(out)
@@ -1431,8 +1559,8 @@ def main(argv: list[str] | None = None) -> int:
     row = baseline_row(result, style, args.suite_name)
     # A baseline measures one host running a case from the start; a resumed run is not one.
     baseline_file = args.baseline if not (resumed or seeded) else None
-    before = (previous_row(baseline_file, name, versions["source"], args.host, args.model, args.effort)
-              if baseline_file else None)
+    before, rows_for_case = (scan_baseline(baseline_file, name, versions["source"], args.host, args.model,
+                                           args.effort) if baseline_file else (None, 0))
     if baseline_file:
         with baseline_file.open("a") as handle:
             handle.write(json.dumps(row) + "\n")
@@ -1443,18 +1571,15 @@ def main(argv: list[str] | None = None) -> int:
           f"ShipLoop {versions['shiploop_version']}")
     print(f"  invoked   {mark(invoked['pass'])}  /{args.skill}")
     print(f"  plugin    {mark(plugin['pass'])}  {', '.join(map(str, plugin['loaded'])) or 'none loaded'}")
-    print(f"  process   {mark(process['pass'])}  {process['status']} rc={process['returncode']} "
-          f"{sum(s['elapsed_seconds'] for s in sessions):.1f}s cost=${cli_seen.get('cost_usd')} "
-          f"sessions={len(sessions)}")
+    print(f"  process   {mark(process['pass'])}  " + (
+        "no host ran: regraded from what is on disk" if process.get("regraded") else
+        f"{process['status']} rc={process['returncode']} {sum(s['elapsed_seconds'] for s in sessions):.1f}s "
+        f"cost=${cli_seen.get('cost_usd')} sessions={len(sessions)}"))
     if keepalive is not None:
         print(f"  keepalive {'installed' if keepalive['installed'] else 'NOT installed'}; "
               f"decisions {keepalive['decisions'] or 'none (hooks never ran)'}")
     print(f"  shiploop  {mark(shiploop['pass'])}  {shiploop.get('status') or shiploop.get('reason')}")
-    print(f"  stopped   host {termination['process_status']} rc={termination['returncode']}; "
-          f"session stops {', '.join(termination['session_stops'])}; no further resume: "
-          f"{termination['resume_stop']}; engine {termination['engine_status']}"
-          + (f" with {termination['engine_unaccepted_stage']} never accepted"
-             if termination["engine_unaccepted_stage"] else ""))
+    print(f"  stopped   {stopped_line(termination)}")
     if shiploop.get("worktree_checks") is not None:
         passed = sum(c["pass"] for c in shiploop["worktree_checks"])
         print(f"            unreturned product in {shiploop['worktree']}: "
@@ -1492,21 +1617,32 @@ def main(argv: list[str] | None = None) -> int:
         print(f"  failed    shiploop {failure['verb']} exit {failure['exit']}: {failure['line']}")
     if follow_on:
         print(f"  follow-on of {follow_on['prior_case']} ({follow_on['prior']}): turns {run_metrics['turns']} vs "
-              f"{follow_on['prior_turns']}, cost ${run_metrics['cost_usd']} vs ${follow_on['prior_cost_usd']}")
+              f"{follow_on['prior_turns']}, cost {metrics.money(run_metrics['cost_usd'])} vs "
+              f"{metrics.money(follow_on['prior_cost_usd'])}")
     print(f"  checks    expected from {expectations['checks']}")
     for check in check_results:
         print(f"  check     {mark(check['pass'])}  {check['command']}")
     print(f"  {exported}")
     if before:
+        unknown = lambda value: "not measured" if value is None else value  # noqa: E731
         print(f"  baseline  vs {before['date'][:10]} (ShipLoop {before['shiploop_version']}, same "
               f"{args.host}/{args.model}/{args.effort}): "
-              f"turns {before['turns']} -> {row['turns']}, cost ${before['cost_usd']} -> ${row['cost_usd']}, "
-              f"sessions {before['sessions']} -> {row['sessions']}, glue {before['model_glue']} -> {row['model_glue']}"
+              f"turns {before['turns']} -> {row['turns']}, cost {metrics.money(before['cost_usd'])} -> "
+              f"{metrics.money(row['cost_usd'])}, "
+              f"sessions {before['sessions']} -> {row['sessions']}, "
+              f"glue {unknown(before['model_glue'])} -> {unknown(row['model_glue'])}"
               + (f", narrative shown {before['narrative']['shown']}/{before['narrative']['emitted']} -> "
                  f"{row['narrative']['shown']}/{row['narrative']['emitted']}"
                  if before.get("narrative") and row.get("narrative") else ""))
         for line in stage_diff_lines(before.get("stages"), row.get("stages")):
             print(f"            {line}")
+    elif baseline_file:
+        print("  baseline  nothing compared: " + (
+            f"{rows_for_case} earlier row(s) for {name}, none recorded with {args.host}/{args.model}/"
+            f"{args.effort}, so there is no baseline" if rows_for_case
+            else f"no earlier row for {name} from this source"))
+    else:
+        print("  baseline  nothing compared: a resumed or seeded run is not a baseline")
     if not result["pass"]:
         failed = [(verdict, want, got) for ok, verdict, want, got in (
             (invoked["pass"], "invoked", "the host registers the invoked ShipLoop skill", "not registered"),

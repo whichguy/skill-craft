@@ -98,8 +98,9 @@ on the request in {run_dir / 'prompt.txt'}.
 - Raw event stream: {run_dir / 'events.jsonl'}; host stderr: {run_dir / 'stderr.txt'}
 - The product: {run_dir / 'work'}; the ShipLoop run directory is named by result.json
   shiploop.run_dir (it may sit beside work/, in an external workspace root)
-- Where ShipLoop spent turns, time and cost per accepted stage, its failed commands,
-  truncations and compactions: {run_dir / 'metrics.json'}
+- Where ShipLoop spent turns and time per accepted stage (cost is whole-run only), its failed
+  commands, truncations and compactions: {run_dir / 'metrics.json'}. Its `unmeasured` map names
+  every counter this host's events cannot show (a null or an empty list there is not a zero)
 - The ShipLoop skill source that ran: {skill_root} (SKILL.md, references/, scripts/)
 
 If result.json has a follow_on block, this run added a feature in a copy of an earlier

@@ -145,8 +145,10 @@ def acceptance_stamps(run_dir: Path | None) -> dict[str, float]:
 
     Advisory, not authoritative: the engine recreates a missing timeline and
     gives a missing historical action the current time, so a stamp can be a
-    recovery artefact. An entry that cannot be read is left out rather than
-    guessed, which makes its stage report unavailable downstream.
+    recovery artefact (not detected: all actions then share one readable stamp).
+    An entry that cannot be read is left out rather than guessed, which makes its
+    stage report unavailable downstream. Stamps are whole seconds, truncated, so a
+    boundary is only good to one second (see per_stage).
     """
     if run_dir is None or not (run_dir / "timeline.json").is_file():
         return {}
@@ -208,6 +210,37 @@ def improve_reviews(run_dir: Path | None) -> dict:
             "max_passes": max((c["passes"] for c in children), default=0), "per_child": children}
 
 
+def session_stop(event: dict) -> str | None:
+    """The host's own reason a session ended, or None when it reported none.
+
+    Claude ends an API failure (rate limit, exhausted credits, a model it may not
+    use) with subtype "success" and is_error true, so the subtype alone would call
+    that stop a success: the error fields come first. A failed Codex turn carries
+    its message in ``error``. Grok's ``cancelled`` is one reason for several causes
+    (an empty turn, a permission refusal, exhausted credits) and cannot be told
+    apart here.
+    """
+    detail = event.get("error") if isinstance(event.get("error"), str) else None
+    if event.get("is_error") is True or detail:
+        why = " ".join(str(p) for p in (event.get("terminal_reason"), event.get("api_error_status")) if p)
+        said = detail or (event.get("result") if isinstance(event.get("result"), str) else "")
+        bits = [b for b in (why, " ".join(said.split())[:100]) if b]
+        return "error" + (": " + ": ".join(bits) if bits else "")
+    reason = event.get("stopReason") or event.get("subtype")
+    if reason is None:
+        return None
+    return reason if isinstance(reason, str) else json.dumps(reason, sort_keys=True)[:100]
+
+
+# Why a counter is unmeasured, recorded beside the run so a reader never takes its 0 for a measurement.
+NO_PER_CALL_USAGE = ("the host reports no per-call usage events (one total per session), so turns and output "
+                     "tokens cannot be attributed to a stage")
+CLAUDE_TOOL_BLOCKS = ("this host's tool calls arrive as Claude tool_use / tool_result blocks, which collect() does "
+                      "not read, so a count of 0 is a lower bound and not a measurement")
+# What follows from reading only Grok-shaped tool_call events when the stream is Claude's.
+CLAUDE_BLIND = ("stage_tool_calls", "shiploop_failures", "model_glue", "cancelled_tool_calls", "tmp_writes")
+
+
 def collect(out: Path, run_dir: Path | None = None) -> dict:
     stamps = timeline(out / "timeline.jsonl")
     calls: dict[str, dict] = {}
@@ -219,6 +252,7 @@ def collect(out: Path, run_dir: Path | None = None) -> dict:
     truncated: set = set()
     cancelled: list[str] = []
     reads: list[str] = []
+    tool_blocks = 0  # Claude tool_use blocks: calls this collector cannot classify
     # A session that reports no per-call usage (Codex) contributes its own turn count.
     unreported, calls_in_session = 0, 0
     for number, event in events(out / "events.jsonl"):
@@ -232,6 +266,7 @@ def collect(out: Path, run_dir: Path | None = None) -> dict:
                           "output": usage.get("output_tokens") or 0})
         elif kind == "assistant":  # Claude: one message per turn
             for block in (event.get("message") or {}).get("content") or []:
+                tool_blocks += isinstance(block, dict) and block.get("type") == "tool_use"
                 if isinstance(block, dict) and block.get("type") == "tool_use" and ASK_PERSON.search(str(block.get("name"))):
                     asked.append(" ".join(str(block.get("input") or "").split())[:160])
             usage = (event.get("message") or {}).get("usage") or {}
@@ -272,23 +307,37 @@ def collect(out: Path, run_dir: Path | None = None) -> dict:
         elif kind == "auto_compact_completed":
             compactions += 1
         elif kind in ("end", "result"):
-            sessions.append({"stop": event.get("stopReason") or event.get("subtype"),
+            sessions.append({"stop": session_stop(event),
                              "turns": event.get("num_turns"), "cost_usd": event.get("total_cost_usd")})
             if not calls_in_session:
                 unreported += event.get("num_turns") or 0
             calls_in_session = 0
-    cost = round(sum(s["cost_usd"] or 0 for s in sessions), 4) if sessions else None
+    # A host that reports no cost (Codex) has an unknown cost, not a free run.
+    cost = (round(sum(s["cost_usd"] or 0 for s in sessions), 4)
+            if any(s["cost_usd"] is not None for s in sessions) else None)
     # One read of state.md for both the accepted history and the pending stage: a
     # live run rewrites it on every transition, so two reads could disagree.
     state = engine_state(run_dir)
-    stages = per_stage(stage_results(run_dir, state), turns, calls, stamps, pending_stage(state))
+    # Counters this host's events cannot show are recorded as unmeasured with the reason,
+    # never as 0: a zero would read as a measurement and pass every comparison.
+    unmeasured: dict[str, str] = {}
+    if not _timed(turns):
+        unmeasured.update(stage_turns=NO_PER_CALL_USAGE, output_tokens=NO_PER_CALL_USAGE)
+    if tool_blocks:
+        unmeasured.update({name: CLAUDE_TOOL_BLOCKS for name in CLAUDE_BLIND})
+        # Per-event usage is a snapshot taken as the message starts: it sums to a small
+        # fraction of what the result event reports (about 1/17 on a recorded run).
+        unmeasured["output_tokens"] = ("per-event usage snapshots sum to a small fraction of the session's "
+                                       "output tokens")
+    stages = per_stage(stage_results(run_dir, state), turns, calls, stamps, pending_stage(state), unmeasured)
     improve = run_dir / "improve" if run_dir else None
     return {
         "tmp_writes": sorted(shared),
         "sessions": sessions,
         "turns": len(turns) + unreported,
-        "tokens": {"input_peak": max((x["input"] for x in turns), default=0),
-                   "output_total": sum(x["output"] for x in turns)},
+        "tokens": {"input_peak": max((x["input"] for x in turns), default=None),
+                   "output_total": None if "output_tokens" in unmeasured else sum(x["output"] for x in turns)},
+        "unmeasured": unmeasured,
         "cost_usd": cost,
         "compactions": compactions,
         "truncated_outputs": len(truncated),
@@ -401,14 +450,12 @@ def verifications(run_dir: Path | None) -> dict:
     return {"records": len(records), "passed": passed, "could_not_run": could_not_run, "commands": commands}
 
 
-def pending_stage(state: dict) -> str | None:
-    """The stage ShipLoop was on when the run stopped, if it never accepted it.
+def current_stage(state: dict) -> str | None:
+    """The stage ShipLoop's state names, with a Work Item's inner loop resolved to its own stage.
 
-    A run left active or blocked stopped somewhere, and that stage is exactly the
-    one an attrition question is about, so it must not be dropped.
+    While a work item is built the run state's stage is the navigator's pseudo-label
+    ``inner-loop``; the stage the run is actually in is the item's.
     """
-    if state.get("status") in (None, "done", "halted"):
-        return None
     stage = state.get("stage")
     if stage != "inner-loop":
         return stage if isinstance(stage, str) else None
@@ -422,25 +469,73 @@ def pending_stage(state: dict) -> str | None:
     return inner if isinstance(inner, str) else None
 
 
+def pending_stage(state: dict) -> str | None:
+    """The stage ShipLoop was on when the run stopped without accepting it, if any.
+
+    A run left active, paused or halted stopped somewhere, and that stage is exactly the
+    one an attrition question is about, so it must not be dropped. A blocked run whose
+    last accepted action is that stage's own ``blocked`` result left nothing unaccepted:
+    the model reported the block and ShipLoop recorded it, which is the opposite of a
+    host that died mid-stage.
+    """
+    if state.get("status") in (None, "done"):
+        return None
+    stage = current_stage(state)
+    history = state.get("history")
+    last = history[-1] if isinstance(history, list) and history and isinstance(history[-1], dict) else {}
+    if stage is not None and last.get("stage") == stage and last.get("outcome") == "blocked":
+        return None
+    return stage
+
+
+def _timed(turns: list[dict]) -> bool:
+    """Whether any turn carries a runner time, which stage windows need."""
+    return any(x["t"] is not None for x in turns)
+
+
 def per_stage(accepted: list[dict], turns: list[dict], calls: dict, stamps: dict,
-              pending: str | None = None) -> list[dict]:
+              pending: str | None = None, unmeasured: dict | None = None) -> list[dict]:
     """Turns, tool calls and time between one accepted action and the next.
 
     Needs the runner's timeline; without it only the order and outcome are known.
     An action ShipLoop could not stamp reports ``timing: "unavailable"`` rather
-    than a zero-length window, because a recreated timeline can give a historical
-    action the current time. When the run stopped without accepting its current
-    stage, a final ``incomplete`` row carries the work after the last acceptance,
-    so the stage a run died in is still attributed.
+    than a zero-length window, and so does an action accepted before the host's
+    first event (a seeded run records its early stages itself, before the host
+    starts). When the run stopped without accepting its current stage, a final
+    ``incomplete`` row carries the work after the last acceptance, so the stage a
+    run died in is still attributed, whatever the host reports.
+
+    A counter the host does not report (``unmeasured`` names it, or a stage
+    count that needs per-call usage when the host has none) is ``None`` in the
+    row, never 0.
+
+    Limits, not fixed: engine stamps are whole seconds (truncated) while runner times
+    carry milliseconds, so the turn that submits a stage's result lands in the next
+    stage about a third of the time (stage turns are good to about one per boundary);
+    seconds are wall clock and include any interruption gap (a resume, a sleep, a
+    credit stop); and an engine that recreated a lost timeline.json gives every
+    historical action one stamp, which no check here can tell from a real one.
 
     No cost is apportioned here: a per-stage share of one total, divided by turn
     count, moves when prices or unrelated work move, so it would not measure the
     stage. Total cost stays whole-run.
     """
-    if not accepted:
+    unmeasured = set(unmeasured or ())
+    if not _timed(turns):
+        unmeasured |= {"stage_turns", "output_tokens"}
+
+    def counted(window: list[dict], tools: list) -> dict:
+        return {"turns": None if "stage_turns" in unmeasured else len(window),
+                "tool_calls": None if "stage_tool_calls" in unmeasured else len(tools),
+                "output_tokens": None if "output_tokens" in unmeasured else sum(x["output"] for x in window)}
+
+    if not accepted and not pending:
         return []
     if not stamps:
-        return [{"stage": a["stage"], "outcome": a.get("outcome"), "timing": "unavailable"} for a in accepted]
+        rows = [{"stage": a["stage"], "outcome": a.get("outcome"), "timing": "unavailable"} for a in accepted]
+        if pending:
+            rows.append({"stage": pending, "outcome": None, "incomplete": True, "timing": "unavailable"})
+        return rows
     start = min(stamps.values())
     rows, previous, since = [], start - 1, start  # the first stamped event belongs to the first stage
     gap = False  # the preceding action had no stamp, so this row's lower boundary is unknown
@@ -449,6 +544,11 @@ def per_stage(accepted: list[dict], turns: list[dict], calls: dict, stamps: dict
         if item.get("t") is None:
             rows.append({**base, "timing": "unavailable"})
             gap = True
+            continue
+        if item["t"] < start:
+            # Accepted before the host's first event: the harness seeded it, so no host work
+            # was done in it. Its stamp is neither a duration nor a boundary for the next stage.
+            rows.append({**base, "timing": "unavailable"})
             continue
         if gap:
             # Its window also covers the unstamped action before it, so attributing
@@ -460,30 +560,57 @@ def per_stage(accepted: list[dict], turns: list[dict], calls: dict, stamps: dict
             continue
         window = [x for x in turns if x["t"] is not None and previous < x["t"] <= item["t"]]
         tools = [c for c in calls.values() if c["t"] is not None and previous < c["t"] <= item["t"]]
-        rows.append({**base, "seconds": round(item["t"] - since, 1), "turns": len(window),
-                     "tool_calls": len(tools), "output_tokens": sum(x["output"] for x in window)})
+        rows.append({**base, "seconds": round(item["t"] - since, 1), **counted(window, tools)})
         previous = since = item["t"]
-    last = max((x["t"] for x in turns if x["t"] is not None), default=None)
-    if pending and last is not None and last > since:
-        window = [x for x in turns if x["t"] is not None and previous < x["t"] <= last]
-        tools = [c for c in calls.values() if c["t"] is not None and previous < c["t"] <= last]
-        rows.append({"stage": pending, "outcome": None, "incomplete": True,
-                     "seconds": round(last - since, 1), "turns": len(window), "tool_calls": len(tools),
-                     "output_tokens": sum(x["output"] for x in window)})
+    if pending:
+        if gap:
+            # The last acceptance has no stamp, so its work and this stage's cannot be told apart.
+            rows.append({"stage": pending, "outcome": None, "incomplete": True, "timing": "unavailable"})
+        else:
+            # The newest event of any kind bounds the window, so a host that reports no
+            # per-turn events still shows the time and tool calls spent in the stage.
+            end = max(max(stamps.values()), since)
+            window = [x for x in turns if x["t"] is not None and previous < x["t"] <= end]
+            tools = [c for c in calls.values() if c["t"] is not None and previous < c["t"] <= end]
+            rows.append({"stage": pending, "outcome": None, "incomplete": True,
+                         "seconds": round(end - since, 1), **counted(window, tools)})
     return rows
+
+
+def money(value) -> str:
+    """A cost for a printed line; a host that reports none has an unknown cost, never $0."""
+    return "not reported" if value is None else f"${value}"
+
+
+def count(run_metrics: dict, name: str) -> int | None:
+    """How many of a detected thing (a list in the metrics), or None when the host cannot show it."""
+    return None if name in (run_metrics.get("unmeasured") or {}) else len(run_metrics[name])
+
+
+def stage_text(row: dict) -> str:
+    """One stage row for a printed line: turns and minutes where measured, else what is."""
+    if row.get("seconds") is None:
+        return str(row["stage"])
+    minutes = f"{row['seconds'] / 60:.1f}m"
+    return f"{row['stage']} {row['turns']}t/{minutes}" if row.get("turns") is not None else f"{row['stage']} {minutes}"
 
 
 def summary_lines(metrics: dict, top: int = 5) -> list[str]:
     """A few lines for the printed report: the costliest stages and the problems."""
-    lines = [f"turns {metrics['turns']}, cost ${metrics['cost_usd']}, sessions {len(metrics['sessions'])} "
+    unmeasured = metrics.get("unmeasured") or {}
+
+    def shown(name: str) -> str:
+        return "not measured" if name in unmeasured else str(len(metrics[name]))
+
+    lines = [f"turns {metrics['turns']}, cost {money(metrics['cost_usd'])}, sessions {len(metrics['sessions'])} "
              f"({', '.join(str(s['stop']) for s in metrics['sessions']) or 'none ended'}), "
              f"compactions {metrics['compactions']}, truncated outputs {metrics['truncated_outputs']}, "
-             f"cancelled tool calls {len(metrics['cancelled_tool_calls'])}, "
-             f"ShipLoop command failures {len(metrics['shiploop_failures'])}, "
+             f"cancelled tool calls {shown('cancelled_tool_calls')}, "
+             f"ShipLoop command failures {shown('shiploop_failures')}, "
              f"script verifications {metrics['script_verifications']['passed']}/{metrics['script_verifications']['records']} passed"
              + (f" ({metrics['script_verifications']['could_not_run']} could not run)"
                 if metrics["script_verifications"].get("could_not_run") else "") + ", "
-             f"model glue {len(metrics['model_glue'])}, asked a person {len(metrics['asked_user'])}, "
+             f"model glue {shown('model_glue')}, asked a person {len(metrics['asked_user'])}, "
              f"Improve children {metrics['improve_children']}"
              + (f" ({metrics['improve_reviews']['passes']} review passes, at most "
                 f"{metrics['improve_reviews']['max_passes']} in one child)"
@@ -493,9 +620,11 @@ def summary_lines(metrics: dict, top: int = 5) -> list[str]:
         lines.append(f"narrative shown {story['shown']}/{story['emitted']} (verbatim {story['verbatim']})"
                      + (f", skipped at {', '.join(str(s) for s in story['skipped'][:5])}" if story["skipped"] else "")
                      + f"; headlines {story['with_headline']}/{story['results']} results")
-    timed = [s for s in metrics["stages"] if "turns" in s]
+    timed = [s for s in metrics["stages"] if s.get("seconds") is not None]
     if timed:
-        costly = sorted(timed, key=lambda s: s["turns"], reverse=True)[:top]
-        lines.append("costliest stages: " + ", ".join(f"{s['stage']} {s['turns']}t/{s['seconds'] / 60:.1f}m"
-                                                      for s in costly))
+        # Turns rank the stages where the host reports them; otherwise minutes do, and the line says so.
+        by_turns = all(s.get("turns") is not None for s in timed)
+        costly = sorted(timed, key=lambda s: s["turns"] if by_turns else s["seconds"], reverse=True)[:top]
+        lines.append("costliest stages: " + ", ".join(stage_text(s) for s in costly)
+                     + ("" if by_turns else " (by minutes: this host reports no per-stage turns)"))
     return lines
