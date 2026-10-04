@@ -54,8 +54,9 @@ unchanged reviewed execution graph.
 
 This guide is not a call to Backchain's standalone skill, generator, elaborator,
 or harness. Only a `source-aware-native` call binds the current host to the
-standalone skill and caller resources printed in the packet's resolved-resource
-block.
+standalone skill and caller resources the packet prints: the full set at `plan`,
+the audit resource and a status line for the loop resources at the other Backchain
+stages.
 Read only the sections selected by the current packet. Perform that one action
 and submit its exact callback; a planning review never authorizes implementation,
 deployment, a new credential, or a different writer.
@@ -230,7 +231,7 @@ request criteria and meaningful checks remains necessary.
 
 ## Source-aware native caller
 
-`source-aware-native` is the only Backchain route. The packet's printed
+`source-aware-native` is the only Backchain route. At `plan` the packet's printed
 "Selected Backchain and Until Loop resources" block is the selection: ShipLoop
 resolves these paths from its own installed plugin. It lists Backchain `SKILL.md`,
 the `backchain-caller/v1` resource in `references/caller-contract.md`,
@@ -249,22 +250,19 @@ capability; an observed old custom Backchain loop is incompatible even when an U
 Loop package is installed. Do not guess a sibling, cache, or ambient package, or
 substitute a different Backchain/Until Loop install than the one printed in the packet.
 
-The durable selection record names mode, interface, action/stage, action ID and
-owner; selected Backchain and Until Loop card/resource locators and digests, including
-the Backchain convergence reference and review prompt; original request; candidate ID,
-locator, base, resolved locator and input/output digests;
-each source's locator, base, resolved locator, authority, provenance, currentness,
-revision, digest and supersession; protected bounds; and receipt locators. Backchain
-passes dependency-specific review/fix/check work, plan candidate files, source/lens
-context, and protected bounds to its child under
-`Backchain standalone Until Loop binding: <binding-id>`. ShipLoop preserves the full
-opaque actual Until Loop terminal evidence and Backchain domain evidence in ordinary
-run notes, `evidence_refs`, and compact work-item `context`: binding_id; owner; candidate
-input/output digests; resolved resources; opaque `terminal_receipt`; domain_evidence;
-planning_gaps; execution_blockers; and next_action. It does not interpret runtime
-progress, own a counter, schedule a retry, or make completion from an intermediate
-plan. Cold recovery rereads these records; it never infers either selected root from
-CWD or a neighboring package.
+Only `plan` prints that block. The other Backchain stages print the
+`backchain-caller/v1` audit resource (`review`/`audit`; its template is
+`prompts/audit.prompt.md` beside `references/`) and one "Loop resources" line that
+reports, under the skills root it names (`backchain/` and `improve/runtime/until-loop/`),
+whether every file listed above is present for a `repair`/`revise` request or which are
+MISSING, and a MISSING file blocks that route for that named resource.
+
+Record the binding id, candidate and receipt locators in ordinary run notes,
+`evidence_refs` and compact work-item `context`, and keep Backchain's
+`review.convergence` record (`terminal_receipt`, `domain_evidence`, `planning_gaps`,
+`execution_blockers`, `next_action`) unchanged. ShipLoop owns no counter or retry and
+never completes from an intermediate plan; recovery rereads these records and never
+infers a root from CWD or a neighboring package.
 
 The Until Loop child is plan-only: it may change the candidate plan and permitted planning
 companions, but may not commit, push, merge, execute the project, or broaden scope.
