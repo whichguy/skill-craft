@@ -884,8 +884,10 @@ class UnavailableExecutionTests(unittest.TestCase):
             self.assertIn("a retry skips it again", refusal)
             self.assertIn("too slow to fit (600 seconds each, 1800 for the whole run), report revise rather "
                           "than retrying it", refusal)
+            self.assertIn("ShipLoop's own record of this attempt is the evidence, so no new loop packet", refusal)
             _record, outer = self.slow_passing_attempt(Path(temp) / "outer", "system-test")
             self.assertIn("report replan rather than retrying it, with the corrective work_items", outer)
+            self.assertNotIn("no new loop packet", outer)  # the outer stages run no loop
 
     def test_a_timeout_text_does_not_ask_for_product_code_at_test_red(self):
         """test-red fixes the tests, not the product, so a hang there is the test's or the fixture's own."""
