@@ -10,7 +10,9 @@ from __future__ import annotations
 import contextlib
 import io
 import json
+import os
 import shlex
+import shutil
 import subprocess
 import sys
 import tempfile
@@ -475,6 +477,119 @@ class TestLoopTests(unittest.TestCase):
         self.complete(dict(DONE, outcome="blocked", blocked_by="external"))
         self.assertEqual(self.state()["status"], "blocked")
 
+    # -- the route out of a run that could not run ---------------------------------
+    #
+    # A refusal after a command timed out says "report revise" (INNER) or "replan" (OUTER).
+    # These submit that outcome through the navigator with the real Until Loop, because the
+    # text alone once named a route the navigator refused at test-green, regression and
+    # static-checks.
+
+    TIMED_OUT = ("timeout", None, b"partial output\n", b"")
+
+    def restart(self) -> None:
+        """A fresh run in this test's own temporary repository (earlier subtests leave no files behind)."""
+        for name in os.listdir(self.run_dir):
+            path = self.run_dir / name
+            shutil.rmtree(path) if path.is_dir() else path.unlink()
+        for name in ("fixed.txt", "retained.txt"):
+            (self.repo / name).unlink(missing_ok=True)
+        self.start()
+
+    def quality_refs(self) -> list:
+        return [str(self.run_dir / "quality" / (self.action() + "-terminal.json"))]
+
+    def refuse_unrunnable(self, done: dict, attempts: int = 1) -> None:
+        """ShipLoop's own rerun of the recorded commands times out ``attempts`` times; each refuses done."""
+        action = self.action()
+        for number in range(1, attempts + 1):
+            with mock.patch.object(test_loop.lint, "run_argv", return_value=self.TIMED_OUT):
+                self.assert_refused(done, "timed out, so it reached no verdict")
+            record = store.read_record(self.run_dir / test_loop.verify_path(action, number))
+            self.assertEqual(record["disposition"], "could-not-run")
+        self.assertEqual(test_loop.refused_runs(self.run_dir, action), 0)  # the cap never advances
+
+    def test_revise_is_accepted_at_the_test_loop_stages_after_a_could_not_run_attempt(self):
+        for stage in test_loop.STAGES:
+            with self.subTest(stage=stage):
+                self.restart()
+                self.drive_to(stage)
+                (self.repo / "fixed.txt").write_text("fixed\n")
+                (self.repo / "retained.txt").write_text("retained\n")
+                self.run_loop([TRIVIAL])
+                done = dict(DONE, evidence_refs=[str(self.terminal())])
+                revise = dict(done, outcome="revise")
+                # Before ShipLoop has any record, a complete loop supports only done.
+                self.assert_refused(revise, "a complete test loop reports outcome done")
+                self.refuse_unrunnable(done, attempts=3)
+                self.complete(revise)  # the route the refusal names
+                self.assertEqual(nav.current_stage(self.state()), "step-plan")
+
+    def test_a_failed_run_does_not_open_revise_before_the_cap_and_a_complete_loop_still_needs_done(self):
+        self.start()
+        self.drive_to("test-green")
+        self.run_loop([TRIVIAL])  # complete, but fixed.txt is missing, so ShipLoop's own run fails
+        done = dict(DONE, evidence_refs=[str(self.terminal())])
+        self.assert_refused(done, r"Refused runs for this action: 1 of 7")
+        self.assertEqual(test_loop.refused_runs(self.run_dir, self.action()), 1)
+        self.assert_refused(dict(done, outcome="revise"), "a complete test loop reports outcome done")
+        (self.repo / "fixed.txt").write_text("fixed\n")
+        self.complete(done)
+        self.assertEqual(nav.current_stage(self.state()), "test-refine")
+
+    def test_a_later_failed_run_closes_the_could_not_run_route(self):
+        """Only ShipLoop's latest record counts: a product failure after a hang is a product failure."""
+        self.start()
+        self.drive_to("test-green")
+        self.run_loop([TRIVIAL])
+        done = dict(DONE, evidence_refs=[str(self.terminal())])
+        self.refuse_unrunnable(done)
+        self.assert_refused(done, r"Refused runs for this action: 1 of 7")  # fixed.txt missing: a real failure
+        self.assert_refused(dict(done, outcome="revise"), "a complete test loop reports outcome done")
+
+    def test_revise_and_blocked_are_accepted_at_static_checks_after_a_could_not_run_attempt(self):
+        for outcome in ("revise", "blocked"):
+            with self.subTest(outcome=outcome):
+                self.restart()
+                self.drive_to("static-checks")
+                self.run_quality_loop()
+                done = dict(DONE, evidence_refs=self.quality_refs())
+                chosen = dict(done, outcome=outcome, **({"blocked_by": "external"} if outcome == "blocked" else {}))
+                self.assert_refused(chosen, "a complete quality loop reports outcome done")  # no record yet
+                self.refuse_unrunnable(done, attempts=2)
+                self.complete(chosen)
+                if outcome == "revise":
+                    self.assertEqual(nav.current_stage(self.state()), "step-plan")
+                else:
+                    self.assertEqual(self.state()["status"], "blocked")
+
+    def test_revise_is_accepted_at_static_checks_after_the_cap_the_refusal_names(self):
+        """After 7 refused runs `verify` says "Report outcome revise"; the quality gate must accept it."""
+        self.start()
+        self.drive_to("static-checks")
+        self.run_quality_loop()
+        done = dict(DONE, evidence_refs=self.quality_refs())
+        (self.repo / "retained.txt").unlink()  # a regression command fails on every run
+        for attempt in range(1, test_loop.MAX_REFUSED_RUNS + 1):
+            self.assert_refused(done, "Refused runs for this action: " + str(attempt) + " of 7")
+        self.assert_refused(done, "was refused 7 times; done is no longer accepted")
+        self.complete(dict(done, outcome="revise"))  # the route the refusal names
+        self.assertEqual(nav.current_stage(self.state()), "step-plan")
+
+    def test_the_remedy_outcome_is_accepted_at_every_stage_after_a_could_not_run_attempt(self):
+        """Guard: stages with no loop packet already accepted their remedy; the outer ones need work_items."""
+        corrective = [{"id": "W2", "title": "Make the recorded command fit its budget"}]
+        for stage in ("test-refine", "verify", "integration-verify", "system-test", "release-verify"):
+            with self.subTest(stage=stage):
+                self.restart()
+                self.drive_to(stage)
+                self.refuse_unrunnable(DONE)
+                if stage in ("system-test", "release-verify"):
+                    self.complete(dict(DONE, outcome="replan", work_items=corrective))
+                    self.assertIn("W2", [row["id"] for row in self.state()["work_items"]])
+                else:
+                    self.complete(dict(DONE, outcome="revise"))
+                    self.assertEqual(nav.current_stage(self.state()), "step-plan")
+
     def test_test_red_runs_the_focused_commands_and_expects_a_failing_test(self):
         self.start()
         self.drive_to("test-red")
@@ -679,7 +794,8 @@ class UnavailableExecutionTests(unittest.TestCase):
         this file's own stages).
         """
         self.assertEqual(test_loop._remedy("end-of-work review"), "")
-        self.assertEqual(test_loop._remedy_sentence("end-of-work review"), "the stage reports blocked")
+        self.assertEqual(test_loop._remedy_sentence("end-of-work review"),
+                         "done is no longer accepted for this action")
         with tempfile.TemporaryDirectory() as temp:
             root = Path(temp)
             commands = [{"command": "false", "suite": "regression"}]
@@ -687,6 +803,9 @@ class UnavailableExecutionTests(unittest.TestCase):
                                                "end-of-work review", commands=commands)
             self.assertIn("tests/A1-verify1.md", writes)
             self.assertIn("end-of-work review is not done", refusal)
+            # A failing run is fixable, so the text never offers blocked as where a failure ends.
+            self.assertNotIn("reports blocked", refusal)
+            self.assertIn("Refused runs for this action: 1 of 7; after that done is no longer accepted", refusal)
             # No remedy outcome is named for something that is not a graph stage.
             self.assertNotIn("revise", refusal)
             self.assertNotIn("replan", refusal)
@@ -700,6 +819,114 @@ class UnavailableExecutionTests(unittest.TestCase):
             outer = "\n".join(test_loop.rerun_lines(state, "W1", "system-test"))
             self.assertIn("the outer loop takes corrective work items (replan)", outer)
             self.assertNotIn("step plan (revise)", outer)
+
+    def test_the_rerun_packet_names_where_its_commands_were_recorded(self):
+        """The outer stages have no step plan: their commands come from system-test-author and release-plan."""
+        with tempfile.TemporaryDirectory() as temp:
+            state = self.state(Path(temp), "true")
+            for stage, source in (("test-refine", "the step plan"), ("verify", "the step plan"),
+                                  ("system-test", "system-test-author"), ("release-verify", "release-plan")):
+                with self.subTest(stage=stage):
+                    packet = "\n".join(test_loop.rerun_lines(state, "W1", stage))
+                    self.assertIn("runs every test command " + source + " recorded from", packet)
+            self.assertNotIn("the step plan recorded",
+                             "\n".join(test_loop.rerun_lines(state, "W1", "system-test")))
+
+    # -- budget-skipped commands, and records written before the disposition field ---
+
+    class Clock:
+        """A fake clock the runner advances, so a run can spend its whole budget in no real time."""
+
+        now = 0.0
+
+        def __call__(self) -> float:
+            return self.now
+
+    def slow_passing_attempt(self, root: Path, stage: str = "test-green") -> tuple:
+        """Five commands that each pass in 500 s against an 1800 s budget: the last never starts."""
+        clock = self.Clock()
+
+        def passes_slowly(*_args, **_kwargs):
+            clock.now += 500.0
+            return "passed", 0, b"Ran 1 test in 0.001s\nOK\n", b""
+
+        state = self.state(root, *("true " + str(number) for number in range(5)))
+        writes, refusal = test_loop.verify(root, state, "W1", "A1", stage, runner=passes_slowly, clock=clock)
+        for relative, text in writes.items():
+            (root / relative).parent.mkdir(parents=True, exist_ok=True)
+            (root / relative).write_text(text)
+        return self.record(writes, test_loop._verify_count(root, "A1")), refusal
+
+    def test_a_command_skipped_for_budget_is_could_not_run_and_never_reaches_the_cap(self):
+        """A budget skip is deterministic: the same tail is skipped on every attempt, so it must not count."""
+        with tempfile.TemporaryDirectory() as temp:
+            root = Path(temp)
+            for _attempt in range(test_loop.MAX_REFUSED_RUNS + 2):
+                record, refusal = self.slow_passing_attempt(root)
+                self.assertEqual([run["status"] for run in record["runs"]],
+                                 ["passed", "passed", "passed", "passed", "skipped"])
+                self.assertEqual(record["disposition"], "could-not-run")
+                self.assertFalse(record["passed"])
+                self.assertEqual(test_loop.refused_runs(root, "A1"), 0)
+            self.assertIn("does not count toward the 7 refused runs", refusal)
+            self.assertNotIn("done is no longer accepted", refusal)
+
+    def test_a_budget_skip_names_the_budget_and_a_route_that_can_change_it(self):
+        """The model cannot raise the budget; it can record commands that fit, which is the stage's remedy."""
+        with tempfile.TemporaryDirectory() as temp:
+            root = Path(temp)
+            record, refusal = self.slow_passing_attempt(root)
+            skipped = record["runs"][-1]
+            self.assertIn("1800-second budget of this ShipLoop test run ran out before this command started",
+                          skipped["stderr"])
+            self.assertNotIn("stage budget", skipped["stderr"])
+            self.assertIn("A skipped command never started", refusal)
+            self.assertIn("a retry skips it again", refusal)
+            self.assertIn("too slow to fit (600 seconds each, 1800 for the whole run), report revise rather "
+                          "than retrying it", refusal)
+            _record, outer = self.slow_passing_attempt(Path(temp) / "outer", "system-test")
+            self.assertIn("report replan rather than retrying it, with the corrective work_items", outer)
+
+    def test_a_timeout_text_does_not_ask_for_product_code_at_test_red(self):
+        """test-red fixes the tests, not the product, so a hang there is the test's or the fixture's own."""
+        with tempfile.TemporaryDirectory() as temp:
+            root = Path(temp)
+            _writes, red = test_loop.verify(root, self.state(root, "sleep 5"), "W1", "A1", "test-red",
+                                            command_timeout=0.2)
+            _writes, green = test_loop.verify(root, self.state(root, "sleep 5"), "W1", "A2", "test-green",
+                                              command_timeout=0.2)
+        self.assertIn("(not the product code)", red)
+        self.assertIn("because of this item's own test or fixture is yours to fix", red)
+        self.assertNotIn("own code, test or fixture", red)
+        self.assertIn("because of this item's own code, test or fixture is yours to fix", green)
+
+    def test_a_record_written_before_the_disposition_field_counts_as_a_failure(self):
+        """Old records meant a failed run; reading one as could-not-run would reopen the cap for old runs."""
+        with tempfile.TemporaryDirectory() as temp:
+            root = Path(temp)
+            (root / "tests").mkdir()
+            legacy = {"schema": test_loop.SCHEMA, "passed": False, "runs": [{"status": "timeout"}]}
+            for number in range(1, test_loop.MAX_REFUSED_RUNS + 1):
+                store.write_record(root / test_loop.verify_path("A1", number), dict(legacy))
+                self.assertEqual(test_loop.refused_runs(root, "A1"), number)
+                self.assertFalse(test_loop.latest_attempt_could_not_run(root, "A1"))
+            self.assertTrue(test_loop.remedy_open(root, "A1"))  # seven failures open the remedy as before
+
+    def test_only_the_latest_record_decides_whether_the_run_could_not_run(self):
+        with tempfile.TemporaryDirectory() as temp:
+            root = Path(temp)
+            (root / "tests").mkdir()
+            self.assertFalse(test_loop.latest_attempt_could_not_run(root, "A1"))
+            self.assertFalse(test_loop.remedy_open(root, "A1"))
+            for number, (passed, disposition) in enumerate(
+                    ((False, "could-not-run"), (False, "failed"), (False, "could-not-run")), 1):
+                store.write_record(root / test_loop.verify_path("A1", number),
+                                   {"schema": test_loop.SCHEMA, "passed": passed, "disposition": disposition,
+                                    "runs": []})
+                expected = disposition == "could-not-run"
+                self.assertEqual(test_loop.latest_attempt_could_not_run(root, "A1"), expected, number)
+                self.assertEqual(test_loop.remedy_open(root, "A1"), expected, number)
+            self.assertEqual(test_loop.refused_runs(root, "A1"), 1)  # only the failed one counts
 
 
 if __name__ == "__main__":

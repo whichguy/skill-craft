@@ -498,9 +498,12 @@ because nothing is accepted on unrun tests, but the attempt is recorded
 it can mean a deadlock, a broken test, a suite too slow for the budget, or an
 external dependency. Because those attempts never reach the 7, the routes out
 are explicit: a hang in this item's own code, test or fixture is yours to fix
-here and is not a blocker; if the recorded command or its budget is itself
-wrong, report the stage's remedy instead of retrying it; report `blocked` only
-for what the user, an access grant or an outside dependency must supply.
+here and is not a blocker; if the recorded command is itself wrong or too slow
+to fit the run's budget (a skipped command is that case: the same ones are
+skipped every time), report the stage's remedy instead of retrying it, and
+ShipLoop accepts it on its own record of the attempt without a new loop packet;
+report `blocked` only for what the user, an access grant or an outside
+dependency must supply.
 
 A done `release-plan` records `consumer_entry`: how a person reaches the result
 and the repository files that create that entry. ShipLoop refuses the release plan

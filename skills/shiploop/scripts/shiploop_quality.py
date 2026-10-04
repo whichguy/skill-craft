@@ -195,6 +195,10 @@ def check_terminal(root: Path, state: Mapping[str, Any], work_item: str, action:
     blocked ``stopped`` packet (see ``check_loop_packet``), or ``blocked`` none
     (the summary and blocked_by carry the reason).
     ``repeat`` is never valid: the loop, not the graph, repeats the review.
+    After ShipLoop's own rerun of the recorded commands could not run, or was
+    refused ``MAX_REFUSED_RUNS`` times, ``revise`` and ``blocked`` need no new
+    packet: the review already completed, and the refusal names those routes out
+    (see ``shiploop_test_loop.remedy_open``).
     The packet is compared with the contract rebuilt from ShipLoop state, not
     with the contract file, so editing that file cannot reshape the loop.
     """
@@ -208,8 +212,21 @@ def check_terminal(root: Path, state: Mapping[str, Any], work_item: str, action:
     path = root / terminal_path(action)
     if outcome == "blocked" and not os.path.lexists(path):
         return
+    if outcome in ("revise", "blocked") and _remedy_open(root, action):
+        return
     check_loop_packet(path, result, build_contract(root, state, work_item, action),
                       "quality loop", str(root / contract_path(action)))
+
+
+def _remedy_open(root: Path, action: str) -> bool:
+    """ShipLoop's own test-run record for this action supports a route out of the stage.
+
+    The record format and the cap belong to the test loop, which imports this
+    module, so it is imported where it is used.
+    """
+    import shiploop_test_loop as test_loop
+
+    return test_loop.remedy_open(root, action)
 
 
 def check_loop_packet(path: Path, result: Mapping[str, Any], expected: Mapping[str, Any],
