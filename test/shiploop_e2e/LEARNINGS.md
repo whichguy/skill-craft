@@ -1014,3 +1014,30 @@ Question: do the landed A1 to A3 changes hold up under adversarial review, inclu
 **Not fixed, by decision** (design document, section 10.4): whole-second engine stamps move the closing turn of a stage into the next one (a recount on four hello runs: a turn within the second after the stamp at 50 of 157 boundaries, so read stage turns as plus or minus one); a recreated `timeline.json` looks like real stamps; a timeout whose partial output already shows failing tests is `could-not-run`; a command that fails to start inside `/bin/sh -c` (126 or 127) counts as a product failure; a harness killed with its host writes no termination record. The exporter's separate stage minutes and the wall-clock inclusion of interruption gaps are documented, not changed. An owner decision the skills follow-up left open: the end-of-work review gate (`carry-forward`, which allows only done, repeat and blocked) has no remedy outcome for a command that cannot run.
 
 **Unverified.** The follow-up fixes (two implementer branches, not merged when this was written: the dispositions in the evidence README say "see follow-up"); every behaviour above in a live run; the 9 rejected candidates, which the export does not carry. The integrator updates this entry and the evidence README after merging the follow-ups.
+
+## Cost and counts that misled — 2026-10-04 (R3 to R5, chain B) — status: firm (hermetic tests; recorded runs recomputed); not yet seen in a live run
+
+Plan: `docs/shiploop-e2e-plan-reconciliation-2026-10-04.md` section 4. Commits: R3 `8de0bcb5`, R4 `ddf33967`, R5 `7eb7ee88`, on top of `ce32a143` (counters a host does not report are null) and `3c604304` (A2, A3). The plan was written before `ce32a143`; each item was re-checked against the code at `8b42ff18` first.
+
+**Disposition.**
+- R3, partly done by `ce32a143`: `metrics.collect` already gave a null cost when no session reported one, null Codex turns, and `input_peak` None for a stream with no usage events (progress already printed "peak context n/a"). Left, and fixed: `run.summarize_events` still summed `or 0`, so `result.json` `cli.cost_usd` was 0 and the process line printed `cost=$0` for the same Codex run (reproduced through `run.main` on the fake Codex); a mix of one session that reported and one that did not printed the part as the whole; the host's own usage was dropped; the output-token fields (null for Claude and Codex since `ce32a143`) were still summed from Grok-shaped usage events and read by nothing; a usage event without numbers added a 0 to the peak. One `metrics.total_cost(sessions)` now serves both sites; `sessions[].usage` keeps the host's dict as written; `tokens.output_total`, the per-stage `output_tokens` and the `output_tokens` unmeasured entry are gone (nothing read them: `progress.py` reads `input_peak` only and the Run Review exporter reads neither).
+- R4, open: no start count existed. `unreported_sessions = max(0, starts - ended)` is in `metrics.json` and `result.json` metrics, printed beside the cost, and is not a baseline key.
+- R5, open: `improve_children` counted `-bind.md` receipts.
+
+**Evidence** (copies of the finished run directories under `/Users/dadleet/e2e-runs`, `metrics.collect` rerun with this code, then `export.py` over each; the exporter ran on all three and its own counts agree with the metrics now):
+
+| Run | cost | unreported_sessions | improve_children | host's own usage in `sessions[0].usage` |
+|---|---|---|---|---|
+| `20261003/v1161-battleship-luna` (Codex) | null (was `cli.cost_usd` 0) | 1 (2 starts, 1 end) | 9 (was 18) | input 172,611,340, output 1,622,714 |
+| `20261003/batch-sonnet/seat-reservations` (Claude) | $1.8496, a lower bound | 3 (4 starts, 1 end) | 12 (was 24) | output 28,419 |
+| `20261004/v1190-hello-sonnet` (Claude) | $5.3678 | 0 | 8 (was 16) | output 69,770 |
+
+A scan of the 12 recorded run directories finds 6 with more session starts than ends; all 6 carry `resumed_run`. Five single-session Claude runs carry 1.60 to 1.72 harness turns per `result.num_turns` (the plan's 11-run range was 1.70 to 1.96; the README now says between 1.6 and 2).
+
+**Superseded by this entry** (not edited in place above, the journal is append-only here):
+- Any earlier reading of a Luna run's cost as $0 or its tokens as 0 (`v1161-battleship-luna` `result.json` and `metrics.json`, and committed `baselines.jsonl` row 12, which carries `cost_usd` 0 for a Codex run; it names no host so it is never compared, and it is left as written).
+- Any "Improve children" count from a metrics file written before `7eb7ee88`: each is double (the v1161 Luna 18 is 9; the Run Review exporter already said 9).
+- "$1.85 for 423 turns" for `batch-sonnet/seat-reservations` as a whole-run cost: it is the cost of the one session that reported, beside the turns of four.
+- Claude `tokens.output_total` and per-stage `output_tokens` in any `metrics.json` written before `ce32a143` (a streaming snapshot: 4,087 against the host's 69,770 on `v1190-hello-sonnet`, 5,459 against 86,188 on `v1190-hello-sonnet-2`: 16 to 17 times low).
+
+**Limits, not fixed.** Whether a real Grok host emits `available_commands` once per session is unobserved (it is dormant), so a Grok run could print a spurious lower-bound note, which fails safe. After `codex exec resume`, whether Codex usage covers only the new turn is unobserved, so `sessions[].usage` summed across a resumed Codex run may not be the whole run. A cost is null when any ended session reported none, even if another did (each session's own cost stays in `sessions`). `iterate.py`'s two cost lines now print "not reported" instead of `$None` (a two-line change outside the metrics files, forced by `cli.cost_usd` becoming null).
