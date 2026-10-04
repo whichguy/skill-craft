@@ -1,0 +1,12 @@
+{
+ "page": {
+  "title": "ShipLoop Run Review",
+  "artifactUrl": ""
+ },
+ "prompt": {
+  "synthPreamble": "You are the synthesizer. Merge the selected actions below into one ordered plan. Remove overlap, resolve conflicts, order by dependency, split into the smallest verifiable increments, mark which can run in parallel, and say for each what we expect to change and what would violate the fundamentals if built wrong. Present the plan first and wait for my go-ahead before changing anything.",
+  "concatPreamble": "Do all of the following, in this order, as separate small increments. Verify each before starting the next.",
+  "constraints": "small increments, verify each; test only the footprint; record findings in the repo journal with the commit; do not change the engine mid-run unless the run is fatal; Sonnet 5.5 is the default runner and Luna max is for depth; adversarial review before any release.",
+  "closing": "For each increment, say whether the evidence changes the engine or changes our expectation. If it changes the expectation, propose the new wording and the reason, and record it on the run review page, together with any new observations."
+ }
+}

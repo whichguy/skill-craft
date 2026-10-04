@@ -1,0 +1,179 @@
+[
+ {
+  "key": "phase-0",
+  "kind": "phase",
+  "order": 0,
+  "title": "Understand",
+  "short": "Intake, discovery, research",
+  "text": "The script issues the intake, discovery and research packets in order. The model records what it learns in notes and calls back. It decides nothing about flow."
+ },
+ {
+  "key": "phase-1",
+  "kind": "phase",
+  "order": 1,
+  "title": "Specify",
+  "short": "Spec and test strategy",
+  "text": "The model writes a spec and a test strategy from the notes, one stage at a time. The script accepts each only after its Improve review, and the spec is committed to docs/shiploop/."
+ },
+ {
+  "key": "phase-2",
+  "kind": "phase",
+  "order": 2,
+  "title": "Plan",
+  "short": "Plan and per-item step plan",
+  "text": "The script opens the planning stages. Backchain turns the spec into a dependency graph, and the item's step plan is built the same way. The script, not the model, writes every loop contract and decides when each plan is closed."
+ },
+ {
+  "key": "phase-3",
+  "kind": "phase",
+  "order": 3,
+  "title": "Build",
+  "short": "Tests first, implement, loop",
+  "text": "For each work item the script serves test-spec, baseline, test-author, test-red, implement, test-green and test-refine in order. A revise outcome returns through the script for a replan."
+ },
+ {
+  "key": "phase-4",
+  "kind": "phase",
+  "order": 4,
+  "title": "Prove",
+  "short": "Regression, docs, static checks",
+  "text": "Regression, documentation, skill assessment and validation, and static checks each run as a script-served stage with their own result file."
+ },
+ {
+  "key": "phase-5",
+  "kind": "phase",
+  "order": 5,
+  "title": "Integrate",
+  "short": "Script merges verified work",
+  "text": "The script integrates verified work and re-verifies the integrated result before the next item."
+ },
+ {
+  "key": "phase-6",
+  "kind": "phase",
+  "order": 6,
+  "title": "System test",
+  "short": "Whole product, real checks",
+  "text": "The whole product is tested for real against the spec's acceptance criteria, by tests the script requires and checks."
+ },
+ {
+  "key": "phase-7",
+  "kind": "phase",
+  "order": 7,
+  "title": "Release",
+  "short": "Release, report, hand off",
+  "text": "The script serves the release plan, check, release and verification stages, then operations and handoff, and ends the run with a report."
+ },
+ {
+  "key": "group-principles",
+  "kind": "group",
+  "order": 1,
+  "title": "Principles",
+  "text": "Mark each as holds, bent or broken; select it again to mark it unjudged. Revise the wording when we learn the principle itself was wrong or incomplete. What we saw is filled in from the observations tagged to it."
+ },
+ {
+  "key": "group-backchain",
+  "kind": "group",
+  "order": 2,
+  "title": "What we expect of Backchain",
+  "text": "Expectations for the dependency-planning loop: what each pass should earn, who checks the graph, whether the script uses it, and whether planning is repeated."
+ },
+ {
+  "key": "P1",
+  "kind": "criterion",
+  "group": "group-principles",
+  "order": 1,
+  "title": "The script owns the flow",
+  "text": "The model never chooses the next stage. It does the step in the packet and calls back.",
+  "status": "unjudged"
+ },
+ {
+  "key": "P2",
+  "kind": "criterion",
+  "group": "group-principles",
+  "order": 2,
+  "title": "The script writes every loop contract",
+  "text": "Improve, test and quality loop contracts are written by ShipLoop. A model should never size or build one.",
+  "status": "unjudged"
+ },
+ {
+  "key": "P3",
+  "kind": "criterion",
+  "group": "group-principles",
+  "order": 3,
+  "title": "The packet is the only instruction",
+  "text": "The model follows the printed packet and commands exactly.",
+  "status": "unjudged"
+ },
+ {
+  "key": "P4",
+  "kind": "criterion",
+  "group": "group-principles",
+  "order": 4,
+  "title": "One step, then call back",
+  "text": "Each turn does one stage's work and ends with the exact callback.",
+  "status": "unjudged"
+ },
+ {
+  "key": "P5",
+  "kind": "criterion",
+  "group": "group-principles",
+  "order": 5,
+  "title": "Evidence is trustworthy and in the repo",
+  "text": "Findings are committed with the work, and a grade means the engine, not the harness.",
+  "status": "unjudged"
+ },
+ {
+  "key": "P6",
+  "kind": "criterion",
+  "group": "group-principles",
+  "order": 6,
+  "title": "Behaviour does not depend on the model",
+  "text": "A pass on the fast gate should predict a pass on a slower, deeper model.",
+  "status": "unjudged"
+ },
+ {
+  "key": "B1",
+  "kind": "criterion",
+  "group": "group-backchain",
+  "order": 1,
+  "title": "Every pass earns its time",
+  "text": "Each Backchain pass either finds a material gap in the plan or is a confirmation the loop needs to close. Time spent on a pass that finds nothing is the price of closing, and it should be small next to what the earlier passes found.",
+  "status": "unjudged"
+ },
+ {
+  "key": "B2",
+  "kind": "criterion",
+  "group": "group-backchain",
+  "order": 2,
+  "title": "A script verifies the graph",
+  "text": "Unique step ids, resolved references, one confirmation per produce, no cycles and every step reaching a sink are checked by a ShipLoop script that writes a receipt. The model does not assert them.",
+  "status": "unjudged"
+ },
+ {
+  "key": "B3",
+  "kind": "criterion",
+  "group": "group-backchain",
+  "order": 3,
+  "title": "The script uses the graph to run the work",
+  "text": "ShipLoop uses the plan graph's order, groups and sinks to open work items and to know when a plan is satisfied. A graph that is only mapped to one item is not being used.",
+  "status": "unjudged"
+ },
+ {
+  "key": "B4",
+  "kind": "criterion",
+  "group": "group-backchain",
+  "order": 4,
+  "title": "Planning is not repeated for the same facts",
+  "text": "A fact already in the spec, such as the list of acceptance criteria, is not derived again by the model in each loop. The script supplies it and the loops plan only what is new.",
+  "status": "unjudged"
+ },
+ {
+  "key": "B5",
+  "kind": "criterion",
+  "group": "group-backchain",
+  "order": 5,
+  "title": "A closed plan is not revised for visible gaps",
+  "text": "When Backchain closes a plan, a revise outcome during the build is for what could not be seen at planning time, not for what the spec and sources already showed.",
+  "status": "unjudged"
+ }
+]
