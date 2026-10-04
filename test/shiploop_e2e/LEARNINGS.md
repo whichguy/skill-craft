@@ -701,7 +701,7 @@ Run `/Users/dadleet/e2e-runs/20261003/v1161-battleship-luna`, Codex gpt-6-luna m
   bridge; the old attempt's workspace is kept, its late report is refused as stale.
 - Verified by: Plan Dispatcher decisions S15 plus mutant `unconfirmed-retry-any` (18/18 mutants
   caught); chain-bridge test `test_lost_native_worker_is_retried_without_a_confirmed_stop_and_finish_keeps_it`;
-  live kill-and-resume reruns pending.
+  live on 1.17.0, 2 of 2: c1 and c2 recovered without a person (see "group C verification" below).
 
 **Codex xhigh slowness (chain-seeded-codex-21de3d)**
 - Expected: none was stated, so the run could not fail on time.
