@@ -311,7 +311,7 @@ class LiveView:
             self.tool(name, event.get("rawInput"))
         elif kind in ("result", "end"):
             self.emit(f"done  {event.get('subtype') or event.get('stopReason')} turns={event.get('num_turns')} "
-                      f"cost=${event.get('total_cost_usd')}")
+                      f"cost={metrics.money(event.get('total_cost_usd'))}")
 
     def tool(self, name, arg):
         arg = arg if isinstance(arg, dict) else {}
@@ -425,9 +425,10 @@ def summarize_events(path: Path) -> dict:
             seen.update(stop=event.get("subtype") or event.get("stopReason"))
     ended = seen.get("sessions") or []
     if ended:
-        # Each host session reports its own totals; a resumed run adds them up.
+        # Each host session reports its own totals; a resumed run adds them up. The cost is
+        # unknown unless every ended session reported one (metrics.total_cost, the one rule).
         seen["num_turns"] = sum(s["num_turns"] or 0 for s in ended)
-        seen["cost_usd"] = round(sum(s["cost_usd"] or 0 for s in ended), 4)
+        seen["cost_usd"] = metrics.total_cost(ended)
     return seen
 
 
@@ -963,7 +964,7 @@ def host_given(argv: list[str]) -> bool:
 def baseline_stages(stages: list | None) -> list | None:
     """The per-stage fields worth committing: enough to locate a regression, no more.
 
-    `tool_calls` and `output_tokens` stay in the run's own metrics.json, which is
+    `tool_calls` stays in the run's own metrics.json, which is
     disposable; a committed baseline only needs what a comparison reads, plus the
     markers that say a row is not comparable. A counter the host did not report is
     committed as null (see metrics.per_stage), never as 0.
@@ -1583,7 +1584,7 @@ def main(argv: list[str] | None = None) -> int:
     print(f"  process   {mark(process['pass'])}  " + (
         "no host ran: regraded from what is on disk" if process.get("regraded") else
         f"{process['status']} rc={process['returncode']} {sum(s['elapsed_seconds'] for s in sessions):.1f}s "
-        f"cost=${cli_seen.get('cost_usd')} sessions={len(sessions)}"))
+        f"cost={metrics.money(cli_seen.get('cost_usd'))} sessions={len(sessions)}"))
     if keepalive is not None:
         print(f"  keepalive {'installed' if keepalive['installed'] else 'NOT installed'}; "
               f"decisions {keepalive['decisions'] or 'none (hooks never ran)'}")

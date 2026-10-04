@@ -722,6 +722,16 @@ class LearningsTest(unittest.TestCase):
             self.assertIn(text, message)
         self.assertTrue(message.rstrip().endswith("<shiploop-e2e@example.invalid>"))
 
+    def test_a_cost_the_host_did_not_report_is_not_printed_as_a_dollar_figure(self):
+        args = iterate.argparse.Namespace(case="battleship")
+        verdict = dict(self.VERDICT, actionable=review.actionable(self.VERDICT))
+        message = iterate.learnings_message(2, args, "0123456789ab", dict(self.RESULT, cli={"num_turns": 2189,
+                                                                                            "cost_usd": None}),
+                                            verdict, [])
+        self.assertIn("2189 turns, cost not reported", message)
+        self.assertNotIn("$None", message)
+        self.assertIn("150 turns, cost $10.88", self.message())
+
     def test_record_learnings_appends_and_commits_only_the_journal(self):
         with tempfile.TemporaryDirectory() as tmp:
             repo = Path(tmp) / "repo"
@@ -1176,6 +1186,13 @@ class StageAttributionTest(unittest.TestCase):
         self.assertIsNone(metrics._epoch("not a time"))
         self.assertIsNone(metrics._epoch(None))
 
+    def test_a_stage_row_carries_no_output_token_figure(self):
+        # A per-event output count is a streaming snapshot (16 to 17 times below the host's own total on two
+        # recorded Claude runs): no stage row carries one.
+        m = self.collect([("A1", "intake", "done", 103.0), ("A2", "spec", "done", 105.0)])
+        self.assertEqual([r["turns"] for r in m["stages"]], [4, 2])
+        self.assertTrue(all("output_tokens" not in row for row in m["stages"]), m["stages"])
+
     def test_the_committed_baseline_keeps_only_comparable_stage_fields(self):
         rows = [{"stage": "spec", "outcome": "done", "seconds": 1.0, "turns": 2,
                  "tool_calls": 3, "output_tokens": 4},
@@ -1327,6 +1344,63 @@ class MetricsTest(unittest.TestCase):
         # count, moves when prices or unrelated work move.
         self.assertTrue(all("cost_share_usd" not in s for s in m["stages"]))
 
+    # What a real Claude result event reports as its usage: nested, and the host's own figure.
+    CLAUDE_USAGE = {"input_tokens": 96, "cache_creation_input_tokens": 131587, "cache_read_input_tokens": 5194338,
+                    "output_tokens": 28419, "output_tokens_details": {"thinking_tokens": 3450},
+                    "server_tool_use": {"web_search_requests": 0, "web_fetch_requests": 0},
+                    "cache_creation": {"ephemeral_1h_input_tokens": 131587, "ephemeral_5m_input_tokens": 0},
+                    "iterations": [{"input_tokens": 2, "output_tokens": 1109, "type": "message"}],
+                    "service_tier": "standard", "speed": "standard", "fallback_credit": None}
+    # What the Codex translator's end event carried for a 2189-item session (the recorded Luna battleship run).
+    CODEX_USAGE = {"input_tokens": 172611340, "cache_read_input_tokens": 167042304, "output_tokens": 1622714,
+                   "reasoning_tokens": 1015804}
+
+    @staticmethod
+    def read(events: list[dict]) -> tuple[dict, dict]:
+        """metrics.collect and run.summarize_events over the same bare host events."""
+        with tempfile.TemporaryDirectory() as tmp:
+            out = Path(tmp)
+            (out / "events.jsonl").write_text("".join(json.dumps(e) + "\n" for e in events))
+            return metrics.collect(out), run.summarize_events(out / "events.jsonl")
+
+    def test_unknown_cost_stays_unknown_and_the_hosts_own_usage_is_kept_unsummed(self):
+        luna = {"type": "end", "stopReason": "end_turn", "num_turns": 2189, "total_cost_usd": None,
+                "usage": self.CODEX_USAGE}
+        grok = {"type": "end", "stopReason": "cancelled", "num_turns": 4, "total_cost_usd": 1.0}
+        claude = {"type": "result", "subtype": "success", "num_turns": 56, "total_cost_usd": 1.8495976,
+                  "usage": self.CLAUDE_USAGE}
+        for label, events, want in (
+                ("a host that reports no cost", [luna], None),
+                ("one session reported a cost and one did not", [grok, luna], None),
+                ("every ended session reported", [grok, grok, claude], round(1.0 + 1.0 + 1.8495976, 4)),
+                ("no session ended", [{"type": "available_commands", "commands": []}], None)):
+            m, cli = self.read(events)
+            self.assertEqual((m["cost_usd"], cli.get("cost_usd")), (want, want), label)
+        # The host's own usage rides with its session, as written: never summed, never rebuilt.
+        m, _ = self.read([luna])
+        self.assertEqual(m["sessions"][0]["usage"], self.CODEX_USAGE)
+        m, _ = self.read([claude, claude])  # nested usage is kept whole, not added key by key
+        self.assertEqual([s["usage"] for s in m["sessions"]], [self.CLAUDE_USAGE, self.CLAUDE_USAGE])
+        self.assertIsNone(self.read([grok])[0]["sessions"][0]["usage"])  # none reported: None, not {} or 0
+        # One implementation (SPEC S-12): the metrics and the CLI summary both ask metrics.total_cost.
+        with mock.patch.object(metrics, "total_cost", return_value=123.0):
+            m, cli = self.read([luna])
+        self.assertEqual((m["cost_usd"], cli["cost_usd"]), (123.0, 123.0))
+
+    def test_no_token_figure_is_made_from_events_that_do_not_carry_it(self):
+        text_only = {"type": "assistant", "message": {"content": [{"type": "text", "text": "x"}]}}
+        m, _ = self.read([text_only] * 3)  # Claude messages that report no usage
+        self.assertEqual((m["turns"], m["tokens"]), (3, {"input_peak": None}))
+        # A host's end-of-session total is not a per-call context figure, and no output total is built.
+        m, _ = self.read([{"type": "end", "num_turns": 9, "total_cost_usd": None, "usage": self.CODEX_USAGE}])
+        self.assertEqual(m["tokens"], {"input_peak": None})
+        # A call that reported its context counts; one that did not neither lowers the peak nor invents a 0.
+        m, _ = self.read([{"type": "usage", "usage": {"input_tokens": 1000, "cache_read_input_tokens": 500,
+                                                      "output_tokens": 7}},
+                          {"type": "usage", "usage": {"output_tokens": 9}}, {"type": "usage"},
+                          {"type": "usage", "usage": {"input_tokens": 200}}])
+        self.assertEqual((m["turns"], m["tokens"]), (4, {"input_peak": 1500}))
+
     NARRATIVE_BODY = ("#### \U0001f6a2 ShipLoop \u2014 Add a flag\n`\u2588\u2591` **Preparation 1/7**\n\n"
                       "**\u25b6\ufe0f Now** \u2014 **spec**: define behavior\n")
 
@@ -1469,6 +1543,14 @@ class MetricsTest(unittest.TestCase):
         self.assertNotIn("SHIPLOOP-RUN", first + second)
         self.assertIn("no run state yet", second)
 
+    def test_progress_says_peak_context_n_a_when_no_call_reported_its_context(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            out = Path(tmp)
+            (out / "events.jsonl").write_text("".join(json.dumps(e) + "\n" for e in (
+                {"type": "assistant", "message": {"content": [{"type": "text", "text": "hi"}]}},) * 2))
+            text = progress.report(out)
+        self.assertIn("turns 2, peak context n/a", text)
+
 
 
 class CodexRunTest(HarnessCase):
@@ -1487,6 +1569,9 @@ class CodexRunTest(HarnessCase):
         self.assertTrue(result["plugin"]["pass"], result["plugin"])
         self.assertTrue(result["committed"]["pass"], result["committed"])
         self.assertEqual(result["cli"]["num_turns"], 2)
+        # Codex reports no dollar cost: unknown everywhere, not $0.
+        self.assertIsNone(result["cli"]["cost_usd"])
+        self.assertIsNone(result["metrics"]["cost_usd"])
 
     def test_model_and_effort_toggle_by_flag(self):
         code, result = self.invoke("codex", "done", "--model", "gpt-6-sol", "--effort", "xhigh")
@@ -1626,12 +1711,13 @@ class CodexHostTest(unittest.TestCase):
             self.assertEqual(run.last_session_id(path), "thread-1")
             self.assertTrue(run.shiploop_cli_ran(path))
             seen = run.summarize_events(path)
-            self.assertEqual((seen["num_turns"], seen["cost_usd"], seen["commands"]), (4, 0, []))
+            self.assertEqual((seen["num_turns"], seen["cost_usd"], seen["commands"]), (4, None, []))
             self.assertEqual(hosts.final_text(path).strip(), "Done for now.")
             run.write_transcript(path, out / "transcript.md")
             transcript = (out / "transcript.md").read_text()
             self.assertIn("tool  run_terminal_command:", transcript)
             self.assertIn("say   Done for now.", transcript)
+            self.assertIn("turns=4 cost=not reported", transcript)  # not "$None"
             collected = metrics.collect(out)
             self.assertEqual(collected["turns"], 4)
             self.assertTrue(any("git commit" in g["command"] for g in collected["model_glue"]))
@@ -1742,15 +1828,13 @@ class HostCoverageTest(unittest.TestCase):
     def test_a_host_with_no_per_call_usage_has_no_stage_turns_not_zero_turns(self):
         m = collect_stream(codex_stream(12), self.ACCEPTED)
         self.assertIn("stage_turns", m["unmeasured"])
-        self.assertIn("output_tokens", m["unmeasured"])
         self.assertNotIn("model_glue", m["unmeasured"])  # Codex's tool calls are parsed
         self.assertEqual([r["seconds"] for r in m["stages"]], [5.0, 8.0])  # time is still measured
         for row in m["stages"]:
             self.assertIsNone(row["turns"])
-            self.assertIsNone(row["output_tokens"])
             self.assertGreater(row["tool_calls"], 0)
         self.assertEqual(m["turns"], 12)  # the session's own total is still reported
-        self.assertEqual(m["tokens"], {"input_peak": None, "output_total": None})
+        self.assertEqual(m["tokens"], {"input_peak": None})  # no output figure is built from events
         self.assertIsNone(m["cost_usd"], "a host that reports no cost has an unknown cost, not $0")
         kept = run.baseline_stages(m["stages"])
         self.assertEqual(kept[0], {"stage": "intake", "outcome": "done", "seconds": 5.0, "turns": None})
@@ -1767,13 +1851,12 @@ class HostCoverageTest(unittest.TestCase):
         stream = claude_stream(["git add -A && git commit -m x", "shiploop complete --run-dir r"] * 3)
         m = collect_stream(stream, self.ACCEPTED)
         for name in ("model_glue", "shiploop_failures", "cancelled_tool_calls", "tmp_writes",
-                     "stage_tool_calls", "output_tokens"):
+                     "stage_tool_calls"):
             self.assertIn(name, m["unmeasured"], name)
         self.assertNotIn("stage_turns", m["unmeasured"])
         self.assertEqual(m["model_glue"], [], "the lists stay: they are lower bounds, and the exporter reads them")
-        self.assertTrue(all(r["tool_calls"] is None and r["output_tokens"] is None and r["turns"] is not None
-                            for r in m["stages"]))
-        self.assertIsNone(m["tokens"]["output_total"])
+        self.assertTrue(all(r["tool_calls"] is None and r["turns"] is not None for r in m["stages"]))
+        self.assertEqual(m["tokens"], {"input_peak": 10})
         self.assertIsNone(metrics.count(m, "model_glue"))
         self.assertEqual(metrics.count({"unmeasured": {}, "model_glue": [1, 2]}, "model_glue"), 2)
         first = metrics.summary_lines(m)[0]
@@ -2042,6 +2125,22 @@ class MeasuredHostPrintingTest(PrintedCase):
         self.assertEqual(self.last_row()["model_glue"], None)
         code, second, printed = self.invoke_printed("claude", "done")
         self.assertIn("glue not measured -> not measured", printed)
+
+
+class ReportedCostThroughMainTest(PrintedCase):
+    """What run.main prints for cost: unknown stays unknown, and a killed session makes a lower bound."""
+
+    def line(self, printed: str, prefix: str) -> str:
+        return next(ln for ln in printed.splitlines() if ln.startswith(prefix))
+
+    def test_a_host_that_reports_no_cost_says_so_in_the_report_and_never_prints_zero(self):
+        code, result, printed = self.invoke_printed("codex", "done")
+        self.assertEqual(code, 0, result)
+        self.assertIsNone(self.last_row()["cost_usd"])
+        process = self.line(printed, "  process")
+        self.assertIn("cost=not reported", process)
+        self.assertNotIn("$0", process)
+        self.assertIn("cost not reported", self.line(printed, "  metrics   turns"))
 
 
 class ResumedRunRecordTest(PrintedCase):

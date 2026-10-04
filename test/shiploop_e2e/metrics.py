@@ -233,12 +233,34 @@ def session_stop(event: dict) -> str | None:
 
 
 # Why a counter is unmeasured, recorded beside the run so a reader never takes its 0 for a measurement.
-NO_PER_CALL_USAGE = ("the host reports no per-call usage events (one total per session), so turns and output "
-                     "tokens cannot be attributed to a stage")
+NO_PER_CALL_USAGE = ("the host reports no per-call usage events (one total per session), so turns cannot be "
+                     "attributed to a stage")
 CLAUDE_TOOL_BLOCKS = ("this host's tool calls arrive as Claude tool_use / tool_result blocks, which collect() does "
                       "not read, so a count of 0 is a lower bound and not a measurement")
 # What follows from reading only Grok-shaped tool_call events when the stream is Claude's.
 CLAUDE_BLIND = ("stage_tool_calls", "shiploop_failures", "model_glue", "cancelled_tool_calls", "tmp_writes")
+
+
+def context_tokens(usage) -> int | None:
+    """Tokens one call read as context (input plus cache reads), or None when its event carried no figure."""
+    if not isinstance(usage, dict):
+        return None
+    parts = [usage.get(key) for key in ("input_tokens", "cache_read_input_tokens")]
+    numbers = [p for p in parts if isinstance(p, (int, float)) and not isinstance(p, bool)]
+    return sum(numbers) if numbers else None
+
+
+def total_cost(sessions: list[dict]) -> float | None:
+    """The run's cost: its sessions' own reported costs added, or None unless every ended session reported one.
+
+    A host that reports no cost (Codex) has an unknown cost, not a free run, and a session that ended without
+    one makes the rest a part, not a total. The one implementation: the metrics and the CLI summary both call it.
+    A session that never ended is not in ``sessions`` at all.
+    """
+    costs = [s.get("cost_usd") for s in sessions if isinstance(s, dict)]
+    if not costs or any(isinstance(c, bool) or not isinstance(c, (int, float)) for c in costs):
+        return None
+    return round(sum(costs), 4)
 
 
 def collect(out: Path, run_dir: Path | None = None) -> dict:
@@ -261,17 +283,13 @@ def collect(out: Path, run_dir: Path | None = None) -> dict:
         if kind in ("usage", "assistant"):
             calls_in_session += 1
         if kind == "usage":
-            usage = event.get("usage") or {}
-            turns.append({"t": t, "input": (usage.get("input_tokens") or 0) + (usage.get("cache_read_input_tokens") or 0),
-                          "output": usage.get("output_tokens") or 0})
+            turns.append({"t": t, "input": context_tokens(event.get("usage"))})
         elif kind == "assistant":  # Claude: one message per turn
             for block in (event.get("message") or {}).get("content") or []:
                 tool_blocks += isinstance(block, dict) and block.get("type") == "tool_use"
                 if isinstance(block, dict) and block.get("type") == "tool_use" and ASK_PERSON.search(str(block.get("name"))):
                     asked.append(" ".join(str(block.get("input") or "").split())[:160])
-            usage = (event.get("message") or {}).get("usage") or {}
-            turns.append({"t": t, "input": (usage.get("input_tokens") or 0) + (usage.get("cache_read_input_tokens") or 0),
-                          "output": usage.get("output_tokens") or 0})
+            turns.append({"t": t, "input": context_tokens((event.get("message") or {}).get("usage"))})
         elif kind == "tool_call":
             arg = event.get("rawInput") if isinstance(event.get("rawInput"), dict) else {}
             tool = str(event.get("toolName") or event.get("title") or "")
@@ -307,14 +325,14 @@ def collect(out: Path, run_dir: Path | None = None) -> dict:
         elif kind == "auto_compact_completed":
             compactions += 1
         elif kind in ("end", "result"):
-            sessions.append({"stop": session_stop(event),
-                             "turns": event.get("num_turns"), "cost_usd": event.get("total_cost_usd")})
+            # The host's own usage is kept as it wrote it: its shape differs by host (Claude's nests), and
+            # a figure built here from per-event snapshots or by summing sessions would not be the host's.
+            sessions.append({"stop": session_stop(event), "turns": event.get("num_turns"),
+                             "cost_usd": event.get("total_cost_usd"),
+                             "usage": event.get("usage") if isinstance(event.get("usage"), dict) else None})
             if not calls_in_session:
                 unreported += event.get("num_turns") or 0
             calls_in_session = 0
-    # A host that reports no cost (Codex) has an unknown cost, not a free run.
-    cost = (round(sum(s["cost_usd"] or 0 for s in sessions), 4)
-            if any(s["cost_usd"] is not None for s in sessions) else None)
     # One read of state.md for both the accepted history and the pending stage: a
     # live run rewrites it on every transition, so two reads could disagree.
     state = engine_state(run_dir)
@@ -322,23 +340,20 @@ def collect(out: Path, run_dir: Path | None = None) -> dict:
     # never as 0: a zero would read as a measurement and pass every comparison.
     unmeasured: dict[str, str] = {}
     if not _timed(turns):
-        unmeasured.update(stage_turns=NO_PER_CALL_USAGE, output_tokens=NO_PER_CALL_USAGE)
+        unmeasured["stage_turns"] = NO_PER_CALL_USAGE
     if tool_blocks:
         unmeasured.update({name: CLAUDE_TOOL_BLOCKS for name in CLAUDE_BLIND})
-        # Per-event usage is a snapshot taken as the message starts: it sums to a small
-        # fraction of what the result event reports (about 1/17 on a recorded run).
-        unmeasured["output_tokens"] = ("per-event usage snapshots sum to a small fraction of the session's "
-                                       "output tokens")
     stages = per_stage(stage_results(run_dir, state), turns, calls, stamps, pending_stage(state), unmeasured)
     improve = run_dir / "improve" if run_dir else None
     return {
         "tmp_writes": sorted(shared),
         "sessions": sessions,
         "turns": len(turns) + unreported,
-        "tokens": {"input_peak": max((x["input"] for x in turns), default=None),
-                   "output_total": None if "output_tokens" in unmeasured else sum(x["output"] for x in turns)},
+        # Context only: a call's input side is complete when it is sent. Its output count is a streaming
+        # snapshot (about 1/17 of the session's own total on a recorded Claude run), so no output figure is built.
+        "tokens": {"input_peak": max((x["input"] for x in turns if x["input"] is not None), default=None)},
         "unmeasured": unmeasured,
-        "cost_usd": cost,
+        "cost_usd": total_cost(sessions),
         "compactions": compactions,
         "truncated_outputs": len(truncated),
         "cancelled_tool_calls": cancelled,
@@ -522,12 +537,11 @@ def per_stage(accepted: list[dict], turns: list[dict], calls: dict, stamps: dict
     """
     unmeasured = set(unmeasured or ())
     if not _timed(turns):
-        unmeasured |= {"stage_turns", "output_tokens"}
+        unmeasured.add("stage_turns")
 
     def counted(window: list[dict], tools: list) -> dict:
         return {"turns": None if "stage_turns" in unmeasured else len(window),
-                "tool_calls": None if "stage_tool_calls" in unmeasured else len(tools),
-                "output_tokens": None if "output_tokens" in unmeasured else sum(x["output"] for x in window)}
+                "tool_calls": None if "stage_tool_calls" in unmeasured else len(tools)}
 
     if not accepted and not pending:
         return []
