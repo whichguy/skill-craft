@@ -662,11 +662,11 @@ timestamps, so they are approximate (run clock UTC-7). The same ledger, with per
 | step-plan (W1) | 188 min | 28 | 16 | 107 (4 passes: 42, 55, 6, 4) | 13 | 24 |
 
 - Backchain stages are 384 of 969 min (40%) at the snapshot; the loops' own passes are 210 min (22%).
-- **Added value (clear):** plan passes 1-4 found six real graph defects in 70 min (F-1 wrong supplier edge S6 from S4; F-2 duplicate-once and mutation
+- **Added value (clear):** *[superseded 2026-10-04, see Correction below: passes 2-4 changed only confirm clauses]* plan passes 1-4 found six real graph defects in 70 min (F-1 wrong supplier edge S6 from S4; F-2 duplicate-once and mutation
   order of the API; F-3 browser recovery output; F-4 S2 confirmation inspect -> execute; F-5 no inspection of the dependency files; F-6 non-deterministic S11
   confirmation). Step-plan passes 1-2 found four omissions in 97 min (F-01 rejection tests and docstrings; F-02 style note; F-03 README and local-skill fit;
   F-04 effort/benefit comparison), all against what the parent step-plan packet itself requires.
-- **Wasted (clear):** plan pass 5 (17 min, F-7) was a stale source label in Backchain's own scratch metadata; it reset the clean streak. No product impact seen.
+- **Wasted (clear):** *[superseded 2026-10-04: the streak was not reset; wasted is 4 min, see Correction below]* plan pass 5 (17 min, F-7) was a stale source label in Backchain's own scratch metadata; it reset the clean streak. No product impact seen.
 - **Confirming passes:** plan 6-7 and step-plan 3-4 found nothing by design (two clean passes required): 26 min. Whether they ever prevented anything is unknown.
 - **Repeated work:** half of each graph is one "independently confirmed" step per acceptance criterion (plan S11-S20, step-plan S8-S17), planned twice by the model for
   the same item; elaboration doubled the 10-step generator draft to 20 steps before pass 1.
@@ -679,3 +679,29 @@ timestamps, so they are approximate (run clock UTC-7). The same ledger, with per
   plan 196 min; the harness reports 224 and 39. Totals agree within 5 min (385 and 380 through plan), so only the attribution is wrong.
 - Candidates, none built: a script writes and validates the Backchain graph; the script emits the per-criterion verification steps from the spec; a controlled comparison
   (loops on versus a script-validated plan with no review loop, same model and case); harness stage minutes from the script's own timestamps.
+
+#### Correction, 2026-10-04 later the same day (supersedes three claims in the ledger above)
+
+Evidence: candidate digests in `review-records/action-N-review.json`; the clean streak in `pass-reports/action*-done-packet.json`; the pre-loop
+candidate recovered from `pass-reports/pass-01-audit-input.md` (the script kept no copy); the step-plan snapshots `review-records/review-0N-candidate-plan.json`.
+
+- **Superseded: "F-7 reset the clean streak".** The streak was 0 after every pass through pass 5, 1 after pass 6 and 2 after pass 7. F-7 changed no candidate bytes
+  (digest `3853b978` before and after). Its marginal cost is the extra confirming pass 7 (4 min), not pass 5's 17 min. Clearly wasted: 4 min.
+- **Superseded: "six real graph defects in passes 1-4".** Pass 1 (11 min) found F-1 to F-3 and edited 14 of 20 steps (+5.8 KB, inputs 56 to 58). Passes 2-4 (59 min) each changed
+  one confirm clause (S2, S4, S11; +0.4 KB together). Whether a stronger confirmation changes what gets built is unjudged until the comparison.
+- **Step-plan differs:** passes 1 and 2 (97 min) both changed the structure (step D3 added, 16 steps changed); passes 3 and 4 changed nothing.
+- **New, measured:** *[superseded below: the throwaway check omitted invariant 4]* a throwaway structural check (unique ids, existing suppliers, no cycles, declared null origins) passes on the pre-loop, after-pass-1 and final plan candidates, so a
+  validator saves no minutes; requirement-id mention coverage (13 of 46 ids, identical before and after the loop) detects none of the findings and is rejected.
+- **New, measured:** the `Backchain standalone Until Loop binding:` marker is in 0 of 6 files for the accepted plan and step-plan results; Backchain is optional and unchecked
+  (all four Sonnet runs ran no loop); Sonnet's Improve plan reviews are 104 bytes each against 2.3 KB on Luna. Plan: `docs/shiploop-backchain-validator-comparison-plan-2026-10-04.md`.
+- The run review page's ledger was corrected the same way: passes 2 to 5 are "cannot judge yet", pass 7 is "wasted", and a per-pass clean-streak strip shows the trace.
+
+#### Second correction, 2026-10-04 (after an independent adversarial review of the plan; each point re-checked against the run)
+
+- **Superseded: "a validator would have found nothing".** My throwaway check left out invariant 4. The reference validator (`harness/lib.js` in the Backchain checkout), run on the packaged candidates, passes the three
+  plan candidates and **rejects both step-plan candidates** (`6f971770`, `024b3dc3`): discovered step D1 (added by pass 1's repair, the production Node entrypoint contract) is consumed by no step and satisfies no goal need.
+  Passes 2 to 4 and Improve accepted it. Raw, every candidate fails invariant 6 because Backchain keeps `parallel_groups: []`, so the check must run on a packaged clone. The check saves no plan-loop pass, but it finds a real defect.
+- **New, measured:** the step-plan loop ran an operation its packet does not allow: its caller packet names action `plan`, stage `draft` at `shiploop:step-plan`, while only the plan stage may request that (`BACKCHAIN_NATIVE_CALLS`); treat its numbers as off-protocol.
+- **Corrected values:** pass 2 is +0 bytes, pass 3 +198 B, pass 4 +224 B (+422 B in all); "inputs 56 to 58" counts inputs (one new supplier edge and one new null-origin fact), not edges; the embedded pre-loop block plus a newline hashes exactly to the freeze-log digest `9e321e3d`
+  (the recovery is byte-exact); F-7's cost is 4 to 12 min (one extra pass) plus its repair inside pass 5; `run/until-loop/` is empty in the Luna run too, so emptiness is not evidence that Sonnet ran no loop (no Backchain scratch directory and no receipt is); Sonnet's plan reviews run 98 to 439 bytes (104 bytes for battleship); the Sonnet battleship run took about 19 minutes.
+- Plan: `docs/shiploop-backchain-validator-comparison-plan-2026-10-04.md` v2 (record-only first increment; no refusal gate until a script owns the loop contract; Track 1 starts from the planted draft; step-plan removed from the loop arm).
