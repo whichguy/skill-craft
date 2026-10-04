@@ -483,6 +483,12 @@ class NavigatorContractTests(unittest.TestCase):
                 ["python3", "shiploop", "backchain-check", "--run-dir", str(root), "--candidate"])
                 + " <your candidate file>")
             self.assertEqual(producer_packet.count(check), int(stage in backchain_stages))
+            # Only `plan` selects the full loop resource set; the other four print the audit resource and the loop status.
+            self.assertEqual("Selected Backchain and Until Loop resources" in producer_packet, stage == "plan")
+            self.assertEqual("Backchain audit resource (" in producer_packet,
+                             stage in backchain_stages - {"plan"})
+            self.assertEqual("Loop resources for a repair/revise request, under " in producer_packet,
+                             stage in backchain_stages - {"plan"})
             self.assertIn("Follow the packet's Reference handoff policy", producer_packet)
             extra = {}
             if stage == "plan":
@@ -502,6 +508,10 @@ class NavigatorContractTests(unittest.TestCase):
                 child_packet, expected=stage in backchain_stages
             )
             self.assertNotIn("backchain-check", child_packet)
+            # A bound Improve child never starts a whole loop: no resource list, no loop status, only the audit line.
+            self.assertNotIn("Selected Backchain and Until Loop resources", child_packet)
+            self.assertNotIn("Loop resources for a repair/revise request", child_packet)
+            self.assertEqual("Backchain audit resource (" in child_packet, stage in backchain_stages)
             self.assertIn("Follow the packet's Reference handoff policy", child_packet)
             state = self._complete_improve(bound, action, stage)
 
@@ -808,37 +818,26 @@ class NavigatorContractTests(unittest.TestCase):
         audit = " ".join(prompts.prompt("step-plan").split())
         for required in (
             "Backchain standalone Until Loop binding:",
-            'packet\'s printed "Selected Backchain and Until Loop resources" '
-            "block below lists all required resources",
-            "That block is the selection for this action/stage",
-            "ShipLoop resolves and prints the Backchain and Until Loop files "
-            "from its own installed plugin",
-            "Any entry printed as `MISSING: ...` blocks this route for that specifically named "
-            "missing resource",
-            "`references/caller-contract.md`",
-            "Until Loop `ADAPTER.md`",
-            "references/runtime-ephemeral.md",
-            "scripts/until_loop_ephemeral.py",
-            "references/convergence.md",
-            "prompts/convergence-review.prompt.md",
-            "Read the Backchain convergence resources",
-            "direct natural-language handoff",
-            "actual loaded Until Loop card starts its adapter, is the sole CLI caller",
-            "old custom Backchain loop",
-            "host-judged semantic compatibility",
+            'packet\'s printed "Selected Backchain and Until Loop resources" block below',
+            "A `MISSING: ...` entry blocks the route for that named resource",
+            "report it as the blocker, not as unverifiable",
+            "never substitute a sibling, cache or other install",
+            "Record the binding id, candidate and receipt paths",
+            "is not execution evidence or a passed experiment",
+            "The planning guide's Source-aware native caller section holds",
             "opaque actual Until Loop terminal evidence",
             "only after the child reports `complete`",
             "must not be submitted as a completed parent action",
-            "terminal_receipt",
-            "planning_gaps",
-            "execution_blockers",
-            "next_action",
             "two consecutive distinct complete trivial/no-change dependency reviews",
             "The Until Loop child is plan-only",
         ):
             with self.subTest(required=required):
                 self.assertIn(required, plan)
+        # What the plan packet points to instead of restating (the capability check, an old custom loop, the
+        # no-fallback rule) is in the guide section it names; the audit stages say where a whole loop is allowed.
         self.assertIn("read-only, one-pass diagnostic", audit)
+        self.assertIn("A whole `plan`/`draft` is requested only at `plan`", audit)
+        self.assertIn("A MISSING loop resource blocks repair/revise; no other install substitutes", audit)
         self.assertIn("required_trivial_reviews: 2", plan)
         self.assertIn("final candidate identity and domain evidence", plan)
         self.assertIn("one-pass Backchain primitive", " ".join(prompts.improve_prompt("plan").split()))
@@ -867,6 +866,8 @@ class NavigatorContractTests(unittest.TestCase):
         )
         self.assertIn("`references/caller-contract.md`", guide_text)
         self.assertIn("Until Loop `ADAPTER.md`", guide_text)
+        for field in ("terminal_receipt", "domain_evidence", "planning_gaps", "execution_blockers", "next_action"):
+            self.assertIn(f"`{field}`", guide_text)
         self.assertNotIn("run notes identify", guide_text)
         self.assertNotIn("Until Loop `SKILL.md`", guide_text)
 
@@ -907,11 +908,54 @@ class NavigatorContractTests(unittest.TestCase):
         )
         self.assertIn(missing_line, packet)
         self.assertIn(
-            "Any entry printed as `MISSING: ...` blocks this route for that specifically named "
-            "missing resource",
+            "A `MISSING: ...` entry blocks the route for that named resource",
             " ".join(packet.split()),
         )
 
+
+    def _render_spec_with_files_missing(self, missing: tuple[int, ...]) -> tuple[str, Path]:
+        """Render the spec packet from a fake plugin install that lacks the listed BACKCHAIN_RESOURCE_PATHS."""
+        fake_skills_root = Path(self.temp.name) / "fake-plugin" / "skills"
+        fake_source = fake_skills_root / "shiploop" / "scripts" / "shiploop_prompts.py"
+        fake_source.parent.mkdir(parents=True)
+        fake_source.touch()
+        for index, (_, relative_path) in enumerate(BACKCHAIN_RESOURCE_PATHS):
+            if index not in missing:
+                path = fake_skills_root / relative_path
+                path.parent.mkdir(parents=True, exist_ok=True)
+                path.touch()
+        with patch.object(prompts, "__file__", str(fake_source)):
+            packet = navigator.render(None, self.repo / ".shiploop", self._at_spec())
+        return packet, fake_skills_root.resolve()
+
+    def test_the_audit_stages_print_the_audit_resource_and_the_loop_status_not_the_list(self) -> None:
+        """A non-loop stage names the one resource its audit needs and reports the files a repair/revise needs."""
+        packet = navigator.render(None, self.repo / ".shiploop", self._at_spec())
+        contract = (ROOT / "skills" / BACKCHAIN_RESOURCE_PATHS[1][1]).resolve()
+        self.assertIn(f"Backchain audit resource (backchain-caller/v1 contract; operation review/audit): {contract}", packet)
+        self.assertIn(f"Loop resources for a repair/revise request, under {(ROOT / 'skills').resolve()}: all present", packet)
+        self.assertNotIn("Selected Backchain and Until Loop resources", packet)
+        self.assertNotIn("MISSING: skills/", packet)
+        guide = " ".join(self.backchain_planning_guide.read_text(encoding="utf-8").split())
+        for root in ("`backchain/`", "`improve/runtime/until-loop/`", 'one "Loop resources" line'):
+            self.assertIn(root, guide)
+        for _, relative_path in BACKCHAIN_RESOURCE_PATHS:  # the guide's roots reach every listed resource
+            self.assertTrue(str(relative_path).startswith(("backchain/", "improve/runtime/until-loop/")), relative_path)
+
+    def test_the_loop_status_line_names_a_missing_loop_file(self) -> None:
+        """The script reports which loop resource is absent; the audit resource stays resolved."""
+        missing = (3, 6)
+        packet, root = self._render_spec_with_files_missing(missing)
+        labels = ", ".join(BACKCHAIN_RESOURCE_PATHS[index][0] for index in missing)
+        self.assertIn(f"Loop resources for a repair/revise request, under {root}: MISSING: {labels}", packet)
+        self.assertNotIn("operation review/audit): MISSING", packet)
+
+    def test_the_audit_line_names_a_missing_audit_resource(self) -> None:
+        """The audit resource is also a loop resource, so the status line names it too."""
+        missing_label, missing_relative = BACKCHAIN_RESOURCE_PATHS[1]
+        packet, root = self._render_spec_with_files_missing((1,))
+        self.assertIn(f"operation review/audit): MISSING: skills/{missing_relative.as_posix()}", packet)
+        self.assertIn(f"under {root}: MISSING: {missing_label}", packet)
 
     def test_source_aware_native_is_the_only_backchain_route(self) -> None:
         """The frozen embedded Backchain adaptation is retired (no mode, default or pin)."""

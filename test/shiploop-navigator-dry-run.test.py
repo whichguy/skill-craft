@@ -322,5 +322,75 @@ class NavigatorDryRunTests(unittest.TestCase):
                              ['discovery', 'research', 'spec', 'spec', 'test-strategy'])
 
 
+class BackchainStageTextTests(unittest.TestCase):
+    """The Backchain loop text and its resource list print only where a whole loop may start (plan).
+
+    Measured on the 1.16.1 packets: the loop text was 553 words and the six-file list 1.5 KB at every Backchain
+    stage, although only `plan` may request a whole loop. The other four stages print the read-only audit route,
+    its one resource and a script-computed status of the loop resources a repair/revise needs. These are content
+    pins (what each stage prints or omits), not word or byte pins: a packet may grow when an obligation needs it.
+    """
+
+    LOOP_STAGE = "plan"
+    AUDIT_STAGES = ("spec", "step-plan", "carry-forward", "product-acceptance")
+
+    @classmethod
+    def setUpClass(cls):
+        with tempfile.TemporaryDirectory(prefix="backchain-stage-text-") as temporary:
+            result = subprocess.run(
+                [sys.executable, "-B", str(SCRIPTS / "shiploop"), "graph-dry-run", "--scenario", "delivery",
+                 "--format", "json"], cwd=temporary, env=dict(os.environ, PYTHONDONTWRITEBYTECODE="1"),
+                capture_output=True, text=True)
+        assert result.returncode == 0, result.stderr
+        events = json.loads(result.stdout)["scenarios"][0]["events"]
+        cls.packets = {event["from"]: event["prompt"] for event in events if event["command"] == "produce"}
+
+    def test_the_dry_run_packet_carries_exactly_the_stage_guidance(self):
+        for stage in (self.LOOP_STAGE, *self.AUDIT_STAGES):
+            with self.subTest(stage=stage):
+                self.assertEqual(self.packets[stage].count(guidance._backchain_guidance(stage)), 1)
+
+    def test_only_the_loop_stage_prints_the_resource_list_and_the_others_print_the_audit_line_and_status(self):
+        for stage in (self.LOOP_STAGE, *self.AUDIT_STAGES):
+            packet = self.packets[stage]
+            with self.subTest(stage=stage):
+                loop = stage == self.LOOP_STAGE
+                self.assertEqual("Selected Backchain and Until Loop resources" in packet, loop)
+                self.assertEqual("Backchain audit resource (" in packet, not loop)
+                self.assertEqual("Loop resources for a repair/revise request, under " in packet, not loop)
+                if not loop:
+                    self.assertIn(": all present", packet.split("Loop resources for a repair/revise request, under ")[1]
+                                  .splitlines()[0])
+
+    def test_audit_stages_offer_the_audit_and_one_bounded_repair_and_not_the_loop_text(self):
+        for stage in self.AUDIT_STAGES:
+            flat = " ".join(guidance._backchain_guidance(stage).split())
+            with self.subTest(stage=stage):
+                self.assertIn("action `review` / stage `audit`", flat)
+                self.assertIn("read-only, one-pass diagnostic", flat)
+                self.assertIn("exactly one action `repair` / stage `revise`", flat)
+                self.assertIn("Until Loop state budget", flat)  # a repair/revise request starts a loop
+                self.assertIn("A whole `plan`/`draft` is requested only at `plan`", flat)
+                self.assertIn("A MISSING loop resource blocks repair/revise; no other install substitutes", flat)
+                for loop_text in ("`MISSING: ...`", "Record the binding id", "required_trivial_reviews"):
+                    self.assertNotIn(loop_text, flat)
+                packet = self.packets[stage]
+                self.assertEqual(packet.count("Backchain planning guide: "), 1)  # the pointer stays at every stage
+                self.assertEqual(packet.count("Backchain graph check: "), 1)  # the record-only check line stays
+
+    def test_the_loop_stage_keeps_every_obligation_the_trim_did_not_target(self):
+        flat = " ".join(guidance._backchain_guidance(self.LOOP_STAGE).split())
+        for kept in ("`MISSING: ...` entry blocks the route for that named resource",
+                     "never substitute a sibling, cache or other install",
+                     "Record the binding id, candidate and receipt paths",
+                     "is not execution evidence or a passed experiment",
+                     "The planning guide's Source-aware native caller section holds",
+                     "Until Loop state budget", "action `plan` / stage `draft`", "required_trivial_reviews: 2",
+                     "The Until Loop child is plan-only"):
+            with self.subTest(kept=kept):
+                self.assertIn(kept, flat)
+        self.assertIn("Backchain graph check: ", self.packets[self.LOOP_STAGE])
+
+
 if __name__ == '__main__':
     unittest.main()
