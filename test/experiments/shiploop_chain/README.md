@@ -8,8 +8,8 @@ does not allocate or supply caller-prepared worktrees. It never launches a model
 A native host must launch fresh workers and retain its
 own launch/completion trace.
 
-The pilot defaults to the source Ask-Agent package and the frozen Plan Dispatcher
-v3 fixture. It requires an Ask-Agent helper that declares the full current
+The pilot defaults to the source Ask-Agent and Plan Dispatcher packages
+(`skills/ask-agent`, `skills/plan-dispatcher`). It requires an Ask-Agent helper that declares the full current
 managed-worktree capability set (including `ignored-output-report`; there is no
 version-number floor) and exact helper identity. It also preflights the selected
 Dispatcher's `capabilities` before creating a pilot directory; its required
@@ -56,8 +56,8 @@ target; it does not perform a final worker-to-target merge.
 
 ## Offline current-package qualification
 
-The ordinary `test_native_pilot.py` regression uses the frozen V3 Dispatcher
-fixture. To qualify an external current package, use the explicit
+The ordinary `test_native_pilot.py` regression uses the source Plan Dispatcher
+package. To qualify an external current package, use the explicit
 [`current-dispatcher` command](../../README.md#qualify-the-current-dispatcher).
 It requires clean source/dependency checkouts and records the chosen commit,
 package hashes, logs and result outside both checkouts. It exercises offline
@@ -339,8 +339,8 @@ the worker and preserves evidence; the gate never fabricates native timestamps.
 ## Offline adapter verification
 
 The focused adapter test creates its own disposable Git fixture and exercises
-the public `prepare` → `claim` → `start` → cold `packet` path with the frozen
-Dispatcher v3 package and actual selected managed Ask-Agent helper. It verifies
+the public `prepare` → `claim` → `start` → cold `packet` path with the source
+Plan Dispatcher package and actual selected managed Ask-Agent helper. It verifies
 receipt/workspace identity, exact inline packet transport, incompatible preflight
 rejection before a pilot directory is created, non-launch start replay, and the
 opt-in refill barrier's identity, release, and timeout behavior. It

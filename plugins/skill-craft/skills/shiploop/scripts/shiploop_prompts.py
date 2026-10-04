@@ -1111,6 +1111,10 @@ completion and revalidation conditions. Identify the actual runtime/version,
 artifact and boundary; read only matching practice/platform sections. Link the
 accepted plan and selected sections in evidence_refs; do not copy every card or
 create boilerplate for inapplicable concerns. Planning does not authorize edits.
+Give each change that does not need another its own step with deps [] (for
+example, two modules that do not use each other) and join them in a later step
+that needs both; combine changes into one step only when one needs the other, so
+the default parallel chain can run independent steps at the same time.
 For a plan with dependency-independent implementation steps, create and review
 its initial steps and graph here for the default parallel chain, even when an
 initial serial prefix will release those branches later. A serial chain remains
@@ -1998,6 +2002,10 @@ def _require_delegation(delegation: str) -> None:
 # ask-agent text above stays the single source for the delegated route.
 _INLINE_DUTY_PARAGRAPHS = {
     "step-plan": ("""\
+Give each change that does not need another its own step with deps [] (for
+example, two modules that do not use each other) and join them in a later step
+that needs both; combine changes into one step only when one needs the other, so
+the default parallel chain can run independent steps at the same time.
 For a plan with dependency-independent implementation steps, create and review
 its initial steps and graph here for the default parallel chain, even when an
 initial serial prefix will release those branches later. A serial chain remains

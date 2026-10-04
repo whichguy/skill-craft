@@ -757,13 +757,22 @@ def run_minutes(run_dir: str | None) -> float | None:
     return round((max(stamps) - start).total_seconds() / 60, 1) if stamps else None
 
 
-def budget_facts(budget: dict | None, seeded: bool, run_dir: str | None) -> dict | None:
-    """A should-level expectation: reported beside the verdicts, never failing the run."""
+def budget_facts(budget: dict | None, seeded: bool, run_dir: str | None, interrupted: bool = False) -> dict | None:
+    """A should-level expectation: reported beside the verdicts, never failing the run.
+
+    An interrupted run is not held to it: the deliberate kill makes the run replay its lost
+    workers' work, so its time measures recovery, not the request (c1, 2026-10-04: 30.9 min).
+    """
     if not budget or not seeded or "seeded_minutes" not in budget:
         return None
     observed = run_minutes(run_dir)
-    return {"level": "should", "expected_minutes": budget["seeded_minutes"], "observed_minutes": observed,
-            "pass": observed is not None and observed <= budget["seeded_minutes"], "source": budget.get("source")}
+    if interrupted:
+        return {"level": "should", "applies": False, "expected_minutes": budget["seeded_minutes"],
+                "observed_minutes": observed, "pass": None, "source": budget.get("source"),
+                "reason": "interrupted on purpose: recovery replays the lost workers' work"}
+    return {"level": "should", "applies": True, "expected_minutes": budget["seeded_minutes"],
+            "observed_minutes": observed, "pass": observed is not None and observed <= budget["seeded_minutes"],
+            "source": budget.get("source")}
 
 
 MISMATCH_TEMPLATE = """# Mismatch: {case} on {host} ({output})
@@ -1512,7 +1521,7 @@ def main(argv: list[str] | None = None) -> int:
         interrupt_file = out / "interrupt.json"
         interrupted = json.loads(interrupt_file.read_text()) if interrupt_file.is_file() else None
         recovery = {"pass": bool(interrupted) and chain["pass"], "interrupt": interrupted, "source": RECOVERY_SOURCE}
-    budget = budget_facts(case.get("budget"), bool(seeded), shiploop.get("run_dir"))
+    budget = budget_facts(case.get("budget"), bool(seeded), shiploop.get("run_dir"), interrupted=bool(interrupt_at))
     expectations = {
         "checks": case.get("checks_source") or "the --check arguments given with --prompt",
         **({"retention": case["retention_source"]} if case.get("retention_source") else {}),
@@ -1608,7 +1617,9 @@ def main(argv: list[str] | None = None) -> int:
             f"killed at {stop['elapsed_seconds']}s in {stop['stage']}; a fresh session resumed the chain"
             if stop else "the host was never interrupted (no chain worker was ever in flight)"))
         print(f"            expected  {recovery['source']}")
-    if budget is not None:
+    if budget is not None and not budget["applies"]:
+        print(f"  budget    n/a   took {budget['observed_minutes']} min; {budget['reason']}")
+    elif budget is not None:
         print(f"  budget    {'met ' if budget['pass'] else 'over'}  should finish within {budget['expected_minutes']} min; "
               f"took {budget['observed_minutes']} min ({budget['source']})")
     for line in metrics.summary_lines(run_metrics):
@@ -1667,7 +1678,12 @@ def main(argv: list[str] | None = None) -> int:
         if recovery is not None and not recovery["pass"]:
             failed.append(("recovery", f"a fresh session finishes the chain after the kill (source: {RECOVERY_SOURCE})",
                            "never interrupted" if not recovery["interrupt"] else "the chain did not finish"))
-        failed.extend(("check", f"`{c['command']}` exits 0 (source: {expectations['checks']})", "non-zero exit")
+        def check_observed(check: dict) -> str:
+            lines = [line for line in str(check.get("output") or "").splitlines() if line.strip()]
+            last = f": {lines[-1].strip()[:300]}" if lines else ""
+            return ("timed out" if check.get("returncode") is None else f"exit {check['returncode']}") + last
+
+        failed.extend(("check", f"`{c['command']}` exits 0 (source: {expectations['checks']})", check_observed(c))
                       for c in check_results if not c["pass"])
         print(f"  mismatch  {write_mismatch(out, name, args.host, failed)}")
     return 0 if result["pass"] else 1

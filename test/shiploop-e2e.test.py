@@ -625,6 +625,7 @@ class ExpectationTest(HarnessCase):
             self.assertIn(section, mismatch)
         self.assertIn("**shiploop**: ShipLoop reaches done", mismatch)
         self.assertIn("(source: the request", mismatch)
+        self.assertRegex(mismatch, r"\*\*check\*\*: exit [0-9]+(: .+)?\n")  # the failing check's exit and last output line
 
     def test_a_passing_run_writes_no_mismatch(self):
         code, result = self.invoke("claude", "done")
@@ -643,6 +644,8 @@ class ExpectationTest(HarnessCase):
         over = run.budget_facts({"seeded_minutes": 20, "source": "x"}, True, str(run_dir))
         self.assertFalse(over["pass"])
         self.assertIsNone(run.budget_facts(budget, False, str(run_dir)))  # only seeded runs carry a budget
+        interrupted = run.budget_facts(budget, True, str(run_dir), interrupted=True)
+        self.assertEqual((interrupted["applies"], interrupted["pass"], interrupted["observed_minutes"]), (False, None, 21.5))
 
 
 class ReviewParsingTest(unittest.TestCase):

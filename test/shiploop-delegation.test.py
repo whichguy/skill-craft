@@ -48,6 +48,7 @@ DELEGATED_ROUTE_TEXT = (
     "bind this action to the default parallel",
     "Parallel-chain guide:",
     "for the default parallel chain",
+    "its own step with deps []",
 )
 # Delegated wording that only bound Improve packets or duties can carry.
 BOUND_DELEGATED_TEXT = DELEGATED_ROUTE_TEXT + (
@@ -162,6 +163,13 @@ class DelegationStateTests(unittest.TestCase):
                 packet = self.render(advance(state, stage))
                 self.assertTrue(packet.startswith("Continue in this context and execute the prompt.\n"))
                 self.assertIn("Do not clear, pause for a clear", packet)
+
+    def test_ask_agent_step_plan_splits_independent_changes_into_separate_steps(self):
+        # Live 2026-10-04 (p1-temperature-plain): without this rule the model put two modules
+        # that do not use each other into one step, so the chain had nothing to run in parallel.
+        packet = self.render(advance(self.state("ask-agent"), "step-plan"))
+        self.assertIn("its own step with deps []", packet)
+        self.assertIn("combine changes into one step only when one needs the other", packet)
 
     def test_inline_implement_runs_reviewed_steps_directly_without_a_chain(self):
         inline = self.render(advance(self.state(), "implement"))

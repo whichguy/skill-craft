@@ -956,6 +956,10 @@ Related commits: db61a4a7 (resource list at every Backchain stage), 112b239c (co
 - **Measurement caveats for these tables.** `metrics.json` `turns` counts assistant content-block events, about 1.7 times the API calls (84, 94, 113 and 149 real calls for the four runs); `cost_share_usd` is the run's cost times a stage's turn share, not a measured stage cost; stage turns come from result-file mtimes and jitter between neighbouring stages, so a stage showing 0 turns is boundary jitter. The stage tables above are indicative only. *[superseded 2026-10-04 in part: `cost_share_usd` and result-file times no longer exist (A2). Stages now come from the engine's accept stamps; the jitter that remains is those stamps being whole seconds, which puts a boundary turn in the next stage at about a quarter to a third of boundaries. The "indicative only" caveat stands; see "A1 to A3 landing and review".]*
 - **Status and next measurement.** The release-linked reading of the hello cost rise is not supported; noise between the two same-release 1.19.0 runs ($1.96) is larger than the release-to-release steps ($1.10 and $0.98). If the owner wants it settled: an interleaved serial A/B of three 1.16.1 and three 1.19.0 hello runs on Sonnet 5.5 with the connector isolation (about $28); a clean 1.16.1 that now changes at least 25% of children means drift, one that stays at 2 of 8 or fewer and costs $1 or more less in two of three pairs means bisect (`1ff8c841`, `b97c3a0a`, `19fa890d`). Observations o37 to o39 and actions a14 to a16 on the page.
 
+Note (2026-10-04): every Claude run in batches B and C (and the seeded/full chain runs of 2026-10-03)
+used the harness before bc3046db, which loaded the user's claude.ai connectors into the unattended run.
+Their verdicts stand, but their token and cost figures include the connectors' tool definitions.
+
 ## Harness contract change — 2026-10-04 — status: firm (hermetic tests); not yet seen in a live run
 
 Not a run entry. It changes what the next run records and what it compares against, so read it

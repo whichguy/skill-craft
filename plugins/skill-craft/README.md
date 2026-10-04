@@ -22,7 +22,7 @@ Every skill is namespaced by this plugin: in Claude, invoke `/skill-craft:<skill
 | [improve](skills/improve/SKILL.md) | `/skill-craft:improve` | 0.3.0-rc.11 | Review and improve until two clean passes |
 | [improve-agent](skills/improve-agent/SKILL.md) | `/skill-craft:improve-agent` | 0.1.3 | Run Improve in a fresh native agent |
 | [improve-system-prompt](skills/improve-system-prompt/SKILL.md) | `/skill-craft:improve-system-prompt` | 0.1.2 | Benchmark and compare system prompt variants (V2/V2a/V2b/V2c) for Sheets Chat by running test scenarios through the… |
-| [plan-dispatcher](skills/plan-dispatcher/SKILL.md) | `/skill-craft:plan-dispatcher` | 0.6.1 | Use when executing or resuming an agreed dependency graph with one main dispatcher and parallel native workers: claim… |
+| [plan-dispatcher](skills/plan-dispatcher/SKILL.md) | `/skill-craft:plan-dispatcher` | 0.6.2 | Use when executing or resuming an agreed dependency graph with one main dispatcher and parallel native workers: claim… |
 | [plan-test](skills/plan-test/SKILL.md) | `/skill-craft:plan-test` | 0.1.3 | Generate comprehensive tests for code. Uses an inline strategy or an available independent test specialist for complex… |
 | [prompt-align](skills/prompt-align/SKILL.md) | `/skill-craft:prompt-align` | 0.1.2 | Compare an agent or skill prompt against its test harness skill for phase-model, skip-condition, and wiring… |
 | [prompt-audit](skills/prompt-audit/SKILL.md) | `/skill-craft:prompt-audit` | 0.1.2 | Audit an agent or skill prompt file for internal inconsistencies (phase numbering, behavioral contracts, terminology… |
@@ -30,7 +30,7 @@ Every skill is namespaced by this plugin: in Claude, invoke `/skill-craft:<skill
 | [prompt-refine](skills/prompt-refine/SKILL.md) | `/skill-craft:prompt-refine` | 0.1.2 | Full prompt-improvement workflow — runs prompt-audit to find inconsistencies, presents a remediation plan, then runs… |
 | [review-coverage](skills/review-coverage/SKILL.md) | `/skill-craft:review-coverage` | 0.3.3 | Add a post-ship improve-to-exhaustion directive to a plan, or run that directive after implementation. Invoke like any… |
 | [review-fix-bench](skills/review-fix-bench/SKILL.md) | `/skill-craft:review-fix-bench` | 0.1.2 | Compare two code-review prompt versions against supplied fixture ground truth using an explicitly configured external… |
-| [shiploop](skills/shiploop/SKILL.md) | `/skill-craft:shiploop` | 0.51.0 | Markdown-authoritative delivery harness. Start or resume once, follow the script's current action packet, and submit… |
+| [shiploop](skills/shiploop/SKILL.md) | `/skill-craft:shiploop` | 0.51.2 | Markdown-authoritative delivery harness. Start or resume once, follow the script's current action packet, and submit… |
 | [shiploop-e2e-audit](skills/shiploop-e2e-audit/SKILL.md) | `/skill-craft:shiploop-e2e-audit` | 0.6.0 | Run the ShipLoop test harness and audit its retained graph, review, test, product and incremental-change evidence. Use… |
 | [skill-interop](skills/skill-interop/SKILL.md) | `/skill-craft:skill-interop` | 0.2.6 | Use when authoring or reviewing a portable multi-host agent skill (Grok, Claude Code, Codex, Hermes): scaffold a… |
 

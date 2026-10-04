@@ -271,7 +271,7 @@ time and an empty ready list never authorize acceptance or completion.
 | `next` | Inspect durable child state, bridge events and unresolved operations, and recover an interrupted parent transaction. No automatic relaunch. |
 | `history` | No input file. Read the timestamped bridge audit in append sequence, including past indexed actions; no recovery or child invocation. |
 | `pending` | No input file. List every unaccepted step with current status and unmet direct dependencies, plus capacity; no claim, launch or acceptance. |
-| `finish` | Current integrated target `commit`, `confirmed_stopped:true`, and independent `verification:{path,sha256}`; require all contributions accepted, final combined verification and completed cleanup. Per-step mode has already merged each result; this is a final audit. |
+| `finish` | Current integrated target `commit`, `confirmed_stopped:true`, and independent `verification:{path,sha256}`; require all contributions accepted, final combined verification and completed removal of every accepted worker's worktree; superseded (rejected or lost) attempts keep their workspaces and are listed under `retained_superseded`, not cleaned. Per-step mode has already merged each result; this is a final audit. |
 
 ### Step exit criteria
 
@@ -568,7 +568,8 @@ that updated branch while B runs, then A's worktree is closed. B later reconcile
 so both changes survive. J waits for B and C acceptance and starts from their
 combined result. Keep an explicit join for meaningful cross-component tests or
 integration code, not merely to gather Git branches. `finish` verifies the final
-result and confirms every owned worker worktree was removed.
+result and confirms every accepted worker's worktree was removed; superseded attempts
+keep theirs and are listed.
 
 Ask-Agent leaves returned workspaces intact. The parent archives required
 results and confirms all worktree users/delegates stopped. For accepted managed
