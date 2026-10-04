@@ -52,3 +52,39 @@ Base: main at bc3046db (skill-craft 1.19.0, ShipLoop 0.51.0).
   inline swap text changes in lockstep, so inline packets are unchanged (delegation test asserts both).
 - **Verified by**: `test_ask_agent_step_plan_splits_independent_changes_into_separate_steps`, the inline
   absence check (DELEGATED_ROUTE_TEXT), packet bounds 8/8; live rerun of temperature-plain after release.
+
+### Pass 1 results (released as skill-craft 1.19.1, deployed to Claude, Codex and Grok)
+
+| Run (Claude claude-sonnet-5-5, temperature-plain, seeded) | Step plan | Chain | Checks | Time, cost |
+|---|---|---|---|---|
+| p1-temperature-plain-080452 (1.19.0, before) | `S1 convert+stats`, `S2 measure (S1)`, `S3 tests` — linear | none bound | 6/6 | 19.1 min, $11.84 |
+| p1v-temperature-plain-1df460 (1.19.1, after) | `S1 convert []`, `S2 stats []`, `S3 measure (S1, S2)` — independent | none bound | 1/6 (modules placed in `temperature/`) | 17.1 min, $6.53 |
+
+- The step-plan fix works: the model now splits independent changes.
+- The 1.18.0 leftovers section rendered in a live report.html for the first time (p1), and both runs wrote
+  `mismatch.md` for their failing verdicts, as designed.
+- **Check placement (trivial, test fix):** the plain prompt had dropped the framing that kept modules at the
+  root, and the request never said where `measure.py` lives, so the checks assumed what the request did not
+  state (triage 1: the check was wrong). The prompt now says "as modules in the repository root, run as
+  `python3 measure.py`"; it adds no hint of parallel work.
+
+### Pass 1, owner decision: when should an Ask-Agent run use the chain?
+
+- **Expected** (parallel-chain.md): independent steps on an Ask-Agent run use the parallel chain by default.
+- **Observed** (p1v): independent steps, yet no chain. The model's recorded reason: "no reviewed dispatcher graph
+  was created at step-plan, and the change is three small files". The step-plan duty asks for the graph
+  ("create and review its initial steps and graph here"), but it was not created, nothing checked it, and
+  implement took the one-writer route instead of the guide's late-creation route. "Small" is not a blocker the
+  guide allows.
+- **Cost evidence:** for this small request, one writer took 17.1-19.1 min at $6.53-11.84; the chain runs of
+  the same case took 16-22 min at $8.60-11.20. No time gained at this size.
+- **Why it is the owner's call** (triage 6): two deliberate intents conflict, the guide's "parallel by
+  default" (and the user's opt-in to Ask-Agent delegation) against doing small work the cheaper way (the
+  standing rule: near-identical quality, fewer tokens wins). The fixes are policy choices with cost effects,
+  and two of them touch the Backchain and planning-prompt area another session is changing.
+- **Options:** (A) a script check at step-plan: independent steps on an Ask-Agent run need a graph locator or
+  an explicit "no parallel chain" with its reason; (B) the script derives the execution graph from the step
+  list, so no separate model-written graph is needed; (C) allow a recorded size judgment ("worker setup
+  outweighs parallel running"), making the model's choice explicit instead of a silent deviation.
+- **Until decided:** temperature-plain keeps its must-level chain expectation, so it reports this open question
+  as a failing verdict rather than hiding it.
