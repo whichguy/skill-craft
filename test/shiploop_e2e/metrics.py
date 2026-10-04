@@ -365,7 +365,8 @@ def collect(out: Path, run_dir: Path | None = None) -> dict:
         "script_verifications": verifications(run_dir),
         "model_glue": glue,
         "asked_user": asked,
-        "improve_children": len(list(improve.iterdir())) if improve and improve.is_dir() else 0,
+        # Directories only: each child also leaves a `<name>-bind.md` beside its directory.
+        "improve_children": sum(1 for p in improve.iterdir() if p.is_dir()) if improve and improve.is_dir() else 0,
         "improve_reviews": improve_reviews(run_dir),
         "knowledge_reads": sorted({r[r.index("docs/shiploop"):] for r in reads if "docs/shiploop" in r}),
         "narrative": narrative(out, run_dir),

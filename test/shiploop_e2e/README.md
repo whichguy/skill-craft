@@ -127,7 +127,7 @@ Grok events carry no time) and ShipLoop's run directory:
   such as one killed with the task: any above 0 makes turns and cost a lower bound, and
   the printed cost says so; it is a field of `metrics.json` and `result.json`, not a
   baseline key), auto-compactions, host-truncated outputs, test runs and Improve
-  children;
+  children (the directories ShipLoop made, not their `-bind.md` receipts);
 - every `shiploop` command that exited non-zero, with its failing line;
 - which `docs/shiploop/` files the model read.
 

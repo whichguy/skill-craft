@@ -1304,6 +1304,7 @@ class MetricsTest(unittest.TestCase):
             run_dir = out / "loop" / "run"
             (run_dir / "results").mkdir(parents=True)
             (run_dir / "improve" / "child-1").mkdir(parents=True)
+            (run_dir / "improve" / "child-1-bind.md").write_text("# bind\n")  # a real run leaves one per child
             stream = [
                 {"type": "usage", "usage": {"input_tokens": 1000, "output_tokens": 10}},
                 {"type": "tool_call", "toolCallId": "a", "rawInput": {"command": "python3 x/shiploop complete --run-dir r"}},
