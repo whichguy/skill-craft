@@ -632,7 +632,7 @@ under /Users/dadleet/shiploop-e2e-runs/.
 
 Run `/Users/dadleet/e2e-runs/20261003/v1161-battleship-luna`, Codex gpt-6-luna max, marketplace skill-craft 1.16.1 (ShipLoop 0.48.1), `--timeout 36000`.
 
-- The run passed the stage that ended the 1.16.0 run: the plan stage closed as done (39.2 min) and the run reached `prepare` at revision 12,
+- The run passed the stage that ended the 1.16.0 run: the plan stage closed as done (39.2 min by the harness's stage-minutes metric; superseded 2026-10-04: accept timestamps give 196 min, see "Backchain ledger" below) and the run reached `prepare` at revision 12,
   about 6h25m in (1.16.0: blocked at plan, revision 12, 4h51m). Hello on Sonnet 5.5 also passed on 1.16.1 (143 turns, $3.30, 0 failures).
 - Improve contracts: the model wrote its openings inside the printed allowance on the first try for spec (8,775 bytes of 9,216; the
   1.16.0 contracts were 11.9, 12.1 and 15.7 KB) and in three rounds for test-strategy (12,478 -> 10,005 -> accepted at 8,960): the
@@ -647,3 +647,35 @@ Run `/Users/dadleet/e2e-runs/20261003/v1161-battleship-luna`, Codex gpt-6-luna m
   section's own byte size.
 - Glue stayed at 2 (the model-built Backchain contract and its helper), unchanged in nature; whether a script should write that contract
   remains a design question (the budget guidance made the model-built one safe).
+
+### Backchain ledger — Luna max battleship, 1.16.1 — 2026-10-04 — status: interim (run still active; the carry-forward and product-acceptance loops are not reached yet)
+
+Question: what did the two Backchain loops add, and what did they cost? Evidence: `scratch/backchain-plan/` and `scratch/backchain-step-plan/`
+in `/Users/dadleet/e2e-runs/20261003/v1161-battleship-luna/.shiploop-runs/work-20261003-225401-173a04/run/` (`review-records/`, `backchain-result.md`,
+`until-loop-receipt.json`, `candidate-plan.json`, `generator-draft.json`) and `timeline.json` accept timestamps. Times below come from file and accept
+timestamps, so they are approximate (run clock UTC-7). The same ledger, with per-pass verdicts the owner can change, is on the run review artifact
+(`https://claude.ai/artifact/BFc6JGjLhENVJ9shRAA2iA`, private); this entry is the durable copy.
+
+| Stage (accept to accept) | Total | Gather | Draft + elaborate | Passes | Write result | Improve review |
+| --- | --- | --- | --- | --- | --- | --- |
+| plan | 196 min | 25 | 20 | 103 (7 passes: 11, 15, 26, 18, 17, 12, 4) | 4 | 44 |
+| step-plan (W1) | 188 min | 28 | 16 | 107 (4 passes: 42, 55, 6, 4) | 13 | 24 |
+
+- Backchain stages are 384 of 969 min (40%) at the snapshot; the loops' own passes are 210 min (22%).
+- **Added value (clear):** plan passes 1-4 found six real graph defects in 70 min (F-1 wrong supplier edge S6 from S4; F-2 duplicate-once and mutation
+  order of the API; F-3 browser recovery output; F-4 S2 confirmation inspect -> execute; F-5 no inspection of the dependency files; F-6 non-deterministic S11
+  confirmation). Step-plan passes 1-2 found four omissions in 97 min (F-01 rejection tests and docstrings; F-02 style note; F-03 README and local-skill fit;
+  F-04 effort/benefit comparison), all against what the parent step-plan packet itself requires.
+- **Wasted (clear):** plan pass 5 (17 min, F-7) was a stale source label in Backchain's own scratch metadata; it reset the clean streak. No product impact seen.
+- **Confirming passes:** plan 6-7 and step-plan 3-4 found nothing by design (two clean passes required): 26 min. Whether they ever prevented anything is unknown.
+- **Repeated work:** half of each graph is one "independently confirmed" step per acceptance criterion (plan S11-S20, step-plan S8-S17), planned twice by the model for
+  the same item; elaboration doubled the 10-step generator draft to 20 steps before pass 1.
+- **Not used by the script:** the 20-step plan graph was handed to ShipLoop as one work item with an empty `parallel_groups`; the result states its structure is
+  "unknown because no deterministic validation receipt exists" (ids, references, acyclicity and sinks were checked by the model; a duplicate id S20 was caught only by that check).
+- **A gap after both loops:** the W1 item plan was revised during build so SYS-PORT-09 checks the sanitized child PORT separately from its readiness probe port. One
+  instance; whether the spec or sources already showed it is not established.
+- **Not established:** whether the loops prevented later failures. No comparison exists: Sonnet starts no Backchain loop (plan accepted in 0.2 min) and the models differ.
+- **Harness finding (supersedes the "39.2 min" plan figure above):** the harness's stage minutes move time between stages. Accept timestamps give test-strategy 94 min and
+  plan 196 min; the harness reports 224 and 39. Totals agree within 5 min (385 and 380 through plan), so only the attribution is wrong.
+- Candidates, none built: a script writes and validates the Backchain graph; the script emits the per-criterion verification steps from the spec; a controlled comparison
+  (loops on versus a script-validated plan with no review loop, same model and case); harness stage minutes from the script's own timestamps.
