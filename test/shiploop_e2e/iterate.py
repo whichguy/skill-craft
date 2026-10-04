@@ -10,7 +10,9 @@ Each iteration, in a dedicated worktree of this repository:
              (script-owned SDLC navigation) count
   4. record  append the run and review to test/shiploop_e2e/LEARNINGS.md and
              commit it with a detailed message: what was learned, key findings
-             and considerations. That history is what the next iteration reads
+             and considerations. That history is what the next iteration reads.
+             The same commit adds the run's compact Run Review export as
+             test/shiploop_e2e/evidence/<run key>.json
   5. improve a headless agent applies those findings to skills/shiploop in the
              worktree, adds a change note and commits
   6. verify  the harness itself checks the commit's scope and runs the quick
@@ -182,8 +184,31 @@ def learnings_message(index: int, args, sha: str, result: dict, verdict: dict, p
     return "\n".join(lines) + "\n"
 
 
+REVIEW_README = "skills/shiploop-e2e-audit/run-review/README.md"
+
+
+def review_evidence(worktree: Path, stage: Path) -> str | None:
+    """Copy the run's compact Run Review export to test/shiploop_e2e/evidence/<run key>.json.
+
+    Returns the repository path, or None when the run left no readable export (run.py reports why).
+    """
+    try:
+        bundle = stage / "run" / "review-export" / "review-export.json"
+        text = bundle.read_text()
+        keys = list(json.loads(text)["docs"]["runs"])
+        if len(keys) != 1 or not keys[0] or "/" in keys[0] or keys[0].startswith("."):
+            return None
+    except (OSError, ValueError, KeyError, TypeError):
+        return None
+    relative = f"test/shiploop_e2e/evidence/{keys[0]}.json"
+    (worktree / relative).parent.mkdir(parents=True, exist_ok=True)
+    (worktree / relative).write_text(text)
+    return relative
+
+
 def record_learnings(worktree: Path, message: str, stage: Path) -> str:
-    """Append the iteration's message to LEARNINGS.md in the worktree and commit it."""
+    """Append the iteration's message to LEARNINGS.md in the worktree and commit it, with the run's
+    compact Run Review export when the run left one."""
     path = worktree / "test" / "shiploop_e2e" / "LEARNINGS.md"
     subject, _, body = message.partition("\n\n")
     body = body.split("\nCo-Authored-By:", 1)[0].rstrip()
@@ -191,7 +216,8 @@ def record_learnings(worktree: Path, message: str, stage: Path) -> str:
     with path.open("a") as out:
         out.write(f"\n## {heading}\n\n{body}\n")
     (stage / "learnings-commit.txt").write_text(message)
-    git(worktree, "add", "test/shiploop_e2e/LEARNINGS.md")
+    evidence = review_evidence(worktree, stage)
+    git(worktree, "add", "test/shiploop_e2e/LEARNINGS.md", *([evidence] if evidence else []))
     git(worktree, "commit", "-q", "-F", str(stage / "learnings-commit.txt"))
     return git(worktree, "rev-parse", "--short", "HEAD")
 
@@ -273,6 +299,7 @@ def main(argv: list[str] | None = None) -> int:
         verdict = reviewer.review(stage / "run", host=args.host, model=args.model, effort=args.effort,
                                   skill_root=worktree / "skills" / "shiploop", prior_learnings=prior_learnings)
         recorded = record_learnings(worktree, learnings_message(index, args, sha, result, verdict, prior), stage)
+        print(f"== iteration {index}: update the Run Review page: see {REVIEW_README}", flush=True)
         findings = verdict["actionable"]
         rejected = [f.get("title") for c in reviewer.CATEGORIES for f in verdict.get(c) or []
                     if isinstance(f, dict) and f.get("preserves_premise") is False]
