@@ -35,6 +35,7 @@ SHIPLOOP_DIRECT_SUBCOMMANDS = frozenset(
         "delegation",
         "lint-mode",
         "lint",
+        "backchain-check",
         "improve-bind",
         "improve-start",
         "improve-commit",

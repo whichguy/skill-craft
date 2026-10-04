@@ -1,4 +1,4 @@
-# ShipLoop navigator 0.50.0
+# ShipLoop navigator 0.51.0
 
 ShipLoop's invoking conversation owns navigation, acceptance and delivery. New
 runs record `delegation: inline`, so that conversation also executes every
@@ -932,6 +932,7 @@ shiploop halt     --run-dir RUN --reason=TEXT
 shiploop delegation --run-dir RUN --set=inline|ask-agent   # from the next issued action
 shiploop lint-mode --run-dir RUN --set=fix|report|off      # later lint passes
 shiploop lint     --run-dir RUN --action ACTION [--show --part N [--rerun N | --gate N]]   # report-only rerun
+shiploop backchain-check --candidate PLAN.json [--run-dir RUN]   # record-only Backchain graph check
 # Implementation chains within the current implement action (ask-agent runs)
 shiploop chain {bind,planning-inputs,next,history,pending,claim,start,launched,import-handoff,prepare,done,retry,packet,cleanup,finish} ...
 # Keepalive (see references/keepalive.md)
@@ -956,6 +957,12 @@ clean, 1 with new findings or an uncovered file, 3 when it could not run, and
 ShipLoop never gates on that exit code. The implement gate runs its own pass on
 `complete`. See
 [lint catalog](references/lint-catalog.md).
+`backchain-check` checks a Backchain candidate plan, packaged first, against
+Backchain's seven structural invariants (a Python port of its reference
+validator). It prints a JSON receipt, writes it and a snapshot of the checked
+bytes under `RUN/backchain/<action>/` (the run is found from the working
+directory without `--run-dir`), exits 0 valid, 1 invalid, 3 could not run, and
+never gates.
 `graph-dry-run --list` prints the scenarios;
 `--delegation` selects the simulated route (inline by default). See
 [graph dry runs](references/graph-dry-run.md).

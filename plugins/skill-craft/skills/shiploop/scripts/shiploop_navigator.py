@@ -2958,14 +2958,27 @@ def render(core: Any, root: Path, state: Mapping[str, Any],
             + str(reference_dir / "backchain-planning.md")
             + "#navigator-planning"
         )
-        lines.append(
-            "Selected Backchain and Until Loop resources "
-            "(resolved by ShipLoop from its installed plugin):"
-        )
-        lines.extend(
-            f"  {label}: {path}"
-            for label, path in guidance.resolved_backchain_resources()
-        )
+        resources = guidance.resolved_backchain_resources()
+        if stage in guidance.BACKCHAIN_NATIVE_CALLS and not state.get("active_improve"):
+            # Only the stage that may start a whole loop selects its full resource set.
+            lines.append(
+                "Selected Backchain and Until Loop resources "
+                "(resolved by ShipLoop from its installed plugin):"
+            )
+            lines.extend(f"  {label}: {path}" for label, path in resources)
+        else:
+            audit_resource = dict(resources)[guidance.BACKCHAIN_AUDIT_RESOURCE]
+            lines.append(f"Backchain audit resource (backchain-caller/v1 contract; operation review/audit): {audit_resource}")
+            if not state.get("active_improve"):
+                # S-5: the script reports what the host would otherwise have to check by hand.
+                missing = [label for label, path in resources if path.startswith("MISSING:")]
+                lines.append("Loop resources for a repair/revise request, under "
+                             + str(guidance.backchain_skills_root()) + ": "
+                             + ("MISSING: " + ", ".join(missing) if missing else "all present"))
+        if state["status"] == "active" and not state.get("active_improve"):
+            lines.append("Backchain graph check: " + shlex.join(
+                ["python3", _command(core), "backchain-check", "--run-dir", str(root), "--candidate"])
+                + " <your candidate file>")
     if stage in ("plan", "select-work", "carry-forward"):
         lines.append("Full ordered work queue: " + str(root / "state.md") + "; field work_items.")
         child = state.get("active_improve")
@@ -4107,8 +4120,10 @@ def _improve_start(core: Any, root: Path, state: Mapping[str, Any], args: Any) -
     contract = improve_start_contract(core, root, state, opening.read_text(encoding="utf-8"))
     # Refuse here, before anything is written or archived: a contract that fills the runtime's state file
     # leaves no room for the first review report, and that is only discovered after the review is done.
-    problem = loop_contract.size_problem(contract, writable=OPENING_CONTRACT_PARTS,
-                                         allowance=improve_opening_allowance(core, root, state))
+    opening_text = opening.read_text(encoding="utf-8")
+    problem = loop_contract.size_problem(
+        contract, writable=OPENING_CONTRACT_PARTS, allowance=improve_opening_allowance(core, root, state),
+        sizes={name: loop_contract.text_bytes(body) for name, body in _opening_sections(opening_text).items()})
     _need(problem is None, problem or "")
     if restart:
         # Keep the stopped child's packet and evidence; the new child writes its own.

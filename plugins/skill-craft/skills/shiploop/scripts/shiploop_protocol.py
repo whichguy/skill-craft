@@ -342,6 +342,9 @@ def main(core, argv=None):
     if raw_argv and raw_argv[0] == "lint":
         import shiploop_lint
         return shiploop_lint.main(core, raw_argv[1:])
+    if raw_argv and raw_argv[0] == "backchain-check":
+        import shiploop_backchain_graph
+        return shiploop_backchain_graph.main(core, raw_argv[1:])
     parser = argparse.ArgumentParser(
         prog="shiploop",
         description="Markdown-authoritative, script-navigated session harness",
@@ -351,6 +354,7 @@ def main(core, argv=None):
     subs.add_parser("workspace", help="isolated start, return-plan review, and guarded return")
     subs.add_parser("chain", help="bind and operate a parallel or serial chain within the current implementation action")
     subs.add_parser("lint", help="advisory lint rerun for the current action, or show a stored record part (never gates)")
+    subs.add_parser("backchain-check", help="record-only Backchain graph check of a candidate plan file (never gates)")
     subs.add_parser("hook-status", help="read-only JSON: can this run still move (for keepalive hooks and the driver)")
     navigator_dry_run.add_arguments(subs.add_parser(
         "graph-dry-run", help="inspect navigator routes and prompts without project work"))

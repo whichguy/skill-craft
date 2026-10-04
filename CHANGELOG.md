@@ -4,6 +4,21 @@ Written by scripts/release.py.
 
 ## 2026-10-04
 
+### skill-craft 1.19.0
+
+- Skills: shiploop 0.51.0, shiploop-e2e-audit 0.6.0
+
+### shiploop 0.51.0
+
+- New `shiploop backchain-check --candidate PATH`: checks a Backchain candidate plan against Backchain's seven structural invariants (a Python port of Backchain's reference validator, packaged first) and records a receipt and a snapshot under the run's `backchain/<action>/`. Backchain stages tell the host to run it after each candidate revision and to treat a failure as a loop finding; nothing is refused.
+- Every stage that can start a Backchain Until Loop child now states the contract size budget (the plan stage and the repair/revise route at spec, step-plan, carry-forward and product-acceptance), and an `improve-start` refusal lists each opening section's own byte size beside the bytes the sections may use. A GPT-6 Luna run built an 11.9 KB step-plan Backchain contract because only the plan stage carried the budget, and the refusal had compared whole contract fields with a per-section allowance.
+- The Backchain loop text and the Backchain and Until Loop resource list now print only at the plan stage, where a whole loop may start. Spec, step-plan, carry-forward and product-acceptance print the read-only audit route, the audit resource and one line saying whether the files a repair/revise request needs are all present or which are missing; the identity and digest instructions restated at plan and the Improve-owner text are shorter. Prompt text only: no command, state field or exit rule changes.
+
+### shiploop-e2e-audit 0.6.0
+
+- The Grok adapter credits ShipLoop's new `backchain-check` verb as a direct ShipLoop command.
+- Adds the Run Review page: a static template with its data contract, starting defaults and an exporter, so every E2E iteration can add the run's data to the owner's page without redoing the template.
+
 ### skill-craft 1.18.0
 
 - Skills: plan-dispatcher 0.6.1, shiploop 0.50.0

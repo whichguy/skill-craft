@@ -1832,15 +1832,21 @@ BACKCHAIN_NATIVE_CALLS = {
 BACKCHAIN_AUDIT_STAGES = BACKCHAIN_STAGES - set(BACKCHAIN_NATIVE_CALLS)
 
 
+# The resource the read-only audit needs (the `backchain-caller/v1` contract); the other six serve a whole loop.
+BACKCHAIN_AUDIT_RESOURCE = "Backchain backchain-caller/v1 resource"
+
+
+def backchain_skills_root() -> Path:
+    """The skills directory of this plugin install: where Backchain and the Until Loop adapter sit."""
+    return Path(__file__).resolve().parent.parent.parent
+
+
 def resolved_backchain_resources() -> tuple[tuple[str, str], ...]:
     """Resolve the fixed Backchain/Until Loop resources from this plugin install."""
-    skills_root = Path(__file__).resolve().parent.parent.parent
+    skills_root = backchain_skills_root()
     resources = (
         ("Backchain SKILL.md", "backchain/SKILL.md"),
-        (
-            "Backchain backchain-caller/v1 resource",
-            "backchain/references/caller-contract.md",
-        ),
+        (BACKCHAIN_AUDIT_RESOURCE, "backchain/references/caller-contract.md"),
         ("Backchain references/convergence.md", "backchain/references/convergence.md"),
         (
             "Backchain prompts/convergence-review.prompt.md",
@@ -1884,68 +1890,74 @@ def _backchain_contract_budget() -> str:
     )
 
 
-def _backchain_guidance(stage: str, *, improve_owner: bool = False) -> str:
-    """Return host-mediated caller guidance without adding navigator state."""
-    selection = """\
+# Record only: the navigator prints the command; nothing refuses a failing check.
+BACKCHAIN_CHECK = ("Run the printed `backchain-check` after each candidate revision; a failure is a loop finding; "
+                   "cite its receipt in `evidence_refs`.\n")
+
+
+_BACKCHAIN_ROUTE = """\
 Follow the packet's Backchain planning guide for this stage's scoped outcome,
 prerequisite and consumer review. Carry selected requirement sections and test
 locators through the plan and existing result/context fields. The only Backchain
 call route is `source-aware-native`; ShipLoop carries no embedded Backchain mode.
 
-A `source-aware-native` call is allowed only when the packet's printed
-"Selected Backchain and Until Loop resources" block below lists all required
-resources. That block is the selection for this action/stage: ShipLoop resolves
-and prints the Backchain and Until Loop files from its own installed plugin,
-including Backchain `SKILL.md`, the `backchain-caller/v1` resource in
-`references/caller-contract.md`, `references/convergence.md`,
-`prompts/convergence-review.prompt.md`, and the Until Loop `ADAPTER.md`,
-`references/runtime-ephemeral.md`, and `scripts/until_loop_ephemeral.py`.
-Any entry printed as `MISSING: ...` blocks this route for that specifically named
-missing resource; identify that resource as the blocker instead of calling the
-route only unverifiable. Read the Backchain convergence resources and verify each
-selected identity and capability before use. They must support the direct
-natural-language handoff under
-`Backchain standalone Until Loop binding: <binding-id>` for a plan-only child where the
-actual loaded Until Loop card starts its adapter, is the sole CLI caller, and returns the
-exact terminal packet. Caller/v1 alone is insufficient; an observed old custom Backchain
-loop is incompatible even when an Until Loop package is installed. Do not guess a sibling,
-cache, or ambient package, or substitute a different Backchain/Until Loop install than the
-one printed in this packet. A stale, ambiguous, or incompatible selected resource leaves
-the request incomplete/blocked with its recovery locator; there is no silent fallback.
-This is host-judged semantic compatibility; the navigator does not machine-enforce it.
-
-Preserve selected Backchain/Until Loop identities, original source/candidate identities,
-resolved bases/locators, protected bounds, action ID/owner, exact
-`Backchain standalone Until Loop binding: <binding-id>`, and receipt locations in
-ordinary run notes, `evidence_refs`, and necessary work-item `context`. Backchain passes
-dependency-specific review/fix/check work, plan candidate files, source/lens context,
-and protected bounds to Until Loop. ShipLoop records opaque actual Until Loop terminal
-evidence and Backchain domain evidence:
-binding_id, owner, candidate input/output digests, resolved resources, opaque
-`terminal_receipt`, domain_evidence, planning_gaps, execution_blockers, and
-next_action. It does not interpret child runtime progress, own a counter, schedule
-retries, or claim completion from an intermediate candidate. A structural plan, planned check,
-or experiment that merely ran is not execution evidence or a passed experiment.
-Material findings remain visible and cannot clear ordinary Improve.
+"""
+# Printed only where a whole loop may start (plan): the resource gate, the record rules, the child's scope.
+_BACKCHAIN_PLAN_CALL = """\
+A `source-aware-native` call needs every resource in the packet's printed
+"Selected Backchain and Until Loop resources" block below. A `MISSING: ...` entry
+blocks the route for that named resource: report it as the blocker, not as
+unverifiable, and never substitute a sibling, cache or other install. Record the
+binding id, candidate and receipt paths in `evidence_refs` and work-item `context`.
+A structural plan, planned check, or experiment that merely ran is not execution
+evidence or a passed experiment. Material findings remain visible and cannot clear
+ordinary Improve. The planning guide's Source-aware native caller section holds the
+capability check the host judges, the incompatibility of an old custom Backchain
+loop, and the no-fallback rule.
 
 The Until Loop child is plan-only when invoked by Backchain for dependency analysis:
 it may change the candidate plan and permitted planning companions, but may not
 commit, push, merge, execute the project, or broaden scope. These restrictions
 belong to that Backchain child, not the separate Improve executor's authority.
+
 """
+_BACKCHAIN_AUDIT = """\
+Request action `review` / stage `audit` only for a material prerequisite
+ambiguity, pending/corrective dependency or acceptance gap: a read-only, one-pass
+diagnostic that changes no candidate and completes no parent action. A material
+finding goes to the stage owner, who within explicit authorized edit bounds may
+request exactly one action `repair` / stage `revise`, a whole native operation
+that needs the loop resources named in the planning guide's Source-aware native
+caller section (the packet's "Loop resources" line reports them) and keeps its
+start contract within the budget below. A whole `plan`/`draft` is requested only
+at `plan`. A MISSING loop resource blocks repair/revise; no other install
+substitutes. A forbidden revision, nonterminal child or unresolved finding stays
+incomplete and is not submitted as a completed parent action.
+"""
+_BACKCHAIN_IMPROVE_OWNER = """\
+Improve is an independent broader review. It reads Backchain findings and the
+returned candidate as ordinary inputs; it does not request or count Backchain
+passes, and creates no `active_backchain` child, nested Until Loop, retry
+dispatcher or new callback. For a dependency diagnostic use a one-pass Backchain
+primitive, never a whole Backchain→Until Loop child. A Backchain child is
+plan-only (no commit, push, merge or project execution). These restrictions
+belong to that Backchain child, not the separate Improve executor's authority.
+A protected or out-of-scope change follows the existing blocked or recovery route.
+"""
+
+
+def _backchain_guidance(stage: str, *, improve_owner: bool = False) -> str:
+    """Return host-mediated caller guidance without adding navigator state.
+
+    The loop text and the resource gate are printed only at the stage that may start a whole loop (plan);
+    the other Backchain stages print the read-only audit route and the rule that a material finding may
+    request one repair/revise (the budget stays there: that request starts a loop).
+    """
     if improve_owner:
-        return selection + """\
-Improve remains an independent broader review. It may inspect Backchain findings
-and the returned candidate as ordinary parent inputs, but it does not request
-Backchain passes, count them, or make a Backchain completion claim. Do not create
-an `active_backchain` child, a nested Until Loop, a retry dispatcher, or a new
-callback; a protected/out-of-scope change follows the existing blocked or
-recovery route. If a dependency diagnostic is relevant, use a one-pass Backchain
-primitive; do not start a whole Backchain→Until Loop child.
-"""
+        return _BACKCHAIN_ROUTE + _BACKCHAIN_IMPROVE_OWNER
     if stage in BACKCHAIN_NATIVE_CALLS:
         action, operation = BACKCHAIN_NATIVE_CALLS[stage]
-        return selection + _backchain_contract_budget() + f"""\
+        return _BACKCHAIN_ROUTE + _BACKCHAIN_PLAN_CALL + _backchain_contract_budget() + f"""\
 Through `source-aware-native`, the current stage host may
 request exactly one action `{action}` / stage `{operation}` within the packet's
 scope. Backchain invokes the selected actual Until Loop for its dependency-specific
@@ -1960,22 +1972,10 @@ child leaves this parent action incomplete and must not be submitted as a comple
 action. Only that exact `complete` receipt plus final candidate identity and domain evidence
 permits Backchain planning convergence. The draft is a proposed candidate; ShipLoop still owns
 acceptance and lifecycle state.
-"""
+""" + BACKCHAIN_CHECK
     if stage in BACKCHAIN_AUDIT_STAGES:
-        return selection + """\
-At this stage, request action `review` / stage `audit` only for a material
-prerequisite ambiguity, pending/corrective dependency, or acceptance gap. Audit
-is a read-only, one-pass diagnostic: it does not mutate a candidate, converge a
-plan, replace consumer verification, or complete the parent action. If it reports
-a material finding, route that finding to the current stage owner. Within explicit
-authorized edit bounds, that owner may request exactly one action `repair` / stage
-`revise`; it is another whole native Backchain operation with a dependency-specific
-review/fix/check cycle in the selected actual Until Loop. Audit itself remains read-only
-and does not start that child. A forbidden revision, nonterminal child, unresolved finding, or
-incompatible selected package remains incomplete and must not be submitted as a
-completed parent action.
-"""
-    return selection + """\
+        return _BACKCHAIN_ROUTE + _BACKCHAIN_AUDIT + BACKCHAIN_CHECK + "\n" + _backchain_contract_budget().rstrip("\n") + "\n"
+    return _BACKCHAIN_ROUTE + """\
 This stage has no native Backchain action. Keep relevant findings in ordinary
 notes and route a material planning gap through its authorized owner.
 """

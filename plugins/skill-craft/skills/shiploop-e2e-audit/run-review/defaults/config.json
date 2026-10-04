@@ -1,0 +1,11 @@
+{
+ "page": {
+  "title": "ShipLoop Run Review",
+  "artifactUrl": ""
+ },
+ "prompt": {
+  "concatPreamble": "Do these in order, each as a small verified increment.",
+  "constraints": "Small verified increments; test only what changed; journal findings with the commit; no engine change mid-run unless fatal; adversarial review before any release.",
+  "closing": "Say for each increment whether the evidence changes the engine or our expectation; if the expectation, propose the new wording and why."
+ }
+}

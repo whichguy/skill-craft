@@ -5,7 +5,7 @@ description: >-
   script's current action packet, and submit its exact completion call until
   the script reports completion with an HTML achievement report. Use when the
   user says shiploop, ship the project, or requests a durable delivery loop.
-version: 0.50.0
+version: 0.51.0
 allowed-tools: all
 license: MIT
 platforms:
@@ -987,6 +987,13 @@ only a one-pass Backchain primitive for a relevant diagnostic.
 
 The Until Loop child is plan-only: it may change the candidate plan and permitted planning
 companions, but may not commit, push, merge, execute the project, or broaden scope.
+
+Graph check (record only): a Backchain stage's packet prints
+`python3 "$CLI" backchain-check --run-dir "$RUN_DIR" --candidate <your candidate file>`.
+It checks the candidate, packaged first, against Backchain's seven structural invariants,
+prints a JSON receipt and writes it with a snapshot of the checked bytes under
+`backchain/<action>/`; exit 0 valid, 1 invalid, 3 could not run. Treat a failure as a
+loop finding and cite the receipt in `evidence_refs`; nothing is refused.
 
 
 Use the selected card only when it and the contract/resource are observed and
