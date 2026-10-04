@@ -56,12 +56,14 @@ A Grok session that ends while the ShipLoop run is still active is resumed
 stream, arrival timeline, stderr, metrics.json and result.json in a new
 output directory outside the checkout.
 
---resume-run on a run whose ShipLoop is already done (a regrade) starts no host. It
-restates the run's own last record (result.json, else invocation.json): host, model,
-effort, plugin verdict and the process block, whatever --host, --model or --effort
-say, and grades ShipLoop, the checkout and the checks again. A host that failed
-stays failed; a run with no record of its exit says "not observed" and leaves the
-process verdict out of the result.
+--resume-run on a run whose ShipLoop is already done or blocked (a regrade) starts no
+host. It restates the run's own last record (result.json, else invocation.json): host,
+model, effort, plugin verdict and the process block, whatever --host, --model or
+--effort say, and grades ShipLoop, the checkout and the checks again. A host that
+failed stays failed; a run with no record of its exit says "not observed" and leaves
+the process verdict out of the result. A blocked run waits for a person (SPEC S-14), so
+it is never resumed as if answered: it is only graded again, which refreshes its
+metrics.json and result.json. An active run is a real resume.
 This launches a real model and costs money; it is never part of default CI.
 
   python3 test/shiploop_e2e/run.py --case battleship
@@ -946,7 +948,9 @@ def parser() -> argparse.ArgumentParser:
     p.add_argument("--resume-run", type=Path,
                    help="an earlier run's output directory whose ShipLoop run stopped while active (a host ran "
                         "out of credits, a machine slept): continue that same run in place, on --host, and grade "
-                        "it as usual. The case and checks come from the earlier run.")
+                        "it as usual. The case and checks come from the earlier run. A run that is already "
+                        "done or blocked is only graded again (a regrade): no host starts, so its metrics.json "
+                        "and result.json are refreshed and a blocked run is not resumed as if answered.")
     p.add_argument("--continue-from", type=Path,
                    help="an earlier run's output directory: start in a copy of its source checkout "
                         "(required by follow-on cases, which name the case they follow)")
@@ -1388,9 +1392,12 @@ def main(argv: list[str] | None = None) -> int:
         work = out / "work"
         state = grade_shiploop(out)
         # A run that finished while no harness was watching (its parent was killed) is graded again, not resumed.
-        regrade = state.get("status") == "done"
+        # So is a blocked run: it waits for a person (SPEC S-14), so no host may continue it as if answered,
+        # but its metrics and verdicts can be refreshed from what is on disk.
+        regrade = state.get("status") in ("done", "blocked")
         if state.get("status") != "active" and not regrade:
-            raise SystemExit(f"--resume-run needs an active or finished ShipLoop run; found {state.get('status')!r} in {out}")
+            raise SystemExit(f"--resume-run needs an active, blocked or finished ShipLoop run; found "
+                             f"{state.get('status')!r} in {out}")
         try:
             earlier_result = json.loads((out / "result.json").read_text())
         except (OSError, ValueError):
@@ -1506,7 +1513,7 @@ def main(argv: list[str] | None = None) -> int:
 
     deadline = time.time() + args.timeout
     if regrade:
-        # ShipLoop already reached done: no host is started, and the verdicts are computed from what is on disk.
+        # ShipLoop is done or blocked: no host is started, and the verdicts are computed from what is on disk.
         process = regraded_process(earlier_result.get("process"))
     else:
         interrupt_file = out / "interrupt.json"

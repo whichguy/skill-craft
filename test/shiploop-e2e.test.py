@@ -1639,7 +1639,7 @@ class CodexRunTest(HarnessCase):
         code, finished = self.invoke("grok", "done")
         self.assertEqual(code, 0)
         with mock.patch.object(run, "grade_shiploop", return_value={"status": "paused"}):
-            with self.assertRaisesRegex(SystemExit, "needs an active or finished ShipLoop run"):
+            with self.assertRaisesRegex(SystemExit, "needs an active, blocked or finished ShipLoop run"):
                 run.main(["--host", "codex", "--codex-bin", str(self.fakes["codex"]),
                           "--resume-run", finished["output"], "--plugin-dir", str(self.plugin)])
 
@@ -2218,6 +2218,35 @@ class ResumedRunRecordTest(PrintedCase):
         self.assertEqual(t["resume_stop"], "resume budget spent (0)")
         self.assertEqual(t["engine_status_at_regrade"], "done")
         self.assertIn("the original record, regraded with engine done", printed)
+
+    def block_out_of_band(self, out: Path) -> None:
+        """The run's engine blocked itself on a question for a person, as Luna's did, with no report written."""
+        shutil.rmtree(out / "work" / ".shiploop")
+        (out / "work" / ".shiploop").mkdir()
+        run.store.write_record(out / "work" / ".shiploop" / "state.md",
+                               {"status": "blocked", "stage": "test-refine", "status_reason": "waiting for a person"})
+
+    def test_a_blocked_run_is_regraded_without_a_host_and_keeps_the_recorded_identity(self):
+        out = self.stopped_run()
+        recorded = json.loads((out / "result.json").read_text())
+        self.block_out_of_band(out)
+        self.log.unlink(missing_ok=True)
+        result, printed = self.regrade(out, "--host", "codex", "--codex-bin", str(self.fakes["codex"]))
+        self.assertFalse(self.log.exists(), "no host process was started for a blocked run")
+        self.assertTrue(result["process"]["regraded"])
+        self.assertEqual((result["host"], result["model"], result["effort"]),
+                         (recorded["host"], recorded["model"], recorded["effort"]),
+                         "a regrade restates the run's recorded host, model and effort, not --host")
+        t = result["termination"]
+        self.assertEqual((t["regraded"], t["engine_status_at_regrade"]), (True, "blocked"))
+        self.assertIn("the original record, regraded with engine blocked", printed)
+        self.assertFalse(result["shiploop"]["pass"], "a blocked run never reached done")
+        self.assertEqual(result["shiploop"]["status"], "blocked")
+        self.assertIn("metrics", result, "the regrade refreshed the metrics block")
+        self.assertTrue((out / "metrics.json").is_file())
+        self.assertEqual(len(list(out.glob("invocation-resume-*.json"))), 1)
+        rows = self.baselines.read_text().splitlines() if self.baselines.exists() else []
+        self.assertEqual(len(rows), 1, "only the original run writes a baseline row; a regrade does not")
 
     def test_a_regrade_with_no_record_says_no_host_ran_and_fabricates_no_exit(self):
         out = self.stopped_run()
