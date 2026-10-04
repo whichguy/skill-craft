@@ -222,8 +222,13 @@ def session_stop(event: dict) -> str | None:
     """
     detail = event.get("error") if isinstance(event.get("error"), str) else None
     if event.get("is_error") is True or detail:
-        why = " ".join(str(p) for p in (event.get("terminal_reason"), event.get("api_error_status")) if p)
-        said = detail or (event.get("result") if isinstance(event.get("result"), str) else "")
+        # An error result with no terminal reason still names its subtype (error_max_turns, error_during_execution)
+        # and, in the SDK's documented shape, its first entry in `errors`.
+        subtype = event.get("subtype") if isinstance(event.get("subtype"), str) and event["subtype"] != "success" else None
+        why = " ".join(str(p) for p in (subtype, event.get("terminal_reason"), event.get("api_error_status")) if p)
+        errors = event.get("errors") if isinstance(event.get("errors"), list) else []
+        said = detail or (event.get("result") if isinstance(event.get("result"), str) else "") or \
+            (errors[0] if errors and isinstance(errors[0], str) else "")
         bits = [b for b in (why, " ".join(said.split())[:100]) if b]
         return "error" + (": " + ": ".join(bits) if bits else "")
     reason = event.get("stopReason") or event.get("subtype")

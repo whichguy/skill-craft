@@ -2707,5 +2707,23 @@ class SuiteTmpCheckHostTest(HarnessCase):
 
 
 
+class SessionStopSubtypeTest(unittest.TestCase):
+    """An error result keeps the subtype the host named, so a turn or budget limit is not a bare 'error' (review 2)."""
+
+    def test_an_error_subtype_is_kept_with_its_first_listed_error(self):
+        stop = metrics.session_stop({"type": "result", "subtype": "error_max_turns", "is_error": True,
+                                     "errors": ["Reached maximum number of turns (3)"]})
+        self.assertEqual(stop, "error: error_max_turns: Reached maximum number of turns (3)")
+        self.assertEqual(metrics.session_stop({"type": "result", "subtype": "error_during_execution", "is_error": True}),
+                         "error: error_during_execution")
+        budget = {"type": "result", "subtype": "error_max_budget_usd", "is_error": True, "terminal_reason": "max_budget"}
+        self.assertEqual(metrics.session_stop(budget), "error: error_max_budget_usd max_budget")
+
+    def test_a_success_subtype_with_an_api_error_does_not_repeat_success(self):
+        stop = metrics.session_stop({"type": "result", "subtype": "success", "is_error": True,
+                                     "terminal_reason": "api_error", "result": "API Error: rate limit"})
+        self.assertEqual(stop, "error: api_error: API Error: rate limit")
+
+
 if __name__ == "__main__":
     unittest.main()
