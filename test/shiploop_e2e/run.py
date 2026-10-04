@@ -1483,7 +1483,8 @@ def main(argv: list[str] | None = None) -> int:
         session_id = last_session_id(out / "events.jsonl")
         remaining = int(deadline - time.time())
         # No run yet means the session ended before ShipLoop wrote its state; a
-        # run that is paused, blocked, awaiting, halted or done is not resumed.
+        # run that is paused, blocked, halted or done is not resumed. (A question
+        # waiting for a person is a view of blocked, not a status of its own.)
         # Each reason is recorded, because "why did this run stop?" is answerable
         # only here: the engine is not running when its host goes away.
         if state.get("status") not in ("active", None):
