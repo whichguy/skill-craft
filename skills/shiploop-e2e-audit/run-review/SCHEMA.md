@@ -74,8 +74,8 @@ sum to it. A hand-set verdict is interim; the default for an unjudged pass is `u
 looking), `expect`, `observed`, `verdict` (`pending`, `confirmed`, `partly`, `refuted`), `touches` (criterion keys),
 `ifConfirmed`, `ifRefuted`, `next`, `engineChange`, `observedAt`.
 
-**`config/page`**: `title`, `artifactUrl`. **`config/prompt`**: `synthPreamble`, `concatPreamble`, `constraints`, `closing`.
-The page falls back to a one-line default for each prompt string when the document is missing.
+**`config/page`**: `title`, `artifactUrl`. **`config/prompt`**: `concatPreamble`, `constraints`, `closing`.
+The page builds the planning sentence itself and falls back to a one-line default for each prompt string when the document is missing.
 
 ## Writes
 
