@@ -348,8 +348,12 @@ reached again: `retry` the attempt with `confirmed_stopped: false`, `native_stat
 "unavailable"` and a reason naming the lost session. The retry keeps the old
 workspace and receipt as evidence, refuses any later callback for that attempt,
 and makes the step claimable for a fresh worker; chain finish lists the kept
-workspace. A handle that may still belong to a live session in this host is not
-lost: keep waiting for it. Continue other safe ready work within remaining
+workspace. This relies on native workers ending with their host session. Each
+attempt's managed worktree keeps the code apart, but a step that holds something
+outside it (a port, a database, a deployment) could collide with its replacement if
+the old worker were still running; for such a step, wait for proof that it stopped.
+A handle that may still belong to a live session in this host is not lost: keep
+waiting for it. Continue other safe ready work within remaining
 capacity.
 
 In either managed execution mode, `start` calls the frozen Ask Agent workspace helper

@@ -17,7 +17,7 @@ inside its Markdown file, and there is no writable JSON mirror.
 | `notes/` | Host-authored run notes named in results' `evidence_refs`, including the canonical `notes/environment-lifecycle.md`. |
 | `improve/<action>/` | The imported Improve child record for one parent action: its receipt, terminal packet, the trivial-pass review files (two, or one for an unchanged first pass) and copied evidence. |
 | `workspace.md`, `return-plan.md`, `return-receipt.md` | For workspace runs (in the workspace root): the original checkout, branch and baseline, the reviewed return plan and the guarded return receipt that completion requires. |
-| `report.html` | Derived report written for done and halted runs; not workflow state. |
+| `report.html` | Derived report written for done and halted runs; not workflow state. For a worktree run it lists, read live from Git, the branches and worktrees the run left in the source repository with the command to remove each; ShipLoop never removes them itself. |
 | `progress.html` | Self-contained live plan, activity and key-file previews, published by a read-only observer. Browser refresh reads the whole file; no web server is needed. |
 | `progress-observer.json`, `.progress.lock`, `.progress-stop`, `.progress-disabled` | Display process status, singleton lock, cooperative stop request and restart preference. None owns workflow state or proves the workflow is running. See [live progress view](status-display.md#live-html-progress-view). |
 | `status.md` | Derived copy of the user-facing [status block](status-display.md), rewritten by every saved transition in the same transaction as `state.md`; not workflow state. |

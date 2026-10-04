@@ -280,6 +280,75 @@ class ShipLoopWorkspaceTests(unittest.TestCase):
         self.assertEqual(store.read_record(root / "return-receipt.md"), receipt)
         return receipt
 
+    def test_leftovers_offer_safe_removal_only_after_the_run_is_returned(self) -> None:
+        # A clean source, so the run can come back by fast-forward like a finished run.
+        clean = self.base / "clean source"
+        clean.mkdir()
+        for args in (("init", "-q"), ("branch", "-M", "main"), ("config", "user.name", "T"),
+                     ("config", "user.email", "t@example.invalid"), ("config", "commit.gpgsign", "false")):
+            self.git(*args, cwd=clean)
+        (clean / "README.md").write_text("base\n")
+        self.git("add", "README.md", cwd=clean)
+        self.git("commit", "-qm", "base", cwd=clean)
+        root = self.base / "leftover workspace"
+        record = self._call(workspace.prepare, clean, root)
+        run_branch, run_tree = record["branch"], Path(record["worktree"])
+        attempts = self.base / "attempts"
+
+        def attempt(name: str, merge: bool) -> Path:
+            path = attempts / name
+            self.git("worktree", "add", "-q", "-b", f"ask-agent/{name}", str(path), run_branch, cwd=clean)
+            (path / f"{name}.txt").write_text(name + "\n")
+            self.git("add", f"{name}.txt", cwd=path)
+            self.git("commit", "-qm", name, cwd=path)
+            if merge:  # accepted: integrated into the run, then its worker tree is removed
+                self.git("merge", "-q", "--ff-only", f"ask-agent/{name}", cwd=run_tree)
+                self.git("worktree", "remove", str(path), cwd=clean)
+            return path
+
+        attempt("accepted", merge=True)
+        kept = attempt("kept", merge=False)
+        branches = ["ask-agent/accepted", "ask-agent/kept"]
+
+        before = {item["branch"]: item for item in self._call(workspace.leftovers, root, branches)["items"]}
+        self.assertEqual(before["ask-agent/accepted"]["kind"], "attempt branch in the run")
+        self.assertEqual(before["ask-agent/accepted"]["commands"], [])
+        self.assertEqual(before[run_branch]["commands"], [], "an unreturned run is never offered for removal")
+        self.assertEqual(before["ask-agent/kept"]["kind"], "kept attempt")
+
+        (kept / "unfinished.txt").write_text("uncommitted work of a lost worker\n")
+        refused = subprocess.run(before["ask-agent/kept"]["commands"][0], shell=True, capture_output=True, env=self.env)
+        self.assertNotEqual(refused.returncode, 0, "the offered removal must not discard uncommitted work")
+        self.assertTrue((kept / "unfinished.txt").exists())
+        (kept / "unfinished.txt").unlink()
+        self.git("merge", "-q", "--ff-only", run_branch, cwd=clean)  # the run comes back
+        after = {item["branch"]: item for item in self._call(workspace.leftovers, root, branches)["items"]}
+        self.assertEqual(after["ask-agent/accepted"]["kind"], "merged attempt branch")
+        self.assertIn("branch -d", after["ask-agent/accepted"]["commands"][0])
+        self.assertTrue(after[run_branch]["merged"])
+        self.assertIn("worktree remove", after["ask-agent/kept"]["commands"][0])
+        self.assertNotIn("--force", after["ask-agent/kept"]["commands"][0])
+        self.assertIn("branch -D", after["ask-agent/kept"]["commands"][1])  # its commit is not merged
+        for item in after.values():  # the offered commands work as written
+            for command in item["commands"]:
+                subprocess.run(command, shell=True, check=True, capture_output=True, env=self.env)
+        heads = self.git("for-each-ref", "--format=%(refname:short)", "refs/heads/", cwd=clean).stdout.split()
+        self.assertEqual(heads, ["main"])
+        self.assertFalse(kept.exists())
+        self.assertEqual((clean / "accepted.txt").read_text(), "accepted\n")  # merged work stays in main
+        self.assertEqual(self._call(workspace.leftovers, root, branches)["items"], [])
+
+    def test_report_section_lists_leftovers_with_escaped_commands(self) -> None:
+        found = {"source": "/repo <x>", "source_branch": "main", "items": [
+            {"kind": "kept attempt", "branch": "ask-agent/a&b", "path": "/w", "merged": False,
+             "commands": ["git -C '/repo <x>' branch -D 'ask-agent/a&b'"], "note": "kept as evidence"}]}
+        html_text = "\n".join(navigator._leftovers_section(found))
+        self.assertIn("<h2>Left in your repository</h2>", html_text)
+        self.assertIn("ask-agent/a&amp;b", html_text)
+        self.assertIn("branch -D", html_text)
+        self.assertNotIn("<x>", html_text)
+        self.assertEqual(navigator._leftovers_section(None), [])
+
     def test_a_stat_only_index_rewrite_is_not_a_source_change(self) -> None:
         root = self.base / "fingerprint root"
         root.mkdir()

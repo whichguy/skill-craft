@@ -3076,6 +3076,14 @@ def render(core: Any, root: Path, state: Mapping[str, Any],
         lines.append(f"Completed work items: {len(state['completed_work_items'])}/{len(state['work_items'])}.")
 
     if state["status"] == "done":
+        found = _leftovers(root, state)
+        if found is not None:
+            kept = sum(1 for item in found["items"] if item["kind"] == "kept attempt")
+            lines.append(
+                f"Left in your repository: {len(found['items'])} branch(es) from this run"
+                + (f", including {kept} kept attempt worktree(s)" if kept else "")
+                + ". ShipLoop does not delete them; the report lists each with the command to remove it."
+            )
         lines.extend(
             [
                 "It's all complete.",
@@ -3633,6 +3641,43 @@ def _render_improve(core: Any, root: Path, state: Mapping[str, Any], lines: list
     return "\n".join(lines) + "\n"
 
 
+def _leftovers(root: Path | None, state: Mapping[str, Any]) -> dict[str, Any] | None:
+    """What the run left in the source repository (read live; display only)."""
+    if state["execution_mode"] != "navigator-worktree" or root is None:
+        return None
+    try:
+        import shiploop_workspace as workspace
+        import shiploop_chain
+    except ImportError:  # pragma: no cover - supports package-style local imports.
+        from . import shiploop_workspace as workspace  # type: ignore
+        from . import shiploop_chain  # type: ignore
+    found = workspace.leftovers(Path(root).parent, shiploop_chain.attempt_branches(Path(root), state))
+    return found if found and found["items"] else None
+
+
+def _leftovers_section(found: dict[str, Any] | None) -> list[str]:
+    if found is None:
+        return []
+    rows = []
+    for item in found["items"]:
+        commands = "\n".join(item["commands"])
+        rows.append("<tr>"
+                    f"<td>{html.escape(item['kind'])}</td>"
+                    f"<td>{html.escape(item['branch'])}</td>"
+                    f"<td>{html.escape(item['note'])}</td>"
+                    f"<td><pre>{html.escape(commands)}</pre></td>"
+                    "</tr>")
+    return [
+        "<h2>Left in your repository</h2>",
+        "<p>ShipLoop does not delete branches or worktrees itself. This run left these in "
+        + html.escape(found["source"]) + ". <code>git branch -d</code> refuses to delete unmerged work; "
+        "the kept attempts are the only ones that need <code>-D</code>.</p>",
+        "<table><thead><tr><th>What</th><th>Branch</th><th>Note</th><th>To remove it</th></tr></thead><tbody>",
+        *rows,
+        "</tbody></table>",
+    ]
+
+
 def _render_report(state: Mapping[str, Any], root: Path | None = None) -> str:
     """Derive a small escaped report with a live worktree-return projection."""
     validate(state)
@@ -3708,8 +3753,9 @@ def _render_report(state: Mapping[str, Any], root: Path | None = None) -> str:
             "workspace return status.</p>",
         ]
     delivery_section = consumer_delivery.html_section(state)
-    report_tail = ["</tbody></table>", *progress_section, *workspace_section, delivery_section,
-                   "</body></html>"]
+    leftover_section = _leftovers_section(_leftovers(root, state))
+    report_tail = ["</tbody></table>", *progress_section, *workspace_section, *leftover_section,
+                   delivery_section, "</body></html>"]
     return "\n".join(
         [
             "<!doctype html>",

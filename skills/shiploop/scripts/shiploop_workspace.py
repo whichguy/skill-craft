@@ -29,6 +29,7 @@ from __future__ import annotations
 import hashlib
 import os
 import re
+import shlex
 import shutil
 import stat
 import subprocess
@@ -1786,6 +1787,97 @@ def follow_up_knowledge_return(workspace_root: Path) -> Optional[Dict[str, Any]]
     plan["status"] = "ready"
     _write(root, {RETURN_PLAN: (plan, "ShipLoop return plan")})
     return execute_return(root)
+
+
+def _worktree_branches(source: Path) -> Dict[str, str]:
+    """Registered worktrees of the source repository, by checked-out branch."""
+    listed = _git(source, "worktree", "list", "--porcelain", readonly=True)
+    if listed.returncode:
+        return {}
+    found: Dict[str, str] = {}
+    path = None
+    for line in listed.stdout.decode("utf-8", "replace").splitlines():
+        if line.startswith("worktree "):
+            path = line[len("worktree "):]
+        elif line.startswith("branch refs/heads/") and path:
+            found[line[len("branch refs/heads/"):]] = path
+    return found
+
+
+def leftovers(workspace_root: Path, attempt_branches: Iterable[str] = ()) -> Optional[Dict[str, Any]]:
+    """What this run left in the source repository, read live from Git, with removal commands.
+
+    ShipLoop never deletes these itself: branches are recovery references and a
+    kept attempt is evidence. It lists them so the user decides. `git branch -d`
+    is used wherever the branch is merged into the source branch, because it
+    refuses to delete unmerged work; only a kept (rejected or lost) attempt needs
+    `git branch -D`, and its note says that discards that attempt's work.
+    """
+    try:
+        manifest = _manifest(_resolved_directory(Path(workspace_root), label="workspace root"))
+        source = _repo_root(Path(manifest["source_repo"]))
+    except WorkspaceError:
+        return None
+    heads = _git(source, "for-each-ref", "--format=%(refname:short)", "refs/heads/", readonly=True)
+    merged = _git(source, "branch", "--format=%(refname:short)", "--merged", manifest["source_branch"],
+                  readonly=True)
+    if heads.returncode or merged.returncode:
+        return None
+    existing = set(heads.stdout.decode("utf-8", "replace").split())
+    merged_names = set(merged.stdout.decode("utf-8", "replace").split())
+    run_branch = manifest.get("branch")
+    in_run: set = set()
+    if isinstance(run_branch, str) and run_branch in existing:
+        listed = _git(source, "branch", "--format=%(refname:short)", "--merged", run_branch, readonly=True)
+        in_run = set(listed.stdout.decode("utf-8", "replace").split()) if not listed.returncode else set()
+    checked_out = _worktree_branches(source)
+    git = "git -C " + shlex.quote(os.fspath(source))
+    items: List[Dict[str, Any]] = []
+    for branch in dict.fromkeys(attempt_branches):
+        if branch not in existing:
+            continue
+        if branch in checked_out:
+            is_merged = branch in merged_names
+            items.append({
+                "kind": "kept attempt", "branch": branch, "path": checked_out[branch], "merged": is_merged,
+                # No --force: Git refuses to remove a worktree holding uncommitted work, which a lost
+                # worker may have left; the user adds --force only to discard it.
+                "commands": [f"{git} worktree remove {shlex.quote(checked_out[branch])}",
+                             f"{git} branch {'-d' if is_merged else '-D'} {shlex.quote(branch)}"],
+                "note": ("a rejected or lost chain attempt, kept as evidence. If the worktree removal refuses, "
+                         "it holds uncommitted work from that attempt; add --force only to discard it"
+                         + ("" if is_merged else ". Its commits are not merged: -D discards them")),
+            })
+        elif branch in merged_names:
+            items.append({"kind": "merged attempt branch", "branch": branch, "path": None, "merged": True,
+                          "commands": [f"{git} branch -d {shlex.quote(branch)}"],
+                          "note": "its commits are in " + manifest["source_branch"]})
+        elif branch in in_run:
+            # Integrated into the run, but the run is not returned: nothing to offer yet.
+            items.append({"kind": "attempt branch in the run", "branch": branch, "path": None, "merged": False,
+                          "commands": [],
+                          "note": "its commits are in " + str(run_branch) + ", which is not returned to "
+                                  + manifest["source_branch"] + "; keep it until the run is returned"})
+        else:
+            items.append({"kind": "unmerged attempt branch", "branch": branch, "path": None, "merged": False,
+                          "commands": [f"{git} branch -D {shlex.quote(branch)}"],
+                          "note": "not merged into " + manifest["source_branch"] + "; removing it discards those commits"})
+    if isinstance(run_branch, str) and run_branch in existing:
+        is_merged = run_branch in merged_names
+        commands = []
+        if is_merged:
+            # Only a returned run's workspace is offered for removal; an unreturned one holds the work.
+            if run_branch in checked_out:
+                commands.append(f"{git} worktree remove {shlex.quote(checked_out[run_branch])}")
+            commands.append(f"{git} branch -d {shlex.quote(run_branch)}")
+        items.append({
+            "kind": "run branch and workspace", "branch": run_branch, "path": checked_out.get(run_branch),
+            "merged": is_merged, "commands": commands,
+            "note": ("returned into " + manifest["source_branch"] + "; remove it once you no longer need the run's files"
+                     if is_merged else "not returned to " + manifest["source_branch"] + "; keep it while the run may "
+                     "resume or return"),
+        })
+    return {"source": os.fspath(source), "source_branch": manifest["source_branch"], "items": items}
 
 
 def returned_before(workspace_root: Path) -> bool:
