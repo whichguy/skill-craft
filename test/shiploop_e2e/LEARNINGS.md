@@ -627,3 +627,23 @@ under /Users/dadleet/shiploop-e2e-runs/.
   cost (a killed session reports none).
 - Next (group C): fix F2 first (ordinary runs), then F1; one release; one verification batch (the word
   report with a retry, and kill-and-resume).
+
+### Verification of F3/F1 on 1.16.1 — Luna max battleship (in progress) — 2026-10-03/04 — status: firm for the plan stage
+
+Run `/Users/dadleet/e2e-runs/20261003/v1161-battleship-luna`, Codex gpt-6-luna max, marketplace skill-craft 1.16.1 (ShipLoop 0.48.1), `--timeout 36000`.
+
+- The run passed the stage that ended the 1.16.0 run: the plan stage closed as done (39.2 min) and the run reached `prepare` at revision 12,
+  about 6h25m in (1.16.0: blocked at plan, revision 12, 4h51m). Hello on Sonnet 5.5 also passed on 1.16.1 (143 turns, $3.30, 0 failures).
+- Improve contracts: the model wrote its openings inside the printed allowance on the first try for spec (8,775 bytes of 9,216; the
+  1.16.0 contracts were 11.9, 12.1 and 15.7 KB) and in three rounds for test-strategy (12,478 -> 10,005 -> accepted at 8,960): the
+  refusal named the sections and how far over each was. Total refusals: 3 `improve-start` (one for a missing `## Environment` section).
+- Backchain loop contract (the hand-built one that failed): 7,716 bytes against the 9,216 budget (its resources, 4,073 bytes, cite files
+  instead of inlining). The loop started, saved every report (state 12.4-14.5 KB of 16,384; each replacement report fits) and ended
+  `complete` after 7 callbacks with 2 consecutive trivial passes. The measuring command in the packet matched the runtime's count.
+  The first handoff was 3.3 KB and the state grew to 14.5 KB at the largest report, so the 6,144-byte report reserve is adequate but not
+  generous for Luna max; revisit if a loop ever reports under 1.5 KB of headroom.
+- Residual finding F4: the refusal lists whole contract fields ("request" includes about 1.4 KB of ShipLoop text) beside an allowance for
+  the model's sections only, so the model under-cut once and needed a second round. Fix for the next release: list each opening
+  section's own byte size.
+- Glue stayed at 2 (the model-built Backchain contract and its helper), unchanged in nature; whether a script should write that contract
+  remains a design question (the budget guidance made the model-built one safe).
