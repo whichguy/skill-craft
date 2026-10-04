@@ -335,7 +335,7 @@ leaves out planning-blocked steps, and `claim` refuses one with
 | report | Envelope below | Publish one immutable inbox receipt; dispatcher state unchanged |
 | receipt | `{attempt}` | Return the envelope and digest of its stored bytes; never infer completion or acceptance |
 | settle | `{owner,attempt,verification}` | Record independent accepted/rejected decision and return next actions |
-| retry | `{owner,attempt,confirmed_stopped:true,reason}` | Retire nonaccepted attempt; next claim gets a fresh token whose packet lists it in `prior_attempts` |
+| retry | `{owner,attempt,confirmed_stopped:true,reason}`, or `{…,confirmed_stopped:false,native_status:"unavailable",reason}` for a worker whose handle can no longer be looked up | Retire nonaccepted attempt; next claim gets a fresh token whose packet lists it in `prior_attempts` |
 | takeover | `{oldOwner,newOwner,confirmed_stopped:true,reason}` | Fence old dispatcher owner, retain workers/receipts |
 
 Every successful operation scoped to a RUN, except a response with
@@ -712,8 +712,16 @@ possible. Zero or multiple matches are not proof of safe relaunch. An entered
 main-context start is already durably running and rehydrates as resume/verify, not
 native reconciliation. Require actual native stopped/non-launch evidence before
 retry; `confirmed_stopped` is only the caller's attestation, not a cancellation
-mechanism. Handle retrieval after parent session loss depends on the host and has
-not been established by local tests.
+mechanism. After the parent's host session ends, its native workers' handles can no
+longer be looked up (a host reports, for example, `TaskNotFound`), so no later
+session can prove they stopped. Retry such an attempt with `confirmed_stopped:
+false` and `native_status: "unavailable"`, stating that in `reason`. A retry never
+imports or deletes the old attempt's work, and its late report is refused as stale,
+so the step's accepted result stays correct. This relies on the lost worker having
+ended with its host session, as in-process native workers do. If the host's workers
+can outlive their session, or the step shares a checkout, port, database or other
+external resource with its replacement, a still-running old worker could collide with
+the new one: wait for proof that it stopped instead.
 
 For a managed Git attempt, recovery retains the same declared capability response,
 selected package binding, identity, preparation receipt and frozen workspace.

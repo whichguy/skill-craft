@@ -5,7 +5,8 @@
     "checks": [
       "test \"$(python3 hello.py)\" = 'Hello, world!'",
       "python3 -m unittest -q"
-    ]
+    ],
+    "checks_source": "the request: each check tests a sentence of the prompt"
   },
   "battleship": {
     "style": "web-service",
@@ -15,7 +16,8 @@
       "PORT=39171 node server.js > /dev/null 2>&1 & pid=$!; ok=1; for i in $(seq 1 20); do curl -fsS http://127.0.0.1:39171/ -o page.html 2>/dev/null && ok=0 && break; sleep 0.5; done; [ $ok -eq 0 ] && grep -qi battleship page.html; rc=$?; kill $pid 2>/dev/null; rm -f page.html; exit $rc",
       "PORT=39172 node server.js > /dev/null 2>&1 & pid=$!; for i in $(seq 1 20); do curl -fsS http://127.0.0.1:39172/api/new -o new.json 2>/dev/null && break; sleep 0.5; done; node -e 'const g=JSON.parse(require(\"fs\").readFileSync(\"new.json\",\"utf8\")); const id=g.game??g.id??g.gameId; if(id===undefined) process.exit(2); fetch(\"http://127.0.0.1:39172/api/fire\",{method:\"POST\",headers:{\"content-type\":\"application/json\"},body:JSON.stringify({game:id,row:0,col:0})}).then(r=>r.json()).then(j=>process.exit([\"miss\",\"hit\",\"sunk\"].includes(j.result)?0:3)).catch(()=>process.exit(4))'; rc=$?; kill $pid 2>/dev/null; rm -f new.json; exit $rc",
       "PORT=39173 node server.js > /dev/null 2>&1 & pid=$!; for i in $(seq 1 20); do curl -fsS http://127.0.0.1:39173/ -o /dev/null 2>/dev/null && break; sleep 0.5; done; node -e \"const base='http://127.0.0.1:39173'; const post=(b)=>fetch(base+'/api/fire',{method:'POST',headers:{'content-type':'application/json'},body:JSON.stringify(b)}).then(r=>r.json());(async()=>{const g=await fetch(base+'/api/new').then(r=>r.json()); const id=g.game??g.id??g.gameId;if(id===undefined) process.exit(2); let over=false;for(let r=0;r<10&&!over;r++) for(let c=0;c<10&&!over;c++){const j=await post({game:id,row:r,col:c});if(!['miss','hit','sunk'].includes(j.result)) process.exit(3); over=j.gameOver===true;}if(!over) process.exit(4); const again=await post({game:id,row:0,col:0});process.exit(again.gameOver===false?5:0);})().catch(()=>process.exit(6))\"; rc=$?; kill $pid 2>/dev/null; exit $rc"
-    ]
+    ],
+    "checks_source": "the request: each check tests a sentence of the prompt"
   },
   "battleship-scoring": {
     "style": "web-service",
@@ -31,7 +33,9 @@
       "node -e 'const fs=require(\"fs\"),path=require(\"path\");const deps=d=>{try{const p=JSON.parse(fs.readFileSync(path.join(d,\"package.json\"),\"utf8\"));return JSON.stringify(Object.keys({...p.dependencies,...p.devDependencies}).sort())}catch{return \"[]\"}};process.exit(deps(\".\")===deps(process.env.PRIOR_WORK)?0:1)'",
       "count() { (cd \"$1\" && node --test 2>&1) | sed -nE 's/^(ℹ|#) pass ([0-9]+).*/\\2/p' | tail -1; }; before=$(count \"$PRIOR_WORK\"); after=$(count .); echo \"tests $before -> $after\"; [ -n \"$after\" ] && [ \"${after:-0}\" -gt \"${before:-0}\" ]",
       "ids() { grep -oE '^([#]+[[:space:]]*|[-*][[:space:]]+)R-[0-9]+' \"$1/docs/shiploop/spec.md\" 2>/dev/null | grep -oE 'R-[0-9]+' | sort -u; }; ids \"$PRIOR_WORK\" > .ids-before; ids . > .ids-after; missing=$(comm -23 .ids-before .ids-after | tr '\\n' ' '); added=$(comm -13 .ids-before .ids-after | tr '\\n' ' '); earlier=$(wc -l < .ids-before); rm -f .ids-before .ids-after; covered=no; grep -qi accuracy docs/shiploop/spec.md && ! grep -qi accuracy \"$PRIOR_WORK/docs/shiploop/spec.md\" && covered=yes; echo \"earlier ids: $earlier; missing: $missing; added: $added; feature in spec: $covered\"; [ \"$earlier\" -gt 0 ] && [ -z \"$missing\" ] && { [ -n \"$added\" ] || [ \"$covered\" = yes ]; }"
-    ]
+    ],
+    "checks_source": "the request: each check tests a sentence of the prompt",
+    "retention_source": "SPEC S-11: knowledge from the followed run is retained in the repository and built on"
   },
   "csv-report": {
     "style": "cli-files",
@@ -42,7 +46,8 @@
       "python3 \"$E2E_CHECKS/csv_report.py\" invalid",
       "python3 \"$E2E_CHECKS/csv_report.py\" missing",
       "python3 \"$E2E_CHECKS/csv_report.py\" empty"
-    ]
+    ],
+    "checks_source": "the request: each check tests a sentence of the prompt"
   },
   "seat-reservations": {
     "style": "stateful-service",
@@ -52,7 +57,8 @@
       "python3 \"$E2E_CHECKS/seat_service.py\" contract",
       "python3 \"$E2E_CHECKS/seat_service.py\" restart",
       "python3 \"$E2E_CHECKS/seat_service.py\" concurrency"
-    ]
+    ],
+    "checks_source": "the request: each check tests a sentence of the prompt"
   },
   "temperature-report": {
     "style": "parallel-graph",
@@ -68,7 +74,13 @@
     "chain": {
       "min_steps": 3,
       "min_in_flight": 2,
-      "min_depth": 2
+      "min_depth": 2,
+      "source": "SPEC S-1, S-2: the model plans the graph and ShipLoop's scripts run it; the request asks for independent modules in parallel and each dependent module after its inputs"
+    },
+    "checks_source": "the request: each check tests a sentence of the prompt",
+    "budget": {
+      "seeded_minutes": 30,
+      "source": "owner (2026-09-27): a small request should not take hours. The 30-minute figure is one background-task session, so a longer seeded run also needs a resume, which loses any worker in flight"
     }
   },
   "unit-converter": {
@@ -86,7 +98,13 @@
     "chain": {
       "min_steps": 5,
       "min_in_flight": 3,
-      "min_depth": 2
+      "min_depth": 2,
+      "source": "SPEC S-1, S-2: the model plans the graph and ShipLoop's scripts run it; the request asks for independent modules in parallel and each dependent module after its inputs"
+    },
+    "checks_source": "the request: each check tests a sentence of the prompt",
+    "budget": {
+      "seeded_minutes": 30,
+      "source": "owner (2026-09-27): a small request should not take hours. The 30-minute figure is one background-task session, so a longer seeded run also needs a resume, which loses any worker in flight"
     }
   },
   "word-report": {
@@ -104,7 +122,13 @@
     "chain": {
       "min_steps": 5,
       "min_in_flight": 2,
-      "min_depth": 3
+      "min_depth": 3,
+      "source": "SPEC S-1, S-2: the model plans the graph and ShipLoop's scripts run it; the request asks for independent modules in parallel and each dependent module after its inputs"
+    },
+    "checks_source": "the request: each check tests a sentence of the prompt",
+    "budget": {
+      "seeded_minutes": 30,
+      "source": "owner (2026-09-27): a small request should not take hours. The 30-minute figure is one background-task session, so a longer seeded run also needs a resume, which loses any worker in flight"
     }
   }
 }

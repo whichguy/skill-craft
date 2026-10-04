@@ -390,7 +390,7 @@ function run(operation, dir, input) {
       response = {...next(dir), outcome: settled.outcome, step: settled.attempt.step,
         attempt: settled.attempt}; break;
     }
-    case 'retry': fields(input, ['owner', 'attempt', 'confirmed_stopped', 'reason']); response = {
+    case 'retry': fields(input, ['owner', 'attempt', 'confirmed_stopped', 'reason'], ['native_status']); response = {
       ...state.retry(dir, input.owner, input.attempt, input),
       instruction: `${PARENT_STATUS_PRESENTATION} Execute the exact returned next_argv and obey its new actions. A recovered managed Git attempt keeps its same declared capability response, identity and preparation receipt; this replacement attempt needs a fresh capability gate, identity and preparation receipt before start.`,
     }; break;

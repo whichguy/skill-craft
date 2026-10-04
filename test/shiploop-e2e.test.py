@@ -531,6 +531,32 @@ class SeedTest(HarnessCase):
         self.assertFalse(facts["pass"])  # only two ran together
         self.assertEqual(facts["expect"]["min_in_flight"], 3)
 
+    def test_a_retried_worker_stops_counting_as_in_flight(self):
+        # Kill-and-resume: A-1 and B-1 are lost (never imported) and retried; their
+        # replacements then run one after the other. Only one worker ever really ran
+        # after the kill, so the lost attempts must not inflate the count.
+        import shiploop_chain_ledger as ledger
+        out = self.tmp / "out"
+        chain_dir = out / ".shiploop-runs" / "seed" / "run" / "chains" / "nav-1"
+        dispatcher = chain_dir / "child"
+        dispatcher.mkdir(parents=True)
+        run.store.write_record(chain_dir / "binding.md", {"dispatcher_run": str(dispatcher), "mode": "parallel"})
+        attempts = {"A-1": "A", "B-1": "B", "A-2": "A", "B-2": "B"}
+        (dispatcher / "plan-dispatcher-state.json").write_text(json.dumps({
+            "graph": {"steps": [{"id": "A", "deps": []}, {"id": "B", "deps": []}]},
+            "steps": {"A": {"status": "accepted"}, "B": {"status": "accepted"}},
+            "attempts": {a: {"step": s, "handle": "h"} for a, s in attempts.items()}}))
+        events = [("launched_result", "A-1"), ("launched_result", "B-1"), ("retry_result", "A-1"),
+                  ("retry_result", "B-1"), ("launched_result", "A-2"), ("handoff_import_result", "A-2"),
+                  ("contribution_recorded", "A-2"), ("launched_result", "B-2"), ("handoff_import_result", "B-2"),
+                  ("contribution_recorded", "B-2")]
+        for number, (kind, attempt) in enumerate(events):
+            data = {"attempt": attempt, **({"step": attempts[attempt]} if kind == "contribution_recorded" else {})}
+            ledger.append_event(str(chain_dir / "events"), f"e{number}", kind, data)
+        facts = run.chain_facts(out)
+        self.assertEqual(facts["bindings"][0]["max_in_flight"], 2)  # A-1 and B-1 before the kill
+        self.assertEqual(facts["bindings"][0]["max_in_flight_after_retry"], 1)
+
     def test_chain_in_flight_is_true_only_between_launch_and_import(self):
         self.chain([("launched_result", "A")], {"A": "running"})
         self.assertTrue(run.chain_in_flight(self.tmp / "out"))
@@ -559,6 +585,48 @@ class SeedTest(HarnessCase):
     def test_without_interrupt_no_recovery_verdict(self):
         code, result = self.invoke("claude", "done")
         self.assertIsNone(result["recovery"])
+
+
+class ExpectationTest(HarnessCase):
+    """Every expectation names its source; a failing run gets a filled mismatch record."""
+
+    def test_every_case_names_the_source_of_its_expectations(self):
+        cases = json.loads(run.CASES.read_text())
+        for name, case in cases.items():
+            self.assertTrue(case.get("checks_source"), name)
+            for block in ("chain", "budget"):
+                if block in case:
+                    self.assertTrue(case[block].get("source"), f"{name}.{block}")
+            if "retention" in case:
+                self.assertTrue(case.get("retention_source"), name)
+
+    def test_a_failing_run_records_expected_beside_observed_in_mismatch_md(self):
+        code, result = self.invoke("claude", "nothing")
+        self.assertEqual(code, 1)
+        self.assertEqual(result["expectations"]["checks"], json.loads(run.CASES.read_text())["hello"]["checks_source"])
+        mismatch = (Path(result["output"]) / "mismatch.md").read_text()
+        for section in ("## Expected", "## Observed", "## Triage", "## Decision", "## Verified by"):
+            self.assertIn(section, mismatch)
+        self.assertIn("**shiploop**: ShipLoop reaches done", mismatch)
+        self.assertIn("(source: the request", mismatch)
+
+    def test_a_passing_run_writes_no_mismatch(self):
+        code, result = self.invoke("claude", "done")
+        self.assertEqual(code, 0, result)
+        self.assertFalse((Path(result["output"]) / "mismatch.md").exists())
+
+    def test_budget_is_should_level_and_read_from_the_run_timeline(self):
+        run_dir = self.tmp / "run"
+        run_dir.mkdir()
+        (run_dir / "timeline.json").write_text(json.dumps({
+            "started": "2026-10-03T10:00:00Z",
+            "accepted": {"a": "2026-10-03T10:05:00Z", "b": "2026-10-03T10:21:30Z"}}))
+        budget = {"seeded_minutes": 30, "source": "one session"}
+        met = run.budget_facts(budget, True, str(run_dir))
+        self.assertEqual((met["level"], met["observed_minutes"], met["pass"]), ("should", 21.5, True))
+        over = run.budget_facts({"seeded_minutes": 20, "source": "x"}, True, str(run_dir))
+        self.assertFalse(over["pass"])
+        self.assertIsNone(run.budget_facts(budget, False, str(run_dir)))  # only seeded runs carry a budget
 
 
 class ReviewParsingTest(unittest.TestCase):
@@ -1150,6 +1218,10 @@ class MetricsTest(unittest.TestCase):
             # reading ShipLoop's own contract is not building one
             'python3 -c \'import json; p=json.load(open("/x/run/quality/c-contract.json")); print(p["exit_condition"])\'': [],
             'python3 -c \'import json; json.dump({"exit_condition": 1}, open("/x/c.json", "w"))\'': ["hand-built loop contract"],
+            # making the model's own directories is not a write into a ShipLoop-owned path (batch 1003 / 1.16.1 run)
+            "mkdir -p '/x/.shiploop-runs/a/run/notes' && cat > '/x/.shiploop-runs/a/run/notes/w1.md' <<'EOF'\nx\nEOF": [],
+            "mkdir -p /x/.shiploop-runs/a/run/evidence": [],
+            "mkdir -p /x/.shiploop-runs/a/run/scratch": [],
             # a `>` in prose inside a quoted string is not a redirect, and run/scratch is the model's own
             "python3 -c 'import pathlib; pathlib.Path(\"/x/.shiploop-runs/a/run/scratch/r.json\").write_text(\"each > 0 must pass; see /x/.shiploop-runs/a/run/results\")'": [],
             'echo x > "/x/.shiploop-runs/a/run/state.md"': ["shell write into a ShipLoop-owned path"],

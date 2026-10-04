@@ -3,6 +3,30 @@
 One entry per live run, newest last. Each entry is committed on its own with a
 detailed message; read the last three commit messages before the next run or change.
 
+## How expectations are set and mismatches decided (from 2026-10-04)
+
+Every expectation names its source in `cases.json`: `checks_source` (the request),
+`chain.source` (a SPEC clause), `retention_source`, `budget.source`; recovery runs use
+SPEC S-6 and S-14. The harness prints each verdict with what was expected and its
+source. Must-level verdicts fail a run; the budget is should-level (reported only).
+
+A run that fails writes `mismatch.md` beside its output with Expected and Observed
+filled in. Record each mismatch here in that shape:
+
+- **Expected** (and its source) / **Observed** (with evidence paths)
+- **Triage**, in order, stopping at the first yes: the check is wrong (fix the test); the
+  environment (fix the harness or ops, keep the expectation); not reproduced and no clear
+  trigger (rerun first); the expectation describes how, not what (change the expectation);
+  a normal run never hits it (known limit); the behaviour comes from a deliberate rule (the
+  owner decides); the expectation traces to its source (change the product). Corrected
+  2026-10-04: the first version asked about the source before the known-limit and owner
+  questions, so a spec-traced mismatch would have skipped both.
+- **Decision**: product / expectation / owner / known limit / environment, and **why**
+- **Verified by**: the hermetic test and the rerun that confirm it
+
+Changing an expectation needs the same evidence as changing the product, stated in
+its commit.
+
 ## Run 1 — 2026-09-26 — battleship, Grok grok-4.7 medium, ShipLoop 0.31.0 build
 
 - Outcome: stopped by the 150-turn cap after 2,327 s; Grok reported $10.88. ShipLoop was at
@@ -647,6 +671,86 @@ Run `/Users/dadleet/e2e-runs/20261003/v1161-battleship-luna`, Codex gpt-6-luna m
   section's own byte size.
 - Glue stayed at 2 (the model-built Backchain contract and its helper), unchanged in nature; whether a script should write that contract
   remains a design question (the budget guidance made the model-built one safe).
+
+### Batch B decisions (2026-10-04), in the mismatch shape
+
+(F1 and F2 here are batch B's labels, separate from the F1-F4 of the 1.16.0/1.16.1 Luna batch above.)
+
+**F2: a retried step blocks chain finish forever**
+- Expected (SPEC S-6; the request): a retried step gets a fresh attempt and the chain finishes.
+- Observed: b1-word-report-1c7a7e, 5/5 accepted, product 7/7 in the worktree, `chain finish` refused
+  ("retained superseded Ask-Agent workspaces"), run paused.
+- Triage: check correct; not environment; trigger clear (any retry); traces to S-6; the rule behind
+  it (3e217ad5: never delete rejected work without authority) is right, but blocking finish is not
+  part of that rule; a normal run hits it whenever a step is retried.
+- Decision: **product**. Superseded workspaces are kept with their receipts and listed in the finish
+  receipt (`retained_superseded`); they no longer hold the chain open. Nothing is deleted.
+- Verified by: five lifecycle tests assert the new contract, and live on 1.17.0: c1 and c2 (below)
+  finished with both lost attempts listed under `retained_superseded`.
+
+**F1: losing the host mid-chain needs a person**
+- Expected (SPEC S-6, S-14): after the host dies with workers in flight, a fresh session recovers
+  the chain unattended.
+- Observed: b1/b2-interrupt-temperature, 2/2 paused: `TaskStop` "No task found" for both handles,
+  the chain guide forbids retry until stoppage is proven, so the session asked a person.
+- Triage: check correct; the kill is deliberate, not environment; reproduced 2/2; traces to S-6 and
+  S-14; the behaviour comes from a deliberate rule (`confirmed_stopped` before retry), so the owner
+  decided.
+- Decision: **owner, then product** (owner, 2026-10-03: "retry without proof"). `retry` accepts
+  `confirmed_stopped: false` with `native_status: "unavailable"` in Plan Dispatcher and the chain
+  bridge; the old attempt's workspace is kept, its late report is refused as stale.
+- Verified by: Plan Dispatcher decisions S15 plus mutant `unconfirmed-retry-any` (18/18 mutants
+  caught); chain-bridge test `test_lost_native_worker_is_retried_without_a_confirmed_stop_and_finish_keeps_it`;
+  live on 1.17.0, 2 of 2: c1 and c2 recovered without a person (see "group C verification" below).
+
+**Codex xhigh slowness (chain-seeded-codex-21de3d)**
+- Expected: none was stated, so the run could not fail on time.
+- Decision: **expectation**. Seeded chain cases now carry a should-level budget of 30 minutes (one
+  background-task session), reported beside the verdicts.
+
+## group C verification — 2026-10-04 — kill-and-resume on 1.17.0, Claude claude-sonnet-5-5 (ShipLoop 0.49.0, Plan Dispatcher 0.6.0)
+
+Expected (SPEC S-6, S-14): after the host is killed with chain workers in flight, a fresh session
+recovers the chain without a person; every verdict passes, including `recovery`.
+
+| Run | Result | What the ledger shows |
+|---|---|---|
+| c1-interrupt-temperature-83752d | **PASS** every must verdict; budget over (30.9 of 30 min, should-level) | killed at 426 s with S1, S2 in flight; fresh session retried both (`native_status: unavailable`) ~70 s after resuming; replacements ran together (2 in flight); S3 after both; finish listed 2 kept attempts. Also killed once at the 30-min task limit in `handoff`; resumed, done in 22 s |
+| c2-interrupt-temperature-f4c40f | **PASS** every verdict incl. budget (28.5 min) | killed at 761 s; same recovery path; $25.85 for its two sessions |
+
+- Observed matches expected: F1 and F2 are fixed live, 2 of 2. The workspace return and release
+  stages tolerate the kept attempt worktrees (both runs returned their product).
+- Recovery cost: an interrupted seeded run took 28.5-31 min and about 2.5x the money of an
+  uninterrupted one ($25.85 vs $8.60-11.20), because the killed session's work is replayed. The
+  budget is should-level, so c1's 0.9 min over is reported, not failed. Open: whether interrupted runs
+  should carry the same budget (the triage would call that an expectation question).
+- Grader: both runs graded with the corrected in-flight count (2, not 4; 256883ce).
+
+## dummy fan-out on 1.17.0 — 2026-10-04 — Claude claude-sonnet-5-5 (Plan Dispatcher 0.6.0)
+
+- Question: did Ask Agent's new default (current workspace, 1.14.0) break Plan Dispatcher fan-out for
+  non-Git steps? `fanout.py` writes stamps in a non-Git directory, where the current-workspace route
+  allows only report-only workers.
+- Observed: **PASS**. A and B native, 29.9 s of their 30 s overlapped, J after both
+  (/Users/dadleet/shiploop-e2e-runs/fanout-claude-a67220). No regression; the model launched the steps
+  as native workers directly. First fan-out pass on Claude (the 2026-09-27 pass was Codex).
+
+## what a run leaves in the repository — 2026-10-04
+
+- Fact: ShipLoop's execution worktree, every chain attempt worktree and every attempt branch live in
+  the user's own repository's Git metadata. A fully passing run (b3-temperature) left three
+  `ask-agent/...` branches and its `shiploop/run-...` branch; a recovered run (c2) left five attempt
+  branches, two kept attempt worktrees and the run branch. Nothing told the user.
+- Decision (owner, 2026-10-04): ShipLoop keeps never deleting them; the report lists them with the
+  exact removal commands, and the completion packet says how many there are. Commands use
+  `branch -d` wherever the branch is merged and never `--force`; nothing is offered for removal
+  before the run is returned (an unreturned run's branches hold its work). A kept attempt's worktree
+  removal refuses when a lost worker left uncommitted edits.
+- Verified by: `test_leftovers_offer_safe_removal_only_after_the_run_is_returned` (real Git: nothing
+  offered before return; the offered commands run as written and leave only `main`; the kept
+  worktree's removal refuses while it holds uncommitted work) and the report-section test; on c2's run
+  the completion packet reads "Left in your repository: 6 branch(es) from this run, including 2 kept
+  attempt worktree(s)".
 
 ### Backchain ledger — Luna max battleship, 1.16.1 — 2026-10-04 — status: interim (run still active; the carry-forward and product-acceptance loops are not reached yet)
 
