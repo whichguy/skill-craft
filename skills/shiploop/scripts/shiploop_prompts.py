@@ -1607,6 +1607,15 @@ check relevant repeatability; never blindly replay an uncertain external effect.
 Verify execution location, remote framework availability and deployed/test revision
 identity. A local pass cannot replace a blocked/unrun required remote check or
 establish a combined full-suite pass; preserve its assigned owner and boundary.
+A required case that only a person can run (for example, in a signed-in browser),
+for which the discovery and test-strategy records show this host has no route, does
+not make this result blocked. Record it as an open item in the result: case ID, who
+does what, what they report, owner (a person), due stage (handoff, or the stage
+whose external effect it gates). Submit done once every other due check and
+ShipLoop's rerun pass; the handoff reports it unverified, never as a pass. Report
+blocked with `awaiting` only when a later stage takes an external, hard-to-reverse
+effect the case exists to gate, or nothing else can proceed. An enabled delivery
+contract keeps its own obligation phases.
 """,
     "product-acceptance": """\
 Assess the assembled product against the original outcome, acceptance criteria,
@@ -1729,9 +1738,10 @@ failure as an incident. Preserve required audit failure and recovery policy.
     "handoff": """\
 Prepare an honest final handoff with source, test, integration, release, consumer,
 and operational status; evidence locators; limits; blockers; follow-up work; and
-revalidation needs.  Reconcile durable project documentation and product-return
-receipts where applicable.  Do not transform an intent, stale green result, or
-conversational summary into completion evidence.
+revalidation needs.  List each open item as unverified, with who reports what.
+Reconcile durable project documentation and product-return receipts where
+applicable.  Do not transform an intent, stale green result, or conversational
+summary into completion evidence.
 Verify that current system knowledge, accepted changes and unresolved limits
 survive outside transient run notes. Preserve the prior baseline's as-of account
 and verify durable README/index links from the returned project documentation home.

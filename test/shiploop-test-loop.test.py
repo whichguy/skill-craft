@@ -464,6 +464,32 @@ class TestLoopTests(unittest.TestCase):
                 self.complete(done)
                 self.assertNotEqual(nav.current_stage(self.state()), stage)
 
+    def test_a_done_system_test_with_a_person_only_open_item_advances_and_still_reruns_the_commands(self):
+        """a13, S-14: a person-only case is recorded as an open item in the result and never blocks done.
+
+        The script still reruns the recorded system commands (S-9): the open item
+        replaces no script-run check, and the next stage's packet carries it.
+        """
+        self.start()
+        self.drive_to("system-test")
+        action = self.action()
+        # The rendered packet names the route the result below takes.
+        self.assertIn("does not make this result blocked", " ".join(self.packet().split()))
+        open_item = ("Open item SYS-RENDER-1 (required, person only; this host has no route): owner a person, "
+                     "due handoff. Open the page in a signed-in browser, take one turn, report what shows. "
+                     "Unverified.")
+        (self.repo / "retained.txt").unlink()  # a recorded command fails: the open item cannot excuse it
+        self.assert_refused(dict(DONE, summary=open_item),
+                            r"(?s)system-test is not done.*\[regression\] test -f retained.txt -> exit 1")
+        self.assertFalse(store.read_record(self.run_dir / test_loop.verify_path(action, 1))["passed"])
+        (self.repo / "retained.txt").write_text("retained\n")
+        self.complete(dict(DONE, summary=open_item))
+        state = self.state()
+        self.assertEqual(nav.current_stage(state), "product-acceptance")
+        self.assertEqual(state["status"], "active")
+        self.assertTrue(store.read_record(self.run_dir / test_loop.verify_path(action, 2))["passed"])
+        self.assertIn("SYS-RENDER-1", self.packet())  # the last accepted summary reaches the next stage
+
     def test_after_seven_refused_runs_only_blocked_is_accepted(self):
         self.start()
         self.drive_to("test-refine")
