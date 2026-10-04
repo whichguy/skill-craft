@@ -685,8 +685,8 @@ Run `/Users/dadleet/e2e-runs/20261003/v1161-battleship-luna`, Codex gpt-6-luna m
   part of that rule; a normal run hits it whenever a step is retried.
 - Decision: **product**. Superseded workspaces are kept with their receipts and listed in the finish
   receipt (`retained_superseded`); they no longer hold the chain open. Nothing is deleted.
-- Verified by: five lifecycle tests assert the new contract; live rerun pending (the kill-and-resume
-  reruns retry steps, so they exercise F2 too).
+- Verified by: five lifecycle tests assert the new contract, and live on 1.17.0: c1 and c2 (below)
+  finished with both lost attempts listed under `retained_superseded`.
 
 **F1: losing the host mid-chain needs a person**
 - Expected (SPEC S-6, S-14): after the host dies with workers in flight, a fresh session recovers
@@ -707,3 +707,47 @@ Run `/Users/dadleet/e2e-runs/20261003/v1161-battleship-luna`, Codex gpt-6-luna m
 - Expected: none was stated, so the run could not fail on time.
 - Decision: **expectation**. Seeded chain cases now carry a should-level budget of 30 minutes (one
   background-task session), reported beside the verdicts.
+
+## group C verification — 2026-10-04 — kill-and-resume on 1.17.0, Claude claude-sonnet-5-5 (ShipLoop 0.49.0, Plan Dispatcher 0.6.0)
+
+Expected (SPEC S-6, S-14): after the host is killed with chain workers in flight, a fresh session
+recovers the chain without a person; every verdict passes, including `recovery`.
+
+| Run | Result | What the ledger shows |
+|---|---|---|
+| c1-interrupt-temperature-83752d | **PASS** every must verdict; budget over (30.9 of 30 min, should-level) | killed at 426 s with S1, S2 in flight; fresh session retried both (`native_status: unavailable`) ~70 s after resuming; replacements ran together (2 in flight); S3 after both; finish listed 2 kept attempts. Also killed once at the 30-min task limit in `handoff`; resumed, done in 22 s |
+| c2-interrupt-temperature-f4c40f | **PASS** every verdict incl. budget (28.5 min) | killed at 761 s; same recovery path; $25.85 for its two sessions |
+
+- Observed matches expected: F1 and F2 are fixed live, 2 of 2. The workspace return and release
+  stages tolerate the kept attempt worktrees (both runs returned their product).
+- Recovery cost: an interrupted seeded run took 28.5-31 min and about 2.5x the money of an
+  uninterrupted one ($25.85 vs $8.60-11.20), because the killed session's work is replayed. The
+  budget is should-level, so c1's 0.9 min over is reported, not failed. Open: whether interrupted runs
+  should carry the same budget (the triage would call that an expectation question).
+- Grader: both runs graded with the corrected in-flight count (2, not 4; 256883ce).
+
+## dummy fan-out on 1.17.0 — 2026-10-04 — Claude claude-sonnet-5-5 (Plan Dispatcher 0.6.0)
+
+- Question: did Ask Agent's new default (current workspace, 1.14.0) break Plan Dispatcher fan-out for
+  non-Git steps? `fanout.py` writes stamps in a non-Git directory, where the current-workspace route
+  allows only report-only workers.
+- Observed: **PASS**. A and B native, 29.9 s of their 30 s overlapped, J after both
+  (/Users/dadleet/shiploop-e2e-runs/fanout-claude-a67220). No regression; the model launched the steps
+  as native workers directly. First fan-out pass on Claude (the 2026-09-27 pass was Codex).
+
+## what a run leaves in the repository — 2026-10-04
+
+- Fact: ShipLoop's execution worktree, every chain attempt worktree and every attempt branch live in
+  the user's own repository's Git metadata. A fully passing run (b3-temperature) left three
+  `ask-agent/...` branches and its `shiploop/run-...` branch; a recovered run (c2) left five attempt
+  branches, two kept attempt worktrees and the run branch. Nothing told the user.
+- Decision (owner, 2026-10-04): ShipLoop keeps never deleting them; the report lists them with the
+  exact removal commands, and the completion packet says how many there are. Commands use
+  `branch -d` wherever the branch is merged and never `--force`; nothing is offered for removal
+  before the run is returned (an unreturned run's branches hold its work). A kept attempt's worktree
+  removal refuses when a lost worker left uncommitted edits.
+- Verified by: `test_leftovers_offer_safe_removal_only_after_the_run_is_returned` (real Git: nothing
+  offered before return; the offered commands run as written and leave only `main`; the kept
+  worktree's removal refuses while it holds uncommitted work) and the report-section test; on c2's run
+  the completion packet reads "Left in your repository: 6 branch(es) from this run, including 2 kept
+  attempt worktree(s)".

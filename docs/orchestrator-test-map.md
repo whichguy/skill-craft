@@ -29,7 +29,7 @@ tier runs everything on release commits.
 
 | Check | What it answers | Run | Latest result |
 |---|---|---|---|
-| Dispatcher fan-out and fan-in on dummy steps | Does a real host follow the dispatcher's calls, run A and B in parallel as native workers, and join J after both? | `python3 test/shiploop_e2e/fanout.py --host codex` | **PASS**, Codex, 2026-09-27: A and B native, 29.3 s of their 30 s overlapped, J after both (`f810a78f`) |
+| Dispatcher fan-out and fan-in on dummy steps | Does a real host follow the dispatcher's calls, run A and B in parallel as native workers, and join J after both? | `python3 test/shiploop_e2e/fanout.py --host codex` | **PASS** on Claude, 2026-10-04 (1.17.0: A and B native, 29.9 s overlapped, J after both). Earlier **PASS** on Codex, 2026-09-27: A and B native, 29.3 s of their 30 s overlapped, J after both (`f810a78f`) |
 | ShipLoop's own parallel chain | Does ShipLoop on the Ask-Agent route plan a step graph, bind a chain at `implement`, fan out and join? | `python3 test/shiploop_e2e/run.py --case temperature-report --host claude --seed-at step-plan` (starts at step-plan, ~20 min) | **PASS**, Claude Sonnet 5.5, 2026-10-03: graph S1, S2 then S3; S1 and S2 in flight together, S3 after both; 3/3 accepted, all native; every case check passes (22 min, $11.75). From intake (`--case temperature-report --host claude`, no seed): **PASS** the same day, same graph shape, S1 and S2 in flight together, every verdict passing; planning took minutes, not hours. Codex Luna xhigh seeded, 2026-10-03: stopped in the step-plan review after three 30-minute sessions; chain not reached (see LEARNINGS) |
 | ShipLoop cases (smoke, web-service, CLI, stateful) | End-to-end delivery by case style | `--suite <name>` (see `test/shiploop_e2e/suites.json`) | See LEARNINGS |
 
@@ -67,6 +67,11 @@ Grouping:
   once). Two ShipLoop defects: **F1** kill-and-resume 0/2, a fresh session cannot prove the dead
   host's workers stopped and pauses for the user; **F2** a retried step leaves a workspace that can
   never be closed, so chain finish is refused forever (1 of 1 runs with a retry). Group C fixes both.
+- **C results (2026-10-04, skill-craft 1.17.0):** F1 and F2 fixed; kill-and-resume **PASS 2/2**
+  (c1, c2): the fresh session retried the lost workers without a person, the replacements ran
+  together, finish listed the kept attempts, and both runs returned their product. Recovery costs
+  about 2.5x an uninterrupted run. Also: the report now lists what a run leaves in the repository,
+  with removal commands (see LEARNINGS "what a run leaves in the repository").
 - **D. Other hosts (4)**: after decisions on Codex's runtime and Grok credits.
 
 ## Known limits (acceptable by design)

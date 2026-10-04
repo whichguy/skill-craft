@@ -137,6 +137,9 @@ flowchart LR
         <tr><td>Wide: unit-converter #1 and #2</td><td>5 steps, at least 3 workers in flight, all checks pass</td><td>4 independent modules + join; 4 in flight both times; every check passes</td><td><span class="v pass">PASS 2/2</span></td><td>Wide fan-out works as planned by the model.</td><td>—</td></tr>
         <tr><td>Deep: word-report #1</td><td>5 steps, depth 3, dependency order, all checks pass</td><td>Chain correct (depth 3, in order). Two steps retried; then chain finish refused forever; run paused with a working product unreturned</td><td><span class="v fail">FAIL</span></td><td>Finding F2.</td><td><span class="v fail">product</span> Retries are normal; S-6 says the run must finish.</td></tr>
         <tr><td>Deep: word-report #2</td><td>Same</td><td>No retries; chain correct; host lost to a transient API SSL error, resumed, finished</td><td><span class="v pass">PASS</span></td><td>F2 appears only when a step is retried.</td><td><span class="v open">environment</span> A transient API SSL error; resumed and finished.</td></tr>
+        <tr class="group"><td colspan="6">Group C verification on 1.17.0 (Claude Sonnet 5.5)</td></tr>
+        <tr><td>Kill-and-resume #3 and #4 (c1, c2)</td><td>A fresh session recovers the chain without a person; every verdict passes</td><td>Lost workers retried with native_status unavailable; replacements ran together; finish listed the kept attempts; both runs returned their product. c1 took 30.9 min (budget 30), c2 28.5 min</td><td><span class="v pass">PASS 2/2</span></td><td>F1 and F2 are fixed live. Recovery costs about 2.5x an uninterrupted run.</td><td>—</td></tr>
+        <tr><td>Dummy fan-out, Claude, 1.17.0</td><td>A and B in parallel, J after both, after Ask Agent's default changed</td><td>A and B native, 29.9 s overlapped, J after both</td><td><span class="v pass">PASS</span></td><td>The new current-workspace default did not break dispatcher fan-out.</td><td>—</td></tr>
         <tr><td>temperature-report repeat</td><td>Same as the first seeded run</td><td>Same result. 16 min, $8.62</td><td><span class="v pass">PASS</span></td><td>The first pass was not luck.</td><td>—</td></tr>
       </tbody>
     </table>
@@ -199,25 +202,25 @@ flowchart LR
     <h2>Where observed differed from expected, and what we are changing</h2>
   </div>
   <div class="panel finding">
-    <h3>F2 · A step that needed a retry blocks the chain from finishing <span class="v open">fixed, awaiting live rerun</span></h3>
+    <h3>F2 · A step that needed a retry blocks the chain from finishing <span class="v pass">fixed, verified live 2/2</span></h3>
     <dl>
       <dt>Expected</dt><dd>A retried step gets a fresh attempt; once every step is accepted, the chain finishes and the run returns the product.</dd>
       <dt>Observed</dt><dd>All 5 steps accepted and the product passing 7/7 in ShipLoop's worktree, but <span class="mono">chain finish</span> refused because the two retried attempts left workspaces that can never be closed. The run paused with no way forward.</dd>
       <dt>Why</dt><dd>A deliberate rule (<span class="mono">3e217ad5</span>): rejected work must never be deleted without authority, and the Ask-Agent helper has no "close without merging" option. The rule was right; making it block <span class="mono">finish</span> was the defect.</dd>
       <dt>Change</dt><dd>Superseded workspaces stay on disk with their receipts, but no longer hold the chain open. <span class="mono">finish</span> completes and lists them under <span class="mono">retained_superseded</span>. Nothing is deleted.</dd>
       <dt>Decision</dt><dd>Product: the expectation traces to S-6, and a normal run hits it whenever a step is retried.</dd>
-      <dt>Verified by</dt><dd>Five hermetic lifecycle tests now assert the new contract (finish completes; the old workspace, receipt and HEAD are untouched). Next: the kill-and-resume reruns, which retry steps.</dd>
+      <dt>Verified by</dt><dd>Five hermetic lifecycle tests now assert the new contract (finish completes; the old workspace, receipt and HEAD are untouched). Live on 1.17.0: both kill-and-resume runs finished with the lost attempts listed under <span class="mono">retained_superseded</span>, and both returned their product with the kept worktrees in place.</dd>
     </dl>
   </div>
   <div class="panel finding">
-    <h3>F1 · Losing the host mid-chain needs a person <span class="v open">fixed, awaiting live rerun</span></h3>
+    <h3>F1 · Losing the host mid-chain needs a person <span class="v pass">fixed, verified live 2/2</span></h3>
     <dl>
       <dt>Expected</dt><dd>After the host dies with workers in flight, a fresh session retries those steps and finishes, unattended (E2E spec S-6 and S-14).</dd>
       <dt>Observed</dt><dd>In 2 of 2 runs the fresh session found the workers gone (<span class="mono">TaskStop: No task found</span>), could not prove they had stopped, and paused to ask whether it may retry.</dd>
       <dt>Why</dt><dd>Retry requires <span class="mono">confirmed_stopped</span>. Native workers die with their host, but nothing records which session launched them, so a later session can never prove it.</dd>
       <dt>Change</dt><dd>Allow retry when a handle is unavailable, recorded as <span class="mono">native_status: unavailable</span>. This is safe for the code in an isolated Git workspace: the old workspace is kept, never merged, and any late callback from the retried attempt is refused. It assumes the lost worker died with its host session; a worker that could outlive its session, or one sharing a checkout, port or database, is not covered. Chosen by the owner on 2026-10-03.</dd>
       <dt>Decision</dt><dd>Owner, then product: the behaviour came from a deliberate rule, so the owner weighed it against S-14.</dd>
-      <dt>Verified by</dt><dd>Plan Dispatcher scenario S15 (with a mutant it catches) and a chain-bridge test that loses a worker, retries it and finishes. Then the two kill-and-resume runs again.</dd>
+      <dt>Verified by</dt><dd>Plan Dispatcher scenario S15 (with a mutant it catches) and a chain-bridge test that loses a worker, retries it and finishes. Live on 1.17.0, 2 of 2: the fresh session retried both lost workers about a minute after resuming, the replacements ran together, and every verdict passed, including recovery.</dd>
     </dl>
   </div>
 </section>
@@ -237,8 +240,10 @@ flowchart LR
         <tr><td>Stricter chain grading and shape cases</td><td>Every pass so far was one shape with nothing going wrong</td><td>Checks dependency order, single merge per step, depth and width against each case's expectations</td><td><span class="v pass">shipped 3d2ab1da</span></td></tr>
         <tr><td>Kill-and-resume option <span class="mono">--interrupt-at</span></td><td>Surviving context loss is ShipLoop's purpose but was only tested hermetically</td><td>Kills the host once a chain worker is in flight, then resumes with a fresh session</td><td><span class="v pass">shipped 3d2ab1da</span></td></tr>
         <tr><td>Checks must fail on an empty directory</td><td>An error-path check passed with no product at all</td><td>Each new case's checks pass a reference solution 7/7 and an empty directory 0/7</td><td><span class="v pass">shipped</span></td></tr>
-        <tr><td>F2: superseded workspaces do not block finish</td><td>word-report #1</td><td>See finding F2</td><td><span class="v open">tests pass, release next</span></td></tr>
-        <tr><td>F1: retry when a handle is unavailable</td><td>Kill-and-resume 0/2</td><td>See finding F1</td><td><span class="v open">tests pass, release next</span></td></tr>
+        <tr><td>F2: superseded workspaces do not block finish</td><td>word-report #1</td><td>See finding F2</td><td><span class="v pass">released 1.17.0, verified live</span></td></tr>
+        <tr><td>F1: retry when a handle is unavailable</td><td>Kill-and-resume 0/2</td><td>See finding F1</td><td><span class="v pass">released 1.17.0, verified live</span></td></tr>
+        <tr><td>The report lists what a run leaves in your repository</td><td>Every chain run left attempt branches (and, after recovery, kept worktrees) in the user's repository, unannounced</td><td>Listed with exact removal commands; <span class="mono">branch -d</span> where merged, never <span class="mono">--force</span>; nothing offered before the run is returned. ShipLoop still deletes nothing itself</td><td><span class="v open">tests pass, release next</span></td></tr>
+        <tr><td>Grader: retried workers leave the in-flight count</td><td>A review found lost workers stayed "in flight" forever, inflating kill-and-resume runs to 4</td><td>retry_result ends an attempt's flight; the grade also reports the peak after the first retry</td><td><span class="v pass">shipped 256883ce</span></td></tr>
         <tr><td>Sources, budgets and mismatch records</td><td>The Codex slowness had no verdict because no budget was ever stated</td><td>Every expectation names its source; seeded cases have a should-level 30-min budget; a failing run writes mismatch.md in the triage shape</td><td><span class="v open">tests pass, ships with the fixes</span></td></tr>
       </tbody>
     </table>
