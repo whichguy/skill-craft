@@ -3,6 +3,29 @@
 One entry per live run, newest last. Each entry is committed on its own with a
 detailed message; read the last three commit messages before the next run or change.
 
+## How expectations are set and mismatches decided (from 2026-10-04)
+
+Every expectation names its source in `cases.json`: `checks_source` (the request),
+`chain.source` (a SPEC clause), `retention_source`, `budget.source`; recovery runs use
+SPEC S-6 and S-14. The harness prints each verdict with what was expected and its
+source. Must-level verdicts fail a run; the budget is should-level (reported only).
+
+A run that fails writes `mismatch.md` beside its output with Expected and Observed
+filled in. Record each mismatch here in that shape:
+
+- **Expected** (and its source) / **Observed** (with evidence paths)
+- **Triage**, in order, stopping at the first yes: the check is wrong (fix the test);
+  the environment (fix the harness or ops, keep the expectation); not reproduced and
+  no clear trigger (rerun first); the expectation traces to its source (change the
+  product); the behaviour comes from a deliberate rule (the owner decides); a normal
+  run never hits it (known limit); the expectation describes how, not what (change
+  the expectation)
+- **Decision**: product / expectation / owner / known limit / environment, and **why**
+- **Verified by**: the hermetic test and the rerun that confirm it
+
+Changing an expectation needs the same evidence as changing the product, stated in
+its commit.
+
 ## Run 1 — 2026-09-26 — battleship, Grok grok-4.7 medium, ShipLoop 0.31.0 build
 
 - Outcome: stopped by the 150-turn cap after 2,327 s; Grok reported $10.88. ShipLoop was at
@@ -647,3 +670,39 @@ Run `/Users/dadleet/e2e-runs/20261003/v1161-battleship-luna`, Codex gpt-6-luna m
   section's own byte size.
 - Glue stayed at 2 (the model-built Backchain contract and its helper), unchanged in nature; whether a script should write that contract
   remains a design question (the budget guidance made the model-built one safe).
+
+### Batch B decisions (2026-10-04), in the mismatch shape
+
+(F1 and F2 here are batch B's labels, separate from the F1-F4 of the 1.16.0/1.16.1 Luna batch above.)
+
+**F2: a retried step blocks chain finish forever**
+- Expected (SPEC S-6; the request): a retried step gets a fresh attempt and the chain finishes.
+- Observed: b1-word-report-1c7a7e, 5/5 accepted, product 7/7 in the worktree, `chain finish` refused
+  ("retained superseded Ask-Agent workspaces"), run paused.
+- Triage: check correct; not environment; trigger clear (any retry); traces to S-6; the rule behind
+  it (3e217ad5: never delete rejected work without authority) is right, but blocking finish is not
+  part of that rule; a normal run hits it whenever a step is retried.
+- Decision: **product**. Superseded workspaces are kept with their receipts and listed in the finish
+  receipt (`retained_superseded`); they no longer hold the chain open. Nothing is deleted.
+- Verified by: five lifecycle tests assert the new contract; live rerun pending (the kill-and-resume
+  reruns retry steps, so they exercise F2 too).
+
+**F1: losing the host mid-chain needs a person**
+- Expected (SPEC S-6, S-14): after the host dies with workers in flight, a fresh session recovers
+  the chain unattended.
+- Observed: b1/b2-interrupt-temperature, 2/2 paused: `TaskStop` "No task found" for both handles,
+  the chain guide forbids retry until stoppage is proven, so the session asked a person.
+- Triage: check correct; the kill is deliberate, not environment; reproduced 2/2; traces to S-6 and
+  S-14; the behaviour comes from a deliberate rule (`confirmed_stopped` before retry), so the owner
+  decided.
+- Decision: **owner, then product** (owner, 2026-10-03: "retry without proof"). `retry` accepts
+  `confirmed_stopped: false` with `native_status: "unavailable"` in Plan Dispatcher and the chain
+  bridge; the old attempt's workspace is kept, its late report is refused as stale.
+- Verified by: Plan Dispatcher decisions S15 plus mutant `unconfirmed-retry-any` (18/18 mutants
+  caught); chain-bridge test `test_lost_native_worker_is_retried_without_a_confirmed_stop_and_finish_keeps_it`;
+  live kill-and-resume reruns pending.
+
+**Codex xhigh slowness (chain-seeded-codex-21de3d)**
+- Expected: none was stated, so the run could not fail on time.
+- Decision: **expectation**. Seeded chain cases now carry a should-level budget of 30 minutes (one
+  background-task session), reported beside the verdicts.

@@ -1,0 +1,261 @@
+<title>Orchestrator E2E Ledger</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Instrument+Sans:wght@400;500;600;700&family=JetBrains+Mono:wght@400;600&display=swap">
+<style>
+/* Layout: a single reading column for the argument, widening only for the ledger tables and the graph strip. */
+:root {
+  --bg: #f6f7f9;
+  --surface: #ffffff;
+  --ink: #17202b;
+  --muted: #5a6573;
+  --line: #d9dee5;
+  --accent: #1f6f8b;
+  --pass: #1d7a4a;
+  --pass-bg: #e3f3ea;
+  --fail: #b3412e;
+  --fail-bg: #fbe9e5;
+  --open: #8a6a12;
+  --open-bg: #f8f0d8;
+  --font-body: "Instrument Sans", "Segoe UI", system-ui, sans-serif;
+  --font-mono: "JetBrains Mono", ui-monospace, "SF Mono", Menlo, monospace;
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --bg: #11161c; --surface: #18202a; --ink: #e6ebf1; --muted: #9aa6b4; --line: #2b3542;
+    --accent: #6cc0dc; --pass: #6fd39a; --pass-bg: #163325; --fail: #f08a75; --fail-bg: #3a1d17;
+    --open: #e2c062; --open-bg: #352c12; color-scheme: dark;
+  }
+}
+:root[data-theme="dark"] {
+  --bg: #11161c; --surface: #18202a; --ink: #e6ebf1; --muted: #9aa6b4; --line: #2b3542;
+  --accent: #6cc0dc; --pass: #6fd39a; --pass-bg: #163325; --fail: #f08a75; --fail-bg: #3a1d17;
+  --open: #e2c062; --open-bg: #352c12; color-scheme: dark;
+}
+body { background: var(--bg); color: var(--ink); font-family: var(--font-body); font-size: 15.5px; line-height: 1.55; }
+.wrap { max-width: 1080px; margin: 0 auto; padding-inline: 20px; padding-block: 40px 72px; display: grid; gap: 56px; }
+.prose { max-width: 68ch; }
+h1 { font-size: 2.1rem; line-height: 1.15; margin: 0 0 12px; letter-spacing: -0.01em; text-wrap: balance; }
+h2 { font-size: 1.35rem; margin: 0 0 6px; text-wrap: balance; }
+h3 { font-size: 1.02rem; margin: 0 0 4px; }
+p { margin: 0 0 12px; }
+.eyebrow { font-family: var(--font-mono); font-size: 0.74rem; letter-spacing: 0.08em; text-transform: uppercase; color: var(--accent); margin-bottom: 8px; }
+.lede { font-size: 1.08rem; color: var(--muted); }
+.mono { font-family: var(--font-mono); font-size: 0.86em; }
+section { display: grid; gap: 18px; }
+.grid3 { display: grid; grid-template-columns: repeat(auto-fit, minmax(250px, 1fr)); gap: 14px; }
+.panel { background: var(--surface); border: 1px solid var(--line); border-radius: 6px; padding: 16px 18px; min-width: 0; }
+.panel p:last-child { margin-bottom: 0; }
+.tablewrap { overflow-x: auto; background: var(--surface); border: 1px solid var(--line); border-radius: 6px; }
+table { border-collapse: collapse; width: 100%; min-width: 860px; font-size: 0.9rem; }
+th, td { text-align: left; vertical-align: top; padding: 10px 12px; border-bottom: 1px solid var(--line); }
+th { font-family: var(--font-mono); font-size: 0.72rem; letter-spacing: 0.06em; text-transform: uppercase; color: var(--muted); font-weight: 600; }
+tr:last-child td { border-bottom: 0; }
+td.num { font-variant-numeric: tabular-nums; white-space: nowrap; }
+.v { display: inline-block; font-family: var(--font-mono); font-size: 0.72rem; font-weight: 600; padding: 2px 7px; border-radius: 3px; white-space: nowrap; }
+.v.pass { color: var(--pass); background: var(--pass-bg); }
+.v.fail { color: var(--fail); background: var(--fail-bg); }
+.v.open { color: var(--open); background: var(--open-bg); }
+.group td { background: var(--bg); font-family: var(--font-mono); font-size: 0.72rem; letter-spacing: 0.06em; text-transform: uppercase; color: var(--muted); padding-block: 6px; }
+.shapes { display: grid; grid-template-columns: repeat(auto-fit, minmax(260px, 1fr)); gap: 14px; }
+.shape svg { width: 100%; height: auto; display: block; }
+.shape .cap { font-size: 0.88rem; color: var(--muted); margin-top: 8px; }
+.node { fill: var(--surface); stroke: var(--accent); stroke-width: 1.5; }
+.nodetxt { fill: var(--ink); font-family: var(--font-mono); font-size: 11px; }
+.edge { stroke: var(--muted); stroke-width: 1.2; fill: none; }
+.band { fill: var(--pass-bg); }
+.bandtxt { fill: var(--pass); font-family: var(--font-mono); font-size: 10px; }
+.finding { display: grid; gap: 10px; }
+.finding dl { display: grid; grid-template-columns: 9.5rem 1fr; gap: 6px 14px; margin: 0; }
+.finding dt { font-family: var(--font-mono); font-size: 0.74rem; text-transform: uppercase; letter-spacing: 0.06em; color: var(--muted); padding-top: 2px; }
+.finding dd { margin: 0; min-width: 0; }
+@media (max-width: 560px) { .finding dl { grid-template-columns: 1fr; } .finding dt { padding-top: 6px; } h1 { font-size: 1.7rem; } }
+.mermaid { background: var(--surface); border: 1px solid var(--line); border-radius: 6px; padding: 12px; overflow-x: auto; }
+ol.steps { margin: 0; padding-left: 1.3rem; display: grid; gap: 8px; }
+.foot { font-size: 0.85rem; color: var(--muted); }
+a { color: var(--accent); }
+</style>
+
+<div class="wrap">
+
+<header class="prose">
+  <div class="eyebrow">skill-craft · Plan Orchestrator · live end-to-end testing</div>
+  <h1>What we expected, what happened, and why we changed things</h1>
+  <p class="lede">A record of the live tests that check whether ShipLoop and the Plan Orchestrator deliver a real request on a real host. Every verdict here comes from a script reading files on disk, never from a model's account of its own work.</p>
+</header>
+
+<section class="prose">
+  <div class="eyebrow">The goal</div>
+  <h2>What an end-to-end test is for</h2>
+  <p>The hermetic suites already prove the orchestration logic without a model: readiness, fan-out and join, locks, retries, crash recovery. They cannot show what happens when a real model, on a real host, has to follow ShipLoop's packets. That is the only thing a live end-to-end test is for.</p>
+  <p>Each live test answers one question with a pass or fail that a script decides:</p>
+</section>
+
+<div class="grid3">
+  <div class="panel"><h3>Does a real host follow the plan?</h3><p>The model plans a dependency graph and launches workers only when ShipLoop's packets say so, in the order the graph allows.</p></div>
+  <div class="panel"><h3>Does the product actually work?</h3><p>The case's own checks run against the committed result: imports, exact outputs, exit codes, error handling.</p></div>
+  <div class="panel"><h3>Does the run survive real conditions?</h3><p>Session limits, lost hosts, network errors and retries are normal. A run should resume in place and finish without a person.</p></div>
+</div>
+
+<section>
+  <div class="prose">
+    <div class="eyebrow">The method</div>
+    <h2>Every live check is a loop with the expectation written first</h2>
+    <p>An expectation is written down before the run, as a case's checks and its <span class="mono">"chain"</span> block in <span class="mono">cases.json</span>. The harness grades against it. A gap between expected and observed becomes a named finding, and only a finding justifies an engine change. The change is then verified by rerunning the run that exposed it.</p>
+  </div>
+  <pre class="mermaid">
+flowchart LR
+  E["Expect<br/>cases.json checks +<br/>chain: min steps, width, depth"] --> R["Run<br/>real host, seeded or<br/>from intake"]
+  R --> G["Grade<br/>script reads state,<br/>ledger, git, checks"]
+  G -->|matches| P["Record the pass<br/>LEARNINGS + test map"]
+  G -->|differs| F["Name the finding<br/>F1, F2 ... with evidence"]
+  F --> C["Change<br/>engine, harness or case"]
+  C --> V["Verify<br/>hermetic test first,<br/>then rerun the exposing case"]
+  V --> G
+  </pre>
+</section>
+
+<section>
+  <div class="prose">
+    <div class="eyebrow">Expected vs observed</div>
+    <h2>Every live run so far</h2>
+    <p>Read each row left to right: what the run was expected to show, what it actually showed, and the lesson that moved the next step.</p>
+  </div>
+  <div class="tablewrap">
+    <table>
+      <thead><tr><th>Run</th><th>Expected</th><th>Observed</th><th>Verdict</th><th>What it taught us</th><th>Decision</th></tr></thead>
+      <tbody>
+        <tr class="group"><td colspan="6">Before seeding: every run started at intake</td></tr>
+        <tr><td>Dummy fan-out, Codex<br/><span class="mono">fanout.py</span></td><td>A and B run in parallel as native workers; J starts after both</td><td>A and B native, 29.3 s of 30 s overlapped, J after both</td><td><span class="v pass">PASS</span></td><td>A real host follows the dispatcher's calls. This proves the dispatcher, not ShipLoop's chain.</td><td>—</td></tr>
+        <tr><td>temperature-report, Codex Luna max</td><td>Plan, then bind a chain at implement and fan out</td><td>Timed out at 3 h, still in plan. Spec 79 min, test strategy 40 min</td><td><span class="v fail">FAIL</span></td><td>Planning cost hides the chain. Each review pass at max effort was slow; the loops were not runaway (4 passes each).</td><td><span class="v open">harness</span> Seed runs at step-plan; run ShipLoop tests at xhigh. The expectation stood.</td></tr>
+        <tr><td>temperature-report, Codex Luna xhigh</td><td>Same, faster</td><td>Session ended; macOS purged the output from the temp folder</td><td><span class="v open">LOST</span></td><td>Run output must live outside the temp folder.</td><td><span class="v open">environment</span> Output moved to ~/shiploop-e2e-runs. The expectation stood.</td></tr>
+        <tr class="group"><td colspan="6">Seeded at step-plan: planning stages recorded as done, so the run reaches the chain in minutes</td></tr>
+        <tr><td>temperature-report, Claude Sonnet 5.5, seeded</td><td>Graph of 2 independent steps + 1 join; 2 workers in flight; all checks pass</td><td>Exactly that. 22 min, $11.75</td><td><span class="v pass">PASS</span></td><td>ShipLoop's chain works live from step-plan through return.</td><td>—</td></tr>
+        <tr><td>temperature-report, Claude, from intake</td><td>The same, with real planning</td><td>Same graph and order; every check passes. Killed once at the 30-min task limit and resumed in place</td><td><span class="v pass">PASS</span></td><td>Real planning plus the chain pass together. Planning took minutes on Sonnet, not hours.</td><td><span class="v open">environment</span> The 30-min kill is handled by resuming in place.</td></tr>
+        <tr><td>temperature-report, Codex Luna xhigh, seeded</td><td>Reach the chain within a few 30-min sessions</td><td>3 sessions: step-plan accepted in session 2, its review filled session 3; chain never reached</td><td><span class="v fail">STOPPED</span></td><td>On Codex xhigh each stage with a review takes about one session, and every kill loses the in-flight worker.</td><td><span class="v open">expectation</span> No time budget existed, so nothing could fail. Added a should-level 30-min budget for seeded cases.</td></tr>
+        <tr class="group"><td colspan="6">Batch B: kill-and-resume, wider and deeper graphs, repeats (Claude Sonnet 5.5, all seeded)</td></tr>
+        <tr><td>Kill-and-resume #1 and #2</td><td>Host killed with workers in flight; a fresh session retries them and finishes</td><td>Fresh session found the workers gone, could not prove they stopped, paused for a person. Both times</td><td><span class="v fail">FAIL 0/2</span></td><td>Finding F1.</td><td><span class="v fail">owner → product</span> A deliberate rule conflicted with S-6/S-14; the owner chose retry without proof.</td></tr>
+        <tr><td>Wide: unit-converter #1 and #2</td><td>5 steps, at least 3 workers in flight, all checks pass</td><td>4 independent modules + join; 4 in flight both times; every check passes</td><td><span class="v pass">PASS 2/2</span></td><td>Wide fan-out works as planned by the model.</td><td>—</td></tr>
+        <tr><td>Deep: word-report #1</td><td>5 steps, depth 3, dependency order, all checks pass</td><td>Chain correct (depth 3, in order). Two steps retried; then chain finish refused forever; run paused with a working product unreturned</td><td><span class="v fail">FAIL</span></td><td>Finding F2.</td><td><span class="v fail">product</span> Retries are normal; S-6 says the run must finish.</td></tr>
+        <tr><td>Deep: word-report #2</td><td>Same</td><td>No retries; chain correct; host lost to a transient API SSL error, resumed, finished</td><td><span class="v pass">PASS</span></td><td>F2 appears only when a step is retried.</td><td><span class="v open">environment</span> A transient API SSL error; resumed and finished.</td></tr>
+        <tr><td>temperature-report repeat</td><td>Same as the first seeded run</td><td>Same result. 16 min, $8.62</td><td><span class="v pass">PASS</span></td><td>The first pass was not luck.</td><td>—</td></tr>
+      </tbody>
+    </table>
+  </div>
+</section>
+
+<section>
+  <div class="prose">
+    <div class="eyebrow">Graph shapes</div>
+    <h2>The graphs we expected the model to plan, and the graphs it planned</h2>
+    <p>The case prompts describe modules and what each uses; the model writes the graph itself. In every run the observed graph matched the expected one, and the grader found no step launched before its dependencies were merged in, and no step merged twice.</p>
+  </div>
+  <div class="shapes">
+    <div class="panel shape">
+      <h3>temperature-report</h3>
+      <svg viewBox="0 0 260 150" role="img" aria-label="convert and stats in parallel, then measure">
+        <rect class="band" x="8" y="14" width="244" height="54" rx="4"/>
+        <text class="bandtxt" x="16" y="28">2 in flight together</text>
+        <path class="edge" d="M80 58 L130 106"/><path class="edge" d="M180 58 L130 106"/>
+        <rect class="node" x="40" y="34" width="80" height="26" rx="3"/><text class="nodetxt" x="80" y="51" text-anchor="middle">convert</text>
+        <rect class="node" x="140" y="34" width="80" height="26" rx="3"/><text class="nodetxt" x="180" y="51" text-anchor="middle">stats</text>
+        <rect class="node" x="90" y="106" width="80" height="26" rx="3"/><text class="nodetxt" x="130" y="123" text-anchor="middle">measure</text>
+      </svg>
+      <p class="cap">Expected 3 steps, depth 2, 2 in flight. Observed the same in 4 of 4 runs that reached the chain.</p>
+    </div>
+    <div class="panel shape">
+      <h3>unit-converter (wide)</h3>
+      <svg viewBox="0 0 260 150" role="img" aria-label="four converters in parallel, then convert.py">
+        <rect class="band" x="4" y="14" width="252" height="54" rx="4"/>
+        <text class="bandtxt" x="12" y="28">4 in flight together</text>
+        <path class="edge" d="M36 58 L130 106"/><path class="edge" d="M98 58 L130 106"/><path class="edge" d="M162 58 L130 106"/><path class="edge" d="M224 58 L130 106"/>
+        <rect class="node" x="10" y="34" width="52" height="26" rx="3"/><text class="nodetxt" x="36" y="51" text-anchor="middle">length</text>
+        <rect class="node" x="72" y="34" width="52" height="26" rx="3"/><text class="nodetxt" x="98" y="51" text-anchor="middle">mass</text>
+        <rect class="node" x="136" y="34" width="52" height="26" rx="3"/><text class="nodetxt" x="162" y="51" text-anchor="middle">volume</text>
+        <rect class="node" x="198" y="34" width="52" height="26" rx="3"/><text class="nodetxt" x="224" y="51" text-anchor="middle">speed</text>
+        <rect class="node" x="90" y="106" width="80" height="26" rx="3"/><text class="nodetxt" x="130" y="123" text-anchor="middle">convert</text>
+      </svg>
+      <p class="cap">Expected 5 steps, at least 3 in flight. Observed 5 steps with 4 in flight, 2 of 2 runs.</p>
+    </div>
+    <div class="panel shape">
+      <h3>word-report (deep)</h3>
+      <svg viewBox="0 0 260 190" role="img" aria-label="tokens and stopwords, then counts and filters, then report">
+        <rect class="band" x="8" y="10" width="244" height="48" rx="4"/>
+        <text class="bandtxt" x="16" y="22">level 1: 2 in flight</text>
+        <path class="edge" d="M80 50 L80 88"/><path class="edge" d="M180 50 L180 88"/><path class="edge" d="M80 114 L130 150"/><path class="edge" d="M180 114 L130 150"/>
+        <rect class="node" x="40" y="26" width="80" height="26" rx="3"/><text class="nodetxt" x="80" y="43" text-anchor="middle">tokens</text>
+        <rect class="node" x="140" y="26" width="80" height="26" rx="3"/><text class="nodetxt" x="180" y="43" text-anchor="middle">stopwords</text>
+        <rect class="node" x="40" y="88" width="80" height="26" rx="3"/><text class="nodetxt" x="80" y="105" text-anchor="middle">counts</text>
+        <rect class="node" x="140" y="88" width="80" height="26" rx="3"/><text class="nodetxt" x="180" y="105" text-anchor="middle">filters</text>
+        <rect class="node" x="90" y="150" width="80" height="26" rx="3"/><text class="nodetxt" x="130" y="167" text-anchor="middle">report</text>
+      </svg>
+      <p class="cap">Expected 5 steps, depth 3. Observed the same, in dependency order, 2 of 2 runs.</p>
+    </div>
+  </div>
+</section>
+
+<section>
+  <div class="prose">
+    <div class="eyebrow">Findings</div>
+    <h2>Where observed differed from expected, and what we are changing</h2>
+  </div>
+  <div class="panel finding">
+    <h3>F2 · A step that needed a retry blocks the chain from finishing <span class="v open">fixed, awaiting live rerun</span></h3>
+    <dl>
+      <dt>Expected</dt><dd>A retried step gets a fresh attempt; once every step is accepted, the chain finishes and the run returns the product.</dd>
+      <dt>Observed</dt><dd>All 5 steps accepted and the product passing 7/7 in ShipLoop's worktree, but <span class="mono">chain finish</span> refused because the two retried attempts left workspaces that can never be closed. The run paused with no way forward.</dd>
+      <dt>Why</dt><dd>A deliberate rule (<span class="mono">3e217ad5</span>): rejected work must never be deleted without authority, and the Ask-Agent helper has no "close without merging" option. The rule was right; making it block <span class="mono">finish</span> was the defect.</dd>
+      <dt>Change</dt><dd>Superseded workspaces stay on disk with their receipts, but no longer hold the chain open. <span class="mono">finish</span> completes and lists them under <span class="mono">retained_superseded</span>. Nothing is deleted.</dd>
+      <dt>Decision</dt><dd>Product: the expectation traces to S-6, and a normal run hits it whenever a step is retried.</dd>
+      <dt>Verified by</dt><dd>Five hermetic lifecycle tests now assert the new contract (finish completes; the old workspace, receipt and HEAD are untouched). Next: the kill-and-resume reruns, which retry steps.</dd>
+    </dl>
+  </div>
+  <div class="panel finding">
+    <h3>F1 · Losing the host mid-chain needs a person <span class="v open">fixed, awaiting live rerun</span></h3>
+    <dl>
+      <dt>Expected</dt><dd>After the host dies with workers in flight, a fresh session retries those steps and finishes, unattended (E2E spec S-6 and S-14).</dd>
+      <dt>Observed</dt><dd>In 2 of 2 runs the fresh session found the workers gone (<span class="mono">TaskStop: No task found</span>), could not prove they had stopped, and paused to ask whether it may retry.</dd>
+      <dt>Why</dt><dd>Retry requires <span class="mono">confirmed_stopped</span>. Native workers die with their host, but nothing records which session launched them, so a later session can never prove it.</dd>
+      <dt>Change</dt><dd>Allow retry when a handle is unavailable, recorded as <span class="mono">native_status: unavailable</span>. This is safe for code: the old workspace is kept, never merged, and the bridge already refuses any late callback from a retried attempt. Chosen by the owner on 2026-10-03.</dd>
+      <dt>Decision</dt><dd>Owner, then product: the behaviour came from a deliberate rule, so the owner weighed it against S-14.</dd>
+      <dt>Verified by</dt><dd>Plan Dispatcher scenario S15 (with a mutant it catches) and a chain-bridge test that loses a worker, retries it and finishes. Then the two kill-and-resume runs again.</dd>
+    </dl>
+  </div>
+</section>
+
+<section>
+  <div class="prose">
+    <div class="eyebrow">Why each change</div>
+    <h2>Every change traced to the evidence that caused it</h2>
+  </div>
+  <div class="tablewrap">
+    <table>
+      <thead><tr><th>Change</th><th>Evidence that triggered it</th><th>What it does</th><th>Status</th></tr></thead>
+      <tbody>
+        <tr><td>Seed runs at step-plan <span class="mono">--seed-at</span></td><td>Luna max spent 2.5 h planning and never reached the chain</td><td>Starts a run at step-plan with earlier stages recorded, so the chain is tested in minutes. One full run from intake still confirms it all works together</td><td><span class="v pass">shipped 6833b41d</span></td></tr>
+        <tr><td>Run output outside the temp folder</td><td>The xhigh run's output was deleted by the macOS temp cleaner</td><td>Live runs write to <span class="mono">~/shiploop-e2e-runs/</span></td><td><span class="v pass">in use</span></td></tr>
+        <tr><td>Resume after every 30-min kill, never detached</td><td>Background tasks are stopped at about 30 min; the owner wants runs visible</td><td><span class="mono">--resume-run</span> continues the run in place</td><td><span class="v pass">in use</span></td></tr>
+        <tr><td>Stricter chain grading and shape cases</td><td>Every pass so far was one shape with nothing going wrong</td><td>Checks dependency order, single merge per step, depth and width against each case's expectations</td><td><span class="v pass">shipped 3d2ab1da</span></td></tr>
+        <tr><td>Kill-and-resume option <span class="mono">--interrupt-at</span></td><td>Surviving context loss is ShipLoop's purpose but was only tested hermetically</td><td>Kills the host once a chain worker is in flight, then resumes with a fresh session</td><td><span class="v pass">shipped 3d2ab1da</span></td></tr>
+        <tr><td>Checks must fail on an empty directory</td><td>An error-path check passed with no product at all</td><td>Each new case's checks pass a reference solution 7/7 and an empty directory 0/7</td><td><span class="v pass">shipped</span></td></tr>
+        <tr><td>F2: superseded workspaces do not block finish</td><td>word-report #1</td><td>See finding F2</td><td><span class="v open">tests pass, release next</span></td></tr>
+        <tr><td>F1: retry when a handle is unavailable</td><td>Kill-and-resume 0/2</td><td>See finding F1</td><td><span class="v open">tests pass, release next</span></td></tr>
+        <tr><td>Sources, budgets and mismatch records</td><td>The Codex slowness had no verdict because no budget was ever stated</td><td>Every expectation names its source; seeded cases have a should-level 30-min budget; a failing run writes mismatch.md in the triage shape</td><td><span class="v open">tests pass, ships with the fixes</span></td></tr>
+      </tbody>
+    </table>
+  </div>
+</section>
+
+<section class="prose">
+  <div class="eyebrow">Making this routine</div>
+  <h2>How expectations are set and mismatches decided</h2>
+  <ol class="steps">
+    <li><strong>Every expectation names its source.</strong> In <span class="mono">cases.json</span>: <span class="mono">checks_source</span> (the request), <span class="mono">chain.source</span> (a spec clause), <span class="mono">budget.source</span>. Recovery runs cite S-6 and S-14.</li>
+    <li><strong>Must and should are separate.</strong> Must-level verdicts fail a run. The time budget is should-level: reported, never failing.</li>
+    <li><strong>Every grade prints expected beside observed.</strong> For example: "expected ≥ 3 in flight (S-1, S-2) · observed 4".</li>
+    <li><strong>A failing run writes <span class="mono">mismatch.md</span>.</strong> Expected and observed are filled in; the triage questions follow in order: is the check wrong, is it the environment, is it reproduced, does the expectation trace to its source, is it a deliberate rule, would a normal run hit it, does it describe how instead of what.</li>
+    <li><strong>The decision is recorded.</strong> Product, expectation, owner, known limit or environment, with why and what verified it, in <span class="mono">LEARNINGS.md</span>. Changing an expectation needs the same evidence as changing the product.</li>
+  </ol>
+  <p class="foot">Sources: <span class="mono">test/shiploop_e2e/LEARNINGS.md</span>, <span class="mono">docs/orchestrator-test-map.md</span>, run outputs under <span class="mono">~/shiploop-e2e-runs/</span>. Snapshot of 2026-10-04.</p>
+</section>
+
+</div>

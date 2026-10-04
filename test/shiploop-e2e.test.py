@@ -561,6 +561,48 @@ class SeedTest(HarnessCase):
         self.assertIsNone(result["recovery"])
 
 
+class ExpectationTest(HarnessCase):
+    """Every expectation names its source; a failing run gets a filled mismatch record."""
+
+    def test_every_case_names_the_source_of_its_expectations(self):
+        cases = json.loads(run.CASES.read_text())
+        for name, case in cases.items():
+            self.assertTrue(case.get("checks_source"), name)
+            for block in ("chain", "budget"):
+                if block in case:
+                    self.assertTrue(case[block].get("source"), f"{name}.{block}")
+            if "retention" in case:
+                self.assertTrue(case.get("retention_source"), name)
+
+    def test_a_failing_run_records_expected_beside_observed_in_mismatch_md(self):
+        code, result = self.invoke("claude", "nothing")
+        self.assertEqual(code, 1)
+        self.assertEqual(result["expectations"]["checks"], json.loads(run.CASES.read_text())["hello"]["checks_source"])
+        mismatch = (Path(result["output"]) / "mismatch.md").read_text()
+        for section in ("## Expected", "## Observed", "## Triage", "## Decision", "## Verified by"):
+            self.assertIn(section, mismatch)
+        self.assertIn("**shiploop**: ShipLoop reaches done", mismatch)
+        self.assertIn("(source: the request", mismatch)
+
+    def test_a_passing_run_writes_no_mismatch(self):
+        code, result = self.invoke("claude", "done")
+        self.assertEqual(code, 0, result)
+        self.assertFalse((Path(result["output"]) / "mismatch.md").exists())
+
+    def test_budget_is_should_level_and_read_from_the_run_timeline(self):
+        run_dir = self.tmp / "run"
+        run_dir.mkdir()
+        (run_dir / "timeline.json").write_text(json.dumps({
+            "started": "2026-10-03T10:00:00Z",
+            "accepted": {"a": "2026-10-03T10:05:00Z", "b": "2026-10-03T10:21:30Z"}}))
+        budget = {"seeded_minutes": 30, "source": "one session"}
+        met = run.budget_facts(budget, True, str(run_dir))
+        self.assertEqual((met["level"], met["observed_minutes"], met["pass"]), ("should", 21.5, True))
+        over = run.budget_facts({"seeded_minutes": 20, "source": "x"}, True, str(run_dir))
+        self.assertFalse(over["pass"])
+        self.assertIsNone(run.budget_facts(budget, False, str(run_dir)))  # only seeded runs carry a budget
+
+
 class ReviewParsingTest(unittest.TestCase):
     def test_actionable_keeps_only_material_premise_preserving_findings(self):
         verdict = {

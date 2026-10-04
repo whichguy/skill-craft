@@ -61,6 +61,7 @@ from __future__ import annotations
 
 import argparse
 from concurrent.futures import ThreadPoolExecutor
+from datetime import datetime
 import json
 import os
 from pathlib import Path
@@ -718,6 +719,71 @@ def chain_facts(out: Path, expect: dict | None = None) -> dict:
     return {"pass": any(c.get("pass") for c in chains), "expect": expect, "bindings": chains}
 
 
+RECOVERY_SOURCE = ("SPEC S-6 (runs survive session resumes) and S-14 (unattended by default): a fresh session "
+                   "recovers the chain without a person")
+
+
+def run_minutes(run_dir: str | None) -> float | None:
+    """Minutes from ShipLoop's run start to its last accepted action, from the run's own timeline.
+
+    It survives killed sessions, and includes any pause between a kill and its resume.
+    """
+    if not run_dir:
+        return None
+    try:
+        timeline = json.loads((Path(run_dir) / "timeline.json").read_text())
+        stamps = [datetime.strptime(v, "%Y-%m-%dT%H:%M:%SZ") for v in timeline.get("accepted", {}).values()]
+        start = datetime.strptime(timeline["started"], "%Y-%m-%dT%H:%M:%SZ")
+    except (OSError, ValueError, KeyError, TypeError):
+        return None
+    return round((max(stamps) - start).total_seconds() / 60, 1) if stamps else None
+
+
+def budget_facts(budget: dict | None, seeded: bool, run_dir: str | None) -> dict | None:
+    """A should-level expectation: reported beside the verdicts, never failing the run."""
+    if not budget or not seeded or "seeded_minutes" not in budget:
+        return None
+    observed = run_minutes(run_dir)
+    return {"level": "should", "expected_minutes": budget["seeded_minutes"], "observed_minutes": observed,
+            "pass": observed is not None and observed <= budget["seeded_minutes"], "source": budget.get("source")}
+
+
+MISMATCH_TEMPLATE = """# Mismatch: {case} on {host} ({output})
+
+Fill in every field, then record the decision in test/shiploop_e2e/LEARNINGS.md.
+
+## Expected
+{expected}
+
+## Observed
+{observed}
+
+## Triage (answer in order; stop at the first yes)
+1. Is the check itself wrong? (Does it pass a reference solution and fail an empty one?)
+2. Is it the environment? (Network, session limits, host outages: fix the harness or ops; the expectation stands.)
+3. Is it reproduced, or is its trigger condition clear? (If not, rerun before changing anything.)
+4. Does the expectation trace to its source above? (Yes: the product changes.)
+5. Does the observed behaviour come from a deliberate design rule? (Then two intents conflict: the owner decides.)
+6. Would a normal run ever hit it? (No: document it as a known limit.)
+7. Does the expectation describe how instead of what? (Then the expectation changes.)
+
+## Why
+
+## Decision (product / expectation / owner / known limit / environment)
+
+## Verified by
+"""
+
+
+def write_mismatch(out: Path, name: str, host: str, failed: list[tuple[str, str, str]]) -> Path:
+    """One file per failing run, pre-filled with each failed must-level expectation and what was observed."""
+    expected = "\n".join(f"- **{verdict}**: {want}" for verdict, want, _ in failed)
+    observed = "\n".join(f"- **{verdict}**: {got}" for verdict, _, got in failed)
+    path = out / "mismatch.md"
+    path.write_text(MISMATCH_TEMPLATE.format(case=name, host=host, output=out, expected=expected, observed=observed))
+    return path
+
+
 def chain_in_flight(out: Path) -> bool:
     """Whether some chain worker has launched and its result is not yet imported."""
     for binding_path in _bindings(out):
@@ -1178,13 +1244,25 @@ def main(argv: list[str] | None = None) -> int:
         # Informational only: does the unreturned candidate already pass?
         shiploop["worktree_checks"] = [{k: c[k] for k in ("command", "pass")}
                                        for c in run_checks(Path(shiploop["worktree"]), checks, env=check_env)]
-    expect = json.loads(CASES.read_text()).get(name, {}).get("chain") if name != "custom" else None
+    case = json.loads(CASES.read_text()).get(name, {}) if name != "custom" else {}
+    expect = case.get("chain")
     chain = chain_facts(out, expect) if (seeded or interrupt_at or expect) else None
+    if chain is not None:
+        chain["source"] = (expect or {}).get("source") or "the harness default: a fanned-out chain (seeded or interrupted run)"
     recovery = None
     if interrupt_at:
         interrupt_file = out / "interrupt.json"
         interrupted = json.loads(interrupt_file.read_text()) if interrupt_file.is_file() else None
-        recovery = {"pass": bool(interrupted) and chain["pass"], "interrupt": interrupted}
+        recovery = {"pass": bool(interrupted) and chain["pass"], "interrupt": interrupted, "source": RECOVERY_SOURCE}
+    budget = budget_facts(case.get("budget"), bool(seeded), shiploop.get("run_dir"))
+    expectations = {
+        "checks": case.get("checks_source") or "the --check arguments given with --prompt",
+        **({"retention": case["retention_source"]} if case.get("retention_source") else {}),
+        **({"chain": {k: v for k, v in chain["expect"].items()} | {"source": chain["source"]}} if chain else {}),
+        **({"recovery": RECOVERY_SOURCE} if recovery else {}),
+        **({"budget": {"seeded_minutes": budget["expected_minutes"], "level": "should",
+                       "source": budget["source"]}} if budget else {}),
+    }
     verdicts = [invoked["pass"], plugin["pass"], process["pass"], shiploop["pass"], committed["pass"],
                 *([chain["pass"]] if chain else []), *([recovery["pass"]] if recovery else []),
                 *(c["pass"] for c in check_results)]
@@ -1195,7 +1273,8 @@ def main(argv: list[str] | None = None) -> int:
               "process": process,
               "keepalive": keepalive,
               "shiploop": shiploop, "committed": committed, "checks": check_results, "cli": cli_seen, "follow_on": follow_on,
-              "resumed_run": resumed, "seeded": seeded, "chain": chain, "recovery": recovery,
+              "resumed_run": resumed, "seeded": seeded, "chain": chain, "recovery": recovery, "budget": budget,
+              "expectations": expectations,
               "metrics": {k: run_metrics[k] for k in ("turns", "cost_usd", "compactions", "truncated_outputs",
                                                       "improve_children")}
               | {"script_verifications": run_metrics["script_verifications"],
@@ -1240,6 +1319,9 @@ def main(argv: list[str] | None = None) -> int:
           f"{', tracked' if knowledge['spec_tracked'] else ', not committed'}; {len(knowledge['requirement_ids'])} "
           f"requirement ids; HEAD has {knowledge['head_commits']} commits, {knowledge['untracked_files']} untracked files")
     if chain is not None:
+        want = chain["expect"]
+        print(f"            expected  >= {want['min_steps']} steps all accepted, >= {want['min_in_flight']} in flight, "
+              f"depth >= {want['min_depth']}, dependency order, each merged once ({chain['source']})")
         for binding in chain["bindings"] or [{}]:
             print(f"  chain     {mark(chain['pass'])}  " + (
                 f"{binding.get('mode')} {binding.get('accepted')}/{binding.get('steps')} steps accepted, depth "
@@ -1253,6 +1335,10 @@ def main(argv: list[str] | None = None) -> int:
         print(f"  recovery  {mark(recovery['pass'])}  " + (
             f"killed at {stop['elapsed_seconds']}s in {stop['stage']}; a fresh session resumed the chain"
             if stop else "the host was never interrupted (no chain worker was ever in flight)"))
+        print(f"            expected  {recovery['source']}")
+    if budget is not None:
+        print(f"  budget    {'met ' if budget['pass'] else 'over'}  should finish within {budget['expected_minutes']} min; "
+              f"took {budget['observed_minutes']} min ({budget['source']})")
     for line in metrics.summary_lines(run_metrics):
         print(f"  metrics   {line}")
     for failure in run_metrics["shiploop_failures"][:5]:
@@ -1260,6 +1346,7 @@ def main(argv: list[str] | None = None) -> int:
     if follow_on:
         print(f"  follow-on of {follow_on['prior_case']} ({follow_on['prior']}): turns {run_metrics['turns']} vs "
               f"{follow_on['prior_turns']}, cost ${run_metrics['cost_usd']} vs ${follow_on['prior_cost_usd']}")
+    print(f"  checks    expected from {expectations['checks']}")
     for check in check_results:
         print(f"  check     {mark(check['pass'])}  {check['command']}")
     if before:
@@ -1269,6 +1356,33 @@ def main(argv: list[str] | None = None) -> int:
               + (f", narrative shown {before['narrative']['shown']}/{before['narrative']['emitted']} -> "
                  f"{row['narrative']['shown']}/{row['narrative']['emitted']}"
                  if before.get("narrative") and row.get("narrative") else ""))
+    if not result["pass"]:
+        failed = [(verdict, want, got) for ok, verdict, want, got in (
+            (invoked["pass"], "invoked", "the host registers the invoked ShipLoop skill", "not registered"),
+            (plugin["pass"], "plugin", "exactly the skill-craft build under test loads", str(plugin.get("loaded"))),
+            (process["pass"], "process", "the host exits 0 within the timeout",
+             f"{process['status']} rc={process['returncode']}"),
+            (shiploop["pass"], "shiploop", "ShipLoop reaches done and writes its report",
+             str(shiploop.get("status") or shiploop.get("reason"))),
+            (committed["pass"], "committed", "HEAD moves past the start and no product path is uncommitted",
+             f"HEAD {str(committed['head'])[:8]}, {len(committed['uncommitted'])} uncommitted"),
+        ) if not ok]
+        if chain is not None and not chain["pass"]:
+            want = chain["expect"]
+            got = "; ".join(f"{b.get('accepted')}/{b.get('steps')} accepted, depth {b.get('depth')}, "
+                            f"most in flight {b.get('max_in_flight')}, out of order {b.get('out_of_order')}, "
+                            f"merged twice {b.get('integrated_twice')}, not merged {b.get('not_integrated')}"
+                            if b.get("steps") is not None else b.get("error", "no chain")
+                            for b in chain["bindings"]) or "no chain bound"
+            failed.append(("chain", f">= {want['min_steps']} steps all accepted, >= {want['min_in_flight']} in "
+                           f"flight, depth >= {want['min_depth']}, in dependency order, each merged once "
+                           f"(source: {chain['source']})", got))
+        if recovery is not None and not recovery["pass"]:
+            failed.append(("recovery", f"a fresh session finishes the chain after the kill (source: {RECOVERY_SOURCE})",
+                           "never interrupted" if not recovery["interrupt"] else "the chain did not finish"))
+        failed.extend(("check", f"`{c['command']}` exits 0 (source: {expectations['checks']})", "non-zero exit")
+                      for c in check_results if not c["pass"])
+        print(f"  mismatch  {write_mismatch(out, name, args.host, failed)}")
     return 0 if result["pass"] else 1
 
 
