@@ -8,6 +8,8 @@ there with one headless host process, shows its progress live, and grades:
             to the skill (Claude: /skill-craft:shiploop; Grok: /shiploop, since
             Grok does not namespace plugin skills)
   plugin    exactly one skill-craft plugin loaded, and it is the build under test
+            (a resumed or regraded Grok or Codex run keeps its first launch's
+            verdict, which invocation.json records; Claude shows it in its events)
   process   the host exited 0 within the timeout
   shiploop  a ShipLoop state.md under the output directory reports status
             "done" and its report.html exists
@@ -1348,14 +1350,16 @@ def main(argv: list[str] | None = None) -> int:
     args.skill = args.skill or host.skill
     env = host.env(out / "home")
     if regrade:
-        # No host starts, so nothing is installed or gated: a regrade keeps the plugin identity the run recorded.
-        plugin_dir, plugin = Path(earlier.get("plugin_dir") or out / "missing-plugin"), None
+        # No host starts, so nothing is installed or gated: a regrade keeps the plugin identity the run recorded,
+        # and the plugin verdict of its first launch (see the invocation record below).
+        plugin_dir, plugin = Path(earlier.get("plugin_dir") or out / "missing-plugin"), earlier.get("plugin")
         versions = {"source": None, "plugin_version": None, "shiploop_version": None,
                     **(earlier.get("versions") or {}), "regraded": True}
     elif resumed and earlier.get("host") == args.host and Path(earlier.get("plugin_dir") or "").is_dir():
         # A resumed run keeps the plugin it started on: reinstalling would replace that version's files, and a
-        # bound Improve child records paths inside them. Only the CI and checkout checks still apply.
-        plugin_dir, plugin = Path(earlier["plugin_dir"]), None
+        # bound Improve child records paths inside them. Only the CI and checkout checks still apply. It also
+        # keeps that launch's plugin verdict, since a Grok or Codex stream cannot show which plugin loaded.
+        plugin_dir, plugin = Path(earlier["plugin_dir"]), earlier.get("plugin")
         released = released_versions()
         versions = {"source": "marketplace (resumed on its original install)", **installed_versions(plugin_dir),
                     "released": released,
@@ -1405,8 +1409,11 @@ def main(argv: list[str] | None = None) -> int:
                     permission_mode=args.permission_mode, max_turns=args.max_turns,
                     max_budget_usd=args.max_budget_usd,
                     plugin_dir=None if host.marketplace else plugin_dir)
+    # `plugin` is the install check made before the host started (Grok, Codex), kept so a resume or a regrade
+    # grades the run on its first launch's evidence; None for Claude, whose init event shows it on every launch.
     invocation = {"case": name, "host": args.host, "model": args.model, "effort": args.effort, "argv": cli,
-                  "cwd": str(work), "plugin_dir": str(plugin_dir), "versions": versions, "checks": checks,
+                  "cwd": str(work), "plugin_dir": str(plugin_dir), "plugin": plugin, "versions": versions,
+                  "checks": checks,
                   "follow_on": follow_on, "resumed_run": resumed, "seeded": seeded,
                   "interrupt_at": interrupt_at}
     if resumed:

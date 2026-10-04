@@ -2143,6 +2143,75 @@ class ResumedRunRecordTest(PrintedCase):
         self.assertEqual(result["termination"]["sessions"], 1)  # this invocation's own sessions
 
 
+class PluginVerdictCarriedTest(PrintedCase):
+    """A run continued or regraded after the harness stopped keeps the plugin verdict of its first launch.
+
+    Only Claude's own events say which plugin loaded. A Grok or Codex run's evidence is the install check made
+    before its first process started, so invocation.json records it and a later invocation reads it back."""
+
+    HOSTS = ("claude", "grok", "codex")
+
+    def setUp(self):
+        super().setUp()
+        # A real build names its version, which the same-host resume branch compares with the catalog's.
+        (self.plugin / ".claude-plugin" / "plugin.json").write_text(json.dumps({"version": "9.9.9"}))
+
+    def continue_run(self, host: str, out: Path) -> dict:
+        """--resume-run on a run directory, graded as the harness would; nothing leaves the temp directory."""
+        released = {"origin_main": "a" * 40, "local_head": "a" * 40, "local_behind_main": False,
+                    "catalog_version": "9.9.9", "shiploop_version": None, "unreleased": [], "ci": "success"}
+        with contextlib.redirect_stdout(io.StringIO()), mock.patch.object(
+                run, "released_versions", return_value=released):
+            run.main(["--host", host, f"--{host}-bin", str(self.fakes[host]), "--resume-run", str(out),
+                      "--plugin-dir", str(self.plugin), "--baseline", str(self.baselines), "--max-resumes", "0"])
+        return json.loads((out / "result.json").read_text())
+
+    def ended_while_active(self, host: str) -> tuple[Path, dict]:
+        """A first process that ended while ShipLoop was active: the run a resume continues in place."""
+        code, first, _ = self.invoke_printed(host, "nothing", "--max-resumes", "0")
+        out = Path(first["output"])
+        (out / "work" / ".shiploop").mkdir()
+        run.store.write_record(out / "work" / ".shiploop" / "state.md",
+                               {"status": "active", "stage": "test-refine", "revision": 25})
+        return out, first
+
+    def test_a_regrade_keeps_the_plugin_evidence_of_the_first_process(self):
+        for host in self.HOSTS:
+            with self.subTest(host=host):
+                code, first, _ = self.invoke_printed(host, "done")
+                self.assertTrue(first["plugin"]["pass"], first["plugin"])
+                result = self.continue_run(host, Path(first["output"]))
+                self.assertTrue(result["process"]["regraded"])
+                self.assertEqual(result["plugin"], first["plugin"])
+
+    def test_a_run_resumed_in_place_keeps_the_plugin_evidence_of_its_first_process(self):
+        for host in self.HOSTS:
+            with self.subTest(host=host):
+                out, first = self.ended_while_active(host)
+                self.assertTrue(first["plugin"]["pass"], first["plugin"])
+                result = self.continue_run(host, out)
+                self.assertEqual(result["resumed_run"]["from_host"], host)
+                self.assertNotIn("regraded", result["process"])  # a host did start: this is a resume
+                self.assertEqual(result["plugin"], first["plugin"])
+
+    def test_a_host_whose_events_cannot_show_the_plugin_records_its_install_check_at_launch(self):
+        for host in self.HOSTS:
+            with self.subTest(host=host):
+                code, first, _ = self.invoke_printed(host, "done")
+                recorded = json.loads((Path(first["output"]) / "invocation.json").read_text())
+                # Claude's init event shows the plugin on every launch; the others cannot, so they store it.
+                self.assertEqual(recorded["plugin"], None if host == "claude" else first["plugin"])
+
+    def test_a_run_whose_first_launch_recorded_no_plugin_verdict_is_not_given_one(self):
+        out, first = self.ended_while_active("grok")
+        recorded = json.loads((out / "invocation.json").read_text())
+        recorded.pop("plugin", None)  # an invocation.json written before the verdict was kept
+        (out / "invocation.json").write_text(json.dumps(recorded))
+        result = self.continue_run("grok", out)
+        self.assertFalse(result["plugin"]["pass"], "no evidence is a failed plugin check, never a guessed pass")
+        self.assertEqual(result["plugin"]["loaded"], [])
+
+
 class BaselineAbsentTest(PrintedCase):
     def test_rows_that_name_no_host_say_nothing_was_compared_instead_of_printing_nothing(self):
         self.baselines.write_text(json.dumps({"case": "hello", "source": "checkout", "turns": 3}) + "\n")
