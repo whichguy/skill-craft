@@ -1067,9 +1067,9 @@ def main(argv: list[str] | None = None) -> int:
                     "released": released,
                     "gate": [problem for problem in version_gate(released, None, None)
                              if not problem.startswith("installed ")]}
-        if versions["gate"]:
+        if versions["gate"] and not regrade:       # a regrade starts no host, so there is nothing to gate
             raise SystemExit("version gate: " + "; ".join(versions["gate"]))
-        if host.name == "codex" and versions["plugin_version"] != released["catalog_version"]:
+        if host.name == "codex" and not regrade and versions["plugin_version"] != released["catalog_version"]:
             # Codex syncs installed plugins to its marketplace's current release when a session starts and
             # deletes the old version's files, which the run's CLI and any bound Improve child point to.
             raise SystemExit(f"a Codex run started on skill-craft {versions['plugin_version']} cannot resume after "

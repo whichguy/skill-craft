@@ -1246,7 +1246,9 @@ class CodexRunTest(HarnessCase):
         out = Path(finished["output"])
         (out / "result.json").write_text(json.dumps({"case": "stale", "pass": False}))
         self.log.unlink()
-        with contextlib.redirect_stdout(io.StringIO()):
+        gate = ["local HEAD 0123abc has commits origin/main does not: publish them first"]
+        with contextlib.redirect_stdout(io.StringIO()), mock.patch.object(run, "version_gate", return_value=gate):
+            # The regrade starts no host, so a failing version gate (an unpushed branch) must not stop it.
             run.main(["--host", "grok", "--grok-bin", str(self.fakes["grok"]), "--resume-run", str(out),
                       "--plugin-dir", str(self.plugin), "--baseline", str(self.baselines)])
         self.assertFalse(self.log.exists(), "no host process was started")

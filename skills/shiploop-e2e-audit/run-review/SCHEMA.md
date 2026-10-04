@@ -55,9 +55,9 @@ the number of columns in the flow; `Observed` states in a run's `phases` array a
 | `failures` | array of `{verb, line}` | ShipLoop commands that exited non-zero |
 | `evidence` | string | path of the output directory (local, not durable) |
 
-**`backchain/<id>`** (a loop ledger; id `<runKey>-<loop>`)
+**`backchain/<id>`** (a loop ledger; id `<runKey>-<loop>`; none is written when a run has no loop; none is written for a run without a loop)
 
-`run`, `loop` (`plan`, `step-plan`, `none`), `phase` (order), `order`, `title`, `stageMin` (number or null),
+`run`, `loop` (the owning stage name such as `plan`, `step-plan` or `carry-forward`, or `none`), `phase` (order), `order`, `title`, `stageMin` (number or null),
 `segments` (array of `{label, min, kind, note, pass?, change?, streak?}`), `facts` (array of `{k, v}`).
 `kind` is `added`, `wasted`, `insurance`, `unclear` or `neutral`. A pass segment has `pass` (1-based), `change` (what the
 pass changed, from candidate digests) and `streak` (the clean streak after it). When `stageMin` is set the segments' minutes

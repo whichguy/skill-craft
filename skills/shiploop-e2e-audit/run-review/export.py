@@ -619,7 +619,7 @@ def build_run(out: Path, key: str | None = None, name: str | None = None,
     release = (f"skill-craft {plugin}, ShipLoop {shiploop}" if plugin and shiploop
                else f"skill-craft {plugin}" if plugin else f"ShipLoop {shiploop}" if shiploop else "unknown")
     first = started or (accepted[0][0] if accepted else None)
-    key = _clean_key(key or "-".join([host or "unknown", plugin or "unknown", case or "unknown",
+    key = _clean_key(key or "-".join([host or "unknown", model or "unknown", plugin or "unknown", case or "unknown",
                                       first.strftime("%Y%m%d") if first else "undated"]))
     name = name or (" ".join(part for part in (host, model, effort) if part) or "unknown host") + \
         (f", release {plugin}" if plugin else "")
@@ -808,7 +808,7 @@ def main(argv: list[str] | None = None) -> int:
     parser = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
     parser.add_argument("run_dir", nargs="?", type=Path, help="a run output directory of test/shiploop_e2e/run.py")
     parser.add_argument("--defaults", action="store_true", help="export the starting expectations and settings")
-    parser.add_argument("--key", help="the runs document id (default <host>-<release>-<case>-<yyyymmdd>)")
+    parser.add_argument("--key", help="the runs document id (default <host>-<model>-<release>-<case>-<yyyymmdd>)")
     parser.add_argument("--name", help="the run's display name")
     parser.add_argument("--order", type=int, help="sort key (default the run's start, epoch seconds)")
     parser.add_argument("--out", type=Path, help="export directory (default RUN_DIR/review-export)")

@@ -150,7 +150,7 @@ class RunReviewTest(unittest.TestCase):
     def test_stage_minutes_are_accept_deltas_and_the_harness_metric_is_ignored(self):
         code, target = self.export(make_run(self.tmp))
         self.assertEqual(code, 0)
-        run = self.docs(target)["runs"]["codex-1.16.1-battleship-20261003"]
+        run = self.docs(target)["runs"]["codex-gpt-6-luna-1.16.1-battleship-20261003"]
         self.assertEqual([(s["stage"], s["min"]) for s in run["stages"]],
                          [("intake", 5.0), ("spec", 10.0), ("test-strategy", 20.0), ("plan", 60.0),
                           ("select-work", 2.0), ("step-plan", 30.0), ("implement", 13.0)])
@@ -173,7 +173,7 @@ class RunReviewTest(unittest.TestCase):
 
     def test_phases_follow_the_stage_table_and_the_current_stage(self):
         _, target = self.export(make_run(self.tmp))
-        run = self.docs(target)["runs"]["codex-1.16.1-battleship-20261003"]
+        run = self.docs(target)["runs"]["codex-gpt-6-luna-1.16.1-battleship-20261003"]
         self.assertEqual(run["phases"], ["done", "done", "done", "running", "none", "none", "none", "none"])
         self.assertEqual(export.derive_phases([0, 1, 2], 2, "blocked"), ["done", "done", "blocked"] + ["none"] * 5)
         self.assertEqual(export.derive_phases([0, 1, 2, 3, 2], 2, "active")[:4], ["done", "done", "running", "done"])
@@ -183,7 +183,7 @@ class RunReviewTest(unittest.TestCase):
         accepts = [*ACCEPTS, ("extra", "brand-new-stage", 150, "done")]
         code, target = self.export(make_run(self.tmp, accepts, loops=False))
         self.assertEqual(code, 0)
-        run = self.docs(target)["runs"]["codex-1.16.1-battleship-20261003"]
+        run = self.docs(target)["runs"]["codex-gpt-6-luna-1.16.1-battleship-20261003"]
         self.assertEqual(run["stages"][-1], {"stage": "brand-new-stage", "outcome": "done", "min": 10.0,
                                              "packetBytes": 100, "resultBytes": run["stages"][-1]["resultBytes"]})
         self.assertEqual(run["phases"][3], "running")
@@ -229,7 +229,7 @@ class RunReviewTest(unittest.TestCase):
 
     def test_plan_loop_layout_gives_passes_changes_streaks_and_the_stage_split(self):
         _, target = self.export(make_run(self.tmp))
-        doc = self.docs(target)["backchain"]["codex-1.16.1-battleship-20261003-plan"]
+        doc = self.docs(target)["backchain"]["codex-gpt-6-luna-1.16.1-battleship-20261003-plan"]
         self.assertEqual((doc["loop"], doc["phase"], doc["order"], doc["stageMin"]), ("plan", 2, 1, 60))
         segments = doc["segments"]
         self.assertEqual([(s["label"], s["min"], s["kind"]) for s in segments],
@@ -244,7 +244,7 @@ class RunReviewTest(unittest.TestCase):
 
     def test_step_plan_loop_layout_diffs_snapshots_and_prefers_the_corrected_callback(self):
         _, target = self.export(make_run(self.tmp))
-        doc = self.docs(target)["backchain"]["codex-1.16.1-battleship-20261003-step-plan"]
+        doc = self.docs(target)["backchain"]["codex-gpt-6-luna-1.16.1-battleship-20261003-step-plan"]
         self.assertEqual((doc["loop"], doc["order"], doc["stageMin"]), ("step-plan", 2, 30))
         passes = [s for s in doc["segments"] if "pass" in s]
         self.assertEqual([(s["min"], s["change"], s["streak"]) for s in passes],
@@ -257,7 +257,7 @@ class RunReviewTest(unittest.TestCase):
         write_json(loop / "until-loop-receipt.json", {"status": "active"})
         code, target = self.export(out)
         self.assertEqual(code, 0)
-        doc = self.docs(target)["backchain"]["codex-1.16.1-battleship-20261003-carry-forward"]
+        doc = self.docs(target)["backchain"]["codex-gpt-6-luna-1.16.1-battleship-20261003-carry-forward"]
         self.assertEqual((doc["segments"], doc["stageMin"], doc["loop"]), ([], None, "carry-forward"))
         self.assertIn("not recognized", {f["k"]: f["v"] for f in doc["facts"]}["Layout"])
 
@@ -280,9 +280,9 @@ class RunReviewTest(unittest.TestCase):
         _, target = self.export(make_run(self.tmp))
         writes = json.loads((target / "writes.json").read_text())
         self.assertEqual([(w["collection"], w["doc_id"]) for w in writes],
-                         [("runs", "codex-1.16.1-battleship-20261003"),
-                          ("backchain", "codex-1.16.1-battleship-20261003-plan"),
-                          ("backchain", "codex-1.16.1-battleship-20261003-step-plan")])
+                         [("runs", "codex-gpt-6-luna-1.16.1-battleship-20261003"),
+                          ("backchain", "codex-gpt-6-luna-1.16.1-battleship-20261003-plan"),
+                          ("backchain", "codex-gpt-6-luna-1.16.1-battleship-20261003-step-plan")])
         for write in writes:
             self.assertEqual(write["op"], "set")
             self.assertNotIn("if_version", write)
@@ -294,7 +294,7 @@ class RunReviewTest(unittest.TestCase):
         target = self.tmp / "same"
         with contextlib.redirect_stdout(io.StringIO()):
             export.main([str(out), "--out", str(target)])
-            stale = target / "docs" / "backchain" / "codex-1.16.1-battleship-20261003-gone.json"
+            stale = target / "docs" / "backchain" / "codex-gpt-6-luna-1.16.1-battleship-20261003-gone.json"
             stale.write_text("{}")
             first = {p.relative_to(target): p.read_bytes() for p in sorted(target.rglob("*")) if p.is_file()}
             export.main([str(out), "--out", str(target)])
