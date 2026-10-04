@@ -1685,6 +1685,62 @@ class GuidanceTests(unittest.TestCase):
             for entry in state["history"]
         ))
 
+    def test_a_person_only_case_with_no_host_route_is_an_open_item_not_a_block(self) -> None:
+        """a13, SPEC S-14: system-test never routes a person-only case to blocked.
+
+        The packet and the stage-readiness reference must agree (S-3): the case is
+        an open item owned by a person and due at handoff, reported unverified.
+        """
+        system_test = normalized(prompts.prompt("system-test"))
+        for clause in (
+            "A required case that only a person can run",
+            "the discovery and test-strategy records show this host has no route",
+            "does not make this result blocked",
+            "Record it as an open item in the result: case ID, who does what, what they report, "
+            "owner (a person), due stage (handoff, or the stage whose external effect it gates)",
+            "Submit done once every other due check and ShipLoop's rerun pass",
+            "the handoff reports it unverified, never as a pass",
+            "Report blocked with `awaiting` only when a later stage takes an external, "
+            "hard-to-reverse effect the case exists to gate, or nothing else can proceed",
+            "An enabled delivery contract keeps its own obligation phases",
+        ):
+            self.assertIn(clause, system_test)
+        # The route cannot widen into a way to skip a check this host can run.
+        for guard in (
+            "Do not substitute a planned case or local mock for a required system observation",
+            "ShipLoop runs the system commands system-test-author recorded and refuses done "
+            "unless each passes",
+            "A local pass cannot replace a blocked/unrun required remote check",
+        ):
+            self.assertIn(guard, system_test)
+        # Absence: the route is this stage's (release-verify words its own), and it stays
+        # generic (S-8): a browser appears only as the example, never a named tool or product.
+        for stage in prompts.STAGES:
+            if stage != "system-test":
+                self.assertNotIn("does not make this result blocked",
+                                 normalized(prompts.prompt(stage)), stage)
+        start = system_test.index("A required case that only a person can run")
+        paragraph = system_test[start:system_test.index("keeps its own obligation phases.", start)]
+        for term in ("playwright", "selenium", "chrome", "safari", "battleship"):
+            self.assertNotIn(term, paragraph.lower())
+
+        reference = normalized((REFERENCES / "testing-and-documentation.md").read_text(encoding="utf-8"))
+        section = reference[reference.index("## Stage readiness and completion"):reference.index("## Test cases")]
+        closing = section[section.index("Completion is phase-specific."):]
+        self.assertIn("A required case already due but failed, blocked or not run prevents declaring "
+                      "that boundary complete.", closing)
+        self.assertIn(
+            "Do not postpone an already-due check simply to advance. A required case that only a "
+            "person can run, where the discovery and test-strategy records show this host has no "
+            "route to it, is not such a check: it is an open item owned by that person and due at "
+            "handoff (or the stage whose external effect it gates), reported unverified, and it "
+            "does not prevent declaring the boundary complete. For an enabled delivery contract, "
+            "preserve its fixed obligation phases and correction rules",
+            closing,
+        )
+        self.assertIn("List each open item as unverified, with who reports what",
+                      normalized(prompts.prompt("handoff")))
+
     def test_state_assessment_is_routed_to_planning_and_its_improve_handoffs(self) -> None:
         assessment = "requirements-definition.md#state-and-data-change-assessment"
         reconciliation = "requirements-definition.md#initial-plan-reconciliation"
