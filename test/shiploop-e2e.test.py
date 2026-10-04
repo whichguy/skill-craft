@@ -2648,5 +2648,64 @@ class CliSummaryRecordTest(PrintedCase):
         self.assertIsNone(seen["cost_usd"])
 
 
+class SuiteTmpCheckHostTest(HarnessCase):
+    """The suite's /tmp collision check says it could not look, rather than 'clean', for a host whose events
+    cannot show writes (review 2: shared_tmp_writes)."""
+
+    @staticmethod
+    def claude_writer(out: Path, target: str) -> Path:
+        out.mkdir()
+        stream = [{"type": "assistant", "message": {"usage": {"input_tokens": 1}, "content": [
+            {"type": "tool_use", "id": "u1", "name": "Bash", "input": {"command": f"echo x > {target}"}}]}},
+            {"type": "result", "subtype": "success", "num_turns": 1}]
+        (out / "events.jsonl").write_text("".join(json.dumps(e) + "\n" for e in stream))
+        return out
+
+    @staticmethod
+    def grok_writer(out: Path, target: str) -> Path:
+        out.mkdir()
+        stream = [{"type": "usage", "usage": {"input_tokens": 1}},
+                  {"type": "tool_call", "toolCallId": "1", "rawInput": {"command": f"echo x > {target}"}}]
+        (out / "events.jsonl").write_text("".join(json.dumps(e) + "\n" for e in stream))
+        return out
+
+    def test_claude_runs_are_not_checked_clean(self):
+        outs = [self.claude_writer(self.tmp / name, "/tmp/shared-notes.txt") for name in ("a", "b")]
+        unchecked: dict = {}
+        self.assertEqual(run.shared_tmp_writes(outs, unchecked), {})
+        self.assertEqual(sorted(unchecked), ["a", "b"])
+        self.assertIn("tool_use", unchecked["a"])
+
+    def test_a_run_that_cannot_be_checked_does_not_hide_a_collision_between_two_that_can(self):
+        outs = [self.claude_writer(self.tmp / "a", "/tmp/shared-notes.txt"),
+                self.grok_writer(self.tmp / "b", "/tmp/shared-notes.txt"),
+                self.grok_writer(self.tmp / "c", "/tmp/shared-notes.txt")]
+        unchecked: dict = {}
+        self.assertEqual(run.shared_tmp_writes(outs, unchecked), {"/tmp/shared-notes.txt": ["b", "c"]})
+        self.assertEqual(sorted(unchecked), ["a"])
+
+    def test_a_claude_suite_prints_and_records_that_the_check_could_not_run(self):
+        cases = {"first": {"style": "s", "prompt": "p", "checks": []},
+                 "second": {"style": "t", "prompt": "p", "checks": []}}
+        for attr, data in (("CASES", cases), ("SUITES", {"wide": {"kind": "breadth", "cases": ["first", "second"]}})):
+            path = self.tmp / (attr.lower() + ".json")
+            path.write_text(json.dumps(data))
+            saved = getattr(run, attr)
+            setattr(run, attr, path)
+            self.addCleanup(setattr, run, attr, saved)
+        os.environ["FAKE_MODE"] = "done"
+        out, printed = self.tmp / "suite-out", io.StringIO()
+        with contextlib.redirect_stdout(printed):
+            code = run.main(["--suite", "wide", "--host", "claude", "--claude-bin", str(self.fakes["claude"]),
+                             "--output", str(out), "--plugin-dir", str(self.plugin),
+                             "--baseline", str(self.baselines)])
+        self.assertEqual(code, 0, printed.getvalue())
+        result = json.loads((out / "suite-result.json").read_text())
+        self.assertEqual(result["shared_tmp_writes"], {})
+        self.assertEqual(sorted(result["tmp_writes_unmeasured"]), ["first", "second"])
+        self.assertIn("/tmp collisions not checked for first, second", printed.getvalue())
+
+
+
 if __name__ == "__main__":
     unittest.main()
