@@ -30,7 +30,9 @@ get $PRIOR_WORK (the earlier checkout, read only).
 
 Besides the verdicts, metrics.json records where ShipLoop spent turns, tokens,
 cost and time (per accepted stage), its failed commands, host truncations,
-compactions and the knowledge-home facts (see metrics.py).
+compactions and the knowledge-home facts (see metrics.py). The run's Run Review
+documents go to <output>/review-export/ (skills/shiploop-e2e-audit/run-review/);
+an export problem is printed and never changes a verdict.
 
 The default host is Claude (Sonnet 5.5, claude-sonnet-5-5). By default the run tests
 what the whichguy marketplace publishes now (--source marketplace, gated on
@@ -61,6 +63,8 @@ from __future__ import annotations
 
 import argparse
 from concurrent.futures import ThreadPoolExecutor
+from datetime import datetime
+import importlib.util
 import json
 import os
 from pathlib import Path
@@ -87,6 +91,7 @@ import shiploop_store as store  # noqa: E402
 CASES = HERE / "cases.json"
 SUITES = HERE / "suites.json"
 BASELINES = HERE / "baselines.jsonl"
+REVIEW_EXPORTER = ROOT / "skills" / "shiploop-e2e-audit" / "run-review" / "export.py"
 PLUGIN_NAME = "skill-craft"
 # Grok does not namespace plugin skills; Claude prefixes them with the plugin name.
 def the_host(args) -> "hosts.Host":
@@ -764,6 +769,20 @@ def knowledge_facts(work: Path) -> dict:
             "branches": g("branch", "--format=%(refname:short)").split()}
 
 
+def review_export(out: Path) -> str:
+    """Export the run's Run Review documents (run-review/README.md). Fail-open: a problem is reported in
+    the returned line and never changes a verdict or the exit code."""
+    try:
+        if not REVIEW_EXPORTER.is_file():
+            return f"review export skipped: no exporter at {REVIEW_EXPORTER}"
+        spec = importlib.util.spec_from_file_location("run_review_export", REVIEW_EXPORTER)
+        exporter = importlib.util.module_from_spec(spec)
+        spec.loader.exec_module(exporter)
+        return f"review export: {exporter.export_run(out)}"
+    except Exception as exc:  # noqa: BLE001 - any export failure is reported, never raised
+        return f"review export skipped: {' '.join(str(exc).split())[:300] or type(exc).__name__}"
+
+
 def untracked(work: Path) -> set[str]:
     done = subprocess.run(["git", "-C", str(work), "status", "--porcelain", "--untracked-files=all"],
                           capture_output=True, text=True)
@@ -1207,6 +1226,7 @@ def main(argv: list[str] | None = None) -> int:
                  "cancelled_tool_calls": len(run_metrics["cancelled_tool_calls"])},
               "output": str(out)}
     (out / "result.json").write_text(json.dumps(result, indent=2) + "\n")
+    exported = review_export(out)
     style = json.loads(CASES.read_text()).get(name, {}).get("style") if name != "custom" else None
     row = baseline_row(result, style, args.suite_name)
     # A baseline measures one host running a case from the start; a resumed run is not one.
@@ -1262,6 +1282,7 @@ def main(argv: list[str] | None = None) -> int:
               f"{follow_on['prior_turns']}, cost ${run_metrics['cost_usd']} vs ${follow_on['prior_cost_usd']}")
     for check in check_results:
         print(f"  check     {mark(check['pass'])}  {check['command']}")
+    print(f"  {exported}")
     if before:
         print(f"  baseline  vs {before['date'][:10]} (ShipLoop {before['shiploop_version']}): "
               f"turns {before['turns']} -> {row['turns']}, cost ${before['cost_usd']} -> ${row['cost_usd']}, "

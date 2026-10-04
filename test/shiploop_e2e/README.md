@@ -12,7 +12,8 @@ flowchart LR
     B[Build the worktree's skill-craft plugin] --> R[Run ShipLoop in an empty directory]
     R --> V[Review: learnings, gaps, optimizations]
     V --> L[Commit the learnings to LEARNINGS.md]
-    L -->|material findings that keep the premise| I[Improve skills/shiploop and commit]
+    L --> P[Update the Run Review page]
+    P -->|material findings that keep the premise| I[Improve skills/shiploop and commit]
     I --> T[Quick test tier]
     T -->|green| B
     V -->|two clean reviews| S[Stop: branch ready to merge and release]
@@ -269,6 +270,17 @@ every iteration: verdicts, cost, findings applied and rejected, commits and test
 Nothing is published. When the branch is worth shipping, review it, merge it,
 then publish with `scripts/release.py` and `scripts/release-push.py`, and update
 each host's `skill-craft@whichguy` plugin.
+
+## The Run Review page
+
+Every run writes `review-export/` into its output directory: the run's documents
+for the owner's Run Review page (stage minutes from ShipLoop's accept times,
+phases, Improve, failures, planning-document sizes, Backchain loop ledgers) and
+`facts.md`, plain numbers for the reviewer. An export problem is printed and
+never changes a verdict. `iterate.py` commits the compact `review-export.json` as
+`evidence/<run key>.json` with the learnings entry. After that commit, update the
+page as [run-review/README.md](../../skills/shiploop-e2e-audit/run-review/README.md)
+describes.
 
 ## Cases and self-test
 

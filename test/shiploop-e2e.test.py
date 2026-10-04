@@ -658,6 +658,32 @@ class LearningsTest(unittest.TestCase):
                                   capture_output=True, text=True, check=True).stdout
             self.assertIn("Built on the learnings of aaa1111, bbb2222.", body)
 
+    def test_record_learnings_commits_the_run_review_export_in_the_same_commit(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            repo = Path(tmp) / "repo"
+            (repo / "test" / "shiploop_e2e").mkdir(parents=True)
+            (repo / "test" / "shiploop_e2e" / "LEARNINGS.md").write_text("# ShipLoop E2E learnings\n")
+            for cmd in (["init", "-q", "-b", "main"], ["config", "user.name", "t"],
+                        ["config", "user.email", "t@example.invalid"], ["add", "test"],
+                        ["commit", "-q", "-m", "base"]):
+                subprocess.run(["git", "-C", str(repo), *cmd], check=True)
+            stage = Path(tmp) / "stage"
+            bundle = stage / "run" / "review-export" / "review-export.json"
+            bundle.parent.mkdir(parents=True)
+            text = json.dumps({"schema": "run-review-export/v1", "docs": {"runs": {"grok-1.0.0-hello-20261004": {}}}})
+            bundle.write_text(text)
+            iterate.record_learnings(repo, self.message(), stage)
+            files = subprocess.run(["git", "-C", str(repo), "show", "--name-only", "--format=", "HEAD"],
+                                   capture_output=True, text=True, check=True).stdout.split()
+            evidence = "test/shiploop_e2e/evidence/grok-1.0.0-hello-20261004.json"
+            self.assertEqual(files, ["test/shiploop_e2e/LEARNINGS.md", evidence])
+            self.assertEqual((repo / evidence).read_text(), text)
+            bundle.write_text("not json")  # an unreadable export never blocks the learnings commit
+            iterate.record_learnings(repo, self.message(), stage)
+            files = subprocess.run(["git", "-C", str(repo), "show", "--name-only", "--format=", "HEAD"],
+                                   capture_output=True, text=True, check=True).stdout.split()
+            self.assertEqual(files, ["test/shiploop_e2e/LEARNINGS.md"])
+
     def test_reviewer_and_improver_prompts_carry_prior_learnings(self):
         prior = "commit abc1234\nRun 1 learned the graph is fixed.\n"
         self.assertIn("Run 1 learned the graph is fixed.", review.reviewer_prompt(Path("/r"), Path("/s"), prior))
@@ -667,6 +693,50 @@ class LearningsTest(unittest.TestCase):
         self.assertIn("adversarial evaluation", improver)
         self.assertIn("mitigated and tested / accepted with the clause that asks for it", improver)
         self.assertIn("**Adversarial evaluation first.**", improver)  # the spec, loaded as the premise
+
+
+class ReviewExportTest(HarnessCase):
+    def run_printed(self, *extra: str) -> tuple[int, dict, str]:
+        os.environ["FAKE_MODE"] = "done"
+        out, printed = self.tmp / "out-export", io.StringIO()
+        with contextlib.redirect_stdout(printed):
+            code = run.main(["--host", "claude", "--claude-bin", str(self.fakes["claude"]), "--output", str(out),
+                             "--plugin-dir", str(self.plugin), "--baseline", str(self.baselines), *extra])
+        return code, json.loads((out / "result.json").read_text()), printed.getvalue()
+
+    def test_an_export_problem_is_printed_and_never_changes_the_verdict(self):
+        # The fake run's state has no timeline.json, so the exporter refuses it.
+        code, result, printed = self.run_printed()
+        self.assertEqual(code, 0, printed)
+        self.assertTrue(result["pass"])
+        self.assertRegex(printed, r"review export skipped: missing .*timeline\.json")
+        raising = self.tmp / "raising.py"
+        raising.write_text("def export_run(out):\n    raise RuntimeError('boom')\n")
+        with mock.patch.object(run, "REVIEW_EXPORTER", raising):
+            shutil.rmtree(self.tmp / "out-export")
+            code, result, printed = self.run_printed()
+        self.assertEqual((code, result["pass"]), (0, True))
+        self.assertIn("review export skipped: boom", printed)
+
+    def test_a_run_with_shiploop_records_is_exported_into_its_output_directory(self):
+        out = self.tmp / "graded"
+        state_dir = out / ".shiploop-runs" / "work-1" / "run"
+        run.store.write_record(state_dir / "state.md", {"status": "done", "stage": "done", "history": []})
+        run.store.write_record(state_dir / "results" / "nav-0123456789abcdef.md",
+                           {"action": "nav-0123456789abcdef", "stage": "intake", "result": {"outcome": "done"}})
+        (state_dir / "timeline.json").write_text(json.dumps({"started": "2026-10-04T10:00:00Z", "accepted": {
+            "nav-0123456789abcdef": "2026-10-04T10:03:00Z"}}))
+        (out / "metrics.json").write_text(json.dumps({"shiploop_failures": [], "model_glue": []}))
+        line = run.review_export(out)
+        self.assertEqual(line, f"review export: {(out / 'review-export').resolve()}")
+        bundle = json.loads((out / "review-export" / "review-export.json").read_text())
+        self.assertEqual([s["min"] for s in next(iter(bundle["docs"]["runs"].values()))["stages"]], [3.0])
+
+    def test_preflight_only_never_exports(self):
+        with mock.patch.object(run, "marketplace_preflight", return_value=(self.plugin, None, {"gate": []})), \
+                mock.patch.object(run, "review_export") as exporter:
+            self.assertEqual(run.main(["--preflight-only", "--host", "claude", "--output", str(self.tmp / "pf")]), 0)
+        exporter.assert_not_called()
 
 
 class HostOutputTest(unittest.TestCase):
