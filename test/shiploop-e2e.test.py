@@ -1600,6 +1600,8 @@ class CodexRunTest(HarnessCase):
         self.assertIsNone(result["cli"]["cost_usd"])
         self.assertIsNone(result["metrics"]["cost_usd"])
         self.assertEqual(result["metrics"]["unreported_sessions"], 0)
+        # Truncated outputs are a Grok-only detection: unknown on Codex, not an empty list.
+        self.assertIsNone(result["cli"]["truncated_outputs"])
 
     def test_model_and_effort_toggle_by_flag(self):
         code, result = self.invoke("codex", "done", "--model", "gpt-6-sol", "--effort", "xhigh")

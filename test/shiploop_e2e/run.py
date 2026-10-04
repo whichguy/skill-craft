@@ -321,7 +321,8 @@ class LiveView:
             name = next((event[k] for k in ("toolName", "tool_name", "tool", "name", "title") if event.get(k)), "?")
             self.tool(name, event.get("rawInput"))
         elif kind in ("result", "end"):
-            self.emit(f"done  {event.get('subtype') or event.get('stopReason')} turns={event.get('num_turns')} "
+            turns = event.get("num_turns")
+            self.emit(f"done  {metrics.session_stop(event) or 'ended'} turns={'not reported' if turns is None else turns} "
                       f"cost={metrics.money(event.get('total_cost_usd'))}")
 
     def tool(self, name, arg):
@@ -1588,6 +1589,8 @@ def main(argv: list[str] | None = None) -> int:
     knowledge = shiploop["knowledge"]
     committed = committed_facts(knowledge, start_head)
     run_metrics = metrics.collect(out, Path(shiploop["run_dir"]) if shiploop.get("run_dir") else None)
+    if "truncated_outputs" in (run_metrics.get("unmeasured") or {}):
+        cli_seen["truncated_outputs"] = None  # [] would read as a measured none
     (out / "metrics.json").write_text(json.dumps(run_metrics, indent=2) + "\n")
     check_env = {"PRIOR_WORK": str(Path(follow_on["prior"]) / "work")} if follow_on else {}
     check_results = run_checks(work, checks, env=check_env)
@@ -1715,8 +1718,8 @@ def main(argv: list[str] | None = None) -> int:
     for failure in run_metrics["shiploop_failures"][:5]:
         print(f"  failed    shiploop {failure['verb']} exit {failure['exit']}: {failure['line']}")
     if follow_on:
-        print(f"  follow-on of {follow_on['prior_case']} ({follow_on['prior']}): turns {run_metrics['turns']} vs "
-              f"{follow_on['prior_turns']}, cost {metrics.money(run_metrics['cost_usd'])} vs "
+        print(f"  follow-on of {follow_on['prior_case']} ({follow_on['prior']}): turns {metrics.turns_text(run_metrics)} vs "
+              f"{'not reported' if follow_on['prior_turns'] is None else follow_on['prior_turns']}, cost {metrics.money(run_metrics['cost_usd'])} vs "
               f"{metrics.money(follow_on['prior_cost_usd'])}")
     print(f"  checks    expected from {expectations['checks']}")
     for check in check_results:
@@ -1726,7 +1729,7 @@ def main(argv: list[str] | None = None) -> int:
         unknown = lambda value: "not measured" if value is None else value  # noqa: E731
         print(f"  baseline  vs {before['date'][:10]} (ShipLoop {before['shiploop_version']}, same "
               f"{args.host}/{args.model}/{args.effort}): "
-              f"turns {before['turns']} -> {row['turns']}, cost {metrics.money(before['cost_usd'])} -> "
+              f"turns {unknown(before['turns'])} -> {unknown(row['turns'])}, cost {metrics.money(before['cost_usd'])} -> "
               f"{metrics.money(row['cost_usd'])}, "
               f"sessions {before['sessions']} -> {row['sessions']}, "
               f"glue {unknown(before['model_glue'])} -> {unknown(row['model_glue'])}"
