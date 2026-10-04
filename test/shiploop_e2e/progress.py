@@ -58,16 +58,19 @@ def report(out: Path) -> str:
     m = metrics.collect(out, run_dir)
     started = (out / "invocation.json").stat().st_mtime if (out / "invocation.json").is_file() else time.time()
     items = f"{len(state.get('completed_work_items') or [])}/{len(state.get('work_items') or [])}"
+    peak = m["tokens"]["input_peak"]
     lines = [f"[{int(time.time() - started) // 60} min] turns {m['turns']}, peak context "
-             f"{m['tokens']['input_peak'] // 1000}K, cost {('$' + format(m['cost_usd'], '.2f')) if m['cost_usd'] else 'n/a'} | "
-             + (f"{state.get('status')}, rev {state.get('revision')}, stage {state.get('stage')}, items {items}"
+             f"{'n/a' if peak is None else str(peak // 1000) + 'K'}, "
+             f"cost {('$' + format(m['cost_usd'], '.2f')) if m['cost_usd'] else 'n/a'} | "
+             + (f"{state.get('status')}, rev {state.get('revision')}, "
+                f"stage {metrics.current_stage(state) or state.get('stage')}, items {items}"
                 if state else "no run state yet")]
-    # The in-progress stage is already on the first line from the run state, and its
-    # row moves with every poll, so only accepted stages are listed here.
+    # The in-progress stage is on the first line (the item's own stage, not the navigator's
+    # `inner-loop` label), and its row moves with every poll, so only accepted stages are listed here.
+    # Stage minutes are wall clock: a resume, a sleep or a credit stop inside a stage counts in it.
     stages = [s for s in m["stages"] if not s.get("incomplete")][memo.get("stages", 0):]
     if stages:
-        lines.append("  accepted: " + ", ".join(
-            f"{s['stage']} {s['turns']}t/{s['seconds'] / 60:.1f}m" if "turns" in s else s["stage"] for s in stages))
+        lines.append("  accepted: " + ", ".join(metrics.stage_text(s) for s in stages))
     for failure in m["shiploop_failures"][memo.get("failures", 0):]:
         lines.append(f"  ShipLoop {failure['verb']} failed (exit {failure['exit']}): {failure['line']}")
     for key, label in (("truncated_outputs", "host truncated outputs"), ("compactions", "compactions"),

@@ -100,6 +100,12 @@ if mode == "chain-hang":
                   ("contribution_recorded", {{"attempt": "A-1", "step": "A"}}),
                   ("contribution_recorded", {{"attempt": "B-1", "step": "B"}}))
     product()
+if mode == "api-error":
+    # What the real CLI wrote when the API refused: subtype stays "success", is_error says otherwise.
+    print(json.dumps({{"type": "result", "subtype": "success", "is_error": True, "terminal_reason": "api_error",
+                      "api_error_status": None, "stop_reason": "stop_sequence", "num_turns": 3,
+                      "total_cost_usd": 0.0, "result": "API Error: Unable to connect to API: SSL certificate has expired"}}))
+    sys.exit(1)
 print(json.dumps({{"type": "result", "subtype": "success", "num_turns": 3, "total_cost_usd": 0.0,
                   "result": "done"}}))
 """
@@ -123,6 +129,8 @@ prompt = Path(argv[argv.index("--prompt-file") + 1]).read_text()
 resumed = argv[argv.index("--resume") + 1] if "--resume" in argv else None
 with open(os.environ["FAKE_LOG"] + ".sessions", "a") as log:
     log.write(json.dumps({{"resumed": resumed, "prompt": prompt}}) + "\\n")
+if os.environ.get("FAKE_MODE") == "crash-resumed" and resumed:
+    sys.exit(1)  # a resumed session dies without writing any event
 Path(os.environ["FAKE_LOG"]).write_text(json.dumps({{
     "argv": argv, "prompt": prompt, "cwd_listing": os.listdir("."), "home": str(home),
     "auth_is_symlink": (home / ".grok" / "auth.json").is_symlink(),
@@ -140,11 +148,17 @@ elif mode == "early" and not resumed:
     pass  # the first session ends before ShipLoop writes any state
 elif mode == "early":
     product()
-elif mode in ("resume", "stuck"):
+elif mode == "hang":
+    print(json.dumps({{"type": "session", "sessionId": "sess-1"}}), flush=True)
+    import time
+    time.sleep(600)  # killed by --timeout
+elif mode in ("resume", "stuck", "anon", "crash-resumed"):
     Path(".shiploop").mkdir(exist_ok=True)
     store.write_record(Path(".shiploop/state.md"), {{"status": "active", "stage": "test-refine", "revision": 25}})
-print(json.dumps({{"type": "end", "stopReason": "cancelled", "sessionId": "sess-1", "num_turns": 4,
-                  "total_cost_usd": 0.01}}))
+end = {{"type": "end", "stopReason": "cancelled", "sessionId": "sess-1", "num_turns": 4, "total_cost_usd": 0.01}}
+if mode == "anon":
+    del end["sessionId"]  # the host never named its session: there is nothing to resume
+print(json.dumps(end))
 """
 
 
@@ -1221,7 +1235,8 @@ class BaselineComparabilityTest(unittest.TestCase):
                {"stage": "plan", "timing": "unavailable"},
                {"stage": "implement", "timing": "unavailable"}]
         lines = run.stage_diff_lines(before, now)
-        self.assertIn("covers 1 of 3 stages (2 had no measured timing)", lines[0])
+        self.assertIn("covers 1 of 3 stages (2 not comparable, incomplete or unmeasured on a side: "
+                      "implement, plan)", lines[0])
         self.assertIn("spec 10->40", lines[1])
 
     def test_repeated_visits_to_one_stage_are_summed(self):
@@ -1234,8 +1249,9 @@ class TerminationRecordTest(unittest.TestCase):
     """Why a run stopped is the harness's to record, and unknown is kept."""
 
     def facts(self, engine: dict, resume_stop: str | None, stops: list) -> dict:
-        return run.termination_facts({"status": "exited", "returncode": 0, "sessions": [1], "resumes": 0},
-                                     {"sessions": [{"stop": s} for s in stops]}, engine, resume_stop)
+        sessions = [{"stop": s} for s in stops]  # one entry per launched session, as run.launch reports it
+        return run.termination_facts({"status": "exited", "returncode": 0, "sessions": sessions, "resumes": 0},
+                                     engine, resume_stop)
 
     def test_an_abandoned_run_names_the_stage_it_never_accepted(self):
         engine = {"status": "active", "stage": "inner-loop", "work_index": 0,
@@ -1674,6 +1690,572 @@ class FanoutGradeTest(unittest.TestCase):
         result = self.grade({"A": (0, 30), "B": (1, 31)}, complete=False)
         self.assertFalse(result["pass"])
         self.assertFalse(result["complete"])
+
+def collect_stream(stream: list, accepted: list, *, status: str = "done", stage: str | None = None,
+                   inner: dict | None = None, first_event: float = 100.0, extra: dict | None = None) -> dict:
+    """metrics.collect over a hand-built host stream, one second between events, ShipLoop records beside it."""
+    with tempfile.TemporaryDirectory() as tmp:
+        out = Path(tmp)
+        run_dir = out / "run"
+        (out / "events.jsonl").write_text("".join(json.dumps(e) + "\n" for e in stream))
+        (out / "timeline.jsonl").write_text("".join(
+            json.dumps({"line": n, "t": first_event + n}) + "\n"
+            for n, e in enumerate(stream) if e.get("type") not in ("text", "thought")))
+        write_engine_records(run_dir, accepted, status=status, stage=stage, inner=inner)
+        return metrics.collect(out, run_dir)
+
+
+def codex_stream(commands: int) -> list[dict]:
+    """What a Codex session looks like after the harness's translator: tool calls and one `end`, no usage events."""
+    translate = hosts.host("codex").translator()
+    raw = [{"type": "thread.started", "thread_id": "t1"}]
+    raw += [{"type": "item.completed", "item": {"id": f"item_{n}", "type": "command_execution",
+                                                "command": f"echo {n}", "aggregated_output": "ok\n",
+                                                "exit_code": 0, "status": "completed"}} for n in range(commands)]
+    raw.append({"type": "turn.completed", "usage": {"input_tokens": 10, "cached_input_tokens": 5,
+                                                    "output_tokens": 2}})
+    return [json.loads(line) for event in raw for line in translate((json.dumps(event) + "\n").encode())]
+
+
+def claude_stream(commands: list[str]) -> list[dict]:
+    """A Claude session: tool calls are tool_use blocks, with a per-message usage snapshot."""
+    stream = []
+    for n, command in enumerate(commands):
+        stream.append({"type": "assistant", "message": {
+            "id": f"m{n}", "usage": {"input_tokens": 10, "output_tokens": 3},
+            "content": [{"type": "tool_use", "id": f"u{n}", "name": "Bash", "input": {"command": command}}]}})
+        stream.append({"type": "user", "message": {"content": [
+            {"type": "tool_result", "tool_use_id": f"u{n}", "content": "error: refused"}]}})
+    stream.append({"type": "result", "subtype": "success", "is_error": False, "terminal_reason": "completed",
+                   "stop_reason": "end_turn", "num_turns": len(commands), "total_cost_usd": 1.0})
+    return stream
+
+
+class HostCoverageTest(unittest.TestCase):
+    """A counter the host's events cannot show is unmeasured, never a zero that passes a comparison."""
+
+    ACCEPTED = [("A1", "intake", "done", 105.0), ("A2", "spec", "done", 113.0)]
+
+    def test_a_host_with_no_per_call_usage_has_no_stage_turns_not_zero_turns(self):
+        m = collect_stream(codex_stream(12), self.ACCEPTED)
+        self.assertIn("stage_turns", m["unmeasured"])
+        self.assertIn("output_tokens", m["unmeasured"])
+        self.assertNotIn("model_glue", m["unmeasured"])  # Codex's tool calls are parsed
+        self.assertEqual([r["seconds"] for r in m["stages"]], [5.0, 8.0])  # time is still measured
+        for row in m["stages"]:
+            self.assertIsNone(row["turns"])
+            self.assertIsNone(row["output_tokens"])
+            self.assertGreater(row["tool_calls"], 0)
+        self.assertEqual(m["turns"], 12)  # the session's own total is still reported
+        self.assertEqual(m["tokens"], {"input_peak": None, "output_total": None})
+        self.assertIsNone(m["cost_usd"], "a host that reports no cost has an unknown cost, not $0")
+        kept = run.baseline_stages(m["stages"])
+        self.assertEqual(kept[0], {"stage": "intake", "outcome": "done", "seconds": 5.0, "turns": None})
+
+    def test_the_stage_a_codex_run_never_accepted_is_attributed_from_its_events(self):
+        m = collect_stream(codex_stream(12), self.ACCEPTED[:1], status="active", stage="spec")
+        incomplete = [r for r in m["stages"] if r.get("incomplete")]
+        self.assertEqual([r["stage"] for r in incomplete], ["spec"])
+        self.assertGreater(incomplete[0]["seconds"], 0)
+        self.assertGreater(incomplete[0]["tool_calls"], 0)
+        self.assertIsNone(incomplete[0]["turns"])
+
+    def test_a_claude_stream_marks_the_counters_it_cannot_read_as_unmeasured(self):
+        stream = claude_stream(["git add -A && git commit -m x", "shiploop complete --run-dir r"] * 3)
+        m = collect_stream(stream, self.ACCEPTED)
+        for name in ("model_glue", "shiploop_failures", "cancelled_tool_calls", "tmp_writes",
+                     "stage_tool_calls", "output_tokens"):
+            self.assertIn(name, m["unmeasured"], name)
+        self.assertNotIn("stage_turns", m["unmeasured"])
+        self.assertEqual(m["model_glue"], [], "the lists stay: they are lower bounds, and the exporter reads them")
+        self.assertTrue(all(r["tool_calls"] is None and r["output_tokens"] is None and r["turns"] is not None
+                            for r in m["stages"]))
+        self.assertIsNone(m["tokens"]["output_total"])
+        self.assertIsNone(metrics.count(m, "model_glue"))
+        self.assertEqual(metrics.count({"unmeasured": {}, "model_glue": [1, 2]}, "model_glue"), 2)
+        first = metrics.summary_lines(m)[0]
+        self.assertIn("model glue not measured", first)
+        self.assertIn("ShipLoop command failures not measured", first)
+        self.assertIn("cancelled tool calls not measured", first)
+
+    def test_a_grok_shaped_stream_measures_every_counter(self):
+        stream = [{"type": "usage", "usage": {"input_tokens": 1, "output_tokens": 1}},
+                  {"type": "tool_call", "toolCallId": "a", "rawInput": {"command": "git add -A"}}] * 4
+        self.assertEqual(collect_stream(stream, self.ACCEPTED)["unmeasured"], {})
+
+    def test_the_baseline_row_carries_unmeasured_counters_as_null_with_their_names(self):
+        result = {"case": "hello", "metrics": {"turns": 5, "cost_usd": None, "model_glue": None,
+                                               "shiploop_failures": None, "stages": [],
+                                               "unmeasured": {"model_glue": "why", "shiploop_failures": "why"}}}
+        row = run.baseline_row(result, None, None)
+        self.assertIsNone(row["model_glue"])
+        self.assertIsNone(row["shiploop_failures"])
+        self.assertEqual(row["unmeasured"], ["model_glue", "shiploop_failures"])
+        self.assertEqual(run.baseline_row({"case": "hello", "metrics": {}}, None, None)["unmeasured"], [])
+
+    def test_the_costliest_stages_rank_by_minutes_when_the_host_reports_no_turns(self):
+        rows = [{"stage": "intake", "seconds": 60.0, "turns": None}, {"stage": "plan", "seconds": 6000.0, "turns": None},
+                {"stage": "spec", "seconds": 600.0, "turns": None}]
+        m = {"turns": 9, "cost_usd": None, "sessions": [], "compactions": 0, "truncated_outputs": 0,
+             "cancelled_tool_calls": [], "shiploop_failures": [], "model_glue": [], "asked_user": [],
+             "improve_children": 0, "script_verifications": {"passed": 0, "records": 0}, "stages": rows,
+             "unmeasured": {"stage_turns": "x"}}
+        costly = metrics.summary_lines(m)[-1]
+        self.assertTrue(costly.startswith("costliest stages: plan 100.0m, spec 10.0m, intake 1.0m"), costly)
+        self.assertIn("this host reports no per-stage turns", costly)
+        self.assertIn("cost not reported", metrics.summary_lines(m)[0])
+
+    def test_progress_prints_minutes_and_the_inner_loop_stage_for_a_host_without_turns(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            out = Path(tmp)
+            run_dir = out / "run"
+            stream = codex_stream(12)
+            (out / "events.jsonl").write_text("".join(json.dumps(e) + "\n" for e in stream))
+            (out / "timeline.jsonl").write_text("".join(
+                json.dumps({"line": n, "t": 100.0 + 30 * n}) + "\n" for n in range(len(stream))))
+            write_engine_records(run_dir, [("A1", "intake", "done", 190.0)], status="active", stage="inner-loop",
+                                 inner={"work_index": 0, "work_items": [{"id": "W1"}],
+                                        "inner_loops": {"W1": {"stage": "implement"}}})
+            text = progress.report(out)
+        self.assertIn("accepted: intake 1.5m", text)
+        # The stage still being worked has a row that moves with every poll: it is not listed as accepted.
+        self.assertNotIn("implement", next(line for line in text.splitlines() if "accepted:" in line))
+        self.assertNotIn("intake 0t", text)
+        self.assertIn("peak context n/a", text)
+        # The in-progress stage is the item's own, not the navigator's pseudo-label.
+        self.assertIn("stage implement", text)
+        self.assertNotIn("stage inner-loop", text)
+
+
+class StageDiffTest(unittest.TestCase):
+    """A stage row that is incomplete or unmeasured is never compared as a whole measurement."""
+
+    def test_an_incomplete_row_on_either_side_is_not_compared_as_a_stage(self):
+        cut = [{"stage": "spec", "turns": 10, "seconds": 60}, {"stage": "implement", "incomplete": True,
+                                                              "turns": 5, "seconds": 30}]
+        whole = [{"stage": "spec", "turns": 10, "seconds": 60}, {"stage": "implement", "turns": 50, "seconds": 600}]
+        for before, now in ((cut, whole), (whole, cut)):
+            text = "\n".join(run.stage_diff_lines(before, now))
+            self.assertNotIn("implement 5->50", text)
+            self.assertNotIn("implement 50->5", text)
+            self.assertIn("covers 1 of 2 stages (1 not comparable", text)
+            self.assertIn("implement", text.split("not comparable")[1])
+            self.assertNotIn("only now", text)
+            self.assertNotIn("only before", text)
+
+    def test_a_stage_unmeasured_on_the_baseline_is_not_reported_as_new(self):
+        before = [{"stage": "spec", "turns": 10, "seconds": 60}, {"stage": "plan", "timing": "unavailable"}]
+        now = [{"stage": "spec", "turns": 10, "seconds": 60}, {"stage": "plan", "turns": 8, "seconds": 90}]
+        text = "\n".join(run.stage_diff_lines(before, now))
+        self.assertNotIn("only now", text)
+        self.assertIn("covers 1 of 2 stages", text)  # coverage is stated for the baseline side too
+        reverse = "\n".join(run.stage_diff_lines(now, before))
+        self.assertNotIn("only before", reverse)
+        self.assertIn("covers 1 of 2 stages", reverse)
+
+    def test_a_stage_with_one_unmeasured_visit_is_not_summed_as_if_whole(self):
+        spec = {"stage": "spec", "turns": 1, "seconds": 6}
+        before = [spec, {"stage": "implement", "turns": 5, "seconds": 60}, {"stage": "implement", "timing": "unavailable"}]
+        now = [spec, {"stage": "implement", "turns": 5, "seconds": 60}, {"stage": "implement", "turns": 9, "seconds": 90}]
+        text = "\n".join(run.stage_diff_lines(before, now))
+        self.assertNotIn("implement 5->14", text)
+        self.assertIn("1 not comparable", text)
+        self.assertEqual(run.stage_diff_lines([{"stage": "implement", "timing": "unavailable"}], now),
+                         ["per-stage comparison unavailable (one run has no measured stage timing)"])
+
+    def test_a_true_one_sided_stage_is_still_reported_with_its_coverage(self):
+        before = [{"stage": "spec", "turns": 1, "seconds": 6}, {"stage": "plan", "turns": 1, "seconds": 6}]
+        now = [{"stage": "spec", "turns": 1, "seconds": 6}, {"stage": "implement", "turns": 1, "seconds": 6}]
+        lines = run.stage_diff_lines(before, now)
+        self.assertEqual(lines[0], "per-stage comparison covers 1 of 3 stages")
+        self.assertIn("only now: implement", lines)
+        self.assertIn("only before: plan", lines)
+
+    def test_a_host_with_no_stage_turns_is_compared_by_minutes_not_called_unchanged(self):
+        before = [{"stage": "plan", "turns": None, "seconds": 6000}, {"stage": "spec", "turns": None, "seconds": 600}]
+        now = [{"stage": "plan", "turns": None, "seconds": 36000}, {"stage": "spec", "turns": None, "seconds": 600}]
+        lines = run.stage_diff_lines(before, now)
+        self.assertEqual(lines, ["stage minutes (this host reports no per-stage turns): plan 100->600"])
+        self.assertEqual(run.stage_diff_lines(before, before), ["no per-stage minute difference (turns not measured)"])
+        mixed = run.stage_diff_lines(before, [{"stage": "plan", "turns": 4, "seconds": 36000},
+                                              {"stage": "spec", "turns": 2, "seconds": 600}])
+        self.assertEqual(len(mixed), 1)
+        self.assertTrue(mixed[0].startswith("stage minutes"), mixed)  # a turn count on one side only is no comparison
+
+    def test_short_stages_show_their_seconds_not_a_rounded_minute(self):
+        lines = run.stage_diff_lines([{"stage": "spec", "turns": 3, "seconds": 30}],
+                                     [{"stage": "spec", "turns": 4, "seconds": 40}])
+        self.assertEqual(lines, ["stage turns: spec 3->4 (0.5->0.7m)"])
+
+
+class SessionStopTest(unittest.TestCase):
+    """The stop reason is the host's own, and an error is never recorded as a success."""
+
+    CLAUDE_API_ERROR = {"type": "result", "subtype": "success", "is_error": True, "terminal_reason": "api_error",
+                        "api_error_status": None, "stop_reason": "stop_sequence", "num_turns": 143,
+                        "result": "API Error: Unable to connect to API: SSL certificate has expired"}
+
+    def test_a_claude_api_error_is_not_a_success(self):
+        stop = metrics.session_stop(self.CLAUDE_API_ERROR)
+        self.assertTrue(stop.startswith("error: api_error"), stop)
+        self.assertIn("SSL certificate has expired", stop)
+        limited = dict(self.CLAUDE_API_ERROR, api_error_status=429, result="You've hit your limit")
+        self.assertEqual(metrics.session_stop(limited), "error: api_error 429: You've hit your limit")
+
+    def test_a_normal_claude_stop_and_the_other_hosts_keep_their_own_reason(self):
+        ok = {"type": "result", "subtype": "success", "is_error": False, "terminal_reason": "completed",
+              "stop_reason": "end_turn"}
+        self.assertEqual(metrics.session_stop(ok), "success")
+        self.assertEqual(metrics.session_stop({"type": "end", "stopReason": "cancelled"}), "cancelled")
+        self.assertEqual(metrics.session_stop({"type": "end", "stopReason": "end_turn"}), "end_turn")
+        failed_turn = {"type": "end", "stopReason": "error", "error": "You've hit your usage limit.\nTry later"}
+        self.assertEqual(metrics.session_stop(failed_turn), "error: You've hit your usage limit. Try later")
+
+    def test_nothing_reported_stays_unknown_and_a_structured_reason_is_still_text(self):
+        self.assertIsNone(metrics.session_stop({"type": "end"}))
+        stop = metrics.session_stop({"type": "end", "stopReason": {"kind": "max_turns"}})
+        self.assertEqual(stop, '{"kind": "max_turns"}')
+        self.assertEqual(run.stopped_line(run.termination_facts(
+            {"status": "failed", "returncode": 1, "sessions": [{"stop": stop}], "resumes": 0}, {}, None)).count("max_turns"), 1)
+
+    def test_collect_records_the_error_stop_of_a_claude_session(self):
+        m = collect_stream([self.CLAUDE_API_ERROR], [])
+        self.assertTrue(m["sessions"][0]["stop"].startswith("error: api_error"), m["sessions"])
+        self.assertIn("error: api_error", metrics.summary_lines(m)[0])
+
+
+class PrintedCase(HarnessCase):
+    """A harness case that keeps what run.main printed, so the report can be asserted on."""
+
+    def invoke_printed(self, host: str, mode: str, *extra: str) -> tuple[int, dict, str]:
+        os.environ["FAKE_MODE"] = mode
+        out = self.tmp / f"out-{host}-{mode}-{len(list(self.tmp.glob('out-*')))}"
+        printed = io.StringIO()
+        with contextlib.redirect_stdout(printed):
+            code = run.main(["--host", host, f"--{host}-bin", str(self.fakes[host]), "--output", str(out),
+                             "--plugin-dir", str(self.plugin), "--baseline", str(self.baselines), *extra])
+        return code, json.loads((out / "result.json").read_text()), printed.getvalue()
+
+    def stopped(self, printed: str) -> str:
+        return next(line for line in printed.splitlines() if line.startswith("  stopped"))
+
+    def last_row(self) -> dict:
+        return json.loads(self.baselines.read_text().splitlines()[-1])
+
+
+class TerminationThroughMainTest(PrintedCase):
+    """Why a run stopped, as run.main records it in result.json, the baseline row and the printed report."""
+
+    def test_a_finished_run_records_why_it_stopped_everywhere_it_is_reported(self):
+        code, result, printed = self.invoke_printed("grok", "done")
+        self.assertEqual(code, 0, result)
+        t = result["termination"]
+        self.assertEqual((t["process_status"], t["returncode"], t["sessions"], t["resumes"]), ("exited", 0, 1, 0))
+        self.assertEqual((t["session_stops"], t["resume_stop"], t["engine_status"]),
+                         (["cancelled"], "ShipLoop run is done", "done"))
+        self.assertEqual(self.last_row()["termination"], t)
+        self.assertEqual(self.stopped(printed), "  stopped   host exited rc=0; session stops cancelled; "
+                                                "no further resume: ShipLoop run is done; engine done")
+
+    def test_the_result_the_baseline_row_and_the_report_are_wired_to_the_same_records(self):
+        code, result, printed = self.invoke_printed("grok", "done")
+        row = self.last_row()
+        self.assertEqual(result["metrics"]["stages"], [])  # the key is there: a comparison reads it
+        self.assertEqual(row["stages"], run.baseline_stages(result["metrics"]["stages"]))
+        self.assertEqual(row["unmeasured"], sorted(result["metrics"]["unmeasured"]))
+        self.assertEqual(row["sessions"], len(result["process"]["sessions"]))
+        self.assertIn("  baseline  nothing compared: no earlier row for hello", printed)
+
+    def test_a_run_that_never_finishes_names_the_stage_and_the_spent_budget(self):
+        code, result, printed = self.invoke_printed("grok", "stuck", "--max-resumes", "2")
+        self.assertEqual(code, 1)
+        t = result["termination"]
+        self.assertEqual((t["sessions"], t["resumes"], t["resume_stop"]), (3, 2, "resume budget spent (2)"))
+        self.assertEqual((t["engine_status"], t["engine_unaccepted_stage"]), ("active", "test-refine"))
+        self.assertEqual(self.last_row()["termination"], t)
+        self.assertEqual(self.stopped(printed),
+                         "  stopped   host exited rc=0; session stops cancelled, cancelled, cancelled; "
+                         "no further resume: resume budget spent (2); engine active with test-refine never accepted")
+
+    def test_the_last_permitted_resume_that_finishes_the_run_is_not_called_a_spent_budget(self):
+        code, result, _ = self.invoke_printed("grok", "resume", "--max-resumes", "1")
+        self.assertEqual(code, 0, result)
+        self.assertEqual(result["termination"]["sessions"], 2)
+        self.assertEqual(result["termination"]["resume_stop"], "ShipLoop run is done")
+
+    def test_a_run_finished_by_its_only_permitted_session_is_not_called_a_spent_budget(self):
+        code, result, _ = self.invoke_printed("grok", "done", "--max-resumes", "0")
+        self.assertEqual(code, 0, result)
+        self.assertEqual(result["termination"]["resume_stop"], "ShipLoop run is done")
+
+    def test_a_session_that_names_no_host_session_cannot_be_resumed(self):
+        code, result, _ = self.invoke_printed("grok", "anon")
+        self.assertEqual(code, 1)
+        self.assertEqual(result["termination"]["resume_stop"], "no host session id to resume")
+        self.assertEqual(result["termination"]["sessions"], 1)
+
+    def test_a_killed_session_is_unknown_and_the_deadline_is_the_stop(self):
+        code, result, printed = self.invoke_printed("grok", "hang", "--timeout", "3")
+        self.assertEqual(code, 1)
+        t = result["termination"]
+        self.assertEqual((t["process_status"], t["returncode"]), ("timeout", -9))
+        self.assertEqual((t["sessions"], t["session_stops"], t["resume_stop"]),
+                         (1, ["unknown"], "run deadline spent"))
+        self.assertIn("host timeout rc=-9; session stops unknown", self.stopped(printed))
+
+    def test_session_stops_has_one_entry_per_session_and_unknown_for_a_crashed_one(self):
+        code, result, _ = self.invoke_printed("grok", "crash-resumed", "--max-resumes", "2")
+        self.assertEqual(code, 1)
+        t = result["termination"]
+        self.assertEqual(len(result["process"]["sessions"]), 3)
+        self.assertEqual((t["sessions"], t["session_stops"]), (3, ["cancelled", "unknown", "unknown"]))
+        self.assertEqual((t["process_status"], t["returncode"]), ("failed", 1))
+        self.assertEqual(t["resume_stop"], "resume budget spent (2)")
+
+    def test_claude_is_not_resumable_and_its_own_stop_is_recorded(self):
+        code, result, _ = self.invoke_printed("claude", "done")
+        self.assertEqual(code, 0, result)
+        t = result["termination"]
+        self.assertEqual((t["resume_stop"], t["session_stops"]), ("host is not resumable", ["success"]))
+
+    def test_a_claude_api_error_is_recorded_as_an_error_not_a_success(self):
+        code, result, printed = self.invoke_printed("claude", "api-error")
+        self.assertEqual(code, 1)
+        t = result["termination"]
+        self.assertEqual((t["process_status"], t["returncode"]), ("failed", 1))
+        self.assertTrue(t["session_stops"][0].startswith("error: api_error"), t["session_stops"])
+        self.assertIn("session stops error: api_error", self.stopped(printed))
+        self.assertNotIn("session stops success", printed)
+
+
+class MeasuredHostPrintingTest(PrintedCase):
+    def test_claude_runs_say_which_counters_they_cannot_show_and_never_compare_them_as_zeros(self):
+        code, first, printed = self.invoke_printed("claude", "done")
+        self.assertEqual(code, 0, first)
+        for name in ("model_glue", "shiploop_failures", "cancelled_tool_calls", "tmp_writes"):
+            self.assertIsNone(first["metrics"][name], name)
+            self.assertIn(name, first["metrics"]["unmeasured"])
+        self.assertIn("model glue not measured", printed)
+        self.assertEqual(self.last_row()["model_glue"], None)
+        code, second, printed = self.invoke_printed("claude", "done")
+        self.assertIn("glue not measured -> not measured", printed)
+
+
+class ResumedRunRecordTest(PrintedCase):
+    """A run continued after the harness stopped keeps what it recorded and invents nothing."""
+
+    def stopped_run(self) -> Path:
+        code, result, _ = self.invoke_printed("grok", "stuck", "--max-resumes", "0")
+        self.assertEqual(code, 1)
+        return Path(result["output"])
+
+    def finish_out_of_band(self, out: Path) -> None:
+        """The run reaches done while no harness is watching (its parent was killed)."""
+        shutil.rmtree(out / "work" / ".shiploop")
+        (out / "work" / ".shiploop").mkdir()
+        (out / "work" / ".shiploop" / "report.html").write_text("<html></html>")
+        run.store.write_record(out / "work" / ".shiploop" / "state.md", {"status": "done"})
+
+    def regrade(self, out: Path, *extra: str) -> tuple[dict, str]:
+        printed = io.StringIO()
+        with contextlib.redirect_stdout(printed):
+            run.main([*extra, "--resume-run", str(out), "--plugin-dir", str(self.plugin),
+                      "--baseline", str(self.baselines)])
+        return json.loads((out / "result.json").read_text()), printed.getvalue()
+
+    def test_a_regrade_keeps_the_termination_the_original_run_recorded(self):
+        out = self.stopped_run()
+        original = json.loads((out / "result.json").read_text())["termination"]
+        self.finish_out_of_band(out)
+        result, printed = self.regrade(out, "--host", "grok", "--grok-bin", str(self.fakes["grok"]))
+        t = result["termination"]
+        self.assertTrue(t["regraded"])
+        self.assertEqual({k: v for k, v in t.items() if k in original}, original)
+        self.assertEqual(t["resume_stop"], "resume budget spent (0)")
+        self.assertEqual(t["engine_status_at_regrade"], "done")
+        self.assertIn("the original record, regraded with engine done", printed)
+
+    def test_a_regrade_with_no_record_says_no_host_ran_and_fabricates_no_exit(self):
+        out = self.stopped_run()
+        self.finish_out_of_band(out)
+        (out / "result.json").unlink()
+        result, printed = self.regrade(out, "--host", "grok", "--grok-bin", str(self.fakes["grok"]))
+        t = result["termination"]
+        self.assertEqual((t["process_status"], t["returncode"], t["sessions"], t["session_stops"]),
+                         (run.NOT_OBSERVED, None, 0, []))
+        self.assertEqual((t["resume_stop"], t["regraded"], t["engine_status"]), ("not evaluated (regraded)", True, "done"))
+        self.assertEqual(result["process"]["sessions"], [])
+        self.assertEqual(self.stopped(printed), "  stopped   no host ran (regraded); engine done")
+        self.assertIn("no host ran: regraded from what is on disk", printed)
+        self.assertNotIn("host exited rc=0", printed)
+
+    def test_a_regrade_without_a_host_flag_keeps_the_host_the_run_recorded(self):
+        out = self.stopped_run()
+        self.finish_out_of_band(out)
+        result, _ = self.regrade(out)  # no --host: the default is Claude, which never ran this
+        self.assertEqual(result["host"], "grok")
+        self.assertEqual(result["model"], json.loads((out / "invocation.json").read_text())["model"])
+        self.assertTrue(result["process"]["regraded"])
+
+    def test_a_regrade_through_the_marketplace_source_never_overwrites_the_finished_result(self):
+        code, finished, _ = self.invoke_printed("grok", "done")
+        out = Path(finished["output"])
+        before = (out / "result.json").read_text()
+        gate = ["local HEAD 0123abc has commits origin/main does not: publish them first"]
+        refused = {"source": "marketplace", "plugin_version": "9", "shiploop_version": "1", "gate": gate}
+        with contextlib.redirect_stdout(io.StringIO()), mock.patch.object(
+                run, "marketplace_preflight", return_value=(self.plugin, None, refused)) as preflight:
+            # A different host and no --plugin-dir: the branch that installs from the marketplace.
+            run.main(["--host", "codex", "--codex-bin", str(self.fakes["codex"]), "--resume-run", str(out),
+                      "--baseline", str(self.baselines)])
+        preflight.assert_not_called()  # a regrade starts no host: nothing is installed or gated
+        regraded = json.loads((out / "result.json").read_text())
+        self.assertTrue(regraded["process"]["regraded"])
+        self.assertTrue(regraded["shiploop"]["pass"], regraded["shiploop"])
+        self.assertNotEqual((out / "result.json").read_text(), before)  # re-graded, not stubbed
+
+    def test_a_refused_resume_never_overwrites_the_record_of_the_run_it_would_have_continued(self):
+        out = self.stopped_run()
+        before = (out / "result.json").read_text()
+        gate = ["origin/main has unreleased changes (x): run scripts/release.py and push"]
+        versions = {"source": "marketplace", "plugin_version": "9", "shiploop_version": "1", "gate": gate}
+        os.environ["FAKE_MODE"] = "done"
+        with contextlib.redirect_stdout(io.StringIO()), mock.patch.object(
+                run, "marketplace_preflight", return_value=(self.plugin, None, versions)):
+            with self.assertRaisesRegex(SystemExit, "version gate"):
+                run.main(["--host", "codex", "--codex-bin", str(self.fakes["codex"]), "--resume-run", str(out),
+                          "--baseline", str(self.baselines)])
+        self.assertEqual((out / "result.json").read_text(), before)
+
+    def test_a_resumed_run_keeps_the_termination_each_earlier_invocation_recorded(self):
+        out = self.stopped_run()
+        original = json.loads((out / "result.json").read_text())["termination"]
+        os.environ["FAKE_MODE"] = "done"
+        with contextlib.redirect_stdout(io.StringIO()):
+            run.main(["--host", "codex", "--codex-bin", str(self.fakes["codex"]), "--resume-run", str(out),
+                      "--plugin-dir", str(self.plugin), "--baseline", str(self.baselines)])
+        result = json.loads((out / "result.json").read_text())
+        self.assertEqual(result["earlier_terminations"], [original])
+        self.assertEqual(result["termination"]["resume_stop"], "ShipLoop run is done")
+        self.assertEqual(result["termination"]["sessions"], 1)  # this invocation's own sessions
+
+
+class BaselineAbsentTest(PrintedCase):
+    def test_rows_that_name_no_host_say_nothing_was_compared_instead_of_printing_nothing(self):
+        self.baselines.write_text(json.dumps({"case": "hello", "source": "checkout", "turns": 3}) + "\n")
+        code, result, printed = self.invoke_printed("grok", "done")
+        self.assertEqual(code, 0, result)
+        self.assertIn("baseline  nothing compared: 1 earlier row(s) for hello, none recorded with grok/", printed)
+        self.assertEqual(run.scan_baseline(self.baselines, "hello", "checkout", "grok", "m", "e")[1], 2)
+
+    def test_a_resumed_run_says_it_is_not_a_baseline(self):
+        code, stopped, _ = self.invoke_printed("grok", "stuck", "--max-resumes", "0")
+        os.environ["FAKE_MODE"] = "done"
+        printed = io.StringIO()
+        with contextlib.redirect_stdout(printed):
+            run.main(["--host", "codex", "--codex-bin", str(self.fakes["codex"]), "--resume-run", stopped["output"],
+                      "--plugin-dir", str(self.plugin), "--baseline", str(self.baselines)])
+        self.assertIn("baseline  nothing compared: a resumed or seeded run is not a baseline", printed.getvalue())
+
+    def test_the_host_flag_is_seen_only_when_it_was_given(self):
+        self.assertFalse(run.host_given([]))
+        self.assertTrue(run.host_given(["--host", "claude"]))
+        self.assertTrue(run.host_given(["--case", "hello", "--host=codex"]))
+
+
+class AttributionEdgeTest(unittest.TestCase):
+    """Edge cases of per-stage attribution: seeded stages, an empty history, an unstamped action, a block."""
+
+    USAGE = [{"type": "usage", "usage": {"input_tokens": 10, "output_tokens": 1}} for _n in range(12)]
+
+    def test_a_stage_the_harness_seeded_has_no_timing_and_does_not_bill_the_host_start_up(self):
+        # Seeded stages are accepted before the host's first event (t = 100.0).
+        m = collect_stream(self.USAGE, [("S1", "intake", "done", 95.0), ("S2", "spec", "done", 96.0),
+                                        ("A3", "plan", "done", 110.0)])
+        self.assertEqual([(r["stage"], r.get("timing")) for r in m["stages"]],
+                         [("intake", "unavailable"), ("spec", "unavailable"), ("plan", None)])
+        self.assertEqual(m["stages"][2]["seconds"], 10.0)  # from the first host event, not from the seed
+        self.assertGreater(m["stages"][2]["turns"], 0)
+        self.assertTrue(all(r.get("seconds", 0) >= 0 for r in m["stages"]))
+
+    def test_a_run_that_stopped_before_its_first_acceptance_still_names_its_stage(self):
+        m = collect_stream(self.USAGE, [], status="active", stage="intake")
+        self.assertEqual([(r["stage"], r.get("incomplete")) for r in m["stages"]], [("intake", True)])
+        self.assertGreater(m["stages"][0]["turns"], 0)
+        self.assertGreater(m["stages"][0]["seconds"], 0)
+
+    def test_an_incomplete_row_after_an_unstamped_acceptance_is_unavailable_not_overstated(self):
+        m = collect_stream(self.USAGE, [("A1", "intake", "done", 101.0), ("A2", "spec", "done", None)],
+                           status="active", stage="plan")
+        self.assertEqual(m["stages"][-1], {"stage": "plan", "outcome": None, "incomplete": True,
+                                           "timing": "unavailable"})
+
+    def test_without_a_runner_timeline_the_unaccepted_stage_is_still_named(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            out = Path(tmp)
+            (out / "events.jsonl").write_text(json.dumps(self.USAGE[0]) + "\n")
+            write_engine_records(out / "run", [("A1", "intake", "done", 101.0)], status="active", stage="spec")
+            m = metrics.collect(out, out / "run")
+        self.assertEqual([(r["stage"], r.get("incomplete")) for r in m["stages"]],
+                         [("intake", None), ("spec", True)])
+        self.assertTrue(all(r["timing"] == "unavailable" for r in m["stages"]))
+
+    def test_a_stage_the_engine_accepted_as_blocked_was_not_left_unaccepted(self):
+        accepted = [("A1", "intake", "done", 101.0), ("A2", "system-test", "blocked", 104.0)]
+        m = collect_stream(self.USAGE, accepted, status="blocked", stage="system-test")
+        self.assertFalse(any(r.get("incomplete") for r in m["stages"]))
+        engine = {"status": "blocked", "stage": "system-test", "status_reason": "user: a person must look\n at it",
+                  "history": [{"stage": "system-test", "outcome": "blocked", "action": "A2"}]}
+        t = run.termination_facts({"status": "exited", "returncode": 0, "sessions": [{"stop": "end_turn"}],
+                                   "resumes": 0}, engine, "ShipLoop run is blocked")
+        self.assertIsNone(t["engine_unaccepted_stage"])
+        self.assertEqual((t["engine_stage"], t["engine_status_reason"]), ("system-test", "user: a person must look at it"))
+        line = run.stopped_line(t)
+        self.assertIn("engine blocked at system-test (user: a person must look at it)", line)
+        self.assertNotIn("never accepted", line)
+
+    def test_a_blocked_run_whose_current_stage_was_not_the_blocked_one_still_has_an_unaccepted_stage(self):
+        engine = {"status": "blocked", "stage": "plan",
+                  "history": [{"stage": "spec", "outcome": "blocked", "action": "A2"}]}
+        self.assertEqual(metrics.pending_stage(engine), "plan")
+
+    def test_a_halted_run_names_the_item_s_own_stage(self):
+        engine = {"status": "halted", "stage": "inner-loop", "work_index": 0, "work_items": [{"id": "W1"}],
+                  "inner_loops": {"W1": {"stage": "test-green"}}, "status_reason": "halted by the user"}
+        t = run.termination_facts({"status": "exited", "returncode": 0, "sessions": [{}], "resumes": 0},
+                                  engine, "ShipLoop run is halted")
+        self.assertEqual((t["engine_stage"], t["engine_unaccepted_stage"]), ("test-green", "test-green"))
+        self.assertIn("engine halted with test-green never accepted (halted by the user)", run.stopped_line(t))
+
+
+class CouldNotRunCountTest(unittest.TestCase):
+    """A test attempt that reached no verdict is counted and shown, because it is an environment problem."""
+
+    def records(self, tmp: str) -> Path:
+        tests = Path(tmp) / "run" / "tests"
+        tests.mkdir(parents=True)
+        (tests / "nav-1-verify1.md").write_text('{"passed": false, "disposition": "could-not-run", '
+                                                '"runs": [{"command": "a", "status": "timeout"}]}')
+        (tests / "nav-1-verify2.md").write_text('{"passed": true, "runs": [{"command": "a"}]}')
+        (tests / "nav-2-verify1.md").write_text('{"passed": false, "runs": [{"command": "b"}]}')
+        return Path(tmp) / "run"
+
+    def test_could_not_run_records_are_counted_apart_from_failures_and_passes(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            self.assertEqual(metrics.verifications(self.records(tmp)),
+                             {"records": 3, "passed": 1, "could_not_run": 1, "commands": 3})
+
+    def test_the_report_and_the_progress_line_show_the_could_not_run_count(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            run_dir = self.records(tmp)
+            out = Path(tmp)
+            (out / "events.jsonl").write_text(json.dumps({"type": "usage", "usage": {"input_tokens": 1}}) + "\n")
+            write_engine_records(run_dir, [("A1", "intake", "done", 101.0)])
+            m = metrics.collect(out, run_dir)
+            self.assertIn("script verifications 1/3 passed (1 could not run)", metrics.summary_lines(m)[0])
+            self.assertIn("1 could not run", progress.report(out))
+
+
 
 if __name__ == "__main__":
     unittest.main()
