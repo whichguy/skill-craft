@@ -259,10 +259,15 @@ GROK_SIGNALS = {
 
 
 def context_tokens(usage) -> int | None:
-    """Tokens one call read as context (input plus cache reads), or None when its event carried no figure."""
+    """Tokens one call held as context, or None when its event carried no figure.
+
+    Input, cache reads and cache writes: a prompt-cache write (Claude's cache_creation_input_tokens) is context the
+    call sent too, and on a recorded Claude run leaving it out made a turn read up to 60.7% low and the run's
+    peak 0.6% low. Each figure is counted only where the host reports it, so a host with no per-call usage stays None.
+    """
     if not isinstance(usage, dict):
         return None
-    parts = [usage.get(key) for key in ("input_tokens", "cache_read_input_tokens")]
+    parts = [usage.get(key) for key in ("input_tokens", "cache_read_input_tokens", "cache_creation_input_tokens")]
     numbers = [p for p in parts if isinstance(p, (int, float)) and not isinstance(p, bool)]
     return sum(numbers) if numbers else None
 

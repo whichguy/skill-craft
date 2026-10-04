@@ -2725,5 +2725,32 @@ class SessionStopSubtypeTest(unittest.TestCase):
         self.assertEqual(stop, "error: api_error: API Error: rate limit")
 
 
+class ContextTokensTest(unittest.TestCase):
+    """A call's context is its input, its cache reads and its cache writes, where the host reports them."""
+
+    CLAUDE_USAGE = {"input_tokens": 3, "cache_creation_input_tokens": 90000, "cache_read_input_tokens": 10000,
+                    "output_tokens": 50}
+
+    def test_a_cache_write_is_context(self):
+        self.assertEqual(metrics.context_tokens(self.CLAUDE_USAGE), 100003)
+        self.assertEqual(metrics.context_tokens({"input_tokens": 3, "cache_read_input_tokens": 10000}), 10003)
+        self.assertEqual(metrics.context_tokens({"cache_creation_input_tokens": 7}), 7)
+
+    def test_a_call_with_no_figure_has_no_context(self):
+        for usage in (None, {}, {"output_tokens": 5}, {"input_tokens": None}, {"input_tokens": True}):
+            self.assertIsNone(metrics.context_tokens(usage), usage)
+
+    def test_the_run_peak_counts_the_cache_write_and_a_stream_without_usage_has_none(self):
+        def message(n: int, usage: dict) -> dict:
+            return {"type": "assistant", "message": {"id": f"m{n}", "usage": usage,
+                                                     "content": [{"type": "text", "text": "x"}]}}
+        quiet = {"input_tokens": 3, "cache_read_input_tokens": 50000, "cache_creation_input_tokens": 0}
+        stream = [message(0, quiet), message(1, self.CLAUDE_USAGE), message(2, quiet)]
+        self.assertEqual(collect_stream(stream, [])["tokens"]["input_peak"], 100003)
+        self.assertEqual(collect_stream([{"type": "assistant", "message": {"content": []}}], [])["tokens"],
+                         {"input_peak": None})
+        self.assertEqual(collect_stream(codex_stream(3), [])["tokens"], {"input_peak": None})
+
+
 if __name__ == "__main__":
     unittest.main()
