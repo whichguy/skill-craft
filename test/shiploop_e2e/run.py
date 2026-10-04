@@ -430,15 +430,19 @@ def summarize_events(path: Path) -> dict:
         elif kind == "available_commands" and not seen["commands"]:  # Grok
             seen["commands"] = [c for c in event.get("commands") or [] if isinstance(c, str)]
         elif kind in ("result", "end"):
+            # The stop is the host's own reason, an error never a success (metrics.session_stop, the one rule).
+            stop = metrics.session_stop(event)
             seen.setdefault("sessions", []).append(
-                {"num_turns": event.get("num_turns"), "cost_usd": event.get("total_cost_usd"),
-                 "stop": event.get("subtype") or event.get("stopReason")})
-            seen.update(stop=event.get("subtype") or event.get("stopReason"))
+                {"num_turns": event.get("num_turns"), "cost_usd": event.get("total_cost_usd"), "stop": stop})
+            seen.update(stop=stop)
     ended = seen.get("sessions") or []
     if ended:
         # Each host session reports its own totals; a resumed run adds them up. The cost is
-        # unknown unless every ended session reported one (metrics.total_cost, the one rule).
-        seen["num_turns"] = sum(s["num_turns"] or 0 for s in ended)
+        # unknown unless every ended session reported one (metrics.total_cost, the one rule),
+        # and the turns are unknown unless one did: a count nobody reported is not 0.
+        reported = [s["num_turns"] for s in ended if isinstance(s["num_turns"], int)
+                    and not isinstance(s["num_turns"], bool)]
+        seen["num_turns"] = sum(reported) if reported else None
         seen["cost_usd"] = metrics.total_cost(ended)
     return seen
 
@@ -1226,11 +1230,21 @@ def stage_diff_lines(before: list | None, now: list | None, top: int = 5) -> lis
     return lines
 
 
-def shared_tmp_writes(outputs: list[Path]) -> dict[str, list[str]]:
-    """Each literal /tmp path that more than one of these runs wrote, with the runs that wrote it."""
+def shared_tmp_writes(outputs: list[Path], unmeasured: dict[str, str] | None = None) -> dict[str, list[str]]:
+    """Each literal /tmp path that more than one of these runs wrote, with the runs that wrote it.
+
+    A run whose host's events cannot show its writes (Claude's tool calls are blocks the collector does
+    not read) is not a run that wrote nothing: it is left out of the comparison, and when the caller
+    passes ``unmeasured`` it is named there with the reason, so an empty result never reads as clean for it.
+    """
     writers: dict[str, list[str]] = {}
     for out in outputs:
-        for name in metrics.collect(out).get("tmp_writes") or []:
+        run_metrics = metrics.collect(out)
+        if "tmp_writes" in (run_metrics.get("unmeasured") or {}):
+            if unmeasured is not None:
+                unmeasured[out.name] = run_metrics["unmeasured"]["tmp_writes"]
+            continue
+        for name in run_metrics.get("tmp_writes") or []:
             writers.setdefault(name, []).append(out.name)
     return {name: runs for name, runs in sorted(writers.items()) if len(runs) > 1}
 
@@ -1318,13 +1332,18 @@ def run_suite(args, argv: list[str]) -> int:
     with ThreadPoolExecutor(max_workers=workers) as pool:
         rows = [row for chain_rows in pool.map(run_chain, chains) for row in chain_rows]
     summary = gate_rows + sorted(rows, key=lambda row: order.index(row["case"]))
-    shared = shared_tmp_writes([Path(row["output"]) for row in summary if row.get("output")])
+    unchecked: dict[str, str] = {}
+    shared = shared_tmp_writes([Path(row["output"]) for row in summary if row.get("output")], unchecked)
     if shared:
         # Concurrent runs that wrote the same /tmp name may have read each other's files (plan P13).
         print("suite " + args.suite + ": /tmp names written by more than one case (their evidence is suspect): "
               + "; ".join(f"{name} ({', '.join(cases_)})" for name, cases_ in shared.items()), flush=True)
+    if unchecked:
+        print("suite " + args.suite + ": /tmp collisions not checked for " + ", ".join(unchecked) + ": "
+              + "; ".join(sorted(set(unchecked.values()))), flush=True)
     (base / "suite-result.json").write_text(json.dumps({"suite": args.suite, "cases": summary,
-                                                        "shared_tmp_writes": shared}, indent=2) + "\n")
+                                                        "shared_tmp_writes": shared,
+                                                        "tmp_writes_unmeasured": unchecked}, indent=2) + "\n")
     print(f"suite {args.suite}: " + ", ".join(
         f"{row['case']} {'SKIP' if 'skipped' in row else 'PASS' if row['pass'] else 'FAIL'}" for row in summary))
     return 0 if all(row.get("pass") for row in summary) else 1

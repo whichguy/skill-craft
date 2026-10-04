@@ -128,8 +128,9 @@ Grok events carry no time) and ShipLoop's run directory:
   whole-run. "Reading per-stage figures" below says what these numbers can and
   cannot tell you;
 - sessions and how each ended (`sessions`: its stop, turns, cost and the host's own
-  `usage`, kept as the host wrote it and never summed), turns, peak context (null when
-  no call reported its context), cost (unknown, null, unless every session that ended
+  `usage`, kept as the host wrote it and never summed), turns, peak context (a call's
+  input, cache reads and cache writes; null when no call reported its context), cost
+  (unknown, null, unless every session that ended
   reported one), `unreported_sessions` (sessions that began and never reported an end,
   such as one killed with the task: any above 0 makes turns and cost a lower bound, and
   the printed cost says so; it is a field of `metrics.json` and `result.json`, not a
@@ -212,9 +213,22 @@ product hang; it does not say the product is wrong.
   a pause inside a stage is counted as that stage's time.
 - Turns count assistant content-block events, between 1.6 and 2 times the host's own
   turn count (`result.num_turns`) on recorded Claude runs.
-- A host reports what it reports. Codex emits no per-call usage, so per-stage turns
-  are not available for it: they are null in `metrics.json` and named in `unmeasured`,
-  never 0.
+- A host reports what it reports. A counter its events cannot show is null in
+  `metrics.json`, `result.json` and the baseline row (the ShipLoop command failure and
+  model glue lists stay in `metrics.json` as lower bounds) and is named, with the
+  reason, in `unmeasured`, so a later run compares it as not measured and never as
+  0 -> 0. Codex emits no per-call usage, so per-stage turns are unmeasured for it.
+  Neither Codex nor Claude writes Grok's compaction, truncation, permission-refusal or
+  file-read events, so compactions, truncated outputs, cancelled tool calls and
+  knowledge reads are unmeasured on both (Codex prints "cancelled 0" in a failing
+  `node --test` summary and its file changes are writes: the Grok-only detectors used
+  to count those as refusals and reads). Claude's tool calls are `tool_use` blocks the
+  collector does not read, so its stage tool calls, ShipLoop command failures, model
+  glue and `/tmp` writes are unmeasured too. Whole-run turns are null when no call and
+  no ended session reported a count (a Codex session killed before its end event), and
+  a lower bound when a session never reported (`unreported_sessions`). The suite's
+  `/tmp` collision check leaves a run with unmeasured writes out, names it in
+  `suite-result.json` as `tmp_writes_unmeasured` and prints that it did not check it.
 - No output-token figure is built from events: a Claude message's output count is a
   streaming snapshot (it summed to about 1/17 of the session's own total on a recorded
   run), and Codex has none per call. A session's tokens are the host's own `usage` in

@@ -6,8 +6,9 @@
 Remembers what it already reported in <output>/.progress.json and prints one
 block: counters, then only what is new (accepted stages with their turns and
 minutes, ShipLoop command failures, truncations, compactions, ended sessions,
-the model's latest remark). It never prints packet text or run markers, so a
-ShipLoop keepalive in the watching session cannot bind to the run.
+the model's latest remark, and once which counters the host cannot show). It never
+prints packet text or run markers, so a ShipLoop keepalive in the watching session
+cannot bind to the run.
 """
 
 from __future__ import annotations
@@ -59,7 +60,7 @@ def report(out: Path) -> str:
     started = (out / "invocation.json").stat().st_mtime if (out / "invocation.json").is_file() else time.time()
     items = f"{len(state.get('completed_work_items') or [])}/{len(state.get('work_items') or [])}"
     peak = m["tokens"]["input_peak"]
-    lines = [f"[{int(time.time() - started) // 60} min] turns {m['turns']}, peak context "
+    lines = [f"[{int(time.time() - started) // 60} min] turns {metrics.turns_text(m)}, peak context "
              f"{'n/a' if peak is None else str(peak // 1000) + 'K'}, "
              f"cost {('$' + format(m['cost_usd'], '.2f')) if m['cost_usd'] else 'n/a'} | "
              + (f"{state.get('status')}, rev {state.get('revision')}, "
@@ -71,11 +72,15 @@ def report(out: Path) -> str:
     stages = [s for s in m["stages"] if not s.get("incomplete")][memo.get("stages", 0):]
     if stages:
         lines.append("  accepted: " + ", ".join(metrics.stage_text(s) for s in stages))
+    # A counter this host's events cannot show prints nothing below, so say so once: silence is not a clean result.
+    blind = sorted(set(m["unmeasured"]) - set(memo.get("unmeasured") or []) - {"stage_turns"})
+    if blind:
+        lines.append("  not measured on this host (nothing printed for these is not a clean result): " + ", ".join(blind))
     for failure in m["shiploop_failures"][memo.get("failures", 0):]:
         lines.append(f"  ShipLoop {failure['verb']} failed (exit {failure['exit']}): {failure['line']}")
     for key, label in (("truncated_outputs", "host truncated outputs"), ("compactions", "compactions"),
                        ("improve_children", "Improve children")):
-        if m[key] > memo.get(key, 0):
+        if m[key] is not None and m[key] > memo.get(key, 0):  # None: this host cannot show it
             lines.append(f"  {label}: {m[key]} (+{m[key] - memo.get(key, 0)})")
     verified = m["script_verifications"]
     if verified["records"] > memo.get("verified", 0):
@@ -89,15 +94,17 @@ def report(out: Path) -> str:
     for command in m["cancelled_tool_calls"][memo.get("cancelled", 0):]:
         lines.append("  host cancelled a tool call (permission check): " + " ".join(command.split())[:120])
     for session in m["sessions"][memo.get("sessions", 0):]:
-        lines.append(f"  session ended: {session['stop']} after {session['turns']} turns")
+        lines.append(f"  session ended: {session['stop']}"
+                     + (f" after {session['turns']} turns" if session["turns"] is not None else ""))
     remark = last_remark(out)
     if remark:
         lines.append("  model: " + remark)
     memo_path.write_text(json.dumps({"stages": len([s for s in m["stages"] if not s.get("incomplete")]),
                                      "failures": len(m["shiploop_failures"]),
                                      "sessions": len(m["sessions"]), "cancelled": len(m["cancelled_tool_calls"]),
-                                     **{k: m[k] for k in ("truncated_outputs", "compactions",
-                                                          "improve_children")},
+                                     **{k: m[k] or 0 for k in ("truncated_outputs", "compactions",
+                                                               "improve_children")},
+                                     "unmeasured": sorted(m["unmeasured"]),
                                      "verified": m["script_verifications"]["records"],
                                      "glue": len(m["model_glue"])}))
     return "\n".join(lines)

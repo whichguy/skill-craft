@@ -2749,5 +2749,283 @@ class RetentionIdCountTest(unittest.TestCase):
                                  sorted(set(run.knowledge_home._REQUIREMENT_ID.findall(text))))
 
 
+
+def codex_session(items: list[dict], *, end: bool = True, thread: str = "t1") -> list[dict]:
+    """One Codex session after the harness's translator; ``end=False`` is a session killed before turn.completed."""
+    translate = hosts.host("codex").translator()
+    raw = [{"type": "thread.started", "thread_id": thread}]
+    raw += [{"type": "item.completed", "item": item} for item in items]
+    if end:
+        raw.append({"type": "turn.completed", "usage": {"input_tokens": 10, "cached_input_tokens": 5,
+                                                        "output_tokens": 2}})
+    return [json.loads(line) for event in raw for line in translate((json.dumps(event) + "\n").encode())]
+
+
+def codex_command(n: int, command: str = "echo ok", output: str = "ok\n", code: int = 0) -> dict:
+    return {"id": f"item_{n}", "type": "command_execution", "command": command, "aggregated_output": output,
+            "exit_code": code, "status": "completed" if code == 0 else "failed"}
+
+
+class HostSignalCountersTest(unittest.TestCase):
+    """Counters read only from Grok's event shapes are unmeasured on every other host (review 2: compactions,
+    truncated_outputs, cancelled_tool_calls, knowledge_reads), never a 0 or a look-alike that reads as a measurement."""
+
+    GROK_ONLY = ("compactions", "truncated_outputs", "cancelled_tool_calls", "knowledge_reads")
+    ACCEPTED = [("A1", "intake", "done", 105.0), ("A2", "spec", "done", 113.0)]
+
+    def codex(self) -> dict:
+        items = [codex_command(0), codex_command(1, "node --test", "ℹ tests 3\nℹ fail 1\nℹ cancelled 0\n", 1),
+                 {"id": "item_2", "type": "file_change", "status": "completed",
+                  "changes": [{"path": "/w/docs/shiploop/spec.md", "kind": "update"}]}]
+        return collect_stream(codex_session(items), self.ACCEPTED)
+
+    def test_a_codex_failing_test_run_is_not_a_host_refusal_and_a_write_is_not_a_read(self):
+        m = self.codex()
+        for name in self.GROK_ONLY:
+            self.assertIn(name, m["unmeasured"], name)
+        self.assertEqual(m["cancelled_tool_calls"], [], "'cancelled 0' in a node --test summary is not a refusal")
+        self.assertEqual(m["knowledge_reads"], [], "Codex's file_change is a write, listed as a read")
+        self.assertIsNone(m["compactions"])
+        self.assertIsNone(m["truncated_outputs"])
+        self.assertIsNone(metrics.count(m, "cancelled_tool_calls"))
+        self.assertNotIn("model_glue", m["unmeasured"], "Codex's tool calls are still read")
+        first = metrics.summary_lines(m)[0]
+        for text in ("compactions not measured", "truncated outputs not measured", "cancelled tool calls not measured"):
+            self.assertIn(text, first)
+
+    def test_a_claude_run_cannot_show_them_either_with_or_without_tool_calls(self):
+        compact = {"type": "system", "subtype": "compact_boundary", "compact_metadata": {"trigger": "auto"}}
+        read = {"type": "assistant", "message": {"usage": {"input_tokens": 5}, "content": [
+            {"type": "tool_use", "id": "r1", "name": "Read", "input": {"file_path": "/w/docs/shiploop/spec.md"}}]}}
+        text_only = {"type": "assistant", "message": {"usage": {"input_tokens": 5},
+                                                      "content": [{"type": "text", "text": "hello"}]}}
+        for label, stream in (("tool calls", [compact, read, *claude_stream(["ls"])]),
+                              ("text only", [text_only, {"type": "result", "subtype": "success", "num_turns": 1}])):
+            with self.subTest(label):
+                m = collect_stream(stream, self.ACCEPTED)
+                for name in self.GROK_ONLY:
+                    self.assertIn(name, m["unmeasured"], name)
+                self.assertIsNone(m["compactions"])
+                self.assertIsNone(m["truncated_outputs"])
+                self.assertIn("compactions not measured", metrics.summary_lines(m)[0])
+
+    def test_a_grok_stream_still_counts_each_one(self):
+        stream = [
+            {"type": "usage", "usage": {"input_tokens": 1000, "output_tokens": 10}},
+            {"type": "tool_call", "toolCallId": "a", "toolName": "read_file",
+             "rawInput": {"target_file": "/w/docs/shiploop/spec.md"}},
+            {"type": "tool_call_update", "toolCallId": "a", "rawOutput": {"exit_code": 0, "truncated": True}},
+            {"type": "tool_call", "toolCallId": "c", "rawInput": {"command": "git init -b main"}},
+            {"type": "tool_call_update", "toolCallId": "c", "status": "failed", "rawOutput": None, "content": [
+                {"type": "content", "content": {"type": "text",
+                                                "text": "User cancelled the execution for tool `run_terminal_command`"}}]},
+            {"type": "auto_compact_completed"},
+            {"type": "end", "stopReason": "end_turn", "num_turns": 1, "total_cost_usd": 1.0}]
+        m = collect_stream(stream, self.ACCEPTED)
+        self.assertEqual(m["unmeasured"], {})
+        self.assertEqual((m["compactions"], m["truncated_outputs"]), (1, 1))
+        self.assertEqual(m["cancelled_tool_calls"], ["git init -b main"])
+        self.assertEqual(m["knowledge_reads"], ["docs/shiploop/spec.md"])
+        first = metrics.summary_lines(m)[0]
+        self.assertIn("compactions 1, truncated outputs 1, cancelled tool calls 1", first)
+
+
+class HostSignalCountersThroughMainTest(PrintedCase):
+    """result.json, the baseline row and the printed line carry null, not 0, for what the host cannot show."""
+
+    def test_claude_and_codex_runs_commit_null_for_the_grok_only_counters(self):
+        for host in ("claude", "codex"):
+            with self.subTest(host):
+                code, result, printed = self.invoke_printed(host, "done")
+                self.assertEqual(code, 0, result)
+                row = self.last_row()
+                for name in HostSignalCountersTest.GROK_ONLY:
+                    self.assertIn(name, result["metrics"]["unmeasured"], name)
+                for name in ("compactions", "truncated_outputs", "cancelled_tool_calls"):
+                    self.assertIsNone(result["metrics"][name], name)
+                    self.assertIsNone(row[name], name)
+                self.assertIn("compactions not measured", printed)
+                self.assertIn("truncated outputs not measured", printed)
+
+
+class UnknownTurnsTest(unittest.TestCase):
+    """A session that never reported its turns leaves the whole-run turns unknown, as it does the cost (review 2)."""
+
+    ACCEPTED = [("A1", "intake", "done", 105.0)]
+
+    def killed(self) -> list[dict]:
+        return codex_session([codex_command(n) for n in range(30)], end=False, thread="t1")
+
+    def test_a_codex_session_killed_before_its_end_event_has_no_turn_count(self):
+        m = collect_stream(self.killed(), self.ACCEPTED, status="active", stage="spec")
+        self.assertIsNone(m["turns"], "30 tool calls and no end event: the host reported no turn count")
+        self.assertEqual((m["sessions"], m["unreported_sessions"]), ([], 1))
+        self.assertIsNone(m["cost_usd"])
+        self.assertIn("turns not reported", metrics.summary_lines(m)[0])
+        self.assertEqual(metrics.turns_text(m), "not reported")
+
+    def test_a_killed_session_beside_an_ended_one_makes_the_turns_a_lower_bound(self):
+        stream = self.killed() + codex_session([codex_command(n) for n in range(3)], thread="t2")
+        m = collect_stream(stream, self.ACCEPTED)
+        self.assertEqual(m["turns"], 3)
+        self.assertEqual(m["unreported_sessions"], 1)
+        self.assertIn("turns 3 (lower bound)", metrics.summary_lines(m)[0])
+
+    def test_an_ended_session_is_a_plain_number_and_a_reported_zero_is_a_measurement(self):
+        m = collect_stream(codex_session([codex_command(n) for n in range(4)]), self.ACCEPTED)
+        self.assertEqual(m["turns"], 4)
+        self.assertNotIn("lower bound", metrics.summary_lines(m)[0].split("cost")[0])
+        zero = collect_stream([{"type": "end", "stopReason": "end_turn", "num_turns": 0}], [])
+        self.assertEqual(zero["turns"], 0)
+        self.assertEqual(metrics.turns_text(zero), "0")
+
+    def test_progress_says_the_turns_are_unknown_and_survives_the_null_counters(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            out = Path(tmp)
+            stream = self.killed()
+            (out / "events.jsonl").write_text("".join(json.dumps(e) + "\n" for e in stream))
+            text = progress.report(out)
+            again = progress.report(out)  # the memo it wrote must read back
+        self.assertIn("turns not reported", text)
+        self.assertNotIn("turns 0", text)
+        self.assertIn("not measured on this host", text)
+        self.assertNotIn("not measured on this host", again, "said once per run, not on every poll")
+
+
+class CliSummaryRecordTest(PrintedCase):
+    """result.json's `cli` agrees with `termination` and the metrics: the same stop reason, and no turn count that
+    nobody reported turned into 0 (review 2: summarize_events)."""
+
+    def test_a_claude_api_error_is_an_error_in_the_cli_record_too(self):
+        code, result, printed = self.invoke_printed("claude", "api-error")
+        stops = result["termination"]["session_stops"]
+        self.assertTrue(stops[0].startswith("error: api_error"), stops)
+        self.assertEqual(result["cli"]["stop"], stops[0])
+        self.assertEqual([s["stop"] for s in result["cli"]["sessions"]], stops)
+
+    def test_a_normal_stop_and_a_failed_codex_turn(self):
+        code, result, printed = self.invoke_printed("claude", "done")
+        self.assertEqual((result["cli"]["stop"], result["cli"]["sessions"][0]["stop"]), ("success", "success"))
+        with tempfile.TemporaryDirectory() as tmp:
+            path = Path(tmp) / "events.jsonl"
+            path.write_text(json.dumps({"type": "end", "stopReason": "error", "num_turns": 2,
+                                        "error": "You've hit your usage limit.\nTry later"}) + "\n")
+            seen = run.summarize_events(path)
+        self.assertEqual(seen["stop"], "error: You've hit your usage limit. Try later")
+        self.assertEqual(seen["sessions"][0]["stop"], seen["stop"])
+
+    def test_the_cli_summary_does_not_turn_a_missing_turn_count_into_zero(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            path = Path(tmp) / "events.jsonl"
+            path.write_text(json.dumps({"type": "end", "stopReason": "end_turn", "total_cost_usd": None}) + "\n")
+            seen = run.summarize_events(path)
+        self.assertIsNone(seen["num_turns"])
+        self.assertIsNone(seen["cost_usd"])
+
+
+class SuiteTmpCheckHostTest(HarnessCase):
+    """The suite's /tmp collision check says it could not look, rather than 'clean', for a host whose events
+    cannot show writes (review 2: shared_tmp_writes)."""
+
+    @staticmethod
+    def claude_writer(out: Path, target: str) -> Path:
+        out.mkdir()
+        stream = [{"type": "assistant", "message": {"usage": {"input_tokens": 1}, "content": [
+            {"type": "tool_use", "id": "u1", "name": "Bash", "input": {"command": f"echo x > {target}"}}]}},
+            {"type": "result", "subtype": "success", "num_turns": 1}]
+        (out / "events.jsonl").write_text("".join(json.dumps(e) + "\n" for e in stream))
+        return out
+
+    @staticmethod
+    def grok_writer(out: Path, target: str) -> Path:
+        out.mkdir()
+        stream = [{"type": "usage", "usage": {"input_tokens": 1}},
+                  {"type": "tool_call", "toolCallId": "1", "rawInput": {"command": f"echo x > {target}"}}]
+        (out / "events.jsonl").write_text("".join(json.dumps(e) + "\n" for e in stream))
+        return out
+
+    def test_claude_runs_are_not_checked_clean(self):
+        outs = [self.claude_writer(self.tmp / name, "/tmp/shared-notes.txt") for name in ("a", "b")]
+        unchecked: dict = {}
+        self.assertEqual(run.shared_tmp_writes(outs, unchecked), {})
+        self.assertEqual(sorted(unchecked), ["a", "b"])
+        self.assertIn("tool_use", unchecked["a"])
+
+    def test_a_run_that_cannot_be_checked_does_not_hide_a_collision_between_two_that_can(self):
+        outs = [self.claude_writer(self.tmp / "a", "/tmp/shared-notes.txt"),
+                self.grok_writer(self.tmp / "b", "/tmp/shared-notes.txt"),
+                self.grok_writer(self.tmp / "c", "/tmp/shared-notes.txt")]
+        unchecked: dict = {}
+        self.assertEqual(run.shared_tmp_writes(outs, unchecked), {"/tmp/shared-notes.txt": ["b", "c"]})
+        self.assertEqual(sorted(unchecked), ["a"])
+
+    def test_a_claude_suite_prints_and_records_that_the_check_could_not_run(self):
+        cases = {"first": {"style": "s", "prompt": "p", "checks": []},
+                 "second": {"style": "t", "prompt": "p", "checks": []}}
+        for attr, data in (("CASES", cases), ("SUITES", {"wide": {"kind": "breadth", "cases": ["first", "second"]}})):
+            path = self.tmp / (attr.lower() + ".json")
+            path.write_text(json.dumps(data))
+            saved = getattr(run, attr)
+            setattr(run, attr, path)
+            self.addCleanup(setattr, run, attr, saved)
+        os.environ["FAKE_MODE"] = "done"
+        out, printed = self.tmp / "suite-out", io.StringIO()
+        with contextlib.redirect_stdout(printed):
+            code = run.main(["--suite", "wide", "--host", "claude", "--claude-bin", str(self.fakes["claude"]),
+                             "--output", str(out), "--plugin-dir", str(self.plugin),
+                             "--baseline", str(self.baselines)])
+        self.assertEqual(code, 0, printed.getvalue())
+        result = json.loads((out / "suite-result.json").read_text())
+        self.assertEqual(result["shared_tmp_writes"], {})
+        self.assertEqual(sorted(result["tmp_writes_unmeasured"]), ["first", "second"])
+        self.assertIn("/tmp collisions not checked for first, second", printed.getvalue())
+
+
+
+class SessionStopSubtypeTest(unittest.TestCase):
+    """An error result keeps the subtype the host named, so a turn or budget limit is not a bare 'error' (review 2)."""
+
+    def test_an_error_subtype_is_kept_with_its_first_listed_error(self):
+        stop = metrics.session_stop({"type": "result", "subtype": "error_max_turns", "is_error": True,
+                                     "errors": ["Reached maximum number of turns (3)"]})
+        self.assertEqual(stop, "error: error_max_turns: Reached maximum number of turns (3)")
+        self.assertEqual(metrics.session_stop({"type": "result", "subtype": "error_during_execution", "is_error": True}),
+                         "error: error_during_execution")
+        budget = {"type": "result", "subtype": "error_max_budget_usd", "is_error": True, "terminal_reason": "max_budget"}
+        self.assertEqual(metrics.session_stop(budget), "error: error_max_budget_usd max_budget")
+
+    def test_a_success_subtype_with_an_api_error_does_not_repeat_success(self):
+        stop = metrics.session_stop({"type": "result", "subtype": "success", "is_error": True,
+                                     "terminal_reason": "api_error", "result": "API Error: rate limit"})
+        self.assertEqual(stop, "error: api_error: API Error: rate limit")
+
+
+class ContextTokensTest(unittest.TestCase):
+    """A call's context is its input, its cache reads and its cache writes, where the host reports them."""
+
+    CLAUDE_USAGE = {"input_tokens": 3, "cache_creation_input_tokens": 90000, "cache_read_input_tokens": 10000,
+                    "output_tokens": 50}
+
+    def test_a_cache_write_is_context(self):
+        self.assertEqual(metrics.context_tokens(self.CLAUDE_USAGE), 100003)
+        self.assertEqual(metrics.context_tokens({"input_tokens": 3, "cache_read_input_tokens": 10000}), 10003)
+        self.assertEqual(metrics.context_tokens({"cache_creation_input_tokens": 7}), 7)
+
+    def test_a_call_with_no_figure_has_no_context(self):
+        for usage in (None, {}, {"output_tokens": 5}, {"input_tokens": None}, {"input_tokens": True}):
+            self.assertIsNone(metrics.context_tokens(usage), usage)
+
+    def test_the_run_peak_counts_the_cache_write_and_a_stream_without_usage_has_none(self):
+        def message(n: int, usage: dict) -> dict:
+            return {"type": "assistant", "message": {"id": f"m{n}", "usage": usage,
+                                                     "content": [{"type": "text", "text": "x"}]}}
+        quiet = {"input_tokens": 3, "cache_read_input_tokens": 50000, "cache_creation_input_tokens": 0}
+        stream = [message(0, quiet), message(1, self.CLAUDE_USAGE), message(2, quiet)]
+        self.assertEqual(collect_stream(stream, [])["tokens"]["input_peak"], 100003)
+        self.assertEqual(collect_stream([{"type": "assistant", "message": {"content": []}}], [])["tokens"],
+                         {"input_peak": None})
+        self.assertEqual(collect_stream(codex_stream(3), [])["tokens"], {"input_peak": None})
+
+
 if __name__ == "__main__":
     unittest.main()
