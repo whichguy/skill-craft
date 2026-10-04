@@ -5,7 +5,7 @@ description: >-
   script's current action packet, and submit its exact completion call until
   the script reports completion with an HTML achievement report. Use when the
   user says shiploop, ship the project, or requests a durable delivery loop.
-version: 0.51.2
+version: 0.52.0
 allowed-tools: all
 license: MIT
 platforms:
@@ -483,10 +483,27 @@ import, setup) is refused. Characterisation tests that already pass carry
 Every stage after the test loops that can edit code reruns them too: on `done`
 at `test-refine`, `static-checks` (after its quality-loop check) and
 `integration-verify`, ShipLoop runs every recorded command and refuses unless
-each passes. There is no loop at those stages; the packet lists the commands.
+each passes. The outer `system-test` and `release-verify` rerun their own
+recorded commands the same way, from `system-test-author` and `release-plan`.
+There is no loop at those stages; the packet lists the commands.
 Each action allows 7 refused runs; after that ShipLoop no longer accepts `done`,
-so a failing command goes back to the step plan with `revise` instead of an
-endless retry.
+so a failing command takes the stage's own remedy — back to the step plan with
+`revise` at an INNER stage, or corrective work items with `replan` at
+`system-test` and `release-verify` — instead of an endless retry.
+
+A command that times out, cannot start, or is skipped because the invocation's
+budget ran out reached no verdict about the product. It still refuses the stage,
+because nothing is accepted on unrun tests, but the attempt is recorded
+`could-not-run` and does not spend one of the 7. A timeout is not a diagnosis:
+it can mean a deadlock, a broken test, a suite too slow for the budget, or an
+external dependency. Because those attempts never reach the 7, the routes out
+are explicit: a hang in this item's own code, test or fixture is yours to fix
+here and is not a blocker; if the recorded command is itself wrong or too slow
+to fit the run's budget (a skipped command is that case: the same ones are
+skipped every time), report the stage's remedy instead of retrying it, and
+ShipLoop accepts it on its own record of the attempt without a new loop packet;
+report `blocked` only for what the user, an access grant or an outside
+dependency must supply.
 
 A done `release-plan` records `consumer_entry`: how a person reaches the result
 and the repository files that create that entry. ShipLoop refuses the release plan
