@@ -22,9 +22,10 @@ generically; nothing in the engine may know which probe exposed it.
 
 Each iteration: run a case on exactly what the marketplace publishes, measure,
 review against this spec, fix ShipLoop generically, release and refresh the
-marketplace install (see the harness rules), rerun, and
+marketplace install (see the harness rules), rerun,
 record what was learned (one commit per run; read the last three commit
-messages before the next run or change).
+messages before the next run or change), and update the Run Review page with
+the run's data.
 
 ## Design clauses
 
