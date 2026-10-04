@@ -1161,11 +1161,35 @@ function assertAllowedObject(value, allowed, required, label) {
 }
 
 function validateRetryRecord(retry, label) {
-  assertExactObject(retry, ['confirmed_stopped', 'reason'], label);
-  if (retry.confirmed_stopped !== true) {
-    fail(label + '.confirmed_stopped must be true');
+  if (retry && retry.confirmed_stopped === false) {
+    assertExactObject(retry, ['confirmed_stopped', 'native_status', 'reason'], label);
+    if (retry.native_status !== 'unavailable') {
+      fail(label + '.native_status must be "unavailable" when confirmed_stopped is false');
+    }
+  } else {
+    assertExactObject(retry, ['confirmed_stopped', 'reason'], label);
+    if (retry.confirmed_stopped !== true) {
+      fail(label + '.confirmed_stopped must be true');
+    }
   }
   requireString(retry.reason, label + '.reason');
+}
+
+// A retry never imports or deletes the old attempt's work: its records stay, and
+// callbacks for it are refused as stale. So a worker whose host session ended (its
+// handle can no longer be looked up) may be retried without proof that it stopped.
+function retryConfirmation(options) {
+  requireObject(options, 'retry');
+  const unavailable = options.confirmed_stopped === false && options.native_status === 'unavailable';
+  if (options.confirmed_stopped !== true && !unavailable) {
+    fail('retry requires confirmed_stopped: true, or confirmed_stopped: false with native_status: ' +
+      '"unavailable" when the worker\'s handle can no longer be looked up');
+  }
+  if (options.confirmed_stopped === true && hasOwn(options, 'native_status')) {
+    fail('retry.native_status is only for an unconfirmed stop');
+  }
+  requireString(options.reason, 'retry.reason');
+  return unavailable;
 }
 
 function validateSettlementRecord(dir, state, record, label) {
@@ -1966,7 +1990,7 @@ function assertNoReplan(state, operation) {
 
 function retry(dir, owner, attempt, options) {
   requireString(dir, 'dir');
-  stopConfirmation(options, 'retry');
+  const unavailable = retryConfirmation(options);
 
   return withLock(dir, () => {
     const state = readState(dir);
@@ -1981,10 +2005,9 @@ function retry(dir, owner, attempt, options) {
     }
 
     record.status = 'retried';
-    record.retry = {
-      confirmed_stopped: true,
-      reason: options.reason,
-    };
+    record.retry = unavailable
+      ? {confirmed_stopped: false, native_status: 'unavailable', reason: options.reason}
+      : {confirmed_stopped: true, reason: options.reason};
     const stepState = state.steps[record.step];
     stepState.status = 'pending';
     stepState.current_attempt = null;
@@ -2078,6 +2101,7 @@ function main() {
         result = retry(dir, input.owner, input.attempt, {
           confirmed_stopped: input.confirmed_stopped,
           reason: input.reason,
+          ...(hasOwn(input, 'native_status') ? {native_status: input.native_status} : {}),
         });
       } else if (operation === 'takeover') {
         result = takeover(dir, input.oldOwner, input.newOwner, {

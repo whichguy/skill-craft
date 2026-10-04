@@ -2,6 +2,21 @@
 
 Written by scripts/release.py.
 
+## 2026-10-04
+
+### skill-craft 1.17.0
+
+- Skills: plan-dispatcher 0.6.0, shiploop 0.49.0
+
+### plan-dispatcher 0.6.0
+
+- `retry` accepts a worker whose host session ended: `confirmed_stopped: false` with `native_status: "unavailable"`, for when the worker's handle can no longer be looked up and nobody can prove it stopped. The retry is recorded as unconfirmed; the old attempt's work is kept and its late report is refused, so the fresh attempt is safe.
+
+### shiploop 0.49.0
+
+- A run resumed after its host session was lost can recover its chain without a person. When a worker's handle can no longer be looked up, `chain retry` accepts `confirmed_stopped: false` with `native_status: "unavailable"`; the old workspace is kept as evidence, its late callbacks are refused, and the step gets a fresh worker. Previously the run paused to ask whether it could retry.
+- A chain step that needed a retry no longer blocks the chain from finishing. The retried attempt's Ask-Agent workspace is still kept as evidence (never deleted); `chain finish` now completes and lists it under `retained_superseded` instead of refusing forever.
+
 ## 2026-10-03
 
 ### skill-craft 1.16.1
