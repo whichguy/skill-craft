@@ -2312,6 +2312,112 @@ class CommittedVerdictTest(PrintedCase):
         self.assertIn("files in HEAD", mismatch)
 
 
+class RegradeRecordTest(PrintedCase):
+    """--resume-run on a finished run starts no host, so it restates the run's own record and invents none.
+
+    The plugin verdict, the process block and the host, model and effort come from what the run recorded; a
+    regrade that relabels a run, invents a clean exit or grades a Grok or Codex plugin from Claude's events
+    replaces a finished result with a different one although nothing about the run changed."""
+
+    HOSTS = ("claude", "grok", "codex")
+    CLI = "python3 /x/skills/shiploop/scripts/shiploop next"
+
+    def setUp(self):
+        super().setUp()
+        # A real host's events name the installed ShipLoop CLI by path, which is how a regrade sees that the skill
+        # was invoked. The shared fakes print the bare command, so these tests use copies that print the path.
+        for host in ("claude", "grok"):
+            script = self.fakes[host]
+            script.write_text(script.read_text().replace('"command": "shiploop next"', f'"command": "{self.CLI}"'))
+            self.assertIn(self.CLI, script.read_text())
+
+    def regrade(self, out: Path, *extra: str) -> tuple[dict, str]:
+        printed = io.StringIO()
+        with contextlib.redirect_stdout(printed):
+            run.main([*extra, "--resume-run", str(out), "--plugin-dir", str(self.plugin),
+                      "--baseline", str(self.baselines)])
+        return json.loads((out / "result.json").read_text()), printed.getvalue()
+
+    def finish_out_of_band(self, out: Path) -> None:
+        shutil.rmtree(out / "work" / ".shiploop", ignore_errors=True)
+        (out / "work" / ".shiploop").mkdir()
+        (out / "work" / ".shiploop" / "report.html").write_text("<html></html>")
+        run.store.write_record(out / "work" / ".shiploop" / "state.md", {"status": "done"})
+
+    def test_a_regrade_of_a_finished_run_keeps_its_passing_result_on_every_host(self):
+        for host in self.HOSTS:
+            with self.subTest(host=host):
+                code, first, _ = self.invoke_printed(host, "done")
+                self.assertEqual(code, 0, first)
+                result, _ = self.regrade(Path(first["output"]), "--host", host, f"--{host}-bin", str(self.fakes[host]))
+                self.assertTrue(result["pass"], {k: result[k] for k in ("invoked", "plugin", "process")})
+                self.assertTrue(result["process"]["regraded"])
+                for key in ("host", "model", "effort", "plugin"):
+                    self.assertEqual(result[key], first[key], key)
+                # what the host did is what the original run observed, not a clean exit made up for the regrade
+                self.assertEqual({k: v for k, v in result["process"].items() if k != "regraded"}, first["process"])
+
+    def test_a_regrade_never_turns_a_failed_host_into_a_pass(self):
+        wrapper = self.tmp / "claude-exits-3"  # the run finishes, then the host exits non-zero
+        wrapper.write_text(f'#!/bin/sh\n"{self.fakes["claude"]}" "$@"\nexit 3\n')
+        wrapper.chmod(wrapper.stat().st_mode | stat.S_IXUSR)
+        os.environ["FAKE_MODE"] = "done"
+        out = self.tmp / "out-exit-3"
+        with contextlib.redirect_stdout(io.StringIO()):
+            code = run.main(["--host", "claude", "--claude-bin", str(wrapper), "--output", str(out),
+                             "--plugin-dir", str(self.plugin), "--baseline", str(self.baselines)])
+        first = json.loads((out / "result.json").read_text())
+        self.assertEqual((code, first["pass"], first["shiploop"]["pass"]), (1, False, True))
+        self.assertEqual((first["process"]["status"], first["process"]["returncode"]), ("failed", 3))
+        result, printed = self.regrade(out)
+        self.assertFalse(result["pass"], "a regrade cannot turn a failed host into a pass")
+        self.assertEqual((result["process"]["status"], result["process"]["returncode"], result["process"]["pass"]),
+                         ("failed", 3, False))
+        self.assertEqual(result["process"]["sessions"], first["process"]["sessions"])
+        self.assertEqual(result["process"]["elapsed_seconds"], first["process"]["elapsed_seconds"])
+        self.assertEqual((result["termination"]["process_status"], result["termination"]["returncode"]), ("failed", 3))
+        self.assertIn("process   FAIL", printed)
+        self.assertIn("failed rc=3", (out / "mismatch.md").read_text())
+
+    def test_a_regrade_with_no_record_of_a_host_exit_says_so_and_leaves_that_verdict_out(self):
+        code, first, _ = self.invoke_printed("grok", "done")
+        out = Path(first["output"])
+        (out / "result.json").unlink()  # the harness died with its host: nothing recorded the exit
+        result, printed = self.regrade(out)
+        self.assertEqual((result["process"]["status"], result["process"]["returncode"], result["process"]["pass"]),
+                         ("not observed", None, None))
+        self.assertTrue(result["pass"], {k: result[k] for k in ("invoked", "plugin", "committed", "checks")})
+        self.assertIn("process   n/a   no host ran: regraded from what is on disk", printed)
+        self.assertFalse((out / "mismatch.md").exists(), "an unobserved exit is not a failure")
+
+    def test_a_regrade_keeps_the_host_model_and_effort_the_run_recorded_whatever_the_command_line_says(self):
+        code, first, _ = self.invoke_printed("grok", "done")
+        result, printed = self.regrade(Path(first["output"]), "--host", "codex", "--codex-bin", str(self.fakes["codex"]),
+                                       "--model", "gpt-6-sol", "--effort", "xhigh")
+        self.assertEqual((result["host"], result["model"], result["effort"]),
+                         (first["host"], first["model"], first["effort"]))
+        self.assertEqual((first["host"], first["effort"]), ("grok", "medium"))
+        self.assertTrue(result["pass"], {k: result[k] for k in ("invoked", "plugin", "process")})
+        self.assertIn("ignoring --host codex, --model gpt-6-sol, --effort xhigh", printed)
+
+    def test_a_run_resumed_on_another_host_is_regraded_as_that_host_with_its_plugin_and_versions(self):
+        code, stopped, _ = self.invoke_printed("grok", "stuck", "--max-resumes", "0")
+        out = Path(stopped["output"])
+        os.environ["FAKE_MODE"] = "nothing"
+        with contextlib.redirect_stdout(io.StringIO()):
+            run.main(["--host", "codex", "--codex-bin", str(self.fakes["codex"]), "--resume-run", str(out),
+                      "--plugin-dir", str(self.plugin), "--baseline", str(self.baselines)])
+        resumed = json.loads((out / "result.json").read_text())
+        self.assertEqual((resumed["host"], resumed["resumed_run"]["from_host"]), ("codex", "grok"))
+        self.finish_out_of_band(out)
+        result, _ = self.regrade(out)  # no --host: the invocation.json host is grok, the run's own record says codex
+        self.assertEqual((result["host"], result["model"], result["effort"]),
+                         (resumed["host"], resumed["model"], resumed["effort"]))
+        self.assertEqual(result["plugin"], resumed["plugin"])
+        self.assertEqual({k: v for k, v in result["versions"].items() if k != "regraded"}, resumed["versions"])
+        self.assertTrue(result["process"]["regraded"])
+
+
 class BaselineAbsentTest(PrintedCase):
     def test_rows_that_name_no_host_say_nothing_was_compared_instead_of_printing_nothing(self):
         self.baselines.write_text(json.dumps({"case": "hello", "source": "checkout", "turns": 3}) + "\n")

@@ -89,10 +89,11 @@ pre-created. It grades five verdicts into `result.json`:
   `/shiploop`, since Grok does not namespace plugin skills; Claude
   `/skill-craft:shiploop`, since a bare `/shiploop` is not registered there);
 - **plugin**: exactly one skill-craft plugin loaded, and it is the build under test (a
-  resumed or regraded Grok or Codex run keeps the verdict of its first launch, which
-  `invocation.json` records, because those streams cannot show what loaded; Claude's
-  init event shows it on every launch, and an `invocation.json` written before the
-  verdict was kept grades as it always did, with no evidence and so a fail);
+  resumed or regraded Grok or Codex run keeps the verdict made when it was launched,
+  which `invocation.json` records and a regrade restates from the run's own
+  `result.json`, because those streams cannot show what loaded; Claude's init event
+  shows it on every launch, and an `invocation.json` written before the verdict was
+  kept grades as it always did, with no evidence and so a fail);
 - **process**: the host exited 0 in time (defaults: 10,000 turns, 3 hours);
 - **shiploop**: a ShipLoop `state.md` under the output directory (in `work/.shiploop` or
   an external workspace root the agent chose beside `work/`) has status `done`, with

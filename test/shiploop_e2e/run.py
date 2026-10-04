@@ -55,6 +55,13 @@ A Grok session that ends while the ShipLoop run is still active is resumed
 (bounded by --max-resumes). Every attempt keeps its prompt, argv, event
 stream, arrival timeline, stderr, metrics.json and result.json in a new
 output directory outside the checkout.
+
+--resume-run on a run whose ShipLoop is already done (a regrade) starts no host. It
+restates the run's own last record (result.json, else invocation.json): host, model,
+effort, plugin verdict and the process block, whatever --host, --model or --effort
+say, and grades ShipLoop, the checkout and the checks again. A host that failed
+stays failed; a run with no record of its exit says "not observed" and leaves the
+process verdict out of the result.
 This launches a real model and costs money; it is never part of default CI.
 
   python3 test/shiploop_e2e/run.py --case battleship
@@ -1065,6 +1072,22 @@ def previous_row(path: Path, case: str, source: str | None, host: str | None = N
 NOT_OBSERVED = "not observed (regraded: no host ran)"
 
 
+def regraded_process(observed: dict | None) -> dict:
+    """The ``process`` block of a regrade: what the original run observed, or nothing.
+
+    A regrade starts no host, so it claims no exit. The block the original run recorded is kept as it
+    was, verdict included (marked ``regraded``), so a host that failed stays failed and the per-session
+    list and elapsed time survive. With no record the harness never saw an exit: the block says so and
+    its verdict is None, which no verdict list counts and no report calls a pass.
+    """
+    if isinstance(observed, dict) and observed.get("status"):
+        kept = dict(observed, regraded=True)
+        kept.setdefault("pass", kept["status"] == "exited")
+        return kept
+    return {"status": "not observed", "returncode": None, "elapsed_seconds": None, "sessions": [],
+            "resumes": None, "pass": None, "regraded": True}
+
+
 def termination_facts(process: dict, engine: dict, resume_stop: str | None, earlier: dict | None = None) -> dict:
     """Why this run is not still going, from the observer that owns the process.
 
@@ -1334,6 +1357,7 @@ def main(argv: list[str] | None = None) -> int:
     regrade = False
     earlier = {}
     earlier_result: dict = {}
+    recorded: dict = {}  # a regrade restates this: the run's own last record
     if args.resume_run:
         # Continue a stopped run in place: same work directory, run state and event stream.
         out = args.resume_run.expanduser().resolve()
@@ -1350,11 +1374,20 @@ def main(argv: list[str] | None = None) -> int:
             earlier_result = json.loads((out / "result.json").read_text())
         except (OSError, ValueError):
             earlier_result = {}
-        if regrade and not host_given(argv):
-            # Nothing is launched, so the host is not a choice: keep the one the run recorded, not the default.
-            args.host = earlier["host"]
-            args.model = args.model or earlier.get("model")
-            args.effort = args.effort or earlier.get("effort")
+        if regrade:
+            # Nothing is launched, so identity is not a choice: restate the run's own last record (its result.json,
+            # which a resume on another host updates) or, when no result was written, its first launch
+            # (invocation.json). --host, --model and --effort cannot relabel a finished run with a host that
+            # did not run it.
+            recorded = earlier_result if isinstance(earlier_result.get("host"), str) else earlier
+            kept = {"host": recorded["host"], "model": recorded.get("model") or earlier.get("model"),
+                    "effort": recorded.get("effort") or earlier.get("effort")}
+            asked = {"host": args.host if host_given(argv) else None, "model": args.model, "effort": args.effort}
+            ignored = [f"--{key} {value}" for key, value in asked.items() if value and value != kept[key]]
+            if ignored and not args.quiet:
+                print(f"regrade: no host starts, so the run's recorded host, model and effort stay ({kept['host']}, "
+                      f"{kept['model']}, {kept['effort'] or 'no effort'}); ignoring {', '.join(ignored)}", flush=True)
+            args.host, args.model, args.effort = kept["host"], kept["model"], kept["effort"]
         resumed = {"from_host": earlier["host"], "from_model": earlier.get("model"), "run_dir": state.get("run_dir"),
                    "revision": state.get("revision"), "stage": state.get("stage")}
     else:
@@ -1371,11 +1404,13 @@ def main(argv: list[str] | None = None) -> int:
     args.skill = args.skill or host.skill
     env = host.env(out / "home")
     if regrade:
-        # No host starts, so nothing is installed or gated: a regrade keeps the plugin identity the run recorded,
-        # and the plugin verdict of its first launch (see the invocation record below).
-        plugin_dir, plugin = Path(earlier.get("plugin_dir") or out / "missing-plugin"), earlier.get("plugin")
+        # No host starts, so nothing is installed or gated: a regrade keeps the plugin identity and the plugin
+        # verdict the run recorded (see the invocation record below). Claude's init event shows the plugin on
+        # any launch, so Claude is graded from its events again.
+        plugin_dir = Path(earlier.get("plugin_dir") or out / "missing-plugin")
+        plugin = None if args.host == "claude" else recorded.get("plugin")
         versions = {"source": None, "plugin_version": None, "shiploop_version": None,
-                    **(earlier.get("versions") or {}), "regraded": True}
+                    **(recorded.get("versions") or earlier.get("versions") or {}), "regraded": True}
     elif resumed and earlier.get("host") == args.host and Path(earlier.get("plugin_dir") or "").is_dir():
         # A resumed run keeps the plugin it started on: reinstalling would replace that version's files, and a
         # bound Improve child records paths inside them. Only the CI and checkout checks still apply. It also
@@ -1451,7 +1486,7 @@ def main(argv: list[str] | None = None) -> int:
     deadline = time.time() + args.timeout
     if regrade:
         # ShipLoop already reached done: no host is started, and the verdicts are computed from what is on disk.
-        process = {"status": "exited", "returncode": 0, "elapsed_seconds": 0.0, "regraded": True}
+        process = regraded_process(earlier_result.get("process"))
     else:
         interrupt_file = out / "interrupt.json"
         stop_when = ((lambda: chain_in_flight(out)) if interrupt_at and not interrupt_file.exists() else None)
@@ -1512,8 +1547,9 @@ def main(argv: list[str] | None = None) -> int:
         status = grade_shiploop(out).get("status")
         resume_stop = (f"ShipLoop run is {status}" if status not in ("active", None)
                        else f"resume budget spent ({args.max_resumes})")
-    process = dict(process, sessions=sessions, resumes=len(sessions) - 1 if sessions else None)
-    process["pass"] = process["status"] == "exited"
+    if not regrade:
+        process = dict(process, sessions=sessions, resumes=len(sessions) - 1 if sessions else None)
+        process["pass"] = process["status"] == "exited"
     cli_seen = summarize_events(out / "events.jsonl")
     write_transcript(out / "events.jsonl", out / "transcript.md")
     cli_seen["truncated_outputs"] = host_truncations(out / "events.jsonl")
@@ -1558,7 +1594,8 @@ def main(argv: list[str] | None = None) -> int:
         **({"budget": {"seeded_minutes": budget["expected_minutes"], "level": "should",
                        "source": budget["source"]}} if budget else {}),
     }
-    verdicts = [invoked["pass"], plugin["pass"], process["pass"], shiploop["pass"], committed["pass"],
+    verdicts = [invoked["pass"], plugin["pass"], *([] if process["pass"] is None else [process["pass"]]),
+                shiploop["pass"], committed["pass"],
                 *([chain["pass"]] if chain else []), *([recovery["pass"]] if recovery else []),
                 *(c["pass"] for c in check_results)]
     if keepalive is not None:
@@ -1608,8 +1645,10 @@ def main(argv: list[str] | None = None) -> int:
           f"ShipLoop {versions['shiploop_version']}")
     print(f"  invoked   {mark(invoked['pass'])}  /{args.skill}")
     print(f"  plugin    {mark(plugin['pass'])}  {', '.join(map(str, plugin['loaded'])) or 'none loaded'}")
-    print(f"  process   {mark(process['pass'])}  " + (
-        "no host ran: regraded from what is on disk" if process.get("regraded") else
+    print(f"  process   {'n/a ' if process['pass'] is None else mark(process['pass'])}  " + (
+        "no host ran: regraded from what is on disk" if process.get("regraded") and process["pass"] is None else
+        f"no host ran: regraded, the original run's {process['status']} rc={process['returncode']} is kept"
+        if process.get("regraded") else
         f"{process['status']} rc={process['returncode']} {sum(s['elapsed_seconds'] for s in sessions):.1f}s "
         f"cost=${cli_seen.get('cost_usd')} sessions={len(sessions)}"))
     if keepalive is not None:
@@ -1693,7 +1732,7 @@ def main(argv: list[str] | None = None) -> int:
             (committed["pass"], "committed", "HEAD moves past the start, has files in HEAD and no product path is "
              "uncommitted", f"HEAD {str(committed['head'])[:8]}, {committed['head_files']} files in HEAD, "
              f"{len(committed['uncommitted'])} uncommitted"),
-        ) if not ok]
+        ) if ok is not None and not ok]
         if chain is not None and not chain["pass"]:
             want = chain["expect"]
             got = "; ".join(f"{b.get('accepted')}/{b.get('steps')} accepted, depth {b.get('depth')}, "
