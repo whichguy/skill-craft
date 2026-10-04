@@ -4,6 +4,18 @@ Written by scripts/release.py.
 
 ## 2026-10-04
 
+### skill-craft 1.19.1
+
+- Skills: plan-dispatcher 0.6.2, shiploop 0.51.1
+
+### plan-dispatcher 0.6.2
+
+- The skill card no longer says to retry only after confirming the old worker stopped without exception: it names the lost-worker case (host session ended, handle unavailable) and points to the protocol's limits, matching the protocol since 0.6.0.
+
+### shiploop 0.51.1
+
+- On an Ask-Agent run, step-plan now asks for each change that does not need another to be its own step with `deps: []`, joined by a later step that needs them. Before, a request that did not ask for parallel work got a linear plan (two independent modules in one step), so the default parallel chain had nothing to run at the same time. Inline runs are unchanged.
+
 ### skill-craft 1.19.0
 
 - Skills: shiploop 0.51.0, shiploop-e2e-audit 0.6.0

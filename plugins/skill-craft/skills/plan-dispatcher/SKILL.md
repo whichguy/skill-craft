@@ -5,7 +5,7 @@ description: >-
   dispatcher and parallel native workers: claim ready steps, preserve launch
   state, collect result evidence, verify outcomes, and identify successors.
   Planning belongs to Backchain or the caller; this skill executes the plan.
-version: 0.6.1
+version: 0.6.2
 author: Backchain
 license: MIT
 platforms:
@@ -397,8 +397,11 @@ with `executor.kind:"main-context"` is already entered: resume it in the current
 main conversation, or verify its saved receipt, without spawning or waiting on a
 native worker.
 
-Retry only after confirming the old worker stopped and inspecting its effects;
-the helper creates a fresh attempt on the next claim and rejects stale reports.
+Retry only after confirming the old worker stopped and inspecting its effects,
+except for a worker lost with its host session: when that session ended and the
+handle can no longer be looked up, retry with `confirmed_stopped: false` and
+`native_status: "unavailable"`, within the limits in the protocol's recovery
+section. The helper creates a fresh attempt on the next claim and rejects stale reports.
 The fresh attempt's packet carries `prior_attempts`, the step's earlier attempts
 oldest first as `{attempt, status, reason, result, verification}`, read from
 existing state; the worker reads them first and addresses the named failing
