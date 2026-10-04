@@ -3,7 +3,7 @@
 Execute: inline
 
 Status: **plan v2, nothing built yet.** Revised after an independent adversarial review whose blockers I re-ran
-against the run. Execute I1 and I2 now (local commits; no release until the Luna run ends and the batch is
+against the run. Execute I1, I2 and I2b now (local commits; no release until the Luna run ends and the batch is
 verified). Later iterations stop at the points named in section 5. Numbers marked *measured* come from the Luna max
 battleship run on 1.16.1 (`/Users/dadleet/e2e-runs/20261003/v1161-battleship-luna`, one run, one model), so they
 are exploratory. Governed by `test/shiploop_e2e/SPEC.md`. The iterations, with what we expect at each and the
@@ -22,7 +22,8 @@ contract; a05 is deciding what the plan graph is for.
    checked? Anchors: S-9 and expectations B1, B4, B5.
 
 The second answer decides D1, whether the script should require, offer or drop the loop at `plan`; D2, which finding
-kinds a script should catch before a model is asked. The exit rule (two clean passes, no pass cap) is S-10 and stays
+kinds a script should catch before a model is asked. A third question came from the owner: have the planning prompts
+grown, or contain a mistake (Part C)? The exit rule (two clean passes, no pass cap) is S-10 and stays
 unless the spec is amended first.
 
 ## 2. Evidence (measured, exploratory)
@@ -170,17 +171,51 @@ effort (fixed); Improve's overlapping review (every arm gets it; review size is 
 compute (C spends more; an optional matched-compute arm D only if C beats B); saturation (if every arm passes, report
 cost at equal outcome, never equivalence).
 
+## 4b. Part C: trim the planning prompts (I2b, before the comparison)
+
+Owner, 2026-10-04: planning stages look excessively large; is a planning prompt wrong, and keep the language concise
+and aimed at meaningful change. *Measured* by an independent investigation, spot-checked against the repo:
+
+- **Packets barely regressed.** Full producer packets grew 20 to 24% from 1.0.0 to 1.16.1 and the printed head shrank
+  tenfold at 1.5.0. Sonnet got the same packets and planned in 4 minutes, so packet size is not what drives time.
+- **One change inflated reading:** 1.16.0 (`db61a4a7`, a justified fix for stalled planning) prints the six-file Backchain and
+  Until Loop list at all five Backchain stages (+86 KB, +40% required reading) though only `plan` may start a whole loop.
+- **One packet invites a loop it forbids:** step-plan allows audit and, after a finding, repair or revise; Luna ran a
+  whole plan/draft loop there: 136 of 592 planning minutes.
+- **By cause (inferred from timestamps):** step-plan loop 23%, plan loop 22%, Improve review loops 31%, Improve opening
+  files 6%, producer work 18%.
+- **Contradicting per-pass rules:** `convergence.md` asks every pass for actual card reads and an all-42-lens screen,
+  while `technical-lenses.md` says to screen once; review records are 36 to 39 KB, about 60% a copied lens screen.
+
+Changes: cut ineffective text, keep every justified obligation.
+1. **Print the loop text and resource list only at `plan`.** At the other four Backchain stages print the audit route,
+   its one resource, and that a material finding may request repair or revise. About 553 words become 75; the Improve-owner
+   variant 509 become 40 (`_backchain_guidance`, and the resource list in `shiploop_navigator.py`).
+2. **Cut the repeated identity and digest instructions** (about 339 words to 80; `backchain-planning.md` 154 to 40).
+   Keep: a `MISSING` resource blocks the route; no substitute install; record binding, candidate and receipt paths; a
+   planned check is not execution evidence. Nothing machine-checks the rest.
+3. **Review records point to the existing lens screen instead of copying it** (`convergence.md`,
+   `convergence-review.prompt.md`; needs a Backchain change note). Whether to screen the lenses only once per loop is a
+   rigor change (pass 3's T42 came from a re-screen), so it waits for the comparison.
+
+Keep: the per-outcome confirmations (`backchain-planning.md` 80-98), `PLANNING_REVIEW_FOCUS`, the S-14 text, the state-budget
+rule, and Improve after Backchain (it found a UI fix that seven Backchain passes missed). **Tests:** `graph-dry-run` word
+and byte counts per stage pinned before and after; the step-plan packet no longer contains the resource list; guidance tests;
+then one seeded Luna run at step-plan once the current run ends. Dropping a lens-screen rule, a bookkeeping line the model
+actually acts on, or the audit route would weaken S-3 or S-6; each cut is checked against that.
+
 ## 5. Iterations and expectations
 
 Each iteration states what we expect before it runs (I0's was written after looking, so it is exploratory). The
 expectations below are the revised ones; the page keeps the original wording and the reason for each revision.
-I1 and I2 run now. I3 onward costs money and starts only after I2 passes.
+I1, I2 and I2b run now. I3 onward costs money and starts only after I2 and I2b pass.
 
 | Iteration | What runs | We expect | If refuted | Touches |
 | --- | --- | --- | --- | --- |
 | **I0** Replay the Luna 1.16.1 loops from what the run kept | Luna max battleship, 1.16.1 (still running) (no model cost) | The first productive pass changes most of the graph and later passes mostly refine confirmation clauses. A structural check and a requirement-id check would not have found the loop's findings. *(written after looking; exploratory)* | n/a (done: partly) | B1, B2, B4 |
 | **I1** Build the check and prove it against the reference verdicts | unit tests, recorded verdicts of the reference validator (no model cost) | A Python port of Backchain's seven invariants gives the same verdict as the reference validator on every recorded fixture (the structural good and bad corpus, and the Luna candidates, each packaged first): the same ok, failing invariant numbers and parallel groups. It passes the plan candidates and rejects both step-plan candidates on invariant 4 (discovered step D1 unconsumed), as the reference does. *(revised)* | A disagreement is settled against lib.js and the recorded corpus, not SKILL.md alone. The wrong side is fixed and the case joins the corpus. | B2 |
 | **I2** Wire it in, record only: verb, packet line, receipts, snapshots | hermetic tests, then the Sonnet hello gate (about $3 for the hello gate) | A run that never invokes the check behaves exactly as before: Sonnet hello passes with an unchanged packet. A run that invokes it gets a receipt and a snapshot written by the script, and a failing check is reported to the model as a finding for the loop. Nothing is refused. *(revised)* | A false report on a valid candidate blocks the release; the verb stays, the packet line goes. | B2, P2, P5 |
+| **I2b** Trim the planning prompts: step-plan route, repeated bookkeeping, copied lens screen | hermetic tests and graph-dry-run counts, then one seeded Luna run at step-plan (no model cost for the text; hours for the seeded run) | The step-plan packet no longer prints the six-file Backchain list or the loop text, and still offers the audit route and repair or revise after a material finding. At spec and step-plan the Backchain text falls from about 553 to about 75 words and the repeated identity and digest instructions at plan from about 339 to about 80. Review records point to the existing lens screen instead of copying it. Every justified obligation stays. A seeded Luna run at step-plan starts no whole plan/draft loop. | If the model still starts a whole loop at step-plan, the text is not the cause: revisit which route the packet makes reachable. | B1, B4, P3 |
 | **I3** Pilot Track 1 from the planted draft: arms A and B | one held-out case, packaged draft versus dependency review and elaborator plus the check (measured by the pilot) | Arms A (the packaged planted draft) and B (dependency review and elaborator on that draft, then the check) run headless on one held-out case and are scored by its expect.A.json checks. The loop arm C waits until the runner can start the Until Loop. The pilot measures minutes, variance and whether B beats A, as the casebook showed. *(revised)* | If an arm cannot be run or scored headless, stop and report. Do not build the screen on a runner that cannot hold its own arms. | B1 |
 | **I4** Screen A, B and C on the held-out cases, with a rule registered first | held-out casebook cases, three arms each (measured by the pilot) | C beats B in a majority of decisive held-out cases on the planted-defect checks. Otherwise, or when fewer than five cases are decisive, no policy changes and a confirmatory run is sized. *(revised)* | Skip I5. The loop stays optional and the script decides when to offer it. | B1, B4 |
 | **I5** ShipLoop A/B at the plan stage on seat-reservations, only if I4 shows lift | Sonnet 5.5, three runs per arm, then one Luna pair for depth (about $21 a run on average) | With a loop requested at the plan stage only (the step-plan loop is off-protocol), there are fewer failed system-test verifications and no second work item. Cases that already pass without a loop do not change. *(revised)* | The lift stays at plan level. Keep the loop optional. | B1, B5 |
@@ -199,6 +234,8 @@ line and files; no state field, refusal, loop contract or exit rule changes (S-1
 | A failing check invites relabelling (D1 as a seed) | No refusal now; the check becomes an exit condition with a script-owned contract (a02). Accepted |
 | Packet text grows | One line, Backchain routes only, size pinned. Mitigated |
 | Another host or platform breaks | Python stdlib, JSON only. Mitigated |
+| A trim removes text the model acts on | Each cut is classified (changes behaviour, ineffective, justified); justified obligations are listed and kept; word counts and the audit route are pinned. Mitigated |
+| The seeded step-plan run proves little (synthetic spec) | It tests only whether the model starts a whole loop; accepted |
 | Saved runs, tests or catalogs pin the verb list | Additive verb; update the tables and tests that enumerate verbs. Mitigated |
 | The ledger is gamed by hand-set verdicts | Derive from digests and receipts where kept; hand verdicts stay interim. Mitigated |
 | The comparison costs more than it informs | Pilot first with a stop rule; Track 2 only if Track 1 shows lift. Mitigated |
