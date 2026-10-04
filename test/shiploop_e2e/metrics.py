@@ -370,7 +370,10 @@ def collect(out: Path, run_dir: Path | None = None) -> dict:
     return {
         "tmp_writes": sorted(shared),
         "sessions": sessions,
-        "turns": len(turns) + unreported,
+        # Unknown, not 0, when no call and no ended session reported a count (a Codex session killed before its
+        # end event); a session that never reported beside one that did makes it a lower bound (unreported_sessions).
+        "turns": len(turns) + unreported if turns or any(
+            isinstance(s["turns"], int) and not isinstance(s["turns"], bool) for s in sessions) else None,
         # Context only: a call's input side is complete when it is sent. Its output count is a streaming
         # snapshot (about 1/17 of the session's own total on a recorded Claude run), so no output figure is built.
         "tokens": {"input_peak": max((x["input"] for x in turns if x["input"] is not None), default=None)},
@@ -629,6 +632,14 @@ def cost_text(run_metrics: dict) -> str:
     return money(cost) + (f" (lower bound: {never} session(s) never reported)" if never and cost is not None else "")
 
 
+def turns_text(run_metrics: dict) -> str:
+    """The whole-run turns for a printed line: 'not reported' when nothing reported a count, a lower bound when a session never did."""
+    turns = run_metrics.get("turns")
+    if turns is None:
+        return "not reported"
+    return f"{turns} (lower bound)" if run_metrics.get("unreported_sessions") else str(turns)
+
+
 def count(run_metrics: dict, name: str) -> int | None:
     """How many of a detected thing (a list in the metrics), or None when the host cannot show it.
 
@@ -655,7 +666,7 @@ def summary_lines(metrics: dict, top: int = 5) -> list[str]:
         found = count(metrics, name)
         return "not measured" if found is None else str(found)
 
-    lines = [f"turns {metrics['turns']}, cost {cost_text(metrics)}, sessions {len(metrics['sessions'])} "
+    lines = [f"turns {turns_text(metrics)}, cost {cost_text(metrics)}, sessions {len(metrics['sessions'])} "
              f"({', '.join(str(s['stop']) for s in metrics['sessions']) or 'none ended'}), "
              f"compactions {shown('compactions')}, truncated outputs {shown('truncated_outputs')}, "
              f"cancelled tool calls {shown('cancelled_tool_calls')}, "

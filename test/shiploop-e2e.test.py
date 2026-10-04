@@ -2573,5 +2573,49 @@ class HostSignalCountersThroughMainTest(PrintedCase):
                 self.assertIn("truncated outputs not measured", printed)
 
 
+class UnknownTurnsTest(unittest.TestCase):
+    """A session that never reported its turns leaves the whole-run turns unknown, as it does the cost (review 2)."""
+
+    ACCEPTED = [("A1", "intake", "done", 105.0)]
+
+    def killed(self) -> list[dict]:
+        return codex_session([codex_command(n) for n in range(30)], end=False, thread="t1")
+
+    def test_a_codex_session_killed_before_its_end_event_has_no_turn_count(self):
+        m = collect_stream(self.killed(), self.ACCEPTED, status="active", stage="spec")
+        self.assertIsNone(m["turns"], "30 tool calls and no end event: the host reported no turn count")
+        self.assertEqual((m["sessions"], m["unreported_sessions"]), ([], 1))
+        self.assertIsNone(m["cost_usd"])
+        self.assertIn("turns not reported", metrics.summary_lines(m)[0])
+        self.assertEqual(metrics.turns_text(m), "not reported")
+
+    def test_a_killed_session_beside_an_ended_one_makes_the_turns_a_lower_bound(self):
+        stream = self.killed() + codex_session([codex_command(n) for n in range(3)], thread="t2")
+        m = collect_stream(stream, self.ACCEPTED)
+        self.assertEqual(m["turns"], 3)
+        self.assertEqual(m["unreported_sessions"], 1)
+        self.assertIn("turns 3 (lower bound)", metrics.summary_lines(m)[0])
+
+    def test_an_ended_session_is_a_plain_number_and_a_reported_zero_is_a_measurement(self):
+        m = collect_stream(codex_session([codex_command(n) for n in range(4)]), self.ACCEPTED)
+        self.assertEqual(m["turns"], 4)
+        self.assertNotIn("lower bound", metrics.summary_lines(m)[0].split("cost")[0])
+        zero = collect_stream([{"type": "end", "stopReason": "end_turn", "num_turns": 0}], [])
+        self.assertEqual(zero["turns"], 0)
+        self.assertEqual(metrics.turns_text(zero), "0")
+
+    def test_progress_says_the_turns_are_unknown_and_survives_the_null_counters(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            out = Path(tmp)
+            stream = self.killed()
+            (out / "events.jsonl").write_text("".join(json.dumps(e) + "\n" for e in stream))
+            text = progress.report(out)
+            again = progress.report(out)  # the memo it wrote must read back
+        self.assertIn("turns not reported", text)
+        self.assertNotIn("turns 0", text)
+        self.assertIn("not measured on this host", text)
+        self.assertNotIn("not measured on this host", again, "said once per run, not on every poll")
+
+
 if __name__ == "__main__":
     unittest.main()

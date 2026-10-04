@@ -60,7 +60,7 @@ def report(out: Path) -> str:
     started = (out / "invocation.json").stat().st_mtime if (out / "invocation.json").is_file() else time.time()
     items = f"{len(state.get('completed_work_items') or [])}/{len(state.get('work_items') or [])}"
     peak = m["tokens"]["input_peak"]
-    lines = [f"[{int(time.time() - started) // 60} min] turns {m['turns']}, peak context "
+    lines = [f"[{int(time.time() - started) // 60} min] turns {metrics.turns_text(m)}, peak context "
              f"{'n/a' if peak is None else str(peak // 1000) + 'K'}, "
              f"cost {('$' + format(m['cost_usd'], '.2f')) if m['cost_usd'] else 'n/a'} | "
              + (f"{state.get('status')}, rev {state.get('revision')}, "
@@ -94,7 +94,8 @@ def report(out: Path) -> str:
     for command in m["cancelled_tool_calls"][memo.get("cancelled", 0):]:
         lines.append("  host cancelled a tool call (permission check): " + " ".join(command.split())[:120])
     for session in m["sessions"][memo.get("sessions", 0):]:
-        lines.append(f"  session ended: {session['stop']} after {session['turns']} turns")
+        lines.append(f"  session ended: {session['stop']}"
+                     + (f" after {session['turns']} turns" if session["turns"] is not None else ""))
     remark = last_remark(out)
     if remark:
         lines.append("  model: " + remark)
