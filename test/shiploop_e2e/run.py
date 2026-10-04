@@ -8,11 +8,15 @@ there with one headless host process, shows its progress live, and grades:
             to the skill (Claude: /skill-craft:shiploop; Grok: /shiploop, since
             Grok does not namespace plugin skills)
   plugin    exactly one skill-craft plugin loaded, and it is the build under test
+            (a resumed or regraded Grok or Codex run keeps its first launch's
+            verdict, which invocation.json records; Claude shows it in its events)
   process   the host exited 0 within the timeout
   shiploop  a ShipLoop state.md under the output directory reports status
             "done" and its report.html exists
   committed the source checkout ends committed: HEAD moved past where the run
-            started and no product path is left uncommitted (logs aside)
+            started, holds at least one file (ShipLoop's own empty baseline
+            commit is not product) and no product path is left uncommitted
+            (logs aside)
   checks    every case check command exits 0 in the working directory
 
 --seed-at step-plan starts an Ask-Agent run whose stages before step-plan are
@@ -51,6 +55,13 @@ A Grok session that ends while the ShipLoop run is still active is resumed
 (bounded by --max-resumes). Every attempt keeps its prompt, argv, event
 stream, arrival timeline, stderr, metrics.json and result.json in a new
 output directory outside the checkout.
+
+--resume-run on a run whose ShipLoop is already done (a regrade) starts no host. It
+restates the run's own last record (result.json, else invocation.json): host, model,
+effort, plugin verdict and the process block, whatever --host, --model or --effort
+say, and grades ShipLoop, the checkout and the checks again. A host that failed
+stays failed; a run with no record of its exit says "not observed" and leaves the
+process verdict out of the result.
 This launches a real model and costs money; it is never part of default CI.
 
   python3 test/shiploop_e2e/run.py --case battleship
@@ -854,8 +865,27 @@ def knowledge_facts(work: Path) -> dict:
             "requirement_ids": sorted(set(knowledge_home._REQUIREMENT_ID.findall(spec.read_text())),
                                       key=lambda value: int(value.split("-")[1])) if spec.is_file() else [],
             "head_commits": len(g("rev-list", "HEAD").split()),
+            "head_files": len(g("ls-tree", "-r", "--name-only", "HEAD").splitlines()),
             "untracked_files": len(untracked),
             "branches": g("branch", "--format=%(refname:short)").split()}
+
+
+def committed_facts(knowledge: dict, start_head: str | None) -> dict:
+    """The ``committed`` verdict: the product is in HEAD, and none of it is left outside.
+
+    HEAD must have moved past where the run started, hold at least one file and leave no product
+    path uncommitted (logs aside). The file count is what makes the first test mean something: on a
+    fresh run ShipLoop's first act is an empty baseline commit, so HEAD always differs from a start
+    with no commit, and a run that ended before it returned anything would otherwise pass.
+
+    Known limit, not guarded: any file counts. A future ShipLoop that returned only knowledge files
+    (docs/shiploop/) to the source checkout before the product would pass early; today those stay in
+    ShipLoop's worktree until the product is returned.
+    """
+    head, files = knowledge["head"], knowledge["head_files"]
+    return {"pass": bool(head) and head != start_head and files > 0 and not knowledge["uncommitted"],
+            "start_head": start_head, "head": head, "head_files": files,
+            "uncommitted": knowledge["uncommitted"][:20]}
 
 
 def review_export(out: Path) -> str:
@@ -1041,6 +1071,22 @@ def previous_row(path: Path, case: str, source: str | None, host: str | None = N
 
 
 NOT_OBSERVED = "not observed (regraded: no host ran)"
+
+
+def regraded_process(observed: dict | None) -> dict:
+    """The ``process`` block of a regrade: what the original run observed, or nothing.
+
+    A regrade starts no host, so it claims no exit. The block the original run recorded is kept as it
+    was, verdict included (marked ``regraded``), so a host that failed stays failed and the per-session
+    list and elapsed time survive. With no record the harness never saw an exit: the block says so and
+    its verdict is None, which no verdict list counts and no report calls a pass.
+    """
+    if isinstance(observed, dict) and observed.get("status"):
+        kept = dict(observed, regraded=True)
+        kept.setdefault("pass", kept["status"] == "exited")
+        return kept
+    return {"status": "not observed", "returncode": None, "elapsed_seconds": None, "sessions": [],
+            "resumes": None, "pass": None, "regraded": True}
 
 
 def termination_facts(process: dict, engine: dict, resume_stop: str | None, earlier: dict | None = None) -> dict:
@@ -1312,6 +1358,7 @@ def main(argv: list[str] | None = None) -> int:
     regrade = False
     earlier = {}
     earlier_result: dict = {}
+    recorded: dict = {}  # a regrade restates this: the run's own last record
     if args.resume_run:
         # Continue a stopped run in place: same work directory, run state and event stream.
         out = args.resume_run.expanduser().resolve()
@@ -1328,11 +1375,20 @@ def main(argv: list[str] | None = None) -> int:
             earlier_result = json.loads((out / "result.json").read_text())
         except (OSError, ValueError):
             earlier_result = {}
-        if regrade and not host_given(argv):
-            # Nothing is launched, so the host is not a choice: keep the one the run recorded, not the default.
-            args.host = earlier["host"]
-            args.model = args.model or earlier.get("model")
-            args.effort = args.effort or earlier.get("effort")
+        if regrade:
+            # Nothing is launched, so identity is not a choice: restate the run's own last record (its result.json,
+            # which a resume on another host updates) or, when no result was written, its first launch
+            # (invocation.json). --host, --model and --effort cannot relabel a finished run with a host that
+            # did not run it.
+            recorded = earlier_result if isinstance(earlier_result.get("host"), str) else earlier
+            kept = {"host": recorded["host"], "model": recorded.get("model") or earlier.get("model"),
+                    "effort": recorded.get("effort") or earlier.get("effort")}
+            asked = {"host": args.host if host_given(argv) else None, "model": args.model, "effort": args.effort}
+            ignored = [f"--{key} {value}" for key, value in asked.items() if value and value != kept[key]]
+            if ignored and not args.quiet:
+                print(f"regrade: no host starts, so the run's recorded host, model and effort stay ({kept['host']}, "
+                      f"{kept['model']}, {kept['effort'] or 'no effort'}); ignoring {', '.join(ignored)}", flush=True)
+            args.host, args.model, args.effort = kept["host"], kept["model"], kept["effort"]
         resumed = {"from_host": earlier["host"], "from_model": earlier.get("model"), "run_dir": state.get("run_dir"),
                    "revision": state.get("revision"), "stage": state.get("stage")}
     else:
@@ -1349,14 +1405,18 @@ def main(argv: list[str] | None = None) -> int:
     args.skill = args.skill or host.skill
     env = host.env(out / "home")
     if regrade:
-        # No host starts, so nothing is installed or gated: a regrade keeps the plugin identity the run recorded.
-        plugin_dir, plugin = Path(earlier.get("plugin_dir") or out / "missing-plugin"), None
+        # No host starts, so nothing is installed or gated: a regrade keeps the plugin identity and the plugin
+        # verdict the run recorded (see the invocation record below). Claude's init event shows the plugin on
+        # any launch, so Claude is graded from its events again.
+        plugin_dir = Path(earlier.get("plugin_dir") or out / "missing-plugin")
+        plugin = None if args.host == "claude" else recorded.get("plugin")
         versions = {"source": None, "plugin_version": None, "shiploop_version": None,
-                    **(earlier.get("versions") or {}), "regraded": True}
+                    **(recorded.get("versions") or earlier.get("versions") or {}), "regraded": True}
     elif resumed and earlier.get("host") == args.host and Path(earlier.get("plugin_dir") or "").is_dir():
         # A resumed run keeps the plugin it started on: reinstalling would replace that version's files, and a
-        # bound Improve child records paths inside them. Only the CI and checkout checks still apply.
-        plugin_dir, plugin = Path(earlier["plugin_dir"]), None
+        # bound Improve child records paths inside them. Only the CI and checkout checks still apply. It also
+        # keeps that launch's plugin verdict, since a Grok or Codex stream cannot show which plugin loaded.
+        plugin_dir, plugin = Path(earlier["plugin_dir"]), earlier.get("plugin")
         released = released_versions()
         versions = {"source": "marketplace (resumed on its original install)", **installed_versions(plugin_dir),
                     "released": released,
@@ -1406,8 +1466,11 @@ def main(argv: list[str] | None = None) -> int:
                     permission_mode=args.permission_mode, max_turns=args.max_turns,
                     max_budget_usd=args.max_budget_usd,
                     plugin_dir=None if host.marketplace else plugin_dir)
+    # `plugin` is the install check made before the host started (Grok, Codex), kept so a resume or a regrade
+    # grades the run on its first launch's evidence; None for Claude, whose init event shows it on every launch.
     invocation = {"case": name, "host": args.host, "model": args.model, "effort": args.effort, "argv": cli,
-                  "cwd": str(work), "plugin_dir": str(plugin_dir), "versions": versions, "checks": checks,
+                  "cwd": str(work), "plugin_dir": str(plugin_dir), "plugin": plugin, "versions": versions,
+                  "checks": checks,
                   "follow_on": follow_on, "resumed_run": resumed, "seeded": seeded,
                   "interrupt_at": interrupt_at}
     if resumed:
@@ -1424,7 +1487,7 @@ def main(argv: list[str] | None = None) -> int:
     deadline = time.time() + args.timeout
     if regrade:
         # ShipLoop already reached done: no host is started, and the verdicts are computed from what is on disk.
-        process = {"status": "exited", "returncode": 0, "elapsed_seconds": 0.0, "regraded": True}
+        process = regraded_process(earlier_result.get("process"))
     else:
         interrupt_file = out / "interrupt.json"
         stop_when = ((lambda: chain_in_flight(out)) if interrupt_at and not interrupt_file.exists() else None)
@@ -1456,7 +1519,8 @@ def main(argv: list[str] | None = None) -> int:
         session_id = last_session_id(out / "events.jsonl")
         remaining = int(deadline - time.time())
         # No run yet means the session ended before ShipLoop wrote its state; a
-        # run that is paused, blocked, awaiting, halted or done is not resumed.
+        # run that is paused, blocked, halted or done is not resumed. (A question
+        # waiting for a person is a view of blocked, not a status of its own.)
         # Each reason is recorded, because "why did this run stop?" is answerable
         # only here: the engine is not running when its host goes away.
         if state.get("status") not in ("active", None):
@@ -1484,8 +1548,9 @@ def main(argv: list[str] | None = None) -> int:
         status = grade_shiploop(out).get("status")
         resume_stop = (f"ShipLoop run is {status}" if status not in ("active", None)
                        else f"resume budget spent ({args.max_resumes})")
-    process = dict(process, sessions=sessions, resumes=len(sessions) - 1 if sessions else None)
-    process["pass"] = process["status"] == "exited"
+    if not regrade:
+        process = dict(process, sessions=sessions, resumes=len(sessions) - 1 if sessions else None)
+        process["pass"] = process["status"] == "exited"
     cli_seen = summarize_events(out / "events.jsonl")
     write_transcript(out / "events.jsonl", out / "transcript.md")
     cli_seen["truncated_outputs"] = host_truncations(out / "events.jsonl")
@@ -1502,8 +1567,7 @@ def main(argv: list[str] | None = None) -> int:
     shiploop["knowledge"] = knowledge_facts(work)
     start_head = (follow_on or {}).get("start_head") or (seeded or {}).get("start_head")
     knowledge = shiploop["knowledge"]
-    committed = {"pass": bool(knowledge["head"]) and knowledge["head"] != start_head and not knowledge["uncommitted"],
-                 "start_head": start_head, "head": knowledge["head"], "uncommitted": knowledge["uncommitted"][:20]}
+    committed = committed_facts(knowledge, start_head)
     run_metrics = metrics.collect(out, Path(shiploop["run_dir"]) if shiploop.get("run_dir") else None)
     (out / "metrics.json").write_text(json.dumps(run_metrics, indent=2) + "\n")
     check_env = {"PRIOR_WORK": str(Path(follow_on["prior"]) / "work")} if follow_on else {}
@@ -1531,7 +1595,8 @@ def main(argv: list[str] | None = None) -> int:
         **({"budget": {"seeded_minutes": budget["expected_minutes"], "level": "should",
                        "source": budget["source"]}} if budget else {}),
     }
-    verdicts = [invoked["pass"], plugin["pass"], process["pass"], shiploop["pass"], committed["pass"],
+    verdicts = [invoked["pass"], plugin["pass"], *([] if process["pass"] is None else [process["pass"]]),
+                shiploop["pass"], committed["pass"],
                 *([chain["pass"]] if chain else []), *([recovery["pass"]] if recovery else []),
                 *(c["pass"] for c in check_results)]
     if keepalive is not None:
@@ -1582,8 +1647,10 @@ def main(argv: list[str] | None = None) -> int:
           f"ShipLoop {versions['shiploop_version']}")
     print(f"  invoked   {mark(invoked['pass'])}  /{args.skill}")
     print(f"  plugin    {mark(plugin['pass'])}  {', '.join(map(str, plugin['loaded'])) or 'none loaded'}")
-    print(f"  process   {mark(process['pass'])}  " + (
-        "no host ran: regraded from what is on disk" if process.get("regraded") else
+    print(f"  process   {'n/a ' if process['pass'] is None else mark(process['pass'])}  " + (
+        "no host ran: regraded from what is on disk" if process.get("regraded") and process["pass"] is None else
+        f"no host ran: regraded, the original run's {process['status']} rc={process['returncode']} is kept"
+        if process.get("regraded") else
         f"{process['status']} rc={process['returncode']} {sum(s['elapsed_seconds'] for s in sessions):.1f}s "
         f"cost={metrics.cost_text(run_metrics)} sessions={len(sessions)}"))
     if keepalive is not None:
@@ -1597,7 +1664,7 @@ def main(argv: list[str] | None = None) -> int:
               f"{passed}/{len(shiploop['worktree_checks'])} checks pass there")
     print(f"  committed {mark(committed['pass'])}  HEAD {str(committed['head'])[:8]} (started at "
           f"{str(committed['start_head'])[:8] if committed['start_head'] else 'no commit'}); "
-          f"{len(knowledge['uncommitted'])} uncommitted product paths")
+          f"{committed['head_files']} files in HEAD, {len(knowledge['uncommitted'])} uncommitted product paths")
     print(f"  knowledge docs/shiploop/spec.md {'present' if knowledge['spec'] else 'missing'}"
           f"{', tracked' if knowledge['spec_tracked'] else ', not committed'}; {len(knowledge['requirement_ids'])} "
           f"requirement ids; HEAD has {knowledge['head_commits']} commits, {knowledge['untracked_files']} untracked files")
@@ -1664,9 +1731,10 @@ def main(argv: list[str] | None = None) -> int:
              f"{process['status']} rc={process['returncode']}"),
             (shiploop["pass"], "shiploop", "ShipLoop reaches done and writes its report",
              str(shiploop.get("status") or shiploop.get("reason"))),
-            (committed["pass"], "committed", "HEAD moves past the start and no product path is uncommitted",
-             f"HEAD {str(committed['head'])[:8]}, {len(committed['uncommitted'])} uncommitted"),
-        ) if not ok]
+            (committed["pass"], "committed", "HEAD moves past the start, has files in HEAD and no product path is "
+             "uncommitted", f"HEAD {str(committed['head'])[:8]}, {committed['head_files']} files in HEAD, "
+             f"{len(committed['uncommitted'])} uncommitted"),
+        ) if ok is not None and not ok]
         if chain is not None and not chain["pass"]:
             want = chain["expect"]
             got = "; ".join(f"{b.get('accepted')}/{b.get('steps')} accepted, depth {b.get('depth')}, "

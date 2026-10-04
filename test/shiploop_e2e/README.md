@@ -88,13 +88,20 @@ pre-created. It grades five verdicts into `result.json`:
 - **invoked**: the host registered the ShipLoop command it was given (Grok
   `/shiploop`, since Grok does not namespace plugin skills; Claude
   `/skill-craft:shiploop`, since a bare `/shiploop` is not registered there);
-- **plugin**: exactly one skill-craft plugin loaded, and it is the build under test;
+- **plugin**: exactly one skill-craft plugin loaded, and it is the build under test (a
+  resumed or regraded Grok or Codex run keeps the verdict made when it was launched,
+  which `invocation.json` records and a regrade restates from the run's own
+  `result.json`, because those streams cannot show what loaded; Claude's init event
+  shows it on every launch, and an `invocation.json` written before the verdict was
+  kept grades as it always did, with no evidence and so a fail);
 - **process**: the host exited 0 in time (defaults: 10,000 turns, 3 hours);
 - **shiploop**: a ShipLoop `state.md` under the output directory (in `work/.shiploop` or
   an external workspace root the agent chose beside `work/`) has status `done`, with
   its `report.html`;
 - **committed**: the source checkout ends committed: HEAD moved past where the
-  run started, and no product path is left modified or untracked (`*.log` aside);
+  run started, holds at least one file (ShipLoop's own empty baseline commit is not
+  product; any file counts, so this is a floor, not a check of what the product is),
+  and no product path is left modified or untracked (`*.log` aside);
 - **checks**: each case check command exits 0 in `work/`.
 
 The output directory keeps the prompt, argv, raw events, a readable
