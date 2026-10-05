@@ -7,7 +7,7 @@ To show a new run, write documents. Do not edit or republish the template for da
 | Piece | Where | Changes when |
 | --- | --- | --- |
 | Template | `template/index.html`, one file, published once with `capabilities: {db: {}}` | the page's behaviour changes (republish, note it in the journal) |
-| Defaults | `defaults/*.json`: starting phases, groups, criteria, prompt settings | the starting expectations change; written create-only |
+| Defaults | `defaults/*.json`: starting phases, groups, criteria, prompt settings | an expectation changes (in the repo, with a revs entry); written over the page's replicas by `export.py --defaults --live` |
 | Contract | this file | a field is added, renamed or removed (change the template, exporter and tests together) |
 | Data | the `db` collections below | every iteration |
 | Exporter | `scripts/export.py`: a run output directory in, documents out; `--check` and `--docs` read a review bundle | the run layout changes |
