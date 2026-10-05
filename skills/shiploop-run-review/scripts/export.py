@@ -2,7 +2,7 @@
 """Export one ShipLoop E2E run as Run Review documents (see ../SCHEMA.md).
 
   export.py RUN_DIR [--key KEY] [--name NAME] [--order N] [--out DIR]
-  export.py --defaults [--live FILE] [--out DIR]
+  export.py --defaults [--live FILE] [--page-url URL] [--out DIR]
   export.py --check FILE
   export.py --docs FILE [--out DIR]
 
@@ -29,7 +29,8 @@ export uses.
 expectations and config documents, saved in the shape of the committed database
 snapshot) it writes the defaults over that page instead, keeping what the owner wrote
 there (upgrade_docs): every page revision must already be in the defaults, documents
-the defaults do not name are never written, and config/page is written only when absent.
+the defaults do not name are never written, and config/page is written only when absent or when --page-url
+is given: it sets config/page.artifactUrl (a page cannot read its own URL, so publish supplies it).
 Stdlib only; no network and no model calls.
 """
 
@@ -1197,7 +1198,7 @@ def defaults_docs() -> dict[str, dict[str, dict]]:
     return docs
 
 
-def upgrade_docs(live: dict[str, dict[str, dict]]) -> tuple[dict[str, dict[str, dict]], list[str]]:
+def upgrade_docs(live: dict[str, dict[str, dict]], page_url: str | None = None) -> tuple[dict[str, dict[str, dict]], list[str]]:
     """The defaults written over a page database, keeping what the owner wrote there: (documents to write, notes).
 
     `live` is {collection: {id: document}} as the page holds it. Each expectation the defaults name is written as the
@@ -1206,7 +1207,9 @@ def upgrade_docs(live: dict[str, dict[str, dict]]) -> tuple[dict[str, dict[str, 
     defaults lack refuses the whole upgrade (ExportError naming the document): copy the page's text and revs into
     defaults/expectations.json first, so the defaults never overwrite the owner's wording. A page text with no such
     revision that differs from the defaults is replaced, and a note names it. config/prompt is the defaults'; config/page
-    holds the page's own URL and is written only when the page has none."""
+    holds the page's own URL and is written only when the page has none, or when `page_url` names a URL the page does
+    not already hold: then the page's own document is kept and only its artifactUrl is set (a note names a URL it
+    replaces)."""
     defaults = defaults_docs()
     pages = {c: {i: d for i, d in (live.get(c) or {}).items() if isinstance(d, dict)} for c in ("expectations", "config")}
     docs: dict[str, dict[str, dict]] = {"expectations": {}, "config": {}}
@@ -1229,8 +1232,14 @@ def upgrade_docs(live: dict[str, dict[str, dict]]) -> tuple[dict[str, dict[str, 
     docs["config"]["prompt"] = defaults["config"]["prompt"]
     if pages["config"].get("prompt") not in (None, docs["config"]["prompt"]):
         notes.append("config/prompt: replaced by the defaults (fields the defaults do not have are dropped)")
-    if "page" not in pages["config"]:
-        docs["config"]["page"] = defaults["config"]["page"]
+    have = pages["config"].get("page")
+    if page_url is None:
+        if have is None:
+            docs["config"]["page"] = defaults["config"]["page"]
+    elif (have or {}).get("artifactUrl") != page_url:
+        if have and have.get("artifactUrl"):
+            notes.append(f"config/page: artifactUrl {have['artifactUrl']} is replaced by {page_url}")
+        docs["config"]["page"] = {**(have if have is not None else defaults["config"]["page"]), "artifactUrl": page_url}
     return docs, notes
 
 
@@ -1250,14 +1259,22 @@ def read_live(path: Path) -> dict[str, dict[str, dict]]:
     return live
 
 
-def export_defaults(out: Path | None = None, live: Path | None = None) -> Path:
+PAGE_URL = re.compile(r"https?://\S+")
+
+
+def export_defaults(out: Path | None = None, live: Path | None = None, page_url: str | None = None) -> Path:
     """The starting expectations and page settings for a new page, or with `live` (read_live) the upgrade of that page
-    (upgrade_docs), whose notes are printed."""
+    (upgrade_docs), whose notes are printed. `page_url` is the artifact's own URL, which only publish knows: it becomes
+    config/page.artifactUrl, which the prompt's head prints as `Page:`."""
+    if page_url is not None and not PAGE_URL.fullmatch(page_url):
+        raise ExportError(f"--page-url {page_url!r} is not an http(s) URL")
     docs = defaults_docs()
     if live is not None:
-        docs, notes = upgrade_docs(read_live(live))
+        docs, notes = upgrade_docs(read_live(live), page_url)
         for note in notes:
             print(f"note: {note}")
+    elif page_url is not None:
+        docs["config"]["page"] = {**docs["config"]["page"], "artifactUrl": page_url}
     return write_export(out or Path(tempfile.gettempdir()) / "run-review-defaults", docs, compact=False)
 
 
@@ -1418,6 +1435,9 @@ def main(argv: list[str] | None = None) -> int:
     parser.add_argument("--live", type=Path, metavar="FILE",
                         help="with --defaults: the page's documents in the snapshot's shape; write the defaults over "
                              "that page, keeping its revisions (refused when the defaults lack one)")
+    parser.add_argument("--page-url", metavar="URL",
+                        help="with --defaults: the artifact's own URL, set as config/page.artifactUrl (the prompt's "
+                             "head prints it; a page cannot read its own URL)")
     parser.add_argument("--check", type=Path, metavar="FILE", help="validate a review bundle (exit 2 on a failure)")
     parser.add_argument("--docs", type=Path, metavar="FILE",
                         help="check a review bundle, then write its documents and writes.json under --out")
@@ -1430,12 +1450,14 @@ def main(argv: list[str] | None = None) -> int:
         parser.error("give one of RUN_DIR, --defaults, --check FILE or --docs FILE")
     if args.live is not None and not args.defaults:
         parser.error("--live goes with --defaults")
+    if args.page_url is not None and not args.defaults:
+        parser.error("--page-url goes with --defaults")
     try:
         if args.check is not None:
             return check_file(args.check)[0]
         if args.docs is not None:
             return write_docs(args.docs, args.out)
-        path = export_defaults(args.out, args.live) if args.defaults else export_run(
+        path = export_defaults(args.out, args.live, args.page_url) if args.defaults else export_run(
             args.run_dir, args.key, args.name, args.order, args.out)
     except ExportError as exc:
         print(f"export: {exc}", file=sys.stderr)

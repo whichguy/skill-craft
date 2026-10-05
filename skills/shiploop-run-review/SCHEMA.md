@@ -160,7 +160,7 @@ Options are ranked recommended first, then by kind in the order above, then by e
 
 No verdict is stored: the chip is always derived.
 
-**`config/page`**: `title`, `artifactUrl`. **`config/prompt`**: `constraints` (the rules printed in every prompt: about 600
+**`config/page`**: `title`, and `artifactUrl` (optional string: the artifact's own URL). A page cannot read its own URL, so publish sets it with `export.py --defaults --page-url URL`; the prompt's head prints it as `Page: <url>` and prints nothing when it is empty or absent. **`config/prompt`**: `constraints` (the rules printed in every prompt: about 600
 characters, specific to repairing a reviewed run) and `closing` (the report-back instruction). The prompt itself is
 built by one pure function in the page, `buildPrompt`, from what the viewer ticked; the page falls back to a short
 default closing, and prints no rules, when the document is missing.

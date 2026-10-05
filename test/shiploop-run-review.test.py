@@ -1839,18 +1839,65 @@ class PromptBuilderTests(unittest.TestCase):
         self.assertIn("Then execute it.", go)
         self.assertNotIn("wait for my go-ahead", go)
 
-    def test_the_head_names_the_run_the_repo_the_page_the_evidence_and_the_review_file(self) -> None:
+    def test_the_head_names_the_run_the_repo_the_page_the_evidence_and_the_review_bundles(self) -> None:
         head = build_prompt().split("\n")[0]
         self.assertEqual(head, "Repair work from the Run Review of Luna max, battleship (skill-craft 1.16.1, ShipLoop 0.48.1; codex gpt-6-luna; "
                                "2026-10-03; blocked). In the skill-craft repository. Page: https://example.test/page. Run evidence: /runs/r1. "
-                               "Review file: test/shiploop_e2e/evidence/r1.review.json.")
+                               "Review files: the *.review.json bundles in test/shiploop_e2e/evidence/ (find each ticked id below in the "
+                               "bundle that has it, for example grep -l '\"a1\"' test/shiploop_e2e/evidence/*.review.json; edit it there).")
         text = build_prompt()
         self.assertIn("You ticked 1 option (1 fix ShipLoop). Plan them as one plan: merge overlap, resolve conflicts, order by dependency, "
                       "split into the smallest verifiable increments, mark what can run in parallel.", text)
         bare = build_prompt(run={"key": "k"}, config={"constraints": "", "closing": "", "artifactUrl": ""})
-        self.assertTrue(bare.startswith("Repair work from the Run Review of the chosen run. In the skill-craft repository. Review file:"), bare)
+        self.assertTrue(bare.startswith("Repair work from the Run Review of the chosen run. In the skill-craft repository. Review files:"), bare)
         self.assertNotIn("Page:", bare)
         self.assertNotIn("Rules:", bare)
+
+    def test_the_head_names_no_review_file_of_a_run_only_the_bundles_directory_and_a_ticked_id(self) -> None:
+        """A finding can span runs and lives in one run's review bundle, so a file named from the page's primary run key
+        (hello-1190b.review.json, which does not exist) sends Claude Code to nothing."""
+        for key in ("r1", "hello-1190b", "claude-sonnet-5-5-1.19.0-hello-20261004"):
+            with self.subTest(key=key):
+                text = build_prompt(run={**prompt_state()["run"], "key": key}, selected={"options": {"a1": True, "a2": True}, "find": {}})
+                head = text.split("\n")[0]
+                self.assertEqual(re.findall(r"[\w.-]+\.review\.json", text), [], "a per-run review file is named")
+                self.assertNotIn("Review file:", text)
+                self.assertIn("Review files: the *.review.json bundles in test/shiploop_e2e/evidence/ (find each ticked id below in the "
+                              "bundle that has it, for example grep -l '\"a1\"' test/shiploop_e2e/evidence/*.review.json; edit it there).", head)
+                self.assertIn("\n1. a1 ", text)  # the id in the example is the first ticked option, printed below
+        ask = build_prompt(selected={"options": {}, "find": {"f4": True}}).split("\n")[0]
+        self.assertIn("grep -l '\"f4\"' test/shiploop_e2e/evidence/*.review.json", ask)  # investigate only: the finding's id
+        odd = build_prompt(options=[{"id": "a'1", "title": "t", "goal": "Do: x."}], selected={"options": {"a'1": True}, "find": {}})
+        self.assertIn("for example grep -l '\"<id>\"' test/", odd.split("\n")[0])  # an id that is not plain is never put into a shell line
+
+    def test_the_report_back_says_to_set_the_status_in_the_review_file_that_holds_the_option(self) -> None:
+        closing = json.loads((DEFAULTS_DIR / "config.json").read_text(encoding="utf-8"))["prompt"]["closing"]
+        self.assertIn("set its status to done in the review file that holds it, citing the commit", closing)
+        self.assertTrue(build_prompt().endswith(closing))
+
+    def test_a_finding_spanning_runs_prints_once_with_the_primary_run_and_one_of_another_run_prints_that_runs_directory(self) -> None:
+        span = {"id": "f5", "title": "Spans", "status": "open", "runs": ["r1", "r2"], "expected": "e5", "observed": "s5"}
+        findings = [*prompt_state()["findings"], span]
+        options = [*prompt_state()["options"], {"id": "a8", "title": "Fix spans", "kind": "fix-shiploop", "findings": ["f5", "f4"], "goal": "Do: x."}]
+        picked = {"options": {"a8": True}, "find": {}}
+        for key, directory in (("r1", "/runs/r1"), ("r2", "/runs/r2")):
+            run = {**prompt_state()["run"], "key": key, "evidence": directory}
+            others = [r for r in (prompt_state()["run"], *prompt_state()["runs"]) if r["key"] != key]
+            text = build_prompt(run=run, runs=others, findings=findings, options=options, selected=picked)
+            evidence = text.split("\nEVIDENCE\n")[1]
+            self.assertEqual(len(re.findall(r"^- f5 ", evidence, re.M)), 1)
+            self.assertIn(f"- f5 [open] Spans. Expected: e5 Saw: s5 (run: {key} at {directory})", evidence)
+            self.assertIn(f"Run evidence: {directory}.", text.split("\n")[0])
+        text = build_prompt(findings=findings, options=options, selected=picked)  # primary r1: f4 belongs to r2 only
+        self.assertIn("- f4 [open] Elsewhere. Expected: e4 Saw: s4 (evidence: run/x; run: r2 at /runs/r2)", text)
+
+    def test_the_page_prints_the_url_stored_in_config_page_artifact_url_and_nothing_when_it_is_empty_or_absent(self) -> None:
+        def head(page: str) -> str:
+            return page_probe('document.getElementById("prompt").value.split("\\n")[0]',
+                              setup=SAMPLE_SETUP + 'data.cfg.page=%s;S().opts.a1=true;renderAll();' % page)
+        self.assertIn(" Page: https://claude.ai/artifact/abc.", head('{title:"t",artifactUrl:"https://claude.ai/artifact/abc"}'))
+        for page in ('{title:"t",artifactUrl:""}', '{title:"t"}', "undefined"):
+            self.assertNotIn("Page:", head(page), page)
 
     def test_run_facts_print_measured_values_only_and_name_what_was_not_measured(self) -> None:
         self.assertIn("Run facts: 3 visits, 15.2 min elapsed, 19 Improve passes; refusals not measured, glue not measured.", build_prompt())
@@ -2125,6 +2172,80 @@ class DefaultsUpgradeTests(unittest.TestCase):
         with contextlib.redirect_stderr(io.StringIO()) as usage, self.assertRaises(SystemExit):
             export.main(["--check", str(SAMPLE_REVIEW), "--live", str(SNAPSHOT)])
         self.assertIn("--live goes with --defaults", usage.getvalue())
+
+
+class PageUrlTests(unittest.TestCase):
+    """A page cannot read its own URL, so publish writes it: `--defaults --page-url URL` sets config/page.artifactUrl, which
+    the prompt's head prints as `Page:`. The draft page's database starts from the defaults, whose artifactUrl is empty."""
+
+    URL = "https://claude.ai/artifact/abc123"
+
+    def setUp(self):
+        self.live = export.read_live(SNAPSHOT)
+        tmp = tempfile.TemporaryDirectory()
+        self.addCleanup(tmp.cleanup)
+        self.tmp = Path(tmp.name)
+
+    def cli(self, *args: str) -> tuple[int, str, str]:
+        out, err = io.StringIO(), io.StringIO()
+        with contextlib.redirect_stdout(out), contextlib.redirect_stderr(err):
+            return export.main(list(args)), out.getvalue(), err.getvalue()
+
+    def test_an_empty_page_gets_config_page_with_the_url_and_the_defaults_title(self):
+        code, _, err = self.cli("--defaults", "--page-url", self.URL, "--out", str(self.tmp / "d"))
+        self.assertEqual((code, err), (0, ""))
+        page = json.loads((self.tmp / "d" / "docs" / "config" / "page.json").read_text())
+        defaults = json.loads((DEFAULTS_DIR / "config.json").read_text())["page"]
+        self.assertEqual(page, {**defaults, "artifactUrl": self.URL})
+        self.assertEqual(export.validate_doc("config", page), [])
+        code, _, _ = self.cli("--defaults", "--out", str(self.tmp / "plain"))  # without the flag the defaults are as they were
+        self.assertEqual(json.loads((self.tmp / "plain" / "docs" / "config" / "page.json").read_text()), defaults)
+
+    def test_a_draft_page_whose_config_page_has_an_empty_url_is_given_the_url_and_keeps_its_own_fields(self):
+        live = {**self.live, "config": {**self.live["config"], "page": {"title": "Draft review", "artifactUrl": "", "extra": "kept"}}}
+        docs, notes = export.upgrade_docs(live, self.URL)
+        self.assertEqual(docs["config"]["page"], {"title": "Draft review", "artifactUrl": self.URL, "extra": "kept"})
+        self.assertEqual([n for n in notes if "config/page" in n], [])  # an empty URL is nothing to replace
+        none, _ = export.upgrade_docs(live)  # no URL given: the page's document is left alone, as before
+        self.assertNotIn("page", none["config"])
+
+    def test_a_different_url_is_replaced_with_a_note_and_the_same_url_writes_nothing(self):
+        saved = self.live["config"]["page"]["artifactUrl"]
+        self.assertTrue(saved.startswith("https://"))
+        docs, notes = export.upgrade_docs(self.live, self.URL)
+        self.assertEqual(docs["config"]["page"], {**self.live["config"]["page"], "artifactUrl": self.URL})
+        self.assertIn(f"config/page: artifactUrl {saved} is replaced by {self.URL}", notes)
+        again, quiet = export.upgrade_docs(self.live, saved)
+        self.assertNotIn("page", again["config"])
+        self.assertEqual([n for n in quiet if "config/page" in n], [])
+
+    def test_a_live_page_with_no_config_page_gets_the_defaults_document_with_the_url(self):
+        live = {**self.live, "config": {"prompt": self.live["config"]["prompt"]}}
+        docs, _ = export.upgrade_docs(live, self.URL)
+        defaults = json.loads((DEFAULTS_DIR / "config.json").read_text())["page"]
+        self.assertEqual(docs["config"]["page"], {**defaults, "artifactUrl": self.URL})
+
+    def test_the_cli_refuses_a_url_that_is_not_http_and_the_flag_without_defaults(self):
+        code, _, err = self.cli("--defaults", "--page-url", "claude.ai/artifact/x", "--out", str(self.tmp / "bad"))
+        self.assertEqual(code, 2)
+        self.assertIn("is not an http(s) URL", err)
+        self.assertFalse((self.tmp / "bad").exists())
+        with contextlib.redirect_stderr(io.StringIO()) as usage, self.assertRaises(SystemExit):
+            export.main(["--check", str(SAMPLE_REVIEW), "--page-url", self.URL])
+        self.assertIn("--page-url goes with --defaults", usage.getvalue())
+        code, out, _ = self.cli("--defaults", "--live", str(SNAPSHOT), "--page-url", self.URL, "--out", str(self.tmp / "up"))
+        self.assertEqual(code, 0)
+        self.assertIn("note: config/page: artifactUrl", out)
+        writes = json.loads((self.tmp / "up" / "writes.json").read_text())
+        self.assertIn(("config", "page"), [(w["collection"], w["doc_id"]) for w in writes])
+
+    def test_schema_md_and_skill_md_say_publish_sets_the_url_and_the_page_cannot_read_it(self):
+        text = " ".join(SCHEMA_MD.read_text(encoding="utf-8").split())
+        for phrase in ("`artifactUrl` (optional string: the artifact's own URL)", "A page cannot read its own URL",
+                       "export.py --defaults --page-url URL", "`Page: <url>`"):
+            self.assertIn(phrase, text)
+        skill = " ".join(SKILL_MD.read_text(encoding="utf-8").split())
+        self.assertIn("this page's artifact URL, which the page cannot read itself; the prompt's head prints it", skill)
 
 
 EVIDENCE_DIR = ROOT / "test" / "shiploop_e2e" / "evidence"
@@ -2740,7 +2861,8 @@ class ReviewSkillTextTests(unittest.TestCase):
         self.assertIn("capabilities: {db: {}}", self.skill)
 
     def test_skill_md_has_the_script_merge_the_defaults_over_the_page_and_names_the_criterion_key_rule(self):
-        self.assertIn("export.py --defaults --live FILE --out DIR", self.skill)
+        self.assertIn("export.py --defaults --live FILE --page-url URL --out DIR", self.skill)
+        self.assertIn("`--defaults --page-url URL --out DIR`", self.skill)
         self.assertIn("The script merges, never you", self.skill)
         self.assertIn("a finding's `criterion` and each key of a review's `basis` is a key of "
                       "`defaults/expectations.json`", self.skill)

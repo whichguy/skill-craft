@@ -520,9 +520,12 @@ function buildPrompt(state){
   function expTitle(k){return (exps[k]&&exps[k].title)||"";}
   function resolves(o){return (Array.isArray(o.findings)?o.findings:[]).filter(function(id){return findings.some(function(f){return f.id===id;});});}
   var meta=[run.release,[run.host,run.model].filter(Boolean).join(" "),typeof run.startedAt==="string"?run.startedAt.slice(0,10):"",run.status].filter(Boolean).join("; ");
+  /* A finding can span runs and is written in one run's review bundle, so the page cannot name the file that holds an id:
+     the head names the directory and a ticked id to look for. */
+  var first=groups.length?groups[0].options[0].id:asks[0].id,example=/^[\w.-]+$/.test(first)?first:"<id>";
   out.push("Repair work from the Run Review of "+(run.name||"the chosen run")+(meta?" ("+meta+")":"")+". In the skill-craft repository."+
     (cfg.artifactUrl?" Page: "+cfg.artifactUrl+".":"")+(run.evidence?" Run evidence: "+run.evidence+".":"")+
-    (key?" Review file: test/shiploop_e2e/evidence/"+key+".review.json.":""));
+    " Review files: the *.review.json bundles in test/shiploop_e2e/evidence/ (find each ticked id below in the bundle that has it, for example grep -l '\""+example+"\"' test/shiploop_e2e/evidence/*.review.json; edit it there).");
   var counts=groups.map(function(g){return g.options.length+" "+PROMPT_COUNT[g.kind];});
   if(asks.length)counts.push(plural(asks.length,"finding")+" to investigate");
   out.push("You ticked "+(opts.length?plural(opts.length,"option")+" ("+counts.join(", ")+")":counts.join(", "))+
