@@ -1,0 +1,337 @@
+PLANNING-PHASE SPEED-UP: INVESTIGATION REPORT (read-only, 2026-10-04)
+
+Source tree: /Users/dadleet/src/skill-craft/.claude/worktrees/a1a3-integ-7f216e, HEAD 0e521f13, which is origin/main c895d921 (skill-craft 1.20.0, ShipLoop 0.52.0) plus a merge commit. Labels: [M] means I read or ran it. [I] means inferred. I edited nothing in any repository, wrote nothing under /Users/dadleet/e2e-runs, ran no E2E and did not run the live run's commands. All scratch work is in /private/tmp/claude-501/-Users-dadleet-src-skill-craft/f7d9360d-b88d-417b-8773-fc5b3eee6419/scratchpad/fast-planning/.
+
+## 0. BOTTOM LINE
+
+1. **Where the time goes [M].** In the Luna 1.16.1 battleship run the ten planning stages took 647.5 min, and the five loop stages took 592.3 min of that. The loop stages are spec, test-strategy, plan, step-plan and test-spec. They split as follows:
+   - Backchain loops: 263.5 min (44.5%).
+   - Improve review loops: 188.8 min (31.9%).
+   - Improve opening files: 29.7 min (5.0%).
+   - Everything else, the producer's own work: 110.5 min (18.7%).
+   Reading guidance is small. Turns that end in a guidance read (references 35.7 min, Backchain and Improve resources 17.0 min, re-reads of the packet file 19.2 min) cost about 72 min, or 11%. Turns that end in a write or edit cost about 307 min, or 47%. Packet size is not the driver, and prompt-text trims alone cannot deliver the speed-up.
+
+2. **One pass means required_trivial_reviews: 0 [M, from the runtime source and the run's receipts].** A repair counts as non-trivial in Backchain's own rule, so a gate of 1 would still have run six plan passes. A gate of 1 saves about 9 min in total, and a gate of 0 saves about 157 min:
+   - Plan loop: about 93 min saved (passes 2 to 7).
+   - Step-plan loop: about 66 min saved (passes 2 to 4), and only if the step-plan loop recurs at all.
+
+3. **I2b is already in 1.20.0, so the live run is its test [M].** The live run's installed plugin files are byte-identical to this tree. Its packets show the trim (see section 3). If the step-plan whole loop does not recur, about 136 min of the baseline is already gone, and only the plan loop remains to cut.
+
+4. **Making one pass the default is more than a one-line change.**
+   - Backchain's own skill text hard-wires the gate of 2: `skills/backchain/SKILL.md` in three places, `skills/backchain/references/convergence.md`, and one eval in `skills/backchain/evals/evals.json`.
+   - ShipLoop's plan packet repeats it, as do `references/backchain-planning.md` and `skills/shiploop/SKILL.md`.
+   - Two ShipLoop tests pin it (details in section 4.3).
+   - It needs a dated SPEC S-10 carve-out and a rewritten loop exit condition.
+   - Nothing enforces the gate, because the model hand-writes the Backchain loop contract (S-12's one exception, action a02).
+
+5. **Improve gate and Improve passes.** Lowering the Improve gate from 2 to 1 would save only about 19 min (3%), because confirming passes are cheap (0.2 to 4 min). Improve minutes sit in the first pass (84 of 189 min) and the non-trivial passes (about 147 min). Cutting that is a quality decision, not a prompt trim.
+
+6. **Byte-level prompt trims are not worth doing now.** Every candidate is under about 1% of minutes. They conflict with S-6, with the owner's "complete prompts" rule, and with pinned phrases.
+
+7. **Two low-cost items outside the prompt-trim idea.**
+   - The model read ShipLoop source (navigator.py and others) to learn the improve-commit, improve-complete and step-plan result shapes. That took about 20 min over two stages [M timestamps; cause is [I]]. Printing the templates would help.
+   - Luna runs at effort max. The journal records Luna max as 4 to 12 times slower than Grok medium even at stages with no review loop [M, from the journal, evidence lost]. I found no xhigh versus max comparison anywhere. I cannot rank effort against the loops.
+
+## 1. WHERE THE LUNA PLANNING MINUTES GO (run v1161, Luna max, 1.16.1)
+
+Method: accept-to-accept windows from run/timeline.json, with CLI verb times from events.jsonl and timeline.jsonl. Backchain timings come from the scratch file times. All of it is read-only.
+
+**A. Components, five loop stages (592.3 min).**
+
+| Stage | Window | Producer, non-Backchain | Backchain | Improve opening | Improve loop |
+|---|---|---|---|---|---|
+| spec | 52.7 | 15.8 | 0 | 7.3 | 29.6 |
+| test-strategy | 94.3 | 27.9 | 0 | 2.4 | 64.0 |
+| plan | 196.4 | 29.5 | 127.7 | 15.0 | 24.2 |
+| step-plan | 187.7 | 30.6 | 135.8 | 2.6 | 18.7 |
+| test-spec | 61.2 | 6.7 | 0 | 2.4 | 52.2 |
+| total | 592.3 | 110.5 | 263.5 | 29.7 | 188.8 |
+
+The other planning stages were intake 4.1, discovery 12.7, research 24.7, prepare 10.4 and select-work 3.3 min. The ten stages sum to 647.5 min.
+
+The earlier planning-size audit figures (592 min, 186 min of Improve loops) are confirmed [M]. Only the five-stage subtotal is 592; the ten-stage total is 647.5.
+
+**B. Calls by kind, ten planning windows (1,699 calls, 647.5 min).** The gap before each call is charged to that call's category.
+
+| Category | Calls | Minutes | Share |
+|---|---|---|---|
+| write or edit | 528 | 307.2 | 47% |
+| read of run state, notes, scratch | 139 | 72.5 | 11% |
+| read of repo or worktree files | 297 | 72.3 | 11% |
+| agent wait or spawn (Backchain workers) | 50 | 36.0 | 6% |
+| read of ShipLoop references or scripts | 148 | 35.7 | 6% |
+| git | 165 | 30.9 | 5% |
+| re-read of the packet file | 70 | 19.2 | 3% |
+| read of Backchain, Improve or Until Loop resources | 95 | 17.0 | 3% |
+| other commands | 100 | 14.5 | 2% |
+| web search | 11 | 13.1 | 2% |
+| ShipLoop CLI verbs plus Until Loop runtime calls | 87 | 15.7 | 2% |
+
+What the write and edit turns wrote (about 322 min by target classification, ±5% of the table above):
+- Product knowledge docs (spec, strategy, plan, test-spec): 92 min.
+- Backchain scratch: 73 min.
+- Improve review files: 42 min.
+- Unclassified targets: 76 min.
+
+The average is 22.9 s per call. Sonnet 5.5 on the same graph and same-shaped packets took 4.8 min for the ten planning stages and 83 turns (3.5 s per turn) [M, from batch-sonnet/battleship metrics.json]. Those were 1.16.0 packets. Sonnet also produced almost nothing: a 0.8 KB plan, Improve review files of 104 to 439 B, and no Backchain loop. So the gap is compliance work, not packet reading. Luna time is spread over many turns. Gaps of 120 s or more are at most 33 min per stage, and gaps of 600 s or more total 0 [M].
+
+Timestamps arrive in bursts, so tool time and model time cannot be separated.
+
+**C. Backchain loops (exporter figures; my file-time cross-check differs by under 3 min).**
+
+| Loop | Pass minutes | Pre-loop | Loop total | Result written |
+|---|---|---|---|---|
+| plan (7 passes) | 11, 15, 26, 18, 17, 12, 4 | about 20 | 105.6 | about 2 |
+| step-plan (4 passes) | 42, 55, 6, 4 | about 16 | 107.7 | about 12 |
+
+Facts about these loops:
+- Plan pass 1 edited 14 of 20 steps. Passes 2 to 4 each changed one confirm clause (+0.4 KB in total). Passes 5 to 7 changed nothing.
+- Receipts for passes 1 to 6 show `exit_assessment: unsatisfied`. The model-written exit condition demanded "two distinct complete trivial/no-change reviews since the latest reset" [M, scratch/backchain-plan/until-loop-start-input.json].
+- A confirming pass is not cheap. Passes 5 to 7 took 17, 12 and 4 min, because each callback is a whole fresh review: full source re-read, all 42 lenses, audit, bounded revise and a record.
+- The plan loop wrote 6.8 MB of scratch (pass-reports 5.4 MB). The step-plan loop wrote 4.0 MB. The final planning docs were 157.7 KB.
+- Review-record bytes: 251 KB over 7 records, and the lens-screen block is 84 KB of it (33%). The I2b plan counted 41% including related keys.
+
+Parent reads before each loop started [M]:
+
+| Window | Pre-loop | Plugin-file reads | Backchain and Until Loop share |
+|---|---|---|---|
+| plan | 44.5 min, 170 calls | 32 reads, 185 KB | 12 reads, 109 KB |
+| step-plan | 43.9 min, 152 calls | 45 reads, 429 KB | 42 reads, 385 KB |
+
+Backchain SKILL.md was opened 4 times at plan and 10 times at step-plan. The earlier audit's "10 times" holds [M].
+
+**D. Improve children, per-pass minutes ("non" is a non-trivial pass, "tri" is trivial).**
+
+| Stage | Passes | Pass minutes | Passes a gate of 1 would skip |
+|---|---|---|---|
+| spec | 5 recorded | non13.7 non8.8 tri4.1 (one pass unparsed, 2.3) tri0.2 | 2.5 min |
+| test-strategy | 11 (12 done calls) | non19.1 non11.9 non6.2 (one unparsed, 3.4) non0.1 non4.4 non4.4 non3.1 tri1.8 non2.7 tri1.8 tri2.3 | 6.8 min |
+| plan | 3 | non14.8 tri2.8 tri2.8 | 2.8 min |
+| step-plan | 3 | non10.5 (one unparsed, 2.7) tri0.4 tri3.3 | 3.3 min |
+| test-spec | 5 | non25.9 non12.6 non5.7 tri3.8 tri4.0 | 4.0 min |
+
+- A gate of 1 skips about 19.4 min in total.
+- Test-strategy passes 2 to 9 raised test-strategy.md from 26.1 KB (the first pass's commit) to 30.3 KB (+16%). The changes were real but fine-grained: seeds, a 15 s delay and a keyboard New Game check [M, worktree git history].
+- A sibling's per-pass timestamps in the same scratch directory match mine. I treated that file as data and did not run it.
+
+**E. Source reading at stage ends [M timestamps; cause [I]].** At the end of the plan stage and the step-plan stage the model read ShipLoop source (navigator.py, standalone, store). It learned the improve-commit message path, final_result and the step-plan result shape. That was 18 reads, 107 KB, about 4 min and 3 min inside the plan Improve child, and about 12.5 min at step-plan. The step-plan `complete` was refused once for "result requires outcome and summary" before it succeeded.
+
+**F. Run-to-run variance (n=1 each) [M].**
+
+| Stage | Luna 1.16.0 | Luna 1.16.1 | Luna 1.20.0 (live) |
+|---|---|---|---|
+| intake | 5.5 | 4.1 | 5.1 |
+| discovery | 17.7 | 12.7 | 18.3 |
+| research | 23.2 | 24.7 | 8.4 |
+| spec | 65.9 | 52.7 | still in producer |
+
+Stage-level differences under about 2x cannot be attributed to a prompt change.
+
+## 2. PER-STAGE MEASUREMENTS
+
+Packet figures: "dry" is the producer packet from `graph-dry-run --scenario delivery` with `--delegation inline` (the default), run from this tree (scratch delivery.json). Dry paths are short; real packets run 23 to 28% larger from long locator paths. "Real" columns are packet file sizes on disk. At Improve-bearing stages the file is overwritten by the Improve-phase packet, so the real figure there is the Improve phase.
+
+| Stage | Dry w / B | Real v1161 B | Backchain text (w / B) | Improve packet dry (w / B) | Specific locators, as-named KB | Observed v1161 reads (reads / KB returned) |
+|---|---|---|---|---|---|---|
+| intake | 2,647 / 21,566 | 27,055 (v1200: 27,055) | none | none | 5.1 | 8 / 38.9 |
+| discovery | 4,067 / 33,975 | 42,038 (v1200: 41,693) | none | none | 81.1 | 26 / 86.0 |
+| research | 3,527 / 29,395 | 37,462 (v1200: 37,673) | none | none | 58.4 | 0 / 0 |
+| spec | 3,791 / 31,610 | 55,492 (v1200 producer: 40,515) | audit route, 301 / 2,106 | 1,550 / 15,390 | 44.5 | 15 / 123.2 |
+| test-strategy | 3,421 / 29,052 | 53,110 | none | 1,571 / 15,874 | 29.3 | 33 / 238.0 |
+| plan | 5,342 / 45,124 | 65,126 | whole loop, 480 / 3,397 | 1,756 / 18,590 | about 173 (144.8 plus Backchain SKILL.md 27.8, which my regex missed) | 71 / 347.7 |
+| prepare | 2,758 / 23,564 | 35,064 | none | none | 8.9 | 8 / 49.3 |
+| select-work | 2,636 / 21,888 | 32,466 | none | none | 5.1 | 0 / 0 |
+| step-plan | 5,305 / 43,073 | 59,387 | audit route, 301 / 2,106 | 1,558 / 16,634 | 61.5 | 124 / 689.4 |
+| test-spec | 3,193 / 26,669 | 55,319 | none | 1,667 / 15,803 | 9.5 | 27 / 180.3 |
+
+Totals: 36,687 words and 305,916 B of producer packets, plus 8,102 words and 82,291 B of Improve packets, about 388 KB in dry-run (about 485 KB with real paths).
+
+Per-stage detail:
+- At 1.20.0, Sonnet hello's Improve-phase packets are 44,751 (spec), 45,141 (test-strategy), 55,258 (plan), 49,253 (step-plan) and 44,827 B (test-spec). Compare Luna 1.16.1's 55,492, 53,110, 65,126, 59,387 and 55,319 B. Paths differ between hosts, so this is an approximate 8 to 10 KB cut.
+- Every planning stage also prints a block of 16 generic locators. Named as written, they total 197.9 KB; six of them are whole-file pointers (project-knowledge.md 40.8 KB, repeatable-test-suites.md 25.7 KB, workspace-lifecycle.md 15.8 KB, requirements-definition.md 12.4 KB, environment-lifecycle.md 10.8 KB, delivery-authority.md 8.1 KB). That block is a pointer list, not a read obligation. The obligation comes from COMMON's imperative sentences.
+- The packet file is re-read heavily. Across planning, 70 packet-file read calls returned 1.88 MB, a roughly 40 to 65 KB file read many times. The named-reference reads returned 1.75 MB (312 reads, 26 whole-file `cat` reads, mostly Backchain and Until Loop files).
+- STAGE_REFERENCES is not what prints. Under inline delegation the Parallel-chain guide is in the table but not in the packet [M], and `stage_reads.py` overstated step-plan for that reason. I therefore used printed locators.
+
+Text blocks that repeat:
+- COMMON: 922 words, 6,290 B, in every packet at every stage.
+- PROGRESS_REPORTING: 415 words, 2,449 B, in every packet including the Improve packets.
+- INTERACTION_DESIGN: 467 words, 3,102 B, at discovery, research, spec, plan and step-plan.
+- Eleven paragraphs recur in 5 or more of the ten producer packets: 12.7 KB distinct, 109.7 KB printed in total (36% of the 306 KB).
+- Within one stage the producer packet and the Improve packet share 2.4 to 3.2 KB of paragraphs, 15 to 21% of the Improve packet.
+
+Improve-side text per Improve stage:
+- Improve prompt: 1,173 to 1,511 words (8.9 to 11.4 KB).
+- PLANNING_REVIEW_FOCUS: 200 words, 1,161 B.
+- Backchain improve-owner text: 132 words (route 42 plus owner 90), 946 B.
+- Required Improve card reads are small: the "ShipLoop whole-skill subcall" section is 3.96 KB and the Until Loop "Follow the returned action" section is 6.35 KB.
+
+Obligations and SPEC anchors by stage (from `shiploop_stage_spec.py` done_when and the duty text):
+
+| Stage | Obligation | SPEC anchor |
+|---|---|---|
+| intake | Every request sentence maps to an outcome, a boundary or an open question with its owner. Name where and when the result is visible. | S-14, S-6 |
+| discovery | Baseline suite runs on the unchanged checkout with exit code recorded. Conventions and locators recorded. | S-9, S-11, S-8 |
+| research | Unknowns resolved with evidence, or recorded with an owner and the gate they block. Defaults recorded as assumptions. | S-14, S-11 |
+| spec | Living spec with stable R-IDs. Each criterion independently verifiable and states how it is confirmed. NFRs assessed. Audit route only. | S-11, S-9 |
+| test-strategy | Criterion to check, surface and due stage. Planned is not passed. | S-9, S-11 |
+| plan | Dependency plan and work-item queue. Assumptions evidenced or open. Whole Backchain loop may be requested. | S-1, S-5, S-9, S-11 |
+| prepare | Each runner starts. | S-9 |
+| select-work | Script-owned lint base. | S-1 |
+| step-plan | Steps with deps and recorded test_commands (the script reruns them). Paths declared. Audit route only. | S-4, S-5, S-9 |
+| test-spec | Per criterion cases with independent oracle, RED and GREEN definitions. | S-9 |
+
+At all five Improve stages the Improve loop is mandatory (stage table `improve="always"`).
+
+## 3. WHAT I2b ALREADY DID, AND WHAT THE LIVE RUN TESTS
+
+I2b is commit 3592b195, merged in e0aeaa2d and released in 1.20.0 [M].
+- **Prompts and navigator.** `_backchain_guidance` is now built from four constants. The plan stage's loop text went from 707 to 480 words. The four audit stages went from 688 to 301 words. The improve-owner text went from 509 to 132 words. The seven-file Backchain and Until Loop resource list prints only at plan. The other four stages print the audit resource line plus a script-computed "Loop resources for a repair/revise request ... all present | MISSING" line.
+- **Guide.** The identity paragraph in `backchain-planning.md` went from 154 to 56 words.
+- **Kept on purpose:** the route sentence, the plan-only child paragraph, the budget paragraph (116 words, 112b239c), BACKCHAIN_CHECK (19 words, the validator's pinned line), PLANNING_REVIEW_FOCUS and the S-14 text.
+- **Nothing to cut twice.** Do not touch the already-trimmed Backchain text, the improve-owner text or the resource-list print rule.
+
+The live run v1200-battleship-luna (Luna max, 1.20.0, started 16:26 PDT, accepted intake in 5.1 min, discovery in 18.3 min, research in 8.4 min). It was still in the spec producer at 17:31 PDT, 33 min in, with a 17-min silent turn. Its installed plugin copy has the same sha256 for `shiploop_prompts.py`, `shiploop_navigator.py`, `backchain-planning.md`, `convergence.md` and `SKILL.md` as this tree [M]. Packets 1.16.1 to 1.20.0: intake +0 B, discovery −345 B, research +211 B (unchanged stages) and spec 40,515 B (versus the Improve-phase 55,492 B; not comparable until the live spec's Improve packet exists).
+
+It is the first Luna run carrying I2b. It will answer the I2b signals:
+- Whether any step-plan scratch contract is `plan`/`draft`.
+- The step-plan minutes against the 163.9 baseline.
+- The resource-list count in the step-plan packet.
+
+Anything decided now is not in that run.
+
+## 4. THE BACKCHAIN ONE-PASS CHANGE
+
+### 4.1 What the runtime supports [M]
+
+In `skills/improve/runtime/until-loop/scripts/until_loop_ephemeral.py`, the completion test is `exit_assessment == satisfied and (trivial_streak >= required_trivial_reviews or unchanged_first_pass)`.
+- `required_trivial_reviews` accepts 0, 1 or 2. The runtime reference says "satisfied plus the count gate completes".
+- At gate 2, `unchanged_first_pass` completes after one pass only if the first pass is trivial and the workspace tree is unchanged. That never happened here, because pass 1 changed the candidate.
+- At gate 1, a pass that repairs anything is non-trivial. `convergence.md` says edits to obligations, suppliers, edges, ordering or verification are non-trivial even if repaired. So gate 1 needs a trivial pass after the last change.
+- At gate 0 the loop ends the first time the host reports `satisfied`.
+- ShipLoop's own quality loop and test loop use gate 1, and `references/execution-planning.md` documents a selective per-step loop at gate 0. Gate 0 is not new to the repo.
+
+### 4.2 What it would have saved on the 1.16.1 plan loop (exporter pass minutes)
+
+| Gate | Plan loop | Step-plan loop |
+|---|---|---|
+| 2 (today) | 7 passes, 103 min | 4 passes, 107 min |
+| 1 | completes at pass 6 [M]; saves pass 7 (4 to 5 min) | completes at pass 3 [M]; saves pass 4 (4 min) |
+| 0 | completes at pass 1; saves 92 to 94 min | completes at pass 1; saves 65 to 66 min |
+
+- The gate-0 figures assume the host reports satisfied at pass 1. In 1.16.1 it reported unsatisfied through pass 6 because the exit condition it wrote required two reviews [M]. The exit text must change with the gate.
+- The 66-min step-plan figure applies only if the step-plan loop recurs.
+
+### 4.3 What would have to change (all text, no state, unless a recorded flag is added)
+
+- **ShipLoop packet text.**
+  - The sentence in `_backchain_guidance`'s native tail that says "`required_trivial_reviews: 2` gate for two consecutive distinct complete trivial/no-change dependency reviews".
+  - The budget neighbor `_backchain_contract_budget` (or a new constant beside `STATE_LIMIT`, `CONTRACT_BUDGET` and `REPORT_RESERVE` in `shiploop_loop_contract.py`) could print the gate.
+  - The matching sentences in `references/backchain-planning.md` ("Source-aware native caller") and `skills/shiploop/SKILL.md` ("Source-aware Backchain selection").
+- **Backchain skill (shared with non-ShipLoop callers).** `references/convergence.md` ("Frozen plan-only child contract" and "Terminal evidence": two consecutive reviews, `required_trivial_reviews: 2`, "both original qualifying review records"). `SKILL.md` repeats the gate in three places. `evals/evals.json` has one eval expecting "two accepted trivial reviews". The private harness at /Users/dadleet/src/backchain also mentions gate 2 (README, test/until-loop-binding.integration.test.py). The skill change should be caller-gated, so standalone Backchain keeps its default of 2. `changes/backchain/*.md` notes are needed.
+- **Tests that pin the gate.**
+  - `test/shiploop-navigator-contract.test.py::test_native_backchain_operations_reuse_selected_until_loop_subcall` asserts the phrase "two consecutive distinct complete trivial/no-change dependency reviews" and "required_trivial_reviews: 2" in the plan packet.
+  - `test/shiploop-navigator-dry-run.test.py::test_the_loop_stage_keeps_every_obligation_the_trim_did_not_target` asserts "required_trivial_reviews: 2".
+  - The same test class's audit-stage test asserts `required_trivial_reviews` is absent from audit text.
+  - `assertNotIn` pins keep `max_passes` and "default maximum of six assessment passes" out of the plan packet. Gate 0 needs neither phrase.
+  - Improve-gate pins in `shiploop-actual-improve-cli`, `shiploop-v4-consumers` and others are untouched.
+
+### 4.4 Design
+
+- Default: gate 0 with an exit condition that a single complete review pass counts. Its findings are repaired and rechecked inside that pass, and the printed `backchain-check` passes on the final candidate.
+- Opt-in flag `converge` restores today's two-clean gate. Mechanism, in order of preference:
+  - **Recorded start option**, like `--lint` and `--delegation`: it sits in state.md and a script constant produces the text. This adds a state key, so older saved states are refused, which is consistent with "one supported version".
+  - **Environment variable**: no state change, but not recorded in state, so a mid-run environment change would print different text. Worse under S-1.
+- Strict enforcement needs a script-written Backchain contract (a02). `loop_contract.contract()` already exists as the one shape of a ShipLoop-written Until Loop contract, and Backchain's child is the hand-built exception (the harness counts it as glue).
+- Pair the pass with a script-run check (S-9). The step-plan loop's pass-1 repair added a discovered step D1 that nothing consumes. Passes 2 to 4 and Improve accepted it, and the reference validator rejects it [M, journal "Second correction"]. A script check at exit finds what 4 model passes missed, and it takes seconds.
+
+### 4.5 SPEC carve-out (proposed wording, own commit before the prompt change)
+
+S-10 gains: "Owner decision 2026-10-04: Backchain's planning loop (a whole `plan`/`draft` or `repair`/`revise`) ends by default after one complete review pass whose findings are repaired and rechecked, with a script-run `backchain-check` as exit evidence; the two-consecutive-trivial gate is opt-in. Quality, test and Improve loops keep S-10 unchanged."
+
+Gate 0 is not an iteration cap in the runtime's sense, and the loop still ends on a stated condition. The condition is weaker and the cap is effectively 1 in a normal run.
+
+### 4.6 Adversarial scenarios, one line each (SPEC change-admission shape)
+
+1. The host reports "unsatisfied" at pass 1 anyway. The loop continues and nothing is saved. The next run's pass count shows it.
+2. A pass-1 repair introduces a defect no pass rechecks. Mitigated by `backchain-check` and the Improve loop that follows. A residual risk is accepted.
+3. Standalone Backchain callers must keep gate 2, so the skill default stays 2 and ShipLoop passes its own gate.
+4. Another host or style: the text is generic and Sonnet never runs a loop, so there is no effect.
+5. Saved runs: text-only means no refusal. A recorded option adds a state key, so old states are refused.
+6. Gaming: a "satisfied" with no check. `backchain-check`'s receipt in `evidence_refs` is already required by BACKCHAIN_CHECK.
+7. Pins gating a future obligation: re-pin by content, not by counts.
+8. Spec drift: carve-out in its own commit.
+
+## 5. CANDIDATE REGISTER
+
+Packet words and bytes figures are from section 2.
+
+| # | Candidate | Cost it carries | Obligation and anchor | Risk of change | Verdict | Pinned by |
+|---|---|---|---|---|---|---|
+| 1 | Backchain review gate 2 to 0 (one pass) | Plan passes 2 to 7: 92 to 94 min [M]. Step-plan passes 2 to 4: 65 to 66 min if the loop recurs [M] | S-10, S-9, "iterate until a stated check confirms each criterion" | Loses confirm-clause hardening of passes 2 to 4 (+0.4 KB). Loses the independent re-review of pass 1's repair | DEFAULT CHANGE, with an opt-in flag to restore gate 2 | contract test above, dry-run test above, `skills/backchain/evals/evals.json`, harness README |
+| 2 | Plan stage prints the audit route and the loop becomes opt-in | Plan Backchain stage 127.7 min less about 12 for an audit pass. Also the resource reads (127.8 KB, 7 files) | Nothing script-enforced. The packet says the host "may request" | Loses pass-1 value (14 of 20 steps edited, 3 defects). Bigger than the owner asked. The audit route's `repair`/`revise` is itself a whole loop at gate 2, so it does not cap passes by itself | FLAG, default off. Owner decision if more speed is wanted | plan-stage list and `MISSING` pins in the contract and dry-run tests |
+| 3 | Backchain text and list at step-plan and the three other audit stages | I2b already cut this | S-6, S-7 | none | KEEP. Measure on the live run | I2b's own pins |
+| 4 | 42-lens screen and record copies per pass | 84 KB of 251 KB of records (33%). Minutes not measurable from records [M] | convergence.md's rigor rule. Contradicts technical-lenses.md ("screen once") | Rigor change. Needs a comparison | MOOT at gate 0. Keep otherwise, as I2c | none found by grep |
+| 5 | Improve gate 2 to 1 at planning | About 19 min (3%) [M] | S-10, "Improve after Backchain" | Small saving, many pins. Improve becomes the main rigor mechanism once Backchain is one pass | KEEP at 2. A flag would be cheap but low value | `shiploop-actual-improve-cli` (contract gate 2, terminal packet progress, helper call), `shiploop-v4-consumers`, `shiploop-navigator-v4`, `shiploop-full-runtime`, `shiploop-stopped-improve`, `improve.test.sh` fixtures |
+| 6 | Improve at test-strategy and test-spec | Loops 64.0 and 52.2 min (19.7% of the five-stage window) | The document is "the contract later stages build on and no other review sees until the end" | Quality unknown. Sonnet's near-empty reviews are no comparison | KEEP. Owner call if wanted | `shiploop-improve-schedule`, `shiploop-delegation`, `shiploop-quality` ("Planning review focus") |
+| 7 | PLANNING_REVIEW_FOCUS (200 w, 1,161 B) | It drives first-pass depth (84 min across the five children) | S-9, S-6 | Lowers plan quality | KEEP | `shiploop-quality` and others |
+| 8 | Repeated paragraphs (PROGRESS_REPORTING, COMMON policy paragraphs, INTERACTION_DESIGN, generic locator block, shared Improve paragraphs) | Tokens only. Under 1% of minutes (Sonnet runs the same packets in 4.8 min) | S-6, S-11, S-15 | S-6 conflict. "Complete prompts" owner rule. Pinned phrases | KEEP. If cut anyway, the safest are the Improve packet's repeated PROGRESS_REPORTING and the six whole-file locators | `shiploop-cross-run` and `shiploop-navigator-contract` ("Maintained requirements policy", "Reference handoff policy", "Requested runtime"), `shiploop-quality` ("ambitious, highly interactive"), `shiploop-navigator-v4` ("Planning experiments guide", "Planning investigation notebook") |
+| 9 | Print the improve-commit, improve-complete and step-plan result templates | About 20 min over plan and step-plan [M timestamps, I cause] | S-4, S-5 | Adds packet text | ADD, not cut. Worth a small increment | none yet |
+| 10 | Backchain resource read-in-full instructions in `convergence.md` | 11.7 and 18.9 KB per loop start. Contradicts S-7 | S-7 | Small | KEEP. Does not matter at one pass | none |
+| 11 | Effort max to xhigh | Unknown, unmeasured | none | none | OUTSIDE the prompt scope. An unmeasured lever | none |
+
+The "raise a bound rather than trim" rule is only partly relevant. There is no packet-size bound in the tests (`shiploop-delegation` comments "No packet-size bound: the owner prefers complete prompts (2026-09-25)"). Candidates 7 and 8 would conflict with that rule and with "concise, aimed at meaningful change". They are not justified here because their saving is tokens, not minutes. The cut that matters is a default behavior change tied to an explicit owner override, not a text cut for size.
+
+## 6. SCENARIOS, ten planning stages, [I] with measured components
+
+| Scenario | Minutes | Change |
+|---|---|---|
+| Baseline (1.16.1) | 647.5 | n/a |
+| I2b alone, step-plan loop does not recur | 511.7 | −21% |
+| I2b alone and gate 0 at plan | about 418 to 420 | −35% |
+| Step-plan loop recurs, gate 0 at plan and step-plan | about 488 | −25% |
+| I2b alone, gate 0, Improve gate 1 | about 400 | −38% |
+| Backchain off at plan (opt-in), I2b effective | about 396 | −39% |
+| Producer-only floor (no Backchain, no Improve, no openings) | about 166 | −74% |
+
+The floor is the 110.5 min of producer work plus intake to research, prepare and select-work, which is not a target.
+
+## 7. MEASURABILITY
+
+- **The in-progress run measures I2b only.** None of the proposed changes can show in it.
+- **The next run, on a release carrying the change,** shows the effect in:
+  - Stage minutes from the exporter's accept-to-accept deltas (`review-export/`, `docs.runs[...].stages[].min`). Compare plan against 196.4 min. The harness `metrics.json` stage minutes are known to be misattributed.
+  - The Backchain ledger: pass count and `facts` (Passes, Trivial streak "x of y required"), `segments` (Pass 1 only).
+  - Receipts: `scratch/backchain-plan/until-loop-start-input.json` and `until-loop-receipt.json` should show `required_trivial_reviews: 0` and one `action1-done-packet.json`.
+- **Only a loop-level change shows up through the noise.** Stage times vary about 2x run to run, so the next run can detect the gate change (more than 90 min) but not packet trims (under 10 min).
+- **A seeded run cannot test it.** `--seed-at` accepts only `step-plan`, and the gate is at plan. A plan-stage measure needs an unseeded Luna run, or the Backchain evaluation harness on planted drafts.
+
+## 8. STANDING-RULE CONFLICTS
+
+- **S-10 and "no cap, no revise/blocked for running long".** Gate 0 is not a cap, but it is effectively one pass for this loop and needs the carve-out in 4.5. Quality, test and Improve loops are untouched. S-10 also says the script writes the contract and counts iterations; for the Backchain loop the model writes the contract, so that premise is already unmet.
+- **"Steps iterate until a stated check confirms each criterion" and the 80% postulate.** One pass leaves about 20% of the residual gap versus about 4% after two, as judged by the same model. Partly mitigated: a script-run check at exit (S-9) replaces the second model judgment, and the Improve loop that follows already iterates to two clean passes. The Backchain-specific dependency lens is only run once.
+- **"Enterprise rigour is standard".** This reduces the depth of a planning aid, not tests, security or ownership. S-9 evidence is kept through the script check. Flag it as a conscious acceptance.
+- **"Verbose prompts over size bounds" versus "concise, meaningful change".** Not triggered by 4.4. The text gets slightly longer (about +30 to 40 words at plan) because the exit rule must be rewritten. I do not recommend any size-driven trim.
+- **Journal and commit rule.** The change needs a LEARNINGS.md entry and a verbose commit citing this evidence and the related commits 3592b195, e0aeaa2d, 112b239c, db61a4a7, 931c53e2, 6a997a02.
+
+## 9. NOT DETERMINED
+
+- Tool time versus model time: timestamps arrive in bursts.
+- What Backchain's workers did: 50 agent calls are in the parent log, but the workers' own turns are not.
+- Context compaction counts for Codex (reported unmeasured).
+- Whether Luna will honor a gate-0 text and report satisfied after one pass.
+- Whether the step-plan whole loop recurs on 1.20.0 (the live run will show).
+- Whether one pass changes plan quality. There is no comparison; that is the validator comparison plan's Track 1.
+- The unclassified 24% of write targets.
+- Which stages' Improve classifications are recoverable for every child; the three unparsed passes (spec, test-strategy and step-plan, one each) are marked "?" above.
+- Real, not dry, Improve-phase packet size on 1.20.0 for the five stages of a Luna run.
+- Effort max versus xhigh on the same case.
+- Unreleased edits: the working tree status was clean when I checked.
+
+## 10. SCRATCH SCRIPTS AND DATA
+
+All under /private/tmp/claude-501/-Users-dadleet-src-skill-craft/f7d9360d-b88d-417b-8773-fc5b3eee6419/scratchpad/fast-planning/. The directory is shared with other agents' files (for example `counterfactual.py`, `gate_experiment.py`, `luna-passes-time/`). I did not use them except as a cross-check on Improve pass durations, which matched.
+
+My files:
+- `delivery.json` is the `graph-dry-run` output. `prompt_parts.py`/`.json` measures prompt parts. `printed_locators.py` measures printed locators (also reports generic versus specific). `stage_reads.py`/`.json` reads STAGE_REFERENCES, which overstates.
+- `run_activity.py` (per stage activity), `turn_gaps.py` and `turn_attribution.py` (gap profile), `call_mix.py` (the table in 1.B), `write_targets.py` (write targets), `ref_reads.py` (reference reads per file), `improve_segments.py`, `improve_passes.py` (the table in 1.D), and `improve_close.py`.
+- `improve_close.py` is superseded: its plan row is wrong (a heuristic matched the wrong terminal event), so use the ordering I give in 1.E instead.

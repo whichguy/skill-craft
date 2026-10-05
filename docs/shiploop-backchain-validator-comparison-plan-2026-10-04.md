@@ -1,5 +1,14 @@
 # ShipLoop plan: a Backchain graph check, and a comparison of what Backchain's loop adds
 
+> **Superseded in part, 2026-10-04**, by `docs/shiploop-fast-planning-plan-2026-10-04.md` (owner decision: the
+> plan-stage Backchain loop defaults to one pass; SPEC S-10 carve-out). Reason: the owner asked for one pass to make
+> Luna runs faster, and the Luna 1.16.1 evidence showed passes 2 to 7 changed only confirm clauses and a label in
+> an artifact no later packet reads. Superseded here: the exit rule "two clean passes, no pass cap is S-10 and stays
+> unless the spec is amended first" (the spec is now amended for this loop); expectation B1 "every pass earns its
+> time" as a standing expectation; the policy-table cell "Offer the loop; the script decides when; no pass cap"; and
+> the same exit-rule sentence in iteration I6. The Track 1 and Track 2 comparison still measures what a loop adds.
+
+
 Execute: inline
 
 Status: **plan v2.2: I1, I2 and I2b are released in skill-craft 1.19.0 (ShipLoop 0.51.0); their live proof waits for the next looped Luna run.** Revised after an independent adversarial review whose blockers I re-ran

@@ -1,0 +1,366 @@
+REPORT: where the number of planning passes is decided, and the smallest one-pass change per loop
+
+Source: /Users/dadleet/src/skill-craft/.claude/worktrees/a1a3-integ-7f216e (1.20.0 / ShipLoop 0.52.0). Nothing was edited or pushed. I ran no E2E run and never wrote under /Users/dadleet/e2e-runs. I read the live run /Users/dadleet/e2e-runs/20261004/v1200-battleship-luna only to see its stage. At 17:25 it was in the `spec` producer at revision 3, with no Backchain scratch yet. After my runs `git status` on the source worktree was empty. I used PYTHONDONTWRITEBYTECODE and nice -n 19 for everything I ran.
+
+Labels: [M] = I read it or ran it. [I] = inferred. [M-prior] = read in test/shiploop_e2e/LEARNINGS.md or a docs plan and not re-derived by me.
+
+====================================================================
+0. BOTTOM LINE
+====================================================================
+
+1. [M] Three different parties decide pass counts.
+   - The Backchain whole-loop child (plan/draft, and repair/revise) has a contract the host model writes by hand. No ShipLoop script writes, reads or checks it. The value `required_trivial_reviews: 2` comes from skills/backchain/references/convergence.md and is echoed in ShipLoop's plan packet.
+   - The ShipLoop Improve children have a contract ShipLoop writes (`improve_start_contract` in skills/shiploop/scripts/shiploop_navigator.py). It is a literal 2. The import validator refuses anything below 2.
+   - The test loop (test-green, regression) and quality loop (static-checks) are written by ShipLoop with gate 1. They are S-10 loops and out of scope.
+
+2. [M] The vendored Until Loop can do one pass without any change to the vendored files.
+   - Its contract takes `required_trivial_reviews` (default 0).
+   - It has no max-iterations or budget field.
+   - Gate 0 completes on the first report that says `exit_assessment: satisfied`, whatever that pass found.
+   - Gate 1 does not give one pass when the first pass changes the candidate.
+   - Experiment tables are in section 3.
+
+3. What "one pass" means when the first review CHANGES the candidate (what the owner asked for).
+   - It means gate 0 plus an exit condition the model can assess as satisfied after one cycle.
+   - The pass reviews, repairs and runs the checks on the repaired candidate.
+   - It reports `non-trivial` with exit `satisfied`, and the loop completes. There is no confirming review of the repair.
+   - If the pass itself reports an open gap (`unsatisfied` or `unknown`), the loop still continues. So it is "one pass unless that pass reports an open gap", not a hard cap.
+   - The runtime has no field for a hard cap [M]. Hard-capping would need a runtime change, and the provenance tests forbid that.
+
+4. [M] Backchain one-pass is a text-and-state-option change with no validator change. Improve one-pass is a larger change. ShipLoop's own import validator refuses any Improve terminal packet below gate 2, or whose last report is not `trivial`. I demonstrated that in a scratch run.
+
+5. [M/I] Where the time goes in the 1.16.1 Luna run.
+   - Backchain and Improve loops took about 83% of the planning window (intake through the first W1 test-spec accept, 647.5 min).
+   - Packets are not the driver. Sonnet planned the same request in a few minutes.
+   - Luna's per-pass cost is about 38 times Sonnet's, while Luna has only about 1.7 times as many Improve passes.
+   - One-pass Backchain saves an estimated 153 min. One-pass Improve saves 96 min in the planning window and 126 min over the whole run. Together that is about 249 min of the 647.5-min planning window.
+   - Even with both, about 400 min of planning remain. One-pass alone does not make Luna max fast.
+
+6. The change needs an explicit SPEC S-10 amendment. S-10 says review loops have no iteration cap and run until a stated condition. A default one-pass exit is a carve-out. Proposed wording is in section 6.
+
+7. Flag home. `delegation` and `lint` are the only run-level options. Both live in state.md and are set by `init` and `workspace start`. They are changed mid-run by `delegation --set` and `lint-mode --set`. A third option (proposed name `planning-loops`, values `one-pass` default and `full`) follows the `lint` precedent exactly.
+
+8. Suggested order, each increment verified by a script-run test:
+   - A: Backchain one pass (explicit owner request).
+   - B: Improve planning children one pass. The owner must confirm this one; he only said "Backchain" explicitly.
+   - C: a script-written Backchain contract (a02) if a live run shows the model ignoring the printed gate.
+   - D: option to not offer Backchain at all.
+
+====================================================================
+1. WHAT THE TIME WAS SPENT ON (Luna max battleship, 1.16.1, run /Users/dadleet/e2e-runs/20261003/v1161-battleship-luna)
+====================================================================
+
+1a. Stage accept-to-accept [M, scratch stage_time.py]
+    intake 4.1, discovery 12.7, research 24.7, spec 52.7, test-strategy 94.3, plan 196.4, prepare 10.4, select-work 3.3, step-plan (W1) 187.7, test-spec (W1) 61.2.
+    Sum to the first test-spec accept = 647.5 min. The whole run was 1,158.5 min (19.3 h), blocked at system-test, so planning is 56% of it.
+
+1b. Backchain loops, recomputed from file mtimes and accept timestamps [M, backchain_passes.py and an inline script]
+
+    plan stage (196 min):
+      before loop start: 44 min (producer work plus gather, draft and elaborate)
+      loop: 106 min, 7 passes
+      terminal to result file: 2 min
+      Improve child and result to accept: 44 min
+
+    step-plan stage (188 min):
+      before loop start: 44 min
+      loop: 108 min, 4 passes
+      terminal to result file: 12 min
+      Improve child and result to accept: 24 min
+
+    Per-pass in the plan loop [M]:
+
+      pass       1      2      3      4      5      6      7
+      minutes   12     15     26     18     20     10      5
+      class    non-t  non-t  non-t  non-t  non-t  triv   triv
+      exit     unsat  unsat  unsat  unsat  unsat  unsat  satis
+
+    Per-pass in the step-plan loop [M for times from file mtimes, M-prior for the content]:
+      times 49 (including a refused first callback), 49, 6, 4. Passes 1 and 2 changed structure; passes 3 and 4 changed nothing.
+
+    Content of the plan-loop passes [M-prior, ledger and its two corrections]:
+      pass 1 edited 14 of 20 steps.
+      Passes 2 to 4 changed only confirm clauses (about 0.4 KB in all).
+      Pass 5 changed nothing.
+      The reference validator rejects both step-plan candidates for an orphan discovered step D1. All four passes and Improve accepted it. That is a structural defect a deterministic check finds and extra passes did not.
+
+    Loop shape [M]: the step-plan loop ran `plan`/`draft` at `shiploop:step-plan`, which the protocol allows only at plan. The cause is unproven (one run).
+
+1c. Improve children, 9 in the run [M, improve_passes.py and per_pass_times.py]
+    bind to import minutes, passes and minutes per pass (pass 1 is bind to review-1, including the opening file and reading the cards):
+
+      stage                min    passes  per-pass minutes
+      spec                 36.8     4     20, 10, 4, 2
+      test-strategy        66.4    11     22, 13, 7, 3, 4, 4, 3, 2, 3, 2, 1
+      plan                 39.2     3     29, 3, 2
+      step-plan (W1)       21.3     3     12, 4, 2
+      test-spec (W1)       54.5     5     27, 13, 6, 4, 4
+      step-plan (revisit)  14.0     1     12   (unchanged first pass, runtime-verified)
+      test-spec (revisit)  45.3     8     22, 4, 5, 5, 2, 3, 2, 1
+      carry-forward        53.3     3     44, 6, 3
+      system-test-author   29.5     3     20, 6, 2
+      total               360.3    41
+
+    Passes 2..n total 135.8 min (38% of Improve time). Pass 1 plus the opening is about 208 min (58%).
+
+    Classification sequences I could recover from host report files [M, pass_reports.py]. N = non-trivial, T = trivial.
+      spec NNTT
+      test-strategy NNNNNNNTNTT
+      step-plan NTT
+      test-spec NNNTT
+      one unmapped 3-pass child NTT
+    The first pass found a material change in all 5 recoverable children. The one child known to have a trivial first pass is step-plan (revisit), which ended after one pass because the runtime saw the Git tree unchanged.
+
+    Exit assessments reported [M]:
+      test-strategy reported exit `satisfied` on its non-trivial pass 1.
+      spec and the plan Backchain loop reported `unsatisfied` until the gate was met, because their exit text said "two consecutive".
+
+1d. Luna against Sonnet on the same request [M, for Sonnet the run work-20261003-172553-da02fb]
+
+                       Luna 1.16.1                  Sonnet 5.5 (1.16.0)
+    spec               52.7 min, 4 Improve passes   1.4 min, 3
+    test-strategy      94.3, 11                     0.9, 3
+    plan               196.4, 3                     0.6, 3
+    step-plan          187.7, 3                     0.5, 1
+    test-spec          61.2, 5                      0.6, 3
+    Improve total      41 passes, 360 min           24 passes, 5.6 min
+    Backchain loops    2 loops, 11 passes           none (also none in the other Sonnet runs [M-prior])
+
+    Per Improve pass: Luna 8.8 min against Sonnet 0.23 min, about 38 times.
+    Planning artifact sizes [M-prior]: Luna spec 20.8 KB, test-strategy 42.6, plan 32.1; Sonnet 2.0, 3.5, 0.8.
+    Caveat: Sonnet's plan is 0.8 KB, so part of Sonnet's speed is doing little. Luna at max effort writes and re-reviews artifacts 10 to 40 times larger, and each pass pays for that.
+
+1e. Decomposition of the 647.5-min planning window [M/I]
+
+      Backchain loop passes                    214
+      Backchain pre-loop and result phases     102   (pre-loop shares producer work, so not separable)
+      Improve children, first visits (bind to import)   218
+      remaining stages and producers           about 113
+      Backchain plus Improve                   about 534 (83%)
+
+    [M-prior, LEARNINGS "Planning-size audit"] The earlier audit's split of 592 min (Backchain 22+23%, Improve 31%+6% opening, producers 18%) is consistent with this.
+
+====================================================================
+2. SAVINGS ESTIMATES [I; every per-pass duration assumed unchanged; the effect on quality is unknown, not zero]
+====================================================================
+
+    Option                                       Saved in the planning window    Saved over the whole run
+    Backchain one pass (gate 0):
+      plan loop 106 -> 12 min                    94
+      step-plan loop 108 -> 49 min               59
+      total                                      153 (23.6%)                      153 (13.2%)
+    Backchain gate 1 instead:
+      plan stops at pass 6 (saves pass 7)        5
+      step-plan stops at pass 3 (saves pass 4)   4
+      total                                      about 9                          about 9
+    Improve one pass, planning children, first visits (spec, test-strategy, plan, step-plan, test-spec):
+                                                 96 (14.8%)
+    Improve one pass, all planning children incl. revisits and system-test-author:
+                                                                                  126 (10.9%)
+    Improve one pass including carry-forward:                                     136
+    Improve gate 1 on the 5 recoverable children:                                 about 20
+    Backchain not offered at all:                up to 316 (inc. pre-loop)
+
+    Combined Backchain one pass plus Improve one pass in the planning window: 249 min (38%). About 398 planning minutes remain.
+    Gate 1 saves almost nothing here because Luna's non-trivial passes come in long runs. Plan loop: five non-trivial passes before the first trivial one. test-strategy: seven.
+
+====================================================================
+3. THE VENDORED UNTIL LOOP (what it accepts and when it completes) [M]
+====================================================================
+
+Files: /Users/dadleet/src/skill-craft/.claude/worktrees/a1a3-integ-7f216e/skills/improve/runtime/until-loop/ (ADAPTER.md, scripts/until_loop_ephemeral.py, references/runtime-ephemeral.md, PROVENANCE.json). The copy under plugins/skill-craft/... is release output.
+Provenance pin: test/improve.test.sh checks the sha256 of ADAPTER.md, until_loop_ephemeral.py and runtime-ephemeral.md against PROVENANCE.json. Contract values are not vendored, so a different `required_trivial_reviews` touches no hash.
+
+Contract fields [M, schema_experiment.py]:
+  workspace, work, exit_condition, repeat_condition, required_trivial_reviews, context{request, scope, authority, environment, resources[{purpose, locator}]}.
+  Anything else is refused: `max_iterations` and `budget` both gave "contract has an invalid schema".
+  `required_trivial_reviews` is optional, default 0, a non-negative integer; negative, string and boolean are refused.
+  The only size limit is the 16 KiB state file (MAX_STATE_BYTES).
+
+`done` completes the run when (`done` in until_loop_ephemeral.py):
+  exit_assessment == "satisfied"
+  AND (trivial_streak >= required_trivial_reviews OR unchanged_first_pass)
+  and continuation is not "cancelled".
+  `unchanged_first_pass` is: first report trivial, action 1, the workspace Git tree identical to the tree recorded at start. The tree is recorded only when the gate is 2 or more.
+  "blocked" before completion stops the run. "unresolved" with "satisfied" is refused.
+  The streak adds 1 for trivial and resets to 0 for non-trivial or unresolved.
+
+Scratch experiment (/private/tmp/claude-501/-Users-dadleet-src-skill-craft/f7d9360d-b88d-417b-8773-fc5b3eee6419/scratchpad/fast-planning/gate_experiment.py) [M]:
+
+  gate 2, first pass trivial and Git tree unchanged:        complete after 1 pass (unchanged_first_pass)
+  gate 2, first pass trivial but edited:                    2 passes
+  gate 2, first pass non-trivial/unsatisfied, then T, T:    3 passes
+  gate 2, non-trivial first pass with exit satisfied:       still 3 (the gate holds it)
+  gate 1, first pass trivial:                               1 pass
+  gate 1, first pass non-trivial and edited, then trivial:  2 passes
+  gate 0, first pass non-trivial and edited, exit satisfied: complete after 1 pass, streak 0
+  gate 0, first pass non-trivial, exit unsatisfied:         continues; completes at the next satisfied report
+  gate 0, unresolved + satisfied:                           refused by the runtime
+
+So, as stated in the bottom line: gate 0 plus an exit condition satisfiable after one cycle is the owner's "only 1 pass". The model's `exit_assessment` stays the safety valve. A wrong exit text defeats it: Luna's 1.16.1 contracts said "after two distinct complete trivial/no-change reviews", and Luna reported `unsatisfied` on every earlier pass.
+
+Scratch experiment 2 (validator_experiment.py) [M]: runtime terminal packets against ShipLoop's Improve import validator `_ephemeral_terminal_packet` in skills/shiploop/scripts/shiploop_standalone_improve.py:
+
+  gate 2, trivial and unchanged:        ACCEPTS
+  gate 2, N, T, T:                      ACCEPTS
+  gate 1, trivial first pass:           REFUSES "does not meet Improve's two-review minimum"
+  gate 0, non-trivial first pass:       REFUSES, same message
+  gate 0, trivial first pass:           REFUSES, same message
+
+The validator also requires `last_report.classification == "trivial"`, and `_complete_ephemeral` requires 2 review refs (1 only for unchanged_first_pass). So Improve one-pass needs ShipLoop script changes, not just a contract change. Backchain has no such validator.
+
+====================================================================
+4. LOOP-BY-LOOP INVENTORY
+====================================================================
+
+----- L1 Backchain whole loop: `plan`/`draft` (plan stage; observed off-protocol at step-plan) -----
+Knob: `required_trivial_reviews` and the exit_condition text in the child contract.
+Default [M]: 2, plus "two distinct complete trivial/no-change reviews" in the exit text.
+  Seen in /Users/dadleet/e2e-runs/20261003/v1161-battleship-luna/.shiploop-runs/work-20261003-225401-173a04/run/scratch/backchain-plan/until-loop-start-input.json and in the step-plan one.
+  Also in the 1.16.0 run at /Users/dadleet/e2e-runs/20261003/battleship-luna/.../scratch/backchain-until-loop-start.json.
+Who writes it [M]: the host model, by hand.
+  `grep` finds no script that reads the start input or checks the binding marker.
+  `backchain-check` (shiploop_backchain_graph.py) only validates a candidate plan's structure and never gates.
+  This also departs from S-10's "contract the script writes" (open item a02 in docs/shiploop-planned-improvements-2026-10-04.md).
+Where the "2" comes from [M]:
+  skills/backchain/references/convergence.md ("Frozen plan-only child contract": supply an exit requiring two consecutive reviews and `required_trivial_reviews: 2`).
+  skills/backchain/SKILL.md (description and the procedure lines on the two-consecutive gate and review records).
+  ShipLoop's printed plan text, `_BACKCHAIN_PLAN_CALL`/`_backchain_guidance` in skills/shiploop/scripts/shiploop_prompts.py ("its `required_trivial_reviews: 2` gate for two consecutive distinct complete trivial/no-change dependency reviews").
+  skills/shiploop/SKILL.md ("Source-aware Backchain selection").
+  skills/shiploop/references/backchain-planning.md ("Source-aware native caller").
+Other Backchain text that assumes two reviews [M]: convergence.md says the final handoff retains "both original qualifying review records".
+  Backchain's own rule is "never supplies a pass ceiling" and "no custom pass counter". Gate 0 is the Until Loop's own field and violates neither.
+Pinned by tests [M]:
+  test/shiploop-navigator-contract.test.py :: test_native_backchain_operations_reuse_selected_until_loop_subcall (the plan packet must contain the "two consecutive distinct complete trivial/no-change dependency reviews" sentence and "required_trivial_reviews: 2").
+  test/shiploop-navigator-dry-run.test.py :: BackchainStageTextTests.test_the_loop_stage_keeps_every_obligation_the_trim_did_not_target (plan keeps "required_trivial_reviews: 2").
+  Same class :: test_audit_stages_offer_the_audit_and_one_bounded_repair_and_not_the_loop_text (audit stages must NOT contain "required_trivial_reviews").
+  skills/backchain/evals/evals.json (prompts with "two accepted trivial reviews" and "does not synthesize a two-pass count").
+  Other tests hand-write `"required_trivial_reviews": 2` only as fixtures: installed-skill-invocation, improve.test.sh, shiploop-full-runtime, v4-consumers, navigator-v4, stopped-improve, improve-runtime.
+Smallest change (text and state option, no validator) [I]:
+  1. New run option, default `one-pass` (section 5).
+  2. `_backchain_guidance(stage, ..., planning_loops)`. In one-pass mode the plan text says: write `required_trivial_reviews: 0` and an exit condition that one complete review/fix/check cycle ran, with the printed backchain-check on the repaired candidate and domain evidence saved. It also says the child ends on its first `complete` report and no second confirming review is requested. In `full` mode it prints today's sentence.
+  3. Audit stages (spec, step-plan, carry-forward, product-acceptance) print no gate today. They need one sentence in each mode for a repair/revise child, since the host reads convergence.md's 2 otherwise.
+  4. convergence.md, SKILL.md and caller-contract.md of Backchain make the gate caller-selected: use the caller packet's value, default 2. This keeps standalone Backchain unchanged and avoids two prompts contradicting each other. Without it the host follows convergence.md's "2" and the option is silently ignored.
+  5. Update the three test pins; add a test that `full` still prints today's text; add notes under changes/shiploop/ and changes/backchain/.
+  6. Docs: shiploop SKILL.md, backchain-planning.md, state-files.md, navigator.md, README, planning-experiments.md, parallel-chain.md.
+Restore flag: `--planning-loops full` at `init` or `workspace start` (or `planning-loops --set full`). Restore text is today's text.
+What one pass means: section 3, gate 0. A first review that changes the candidate ends with the repaired candidate unreviewed beyond its own checks. Luna plan loop would end at 12 min. Step-plan would have lost its second structural repair (+55 min, D3 added, 16 steps changed).
+Not enforced [M]: no script checks the host's contract, so a model that writes 2 anyway is not caught. Cheap record-only mitigation: the Run Review exporter (skills/shiploop-e2e-audit/run-review/export.py) already reads `until-loop-start-input.json`; it could flag a gate that differs from the run's option. The enforcing fix is a02, a script-written contract with `loop_contract.contract(..., required_trivial_reviews=...)`. It is feasible, but a02's own question (whether a script can write it within the 9,216-byte budget for every stage without losing an obligation) is unanswered, and Luna overran a printed budget by up to 2.6 times.
+Not covered by the flag: the pre-loop cost (gather, draft, elaborate, about 44 min per loop) and the guidance reads.
+
+----- L2 Backchain repair/revise (spec, step-plan, carry-forward, product-acceptance, after a material audit finding) -----
+Same contract path and same knob as L1 (same hand-written contract; the audit-stage packets print only the state budget, not the gate). Same smallest change (item 3 above). Observed in 1.16.1 Luna: none as such (both loops were plan/draft). The audit itself (`review`/`audit`) is already a read-only one-pass diagnostic.
+
+----- L3 Improve review loops: spec, test-strategy, plan, step-plan, test-spec, system-test-author, release-plan; plus the end-of-work carry-forward -----
+Schedule [M]: `stage_spec.with_improve("always")` = those seven; `"last-item"` = carry-forward. The single decision point is `_improve_checkpoint` in shiploop_navigator.py. State validation (`planning <= set(records)`) also requires an Improve record for every planning stage.
+Knob [M]: `required_trivial_reviews=2` literal in `improve_start_contract` (shiploop_navigator.py). The contract is frozen to `start.json` at `improve-start`. The same function holds the exit text ("Two consecutive full review passes find nothing material to change, or the first full pass changes nothing and the runtime sees an unchanged Git tree"), the repeat text, and the plan-stage addition ("...and the two qualifying reviews").
+Who sets the count [M]: ShipLoop's script. The host writes only the four opening sections ("Current context and desired improvements", "Scope", "Authority", "Environment") in `opening.md`, and cannot change gate, exit or repeat.
+Review focus [M]: `PLANNING_REVIEW_FOCUS` in shiploop_prompts.py, six bullets ending "A pass that finds none of these is trivial"; `END_REVIEW_FOCUS` for carry-forward.
+In-script text that states two reviews [M]:
+  `improve_start_contract` exit and plan lines.
+  The packet line "Review passes: the two consecutive trivial passes the runtime requires are self-passes by this same executor, not independent reviewers...".
+  The packet line "improve-complete imports the last two passes (the last one when the first pass changed nothing)".
+  The planning-experiment line "...and the two existing qualifying reviews".
+  `_derived_improve_receipt` (counts 1 or 2 review files).
+  `_complete_ephemeral` and `_ephemeral_terminal_packet` in shiploop_standalone_improve.py.
+Pinned by tests [M]:
+  test/shiploop-actual-improve-cli.test.py :: test_improve_start_freezes_the_contract_and_starts_the_runtime (gate 2 and the stage done-when criteria in the exit text).
+  Same file :: test_default_ephemeral_callbacks_preserve_context_then_import_once (terminal progress action 3, streak 2, required 2).
+  test/shiploop-standalone-improve.test.py :: test_ephemeral_terminal_requires_two_review_minimum_even_when_runtime_gate_is_one (it pins the refusal that blocks one-pass) and test_an_unchanged_first_pass_imports_with_its_one_review.
+  test/shiploop-improve-schedule.test.py :: test_planning_improve_packet_has_focus_callback_first_and_honest_passes (phrase "self-passes by this same executor, not independent reviewers"); test_planning_stages_and_the_end_start_improve and test_state_requires_every_planning_stage_review (the schedule).
+  Fixtures with hand-written gate 2: shiploop-full-runtime, v4-consumers, navigator-v4, stopped-improve, improve-runtime.
+Smallest change for one pass with a restore flag [I]:
+  1. `improve_start_contract`: choose gate and exit text from the run option, for planning-stage children only. Keep carry-forward at full unless the owner says otherwise. One-pass exit: "one full review pass made every warranted change within scope and the applicable checks are recorded", plus `loop_contract.stage_exit`. Repeat text unchanged.
+  2. `_ephemeral_terminal_packet`: replace "required_reviews >= 2" with equality to the gate frozen in this child's `start.json` or in the packet's own `progress.required_trivial_reviews`. Do not read the live state option, or a mid-run `--set` would break the import of an already-started child. Accept a non-trivial last report with exit satisfied when the gate is 0.
+  3. `_complete_ephemeral` and `_derived_improve_receipt`: 1 review ref when the gate is 0.
+  4. Update the four packet lines above and the SKILL.md, README, testing-and-documentation.md and planning-experiments.md prose; one sentence in skills/improve/SKILL.md that the ShipLoop contract's gate governs (the Improve card still says "repeat until two consecutive passes" for standalone use).
+  5. Tests: change the minimum-two test to "minimum equals the child's frozen gate"; add one-pass import, `full` import and mid-run-switch tests; update the schedule and contract pins.
+Gates that stay regardless of pass count [M]: the `improve-complete` commit gate (`improve_changes.commit_refusal`), `checks.md` required, the credential screen, the stage done-when criteria in the exit text.
+One pass means: pass 1 reviews, changes, commits, runs the checks; the report is non-trivial with exit satisfied; the child completes; the repair has no second review.
+Evidence [M-prior and M]: Improve's later passes found real material gaps for Luna. test-strategy had seven non-trivial passes, for example client behaviour for stale-game 404 and terminal 409, and a timeout-fixture window. spec had one more, test-spec two more.
+Smaller alternative: gate 1 saves about 20 min and needs the same validator change, so it is not worth it.
+The planning children also carry the experiment/assumption exit at the plan stage (shiploop_assumptions.py). Those happen in pass 1 already.
+Another lever [I]: the opening file (about 35 min across the run, three of four `improve-start` refusals were the size guard) could be script-derived. It is not a pass-count knob and is not needed for this request.
+
+----- L4 Test and quality loops (S-10; leave alone) -----
+Quality loop (static-checks): contract from `shiploop_quality.build_contract`, gate `required_trivial_reviews=1`; texts QUALITY_ITERATION, QUALITY_EXIT_CONDITION, QUALITY_REPEAT_CONDITION in shiploop_prompts.py (printed "there is no iteration limit"). `check_terminal` compares the terminal packet with the contract rebuilt from run state.
+Test loop (test-green, regression): `shiploop_test_loop._contract`, gate 1; texts TEST_ITERATION, TEST_EXIT_CONDITION, TEST_REPEAT_CONDITION.
+Both end only on an iteration that changes nothing; stops are blocked or the packet's pause command; no cap [M].
+Pinned: shiploop-test-loop `test_each_stage_loops_on_its_exact_commands`; shiploop-quality `test_packet_carries_script_authored_contract_rubric_and_inventory`; shiploop-full-runtime `_run_quality_loop`.
+Prompt-level cap [M]: `PASS_OR_STOP` (stages integration-verify and test-refine) says 3 genuine fix attempts, then outcome revise.
+Multiplier [M]: a `revise` replays planning. In the Luna run `revisions: {W1: 1}` replayed step-plan (28.5 min) and test-spec (67.4 min, 8 Improve passes).
+
+----- L5 Event-driven restarts (no pass count) -----
+A plan-stage Improve child that finds an invalidated upstream premise stops cancelled and ShipLoop restarts the planning suffix (`improve-reconcile`, shiploop_planning_revision.py). In the Luna run `planning_reconciliations` was empty [M].
+
+====================================================================
+5. WHERE A RUN-LEVEL FLAG LIVES [M]
+====================================================================
+
+Existing run options in state.md: `delegation` (inline default, ask-agent) and `lint` (fix default, report, off). There is no `profile`, `fast` or `mode` option, and no env var that selects run behaviour (the only SHIPLOOP_* variables are operational: KEEPALIVE, PROGRESS, GIT_TIMEOUT).
+Plumbing the `lint` precedent shows (a `planning_loops` key would mirror it):
+  shiploop_navigator.py: `_STATE_KEYS`, `new_state(... lint_option=)`, `validate` (a saved run without the key is refused with a named error, matching "one supported version"; no STATE_VERSION bump was needed for `lint`), `set_lint_mode`.
+  shiploop_protocol.py: argparse for `init` and `workspace start`, the passthrough to `init`, `_require_retry_lint` (a retry cannot change the option), verb `lint-mode --set`.
+  Docs: SKILL.md "Script-owned lint", references/state-files.md, navigator.md.
+Fixture impact of a new required key: 103 uses of `new_state` in test/ pick it up automatically; only 2 test files hand-set a state key list [M].
+Recording it in state.md is also what S-6 asks, so the option survives context loss.
+Mid-run `--set`: optional (KISS). If added, it must apply only to loops started afterwards.
+E2E harness [I/M]: test/shiploop_e2e/run.py passes flags only for seeded runs (`--delegation=ask-agent`). For a model-started run (the Luna case) the host chooses the flags, so the default applies. Restoring `full` for a comparison run would need an env var read by `init` (not yet supported; whether the Codex shell inherits it is unknown) or a change to the host prompt.
+A hosts-run-the-released-version caveat [M, AGENTS.md and invocation.json]: marketplace-installed runs use the released plugin, so a new default reaches Luna only after `scripts/release.py` and a fresh-profile install. The live v1200 run is on 1.20.0 and acts as the baseline for the new default.
+
+====================================================================
+6. SPEC, OWNER RULES AND THE ADVERSARIAL EVALUATION (SPEC "Change admission" and "Evolving this spec")
+====================================================================
+
+S-10 text [M]: "Quality, test and review loops (Until Loop) run until a stated, checkable condition holds, with a frozen contract the script writes and iterations the script counts. There is no iteration cap." SPEC says to amend the spec first, in its own commit.
+Proposed amendment (for the owner to confirm and date; I suggest 2026-10-04):
+  "S-10 carve-out, owner decision 2026-10-04: the planning review loops, Backchain plan/draft and repair/revise children and the Improve children at the planning stages, default to one pass (`required_trivial_reviews: 0`, exit condition one complete review/fix/check cycle with the checks run on the repaired candidate). A pass that reports an open gap, a block or a user stop still continues or stops as before; there is no cap. `--planning-loops full` restores the two-consecutive-trivial gate. Quality and test loops are unchanged. Basis: Luna max spent 83% of its planning window in these loops; later passes mostly strengthened confirm clauses."
+Backchain's contract is host-written, so it is already outside S-10's "script writes" clause until a02.
+
+Where the owner's rules conflict, honestly:
+  - "Steps must iterate until a stated check confirms each exit criterion": real conflict for Improve and Backchain. One pass keeps script-run checks (`backchain-check` record-only, `checks.md`, the commit gate, done-when criteria) but removes the confirming review. Luna's later passes found real gaps. The owner's override is explicit only for Backchain, so Improve one-pass needs his yes.
+  - "LLM passes close about 80% of the remaining gap": one pass leaves 0.2, two leave 0.04 by the postulate. Luna did not converge that fast (test-strategy needed 8 passes for its first trivial one).
+  - "No cap" for quality and test loops: not affected.
+  - "Enterprise rigour is standard": a confirming planning review is not tests, security or ownership. test-strategy is the planning of tests, though, and its extra passes found real test-plan gaps.
+  - "Verbose prompts over size bounds": not engaged if only the loop sentences are swapped and no justified guidance is deleted. "Cut the prompts" would conflict with it, and also with "concise, meaningful change"; I recommend deleting no obligation.
+  - KISS: the text-and-option increment A is KISS. Script enforcement (a02) waits for evidence.
+  - One supported version: a new required state key refuses older saved runs, consistent with that.
+
+Adversarial evaluation, one line each (consequence: disposition):
+  - weakens S-10 and S-9: accepted via the carve-out; the exit condition stays checkable and no cap is added. The record-only `backchain-check` and the Improve import gates remain.
+  - lost material findings (measured above): accepted by owner decision for Backchain; for Improve, owner to confirm. The end-of-work Improve at carry-forward can stay at full; later stages re-read these artifacts.
+  - the host writes 2 anyway (Backchain): fails silently. Mitigate with the caller-selected gate in convergence.md plus a record-only exporter flag; a02 only if it recurs.
+  - the model reports `unsatisfied` after the changing pass (Luna's habit with "two consecutive" exit text): the loop continues; fix by the exit wording; unverified live.
+  - other hosts and Sonnet: Sonnet's Improve cost is 5.6 min total, so little to gain, and the effect on its quality is unmeasured.
+  - saved runs: refused with a fresh-run message (the established pattern).
+  - packet size (S-7): the one-pass text replaces the two-pass text in each mode; nothing is added to the printed packet.
+  - gaming a metric: pass count and minutes will drop whatever happens to quality. Pre-register the comparison: same case and model, 1.20.0 baseline run against the one-pass build, judged by planning-artifact defects found by later stages and by the rubric-eval skill.
+  - a journal entry and a verbose commit are required for each prompt or default change (owner rule).
+
+====================================================================
+7. RECOMMENDED INCREMENTS (each verified by a script-run test)
+====================================================================
+
+A. Flag plumbing (`planning-loops`, default `one-pass`, state key, CLI on `init` and `workspace start`) plus the Backchain text change in both modes and the three Backchain doc edits. Verify with the updated contract and dry-run tests, a new test that `full` prints today's text, a state-key refusal test, a CLI option and retry-guard test, and the vendored-provenance test unchanged (improve.test.sh).
+B. SPEC S-10 amendment in its own commit before A lands, with the proposed text above.
+C. Improve one pass for planning stages, with the validator changes in section 4 L3. Verify with a standalone-improve test for gate 0 import and for the frozen-gate rule, an actual-improve-cli test of the contract in both modes, and the schedule tests unchanged. Do not do C without the owner's confirmation that it covers Improve.
+D. Optional: not offering Backchain (print the audit route only), if the owner wants the 316-min item gone. It is already optional in the packet ("may request"); Sonnet never ran it. The cause of Sonnet's non-use is unproven.
+E. Then one comparison run. Add new tests inside existing files, otherwise register new top-level files in test/suite_catalog.py.
+
+====================================================================
+8. WHAT I COULD NOT DETERMINE
+====================================================================
+
+- Whether Luna on 1.20.0 still starts the step-plan Backchain loop (live run, not at that stage yet; the I2b trim claims no loop fix).
+- Whether the model's `exit_assessment` after one changing pass will be `satisfied` under the new exit wording. The runtime side is verified; the model side needs a live run.
+- The quality cost of dropping passes. No comparison run exists [M-prior]. The only evidence is which findings later passes made.
+- Classification sequences for 4 of the 9 Improve children (plan, carry-forward, system-test-author, step-plan revisit pass details) and per-pass classifications of the step-plan Backchain loop (pass-reports directory absent); I used the ledger and the exported record for those.
+- Whether the Codex shell inherits an env var from the harness.
+- The exact bytes saved in the printed packets by the change (not measured; I expect it to be neutral).
+- The earlier audit's 186-min Improve figure differs from my 218-min bind-to-import window (about 35 min of opening files likely explains it).
+
+Scratch scripts and output (all under /private/tmp/claude-501/-Users-dadleet-src-skill-craft/f7d9360d-b88d-417b-8773-fc5b3eee6419/scratchpad/fast-planning/):
+  gate_experiment.py, validator_experiment.py, schema_experiment.py (runtime and validator behaviour);
+  stage_time.py, improve_passes.py, per_pass_times.py, counterfactual.py, backchain_passes.py, pass_reports.py (timing);
+  dry-run-delivery.md (rendered packets).
+  Note: stage_time.py and improve_passes.py may have replaced earlier same-named scratch files in that directory.

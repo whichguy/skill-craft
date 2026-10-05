@@ -1,0 +1,295 @@
+REPORT: what the multi-pass planning loops bought and cost, Luna max battleship, skill-craft 1.16.1 / ShipLoop 0.48.1
+
+Conventions: [M] means I read or ran it. [I] means inferred. Paths are absolute. RUN = /Users/dadleet/e2e-runs/20261003/v1161-battleship-luna and RD = RUN/.shiploop-runs/work-20261003-225401-173a04. Source tree checked: /Users/dadleet/src/skill-craft/.claude/worktrees/a1a3-integ-7f216e (clean before and after; I edited nothing and wrote nothing under e2e-runs).
+
+---------------------------------------------------------------------
+0. BOTTOM LINE
+---------------------------------------------------------------------
+1. [M] The loops' repeat passes are not the main cost. Backchain passes 2..N plus Improve passes 2..N at the 7 planning children are 271 min of 1,158.5 (23.4%).
+   - Everything else is first-pass work at effort max.
+   - 99.5% of the wall clock is Luna generating tokens at about 51 to 55 tokens per second. Tool execution is 0.3%. Waiting on an API stall is about 2%.
+2. [M] Backchain is the largest single planning item.
+   - It costs about 250 to 290 min (22 to 25% of the run) when its prep and result-writing are counted.
+   - Of that, only 152.6 min are passes 2..N.
+   - So "one pass by default" gets about half of what "not run" gets. Disabling Backchain at plan and step-plan saves about 260 min. A one-pass default saves 153 min.
+   - In 1.20.0 only the `plan` stage offers a whole loop (commit 3592b195). There a one-pass default saves 94 min (8.1%) and not running it saves about 130 min.
+3. [M] Quality given up by a single pass is small for Backchain and mixed for Improve (section 4).
+   - Backchain's later passes fixed 3 confirm clauses (+422 bytes) and one scratch-metadata label at the plan stage.
+   - They also found 2 omissions at step-plan.
+   - Improve's later passes at planning stages (7 children) changed things in 13 of 32 passes. By my labels, 3 were warranted, 7 marginal and 3 churn.
+4. [M] Prompt length is not what makes Luna slow. Latency is 89% output decode, 7.6% fixed per call and 3.3% input context. The lever is what the prompts make the model write and think (loops, per-outcome confirmations, lens screens, review records), not how many bytes it reads.
+5. [M] A one-pass Backchain default cannot be done by changing `required_trivial_reviews` alone.
+   - The model-written contract also embeds "two distinct trivial reviews" in its exit condition. Luna reported `exit_assessment: unsatisfied` on every pass until the second clean one (section 7).
+   - A SPEC S-10 carve-out is needed.
+
+---------------------------------------------------------------------
+1. SOURCES AND METHOD
+---------------------------------------------------------------------
+- [M] Run facts, from RD/run/state.md history joined to timeline.json:
+  - 39 accepted actions, 1,158.5 min (19.31 h), ending `blocked` at `system-test`.
+  - Session 1 ran 22:53Z to 08:53Z (the 10 h timeout). Session 2 was a resume, 08:56Z to 18:13Z.
+  - One worker subagent, `backchain_plan`, ran 02:13Z to 04:35Z.
+- [M] Per-call timing, decode rate and token counts come from the three Codex rollouts in RUN/home/.codex/sessions/2026/10/03 and /04.
+  - Counts: 1,381 + 320 + 1,218 = 2,919 responses.
+  - A response's latency is its token_usage_record time minus the last tool-output or user-message time.
+- [M] Review minutes for the Backchain plan loop come from `until-loop-start-input.json` and `pass-reports/action{N}-done-packet.json` mtimes. Step-plan pass times come from `review-records/review-0N-callback-result*.stdout`.
+- [M] Improve minutes come from `start.json` and `reviews/review-N.md` mtimes under RD/worktree/.shiploop-improve/nav-90b1a8dbbb9948d99560f2493fa55695/<child>/.
+  - Which passes changed something comes from the scoped commits, saved callback reports (`classification`), review-note text and git log. These agree.
+- [M] My pass minutes differ from the earlier ledger by up to 7 min per step-plan pass (mine 48.8 and 49.4 against the ledger's 42 and 55), because the file stamps differ. Loop totals agree within 3%. The ledger's "Backchain plan loop about 128 min and step-plan about 136" reproduce as prep + passes + result write (127.6 and 136.3).
+
+---------------------------------------------------------------------
+2. (a) MINUTES AND SHARES
+---------------------------------------------------------------------
+Backchain (minutes; share of 1,158.5)
+- Plan loop, in a worker thread (02:46:56Z to 04:32:35Z): passes 105.7 (9.1%).
+  - With prep (about 19.8) and result write (2.1): about 128 (11.0%).
+  - The prep figure is the worker's time after plan.md was last edited at 02:27:07Z. The parent wrote plan.md in parallel, 02:16 to 02:27Z.
+- Step-plan loop, inline in the main thread: passes 107.7 (9.3%).
+  - Prep (about 16.5) and result write (12.1) bring it to about 136 (11.8%).
+  - In 1.16.1 the packet is off-protocol here: the caller packet names action `plan` / stage `draft`, which only the plan stage may request.
+
+Improve children (start to receipt)
+
+| child | min | share | passes |
+|---|---|---|---|
+| spec | 29.6 | 2.6% | 4 |
+| test-strategy | 61.4 | 5.3% | 11 |
+| plan | 24.2 | 2.1% | 3 |
+| step-plan #1 | 18.7 | 1.6% | 3 |
+| test-spec #1 | 52.2 | 4.5% | 5 |
+| step-plan #2 | 11.7 | 1.0% | 1 |
+| test-spec #2 | 41.2 | 3.6% | 8 |
+| carry-forward | 43.4 | 3.7% | 3 |
+| system-test-author | 23.0 | 2.0% | 3 |
+| total | 305.4 | 26.4% | 41 |
+
+- Within those 305 min: pass 1 is 152.5 (13.2%), later passes 135.8 (11.7%), open and close about 19.5.
+- The 7 planning children (everything except carry-forward and system-test-author) account for 239.0 min. Their later passes are 118.6 min. These match the 186 min the earlier audit gave for the first-item planning Improve loops.
+
+Planning phase (stages 1 to 10, 647.5 min = 55.9% of the run)
+- Backchain passes: 213.4 (33.0%).
+- Backchain prep and result: about 36 prep + 14 result, or up to 127.8 if all non-loop minutes in those two stages are counted.
+- Improve pass 1 plus open/close: 89.9.
+- Improve later passes: 96.2.
+- Plain producer work: about 120.
+- Backchain therefore takes 250 to 340 of the 647.5 planning minutes (39 to 53%). Planning including the second step-plan and test-spec visit is 743.5 min (64%).
+
+---------------------------------------------------------------------
+3. (b) PER-PASS TABLES
+---------------------------------------------------------------------
+Labels: W = warranted (fixes a real defect against the stage's own done-when or the spec). M = marginal (real but minor, scope-adding, or manual-browser detail for a case that never ran). C = churn (corrects an earlier pass's own change, or has no product effect). T = confirmation, no change. The labels are my judgement [I]; the criterion is stated, and there is no ground truth.
+
+3.1 Backchain plan loop (RD/run/scratch/backchain-plan; each log is pass-reports/pass-0N-log.md, each record review-records/action-N-review.json)
+
+| pass | min (ledger) | out tokens (reasoning) | what changed | label |
+|---|---|---|---|---|
+| 1 | 12.0 (11) | 38k (19k) | 14 of 20 steps edited, +5.8 KB. I recovered the pre-loop candidate from `pass-01-audit-input.md` and diffed it [M]. F-1: wrong supplier edge S6 from S4 (page consumed server output). F-2: API-CONCURRENCY-15 obligation unindexed (duplicate-once and mutation order). F-3: browser recovery report omitted. | W |
+| 2 | 15.4 (15) | 47k (22k) | S2 `confirm` level inspect to execute; 0 bytes | W-minor |
+| 3 | 25.5 (26) | 78k (37k) | S4 `confirm.by` +198 B (F-5, manifest and lockfile inspection for AC-01) | M |
+| 4 | 18.2 (18) | 56k (16k) | S11 `confirm.by` +224 B (F-6, ambiguity) | M |
+| 5 | 19.8 (17) | 58k (25k) | candidate unchanged (digest 3853b978 before and after). F-7: SRC-8 provenance label in scratch metadata. Classified non-trivial, so it delayed convergence. | C |
+| 6 | 9.6 (12) | 29k (11k) | none; clean streak 1 | T |
+| 7 | 5.2 (4) | 17k (5k) | none; clean streak 2 | T |
+
+- Passes 2 to 4 do not touch edges or goals. They change one confirm clause each: S2, S4, S11.
+- AC-01 no-npm verification was already fixed in the test strategy by Improve review 1 (finding 1), about 2 h earlier. I judged F-5 and F-6 as restating it.
+- The 20-step graph is never consumed [M].
+  - The plan result puts it only in `evidence_refs`, with `parallel_groups` empty.
+  - The step-plan packet contains one locator for it. The test-spec and test-author packets contain none.
+
+3.2 Backchain step-plan loop (RD/run/scratch/backchain-step-plan; review-records/review-0N.json and review-0N-candidate-plan.json)
+
+| pass | min (ledger) | out tokens (reasoning) | what changed | label |
+|---|---|---|---|---|
+| 1 | 48.8 (42) | 148k (85k) | 17 to 19 steps: D1 and D2 added. F-01: rejection tests and a docstring per public export. F-02: SHIPLOOP.md house style. | W against the parent packet |
+| 2 | 49.4 (55) | 150k (93k) | D3 added, 16 steps' inputs changed, +11.4 KB. F-03: README/AGENTS/local-skill fit. F-04: effort/benefit comparison. | W against the packet, low product impact [I] |
+| 3 | 5.7 (6) | 18k (8k) | none | T |
+| 4 | 3.8 (4) | 12k (3k) | none | T |
+
+- F-03 and F-04 are items the parent packet required and pass 1 missed [M]. Pass 1's source refs stop at packet lines 404 to 407. F-03 cites 410 to 421 and F-04 cites 423 to 442. So pass 1 did not enumerate the whole requirement list [I].
+- Defect D1 is a discovered step consumed by nothing.
+  - It survived passes 1 to 4 and the Improve review.
+  - `validate_structure` of `shiploop_backchain_graph.py` flags it as invariant 4 at the pass-1, pass-2 and final snapshots [M]. I ran it from the source tree on scratch copies, and it passes all four plan snapshots.
+  - The plan-loop snapshots (pre-loop, after pass 1, after pass 2, final) are all valid, so a script check would also have saved no plan pass.
+  - Extra passes did not find D1; a script check did.
+
+3.3 Improve children. Each pass is minutes then label. Notes are RD/worktree/.shiploop-improve/nav-90b1a8dbbb9948d99560f2493fa55695/<child>/reviews/review-N.md. Saved callback reports are RD/run/scratch/improve-*-report.json, nav-<id>-review-N-report.json and inner-improve-action*-report.json.
+
+- spec (nav-3e3bc649...): p1 12.2 W, p2 9.6 M, p3 4.0 T, p4 2.3 T.
+  - p1: row-major AC-04, Cache-Control, PORT range, fixture.
+  - p2: adds a 10-second client deadline and recovery semantics. This is new product scope, and it spawned 6 later test-strategy passes.
+- test-strategy (nav-445bad94...; commits f798bd4, 6836fc0, 9345cd3, 04fddf2, 943457e, 84a67ce, bb9800a, a1241cb):
+  - p1 16.8 W (AC-01 incomplete verification, fleet-leak, 1 KiB body, RNG fixtures).
+  - p2 12.7 W (RNG source could be ignored, server delegation unproven, contradictory port procedure).
+  - p3 7.2 W (same RNG false-pass again, negative-API stimulus map; late-response isolation is M).
+  - p4 3.3 C (fresh LCG per sample, a bug in p3's own fix).
+  - p5 4.4 M (browser 404/409).
+  - p6 4.4 M (loading and pending assertions).
+  - p7 3.0 C (11 s to 15 s delay, a margin set by p2).
+  - p8 1.7 T.
+  - p9 2.9 M (New Game by keyboard and pointer).
+  - p10 1.7 T, p11 1.5 T.
+- plan (nav-ae63595f...): p1 14.2 M (adds a "chartroom" visual direction, a scope-adding UI polish note that Backchain's seven passes did not raise), p2 2.7 T, p3 2.3 T.
+- step-plan #1 (nav-df89f592...): p1 9.1 M (result headline and C2 scope, result file only, no commit), p2 3.6 T, p3 2.3 T.
+- test-spec #1 (nav-12954311...): p1 24.7 W (14-test minimum unenforced, duplicate replay omitted, seed calibration claimed done), p2 12.8 W (pre-adapter rejection against post-win, exact 1024/1025-byte bodies), p3 6.0 M (browser reload step), p4 3.8 T, p5 4.0 T.
+- step-plan #2 (nav-5803fe59...): p1 10.1 T. This is the only child of 9 that ended on a first-pass no-change.
+- test-spec #2 (nav-8e3cc6c3...):
+  - p1 18.1 W (pre-listen oracle).
+  - p2 3.8 C (JSON.stringify of the empty string).
+  - p3 4.9 T.
+  - p4 5.3 M (`'1.5'` PORT; it reached test/server-startup.test.js).
+  - p5 2.2 T.
+  - p6 3.0 M (fractional column; it reached test/http.test.js).
+  - p7 1.6 T, p8 1.5 T.
+- carry-forward (nav-c1cf6ab5...): p1 33.8 W (found a real product defect, reversed row and column axis labels, commit 0960166), p2 5.5 T, p3 2.9 T.
+- system-test-author (nav-cd7ceba6...): p1 13.4 W (missing returned-source consumer check), p2 6.4 T, p3 2.4 T.
+
+Counts across the 41 passes:
+- First passes: 9, of which 6 W, 2 M, 1 T. The 8 changing first passes cost 152.5 min including the carry-forward and system-test-author ones.
+- Later passes: 32. Changing: 13 (3 W, 7 M, 3 C). Confirmations: 19.
+- Later passes at the 7 planning children: 118.6 min. By label: W 32.7 min (3 passes), M 35.7 (7), C 10.2 (3), T 40.1 (15).
+- Later passes at carry-forward and system-test-author: 4 passes, 17.2 min, all confirmations.
+- Tokens at the 7 planning children: first passes 317k output tokens (102 model-min), later passes 346k (118 model-min).
+
+Sonnet comparison [M]: the same prompts produce rubber stamps on Sonnet.
+- Later-pass notes are 124 to 165 bytes ("Re-read ... No change") written 0 to 1 s apart.
+- Improve start to receipt is 0.5 to 3.4 min of an 8 to 15 min hello run.
+- The 1.20.0 hello run (519 s) ended all 8 children at pass 1.
+- Luna's later passes are real 1.3 to 5.6 KB reviews.
+- The earlier hello finding (9 of 12 first-pass changes warranted; passes 2 to 3 changed nothing in any of 12) I did not re-adjudicate. My nearest-note commit mapping is unreliable on Sonnet because its notes are seconds apart.
+
+---------------------------------------------------------------------
+4. (c) SAVINGS AND QUALITY LOST
+---------------------------------------------------------------------
+Savings on this run (1,158.5 min)
+
+| scenario | saved | share | run becomes |
+|---|---|---|---|
+| A. Backchain one pass, both loops as run in 1.16.1 | 152.6 min (ledger basis 157) | 13.2% | |
+| A'. Backchain one pass, plan loop only (1.20.0 offers only that) | 93.7 | 8.1% | |
+| B. Backchain not run, both loops | about 250 to 290 | 22 to 25% | |
+| B'. Backchain not run, plan loop only | about 128 to 150 | 11 to 13% | |
+| C. Improve one pass at the 7 planning children | 118.6 | 10.2% | |
+| C'. Improve one pass at all 9 children | 135.8 | 11.7% | |
+| A + C | 271 | 23.4% | about 14.8 h |
+| A' + C | 212 | 18.3% | about 15.8 h |
+| B + C | about 370 to 410 | 32 to 35% | about 12.5 to 13.1 h |
+
+- Repeat passes also cost tokens: 285k (Backchain plan, passes 2 to 7) + 180k (step-plan, passes 2 to 4) + 346k (Improve, planning) = 811k of 3.54M output tokens (23%).
+- Single-pass Backchain still pays prep, the first pass and result-writing. Its first pass is 12.0 min at plan and 48.8 at step-plan.
+- A weaker option: stopping Improve at the first no-change pass instead of two consecutive saves only 30.6 min (2.6%). It would lose 4 marginal changes.
+
+Quality lost, specifically
+
+- Backchain plan loop, passes 2 to 7: lost are F-4 (S2 confirm level), F-5 (S4 manifest inspection wording), F-6 (S11 confirm wording) and F-7 (a provenance label in scratch metadata).
+  - These are 422 bytes of confirm text in a graph nothing consumes.
+  - AC-01 no-npm verification was already in the test strategy and in the built tests.
+  - The later system test did not evaluate them. It never ran its automated catalogue past the blocked browser cases, and the five registered Node suites passed 16 of 16.
+  - Whether the clean confirmation passes ever prevented anything is unknown. There is no counterfactual.
+- Backchain step-plan loop, pass 2: F-03 and F-04 (README/AGENTS/local-skill fit, effort/benefit comparison) would be lost. Neither the Improve review nor any later stage caught them. They are packet-required items, so a pass 1 that enumerates the packet's requirement list would probably catch them [I]. In 1.20.0 the whole loop is not offered at step-plan.
+- Improve later passes at planning stages.
+  - Lost warranted fixes:
+    - Test-strategy: an RNG-ignoring false-pass oracle, an unproven server-to-rules delegation, and the negative-API stimulus map.
+    - Test-spec #1: duplicate-replay and pre-adapter rejection oracles.
+  - Lost marginal items reached built tests (`'1.5'` PORT, fractional column), so later test-spec passes shaped real tests. This holds even though the same findings could be enumerated up front.
+  - About 22 min of test-strategy passes (p5, p6, p7, p9 and part of p2 and p3) refine two browser cases that never ran. The system-test stage blocked on exactly those cases, SYS-BROWSER-PLAY-13 and SYS-BROWSER-RECOVERY-14.
+  - Single-pass Improve would also not have prevented the 3 self-inflicted corrections (3 C passes).
+- Carry-forward and system-test-author find all their real defects in pass 1, so single-pass loses nothing there.
+
+---------------------------------------------------------------------
+5. (d) IS THE SLOWNESS THE PASSES?
+---------------------------------------------------------------------
+Critical path, second by second, with the worker's time substituted for the parent's idle:
+
+| category | min | share |
+|---|---|---|
+| Luna generating (model) | 1,152.2 | 99.5% |
+| tool execution | 3.0 | 0.3% |
+| resume gap between sessions | 3.1 | 0.3% |
+| waiting on subagent | 0.2 | |
+
+- The parent's `sleep` (54.1 min) and `wait_agent` (28.5 min) polling happened while the worker was busy. It is off the critical path, but its 430 polling responses cost 117k output tokens.
+- Latency model, 2,918 responses, R² 0.93:
+  - latency = 1.9 s + 18.1 s per 1k output tokens (about 55 tokens per second) + 0.006 s per 1k cached input tokens.
+  - Output decode is 89.1% of model time, fixed per call 7.6%, input context 3.3%.
+  - Responses with latency above fitted decode time total only 23 min over 5 responses (one 12 min stall, likely web search).
+- Volumes:
+  - 3.54M output tokens, of which 2.04M reasoning (57.6%).
+  - 392.7M input tokens, 97.1% cached.
+  - 40 context compactions took 44.0 min (3.8%), inside the model time above.
+- What the output is:
+  - 157 responses with a large authoring call (more than 6k characters) are 21.0% of output tokens.
+  - 486 medium-call responses are 26.7%.
+  - 2,276 small or message-only responses are 52.3% of output tokens (1.245M reasoning tokens, about 547 per response, about 10 s each). That is about 376 min, or 32.5% of the wall clock, spent reasoning before short commands. This is the effort-max signature.
+- Wall-clock shares by loop role (minutes): Improve pass 1 152.5, Improve later passes 135.8, Backchain step-plan passes 107.7, Backchain plan passes 105.7, everything else 656.8.
+- Evidence that effort and model, not the loops, drive the baseline:
+  - Stages with no loop were slow on Luna max too: discovery 12.7 min and research 24.7.
+  - The earlier batch-1121 entry has discovery and research 4 to 10 times Grok's time.
+  - Sonnet did the same graph in about 9 to 19 min.
+  - The in-progress 1.20.0 run's research took 8.4 min against 24.7 here. That shows large run-to-run variance for an identical model and effort (n=1 each).
+- What single-pass will not fix: about 75% of the run (first-pass loop work, stage producers, build, tests) plus effort-max reasoning. The effect of lower effort on this graph is unmeasured; no same-case run at lower effort exists on 1.16.x.
+- Context and prompt reading costs about 7% (compaction 3.8% + cached-input latency 3.3%). Cutting bytes of guidance helps by that much at most. Cutting obligations that induce output helps more.
+
+---------------------------------------------------------------------
+6. OWNER RULES AND SPEC: WHERE THEY CONFLICT
+---------------------------------------------------------------------
+- SPEC S-10 says "Quality, test and review loops (Until Loop) run until a stated, checkable condition holds ... no iteration cap." The Backchain plan loop is such a review loop. A one-pass default is a different stated exit condition, not a numeric cap, but it needs a SPEC carve-out recorded as an owner decision dated 2026-10-04.
+  - The memory notes "no cap, no revise/blocked for running long" apply to quality and test loops. They are textually broader than the owner's request and should be narrowed in the same record.
+  - S-10 also says "a frozen contract the script writes." The Backchain contract is written by the model (glue). The loop-start contract is model-built; ShipLoop writes only the Improve contract.
+- "Steps iterate until a stated check confirms each exit criterion" and the 80% postulate.
+  - A single model pass leaves a residual. Evidence here: pass 1 found the 3 structural findings; later passes found only minor ones.
+  - The owner's "test pass is the evidence" note favours replacing the model's confirmation passes with a script check. `backchain-check` already exists (6a997a02, record-only) and caught D1, which four model passes missed.
+- "Enterprise rigour is standard." Per-outcome confirmations and source identity stay in pass 1. Passes 2..N were redundancy more than rigour, for the plan loop.
+- "Verbose prompts over size bounds" against "prompts concise, aimed at meaningful change." Measured: bytes of input are about 3% of latency, so trimming text will not speed Luna. Reducing what must be produced will.
+- The owner's explicit override covers Backchain passes. Single-pass Improve is not covered by the request and would also need a carve-out.
+
+---------------------------------------------------------------------
+7. FACTS THAT AFFECT HOW SINGLE-PASS WOULD BE BUILT
+---------------------------------------------------------------------
+- [M] Runtime gate semantics, tested in scratch with the vendored `skills/improve/runtime/until-loop/scripts/until_loop_ephemeral.py`:
+  - `required_trivial_reviews: 0` completes after one non-trivial pass whose `exit_assessment` is satisfied.
+  - `1` needs two passes after a non-trivial first pass. `2` needs three.
+  - The runtime default is 0.
+- [M] In the Luna Backchain loops the model reported `exit_assessment: unsatisfied` on every pass until the second clean one. Plan passes 1 to 5 were non-trivial/unsatisfied, pass 6 trivial/unsatisfied, pass 7 trivial/satisfied. Step-plan passes 1 and 2 were non-trivial/unsatisfied.
+  - The cause is the exit condition text, copied from `skills/backchain/references/convergence.md` ("Frozen plan-only child contract"). It demands two distinct clean reviews and sets `required_trivial_reviews: 2`.
+  - So a one-pass default has to change both the gate and the exit-condition wording.
+- Files that state the two-review rule:
+  - `skills/shiploop/scripts/shiploop_prompts.py::_backchain_guidance`
+  - `skills/shiploop/references/backchain-planning.md` (Source-aware native caller)
+  - `skills/shiploop/SKILL.md` (Source-aware Backchain selection)
+  - `skills/backchain/references/convergence.md`
+  - `skills/backchain/SKILL.md` (description and a section on the two consecutive reviews)
+  - Pins: `test/shiploop-navigator-dry-run.test.py` (expects `required_trivial_reviews: 2` in the plan packet) and `test/shiploop-navigator-contract.test.py`.
+- Nothing refuses a different Backchain contract. `backchain-check` is record-only. Improve is script-owned: `shiploop_navigator.py` passes `required_trivial_reviews=2` through `loop_contract.contract`, so that default is easy to enforce.
+- Backchain is already optional ("may request" in `backchain-planning.md`).
+  - There is no flag today.
+  - In 1.20.0, `BACKCHAIN_NATIVE_CALLS` holds only `plan`; spec, step-plan, carry-forward and product-acceptance get the read-only one-pass audit route. Commit 3592b195 states its live effect on Luna is unverified.
+
+---------------------------------------------------------------------
+8. LIVE 1.20.0 RUN (read only)
+---------------------------------------------------------------------
+- RUN2 = /Users/dadleet/e2e-runs/20261004/v1200-battleship-luna. As of 17:31 PDT it has 3 accepted stages: intake 5.1, discovery 18.3, research 8.4 min.
+- Its spec stage was reading backchain-planning.md when its first Codex session ended at 17:14 PDT, with "Custom tool call output is missing" errors. No second rollout or `codex exec` process was visible afterwards.
+- That session had 69 responses at 99.6% model time and 116k output tokens. No planning-loop evidence exists yet from 1.20.0.
+
+---------------------------------------------------------------------
+9. WHAT I COULD NOT DETERMINE
+---------------------------------------------------------------------
+- The effect of lower reasoning effort on time or quality.
+- Whether any later pass prevented a downstream failure.
+- Whether Luna on 1.20.0 starts a step-plan Backchain loop again (the 1.16.1 start is n=1 and unexplained by packet text).
+- The exact Backchain-only share of the pre/post minutes: 36 certain, up to 88 pre and 39 post.
+- The Improve opening-contract cost. The earlier "35 min" is not isolated here. The 4 `improve-start` refusals cost about 3 min at test-strategy.
+- Mtime-based pass minutes may differ from timestamps in the engine by about a minute.
+- My W/M/C labels are judgement.
+
+---------------------------------------------------------------------
+10. SCRATCH
+---------------------------------------------------------------------
+Copies of my scripts are in /private/tmp/claude-501/-Users-dadleet-src-skill-craft/f7d9360d-b88d-417b-8773-fc5b3eee6419/scratchpad/fast-planning/luna-passes-time/. The shared directory above it also holds files from other agents, which I did not touch. Larger inputs such as `runs_1161.pkl` and `crit_1161.pkl` are in the shared directory (regenerate with `windows.py` / `critical_path.py`).
+- `stages.py`: stage windows
+- `rollout_time.py`, `windows.py`, `critical_path.py`, `buckets.py`: time decomposition
+- `pass_tokens.py`: Backchain per-pass tokens
+- `improve_children.py`, `improve_commits2.py`, `improve_table.py`, `show_reviews.py`, `review_titles.py`: Improve children
+- `bc_diff.py`: Backchain pass diffs
+- Data: `ic_1161.json`, `bc_plan_preloop.json`, `buckets_1161.json`

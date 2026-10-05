@@ -794,6 +794,41 @@ class LearningsTest(unittest.TestCase):
         self.assertIn("**Adversarial evaluation first.**", improver)  # the spec, loaded as the premise
 
 
+class FastPlanningRecordTest(unittest.TestCase):
+    """The fast-planning decision keeps its evidence in the repository and its SPEC carve-out.
+
+    Existence checks only: no prose is pinned. The option's name, default and values are
+    pinned against the code constants where those exist (test/shiploop-navigator-contract.test.py).
+    """
+
+    EVIDENCE = ROOT / "docs" / "experiments" / "shiploop-fast-planning-20261004"
+
+    def test_the_evidence_the_journal_cites_is_in_the_repository(self):
+        journal = (ROOT / "test" / "shiploop_e2e" / "LEARNINGS.md").read_text()
+        self.assertIn("docs/experiments/shiploop-fast-planning-20261004/", journal)
+        self.assertIn("docs/shiploop-fast-planning-plan-2026-10-04.md", journal)
+        for name in ("README.md", "design-final.json", "report-knobs.txt", "report-pass-value-and-cost.txt",
+                     "report-planning-prompts.txt", "attack-quality-kiss.json", "attack-engine-correctness.json",
+                     "gate_experiment.py", "gate_experiment.out"):
+            self.assertTrue((self.EVIDENCE / name).is_file(), name)
+        self.assertTrue((ROOT / "docs" / "shiploop-fast-planning-plan-2026-10-04.md").is_file())
+        json.loads((self.EVIDENCE / "design-final.json").read_text())
+
+    def test_spec_s10_names_its_one_carve_out(self):
+        spec = (ROOT / "test" / "shiploop_e2e" / "SPEC.md").read_text()
+        s10 = spec[spec.index("**S-10 Loops"):spec.index("**S-11")]
+        self.assertIn("Except for the carve-out below, there is no iteration cap", " ".join(s10.split()))
+        self.assertIn("**S-10 carve-out, owner decision 2026-10-04**", s10)
+        for option in ("--backchain-passes converge", "--backchain-passes none", "backchain_passes"):
+            self.assertIn(option, s10)
+
+    def test_the_gate_experiment_output_is_what_the_script_prints(self):
+        script = self.EVIDENCE / "gate_experiment.py"
+        done = subprocess.run([sys.executable, "-B", str(script)], capture_output=True, text=True, timeout=120)
+        self.assertEqual(done.returncode, 0, done.stderr)
+        self.assertEqual(done.stdout, (self.EVIDENCE / "gate_experiment.out").read_text())
+
+
 class ReviewExportTest(HarnessCase):
     def run_printed(self, *extra: str) -> tuple[int, dict, str]:
         os.environ["FAKE_MODE"] = "done"

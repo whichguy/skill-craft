@@ -1171,3 +1171,47 @@ The exporter ran on both. Its documents are identical to the ones built from the
 - Any `cli.stop` of "success" in a `result.json` written before `7741df81` for a session that ended on an API error.
 
 **Limits, not fixed.** A stream that mixes hosts (a resume on another host) is read as the host that wrote usage events. A Grok session killed before its first usage event reads as not Grok, which fails safe (its Grok-only counters become unmeasured). A Claude compaction would show only as a `system/compact_boundary` event this harness does not read.
+
+### Fast planning: why Luna is slow, and what one pass buys — 2026-10-04 — status: interim (one run; no replay and no run on the change yet)
+
+Question: the owner said Luna runs take far too long and asked to cut planning prompts and default Backchain to one
+pass. What is the time, which prompts and passes carry it, and what would a single pass cost in quality?
+
+Evidence read: the Luna max battleship run on 1.16.1 (19.3 h, planning 647.5 min), its three Codex rollouts (2,919
+responses), its Backchain loop records and its nine Improve children, the Sonnet runs on the same packets, and the
+vendored Until Loop run on scratch repositories. Compact copies are in `docs/experiments/shiploop-fast-planning-20261004/`;
+the design is `docs/shiploop-fast-planning-plan-2026-10-04.md`.
+
+Findings:
+- **Firm (measured):** the model generated tokens for 99.5% of the wall clock (about 55 tokens/s); waiting was about
+  2%, tool execution 0.3%. 57.6% of the 3.54M output tokens were reasoning, and 2,276 short or message-only responses
+  spent about 376 min (32.5% of wall time) thinking before a short command. Prompt input is 3.3% of latency, so cutting
+  prompt bytes cannot speed Luna up; Sonnet planned the same request in 4.8 min from same-shaped packets.
+- **Firm:** the Backchain plan loop took 7 passes (12, 15, 26, 18, 20, 10, 5 min). Pass 1 edited 14 of 20 steps; passes
+  2 to 4 changed one `confirm` clause each (about 0.4 KB) and pass 5 a metadata label; passes 6 and 7 changed nothing.
+  No edge, goal or supplier changed after pass 1. No later packet names the plan graph, and Improve at plan reviews
+  `plan.md`, not the graph. The structural check (`backchain-check`) passes the plan graph before pass 1 and after every
+  pass, so it does not discriminate at plan; it does fail both step-plan candidates on orphan step D1.
+- **Firm (runtime experiment, `gate_experiment.out`):** the vendored Until Loop has no pass-ceiling field (`max_iterations`
+  and `budget` are refused); at `required_trivial_reviews: 0` a non-trivial first pass with exit `satisfied` completes after
+  one pass, an `unsatisfied` report continues, and `unresolved` with `satisfied` is refused. Gate 1 is not one pass.
+- **Interim:** a one-pass default saves about 92 to 94 min of the 1,158 (8%) at the plan stage; `none` about 128 min (11%);
+  Improve one pass would save 96 to 126 min but needs ShipLoop script changes and had warranted later fixes at
+  test-strategy and test-spec, so it stays. About 17 h would remain, still above the 10 h session limit.
+- **Exploratory:** whether Luna will write gate 0 and report `satisfied` after one changing pass under the new exit text
+  (in 1.16.1 it reported `unsatisfied` through pass 6 under the two-review text); the effect of effort max against xhigh
+  (no same-case run exists); whether 1.20.0's trim already removes the step-plan loop (the v1200 run died too early).
+
+Decisions: SPEC S-10 carve-out dated 2026-10-04 (own commit, before the code); option `--backchain-passes one|converge|none`,
+default `one`; Codex E2E default effort xhigh (`04ad68a2`); Improve unchanged; replay skipped on the owner's instruction,
+so the first live run is the only evidence (risk recorded in the plan); exporter facts handed to the Run Review work.
+
+Superseded by this entry: the exit rule "two clean passes, no pass cap" for the plan Backchain loop (SPEC S-10 as of
+2026-10-03; now carved out), expectation B1 "every pass earns its time", and the claim in the earlier "Backchain ledger"
+entry that the plan graph's later passes were each worth keeping (the graph is unconsumed). The Luna max baseline stage
+totals stop being comparable once a run uses xhigh and one pass.
+
+Pre-registered for the next Luna run (no thresholds): the written gate and exit text in `until-loop-start-input.json`,
+passes and minutes per pass of each Backchain loop, whether a step-plan whole loop starts at all, plan-stage and
+planning-window minutes beside 196.4 and 647.5, Improve passes per stage as the unchanged-code control (1.16.1: 4, 11, 3,
+3, 5), and defects later stages find in the plan and test strategy.
