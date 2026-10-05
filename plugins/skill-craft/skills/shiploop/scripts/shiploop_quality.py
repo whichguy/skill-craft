@@ -57,6 +57,13 @@ RESUME_LINE = ("The loop already started: do not run Start again. While the rece
                "its next_argv once and follow the returned packet; once it is complete or stopped, submit this "
                "stage's result.")
 
+def start_command(runtime: Mapping[str, str], receipt: Path, contract: Path) -> str:
+    """The one command that starts a bound loop: the packet prints it, and the refusal for a loop that never ran
+    repeats it, so a model that skipped the packet is told the same exact command."""
+    return (shlex.join([sys.executable, runtime["runtime_cli"], "start", "--receipt", str(receipt)])
+            + " < " + shlex.quote(str(contract)))
+
+
 # Every key the bound runtime puts in a packet (Until Loop 0.7.0).
 _PACKET_KEYS = frozenset({
     "status", "state_file", "workspace", "work", "conditions", "progress", "context",
@@ -162,9 +169,7 @@ def render_lines(root: Path, state: Mapping[str, Any], work_item: str, action: s
     lines += [
         "Bound Until Loop card (open it if its rules are not already in your context): " + runtime["runtime_card"],
         "Loop contract (written by ShipLoop; pass it unchanged): " + str(contract),
-        "Start: " + shlex.join([sys.executable, runtime["runtime_cli"], "start",
-                                 "--receipt", str(root / terminal_path(action))]) + " < "
-        + shlex.quote(str(contract)),
+        "Start: " + start_command(runtime, root / terminal_path(action), contract),
         RECEIPT_LINE + str(root / terminal_path(action)),
     ]
     if (root / terminal_path(action)).exists():
@@ -215,7 +220,8 @@ def check_terminal(root: Path, state: Mapping[str, Any], work_item: str, action:
     if outcome in ("revise", "blocked") and _remedy_open(root, action):
         return
     check_loop_packet(path, result, build_contract(root, state, work_item, action),
-                      "quality loop", str(root / contract_path(action)))
+                      "quality loop", str(root / contract_path(action)),
+                      start_command(_runtime(state), path, root / contract_path(action)))
 
 
 def _remedy_open(root: Path, action: str) -> bool:
@@ -230,7 +236,7 @@ def _remedy_open(root: Path, action: str) -> bool:
 
 
 def check_loop_packet(path: Path, result: Mapping[str, Any], expected: Mapping[str, Any],
-                      label: str, contract_file: str) -> None:
+                      label: str, contract_file: str, start: str = "") -> None:
     """Refuse a loop stage's result that its saved Until Loop terminal packet does not support.
 
     Shared by every script-enforced loop (the quality loop and the test loops).
@@ -242,6 +248,15 @@ def check_loop_packet(path: Path, result: Mapping[str, Any], expected: Mapping[s
     """
     outcome = result.get("outcome")
     refs = result.get("evidence_refs")
+    if start and not os.path.lexists(path):
+        # Citing a file that does not exist is refused too, so name what creates it: running the loop.
+        until = ("complete" if outcome == "done" else
+                 "stopped: report continuation_assessment blocked when the item's goal proved wrong")
+        raise QualityError(
+            "the " + label + " has not run: no terminal packet exists at " + str(path) + ". Start it with: " + start
+            + "  and follow each packet it returns (its done_argv takes your report) until its status is "
+            + until + "; the runtime writes that file itself. Then list " + str(path)
+            + " in evidence_refs and submit " + str(outcome) + " again")
     _need(isinstance(refs, list) and str(path) in refs,
           "list the saved terminal packet in evidence_refs: " + str(path))
     packet = _read_json(path, "Until Loop terminal packet")

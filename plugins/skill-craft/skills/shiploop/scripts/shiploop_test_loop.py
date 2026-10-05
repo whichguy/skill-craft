@@ -23,8 +23,6 @@ from __future__ import annotations
 
 import json
 import os
-import shlex
-import sys
 import time
 from datetime import datetime, timezone
 from pathlib import Path
@@ -303,9 +301,7 @@ def render_lines(root: Path, state: Mapping[str, Any], work_item: str, action: s
         lines += [
             "Bound Until Loop card (open it if its rules are not already in your context): " + runtime["runtime_card"],
             "Loop contract (written by ShipLoop; pass it unchanged): " + str(contract),
-            "Start: " + shlex.join([sys.executable, runtime["runtime_cli"], "start",
-                                     "--receipt", str(root / terminal_path(action))]) + " < "
-            + shlex.quote(str(contract)),
+            "Start: " + quality.start_command(runtime, root / terminal_path(action), contract),
             quality.RECEIPT_LINE + str(root / terminal_path(action)),
         ]
         if (root / terminal_path(action)).exists():
@@ -386,7 +382,8 @@ def check_terminal(root: Path, state: Mapping[str, Any], work_item: str, action:
         return
     try:
         quality.check_loop_packet(path, result, build_contract(root, state, work_item, action, stage),
-                                  "test loop", str(root / contract_path(action)))
+                                  "test loop", str(root / contract_path(action)),
+                                  quality.start_command(quality._runtime(state), path, root / contract_path(action)))
     except quality.QualityError as exc:
         raise TestLoopError(str(exc)) from exc
 
@@ -444,8 +441,12 @@ def judge(row: Mapping[str, Any], code: Optional[int], output: str, *, red: bool
     return verdict
 
 
-def _explain(run: Mapping[str, Any]) -> str:
-    """One refusal reason for a run, written for the model that has to fix it."""
+def _explain(run: Mapping[str, Any], stage: str = "") -> str:
+    """One refusal reason for a run, written for the model that has to fix it.
+
+    ``stage`` is the stage that ran the command.  The OUTER stages run commands that an earlier stage recorded
+    (``OUTER_SOURCES``) and cannot edit them, so a reply that tells them to change the command has no way out.
+    """
     status = run["status"]
     tally = run.get("counts")
     seen = ("" if tally is None else " (" + "/".join(tally["runners"]) + " reported " + str(tally["ran"])
@@ -463,8 +464,16 @@ def _explain(run: Mapping[str, Any]) -> str:
         return ("did not show " + ", ".join(run["ids_missing"]) + " running" + seen + ". Make the command select "
                 "those cases and print test names (for example --verbose).")
     if status == "uncounted":
-        return ("exited " + str(run["exit"]) + ", but ShipLoop could not read how many tests it ran. Give the "
-                "command ids and a runner flag that prints test names, or use a runner ShipLoop recognises.")
+        unread = "exited " + str(run["exit"]) + ", but ShipLoop could not read how many tests it ran. "
+        if stage in OUTER_SOURCES:
+            source, field = OUTER_SOURCES[stage]
+            return (unread + source + " recorded this command and " + stage + " cannot edit it. A command that is "
+                    "not a test runner (a shell pipeline, a grep, a probe) belongs in suite `check`, judged by its "
+                    "exit code. Report outcome replan now, with one corrective work item: a new id, a title, and a "
+                    "context that names this command and says to record it as suite check in " + field
+                    + ". The outer stages then run again, and " + source + " records it.")
+        return (unread + "Give the command ids and a runner flag that prints test names, use a runner ShipLoop "
+                "recognises, or, for a command that is not a test runner, record it as suite `check`.")
     if status == "green":
         return ("passed, but test-red expects the new tests to fail before implementation. If they are meant to "
                 "pass already, give the reason in red_na.")
@@ -679,7 +688,7 @@ def verify(root: Path, state: Mapping[str, Any], work_item: str, action: str, st
              + " listed command" + ("" if len(runs) == 1 else "s") + " from " + str(repo) + " and "
              + str(len(failing)) + (" did not fail as expected:" if red else " did not pass:")]
     for run in failing:
-        lines.append("- [" + run["suite"] + "] " + run["command"] + " -> " + _explain(run))
+        lines.append("- [" + run["suite"] + "] " + run["command"] + " -> " + _explain(run, stage))
         tail = (run["stdout"] + "\n" + run["stderr"]).strip().splitlines()[-15:]
         lines += ["    | " + line for line in tail]
     if disposition == "could-not-run":
@@ -717,6 +726,13 @@ def verify(root: Path, state: Mapping[str, Any], work_item: str, action: str, st
                      + " Full output: " + str(root / relative) + ".")
     elif red:
         lines.append("Fix the tests or their setup (not the product code), then submit done again. " + attempts + " Full output: " + str(root / relative) + ".")
+    elif stage in OUTER_SOURCES and all(run["status"] == "uncounted" for run in failing):
+        # Nothing here is a product failure: the recorded command itself cannot be counted, and only a replan
+        # reaches the stage that records it, so a "fix the code" line would send the model the wrong way.
+        lines.append("Report replan as named above, not done: no change to the code makes a recorded command "
+                     "countable. Refused runs for this action: " + str(refused + 1) + " of "
+                     + str(MAX_REFUSED_RUNS) + "; replan does not wait for them. Full output: "
+                     + str(root / relative) + ".")
     else:
         lines.append("Fix the code so every command passes (never change a check to get green), then submit "
                      "done again. " + attempts + " Full output: " + str(root / relative) + ".")

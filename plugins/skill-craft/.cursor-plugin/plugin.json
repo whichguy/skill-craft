@@ -1,6 +1,6 @@
 {
   "name": "skill-craft",
-  "version": "1.21.1",
+  "version": "1.21.2",
   "description": "Skill Craft: portable multi-host agent skills (ShipLoop, Improve, Ask-Agent, Backchain and more) packaged as one plugin for Claude, Codex, Grok and Cursor.",
   "author": {
     "name": "whichguy"

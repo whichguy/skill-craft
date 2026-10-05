@@ -6,7 +6,7 @@ description: >-
   numbers, write findings, advice and options for the owner to tick, check that review
   file, and publish both to the page. Use after a ShipLoop E2E run or iteration, or when
   asked for the Run Review page, a run export or advice on a run.
-version: 0.1.0
+version: 0.1.1
 license: MIT
 platforms:
   - linux
@@ -93,8 +93,9 @@ token; an open finding with no `effect` (the page shows it as "not rated").
    create a second page unless asked. The URL may be a draft: a separate artifact with its own empty database, built
    from the same template. The same steps fill it and leave the live page and its data untouched.
 2. **The defaults.** Save the page's `expectations` and `config` rows as `ArtifactData` returns them
-   (`{docs: {collection: {id: {data}}}}`) and run `export.py --defaults --live FILE --out DIR`; on an empty page,
-   `--defaults --out DIR`. The script merges, never you: it keeps every revision, refuses a page revision the
+   (`{docs: {collection: {id: {data}}}}`) and run `export.py --defaults --live FILE --page-url URL --out DIR` (URL: this
+   page's artifact URL, which the page cannot read itself; the prompt's head prints it); on an empty page,
+   `--defaults --page-url URL --out DIR`. The script merges, never you: it keeps every revision, refuses a page revision the
    defaults lack (copy it into `defaults/` first), and writes only documents the defaults name, with their
    `writes.json`. `set` each with `if_version` where it exists. Never overwrite or delete an owner-added document, or
    any document you did not write.

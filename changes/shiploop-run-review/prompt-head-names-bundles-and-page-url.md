@@ -1,4 +1,0 @@
----
-bump: patch
----
-The prompt the Run Review page builds no longer names a review file after the page's primary run key (for example `hello-1190b.review.json`, which does not exist): a finding can span runs and is written in one run's review bundle, so the head now says "Review files: the *.review.json bundles in test/shiploop_e2e/evidence/", gives a `grep -l` line for the first ticked id and says to edit the bundle that holds it, and the report-back says to set the status "in the review file that holds it". The head's `Page:` part reads `config/page.artifactUrl`, which a draft page left empty because a page cannot read its own URL: `export.py --defaults --page-url URL` now sets it (keeping the page's own title and other fields), and the publish procedure in SKILL.md passes it. The page needs one republish.

@@ -1560,9 +1560,12 @@ new observations do not silently replace approved intent or old evidence.
 """,
     "system-test-author": """\
 Record the system tests in `system_commands` (same shape as a step plan's
-test_commands; suite `focused`, `regression` or `check`). ShipLoop runs every one
-itself when system-test reports done and refuses unless each passes. When no
-system test applies, give an empty list with `system_commands_na` and the reason.
+test_commands; suite `focused`, `regression` or `check`). A command that is not a
+test runner (a shell pipeline, a grep, a curl probe) is suite `check`, judged by its
+exit code; `focused` and `regression` are for runners whose output ShipLoop can
+count. ShipLoop runs every one itself when system-test reports done and refuses
+unless each passes. When no system test applies, give an empty list with
+`system_commands_na` and the reason.
 Reopen the Run-wide test strategy source. From accepted history, select the
 latest done test-decision record for every relevant completed item: step-plan,
 test-spec, test-author, test-refine or regression, with its retained prior locators.
