@@ -1,7 +1,10 @@
-"""The Run Review exporter turns a run output directory into documents that follow SCHEMA.md.
+#!/usr/bin/env python3
+"""Run Review: the exporter, its contract and its page template (skills/shiploop-run-review).
 
-Every run here is synthetic, built in a temporary directory; nothing outside it is read except the
-skill's own contract files and the selected ShipLoop's stage table.
+The exporter turns a run output directory into documents that follow SCHEMA.md; the template holds no data and
+no content and reads only the collections SCHEMA.md documents. Every run here is synthetic, built in a temporary
+directory; nothing outside it is read except the skill's own contract files and the selected ShipLoop's stage
+table. Which suites a change under the leaf selects is pinned in test/test-groups.test.py.
 """
 from __future__ import annotations
 
@@ -14,14 +17,18 @@ import json
 import os
 from pathlib import Path
 import re
+import shutil
+import subprocess
 import sys
 import tempfile
 import unittest
 
-import layout
-
-REVIEW = layout.PACKAGE_ROOT / "run-review"
-_spec = importlib.util.spec_from_file_location("run_review_export", REVIEW / "export.py")
+ROOT = Path(__file__).resolve().parents[1]
+SKILL_ROOT = ROOT / "skills" / "shiploop-run-review"
+TEMPLATE = SKILL_ROOT / "template" / "index.html"
+SCHEMA_MD = SKILL_ROOT / "SCHEMA.md"
+DEFAULTS_DIR = SKILL_ROOT / "defaults"
+_spec = importlib.util.spec_from_file_location("run_review_export", SKILL_ROOT / "scripts" / "export.py")
 export = importlib.util.module_from_spec(_spec)
 _spec.loader.exec_module(export)
 
@@ -190,7 +197,7 @@ class RunReviewTest(unittest.TestCase):
         self.assertIn("brand-new-stage", (target / "facts.md").read_text())
 
     def test_phase_table_covers_every_shiploop_stage_once_in_graph_order(self):
-        path = layout.selected_skill_root() / "scripts" / "shiploop_stage_spec.py"
+        path = ROOT / "skills" / "shiploop" / "scripts" / "shiploop_stage_spec.py"
         self.assertTrue(path.is_file(), path)
         spec = importlib.util.spec_from_file_location("run_review_selected_stage_spec", path)
         stage_spec = importlib.util.module_from_spec(spec)
@@ -202,7 +209,7 @@ class RunReviewTest(unittest.TestCase):
         self.assertEqual(set(listed), set(stage_spec.STAGES))
         orders = [export.STAGE_PHASE[stage] for stage in stage_spec.STAGES]
         self.assertEqual(orders, sorted(orders), "a phase must not start before an earlier phase's stages end")
-        phases = sorted((e for e in json.loads((REVIEW / "defaults" / "expectations.json").read_text())
+        phases = sorted((e for e in json.loads((SKILL_ROOT / "defaults" / "expectations.json").read_text())
                          if e["kind"] == "phase"), key=lambda e: e["order"])
         self.assertEqual([e["title"] for e in phases], [title for title, _ in export.PHASES])
 
@@ -265,8 +272,8 @@ class RunReviewTest(unittest.TestCase):
         target = self.tmp / "defaults"
         with contextlib.redirect_stdout(io.StringIO()):
             self.assertEqual(export.main(["--defaults", "--out", str(target)]), 0)
-        entries = json.loads((REVIEW / "defaults" / "expectations.json").read_text())
-        config = json.loads((REVIEW / "defaults" / "config.json").read_text())
+        entries = json.loads((SKILL_ROOT / "defaults" / "expectations.json").read_text())
+        config = json.loads((SKILL_ROOT / "defaults" / "config.json").read_text())
         for entry in entries:
             written = json.loads((target / "docs" / "expectations" / f"{entry['key']}.json").read_text())
             self.assertEqual(written, {k: v for k, v in entry.items() if k != "key"})
@@ -333,7 +340,7 @@ class RunReviewTest(unittest.TestCase):
             for doc_id, doc in items.items():
                 self.assertEqual(export.validate_doc(collection, doc), [], doc_id)
                 self.assertEqual(export.extra_fields(collection, doc), [], doc_id)
-        text = (REVIEW / "SCHEMA.md").read_text()
+        text = (SKILL_ROOT / "SCHEMA.md").read_text()
         named = set(re.findall(r"\*\*`(\w+)/", text))
         self.assertEqual(named - set(export.SCHEMA), set())
         self.assertIn("config", named)
@@ -346,6 +353,72 @@ class RunReviewTest(unittest.TestCase):
             elif collection and line.startswith("| `"):
                 for field in re.findall(r"`(\w+)`", line.split("|")[1]):
                     self.assertIn(field, export.SCHEMA[collection], f"{collection}.{field}")
+
+
+
+def script_text() -> str:
+    html = TEMPLATE.read_text(encoding="utf-8")
+    blocks = re.findall(r"<script(?![^>]*type=\"application/json\")[^>]*>([\s\S]*?)</script>", html)
+    assert len(blocks) == 1, "the template has exactly one script"
+    return blocks[0]
+
+
+class TemplateHasNoDataTests(unittest.TestCase):
+    def test_no_embedded_data_or_placeholder(self) -> None:
+        html = TEMPLATE.read_text(encoding="utf-8")
+        self.assertNotIn("__SEED__", html)
+        self.assertIsNone(re.search(r"<script[^>]*application/json", html), "no embedded JSON data block")
+
+    def test_content_constants_live_in_data(self) -> None:
+        js = script_text()
+        for name in ("PHASES", "CRIT", "SEED", "ART_URL", "DEF["):
+            self.assertNotIn(name, js, f"{name} is content or data and belongs in the database")
+
+    def test_only_documented_collections_are_read(self) -> None:
+        schema = SCHEMA_MD.read_text(encoding="utf-8")
+        used = set(re.findall(r"collection\(\"([a-z]+)\"\)", script_text())) | set(re.findall(r"\[\"([a-z]+)\",\"(?:runs|obs|acts|bc|iters|exp|cfg)\"\]", script_text()))
+        self.assertTrue(used, "the template reads the database")
+        for name in used:
+            self.assertRegex(schema, r"\*\*`%s[/`]" % re.escape(name), f"collection {name} is documented in SCHEMA.md")
+
+    def test_reads_db_through_the_capability_and_degrades_without_it(self) -> None:
+        js = script_text()
+        self.assertIn('claude.use("db")', js)
+        self.assertIn("function offline()", js)
+
+    def test_javascript_parses(self) -> None:
+        node = shutil.which("node")
+        if node is None:
+            self.skipTest("node is not installed; the structural tests above still ran")
+        with tempfile.TemporaryDirectory() as tmp:
+            path = Path(tmp) / "page.js"
+            path.write_text(script_text(), encoding="utf-8")
+            done = subprocess.run([node, "--check", str(path)], capture_output=True, text=True, timeout=60)
+            self.assertEqual(done.returncode, 0, done.stderr)
+
+
+class DefaultsMatchTheTemplateTests(unittest.TestCase):
+    def test_expectation_defaults_have_the_fields_the_template_reads(self) -> None:
+        docs = json.loads((DEFAULTS_DIR / "expectations.json").read_text(encoding="utf-8"))
+        kinds = {d["kind"] for d in docs}
+        self.assertLessEqual(kinds, {"phase", "group", "criterion", "iter"})
+        self.assertTrue({"phase", "group", "criterion"} <= kinds)
+        keys = [d["key"] for d in docs]
+        self.assertEqual(len(keys), len(set(keys)))
+        groups = {d["key"] for d in docs if d["kind"] == "group"}
+        for d in docs:
+            self.assertIn("order", d)
+            self.assertTrue(d.get("title") and d.get("text"), d["key"])
+            if d["kind"] == "criterion":
+                self.assertIn(d["group"], groups, f"{d['key']} names a group document")
+        orders = sorted(d["order"] for d in docs if d["kind"] == "phase")
+        self.assertEqual(orders, list(range(len(orders))), "phase orders are 0..N-1")
+
+    def test_prompt_config_keys_match_the_schema(self) -> None:
+        cfg = json.loads((DEFAULTS_DIR / "config.json").read_text(encoding="utf-8"))
+        self.assertEqual(sorted(cfg["prompt"]), ["closing", "concatPreamble", "constraints"])
+        self.assertIn("title", cfg["page"])
+
 
 
 if __name__ == "__main__":

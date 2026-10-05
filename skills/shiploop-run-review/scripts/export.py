@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Export one ShipLoop E2E run as Run Review documents (see SCHEMA.md).
+"""Export one ShipLoop E2E run as Run Review documents (see ../SCHEMA.md).
 
   export.py RUN_DIR [--key KEY] [--name NAME] [--order N] [--out DIR]
   export.py --defaults [--out DIR]
@@ -29,8 +29,8 @@ import re
 import sys
 import tempfile
 
-HERE = Path(__file__).resolve().parent
-DEFAULTS = HERE / "defaults"
+SKILL_ROOT = Path(__file__).resolve().parents[1]  # scripts/export.py sits one level below the skill root
+DEFAULTS = SKILL_ROOT / "defaults"
 SCHEMA_ID = "run-review-export/v1"
 MAX_COMPACT_BYTES = 200_000
 MAX_KNOWLEDGE = 40

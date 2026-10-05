@@ -328,14 +328,15 @@ ShipLoop's efficacy. Answer each from this run's evidence and list concrete
 proposals (possibly none). These are harness findings, not ShipLoop repairs;
 the validator reports a review without them as unverified.
 
-After every run, update the Run Review page. For an output directory of
-skill-craft's `test/shiploop_e2e/run.py` (which already writes the export),
-follow [run-review/README.md](run-review/README.md): `run-review/export.py`
-turns the run's own records into page documents and a `writes.json`, which the
-host's Artifact tools apply to the page's database. The export holds numbers
-only; add observations and expectation revisions from your review. On a host
-without Artifact tools, say the page was not updated; the run's
-`review-export.json` remains the record.
+After every run, update the Run Review page with the `shiploop-run-review`
+skill (`/skill-craft:shiploop-run-review`;
+[SKILL.md](../shiploop-run-review/SKILL.md) in a source checkout). For an output
+directory of skill-craft's `test/shiploop_e2e/run.py` (which already writes the
+export), the skill's `scripts/export.py` turns the run's own records into page
+documents and a `writes.json`, which the host's Artifact tools apply to the
+page's database. The export holds numbers only; add observations and
+expectation revisions from your review. On a host without Artifact tools, say
+the page was not updated; the run's `review-export.json` remains the record.
 
 Return the exact commands, checkout/selected skill identity, output/product
 paths, test counts including skips, graph prefix and last accepted action,

@@ -35,7 +35,7 @@ get $PRIOR_WORK (the earlier checkout, read only).
 Besides the verdicts, metrics.json records where ShipLoop spent turns, tokens,
 cost and time (per accepted stage), its failed commands, host truncations,
 compactions and the knowledge-home facts (see metrics.py). The run's Run Review
-documents go to <output>/review-export/ (skills/shiploop-e2e-audit/run-review/);
+documents go to <output>/review-export/ (skills/shiploop-run-review/);
 an export problem is printed and never changes a verdict.
 
 The default host is Claude (Sonnet 5.5, claude-sonnet-5-5). By default the run tests
@@ -103,7 +103,7 @@ import shiploop_store as store  # noqa: E402
 CASES = HERE / "cases.json"
 SUITES = HERE / "suites.json"
 BASELINES = HERE / "baselines.jsonl"
-REVIEW_EXPORTER = ROOT / "skills" / "shiploop-e2e-audit" / "run-review" / "export.py"
+REVIEW_EXPORTER = ROOT / "skills" / "shiploop-run-review" / "scripts" / "export.py"
 PLUGIN_NAME = "skill-craft"
 # Grok does not namespace plugin skills; Claude prefixes them with the plugin name.
 def the_host(args) -> "hosts.Host":
@@ -894,7 +894,7 @@ def committed_facts(knowledge: dict, start_head: str | None) -> dict:
 
 
 def review_export(out: Path) -> str:
-    """Export the run's Run Review documents (run-review/README.md). Fail-open: a problem is reported in
+    """Export the run's Run Review documents (skills/shiploop-run-review/SKILL.md). Fail-open: a problem is reported in
     the returned line and never changes a verdict or the exit code."""
     try:
         if not REVIEW_EXPORTER.is_file():

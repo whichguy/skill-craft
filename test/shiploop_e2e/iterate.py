@@ -184,7 +184,7 @@ def learnings_message(index: int, args, sha: str, result: dict, verdict: dict, p
     return "\n".join(lines) + "\n"
 
 
-REVIEW_README = "skills/shiploop-e2e-audit/run-review/README.md"
+REVIEW_SKILL = "skills/shiploop-run-review/SKILL.md"
 
 
 def review_evidence(worktree: Path, stage: Path) -> str | None:
@@ -299,7 +299,7 @@ def main(argv: list[str] | None = None) -> int:
         verdict = reviewer.review(stage / "run", host=args.host, model=args.model, effort=args.effort,
                                   skill_root=worktree / "skills" / "shiploop", prior_learnings=prior_learnings)
         recorded = record_learnings(worktree, learnings_message(index, args, sha, result, verdict, prior), stage)
-        print(f"== iteration {index}: update the Run Review page: see {REVIEW_README}", flush=True)
+        print(f"== iteration {index}: update the Run Review page: see {REVIEW_SKILL}", flush=True)
         findings = verdict["actionable"]
         rejected = [f.get("title") for c in reviewer.CATEGORIES for f in verdict.get(c) or []
                     if isinstance(f, dict) and f.get("preserves_premise") is False]

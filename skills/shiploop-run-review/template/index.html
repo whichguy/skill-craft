@@ -452,7 +452,7 @@ function renderFlow(){
   var f=byId("flow");clear(f);
   var P=phases();
   if(!o.run){f.style.minWidth="0";f.style.gridTemplateColumns="1fr";f.appendChild(h("div","empty",loaded.runs?"No runs recorded yet.":"Loading the shared record."));byId("runfacts").textContent="";return;}
-  if(!P.length){f.style.minWidth="0";f.style.gridTemplateColumns="1fr";f.appendChild(h("div","empty",loaded.exp?"No stages are defined yet. Seed the starting expectations (run-review/README.md).":"Loading the shared record."));return;}
+  if(!P.length){f.style.minWidth="0";f.style.gridTemplateColumns="1fr";f.appendChild(h("div","empty",loaded.exp?"No stages are defined yet. Seed the starting expectations (the shiploop-run-review skill, SKILL.md).":"Loading the shared record."));return;}
   f.style.gridTemplateColumns="92px repeat("+P.length+",minmax(104px,1fr))";f.style.minWidth=(92+P.length*108)+"px";
   sel.value=o.run.key;var run=o.run;
   byId("runfacts").textContent=run.release+" | "+run.time+" | "+run.refusals+" refusals | "+run.glue+" glue | "+run.imp;
@@ -580,7 +580,7 @@ function renderBackchain(){
 function renderCritGroups(){
   var box=byId("groups");clear(box);
   var gs=docsOf("group"),cs=docsOf("criterion");
-  if(!cs.length){box.appendChild(h("div","empty",loaded.exp?"No expectations are seeded yet. Seed the starting expectations (run-review/README.md).":"Loading the shared record."));return;}
+  if(!cs.length){box.appendChild(h("div","empty",loaded.exp?"No expectations are seeded yet. Seed the starting expectations (the shiploop-run-review skill, SKILL.md).":"Loading the shared record."));return;}
   var known={};gs.forEach(function(g){known[g.key]=true;});
   var lists=gs.map(function(g){return {g:g,items:cs.filter(function(c){return c.group===g.key;})};});
   var other=cs.filter(function(c){return !known[c.group];});

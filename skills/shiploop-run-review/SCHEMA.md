@@ -10,7 +10,7 @@ To show a new run, write documents. Do not edit or republish the template for da
 | Defaults | `defaults/*.json`: starting phases, groups, criteria, prompt settings | the starting expectations change; written create-only |
 | Contract | this file | a field is added, renamed or removed (change the template, exporter and tests together) |
 | Data | the `db` collections below | every iteration |
-| Exporter | `export.py`: a run output directory in, documents out | the run layout changes |
+| Exporter | `scripts/export.py`: a run output directory in, documents out | the run layout changes |
 
 Anything not in this contract is ignored by the page. A missing optional field hides its panel.
 

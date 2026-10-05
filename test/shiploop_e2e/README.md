@@ -235,7 +235,7 @@ product hang; it does not say the product is wrong.
   `sessions`. Cost and turns add up across the sessions that reported; a session killed
   before it reported is counted in `unreported_sessions`, not estimated.
 - The Run Review page's stage minutes come from the exporter's own accept-to-accept
-  computation (`skills/shiploop-e2e-audit/run-review/export.py`), not from
+  computation (`skills/shiploop-run-review/scripts/export.py`), not from
   `metrics.json`. The first stage differs: the exporter starts at the engine's
   `started` stamp, the harness at the first host event.
 - A recreated `timeline.json` (the engine stamps every historical action with the
@@ -390,7 +390,7 @@ phases, Improve, failures, planning-document sizes, Backchain loop ledgers) and
 `facts.md`, plain numbers for the reviewer. An export problem is printed and
 never changes a verdict. `iterate.py` commits the compact `review-export.json` as
 `evidence/<run key>.json` with the learnings entry. After that commit, update the
-page as [run-review/README.md](../../skills/shiploop-e2e-audit/run-review/README.md)
+page as the [shiploop-run-review skill](../../skills/shiploop-run-review/SKILL.md)
 describes.
 
 ## Cases and self-test
