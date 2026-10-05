@@ -826,8 +826,8 @@ class FastPlanningRecordTest(unittest.TestCase):
 
     def test_spec_s10_names_its_one_carve_out(self):
         spec = (ROOT / "test" / "shiploop_e2e" / "SPEC.md").read_text()
-        s10 = spec[spec.index("**S-10 Loops"):spec.index("**S-11")]
-        self.assertIn("Except for the carve-out below, there is no iteration cap", " ".join(s10.split()))
+        s10 = " ".join(spec[spec.index("**S-10 Loops"):spec.index("**S-11")].split())  # the SPEC is hard-wrapped
+        self.assertIn("Except for the carve-out below, there is no iteration cap", s10)
         self.assertIn("**S-10 carve-out, owner decision 2026-10-04**", s10)
         for option in ("--backchain-passes converge", "--backchain-passes none", "backchain_passes"):
             self.assertIn(option, s10)
