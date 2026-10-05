@@ -66,14 +66,18 @@ COLLECTION_ORDER = ("runs", "backchain", "expectations", "config", "observations
 S, N, B, ISO = "string", "number", "boolean", "iso"
 PHASE_STATES = ("done", "running", "blocked", "none")
 SCHEMA = {
+    # No expectation carries a status: how an expectation stands for a run is derived by the page from the run's
+    # findings and review. `clauses` ties a criterion to the S-n clauses of test/shiploop_e2e/SPEC.md.
     "expectations": {
-        "kind": (("enum", ("phase", "group", "criterion", "iter")), True),
+        "kind": (("enum", ("phase", "group", "criterion")), True),
         "order": (N, False), "title": (S, False), "short": (S, False), "text": (S, False),
-        "group": (S, False), "status": (("enum", ("holds", "bent", "broken", "unjudged")), False),
+        "group": (S, False), "clauses": (("list", S), False),
         "revs": (("items", {"at": (ISO, True), "from": (S, True), "to": (S, True), "reason": (S, True),
-                            "obs": (S, False), "iter": (S, False)}), False),
+                            "obs": (S, False), "option": (S, False)}), False),
         "updatedAt": (ISO, False),
     },
+    # reviews/<runKey>: Claude's reading of one run. The page derives each expectation's chip from findings plus `basis`.
+    "reviews": {"summary": (("list", S), False), "basis": (("map", S), False), "reviewedAt": (ISO, False)},
     "runs": {
         "key": (S, True), "name": (S, True), "order": (N, True), "release": (S, True),
         "phases": (("list", ("enum", PHASE_STATES)), True),
