@@ -598,6 +598,39 @@ class SeedTest(HarnessCase):
         self.assertEqual(result["status"], "interrupted")
         self.assertLess(result["elapsed_seconds"], 20)
 
+    def test_launch_returns_when_the_host_exits_instead_of_sleeping_out_the_poll_tick(self):
+        # The poll loop used to time.sleep(2) between checks, so a session that ended after 0.4 s still held the
+        # caller for the whole tick: about 290 s of the 322 s this file took, with fake hosts that exit at once.
+        out = self.tmp / "out-exit"
+        (out / "work").mkdir(parents=True)
+        result = run.launch([sys.executable, "-c", "import time; time.sleep(0.4)"], out / "work", out, dict(os.environ),
+                            120, watch=False)
+        self.assertEqual(result["status"], "exited")
+        self.assertLess(result["elapsed_seconds"], 1.5, result)
+
+    def test_launch_still_enforces_its_deadline_while_the_host_keeps_running(self):
+        out = self.tmp / "out-deadline"
+        (out / "work").mkdir(parents=True)
+        result = run.launch([sys.executable, "-c", "import time; time.sleep(60)"], out / "work", out, dict(os.environ),
+                            1, watch=False)
+        self.assertEqual(result["status"], "timeout")
+        self.assertLess(result["elapsed_seconds"], 10, result)
+
+    def test_launch_polls_its_stop_condition_while_the_host_keeps_running(self):
+        out = self.tmp / "out-poll"
+        (out / "work").mkdir(parents=True)
+        polls = []
+
+        def stop_when():
+            polls.append(1)
+            return len(polls) >= 2  # false once, then true: the loop must come back for a second look
+
+        result = run.launch([sys.executable, "-c", "import time; time.sleep(60)"], out / "work", out, dict(os.environ),
+                            120, watch=False, stop_when=stop_when)
+        self.assertEqual(result["status"], "interrupted")
+        self.assertEqual(len(polls), 2)
+        self.assertLess(result["elapsed_seconds"], 10, result)
+
     def test_interrupt_kills_the_host_mid_chain_and_a_fresh_session_finishes(self):
         code, result = self.invoke("claude", "chain-hang", "--interrupt-at", "chain-launched")
         self.assertEqual(code, 0, {k: result.get(k) for k in ("process", "chain", "recovery", "shiploop")})

@@ -406,7 +406,11 @@ def launch(argv: list[str], work: Path, out: Path, env: dict, timeout: int, watc
                 os.killpg(proc.pid, signal.SIGKILL)
                 proc.wait()
                 break
-            time.sleep(2)
+            try:
+                # Wake the moment the session ends; a plain sleep held the caller for the rest of the 2 s tick.
+                proc.wait(timeout=2)
+            except subprocess.TimeoutExpired:
+                pass
         if status is None:
             status = "exited" if proc.returncode == 0 else "failed"
         reader.join(timeout=10)
