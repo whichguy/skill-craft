@@ -2436,6 +2436,8 @@ def _result_template(state: Mapping[str, Any], stage: str) -> str:
         result["system_commands"] = [{"command": "...", "suite": "focused", "ids": ["ST-1"]}]
     if stage == "release-plan":
         result["consumer_checks"] = [{"command": "...", "suite": "check"}]
+        result["consumer_entry"] = {"how": "<how a person reaches the result>",
+                                    "sources": ["<repository-relative file that creates that entry>"]}
     if stage in assumptions.STAGES:
         result["assumptions"] = [
             {"id": "A1", "assumption": "...", "disposition": "evidenced",
@@ -3342,9 +3344,35 @@ def _result_contract_lines(root: Path, state: Mapping[str, Any], stage: str, act
         "Result template:",
         result_template,
         *_allowed_outcome_lines(state, stage),
-        "A blocked result adds blocked_by: user | access | external (who can unblock it); "
-        "a problem this run can fix itself is repaired in this stage, not blocked.",
+        *_outcome_shape_lines(stage),
     ]
+
+
+def _outcome_shape_lines(stage: str) -> list[str]:
+    """The exact fields of each allowed outcome other than done, printed under the done template.
+
+    The done template is the only complete result the packet prints, and a model that changes its outcome by
+    hand keeps the done-only fields or drops the summary.  These lines are the shapes the gate checks:
+    ``AWAITING_SHAPE`` and ``BLOCKED_BY`` are the same constants its refusals quote.
+    """
+    allowed = stage_spec.stage(stage).outcomes
+    shapes = []
+    if "repeat" in allowed:
+        shapes.append('repeat: {"outcome": "repeat", "summary": "<what is still open>"}')
+    if "blocked" in allowed:
+        shapes.append(
+            'blocked: {"outcome": "blocked", "blocked_by": "' + " | ".join(BLOCKED_BY) + '", "summary": "<what stopped '
+            'the work>"}; a problem this run can fix itself is repaired in this stage, not blocked. Only when nothing '
+            'can proceed without a person, add "awaiting": ' + AWAITING_SHAPE + ' (blocked_by user or access)')
+    if "revise" in allowed:
+        shapes.append('revise: {"outcome": "revise", "summary": "<what in the step plan or test spec is wrong>"}')
+    if "replan" in allowed:
+        shapes.append('replan: {"outcome": "replan", "summary": "<what the corrective items fix>", "work_items": '
+                      '[{"id": "<new id>", "title": "...", "context": "..."}]}')
+    return ['The block holds this object itself: "outcome" and "summary" are its top-level fields; do not wrap it in '
+            'action or result keys as the stored files under results/ do.',
+            *(["Any other outcome keeps headline and evidence_refs and drops the other template fields "
+               "(work_items, assumptions, steps, test_commands, ...):", *shapes] if shapes else [])]
 
 
 def _goal_lines(state: Mapping[str, Any], stage: str) -> list[str]:
@@ -3405,7 +3433,10 @@ def _first_callback_lines(core: Any, root: Path, state: Mapping[str, Any]) -> li
         opening = improve_opening_path(child)
         return ["Next command (start the bound Improve child after writing its opening file "
                 + str(opening) + "; details below): "
-                + _callback(core, root, "improve-start", action=action_id, opening=str(opening))]
+                + _callback(core, root, "improve-start", action=action_id, opening=str(opening)),
+                "The opening file holds exactly these headings, each followed by its content: "
+                + ", ".join('"## ' + name + '"' for name in OPENING_SECTIONS)
+                + " (a renamed or empty section is refused)."]
     return ["Callback for this Improve child (parent only; after the runtime returns complete; "
             "never 'complete'): " + _callback(core, root, "improve-complete", action=action_id)]
 
