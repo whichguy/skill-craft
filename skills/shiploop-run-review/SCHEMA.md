@@ -43,16 +43,17 @@ the number of columns in the flow; `Observed` states in a run's `phases` array a
 | `release` | string | required: the plugin and ShipLoop version under test |
 | `phases` | array of `done` \| `running` \| `blocked` \| `none` | required; aligned with the phase docs |
 | `time`, `imp` | string | required: short text shown in the run header |
-| `refusals`, `glue` | number | required |
+| `refusals`, `glue` | number | optional: omitted, never 0, when the harness names the counter unmeasured (`shiploop_failures`, `model_glue`: a host whose events cannot show it, such as Claude's). The header reads "refusals not measured" |
+| `unmeasured` | map of string | the harness's reason for each counter it could not measure (`metrics.json` `unmeasured`, copied whole); `{}` when every counter was measured. A `metrics.json` without the key is refused: regrade the finished run first |
 | `wallMin` | number | wall minutes so far or in total |
 | `host`, `model`, `effort`, `case` | string | |
 | `status` | `done` \| `active` \| `blocked` \| `failed` | the ShipLoop run status |
 | `startedAt`, `endedAt` | ISO string | |
 | `verdicts` | object of booleans | invoked, plugin, process, shiploop, committed, checks |
-| `stages` | array of `{stage, outcome, min, turns?, packetBytes?, resultBytes?}` | `min` is the accept-to-accept delta from `timeline.json`, never the harness's stage metric |
+| `stages` | array of `{stage, outcome, min?, turns?, packetBytes?, resultBytes?}` | one row per accepted visit, in `state.md` history order; `min` is the accept-to-accept delta from `timeline.json`, never the harness's stage metric. `min` is **null** (the page shows "n/a") when the visit has no accept stamp, or the visit before it has none (its start is then unknown); never 0 |
 | `knowledge` | object `{fileName: bytes}` | sizes of the planning documents the run committed (spec, test strategy, plan, ...) |
 | `improve` | array of `{stage, passes, seconds, bytes}` | Improve children |
-| `failures` | array of `{verb, line}` | ShipLoop commands that exited non-zero |
+| `failures` | array of `{verb, line}` | ShipLoop commands that exited non-zero; omitted with `refusals` when unmeasured |
 | `evidence` | string | path of the output directory (local, not durable) |
 
 **`backchain/<id>`** (a loop ledger; id `<runKey>-<loop>`; none is written when a run has no loop; none is written for a run without a loop)
@@ -76,6 +77,13 @@ looking), `expect`, `observed`, `verdict` (`pending`, `confirmed`, `partly`, `re
 
 **`config/page`**: `title`, `artifactUrl`. **`config/prompt`**: `concatPreamble`, `constraints`, `closing`.
 The page builds the planning sentence itself and falls back to a one-line default for each prompt string when the document is missing.
+
+## The export file
+
+`review-export.json` (the compact file to commit with the learnings entry) is `{"schema": "run-review-export/v2",
+"docs": {<collection>: {<id>: <document>}}}`. v2 differs from v1 in three ways: `refusals`, `glue` and `failures` are
+optional and omitted when unmeasured, `unmeasured` is new, and a stage's `min` may be null. Files written as v1 are
+history; they are not read back.
 
 ## Writes
 

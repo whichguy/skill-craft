@@ -31,7 +31,7 @@ import tempfile
 
 SKILL_ROOT = Path(__file__).resolve().parents[1]  # scripts/export.py sits one level below the skill root
 DEFAULTS = SKILL_ROOT / "defaults"
-SCHEMA_ID = "run-review-export/v1"
+SCHEMA_ID = "run-review-export/v2"
 MAX_COMPACT_BYTES = 200_000
 MAX_KNOWLEDGE = 40
 MAX_FAILURE_LINE = 240
@@ -73,12 +73,16 @@ SCHEMA = {
     "runs": {
         "key": (S, True), "name": (S, True), "order": (N, True), "release": (S, True),
         "phases": (("list", ("enum", PHASE_STATES)), True),
-        "time": (S, True), "imp": (S, True), "refusals": (N, True), "glue": (N, True),
+        "time": (S, True), "imp": (S, True),
+        # refusals, glue and failures are omitted when the harness names the counter unmeasured (a host that
+        # cannot see it); `unmeasured` carries the harness's reason for each such counter. Never a zero.
+        "refusals": (N, False), "glue": (N, False), "unmeasured": (("map", S), False),
         "wallMin": (N, False), "host": (S, False), "model": (S, False), "effort": (S, False), "case": (S, False),
         "status": (("enum", ("done", "active", "blocked", "failed")), False),
         "startedAt": (ISO, False), "endedAt": (ISO, False),
         "verdicts": (("map", B), False),
-        "stages": (("items", {"stage": (S, True), "outcome": (S, True), "min": (N, True), "turns": (N, False),
+        # min is null when the visit has no accept stamp, or the one before it has none: unknown, not 0.
+        "stages": (("items", {"stage": (S, True), "outcome": (S, True), "min": (N, False), "turns": (N, False),
                               "packetBytes": (N, False), "resultBytes": (N, False)}), False),
         "knowledge": (("map", N), False),
         "improve": (("items", {"stage": (S, True), "passes": (N, True), "seconds": (N, True), "bytes": (N, True)}),
@@ -540,6 +544,17 @@ def _text(value) -> str | None:
     return value if isinstance(value, str) and value.strip() else None
 
 
+def _no_unmeasured_message(out: Path, status) -> str:
+    """Why a metrics.json with no `unmeasured` record is refused, and how to get one."""
+    why = ("metrics.json has no 'unmeasured' record: it was written before the harness recorded which counters "
+           "its host cannot measure, so its refusal and glue counts would be exported as measured zeros. ")
+    if status == "done":
+        return why + (f"Regrade the finished run (python3 test/shiploop_e2e/run.py --resume-run {out}; a finished "
+                      "run starts no host), then export it again.")
+    return why + (f"This run's ShipLoop status is {status or 'unknown'}, not done, so it cannot be regraded without "
+                  "a host: export it after it finishes.")
+
+
 def build_run(out: Path, key: str | None = None, name: str | None = None,
               order: int | None = None) -> tuple[dict[str, dict[str, dict]], list[str]]:
     """({collection: {id: document}}, facts.md lines) for one run output directory."""
@@ -559,32 +574,32 @@ def build_run(out: Path, key: str | None = None, name: str | None = None,
     state = _record(run_dir / "state.md")
     if state is None:
         raise ExportError(f"cannot read the shiploop-state record in {run_dir / 'state.md'}")
+    if not isinstance(metrics.get("unmeasured"), dict):
+        raise ExportError(_no_unmeasured_message(out, state.get("status")))
+    unmeasured = {str(name): str(reason) for name, reason in metrics["unmeasured"].items()}
 
     history = [h for h in state.get("history") or [] if isinstance(h, dict)]
-    position = {}
-    for index, entry in enumerate(history):
-        position.setdefault(entry.get("action"), index)
     started = _when(timeline.get("started"))
-    accepted = []
+    stamps = {}  # action id -> (accept moment, the stamp as written)
     for action, stamp in timeline["accepted"].items():
         moment = _when(stamp)
         if moment is None:
             raise ExportError(f"{run_dir / 'timeline.json'}: accept time {stamp!r} of {action} is not ISO")
-        accepted.append((moment, position.get(action, len(history)), action, stamp))
-    accepted.sort()
+        stamps[action] = (moment, stamp)
 
+    # One row per accepted visit, in state.md's history order (the engine's own record; timeline.json only
+    # stamps it). A visit's minutes are its accept minus the accept before it (the first from the run's start),
+    # so a visit with no stamp, or one right after a visit with no stamp, has unknown minutes: null, never 0.
     actions, stages, phases_seen = [], [], []
-    from_state, unknown = [], []
+    from_state, unknown, stamped = [], [], []
     previous, last_phase = started, 0
-    for moment, _, action, stamp in accepted:
+    for entry in history:
+        action = entry.get("action")
         record = _record(results / f"{action}.md")
         if record is not None:
             body = record.get("result") if isinstance(record.get("result"), dict) else {}
             stage, outcome = record.get("stage"), record.get("outcome") or body.get("outcome")
         else:
-            entry = next((h for h in history if h.get("action") == action), None)
-            if entry is None:
-                raise ExportError(f"missing {results / (action + '.md')} for an accepted action")
             stage, outcome = entry.get("stage"), entry.get("outcome")
             from_state.append(action)
         stage, outcome = str(stage or "unknown"), str(outcome or "unknown")
@@ -592,15 +607,18 @@ def build_run(out: Path, key: str | None = None, name: str | None = None,
             last_phase = STAGE_PHASE[stage]
         else:
             unknown.append(stage)
-        minutes = _minutes(previous, moment) if previous else 0.0
-        row = {"stage": stage, "outcome": outcome, "min": round(minutes, 1)}
+        accepted_at = stamps.get(action)
+        minutes = _minutes(previous, accepted_at[0]) if previous is not None and accepted_at else None
+        row = {"stage": stage, "outcome": outcome, "min": None if minutes is None else round(minutes, 1)}
         for field, path in (("packetBytes", run_dir / "packets" / f"{action}.md"), ("resultBytes", results / f"{action}.md")):
             if path.is_file():
                 row[field] = path.stat().st_size
         stages.append(row)
         phases_seen.append(last_phase)
-        actions.append({"id": action, "stage": stage, "from": previous, "at": moment, "min": minutes})
-        previous = moment
+        if accepted_at:
+            stamped.append(accepted_at)
+            actions.append({"id": action, "stage": stage, "from": previous, "at": accepted_at[0], "min": minutes})
+        previous = accepted_at[0] if accepted_at else None
 
     raw_status = state.get("status")
     status = RUN_STATUS.get(raw_status)
@@ -608,7 +626,7 @@ def build_run(out: Path, key: str | None = None, name: str | None = None,
     current = None if raw_status == "done" else STAGE_PHASE.get(now, phases_seen[-1] if phases_seen else 0)
     if now and now not in STAGE_PHASE and raw_status != "done":
         unknown.append(now)
-    wall = _minutes(started, accepted[-1][0]) if started and accepted else None
+    wall = _minutes(started, stamped[-1][0]) if started and stamped else None
 
     versions = invocation.get("versions") or result.get("versions") or {}
     host = _text(invocation.get("host")) or _text(result.get("host"))
@@ -618,7 +636,7 @@ def build_run(out: Path, key: str | None = None, name: str | None = None,
     plugin, shiploop = _text(versions.get("plugin_version")), _text(versions.get("shiploop_version"))
     release = (f"skill-craft {plugin}, ShipLoop {shiploop}" if plugin and shiploop
                else f"skill-craft {plugin}" if plugin else f"ShipLoop {shiploop}" if shiploop else "unknown")
-    first = started or (accepted[0][0] if accepted else None)
+    first = started or (stamped[0][0] if stamped else None)
     key = _clean_key(key or "-".join([host or "unknown", model or "unknown", plugin or "unknown", case or "unknown",
                                       first.strftime("%Y%m%d") if first else "undated"]))
     name = name or (" ".join(part for part in (host, model, effort) if part) or "unknown host") + \
@@ -644,20 +662,24 @@ def build_run(out: Path, key: str | None = None, name: str | None = None,
 
     run = {"key": key, "name": name, "order": order, "release": release,
            "phases": derive_phases(phases_seen, current, raw_status),
-           "time": _time_text(status, wall, len(accepted)),
+           "time": _time_text(status, wall, len(stages)),
            "imp": f"{children} children" + (f", {reviews['passes']} review passes" if reviews.get("passes") else ""),
-           "refusals": len(failures), "glue": len(glue), "stages": stages,
-           "failures": [{"verb": str(f.get("verb")), "line": str(f.get("line") or "")[:MAX_FAILURE_LINE]}
-                        for f in failures],
+           "stages": stages, "unmeasured": unmeasured,
            "improve": improve, "knowledge": knowledge, "evidence": str(out)}
+    if "shiploop_failures" not in unmeasured:  # a host that cannot see the failures reports no count, not 0
+        run["refusals"] = len(failures)
+        run["failures"] = [{"verb": str(f.get("verb")), "line": str(f.get("line") or "")[:MAX_FAILURE_LINE]}
+                           for f in failures]
+    if "model_glue" not in unmeasured:
+        run["glue"] = len(glue)
     for field, value in (("host", host), ("model", model), ("effort", effort), ("case", case), ("status", status),
                          ("startedAt", timeline.get("started") if started else None)):
         if value:
             run[field] = value
     if wall is not None:
         run["wallMin"] = round(wall, 1)
-    if raw_status == "done" and accepted:
-        run["endedAt"] = accepted[-1][3]
+    if raw_status == "done" and stamped:
+        run["endedAt"] = stamped[-1][1]
     verdicts = {}
     for verdict in ("invoked", "plugin", "process", "shiploop", "committed"):
         if isinstance(result.get(verdict), dict) and isinstance(result[verdict].get("pass"), bool):
@@ -696,7 +718,9 @@ def _facts(run, run_dir, out, raw_status, reviews, failures, knowledge_root, loo
     stages = run["stages"]
     totals: dict[str, list] = {}
     for row in stages:
-        totals.setdefault(row["stage"], []).append(row["min"])
+        if row["min"] is not None:
+            totals.setdefault(row["stage"], []).append(row["min"])
+    untimed = sum(1 for row in stages if row["min"] is None)
     slowest = sorted(totals.items(), key=lambda kv: (-sum(kv[1]), kv[0]))[:5]
     verbs: dict[str, int] = {}
     for failure in failures:
@@ -715,9 +739,12 @@ def _facts(run, run_dir, out, raw_status, reviews, failures, knowledge_root, loo
              f"- Phases: {', '.join(f'{title} {state}' for (title, _), state in zip(PHASES, run['phases']))}",
              f"- Improve: {run['imp']}" + (f"; most passes in one child: {reviews.get('max_passes')}"
                                            if reviews.get("max_passes") else ""),
-             f"- ShipLoop command failures: {len(failures)}" + (
-                 f" ({', '.join(f'{v} {n}' for v, n in sorted(verbs.items()))})" if verbs else ""),
-             f"- Model glue: {run['glue']} commands",
+             (f"- ShipLoop command failures: {len(failures)}" + (
+                 f" ({', '.join(f'{v} {n}' for v, n in sorted(verbs.items()))})" if verbs else ""))
+             if "refusals" in run else
+             f"- ShipLoop command failures: not measured ({run['unmeasured']['shiploop_failures']})",
+             f"- Model glue: {run['glue']} commands" if "glue" in run else
+             f"- Model glue: not measured ({run['unmeasured']['model_glue']})",
              f"- Planning documents: {len(knowledge)} files, {sum(knowledge.values()) / 1024:.1f} KB"
              + (f" in {knowledge_root.relative_to(out).as_posix() if knowledge_root.is_relative_to(out) else knowledge_root}"
                 f"; largest {largest[0]} {largest[1] / 1024:.1f} KB" if largest else ""),
@@ -729,6 +756,9 @@ def _facts(run, run_dir, out, raw_status, reviews, failures, knowledge_root, loo
                  + (f", stage {d['stageMin']} min" if d.get("stageMin") is not None else "")
                  for d in loops.values()) or "none found under scratch/"),
              f"- Run directory: {run_dir.relative_to(out).as_posix()}"]
+    if untimed:
+        lines.append(f"- Stages with no minutes (no accept stamp, or none on the visit before): {untimed} of "
+                     f"{len(stages)}; their minutes are null, not 0")
     if unknown:
         lines.append(f"- Stages not in the phase table (shown with the previous phase): {', '.join(sorted(set(unknown)))}")
     if from_state:

@@ -102,3 +102,82 @@ here.
 counts header equal to the actual counts (109 documents); every document has a non-empty id and the row shape; the
 records named above exist (ten iterations, 11 and 8 segments, 10 revisions in nine documents); and the file is compact
 and byte-stable. All four fail on the R1 tip (the file is absent there); the 22 earlier tests pass.
+
+## 2026-10-04: R3, counters a host cannot measure stop reading as zero (code and tests only)
+
+Status: firm for the code and its tests; the live page, the committed v1 evidence and every real run are unchanged.
+This increment does not do the plan's "Operations" part: no run was regraded, nothing was uploaded to the page, the
+template was not republished, and no Artifact or ArtifactData call was made. The owner reviews a draft first.
+
+**Defect (plan, "Never zero" and the Defects list).** `export.py` published `refusals = len(failures)` and
+`glue = len(glue)` for every host. On a Claude run the harness records both lists empty because Claude's tool calls
+arrive as `tool_use` blocks it does not read, and names them in `metrics['unmeasured']`; the exporter never read that
+key, so 4 of the 5 committed evidence files carry `refusals 0, glue 0` for Claude runs, and the E2E peer reproduced the
+same zeros in the real v1190-hello-sonnet `facts.md` ("failures: 0", "glue: 0 commands"). The header line would also
+have printed "undefined refusals" for a document with the fields left out.
+
+**What changed.**
+
+- `export.py` reads `metrics['unmeasured']` (a map of counter name to the harness's reason). `refusals`, `glue` and the
+  `failures` array are omitted when `shiploop_failures` or `model_glue` is named there; the run document carries the
+  whole map as `runs.unmeasured` (`{}` when every counter was measured). `facts.md` prints
+  "not measured (<reason>)" for both lines instead of a count.
+- A `metrics.json` without the key raises `ExportError` ("no 'unmeasured' record ... measured zeros"). For a finished
+  run it names the way out (`run.py --resume-run <dir>`, which starts no host for a done run); for any other status it
+  does not name `--resume-run` (resuming an unfinished run would launch a host) and says to export after it finishes.
+- The export id is `run-review-export/v2`. The schema table and `SCHEMA.md` make `refusals` and `glue` optional, add the
+  `unmeasured` map of strings, document the export file, and make a stage's `min` nullable.
+- Template: a new `<script id="logic">` block of pure functions (no DOM, storage, network or global read) with
+  `countText(run, name)` ("not measured" or the number, a measured 0 stays "0"), `headerFacts(run)` (the header line:
+  "13 refusals" or "refusals not measured", never "undefined") and `minutesText(min)` ("n/a" or "4.5 min"). The page
+  script calls them, and the stage card is titled "packet and result file sizes" (`packetBytes` is a packet file's
+  size, not what the model read). Later increments add `cardsFor`, `chipFor`, `buildPrompt` and `sequenceModel` to the
+  same block.
+- Tests: `run_logic(expression)` in `test/shiploop-run-review.test.py` runs only the logic block in a node `vm` context
+  with no document, window, storage or network and returns the JSON value; later increments reuse it. It skips when node
+  is absent (the pure-logic tests skip with it; the structural template tests still run).
+- Existing fixtures gain `unmeasured: {}`. `test/shiploop-e2e.test.py` `ReviewExportTest` built a metrics file without the
+  key and a state with an empty history, which the exporter now (correctly) refuses or draws with no rows, so its fixture
+  gained the key and the one history row; its `run-review-export/v1` literal became v2.
+
+**Nullable minutes (from the E2E peer, session E2E, `ledger-design-final.json`, `cheap_fixes_now` item 1).** Stage rows
+are now built by iterating `state.md` history (the engine's own record) and looking each visit's accept stamp up in
+`timeline.json` by action id, instead of iterating the timeline map. A visit's `min` is its accept minus the accept
+before it (the first minus the run's start). A visit with no stamp, or right after a visit with no stamp (or the first
+visit of a run with no recorded start), has `min` null: its interval is unknown, which is also how the harness's per-stage
+attribution treats an incomplete row. `wallMin` runs to the last stamped accept. A timeline stamp for an action the
+history never accepted no longer makes a row; a visit with no stamp owns no Backchain stage window (the loop ledger still
+builds). The page draws a null minute as "n/a" with no bar (never a zero-width bar or "0"), keeps such rows under "Hide
+stages under 1 minute", and says how many a total leaves out; `facts.md` counts them. Relation to the plan's R12: R12 later adds
+`action`, `skipped` and `improve` to these same rows; this change only fixes how the rows and their minutes are formed.
+
+**Limit found while checking (unexplained by this fix, needs a decision).** The peer's 96 seeded rows reading 0.0 min are
+not unstamped. A read-only scan of 19 finished run directories (`/Users/dadleet/shiploop-e2e-runs/*` and
+`/Users/dadleet/e2e-runs/20261003/*`, 539 history rows) finds 0 history rows without a stamp and 104 seeded rows (8 in each
+of 13 runs, the visits whose result summary begins "Synthetic: recorded by the E2E seed"), every one stamped, within about a
+second of the run's start. The exporter therefore still reads them as 0.0 min; the null rule never fires on today's real
+data. Marking them needs a signal other than the stamp: the harness's own seed marker in the result summary (the plan
+declined to parse summary text for `skipped`), or the harness's per-stage `timing: unavailable`, which the exporter
+ignores by design. Not changed here.
+
+**Real-data check (read-only).** `export.py` on `/Users/dadleet/shiploop-e2e-runs/chain-seeded-claude-e57b4d` (an older
+`metrics.json` with no `unmeasured`) exits 2 with the finished-run message. A scratch copy of its `metrics.json`,
+`result.json`, `invocation.json` and run directory with `unmeasured` set to a Claude-shaped map exports as
+`run-review-export/v2` with 34 stage rows and no `refusals`/`glue`. Nothing under the real run directory was written.
+
+**Browser check (static file, not the live page).** Opening the template from disk in the browser pane and injecting run
+documents into its `data` shows the header line "refusals not measured | glue not measured" for a run without the
+fields and "13 refusals | 0 glue" with them, and the stage card with "n/a" and no bar for two null-minute visits, a
+4.5 min bar for the third, and "Total 5 min in 3 accepted stages (2 without a time: n/a)". Hide-under-1-minute keeps the
+two null rows. The layout at 375 px was not rechecked (no layout change).
+
+**Not changed.** The five committed evidence files keep `run-review-export/v1` (history; R13 re-exports them). The live
+database still holds v1 documents with Claude `refusals 0, glue 0` and stage `min 0.0`; the page prints those numbers
+until R13 uploads regraded v2 documents.
+
+**Tests.** `python3 -B test/shiploop-run-review.test.py`: 38 tests, 12 of them new for R3 (omitted counters and reasons,
+a measured Codex-shaped count of 13, the refusal and its status-dependent message, the v2 id and contract text, null
+minutes after a missing stamp with the loop ledger intact, rows follow history, null first minute with no start, and five
+logic-block tests including the no-DOM check). One existing test changed (`validate_doc` no longer requires `refusals`)
+and the four template tests that assumed a single script now read two. All the new and changed tests fail on the pre-R3
+tip (`826b8645`, whose `skills/` equals the R1 tip `62c36c73`), run from a git archive of it.

@@ -48,7 +48,9 @@ commit.
 
 1. **Export.** `python3 -B "$SKILL_ROOT/scripts/export.py" <run output directory>` writes the run's documents,
    `writes.json` and `facts.md` under `<output>/review-export/`, plus one compact `review-export.json` to commit
-   with the learnings entry. `test/shiploop_e2e/iterate.py` and `run.py` do this for you.
+   with the learnings entry. `test/shiploop_e2e/iterate.py` and `run.py` do this for you. A `metrics.json` with no
+   `unmeasured` record is refused (it predates the harness recording which counters a host cannot measure): regrade
+   the finished run first, as the message says.
 2. **Find or create the page.** With the Artifact tools: `Artifact list` for the title "ShipLoop Run Review". If
    there is none, publish `template/index.html` with `capabilities: {db: {}}`, then seed the starting
    expectations with `export.py --defaults` (create-only: list what exists first and skip it).
@@ -65,6 +67,8 @@ commit.
 
 - Data changes never republish the template. A template change is one republish, recorded in the journal
   (`docs/shiploop-run-review-journal.md` in a source checkout).
+- A number the host could not measure is absent, with its reason in `runs.unmeasured`, and the page says "not
+  measured"; never write or read it as 0. A stage with no accept time has `min` null and reads "n/a".
 - A hand-set verdict stays interim; derive from digests and receipts where the run kept them.
 - The journal and the committed `review-export.json` are the durable record; the artifact database is the
   working copy.

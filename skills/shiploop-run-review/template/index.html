@@ -310,6 +310,22 @@ a.chev{text-decoration:none;color:inherit;cursor:pointer}
 </section>
 </div>
 
+<script id="logic">
+/* Pure functions: no DOM, no storage, no network, and no global is read. test/shiploop-run-review.test.py runs this
+   block alone in a node vm that has none of those (its run_logic helper), so nothing here can touch the page.
+   Put a function here, not in the page script below, when it decides what a number or a label says. */
+function isCount(v){return typeof v==="number"&&isFinite(v);}
+/* A run's counter as text: its number, or "not measured" when the run has none because the host cannot measure it
+   (the exporter omits it then and says why in run.unmeasured). A measured 0 stays "0". */
+function countText(run,name){return run&&isCount(run[name])?String(run[name]):"not measured";}
+/* The run header line; a counter reads "13 refusals" or "refusals not measured", never "undefined refusals". */
+function headerFacts(run){
+  function phrase(name){var t=countText(run,name);return t==="not measured"?name+" not measured":t+" "+name;}
+  return [run.release,run.time,phrase("refusals"),phrase("glue"),run.imp].join(" | ");
+}
+/* A stage's minutes: "n/a" when the visit has no accept time (min is null), never "0 min". */
+function minutesText(min){return isCount(min)?min+" min":"n/a";}
+</script>
 <script>
 /* No content lives in this file: stages, groups and expectations come from the expectations collection. */
 var KIND={defect:"defect",recovered:"recovered",decision:"decision",noise:"noise",added:"Backchain added",wasted:"Backchain wasted"};
@@ -455,7 +471,7 @@ function renderFlow(){
   if(!P.length){f.style.minWidth="0";f.style.gridTemplateColumns="1fr";f.appendChild(h("div","empty",loaded.exp?"No stages are defined yet. Seed the starting expectations (the shiploop-run-review skill, SKILL.md).":"Loading the shared record."));return;}
   f.style.gridTemplateColumns="92px repeat("+P.length+",minmax(104px,1fr))";f.style.minWidth=(92+P.length*108)+"px";
   sel.value=o.run.key;var run=o.run;
-  byId("runfacts").textContent=run.release+" | "+run.time+" | "+run.refusals+" refusals | "+run.glue+" glue | "+run.imp;
+  byId("runfacts").textContent=headerFacts(run);
   f.appendChild(h("div","lane","Expected"));
   P.forEach(function(p){
     var e=ex(p.key);var c=h("button","chev exp");c.type="button";c.setAttribute("aria-pressed",L.phase===p.order?"true":"false");
@@ -822,26 +838,27 @@ function renderRunDetail(){
   box.appendChild(card);
   // stages: minutes and sizes, optionally against a second run
   if(A.stages&&A.stages.length){
-    var c2=h("div","card");c2.appendChild(h("h3","","Stages: minutes between accepts, and bytes printed and returned"));
+    var c2=h("div","card");c2.appendChild(h("h3","","Stages: minutes between accepts, and packet and result file sizes"));
     var rows=A.stages.map(function(st,i){return {a:st,b:null,i:i};});
     if(B&&B.stages){var used={};rows.forEach(function(r){var cand=B.stages.filter(function(x,j){return x.stage===r.a.stage&&!used[j];})[0];if(cand){used[B.stages.indexOf(cand)]=true;r.b=cand;}});}
     var maxMin=Math.max.apply(null,[1].concat(A.stages.map(function(x){return x.min||0;}),(B&&B.stages||[]).map(function(x){return x.min||0;})));
-    if(L.hideShort)rows=rows.filter(function(r){return (r.a.min||0)>=1||(r.b&&(r.b.min||0)>=1);});
+    if(L.hideShort)rows=rows.filter(function(r){return !isCount(r.a.min)||r.a.min>=1||(r.b&&(!isCount(r.b.min)||r.b.min>=1));});
     var tb=h("div","rtabbox");
     var hd=h("div","rrow head");["stage","outcome","minutes","packet","result"].forEach(function(t,j){hd.appendChild(h("div",j>2?"num":"",t));});tb.appendChild(hd);
     rows.forEach(function(r){
       var row=h("div","rrow");row.appendChild(h("div","",r.a.stage));row.appendChild(h("div","",r.a.outcome||""));
-      var mc=h("div");var bar=h("div","rb");bar.style.width=Math.max(1,100*(r.a.min||0)/maxMin)+"%";mc.appendChild(bar);
-      mc.appendChild(h("span","snap",(r.a.min||0)+" min"+(r.b?" vs "+(r.b.min||0):"")));
-      if(r.b){var b2=h("div","rb cmp");b2.style.width=Math.max(1,100*(r.b.min||0)/maxMin)+"%";mc.appendChild(b2);}
+      var mc=h("div");
+      if(isCount(r.a.min)){var bar=h("div","rb");bar.style.width=Math.max(1,100*r.a.min/maxMin)+"%";mc.appendChild(bar);}
+      mc.appendChild(h("span","snap",minutesText(r.a.min)+(r.b?" vs "+minutesText(r.b.min):"")));
+      if(r.b&&isCount(r.b.min)){var b2=h("div","rb cmp");b2.style.width=Math.max(1,100*r.b.min/maxMin)+"%";mc.appendChild(b2);}
       row.appendChild(mc);
       row.appendChild(h("div","num",r.a.packetBytes!==undefined?kb(r.a.packetBytes)+(r.b&&r.b.packetBytes!==undefined?" / "+kb(r.b.packetBytes):""):""));
       row.appendChild(h("div","num",r.a.resultBytes!==undefined?kb(r.a.resultBytes)+(r.b&&r.b.resultBytes!==undefined?" / "+kb(r.b.resultBytes):""):""));
       tb.appendChild(row);
     });
     c2.appendChild(tb);
-    var tot=A.stages.reduce(function(n,x){return n+(x.min||0);},0);
-    c2.appendChild(h("p","sub","Total "+Math.round(tot)+" min in "+A.stages.length+" accepted stages"+(B&&B.stages?"; "+B.name+": "+Math.round(B.stages.reduce(function(n,x){return n+(x.min||0);},0))+" min in "+B.stages.length:"")+". Grey bars are the comparison run."));
+    var tot=A.stages.reduce(function(n,x){return n+(isCount(x.min)?x.min:0);},0),untimed=A.stages.filter(function(x){return !isCount(x.min);}).length;
+    c2.appendChild(h("p","sub","Total "+Math.round(tot)+" min in "+A.stages.length+" accepted stages"+(untimed?" ("+untimed+" without a time: n/a)":"")+(B&&B.stages?"; "+B.name+": "+Math.round(B.stages.reduce(function(n,x){return n+(x.min||0);},0))+" min in "+B.stages.length:"")+". Grey bars are the comparison run."));
     box.appendChild(c2);
   }
   // planning documents: sizes the run committed

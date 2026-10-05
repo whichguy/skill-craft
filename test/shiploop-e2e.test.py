@@ -769,7 +769,7 @@ class LearningsTest(unittest.TestCase):
             stage = Path(tmp) / "stage"
             bundle = stage / "run" / "review-export" / "review-export.json"
             bundle.parent.mkdir(parents=True)
-            text = json.dumps({"schema": "run-review-export/v1", "docs": {"runs": {"grok-1.0.0-hello-20261004": {}}}})
+            text = json.dumps({"schema": "run-review-export/v2", "docs": {"runs": {"grok-1.0.0-hello-20261004": {}}}})
             bundle.write_text(text)
             iterate.record_learnings(repo, self.message(), stage)
             files = subprocess.run(["git", "-C", str(repo), "show", "--name-only", "--format=", "HEAD"],
@@ -820,12 +820,13 @@ class ReviewExportTest(HarnessCase):
     def test_a_run_with_shiploop_records_is_exported_into_its_output_directory(self):
         out = self.tmp / "graded"
         state_dir = out / ".shiploop-runs" / "work-1" / "run"
-        run.store.write_record(state_dir / "state.md", {"status": "done", "stage": "done", "history": []})
+        run.store.write_record(state_dir / "state.md", {"status": "done", "stage": "done", "history": [
+            {"action": "nav-0123456789abcdef", "stage": "intake", "outcome": "done"}]})
         run.store.write_record(state_dir / "results" / "nav-0123456789abcdef.md",
                            {"action": "nav-0123456789abcdef", "stage": "intake", "result": {"outcome": "done"}})
         (state_dir / "timeline.json").write_text(json.dumps({"started": "2026-10-04T10:00:00Z", "accepted": {
             "nav-0123456789abcdef": "2026-10-04T10:03:00Z"}}))
-        (out / "metrics.json").write_text(json.dumps({"shiploop_failures": [], "model_glue": []}))
+        (out / "metrics.json").write_text(json.dumps({"shiploop_failures": [], "model_glue": [], "unmeasured": {}}))
         line = run.review_export(out)
         self.assertEqual(line, f"review export: {(out / 'review-export').resolve()}")
         bundle = json.loads((out / "review-export" / "review-export.json").read_text())

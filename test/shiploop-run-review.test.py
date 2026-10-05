@@ -64,8 +64,9 @@ def sha(path: Path) -> str:
     return hashlib.sha256(path.read_bytes()).hexdigest()
 
 
-def make_run(root: Path, accepts=ACCEPTS, status: str = "active", loops: bool = True) -> Path:
-    """A run output directory shaped like test/shiploop_e2e/run.py writes it."""
+def make_run(root: Path, accepts=ACCEPTS, status: str = "active", loops: bool = True,
+             metrics: dict | None = None) -> Path:
+    """A run output directory shaped like test/shiploop_e2e/run.py writes it; `metrics` overrides keys of its metrics.json."""
     out = root / "run-out"
     run = out / ".shiploop-runs" / "work-1" / "run"
     history = [{"action": IDS[a], "stage": s, "outcome": o, "summary": "x"} for a, s, _, o in accepts]
@@ -98,12 +99,25 @@ def make_run(root: Path, accepts=ACCEPTS, status: str = "active", loops: bool = 
         "stages": [{"stage": "plan", "seconds": 300.0}, {"stage": "test-strategy", "seconds": 7200.0}],
         "shiploop_failures": [{"verb": "complete", "exit": 2, "line": "E" * 300}],
         "model_glue": [{"reasons": ["git commit/add by the model"], "command": "git commit"}] * 2,
+        "unmeasured": {},  # every counter measured, as on a Grok run
         "improve_reviews": {"children": 1, "passes": 3, "max_passes": 3,
-                            "per_child": [{"child": IDS["plan"], "passes": 3, "seconds": 120.0, "bytes": 900}]}})
+                            "per_child": [{"child": IDS["plan"], "passes": 3, "seconds": 120.0, "bytes": 900}]},
+        **(metrics or {})})
     if loops:
         make_plan_loop(run / "scratch" / "backchain-plan")
         make_step_plan_loop(run / "scratch" / "backchain-step-plan")
     return out
+
+
+def drop_stamps(out: Path, *names: str, started: bool = False) -> None:
+    """Remove the named actions' accept stamps (and optionally the run's start) from the run's timeline.json."""
+    path = out / ".shiploop-runs" / "work-1" / "run" / "timeline.json"
+    timeline = json.loads(path.read_text())
+    for name in names:
+        del timeline["accepted"][IDS[name]]
+    if started:
+        del timeline["started"]
+    path.write_text(json.dumps(timeline, indent=1))
 
 
 def make_plan_loop(loop: Path) -> None:
@@ -225,11 +239,17 @@ class RunReviewTest(unittest.TestCase):
 
     def test_validate_doc_reports_missing_fields_wrong_types_and_bad_enums(self):
         problems = export.validate_doc("runs", {"key": "k", "name": "n", "order": True, "release": "r",
-                                                "phases": ["done", "maybe"], "time": "t", "imp": "i", "glue": 0})
-        self.assertTrue(any("'refusals'" in p for p in problems), problems)
+                                                "phases": ["done", "maybe"], "imp": "i", "glue": 0})
+        self.assertTrue(any("'time'" in p for p in problems), problems)
         self.assertTrue(any("order: expected a number" in p for p in problems), problems)
         self.assertTrue(any("'maybe' is not one of" in p for p in problems), problems)
         self.assertEqual(export.validate_doc("nope", {}), ["unknown collection 'nope'"])
+        measured_nothing = {"key": "k", "name": "n", "order": 1, "release": "r", "phases": ["done"], "time": "t",
+                            "imp": "i", "unmeasured": {"model_glue": "a reason"},
+                            "stages": [{"stage": "intake", "outcome": "done", "min": None}]}
+        self.assertEqual(export.validate_doc("runs", measured_nothing), [])  # no refusals, no glue, a null min
+        self.assertTrue(any("unmeasured.model_glue: expected a string" in p for p in export.validate_doc(
+            "runs", dict(measured_nothing, unmeasured={"model_glue": 0}))))
         with self.assertRaisesRegex(export.ExportError, "segments\\[0\\]: missing required field 'note'"):
             export.write_export(self.tmp / "bad", {"backchain": {"x": {"segments": [{"label": "a", "min": 1,
                                                                                       "kind": "neutral"}]}}})
@@ -336,6 +356,110 @@ class RunReviewTest(unittest.TestCase):
         self.assertEqual(export.find_run_dir(out, str(out / ".shiploop-runs" / "work-1" / "run")).parent.name, "work-1")
         self.assertEqual(export.find_run_dir(out), local)
 
+    # ---- counters a host cannot measure are absent with a reason, never 0 (R3)
+
+    KEY = "codex-gpt-6-luna-1.16.1-battleship-20261003"
+
+    def test_a_counter_the_harness_names_unmeasured_is_omitted_with_its_reason_never_exported_as_zero(self):
+        reasons = {"shiploop_failures": "Claude's tool calls arrive as tool_use blocks, so 0 is a lower bound",
+                   "model_glue": "the same blind spot", "tmp_writes": "the same blind spot"}
+        # What the Claude harness records: empty lists, which the v1 exporter turned into refusals 0 and glue 0.
+        out = make_run(self.tmp, metrics={"unmeasured": reasons, "shiploop_failures": [], "model_glue": []})
+        code, target = self.export(out)
+        self.assertEqual(code, 0)
+        run = self.docs(target)["runs"][self.KEY]
+        for field in ("refusals", "glue", "failures"):
+            self.assertNotIn(field, run)
+        self.assertEqual(run["unmeasured"], reasons)
+        self.assertEqual(export.validate_doc("runs", run), [])
+        facts = (target / "facts.md").read_text()
+        self.assertIn(f"- ShipLoop command failures: not measured ({reasons['shiploop_failures']})", facts)
+        self.assertIn(f"- Model glue: not measured ({reasons['model_glue']})", facts)
+        self.assertNotIn("failures: 0", facts)
+        self.assertNotIn("glue: 0", facts)
+
+    def test_a_counter_the_host_measured_is_still_exported_as_a_number(self):
+        failures = [{"verb": "complete", "exit": 2, "line": f"refused {n}"} for n in range(13)]
+        out = make_run(self.tmp, metrics={"shiploop_failures": failures,
+                                          "unmeasured": {"stage_turns": "no per-call usage events"}})
+        code, target = self.export(out)
+        self.assertEqual(code, 0)
+        run = self.docs(target)["runs"][self.KEY]
+        self.assertEqual((run["refusals"], run["glue"], len(run["failures"])), (13, 2, 13))
+        self.assertEqual(run["unmeasured"], {"stage_turns": "no per-call usage events"})
+        self.assertIn("- ShipLoop command failures: 13 (complete 13)", (target / "facts.md").read_text())
+
+    def test_a_metrics_file_without_the_unmeasured_key_is_refused_and_says_how_to_get_one(self):
+        for status in ("done", "active", "blocked"):
+            with self.subTest(status=status):
+                out = make_run(self.tmp / status, status=status, loops=False)
+                metrics = json.loads((out / "metrics.json").read_text())
+                del metrics["unmeasured"]
+                write_json(out / "metrics.json", metrics)
+                with self.assertRaises(export.ExportError) as caught:
+                    export.build_run(out)
+                message = str(caught.exception)
+                self.assertIn("no 'unmeasured' record", message)
+                self.assertIn("measured zeros", message)
+                if status == "done":
+                    self.assertIn("--resume-run", message)
+                    self.assertIn("starts no host", message)
+                else:  # resuming an unfinished run would launch a host: the message must not suggest it
+                    self.assertNotIn("--resume-run", message)
+                    self.assertIn(f"status is {status}", message)
+        code, target = self.export(out)
+        self.assertEqual(code, 2)
+        self.assertFalse(target.exists())
+
+    def test_the_export_file_names_the_v2_schema_and_the_contract_documents_it(self):
+        _, target = self.export(make_run(self.tmp))
+        self.assertEqual(json.loads((target / "review-export.json").read_text())["schema"], "run-review-export/v2")
+        text = SCHEMA_MD.read_text()
+        self.assertIn("run-review-export/v2", text)
+        row = next(line for line in text.splitlines() if line.startswith("| `refusals`, `glue`"))
+        self.assertIn("optional", row)
+        self.assertTrue(any(line.startswith("| `unmeasured`") for line in text.splitlines()))
+
+    # ---- a visit with no accept stamp has unknown minutes, not 0.0 (the E2E peer's cheap fix 1)
+
+    def test_a_visit_with_no_accept_stamp_has_null_minutes_and_the_one_after_it_cannot_be_timed(self):
+        out = make_run(self.tmp)
+        drop_stamps(out, "step-plan")  # the last visit before implement; the step-plan loop ran inside it
+        code, target = self.export(out)
+        self.assertEqual(code, 0)
+        run = self.docs(target)["runs"][self.KEY]
+        self.assertEqual([(s["stage"], s["min"]) for s in run["stages"]],
+                         [("intake", 5.0), ("spec", 10.0), ("test-strategy", 20.0), ("plan", 60.0),
+                          ("select-work", 2.0), ("step-plan", None), ("implement", None)])
+        self.assertEqual(export.validate_doc("runs", run), [])
+        self.assertEqual(run["wallMin"], 140.0)  # start to the last stamped accept (implement)
+        self.assertIn('"min": null', (target / "docs" / "runs" / f"{self.KEY}.json").read_text())
+        facts = (target / "facts.md").read_text()
+        self.assertIn("Stages with no minutes", facts)
+        self.assertIn("2 of 7", facts)
+        loop = self.docs(target)["backchain"][f"{self.KEY}-step-plan"]
+        self.assertIsNone(loop["stageMin"])  # an unstamped visit owns no stage window; the ledger still builds
+
+    def test_stage_rows_follow_the_engine_history_not_the_timeline_map(self):
+        out = make_run(self.tmp, loops=False)
+        timeline = out / ".shiploop-runs" / "work-1" / "run" / "timeline.json"
+        data = json.loads(timeline.read_text())
+        data["accepted"][IDS["extra"]] = iso(150)  # stamped, but state.md's history never accepted it
+        timeline.write_text(json.dumps(data))
+        code, target = self.export(out)
+        self.assertEqual(code, 0)
+        run = self.docs(target)["runs"][self.KEY]
+        self.assertEqual([s["stage"] for s in run["stages"]], [a[1] for a in ACCEPTS])
+
+    def test_without_a_run_start_the_first_visit_has_null_minutes(self):
+        out = make_run(self.tmp, loops=False)
+        drop_stamps(out, started=True)
+        code, target = self.export(out)
+        self.assertEqual(code, 0)
+        run = self.docs(target)["runs"][self.KEY]
+        self.assertEqual([s["min"] for s in run["stages"]], [None, 10.0, 20.0, 60.0, 2.0, 30.0, 13.0])
+        self.assertNotIn("wallMin", run)
+
     def test_defaults_and_schema_agree(self):
         for collection, items in export.defaults_docs().items():
             for doc_id, doc in items.items():
@@ -356,12 +480,51 @@ class RunReviewTest(unittest.TestCase):
                     self.assertIn(field, export.SCHEMA[collection], f"{collection}.{field}")
 
 
+# ---------------------------------------------------------------- the page template and its pure logic
+#
+# The template has two scripts: <script id="logic"> holds pure functions (no DOM, storage, network or global read) and
+# the page script calls them. Every test of what the page decides (countText, headerFacts, minutesText now; cardsFor,
+# chipFor, buildPrompt and sequenceModel when they land) goes through run_logic below, against the logic block alone.
+
+def script_blocks() -> dict[str, str]:
+    """{"logic": the pure block, "page": the page script}; the template has exactly these two."""
+    html = TEMPLATE.read_text(encoding="utf-8")
+    found = re.findall(r"<script(?![^>]*type=\"application/json\")([^>]*)>([\s\S]*?)</script>", html)
+    blocks = {"logic" if 'id="logic"' in attrs else "page": body for attrs, body in found}
+    assert len(found) == 2 and set(blocks) == {"logic", "page"}, \
+        "the template has exactly two scripts: the pure logic block, then the page script"
+    assert html.index('id="logic"') < html.index("<script>\n"), "the logic block comes before the page script"
+    return blocks
+
 
 def script_text() -> str:
-    html = TEMPLATE.read_text(encoding="utf-8")
-    blocks = re.findall(r"<script(?![^>]*type=\"application/json\")[^>]*>([\s\S]*?)</script>", html)
-    assert len(blocks) == 1, "the template has exactly one script"
-    return blocks[0]
+    """The page script (not the logic block)."""
+    return script_blocks()["page"]
+
+
+def run_logic(expression: str):
+    """Evaluate one JavaScript expression against the template's logic block and return its JSON value.
+
+    The block runs alone in a node `vm` context that has no document, window, storage or network, so a function that
+    reached for any of them would throw here. Pass an array literal to check several calls in one node run, for
+    example run_logic('[countText({}, "glue"), minutesText(null)]'). Skips the calling test when node is absent.
+    """
+    node = shutil.which("node")
+    if node is None:
+        raise unittest.SkipTest("node is not installed; the structural tests of the template still ran")
+    program = ("const vm = require('vm'), fs = require('fs');"
+               "const context = vm.createContext({});"
+               "vm.runInContext(fs.readFileSync(process.argv[1], 'utf8'), context);"
+               "const value = vm.runInContext(process.argv[2], context);"
+               "console.log(value === undefined ? 'undefined' : JSON.stringify(value));")
+    with tempfile.TemporaryDirectory() as tmp:
+        logic = Path(tmp) / "logic.js"
+        logic.write_text(script_blocks()["logic"], encoding="utf-8")
+        done = subprocess.run([node, "-e", program, str(logic), expression], capture_output=True, text=True,
+                              timeout=60)
+    if done.returncode != 0:
+        raise AssertionError(f"the logic block failed on {expression}:\n{done.stderr}")
+    return None if done.stdout.strip() == "undefined" else json.loads(done.stdout)
 
 
 class TemplateHasNoDataTests(unittest.TestCase):
@@ -371,9 +534,9 @@ class TemplateHasNoDataTests(unittest.TestCase):
         self.assertIsNone(re.search(r"<script[^>]*application/json", html), "no embedded JSON data block")
 
     def test_content_constants_live_in_data(self) -> None:
-        js = script_text()
-        for name in ("PHASES", "CRIT", "SEED", "ART_URL", "DEF["):
-            self.assertNotIn(name, js, f"{name} is content or data and belongs in the database")
+        for block, js in script_blocks().items():
+            for name in ("PHASES", "CRIT", "SEED", "ART_URL", "DEF["):
+                self.assertNotIn(name, js, f"{name} in the {block} script is content or data and belongs in the database")
 
     def test_only_documented_collections_are_read(self) -> None:
         schema = SCHEMA_MD.read_text(encoding="utf-8")
@@ -392,10 +555,48 @@ class TemplateHasNoDataTests(unittest.TestCase):
         if node is None:
             self.skipTest("node is not installed; the structural tests above still ran")
         with tempfile.TemporaryDirectory() as tmp:
-            path = Path(tmp) / "page.js"
-            path.write_text(script_text(), encoding="utf-8")
-            done = subprocess.run([node, "--check", str(path)], capture_output=True, text=True, timeout=60)
-            self.assertEqual(done.returncode, 0, done.stderr)
+            for block, js in script_blocks().items():
+                path = Path(tmp) / f"{block}.js"
+                path.write_text(js, encoding="utf-8")
+                done = subprocess.run([node, "--check", str(path)], capture_output=True, text=True, timeout=60)
+                self.assertEqual(done.returncode, 0, f"{block}: {done.stderr}")
+
+
+class LogicBlockTests(unittest.TestCase):
+    """What the page says about a number is decided by pure functions, so an unmeasured counter cannot read as 0."""
+
+    def test_the_logic_block_reads_no_page_state(self) -> None:
+        code = re.sub(r"/\*[\s\S]*?\*/|//[^\n]*", "", script_blocks()["logic"])
+        self.assertIsNone(re.search(r"\b(document|window|localStorage|sessionStorage|navigator|claude|fetch|"
+                                    r"XMLHttpRequest|setTimeout|byId)\b", code), "the logic block must be pure")
+        self.assertIn("function countText(", code)
+
+    def test_a_counter_the_run_does_not_carry_reads_not_measured_and_a_measured_zero_stays_zero(self) -> None:
+        self.assertEqual(run_logic('[countText({}, "refusals"), countText({refusals: 13}, "refusals"),'
+                                   ' countText({glue: 0}, "glue"), countText(null, "glue"),'
+                                   ' countText({refusals: "13"}, "refusals")]'),
+                         ["not measured", "13", "0", "not measured", "not measured"])
+
+    def test_the_header_line_never_prints_undefined_for_a_missing_counter(self) -> None:
+        unmeasured, measured = run_logic(
+            '[headerFacts({release: "r", time: "t", imp: "i"}),'
+            ' headerFacts({release: "r", time: "t", imp: "i", refusals: 13, glue: 0})]')
+        self.assertEqual(unmeasured, "r | t | refusals not measured | glue not measured | i")
+        self.assertEqual(measured, "r | t | 13 refusals | 0 glue | i")
+        self.assertNotIn("undefined", unmeasured + measured)
+
+    def test_a_stage_with_no_minutes_reads_n_a_never_zero(self) -> None:
+        self.assertEqual(run_logic("[minutesText(null), minutesText(undefined), minutesText(0), minutesText(4.5)]"),
+                         ["n/a", "n/a", "0 min", "4.5 min"])
+
+    def test_the_page_uses_them_and_labels_its_file_sizes_for_what_they_are(self) -> None:
+        page = script_text()
+        self.assertIn("headerFacts(run)", page)
+        self.assertNotIn("run.refusals", page)
+        self.assertIn("packet and result file sizes", page)
+        self.assertNotIn("bytes printed and returned", page)  # packetBytes is a packet file's size, not what the model read
+        self.assertIn("minutesText(r.a.min)", page)
+        self.assertNotIn('(r.a.min||0)+" min"', page)  # a missing minute is not drawn as 0 min
 
 
 class DefaultsMatchTheTemplateTests(unittest.TestCase):
