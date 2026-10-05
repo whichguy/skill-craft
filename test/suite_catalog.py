@@ -207,7 +207,11 @@ _DURATION_SECONDS = {
     "test/shiploop-capability-runtime.test.py": 0.996,
     "test/shiploop-planning-handoff.test.py": 0.2,
     "test/shiploop-package-integrity.test.py": 0.2,
-    "test/shiploop-e2e.test.py": 0.7,
+    # 0.7 was written at 14 tests; it has 228 and ran 303 s on GitHub (322 s idle locally) until ebc2d25d replaced the
+    # 2 s poll sleep in run.launch() with a wait.  Estimate, not a GitHub reading: 64.5 s idle locally after the fix,
+    # scaled by the measured GitHub/local ratio of this suite (303/322); the quick run that selected it finished in
+    # 3m16s.  Replace it with the suite's own GitHub seconds once the runner prints per-suite time.
+    "test/shiploop-e2e.test.py": 61.0,
     "test/shiploop-run-review.test.py": 0.2,
     "test/shiploop-callback-contract.test.py": 60.0,
 }
