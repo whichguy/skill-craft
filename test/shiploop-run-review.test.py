@@ -15,6 +15,7 @@ import hashlib
 import importlib.util
 import io
 import json
+import math
 import os
 from pathlib import Path
 import re
@@ -1071,7 +1072,7 @@ class PageShellTests(unittest.TestCase):
             'Object.assign(data.runs[0],{calls:149,contextPeak:271220,contextWindow:1000000,compactions:0,improvePasses:19,improveMin:3.7,'
             'unmeasured:{}});data.runs[0].stages[0].improve={passes:3,min:1.2};data.runs[0].stages[1].improve={passes:2};'
             'data.runs[0].stages[1].skipped=true;renderAll();textOf("rundetail")', setup=SAMPLE_SETUP)
-        for line in ("Model calls (main thread)149", "Context peak (main thread)271,220 tokens of 1,000,000 (27%)",
+        for line in ("Model calls (main thread)149", "Context peak (main thread)271,220 tokens of 1,000,000 (27.1%)",
                      "Compactions0", "19 review passes in 2 visits, 3.7 min, 12% of elapsed.", "intake3 passes1.2 min".replace("intake", "")):
             self.assertIn(line, rich)
         self.assertIn("blocked, skipped, 2 Improve passes", rich)
@@ -1091,7 +1092,7 @@ class PageShellLogicTests(unittest.TestCase):
     def test_context_text_is_a_share_of_the_window_only_when_both_were_measured(self) -> None:
         self.assertEqual(run_logic('[contextText({contextPeak:271220,contextWindow:1000000}), contextText({contextPeak:5000}),'
                                    ' contextText({unmeasured:{contextPeak:"Codex rollouts are not read"}}), contextText({})]'),
-                         ["271,220 tokens of 1,000,000 (27%)", "5,000 tokens", "not measured (Codex rollouts are not read)",
+                         ["271,220 tokens of 1,000,000 (27.1%)", "5,000 tokens", "not measured (Codex rollouts are not read)",
                           "not measured"])
 
     def test_fact_rows_list_text_facts_when_present_and_the_counters_always(self) -> None:
@@ -2248,6 +2249,228 @@ class ReviewSkillTextTests(unittest.TestCase):
                              for f in luna["failures"]), bars["Broken paths"])
         self.assertGreaterEqual(len(example["docs"]["actions"]), 2)
         self.assertEqual(sum(a.get("recommended") is True for a in example["docs"]["actions"].values()), 1)
+
+
+class SequenceModelTests(unittest.TestCase):
+    """R14: the sequence picture as pure data (sequenceModel, columnDetail, visitTable), over the five committed v2 runs
+    and a few fixtures. What the page draws is decided here, so an unmeasured visit or counter cannot read as zero."""
+
+    _cache: dict = {}
+
+    def load(self):
+        """The five runs and sequenceModel of each, from one node run shared by the tests (an exception is not cached,
+        so a template with no sequenceModel fails every test here, not just the first)."""
+        if not self._cache:
+            bundles = {key: json.loads((EVIDENCE_DIR / name).read_text()) for name, key in EVIDENCE_RUNS.items()}
+            runs = {key: b["docs"]["runs"][key] for key, b in bundles.items()}
+            loops = {key: list(b["docs"]["backchain"].values()) for key, b in bundles.items()}
+            models = run_logic(
+                "(function(a){var o={};Object.keys(a.runs).forEach(function(k){o[k]=sequenceModel(a.runs[k],{loops:a.loops[k]});});return o;})("
+                + json.dumps({"runs": runs, "loops": loops}) + ")")
+            self._cache.update(runs=runs, models=models)
+        return self._cache
+
+    @property
+    def runs(self):
+        return self.load()["runs"]
+
+    @property
+    def models(self):
+        return self.load()["models"]
+
+    def card(self, key, name):
+        return next(c for c in self.models[key]["cards"] if c["key"] == name)
+
+    def test_one_column_per_visit_and_consecutive_skipped_visits_collapse_into_one(self) -> None:
+        for key, run in self.runs.items():
+            with self.subTest(run=key):
+                rows, groups, streak = run["stages"], [], 0
+                for row in rows + [{}]:
+                    if row.get("skipped"):
+                        streak += 1
+                    elif streak:
+                        groups.append(streak)
+                        streak = 0
+                columns = self.models[key]["columns"]
+                self.assertEqual(len(columns), len(rows) - sum(n - 1 for n in groups))
+                self.assertEqual(sum(c["n"] for c in columns), len(rows), "every visit is in a column")
+        self.assertEqual(len(self.models["luna1"]["columns"]), 39)
+        columns = self.models["hello-1190b"]["columns"]
+        self.assertEqual(len(columns), 49)  # 47 work visits plus two collapsed runs of skipped ones (4 then 3 in a row)
+        self.assertEqual(sum(1 for c in columns if c["kind"] == "work"), 47)
+        self.assertEqual([(c["first"] + 1, c["last"] + 1, c["label"]) for c in columns if c["kind"] == "skipped"],
+                         [(30, 33, "x4"), (35, 37, "x3")])
+
+    def test_height_is_the_square_root_of_minutes_on_the_runs_own_scale_and_the_tallest_fills_the_plot(self) -> None:
+        for key, model in self.models.items():
+            with self.subTest(run=key):
+                plot = model["lay"]["plot"]
+                work = [c for c in model["columns"] if c["kind"] == "work" and c["min"] is not None]
+                for column in model["columns"]:
+                    self.assertTrue(is_number(column["h"]) and 2 <= column["h"] <= plot, f"{column['stage']}: {column['h']}")
+                tallest = max(work, key=lambda c: c["min"])
+                self.assertEqual(tallest["h"], plot)
+                self.assertEqual(model["maxMin"], {"min": tallest["min"], "stage": tallest["stage"], "visit": tallest["first"] + 1})
+                for column in work:
+                    expected = max(2, math.sqrt(column["min"] / tallest["min"]) * plot)
+                    self.assertAlmostEqual(column["h"], expected, delta=0.11)
+        self.assertEqual(self.models["luna1"]["maxMin"], {"min": 196.4, "stage": "plan", "visit": 6})
+        self.assertEqual(self.models["hello-1190b"]["maxMin"], {"min": 2.2, "stage": "spec", "visit": 4})
+
+    def test_a_work_visit_timed_to_zero_still_gets_two_pixels_and_a_run_of_zeros_makes_no_nan(self) -> None:
+        columns = self.models["hello-1190b"]["columns"]
+        quick = next(c for c in columns if c["stage"] == "skill-validate" and c["first"] == 39)
+        self.assertEqual((quick["kind"], quick["min"], quick["h"]), ("work", 0.0, 2))
+        zeros, empty, nothing = run_logic(
+            '[sequenceModel({stages:[{stage:"intake",min:0},{stage:"spec",min:0}]}),'
+            ' sequenceModel({}), sequenceModel(null)]')
+        self.assertEqual([c["h"] for c in zeros["columns"]], [2, 2])
+        self.assertIsNone(zeros["maxMin"])
+        for model in (empty, nothing):
+            self.assertEqual((model["columns"], model["band"], model["bandNote"], model["visits"]), ([], None, "", 0))
+            self.assertEqual(len(model["cards"]), 6)
+
+    def test_a_visit_that_did_not_finish_done_carries_a_text_mark(self) -> None:
+        luna = self.models["luna1"]["columns"]
+        self.assertEqual((luna[-1]["outcome"], luna[-1]["mark"], luna[-1]["stage"]), ("blocked", "B", "system-test"))
+        self.assertEqual([(c["first"] + 1, c["mark"]) for c in luna if c["mark"]], [(16, "R"), (39, "B")])
+        hello = self.models["hello-1190b"]["columns"]
+        self.assertEqual([(c["first"] + 1, c["mark"], c["outcome"]) for c in hello if c["mark"]], [(27, "P", "replan")])
+        self.assertTrue(all(c["mark"] == "" for c in luna if c["outcome"] == "done"))
+
+    def test_the_visits_card_splits_work_from_skipped_and_the_improve_card_counts_passes(self) -> None:
+        self.assertEqual(self.card("hello-1190b", "visits")["text"], "54 (47 work, 7 skipped)")
+        self.assertEqual(self.card("luna1", "visits")["text"], "39 (39 work)")
+        self.assertEqual(self.card("hello-1190b", "improve")["value"], "19 passes")
+        luna = self.card("luna1", "improve")
+        self.assertEqual((luna["value"], luna["note"]), ("41 passes", "360.3 min, 31% of elapsed"))
+        self.assertEqual(self.card("hello-1161", "improve")["value"], "8 passes")
+        elapsed = self.card("luna1", "elapsed")
+        self.assertEqual((elapsed["label"], elapsed["value"]), ("Elapsed (accept to accept)", "19.3 h"))
+        self.assertIn("1,158.5 min", elapsed["note"])
+        self.assertEqual(self.card("hello-1190b", "elapsed")["value"], "15.2 min")
+        self.assertEqual(self.card("luna1", "loops")["value"], "2 loops")
+        self.assertEqual(self.card("hello-1190b", "loops")["value"], "none")
+
+    def test_context_and_refusals_are_numbers_or_not_measured_with_the_hosts_reason(self) -> None:
+        luna = self.card("luna1", "context")
+        self.assertEqual((luna["value"], luna["label"]), ("97.5%", "Context (main thread)"))
+        self.assertIn("251,867 of 258,400 tokens", luna["note"])
+        self.assertIn("34 compactions", luna["note"])
+        self.assertEqual(self.card("luna1", "refusals")["value"], "13")
+        hello = self.card("hello-1190b", "context")
+        self.assertEqual(hello["value"], "27.1%")
+        self.assertIn("compactions not measured", hello["note"])
+        for key in ("hello-1161", "hello-1180", "hello-1190a", "hello-1190b"):
+            refusals = self.card(key, "refusals")
+            self.assertEqual((refusals["value"], refusals["measured"]), ("not measured", False))
+            self.assertEqual(refusals["note"], self.runs[key]["unmeasured"]["shiploop_failures"])
+            self.assertNotRegex(refusals["text"], r"^0\b")
+        fixture = run_logic('sequenceModel({stages:[],unmeasured:{contextPeak:"the host reports no usage"}}).cards')
+        by_key = {c["key"]: c for c in fixture}
+        self.assertEqual((by_key["context"]["value"], by_key["context"]["measured"]), ("not measured", False))
+        self.assertIn("the host reports no usage", by_key["context"]["note"])
+        self.assertEqual(by_key["context"]["text"], "not measured: the host reports no usage")
+        self.assertEqual(by_key["improve"]["value"], "not measured")
+        bare = run_logic('sequenceModel({}).cards.map(function(c){return c.value;})')
+        self.assertEqual(bare, ["0", "not measured", "not measured", "not loaded", "not measured", "not measured"])
+
+    def test_the_context_band_exists_for_a_run_with_per_visit_context_and_reads_the_window_share(self) -> None:
+        luna = self.models["luna1"]
+        bars = luna["band"]["bars"]
+        self.assertEqual(len(bars), 39)
+        peak = max(bars, key=lambda b: b["pct"])
+        self.assertEqual(peak["pct"], 97.5)
+        self.assertAlmostEqual(peak["pct"], 100 * 251867 / 258400, delta=0.05)  # the run's own peak over its window
+        self.assertEqual(luna["columns"][peak["col"]]["stage"], "static-checks")
+        self.assertEqual(luna["band"]["ticksTotal"], 34)
+        self.assertEqual(sum(b["ticks"] for b in bars), 34)
+        self.assertEqual(luna["bandNote"], "")
+        rows = self.runs["luna1"]["stages"]
+        self.assertEqual([b["warn"] for b in bars], [r["context"]["peakPct"] >= 90 for r in rows])
+        self.assertTrue(all(is_number(b["h"]) and b["h"] > 0 for b in bars))
+        self.assertEqual(luna["lay"]["bandH"], 34)
+
+    def test_a_run_with_no_per_visit_context_has_no_band_and_says_why(self) -> None:
+        for key in ("hello-1161", "hello-1180", "hello-1190a", "hello-1190b"):
+            with self.subTest(run=key):
+                model = self.models[key]
+                self.assertIsNone(model["band"])
+                self.assertEqual(model["bandNote"], "Per-visit context not measured on this host: "
+                                 + self.runs[key]["unmeasured"]["visitContext"])
+        self.assertEqual(run_logic('sequenceModel({stages:[{stage:"intake",min:1}]}).bandNote'),
+                         "Per-visit context not measured on this host")
+
+    def test_a_visit_without_a_context_in_a_run_that_has_some_is_not_measured_never_a_zero_bar(self) -> None:
+        model = run_logic(
+            'sequenceModel({contextWindow:1000,stages:[{stage:"intake",min:1,context:{peak:500,compactions:0,calls:3}},'
+            '{stage:"spec",min:2},{stage:"plan",min:3,context:{calls:2}}]})')
+        bars = model["band"]["bars"]
+        self.assertEqual([(b["pct"], b["h"], b["warn"], b["ticks"]) for b in bars],
+                         [(50, 17, False, 0), (None, None, False, None), (None, None, False, None)])
+        self.assertEqual(model["band"]["ticksTotal"], 0)
+
+    def test_a_seeded_visit_is_never_a_zero_bar_and_a_visit_with_no_time_is_n_a(self) -> None:
+        model = run_logic(
+            'sequenceModel({wallMin:10,stages:[{stage:"intake",outcome:"done",min:null},{stage:"spec",outcome:"done",min:null,seeded:true},'
+            '{stage:"plan",outcome:"done",min:4},{stage:"select-work",outcome:"done",min:0,skipped:true},'
+            '{stage:"step-plan",outcome:"done",min:0,skipped:true}]})')
+        none, seeded, work, skipped = model["columns"]
+        self.assertEqual((none["kind"], none["na"], none["min"], none["h"]), ("work", True, None, 26))
+        self.assertEqual((seeded["kind"], seeded["na"], seeded["min"], seeded["mark"], seeded["h"]), ("seeded", False, None, "S", 20))
+        self.assertEqual((work["h"], work["min"], work["share"]), (96, 4, 40))
+        self.assertEqual((skipped["kind"], skipped["n"], skipped["label"], skipped["h"], skipped["min"]), ("skipped", 2, "x2", 14, 0))
+        self.assertEqual(len(model["columns"]), 4)
+        self.assertEqual(model["cards"][0]["text"], "5 (2 work, 2 skipped, 1 seeded)")
+
+    def test_the_column_detail_names_the_visit_its_files_improve_context_and_the_findings_at_its_phase(self) -> None:
+        findings = [{"id": "o1", "title": "A plan defect", "phase": 2, "run": "luna1", "status": "open"},
+                    {"id": "o2", "title": "A build defect", "phase": 3, "runs": ["luna1"], "status": "fixed"},
+                    {"id": "o3", "title": "Another run", "phase": 2, "run": "hello-1161"},
+                    {"id": "o4", "title": "Any run, plan", "phase": 2, "run": "any"}]
+        details = run_logic(
+            "(function(a){var m=sequenceModel(a.run,{});return [5,0,38].map(function(k){return columnDetail(m,k,a.run,a.findings);});})("
+            + json.dumps({"run": self.runs["luna1"], "findings": findings}) + ")")
+        plan, intake, last = details
+        self.assertEqual(plan["title"], "Visit 6: plan")
+        lines = dict(plan["lines"])
+        self.assertEqual(lines["Outcome"], "done")
+        self.assertEqual(lines["Minutes"], "196.4 min, 17% of elapsed")
+        self.assertEqual((lines["Packet file"], lines["Result file"]), ("63.6 KB", "24.1 KB"))
+        self.assertEqual(lines["Improve"], "3 passes, 39.18 min")
+        self.assertEqual(lines["Context (main thread)"], "566 calls, peak 243,615 tokens (94.3% of the window), 4 compactions")
+        self.assertEqual([f["id"] for f in plan["findings"]], ["o1", "o4"])
+        self.assertEqual((plan["prev"], plan["next"]), (4, 6))
+        self.assertEqual((intake["prev"], intake["findings"]), (None, []))
+        self.assertEqual(dict(last["lines"])["Outcome"], "blocked (marked B)")
+        self.assertEqual(last["next"], None)
+        skipped = run_logic("(function(r){var m=sequenceModel(r,{});return columnDetail(m,29,r,[]);})("
+                            + json.dumps(self.runs["hello-1190b"]) + ")")
+        self.assertEqual(skipped["title"], "Visits 30 to 33: 4 skipped")
+        self.assertEqual(dict(skipped["lines"])["Stages"], "test-spec, baseline, test-author, test-red")
+        self.assertIn("no packet was issued", dict(skipped["lines"])["Outcome"])
+        self.assertEqual(run_logic("columnDetail(sequenceModel({stages:[]}),0,{},[])"), None)
+
+    def test_the_table_has_a_row_per_visit_and_context_columns_only_with_a_band(self) -> None:
+        tables = run_logic(
+            "(function(a){return Object.keys(a).map(function(k){return visitTable(a[k],sequenceModel(a[k],{}));});})("
+            + json.dumps({k: self.runs[k] for k in ("luna1", "hello-1190b")}) + ")")
+        luna, hello = tables
+        self.assertEqual((len(luna["rows"]), len(hello["rows"])), (39, 54))
+        self.assertEqual(luna["head"][-2:], ["Context peak", "Compactions"])
+        self.assertEqual(hello["head"], ["#", "Stage", "Outcome", "Minutes", "Improve", "Packet file", "Result file"])
+        self.assertEqual(luna["rows"][38], ["39", "system-test", "blocked", "11.2 min", "", "36.5 KB", "5.8 KB", "87.6%", "0"])
+        self.assertEqual(hello["rows"][29], ["30", "test-spec", "done, skipped", "0 min", "", "none issued", "814 B"])
+        self.assertEqual(hello["rows"][39][3], "under 0.1 min")
+        self.assertTrue(all(len(r) == len(luna["head"]) for r in luna["rows"]))
+        self.assertTrue(all(len(r) == len(hello["head"]) for r in hello["rows"]))
+        self.assertNotRegex(json.dumps(tables), r"NaN|undefined|null")
+
+    def test_the_shared_text_helpers_read_one_decimal_and_the_hosts_reason(self) -> None:
+        self.assertEqual(run_logic('[pctText(97.47), pctText(27), pctText(100), kbText(814), kbText(55492), spanText(1158.5), spanText(15.2), spanText(119)]'),
+                         ["97.5%", "27%", "100%", "814 B", "54.2 KB", "19.3 h", "15.2 min", "119 min"])
+        self.assertEqual(run_logic('[whyNot({unmeasured:{shiploop_failures:"a"}},"refusals"), whyNot({unmeasured:{refusals:"b",shiploop_failures:"a"}},"refusals"),'
+                                   ' whyNot({},"refusals"), whyNot({unmeasured:{contextPeak:"c"}},"contextPeak")]'), ["a", "b", "", "c"])
 
 
 if __name__ == "__main__":

@@ -292,11 +292,15 @@ function headerFacts(run){
 }
 /* A stage's minutes: "n/a" when the visit has no accept time (min is null), never "0 min". */
 function minutesText(min){return isCount(min)?min+" min":"n/a";}
+/* A percentage to one decimal ("97.5%", "27%"): the same text on a card, in a facts row and in a column's detail. */
+function pctText(p){return (Math.round(p*10)/10)+"%";}
+/* A byte size the way the page prints one. */
+function kbText(n){return n>=1024?(Math.round(n/102.4)/10)+" KB":n+" B";}
 /* The main thread's context peak, as a share of the window when both were measured. */
 function contextText(run){
   if(!run||!isCount(run.contextPeak))return measuredText(run,"contextPeak");
   var t=grouped(run.contextPeak)+" tokens";
-  if(isCount(run.contextWindow)&&run.contextWindow>0)t+=" of "+grouped(run.contextWindow)+" ("+Math.round(100*run.contextPeak/run.contextWindow)+"%)";
+  if(isCount(run.contextWindow)&&run.contextWindow>0)t+=" of "+grouped(run.contextWindow)+" ("+pctText(100*run.contextPeak/run.contextWindow)+")";
   return t;
 }
 /* The run's facts as [label, text] rows. A text fact is left out when the run has none; the counters a host may not
@@ -560,6 +564,162 @@ function figureSvg(fig){
     alt.push(it.label+": "+text);
   });
   return '<svg class="fg" viewBox="0 0 '+W+' '+(16+items.length*rowH)+'" role="img" aria-label="'+esc("Expected versus seen. "+alt.join("; "))+'">'+parts.join("")+'</svg>';
+}
+
+/* ---- the sequence picture (step 1): a column per visit, a context band under it, six cards ---- */
+/* Its geometry in user units (a pixel at natural size). A column is one visit; the tallest work visit is `plot` high. */
+var SQ={pitch:16,gap:3,padL:8,padLBand:34,padR:8,head:16,num:14,plot:96,markH:13,bandGap:4,band:34,tickH:13,
+  naH:26,skipH:14,seedH:20,minH:2,warnAt:90};
+var OUTCOME_MARK={revise:"R",replan:"P",blocked:"B"};
+/* The harness's reason, filed under its own name (shiploop_failures, model_glue) or the run field's. */
+var REASON_NAME={refusals:"shiploop_failures",glue:"model_glue"};
+function whyNot(run,name){return reasonFor(run,name)||reasonFor(run,REASON_NAME[name]||name);}
+/* How long a span reads: hours from two hours, else minutes. */
+function spanText(m){return m>=120?(Math.round(m/6)/10)+" h":(Math.round(m*10)/10)+" min";}
+function kindOf(r){return r&&r.seeded===true?"seeded":(r&&r.skipped===true?"skipped":"work");}
+/* A visit's minutes for the table and the detail: never "0 min" for a work visit (it was timed to under 0.05) and never
+   a number for a visit that was seeded or has no accept time. */
+function visitMinutes(r){
+  if(r&&r.seeded===true)return "n/a (seeded, never timed)";
+  if(!r||!isCount(r.min))return "n/a";
+  return r.min===0&&r.skipped!==true?"under 0.1 min":r.min+" min";
+}
+/* The context of the visits of one column, as far as measured: calls and compactions add up, the peak is the highest;
+   null when none of them carries a `context`. A figure a visit does not carry stays null (not measured), never 0. */
+function contextOf(rows,win){
+  var any=false,calls=null,peak=null,pct=null,comp=null;
+  rows.forEach(function(r){
+    var c=r&&r.context;if(!c||typeof c!=="object")return;any=true;
+    if(isCount(c.calls))calls=(calls||0)+c.calls;
+    if(isCount(c.peak))peak=Math.max(peak||0,c.peak);
+    var p=isCount(c.peakPct)?c.peakPct:(isCount(c.peak)&&win?Math.round(1000*c.peak/win)/10:null);
+    if(p!==null)pct=Math.max(pct===null?0:pct,p);
+    if(isCount(c.compactions))comp=(comp||0)+c.compactions;
+  });
+  return any?{calls:calls,peak:peak,peakPct:pct,compactions:comp}:null;
+}
+/* A KPI card: `value` and `note` as printed. A card that is not measured says "not measured" and gives the reason. */
+function kpi(key,label,value,note,measured){
+  return {key:key,label:label,value:value,note:note,measured:measured,text:measured?value+(note?" ("+note+")":""):value+(note?": "+note:"")};
+}
+/* The six cards of step 1: visits, elapsed, Improve, Backchain loops, context (main thread), refusals. `loops` is the
+   run's Backchain documents (null while they load). */
+function kpiCards(run,loops){
+  var rows=(run&&Array.isArray(run.stages))?run.stages:[],wall=run&&isCount(run.wallMin)&&run.wallMin>0?run.wallMin:0,out=[];
+  var skipped=rows.filter(function(r){return kindOf(r)==="skipped";}).length,seeded=rows.filter(function(r){return kindOf(r)==="seeded";}).length;
+  var parts=[(rows.length-skipped-seeded)+" work"];if(skipped)parts.push(skipped+" skipped");if(seeded)parts.push(seeded+" seeded");
+  out.push(rows.length?kpi("visits","Visits",String(rows.length),parts.join(", "),true):kpi("visits","Visits","0","none accepted yet",true));
+  out.push(isCount(run&&run.wallMin)?kpi("elapsed","Elapsed (accept to accept)",spanText(run.wallMin),
+    "start to the last accept"+(run.wallMin>=120?", "+String(Math.round(run.wallMin*10)/10).replace(/\B(?=(\d{3})+(?!\d))/g,",")+" min":""),true)
+    :kpi("elapsed","Elapsed (accept to accept)","not measured",reasonFor(run,"wallMin")||"no accept times recorded",false));
+  var im=improveFacts(run);
+  if(im.passes===null)out.push(kpi("improve","Improve","not measured",whyNot(run,"improvePasses")||"no Improve record",false));
+  else out.push(kpi("improve","Improve",plural(im.passes,"pass"),im.min!==null?(Math.round(im.min*10)/10)+" min"+(im.share!==null?", "+im.share+"% of elapsed":""):
+    "minutes not measured"+(whyNot(run,"improveMin")?": "+whyNot(run,"improveMin"):""),true));
+  if(!Array.isArray(loops))out.push(kpi("loops","Backchain loops","not loaded","the loop record has not loaded yet",false));
+  else if(!loops.length)out.push(kpi("loops","Backchain loops","none","no Backchain loop recorded for this run",true));
+  else{
+    var stage=loops.reduce(function(n,d){return n+(isCount(d.stageMin)?d.stageMin:0);},0);
+    out.push(kpi("loops","Backchain loops",plural(loops.length,"loop"),(Math.round(stage*10)/10)+" min as stages"+(wall?", "+Math.round(100*stage/wall)+"% of elapsed":""),true));
+  }
+  if(isCount(run&&run.contextPeak)){
+    var w=isCount(run.contextWindow)&&run.contextWindow>0?run.contextWindow:0;
+    out.push(kpi("context","Context (main thread)",w?pctText(100*run.contextPeak/w):grouped(run.contextPeak)+" tokens",
+      (w?grouped(run.contextPeak)+" of "+grouped(w)+" tokens":"window not measured")+"; "+
+      (isCount(run.compactions)?plural(run.compactions,"compaction"):"compactions not measured"),true));
+  }else out.push(kpi("context","Context (main thread)","not measured",whyNot(run,"contextPeak")||"no reason recorded",false));
+  out.push(isCount(run&&run.refusals)?kpi("refusals","Refusals",String(run.refusals),"ShipLoop commands that exited non-zero",true)
+    :kpi("refusals","Refusals","not measured",whyNot(run,"refusals")||"no reason recorded",false));
+  return out;
+}
+/* The picture as data. One column per visit in history order, consecutive skipped visits collapsed into one "xN" column.
+   A work visit is as tall as the square root of its minutes on this run's own scale (the tallest is `plot`, none is
+   under `minH`); a skipped, seeded or untimed (n/a) visit has a fixed small height and is never drawn as a zero bar.
+   `band` is the per-column context strip, or null when no visit carries a context (then `bandNote` says why).
+   opts: {loops}. */
+function sequenceModel(run,opts){
+  opts=opts||{};
+  var rows=(run&&Array.isArray(run.stages))?run.stages:[],win=run&&isCount(run.contextWindow)&&run.contextWindow>0?run.contextWindow:null;
+  var cols=[],prev=-1,last=null;
+  rows.forEach(function(r,i){
+    var kind=kindOf(r);prev=phaseOfStage(r&&r.stage,prev);
+    if(kind==="skipped"&&last&&last.kind==="skipped"){last.last=i;last.rows.push(r);if(last.phases.indexOf(prev)<0)last.phases.push(prev);return;}
+    last={kind:kind,first:i,last:i,rows:[r],phases:[prev]};cols.push(last);
+  });
+  var maxMin=0,tallest=null;
+  cols.forEach(function(c,k){
+    var r=c.rows[0]||{},mins=c.rows.map(function(x){return x&&x.min;}).filter(isCount);
+    c.index=k;c.n=c.rows.length;c.stage=r.stage||"";c.stages=c.rows.map(function(x){return (x&&x.stage)||"";});c.action=r.action||"";
+    c.outcome=String(r.outcome||"done");
+    c.min=c.kind==="seeded"?null:(c.kind==="skipped"?(mins.length?Math.round(mins.reduce(function(a,b){return a+b;},0)*100)/100:null):(isCount(r.min)?r.min:null));
+    c.na=c.kind==="work"&&c.min===null;
+    c.share=isCount(c.min)&&isCount(run&&run.wallMin)&&run.wallMin>0?100*c.min/run.wallMin:null;
+    c.mark=c.kind==="seeded"?"S":(c.kind==="work"&&c.outcome!=="done"?(OUTCOME_MARK[c.outcome]||c.outcome.charAt(0).toUpperCase()):"");
+    c.label=c.kind==="skipped"?"x"+c.n:"";
+    var im=c.kind==="work"&&r.improve&&typeof r.improve==="object"?r.improve:null;
+    c.improve=im&&(isCount(im.passes)||isCount(im.min))?{passes:isCount(im.passes)?im.passes:null,min:isCount(im.min)?im.min:null}:null;
+    c.packetBytes=c.n===1&&isCount(r.packetBytes)?r.packetBytes:null;c.resultBytes=c.n===1&&isCount(r.resultBytes)?r.resultBytes:null;
+    c.context=contextOf(c.rows,win);
+    if(c.kind==="work"&&c.min>maxMin){maxMin=c.min;tallest=c;}
+  });
+  cols.forEach(function(c){
+    c.h=c.kind==="skipped"?SQ.skipH:(c.kind==="seeded"?SQ.seedH:(c.na?SQ.naH:
+      (maxMin>0?Math.max(SQ.minH,Math.round(Math.sqrt(c.min/maxMin)*SQ.plot*10)/10):SQ.minH)));
+  });
+  var anyCtx=cols.some(function(c){return c.context;}),n=cols.length,padL=anyCtx?SQ.padLBand:SQ.padL,y0=SQ.head+SQ.num+SQ.plot;
+  var lay={pitch:SQ.pitch,padL:padL,head:SQ.head,y0:y0,plot:SQ.plot,markH:SQ.markH,bandTop:0,bandH:SQ.band,tickTop:0,bottom:y0+SQ.markH,axisY:0,width:padL+n*SQ.pitch+SQ.padR,height:0};
+  var band=null;
+  if(anyCtx){
+    lay.bandTop=y0+SQ.markH+SQ.bandGap;lay.tickTop=lay.bandTop+SQ.band+2;lay.bottom=lay.tickTop+SQ.tickH;
+    var total=0;
+    band={warnAt:SQ.warnAt,windowTokens:win,bars:cols.map(function(c){
+      var cx=c.context,pct=cx&&cx.peakPct!==null?cx.peakPct:null,t=cx&&cx.compactions!==null?cx.compactions:null;
+      if(t)total+=t;
+      return {col:c.index,pct:pct,h:pct===null?null:Math.round(pct/100*SQ.band*10)/10,warn:pct!==null&&pct>=SQ.warnAt,ticks:t};
+    }),ticksTotal:total};
+  }
+  lay.axisY=lay.bottom+12;lay.height=lay.axisY+5;
+  var why=reasonFor(run,"visitContext");
+  return {columns:cols,visits:rows.length,maxMin:tallest?{min:maxMin,stage:tallest.stage,visit:tallest.first+1}:null,lay:lay,band:band,
+    bandNote:rows.length&&!anyCtx?"Per-visit context not measured on this host"+(why?": "+why:""):"",cards:kpiCards(run,opts.loops)};
+}
+/* What a tapped column says: its title, labelled lines, the findings marked at its phase, and its neighbours. */
+function columnDetail(model,k,run,findings){
+  var c=model&&model.columns[k];if(!c)return null;
+  var key=run&&run.key,lines=[];
+  var title=c.kind==="skipped"?(c.n===1?"Visit "+(c.first+1)+": "+c.stage+" (skipped)":"Visits "+(c.first+1)+" to "+(c.last+1)+": "+c.n+" skipped")
+    :"Visit "+(c.first+1)+": "+c.stage;
+  if(c.n>1)lines.push(["Stages",c.stages.join(", ")]);
+  lines.push(["Outcome",c.kind==="skipped"?"skipped: no packet was issued, the engine found it not applicable":
+    (c.kind==="seeded"?"seeded: the harness recorded this visit without running it":c.outcome+(c.mark?" (marked "+c.mark+")":""))]);
+  lines.push(["Minutes",(c.kind==="skipped"?(c.min===null?"n/a":c.min+" min"):(c.na?"n/a (no accept time recorded)":visitMinutes(c.rows[0])))+
+    (c.share!==null&&c.min>0?", "+pctText(c.share)+" of elapsed":"")]);
+  if(c.packetBytes!==null)lines.push(["Packet file",kbText(c.packetBytes)]);
+  if(c.resultBytes!==null)lines.push(["Result file",kbText(c.resultBytes)]);
+  if(c.improve)lines.push(["Improve",(c.improve.passes!==null?plural(c.improve.passes,"pass"):"passes not measured")+(c.improve.min!==null?", "+c.improve.min+" min":", minutes not measured")]);
+  if(c.context){
+    var cx=c.context,bits=[];
+    if(cx.calls!==null)bits.push(plural(cx.calls,"call"));
+    if(cx.peak!==null)bits.push("peak "+grouped(cx.peak)+" tokens"+(cx.peakPct!==null?" ("+pctText(cx.peakPct)+" of the window)":""));
+    else if(cx.peakPct!==null)bits.push("peak "+pctText(cx.peakPct)+" of the window");
+    bits.push(cx.compactions!==null?plural(cx.compactions,"compaction"):"compactions not measured");
+    lines.push(["Context (main thread)",bits.join(", ")]);
+  }else if(model.band)lines.push(["Context (main thread)","not measured for this visit"]);
+  var marked=(findings||[]).filter(function(f){return appliesTo(f,key)&&c.phases.indexOf(f.phase)>=0;});
+  return {title:title,lines:lines,findings:marked,prev:k>0?k-1:null,next:k<model.columns.length-1?k+1:null};
+}
+/* The same visits as a table, the phone-readable and accessible form of the picture: one row per visit. A context
+   column appears only when the picture has its band. */
+function visitTable(run,model){
+  var rows=(run&&Array.isArray(run.stages))?run.stages:[],ctx=!!(model&&model.band);
+  var head=["#","Stage","Outcome","Minutes","Improve","Packet file","Result file"].concat(ctx?["Context peak","Compactions"]:[]);
+  return {head:head,rows:rows.map(function(r,i){
+    r=r||{};var im=r.improve,c=r.context;
+    var imp=im&&isCount(im.passes)?plural(im.passes,"pass")+(isCount(im.min)?", "+im.min+" min":""):(im&&isCount(im.min)?im.min+" min":"");
+    return [String(i+1),r.stage||"",String(r.outcome||"done")+(r.skipped===true?", skipped":"")+(r.seeded===true?", seeded":""),visitMinutes(r),imp,
+      isCount(r.packetBytes)?kbText(r.packetBytes):(r.skipped===true?"none issued":""),isCount(r.resultBytes)?kbText(r.resultBytes):""]
+      .concat(ctx?[c&&isCount(c.peakPct)?pctText(c.peakPct):"not measured",c&&isCount(c.compactions)?String(c.compactions):"not measured"]:[]);
+  })};
 }
 </script>
 <script>

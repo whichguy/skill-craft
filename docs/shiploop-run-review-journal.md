@@ -757,3 +757,51 @@ the base tip).
 **Commits.** `1a6c83ce` (--check, --docs, collection order, sample fixture, 18 tests), `f1b4e867` (iterate advise
 line), `ee20c5a7` (SKILL.md, advice.md, change note, 8 tests; a prompt-text commit with the learning and evidence),
 `366d6a8f` (the saved-data probe as a test).
+## 2026-10-04: R14, the sequence picture and the six cards on step 1 (part 1: the pure model; not published)
+
+Status: firm for the model and its tests. Local commits only: nothing was pushed or released, no E2E run was launched, and no
+Artifact or ArtifactData call was made, so the live page and its database are untouched. Base: `c2c4b63e` (R1 to R7, R10 to R13,
+R15). This entry grows with the second commit (the renderer, the strip and the render check).
+
+**Why.** The owner asked for "a very visual diagram of the number, duration, and meta context used during the sequences".
+The exporter (R12, R13) already carries what the picture needs: a row per visit with `action`, `skipped`, `seeded`, `improve`
+and, on a Codex run, `context`, plus the run's `calls`, `contextPeak`, `contextWindow`, `compactions` and the reasons for
+what a host could not measure. R14 turns those rows into a picture that never draws an unmeasured value as a zero.
+
+**`sequenceModel(run, opts)`** (pure, in the page's logic block, so node tests it with no DOM). One column per visit in history
+order; consecutive `skipped` visits collapse into one "xN" column (the 54-visit hello run draws 49 columns: 47 work visits and
+two collapsed runs of 4 and 3 skipped ones; Luna draws 39). A work visit is as tall as the square root of its minutes on the
+run's own scale, the tallest column is the full 96 units and printed ("tallest: 196.4 min, plan, visit 6" for Luna), and no
+column is under 2 (a work visit timed to under 0.05 min, hello's `skill-validate`, still gets 2 and the detail says "under 0.1
+min", never "0 min"). A skipped column has a fixed height of 14, a seeded visit a fixed 20 and a visit with no accept time (`min`
+null, not seeded) a fixed 26 drawn as an outlined "n/a": none of them is a minutes bar and none is zero high. Non-done outcomes
+carry a text mark (R revise, P replan, B blocked, S seeded) so colour is never the only cue. `band` is the per-column context
+strip: a bar of `peakPct` (0 to 100 of the window), a warning flag from 90%, and the compaction count per column; it is null
+when no visit carries a `context` (every Claude run), and `bandNote` then reads "Per-visit context not measured on this host:
+<run.unmeasured.visitContext>". A visit with no context in a run that has some gets no bar (height null), not a zero bar.
+
+**The six cards** (`kpiCards`, each a number or "not measured" with the host's reason, never a zero): Visits ("54 (47 work, 7
+skipped)", Luna "39 (39 work)"), Elapsed (accept to accept; Luna "19.3 h", hello "15.2 min"), Improve (Luna "41 passes, 360.3
+min, 31% of elapsed"; hello 1.19.0 repeat "19 passes"), Backchain loops (as the existing ledger: loops, minutes as stages,
+share of elapsed; "none" when the run has no loop, "not loaded" while the record loads), Context (main thread) (Luna "97.5%,
+251,867 of 258,400 tokens; 34 compactions"; hello 1.19.0 repeat "27.1%, 271,220 of 1,000,000 tokens; compactions not
+measured"; or "not measured" with the reason) and Refusals (Luna 13; the four Claude hello runs "not measured" with
+`unmeasured.shiploop_failures`). `columnDetail` (what a tapped column says: stage, outcome, minutes and share, packet and
+result file sizes, Improve, the visit's context and the findings whose `phase` is the column's phase) and `visitTable` (the
+phone-readable and accessible form, one row per visit, context columns only when there is a band) are pure too.
+
+**One change to an existing behaviour.** A percentage now reads to one decimal everywhere (`pctText`: "97.5%", "27%"), so the
+card, the detail and the run facts agree; `contextText` said "(27%)" for 271,220 of 1,000,000 and says "(27.1%)" now, and
+the two existing assertions that pinned the old text were changed on purpose. `kb` moved from the page script to the logic
+block as `kbText`.
+
+**Tests.** `python3 -B test/shiploop-run-review.test.py`: 134 tests OK (121 at the base tip). The 13 new tests of
+`SequenceModelTests` run `sequenceModel` over the five committed v2 evidence files and a few fixtures: column counts (Luna 39,
+hello 1.19.0 repeat 49 with the 4 and 3 collapsed runs), the square-root scale (every column within 0.11 of the formula, the
+tallest equal to the plot height, 196.4 min visit 6 for Luna and 2.2 min visit 4 for the hello repeat), the 2 px minimum and no
+NaN on a run of zeros or an empty run, the marks (Luna 16 R and 39 B, hello 27 P), the cards (the exact texts above), a
+Context card that reads "not measured" with its reason, the band (Luna 39 bars, the peak bar 97.5, 34 compaction ticks, 21
+warning flags equal to the visits at 90% or more; none for the four Claude runs, whose note carries `visitContext`), a visit
+with no context getting no bar, a seeded and an n/a fixture row (fixed heights, S mark, never zero), the detail card and the
+table. Run from a `git archive` of `c2c4b63e` outside the repository with only the test file copied over, all 13 fail
+(the template has no `sequenceModel`), and the two changed assertions fail too.
