@@ -1591,7 +1591,7 @@ class CodexRunTest(HarnessCase):
         self.assertEqual(Path(seen["codex_home"]), Path(result["output"]) / "home" / ".codex")
         argv = seen["argv"]
         self.assertEqual(argv[argv.index("-m") + 1], "gpt-6-luna")
-        self.assertIn("model_reasoning_effort=max", argv)
+        self.assertIn("model_reasoning_effort=xhigh", argv)
         self.assertTrue(result["invoked"]["pass"], result["invoked"])
         self.assertTrue(result["plugin"]["pass"], result["plugin"])
         self.assertTrue(result["committed"]["pass"], result["committed"])
@@ -1709,7 +1709,7 @@ class CodexHostTest(unittest.TestCase):
         self.assertEqual(resumed[-3:], ["resume", "thread-1", "continue"])
         self.assertLess(resumed.index("--json"), resumed.index("resume"))
         self.assertEqual(codex.invoke("skill-craft:shiploop", "x"), "$skill-craft:shiploop x")
-        self.assertEqual((codex.model, codex.effort, codex.resumable), ("gpt-6-luna", "max", True))
+        self.assertEqual((codex.model, codex.effort, codex.resumable), ("gpt-6-luna", "xhigh", True))
 
     def test_env_is_an_isolated_codex_home_linking_only_auth(self):
         with tempfile.TemporaryDirectory() as temp:
