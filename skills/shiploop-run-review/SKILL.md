@@ -79,7 +79,8 @@ exit stays 0. Failures:
 - a change-expectation option has `change` (`target` page or spec, `to`, `reason`), and no other kind has one;
 - each option's `goal` ends with a `Done when` clause;
 - at most one recommended option per finding;
-- a `clauses` id is an `S-n` id that `defaults/expectations.json` uses.
+- a `clauses` id is an `S-n` id that `defaults/expectations.json` uses;
+- a finding's `criterion` and each key of a review's `basis` is a key of `defaults/expectations.json`.
 
 Warnings: an open finding no option names (the page shows "no option yet"); a finding's evidence with no path or commit
 token; an open finding with no `effect` (the page shows it as "not rated").
@@ -91,10 +92,12 @@ token; an open finding with no `effect` (the page shows it as "not rated").
    `capabilities: {db: {}}` (load the `artifact-capabilities` skill first; omit capabilities on a redeploy). Never
    create a second page unless asked. The URL may be a draft: a separate artifact with its own empty database, built
    from the same template. The same steps fill it and leave the live page and its data untouched.
-2. **The defaults.** `export.py --defaults --out DIR` writes the starting expectations and settings, and their
-   `writes.json`. They are replicas of `defaults/`: create what is absent; for what exists, `set` it with
-   `if_version`. Touch only those ids. Never overwrite or delete an owner-added document, or any document you did not
-   write.
+2. **The defaults.** Save the page's `expectations` and `config` rows as `ArtifactData` returns them
+   (`{docs: {collection: {id: {data}}}}`) and run `export.py --defaults --live FILE --out DIR`; on an empty page,
+   `--defaults --out DIR`. The script merges, never you: it keeps every revision, refuses a page revision the
+   defaults lack (copy it into `defaults/` first), and writes only documents the defaults name, with their
+   `writes.json`. `set` each with `if_version` where it exists. Never overwrite or delete an owner-added document, or
+   any document you did not write.
 3. **The run.** Upload the `writes.json` of `export RUN_DIR` the same way, except an existing `backchain` document: it
    may hold hand verdicts the exporter cannot rebuild (`luna1-plan` and `luna1-step-plan` do), so never `set` a
    Backchain document whose id exists with hand-built content.
