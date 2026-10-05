@@ -1947,7 +1947,7 @@ commit, push, merge, execute the project, or broaden scope. These restrictions
 belong to that Backchain child, not the separate Improve executor's authority.
 
 """
-_BACKCHAIN_AUDIT = """\
+_BACKCHAIN_AUDIT_HEAD = """\
 Request action `review` / stage `audit` only for a material prerequisite
 ambiguity, pending/corrective dependency or acceptance gap: a read-only, one-pass
 diagnostic that changes no candidate and completes no parent action. A material
@@ -1955,7 +1955,12 @@ finding goes to the stage owner, who within explicit authorized edit bounds may
 request exactly one action `repair` / stage `revise`, a whole native operation
 that needs the loop resources named in the planning guide's Source-aware native
 caller section (the packet's "Loop resources" line reports them) and keeps its
-start contract within the budget below. A whole `plan`/`draft` is requested only
+start contract within the budget below."""
+# Mode one only.  A pointer, not a gate field: the audit text never names `required_trivial_reviews`; the
+# child's gate and exit condition are the ones Backchain's convergence reference defines for the marker line.
+_BACKCHAIN_AUDIT_ONE_PASS = """ A repair/revise child runs one review/fix/check cycle (`Backchain passes: one`,
+as Backchain's convergence reference defines it)."""
+_BACKCHAIN_AUDIT_TAIL = """ A whole `plan`/`draft` is requested only
 at `plan`. A MISSING loop resource blocks repair/revise; no other install
 substitutes. A forbidden revision, nonterminal child or unresolved finding stays
 incomplete and is not submitted as a completed parent action.
@@ -1972,6 +1977,43 @@ A protected or out-of-scope change follows the existing blocked or recovery rout
 """
 
 
+# The plan-stage gate sentence in `converge` mode: the runtime's own two-review gate, as it was printed before the
+# Backchain passes option existed.
+_BACKCHAIN_PLAN_GATE_CONVERGE = """\
+Until Loop owns the callback handle, progress, its `required_trivial_reviews: 2` gate for
+two consecutive distinct complete trivial/no-change dependency reviews, recovery, and
+terminal transition; Backchain and ShipLoop do not copy that runtime or create another
+controller.
+"""
+# In `one` mode the host writes the gate itself, so the packet prints the gate and the exit condition to copy.
+# Owner decision 2026-10-04 (docs/shiploop-fast-planning-plan-2026-10-04.md, "Backchain single pass: mechanism").
+# The vendored Until Loop completes at gate 0 on the first report that assesses the exit as satisfied, so the exit
+# text is what makes one cycle enough: under the two-review exit text Luna (skill-craft 1.16.1) reported
+# `unsatisfied` through pass 6. Backchain's convergence reference states the same clauses for the marker line;
+# test/shiploop-navigator-contract.test.py BackchainGateDocumentsTest keeps the two the same.
+_BACKCHAIN_PLAN_GATE_ONE = """\
+Until Loop owns the callback handle, progress, its review gate, recovery, and terminal
+transition; Backchain and ShipLoop do not copy that runtime or create another controller.
+Backchain passes: one. Write the child's start contract with `required_trivial_reviews: 0` and this
+exit condition verbatim, appending only case-specific clauses: One complete dependency
+review/fix/check cycle has run; every finding of that cycle is repaired within the edit
+bounds; every `Confirm by` clause meets the planning guide's Outcomes rule; the printed
+`backchain-check` is ok on the final candidate and its receipt is cited; final
+candidate-specific domain evidence is saved. A pass that completes that cycle reports
+`exit_assessment: satisfied` even when it repaired the candidate; Until Loop then completes
+the child and no second review runs. Put the line `Backchain passes: one` beside the
+binding marker in the child's `work`.
+"""
+
+
+def _one_pass(backchain_passes: str) -> bool:
+    """Whether the Backchain child's gate text is the one-pass text (every mode but `converge`).
+
+    Mode `none` has no packet of its own yet, so it prints the one-pass text until it does.
+    """
+    return backchain_passes != "converge"
+
+
 def _backchain_guidance(stage: str, *, improve_owner: bool = False,
                         backchain_passes: str = DEFAULT_BACKCHAIN_PASSES) -> str:
     """Return host-mediated caller guidance without adding navigator state.
@@ -1980,8 +2022,9 @@ def _backchain_guidance(stage: str, *, improve_owner: bool = False,
     the other Backchain stages print the read-only audit route and the rule that a material finding may
     request one repair/revise (the budget stays there: that request starts a loop).
 
-    ``backchain_passes`` is the run's option (see BACKCHAIN_PASSES_MODES).  It is validated and threaded
-    here; no mode changes the printed text yet.
+    ``backchain_passes`` is the run's option (see BACKCHAIN_PASSES_MODES).  ``converge`` prints the two-review
+    gate; the default ``one`` prints the one-pass gate and exit condition at plan and a one-line pointer at the
+    audit stages (see _one_pass for ``none``).
     """
     _require_backchain_passes(backchain_passes)
     if improve_owner:
@@ -1993,10 +2036,7 @@ Through `source-aware-native`, the current stage host may
 request exactly one action `{action}` / stage `{operation}` within the packet's
 scope. Backchain invokes the selected actual Until Loop for its dependency-specific
 review/fix/check cycle using `Backchain standalone Until Loop binding: <binding-id>`.
-Until Loop owns the callback handle, progress, its `required_trivial_reviews: 2` gate for
-two consecutive distinct complete trivial/no-change dependency reviews, recovery, and
-terminal transition; Backchain and ShipLoop do not copy that runtime or create another
-controller.
+""" + (_BACKCHAIN_PLAN_GATE_ONE if _one_pass(backchain_passes) else _BACKCHAIN_PLAN_GATE_CONVERGE) + """\
 Backchain returns opaque actual Until Loop terminal evidence only after the child reports
 `complete` and its exact receipt is saved. A nonterminal, unresolved, or incompatible
 child leaves this parent action incomplete and must not be submitted as a completed parent
@@ -2005,7 +2045,9 @@ permits Backchain planning convergence. The draft is a proposed candidate; ShipL
 acceptance and lifecycle state.
 """ + BACKCHAIN_CHECK
     if stage in BACKCHAIN_AUDIT_STAGES:
-        return _BACKCHAIN_ROUTE + _BACKCHAIN_AUDIT + BACKCHAIN_CHECK + "\n" + _backchain_contract_budget().rstrip("\n") + "\n"
+        audit = (_BACKCHAIN_AUDIT_HEAD + (_BACKCHAIN_AUDIT_ONE_PASS if _one_pass(backchain_passes) else "")
+                 + _BACKCHAIN_AUDIT_TAIL)
+        return _BACKCHAIN_ROUTE + audit + BACKCHAIN_CHECK + "\n" + _backchain_contract_budget().rstrip("\n") + "\n"
     return _BACKCHAIN_ROUTE + """\
 This stage has no native Backchain action. Keep relevant findings in ordinary
 notes and route a material planning gap through its authorized owner.

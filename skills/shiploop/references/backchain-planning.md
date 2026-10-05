@@ -271,9 +271,10 @@ The plan-stage owner may request one whole `plan`/`draft` operation. A material
 audit finding may be routed to the authorized current stage owner for one bounded
 whole `repair`/`revise` operation. Each whole operation lets Backchain invoke the
 selected actual Until Loop for its dependency-specific review/fix/check cycle. Until
-Loop alone owns callback progress, its `required_trivial_reviews: 2` gate for two
-consecutive distinct complete trivial/no-change dependency reviews, recovery, and terminal
-state. Backchain returns only after the child reports `complete`
+Loop alone owns callback progress, its review gate (the packet's printed gate: the
+`required_trivial_reviews` and exit condition for the run's Backchain passes option; a
+`repair`/`revise` packet points to Backchain's convergence reference for it), recovery, and
+terminal state. Backchain returns only after the child reports `complete`
 and the exact terminal evidence is saved; a blocked, stopped, unresolved, or
 incompatible child leaves the parent action incomplete and must not be submitted as
 completed. Only that exact `complete` receipt plus final candidate identity and domain

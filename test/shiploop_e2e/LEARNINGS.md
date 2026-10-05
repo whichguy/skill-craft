@@ -1230,3 +1230,39 @@ Implemented (2026-10-04; the printed text is not changed until the one-pass gate
   same two failures as the base (`shiploop-cross-run`, `shiploop-status-display`; a progress-observer file in a run directory,
   also failing solo on the base), and `shiploop-full-runtime`, which failed once on the base in a temp-directory cleanup
   race (`Directory not empty`) and passes solo on the base, passed on the change. No test enumerated state keys by hand, so none needed an update.
+- **I2, the one-pass gate text, in the packet and in every document the host reads, in one commit** (supersedes the header's
+  "printed text is not changed", 2026-10-04: this increment is the text change). `_backchain_guidance`
+  prints the gate per mode. `converge` prints today's text byte for byte (checked for every stage against the output before the
+  change). `one`, the default, prints at `plan` the 94-word paragraph: `required_trivial_reviews: 0`, the exit condition to copy
+  verbatim (one complete review/fix/check cycle, findings repaired within the edit bounds, every `Confirm by` clause meeting the
+  planning guide's Outcomes rule, `backchain-check` ok on the final candidate with its receipt cited, domain evidence saved),
+  and the rule that a pass completing that cycle reports `exit_assessment: satisfied` even when it repaired the candidate. A
+  14-word instruction puts `Backchain passes: one` beside the binding marker in the child's `work`. The four audit stages carry
+  a 16-word pointer, with no gate field. `none` prints the one-pass text until its own packet lands (I3).
+  `references/convergence.md`, `references/caller-contract.md` and the Backchain card now say the caller selects the gate: by
+  default two consecutive trivial reviews and both qualifying records; with the marker line one cycle, gate 0, and one review
+  record plus the `backchain-check` receipt as the terminal evidence set. ShipLoop's `SKILL.md` and `backchain-planning.md` point to
+  the packet's printed gate. `skills/backchain/evals/evals.json` gains `until-loop-binding-one-pass-marker`; the standalone
+  two-review case stays.
+- **Measured (words, flattened).** Plan-stage Backchain guidance 480 to 579 (+99); each audit stage 301 to 317 (+16); the whole
+  plan packet 3,698 to 3,797. The plan predicted about +70 at plan: it assumed the 23-word ownership clause ("Until Loop owns the
+  callback handle, progress, ... terminal transition") is replaced by the paragraph. It is kept (a justified obligation; the
+  repo rule is to raise a bound rather than trim), shortened by 9 words, so the paragraph (94) and the marker instruction (14)
+  net +99. `converge` is +0 everywhere.
+- **Evidence for I2 (route, not wording).** `OnePassGateTests` in `test/improve-runtime.test.py` reads `required_trivial_reviews`
+  from the printed text, starts the vendored runtime with it and reports: gate 0 plus non-trivial and satisfied completes after
+  1 action; unsatisfied continues and the next satisfied report completes (2 actions, no ceiling); unresolved plus satisfied is
+  refused and the same action still takes a valid report; blocked stops; the printed converge gate (2) needs two trivial
+  reviews after a repair. `BackchainGateDocumentsTest` in `test/shiploop-navigator-contract.test.py` keeps the exit clauses the
+  packet prints identical to the ones `convergence.md` states, pins the evidence sets, and scans every Backchain-gate statement
+  in `skills/backchain` and `skills/shiploop` for a scope (by default, the converge mode, the marker line or the packet's
+  printed gate), plus the rendered default packets at every Backchain stage. On the unchanged code 4 of the 6 runtime tests (the other two pin runtime
+  behaviour that did not change), 6 of 8 dry-run entries and the doc tests failed for the right reason (the printed gate was
+  still 2). The ShipLoop and Improve family (61 files, 1,260 tests: the 1,244 of I1 plus 16 new) has the same two failures as
+  origin/main and the I1 base (`shiploop-cross-run`, `shiploop-status-display`: a `.progress.lock` file in a run directory);
+  `bash test/improve.test.sh` (vendored runtime hashes), the skill-frontmatter, test-groups, ci-policy and interop-hygiene tests
+  and the 35-test mock suite pass. One run of `UnchangedFirstPassTests` (runtime and test unchanged by I2) failed once under
+  heavy load and did not reproduce in 6 reruns on the change and 49 on origin/main: unexplained, recorded as a rare flake.
+- **Not verified in I2 (needs a host).** Whether Luna copies the printed gate and the marker line, and reports `satisfied` after a
+  repairing pass; the contract bytes against the 9,216 budget with the longer exit sentence (R0 was skipped by the owner, so the
+  first live run answers both). `none` still prints the one-pass text.

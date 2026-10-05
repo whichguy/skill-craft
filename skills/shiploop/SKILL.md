@@ -391,7 +391,9 @@ safety pins: [lint catalog](references/lint-catalog.md).
 `--backchain-passes one|converge|none` at `init` or `workspace start` records the
 run option `backchain_passes` (default `one`): how many passes the Backchain
 planning child may take. `one` is one review/fix/check cycle, `converge` is two
-consecutive trivial reviews, and `none` offers no whole Backchain loop at `plan`.
+consecutive trivial reviews, and `none` offers no whole Backchain loop at `plan`. The plan
+packet prints the gate and exit condition of the recorded value; the host copies them into
+the child's start contract.
 Like `lint`, a saved run without the key is refused (start a fresh run), never
 migrated, and an `init` or `workspace start` retry cannot change it. Unlike
 `lint`, no verb changes it mid-run: a fresh run is the route to another value.
@@ -999,9 +1001,10 @@ A selected native `plan`/`draft` or authorized `repair`/`revise` is one whole
 Backchain operation. Backchain supplies its dependency-specific review/fix/check
 work, plan candidate files, source/lens context, and protected bounds to the selected
 actual Until Loop using `Backchain standalone Until Loop binding: <binding-id>`. Until
-Loop owns the temporary callback handle, progress, its `required_trivial_reviews: 2`
-gate for two consecutive distinct complete trivial/no-change dependency reviews, recovery,
-continuation, and terminal transition; ShipLoop owns none of those controls. Backchain
+Loop owns the temporary callback handle, progress, its review gate (the packet's printed
+gate for the run's Backchain passes option; a `repair`/`revise` packet points to Backchain's
+convergence reference for it), recovery, continuation, and terminal transition; ShipLoop owns
+none of those controls. Backchain
 returns only opaque actual Until Loop terminal evidence after the child reports
 `complete` and its exact receipt is saved, plus its domain evidence: binding_id, owner,
 candidate input/output digests, resolved resources, opaque `terminal_receipt`,

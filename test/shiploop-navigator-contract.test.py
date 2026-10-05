@@ -828,17 +828,23 @@ class NavigatorContractTests(unittest.TestCase):
             "opaque actual Until Loop terminal evidence",
             "only after the child reports `complete`",
             "must not be submitted as a completed parent action",
-            "two consecutive distinct complete trivial/no-change dependency reviews",
             "The Until Loop child is plan-only",
         ):
             with self.subTest(required=required):
                 self.assertIn(required, plan)
+        # The review gate the packet prints follows the run's Backchain passes option (default one); the
+        # text is pinned by content per mode, never as a whole.
+        self.assertIn("`required_trivial_reviews: 0`", plan)
+        self.assertNotIn("two consecutive distinct complete trivial/no-change dependency reviews", plan)
+        converge = " ".join(prompts.prompt("plan", backchain_passes="converge").split())
+        self.assertIn("required_trivial_reviews: 2", converge)
+        self.assertIn("two consecutive distinct complete trivial/no-change dependency reviews", converge)
+        self.assertNotIn("required_trivial_reviews: 0", converge)
         # What the plan packet points to instead of restating (the capability check, an old custom loop, the
         # no-fallback rule) is in the guide section it names; the audit stages say where a whole loop is allowed.
         self.assertIn("read-only, one-pass diagnostic", audit)
         self.assertIn("A whole `plan`/`draft` is requested only at `plan`", audit)
         self.assertIn("A MISSING loop resource blocks repair/revise; no other install substitutes", audit)
-        self.assertIn("required_trivial_reviews: 2", plan)
         self.assertIn("final candidate identity and domain evidence", plan)
         self.assertIn("one-pass Backchain primitive", " ".join(prompts.improve_prompt("plan").split()))
         self.assertNotIn("Backchain standalone Improve binding:", plan)
@@ -2751,6 +2757,126 @@ class BackchainPassesOptionTest(unittest.TestCase):
         self.assertEqual(named | {default.group(1)}, set(navigator.BACKCHAIN_PASSES_MODES))
         accepted = self.init(self.base / "run-spec", flag, sorted(named)[0])
         self.assertEqual(accepted.returncode, 0, accepted.stdout + accepted.stderr)
+
+
+class BackchainGateDocumentsTest(unittest.TestCase):
+    """The Backchain gate is caller-selected, and no document the host reads contradicts the printed gate.
+
+    The plan packet (one pass by default) and Backchain's own references used to tell the host two consecutive
+    reviews. A host copies whichever it reads last, so the Luna 1.16.1 plan loop ran seven passes under a gate
+    the packet had changed. These are content pins and a scan, never whole-text goldens.
+    """
+
+    BACKCHAIN = ROOT / "skills" / "backchain"
+    SHIPLOOP = ROOT / "skills" / "shiploop"
+    ONE = "`Backchain passes: one`"
+    # A statement of the two-review gate counts as scoped when its paragraph names one of these.
+    SCOPE = ("by default", "the default", "`converge`", "Backchain passes: one", "packet's printed gate")
+    TWO_REVIEW = re.compile(r"two consecutive|two-consecutive|both original qualifying|required_trivial_reviews: 2")
+    # Mentions that are not a Backchain gate statement, each with its reason.
+    NOT_A_GATE = {
+        "skills/backchain/references/harness.md": "says direct harness commands do not perform the reviews; no gate",
+        "skills/shiploop/references/parallel-chain.md": "Improve's own gate; Backchain only informs that review",
+    }
+
+    @staticmethod
+    def flat(path: Path) -> str:
+        return " ".join(path.read_text(encoding="utf-8").split())
+
+    @staticmethod
+    def printed_exit_clauses() -> list[str]:
+        text = " ".join(prompts._backchain_guidance("plan", backchain_passes="one").split())
+        exit_text = re.search(r"verbatim, appending only case-specific clauses: (.+?)\. A pass that completes", text)
+        assert exit_text is not None, text
+        return exit_text.group(1).split("; ")
+
+    def test_the_references_state_the_printed_exit_condition_for_the_one_pass_marker(self) -> None:
+        clauses = self.printed_exit_clauses()
+        self.assertGreaterEqual(len(clauses), 4)
+        convergence = self.flat(self.BACKCHAIN / "references" / "convergence.md")
+        for clause in clauses:  # the host copies the packet's clauses verbatim; the reference must say the same
+            with self.subTest(clause=clause):
+                self.assertIn(clause.lower(), convergence.lower())
+        for required in (self.ONE, "`required_trivial_reviews: 0`", "beside the binding marker",
+                         "reports `exit_assessment: satisfied` even when it repaired the candidate"):
+            with self.subTest(required=required):
+                self.assertIn(required, convergence)
+        # the default stays two consecutive reviews, and says it is the default
+        for default in ("by default", "`required_trivial_reviews: 2`",
+                        "two consecutive distinct complete trivial/no-change dependency reviews"):
+            with self.subTest(default=default):
+                self.assertIn(default, convergence)
+
+    def test_the_terminal_evidence_set_is_one_record_and_the_check_receipt_for_the_marker(self) -> None:
+        convergence = self.flat(self.BACKCHAIN / "references" / "convergence.md")
+        evidence = convergence.split("## Terminal evidence and recovery", 1)[1]
+        for required in ("both original qualifying review records", "With " + self.ONE,
+                         "the one review record of the cycle and the `backchain-check` receipt on the final candidate"):
+            with self.subTest(required=required):
+                self.assertIn(required, evidence)
+        # the caller contract's two-record rule is the default only, and names the marker and the check receipt
+        contract = (self.BACKCHAIN / "references" / "caller-contract.md").read_text(encoding="utf-8")
+        rule = next(paragraph for paragraph in re.split(r"\n\s*\n", contract)
+                    if "both original qualifying review records" in paragraph)
+        for required in ("By default", self.ONE, "`backchain-check` receipt"):
+            with self.subTest(required=required):
+                self.assertIn(required, " ".join(rule.split()))
+
+    def test_the_backchain_skill_names_the_marker_in_its_description_and_the_gate_step(self) -> None:
+        text = (self.BACKCHAIN / "SKILL.md").read_text(encoding="utf-8")
+        description = " ".join(text.split("---", 2)[1].split())
+        self.assertIn("by default until two consecutive trivial/no-change reviews", description)
+        self.assertIn(self.ONE, description)
+        step = " ".join(text.split("4. Bind the frozen candidate, source/lens context", 1)[1].split("\n5.", 1)[0].split())
+        for required in ("by default two consecutive trivial reviews", self.ONE, "references/convergence.md"):
+            with self.subTest(required=required):
+                self.assertIn(required, step)
+
+    def test_the_shiploop_documents_point_to_the_packets_printed_gate(self) -> None:
+        for path in (self.SHIPLOOP / "SKILL.md", self.SHIPLOOP / "references" / "backchain-planning.md"):
+            flat = self.flat(path)
+            with self.subTest(path=path.name):
+                self.assertIn("packet's printed gate", flat)
+                self.assertNotIn("its `required_trivial_reviews: 2` gate for two consecutive", flat)
+
+    def test_no_document_the_host_reads_tells_it_two_reviews_without_naming_the_default_or_the_other_modes(self) -> None:
+        documents = [*sorted((self.BACKCHAIN).rglob("*.md")),
+                     *sorted(self.SHIPLOOP.glob("*.md")), *sorted((self.SHIPLOOP / "references").rglob("*.md"))]
+        self.assertGreater(len(documents), 20)
+        found = 0
+        for path in documents:
+            if str(path.relative_to(ROOT)) in self.NOT_A_GATE:
+                continue
+            in_backchain = self.BACKCHAIN in path.parents
+            for block in re.split(r"\n\s*\n", path.read_text(encoding="utf-8")):
+                paragraph = " ".join(block.split())  # a statement may wrap across lines
+                if not self.TWO_REVIEW.search(paragraph):
+                    continue
+                if not in_backchain and "Backchain" not in paragraph:
+                    continue  # Improve's own two-pass gate
+                found += 1
+                with self.subTest(path=str(path.relative_to(ROOT)), text=paragraph[:90]):
+                    self.assertTrue(any(marker.lower() in paragraph.lower() for marker in self.SCOPE),
+                                    "states the two-review gate without saying it is the default, the converge mode "
+                                    "or the packet's gate:\n" + paragraph)
+        self.assertGreaterEqual(found, 7)  # the scan finds the statements it is meant to police
+        # the rendered default packets (mode one) carry no two-review statement at any Backchain stage
+        for stage in prompts.BACKCHAIN_STAGES:
+            with self.subTest(stage=stage):
+                packet = " ".join(prompts.prompt(stage).split())
+                self.assertIsNone(self.TWO_REVIEW.search(packet))
+
+    def test_the_evals_cover_the_default_and_the_marker_path(self) -> None:
+        cases = json.loads((self.BACKCHAIN / "evals" / "evals.json").read_text(encoding="utf-8"))["evals"]
+        ids = [case["id"] for case in cases]
+        self.assertEqual(len(ids), len(set(ids)))
+        by_name = {case.get("name"): case for case in cases}
+        default = " ".join(json.dumps(by_name["until-loop-binding-missing-review-history"]).split())
+        self.assertIn("Both original qualifying review records", default)  # standalone default keeps two
+        marker = " ".join(json.dumps(by_name["until-loop-binding-one-pass-marker"]).split())
+        for required in ("Backchain passes: one", "required_trivial_reviews", "backchain-check"):
+            with self.subTest(required=required):
+                self.assertIn(required, marker)
 
 
 if __name__ == "__main__":

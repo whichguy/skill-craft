@@ -400,18 +400,86 @@ class BackchainStageTextTests(unittest.TestCase):
                 self.assertEqual(packet.count("Backchain planning guide: "), 1)  # the pointer stays at every stage
                 self.assertEqual(packet.count("Backchain graph check: "), 1)  # the record-only check line stays
 
-    def test_the_loop_stage_keeps_every_obligation_the_trim_did_not_target(self):
-        flat = " ".join(guidance._backchain_guidance(self.LOOP_STAGE).split())
-        for kept in ("`MISSING: ...` entry blocks the route for that named resource",
-                     "never substitute a sibling, cache or other install",
-                     "Record the binding id, candidate and receipt paths",
-                     "is not execution evidence or a passed experiment",
-                     "The planning guide's Source-aware native caller section holds",
-                     "Until Loop state budget", "action `plan` / stage `draft`", "required_trivial_reviews: 2",
-                     "The Until Loop child is plan-only"):
-            with self.subTest(kept=kept):
-                self.assertIn(kept, flat)
+    LOOP_OBLIGATIONS = ("`MISSING: ...` entry blocks the route for that named resource",
+                        "never substitute a sibling, cache or other install",
+                        "Record the binding id, candidate and receipt paths",
+                        "is not execution evidence or a passed experiment",
+                        "The planning guide's Source-aware native caller section holds",
+                        "Until Loop state budget", "action `plan` / stage `draft`",
+                        "Backchain standalone Until Loop binding: <binding-id>",
+                        "only after the child reports `complete`",
+                        "final candidate identity and domain evidence",
+                        "The Until Loop child is plan-only")
+
+    def test_the_loop_stage_keeps_every_obligation_the_trim_did_not_target_in_every_mode(self):
+        for mode in ("one", "converge"):
+            flat = " ".join(guidance._backchain_guidance(self.LOOP_STAGE, backchain_passes=mode).split())
+            for kept in self.LOOP_OBLIGATIONS:
+                with self.subTest(mode=mode, kept=kept):
+                    self.assertIn(kept, flat)
         self.assertIn("Backchain graph check: ", self.packets[self.LOOP_STAGE])
+
+    def test_converge_prints_the_two_review_gate_and_none_of_the_one_pass_text(self):
+        flat = " ".join(guidance._backchain_guidance(self.LOOP_STAGE, backchain_passes="converge").split())
+        self.assertIn("required_trivial_reviews: 2", flat)
+        self.assertIn("two consecutive distinct complete trivial/no-change dependency reviews", flat)
+        for one_pass in ("required_trivial_reviews: 0", "Backchain passes", "One complete dependency"):
+            with self.subTest(one_pass=one_pass):
+                self.assertNotIn(one_pass, flat)
+
+    def test_one_prints_gate_zero_the_exit_condition_and_the_marker_line_and_not_the_two_review_text(self):
+        flat = " ".join(guidance._backchain_guidance(self.LOOP_STAGE, backchain_passes="one").split())
+        self.assertEqual(flat.count("`required_trivial_reviews: 0`"), 1)
+        for printed in ("Backchain passes: one.",
+                        "Put the line `Backchain passes: one` beside the binding marker in the child's `work`",
+                        "this exit condition verbatim",
+                        "One complete dependency review/fix/check cycle has run",
+                        "every finding of that cycle is repaired within the edit bounds",
+                        "every `Confirm by` clause meets the planning guide's Outcomes rule",
+                        "the printed `backchain-check` is ok on the final candidate and its receipt is cited",
+                        "final candidate-specific domain evidence is saved",
+                        "reports `exit_assessment: satisfied` even when it repaired the candidate",
+                        "no second review runs"):
+            with self.subTest(printed=printed):
+                self.assertIn(printed, flat)
+        for two_review in ("required_trivial_reviews: 2", "two consecutive", "trivial/no-change dependency reviews"):
+            with self.subTest(two_review=two_review):
+                self.assertNotIn(two_review, flat)
+
+    def test_the_stage_prompt_carries_the_text_of_the_modes_it_is_given(self):
+        # the route, not the module constants: the mode the CLI records reaches the packet the host reads
+        for mode, gate in (("one", "required_trivial_reviews: 0"), ("converge", "required_trivial_reviews: 2")):
+            with tempfile.TemporaryDirectory(prefix="backchain-mode-text-") as temporary:
+                result = subprocess.run(
+                    [sys.executable, "-B", str(SCRIPTS / "shiploop"), "graph-dry-run", "--scenario", "delivery",
+                     "--backchain-passes", mode, "--format", "json"], cwd=temporary,
+                    env=dict(os.environ, PYTHONDONTWRITEBYTECODE="1"), capture_output=True, text=True)
+            self.assertEqual(result.returncode, 0, result.stderr)
+            events = json.loads(result.stdout)["scenarios"][0]["events"]
+            packets = {event["from"]: event["prompt"] for event in events if event["command"] == "produce"}
+            with self.subTest(mode=mode):
+                self.assertIn(gate, packets[self.LOOP_STAGE])
+                self.assertEqual(packets[self.LOOP_STAGE].count(
+                    guidance._backchain_guidance(self.LOOP_STAGE, backchain_passes=mode)), 1)
+                for stage in self.AUDIT_STAGES:
+                    self.assertNotIn("required_trivial_reviews", packets[stage])
+                    self.assertEqual(packets[stage].count(
+                        guidance._backchain_guidance(stage, backchain_passes=mode)), 1)
+
+    POINTER = ("A repair/revise child runs one review/fix/check cycle (`Backchain passes: one`, "
+               "as Backchain's convergence reference defines it)")
+
+    def test_audit_stages_carry_the_one_pass_pointer_in_mode_one_and_nothing_in_converge(self):
+        for stage in self.AUDIT_STAGES:
+            one = " ".join(guidance._backchain_guidance(stage, backchain_passes="one").split())
+            converge = " ".join(guidance._backchain_guidance(stage, backchain_passes="converge").split())
+            with self.subTest(stage=stage):
+                self.assertEqual(one.count(self.POINTER), 1)
+                self.assertNotIn("Backchain passes", converge)
+                # the pointer names no literal gate field in either mode (see the audit-text pin above)
+                self.assertNotIn("required_trivial_reviews", one + converge)
+                # a pointer is all mode one adds: the rest of the audit text is the converge text
+                self.assertEqual(one.replace(self.POINTER + ". ", ""), converge)
 
 
 if __name__ == '__main__':

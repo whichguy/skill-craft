@@ -14,6 +14,17 @@ request:
 Backchain standalone Until Loop binding: <binding-id>
 ```
 
+The caller selects the review gate. A caller that wants one pass, as ShipLoop's plan packet
+does by default, states it with a second marker line beside the binding marker in the same
+child request:
+
+```text
+Backchain passes: one
+```
+
+Without that line the default below applies. Backchain never infers the choice from the plan,
+the candidate or its own judgment.
+
 Physically resolve and read the selected Until Loop card in full: its `SKILL.md`, or
 the bundled `ADAPTER.md` explicitly selected by the caller. Resolve
 `references/runtime-ephemeral.md` and `scripts/until_loop_ephemeral.py` relative to
@@ -38,11 +49,24 @@ and verify their writable parent directories; their absence before creation is n
 Hand the loaded Until Loop card the following natural-language work and constraints.
 That card interprets the contract, starts its own adapter, and is the sole CLI caller;
 Backchain must not construct or replay callbacks itself. Supply one dependency-planning
-work cycle, an exit condition
+work cycle and, by default, an exit condition
 requiring two consecutive distinct complete trivial/no-change dependency reviews **and**
 final candidate-specific domain evidence, a repeat condition covering useful authorized
-planning repair or required distinct review, and `required_trivial_reviews: 2`. The child
-scope includes only the plan artifact and permitted planning companions. It must retain:
+planning repair or required distinct review, and `required_trivial_reviews: 2`.
+
+With `Backchain passes: one` beside the binding marker, supply instead the same repeat
+condition, `required_trivial_reviews: 0` and this exit condition: One complete dependency
+review/fix/check cycle has run; every finding of that cycle is repaired within the edit
+bounds; every `Confirm by` clause meets the planning guide's Outcomes rule; the printed
+`backchain-check` is ok on the final candidate and its receipt is cited; final
+candidate-specific domain evidence is saved. (`backchain-check` is the structural check a
+ShipLoop packet prints; another caller names its own check of the exact candidate.) A pass
+that completes that cycle reports `exit_assessment: satisfied` even when it repaired the
+candidate; Until Loop then completes the child and no second review runs. An open gap is
+reported `unsatisfied` and the loop continues; nothing adds a pass ceiling. The rest of
+this reference applies to that one cycle unchanged.
+
+The child scope includes only the plan artifact and permitted planning companions. It must retain:
 
 - original request; sources with authority/currentness/identity; 42-lens resources;
   dependency neighborhood, evidence, and selected technical findings;
@@ -114,12 +138,17 @@ gaps, final source assessment when applicable, protected-bound disposition, and 
 deterministic validation receipt. The adapter validates callback shape and transitions, not
 that semantic evidence is true.
 
-The final handoff and `domain_evidence` must retain access to both original qualifying
+By default, the final handoff and `domain_evidence` must retain access to both original qualifying
 review records since the run began or latest reset, whichever is later, and their observed
 identities. Reopen and check those records
 before reporting converged planning: either unavailable, overwritten, or mismatched record
 leaves planning incomplete even when the exact runtime receipt says `complete`. Terminal
 state deletion and a latest-only report must not erase the evidence for the earlier review.
+
+With `Backchain passes: one`, the evidence set is the one review record of the cycle and the
+`backchain-check` receipt on the final candidate, with their observed identities; reopen and
+check both before reporting converged planning. Either unavailable, overwritten, or mismatched
+leaves planning incomplete even when the exact runtime receipt says `complete`.
 
 Treat `blocked`, `stopped`, `cancelled`, missing/damaged state, unavailable resource, lost
 terminal stdout, or absent domain evidence as incomplete. Preserve the exact terminal packet

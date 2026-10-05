@@ -193,6 +193,19 @@
         "A matching candidate, exact terminal complete packet, numeric streak, or copied verdict cannot replace the missing earlier review observations.",
         "Preserve the real terminal receipt, name the unavailable evidence and recovery action, and do not fabricate a record, replay done, or silently restart the completed run."
       ]
+    },
+    {
+      "id": 16,
+      "name": "until-loop-binding-one-pass-marker",
+      "prompt": "A ShipLoop plan packet asks for a source-aware plan/draft and states the line `Backchain passes: one` beside the binding marker. Plan the request and bind the candidate to the selected Until Loop. The one review/fix/check cycle repairs a supplier edge and a confirmation clause, the printed backchain-check is ok on the repaired candidate, and its receipt is saved. Decide the child's start contract and what converged planning needs.",
+      "expected_output": "A plan-only Until Loop child whose start contract carries required_trivial_reviews 0 and the one-cycle exit condition, completed by the first report that assesses that exit as satisfied even though the cycle repaired the candidate. Converged planning needs the exact terminal complete receipt, the one review record and the backchain-check receipt on the final candidate.",
+      "files": [],
+      "expectations": [
+        "The start contract carries `required_trivial_reviews: 0` and the exit condition of one complete review/fix/check cycle because the caller stated `Backchain passes: one`; the two-review gate of the standalone default is not copied.",
+        "The cycle that repaired the candidate reports `exit_assessment: satisfied` when its exit holds; the host runs no second review to confirm the repair and adds no pass ceiling or counter. A cycle with an open gap is still reported unsatisfied and the loop continues.",
+        "The terminal evidence set is the exact opaque terminal complete receipt, the one review record with its observed identity and the backchain-check receipt on the final candidate; a copied verdict or a numeric count cannot replace them.",
+        "Without the marker line the default applies: two consecutive distinct complete trivial/no-change reviews, and both original qualifying review records stay recoverable."
+      ]
     }
   ]
 }
