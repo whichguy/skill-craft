@@ -1,0 +1,34 @@
+{
+ "$schema": "https://json-schema.org/draft/2020-12/schema",
+ "title": "adversarial-review findings",
+ "type": "object",
+ "required": ["change", "reviewer", "findings"],
+ "properties": {
+  "change": {"type": "string", "description": "short name of the change reviewed"},
+  "reviewer": {"type": "string", "description": "model that reviewed it"},
+  "findings": {
+   "type": "array",
+   "items": {
+    "type": "object",
+    "required": ["id", "claim", "severity", "category", "testable"],
+    "properties": {
+     "id": {"type": "string", "pattern": "^F[0-9]+$"},
+     "claim": {"type": "string", "description": "what could go wrong, in one or two sentences"},
+     "severity": {"enum": ["high", "medium", "low"]},
+     "category": {"enum": ["regression", "overreach", "untested-case", "measurement", "wording", "scope"]},
+     "evidence": {"type": "string", "description": "the text or result the claim rests on"},
+     "testable": {"type": "boolean"},
+     "experiment": {
+      "type": "object",
+      "required": ["type", "description", "success"],
+      "properties": {
+       "type": {"enum": ["scenario", "arm", "metric", "judge"]},
+       "description": {"type": "string"},
+       "success": {"type": "string", "description": "the observable result that would refute the claim"}
+      }
+     }
+    }
+   }
+  }
+ }
+}

@@ -3,7 +3,7 @@
 First runs against the [architecture rubric](shiploop-architecture-rubric.md):
 a 14-scenario pilot on the hosted runtimes, and a platform-card experiment on
 four general deployments. Harness, fact sheets and every verdict:
-[experiments/shiploop-architecture-rubric](experiments/shiploop-architecture-rubric/).
+[experiments/shiploop-architecture-rubric](https://github.com/whichguy/shiploop-prompt-lab/blob/main/experiments/).
 
 Sonnet for trials and judge; blind grading, one plan at a time; scores are
 met = 1, partial = 0.5, missed or overbuilt = 0, averaged over applicable
@@ -16,7 +16,7 @@ differences under about 0.1 as noise unless they repeat across experiments.
 2 trials = 112 plans (111 graded; one stayed a stub after three reruns and was
 excluded). The **shipped** variant is ShipLoop 0.35.0's interaction-design
 block. The **candidate**
-([text](experiments/shiploop-architecture-rubric/candidate_interaction_design.txt))
+([text](https://github.com/whichguy/shiploop-prompt-lab/blob/main/experiments/candidate_interaction_design.txt))
 narrows the hidden-information clause to information one user must not see of
 another's, adds "choose the simplest placement that meets the request", and adds
 the channel ladder and caching rules.
@@ -103,7 +103,7 @@ was discarded and rerun without access.
 The first pilot's candidate improved proportion and connectivity but lowered
 personal data (D1), untrusted callers (I4) and logs (D3). Four hypotheses, one
 variant each, all built on the shipped block's first paragraph
-([variants.py](experiments/shiploop-architecture-rubric/round2/variants.py);
+([variants.py](https://github.com/whichguy/shiploop-prompt-lab/blob/main/experiments/round2/variants.py);
 the exact blocks are the `block_*.txt` files next to it):
 
 | Variant | Hypothesis | Change | Words |
@@ -140,7 +140,7 @@ of 40 tier calls agree, and a plan's score moves 0.04 on average.
 | Logs (D3) | 0.84 | 0.75 | 0.88 | 0.81 | 0.72 | 0.77 | 0.73 |
 | Criteria 0.1 or more below shipped | — | 4 | 2 | 3 | 4 | **1** | 3 |
 
-Full per-criterion table: [final_analysis.txt](experiments/shiploop-architecture-rubric/round2/final_analysis.txt).
+Full per-criterion table: [final_analysis.txt](https://github.com/whichguy/shiploop-prompt-lab/blob/main/experiments/round2/final_analysis.txt).
 
 ### What the evidence shows
 
@@ -197,7 +197,7 @@ ShipLoop 0.40.0 (skill-craft 1.7.0) ships v5 as the interaction-design block,
 with one change from the tested text: the example "an opponent's fleet" became
 "an opponent's hidden game state", to keep the packet generic. The Apps Script
 card gained the facts plans kept getting wrong, each verified against Google's
-documentation ([gas_facts.md](experiments/shiploop-architecture-rubric/research/gas_facts.md)):
+documentation ([gas_facts.md](https://github.com/whichguy/shiploop-prompt-lab/blob/main/experiments/research/gas_facts.md)):
 executions run concurrently up to a per-user cap; properties are not documented
 as atomic, so a read-modify-write needs a LockService lock; `google.script.run`
 is asynchronous; and `Session.getActiveUser()` returns a blank email wherever
@@ -207,13 +207,13 @@ results for every deployment and account type, so the card says to probe it.
 
 ## Harness: judge v2
 
-A research pass ([prompt_research.md](experiments/shiploop-architecture-rubric/research/prompt_research.md))
+A research pass ([prompt_research.md](https://github.com/whichguy/shiploop-prompt-lab/blob/main/experiments/research/prompt_research.md))
 on LLM-as-a-judge reliability and on prompting for architecture decisions
 recommended per-grade anchors, an evidence quote before every grade
 (G-Eval-style form filling, evidence before verdict), criteria placed both
 before and after the plan (long-context position effects), and paired bootstrap
-confidence intervals. [judge2.py](experiments/shiploop-architecture-rubric/judge2.py)
-implements the first three; [round3/analyze.py](experiments/shiploop-architecture-rubric/round3/analyze.py)
+confidence intervals. [judge2.py](https://github.com/whichguy/shiploop-prompt-lab/blob/main/experiments/judge2.py)
+implements the first three; [round3/analyze.py](https://github.com/whichguy/shiploop-prompt-lab/blob/main/experiments/round3/analyze.py)
 the fourth. Each judge call now times out after five minutes, retries up to
 three times and logs a final failure instead of dropping it (a hung call had
 stalled grading for fifteen minutes).
@@ -232,7 +232,7 @@ Human calibration labels and a second judge family remain open.
 
 The subject model in every round so far is Sonnet. ShipLoop's real host is Grok
 (`grok-4.7`, medium effort); an isolated Grok runner
-([run_grok.sh](experiments/shiploop-architecture-rubric/run_grok.sh)) is
+([run_grok.sh](https://github.com/whichguy/shiploop-prompt-lab/blob/main/experiments/run_grok.sh)) is
 included but not yet validated, so no result here has been reproduced on Grok.
 
 ## Round 3: a planning review for detail safeguards
@@ -248,13 +248,13 @@ the unreviewed plan:
 - **safeguards**: the current focus plus three bullets: personal data without a
   retention period, removal path or log exclusion; a runtime quota the design
   depends on but does not name; a background failure nobody who can act will
-  see ([focus_safeguards.txt](experiments/shiploop-architecture-rubric/round3/focus_safeguards.txt)).
+  see ([focus_safeguards.txt](https://github.com/whichguy/shiploop-prompt-lab/blob/main/experiments/round3/focus_safeguards.txt)).
 - **prune**: safeguards plus a fourth bullet, "anything the plan adds that the
   request does not need (a feature, a store, sign-in, a live channel, a debug
   path, a higher placement tier): remove it", and the instruction to meet a
   finding by changing or removing what exists before adding anything, returning
   the plan unchanged when nothing needs fixing
-  ([example prompt](experiments/shiploop-architecture-rubric/round3/example_prompt_prune.txt)).
+  ([example prompt](https://github.com/whichguy/shiploop-prompt-lab/blob/main/experiments/round3/example_prompt_prune.txt)).
 
 Every arm also had "change only what a finding requires; do not add features,
 infrastructure or a higher placement tier". 415 of 416 plans were graded.
@@ -273,7 +273,7 @@ infrastructure or a higher placement tier". 415 of 416 plans were graded.
 
 Per criterion, the prune review raised personal data from 0.74 to 0.97, logs
 from 0.77 to 1.00 and runtime limits from 0.68 to 0.92, with retention and end
-of life also up. Full table: [round3/final_analysis.txt](experiments/shiploop-architecture-rubric/round3/final_analysis.txt).
+of life also up. Full table: [round3/final_analysis.txt](https://github.com/whichguy/shiploop-prompt-lab/blob/main/experiments/round3/final_analysis.txt).
 
 ### What round 3 shows
 
@@ -313,3 +313,282 @@ where they were.
    calibration.
 4. Lean cards against full cards; more scenarios (mobile push, large exports,
    scheduled report email, audited admin console, feature-flag rollout).
+
+## Scoring scale and decision rule (from 2026-09-27)
+
+The evaluation harness spec ([skills/rubric-eval/SPEC.md](../skills/rubric-eval/SPEC.md),
+sections 6–8) changed the scoring scale and the ship decision after round 3.
+Round 4 and round 5 below report against the new rule; rounds 1–5 above stand
+as written, on the old 0–1 scale, and none of them recorded tokens or time.
+
+- **Scale.** Each criterion is graded met, partial or missed as before, now
+  scored met = 2, partial = 1, missed or overbuilt = 0. A plan's score is the
+  percentage of available points it earned over its applicable criteria — the
+  same grades, the old 0–1 average times 100.
+- **Paired comparison.** Arms are compared on the same scenario-runtime-trial
+  cells: a 95% bootstrap interval (4,000 resamples, clustered by scenario, so
+  a scenario's own runtimes and trials are not counted as independent) and a
+  Wilcoxon signed-rank test over per-scenario means. Both must agree before a
+  quality call is made either way.
+- **Equivalence** means the whole interval sits within plus or minus the
+  judge's own measured noise (its test-retest change, next table): a
+  difference the judge cannot reliably tell from its own regrade is treated as
+  no difference, not as a small win. Anything that is neither clearly better,
+  clearly worse nor equivalent is inconclusive — the answer is more scenarios
+  or trials, not a decision.
+- **Priority.** A material quality difference decides the arm regardless of
+  its cost. Only once quality is equivalent does token use decide between
+  arms; only once tokens are equivalent too does wall-clock time decide. A tie
+  at every level keeps the baseline — a change has to earn its place.
+
+Judge reliability (SPEC section 7, test-retest on at least 30 plans each):
+
+| Judge | Kappa | Band | Noise | Measured on |
+| --- | --- | --- | --- | --- |
+| Opus 5.5, medium | 0.835 | almost perfect | 2.07 points | 30 round-4 reviews |
+| Sonnet | 0.759 | substantial | 1.69 points | 30 round-3 plans |
+| Opus vs Sonnet | 0.443 | moderate | 7.3 points apart | same 30 round-4 reviews |
+
+Each judge agrees with itself far more than it agrees with the other family,
+which is why a round never mixes judges.
+
+## Round 4: review pass wording, exploratory
+
+Sonnet subject, Sonnet judge (exploratory, not a confirmation run). Suite:
+[architecture](../skills/rubric-eval/suites/architecture), `review-bare` frame.
+19 scenarios, 2 trials, 3 reviewed arms × 104 plans each (312 reviews); the
+baseline **none** is the unreviewed round-2 v5 plan for each cell, an input
+that costs nothing this round. Scores are the new points scale.
+
+Each arm is a planning-review focus text:
+
+- **current**: ShipLoop's shipped review focus — replayability, weak checks,
+  dropped requirements, platform claims — unchanged from round 3.
+- **design**: current, plus a second, separate review pass, judged against
+  the request and spec, that checks personal data, an unnamed runtime limit,
+  failure visibility and unrequested scope (round 3's "safeguards" and
+  "prune" checks, but as their own pass rather than folded into the first).
+- **prune3**: current's bullets and the design pass's four checks merged into
+  a single review in one pass — round 3's "prune" arm, rerun here.
+
+| vs the unreviewed plan (baseline 90.0 overall / 83.9 safeguards / 94.7 proportion / 92.8 state) | current | design | **prune3** |
+| --- | --- | --- | --- |
+| Overall | −0.9 [−3.3, +1.0] | +2.7 [+1.2, +4.0] | **+4.2 [+2.6, +5.7]** |
+| Wilcoxon p | 0.687 | 0.0026 | **0.0022** |
+| Cells won / lost | 41 / 41 | 54 / 26 | **64 / 19** |
+| Safeguards | −0.4 [−3.4, +2.3] | +6.2 [+1.5, +10.7] | **+11.6 [+7.4, +16.0]** |
+| Proportion | −3.7 [−7.3, −0.2] | +1.1 [−1.9, +3.9] | +0.6 [−1.7, +2.9] |
+| State | +1.6 [−0.7, +3.6] | −1.4 [−3.3, +0.5] | +1.6 [+0.1, +3.1] |
+| Overbuilt-scope grades (baseline 15) | 25 | 11 | 13 |
+| Platform errors (baseline 8) | 6 | 4 | 4 |
+| Decision | inconclusive; proportion guardrail regressed | ship: quality better | **ship: quality better** |
+
+Headline: **prune3** raises overall by 4.2 points and safeguards by 11.6, the
+largest safeguard gain of any arm tried against this baseline so far.
+**design** also ships, at +2.7 overall. **current** — the shipped review as it
+stands — is inconclusive on overall and regresses the proportion guardrail
+(its interval lies wholly below zero), and both current and design more than
+doubled unrequested-scope grades against the unreviewed baseline (15 → 25 and
+15 → 11), the same "a reviewer treats adding as success" pattern round 3
+found; prune3 keeps it closer to baseline (13).
+
+### Diff check: does the review keep to the plan it was handed
+
+A separate pass compared each arm's revised plan against the original v5
+plan for four kinds of drift: dropping something the request needed
+(`removed_required`), adding something it did not ask for
+(`added_unrequested`), contradicting the original plan, and inventing a
+number — a limit, a period, a count — with no source in the plan, the request
+or a primary source. Complete: all 312 reviews (104 per arm), Sonnet judge.
+
+| Per review | current | design | **prune3** |
+| --- | --- | --- | --- |
+| Removed required | 0.05 | 0.07 | 0.05 |
+| Added unrequested | 0.50 | 1.01 | 1.14 |
+| Contradictions | 0.22 | 0.18 | 0.15 |
+| Invented numbers | 1.92 | 1.55 | 2.13 |
+
+No arm is clean on this check. Prune3 removes what was required and
+contradicts the original least often of the three, but it also adds the most
+unrequested items and invents the most numbers per review (1.14 and 2.13);
+design invents fewest (1.55) despite also gaining quality. Buying safeguards
+and overall score with a review pass currently costs some invented specifics
+and added scope, whichever of these three texts does the reviewing.
+
+### Round 4 under the Opus judge
+
+Opus 5.5 (medium effort) re-graded all 416 round-4 verdicts (312 reviews plus
+the 104 unreviewed baseline plans), and a quote check — downgrade a met or
+partial grade whose evidence quote is not an actual substring of the plan —
+was applied on top. Same points scale, same baseline (the unreviewed plan):
+
+| vs the unreviewed plan, Opus + quote check | current | design | **prune3** |
+| --- | --- | --- | --- |
+| Overall | +0.4 [−0.4, +1.2] | +2.8 [+1.3, +4.3] | **+4.1 [+2.2, +5.8]** |
+| Wilcoxon p | 0.51 | 0.0016 | **0.0011** |
+| Cells won / lost | 44 / 36 | 60 / 21 | **69 / 20** |
+| Safeguards | −1.2 [−3.0, +1.0] | +8.0 [+3.7, +12.0] | **+14.3 [+9.1, +18.7]** |
+| Proportion | +0.8 | +1.3 | +1.6 |
+| Decision | near-identical to no review (within the judge's noise, ±2.07); tie keeps the baseline | materially better, but **blocked**: platform errors rose (+0.20/plan, 95% [+0.01, +0.40]; 97 vs 76 total) | **materially better** |
+
+Judge acceptance: Opus test-retest kappa 0.835 (almost perfect, noise 2.07
+points), Opus-vs-Sonnet kappa 0.443 (moderate). Against the Sonnet-judged
+table, prune3 and current land on the same decision (win; no win); design
+flips from a win under Sonnet to blocked under Opus, on the same quality
+verdict: a stricter reading of its platform claims, not a disagreement about
+whether the text helps. The owner kept Opus as the round's judge; the flip is
+recorded rather than resolved by picking whichever judge agrees with the
+wording under review.
+
+**Quote check, corrected.** A first version of the quote check matched quotes
+after collapsing only whitespace and markdown. It flagged 5.2% of Sonnet's met
+or partial grades as unsupported (prune3 6.9%, unreviewed plans 3.5%) and cut
+prune3's lead under Sonnet to +2.7 points. The adversarial review of the check
+(F4) pointed out that curly apostrophes, dashes and commas would fail a true
+quote. With every non-alphanumeric character normalised, the check lowers 17
+of Sonnet's grades and 11 of Opus's across 416 verdicts each, and prune3 stays
+at +4.1 points under both judges. The earlier 5.2% was a matching artifact;
+both judges quote the plan accurately.
+
+**Conclusion for round 4.** Prune3's gain holds across two judge families and
+the quote check, but it is also the arm that invents the most
+unsourced numbers and adds the most unrequested items. The next candidate
+(v3) keeps prune3's wording and adds a number-sourcing check and a
+no-unrequested-additions check, to be confirmed in round 6 (Grok subject,
+Opus judge, quote check, tokens and time recorded).
+
+## Adversarial review of the scoring change (2026-09-27)
+
+The standard scale, the quality > tokens > time rule, the quote check and the
+Grok tool lockdown were reviewed by Grok 4.7, a different family from their
+author. Grok had its tools locked down for this review; an earlier pass started
+before the lockdown was stopped and discarded. Eight findings, six high:
+
+| Finding | Held? | Experiment or reason | Change |
+| --- | --- | --- | --- |
+| F1 A significant difference inside the judge's noise won on quality | Held | Fixture: +0.8 [+0.2, +1.5], p = 0.01, noise 2.07, fewer tokens → was a quality win | Near-identical is checked first; wins need the rank test on the same side |
+| F2 Cost wins and blockers used the bootstrap alone | Partly | Cost wins now need both tests | Harm blockers keep the interval alone, a stated asymmetry |
+| F3 The `na` z-test treated grades as independent | Held | Grades nest in plans and scenarios | Stub and `na` rates compared paired per output |
+| F4 The quote check failed on punctuation and left `criteria[c].grade` stale | Held | Full normalisation: lowered grades fell from 329 to 17 (Sonnet), 44 to 11 (Opus); prune3 back to +4.1 | Normaliser fixed; both grade fields updated |
+| F5 `reliability` compared unchecked with checked grades | Held | Would bias future noise figures | Both sides checked before comparing |
+| F6 Grok isolation checked only against a mock | Tested | Live: no shell, no file reads, no state across calls; `list_dir` can list other directories by name | Limit recorded |
+| F7 Missing usage stored as 0 | Held | Would count a missing report as free | Stored as unknown and excluded |
+| F8 "won" read backwards for costs; blocked reasons led with "better" | Held | Wording | `arm_higher`/`arm_lower`; blocks listed first |
+
+Round 4's decisions are unchanged under the corrected rule, under both judges.
+
+## Round 5: design-thinking arms, exploratory
+
+Sonnet subject, Sonnet judge; exploratory. Suite:
+[architecture-v2](../skills/rubric-eval/suites/architecture-v2) — adds T1
+threat model, L1 load and X1 cross-runtime integration to the rubric — `plan`
+frame, 13 scenario-runtime cells (including three cross-runtime scenarios), 3
+trials. Baseline **base** is the shipped interaction-design block; the other
+four arms each add a design-thinking step on top of the previous one:
+
+- **expand**: base plus an interaction-and-threat-model paragraph — map every
+  hop between actors and runtimes, derive the load it implies and a threat
+  per hop — with no pruning step.
+- **expprune**: expand plus a prune-against-the-request-and-spec paragraph
+  (KISS/YAGNI: remove what no stated requirement, load or threat needs; keep
+  the safeguards and every control a threat needs).
+- **outcome**: expprune, framed by an intent-and-outcome statement up front
+  and an outcome-grading pass at the end (met/partial/missed per outcome).
+- **negative**: outcome plus explicit non-goals and "wrong turns" to avoid,
+  checked again at the end.
+
+| vs base (guardrails: proportion, safeguards) | expand | expprune | outcome | negative |
+| --- | --- | --- | --- | --- |
+| Overall | −0.00 [−0.03, +0.03] | +0.00 [−0.02, +0.03] | +0.00 [−0.03, +0.03] | +0.02 [−0.01, +0.07] |
+| Safeguards (guardrail) | −0.03 [−0.10, +0.04] | −0.04 [−0.10, +0.03] | −0.03 [−0.09, +0.02] | **−0.10 [−0.21, −0.01]** |
+| Won / lost, safeguards | 7 / 8 | 6 / 14 | 7 / 14 | **4 / 15** |
+| Proportion (guardrail) | −0.03 [−0.08, +0.01] | +0.01 [−0.02, +0.05] | −0.00 [−0.04, +0.04] | +0.04 [−0.00, +0.10] |
+| Threat (T1) | +0.33 [+0.24, +0.43] | +0.32 [+0.21, +0.42] | +0.35 [+0.26, +0.43] | +0.24 [+0.13, +0.35] |
+| Load (L1) | +0.09 [−0.06, +0.26] | +0.16 [+0.04, +0.32] | +0.13 [+0.04, +0.25] | +0.17 [+0.04, +0.30] |
+| Integration (X1, n=8–9) | +0.11 [0.00, +0.17] | −0.11 [−0.50, +0.17] | +0.13 [0.00, +0.17] | +0.00 [−0.33, +0.17] |
+| Overbuilt-scope grades (base 5) | 8 | 3 | 5 | 0 |
+| Decision | not ship: overall not established; both guardrails soft; overbuilt rose 5→8 | not ship: overall not established; safeguards guardrail soft | not ship: overall not established; safeguards guardrail soft | not ship: overall not established; safeguards guardrail soft |
+
+Threat-modeling gains are large and consistent — +0.24 to +0.35 on the old
+0–1 scale — in every arm that adds the threat-model paragraph. Load gains are
+smaller and noisier (+0.09 to +0.17; expand's interval still crosses zero).
+Integration has too few applicable cells (8–9) to read: expprune's interval
+alone spans −0.50 to +0.17. Safeguards drop in every design-thinking arm,
+worst in **negative** (−0.096, 4 cells won against 15 lost) — the arm with
+the most added text and the most explicit "name what should not happen"
+framing. Overall stays flat in all four; every overall interval straddles
+zero.
+
+**Conclusion.** Added reasoning about threats and load displaces concrete
+safeguards unless it is grounded in the request and checked for side effects
+against it — the same displacement round 2 found between channel/caching
+detail and privacy, now showing up one level higher, in a reasoning step
+rather than a wording change.
+
+## Learnings so far
+
+- Wording moves the big decisions — placement, tier, channel — far more than
+  it moves the details; detail-level safeguards plateau under every wording
+  tried in rounds 2–3.
+- A check applied after drafting beats an instruction added while drafting:
+  round 3's reviews fixed detail safeguards that no round-2 wording reached.
+- A step written to "find what's wrong" adds scope unless removal is named
+  explicitly: round 3's current and safeguards arms doubled unrequested-scope
+  grades, and round 4's diff check shows every review arm still adding
+  unrequested content.
+- More text competes for the same attention: an emphasis added to one concern
+  costs a neighbouring one (round 2's zero-sum result; round 5's
+  design-thinking arms trading safeguards for threat and load coverage).
+- The judge rewards a specific, unsourced number over a vaguer, correct one —
+  round 4's diff check found every review arm inventing numbers per review,
+  most often the arm (prune3) that otherwise scores best.
+- Expand-then-prune works — round 4's prune3, round 5's expprune both beat
+  their less-pruned neighbours — while a negative framing ("what should not
+  happen") over-prunes safeguards instead, as round 5's negative arm shows.
+- Two judges each agree with themselves far better than with each other
+  (Opus kappa 0.835, Sonnet kappa 0.759, Opus-vs-Sonnet kappa 0.443): never
+  mix judges within a round, and expect a close decision to move when the
+  judge changes even when the quality verdict does not.
+
+## Rounds 6 and 7: design review checks for plan and step-plan reviews (measured offline; not yet in ShipLoop)
+
+The detailed journal and evidence are in the private research repository
+[shiploop-prompt-lab](https://github.com/whichguy/shiploop-prompt-lab/blob/main/journal.md). The method is in
+[skills/rubric-eval/SPEC.md](../skills/rubric-eval/SPEC.md).
+
+**Change (candidate, not yet in ShipLoop).** `DESIGN_REVIEW_CHECKS` attaches to plan
+and step-plan Improve reviews after `PLANNING_REVIEW_FOCUS`. It checks personal data, quotas,
+background failures and unrequested additions. It ends with a self-check that
+keeps a change only when it serves a named request, spec clause or directive,
+and that never removes or weakens a safeguard. A number without a source is
+marked as an assumption.
+
+**Round 6** (grok:grok-4.7@medium reviews of Grok plans, reference files
+open, Opus judge in 3 passes, 16–17 scenarios per arm):
+- The grounding self-check made reviews help: v3 scored **+3.8** [+0.4, +7.1]
+  against the unreviewed plan (p = 0.044).
+- A lean checklist without the self-check leaned worse than no review
+  (−3.3, and it failed the proportion guardrail).
+- Every review arm cut about 2 valuable items per review. The value audit
+  found this; it led to v4's removal rule.
+
+**Round 7** is the confirmation, run inside the real ShipLoop plan-stage
+packet: its 29 reference locators and the verbatim plan-stage Improve prompt.
+- **Condition:** codex:gpt-6-luna@max reviews of the same 23 plans; Opus judge
+  in 3 passes (noise 2.2 per pass); suite architecture-v4.
+- **v4 against the wording ShipLoop shipped before:**
+  - overall **+5.1** [+3.0, +7.2], Wilcoxon p = 0.0006, 17 won / 3 lost;
+  - safeguards **+9.4**; proportion +2.9; grounding +8.3;
+  - **1.09 fewer valuable items removed per review** (p = 0.008).
+- **The previous wording** was no better than no review (−0.4) and cost
+  safeguards (−12.7).
+- **Naming the runtime's platform card on top of v4** made no difference
+  (+0.2), so it did not ship.
+- **Evidence:** [rounds/round7](https://github.com/whichguy/shiploop-prompt-lab/blob/main/rounds/round7/).
+
+**Measurement lessons** (all now in the SPEC):
+- a single grading pass is too noisy for long outputs;
+- every host needs audited isolation;
+- rigour is judged against an enterprise standard, and only unrequested
+  product scope counts as overbuilding;
+- quality decides first, and tokens only between near-identical arms.

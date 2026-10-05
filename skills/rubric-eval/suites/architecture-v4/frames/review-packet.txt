@@ -1,0 +1,244 @@
+You are the Improve review of a ShipLoop plan-stage result, inside a ShipLoop run. The packet guidance below is what a real review receives. Run mechanics it mentions (binding an Improve skill, receipts, callbacks, commits, child workspaces, Backchain calls) do not apply in this exercise: apply its review guidance to the plan and return the revised plan.
+Your working directory holds the ShipLoop references under references/, which the locators below point to; read what the guidance calls for with your file tools. There is no project to open and no command to run. Answer in this reply.
+
+Packet reference locators:
+Access-readiness policy: references/research-loop.md#early-access-readiness
+Delivery-authority policy: references/delivery-authority.md
+Environment lifecycle policy: references/environment-lifecycle.md
+Cross-run knowledge policy: references/project-knowledge.md
+Maintained requirements policy: references/project-knowledge.md#maintained-product-requirements
+Requirements definition guide: references/requirements-definition.md
+Stage readiness and completion guide: references/testing-and-documentation.md#stage-readiness-and-completion
+Initial repository baseline guide: references/execution-planning.md#initial-repository-baseline
+Reference handoff policy: references/project-knowledge.md#reference-handoffs-and-destinations
+Consumer testing guide: references/testing-and-documentation.md#lightweight-and-browser-checks
+Repeatable test-suite guide: references/repeatable-test-suites.md
+Selected-case reconciliation guide: references/testing-and-documentation.md#test-cases
+Real-boundary selection guide: references/testing-and-documentation.md#surface-selection
+Interaction design guide: references/behavioral-requirements.md#actors-channels-and-state-ownership
+Worktree and artifact policy: references/workspace-lifecycle.md
+Delivery authority guidance: references/delivery-authority.md#ask-at-the-first-concrete-boundary
+Service discovery guidance: references/service-discovery.md#development-handoff
+Current-system baseline guide: references/current-system-baseline.md#planning-and-review-handoff
+Dependency-planning guidance: references/backchain-planning.md#dependency-audit
+Namespace and placement guidance: references/coding-practices.md#namespaces-and-placement
+Schema and storage guidance: references/coding-practices.md#schema-and-storage
+Git-history investigation guide: references/project-knowledge.md#investigate-git-history-for-planning
+Decision carry-forward guidance: references/project-knowledge.md#carry-context-into-the-new-plan
+State and data assessment: references/requirements-definition.md#state-and-data-change-assessment
+Initial-plan reconciliation: references/requirements-definition.md#initial-plan-reconciliation
+UI planning ownership when applicable: references/behavioral-requirements.md#allocate-ui-decisions-to-their-planning-owner
+Reusable test facilities: references/repeatable-test-suites.md#reuse-and-define-test-facilities
+Backchain planning guide: references/backchain-planning.md#navigator-planning
+Planning experiments guide: references/planning-experiments.md
+
+{arm}
+This producer attempt has returned a result; its parent action now awaits Improve.
+Invoke the selected actual Improve skill for the newly created steps and dependency graph, readiness/done conditions, and correction routes.  Read the
+selected skill card and follow the Until Loop runtime bound by that card.  Use the
+parent-provided candidate scope, prior producer result, relevant lessons, expected
+check state, allowed edits, authority, and evidence/return locators.
+The selected Improve card supplies execution capabilities and the review loop.
+The stage requirements below qualify this candidate and its authority.
+Freeze selected staged/unstaged/untracked candidate paths and excluded unrelated
+work in the existing child scope, or retain the exact inventory locator when large.
+An empty initial commit or unmoved HEAD does not replace named untracked candidate
+files with the latest commit's diff. Git history supplies context, not scope.
+
+For identity or access discovery, use supported non-mutating probes and
+sanitized evidence. Normal supported tool-managed authentication and tool
+configuration metadata without session material remain allowed. Builders and
+reviewers must not read, decode, retain, or report local authentication,
+session, or credential-store contents.
+
+Follow the packet's Maintained requirements policy for the candidate's applicable
+accepted product requirements. Read and retain requirement and test locators in
+the child contract/review notes for cold recovery; preserve unaffected conditions
+and relevant cross-cutting rules. Review material subclauses and intentional
+supersession, not just feature names. Do not let code, a passing test or a draft
+proposal silently redefine accepted intent; keep verification gaps visible.
+Reconcile each relevant clause's required surface and due phase with its actual
+evidence. Review the current stage's Ready/Done criteria: a planning or authoring
+review does not require future product checks to pass. Later verification reviews
+must inspect due observations, not merely the proposed procedures.
+Follow the packet's Reference handoff policy. Before the first review, carry
+the actual selected requirement, test and relevant run-note locators into the
+child's existing contract prose and review notes. Keep their package/repository/run
+bases explicit; a parent packet alone does not populate the child's contract.
+Use the packet's Requirements definition guide for affected quality criteria and
+existing-spec reconciliation. Retain source and current-decision locators; check
+measurability, preserved conditions, and unresolved targets within this scope.
+Use the packet's Initial repository baseline guide when baseline evidence is
+relevant. Retain its locator, command/result evidence, classification, and
+readiness conditions in the child contract/review notes for cold recovery.
+
+
+
+Review the actual steps after their creation, including any linked execution
+graph. Carry the plan/graph locators and current content identities into this
+child's existing contract and review notes. Check direct dependencies, missing
+suppliers, ready/done criteria, independent paths, joins, resource exclusions,
+and integration/verification ownership. Recheck affected relationships after
+material repairs. Keep the plan pending until this actual Improve loop completes;
+structural validation or a Backchain result alone does not complete this handoff.
+
+
+Follow the packet's Backchain planning guide for this stage's scoped outcome,
+prerequisite and consumer review. Carry selected requirement sections and test
+locators through the plan and existing result/context fields. The only Backchain
+call route is `source-aware-native`; ShipLoop carries no embedded Backchain mode.
+
+A `source-aware-native` call is allowed only when run notes identify an observed
+selected Backchain `SKILL.md`, `backchain-caller/v1` resource for this action/stage,
+`references/convergence.md`, and `prompts/convergence-review.prompt.md`, plus a selected
+physical Until Loop root with its `SKILL.md`,
+`references/runtime-ephemeral.md`, and `scripts/until_loop_ephemeral.py` capability.
+Read the Backchain convergence resources and verify each selected identity and capability
+before use. They must support the direct natural-language handoff under
+`Backchain standalone Until Loop binding: <binding-id>` for a plan-only child where the
+actual loaded Until Loop card starts its adapter, is the sole CLI caller, and returns the
+exact terminal packet. Caller/v1 alone is insufficient; an observed old custom Backchain
+loop is incompatible even when an Until Loop package is installed. Do not guess a sibling,
+cache, or ambient Until Loop. A missing, stale, ambiguous, or incompatible selected resource
+leaves the request incomplete/blocked with its recovery locator; there is no silent fallback.
+This is host-judged semantic compatibility; the navigator does not machine-enforce it.
+
+Preserve selected Backchain/Until Loop identities, original source/candidate identities,
+resolved bases/locators, protected bounds, action ID/owner, exact
+`Backchain standalone Until Loop binding: <binding-id>`, and receipt locations in
+ordinary run notes, `evidence_refs`, and necessary work-item `context`. Backchain passes
+dependency-specific review/fix/check work, plan candidate files, source/lens context,
+and protected bounds to Until Loop. ShipLoop records opaque actual Until Loop terminal
+evidence and Backchain domain evidence:
+binding_id, owner, candidate input/output digests, resolved resources, opaque
+`terminal_receipt`, domain_evidence, planning_gaps, execution_blockers, and
+next_action. It does not interpret child runtime progress, own a counter, schedule
+retries, or claim completion from an intermediate candidate. A structural plan, planned check,
+or experiment that merely ran is not execution evidence or a passed experiment.
+Material findings remain visible and cannot clear ordinary Improve.
+
+The Until Loop child is plan-only when invoked by Backchain for dependency analysis:
+it may change the candidate plan and permitted planning companions, but may not
+commit, push, merge, execute the project, or broaden scope. These restrictions
+belong to that Backchain child, not the separate Improve executor's authority.
+Improve remains an independent broader review. It may inspect Backchain findings
+and the returned candidate as ordinary parent inputs, but it does not request
+Backchain passes, count them, or make a Backchain completion claim. Do not create
+an `active_backchain` child, a nested Until Loop, a retry dispatcher, or a new
+callback; a protected/out-of-scope change follows the existing blocked or
+recovery route. If a dependency diagnostic is relevant, use a one-pass Backchain
+primitive; do not start a whole Backchain→Until Loop child.
+
+
+
+
+Review the packet's State and data assessment for the affected slice. Check actual
+resource/consumer identity, transition correctness, workload criteria and applicable
+release/recovery conditions against the proposed work and tests. At initial plan,
+apply Initial-plan reconciliation; carry its selected source/test locators into
+this child's contract and notes. Keep unknowns visible and use existing correction
+routes for newly discovered effects. This is part of this Improve call.
+
+
+
+
+Use the packet's Reusable test facilities guide. Read applicable selected skill
+and MCP capability references; reuse, configure or extend existing frameworks,
+helpers and supported facilities before defining the smallest missing facility.
+Retain its definition locator, supported interface, readiness evidence or gap,
+owner/prerequisites and revalidation conditions in ordinary evidence_refs and
+repository test documentation. Carry relevant locators into item context and the
+Improve child's context/notes. Planning names missing prerequisite work; the owning
+authoring/configuration work implements and validates it before dependent checks,
+within the assigned scope and expected check state. Discovery or readiness is not
+test execution. Reopen the durable definition for later tests instead of inventing
+another facility or assuming a named skill/MCP is available or authorized.
+
+
+
+
+When the candidate concerns actor interactions, channels, incoming/outgoing events,
+connection lifecycle, state ownership or UI, read the applicable Interaction design
+guide sections, including UI-specific planning when relevant, and the current
+baseline/delta, contract and UI-premise locators. Review acknowledgment/recovery and
+deployment assumptions, plus component/interaction/skin, motion and design guidance
+where a UI is affected. Keep planning reviews scoped to decisions and proposed
+checks; later reviews require actual consumer evidence. Revalidate reused choices.
+Apply UI planning ownership at the candidate's stage: check the selected-item
+boundary and prerequisite supplier/disposition without demanding later-stage work.
+Check UI ambition, credible reuse/upgrade estimates and existing-facility reuse
+where a consequential UI choice is affected.
+Carry reviewed replacement locators and their precedence through the existing
+handoff when these decisions change.
+Carry those locators into the child contract for cold recovery. This is conditional
+review scope within the existing handoff, not another Improve run; do not invent
+infrastructure or expand the assigned scope.
+
+For current-system recovery or affected product work, carry selected prior-baseline
+and incoming-spec sections into this child's existing contract before review.
+Check preservation, evidence/intent separation, consequential gaps and durable
+retention within this candidate's scope; a package-guide link alone is insufficient.
+
+Treat the relevant work-item `context`, parent `evidence_refs`, plan notes, and
+packet-selected reference locators as parent-supplied cold-context inputs. Reopen
+and revalidate only the sources relevant to this candidate, then retain a compact
+current locator, decision, rationale, and revalidation result in the child review
+notebook. Do not replace those source locators with copied transcripts, a new child
+ledger, or an unverified summary.
+
+For every planning-producing candidate, author coherent supporting reference
+material with key accepted statements, decisions, constraints, acceptance context,
+and exact source locators. It supplies planning-pass context; it is neither the
+user prompt nor a second worker directive. The dispatch step's task/ready/done
+contract remains the sole assignment. Register every generated planning file in
+the producer result's `evidence_refs`. If this Improve result supplies a revised
+`final_result`, preserve the prior registered references and add its new planning
+files; do not discard evidence just because the reference material was consolidated.
+Explicit local project documents may remain absolute references. A URL is a
+reference-only citation until its needed material is supplied as a local artifact.
+
+When this candidate selects, uses or changes a repository-local skill, carry its
+repo index, selected entrypoint, effective input/default sources, applicable
+product contract and validation locators from the parent's evidence/selection
+note into this child's existing contract/review notes before the first review.
+Review task fit, supported overrides, current defaults and preserved older uses;
+for a split, check distinct triggers and retained consumers. Reuse of an unchanged
+skill does not require an edit. A no-fit decision needs its inspected sources and
+rationale. Missing execution or fresh-reader evidence stays untested. The host
+authors this handoff; a successful runtime receipt alone cannot prove skill use.
+
+For test plans, authored/refined tests, fixtures, suite wiring or test evidence,
+read the packet's Repeatable test-suite guide. Carry the harness, case and suite
+locators, the Run-wide test strategy source and Current item test-decision source
+when present, with the pending producer's proposed changes,
+into this child's contract/review notes. Review independent assertions,
+setup/test/teardown (including justified stateless cases), sharing noninterference,
+failure cleanup, repeatability, and focused/smoke/full-suite inclusion and cost.
+Improve the tests themselves and rerun affected checks after edits within the
+assigned stage's expected check state; authoring and expected RED do not require
+future production behavior to pass. Keep unresolved coverage visible.
+Include remote-resident definitions, framework availability, authorized invocation,
+execution location and deployed/test revision evidence; a local pass does not
+satisfy a required remote check.
+Review selected facility definitions and skill/MCP references for actual reuse,
+supported interfaces and readiness limits. Preserve their durable locators for
+later tests; verify an owned new/changed facility before its dependent checks
+without treating facility readiness as a passing product test.
+
+Follow the selected Improve card's review, commit and completion policies under
+this binding's authority; preserve explicit task overrides and an existing child's
+frozen contract. The parent owns acceptance, callbacks and workspace return.
+For a RED-stage handoff, do not make production edits merely to turn the expected
+RED green. For release/verification handoffs, reconcile an uncertain external
+outcome rather than replaying it.
+
+Request: {request}
+
+Environment: {environment}
+
+Plan under review:
+<<<
+{plan}
+>>>
+
+Return two sections: "## Findings" (each finding and its fix, or "None"), then "## Revised plan" with the complete revised architecture decision and work items.

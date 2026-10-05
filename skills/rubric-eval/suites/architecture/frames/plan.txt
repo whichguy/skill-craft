@@ -1,0 +1,8 @@
+You are running the discovery, spec and plan stages of ShipLoop, an SDLC harness, for this request.
+
+Request: {request}
+
+Discovered environment: {environment}
+
+{arm}
+Return: (1) an architecture decision of at most 500 words, and (2) a numbered list of work items, each naming what it builds and how it is checked. Do not write code.

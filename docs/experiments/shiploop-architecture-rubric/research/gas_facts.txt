@@ -1,8 +1,0 @@
-Today is 2026-09-27; your training data may be out of date. Verify each item below against official Google documentation (developers.google.com/apps-script and support.google.com) with WebSearch and WebFetch, and cite the exact URL for every claim. Do not state numbers from memory; quote a number only with its source page.
-
-1. PropertiesService (script, user, document properties): is a read-modify-write of a property atomic? What does Google recommend for concurrent updates (LockService script/user/document locks, waitLock/tryLock, releaseLock)? Do properties have size or count limits and a write-rate quota?
-2. Session.getActiveUser() and Session.getEffectiveUser(): what each returns for a web app under each combination of "Execute as" (me / user accessing) and "Who has access" (only myself / anyone in the domain / anyone with a Google account / anyone), and for consumer (gmail.com) accounts versus Workspace accounts; when getActiveUser() returns an empty string.
-3. Concurrency: can several executions of the same script run at the same time (for example two users calling google.script.run at once)? Cite the simultaneous-executions quota page. Is there any per-project serialization?
-4. google.script.run: confirm it is asynchronous with success and failure handlers, and what it can pass.
-
-Output only a Markdown fact list under these four headings, each bullet with its source URL, then a "Claims to check" list of common wrong beliefs with corrections and sources, and an "As of" line.

@@ -1,0 +1,8 @@
+{
+ "opus": {"model": "claude-opus-5-5", "effort": "medium", "judge_prompt": "v2", "noise_points": 2.07, "kappa": 0.835,
+          "band": "almost perfect", "plans": 30, "measured": "2026-09-27, architecture round 4 reviews, graded twice"},
+ "sonnet": {"model": "sonnet", "judge_prompt": "v2", "noise_points": 1.69, "kappa": 0.759,
+            "band": "substantial", "plans": 30, "measured": "2026-09-26, architecture round 3, graded twice"},
+ "cross_judge": {"pair": ["opus", "sonnet"], "kappa": 0.443, "band": "moderate", "mean_score_gap_points": 7.29, "plans": 30,
+                 "note": "each judge agrees with itself far better than with the other: never mix judges within a round"}
+}
