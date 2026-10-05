@@ -1210,6 +1210,56 @@ class LogicBlockTests(unittest.TestCase):
         self.assertNotIn('(r.a.min||0)+" min"', page)  # a missing minute is not drawn as 0 min
 
 
+class LoopStreakTests(unittest.TestCase):
+    """R16: a loop with no trivial-streak requirement (a one-pass loop reads 0 of 0) is drawn neutrally, never as a failure."""
+
+    DOC = ('{title:"Plan loop",run:"r1",order:1,stageMin:60,facts:[{k:"Trivial streak",v:"no trivial-streak requirement on this loop"},'
+           '{k:"Backchain passes option",v:"one"},{k:"Candidate match",v:"no: the last check receipt (ok) is for 25aecd520d40, '
+           'the loop\'s final candidate is 85f180cd6cd4"}],segments:[{label:"Pass 1",min:22,kind:"unclear",pass:1,change:"6 steps changed",'
+           'note:"n",streak:0}]%s}')
+
+    def strip_text(self, doc: str) -> dict:
+        probe = ('(function(){var svg=passStrip(%s);var texts=walk(svg,function(e){return e._text;}).map(function(e){return e._text;});'
+                 'return {texts:texts,label:svg.getAttribute("aria-label"),box:svg.getAttribute("viewBox")};})()' % doc)
+        return page_probe(probe)
+
+    def test_the_streak_target_keeps_a_zero_and_defaults_to_two_only_for_a_document_with_none(self):
+        self.assertEqual(run_logic('[streakTarget({}), streakTarget(null), streakTarget({trivialRequired: 0}),'
+                                   ' streakTarget({trivialRequired: 1}), streakTarget({trivialRequired: "0"}),'
+                                   ' streakTarget({trivialRequired: -1})]'), [2, 2, 0, 1, 2, 2])
+        self.assertEqual(run_logic('[streakNote({trivialRequired: 0}), streakNote({}), streakNote({trivialRequired: 1})]'),
+                         ["no trivial-streak requirement on this loop", "the loop closes at a clean streak of 2",
+                          "the loop closes at a clean streak of 1"])
+
+    def test_a_zero_requirement_draws_no_streak_axis_target_or_closing_line_and_says_so(self):
+        drawn = self.strip_text(self.DOC % ",trivialRequired:0")
+        self.assertIn("no trivial-streak requirement on this loop", drawn["texts"])
+        self.assertNotIn("streak", drawn["texts"])
+        self.assertFalse([x for x in drawn["texts"] if "closes at" in x], drawn["texts"])
+        self.assertNotIn("clean streak 0", drawn["label"])
+        self.assertTrue(drawn["label"].endswith("No trivial-streak requirement on this loop."), drawn["label"])
+        self.assertEqual(drawn["box"].split()[3], "96")
+
+    def test_a_document_with_no_trivial_required_is_drawn_exactly_as_before_with_the_target_at_two(self):
+        drawn = self.strip_text(self.DOC % "")
+        self.assertIn("the loop closes at 2", drawn["texts"])
+        self.assertIn("streak", drawn["texts"])
+        self.assertTrue(drawn["label"].endswith("The loop closes at a clean streak of 2."), drawn["label"])
+        self.assertIn("clean streak 0", drawn["label"])
+        self.assertEqual(drawn["box"].split()[3], "176")
+        one = self.strip_text(self.DOC % ",trivialRequired:1")
+        self.assertIn("the loop closes at 1", one["texts"])
+
+    def test_the_loop_card_shows_the_option_the_candidate_match_and_the_neutral_streak_note(self):
+        card = page_probe('loopCard(%s).textContent' % (self.DOC % ",trivialRequired:0"), setup="live=false;")
+        for phrase in ("Backchain passes optionone", "Candidate matchno: the last check receipt (ok) is for 25aecd520d40",
+                       "Trivial streakno trivial-streak requirement on this loop"):
+            self.assertIn(phrase, card)
+        self.assertNotIn("0 of 0", card)
+        self.assertEqual(card.count("no trivial-streak requirement on this loop"), 2)  # the fact, and the note under the strip
+        self.assertNotIn("closes at", card)
+
+
 # A small document set: two runs, the phase and criterion documents, one finding and one option. Most page tests start here.
 SAMPLE_SETUP = """
 data.runs=[

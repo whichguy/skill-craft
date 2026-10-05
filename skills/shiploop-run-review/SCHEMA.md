@@ -83,7 +83,7 @@ sum to it. A hand-set verdict is interim; the default for an unjudged pass is `u
 | --- | --- | --- |
 | `backchainPasses` | string | optional: the run's `backchain_passes` option as `state.md` recorded it, text as written (`one`, `converge` or `none`; any other value is shown verbatim). `not recorded` when the key is absent: never a default. Record only: nothing is enforced |
 | `candidateMatch` | `true` \| `false` \| `"unknown"` | optional: whether the **last** backchain-check receipt of the loop has `candidate_sha256` equal to the loop's final candidate digest. `"unknown"` when either digest is missing (the `Candidate match` fact says which). Last is newest by file time (then name): right on the original run directory, and a copy needs `cp -p`. Record only |
-| `trivialRequired` | number | optional: the receipt's `progress.required_trivial_reviews`; `0` on a one-pass loop, where the `Trivial streak` fact reads "no trivial-streak requirement on this loop". Absent when the receipt carries none |
+| `trivialRequired` | number | optional: the receipt's `progress.required_trivial_reviews`; `0` on a one-pass loop, where the `Trivial streak` fact reads "no trivial-streak requirement on this loop" and the page draws no streak target. Absent when the receipt carries none (an older page document reads as a requirement of 2) |
 
 **Where a loop's numbers come from.** Three layouts are read, because a run keeps the loop records of the release that
 ran it and the five committed evidence files were exported from the first two:

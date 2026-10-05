@@ -364,6 +364,11 @@ function headerFacts(run){
 }
 /* A stage's minutes: "n/a" when the visit has no accept time (min is null), never "0 min". */
 function minutesText(min){return isCount(min)?min+" min":"n/a";}
+/* The clean streak a Backchain loop closes at: the document's trivialRequired, or 2 for an older document that has none.
+   0 is a real requirement (a one-pass loop has none), so it is kept, never replaced by the default. */
+function streakTarget(d){return d&&isCount(d.trivialRequired)&&d.trivialRequired>=0?d.trivialRequired:2;}
+/* What the pass strip says about the streak; a loop with no requirement says so instead of "closes at 0". */
+function streakNote(d){var n=streakTarget(d);return n===0?"no trivial-streak requirement on this loop":"the loop closes at a clean streak of "+n;}
 /* A percentage to one decimal ("97.5%", "27%"): the same text on a card, in a facts row and in a column's detail. */
 function pctText(p){return (Math.round(p*10)/10)+"%";}
 /* A byte size the way the page prints one. */
@@ -1312,23 +1317,27 @@ function sv(parent,tag,attrs,text){var e=document.createElementNS(NS,tag);Object
 function passStrip(d){
   var ps=d.segments.filter(function(s){return s.pass;});
   if(!ps.length)return null;
-  var step=84,W=Math.max(340,70+ps.length*step),svg=document.createElementNS(NS,"svg");
-  svg.setAttribute("viewBox","0 0 "+W+" 176");svg.setAttribute("class","pass");svg.setAttribute("role","img");
-  svg.setAttribute("aria-label",d.title+", pass by pass: "+ps.map(function(s){return "pass "+s.pass+", "+s.min+" minutes, changed "+s.change+", clean streak "+s.streak;}).join("; ")+". The loop closes at a clean streak of 2.");
+  var step=84,W=Math.max(340,70+ps.length*step),svg=document.createElementNS(NS,"svg"),streak=streakTarget(d)>0;
+  svg.setAttribute("viewBox","0 0 "+W+" "+(streak?176:96));svg.setAttribute("class","pass");svg.setAttribute("role","img");
+  svg.setAttribute("aria-label",d.title+", pass by pass: "+ps.map(function(s){return "pass "+s.pass+", "+s.min+" minutes, changed "+s.change+(streak?", clean streak "+s.streak:"");}).join("; ")+". "+streakNote(d)[0].toUpperCase()+streakNote(d).slice(1)+".");
   var yv=[150,128,106];
-  [["pass",24],["min",58],["changed",76],["streak",132]].forEach(function(t){sv(svg,"text",{x:4,y:t[1],class:"dim"},t[0]);});
-  yv.forEach(function(y,v){sv(svg,"line",{x1:60,x2:W-8,y1:y,y2:y,class:v===2?"tgt":"ax"});sv(svg,"text",{x:54,y:y+4,class:"dim","text-anchor":"end"},String(v));});
-  sv(svg,"text",{x:W-10,y:yv[2]-5,class:"dim","text-anchor":"end"},"the loop closes at 2");
-  var pts=[];
-  ps.forEach(function(s,i){var x=84+i*step,y=yv[Math.min(2,s.streak||0)];pts.push(x+","+y);});
-  sv(svg,"polyline",{points:pts.join(" "),class:"ln"});
+  [["pass",24],["min",58],["changed",76]].concat(streak?[["streak",132]]:[]).forEach(function(t){sv(svg,"text",{x:4,y:t[1],class:"dim"},t[0]);});
+  if(streak){
+    var tgt=Math.min(2,streakTarget(d));
+    yv.forEach(function(y,v){sv(svg,"line",{x1:60,x2:W-8,y1:y,y2:y,class:v===tgt?"tgt":"ax"});sv(svg,"text",{x:54,y:y+4,class:"dim","text-anchor":"end"},String(v));});
+    sv(svg,"text",{x:W-10,y:yv[tgt]-5,class:"dim","text-anchor":"end"},"the loop closes at "+streakTarget(d));
+    var pts=[];
+    ps.forEach(function(s,i){var x=84+i*step,y=yv[Math.min(2,s.streak||0)];pts.push(x+","+y);});
+    sv(svg,"polyline",{points:pts.join(" "),class:"ln"});
+  }
   ps.forEach(function(s,i){var x=84+i*step,y=yv[Math.min(2,s.streak||0)];
     sv(svg,"circle",{cx:x,cy:20,r:13,class:"pc k-"+s.kind});
     sv(svg,"text",{x:x,y:24,"text-anchor":"middle"},String(s.pass));
     sv(svg,"text",{x:x,y:58,"text-anchor":"middle"},String(s.min));
     sv(svg,"text",{x:x,y:76,"text-anchor":"middle",class:"dim"},s.change);
-    sv(svg,"circle",{cx:x,cy:y,r:4,class:"pt"});
+    if(streak)sv(svg,"circle",{cx:x,cy:y,r:4,class:"pt"});
   });
+  if(!streak)sv(svg,"text",{x:4,y:92,class:"dim"},streakNote(d));
   return svg;
 }
 
