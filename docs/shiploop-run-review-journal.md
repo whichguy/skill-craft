@@ -181,3 +181,110 @@ minutes after a missing stamp with the loop ledger intact, rows follow history, 
 logic-block tests including the no-DOM check). One existing test changed (`validate_doc` no longer requires `refusals`)
 and the four template tests that assumed a single script now read two. All the new and changed tests fail on the pre-R3
 tip (`826b8645`, whose `skills/` equals the R1 tip `62c36c73`), run from a git archive of it.
+
+## 2026-10-04: R12, the exporter names each visit and measures the run (exporter, schema and tests only)
+
+Status: firm for the code, the tests and the real-run proofs below. The template and the page are untouched: the
+Improve card that reads the stage rows is the template side of R12 and is built on another branch, so until it lands the
+page's old Improve block (which read the removed `improve` array) draws nothing. Nothing was pushed, released, regraded
+in place or uploaded, and nothing was written under `/Users/dadleet/e2e-runs` or `/Users/dadleet/shiploop-e2e-runs`:
+every proof ran on a copy made with `cp -p` in the session scratchpad.
+
+**Why.** After R3 a stage row was `{stage, outcome, min, packetBytes, resultBytes}` with no identity, Improve time came
+from the volatile worktree's review notes (Luna 135.8 min against 360.3 bind to receipt), a paused run read "active",
+the harness's calls, context peak and compactions (R11, R15) were not exported, and the 104 visits the E2E seed records
+read as 0.0 minutes. Base: `e79f948a`, which carries R1 (`62c36c73`), R2 (`826b8645`), R3 (`7144f355`) and the harness
+work R10, R11 and R15 (the plan's "Defects found" lists these defects).
+
+**What changed (`scripts/export.py` run-building code, `SCHEMA.md` run and stage-row section).**
+
+- Stage rows gain `action` (the history entry's id), `skipped` (present only when true: `packets/` holds files and none is
+  `<action>.md`; no summary text is read), `seeded` (present only when true, below), `improve {passes?, min?}` and
+  `context {calls?, peak?, peakPct?, compactions?}`. A member that was not measured is omitted, never 0.
+- `improve` per visit: `passes` is `improve/<action>/terminal.json` `progress.action_number`; `min` is the file-time span
+  `improve/<action>-bind.md` to `improve/<action>/receipt.md`, omitted when either file is missing or the times run
+  backwards. The join is exact: a child directory is named by the id of the action whose visit started it.
+- Run level: `improvePasses` and `improveMin` (sums over every child; a sum with an unknown part is itself absent, with the
+  reason in `unmeasured`; no child at all is a measured 0 and 0), `calls` (`model_calls`), `contextPeak`
+  (`tokens.input_peak`), `contextWindow` (`window_tokens`) and `compactions`. Each is present only when the harness measured
+  it; otherwise `unmeasured[<the run field's own name>]` carries the harness's reason (its `model_calls` and `window_tokens`
+  reasons are renamed `calls` and `contextWindow`; a peak with no reason of its own takes the calls' reason; a metrics file
+  that names none gets "metrics.json has no X figure and names no reason"). A calls, peak or window of 0 is not a
+  measurement (the old harness wrote 0 defaults); a compactions of 0 is.
+- `status` `paused` (it mapped to `active`); the time text reads "paused after ...". The `improve[]` array, the
+  `improve_reviews` read and the volatile review-note count are gone; `imp` is built from the durable files.
+- `facts.md`: the run line splits work, skipped and seeded when either exists; the Improve line carries passes, minutes and
+  the most passes in one child (or "not measured (reason)"); a new "Model calls (main thread only)" line; the "Stages with
+  no minutes" count leaves out seeded visits; a "Seeded visits not marked" line says why when result.json's seeded block
+  does not match.
+- `SCHEMA.md` documents every new field with its optional/null rule and labels two things: a Codex peak is a call's total
+  tokens (input plus that call's own output) while Claude's is input side, so for the same context Codex reads higher by
+  the output share (Luna's heaviest call is 251,867 total tokens; the input side alone peaks at 244,669, 2.9% lower), and calls and context are the main thread only (chain
+  workers and Improve agents report elsewhere). Documented and not guarded: file-time spans on a copied directory (`cp -p`),
+  host-kill gaps inside a visit, a recreated `timeline.json`.
+
+**(a) Per-visit context, and the join key.** The harness's per-stage rows (`metrics.json` `stages`, from `per_stage`) carry
+`stage`, `outcome` and the counters, and a Codex run's rollouts add `context {calls, peak, peakPct, compactions}`
+(`rollouts.rollout_context` `perStage`); the row's `action` the harness reads in `stage_results` is dropped before the row is
+written. A Claude run's stage rows carry turns, tool calls and seconds only: no per-stage peak exists for Claude. So the key
+the exporter can reproduce is the harness's own: one row per `state.md` history entry in order, plus a trailing `incomplete`
+row for the stage a run stopped in. The exporter takes row *i* to history entry *i* and puts the context on that entry's
+action id. It uses the join only when the number of non-`incomplete` rows equals the number of history entries and every
+row's (stage, outcome) equals that entry's (stage or "?", outcome); otherwise no visit gets a context and
+`unmeasured.visitContext` says the rows do not line up. When no visit has one (every Claude run, a Codex run with no
+rollouts) `visitContext` carries one reason. The harness itself was not changed (adding `action` to its rows would change a
+file other tools read; it is an easy follow-up and would make the join by id; the exporter would then check the id instead
+of the position). Stage names are never the key: Luna repeats them (test-spec 140 and 137 calls, step-plan 355 and 40,
+implement eight visits of 22, 14, 25, 13, 23, 18, 22 and 15 calls) and every repeat kept its own figures.
+
+**(b) Seeded visits read null.** `result.json` `seeded.skipped` (the harness's `seed_run` record) lists the stages the seed
+recorded without doing them; they are the first `len(skipped)` history rows. When their stage names equal the list in order
+those rows get `seeded: true` and `min` null and are counted in neither work nor skipped; otherwise none is marked and
+`facts.md` names the mismatch (or a `skipped` that is not a list of names). The visit after the last seeded one is timed from
+the seeded visit's own stamp, so the first real visit keeps a true duration (chain-seeded-claude-e57b4d: step-plan 2.5 min).
+Summaries are never read.
+
+**(c) A negative delta reads null.** A visit whose accept stamp is earlier than the one before it has `min` null (not
+negative, not clamped); the next visit is timed from that stamp. The same rule makes an Improve child's span unknown when
+receipt is earlier than bind. `wallMin` is not guarded (start to the last accept; it would be negative only if the last
+stamp preceded the run's start).
+
+**Real-run proofs (read-only; copies in the scratchpad `rrx/proof/`, `cp -p` so file times hold).** A copy's old
+`metrics.json` was replaced by `metrics.collect` run over the copy with this tree's harness (R11 and R15), which for Luna
+reads the three rollouts through a symlink to the original `home/` (0.7 s).
+
+| Run | Visits | Improve | Calls, context | Other |
+| --- | --- | --- | --- | --- |
+| Luna 1.16.1 battleship (`20261003/v1161-battleship-luna`, blocked) | 39, 0 skipped, 0 seeded | 9 children, 41 passes, 360.27 min (31.1% of 1,158.5 min wall); per child spec 4/36.83, test-strategy 11/66.42, plan 3/39.18, step-plan 3/21.28, test-spec 5/54.52, step-plan 1/13.96, test-spec 8/45.32, carry-forward 3/53.28, system-test-author 3/29.48 | calls 2,565, peak 251,867 of 258,400, 34 compactions; 39 of 39 visits carry a context, their calls sum to 2,562 (three calls after the last accept belong to no visit) and their compactions to 34; heaviest visit static-checks, 52 calls, peak 251,867 (97.5%), 1 compaction | refusals 13, glue 20; unmeasured: cancelled_tool_calls, knowledge_reads, stage_turns, truncated_outputs |
+| hello 1.19.0, second run (`20261004/v1190-hello-sonnet-2`, done) | 54: 47 work, 7 skipped (test-spec, baseline, test-author, test-red, test-green, test-refine, regression; 0.0 min each) | 11 children, 19 passes, 3.73 min (the rows sum to the same) | calls 149, peak 271,220 of 1,000,000; compactions absent with the harness's reason; no visit has a context, `visitContext` says why | refusals and glue absent with reasons; 15.2 min wall |
+| seeded chain, skill-craft 1.16.0 (`shiploop-e2e-runs/chain-seeded-claude-e57b4d`, done) | 34: 26 work, 0 skipped, 8 seeded (intake to select-work) with `min` null | 22 min wall | calls 225, peak 348,202 | 7 of the 8 seeded visits have no packet |
+
+The old Luna `metrics.json` is refused as designed (exit 2, "no 'unmeasured' record"); hello-1190-2's on-disk file has no
+`unmeasured` record either (and no `model_calls` or `window_tokens`), so both needed metrics regenerated over a copy. All three plan numbers
+held: Luna 9 children, 41 passes, about 360.3 min (360.27); hello-1190-2 11 children, 19 passes, 3.73 min, 7 skipped of 54;
+Luna calls 2,565, peak 251,867 of 258,400, compactions 34.
+
+**Where the plan was incomplete.** "13 harness-seeded visits have a packet and so are not marked skipped" is true and
+misleading: it is one per seeded run (the intake, whose packet `workspace start` issues). A read-only scan of every run
+directory under `shiploop-e2e-runs` and `e2e-runs/2026100*` finds 96 seeded visits in 12 runs (the earlier scan's 104 in 13
+includes `fanout-claude-a67220`, which has no `state.md` the exporter can find): result.json's names match the history in
+order in all 12, 12 of the 96 have a packet and 84 do not. The packet-absence rule alone would have marked those 84 as
+engine-skipped; the seeded rule takes precedence, and the other 592 visits mark 7 skipped, all hello-1190-2's. Across the 22
+runs that have Improve children, none has a child with an unknown part, so the "sum with an unknown part is unknown" rule
+never fires on today's data.
+
+**Needs an owner decision, not changed here.**
+
+- `_no_unmeasured_message` still tells a blocked run it "cannot be regraded without a host: export it after it finishes".
+  Since R10 a blocked run is regraded by `run.py --resume-run DIR` without a host (that is how Luna's file is refreshed in
+  R13), and the R3 test pins the old wording for blocked. One line and one assertion to change when R13 runs.
+- The run-level reasons for the new measures sit under the run's own names (`calls`, `contextWindow`, `contextPeak`,
+  `compactions`, `improvePasses`, `improveMin`, `visitContext`), while refusals and glue keep the harness names
+  (`shiploop_failures`, `model_glue`): the template reads each accordingly.
+
+**Tests.** `python3 -B test/shiploop-run-review.test.py`: 61 tests (38 before, 23 new in `RunVisitsTest`); four existing
+assertions changed because the contract did (rows gain `action`, the `improve` array is gone and `imp` comes from the
+terminal files, the run's `unmeasured` gains `visitContext` when no stage row has a context). Every new test fails on the
+base tip `e79f948a` (run from a `git archive` of it). `python3 -B test/shiploop-e2e.test.py -k Review` (9 OK; the fixture
+needed no change), `node test/skill-frontmatter.test.js`, `python3 -B test/test-groups.test.py`,
+`python3 -B test/marketplace-package.test.py` and `scripts/check-release-boundary.py --base origin/main` pass.

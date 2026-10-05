@@ -64,6 +64,29 @@ def sha(path: Path) -> str:
     return hashlib.sha256(path.read_bytes()).hexdigest()
 
 
+def stamp(path: Path, minutes: float) -> Path:
+    """Set a file's modification time to `minutes` after T0."""
+    at = (T0 + timedelta(minutes=minutes)).timestamp()
+    os.utime(path, (at, at))
+    return path
+
+
+def make_improve_child(run: Path, action: str, passes: int | None = 3, bind_at: float | None = 50,
+                       receipt_at: float | None = 62.5) -> Path:
+    """improve/<action>/ with terminal.json and receipt.md and improve/<action>-bind.md beside it, as ShipLoop writes
+    them; a None leaves that file out. The span is bind to receipt by modification time."""
+    child = run / "improve" / action
+    child.mkdir(parents=True, exist_ok=True)
+    if passes is not None:
+        write_json(child / "terminal.json", {"status": "complete", "progress": {"action_number": passes}})
+    for path, text, at in ((child / "receipt.md", "receipt", receipt_at),
+                           (run / "improve" / f"{action}-bind.md", "bind", bind_at)):  # bind: a file, not a second child
+        if at is not None:
+            path.write_text(text)
+            stamp(path, at)
+    return child
+
+
 def make_run(root: Path, accepts=ACCEPTS, status: str = "active", loops: bool = True,
              metrics: dict | None = None) -> Path:
     """A run output directory shaped like test/shiploop_e2e/run.py writes it; `metrics` overrides keys of its metrics.json."""
@@ -80,8 +103,7 @@ def make_run(root: Path, accepts=ACCEPTS, status: str = "active", loops: bool = 
                                                         "result": {"outcome": outcome, "summary": "s"}})
         (run / "packets").mkdir(parents=True, exist_ok=True)
         (run / "packets" / f"{IDS[action]}.md").write_text("P" * 100)
-    (run / "improve" / IDS["plan"]).mkdir(parents=True)
-    (run / "improve" / f"{IDS['plan']}-bind.md").write_text("bind")  # a file per child: not a second child
+    make_improve_child(run, IDS["plan"])
     worktree = run.parent / "worktree" / "docs" / "shiploop"
     for name, size in (("spec.md", 100), ("test-strategy.md", 300), ("features/f/plan.md", 200)):
         (worktree / name).parent.mkdir(parents=True, exist_ok=True)
@@ -100,8 +122,7 @@ def make_run(root: Path, accepts=ACCEPTS, status: str = "active", loops: bool = 
         "shiploop_failures": [{"verb": "complete", "exit": 2, "line": "E" * 300}],
         "model_glue": [{"reasons": ["git commit/add by the model"], "command": "git commit"}] * 2,
         "unmeasured": {},  # every counter measured, as on a Grok run
-        "improve_reviews": {"children": 1, "passes": 3, "max_passes": 3,
-                            "per_child": [{"child": IDS["plan"], "passes": 3, "seconds": 120.0, "bytes": 900}]},
+        "model_calls": 120, "window_tokens": 1_000_000, "tokens": {"input_peak": 250_000}, "compactions": 0,
         **(metrics or {})})
     if loops:
         make_plan_loop(run / "scratch" / "backchain-plan")
@@ -182,7 +203,9 @@ class RunReviewTest(unittest.TestCase):
         self.assertGreater(run["stages"][0]["resultBytes"], 0)
         self.assertEqual((run["refusals"], run["glue"], run["imp"]), (1, 2, "1 children, 3 review passes"))
         self.assertEqual(len(run["failures"][0]["line"]), 240)
-        self.assertEqual(run["improve"], [{"stage": "plan", "passes": 3, "seconds": 120.0, "bytes": 900}])
+        self.assertEqual((run["improvePasses"], run["improveMin"]), (3, 12.5))
+        self.assertEqual(run["stages"][3]["improve"], {"passes": 3, "min": 12.5})  # the plan visit started the child
+        self.assertNotIn("improve", run)
         self.assertEqual(run["verdicts"], {"invoked": True, "plugin": True, "process": False, "shiploop": False,
                                            "committed": True, "checks": False})
         self.assertEqual(run["knowledge"], {"docs/shiploop/test-strategy.md": 300,
@@ -207,7 +230,8 @@ class RunReviewTest(unittest.TestCase):
         self.assertEqual(code, 0)
         run = self.docs(target)["runs"]["codex-gpt-6-luna-1.16.1-battleship-20261003"]
         self.assertEqual(run["stages"][-1], {"stage": "brand-new-stage", "outcome": "done", "min": 10.0,
-                                             "packetBytes": 100, "resultBytes": run["stages"][-1]["resultBytes"]})
+                                             "action": IDS["extra"], "packetBytes": 100,
+                                             "resultBytes": run["stages"][-1]["resultBytes"]})
         self.assertEqual(run["phases"][3], "running")
         self.assertIn("brand-new-stage", (target / "facts.md").read_text())
 
@@ -370,7 +394,7 @@ class RunReviewTest(unittest.TestCase):
         run = self.docs(target)["runs"][self.KEY]
         for field in ("refusals", "glue", "failures"):
             self.assertNotIn(field, run)
-        self.assertEqual(run["unmeasured"], reasons)
+        self.assertEqual(run["unmeasured"], {**reasons, "visitContext": export.NO_VISIT_CONTEXT})  # no stage row has one
         self.assertEqual(export.validate_doc("runs", run), [])
         facts = (target / "facts.md").read_text()
         self.assertIn(f"- ShipLoop command failures: not measured ({reasons['shiploop_failures']})", facts)
@@ -386,7 +410,8 @@ class RunReviewTest(unittest.TestCase):
         self.assertEqual(code, 0)
         run = self.docs(target)["runs"][self.KEY]
         self.assertEqual((run["refusals"], run["glue"], len(run["failures"])), (13, 2, 13))
-        self.assertEqual(run["unmeasured"], {"stage_turns": "no per-call usage events"})
+        self.assertEqual(run["unmeasured"], {"stage_turns": "no per-call usage events",
+                                             "visitContext": export.NO_VISIT_CONTEXT})
         self.assertIn("- ShipLoop command failures: 13 (complete 13)", (target / "facts.md").read_text())
 
     def test_a_metrics_file_without_the_unmeasured_key_is_refused_and_says_how_to_get_one(self):
@@ -478,6 +503,305 @@ class RunReviewTest(unittest.TestCase):
             elif collection and line.startswith("| `"):
                 for field in re.findall(r"`(\w+)`", line.split("|")[1]):
                     self.assertIn(field, export.SCHEMA[collection], f"{collection}.{field}")
+
+
+# ---------------------------------------------------------------- what a visit is, and the run's measures (R12)
+
+def run_dir_of(out: Path) -> Path:
+    return out / ".shiploop-runs" / "work-1" / "run"
+
+
+def edit_json(path: Path, change) -> None:
+    value = json.loads(path.read_text())
+    change(value)
+    path.write_text(json.dumps(value, indent=1))
+
+
+def harness_rows(accepts, contexts: dict | None = None, trailing: bool = False) -> list[dict]:
+    """metrics.json `stages` as the harness builds it: one row per history entry in order, no action id, and a
+    trailing `incomplete` row for the stage the run stopped in. contexts maps a position to that row's `context`."""
+    rows = [{"stage": stage, "outcome": outcome, "seconds": 60.0, "turns": None, "tool_calls": None,
+             **({"context": (contexts or {})[index]} if index in (contexts or {}) else {})}
+            for index, (_, stage, _, outcome) in enumerate(accepts)]
+    if trailing:
+        rows.append({"stage": "test-green", "outcome": None, "incomplete": True, "seconds": 5.0,
+                     "context": {"calls": 99, "peak": 1, "peakPct": 0.1, "compactions": 9}})
+    return rows
+
+
+class RunVisitsTest(unittest.TestCase):
+    """R12: a visit's identity (action, skipped, seeded, Improve, context) and the run-level measures."""
+
+    KEY = RunReviewTest.KEY
+
+    def setUp(self):
+        tmp = tempfile.TemporaryDirectory()
+        self.addCleanup(tmp.cleanup)
+        self.tmp = Path(tmp.name)
+
+    def fresh(self) -> Path:
+        """A new empty directory for one more run in the same test."""
+        return Path(tempfile.mkdtemp(dir=self.tmp))
+
+    def build(self, out: Path) -> tuple[dict, list[str]]:
+        docs, facts = export.build_run(out)
+        run = docs["runs"][self.KEY]
+        self.assertEqual(export.validate_doc("runs", run), [])
+        return run, facts
+
+    def row(self, run: dict, name: str) -> dict:
+        return run["stages"][[a[0] for a in ACCEPTS].index(name)]
+
+    # ---- identity: the action id, and a visit the engine skipped
+
+    def test_each_stage_row_carries_its_action_id(self):
+        run, _ = self.build(make_run(self.tmp))
+        self.assertEqual([row["action"] for row in run["stages"]], [IDS[a[0]] for a in ACCEPTS])
+
+    def test_a_visit_with_no_packet_among_issued_packets_is_skipped_and_the_others_are_work(self):
+        out = make_run(self.tmp, loops=False)
+        (run_dir_of(out) / "packets" / f"{IDS['select-work']}.md").unlink()
+        run, facts = self.build(out)
+        self.assertEqual([r["stage"] for r in run["stages"] if r.get("skipped")], ["select-work"])
+        self.assertIs(self.row(run, "select-work")["skipped"], True)
+        self.assertNotIn("packetBytes", self.row(run, "select-work"))
+        self.assertEqual(sum("skipped" in r for r in run["stages"]), 1)
+        self.assertIn("7 accepted actions (6 work, 1 skipped, 0 seeded)", "\n".join(facts))
+
+    def test_no_packets_at_all_marks_nothing_because_absence_then_says_nothing(self):
+        out = make_run(self.tmp, loops=False)
+        shutil.rmtree(run_dir_of(out) / "packets")
+        run, _ = self.build(out)
+        self.assertTrue(all("skipped" not in r and "packetBytes" not in r for r in run["stages"]))
+        self.assertEqual(self.row(run, "plan")["action"], IDS["plan"])
+
+    def test_a_model_authored_not_applicable_visit_with_a_packet_and_four_seconds_stays_work(self):
+        accepts = [*ACCEPTS[:4], ("select-work", "select-work", 95 + 4 / 60, "done"), *ACCEPTS[5:]]
+        out = make_run(self.tmp, accepts, loops=False)
+        run_dir = run_dir_of(out)
+        for text in ("Not applicable: nothing to select", "Not applicable to this item"):  # the engine's own phrase too
+            record(run_dir / "results" / f"{IDS['select-work']}.md", {"action": IDS["select-work"], "stage": "select-work",
+                                                                    "result": {"outcome": "done", "summary": text}})
+            run, _ = self.build(out)
+            row = self.row(run, "select-work")
+            self.assertEqual((row["min"], row["packetBytes"], "skipped" in row), (0.1, 100, False), text)
+            self.assertEqual(row["action"], IDS["select-work"])
+
+    # ---- Improve per visit and in total
+
+    def test_an_improve_child_gives_passes_and_the_bind_to_receipt_span_on_its_visit(self):
+        run, facts = self.build(make_run(self.tmp, loops=False))
+        self.assertEqual(self.row(run, "plan")["improve"], {"passes": 3, "min": 12.5})
+        self.assertTrue(all("improve" not in r for r in run["stages"] if r["action"] != IDS["plan"]))
+        self.assertEqual((run["improvePasses"], run["improveMin"], run["imp"]), (3, 12.5, "1 children, 3 review passes"))
+        self.assertIn("- Improve: 1 children, 3 review passes; most passes in one child: 3; 12.5 min bind to receipt",
+                      "\n".join(facts))
+
+    def test_a_child_with_no_receipt_has_passes_only_and_the_run_total_minutes_are_unknown_with_a_reason(self):
+        out = make_run(self.tmp, loops=False)
+        make_improve_child(run_dir_of(out), IDS["implement"], passes=2, receipt_at=None)
+        run, facts = self.build(out)
+        self.assertEqual(self.row(run, "implement")["improve"], {"passes": 2})  # no min: not 0
+        self.assertEqual(self.row(run, "plan")["improve"], {"passes": 3, "min": 12.5})
+        self.assertEqual(run["improvePasses"], 5)
+        self.assertNotIn("improveMin", run)
+        self.assertIn("1 of 2 Improve children lacks a bind.md or receipt.md", run["unmeasured"]["improveMin"])
+        self.assertIn("minutes not measured (1 of 2", "\n".join(facts))
+
+    def test_a_child_with_no_terminal_record_has_minutes_only_and_the_passes_total_is_unknown(self):
+        out = make_run(self.tmp, loops=False)
+        make_improve_child(run_dir_of(out), IDS["implement"], passes=None, bind_at=100, receipt_at=104)
+        run, _ = self.build(out)
+        self.assertEqual(self.row(run, "implement")["improve"], {"min": 4.0})
+        self.assertEqual(run["improveMin"], 16.5)
+        self.assertNotIn("improvePasses", run)
+        self.assertIn("1 of 2 Improve children has no terminal.json progress.action_number",
+                      run["unmeasured"]["improvePasses"])
+        self.assertEqual(run["imp"], "2 children")
+
+    def test_a_span_running_backwards_is_unknown_not_negative(self):
+        out = make_run(self.tmp, loops=False)
+        make_improve_child(run_dir_of(out), IDS["plan"], passes=3, bind_at=70, receipt_at=62.5)
+        run, _ = self.build(out)
+        self.assertEqual(self.row(run, "plan")["improve"], {"passes": 3})
+        self.assertNotIn("improveMin", run)
+
+    def test_a_run_with_no_improve_child_has_zero_passes_and_zero_minutes_measured(self):
+        out = make_run(self.tmp, loops=False)
+        shutil.rmtree(run_dir_of(out) / "improve")
+        run, _ = self.build(out)
+        self.assertEqual((run["improvePasses"], run["improveMin"], run["imp"]), (0, 0, "0 children"))
+        self.assertTrue(all("improve" not in r for r in run["stages"]))
+
+    # ---- status
+
+    def test_a_paused_run_keeps_the_status_paused(self):
+        run, _ = self.build(make_run(self.tmp, status="paused", loops=False))
+        self.assertEqual(run["status"], "paused")
+        self.assertTrue(run["time"].startswith("paused after"), run["time"])
+        self.assertEqual(export.RUN_STATUS["paused"], "paused")
+
+    # ---- the run's calls, context and compactions: present only when measured, else a reason
+
+    def test_a_claude_shaped_run_has_calls_peak_and_window_and_no_compactions(self):
+        why = "only Grok's events carry this signal"
+        out = make_run(self.tmp, loops=False, metrics={
+            "model_calls": 149, "window_tokens": 1_000_000, "tokens": {"input_peak": 271_220}, "compactions": None,
+            "unmeasured": {"compactions": why}})
+        run, facts = self.build(out)
+        self.assertEqual((run["calls"], run["contextPeak"], run["contextWindow"]), (149, 271_220, 1_000_000))
+        self.assertNotIn("compactions", run)
+        self.assertEqual(run["unmeasured"]["compactions"], why)
+        text = "\n".join(facts)
+        self.assertIn("calls 149; context peak 271,220; window 1,000,000; compactions not measured (only Grok's", text)
+
+    def test_a_host_that_reported_nothing_has_none_of_them_and_each_reason_sits_under_the_runs_own_name(self):
+        out = make_run(self.tmp, loops=False, metrics={
+            "model_calls": None, "window_tokens": None, "tokens": {"input_peak": None}, "compactions": None,
+            "unmeasured": {"model_calls": "no rollouts", "window_tokens": "no window", "compactions": "no signal"}})
+        run, _ = self.build(out)
+        for field in ("calls", "contextPeak", "contextWindow", "compactions"):
+            self.assertNotIn(field, run)
+        self.assertEqual({k: run["unmeasured"][k] for k in ("calls", "contextPeak", "contextWindow", "compactions")},
+                         {"calls": "no rollouts", "contextPeak": "no rollouts", "contextWindow": "no window",
+                          "compactions": "no signal"})
+        self.assertNotIn("model_calls", run["unmeasured"])  # the harness's names are renamed, not duplicated
+        self.assertNotIn("window_tokens", run["unmeasured"])
+
+    def test_a_codex_run_with_rollouts_has_all_four_measured_including_zero_compactions(self):
+        out = make_run(self.tmp, loops=False, metrics={
+            "model_calls": 2565, "window_tokens": 258_400, "tokens": {"input_peak": 251_867}, "compactions": 34})
+        run, _ = self.build(out)
+        self.assertEqual((run["calls"], run["contextPeak"], run["contextWindow"], run["compactions"]),
+                         (2565, 251_867, 258_400, 34))
+        for field in ("calls", "contextPeak", "contextWindow", "compactions"):
+            self.assertNotIn(field, run["unmeasured"])
+        out = make_run(self.fresh(), loops=False, metrics={"compactions": 0})
+        self.assertEqual(self.build(out)[0]["compactions"], 0)  # a measured 0 stays 0
+
+    def test_a_metrics_file_that_carries_no_figure_gives_a_reason_and_an_old_default_zero_is_not_a_measurement(self):
+        out = make_run(self.tmp, loops=False, metrics={"unmeasured": {}})
+        metrics = json.loads((out / "metrics.json").read_text())
+        for key in ("model_calls", "window_tokens", "tokens", "compactions"):
+            del metrics[key]
+        write_json(out / "metrics.json", metrics)
+        run, _ = self.build(out)
+        for field in ("calls", "contextPeak", "contextWindow", "compactions"):
+            self.assertNotIn(field, run)
+            self.assertIn("names no reason", run["unmeasured"][field])
+        write_json(out / "metrics.json", {**metrics, "model_calls": 0, "tokens": {"input_peak": 0},
+                                          "window_tokens": 0, "compactions": None})
+        run, _ = self.build(out)
+        self.assertTrue(all(field not in run for field in ("calls", "contextPeak", "contextWindow")))
+
+    # ---- per-visit context: joined to the visit's action id, only where measured
+
+    CTX = {2: {"calls": 40, "peak": 100_000, "peakPct": 38.7, "compactions": 1},
+           6: {"calls": 7, "peak": 200_000, "peakPct": 77.4, "compactions": 0}}
+
+    def context_run(self, **extra):
+        accepts = [*ACCEPTS, ("extra", "implement", 150, "done")]  # the stage name implement appears twice
+        contexts = {**self.CTX, 7: {"calls": 3, "peak": None, "peakPct": None, "compactions": 0}, **extra.pop("contexts", {})}
+        out = make_run(self.fresh(), accepts, loops=False, metrics={"stages": extra.pop("rows", None) or harness_rows(
+            accepts, contexts, trailing=True)})
+        return self.build(out)[0]
+
+    def test_a_visit_context_is_joined_by_position_to_its_action_even_when_a_stage_name_repeats(self):
+        run = self.context_run()
+        by_action = {r["action"]: r.get("context") for r in run["stages"]}
+        self.assertEqual(by_action[IDS["test-strategy"]], self.CTX[2])
+        self.assertEqual(by_action[IDS["implement"]], self.CTX[6])  # implement, revise
+        self.assertEqual(by_action[IDS["extra"]], {"calls": 3, "compactions": 0})  # implement, done: no peak figure, omitted
+        self.assertIsNone(by_action[IDS["plan"]])  # the harness could not attribute it: no context, not an empty one
+        self.assertNotIn("visitContext", run["unmeasured"])
+        self.assertEqual(sum("context" in r for r in run["stages"]), 3)  # the trailing incomplete row joins no visit
+
+    def test_rows_that_do_not_line_up_with_the_history_join_nothing_and_the_run_says_why(self):
+        accepts = [*ACCEPTS, ("extra", "implement", 150, "done")]
+        rows = harness_rows(accepts, self.CTX)
+        rows[6], rows[7] = rows[7], rows[6]  # revise and done swapped: the same stage name, a different outcome
+        run = self.context_run(rows=rows)
+        self.assertTrue(all("context" not in r for r in run["stages"]))
+        self.assertIn("do not line up one to one", run["unmeasured"]["visitContext"])
+        shorter = self.context_run(rows=harness_rows(accepts, self.CTX)[:-1])
+        self.assertTrue(all("context" not in r for r in shorter["stages"]))
+        self.assertIn("7 stage rows do not line up one to one with state.md's 8 visits", shorter["unmeasured"]["visitContext"])
+
+    def test_a_host_whose_stage_rows_carry_no_context_gets_one_run_level_reason(self):
+        out = make_run(self.tmp, loops=False, metrics={"stages": harness_rows(ACCEPTS)})
+        run, _ = self.build(out)
+        self.assertTrue(all("context" not in r for r in run["stages"]))
+        self.assertEqual(run["unmeasured"]["visitContext"], export.NO_VISIT_CONTEXT)
+
+    # ---- visits the harness seeded, and stamps that run backwards
+
+    def seeded(self, names=("intake", "spec"), **extra):
+        out = make_run(self.fresh(), loops=False)
+        edit_json(out / "result.json", lambda r: r.update(seeded={"skipped": list(names), "stage": "test-strategy",
+                                                                   "run_dir": "x", "start_head": "abc", **extra}))
+        return out
+
+    def test_seeded_visits_read_null_minutes_are_marked_and_are_not_work(self):
+        out = self.seeded()
+        for name in ("intake", "spec"):  # the seed issues no packet for most of them
+            (run_dir_of(out) / "packets" / f"{IDS[name]}.md").unlink()
+        run, facts = self.build(out)
+        first, second, third = run["stages"][:3]
+        self.assertEqual((first["seeded"], first["min"], second["seeded"], second["min"]), (True, None, True, None))
+        self.assertTrue("skipped" not in first and "skipped" not in second)  # seeded, not engine-skipped
+        self.assertEqual((third["min"], "seeded" in third), (20.0, False))  # timed from the seeded visit's own stamp
+        text = "\n".join(facts)
+        self.assertIn("7 accepted actions (5 work, 0 skipped, 2 seeded)", text)
+        self.assertNotIn("Stages with no minutes", text)  # null by design, not a missing stamp
+        self.assertNotIn("Seeded visits not marked", text)
+
+    def test_seeded_names_that_do_not_match_the_history_in_order_mark_nothing_and_facts_say_why(self):
+        run, facts = self.build(self.seeded(names=("spec", "intake")))
+        self.assertTrue(all("seeded" not in r for r in run["stages"]))
+        self.assertEqual([r["min"] for r in run["stages"][:3]], [5.0, 10.0, 20.0])
+        self.assertIn("Seeded visits not marked: result.json says the harness seeded spec, intake, but the first 2 "
+                      "visits of state.md are intake, spec", "\n".join(facts))
+        out = self.seeded()
+        edit_json(out / "result.json", lambda r: r["seeded"].update(skipped="intake"))  # not a list
+        run, facts = self.build(out)
+        self.assertTrue(all("seeded" not in r for r in run["stages"]))
+        self.assertIn("not a list of stage names", "\n".join(facts))
+
+    def test_only_result_json_names_seeded_visits_a_synthetic_summary_alone_marks_nothing(self):
+        out = self.seeded(names=("intake",))
+        state = run_dir_of(out) / "state.md"
+        text = state.read_text().replace('"summary": "x"', '"summary": "Synthetic: recorded by the E2E seed"')
+        self.assertEqual(text.count("Synthetic: recorded by the E2E seed"), 7)  # every visit says so, one is named
+        state.write_text(text)
+        run, _ = self.build(out)
+        self.assertEqual([bool(r.get("seeded")) for r in run["stages"]], [True] + [False] * 6)
+        self.assertTrue(all(r["min"] is not None for r in run["stages"][1:]))
+
+    def test_a_stamp_running_backwards_gives_null_minutes_not_negative_or_clamped(self):
+        accepts = [ACCEPTS[0], ("spec", "spec", 3, "done"), *ACCEPTS[2:]]  # spec is stamped before intake
+        run, _ = self.build(make_run(self.tmp, accepts))
+        self.assertEqual([r["min"] for r in run["stages"][:4]], [5.0, None, 32.0, 60.0])  # the next visit is timed from it
+        self.assertEqual(export.validate_doc("runs", run), [])
+        self.assertEqual(run["wallMin"], 140.0)
+
+    # ---- the contract names every field it validates, and rejects wrong shapes
+
+    def test_schema_md_documents_every_run_and_stage_field_and_the_labels_that_matter(self):
+        text = SCHEMA_MD.read_text()
+        for name in (*export.SCHEMA["runs"], *export.SCHEMA["runs"]["stages"][0][1]):
+            self.assertRegex(text, rf"\b{re.escape(name)}\b", name)
+        for phrase in ("cp -p", "main thread", "input side", "a call's total tokens", "paused", "never 0"):
+            self.assertIn(phrase, text)
+        self.assertNotIn("`improve` | array", text)
+
+    def test_validate_doc_rejects_wrong_shapes_for_the_new_fields(self):
+        run, _ = self.build(make_run(self.tmp, loops=False))
+        bad = dict(run, stages=[dict(run["stages"][0], skipped="yes", seeded=1, improve={"passes": "3"},
+                                     context={"calls": None}, action=7)], calls="many", status="sleeping")
+        problems = "\n".join(export.validate_doc("runs", bad))
+        for needle in ("stages[0].skipped: expected a boolean", "stages[0].improve.passes: expected a number",
+                       "stages[0].action: expected a string", "calls: expected a number", "'sleeping' is not one of"):
+            self.assertIn(needle, problems)
 
 
 # ---------------------------------------------------------------- the page template and its pure logic

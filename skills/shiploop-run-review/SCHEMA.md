@@ -44,15 +44,24 @@ the number of columns in the flow; `Observed` states in a run's `phases` array a
 | `phases` | array of `done` \| `running` \| `blocked` \| `none` | required; aligned with the phase docs |
 | `time`, `imp` | string | required: short text shown in the run header |
 | `refusals`, `glue` | number | optional: omitted, never 0, when the harness names the counter unmeasured (`shiploop_failures`, `model_glue`: a host whose events cannot show it, such as Claude's). The header reads "refusals not measured" |
-| `unmeasured` | map of string | the harness's reason for each counter it could not measure (`metrics.json` `unmeasured`, copied whole); `{}` when every counter was measured. A `metrics.json` without the key is refused: regrade the finished run first |
+| `unmeasured` | map of string | the reason for each measure that is absent: the harness's reason for each counter it could not measure (`metrics.json` `unmeasured`), and one under the run field's own name for each measure below that is missing (`calls`, `contextPeak`, `contextWindow`, `compactions`, `improvePasses`, `improveMin`, `visitContext`; the harness names the first and third `model_calls` and `window_tokens`, and a peak with no reason of its own takes the calls' reason). `{}` when everything was measured. A `metrics.json` without the key is refused: regrade the finished run first |
+| `improvePasses` | number | optional: Improve review passes over every `improve/<action>/` child, from each child's `terminal.json` `progress.action_number`. Absent, with a reason in `unmeasured`, when any child has none (a sum over an unknown part is unknown). `0` when the run has no Improve child |
+| `improveMin` | number | optional: minutes spent in Improve, the sum over children of `improve/<action>-bind.md` to `improve/<action>/receipt.md` by file time. Absent, with a reason, when any child lacks either file or its times run backwards. A child still running when the run stopped has no receipt, and the run's `improveMin` is then unknown |
+| `calls` | number | optional: model calls of the main thread (unique assistant messages for Claude, usage events for Grok, rollout calls for Codex), from `metrics.json` `model_calls`. Chain workers and Improve agents report elsewhere and are not in it |
+| `contextPeak`, `contextWindow` | number | optional: the largest context one call held, and the model's context window (tokens). Both main thread. The peak is **not the same quantity on every host**: Claude's is the call's input side (input, cache reads and cache writes); Codex's is a call's total tokens (input plus that call's own output), so for the same context it reads higher by the output share (about 3% for Luna). Compare a peak within a host. Absent, with a reason, when the host did not report it |
+| `compactions` | number | optional: context compactions of the main thread. Claude's events carry none, so it is absent there with the harness's reason; `0` is a measurement |
 | `wallMin` | number | wall minutes so far or in total |
 | `host`, `model`, `effort`, `case` | string | |
-| `status` | `done` \| `active` \| `blocked` \| `failed` | the ShipLoop run status |
+| `status` | `done` \| `active` \| `paused` \| `blocked` \| `failed` | the ShipLoop run status; a stopped (paused) run is `paused`, not `active` |
 | `startedAt`, `endedAt` | ISO string | |
 | `verdicts` | object of booleans | invoked, plugin, process, shiploop, committed, checks |
-| `stages` | array of `{stage, outcome, min?, turns?, packetBytes?, resultBytes?}` | one row per accepted visit, in `state.md` history order; `min` is the accept-to-accept delta from `timeline.json`, never the harness's stage metric. `min` is **null** (the page shows "n/a") when the visit has no accept stamp, or the visit before it has none (its start is then unknown); never 0 |
+| `stages` | array of `{stage, outcome, min?, turns?, packetBytes?, resultBytes?, action?, skipped?, seeded?, improve?, context?}` | one row per accepted visit, in `state.md` history order; `min` is the accept-to-accept delta from `timeline.json`, never the harness's stage metric. `min` is **null** (the page shows "n/a") when the visit has no accept stamp, the visit before it has none (its start is then unknown), its stamp is earlier than the one before it (stamps running backwards: unknown, neither negative nor clamped), or the harness seeded the visit; never 0. Fields below |
+| `stages[].action` | string | optional: the action id of the visit (`state.md` history). The Improve child and the packet file carry the same id |
+| `stages[].skipped` | `true` | present only when true: `packets/` holds files and none is `<action>.md`, so the engine skipped the visit ("Not applicable to this item") and issued no packet. No summary text is read; a model-authored "Not applicable:" visit has a packet and is work. Absent when `packets/` is empty or missing (unknown) |
+| `stages[].seeded` | `true` | present only when true: the E2E harness recorded the visit itself (`--seed-at`) without doing it. They are the first `len(seeded.skipped)` history rows, taken from `result.json` `seeded` and used only when their stage names match `seeded.skipped` in order (else none is marked and `facts.md` says why). A seeded visit has `min` null and is neither work nor `skipped` |
+| `stages[].improve` | map `{passes?, min?}` | present when the visit started an Improve child: `passes` from `terminal.json` `progress.action_number`, `min` from `improve/<action>-bind.md` to `improve/<action>/receipt.md` by file time. A member is omitted when unknown (`min` when either file is missing or the times run backwards), never 0 |
+| `stages[].context` | map `{calls?, peak?, peakPct?, compactions?}` | present only where the harness measured that visit's context: the main thread's calls, the largest call's tokens (`peak`, a call's total tokens on Codex, see `contextPeak`), `peakPct` of the window, and compactions inside the visit. Today only a Codex run with rollouts has it. The harness's stage rows carry no action id, so they are matched to the visits by position in the history and used only when their count and every stage and outcome agree; else no visit has a context. When no visit has one, `unmeasured.visitContext` says why |
 | `knowledge` | object `{fileName: bytes}` | sizes of the planning documents the run committed (spec, test strategy, plan, ...) |
-| `improve` | array of `{stage, passes, seconds, bytes}` | Improve children |
 | `failures` | array of `{verb, line}` | ShipLoop commands that exited non-zero; omitted with `refusals` when unmeasured |
 | `evidence` | string | path of the output directory (local, not durable) |
 
@@ -83,7 +92,14 @@ The page builds the planning sentence itself and falls back to a one-line defaul
 `review-export.json` (the compact file to commit with the learnings entry) is `{"schema": "run-review-export/v2",
 "docs": {<collection>: {<id>: <document>}}}`. v2 differs from v1 in three ways: `refusals`, `glue` and `failures` are
 optional and omitted when unmeasured, `unmeasured` is new, and a stage's `min` may be null. Files written as v1 are
-history; they are not read back.
+history; they are not read back. A run document also no longer has the `improve` array (Improve is read from each visit's
+`improve` and the run's `improvePasses` and `improveMin`) and its `status` can be `paused`.
+
+Limits of the run numbers, documented and not guarded. File-time spans (`improveMin`, `stages[].improve.min`) are right
+on the original run directory; a copy needs `cp -p`, or every mtime becomes the copy time. A visit's `min` is accept to
+accept, so it includes any host-kill or resume gap inside it. A `timeline.json` the engine recreated stamps every
+action alike and cannot be told from a real one. Calls and context are the main thread: chain workers and Improve
+agents report elsewhere.
 
 ## Writes
 

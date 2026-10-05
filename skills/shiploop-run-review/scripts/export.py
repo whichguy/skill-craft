@@ -52,7 +52,7 @@ PHASES = (
 )
 STAGE_PHASE = {stage: order for order, (_, stages) in enumerate(PHASES) for stage in stages}
 # ShipLoop run status -> the page's run status.
-RUN_STATUS = {"active": "active", "paused": "active", "blocked": "blocked", "halted": "failed", "done": "done"}
+RUN_STATUS = {"active": "active", "paused": "paused", "blocked": "blocked", "halted": "failed", "done": "done"}
 COLLECTION_ORDER = ("runs", "backchain", "expectations", "config", "observations", "actions", "iterations")
 
 # ---------------------------------------------------------------- the contract, as data (SCHEMA.md)
@@ -77,16 +77,21 @@ SCHEMA = {
         # refusals, glue and failures are omitted when the harness names the counter unmeasured (a host that
         # cannot see it); `unmeasured` carries the harness's reason for each such counter. Never a zero.
         "refusals": (N, False), "glue": (N, False), "unmeasured": (("map", S), False),
+        # Each of these is present only when measured; otherwise `unmeasured` holds the reason, under the same name.
+        "improvePasses": (N, False), "improveMin": (N, False), "calls": (N, False), "contextPeak": (N, False),
+        "contextWindow": (N, False), "compactions": (N, False),
         "wallMin": (N, False), "host": (S, False), "model": (S, False), "effort": (S, False), "case": (S, False),
-        "status": (("enum", ("done", "active", "blocked", "failed")), False),
+        "status": (("enum", ("done", "active", "paused", "blocked", "failed")), False),
         "startedAt": (ISO, False), "endedAt": (ISO, False),
         "verdicts": (("map", B), False),
-        # min is null when the visit has no accept stamp, or the one before it has none: unknown, not 0.
+        # min is null when the visit has no accept stamp, the one before it has none, the stamps run backwards, or the
+        # harness seeded the visit: unknown, not 0. seeded and skipped are present only when true; improve and context
+        # hold only the numbers that were measured (SCHEMA.md).
         "stages": (("items", {"stage": (S, True), "outcome": (S, True), "min": (N, False), "turns": (N, False),
-                              "packetBytes": (N, False), "resultBytes": (N, False)}), False),
+                              "packetBytes": (N, False), "resultBytes": (N, False), "action": (S, False),
+                              "skipped": (B, False), "seeded": (B, False), "improve": (("map", N), False),
+                              "context": (("map", N), False)}), False),
         "knowledge": (("map", N), False),
-        "improve": (("items", {"stage": (S, True), "passes": (N, True), "seconds": (N, True), "bytes": (N, True)}),
-                    False),
         "failures": (("items", {"verb": (S, True), "line": (S, True)}), False),
         "evidence": (S, False),
     },
@@ -310,7 +315,7 @@ def _time_text(status: str | None, wall: float | None, accepted: int) -> str:
     if not accepted:
         return "no stage accepted yet"
     spent = _fmt_minutes(wall)
-    return {"done": f"done in {spent}", "active": f"running, {spent} at snapshot",
+    return {"done": f"done in {spent}", "active": f"running, {spent} at snapshot", "paused": f"paused after {spent}",
             "blocked": f"blocked after {spent}", "failed": f"halted after {spent}"}.get(status, spent)
 
 
@@ -555,6 +560,118 @@ def _no_unmeasured_message(out: Path, status) -> str:
                   "a host: export it after it finishes.")
 
 
+def _num(value):
+    """The value when it is a number (never a boolean), else None."""
+    return value if isinstance(value, (int, float)) and not isinstance(value, bool) else None
+
+
+def _improve_children(run_dir: Path) -> dict[str, dict]:
+    """{child: {"passes", "min"}} for each improve/<child>/ directory; each is a number or None (unknown).
+
+    A child is named by the id of the action whose visit started it. passes is terminal.json's
+    progress.action_number. min runs from improve/<child>-bind.md to improve/<child>/receipt.md by file time, so it
+    is right on the original run directory (copy one with cp -p) and unknown when either file is missing or the
+    times run backwards.
+    """
+    root = run_dir / "improve"
+    found = {}
+    for child in sorted(p for p in root.iterdir() if p.is_dir()) if root.is_dir() else []:
+        terminal = _optional_json(child / "terminal.json")
+        progress = terminal.get("progress") if isinstance(terminal, dict) else None
+        passes = progress.get("action_number") if isinstance(progress, dict) else None
+        bind, receipt = root / f"{child.name}-bind.md", child / "receipt.md"
+        span = _minutes(_mtime(bind), _mtime(receipt)) if bind.is_file() and receipt.is_file() else None
+        found[child.name] = {"passes": passes if isinstance(passes, int) and not isinstance(passes, bool)
+                             and passes >= 0 else None,
+                             "min": round(span, 2) if span is not None and span >= 0 else None}
+    return found
+
+
+def _improve_totals(children: dict[str, dict]) -> tuple[dict, dict]:
+    """({improvePasses, improveMin}, {name: reason}): a sum over a child with an unknown part is itself unknown."""
+    found, why = {}, {}
+    for field, key, lacks in (("improvePasses", "passes", "has no terminal.json progress.action_number"),
+                              ("improveMin", "min", "lacks a bind.md or receipt.md, or its times run backwards")):
+        values = [child[key] for child in children.values()]
+        unknown = sum(value is None for value in values)
+        if unknown:
+            why[field] = f"{unknown} of {len(values)} Improve children {lacks}, so the sum is unknown"
+        else:
+            found[field] = round(sum(values), 2)
+    return found, why
+
+
+def _model_measures(metrics: dict, harness: dict[str, str]) -> tuple[dict, dict[str, str]]:
+    """({calls, contextPeak, contextWindow, compactions}, unmeasured) from metrics.json.
+
+    A measure the harness did not report is absent with its reason under the run's own name: the harness's
+    `model_calls` and `window_tokens` reasons become `calls` and `contextWindow`, and a peak with no figure of its
+    own takes the calls' reason. When metrics.json names none, the reason says that.
+    """
+    tokens = metrics.get("tokens") if isinstance(metrics.get("tokens"), dict) else {}
+    why = {name: reason for name, reason in harness.items() if name not in ("model_calls", "window_tokens")}
+    found = {}
+    for field, source, value, floor, reason in (
+            ("calls", "model_calls", metrics.get("model_calls"), 1, harness.get("model_calls")),
+            ("contextPeak", "tokens.input_peak", tokens.get("input_peak"), 1, harness.get("model_calls")),
+            ("contextWindow", "window_tokens", metrics.get("window_tokens"), 1, harness.get("window_tokens")),
+            ("compactions", "compactions", metrics.get("compactions"), 0, harness.get("compactions"))):
+        if _num(value) is not None and value >= floor:
+            found[field] = value
+            why.pop(field, None)
+        else:
+            why[field] = reason or f"metrics.json has no {source} figure and names no reason"
+    return found, why
+
+
+NO_VISIT_CONTEXT = ("the harness's stage rows carry no per-stage context (it reads that only from a Codex run's "
+                    "rollouts)")
+
+
+def _visit_context(metrics: dict, history: list[dict]) -> tuple[list[dict | None], str | None]:
+    """(context per history entry, why none is shown).
+
+    The harness's stage rows (metrics.json `stages`) carry no action id: each is built from one history entry of
+    state.md, in order, plus a trailing `incomplete` row for the stage the run stopped in. So a row belongs to the
+    history entry at its position, and that entry names the action. The join is used only when the rows line up
+    exactly (the same count, and the same stage and outcome at every position); otherwise no visit gets a context,
+    never a guess. A context holds only the figures the harness measured: calls, peak, peakPct, compactions.
+    """
+    rows = metrics.get("stages")
+    rows = [r for r in rows if isinstance(r, dict) and not r.get("incomplete")] if isinstance(rows, list) else []
+    if not any(isinstance(r.get("context"), dict) for r in rows):
+        return [None] * len(history), NO_VISIT_CONTEXT
+    if len(rows) != len(history) or any(
+            (row.get("stage"), row.get("outcome")) != (entry.get("stage") or "?", entry.get("outcome"))
+            for row, entry in zip(rows, history)):
+        return [None] * len(history), (f"the harness's {len(rows)} stage rows do not line up one to one with "
+                                       f"state.md's {len(history)} visits, so no row is attributed")
+    found = []
+    for row in rows:
+        figures = row.get("context") if isinstance(row.get("context"), dict) else {}
+        found.append({k: figures[k] for k in ("calls", "peak", "peakPct", "compactions")
+                      if _num(figures.get(k)) is not None} or None)
+    return found, None if any(found) else NO_VISIT_CONTEXT
+
+
+def _seeded(seeded, history: list[dict]) -> tuple[set[str], str | None]:
+    """(ids of the visits the harness recorded itself, why none is marked when result.json names some).
+
+    result.json's `seeded.skipped` lists the stages the E2E seed recorded without doing them; they are the first
+    visits of the history, in order. No summary text is read.
+    """
+    if not seeded:
+        return set(), None
+    names = seeded.get("skipped") if isinstance(seeded, dict) else None
+    if not isinstance(names, list) or not all(isinstance(n, str) for n in names):
+        return set(), "result.json's seeded.skipped is not a list of stage names"
+    first = [h.get("stage") for h in history[:len(names)]]
+    if first != names:
+        return set(), (f"result.json says the harness seeded {', '.join(names)}, but the first {len(names)} visits "
+                       f"of state.md are {', '.join(str(s) for s in first) or 'none'}")
+    return {h["action"] for h in history[:len(names)] if isinstance(h.get("action"), str)}, None
+
+
 def build_run(out: Path, key: str | None = None, name: str | None = None,
               order: int | None = None) -> tuple[dict[str, dict[str, dict]], list[str]]:
     """({collection: {id: document}}, facts.md lines) for one run output directory."""
@@ -589,11 +706,17 @@ def build_run(out: Path, key: str | None = None, name: str | None = None,
 
     # One row per accepted visit, in state.md's history order (the engine's own record; timeline.json only
     # stamps it). A visit's minutes are its accept minus the accept before it (the first from the run's start),
-    # so a visit with no stamp, or one right after a visit with no stamp, has unknown minutes: null, never 0.
+    # so a visit with no stamp, one right after a visit with no stamp, one whose stamp is earlier than the accept
+    # before it, or one the harness seeded has unknown minutes: null, never 0 and never negative.
+    seeded_ids, seeded_note = _seeded(result.get("seeded"), history)
+    packets = run_dir / "packets"
+    issued = packets.is_dir() and any(p.is_file() for p in packets.iterdir())  # some packet exists: absence means something
+    children = _improve_children(run_dir)
+    visit_context, visit_context_why = _visit_context(metrics, history)
     actions, stages, phases_seen = [], [], []
     from_state, unknown, stamped = [], [], []
     previous, last_phase = started, 0
-    for entry in history:
+    for index, entry in enumerate(history):
         action = entry.get("action")
         record = _record(results / f"{action}.md")
         if record is not None:
@@ -609,15 +732,29 @@ def build_run(out: Path, key: str | None = None, name: str | None = None,
             unknown.append(stage)
         accepted_at = stamps.get(action)
         minutes = _minutes(previous, accepted_at[0]) if previous is not None and accepted_at else None
+        if action in seeded_ids or (minutes is not None and minutes < 0):  # recorded, not done / stamps run backwards
+            minutes = None
         row = {"stage": stage, "outcome": outcome, "min": None if minutes is None else round(minutes, 1)}
-        for field, path in (("packetBytes", run_dir / "packets" / f"{action}.md"), ("resultBytes", results / f"{action}.md")):
+        if isinstance(action, str):
+            row["action"] = action
+        for field, path in (("packetBytes", packets / f"{action}.md"), ("resultBytes", results / f"{action}.md")):
             if path.is_file():
                 row[field] = path.stat().st_size
+        if action in seeded_ids:
+            row["seeded"] = True
+        elif issued and isinstance(action, str) and "packetBytes" not in row:
+            row["skipped"] = True  # packets were issued, and none for this visit: the engine skipped it
+        figures = {k: v for k, v in (children.get(action) or {}).items() if v is not None}
+        if figures:
+            row["improve"] = figures
+        if visit_context[index]:
+            row["context"] = visit_context[index]
         stages.append(row)
         phases_seen.append(last_phase)
         if accepted_at:
             stamped.append(accepted_at)
-            actions.append({"id": action, "stage": stage, "from": previous, "at": accepted_at[0], "min": minutes})
+            actions.append({"id": action, "stage": stage, "from": previous if minutes is not None else None,
+                            "at": accepted_at[0], "min": minutes})
         previous = accepted_at[0] if accepted_at else None
 
     raw_status = state.get("status")
@@ -643,29 +780,23 @@ def build_run(out: Path, key: str | None = None, name: str | None = None,
         (f", release {plugin}" if plugin else "")
     order = order if order is not None else (int(first.timestamp()) if first else 0)
 
-    improve_root = run_dir / "improve"
-    children = sum(1 for p in improve_root.iterdir() if p.is_dir()) if improve_root.is_dir() else 0
-    reviews = metrics.get("improve_reviews") if isinstance(metrics.get("improve_reviews"), dict) else {}
     failures = [f for f in metrics.get("shiploop_failures") or [] if isinstance(f, dict)]
     glue = metrics.get("model_glue") or []
-    # An Improve child is named by the action whose stage started it; list them in accept order.
-    rank = {a["id"]: (i, a["stage"]) for i, a in enumerate(actions)}
-    children_rows = []
-    for child in reviews.get("per_child") or []:
-        if isinstance(child, dict):
-            place, stage = rank.get(child.get("child"), (len(actions), str(child.get("child"))))
-            children_rows.append((place, stage, {"stage": stage, "passes": child.get("passes", 0),
-                                                 "seconds": child.get("seconds", 0), "bytes": child.get("bytes", 0)}))
-    improve = [row for _, _, row in sorted(children_rows, key=lambda t: (t[0], t[1]))]
+    improve, improve_why = _improve_totals(children)
+    measures, unmeasured = _model_measures(metrics, unmeasured)
+    unmeasured.update(improve_why)
+    if visit_context_why:  # set only when no visit has a context
+        unmeasured["visitContext"] = visit_context_why
     checkouts = [out / "work", run_dir.parent / "worktree"]
     knowledge, knowledge_root = _knowledge(checkouts if raw_status == "done" else checkouts[::-1])
 
     run = {"key": key, "name": name, "order": order, "release": release,
            "phases": derive_phases(phases_seen, current, raw_status),
            "time": _time_text(status, wall, len(stages)),
-           "imp": f"{children} children" + (f", {reviews['passes']} review passes" if reviews.get("passes") else ""),
-           "stages": stages, "unmeasured": unmeasured,
-           "improve": improve, "knowledge": knowledge, "evidence": str(out)}
+           "imp": f"{len(children)} children" + (f", {improve['improvePasses']} review passes"
+                                                 if improve.get("improvePasses") else ""),
+           "stages": stages, "unmeasured": unmeasured, **improve, **measures,
+           "knowledge": knowledge, "evidence": str(out)}
     if "shiploop_failures" not in unmeasured:  # a host that cannot see the failures reports no count, not 0
         run["refusals"] = len(failures)
         run["failures"] = [{"verb": str(f.get("verb")), "line": str(f.get("line") or "")[:MAX_FAILURE_LINE]}
@@ -709,18 +840,23 @@ def build_run(out: Path, key: str | None = None, name: str | None = None,
             doc_id, suffix = f"{key}-{doc['loop']}-{suffix}", suffix + 1
         docs["backchain"][doc_id] = doc
 
-    facts = _facts(run, run_dir, out, raw_status, reviews, failures, knowledge_root, docs["backchain"],
-                   unknown, from_state)
+    facts = _facts(run, run_dir, out, raw_status, children, failures, knowledge_root, docs["backchain"],
+                   unknown, from_state, seeded_note)
     return docs, facts
 
 
-def _facts(run, run_dir, out, raw_status, reviews, failures, knowledge_root, loops, unknown, from_state) -> list[str]:
+def _facts(run, run_dir, out, raw_status, children, failures, knowledge_root, loops, unknown, from_state,
+           seeded_note) -> list[str]:
     stages = run["stages"]
     totals: dict[str, list] = {}
     for row in stages:
         if row["min"] is not None:
             totals.setdefault(row["stage"], []).append(row["min"])
-    untimed = sum(1 for row in stages if row["min"] is None)
+    untimed = sum(1 for row in stages if row["min"] is None and not row.get("seeded"))  # a seeded visit has no time by design
+    seeded, skipped = sum(1 for row in stages if row.get("seeded")), sum(1 for row in stages if row.get("skipped"))
+    kinds = f" ({len(stages) - seeded - skipped} work, {skipped} skipped, {seeded} seeded)" if seeded or skipped else ""
+    most = max((c["passes"] for c in children.values() if c["passes"] is not None), default=0)
+    unmeasured = run["unmeasured"]
     slowest = sorted(totals.items(), key=lambda kv: (-sum(kv[1]), kv[0]))[:5]
     verbs: dict[str, int] = {}
     for failure in failures:
@@ -728,7 +864,7 @@ def _facts(run, run_dir, out, raw_status, reviews, failures, knowledge_root, loo
     knowledge = run["knowledge"]
     largest = next(iter(knowledge.items()), None)
     lines = [f"# Run Review facts: {run['key']}", "",
-             f"- Run: ShipLoop status {raw_status or 'unknown'}; {len(stages)} accepted actions; "
+             f"- Run: ShipLoop status {raw_status or 'unknown'}; {len(stages)} accepted actions{kinds}; "
              f"{run.get('wallMin', 'unknown')} min from start to the last accept",
              f"- Driver: {' '.join(run[k] for k in ('host', 'model', 'effort') if k in run) or 'unknown'}; "
              f"case {run.get('case', 'unknown')}; {run['release']}",
@@ -737,8 +873,14 @@ def _facts(run, run_dir, out, raw_status, reviews, failures, knowledge_root, loo
              "- Slowest stages (min, accept to accept): " + (", ".join(
                  f"{stage} {sum(m):.1f}" + (f" ({len(m)}x)" if len(m) > 1 else "") for stage, m in slowest) or "none"),
              f"- Phases: {', '.join(f'{title} {state}' for (title, _), state in zip(PHASES, run['phases']))}",
-             f"- Improve: {run['imp']}" + (f"; most passes in one child: {reviews.get('max_passes')}"
-                                           if reviews.get("max_passes") else ""),
+             f"- Improve: {run['imp']}" + (f"; most passes in one child: {most}" if most else "")
+             + (f"; {run['improveMin']} min bind to receipt" if "improveMin" in run
+                else f"; minutes not measured ({unmeasured['improveMin']})")
+             + ("" if "improvePasses" in run else f"; passes not measured ({unmeasured['improvePasses']})"),
+             "- Model calls (main thread only): " + "; ".join(
+                 f"{label} {run[field]:,}" if field in run else f"{label} not measured ({unmeasured[field]})"
+                 for field, label in (("calls", "calls"), ("contextPeak", "context peak"),
+                                      ("contextWindow", "window"), ("compactions", "compactions"))),
              (f"- ShipLoop command failures: {len(failures)}" + (
                  f" ({', '.join(f'{v} {n}' for v, n in sorted(verbs.items()))})" if verbs else ""))
              if "refusals" in run else
@@ -763,6 +905,8 @@ def _facts(run, run_dir, out, raw_status, reviews, failures, knowledge_root, loo
         lines.append(f"- Stages not in the phase table (shown with the previous phase): {', '.join(sorted(set(unknown)))}")
     if from_state:
         lines.append(f"- Accepted actions without a result file (stage from state.md): {len(from_state)}")
+    if seeded_note:
+        lines.append(f"- Seeded visits not marked: {seeded_note}")
     return lines
 
 
