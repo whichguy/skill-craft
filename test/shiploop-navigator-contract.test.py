@@ -2600,5 +2600,158 @@ class CliBoundaryRegressionTests(unittest.TestCase):
         self.assertEqual(navigator.current_stage(store.read_record(state_path)), "discovery")
 
 
+class BackchainPassesOptionTest(unittest.TestCase):
+    """The run option `backchain_passes`: recorded, validated, refused when missing or changed, threaded to the packet.
+
+    The refusals go through the real CLI gate; the option has no mid-run verb, so a retry that names a
+    different value must be refused and a saved run without the key must be refused with the fresh-run hint.
+    """
+
+    SPEC = ROOT / "test" / "shiploop_e2e" / "SPEC.md"
+
+    def setUp(self) -> None:
+        self._temporary = tempfile.TemporaryDirectory(prefix="shiploop-backchain-passes-")
+        self.addCleanup(self._temporary.cleanup)
+        self.base = Path(self._temporary.name).resolve()
+        self.env = dict(os.environ, PYTHONDONTWRITEBYTECODE="1",
+                        GIT_CONFIG_GLOBAL=os.devnull, GIT_CONFIG_NOSYSTEM="1")
+        self.repo = self.base / "repo"
+        self.repo.mkdir()
+        (self.repo / "a.txt").write_text("x\n")
+        for argv in (["init", "-q"], ["add", "."],
+                     ["-c", "user.email=t@example.invalid", "-c", "user.name=t", "commit", "-qm", "init"]):
+            subprocess.run(["git", *argv], cwd=self.repo, env=self.env, check=True)
+
+    def cli(self, *argv: str) -> subprocess.CompletedProcess:
+        return subprocess.run([sys.executable, "-B", str(SCRIPTS / "shiploop"), *argv], cwd=self.base,
+                              env=self.env, capture_output=True, text=True, timeout=60)
+
+    def init(self, run: Path, *extra: str, prompt: str = "add hello") -> subprocess.CompletedProcess:
+        return self.cli("init", "--repo", str(self.repo), "--run-dir", str(run), "--prompt=" + prompt, *extra)
+
+    @staticmethod
+    def recorded(run: Path) -> object:
+        return store.read_record(run / "state.md").get("backchain_passes")
+
+    def test_new_runs_record_one_by_default_and_each_named_mode(self) -> None:
+        self.assertEqual(navigator.BACKCHAIN_PASSES_MODES, ("one", "converge", "none"))
+        self.assertEqual(navigator.DEFAULT_BACKCHAIN_PASSES, "one")
+        for mode in (None, *navigator.BACKCHAIN_PASSES_MODES):
+            with self.subTest(mode=mode):
+                run = self.base / ("run-" + (mode or "default"))
+                started = self.init(run, *(("--backchain-passes", mode) if mode else ()))
+                self.assertEqual(started.returncode, 0, started.stdout + started.stderr)
+                self.assertEqual(self.recorded(run), mode or "one")
+        self.assertEqual(navigator.new_state(str(self.repo), "Default.")["backchain_passes"], "one")
+
+    def test_an_unknown_value_is_refused_by_the_cli_and_by_the_state_api(self) -> None:
+        run = self.base / "run-unknown"
+        refused = self.init(run, "--backchain-passes", "two")
+        self.assertEqual(refused.returncode, 2, refused.stdout + refused.stderr)
+        self.assertIn("invalid choice", refused.stderr)
+        self.assertFalse(run.exists())
+        with self.assertRaisesRegex(navigator.NavigatorError, "backchain passes must be one of"):
+            navigator.new_state(str(self.repo), "Bad.", backchain_passes="two")
+        state = navigator.new_state(str(self.repo), "Good.")
+        with self.assertRaisesRegex(navigator.NavigatorError, "unsupported backchain passes option"):
+            navigator.validate(dict(state, backchain_passes="two"))
+
+    def test_a_retry_naming_another_value_is_refused_and_a_plain_retry_recovers(self) -> None:
+        run = self.base / "run-retry"
+        self.assertEqual(self.init(run, "--backchain-passes", "converge").returncode, 0)
+        before = (run / "state.md").read_bytes()
+        for other in ("none", "one"):
+            with self.subTest(other=other):
+                refused = self.init(run, "--backchain-passes", other)
+                self.assertEqual(refused.returncode, 2, refused.stdout + refused.stderr)
+                self.assertIn("recorded", refused.stderr)
+                self.assertIn("converge", refused.stderr)
+                self.assertIn("fresh --run-dir", refused.stderr)  # there is no mid-run switch to offer
+                self.assertNotIn("--set", refused.stderr)
+                self.assertEqual((run / "state.md").read_bytes(), before)
+        for same in (("--backchain-passes", "converge"), ()):
+            with self.subTest(same=same):
+                recovered = self.init(run, *same)
+                self.assertEqual(recovered.returncode, 0, recovered.stdout + recovered.stderr)
+        self.assertEqual(self.recorded(run), "converge")
+
+    def test_workspace_start_records_the_value_and_refuses_a_changed_retry(self) -> None:
+        root = self.base / "workspace"
+        args = ("workspace", "start", "--repo", str(self.repo), "--workspace-root", str(root),
+                "--prompt", "Workspace fixture.")
+        started = self.cli(*args, "--backchain-passes", "none")
+        self.assertEqual(started.returncode, 0, started.stdout + started.stderr)
+        self.assertEqual(self.recorded(root / "run"), "none")
+        before = (root / "run" / "state.md").read_bytes()
+        refused = self.cli(*args, "--backchain-passes", "converge")
+        self.assertEqual(refused.returncode, 2, refused.stdout + refused.stderr)
+        self.assertIn("none", refused.stderr)
+        self.assertEqual((root / "run" / "state.md").read_bytes(), before)
+        self.assertEqual(self.cli(*args).returncode, 0)
+        self.assertEqual(self.recorded(root / "run"), "none")
+
+    def test_a_saved_run_without_the_key_is_refused_with_the_fresh_run_hint(self) -> None:
+        run = self.base / "run-old"
+        self.assertEqual(self.init(run).returncode, 0)
+        saved = store.read_record(run / "state.md")
+        del saved["backchain_passes"]
+        store.write_record(run / "state.md", saved, title="Saved ShipLoop state")
+        before = (run / "state.md").read_bytes()
+        with self.assertRaises(navigator.NavigatorError) as caught:
+            navigator.validate(saved)
+        self.assertIn("missing: backchain_passes", str(caught.exception))
+        self.assertIn(navigator.FRESH_RUN_HINT, str(caught.exception))
+        for argv in (("next", "--run-dir", str(run)), ("report", "--run-dir", str(run)),
+                     ("init", "--repo", str(self.repo), "--run-dir", str(run), "--prompt=add hello")):
+            with self.subTest(command=argv[0]):
+                refused = self.cli(*argv)
+                output = refused.stdout + refused.stderr
+                self.assertEqual(refused.returncode, 2, output)
+                self.assertIn("missing: backchain_passes", output)
+                self.assertIn("fresh --run-dir", output)
+                self.assertNotIn("Traceback", output)
+                self.assertEqual((run / "state.md").read_bytes(), before)
+
+    def test_the_recorded_mode_reaches_the_guidance_the_packet_is_rendered_from(self) -> None:
+        for mode in navigator.BACKCHAIN_PASSES_MODES:
+            with self.subTest(mode=mode):
+                state = navigator.new_state(str(self.repo), "Thread it.", backchain_passes=mode)
+                with patch.object(navigator.guidance, "prompt", wraps=prompts.prompt) as rendered:
+                    navigator.render(None, self.base / "run", state)
+                rendered.assert_called_once()
+                self.assertEqual(rendered.call_args.kwargs["backchain_passes"], mode)
+
+    def test_the_prompt_catalog_takes_the_mode_and_refuses_an_unknown_one(self) -> None:
+        self.assertEqual(prompts.BACKCHAIN_PASSES_MODES, navigator.BACKCHAIN_PASSES_MODES)
+        self.assertEqual(prompts.DEFAULT_BACKCHAIN_PASSES, navigator.DEFAULT_BACKCHAIN_PASSES)
+        for stage in prompts.BACKCHAIN_STAGES:
+            with self.subTest(stage=stage):
+                # The catalog renders the default mode; naming it changes nothing.
+                self.assertEqual(prompts.prompt(stage, backchain_passes=prompts.DEFAULT_BACKCHAIN_PASSES),
+                                 prompts.PROMPTS[stage])
+                for mode in prompts.BACKCHAIN_PASSES_MODES:
+                    self.assertTrue(prompts.prompt(stage, backchain_passes=mode).strip())
+        for call in (lambda: prompts.prompt("plan", backchain_passes="two"),
+                     lambda: prompts._backchain_guidance("plan", backchain_passes="two")):
+            with self.assertRaises(ValueError):
+                call()
+
+    def test_the_spec_carve_out_names_the_option_the_code_defines(self) -> None:
+        """Parity, not prose: the carve-out's option name, default and values equal the code's constants."""
+        spec = " ".join(self.SPEC.read_text(encoding="utf-8").split())
+        carve = spec.split("**S-10 carve-out", 1)[1].split("**S-11", 1)[0]
+        key = "backchain_passes"
+        self.assertIn("(state option `" + key + "`)", carve)
+        self.assertIn(key, navigator.new_state(str(self.repo), "Key."))
+        flag = "--" + key.replace("_", "-")
+        named = set(re.findall(re.escape(flag) + r" (\w+)", carve))
+        default = re.search(r"defaults to (\w+) pass", carve)
+        self.assertIsNotNone(default, carve)
+        self.assertEqual(default.group(1), navigator.DEFAULT_BACKCHAIN_PASSES)
+        self.assertEqual(named | {default.group(1)}, set(navigator.BACKCHAIN_PASSES_MODES))
+        accepted = self.init(self.base / "run-spec", flag, sorted(named)[0])
+        self.assertEqual(accepted.returncode, 0, accepted.stdout + accepted.stderr)
+
+
 if __name__ == "__main__":
     unittest.main(verbosity=2)

@@ -1215,3 +1215,18 @@ Pre-registered for the next Luna run (no thresholds): the written gate and exit 
 passes and minutes per pass of each Backchain loop, whether a step-plan whole loop starts at all, plan-stage and
 planning-window minutes beside 196.4 and 647.5, Improve passes per stage as the unchanged-code control (1.16.1: 4, 11, 3,
 3, 5), and defects later stages find in the plan and test strategy.
+
+Implemented (2026-10-04; the printed text is not changed until the one-pass gate text lands):
+- **I1, the run option.** `backchain_passes` (`one` default, `converge`, `none`) is a required state key like `lint`, set once by
+  `--backchain-passes` on `init` and `workspace start`, validated in `new_state` and `validate`, and handed from the recorded
+  state to `shiploop_prompts.prompt` and `_backchain_guidance` (default `one`, rendered text identical for every mode) and to
+  `graph-dry-run`. No verb changes it mid-run; a retry that names another value is refused naming the recorded one; a saved run
+  without the key is refused by the generic missing-key check with the fresh-run hint (no migration, no separate message).
+- **Evidence for I1.** Route tests, not wording: `BackchainPassesOptionTest` in `test/shiploop-navigator-contract.test.py`
+  drives the real CLI for the default, each mode, an invalid value, a changed retry (`init` and `workspace start`) and a state
+  without the key, wraps `guidance.prompt` to show the recorded mode reaches the packet render, and checks the SPEC S-10
+  carve-out's option name, default and values against the code constants (parity, not prose). All 8 failed on the unchanged
+  code because the option did not exist, and pass now. The ShipLoop and Improve test family (61 files, 1,244 tests) has the
+  same two failures as the base (`shiploop-cross-run`, `shiploop-status-display`; a progress-observer file in a run directory,
+  also failing solo on the base), and `shiploop-full-runtime`, which failed once on the base in a temp-directory cleanup
+  race (`Directory not empty`) and passes solo on the base, passed on the change. No test enumerated state keys by hand, so none needed an update.

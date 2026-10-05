@@ -54,6 +54,17 @@ def _require_retry_lint(existing: dict, requested: "str | None", run_dir: Path) 
          f"--lint to recover the run, and change it with: shiploop lint-mode --run-dir {run_dir} --set {requested}")
 
 
+def _require_retry_backchain_passes(existing: dict, requested: "str | None", run_dir: Path) -> None:
+    """Recovery retries keep the recorded Backchain passes option; no verb changes it mid-run."""
+    if requested is None:
+        return
+    recorded = navigator.recorded_backchain_passes(existing)
+    need(recorded == requested,
+         f"--backchain-passes {requested} differs from this run's recorded Backchain passes option "
+         f"{recorded}; rerun without --backchain-passes to recover the run. The option cannot change "
+         f"mid-run: start a fresh run (a fresh --run-dir or --workspace-root) to use {requested}")
+
+
 def workspace_command(core, argv):
     """One CLI family; workspace effects stay outside the opaque navigator."""
     import shiploop_workspace as workspace
@@ -73,6 +84,8 @@ def workspace_command(core, argv):
                        help="new run: inline (default) or ask-agent delegation")
     start.add_argument("--lint", choices=navigator.LINT_MODES, default=None,
                        help="new run: script-owned advisory lint fix (default), report or off")
+    start.add_argument("--backchain-passes", choices=navigator.BACKCHAIN_PASSES_MODES, default=None,
+                       help="new run: Backchain planning child passes, one (default), converge or none")
     for name in ("plan-return", "return"):
         child = subs.add_parser(name)
         child.add_argument("--workspace-root", required=True)
@@ -116,6 +129,7 @@ def workspace_command(core, argv):
                      "cannot retrofit delivery-contract on an existing run")
                 _require_retry_delegation(existing, args.delegation, root / "run")
                 _require_retry_lint(existing, args.lint, root / "run")
+                _require_retry_backchain_passes(existing, args.backchain_passes, root / "run")
                 # Identical re-entry is recovery, not another capture of the
                 # source after product work or a completed integration.
                 return main(core, ["next", "--run-dir", str(root / "run")])
@@ -138,6 +152,8 @@ def workspace_command(core, argv):
                 init += ["--delegation", args.delegation]
             if args.lint:
                 init += ["--lint", args.lint]
+            if args.backchain_passes:
+                init += ["--backchain-passes", args.backchain_passes]
             return main(core, init)
         if args.operation == "plan-return":
             # Like every run-bound verb, refuse a retired or unloadable run
@@ -391,6 +407,8 @@ def main(core, argv=None):
                              help="new run: inline (default) or ask-agent delegation")
             sub.add_argument("--lint", choices=navigator.LINT_MODES, default=None,
                              help="new run: script-owned advisory lint fix (default), report or off")
+            sub.add_argument("--backchain-passes", choices=navigator.BACKCHAIN_PASSES_MODES, default=None,
+                             help="new run: Backchain planning child passes, one (default), converge or none")
         if name == "delegation":
             sub.add_argument("--set", dest="delegation_value", choices=navigator.DELEGATIONS, required=True,
                              help="execution delegation for this run's future assignments")
@@ -492,6 +510,7 @@ def main(core, argv=None):
                     _count_callback_attempt(root)
                 _require_retry_delegation(existing, getattr(args, "delegation", None), root)
                 _require_retry_lint(existing, getattr(args, "lint", None), root)
+                _require_retry_backchain_passes(existing, getattr(args, "backchain_passes", None), root)
                 code = navigator.dispatch(
                     core, root, existing, args,
                     completion_guard=lambda before, after: workspace_completion_guard(root, before, after),
@@ -536,6 +555,7 @@ def main(core, argv=None):
                 worktree=args.execution_mode == "navigator-worktree",
                 delegation=args.delegation or navigator.DEFAULT_DELEGATION,
                 lint_option=args.lint or navigator.DEFAULT_LINT,
+                backchain_passes=args.backchain_passes or navigator.DEFAULT_BACKCHAIN_PASSES,
             )
             navigator.save(root, state)
             navigator.emit(core, root, state)

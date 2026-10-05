@@ -10,7 +10,7 @@ inside its Markdown file, and there is no writable JSON mirror.
 
 | File or directory | Authority / purpose |
 |---|---|
-| `state.md` | The navigator state: protocol version, execution mode, run ID and revision, repository and original prompt, current stage/action/status, work queue and `work_index`, per-item `inner_loops`, accepted results and history, the selected Improve card, the active Improve child and imported Improve records, chain bindings, the run's `delegation`, and the required run-level `lint` option (`fix`, `report` or `off`; a saved run without it is refused). Protocol 4 adds `planning_reconciliations`, and state version 4 adds `revisions` (how many times each work item went back to `step-plan`, at most 2). |
+| `state.md` | The navigator state: protocol version, execution mode, run ID and revision, repository and original prompt, current stage/action/status, work queue and `work_index`, per-item `inner_loops`, accepted results and history, the selected Improve card, the active Improve child and imported Improve records, chain bindings, the run's `delegation`, the required run-level `lint` option (`fix`, `report` or `off`; a saved run without it is refused) and the required run-level `backchain_passes` option (`one`, `converge` or `none`; a saved run without it is refused). Protocol 4 adds `planning_reconciliations`, and state version 4 adds `revisions` (how many times each work item went back to `step-plan`, at most 2). |
 | `notes/<action>.md` | The pass log for one action: after each pass the host appends what it checked and what is left. Every packet names it and the context index lists it under "In progress", so a context lost mid-stage resumes from the last pass. It is a recovery aid, not evidence: ShipLoop's own test-run records are the evidence. |
 | `inbox/<action>.md` | Where the host writes the current action's result before running the printed callback. It is input, not accepted state. |
 | `results/<action>.md` | The accepted producer result for one action, written by the script's transaction. |
@@ -84,6 +84,15 @@ checkpoint, keeps the route it was issued with, and the command is refused on a
 halted or done run. A switch made while an action is pending records optional
 `delegation_hold: {action, route}` for that action; it is ignored once another
 action is issued. See the [navigator guide](navigator.md#run-it).
+
+## Backchain passes
+
+Every run records the run-level `backchain_passes` key: `one` (the default for new
+runs), `converge` or `none`. It is set once, by `--backchain-passes` on `init` or
+`workspace start`, and no verb changes it: an `init` or `workspace start` retry that
+names another value is refused, and a saved run without the key is refused with the
+fresh-run hint like any other missing key. See the
+[skill guide](../SKILL.md#backchain-passes-option).
 
 ## Authority and safety rules
 

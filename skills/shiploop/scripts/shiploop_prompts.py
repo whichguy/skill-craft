@@ -1845,6 +1845,18 @@ BACKCHAIN_NATIVE_CALLS = {
 }
 BACKCHAIN_AUDIT_STAGES = BACKCHAIN_STAGES - set(BACKCHAIN_NATIVE_CALLS)
 
+# Run-level Backchain passes option (state key ``backchain_passes``): how many review passes the
+# Backchain planning child may take.  ``one`` (the default for new runs) is one review/fix/check cycle,
+# ``converge`` is two consecutive trivial reviews, ``none`` offers no whole loop at plan.  The CLI, the
+# state and SPEC S-10's carve-out name the same three.
+BACKCHAIN_PASSES_MODES = ("one", "converge", "none")
+DEFAULT_BACKCHAIN_PASSES = "one"
+
+
+def _require_backchain_passes(backchain_passes: str) -> None:
+    if backchain_passes not in BACKCHAIN_PASSES_MODES:
+        raise ValueError(f"unknown backchain passes option: {backchain_passes!r}")
+
 
 # The resource the read-only audit needs (the `backchain-caller/v1` contract); the other six serve a whole loop.
 BACKCHAIN_AUDIT_RESOURCE = "Backchain backchain-caller/v1 resource"
@@ -1960,13 +1972,18 @@ A protected or out-of-scope change follows the existing blocked or recovery rout
 """
 
 
-def _backchain_guidance(stage: str, *, improve_owner: bool = False) -> str:
+def _backchain_guidance(stage: str, *, improve_owner: bool = False,
+                        backchain_passes: str = DEFAULT_BACKCHAIN_PASSES) -> str:
     """Return host-mediated caller guidance without adding navigator state.
 
     The loop text and the resource gate are printed only at the stage that may start a whole loop (plan);
     the other Backchain stages print the read-only audit route and the rule that a material finding may
     request one repair/revise (the budget stays there: that request starts a loop).
+
+    ``backchain_passes`` is the run's option (see BACKCHAIN_PASSES_MODES).  It is validated and threaded
+    here; no mode changes the printed text yet.
     """
+    _require_backchain_passes(backchain_passes)
     if improve_owner:
         return _BACKCHAIN_ROUTE + _BACKCHAIN_IMPROVE_OWNER
     if stage in BACKCHAIN_NATIVE_CALLS:
@@ -2130,14 +2147,17 @@ failed or was not run (with the reason).
 """
 
 
-def prompt(stage: str, *, delegation: str = ASK_AGENT) -> str:
+def prompt(stage: str, *, delegation: str = ASK_AGENT,
+           backchain_passes: str = DEFAULT_BACKCHAIN_PASSES) -> str:
     """Return the single current producer instruction for a navigator graph stage.
 
-    The navigator always passes the run's delegation; the ask-agent default
-    keeps catalog renders identical to runs recorded before the setting existed.
+    The navigator always passes the run's delegation and Backchain passes option; the
+    ask-agent default keeps catalog renders identical to runs recorded before the
+    delegation setting existed, and the catalog renders the default passes option.
     """
     _require_stage(stage)
     _require_delegation(delegation)
+    _require_backchain_passes(backchain_passes)
     parts = [COMMON, duty(stage, delegation=delegation)]
     if stage in stage_spec.with_block("interaction-design"):
         parts.append(INTERACTION_DESIGN)
@@ -2157,7 +2177,7 @@ def prompt(stage: str, *, delegation: str = ASK_AGENT) -> str:
         parts.append(OUTER_TEST_HANDOFF if improves else OUTER_TEST_HANDOFF.replace(
             "in this result and the Improve child's context/notes.", "in this result."))
     if stage in BACKCHAIN_STAGES:
-        parts.append(_backchain_guidance(stage))
+        parts.append(_backchain_guidance(stage, backchain_passes=backchain_passes))
     if stage in RECONCILIATION_STAGES:
         parts.append(SELECTED_CASE_RECONCILIATION)
     if stage in PASS_OR_STOP_STAGES:
@@ -2431,7 +2451,9 @@ for _delegated, _inline in _INLINE_IMPROVE_REPLACEMENTS:
 
 __all__ = (
     "ASK_AGENT",
+    "BACKCHAIN_PASSES_MODES",
     "COMMON",
+    "DEFAULT_BACKCHAIN_PASSES",
     "DELEGATIONS",
     "DUTIES",
     "END_REVIEW_FOCUS",

@@ -386,6 +386,17 @@ separates new findings from debt already present at the item base, and states
 per-file coverage. The step still selects and runs its own checks. Details and
 safety pins: [lint catalog](references/lint-catalog.md).
 
+### Backchain passes option
+
+`--backchain-passes one|converge|none` at `init` or `workspace start` records the
+run option `backchain_passes` (default `one`): how many passes the Backchain
+planning child may take. `one` is one review/fix/check cycle, `converge` is two
+consecutive trivial reviews, and `none` offers no whole Backchain loop at `plan`.
+Like `lint`, a saved run without the key is refused (start a fresh run), never
+migrated, and an `init` or `workspace start` retry cannot change it. Unlike
+`lint`, no verb changes it mid-run: a fresh run is the route to another value.
+Improve's review loops are not covered by it.
+
 ### Static-checks quality loop
 
 `static-checks` runs one quality loop on the Until Loop bound to the selected

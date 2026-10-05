@@ -297,6 +297,28 @@ class NavigatorDryRunTests(unittest.TestCase):
                     self.assertEqual(result.returncode, 0, result.stdout + result.stderr)
                     self.assertNotIn('Traceback', result.stderr)
 
+    def test_the_dry_run_simulates_the_selected_backchain_passes_option(self):
+        scenario = driver.scenarios()['delivery']
+        for mode in navigator.BACKCHAIN_PASSES_MODES:
+            with self.subTest(mode=mode):
+                with patch.object(navigator.guidance, 'prompt', wraps=guidance.prompt) as rendered:
+                    report = driver.run_scenario('delivery', scenario, backchain_passes=mode)
+                self.assertTrue(report['ok'], report.get('error'))
+                self.assertTrue(rendered.call_args_list)
+                self.assertEqual({call.kwargs['backchain_passes'] for call in rendered.call_args_list}, {mode})
+        env = dict(os.environ, PYTHONDONTWRITEBYTECODE='1')
+        base = [sys.executable, '-B', str(SCRIPTS / 'shiploop'), 'graph-dry-run', '--scenario', 'delivery']
+        with tempfile.TemporaryDirectory(prefix='navigator-dry-run-backchain-') as temporary:
+            for mode in navigator.BACKCHAIN_PASSES_MODES:
+                with self.subTest(cli=mode):
+                    result = subprocess.run(base + ['--backchain-passes', mode], cwd=temporary, env=env,
+                                            capture_output=True, text=True)
+                    self.assertEqual(result.returncode, 0, result.stdout + result.stderr)
+            refused = subprocess.run(base + ['--backchain-passes', 'two'], cwd=temporary, env=env,
+                                     capture_output=True, text=True)
+            self.assertEqual(refused.returncode, 2, refused.stdout + refused.stderr)
+            self.assertIn('invalid choice', refused.stderr)
+
     def test_protocol_version_flag_is_retired(self):
         env = dict(os.environ, PYTHONDONTWRITEBYTECODE='1')
         base = [sys.executable, '-B', str(SCRIPTS / 'shiploop'), 'graph-dry-run']
