@@ -93,8 +93,8 @@ class TestGroupTests(unittest.TestCase):
 
     def test_audited_catalog_counts_and_fixed_commands(self) -> None:
         self.assertEqual(len(suite_catalog.SHIPLOOP_SUITES), 66)
-        self.assertEqual(len([suite for suite in suite_catalog.SUITES if suite.family == "core"]), 38)
-        self.assertEqual(len(suite_catalog.SUITES), 106)
+        self.assertEqual(len([suite for suite in suite_catalog.SUITES if suite.family == "core"]), 39)
+        self.assertEqual(len(suite_catalog.SUITES), 107)
         self.assertTrue(all(suite.hermetic for suite in suite_catalog.SUITES))
         self.assertTrue(all(suite.path in suite.argv for suite in suite_catalog.SUITES))
         self.assertTrue(all(suite.argv[0] in {"python3", "node", "bash"} for suite in suite_catalog.SUITES))
