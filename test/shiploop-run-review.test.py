@@ -1042,10 +1042,10 @@ class PageShellTests(unittest.TestCase):
         out = page_probe('[' + STEP_SECTIONS + ', textOf("selcount")]', setup=SAMPLE_SETUP,
                          stored=json.dumps({"step": 3, "run": "r1", "sel": {"r1": {"opts": {"a1": True}, "find": {}}}}))
         self.assertEqual(out[0], [False, False, True, False])
-        self.assertEqual(out[1], "Selected 1 option.")
+        self.assertEqual(out[1], "You ticked 1 option. They become one plan.")
         other = page_probe('L.run="r2";renderAll();textOf("selcount")', setup=SAMPLE_SETUP,
                            stored=json.dumps({"step": 3, "run": "r1", "sel": {"r1": {"opts": {"a1": True}, "find": {}}}}))
-        self.assertEqual(other, "Nothing selected yet. Tick options in step 3.")
+        self.assertEqual(other, "Nothing ticked yet. Tick options in step 3.")
         for junk in ("not json", "[1]", json.dumps({"step": 9, "sel": 5}), "null"):
             self.assertEqual(page_probe(STEP_SECTIONS, setup=SAMPLE_SETUP, stored=junk), [True, False, False, False], junk)
 
@@ -1054,7 +1054,7 @@ class PageShellTests(unittest.TestCase):
                          'var n1=textOf("stickybar");L.run="r2";renderAll();var n2=textOf("stickybar");'
                          'L.run="r1";renderAll();[n1,n2,textOf("stickybar"),REG.stickybar.hidden,textOf("selcount"),JSON.parse(STORED).sel.r1.opts]',
                          setup=SAMPLE_SETUP)
-        self.assertEqual(out, ["1 tickedYour plan", "", "1 tickedYour plan", False, "Selected 1 option.", {"a1": True}])
+        self.assertEqual(out, ["1 tickedYour plan", "", "1 tickedYour plan", False, "You ticked 1 option. They become one plan.", {"a1": True}])
 
     def test_the_run_detail_reads_the_new_run_fields_defensively(self) -> None:
         bare = page_probe('textOf("rundetail")', setup=SAMPLE_SETUP)
@@ -1252,6 +1252,9 @@ class FindingsAndOptionsTests(unittest.TestCase):
         self.assertTrue(svg.startswith('<svg class="ws" viewBox="0 0 562 64"'))
         last = run_logic("whereStrip(%s, {phase: 6})" % json.dumps(run))  # the run ends there: the label must not run off the strip
         self.assertIn('text-anchor="end"', last)
+        view = int(re.search(r'data-view="(\d+)"', last).group(1))  # a narrow screen scrolls the strip to the phase, label included
+        self.assertTrue(300 < view < 562, view)
+        self.assertEqual(re.search(r'data-view="(\d+)"', run_logic("whereStrip(%s, {phase: 0})" % json.dumps(run))).group(1), "0")
         self.assertNotIn('text-anchor="end"', run_logic("whereStrip(%s, {phase: 0})" % json.dumps(run)))
         for no_strip in ("{}", "{phase: -1}", "{phase: 8}", '{phase: "2"}'):
             self.assertEqual(run_logic("whereStrip(%s, %s)" % (json.dumps(run), no_strip)), "", no_strip)
@@ -1301,9 +1304,13 @@ class FindingsAndOptionsTests(unittest.TestCase):
 
     def test_the_step_3_card_carries_the_pictures_the_rationale_the_advice_and_its_options(self) -> None:
         out = page_probe('var c=byClass("cards","fcard");var f=c[0];[c.length,f.textContent,byClass(f,"strip")[0].innerHTML.length>0,'
-                         'byClass(f,"fig")[0].innerHTML.indexOf("fg-bar")>0,byClass(f,"opt").length,byClass(f,"adv").length,'
+                         'byClass(f,"viz")[0].innerHTML.indexOf("fg-bar")>0,byClass(f,"opt").length,byClass(f,"adv").length,'
                          'byClass(f,"chip").map(function(e){return e.textContent;}),byClass(c[1],"noopt").length]', setup=SAMPLE_SETUP)
         self.assertEqual(out[0], 2)
+        scrolled = page_probe('data.obs[0].phase=2;data.runs[0].stages=data.runs[0].stages.concat(new Array(30).fill({stage:"intake",outcome:"done"}),[{stage:"plan",outcome:"done"},{stage:"step-plan",outcome:"done"}]);renderAll();'
+                              'var s=byClass("cards","strip")[0];s.scrollLeft=0;go(3);[s.scrollLeft,/data-view="(\\d+)"/.exec(s.innerHTML)[1]]', setup=SAMPLE_SETUP)
+        self.assertGreater(scrolled[0], 300)
+        self.assertEqual(scrolled[0], int(scrolled[1]))  # the page scrolls a long strip to the phase once its step shows
         for text in ("First finding", "Expected. It holds.", "Saw. It broke.", "Evidence. run/x.md", "Advice. Fix it in the script.",
                      "Fix the flow", "Fix ShipLoop", "recommended", "ask me first", "The script owns the flow", "Specify"):
             self.assertIn(text, out[1])
@@ -1318,7 +1325,7 @@ class FindingsAndOptionsTests(unittest.TestCase):
         self.assertEqual(out, [0, True, "No option yet. Ask Claude to propose options."])
         ticked = page_probe('var b=byClass("cards","noopt")[0].children[0];b.checked=true;b.onchange();'
                             '[S().find,textOf("selcount"),REG.steps.children[2].textContent]', setup=SAMPLE_SETUP)
-        self.assertEqual(ticked, [{"o2": True}, "Selected 1 finding to investigate.", "3. Findings and options2 open, 1 ticked"])
+        self.assertEqual(ticked, [{"o2": True}, "You ticked 1 finding to investigate. They become one plan.", "3. Findings and options2 open, 1 ticked"])
 
     def test_tick_recommended_ticks_the_recommended_option_of_each_open_finding_only(self) -> None:
         out = page_probe('data.acts.push({id:"a3",title:"closed one",findings:["o3"],recommended:true,kind:"accept"});'
@@ -1460,6 +1467,239 @@ renderAll();"""
             self.assertNotIn(gone, html)
 
 
+def snapshot_docs(collection: str) -> dict:
+    """{id: document data} of one collection of the committed database snapshot."""
+    return {i: row["data"] for i, row in json.loads(SNAPSHOT.read_bytes())["docs"][collection].items()}
+
+
+def prompt_state(**overrides) -> dict:
+    """A buildPrompt state: a small run, findings f1 (P1, open) and f2 (P2, open) with options, and the new defaults."""
+    cfg = json.loads((DEFAULTS_DIR / "config.json").read_text(encoding="utf-8"))
+    state = {
+        "run": {"key": "r1", "name": "Luna max, battleship", "release": "skill-craft 1.16.1, ShipLoop 0.48.1", "host": "codex",
+                "model": "gpt-6-luna", "startedAt": "2026-10-03T10:00:00Z", "status": "blocked", "evidence": "/runs/r1",
+                "stages": [{"stage": "intake", "outcome": "done"}] * 3, "wallMin": 15.2, "improvePasses": 19},
+        "runs": [{"key": "r2", "name": "Other", "evidence": "/runs/r2"}],
+        "findings": [
+            {"id": "f1", "title": "First finding", "criterion": "P1", "status": "open", "effect": "broken", "run": "r1",
+             "expected": "It holds.", "observed": "It broke.", "evidence": "run/state.md"},
+            {"id": "f2", "title": "Second finding", "criterion": "P2", "status": "open", "run": "r1", "expected": "e2", "observed": "s2"},
+            {"id": "f3", "title": "Third finding", "criterion": "P1", "status": "open", "run": "r1", "expected": "e3", "observed": "s3"},
+            {"id": "f4", "title": "Elsewhere", "status": "open", "run": "r2", "expected": "e4", "observed": "s4", "evidence": "run/x"}],
+        "options": [
+            {"id": "a1", "title": "Fix the flow", "kind": "fix-shiploop", "effort": "M", "status": "built", "criterion": "P1", "findings": ["f1", "f3"],
+             "goal": "Do: make the script own it. Done when: a test pins it."},
+            {"id": "a2", "title": "Fix the grader", "kind": "fix-harness", "effort": "S", "criterion": "P2", "findings": ["f2"], "goal": "Grade the engine."},
+            {"id": "a3", "title": "Reword P1", "kind": "change-expectation", "effort": "S", "criterion": "P1", "findings": ["f1"], "goal": "Do: edit it.",
+             "change": {"target": "spec", "to": "A new sentence.", "reason": "Luna showed it."}},
+            {"id": "a4", "title": "Rerun Luna", "kind": "gather-evidence", "effort": "L", "findings": ["f1"], "cost": "about 10 h of Luna", "goal": "Run it once."},
+            {"id": "a5", "title": "Accept the limit", "kind": "accept", "findings": ["f2"], "goal": "Write it down."},
+            {"id": "a6", "title": "No kind yet", "goal": "Something."},
+            {"id": "a7", "title": "Unticked", "kind": "fix-shiploop", "goal": "Do not mention me."}],
+        "expectations": {"P1": {"title": "The script owns the flow", "text": "The model never chooses the next stage.", "clauses": ["S-1", "S-2"]},
+                         "P2": {"title": "Loop contracts", "text": "The script writes every loop contract.", "clauses": []},
+                         "P9": {"title": "Unrelated expectation", "text": "Not touched.", "clauses": ["S-9"]}},
+        "review": {"basis": {"P2": "Examined by hand."}},
+        "selected": {"options": {"a1": True}, "find": {}}, "after": "stop", "notes": "",
+        "config": {"constraints": cfg["prompt"]["constraints"], "closing": cfg["prompt"]["closing"], "artifactUrl": "https://example.test/page"},
+    }
+    state.update(overrides)
+    return state
+
+
+def build_prompt(**overrides) -> str:
+    return run_logic("buildPrompt(%s)" % json.dumps(prompt_state(**overrides)))
+
+
+class PromptBuilderTests(unittest.TestCase):
+    """R7: one pure builder; what is ticked is all that is printed; expectation changes first; wait by default."""
+
+    ALL = {"a1": True, "a2": True, "a3": True, "a4": True, "a5": True, "a6": True}
+
+    def test_the_prompt_for_the_saved_option_a01_is_small_names_nothing_else_and_has_no_revision_dump(self) -> None:
+        options = [{"id": i, **d} for i, d in snapshot_docs("actions").items()]
+        findings = [{"id": i, **d} for i, d in snapshot_docs("observations").items()]
+        exps = snapshot_docs("expectations")
+        revised = {k: d for k, d in exps.items() if d.get("revs")}
+        self.assertGreaterEqual(len(revised), 9)  # the saved documents carry ten revisions, which the old builder dumped
+        state = prompt_state(options=options, findings=findings, expectations=exps, review=None,
+                             selected={"options": {"a01": True}, "find": {}}, run={"key": "luna1", "name": "Luna max, release 1.16.1"})
+        state["config"]["artifactUrl"] = snapshot_docs("config")["page"]["artifactUrl"]
+        text = run_logic("buildPrompt(%s)" % json.dumps(state))
+        a01 = next(o for o in options if o["id"] == "a01")
+        self.assertLessEqual(len(text), 3000 + len(a01["goal"]), len(text))
+        self.assertIn(a01["title"], text)
+        self.assertIn(a01["goal"], text)
+        self.assertNotIn("Revised expectations", text)
+        for key, doc in revised.items():
+            for rev in doc["revs"]:
+                self.assertNotIn(rev["reason"], text, key)
+                self.assertNotIn(rev["from"], text, key)
+        for other in options:
+            if other["id"] != "a01":
+                self.assertNotIn(other["title"], text, other["id"])
+                self.assertNotRegex(text, rf"\b{other['id']}\b")
+        for key, doc in exps.items():
+            if key != "B1" and doc.get("kind") == "criterion":
+                self.assertNotIn(doc["title"], text, key)
+        self.assertIn("Every pass earns its time", text)  # a01 serves B1
+
+    def test_nothing_ticked_gives_no_prompt_and_wait_is_the_default_after_line(self) -> None:
+        self.assertEqual(build_prompt(selected={"options": {}, "find": {}}), "")
+        self.assertEqual(build_prompt(selected={"options": {"a1": False}, "find": {"f2": False}}), "")
+        wait, wait2, go = build_prompt(), build_prompt(after="anything"), build_prompt(after="execute")
+        self.assertEqual(wait, wait2)
+        self.assertIn("Present the plan and wait for my go-ahead.", wait)
+        self.assertNotIn("Then execute it.", wait)
+        self.assertIn("Then execute it.", go)
+        self.assertNotIn("wait for my go-ahead", go)
+
+    def test_the_head_names_the_run_the_repo_the_page_the_evidence_and_the_review_file(self) -> None:
+        head = build_prompt().split("\n")[0]
+        self.assertEqual(head, "Repair work from the Run Review of Luna max, battleship (skill-craft 1.16.1, ShipLoop 0.48.1; codex gpt-6-luna; "
+                               "2026-10-03; blocked). In the skill-craft repository. Page: https://example.test/page. Run evidence: /runs/r1. "
+                               "Review file: test/shiploop_e2e/evidence/r1.review.json.")
+        text = build_prompt()
+        self.assertIn("You ticked 1 option (1 fix ShipLoop). Plan them as one plan: merge overlap, resolve conflicts, order by dependency, "
+                      "split into the smallest verifiable increments, mark what can run in parallel.", text)
+        bare = build_prompt(run={"key": "k"}, config={"constraints": "", "closing": "", "artifactUrl": ""})
+        self.assertTrue(bare.startswith("Repair work from the Run Review of the chosen run. In the skill-craft repository. Review file:"), bare)
+        self.assertNotIn("Page:", bare)
+        self.assertNotIn("Rules:", bare)
+
+    def test_run_facts_print_measured_values_only_and_name_what_was_not_measured(self) -> None:
+        self.assertIn("Run facts: 3 visits, 15.2 min elapsed, 19 Improve passes; refusals not measured, glue not measured.", build_prompt())
+        full = build_prompt(run={**prompt_state()["run"], "refusals": 13, "glue": 0})
+        self.assertIn("Run facts: 3 visits, 15.2 min elapsed, 19 Improve passes, 13 refusals, 0 glue.", full)
+        none = build_prompt(run={"key": "r1", "name": "n"})
+        self.assertIn("Run facts: Improve passes not measured, refusals not measured, glue not measured.", none)
+        self.assertNotRegex(none, r"\b0 (Improve|refusals|glue)")
+
+    def test_options_are_grouped_by_kind_with_expectation_changes_first(self) -> None:
+        text = build_prompt(selected={"options": self.ALL, "find": {}})
+        heads = ["CHANGE AN EXPECTATION", "FIX SHIPLOOP", "FIX THE HARNESS", "GATHER EVIDENCE", "ACCEPT AS KNOWN LIMIT", "OTHER OPTIONS"]
+        positions = [text.index(h) for h in heads]
+        self.assertEqual(positions, sorted(positions))
+        self.assertIn("You ticked 6 options (1 change expectation, 1 fix ShipLoop, 1 fix harness, 1 gather evidence, 1 accept as known limit, 1 no kind set).", text)
+        self.assertEqual([m.group(1) for m in re.finditer(r"^(\d+)\. ", text, re.M)], ["1", "2", "3", "4", "5", "6"])
+        self.assertNotIn("a7", text)
+        self.assertNotIn("Unticked", text)
+
+    def test_an_option_line_carries_what_it_resolves_its_expectation_chip_and_clauses_and_its_instruction(self) -> None:
+        text = build_prompt()
+        self.assertIn("1. a1 Fix the flow [built, effort M]. Resolves: f1, f3. Expectation: P1 The script owns the flow (broken); clauses S-1, S-2.", text)
+        self.assertIn("   Do: make the script own it. Done when: a test pins it.", text)
+        self.assertNotIn("Do: Do:", text)  # an instruction that already starts "Do:" is not prefixed again
+        both = build_prompt(selected={"options": {"a2": True}, "find": {}})
+        self.assertIn("   Do: Grade the engine.", both)
+        self.assertIn("Expectation: P2 Loop contracts (not rated)", both)  # f2 is open with no effect
+
+    def test_the_ask_me_line_appears_only_for_an_option_with_a_cost(self) -> None:
+        text = build_prompt(selected={"options": self.ALL, "find": {}})
+        self.assertEqual(text.count("Ask me before starting"), 1)
+        self.assertIn("Ask me before starting: costs about 10 h of Luna.", text)
+        self.assertNotIn("Ask me before starting", build_prompt())
+
+    def test_a_change_expectation_option_names_the_target_now_was_and_why_and_a_spec_change_names_spec_md_first(self) -> None:
+        text = build_prompt(selected={"options": {"a1": True, "a3": True}, "find": {}})
+        self.assertIn("1. a3 P1 Reword P1: target spec. Now: A new sentence. Was: The model never chooses the next stage. Why: Luna showed it. Resolves: f1.", text)
+        self.assertIn("A spec change means amending test/shiploop_e2e/SPEC.md first, in its own commit, stating why.", text)
+        self.assertNotIn("defaults/expectations.json", text.split("FIX SHIPLOOP")[0])
+        self.assertLess(text.index("SPEC.md"), text.index("FIX SHIPLOOP"))
+        page = build_prompt(options=[{**o, "change": {**o["change"], "target": "page"}} if o["id"] == "a3" else o for o in prompt_state()["options"]],
+                            selected={"options": {"a3": True}, "find": {}})
+        self.assertIn("A page change means editing skills/shiploop-run-review/defaults/expectations.json (the text, the clauses and a revs entry naming the option)", page)
+        self.assertNotIn("A spec change", page)
+
+    def test_investigate_lists_only_ticked_findings_no_option_names_and_each_finding_is_printed_once(self) -> None:
+        text = build_prompt(selected={"options": {"a1": True, "a3": True}, "find": {"f3": True, "f4": True}})
+        self.assertIn("INVESTIGATE", text)
+        self.assertIn("- f4 Elsewhere", text.split("EVIDENCE")[0])  # f3 has an option (a1), so only f4 is asked about
+        self.assertNotIn("- f3 Third finding", text.split("EVIDENCE")[0])
+        evidence = text.split("\nEVIDENCE\n")[1].split("\n\nRules:")[0]
+        ids = re.findall(r"^- (f\d) ", evidence, re.M)
+        self.assertEqual(ids, ["f1", "f3", "f4"])  # f1 is linked to two ticked options and appears once
+        self.assertIn("- f1 [P1, open] First finding. Expected: It holds. Saw: It broke. (evidence: run/state.md; run: r1 at /runs/r1)", evidence)
+        self.assertIn("- f4 [open] Elsewhere. Expected: e4 Saw: s4 (evidence: run/x; run: r2 at /runs/r2)", evidence)  # another run's directory
+        self.assertNotIn("Second finding", text)
+
+    def test_rules_notes_and_the_report_back_close_the_prompt_in_that_order(self) -> None:
+        text = build_prompt(notes="  Ask me before releasing.  ")
+        cfg = prompt_state()["config"]
+        self.assertTrue(text.endswith(f"Rules: {cfg['constraints']}\nNotes: Ask me before releasing.\n{cfg['closing']}"), text[-400:])
+        self.assertNotIn("Notes:", build_prompt(notes="   "))
+
+    def test_the_default_rules_and_closing_are_run_specific_and_short(self) -> None:
+        cfg = json.loads((DEFAULTS_DIR / "config.json").read_text(encoding="utf-8"))
+        self.assertEqual(sorted(cfg["prompt"]), ["closing", "constraints"])
+        rules = cfg["prompt"]["constraints"]
+        self.assertTrue(450 <= len(rules) <= 750, len(rules))
+        for need in ("script-run test", "S-clauses", "never zero", "known limits", "scripts/release.py", "ask me first", "last three commits"):
+            self.assertIn(need, rules)
+        closing = cfg["prompt"]["closing"]
+        for need in ("done, not done or blocked", "engine or our expectation", "status to done in the review file", "/skill-craft:shiploop-run-review publish"):
+            self.assertIn(need, closing)
+        for gone in ("Do these in order", "concatPreamble", "synth"):
+            self.assertNotIn(gone, json.dumps(cfg))
+        self.assertEqual(export.validate_doc("config", cfg["prompt"]), [])
+        self.assertEqual(export.extra_fields("config", cfg["prompt"]), [])
+
+    def test_step_4_lists_what_was_ticked_by_kind_flags_the_cost_untick_works_and_the_prompt_is_the_builders(self) -> None:
+        setup = SAMPLE_SETUP + """
+data.acts.push({id:"a3",title:"Rerun it",kind:"gather-evidence",effort:"L",cost:"10 h",findings:["o1"],goal:"Run it once.",status:"planned"});
+S().opts.a1=true;S().opts.a3=true;renderAll();"""
+        out = page_probe('[textOf("selcount"),byClass("kindcounts","chip").map(function(c){return c.textContent;}),textOf("ticked"),'
+                         'byId("prompt").value===buildPrompt(promptState()),REG.live.hidden,textOf("livesum")]'.replace("byId", "document.getElementById"),
+                         setup=setup)
+        self.assertEqual(out[0], "You ticked 2 options. They become one plan.")
+        self.assertEqual(out[1], ["1 fix ShipLoop", "1 gather evidence"])
+        for text in ("FIX SHIPLOOP", "Fix the flow", "GATHER EVIDENCE", "Rerun it", "ask me first", "Costs: 10 h", "Untick"):
+            self.assertIn(text, out[2])
+        self.assertTrue(out[3])
+        self.assertFalse(out[4])
+        self.assertIn("Live prompt: 2 options (", out[5])
+        gone = page_probe('byClass(byClass("ticked","tick")[0],"btn")[0].onclick();[S().opts,textOf("selcount"),REG.stepnav.children.length,textOf("livesum")]', setup=setup)
+        self.assertEqual(gone[0], {"a1": False, "a3": True})
+        self.assertEqual(gone[1], "You ticked 1 option. They become one plan.")
+        self.assertIn("Live prompt: 1 option (", gone[3])
+
+    def test_the_wait_or_execute_choice_and_the_notes_are_kept_per_run_and_reach_the_prompt(self) -> None:
+        out = page_probe('S().opts.a1=true;var go=REG.step-4;document.getElementsByName("after")[1].onchange();document.getElementById("notes").value="Be careful.";'
+                         'document.getElementById("notes").oninput();var p=document.getElementById("prompt").value;L.run="r2";renderAll();'
+                         '[p.indexOf("Then execute it.")>0,p.indexOf("Notes: Be careful.")>0,S().after,S().notes,document.getElementsByName("after")[0].checked]'
+                         .replace("var go=REG.step-4;", ""), setup=SAMPLE_SETUP)
+        self.assertEqual(out, [True, True, "stop", "", True])
+
+    def test_nothing_ticked_shows_a_hint_not_a_prompt_and_hides_the_live_box(self) -> None:
+        out = page_probe('[document.getElementById("prompt").value,REG.live.hidden,textOf("selcount")]', setup=SAMPLE_SETUP)
+        self.assertEqual(out, ["Tick at least one option in step 3.", True, "Nothing ticked yet. Tick options in step 3."])
+
+    def test_every_step_and_the_prompt_work_from_documents_with_every_optional_field_absent(self) -> None:
+        bare = """
+data.runs=[{key:"r",name:"Bare run",order:1,release:"x",phases:[],time:"",imp:""}];
+data.obs=[{id:"o",title:"A bare finding"}];data.acts=[{id:"a",title:"A bare option"}];
+Object.keys(loaded).forEach(function(k){loaded[k]=true;});live=true;renderAll();"""
+        out = page_probe('S().opts.a=true;S().find.o=true;var seen=[];for(var n=1;n<=4;n++){go(n);renderAll();seen.push(REG["step-"+n].hidden);}'
+                         '[seen,textOf("cards").indexOf("A bare finding")>=0,textOf("loose").indexOf("A bare option")>=0,document.getElementById("prompt").value,'
+                         'textOf("rundetail").indexOf("undefined")<0,textOf("rundetail").indexOf("NaN")<0]', setup=bare)
+        self.assertEqual(out[0], [False, False, False, False])  # each step shows when it is chosen
+        self.assertTrue(out[1] and out[2] and out[4] and out[5], out)
+        self.assertIn("1. a A bare option [open].", out[3])
+        self.assertIn("INVESTIGATE", out[3])
+        empty = page_probe("[textOf('cards'),textOf('groups'),document.getElementById('prompt').value]",
+                           setup="Object.keys(loaded).forEach(function(k){loaded[k]=true;});renderAll();")
+        self.assertEqual(empty[0], "No findings yet. Add the first one below.")
+        self.assertIn("No expectations are seeded yet", empty[1])
+        self.assertEqual(empty[2], "Tick at least one option in step 3.")
+
+    def test_the_old_prompt_string_building_is_gone(self) -> None:
+        html = TEMPLATE.read_text(encoding="utf-8")
+        for gone in ("Revised expectations", "Backchain ledger,", "Aggregated selection", "inc.rev", "kinds(s)"):
+            self.assertNotIn(gone, html)
+        self.assertEqual(html.count("function buildPrompt("), 1)
+        self.assertEqual(script_blocks()["page"].count("out.push("), 0)  # the page never builds prompt text itself
+
+
 class DefaultsMatchTheTemplateTests(unittest.TestCase):
     def test_expectation_defaults_have_the_fields_the_template_reads(self) -> None:
         docs = json.loads((DEFAULTS_DIR / "expectations.json").read_text(encoding="utf-8"))
@@ -1479,7 +1719,7 @@ class DefaultsMatchTheTemplateTests(unittest.TestCase):
 
     def test_prompt_config_keys_match_the_schema(self) -> None:
         cfg = json.loads((DEFAULTS_DIR / "config.json").read_text(encoding="utf-8"))
-        self.assertEqual(sorted(cfg["prompt"]), ["closing", "concatPreamble", "constraints"])
+        self.assertEqual(sorted(cfg["prompt"]), ["closing", "constraints"])
         self.assertIn("title", cfg["page"])
 
 

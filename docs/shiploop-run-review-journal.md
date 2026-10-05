@@ -600,3 +600,98 @@ deliberately: the defaults' allowed kinds no longer include `iter`; the stepper-
 text.
 
 **Size.** `template/index.html` is 78,551 bytes (75,869 after R5).
+
+## 2026-10-04: R7, one pure prompt builder, and the static render check of R4 to R7 (not published)
+
+Status: firm for the code, its tests and the render check. The plan's last step is to republish the page once; that is
+deliberately NOT done here (the owner reviews a draft first): no Artifact or ArtifactData call was made, nothing was
+published, uploaded or released, and the live page and its database are untouched.
+
+**The defect this removes.** The old prompt builder's `inc.rev` branch took every expectation that had revisions
+and ignored the selection: for one ticked action (`a01`, "Run the Backchain comparison, pilot first") 7,060 of the
+prompt's 7,862 characters were a "Revised expectations" dump of nine unrelated documents (eight iteration expectations
+and `phase-2`). The toggles that governed it were removed in R4; R7 replaces the whole builder. The new prompt for the
+same `a01`, built from the committed snapshot's saved documents (the nine revised expectations present), is **1,830
+characters**: the head, the run facts, one option line with its instruction (226 characters), the rules (about 640) and
+the report-back. It contains no revision text and names no other option or expectation.
+
+**`buildPrompt(state)`**, pure, in the logic block (the page's own string building is gone; a test counts zero
+`out.push(` in the page script). Structure, expectation changes first so later work is judged against the new wording:
+the head (run name, release, host, model, date, status; the repo; the page URL; the run directory; the review file
+`test/shiploop_e2e/evidence/<runKey>.review.json`), then "You ticked N options (kind counts). Plan them as one plan:
+merge overlap, resolve conflicts, order by dependency, split into the smallest verifiable increments, mark what can run
+in parallel", then the after line (default: `Present the plan and wait for my go-ahead.`; `Then execute it.` only when
+chosen), then `Run facts:` with measured values only (visits, minutes elapsed, Improve passes, refusals, glue; a counter
+the run does not carry reads `refusals not measured`, never a 0). Then the options grouped by kind: CHANGE AN
+EXPECTATION (`id key title: target page|spec. Now: ... Was: <current text> Why: ...`, plus the note that a spec change
+means amending `test/shiploop_e2e/SPEC.md` first in its own commit, and a page change means editing
+`defaults/expectations.json` with a revs entry naming the option), FIX SHIPLOOP, FIX THE HARNESS (its own commit),
+GATHER EVIDENCE (read-only unless told to run), ACCEPT AS KNOWN LIMIT (record in `LEARNINGS.md`, no code change), and
+OTHER (no kind set). Each option line reads `n. id title [status, effort X]. Resolves: finding ids. Expectation: key
+title (chip in this run); clauses S-n.`, then `Do: <instruction>` (an instruction already starting `Do:` is not
+prefixed twice) and, only for an option with a cost, `Ask me before starting: costs <cost>.` Then INVESTIGATE (ticked
+findings no option names: read the evidence, propose options of the five kinds, change no code), EVIDENCE (only findings
+linked to ticked options or asked about, each once, with `evidence:`, the run key and that run's directory), the rules
+from `config/prompt` `constraints`, the notes, and the closing from `closing`. Step 3 also shows the same prompt live
+in a collapsed box (it updates as you tick), and step 4 lists the ticks by kind with untick controls and flags each
+cost.
+
+**Defaults rewritten.** `defaults/config.json` `constraints` (about 640 characters, specific to repairing a reviewed
+run: small verified increments each ended by a script-run test, S-clause anchors, unmeasured is never zero, fix only
+what breaks or misleads a normal run, no E2E run, release or push unless an option asks and release only through
+`scripts/release.py`, ask-me-first options wait, follow the owner's memory rules and read the last three commits) and
+`closing` (report back done, not done or blocked with the evidence, set each landed option to done in the review file
+citing the commit, then run `/skill-craft:shiploop-run-review publish`); `concatPreamble` is gone, and the config schema
+drops `concatPreamble` and `synthPreamble`. The live `config/prompt` document still has the old strings until a publish
+overwrites it (R9).
+
+**Static render check (R4 to R7 together; the plan's republish gate, minus the publish).** The Browser pane cannot
+drive a `file://` page, so the template from the worktree was served from a scratch folder by `python3 -m http.server`
+on 127.0.0.1 (port 8791, stopped afterwards) with a fake `window.claude.use("db")` in front of it: the real code path
+(`claude.use("db")`, `collection().orderBy().onSnapshot()`, `doc().update/set`, `add`) over the committed db snapshot
+plus a small synthetic overlay (effect, advice, options with kind, effort, recommended, cost and change, a figure on four
+findings, and a review with an arc and three basis lines for the Luna run). The build script, overlay and screenshots
+stay in the session scratchpad (`rrt/`), not committed; the overlay is invented sample text, not a review of the run.
+Looked at, in my own tab: 375 px light (steps 1, 3, 4), 375 px dark (step 3), desktop light (steps 2, 3, 4) and desktop
+dark (step 3). What I saw and fixed:
+
+- At 375 px the page was 393 px wide: the step 4 cost chip (`ask me first: about 10 h of Luna time and its quota`)
+  had `white-space: nowrap`. Chips may now wrap, and the ticked list prints the cost as a line of text. After the fix the
+  document is 375 px wide and no element in any of the four steps extends past the viewport outside a scroller.
+- The where strip on a phone showed the start of a 39-visit run while the finding's phase was off the right edge, and on
+  desktop it sat in a narrow column and scrolled. The strip is now full card width, carries the position of its phase
+  (`data-view`), and the page scrolls it there once the step is on screen (a hidden step has no layout to scroll; the
+  first version missed that and the check caught it). A label near the end of a run hangs from the right end of its
+  bracket.
+- Figure text was about 9 px on a phone: 13.5 px now, labels limited to 22 characters (SCHEMA.md says so).
+- Touch targets: the `Instruction and why` summaries were about 20 px high and the `Untick` buttons 26 px; both are
+  now at least 40 to 44 px. The option checkboxes were already 44 px rows.
+- Looked right and unchanged: the stepper (four pills wrapping their counts at 375 px), the sticky `N ticked, Your plan`
+  bar, the option rows with chips, the dark tokens (strip colours, accent boxes, chips), the review arc, step 2 rows, and
+  step 4 with its radios, notes and prompt box. One thing that reads oddly but is correct: the Luna header line says
+  `13 refusals | 21 glue` because the database documents are still v1 (R13 re-exports them), and every expectation with an
+  open finding reads `not rated` until R9 authors the effects. The status buttons wrap onto two lines at 375 px; left.
+
+**Tests.** `python3 -B test/shiploop-run-review.test.py`: 91 tests (38 at the base tip; 53 new in R4 to R7, all 53 fail
+on the base tip `e79f948a` from a `git archive` with only the test file copied over; the one existing test that
+fails there, the config-keys check, was changed on purpose). The 16 new in R7: the size contract on the saved `a01`
+(at most 3,000 characters plus the instruction, no revision text, no other option id or title, no unrelated
+expectation); nothing ticked gives no prompt and wait is the default; the exact head line; run facts never print a 0 for
+an absent counter; kind order and numbering; the option line with its resolves, chip, clauses and `Do:`; the cost line
+only with a cost; a change-expectation option with target spec names `SPEC.md` first (and a page target names
+`defaults/expectations.json` only); INVESTIGATE and one-per-finding evidence including another run's directory;
+rules, notes and closing in order; the default rules and closing (length, content, schema); step 4 through the page
+probe (counts, cost flag, untick, live box); the choice and notes per run; the hint with nothing ticked; and every step
+working from documents with every optional field absent.
+
+**Size.** `template/index.html` is 86,892 bytes (css 15,200, markup 7,151, pure logic 21,448, page script 42,837),
+against 76,339 at the base tip: over the plan's 75 KB guide by about 11 KB. The growth is the testable logic block
+(`cardsFor`, `chipFor`, `buildPrompt`, `whereStrip`, `figureSvg`, `improveFacts` and friends, 21 KB) plus the cards; R4
+already removed about 19 KB of UML, iterations, editors and toggles, and I cut dead styles and the contract boxes. R14
+replaces the old stage table in `renderRunDetail` (6.7 KB), which will give some of it back.
+
+**Open for the owner.** Keep the extra `not rated` chip (R6) or fold it into `bent`; confirm the criterion to S-clause
+map (R6); the publish step (not done) and the live-data operations of R9 (copy the live `phase-2` text into the defaults
+first, merge clauses into the live criterion documents, overwrite `config/prompt`, normalise option statuses); and
+`COLLECTION_ORDER` in `export.py` still lists `iterations` and not `reviews` (left alone so this branch merges with the
+exporter work, which edits the lines beside it; `reviews` sorts last, which is harmless).

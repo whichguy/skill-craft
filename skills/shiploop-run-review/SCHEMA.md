@@ -97,7 +97,7 @@ sum to it. A hand-set verdict is interim; the default for an unjudged pass is `u
 `figure` is a small structured spec the page draws, never markup: `{kind: "bars", items: [{label, value, unit?,
 lowerBound?, tone?}]}` with 1 to 6 items. `value` is a non-negative number (a measured 0 draws a stub); `lowerBound:
 true` prints a leading `>=` and an open bar end (the number is a floor, not a measurement); `tone` is `expected`,
-`saw` or `limit`; labels are plain text, escaped on render. An unknown `kind`, an unknown field, a negative value or
+`saw` or `limit`; labels are plain text, escaped on render (the first 22 characters show; keep them short). An unknown `kind`, an unknown field, a negative value or
 more than 6 items is rejected by the validator and not drawn. A figure decorates the evidence; the expected, saw and
 evidence text stays on the card.
 
@@ -127,8 +127,10 @@ Options are ranked recommended first, then by kind in the order above, then by e
 
 No verdict is stored: the chip is always derived.
 
-**`config/page`**: `title`, `artifactUrl`. **`config/prompt`**: `concatPreamble`, `constraints`, `closing`.
-The page builds the planning sentence itself and falls back to a one-line default for each prompt string when the document is missing.
+**`config/page`**: `title`, `artifactUrl`. **`config/prompt`**: `constraints` (the rules printed in every prompt: about 600
+characters, specific to repairing a reviewed run) and `closing` (the report-back instruction). The prompt itself is
+built by one pure function in the page, `buildPrompt`, from what the viewer ticked; the page falls back to a short
+default closing, and prints no rules, when the document is missing.
 
 ## The export file
 

@@ -137,8 +137,7 @@ SCHEMA = {
         "ref": (S, False),
     },
     # config/page and config/prompt share the collection; every field is a string.
-    "config": {"title": (S, False), "artifactUrl": (S, False), "synthPreamble": (S, False),
-               "concatPreamble": (S, False), "constraints": (S, False), "closing": (S, False)},
+    "config": {"title": (S, False), "artifactUrl": (S, False), "constraints": (S, False), "closing": (S, False)},
 }
 
 
