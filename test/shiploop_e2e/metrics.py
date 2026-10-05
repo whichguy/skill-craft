@@ -77,6 +77,26 @@ def glue_reasons(command: str) -> list[str]:
     return reasons
 FAILURE_LINE = re.compile(r"error|refus|reject|required|must|invalid", re.I)
 MARKER = re.compile(r"SHIPLOOP-RUN")
+# What a refused ShipLoop command prints (shiploop_protocol.py): the refusal's own line, which begins with one of
+# these prefixes and often has none of FAILURE_LINE's words ("result requires outcome and summary"), then fixed
+# trailer lines the script adds to every refusal. A trailer says "rejected", so matching it first named no refusal
+# (8 of the 13 refusals of the Luna 1.16.1 run); the script's text is pinned by test/shiploop-e2e.test.py.
+REFUSAL_LINE = re.compile(r"^ShipLoop (?:navigator|blocked): ")
+TRAILER_LINE = re.compile(r"^(?:Read the current packet with next; |The run is still active: fix the result and |"
+                          r"Request failure: no in-memory result|Durable cursor recovery: )")
+
+
+def failure_line(shown: str) -> str:
+    """The line that names why a ShipLoop command was refused: its own, not the script's fixed trailer.
+
+    Where no line but a trailer matches, the first trailer match is kept (what this recorded before).
+    """
+    lines = [ln for ln in shown.splitlines() if not MARKER.search(ln)]
+    own = next((ln for ln in lines if (FAILURE_LINE.search(ln) or REFUSAL_LINE.search(ln))
+                and not TRAILER_LINE.search(ln)), None)
+    if own is None:
+        own = next((ln for ln in lines if FAILURE_LINE.search(ln)), "")
+    return own.strip()[:200]
 
 
 def events(path: Path):
@@ -372,8 +392,7 @@ def collect(out: Path, run_dir: Path | None = None) -> dict:
             if match and code not in (None, 0) and not call.get("failed"):
                 call["failed"] = True
                 shown = visible(raw)
-                line = next((ln for ln in shown.splitlines() if FAILURE_LINE.search(ln) and not MARKER.search(ln)), "")
-                failures.append({"verb": match.group("verb"), "exit": code, "line": line.strip()[:200]})
+                failures.append({"verb": match.group("verb"), "exit": code, "line": failure_line(shown)})
         elif kind == "auto_compact_completed":
             compactions += 1
         elif kind in ("end", "result"):
