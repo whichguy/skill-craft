@@ -836,6 +836,40 @@ class UnavailableExecutionTests(unittest.TestCase):
             self.assertNotIn("revise", refusal)
             self.assertNotIn("replan", refusal)
 
+    def test_an_uncounted_command_names_the_exit_its_stage_has(self):
+        """The outer stages cannot edit a recorded command: they are told replan and suite check, naming the recorder."""
+        pipeline = [{"command": "echo ok | grep -q ok", "suite": "focused"}]
+        with tempfile.TemporaryDirectory() as temp:
+            root = Path(temp)
+            for stage, source, field in (("system-test", "system-test-author", "system_commands"),
+                                         ("release-verify", "release-plan", "consumer_checks")):
+                with self.subTest(stage=stage):
+                    _writes, refusal = test_loop.verify(root, self.state(root, "true"), "", "A-" + stage, stage,
+                                                        commands=pipeline)
+                    self.assertIn(source + " recorded this command and " + stage + " cannot edit it", refusal)
+                    self.assertIn("belongs in suite `check`, judged by its exit code", refusal)
+                    self.assertIn("Report outcome replan now, with one corrective work item", refusal)
+                    self.assertIn("as suite check in " + field + ". The outer stages then run again, and "
+                                  + source + " records it.", refusal)
+                    self.assertNotIn("Give the command ids", refusal)
+                    self.assertNotIn("Fix the code so every command passes", refusal)
+                    self.assertIn("Report replan as named above, not done", refusal)
+            # A stage that does not take commands from an outer recorder keeps the ids-and-flag reply, plus check.
+            for stage in ("test-green", "test-refine", "end-of-work review"):
+                with self.subTest(stage=stage):
+                    _writes, refusal = test_loop.verify(root, self.state(root, "true"), "", "A-" + stage, stage,
+                                                        commands=pipeline)
+                    self.assertIn("Give the command ids and a runner flag that prints test names", refusal)
+                    self.assertIn("for a command that is not a test runner, record it as suite `check`", refusal)
+                    self.assertNotIn("Report outcome replan now", refusal)
+            # One counted failure beside an uncounted command: the code can still be at fault, so the fix line stays.
+            both = [*pipeline, {"command": "echo '=== 1 failed in 0.01s ==='; exit 1", "suite": "focused"}]
+            _writes, refusal = test_loop.verify(root, self.state(root, "true"), "", "A-both", "system-test",
+                                                commands=both)
+            self.assertIn("Report outcome replan now", refusal)
+            self.assertIn("Fix the code so every command passes", refusal)
+            self.assertNotIn("Report replan as named above, not done", refusal)
+
     def test_the_rerun_packet_names_its_own_stage_remedy(self):
         with tempfile.TemporaryDirectory() as temp:
             root = Path(temp)

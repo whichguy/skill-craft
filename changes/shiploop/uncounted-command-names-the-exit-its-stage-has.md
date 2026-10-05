@@ -1,0 +1,4 @@
+---
+bump: patch
+---
+When a recorded test command exits 0 but ShipLoop cannot read how many tests it ran, the refusal now names the exit the running stage actually has. At system-test and release-verify, which run commands that system-test-author and release-plan recorded and cannot edit them, the reply says who recorded the command, that a command that is not a test runner (a shell pipeline, a grep, a probe) belongs in suite `check`, and to report replan now with one corrective work item that says to record the command as suite check in system_commands or consumer_checks; it no longer asks for ids and a runner flag or for a code fix that could not help. At the stages that run the step plan's commands the reply keeps the ids and runner flag and adds the `check` alternative. No check was loosened: a done is still refused until the command is counted or recorded as a check.
