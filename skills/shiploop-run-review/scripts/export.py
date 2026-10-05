@@ -113,15 +113,6 @@ SCHEMA = {
     },
     "actions": {"title": (S, False), "why": (S, False), "goal": (S, False), "criterion": (S, False),
                 "base": (N, False), "status": (S, False)},
-    "iterations": {
-        "n": (N, False), "title": (S, False),
-        "kind": (("enum", ("retrospective", "build", "pilot", "screen", "e2e", "decision")), False),
-        "status": (("enum", ("planned", "running", "done")), False), "run": (S, False),
-        "cost": ("any-scalar", False), "setBeforeData": (B, False), "expect": (S, False), "observed": (S, False),
-        "verdict": (("enum", ("pending", "confirmed", "partly", "refuted")), False),
-        "touches": (("list", S), False), "ifConfirmed": (S, False), "ifRefuted": (S, False), "next": (S, False),
-        "engineChange": (S, False), "observedAt": (ISO, False),
-    },
     # config/page and config/prompt share the collection; every field is a string.
     "config": {"title": (S, False), "artifactUrl": (S, False), "synthPreamble": (S, False),
                "concatPreamble": (S, False), "constraints": (S, False), "closing": (S, False)},

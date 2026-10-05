@@ -16,7 +16,7 @@ Anything not in this contract is ignored by the page. A missing optional field h
 
 ## Collections
 
-**`expectations/<key>`** (what we expect; the page edits `text`, `status`, `revs`)
+**`expectations/<key>`** (what we expect; the page only reads them. Changing one is an option the owner ticks and a prompt applies from the repo)
 
 | Field | Type | Notes |
 | --- | --- | --- |
@@ -30,9 +30,10 @@ Anything not in this contract is ignored by the page. A missing optional field h
 | `revs` | array of `{at, from, to, reason, obs?, iter?}` | appended when an expectation is revised; never rewritten |
 | `updatedAt` | ISO string | |
 
-Keys: `phase-<order>`, `group-<name>`, a short id for a criterion (`P1`, `B1`), `iter-<iterationId>` (the override and
-history for an iteration's expectation; the base text is that iteration's `expect`). The number of `phase` docs sets
-the number of columns in the flow; `Observed` states in a run's `phases` array align with their `order`.
+Keys: `phase-<order>`, `group-<name>`, a short id for a criterion (`P1`, `B1`). The number of `phase` docs sets
+the number of columns in the flow; `Observed` states in a run's `phases` array align with their `order`. A database
+that still holds `iter-<id>` documents or an `iterations` collection from the earlier page keeps them (the committed
+snapshot preserves them); nothing reads them.
 
 **`runs/<key>`** (one document per run output directory)
 
@@ -79,11 +80,6 @@ sum to it. A hand-set verdict is interim; the default for an unjudged pass is `u
 
 **`actions/<id>`**: `title`, `why`, `goal`, `criterion`, `base` (number), `status`.
 
-**`iterations/<id>`**: `n`, `title`, `kind` (`retrospective`, `build`, `pilot`, `screen`, `e2e`, `decision`), `status`
-(`planned`, `running`, `done`), `run`, `cost`, `setBeforeData` (boolean: false means the expectation was written after
-looking), `expect`, `observed`, `verdict` (`pending`, `confirmed`, `partly`, `refuted`), `touches` (criterion keys),
-`ifConfirmed`, `ifRefuted`, `next`, `engineChange`, `observedAt`.
-
 **`config/page`**: `title`, `artifactUrl`. **`config/prompt`**: `concatPreamble`, `constraints`, `closing`.
 The page builds the planning sentence itself and falls back to a one-line default for each prompt string when the document is missing.
 
@@ -105,5 +101,5 @@ agents report elsewhere.
 
 A new run adds `runs/<key>` and its `backchain/*` documents with `set` (no `if_version`). A write to an existing document
 needs `if_version`: read it first, and never overwrite a document the owner edited on the page. The page itself writes only:
-observations (add, status), actions (add), expectations (status, revisions), backchain (verdicts), iterations (status,
-verdict, observed, engine change).
+observations (add, status), actions (add) and backchain (verdicts). Nothing else is written from the page: expectations,
+config and the runs are replicas written by publish.

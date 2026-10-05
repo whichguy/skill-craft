@@ -424,3 +424,62 @@ one file per run) or rename the five to the page keys (`luna1.json`, `hello-1161
 equal its run id and the Luna review file `luna1.review.json`. (2) The two Luna Backchain documents at upload (above).
 (3) Whether to upload now: the page would then show the regraded Luna chips (`committed` false, 360.27 Improve minutes,
 refusals 13, glue 20) and drop the Claude zeros for "not measured".
+## 2026-10-04: R4, the page is four steps (template, contract and tests; not republished)
+
+Status: firm for the code and its tests. The live page and its database were not touched: no Artifact or ArtifactData
+call was made, nothing was published, uploaded or released. The owner reviews the template as a draft first.
+
+**Why.** The page was eleven sections about five different things (plan, "The guided flow"). This increment reorganises
+today's page into the agreed four steps without changing the data: 1 What happened (run selector, phase chevrons, run
+detail, Backchain loop cards), 2 Expected versus seen (the contract, as a disclosure, and one card per expectation), 3
+Findings and options (the existing observation and action cards and forms), 4 Your plan (the prompt). One step shows at a
+time, a stepper of four buttons shows live counts (`3. Findings and options`, `39 findings, 3 ticked`), Back and Next
+end each step, and on a phone (640 px and narrower) a sticky bar reads `N ticked` with a `Your plan` button.
+
+**Removed (no hiding, no shim).** The UML process diagram (`renderSequence`, `SEQ_ACTORS`, its words list), the
+iterations section and `renderIterations`/`iterCard`, the "when something unexpected happens" section with its prompt
+text, the include toggles and the synthesize or concatenate mode (and `concatPreamble`), the global expectation-status
+editor (`statusSeg`) and the inline expectation editor (`openEdit`, `submitEdit`, `saveExp`), the `iterations`
+collection subscription (so the page reads six collections), the per-observation "revise the expectation" buttons, and
+the old `slrr4` localStorage record (the new one is `slrr5`; an old record is simply not read). Expectation wording is
+now only read on the page: step 2 shows each criterion's text, its revision history and the findings tagged to it, and
+`SCHEMA.md` says changing one is an option applied from the repo (R5 to R7 build that). The `iterations` collection
+leaves `SCHEMA.md` and the validator's table; a database that still holds it keeps it (the committed snapshot preserves
+every iteration and revision) and nothing reads it.
+
+**Working set.** The step, filters, compared run and, per run key, the ticked options and findings, the "after the plan"
+choice and the notes live in this browser's localStorage under `slrr5` (every access in a `try`; the page works with it
+empty or garbage). A tick on one run is not a tick on another. `after` now defaults to waiting for the owner's go-ahead
+(the plan's owner decision) instead of executing.
+
+**Interim prompt (replaced in R7).** With the toggles gone the old string building stays only as a short interim: the
+selected options and findings, one plan, the constraints, the notes and the closing. The blocks the toggles governed are
+dropped rather than hard-wired on: the revised-expectations dump (the 7,060-character defect), the "not holding"
+status block (no status is set any more) and the Backchain tally sentence. R7 writes the real builder.
+
+**Run fields read defensively (from the exporter work in parallel).** The pure logic block gained `reasonFor`,
+`measuredText`, `grouped`, `contextText`, `factRows` and `improveFacts`. The run detail now lists, from the run document,
+host, model, effort, case, status, `Elapsed (accept to accept)`, start and end, then always `Model calls (main thread)`,
+`Context peak (main thread)` (as a share of `contextWindow` when both exist) and `Compactions`: a number, or `not
+measured` followed by the reason from `run.unmeasured[name]`, never a zero. The Improve card reads the stage rows'
+`improve {passes, min}` and the run's `improvePasses` and `improveMin` (`19 review passes in 11 visits, 3.7 min, 12% of
+elapsed`); with no total it says `Improve passes: not measured` and the reason, and a visit with passes but no minutes
+shows `n/a`. The old `improve[]` array is not read (documents exported before that field change read `not measured`
+until they are re-exported). The stage table appends `, skipped` and `, N Improve passes` to a row's outcome when the
+row carries them. The packet and result sizes keep their R3 label.
+
+**Bug found by the tests.** `plural(n, "pass")` printed "3 passs"; it now adds `es` after an s.
+
+**Tests.** `python3 -B test/shiploop-run-review.test.py`: 48 tests (38 before; 10 new, all 10 fail on the base tip
+`e79f948a`, run from a `git archive` of it with only the new test file copied over). The new ones: the template has
+exactly four `section class="step"` elements and none of 21 removed ids, functions and strings; the page and the
+contract no longer mention iterations; one step shows at a time with live stepper counts, `aria-current`, Back and
+Next; the step and ticks survive a reload per run, garbage storage is ignored, and every `localStorage` use is in a
+`try`; a tick is kept for its run only and the sticky bar counts it; the run detail reads the new fields (absent: `not
+measured`; present: numbers and a percentage; a reason is shown); and four logic tests for the new pure functions.
+A small DOM stand-in (`PAGE_STUB`, `page_probe`) lets a test run the page script in node, set the documents and look at
+what it drew; it has no layout or events, so the visual check is done in a browser at R7. One existing test changed
+deliberately: the documented-collections check no longer expects an `iters` subscription.
+
+**Size.** `template/index.html` is 57,754 bytes (76,339 before): the removed sections outweigh the new step shell and
+logic. Budget for R5 to R7: about 75 KB.

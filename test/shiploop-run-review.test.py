@@ -852,6 +852,60 @@ def run_logic(expression: str):
     return None if done.stdout.strip() == "undefined" else json.loads(done.stdout)
 
 
+PAGE_STUB = r"""
+/* A small stand-in for the browser: enough of the DOM for the page script to build its view, so a test can set the
+   documents the page would read, call its render functions and look at what it drew. No layout, no events. */
+function El(tag){this.tagName=tag;this.children=[];this.attrs={};this.style={};this.className="";this._text="";this.innerHTML="";
+  this.hidden=false;this.value="";this.checked=false;this.disabled=false;this.parent=null;this.onclick=null;this.onchange=null;this.oninput=null;this.ontoggle=null;}
+El.prototype.appendChild=function(c){c.parent=this;this.children.push(c);return c;};
+Object.defineProperty(El.prototype,"firstChild",{get:function(){return this.children[0]||null;}});
+El.prototype.removeChild=function(c){this.children.splice(this.children.indexOf(c),1);c.parent=null;return c;};
+El.prototype.setAttribute=function(k,v){this.attrs[k]=String(v);};
+El.prototype.getAttribute=function(k){return this.attrs[k]===undefined?null:this.attrs[k];};
+El.prototype.scrollIntoView=El.prototype.focus=El.prototype.select=function(){};
+Object.defineProperty(El.prototype,"textContent",{get:function(){return this._text+this.children.map(function(c){return c.textContent;}).join("");},
+  set:function(v){this._text=String(v);this.children=[];}});
+var REG={},NAMED={};
+HTML_TAGS.forEach(function(t){var e=new El(t.tag);e.attrs.id=t.id;e.hidden=t.hidden;REG[t.id]=e;});
+HTML_RADIOS.forEach(function(r){var e=new El("input");e.value=r.value;e.attrs.name=r.name;(NAMED[r.name]=NAMED[r.name]||[]).push(e);});
+var document={title:"",getElementById:function(id){return REG[id]||null;},getElementsByName:function(n){return NAMED[n]||[];},
+  createElement:function(t){return new El(t);},createElementNS:function(ns,t){return new El(t);},createTextNode:function(s){var e=new El("#text");e._text=String(s);return e;}};
+var window={scrollTo:function(){}},navigator={},localStorage={getItem:function(){return STORED;},setItem:function(k,v){STORED=v;}};
+function setTimeout(){}
+function walk(el,pred,out){out=out||[];if(pred(el))out.push(el);el.children.forEach(function(c){walk(c,pred,out);});return out;}
+function byClass(root,cls){return walk(typeof root==="string"?REG[root]:root,function(e){return(" "+e.className+" ").indexOf(" "+cls+" ")>=0;});}
+function textOf(id){return REG[id].textContent;}
+"""
+
+
+def page_probe(expression: str, stored: str | None = None, setup: str = ""):
+    """Run the page script against PAGE_STUB, run `setup` (JavaScript that sets data and calls render functions), then
+    evaluate `expression` and return its JSON value. `stored` is what localStorage holds. Skips when node is absent."""
+    node = shutil.which("node")
+    if node is None:
+        raise unittest.SkipTest("node is not installed; the structural tests of the template still ran")
+    html = TEMPLATE.read_text(encoding="utf-8")
+    tags = [{"tag": m.group(1), "id": m.group(3), "hidden": bool(re.search(r"\shidden(\s|$)", m.group(2)))}
+            for m in re.finditer(r'<(\w+)((?:\s[^>]*?)?\sid="([^"]+)"[^>]*)>', html.split('<script id="logic">')[0])]
+    radios = [{"name": m.group(1), "value": m.group(2)}
+              for m in re.finditer(r'<input[^>]*name="(\w+)"[^>]*value="(\w+)"', html)]
+    blocks = script_blocks()
+    program = ("const vm=require('vm'),fs=require('fs');const a=JSON.parse(fs.readFileSync(process.argv[1],'utf8'));"
+               "const ctx=vm.createContext({HTML_TAGS:a.tags,HTML_RADIOS:a.radios,STORED:a.stored,console});"
+               "vm.runInContext(a.stub,ctx);vm.runInContext(a.logic,ctx);vm.runInContext(a.page,ctx);"
+               "vm.runInContext(a.setup,ctx);const v=vm.runInContext(a.expr,ctx);"
+               "console.log(v===undefined?'undefined':JSON.stringify(v));")
+    with tempfile.TemporaryDirectory() as tmp:
+        arg = Path(tmp) / "arg.json"
+        arg.write_text(json.dumps({"tags": tags, "radios": radios, "stored": stored, "stub": PAGE_STUB,
+                                   "logic": blocks["logic"], "page": blocks["page"], "setup": setup,
+                                   "expr": expression}), encoding="utf-8")
+        done = subprocess.run([node, "-e", program, str(arg)], capture_output=True, text=True, timeout=60)
+    if done.returncode != 0:
+        raise AssertionError(f"the page script failed on {expression}:\n{done.stderr}")
+    return None if done.stdout.strip().splitlines()[-1] == "undefined" else json.loads(done.stdout.strip().splitlines()[-1])
+
+
 class TemplateHasNoDataTests(unittest.TestCase):
     def test_no_embedded_data_or_placeholder(self) -> None:
         html = TEMPLATE.read_text(encoding="utf-8")
@@ -865,7 +919,7 @@ class TemplateHasNoDataTests(unittest.TestCase):
 
     def test_only_documented_collections_are_read(self) -> None:
         schema = SCHEMA_MD.read_text(encoding="utf-8")
-        used = set(re.findall(r"collection\(\"([a-z]+)\"\)", script_text())) | set(re.findall(r"\[\"([a-z]+)\",\"(?:runs|obs|acts|bc|iters|exp|cfg)\"\]", script_text()))
+        used = set(re.findall(r"collection\(\"([a-z]+)\"\)", script_text())) | set(re.findall(r"\[\"([a-z]+)\",\"(?:runs|obs|acts|bc|exp|cfg)\"\]", script_text()))
         self.assertTrue(used, "the template reads the database")
         for name in used:
             self.assertRegex(schema, r"\*\*`%s[/`]" % re.escape(name), f"collection {name} is documented in SCHEMA.md")
@@ -922,6 +976,131 @@ class LogicBlockTests(unittest.TestCase):
         self.assertNotIn("bytes printed and returned", page)  # packetBytes is a packet file's size, not what the model read
         self.assertIn("minutesText(r.a.min)", page)
         self.assertNotIn('(r.a.min||0)+" min"', page)  # a missing minute is not drawn as 0 min
+
+
+# A small document set: two runs, the phase and criterion documents, one finding and one option. Most page tests start here.
+SAMPLE_SETUP = """
+data.runs=[
+ {key:"r1",name:"Run one",order:2,release:"skill-craft 1.0",phases:["done","blocked","none","none","none","none","none","none"],time:"t",imp:"i",wallMin:30,
+  stages:[{stage:"intake",outcome:"done",min:5},{stage:"spec",outcome:"blocked",min:25}]},
+ {key:"r2",name:"Run two",order:1,release:"skill-craft 1.0",phases:["done","done","none","none","none","none","none","none"],time:"t",imp:"i",wallMin:12,
+  stages:[{stage:"intake",outcome:"done",min:2},{stage:"spec",outcome:"done",min:10}]}];
+data.exp={"phase-0":{kind:"phase",order:0,title:"Understand",short:"Intake",text:"Understand the request."},
+ "phase-1":{kind:"phase",order:1,title:"Specify",short:"Spec",text:"Write the spec."},
+ "group-principles":{kind:"group",order:1,title:"Principles",text:"What every run is held to."},
+ "P1":{kind:"criterion",group:"group-principles",order:1,title:"The script owns the flow",text:"The model never chooses the next stage."},
+ "P2":{kind:"criterion",group:"group-principles",order:2,title:"Loop contracts",text:"The script writes every loop contract."}};
+data.obs=[{id:"o1",title:"First finding",criterion:"P1",kind:"defect",status:"open",phase:1,run:"r1",expected:"It holds.",observed:"It broke.",evidence:"run/x.md"}];
+data.acts=[{id:"a1",title:"Fix the flow",goal:"Make the script own it.",why:"Because.",criterion:"P1",status:"open"}];
+Object.keys(loaded).forEach(function(k){loaded[k]=true;});renderAll();
+"""
+STEP_SECTIONS = "[1,2,3,4].map(function(n){return !REG['step-'+n].hidden;})"
+
+
+class PageShellTests(unittest.TestCase):
+    """R4: the page is four steps, one shown at a time, with the viewer's working set kept per run in the browser."""
+
+    def test_the_template_has_exactly_four_step_sections_and_none_of_the_removed_ones(self) -> None:
+        html = TEMPLATE.read_text(encoding="utf-8")
+        steps = re.findall(r'<section class="step" id="(step-\d)" data-step="(\d)"', html)
+        self.assertEqual(steps, [("step-1", "1"), ("step-2", "2"), ("step-3", "3"), ("step-4", "4")])
+        self.assertEqual(len(re.findall(r"<section\b", html)), 4, "every section of the page is one of the four steps")
+        for gone in ("seqsvg", "seqwords", "iterstrip", 'id="timeline"', "h-iter", "unexp", "unx-impact", "unx-where",
+                     'id="react"', 'id="include"', 'name="mode"', "renderSequence", "SEQ_ACTORS", "renderIterations",
+                     "iterCard", "renderInclude", "renderReact", "statusSeg", "saveExp", "openEdit", "submitEdit",
+                     "UNX_IMPACT", "concatPreamble", "slrr4", "iterBase"):
+            self.assertNotIn(gone, html, f"{gone} was removed with the section it served")
+
+    def test_the_page_reads_and_writes_no_iterations_and_the_contract_no_longer_documents_them(self) -> None:
+        self.assertNotIn("iterations", script_text())
+        self.assertNotIn("iterations/", SCHEMA_MD.read_text(encoding="utf-8"))
+        self.assertNotIn("iterations", export.SCHEMA)
+
+    def test_one_step_shows_at_a_time_and_the_stepper_carries_live_counts(self) -> None:
+        out = page_probe('[' + STEP_SECTIONS + ', REG.steps.children.map(function(b){return b.textContent;}),'
+                         ' REG.steps.children.map(function(b){return b.getAttribute("aria-current");})]',
+                         setup=SAMPLE_SETUP)
+        self.assertEqual(out[0], [True, False, False, False])
+        self.assertEqual(out[1], ["1. What happened2 visits", "2. Expected versus seen2 expectations",
+                                  "3. Findings and options1 finding, 0 ticked", "4. Your plan0 ticked"])
+        self.assertEqual(out[2], ["step", None, None, None])
+        moved = page_probe('go(3);[' + STEP_SECTIONS + ', REG.steps.children.map(function(b){return b.getAttribute("aria-current");}),'
+                           ' REG.stepnav.children.map(function(b){return b.textContent+":"+b.disabled;})]', setup=SAMPLE_SETUP)
+        self.assertEqual(moved[0], [False, False, True, False])
+        self.assertEqual(moved[1], [None, None, "step", None])
+        self.assertEqual(moved[2], ["Back:false", "Build my plan:false"])
+
+    def test_the_step_and_the_ticks_survive_a_reload_per_run_and_garbage_storage_is_ignored(self) -> None:
+        page = script_text()  # every storage access is guarded, so a blocked or empty store never breaks the page
+        for at in [m.start() for m in re.finditer(r"localStorage", page)]:
+            self.assertIn("try{", page[max(0, at - 90):at], f"localStorage at {page[at - 30:at + 40]!r} is not guarded")
+        out = page_probe('[' + STEP_SECTIONS + ', textOf("selcount")]', setup=SAMPLE_SETUP,
+                         stored=json.dumps({"step": 3, "run": "r1", "sel": {"r1": {"opts": {"a1": True}, "find": {}}}}))
+        self.assertEqual(out[0], [False, False, True, False])
+        self.assertEqual(out[1], "Selected 1 option.")
+        other = page_probe('L.run="r2";renderAll();textOf("selcount")', setup=SAMPLE_SETUP,
+                           stored=json.dumps({"step": 3, "run": "r1", "sel": {"r1": {"opts": {"a1": True}, "find": {}}}}))
+        self.assertEqual(other, "Nothing selected yet. Tick options or findings in step 3.")
+        for junk in ("not json", "[1]", json.dumps({"step": 9, "sel": 5}), "null"):
+            self.assertEqual(page_probe(STEP_SECTIONS, setup=SAMPLE_SETUP, stored=junk), [True, False, False, False], junk)
+
+    def test_a_tick_is_kept_for_that_run_only_and_the_sticky_bar_counts_it(self) -> None:
+        out = page_probe('var boxes=byClass("acts","card");boxes[0].children[0].checked=true;boxes[0].children[0].onchange();'
+                         'var n1=textOf("stickybar");L.run="r2";renderAll();var n2=textOf("stickybar");'
+                         'L.run="r1";renderAll();[n1,n2,textOf("stickybar"),REG.stickybar.hidden,textOf("selcount"),JSON.parse(STORED).sel.r1.opts]',
+                         setup=SAMPLE_SETUP)
+        self.assertEqual(out, ["1 tickedYour plan", "", "1 tickedYour plan", False, "Selected 1 option.", {"a1": True}])
+
+    def test_the_run_detail_reads_the_new_run_fields_defensively(self) -> None:
+        bare = page_probe('textOf("rundetail")', setup=SAMPLE_SETUP)
+        for line in ("Model calls (main thread)not measured", "Context peak (main thread)not measured",
+                     "Compactionsnot measured", "Improve passes: not measured."):
+            self.assertIn(line, bare)
+        self.assertNotRegex(bare, r"undefined|NaN|null")
+        rich = page_probe(
+            'Object.assign(data.runs[0],{calls:149,contextPeak:271220,contextWindow:1000000,compactions:0,improvePasses:19,improveMin:3.7,'
+            'unmeasured:{}});data.runs[0].stages[0].improve={passes:3,min:1.2};data.runs[0].stages[1].improve={passes:2};'
+            'data.runs[0].stages[1].skipped=true;renderAll();textOf("rundetail")', setup=SAMPLE_SETUP)
+        for line in ("Model calls (main thread)149", "Context peak (main thread)271,220 tokens of 1,000,000 (27%)",
+                     "Compactions0", "19 review passes in 2 visits, 3.7 min, 12% of elapsed.", "intake3 passes1.2 min".replace("intake", "")):
+            self.assertIn(line, rich)
+        self.assertIn("blocked, skipped, 2 Improve passes", rich)
+        self.assertIn("n/a", rich)  # the second visit's Improve minutes were not measured
+        reason = page_probe('data.runs[0].unmeasured={improvePasses:"no improve children recorded"};renderAll();textOf("rundetail")',
+                            setup=SAMPLE_SETUP)
+        self.assertIn("Improve passes: not measured (no improve children recorded).", reason)
+
+
+class PageShellLogicTests(unittest.TestCase):
+    def test_measured_text_adds_the_harness_reason_to_not_measured_and_leaves_numbers_alone(self) -> None:
+        self.assertEqual(run_logic('[measuredText({unmeasured:{calls:"no per-call usage"}},"calls"), measuredText({},"calls"),'
+                                   ' measuredText({calls:0,unmeasured:{calls:"x"}},"calls"), reasonFor({unmeasured:{a:5}},"a"),'
+                                   ' reasonFor(null,"a")]'),
+                         ["not measured (no per-call usage)", "not measured", "0", "", ""])
+
+    def test_context_text_is_a_share_of_the_window_only_when_both_were_measured(self) -> None:
+        self.assertEqual(run_logic('[contextText({contextPeak:271220,contextWindow:1000000}), contextText({contextPeak:5000}),'
+                                   ' contextText({unmeasured:{contextPeak:"Codex rollouts are not read"}}), contextText({})]'),
+                         ["271,220 tokens of 1,000,000 (27%)", "5,000 tokens", "not measured (Codex rollouts are not read)",
+                          "not measured"])
+
+    def test_fact_rows_list_text_facts_when_present_and_the_counters_always(self) -> None:
+        rows = run_logic('[factRows({host:"codex",wallMin:12.5,calls:3}), factRows({}).map(function(r){return r[0];})]')
+        self.assertEqual(rows[0], [["Host", "codex"], ["Elapsed (accept to accept)", "12.5 min"],
+                                   ["Model calls (main thread)", "3"], ["Context peak (main thread)", "not measured"],
+                                   ["Compactions", "not measured"]])
+        self.assertEqual(rows[1], ["Model calls (main thread)", "Context peak (main thread)", "Compactions"])
+
+    def test_improve_facts_read_the_stage_rows_and_totals_and_never_invent_a_zero(self) -> None:
+        none, some = run_logic(
+            '[improveFacts({stages:[{stage:"spec",outcome:"done"}]}),'
+            ' improveFacts({wallMin:1158.5,improvePasses:41,improveMin:360.3,stages:[{stage:"spec"},{stage:"plan",improve:{passes:3,min:24.5}},'
+            '{stage:"step-plan",improve:{passes:1}}]})]')
+        self.assertEqual(none, {"rows": [], "passes": None, "min": None, "share": None})
+        self.assertEqual(some, {"rows": [{"visit": 2, "stage": "plan", "passes": 3, "min": 24.5},
+                                         {"visit": 3, "stage": "step-plan", "passes": 1, "min": None}],
+                                "passes": 41, "min": 360.3, "share": 31})
+        self.assertEqual(run_logic('improveFacts(null)'), {"rows": [], "passes": None, "min": None, "share": None})
 
 
 class DefaultsMatchTheTemplateTests(unittest.TestCase):
