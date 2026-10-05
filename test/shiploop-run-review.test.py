@@ -29,6 +29,7 @@ TEMPLATE = SKILL_ROOT / "template" / "index.html"
 SCHEMA_MD = SKILL_ROOT / "SCHEMA.md"
 DEFAULTS_DIR = SKILL_ROOT / "defaults"
 SNAPSHOT = ROOT / "test" / "shiploop_e2e" / "evidence" / "run-review-db-snapshot-2026-10-04.json"
+LUNA_EVIDENCE = ROOT / "test" / "shiploop_e2e" / "evidence" / "codex-gpt-6-luna-1.16.1-battleship-20261003.json"
 _spec = importlib.util.spec_from_file_location("run_review_export", SKILL_ROOT / "scripts" / "export.py")
 export = importlib.util.module_from_spec(_spec)
 _spec.loader.exec_module(export)
@@ -946,6 +947,7 @@ class LogicBlockTests(unittest.TestCase):
 
     def test_the_logic_block_reads_no_page_state(self) -> None:
         code = re.sub(r"/\*[\s\S]*?\*/|//[^\n]*", "", script_blocks()["logic"])
+        code = re.sub(r'"(?:[^"\\\n]|\\.)*"', '""', code)  # a string literal is data (a stage may be called "document")
         self.assertIsNone(re.search(r"\b(document|window|localStorage|sessionStorage|navigator|claude|fetch|"
                                     r"XMLHttpRequest|setTimeout|byId)\b", code), "the logic block must be pure")
         self.assertIn("function countText(", code)
@@ -990,8 +992,11 @@ data.exp={"phase-0":{kind:"phase",order:0,title:"Understand",short:"Intake",text
  "group-principles":{kind:"group",order:1,title:"Principles",text:"What every run is held to."},
  "P1":{kind:"criterion",group:"group-principles",order:1,title:"The script owns the flow",text:"The model never chooses the next stage."},
  "P2":{kind:"criterion",group:"group-principles",order:2,title:"Loop contracts",text:"The script writes every loop contract."}};
-data.obs=[{id:"o1",title:"First finding",criterion:"P1",kind:"defect",status:"open",phase:1,run:"r1",expected:"It holds.",observed:"It broke.",evidence:"run/x.md"}];
-data.acts=[{id:"a1",title:"Fix the flow",goal:"Make the script own it.",why:"Because.",criterion:"P1",status:"open"}];
+data.obs=[{id:"o1",title:"First finding",criterion:"P1",kind:"defect",status:"open",phase:1,run:"r1",expected:"It holds.",observed:"It broke.",evidence:"run/x.md",
+  effect:"broken",advice:"Fix it in the script.",figure:{kind:"bars",items:[{label:"refusals",value:0,tone:"expected"},{label:"seen",value:13,tone:"saw"}]}},
+ {id:"o2",title:"Second finding",criterion:"P2",kind:"decision",status:"open",phase:2,run:"r1",expected:"e2",observed:"s2",evidence:""}];
+data.acts=[{id:"a1",title:"Fix the flow",goal:"Make the script own it.",why:"Because.",criterion:"P1",status:"open",findings:["o1"],kind:"fix-shiploop",effort:"S",recommended:true,cost:"one live run"},
+ {id:"a2",title:"Accept the limit",goal:"Write it down.",why:"w",status:"open",kind:"accept"}];
 Object.keys(loaded).forEach(function(k){loaded[k]=true;});renderAll();
 """
 STEP_SECTIONS = "[1,2,3,4].map(function(n){return !REG['step-'+n].hidden;})"
@@ -1022,7 +1027,7 @@ class PageShellTests(unittest.TestCase):
                          setup=SAMPLE_SETUP)
         self.assertEqual(out[0], [True, False, False, False])
         self.assertEqual(out[1], ["1. What happened2 visits", "2. Expected versus seen2 expectations",
-                                  "3. Findings and options1 finding, 0 ticked", "4. Your plan0 ticked"])
+                                  "3. Findings and options2 open, 0 ticked", "4. Your plan0 ticked"])
         self.assertEqual(out[2], ["step", None, None, None])
         moved = page_probe('go(3);[' + STEP_SECTIONS + ', REG.steps.children.map(function(b){return b.getAttribute("aria-current");}),'
                            ' REG.stepnav.children.map(function(b){return b.textContent+":"+b.disabled;})]', setup=SAMPLE_SETUP)
@@ -1040,12 +1045,12 @@ class PageShellTests(unittest.TestCase):
         self.assertEqual(out[1], "Selected 1 option.")
         other = page_probe('L.run="r2";renderAll();textOf("selcount")', setup=SAMPLE_SETUP,
                            stored=json.dumps({"step": 3, "run": "r1", "sel": {"r1": {"opts": {"a1": True}, "find": {}}}}))
-        self.assertEqual(other, "Nothing selected yet. Tick options or findings in step 3.")
+        self.assertEqual(other, "Nothing selected yet. Tick options in step 3.")
         for junk in ("not json", "[1]", json.dumps({"step": 9, "sel": 5}), "null"):
             self.assertEqual(page_probe(STEP_SECTIONS, setup=SAMPLE_SETUP, stored=junk), [True, False, False, False], junk)
 
     def test_a_tick_is_kept_for_that_run_only_and_the_sticky_bar_counts_it(self) -> None:
-        out = page_probe('var boxes=byClass("acts","card");boxes[0].children[0].checked=true;boxes[0].children[0].onchange();'
+        out = page_probe('var boxes=byClass("cards","opt");boxes[0].children[0].checked=true;boxes[0].children[0].onchange();'
                          'var n1=textOf("stickybar");L.run="r2";renderAll();var n2=textOf("stickybar");'
                          'L.run="r1";renderAll();[n1,n2,textOf("stickybar"),REG.stickybar.hidden,textOf("selcount"),JSON.parse(STORED).sel.r1.opts]',
                          setup=SAMPLE_SETUP)
@@ -1101,6 +1106,251 @@ class PageShellLogicTests(unittest.TestCase):
                                          {"visit": 3, "stage": "step-plan", "passes": 1, "min": None}],
                                 "passes": 41, "min": 360.3, "share": 31})
         self.assertEqual(run_logic('improveFacts(null)'), {"rows": [], "passes": None, "min": None, "share": None})
+
+
+def luna_run() -> dict:
+    """The real Luna battleship run document (39 visits) from the committed evidence."""
+    return next(iter(json.loads(LUNA_EVIDENCE.read_text())["docs"]["runs"].values()))
+
+
+def phases_of(rows: list[dict]) -> list[int]:
+    """The phase of each visit as the exporter's table gives it; an unknown stage takes the visit before it."""
+    previous, out = -1, []
+    for row in rows:
+        previous = export.STAGE_PHASE.get(row["stage"], previous)
+        out.append(previous)
+    return out
+
+
+# Options and findings for the step 3 tests: f1 has options of every kind and rank, f2 shares one, f3 is closed, f4 belongs
+# to another run, f5 is general, f6 is open with no option.
+FINDINGS_JS = """[
+ {id:"f1",run:"r1",status:"open",criterion:"P1"},{id:"f2",run:"r1",status:"open",criterion:"P2"},
+ {id:"f3",run:"r1",status:"fixed",criterion:"P1"},{id:"f4",run:"r2",status:"open"},{id:"f5",run:"any",status:"open"},
+ {id:"f6",runs:["r1","r3"],status:"open"},{id:"f7",run:"r1"}]"""
+OPTIONS_JS = """[
+ {id:"x1",title:"t",kind:"accept",effort:"S",findings:["f1"]},
+ {id:"x2",title:"t",kind:"fix-harness",effort:"L",findings:["f1"]},
+ {id:"x3",title:"t",kind:"fix-shiploop",effort:"S",findings:["f1"]},
+ {id:"x4",title:"t",kind:"fix-shiploop",effort:"M",recommended:true,findings:["f1"]},
+ {id:"y1",title:"t",kind:"gather-evidence",effort:"M",findings:["f1"]},
+ {id:"y2",title:"t",kind:"gather-evidence",effort:"S",findings:["f1"]},
+ {id:"s1",title:"shared",kind:"fix-shiploop",effort:"M",findings:["f2","f1"]},
+ {id:"d1",title:"done",status:"done",findings:["f1"]},
+ {id:"c1",title:"closed only",kind:"accept",findings:["f3"]},
+ {id:"l1",title:"loose"},{id:"l2",title:"ghost",findings:["nope"]}]"""
+
+
+class FindingsAndOptionsTests(unittest.TestCase):
+    """R5: the findings and options fields, the step 3 grouping, the pictures and the cards that show them."""
+
+    def test_validate_doc_accepts_the_new_fields_and_rejects_bad_ones(self) -> None:
+        finding = {"title": "t", "runs": ["a", "b"], "effect": "bent", "advice": "Inferred: x.",
+                   "figure": {"kind": "bars", "items": [{"label": "saw", "value": 13, "unit": "refusals",
+                                                          "lowerBound": True, "tone": "saw"}]}}
+        option = {"title": "t", "status": "planned", "findings": ["o1"], "kind": "change-expectation", "effort": "M",
+                  "recommended": True, "cost": "a live run", "ref": "docs/x.md",
+                  "change": {"target": "spec", "to": "new", "reason": "why"}}
+        self.assertEqual(export.validate_doc("observations", finding), [])
+        self.assertEqual(export.validate_doc("actions", option), [])
+        for field, value in (("kind", "fix-it"), ("effort", "XL"), ("status", "building"), ("recommended", "yes"),
+                             ("findings", "o1"), ("change", {"target": "repo", "to": "t", "reason": "r"}),
+                             ("change", {"target": "page", "to": "t"})):
+            self.assertTrue(export.validate_doc("actions", {**option, field: value}), f"actions.{field}={value!r}")
+        for field, value in (("effect", "holds"), ("runs", "a"), ("advice", 3)):
+            self.assertTrue(export.validate_doc("observations", {**finding, field: value}), f"observations.{field}")
+        self.assertNotIn("base", export.SCHEMA["actions"])  # no longer read
+
+    def test_a_figure_is_a_small_structured_spec_never_markup(self) -> None:
+        def check(figure):
+            return export.validate_doc("observations", {"figure": figure})
+        bar = {"label": "a", "value": 1}
+        self.assertEqual(check({"kind": "bars", "items": [bar] * 6}), [])
+        self.assertTrue(check({"kind": "pie", "items": [bar]}))                       # unknown kind
+        self.assertTrue(check({"kind": "bars", "items": [bar] * 7}))                  # more than 6 items
+        self.assertTrue(check({"kind": "bars", "items": []}))                         # nothing to draw
+        self.assertTrue(check({"kind": "bars", "items": [{"label": "a", "value": -1}]}))
+        self.assertTrue(check({"kind": "bars", "items": [{"label": "a", "value": float("inf")}]}))
+        self.assertTrue(check({"kind": "bars", "items": [{"label": "a", "value": True}]}))
+        self.assertTrue(check({"kind": "bars", "items": [{"label": 5, "value": 1}]}))
+        self.assertTrue(check({"kind": "bars", "items": [{**bar, "tone": "loud"}]}))
+        self.assertTrue(check({"kind": "bars", "items": [{**bar, "svg": "<svg onload=x>"}]}))   # no raw markup field
+        self.assertTrue(check({"kind": "bars", "items": [bar], "html": "<b>"}))
+        self.assertTrue(check("bars"))
+
+    def test_the_contract_documents_every_new_field(self) -> None:
+        text = SCHEMA_MD.read_text(encoding="utf-8")
+        for field in ("runs", "effect", "advice", "figure", "findings", "kind", "effort", "recommended", "cost", "change", "ref"):
+            self.assertRegex(text, rf"\| `[^|]*\b{field}\b[^|]*` \|", field)
+        for word in ("lowerBound", "fix-shiploop", "gather-evidence", "`base` is no longer read"):
+            self.assertIn(word, text)
+
+    def test_every_option_appears_once_a_shared_one_under_its_first_finding_and_done_ones_apart(self) -> None:
+        res = run_logic('cardsFor({findings:%s,options:%s,runKey:"r1",filter:"all"})' % (FINDINGS_JS, OPTIONS_JS))
+        shown = [o["id"] for c in res["cards"] for o in c["options"]]
+        every = shown + [o["id"] for o in res["loose"]] + [o["id"] for o in res["done"]] + [o["id"] for o in res["elsewhere"]]
+        self.assertEqual(sorted(every), sorted(["x1", "x2", "x3", "x4", "y1", "y2", "s1", "d1", "c1", "l1", "l2"]))
+        self.assertEqual(len(every), len(set(every)), "each option once")
+        by = {c["finding"]["id"]: c for c in res["cards"]}
+        self.assertIn("s1", [o["id"] for o in by["f2"]["options"]])   # s1 names f2 first, so f2 hosts it ...
+        self.assertEqual([r["id"] for r in by["f1"]["refs"]], ["s1"])  # ... and f1 only refers to it
+        self.assertEqual([r["id"] for r in by["f2"]["refs"]], [])
+        self.assertEqual([o["id"] for o in res["done"]], ["d1"])
+        self.assertEqual(sorted(o["id"] for o in res["loose"]), ["l1", "l2"])
+
+    def test_a_shared_option_is_hosted_by_the_first_finding_in_view_and_referenced_from_the_other(self) -> None:
+        res = run_logic('cardsFor({findings:%s,options:[{id:"s1",title:"shared",findings:["f1","f2"]},'
+                        '{id:"s2",title:"swapped",findings:["f2","f1"]}],runKey:"r1",filter:"open"})' % FINDINGS_JS)
+        by = {c["finding"]["id"]: c for c in res["cards"]}
+        self.assertEqual([o["id"] for o in by["f1"]["options"]], ["s1"])
+        self.assertEqual([o["id"] for o in by["f2"]["options"]], ["s2"])
+        self.assertEqual(by["f2"]["refs"], [{"id": "s1", "title": "shared", "host": "f1"}])
+        self.assertEqual(by["f1"]["refs"], [{"id": "s2", "title": "swapped", "host": "f2"}])
+        # with f1 filtered out by the expectation filter, f2 hosts the option f1 would have hosted
+        only = run_logic('cardsFor({findings:%s,options:[{id:"s1",title:"shared",findings:["f1","f2"]}],runKey:"r1",'
+                         'filter:"open",crit:"P2"})' % FINDINGS_JS)
+        self.assertEqual([[o["id"] for o in c["options"]] for c in only["cards"]], [["s1"]])
+        self.assertEqual(only["cards"][0]["refs"], [])
+
+    def test_options_rank_recommended_then_kind_then_effort_and_done_ones_never_mix_in(self) -> None:
+        res = run_logic('cardsFor({findings:%s,options:%s,runKey:"r1",filter:"all"})' % (FINDINGS_JS, OPTIONS_JS))
+        f1 = next(c for c in res["cards"] if c["finding"]["id"] == "f1")
+        self.assertEqual([o["id"] for o in f1["options"]], ["x4", "x3", "x2", "y2", "y1", "x1"])
+        self.assertEqual(run_logic('rankOptions([{id:"a"},{id:"b",kind:"accept"},{id:"c",kind:"fix-shiploop",effort:"L"},'
+                                   '{id:"d",kind:"fix-shiploop",effort:"S"},{id:"e",kind:"nonsense"}]).map(function(o){return o.id;})'),
+                         ["d", "c", "b", "a", "e"])  # no kind and an unknown kind tie, and keep the order given
+
+    def test_an_open_finding_no_option_names_is_flagged_and_the_filters_choose_the_findings(self) -> None:
+        res = run_logic('cardsFor({findings:%s,options:%s,runKey:"r1",filter:"open"})' % (FINDINGS_JS, OPTIONS_JS))
+        self.assertEqual([(c["finding"]["id"], c["noOption"]) for c in res["cards"]],
+                         [("f1", False), ("f2", False), ("f5", True), ("f6", True), ("f7", True)])
+        self.assertEqual([o["id"] for o in res["elsewhere"]], ["c1"])  # its only finding is closed, so not in the open view
+        views = run_logic('["open","all","other","general"].map(function(f){return cardsFor({findings:%s,options:[],runKey:"r1",'
+                          'filter:f}).cards.map(function(c){return c.finding.id;});})' % FINDINGS_JS)
+        self.assertEqual(views, [["f1", "f2", "f5", "f6", "f7"], ["f1", "f2", "f3", "f5", "f6", "f7"], ["f4"], ["f5"]])
+        self.assertEqual(run_logic('filterCounts({findings:%s,runKey:"r1"})' % FINDINGS_JS),
+                         {"open": 5, "all": 6, "other": 1, "general": 1})
+        self.assertEqual(run_logic('cardsFor({findings:%s,options:[{id:"d",status:"done",findings:["f6"]}],runKey:"r1",filter:"open"})'
+                                   '.cards.filter(function(c){return c.finding.id==="f6";})[0].noOption' % FINDINGS_JS), False)
+
+    def test_the_where_strip_draws_one_cell_per_visit_outlines_the_phase_and_marks_what_did_not_finish(self) -> None:
+        run = luna_run()
+        rows = run["stages"]
+        self.assertEqual(len(rows), 39)
+        svg = run_logic("whereStrip(%s, {phase: 2})" % json.dumps(run))
+        self.assertEqual(svg.count("<rect "), 39)
+        hits = phases_of(rows).count(2)
+        self.assertGreater(hits, 3)
+        self.assertEqual(len(re.findall(r'<rect class="ws-cell [^"]*\bhl\b', svg)), hits)
+        self.assertIn(f"Plan: {hits} of 39 visits", svg)
+        not_done = [r["outcome"] for r in rows if r["outcome"] != "done"]
+        self.assertEqual(len(not_done), 2)  # one revise, one blocked
+        self.assertEqual(svg.count('class="ws-mark"'), 2)
+        self.assertRegex(svg, r'>R</text>')
+        self.assertRegex(svg, r'>B</text>')
+        self.assertEqual(svg.count("ws-hatch"), 0)
+        self.assertTrue(svg.startswith('<svg class="ws" viewBox="0 0 562 64"'))
+        last = run_logic("whereStrip(%s, {phase: 6})" % json.dumps(run))  # the run ends there: the label must not run off the strip
+        self.assertIn('text-anchor="end"', last)
+        self.assertNotIn('text-anchor="end"', run_logic("whereStrip(%s, {phase: 0})" % json.dumps(run)))
+        for no_strip in ("{}", "{phase: -1}", "{phase: 8}", '{phase: "2"}'):
+            self.assertEqual(run_logic("whereStrip(%s, %s)" % (json.dumps(run), no_strip)), "", no_strip)
+        self.assertEqual(run_logic("[whereStrip({}, {phase: 1}), whereStrip({stages: []}, {phase: 1}), whereStrip(null, {phase: 1})]"),
+                         ["", "", ""])
+
+    def test_the_where_strip_hatches_skipped_and_seeded_visits_and_escapes_what_it_prints(self) -> None:
+        rows = [{"stage": "intake", "outcome": "done", "min": 1.5}, {"stage": "<script>x</script>", "outcome": "done", "skipped": True},
+                {"stage": "spec", "outcome": "replan", "seeded": True, "min": None}, {"stage": "plan", "outcome": "<b>bad</b>"}]
+        svg = run_logic("whereStrip(%s, {phase: 1})" % json.dumps({"stages": rows}))
+        self.assertEqual(svg.count("<rect "), 4)
+        self.assertEqual(svg.count('<path class="ws-hatch"'), 2)
+        self.assertNotIn("<script", svg)
+        self.assertNotIn("<b>", svg)
+        self.assertIn("&lt;script&gt;x&lt;/script&gt;", svg)
+        self.assertIn("o-bbadb", svg)  # an outcome becomes a class name only as letters
+        self.assertIn("Specify: 1 of 4 visits", svg)
+        self.assertIn("visit 2: ", svg)
+        # the unknown stage takes the phase of the visit before it (here intake, then spec is Specify)
+        again = run_logic("whereStrip(%s, {phase: 0})" % json.dumps({"stages": rows}))
+        self.assertIn("Understand: 2 of 4 visits", again)
+
+    def test_the_stage_to_phase_table_in_the_page_equals_the_exporters(self) -> None:
+        page = run_logic("STAGE_FLOW")
+        self.assertEqual([[title, list(stages)] for title, stages in page], [[title, list(stages)] for title, stages in export.PHASES])
+
+    def test_a_bars_figure_is_drawn_with_exact_elements_open_ends_for_lower_bounds_and_escaped_labels(self) -> None:
+        svg = run_logic('figureSvg({kind:"bars",items:[{label:"expected",value:0,tone:"expected"},{label:"saw",value:13,unit:"refusals",tone:"saw"}]})')
+        self.assertEqual((svg.count("<rect "), svg.count("<text "), svg.count("<path ")), (2, 4, 0))
+        self.assertIn("t-expected", svg)
+        self.assertIn("13 refusals", svg)
+        bound = run_logic('figureSvg({kind:"bars",items:[{label:"seen",value:13,lowerBound:true},{label:"limit",value:9.5,unit:"KB",tone:"limit"}]})')
+        self.assertEqual((bound.count("<rect "), bound.count('<path class="fg-open"')), (2, 1))
+        self.assertIn("&gt;= 13", bound)
+        self.assertIn("9.5 KB", bound)
+        evil = run_logic('figureSvg({kind:"bars",items:[{label:"<script>alert(1)</script>",value:2,unit:"\\"><img src=x>"}]})')
+        self.assertNotIn("<script", evil)
+        self.assertNotIn("<img", evil)
+        self.assertIn("&lt;script&gt;", evil)
+        self.assertEqual(run_logic('[figureSvg({kind:"pie",items:[{label:"a",value:1}]}), figureSvg({kind:"bars",items:[]}), figureSvg(null),'
+                                   ' figureSvg({kind:"bars",items:[{label:"a",value:-1},{label:5,value:1}]})]'), ["", "", "", ""])
+        many = run_logic('figureSvg({kind:"bars",items:[1,2,3,4,5,6,7,8].map(function(n){return {label:"i"+n,value:n};})})')
+        self.assertEqual(many.count("<rect "), 6)
+        zero = run_logic('figureSvg({kind:"bars",items:[{label:"none",value:0},{label:"also",value:0}]})')
+        self.assertEqual(zero.count("<rect "), 2)  # a measured zero is a stub, not an absent bar and not a NaN width
+        self.assertNotIn("NaN", zero)
+
+    def test_the_step_3_card_carries_the_pictures_the_rationale_the_advice_and_its_options(self) -> None:
+        out = page_probe('var c=byClass("cards","fcard");var f=c[0];[c.length,f.textContent,byClass(f,"strip")[0].innerHTML.length>0,'
+                         'byClass(f,"fig")[0].innerHTML.indexOf("fg-bar")>0,byClass(f,"opt").length,byClass(f,"adv").length,'
+                         'byClass(f,"chip").map(function(e){return e.textContent;}),byClass(c[1],"noopt").length]', setup=SAMPLE_SETUP)
+        self.assertEqual(out[0], 2)
+        for text in ("First finding", "Expected. It holds.", "Saw. It broke.", "Evidence. run/x.md", "Advice. Fix it in the script.",
+                     "Fix the flow", "Fix ShipLoop", "recommended", "ask me first", "The script owns the flow", "Specify"):
+            self.assertIn(text, out[1])
+        self.assertEqual(out[2:5], [True, True, 1])
+        self.assertEqual(out[5], 1)
+        self.assertEqual(out[6][:3], ["broken", "P1", "defect"])
+        self.assertEqual(out[7], 1)  # the second finding has no option: it asks for one
+
+    def test_a_finding_without_a_phase_or_figure_still_shows_its_text_and_ticks_become_a_request_for_options(self) -> None:
+        out = page_probe('data.obs[1].phase=undefined;renderAll();var c=byClass("cards","fcard")[1];'
+                         '[byClass(c,"viz").length,c.textContent.indexOf("Expected. e2")>0,byClass(c,"noopt")[0].textContent]', setup=SAMPLE_SETUP)
+        self.assertEqual(out, [0, True, "No option yet. Ask Claude to propose options."])
+        ticked = page_probe('var b=byClass("cards","noopt")[0].children[0];b.checked=true;b.onchange();'
+                            '[S().find,textOf("selcount"),REG.steps.children[2].textContent]', setup=SAMPLE_SETUP)
+        self.assertEqual(ticked, [{"o2": True}, "Selected 1 finding to investigate.", "3. Findings and options2 open, 1 ticked"])
+
+    def test_tick_recommended_ticks_the_recommended_option_of_each_open_finding_only(self) -> None:
+        out = page_probe('data.acts.push({id:"a3",title:"closed one",findings:["o3"],recommended:true,kind:"accept"});'
+                         'data.obs.push({id:"o3",title:"Closed",run:"r1",status:"fixed"});renderAll();'
+                         'var tr=byClass("filters","btn")[0];tr.onclick();[S().opts,tr.textContent]', setup=SAMPLE_SETUP)
+        self.assertEqual(out, [{"a1": True}, "Tick recommended"])
+
+    def test_filters_show_their_counts_and_a_second_run_sees_only_its_own_findings(self) -> None:
+        out = page_probe('var chips=function(){return byClass("filters","chip").map(function(e){return e.textContent+":"+e.getAttribute("aria-pressed");});};'
+                         'var a=chips();L.run="r2";renderAll();[a,chips(),byClass("cards","fcard").length]', setup=SAMPLE_SETUP)
+        self.assertEqual(out[0], ["Open for this run (2):true", "All for this run (2):false", "Other runs (0):false", "General (0):false"])
+        self.assertEqual(out[1], ["Open for this run (0):true", "All for this run (0):false", "Other runs (2):false", "General (0):false"])
+        self.assertEqual(out[2], 0)
+
+    def test_ticks_on_an_option_that_is_gone_or_done_are_dropped_with_a_notice_only_with_a_live_database(self) -> None:
+        stored = json.dumps({"run": "r1", "sel": {"r1": {"opts": {"a1": True, "gone": True}, "find": {"nope": True, "o2": True}}}})
+        offline = page_probe("[S().opts,S().find,textOf('notice')]", setup=SAMPLE_SETUP, stored=stored)
+        self.assertEqual(offline, [{"a1": True, "gone": True}, {"nope": True, "o2": True}, ""])  # no database: keep the viewer's ticks
+        live = page_probe("live=true;renderAll();[S().opts,S().find,textOf('notice')]", setup=SAMPLE_SETUP, stored=stored)
+        self.assertEqual(live[0], {"a1": True})
+        self.assertEqual(live[1], {"o2": True})
+        self.assertEqual(live[2], "2 ticked items dropped because they are gone or done.")
+        done = page_probe('live=true;data.acts[0].status="done";renderAll();[S().opts,textOf("donesum"),REG.donebox.hidden]',
+                          setup=SAMPLE_SETUP, stored=stored)
+        self.assertEqual(done, [{}, "Already done (1)", False])
+
+    def test_the_flat_observation_and_action_lists_are_replaced_by_the_cards(self) -> None:
+        html = TEMPLATE.read_text(encoding="utf-8")
+        for gone in ("obsfilter", "renderObs", "renderActs", "obsCard", "openCount", "score("):
+            self.assertNotIn(gone, html)
+        for there in ("cardsFor(", "renderFindings", "whereStrip(", "figureSvg("):
+            self.assertIn(there, html)
 
 
 class DefaultsMatchTheTemplateTests(unittest.TestCase):

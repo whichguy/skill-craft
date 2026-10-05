@@ -24,6 +24,7 @@ import argparse
 from datetime import datetime, timezone
 import hashlib
 import json
+import math
 from pathlib import Path
 import re
 import sys
@@ -35,6 +36,9 @@ SCHEMA_ID = "run-review-export/v2"
 MAX_COMPACT_BYTES = 200_000
 MAX_KNOWLEDGE = 40
 MAX_FAILURE_LINE = 240
+MAX_FIGURE_ITEMS = 6
+FIGURE_KINDS = ("bars",)
+FIGURE_TONES = ("expected", "saw", "limit")
 
 # Stage -> phase. The phase orders match defaults/expectations.json (phase-<order>); the stage names
 # are shiploop_stage_spec.STAGES, and a test checks that every stage there is listed here once.
@@ -104,15 +108,30 @@ SCHEMA = {
                                 "streak": (N, False)}), False),
         "facts": (("items", {"k": (S, True), "v": (S, True)}), False),
     },
+    # observations are the page's "findings" and actions its "options"; the collection names do not change.
     "observations": {
         "phase": (N, False), "criterion": (S, False),
         "kind": (("enum", ("defect", "recovered", "decision", "noise", "added", "wasted")), False),
-        "run": (S, False), "status": (("enum", ("open", "fixed", "accepted", "reexpected")), False),
+        # run names one run key (or `any`); `runs` lists the run keys the finding applies to and overrides `run`.
+        "run": (S, False), "runs": (("list", S), False),
+        "status": (("enum", ("open", "fixed", "accepted", "reexpected")), False),
         "title": (S, False), "expected": (S, False), "observed": (S, False), "evidence": (S, False),
+        # how an OPEN finding hits its expectation (drives the derived chip); advice is Claude's recommendation.
+        "effect": (("enum", ("broken", "bent")), False), "advice": (S, False),
+        # an optional structured picture of expected versus seen numbers; never markup (see _figure_problems).
+        "figure": (("figure", None), False),
         "createdAt": (ISO, False),
     },
-    "actions": {"title": (S, False), "why": (S, False), "goal": (S, False), "criterion": (S, False),
-                "base": (N, False), "status": (S, False)},
+    "actions": {
+        "title": (S, False), "why": (S, False), "goal": (S, False), "criterion": (S, False),
+        "status": (("enum", ("open", "planned", "built", "done")), False),
+        "findings": (("list", S), False),
+        "kind": (("enum", ("fix-shiploop", "fix-harness", "change-expectation", "gather-evidence", "accept")), False),
+        "effort": (("enum", ("S", "M", "L")), False), "recommended": (B, False), "cost": (S, False),
+        "change": (("object", {"target": (("enum", ("page", "spec")), True), "to": (S, True), "reason": (S, True)}),
+                   False),
+        "ref": (S, False),
+    },
     # config/page and config/prompt share the collection; every field is a string.
     "config": {"title": (S, False), "artifactUrl": (S, False), "synthPreamble": (S, False),
                "concatPreamble": (S, False), "constraints": (S, False), "closing": (S, False)},
@@ -143,6 +162,12 @@ def _type_problem(spec, value, where: str) -> list[str]:
         return [] if isinstance(value, (str, int, float)) and not isinstance(value, bool) else [
             f"{where}: expected a string or number"]
     kind, arg = spec
+    if kind == "figure":
+        return _figure_problems(value, where)
+    if kind == "object":
+        if not isinstance(value, dict):
+            return [f"{where}: expected an object"]
+        return _fields_problems(arg, value, where)
     if kind == "enum":
         return [] if value in arg else [f"{where}: {value!r} is not one of {', '.join(arg)}"]
     if kind == "list":
@@ -164,6 +189,31 @@ def _type_problem(spec, value, where: str) -> list[str]:
             problems += _fields_problems(arg, item, f"{where}[{i}]")
         return problems
     raise ValueError(f"unknown field spec {spec!r}")
+
+
+def _figure_problems(value, where: str) -> list[str]:
+    """A figure is a small structured spec the page draws, never markup: {kind: "bars", items: [{label, value,
+    unit?, lowerBound?, tone?}]} with 1 to MAX_FIGURE_ITEMS items, plain-string labels and non-negative numbers."""
+    if not isinstance(value, dict):
+        return [f"{where}: expected an object"]
+    item_fields = {"label": (S, True), "value": (N, True), "unit": (S, False), "lowerBound": (B, False),
+                   "tone": (("enum", FIGURE_TONES), False)}
+    problems = [f"{where}: unknown field {name!r}" for name in sorted(set(value) - {"kind", "items"})]
+    problems += _fields_problems({"kind": (("enum", FIGURE_KINDS), True),
+                                  "items": (("items", item_fields), True)}, value, where)
+    items = value.get("items")
+    if isinstance(items, list):
+        if not 1 <= len(items) <= MAX_FIGURE_ITEMS:
+            problems.append(f"{where}.items: expected 1 to {MAX_FIGURE_ITEMS} items, got {len(items)}")
+        for i, item in enumerate(items):
+            if not isinstance(item, dict):
+                continue
+            problems += [f"{where}.items[{i}]: unknown field {name!r}" for name in sorted(set(item) - set(item_fields))]
+            number = item.get("value")
+            if isinstance(number, (int, float)) and not isinstance(number, bool) \
+                    and not (math.isfinite(number) and number >= 0):
+                problems.append(f"{where}.items[{i}].value: expected a non-negative number")
+    return problems
 
 
 def _fields_problems(fields: dict, doc: dict, where: str) -> list[str]:

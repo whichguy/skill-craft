@@ -74,11 +74,44 @@ snapshot preserves them); nothing reads them.
 pass changed, from candidate digests) and `streak` (the clean streak after it). When `stageMin` is set the segments' minutes
 sum to it. A hand-set verdict is interim; the default for an unjudged pass is `unclear`.
 
-**`observations/<id>`**: `phase` (a phase `order`), `criterion` (an expectation key), `kind` (`defect`, `recovered`,
-`decision`, `noise`, `added`, `wasted`), `run` (a run key or `any`), `status` (`open`, `fixed`, `accepted`, `reexpected`),
-`title`, `expected`, `observed`, `evidence`, `createdAt` (ISO; orders the list).
+**`observations/<id>`** (the page calls them findings; the collection name stays)
 
-**`actions/<id>`**: `title`, `why`, `goal`, `criterion`, `base` (number), `status`.
+| Field | Type | Notes |
+| --- | --- | --- |
+| `phase` | number | a phase `order`; with the run's stage rows it draws the "where" strip on the card (no authored picture needed) |
+| `criterion` | string | an expectation key |
+| `kind` | `defect` \| `recovered` \| `decision` \| `noise` \| `added` \| `wasted` | |
+| `run` | string | a run key or `any` |
+| `runs` | array of string | optional: the run keys it applies to; overrides `run` (`any` in the list means every run) |
+| `status` | `open` \| `fixed` \| `accepted` \| `reexpected` | a missing status reads as open |
+| `title`, `expected`, `observed`, `evidence` | string | `expected` and `observed` carry the measured numbers; `evidence` is a path or commit |
+| `effect` | `broken` \| `bent` | optional: how an OPEN finding hits its expectation. An open finding with no effect is "not rated" |
+| `advice` | string | optional: Claude's recommendation, one to three sentences; an inference is marked "Inferred:" |
+| `figure` | object | optional illustration of expected versus seen numbers (below) |
+| `createdAt` | ISO string | orders the list |
+
+`figure` is a small structured spec the page draws, never markup: `{kind: "bars", items: [{label, value, unit?,
+lowerBound?, tone?}]}` with 1 to 6 items. `value` is a non-negative number (a measured 0 draws a stub); `lowerBound:
+true` prints a leading `>=` and an open bar end (the number is a floor, not a measurement); `tone` is `expected`,
+`saw` or `limit`; labels are plain text, escaped on render. An unknown `kind`, an unknown field, a negative value or
+more than 6 items is rejected by the validator and not drawn. A figure decorates the evidence; the expected, saw and
+evidence text stays on the card.
+
+**`actions/<id>`** (the page calls them options)
+
+| Field | Type | Notes |
+| --- | --- | --- |
+| `title`, `why`, `goal`, `criterion` | string | `goal` is the self-contained instruction: `Do: ... Files and symbols: ... Test: ... Done when: ...`, no line numbers, no status narrative |
+| `status` | `open` \| `planned` \| `built` \| `done` | open: nothing built; planned: a written plan exists (cite it in `ref`); built: code exists, unreleased or unverified (cite `ref`); done: landed and verified, hidden under "Already done" |
+| `findings` | array of string | observation ids the option resolves; an option renders once, under the first of them in view |
+| `kind` | `fix-shiploop` \| `fix-harness` \| `change-expectation` \| `gather-evidence` \| `accept` | an option with no kind is listed last and printed under "other" |
+| `effort` | `S` \| `M` \| `L` | S one commit with a test; M a few increments; L needs a live run or days |
+| `recommended` | boolean | at most one per finding; "Tick recommended" ticks it |
+| `cost` | string | what it costs; its presence gates the option "ask me before starting" in the prompt |
+| `change` | object `{target, to, reason}` | `target` is `page` or `spec`; required for `change-expectation`, absent otherwise |
+| `ref` | string | a commit or plan path |
+
+Options are ranked recommended first, then by kind in the order above, then by effort. `base` is no longer read.
 
 **`config/page`**: `title`, `artifactUrl`. **`config/prompt`**: `concatPreamble`, `constraints`, `closing`.
 The page builds the planning sentence itself and falls back to a one-line default for each prompt string when the document is missing.

@@ -141,6 +141,52 @@ summary{cursor:pointer;color:var(--accent);font-size:13px}
 .rb{height:8px;border-radius:3px;background:var(--accent);min-width:2px}
 .rb.cmp{background:var(--muted);margin-top:2px}
 .vchips{display:flex;flex-wrap:wrap;gap:6px;margin-top:6px}
+.chip{font-family:var(--mono);font-size:11px;line-height:1.5;padding:1px 8px;border-radius:99px;background:var(--code-bg);color:var(--fg);border:1px solid var(--line);white-space:nowrap}
+.chip.broken{background:var(--broken-bg);color:var(--broken);border-color:var(--broken)}
+.chip.bent{background:var(--bent-bg);color:var(--bent);border-color:var(--bent)}
+.chip.holds{background:var(--holds-bg);color:var(--holds);border-color:var(--holds)}
+.chip.acc{background:var(--accent-bg);color:var(--accent);border-color:var(--accent)}
+.chip.muted{background:var(--none-bg);color:var(--muted)}
+button.chip{font-family:var(--sans);font-size:12px;padding:4px 11px;min-height:32px;cursor:pointer}
+button.chip[aria-pressed="true"]{background:var(--accent);color:var(--accent-ink);border-color:var(--accent)}
+.chips{display:flex;flex-wrap:wrap;gap:6px;margin:6px 0 0}
+.fcard h3{display:flex;gap:8px;align-items:baseline}
+.fcard .two{display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,280px),1fr));gap:12px;margin:10px 0}
+.viz{display:grid;gap:10px;align-content:start;min-width:0}
+.strip{overflow-x:auto;padding-bottom:4px}
+.ws{display:block;max-width:none}
+.ws text{font-family:var(--sans);fill:var(--fg)}
+.ws-label{font-size:11.5px;font-weight:600}
+.ws-mark{font-size:10.5px;font-family:var(--mono);fill:var(--muted)}
+.ws-cell{fill:var(--none-bg);stroke:var(--line);opacity:.7}
+.ws-cell.o-done{fill:var(--holds-bg);stroke:var(--holds)}
+.ws-cell.o-revise,.ws-cell.o-replan{fill:var(--bent-bg);stroke:var(--bent)}
+.ws-cell.o-blocked{fill:var(--broken-bg);stroke:var(--broken)}
+.ws-cell.skip{fill:var(--none-bg);stroke:var(--muted);stroke-dasharray:2 2}
+.ws-cell.hl{opacity:1;stroke:var(--fg);stroke-width:2;stroke-dasharray:none}
+.ws-hatch{stroke:var(--muted);stroke-width:1;fill:none}
+.ws-br{stroke:var(--fg);stroke-width:1.5;fill:none}
+.fg{display:block;width:100%;max-width:420px;height:auto}
+.fg text{font-family:var(--sans);font-size:12.5px;fill:var(--fg)}
+.fg-value{font-family:var(--mono);font-weight:500}
+.fg-bar{fill:var(--accent);opacity:.85}
+.fg-bar.t-expected{fill:var(--holds)}
+.fg-bar.t-saw{fill:var(--broken)}
+.fg-bar.t-limit{fill:var(--bent-bg);stroke:var(--bent);stroke-dasharray:4 3}
+.fg-open{stroke:var(--fg);stroke-width:2;fill:none}
+.tech{font-size:13px;background:var(--code-bg);border-radius:8px;padding:8px 10px;min-width:0}
+.tech div{margin-bottom:4px;overflow-wrap:anywhere}
+.adv{font-size:13.5px;background:var(--accent-bg);color:var(--accent);border-radius:8px;padding:7px 11px;margin:8px 0}
+.optwrap{margin-top:8px}
+label.opt{display:flex;gap:10px;align-items:flex-start;min-height:44px;padding:9px 11px;border:1px solid var(--line);border-radius:8px;cursor:pointer;color:var(--fg);font-size:13.5px}
+label.opt.sel{background:var(--accent-bg);border-color:var(--accent)}
+label.opt input{width:22px;height:22px;margin:0;flex:none}
+label.opt .t{min-width:0}
+.instr{white-space:pre-wrap;font-size:13px;margin:6px 0 0;padding:8px 10px;background:var(--code-bg);border-radius:6px;overflow-wrap:anywhere}
+.optwrap details{margin:2px 0 0 4px}
+.noopt{display:flex;gap:8px;align-items:center;min-height:44px;margin-top:8px;color:var(--fg);font-size:13px}
+.noopt input{width:22px;height:22px;margin:0}
+.refs{display:flex;flex-wrap:wrap;gap:6px;margin-top:8px}
 .stepnav{display:flex;justify-content:space-between;gap:10px;margin-top:22px}
 .stickybar{display:none}
 @media (max-width:640px){.contract{grid-template-columns:1fr}.form{grid-template-columns:1fr}.segrow{grid-template-columns:minmax(0,1fr) 44px}.segrow select{grid-column:1/-1}.facts{grid-template-columns:1fr}
@@ -189,10 +235,13 @@ summary{cursor:pointer;color:var(--accent);font-size:13px}
 
 <section class="step" id="step-3" data-step="3" aria-labelledby="h-step-3" hidden>
 <h2 id="h-step-3">3. Findings and options</h2>
-<p class="sub">Every divergence, decision, recovery or Backchain finding we have seen, tied to a stage and an expectation. Tick the ones to carry into the prompt.</p>
-<div class="row"><label for="obsfilter">Show</label>
-<select id="obsfilter"><option value="all">All</option><option value="open">Open</option><option value="fixed">Fixed</option><option value="accepted">Accepted</option><option value="reexpected">Expectation updated</option></select></div>
-<div class="stack" id="obslist"></div>
+<p class="sub">Each finding says what we expected, what we saw and what Claude advises; under it, the options that would put it right. Tick any mix. Your ticks stay in this browser, and step 4 turns them into one prompt.</p>
+<div class="chips" id="filters" style="margin:0 0 8px"></div>
+<div class="legend" id="wherelegend">Where strip: one cell per visit in order. Outlined cells are the stage the finding belongs to; amber is revise or replan, red blocked, dashed or hatched skipped. A letter under a cell names its outcome.</div>
+<div class="msg" id="notice" role="status"></div>
+<div class="stack" id="cards"></div>
+<details id="loosebox" hidden><summary id="loosesum"></summary><div class="stack" id="loose"></div></details>
+<details id="donebox" hidden><summary id="donesum"></summary><div class="stack" id="done"></div></details>
 <details><summary>Add a finding</summary>
 <div class="form" id="obsform">
 <div><label for="o-phase">Stage</label><select id="o-phase"></select></div>
@@ -205,9 +254,6 @@ summary{cursor:pointer;color:var(--accent);font-size:13px}
 <div class="full"><label for="o-ev">Evidence (file path or commit)</label><input type="text" id="o-ev"></div>
 <div class="full row"><button class="btn primary" id="o-add" type="button">Add finding</button><span class="msg" id="o-msg" role="status"></span></div>
 </div></details>
-<h3 style="margin-top:22px">Options</h3>
-<p class="sub">Select one or more. They are ranked by how many open findings point at the expectation they serve.</p>
-<div class="stack" id="acts"></div>
 <details><summary>Add an option</summary>
 <div class="form" id="actform">
 <div class="full"><label for="a-title">Option, in a line</label><input type="text" id="a-title"></div>
@@ -289,6 +335,125 @@ function improveFacts(run){
   var share=min!==null&&isCount(run.wallMin)&&run.wallMin>0?Math.round(100*min/run.wallMin):null;
   return {rows:rows,passes:passes,min:min,share:share};
 }
+/* ---- findings and options (step 3) ---- */
+var KIND_ORDER=["fix-shiploop","fix-harness","change-expectation","gather-evidence","accept"];
+var EFFORT_ORDER=["S","M","L"];
+/* A finding with no status reads as open: an unknown state is not a closed one. */
+function isOpen(f){return !f||f.status===undefined||f.status==="open";}
+/* A finding applies to a run when its `runs` list names it (or says any); with no list, when its `run` is that key,
+   `any`, or empty. */
+function appliesTo(f,runKey){
+  if(f&&Array.isArray(f.runs)&&f.runs.length)return f.runs.indexOf(runKey)>=0||f.runs.indexOf("any")>=0;
+  return !f||!f.run||f.run==="any"||f.run===runKey;
+}
+function isGeneral(f){return !(f&&Array.isArray(f.runs)&&f.runs.length)&&(!f||!f.run||f.run==="any");}
+/* The four filters of step 3: open for this run, all for this run, other runs, general (any run). */
+function inView(f,runKey,filter){
+  if(filter==="all")return appliesTo(f,runKey);
+  if(filter==="other")return !appliesTo(f,runKey);
+  if(filter==="general")return isGeneral(f);
+  return appliesTo(f,runKey)&&isOpen(f);
+}
+function filterCounts(state){
+  var c={open:0,all:0,other:0,general:0};
+  (state.findings||[]).forEach(function(f){Object.keys(c).forEach(function(k){if(inView(f,state.runKey,k))c[k]++;});});
+  return c;
+}
+function rankOf(list,v){var i=list.indexOf(v);return i<0?list.length:i;}
+/* Options rank recommended first, then by kind, then by effort, then in the order given. */
+function rankOptions(list){
+  return list.map(function(o,i){return {o:o,i:i};}).sort(function(a,b){
+    return (b.o.recommended===true?1:0)-(a.o.recommended===true?1:0)||rankOf(KIND_ORDER,a.o.kind)-rankOf(KIND_ORDER,b.o.kind)||
+      rankOf(EFFORT_ORDER,a.o.effort)-rankOf(EFFORT_ORDER,b.o.effort)||a.i-b.i;}).map(function(x){return x.o;});
+}
+/* Step 3 as data. state: {findings, options, runKey, filter, crit}. One card per finding in view, in the order given.
+   Every option that is not done appears once: under the first of its findings that is in view (the other findings in
+   view show a reference), or in `loose` when it names no existing finding, or in `elsewhere` when all its findings are
+   outside the filter. Done options are listed apart. An open finding that no option names is flagged noOption. */
+function cardsFor(state){
+  var findings=state.findings||[],options=state.options||[],crit=state.crit||"",exists={},visible={},linked={};
+  findings.forEach(function(f){exists[f.id]=true;});
+  var cards=findings.filter(function(f){return inView(f,state.runKey,state.filter||"open")&&(!crit||f.criterion===crit);})
+    .map(function(f){visible[f.id]=true;return {finding:f,options:[],refs:[],noOption:false};});
+  var card={};cards.forEach(function(c){card[c.finding.id]=c;});
+  var loose=[],done=[],elsewhere=[];
+  options.forEach(function(o){
+    var links=(Array.isArray(o.findings)?o.findings:[]).filter(function(id){return exists[id];});
+    links.forEach(function(id){linked[id]=true;});
+    if(o.status==="done"){done.push(o);return;}
+    if(!links.length){loose.push(o);return;}
+    var host=links.filter(function(id){return visible[id];})[0];
+    if(!host){elsewhere.push(o);return;}
+    card[host].options.push(o);
+    links.forEach(function(id){if(id!==host&&visible[id])card[id].refs.push({id:o.id,title:o.title,host:host});});
+  });
+  cards.forEach(function(c){c.options=rankOptions(c.options);c.noOption=isOpen(c.finding)&&!linked[c.finding.id];});
+  return {cards:cards,loose:rankOptions(loose),done:rankOptions(done),elsewhere:elsewhere};
+}
+
+/* ---- pictures: markup built only from fixed class names, numbers and escaped text ---- */
+function esc(s){return String(s).replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;").replace(/"/g,"&quot;").replace(/'/g,"&#39;");}
+/* The engine's phases and the stages each one serves, in flow order (the exporter's phase table; a test keeps them equal).
+   A stage this table does not know belongs to the phase of the visit before it. */
+var STAGE_FLOW=[["Understand",["intake","discovery","research"]],["Specify",["spec","test-strategy"]],
+  ["Plan",["plan","prepare","select-work","step-plan"]],
+  ["Build",["test-spec","baseline","test-author","test-red","implement","test-green","test-refine"]],
+  ["Prove",["regression","document","skill-assess","skill-validate","static-checks","verify"]],
+  ["Integrate",["integrate","integration-verify","carry-forward"]],
+  ["System test",["system-test-author","system-test","product-acceptance"]],
+  ["Release",["release-plan","release-check","release","release-verify","operations","handoff"]]];
+function phaseOfStage(stage,previous){
+  for(var i=0;i<STAGE_FLOW.length;i++)if(STAGE_FLOW[i][1].indexOf(stage)>=0)return i;
+  return previous;
+}
+/* Where a finding sits in a run: one cell per visit in order, coloured by outcome (a letter under each cell that did
+   not finish done), skipped or seeded visits hatched, and the cells of the finding's phase outlined and labelled.
+   "" when the finding has no phase or the run has no stage rows. Needs no authored data. */
+function whereStrip(run,finding){
+  var rows=run&&run.stages;
+  if(!rows||!rows.length||!finding||!isCount(finding.phase)||finding.phase<0||finding.phase>=STAGE_FLOW.length)return "";
+  var n=rows.length,pitch=14,cw=12,pad=8,top=26,ch=20,W=pad*2+n*pitch,title=STAGE_FLOW[finding.phase][0];
+  var prev=-1,hits=[],cells=[],marks=[],counts={};
+  rows.forEach(function(r,i){
+    prev=phaseOfStage(r.stage,prev);
+    var out=String(r.outcome||"done"),x=pad+i*pitch,hl=prev===finding.phase,skip=r.skipped===true||r.seeded===true;
+    if(hl)hits.push(i);
+    if(out!=="done")counts[out]=(counts[out]||0)+1;
+    cells.push('<rect class="ws-cell o-'+out.replace(/[^a-z]/g,"")+(hl?" hl":"")+(skip?" skip":"")+'" x="'+x+'" y="'+top+'" width="'+cw+'" height="'+ch+'" rx="2"><title>'+
+      esc("visit "+(i+1)+": "+r.stage+", "+out+(skip?", skipped":"")+(isCount(r.min)?", "+r.min+" min":""))+'</title></rect>');
+    if(skip)cells.push('<path class="ws-hatch" d="M'+x+' '+(top+ch)+'L'+(x+cw)+' '+top+'M'+x+' '+(top+ch/2)+'L'+(x+cw/2)+' '+top+'M'+(x+cw/2)+' '+(top+ch)+'L'+(x+cw)+' '+(top+ch/2)+'"/>');
+    if(out!=="done")marks.push('<text class="ws-mark" x="'+(x+cw/2)+'" y="'+(top+ch+13)+'" text-anchor="middle">'+esc(out.charAt(0).toUpperCase())+'</text>');
+  });
+  var label=hits.length?title+": "+hits.length+" of "+n+" visits":title+": no visit in this run";
+  var shape=hits.length?'<path class="ws-br" d="M'+(pad+hits[0]*pitch)+' '+(top-3)+'L'+(pad+hits[0]*pitch)+' '+(top-7)+'L'+(pad+hits[hits.length-1]*pitch+cw)+' '+(top-7)+'L'+(pad+hits[hits.length-1]*pitch+cw)+' '+(top-3)+'"/>':"";
+  var x0=pad+(hits.length?hits[0]:0)*pitch,x1=pad+(hits.length?hits[hits.length-1]:0)*pitch+cw;
+  var atEnd=x0+label.length*6.4>W-pad;  /* a label that would run past the strip hangs from the right end of the bracket */
+  var outcomes=Object.keys(counts).map(function(k){return counts[k]+" "+k;}).join(", ");
+  return '<svg class="ws" viewBox="0 0 '+W+' 64" width="'+W+'" height="64" role="img" aria-label="'+esc("Where it happened, one cell per visit. "+label+(outcomes?"; "+outcomes:""))+'">'+
+    cells.join("")+marks.join("")+shape+'<text class="ws-label" x="'+(atEnd?x1:x0)+'" y="12"'+(atEnd?' text-anchor="end"':'')+'>'+esc(label)+'</text></svg>';
+}
+function figNum(v){return v===Math.floor(v)?grouped(v):String(Math.round(v*100)/100);}
+/* A bars figure ({kind:"bars", items:[{label,value,unit?,lowerBound?,tone?}]}, at most 6 items) as SVG: the expected
+   and seen numbers side by side on one scale. A lower-bound item prints ">=" and ends in an open chevron. Unknown
+   kinds and invalid items are not drawn. */
+function figureSvg(fig){
+  if(!fig||fig.kind!=="bars"||!Array.isArray(fig.items))return "";
+  var items=fig.items.filter(function(it){return it&&typeof it.label==="string"&&isCount(it.value)&&it.value>=0;}).slice(0,6);
+  if(!items.length)return "";
+  var max=Math.max.apply(null,items.map(function(it){return it.value;}));if(!(max>0))max=1;
+  var W=420,barX=150,barMax=160,rowH=26,parts=[],alt=[];
+  items.forEach(function(it,i){
+    var y=8+i*rowH,w=Math.max(2,Math.round(it.value/max*barMax)),tone=["expected","saw","limit"].indexOf(it.tone)>=0?it.tone:"plain";
+    var text=(it.lowerBound===true?">= ":"")+figNum(it.value)+(typeof it.unit==="string"&&it.unit?" "+it.unit:"");
+    var label=it.label.length>24?it.label.slice(0,23)+"…":it.label;
+    parts.push('<text class="fg-label" x="0" y="'+(y+12)+'">'+esc(label)+'</text>');
+    parts.push('<rect class="fg-bar t-'+tone+'" x="'+barX+'" y="'+y+'" width="'+w+'" height="16" rx="3"/>');
+    if(it.lowerBound===true)parts.push('<path class="fg-open" d="M'+(barX+w)+' '+y+'L'+(barX+w+8)+' '+(y+8)+'L'+(barX+w)+' '+(y+16)+'"/>');
+    parts.push('<text class="fg-value" x="'+(barX+w+(it.lowerBound===true?14:7))+'" y="'+(y+12)+'">'+esc(text)+'</text>');
+    alt.push(it.label+": "+text);
+  });
+  return '<svg class="fg" viewBox="0 0 '+W+' '+(16+items.length*rowH)+'" role="img" aria-label="'+esc("Expected versus seen. "+alt.join("; "))+'">'+parts.join("")+'</svg>';
+}
 </script>
 <script>
 /* No content lives in this file: stages, groups and expectations come from the expectations collection. */
@@ -299,9 +464,11 @@ var STEPS=["What happened","Expected versus seen","Findings and options","Your p
 var data={runs:[],obs:[],acts:[],bc:[],exp:{},cfg:{}},loaded={runs:false,obs:false,acts:false,bc:false,exp:false,cfg:false},db=null,live=false;
 /* The viewer's working set lives in this browser only: the step, the chosen run, and per run the ticked options and
    findings, what happens after the plan, and the notes. Every storage access is guarded; the page works with it empty. */
-var L={step:1,run:"",phase:-1,cmp:"",hideShort:true,filter:"all",sel:{}};
+var L={step:1,run:"",phase:-1,cmp:"",hideShort:true,filter:"open",crit:"",sel:{}};
 try{var saved=JSON.parse(localStorage.getItem("slrr5")||"null");if(saved&&typeof saved==="object")Object.keys(L).forEach(function(k){if(saved[k]!==undefined)L[k]=saved[k];});}catch(e){}
 if(!(L.step>=1&&L.step<=4))L.step=1;
+if(["open","all","other","general"].indexOf(L.filter)<0)L.filter="open";
+if(typeof L.crit!=="string")L.crit="";
 if(!L.sel||typeof L.sel!=="object")L.sel={};
 function save(){try{localStorage.setItem("slrr5",JSON.stringify(L));}catch(e){}}
 function S(){var k=L.run||"-",s=L.sel[k];if(!s||typeof s!=="object")s=L.sel[k]={};
@@ -324,14 +491,13 @@ function strip(d){var c=Object.assign({},d);delete c.id;return c;}
 function plural(n,w){return n+" "+w+(n===1?"":(/s$/.test(w)?"es":"s"));}
 function guarded(p,msgEl){p.then(null,function(e){if(msgEl)msgEl.textContent="Could not save: "+((e&&e.message)||"unavailable");});}
 function obsNo(o){return data.obs.indexOf(o)+1;}
-function openCount(k){return data.obs.filter(function(o){return o.criterion===k&&o.status==="open";}).length;}
 
 /* ---------- steps ---------- */
 function stepSub(n){
   if(n===1){var o=runOf();return o.run&&o.run.stages?plural(o.run.stages.length,"visit"):"no run yet";}
   if(n===2)return plural(docsOf("criterion").length,"expectation");
   var t=ticked(S().opts).length+ticked(S().find).length;
-  if(n===3)return plural(data.obs.length,"finding")+", "+t+" ticked";
+  if(n===3)return filterCounts(viewState()).open+" open, "+t+" ticked";
   return t+" ticked";
 }
 function go(n){L.step=n;save();renderSteps();try{window.scrollTo(0,0);}catch(e){}}
@@ -349,7 +515,7 @@ function renderSteps(){
 }
 
 /* ---------- expectations: read here, changed only through an option ---------- */
-function ex(key){var d=data.exp[key]||{};return {key:key,kind:d.kind||"criterion",title:d.title||key,short:d.short,text:d.text||"",group:d.group,order:d.order,revs:d.revs||[]};}
+function ex(key){var d=data.exp[key]||{};return {key:key,kind:d.kind||"criterion",title:d.title||key,short:d.short,text:d.text||"",group:d.group,order:d.order,clauses:d.clauses||[],revs:d.revs||[]};}
 function expBlock(key){
   var e=ex(key),w=h("div","expb");w.id="exp-"+key;
   var p=h("p","etext");p.appendChild(h("strong","","Expected. "));p.appendChild(document.createTextNode(e.text));
@@ -437,7 +603,7 @@ function renderFlow(){
   });
 }
 function openFinding(id){
-  L.filter="all";save();byId("obsfilter").value="all";renderObs();go(3);
+  L.filter="all";L.crit="";save();renderFindings();go(3);
   try{var n=byId("f-"+id);if(n)n.scrollIntoView({block:"center"});}catch(e){}
 }
 function renderPanel(){
@@ -452,31 +618,109 @@ function renderPanel(){
     r.appendChild(document.createTextNode(obsNo(o)+". "+o.title));r.onclick=function(){openFinding(o.id);};box.appendChild(r);
   });
 }
-/* ---------- step 3: findings ---------- */
-function obsCard(o){
-  var c=h("div","card obs");c.id="f-"+o.id;
-  var cb=h("input");cb.type="checkbox";cb.checked=!!S().find[o.id];cb.setAttribute("aria-label","Include in the prompt: "+o.title);
-  cb.onchange=function(){S().find[o.id]=cb.checked;save();renderPrompt();renderCounts();renderSteps();};
-  c.appendChild(cb);
-  var b=h("div");
-  b.appendChild(h("h3","",obsNo(o)+". "+o.title));
-  b.appendChild(h("div","meta",phaseName(o.phase)+" | "+(o.criterion||"-")+" | "+(KIND[o.kind]||o.kind)+" | "+runName(o.run)));
-  var p1=h("p");p1.appendChild(h("strong","","Expected. "));p1.appendChild(document.createTextNode(o.expected));b.appendChild(p1);
-  var p2=h("p");p2.appendChild(h("strong","","Saw. "));p2.appendChild(document.createTextNode(o.observed));b.appendChild(p2);
-  if(o.evidence){b.appendChild(h("div","meta","Evidence: "+o.evidence));}
-  var row=h("div","row");row.style.margin="6px 0 0";
-  var seg=h("div","seg");seg.setAttribute("role","group");seg.setAttribute("aria-label","Status of finding "+obsNo(o));
-  ["open","fixed","accepted","reexpected"].forEach(function(k){
-    var x=h("button","",STATUS_LABEL[k]);x.type="button";x.disabled=!live;x.setAttribute("aria-pressed",o.status===k?"true":"false");
-    x.onclick=function(){guarded(db.collection("observations").doc(o.id).update({status:k}),byId("o-msg"));};seg.appendChild(x);
-  });
-  row.appendChild(seg);b.appendChild(row);c.appendChild(b);return c;
+/* ---------- step 3: findings and their options ---------- */
+var FILTERS=[["open","Open for this run"],["all","All for this run"],["other","Other runs"],["general","General"]];
+var KIND_LABEL={"fix-shiploop":"Fix ShipLoop","fix-harness":"Fix harness","change-expectation":"Change expectation","gather-evidence":"Gather evidence",accept:"Accept as known limit"};
+var EFFORT_TEXT={S:"S: one commit with a test",M:"M: a few increments",L:"L: needs a live run or days"};
+function viewState(){var o=runOf();return {findings:data.obs,options:data.acts,runKey:o.run?o.run.key:"",filter:L.filter,crit:L.crit};}
+/* the run document a finding's picture is drawn from: the chosen run when the finding applies to it */
+function runDocFor(f){var o=runOf();if(o.run&&appliesTo(f,o.run.key))return o.run;return data.runs.filter(function(r){return appliesTo(f,r.key);})[0]||null;}
+function runLabel(f){return Array.isArray(f.runs)&&f.runs.length?f.runs.map(runName).join(", "):runName(f.run);}
+function findingChips(f){
+  var box=h("div","chips"),e=f.criterion?ex(f.criterion):null,o=runOf();
+  if(isOpen(f))box.appendChild(h("span",(f.effect==="broken"||f.effect==="bent")?"chip "+f.effect:"chip muted",(f.effect==="broken"||f.effect==="bent")?f.effect:"not rated"));
+  if(e){var c=h("span","chip",f.criterion);c.title=e.title;box.appendChild(c);e.clauses.forEach(function(s){box.appendChild(h("span","chip acc",s));});}
+  box.appendChild(h("span","chip",KIND[f.kind]||f.kind||"finding"));
+  if(!isOpen(f))box.appendChild(h("span","chip muted",STATUS_LABEL[f.status]||f.status));
+  if(isGeneral(f))box.appendChild(h("span","chip muted","all runs"));
+  else if(o.run&&!appliesTo(f,o.run.key))box.appendChild(h("span","chip muted",runLabel(f)));
+  return box;
 }
-function renderObs(){
-  var box=byId("obslist");clear(box);
-  var list=data.obs.filter(function(o){return L.filter==="all"||o.status===L.filter;});
-  if(!list.length){box.appendChild(h("div","empty",loaded.obs?"No findings match. Add the first one below.":"Loading findings."));return;}
-  list.forEach(function(o){box.appendChild(obsCard(o));});
+function techBox(f){
+  var b=h("div","tech");
+  function line(l,v){if(!v)return;var d=h("div");d.appendChild(h("b","",l+" "));d.appendChild(document.createTextNode(v));b.appendChild(d);}
+  line("Expected.",f.expected);line("Saw.",f.observed);line("Evidence.",f.evidence);
+  if(f.criterion){var e=ex(f.criterion);line("Expectation.",e.title+(e.clauses.length?" ("+e.clauses.join(", ")+")":"")+(phaseName(f.phase)!==e.title?"; "+phaseName(f.phase):""));}
+  return b;
+}
+function optionRow(a){
+  var wrap=h("div","optwrap");wrap.id="opt-"+a.id;
+  var l=h("label","opt"+(S().opts[a.id]?" sel":""));
+  var cb=h("input");cb.type="checkbox";cb.checked=!!S().opts[a.id];
+  cb.onchange=function(){S().opts[a.id]=cb.checked;l.className="opt"+(cb.checked?" sel":"");save();renderPrompt();renderCounts();renderSteps();};
+  var t=h("div","t");t.appendChild(h("b","",a.title));
+  var m=h("div","chips");
+  m.appendChild(h("span","chip acc",KIND_LABEL[a.kind]||"no kind set"));
+  m.appendChild(h("span","chip"+(a.status==="built"?" holds":""),a.status||"open"));
+  if(a.effort){var ef=h("span","chip",a.effort);ef.title=EFFORT_TEXT[a.effort]||"";m.appendChild(ef);}
+  if(a.recommended===true)m.appendChild(h("span","chip holds","recommended"));
+  if(a.cost)m.appendChild(h("span","chip bent","ask me first"));
+  t.appendChild(m);l.appendChild(cb);l.appendChild(t);wrap.appendChild(l);
+  var det=h("details");det.appendChild(h("summary","","Instruction and why"));
+  det.appendChild(h("div","instr",a.goal||"(no instruction)"));
+  function note(label,v){if(!v)return;var p=h("p","sub",label+" "+v);p.style.margin="6px 0 0";det.appendChild(p);}
+  note("Why.",a.why);note("Costs:",a.cost);
+  if(a.change)note("Changes the expectation ("+a.change.target+").","Now: "+a.change.to+" Why: "+a.change.reason);
+  note("Ref.",a.ref);
+  wrap.appendChild(det);return wrap;
+}
+function doneRow(a){var d=h("div","card");d.appendChild(h("b","",a.title));if(a.ref)d.appendChild(h("span","tag",a.ref));return d;}
+function findingCard(c){
+  var f=c.finding,card=h("div","card fcard");card.id="f-"+f.id;
+  var t=h("h3");t.appendChild(h("span","fid","#"+obsNo(f)));t.appendChild(document.createTextNode(f.title));card.appendChild(t);
+  card.appendChild(findingChips(f));
+  var two=h("div","two"),viz=h("div","viz"),rd=runDocFor(f);
+  var ws=rd?whereStrip(rd,f):"";if(ws){var sb=h("div","strip");sb.innerHTML=ws;viz.appendChild(sb);}
+  var fg=figureSvg(f.figure);if(fg){var fb=h("div","fig");fb.innerHTML=fg;viz.appendChild(fb);}
+  if(viz.firstChild)two.appendChild(viz);
+  two.appendChild(techBox(f));card.appendChild(two);
+  if(f.advice){var ad=h("div","adv");ad.appendChild(h("b","","Advice. "));ad.appendChild(document.createTextNode(f.advice));card.appendChild(ad);}
+  c.options.forEach(function(a){card.appendChild(optionRow(a));});
+  if(c.refs.length){var rf=h("div","refs");c.refs.forEach(function(r){
+    var b=h("button","chip acc","Also resolved by: "+r.title);b.type="button";
+    b.onclick=function(){try{byId("opt-"+r.id).scrollIntoView({block:"center"});}catch(e){}};rf.appendChild(b);});card.appendChild(rf);}
+  if(c.noOption){
+    var nl=h("label","noopt"),nb=h("input");nb.type="checkbox";nb.checked=!!S().find[f.id];
+    nb.onchange=function(){S().find[f.id]=nb.checked;save();renderPrompt();renderCounts();renderSteps();};
+    nl.appendChild(nb);nl.appendChild(document.createTextNode("No option yet. Ask Claude to propose options."));card.appendChild(nl);
+  }
+  var row=h("div","row");row.style.margin="8px 0 0";
+  var seg=h("div","seg");seg.setAttribute("role","group");seg.setAttribute("aria-label","Status of finding "+obsNo(f));
+  ["open","fixed","accepted","reexpected"].forEach(function(k){
+    var x=h("button","",STATUS_LABEL[k]);x.type="button";x.disabled=!live;x.setAttribute("aria-pressed",(f.status||"open")===k?"true":"false");
+    x.onclick=function(){guarded(db.collection("observations").doc(f.id).update({status:k}),byId("o-msg"));};seg.appendChild(x);
+  });
+  row.appendChild(seg);card.appendChild(row);return card;
+}
+function tickRecommended(){
+  cardsFor(viewState()).cards.forEach(function(c){if(isOpen(c.finding))c.options.forEach(function(a){if(a.recommended===true)S().opts[a.id]=true;});});
+  save();renderFindings();renderPrompt();renderCounts();renderSteps();
+}
+function renderFindings(){
+  var st=viewState(),res=cardsFor(st),counts=filterCounts(st),fb=byId("filters");clear(fb);
+  FILTERS.forEach(function(f){var b=h("button","chip",f[1]+" ("+counts[f[0]]+")");b.type="button";b.setAttribute("aria-pressed",L.filter===f[0]?"true":"false");
+    b.onclick=function(){L.filter=f[0];save();renderFindings();renderSteps();};fb.appendChild(b);});
+  if(L.crit){var cc=h("button","chip acc","Expectation "+L.crit+": clear");cc.type="button";cc.onclick=function(){L.crit="";save();renderFindings();};fb.appendChild(cc);}
+  var tr=h("button","btn sm","Tick recommended");tr.type="button";tr.onclick=tickRecommended;fb.appendChild(tr);
+  byId("notice").textContent=pruned;
+  var box=byId("cards");clear(box);
+  if(!res.cards.length)box.appendChild(h("div","empty",loaded.obs?(data.obs.length?"No finding matches this filter.":"No findings yet. Add the first one below."):"Loading findings."));
+  res.cards.forEach(function(c){box.appendChild(findingCard(c));});
+  if(res.elsewhere.length)box.appendChild(h("p","sub",plural(res.elsewhere.length,"option")+" belong to findings outside this filter."));
+  var lb=byId("loosebox");lb.hidden=!res.loose.length;byId("loosesum").textContent="Options not tied to a finding ("+res.loose.length+")";
+  var lo=byId("loose");clear(lo);res.loose.forEach(function(a){lo.appendChild(optionRow(a));});
+  var db2=byId("donebox");db2.hidden=!res.done.length;byId("donesum").textContent="Already done ("+res.done.length+")";
+  var dn=byId("done");clear(dn);res.done.forEach(function(a){dn.appendChild(doneRow(a));});
+}
+/* A tick on an option that is gone or done, or a finding that is gone, is dropped, and the viewer is told. Only with a
+   live database: an empty read must not wipe the viewer's ticks. */
+var pruned="";
+function pruneSelection(){
+  if(!live||!loaded.acts||!loaded.obs)return;
+  var s=S(),gone=0;
+  Object.keys(s.opts).forEach(function(id){var a=data.acts.filter(function(x){return x.id===id;})[0];if(s.opts[id]&&(!a||a.status==="done")){delete s.opts[id];gone++;}});
+  Object.keys(s.find).forEach(function(id){if(s.find[id]&&!data.obs.some(function(x){return x.id===id;})){delete s.find[id];gone++;}});
+  if(gone){pruned=plural(gone,"ticked item")+" dropped because "+(gone===1?"it is":"they are")+" gone or done.";save();}
 }
 /* ---------- Backchain ledger ---------- */
 function tallyOf(docs){var t={added:0,wasted:0,insurance:0,unclear:0,neutral:0,stage:0,passes:0};
@@ -544,34 +788,21 @@ function renderCritGroups(){
   });
 }
 /* ---------- options and the prompt ---------- */
-function ranked(){return data.acts.slice().sort(function(a,b){return openCount(b.criterion)-openCount(a.criterion);});}
-function renderActs(){
-  var box=byId("acts");clear(box);
-  if(!data.acts.length){box.appendChild(h("div","empty",loaded.acts?"No options yet. Add the first one below.":"Loading options."));return;}
-  ranked().forEach(function(a,i){
-    var c=h("div","card act");
-    var cb=h("input");cb.type="checkbox";cb.checked=!!S().opts[a.id];cb.setAttribute("aria-label","Select option: "+a.title);
-    cb.onchange=function(){S().opts[a.id]=cb.checked;save();renderPrompt();renderCounts();renderSteps();};
-    var t=h("div","t");var b=h("b","",(i+1)+". "+a.title);if(a.criterion)b.appendChild(h("span","tag",a.criterion+", "+openCount(a.criterion)+" open"));
-    t.appendChild(b);t.appendChild(h("span","",a.why));
-    c.appendChild(cb);c.appendChild(t);box.appendChild(c);
-  });
-}
-function picked(){return {acts:ranked().filter(function(a){return S().opts[a.id];}),obs:data.obs.filter(function(o){return S().find[o.id];})};}
-function kinds(s){var p=[];if(s.acts.length)p.push(plural(s.acts.length,"option"));if(s.obs.length)p.push(plural(s.obs.length,"finding"));return p;}
+function picked(){return {acts:rankOptions(data.acts.filter(function(a){return S().opts[a.id];})),obs:data.obs.filter(function(o){return S().find[o.id];})};}
+function kinds(s){var p=[];if(s.acts.length)p.push(plural(s.acts.length,"option"));if(s.obs.length)p.push(plural(s.obs.length,"finding")+" to investigate");return p;}
 function renderCounts(){
   var s=picked(),n=s.acts.length+s.obs.length;
-  byId("selcount").textContent=n?("Selected "+kinds(s).join(", ")+"."):"Nothing selected yet. Tick options or findings in step 3.";
+  byId("selcount").textContent=n?("Selected "+kinds(s).join(", ")+"."):"Nothing selected yet. Tick options in step 3.";
 }
 function renderPrompt(){
   var s=picked(),n=s.acts.length+s.obs.length,out=[],st=S();
-  if(!n){byId("prompt").value="Tick at least one option or finding in step 3.";return;}
+  if(!n){byId("prompt").value="Tick at least one option in step 3.";return;}
   out.push("Selection: "+kinds(s).join(", ")+".");
   out.push(n>1?"Plan all "+n+" items as one plan: merge overlap, resolve conflicts, order by dependency, split into the smallest verifiable increments, mark what can run in parallel.":"Plan the implementation.");
   out.push(st.after==="execute"?"Then execute it.":"Present the plan and wait for my go-ahead.");
   out.push("");
   if(s.acts.length){out.push("Options:");s.acts.forEach(function(a){out.push("- "+a.id+" "+a.title+(a.criterion?" ["+a.criterion+"]":"")+": "+a.goal);});}
-  if(s.obs.length){out.push("Evidence:");s.obs.forEach(function(o){out.push("- "+o.id+" ["+phaseName(o.phase)+(o.criterion?", "+o.criterion:"")+", "+(STATUS_LABEL[o.status]||o.status)+"] "+o.title+". Expected: "+o.expected+" Saw: "+o.observed+(o.evidence?" ("+o.evidence+")":""));});}
+  if(s.obs.length){out.push("Investigate (read the evidence, propose options, change no code):");s.obs.forEach(function(o){out.push("- "+o.id+" ["+phaseName(o.phase)+(o.criterion?", "+o.criterion:"")+", "+(STATUS_LABEL[o.status]||o.status)+"] "+o.title+". Expected: "+o.expected+" Saw: "+o.observed+(o.evidence?" ("+o.evidence+")":""));});}
   var cons=promptCfg("constraints","");if(cons)out.push("Constraints: "+cons);
   if(st.notes.trim())out.push("Notes: "+st.notes.trim());
   var url=cfgOf("page").artifactUrl;
@@ -594,7 +825,7 @@ function fillSelects(){
   data.runs.slice().sort(byOrder).forEach(function(r){if(r.key===L.run)return;var o=h("option","",r.name);o.value=r.key;cs.appendChild(o);});
   cs.value=L.cmp||"";byId("hideshort").checked=!!L.hideShort;
 }
-function renderAll(){applyConfig();renderFlow();renderPanel();renderRunDetail();renderBackchain();renderObs();renderCritGroups();renderActs();renderCounts();renderPrompt();renderPlanControls();fillSelects();renderSteps();}
+function renderAll(){applyConfig();pruneSelection();renderFlow();renderPanel();renderRunDetail();renderBackchain();renderFindings();renderCritGroups();renderCounts();renderPrompt();renderPlanControls();fillSelects();renderSteps();}
 
 /* ---------- the Backchain pass strip ---------- */
 var NS="http://www.w3.org/2000/svg";
@@ -697,10 +928,9 @@ function renderRunDetail(){
 }
 
 /* ---------- wiring ---------- */
-byId("runsel").onchange=function(){L.run=this.value;L.phase=-1;if(L.cmp===L.run)L.cmp="";save();renderFlow();renderPanel();renderRunDetail();renderBackchain();renderCounts();renderPrompt();renderPlanControls();fillSelects();renderSteps();};
+byId("runsel").onchange=function(){L.run=this.value;L.phase=-1;L.crit="";if(L.cmp===L.run)L.cmp="";save();renderFlow();renderPanel();renderRunDetail();renderBackchain();renderFindings();renderCounts();renderPrompt();renderPlanControls();fillSelects();renderSteps();};
 byId("cmpsel").onchange=function(){L.cmp=this.value;save();renderRunDetail();};
 byId("hideshort").onchange=function(){L.hideShort=this.checked;save();renderRunDetail();};
-byId("obsfilter").value=L.filter;byId("obsfilter").onchange=function(){L.filter=this.value;save();renderObs();};
 byId("notes").oninput=function(){S().notes=this.value;save();renderPrompt();};
 Array.prototype.forEach.call(document.getElementsByName("after"),function(r){r.onchange=function(){S().after=r.value;save();renderPrompt();};});
 byId("copy").onclick=function(){

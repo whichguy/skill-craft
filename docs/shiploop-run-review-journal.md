@@ -483,3 +483,67 @@ deliberately: the documented-collections check no longer expects an `iters` subs
 
 **Size.** `template/index.html` is 57,754 bytes (76,339 before): the removed sections outweigh the new step shell and
 logic. Budget for R5 to R7: about 75 KB.
+
+## 2026-10-04: R5, findings and options with their pictures (template, contract, validator and tests; not republished)
+
+Status: firm for the code and its tests. As for R4, no Artifact or ArtifactData call was made and nothing was published,
+uploaded or released; the live page and its database are untouched.
+
+**Contract.** `observations` (the page's findings) gain `runs` (the run keys it applies to, overriding `run`), `effect`
+(`broken` or `bent`: how an OPEN finding hits its expectation), `advice` and `figure`. `actions` (the page's options)
+gain `findings`, `kind` (`fix-shiploop`, `fix-harness`, `change-expectation`, `gather-evidence`, `accept`), `effort`
+(`S`, `M`, `L`), `recommended`, `cost`, `change {target: page|spec, to, reason}` and `ref`; `status` is now the enum
+`open`, `planned`, `built`, `done`, and `base` is no longer read or written. `validate_doc` enforces all of it
+(`SCHEMA` table in `scripts/export.py`; two new spec kinds, `object` and `figure`) and `SCHEMA.md` documents it in
+tables. The live database still holds the old status words (`building`, `analysed`, `waiting`); the page shows any
+status string it is given, and R9's data update normalises them. The cross-field rule (`change` present exactly for
+`change-expectation`) is left to R8's `--check`, as the plan says.
+
+**Step 3 as data.** The pure `cardsFor(state)` groups every option once: under the first of its `findings` that is in the
+current view (the other findings in view show a reference chip), apart in `loose` when it names no existing finding, in
+`elsewhere` when all its findings are outside the filter (the page says how many), and done options in `done`
+(listed under "Already done"). Options rank recommended first, then kind in the order above, then effort, then as
+given. An open finding that no option of any status names is flagged `noOption` and offers "No option yet. Ask Claude to
+propose options" (a tick that step 4 turns into an INVESTIGATE line). The four filters are `open for this run` (the
+default), `all for this run`, `other runs` and `general` (`run: any` and no list); a finding applies to a run when its
+`runs` list names it (or `any`), or, with no list, when its `run` is that key, `any` or empty; a missing `status` reads as
+open. "Tick recommended" ticks the recommended option of each open finding in view. A tick on an option that is gone or
+done, or a finding that is gone, is dropped with a notice, but only when the database is live (an empty read must not wipe
+a viewer's ticks). The old flat observation and action lists are gone; the phase panel in step 1 now lists a compact row
+per finding that jumps to its card, so no section draws the same finding twice.
+
+**Illustrations (the owner's request, asked twice).** Every finding card carries a picture next to its technical box
+(Expected, Saw, Evidence, Expectation with its S-clauses), and the picture never replaces that text.
+
+- `whereStrip(run, finding)`, automatic for any finding with a `phase`: one cell per visit of the run, in order, 14 px
+  pitch so Luna's 39 visits are 562 px wide inside a scroller; colour by outcome, a letter under any visit that did not
+  finish done (R revise, P replan, B blocked), skipped or seeded visits dashed and hatched, the cells of the finding's
+  phase outlined and bracketed and labelled (`Plan: 5 of 39 visits`; the label hangs from the right end when it would run
+  off the strip). It needs no authored data. The visit-to-phase table `STAGE_FLOW` lives in the logic block, equal to the
+  exporter's `PHASES` (a test compares them; an unknown stage takes the phase of the visit before it, as the exporter
+  does). Drawn from the chosen run, or the first run the finding applies to.
+- `figureSvg(figure)`, from an optional authored `figure {kind: "bars", items: [{label, value, unit?, lowerBound?,
+  tone?}]}`: expected and seen numbers side by side on one scale; a `lowerBound` item prints `>=` and ends in an open
+  chevron; a measured 0 draws a stub, never a missing or NaN bar. Strictly structured: unknown kinds and fields,
+  negative or non-finite values, a non-string label and more than 6 items are rejected by the validator and not drawn.
+  Both functions return markup made only of fixed class names, numbers and escaped text (`&lt;script&gt;` in a label).
+
+**Bugs found while checking in the browser.** A strip label for a phase at the end of a run ran off the right edge (now
+anchored from the bracket's right end); a figure label of 20 or more characters was cut too early (limit 24).
+
+**Tests.** `python3 -B test/shiploop-run-review.test.py`: 65 tests (48 before; 17 new, all 17 fail on the base tip
+`e79f948a` from a `git archive` with only the test file copied over; 38 pass there, all of them existing tests). New:
+`validate_doc` accepts the new fields and rejects bad kind, effort, status, change.target and change without a reason;
+the figure is a structured spec (unknown kind, 7 items, empty, negative, infinite, boolean, non-string label, unknown
+tone, unknown fields, a raw markup field); the contract documents every field; `cardsFor` (every option once, a shared
+option under its first finding in view with a reference elsewhere, done apart, rank, flagged open findings, filters and
+their counts, the expectation filter); the strip over the committed Luna run (exactly 39 `rect`s, the phase's outlined
+cells, 2 letters for one revise and one blocked, the label anchors); hatching and escaping of a stage named
+`<script>`; `STAGE_FLOW` equal to `export.PHASES`; the figure's element counts (2 rects and 4 texts for expected 0 and
+saw 13), `>=` with one open chevron, the escaping of a `<script>` label, 6 of 8 items, a zero stub; and page probes of the
+card (picture, text, advice, options, the ask-for-options tick), Tick recommended, the filters per run, and the
+selection pruning. Deliberate change to an existing test: the logic block's purity check now ignores string literals
+(a stage is called "document", a data word, not a global read).
+
+**Size.** `template/index.html` is 75,869 bytes (57,754 after R4). R6 and R7 add step 2 and the prompt builder and
+remove what they replace; the final size is recorded with R7.
