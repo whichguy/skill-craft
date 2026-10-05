@@ -1020,3 +1020,114 @@ wins. `test/shiploop_e2e/evidence/luna1.review.json` replaces `codex-gpt-6-luna-
 default-key names; the run id inside each is the page key, so an export is found by its id and a review by its key.
 Evidence: `python3 -B test/shiploop-run-review.test.py` 185 OK after the rename; `export.py --check` on the renamed file exits 0
 with the same 7 warnings. Related: `eee16763` (R13 file names), `1a6c83ce` (R8), `c2c4b63e` (R7 prompt head).
+
+## 2026-10-05: R16, the exporter reads the Backchain loops of ShipLoop 1.21.0 and records the passes option (local, unpublished)
+
+Status: firm for the code, the tests and the real-data proof below; interim for what `candidateMatch` false means (one run).
+Local commits on branch `rr16-a04384` only (base `origin/main` 1411d5f1, release 1.21.0): `df627852` (exporter, SCHEMA.md,
+13 tests, change note `changes/shiploop-run-review/loops-under-run-backchain.md`), `cf1e349f` (the pass strip, 4 tests, note
+`zero-streak-reads-neutral.md`) and this entry. No push, no release, no E2E run launched or resumed, no Artifact or ArtifactData
+call, nothing written under `/Users/dadleet/e2e-runs`. The template changed, so the page needs one republish (not done).
+
+**Why.** The E2E session reported two reader gaps on the Luna xhigh 1.21.0 battleship run: the export printed "Backchain loops:
+none found under scratch/" because 1.21.0 keeps the loops under `run/backchain/<action>/`, and the first stage read 2.5 min in
+the export against 3.4 in the harness's own line. The fast-planning plan's I4 had handed the exporter two record-only facts to
+this work: the `backchain_passes` option, and whether the last `backchain-check` receipt is for the loop's final candidate.
+
+**What 1.21.0 keeps (real shapes, read from the final run directory, copied first; field names only).**
+
+| File under `run/backchain/<action>/` | Written by | Fields the exporter reads |
+| --- | --- | --- |
+| `until-loop-receipt.json` (and `until-loop-terminal-packet.json`, the same bytes in the plan loop) | the Until Loop runtime, kept by the host | `status`, `progress.action_number` (the passes), `progress.trivial_streak`, `progress.required_trivial_reviews`, `last_report.classification`, `last_report.exit_assessment`; the digests inside it are model prose (`last_report.evidence`, `handoff`) and are not read |
+| `until-loop-start-contract.json` | the host (named by the host; the engine does not write these `until-loop-*` names) | its file time is the loop start; `required_trivial_reviews` repeats the receipt's |
+| `check-<sha12>.json` and `candidate-<sha12>.json` | `shiploop backchain-check` (`shiploop_backchain_graph.py`) | `candidate_sha256` (equals the sha256 of the snapshot bytes), `ok`, `completion`; the snapshot has `steps` |
+| `notes/<action>-backchain-review-record.json` (or `revise-output.json` inside the loop directory) | the host, in the shape Backchain's own contract gives (`references/convergence.md`, `caller-contract.md`) | `candidate.output_sha256` (the final candidate), `convergence.candidate.input_sha256` and `.output_sha256`, `candidate.cycle_start_sha256` (the host's addition, not read); `review.candidate.*` inside a `{plan, review}` wrapper |
+
+The plan loop (`nav-5c67...`) has all three `until-loop-*` files; the step-plan loop (`nav-f675...`) has only the receipt
+(plus `until-report.json`, `until-done-output.json` and its start contract at `notes/<action>-until-start-contract.json`): the
+host chose the names, so the exporter finds a loop by its receipt and the start record from three places.
+
+**Which layouts the exporter reads, and why.** Three, listed in SCHEMA.md ("Where a loop's numbers come from"): the two
+`scratch/` layouts of runs before 1.21.0 (per-pass review records; the five committed v2 evidence files were exported from
+them) and `run/backchain/<action>/`. "One supported version" governs what new runs write; it does not mean the exporter may
+stop reading the data the committed evidence and the page's hand-built documents rest on, so the old reading is untouched
+(all 185 existing tests pass unchanged). The five committed files are not re-exported here and keep their meaning; a re-export
+of an old run would add `backchainPasses` "not recorded", `candidateMatch` "unknown" (no check receipts) and the receipt's
+`trivialRequired`, nothing else.
+
+**(a) Finding and building the loops.** `find_backchain_loops(run_dir)` returns each `backchain/*/until-loop-receipt.json`
+directory (a directory with only check receipts is no loop; a loop still running has no receipt yet). The loop is named by
+the stage of the action its directory is named for, with its accept window, so ids stay `<runKey>-plan` and `-step-plan`.
+Passes come from `progress.action_number`; a one-pass loop is one `Pass 1` segment from the start record to the receipt
+(file times), with `change` from the step diff of `convergence.candidate.input_sha256` to the final digest, `streak` from the
+receipt and the last outcome in the note ("recorded it as non-trivial; its exit was assessed as satisfied"); more than one
+pass with no per-pass record is one segment "Passes 1 to N" without `pass`; no start record means no segments and a `Timing`
+fact saying why, never a 0. A loop whose layout cannot be read now says "unknown" passes (it said 0).
+
+**(b) Record-only facts.** `backchainPasses`: the option as `state.md` wrote it; "not recorded" when the key is absent; an
+unknown value verbatim (tests: one, converge, none, "maybe", 2, absent). `candidateMatch`: true, false or "unknown" (with the
+reason in the `Candidate match` fact) from the newest `check-*.json` by file time against the final candidate digest: the
+newest record the loop kept, in its directory or `notes/<action>-*.json`, whose `candidate` (or `convergence.candidate`)
+carries a 64-hex `output_sha256`. `facts.md` gains "Backchain passes option (state.md)" as a run line (a run with option none
+has no loop document to carry it) and "candidate match yes/no/unknown" on each loop. Nothing is refused or enforced.
+
+**(c) The 0-of-0 streak.** The runtime receipt writes `required_trivial_reviews: 0` on a one-pass loop. The fact now reads "no
+trivial-streak requirement on this loop" (a requirement of 2 still reads "1 of 2 required") and the document carries
+`trivialRequired: 0`. The template printed facts generically (so the fact and the two new ones already reach the loop card with
+no edit) but its pass strip hard-coded a streak axis to 2 and "the loop closes at 2": `streakTarget` and `streakNote` (logic
+block, tested through `run_logic`) now keep a real 0, draw no streak axis, target or line for it and say the note under the
+strip; a document with no `trivialRequired` is drawn as before.
+
+**(d) Intake minutes: the exporter is right for a visit; documented, not changed.** On the Luna xhigh run `timeline.json`
+`started` is 04:45:10Z, the first accept (intake) 04:47:37Z: 2.45 min (the export rounds to a tenth: 2.5). The harness's stage
+window starts at `min(stamps)`, its first runner event (`metrics.stage_windows`, `since`), 04:44:11.139Z, and ends at the same
+accept: 3.431 min ("3.4"). The 59 s between is the host starting (plugin and skill loading) before ShipLoop's `workspace
+start`. The plan's DURATION rule is accept minus the previous accept, the first from `timeline.started`, so the export's number
+is the visit's; the harness's includes pre-ShipLoop start-up. SCHEMA.md now says so (the limits paragraph). Open: whether the
+harness line should say "from the host's first event"; not changed here (harness code).
+
+**Real-data proof (read-only).** The run directory was copied twice into the session scratchpad (`rr16/livecopy`, taken while
+the run was live; `rr16/livecopy2`, after the coordinator said the run is stopped and final), `cp -pR` of
+`.shiploop-runs/<work>/run` so file times hold. The two copies' `backchain/` directories are byte-identical to each other and to
+the final directory (`diff -rq`); `state.md` differed by two later accepted visits (21 then 23). A stub `metrics.json` (every
+counter named unmeasured, "stub") was written into the copy only, because the run has no grade; the dry run is
+`build_run(copy)`, so only the loop part and the first visit are real. Result on the final copy (23 accepted visits, 585.5 min):
+
+| Loop | Passes, status | Requirement, option | Stage split (min) | `change` | Last check vs final candidate |
+| --- | --- | --- | --- | --- | --- |
+| plan (`nav-5c67...`) | 1, complete (non-trivial, exit satisfied) | `trivialRequired` 0, option one | 121: before 37, pass 22, after 62 | 6 steps changed | false: last check `25aecd520d40` (01:58, after the loop's receipt at 01:22 and the stage's accept), loop final `85f180cd6cd4` |
+| step-plan (`nav-f675...`) | 1, complete (non-trivial, exit satisfied) | `trivialRequired` 0, option one | 120: before 27, pass 8, after 85 | 2 steps changed | false: last check `aa747e2fe573`, loop final `319381dcb76a` |
+
+Both documents validate; the facts line reads "Backchain loops: plan 1 passes, complete, stage 121 min, candidate match no;
+step-plan 1 passes, complete, stage 120 min, candidate match no". Intake reads 2.5 min.
+
+**Finding (interim, one run).** In both loops the plan on disk was rewritten and rechecked after the loop closed (plan: eight
+check receipts, the last 36 minutes after the loop's receipt, the candidate file rewritten at 01:58 and the stage accepted at
+02:24; inferred: by the stage's parent action, before its accept; step-plan: the host's own accepted summary says "the earlier whole source-aware convergence remains bound to candidate 319381dcb76a ... so no
+new whole-plan convergence is claimed"). So `candidateMatch` false means "the final plan is not the candidate the loop
+converged on", not a failed check (the last receipts are ok). Whether that edit is wanted is the owner's question for the
+fast-planning plan's one-pass exit ("the printed backchain-check is ok on the final candidate"); the fact records it and
+enforces nothing.
+
+**Tests.** `python3 -B test/shiploop-run-review.test.py`: 202 tests OK (185 at the base, 13 new in `BackchainLoopRecordsTest`:
+a 1.21.0 fixture found and exported with passes, option and match true; mismatch false; newest by file time not name; missing
+receipt and missing digest unknown with the reason; the option as written and absent; a 0 requirement neutral and a real one
+unchanged; several passes one span; no start record no segments; check-only directory no loop; two loops ordered; the scratch
+fixtures still export as before with the new facts unknown; an unreadable loop reports unknown passes; the schema and
+SCHEMA.md; the intake limit text; and 4 in `LoopStreakTests`). All 17 new tests fail on the base 1411d5f1 (`git archive` into
+the scratchpad, my test file copied over; 17 distinct failures, no existing test among them). Also green:
+`node test/skill-frontmatter.test.js` (20 skills), `test/test-groups.test.py` (16), `test/marketplace-package.test.py` (29),
+`scripts/check-release-boundary.py --base origin/main`. Commit 1 was verified without the template edit (198 tests), then the
+template commit (202).
+
+**Limits, documented not guarded.** "Last" check receipt and every loop minute are file times: right on the original
+directory, a copy needs `cp -p` (already true of Improve minutes). The file names the host gives its records (`notes/<action>-
+backchain-review-record.json`, `revise-output.json`, the start contract) are the host's: the exporter reads them by the field
+names Backchain's contract defines, so a host that names or places them elsewhere gives "unknown", not a guess. A receipt's
+mtime is the loop end; the terminal-packet copy is saved later (83 s in the plan loop). The page database's hand-built
+documents (`luna1-plan`, `luna1-step-plan`) are untouched and have none of the new fields; the page treats a missing
+`trivialRequired` as 2.
+
+**Owner decisions.** (1) Republish the template (the pass strip) when the next publish happens. (2) Whether the harness's
+first-stage line should start at ShipLoop's start (as the export does) or say "from the host's first event". (3) Whether a plan
+edited after its loop (`candidateMatch` false in both real loops) should be a finding on the Luna 1.21.0 review.
