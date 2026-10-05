@@ -757,7 +757,6 @@ the base tip).
 **Commits.** `1a6c83ce` (--check, --docs, collection order, sample fixture, 18 tests), `f1b4e867` (iterate advise
 line), `ee20c5a7` (SKILL.md, advice.md, change note, 8 tests; a prompt-text commit with the learning and evidence),
 `366d6a8f` (the saved-data probe as a test).
-## 2026-10-04: R14, the sequence picture and the six cards on step 1 (part 1: the pure model; not published)
 
 ## 2026-10-04: R14, the sequence picture and the six cards on step 1 (template and tests; not published)
 
