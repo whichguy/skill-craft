@@ -28,6 +28,7 @@ SKILL_ROOT = ROOT / "skills" / "shiploop-run-review"
 TEMPLATE = SKILL_ROOT / "template" / "index.html"
 SCHEMA_MD = SKILL_ROOT / "SCHEMA.md"
 DEFAULTS_DIR = SKILL_ROOT / "defaults"
+SNAPSHOT = ROOT / "test" / "shiploop_e2e" / "evidence" / "run-review-db-snapshot-2026-10-04.json"
 _spec = importlib.util.spec_from_file_location("run_review_export", SKILL_ROOT / "scripts" / "export.py")
 export = importlib.util.module_from_spec(_spec)
 _spec.loader.exec_module(export)
@@ -419,6 +420,44 @@ class DefaultsMatchTheTemplateTests(unittest.TestCase):
         self.assertEqual(sorted(cfg["prompt"]), ["closing", "concatPreamble", "constraints"])
         self.assertIn("title", cfg["page"])
 
+
+
+class DbSnapshotTest(unittest.TestCase):
+    """The page's database exists only in the artifact until it is committed; the snapshot is that copy."""
+
+    COLLECTIONS = {"observations", "actions", "expectations", "iterations", "backchain", "runs", "config"}
+
+    def setUp(self):
+        self.raw = SNAPSHOT.read_bytes()
+        self.snapshot = json.loads(self.raw)
+
+    def test_it_is_the_documented_snapshot_with_every_collection_and_a_counts_header_that_matches(self):
+        self.assertEqual(self.snapshot["schema"], "run-review-db-snapshot/v1")
+        self.assertTrue(self.snapshot["pulledAt"] and self.snapshot["artifact"].startswith("https://"))
+        docs = self.snapshot["docs"]
+        self.assertEqual(set(docs), self.COLLECTIONS)
+        self.assertEqual(self.snapshot["counts"], {name: len(items) for name, items in docs.items()})
+        self.assertEqual(sum(self.snapshot["counts"].values()), 109)
+
+    def test_every_document_has_an_id_and_the_database_row_shape(self):
+        for collection, items in self.snapshot["docs"].items():
+            for doc_id, row in items.items():
+                self.assertTrue(isinstance(doc_id, str) and doc_id.strip(), f"{collection}: empty id")
+                self.assertEqual(set(row), {"data", "version", "updatedAt"}, f"{collection}/{doc_id}")
+                self.assertIsInstance(row["data"], dict, f"{collection}/{doc_id}")
+
+    def test_it_holds_what_exists_nowhere_else(self):
+        docs = self.snapshot["docs"]
+        self.assertEqual(sorted(docs["iterations"]), ["I0", "I1", "I2", "I2b", "I2c", "I2r", "I3", "I4", "I5", "I6"])
+        self.assertEqual({k: len(v["data"]["segments"]) for k, v in docs["backchain"].items()
+                          if k.startswith("luna1")}, {"luna1-plan": 11, "luna1-step-plan": 8})
+        revised = {k: len(v["data"]["revs"]) for k, v in docs["expectations"].items() if v["data"].get("revs")}
+        self.assertEqual(sum(revised.values()), 10)
+        self.assertEqual(sorted(revised), ["iter-I1", "iter-I2", "iter-I2b", "iter-I2r", "iter-I3", "iter-I4",
+                                           "iter-I5", "iter-I6", "phase-2"])
+
+    def test_the_file_is_compact_and_byte_stable(self):
+        self.assertEqual(json.dumps(self.snapshot, separators=(",", ":")).encode("utf-8"), self.raw)
 
 
 if __name__ == "__main__":

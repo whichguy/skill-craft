@@ -61,3 +61,44 @@ the first try (`skills/shiploop/scripts/shiploop_keepalive.py` selected `shiploo
 
 **Not done here.** No republish of the page, no data write, no push or release; R2 (snapshot the live database) is next
 and must land before any data write.
+
+## 2026-10-04: R2, the page database is snapshotted into the repo
+
+Status: firm for what the snapshot holds; the live database was not read or written by this change.
+
+**Why.** Findings, options, iterations, expectation revisions and the hand-built Backchain documents live only in the
+artifact database, which contradicted the old README's durability claim. Nothing after this entry may overwrite or
+delete a database document before this commit exists.
+
+**What.** `test/shiploop_e2e/evidence/run-review-db-snapshot-2026-10-04.json`, schema `run-review-db-snapshot/v1`,
+pulled from the artifact (`https://claude.ai/artifact/BFc6JGjLhENVJ9shRAA2iA`) at `pulledAt` 2026-10-04T23:47:48Z and
+copied here unchanged (compact one-line JSON, byte-identical to the pulled file). 113,108 bytes. Rows keep the database
+shape `{data, version, updatedAt}` under `docs/<collection>/<id>`, so a later restore can pin `if_version`. Counts:
+observations 39, actions 16, expectations 30, iterations 10, backchain 4, runs 8, config 2, which is 109 documents.
+
+**Where the hand-built records now live** (all in that file):
+
+- Iteration states: `docs.iterations` I0, I1, I2, I2b, I2c, I2r, I3, I4, I5, I6. The plan says "I0 to I6"; the database
+  also holds I2b, I2c and I2r.
+- Expectation revisions: 10 `revs` entries across nine `docs.expectations` documents: `iter-I1` (1), `iter-I2` (2),
+  `iter-I2b`, `iter-I2r`, `iter-I3`, `iter-I4`, `iter-I5`, `iter-I6` (1 each) and `phase-2` (1). Only `phase-2` is a
+  stage expectation; the other eight revise an iteration's expectation.
+- Hand Backchain documents: `docs.backchain.luna1-plan` (11 segments) and `docs.backchain.luna1-step-plan` (8). The
+  collection also holds `luna0-plan` and `sonnet-none`, both with no segments.
+- Run documents under the page's hand keys: `hello-1161`, `hello-1180`, `hello-1190a`, `hello-1190b`, `luna0`, `luna1`,
+  `sonnet-battleship`, `sonnet` (the committed evidence files use the exporter's default keys; the plan's run-key
+  step maps between them later).
+
+**Difference from the plan (status: unexplained).** The plan quotes 129,263 bytes from an earlier saved copy; this
+snapshot is 113,108 bytes. The per-collection counts are identical (39, 16, 30, 10, 4, 8, 2), so there is no sign that a
+document was added or removed, but the two copies' contents were not compared. The size difference is unexplained:
+re-serialising today's content gives 112,855 bytes (documents only, compact), 119,411 (default separators), 130,315
+(data only, indent 1), 141,064 and 161,702 (documents only, indent 1 and 2) and others, and none is 129,263.
+
+**Deletions.** None. No document id is listed for deletion, and no later increment may delete one without a new entry
+here.
+
+**Tests.** `DbSnapshotTest` in `test/shiploop-run-review.test.py` (4 tests): the schema id, the seven collections, a
+counts header equal to the actual counts (109 documents); every document has a non-empty id and the row shape; the
+records named above exist (ten iterations, 11 and 8 segments, 10 revisions in nine documents); and the file is compact
+and byte-stable. All four fail on the R1 tip (the file is absent there); the 22 earlier tests pass.
