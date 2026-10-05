@@ -695,3 +695,65 @@ map (R6); the publish step (not done) and the live-data operations of R9 (copy t
 first, merge clauses into the live criterion documents, overwrite `config/prompt`, normalise option statuses); and
 `COLLECTION_ORDER` in `export.py` still lists `iterations` and not `reviews` (left alone so this branch merges with the
 exporter work, which edits the lines beside it; `reviews` sorts last, which is harmless).
+
+## 2026-10-04: R8, the skill procedure, the advice rubric and the review check (local, unpublished)
+
+Status: firm for the code, its tests and the probe below. Local commits on branch `rr8-af090e` only: no push, no
+release, no E2E run, and no Artifact or ArtifactData call (the live page and its database are untouched; the template
+was not edited, R14 owns it).
+
+**What changed.** `SKILL.md` has four modes (`advise RUN_DIR_OR_KEY`, `export RUN_DIR`, `publish`, `check FILE`) and
+says plainly that scripts own the numbers and Claude owns the advice, with unmeasured never zero. `publish` takes the
+artifact URL from the user (which may be a separate draft artifact with its own empty database), finds the page
+titled "ShipLoop Run Review" only when none is given, never creates a second page unless asked, overwrites only the
+replicas it wrote (pinned with `if_version`), never overwrites an owner-added document and never writes an existing
+Backchain document (`luna1-plan` and `luna1-step-plan` hold hand verdicts). `references/advice.md` is the rubric:
+inputs, six steps, the option form, the honesty rules, the `mismatch.md` triage mapping, and (owner request) when to
+leave `effect` unset on purpose, how to write a `figure`, and a worked example with Luna's real numbers (13 refusals
+against an expected 0, 3 of them a space typed into a long path). `export.py --check FILE` and `--docs FILE` share
+`validate_doc` and the writer with the export; `COLLECTION_ORDER` lists every SCHEMA collection once (the removed
+`iterations` is gone; `reviews` sits before `observations` and `actions`). `iterate.py` prints
+`/skill-craft:shiploop-run-review advise <run dir>` instead of a file path (`review_line`).
+
+**The check, as built.** Failures (exit 2, every one listed, one per line, naming the document): schema and enums
+through `validate_doc`; every option's `findings` exist in the bundle; a `change-expectation` option has `change`
+and no other kind has one; each `goal` ends with a `Done when` clause (the last labelled part, with a condition);
+at most one `recommended` option per finding; a `clauses` id is `S-n` and one `defaults/expectations.json` uses.
+Warnings (exit 0, listed): an open finding no option names; evidence with no path or commit token (an open finding
+with no evidence at all reads the same, "none given"; a closed one with none does not warn); an open finding with no
+`effect`. A missing status reads as open, as the page does.
+
+**Probe on real data.** The R2 snapshot's findings and options, read as a bundle: 5 of 39 evidence strings have no
+path or commit token (o05, o06, o12, o17, o39: the same five the plan counted by hand, so the loose token test matches
+that count), 29 open findings with no option and no effect, all 16 option goals with no `Done when`, and three
+statuses outside the normalised vocabulary (a13 `building`, a14 `analysed`, a16 `waiting`). R9 must therefore
+rewrite all 16 instructions and map those three statuses, not only a12 to a15 as the plan scoped. A test pins this.
+
+**Decisions and deviations.**
+- The clause rule checks `clauses` lists in expectation documents of the bundle, the only structured carrier of a
+  clause id once the per-finding `clauses` override was cut. It does not scan prose: the defaults use 9 of the 15
+  SPEC clauses, so an option citing S-14 in its text is legitimate and must not fail. Open for the owner: also
+  check that a finding's, option's or review's `criterion` key exists in `defaults/expectations.json` (a typo there
+  silently reads "not examined"); the brief said no more rules, so it is not added.
+- `--docs` runs the check first and refuses a failing bundle without writing anything (the brief only said it writes
+  through `write_export`); this keeps `publish` from uploading an unchecked file. With no `--out` it writes to a new
+  temporary directory (`export_defaults` uses a fixed one, which would leave stale files between bundles).
+- The review file is named `<export name>.review.json` beside the run's export in `test/shiploop_e2e/evidence/`: the
+  evidence files carry the default key in their name while the documents inside use the page's key (`luna1`).
+- `SKILL.md` stays 119 lines (7,164 bytes) and `advice.md` 163 lines (10,342 bytes); no size bound is tested, per
+  "raise the bound, never trim".
+
+**Tests.** `python3 -B test/shiploop-run-review.test.py`: 148 tests (121 at the base tip `c2c4b63e`); 27 are new
+(`ReviewBundleCheckTests` 19, `ReviewSkillTextTests` 8) and all 27 fail on the base tip (a `git archive` of
+`c2c4b63e` into a temporary directory with only the test file and the fixture copied over; none of the 121 existing
+tests fails there). The skill-text tests collapse whitespace; the worked example in `advice.md` is run through
+`--check` and its numbers are compared with the committed Luna evidence (`refusals` 13, 3 broken paths). Also green
+after the commits: `node test/skill-frontmatter.test.js` (20 skills), `test/test-groups.test.py` (16),
+`test/marketplace-package.test.py` (29; the packaged copy of `export.py` passes `--check` on the sample),
+`test/ci-policy.test.py` (10), `scripts/check-release-boundary.py --base origin/main`, and the whole
+`test/shiploop-e2e.test.py` once (218 tests, 323 s; `iterate.py` changed, `ReviewAdviseLineTest` is new and fails on
+the base tip).
+
+**Commits.** `1a6c83ce` (--check, --docs, collection order, sample fixture, 18 tests), `f1b4e867` (iterate advise
+line), `ee20c5a7` (SKILL.md, advice.md, change note, 8 tests; a prompt-text commit with the learning and evidence),
+`366d6a8f` (the saved-data probe as a test).
