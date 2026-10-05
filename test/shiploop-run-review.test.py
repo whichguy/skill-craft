@@ -980,9 +980,9 @@ class LogicBlockTests(unittest.TestCase):
         page = script_text()
         self.assertIn("headerFacts(run)", page)
         self.assertNotIn("run.refusals", page)
-        self.assertIn("packet and result file sizes", page)
+        self.assertIn("packet and result are file sizes, not what the model read", page)
         self.assertNotIn("bytes printed and returned", page)  # packetBytes is a packet file's size, not what the model read
-        self.assertIn("minutesText(r.a.min)", page)
+        self.assertIn("visitTable(run,model)", page)
         self.assertNotIn('(r.a.min||0)+" min"', page)  # a missing minute is not drawn as 0 min
 
 
@@ -1065,21 +1065,26 @@ class PageShellTests(unittest.TestCase):
     def test_the_run_detail_reads_the_new_run_fields_defensively(self) -> None:
         bare = page_probe('textOf("rundetail")', setup=SAMPLE_SETUP)
         for line in ("Model calls (main thread)not measured", "Context peak (main thread)not measured",
-                     "Compactionsnot measured", "Improve passes: not measured."):
+                     "Compactionsnot measured"):
             self.assertIn(line, bare)
         self.assertNotRegex(bare, r"undefined|NaN|null")
         rich = page_probe(
             'Object.assign(data.runs[0],{calls:149,contextPeak:271220,contextWindow:1000000,compactions:0,improvePasses:19,improveMin:3.7,'
-            'unmeasured:{}});data.runs[0].stages[0].improve={passes:3,min:1.2};data.runs[0].stages[1].improve={passes:2};'
-            'data.runs[0].stages[1].skipped=true;renderAll();textOf("rundetail")', setup=SAMPLE_SETUP)
-        for line in ("Model calls (main thread)149", "Context peak (main thread)271,220 tokens of 1,000,000 (27.1%)",
-                     "Compactions0", "19 review passes in 2 visits, 3.7 min, 12% of elapsed.", "intake3 passes1.2 min".replace("intake", "")):
+            'unmeasured:{}});renderAll();textOf("rundetail")', setup=SAMPLE_SETUP)
+        for line in ("Model calls (main thread)149", "Context peak (main thread)271,220 tokens of 1,000,000 (27.1%)", "Compactions0"):
             self.assertIn(line, rich)
-        self.assertIn("blocked, skipped, 2 Improve passes", rich)
-        self.assertIn("n/a", rich)  # the second visit's Improve minutes were not measured
-        reason = page_probe('data.runs[0].unmeasured={improvePasses:"no improve children recorded"};renderAll();textOf("rundetail")',
+        self.assertNotIn("Stages: minutes between accepts", rich)  # the old stage table is replaced by the picture and its table
+
+    def test_the_improve_card_reads_the_stage_rows_and_totals_and_says_when_it_was_not_measured(self) -> None:
+        bare = page_probe('textOf("kpis")', setup=SAMPLE_SETUP)
+        self.assertIn("Improvenot measuredno Improve record", bare)
+        rich = page_probe(
+            'Object.assign(data.runs[0],{improvePasses:19,improveMin:3.7,unmeasured:{}});data.runs[0].stages[0].improve={passes:3,min:1.2};'
+            'data.runs[0].stages[1].improve={passes:2};renderAll();textOf("kpis")', setup=SAMPLE_SETUP)
+        self.assertIn("Improve19 passes3.7 min, 12% of elapsed", rich)
+        reason = page_probe('data.runs[0].unmeasured={improvePasses:"no improve children recorded"};renderAll();textOf("kpis")',
                             setup=SAMPLE_SETUP)
-        self.assertIn("Improve passes: not measured (no improve children recorded).", reason)
+        self.assertIn("Improvenot measuredno improve children recorded", reason)
 
 
 class PageShellLogicTests(unittest.TestCase):
@@ -2471,6 +2476,158 @@ class SequenceModelTests(unittest.TestCase):
                          ["97.5%", "27%", "100%", "814 B", "54.2 KB", "19.3 h", "15.2 min", "119 min"])
         self.assertEqual(run_logic('[whyNot({unmeasured:{shiploop_failures:"a"}},"refusals"), whyNot({unmeasured:{refusals:"b",shiploop_failures:"a"}},"refusals"),'
                                    ' whyNot({},"refusals"), whyNot({unmeasured:{contextPeak:"c"}},"contextPeak")]'), ["a", "b", "", "c"])
+
+
+def evidence_run(key: str) -> dict:
+    name = next(n for n, k in EVIDENCE_RUNS.items() if k == key)
+    return json.loads((EVIDENCE_DIR / name).read_text())["docs"]["runs"][key]
+
+
+def with_run(key: str) -> str:
+    """Page setup that shows a committed v2 run (Luna or a hello run) and nothing else."""
+    return ("data.runs=[Object.assign(" + json.dumps(evidence_run(key)) + ",{order:1})];data.bc=[];"
+            "Object.keys(loaded).forEach(function(k){loaded[k]=true;});renderAll();")
+
+
+class SequencePictureTests(unittest.TestCase):
+    """R14: what the page draws from the model: the SVG, the six cards, a tapped column, the table and the comparison."""
+
+    def svg(self, run: dict, picked: int = -1) -> str:
+        return run_logic("sequenceSvg(sequenceModel(" + json.dumps(run) + ",{}),%d)" % picked)
+
+    def test_every_column_has_a_bar_and_a_hit_area_and_the_run_with_context_has_a_band_of_bars_flags_and_ticks(self) -> None:
+        run = evidence_run("luna1")
+        svg = self.svg(run)
+        self.assertEqual((svg.count('class="sq-col '), svg.count('class="sq-hit"')), (39, 39))
+        self.assertEqual(len(re.findall(r'class="sq-ctx[ "]', svg)), 39)
+        self.assertEqual(svg.count('class="sq-ctx warn"'), sum(1 for r in run["stages"] if r["context"]["peakPct"] >= 90))
+        counts = [r["context"]["compactions"] for r in run["stages"]]
+        self.assertEqual(svg.count('class="sq-tri"'), sum(c for c in counts if 0 < c <= 3))
+        for many in sorted({c for c in counts if c > 3}):  # more than three: the count as a number
+            self.assertRegex(svg, r'class="sq-mark"[^>]*>%d</text>' % many)
+        self.assertEqual(svg.count("sq-100"), 1)
+        self.assertIn(">100%</text>", svg)
+        self.assertEqual(svg.count("sq-mark"), 2 + 1 + 1)  # B and R under the columns, and the counts 4 and 5 in the band
+        self.assertEqual(sum(r.get("improve", {}).get("passes", 0) > 0 for r in run["stages"]), svg.count('class="sq-imp"'))
+        self.assertEqual(svg.count("sq-sel"), 0)
+        self.assertEqual(self.svg(run, 5).count('class="sq-sel"'), 1)
+
+    def test_a_run_without_per_visit_context_draws_no_band_and_collapses_the_skipped_visits_to_xn_labels(self) -> None:
+        svg = self.svg(evidence_run("hello-1190b"))
+        self.assertEqual((svg.count('class="sq-col '), svg.count('class="sq-hit"')), (49, 49))
+        for absent in ("sq-ctx", "sq-bandbg", "sq-100", "sq-tri", "sq-nm"):
+            self.assertNotIn(absent, svg)
+        self.assertEqual((svg.count(">x4</text>"), svg.count(">x3</text>"), svg.count(" skip\"")), (1, 1, 2))
+        self.assertEqual(svg.count('class="sq-imp"'), 11)
+        self.assertEqual(len(re.findall(r">P</text>", svg)), 1)
+
+    def test_skipped_seeded_and_untimed_visits_are_drawn_apart_and_no_bar_has_zero_height(self) -> None:
+        run = {"wallMin": 10, "stages": [
+            {"stage": "intake", "outcome": "done", "min": None}, {"stage": "spec", "outcome": "done", "min": None, "seeded": True},
+            {"stage": "plan", "outcome": "done", "min": 4}, {"stage": "select-work", "outcome": "done", "min": 0},
+            {"stage": "step-plan", "outcome": "done", "min": 0.0, "skipped": True}]}
+        svg = self.svg(run)
+        classes = re.findall(r'class="sq-col ([^"]+)"', svg)
+        self.assertEqual(classes, ["na", "seed", "o-done", "o-done", "skip"])
+        self.assertIn(">n/a</text>", svg)
+        self.assertEqual(svg.count(">S</text>"), 1)
+        heights = [float(h) for h in re.findall(r'class="sq-col [^"]+" x="[^"]+" y="[^"]+" width="[^"]+" height="([^"]+)"', svg)]
+        self.assertEqual(heights, [26, 20, 96, 2, 14])  # n/a, seeded, the tallest, a work visit timed to zero, skipped
+        self.assertTrue(all(h >= 2 for h in heights))
+        skipped = self.svg({"stages": [{"stage": "test-spec", "skipped": True, "min": 0}, {"stage": "baseline", "skipped": True, "min": 0}]})
+        self.assertEqual((re.findall(r'class="sq-col ([^"]+)"', skipped), skipped.count(">x2</text>")), (["skip"], 1))
+        self.assertIn('id="sq-hatch"', skipped)
+        self.assertIn('id="sq-cross"', skipped)
+
+    def test_the_svg_takes_every_colour_from_the_page_tokens_and_escapes_what_it_prints(self) -> None:
+        svg = self.svg(evidence_run("luna1"), 3)
+        self.assertNotRegex(svg, r'(?i)#[0-9a-f]{3,8}\b(?!\))|rgb\(|hsl\(', "a colour literal would not follow dark mode")
+        self.assertNotRegex(svg, r"NaN|undefined|null|Infinity")
+        css = TEMPLATE.read_text(encoding="utf-8").split("</style>")[0]
+        for rule in re.findall(r"^\.(?:sq|sw|kpi)[^{]*\{[^}]*\}", css, re.M):
+            self.assertNotRegex(rule, r"(?i)#[0-9a-f]{3,8}\b|rgb\(|hsl\(", rule)
+        hostile = self.svg({"stages": [{"stage": "<img src=x onerror=alert(1)>", "outcome": '"><script>', "min": 1}]})
+        self.assertNotIn("<img", hostile)
+        self.assertNotIn("<script", hostile)
+        self.assertIn("&lt;img src=x onerror=alert(1)&gt;", hostile)
+
+    def test_step_1_has_six_cards_the_picture_and_a_table_and_the_old_stage_table_is_gone(self) -> None:
+        html = TEMPLATE.read_text(encoding="utf-8")
+        for gone in ("hideshort", "hideShort", "Hide stages under 1 minute", "Stages: minutes between accepts"):
+            self.assertNotIn(gone, html)
+        out = page_probe('[REG.kpis.children.map(function(c){return c.textContent;}), REG.seqscroll.innerHTML.slice(0,4),'
+                         ' REG.seqcard.hidden, textOf("seqtabsum"), walk(REG.seqtable,function(e){return e.tagName==="tr";}).length]',
+                         setup=SAMPLE_SETUP)
+        self.assertEqual(out[0], ["Visits22 work", "Elapsed (accept to accept)30 minstart to the last accept",
+                                  "Improvenot measuredno Improve record", "Backchain loopsnoneno Backchain loop recorded for this run",
+                                  "Context (main thread)not measuredno reason recorded", "Refusalsnot measuredno reason recorded"])
+        self.assertEqual((out[1], out[2], out[3], out[4]), ("<svg", False, "Table of the 2 visits (packet and result are file sizes, not what the model read)", 3))
+
+    def test_tapping_a_column_shows_its_detail_with_the_findings_at_its_stage_and_previous_and_next_walk_the_visits(self) -> None:
+        out = page_probe(
+            'setCol(1);var a=textOf("seqdetail"),btns=byClass("seqdetail","btn").map(function(b){return b.textContent+":"+b.disabled;}),'
+            'chips=byClass("seqdetail","chip").map(function(c){return c.textContent;}),sel=REG.seqscroll.innerHTML.indexOf("sq-sel")>0;'
+            'byClass("seqdetail","btn")[0].onclick();var b=textOf("seqdetail");'
+            'setCol(1);byClass("seqdetail","btn")[2].onclick();[a,btns,chips,sel,b,textOf("seqdetail"),pickedCol]', setup=SAMPLE_SETUP)
+        self.assertIn("Visit 2: spec", out[0])
+        self.assertIn("blocked (marked B)", out[0])
+        self.assertIn("25 min, 83.3% of elapsed", out[0])
+        self.assertEqual(out[1], ["Previous visit:false", "Next visit:true", "Close:false"])
+        self.assertEqual(out[2], ["#1 First finding"])  # the finding marked at the Specify phase for this run
+        self.assertTrue(out[3])
+        self.assertIn("Visit 1: intake", out[4])  # Previous
+        self.assertEqual((out[5], out[6]), ("", -1))  # Close
+
+    def test_the_click_handler_selects_the_tapped_column_again_deselects_and_another_run_starts_clean(self) -> None:
+        out = page_probe(
+            'var hit=function(k){return {target:{closest:function(){return {getAttribute:function(){return String(k);}};}}};};'
+            'REG.seqscroll.onclick(hit(0));var a=pickedCol;REG.seqscroll.onclick(hit(1));var b=pickedCol;REG.seqscroll.onclick(hit(1));var c=pickedCol;'
+            'REG.seqscroll.onclick({target:{closest:function(){return null;}}});var d=pickedCol;REG.seqscroll.onclick(hit(0));'
+            'L.run="r2";renderAll();[a,b,c,d,pickedCol,textOf("seqdetail")]', setup=SAMPLE_SETUP)
+        self.assertEqual(out, [0, 1, -1, -1, -1, ""])
+
+    def test_the_table_lists_every_visit_and_a_run_with_no_visits_hides_the_picture_but_keeps_its_cards(self) -> None:
+        luna = page_probe('[walk(REG.seqtable,function(e){return e.tagName==="tr";}).length,walk(REG.seqtable,function(e){return e.tagName==="th";}).length,'
+                          'textOf("seqtabsum"),textOf("kpis"),textOf("seqnote"),REG.seqnote.hidden,REG.sqlegband.hidden,REG.seqscroll.innerHTML.split("sq-col ").length-1]',
+                          setup=with_run("luna1"))
+        self.assertEqual((luna[0], luna[1], luna[5], luna[6]), (40, 9, True, False))
+        self.assertEqual((luna[2][:24], luna[7]), ("Table of the 39 visits (", 39))
+        for text in ("Visits3939 work", "Elapsed (accept to accept)19.3 hstart to the last accept, 1,158.5 min",
+                     "Improve41 passes360.3 min, 31% of elapsed", "Context (main thread)97.5%251,867 of 258,400 tokens; 34 compactions",
+                     "Refusals13ShipLoop commands that exited non-zero"):
+            self.assertIn(text, luna[3])
+        self.assertEqual(luna[4], "")
+        hello = page_probe('[textOf("kpis"),textOf("seqnote"),REG.seqnote.hidden,REG.sqlegband.hidden,walk(REG.seqtable,function(e){return e.tagName==="th";}).length]',
+                           setup=with_run("hello-1190b"))
+        self.assertIn("Visits5447 work, 7 skipped", hello[0])
+        self.assertIn("Improve19 passes", hello[0])
+        self.assertIn("Refusalsnot measured", hello[0])
+        self.assertIn(evidence_run("hello-1190b")["unmeasured"]["shiploop_failures"], hello[0])
+        self.assertEqual(hello[1], "Per-visit context not measured on this host: " + evidence_run("hello-1190b")["unmeasured"]["visitContext"])
+        self.assertEqual((hello[2], hello[3], hello[4]), (False, True, 7))
+        for text in (luna[3], hello[0], hello[1]):
+            self.assertNotRegex(text, r"undefined|NaN|null")
+        empty = page_probe('data.runs[0].stages=[];renderAll();[REG.seqcard.hidden,REG.seqtabbox.hidden,REG.kpis.children.length,textOf("seqdetail")]',
+                           setup=SAMPLE_SETUP)
+        self.assertEqual(empty, [True, True, 6, ""])
+
+    def test_the_comparison_shows_the_same_six_numbers_for_both_runs_side_by_side(self) -> None:
+        out = page_probe('L.cmp="r2";renderAll();[textOf("rundetail"),walk(REG.rundetail,function(e){return e.tagName==="tr"&&e.parent&&e.parent.tagName==="tbody";}).length]',
+                         setup=SAMPLE_SETUP)
+        self.assertIn("The same six numbers, side by side", out[0])
+        self.assertIn("MeasureRun oneRun two", out[0])
+        self.assertIn("Elapsed (accept to accept)30 minstart to the last accept12 minstart to the last accept", out[0])
+        self.assertEqual(out[1], 6)
+        none = page_probe('L.cmp="";renderAll();textOf("rundetail")', setup=SAMPLE_SETUP)
+        self.assertNotIn("side by side", none)
+
+    def test_the_path_chevrons_say_how_many_findings_each_stage_has_for_this_run(self) -> None:
+        out = page_probe('byClass("flow","fc").map(function(c){return c.textContent;})', setup=SAMPLE_SETUP)
+        self.assertEqual(out, ["1 finding, 1 open"])  # o1 sits at the Specify phase; o2's phase has no chevron in this sample
+        more = page_probe('data.obs.push({id:"o3",title:"t",phase:1,run:"r1",status:"fixed"},{id:"o4",title:"u",phase:1,runs:["r2"],status:"open"},'
+                          '{id:"o5",title:"v",phase:0,run:"any",status:"open"});renderAll();byClass("flow","fc").map(function(c){return c.textContent;})',
+                          setup=SAMPLE_SETUP)
+        self.assertEqual(more, ["1 finding, 1 open", "2 findings, 1 open"])  # o4 names only r2, so it is not r1's
 
 
 if __name__ == "__main__":

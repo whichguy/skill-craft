@@ -759,9 +759,12 @@ line), `ee20c5a7` (SKILL.md, advice.md, change note, 8 tests; a prompt-text comm
 `366d6a8f` (the saved-data probe as a test).
 ## 2026-10-04: R14, the sequence picture and the six cards on step 1 (part 1: the pure model; not published)
 
-Status: firm for the model and its tests. Local commits only: nothing was pushed or released, no E2E run was launched, and no
-Artifact or ArtifactData call was made, so the live page and its database are untouched. Base: `c2c4b63e` (R1 to R7, R10 to R13,
-R15). This entry grows with the second commit (the renderer, the strip and the render check).
+## 2026-10-04: R14, the sequence picture and the six cards on step 1 (template and tests; not published)
+
+Status: firm for the model, the picture, the cards, their tests and the render check. Local commits only: nothing was pushed or
+released, no E2E run was launched, and no Artifact or ArtifactData call was made, so the live page and its database are
+untouched (the plan's republish step is still open). Base: `c2c4b63e` (R1 to R7, R10 to R13, R15). Two commits: the pure model
+with its tests (`2fa82da5`), then the renderer, the cards, the strip and the render fixes.
 
 **Why.** The owner asked for "a very visual diagram of the number, duration, and meta context used during the sequences".
 The exporter (R12, R13) already carries what the picture needs: a row per visit with `action`, `skipped`, `seeded`, `improve`
@@ -805,3 +808,96 @@ warning flags equal to the visits at 90% or more; none for the four Claude runs,
 with no context getting no bar, a seeded and an n/a fixture row (fixed heights, S mark, never zero), the detail card and the
 table. Run from a `git archive` of `c2c4b63e` outside the repository with only the test file copied over, all 13 fail
 (the template has no `sequenceModel`), and the two changed assertions fail too.
+
+**The picture** (`sequenceSvg(model, picked)`, pure, in the logic block; inline SVG, only fixed class names, numbers and escaped
+text, every colour a class of the page's own tokens so dark mode follows). One column per visit on a 16 unit pitch (13 wide), so
+Luna's 39 columns are 624 units and the 54-visit run's 49 are 784, inside an inner horizontal scroller in the card; the SVG is
+at least as wide as the card up to 1.4 times its natural size, so a desktop card shows it whole. Top to bottom: the Improve
+passes as a number above a column, the columns on a baseline (green done, amber revise or replan, red blocked; hatched skipped
+with an "xN" label; cross-hatched seeded; outlined "n/a" for a visit with no time), the text marks R, P, B and S under the
+baseline, the context band when there is one, its compaction ticks, and visit numbers every fifth column. The band is a bar per
+column at its `peakPct` of the window (a faint dashed 100% line, labelled), amber with a "!" inside from 90%, a dashed tick (not
+a bar) for a visit with no context, and a small triangle per compaction up to three, a number above three (Luna's visit 6 has 4
+and visit 9 has 5). A transparent hit area spans each column's full height (16 wide, 176 high), and the detail card carries
+Previous visit, Next visit and Close buttons of 44 px for a thumb that cannot hit a 16 px column. Tapping a column again closes it.
+
+**The page, step 1.** The old stage table is gone, replaced (not kept): the six cards, then the picture, then the detail of the
+tapped column, then a collapsed table of every visit (one row per visit, the phone-readable and accessible form), then the path
+chevrons (each Observed chevron now says how many findings sit at its phase for this run, and how many are open) and the run
+detail. In the run detail the stage table, its "hide stages under 1 minute" checkbox and the per-visit Improve card are removed
+(the Improve card is a headline card now, and the passes sit in the picture and the table); the facts card, the planning
+documents and the failures stay, and choosing a second run shows "The same six numbers, side by side" (the six cards of both
+runs in one table) instead of the stage comparison. Findings at a phase now use the same rule everywhere (`appliesTo`, so a
+finding with a `runs` list counts for those runs only): the chevron counts, the numbered dots and the phase panel agree.
+
+**Static render check (required).** The template was served from a scratch folder by `python3 -m http.server` on 127.0.0.1 (port
+8814, stopped afterwards) in front of a fake `window.claude.use("db")` (the build script of R7, copied and pointed at this
+worktree) loaded with the committed db snapshot, the five committed v2 evidence files as run documents under the page's keys
+(`luna1`, `hello-1161`, `hello-1180`, `hello-1190a`, `hello-1190b`, replacing the snapshot's older v1 run documents; the two
+Luna Backchain documents are the snapshot's hand-built ones) and the R7 sample overlay (invented sample text, not a review of
+the run). Scripts and screenshots stay in the session scratchpad (`rr14/`), not committed. Looked at, in my own tab: step 1 for
+Luna and for the 54-visit hello run at 375 px light and dark and at 1100 px light and dark, plus a tapped column, the skipped
+column's detail, the table and the comparison.
+
+What I saw. Luna: six cards (39 visits; 19.3 h; 41 passes, 360.3 min, 31% of elapsed; 2 loops, 384 min as stages, 33%; context
+97.5% of 258,400 tokens with 34 compactions; 13 refusals) over 39 columns. The tallest is `plan` (visit 6, 196.4 min, "3"
+Improve passes above it) next to `test-strategy` (visit 5, "11" passes), `step-plan` (visit 9, 187.7 min) and the second
+`test-spec` (visit 18, "8"); visit 16 is amber with an R, the last column is red with a B (blocked at system-test). The band
+under it is mostly amber with "!" from the spec stage on (21 of 39 visits at 90% or more), with 34 triangles and the numbers 4
+and 5. The 54-visit hello run: 49 columns, the tallest `spec` (visit 4, 2.2 min), an amber column with a P (visit 27,
+replan), two hatched columns labelled x4 and x3 (visits 30 to 33 and 35 to 37), a 2 px sliver for `skill-validate` (visit 40,
+timed to under 0.05 min), Improve numbers 1 to 3 above eleven columns, no band, and under the picture "Per-visit context not
+measured on this host: the harness's stage rows carry no per-stage context ...". Its Context card reads 27.1% of 1,000,000
+and its Refusals card "not measured" with the harness's reason in full.
+
+What the check found and fixed (all in this commit): (1) a blank 16 unit header row above the columns wasted a tenth of the
+chart on a phone (the caption moved to HTML); the row is 6 units now. (2) The band legend, one inline-flex span holding three
+items, wrapped into three narrow columns of broken text; it is three spans in a `display: contents` wrapper now. (3) The detail
+card laid its facts out one per line on a phone (a tall card with the labels above the values) and listed all 24 findings of
+Luna's Plan phase as pills; the facts are a two-column list and the findings a collapsed disclosure that names their count
+(open by default for four or fewer). (4) Table cells wrapped on a phone ("36.83 min" over three lines); cells do not wrap now
+and the table scrolls inside its wrapper. (5) The Refusals card carried the harness's 150 character reason in a 160 px card, nine
+lines tall, stretching its neighbour; an unmeasured card whose note is longer than 60 characters spans its whole row (the
+reason stays printed in full). (6) The "scroll it sideways" hint was computed once, so it stayed after the window widened;
+it follows a resize and the step being shown. Looked right: no horizontal page scroll at 375 px in any of the four steps for
+both runs with a comparison chosen (document width 375, every element past the viewport inside a scroller); every label in
+the picture is 11 px or more at natural size (11 px on a phone, about 15 px on a wide card); dark tokens (bars, hatch, band, "!"
+marks, legend, cards); the "x4" and "x3" labels clear their neighbours' numbers; compaction triangles keep a gap of 2 px or
+more between adjacent columns; the scroller has no vertical overflow (scroll height equals client height), so it cannot hold the page's vertical scroll. Seen and left: the
+Context card sits next to an empty cell when the Refusals card spans the row; the selection outline spans the column's whole
+height, so it crosses the visit's compaction number.
+
+**Tests (part 2).** `python3 -B test/shiploop-run-review.test.py`: 145 tests OK (134 after part 1, 121 at the base tip). Eleven
+are new: ten in `SequencePictureTests` (the SVG for Luna has 39 columns, 39 hit areas, 39 context bars, 21 warning bars, the
+triangles of 1 to 3 compactions and the numbers 4 and 5, one 100% line, one selection outline when a column is picked; the
+hello repeat's SVG has 49 columns, two hatched ones labelled x4 and x3, 11 Improve numbers, a P mark and none of the band's
+elements; a fixture draws n/a, seeded and skipped columns with heights 26, 20 and 14 and a 2 px work visit, never a zero bar;
+no colour literal in the SVG or in the `.sq`, `.sw` and `.kpi` rules and hostile stage names escaped; the page shows six cards,
+the picture and a table and none of the removed stage table; a tap shows the detail with the findings at its stage and Previous
+and Close work; the click handler selects, deselects and resets on another run; the table has a row per visit, Luna's cards and
+the hello repeat's "Visits 54, 47 work, 7 skipped", its not-measured Refusals with the harness reason and its band note; the
+comparison shows the same six numbers for both runs; the chevrons count findings per run) and one splits the old Improve
+assertions out of the run-detail test (`kpis` now carries them). Three existing tests were changed on purpose: the context
+text (one decimal, part 1), the file-size label (the page now says "packet and result are file sizes, not what the model
+read") and the run-detail test (the stage table is gone). Run from a `git archive` of `c2c4b63e` outside the repository with
+only the test file copied over, all 24 new tests of both parts fail (31 failures counting the subtests of one) and so do the
+three changed tests; nothing else fails. The four gates pass: `node
+test/skill-frontmatter.test.js`, `python3 -B test/test-groups.test.py` (16 tests), `python3 -B test/marketplace-package.test.py`
+(29 tests) and `python3 -B scripts/check-release-boundary.py --base origin/main`. `test/shiploop-e2e.test.py` was not run: nothing
+under `test/shiploop_e2e` changed.
+
+**Size.** `template/index.html` is 110,496 bytes (css 18,711, markup and head about 8,840, pure logic 38,519, page script
+44,425), against 86,892 at the base tip: 23.6 KB more. The old stage table and the Improve card gave back about 8 KB of page
+script, but the model, its detail and table, and the SVG renderer add 17 KB to the logic block (that is the code the tests run)
+and the picture's styles 3.5 KB. The 75 KB guide of R4 is long gone; nothing here is dead code, so I did not trim.
+
+**Deviations from the plan, and open for the owner.** (1) A column's hit area is 16 units wide, the plan's minimum column, not
+40 px: 39 to 54 columns cannot each be 40 px wide in one picture, so the touch path is Previous and Next buttons of 44 px in the
+detail card (and the table). Say if you would rather have a 40 px pitch (Luna 1,560 px, the 54-visit run 2,000 px, scrolled).
+(2) Seeded visits are not collapsed (only skipped ones are, as written); each is a column marked S. The harness seeds a block at
+the start of a run, so a seeded run draws that many fixed-height columns; collapsing them like the skipped ones is a one-line
+change. (3) The Context card shows one decimal ("97.5%", "27.1%") and so does `contextText` now (it said 97% and 27%); the
+percentages in the picture's band come from the exporter's `peakPct`. (4) A visit with no context in a run that has some is a
+dashed tick, not a bar; no real run has one yet (Luna has all 39). (5) Backchain loops is the existing ledger's number (loops,
+minutes as stages, share of elapsed); the per-pass judgement stays in the loop cards below. (6) The picture's legend lists
+seeded and n/a items even for a run with none, so the legend is the same for every run.
