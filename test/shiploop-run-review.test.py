@@ -9,6 +9,7 @@ table. Which suites a change under the leaf selects is pinned in test/test-group
 from __future__ import annotations
 
 import contextlib
+import copy
 from datetime import datetime, timedelta, timezone
 import hashlib
 import importlib.util
@@ -22,6 +23,7 @@ import subprocess
 import sys
 import tempfile
 import unittest
+from unittest import mock
 
 ROOT = Path(__file__).resolve().parents[1]
 SKILL_ROOT = ROOT / "skills" / "shiploop-run-review"
@@ -30,6 +32,7 @@ SCHEMA_MD = SKILL_ROOT / "SCHEMA.md"
 DEFAULTS_DIR = SKILL_ROOT / "defaults"
 SNAPSHOT = ROOT / "test" / "shiploop_e2e" / "evidence" / "run-review-db-snapshot-2026-10-04.json"
 LUNA_EVIDENCE = ROOT / "test" / "shiploop_e2e" / "evidence" / "codex-gpt-6-luna-1.16.1-battleship-20261003.json"
+SAMPLE_REVIEW = ROOT / "test" / "fixtures" / "run-review" / "sample.review.json"
 _spec = importlib.util.spec_from_file_location("run_review_export", SKILL_ROOT / "scripts" / "export.py")
 export = importlib.util.module_from_spec(_spec)
 _spec.loader.exec_module(export)
@@ -1883,6 +1886,270 @@ class CommittedEvidenceTest(unittest.TestCase):
         self.assertEqual((run["calls"], run["contextPeak"]), (149, 271220))
         for key in ("hello-1161", "hello-1180", "hello-1190a"):
             self.assertFalse(any(row.get("skipped") for row in self.run_doc(key)["stages"]), key)
+
+
+class ReviewBundleCheckTests(unittest.TestCase):
+    """`export.py --check FILE` and `--docs FILE`: the review rules over a bundle of documents (SKILL.md)."""
+
+    def setUp(self):
+        tmp = tempfile.TemporaryDirectory()
+        self.addCleanup(tmp.cleanup)
+        self.tmp = Path(tmp.name)
+        self.sample = json.loads(SAMPLE_REVIEW.read_text(encoding="utf-8"))
+
+    def cli(self, *args) -> tuple[int, str, str]:
+        out, err = io.StringIO(), io.StringIO()
+        with contextlib.redirect_stdout(out), contextlib.redirect_stderr(err):
+            code = export.main([str(a) for a in args])
+        return code, out.getvalue(), err.getvalue()
+
+    def bundle_file(self, bundle) -> Path:
+        path = self.tmp / f"bundle-{len(list(self.tmp.glob('bundle-*.json')))}.json"
+        path.write_text(json.dumps(bundle), encoding="utf-8")
+        return path
+
+    def edited(self, change) -> dict:
+        """A copy of the passing sample after `change(docs)`."""
+        bundle = copy.deepcopy(self.sample)
+        change(bundle["docs"])
+        return bundle
+
+    def check(self, change) -> tuple[int, str, str]:
+        return self.cli("--check", self.bundle_file(self.edited(change)))
+
+    # ---- the sample and the failures
+
+    def test_the_sample_review_passes_with_no_warnings_and_has_the_shape_the_rules_need(self):
+        code, out, err = self.cli("--check", SAMPLE_REVIEW)
+        self.assertEqual((code, err), (0, ""))
+        self.assertIn("check: ok (6 documents, 0 failures, 0 warnings)", out)
+        docs = self.sample["docs"]
+        self.assertEqual(len(docs["observations"]), 2)
+        self.assertEqual(sum("figure" in f for f in docs["observations"].values()), 1)
+        kinds = {o["kind"]: o for o in docs["actions"].values()}
+        self.assertEqual(sorted(kinds), ["accept", "change-expectation", "fix-shiploop"])
+        self.assertEqual(kinds["change-expectation"]["change"]["target"], "spec")
+
+    def test_each_rule_fails_the_check_and_names_the_document(self):
+        def two_recommended(docs):
+            docs["actions"]["a-accept-paths"]["recommended"] = True
+
+        def goal(docs, text):
+            docs["actions"]["a-accept-paths"]["goal"] = text
+
+        cases = {
+            "an option linking a finding that is not in the bundle":
+                (lambda d: d["actions"]["a-accept-paths"].update(findings=["f-gone"]),
+                 ["actions/a-accept-paths", "f-gone"]),
+            "a bad enum": (lambda d: d["actions"]["a-callback-alias"].update(kind="fix-everything"),
+                           ["actions/a-callback-alias", "fix-everything"]),
+            "a bad finding status": (lambda d: d["observations"]["f-context"].update(status="wontfix"),
+                                     ["observations/f-context", "wontfix"]),
+            "a change-expectation with no change": (lambda d: d["actions"]["a-spec-context"].pop("change"),
+                                                    ["actions/a-spec-context", "change-expectation", "change"]),
+            "a change on any other kind": (lambda d: d["actions"]["a-accept-paths"].update(
+                change={"target": "page", "to": "x", "reason": "y"}),
+                                           ["actions/a-accept-paths", "only a change-expectation"]),
+            "a change whose target is not page or spec": (lambda d: d["actions"]["a-spec-context"]["change"].update(
+                target="code"), ["actions/a-spec-context", "code"]),
+            "an instruction that stops before Done when": (
+                lambda d: goal(d, "Do: record it. Done when: the entry exists. Test: none."),
+                ["actions/a-accept-paths", "Done when"]),
+            "an instruction with no Done when": (lambda d: goal(d, "Do: record it. Test: none."),
+                                                 ["actions/a-accept-paths", "Done when"]),
+            "a Done when with no condition": (lambda d: goal(d, "Do: record it. Done when:"),
+                                              ["actions/a-accept-paths", "Done when"]),
+            "an option with no instruction": (lambda d: d["actions"]["a-accept-paths"].pop("goal"),
+                                              ["actions/a-accept-paths", "Done when"]),
+            "two recommended options on one finding": (two_recommended, ["observations/f-refusals", "2 recommended",
+                                                                         "a-accept-paths", "a-callback-alias"]),
+            "a clause id the defaults do not use": (
+                lambda d: d.update(expectations={"P3": {"kind": "criterion", "clauses": ["S-2", "S-99"]}}),
+                ["expectations/P3", "S-99", "defaults/expectations.json"]),
+            "a clause id that is not S-n": (
+                lambda d: d.update(expectations={"P3": {"kind": "criterion", "clauses": ["S3"]}}),
+                ["expectations/P3", "S3", "S-n"]),
+        }
+        for name, (change, needles) in cases.items():
+            with self.subTest(name):
+                code, out, err = self.check(change)
+                self.assertEqual(code, 2, err)
+                for needle in needles:
+                    self.assertIn(needle, err)
+                self.assertNotIn("check: ok", out)
+                self.assertIn("check: FAILED", err)
+
+    def test_a_bundle_in_another_schema_or_shape_fails_and_an_unreadable_file_is_an_error(self):
+        for name, bundle in {"v1": {"schema": "run-review-export/v1", "docs": {}}, "no docs": {"schema": export.SCHEMA_ID},
+                             "not an object": [1], "a collection that is not a map": {
+                                 "schema": export.SCHEMA_ID, "docs": {"actions": [1]}}}.items():
+            with self.subTest(name):
+                code, _, err = self.cli("--check", self.bundle_file(bundle))
+                self.assertEqual(code, 2)
+                self.assertIn("fail: bundle:", err)
+        code, _, err = self.cli("--check", self.tmp / "missing.json")
+        self.assertEqual(code, 2)
+        self.assertIn("cannot read the review bundle", err)
+        broken = self.tmp / "broken.json"
+        broken.write_text("{not json")
+        self.assertEqual(self.cli("--check", broken)[0], 2)
+
+    def test_every_failure_is_listed_one_per_line_and_none_is_dropped(self):
+        def three(docs):
+            docs["actions"]["a-callback-alias"]["kind"] = "nonsense"
+            docs["actions"]["a-accept-paths"]["findings"] = ["f-gone"]
+            docs["actions"]["a-spec-context"].pop("change")
+
+        code, _, err = self.check(three)
+        lines = [line for line in err.splitlines() if line.startswith("fail: ")]
+        self.assertEqual(code, 2)
+        self.assertEqual(len(lines), 3, err)
+        self.assertEqual(sorted(line.split(":")[1].strip() for line in lines),
+                         ["actions/a-accept-paths", "actions/a-callback-alias", "actions/a-spec-context"])
+        self.assertIn("check: FAILED (3 failures, 0 warnings)", err)
+
+    def test_a_clause_id_the_defaults_use_passes(self):
+        clauses = sorted({c for e in json.loads((DEFAULTS_DIR / "expectations.json").read_text())
+                          for c in e.get("clauses", [])})
+        self.assertIn("S-2", clauses)
+        code, out, err = self.check(lambda d: d.update(expectations={"P3": {"kind": "criterion", "clauses": clauses}}))
+        self.assertEqual((code, err), (0, ""), err)
+
+    def test_a_done_when_clause_may_follow_other_parts_and_a_condition_may_mention_a_test(self):
+        for text in ("Do: x. Files and symbols: y. Test: z. Done when: z passes.",
+                     "Do: x. Done when the test passes", "Do: x.\nDone when: both tests pass and the page reads 'ok'."):
+            with self.subTest(text):
+                code, _, err = self.check(lambda d: d["actions"]["a-accept-paths"].update(goal=text))
+                self.assertEqual((code, err), (0, ""), err)
+
+    # ---- the warnings
+
+    def test_an_open_finding_no_option_names_warns_and_does_not_fail(self):
+        def orphan(docs):
+            del docs["actions"]["a-spec-context"]
+
+        code, out, err = self.check(orphan)
+        self.assertEqual((code, err), (0, ""))
+        self.assertIn("warning: observations/f-context: open finding with no option", out)
+        self.assertIn("no option yet", out)
+        self.assertIn("1 warning)", out)
+
+    def test_evidence_with_no_path_or_commit_token_warns_and_does_not_fail(self):
+        code, out, err = self.check(lambda d: d["observations"]["f-refusals"].update(
+            evidence="luna1 status: ShipLoop failures 9"))
+        self.assertEqual((code, err), (0, ""))
+        self.assertIn("warning: observations/f-refusals: evidence has no path or commit token", out)
+        self.assertIn("ShipLoop failures 9", out)
+
+    def test_an_open_finding_with_no_evidence_warns_the_same_way_and_a_closed_one_does_not(self):
+        code, out, _ = self.check(lambda d: d["observations"]["f-refusals"].pop("evidence"))
+        self.assertEqual(code, 0)
+        self.assertIn("observations/f-refusals: evidence has no path or commit token (none given)", out)
+
+        def closed(docs):
+            docs["observations"]["f-refusals"].update(status="fixed")
+            for key in ("evidence", "effect"):
+                docs["observations"]["f-refusals"].pop(key)
+            docs["actions"]["a-callback-alias"]["findings"] = ["f-context"]
+            docs["actions"]["a-accept-paths"]["findings"] = ["f-context"]
+            docs["actions"]["a-accept-paths"]["recommended"] = False
+
+        code, out, err = self.check(closed)
+        self.assertEqual((code, err), (0, ""), err)
+        self.assertNotIn("warning: observations/f-refusals", out)
+
+    def test_an_open_finding_with_no_effect_warns_that_the_page_shows_it_as_not_rated(self):
+        code, out, err = self.check(lambda d: d["observations"]["f-context"].pop("effect"))
+        self.assertEqual((code, err), (0, ""))
+        self.assertIn("warning: observations/f-context: open finding with no effect", out)
+        self.assertIn("not rated", out)
+
+    def test_a_finding_with_no_status_reads_as_open_for_the_warnings(self):
+        def unset(docs):
+            for key in ("status", "effect"):
+                docs["observations"]["f-context"].pop(key)
+
+        code, out, _ = self.check(unset)
+        self.assertEqual(code, 0)
+        self.assertIn("observations/f-context: open finding with no effect", out)
+
+    def test_all_three_warnings_together_exit_zero_and_are_counted(self):
+        def all_three(docs):
+            del docs["actions"]["a-spec-context"]
+            docs["observations"]["f-refusals"]["evidence"] = "see the journal"
+            docs["observations"]["f-context"].pop("effect")
+
+        code, out, err = self.check(all_three)
+        self.assertEqual((code, err), (0, ""))
+        self.assertEqual(sorted(line.split(":")[1].strip() for line in out.splitlines() if line.startswith("warning: ")),
+                         ["observations/f-context", "observations/f-context", "observations/f-refusals"])
+        self.assertIn("0 failures, 3 warnings", out)
+
+    def test_the_evidence_token_is_a_path_a_file_name_or_a_commit_and_not_prose(self):
+        for text in ("release 1.16.1, shiploop_loop_contract.py", "run/improve/terminal.json", "v1161-luna: run/state.md",
+                     "/Users/me/e2e-runs/1", "commit 1ff8c841", "skills/shiploop-run-review", "~/notes"):
+            with self.subTest(text):
+                self.assertTrue(export.EVIDENCE_TOKEN.search(text), text)
+        for text in ("luna1 status: ShipLoop failures 9", "he said and/or that", "the journal", "defaced effaced",
+                     "1158500 minutes", "yes/no", "n/a"):
+            with self.subTest(text):
+                self.assertIsNone(export.EVIDENCE_TOKEN.search(text), text)
+
+    # ---- the order and --docs
+
+    def test_collection_order_lists_every_schema_collection_once_and_the_review_sits_before_its_findings(self):
+        order = list(export.COLLECTION_ORDER)
+        self.assertEqual(sorted(order), sorted(export.SCHEMA))
+        self.assertNotIn("iterations", order)
+        self.assertLess(order.index("config"), order.index("reviews"))
+        self.assertLess(order.index("reviews"), order.index("observations"))
+        self.assertLess(order.index("observations"), order.index("actions"))
+
+    def test_docs_writes_every_document_and_writes_json_in_collection_order_and_each_file_validates(self):
+        target = self.tmp / "docs-out"
+        code, out, err = self.cli("--docs", SAMPLE_REVIEW, "--out", target)
+        self.assertEqual((code, err), (0, ""))
+        self.assertTrue(out.strip().endswith(str(target.resolve())), out)
+        writes = json.loads((target / "writes.json").read_text())
+        self.assertEqual([(w["collection"], w["doc_id"]) for w in writes],
+                         [("reviews", "luna1"), ("observations", "f-context"), ("observations", "f-refusals"),
+                          ("actions", "a-accept-paths"), ("actions", "a-callback-alias"), ("actions", "a-spec-context")])
+        for write in writes:
+            self.assertEqual((write["op"], "if_version" in write), ("set", False))
+            path = Path(write["file_path"])
+            self.assertTrue(path.is_absolute() and path.is_file())
+            written = json.loads(path.read_text())
+            self.assertEqual(written, self.sample["docs"][write["collection"]][write["doc_id"]])
+            self.assertEqual(export.validate_doc(write["collection"], written), [])
+        self.assertFalse((target / "review-export.json").exists(), "the review file is the record, not a second copy")
+        self.assertFalse((target / "facts.md").exists())
+
+    def test_docs_refuses_a_bundle_that_fails_the_check_and_writes_nothing(self):
+        target = self.tmp / "refused"
+        code, _, err = self.cli("--docs", self.bundle_file(self.edited(
+            lambda d: d["actions"]["a-accept-paths"].update(findings=["f-gone"]))), "--out", target)
+        self.assertEqual(code, 2)
+        self.assertIn("f-gone", err)
+        self.assertFalse(target.exists())
+
+    def test_docs_without_out_writes_to_a_new_temporary_directory_and_prints_it(self):
+        with mock.patch.object(tempfile, "tempdir", str(self.tmp)):
+            first = self.cli("--docs", SAMPLE_REVIEW)
+            second = self.cli("--docs", SAMPLE_REVIEW)
+        paths = [Path(run[1].strip().splitlines()[-1]) for run in (first, second)]
+        self.assertNotEqual(paths[0], paths[1])
+        for path in paths:
+            self.assertEqual(path.parent.resolve(), self.tmp.resolve())
+            self.assertTrue(path.name.startswith("run-review-docs-") and (path / "writes.json").is_file())
+
+    def test_exactly_one_mode_is_given(self):
+        for args in ([], ["--check", str(SAMPLE_REVIEW), "--defaults"], ["--check", str(SAMPLE_REVIEW), "--docs", str(SAMPLE_REVIEW)],
+                     ["--docs", str(SAMPLE_REVIEW), str(self.tmp)]):
+            err = io.StringIO()
+            with self.subTest(args=args), contextlib.redirect_stderr(err), self.assertRaises(SystemExit) as raised:
+                export.main(args)
+            self.assertEqual(raised.exception.code, 2)
+            self.assertIn("give one of RUN_DIR, --defaults, --check FILE or --docs FILE", err.getvalue())
 
 
 if __name__ == "__main__":

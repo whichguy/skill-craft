@@ -10,7 +10,7 @@ To show a new run, write documents. Do not edit or republish the template for da
 | Defaults | `defaults/*.json`: starting phases, groups, criteria, prompt settings | the starting expectations change; written create-only |
 | Contract | this file | a field is added, renamed or removed (change the template, exporter and tests together) |
 | Data | the `db` collections below | every iteration |
-| Exporter | `scripts/export.py`: a run output directory in, documents out | the run layout changes |
+| Exporter | `scripts/export.py`: a run output directory in, documents out; `--check` and `--docs` read a review bundle | the run layout changes |
 
 Anything not in this contract is ignored by the page. A missing optional field hides its panel.
 
@@ -139,6 +139,11 @@ default closing, and prints no rules, when the document is missing.
 optional and omitted when unmeasured, `unmeasured` is new, and a stage's `min` may be null. Files written as v1 are
 history; they are not read back. A run document also no longer has the `improve` array (Improve is read from each visit's
 `improve` and the run's `improvePasses` and `improveMin`) and its `status` can be `paused`.
+
+A **review file** (the findings, options and arc Claude writes for a run, committed beside the run's export as
+`test/shiploop_e2e/evidence/<export name>.review.json`) has the same shape. `export.py --check FILE` validates it with
+these tables and the review rules in `SKILL.md`; `export.py --docs FILE` checks it, then writes its documents and
+`writes.json` through the writer an export uses.
 
 Limits of the run numbers, documented and not guarded. File-time spans (`improveMin`, `stages[].improve.min`) are right
 on the original run directory; a copy needs `cp -p`, or every mtime becomes the copy time. A visit's `min` is accept to

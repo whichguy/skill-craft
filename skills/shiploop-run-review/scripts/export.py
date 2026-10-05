@@ -3,6 +3,8 @@
 
   export.py RUN_DIR [--key KEY] [--name NAME] [--order N] [--out DIR]
   export.py --defaults [--out DIR]
+  export.py --check FILE
+  export.py --docs FILE [--out DIR]
 
 RUN_DIR is an output directory of test/shiploop_e2e/run.py. The export reads only
 the run's own records (metrics.json, result.json, invocation.json and the ShipLoop
@@ -15,6 +17,13 @@ run directory) and writes only under --out (default RUN_DIR/review-export):
 
 A missing metrics.json, timeline.json or results/ is an error naming the file
 (exit 2), never an empty export. The same input gives byte-identical output.
+
+--check FILE validates a review bundle (the shape review-export.json has: documents
+keyed by collection and id) against SCHEMA.md and the review rules in SKILL.md: every
+failure is listed, one per line, naming the document (exit 2); a warning is listed and
+leaves the exit 0. --docs FILE checks the same bundle, then writes its documents and
+writes.json under --out (default a new temporary directory) through the writer an
+export uses.
 Stdlib only; no network and no model calls.
 """
 
@@ -57,7 +66,9 @@ PHASES = (
 STAGE_PHASE = {stage: order for order, (_, stages) in enumerate(PHASES) for stage in stages}
 # ShipLoop run status -> the page's run status.
 RUN_STATUS = {"active": "active", "paused": "paused", "blocked": "blocked", "halted": "failed", "done": "done"}
-COLLECTION_ORDER = ("runs", "backchain", "expectations", "config", "observations", "actions", "iterations")
+# Upload order: what the page shows first (runs and their loops), the replicas published from defaults/, then the
+# review (the arc), the findings it raises and the options that resolve them. Every SCHEMA collection is listed.
+COLLECTION_ORDER = ("runs", "backchain", "expectations", "config", "reviews", "observations", "actions")
 
 # ---------------------------------------------------------------- the contract, as data (SCHEMA.md)
 # A field spec is (type, required). Types: "string", "number", "boolean", "iso", "any-scalar",
@@ -1025,18 +1036,162 @@ def export_defaults(out: Path | None = None) -> Path:
     return write_export(out or Path(tempfile.gettempdir()) / "run-review-defaults", defaults_docs(), compact=False)
 
 
+# ---------------------------------------------------------------- a review bundle (--check, --docs)
+
+# The rules are the ones SKILL.md lists, and no more. A failure stops a publish; a warning is listed and does not.
+CLAUSE_ID = re.compile(r"S-[1-9][0-9]*")
+DONE_WHEN = re.compile(r"\bDone when\b:?")
+# A loose test for evidence a reader can follow: a path (rooted at / or ~, or segments of three or more characters
+# around a slash, so "and/or" is not one), a file name with an extension, or a commit (seven or more hex digits
+# holding a digit and a letter).
+EVIDENCE_TOKEN = re.compile(
+    r"(?<![\w.~/-])(?:~|\.{1,2})?/[\w.~-]+"
+    r"|\b[\w.~-]{3,}(?:/[\w.~-]{3,})+"
+    r"|\b[\w-]+\.(?:py|md|json|jsonl|js|cjs|html|sh|txt|toml|ya?ml|csv|log)\b"
+    r"|\b(?=[0-9a-f]*[0-9])(?=[0-9a-f]*[a-f])[0-9a-f]{7,40}\b")
+
+
+def _default_clauses() -> set[str]:
+    return {clause for entry in _read_json(DEFAULTS / "expectations.json") for clause in entry.get("clauses") or []}
+
+
+def _ends_with_done_when(goal: str) -> bool:
+    """The instruction's last labelled part is `Done when: <condition>` (the form is in references/advice.md)."""
+    last = None
+    for last in DONE_WHEN.finditer(goal):
+        pass
+    if last is None:
+        return False
+    condition = goal[last.end():].strip()
+    return bool(condition) and not re.search(r"(?:^|\s)(?:Do|Files and symbols|Test):", condition)
+
+
+def _documents(docs: dict, collection: str) -> dict[str, dict]:
+    return {i: d for i, d in (docs.get(collection) or {}).items() if isinstance(d, dict)}
+
+
+def check_bundle(bundle) -> tuple[list[str], list[str]]:
+    """The review rules over one bundle: (failures, warnings), a line each, each naming the document it is about.
+
+    Failures: the schema and enums (validate_doc); every option's findings exist in the bundle; a change-expectation
+    option has `change` and no other kind has one; each option's instruction (goal) ends with a Done when clause; at
+    most one recommended option per finding; every `clauses` id is an S-n id that defaults/expectations.json uses.
+    Warnings: an open finding no option names; evidence with no path or commit token; an open finding with no effect."""
+    if not isinstance(bundle, dict) or not isinstance(bundle.get("docs"), dict):
+        return [f'bundle: expected {{"schema": "{SCHEMA_ID}", "docs": {{collection: {{id: document}}}}}}'], []
+    failures, warnings = [], []
+    if bundle.get("schema") != SCHEMA_ID:
+        failures.append(f"bundle: schema is {bundle.get('schema')!r}, expected {SCHEMA_ID!r}")
+    docs = {}
+    for collection, items in bundle["docs"].items():
+        if isinstance(items, dict):
+            docs[collection] = items
+        else:
+            failures.append(f"bundle: docs.{collection} must map document ids to documents")
+    failures += _validate_all(docs)
+
+    findings, options = _documents(docs, "observations"), _documents(docs, "actions")
+    links = {oid: [x for x in o["findings"] if isinstance(x, str)] if isinstance(o.get("findings"), list) else []
+             for oid, o in options.items()}
+    recommended: dict[str, list[str]] = {}
+    for oid, option in sorted(options.items()):
+        where = f"actions/{oid}"
+        failures += [f"{where}: findings names {fid!r}, which is not a finding in this bundle"
+                     for fid in links[oid] if fid not in findings]
+        kind, change = option.get("kind"), option.get("change")
+        if kind == "change-expectation" and not isinstance(change, dict):
+            failures.append(f"{where}: a change-expectation option needs change {{target, to, reason}}")
+        if kind != "change-expectation" and change is not None:
+            failures.append(f"{where}: only a change-expectation option carries change (kind is {kind or 'not set'})")
+        goal = option.get("goal")
+        if not (isinstance(goal, str) and _ends_with_done_when(goal)):
+            failures.append(f"{where}: the instruction (goal) must end with a 'Done when: ...' clause")
+        if option.get("recommended") is True:
+            for fid in links[oid]:
+                recommended.setdefault(fid, []).append(oid)
+    failures += [f"observations/{fid}: {len(ids)} recommended options ({', '.join(ids)}); at most one"
+                 for fid, ids in sorted(recommended.items()) if len(ids) > 1]
+    known = _default_clauses()
+    for eid, expectation in sorted(_documents(docs, "expectations").items()):
+        for clause in expectation.get("clauses") if isinstance(expectation.get("clauses"), list) else []:
+            if not isinstance(clause, str) or not CLAUSE_ID.fullmatch(clause):
+                failures.append(f"expectations/{eid}: clause {clause!r} is not an S-n id")
+            elif clause not in known:
+                failures.append(f"expectations/{eid}: clause {clause} is not in defaults/expectations.json")
+
+    named = {fid for ids in links.values() for fid in ids}
+    for fid, finding in sorted(findings.items()):
+        where, is_open = f"observations/{fid}", finding.get("status") in (None, "open")
+        if is_open and fid not in named:
+            warnings.append(f"{where}: open finding with no option (the page shows 'no option yet')")
+        evidence = finding.get("evidence")
+        if isinstance(evidence, str) and evidence.strip():
+            if not EVIDENCE_TOKEN.search(evidence):
+                warnings.append(f"{where}: evidence has no path or commit token ({evidence.strip()[:60]!r})")
+        elif is_open:
+            warnings.append(f"{where}: evidence has no path or commit token (none given)")
+        if is_open and finding.get("effect") is None:
+            warnings.append(f"{where}: open finding with no effect (the page shows it as 'not rated')")
+    return failures, warnings
+
+
+def _read_bundle(path: Path):
+    try:
+        return json.loads(Path(path).expanduser().read_text(encoding="utf-8"))
+    except (OSError, UnicodeError, ValueError) as exc:
+        raise ExportError(f"cannot read the review bundle {path}: {exc}") from exc
+
+
+def _count(n: int, word: str) -> str:
+    return f"{n} {word}" + ("" if n == 1 else "s")
+
+
+def check_file(path: Path) -> tuple[int, dict | None]:
+    """Check one review bundle file and print the result: (exit code, the bundle when it passed)."""
+    bundle = _read_bundle(path)
+    failures, warnings = check_bundle(bundle)
+    for line in warnings:
+        print(f"warning: {line}")
+    for line in failures:
+        print(f"fail: {line}", file=sys.stderr)
+    counts = f"{_count(len(failures), 'failure')}, {_count(len(warnings), 'warning')}"
+    if failures:
+        print(f"check: FAILED ({counts})", file=sys.stderr)
+        return 2, None
+    documents = sum(len(items) for items in bundle["docs"].values())
+    print(f"check: ok ({_count(documents, 'document')}, {counts})")
+    return 0, bundle
+
+
+def write_docs(path: Path, out: Path | None = None) -> int:
+    """Check a review bundle, then write its documents and writes.json through the writer an export uses."""
+    code, bundle = check_file(path)
+    if bundle is None:
+        return code
+    written = write_export(out or Path(tempfile.mkdtemp(prefix="run-review-docs-")), bundle["docs"], compact=False)
+    print(written)
+    return 0
+
+
 def main(argv: list[str] | None = None) -> int:
     parser = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
     parser.add_argument("run_dir", nargs="?", type=Path, help="a run output directory of test/shiploop_e2e/run.py")
     parser.add_argument("--defaults", action="store_true", help="export the starting expectations and settings")
+    parser.add_argument("--check", type=Path, metavar="FILE", help="validate a review bundle (exit 2 on a failure)")
+    parser.add_argument("--docs", type=Path, metavar="FILE",
+                        help="check a review bundle, then write its documents and writes.json under --out")
     parser.add_argument("--key", help="the runs document id (default <host>-<model>-<release>-<case>-<yyyymmdd>)")
     parser.add_argument("--name", help="the run's display name")
     parser.add_argument("--order", type=int, help="sort key (default the run's start, epoch seconds)")
-    parser.add_argument("--out", type=Path, help="export directory (default RUN_DIR/review-export)")
+    parser.add_argument("--out", type=Path, help="export directory (default RUN_DIR/review-export; for --docs a new temporary directory)")
     args = parser.parse_args(argv)
-    if args.defaults == (args.run_dir is not None):
-        parser.error("give a RUN_DIR or --defaults")
+    if [args.run_dir is not None, args.defaults, args.check is not None, args.docs is not None].count(True) != 1:
+        parser.error("give one of RUN_DIR, --defaults, --check FILE or --docs FILE")
     try:
+        if args.check is not None:
+            return check_file(args.check)[0]
+        if args.docs is not None:
+            return write_docs(args.docs, args.out)
         path = export_defaults(args.out) if args.defaults else export_run(
             args.run_dir, args.key, args.name, args.order, args.out)
     except ExportError as exc:
