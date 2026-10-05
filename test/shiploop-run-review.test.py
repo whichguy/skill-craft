@@ -2276,7 +2276,7 @@ class ReviewBundleCheckTests(unittest.TestCase):
             self.assertIn("give one of RUN_DIR, --defaults, --check FILE or --docs FILE", err.getvalue())
 
 
-LUNA_REVIEW = EVIDENCE_DIR / "codex-gpt-6-luna-1.16.1-battleship-20261003.review.json"
+LUNA_REVIEW = EVIDENCE_DIR / "luna1.review.json"
 CRITERIA = ("P1", "P2", "P3", "P4", "P5", "P6", "B1", "B2", "B3", "B4", "B5")
 
 

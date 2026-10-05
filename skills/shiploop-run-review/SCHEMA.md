@@ -141,7 +141,7 @@ history; they are not read back. A run document also no longer has the `improve`
 `improve` and the run's `improvePasses` and `improveMin`) and its `status` can be `paused`.
 
 A **review file** (the findings, options and arc Claude writes for a run, committed beside the run's export as
-`test/shiploop_e2e/evidence/<export name>.review.json`) has the same shape. `export.py --check FILE` validates it with
+`test/shiploop_e2e/evidence/<runKey>.review.json`) has the same shape. `export.py --check FILE` validates it with
 these tables and the review rules in `SKILL.md`; `export.py --docs FILE` checks it, then writes its documents and
 `writes.json` through the writer an export uses.
 

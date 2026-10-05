@@ -63,7 +63,7 @@ message says. Add `--key KEY` to keep the key the page already has for a run.
 
 `RUN_DIR_OR_KEY` is a run output directory (export it first) or a run already in `test/shiploop_e2e/evidence/`.
 
-1. Read the run's evidence and write `test/shiploop_e2e/evidence/<export name>.review.json` beside the run's export,
+1. Read the run's evidence and write `test/shiploop_e2e/evidence/<runKey>.review.json` (the page's key for the run, as in the run document's id),
    following [references/advice.md](references/advice.md): the `reviews`, `observations` (findings) and `actions`
    (options) documents, in the shape of `review-export.json`. Keep every document the owner added on the page.
 2. Run `export.py --check FILE` until it exits 0, and read every warning.

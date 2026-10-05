@@ -1010,3 +1010,13 @@ and this entry.
 S-14). Confirm the o18 and o31 flips to fixed. The next Luna run (xhigh, one pass) is the shared verification of a03,
 a06, a12, a13 and a17; a21 (refusal causes) and a25 (shapes) are cheapest to land before it, and a09 (publish) after
 R14.
+
+## 2026-10-04: the review file is named by the page's run key (integration)
+
+Status: firm. R8 named a review file `<export name>.review.json` and R7's prompt head names `<runKey>.review.json`; the R9 report
+flagged that the two disagreed (the page cannot know an evidence file's default name, only the run key). Decision: the page's key
+wins. `test/shiploop_e2e/evidence/luna1.review.json` replaces `codex-gpt-6-luna-1.16.1-battleship-20261003.review.json`
+(`git mv`, content unchanged), and SKILL.md and SCHEMA.md say `<runKey>.review.json`. The five export files keep their
+default-key names; the run id inside each is the page key, so an export is found by its id and a review by its key.
+Evidence: `python3 -B test/shiploop-run-review.test.py` 185 OK after the rename; `export.py --check` on the renamed file exits 0
+with the same 7 warnings. Related: `eee16763` (R13 file names), `1a6c83ce` (R8), `c2c4b63e` (R7 prompt head).
