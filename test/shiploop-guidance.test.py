@@ -1685,6 +1685,23 @@ class GuidanceTests(unittest.TestCase):
             for entry in state["history"]
         ))
 
+    def test_the_system_test_author_defines_check_and_says_what_focused_needs(self) -> None:
+        """SPEC S-3, S-10: the stage that records system commands names the suite for a command that is not a runner.
+
+        A shell pipeline recorded as suite focused was refused at system-test ("could not read how many tests it
+        ran") and the recording stage was the only place to fix it, so the recording stage must define check.
+        """
+        duties = normalized(prompts.prompt("system-test-author"))
+        for clause in (
+            "A command that is not a test runner (a shell pipeline, a grep, a curl probe) is suite `check`, "
+            "judged by its exit code",
+            "`focused` and `regression` are for runners whose output ShipLoop can count",
+        ):
+            self.assertIn(clause, duties)
+        # The suites are named once, before the definition that tells them apart.
+        self.assertLess(duties.index("suite `focused`, `regression` or `check`"),
+                        duties.index("is suite `check`, judged by its exit code"))
+
     def test_a_person_only_case_with_no_host_route_is_an_open_item_not_a_block(self) -> None:
         """a13, SPEC S-14: system-test never routes a person-only case to blocked.
 
