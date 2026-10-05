@@ -556,8 +556,11 @@ def _no_unmeasured_message(out: Path, status) -> str:
     if status == "done":
         return why + (f"Regrade the finished run (python3 test/shiploop_e2e/run.py --resume-run {out}; a finished "
                       "run starts no host), then export it again.")
-    return why + (f"This run's ShipLoop status is {status or 'unknown'}, not done, so it cannot be regraded without "
-                  "a host: export it after it finishes.")
+    if status == "blocked":  # run.py grades a blocked run again without resuming it as if answered (SPEC S-14)
+        return why + (f"Regrade the blocked run (python3 test/shiploop_e2e/run.py --resume-run {out}; a regrade "
+                      "starts no host and does not resume the run), then export it again.")
+    return why + (f"This run's ShipLoop status is {status or 'unknown'}, not done or blocked, so it cannot be "
+                  "regraded without a host (resuming it would start one): export it after it finishes.")
 
 
 def _num(value):

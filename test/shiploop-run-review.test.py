@@ -415,7 +415,7 @@ class RunReviewTest(unittest.TestCase):
         self.assertIn("- ShipLoop command failures: 13 (complete 13)", (target / "facts.md").read_text())
 
     def test_a_metrics_file_without_the_unmeasured_key_is_refused_and_says_how_to_get_one(self):
-        for status in ("done", "active", "blocked"):
+        for status in ("done", "blocked", "active", "paused"):
             with self.subTest(status=status):
                 out = make_run(self.tmp / status, status=status, loops=False)
                 metrics = json.loads((out / "metrics.json").read_text())
@@ -426,9 +426,10 @@ class RunReviewTest(unittest.TestCase):
                 message = str(caught.exception)
                 self.assertIn("no 'unmeasured' record", message)
                 self.assertIn("measured zeros", message)
-                if status == "done":
+                if status in ("done", "blocked"):  # run.py --resume-run grades both again and starts no host
                     self.assertIn("--resume-run", message)
                     self.assertIn("starts no host", message)
+                    self.assertNotIn("without a host", message)
                 else:  # resuming an unfinished run would launch a host: the message must not suggest it
                     self.assertNotIn("--resume-run", message)
                     self.assertIn(f"status is {status}", message)
@@ -983,6 +984,129 @@ class DbSnapshotTest(unittest.TestCase):
 
     def test_the_file_is_compact_and_byte_stable(self):
         self.assertEqual(json.dumps(self.snapshot, separators=(",", ":")).encode("utf-8"), self.raw)
+
+
+EVIDENCE_DIR = ROOT / "test" / "shiploop_e2e" / "evidence"
+# The five regraded runs: the committed file (named by the exporter's default key, as before) and the run key the
+# page's database already uses, so that uploading a file updates that page document and creates no second one.
+EVIDENCE_RUNS = {
+    "codex-gpt-6-luna-1.16.1-battleship-20261003.json": "luna1",
+    "claude-claude-sonnet-5-5-1.16.1-hello-20261003.json": "hello-1161",
+    "claude-claude-sonnet-5-5-1.18.0-hello-20261004.json": "hello-1180",
+    "claude-claude-sonnet-5-5-1.19.0-hello-20261004.json": "hello-1190a",
+    "claude-claude-sonnet-5-5-1.19.0-hello-20261004-b.json": "hello-1190b",
+}
+# Each measure is a number, or absent with a reason in runs.unmeasured under this name (the harness's own name for
+# the two counters it records per host, the run field's own name for the rest).
+MEASURES = {"refusals": "shiploop_failures", "glue": "model_glue", "calls": "calls", "contextPeak": "contextPeak"}
+
+
+def is_number(value) -> bool:
+    return isinstance(value, (int, float)) and not isinstance(value, bool)
+
+
+class CommittedEvidenceTest(unittest.TestCase):
+    """The five committed run exports are the v2 contract applied to real runs (regraded, no host started)."""
+
+    @classmethod
+    def setUpClass(cls):
+        cls.bundles = {name: json.loads((EVIDENCE_DIR / name).read_text()) for name in EVIDENCE_RUNS}
+        cls.snapshot_runs = json.loads(SNAPSHOT.read_text())["docs"]["runs"]
+
+    def run_doc(self, key):
+        """The run document under the page's key, in the file that carries it."""
+        name = next(n for n, k in EVIDENCE_RUNS.items() if k == key)
+        run = self.bundles[name]["docs"]["runs"].get(key)
+        self.assertIsNotNone(run, f"{name} has no run document under the page's key {key!r}")
+        return run
+
+    @property
+    def runs(self):
+        return {key: self.run_doc(key) for key in EVIDENCE_RUNS.values()}
+
+    def test_every_file_is_the_v2_export_of_one_run_under_the_key_the_page_uses(self):
+        for name, key in EVIDENCE_RUNS.items():
+            with self.subTest(file=name):
+                bundle = self.bundles[name]
+                self.assertEqual(bundle["schema"], "run-review-export/v2")
+                self.assertEqual(list(bundle["docs"]["runs"]), [key])
+                for collection, items in bundle["docs"].items():
+                    for doc_id, doc in items.items():
+                        self.assertEqual(export.validate_doc(collection, doc), [], f"{collection}/{doc_id}")
+                # The page already has a run document under this key; the same run, so an upload updates it.
+                page = self.snapshot_runs[key]["data"]
+                for field in ("release", "host", "model", "case", "status", "startedAt", "endedAt"):
+                    self.assertEqual(self.run_doc(key).get(field), page.get(field), f"{key}.{field}")
+
+    def test_every_visit_names_its_action_and_a_seeded_visit_has_no_minutes(self):
+        for key, run in self.runs.items():
+            with self.subTest(run=key):
+                actions = [row.get("action") for row in run["stages"]]
+                self.assertTrue(all(isinstance(a, str) and a for a in actions), "a visit has no action")
+                self.assertEqual(len(set(actions)), len(actions), "an action id appears twice")
+                for row in run["stages"]:
+                    self.assertTrue(row["min"] is None or is_number(row["min"]))
+                    if row.get("seeded"):
+                        self.assertIsNone(row["min"])
+
+    def test_each_measure_is_a_number_or_absent_with_its_reason_never_both_and_never_zero_by_default(self):
+        for key, run in self.runs.items():
+            for field, reason in MEASURES.items():
+                with self.subTest(run=key, measure=field):
+                    reasons = run["unmeasured"]
+                    if field in run:
+                        self.assertTrue(is_number(run[field]), f"{field} is not a number")
+                        self.assertNotIn(reason, reasons, f"{field} is measured and also has a reason")
+                    else:
+                        self.assertTrue(isinstance(reasons.get(reason), str) and reasons[reason].strip(),
+                                        f"{field} is absent with no reason under {reason!r}")
+
+    def test_the_improve_rows_add_up_to_the_run_totals(self):
+        for key, run in self.runs.items():
+            with self.subTest(run=key):
+                rows = [row["improve"] for row in run["stages"] if row.get("improve")]
+                self.assertEqual(sum(r["passes"] for r in rows), run["improvePasses"])
+                self.assertAlmostEqual(sum(r["min"] for r in rows), run["improveMin"], delta=0.05)
+
+    def test_luna_1_16_1_the_blocked_codex_run_regraded_with_no_host(self):
+        run = self.run_doc("luna1")
+        self.assertEqual((run["host"], run["status"], len(run["stages"])), ("codex", "blocked", 39))
+        # Improve: nine children, 41 passes, bind to receipt (the volatile review-note count said 135.8 min).
+        self.assertEqual((run["improvePasses"], sum(1 for r in run["stages"] if r.get("improve"))), (41, 9))
+        self.assertAlmostEqual(run["improveMin"], 360.3, delta=0.1)
+        # The current harness: 13 refused commands and 20 glue commands (the stored 21 was stale).
+        self.assertEqual((run["refusals"], run["glue"], len(run["failures"])), (13, 20, 13))
+        # Main-thread calls, heaviest call and compactions read from the Codex rollouts.
+        self.assertEqual((run["calls"], run["contextPeak"], run["contextWindow"], run["compactions"]),
+                         (2565, 251867, 258400, 34))
+        self.assertEqual(sum(1 for row in run["stages"] if row.get("context")), 39)
+        self.assertFalse(any(row.get("skipped") or row.get("seeded") for row in run["stages"]))
+
+    def test_the_claude_hello_runs_leave_refusals_glue_and_compactions_out_with_their_reasons(self):
+        calls = {"hello-1161": 84, "hello-1180": 94, "hello-1190a": 113, "hello-1190b": 149}
+        for key, expected in calls.items():
+            with self.subTest(run=key):
+                run = self.run_doc(key)
+                self.assertEqual(run["host"], "claude")
+                for field in ("refusals", "glue", "failures", "compactions"):
+                    self.assertNotIn(field, run)
+                for reason in ("shiploop_failures", "model_glue", "compactions"):
+                    self.assertTrue(run["unmeasured"][reason].strip(), reason)
+                self.assertEqual((run["calls"], run["contextWindow"]), (expected, 1_000_000))
+                self.assertLess(run["contextPeak"], run["contextWindow"])
+
+    def test_hello_1_19_0_second_run_has_seven_skipped_of_54_visits_and_eleven_improve_children(self):
+        run = self.run_doc("hello-1190b")
+        self.assertEqual(len(run["stages"]), 54)
+        skipped = [row for row in run["stages"] if row.get("skipped")]
+        self.assertEqual([row["stage"] for row in skipped],
+                         ["test-spec", "baseline", "test-author", "test-red", "test-green", "test-refine", "regression"])
+        self.assertTrue(all(row["min"] == 0.0 and not row.get("improve") for row in skipped))
+        self.assertEqual((run["improvePasses"], sum(1 for r in run["stages"] if r.get("improve"))), (19, 11))
+        self.assertAlmostEqual(run["improveMin"], 3.73, delta=0.1)
+        self.assertEqual((run["calls"], run["contextPeak"]), (149, 271220))
+        for key in ("hello-1161", "hello-1180", "hello-1190a"):
+            self.assertFalse(any(row.get("skipped") for row in self.run_doc(key)["stages"]), key)
 
 
 if __name__ == "__main__":
