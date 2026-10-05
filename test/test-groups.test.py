@@ -356,5 +356,58 @@ class TestGroupTests(unittest.TestCase):
             self.assertLess(time.monotonic() - started, 4)
 
 
+class QuickSelectionNameCollisionTest(unittest.TestCase):
+    """A file called plan, review or spec says nothing about which suite covers it.
+
+    The quick tier selects suites named after a changed file and suites whose source names it.  Frozen evidence
+    and fixtures carry the common names PLAN.md, SPEC.md and review.json, so a push that touched one of them ran
+    all eight plan-dispatcher suites, or shiploop-e2e, shiploop-navigator-contract and shiploop-run-review, for
+    files none of them reads (445 of the 569 s of one local quick run).  The paths below are real tracked files.
+    """
+
+    PLAN_DISPATCHER = {suite.id for suite in suite_catalog.SUITES if suite.id.startswith("plan-dispatcher-")}
+    E2E_SPEC_READERS = {"shiploop-e2e", "shiploop-navigator-contract", "shiploop-run-review"}
+
+    def selected(self, *paths: str) -> set[str]:
+        return suite_catalog.targeted(paths)
+
+    def test_a_fixture_named_plan_does_not_select_the_plan_dispatcher_suites(self) -> None:
+        for path in ("test/experiments/shiploop_entry_recovery/evidence/fixture/PLAN.md",
+                     "skills/rubric-eval/suites/architecture-v4/frames/plan.txt",
+                     "test/experiments/shiploop_ui_allocation/evidence/existing/notes/plan.md"):
+            self.assertFalse(self.selected(path) & self.PLAN_DISPATCHER, path)
+
+    def test_a_fixture_named_spec_does_not_select_the_suites_that_read_the_e2e_spec(self) -> None:
+        for path in ("test/experiments/shiploop_repeatable_tests/samples/trial-01/SPEC.md",
+                     "test/experiments/shiploop_ui_consumer/SPEC.md",
+                     "skills/adversarial-review/SPEC.md"):
+            self.assertFalse(self.selected(path) & self.E2E_SPEC_READERS, path)
+
+    def test_a_file_named_review_does_not_select_review_coverage(self) -> None:
+        for path in ("test/experiments/shiploop_service_discovery_20260919/evidence/final/review.json",
+                     "skills/rubric-eval/suites/architecture-v4/frames/review.txt",
+                     "test/shiploop_e2e/review.py"):
+            self.assertNotIn("review-coverage", self.selected(path), path)
+
+    def test_the_e2e_spec_still_selects_every_suite_that_reads_it(self) -> None:
+        # The real SPEC.md has real readers (shiploop-e2e, shiploop-navigator-contract and shiploop-run-review each
+        # open test/shiploop_e2e/SPEC.md), so it is named explicitly instead of by its common file name.
+        self.assertGreaterEqual(self.selected("test/shiploop_e2e/SPEC.md"), self.E2E_SPEC_READERS)
+
+    def test_real_code_and_skill_paths_keep_the_suites_they_always_selected(self) -> None:
+        cases = {
+            "test/shiploop_e2e/run.py": {"shiploop-e2e"},
+            "test/shiploop_e2e/review.py": {"shiploop-e2e"},
+            "skills/shiploop/scripts/shiploop_chain.py": {"shiploop-chain"},
+            "skills/plan-dispatcher/SKILL.md": self.PLAN_DISPATCHER,
+            "skills/rubric-eval/SPEC.md": {"rubric-eval"},
+            "skills/rubric-eval/suites/architecture-v4/frames/review.txt": {"rubric-eval"},
+            "skills/review-coverage/SKILL.md": {"review-coverage"},
+        }
+        for path, expected in cases.items():
+            with self.subTest(path=path):
+                self.assertGreaterEqual(self.selected(path), expected)
+
+
 if __name__ == "__main__":
     unittest.main()

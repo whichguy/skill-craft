@@ -437,6 +437,8 @@ _PATH_SUITE_IDS = {
     "scripts/release-push.py": ("release-push",),
     "catalog/external-plugins.json": ("marketplace-package", "native-marketplace-adapters"),
     "catalog/skill-craft-plugin.json": ("marketplace-package", "native-marketplace-adapters", "release-flow"),
+    # The E2E spec is read by three suites, found by its path now that its file name is generic.
+    "test/shiploop_e2e/SPEC.md": ("shiploop-e2e", "shiploop-navigator-contract", "shiploop-run-review"),
 }
 
 # Directories whose files have names too common to select by (run.py, hosts.py), and the leaf whose
@@ -466,8 +468,12 @@ def _prefixed(stem: str, suites: Iterable[Suite]) -> set[str]:
     return {suite.id for suite in suites if suite.id == stem or suite.id.startswith(stem + "-")}
 
 
-# File names that say nothing about which suite covers them.
-_GENERIC_STEMS = frozenset({"skill", "readme", "changelog", "license", "--init--"})
+# File names that say nothing about which suite covers them.  plan, review and spec join the list because frozen
+# evidence and fixtures carry them (PLAN.md, SPEC.md, review.json, frames/plan.txt: 56 tracked files, all but two
+# of them not read by the suites those names matched), and a name match would run eight plan-dispatcher suites, or
+# shiploop-e2e, shiploop-navigator-contract and shiploop-run-review, for a push that edits one.  The two real files
+# are named explicitly in _PATH_SUITE_IDS and _PREFIX_SUITE_IDS.
+_GENERIC_STEMS = frozenset({"skill", "readme", "changelog", "license", "--init--", "plan", "review", "spec"})
 
 _ROOT = Path(__file__).resolve().parents[1]
 
