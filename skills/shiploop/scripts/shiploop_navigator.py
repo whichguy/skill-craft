@@ -70,6 +70,19 @@ BLOCKED_BY_RULE = (
     "can make), access (a sign-in or permission the user must grant) or external (a service or "
     "dependency outside this run). Anything this run can fix itself -- a missing tool, a failed "
     "install, a broken baseline, a failing test -- is not blocked: repair it in this stage")
+# The wait a blocked result may carry when only a person can proceed.  One definition: the packet prints it
+# under the blocked shape and the refusal that names a wrong or incomplete wait quotes the same text.
+AWAITING_SHAPE = (
+    '{"kind": "present", "steps": ["<what the person does>"], "report": "<what they report back>", '
+    '"no_default": "<why nothing else can proceed>"} or {"kind": "answer", "question": "<the question>", '
+    '"no_default": "<why nothing else can proceed>"}')
+# Fields only a done result carries (work_items also a replan's).  A blocked, repeat, revise or replan result
+# that still holds them, usually copied from the done template, is refused once with every one of them named.
+_DONE_ONLY_FIELDS = (
+    "work_items", "assumptions", "criteria", "steps", "paths", "test_commands", "test_commands_na",
+    "system_commands", "system_commands_na", "consumer_checks", "consumer_checks_na", "consumer_entry",
+    "red_na", "lint_waivers",
+)
 _STATE_KEYS = frozenset(
     (
         "version",
@@ -383,10 +396,14 @@ def _check_submitted_awaiting(result: Any) -> None:
     """Refuse a new wait on a person that does not say why a recorded default would not do (S-14)."""
     wait = result.get("awaiting") if isinstance(result, Mapping) else None
     if isinstance(wait, Mapping):
+        beside = isinstance(result, Mapping) and "no_default" in result
         _need(str(wait.get("no_default") or "").strip() != "",
               "ShipLoop runs unattended: take a stated default, record it as an assumption and continue, "
               "or record a person-only step as an open item and continue. Prompt the user (awaiting) only "
-              "when nothing further can proceed without them, and say why in awaiting.no_default.")
+              "when nothing further can proceed without them, and say why in awaiting.no_default. "
+              + ("The result has no_default beside awaiting: move it inside awaiting. " if beside else
+                 "If nothing else can proceed, add no_default inside awaiting. ")
+              + "The wait is " + AWAITING_SHAPE + "; then run the same complete command again.")
 
 
 def awaiting(state: Mapping[str, Any]) -> tuple[str, dict[str, Any]] | None:
@@ -465,13 +482,42 @@ def _awaiting_text(wait: Mapping[str, Any]) -> str:
         " Then report: " + wait["report"])
 
 
+def _result_shape_problem(value: Mapping[str, Any]) -> str | None:
+    """Why a submitted block is not a result object, with the exact correction; None when it has both fields.
+
+    The commonest wrong block copies the stored record under results/, which wraps the result in action and
+    result keys; the correction for that names the keys to delete and says what moves up.
+    """
+    missing = [name for name in ("outcome", "summary") if name not in value]
+    if not missing:
+        return None
+    inner = value.get("result")
+    if isinstance(inner, Mapping) and {"outcome", "summary"} <= set(inner):
+        wrapper = ", ".join(sorted(value))
+        return (f"the shiploop-state block is a stored-record wrapper (top-level keys: {wrapper}), not the result "
+                "object. Move the fields of \"result\" (outcome, summary, evidence_refs, ...) up to the top level "
+                f"and delete the keys {wrapper}; the files under results/ use that wrapper, a submitted result "
+                "does not. Then run the same complete command again")
+    adds = {"outcome": '"outcome": "done" (or repeat, blocked, ...)',
+            "summary": '"summary": "<what this step established>"'}
+    found = ", ".join(sorted(value)[:8]) or "none"
+    return ("the result is missing " + " and ".join('"' + name + '"' for name in missing)
+            + f" (top-level keys found: {found}). The block must carry outcome and summary at its top level, as "
+            "the packet's Result template does: add " + " and ".join(adds[name] for name in missing)
+            + ", then run the same complete command again")
+
+
 def _canonical_result(
     value: Any, *, stage: str, delivery_contract: bool = False
 ) -> dict[str, Any]:
     _need(isinstance(value, Mapping), "result must be an object")
     keys = set(value)
-    _need({"outcome", "summary"} <= keys, "result requires outcome and summary")
-    _need(keys <= _RESULT_KEYS, "result has unsupported fields")
+    problem = _result_shape_problem(value)
+    _need(problem is None, problem or "")
+    unsupported = sorted(keys - _RESULT_KEYS)
+    _need(not unsupported,
+          "result has unsupported fields: " + ", ".join(unsupported) + ". Delete them and run the same complete "
+          "command again; a result carries only: " + ", ".join(sorted(_RESULT_KEYS)))
     outcome = value.get("outcome")
     _need(outcome in ("done", "repeat", "blocked", "replan", "revise", "reconcile"),
           "result outcome must be done, repeat, blocked, revise, or a supported corrective replan")
@@ -479,6 +525,15 @@ def _canonical_result(
         _need(outcome in stage_spec.stage(stage).outcomes,
               "revise sends a work item back to " + stage_spec.REVISE_TO + " and is allowed only at the "
               "INNER stages from test-spec to integration-verify")
+    if outcome in ("blocked", "repeat", "revise", "replan"):
+        stray = [field for field in _DONE_ONLY_FIELDS if field in value
+                 and not (field == "work_items" and outcome == "replan")]
+        _need(not stray,
+              f"a {outcome} result does not carry {', '.join(stray)}: those fields belong to a done result. "
+              f"Delete {'it' if len(stray) == 1 else 'them'} from the result and run the same complete command "
+              "again, keeping outcome, summary, headline and evidence_refs"
+              + (", blocked_by and awaiting" if outcome == "blocked" else "")
+              + (" and work_items" if outcome == "replan" else ""))
     if outcome == "reconcile":
         _need(stage == "plan" and set(value) - {"headline"} == {
             "outcome", "summary", "evidence_refs", "reconciliation_target",
@@ -4000,8 +4055,16 @@ def _opening_sections(text: str) -> dict[str, str]:
         elif current is not None:
             sections[current].append(line)
     found = {name: "\n".join(body).strip() for name, body in sections.items()}
+    absent = [name for name in OPENING_SECTIONS if name not in sections]
+    _need(not absent,
+          "opening has no line reading exactly " + " or ".join('"## ' + name + '"' for name in absent)
+          + " (its headings are: " + (", ".join(re.findall(r"(?m)^##\s+.+?\s*$", text)) or "none")
+          + "). Rename the heading to match, or add the section with its content, and run the same "
+          "improve-start command again")
     missing = [name for name in OPENING_SECTIONS if not found.get(name) or found[name] == "..."]
-    _need(not missing, "opening needs non-empty sections: " + ", ".join("## " + name for name in missing))
+    _need(not missing, "opening needs non-empty sections: " + ", ".join("## " + name for name in missing)
+          + ". Write each one's content under its heading (a section left empty or as ... is refused) and run "
+          "the same improve-start command again")
     return found
 
 

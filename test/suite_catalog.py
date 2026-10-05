@@ -138,6 +138,7 @@ _SHIPLOOP_PATHS = (
     "test/shiploop-package-integrity.test.py",
     "test/shiploop-e2e.test.py",
     "test/shiploop-run-review.test.py",
+    "test/shiploop-callback-contract.test.py",
 )
 
 # Measured in the audited full GitHub qualification.  Every known duration is
@@ -208,6 +209,7 @@ _DURATION_SECONDS = {
     "test/shiploop-package-integrity.test.py": 0.2,
     "test/shiploop-e2e.test.py": 0.7,
     "test/shiploop-run-review.test.py": 0.2,
+    "test/shiploop-callback-contract.test.py": 12.0,
 }
 _FALLBACK_DURATION_SECONDS = 60.0
 
