@@ -81,6 +81,7 @@ COLLECTION_ORDER = ("runs", "backchain", "expectations", "config", "reviews", "o
 # ("enum", values), ("list", item), ("items", {field: spec}) for a list of objects,
 # ("map", value type) for an object of values. A `?` field of an item is not required.
 S, N, B, ISO = "string", "number", "boolean", "iso"
+BOOL_OR_UNKNOWN = "bool-or-unknown"  # true, false or the string "unknown": a fact that may not be knowable from the records
 PHASE_STATES = ("done", "running", "blocked", "none")
 SCHEMA = {
     # No expectation carries a status: how an expectation stands for a run is derived by the page from the run's
@@ -123,6 +124,10 @@ SCHEMA = {
     "backchain": {
         "run": (S, False), "loop": (S, False), "phase": (N, False), "order": (N, False), "title": (S, False),
         "stageMin": (N, False),
+        # Record-only facts about the loop (SCHEMA.md): the run's `backchain_passes` option as state.md recorded it, whether
+        # the last backchain-check receipt is for the loop's final candidate (true, false or "unknown"), and the
+        # trivial reviews the loop's receipt required (0 on a one-pass loop).
+        "backchainPasses": (S, False), "candidateMatch": (BOOL_OR_UNKNOWN, False), "trivialRequired": (N, False),
         "segments": (("items", {"label": (S, True), "min": (N, True),
                                 "kind": (("enum", ("added", "wasted", "insurance", "unclear", "neutral")), True),
                                 "note": (S, True), "pass": (N, False), "change": (S, False),
@@ -178,6 +183,8 @@ def _type_problem(spec, value, where: str) -> list[str]:
             except ValueError:
                 pass
         return [f"{where}: expected an ISO date-time string"]
+    if spec == BOOL_OR_UNKNOWN:
+        return [] if isinstance(value, bool) or value == "unknown" else [f'{where}: expected true, false or "unknown"']
     if spec == "any-scalar":
         return [] if isinstance(value, (str, int, float)) and not isinstance(value, bool) else [
             f"{where}: expected a string or number"]
@@ -484,11 +491,107 @@ def _passes(loop: Path) -> tuple[str | None, list[tuple[str, Path, Path | None]]
 
 
 def _loop_name(directory: str) -> str:
+    if NAV_ID.fullmatch(directory):  # 1.21.0: the directory is the action id; its stage names the loop when it is known
+        return directory[:12]
     if "step-plan" in directory:
         return "step-plan"
     if "plan" in directory:
         return "plan"
     return directory.removeprefix("backchain-")
+
+
+NOT_RECORDED = "not recorded"
+HEX64 = re.compile(r"[0-9a-f]{64}")
+START_RECORDS = ("until-loop-start-input.json", "until-loop-start-contract.json")
+
+
+def _start_record(run_dir: Path, loop: Path) -> Path | None:
+    """The loop's frozen start record: until-loop-start-input.json (older runs), until-loop-start-contract.json beside
+    the receipt (1.21.0), or notes/<action>-until-start-contract.json, the name a 1.21.0 step-plan loop used."""
+    for path in (*(loop / name for name in START_RECORDS), run_dir / "notes" / f"{loop.name}-until-start-contract.json"):
+        if path.is_file():
+            return path
+    return None
+
+
+def _backchain_option(state: dict) -> str:
+    """The run's `backchain_passes` as state.md recorded it: the text as written (one, converge or none, or whatever
+    else the record holds), and "not recorded" when the key is absent. Never a default."""
+    value = state.get("backchain_passes")
+    return NOT_RECORDED if value is None else value if isinstance(value, str) else json.dumps(value)
+
+
+def _digest_at(record, path: tuple[str, ...], key: str) -> str | None:
+    node = record
+    for step in path:
+        node = node.get(step) if isinstance(node, dict) else None
+    value = node.get(key) if isinstance(node, dict) else None
+    return value if isinstance(value, str) and HEX64.fullmatch(value) else None
+
+
+def _contract_digests(record) -> tuple[str | None, str | None]:
+    """(input, output) sha256 of the candidate a Backchain review record names, by the field names of Backchain's own
+    contract (skills/backchain/references/convergence.md and caller-contract.md): `convergence.candidate`, which spans
+    the whole loop, then the review's `candidate`, each also under `review`. A value that is not 64 hex digits
+    ("unavailable" for a new draft) is no digest."""
+    paths = (("convergence", "candidate"), ("review", "convergence", "candidate"), ("candidate",), ("review", "candidate"))
+    found = []
+    for key in ("input_sha256", "output_sha256"):
+        found.append(next((d for path in paths if (d := _digest_at(record, path, key))), None))
+    return found[0], found[1]
+
+
+def _record_digests(run_dir: Path, loop: Path) -> tuple[str | None, str | None]:
+    """(input, output) of the newest JSON record the loop kept whose candidate names an output digest: a file in the
+    loop directory or notes/<action>-*.json (the host names it; the candidate and check snapshots are not records)."""
+    notes = run_dir / "notes"
+    paths = [p for p in [*loop.glob("*.json"), *(notes.glob(f"{loop.name}-*.json") if notes.is_dir() else [])]
+             if not p.name.startswith(("candidate-", "check-")) and p.is_file()]
+    for path in sorted(paths, key=lambda p: (p.stat().st_mtime, p.name), reverse=True):
+        before, after = _contract_digests(_optional_json(path))
+        if after:
+            return before, after
+    return None, None
+
+
+def _last_check(folder: Path | None) -> tuple[str, bool | None] | None:
+    """(candidate_sha256, ok) of the newest shiploop-backchain-check receipt (check-*.json) in a directory, newest by file
+    time and then by name; None when there is none."""
+    best = None
+    for path in sorted(folder.glob("check-*.json")) if folder is not None and folder.is_dir() else []:
+        data = _optional_json(path)
+        digest = data.get("candidate_sha256") if isinstance(data, dict) else None
+        if isinstance(digest, str) and HEX64.fullmatch(digest):
+            key = (path.stat().st_mtime, path.name)
+            if best is None or key > best[0]:
+                best = (key, digest, data.get("ok") if isinstance(data.get("ok"), bool) else None)
+    return best[1:] if best else None
+
+
+def _candidate_match(final: str | None, last: tuple[str, bool | None] | None) -> tuple[bool | str, str]:
+    """(candidateMatch, the fact's text): whether the last check receipt is for the loop's final candidate. Unknown, with
+    the reason, when either digest is missing."""
+    if final and last:
+        ok = {True: "ok", False: "not ok"}.get(last[1], "ok not recorded")
+        if final == last[0]:
+            return True, f"yes: the last check receipt ({ok}) is for the loop's final candidate {final[:12]}"
+        return False, (f"no: the last check receipt ({ok}) is for {last[0][:12]}, "
+                       f"the loop's final candidate is {final[:12]}")
+    why = [] if last else ["no backchain-check receipt for this loop"]
+    if not final:
+        why.append("the loop's records carry no final candidate digest (candidate.output_sha256)")
+    return "unknown", "unknown: " + "; ".join(why)
+
+
+def _change(loop: Path, before: str | None, after: str | None) -> str:
+    """What a pass changed, from the digests of the candidate before and after it ("unknown" when either is missing)."""
+    if not (before and after):
+        return "unknown"
+    if before == after:
+        return "none"
+    snapshots = _snapshots(loop)
+    diff = _step_diff(snapshots[before], snapshots[after]) if before in snapshots and after in snapshots else None
+    return diff or "changed"
 
 
 def _owner(loop: str, start: datetime | None, text: str, actions: list[dict]) -> dict | None:
@@ -523,54 +626,96 @@ def _integer_split(raw: list[float], total: int | None) -> list[int]:
     return parts
 
 
-def loop_doc(run_key: str, run_dir: Path, loop: Path, actions: list[dict], order: int) -> dict:
-    """One backchain/<runKey>-<loop> document. Best effort: an unreadable layout gives segments []."""
-    name = _loop_name(loop.name)
-    receipt = _optional_json(loop / "until-loop-receipt.json") or {}
-    start_input = loop / "until-loop-start-input.json"
+def loop_doc(run_key: str, run_dir: Path, loop: Path, actions: list[dict], order: int,
+             option: str = NOT_RECORDED, stage_of: dict[str, str] | None = None) -> dict:
+    """One backchain/<runKey>-<loop> document. Best effort: an unreadable layout gives segments [].
+
+    Three layouts: the two older ones under scratch/ (per-pass review records, see _passes) and 1.21.0's
+    run/backchain/<action>/, where the runtime's receipt names the pass count and the host kept no per-pass record.
+    `option` is the run's backchain_passes as state.md recorded it; `stage_of` maps an action id to its stage."""
+    stage_of = stage_of or {}
+    name = stage_of.get(loop.name) or _loop_name(loop.name)
+    by_action = NAV_ID.fullmatch(loop.name) is not None  # 1.21.0: the directory is named by the action whose stage ran the loop
+    receipt_path = loop / "until-loop-receipt.json"
+    receipt = _optional_json(receipt_path) or {}
+    start_record = _start_record(run_dir, loop)
     layout, passes = _passes(loop)
-    loop_start = _mtime(start_input) if start_input.is_file() else (_mtime(passes[0][1]) if passes else None)
-    text = json.dumps(receipt) + (start_input.read_text(encoding="utf-8", errors="replace")
-                                  if start_input.is_file() else "")
-    owner = _owner(name, loop_start, text, actions)
     progress = receipt.get("progress") if isinstance(receipt.get("progress"), dict) else {}
-    facts = [{"k": "Passes", "v": str(len(passes))},
+    count = progress.get("action_number")
+    count = count if isinstance(count, int) and not isinstance(count, bool) and count >= 1 else None
+    if layout is None and count is not None:
+        layout = "receipt"
+    loop_start = _mtime(start_record) if start_record else (_mtime(passes[0][1]) if passes else None)
+    text = json.dumps(receipt) + (start_record.read_text(encoding="utf-8", errors="replace") if start_record else "")
+    owner = (next((a for a in actions if a["id"] == loop.name), None) if by_action
+             else _owner(name, loop_start, text, actions))
+    required = progress.get("required_trivial_reviews")
+    required = required if isinstance(required, int) and not isinstance(required, bool) and required >= 0 else None
+    passes_text = str(len(passes) if passes else count) if passes or count else "unknown"
+    facts = [{"k": "Passes", "v": passes_text},
              {"k": "Final status", "v": str(receipt.get("status") or "unknown")}]
     if "trivial_streak" in progress:
-        facts.append({"k": "Trivial streak", "v": f"{progress.get('trivial_streak')} of "
-                                                  f"{progress.get('required_trivial_reviews', '?')} required"})
-    facts.append({"k": "Receipt", "v": (loop / "until-loop-receipt.json").relative_to(run_dir).as_posix()})
-    stage = owner["stage"] if owner else None
+        facts.append({"k": "Trivial streak",
+                      "v": "no trivial-streak requirement on this loop" if required == 0
+                      else f"{progress.get('trivial_streak')} of {progress.get('required_trivial_reviews', '?')} required"})
+    facts.append({"k": "Backchain passes option", "v": option})
+    facts.append({"k": "Receipt", "v": receipt_path.relative_to(run_dir).as_posix()})
+    stage = owner["stage"] if owner else stage_of.get(loop.name)
     doc = {"run": run_key, "loop": name, "phase": STAGE_PHASE.get(stage or name, 2), "order": order,
-           "title": f"{name[:1].upper()}{name[1:]} loop", "stageMin": None, "segments": [], "facts": facts}
-    if layout is None:
-        facts.append({"k": "Layout", "v": "not recognized: no review-records/action-N-review.json "
-                                          "or review-records/review-NN.json"})
+           "title": f"{name[:1].upper()}{name[1:]} loop", "stageMin": None, "segments": [], "facts": facts,
+           "backchainPasses": option}
+    if required is not None:
+        doc["trivialRequired"] = required
+
+    def close(final: str | None) -> dict:
+        """Record whether the last check receipt is for the loop's final candidate, then hand back the document."""
+        folder = loop if by_action else (run_dir / "backchain" / owner["id"] if owner else None)
+        doc["candidateMatch"], said = _candidate_match(final, _last_check(folder))
+        facts.insert(next(i for i, f in enumerate(facts) if f["k"] == "Receipt"), {"k": "Candidate match", "v": said})
         return doc
-    snapshots: dict[str, Path] | None = None
+
+    if layout is None:
+        facts.append({"k": "Layout", "v": "not recognized: no review-records/action-N-review.json, "
+                                          "review-records/review-NN.json or progress.action_number in the receipt"})
+        return close(None)
+    final = None
     rows, previous_end, previous_after = [], loop_start, None
+    if layout == "receipt":
+        before, final = _record_digests(run_dir, loop)
+        end = _mtime(receipt_path)
+        report = receipt.get("last_report") if isinstance(receipt.get("last_report"), dict) else {}
+        classification, exit_assessment = report.get("classification"), report.get("exit_assessment")
+        recorded = (f"The loop recorded {'it' if count == 1 else 'the last pass'} as {classification}"
+                    + (f"; its exit was assessed as {exit_assessment}" if isinstance(exit_assessment, str) else "") + "."
+                    if isinstance(classification, str) else "")
+        if loop_start is None:
+            facts.append({"k": "Timing", "v": "not recorded: no until-loop-start-contract.json beside the receipt"})
+        elif count == 1:
+            row = {"label": "Pass 1", "kind": "unclear", "pass": 1, "change": _change(loop, before, final),
+                   "note": recorded, "raw": _minutes(loop_start, end)}
+            if isinstance(progress.get("trivial_streak"), int) and not isinstance(progress.get("trivial_streak"), bool):
+                row["streak"] = progress["trivial_streak"]
+            rows.append(row)
+        else:  # the host kept no record of each pass: the loop is one span
+            rows.append({"label": f"Passes 1 to {count}", "kind": "unclear", "raw": _minutes(loop_start, end),
+                         "note": f"The loop kept no per-pass record, so its {count} passes are one span. {recorded}".strip()})
+        previous_end = end if rows else None
     for index, (number, path, reply) in enumerate(passes, 1):
         record = _optional_json(path) or {}
         end = _mtime(path)
         before, after = _digests(record)
         before = before or previous_after
-        if before and after and before == after:
-            change = "none"
-        elif before and after:
-            snapshots = _snapshots(loop) if snapshots is None else snapshots
-            diff = (_step_diff(snapshots[before], snapshots[after])
-                    if before in snapshots and after in snapshots else None)
-            change = diff or "changed"
-        else:
-            change = "unknown"
         streak, classification = _reply(reply)
-        row = {"label": f"Pass {index}", "kind": "unclear", "pass": index, "change": change,
+        row = {"label": f"Pass {index}", "kind": "unclear", "pass": index, "change": _change(loop, before, after),
                "note": f"The loop recorded it as {classification}." if classification else "",
                "raw": _minutes(previous_end, end) if previous_end else 0.0}
         if streak is not None:
             row["streak"] = streak
         rows.append(row)
         previous_end, previous_after = end, after or previous_after
+    final = final or previous_after
+    if not rows:
+        return close(final)
     stage_min = None
     if owner and owner["from"] is not None and loop_start is not None and owner["from"] <= loop_start \
             and previous_end <= owner["at"]:
@@ -589,15 +734,22 @@ def loop_doc(run_key: str, run_dir: Path, loop: Path, actions: list[dict], order
         facts.append({"k": "Stage", "v": f"{stage}: the loop lies outside its accept window" if owner
                       else "not matched to an accepted action"})
     doc["stageMin"], doc["segments"] = stage_min, segments
-    return doc
+    return close(final)
 
 
 def find_loops(scratch: Path) -> list[Path]:
-    """Directories under scratch/ (up to three levels) that hold an until-loop-receipt.json."""
+    """Directories under scratch/ (up to three levels) that hold an until-loop-receipt.json: the layout of runs before
+    1.21.0, which the committed evidence files cover."""
     found = []
     for pattern in ("*/until-loop-receipt.json", "*/*/until-loop-receipt.json", "*/*/*/until-loop-receipt.json"):
         found += [p.parent for p in sorted(scratch.glob(pattern)) if p.is_file()]
     return found
+
+
+def find_backchain_loops(run_dir: Path) -> list[Path]:
+    """The run/backchain/<action>/ directories (1.21.0) that hold an until-loop-receipt.json. A directory with only
+    backchain-check receipts is no loop, and a loop still running has no receipt yet."""
+    return [p.parent for p in sorted((run_dir / "backchain").glob("*/until-loop-receipt.json")) if p.is_file()]
 
 
 # ---------------------------------------------------------------- the run document
@@ -887,14 +1039,17 @@ def build_run(out: Path, key: str | None = None, name: str | None = None,
     docs: dict[str, dict[str, dict]] = {"runs": {key: run}, "backchain": {}}
     loops = []
     scratch = run_dir / "scratch"
-    for loop in find_loops(scratch) if scratch.is_dir() else []:
+    option = _backchain_option(state)
+    stage_of = {row["action"]: row["stage"] for row in stages if "action" in row}
+    for loop in [*(find_loops(scratch) if scratch.is_dir() else []), *find_backchain_loops(run_dir)]:
         try:
-            doc = loop_doc(key, run_dir, loop, actions, 0)
+            doc = loop_doc(key, run_dir, loop, actions, 0, option, stage_of)
         except Exception as exc:  # noqa: BLE001 - the ledger is best effort and never fails the export
-            doc = {"run": key, "loop": _loop_name(loop.name), "phase": 2, "order": 0,
-                   "title": f"{_loop_name(loop.name)} loop", "stageMin": None, "segments": [],
+            doc = {"run": key, "loop": stage_of.get(loop.name) or _loop_name(loop.name), "phase": 2, "order": 0,
+                   "title": f"{stage_of.get(loop.name) or _loop_name(loop.name)} loop", "stageMin": None,
+                   "segments": [], "backchainPasses": option,
                    "facts": [{"k": "Ledger", "v": f"not built: {type(exc).__name__}: {exc}"}]}
-        start = loop / "until-loop-start-input.json"
+        start = _start_record(run_dir, loop) or loop / "until-loop-receipt.json"
         loops.append(((start.stat().st_mtime if start.is_file() else 0.0), loop.name, doc))
     loops.sort(key=lambda t: (t[0], t[1]))
     for index, (_, _, doc) in enumerate(loops, 1):
@@ -905,12 +1060,15 @@ def build_run(out: Path, key: str | None = None, name: str | None = None,
         docs["backchain"][doc_id] = doc
 
     facts = _facts(run, run_dir, out, raw_status, children, failures, knowledge_root, docs["backchain"],
-                   unknown, from_state, seeded_note)
+                   unknown, from_state, seeded_note, option)
     return docs, facts
 
 
+_MATCH_WORD = {True: "yes", False: "no", "unknown": "unknown"}
+
+
 def _facts(run, run_dir, out, raw_status, children, failures, knowledge_root, loops, unknown, from_state,
-           seeded_note) -> list[str]:
+           seeded_note, option) -> list[str]:
     stages = run["stages"]
     totals: dict[str, list] = {}
     for row in stages:
@@ -956,11 +1114,13 @@ def _facts(run, run_dir, out, raw_status, children, failures, knowledge_root, lo
                 f"; largest {largest[0]} {largest[1] / 1024:.1f} KB" if largest else ""),
              f"- Packets {sum(r.get('packetBytes', 0) for r in stages) / 1024:.1f} KB, results "
              f"{sum(r.get('resultBytes', 0) for r in stages) / 1024:.1f} KB over {len(stages)} accepted actions",
+             f"- Backchain passes option (state.md): {option}",
              "- Backchain loops: " + ("; ".join(
                  f"{d['loop']} {next((f['v'] for f in d['facts'] if f['k'] == 'Passes'), '?')} passes, "
                  f"{next((f['v'] for f in d['facts'] if f['k'] == 'Final status'), '?')}"
                  + (f", stage {d['stageMin']} min" if d.get("stageMin") is not None else "")
-                 for d in loops.values()) or "none found under scratch/"),
+                 + (f", candidate match {_MATCH_WORD[d['candidateMatch']]}" if "candidateMatch" in d else "")
+                 for d in loops.values()) or "none found under scratch/ or backchain/"),
              f"- Run directory: {run_dir.relative_to(out).as_posix()}"]
     if untimed:
         lines.append(f"- Stages with no minutes (no accept stamp, or none on the visit before): {untimed} of "

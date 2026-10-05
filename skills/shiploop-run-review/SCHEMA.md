@@ -70,13 +70,46 @@ otherwise "not examined". Findings that are fixed, accepted or re-expected do no
 | `failures` | array of `{verb, line}` | ShipLoop commands that exited non-zero; omitted with `refusals` when unmeasured |
 | `evidence` | string | path of the output directory (local, not durable) |
 
-**`backchain/<id>`** (a loop ledger; id `<runKey>-<loop>`; none is written when a run has no loop; none is written for a run without a loop)
+**`backchain/<id>`** (a loop ledger; id `<runKey>-<loop>`; none is written when a run has no loop)
 
 `run`, `loop` (the owning stage name such as `plan`, `step-plan` or `carry-forward`, or `none`), `phase` (order), `order`, `title`, `stageMin` (number or null),
-`segments` (array of `{label, min, kind, note, pass?, change?, streak?}`), `facts` (array of `{k, v}`).
+`segments` (array of `{label, min, kind, note, pass?, change?, streak?}`), `facts` (array of `{k, v}`), and three
+record-only fields below.
 `kind` is `added`, `wasted`, `insurance`, `unclear` or `neutral`. A pass segment has `pass` (1-based), `change` (what the
 pass changed, from candidate digests) and `streak` (the clean streak after it). When `stageMin` is set the segments' minutes
 sum to it. A hand-set verdict is interim; the default for an unjudged pass is `unclear`.
+
+| Field | Type | Notes |
+| --- | --- | --- |
+| `backchainPasses` | string | optional: the run's `backchain_passes` option as `state.md` recorded it, text as written (`one`, `converge` or `none`; any other value is shown verbatim). `not recorded` when the key is absent: never a default. Record only: nothing is enforced |
+| `candidateMatch` | `true` \| `false` \| `"unknown"` | optional: whether the **last** backchain-check receipt of the loop has `candidate_sha256` equal to the loop's final candidate digest. `"unknown"` when either digest is missing (the `Candidate match` fact says which). Last is newest by file time (then name): right on the original run directory, and a copy needs `cp -p`. Record only |
+| `trivialRequired` | number | optional: the receipt's `progress.required_trivial_reviews`; `0` on a one-pass loop, where the `Trivial streak` fact reads "no trivial-streak requirement on this loop". Absent when the receipt carries none |
+
+**Where a loop's numbers come from.** Three layouts are read, because a run keeps the loop records of the release that
+ran it and the five committed evidence files were exported from the first two:
+
+- `scratch/**/` (runs before 1.21.0): a directory with `until-loop-receipt.json` and per-pass records
+  (`review-records/action-N-review.json` with `pass-reports/actionN-done-packet.json`, or `review-records/review-NN.json`
+  with candidate snapshots and callback stdout). Passes, per-pass minutes (record file times), `change` (candidate
+  digests) and `streak` come from those records.
+- `run/backchain/<action>/` (1.21.0): the directory is named by the action id of the visit whose stage ran the loop, so
+  `loop` is that visit's stage. Found by its `until-loop-receipt.json` (also kept as `until-loop-terminal-packet.json`, the
+  same bytes, in the loops seen so far). The runtime's receipt gives `status`, `progress.action_number` (the passes),
+  `progress.trivial_streak` and `progress.required_trivial_reviews`, and `last_report.classification` and
+  `exit_assessment` (the last pass's outcome). The host kept no per-pass record: a one-pass loop is one `Pass 1` segment
+  from the start record (`until-loop-start-contract.json` beside the receipt, or `notes/<action>-until-start-contract.json`)
+  to the receipt, and a loop of more than one pass is one segment `Passes 1 to N` with no `pass`. With no start record the
+  loop has no segments and a `Timing` fact says why, never a 0.
+- `run/backchain/<action>/check-<sha12>.json` (with `candidate-<sha12>.json`, a snapshot of the bytes checked) are the
+  `shiploop backchain-check` receipts of any layout: `candidate_sha256` is the digest `candidateMatch` reads.
+
+The loop's **final candidate digest** is `candidate.output_sha256` (read as Backchain's own contract names it:
+`convergence.candidate` first, then `candidate`, each also under `review`; `references/convergence.md`) of the newest JSON
+record the loop kept, in its directory or as `notes/<action>-*.json` (the host names the file; `check-*` and `candidate-*`
+snapshots are not records). A value that is not 64 hex digits ("unavailable") is no digest. For a `scratch/` loop it is the
+last pass's output digest. `change` of a one-pass loop is the step diff between `convergence.candidate.input_sha256` and that
+digest when both snapshots exist. A `candidateMatch` of `false` means the plan was edited after the loop closed (the parent
+stage rechecked another candidate), not that the loop failed.
 
 **`observations/<id>`** (the page calls them findings; the collection name stays)
 
@@ -145,7 +178,12 @@ A **review file** (the findings, options and arc Claude writes for a run, commit
 these tables and the review rules in `SKILL.md`; `export.py --docs FILE` checks it, then writes its documents and
 `writes.json` through the writer an export uses.
 
-Limits of the run numbers, documented and not guarded. File-time spans (`improveMin`, `stages[].improve.min`) are right
+Limits of the run numbers, documented and not guarded. The first visit's `min` runs from `timeline.json` `started`, the
+engine's own start, to the first accept (the plan's DURATION rule). The E2E harness's stage line for the first stage runs
+from the host's first event, which comes earlier by the host's start-up before ShipLoop began, so the same first visit
+reads shorter here: the 1.21.0 Luna xhigh battleship run's intake is 2.5 min here (2.45 before the export rounds to a tenth)
+and 3.4 in the harness line, the difference being the 59 s between the host's first event and `started`. Neither is wrong; they measure different
+things, and the export's number is the visit's. File-time spans (`improveMin`, `stages[].improve.min`) are right
 on the original run directory; a copy needs `cp -p`, or every mtime becomes the copy time. A visit's `min` is accept to
 accept, so it includes any host-kill or resume gap inside it. A `timeline.json` the engine recreated stamps every
 action alike and cannot be told from a real one. Calls and context are the main thread: chain workers and Improve
