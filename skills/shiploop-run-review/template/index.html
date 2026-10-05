@@ -23,11 +23,6 @@ h3{font-size:14.5px;font-weight:600;margin:0}
 section{margin-top:22px}
 .sub{color:var(--muted);font-size:13.5px;margin:0 0 12px;max-width:72ch}
 code{font-family:var(--mono);font-size:12.5px;background:var(--code-bg);padding:1px 5px;border-radius:3px}
-.contract{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:10px;margin-top:6px}
-.node{background:var(--surface);border:1px solid var(--line);border-radius:8px;padding:11px 14px;min-width:0}
-.node b{display:block;font-size:12.5px;letter-spacing:.05em;text-transform:uppercase;color:var(--accent);margin-bottom:3px}
-.node p{margin:0;font-size:13.5px}
-.loopline{margin:10px 0 0;font-family:var(--mono);font-size:12.5px;color:var(--muted);overflow-wrap:anywhere}
 .row{display:flex;gap:10px;align-items:center;flex-wrap:wrap;margin-bottom:10px}
 label{font-size:13px;color:var(--muted)}
 select,input[type=text],textarea{font:inherit;font-size:13.5px;padding:6px 8px;border:1px solid var(--line);border-radius:6px;background:var(--surface);color:var(--fg);max-width:100%;box-sizing:border-box}
@@ -60,10 +55,7 @@ button.chev{cursor:pointer}
 .card{background:var(--surface);border:1px solid var(--line);border-radius:8px;padding:11px 14px}
 .stack{display:grid;grid-template-columns:minmax(0,1fr);gap:8px}
 .card{min-width:0}
-.obs{display:grid;grid-template-columns:auto minmax(0,1fr);gap:10px;align-items:start}
 .meta{font-family:var(--mono);font-size:11.5px;color:var(--muted);margin:2px 0 4px;overflow-wrap:anywhere}
-.obs p,.fbody p{margin:0 0 3px;font-size:13.5px;color:var(--muted)}
-.obs p strong,.fbody p strong,.etext strong{color:var(--fg);font-weight:600}
 .seg{display:inline-flex;border:1px solid var(--line);border-radius:6px;overflow:hidden;flex-wrap:wrap}
 .seg button{font:inherit;font-size:12px;padding:4px 10px;border:0;background:transparent;color:var(--muted);cursor:pointer;border-right:1px solid var(--line)}
 .seg button:last-child{border-right:0}
@@ -72,11 +64,6 @@ button.chev{cursor:pointer}
 .fhead{display:flex;gap:12px;align-items:flex-start;justify-content:space-between;flex-wrap:wrap}
 .fname{min-width:0;flex:1 1 260px}
 .fid{font-family:var(--mono);font-size:12px;color:var(--muted);margin-right:8px}
-.fbody{margin-top:6px;font-size:13.5px}
-.act{display:flex;gap:10px;align-items:flex-start}
-.act .t{min-width:0;flex:1}
-.act .t b{font-weight:600}
-.act .t span{display:block;color:var(--muted);font-size:13px}
 .tag{font-family:var(--mono);font-size:11.5px;color:var(--muted);margin-left:6px}
 .btn{font:inherit;font-size:13px;padding:6px 12px;border-radius:6px;border:1px solid var(--accent);background:transparent;color:var(--accent);cursor:pointer}
 .btn.sm{font-size:12px;padding:3px 9px}
@@ -93,6 +80,7 @@ details{margin-top:8px}
 summary{cursor:pointer;color:var(--accent);font-size:13px}
 .expb{margin-top:6px;padding:8px 10px;border-left:3px solid var(--accent);background:var(--code-bg);border-radius:0 6px 6px 0}
 .etext{margin:0;font-size:13.5px}
+.etext strong{color:var(--fg);font-weight:600}
 .revtag{font-family:var(--mono);font-size:11px;color:var(--bent);background:var(--bent-bg);padding:1px 7px;border-radius:99px;margin-left:8px;white-space:nowrap}
 .hist{margin-top:6px;padding-top:6px;border-top:1px solid var(--line)}
 .frow{display:flex;gap:6px;align-items:baseline;width:100%;text-align:left;font:inherit;font-size:13px;padding:6px 10px;border:1px solid var(--line);border-radius:8px;background:var(--surface);color:var(--fg);cursor:pointer;min-height:36px}
@@ -135,7 +123,7 @@ summary{cursor:pointer;color:var(--accent);font-size:13px}
 .rb{height:8px;border-radius:3px;background:var(--accent);min-width:2px}
 .rb.cmp{background:var(--muted);margin-top:2px}
 .vchips{display:flex;flex-wrap:wrap;gap:6px;margin-top:6px}
-.chip{font-family:var(--mono);font-size:11px;line-height:1.5;padding:1px 8px;border-radius:99px;background:var(--code-bg);color:var(--fg);border:1px solid var(--line);white-space:nowrap}
+.chip{font-family:var(--mono);font-size:11px;line-height:1.5;padding:1px 8px;border-radius:99px;background:var(--code-bg);color:var(--fg);border:1px solid var(--line);max-width:100%;overflow-wrap:anywhere}
 .chip.broken{background:var(--broken-bg);color:var(--broken);border-color:var(--broken)}
 .chip.bent{background:var(--bent-bg);color:var(--bent);border-color:var(--bent)}
 .chip.holds{background:var(--holds-bg);color:var(--holds);border-color:var(--holds)}
@@ -148,8 +136,8 @@ button.chip[aria-pressed="true"]{background:var(--accent);color:var(--accent-ink
 .arc ul{margin:6px 0 0;padding-left:20px;font-size:13.5px}
 .fcard h3{display:flex;gap:8px;align-items:baseline}
 .fcard .two{display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,280px),1fr));gap:12px;margin:10px 0}
-.viz{display:grid;gap:10px;align-content:start;min-width:0}
-.strip{overflow-x:auto;padding-bottom:4px}
+.viz{min-width:0;align-self:start}
+.strip{overflow-x:auto;padding-bottom:4px;margin-top:10px}
 .ws{display:block;max-width:none}
 .ws text{font-family:var(--sans);fill:var(--fg)}
 .ws-label{font-size:11.5px;font-weight:600}
@@ -163,7 +151,7 @@ button.chip[aria-pressed="true"]{background:var(--accent);color:var(--accent-ink
 .ws-hatch{stroke:var(--muted);stroke-width:1;fill:none}
 .ws-br{stroke:var(--fg);stroke-width:1.5;fill:none}
 .fg{display:block;width:100%;max-width:420px;height:auto}
-.fg text{font-family:var(--sans);font-size:12.5px;fill:var(--fg)}
+.fg text{font-family:var(--sans);font-size:13.5px;fill:var(--fg)}
 .fg-value{font-family:var(--mono);font-weight:500}
 .fg-bar{fill:var(--accent);opacity:.85}
 .fg-bar.t-expected{fill:var(--holds)}
@@ -179,13 +167,21 @@ label.opt.sel{background:var(--accent-bg);border-color:var(--accent)}
 label.opt input{width:22px;height:22px;margin:0;flex:none}
 label.opt .t{min-width:0}
 .instr{white-space:pre-wrap;font-size:13px;margin:6px 0 0;padding:8px 10px;background:var(--code-bg);border-radius:6px;overflow-wrap:anywhere}
-.optwrap details{margin:2px 0 0 4px}
+.optwrap details{margin:0 0 0 4px}
+.optwrap summary{display:inline-block;padding:10px 0}
 .noopt{display:flex;gap:8px;align-items:center;min-height:44px;margin-top:8px;color:var(--fg);font-size:13px}
 .noopt input{width:22px;height:22px;margin:0}
 .refs{display:flex;flex-wrap:wrap;gap:6px;margin-top:8px}
+.live{margin-top:12px;border:1px solid var(--accent);border-radius:8px;padding:6px 12px;background:var(--surface)}
+.live summary{color:var(--fg);font-size:13px;min-height:32px;display:flex;align-items:center}
+.live pre{white-space:pre-wrap;overflow-wrap:anywhere;font-family:var(--mono);font-size:11.5px;line-height:1.5;background:var(--code-bg);border-radius:6px;padding:10px;margin:8px 0 4px;max-height:360px;overflow:auto}
+.grp{margin:12px 0 4px;font-size:12px;color:var(--muted);text-transform:uppercase;letter-spacing:.04em}
+.tick{display:flex;gap:10px;align-items:center;justify-content:space-between;flex-wrap:wrap}
+.tick .t{min-width:0;flex:1 1 220px}
+.tick .btn{min-height:44px}
 .stepnav{display:flex;justify-content:space-between;gap:10px;margin-top:22px}
 .stickybar{display:none}
-@media (max-width:640px){.contract{grid-template-columns:1fr}.form{grid-template-columns:1fr}.segrow{grid-template-columns:minmax(0,1fr) 44px}.segrow select{grid-column:1/-1}.facts{grid-template-columns:1fr}
+@media (max-width:640px){.form{grid-template-columns:1fr}.segrow{grid-template-columns:minmax(0,1fr) 44px}.segrow select{grid-column:1/-1}.facts{grid-template-columns:1fr}
 .steps{gap:4px}.steps button{font-size:12px;padding:6px 6px}.steps button small{font-size:10.5px}
 .stickybar{display:flex;position:sticky;bottom:0;z-index:5;justify-content:space-between;align-items:center;gap:10px;margin:14px -16px -56px;padding:10px 16px;background:var(--surface);border-top:1px solid var(--line)}
 .stickybar[hidden]{display:none}}
@@ -218,15 +214,7 @@ label.opt .t{min-width:0}
 <section class="step" id="step-2" data-step="2" aria-labelledby="h-step-2" hidden>
 <h2 id="h-step-2">2. Expected versus seen</h2>
 <p class="sub">What we expect of every run, and what the findings tagged to each expectation say. Changing an expectation is an option in step 3, not an edit here.</p>
-<details style="margin-top:0"><summary>The contract we must not break</summary>
-<p class="sub" style="margin-top:8px">One sentence in, then investigation, planning and an iteration loop. The skill never decides the flow. The script does, and the skill obeys what it returns.</p>
-<div class="contract">
-<div class="node"><b>Skill</b><p>Calls the script. Does exactly the step the packet names. Calls back with its result.</p></div>
-<div class="node"><b>Script</b><p>Reads and writes state. Decides the next stage, writes every contract, refuses anything inconsistent.</p></div>
-<div class="node"><b>State</b><p>The only source of truth. It tells the script what the very next prompt is.</p></div>
-</div>
-<p class="loopline">request → investigate → plan → [ skill calls script → script updates state → state names next prompt → skill obeys ] → repeat → release</p>
-</details>
+<p class="sub">The contract behind every row: the script owns the flow. The skill calls it, does exactly the step its packet names and calls back; the state is the only source of truth.</p>
 <p class="lead" id="expsum" style="font-size:14px;margin:10px 0 0"></p>
 <div id="groups"></div>
 </section>
@@ -237,7 +225,10 @@ label.opt .t{min-width:0}
 <div class="chips" id="filters" style="margin:0 0 8px"></div>
 <div class="legend" id="wherelegend">Where strip: one cell per visit in order. Outlined cells are the stage the finding belongs to; amber is revise or replan, red blocked, dashed or hatched skipped. A letter under a cell names its outcome.</div>
 <div class="msg" id="notice" role="status"></div>
-<div class="stack" id="cards"></div>
+<details class="live" id="live" hidden><summary id="livesum"></summary>
+<div class="row" style="margin:6px 0 0"><button class="btn sm primary" id="livecopy" type="button">Copy prompt</button><button class="btn sm" id="liveopen" type="button">Open plan</button><span class="msg" id="livemsg" role="status"></span></div>
+<pre id="livepre"></pre></details>
+<div class="stack" id="cards" style="margin-top:12px"></div>
 <details id="loosebox" hidden><summary id="loosesum"></summary><div class="stack" id="loose"></div></details>
 <details id="donebox" hidden><summary id="donesum"></summary><div class="stack" id="done"></div></details>
 <details><summary>Add a finding</summary>
@@ -265,7 +256,9 @@ label.opt .t{min-width:0}
 <section class="step" id="step-4" data-step="4" aria-labelledby="h-step-4" hidden>
 <h2 id="h-step-4">4. Your plan</h2>
 <p class="sub" id="selcount"></p>
-<div class="row" role="radiogroup" aria-label="What happens after the plan">
+<div class="chips" id="kindcounts" style="margin:0 0 6px"></div>
+<div id="ticked"></div>
+<div class="row" role="radiogroup" aria-label="What happens after the plan" style="margin-top:14px">
 <label style="color:var(--fg)"><input type="radio" name="after" value="stop"> Wait for my go-ahead</label>
 <label style="color:var(--fg)"><input type="radio" name="after" value="execute"> Then execute</label>
 </div>
@@ -408,6 +401,102 @@ function chipFor(criterion,run,findings,review){
 }
 var CHIP_TEXT={broken:"broken",bent:"bent",unrated:"not rated",holds:"holds",unexamined:"not examined"};
 
+/* ---- the aggregate prompt (step 4) ---- */
+var PROMPT_KINDS=["change-expectation","fix-shiploop","fix-harness","gather-evidence","accept"];
+var PROMPT_HEAD={"change-expectation":"CHANGE AN EXPECTATION (first, so later work is judged against the new wording)","fix-shiploop":"FIX SHIPLOOP",
+  "fix-harness":"FIX THE HARNESS (its own commit)","gather-evidence":"GATHER EVIDENCE (read-only unless the instruction says to run)",
+  accept:"ACCEPT AS KNOWN LIMIT (record it in test/shiploop_e2e/LEARNINGS.md with the evidence; no code change)",other:"OTHER OPTIONS (no kind set)"};
+var PROMPT_COUNT={"change-expectation":"change expectation","fix-shiploop":"fix ShipLoop","fix-harness":"fix harness","gather-evidence":"gather evidence",accept:"accept as known limit",other:"no kind set"};
+function kindKey(o){return PROMPT_KINDS.indexOf(o.kind)>=0?o.kind:"other";}
+/* The ticked options grouped by kind in prompt order; within a kind, smaller effort first, then as given. */
+function groupOptions(options){
+  return PROMPT_KINDS.concat(["other"]).map(function(k){
+    var list=options.filter(function(o){return kindKey(o)===k;});
+    return {kind:k,options:list.map(function(o,i){return {o:o,i:i};}).sort(function(a,b){return rankOf(EFFORT_ORDER,a.o.effort)-rankOf(EFFORT_ORDER,b.o.effort)||a.i-b.i;}).map(function(x){return x.o;})};
+  }).filter(function(g){return g.options.length;});
+}
+function plural(n,w){return n+" "+w+(n===1?"":(/s$/.test(w)?"es":"s"));}
+/* Run facts for the prompt: measured values only; a counter the run does not carry is named "not measured", never 0. */
+function runFactsLine(run){
+  var have=[],miss=[];
+  if(run&&run.stages&&run.stages.length)have.push(run.stages.length+" visits");
+  if(run&&isCount(run.wallMin))have.push(run.wallMin+" min elapsed");
+  [["improvePasses","Improve passes"],["refusals","refusals"],["glue","glue"]].forEach(function(p){
+    if(run&&isCount(run[p[0]]))have.push(run[p[0]]+" "+p[1]);else miss.push(p[1]+" not measured");});
+  return "Run facts: "+have.join(", ")+(have.length&&miss.length?"; ":"")+miss.join(", ")+".";
+}
+/* One prompt for Claude Code from what the viewer ticked. state: {run, runs, findings, options, expectations (key to
+   document), review, selected {options, find}, after, notes, config {constraints, closing, artifactUrl}}. Only the
+   ticked options, the findings they name and the expectations those touch are printed. "" when nothing is ticked. */
+function buildPrompt(state){
+  var run=state.run||{},sel=state.selected||{},cfg=state.config||{},exps=state.expectations||{},findings=state.findings||[],all=state.options||[];
+  var opts=all.filter(function(o){return sel.options&&sel.options[o.id];});
+  var linked={};all.forEach(function(o){(Array.isArray(o.findings)?o.findings:[]).forEach(function(id){linked[id]=true;});});
+  var asks=findings.filter(function(f){return sel.find&&sel.find[f.id]&&!linked[f.id];});
+  if(!opts.length&&!asks.length)return "";
+  var key=run.key||"",out=[],groups=groupOptions(opts);
+  function expText(k){return (exps[k]&&exps[k].text)||"";}
+  function expTitle(k){return (exps[k]&&exps[k].title)||"";}
+  function resolves(o){return (Array.isArray(o.findings)?o.findings:[]).filter(function(id){return findings.some(function(f){return f.id===id;});});}
+  var meta=[run.release,[run.host,run.model].filter(Boolean).join(" "),typeof run.startedAt==="string"?run.startedAt.slice(0,10):"",run.status].filter(Boolean).join("; ");
+  out.push("Repair work from the Run Review of "+(run.name||"the chosen run")+(meta?" ("+meta+")":"")+". In the skill-craft repository."+
+    (cfg.artifactUrl?" Page: "+cfg.artifactUrl+".":"")+(run.evidence?" Run evidence: "+run.evidence+".":"")+
+    (key?" Review file: test/shiploop_e2e/evidence/"+key+".review.json.":""));
+  var counts=groups.map(function(g){return g.options.length+" "+PROMPT_COUNT[g.kind];});
+  if(asks.length)counts.push(plural(asks.length,"finding")+" to investigate");
+  out.push("You ticked "+(opts.length?plural(opts.length,"option")+" ("+counts.join(", ")+")":counts.join(", "))+
+    ". Plan them as one plan: merge overlap, resolve conflicts, order by dependency, split into the smallest verifiable increments, mark what can run in parallel.");
+  out.push(state.after==="execute"?"Then execute it.":"Present the plan and wait for my go-ahead.");
+  out.push(runFactsLine(run));
+  var n=0;
+  function line(o){
+    var a=[],ids=resolves(o),k=o.criterion;
+    var tail=(ids.length?" Resolves: "+ids.join(", ")+".":"");
+    if(kindKey(o)==="change-expectation"){
+      var ch=o.change||{};
+      a.push(++n+". "+o.id+(k?" "+k:"")+" "+o.title+": target "+(ch.target||"not stated")+". Now: "+(ch.to||"(not stated)")+" Was: "+(expText(k)||"(not recorded)")+" Why: "+(ch.reason||"(not stated)")+tail);
+    }else{
+      a.push(++n+". "+o.id+" "+o.title+" ["+(o.status||"open")+(o.effort?", effort "+o.effort:"")+"]."+tail+
+        (k?" Expectation: "+k+(expTitle(k)?" "+expTitle(k):"")+" ("+CHIP_TEXT[chipFor(k,key,findings,state.review)]+")"+
+          ((exps[k]&&exps[k].clauses&&exps[k].clauses.length)?"; clauses "+exps[k].clauses.join(", "):"")+".":""));
+    }
+    var goal=String(o.goal||"").trim();
+    if(goal)a.push("   "+(/^do:/i.test(goal)?goal:"Do: "+goal));
+    if(o.cost)a.push("   Ask me before starting: costs "+o.cost+".");
+    return a.join("\n");
+  }
+  groups.forEach(function(g){
+    out.push("");out.push(PROMPT_HEAD[g.kind]);
+    g.options.forEach(function(o){out.push(line(o));});
+    if(g.kind==="change-expectation"){
+      var targets=g.options.map(function(o){return o.change&&o.change.target;});
+      if(targets.indexOf("spec")>=0)out.push("A spec change means amending test/shiploop_e2e/SPEC.md first, in its own commit, stating why.");
+      if(targets.indexOf("page")>=0)out.push("A page change means editing skills/shiploop-run-review/defaults/expectations.json (the text, the clauses and a revs entry naming the option) and journaling it.");
+    }
+  });
+  if(asks.length){
+    out.push("");out.push("INVESTIGATE (read the evidence, propose options of the five kinds: fix ShipLoop, fix harness, change expectation, gather evidence, accept as known limit; change no code)");
+    asks.forEach(function(f){out.push("- "+f.id+" "+f.title);});
+  }
+  var need={};opts.forEach(function(o){resolves(o).forEach(function(id){need[id]=true;});});asks.forEach(function(f){need[f.id]=true;});
+  var ev=findings.filter(function(f){return need[f.id];});
+  if(ev.length){
+    out.push("");out.push("EVIDENCE");
+    ev.forEach(function(f){
+      var r=appliesTo(f,key)?run:(((state.runs||[]).filter(function(x){return appliesTo(f,x.key);})[0])||run);
+      var where=r.key?"run: "+r.key+(r.evidence?" at "+r.evidence:""):"";
+      var tag=(f.criterion?f.criterion+", ":"")+(f.status||"open");
+      out.push("- "+f.id+" ["+tag+"] "+f.title+". Expected: "+(f.expected||"(not stated)")+" Saw: "+(f.observed||"(not stated)")+
+        ((f.evidence||where)?" ("+[f.evidence?"evidence: "+f.evidence:"",where].filter(Boolean).join("; ")+")":""));
+    });
+  }
+  out.push("");
+  if(cfg.constraints)out.push("Rules: "+cfg.constraints);
+  if(String(state.notes||"").trim())out.push("Notes: "+String(state.notes).trim());
+  if(cfg.closing)out.push(cfg.closing);
+  return out.join("\n");
+}
+
 /* ---- pictures: markup built only from fixed class names, numbers and escaped text ---- */
 function esc(s){return String(s).replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;").replace(/"/g,"&quot;").replace(/'/g,"&#39;");}
 /* The engine's phases and the stages each one serves, in flow order (the exporter's phase table; a test keeps them equal).
@@ -444,9 +533,10 @@ function whereStrip(run,finding){
   var label=hits.length?title+": "+hits.length+" of "+n+" visits":title+": no visit in this run";
   var shape=hits.length?'<path class="ws-br" d="M'+(pad+hits[0]*pitch)+' '+(top-3)+'L'+(pad+hits[0]*pitch)+' '+(top-7)+'L'+(pad+hits[hits.length-1]*pitch+cw)+' '+(top-7)+'L'+(pad+hits[hits.length-1]*pitch+cw)+' '+(top-3)+'"/>':"";
   var x0=pad+(hits.length?hits[0]:0)*pitch,x1=pad+(hits.length?hits[hits.length-1]:0)*pitch+cw;
-  var atEnd=x0+label.length*6.4>W-pad;  /* a label that would run past the strip hangs from the right end of the bracket */
+  var lw=label.length*6.4,atEnd=x0+lw>W-pad;  /* a label that would run past the strip hangs from the right end of the bracket */
+  var view=Math.max(0,Math.round(atEnd?x1-lw-pad:x0-pad));  /* where a narrow screen should scroll the strip to */
   var outcomes=Object.keys(counts).map(function(k){return counts[k]+" "+k;}).join(", ");
-  return '<svg class="ws" viewBox="0 0 '+W+' 64" width="'+W+'" height="64" role="img" aria-label="'+esc("Where it happened, one cell per visit. "+label+(outcomes?"; "+outcomes:""))+'">'+
+  return '<svg class="ws" viewBox="0 0 '+W+' 64" width="'+W+'" height="64" data-view="'+view+'" role="img" aria-label="'+esc("Where it happened, one cell per visit. "+label+(outcomes?"; "+outcomes:""))+'">'+
     cells.join("")+marks.join("")+shape+'<text class="ws-label" x="'+(atEnd?x1:x0)+'" y="12"'+(atEnd?' text-anchor="end"':'')+'>'+esc(label)+'</text></svg>';
 }
 function figNum(v){return v===Math.floor(v)?grouped(v):String(Math.round(v*100)/100);}
@@ -458,11 +548,11 @@ function figureSvg(fig){
   var items=fig.items.filter(function(it){return it&&typeof it.label==="string"&&isCount(it.value)&&it.value>=0;}).slice(0,6);
   if(!items.length)return "";
   var max=Math.max.apply(null,items.map(function(it){return it.value;}));if(!(max>0))max=1;
-  var W=420,barX=150,barMax=160,rowH=26,parts=[],alt=[];
+  var W=420,barX=156,barMax=150,rowH=26,parts=[],alt=[];
   items.forEach(function(it,i){
     var y=8+i*rowH,w=Math.max(2,Math.round(it.value/max*barMax)),tone=["expected","saw","limit"].indexOf(it.tone)>=0?it.tone:"plain";
     var text=(it.lowerBound===true?">= ":"")+figNum(it.value)+(typeof it.unit==="string"&&it.unit?" "+it.unit:"");
-    var label=it.label.length>24?it.label.slice(0,23)+"…":it.label;
+    var label=it.label.length>22?it.label.slice(0,21)+"…":it.label;
     parts.push('<text class="fg-label" x="0" y="'+(y+12)+'">'+esc(label)+'</text>');
     parts.push('<rect class="fg-bar t-'+tone+'" x="'+barX+'" y="'+y+'" width="'+w+'" height="16" rx="3"/>');
     if(it.lowerBound===true)parts.push('<path class="fg-open" d="M'+(barX+w)+' '+y+'L'+(barX+w+8)+' '+(y+8)+'L'+(barX+w)+' '+(y+16)+'"/>');
@@ -506,7 +596,6 @@ function promptCfg(k,fb){var v=cfgOf("prompt")[k];return typeof v==="string"&&v?
 function runName(k){var r=data.runs.filter(function(x){return x.key===k;})[0];return k==="any"?"All runs":(r?r.name:k);}
 function reviewOf(key){return data.rev[key]||null;}
 function strip(d){var c=Object.assign({},d);delete c.id;return c;}
-function plural(n,w){return n+" "+w+(n===1?"":(/s$/.test(w)?"es":"s"));}
 function guarded(p,msgEl){p.then(null,function(e){if(msgEl)msgEl.textContent="Could not save: "+((e&&e.message)||"unavailable");});}
 function obsNo(o){return data.obs.indexOf(o)+1;}
 
@@ -524,6 +613,7 @@ function renderSteps(){
   STEPS.forEach(function(t,i){var b=h("button");b.type="button";b.appendChild(document.createTextNode((i+1)+". "+t));b.appendChild(h("small","",stepSub(i+1)));
     if(L.step===i+1)b.setAttribute("aria-current","step");b.onclick=function(){go(i+1);};box.appendChild(b);});
   for(var n=1;n<=4;n++)byId("step-"+n).hidden=(n!==L.step);
+  if(L.step===3)applyStrips();
   var nav=byId("stepnav");clear(nav);
   var back=h("button","btn","Back");back.type="button";back.disabled=L.step===1;back.onclick=function(){go(L.step-1);};
   var next=h("button","btn primary",L.step===3?"Build my plan":"Next");next.type="button";next.disabled=L.step===4;next.onclick=function(){go(L.step+1);};
@@ -694,14 +784,16 @@ function optionRow(a){
   wrap.appendChild(det);return wrap;
 }
 function doneRow(a){var d=h("div","card");d.appendChild(h("b","",a.title));if(a.ref)d.appendChild(h("span","tag",a.ref));return d;}
+/* A strip is scrolled to its finding's phase once its step is on screen: a hidden step has no layout to scroll. */
+var strips=[];
+function applyStrips(){strips.forEach(function(s){s[0].scrollLeft=s[1];});}
 function findingCard(c){
   var f=c.finding,card=h("div","card fcard");card.id="f-"+f.id;
   var t=h("h3");t.appendChild(h("span","fid","#"+obsNo(f)));t.appendChild(document.createTextNode(f.title));card.appendChild(t);
   card.appendChild(findingChips(f));
-  var two=h("div","two"),viz=h("div","viz"),rd=runDocFor(f);
-  var ws=rd?whereStrip(rd,f):"";if(ws){var sb=h("div","strip");sb.innerHTML=ws;viz.appendChild(sb);}
-  var fg=figureSvg(f.figure);if(fg){var fb=h("div","fig");fb.innerHTML=fg;viz.appendChild(fb);}
-  if(viz.firstChild)two.appendChild(viz);
+  var two=h("div","two"),rd=runDocFor(f);
+  var ws=rd?whereStrip(rd,f):"";if(ws){var sb=h("div","strip");sb.innerHTML=ws;card.appendChild(sb);strips.push([sb,+(/data-view="(\d+)"/.exec(ws)||[0,0])[1]]);}
+  var fg=figureSvg(f.figure);if(fg){var fb=h("div","viz");fb.innerHTML=fg;two.appendChild(fb);}
   two.appendChild(techBox(f));card.appendChild(two);
   if(f.advice){var ad=h("div","adv");ad.appendChild(h("b","","Advice. "));ad.appendChild(document.createTextNode(f.advice));card.appendChild(ad);}
   c.options.forEach(function(a){card.appendChild(optionRow(a));});
@@ -734,7 +826,8 @@ function renderFindings(){
   byId("notice").textContent=pruned;
   var box=byId("cards");clear(box);
   if(!res.cards.length)box.appendChild(h("div","empty",loaded.obs?(data.obs.length?"No finding matches this filter.":"No findings yet. Add the first one below."):"Loading findings."));
-  res.cards.forEach(function(c){box.appendChild(findingCard(c));});
+  strips=[];res.cards.forEach(function(c){box.appendChild(findingCard(c));});
+  applyStrips();
   if(res.elsewhere.length)box.appendChild(h("p","sub",plural(res.elsewhere.length,"option")+" belong to findings outside this filter."));
   var lb=byId("loosebox");lb.hidden=!res.loose.length;byId("loosesum").textContent="Options not tied to a finding ("+res.loose.length+")";
   var lo=byId("loose");clear(lo);res.loose.forEach(function(a){lo.appendChild(optionRow(a));});
@@ -818,26 +911,40 @@ function renderCritGroups(){
   });
 }
 /* ---------- options and the prompt ---------- */
-function picked(){return {acts:rankOptions(data.acts.filter(function(a){return S().opts[a.id];})),obs:data.obs.filter(function(o){return S().find[o.id];})};}
-function kinds(s){var p=[];if(s.acts.length)p.push(plural(s.acts.length,"option"));if(s.obs.length)p.push(plural(s.obs.length,"finding")+" to investigate");return p;}
+function picked(){return {acts:data.acts.filter(function(a){return S().opts[a.id];}),obs:data.obs.filter(function(o){return S().find[o.id];})};}
+function promptState(){
+  var o=runOf(),s=S();
+  return {run:o.run,runs:data.runs,findings:data.obs,options:data.acts,expectations:data.exp,review:o.run?reviewOf(o.run.key):null,
+    selected:{options:s.opts,find:s.find},after:s.after,notes:s.notes,
+    config:{constraints:promptCfg("constraints",""),closing:promptCfg("closing","For each option say done, not done or blocked with the evidence, and whether it changes the engine or our expectation."),artifactUrl:cfgOf("page").artifactUrl||""}};
+}
+function untick(map,id){map[id]=false;save();renderFindings();renderCounts();renderPrompt();renderSteps();}
 function renderCounts(){
-  var s=picked(),n=s.acts.length+s.obs.length;
-  byId("selcount").textContent=n?("Selected "+kinds(s).join(", ")+"."):"Nothing selected yet. Tick options in step 3.";
+  var s=picked(),n=s.acts.length+s.obs.length,kc=byId("kindcounts"),tk=byId("ticked");clear(kc);clear(tk);
+  byId("selcount").textContent=n?"You ticked "+[s.acts.length&&plural(s.acts.length,"option"),s.obs.length&&plural(s.obs.length,"finding")+" to investigate"].filter(Boolean).join(" and ")+". They become one plan.":"Nothing ticked yet. Tick options in step 3.";
+  groupOptions(s.acts).forEach(function(g){
+    kc.appendChild(h("span","chip acc",g.options.length+" "+PROMPT_COUNT[g.kind]));
+    tk.appendChild(h("div","grp",PROMPT_HEAD[g.kind].split(" (")[0]));
+    g.options.forEach(function(a){
+      var r=h("div","card tick"),t=h("div","t");t.appendChild(h("b","",a.title));
+      var m=h("div","chips");m.appendChild(h("span","chip",a.status||"open"));if(a.effort)m.appendChild(h("span","chip",a.effort));
+      if(a.cost)m.appendChild(h("span","chip bent","ask me first"));t.appendChild(m);
+      if(a.cost){var cp=h("p","sub","Costs: "+a.cost);cp.style.margin="4px 0 0";t.appendChild(cp);}r.appendChild(t);
+      var u=h("button","btn sm","Untick");u.type="button";u.setAttribute("aria-label","Untick "+a.title);u.onclick=function(){untick(S().opts,a.id);};r.appendChild(u);tk.appendChild(r);
+    });
+  });
+  if(s.obs.length){
+    tk.appendChild(h("div","grp","Findings to investigate"));
+    s.obs.forEach(function(f){var r=h("div","card tick"),t=h("div","t");t.appendChild(h("b","",f.title));r.appendChild(t);
+      var u=h("button","btn sm","Untick");u.type="button";u.setAttribute("aria-label","Untick "+f.title);u.onclick=function(){untick(S().find,f.id);};r.appendChild(u);tk.appendChild(r);});
+  }
 }
 function renderPrompt(){
-  var s=picked(),n=s.acts.length+s.obs.length,out=[],st=S();
-  if(!n){byId("prompt").value="Tick at least one option in step 3.";return;}
-  out.push("Selection: "+kinds(s).join(", ")+".");
-  out.push(n>1?"Plan all "+n+" items as one plan: merge overlap, resolve conflicts, order by dependency, split into the smallest verifiable increments, mark what can run in parallel.":"Plan the implementation.");
-  out.push(st.after==="execute"?"Then execute it.":"Present the plan and wait for my go-ahead.");
-  out.push("");
-  if(s.acts.length){out.push("Options:");s.acts.forEach(function(a){out.push("- "+a.id+" "+a.title+(a.criterion?" ["+a.criterion+"]":"")+": "+a.goal);});}
-  if(s.obs.length){out.push("Investigate (read the evidence, propose options, change no code):");s.obs.forEach(function(o){out.push("- "+o.id+" ["+phaseName(o.phase)+(o.criterion?", "+o.criterion:"")+", "+(STATUS_LABEL[o.status]||o.status)+"] "+o.title+". Expected: "+o.expected+" Saw: "+o.observed+(o.evidence?" ("+o.evidence+")":""));});}
-  var cons=promptCfg("constraints","");if(cons)out.push("Constraints: "+cons);
-  if(st.notes.trim())out.push("Notes: "+st.notes.trim());
-  var url=cfgOf("page").artifactUrl;
-  out.push(promptCfg("closing","State for each increment whether the evidence changes the engine or our expectation.")+(url?" Page: "+url:""));
-  byId("prompt").value=out.join("\n");
+  var text=buildPrompt(promptState()),n=picked(),total=n.acts.length+n.obs.length,lv=byId("live");
+  byId("prompt").value=text||"Tick at least one option in step 3.";
+  lv.hidden=!text;byId("livepre").textContent=text;
+  byId("livesum").textContent="Live prompt: "+plural(n.acts.length,"option")+(n.obs.length?" and "+plural(n.obs.length,"finding"):"")+" ("+text.length.toLocaleString("en-US")+" characters)";
+  if(!total)byId("livemsg").textContent="";
 }
 function renderPlanControls(){
   Array.prototype.forEach.call(document.getElementsByName("after"),function(r){r.checked=(r.value===S().after);});
@@ -963,11 +1070,14 @@ byId("cmpsel").onchange=function(){L.cmp=this.value;save();renderRunDetail();};
 byId("hideshort").onchange=function(){L.hideShort=this.checked;save();renderRunDetail();};
 byId("notes").oninput=function(){S().notes=this.value;save();renderPrompt();};
 Array.prototype.forEach.call(document.getElementsByName("after"),function(r){r.onchange=function(){S().after=r.value;save();renderPrompt();};});
-byId("copy").onclick=function(){
-  var ta=byId("prompt"),msg=byId("msg");
-  function fallback(){ta.focus();ta.select();msg.textContent="Selected. Press Ctrl+C or Cmd+C to copy.";}
+function copyPrompt(msg){
+  var ta=byId("prompt");
+  function fallback(){go(4);ta.focus();ta.select();msg.textContent="Selected. Press Ctrl+C or Cmd+C to copy.";}
   try{navigator.clipboard.writeText(ta.value).then(function(){msg.textContent="Copied.";},fallback);}catch(e){fallback();}
-};
+}
+byId("copy").onclick=function(){copyPrompt(byId("msg"));};
+byId("livecopy").onclick=function(){copyPrompt(byId("livemsg"));};
+byId("liveopen").onclick=function(){go(4);};
 byId("o-add").onclick=function(){
   var msg=byId("o-msg"),t=byId("o-title").value.trim();
   if(!t){msg.textContent="Add a one-line title first.";return;}
