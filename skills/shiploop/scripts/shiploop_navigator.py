@@ -494,14 +494,15 @@ def _result_shape_problem(value: Mapping[str, Any]) -> str | None:
     inner = value.get("result")
     if isinstance(inner, Mapping) and {"outcome", "summary"} <= set(inner):
         wrapper = ", ".join(sorted(value))
-        return (f"the shiploop-state block is a stored-record wrapper (top-level keys: {wrapper}), not the result "
+        return (f"result requires outcome and summary: the shiploop-state block is a stored-record wrapper "
+                f"(top-level keys: {wrapper}), not the result "
                 "object. Move the fields of \"result\" (outcome, summary, evidence_refs, ...) up to the top level "
                 f"and delete the keys {wrapper}; the files under results/ use that wrapper, a submitted result "
                 "does not. Then run the same complete command again")
     adds = {"outcome": '"outcome": "done" (or repeat, blocked, ...)',
             "summary": '"summary": "<what this step established>"'}
     found = ", ".join(sorted(value)[:8]) or "none"
-    return ("the result is missing " + " and ".join('"' + name + '"' for name in missing)
+    return ("result requires outcome and summary: the result is missing " + " and ".join('"' + name + '"' for name in missing)
             + f" (top-level keys found: {found}). The block must carry outcome and summary at its top level, as "
             "the packet's Result template does: add " + " and ".join(adds[name] for name in missing)
             + ", then run the same complete command again")

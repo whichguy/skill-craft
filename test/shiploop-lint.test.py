@@ -1372,7 +1372,9 @@ class GateTests(Fixture):
         waivers = [{"id": "L0123456789", "reason": "r"}]
         with self.assertRaisesRegex(nav.NavigatorError, "only on a done implement, test-green, regression result"):
             nav._canonical_result(dict(DONE, lint_waivers=waivers), stage="verify")
-        with self.assertRaisesRegex(nav.NavigatorError, "only on a done implement, test-green, regression result"):
+        # A blocked result carrying them is refused for the fields it must not carry (the refusal names them and says
+        # to delete them); the stage-specific sentence above applies to a done result at another stage.
+        with self.assertRaisesRegex(nav.NavigatorError, "a blocked result does not carry lint_waivers"):
             nav._canonical_result(dict(DONE, outcome="blocked", blocked_by="external", lint_waivers=waivers), stage="implement")
         self.assertEqual(nav._canonical_result(dict(DONE, lint_waivers=waivers), stage="implement")["lint_waivers"],
                          waivers)
