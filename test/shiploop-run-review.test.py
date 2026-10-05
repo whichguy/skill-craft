@@ -2276,6 +2276,155 @@ class ReviewBundleCheckTests(unittest.TestCase):
             self.assertIn("give one of RUN_DIR, --defaults, --check FILE or --docs FILE", err.getvalue())
 
 
+LUNA_REVIEW = EVIDENCE_DIR / "codex-gpt-6-luna-1.16.1-battleship-20261003.review.json"
+CRITERIA = ("P1", "P2", "P3", "P4", "P5", "P6", "B1", "B2", "B3", "B4", "B5")
+
+
+class LunaReviewTests(unittest.TestCase):
+    """The committed review of the Luna 1.16.1 run (R9): it passes the check, keeps every saved finding and option,
+    takes its figures from the committed evidence, and its prompt stays within the size contract."""
+
+    @classmethod
+    def setUpClass(cls):
+        cls.docs = json.loads(LUNA_REVIEW.read_text(encoding="utf-8"))["docs"]
+        cls.saved = {c: snapshot_docs(c) for c in ("observations", "actions", "runs")}
+        cls.luna = json.loads(LUNA_EVIDENCE.read_text())["docs"]["runs"]["luna1"]
+
+    def test_it_passes_the_check_and_its_warnings_are_the_findings_left_on_purpose(self):
+        out, err = io.StringIO(), io.StringIO()
+        with contextlib.redirect_stdout(out), contextlib.redirect_stderr(err):
+            code = export.main(["--check", str(LUNA_REVIEW)])
+        self.assertEqual((code, err.getvalue()), (0, ""))
+        warned = sorted(line.split(":")[1].strip().split("/")[1] + ":" + ("option" if "no option" in line else "effect")
+                        for line in out.getvalue().splitlines() if line.startswith("warning: "))
+        # o16 and o34 have neither (unknown cause; not this run), o17 is the owner's choice, o23 and o30 wait for one
+        self.assertEqual(warned, ["o16:effect", "o16:option", "o17:effect", "o23:option", "o30:option", "o34:effect",
+                                  "o34:option"])
+
+    def test_every_saved_document_is_kept_and_every_option_is_rewritten_normalised_and_linked(self):
+        findings, options = self.docs["observations"], self.docs["actions"]
+        self.assertLessEqual(set(self.saved["observations"]), set(findings))
+        self.assertLessEqual(set(self.saved["actions"]), set(options))
+        for fid, saved in self.saved["observations"].items():
+            for field in ("title", "expected", "kind", "criterion", "createdAt"):
+                self.assertEqual(findings[fid].get(field), saved.get(field), f"{fid}.{field}")
+            if fid != "o37":  # o37 is restated with model calls; every other change is appended, never a deletion
+                self.assertTrue(findings[fid]["observed"].startswith(saved["observed"]), fid)
+            if saved.get("status") in ("fixed", "accepted"):
+                self.assertNotIn("advice", findings[fid], fid)
+        for aid, option in options.items():
+            self.assertTrue(option.get("kind") and option.get("effort") and option.get("findings"), aid)
+            self.assertNotIn("base", option)
+        self.assertEqual({a: options[a]["status"] for a in ("a13", "a14", "a16")},
+                         {"a13": "built", "a14": "done", "a16": "planned"})  # building, analysed and waiting before
+        self.assertIn("1.19.0", options["a06"]["ref"])
+        self.assertEqual((options["a11"]["status"], options["a08"].get("recommended", False)), ("done", False))
+        page_runs = set(self.saved["runs"])
+        for fid, saved in self.saved["observations"].items():
+            if saved.get("run") in ("any", "sonnet"):
+                self.assertTrue(findings[fid].get("runs"), fid)
+                self.assertLessEqual(set(findings[fid]["runs"]), page_runs, fid)
+
+    def test_every_open_finding_with_a_live_option_has_its_effect_and_advice(self):
+        findings, options = self.docs["observations"], self.docs["actions"]
+        linked = {f for o in options.values() if o["status"] != "done" for f in o["findings"]}
+        for fid, finding in findings.items():
+            if finding.get("status", "open") == "open" and fid in linked:
+                self.assertIn("advice", finding, fid)
+                if fid != "o17":  # a choice for the owner hits no expectation (references/advice.md, "Effect")
+                    self.assertIn(finding.get("effect"), ("broken", "bent"), fid)
+
+    def test_the_figures_take_their_numbers_from_the_committed_evidence(self):
+        def bars(fid):
+            return {item["label"]: item for item in self.docs["observations"][fid]["figure"]["items"]}
+
+        luna, failures = self.luna, self.luna["failures"]
+        paths = sum("unrecognized arguments" in f["line"] or "no ShipLoop run directory" in f["line"] for f in failures)
+        tails = sum(f["line"].startswith("Read the current packet with next") for f in failures)
+        self.assertEqual((len(failures), paths, tails), (13, 4, 8))
+        self.assertEqual({k: v["value"] for k, v in bars("o43").items() if k in ("Expected refusals", "Refused commands",
+                                                                                "Run-path copy errors")},
+                         {"Expected refusals": 0, "Refused commands": luna["refusals"], "Run-path copy errors": paths})
+        self.assertEqual(sum(v["value"] for k, v in bars("o43").items() if k not in ("Expected refusals",
+                                                                                    "Refused commands")), 13)
+        self.assertEqual([bars("o40")[k]["value"] for k in ("Refusals recorded", "Line names the cause",
+                                                            "Generic tail line", "AssertionError line")],
+                         [len(failures), paths, tails, sum(f["line"] == "AssertionError" for f in failures)])
+        page = sum(child["seconds"] for child in self.saved["runs"]["luna1"]["improve"]) / 60
+        self.assertEqual([bars("o42")[k]["value"] for k in ("Page showed", "Bind to receipt", "Run elapsed")],
+                         [round(page, 1), round(luna["improveMin"], 1), luna["wallMin"]])
+        runs = [json.loads((EVIDENCE_DIR / n).read_text())["docs"]["runs"][k] for n, k in EVIDENCE_RUNS.items()]
+        hello = max(r["contextPeak"] / r["contextWindow"] for r in runs if r["key"].startswith("hello"))
+        self.assertEqual([bars("o06")[k]["value"] for k in ("Luna peak, % window", "Sonnet hello max, %")],
+                         [round(100 * luna["contextPeak"] / luna["contextWindow"], 1), round(100 * hello, 1)])
+        turns = bars("o41")["Turns, resume only"]
+        self.assertEqual((bars("o41")["Main-thread calls"]["value"], turns["value"], turns.get("lowerBound")),
+                         (luna["calls"], 2189, True))
+        loops = json.loads(LUNA_EVIDENCE.read_text())["docs"]["backchain"]
+        minutes = {(loop, s["pass"]): s["min"] for loop, d in loops.items() for s in d["segments"] if "pass" in s}
+        self.assertEqual([bars("o12")[k]["value"] for k in ("Plan passes 1-5", "Plan clean passes 6-7",
+                                                            "Step-plan passes 1-2", "Step-plan clean 3-4")],
+                         [sum(minutes["luna1-plan", n] for n in range(1, 6)), minutes["luna1-plan", 6] + minutes["luna1-plan", 7],
+                          minutes["luna1-step-plan", 1] + minutes["luna1-step-plan", 2],
+                          minutes["luna1-step-plan", 3] + minutes["luna1-step-plan", 4]])
+        for fid, finding in self.docs["observations"].items():
+            for item in finding.get("figure", {}).get("items", []):
+                self.assertLessEqual(len(item["label"]), 22, f"{fid}: {item['label']}")
+                self.assertEqual(item.get("lowerBound", False), item["label"] == "Turns, resume only", fid)
+
+    def test_its_chips_for_the_luna_run_and_a_basis_for_every_criterion(self):
+        findings = [{"id": i, **d} for i, d in self.docs["observations"].items()]
+        review = self.docs["reviews"]["luna1"]
+        self.assertEqual(sorted(review["basis"]), sorted(CRITERIA))
+        self.assertTrue(3 <= len(review["summary"]) <= 6)
+        chips = run_logic("(function(F,R){return %s.map(function(k){return chipFor(k,'luna1',F,R);});})(%s,%s)"
+                          % (json.dumps(CRITERIA), json.dumps(findings), json.dumps(review)))
+        self.assertEqual(dict(zip(CRITERIA, chips)), {
+            "P1": "bent", "P2": "bent", "P3": "broken", "P4": "holds", "P5": "broken", "P6": "broken",
+            "B1": "bent", "B2": "broken", "B3": "broken", "B4": "bent", "B5": "unrated"})
+
+    def test_a_prompt_for_three_ticked_options_adds_at_most_3000_characters_to_what_they_and_their_findings_say(self):
+        """The size contract: the builder's own text (head, counts, option lines, rules, report-back) stays within about
+        3,000 characters; the rest is the ticked options' instructions and changes and their findings, each once."""
+        findings = [{"id": i, **d} for i, d in self.docs["observations"].items()]
+        options = [{"id": i, **d} for i, d in self.docs["actions"].items()]
+        cfg = json.loads((DEFAULTS_DIR / "config.json").read_text(encoding="utf-8"))
+        exps = {d["key"]: d for d in json.loads((DEFAULTS_DIR / "expectations.json").read_text(encoding="utf-8"))}
+
+        def state(ticked):
+            return {"run": self.luna, "runs": [self.luna], "findings": findings, "options": options,
+                    "expectations": exps, "review": self.docs["reviews"]["luna1"], "after": "wait", "notes": "",
+                    "selected": {"options": {i: True for i in ticked}, "find": {}},
+                    "config": {**cfg["prompt"], "artifactUrl": snapshot_docs("config")["page"]["artifactUrl"]}}
+
+        def own_words(ticked):
+            chosen = [o for o in options if o["id"] in ticked]
+            ids = {f for o in chosen for f in o["findings"]}
+            said = sum(len(o["goal"]) + len(o["title"]) + len(o.get("cost", ""))
+                       + sum(len(v) for v in (o.get("change") or {}).values()) for o in chosen)
+            return said + sum(len(f["title"]) + len(f["expected"]) + len(f["observed"]) + len(f.get("evidence", ""))
+                              for f in findings if f["id"] in ids)
+
+        live = [o["id"] for o in options if o["status"] != "done"]
+        ticks = [["a19", "a13", "a21"]] + [[i] for i in live]
+        texts = run_logic("(function(S){return %s.map(function(t){var s=JSON.parse(JSON.stringify(S));"
+                          "t.forEach(function(i){s.selected.options[i]=true;});return buildPrompt(s);});})(%s)"
+                          % (json.dumps(ticks), json.dumps(state([]))))
+        for ticked, text in zip(ticks, texts):
+            with self.subTest(ticked=ticked):
+                self.assertLessEqual(len(text) - own_words(ticked), 3000, len(text))
+                for other in options:
+                    if other["id"] not in ticked:
+                        self.assertNotRegex(text, rf"\b{other['id']}\b")
+        three = texts[0]
+        self.assertEqual([three.count(f"- {f} [") for f in ("o35", "o40")], [1, 1])  # o35 is shared, printed once
+        self.assertLess(three.index("CHANGE AN EXPECTATION"), three.index("FIX SHIPLOOP"))
+        self.assertIn("Ask me before starting: costs a live run", three)
+        for key in CRITERIA:
+            if key != "P5":
+                self.assertNotIn(exps[key]["title"], three, key)
+
+
 class ReviewSkillTextTests(unittest.TestCase):
     """SKILL.md and references/advice.md carry the procedure the exporter's rules enforce."""
 
