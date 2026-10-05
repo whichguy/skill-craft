@@ -547,3 +547,56 @@ selection pruning. Deliberate change to an existing test: the logic block's puri
 
 **Size.** `template/index.html` is 75,869 bytes (57,754 after R4). R6 and R7 add step 2 and the prompt builder and
 remove what they replace; the final size is recorded with R7.
+
+## 2026-10-04: R6, step 2 rows with chips derived from the findings (template, contract, defaults and tests; not republished)
+
+Status: firm for the code and its tests. No Artifact or ArtifactData call; the live page and database are untouched.
+
+**The defect this removes.** An expectation's status was a hand-set global (`holds`, `bent`, `broken`, `unjudged`) that
+disagreed with the findings tagged to it: P5 read holds with 5 open defects and B1 bent with 6 open. Nothing is
+stored now. `chipFor(criterion, run, findings, review)` (pure, in the logic block) derives it for the chosen run: the
+worst `effect` among the run's open findings for the criterion (`broken`, then `bent`); with none open, `holds` only when
+the run's review gives a one-line `basis` for it; otherwise `not examined`. Fixed, accepted and re-expected findings do
+not count, and a finding's `runs` list limits it to those runs (`run: any` applies to all). A chip therefore cannot
+disagree with its findings, and a criterion nobody looked at does not read holds.
+
+**One state beyond the plan: `not rated`.** An open finding with no `effect` (every finding in today's database, until R9
+authors them) makes the chip `unrated`, not `holds`. The plan's four chips would have shown P5 as holds again, or as
+not examined, which is wrong in the other direction (it was examined; it has findings). `not rated` says exactly that
+and is the visible mark of a review that has not been written yet. The step 2 summary counts it
+(`This run: 3 bent, 6 not rated, 2 hold.`). Owner decision: keep it, or fold it into `bent`.
+
+**Step 2.** One card per criterion, grouped Principles and Backchain (the group text from the expectations
+documents): the chip, the S-clause chips (`clauses`), the expectation text with its revision history (`revised 1x`, the
+inline disclosure; a revision now names the `option` that asked for it), the review's basis line when it has one, and
+`N open findings`, which opens step 3 filtered to that expectation (a `Expectation P1: clear` chip removes the filter).
+The stepper count reads `1 broken, 1 not rated`. The review's `summary` (the arc, 3 to 6 lines) heads step 1 when the
+run has a review. The old per-expectation "Saw" list and status editor are gone; so are the `.pill` styles (chips
+replace them in the phase panel and the verdict chips).
+
+**Contract.** `expectations` lose `status` and the `iter` kind (the validator rejects `kind: iter`), gain `clauses`, and
+`revs` items gain `option` (replacing `iter`). New collection `reviews/<runKey>`: `summary` (list of strings), `basis`
+(map criterion key to a one-line reason), `reviewedAt`; the page reads it and never writes it (subscription `reviews`,
+documented in `SCHEMA.md`). `defaults/expectations.json`: the 11 criteria drop `status` and gain `clauses` from the
+plan's proposed map (P1 S-1 S-2; P2 S-5 S-10; P3 S-2 S-4 S-6 S-7; P4 S-2; P5 S-9 S-11; P6 none; B1 S-10; B2 S-1 S-5 S-9;
+B3 S-1 S-5; B4 S-5; B5 S-10; every clause exists in `test/shiploop_e2e/SPEC.md`). The map is still the plan's open
+owner decision (confirm or amend). The Principles group text said "mark each as holds, bent or broken", which describes
+the removed editor, so it now says the chip is worked out from findings and the review.
+
+**Not done here (for a later step).** The live `phase-2` expectation text has one revision that exists only in the
+database; copying it into `defaults/expectations.json` before the first publish is an operation (R9 and the publish
+procedure), not part of this increment, and the defaults still carry the original `phase-2` wording. The live
+expectation documents also still carry the old `status` field and the `iter-*` documents; the page ignores both.
+
+**Tests.** `python3 -B test/shiploop-run-review.test.py`: 75 tests (65 before; 10 new, all fail on the base tip
+`e79f948a` from a `git archive` with only the test file copied; 38 existing tests pass there). New: `chipFor` (worst
+effect wins, accepts a run key or a document; fixed, accepted and re-expected do not count; holds needs a basis and
+no open finding, with five shapes of "no basis"; a `runs` list and `run: any`; five open defects with no effect read
+`unrated`, never holds); the defaults name clauses that exist in SPEC.md, carry no status and have no `iter` kind; the
+schema (no status, `option`, `reviews`, the contract text); step 2 rows through the page probe (derived chips that
+ignore a stored `status: holds`, clauses, `revised 1x`, `by option a07`, the basis line, the jump to step 3 filtered to
+P1, the stepper count and the arc); `not examined` with no findings; and the removed names. One existing test changed
+deliberately: the defaults' allowed kinds no longer include `iter`; the stepper-count assertion follows the new step 2
+text.
+
+**Size.** `template/index.html` is 78,551 bytes (75,869 after R5).

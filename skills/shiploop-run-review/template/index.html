@@ -95,12 +95,6 @@ summary{cursor:pointer;color:var(--accent);font-size:13px}
 .etext{margin:0;font-size:13.5px}
 .revtag{font-family:var(--mono);font-size:11px;color:var(--bent);background:var(--bent-bg);padding:1px 7px;border-radius:99px;margin-left:8px;white-space:nowrap}
 .hist{margin-top:6px;padding-top:6px;border-top:1px solid var(--line)}
-.sawlist{margin:4px 0 0;padding:0;list-style:none;font-size:13px;color:var(--muted)}
-.sawlist li{margin:0 0 2px}
-.pill{font-family:var(--mono);font-size:10.5px;padding:0 6px;border-radius:99px;margin-right:6px;background:var(--none-bg);color:var(--muted)}
-.pill.open{background:var(--broken-bg);color:var(--broken)}
-.pill.fixed{background:var(--holds-bg);color:var(--holds)}
-.pill.reexpected{background:var(--bent-bg);color:var(--bent)}
 .frow{display:flex;gap:6px;align-items:baseline;width:100%;text-align:left;font:inherit;font-size:13px;padding:6px 10px;border:1px solid var(--line);border-radius:8px;background:var(--surface);color:var(--fg);cursor:pointer;min-height:36px}
 .bar{display:flex;gap:2px;height:34px;margin:8px 0}
 .bar.mini{height:12px;margin:3px 0}
@@ -150,6 +144,8 @@ summary{cursor:pointer;color:var(--accent);font-size:13px}
 button.chip{font-family:var(--sans);font-size:12px;padding:4px 11px;min-height:32px;cursor:pointer}
 button.chip[aria-pressed="true"]{background:var(--accent);color:var(--accent-ink);border-color:var(--accent)}
 .chips{display:flex;flex-wrap:wrap;gap:6px;margin:6px 0 0}
+.arc{margin:12px 0 0}
+.arc ul{margin:6px 0 0;padding-left:20px;font-size:13.5px}
 .fcard h3{display:flex;gap:8px;align-items:baseline}
 .fcard .two{display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,280px),1fr));gap:12px;margin:10px 0}
 .viz{display:grid;gap:10px;align-content:start;min-width:0}
@@ -205,6 +201,7 @@ label.opt .t{min-width:0}
 <h2 id="h-step-1">1. What happened</h2>
 <p class="sub">Pick a run. Top: the path every run should take. Then where the chosen run got, the Backchain time spent there, and numbered markers where behaviour diverged. Select a stage to read what we expect of it.</p>
 <div class="row"><label for="runsel">Run</label><select id="runsel"></select><span class="snap" id="runfacts"></span></div>
+<div id="arc" class="arc"></div>
 <div class="flowbox"><div class="flow" id="flow"></div></div>
 <div class="legend">Markers: red open, green fixed, grey accepted as designed, amber we changed the expectation. Chevrons: green accepted, red stopped, amber in progress, grey not reached.</div>
 <div id="phasepanel" class="stack" style="margin-top:12px" aria-live="polite"></div>
@@ -230,6 +227,7 @@ label.opt .t{min-width:0}
 </div>
 <p class="loopline">request → investigate → plan → [ skill calls script → script updates state → state names next prompt → skill obeys ] → repeat → release</p>
 </details>
+<p class="lead" id="expsum" style="font-size:14px;margin:10px 0 0"></p>
 <div id="groups"></div>
 </section>
 
@@ -391,6 +389,25 @@ function cardsFor(state){
   return {cards:cards,loose:rankOptions(loose),done:rankOptions(done),elsewhere:elsewhere};
 }
 
+/* ---- expectations for a run (step 2) ---- */
+/* The open findings for a criterion that apply to a run (`run` is a run key or a run document). */
+function openFindings(criterion,run,findings){
+  var key=run&&typeof run==="object"?run.key:run;
+  return (findings||[]).filter(function(f){return f.criterion===criterion&&isOpen(f)&&appliesTo(f,key);});
+}
+/* How an expectation stands for a run, derived and never stored: "broken" or "bent" from the worst `effect` among the
+   run's open findings for it; "unrated" when one is open but has no effect; "holds" only when nothing is open and the
+   run's review gives a one-line basis for it; otherwise "unexamined". Fixed and accepted findings do not count. */
+function chipFor(criterion,run,findings,review){
+  var open=openFindings(criterion,run,findings);
+  if(open.some(function(f){return f.effect==="broken";}))return "broken";
+  if(open.some(function(f){return f.effect==="bent";}))return "bent";
+  if(open.length)return "unrated";
+  var basis=review&&review.basis&&review.basis[criterion];
+  return typeof basis==="string"&&basis.trim()?"holds":"unexamined";
+}
+var CHIP_TEXT={broken:"broken",bent:"bent",unrated:"not rated",holds:"holds",unexamined:"not examined"};
+
 /* ---- pictures: markup built only from fixed class names, numbers and escaped text ---- */
 function esc(s){return String(s).replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;").replace(/"/g,"&quot;").replace(/'/g,"&#39;");}
 /* The engine's phases and the stages each one serves, in flow order (the exporter's phase table; a test keeps them equal).
@@ -461,7 +478,7 @@ var KIND={defect:"defect",recovered:"recovered",decision:"decision",noise:"noise
 var STATUS_LABEL={open:"open",fixed:"fixed",accepted:"accepted",reexpected:"expectation updated"};
 var VERDICT={added:"Added value",wasted:"Wasted",insurance:"Confirming pass",unclear:"Cannot judge yet",neutral:"Other work"};
 var STEPS=["What happened","Expected versus seen","Findings and options","Your plan"];
-var data={runs:[],obs:[],acts:[],bc:[],exp:{},cfg:{}},loaded={runs:false,obs:false,acts:false,bc:false,exp:false,cfg:false},db=null,live=false;
+var data={runs:[],obs:[],acts:[],bc:[],exp:{},cfg:{},rev:{}},loaded={runs:false,obs:false,acts:false,bc:false,exp:false,cfg:false,rev:false},db=null,live=false;
 /* The viewer's working set lives in this browser only: the step, the chosen run, and per run the ticked options and
    findings, what happens after the plan, and the notes. Every storage access is guarded; the page works with it empty. */
 var L={step:1,run:"",phase:-1,cmp:"",hideShort:true,filter:"open",crit:"",sel:{}};
@@ -487,6 +504,7 @@ function phaseName(order){var p=phaseAt(order);return p?p.title:"Any stage";}
 function cfgOf(id){return data.cfg[id]||{};}
 function promptCfg(k,fb){var v=cfgOf("prompt")[k];return typeof v==="string"&&v?v:fb;}
 function runName(k){var r=data.runs.filter(function(x){return x.key===k;})[0];return k==="any"?"All runs":(r?r.name:k);}
+function reviewOf(key){return data.rev[key]||null;}
 function strip(d){var c=Object.assign({},d);delete c.id;return c;}
 function plural(n,w){return n+" "+w+(n===1?"":(/s$/.test(w)?"es":"s"));}
 function guarded(p,msgEl){p.then(null,function(e){if(msgEl)msgEl.textContent="Could not save: "+((e&&e.message)||"unavailable");});}
@@ -495,7 +513,7 @@ function obsNo(o){return data.obs.indexOf(o)+1;}
 /* ---------- steps ---------- */
 function stepSub(n){
   if(n===1){var o=runOf();return o.run&&o.run.stages?plural(o.run.stages.length,"visit"):"no run yet";}
-  if(n===2)return plural(docsOf("criterion").length,"expectation");
+  if(n===2){var cs=chipCounts();return [cs.broken&&cs.broken+" broken",cs.bent&&cs.bent+" bent",cs.unrated&&cs.unrated+" not rated"].filter(Boolean).join(", ")||plural(docsOf("criterion").length,"expectation");}
   var t=ticked(S().opts).length+ticked(S().find).length;
   if(n===3)return filterCounts(viewState()).open+" open, "+t+" ticked";
   return t+" ticked";
@@ -524,7 +542,7 @@ function expBlock(key){
   if(e.revs.length){
     var det=h("details");det.appendChild(h("summary","","History ("+e.revs.length+")"));
     e.revs.slice().reverse().forEach(function(r){
-      var d=h("div","hist");d.appendChild(h("div","meta",fmt(r.at)+(r.obs?" | prompted by finding "+r.obs:"")));
+      var d=h("div","hist");d.appendChild(h("div","meta",fmt(r.at)+(r.obs?" | prompted by finding "+r.obs:"")+(r.option?" | by option "+r.option:"")));
       var a=h("p");a.style.cssText="margin:0 0 3px;font-size:13px";a.appendChild(h("strong","","Why. "));a.appendChild(document.createTextNode(r.reason));
       var c=h("p");c.style.cssText="margin:0;font-size:13px;color:var(--muted)";c.appendChild(h("strong","","Was. "));c.appendChild(document.createTextNode(r.from));
       d.appendChild(a);d.appendChild(c);det.appendChild(d);
@@ -533,21 +551,32 @@ function expBlock(key){
   }
   return w;
 }
-function sawList(key){
-  var l=data.obs.filter(function(o){return o.criterion===key;});
-  var w=h("div","fbody");var p=h("p");p.appendChild(h("strong","","Saw. "));
-  if(!l.length){p.appendChild(document.createTextNode("No finding is tagged to this yet."));w.appendChild(p);return w;}
-  var open=l.filter(function(o){return o.status==="open";}).length;
-  p.appendChild(document.createTextNode(plural(l.length,"finding")+", "+open+" open."));w.appendChild(p);
-  var ul=h("ul","sawlist");
-  l.forEach(function(o){var li=h("li");li.appendChild(h("span","pill "+o.status,STATUS_LABEL[o.status]||o.status));li.appendChild(document.createTextNode(obsNo(o)+". "+o.title));ul.appendChild(li);});
-  w.appendChild(ul);return w;
-}
-function critCard(c){
-  var d=h("div","card");var head=h("div","fhead");
+var CHIP_CLASS={broken:"broken",bent:"bent",unrated:"muted",holds:"holds",unexamined:"muted"};
+var STATUS_CHIP={open:"broken",fixed:"holds",accepted:"muted",reexpected:"bent"};
+function statusChip(s){return h("span","chip "+(STATUS_CHIP[s||"open"]||"muted"),STATUS_LABEL[s||"open"]||s);}
+function chipOf(key){var o=runOf();return chipFor(key,o.run?o.run.key:"",data.obs,o.run?reviewOf(o.run.key):null);}
+function chipCounts(){var c={broken:0,bent:0,unrated:0,holds:0,unexamined:0};docsOf("criterion").forEach(function(d){c[chipOf(d.key)]++;});return c;}
+function critRow(c){
+  var o=runOf(),key=o.run?o.run.key:"",chip=chipOf(c.key),open=openFindings(c.key,key,data.obs),rv=key?reviewOf(key):null;
+  var d=h("div","card");d.id="x-"+c.key;var head=h("div","fhead");
   var nm=h("div","fname");nm.appendChild(h("span","fid",c.key));nm.appendChild(h("b","",c.title));
-  head.appendChild(nm);d.appendChild(head);
-  d.appendChild(expBlock(c.key));d.appendChild(sawList(c.key));return d;
+  head.appendChild(nm);head.appendChild(h("span","chip "+CHIP_CLASS[chip],CHIP_TEXT[chip]));d.appendChild(head);
+  if(c.clauses.length){var cl=h("div","chips");c.clauses.forEach(function(s){cl.appendChild(h("span","chip acc",s));});d.appendChild(cl);}
+  d.appendChild(expBlock(c.key));
+  var basis=rv&&rv.basis&&rv.basis[c.key];
+  if(typeof basis==="string"&&basis){var bp=h("p","sub");bp.style.margin="6px 0 0";bp.appendChild(h("strong","","Basis. "));bp.appendChild(document.createTextNode(basis));d.appendChild(bp);}
+  var row=h("div","row");row.style.margin="8px 0 0";
+  if(open.length){var b=h("button","btn sm",plural(open.length,"open finding"));b.type="button";
+    b.onclick=function(){L.crit=c.key;L.filter="open";save();renderFindings();go(3);};row.appendChild(b);}
+  else row.appendChild(h("span","snap","no open findings for this run"));
+  d.appendChild(row);return d;
+}
+function renderArc(){
+  var box=byId("arc");clear(box);var o=runOf(),rv=o.run?reviewOf(o.run.key):null;
+  if(!rv||!Array.isArray(rv.summary)||!rv.summary.length)return;
+  var c=h("div","card");c.appendChild(h("h3","","Review of this run"));var ul=h("ul");
+  rv.summary.forEach(function(l){ul.appendChild(h("li","",l));});c.appendChild(ul);
+  if(rv.reviewedAt)c.appendChild(h("div","meta","Reviewed "+fmt(rv.reviewedAt)));box.appendChild(c);
 }
 
 /* ---------- step 1: the run ---------- */
@@ -614,7 +643,7 @@ function renderPanel(){
   var list=data.obs.filter(function(o){return o.phase===L.phase&&(o.run===L.run||o.run==="any");});
   if(!list.length){box.appendChild(h("div","empty","Nothing diverged at "+p.title+" for this run."));return;}
   list.forEach(function(o){
-    var r=h("button","frow");r.type="button";r.appendChild(h("span","pill "+(o.status||"open"),STATUS_LABEL[o.status]||o.status));
+    var r=h("button","frow");r.type="button";r.appendChild(statusChip(o.status));
     r.appendChild(document.createTextNode(obsNo(o)+". "+o.title));r.onclick=function(){openFinding(o.id);};box.appendChild(r);
   });
 }
@@ -774,7 +803,8 @@ function renderBackchain(){
 /* ---------- step 2: the expectations ---------- */
 function renderCritGroups(){
   var box=byId("groups");clear(box);
-  var gs=docsOf("group"),cs=docsOf("criterion");
+  var gs=docsOf("group"),cs=docsOf("criterion"),cc=chipCounts(),sm=byId("expsum");
+  sm.textContent=cs.length?"This run: "+[["broken","broken"],["bent","bent"],["unrated","not rated"],["holds","hold"],["unexamined","not examined"]].filter(function(p){return cc[p[0]];}).map(function(p){return cc[p[0]]+" "+p[1];}).join(", ")+".":"";
   if(!cs.length){box.appendChild(h("div","empty",loaded.exp?"No expectations are seeded yet. Seed the starting expectations (the shiploop-run-review skill, SKILL.md).":"Loading the shared record."));return;}
   var known={};gs.forEach(function(g){known[g.key]=true;});
   var lists=gs.map(function(g){return {g:g,items:cs.filter(function(c){return c.group===g.key;})};});
@@ -784,7 +814,7 @@ function renderCritGroups(){
     if(!l.items.length)return;
     var sec=h("div");sec.style.marginTop="14px";sec.appendChild(h("h3","",l.g.title));
     if(l.g.text){var p=h("p","sub",l.g.text);p.style.margin="2px 0 8px";sec.appendChild(p);}
-    var st=h("div","stack");l.items.forEach(function(c){st.appendChild(critCard(ex(c.key)));});sec.appendChild(st);box.appendChild(sec);
+    var st=h("div","stack");l.items.forEach(function(c){st.appendChild(critRow(ex(c.key)));});sec.appendChild(st);box.appendChild(sec);
   });
 }
 /* ---------- options and the prompt ---------- */
@@ -825,7 +855,7 @@ function fillSelects(){
   data.runs.slice().sort(byOrder).forEach(function(r){if(r.key===L.run)return;var o=h("option","",r.name);o.value=r.key;cs.appendChild(o);});
   cs.value=L.cmp||"";byId("hideshort").checked=!!L.hideShort;
 }
-function renderAll(){applyConfig();pruneSelection();renderFlow();renderPanel();renderRunDetail();renderBackchain();renderFindings();renderCritGroups();renderCounts();renderPrompt();renderPlanControls();fillSelects();renderSteps();}
+function renderAll(){applyConfig();pruneSelection();renderArc();renderFlow();renderPanel();renderRunDetail();renderBackchain();renderFindings();renderCritGroups();renderCounts();renderPrompt();renderPlanControls();fillSelects();renderSteps();}
 
 /* ---------- the Backchain pass strip ---------- */
 var NS="http://www.w3.org/2000/svg";
@@ -866,7 +896,7 @@ function renderRunDetail(){
   var card=h("div","card");card.appendChild(h("h3","",A.name+(B?" compared with "+B.name:"")));
   var facts=factRows(A);
   var dl=h("dl","facts");facts.forEach(function(f){dl.appendChild(h("dt","",f[0]));dl.appendChild(h("dd","",f[1]));});card.appendChild(dl);
-  if(A.verdicts){var vc=h("div","vchips");Object.keys(A.verdicts).forEach(function(k){vc.appendChild(h("span","pill "+(A.verdicts[k]?"fixed":"open"),k+(A.verdicts[k]?" pass":" fail")));});card.appendChild(vc);}
+  if(A.verdicts){var vc=h("div","vchips");Object.keys(A.verdicts).forEach(function(k){vc.appendChild(h("span","chip "+(A.verdicts[k]?"holds":"broken"),k+(A.verdicts[k]?" pass":" fail")));});card.appendChild(vc);}
   box.appendChild(card);
   // stages: minutes and sizes, optionally against a second run
   if(A.stages&&A.stages.length){
@@ -951,11 +981,11 @@ byId("a-add").onclick=function(){
   db.collection("actions").add({title:t,why:byId("a-why").value.trim()||"(not stated)",goal:g,criterion:byId("a-crit").value,status:"open"}).then(function(){byId("a-title").value="";byId("a-why").value="";byId("a-goal").value="";msg.textContent="Added.";},function(e){msg.textContent="Could not save: "+((e&&e.message)||"unavailable");});
 };
 function subscribe(){
-  var map=[["runs","runs"],["observations","obs"],["actions","acts"],["backchain","bc"],["expectations","exp"],["config","cfg"]];
+  var map=[["runs","runs"],["observations","obs"],["actions","acts"],["backchain","bc"],["expectations","exp"],["config","cfg"],["reviews","rev"]];
   map.forEach(function(p){
     var q=db.collection(p[0]);if(p[0]==="observations")q=q.orderBy("createdAt","asc");
     q.onSnapshot(function(snap){
-      if(p[1]==="exp"||p[1]==="cfg"){var m={};snap.docs.forEach(function(d){m[d.id]=d.data();});data[p[1]]=m;}
+      if(p[1]==="exp"||p[1]==="cfg"||p[1]==="rev"){var m={};snap.docs.forEach(function(d){m[d.id]=d.data();});data[p[1]]=m;}
       else data[p[1]]=snap.docs.map(function(d){return Object.assign({id:d.id},d.data());});
       loaded[p[1]]=true;renderAll();
     },function(){byId("conn").textContent="could not read "+p[0];});

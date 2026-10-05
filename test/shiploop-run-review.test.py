@@ -920,7 +920,7 @@ class TemplateHasNoDataTests(unittest.TestCase):
 
     def test_only_documented_collections_are_read(self) -> None:
         schema = SCHEMA_MD.read_text(encoding="utf-8")
-        used = set(re.findall(r"collection\(\"([a-z]+)\"\)", script_text())) | set(re.findall(r"\[\"([a-z]+)\",\"(?:runs|obs|acts|bc|exp|cfg)\"\]", script_text()))
+        used = set(re.findall(r"collection\(\"([a-z]+)\"\)", script_text())) | set(re.findall(r"\[\"([a-z]+)\",\"(?:runs|obs|acts|bc|exp|cfg|rev)\"\]", script_text()))
         self.assertTrue(used, "the template reads the database")
         for name in used:
             self.assertRegex(schema, r"\*\*`%s[/`]" % re.escape(name), f"collection {name} is documented in SCHEMA.md")
@@ -1026,7 +1026,7 @@ class PageShellTests(unittest.TestCase):
                          ' REG.steps.children.map(function(b){return b.getAttribute("aria-current");})]',
                          setup=SAMPLE_SETUP)
         self.assertEqual(out[0], [True, False, False, False])
-        self.assertEqual(out[1], ["1. What happened2 visits", "2. Expected versus seen2 expectations",
+        self.assertEqual(out[1], ["1. What happened2 visits", "2. Expected versus seen1 broken, 1 not rated",
                                   "3. Findings and options2 open, 0 ticked", "4. Your plan0 ticked"])
         self.assertEqual(out[2], ["step", None, None, None])
         moved = page_probe('go(3);[' + STEP_SECTIONS + ', REG.steps.children.map(function(b){return b.getAttribute("aria-current");}),'
@@ -1353,11 +1353,118 @@ class FindingsAndOptionsTests(unittest.TestCase):
             self.assertIn(there, html)
 
 
+SPEC_MD = ROOT / "test" / "shiploop_e2e" / "SPEC.md"
+
+
+class DerivedExpectationChipTests(unittest.TestCase):
+    """R6: how an expectation stands for a run is derived from its findings and the run's review, never stored."""
+
+    @staticmethod
+    def chip(findings: str, review: str = "null", criterion: str = "P5", run: str = '"r1"') -> str:
+        return run_logic('chipFor("%s", %s, %s, %s)' % (criterion, run, findings, review))
+
+    def test_the_worst_effect_among_the_open_findings_wins(self) -> None:
+        both = '[{id:"a",criterion:"P5",status:"open",effect:"bent",run:"r1"},{id:"b",criterion:"P5",status:"open",effect:"broken",run:"r1"}]'
+        self.assertEqual(self.chip(both), "broken")
+        self.assertEqual(self.chip('[{id:"a",criterion:"P5",status:"open",effect:"bent",run:"r1"}]'), "bent")
+        self.assertEqual(self.chip(both, run='{key:"r1"}'), "broken")  # a run document works as well as a key
+
+    def test_fixed_accepted_and_re_expected_findings_do_not_count(self) -> None:
+        closed = ('[{id:"a",criterion:"P5",status:"fixed",effect:"broken",run:"r1"},{id:"b",criterion:"P5",status:"accepted",effect:"broken",run:"r1"},'
+                  '{id:"c",criterion:"P5",status:"reexpected",effect:"bent",run:"r1"}]')
+        self.assertEqual(self.chip(closed), "unexamined")
+        self.assertEqual(self.chip(closed, review='{basis:{P5:"Examined: the grade is the engine."}}'), "holds")
+
+    def test_holds_needs_a_basis_in_the_review_and_no_open_finding(self) -> None:
+        self.assertEqual(self.chip("[]", '{basis:{P5:"Checked the grade by hand."}}'), "holds")
+        for review in ("null", "{}", '{basis:{}}', '{basis:{P1:"another criterion"}}', '{basis:{P5:"  "}}', '{basis:{P5:5}}'):
+            self.assertEqual(self.chip("[]", review), "unexamined", review)
+        # a basis never hides an open finding
+        self.assertEqual(self.chip('[{id:"a",criterion:"P5",status:"open",effect:"bent",run:"r1"}]', '{basis:{P5:"fine"}}'), "bent")
+
+    def test_a_findings_runs_list_limits_it_to_those_runs(self) -> None:
+        limited = '[{id:"a",criterion:"P5",status:"open",effect:"broken",runs:["r2"]}]'
+        self.assertEqual(self.chip(limited), "unexamined")
+        self.assertEqual(self.chip(limited, run='"r2"'), "broken")
+        self.assertEqual(self.chip('[{id:"a",criterion:"P5",status:"open",effect:"broken",run:"any"}]', run='"r9"'), "broken")
+        self.assertEqual(self.chip('[{id:"a",criterion:"P5",status:"open",effect:"broken",run:"r2"}]'), "unexamined")
+
+    def test_five_open_defects_never_read_holds_even_when_no_effect_was_written(self) -> None:
+        defects = '[1,2,3,4,5].map(function(n){return {id:"d"+n,criterion:"P5",kind:"defect",status:"open",run:"r1"};})'
+        for review in ("null", '{basis:{P5:"looked fine"}}'):
+            self.assertEqual(self.chip(defects, review), "unrated")  # the old page showed P5 as holds with 5 open defects
+        rated = ('[1,2,3,4,5].map(function(n){return {id:"d"+n,criterion:"P5",kind:"defect",status:"open",run:"r1",effect:n===1?"broken":"bent"};})')
+        self.assertEqual(self.chip(rated), "broken")
+        self.assertEqual(run_logic('openFindings("P5","r1",%s).length' % defects), 5)
+        self.assertEqual(run_logic('openFindings("P1","r1",%s).length' % defects), 0)
+
+    def test_the_defaults_name_the_spec_clauses_and_carry_no_status(self) -> None:
+        docs = json.loads((DEFAULTS_DIR / "expectations.json").read_text(encoding="utf-8"))
+        spec = {f"S-{n}" for n in re.findall(r"^\*\*S-(\d+) ", SPEC_MD.read_text(encoding="utf-8"), re.M)}
+        self.assertGreaterEqual(len(spec), 15)
+        criteria = [d for d in docs if d["kind"] == "criterion"]
+        self.assertEqual(len(criteria), 11)
+        for doc in criteria:
+            self.assertIn("clauses", doc, doc["key"])
+            self.assertNotIn("status", doc, doc["key"])
+            for clause in doc["clauses"]:
+                self.assertRegex(clause, r"^S-\d+$")
+                self.assertIn(clause, spec, f"{doc['key']} names {clause}, which SPEC.md does not define")
+        self.assertEqual({d["key"]: d["clauses"] for d in criteria}["P6"], [])
+        self.assertTrue(all(d["clauses"] for d in criteria if d["key"] != "P6"))
+        for doc in docs:
+            self.assertNotEqual(doc["kind"], "iter")
+
+    def test_the_schema_has_clauses_option_and_reviews_but_no_status_and_no_iter(self) -> None:
+        self.assertNotIn("status", export.SCHEMA["expectations"])
+        self.assertTrue(export.validate_doc("expectations", {"kind": "iter"}))
+        self.assertEqual(export.validate_doc("expectations", {"kind": "criterion", "clauses": ["S-1"],
+                         "revs": [{"at": "2026-10-04T00:00:00Z", "from": "a", "to": "b", "reason": "r", "option": "a07"}]}), [])
+        self.assertTrue(export.validate_doc("expectations", {"kind": "criterion", "clauses": "S-1"}))
+        review = {"summary": ["a", "b"], "basis": {"P1": "reason"}, "reviewedAt": "2026-10-05T00:00:00Z"}
+        self.assertEqual(export.validate_doc("reviews", review), [])
+        for bad in ({"summary": "one line"}, {"basis": ["P1"]}, {"basis": {"P1": 3}}, {"reviewedAt": "yesterday"}):
+            self.assertTrue(export.validate_doc("reviews", bad), bad)
+        text = SCHEMA_MD.read_text(encoding="utf-8")
+        self.assertIn("**`reviews/<runKey>`**", text)
+        self.assertIn("An expectation has **no status**", text)
+
+    def test_step_2_shows_one_row_per_criterion_with_a_derived_chip_clauses_and_a_jump_to_its_findings(self) -> None:
+        setup = SAMPLE_SETUP + """
+data.obs[1].criterion="P3";data.exp.P1.clauses=["S-1","S-2"];data.exp.P1.status="holds";data.exp.P1.revs=[{at:"2026-10-03T00:00:00Z",from:"old wording",to:"new",reason:"because",option:"a07"}];
+data.rev={r1:{summary:["Line one.","Line two."],basis:{P2:"Examined the contracts by hand."},reviewedAt:"2026-10-05T00:00:00Z"}};
+renderAll();"""
+        out = page_probe('var rows=byClass("groups","card");[rows.length,rows.map(function(r){return byClass(r,"chip")[0].textContent;}),'
+                         'rows[0].textContent,rows[1].textContent,textOf("expsum"),REG.steps.children[1].textContent,textOf("arc")]', setup=setup)
+        self.assertEqual(out[0], 2)
+        self.assertEqual(out[1], ["broken", "holds"])  # P1 has an open broken finding (its stored status "holds" is ignored); P2 has a basis
+        for text in ("The script owns the flow", "S-1", "S-2", "revised 1x", "1 open finding", "by option a07", "old wording"):
+            self.assertIn(text, out[2])
+        self.assertIn("Basis. Examined the contracts by hand.", out[3])
+        self.assertIn("no open findings for this run", out[3])
+        self.assertEqual(out[4], "This run: 1 broken, 1 hold.")
+        self.assertEqual(out[5], "2. Expected versus seen1 broken")
+        self.assertIn("Line two.", out[6])
+        jump = page_probe('byClass(byClass("groups","card")[0],"btn")[0].onclick();[L.step,L.crit,L.filter,byClass("cards","fcard").map(function(c){return c.id;}),'
+                          'byClass("filters","chip").pop().textContent]', setup=SAMPLE_SETUP)
+        self.assertEqual(jump, [3, "P1", "open", ["f-o1"], "Expectation P1: clear"])
+
+    def test_a_criterion_nothing_was_said_about_reads_not_examined_and_no_review_means_no_arc(self) -> None:
+        out = page_probe('data.obs=[];renderAll();[byClass("groups","card").map(function(r){return byClass(r,"chip")[0].textContent;}),textOf("expsum"),textOf("arc")]',
+                         setup=SAMPLE_SETUP)
+        self.assertEqual(out, [["not examined", "not examined"], "This run: 2 not examined.", ""])
+
+    def test_the_status_editor_and_the_saw_list_are_gone(self) -> None:
+        html = TEMPLATE.read_text(encoding="utf-8")
+        for gone in ("sawList", "critCard", "pill", "unjudged", "statusSeg"):
+            self.assertNotIn(gone, html)
+
+
 class DefaultsMatchTheTemplateTests(unittest.TestCase):
     def test_expectation_defaults_have_the_fields_the_template_reads(self) -> None:
         docs = json.loads((DEFAULTS_DIR / "expectations.json").read_text(encoding="utf-8"))
         kinds = {d["kind"] for d in docs}
-        self.assertLessEqual(kinds, {"phase", "group", "criterion", "iter"})
+        self.assertLessEqual(kinds, {"phase", "group", "criterion"})
         self.assertTrue({"phase", "group", "criterion"} <= kinds)
         keys = [d["key"] for d in docs]
         self.assertEqual(len(keys), len(set(keys)))

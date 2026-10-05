@@ -20,20 +20,24 @@ Anything not in this contract is ignored by the page. A missing optional field h
 
 | Field | Type | Notes |
 | --- | --- | --- |
-| `kind` | `phase` \| `group` \| `criterion` \| `iter` | required |
+| `kind` | `phase` \| `group` \| `criterion` | required |
 | `order` | number | sort key: phases `0..N-1`, groups, criteria within their group |
 | `title` | string | phases, groups, criteria |
 | `short` | string | phases only: the chevron subtitle |
 | `text` | string | the expectation wording; for a group, a one-line blurb |
 | `group` | string | criteria only: key of a `group` doc; none means "Other" |
-| `status` | `holds` \| `bent` \| `broken` \| `unjudged` | criteria only; default `unjudged` |
-| `revs` | array of `{at, from, to, reason, obs?, iter?}` | appended when an expectation is revised; never rewritten |
+| `clauses` | array of string | criteria only: the `S-n` clauses of `test/shiploop_e2e/SPEC.md` it serves (empty when none does) |
+| `revs` | array of `{at, from, to, reason, obs?, option?}` | appended when an expectation is revised (by the prompt, from the repo); `option` names the option that asked for it; never rewritten |
 | `updatedAt` | ISO string | |
 
 Keys: `phase-<order>`, `group-<name>`, a short id for a criterion (`P1`, `B1`). The number of `phase` docs sets
 the number of columns in the flow; `Observed` states in a run's `phases` array align with their `order`. A database
 that still holds `iter-<id>` documents or an `iterations` collection from the earlier page keeps them (the committed
-snapshot preserves them); nothing reads them.
+snapshot preserves them); nothing reads them. An expectation has **no status**: how it stands for a run is derived by the
+page (the chip in step 2) from the run's open findings and its review, so it cannot disagree with them. The worst `effect`
+among the open findings that apply to the run wins (`broken`, then `bent`); an open finding with no `effect` reads "not
+rated"; with no open finding it reads "holds" only when the run's review gives a one-line `basis` for the criterion,
+otherwise "not examined". Findings that are fixed, accepted or re-expected do not count.
 
 **`runs/<key>`** (one document per run output directory)
 
@@ -112,6 +116,16 @@ evidence text stays on the card.
 | `ref` | string | a commit or plan path |
 
 Options are ranked recommended first, then by kind in the order above, then by effort. `base` is no longer read.
+
+**`reviews/<runKey>`** (Claude's reading of one run; the page never writes it)
+
+| Field | Type | Notes |
+| --- | --- | --- |
+| `summary` | array of string | the arc, 3 to 6 lines: what was done, what the run showed, conclusions, learnings, next; heads step 1 |
+| `basis` | map of string | criterion key to the one-line reason it holds or was examined; a criterion without one reads "not examined" |
+| `reviewedAt` | ISO string | |
+
+No verdict is stored: the chip is always derived.
 
 **`config/page`**: `title`, `artifactUrl`. **`config/prompt`**: `concatPreamble`, `constraints`, `closing`.
 The page builds the planning sentence itself and falls back to a one-line default for each prompt string when the document is missing.
