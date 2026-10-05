@@ -391,9 +391,13 @@ safety pins: [lint catalog](references/lint-catalog.md).
 `--backchain-passes one|converge|none` at `init` or `workspace start` records the
 run option `backchain_passes` (default `one`): how many passes the Backchain
 planning child may take. `one` is one review/fix/check cycle, `converge` is two
-consecutive trivial reviews, and `none` offers no whole Backchain loop at `plan`. The plan
-packet prints the gate and exit condition of the recorded value; the host copies them into
-the child's start contract.
+consecutive trivial reviews, and `none` offers no whole Backchain loop at `plan`. In `one`
+and `converge` the plan packet prints the gate and exit condition of the recorded value; the
+host copies them into the child's start contract. In `none` the plan packet prints the
+read-only audit route the other Backchain stages print (the one resource it needs and the
+loop-resource status line), says no whole `plan`/`draft` is requested in this run, and
+omits the six-file Backchain and Until Loop resource block; a material finding at any stage
+still allows one `repair`/`revise`, which runs one pass.
 Like `lint`, a saved run without the key is refused (start a fresh run), never
 migrated, and an `init` or `workspace start` retry cannot change it. Unlike
 `lint`, no verb changes it mid-run: a fresh run is the route to another value.

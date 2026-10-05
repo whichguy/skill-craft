@@ -482,5 +482,95 @@ class BackchainStageTextTests(unittest.TestCase):
                 self.assertEqual(one.replace(self.POINTER + ". ", ""), converge)
 
 
+    NONE_SENTENCE = "No whole `plan`/`draft` is requested in this run (`Backchain passes: none`)"
+    # The six resources only a whole loop reads; the seventh, the caller contract, serves the read-only audit.
+    LOOP_ONLY_LABELS = ("Backchain SKILL.md", "Backchain references/convergence.md",
+                        "Backchain prompts/convergence-review.prompt.md", "Until Loop ADAPTER.md",
+                        "Until Loop references/runtime-ephemeral.md", "Until Loop scripts/until_loop_ephemeral.py")
+
+    _mode_packets = {}
+
+    @classmethod
+    def packets_in(cls, mode):
+        """The producer packets of the dry-run delivery scenario for `mode`, through the real CLI (once per mode)."""
+        if mode not in cls._mode_packets:
+            with tempfile.TemporaryDirectory(prefix="backchain-none-text-") as temporary:
+                result = subprocess.run(
+                    [sys.executable, "-B", str(SCRIPTS / "shiploop"), "graph-dry-run", "--scenario", "delivery",
+                     "--backchain-passes", mode, "--format", "json"], cwd=temporary,
+                    env=dict(os.environ, PYTHONDONTWRITEBYTECODE="1"), capture_output=True, text=True)
+            assert result.returncode == 0, result.stderr
+            events = json.loads(result.stdout)["scenarios"][0]["events"]
+            cls._mode_packets[mode] = {event["from"]: event["prompt"]
+                                       for event in events if event["command"] == "produce"}
+        return cls._mode_packets[mode]
+
+    def test_none_offers_no_whole_plan_or_draft_and_keeps_the_audit_route_and_the_budget_at_plan(self):
+        plan = self.packets_in("none")[self.LOOP_STAGE]
+        printed = guidance._backchain_guidance(self.LOOP_STAGE, backchain_passes="none")
+        self.assertEqual(plan.count(printed), 1)  # the route: the mode the CLI records reaches the packet
+        flat = " ".join(printed.split())
+        for kept in (self.NONE_SENTENCE, "action `review` / stage `audit`", "read-only, one-pass diagnostic",
+                     "exactly one action `repair` / stage `revise`", self.POINTER, "Until Loop state budget",
+                     "A MISSING loop resource blocks repair/revise; no other install substitutes"):
+            with self.subTest(kept=kept):
+                self.assertIn(kept, flat)
+        for dropped in ("A whole `plan`/`draft` is requested only", "action `plan` / stage `draft`",
+                        "Backchain standalone Until Loop binding", "required_trivial_reviews",
+                        "`MISSING: ...`", "Record the binding id", "The Until Loop child is plan-only",
+                        "Backchain passes: one."):
+            with self.subTest(dropped=dropped):
+                self.assertNotIn(dropped, flat)
+        self.assertEqual(flat.count("`plan`/`draft`"), 1)  # named once: to say it is not requested
+        self.assertIn("Backchain graph check: ", plan)  # the record-only check stays for a repair/revise
+        self.assertEqual(plan.count("Backchain planning guide: "), 1)
+
+    def test_none_prints_the_audit_resource_and_the_loop_status_not_the_six_file_block_at_plan(self):
+        plan = self.packets_in("none")[self.LOOP_STAGE]
+        self.assertNotIn("Selected Backchain and Until Loop resources", plan)
+        for label in self.LOOP_ONLY_LABELS:
+            with self.subTest(label=label):
+                self.assertNotIn("  " + label + ": ", plan)
+        self.assertIn("Backchain audit resource (", plan)
+        status = plan.split("Loop resources for a repair/revise request, under ")[1].splitlines()[0]
+        self.assertIn(": all present", status)
+
+    def test_one_and_converge_still_print_the_whole_loop_and_the_six_file_block_at_plan(self):
+        for mode in ("one", "converge"):
+            plan = self.packets_in(mode)[self.LOOP_STAGE]
+            with self.subTest(mode=mode):
+                self.assertIn("action `plan` / stage `draft`", " ".join(plan.split()))
+                self.assertNotIn(self.NONE_SENTENCE, " ".join(plan.split()))
+                self.assertIn("Selected Backchain and Until Loop resources", plan)
+                for label in self.LOOP_ONLY_LABELS:
+                    self.assertIn("  " + label + ": ", plan)
+                self.assertNotIn("Backchain audit resource (", plan)
+                self.assertNotIn("Loop resources for a repair/revise request", plan)
+
+    def test_the_plan_packet_is_shorter_in_none_than_in_one_and_in_converge(self):
+        words = {mode: len(self.packets_in(mode)[self.LOOP_STAGE].split()) for mode in guidance.BACKCHAIN_PASSES_MODES}
+        self.assertLess(words["none"], words["one"], words)
+        self.assertLess(words["none"], words["converge"], words)
+        # and the printed guidance alone, so the saving is the loop text and not a side effect elsewhere
+        guidance_words = {mode: len(guidance._backchain_guidance(self.LOOP_STAGE, backchain_passes=mode).split())
+                          for mode in guidance.BACKCHAIN_PASSES_MODES}
+        self.assertLess(guidance_words["none"], guidance_words["one"], guidance_words)
+        self.assertLess(guidance_words["none"], guidance_words["converge"], guidance_words)
+
+    def test_none_says_at_every_audit_stage_that_no_whole_loop_is_requested_and_keeps_the_rest(self):
+        for stage in self.AUDIT_STAGES:
+            none = " ".join(guidance._backchain_guidance(stage, backchain_passes="none").split())
+            one = " ".join(guidance._backchain_guidance(stage, backchain_passes="one").split())
+            with self.subTest(stage=stage):
+                self.assertEqual(none.count(self.NONE_SENTENCE), 1)
+                self.assertNotIn("A whole `plan`/`draft` is requested only", none)
+                self.assertIn(self.POINTER, none)  # a repair/revise after a finding runs one pass
+                self.assertNotIn("required_trivial_reviews", none)
+                # the sentence is all that differs from mode one
+                self.assertEqual(none.replace(self.NONE_SENTENCE + ".", "A whole `plan`/`draft` is requested only at `plan`."),
+                                 one)
+            self.assertEqual(self.packets_in("none")[stage].count(
+                guidance._backchain_guidance(stage, backchain_passes="none")), 1)
+
 if __name__ == '__main__':
     unittest.main()

@@ -267,7 +267,8 @@ infers a root from CWD or a neighboring package.
 The Until Loop child is plan-only: it may change the candidate plan and permitted planning
 companions, but may not commit, push, merge, execute the project, or broaden scope.
 
-The plan-stage owner may request one whole `plan`/`draft` operation. A material
+The plan-stage owner may request one whole `plan`/`draft` operation (not when the run's
+Backchain passes option is `none`: its packet requests none). A material
 audit finding may be routed to the authorized current stage owner for one bounded
 whole `repair`/`revise` operation. Each whole operation lets Backchain invoke the
 selected actual Until Loop for its dependency-specific review/fix/check cycle. Until

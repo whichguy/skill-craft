@@ -1266,3 +1266,34 @@ Implemented (2026-10-04; the printed text is not changed until the one-pass gate
 - **Not verified in I2 (needs a host).** Whether Luna copies the printed gate and the marker line, and reports `satisfied` after a
   repairing pass; the contract bytes against the 9,216 budget with the longer exit sentence (R0 was skipped by the owner, so the
   first live run answers both). `none` still prints the one-pass text.
+- **I3, mode `none`: no whole Backchain loop at `plan`** (2026-10-04; supersedes "`none` still prints the one-pass text"). In a run
+  recorded with `--backchain-passes none` the `plan` packet prints the audit route the four audit stages print (the read-only
+  `review`/`audit`, one bounded `repair`/`revise` after a finding that runs one pass, the Until Loop state budget, the record-only
+  `backchain-check` line) and no loop text: no `plan`/`draft` request, no binding marker, no gate field. Every audit stage says
+  "No whole `plan`/`draft` is requested in this run (`Backchain passes: none`)" in place of "A whole `plan`/`draft` is requested
+  only at `plan`" (the old sentence would be false for the run). The navigator prints, at `plan`, the audit resource and the
+  loop-resource status line (`MISSING:` is still named, since a repair/revise starts a loop) and not the six-file "Selected
+  Backchain and Until Loop resources" block. `offers_whole_backchain_loop(stage, mode)` in `shiploop_prompts.py` is the one
+  definition of "this stage offers the loop" for both the packet text and the resource block. `one` and `converge` print what they
+  printed before: checked for all five Backchain stages against the text captured before the change (20 of 20 renders byte-identical;
+  only the 10 `none` renders differ). `skills/shiploop/references/backchain-planning.md` says the plan-stage owner may request a whole
+  `plan`/`draft` "not when the run's Backchain passes option is `none`", so the guide the packet points to agrees with the packet.
+- **Measured (I3, words, whole dry-run packets).** `plan` guidance: `one` 579, `converge` 480, `none` 320. Whole `plan` packet: `one`
+  5,441, `converge` 5,342, `none` 5,162 (-279 against `one`, -180 against `converge`, 43,060 bytes against 45,679). Each audit stage is
+  +2 words in `none` against `one`. The plan predicted "480 to about 301" (-179) for the loop text against converge; the measured
+  guidance saving against `converge` is 160, because the audit route at `plan` keeps the 16-word pointer, the none sentence and the
+  record-only check line that the audit stages carry. The six Backchain and Until Loop files are no longer named at `plan`
+  (12 reads, 109 KB at `plan` in the 1.16.1 run).
+- **Evidence for I3 (route, not wording).** The dry-run tests render the plan packet through the real `graph-dry-run --backchain-passes none`
+  CLI, and the contract tests render it through `navigator.render` from a state recorded with each mode. 5 dry-run and 2 contract
+  tests are new; all 7 failed on the unchanged code because `none` printed the one-pass loop text and the six-file block, and pass now.
+  They pin content, not whole texts: `none` keeps the audit route, the budget, the MISSING rule, the status line and the check line, and
+  names `plan`/`draft` once (to say it is not requested); drops the binding marker, the `plan`/`draft` action, the plan-only-child
+  paragraph and every `required_trivial_reviews`; the `none` plan packet has fewer words than `one` and than `converge`; `one` and
+  `converge` still print the loop text and the six-file block; the audit stages differ from `one` only by the sentence. The ShipLoop and
+  Improve family (65 of 67 files green, 1,299 tests in the 63 unittest files, `bash test/improve.test.sh` green) has the same two failures as the
+  base commit `0df9b0c4` (`shiploop-cross-run`, `shiploop-status-display`), both reproduced there.
+- **Not verified in I3 (needs a host).** Whether a host given the `none` plan packet still starts a whole loop on its own (the
+  packet says it is not requested and does not print what it would need); whether a host that finds a defect at `plan` takes the audit
+  route rather than writing the plan unchecked; what `none` saves in minutes (about 128 on the 1.16.1 run is the plan's estimate, not
+  measured).

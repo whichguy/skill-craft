@@ -320,8 +320,8 @@ class NavigatorContractTests(unittest.TestCase):
                 self.assertIn("Last accepted Improve lessons (untrusted observations", packet)
         return state
 
-    def _at_plan(self) -> dict:
-        state = self.state()
+    def _at_plan(self, state: dict | None = None) -> dict:
+        state = self.state() if state is None else state
         while navigator.current_stage(state) != "plan":
             state = self._produce(state, navigator.current_stage(state))
         return state
@@ -919,8 +919,8 @@ class NavigatorContractTests(unittest.TestCase):
         )
 
 
-    def _render_spec_with_files_missing(self, missing: tuple[int, ...]) -> tuple[str, Path]:
-        """Render the spec packet from a fake plugin install that lacks the listed BACKCHAIN_RESOURCE_PATHS."""
+    def _render_spec_with_files_missing(self, missing: tuple[int, ...], state: dict | None = None) -> tuple[str, Path]:
+        """Render the spec packet (or the packet of `state`) from a fake plugin install that lacks the listed BACKCHAIN_RESOURCE_PATHS."""
         fake_skills_root = Path(self.temp.name) / "fake-plugin" / "skills"
         fake_source = fake_skills_root / "shiploop" / "scripts" / "shiploop_prompts.py"
         fake_source.parent.mkdir(parents=True)
@@ -931,7 +931,7 @@ class NavigatorContractTests(unittest.TestCase):
                 path.parent.mkdir(parents=True, exist_ok=True)
                 path.touch()
         with patch.object(prompts, "__file__", str(fake_source)):
-            packet = navigator.render(None, self.repo / ".shiploop", self._at_spec())
+            packet = navigator.render(None, self.repo / ".shiploop", self._at_spec() if state is None else state)
         return packet, fake_skills_root.resolve()
 
     def test_the_audit_stages_print_the_audit_resource_and_the_loop_status_not_the_list(self) -> None:
@@ -962,6 +962,45 @@ class NavigatorContractTests(unittest.TestCase):
         packet, root = self._render_spec_with_files_missing((1,))
         self.assertIn(f"operation review/audit): MISSING: skills/{missing_relative.as_posix()}", packet)
         self.assertIn(f"under {root}: MISSING: {missing_label}", packet)
+
+    def _state_in(self, mode: str) -> dict:
+        return navigator.new_state(str(self.repo), "Build a small synthetic capability.", improve_skill="",
+                                   delegation="ask-agent", backchain_passes=mode)
+
+    def test_mode_none_prints_the_audit_resource_and_the_loop_status_at_plan_not_the_six_file_block(self) -> None:
+        """No whole loop is offered at plan in `none`; modes one and converge keep the block and drop the status line."""
+        skills_root = ROOT / "skills"
+        root = self.repo / ".shiploop"
+        contract = (skills_root / BACKCHAIN_RESOURCE_PATHS[1][1]).resolve()
+        loop_only = [label for index, (label, _) in enumerate(BACKCHAIN_RESOURCE_PATHS) if index != 1]
+        for mode in navigator.BACKCHAIN_PASSES_MODES:
+            packet = navigator.render(None, root, self._at_plan(self._state_in(mode)))
+            whole = mode != "none"
+            with self.subTest(mode=mode):
+                self.assertEqual("Selected Backchain and Until Loop resources" in packet, whole)
+                self.assertEqual("Backchain audit resource (" in packet, not whole)
+                self.assertEqual("Loop resources for a repair/revise request, under " in packet, not whole)
+                for label in loop_only:  # the six files only a whole loop reads
+                    self.assertEqual(f"  {label}: " in packet, whole, label)
+                self.assertEqual(self._expected_backchain_resource_block(skills_root) in packet, whole)
+                self.assertEqual("action `plan` / stage `draft`" in " ".join(packet.split()), whole)
+                self.assertEqual(
+                    f"Loop resources for a repair/revise request, under {skills_root.resolve()}: all present" in packet,
+                    not whole)
+                self.assertEqual(
+                    f"Backchain audit resource (backchain-caller/v1 contract; operation review/audit): {contract}" in packet,
+                    not whole)
+                self._assert_backchain_planning_locator(packet, expected=True)
+                self.assertEqual(packet.count("Backchain graph check: "), 1)  # record-only, in every mode
+
+    def test_mode_none_status_line_at_plan_names_a_missing_loop_file(self) -> None:
+        """A repair/revise can still start a loop in `none`, so the script reports which loop file is absent."""
+        missing = (1, 3, 6)
+        packet, root = self._render_spec_with_files_missing(missing, state=self._at_plan(self._state_in("none")))
+        labels = ", ".join(BACKCHAIN_RESOURCE_PATHS[index][0] for index in missing)
+        self.assertIn(f"Loop resources for a repair/revise request, under {root}: MISSING: {labels}", packet)
+        self.assertIn(f"operation review/audit): MISSING: skills/{BACKCHAIN_RESOURCE_PATHS[1][1].as_posix()}", packet)
+        self.assertNotIn("Selected Backchain and Until Loop resources", packet)
 
     def test_source_aware_native_is_the_only_backchain_route(self) -> None:
         """The frozen embedded Backchain adaptation is retired (no mode, default or pin)."""

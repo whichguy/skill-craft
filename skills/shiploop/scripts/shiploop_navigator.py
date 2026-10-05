@@ -2978,8 +2978,10 @@ def render(core: Any, root: Path, state: Mapping[str, Any],
             + "#navigator-planning"
         )
         resources = guidance.resolved_backchain_resources()
-        if stage in guidance.BACKCHAIN_NATIVE_CALLS and not state.get("active_improve"):
-            # Only the stage that may start a whole loop selects its full resource set.
+        if (guidance.offers_whole_backchain_loop(stage, recorded_backchain_passes(state))
+                and not state.get("active_improve")):
+            # Only the stage that may start a whole loop selects its full resource set: plan, unless
+            # the run's Backchain passes option is none (then plan prints the audit line and the status).
             lines.append(
                 "Selected Backchain and Until Loop resources "
                 "(resolved by ShipLoop from its installed plugin):"

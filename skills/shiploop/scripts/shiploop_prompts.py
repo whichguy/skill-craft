@@ -1858,6 +1858,16 @@ def _require_backchain_passes(backchain_passes: str) -> None:
         raise ValueError(f"unknown backchain passes option: {backchain_passes!r}")
 
 
+def offers_whole_backchain_loop(stage: str, backchain_passes: str) -> bool:
+    """Whether `stage` may request a whole `plan`/`draft` Backchain loop in a run with this option.
+
+    The one definition, used for the plan packet's loop text here and for the resource block the navigator
+    prints: a stage that does not offer the loop prints the read-only audit route and the loop-resource status.
+    """
+    _require_backchain_passes(backchain_passes)
+    return stage in BACKCHAIN_NATIVE_CALLS and backchain_passes != "none"
+
+
 # The resource the read-only audit needs (the `backchain-caller/v1` contract); the other six serve a whole loop.
 BACKCHAIN_AUDIT_RESOURCE = "Backchain backchain-caller/v1 resource"
 
@@ -1960,8 +1970,12 @@ start contract within the budget below."""
 # child's gate and exit condition are the ones Backchain's convergence reference defines for the marker line.
 _BACKCHAIN_AUDIT_ONE_PASS = """ A repair/revise child runs one review/fix/check cycle (`Backchain passes: one`,
 as Backchain's convergence reference defines it)."""
-_BACKCHAIN_AUDIT_TAIL = """ A whole `plan`/`draft` is requested only
-at `plan`. A MISSING loop resource blocks repair/revise; no other install
+_BACKCHAIN_AUDIT_WHOLE = """ A whole `plan`/`draft` is requested only
+at `plan`."""
+# Mode none, at every stage: the run requests no whole loop, so the audit text says that in its place.
+_BACKCHAIN_AUDIT_WHOLE_NONE = """ No whole `plan`/`draft` is requested in this run
+(`Backchain passes: none`)."""
+_BACKCHAIN_AUDIT_TAIL = """ A MISSING loop resource blocks repair/revise; no other install
 substitutes. A forbidden revision, nonterminal child or unresolved finding stays
 incomplete and is not submitted as a completed parent action.
 """
@@ -2007,9 +2021,10 @@ binding marker in the child's `work`.
 
 
 def _one_pass(backchain_passes: str) -> bool:
-    """Whether the Backchain child's gate text is the one-pass text (every mode but `converge`).
+    """Whether a Backchain child's gate text is the one-pass text (every mode but `converge`).
 
-    Mode `none` has no packet of its own yet, so it prints the one-pass text until it does.
+    In `none` no whole `plan`/`draft` is offered, but a `repair`/`revise` after a finding still starts a child,
+    and that child runs one pass.
     """
     return backchain_passes != "converge"
 
@@ -2024,12 +2039,13 @@ def _backchain_guidance(stage: str, *, improve_owner: bool = False,
 
     ``backchain_passes`` is the run's option (see BACKCHAIN_PASSES_MODES).  ``converge`` prints the two-review
     gate; the default ``one`` prints the one-pass gate and exit condition at plan and a one-line pointer at the
-    audit stages (see _one_pass for ``none``).
+    audit stages.  ``none`` offers no whole loop, so plan prints the audit route the four audit stages print
+    (see offers_whole_backchain_loop), and every audit stage says no whole `plan`/`draft` is requested.
     """
     _require_backchain_passes(backchain_passes)
     if improve_owner:
         return _BACKCHAIN_ROUTE + _BACKCHAIN_IMPROVE_OWNER
-    if stage in BACKCHAIN_NATIVE_CALLS:
+    if offers_whole_backchain_loop(stage, backchain_passes):
         action, operation = BACKCHAIN_NATIVE_CALLS[stage]
         return _BACKCHAIN_ROUTE + _BACKCHAIN_PLAN_CALL + _backchain_contract_budget() + f"""\
 Through `source-aware-native`, the current stage host may
@@ -2044,8 +2060,9 @@ action. Only that exact `complete` receipt plus final candidate identity and dom
 permits Backchain planning convergence. The draft is a proposed candidate; ShipLoop still owns
 acceptance and lifecycle state.
 """ + BACKCHAIN_CHECK
-    if stage in BACKCHAIN_AUDIT_STAGES:
+    if stage in BACKCHAIN_STAGES:  # an audit stage, or plan in a run that offers no whole loop
         audit = (_BACKCHAIN_AUDIT_HEAD + (_BACKCHAIN_AUDIT_ONE_PASS if _one_pass(backchain_passes) else "")
+                 + (_BACKCHAIN_AUDIT_WHOLE_NONE if backchain_passes == "none" else _BACKCHAIN_AUDIT_WHOLE)
                  + _BACKCHAIN_AUDIT_TAIL)
         return _BACKCHAIN_ROUTE + audit + BACKCHAIN_CHECK + "\n" + _backchain_contract_budget().rstrip("\n") + "\n"
     return _BACKCHAIN_ROUTE + """\
