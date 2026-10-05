@@ -876,6 +876,13 @@ class FastPlanningRecordTest(unittest.TestCase):
                      "run-doc-luna-xhigh-v1210.json", "run-doc-grok-medium-v1210.json"):
             json.loads((evidence / name).read_text())
 
+    def test_the_ci_audit_evidence_is_in_the_repository(self):
+        evidence = ROOT / "docs" / "experiments" / "ci-audit-20261005"
+        for name in ("README.md", "ci-audit-final.json", "name-collision-trace.json", "dump_selection.py"):
+            self.assertTrue((evidence / name).is_file(), name)
+        for name in ("ci-audit-final.json", "name-collision-trace.json"):
+            json.loads((evidence / name).read_text())
+
     def test_the_gate_experiment_output_is_what_the_script_prints(self):
         script = self.EVIDENCE / "gate_experiment.py"
         done = subprocess.run([sys.executable, "-B", str(script)], capture_output=True, text=True, timeout=120)
