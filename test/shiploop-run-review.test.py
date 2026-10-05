@@ -33,6 +33,8 @@ DEFAULTS_DIR = SKILL_ROOT / "defaults"
 SNAPSHOT = ROOT / "test" / "shiploop_e2e" / "evidence" / "run-review-db-snapshot-2026-10-04.json"
 LUNA_EVIDENCE = ROOT / "test" / "shiploop_e2e" / "evidence" / "codex-gpt-6-luna-1.16.1-battleship-20261003.json"
 SAMPLE_REVIEW = ROOT / "test" / "fixtures" / "run-review" / "sample.review.json"
+SKILL_MD = SKILL_ROOT / "SKILL.md"
+ADVICE_MD = SKILL_ROOT / "references" / "advice.md"
 _spec = importlib.util.spec_from_file_location("run_review_export", SKILL_ROOT / "scripts" / "export.py")
 export = importlib.util.module_from_spec(_spec)
 _spec.loader.exec_module(export)
@@ -2150,6 +2152,85 @@ class ReviewBundleCheckTests(unittest.TestCase):
                 export.main(args)
             self.assertEqual(raised.exception.code, 2)
             self.assertIn("give one of RUN_DIR, --defaults, --check FILE or --docs FILE", err.getvalue())
+
+
+class ReviewSkillTextTests(unittest.TestCase):
+    """SKILL.md and references/advice.md carry the procedure the exporter's rules enforce."""
+
+    @classmethod
+    def setUpClass(cls):
+        # Whitespace is collapsed so a phrase the file wraps across two lines still counts.
+        cls.skill = " ".join(SKILL_MD.read_text(encoding="utf-8").split())
+        cls.advice = " ".join(ADVICE_MD.read_text(encoding="utf-8").split()) if ADVICE_MD.is_file() else ""
+        cls.advice_raw = ADVICE_MD.read_text(encoding="utf-8") if ADVICE_MD.is_file() else ""
+
+    def test_skill_md_links_the_advice_rubric_and_the_contract_and_both_files_exist(self):
+        self.assertIn("(references/advice.md)", self.skill)
+        self.assertIn("(SCHEMA.md)", self.skill)
+        self.assertTrue(ADVICE_MD.is_file())
+
+    def test_skill_md_gives_the_four_invocations_and_the_installed_package_binding(self):
+        for line in ("/skill-craft:shiploop-run-review advise RUN_DIR_OR_KEY", "/skill-craft:shiploop-run-review export RUN_DIR",
+                     "/skill-craft:shiploop-run-review publish", "/skill-craft:shiploop-run-review check FILE"):
+            self.assertIn(line, self.skill)
+        self.assertIn("SKILL_ROOT", self.skill)
+        self.assertRegex(self.skill, r'python3 -B "\$SKILL_ROOT/scripts/export\.py" --check')
+        self.assertRegex(self.skill, r"selected, loaded `?SKILL\.md")
+
+    def test_skill_md_states_the_split_between_numbers_and_advice_and_the_four_steps(self):
+        for text in ("scripts own the numbers", "Claude owns the advice", "unmeasured is never zero",
+                     "What happened", "Expected versus seen", "Findings and options", "Your plan"):
+            self.assertIn(text.lower(), self.skill.lower(), text)
+
+    def test_skill_md_names_every_check_rule_and_every_warning(self):
+        for rule in ("schema and enums", "findings exist", "change-expectation", "Done when", "at most one recommended",
+                     "S-n", "defaults/expectations.json", "exit 2", "no option yet", "path or commit token", "not rated"):
+            self.assertIn(rule, self.skill, rule)
+
+    def test_skill_md_publish_procedure_keeps_every_guard(self):
+        for text in ("ShipLoop Run Review", "capabilities", "artifact-capabilities", "if_version", "never overwrite",
+                     "luna1-plan", "luna1-step-plan", "draft", "never create a second page", "ArtifactData", "batch",
+                     "writes.json", "not updated", "never republish"):
+            self.assertIn(text.lower(), self.skill.lower(), text)
+        self.assertIn("capabilities: {db: {}}", self.skill)
+
+    def test_skill_md_has_none_of_the_stale_phrases(self):
+        for stale in ("iterations with editable expectations", "iteration card", "result of the iteration",
+                      "create-only", "apply mode", "apply on the page", "include toggles", "expectation editor",
+                      "unexpected", "process diagram", "synth", "concatenate", "Add the judgment", "README"):
+            self.assertNotIn(stale.lower(), self.skill.lower(), stale)
+
+    def test_advice_md_holds_the_form_the_honesty_rules_and_the_triage_words(self):
+        self.assertTrue(self.advice, "references/advice.md is missing")
+        for text in ("Do: ... Files and symbols: ... Test: ... Done when: ...", "Inferred:", "unmeasured", "not-measured",
+                     "at most one recommended", "for, against and verdict", "git log", "not rated", "lowerBound",
+                     "22 characters", "6 items", "raw SVG or HTML", "phase", "mismatch.md", "facts.md", "SPEC.md"):
+            self.assertIn(text.lower(), self.advice.lower(), text)
+        for triage in ("product", "environment", "expectation", "known limit", "owner", "rerun-first"):
+            self.assertRegex(self.advice_raw, rf"(?m)^\|\s*{triage}\s*\|", triage)
+        schema_kinds = export.SCHEMA["actions"]["kind"][0][1]
+        for kind in schema_kinds:
+            self.assertIn(kind, self.advice, kind)
+        for effect in export.SCHEMA["observations"]["effect"][0][1]:
+            self.assertIn(effect, self.advice, effect)
+
+    def test_the_worked_example_in_advice_md_passes_the_check_and_uses_the_committed_luna_numbers(self):
+        _, _, tail = self.advice_raw.partition("## Worked example")
+        block = re.search(r"```json\n(.*?)\n```", tail, re.S)
+        self.assertIsNotNone(block, "no ```json block after '## Worked example'")
+        example = json.loads(block.group(1))
+        failures, warnings = export.check_bundle(example)
+        self.assertEqual((failures, warnings), ([], []))
+        (finding,) = example["docs"]["observations"].values()
+        bars = {item["label"]: item["value"] for item in finding["figure"]["items"]}
+        luna = json.loads(LUNA_EVIDENCE.read_text())["docs"]["runs"]["luna1"]
+        self.assertEqual(luna["refusals"], 13)
+        self.assertEqual(bars["Refused commands"], luna["refusals"])
+        self.assertEqual(bars["Expected refusals"], 0)
+        self.assertEqual(sum("unrecognized arguments" in f["line"] or "no ShipLoop run directory at" in f["line"] and "/ v1161" in f["line"]
+                             for f in luna["failures"]), bars["Broken paths"])
+        self.assertGreaterEqual(len(example["docs"]["actions"]), 2)
+        self.assertEqual(sum(a.get("recommended") is True for a in example["docs"]["actions"].values()), 1)
 
 
 if __name__ == "__main__":
