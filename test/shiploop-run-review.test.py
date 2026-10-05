@@ -2097,6 +2097,23 @@ class ReviewBundleCheckTests(unittest.TestCase):
             with self.subTest(text):
                 self.assertIsNone(export.EVIDENCE_TOKEN.search(text), text)
 
+    def test_the_check_reads_the_saved_page_data_as_the_defects_the_redesign_listed(self):
+        """The R2 snapshot is what unchecked authoring produced; the check must find what the plan found in it."""
+        saved = json.loads(SNAPSHOT.read_text())["docs"]
+        bundle = {"schema": export.SCHEMA_ID, "docs": {c: {i: row["data"] for i, row in saved[c].items()}
+                                                       for c in ("observations", "actions")}}
+        failures, warnings = export.check_bundle(bundle)
+        # all 16 saved instructions are status narratives with no Done when; three statuses are the old vocabulary
+        self.assertEqual(sorted(f.split(":")[0] for f in failures if "Done when" in f), sorted(
+            f"actions/{i}" for i in saved["actions"]))
+        self.assertEqual(sorted(f.split(":")[0] for f in failures if "actions.status" in f),
+                         ["actions/a13", "actions/a14", "actions/a16"])
+        # 5 of 39 evidence strings name no path or commit; 29 findings are open, and none has an option or an effect
+        self.assertEqual(sorted(w.split(":")[0].split("/")[1] for w in warnings if "evidence" in w),
+                         ["o05", "o06", "o12", "o17", "o39"])
+        self.assertEqual(sum("open finding with no option" in w for w in warnings), 29)
+        self.assertEqual(sum("open finding with no effect" in w for w in warnings), 29)
+
     # ---- the order and --docs
 
     def test_collection_order_lists_every_schema_collection_once_and_the_review_sits_before_its_findings(self):
