@@ -17,9 +17,11 @@ import os
 from pathlib import Path
 import re
 import shlex
+import shutil
 import subprocess
 import sys
 import tempfile
+import time
 import unittest
 
 ROOT = Path(__file__).resolve().parents[1]
@@ -85,15 +87,27 @@ class RealCliCase(unittest.TestCase):
     """A temporary repository, run directories and the real CLI."""
 
     def setUp(self) -> None:
-        self._temporary = tempfile.TemporaryDirectory(prefix="shiploop-callback-contract-")
-        self.addCleanup(self._temporary.cleanup)
-        self.base = Path(self._temporary.name).resolve()
+        self.base = Path(tempfile.mkdtemp(prefix="shiploop-callback-contract-")).resolve()
+        self.addCleanup(self.remove_tree, self.base)
         self.env = dict(os.environ, PYTHONDONTWRITEBYTECODE="1", GIT_CONFIG_GLOBAL=os.devnull,
                         GIT_CONFIG_NOSYSTEM="1")
         self.evidence = self.base / "evidence.txt"
         self.evidence.write_text("a note this stage wrote\n")
         self.counter = itertools.count(1)
         self.repo = self.make_repo()
+
+    @staticmethod
+    def remove_tree(path: Path) -> None:
+        """Remove a run tree that ShipLoop's background progress observer may still be writing into.
+
+        A command returns before that observer finishes (it writes progress.html and progress-observer.json into the
+        run directory), so a plain removal can meet "Directory not empty"; retry until the tree is gone.
+        """
+        for _ in range(25):
+            shutil.rmtree(path, ignore_errors=True)
+            if not path.exists():
+                return
+            time.sleep(0.2)
 
     def make_repo(self) -> Path:
         """A one-commit repository of its own; every run gets one, so a stage's files never leak into another."""
