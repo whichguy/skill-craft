@@ -179,6 +179,66 @@ label.opt .t{min-width:0}
 .tick{display:flex;gap:10px;align-items:center;justify-content:space-between;flex-wrap:wrap}
 .tick .t{min-width:0;flex:1 1 220px}
 .tick .btn{min-height:44px}
+.kpis{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:8px;margin:12px 0 0}
+.kpi{background:var(--surface);border:1px solid var(--line);border-radius:8px;padding:9px 12px;min-width:0;display:flex;flex-direction:column;gap:2px}
+.kpi .kl{font-size:12px;color:var(--muted);line-height:1.3}
+.kpi .kv{font-size:22px;font-weight:600;line-height:1.2;overflow-wrap:anywhere}
+.kpi.nm .kv{font-size:15px;font-weight:500;color:var(--muted)}
+.kpi.wide{grid-column:1/-1}
+.kpi .kn{font-size:12px;color:var(--muted);line-height:1.35;overflow-wrap:anywhere}
+.seqcard{margin-top:12px}
+.seqscroll{overflow-x:auto;padding-bottom:6px;margin-top:6px}
+.sq{display:block;height:auto;max-width:none}
+.sq text{font-family:var(--sans);font-size:11px;fill:var(--muted)}
+.sq .sq-imp{fill:var(--accent);font-weight:600}
+.sq .sq-n{fill:var(--fg)}
+.sq .sq-mark{fill:var(--fg);font-family:var(--mono);font-weight:600}
+.sq .sq-bang{fill:var(--surface);font-weight:700}
+.sq .sq-nat{fill:var(--muted)}
+.sq-ax{stroke:var(--line);stroke-width:1}
+.sq-col.o-done{fill:var(--holds)}
+.sq-col.o-revise,.sq-col.o-replan{fill:var(--bent)}
+.sq-col.o-blocked{fill:var(--broken)}
+.sq-col.o-other{fill:var(--muted)}
+.sq-col.skip{fill:url(#sq-hatch);stroke:var(--muted);stroke-dasharray:2 2}
+.sq-col.seed{fill:url(#sq-cross);stroke:var(--accent)}
+.sq-col.na{fill:none;stroke:var(--muted);stroke-width:1.5}
+.sq-pl{stroke:var(--muted);stroke-width:1;fill:none}
+.sq-bandbg{fill:var(--none-bg)}
+.sq-100{stroke:var(--muted);stroke-dasharray:3 3;opacity:.7}
+.sq-ctx{fill:var(--accent);opacity:.65}
+.sq-ctx.warn{fill:var(--bent);opacity:1}
+.sq-nm{stroke:var(--muted);stroke-dasharray:2 2;stroke-width:1.5}
+.sq-tri{fill:var(--fg)}
+.sq-sel{fill:none;stroke:var(--fg);stroke-width:1.5}
+.sq-hit{fill:transparent;cursor:pointer}
+.sqleg{display:flex;flex-wrap:wrap;gap:4px 14px;font-size:12px;color:var(--muted);margin-top:8px}
+.sqleg span{display:inline-flex;gap:5px;align-items:center}
+.sqleg #sqlegband{display:contents}
+.sqleg #sqlegband[hidden]{display:none}
+.sw{display:inline-block;width:12px;height:12px;border-radius:2px;flex:none}
+.sw.s-done{background:var(--holds)}
+.sw.s-rev{background:var(--bent)}
+.sw.s-blk{background:var(--broken)}
+.sw.s-skip{background:repeating-linear-gradient(45deg,transparent 0 2px,var(--muted) 2px 3px);border:1px dashed var(--muted)}
+.sw.s-seed{background:repeating-linear-gradient(45deg,var(--accent) 0 1px,transparent 1px 3px),repeating-linear-gradient(-45deg,var(--accent) 0 1px,transparent 1px 3px);border:1px solid var(--accent)}
+.sw.s-na{border:1.5px solid var(--muted)}
+.sw.s-ctx{background:var(--accent);opacity:.65}
+.sw.s-warn{background:var(--bent)}
+.sqnum{font-weight:600;color:var(--accent)}
+.sqd{margin-top:10px}
+.sqd .row{margin:10px 0 0}
+.sqd .btn{min-height:44px}
+.sqd .facts{grid-template-columns:minmax(0,34%) minmax(0,1fr);gap:4px 10px}
+.sqd .chips button.chip{text-align:left;border-radius:12px}
+.chev span.fc{font-size:11px;font-family:var(--mono);margin-top:2px}
+table.vt,table.cmp{border-collapse:collapse;font-size:12.5px;width:100%}
+table.cmp{min-width:420px}
+table.vt th,table.vt td,table.cmp th,table.cmp td{text-align:left;padding:4px 10px 4px 0;border-top:1px solid var(--line);vertical-align:top;font-weight:400}
+table.vt th,table.vt td{white-space:nowrap}
+table.vt thead th,table.cmp thead th{color:var(--muted);font-size:12px;border-top:0}
+table.cmp tbody th{color:var(--muted);white-space:nowrap}
+table.cmp .kn{display:block;color:var(--muted);font-size:12px;overflow-wrap:anywhere}
 .stepnav{display:flex;justify-content:space-between;gap:10px;margin-top:22px}
 .stickybar{display:none}
 @media (max-width:640px){.form{grid-template-columns:1fr}.segrow{grid-template-columns:minmax(0,1fr) 44px}.segrow select{grid-column:1/-1}.facts{grid-template-columns:1fr}
@@ -195,16 +255,28 @@ label.opt .t{min-width:0}
 
 <section class="step" id="step-1" data-step="1" aria-labelledby="h-step-1">
 <h2 id="h-step-1">1. What happened</h2>
-<p class="sub">Pick a run. Top: the path every run should take. Then where the chosen run got, the Backchain time spent there, and numbered markers where behaviour diverged. Select a stage to read what we expect of it.</p>
+<p class="sub">Pick a run. Six numbers say how big it was. The picture shows every stage visit in order, how long each took, where Improve worked and, where the host measured it, how full the model's context was. Tap a column for its detail. Below, the path every run should take and the Backchain time spent on it.</p>
 <div class="row"><label for="runsel">Run</label><select id="runsel"></select><span class="snap" id="runfacts"></span></div>
 <div id="arc" class="arc"></div>
+<div class="kpis" id="kpis" role="group" aria-label="Six numbers for this run"></div>
+<div class="card seqcard" id="seqcard" hidden>
+<h3>Every visit, in order</h3>
+<p class="sub" id="seqcap" style="margin:2px 0 0"></p>
+<div class="seqscroll" id="seqscroll"></div>
+<p class="msg" id="seqhint" hidden>The picture is wider than the screen: scroll it sideways inside this box.</p>
+<div class="sqleg" id="sqleg"><span><i class="sw s-done"></i>done</span><span><i class="sw s-rev"></i>R revise, P replan</span><span><i class="sw s-blk"></i>B blocked</span><span><i class="sw s-skip"></i>skipped, no packet issued (xN: N in a row)</span><span><i class="sw s-seed"></i>S seeded by the harness, not run</span><span><i class="sw s-na"></i>n/a, no time recorded</span><span><b class="sqnum">3</b>Improve passes</span><span id="sqlegband" hidden><span><i class="sw s-ctx"></i>context peak, share of the window</span><span><i class="sw s-warn"></i>! 90% or more</span><span><b>&#9650;</b>a compaction, a number when more than three</span></span></div>
+<p class="legend" id="seqnote"></p>
+</div>
+<div id="seqdetail" aria-live="polite"></div>
+<details id="seqtabbox" hidden><summary id="seqtabsum"></summary><div class="rtabbox" id="seqtable"></div></details>
+<h3 style="margin-top:22px">The path every run takes</h3>
+<p class="sub">Expected, observed, Backchain time and numbered findings for each stage. Select a stage to read what we expect of it.</p>
 <div class="flowbox"><div class="flow" id="flow"></div></div>
 <div class="legend">Markers: red open, green fixed, grey accepted as designed, amber we changed the expectation. Chevrons: green accepted, red stopped, amber in progress, grey not reached.</div>
 <div id="phasepanel" class="stack" style="margin-top:12px" aria-live="polite"></div>
 <h3 style="margin-top:22px">Run detail</h3>
-<p class="sub">Stages, planning documents, Improve and failures for the chosen run. Compare two runs to see where time and size moved.</p>
-<div class="row"><label for="cmpsel">Compare with</label><select id="cmpsel"></select>
-<label style="display:flex;gap:6px;align-items:center;color:var(--fg)"><input type="checkbox" id="hideshort"> Hide stages under 1 minute</label></div>
+<p class="sub">Facts, planning documents and failures for the chosen run. Compare two runs to see the same six numbers side by side.</p>
+<div class="row"><label for="cmpsel">Compare with</label><select id="cmpsel"></select></div>
 <div class="stack" id="rundetail"></div>
 <h3 style="margin-top:22px">Backchain: what it planned, added and cost</h3>
 <p class="sub">Each loop split into time that clearly added value, time that clearly did not, the confirming passes a loop needs to close, and what we cannot yet judge. Times come from file and accept timestamps, so they are approximate. Change a verdict when you disagree.</p>
@@ -568,7 +640,7 @@ function figureSvg(fig){
 
 /* ---- the sequence picture (step 1): a column per visit, a context band under it, six cards ---- */
 /* Its geometry in user units (a pixel at natural size). A column is one visit; the tallest work visit is `plot` high. */
-var SQ={pitch:16,gap:3,padL:8,padLBand:34,padR:8,head:16,num:14,plot:96,markH:13,bandGap:4,band:34,tickH:13,
+var SQ={pitch:16,gap:3,padL:8,padLBand:34,padR:8,head:6,num:14,plot:96,markH:13,bandGap:4,band:34,tickH:13,
   naH:26,skipH:14,seedH:20,minH:2,warnAt:90};
 var OUTCOME_MARK={revise:"R",replan:"P",blocked:"B"};
 /* The harness's reason, filed under its own name (shiploop_failures, model_glue) or the run field's. */
@@ -721,6 +793,56 @@ function visitTable(run,model){
       .concat(ctx?[c&&isCount(c.peakPct)?pctText(c.peakPct):"not measured",c&&isCount(c.compactions)?String(c.compactions):"not measured"]:[]);
   })};
 }
+/* A column's tooltip and spoken name. */
+function columnName(c){
+  if(c.kind==="skipped")return c.n===1?"visit "+(c.first+1)+" "+c.stage+", skipped":"visits "+(c.first+1)+" to "+(c.last+1)+", "+c.n+" skipped";
+  return "visit "+(c.first+1)+" "+c.stage+", "+(c.kind==="seeded"?"seeded":c.outcome)+", "+(c.kind==="seeded"?"not timed":(c.na?"n/a":c.min+" min"));
+}
+function outcomeClass(o){var k=String(o).replace(/[^a-z]/g,"");return ["done","revise","replan","blocked"].indexOf(k)>=0?k:"other";}
+/* The picture as an SVG string. Only fixed class names, numbers and escaped text go in, and every colour comes from a
+   class of the page's own tokens, so dark mode follows. `picked` is the selected column or -1. Layout (top down): the
+   Improve passes above each column, the columns on a baseline, the outcome marks, the context band (when there is
+   one) with its compaction ticks, then the visit numbers. A transparent hit area spans each column's full height. */
+function sequenceSvg(model,picked){
+  var cols=model&&model.columns;if(!cols||!cols.length)return "";
+  var L=model.lay,pitch=L.pitch,x0=L.padL,y0=L.y0,n=cols.length,p=[],hits=[],selH=L.bottom-L.head;
+  p.push('<defs><pattern id="sq-hatch" width="4" height="4" patternUnits="userSpaceOnUse" patternTransform="rotate(45)"><line class="sq-pl" x1="0" y1="0" x2="0" y2="4"/></pattern>'+
+    '<pattern id="sq-cross" width="4" height="4" patternUnits="userSpaceOnUse"><path class="sq-pl" d="M0 0L4 4M4 0L0 4"/></pattern></defs>');
+  p.push('<line class="sq-ax" x1="'+x0+'" y1="'+y0+'" x2="'+(x0+n*pitch)+'" y2="'+y0+'"/>');
+  if(model.band){
+    var by=L.bandTop,bh=L.bandH;
+    p.push('<rect class="sq-bandbg" x="'+x0+'" y="'+by+'" width="'+n*pitch+'" height="'+bh+'"/>');
+    p.push('<line class="sq-100" x1="'+x0+'" y1="'+by+'" x2="'+(x0+n*pitch)+'" y2="'+by+'"/><text x="'+(x0-4)+'" y="'+(by+4)+'" text-anchor="end">100%</text>');
+  }
+  cols.forEach(function(c,k){
+    var x=x0+k*pitch,bx=x+SQ.gap/2,bw=pitch-SQ.gap,cx=x+pitch/2,top=y0-c.h;
+    var cls=c.kind==="skipped"?"skip":(c.kind==="seeded"?"seed":(c.na?"na":"o-"+outcomeClass(c.outcome)));
+    p.push('<rect class="sq-col '+cls+'" x="'+bx+'" y="'+top+'" width="'+bw+'" height="'+c.h+'" rx="2"/>');
+    if(c.na)p.push('<text class="sq-nat" x="'+cx+'" y="'+(y0-c.h/2)+'" transform="rotate(-90 '+cx+' '+(y0-c.h/2)+')" text-anchor="middle" dominant-baseline="central">n/a</text>');
+    if(c.label)p.push('<text class="sq-n" x="'+cx+'" y="'+(top-3)+'" text-anchor="middle">'+esc(c.label)+'</text>');
+    if(c.improve&&c.improve.passes!==null)p.push('<text class="sq-imp" x="'+cx+'" y="'+(top-3)+'" text-anchor="middle">'+c.improve.passes+'</text>');
+    if(c.mark)p.push('<text class="sq-mark" x="'+cx+'" y="'+(y0+11)+'" text-anchor="middle">'+esc(c.mark)+'</text>');
+    if(k%5===0)p.push('<text x="'+cx+'" y="'+L.axisY+'" text-anchor="middle">'+(c.first+1)+'</text>');
+    if(model.band){
+      var b=model.band.bars[k],by2=L.bandTop,bh2=L.bandH;
+      if(b.pct===null)p.push('<line class="sq-nm" x1="'+bx+'" y1="'+(by2+bh2-1)+'" x2="'+(bx+bw)+'" y2="'+(by2+bh2-1)+'"/>');
+      else{
+        var bhh=Math.max(1,b.h);
+        p.push('<rect class="sq-ctx'+(b.warn?" warn":"")+'" x="'+bx+'" y="'+(by2+bh2-bhh)+'" width="'+bw+'" height="'+bhh+'" rx="1"/>');
+        if(b.warn&&bhh>=13)p.push('<text class="sq-bang" x="'+cx+'" y="'+(by2+bh2-bhh+11)+'" text-anchor="middle">!</text>');
+      }
+      if(b.ticks>3)p.push('<text class="sq-mark" x="'+cx+'" y="'+(L.tickTop+11)+'" text-anchor="middle">'+b.ticks+'</text>');
+      else if(b.ticks>0){
+        var tw=b.ticks*4+(b.ticks-1),tx=cx-tw/2;
+        for(var t=0;t<b.ticks;t++){var ax=tx+t*5;p.push('<path class="sq-tri" d="M'+ax+' '+(L.tickTop+11)+'L'+(ax+4)+' '+(L.tickTop+11)+'L'+(ax+2)+' '+(L.tickTop+3)+'Z"/>');}
+      }
+    }
+    hits.push('<rect class="sq-hit" data-col="'+k+'" x="'+x+'" y="'+L.head+'" width="'+pitch+'" height="'+selH+'"><title>'+esc(columnName(c))+'</title></rect>');
+  });
+  if(picked>=0&&picked<n)p.push('<rect class="sq-sel" x="'+(x0+picked*pitch+0.5)+'" y="'+L.head+'" width="'+(pitch-1)+'" height="'+selH+'" rx="3"/>');
+  var label="Sequence of "+model.visits+" visits, one column each, taller for more minutes (square-root scale)"+(model.band?", with the context peak of each visit as a strip under the columns":"")+". The table below lists every visit.";
+  return '<svg class="sq" viewBox="0 0 '+L.width+' '+L.height+'" width="'+L.width+'" height="'+L.height+'" style="min-width:min(100%,'+Math.round(L.width*1.4)+'px)" role="img" aria-label="'+esc(label)+'">'+p.join("")+hits.join("")+'</svg>';
+}
 </script>
 <script>
 /* No content lives in this file: stages, groups and expectations come from the expectations collection. */
@@ -731,7 +853,7 @@ var STEPS=["What happened","Expected versus seen","Findings and options","Your p
 var data={runs:[],obs:[],acts:[],bc:[],exp:{},cfg:{},rev:{}},loaded={runs:false,obs:false,acts:false,bc:false,exp:false,cfg:false,rev:false},db=null,live=false;
 /* The viewer's working set lives in this browser only: the step, the chosen run, and per run the ticked options and
    findings, what happens after the plan, and the notes. Every storage access is guarded; the page works with it empty. */
-var L={step:1,run:"",phase:-1,cmp:"",hideShort:true,filter:"open",crit:"",sel:{}};
+var L={step:1,run:"",phase:-1,cmp:"",filter:"open",crit:"",sel:{}};
 try{var saved=JSON.parse(localStorage.getItem("slrr5")||"null");if(saved&&typeof saved==="object")Object.keys(L).forEach(function(k){if(saved[k]!==undefined)L[k]=saved[k];});}catch(e){}
 if(!(L.step>=1&&L.step<=4))L.step=1;
 if(["open","all","other","general"].indexOf(L.filter)<0)L.filter="open";
@@ -774,6 +896,7 @@ function renderSteps(){
     if(L.step===i+1)b.setAttribute("aria-current","step");b.onclick=function(){go(i+1);};box.appendChild(b);});
   for(var n=1;n<=4;n++)byId("step-"+n).hidden=(n!==L.step);
   if(L.step===3)applyStrips();
+  if(L.step===1)updateHint();
   var nav=byId("stepnav");clear(nav);
   var back=h("button","btn","Back");back.type="button";back.disabled=L.step===1;back.onclick=function(){go(L.step-1);};
   var next=h("button","btn primary",L.step===3?"Build my plan":"Next");next.type="button";next.disabled=L.step===4;next.onclick=function(){go(L.step+1);};
@@ -860,7 +983,12 @@ function renderFlow(){
   });
   f.appendChild(h("div","lane","Observed"));
   var label={done:"accepted",blocked:"stopped here",running:"in progress",none:"not reached"};
-  P.forEach(function(p,i){var st=(run.phases||[])[i]||"none";var c=h("div","chev st-"+st);c.appendChild(h("b","",p.title));c.appendChild(h("span","",label[st]));f.appendChild(c);});
+  P.forEach(function(p,i){
+    var st=(run.phases||[])[i]||"none",c=h("div","chev st-"+st);c.appendChild(h("b","",p.title));c.appendChild(h("span","",label[st]));
+    var fs=data.obs.filter(function(ob){return ob.phase===p.order&&appliesTo(ob,run.key);});
+    if(fs.length){var op=fs.filter(isOpen).length;c.appendChild(h("span","fc",plural(fs.length,"finding")+(op?", "+op+" open":"")));}
+    f.appendChild(c);
+  });
   f.appendChild(h("div","lane","Backchain"));
   P.forEach(function(p){
     var cell=h("div","cell");
@@ -874,7 +1002,7 @@ function renderFlow(){
   P.forEach(function(p){
     var cell=h("div","cell divs");
     data.obs.forEach(function(ob){
-      if(ob.phase!==p.order||!(ob.run===run.key||ob.run==="any"))return;
+      if(ob.phase!==p.order||!appliesTo(ob,run.key))return;
       var b=h("button","dot "+(ob.status||"open"),String(obsNo(ob)));b.type="button";b.setAttribute("aria-label","Finding "+obsNo(ob)+": "+ob.title);b.setAttribute("aria-pressed",L.phase===p.order?"true":"false");
       b.onclick=function(){pickPhase(p.order);};cell.appendChild(b);
     });
@@ -890,12 +1018,66 @@ function renderPanel(){
   var p=L.phase>=0?phaseAt(L.phase):null;
   if(!p){box.appendChild(h("div","empty","Select a stage or a numbered marker above to read what we expect there and what diverged."));return;}
   var head=h("div","card");head.appendChild(h("h3","",p.title+": what we expect"));head.appendChild(expBlock(p.key));box.appendChild(head);
-  var list=data.obs.filter(function(o){return o.phase===L.phase&&(o.run===L.run||o.run==="any");});
+  var list=data.obs.filter(function(o){return o.phase===L.phase&&appliesTo(o,L.run);});
   if(!list.length){box.appendChild(h("div","empty","Nothing diverged at "+p.title+" for this run."));return;}
   list.forEach(function(o){
     var r=h("button","frow");r.type="button";r.appendChild(statusChip(o.status));
     r.appendChild(document.createTextNode(obsNo(o)+". "+o.title));r.onclick=function(){openFinding(o.id);};box.appendChild(r);
   });
+}
+/* ---------- step 1: the six cards, the picture, a tapped column and the table of visits ---------- */
+var pickedCol=-1,pickedRun="";
+function loopsFor(run){return loaded.bc?data.bc.filter(function(d){return d.run===run.key;}):null;}
+function setCol(k,reveal){pickedCol=k;renderPicture(reveal);}
+/* The "scroll sideways" hint shows only while the picture is wider than its box (so it follows a resize). */
+function updateHint(){var sc=byId("seqscroll");byId("seqhint").hidden=!(sc.scrollWidth>sc.clientWidth+1);}
+try{window.addEventListener("resize",updateHint);}catch(e){}
+function renderPicture(reveal){
+  var o=runOf(),kp=byId("kpis"),sc=byId("seqscroll"),det=byId("seqdetail"),tb=byId("seqtable"),card=byId("seqcard"),box=byId("seqtabbox");
+  clear(kp);clear(det);clear(tb);
+  if(!o.run){card.hidden=true;box.hidden=true;return;}
+  var run=o.run;
+  if(pickedRun!==run.key){pickedRun=run.key;pickedCol=-1;}
+  var model=sequenceModel(run,{loops:loopsFor(run)});
+  if(pickedCol>=model.columns.length)pickedCol=-1;
+  model.cards.forEach(function(c){
+    var d=h("div","kpi"+(c.measured?"":" nm")+(!c.measured&&c.note.length>60?" wide":""));d.setAttribute("role","group");d.setAttribute("aria-label",c.label+": "+c.text);
+    d.appendChild(h("span","kl",c.label));d.appendChild(h("b","kv",c.value));if(c.note)d.appendChild(h("span","kn",c.note));kp.appendChild(d);
+  });
+  card.hidden=!model.columns.length;box.hidden=!model.columns.length;
+  if(!model.columns.length)return;
+  byId("seqcap").textContent="Column height is the square root of minutes on this run's own scale"+
+    (model.maxMin?"; the tallest is "+model.maxMin.min+" min ("+model.maxMin.stage+", visit "+model.maxMin.visit+").":"; no visit has a measured time.");
+  var keep=sc.scrollLeft;sc.innerHTML=sequenceSvg(model,pickedCol);sc.scrollLeft=keep;
+  if(reveal&&pickedCol>=0&&sc.clientWidth){
+    var x=(model.lay.padL+pickedCol*SQ.pitch+SQ.pitch/2)*(sc.scrollWidth/model.lay.width);
+    if(x<sc.scrollLeft+24||x>sc.scrollLeft+sc.clientWidth-24)sc.scrollLeft=Math.max(0,x-sc.clientWidth/2);
+  }
+  updateHint();
+  byId("sqlegband").hidden=!model.band;
+  var note=byId("seqnote");note.textContent=model.bandNote;note.hidden=!model.bandNote;
+  var d=pickedCol>=0?columnDetail(model,pickedCol,run,data.obs):null;
+  if(d){
+    var dc=h("div","card sqd");dc.appendChild(h("h3","",d.title));
+    var dl=h("dl","facts");d.lines.forEach(function(l){dl.appendChild(h("dt","",l[0]));dl.appendChild(h("dd","",l[1]));});dc.appendChild(dl);
+    if(d.findings.length){
+      var fo=d.findings.filter(isOpen).length,fd=h("details");fd.open=d.findings.length<=4;
+      fd.appendChild(h("summary","","Findings marked at this stage ("+d.findings.length+(fo?", "+fo+" open":"")+")"));
+      var fr=h("div","chips");d.findings.forEach(function(f){var b=h("button","chip acc","#"+obsNo(f)+" "+f.title);b.type="button";b.onclick=function(){openFinding(f.id);};fr.appendChild(b);});
+      fd.appendChild(fr);dc.appendChild(fd);
+    }
+    var nav=h("div","row");
+    function step(label,to){var b=h("button","btn",label);b.type="button";b.disabled=to===null;b.onclick=function(){setCol(to,true);};nav.appendChild(b);}
+    step("Previous visit",d.prev);step("Next visit",d.next);
+    var cl=h("button","btn","Close");cl.type="button";cl.onclick=function(){setCol(-1,false);};nav.appendChild(cl);
+    dc.appendChild(nav);det.appendChild(dc);
+  }
+  var vt=visitTable(run,model);
+  byId("seqtabsum").textContent="Table of the "+plural(vt.rows.length,"visit")+" (packet and result are file sizes, not what the model read)";
+  var tbl=h("table","vt"),hd=h("tr"),th0=h("thead"),tbody=h("tbody");
+  vt.head.forEach(function(t){var th=h("th","",t);th.setAttribute("scope","col");hd.appendChild(th);});th0.appendChild(hd);tbl.appendChild(th0);
+  vt.rows.forEach(function(r){var tr=h("tr");r.forEach(function(t){tr.appendChild(h("td","",t));});tbody.appendChild(tr);});
+  tbl.appendChild(tbody);tb.appendChild(tbl);
 }
 /* ---------- step 3: findings and their options ---------- */
 var FILTERS=[["open","Open for this run"],["all","All for this run"],["other","Other runs"],["general","General"]];
@@ -1120,9 +1302,9 @@ function fillSelects(){
   var any=h("option","","All runs");any.value="any";rs.appendChild(any);if(cur)rs.value=cur;
   var cs=byId("cmpsel");clear(cs);var none=h("option","","No comparison");none.value="";cs.appendChild(none);
   data.runs.slice().sort(byOrder).forEach(function(r){if(r.key===L.run)return;var o=h("option","",r.name);o.value=r.key;cs.appendChild(o);});
-  cs.value=L.cmp||"";byId("hideshort").checked=!!L.hideShort;
+  cs.value=L.cmp||"";
 }
-function renderAll(){applyConfig();pruneSelection();renderArc();renderFlow();renderPanel();renderRunDetail();renderBackchain();renderFindings();renderCritGroups();renderCounts();renderPrompt();renderPlanControls();fillSelects();renderSteps();}
+function renderAll(){applyConfig();pruneSelection();renderArc();renderFlow();renderPicture();renderPanel();renderRunDetail();renderBackchain();renderFindings();renderCritGroups();renderCounts();renderPrompt();renderPlanControls();fillSelects();renderSteps();}
 
 /* ---------- the Backchain pass strip ---------- */
 var NS="http://www.w3.org/2000/svg";
@@ -1154,7 +1336,6 @@ function passStrip(d){
 function applyConfig(){
   var t=cfgOf("page").title;if(t){document.title=t;byId("h1").textContent=t;}
 }
-function kb(n){return n>=1024?(Math.round(n/102.4)/10)+" KB":n+" B";}
 function renderRunDetail(){
   var box=byId("rundetail");clear(box);
   var o=runOf();
@@ -1165,32 +1346,19 @@ function renderRunDetail(){
   var dl=h("dl","facts");facts.forEach(function(f){dl.appendChild(h("dt","",f[0]));dl.appendChild(h("dd","",f[1]));});card.appendChild(dl);
   if(A.verdicts){var vc=h("div","vchips");Object.keys(A.verdicts).forEach(function(k){vc.appendChild(h("span","chip "+(A.verdicts[k]?"holds":"broken"),k+(A.verdicts[k]?" pass":" fail")));});card.appendChild(vc);}
   box.appendChild(card);
-  // stages: minutes and sizes, optionally against a second run
-  if(A.stages&&A.stages.length){
-    var c2=h("div","card");c2.appendChild(h("h3","","Stages: minutes between accepts, and packet and result file sizes"));
-    var rows=A.stages.map(function(st,i){return {a:st,b:null,i:i};});
-    if(B&&B.stages){var used={};rows.forEach(function(r){var cand=B.stages.filter(function(x,j){return x.stage===r.a.stage&&!used[j];})[0];if(cand){used[B.stages.indexOf(cand)]=true;r.b=cand;}});}
-    var maxMin=Math.max.apply(null,[1].concat(A.stages.map(function(x){return x.min||0;}),(B&&B.stages||[]).map(function(x){return x.min||0;})));
-    if(L.hideShort)rows=rows.filter(function(r){return !isCount(r.a.min)||r.a.min>=1||(r.b&&(!isCount(r.b.min)||r.b.min>=1));});
-    var tb=h("div","rtabbox");
-    var hd=h("div","rrow head");["stage","outcome","minutes","packet","result"].forEach(function(t,j){hd.appendChild(h("div",j>2?"num":"",t));});tb.appendChild(hd);
-    rows.forEach(function(r){
-      var row=h("div","rrow");row.appendChild(h("div","",r.a.stage));
-      var oc=r.a.outcome||"";if(r.a.skipped===true)oc+=", skipped";if(r.a.improve&&isCount(r.a.improve.passes))oc+=", "+plural(r.a.improve.passes,"Improve pass");
-      row.appendChild(h("div","",oc));
-      var mc=h("div");
-      if(isCount(r.a.min)){var bar=h("div","rb");bar.style.width=Math.max(1,100*r.a.min/maxMin)+"%";mc.appendChild(bar);}
-      mc.appendChild(h("span","snap",minutesText(r.a.min)+(r.b?" vs "+minutesText(r.b.min):"")));
-      if(r.b&&isCount(r.b.min)){var b2=h("div","rb cmp");b2.style.width=Math.max(1,100*r.b.min/maxMin)+"%";mc.appendChild(b2);}
-      row.appendChild(mc);
-      row.appendChild(h("div","num",r.a.packetBytes!==undefined?kb(r.a.packetBytes)+(r.b&&r.b.packetBytes!==undefined?" / "+kb(r.b.packetBytes):""):""));
-      row.appendChild(h("div","num",r.a.resultBytes!==undefined?kb(r.a.resultBytes)+(r.b&&r.b.resultBytes!==undefined?" / "+kb(r.b.resultBytes):""):""));
-      tb.appendChild(row);
+  // the same six numbers for the second run, side by side (the picture and its table are in the step above)
+  if(B){
+    var cm=h("div","card"),ca=sequenceModel(A,{loops:loopsFor(A)}).cards,cb=sequenceModel(B,{loops:loopsFor(B)}).cards;
+    cm.appendChild(h("h3","","The same six numbers, side by side"));
+    var tw=h("div","rtabbox"),tbl=h("table","cmp"),hr=h("tr");
+    ["Measure",A.name,B.name].forEach(function(t){var th=h("th","",t);th.setAttribute("scope","col");hr.appendChild(th);});
+    var th0=h("thead");th0.appendChild(hr);tbl.appendChild(th0);var tb0=h("tbody");
+    ca.forEach(function(c,i){
+      var r=h("tr"),th=h("th","",c.label);th.setAttribute("scope","row");r.appendChild(th);
+      [c,cb[i]].forEach(function(x){var td=h("td");td.appendChild(h("b","",x.value));if(x.note)td.appendChild(h("span","kn",x.note));r.appendChild(td);});
+      tb0.appendChild(r);
     });
-    c2.appendChild(tb);
-    var tot=A.stages.reduce(function(n,x){return n+(isCount(x.min)?x.min:0);},0),untimed=A.stages.filter(function(x){return !isCount(x.min);}).length;
-    c2.appendChild(h("p","sub","Total "+Math.round(tot)+" min in "+A.stages.length+" accepted stages"+(untimed?" ("+untimed+" without a time: n/a)":"")+(B&&B.stages?"; "+B.name+": "+Math.round(B.stages.reduce(function(n,x){return n+(x.min||0);},0))+" min in "+B.stages.length:"")+". Grey bars are the comparison run."));
-    box.appendChild(c2);
+    tbl.appendChild(tb0);tw.appendChild(tbl);cm.appendChild(tw);box.appendChild(cm);
   }
   // planning documents: sizes the run committed
   if(A.knowledge&&Object.keys(A.knowledge).length){
@@ -1203,20 +1371,11 @@ function renderRunDetail(){
       var row=h("div","rrow");row.style.gridTemplateColumns="minmax(160px,1fr) minmax(120px,1.4fr) 110px";
       row.appendChild(h("div","",k));var mc=h("div");var bar=h("div","rb");bar.style.width=Math.max(1,100*(A.knowledge[k]||0)/maxB)+"%";mc.appendChild(bar);
       if(B&&B.knowledge){var b2=h("div","rb cmp");b2.style.width=Math.max(1,100*(B.knowledge[k]||0)/maxB)+"%";mc.appendChild(b2);}
-      row.appendChild(mc);row.appendChild(h("div","num",(A.knowledge[k]!==undefined?kb(A.knowledge[k]):"-")+(B&&B.knowledge?" / "+(B.knowledge[k]!==undefined?kb(B.knowledge[k]):"-"):"")));
+      row.appendChild(mc);row.appendChild(h("div","num",(A.knowledge[k]!==undefined?kbText(A.knowledge[k]):"-")+(B&&B.knowledge?" / "+(B.knowledge[k]!==undefined?kbText(B.knowledge[k]):"-"):"")));
       tb2.appendChild(row);
     });
     c3.appendChild(tb2);box.appendChild(c3);
   }
-  // Improve: read from the stage rows and the run's totals; absent means not measured, never 0
-  var im=improveFacts(A),c4=h("div","card");c4.appendChild(h("h3","","Improve"));
-  if(im.passes===null){var why=reasonFor(A,"improvePasses");c4.appendChild(h("p","sub","Improve passes: not measured"+(why?" ("+why+")":"")+"."));}
-  else{c4.appendChild(h("p","sub",plural(im.passes,"review pass")+(im.rows.length?" in "+plural(im.rows.length,"visit"):"")+(im.min!==null?", "+Math.round(im.min*10)/10+" min"+(im.share!==null?", "+im.share+"% of elapsed":""):", minutes not measured")+"."));}
-  if(im.rows.length){var tb3=h("div","rtabbox");
-    im.rows.forEach(function(r){var row=h("div","rrow");row.style.gridTemplateColumns="48px minmax(120px,1fr) 90px 80px";
-      row.appendChild(h("div","num","#"+r.visit));row.appendChild(h("div","",r.stage));row.appendChild(h("div","num",plural(r.passes,"pass")));row.appendChild(h("div","num",r.min!==null?Math.round(r.min*10)/10+" min":"n/a"));tb3.appendChild(row);});
-    c4.appendChild(tb3);}
-  box.appendChild(c4);
   if(A.failures&&A.failures.length){
     var c5=h("div","card");c5.appendChild(h("h3","",plural(A.failures.length,"ShipLoop command")+" exited non-zero"));
     A.failures.slice(0,10).forEach(function(f){var p=h("p","sub",f.verb+": "+f.line);p.style.margin="2px 0";c5.appendChild(p);});
@@ -1225,9 +1384,12 @@ function renderRunDetail(){
 }
 
 /* ---------- wiring ---------- */
-byId("runsel").onchange=function(){L.run=this.value;L.phase=-1;L.crit="";if(L.cmp===L.run)L.cmp="";save();renderFlow();renderPanel();renderRunDetail();renderBackchain();renderFindings();renderCounts();renderPrompt();renderPlanControls();fillSelects();renderSteps();};
+byId("runsel").onchange=function(){L.run=this.value;L.phase=-1;L.crit="";if(L.cmp===L.run)L.cmp="";save();renderFlow();renderPicture();renderPanel();renderRunDetail();renderBackchain();renderFindings();renderCounts();renderPrompt();renderPlanControls();fillSelects();renderSteps();};
 byId("cmpsel").onchange=function(){L.cmp=this.value;save();renderRunDetail();};
-byId("hideshort").onchange=function(){L.hideShort=this.checked;save();renderRunDetail();};
+byId("seqscroll").onclick=function(e){
+  var t=e.target&&e.target.closest?e.target.closest("[data-col]"):null;if(!t)return;
+  var k=+t.getAttribute("data-col");setCol(k===pickedCol?-1:k,false);
+};
 byId("notes").oninput=function(){S().notes=this.value;save();renderPrompt();};
 Array.prototype.forEach.call(document.getElementsByName("after"),function(r){r.onchange=function(){S().after=r.value;save();renderPrompt();};});
 function copyPrompt(msg){
