@@ -1773,6 +1773,86 @@ class DbSnapshotTest(unittest.TestCase):
         self.assertEqual(json.dumps(self.snapshot, separators=(",", ":")).encode("utf-8"), self.raw)
 
 
+class DefaultsUpgradeTests(unittest.TestCase):
+    """The one-time upgrade of the live page's expectations and settings is code (`--defaults --live`), not a hand merge:
+    the committed snapshot is the saved live page."""
+
+    def setUp(self):
+        self.live = export.read_live(SNAPSHOT)
+        self.defaults = {d["key"]: d for d in json.loads((DEFAULTS_DIR / "expectations.json").read_text(encoding="utf-8"))}
+        tmp = tempfile.TemporaryDirectory()
+        self.addCleanup(tmp.cleanup)
+        self.tmp = Path(tmp.name)
+
+    def test_the_owner_revised_phase_2_text_and_its_revision_are_in_the_defaults(self):
+        page = self.live["expectations"]["phase-2"]
+        self.assertEqual(len(page["revs"]), 1)
+        self.assertEqual(self.defaults["phase-2"]["text"], page["text"])
+        self.assertEqual(self.defaults["phase-2"]["revs"], page["revs"])
+
+    def test_the_saved_p1_keeps_its_text_and_revs_gains_clauses_and_loses_its_status(self):
+        docs, _ = export.upgrade_docs(self.live)
+        page, written = self.live["expectations"]["P1"], docs["expectations"]["P1"]
+        self.assertEqual(page["status"], "holds")  # the saved document carries the old hand-set status
+        self.assertEqual(written["text"], page["text"])
+        self.assertEqual(written.get("revs", []), page["revs"])
+        self.assertEqual(written["clauses"], ["S-1", "S-2"])
+        self.assertNotIn("status", written)
+        for key, doc in docs["expectations"].items():
+            self.assertNotIn("status", doc, key)
+            self.assertEqual(export.validate_doc("expectations", doc), [], key)
+            if doc["kind"] == "criterion":
+                self.assertIn("clauses", doc, key)
+            if self.live["expectations"][key].get("revs"):
+                self.assertEqual(doc["revs"], self.live["expectations"][key]["revs"], key)
+                self.assertEqual(doc["text"], self.live["expectations"][key]["text"], key)
+
+    def test_config_prompt_comes_from_the_defaults_and_nothing_underived_is_written(self):
+        docs, notes = export.upgrade_docs(self.live)
+        cfg = json.loads((DEFAULTS_DIR / "config.json").read_text(encoding="utf-8"))
+        self.assertIn("concatPreamble", self.live["config"]["prompt"])
+        self.assertEqual(docs["config"], {"prompt": cfg["prompt"]})  # config/page holds the page's URL: left alone
+        self.assertEqual(set(docs["expectations"]), set(self.defaults))
+        self.assertFalse([k for k in docs["expectations"] if k.startswith("iter-")])
+        self.assertEqual(set(docs), {"expectations", "config"})
+        self.assertEqual(notes, [
+            "expectations/group-principles: the page's text, which has no revision of its own, is replaced by the "
+            "defaults' text",
+            "config/prompt: replaced by the defaults (fields the defaults do not have are dropped)"])
+        bare = {"expectations": {}, "config": {}}
+        self.assertEqual(export.upgrade_docs(bare)[0]["config"], cfg)  # a page with no settings gets both
+
+    def test_a_page_revision_the_defaults_lack_refuses_the_upgrade_and_names_each_document(self):
+        live = copy.deepcopy(self.live)
+        live["expectations"]["P3"]["revs"] = [{"at": "2026-10-05T08:00:00Z", "from": "a", "to": "b", "reason": "r"}]
+        live["expectations"]["phase-2"]["revs"].append({"at": "2026-10-05T09:00:00Z", "from": "c", "to": "d", "reason": "r"})
+        with self.assertRaises(export.ExportError) as raised:
+            export.upgrade_docs(live)
+        message = str(raised.exception)
+        self.assertIn("expectations/P3: the page holds 1 revision the defaults lack (the latest at 2026-10-05T08:00:00Z)",
+                      message)
+        self.assertIn("expectations/phase-2", message)
+        self.assertIn("copy the page's text and revs into defaults/expectations.json first", message)
+
+    def test_the_cli_writes_the_upgrade_and_its_writes_json_and_prints_the_notes(self):
+        out, err = io.StringIO(), io.StringIO()
+        with contextlib.redirect_stdout(out), contextlib.redirect_stderr(err):
+            code = export.main(["--defaults", "--live", str(SNAPSHOT), "--out", str(self.tmp / "up")])
+        self.assertEqual((code, err.getvalue()), (0, ""))
+        self.assertIn("note: expectations/group-principles", out.getvalue())
+        writes = json.loads((self.tmp / "up" / "writes.json").read_text())
+        self.assertEqual(sorted((w["collection"], w["doc_id"]) for w in writes),
+                         sorted([("config", "prompt")] + [("expectations", k) for k in self.defaults]))
+        bad = self.tmp / "bad.json"
+        bad.write_text(json.dumps({"docs": {"expectations": {"P1": {"text": "a bare document, not a row"}}}}))
+        with contextlib.redirect_stdout(io.StringIO()), contextlib.redirect_stderr(err):
+            self.assertEqual(export.main(["--defaults", "--live", str(bad), "--out", str(self.tmp / "bad")]), 2)
+        self.assertIn('expectations/P1 has no document under "data"', err.getvalue())
+        with contextlib.redirect_stderr(io.StringIO()) as usage, self.assertRaises(SystemExit):
+            export.main(["--check", str(SAMPLE_REVIEW), "--live", str(SNAPSHOT)])
+        self.assertIn("--live goes with --defaults", usage.getvalue())
+
+
 EVIDENCE_DIR = ROOT / "test" / "shiploop_e2e" / "evidence"
 # The five regraded runs: the committed file (named by the exporter's default key, as before) and the run key the
 # page's database already uses, so that uploading a file updates that page document and creates no second one.
@@ -2021,6 +2101,25 @@ class ReviewBundleCheckTests(unittest.TestCase):
                           for c in e.get("clauses", [])})
         self.assertIn("S-2", clauses)
         code, out, err = self.check(lambda d: d.update(expectations={"P3": {"kind": "criterion", "clauses": clauses}}))
+        self.assertEqual((code, err), (0, ""), err)
+
+    def test_a_criterion_or_basis_key_the_defaults_lack_fails_and_any_key_they_have_passes(self):
+        def typo(docs):
+            docs["observations"]["f-refusals"]["criterion"] = "P33"
+            docs["reviews"]["luna1"]["basis"]["B9"] = "A basis for a criterion that does not exist."
+
+        code, out, err = self.check(typo)
+        self.assertEqual(code, 2, err)
+        self.assertIn("fail: observations/f-refusals: criterion 'P33' is not a key of defaults/expectations.json", err)
+        self.assertIn("fail: reviews/luna1: basis names 'B9', which is not a key of defaults/expectations.json", err)
+        self.assertIn("check: FAILED (2 failures", err)
+
+        def known(docs):  # a phase key is an expectation key too (the saved finding o35 uses phase-6); none is fine
+            docs["observations"]["f-refusals"]["criterion"] = "phase-6"
+            docs["observations"]["f-context"].pop("criterion")
+            docs["reviews"]["luna1"]["basis"] = {"B5": "Examined.", "phase-2": "Examined."}
+
+        code, out, err = self.check(known)
         self.assertEqual((code, err), (0, ""), err)
 
     def test_a_done_when_clause_may_follow_other_parts_and_a_condition_may_mention_a_test(self):

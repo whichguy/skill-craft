@@ -2,7 +2,7 @@
 """Export one ShipLoop E2E run as Run Review documents (see ../SCHEMA.md).
 
   export.py RUN_DIR [--key KEY] [--name NAME] [--order N] [--out DIR]
-  export.py --defaults [--out DIR]
+  export.py --defaults [--live FILE] [--out DIR]
   export.py --check FILE
   export.py --docs FILE [--out DIR]
 
@@ -24,6 +24,12 @@ failure is listed, one per line, naming the document (exit 2); a warning is list
 leaves the exit 0. --docs FILE checks the same bundle, then writes its documents and
 writes.json under --out (default a new temporary directory) through the writer an
 export uses.
+
+--defaults writes the starting expectations and settings. With --live FILE (the page's
+expectations and config documents, saved in the shape of the committed database
+snapshot) it writes the defaults over that page instead, keeping what the owner wrote
+there (upgrade_docs): every page revision must already be in the defaults, documents
+the defaults do not name are never written, and config/page is written only when absent.
 Stdlib only; no network and no model calls.
 """
 
@@ -1031,9 +1037,68 @@ def defaults_docs() -> dict[str, dict[str, dict]]:
     return docs
 
 
-def export_defaults(out: Path | None = None) -> Path:
-    """The starting expectations and page settings, for a create-only seed of a new page."""
-    return write_export(out or Path(tempfile.gettempdir()) / "run-review-defaults", defaults_docs(), compact=False)
+def upgrade_docs(live: dict[str, dict[str, dict]]) -> tuple[dict[str, dict[str, dict]], list[str]]:
+    """The defaults written over a page database, keeping what the owner wrote there: (documents to write, notes).
+
+    `live` is {collection: {id: document}} as the page holds it. Each expectation the defaults name is written as the
+    defaults have it (text, clauses, revs), so a stored `status` is not carried; the old `iter-*` documents and any other
+    document the defaults do not name are never written, and nothing is deleted. A revision the page holds and the
+    defaults lack refuses the whole upgrade (ExportError naming the document): copy the page's text and revs into
+    defaults/expectations.json first, so the defaults never overwrite the owner's wording. A page text with no such
+    revision that differs from the defaults is replaced, and a note names it. config/prompt is the defaults'; config/page
+    holds the page's own URL and is written only when the page has none."""
+    defaults = defaults_docs()
+    pages = {c: {i: d for i, d in (live.get(c) or {}).items() if isinstance(d, dict)} for c in ("expectations", "config")}
+    docs: dict[str, dict[str, dict]] = {"expectations": {}, "config": {}}
+    notes, refused = [], []
+    for key, want in defaults["expectations"].items():
+        have = pages["expectations"].get(key)
+        if have is not None:
+            missing = [rev for rev in have.get("revs") or [] if rev not in (want.get("revs") or [])]
+            if missing:
+                refused.append(f"expectations/{key}: the page holds {_count(len(missing), 'revision')} the defaults lack "
+                               f"(the latest at {missing[-1].get('at')}); copy the page's text and revs into "
+                               f"defaults/expectations.json first")
+                continue
+            if have.get("text") != want.get("text"):
+                notes.append(f"expectations/{key}: the page's text, which has no revision of its own, is replaced by the "
+                             f"defaults' text")
+        docs["expectations"][key] = want
+    if refused:
+        raise ExportError("the page holds wording the defaults would overwrite:\n  " + "\n  ".join(refused))
+    docs["config"]["prompt"] = defaults["config"]["prompt"]
+    if pages["config"].get("prompt") not in (None, docs["config"]["prompt"]):
+        notes.append("config/prompt: replaced by the defaults (fields the defaults do not have are dropped)")
+    if "page" not in pages["config"]:
+        docs["config"]["page"] = defaults["config"]["page"]
+    return docs, notes
+
+
+def read_live(path: Path) -> dict[str, dict[str, dict]]:
+    """The page's documents from a file in the shape of the committed database snapshot: {docs: {collection: {id: {data,
+    version, updatedAt}}}}, as ArtifactData returns each row."""
+    raw = _read_json(Path(path).expanduser())
+    rows = raw.get("docs") if isinstance(raw, dict) else None
+    if not isinstance(rows, dict):
+        raise ExportError(f"{path}: expected {{\"docs\": {{collection: {{id: {{\"data\": document}}}}}}}}, the snapshot's shape")
+    live: dict[str, dict[str, dict]] = {}
+    for collection, items in rows.items():
+        for doc_id, row in (items or {}).items():
+            if not (isinstance(row, dict) and isinstance(row.get("data"), dict)):
+                raise ExportError(f"{path}: {collection}/{doc_id} has no document under \"data\"")
+            live.setdefault(collection, {})[doc_id] = row["data"]
+    return live
+
+
+def export_defaults(out: Path | None = None, live: Path | None = None) -> Path:
+    """The starting expectations and page settings for a new page, or with `live` (read_live) the upgrade of that page
+    (upgrade_docs), whose notes are printed."""
+    docs = defaults_docs()
+    if live is not None:
+        docs, notes = upgrade_docs(read_live(live))
+        for note in notes:
+            print(f"note: {note}")
+    return write_export(out or Path(tempfile.gettempdir()) / "run-review-defaults", docs, compact=False)
 
 
 # ---------------------------------------------------------------- a review bundle (--check, --docs)
@@ -1053,6 +1118,10 @@ EVIDENCE_TOKEN = re.compile(
 
 def _default_clauses() -> set[str]:
     return {clause for entry in _read_json(DEFAULTS / "expectations.json") for clause in entry.get("clauses") or []}
+
+
+def _default_keys() -> set[str]:
+    return {entry["key"] for entry in _read_json(DEFAULTS / "expectations.json")}
 
 
 def _ends_with_done_when(goal: str) -> bool:
@@ -1075,7 +1144,9 @@ def check_bundle(bundle) -> tuple[list[str], list[str]]:
 
     Failures: the schema and enums (validate_doc); every option's findings exist in the bundle; a change-expectation
     option has `change` and no other kind has one; each option's instruction (goal) ends with a Done when clause; at
-    most one recommended option per finding; every `clauses` id is an S-n id that defaults/expectations.json uses.
+    most one recommended option per finding; every `clauses` id is an S-n id that defaults/expectations.json uses; a
+    finding's `criterion` and each key of a review's `basis` is a key of defaults/expectations.json (a typo would
+    silently read "not examined").
     Warnings: an open finding no option names; evidence with no path or commit token; an open finding with no effect."""
     if not isinstance(bundle, dict) or not isinstance(bundle.get("docs"), dict):
         return [f'bundle: expected {{"schema": "{SCHEMA_ID}", "docs": {{collection: {{id: document}}}}}}'], []
@@ -1118,6 +1189,13 @@ def check_bundle(bundle) -> tuple[list[str], list[str]]:
                 failures.append(f"expectations/{eid}: clause {clause!r} is not an S-n id")
             elif clause not in known:
                 failures.append(f"expectations/{eid}: clause {clause} is not in defaults/expectations.json")
+    keys = _default_keys()
+    failures += [f"observations/{fid}: criterion {f['criterion']!r} is not a key of defaults/expectations.json"
+                 for fid, f in sorted(findings.items()) if isinstance(f.get("criterion"), str) and f["criterion"]
+                 and f["criterion"] not in keys]
+    failures += [f"reviews/{rid}: basis names {key!r}, which is not a key of defaults/expectations.json"
+                 for rid, review in sorted(_documents(docs, "reviews").items())
+                 for key in (sorted(review["basis"]) if isinstance(review.get("basis"), dict) else []) if key not in keys]
 
     named = {fid for ids in links.values() for fid in ids}
     for fid, finding in sorted(findings.items()):
@@ -1177,6 +1255,9 @@ def main(argv: list[str] | None = None) -> int:
     parser = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
     parser.add_argument("run_dir", nargs="?", type=Path, help="a run output directory of test/shiploop_e2e/run.py")
     parser.add_argument("--defaults", action="store_true", help="export the starting expectations and settings")
+    parser.add_argument("--live", type=Path, metavar="FILE",
+                        help="with --defaults: the page's documents in the snapshot's shape; write the defaults over "
+                             "that page, keeping its revisions (refused when the defaults lack one)")
     parser.add_argument("--check", type=Path, metavar="FILE", help="validate a review bundle (exit 2 on a failure)")
     parser.add_argument("--docs", type=Path, metavar="FILE",
                         help="check a review bundle, then write its documents and writes.json under --out")
@@ -1187,12 +1268,14 @@ def main(argv: list[str] | None = None) -> int:
     args = parser.parse_args(argv)
     if [args.run_dir is not None, args.defaults, args.check is not None, args.docs is not None].count(True) != 1:
         parser.error("give one of RUN_DIR, --defaults, --check FILE or --docs FILE")
+    if args.live is not None and not args.defaults:
+        parser.error("--live goes with --defaults")
     try:
         if args.check is not None:
             return check_file(args.check)[0]
         if args.docs is not None:
             return write_docs(args.docs, args.out)
-        path = export_defaults(args.out) if args.defaults else export_run(
+        path = export_defaults(args.out, args.live) if args.defaults else export_run(
             args.run_dir, args.key, args.name, args.order, args.out)
     except ExportError as exc:
         print(f"export: {exc}", file=sys.stderr)

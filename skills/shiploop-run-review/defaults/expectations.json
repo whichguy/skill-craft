@@ -21,7 +21,16 @@
   "order": 2,
   "title": "Plan",
   "short": "Plan and per-item step plan",
-  "text": "The script opens the planning stages. Backchain turns the spec into a dependency graph, and the item's step plan is built the same way. The script, not the model, writes every loop contract and decides when each plan is closed."
+  "text": "The script opens the planning stages. Backchain turns the spec into a dependency graph, and the item's step plan is built the same way. The script, not the model, writes every loop contract and decides when each plan is closed. there is no limit to this",
+  "revs": [
+   {
+    "at": "2026-10-04T15:50:07.905Z",
+    "from": "The script opens the planning stages. Backchain turns the spec into a dependency graph, and the item's step plan is built the same way. The script, not the model, writes every loop contract and decides when each plan is closed.",
+    "obs": "o03",
+    "reason": "Observation 3: Step-plan Backchain contract of 11.9 KB, one rejected report",
+    "to": "The script opens the planning stages. Backchain turns the spec into a dependency graph, and the item's step plan is built the same way. The script, not the model, writes every loop contract and decides when each plan is closed. there is no limit to this"
+   }
+  ]
  },
  {
   "key": "phase-3",
