@@ -23,8 +23,6 @@ from __future__ import annotations
 
 import json
 import os
-import shlex
-import sys
 import time
 from datetime import datetime, timezone
 from pathlib import Path
@@ -303,9 +301,7 @@ def render_lines(root: Path, state: Mapping[str, Any], work_item: str, action: s
         lines += [
             "Bound Until Loop card (open it if its rules are not already in your context): " + runtime["runtime_card"],
             "Loop contract (written by ShipLoop; pass it unchanged): " + str(contract),
-            "Start: " + shlex.join([sys.executable, runtime["runtime_cli"], "start",
-                                     "--receipt", str(root / terminal_path(action))]) + " < "
-            + shlex.quote(str(contract)),
+            "Start: " + quality.start_command(runtime, root / terminal_path(action), contract),
             quality.RECEIPT_LINE + str(root / terminal_path(action)),
         ]
         if (root / terminal_path(action)).exists():
@@ -386,7 +382,8 @@ def check_terminal(root: Path, state: Mapping[str, Any], work_item: str, action:
         return
     try:
         quality.check_loop_packet(path, result, build_contract(root, state, work_item, action, stage),
-                                  "test loop", str(root / contract_path(action)))
+                                  "test loop", str(root / contract_path(action)),
+                                  quality.start_command(quality._runtime(state), path, root / contract_path(action)))
     except quality.QualityError as exc:
         raise TestLoopError(str(exc)) from exc
 
