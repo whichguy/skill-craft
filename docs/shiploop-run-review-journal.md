@@ -288,3 +288,139 @@ terminal files, the run's `unmeasured` gains `visitContext` when no stage row ha
 base tip `e79f948a` (run from a `git archive` of it). `python3 -B test/shiploop-e2e.test.py -k Review` (9 OK; the fixture
 needed no change), `node test/skill-frontmatter.test.js`, `python3 -B test/test-groups.test.py`,
 `python3 -B test/marketplace-package.test.py` and `scripts/check-release-boundary.py --base origin/main` pass.
+
+## 2026-10-04: R13, five finished runs regraded with no host and re-exported as v2 evidence
+
+Status: firm for the numbers, the key mapping and the tests below. Local commits only: nothing was pushed or released,
+no E2E run was launched, no Artifact or ArtifactData call was made and nothing was uploaded, so the live page and its
+database are untouched (the plan's "upload the run docs" step is still open, see "Before an upload" below). Base:
+`c3ca793c`, which carries R1 (`62c36c73`), R2 (`826b8645`), R3 (`7144f355`), the harness work R10, R11 and R15 (`e79f948a`)
+and R12 (`c3ca793c`).
+
+**Why.** The five committed evidence files were v1 exports: Claude runs published refusals 0 and glue 0 as measured
+zeros, Luna's Improve time came from the volatile worktree's review notes (135.8 min), seeded and skipped visits read as
+0.0 minutes, stage rows had no action id, and none of them carried calls, context peak or compactions. R3 and R12 fixed
+the exporter; this increment applies it to the five real runs, which needed their `metrics.json` regraded first (an old
+file with no `unmeasured` record is refused by design).
+
+**Regrade (no host).** Per run: `result.json`, `metrics.json`, `transcript.md`, `mismatch.md` (where present),
+`review-export/` and Luna's `home/.gitconfig` were copied aside with `cp -p` into the session scratchpad
+(`.../scratchpad/rrr/backup/<run>/`, with a before-listing of file times), then each run was regraded with this
+worktree's harness: `python3 -B test/shiploop_e2e/run.py --resume-run <run dir>`, run from a scratch directory (not a
+repository) with `PYTHONDONTWRITEBYTECODE=1` so the case checks leave no bytecode in `work/`. Luna's run is status
+blocked, which only R10 lets `--resume-run` regrade; no gate refused any of the five (no version gate applies to a
+regrade: `run.py` sets `versions` from the run's own record and `regraded true`). The Luna exit code 1 is the run's own
+FAIL verdict (blocked, plugin and committed false), not a refusal; the four hello regrades exit 0 (PASS).
+
+**How "no host started" was verified.** (1) The regrades ran with `PATH` set to a directory of trap scripts named `claude`,
+`codex` and `grok` (each logs a line to `host-invoked.log` and exits 97), then `python3` and `node` links, then
+`/usr/bin:/bin:/usr/sbin:/sbin`; the harness starts a host by the bare binary name, so any launch would have logged. The
+log does not exist after all five regrades. (2) Every printout says "process ... no host ran: regraded"; each new
+`result.json` carries `process.regraded true`, and the process block is the original's, with its single session
+(Luna's 33,452.4 s `codex` session; each hello's one `claude` session), not a new one. (3) `events.jsonl`, `timeline.jsonl`,
+`stderr.txt`, `invocation.json` and `host-prompt.txt` have unchanged times in all five run directories, and Luna's
+rollouts under `home/.codex/sessions` are unchanged. (4) A regrade needs `~/.codex/auth.json` to exist for a Codex run
+(`CodexHost.env` links it into the run's `home/.codex`, reads nothing from it and runs no `codex`), so it needs no Codex
+login and no installed `codex`, but it does exit "Codex is not signed in" when that file is absent. What a regrade does
+start: the case checks in `work/` (`python3 hello.py`, `python3 -m unittest -q`; Luna's four node checks, with local
+servers on ports 39171 to 39173, all failing as the run has no product) and, for Luna, the same checks in ShipLoop's own
+worktree (4 of 4 pass there). Those are the product's tests, not hosts.
+
+**What a regrade rewrites in a run directory.** `result.json`, `metrics.json`, `transcript.md`, `review-export/` (under
+the exporter's default key, as `run.py` always does; Luna's `mismatch.md` is new because it FAILs), plus new files the
+harness writes on any `--resume-run`: `invocation-resume-<host>-<epoch>.json` (and `resume-codex-<epoch>.txt` for Codex),
+and, for Luna (Codex), `home/.gitconfig` rewritten with identical bytes. Git's index of the Luna work tree was refreshed. Nothing else changed
+(`work/` status is clean in all five). `test/shiploop_e2e/baselines.jsonl` was not touched (a `--resume-run` appends no
+row, `run.py` sets `baseline_file` only for a run that is neither resumed nor seeded); its sha256 is identical before and
+after (3172c232...0e34cf, 15 rows) and `git status` shows no change to it.
+
+**Run to key mapping.** The page's database already holds a run document per hand key; each run was matched on release,
+host, model, case, status, `startedAt`, `endedAt` and `wallMin` against `docs.runs` of the committed snapshot
+(`run-review-db-snapshot-2026-10-04.json`), which agree exactly for all five, and on the stage count (39, 35, 34, 34, 54).
+Each run was re-exported with `--key`, and also `--name` and `--order` from that document (the four Claude files already
+carried the page's name and order; Luna's carried the exporter's defaults), so uploading a file updates the page's
+document in place and creates no second one.
+
+| Run directory | Page key | Name and order on the page | Committed file (name kept) |
+| --- | --- | --- | --- |
+| `e2e-runs/20261003/v1161-battleship-luna` (codex gpt-6-luna max, 1.16.1, blocked) | `luna1` | Luna max, release 1.16.1; 3 | `codex-gpt-6-luna-1.16.1-battleship-20261003.json` |
+| `e2e-runs/20261003/v1161-hello` (claude, 1.16.1) | `hello-1161` | Sonnet 5.5 hello, release 1.16.1; 11 | `claude-claude-sonnet-5-5-1.16.1-hello-20261003.json` |
+| `e2e-runs/20261004/v1180-hello-sonnet` (claude, 1.18.0) | `hello-1180` | Sonnet 5.5 hello, release 1.18.0; 12 | `claude-claude-sonnet-5-5-1.18.0-hello-20261004.json` |
+| `e2e-runs/20261004/v1190-hello-sonnet` (claude, 1.19.0, gate run) | `hello-1190a` | Sonnet 5.5 hello, release 1.19.0 (gate run); 13 | `claude-claude-sonnet-5-5-1.19.0-hello-20261004.json` |
+| `e2e-runs/20261004/v1190-hello-sonnet-2` (claude, 1.19.0, repeat) | `hello-1190b` | Sonnet 5.5 hello, release 1.19.0 (repeat); 14 | `claude-claude-sonnet-5-5-1.19.0-hello-20261004-b.json` |
+
+The files keep the names the exporter's default key gave them (host, model, release, case, date), so there is still one file
+per run and the planned review file `codex-gpt-6-luna-1.16.1-battleship-20261003.review.json` sits beside the Luna export;
+the run document inside carries the page's key, so a file name is no longer equal to its run id (needs an owner decision,
+below). The default key of the two same-day 1.19.0 runs is the same string, which is why the old second file ended in `-b`
+and why an explicit `--key` matters for a second run of the same host, model, release, case and day.
+
+**Before and after** (before: the committed v1 export at `c3ca793c`; "stored" values are what that export carried; the
+run's old `metrics.json` was refused by the exporter, so the new figures come from the regraded one). Luna wall time
+1,158.5 min. Improve minutes are bind to receipt; before, the sum of the old `improve[]` seconds.
+
+| Run | Refusals | Glue | Improve passes and minutes | Calls | Context peak (window) | Compactions | Other |
+| --- | --- | --- | --- | --- | --- | --- | --- |
+| Luna 1.16.1 | 13 before (the 1.16.1 record), 13 now | 21 stored (stale), 20 now | 41 passes, 135.8 min before, 360.27 min now (31.1% of wall) in 9 children | not exported, 2,565 | not exported, 251,867 (258,400, 97.5%) | not exported (the old `metrics.json` said 0, a figure nobody measured), 34 | verdict `committed` true before, false now; 39 of 39 visits carry a context |
+| hello 1.16.1 | 0 before (a false zero), absent now with the reason | same | 8 passes, 0.0 before, 0.84 min now | 84 | 182,666 (1,000,000) | absent with reason | 35 visits |
+| hello 1.18.0 | same | same | 18 passes, 1.2 before, 2.84 min now | 94 | 225,425 (1,000,000) | absent with reason | 34 visits |
+| hello 1.19.0 gate | same | same | 14 passes, 0.4 before, 2.69 min now | 113 | 239,826 (1,000,000) | absent with reason | 34 visits |
+| hello 1.19.0 repeat | same | same | 19 passes, 1.0 before, 3.73 min now (24.5% of 15.2 min) in 11 children | 149 | 271,220 (1,000,000) | absent with reason | 54 visits, 7 skipped (test-spec, baseline, test-author, test-red, test-green, test-refine, regression; 0.0 min each; the old file had 8 zero-minute rows, one of them a real 1 s visit); no run has a seeded visit |
+
+Every stage row now has `action` (all ids unique in each run). The old Luna file said `refusals 13, glue 21`; the glue is 20
+under the current harness and 13 refusals are unchanged. Luna's per-visit calls sum to 2,562 (three calls follow the last
+accepted visit) and their compactions to 34. The plan's numbers all held; none needed correcting.
+
+**Findings.**
+
+- Luna's regraded process record still covers only the resume session (firm; recorded, not a code change). `result.json`
+  `process` is the original block (one `codex` session, 33,452.4 s, `pass true`, `resumes 0`), kept as recorded and marked
+  `regraded`; the run's wall time is 1,158.5 min (69,510 s), so it describes about 48% of a 19.3 h run (the first session
+  ended at its 10 h timeout and is not in it). The `process` chip therefore reads pass for a run that blocked after 19.3 h;
+  the regraded `termination` block says "not observed (regraded: no host ran)".
+- Luna's `committed` verdict flips from true to false (firm). The stored record predated the rule that HEAD must hold at
+  least one file; the blocked run never returned a product, so HEAD is the empty baseline commit (`head_files 0`). The
+  `plugin` verdict was already false ("none loaded") and is unchanged. The page's Luna chips change when this is uploaded.
+- A Codex regrade needs `~/.codex/auth.json` to exist (see above); a machine without it refuses the regrade with the
+  harness's own message. Not changed (an environment property, and the fresh-run path needs it anyway).
+- Re-exporting Luna under the key `luna1` makes the two Backchain document ids `luna1-plan` and `luna1-step-plan`, the same
+  ids as the page's hand-built documents (11 and 8 segments of per-pass judgement the exporter cannot rebuild; the
+  exporter's own documents have 9 and 6). See "Before an upload".
+
+**Before an upload (open).** The run documents of all five update the page's existing documents (pin `if_version` from the
+snapshot's rows). The two Luna Backchain documents must not be uploaded over the hand-built ones: skip them or merge by
+hand. The old files carried them under the default key (`codex-gpt-6-luna-1.16.1-battleship-20261003-plan`), where an
+upload created extra documents instead of overwriting the hand ones.
+
+**Exporter wording (the owner decision R12 recorded).** `_no_unmeasured_message` told a blocked run it "cannot be
+regraded without a host", which R10 made untrue. A blocked run now gets "Regrade the blocked run (python3
+test/shiploop_e2e/run.py --resume-run DIR; a regrade starts no host and does not resume the run), then export it again."
+A finished run's message is unchanged, and an active or paused run still never names `--resume-run` (resuming it would
+start a host); it now says "not done or blocked" and that resuming it would start a host.
+
+**Tests.** `python3 -B test/shiploop-run-review.test.py`: 68 tests OK (61 before, 7 new in `CommittedEvidenceTest`). The
+new class loads the five committed files and asserts: id `run-review-export/v2` and one run document under the page's
+key that validates and agrees with the snapshot's document on release, host, model, case, status, `startedAt` and
+`endedAt`; every stage row has a unique `action` and a seeded visit would read `min` null (none exists); each of
+`refusals`, `glue`, `calls` and `contextPeak` is a number, or absent with a reason under `shiploop_failures`, `model_glue`,
+`calls` or `contextPeak`, never both; the Improve rows sum to the run's passes and minutes; Luna has 39 stages, 41
+passes in 9 children, 360.3 min (plus or minus 0.1), refusals 13, glue 20, calls 2,565, peak 251,867 of 258,400 and 34
+compactions; the four Claude hello runs omit refusals, glue, failures and compactions with a reason and have calls 84, 94,
+113, 149 of a 1,000,000 window; hello 1.19.0 repeat has 54 visits with the 7 skipped, 11 children, 19 passes, 3.73 min
+(plus or minus 0.1) and calls 149, peak 271,220. The blocked-run case of the existing no-`unmeasured` test now pins the new
+wording and a paused case was added. Run from a `git archive` of `c3ca793c` outside the repository (v1 evidence, old
+wording) the file gives 15 failures, all new: the seven loader tests (the five files of the first fail on the schema id, the rest on the
+missing page key) and the blocked-wording case. `python3 -B test/shiploop-e2e.test.py -k Review` 9 OK, `node
+test/skill-frontmatter.test.js` PASS 20 skills, `python3 -B test/test-groups.test.py` 16 OK and
+`python3 -B scripts/check-release-boundary.py --base origin/main` OK. The whole `test/shiploop-e2e.test.py` was not run:
+nothing under `test/shiploop_e2e` changed except the evidence files.
+
+**File sizes** (bytes; v1 then v2): Luna 9,816 then 14,660; hello 1.16.1 5,009 then 8,031; hello 1.18.0 4,937 then 7,911;
+hello 1.19.0 gate 4,949 then 7,926; hello 1.19.0 repeat 6,797 then 10,748; total 31,508 then 49,276. Each is under the
+exporter's 200,000-byte compact limit.
+
+**Owner decisions.** (1) File names: keep the default-key names (chosen: the plan's review file uses that name and there is
+one file per run) or rename the five to the page keys (`luna1.json`, `hello-1161.json`, ...), which would make a file name
+equal its run id and the Luna review file `luna1.review.json`. (2) The two Luna Backchain documents at upload (above).
+(3) Whether to upload now: the page would then show the regraded Luna chips (`committed` false, 360.27 Improve minutes,
+refusals 13, glue 20) and drop the Claude zeros for "not measured".
