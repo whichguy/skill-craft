@@ -849,6 +849,13 @@ class ReviewExportTest(HarnessCase):
         exporter.assert_not_called()
 
 
+class ReviewAdviseLineTest(unittest.TestCase):
+    def test_the_step_after_the_learnings_commit_names_the_advise_mode_and_the_run_directory(self):
+        self.assertEqual(iterate.review_line(2, Path("/out/iter-2/run")),
+                         "== iteration 2: update the Run Review page: "
+                         "/skill-craft:shiploop-run-review advise /out/iter-2/run")
+
+
 class HostOutputTest(unittest.TestCase):
     def test_visible_output_and_truncations_use_what_the_model_saw(self):
         raw = {"output": [104, 105], "output_for_prompt": "hi", "truncated": True, "total_bytes": 30000}
