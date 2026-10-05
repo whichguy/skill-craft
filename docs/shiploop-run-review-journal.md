@@ -1131,3 +1131,72 @@ documents (`luna1-plan`, `luna1-step-plan`) are untouched and have none of the n
 **Owner decisions.** (1) Republish the template (the pass strip) when the next publish happens. (2) Whether the harness's
 first-stage line should start at ShipLoop's start (as the export does) or say "from the host's first event". (3) Whether a plan
 edited after its loop (`candidateMatch` false in both real loops) should be a finding on the Luna 1.21.0 review.
+
+## 2026-10-05: R16 follow-up, the prompt head names the review bundles and publish supplies the page URL (local, unpublished)
+
+Status: firm for the code, the tests and the reproduction below. Local commit `47efcfdf` on `rr16-a04384` (base `f62bd428`);
+no push, release, run, Artifact or ArtifactData call. The template and `defaults/config.json` changed, so the page needs one
+republish and its `config/prompt` and `config/page` rows one write (neither done).
+
+**What the owner's prompt showed.** A prompt built on the draft page with run `hello-1190b` primary, option `a16` and finding
+`o39` ticked had two defects.
+
+1. *A review file that does not exist.* The head said `Review file: test/shiploop_e2e/evidence/hello-1190b.review.json`. The
+   builder named the file from the primary run key (R7), and the integration rename `38119014` ("a review file is named by
+   the page's run key") made the same assumption. A finding is authored in one run's review bundle and may span runs (its
+   `runs` list); `luna1.review.json` is the only bundle that holds `a16` and `o39` (checked by `grep` over the committed
+   bundles), and `o39` applies to `hello-1190b` only. The page cannot know which bundle holds an id.
+   **Fix.** The head now reads: `Review files: the *.review.json bundles in test/shiploop_e2e/evidence/ (find each ticked id
+   below in the bundle that has it, for example grep -l '"a16"' test/shiploop_e2e/evidence/*.review.json; edit it there).`
+   The example is the first ticked option (or, when only findings are ticked, the first finding); an id that is not plain text
+   (`[\w.-]+`) is replaced by `<id>`, so no id is put into a shell line. `defaults/config.json` `closing` says "set its status
+   to done in the review file that holds it, citing the commit". The earlier "named by the page's run key" decision stands for
+   *writing* a review (SKILL.md advise: `<runKey>.review.json` is where a run's review is authored); only the prompt stops
+   assuming it can name the file for a given id.
+2. *No `Page:` part.* The head prints `config/page.artifactUrl`, which the template already reads (`promptState`,
+   `cfgOf("page").artifactUrl`); the field is named `artifactUrl`, not `url`, and the live page's stored document uses that
+   name, so it is kept. Cause: publish step 2 writes `config/page` from `defaults/config.json` only when the page has none, and
+   the defaults carry `artifactUrl: ""`. A draft page (a separate artifact with its own empty database) therefore stores an
+   empty URL, and the builder prints nothing for an empty one. The live page's row was set by hand (the snapshot holds
+   `https://claude.ai/artifact/BFc6JGjLhENVJ9shRAA2iA`). A page cannot read its own claude.ai URL from inside the artifact
+   sandbox (its own origin is not the artifact link), so the URL can only come from publish, which has it from the Artifact
+   result. **Fix.** `export.py --defaults [--live FILE] --page-url URL` sets `config/page.artifactUrl`: it keeps the page's own
+   title and any other field, writes nothing when the page already holds that URL, notes a different non-empty URL it replaces,
+   and exits 2 for a value that is not an http(s) URL; without the flag `config/page` is written only when absent, as before.
+   SKILL.md publish step 2 passes it (one sentence); SCHEMA.md documents `artifactUrl` (optional string) and that an empty or
+   absent URL prints nothing. **The Page URL can be supplied**, by publish, not by the page. A draft page needs its own URL
+   passed, not the live page's.
+
+**Confirmed and left.** `Run evidence:` is the primary run's directory (`run.evidence`). Each `EVIDENCE` line carries the
+finding's own run: the primary run when the finding applies to it (`appliesTo`: its `runs` list or `run`), otherwise the first
+run in the list it applies to, printed as `run: <key> at <directory>`. A finding spanning runs therefore prints once, with the
+primary run's key and directory when the primary is among them (a test pins this, and a finding of another run only).
+
+**Reproduction with real data.** The owner's case rebuilt from the committed `luna1.review.json` and the committed
+`hello-1190b` run export, `a16` ticked, an empty page URL (the draft's state): the head is `Repair work from the Run Review of
+Sonnet 5.5 hello, release 1.19.0 (repeat) (skill-craft 1.19.0, ShipLoop 0.51.0; claude claude-sonnet-5-5; 2026-10-04; done). In
+the skill-craft repository. Run evidence: /Users/dadleet/e2e-runs/20261004/v1190-hello-sonnet-2. Review files: the
+*.review.json bundles in test/shiploop_e2e/evidence/ (find each ticked id below in the bundle that has it, for example grep -l
+'"a16"' test/shiploop_e2e/evidence/*.review.json; edit it there).` followed by one `- o39 [P1, open]` evidence line. No `Page:`
+part, as pasted, until publish writes the URL.
+
+**Size contract (unchanged bound).** The builder's own text for three ticked options (a19, a13, a21 of the Luna review) was
+2,627 characters before and is 2,794 now; over the 20 live options alone it was 1,872 to 2,403 and is 2,039 to 2,570. The head
+grew by 167 characters; the bound of 3,000 (and `3000 + len(goal)` for a01) did not move.
+
+**Tests.** `python3 -B test/shiploop-run-review.test.py`: 212 tests OK (202 before). New: in `PromptBuilderTests` the head
+names no per-run review file for three run keys and an investigate-only prompt and an unplain id, the report-back line, a finding
+spanning runs prints once with the primary run's key and directory (and one of another run prints that run's), and the page
+prints `config/page.artifactUrl` and nothing when it is empty or absent; `PageUrlTests` (6: an empty page, a draft page with an
+empty URL keeping its fields, a replaced URL with its note and an unchanged one writing nothing, a live page with no
+`config/page`, the CLI refusals and the writes, and the SCHEMA.md and SKILL.md text). Changed with the text they pin: the head
+test (renamed), the SKILL.md command assertion. On the base `1411d5f1` and on the previous commit `f62bd428` (the test file
+copied into a `git archive`), 8 of the 10 new tests fail; the other two (a finding spanning runs, the page URL read) pin behaviour
+that already held ("confirm and leave") and pass there by design. Also green: `node test/skill-frontmatter.test.js`,
+`test/test-groups.test.py`, `test/marketplace-package.test.py`, `scripts/check-release-boundary.py --base origin/main`.
+
+**For the owner.** (1) Republish the page and write `config/prompt` (the closing) and, on the draft, `config/page` with its URL
+(`--page-url`); until then a prompt from the page still names the old file. (2) The live page's `config/page` already holds
+its URL; pass the same one to keep it (`--live` with an equal URL writes nothing). (3) Findings span runs but a review bundle is
+named by one run key (`luna1.review.json` holds the hello findings): the prompt no longer depends on that, but `advise` still
+writes `<runKey>.review.json`; whether a finding of another run should live in that run's own bundle is a convention to settle.
