@@ -14,6 +14,7 @@ Every skill is namespaced by this plugin: in Claude, invoke `/skill-craft:<skill
 
 | Skill | Claude command | Version | Purpose |
 |-------|----------------|---------|---------|
+| [adversarial-review](skills/adversarial-review/SKILL.md) | `/skill-craft:adversarial-review` | 0.1.0 | Have an independent model try to break a proposed change and return its findings as testable hypotheses, each with the… |
 | [architect](skills/architect/SKILL.md) | `/skill-craft:architect` | 0.1.2 | Design system architecture and make technology decisions. Uses a structured inline design or an available independent… |
 | [ask-agent](skills/ask-agent/SKILL.md) | `/skill-craft:ask-agent` | 0.9.0 | A delegation skill, not an agent type. Ask native agents to work in the background, continue useful work in the main… |
 | [backchain](skills/backchain/SKILL.md) | `/skill-craft:backchain` | 0.6.3 | Use when an implementation task needs a dependency-aware plan before coding: backward planner / backchain /… |
@@ -30,6 +31,7 @@ Every skill is namespaced by this plugin: in Claude, invoke `/skill-craft:<skill
 | [prompt-refine](skills/prompt-refine/SKILL.md) | `/skill-craft:prompt-refine` | 0.1.2 | Full prompt-improvement workflow — runs prompt-audit to find inconsistencies, presents a remediation plan, then runs… |
 | [review-coverage](skills/review-coverage/SKILL.md) | `/skill-craft:review-coverage` | 0.3.3 | Add a post-ship improve-to-exhaustion directive to a plan, or run that directive after implementation. Invoke like any… |
 | [review-fix-bench](skills/review-fix-bench/SKILL.md) | `/skill-craft:review-fix-bench` | 0.1.2 | Compare two code-review prompt versions against supplied fixture ground truth using an explicitly configured external… |
+| [rubric-eval](skills/rubric-eval/SKILL.md) | `/skill-craft:rubric-eval` | 0.1.0 | Evaluate a prompt change against a rubric over a scenario catalog: run arms on a subject model (Grok by default)… |
 | [shiploop](skills/shiploop/SKILL.md) | `/skill-craft:shiploop` | 0.53.0 | Markdown-authoritative delivery harness. Start or resume once, follow the script's current action packet, and submit… |
 | [shiploop-e2e-audit](skills/shiploop-e2e-audit/SKILL.md) | `/skill-craft:shiploop-e2e-audit` | 0.6.1 | Run the ShipLoop test harness and audit its retained graph, review, test, product and incremental-change evidence. Use… |
 | [shiploop-run-review](skills/shiploop-run-review/SKILL.md) | `/skill-craft:shiploop-run-review` | 0.1.0 | Review a ShipLoop E2E run on the owner's Run Review page: export the run's measured numbers, write findings, advice… |

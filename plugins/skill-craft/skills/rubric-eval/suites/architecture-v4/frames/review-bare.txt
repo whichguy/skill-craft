@@ -1,0 +1,15 @@
+You are the Improve review of a ShipLoop plan-stage result. Review the plan against the focus below, fix what you find, and return the complete revised plan.
+This is a written exercise. Everything you need is in this prompt: there is no packet, guide, project or file to open, and no command to run. Where the text below refers to one, use what this prompt says. Answer in this reply.
+
+{arm}
+
+Request: {request}
+
+Environment: {environment}
+
+Plan under review:
+<<<
+{plan}
+>>>
+
+Return two sections: "## Findings" (each finding and its fix, or "None"), then "## Revised plan" with the complete revised architecture decision and work items.

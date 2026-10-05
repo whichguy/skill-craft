@@ -2,6 +2,20 @@
 
 Written by scripts/release.py.
 
+## 2026-10-05
+
+### skill-craft 1.21.1
+
+- Skills: adversarial-review 0.1.0, rubric-eval 0.1.0
+
+### adversarial-review 0.1.0
+
+- New skill: have a model from a different family than the change's author try to break the change, returning testable findings, each with the smallest experiment that would refute it, as findings.json for rubric-eval. Composes rubric-eval's isolated model call; reviewers are Grok, Sonnet or Opus.
+
+### rubric-eval 0.1.0
+
+- New skill: evaluate a prompt change against a rubric over a scenario catalog. Runs arms on Grok 4.7 (medium effort) by default, grades with one evidence-first judge per round (Opus 5.5, medium effort, by default), and decides by quality, then tokens, then time: scores are the percentage of analytic-rubric points earned, arms are compared paired with scenario-clustered bootstrap intervals and the Wilcoxon signed-rank test, equivalence is bounded by the judge's measured test-retest noise, and judges are accepted by Cohen's kappa (Landis–Koch substantial or better). Records tokens and seconds for every call. model_call.py gives Grok, Claude and Codex one interface (host:model@effort specs with pinned aliases grok, opus, sonnet, luna), each call in its own directory with reference files and read-only tools on request, and audits what each call touched outside it. Also adds a quote check and a value audit that weighs every item a review added or removed. Ships the architecture suites (up to 34 criteria and 23 scenarios across seven environments, including cross-runtime ones). SPEC.md is the reference for conditions, models, the ship rule, the change lifecycle and process hygiene for long runs.
+
 ## 2026-10-04
 
 ### skill-craft 1.21.0

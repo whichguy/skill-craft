@@ -1,0 +1,122 @@
+#!/usr/bin/env python3
+"""rubric-eval command line: one subcommand per composable step. See ../SPEC.md."""
+import argparse, json, sys
+from pathlib import Path
+sys.path.insert(0, str(Path(__file__).resolve().parent))
+import rubric_eval as R
+
+SUITES = Path(__file__).resolve().parent.parent / "suites"
+
+
+def suite_arg(name):
+    p = Path(name)
+    return R.load_suite(p if p.is_dir() else SUITES / name)
+
+
+def arm_arg(spec):
+    """NAME=PATH[::SYMBOL[+SYMBOL...]]. Several symbols are joined as a packet joins its blocks
+    (each right-stripped, one newline between), so an arm is the exact text the product sends."""
+    name, _, src = spec.partition("=")
+    if not name or not src:
+        raise SystemExit(f"rubric-eval: arm must be NAME=PATH[::SYMBOL[+SYMBOL...]], got {spec!r}")
+    path, _, symbols = src.partition("::")
+    text = "\n".join(R.extract(path, s).rstrip() for s in symbols.split("+")) if symbols else R.extract(path)
+    return name, {"text": text, "source": src}
+
+
+def main(argv=None):
+    ap = argparse.ArgumentParser(prog="rubric-eval", description=__doc__)
+    sub = ap.add_subparsers(dest="cmd", required=True)
+    c = sub.add_parser("call", help="one isolated model call; prompt on stdin")
+    c.add_argument("--model", type=R.spec, default="grok")
+    c.add_argument("--timeout", type=int, default=600)
+    e = sub.add_parser("extract", help="print a string constant or file exactly, with its hash")
+    e.add_argument("source"); e.add_argument("--symbol")
+    b = sub.add_parser("build", help="write prompts for every cell, arm and trial")
+    b.add_argument("run_dir"); b.add_argument("--suite", default="architecture")
+    b.add_argument("--arm", action="append", required=True, help="NAME=PATH[::SYMBOL]")
+    b.add_argument("--frame", default="plan"); b.add_argument("--trials", type=int, default=2)
+    b.add_argument("--plans-from", help="review frame: run folder whose outputs are reviewed")
+    b.add_argument("--plans-arm", help="review frame: the arm in --plans-from to review")
+    b.add_argument("--input-arm", help="review frame: also write the unreviewed plans as this baseline arm (role input)")
+    b.add_argument("--scenario", action="append"); b.add_argument("--runtime", action="append")
+    r = sub.add_parser("run", help="run the subject model over pending prompts")
+    r.add_argument("run_dir"); r.add_argument("--model", type=R.spec, default="grok", help="subject model (default grok-4.7, medium effort)")
+    r.add_argument("--workers", type=int, default=8)
+    r.add_argument("--tools", choices=("", "Read"), default="", help="'Read' (empty directory) for prompts that ask the model to check things")
+    r.add_argument("--timeout", type=int, help="seconds per call (default 600, or 3600 with --tools Read)")
+    r.add_argument("--workspace", help="folder copied into every call's own directory (reference files), read with --tools Read")
+    j = sub.add_parser("judge", help="grade finished outputs (evidence first)")
+    j.add_argument("run_dir"); j.add_argument("--suite", default="architecture"); j.add_argument("--workers", type=int, default=10)
+    j.add_argument("--model", type=R.spec, default="opus", help="the single judge (default opus 5.5, medium effort; a round keeps one judge)")
+    j.add_argument("--dest", default=None, help="verdict folder (default judge, or judge_<model> for a non-sonnet judge)")
+    j.add_argument("--only-file", help="grade only the output stems listed in this file (a sample for a slow second judge)")
+    a = sub.add_parser("analyze", help="composites, paired intervals and the quality > tokens > time decision")
+    a.add_argument("run_dir"); a.add_argument("--suite", default="architecture"); a.add_argument("--baseline", required=True)
+    a.add_argument("--judge-dir", default="judge")
+    a.add_argument("--cluster", choices=("scenario", "cell"), default="scenario", help="resample whole scenarios (default) or cells")
+    a.add_argument("--noise", type=float, help="the judge's noise in points (default: references/judges.json for the run's judge)")
+    d = sub.add_parser("diffcheck", help="review runs: count what reviews removed, added, contradicted or invented")
+    d.add_argument("run_dir"); d.add_argument("--suite", default="architecture"); d.add_argument("--plans-from", required=True)
+    d.add_argument("--model", type=R.spec, default="sonnet"); d.add_argument("--workers", type=int, default=10)
+    rc = sub.add_parser("recheck", help="apply the quote check to verdicts graded before it existed")
+    rc.add_argument("run_dir"); rc.add_argument("--judge-dir", default="judge"); rc.add_argument("--dest")
+    va = sub.add_parser("valuecheck", help="review runs: weigh the value of every item a review added or removed")
+    va.add_argument("run_dir"); va.add_argument("--suite", default="architecture"); va.add_argument("--plans-from", required=True)
+    va.add_argument("--model", type=R.spec, default="opus"); va.add_argument("--workers", type=int, default=8)
+    va.add_argument("--only-file", help="audit only the output stems listed in this file"); va.add_argument("--dest", default="value")
+    ex = sub.add_parser("export", help="write a round's evidence (manifest, analyses, verdicts, audits, usage) for citing")
+    ex.add_argument("run_dir"); ex.add_argument("dest"); ex.add_argument("--outputs", action="store_true", help="include the graded outputs")
+    rel = sub.add_parser("reliability", help="re-grade a sample with the same judge: Cohen's kappa and the judge's noise")
+    rel.add_argument("run_dir"); rel.add_argument("--suite", default="architecture"); rel.add_argument("--n", type=int, default=30)
+    rel.add_argument("--model", type=R.spec, required=True, help="the judge that graded --judge-dir")
+    rel.add_argument("--judge-dir", default="judge"); rel.add_argument("--dest", default="judge_regrade")
+    args = ap.parse_args(argv)
+
+    if args.cmd == "call":
+        print(R.call(args.model, sys.stdin.read(), timeout=args.timeout))
+    elif args.cmd == "extract":
+        text = R.extract(args.source, args.symbol)
+        print(f"# sha {R.sha(text)}, {R.words(text)} words", file=sys.stderr); sys.stdout.write(text)
+    elif args.cmd == "build":
+        arms = dict(arm_arg(s) for s in args.arm)
+        suite = suite_arg(args.suite)
+        if "{plan}" in suite["frames"][args.frame]:
+            if not (args.plans_from and args.plans_arm):
+                raise SystemExit(f"rubric-eval: frame {args.frame!r} reviews plans; give --plans-from and --plans-arm")
+            for v in arms.values():
+                v["plans_arm"] = args.plans_arm
+        print(json.dumps(R.build(args.run_dir, suite, arms, frame=args.frame, trials=args.trials,
+                                 plans_from=args.plans_from, scenarios=args.scenario, runtimes=args.runtime,
+                                 input_arm=args.input_arm), indent=1))
+    elif args.cmd == "run":
+        print(json.dumps(R.run(args.run_dir, args.model, workers=args.workers, tools=args.tools, workspace=args.workspace, timeout=args.timeout)))
+    elif args.cmd == "judge":
+        dest = args.dest or "judge"
+        only = Path(args.only_file).read_text().split() if args.only_file else None
+        res = R.judge(args.run_dir, suite_arg(args.suite), model=args.model, workers=args.workers, dest=dest, only=only)
+        print(json.dumps(res))
+        if res["failed"]:
+            sys.exit(1)  # some outputs could not be graded; see the pass's failures.log
+    elif args.cmd == "analyze":
+        print(json.dumps(R.analyze(args.run_dir, suite_arg(args.suite), args.baseline, dest=args.judge_dir, cluster=None if args.cluster == "cell" else args.cluster, noise=args.noise), indent=1))
+    elif args.cmd == "diffcheck":
+        print(json.dumps(R.diffcheck(args.run_dir, suite_arg(args.suite), args.plans_from, model=args.model, workers=args.workers), indent=1))
+    elif args.cmd == "recheck":
+        print(json.dumps(R.recheck(args.run_dir, args.judge_dir, args.dest), indent=1))
+    elif args.cmd == "valuecheck":
+        only = Path(args.only_file).read_text().split() if args.only_file else None
+        res = (R.valuecheck(args.run_dir, suite_arg(args.suite), args.plans_from, model=args.model,
+                                      workers=args.workers, only=only, dest=args.dest))
+        print(json.dumps(res, indent=1))
+        if res["failed"]:
+            sys.exit(1)  # some reviews could not be audited; see value/failures.log
+    elif args.cmd == "export":
+        print(json.dumps(R.export(args.run_dir, args.dest, outputs=args.outputs)))
+    elif args.cmd == "reliability":
+        print(json.dumps(R.reliability(args.run_dir, suite_arg(args.suite), n=args.n, model=args.model,
+                                       first_dest=args.judge_dir, second_dest=args.dest), indent=1))
+
+
+if __name__ == "__main__":
+    main()

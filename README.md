@@ -30,10 +30,11 @@ Use **skill-craft** for portable skill packages and their plugin distribution. U
 
 <!-- skill-craft:inventory:start -->
 
-**20 skills.** Generated from skill frontmatter by `scripts/sync-plugin-views.sh`.
+**22 skills.** Generated from skill frontmatter by `scripts/sync-plugin-views.sh`.
 
 | Skill | Version | Purpose |
 |-------|---------|---------|
+| [adversarial-review](skills/adversarial-review/SKILL.md) | 0.1.0 | Have an independent model try to break a proposed change and return its findings as testable hypotheses, each with the smallest experiment that would refute it. Use before… |
 | [architect](skills/architect/SKILL.md) | 0.1.2 | Design system architecture and make technology decisions. Uses a structured inline design or an available independent reviewer for comprehensive work. |
 | [ask-agent](skills/ask-agent/SKILL.md) | 0.9.0 | A delegation skill, not an agent type. Ask native agents to work in the background, continue useful work in the main conversation, and incorporate their results when they return.… |
 | [backchain](skills/backchain/SKILL.md) | 0.6.3 | Use when an implementation task needs a dependency-aware plan before coding: backward planner / backchain / precondition-first planning, dependency DAGs, elaborating incomplete… |
@@ -50,6 +51,7 @@ Use **skill-craft** for portable skill packages and their plugin distribution. U
 | [prompt-refine](skills/prompt-refine/SKILL.md) | 0.1.2 | Full prompt-improvement workflow — runs prompt-audit to find inconsistencies, presents a remediation plan, then runs prompt-migrate to apply fixes and prompt-align to verify… |
 | [review-coverage](skills/review-coverage/SKILL.md) | 0.3.3 | Add a post-ship improve-to-exhaustion directive to a plan, or run that directive after implementation. Invoke like any skill: /review-coverage, "review-coverage on this plan",… |
 | [review-fix-bench](skills/review-fix-bench/SKILL.md) | 0.1.2 | Compare two code-review prompt versions against supplied fixture ground truth using an explicitly configured external benchmark runner. Reports an F1-based verdict only when the… |
+| [rubric-eval](skills/rubric-eval/SKILL.md) | 0.1.0 | Evaluate a prompt change against a rubric over a scenario catalog: run arms on a subject model (Grok by default), grade blind with one evidence-first judge, and decide by… |
 | [shiploop](skills/shiploop/SKILL.md) | 0.53.0 | Markdown-authoritative delivery harness. Start or resume once, follow the script's current action packet, and submit its exact completion call until the script reports completion… |
 | [shiploop-e2e-audit](skills/shiploop-e2e-audit/SKILL.md) | 0.6.1 | Run the ShipLoop test harness and audit its retained graph, review, test, product and incremental-change evidence. Use for ShipLoop mock checks, live one-shot E2E smoke/full… |
 | [shiploop-run-review](skills/shiploop-run-review/SKILL.md) | 0.1.0 | Review a ShipLoop E2E run on the owner's Run Review page: export the run's measured numbers, write findings, advice and options for the owner to tick, check that review file, and… |
