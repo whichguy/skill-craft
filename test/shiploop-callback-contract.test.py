@@ -10,6 +10,8 @@ knowledge of it), submits the same command again and requires the gate to accept
 
 from __future__ import annotations
 
+import concurrent.futures
+import itertools
 import json
 import os
 from pathlib import Path
@@ -90,12 +92,12 @@ class RealCliCase(unittest.TestCase):
                         GIT_CONFIG_NOSYSTEM="1")
         self.evidence = self.base / "evidence.txt"
         self.evidence.write_text("a note this stage wrote\n")
-        self.counter = 0
+        self.counter = itertools.count(1)
         self.repo = self.make_repo()
 
     def make_repo(self) -> Path:
         """A one-commit repository of its own; every run gets one, so a stage's files never leak into another."""
-        repo = self.base / f"repo{self.counter}"
+        repo = self.base / f"repo{next(self.counter)}"
         repo.mkdir()
         for argv in (["init", "-q"], ["add", "."]):
             if argv[0] == "add":
@@ -126,13 +128,12 @@ class RealCliCase(unittest.TestCase):
             run, head = self.new_run(earlier, **init)
             command, path, _ = printed_callback(head)
             if earlier == "implement":
-                (self.repo / "built.txt").write_text("hello\n")  # the work implement's step did
+                (self.repo_of(run) / "built.txt").write_text("hello\n")  # the work implement's step did
             write_block(path, self.fill_done(head))
             return run, self.accepted(command)
-        self.counter += 1
-        self.repo = self.make_repo()
-        run = self.base / f"run{self.counter}"
-        started = self.cli("init", "--repo", str(self.repo), "--run-dir", str(run), "--prompt=add hello",
+        repo = self.repo = self.make_repo()
+        run = self.base / ("run" + repo.name.removeprefix("repo"))
+        started = self.cli("init", "--repo", str(repo), "--run-dir", str(run), "--prompt=add hello",
                            "--improve-skill", str(CARD), *(f"--{k}={v}" for k, v in init.items()))
         self.assertEqual(started.returncode, 0, started.stdout + started.stderr)
         if stage == "intake":
@@ -141,7 +142,7 @@ class RealCliCase(unittest.TestCase):
         while nav.current_stage(state) != stage:
             action, here = nav.current_action(state)["id"], nav.current_stage(state)
             if here == "implement":
-                (self.repo / "built.txt").write_text("hello\n")  # the work the stage's step did
+                (repo / "built.txt").write_text("hello\n")  # the work the stage's step did
             state = nav.apply(state, action, {**DONE, **RESULTS.get(here, {})})
             if state.get("active_improve") is not None:
                 state = nav.finish_improve(state, action, {"summary": "Synthetic receipt; no review claim."})
@@ -149,6 +150,10 @@ class RealCliCase(unittest.TestCase):
         head = self.cli("next", "--run-dir", str(run))
         self.assertEqual(head.returncode, 0, head.stdout + head.stderr)
         return run, head.stdout
+
+    def repo_of(self, run: Path) -> Path:
+        """The repository a run from ``new_run`` works on (each run has its own)."""
+        return self.base / ("repo" + run.name.removeprefix("run"))
 
     def field_values(self) -> dict:
         """The minimum real value of every stage-specific field a done template can print."""
@@ -509,6 +514,126 @@ class LoopRefusalRouteTests(RealCliCase):
                 write_block(path, {**self.done_fields(), "evidence_refs": [str(self.evidence), str(named)]})
                 self.assertFalse(named.exists())
                 self.assertIn(expected, self.refused(command, run))
+
+
+# Stages whose accepted result starts an Improve child (the planning reviews and the last item's carry-forward),
+# declared here and not read from the navigator.
+CHECKPOINTS = ("spec", "test-strategy", "plan", "step-plan", "test-spec", "carry-forward", "system-test-author",
+               "release-plan")
+# The stages whose minimal done result is refused for work the model has not done yet, and the exits the
+# refusals name: the knowledge files the run keeps in the repository, and the loop that was never started.
+EXPECTED_ROUTES = {
+    "prepare": ["knowledge files"], "test-spec": ["knowledge files"],
+    "test-green": ["start the loop"], "regression": ["start the loop"], "static-checks": ["start the loop"],
+    "release-plan": ["knowledge files"], "release-verify": ["knowledge files", "outcome sections"],
+}
+
+
+class EveryStageRouteTests(RealCliCase):
+    """Walk the whole graph through the real CLI by following only what each packet and refusal prints."""
+
+    def follow(self, stage: str, reply: str, block: dict) -> str:
+        """Do what a refusal names, edit ``block`` if it says to, and name the route taken."""
+        if "keeps this run's planning knowledge in the repository" in reply:
+            for path in re.findall(r"^- (/\S+)$", reply, re.M):
+                Path(path).parent.mkdir(parents=True, exist_ok=True)
+                Path(path).write_text("What this file records.\n", encoding="utf-8")
+            return "knowledge files"
+        if "Write these sections in " in reply:
+            path = Path(re.search(r"Write these sections in (\S+), in detail", reply).group(1))
+            headings = re.findall(r"'(## [^']+)'", reply)
+            path.write_text("".join(f"{heading}\nWhat the run learned.\n\n" for heading in headings), encoding="utf-8")
+            return "outcome sections"
+        if "has not run: no terminal packet exists at" in reply:
+            start = re.search(r"Start it with: (.*?)  and follow", reply, re.S).group(1)
+            words = shlex.split(start)
+            packet = json.loads(subprocess.run(words[:-2], input=Path(words[-1]).read_text(), text=True,
+                                               capture_output=True, check=True, timeout=60).stdout)
+            while packet["status"] == "active":
+                packet = json.loads(subprocess.run(packet["done_argv"], input=json.dumps(TRIVIAL), text=True,
+                                                   capture_output=True, check=True, timeout=60).stdout)
+            block["evidence_refs"].append(re.search(r"Then list (\S+) in evidence_refs", reply).group(1))
+            return "start the loop"
+        if "give the reason in red_na" in reply:
+            block["red_na"] = "The tests already pass: they characterise existing behaviour."
+            return "red_na"
+        self.fail(f"{stage}: the refusal names no exit this test can follow:\n{reply}")
+
+    def test_every_stage_accepts_its_printed_template_filled_minimally(self) -> None:
+        run, head = self.new_run()
+        taken: dict[str, list[str]] = {}
+        for stage in EXPECTED_STAGES:
+            header = next(row for row in head.splitlines() if row.startswith("ShipLoop navigator | "))
+            self.assertTrue(header.startswith(f"ShipLoop navigator | {stage} | "), header)
+            command, path, action = printed_callback(head)
+            self.assertNotIn("<", command, stage)  # a complete command: only the result's content is left to write
+            if stage == "implement":
+                (self.repo_of(run) / "built.txt").write_text("hello\n")  # the work the step plan's step did
+            block = self.fill_done(head)
+            write_block(path, block)
+            routes, result = [], self.run_printed(command)
+            while result.returncode != 0:
+                self.assertEqual(result.returncode, 2, result.stdout + result.stderr)
+                routes.append(self.follow(stage, result.stdout + result.stderr, block))
+                self.assertLess(len(routes), 4, f"{stage}: still refused after {routes}")
+                write_block(path, block)
+                result = self.run_printed(command)
+            if routes:
+                taken[stage] = routes
+            if stage in CHECKPOINTS:
+                # The accepted result starts an Improve child: its first packet leads with the printed bind command.
+                self.assertIn("Next command (bind the selected Improve card", result.stdout)
+                self.accepted(next(row for row in result.stdout.splitlines()
+                                   if row.startswith("Next command (bind")).split("details below): ", 1)[1])
+                state = self.state(run)
+                state = nav.finish_improve(state, action, {"summary": "Synthetic receipt; no review claim."})
+                nav.save(run, state)
+                result = self.cli("next", "--run-dir", str(run))
+                self.assertEqual(result.returncode, 0, result.stdout + result.stderr)
+            head = result.stdout
+        self.assertEqual(taken, EXPECTED_ROUTES)
+        self.assertEqual(self.state(run)["status"], "done")
+        self.assertIn("It's all complete.", head)
+
+    def one_outcome(self, stage: str, outcome: str) -> str | None:
+        """Submit one stage's printed shape for ``outcome`` through its printed command; the problem, or None."""
+        try:
+            run, head = self.new_run(stage)
+            command, path, action = printed_callback(head)
+            shape = first_object(printed_shapes(head)[outcome])
+            block = {**shape, "summary": "What happened in this stage.", "headline": "A step finished.",
+                     "evidence_refs": [str(self.evidence)]}
+            if outcome == "blocked":
+                block["blocked_by"] = "external"
+            if outcome == "replan":
+                block["work_items"] = [{"id": "W9", "title": "Corrective item", "context": "What it fixes."}]
+            write_block(path, block)
+            result = self.run_printed(command)
+            if result.returncode != 0:
+                return f"{stage} {outcome}: refused:\n{result.stdout}{result.stderr}"
+            if self.recorded(run, action)["outcome"] != outcome:
+                return f"{stage} {outcome}: recorded as {self.recorded(run, action)['outcome']}"
+        except Exception as error:  # noqa: BLE001 - reported with its stage and outcome below
+            return f"{stage} {outcome}: {type(error).__name__}: {error}"
+        return None
+
+    def test_every_printed_outcome_shape_is_accepted_at_every_stage(self) -> None:
+        loops = ("test-green", "regression", "static-checks")  # revise there needs a loop that stopped blocked
+        pairs = []
+        with concurrent.futures.ThreadPoolExecutor(max_workers=6) as pool:
+            heads = list(pool.map(lambda stage: self.new_run(stage)[1], EXPECTED_STAGES))
+        for stage, head in zip(EXPECTED_STAGES, heads):
+            # Every allowed outcome other than done has its printed shape (so the pairs cannot be empty), and the
+            # callback line is a complete command: no placeholder left for the model to invent.
+            self.assertEqual(sorted(printed_shapes(head)), sorted(o for o in allowed_outcomes(head) if o != "done"),
+                             stage)
+            self.assertNotIn("<", printed_callback(head)[0], stage)
+            pairs += [(stage, outcome) for outcome in sorted(printed_shapes(head))
+                      if not (outcome == "revise" and stage in loops)]
+        self.assertGreaterEqual(len(pairs), 70)
+        with concurrent.futures.ThreadPoolExecutor(max_workers=6) as pool:
+            problems = [p for p in pool.map(lambda pair: self.one_outcome(*pair), pairs) if p]
+        self.assertEqual(problems, [])
 
 
 if __name__ == "__main__":

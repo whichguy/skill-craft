@@ -209,7 +209,7 @@ _DURATION_SECONDS = {
     "test/shiploop-package-integrity.test.py": 0.2,
     "test/shiploop-e2e.test.py": 0.7,
     "test/shiploop-run-review.test.py": 0.2,
-    "test/shiploop-callback-contract.test.py": 12.0,
+    "test/shiploop-callback-contract.test.py": 60.0,
 }
 _FALLBACK_DURATION_SECONDS = 60.0
 
