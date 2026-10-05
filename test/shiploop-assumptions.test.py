@@ -92,8 +92,11 @@ class ShapeTests(unittest.TestCase):
                                      evidenced("A2", "https://x.test/doc")])
 
     def test_navigator_allows_the_field_only_on_a_done_plan(self):
-        for stage, outcome in (("research", "done"), ("spec", "done"), ("plan", "repeat")):
-            with self.assertRaisesRegex(nav.NavigatorError, "only on a done plan"):
+        # A done result at another stage keeps the stage sentence; a repeat result at plan is refused for carrying a
+        # done-only field (the refusal names the field and says to delete it).
+        for stage, outcome, message in (("research", "done", "only on a done plan"), ("spec", "done", "only on a done plan"),
+                                        ("plan", "repeat", "a repeat result does not carry assumptions")):
+            with self.assertRaisesRegex(nav.NavigatorError, message):
                 nav._canonical_result(dict(DONE, outcome=outcome, assumptions=[]), stage=stage)
         # Pure graph functions validate a present list but do not require one.
         self.assertNotIn("assumptions", nav._canonical_result(DONE, stage="plan"))
