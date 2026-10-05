@@ -225,18 +225,38 @@ product hang; it does not say the product is wrong.
   `metrics.json`, `result.json` and the baseline row (the ShipLoop command failure and
   model glue lists stay in `metrics.json` as lower bounds) and is named, with the
   reason, in `unmeasured`, so a later run compares it as not measured and never as
-  0 -> 0. Codex emits no per-call usage, so per-stage turns are unmeasured for it.
-  Neither Codex nor Claude writes Grok's compaction, truncation, permission-refusal or
-  file-read events, so compactions, truncated outputs, cancelled tool calls and
-  knowledge reads are unmeasured on both (Codex prints "cancelled 0" in a failing
-  `node --test` summary and its file changes are writes: the Grok-only detectors used
-  to count those as refusals and reads). Claude's tool calls are `tool_use` blocks the
+  0 -> 0. Codex emits no per-call usage in its events, so per-stage turns are unmeasured
+  for it; its calls, context window and compactions are read from its rollout files
+  (next bullet). Neither Codex nor Claude writes Grok's truncation, permission-refusal
+  or file-read events, so truncated outputs, cancelled tool calls and knowledge reads
+  are unmeasured on both, and compactions are unmeasured on Claude and on a Codex run
+  whose rollouts are gone (Codex prints "cancelled 0" in a failing `node --test` summary
+  and its file changes are writes: the Grok-only detectors used to count those as
+  refusals and reads). Claude's tool calls are `tool_use` blocks the
   collector does not read, so its stage tool calls, ShipLoop command failures, model
   glue and `/tmp` writes are unmeasured too. Whole-run turns are null when no call and
   no ended session reported a count (a Codex session killed before its end event), and
   a lower bound when a session never reported (`unreported_sessions`). The suite's
   `/tmp` collision check leaves a run with unmeasured writes out, names it in
   `suite-result.json` as `tmp_writes_unmeasured` and prints that it did not check it.
+- A Codex run's per-call context comes from `rollouts.py`, which streams the run-owned
+  `home/.codex/sessions/**/rollout-*.jsonl` one line at a time (a half-written last line
+  of a live run is skipped). A call is a `token_usage_record` that is not a compaction
+  request: the record a `compacted` record's `compaction_response_id` names holds the whole
+  context to summarise it, so it is neither a call nor the peak. A compaction is a
+  `compacted` record whose request is in the same file (a sub-agent's file opens with a copy
+  of its parent's last one, which is inherited history). The headline is the main thread's
+  (thread_id equal to session_id; a resumed run is another root thread and adds up);
+  sub-agent threads are summed once under `subagents` and belong to no stage. From it
+  `metrics.collect` fills `model_calls`, `window_tokens` (a `token_count` record's
+  `model_context_window`), `tokens.input_peak` (the heaviest call's `total_tokens`: its
+  input plus its own output, so it reads higher than the input-side peak Claude reports,
+  and 97.5% against 94.7% on the Luna run) and `compactions`, and gives each stage row a
+  `context` {calls, peak, peakPct, compactions} over the stage's window (the one
+  `stage_windows` also gives `per_stage`; a call after the last acceptance is in no stage).
+  Without rollouts the figures are null and `unmeasured` names them with that reason.
+  Recorded Luna 1.16.1 run (168 MB, read in 0.6 s): 2,565 main-thread calls, peak 251,867
+  of 258,400, 34 compactions, and 314 sub-agent calls.
 - No output-token figure is built from events: a Claude message's output count is a
   streaming snapshot (it summed to about 1/17 of the session's own total on a recorded
   run), and Codex has none per call. A session's tokens are the host's own `usage` in
