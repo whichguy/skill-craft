@@ -1,0 +1,440 @@
+{
+ "calls": 1117,
+ "case": "battleship",
+ "compactions": 18,
+ "contextPeak": 248357,
+ "contextWindow": 258400,
+ "effort": "xhigh",
+ "evidence": "/private/tmp/claude-501/-Users-dadleet-src-skill-craft/f7d9360d-b88d-417b-8773-fc5b3eee6419/scratchpad/run-report/final-luna",
+ "failures": [
+  {
+   "line": "",
+   "verb": "complete"
+  },
+  {
+   "line": "Read the current packet with next; the rejected request did not advance the graph.",
+   "verb": "improve-complete"
+  },
+  {
+   "line": "error: no ShipLoop run directory at /Users/dadleet/e2e-runs/20261005/20261005/v1210-battleship-luna-xhigh/.shiploop-runs/work-20261005-044509-c4c5ac/run; check --run-dir",
+   "verb": "next"
+  },
+  {
+   "line": "Read the current packet with next; the rejected request did not advance the graph.",
+   "verb": "complete"
+  },
+  {
+   "line": "error: no ShipLoop run directory at /Users/dadleet/e2e-runs/20261005/1210-battleship-luna-xhigh/.shiploop-runs/work-20261005-044509-c4c5ac/run; check --run-dir",
+   "verb": "next"
+  },
+  {
+   "line": "ShipLoop navigator: the commit message must be the printed file /Users/dadleet/e2e-runs/20261005/v1210-battleship-luna-xhigh/.shiploop-runs/work-20261005-044509-c4c5ac/worktree/.shiploop-improve/nav-4",
+   "verb": "improve-commit"
+  },
+  {
+   "line": "ShipLoop navigator: the commit message must be the printed file /Users/dadleet/e2e-runs/20261005/v1210-battleship-luna-xhigh/.shiploop-runs/work-20261005-044509-c4c5ac/worktree/.shiploop-improve/nav-4",
+   "verb": "improve-commit"
+  },
+  {
+   "line": "Read the current packet with next; the rejected request did not advance the graph.",
+   "verb": "complete"
+  },
+  {
+   "line": "",
+   "verb": "lint"
+  }
+ ],
+ "glue": 7,
+ "host": "codex",
+ "imp": "7 children, 27 review passes",
+ "improveMin": 291.86,
+ "improvePasses": 27,
+ "key": "v1210-battleship-luna-xhigh",
+ "knowledge": {
+  "docs/shiploop/README.md": 1208,
+  "docs/shiploop/environment.md": 4754,
+  "docs/shiploop/features/battleship/decisions.md": 6788,
+  "docs/shiploop/features/build-a-small-single-player-battleship-9faf6f/plan.md": 25583,
+  "docs/shiploop/features/build-a-small-single-player-battleship-9faf6f/spec.md": 2561,
+  "docs/shiploop/features/build-a-small-single-player-battleship-9faf6f/test-spec.md": 22339,
+  "docs/shiploop/spec.md": 24135,
+  "docs/shiploop/test-strategy.md": 28780
+ },
+ "model": "gpt-6-luna",
+ "name": "codex gpt-6-luna xhigh, release 1.21.0",
+ "order": 1791175510,
+ "phases": [
+  "done",
+  "done",
+  "done",
+  "running",
+  "none",
+  "none",
+  "none",
+  "none"
+ ],
+ "refusals": 9,
+ "release": "skill-craft 1.21.0, ShipLoop 0.53.0",
+ "stages": [
+  {
+   "action": "nav-9ba67ad41a6a46f4b4bf8e5fae7c4e87",
+   "context": {
+    "calls": 11,
+    "compactions": 0,
+    "peak": 56716,
+    "peakPct": 21.9
+   },
+   "min": 2.5,
+   "outcome": "done",
+   "packetBytes": 27379,
+   "resultBytes": 1204,
+   "stage": "intake"
+  },
+  {
+   "action": "nav-6c5110a16252423b84f092197d64db36",
+   "context": {
+    "calls": 18,
+    "compactions": 0,
+    "peak": 131035,
+    "peakPct": 50.7
+   },
+   "min": 10.6,
+   "outcome": "done",
+   "packetBytes": 41470,
+   "resultBytes": 2289,
+   "stage": "discovery"
+  },
+  {
+   "action": "nav-f7b7d0d294324a25b158e8e87e86a690",
+   "context": {
+    "calls": 12,
+    "compactions": 0,
+    "peak": 196253,
+    "peakPct": 75.9
+   },
+   "min": 10.1,
+   "outcome": "done",
+   "packetBytes": 37630,
+   "resultBytes": 2347,
+   "stage": "research"
+  },
+  {
+   "action": "nav-c886e50662e546bc99186938d93f1c34",
+   "context": {
+    "calls": 96,
+    "compactions": 2,
+    "peak": 247573,
+    "peakPct": 95.8
+   },
+   "improve": {
+    "min": 44.5,
+    "passes": 5
+   },
+   "min": 55.0,
+   "outcome": "done",
+   "packetBytes": 49394,
+   "resultBytes": 4130,
+   "stage": "spec"
+  },
+  {
+   "action": "nav-d6f090548c9b4a37b2b0021e5f41308f",
+   "context": {
+    "calls": 164,
+    "compactions": 2,
+    "peak": 245158,
+    "peakPct": 94.9
+   },
+   "improve": {
+    "min": 61.07,
+    "passes": 8
+   },
+   "min": 79.8,
+   "outcome": "done",
+   "packetBytes": 52661,
+   "resultBytes": 3930,
+   "stage": "test-strategy"
+  },
+  {
+   "action": "nav-5c679e306ff74bd4874cd6240a8cd247",
+   "context": {
+    "calls": 244,
+    "compactions": 4,
+    "peak": 247741,
+    "peakPct": 95.9
+   },
+   "improve": {
+    "min": 56.93,
+    "passes": 4
+   },
+   "min": 121.0,
+   "outcome": "done",
+   "packetBytes": 60358,
+   "resultBytes": 11998,
+   "stage": "plan"
+  },
+  {
+   "action": "nav-1b90a84e4f4b48299fab1d765a9fb53e",
+   "context": {
+    "calls": 31,
+    "compactions": 0,
+    "peak": 236923,
+    "peakPct": 91.7
+   },
+   "min": 14.7,
+   "outcome": "done",
+   "packetBytes": 35132,
+   "resultBytes": 3910,
+   "stage": "prepare"
+  },
+  {
+   "action": "nav-064e36862d944f4f9bd361e1cb6bdd77",
+   "context": {
+    "calls": 9,
+    "compactions": 1,
+    "peak": 240060,
+    "peakPct": 92.9
+   },
+   "min": 2.7,
+   "outcome": "done",
+   "packetBytes": 34473,
+   "resultBytes": 1283,
+   "stage": "select-work"
+  },
+  {
+   "action": "nav-d64f0373ad1b4ec78f0387bc02522aaa",
+   "context": {
+    "calls": 81,
+    "compactions": 1,
+    "peak": 244015,
+    "peakPct": 94.4
+   },
+   "improve": {
+    "min": 26.72,
+    "passes": 4
+   },
+   "min": 38.7,
+   "outcome": "done",
+   "packetBytes": 53853,
+   "resultBytes": 8004,
+   "stage": "step-plan"
+  },
+  {
+   "action": "nav-26a5488a6dd143c1a16313d1e2e3f594",
+   "context": {
+    "calls": 81,
+    "compactions": 0,
+    "peak": 215272,
+    "peakPct": 83.3
+   },
+   "improve": {
+    "min": 14.18,
+    "passes": 1
+   },
+   "min": 39.9,
+   "outcome": "done",
+   "packetBytes": 58715,
+   "resultBytes": 5549,
+   "stage": "test-spec"
+  },
+  {
+   "action": "nav-97d844424ced4b5690e8b9ca8af894d5",
+   "context": {
+    "calls": 10,
+    "compactions": 0,
+    "peak": 244352,
+    "peakPct": 94.6
+   },
+   "min": 2.9,
+   "outcome": "done",
+   "packetBytes": 38682,
+   "resultBytes": 1962,
+   "stage": "baseline"
+  },
+  {
+   "action": "nav-6b3d41c9e5434d43a109d4cf1d3ddb17",
+   "context": {
+    "calls": 27,
+    "compactions": 1,
+    "peak": 123771,
+    "peakPct": 47.9
+   },
+   "min": 14.2,
+   "outcome": "done",
+   "packetBytes": 42891,
+   "resultBytes": 4545,
+   "stage": "test-author"
+  },
+  {
+   "action": "nav-7474e0b2000d4f0a9270e1bf25e863aa",
+   "context": {
+    "calls": 4,
+    "compactions": 0,
+    "peak": 147847,
+    "peakPct": 57.2
+   },
+   "min": 3.5,
+   "outcome": "revise",
+   "packetBytes": 44001,
+   "resultBytes": 2315,
+   "stage": "test-red"
+  },
+  {
+   "action": "nav-f675beb3a5e34a49ac31da75cb93f050",
+   "context": {
+    "calls": 200,
+    "compactions": 4,
+    "peak": 248357,
+    "peakPct": 96.1
+   },
+   "improve": {
+    "min": 76.38,
+    "passes": 4
+   },
+   "min": 120.1,
+   "outcome": "done",
+   "packetBytes": 55421,
+   "resultBytes": 20549,
+   "stage": "step-plan"
+  },
+  {
+   "action": "nav-880d3384e0e644a29535924a27763f79",
+   "context": {
+    "calls": 50,
+    "compactions": 1,
+    "peak": 240312,
+    "peakPct": 93.0
+   },
+   "improve": {
+    "min": 12.08,
+    "passes": 1
+   },
+   "min": 25.2,
+   "outcome": "done",
+   "packetBytes": 55226,
+   "resultBytes": 6429,
+   "stage": "test-spec"
+  },
+  {
+   "action": "nav-6bf7fa346e074dfca3ea9553f065dd78",
+   "context": {
+    "calls": 9,
+    "compactions": 0,
+    "peak": 161213,
+    "peakPct": 62.4
+   },
+   "min": 5.1,
+   "outcome": "done",
+   "packetBytes": 39152,
+   "resultBytes": 2900,
+   "stage": "baseline"
+  },
+  {
+   "action": "nav-b24584dfca704193a3e4003cf4ef2e75",
+   "context": {
+    "calls": 17,
+    "compactions": 0,
+    "peak": 244043,
+    "peakPct": 94.4
+   },
+   "min": 12.2,
+   "outcome": "done",
+   "packetBytes": 43776,
+   "resultBytes": 5953,
+   "stage": "test-author"
+  },
+  {
+   "action": "nav-d21ec7c728c24bc69be98f4a3a3d854c",
+   "context": {
+    "calls": 7,
+    "compactions": 1,
+    "peak": 244516,
+    "peakPct": 94.6
+   },
+   "min": 3.3,
+   "outcome": "done",
+   "packetBytes": 44091,
+   "resultBytes": 3145,
+   "stage": "test-red"
+  },
+  {
+   "action": "nav-cea1a384e86a41b48201b24732cc0d95",
+   "context": {
+    "calls": 13,
+    "compactions": 0,
+    "peak": 101744,
+    "peakPct": 39.4
+   },
+   "min": 6.1,
+   "outcome": "done",
+   "packetBytes": 50238,
+   "resultBytes": 3339,
+   "stage": "implement"
+  },
+  {
+   "action": "nav-51ebe24c57284cc2b799393d0a022c90",
+   "context": {
+    "calls": 5,
+    "compactions": 0,
+    "peak": 122278,
+    "peakPct": 47.3
+   },
+   "min": 2.1,
+   "outcome": "done",
+   "packetBytes": 49919,
+   "resultBytes": 2939,
+   "stage": "implement"
+  },
+  {
+   "action": "nav-6590496dde8c489db39d6ec028f8a466",
+   "context": {
+    "calls": 5,
+    "compactions": 0,
+    "peak": 143181,
+    "peakPct": 55.4
+   },
+   "min": 1.6,
+   "outcome": "done",
+   "packetBytes": 49114,
+   "resultBytes": 3168,
+   "stage": "implement"
+  },
+  {
+   "action": "nav-76ea1eacfbcf4051997387fd2d8ec76b",
+   "context": {
+    "calls": 13,
+    "compactions": 0,
+    "peak": 222687,
+    "peakPct": 86.2
+   },
+   "min": 12.2,
+   "outcome": "done",
+   "packetBytes": 49694,
+   "resultBytes": 4560,
+   "stage": "implement"
+  },
+  {
+   "action": "nav-ac253526d8264ed191a009e385b990df",
+   "context": {
+    "calls": 6,
+    "compactions": 0,
+    "peak": 243464,
+    "peakPct": 94.2
+   },
+   "min": 2.2,
+   "outcome": "done",
+   "packetBytes": 50928,
+   "resultBytes": 4171,
+   "stage": "implement"
+  }
+ ],
+ "startedAt": "2026-10-05T04:45:10Z",
+ "status": "paused",
+ "time": "stopped by the owner at 9.8 h, in W1 implement; never resumed",
+ "unmeasured": {
+  "cancelled_tool_calls": "only Grok's events carry this signal (a failed tool_call_update saying the user cancelled it, Grok's permission refusal); this host's do not, so a count of 0 is a missing signal and not a measurement",
+  "knowledge_reads": "only Grok's events carry this signal (a read tool call naming a file path); this host's do not, so a count of 0 is a missing signal and not a measurement",
+  "stage_turns": "the host reports no per-call usage events (one total per session), so turns cannot be attributed to a stage",
+  "truncated_outputs": "only Grok's events carry this signal (rawOutput.truncated on a tool_call_update); this host's do not, so a count of 0 is a missing signal and not a measurement"
+ },
+ "wallMin": 585.5
+}

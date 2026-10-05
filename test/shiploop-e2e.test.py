@@ -832,6 +832,17 @@ class FastPlanningRecordTest(unittest.TestCase):
         for option in ("--backchain-passes converge", "--backchain-passes none", "backchain_passes"):
             self.assertIn(option, s10)
 
+    def test_the_planning_time_evidence_is_in_the_repository(self):
+        evidence = ROOT / "docs" / "experiments" / "shiploop-planning-time-20261005"
+        journal = (ROOT / "test" / "shiploop_e2e" / "LEARNINGS.md").read_text()
+        self.assertIn("docs/experiments/shiploop-planning-time-20261005/", journal)
+        for name in ("README.md", "ledger-account-final.json", "stage-clock.md", "grok-medium-improve-children.json",
+                     "run-doc-luna-xhigh-v1210.json", "run-doc-grok-medium-v1210.json"):
+            self.assertTrue((evidence / name).is_file(), name)
+        for name in ("ledger-account-final.json", "grok-medium-improve-children.json",
+                     "run-doc-luna-xhigh-v1210.json", "run-doc-grok-medium-v1210.json"):
+            json.loads((evidence / name).read_text())
+
     def test_the_gate_experiment_output_is_what_the_script_prints(self):
         script = self.EVIDENCE / "gate_experiment.py"
         done = subprocess.run([sys.executable, "-B", str(script)], capture_output=True, text=True, timeout=120)

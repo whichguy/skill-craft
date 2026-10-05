@@ -1,0 +1,162 @@
+{
+ "calls": 328,
+ "case": "battleship",
+ "compactions": 5,
+ "contextPeak": 205146,
+ "effort": "medium",
+ "evidence": "/private/tmp/claude-501/-Users-dadleet-src-skill-craft/f7d9360d-b88d-417b-8773-fc5b3eee6419/scratchpad/run-report/final-grok",
+ "failures": [
+  {
+   "line": "Read the current packet with next; the rejected request did not advance the graph.",
+   "verb": "complete"
+  }
+ ],
+ "glue": 2,
+ "host": "grok",
+ "imp": "5 children, 26 review passes",
+ "improveMin": 45.88,
+ "improvePasses": 26,
+ "key": "v1210-battleship-grok-medium",
+ "knowledge": {
+  "docs/shiploop/README.md": 1180,
+  "docs/shiploop/environment.md": 3035,
+  "docs/shiploop/features/build-a-small-single-player-battleship-5891a6/plan.md": 4243,
+  "docs/shiploop/features/build-a-small-single-player-battleship-5891a6/spec.md": 1422,
+  "docs/shiploop/features/build-a-small-single-player-battleship-5891a6/test-spec.md": 11162,
+  "docs/shiploop/spec.md": 19151,
+  "docs/shiploop/test-strategy.md": 20880
+ },
+ "model": "grok-4.7",
+ "name": "grok grok-4.7 medium, release 1.21.0",
+ "order": 1791210367,
+ "phases": [
+  "done",
+  "done",
+  "done",
+  "running",
+  "none",
+  "none",
+  "none",
+  "none"
+ ],
+ "refusals": 1,
+ "release": "skill-craft 1.21.0, ShipLoop 0.53.0",
+ "stages": [
+  {
+   "action": "nav-dcaa17fa40e843648e23c725a287bf51",
+   "min": 1.4,
+   "outcome": "done",
+   "packetBytes": 27329,
+   "resultBytes": 1604,
+   "stage": "intake"
+  },
+  {
+   "action": "nav-e27cf5e3103841b4a0d46858fcc699f7",
+   "min": 1.8,
+   "outcome": "done",
+   "packetBytes": 41931,
+   "resultBytes": 2010,
+   "stage": "discovery"
+  },
+  {
+   "action": "nav-653ff4e5e2204430977cc7d7173d514e",
+   "min": 2.1,
+   "outcome": "done",
+   "packetBytes": 37199,
+   "resultBytes": 2004,
+   "stage": "research"
+  },
+  {
+   "action": "nav-c8c2cdefb2b94874a95fe6a11c82d8d3",
+   "improve": {
+    "min": 16.03,
+    "passes": 9
+   },
+   "min": 20.0,
+   "outcome": "done",
+   "packetBytes": 48986,
+   "resultBytes": 2067,
+   "stage": "spec"
+  },
+  {
+   "action": "nav-1a119231eae34739af53a1566ef29039",
+   "improve": {
+    "min": 14.1,
+    "passes": 7
+   },
+   "min": 19.6,
+   "outcome": "done",
+   "packetBytes": 50490,
+   "resultBytes": 2142,
+   "stage": "test-strategy"
+  },
+  {
+   "action": "nav-26c930b3e5ed409495004476b300e9ec",
+   "improve": {
+    "min": 6.03,
+    "passes": 4
+   },
+   "min": 12.2,
+   "outcome": "done",
+   "packetBytes": 60068,
+   "resultBytes": 8805,
+   "stage": "plan"
+  },
+  {
+   "action": "nav-e0777dd4244643bfb3e1c27bc7ba94e5",
+   "min": 0.7,
+   "outcome": "done",
+   "packetBytes": 33493,
+   "resultBytes": 1367,
+   "stage": "prepare"
+  },
+  {
+   "action": "nav-afee53aed872449caf9af9c6c2d7f619",
+   "min": 0.3,
+   "outcome": "done",
+   "packetBytes": 31185,
+   "resultBytes": 1063,
+   "stage": "select-work"
+  },
+  {
+   "action": "nav-b3c1af194da64f6280ff3ae85831e9f0",
+   "improve": {
+    "min": 6.72,
+    "passes": 3
+   },
+   "min": 9.4,
+   "outcome": "done",
+   "packetBytes": 56414,
+   "resultBytes": 4994,
+   "stage": "step-plan"
+  },
+  {
+   "action": "nav-6e92aebca2194557bcfdb51151fa2133",
+   "improve": {
+    "min": 3.0,
+    "passes": 3
+   },
+   "min": 4.5,
+   "outcome": "done",
+   "packetBytes": 51484,
+   "resultBytes": 1822,
+   "stage": "test-spec"
+  },
+  {
+   "action": "nav-7bbc63d805a745a1984bb7fbcea57790",
+   "min": 0.5,
+   "outcome": "done",
+   "packetBytes": 34593,
+   "resultBytes": 1358,
+   "stage": "baseline"
+  }
+ ],
+ "startedAt": "2026-10-05T14:26:07Z",
+ "status": "paused",
+ "time": "planning probe: stopped on purpose at the end of test-spec (72 min); not a full run",
+ "unmeasured": {
+  "contextWindow": "no result event named one context window in its modelUsage (the host reports none, the session ended before it reported, or several models reported different windows)",
+  "visitContext": "the harness's stage rows carry no per-stage context (it reads that only from a Codex run's rollouts)"
+ },
+ "wallMin": 72.4
+}

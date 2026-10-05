@@ -1,0 +1,44 @@
+{
+ "run": "v1210-battleship-grok-medium (grok-4.7 medium, skill-craft 1.21.0, ShipLoop 0.53.0)",
+ "source": "run/improve/<child>/receipt.md mtime minus worktree .shiploop-improve/<child>/start.json mtime; passes = review-N.md files",
+ "children": [
+  {
+   "stage": "spec",
+   "passes": 9,
+   "minutes": 15.2
+  },
+  {
+   "stage": "test-strategy",
+   "passes": 7,
+   "minutes": 13.1
+  },
+  {
+   "stage": "plan",
+   "passes": 4,
+   "minutes": 5.2
+  },
+  {
+   "stage": "step-plan",
+   "passes": 3,
+   "minutes": 6.4
+  },
+  {
+   "stage": "test-spec",
+   "passes": 3,
+   "minutes": 2.5
+  }
+ ],
+ "total": {
+  "passes": 26,
+  "minutes": 42.4
+ },
+ "spec_review_commits": [
+  "357c22b pin Battleship replay examples",
+  "8c3a048 keep grid coordinates visible",
+  "fdebb77 allow the local rules import in the dependency check",
+  "75c3ba7 close the Node built-in allow-list",
+  "b8f0c12 let tests import the rules module",
+  "2d17df0 let tests start server.js with child_process"
+ ],
+ "note": "four consecutive commits widened one import allow-list: one concept, four passes"
+}
