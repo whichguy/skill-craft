@@ -85,7 +85,9 @@ def size_problem(value: Mapping[str, Any], *, writable: Optional[Mapping[str, st
     else:
         shown = parts
     largest = ", ".join(f"{name} {size:,}" for name, size in sorted(shown.items(), key=lambda kv: -kv[1])[:4])
-    room = f" The text you wrote may use about {allowance:,} bytes in all." if allowance else ""
+    room = (f" The text you wrote may use about {allowance:,} bytes in all, counted as above: escaped like JSON, so a "
+            f"newline or a quote costs 2 bytes and a non-ASCII character 6, and a file's byte size undercounts it."
+            if allowance else "")
     remedy = ("Shorten the sections above" if writable else "Shorten the text you wrote") + (
         ", starting with the largest, and put long detail in a file whose path you name (a path costs a few "
         "bytes; keep the reasoning a later review needs inline)")
