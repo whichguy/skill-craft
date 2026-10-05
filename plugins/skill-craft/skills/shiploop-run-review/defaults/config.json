@@ -1,0 +1,10 @@
+{
+ "page": {
+  "title": "ShipLoop Run Review",
+  "artifactUrl": ""
+ },
+ "prompt": {
+  "constraints": "Small verified increments, each ended by a script-run test of the change footprint (a green test is the evidence, not your judgement). Anchor each ShipLoop change to the S-clauses in test/shiploop_e2e/SPEC.md. A measure that was not reported is unknown, never zero. Fix only what breaks or misleads a normal run; write adversarial-only gaps down as known limits. No E2E run, release or push unless an option asks (release only through scripts/release.py with a change note). Anything marked ask me first waits for my go-ahead. Follow my memory rules for the journal and commit messages, and read the last three commits first.",
+  "closing": "Report back: for each option say done, not done or blocked with the evidence (test name, commit) and whether the evidence changes the engine or our expectation. For each landed option set its status to done in the review file citing the commit, then run /skill-craft:shiploop-run-review publish."
+ }
+}

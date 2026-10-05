@@ -100,6 +100,7 @@ _STATE_KEYS = frozenset(
         "planning_reconciliations",
         "revisions",
         "lint",
+        "backchain_passes",
     )
 )
 # Run-level execution delegation.  Every run records it; new runs default to
@@ -111,6 +112,11 @@ DEFAULT_DELEGATION = guidance.INLINE
 # ``lint-mode --set`` changes it mid-run.
 LINT_MODES = lint.MODES
 DEFAULT_LINT = lint.DEFAULT_MODE
+# Run-level Backchain passes option: how many review passes the Backchain planning child may take
+# (see shiploop_prompts.BACKCHAIN_PASSES_MODES).  New CLI-created runs record ``one``; a saved run
+# without the key is refused (one supported version), never migrated, and no verb changes it mid-run.
+BACKCHAIN_PASSES_MODES = guidance.BACKCHAIN_PASSES_MODES
+DEFAULT_BACKCHAIN_PASSES = guidance.DEFAULT_BACKCHAIN_PASSES
 # Printed for any saved run this navigator cannot load.
 FRESH_RUN_HINT = ("Preserve it; this ShipLoop cannot resume it. Start new work with init or "
                   "workspace start in a fresh --run-dir.")
@@ -133,6 +139,7 @@ __all__ = [
     "dispatch",
     "lint_mode",
     "lint_view",
+    "recorded_backchain_passes",
     "recorded_delegation",
     "new_state",
     "reconcile",
@@ -149,6 +156,11 @@ __all__ = [
 def recorded_delegation(state: Mapping[str, Any]) -> str:
     """Return the recorded delegation for newly issued actions."""
     return state["delegation"]
+
+
+def recorded_backchain_passes(state: Mapping[str, Any]) -> str:
+    """Return the run's Backchain passes option (every supported run records one)."""
+    return state["backchain_passes"]
 
 
 def lint_mode(state: Mapping[str, Any]) -> str:
@@ -645,18 +657,22 @@ def new_state(
     improve_skill: str = "",
     delegation: str = DEFAULT_DELEGATION,
     lint_option: str | None = None,
+    backchain_passes: str = DEFAULT_BACKCHAIN_PASSES,
 ) -> dict[str, Any]:
     """Create an unpersisted navigator cursor with one initial work item.
 
     ``delegation`` records the run's execution route (inline or ask-agent).
     ``lint_option`` records the script-owned lint option; ``None`` records off,
-    and the CLI passes DEFAULT_LINT for new runs.
+    and the CLI passes DEFAULT_LINT for new runs. ``backchain_passes`` records
+    how many passes the Backchain planning child may take.
     """
     _need(type(delivery_contract) is bool, "delivery_contract must be boolean")
     _need(type(worktree) is bool, "worktree must be boolean")
     _need(delegation in DELEGATIONS, "delegation must be inline or ask-agent")
     _need(lint_option is None or lint_option in LINT_MODES,
           "lint must be one of " + ", ".join(LINT_MODES))
+    _need(backchain_passes in BACKCHAIN_PASSES_MODES,
+          "backchain passes must be one of " + ", ".join(BACKCHAIN_PASSES_MODES))
     _text(repo, "repo")
     _text(prompt, "prompt")
     _need(not privacy.sensitive_text(prompt),
@@ -699,6 +715,7 @@ def new_state(
     # Every run records its lint option; a caller that chooses none records off
     # (the CLI always passes its fix default).
     state["lint"] = lint_option if lint_option is not None else "off"
+    state["backchain_passes"] = backchain_passes
     validate(state)
     return state
 
@@ -888,6 +905,8 @@ def _validate_current_state(state: Mapping[str, Any]) -> None:
           "invalid delegation hold")
     _need(state["lint"] in LINT_MODES,
           "unsupported lint option; expected one of " + ", ".join(LINT_MODES))
+    _need(state["backchain_passes"] in BACKCHAIN_PASSES_MODES,
+          "unsupported backchain passes option; expected one of " + ", ".join(BACKCHAIN_PASSES_MODES))
     _text(state.get("improve_skill"), "improve_skill", allow_empty=True)
     records = state.get("improve_results")
     _need(isinstance(records, Mapping), "Improve results must be an object")
@@ -2959,8 +2978,10 @@ def render(core: Any, root: Path, state: Mapping[str, Any],
             + "#navigator-planning"
         )
         resources = guidance.resolved_backchain_resources()
-        if stage in guidance.BACKCHAIN_NATIVE_CALLS and not state.get("active_improve"):
-            # Only the stage that may start a whole loop selects its full resource set.
+        if (guidance.offers_whole_backchain_loop(stage, recorded_backchain_passes(state))
+                and not state.get("active_improve")):
+            # Only the stage that may start a whole loop selects its full resource set: plan, unless
+            # the run's Backchain passes option is none (then plan prints the audit line and the status).
             lines.append(
                 "Selected Backchain and Until Loop resources "
                 "(resolved by ShipLoop from its installed plugin):"
@@ -3157,7 +3178,8 @@ def render(core: Any, root: Path, state: Mapping[str, Any],
     lines.extend(_answered_lines(root, state))
     lines.extend(_replan_delta_lines(root, state, stage))
     lines.extend(knowledge.stage_lines(state, stage))
-    instruction = guidance.prompt(stage, delegation=route)
+    instruction = guidance.prompt(stage, delegation=route,
+                                  backchain_passes=recorded_backchain_passes(state))
     _need(isinstance(instruction, str) and bool(instruction.strip()),
           f"navigator prompt is unavailable for {stage}")
     lines.extend(

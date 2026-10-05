@@ -21,7 +21,16 @@
   "order": 2,
   "title": "Plan",
   "short": "Plan and per-item step plan",
-  "text": "The script opens the planning stages. Backchain turns the spec into a dependency graph, and the item's step plan is built the same way. The script, not the model, writes every loop contract and decides when each plan is closed."
+  "text": "The script opens the planning stages. Backchain turns the spec into a dependency graph, and the item's step plan is built the same way. The script, not the model, writes every loop contract and decides when each plan is closed. there is no limit to this",
+  "revs": [
+   {
+    "at": "2026-10-04T15:50:07.905Z",
+    "from": "The script opens the planning stages. Backchain turns the spec into a dependency graph, and the item's step plan is built the same way. The script, not the model, writes every loop contract and decides when each plan is closed.",
+    "obs": "o03",
+    "reason": "Observation 3: Step-plan Backchain contract of 11.9 KB, one rejected report",
+    "to": "The script opens the planning stages. Backchain turns the spec into a dependency graph, and the item's step plan is built the same way. The script, not the model, writes every loop contract and decides when each plan is closed. there is no limit to this"
+   }
+  ]
  },
  {
   "key": "phase-3",
@@ -68,7 +77,7 @@
   "kind": "group",
   "order": 1,
   "title": "Principles",
-  "text": "Mark each as holds, bent or broken; select it again to mark it unjudged. Revise the wording when we learn the principle itself was wrong or incomplete. What we saw is filled in from the observations tagged to it."
+  "text": "The principles every run is held to. Each reads holds, bent, broken or not examined, worked out from the findings tagged to it and from Claude's review of the run. To change one, tick a change-expectation option in step 3."
  },
  {
   "key": "group-backchain",
@@ -84,7 +93,10 @@
   "order": 1,
   "title": "The script owns the flow",
   "text": "The model never chooses the next stage. It does the step in the packet and calls back.",
-  "status": "unjudged"
+  "clauses": [
+   "S-1",
+   "S-2"
+  ]
  },
  {
   "key": "P2",
@@ -93,7 +105,10 @@
   "order": 2,
   "title": "The script writes every loop contract",
   "text": "Improve, test and quality loop contracts are written by ShipLoop. A model should never size or build one.",
-  "status": "unjudged"
+  "clauses": [
+   "S-5",
+   "S-10"
+  ]
  },
  {
   "key": "P3",
@@ -102,7 +117,12 @@
   "order": 3,
   "title": "The packet is the only instruction",
   "text": "The model follows the printed packet and commands exactly.",
-  "status": "unjudged"
+  "clauses": [
+   "S-2",
+   "S-4",
+   "S-6",
+   "S-7"
+  ]
  },
  {
   "key": "P4",
@@ -111,7 +131,9 @@
   "order": 4,
   "title": "One step, then call back",
   "text": "Each turn does one stage's work and ends with the exact callback.",
-  "status": "unjudged"
+  "clauses": [
+   "S-2"
+  ]
  },
  {
   "key": "P5",
@@ -120,7 +142,10 @@
   "order": 5,
   "title": "Evidence is trustworthy and in the repo",
   "text": "Findings are committed with the work, and a grade means the engine, not the harness.",
-  "status": "unjudged"
+  "clauses": [
+   "S-9",
+   "S-11"
+  ]
  },
  {
   "key": "P6",
@@ -129,7 +154,7 @@
   "order": 6,
   "title": "Behaviour does not depend on the model",
   "text": "A pass on the fast gate should predict a pass on a slower, deeper model.",
-  "status": "unjudged"
+  "clauses": []
  },
  {
   "key": "B1",
@@ -138,7 +163,9 @@
   "order": 1,
   "title": "Every pass earns its time",
   "text": "Each Backchain pass either finds a material gap in the plan or is a confirmation the loop needs to close. Time spent on a pass that finds nothing is the price of closing, and it should be small next to what the earlier passes found.",
-  "status": "unjudged"
+  "clauses": [
+   "S-10"
+  ]
  },
  {
   "key": "B2",
@@ -147,7 +174,11 @@
   "order": 2,
   "title": "A script verifies the graph",
   "text": "Unique step ids, resolved references, one confirmation per produce, no cycles and every step reaching a sink are checked by a ShipLoop script that writes a receipt. The model does not assert them.",
-  "status": "unjudged"
+  "clauses": [
+   "S-1",
+   "S-5",
+   "S-9"
+  ]
  },
  {
   "key": "B3",
@@ -156,7 +187,10 @@
   "order": 3,
   "title": "The script uses the graph to run the work",
   "text": "ShipLoop uses the plan graph's order, groups and sinks to open work items and to know when a plan is satisfied. A graph that is only mapped to one item is not being used.",
-  "status": "unjudged"
+  "clauses": [
+   "S-1",
+   "S-5"
+  ]
  },
  {
   "key": "B4",
@@ -165,7 +199,9 @@
   "order": 4,
   "title": "Planning is not repeated for the same facts",
   "text": "A fact already in the spec, such as the list of acceptance criteria, is not derived again by the model in each loop. The script supplies it and the loops plan only what is new.",
-  "status": "unjudged"
+  "clauses": [
+   "S-5"
+  ]
  },
  {
   "key": "B5",
@@ -174,6 +210,8 @@
   "order": 5,
   "title": "A closed plan is not revised for visible gaps",
   "text": "When Backchain closes a plan, a revise outcome during the build is for what could not be seen at planning time, not for what the spec and sources already showed.",
-  "status": "unjudged"
+  "clauses": [
+   "S-10"
+  ]
  }
 ]

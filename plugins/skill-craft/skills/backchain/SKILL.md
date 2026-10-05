@@ -6,8 +6,9 @@ description: >-
   elaborating incomplete plans, or scheduler-ready step graphs. Turns a natural-language
   coding request into a forward draft then backward-chaining enriched DAG with explicit
   unresolved risks, then directly calls the selected Until Loop to repeat dependency
-  review until two consecutive trivial/no-change reviews.
-version: 0.6.2
+  review, by default until two consecutive trivial/no-change reviews, or for one cycle
+  when the caller states `Backchain passes: one`.
+version: 0.6.3
 author: Backchain
 license: MIT
 platforms:
@@ -100,8 +101,10 @@ child context; existing plan JSON/schema remain unchanged.
    new nodes/edges need permission and rewires need a source-linked old-to-new map.
 4. Bind the frozen candidate, source/lens context, bounds, and no-commit/no-project-
    execution scope to the selected whole Until Loop card. Until Loop owns
-   recurrence, the two-consecutive-trivial gate, resume, budget/stop handling, and its
-   terminal receipt. Backchain never supplies a pass ceiling or interprets a counter.
+   recurrence, the review gate (by default two consecutive trivial reviews; one cycle when
+   the child request carries `Backchain passes: one`, as `references/convergence.md`
+   defines), resume, budget/stop handling, and its terminal receipt. Backchain never
+   supplies a pass ceiling or interprets a counter.
 5. Only an exact Until Loop `complete` receipt plus final candidate-specific source/bounds/
    validation evidence permits `review.convergence` to say converged planning. A revised
    graph has `parallel_groups: []` and structural status `unknown` until deterministic
@@ -233,7 +236,8 @@ hand/harness-supplied) is the goal-closure check.
 4. For a complete Backchain planning invocation, run `references/convergence.md` over
    the candidate and preserve its companion report. Repackage after any graph revision.
    `prompts/rubric-judge.md` and `prompts/compare-judge.md` assess benchmark candidates;
-   neither substitutes for the two consecutive planning reviews.
+   neither substitutes for the planning reviews the gate requires (by default two
+   consecutive; one cycle with `Backchain passes: one`).
 
 ## Plan document shape
 

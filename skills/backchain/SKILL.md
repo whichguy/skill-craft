@@ -8,7 +8,7 @@ description: >-
   unresolved risks, then directly calls the selected Until Loop to repeat dependency
   review, by default until two consecutive trivial/no-change reviews, or for one cycle
   when the caller states `Backchain passes: one`.
-version: 0.6.2
+version: 0.6.3
 author: Backchain
 license: MIT
 platforms:

@@ -1845,6 +1845,28 @@ BACKCHAIN_NATIVE_CALLS = {
 }
 BACKCHAIN_AUDIT_STAGES = BACKCHAIN_STAGES - set(BACKCHAIN_NATIVE_CALLS)
 
+# Run-level Backchain passes option (state key ``backchain_passes``): how many review passes the
+# Backchain planning child may take.  ``one`` (the default for new runs) is one review/fix/check cycle,
+# ``converge`` is two consecutive trivial reviews, ``none`` offers no whole loop at plan.  The CLI, the
+# state and SPEC S-10's carve-out name the same three.
+BACKCHAIN_PASSES_MODES = ("one", "converge", "none")
+DEFAULT_BACKCHAIN_PASSES = "one"
+
+
+def _require_backchain_passes(backchain_passes: str) -> None:
+    if backchain_passes not in BACKCHAIN_PASSES_MODES:
+        raise ValueError(f"unknown backchain passes option: {backchain_passes!r}")
+
+
+def offers_whole_backchain_loop(stage: str, backchain_passes: str) -> bool:
+    """Whether `stage` may request a whole `plan`/`draft` Backchain loop in a run with this option.
+
+    The one definition, used for the plan packet's loop text here and for the resource block the navigator
+    prints: a stage that does not offer the loop prints the read-only audit route and the loop-resource status.
+    """
+    _require_backchain_passes(backchain_passes)
+    return stage in BACKCHAIN_NATIVE_CALLS and backchain_passes != "none"
+
 
 # The resource the read-only audit needs (the `backchain-caller/v1` contract); the other six serve a whole loop.
 BACKCHAIN_AUDIT_RESOURCE = "Backchain backchain-caller/v1 resource"
@@ -1935,7 +1957,7 @@ commit, push, merge, execute the project, or broaden scope. These restrictions
 belong to that Backchain child, not the separate Improve executor's authority.
 
 """
-_BACKCHAIN_AUDIT = """\
+_BACKCHAIN_AUDIT_HEAD = """\
 Request action `review` / stage `audit` only for a material prerequisite
 ambiguity, pending/corrective dependency or acceptance gap: a read-only, one-pass
 diagnostic that changes no candidate and completes no parent action. A material
@@ -1943,8 +1965,19 @@ finding goes to the stage owner, who within explicit authorized edit bounds may
 request exactly one action `repair` / stage `revise`, a whole native operation
 that needs the loop resources named in the planning guide's Source-aware native
 caller section (the packet's "Loop resources" line reports them) and keeps its
-start contract within the budget below. A whole `plan`/`draft` is requested only
-at `plan`. A MISSING loop resource blocks repair/revise; no other install
+start contract within the budget below."""
+# Modes one and none.  An instruction to write the marker line, not a gate field: the audit text never names
+# `required_trivial_reviews`; the child's gate and exit condition are the ones Backchain's convergence reference
+# defines for the marker line, and without the line a repair/revise child runs that reference's two-review default.
+_BACKCHAIN_AUDIT_ONE_PASS = """ A repair/revise child runs one review/fix/check cycle: put the line
+`Backchain passes: one` beside the binding marker in the child request, as Backchain's
+convergence reference defines it."""
+_BACKCHAIN_AUDIT_WHOLE = """ A whole `plan`/`draft` is requested only
+at `plan`."""
+# Mode none, at every stage: the run requests no whole loop, so the audit text says that in its place.  `one` is
+# the only marker value Backchain's convergence reference defines, so the text does not print `none` as one.
+_BACKCHAIN_AUDIT_WHOLE_NONE = """ No whole `plan`/`draft` is requested in this run."""
+_BACKCHAIN_AUDIT_TAIL = """ A MISSING loop resource blocks repair/revise; no other install
 substitutes. A forbidden revision, nonterminal child or unresolved finding stays
 incomplete and is not submitted as a completed parent action.
 """
@@ -1960,26 +1993,68 @@ A protected or out-of-scope change follows the existing blocked or recovery rout
 """
 
 
-def _backchain_guidance(stage: str, *, improve_owner: bool = False) -> str:
+# The plan-stage gate sentence in `converge` mode: the runtime's own two-review gate, as it was printed before the
+# Backchain passes option existed.
+_BACKCHAIN_PLAN_GATE_CONVERGE = """\
+Until Loop owns the callback handle, progress, its `required_trivial_reviews: 2` gate for
+two consecutive distinct complete trivial/no-change dependency reviews, recovery, and
+terminal transition; Backchain and ShipLoop do not copy that runtime or create another
+controller.
+"""
+# In `one` mode the host writes the gate itself, so the packet prints the gate and the exit condition to copy.
+# Owner decision 2026-10-04 (docs/shiploop-fast-planning-plan-2026-10-04.md, "Backchain single pass: mechanism").
+# The vendored Until Loop completes at gate 0 on the first report that assesses the exit as satisfied, so the exit
+# text is what makes one cycle enough: under the two-review exit text Luna (skill-craft 1.16.1) reported
+# `unsatisfied` through pass 6. Backchain's convergence reference states the same clauses for the marker line;
+# test/shiploop-navigator-contract.test.py BackchainGateDocumentsTest keeps the two the same.
+_BACKCHAIN_PLAN_GATE_ONE = """\
+Until Loop owns the callback handle, progress, its review gate, recovery, and terminal
+transition; Backchain and ShipLoop do not copy that runtime or create another controller.
+Backchain passes: one. Write the child's start contract with `required_trivial_reviews: 0` and this
+exit condition verbatim, appending only case-specific clauses: One complete dependency
+review/fix/check cycle has run; every finding of that cycle is repaired within the edit
+bounds; every `Confirm by` clause on a step this cycle may change meets the planning guide's
+Outcomes rule; the printed `backchain-check` is ok on the final candidate and its receipt is
+cited; final candidate-specific domain evidence is saved. A pass that completes that cycle
+reports `exit_assessment: satisfied` even when it repaired the candidate; Until Loop then
+completes the child and no second review runs. Put the line `Backchain passes: one` beside the
+binding marker in the child request.
+"""
+
+
+def _one_pass(backchain_passes: str) -> bool:
+    """Whether a Backchain child's gate text is the one-pass text (every mode but `converge`).
+
+    In `none` no whole `plan`/`draft` is offered, but a `repair`/`revise` after a finding still starts a child,
+    and that child runs one pass.
+    """
+    return backchain_passes != "converge"
+
+
+def _backchain_guidance(stage: str, *, improve_owner: bool = False,
+                        backchain_passes: str = DEFAULT_BACKCHAIN_PASSES) -> str:
     """Return host-mediated caller guidance without adding navigator state.
 
     The loop text and the resource gate are printed only at the stage that may start a whole loop (plan);
     the other Backchain stages print the read-only audit route and the rule that a material finding may
     request one repair/revise (the budget stays there: that request starts a loop).
+
+    ``backchain_passes`` is the run's option (see BACKCHAIN_PASSES_MODES).  ``converge`` prints the two-review
+    gate; the default ``one`` prints the one-pass gate and exit condition at plan and a one-line pointer at the
+    audit stages.  ``none`` offers no whole loop, so plan prints the audit route the four audit stages print
+    (see offers_whole_backchain_loop), and every audit stage says no whole `plan`/`draft` is requested.
     """
+    _require_backchain_passes(backchain_passes)
     if improve_owner:
         return _BACKCHAIN_ROUTE + _BACKCHAIN_IMPROVE_OWNER
-    if stage in BACKCHAIN_NATIVE_CALLS:
+    if offers_whole_backchain_loop(stage, backchain_passes):
         action, operation = BACKCHAIN_NATIVE_CALLS[stage]
         return _BACKCHAIN_ROUTE + _BACKCHAIN_PLAN_CALL + _backchain_contract_budget() + f"""\
 Through `source-aware-native`, the current stage host may
 request exactly one action `{action}` / stage `{operation}` within the packet's
 scope. Backchain invokes the selected actual Until Loop for its dependency-specific
 review/fix/check cycle using `Backchain standalone Until Loop binding: <binding-id>`.
-Until Loop owns the callback handle, progress, its `required_trivial_reviews: 2` gate for
-two consecutive distinct complete trivial/no-change dependency reviews, recovery, and
-terminal transition; Backchain and ShipLoop do not copy that runtime or create another
-controller.
+""" + (_BACKCHAIN_PLAN_GATE_ONE if _one_pass(backchain_passes) else _BACKCHAIN_PLAN_GATE_CONVERGE) + """\
 Backchain returns opaque actual Until Loop terminal evidence only after the child reports
 `complete` and its exact receipt is saved. A nonterminal, unresolved, or incompatible
 child leaves this parent action incomplete and must not be submitted as a completed parent
@@ -1987,8 +2062,11 @@ action. Only that exact `complete` receipt plus final candidate identity and dom
 permits Backchain planning convergence. The draft is a proposed candidate; ShipLoop still owns
 acceptance and lifecycle state.
 """ + BACKCHAIN_CHECK
-    if stage in BACKCHAIN_AUDIT_STAGES:
-        return _BACKCHAIN_ROUTE + _BACKCHAIN_AUDIT + BACKCHAIN_CHECK + "\n" + _backchain_contract_budget().rstrip("\n") + "\n"
+    if stage in BACKCHAIN_STAGES:  # an audit stage, or plan in a run that offers no whole loop
+        audit = (_BACKCHAIN_AUDIT_HEAD + (_BACKCHAIN_AUDIT_ONE_PASS if _one_pass(backchain_passes) else "")
+                 + (_BACKCHAIN_AUDIT_WHOLE_NONE if backchain_passes == "none" else _BACKCHAIN_AUDIT_WHOLE)
+                 + _BACKCHAIN_AUDIT_TAIL)
+        return _BACKCHAIN_ROUTE + audit + BACKCHAIN_CHECK + "\n" + _backchain_contract_budget().rstrip("\n") + "\n"
     return _BACKCHAIN_ROUTE + """\
 This stage has no native Backchain action. Keep relevant findings in ordinary
 notes and route a material planning gap through its authorized owner.
@@ -2130,14 +2208,17 @@ failed or was not run (with the reason).
 """
 
 
-def prompt(stage: str, *, delegation: str = ASK_AGENT) -> str:
+def prompt(stage: str, *, delegation: str = ASK_AGENT,
+           backchain_passes: str = DEFAULT_BACKCHAIN_PASSES) -> str:
     """Return the single current producer instruction for a navigator graph stage.
 
-    The navigator always passes the run's delegation; the ask-agent default
-    keeps catalog renders identical to runs recorded before the setting existed.
+    The navigator always passes the run's delegation and Backchain passes option; the
+    ask-agent default keeps catalog renders identical to runs recorded before the
+    delegation setting existed, and the catalog renders the default passes option.
     """
     _require_stage(stage)
     _require_delegation(delegation)
+    _require_backchain_passes(backchain_passes)
     parts = [COMMON, duty(stage, delegation=delegation)]
     if stage in stage_spec.with_block("interaction-design"):
         parts.append(INTERACTION_DESIGN)
@@ -2157,7 +2238,7 @@ def prompt(stage: str, *, delegation: str = ASK_AGENT) -> str:
         parts.append(OUTER_TEST_HANDOFF if improves else OUTER_TEST_HANDOFF.replace(
             "in this result and the Improve child's context/notes.", "in this result."))
     if stage in BACKCHAIN_STAGES:
-        parts.append(_backchain_guidance(stage))
+        parts.append(_backchain_guidance(stage, backchain_passes=backchain_passes))
     if stage in RECONCILIATION_STAGES:
         parts.append(SELECTED_CASE_RECONCILIATION)
     if stage in PASS_OR_STOP_STAGES:
@@ -2431,7 +2512,9 @@ for _delegated, _inline in _INLINE_IMPROVE_REPLACEMENTS:
 
 __all__ = (
     "ASK_AGENT",
+    "BACKCHAIN_PASSES_MODES",
     "COMMON",
+    "DEFAULT_BACKCHAIN_PASSES",
     "DELEGATIONS",
     "DUTIES",
     "END_REVIEW_FOCUS",

@@ -82,6 +82,9 @@ frozen candidate to the selected actual Until Loop card under
 Backchain standalone Until Loop binding: <binding-id>
 ```
 
+A caller that wants one review cycle instead of the default two consecutive reviews adds the line
+`Backchain passes: one` beside it, as `references/convergence.md` defines.
+
 Resolve and read in full the selected Until Loop card (`SKILL.md`, or a bundled
 `ADAPTER.md` explicitly selected by the caller) and `references/runtime-ephemeral.md`
 relative to that card's directory, then retain absolute observed locators for them and the
@@ -109,10 +112,12 @@ Until Loop terminal `complete` receipt plus candidate-specific domain evidence. 
 stale selection/candidate/source/bounds resources, `blocked`/`stopped`/cancelled Until Loop,
 or absent domain evidence is incomplete. Do not infer terminal state from copied text,
 structural validity, or a model-written count.
-Preserve access to both original qualifying review records since the run began or latest
-reset, whichever is later, and their observed identities in the final handoff/domain
-evidence under `references/convergence.md`; a
-terminal receipt with only the latest review recoverable is incomplete planning.
+By default, preserve access to both original qualifying review records since the run began or
+latest reset, whichever is later, and their observed identities in the final handoff/domain
+evidence under `references/convergence.md`; a terminal receipt with only the latest review
+recoverable is incomplete planning. The caller selects the gate: with `Backchain passes: one`
+beside the binding marker in the child request, one cycle runs and the evidence set is its one
+review record plus the `backchain-check` receipt on the final candidate, as `references/convergence.md` states.
 
 ## Operations
 

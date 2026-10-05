@@ -1,4 +1,4 @@
-# ShipLoop navigator 0.52.0
+# ShipLoop navigator 0.53.0
 
 ShipLoop's invoking conversation owns navigation, acceptance and delivery. New
 runs record `delegation: inline`, so that conversation also executes every
@@ -913,10 +913,10 @@ line after the header is the one legal callback. The command surface is:
 
 ```sh
 # Start a navigator protocol 4 run
-shiploop workspace start --repo REPO --workspace-root ROOT [--improve-skill ABSOLUTE_SKILL_CARD] [--include-untracked=PATH]... [--exclude=PATH]... [--delivery-contract] [--delegation=inline|ask-agent] [--lint=fix|report|off] --prompt=TEXT
+shiploop workspace start --repo REPO --workspace-root ROOT [--improve-skill ABSOLUTE_SKILL_CARD] [--include-untracked=PATH]... [--exclude=PATH]... [--delivery-contract] [--delegation=inline|ask-agent] [--lint=fix|report|off] [--backchain-passes=one|converge|none] --prompt=TEXT
 shiploop workspace plan-return --workspace-root ROOT
 shiploop workspace return      --workspace-root ROOT
-shiploop init     --repo REPO [--run-dir RUN] [--improve-skill ABSOLUTE_SKILL_CARD] [--delivery-contract] [--delegation=inline|ask-agent] [--lint=fix|report|off] --prompt=TEXT
+shiploop init     --repo REPO [--run-dir RUN] [--improve-skill ABSOLUTE_SKILL_CARD] [--delivery-contract] [--delegation=inline|ask-agent] [--lint=fix|report|off] [--backchain-passes=one|converge|none] --prompt=TEXT
 # Reread the current packet; never advances
 shiploop next     --run-dir RUN
 shiploop report   --run-dir RUN

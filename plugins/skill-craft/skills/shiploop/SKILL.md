@@ -5,7 +5,7 @@ description: >-
   script's current action packet, and submit its exact completion call until
   the script reports completion with an HTML achievement report. Use when the
   user says shiploop, ship the project, or requests a durable delivery loop.
-version: 0.52.0
+version: 0.53.0
 allowed-tools: all
 license: MIT
 platforms:
@@ -385,6 +385,24 @@ complete output, shows auto-fixes as an applied diff plus NOT APPLIED hunks,
 separates new findings from debt already present at the item base, and states
 per-file coverage. The step still selects and runs its own checks. Details and
 safety pins: [lint catalog](references/lint-catalog.md).
+
+### Backchain passes option
+
+`--backchain-passes one|converge|none` at `init` or `workspace start` records the
+run option `backchain_passes` (default `one`): how many passes the Backchain
+planning child may take. `one` is one review/fix/check cycle, `converge` is two
+consecutive trivial reviews, and `none` offers no whole Backchain loop at `plan`. The `one`
+plan packet prints the gate and an exit condition, which the host copies into the child's
+start contract; the `converge` plan packet prints the two-review gate, and the host takes its
+exit condition from Backchain's convergence reference. In `none` the plan packet prints the
+read-only audit route the other Backchain stages print (the one resource it needs and the
+loop-resource status line), says no whole `plan`/`draft` is requested in this run, and
+omits the six-file Backchain and Until Loop resource block; a material finding at any stage
+still allows one `repair`/`revise`, which runs one pass.
+Like `lint`, a saved run without the key is refused (start a fresh run), never
+migrated, and an `init` or `workspace start` retry cannot change it. Unlike
+`lint`, no verb changes it mid-run: a fresh run is the route to another value.
+Improve's review loops are not covered by it.
 
 ### Static-checks quality loop
 
@@ -988,9 +1006,11 @@ A selected native `plan`/`draft` or authorized `repair`/`revise` is one whole
 Backchain operation. Backchain supplies its dependency-specific review/fix/check
 work, plan candidate files, source/lens context, and protected bounds to the selected
 actual Until Loop using `Backchain standalone Until Loop binding: <binding-id>`. Until
-Loop owns the temporary callback handle, progress, its `required_trivial_reviews: 2`
-gate for two consecutive distinct complete trivial/no-change dependency reviews, recovery,
-continuation, and terminal transition; ShipLoop owns none of those controls. Backchain
+Loop owns the temporary callback handle, progress, its review gate (the packet's printed
+gate for the run's Backchain passes option; a `repair`/`revise` packet in `one` and `none`
+points to Backchain's convergence reference for it, and in `converge` the default two-review
+gate applies), recovery, continuation, and terminal transition; ShipLoop owns
+none of those controls. Backchain
 returns only opaque actual Until Loop terminal evidence after the child reports
 `complete` and its exact receipt is saved, plus its domain evidence: binding_id, owner,
 candidate input/output digests, resolved resources, opaque `terminal_receipt`,

@@ -1,4 +1,0 @@
----
-bump: patch
----
-The review gate of a whole Backchain planning child is now selected by the caller. By default nothing changes: two consecutive distinct complete trivial/no-change dependency reviews, with both original qualifying review records kept. A caller that adds the line `Backchain passes: one` beside the binding marker in the child request gets one dependency review/fix/check cycle: `required_trivial_reviews: 0`, an exit condition naming the cycle, its repaired findings, the `Confirm by` rule on the steps the cycle may change (a weak clause on any other step stays advisory) and the `backchain-check` receipt, and the one review record plus that receipt as the terminal evidence set. `references/convergence.md`, `references/caller-contract.md`, the skill card and the evals say so, with a new eval for the marker path. Standalone Backchain keeps the default two reviews.

@@ -4,6 +4,27 @@ Written by scripts/release.py.
 
 ## 2026-10-04
 
+### skill-craft 1.21.0
+
+- Skills: backchain 0.6.3, shiploop 0.53.0, shiploop-e2e-audit 0.6.1, shiploop-run-review 0.1.0
+
+### backchain 0.6.3
+
+- The review gate of a whole Backchain planning child is now selected by the caller. By default nothing changes: two consecutive distinct complete trivial/no-change dependency reviews, with both original qualifying review records kept. A caller that adds the line `Backchain passes: one` beside the binding marker in the child request gets one dependency review/fix/check cycle: `required_trivial_reviews: 0`, an exit condition naming the cycle, its repaired findings, the `Confirm by` rule on the steps the cycle may change (a weak clause on any other step stays advisory) and the `backchain-check` receipt, and the one review record plus that receipt as the terminal evidence set. `references/convergence.md`, `references/caller-contract.md`, the skill card and the evals say so, with a new eval for the marker path. Standalone Backchain keeps the default two reviews.
+
+### shiploop 0.53.0
+
+- The plan packet's Backchain text now follows the run's `backchain_passes` option. With the default `one` it tells the host to write the planning child's start contract with `required_trivial_reviews: 0` and a one-cycle exit condition (one review/fix/check cycle has run, every finding of it is repaired within the edit bounds, every `Confirm by` clause on a step this cycle may change meets the planning guide's Outcomes rule, the printed `backchain-check` is ok on the final candidate with its receipt cited, domain evidence saved), and to put the line `Backchain passes: one` beside the binding marker in the child request. A pass that completes that cycle reports `exit_assessment: satisfied` even when it repaired the candidate, and Until Loop then completes the child instead of asking for two more reviews. The audit stages (spec, step-plan, carry-forward, product-acceptance) tell the host that a repair/revise child runs one cycle and to put the same marker line beside the binding marker in the child request. `--backchain-passes converge` prints the previous two-review text unchanged. ShipLoop's skill guide and Backchain planning guide now point to the packet's printed gate instead of stating two consecutive reviews. Improve's loops, the quality and test loops and the vendored Until Loop are unchanged.
+- New run option `--backchain-passes one|converge|none` at `init` and `workspace start`, recorded as `backchain_passes` in `state.md` like `--lint` (default `one`). It sets how many passes the Backchain planning child may take: one review/fix/check cycle, two consecutive trivial reviews, or no whole loop at `plan`. With `none` the `plan` packet prints the read-only audit route and the audit resource with the loop-resource status line, says no whole `plan`/`draft` is requested in this run, and omits the six-file Backchain and Until Loop resource block; the four audit stages say the same in place of "only at `plan`", and a `repair`/`revise` after a finding still runs one pass. `one` and `converge` print what they printed before. A retry of `init` or `workspace start` cannot change it and no verb changes it mid-run. A saved run without the key is refused with the fresh-run hint: start the request again in a fresh `--run-dir` or `--workspace-root`. Improve's review loops are not covered by the option.
+
+### shiploop-e2e-audit 0.6.1
+
+- The Run Review exporter, contract, defaults and page template moved to the new shiploop-run-review skill; this skill's after-every-run step now points to it.
+
+### shiploop-run-review 0.1.0
+
+- Adds the ShipLoop Run Review skill (`/skill-craft:shiploop-run-review`): it exports a ShipLoop E2E run's measured numbers, has Claude write findings, advice and options for the run into a review file that `export.py --check` validates (`advise`, `export`, `check`), and publishes both to the owner's Run Review page (`publish`). The exporter, data contract, starting defaults and page template move here from shiploop-e2e-audit. The export is now `run-review-export/v2`: a counter the host cannot measure (refusals and glue on a Claude run) is left out with its reason instead of reading 0, a `metrics.json` that predates that record is refused, and a stage with no accept time reads n/a instead of 0 min.
+
 ### skill-craft 1.20.0
 
 - Skills: shiploop 0.52.0
