@@ -2465,6 +2465,12 @@ class ReviewSkillTextTests(unittest.TestCase):
             self.assertIn(text.lower(), self.skill.lower(), text)
         self.assertIn("capabilities: {db: {}}", self.skill)
 
+    def test_skill_md_has_the_script_merge_the_defaults_over_the_page_and_names_the_criterion_key_rule(self):
+        self.assertIn("export.py --defaults --live FILE --out DIR", self.skill)
+        self.assertIn("The script merges, never you", self.skill)
+        self.assertIn("a finding's `criterion` and each key of a review's `basis` is a key of "
+                      "`defaults/expectations.json`", self.skill)
+
     def test_skill_md_has_none_of_the_stale_phrases(self):
         for stale in ("iterations with editable expectations", "iteration card", "result of the iteration",
                       "create-only", "apply mode", "apply on the page", "include toggles", "expectation editor",
