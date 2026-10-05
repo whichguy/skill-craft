@@ -900,3 +900,113 @@ percentages in the picture's band come from the exporter's `peakPct`. (4) A visi
 dashed tick, not a bar; no real run has one yet (Luna has all 39). (5) Backchain loops is the existing ledger's number (loops,
 minutes as stages, share of elapsed); the per-pass judgement stays in the loop cards below. (6) The picture's legend lists
 seeded and n/a items even for a run with none, so the legend is the same for every run.
+
+## 2026-10-05: R9, the Luna 1.16.1 review authored, and the page's one-time upgrade as code (local, unpublished)
+
+Status: firm for the code, the review file and their tests. Local commits on branch `rr9-e0c0c4` only: no push,
+no release, no E2E run, and no Artifact or ArtifactData call (the live page and its database are untouched; uploading
+the review and running the upgrade are the next publish). The template was not edited (R14 owns it).
+
+**The review** (`test/shiploop_e2e/evidence/codex-gpt-6-luna-1.16.1-battleship-20261003.review.json`, 69 documents,
+`--check` exit 0 with 7 warnings). It keeps the page's 39 saved findings and 16 saved options (titles, expectations and
+criteria unchanged; observed text only appended to, except o37, restated) and adds 4 findings and 9 options.
+
+- Findings: 43, 30 open and 13 closed (7 fixed, 6 accepted). 27 open findings carry an effect (9 broken, 18 bent);
+  28 findings carry advice; 8 carry a figure. Runs lists replace `any` and `sonnet` on the ten findings keyed so
+  (o05 luna1 only; o34 the six Claude runs; o37 to o39 the hello runs; and so on).
+- New findings: o40 (the harness records a generic tail line for 9 of 13 refusals: `FAILURE_LINE` in `metrics.py`
+  matches "rejected" in "Read the current packet with next" and "error" in a model's AssertionError, while the cause
+  is the `ShipLoop navigator:` line before it), o41 (accepted: the process record covers only the resumed session,
+  33,452 s, the limit 05269ede documents; the plan asked for it as a finding), o42 (the page showed Improve as 135.8
+  min; bind to receipt it is 360.3, 31% of 1,158.5), o43 (the 13 refusals by cause: 4 run-path copy errors, 3
+  Improve contracts over budget, 5 results or an opening in the wrong shape, 1 blocked result refused under S-14).
+- Options: 25. Kinds: fix-shiploop 10, fix-harness 7, gather-evidence 5, change-expectation 2, accept 1. Status:
+  open 9, planned 4, built 7, done 5. 12 recommended, at most one per finding. Every instruction is
+  `Do / Files and symbols / Test / Done when` with symbols, not line numbers; every fix option has a for, against and
+  verdict line.
+- New options: a17 (one-pass Backchain default, planned on `fastplan-1f1dd3`), a18 and a19 (change-expectation: B1
+  reworded for one pass after the S-10 carve-out lands; a criterion P7 for S-14, the clause this run broke, which no
+  criterion carries, so o35 sits on phase-6 with no step 2 row), a20 (plugin verdict kept on a resume, built,
+  2528c470), a21 (record the refusal's cause line, open), a22 (accept: path typos stay a monitored limit, done, o33's
+  decision), a23 (export the `backchain_passes` option and whether the final candidate was checked: item I4 the
+  fast-planning plan handed to this work), a24 (compare Improve's planning passes on the next Luna run: the owner's
+  D4 "revisit as its own option"), a25 (outcome shapes in the head and refusals that name the correction, built on
+  `rrr-edc892`: d412a45d, f14f90c7).
+- Left "no option yet" on purpose: o16 (B5; unknown whether the revise was visible at planning: not rated), o23 (a
+  model difference, advice only), o30 (decided by I2c of the comparison plan, advice only), o34 (Claude runs, not this
+  review's scope). o17 has an option and advice but no effect: whether to buy the comparison is the owner's choice
+  (advice.md, "Effect"), not a miss of B1.
+- reviews/luna1: a five-line arc and a basis for all 11 criteria. Derived chips for luna1: P4 holds; B5 not rated;
+  P1, P2, B1, B4 bent; P3, P5, P6, B2, B3 broken.
+
+**Statuses, verified from git and the run files, and where they differ from the plan's mapping.** The plan mapped
+three: a13 building to built (c7ee64ba, released in 1.20.0, unexercised live), a14 analysed to done (no split: the
+optional $28 hello A/B stays dropped, `docs/shiploop-e2e-plan-reconciliation-2026-10-04.md` section 7 and owner
+decision 8), a16 waiting to planned (no recurrence in the four other hello runs, the 1.20.0 gate included). Beyond the
+mapping: a01 open to planned (the comparison plan, superseded in part by the fast-planning plan); a03 and a06 open to
+built (931c53e2, 6a997a02 and 112b239c are in 1.19.0, never seen in a looped run); a09 open to built (the redesign on
+`rr8-af090e`, unreleased); a10 open to done (A2, 3c604304, verified: this run's regrade gives plan 11,782 s and
+test-strategy 5,658 s, the accept deltas); a11 open to done (the run ended itself blocked and was journaled, 4b5d41dd);
+a15 built to done (verified live: the 1.20.0 hello's init event lists 0 MCP servers and 28 tools). Two findings move to
+fixed because this run's own regraded record shows the fix: o18 (stage minutes, 3c604304) and o31 (Improve children,
+7eb7ee88). Owner: undo either flip if you read "fixed" as "verified in a new run".
+
+**Where the evidence disagreed with a stored claim** (each old text kept, marked superseded 2026-10-05 here or in the
+finding):
+- o03 "the fix is committed locally, not released" and a06 "Release 1.16.2": superseded; 112b239c shipped in 1.19.0
+  (19fa890d) and no 1.16.2 exists.
+- o05's evidence "luna1 status: ShipLoop failures 9": superseded by the regraded 13. A fourth run-path error came after
+  the o33 count's cutoff (events.jsonl line 7203, a run directory typed `.../20261003/20261003-bad`, repaired by the
+  next call), so this run has 4 path errors, not 3; R1 and R2 still have not fired (no such line in any 2026-10-04 run).
+- o07 "repeat review passes ... about 16% of the time": superseded; Improve is 360.3 of 1,158.5 min (31%).
+- o36 "cause not traced": superseded; traced and fixed for new runs by 2528c470; this run cannot be regraded to pass.
+- o37 "0 failures": superseded; Claude failures are not measured (o34). Its turns now stand beside model calls (84,
+  94, 113 and 149 against 143, 167, 194 and 254; four runs, where the brief named three).
+- The R8 sample and advice.md's worked example say 8 refusals "share one message whose cause is not shown": the message
+  is the generic tail; every cause is on the line before it (o40, o43). The example stays valid as an example.
+- The brief's "a11 ... that run was killed anyway": the 1.16.1 run was not killed; it ended its own turn blocked after
+  9.29 h (cli stop end_turn). The run stopped after about 48 minutes was the 1.20.0 Luna run (`v1200-battleship-luna`).
+- The fast-planning plan's "that loop is no longer offered whole at 1.20.0": `BACKCHAIN_NATIVE_CALLS` never allowed the
+  step-plan whole loop (o27 says so for 1.16.1); what changed in 1.19.0 is that its text prints only at plan (a12).
+
+**Figures chosen** (only numbers from the v2 exports and the run files; each is pinned by a test against them): o43
+refusals by cause (expected 0, 13 refused, 5, 3, 4, 1); o40 recorded lines (13, 4 name the cause, 8 generic tails, 1
+AssertionError); o42 Improve (page 135.8, bind to receipt 360.3, run elapsed 1,158.5 as the limit); o41 calls 2,565
+against turns 2,189 (the one lower bound); o06 context peak as a share of the window (Luna 97.5, the largest Sonnet
+hello 27.1; a Codex peak includes the call's output); o12 Backchain pass minutes (87, 16, 97, 10); o15 graph steps
+(20 and 10 per criterion, in both graphs, counted in the two candidate-plan.json files); o37 hello model calls (84, 94,
+113, 149).
+
+**The one-time upgrade, as code.** `upgrade_docs(live)` in `export.py`, exposed as `--defaults --live FILE` (a file of
+the page's rows, the snapshot's shape). It writes each expectation the defaults name as the defaults have it (so stored
+`status` goes and clauses arrive), never writes `iter-*` or anything else, refuses when the page holds a revision the
+defaults lack, notes each page text it replaces, writes config/prompt from the defaults and config/page only when the
+page has none. The live phase-2 text and its revision (2026-10-04T15:50:07.905Z, from o03) are now in
+`defaults/expectations.json`, verbatim, including its lower-case "there is no limit to this" (the owner's wording;
+tidy it with a change-expectation if wanted). On the saved page the upgrade writes 21 expectations and config/prompt
+with two notes: group-principles (its text is the pre-R6 seed about the removed status editor, with no revision) and
+config/prompt (concatPreamble and the old constraints go; the snapshot keeps them). `--check` also fails a finding
+`criterion` or a review `basis` key that is not a key of the defaults (the R8 open item; any key counts, since o35
+uses phase-6).
+
+**Found while reviewing the flow with real data, for the template (not edited here).** `buildPrompt`'s head names
+`test/shiploop_e2e/evidence/<runKey>.review.json`, which for this run is `luna1.review.json`; the file is
+`codex-gpt-6-luna-1.16.1-battleship-20261003.review.json` (R8 chose the export name). One of the two must change; the
+prompt otherwise reads well (three ticked options: 7,483 characters, 2,617 of them the builder's own).
+
+**Tests.** `python3 -B test/shiploop-run-review.test.py`: 161 tests (148 at the base tip `fd6810fe`); 13 new
+(the criterion-key check 1, DefaultsUpgradeTests 5, LunaReviewTests 6, the SKILL.md text 1), all 13 fail on the base
+tip from a `git archive` with only the test file copied over, and no existing test fails there. The prompt size
+contract on real data: over three ticked options and over each of the 20 live options alone, the builder adds 1,862
+to 2,617 characters to what the options and their findings say (at most 3,000), and no prompt names an unticked option.
+Also green: `node test/skill-frontmatter.test.js` (20 skills), `test/test-groups.test.py` (16),
+`test/marketplace-package.test.py` (29), `scripts/check-release-boundary.py --base origin/main`.
+
+**Commits.** `f912bc60` (upgrade_docs, `--live`, the criterion-key check, the phase-2 copy, 6 tests), `384bea92` (the
+review file, 6 tests), `77dd56b2` (SKILL.md publish and check wording, 1 test; a prompt-text commit with its learning),
+and this entry.
+
+**Open for the owner.** Tick or drop the two expectation changes (a18 after the S-10 carve-out lands; a19 adds P7 for
+S-14). Confirm the o18 and o31 flips to fixed. The next Luna run (xhigh, one pass) is the shared verification of a03,
+a06, a12, a13 and a17; a21 (refusal causes) and a25 (shapes) are cheapest to land before it, and a09 (publish) after
+R14.
