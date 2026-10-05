@@ -23,6 +23,7 @@ import sys
 import tempfile
 import time
 import unittest
+from unittest import mock
 
 ROOT = Path(__file__).resolve().parents[1]
 SCRIPTS = ROOT / "skills" / "shiploop" / "scripts"
@@ -528,6 +529,98 @@ class LoopRefusalRouteTests(RealCliCase):
                 write_block(path, {**self.done_fields(), "evidence_refs": [str(self.evidence), str(named)]})
                 self.assertFalse(named.exists())
                 self.assertIn(expected, self.refused(command, run))
+
+
+# A command that is not a test runner: it exits 0 and prints no test count, so as suite focused it cannot be counted.
+PIPELINE = "[ \"$(echo Hello | wc -c | tr -d ' ')\" = 6 ] && echo Hello | grep -qx Hello"
+COUNTED = "printf '=== 1 passed in 0.01s ===\\n'"
+COUNTED_FAILURE = "printf '=== 1 failed in 0.01s ===\\n'; exit 1"
+
+
+class UncountedCommandRouteTests(RealCliCase):
+    """A recorded command ShipLoop cannot count is refused where it runs, and the refusal names the exit that works.
+
+    system-test runs commands that system-test-author recorded and cannot edit them, so "give the command ids" is
+    no way out there: the exit is a replan, and the command is recorded again as suite check.
+    """
+
+    def at_system_test(self, command: str, suite: str = "focused") -> tuple[Path, str, str, Path]:
+        """A run at system-test whose recorded system command is ``command``; its directory, head, callback, result."""
+        recorded = {"system-test-author": {"system_commands": [{"command": command, "suite": suite}]}}
+        with mock.patch.dict(RESULTS, recorded):
+            run, head = self.new_run("system-test")
+        callback, path, _ = printed_callback(head)
+        write_block(path, self.done_fields())
+        return run, head, callback, path
+
+    @staticmethod
+    def named_exit(reply: str) -> tuple[str, str]:
+        """The outcome the refusal says to report and the result field it says to record the command in."""
+        outcome = re.search(r"Report outcome (\w+) now", reply).group(1)
+        field = re.search(r"as suite check in (\w+)\.", reply).group(1)
+        return outcome, field
+
+    def test_an_uncounted_system_command_is_refused_naming_replan_and_check(self) -> None:
+        run, _, callback, _ = self.at_system_test(PIPELINE)
+        reply = self.refused(callback, run)
+        self.assertIn("could not read how many tests it ran", reply)
+        self.assertIn("system-test-author recorded this command and system-test cannot edit it", reply)
+        self.assertIn("belongs in suite `check`, judged by its exit code", reply)
+        self.assertEqual(self.named_exit(reply), ("replan", "system_commands"))
+        # The two lines that sent the model the wrong way: edit the command, or fix the code.
+        self.assertNotIn("Give the command ids", reply)
+        self.assertNotIn("Fix the code so every command passes", reply)
+        self.assertIn("Refused runs for this action: 1 of 7; replan does not wait for them.", reply)
+
+    def test_the_replan_the_refusal_names_is_accepted_with_one_corrective_item(self) -> None:
+        run, head, callback, path = self.at_system_test(PIPELINE)
+        outcome, field = self.named_exit(self.refused(callback, run))
+        # What to submit is read from the reply (outcome, the field to record in) and the packet's printed shape.
+        shape = first_object(printed_shapes(head)[outcome])
+        item = {"id": "W9", "title": "Record the system check", "context": f"Record `{PIPELINE}` as suite check in {field}."}
+        write_block(path, {**shape, "summary": "A recorded command is not a test runner.", "headline": "Replanning.",
+                           "evidence_refs": [str(self.evidence)], "work_items": [item]})
+        self.accepted(callback)
+        state = self.state(run)
+        self.assertEqual([row["id"] for row in state["work_items"]][-1], "W9")
+        self.assertNotEqual(nav.current_stage(state), "system-test")
+
+    def test_the_same_pipeline_as_done_is_still_refused_and_only_the_replan_re_records_it(self) -> None:
+        run, _, callback, path = self.at_system_test(PIPELINE)
+        self.named_exit(self.refused(callback, run))  # the refusal names its exit before the gate is tried again
+        again = self.refused(callback, run)
+        self.assertIn("could not read how many tests it ran", again)
+        self.assertIn("Refused runs for this action: 2 of 7", again)
+        # Recording it as a check here is not an exit: system-test reruns what was recorded, so the gate holds.
+        write_block(path, {**self.done_fields(), "system_commands": [{"command": PIPELINE, "suite": "check"}]})
+        self.assertIn("could not read how many tests it ran", self.refused(callback, run))
+
+    def test_a_pipeline_recorded_as_a_check_and_a_counted_focused_command_pass(self) -> None:
+        for command, suite in ((PIPELINE, "check"), (COUNTED, "focused")):
+            with self.subTest(suite=suite):
+                run, _, callback, _ = self.at_system_test(command, suite)
+                self.accepted(callback)
+                self.assertEqual(nav.current_stage(self.state(run)), "product-acceptance")
+
+    def test_a_counted_failure_keeps_its_own_reply(self) -> None:
+        run, _, callback, _ = self.at_system_test(COUNTED_FAILURE)
+        reply = self.refused(callback, run)
+        self.assertIn("-> exit 1", reply)
+        self.assertIn("Fix the code so every command passes", reply)
+        self.assertNotIn("Report outcome replan now", reply)
+
+    def test_at_a_stage_whose_commands_the_step_plan_recorded_the_reply_keeps_ids_and_a_flag_and_adds_check(self) -> None:
+        recorded = {"step-plan": {**RESULTS["step-plan"], "test_commands": [
+            {"command": "echo hi | grep -q nothing", "suite": "focused", "criteria": ["C1"]},
+            RESULTS["step-plan"]["test_commands"][1]]}}
+        with mock.patch.dict(RESULTS, recorded):
+            run, head = self.new_run("test-red")
+        callback, path, _ = printed_callback(head)
+        write_block(path, self.done_fields())
+        reply = self.refused(callback, run)
+        self.assertIn("Give the command ids and a runner flag that prints test names", reply)
+        self.assertIn("for a command that is not a test runner, record it as suite `check`", reply)
+        self.assertNotIn("Report outcome replan now", reply)
 
 
 # Stages whose accepted result starts an Improve child (the planning reviews and the last item's carry-forward),
