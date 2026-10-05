@@ -35,7 +35,7 @@ get $PRIOR_WORK (the earlier checkout, read only).
 Besides the verdicts, metrics.json records where ShipLoop spent turns, tokens,
 cost and time (per accepted stage), its failed commands, host truncations,
 compactions and the knowledge-home facts (see metrics.py). The run's Run Review
-documents go to <output>/review-export/ (skills/shiploop-e2e-audit/run-review/);
+documents go to <output>/review-export/ (skills/shiploop-run-review/);
 an export problem is printed and never changes a verdict.
 
 The default host is Claude (Sonnet 5.5, claude-sonnet-5-5). By default the run tests
@@ -56,12 +56,14 @@ A Grok session that ends while the ShipLoop run is still active is resumed
 stream, arrival timeline, stderr, metrics.json and result.json in a new
 output directory outside the checkout.
 
---resume-run on a run whose ShipLoop is already done (a regrade) starts no host. It
-restates the run's own last record (result.json, else invocation.json): host, model,
-effort, plugin verdict and the process block, whatever --host, --model or --effort
-say, and grades ShipLoop, the checkout and the checks again. A host that failed
-stays failed; a run with no record of its exit says "not observed" and leaves the
-process verdict out of the result.
+--resume-run on a run whose ShipLoop is already done or blocked (a regrade) starts no
+host. It restates the run's own last record (result.json, else invocation.json): host,
+model, effort, plugin verdict and the process block, whatever --host, --model or
+--effort say, and grades ShipLoop, the checkout and the checks again. A host that
+failed stays failed; a run with no record of its exit says "not observed" and leaves
+the process verdict out of the result. A blocked run waits for a person (SPEC S-14), so
+it is never resumed as if answered: it is only graded again, which refreshes its
+metrics.json and result.json. An active run is a real resume.
 This launches a real model and costs money; it is never part of default CI.
 
   python3 test/shiploop_e2e/run.py --case battleship
@@ -103,7 +105,7 @@ import shiploop_store as store  # noqa: E402
 CASES = HERE / "cases.json"
 SUITES = HERE / "suites.json"
 BASELINES = HERE / "baselines.jsonl"
-REVIEW_EXPORTER = ROOT / "skills" / "shiploop-e2e-audit" / "run-review" / "export.py"
+REVIEW_EXPORTER = ROOT / "skills" / "shiploop-run-review" / "scripts" / "export.py"
 PLUGIN_NAME = "skill-craft"
 # Grok does not namespace plugin skills; Claude prefixes them with the plugin name.
 def the_host(args) -> "hosts.Host":
@@ -894,7 +896,7 @@ def committed_facts(knowledge: dict, start_head: str | None) -> dict:
 
 
 def review_export(out: Path) -> str:
-    """Export the run's Run Review documents (run-review/README.md). Fail-open: a problem is reported in
+    """Export the run's Run Review documents (skills/shiploop-run-review/SKILL.md). Fail-open: a problem is reported in
     the returned line and never changes a verdict or the exit code."""
     try:
         if not REVIEW_EXPORTER.is_file():
@@ -946,7 +948,9 @@ def parser() -> argparse.ArgumentParser:
     p.add_argument("--resume-run", type=Path,
                    help="an earlier run's output directory whose ShipLoop run stopped while active (a host ran "
                         "out of credits, a machine slept): continue that same run in place, on --host, and grade "
-                        "it as usual. The case and checks come from the earlier run.")
+                        "it as usual. The case and checks come from the earlier run. A run that is already "
+                        "done or blocked is only graded again (a regrade): no host starts, so its metrics.json "
+                        "and result.json are refreshed and a blocked run is not resumed as if answered.")
     p.add_argument("--continue-from", type=Path,
                    help="an earlier run's output directory: start in a copy of its source checkout "
                         "(required by follow-on cases, which name the case they follow)")
@@ -1388,9 +1392,12 @@ def main(argv: list[str] | None = None) -> int:
         work = out / "work"
         state = grade_shiploop(out)
         # A run that finished while no harness was watching (its parent was killed) is graded again, not resumed.
-        regrade = state.get("status") == "done"
+        # So is a blocked run: it waits for a person (SPEC S-14), so no host may continue it as if answered,
+        # but its metrics and verdicts can be refreshed from what is on disk.
+        regrade = state.get("status") in ("done", "blocked")
         if state.get("status") != "active" and not regrade:
-            raise SystemExit(f"--resume-run needs an active or finished ShipLoop run; found {state.get('status')!r} in {out}")
+            raise SystemExit(f"--resume-run needs an active, blocked or finished ShipLoop run; found "
+                             f"{state.get('status')!r} in {out}")
         try:
             earlier_result = json.loads((out / "result.json").read_text())
         except (OSError, ValueError):
@@ -1506,7 +1513,7 @@ def main(argv: list[str] | None = None) -> int:
 
     deadline = time.time() + args.timeout
     if regrade:
-        # ShipLoop already reached done: no host is started, and the verdicts are computed from what is on disk.
+        # ShipLoop is done or blocked: no host is started, and the verdicts are computed from what is on disk.
         process = regraded_process(earlier_result.get("process"))
     else:
         interrupt_file = out / "interrupt.json"
@@ -1639,9 +1646,9 @@ def main(argv: list[str] | None = None) -> int:
               "shiploop": shiploop, "committed": committed, "checks": check_results, "cli": cli_seen, "follow_on": follow_on,
               "resumed_run": resumed, "seeded": seeded, "chain": chain, "recovery": recovery, "budget": budget,
               "expectations": expectations,
-              "metrics": {k: run_metrics[k] for k in ("turns", "cost_usd", "unreported_sessions", "compactions",
-                                                      "truncated_outputs", "improve_children", "stages",
-                                                      "unmeasured")}
+              "metrics": {k: run_metrics[k] for k in ("turns", "model_calls", "window_tokens", "cost_usd",
+                                                      "unreported_sessions", "compactions", "truncated_outputs",
+                                                      "improve_children", "stages", "unmeasured")}
               # None, not 0, where the host's events cannot show the thing counted.
               | {"script_verifications": run_metrics["script_verifications"],
                  "model_glue": metrics.count(run_metrics, "model_glue"),

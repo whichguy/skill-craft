@@ -16,6 +16,8 @@ import json
 from pathlib import Path
 import re
 
+import rollouts
+
 SHIPLOOP_COMMAND = re.compile(r"shiploop\S*\s+(?P<verb>complete|next|improve-[\w-]+|init|workspace|lint|resume|pause)\b")
 # Model-written glue (SPEC S-4, S-5): shell commands that do a mechanical step
 # ShipLoop owns. Defined by ShipLoop's own paths and verbs, never by product
@@ -240,6 +242,11 @@ def session_stop(event: dict) -> str | None:
 # Why a counter is unmeasured, recorded beside the run so a reader never takes its 0 for a measurement.
 NO_PER_CALL_USAGE = ("the host reports no per-call usage events (one total per session), so turns cannot be "
                      "attributed to a stage")
+NO_MODEL_CALLS = ("the host's events carry no per-call usage (no Claude assistant message and no Grok usage event), so "
+                  "the number of model calls is not known")
+NO_WINDOW = ("no result event named one context window in its modelUsage (the host reports none, the session ended "
+             "before it reported, or several models reported different windows)")
+NO_ROLLOUT_WINDOW = "no main-thread token_count record in the rollouts reported a model_context_window"
 CLAUDE_TOOL_BLOCKS = ("this host's tool calls arrive as Claude tool_use / tool_result blocks, which collect() does "
                       "not read, so a count of 0 is a lower bound and not a measurement")
 # What follows from reading only Grok-shaped tool_call events when the stream is Claude's.
@@ -272,6 +279,13 @@ def context_tokens(usage) -> int | None:
     return sum(numbers) if numbers else None
 
 
+def context_windows(event: dict) -> set[int]:
+    """The context windows a result event reports, one per model in its ``modelUsage`` (Claude's shape)."""
+    usage = event.get("modelUsage")
+    found = (m.get("contextWindow") for m in usage.values() if isinstance(m, dict)) if isinstance(usage, dict) else ()
+    return {w for w in found if isinstance(w, int) and not isinstance(w, bool) and w > 0}
+
+
 def total_cost(sessions: list[dict]) -> float | None:
     """The run's cost: its sessions' own reported costs added, or None unless every ended session reported one.
 
@@ -299,6 +313,9 @@ def collect(out: Path, run_dir: Path | None = None) -> dict:
     tool_blocks = 0  # Claude tool_use blocks: calls this collector cannot classify
     grok = False  # per-call `usage` events: the one stream shape the Grok-only counters below can be read from
     starts = 0  # sessions the host began, to tell how many never reported an end
+    messages: set[str] = set()  # Claude message ids seen: one API call writes one assistant event per content block
+    claude_calls = usage_events = 0
+    reported: set[int] = set()  # context windows the result events reported
     # A session that reports no per-call usage (Codex) contributes its own turn count.
     unreported, calls_in_session = 0, 0
     for number, event in events(out / "events.jsonl"):
@@ -310,8 +327,16 @@ def collect(out: Path, run_dir: Path | None = None) -> dict:
             starts += 1  # Codex and Grok open a session with available_commands, Claude with system/init
         if kind == "usage":
             grok = True
+            usage_events += 1
             turns.append({"t": t, "input": context_tokens(event.get("usage"))})
-        elif kind == "assistant":  # Claude: one message per turn
+        elif kind == "assistant":  # Claude: one event per content block of a message
+            # `turns` keeps counting events (baselines.jsonl holds that definition); a model call is a message, counted at
+            # its first event, and an event with no id is its own call.
+            message_id = (event.get("message") or {}).get("id")
+            if not isinstance(message_id, str) or not message_id or message_id not in messages:
+                claude_calls += 1
+                if isinstance(message_id, str) and message_id:
+                    messages.add(message_id)
             for block in (event.get("message") or {}).get("content") or []:
                 tool_blocks += isinstance(block, dict) and block.get("type") == "tool_use"
                 if isinstance(block, dict) and block.get("type") == "tool_use" and ASK_PERSON.search(str(block.get("name"))):
@@ -352,6 +377,7 @@ def collect(out: Path, run_dir: Path | None = None) -> dict:
         elif kind == "auto_compact_completed":
             compactions += 1
         elif kind in ("end", "result"):
+            reported |= context_windows(event)
             # The host's own usage is kept as it wrote it: its shape differs by host (Claude's nests), and
             # a figure built here from per-event snapshots or by summing sessions would not be the host's.
             sessions.append({"stop": session_stop(event), "turns": event.get("num_turns"),
@@ -363,6 +389,8 @@ def collect(out: Path, run_dir: Path | None = None) -> dict:
     # One read of state.md for both the accepted history and the pending stage: a
     # live run rewrites it on every transition, so two reads could disagree.
     state = engine_state(run_dir)
+    accepted, pending = stage_results(run_dir, state), pending_stage(state)
+    windows = stage_windows(accepted, stamps, pending)
     # Counters this host's events cannot show are recorded as unmeasured with the reason,
     # never as 0: a zero would read as a measurement and pass every comparison.
     unmeasured: dict[str, str] = {}
@@ -375,7 +403,31 @@ def collect(out: Path, run_dir: Path | None = None) -> dict:
         cancelled, reads = [], []
     if tool_blocks:
         unmeasured.update({name: CLAUDE_TOOL_BLOCKS for name in CLAUDE_BLIND})
-    stages = per_stage(stage_results(run_dir, state), turns, calls, stamps, pending_stage(state), unmeasured)
+    # Model calls: what the host's own events show (Claude's unique messages, Grok's usage events). The context window
+    # is the one the result events agree on. A host with no per-call events (Codex) keeps them only in its rollout
+    # files: a run that mixes hosts is read as the host that wrote per-call events, as for the counters above.
+    model_calls = (claude_calls + usage_events) or None
+    window_tokens = next(iter(reported)) if len(reported) == 1 else None
+    peak = max((x["input"] for x in turns if x["input"] is not None), default=None)
+    context = None
+    if model_calls is None:
+        context = rollouts.rollout_context(out, [None if w is None else [w[0], w[1]] for w in windows])
+        if "unmeasured" not in context:
+            model_calls, window_tokens, peak = context["calls"], context["window"], context["peak"]
+            compactions = context["compactions"]
+            unmeasured.pop("compactions", None)  # Grok's detector said unmeasured; the rollouts measured it
+    # Why a figure is missing: the host's events (and, for Codex, its rollouts) did not report it.
+    why_not = context["unmeasured"] if context and "unmeasured" in context else None
+    if model_calls is None:
+        unmeasured["model_calls"] = NO_MODEL_CALLS + (f"; {why_not}" if why_not else "")
+    if window_tokens is None:
+        unmeasured["window_tokens"] = (f"{NO_WINDOW}; {why_not}" if why_not else
+                                       NO_ROLLOUT_WINDOW if context else NO_WINDOW)
+    stages = per_stage(accepted, turns, calls, stamps, pending, unmeasured)
+    if context and "unmeasured" not in context:
+        for row, figures in zip(stages, context["perStage"]):
+            if figures is not None:
+                row["context"] = figures
     improve = run_dir / "improve" if run_dir else None
     return {
         "tmp_writes": sorted(shared),
@@ -384,9 +436,13 @@ def collect(out: Path, run_dir: Path | None = None) -> dict:
         # end event); a session that never reported beside one that did makes it a lower bound (unreported_sessions).
         "turns": len(turns) + unreported if turns or any(
             isinstance(s["turns"], int) and not isinstance(s["turns"], bool) for s in sessions) else None,
+        # Messages, not events: `turns` above counts a Claude message once per content block (1.6 to 2 times the calls).
+        "model_calls": model_calls,
+        "window_tokens": window_tokens,
         # Context only: a call's input side is complete when it is sent. Its output count is a streaming
         # snapshot (about 1/17 of the session's own total on a recorded Claude run), so no output figure is built.
-        "tokens": {"input_peak": max((x["input"] for x in turns if x["input"] is not None), default=None)},
+        # Codex is the exception: its rollouts report each call's own total (input plus output), see rollouts.py.
+        "tokens": {"input_peak": peak},
         "unmeasured": unmeasured,
         "cost_usd": total_cost(sessions),
         "unreported_sessions": max(0, starts - len(sessions)),
@@ -545,6 +601,48 @@ def _timed(turns: list[dict]) -> bool:
     return any(x["t"] is not None for x in turns)
 
 
+def stage_windows(accepted: list[dict], stamps: dict, pending: str | None = None) -> list[tuple | None]:
+    """The time window of each row ``per_stage`` reports, in the same order: (after, until, since) or None.
+
+    A stage's events are the ones with after < t <= until; ``since`` is where its seconds start. None marks a
+    row whose timing is unavailable: no runner timeline, an action ShipLoop could not stamp, one accepted before
+    the host's first event (a seeded run records its early stages itself, before the host starts), or the stage
+    after an unstamped one, whose lower boundary is unknown. The stage the run stopped in without accepting
+    (``pending``) runs to the newest event of any kind. One implementation: the per-stage counts and the Codex
+    rollout reader both join their records to these windows.
+    """
+    rows = len(accepted) + bool(pending)
+    if not stamps:
+        return [None] * rows
+    start = min(stamps.values())
+    windows: list[tuple | None] = []
+    previous, since = start - 1, start  # the first stamped event belongs to the first stage
+    gap = False  # the preceding action had no stamp, so this row's lower boundary is unknown
+    for item in accepted:
+        if item.get("t") is None:
+            windows.append(None)
+            gap = True
+        elif item["t"] < start:
+            # Accepted before the host's first event: the harness seeded it, so no host work
+            # was done in it. Its stamp is neither a duration nor a boundary for the next stage.
+            windows.append(None)
+        elif gap:
+            # Its window also covers the unstamped action before it, so attributing
+            # the whole window here would overstate this stage. Attribution resumes
+            # from this known boundary.
+            windows.append(None)
+            previous = since = item["t"]
+            gap = False
+        else:
+            windows.append((previous, item["t"], since))
+            previous = since = item["t"]
+    if pending:
+        # The last acceptance with no stamp leaves its work and this stage's indistinguishable. The newest event of
+        # any kind bounds the window, so a host that reports no per-turn events still shows the time and tool calls.
+        windows.append(None if gap else (previous, max(max(stamps.values()), since), since))
+    return windows
+
+
 def per_stage(accepted: list[dict], turns: list[dict], calls: dict, stamps: dict,
               pending: str | None = None, unmeasured: dict | None = None) -> list[dict]:
     """Turns, tool calls and time between one accepted action and the next.
@@ -552,10 +650,10 @@ def per_stage(accepted: list[dict], turns: list[dict], calls: dict, stamps: dict
     Needs the runner's timeline; without it only the order and outcome are known.
     An action ShipLoop could not stamp reports ``timing: "unavailable"`` rather
     than a zero-length window, and so does an action accepted before the host's
-    first event (a seeded run records its early stages itself, before the host
-    starts). When the run stopped without accepting its current stage, a final
-    ``incomplete`` row carries the work after the last acceptance, so the stage a
-    run died in is still attributed, whatever the host reports.
+    first event (see ``stage_windows``). When the run stopped without accepting its
+    current stage, a final ``incomplete`` row carries the work after the last
+    acceptance, so the stage a run died in is still attributed, whatever the host
+    reports.
 
     A counter the host does not report (``unmeasured`` names it, or a stage
     count that needs per-call usage when the host has none) is ``None`` in the
@@ -580,51 +678,17 @@ def per_stage(accepted: list[dict], turns: list[dict], calls: dict, stamps: dict
         return {"turns": None if "stage_turns" in unmeasured else len(window),
                 "tool_calls": None if "stage_tool_calls" in unmeasured else len(tools)}
 
-    if not accepted and not pending:
-        return []
-    if not stamps:
-        rows = [{"stage": a["stage"], "outcome": a.get("outcome"), "timing": "unavailable"} for a in accepted]
-        if pending:
-            rows.append({"stage": pending, "outcome": None, "incomplete": True, "timing": "unavailable"})
-        return rows
-    start = min(stamps.values())
-    rows, previous, since = [], start - 1, start  # the first stamped event belongs to the first stage
-    gap = False  # the preceding action had no stamp, so this row's lower boundary is unknown
-    for item in accepted:
-        base = {"stage": item["stage"], "outcome": item.get("outcome")}
-        if item.get("t") is None:
-            rows.append({**base, "timing": "unavailable"})
-            gap = True
-            continue
-        if item["t"] < start:
-            # Accepted before the host's first event: the harness seeded it, so no host work
-            # was done in it. Its stamp is neither a duration nor a boundary for the next stage.
+    labels = [(a["stage"], a.get("outcome")) for a in accepted] + ([(pending, None)] if pending else [])
+    rows = []
+    for index, ((stage, outcome), window) in enumerate(zip(labels, stage_windows(accepted, stamps, pending))):
+        base = {"stage": stage, "outcome": outcome, **({"incomplete": True} if index >= len(accepted) else {})}
+        if window is None:
             rows.append({**base, "timing": "unavailable"})
             continue
-        if gap:
-            # Its window also covers the unstamped action before it, so attributing
-            # the whole window here would overstate this stage. Attribution resumes
-            # from this known boundary.
-            rows.append({**base, "timing": "unavailable"})
-            previous = since = item["t"]
-            gap = False
-            continue
-        window = [x for x in turns if x["t"] is not None and previous < x["t"] <= item["t"]]
-        tools = [c for c in calls.values() if c["t"] is not None and previous < c["t"] <= item["t"]]
-        rows.append({**base, "seconds": round(item["t"] - since, 1), **counted(window, tools)})
-        previous = since = item["t"]
-    if pending:
-        if gap:
-            # The last acceptance has no stamp, so its work and this stage's cannot be told apart.
-            rows.append({"stage": pending, "outcome": None, "incomplete": True, "timing": "unavailable"})
-        else:
-            # The newest event of any kind bounds the window, so a host that reports no
-            # per-turn events still shows the time and tool calls spent in the stage.
-            end = max(max(stamps.values()), since)
-            window = [x for x in turns if x["t"] is not None and previous < x["t"] <= end]
-            tools = [c for c in calls.values() if c["t"] is not None and previous < c["t"] <= end]
-            rows.append({"stage": pending, "outcome": None, "incomplete": True,
-                         "seconds": round(end - since, 1), **counted(window, tools)})
+        after, until, since = window
+        events = [x for x in turns if x["t"] is not None and after < x["t"] <= until]
+        tools = [c for c in calls.values() if c["t"] is not None and after < c["t"] <= until]
+        rows.append({**base, "seconds": round(until - since, 1), **counted(events, tools)})
     return rows
 
 

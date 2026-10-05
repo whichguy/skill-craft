@@ -33,6 +33,7 @@ import iterate  # noqa: E402
 import metrics  # noqa: E402
 import progress  # noqa: E402
 import review  # noqa: E402
+import rollouts  # noqa: E402
 import run  # noqa: E402
 import fanout  # noqa: E402
 
@@ -202,6 +203,15 @@ if os.environ.get("FAKE_MODE") == "done":
     shutil.rmtree(".shiploop", ignore_errors=True)  # a resumed session finishes the same run
     product()
 emit({{"type": "item.completed", "item": {{"id": "item_1", "type": "agent_message", "text": "Shipped."}}}})
+if os.environ.get("FAKE_ROLLOUT"):
+    # Codex writes per-call usage only to its rollout files under CODEX_HOME, never to the event stream.
+    import time
+    rollout = home / "sessions" / "2026" / "10" / "04" / "rollout-fake.jsonl"
+    rollout.parent.mkdir(parents=True, exist_ok=True)
+    stamp = time.strftime("%Y-%m-%dT%H:%M:%S", time.gmtime()) + ".000Z"
+    rollout.write_text("".join(json.dumps({{"timestamp": stamp, "type": "token_usage_record", "payload": {{
+        "thread_id": "t", "session_id": "t", "response_id": "r%d" % n,
+        "usage": {{"total_tokens": 1000 * (n + 1)}}}}}}) + "\\n" for n in range(2)))
 emit({{"type": "turn.completed", "usage": {{"input_tokens": 10, "cached_input_tokens": 5, "output_tokens": 2}}}})
 """
 
@@ -769,7 +779,7 @@ class LearningsTest(unittest.TestCase):
             stage = Path(tmp) / "stage"
             bundle = stage / "run" / "review-export" / "review-export.json"
             bundle.parent.mkdir(parents=True)
-            text = json.dumps({"schema": "run-review-export/v1", "docs": {"runs": {"grok-1.0.0-hello-20261004": {}}}})
+            text = json.dumps({"schema": "run-review-export/v2", "docs": {"runs": {"grok-1.0.0-hello-20261004": {}}}})
             bundle.write_text(text)
             iterate.record_learnings(repo, self.message(), stage)
             files = subprocess.run(["git", "-C", str(repo), "show", "--name-only", "--format=", "HEAD"],
@@ -855,12 +865,13 @@ class ReviewExportTest(HarnessCase):
     def test_a_run_with_shiploop_records_is_exported_into_its_output_directory(self):
         out = self.tmp / "graded"
         state_dir = out / ".shiploop-runs" / "work-1" / "run"
-        run.store.write_record(state_dir / "state.md", {"status": "done", "stage": "done", "history": []})
+        run.store.write_record(state_dir / "state.md", {"status": "done", "stage": "done", "history": [
+            {"action": "nav-0123456789abcdef", "stage": "intake", "outcome": "done"}]})
         run.store.write_record(state_dir / "results" / "nav-0123456789abcdef.md",
                            {"action": "nav-0123456789abcdef", "stage": "intake", "result": {"outcome": "done"}})
         (state_dir / "timeline.json").write_text(json.dumps({"started": "2026-10-04T10:00:00Z", "accepted": {
             "nav-0123456789abcdef": "2026-10-04T10:03:00Z"}}))
-        (out / "metrics.json").write_text(json.dumps({"shiploop_failures": [], "model_glue": []}))
+        (out / "metrics.json").write_text(json.dumps({"shiploop_failures": [], "model_glue": [], "unmeasured": {}}))
         line = run.review_export(out)
         self.assertEqual(line, f"review export: {(out / 'review-export').resolve()}")
         bundle = json.loads((out / "review-export" / "review-export.json").read_text())
@@ -871,6 +882,13 @@ class ReviewExportTest(HarnessCase):
                 mock.patch.object(run, "review_export") as exporter:
             self.assertEqual(run.main(["--preflight-only", "--host", "claude", "--output", str(self.tmp / "pf")]), 0)
         exporter.assert_not_called()
+
+
+class ReviewAdviseLineTest(unittest.TestCase):
+    def test_the_step_after_the_learnings_commit_names_the_advise_mode_and_the_run_directory(self):
+        self.assertEqual(iterate.review_line(2, Path("/out/iter-2/run")),
+                         "== iteration 2: update the Run Review page: "
+                         "/skill-craft:shiploop-run-review advise /out/iter-2/run")
 
 
 class HostOutputTest(unittest.TestCase):
@@ -1673,7 +1691,7 @@ class CodexRunTest(HarnessCase):
         code, finished = self.invoke("grok", "done")
         self.assertEqual(code, 0)
         with mock.patch.object(run, "grade_shiploop", return_value={"status": "paused"}):
-            with self.assertRaisesRegex(SystemExit, "needs an active or finished ShipLoop run"):
+            with self.assertRaisesRegex(SystemExit, "needs an active, blocked or finished ShipLoop run"):
                 run.main(["--host", "codex", "--codex-bin", str(self.fakes["codex"]),
                           "--resume-run", finished["output"], "--plugin-dir", str(self.plugin)])
 
@@ -1846,10 +1864,15 @@ class FanoutGradeTest(unittest.TestCase):
         self.assertFalse(result["complete"])
 
 def collect_stream(stream: list, accepted: list, *, status: str = "done", stage: str | None = None,
-                   inner: dict | None = None, first_event: float = 100.0, extra: dict | None = None) -> dict:
-    """metrics.collect over a hand-built host stream, one second between events, ShipLoop records beside it."""
+                   inner: dict | None = None, first_event: float = 100.0, extra: dict | None = None,
+                   rollout_files: list[list[str]] | None = None) -> dict:
+    """metrics.collect over a hand-built host stream, one second between events, ShipLoop records beside it.
+
+    ``rollout_files`` are Codex rollouts (one list of lines each) written under the run's own CODEX_HOME."""
     with tempfile.TemporaryDirectory() as tmp:
         out = Path(tmp)
+        for number, lines in enumerate(rollout_files or []):
+            write_rollout(out, f"{number}", lines)
         run_dir = out / "run"
         (out / "events.jsonl").write_text("".join(json.dumps(e) + "\n" for e in stream))
         (out / "timeline.jsonl").write_text("".join(
@@ -1932,7 +1955,8 @@ class HostCoverageTest(unittest.TestCase):
     def test_a_grok_shaped_stream_measures_every_counter(self):
         stream = [{"type": "usage", "usage": {"input_tokens": 1, "output_tokens": 1}},
                   {"type": "tool_call", "toolCallId": "a", "rawInput": {"command": "git add -A"}}] * 4
-        self.assertEqual(collect_stream(stream, self.ACCEPTED)["unmeasured"], {})
+        # Every counter: the detectors read Grok's events. (A context window is a figure Grok never reports.)
+        self.assertEqual(set(collect_stream(stream, self.ACCEPTED)["unmeasured"]), {"window_tokens"})
 
     def test_the_baseline_row_carries_unmeasured_counters_as_null_with_their_names(self):
         result = {"case": "hello", "metrics": {"turns": 5, "cost_usd": None, "model_glue": None,
@@ -2252,6 +2276,35 @@ class ResumedRunRecordTest(PrintedCase):
         self.assertEqual(t["resume_stop"], "resume budget spent (0)")
         self.assertEqual(t["engine_status_at_regrade"], "done")
         self.assertIn("the original record, regraded with engine done", printed)
+
+    def block_out_of_band(self, out: Path) -> None:
+        """The run's engine blocked itself on a question for a person, as Luna's did, with no report written."""
+        shutil.rmtree(out / "work" / ".shiploop")
+        (out / "work" / ".shiploop").mkdir()
+        run.store.write_record(out / "work" / ".shiploop" / "state.md",
+                               {"status": "blocked", "stage": "test-refine", "status_reason": "waiting for a person"})
+
+    def test_a_blocked_run_is_regraded_without_a_host_and_keeps_the_recorded_identity(self):
+        out = self.stopped_run()
+        recorded = json.loads((out / "result.json").read_text())
+        self.block_out_of_band(out)
+        self.log.unlink(missing_ok=True)
+        result, printed = self.regrade(out, "--host", "codex", "--codex-bin", str(self.fakes["codex"]))
+        self.assertFalse(self.log.exists(), "no host process was started for a blocked run")
+        self.assertTrue(result["process"]["regraded"])
+        self.assertEqual((result["host"], result["model"], result["effort"]),
+                         (recorded["host"], recorded["model"], recorded["effort"]),
+                         "a regrade restates the run's recorded host, model and effort, not --host")
+        t = result["termination"]
+        self.assertEqual((t["regraded"], t["engine_status_at_regrade"]), (True, "blocked"))
+        self.assertIn("the original record, regraded with engine blocked", printed)
+        self.assertFalse(result["shiploop"]["pass"], "a blocked run never reached done")
+        self.assertEqual(result["shiploop"]["status"], "blocked")
+        self.assertIn("metrics", result, "the regrade refreshed the metrics block")
+        self.assertTrue((out / "metrics.json").is_file())
+        self.assertEqual(len(list(out.glob("invocation-resume-*.json"))), 1)
+        rows = self.baselines.read_text().splitlines() if self.baselines.exists() else []
+        self.assertEqual(len(rows), 1, "only the original run writes a baseline row; a regrade does not")
 
     def test_a_regrade_with_no_record_says_no_host_ran_and_fabricates_no_exit(self):
         out = self.stopped_run()
@@ -2798,6 +2851,275 @@ def codex_session(items: list[dict], *, end: bool = True, thread: str = "t1") ->
     return [json.loads(line) for event in raw for line in translate((json.dumps(event) + "\n").encode())]
 
 
+def rollout_line(kind: str, t: float, payload: dict) -> str:
+    """One Codex rollout record, stamped the way Codex stamps it (UTC, milliseconds, Z)."""
+    stamp = datetime.datetime.fromtimestamp(t, datetime.timezone.utc).isoformat(timespec="milliseconds")
+    return json.dumps({"timestamp": stamp.replace("+00:00", "Z"), "type": kind, "payload": payload})
+
+
+def usage_line(t: float, thread: str, session: str, response: str, total: int) -> str:
+    return rollout_line("token_usage_record", t, {
+        "thread_id": thread, "session_id": session, "response_id": response,
+        "usage": {"input_tokens": total - 100, "output_tokens": 100, "total_tokens": total}})
+
+
+def count_line(t: float, window: int, total: int, *, after_compaction: bool = False) -> str:
+    """The token_count event that follows a call (or, after a compaction, reports the shrunken context)."""
+    last = {"input_tokens": 0 if after_compaction else total - 100, "output_tokens": 100, "total_tokens": total}
+    return rollout_line("event_msg", t, {"type": "token_count", "info": {
+        "model_context_window": window, "last_token_usage": last, "total_token_usage": {"total_tokens": total}}})
+
+
+def compacted_line(t: float, request: str) -> str:
+    return rollout_line("compacted", t, {"message": "", "compaction_response_id": request, "replacement_history": []})
+
+
+def write_rollout(out: Path, name: str, lines: list[str]) -> Path:
+    path = out / "home" / ".codex" / "sessions" / "2026" / "10" / "04" / f"rollout-{name}.jsonl"
+    path.parent.mkdir(parents=True, exist_ok=True)
+    path.write_text("\n".join(lines) + "\n")
+    return path
+
+
+def thread_calls(thread: str, session: str, window: int, calls: list[tuple]) -> list[str]:
+    """(time, response id, total, request?) rows as the records Codex writes: a call is a usage record and a
+    token_count; a compaction request is a usage record with no token_count, then the compacted record and the
+    token_count of the shrunken context."""
+    lines = []
+    for t, response, total, request in calls:
+        lines.append(usage_line(t, thread, session, response, total))
+        if request:
+            lines += [compacted_line(t + 0.01, response), count_line(t + 0.02, window, 500, after_compaction=True)]
+        else:
+            lines.append(count_line(t + 0.01, window, total))
+    return lines
+
+
+# Two threads: the root thread (6 calls, 2 compactions) and a sub-agent forked from it (3 calls, 1 compaction).
+# The compaction requests carry the heaviest totals (9500, 8000, 12000): a request holds the whole context.
+ROOT_THREAD = [(1000, "r1", 1000, False), (1015, "r2", 2000, False), (1020, "r3", 9000, False),
+               (1030, "rq1", 9500, True), (1040, "r4", 3000, False), (1050, "r5", 4000, False),
+               (1060, "rq2", 8000, True), (1070, "r6", 1500, False)]
+SUB_THREAD = [(1025, "s1", 5000, False), (1045, "s2", 6000, False), (1055, "sq1", 12000, True),
+              (1065, "s3", 7000, False)]
+
+
+def two_thread_rollouts() -> list[list[str]]:
+    root = [rollout_line("session_meta", 999, {"id": "root"}), *thread_calls("root", "root", 10000, ROOT_THREAD)]
+    root.insert(5, count_line(1020.02, 10000, 9000))  # a repeated token_count: not a call
+    root.append('{"timestamp": "2026-10-04T')  # the half-written last line of a rollout a live run still writes
+    # The sub-agent's file opens with its parent's last compacted record, stamped at the fork: its request is
+    # a record in the parent's file, so it is inherited history and not this thread's compaction.
+    sub = [rollout_line("session_meta", 1015, {"id": "sub", "forked_from_id": "root"}),
+           compacted_line(1015.0, "rq1"), *thread_calls("sub", "root", 20000, SUB_THREAD)]
+    return [root, sub]
+
+
+class RolloutContextTest(unittest.TestCase):
+    """The Codex rollout reader: what counts as a call, a compaction and the main thread's peak (R15)."""
+
+    WINDOWS = [[999, 1015], [1015, 1035], [1035, 1055], [1055, 1100], None]
+
+    def read(self, files: list[list[str]], windows=None) -> dict:
+        with tempfile.TemporaryDirectory() as tmp:
+            out = Path(tmp)
+            for number, lines in enumerate(files):
+                write_rollout(out, f"{number}", lines)
+            return rollouts.rollout_context(out, self.WINDOWS if windows is None else windows)
+
+    def test_a_compaction_request_is_not_a_call_and_never_the_peak(self):
+        got = self.read(two_thread_rollouts())
+        # 6 root calls; the 8 root usage records minus the two compaction requests, and the repeated token_count
+        # neither adds a call nor changes the peak. The requests' 9500 and 8000 are heavier than any call.
+        self.assertEqual((got["calls"], got["peak"], got["peakPct"], got["window"]), (6, 9000, 90.0, 10000))
+        self.assertEqual(got["compactions"], 2)
+
+    def test_sub_agent_threads_are_reported_apart_from_the_main_thread(self):
+        got = self.read(two_thread_rollouts())
+        # The sub-agent's own compaction counts for it; the inherited copy of its parent's does not count at all.
+        self.assertEqual(got["subagents"], {"calls": 3, "peak": 7000, "compactions": 1})
+        self.assertEqual(got["window"], 10000, "the sub-agent's 20000 window is not the main thread's")
+
+    def test_each_stage_window_gets_its_own_calls_peak_and_compactions(self):
+        got = self.read(two_thread_rollouts())
+        self.assertEqual(got["perStage"], [
+            {"calls": 2, "peak": 2000, "peakPct": 20.0, "compactions": 0},  # the call at the window's end counts
+            {"calls": 1, "peak": 9000, "peakPct": 90.0, "compactions": 1},  # and not again in the next window
+            {"calls": 2, "peak": 4000, "peakPct": 40.0, "compactions": 0},
+            {"calls": 1, "peak": 1500, "peakPct": 15.0, "compactions": 1},
+            None])  # a stage with no window has no figures, not zeros
+        self.assertEqual(sum(w["calls"] for w in got["perStage"] if w), got["calls"])
+
+    def test_a_call_outside_every_window_is_in_the_headline_only(self):
+        got = self.read(two_thread_rollouts(), [[999, 1015]])
+        self.assertEqual(got["calls"], 6)
+        self.assertEqual(got["perStage"], [{"calls": 2, "peak": 2000, "peakPct": 20.0, "compactions": 0}])
+
+    def test_no_rollout_is_unmeasured_with_its_reason(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            self.assertEqual(rollouts.rollout_context(Path(tmp), []), {"unmeasured": rollouts.NO_ROLLOUTS})
+            (Path(tmp) / "home" / ".codex" / "sessions").mkdir(parents=True)  # a home with no rollout in it
+            self.assertEqual(rollouts.rollout_context(Path(tmp), []), {"unmeasured": rollouts.NO_ROLLOUTS})
+        self.assertIn("rollout-*.jsonl", rollouts.NO_ROLLOUTS)
+
+    def test_rollouts_with_no_main_thread_call_are_unmeasured_not_zero_calls(self):
+        sub_only = [rollout_line("session_meta", 1000, {"id": "sub"}), *thread_calls("sub", "root", 20000, SUB_THREAD)]
+        self.assertEqual(self.read([sub_only]), {"unmeasured": rollouts.NO_CALLS})
+        self.assertEqual(self.read([[rollout_line("session_meta", 1000, {"id": "root"})]]),
+                         {"unmeasured": rollouts.NO_CALLS})
+
+    def test_a_window_nobody_reported_is_none_and_gives_no_percentage(self):
+        root = [usage_line(1000, "root", "root", "r1", 4000), usage_line(1001, "root", "root", "r2", 5000)]
+        got = self.read([root], [[999, 1100]])
+        self.assertEqual((got["window"], got["calls"], got["peak"], got["peakPct"]), (None, 2, 5000, None))
+        self.assertEqual(got["perStage"], [{"calls": 2, "peak": 5000, "peakPct": None, "compactions": 0}])
+
+    def test_a_resumed_session_is_another_root_thread_whose_calls_and_compactions_add_up(self):
+        first = [usage_line(1000, "a", "a", "a1", 1000), *thread_calls("a", "a", 10000, [(1001, "aq", 6000, True)])]
+        second = thread_calls("b", "b", 10000, [(2000, "b1", 3000, False), (2001, "bq", 7000, True),
+                                               (2002, "b2", 2500, False)])
+        got = self.read([first, second], [])
+        self.assertEqual((got["calls"], got["peak"], got["compactions"]), (3, 3000, 2))
+        self.assertEqual(got["subagents"], {"calls": 0, "peak": None, "compactions": 0})
+
+
+class StageWindowsTest(unittest.TestCase):
+    """The windows per_stage already derived are one implementation the rollout reader shares."""
+
+    def test_windows_line_up_with_the_stage_rows_and_none_marks_unavailable_timing(self):
+        accepted = [{"stage": "seeded", "outcome": "done", "t": 90.0},     # before the host's first event
+                    {"stage": "a", "outcome": "done", "t": 105.0},
+                    {"stage": "no-stamp", "outcome": "done", "t": None},
+                    {"stage": "after-gap", "outcome": "done", "t": 112.0},  # its lower boundary is unknown
+                    {"stage": "b", "outcome": "revise", "t": 118.0}]
+        stamps = {n: 100.0 + n for n in range(21)}
+        windows = metrics.stage_windows(accepted, stamps, "open")
+        rows = metrics.per_stage(accepted, [{"t": 101.5, "input": 1}, {"t": 114.0, "input": 1}], {}, stamps, "open")
+        self.assertEqual(len(windows), len(rows))
+        self.assertEqual([w is None for w in windows], [r.get("timing") == "unavailable" for r in rows])
+        self.assertEqual(windows, [None, (99.0, 105.0, 100.0), None, None, (112.0, 118.0, 112.0),
+                                   (118.0, 120.0, 118.0)])
+        for window, row in zip(windows, rows):
+            if window:
+                self.assertEqual(row["seconds"], round(window[1] - window[2], 1))
+        self.assertEqual(metrics.stage_windows(accepted, {}, "open"), [None] * 6)
+        self.assertEqual(metrics.stage_windows([], stamps, None), [])
+
+
+class CodexRolloutMetricsTest(unittest.TestCase):
+    """metrics.collect on a Codex run reads calls, window, peak and compactions from its rollouts, and says
+    why when they are absent; the other counters Codex cannot show stay unmeasured."""
+
+    ACCEPTED = [("A1", "intake", "done", 105.0), ("A2", "spec", "done", 113.0)]
+
+    def rollouts(self) -> list[list[str]]:
+        root = thread_calls("root", "root", 10000, [(101, "r1", 1000, False), (104.5, "r2", 3000, False),
+                                                    (108, "rq", 3500, True), (110, "r3", 2000, False),
+                                                    (120, "r4", 500, False)])  # after the last acceptance
+        sub = thread_calls("sub", "root", 20000, [(102, "s1", 9000, False)])
+        return [root, sub]
+
+    def test_a_codex_run_with_rollouts_has_calls_window_peak_and_compactions(self):
+        m = collect_stream(codex_stream(12), self.ACCEPTED, rollout_files=self.rollouts())
+        self.assertEqual((m["model_calls"], m["window_tokens"], m["compactions"]), (4, 10000, 1))
+        self.assertEqual(m["tokens"], {"input_peak": 3000})
+        for name in ("model_calls", "window_tokens", "compactions"):
+            self.assertNotIn(name, m["unmeasured"], name)
+        # What the Codex stream still cannot show stays unmeasured: the four stage and detector counters.
+        self.assertEqual(set(m["unmeasured"]), {"stage_turns", "truncated_outputs", "cancelled_tool_calls",
+                                                "knowledge_reads"})
+        self.assertEqual([r["context"] for r in m["stages"]], [
+            {"calls": 2, "peak": 3000, "peakPct": 30.0, "compactions": 0},
+            {"calls": 1, "peak": 2000, "peakPct": 20.0, "compactions": 1}])
+        self.assertTrue(all(r["turns"] is None for r in m["stages"]), "stage turns stay unmeasured")
+        self.assertIn("compactions 1,", metrics.summary_lines(m)[0])
+
+    def test_a_codex_run_without_rollouts_names_them_as_the_reason(self):
+        m = collect_stream(codex_stream(12), self.ACCEPTED)
+        self.assertEqual((m["model_calls"], m["window_tokens"], m["compactions"]), (None, None, None))
+        self.assertEqual(m["tokens"], {"input_peak": None})
+        for name in ("model_calls", "window_tokens", "compactions"):
+            self.assertIn(name, m["unmeasured"], name)
+        self.assertIn(rollouts.NO_ROLLOUTS, m["unmeasured"]["model_calls"])
+        self.assertIn(rollouts.NO_ROLLOUTS, m["unmeasured"]["window_tokens"])
+        self.assertTrue(all("context" not in r for r in m["stages"]))
+        self.assertEqual(len(m["unmeasured"]), 7)  # the five Codex had, and the two new figures
+
+    def test_rollouts_are_not_read_when_the_host_reported_per_call_usage(self):
+        # A Grok or Claude stream measures its own calls; a stray rollout beside it does not change them.
+        stream = [{"type": "usage", "usage": {"input_tokens": 1, "output_tokens": 1}}] * 2
+        m = collect_stream(stream, self.ACCEPTED, rollout_files=self.rollouts())
+        self.assertEqual((m["model_calls"], m["compactions"]), (2, 0), "Grok's own events: no compaction event")
+        self.assertTrue(all("context" not in r for r in m["stages"]))
+
+    def test_rollouts_that_hold_no_call_are_unmeasured_with_the_reason(self):
+        m = collect_stream(codex_stream(3), self.ACCEPTED, rollout_files=[[rollout_line("session_meta", 1, {})]])
+        self.assertIsNone(m["model_calls"])
+        self.assertIn(rollouts.NO_CALLS, m["unmeasured"]["model_calls"])
+
+
+class ModelCallsAndWindowTest(unittest.TestCase):
+    """A model call is a Claude message, not an event: `turns` keeps counting events (baselines.jsonl stores that
+    definition and run.py compares it across runs), and a window the host did not report is unknown, not 0."""
+
+    @staticmethod
+    def message(message_id, text="x"):
+        message = {"usage": {"input_tokens": 10}, "content": [{"type": "text", "text": text}]}
+        if message_id is not None:
+            message["id"] = message_id
+        return {"type": "assistant", "message": message}
+
+    @staticmethod
+    def result(*windows, num_turns=1):
+        return {"type": "result", "subtype": "success", "num_turns": num_turns, "total_cost_usd": 1.0,
+                "modelUsage": {f"model-{n}": {"contextWindow": w, "inputTokens": 5}
+                               for n, w in enumerate(windows)}}
+
+    def test_three_events_of_one_message_are_one_call_and_three_turns(self):
+        m = collect_stream([self.message("m1")] * 3, [])
+        self.assertEqual((m["model_calls"], m["turns"]), (1, 3))
+        self.assertNotIn("model_calls", m["unmeasured"])
+
+    def test_events_without_an_id_count_one_each_and_a_repeated_id_counts_once(self):
+        stream = [self.message("m1"), self.message("m1"), self.message("m2"), self.message(None),
+                  self.message(None), self.message(""), self.message("m1")]
+        m = collect_stream(stream, [])
+        self.assertEqual((m["model_calls"], m["turns"]), (5, 7))  # m1, m2, two with no id, one empty id
+
+    def test_the_window_comes_from_the_result_event(self):
+        m = collect_stream([self.message("m1"), self.result(1000000)], [])
+        self.assertEqual(m["window_tokens"], 1000000)
+        self.assertNotIn("window_tokens", m["unmeasured"])
+        # Two sessions of one run that agree on it are one window.
+        m = collect_stream([self.message("m1"), self.result(1000000), self.message("m2"), self.result(1000000)], [])
+        self.assertEqual(m["window_tokens"], 1000000)
+
+    def test_a_window_nobody_reported_or_that_disagrees_is_null_with_its_reason(self):
+        for label, stream in (("no result event", [self.message("m1")]),
+                              ("a result without modelUsage", [self.message("m1"),
+                                                               {"type": "result", "subtype": "success"}]),
+                              ("a bool or zero window", [self.message("m1"), self.result(True, 0)]),
+                              ("two models with different windows", [self.message("m1"), self.result(200000, 1000000)])):
+            with self.subTest(label):
+                m = collect_stream(stream, [])
+                self.assertIsNone(m["window_tokens"])
+                self.assertIn("context window", m["unmeasured"]["window_tokens"])
+                self.assertEqual(m["model_calls"], 1, "the window being unknown does not hide the calls")
+
+    def test_a_grok_stream_counts_its_usage_events_and_has_no_window(self):
+        m = collect_stream([{"type": "usage", "usage": {"input_tokens": 1, "output_tokens": 1}}] * 4, [])
+        self.assertEqual((m["model_calls"], m["turns"]), (4, 4))
+        self.assertIsNone(m["window_tokens"])
+        self.assertEqual(set(m["unmeasured"]), {"window_tokens"})
+
+    def test_a_host_with_no_per_call_usage_has_no_call_count_not_zero_calls(self):
+        m = collect_stream(codex_stream(3), [])
+        self.assertIsNone(m["model_calls"])
+        self.assertIsNone(m["window_tokens"])
+        self.assertIn("per-call usage", m["unmeasured"]["model_calls"])
+        self.assertEqual(m["turns"], 3, "the session's own total is still reported")
+
+
 def codex_command(n: int, command: str = "echo ok", output: str = "ok\n", code: int = 0) -> dict:
     return {"id": f"item_{n}", "type": "command_execution", "command": command, "aggregated_output": output,
             "exit_code": code, "status": "completed" if code == 0 else "failed"}
@@ -2859,7 +3181,7 @@ class HostSignalCountersTest(unittest.TestCase):
             {"type": "auto_compact_completed"},
             {"type": "end", "stopReason": "end_turn", "num_turns": 1, "total_cost_usd": 1.0}]
         m = collect_stream(stream, self.ACCEPTED)
-        self.assertEqual(m["unmeasured"], {})
+        self.assertEqual(set(m["unmeasured"]), {"window_tokens"}, "every detector reads a Grok stream")
         self.assertEqual((m["compactions"], m["truncated_outputs"]), (1, 1))
         self.assertEqual(m["cancelled_tool_calls"], ["git init -b main"])
         self.assertEqual(m["knowledge_reads"], ["docs/shiploop/spec.md"])
@@ -2883,6 +3205,44 @@ class HostSignalCountersThroughMainTest(PrintedCase):
                     self.assertIsNone(row[name], name)
                 self.assertIn("compactions not measured", printed)
                 self.assertIn("truncated outputs not measured", printed)
+
+
+class ModelCallsThroughMainTest(PrintedCase):
+    """result.json carries the two figures beside the other whole-run scalars; the baseline row does not
+    (they are not comparison keys: the row's turns keep the events-based definition)."""
+
+    def test_result_json_carries_calls_and_window_and_the_baseline_row_does_not(self):
+        code, result, _ = self.invoke_printed("claude", "done")
+        self.assertEqual(code, 0, result)
+        self.assertEqual(result["metrics"]["model_calls"], 1)  # the fake's one assistant event
+        self.assertIsNone(result["metrics"]["window_tokens"])  # its result event reports no modelUsage
+        self.assertIn("window_tokens", result["metrics"]["unmeasured"])
+        row = self.last_row()
+        for name in ("model_calls", "window_tokens"):
+            self.assertNotIn(name, row)
+        self.assertIn("window_tokens", row["unmeasured"])
+        code, result, _ = self.invoke_printed("codex", "done")
+        self.assertIsNone(result["metrics"]["model_calls"])
+        self.assertIn("model_calls", result["metrics"]["unmeasured"])
+        self.assertIn("rollout", result["metrics"]["unmeasured"]["model_calls"])
+        self.assertIn("compactions", result["metrics"]["unmeasured"])
+
+    def test_a_codex_run_whose_home_holds_rollouts_reports_them_in_every_record(self):
+        os.environ["FAKE_ROLLOUT"] = "1"
+        self.addCleanup(os.environ.pop, "FAKE_ROLLOUT", None)
+        code, result, _ = self.invoke_printed("codex", "done")
+        self.assertEqual(code, 0, result)
+        m = result["metrics"]
+        self.assertEqual((m["model_calls"], m["compactions"]), (2, 0))  # 0 is a measurement: the rollouts exist
+        self.assertIsNone(m["window_tokens"])  # no token_count record reported one
+        self.assertIn("model_context_window", m["unmeasured"]["window_tokens"])
+        for name in ("model_calls", "compactions"):
+            self.assertNotIn(name, m["unmeasured"], name)
+        self.assertEqual(json.loads((Path(result["output"]) / "metrics.json").read_text())["tokens"],
+                         {"input_peak": 2000})
+        row = self.last_row()
+        self.assertEqual(row["compactions"], 0)
+        self.assertNotIn("compactions", row["unmeasured"])
 
 
 class UnknownTurnsTest(unittest.TestCase):

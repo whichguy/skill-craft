@@ -212,30 +212,58 @@ product hang; it does not say the product is wrong.
 - Seconds are wall clock between two stamps. A `--resume-run` gap, a credit stop or
   a pause inside a stage is counted as that stage's time.
 - Turns count assistant content-block events, between 1.6 and 2 times the host's own
-  turn count (`result.num_turns`) on recorded Claude runs.
+  turn count (`result.num_turns`) on recorded Claude runs. That definition stays: the
+  baseline rows store it and are compared across runs. `model_calls` is the number of
+  model calls: a Claude message counted once at its first event (unique `message.id`; an
+  event with no id counts one) and a Grok `usage` event each (recorded Claude hello runs:
+  149 calls for 254 turns, 113 for 194, 94 for 167, 84 for 143). `window_tokens` is the
+  context window the result events' `modelUsage` report (Claude: 1,000,000). Both are in
+  `metrics.json` and `result.json`'s metrics, and neither is a baseline key. A host that
+  reports nothing leaves the field null and names it, with the reason, in `unmeasured`
+  (Grok reports no window; a Codex run has no call count in its events).
 - A host reports what it reports. A counter its events cannot show is null in
   `metrics.json`, `result.json` and the baseline row (the ShipLoop command failure and
   model glue lists stay in `metrics.json` as lower bounds) and is named, with the
   reason, in `unmeasured`, so a later run compares it as not measured and never as
-  0 -> 0. Codex emits no per-call usage, so per-stage turns are unmeasured for it.
-  Neither Codex nor Claude writes Grok's compaction, truncation, permission-refusal or
-  file-read events, so compactions, truncated outputs, cancelled tool calls and
-  knowledge reads are unmeasured on both (Codex prints "cancelled 0" in a failing
-  `node --test` summary and its file changes are writes: the Grok-only detectors used
-  to count those as refusals and reads). Claude's tool calls are `tool_use` blocks the
+  0 -> 0. Codex emits no per-call usage in its events, so per-stage turns are unmeasured
+  for it; its calls, context window and compactions are read from its rollout files
+  (next bullet). Neither Codex nor Claude writes Grok's truncation, permission-refusal
+  or file-read events, so truncated outputs, cancelled tool calls and knowledge reads
+  are unmeasured on both, and compactions are unmeasured on Claude and on a Codex run
+  whose rollouts are gone (Codex prints "cancelled 0" in a failing `node --test` summary
+  and its file changes are writes: the Grok-only detectors used to count those as
+  refusals and reads). Claude's tool calls are `tool_use` blocks the
   collector does not read, so its stage tool calls, ShipLoop command failures, model
   glue and `/tmp` writes are unmeasured too. Whole-run turns are null when no call and
   no ended session reported a count (a Codex session killed before its end event), and
   a lower bound when a session never reported (`unreported_sessions`). The suite's
   `/tmp` collision check leaves a run with unmeasured writes out, names it in
   `suite-result.json` as `tmp_writes_unmeasured` and prints that it did not check it.
+- A Codex run's per-call context comes from `rollouts.py`, which streams the run-owned
+  `home/.codex/sessions/**/rollout-*.jsonl` one line at a time (a half-written last line
+  of a live run is skipped). A call is a `token_usage_record` that is not a compaction
+  request: the record a `compacted` record's `compaction_response_id` names holds the whole
+  context to summarise it, so it is neither a call nor the peak. A compaction is a
+  `compacted` record whose request is in the same file (a sub-agent's file opens with a copy
+  of its parent's last one, which is inherited history). The headline is the main thread's
+  (thread_id equal to session_id; a resumed run is another root thread and adds up);
+  sub-agent threads are summed once under `subagents` and belong to no stage. From it
+  `metrics.collect` fills `model_calls`, `window_tokens` (a `token_count` record's
+  `model_context_window`), `tokens.input_peak` (the heaviest call's `total_tokens`: its
+  input plus its own output, so it reads higher than the input-side peak Claude reports,
+  and 97.5% against 94.7% on the Luna run) and `compactions`, and gives each stage row a
+  `context` {calls, peak, peakPct, compactions} over the stage's window (the one
+  `stage_windows` also gives `per_stage`; a call after the last acceptance is in no stage).
+  Without rollouts the figures are null and `unmeasured` names them with that reason.
+  Recorded Luna 1.16.1 run (168 MB, read in 0.6 s): 2,565 main-thread calls, peak 251,867
+  of 258,400, 34 compactions, and 314 sub-agent calls.
 - No output-token figure is built from events: a Claude message's output count is a
   streaming snapshot (it summed to about 1/17 of the session's own total on a recorded
   run), and Codex has none per call. A session's tokens are the host's own `usage` in
   `sessions`. Cost and turns add up across the sessions that reported; a session killed
   before it reported is counted in `unreported_sessions`, not estimated.
 - The Run Review page's stage minutes come from the exporter's own accept-to-accept
-  computation (`skills/shiploop-e2e-audit/run-review/export.py`), not from
+  computation (`skills/shiploop-run-review/scripts/export.py`), not from
   `metrics.json`. The first stage differs: the exporter starts at the engine's
   `started` stamp, the harness at the first host event.
 - A recreated `timeline.json` (the engine stamps every historical action with the
@@ -390,7 +418,7 @@ phases, Improve, failures, planning-document sizes, Backchain loop ledgers) and
 `facts.md`, plain numbers for the reviewer. An export problem is printed and
 never changes a verdict. `iterate.py` commits the compact `review-export.json` as
 `evidence/<run key>.json` with the learnings entry. After that commit, update the
-page as [run-review/README.md](../../skills/shiploop-e2e-audit/run-review/README.md)
+page as the [shiploop-run-review skill](../../skills/shiploop-run-review/SKILL.md)
 describes.
 
 ## Cases and self-test

@@ -1,0 +1,1229 @@
+{
+ "schema": "run-review-export/v2",
+ "docs": {
+  "reviews": {
+   "luna1": {
+    "summary": [
+     "Codex GPT-6 Luna at effort max ran battleship on skill-craft 1.16.1 for 19.3 h: 39 accepted visits, two Backchain loops (7 and 4 passes) and 41 Improve passes in 9 children (360.3 min, 31%).",
+     "It ended blocked at system-test on two person-only browser cases while all 4 harness checks passed in ShipLoop's worktree; product-acceptance, release and the report never ran. 13 commands were refused (4 run-path copy errors, 3 contracts over budget, 5 results or an opening in the wrong shape, 1 blocked result under S-14), and the main thread peaked at 97.5% of its 258,400-token window with 34 compactions.",
+     "Conclusions: the hours went to how much Luna writes in its loops, not to packet size (plan passes 2 to 7 changed only confirm clauses and a label), and the block was a missing open-item route, not a product defect.",
+     "Learnings: three engine fixes this run prompted are released but not yet seen live (budget text and prompt trim in 1.19.0, the system-test open item in 1.20.0); the harness misread the run four ways: two are fixed (stage minutes, Improve children), one is fixed for new runs (plugin on a resume), one is open (refusal lines).",
+     "Next: one Luna run at xhigh with one Backchain pass checks a03, a06, a12, a13 and a17 together; before it, record refusal causes (a21), release the shape fixes (a25) and publish the v2 export (a09)."
+    ],
+    "basis": {
+     "P1": "Bent by o24: the host chose to run two Backchain loops (7 and 4 passes); every stage transition was the script's (39 visits in state.md history, the revise replanned through the script, o04).",
+     "P2": "Bent by o03: the host still writes the Backchain loop contract; Improve contracts over budget were refused at start (3 of 13 refusals) and all 9 Improve children have a receipt.",
+     "P3": "Broken by o27 and o32 (an off-protocol step-plan loop chosen before its packet was read); bent by o05, o28 and o43 (13 refused commands, and the run went on after each).",
+     "P4": "Holds: the run advanced only through callbacks (39 accepted visits, revision 57), and the resumed session ended its turn only after the accepted blocked result (cli stop end_turn).",
+     "P5": "Broken by o36 and o42 (a plugin verdict and an Improve time the record got wrong); bent by o21 and o40. o18 and o31 are fixed on this run's regraded record.",
+     "P6": "Broken by o06: Sonnet passed battleship in 19.1 min while Luna blocked after 19.3 h; bent by o23.",
+     "B1": "Bent by o11, o12, o19, o29 and o30: plan passes 2 to 7 (92 min) changed only confirm clauses and a label; the owner chose one pass (a17).",
+     "B2": "Broken by o13 and o26: no script checked either graph in this run, and the accepted step-plan candidate fails invariant 4; bent by o25.",
+     "B3": "Broken by o14: a 20-step plan graph with no parallel groups mapped to one work item, and no later packet names it (fast-planning investigation).",
+     "B4": "Bent by o15, o20 and o22: half of each graph restates the acceptance criteria, and Improve reviewed each plan again after Backchain.",
+     "B5": "Examined, not rated: one revise during build (o16, SYS-PORT-09); whether the spec or sources showed it is unknown."
+    },
+    "reviewedAt": "2026-10-05T01:45:00Z"
+   }
+  },
+  "observations": {
+   "o01": {
+    "title": "Model-built Backchain contract overflowed the loop's state",
+    "criterion": "P2",
+    "kind": "defect",
+    "status": "fixed",
+    "run": "luna0",
+    "phase": 2,
+    "expected": "A script writes every loop contract, sized to leave room for reports.",
+    "observed": "The model built it at about 16 KB. Its first report was rejected twice and the plan stage could not close.",
+    "evidence": "test/shiploop_e2e/LEARNINGS.md, batch 1003",
+    "createdAt": "2026-10-04T15:00:00Z"
+   },
+   "o02": {
+    "title": "Improve openings of 12 to 16 KB",
+    "criterion": "P2",
+    "kind": "defect",
+    "status": "fixed",
+    "run": "luna0",
+    "phase": 1,
+    "expected": "An opening leaves room for the first review report.",
+    "observed": "Luna wrote contracts of 11.9, 12.1 and 15.7 KB against a 16 KiB state limit. Fixed with a 9,216-byte budget refused at start.",
+    "evidence": "release 1.16.1, shiploop_loop_contract.py",
+    "createdAt": "2026-10-04T15:00:01Z"
+   },
+   "o03": {
+    "title": "Step-plan Backchain contract of 11.9 KB, one rejected report",
+    "criterion": "P2",
+    "kind": "defect",
+    "status": "open",
+    "run": "luna1",
+    "phase": 2,
+    "effect": "bent",
+    "expected": "Every Backchain loop carries the size budget.",
+    "observed": "Only the plan stage had the budget text. The step-plan loop's first report was rejected once and the loop closed with 677 bytes spare. The fix is committed locally, not released. [Superseded 2026-10-04: 112b239c was released in 1.19.0 (19fa890d); no 1.16.2 release was made.]",
+    "evidence": "commit 112b239c",
+    "advice": "The budget text at every Backchain stage shipped in 1.19.0 (a06) and has not met a looped run since: read the next Luna run's Backchain contracts first. Inferred: with the loop text printed only at plan since 1.19.0 (a12) and one pass by default (a17) the host writes this contract less often, but still writes it; only a script-written contract (a02) removes the guess.",
+    "createdAt": "2026-10-04T15:00:02Z"
+   },
+   "o04": {
+    "title": "Implement returned revise and the item was replanned once",
+    "criterion": "P1",
+    "kind": "recovered",
+    "status": "accepted",
+    "run": "luna1",
+    "phase": 3,
+    "expected": "A plan flaw found while building goes back through the script.",
+    "observed": "The script accepted the revise outcome, issued a new step plan, and the chain resumed. Designed behaviour.",
+    "evidence": "/Users/dadleet/e2e-runs/20261003/v1161-battleship-luna/.shiploop-runs/work-20261003-225401-173a04/run/status.md",
+    "createdAt": "2026-10-04T15:00:03Z"
+   },
+   "o05": {
+    "title": "The model drops a space inside long callback paths",
+    "criterion": "P3",
+    "kind": "defect",
+    "status": "open",
+    "run": "any",
+    "runs": [
+     "luna1"
+    ],
+    "phase": 3,
+    "effect": "bent",
+    "expected": "The model runs the printed command exactly.",
+    "observed": "Three refused calls, each recovered in one turn. The run path is over 100 characters. After the o33 count's cutoff the run made a fourth run-path error, a run directory typed as '.../20261003/20261003-bad' (events.jsonl line 7203), also repaired by the next call.",
+    "evidence": "test/shiploop_e2e/evidence/codex-gpt-6-luna-1.16.1-battleship-20261003.json runs.luna1.failures (4 of 13 are run-path errors); /Users/dadleet/e2e-runs/20261003/v1161-battleship-luna/events.jsonl lines 7203 to 7206 (the fourth, repaired by the next call); docs/experiments/shiploop-callback-failures-20261004/failures.json. Was 'luna1 status: ShipLoop failures 9', written before the regrade (13).",
+    "advice": "Keep the engine change deferred, as o33 decided: neither reopening trigger has fired (no 'unrecognized arguments' or 'no ShipLoop run directory' line in the five run directories of 2026-10-04, and every path error here was repaired by the next call). Check R1 and R2 again after the next long run.",
+    "createdAt": "2026-10-04T15:00:04Z"
+   },
+   "o06": {
+    "title": "Sonnet passes what Luna fails",
+    "criterion": "P6",
+    "kind": "defect",
+    "status": "open",
+    "run": "sonnet",
+    "runs": [
+     "luna1",
+     "sonnet",
+     "sonnet-battleship"
+    ],
+    "phase": 2,
+    "effect": "broken",
+    "expected": "The fast gate predicts the slow, deep run.",
+    "observed": "Sonnet's plan stage took about 0.6 minutes (accept timestamps) and it never starts a Backchain loop, so the state overflow only appeared on Luna, hours in. Context differs as much: Luna's main thread peaked at 251,867 of its 258,400-token window (97.5%, a Codex peak includes the call's own output) with 34 compactions; the largest of the four Sonnet hello peaks is 271,220 of 1,000,000 (27.1%).",
+    "evidence": "/Users/dadleet/e2e-runs/20261003/batch-sonnet/battleship (timeline.json: plan accepted 0.6 min after the previous accept); test/shiploop_e2e/evidence/codex-gpt-6-luna-1.16.1-battleship-20261003.json (plan 196.4 min; contextPeak 251,867 of contextWindow 258,400; compactions 34) and the hello exports beside it (contextPeak, contextWindow).",
+    "advice": "Treat the Sonnet gate as a check of the flow, not of depth, and keep one Luna run per release as the depth check. Inferred: a Sonnet case cannot reach Luna's path while the loop is the model's choice (o24), and a 1,000,000-token window never meets the compaction pressure Luna ran under, so a07 helps only once a loop is required.",
+    "figure": {
+     "kind": "bars",
+     "items": [
+      {
+       "label": "Luna peak, % window",
+       "value": 97.5,
+       "unit": "% of window",
+       "tone": "saw"
+      },
+      {
+       "label": "Sonnet hello max, %",
+       "value": 27.1,
+       "unit": "% of window",
+       "tone": "saw"
+      }
+     ]
+    },
+    "createdAt": "2026-10-04T15:00:05Z"
+   },
+   "o07": {
+    "title": "Repeat review passes are not the cost",
+    "criterion": "P1",
+    "kind": "decision",
+    "status": "accepted",
+    "run": "luna1",
+    "phase": 1,
+    "expected": "Fewer review passes would make Luna much faster.",
+    "observed": "They are about 16% of the time and later passes keep finding real issues. No prompt change; a metric records passes per child. [Superseded 2026-10-04: measured bind to receipt, Improve took 360.3 of 1,158.5 minutes (31%) over 41 passes (runs.luna1.improveMin of the v2 export), not about 16%.]",
+    "evidence": "LEARNINGS.md, review-pass evidence",
+    "createdAt": "2026-10-04T15:00:06Z"
+   },
+   "o08": {
+    "title": "The harness graded correct runs as failed",
+    "criterion": "P5",
+    "kind": "defect",
+    "status": "fixed",
+    "run": "any",
+    "runs": [
+     "sonnet"
+    ],
+    "phase": 3,
+    "expected": "A grade reflects the engine, not the harness.",
+    "observed": "The resume prompt named a bare CLI, a finished run could not be graded, and a retention check matched only headings. All fixed with tests.",
+    "evidence": "commits 7c1f1014, d09eb764, 42ca61f9",
+    "createdAt": "2026-10-04T15:00:07Z"
+   },
+   "o09": {
+    "title": "The credential check refused a plain description",
+    "criterion": "P1",
+    "kind": "defect",
+    "status": "fixed",
+    "run": "luna1",
+    "phase": 1,
+    "expected": "Only credentials are refused.",
+    "observed": "'session token: opaque UUID' was refused twice. Descriptive values are now allowed; real secrets are still refused.",
+    "evidence": "release 1.16.1, shiploop_privacy.py",
+    "createdAt": "2026-10-04T15:00:08Z"
+   },
+   "o10": {
+    "title": "Plan loop pass 1 changed most of the graph",
+    "criterion": "B1",
+    "kind": "added",
+    "status": "accepted",
+    "run": "luna1",
+    "phase": 2,
+    "expected": "Each pass finds a material gap in the plan or is a confirmation the loop needs to close.",
+    "observed": "Pass 1 (11 min) found three gaps: F-1 a wrong supplier direction between the page and the server, F-2 an unindexed API concurrency obligation, F-3 an omitted browser recovery requirement. It edited 14 of 20 steps: +5.8 KB, inputs 56 to 58 (one new supplier edge, one new null-origin fact). The pre-loop candidate was recovered byte-exact (digest 9e321e3d) from pass 1's audit input; the script kept no copy.",
+    "evidence": "scratch/backchain-plan/review-records/action-1-review.json; pass-reports/pass-01-audit-input.md",
+    "createdAt": "2026-10-04T15:00:09Z"
+   },
+   "o11": {
+    "title": "Pass 5 found a gap in Backchain's own metadata and changed no plan bytes",
+    "criterion": "B1",
+    "kind": "wasted",
+    "status": "open",
+    "run": "luna1",
+    "phase": 2,
+    "effect": "bent",
+    "expected": "A pass that reopens the loop is about the product plan.",
+    "observed": "F-7 was a stale source label (SRC-8 authority) in Backchain's scratch metadata. The candidate digest was the same before and after (3853b978). The clean streak was already 0, so F-7 cost one extra confirming pass (pass 7, 4 to 12 min) plus its repair inside pass 5, not the whole 17 minutes. Correction of an earlier entry that said it reset the streak. No product impact seen.",
+    "evidence": "scratch/backchain-plan/review-records/action-5-review.json; pass-reports/action5-done-packet.json",
+    "advice": "Take the one-pass default (a17): under it pass 5 would not have run. The gap cost one extra confirming pass and no product change.",
+    "createdAt": "2026-10-04T15:00:10Z"
+   },
+   "o12": {
+    "title": "Two clean passes close every loop and cost 26 minutes across the two loops",
+    "criterion": "B1",
+    "kind": "decision",
+    "status": "open",
+    "run": "luna1",
+    "phase": 2,
+    "effect": "bent",
+    "expected": "The closing passes are cheap next to what the earlier passes found.",
+    "observed": "Plan passes 6 and 7 (12 and 4 min) and step-plan passes 3 and 4 (6 and 4 min) changed nothing, as the stop rule requires. Plan pass 7 exists only because F-7 kept pass 5 from being clean. It is unknown whether any clean pass ever prevented a defect.",
+    "evidence": "test/shiploop_e2e/evidence/codex-gpt-6-luna-1.16.1-battleship-20261003.json backchain luna1-plan (passes 6 and 7: 12 and 4 min) and luna1-step-plan (passes 3 and 4: 6 and 4 min); each loop's scratch/backchain-*/until-loop-receipt.json: trivial streak 2 of 2.",
+    "advice": "Take the one-pass default the owner chose (a17) and reword B1 with it (a18). The 26 clean-pass minutes are the visible cost; the larger one is plan passes 2 to 5 (76 min), which changed only confirm clauses and a label (o19).",
+    "figure": {
+     "kind": "bars",
+     "items": [
+      {
+       "label": "Plan passes 1-5",
+       "value": 87,
+       "unit": "min",
+       "tone": "saw"
+      },
+      {
+       "label": "Plan clean passes 6-7",
+       "value": 16,
+       "unit": "min",
+       "tone": "saw"
+      },
+      {
+       "label": "Step-plan passes 1-2",
+       "value": 97,
+       "unit": "min",
+       "tone": "saw"
+      },
+      {
+       "label": "Step-plan clean 3-4",
+       "value": 10,
+       "unit": "min",
+       "tone": "saw"
+      }
+     ]
+    },
+    "createdAt": "2026-10-04T15:00:11Z"
+   },
+   "o13": {
+    "title": "The graph's structure is asserted by the model, not verified by a script",
+    "criterion": "B2",
+    "kind": "defect",
+    "status": "open",
+    "run": "luna1",
+    "phase": 2,
+    "effect": "broken",
+    "expected": "A ShipLoop script checks ids, references, cycles and sinks and writes a receipt.",
+    "observed": "The plan result says its structural status is unknown because no deterministic validation receipt exists. A duplicate step id (S20) was caught only by the model's own check before freezing.",
+    "evidence": "scratch/backchain-plan/backchain-result.md, candidate-freeze-log.md",
+    "advice": "The check exists now (a03: record-only, 1.19.0): confirm on the next looped run that every Backchain stage leaves a receipt. On this run's candidates (LEARNINGS 'Backchain graph check, I1 and I2') it passes every plan candidate once packaged, so it would not have changed the plan loop, and fails both step-plan candidates on invariant 4 (o26).",
+    "createdAt": "2026-10-04T15:00:12Z"
+   },
+   "o14": {
+    "title": "A 20-step graph was mapped to one work item with no parallel groups",
+    "criterion": "B3",
+    "kind": "defect",
+    "status": "open",
+    "run": "luna1",
+    "phase": 2,
+    "effect": "broken",
+    "expected": "ShipLoop uses the graph's order, groups and sinks to run the work.",
+    "observed": "The plan graph has 20 steps and an empty parallel_groups list, and maps to a single item (W1). The step-plan stage then built a second 20-step graph for W1.",
+    "evidence": "scratch/backchain-plan/backchain-result.md",
+    "advice": "Decide what the plan graph is for (a05) before building on it. The fast-planning investigation found that no later packet names scratch/backchain-plan and that Improve reviews plan.md, so nothing consumes the graph; using it (B3 as written) or not asking for it at plan are the two sides.",
+    "createdAt": "2026-10-04T15:00:13Z"
+   },
+   "o15": {
+    "title": "Both loops carry the same ten per-criterion verification steps",
+    "criterion": "B4",
+    "kind": "wasted",
+    "status": "open",
+    "run": "luna1",
+    "phase": 2,
+    "effect": "bent",
+    "expected": "A fact already in the spec, the acceptance criteria, is supplied by the script, not planned again.",
+    "observed": "Plan steps S11 to S20 and step-plan steps S8 to S17 are one 'independently confirmed' step per criterion: half of the plan graph and half of the step-plan graph. Elaboration doubled the 10-step draft to 20 (20 minutes before the first pass).",
+    "evidence": "scratch/backchain-plan/candidate-plan.json, scratch/backchain-step-plan/candidate-plan.json",
+    "advice": "Settle a05 first; if the plan graph stays, generate the per-criterion steps from the spec (a04) so the model plans only the build steps. Checked in the two candidate-plan.json files: plan S11 to S20 and step-plan S8 to S17 are one step per acceptance criterion.",
+    "figure": {
+     "kind": "bars",
+     "items": [
+      {
+       "label": "Plan graph steps",
+       "value": 20,
+       "unit": "steps",
+       "tone": "saw"
+      },
+      {
+       "label": "Plan AC steps",
+       "value": 10,
+       "unit": "steps",
+       "tone": "saw"
+      },
+      {
+       "label": "Step-plan graph steps",
+       "value": 20,
+       "unit": "steps",
+       "tone": "saw"
+      },
+      {
+       "label": "Step-plan AC steps",
+       "value": 10,
+       "unit": "steps",
+       "tone": "saw"
+      }
+     ]
+    },
+    "createdAt": "2026-10-04T15:00:14Z"
+   },
+   "o16": {
+    "title": "The item plan was revised during build for a port check",
+    "criterion": "B5",
+    "kind": "defect",
+    "status": "open",
+    "run": "luna1",
+    "phase": 3,
+    "expected": "A closed plan is revised only for what could not be seen at planning time.",
+    "observed": "The W1 plan and test strategy were revised so SYS-PORT-09 checks the sanitized child PORT separately from its readiness probe port, after two loops and eleven reviewed passes. One instance; unknown whether the spec or sources already showed it.",
+    "evidence": "/Users/dadleet/e2e-runs/20261003/v1161-battleship-luna/.shiploop-runs/work-20261003-225401-173a04/run/status.md",
+    "createdAt": "2026-10-04T15:00:15Z"
+   },
+   "o17": {
+    "title": "No comparison exists between a run with Backchain loops and one without",
+    "criterion": "B1",
+    "kind": "decision",
+    "status": "open",
+    "run": "sonnet",
+    "runs": [
+     "luna1",
+     "sonnet"
+    ],
+    "phase": 2,
+    "expected": "We know what the loops add.",
+    "observed": "Sonnet never starts a loop and runs four cases end to end in 8 to 40 minutes; Luna spends about 4.4 hours in two loops (263 min). The models differ, so neither run says what a loop would have found on the other.",
+    "evidence": "/Users/dadleet/e2e-runs/20261003/batch-sonnet (four cases, no scratch/backchain-* directory); /Users/dadleet/e2e-runs/20261003/v1161-battleship-luna scratch/backchain-plan and scratch/backchain-step-plan.",
+    "advice": "Wait: the next Luna run with one pass (a17) compares one pass with this run's seven on the same case at no extra cost; buy the comparison (a01) only if that leaves the loop policy open. No effect is set: whether to buy it is the owner's choice, not a miss of B1.",
+    "createdAt": "2026-10-04T15:00:16Z"
+   },
+   "o18": {
+    "title": "Harness stage minutes move time between stages",
+    "criterion": "P5",
+    "kind": "defect",
+    "status": "fixed",
+    "run": "luna1",
+    "phase": 2,
+    "expected": "Per-stage minutes come from the script's own timestamps.",
+    "observed": "By accept timestamps test-strategy took 94 min and plan 196 min; the harness reports 224 and 39. The totals agree within 5 minutes (385 and 380 through plan), so only the attribution is wrong.",
+    "evidence": "status_1003.py output against run/timeline.json; fixed by 3c604304 (A2, merged 9db0be37): the regraded result.json gives plan 11,782 s and test-strategy 5,658 s, equal to the accept deltas",
+    "createdAt": "2026-10-04T15:00:17Z"
+   },
+   "o19": {
+    "title": "After pass 1 the plan loop only refined confirm clauses",
+    "criterion": "B1",
+    "kind": "decision",
+    "status": "open",
+    "run": "luna1",
+    "phase": 2,
+    "effect": "bent",
+    "expected": "Each pass either changes the plan or is a confirmation the loop needs to close.",
+    "observed": "Passes 2 to 4 (59 min) each changed one confirm clause (S2 inspect to execute, S4 inspects the dependency files, S11 made deterministic): +0.4 KB together, same ids, edges and produces. Passes 5 to 7 (33 min) changed nothing. Whether a stronger confirmation changes what gets built is the open question.",
+    "evidence": "review-records/action-2..4-review.json; candidate digests b66d62f0, b4567c04, bfd6b9f6, 3853b978",
+    "advice": "Take the one-pass default (a17). Inferred: one pass leaves the kind of confirm-clause defect passes 2 to 4 fixed; the plan's exit text makes the Outcomes rule pass 1's duty, which is the counterweight to watch on the next run.",
+    "createdAt": "2026-10-04T15:00:18Z"
+   },
+   "o20": {
+    "title": "Step-plan passes 1 and 2 added steps for items the parent packet already required",
+    "criterion": "B4",
+    "kind": "defect",
+    "status": "open",
+    "run": "luna1",
+    "phase": 2,
+    "effect": "bent",
+    "expected": "A fact the packet already states is planned in the draft, not found by the loop.",
+    "observed": "Pass 1 (42 min) added rejection tests and docstrings the parent packet requires, and a style note (F-01, F-02). Pass 2 (55 min) added D3, covering README and local-skill fit and the entrypoint contract, and changed 16 existing steps, mostly inputs (F-03, F-04). Snapshots 6f971770 then 024b3dc3; passes 3 and 4 changed nothing.",
+    "evidence": "scratch/backchain-step-plan/review-records/review-01..04-candidate-plan.json",
+    "advice": "Inferred: these passes belong to the off-protocol step-plan whole loop (o27, o32), whose text 1.19.0 prints only at plan (a12); if the next looped run starts no step-plan whole loop, close this with a12.",
+    "createdAt": "2026-10-04T15:00:19Z"
+   },
+   "o21": {
+    "title": "The script kept no snapshot of the candidate at each pass",
+    "criterion": "P5",
+    "kind": "defect",
+    "status": "open",
+    "run": "luna1",
+    "phase": 2,
+    "effect": "bent",
+    "expected": "Every candidate a loop checked is recoverable from the run.",
+    "observed": "The frozen plan candidate (digest 9e321e3d in the freeze log) is no file in the run. It was recovered only because pass 1's audit input embedded a copy that hashes exactly to it. The step-plan loop kept review snapshots; the plan loop did not, and neither kept the bind-time step-plan candidate.",
+    "evidence": "scratch/backchain-plan (144 files hashed)",
+    "advice": "a03 also keeps a content-addressed snapshot of each checked candidate under run/backchain/<action>/ (1.19.0); confirm on the next looped run that the final candidate of each loop is among them.",
+    "createdAt": "2026-10-04T15:00:20Z"
+   },
+   "o22": {
+    "title": "Each plan also gets a second whole-plan review from the mandatory Improve child",
+    "criterion": "B4",
+    "kind": "defect",
+    "status": "open",
+    "run": "luna1",
+    "phase": 2,
+    "effect": "bent",
+    "expected": "A plan is reviewed once by the loop that owns its convergence.",
+    "observed": "After Backchain closed, Improve reviewed the plan again: the plan stage took 44 min after the Backchain result (about 5 min of handoff, then 3 review passes; the last reports no new defect) and the step-plan stage 24 min. Whether Improve finds what Backchain would is untested.",
+    "evidence": "run/improve/nav-ae63595f.../evidence; metrics.json improve_reviews",
+    "advice": "Keep Improve's planning passes, as the owner decided (fast-planning D4), and compare them on the next Luna run (a24): this run took 4, 11, 3, 3 and 5 passes at spec, test-strategy, plan, step-plan and test-spec.",
+    "createdAt": "2026-10-04T15:00:21Z"
+   },
+   "o23": {
+    "title": "Improve's plan reviews are one line each on Sonnet and 2.3 KB each on Luna",
+    "criterion": "P6",
+    "kind": "defect",
+    "status": "open",
+    "run": "sonnet",
+    "runs": [
+     "luna1",
+     "sonnet-battleship"
+    ],
+    "phase": 2,
+    "effect": "bent",
+    "expected": "Behaviour does not depend on the model.",
+    "observed": "Sonnet's plan reviews run 98 to 439 bytes (battleship: 104 bytes each, 'No material finding, no edits'). Luna's are 2,352 and 2,319 bytes, each listing what was reopened and rechecked. An Improve-only arm is a weaker control on Sonnet than on Luna.",
+    "evidence": "batch-sonnet/battleship improve/nav-0a505245.../evidence; luna improve/nav-ae63595f.../evidence",
+    "advice": "Record it as a difference between models, not an engine defect. Inferred: an Improve-only control arm says less on Sonnet than on Luna, so a comparison that leans on one (a01) belongs on Luna.",
+    "createdAt": "2026-10-04T15:00:22Z"
+   },
+   "o24": {
+    "title": "Whether a plan gets a Backchain loop is the model's choice",
+    "criterion": "P1",
+    "kind": "decision",
+    "status": "open",
+    "run": "any",
+    "runs": [
+     "luna0",
+     "luna1",
+     "sonnet",
+     "sonnet-battleship"
+    ],
+    "phase": 2,
+    "effect": "bent",
+    "expected": "The script decides what runs; the model never chooses the next stage.",
+    "observed": "The packet says the host 'may request' one Backchain action; nothing in ShipLoop requires or checks it. Luna ran two loops (263 min); all four Sonnet runs ran none: no Backchain scratch directory and no until-loop receipt, and the plan stage was accepted in 0.5 to 1.1 min.",
+    "evidence": "shiploop_prompts.py _backchain_guidance; batch-sonnet/*/until-loop",
+    "advice": "Decide what the graph is for (a05); the decision also says whether the script requires, offers or drops the loop. Today the packet says the host may request one: Luna ran two loops (7 and 4 passes), Sonnet none.",
+    "createdAt": "2026-10-04T15:00:23Z"
+   },
+   "o25": {
+    "title": "ShipLoop cannot tell from the plan result that a Backchain loop ran",
+    "criterion": "B2",
+    "kind": "defect",
+    "status": "open",
+    "run": "luna1",
+    "phase": 2,
+    "effect": "bent",
+    "expected": "The script can tell when a plan result claims Backchain evidence.",
+    "observed": "The 'Backchain standalone Until Loop binding:' marker the guidance asks the model to preserve is not in the plan result, its notes, its inbox copies or the step-plan result; it sits inside the cited until-loop-receipt.json. 28 of the plan result's 56 evidence refs point into a model-chosen scratch directory. Exactly one cited file in each result has the Backchain plan shape (the final candidate), but the run holds eight such files.",
+    "evidence": "run/results/nav-ae63595f..., nav-df89f592...",
+    "advice": "Have the export record the loop facts the run's own files hold (a23): the backchain_passes option and whether the last check receipt's candidate is the loop's final one, as the fast-planning plan handed to this work (I4).",
+    "createdAt": "2026-10-04T15:00:24Z"
+   },
+   "o26": {
+    "title": "The reference validator rejects the accepted step-plan candidate",
+    "criterion": "B2",
+    "kind": "defect",
+    "status": "open",
+    "run": "luna1",
+    "phase": 2,
+    "effect": "broken",
+    "expected": "A plan the loop closes passes the structural check.",
+    "observed": "Pass 1's repair added discovered step D1 (the production Node entrypoint contract) with no consumer. lib.js invariant 4 rejects both step-plan snapshots (6f971770 and 024b3dc3). Passes 2 to 4 and Improve accepted it. The plan candidates pass once packaged; raw they fail invariant 6 because the stored groups are [].",
+    "evidence": "lib.js validateStructure(packagePlan(x).plan) on scratch/backchain-step-plan/candidate-plan.json",
+    "advice": "The record-only check (a03) flags this candidate; nothing refuses it, by the I2 decision (a refusal after convergence forces a re-loop). Inferred: the step-plan whole loop that produced it was off-protocol, and its text prints only at plan since 1.19.0 (a12), so the case to watch is a step-plan repair.",
+    "createdAt": "2026-10-04T15:00:25Z"
+   },
+   "o27": {
+    "title": "The step-plan loop ran an operation its packet does not allow",
+    "criterion": "P3",
+    "kind": "defect",
+    "status": "open",
+    "run": "luna1",
+    "phase": 2,
+    "effect": "broken",
+    "expected": "The model follows the packet; the packet allows the whole plan/draft operation only at the plan stage.",
+    "observed": "The step-plan caller packet names action plan, stage draft, workflow stage shiploop:step-plan, although step-plan may only request audit or revise (BACKCHAIN_NATIVE_CALLS has plan only). The 136-minute step-plan loop is off-protocol data, not a sample of the designed route. Superseded in part (2026-10-04): the packet text is not shown to be the cause, because the model chose the loop before reading it (o32).",
+    "evidence": "scratch/backchain-step-plan/caller-packet.json; shiploop_prompts.py BACKCHAIN_NATIVE_CALLS",
+    "advice": "Verify a12 on the next looped run: no step-plan caller packet asking for a whole plan/draft. If one starts anyway, look at carried context and SKILL.md (o32), not at more packet text.",
+    "createdAt": "2026-10-04T15:00:26Z"
+   },
+   "o28": {
+    "title": "Backchain loop text and a six-file reading list are printed at every Backchain stage",
+    "criterion": "P3",
+    "kind": "defect",
+    "status": "open",
+    "run": "luna1",
+    "phase": 2,
+    "effect": "bent",
+    "expected": "A packet carries only what its step may do.",
+    "observed": "Since 1.16.0 (db61a4a7, a fix for stalled planning) the packets at spec, plan, step-plan, carry-forward and product-acceptance name six Backchain and Until Loop files (+86 KB, +40% required reading) and about 553 words of loop text, though only plan may start a whole loop. Luna opened Backchain SKILL.md ten times before the step-plan loop and read 29 whole reference files across plan and step-plan.",
+    "evidence": "git show db61a4a7; shiploop_prompts.py _backchain_guidance; shiploop_navigator.py resource list",
+    "advice": "Fixed in text by a12 (1.19.0: the list and loop text print only at plan, pinned by dry-run tests); mark it fixed once the next looped run's packets show it.",
+    "createdAt": "2026-10-04T15:00:27Z"
+   },
+   "o29": {
+    "title": "Where the planning time went: 592 min for the first work item",
+    "criterion": "B1",
+    "kind": "decision",
+    "status": "open",
+    "run": "luna1",
+    "phase": 2,
+    "effect": "bent",
+    "expected": "Planning time goes to work that changes the plan.",
+    "observed": "Step-plan loop 136 min (23%, off-protocol), plan loop 128 (22%), Improve review loops 186 (31%), Improve opening files 35 (6%), producer stage work 107 (18%). Sonnet got the same packets and planned in 4 minutes, so packet size is not the driver; model effort and the loops are. The shares are inferred from timestamps.",
+    "evidence": "timeline.json accept deltas; review-record mtimes",
+    "advice": "The owner's two levers cover most of it: one Backchain pass (a17; plan passes 2 to 7 took 92 min here) and effort xhigh instead of max for Codex runs (04ad68a2, branch fastplan-1f1dd3). Improve, 31% of the run (o42), is the largest block left (a24).",
+    "createdAt": "2026-10-04T15:00:28Z"
+   },
+   "o30": {
+    "title": "Per-pass rules contradict the lens index and the printed head",
+    "criterion": "B1",
+    "kind": "defect",
+    "status": "open",
+    "run": "luna1",
+    "phase": 2,
+    "effect": "bent",
+    "expected": "One rule per behaviour: screen the lenses once, read references by section.",
+    "observed": "convergence.md asks every pass for actual reads of the applicable cards and an all-42-lens screen, while technical-lenses.md says to screen all categories once and not paste the library into every call. Each review record is 36 to 39 KB, about 60% a copied lens screen. The printed head says never read a whole reference file; convergence.md says read the card and adapter reference in full.",
+    "evidence": "skills/backchain/references/convergence.md lines 17-20 and 69-77; technical-lenses.md line 3",
+    "advice": "No option yet: I2c in docs/shiploop-backchain-validator-comparison-plan-2026-10-04.md (planned) decides how the lens screen is printed and cited. Inferred: with one pass by default (a17) a loop screens once, so the repeated screens mostly go; the contradiction between the two references stays until I2c.",
+    "createdAt": "2026-10-04T15:00:29Z"
+   },
+   "o31": {
+    "title": "The harness counts each Improve child twice",
+    "criterion": "P5",
+    "kind": "defect",
+    "status": "fixed",
+    "run": "luna1",
+    "phase": 2,
+    "expected": "Run metrics count what happened once.",
+    "observed": "metrics.json improve_children counts each child's directory and its -bind.md file: 16 for 8 children, and 14 for the 7 children of this run. The exporter counts directories. The harness's stage minutes and per-stage turns misattribute time the same way; accept deltas are the fix.",
+    "evidence": "run/improve/*, metrics.json improve_children; export facts.md; fixed by 7eb7ee88 (R5): the regraded result.json reads improve_children 9",
+    "createdAt": "2026-10-04T15:00:30Z"
+   },
+   "o32": {
+    "title": "The step-plan loop choice predates the step-plan packet text",
+    "criterion": "P3",
+    "kind": "defect",
+    "status": "open",
+    "run": "luna1",
+    "phase": 2,
+    "effect": "broken",
+    "expected": "A decision to start a loop comes from the packet the script printed for that stage.",
+    "observed": "The step-plan head the model received never mentions Backchain, and its next message says it is using the Backchain planning skill, before it opens the full packet. The whole plan/draft choice came from carried context (the plan-stage loop, and SKILL.md's stage-less wording), so trimming step-plan packet text can be neither credited nor blamed. One run, one model.",
+    "evidence": "v1161-battleship-luna events.jsonl: the complete output after select-work (a 5,250 B step-plan head with no mention of Backchain), then the model's next message; docs/shiploop-i2b-trim-planning-prompts-plan-2026-10-04.md",
+    "advice": "Read the next looped run for a step-plan whole loop before changing any text (a12). If it recurs, the levers are the carried context and SKILL.md's stage-less wording, or a script-written contract (a02), not the packet.",
+    "createdAt": "2026-10-04T17:50:00Z"
+   },
+   "o33": {
+    "title": "Callback path typos cluster in one resumed Luna session; engine change deferred",
+    "criterion": "P3",
+    "kind": "decision",
+    "status": "accepted",
+    "run": "luna1",
+    "phase": 2,
+    "expected": "The model copies the printed callback exactly.",
+    "observed": "41 failed ShipLoop or Until Loop commands in nine runs. All six inserted-space paths sit in session 2 of one resumed Luna run (3 of 52 callbacks; session 1 had 0 of 41 under the same run name), so the run-name explanation is contradicted and session age is the leading, unproven cause. Every error was repaired by the next call (one by +2), 110 s in 18.8 h, no state change. Engine change deferred; reopen when a path typo appears in any other run (R1) or one is not repaired by the next call (R2).",
+    "evidence": "docs/experiments/shiploop-callback-failures-20261004/ (script and failures.json, reproduced byte-identical); LEARNINGS section on callback path typos",
+    "createdAt": "2026-10-04T18:20:00Z"
+   },
+   "o34": {
+    "title": "Claude failure counts are lower bounds: the harness cannot see them",
+    "criterion": "P5",
+    "kind": "defect",
+    "status": "open",
+    "run": "sonnet",
+    "runs": [
+     "sonnet",
+     "sonnet-battleship",
+     "hello-1161",
+     "hello-1180",
+     "hello-1190a",
+     "hello-1190b"
+    ],
+    "phase": 2,
+    "expected": "Run metrics count the failures of every host.",
+    "observed": "metrics.collect reads only ACP tool_call_update events, so shiploop_failures is empty for all seven Claude runs while the same runs hold 15 failing ShipLoop or Until Loop commands and 28 to 40 refusals behind exit 0. Claude failure counts are lower bounds, and earlier journal cells reading 0 for Claude are unmeasured. Fix is a metrics item (M1) that waits for the other session's metrics.py change.",
+    "evidence": "metrics.json shiploop_failures for the seven Claude runs; failures.json",
+    "createdAt": "2026-10-04T18:20:00Z"
+   },
+   "o35": {
+    "title": "The Luna run ended blocked at system-test on two human-only browser cases",
+    "criterion": "phase-6",
+    "kind": "defect",
+    "status": "open",
+    "run": "luna1",
+    "phase": 6,
+    "effect": "broken",
+    "expected": "A step that needs something only a person can supply is recorded as an open item and the run continues with everything that does not depend on it (S-14).",
+    "observed": "All five registered Node suites passed on the real candidate (16 of 16). The test strategy, written three stages earlier, had planned two required browser cases that need a person with DevTools; system-test marked itself blocked and ended on the awaiting route, after the callback refused the first blocked result with the S-14 rule and the model resubmitted blocked. Cause found by reading the packets: a stage advances only with done, and the closing paragraph of Stage readiness and completion says a required case already due and not run prevents completing the stage; the system-test duties have no open-item route (release-verify has one). The host ended its own turn after a 9.29 h resumed session: 39 accepted actions in 19.3 h; product-acceptance, release-plan, release-check and the report never ran. Sonnet's battleship runs recorded the same browser limit as an open item and passed. All 4 harness checks passed in ShipLoop's worktree (result.json worktree_checks); the project root holds no product because the run stopped before release.",
+    "evidence": "v1161-battleship-luna: run/state.md (status blocked, stage system-test, revision 57), the system-test packet, docs/shiploop/test-strategy.md#browser-procedure-and-open-observation, result.json",
+    "advice": "Confirm a13 on the next run with a person-only case: system-test accepts done with the case as an open item and the run reaches release. Add S-14 to the expectations (a19) so step 2 can show this miss. Inferred: plan step S10 already planned the human browser report, so the block was visible at planning; the deferred earlier lever is to plan person-only cases as open items from test-strategy.",
+    "createdAt": "2026-10-04T18:25:00Z"
+   },
+   "o36": {
+    "title": "A resumed Codex run grades the plugin as failed",
+    "criterion": "P5",
+    "kind": "defect",
+    "status": "open",
+    "run": "luna1",
+    "phase": 2,
+    "effect": "broken",
+    "expected": "A grade means the engine, not the harness: resuming a run does not change whether the plugin loaded.",
+    "observed": "The resumed process graded plugin as failed with no plugin listed, while the first process of the same run graded it true. The resume path carries no evidence of the original install, so a resumed Codex run reads as a plugin failure. Cause not traced; the process that graded it ran the harness code from before the exporter and the regrade fix. [Superseded 2026-10-04: the cause is traced: the resume branch dropped the first launch's plugin record, fixed for new runs by 2528c470; this run's invocation.json predates the record, so its verdict cannot be regraded.]",
+    "evidence": "v1161-battleship-luna result.json (plugin loaded [], process pass) against the first process's baseline row (plugin true, process false)",
+    "advice": "Read this run's plugin verdict as unknown, not failed. The fix (a20) carries the first launch's plugin record into a resume or regrade; confirm it on the next Codex resume, which should print plugin PASS.",
+    "createdAt": "2026-10-04T18:25:00Z"
+   },
+   "o37": {
+    "title": "The same hello request costs more with each release",
+    "criterion": "P6",
+    "kind": "defect",
+    "status": "accepted",
+    "run": "sonnet",
+    "runs": [
+     "hello-1161",
+     "hello-1180",
+     "hello-1190a",
+     "hello-1190b"
+    ],
+    "phase": 2,
+    "expected": "A pass on the fast gate predicts a pass on a slower run, and the same trivial request costs about the same each release.",
+    "observed": "Sonnet hello passes every time, with no failure the harness can see (Claude's are not measured, o34), but its cost read $3.30, $4.39, $5.37 and $7.33 across 1.16.1, 1.18.0 and the two 1.19.0 runs: 84, 94, 113 and 149 model calls (unique assistant messages; the harness's turns, which count assistant events, read 143, 167, 194 and 254). A read-only investigation did not find a release cause: the Improve text and review focus are byte-identical, 9 of 12 first-pass changes were real defects, and 73% of the repeat's extra cost was one refusal-triggered replan (o39). The environment was uncontrolled (connectors loaded in two runs, o38; a CLI update; two runs concurrent), and the same-release noise ($1.96) is larger than the release steps ($1.10, $0.98). The 1.20.0 gate hello, with connectors isolated, cost $3.62 (/Users/dadleet/e2e-runs/20261004/v1200-hello-sonnet). Not shown to be release-linked; the cost of one hello per release stays on the page as context, not as a regression.",
+    "evidence": "evidence/claude-claude-sonnet-5-5-1.19.0-hello-20261004.json and the three other hello runs (page runs hello-1161, hello-1180, hello-1190a, hello-1190b)",
+    "figure": {
+     "kind": "bars",
+     "items": [
+      {
+       "label": "1.16.1 calls",
+       "value": 84,
+       "unit": "calls",
+       "tone": "saw"
+      },
+      {
+       "label": "1.18.0 calls",
+       "value": 94,
+       "unit": "calls",
+       "tone": "saw"
+      },
+      {
+       "label": "1.19.0 gate calls",
+       "value": 113,
+       "unit": "calls",
+       "tone": "saw"
+      },
+      {
+       "label": "1.19.0 repeat calls",
+       "value": 149,
+       "unit": "calls",
+       "tone": "saw"
+      }
+     ]
+    },
+    "createdAt": "2026-10-04T19:10:00Z"
+   },
+   "o38": {
+    "title": "Claude E2E runs loaded the user's claude.ai connectors",
+    "criterion": "P5",
+    "kind": "defect",
+    "status": "fixed",
+    "run": "sonnet",
+    "runs": [
+     "hello-1161",
+     "hello-1180",
+     "hello-1190a",
+     "hello-1190b"
+    ],
+    "phase": 2,
+    "expected": "A grade means the engine, not the harness: an unattended run sees only the plugin under test.",
+    "observed": "Two of four Claude hello runs loaded 15 of the user's claude.ai connectors and 174 tools (several connected, including Interactive Brokers and Docusign) into an unattended run; two loaded none. A plain launch with --setting-sources project,local loads them; adding --strict-mcp-config loads 0 servers and 28 tools. It confounded the cost comparison (about 60k against 54k initial context) and let a model reach account connectors. Fixed: ClaudeHost passes --strict-mcp-config, pinned by a test. Inferred: the connectors do not explain the cost rise alone: the two runs without them made 84 and 149 model calls (1.16.1, 1.19.0 repeat), the two with them 94 and 113.",
+    "evidence": "init events of the four hello runs (mcp_servers, tools); the one-turn probe with and without --strict-mcp-config; commit bc3046db",
+    "createdAt": "2026-10-04T20:10:00Z"
+   },
+   "o39": {
+    "title": "A refused system-test command led the model to add a second work item",
+    "criterion": "P1",
+    "kind": "wasted",
+    "status": "open",
+    "run": "sonnet",
+    "runs": [
+     "hello-1190b"
+    ],
+    "phase": 6,
+    "effect": "bent",
+    "expected": "A refused result is repaired in place; the model does not add work to get past it.",
+    "observed": "system-test-author recorded a shell pipeline as suite focused; ShipLoop refused it (could not read how many tests it ran); the model replanned with a docs-only second work item, forcing select-work, step-plan, a second run and a second system-test: about 24 calls and $1.44, 73% of that run's extra cost over its sibling. The guidance names suites focused, regression or check without defining check; only the step-plan text does. One run so far.",
+    "evidence": "/Users/dadleet/e2e-runs/20261004/v1190-hello-sonnet-2/events.jsonl (the system-test-author result recording ST-1 as a shell pipeline in suite focused, the refusal 'could not read how many tests it ran', the docs-only W2 replan); test/shiploop_e2e/LEARNINGS.md 'Hello cost analysis and Claude connector isolation'.",
+    "advice": "Keep waiting for a recurrence (a16): none of the other four hello runs, the 1.20.0 gate included, repeats the refusal. Inferred: the outcome shapes now printed in the head (a25) do not define the check suite, so they do not cover this case.",
+    "createdAt": "2026-10-04T20:10:00Z"
+   },
+   "o40": {
+    "title": "The refusal list shows a generic line for 9 of 13 refusals, not their cause",
+    "criterion": "P5",
+    "kind": "defect",
+    "status": "open",
+    "run": "luna1",
+    "effect": "bent",
+    "expected": "Each recorded refusal shows the line that names its cause.",
+    "observed": "metrics.collect records the first output line its failure pattern matches. For 8 refusals that is the generic tail 'Read the current packet with next; the rejected request did not advance the graph.' and for 1 an AssertionError from the model's own check; the cause sat on the line before ('ShipLoop navigator: ...'). Only the 4 run-path errors show their cause.",
+    "evidence": "test/shiploop_e2e/evidence/codex-gpt-6-luna-1.16.1-battleship-20261003.json runs.luna1.failures; FAILURE_LINE in test/shiploop_e2e/metrics.py; /Users/dadleet/e2e-runs/20261003/v1161-battleship-luna/events.jsonl lines 654, 661, 673, 2952, 3657, 4442, 6125, 7378 and 7389 (each refusal's 'ShipLoop navigator:' line).",
+    "advice": "Record the cause line (a21): one rule in the harness, checked on this run's recorded output. Until then read a Codex refusal from events.jsonl, not from the page.",
+    "figure": {
+     "kind": "bars",
+     "items": [
+      {
+       "label": "Refusals recorded",
+       "value": 13,
+       "unit": "lines",
+       "tone": "saw"
+      },
+      {
+       "label": "Line names the cause",
+       "value": 4,
+       "unit": "lines",
+       "tone": "saw"
+      },
+      {
+       "label": "Generic tail line",
+       "value": 8,
+       "unit": "lines",
+       "tone": "saw"
+      },
+      {
+       "label": "AssertionError line",
+       "value": 1,
+       "unit": "lines",
+       "tone": "saw"
+      }
+     ]
+    },
+    "createdAt": "2026-10-05T01:45:00Z"
+   },
+   "o41": {
+    "title": "The run's process record covers only the resumed session",
+    "criterion": "P5",
+    "kind": "defect",
+    "status": "accepted",
+    "run": "luna1",
+    "expected": "A run's grade covers the whole run.",
+    "observed": "result.json process reads 33,452.4 s, one session, resumes 0, pass true: the resumed session only. The first session ran to the 10 h timeout, and the run took 1,158.5 min from start to the last accept. Turns read 2,189 as a lower bound (one session never reported); the rollouts count 2,565 main-thread calls across both sessions. Documented as a limit: on a resume the process block describes the last invocation only (05269ede).",
+    "evidence": "/Users/dadleet/e2e-runs/20261003/v1161-battleship-luna/result.json (process, cli, metrics.unreported_sessions); test/shiploop_e2e/evidence/codex-gpt-6-luna-1.16.1-battleship-20261003.json runs.luna1.calls; 05269ede",
+    "figure": {
+     "kind": "bars",
+     "items": [
+      {
+       "label": "Main-thread calls",
+       "value": 2565,
+       "unit": "calls",
+       "tone": "saw"
+      },
+      {
+       "label": "Turns, resume only",
+       "value": 2189,
+       "unit": "turns",
+       "tone": "saw",
+       "lowerBound": true
+      }
+     ]
+    },
+    "createdAt": "2026-10-05T01:45:00Z"
+   },
+   "o42": {
+    "title": "The page showed Improve as 135.8 minutes; bind to receipt it took 360.3",
+    "criterion": "P5",
+    "kind": "defect",
+    "status": "open",
+    "run": "luna1",
+    "effect": "broken",
+    "expected": "The page's Improve time is the time the run spent in Improve.",
+    "observed": "The live page's v1 export summed first-to-last review notes from the volatile worktree: 135.8 min (12% of 1,158.5). The v2 export reads each child's bind.md to receipt.md: 360.3 min over 9 children and 41 passes (31%).",
+    "evidence": "test/shiploop_e2e/evidence/run-review-db-snapshot-2026-10-04.json runs.luna1.improve; test/shiploop_e2e/evidence/codex-gpt-6-luna-1.16.1-battleship-20261003.json runs.luna1.improveMin; c3ca793c",
+    "advice": "Publish the v2 export with the redesign (a09), and read Improve as about a third of this run: after Backchain it is the largest block, and the owner kept it unchanged (fast-planning D4, a24).",
+    "figure": {
+     "kind": "bars",
+     "items": [
+      {
+       "label": "Page showed",
+       "value": 135.8,
+       "unit": "min",
+       "tone": "saw"
+      },
+      {
+       "label": "Bind to receipt",
+       "value": 360.3,
+       "unit": "min",
+       "tone": "saw"
+      },
+      {
+       "label": "Run elapsed",
+       "value": 1158.5,
+       "unit": "min",
+       "tone": "limit"
+      }
+     ]
+    },
+    "createdAt": "2026-10-05T01:45:00Z"
+   },
+   "o43": {
+    "title": "5 of 13 refusals were a result or an opening in a shape the packet did not print",
+    "criterion": "P3",
+    "kind": "defect",
+    "status": "open",
+    "run": "luna1",
+    "effect": "bent",
+    "expected": "The model produces the result the packet asks for: no refused command.",
+    "observed": "13 refused commands: 4 run-path copy errors (o05); 3 Improve contracts over the 9,216-byte budget, refused at start (the guard of o02 doing its job); 5 results or an opening in the wrong shape (3 missing outcome or summary, 1 citing files that do not exist, 1 opening without its '## Environment' section); 1 blocked result refused under S-14 (o35). The run went on after each.",
+    "evidence": "test/shiploop_e2e/evidence/codex-gpt-6-luna-1.16.1-battleship-20261003.json runs.luna1.failures; /Users/dadleet/e2e-runs/20261003/v1161-battleship-luna/events.jsonl, the 'ShipLoop navigator:' line before each refusal tail (lines listed in o40)",
+    "advice": "Release the shape and refusal text built on rrr-edc892 (a25): the head prints each allowed outcome's exact shape, and each refusal names the correction, tested through the same gate. The 3 budget refusals are the guard working; the 4 path errors stay deferred (o05, o33).",
+    "figure": {
+     "kind": "bars",
+     "items": [
+      {
+       "label": "Expected refusals",
+       "value": 0,
+       "unit": "commands",
+       "tone": "expected"
+      },
+      {
+       "label": "Refused commands",
+       "value": 13,
+       "unit": "commands",
+       "tone": "saw"
+      },
+      {
+       "label": "Result/opening shape",
+       "value": 5,
+       "unit": "commands",
+       "tone": "saw"
+      },
+      {
+       "label": "Contract over budget",
+       "value": 3,
+       "unit": "commands",
+       "tone": "saw"
+      },
+      {
+       "label": "Run-path copy errors",
+       "value": 4,
+       "unit": "commands",
+       "tone": "saw"
+      },
+      {
+       "label": "Blocked under S-14",
+       "value": 1,
+       "unit": "commands",
+       "tone": "saw"
+      }
+     ]
+    },
+    "createdAt": "2026-10-05T01:45:00Z"
+   }
+  },
+  "actions": {
+   "a01": {
+    "title": "Run the Backchain comparison (I3 to I6), pilot first",
+    "criterion": "B1",
+    "kind": "gather-evidence",
+    "status": "planned",
+    "effort": "L",
+    "cost": "Sonnet 5.5 pilot and screen runs on the held-out casebook, then about $21 per ShipLoop A/B run (I5)",
+    "findings": [
+     "o17",
+     "o12",
+     "o19"
+    ],
+    "ref": "docs/shiploop-backchain-validator-comparison-plan-2026-10-04.md I3 to I6; superseded in part by docs/shiploop-fast-planning-plan-2026-10-04.md (branch fastplan-1f1dd3, 9747d769)",
+    "goal": "Do: follow I3 to I6 of docs/shiploop-backchain-validator-comparison-plan-2026-10-04.md: pilot arms A and B on one held-out case, screen A, B and C with the registered rule, run the ShipLoop A/B at the plan stage only on lift, then propose the loop policy. Files and symbols: that plan's iterations I3 to I6 and the casebook's expect.A.json checks. Test: none; this gathers evidence, and the scored arms are its record. Done when: the plan records a verdict for I4 under its registered rule and proposes require, offer or drop for the plan-stage loop, with its evidence.",
+    "why": "One run has loops and none without on the same case and model, so nothing says what the passes buy. The owner's one-pass default (a17) answers the cost side first; run this only if that leaves the policy open."
+   },
+   "a02": {
+    "title": "Have ShipLoop write the Backchain loop contract",
+    "criterion": "P2",
+    "kind": "fix-shiploop",
+    "status": "open",
+    "effort": "M",
+    "findings": [
+     "o03",
+     "o32"
+    ],
+    "ref": "docs/shiploop-fast-planning-plan-2026-10-04.md (branch fastplan-1f1dd3, 9747d769) D7 (deferred)",
+    "goal": "Do: let a ShipLoop script write the Backchain child's Until Loop start contract from the values the packet prints today (budget, review gate, exit text), as improve-start does for Improve, so the host no longer sizes or words it. Files and symbols: improve_start_contract in skills/shiploop/scripts/shiploop_navigator.py, _backchain_guidance and _backchain_contract_budget in skills/shiploop/scripts/shiploop_prompts.py, check_loop_packet in skills/shiploop/scripts/shiploop_quality.py. Test: a navigator contract test in which a plan-stage Backchain request gets a script-written contract within the 9,216-byte budget carrying the printed gate. Done when: that test passes and a live looped run's Backchain contract is the script's.",
+    "why": "For: removes the host's guess at size and gate (the step-plan contract was over budget, o03) and lets the one-pass gate be enforced, not trusted. Against: the fast-planning plan defers it (D7), and it must accept a gate-0 complete packet whose last report is non-trivial, which check_loop_packet does not. Verdict: keep open until the one-pass run shows whether the host writes the gate it is told."
+   },
+   "a03": {
+    "title": "Check each Backchain graph with a script and keep each checked candidate",
+    "criterion": "B2",
+    "kind": "fix-shiploop",
+    "status": "built",
+    "effort": "M",
+    "recommended": true,
+    "cost": "a live looped Luna run (the next one, which checks the other built fixes too)",
+    "findings": [
+     "o13",
+     "o21",
+     "o26"
+    ],
+    "ref": "931c53e2, 6a997a02 (released in 1.19.0, 19fa890d)",
+    "goal": "Do: on the next looped Luna run, confirm that backchain-check runs on each candidate a Backchain loop cites and records a shiploop-backchain-check/v1 receipt and a content-addressed snapshot under run/backchain/<action>/, refusing nothing. Files and symbols: skills/shiploop/scripts/shiploop_backchain_graph.py, the backchain-check verb in skills/shiploop/scripts/shiploop_protocol.py, BACKCHAIN_CHECK in skills/shiploop/scripts/shiploop_prompts.py. Test: python3 -B test/shiploop-backchain-check.test.py (the 88 recorded lib.js verdicts). Done when: the run holds a receipt and a snapshot for the final candidate of every Backchain loop, and its review cites them.",
+    "why": "For: a script checks the graph instead of the model asserting it (B2), and the snapshot keeps the candidate a loop checked (o21). Against: record-only, and it passes every plan candidate of this run, so it would not have changed the plan loop. Verdict: built; the remaining step is a receipt seen in a live run."
+   },
+   "a04": {
+    "title": "Generate the per-criterion verification steps from the spec",
+    "criterion": "B4",
+    "kind": "fix-shiploop",
+    "status": "open",
+    "effort": "M",
+    "findings": [
+     "o15"
+    ],
+    "goal": "Do: have ShipLoop supply one verification step per acceptance criterion, from the spec's criteria list, to the Backchain request, so the model plans only the build steps. Files and symbols: _backchain_guidance in skills/shiploop/scripts/shiploop_prompts.py and where the navigator reads the spec's acceptance criteria. Test: a navigator test that a plan-stage Backchain request carries one supplied step per criterion and tells the draft not to restate them. Done when: that test passes and a live run's plan graph holds no model-written per-criterion step.",
+    "why": "For: half of each 20-step graph restates the 10 criteria, planned twice by the model (o15). Against: no later packet reads the plan graph (o14), so this halves work nothing consumes, and whether the loop's findings change is unknown. Verdict: decide a05 first; build this only if the graph stays."
+   },
+   "a05": {
+    "title": "Decide what the plan graph is for",
+    "criterion": "B3",
+    "kind": "gather-evidence",
+    "status": "open",
+    "effort": "S",
+    "recommended": true,
+    "findings": [
+     "o14",
+     "o15",
+     "o24"
+    ],
+    "goal": "Do: write a decision record for the owner, read-only: which packets and scripts read the plan-stage graph in 1.20.0, what using it would take (open work items from its groups, order and sinks, as B3 says) and what not asking for it at plan saves (the fast-planning plan's none mode, its estimate about 128 of 1,158.5 min on this run), each with its cost. Files and symbols: BACKCHAIN_NATIVE_CALLS and _backchain_guidance in skills/shiploop/scripts/shiploop_prompts.py; docs/shiploop-fast-planning-plan-2026-10-04.md (branch fastplan-1f1dd3, 9747d769), 'The plan-stage graph is an island'. Test: none; read-only. Done when: the record is committed under docs/ with both sides and their measured cost, ready for the owner's choice to be written into SPEC.md or B3 by a change-expectation option.",
+    "why": "The graph cost two loops' time and nothing later reads it; using it and not asking for it are both cheaper than today, and the choice is the owner's."
+   },
+   "a06": {
+    "title": "Verify the contract budget at every Backchain stage on a live looped run",
+    "criterion": "P2",
+    "kind": "fix-shiploop",
+    "status": "built",
+    "effort": "L",
+    "recommended": true,
+    "cost": "a live looped Luna run (the next one, which checks the other built fixes too)",
+    "findings": [
+     "o03"
+    ],
+    "ref": "112b239c (released in 1.19.0, 19fa890d; no 1.16.2 release was made)",
+    "goal": "Do: on the next looped Luna run, read each Backchain loop's start contract and first report: every contract within the 9,216-byte budget the packet states, every first report accepted. Files and symbols: _backchain_contract_budget and _backchain_guidance in skills/shiploop/scripts/shiploop_prompts.py; the run's scratch/backchain-*/until-loop-start-input.json and until-loop-receipt.json. Test: python3 -B test/shiploop-guidance.test.py (the budget text at every Backchain stage). Done when: the run's journal entry lists each Backchain contract's size against 9,216 bytes and no first report was rejected for state size.",
+    "why": "For: the budget shipped in 1.19.0 and has met no looped run; the size guard at start already refuses oversize Improve contracts (3 of this run's refusals). Against: needs a live run, and the step-plan whole loop it was found in was off-protocol (o27). Verdict: verify with the next looped run, at no extra cost."
+   },
+   "a07": {
+    "title": "Add a Sonnet case that reaches the Backchain loops",
+    "criterion": "P6",
+    "kind": "fix-harness",
+    "status": "open",
+    "effort": "M",
+    "cost": "one Sonnet 5.5 run of the new case",
+    "findings": [
+     "o06"
+    ],
+    "goal": "Do: add an E2E case, or a seeded battleship variant at step-plan, in which a Sonnet 5.5 run starts a Backchain loop and writes its contract, so the fast gate covers the loop and budget path. Files and symbols: test/shiploop_e2e/cases.json; the --seed-at path in test/shiploop_e2e/run.py. Test: python3 -B test/shiploop-e2e.test.py (the case catalog checks), then one Sonnet run of the case. Done when: that run leaves scratch/backchain-* with a contract and a receipt.",
+    "why": "For: the fast gate would catch loop-path defects in minutes instead of a day. Against: Sonnet never starts a loop while it is the model's choice (o24), and its 1,000,000-token window never meets Luna's compaction pressure, so a case cannot force the depth that failed. Verdict: wait until a05 requires or drops the loop."
+   },
+   "a08": {
+    "title": "Print copy-ready callbacks",
+    "criterion": "P3",
+    "kind": "fix-shiploop",
+    "status": "open",
+    "effort": "M",
+    "findings": [
+     "o05",
+     "o33"
+    ],
+    "ref": "docs/shiploop-callback-typos-plan-2026-10-04.md Item C (deferred by o33)",
+    "goal": "Do: drop the derivable --result, --opening and --message flags from the printed callbacks (Item C) so a model never re-types a path it can get wrong. Files and symbols: _callback in skills/shiploop/scripts/shiploop_navigator.py; the required flags in skills/shiploop/scripts/shiploop_protocol.py. Test: a navigator contract test that every printed completion call carries only the run directory and the action id. Done when: that test passes and no printed callback carries a derived path.",
+    "why": "For: 4 of this run's 13 refusals were run-path copy errors. Against: each was repaired by the next call (28.4 s in 18.8 h by o33's count), and the change costs a release and 18 test and fixture files. Verdict: deferred until a path typo appears in another run (R1) or one is not repaired by the next call (R2); neither has happened."
+   },
+   "a09": {
+    "title": "Release and publish the Run Review redesign",
+    "criterion": "P5",
+    "kind": "fix-harness",
+    "status": "built",
+    "effort": "M",
+    "recommended": true,
+    "findings": [
+     "o42"
+    ],
+    "ref": "fd6810fe (branch rr8-af090e, R1 to R15 of docs/shiploop-run-review-redesign-plan-2026-10-04.md; unreleased)",
+    "goal": "Do: merge the Run Review skill (skills/shiploop-run-review) to main, release it, and publish its v2 exports and this review to the page, so each run shows its measured numbers, its Backchain ledger and expectation chips derived from its findings. Files and symbols: build_run, loop_doc, check_bundle and upgrade_docs in skills/shiploop-run-review/scripts/export.py; REVIEW_EXPORTER in test/shiploop_e2e/run.py. Test: python3 -B test/shiploop-run-review.test.py. Done when: the skill is released and the page shows Improve for luna1 as 360.3 minutes and 41 passes.",
+    "why": "For: the page shows Improve at 135.8 min for a run that spent 360.3 (o42), and no finding there carries an effect, so every chip reads not rated. Against: a release and a publish while the template is still being edited (R14). Verdict: do it once R14 lands; the data upload needs no republish."
+   },
+   "a10": {
+    "title": "Derive stage minutes from the script's own timestamps",
+    "criterion": "P5",
+    "kind": "fix-harness",
+    "status": "done",
+    "effort": "S",
+    "findings": [
+     "o18"
+    ],
+    "ref": "3c604304 (A2), merged 9db0be37",
+    "goal": "Do: compute each stage's minutes from ShipLoop's accept stamps (timeline.json joined to state.md history by action id), never from when packets or result files were read. Files and symbols: stage_results and per_stage in test/shiploop_e2e/metrics.py. Test: python3 -B test/shiploop-e2e.test.py (StageAttributionTest). Done when: the regraded Luna result.json gives plan 11,782 s and test-strategy 5,658 s, equal to the accept deltas.",
+    "why": "For: the harness put 224 and 39 min where the run spent 94 and 196. Against: none found. Verdict: done, and verified on this run's regrade."
+   },
+   "a11": {
+    "title": "Let the Luna run finish, grade it and journal it",
+    "criterion": "P1",
+    "kind": "gather-evidence",
+    "status": "done",
+    "effort": "L",
+    "findings": [
+     "o35"
+    ],
+    "ref": "4b5d41dd (LEARNINGS 'Luna max battleship on 1.16.1, final'); regraded with no host in eee16763",
+    "goal": "Do: let the Luna max battleship run end on its own, grade it with no host started, and journal its result, stage minutes and Backchain ledgers. Files and symbols: test/shiploop_e2e/LEARNINGS.md; test/shiploop_e2e/evidence/codex-gpt-6-luna-1.16.1-battleship-20261003.json. Test: none; this gathers evidence. Done when: the journal holds the final entry and the committed v2 export.",
+    "why": "The only run that exercised the whole chain on a deep model. It ended itself blocked at system-test (end_turn after 9.29 h); carry-forward ran no Backchain loop and product-acceptance never ran, so those two ledgers do not exist."
+   },
+   "a12": {
+    "title": "Print the Backchain loop text and resource list only at plan (I2b)",
+    "criterion": "P3",
+    "kind": "fix-shiploop",
+    "status": "built",
+    "effort": "M",
+    "recommended": true,
+    "cost": "a live looped Luna run (the next one, which checks the other built fixes too)",
+    "findings": [
+     "o27",
+     "o28",
+     "o32",
+     "o20"
+    ],
+    "ref": "3592b195 (released in 1.19.0, 19fa890d)",
+    "goal": "Do: on the next looped Luna run, confirm that only the plan packet prints the Backchain loop text and resource list, that the audit stages print the audit route with one status line, and whether any step-plan whole plan/draft loop starts. Files and symbols: _backchain_guidance and BACKCHAIN_NATIVE_CALLS in skills/shiploop/scripts/shiploop_prompts.py; resolved_backchain_resources and the resource block in skills/shiploop/scripts/shiploop_navigator.py. Test: python3 -B test/shiploop-navigator-dry-run.test.py and test/shiploop-navigator-contract.test.py (content and absence pins). Done when: the run's packets show the list at plan only and the journal records whether a step-plan whole loop started.",
+    "why": "For: a packet carries only what its step may do (S-7), the audit-stage packets shrink 8 to 12%, and the text matches BACKCHAIN_NATIVE_CALLS. Against: not shown to stop the step-plan loop, which the model chose before reading that packet (o32). Verdict: built; observe the next looped run."
+   },
+   "a13": {
+    "title": "A person-only case at system-test is an open item, not a block",
+    "criterion": "phase-6",
+    "kind": "fix-shiploop",
+    "status": "built",
+    "effort": "M",
+    "recommended": true,
+    "cost": "a live run whose test strategy plans a person-only case (the next Luna battleship)",
+    "findings": [
+     "o35"
+    ],
+    "ref": "c7ee64ba, merged 916850b0 (released in 1.20.0, 7aff70aa)",
+    "goal": "Do: confirm on a live run that system-test accepts done when a required case needs a person: the case is recorded as an open item (case id, who does what, what they report, due stage), the run continues to release, and the handoff lists it unverified. Files and symbols: DUTIES['system-test'] and DUTIES['handoff'] in skills/shiploop/scripts/shiploop_prompts.py; 'Stage readiness and completion' in skills/shiploop/references/testing-and-documentation.md. Test: python3 -B test/shiploop-test-loop.test.py and test/shiploop-guidance.test.py. Done when: such a run passes system-test as done with the open item and reaches the report (row a of the a13 decision table in test/shiploop_e2e/LEARNINGS.md).",
+    "why": "For: S-14 was in every packet; the route to done was missing at stage completion, and the fix is text only. Against: unverified live (the 1.20.0 Luna run stopped after about 48 min); the earlier lever, planning person-only cases as open items from test-strategy, is deferred. Verdict: built; read the next Luna run against the pre-registered table."
+   },
+   "a14": {
+    "title": "Find what Improve's first pass changes in the hello runs since 1.18.0",
+    "criterion": "P6",
+    "kind": "gather-evidence",
+    "status": "done",
+    "effort": "M",
+    "findings": [
+     "o37"
+    ],
+    "ref": "test/shiploop_e2e/LEARNINGS.md 'Hello cost analysis and Claude connector isolation'",
+    "goal": "Do: read what each Improve child's first pass changed in the four hello runs and say whether the cost rise is release-linked. Files and symbols: improve/<action>/ of each hello run; test/shiploop_e2e/LEARNINGS.md. Test: none; read-only. Done when: the journal records each first-pass change and a verdict on the release link.",
+    "why": "9 of 12 first-pass changes fixed real defects and the reviewed text was byte-identical, so the rise is not shown to be release-linked. The $28 interleaved A/B stays dropped (docs/shiploop-e2e-plan-reconciliation-2026-10-04.md, section 7)."
+   },
+   "a15": {
+    "title": "Isolate Claude E2E runs from the user's account connectors",
+    "criterion": "P5",
+    "kind": "fix-harness",
+    "status": "done",
+    "effort": "S",
+    "findings": [
+     "o38"
+    ],
+    "ref": "bc3046db; verified live in /Users/dadleet/e2e-runs/20261004/v1200-hello-sonnet (init event: 0 MCP servers, 28 tools)",
+    "goal": "Do: launch every Claude E2E host with --strict-mcp-config so an unattended run sees only the plugin under test. Files and symbols: ClaudeHost.argv in test/shiploop_e2e/hosts.py. Test: python3 -B test/shiploop-e2e.test.py (the pinned argv). Done when: a Claude run's init event lists 0 MCP servers.",
+    "why": "For: two of four hello runs loaded 15 account connectors and 174 tools, a safety gap and a cost confound. Against: none. Verdict: done."
+   },
+   "a16": {
+    "title": "Define the check suite in the system-test-author guidance if the replan recurs",
+    "criterion": "P1",
+    "kind": "fix-shiploop",
+    "status": "planned",
+    "effort": "S",
+    "findings": [
+     "o39"
+    ],
+    "ref": "test/shiploop_e2e/LEARNINGS.md 'Hello cost analysis and Claude connector isolation' (wait for a recurrence)",
+    "goal": "Do: once a later run repeats the refusal of a shell pipeline recorded as suite focused, add the definition of the check suite to the system-test-author duties, as the step-plan guidance has it. Files and symbols: DUTIES['system-test-author'] and the step-plan suite text in skills/shiploop/scripts/shiploop_prompts.py. Test: a pin in test/shiploop-guidance.test.py that the system-test-author duties define focused, regression and check. Done when: that pin passes and no later run replans a second work item after this refusal.",
+    "why": "For: one refusal cost a second work item and about $1.44 (o39). Against: one hello run in five; the 1.20.0 gate run did not repeat it. Verdict: wait for a recurrence, as planned."
+   },
+   "a17": {
+    "title": "Default the plan-stage Backchain loop to one pass",
+    "criterion": "B1",
+    "kind": "fix-shiploop",
+    "status": "planned",
+    "effort": "M",
+    "recommended": true,
+    "cost": "a live Luna run at xhigh, the plan's only verification (its replay was skipped)",
+    "findings": [
+     "o12",
+     "o19",
+     "o11",
+     "o29"
+    ],
+    "ref": "docs/shiploop-fast-planning-plan-2026-10-04.md (branch fastplan-1f1dd3, 9747d769); SPEC S-10 carve-out, unmerged",
+    "goal": "Do: build the plan's --backchain-passes one|converge|none option, default one: the plan-stage Backchain child runs one review, fix and check cycle with required_trivial_reviews 0 and the plan's exit text, and continues only for a named open gap; converge restores two clean passes and none offers no whole loop. Files and symbols: _backchain_guidance and prompt in skills/shiploop/scripts/shiploop_prompts.py; _STATE_KEYS and new_state in skills/shiploop/scripts/shiploop_navigator.py; skills/backchain/references/convergence.md and caller-contract.md. Test: the plan's guidance and state tests (the option is recorded in state.md, a saved run without it is refused, each mode prints its text). Done when: those tests pass and the next looped Luna run's plan loop records one pass, or the journal says why it ran more.",
+    "why": "For: plan passes 2 to 7 took 92 min and changed only confirm clauses and a label, and the owner asked for one pass. Against: one pass leaves defects of the kind passes 2 to 4 fixed, and nothing enforces the gate the host writes (a02). Verdict: build it as decided and read the next run against the plan's pre-registered readings."
+   },
+   "a18": {
+    "title": "Reword B1 for a one-pass plan loop",
+    "criterion": "B1",
+    "kind": "change-expectation",
+    "status": "open",
+    "effort": "S",
+    "findings": [
+     "o12",
+     "o19"
+    ],
+    "ref": "9747d769 (SPEC S-10 carve-out, branch fastplan-1f1dd3)",
+    "change": {
+     "target": "page",
+     "to": "The plan-stage Backchain loop runs one review, fix and check cycle by default and continues only for a named open gap; no pass is run only to confirm a close. Every pass it runs finds a material gap or repairs one.",
+     "reason": "On the Luna 1.16.1 run plan passes 2 to 7 (92 min) changed only confirm clauses and a metadata label, passes 6 and 7 nothing, and the owner chose one pass (SPEC S-10 carve-out, 9747d769), which replaces B1's 'price of closing'."
+    },
+    "goal": "Do: once the S-10 carve-out is on main, replace B1's text in skills/shiploop-run-review/defaults/expectations.json with change.to, keep clauses S-10, append a revs entry naming this option, and journal it. Files and symbols: B1 in skills/shiploop-run-review/defaults/expectations.json. Test: python3 -B test/shiploop-run-review.test.py. Done when: the defaults carry the new B1 text with its revs entry and the suite passes.",
+    "why": "B1 describes the two-clean-pass rule the owner replaced; apply it with a17 so the page judges the next run by the new rule."
+   },
+   "a19": {
+    "title": "Add a criterion for S-14: a person-only step does not stop the run",
+    "criterion": "phase-6",
+    "kind": "change-expectation",
+    "status": "open",
+    "effort": "S",
+    "findings": [
+     "o35"
+    ],
+    "change": {
+     "target": "page",
+     "to": "New criterion P7, 'A step only a person can supply does not stop the run' (clauses S-14): the run records it as an open item with its owner and continues with everything that does not depend on it, and ends on the awaiting route only when nothing else can proceed. o35 moves from phase-6 to P7.",
+     "reason": "This run's largest miss, blocked at system-test after 19.3 h on two person-only browser cases, is an S-14 failure, but no criterion carries S-14 and o35 is keyed to phase-6, which has no row in step 2, so the page cannot show it."
+    },
+    "goal": "Do: add P7 to skills/shiploop-run-review/defaults/expectations.json (group-principles, clauses S-14, a revs entry naming this option), set o35's criterion to P7 in this review file, and journal it. Files and symbols: defaults/expectations.json; test/shiploop_e2e/evidence/codex-gpt-6-luna-1.16.1-battleship-20261003.review.json. Test: python3 -B test/shiploop-run-review.test.py and export.py --check on the review file. Done when: both pass and step 2 shows P7 broken for luna1.",
+    "why": "The defaults map 9 of the 15 spec clauses to a criterion; S-14 is the one this run broke."
+   },
+   "a20": {
+    "title": "Keep the first launch's plugin verdict on a resume or regrade",
+    "criterion": "P5",
+    "kind": "fix-harness",
+    "status": "built",
+    "effort": "S",
+    "recommended": true,
+    "findings": [
+     "o36"
+    ],
+    "ref": "2528c470 (R1), merged c479bf2f",
+    "goal": "Do: confirm on the next resumed or regraded Codex run that its plugin verdict is the one its first launch recorded in invocation.json. Files and symbols: the plugin record in invocation.json and the resume and regrade branches of test/shiploop_e2e/run.py. Test: python3 -B test/shiploop-e2e.test.py (PluginVerdictCarriedTest). Done when: a resumed Codex run's result.json reads plugin pass with the plugin it loaded.",
+    "why": "For: a resume read plugin false with nothing loaded although the first launch graded it true. Against: this run's own record cannot be repaired (its invocation.json predates the record). Verdict: built; the next Codex resume shows it."
+   },
+   "a21": {
+    "title": "Record the line that names a refusal's cause",
+    "criterion": "P5",
+    "kind": "fix-harness",
+    "status": "open",
+    "effort": "S",
+    "recommended": true,
+    "findings": [
+     "o40"
+    ],
+    "goal": "Do: for a failing ShipLoop command, record the first output line that starts with 'ShipLoop navigator:', 'ShipLoop blocked:', 'error:' or 'shiploop: error:', and only without one the first line FAILURE_LINE matches today. Files and symbols: FAILURE_LINE and the shiploop_failures loop in collect, test/shiploop_e2e/metrics.py. Test: a MetricsTest case with this run's two shapes (the cause line, then the 'Read the current packet with next' tail; an AssertionError, then the cause) that records the cause line. Done when: that test passes and a read-only re-collect of the Luna run records no generic tail among its 13 failures.",
+    "why": "For: 9 of 13 recorded lines hide the cause, so neither the page nor a reviewer can say why a command was refused. Against: the line of an older metrics.json changes only on a regrade. Verdict: do it; one rule, testable on recorded output."
+   },
+   "a22": {
+    "title": "Keep callback path typos as a monitored known limit",
+    "criterion": "P3",
+    "kind": "accept",
+    "status": "done",
+    "effort": "S",
+    "findings": [
+     "o05",
+     "o33"
+    ],
+    "ref": "test/shiploop_e2e/LEARNINGS.md 'Callback path typos across the 1003 batch'; docs/shiploop-callback-typos-plan-2026-10-04.md",
+    "goal": "Do: record that this run's run-path typos were each repaired by the next call, change no code, and reopen the engine change on a path typo in any other run (R1) or one not repaired by the next call (R2). Files and symbols: test/shiploop_e2e/LEARNINGS.md. Test: none; this records a known limit. Done when: the entry names the typos, their evidence and both reopen triggers.",
+    "why": "A normal run has not hit it: every path typo sits in the resumed session of this one run."
+   },
+   "a23": {
+    "title": "Export the Backchain passes option and whether the final candidate was checked",
+    "criterion": "B2",
+    "kind": "fix-harness",
+    "status": "planned",
+    "effort": "S",
+    "recommended": true,
+    "findings": [
+     "o25"
+    ],
+    "ref": "docs/shiploop-fast-planning-plan-2026-10-04.md (branch fastplan-1f1dd3, 9747d769) I4 (handed to the Run Review work)",
+    "goal": "Do: have the exporter add to each backchain document the run's backchain_passes option from state.md and whether the last backchain-check receipt's candidate digest equals the loop's final candidate digest (unknown when either is missing). Files and symbols: loop_doc and build_run in skills/shiploop-run-review/scripts/export.py; the receipts under run/backchain/<action>/. Test: python3 -B test/shiploop-run-review.test.py with loop fixtures whose receipt matches and does not match. Done when: that test passes and the next looped run's export names its mode and whether its final candidate was checked.",
+    "why": "For: the review can then tell from the run's own files that a loop ran and what was checked (o25). Against: it needs a17's option first. Verdict: do it with a17."
+   },
+   "a24": {
+    "title": "Compare Improve's planning-stage passes on the next Luna run",
+    "criterion": "B4",
+    "kind": "gather-evidence",
+    "status": "open",
+    "effort": "S",
+    "recommended": true,
+    "findings": [
+     "o22"
+    ],
+    "ref": "docs/shiploop-fast-planning-plan-2026-10-04.md (branch fastplan-1f1dd3, 9747d769) D4",
+    "goal": "Do: after the next Luna run, list Improve passes and minutes per child at spec, test-strategy, plan, step-plan and test-spec beside this run's (4, 11, 3, 3 and 5 passes), say which later passes changed anything, and propose whether planning-stage Improve keeps its two-review gate. Files and symbols: improve/<action>/terminal.json and receipt.md of both runs; stages[].improve in their v2 exports. Test: none; read-only. Done when: the journal holds that table and a proposal the owner can tick.",
+    "why": "The owner kept Improve unchanged and asked to revisit it with the next run's data (fast-planning D4); Improve took 31% of this run."
+   },
+   "a25": {
+    "title": "Print each outcome's shape in the head and name the correction in every refusal",
+    "criterion": "P3",
+    "kind": "fix-shiploop",
+    "status": "built",
+    "effort": "M",
+    "recommended": true,
+    "findings": [
+     "o43"
+    ],
+    "ref": "d412a45d, f14f90c7 (branch rrr-edc892, unreleased)",
+    "goal": "Do: release the refusal and packet-shape changes: the packet head prints the exact shape of each outcome the stage allows, and each refused result or opening names the field or heading to fix, each correction tested through the same gate. Files and symbols: _outcome_shape_lines, _result_contract_lines, _result_shape_problem and _opening_sections in skills/shiploop/scripts/shiploop_navigator.py (branch rrr-edc892). Test: python3 -B test/shiploop-callback-contract.test.py. Done when: the change is released and the next Luna run has no refusal for a missing outcome, summary or opening section.",
+    "why": "For: 5 of this run's 13 refusals were shapes the head did not print, and the refusal did not say what to change. Against: the head grows by about 1,100 characters where a stage allows blocked and one more outcome. Verdict: built and tested; release it before the next Luna run."
+   }
+  }
+ }
+}

@@ -137,6 +137,7 @@ _SHIPLOOP_PATHS = (
     "test/shiploop-planning-handoff.test.py",
     "test/shiploop-package-integrity.test.py",
     "test/shiploop-e2e.test.py",
+    "test/shiploop-run-review.test.py",
 )
 
 # Measured in the audited full GitHub qualification.  Every known duration is
@@ -206,6 +207,7 @@ _DURATION_SECONDS = {
     "test/shiploop-planning-handoff.test.py": 0.2,
     "test/shiploop-package-integrity.test.py": 0.2,
     "test/shiploop-e2e.test.py": 0.7,
+    "test/shiploop-run-review.test.py": 0.2,
 }
 _FALLBACK_DURATION_SECONDS = 60.0
 
@@ -430,9 +432,12 @@ _PATH_SUITE_IDS = {
     "catalog/skill-craft-plugin.json": ("marketplace-package", "native-marketplace-adapters", "release-flow"),
 }
 
-# Directories whose files have names too common to select by (run.py, hosts.py).
+# Directories whose files have names too common to select by (run.py, hosts.py), and the leaf whose
+# ShipLoop-family suite its name does not select (the leaf-name rule skips that family).  A new leaf's
+# package build is its release gate, so the Run Review leaf also selects marketplace-package.
 _PREFIX_SUITE_IDS = {
     "test/shiploop_e2e/": ("shiploop-e2e",),
+    "skills/shiploop-run-review/": ("shiploop-run-review", "marketplace-package"),
 }
 
 

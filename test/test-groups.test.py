@@ -92,9 +92,9 @@ class TestGroupTests(unittest.TestCase):
         return root, env, parent
 
     def test_audited_catalog_counts_and_fixed_commands(self) -> None:
-        self.assertEqual(len(suite_catalog.SHIPLOOP_SUITES), 65)
+        self.assertEqual(len(suite_catalog.SHIPLOOP_SUITES), 66)
         self.assertEqual(len([suite for suite in suite_catalog.SUITES if suite.family == "core"]), 38)
-        self.assertEqual(len(suite_catalog.SUITES), 105)
+        self.assertEqual(len(suite_catalog.SUITES), 106)
         self.assertTrue(all(suite.hermetic for suite in suite_catalog.SUITES))
         self.assertTrue(all(suite.path in suite.argv for suite in suite_catalog.SUITES))
         self.assertTrue(all(suite.argv[0] in {"python3", "node", "bash"} for suite in suite_catalog.SUITES))
@@ -146,6 +146,9 @@ class TestGroupTests(unittest.TestCase):
             "skills/shiploop/SKILL.md": {"shiploop-guidance", "shiploop-reference-routing",
                                          "shiploop-delegation", "shiploop-package-integrity"},
             "test/shiploop_consumer_delivery_support.py": {"shiploop-consumer-delivery"},
+            # The Run Review leaf: its own suite plus the package build that gates a new leaf.
+            "skills/shiploop-run-review/scripts/export.py": {"shiploop-run-review", "marketplace-package"},
+            "skills/shiploop-run-review/SKILL.md": {"shiploop-run-review", "marketplace-package"},
         }
         for path, expected in cases.items():
             with self.subTest(path=path):

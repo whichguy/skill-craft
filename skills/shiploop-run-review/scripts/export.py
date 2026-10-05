@@ -1,8 +1,10 @@
 #!/usr/bin/env python3
-"""Export one ShipLoop E2E run as Run Review documents (see SCHEMA.md).
+"""Export one ShipLoop E2E run as Run Review documents (see ../SCHEMA.md).
 
   export.py RUN_DIR [--key KEY] [--name NAME] [--order N] [--out DIR]
-  export.py --defaults [--out DIR]
+  export.py --defaults [--live FILE] [--out DIR]
+  export.py --check FILE
+  export.py --docs FILE [--out DIR]
 
 RUN_DIR is an output directory of test/shiploop_e2e/run.py. The export reads only
 the run's own records (metrics.json, result.json, invocation.json and the ShipLoop
@@ -15,6 +17,19 @@ run directory) and writes only under --out (default RUN_DIR/review-export):
 
 A missing metrics.json, timeline.json or results/ is an error naming the file
 (exit 2), never an empty export. The same input gives byte-identical output.
+
+--check FILE validates a review bundle (the shape review-export.json has: documents
+keyed by collection and id) against SCHEMA.md and the review rules in SKILL.md: every
+failure is listed, one per line, naming the document (exit 2); a warning is listed and
+leaves the exit 0. --docs FILE checks the same bundle, then writes its documents and
+writes.json under --out (default a new temporary directory) through the writer an
+export uses.
+
+--defaults writes the starting expectations and settings. With --live FILE (the page's
+expectations and config documents, saved in the shape of the committed database
+snapshot) it writes the defaults over that page instead, keeping what the owner wrote
+there (upgrade_docs): every page revision must already be in the defaults, documents
+the defaults do not name are never written, and config/page is written only when absent.
 Stdlib only; no network and no model calls.
 """
 
@@ -24,17 +39,21 @@ import argparse
 from datetime import datetime, timezone
 import hashlib
 import json
+import math
 from pathlib import Path
 import re
 import sys
 import tempfile
 
-HERE = Path(__file__).resolve().parent
-DEFAULTS = HERE / "defaults"
-SCHEMA_ID = "run-review-export/v1"
+SKILL_ROOT = Path(__file__).resolve().parents[1]  # scripts/export.py sits one level below the skill root
+DEFAULTS = SKILL_ROOT / "defaults"
+SCHEMA_ID = "run-review-export/v2"
 MAX_COMPACT_BYTES = 200_000
 MAX_KNOWLEDGE = 40
 MAX_FAILURE_LINE = 240
+MAX_FIGURE_ITEMS = 6
+FIGURE_KINDS = ("bars",)
+FIGURE_TONES = ("expected", "saw", "limit")
 
 # Stage -> phase. The phase orders match defaults/expectations.json (phase-<order>); the stage names
 # are shiploop_stage_spec.STAGES, and a test checks that every stage there is listed here once.
@@ -52,8 +71,10 @@ PHASES = (
 )
 STAGE_PHASE = {stage: order for order, (_, stages) in enumerate(PHASES) for stage in stages}
 # ShipLoop run status -> the page's run status.
-RUN_STATUS = {"active": "active", "paused": "active", "blocked": "blocked", "halted": "failed", "done": "done"}
-COLLECTION_ORDER = ("runs", "backchain", "expectations", "config", "observations", "actions", "iterations")
+RUN_STATUS = {"active": "active", "paused": "paused", "blocked": "blocked", "halted": "failed", "done": "done"}
+# Upload order: what the page shows first (runs and their loops), the replicas published from defaults/, then the
+# review (the arc), the findings it raises and the options that resolve them. Every SCHEMA collection is listed.
+COLLECTION_ORDER = ("runs", "backchain", "expectations", "config", "reviews", "observations", "actions")
 
 # ---------------------------------------------------------------- the contract, as data (SCHEMA.md)
 # A field spec is (type, required). Types: "string", "number", "boolean", "iso", "any-scalar",
@@ -62,27 +83,40 @@ COLLECTION_ORDER = ("runs", "backchain", "expectations", "config", "observations
 S, N, B, ISO = "string", "number", "boolean", "iso"
 PHASE_STATES = ("done", "running", "blocked", "none")
 SCHEMA = {
+    # No expectation carries a status: how an expectation stands for a run is derived by the page from the run's
+    # findings and review. `clauses` ties a criterion to the S-n clauses of test/shiploop_e2e/SPEC.md.
     "expectations": {
-        "kind": (("enum", ("phase", "group", "criterion", "iter")), True),
+        "kind": (("enum", ("phase", "group", "criterion")), True),
         "order": (N, False), "title": (S, False), "short": (S, False), "text": (S, False),
-        "group": (S, False), "status": (("enum", ("holds", "bent", "broken", "unjudged")), False),
+        "group": (S, False), "clauses": (("list", S), False),
         "revs": (("items", {"at": (ISO, True), "from": (S, True), "to": (S, True), "reason": (S, True),
-                            "obs": (S, False), "iter": (S, False)}), False),
+                            "obs": (S, False), "option": (S, False)}), False),
         "updatedAt": (ISO, False),
     },
+    # reviews/<runKey>: Claude's reading of one run. The page derives each expectation's chip from findings plus `basis`.
+    "reviews": {"summary": (("list", S), False), "basis": (("map", S), False), "reviewedAt": (ISO, False)},
     "runs": {
         "key": (S, True), "name": (S, True), "order": (N, True), "release": (S, True),
         "phases": (("list", ("enum", PHASE_STATES)), True),
-        "time": (S, True), "imp": (S, True), "refusals": (N, True), "glue": (N, True),
+        "time": (S, True), "imp": (S, True),
+        # refusals, glue and failures are omitted when the harness names the counter unmeasured (a host that
+        # cannot see it); `unmeasured` carries the harness's reason for each such counter. Never a zero.
+        "refusals": (N, False), "glue": (N, False), "unmeasured": (("map", S), False),
+        # Each of these is present only when measured; otherwise `unmeasured` holds the reason, under the same name.
+        "improvePasses": (N, False), "improveMin": (N, False), "calls": (N, False), "contextPeak": (N, False),
+        "contextWindow": (N, False), "compactions": (N, False),
         "wallMin": (N, False), "host": (S, False), "model": (S, False), "effort": (S, False), "case": (S, False),
-        "status": (("enum", ("done", "active", "blocked", "failed")), False),
+        "status": (("enum", ("done", "active", "paused", "blocked", "failed")), False),
         "startedAt": (ISO, False), "endedAt": (ISO, False),
         "verdicts": (("map", B), False),
-        "stages": (("items", {"stage": (S, True), "outcome": (S, True), "min": (N, True), "turns": (N, False),
-                              "packetBytes": (N, False), "resultBytes": (N, False)}), False),
+        # min is null when the visit has no accept stamp, the one before it has none, the stamps run backwards, or the
+        # harness seeded the visit: unknown, not 0. seeded and skipped are present only when true; improve and context
+        # hold only the numbers that were measured (SCHEMA.md).
+        "stages": (("items", {"stage": (S, True), "outcome": (S, True), "min": (N, False), "turns": (N, False),
+                              "packetBytes": (N, False), "resultBytes": (N, False), "action": (S, False),
+                              "skipped": (B, False), "seeded": (B, False), "improve": (("map", N), False),
+                              "context": (("map", N), False)}), False),
         "knowledge": (("map", N), False),
-        "improve": (("items", {"stage": (S, True), "passes": (N, True), "seconds": (N, True), "bytes": (N, True)}),
-                    False),
         "failures": (("items", {"verb": (S, True), "line": (S, True)}), False),
         "evidence": (S, False),
     },
@@ -95,27 +129,32 @@ SCHEMA = {
                                 "streak": (N, False)}), False),
         "facts": (("items", {"k": (S, True), "v": (S, True)}), False),
     },
+    # observations are the page's "findings" and actions its "options"; the collection names do not change.
     "observations": {
         "phase": (N, False), "criterion": (S, False),
         "kind": (("enum", ("defect", "recovered", "decision", "noise", "added", "wasted")), False),
-        "run": (S, False), "status": (("enum", ("open", "fixed", "accepted", "reexpected")), False),
+        # run names one run key (or `any`); `runs` lists the run keys the finding applies to and overrides `run`.
+        "run": (S, False), "runs": (("list", S), False),
+        "status": (("enum", ("open", "fixed", "accepted", "reexpected")), False),
         "title": (S, False), "expected": (S, False), "observed": (S, False), "evidence": (S, False),
+        # how an OPEN finding hits its expectation (drives the derived chip); advice is Claude's recommendation.
+        "effect": (("enum", ("broken", "bent")), False), "advice": (S, False),
+        # an optional structured picture of expected versus seen numbers; never markup (see _figure_problems).
+        "figure": (("figure", None), False),
         "createdAt": (ISO, False),
     },
-    "actions": {"title": (S, False), "why": (S, False), "goal": (S, False), "criterion": (S, False),
-                "base": (N, False), "status": (S, False)},
-    "iterations": {
-        "n": (N, False), "title": (S, False),
-        "kind": (("enum", ("retrospective", "build", "pilot", "screen", "e2e", "decision")), False),
-        "status": (("enum", ("planned", "running", "done")), False), "run": (S, False),
-        "cost": ("any-scalar", False), "setBeforeData": (B, False), "expect": (S, False), "observed": (S, False),
-        "verdict": (("enum", ("pending", "confirmed", "partly", "refuted")), False),
-        "touches": (("list", S), False), "ifConfirmed": (S, False), "ifRefuted": (S, False), "next": (S, False),
-        "engineChange": (S, False), "observedAt": (ISO, False),
+    "actions": {
+        "title": (S, False), "why": (S, False), "goal": (S, False), "criterion": (S, False),
+        "status": (("enum", ("open", "planned", "built", "done")), False),
+        "findings": (("list", S), False),
+        "kind": (("enum", ("fix-shiploop", "fix-harness", "change-expectation", "gather-evidence", "accept")), False),
+        "effort": (("enum", ("S", "M", "L")), False), "recommended": (B, False), "cost": (S, False),
+        "change": (("object", {"target": (("enum", ("page", "spec")), True), "to": (S, True), "reason": (S, True)}),
+                   False),
+        "ref": (S, False),
     },
     # config/page and config/prompt share the collection; every field is a string.
-    "config": {"title": (S, False), "artifactUrl": (S, False), "synthPreamble": (S, False),
-               "concatPreamble": (S, False), "constraints": (S, False), "closing": (S, False)},
+    "config": {"title": (S, False), "artifactUrl": (S, False), "constraints": (S, False), "closing": (S, False)},
 }
 
 
@@ -143,6 +182,12 @@ def _type_problem(spec, value, where: str) -> list[str]:
         return [] if isinstance(value, (str, int, float)) and not isinstance(value, bool) else [
             f"{where}: expected a string or number"]
     kind, arg = spec
+    if kind == "figure":
+        return _figure_problems(value, where)
+    if kind == "object":
+        if not isinstance(value, dict):
+            return [f"{where}: expected an object"]
+        return _fields_problems(arg, value, where)
     if kind == "enum":
         return [] if value in arg else [f"{where}: {value!r} is not one of {', '.join(arg)}"]
     if kind == "list":
@@ -164,6 +209,31 @@ def _type_problem(spec, value, where: str) -> list[str]:
             problems += _fields_problems(arg, item, f"{where}[{i}]")
         return problems
     raise ValueError(f"unknown field spec {spec!r}")
+
+
+def _figure_problems(value, where: str) -> list[str]:
+    """A figure is a small structured spec the page draws, never markup: {kind: "bars", items: [{label, value,
+    unit?, lowerBound?, tone?}]} with 1 to MAX_FIGURE_ITEMS items, plain-string labels and non-negative numbers."""
+    if not isinstance(value, dict):
+        return [f"{where}: expected an object"]
+    item_fields = {"label": (S, True), "value": (N, True), "unit": (S, False), "lowerBound": (B, False),
+                   "tone": (("enum", FIGURE_TONES), False)}
+    problems = [f"{where}: unknown field {name!r}" for name in sorted(set(value) - {"kind", "items"})]
+    problems += _fields_problems({"kind": (("enum", FIGURE_KINDS), True),
+                                  "items": (("items", item_fields), True)}, value, where)
+    items = value.get("items")
+    if isinstance(items, list):
+        if not 1 <= len(items) <= MAX_FIGURE_ITEMS:
+            problems.append(f"{where}.items: expected 1 to {MAX_FIGURE_ITEMS} items, got {len(items)}")
+        for i, item in enumerate(items):
+            if not isinstance(item, dict):
+                continue
+            problems += [f"{where}.items[{i}]: unknown field {name!r}" for name in sorted(set(item) - set(item_fields))]
+            number = item.get("value")
+            if isinstance(number, (int, float)) and not isinstance(number, bool) \
+                    and not (math.isfinite(number) and number >= 0):
+                problems.append(f"{where}.items[{i}].value: expected a non-negative number")
+    return problems
 
 
 def _fields_problems(fields: dict, doc: dict, where: str) -> list[str]:
@@ -306,7 +376,7 @@ def _time_text(status: str | None, wall: float | None, accepted: int) -> str:
     if not accepted:
         return "no stage accepted yet"
     spent = _fmt_minutes(wall)
-    return {"done": f"done in {spent}", "active": f"running, {spent} at snapshot",
+    return {"done": f"done in {spent}", "active": f"running, {spent} at snapshot", "paused": f"paused after {spent}",
             "blocked": f"blocked after {spent}", "failed": f"halted after {spent}"}.get(status, spent)
 
 
@@ -540,6 +610,132 @@ def _text(value) -> str | None:
     return value if isinstance(value, str) and value.strip() else None
 
 
+def _no_unmeasured_message(out: Path, status) -> str:
+    """Why a metrics.json with no `unmeasured` record is refused, and how to get one."""
+    why = ("metrics.json has no 'unmeasured' record: it was written before the harness recorded which counters "
+           "its host cannot measure, so its refusal and glue counts would be exported as measured zeros. ")
+    if status == "done":
+        return why + (f"Regrade the finished run (python3 test/shiploop_e2e/run.py --resume-run {out}; a finished "
+                      "run starts no host), then export it again.")
+    if status == "blocked":  # run.py grades a blocked run again without resuming it as if answered (SPEC S-14)
+        return why + (f"Regrade the blocked run (python3 test/shiploop_e2e/run.py --resume-run {out}; a regrade "
+                      "starts no host and does not resume the run), then export it again.")
+    return why + (f"This run's ShipLoop status is {status or 'unknown'}, not done or blocked, so it cannot be "
+                  "regraded without a host (resuming it would start one): export it after it finishes.")
+
+
+def _num(value):
+    """The value when it is a number (never a boolean), else None."""
+    return value if isinstance(value, (int, float)) and not isinstance(value, bool) else None
+
+
+def _improve_children(run_dir: Path) -> dict[str, dict]:
+    """{child: {"passes", "min"}} for each improve/<child>/ directory; each is a number or None (unknown).
+
+    A child is named by the id of the action whose visit started it. passes is terminal.json's
+    progress.action_number. min runs from improve/<child>-bind.md to improve/<child>/receipt.md by file time, so it
+    is right on the original run directory (copy one with cp -p) and unknown when either file is missing or the
+    times run backwards.
+    """
+    root = run_dir / "improve"
+    found = {}
+    for child in sorted(p for p in root.iterdir() if p.is_dir()) if root.is_dir() else []:
+        terminal = _optional_json(child / "terminal.json")
+        progress = terminal.get("progress") if isinstance(terminal, dict) else None
+        passes = progress.get("action_number") if isinstance(progress, dict) else None
+        bind, receipt = root / f"{child.name}-bind.md", child / "receipt.md"
+        span = _minutes(_mtime(bind), _mtime(receipt)) if bind.is_file() and receipt.is_file() else None
+        found[child.name] = {"passes": passes if isinstance(passes, int) and not isinstance(passes, bool)
+                             and passes >= 0 else None,
+                             "min": round(span, 2) if span is not None and span >= 0 else None}
+    return found
+
+
+def _improve_totals(children: dict[str, dict]) -> tuple[dict, dict]:
+    """({improvePasses, improveMin}, {name: reason}): a sum over a child with an unknown part is itself unknown."""
+    found, why = {}, {}
+    for field, key, lacks in (("improvePasses", "passes", "has no terminal.json progress.action_number"),
+                              ("improveMin", "min", "lacks a bind.md or receipt.md, or its times run backwards")):
+        values = [child[key] for child in children.values()]
+        unknown = sum(value is None for value in values)
+        if unknown:
+            why[field] = f"{unknown} of {len(values)} Improve children {lacks}, so the sum is unknown"
+        else:
+            found[field] = round(sum(values), 2)
+    return found, why
+
+
+def _model_measures(metrics: dict, harness: dict[str, str]) -> tuple[dict, dict[str, str]]:
+    """({calls, contextPeak, contextWindow, compactions}, unmeasured) from metrics.json.
+
+    A measure the harness did not report is absent with its reason under the run's own name: the harness's
+    `model_calls` and `window_tokens` reasons become `calls` and `contextWindow`, and a peak with no figure of its
+    own takes the calls' reason. When metrics.json names none, the reason says that.
+    """
+    tokens = metrics.get("tokens") if isinstance(metrics.get("tokens"), dict) else {}
+    why = {name: reason for name, reason in harness.items() if name not in ("model_calls", "window_tokens")}
+    found = {}
+    for field, source, value, floor, reason in (
+            ("calls", "model_calls", metrics.get("model_calls"), 1, harness.get("model_calls")),
+            ("contextPeak", "tokens.input_peak", tokens.get("input_peak"), 1, harness.get("model_calls")),
+            ("contextWindow", "window_tokens", metrics.get("window_tokens"), 1, harness.get("window_tokens")),
+            ("compactions", "compactions", metrics.get("compactions"), 0, harness.get("compactions"))):
+        if _num(value) is not None and value >= floor:
+            found[field] = value
+            why.pop(field, None)
+        else:
+            why[field] = reason or f"metrics.json has no {source} figure and names no reason"
+    return found, why
+
+
+NO_VISIT_CONTEXT = ("the harness's stage rows carry no per-stage context (it reads that only from a Codex run's "
+                    "rollouts)")
+
+
+def _visit_context(metrics: dict, history: list[dict]) -> tuple[list[dict | None], str | None]:
+    """(context per history entry, why none is shown).
+
+    The harness's stage rows (metrics.json `stages`) carry no action id: each is built from one history entry of
+    state.md, in order, plus a trailing `incomplete` row for the stage the run stopped in. So a row belongs to the
+    history entry at its position, and that entry names the action. The join is used only when the rows line up
+    exactly (the same count, and the same stage and outcome at every position); otherwise no visit gets a context,
+    never a guess. A context holds only the figures the harness measured: calls, peak, peakPct, compactions.
+    """
+    rows = metrics.get("stages")
+    rows = [r for r in rows if isinstance(r, dict) and not r.get("incomplete")] if isinstance(rows, list) else []
+    if not any(isinstance(r.get("context"), dict) for r in rows):
+        return [None] * len(history), NO_VISIT_CONTEXT
+    if len(rows) != len(history) or any(
+            (row.get("stage"), row.get("outcome")) != (entry.get("stage") or "?", entry.get("outcome"))
+            for row, entry in zip(rows, history)):
+        return [None] * len(history), (f"the harness's {len(rows)} stage rows do not line up one to one with "
+                                       f"state.md's {len(history)} visits, so no row is attributed")
+    found = []
+    for row in rows:
+        figures = row.get("context") if isinstance(row.get("context"), dict) else {}
+        found.append({k: figures[k] for k in ("calls", "peak", "peakPct", "compactions")
+                      if _num(figures.get(k)) is not None} or None)
+    return found, None if any(found) else NO_VISIT_CONTEXT
+
+
+def _seeded(seeded, history: list[dict]) -> tuple[set[str], str | None]:
+    """(ids of the visits the harness recorded itself, why none is marked when result.json names some).
+
+    result.json's `seeded.skipped` lists the stages the E2E seed recorded without doing them; they are the first
+    visits of the history, in order. No summary text is read.
+    """
+    if not seeded:
+        return set(), None
+    names = seeded.get("skipped") if isinstance(seeded, dict) else None
+    if not isinstance(names, list) or not all(isinstance(n, str) for n in names):
+        return set(), "result.json's seeded.skipped is not a list of stage names"
+    first = [h.get("stage") for h in history[:len(names)]]
+    if first != names:
+        return set(), (f"result.json says the harness seeded {', '.join(names)}, but the first {len(names)} visits "
+                       f"of state.md are {', '.join(str(s) for s in first) or 'none'}")
+    return {h["action"] for h in history[:len(names)] if isinstance(h.get("action"), str)}, None
+
+
 def build_run(out: Path, key: str | None = None, name: str | None = None,
               order: int | None = None) -> tuple[dict[str, dict[str, dict]], list[str]]:
     """({collection: {id: document}}, facts.md lines) for one run output directory."""
@@ -559,32 +755,38 @@ def build_run(out: Path, key: str | None = None, name: str | None = None,
     state = _record(run_dir / "state.md")
     if state is None:
         raise ExportError(f"cannot read the shiploop-state record in {run_dir / 'state.md'}")
+    if not isinstance(metrics.get("unmeasured"), dict):
+        raise ExportError(_no_unmeasured_message(out, state.get("status")))
+    unmeasured = {str(name): str(reason) for name, reason in metrics["unmeasured"].items()}
 
     history = [h for h in state.get("history") or [] if isinstance(h, dict)]
-    position = {}
-    for index, entry in enumerate(history):
-        position.setdefault(entry.get("action"), index)
     started = _when(timeline.get("started"))
-    accepted = []
+    stamps = {}  # action id -> (accept moment, the stamp as written)
     for action, stamp in timeline["accepted"].items():
         moment = _when(stamp)
         if moment is None:
             raise ExportError(f"{run_dir / 'timeline.json'}: accept time {stamp!r} of {action} is not ISO")
-        accepted.append((moment, position.get(action, len(history)), action, stamp))
-    accepted.sort()
+        stamps[action] = (moment, stamp)
 
+    # One row per accepted visit, in state.md's history order (the engine's own record; timeline.json only
+    # stamps it). A visit's minutes are its accept minus the accept before it (the first from the run's start),
+    # so a visit with no stamp, one right after a visit with no stamp, one whose stamp is earlier than the accept
+    # before it, or one the harness seeded has unknown minutes: null, never 0 and never negative.
+    seeded_ids, seeded_note = _seeded(result.get("seeded"), history)
+    packets = run_dir / "packets"
+    issued = packets.is_dir() and any(p.is_file() for p in packets.iterdir())  # some packet exists: absence means something
+    children = _improve_children(run_dir)
+    visit_context, visit_context_why = _visit_context(metrics, history)
     actions, stages, phases_seen = [], [], []
-    from_state, unknown = [], []
+    from_state, unknown, stamped = [], [], []
     previous, last_phase = started, 0
-    for moment, _, action, stamp in accepted:
+    for index, entry in enumerate(history):
+        action = entry.get("action")
         record = _record(results / f"{action}.md")
         if record is not None:
             body = record.get("result") if isinstance(record.get("result"), dict) else {}
             stage, outcome = record.get("stage"), record.get("outcome") or body.get("outcome")
         else:
-            entry = next((h for h in history if h.get("action") == action), None)
-            if entry is None:
-                raise ExportError(f"missing {results / (action + '.md')} for an accepted action")
             stage, outcome = entry.get("stage"), entry.get("outcome")
             from_state.append(action)
         stage, outcome = str(stage or "unknown"), str(outcome or "unknown")
@@ -592,15 +794,32 @@ def build_run(out: Path, key: str | None = None, name: str | None = None,
             last_phase = STAGE_PHASE[stage]
         else:
             unknown.append(stage)
-        minutes = _minutes(previous, moment) if previous else 0.0
-        row = {"stage": stage, "outcome": outcome, "min": round(minutes, 1)}
-        for field, path in (("packetBytes", run_dir / "packets" / f"{action}.md"), ("resultBytes", results / f"{action}.md")):
+        accepted_at = stamps.get(action)
+        minutes = _minutes(previous, accepted_at[0]) if previous is not None and accepted_at else None
+        if action in seeded_ids or (minutes is not None and minutes < 0):  # recorded, not done / stamps run backwards
+            minutes = None
+        row = {"stage": stage, "outcome": outcome, "min": None if minutes is None else round(minutes, 1)}
+        if isinstance(action, str):
+            row["action"] = action
+        for field, path in (("packetBytes", packets / f"{action}.md"), ("resultBytes", results / f"{action}.md")):
             if path.is_file():
                 row[field] = path.stat().st_size
+        if action in seeded_ids:
+            row["seeded"] = True
+        elif issued and isinstance(action, str) and "packetBytes" not in row:
+            row["skipped"] = True  # packets were issued, and none for this visit: the engine skipped it
+        figures = {k: v for k, v in (children.get(action) or {}).items() if v is not None}
+        if figures:
+            row["improve"] = figures
+        if visit_context[index]:
+            row["context"] = visit_context[index]
         stages.append(row)
         phases_seen.append(last_phase)
-        actions.append({"id": action, "stage": stage, "from": previous, "at": moment, "min": minutes})
-        previous = moment
+        if accepted_at:
+            stamped.append(accepted_at)
+            actions.append({"id": action, "stage": stage, "from": previous if minutes is not None else None,
+                            "at": accepted_at[0], "min": minutes})
+        previous = accepted_at[0] if accepted_at else None
 
     raw_status = state.get("status")
     status = RUN_STATUS.get(raw_status)
@@ -608,7 +827,7 @@ def build_run(out: Path, key: str | None = None, name: str | None = None,
     current = None if raw_status == "done" else STAGE_PHASE.get(now, phases_seen[-1] if phases_seen else 0)
     if now and now not in STAGE_PHASE and raw_status != "done":
         unknown.append(now)
-    wall = _minutes(started, accepted[-1][0]) if started and accepted else None
+    wall = _minutes(started, stamped[-1][0]) if started and stamped else None
 
     versions = invocation.get("versions") or result.get("versions") or {}
     host = _text(invocation.get("host")) or _text(result.get("host"))
@@ -618,46 +837,44 @@ def build_run(out: Path, key: str | None = None, name: str | None = None,
     plugin, shiploop = _text(versions.get("plugin_version")), _text(versions.get("shiploop_version"))
     release = (f"skill-craft {plugin}, ShipLoop {shiploop}" if plugin and shiploop
                else f"skill-craft {plugin}" if plugin else f"ShipLoop {shiploop}" if shiploop else "unknown")
-    first = started or (accepted[0][0] if accepted else None)
+    first = started or (stamped[0][0] if stamped else None)
     key = _clean_key(key or "-".join([host or "unknown", model or "unknown", plugin or "unknown", case or "unknown",
                                       first.strftime("%Y%m%d") if first else "undated"]))
     name = name or (" ".join(part for part in (host, model, effort) if part) or "unknown host") + \
         (f", release {plugin}" if plugin else "")
     order = order if order is not None else (int(first.timestamp()) if first else 0)
 
-    improve_root = run_dir / "improve"
-    children = sum(1 for p in improve_root.iterdir() if p.is_dir()) if improve_root.is_dir() else 0
-    reviews = metrics.get("improve_reviews") if isinstance(metrics.get("improve_reviews"), dict) else {}
     failures = [f for f in metrics.get("shiploop_failures") or [] if isinstance(f, dict)]
     glue = metrics.get("model_glue") or []
-    # An Improve child is named by the action whose stage started it; list them in accept order.
-    rank = {a["id"]: (i, a["stage"]) for i, a in enumerate(actions)}
-    children_rows = []
-    for child in reviews.get("per_child") or []:
-        if isinstance(child, dict):
-            place, stage = rank.get(child.get("child"), (len(actions), str(child.get("child"))))
-            children_rows.append((place, stage, {"stage": stage, "passes": child.get("passes", 0),
-                                                 "seconds": child.get("seconds", 0), "bytes": child.get("bytes", 0)}))
-    improve = [row for _, _, row in sorted(children_rows, key=lambda t: (t[0], t[1]))]
+    improve, improve_why = _improve_totals(children)
+    measures, unmeasured = _model_measures(metrics, unmeasured)
+    unmeasured.update(improve_why)
+    if visit_context_why:  # set only when no visit has a context
+        unmeasured["visitContext"] = visit_context_why
     checkouts = [out / "work", run_dir.parent / "worktree"]
     knowledge, knowledge_root = _knowledge(checkouts if raw_status == "done" else checkouts[::-1])
 
     run = {"key": key, "name": name, "order": order, "release": release,
            "phases": derive_phases(phases_seen, current, raw_status),
-           "time": _time_text(status, wall, len(accepted)),
-           "imp": f"{children} children" + (f", {reviews['passes']} review passes" if reviews.get("passes") else ""),
-           "refusals": len(failures), "glue": len(glue), "stages": stages,
-           "failures": [{"verb": str(f.get("verb")), "line": str(f.get("line") or "")[:MAX_FAILURE_LINE]}
-                        for f in failures],
-           "improve": improve, "knowledge": knowledge, "evidence": str(out)}
+           "time": _time_text(status, wall, len(stages)),
+           "imp": f"{len(children)} children" + (f", {improve['improvePasses']} review passes"
+                                                 if improve.get("improvePasses") else ""),
+           "stages": stages, "unmeasured": unmeasured, **improve, **measures,
+           "knowledge": knowledge, "evidence": str(out)}
+    if "shiploop_failures" not in unmeasured:  # a host that cannot see the failures reports no count, not 0
+        run["refusals"] = len(failures)
+        run["failures"] = [{"verb": str(f.get("verb")), "line": str(f.get("line") or "")[:MAX_FAILURE_LINE]}
+                           for f in failures]
+    if "model_glue" not in unmeasured:
+        run["glue"] = len(glue)
     for field, value in (("host", host), ("model", model), ("effort", effort), ("case", case), ("status", status),
                          ("startedAt", timeline.get("started") if started else None)):
         if value:
             run[field] = value
     if wall is not None:
         run["wallMin"] = round(wall, 1)
-    if raw_status == "done" and accepted:
-        run["endedAt"] = accepted[-1][3]
+    if raw_status == "done" and stamped:
+        run["endedAt"] = stamped[-1][1]
     verdicts = {}
     for verdict in ("invoked", "plugin", "process", "shiploop", "committed"):
         if isinstance(result.get(verdict), dict) and isinstance(result[verdict].get("pass"), bool):
@@ -687,16 +904,23 @@ def build_run(out: Path, key: str | None = None, name: str | None = None,
             doc_id, suffix = f"{key}-{doc['loop']}-{suffix}", suffix + 1
         docs["backchain"][doc_id] = doc
 
-    facts = _facts(run, run_dir, out, raw_status, reviews, failures, knowledge_root, docs["backchain"],
-                   unknown, from_state)
+    facts = _facts(run, run_dir, out, raw_status, children, failures, knowledge_root, docs["backchain"],
+                   unknown, from_state, seeded_note)
     return docs, facts
 
 
-def _facts(run, run_dir, out, raw_status, reviews, failures, knowledge_root, loops, unknown, from_state) -> list[str]:
+def _facts(run, run_dir, out, raw_status, children, failures, knowledge_root, loops, unknown, from_state,
+           seeded_note) -> list[str]:
     stages = run["stages"]
     totals: dict[str, list] = {}
     for row in stages:
-        totals.setdefault(row["stage"], []).append(row["min"])
+        if row["min"] is not None:
+            totals.setdefault(row["stage"], []).append(row["min"])
+    untimed = sum(1 for row in stages if row["min"] is None and not row.get("seeded"))  # a seeded visit has no time by design
+    seeded, skipped = sum(1 for row in stages if row.get("seeded")), sum(1 for row in stages if row.get("skipped"))
+    kinds = f" ({len(stages) - seeded - skipped} work, {skipped} skipped, {seeded} seeded)" if seeded or skipped else ""
+    most = max((c["passes"] for c in children.values() if c["passes"] is not None), default=0)
+    unmeasured = run["unmeasured"]
     slowest = sorted(totals.items(), key=lambda kv: (-sum(kv[1]), kv[0]))[:5]
     verbs: dict[str, int] = {}
     for failure in failures:
@@ -704,7 +928,7 @@ def _facts(run, run_dir, out, raw_status, reviews, failures, knowledge_root, loo
     knowledge = run["knowledge"]
     largest = next(iter(knowledge.items()), None)
     lines = [f"# Run Review facts: {run['key']}", "",
-             f"- Run: ShipLoop status {raw_status or 'unknown'}; {len(stages)} accepted actions; "
+             f"- Run: ShipLoop status {raw_status or 'unknown'}; {len(stages)} accepted actions{kinds}; "
              f"{run.get('wallMin', 'unknown')} min from start to the last accept",
              f"- Driver: {' '.join(run[k] for k in ('host', 'model', 'effort') if k in run) or 'unknown'}; "
              f"case {run.get('case', 'unknown')}; {run['release']}",
@@ -713,11 +937,20 @@ def _facts(run, run_dir, out, raw_status, reviews, failures, knowledge_root, loo
              "- Slowest stages (min, accept to accept): " + (", ".join(
                  f"{stage} {sum(m):.1f}" + (f" ({len(m)}x)" if len(m) > 1 else "") for stage, m in slowest) or "none"),
              f"- Phases: {', '.join(f'{title} {state}' for (title, _), state in zip(PHASES, run['phases']))}",
-             f"- Improve: {run['imp']}" + (f"; most passes in one child: {reviews.get('max_passes')}"
-                                           if reviews.get("max_passes") else ""),
-             f"- ShipLoop command failures: {len(failures)}" + (
-                 f" ({', '.join(f'{v} {n}' for v, n in sorted(verbs.items()))})" if verbs else ""),
-             f"- Model glue: {run['glue']} commands",
+             f"- Improve: {run['imp']}" + (f"; most passes in one child: {most}" if most else "")
+             + (f"; {run['improveMin']} min bind to receipt" if "improveMin" in run
+                else f"; minutes not measured ({unmeasured['improveMin']})")
+             + ("" if "improvePasses" in run else f"; passes not measured ({unmeasured['improvePasses']})"),
+             "- Model calls (main thread only): " + "; ".join(
+                 f"{label} {run[field]:,}" if field in run else f"{label} not measured ({unmeasured[field]})"
+                 for field, label in (("calls", "calls"), ("contextPeak", "context peak"),
+                                      ("contextWindow", "window"), ("compactions", "compactions"))),
+             (f"- ShipLoop command failures: {len(failures)}" + (
+                 f" ({', '.join(f'{v} {n}' for v, n in sorted(verbs.items()))})" if verbs else ""))
+             if "refusals" in run else
+             f"- ShipLoop command failures: not measured ({run['unmeasured']['shiploop_failures']})",
+             f"- Model glue: {run['glue']} commands" if "glue" in run else
+             f"- Model glue: not measured ({run['unmeasured']['model_glue']})",
              f"- Planning documents: {len(knowledge)} files, {sum(knowledge.values()) / 1024:.1f} KB"
              + (f" in {knowledge_root.relative_to(out).as_posix() if knowledge_root.is_relative_to(out) else knowledge_root}"
                 f"; largest {largest[0]} {largest[1] / 1024:.1f} KB" if largest else ""),
@@ -729,10 +962,15 @@ def _facts(run, run_dir, out, raw_status, reviews, failures, knowledge_root, loo
                  + (f", stage {d['stageMin']} min" if d.get("stageMin") is not None else "")
                  for d in loops.values()) or "none found under scratch/"),
              f"- Run directory: {run_dir.relative_to(out).as_posix()}"]
+    if untimed:
+        lines.append(f"- Stages with no minutes (no accept stamp, or none on the visit before): {untimed} of "
+                     f"{len(stages)}; their minutes are null, not 0")
     if unknown:
         lines.append(f"- Stages not in the phase table (shown with the previous phase): {', '.join(sorted(set(unknown)))}")
     if from_state:
         lines.append(f"- Accepted actions without a result file (stage from state.md): {len(from_state)}")
+    if seeded_note:
+        lines.append(f"- Seeded visits not marked: {seeded_note}")
     return lines
 
 
@@ -799,24 +1037,245 @@ def defaults_docs() -> dict[str, dict[str, dict]]:
     return docs
 
 
-def export_defaults(out: Path | None = None) -> Path:
-    """The starting expectations and page settings, for a create-only seed of a new page."""
-    return write_export(out or Path(tempfile.gettempdir()) / "run-review-defaults", defaults_docs(), compact=False)
+def upgrade_docs(live: dict[str, dict[str, dict]]) -> tuple[dict[str, dict[str, dict]], list[str]]:
+    """The defaults written over a page database, keeping what the owner wrote there: (documents to write, notes).
+
+    `live` is {collection: {id: document}} as the page holds it. Each expectation the defaults name is written as the
+    defaults have it (text, clauses, revs), so a stored `status` is not carried; the old `iter-*` documents and any other
+    document the defaults do not name are never written, and nothing is deleted. A revision the page holds and the
+    defaults lack refuses the whole upgrade (ExportError naming the document): copy the page's text and revs into
+    defaults/expectations.json first, so the defaults never overwrite the owner's wording. A page text with no such
+    revision that differs from the defaults is replaced, and a note names it. config/prompt is the defaults'; config/page
+    holds the page's own URL and is written only when the page has none."""
+    defaults = defaults_docs()
+    pages = {c: {i: d for i, d in (live.get(c) or {}).items() if isinstance(d, dict)} for c in ("expectations", "config")}
+    docs: dict[str, dict[str, dict]] = {"expectations": {}, "config": {}}
+    notes, refused = [], []
+    for key, want in defaults["expectations"].items():
+        have = pages["expectations"].get(key)
+        if have is not None:
+            missing = [rev for rev in have.get("revs") or [] if rev not in (want.get("revs") or [])]
+            if missing:
+                refused.append(f"expectations/{key}: the page holds {_count(len(missing), 'revision')} the defaults lack "
+                               f"(the latest at {missing[-1].get('at')}); copy the page's text and revs into "
+                               f"defaults/expectations.json first")
+                continue
+            if have.get("text") != want.get("text"):
+                notes.append(f"expectations/{key}: the page's text, which has no revision of its own, is replaced by the "
+                             f"defaults' text")
+        docs["expectations"][key] = want
+    if refused:
+        raise ExportError("the page holds wording the defaults would overwrite:\n  " + "\n  ".join(refused))
+    docs["config"]["prompt"] = defaults["config"]["prompt"]
+    if pages["config"].get("prompt") not in (None, docs["config"]["prompt"]):
+        notes.append("config/prompt: replaced by the defaults (fields the defaults do not have are dropped)")
+    if "page" not in pages["config"]:
+        docs["config"]["page"] = defaults["config"]["page"]
+    return docs, notes
+
+
+def read_live(path: Path) -> dict[str, dict[str, dict]]:
+    """The page's documents from a file in the shape of the committed database snapshot: {docs: {collection: {id: {data,
+    version, updatedAt}}}}, as ArtifactData returns each row."""
+    raw = _read_json(Path(path).expanduser())
+    rows = raw.get("docs") if isinstance(raw, dict) else None
+    if not isinstance(rows, dict):
+        raise ExportError(f"{path}: expected {{\"docs\": {{collection: {{id: {{\"data\": document}}}}}}}}, the snapshot's shape")
+    live: dict[str, dict[str, dict]] = {}
+    for collection, items in rows.items():
+        for doc_id, row in (items or {}).items():
+            if not (isinstance(row, dict) and isinstance(row.get("data"), dict)):
+                raise ExportError(f"{path}: {collection}/{doc_id} has no document under \"data\"")
+            live.setdefault(collection, {})[doc_id] = row["data"]
+    return live
+
+
+def export_defaults(out: Path | None = None, live: Path | None = None) -> Path:
+    """The starting expectations and page settings for a new page, or with `live` (read_live) the upgrade of that page
+    (upgrade_docs), whose notes are printed."""
+    docs = defaults_docs()
+    if live is not None:
+        docs, notes = upgrade_docs(read_live(live))
+        for note in notes:
+            print(f"note: {note}")
+    return write_export(out or Path(tempfile.gettempdir()) / "run-review-defaults", docs, compact=False)
+
+
+# ---------------------------------------------------------------- a review bundle (--check, --docs)
+
+# The rules are the ones SKILL.md lists, and no more. A failure stops a publish; a warning is listed and does not.
+CLAUSE_ID = re.compile(r"S-[1-9][0-9]*")
+DONE_WHEN = re.compile(r"\bDone when\b:?")
+# A loose test for evidence a reader can follow: a path (rooted at / or ~, or segments of three or more characters
+# around a slash, so "and/or" is not one), a file name with an extension, or a commit (seven or more hex digits
+# holding a digit and a letter).
+EVIDENCE_TOKEN = re.compile(
+    r"(?<![\w.~/-])(?:~|\.{1,2})?/[\w.~-]+"
+    r"|\b[\w.~-]{3,}(?:/[\w.~-]{3,})+"
+    r"|\b[\w-]+\.(?:py|md|json|jsonl|js|cjs|html|sh|txt|toml|ya?ml|csv|log)\b"
+    r"|\b(?=[0-9a-f]*[0-9])(?=[0-9a-f]*[a-f])[0-9a-f]{7,40}\b")
+
+
+def _default_clauses() -> set[str]:
+    return {clause for entry in _read_json(DEFAULTS / "expectations.json") for clause in entry.get("clauses") or []}
+
+
+def _default_keys() -> set[str]:
+    return {entry["key"] for entry in _read_json(DEFAULTS / "expectations.json")}
+
+
+def _ends_with_done_when(goal: str) -> bool:
+    """The instruction's last labelled part is `Done when: <condition>` (the form is in references/advice.md)."""
+    last = None
+    for last in DONE_WHEN.finditer(goal):
+        pass
+    if last is None:
+        return False
+    condition = goal[last.end():].strip()
+    return bool(condition) and not re.search(r"(?:^|\s)(?:Do|Files and symbols|Test):", condition)
+
+
+def _documents(docs: dict, collection: str) -> dict[str, dict]:
+    return {i: d for i, d in (docs.get(collection) or {}).items() if isinstance(d, dict)}
+
+
+def check_bundle(bundle) -> tuple[list[str], list[str]]:
+    """The review rules over one bundle: (failures, warnings), a line each, each naming the document it is about.
+
+    Failures: the schema and enums (validate_doc); every option's findings exist in the bundle; a change-expectation
+    option has `change` and no other kind has one; each option's instruction (goal) ends with a Done when clause; at
+    most one recommended option per finding; every `clauses` id is an S-n id that defaults/expectations.json uses; a
+    finding's `criterion` and each key of a review's `basis` is a key of defaults/expectations.json (a typo would
+    silently read "not examined").
+    Warnings: an open finding no option names; evidence with no path or commit token; an open finding with no effect."""
+    if not isinstance(bundle, dict) or not isinstance(bundle.get("docs"), dict):
+        return [f'bundle: expected {{"schema": "{SCHEMA_ID}", "docs": {{collection: {{id: document}}}}}}'], []
+    failures, warnings = [], []
+    if bundle.get("schema") != SCHEMA_ID:
+        failures.append(f"bundle: schema is {bundle.get('schema')!r}, expected {SCHEMA_ID!r}")
+    docs = {}
+    for collection, items in bundle["docs"].items():
+        if isinstance(items, dict):
+            docs[collection] = items
+        else:
+            failures.append(f"bundle: docs.{collection} must map document ids to documents")
+    failures += _validate_all(docs)
+
+    findings, options = _documents(docs, "observations"), _documents(docs, "actions")
+    links = {oid: [x for x in o["findings"] if isinstance(x, str)] if isinstance(o.get("findings"), list) else []
+             for oid, o in options.items()}
+    recommended: dict[str, list[str]] = {}
+    for oid, option in sorted(options.items()):
+        where = f"actions/{oid}"
+        failures += [f"{where}: findings names {fid!r}, which is not a finding in this bundle"
+                     for fid in links[oid] if fid not in findings]
+        kind, change = option.get("kind"), option.get("change")
+        if kind == "change-expectation" and not isinstance(change, dict):
+            failures.append(f"{where}: a change-expectation option needs change {{target, to, reason}}")
+        if kind != "change-expectation" and change is not None:
+            failures.append(f"{where}: only a change-expectation option carries change (kind is {kind or 'not set'})")
+        goal = option.get("goal")
+        if not (isinstance(goal, str) and _ends_with_done_when(goal)):
+            failures.append(f"{where}: the instruction (goal) must end with a 'Done when: ...' clause")
+        if option.get("recommended") is True:
+            for fid in links[oid]:
+                recommended.setdefault(fid, []).append(oid)
+    failures += [f"observations/{fid}: {len(ids)} recommended options ({', '.join(ids)}); at most one"
+                 for fid, ids in sorted(recommended.items()) if len(ids) > 1]
+    known = _default_clauses()
+    for eid, expectation in sorted(_documents(docs, "expectations").items()):
+        for clause in expectation.get("clauses") if isinstance(expectation.get("clauses"), list) else []:
+            if not isinstance(clause, str) or not CLAUSE_ID.fullmatch(clause):
+                failures.append(f"expectations/{eid}: clause {clause!r} is not an S-n id")
+            elif clause not in known:
+                failures.append(f"expectations/{eid}: clause {clause} is not in defaults/expectations.json")
+    keys = _default_keys()
+    failures += [f"observations/{fid}: criterion {f['criterion']!r} is not a key of defaults/expectations.json"
+                 for fid, f in sorted(findings.items()) if isinstance(f.get("criterion"), str) and f["criterion"]
+                 and f["criterion"] not in keys]
+    failures += [f"reviews/{rid}: basis names {key!r}, which is not a key of defaults/expectations.json"
+                 for rid, review in sorted(_documents(docs, "reviews").items())
+                 for key in (sorted(review["basis"]) if isinstance(review.get("basis"), dict) else []) if key not in keys]
+
+    named = {fid for ids in links.values() for fid in ids}
+    for fid, finding in sorted(findings.items()):
+        where, is_open = f"observations/{fid}", finding.get("status") in (None, "open")
+        if is_open and fid not in named:
+            warnings.append(f"{where}: open finding with no option (the page shows 'no option yet')")
+        evidence = finding.get("evidence")
+        if isinstance(evidence, str) and evidence.strip():
+            if not EVIDENCE_TOKEN.search(evidence):
+                warnings.append(f"{where}: evidence has no path or commit token ({evidence.strip()[:60]!r})")
+        elif is_open:
+            warnings.append(f"{where}: evidence has no path or commit token (none given)")
+        if is_open and finding.get("effect") is None:
+            warnings.append(f"{where}: open finding with no effect (the page shows it as 'not rated')")
+    return failures, warnings
+
+
+def _read_bundle(path: Path):
+    try:
+        return json.loads(Path(path).expanduser().read_text(encoding="utf-8"))
+    except (OSError, UnicodeError, ValueError) as exc:
+        raise ExportError(f"cannot read the review bundle {path}: {exc}") from exc
+
+
+def _count(n: int, word: str) -> str:
+    return f"{n} {word}" + ("" if n == 1 else "s")
+
+
+def check_file(path: Path) -> tuple[int, dict | None]:
+    """Check one review bundle file and print the result: (exit code, the bundle when it passed)."""
+    bundle = _read_bundle(path)
+    failures, warnings = check_bundle(bundle)
+    for line in warnings:
+        print(f"warning: {line}")
+    for line in failures:
+        print(f"fail: {line}", file=sys.stderr)
+    counts = f"{_count(len(failures), 'failure')}, {_count(len(warnings), 'warning')}"
+    if failures:
+        print(f"check: FAILED ({counts})", file=sys.stderr)
+        return 2, None
+    documents = sum(len(items) for items in bundle["docs"].values())
+    print(f"check: ok ({_count(documents, 'document')}, {counts})")
+    return 0, bundle
+
+
+def write_docs(path: Path, out: Path | None = None) -> int:
+    """Check a review bundle, then write its documents and writes.json through the writer an export uses."""
+    code, bundle = check_file(path)
+    if bundle is None:
+        return code
+    written = write_export(out or Path(tempfile.mkdtemp(prefix="run-review-docs-")), bundle["docs"], compact=False)
+    print(written)
+    return 0
 
 
 def main(argv: list[str] | None = None) -> int:
     parser = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
     parser.add_argument("run_dir", nargs="?", type=Path, help="a run output directory of test/shiploop_e2e/run.py")
     parser.add_argument("--defaults", action="store_true", help="export the starting expectations and settings")
+    parser.add_argument("--live", type=Path, metavar="FILE",
+                        help="with --defaults: the page's documents in the snapshot's shape; write the defaults over "
+                             "that page, keeping its revisions (refused when the defaults lack one)")
+    parser.add_argument("--check", type=Path, metavar="FILE", help="validate a review bundle (exit 2 on a failure)")
+    parser.add_argument("--docs", type=Path, metavar="FILE",
+                        help="check a review bundle, then write its documents and writes.json under --out")
     parser.add_argument("--key", help="the runs document id (default <host>-<model>-<release>-<case>-<yyyymmdd>)")
     parser.add_argument("--name", help="the run's display name")
     parser.add_argument("--order", type=int, help="sort key (default the run's start, epoch seconds)")
-    parser.add_argument("--out", type=Path, help="export directory (default RUN_DIR/review-export)")
+    parser.add_argument("--out", type=Path, help="export directory (default RUN_DIR/review-export; for --docs a new temporary directory)")
     args = parser.parse_args(argv)
-    if args.defaults == (args.run_dir is not None):
-        parser.error("give a RUN_DIR or --defaults")
+    if [args.run_dir is not None, args.defaults, args.check is not None, args.docs is not None].count(True) != 1:
+        parser.error("give one of RUN_DIR, --defaults, --check FILE or --docs FILE")
+    if args.live is not None and not args.defaults:
+        parser.error("--live goes with --defaults")
     try:
-        path = export_defaults(args.out) if args.defaults else export_run(
+        if args.check is not None:
+            return check_file(args.check)[0]
+        if args.docs is not None:
+            return write_docs(args.docs, args.out)
+        path = export_defaults(args.out, args.live) if args.defaults else export_run(
             args.run_dir, args.key, args.name, args.order, args.out)
     except ExportError as exc:
         print(f"export: {exc}", file=sys.stderr)

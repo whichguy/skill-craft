@@ -1,0 +1,94 @@
+{
+  "schema": "run-review-export/v2",
+  "docs": {
+    "reviews": {
+      "luna1": {
+        "summary": [
+          "Sample bundle for the --check tests: the findings are illustrative, drawn from the committed Luna evidence.",
+          "The Luna run ended blocked after 19.3 h: 39 visits, 41 Improve passes, 13 refused commands.",
+          "Three of the refusals were a space typed into a long path; eight share one message whose cause is not shown yet.",
+          "The main thread reached 97.5% of its context window with 34 compactions.",
+          "Next: print the run directory as a short alias, and say how the spec reads a long run's context."
+        ],
+        "basis": {
+          "P2": "Nine Improve children ran 41 passes and every child has a receipt."
+        },
+        "reviewedAt": "2026-10-04T12:00:00Z"
+      }
+    },
+    "observations": {
+      "f-refusals": {
+        "title": "13 ShipLoop commands were refused on the Luna run",
+        "criterion": "P3",
+        "kind": "defect",
+        "status": "open",
+        "run": "luna1",
+        "expected": "The model runs the printed command exactly: no refused command.",
+        "observed": "13 refused commands (measured): 3 carry a space typed into a long path, 8 are the 'read the current packet' refusal and 2 are something else.",
+        "evidence": "test/shiploop_e2e/evidence/codex-gpt-6-luna-1.16.1-battleship-20261003.json runs.luna1.failures",
+        "effect": "bent",
+        "advice": "Fix the 3 broken paths first: they are the only refusals with a clear cause. Inferred: the 8 packet refusals share one cause, which a read of the failures would show.",
+        "figure": {
+          "kind": "bars",
+          "items": [
+            {"label": "Expected refusals", "value": 0, "unit": "commands", "tone": "expected"},
+            {"label": "Refused commands", "value": 13, "unit": "commands", "tone": "saw"},
+            {"label": "Broken paths", "value": 3, "unit": "commands", "tone": "saw"}
+          ]
+        },
+        "createdAt": "2026-10-04T12:00:00Z"
+      },
+      "f-context": {
+        "title": "The Luna main thread peaked at 97.5% of its context window",
+        "criterion": "P3",
+        "kind": "decision",
+        "status": "open",
+        "run": "luna1",
+        "phase": 4,
+        "expected": "The run keeps its place across compactions (S-6) and its packet heads stay small (S-7).",
+        "observed": "Main thread: 2,565 calls, peak 251,867 tokens of a 258,400-token window, 34 compactions. The numbers do not show whether the run lost its place.",
+        "evidence": "docs/shiploop-run-review-journal.md and test/shiploop_e2e/evidence/codex-gpt-6-luna-1.16.1-battleship-20261003.json runs.luna1.contextPeak",
+        "effect": "bent",
+        "advice": "The spec does not say how to read a high peak. Inferred: a compaction is a defect only when the run loses its place, so the spec should say that.",
+        "createdAt": "2026-10-04T12:00:00Z"
+      }
+    },
+    "actions": {
+      "a-callback-alias": {
+        "title": "Print the run directory as a short alias",
+        "criterion": "P3",
+        "kind": "fix-shiploop",
+        "effort": "S",
+        "recommended": true,
+        "status": "open",
+        "findings": ["f-refusals"],
+        "goal": "Do: print each completion call with the run directory as a short alias that the packet defines once, so a model never re-types a path of more than 100 characters. Files and symbols: `_callback` in skills/shiploop/scripts/shiploop_navigator.py. Test: a contract test in test/shiploop-navigator-contract.test.py that no printed completion call carries a path over 60 characters. Done when: that test passes and the next Luna-class run shows no refused call with a broken path (S-2, S-4).",
+        "why": "For: 3 of the 13 refusals were a space typed into a long path, and the alias removes the cause. Against: one more line in every packet. Verdict: worth it for an S-sized change; measure the refusal count on the next run."
+      },
+      "a-accept-paths": {
+        "title": "Accept the broken paths as a known limit",
+        "criterion": "P3",
+        "kind": "accept",
+        "effort": "S",
+        "status": "open",
+        "findings": ["f-refusals"],
+        "goal": "Do: record in test/shiploop_e2e/LEARNINGS.md that 3 of 13 refusals on the Luna run were a stray space in a long path, each recovered in one turn, and change no code. Files and symbols: test/shiploop_e2e/LEARNINGS.md. Test: none; this records a known limit. Done when: the entry names the 3 refused calls and the evidence file.",
+        "why": "A normal run with a short run path does not hit it: the paths here were over 100 characters."
+      },
+      "a-spec-context": {
+        "title": "Say how the spec reads a long run's context",
+        "criterion": "P3",
+        "kind": "change-expectation",
+        "effort": "S",
+        "status": "open",
+        "findings": ["f-context"],
+        "change": {
+          "target": "spec",
+          "to": "S-7: a long run's context peak and compactions are reported per host and read together; a compaction is a defect only when the run loses its place (S-6).",
+          "reason": "Luna reached 97.5% of its window with 34 compactions, and the numbers alone cannot say whether the run lost its place."
+        },
+        "goal": "Do: amend S-7 in test/shiploop_e2e/SPEC.md, in its own commit, to read context the way the change says. Files and symbols: S-7 in test/shiploop_e2e/SPEC.md and its row in the harness table. Test: read the clause back against metrics.json compactions and contextPeak. Done when: S-7 states when a high peak or a compaction is a defect and the harness table row agrees."
+      }
+    }
+  }
+}
