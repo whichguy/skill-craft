@@ -212,7 +212,15 @@ product hang; it does not say the product is wrong.
 - Seconds are wall clock between two stamps. A `--resume-run` gap, a credit stop or
   a pause inside a stage is counted as that stage's time.
 - Turns count assistant content-block events, between 1.6 and 2 times the host's own
-  turn count (`result.num_turns`) on recorded Claude runs.
+  turn count (`result.num_turns`) on recorded Claude runs. That definition stays: the
+  baseline rows store it and are compared across runs. `model_calls` is the number of
+  model calls: a Claude message counted once at its first event (unique `message.id`; an
+  event with no id counts one) and a Grok `usage` event each (recorded Claude hello runs:
+  149 calls for 254 turns, 113 for 194, 94 for 167, 84 for 143). `window_tokens` is the
+  context window the result events' `modelUsage` report (Claude: 1,000,000). Both are in
+  `metrics.json` and `result.json`'s metrics, and neither is a baseline key. A host that
+  reports nothing leaves the field null and names it, with the reason, in `unmeasured`
+  (Grok reports no window; a Codex run has no call count in its events).
 - A host reports what it reports. A counter its events cannot show is null in
   `metrics.json`, `result.json` and the baseline row (the ShipLoop command failure and
   model glue lists stay in `metrics.json` as lower bounds) and is named, with the

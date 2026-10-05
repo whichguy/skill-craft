@@ -1646,9 +1646,9 @@ def main(argv: list[str] | None = None) -> int:
               "shiploop": shiploop, "committed": committed, "checks": check_results, "cli": cli_seen, "follow_on": follow_on,
               "resumed_run": resumed, "seeded": seeded, "chain": chain, "recovery": recovery, "budget": budget,
               "expectations": expectations,
-              "metrics": {k: run_metrics[k] for k in ("turns", "cost_usd", "unreported_sessions", "compactions",
-                                                      "truncated_outputs", "improve_children", "stages",
-                                                      "unmeasured")}
+              "metrics": {k: run_metrics[k] for k in ("turns", "model_calls", "window_tokens", "cost_usd",
+                                                      "unreported_sessions", "compactions", "truncated_outputs",
+                                                      "improve_children", "stages", "unmeasured")}
               # None, not 0, where the host's events cannot show the thing counted.
               | {"script_verifications": run_metrics["script_verifications"],
                  "model_glue": metrics.count(run_metrics, "model_glue"),

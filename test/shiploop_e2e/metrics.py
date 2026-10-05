@@ -240,6 +240,10 @@ def session_stop(event: dict) -> str | None:
 # Why a counter is unmeasured, recorded beside the run so a reader never takes its 0 for a measurement.
 NO_PER_CALL_USAGE = ("the host reports no per-call usage events (one total per session), so turns cannot be "
                      "attributed to a stage")
+NO_MODEL_CALLS = ("the host's events carry no per-call usage (no Claude assistant message and no Grok usage event), so "
+                  "the number of model calls is not known")
+NO_WINDOW = ("no result event named one context window in its modelUsage (the host reports none, the session ended "
+             "before it reported, or several models reported different windows)")
 CLAUDE_TOOL_BLOCKS = ("this host's tool calls arrive as Claude tool_use / tool_result blocks, which collect() does "
                       "not read, so a count of 0 is a lower bound and not a measurement")
 # What follows from reading only Grok-shaped tool_call events when the stream is Claude's.
@@ -272,6 +276,13 @@ def context_tokens(usage) -> int | None:
     return sum(numbers) if numbers else None
 
 
+def context_windows(event: dict) -> set[int]:
+    """The context windows a result event reports, one per model in its ``modelUsage`` (Claude's shape)."""
+    usage = event.get("modelUsage")
+    found = (m.get("contextWindow") for m in usage.values() if isinstance(m, dict)) if isinstance(usage, dict) else ()
+    return {w for w in found if isinstance(w, int) and not isinstance(w, bool) and w > 0}
+
+
 def total_cost(sessions: list[dict]) -> float | None:
     """The run's cost: its sessions' own reported costs added, or None unless every ended session reported one.
 
@@ -299,6 +310,9 @@ def collect(out: Path, run_dir: Path | None = None) -> dict:
     tool_blocks = 0  # Claude tool_use blocks: calls this collector cannot classify
     grok = False  # per-call `usage` events: the one stream shape the Grok-only counters below can be read from
     starts = 0  # sessions the host began, to tell how many never reported an end
+    messages: set[str] = set()  # Claude message ids seen: one API call writes one assistant event per content block
+    claude_calls = usage_events = 0
+    windows: set[int] = set()  # context windows the result events reported
     # A session that reports no per-call usage (Codex) contributes its own turn count.
     unreported, calls_in_session = 0, 0
     for number, event in events(out / "events.jsonl"):
@@ -310,8 +324,16 @@ def collect(out: Path, run_dir: Path | None = None) -> dict:
             starts += 1  # Codex and Grok open a session with available_commands, Claude with system/init
         if kind == "usage":
             grok = True
+            usage_events += 1
             turns.append({"t": t, "input": context_tokens(event.get("usage"))})
-        elif kind == "assistant":  # Claude: one message per turn
+        elif kind == "assistant":  # Claude: one event per content block of a message
+            # `turns` keeps counting events (baselines.jsonl holds that definition); a model call is a message, counted at
+            # its first event, and an event with no id is its own call.
+            message_id = (event.get("message") or {}).get("id")
+            if not isinstance(message_id, str) or not message_id or message_id not in messages:
+                claude_calls += 1
+                if isinstance(message_id, str) and message_id:
+                    messages.add(message_id)
             for block in (event.get("message") or {}).get("content") or []:
                 tool_blocks += isinstance(block, dict) and block.get("type") == "tool_use"
                 if isinstance(block, dict) and block.get("type") == "tool_use" and ASK_PERSON.search(str(block.get("name"))):
@@ -352,6 +374,7 @@ def collect(out: Path, run_dir: Path | None = None) -> dict:
         elif kind == "auto_compact_completed":
             compactions += 1
         elif kind in ("end", "result"):
+            windows |= context_windows(event)
             # The host's own usage is kept as it wrote it: its shape differs by host (Claude's nests), and
             # a figure built here from per-event snapshots or by summing sessions would not be the host's.
             sessions.append({"stop": session_stop(event), "turns": event.get("num_turns"),
@@ -375,6 +398,14 @@ def collect(out: Path, run_dir: Path | None = None) -> dict:
         cancelled, reads = [], []
     if tool_blocks:
         unmeasured.update({name: CLAUDE_TOOL_BLOCKS for name in CLAUDE_BLIND})
+    # Model calls: what the host's own events show (Claude's unique messages, Grok's usage events). A host with neither
+    # reports no count here; it is unknown, not 0. The context window is the one the result events agree on.
+    model_calls = (claude_calls + usage_events) or None
+    if model_calls is None:
+        unmeasured["model_calls"] = NO_MODEL_CALLS
+    window_tokens = next(iter(windows)) if len(windows) == 1 else None
+    if window_tokens is None:
+        unmeasured["window_tokens"] = NO_WINDOW
     stages = per_stage(stage_results(run_dir, state), turns, calls, stamps, pending_stage(state), unmeasured)
     improve = run_dir / "improve" if run_dir else None
     return {
@@ -384,6 +415,9 @@ def collect(out: Path, run_dir: Path | None = None) -> dict:
         # end event); a session that never reported beside one that did makes it a lower bound (unreported_sessions).
         "turns": len(turns) + unreported if turns or any(
             isinstance(s["turns"], int) and not isinstance(s["turns"], bool) for s in sessions) else None,
+        # Messages, not events: `turns` above counts a Claude message once per content block (1.6 to 2 times the calls).
+        "model_calls": model_calls,
+        "window_tokens": window_tokens,
         # Context only: a call's input side is complete when it is sent. Its output count is a streaming
         # snapshot (about 1/17 of the session's own total on a recorded Claude run), so no output figure is built.
         "tokens": {"input_peak": max((x["input"] for x in turns if x["input"] is not None), default=None)},

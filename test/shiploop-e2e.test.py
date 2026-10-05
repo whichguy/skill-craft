@@ -1898,7 +1898,8 @@ class HostCoverageTest(unittest.TestCase):
     def test_a_grok_shaped_stream_measures_every_counter(self):
         stream = [{"type": "usage", "usage": {"input_tokens": 1, "output_tokens": 1}},
                   {"type": "tool_call", "toolCallId": "a", "rawInput": {"command": "git add -A"}}] * 4
-        self.assertEqual(collect_stream(stream, self.ACCEPTED)["unmeasured"], {})
+        # Every counter: the detectors read Grok's events. (A context window is a figure Grok never reports.)
+        self.assertEqual(set(collect_stream(stream, self.ACCEPTED)["unmeasured"]), {"window_tokens"})
 
     def test_the_baseline_row_carries_unmeasured_counters_as_null_with_their_names(self):
         result = {"case": "hello", "metrics": {"turns": 5, "cost_usd": None, "model_glue": None,
@@ -2793,6 +2794,68 @@ def codex_session(items: list[dict], *, end: bool = True, thread: str = "t1") ->
     return [json.loads(line) for event in raw for line in translate((json.dumps(event) + "\n").encode())]
 
 
+class ModelCallsAndWindowTest(unittest.TestCase):
+    """A model call is a Claude message, not an event: `turns` keeps counting events (baselines.jsonl stores that
+    definition and run.py compares it across runs), and a window the host did not report is unknown, not 0."""
+
+    @staticmethod
+    def message(message_id, text="x"):
+        message = {"usage": {"input_tokens": 10}, "content": [{"type": "text", "text": text}]}
+        if message_id is not None:
+            message["id"] = message_id
+        return {"type": "assistant", "message": message}
+
+    @staticmethod
+    def result(*windows, num_turns=1):
+        return {"type": "result", "subtype": "success", "num_turns": num_turns, "total_cost_usd": 1.0,
+                "modelUsage": {f"model-{n}": {"contextWindow": w, "inputTokens": 5}
+                               for n, w in enumerate(windows)}}
+
+    def test_three_events_of_one_message_are_one_call_and_three_turns(self):
+        m = collect_stream([self.message("m1")] * 3, [])
+        self.assertEqual((m["model_calls"], m["turns"]), (1, 3))
+        self.assertNotIn("model_calls", m["unmeasured"])
+
+    def test_events_without_an_id_count_one_each_and_a_repeated_id_counts_once(self):
+        stream = [self.message("m1"), self.message("m1"), self.message("m2"), self.message(None),
+                  self.message(None), self.message(""), self.message("m1")]
+        m = collect_stream(stream, [])
+        self.assertEqual((m["model_calls"], m["turns"]), (5, 7))  # m1, m2, two with no id, one empty id
+
+    def test_the_window_comes_from_the_result_event(self):
+        m = collect_stream([self.message("m1"), self.result(1000000)], [])
+        self.assertEqual(m["window_tokens"], 1000000)
+        self.assertNotIn("window_tokens", m["unmeasured"])
+        # Two sessions of one run that agree on it are one window.
+        m = collect_stream([self.message("m1"), self.result(1000000), self.message("m2"), self.result(1000000)], [])
+        self.assertEqual(m["window_tokens"], 1000000)
+
+    def test_a_window_nobody_reported_or_that_disagrees_is_null_with_its_reason(self):
+        for label, stream in (("no result event", [self.message("m1")]),
+                              ("a result without modelUsage", [self.message("m1"),
+                                                               {"type": "result", "subtype": "success"}]),
+                              ("a bool or zero window", [self.message("m1"), self.result(True, 0)]),
+                              ("two models with different windows", [self.message("m1"), self.result(200000, 1000000)])):
+            with self.subTest(label):
+                m = collect_stream(stream, [])
+                self.assertIsNone(m["window_tokens"])
+                self.assertIn("context window", m["unmeasured"]["window_tokens"])
+                self.assertEqual(m["model_calls"], 1, "the window being unknown does not hide the calls")
+
+    def test_a_grok_stream_counts_its_usage_events_and_has_no_window(self):
+        m = collect_stream([{"type": "usage", "usage": {"input_tokens": 1, "output_tokens": 1}}] * 4, [])
+        self.assertEqual((m["model_calls"], m["turns"]), (4, 4))
+        self.assertIsNone(m["window_tokens"])
+        self.assertEqual(set(m["unmeasured"]), {"window_tokens"})
+
+    def test_a_host_with_no_per_call_usage_has_no_call_count_not_zero_calls(self):
+        m = collect_stream(codex_stream(3), [])
+        self.assertIsNone(m["model_calls"])
+        self.assertIsNone(m["window_tokens"])
+        self.assertIn("per-call usage", m["unmeasured"]["model_calls"])
+        self.assertEqual(m["turns"], 3, "the session's own total is still reported")
+
+
 def codex_command(n: int, command: str = "echo ok", output: str = "ok\n", code: int = 0) -> dict:
     return {"id": f"item_{n}", "type": "command_execution", "command": command, "aggregated_output": output,
             "exit_code": code, "status": "completed" if code == 0 else "failed"}
@@ -2854,7 +2917,7 @@ class HostSignalCountersTest(unittest.TestCase):
             {"type": "auto_compact_completed"},
             {"type": "end", "stopReason": "end_turn", "num_turns": 1, "total_cost_usd": 1.0}]
         m = collect_stream(stream, self.ACCEPTED)
-        self.assertEqual(m["unmeasured"], {})
+        self.assertEqual(set(m["unmeasured"]), {"window_tokens"}, "every detector reads a Grok stream")
         self.assertEqual((m["compactions"], m["truncated_outputs"]), (1, 1))
         self.assertEqual(m["cancelled_tool_calls"], ["git init -b main"])
         self.assertEqual(m["knowledge_reads"], ["docs/shiploop/spec.md"])
@@ -2878,6 +2941,25 @@ class HostSignalCountersThroughMainTest(PrintedCase):
                     self.assertIsNone(row[name], name)
                 self.assertIn("compactions not measured", printed)
                 self.assertIn("truncated outputs not measured", printed)
+
+
+class ModelCallsThroughMainTest(PrintedCase):
+    """result.json carries the two figures beside the other whole-run scalars; the baseline row does not
+    (they are not comparison keys: the row's turns keep the events-based definition)."""
+
+    def test_result_json_carries_calls_and_window_and_the_baseline_row_does_not(self):
+        code, result, _ = self.invoke_printed("claude", "done")
+        self.assertEqual(code, 0, result)
+        self.assertEqual(result["metrics"]["model_calls"], 1)  # the fake's one assistant event
+        self.assertIsNone(result["metrics"]["window_tokens"])  # its result event reports no modelUsage
+        self.assertIn("window_tokens", result["metrics"]["unmeasured"])
+        row = self.last_row()
+        for name in ("model_calls", "window_tokens"):
+            self.assertNotIn(name, row)
+        self.assertIn("window_tokens", row["unmeasured"])
+        code, result, _ = self.invoke_printed("codex", "done")
+        self.assertIsNone(result["metrics"]["model_calls"])
+        self.assertIn("model_calls", result["metrics"]["unmeasured"])
 
 
 class UnknownTurnsTest(unittest.TestCase):
