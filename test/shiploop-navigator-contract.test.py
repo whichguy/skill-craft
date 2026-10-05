@@ -2712,6 +2712,7 @@ class BackchainPassesOptionTest(unittest.TestCase):
                 self.assertIn("recorded", refused.stderr)
                 self.assertIn("converge", refused.stderr)
                 self.assertIn("fresh --run-dir", refused.stderr)  # there is no mid-run switch to offer
+                self.assertIn("only the owner starts a fresh run", refused.stderr)
                 self.assertNotIn("--set", refused.stderr)
                 self.assertEqual((run / "state.md").read_bytes(), before)
         for same in (("--backchain-passes", "converge"), ()):
@@ -2731,6 +2732,10 @@ class BackchainPassesOptionTest(unittest.TestCase):
         refused = self.cli(*args, "--backchain-passes", "converge")
         self.assertEqual(refused.returncode, 2, refused.stdout + refused.stderr)
         self.assertIn("none", refused.stderr)
+        # the workspace wrapper forbids creating a replacement run to bypass a refusal, so the refusal must not
+        # tell the host to start one: it names the owner as the one who does
+        self.assertIn("create a replacement run", refused.stderr)
+        self.assertIn("only the owner starts a fresh run", refused.stderr)
         self.assertEqual((root / "run" / "state.md").read_bytes(), before)
         self.assertEqual(self.cli(*args).returncode, 0)
         self.assertEqual(self.recorded(root / "run"), "none")
@@ -2811,7 +2816,8 @@ class BackchainGateDocumentsTest(unittest.TestCase):
     ONE = "`Backchain passes: one`"
     # A statement of the two-review gate counts as scoped when its paragraph names one of these.
     SCOPE = ("by default", "the default", "`converge`", "Backchain passes: one", "packet's printed gate")
-    TWO_REVIEW = re.compile(r"two consecutive|two-consecutive|both original qualifying|required_trivial_reviews: 2")
+    TWO_REVIEW = re.compile(r"two consecutive|two-consecutive|both original qualifying|two clean|two reviews|"
+                            r"two trivial|required_trivial_reviews: 2")
     # Mentions that are not a Backchain gate statement, each with its reason.
     NOT_A_GATE = {
         "skills/backchain/references/harness.md": "says direct harness commands do not perform the reviews; no gate",
@@ -2829,13 +2835,22 @@ class BackchainGateDocumentsTest(unittest.TestCase):
         assert exit_text is not None, text
         return exit_text.group(1).split("; ")
 
+    @classmethod
+    def convergence_exit_clauses(cls) -> list[str]:
+        """The exit clauses Backchain's convergence reference states for the marker line."""
+        text = cls.flat(cls.BACKCHAIN / "references" / "convergence.md")
+        exit_text = re.search(r"this exit condition: (.+?)\. (?:\(|A pass that completes)", text)
+        assert exit_text is not None, text
+        return exit_text.group(1).split("; ")
+
     def test_the_references_state_the_printed_exit_condition_for_the_one_pass_marker(self) -> None:
         clauses = self.printed_exit_clauses()
         self.assertGreaterEqual(len(clauses), 4)
+        # The host copies the packet's clauses verbatim and a standalone caller reads the reference: the two lists
+        # must be the same in both directions (a clause only the reference states would bind a standalone caller
+        # to a stricter exit than the one ShipLoop hosts copy).
+        self.assertEqual(self.convergence_exit_clauses(), clauses)
         convergence = self.flat(self.BACKCHAIN / "references" / "convergence.md")
-        for clause in clauses:  # the host copies the packet's clauses verbatim; the reference must say the same
-            with self.subTest(clause=clause):
-                self.assertIn(clause.lower(), convergence.lower())
         for required in (self.ONE, "`required_trivial_reviews: 0`", "beside the binding marker",
                          "reports `exit_assessment: satisfied` even when it repaired the candidate"):
             with self.subTest(required=required):
@@ -2845,6 +2860,66 @@ class BackchainGateDocumentsTest(unittest.TestCase):
                         "two consecutive distinct complete trivial/no-change dependency reviews"):
             with self.subTest(default=default):
                 self.assertIn(default, convergence)
+
+    def test_the_confirm_by_clause_is_scoped_to_the_steps_the_cycle_may_change(self) -> None:
+        """An exit clause on every step could not be met where the cycle may not repair: that finding is advisory."""
+        scoped = "on a step this cycle may change"
+        convergence = self.flat(self.BACKCHAIN / "references" / "convergence.md")
+        for source, clauses in (("packet", self.printed_exit_clauses()),
+                                ("convergence reference", self.convergence_exit_clauses())):
+            confirm = [clause for clause in clauses if "`Confirm by`" in clause]
+            with self.subTest(source=source):
+                self.assertEqual(len(confirm), 1, clauses)
+                self.assertIn(scoped, confirm[0])
+        # the same reference defines such a step and says a weak clause anywhere else is only advisory
+        self.assertIn("A step this cycle may change is one whose exact ID is provisional", convergence)
+        self.assertRegex(convergence, r"On any other step it is advisory; it is not a planning gap")
+        # a standalone caller can resolve the Outcomes rule: the reference names the ShipLoop guide that defines it
+        self.assertIn("references/backchain-planning.md", convergence)
+        self.assertIn("\n## Outcomes\n", (self.SHIPLOOP / "references" / "backchain-planning.md").read_text(encoding="utf-8"))
+
+    @staticmethod
+    def sentences(text: str) -> list[str]:
+        return re.split(r"(?<=\.) (?=[A-Z`])", " ".join(text.split()))
+
+    def test_the_planning_guide_and_skill_scope_the_loop_text_and_the_resource_block_to_the_modes_that_print_them(self) -> None:
+        """`none` prints no whole-loop text and no six-file block, so a document saying the packet does is false."""
+        planning = (self.SHIPLOOP / "references" / "backchain-planning.md").read_text(encoding="utf-8")
+        paragraphs = [" ".join(block.split()) for block in re.split(r"\n\s*\n", planning)]
+        for statement in ("the full set at `plan`", 'Selected Backchain and Until Loop resources" block',
+                          "Only `plan` prints that block", "may request one whole `plan`/`draft`"):
+            holders = [paragraph for paragraph in paragraphs if statement in paragraph]
+            with self.subTest(statement=statement):
+                self.assertTrue(holders, statement)
+                for paragraph in holders:
+                    self.assertIn("`none`", paragraph)
+        skill = (self.SHIPLOOP / "SKILL.md").read_text(encoding="utf-8")
+        option = " ".join(skill.split("### Backchain passes option", 1)[1].split("\n### ", 1)[0].split())
+        for required in ("`none`", "no whole `plan`/`draft` is requested"):
+            with self.subTest(required=required):
+                self.assertIn(required, option)
+
+    def test_the_docs_say_which_modes_print_an_exit_condition_and_a_repair_pointer(self) -> None:
+        """What each mode prints is what the render shows; a document may not credit a mode with more."""
+        def guidance(stage: str, mode: str) -> str:
+            return " ".join(prompts._backchain_guidance(stage, backchain_passes=mode).split())
+        self.assertNotIn("exit condition", guidance("plan", "converge"))  # converge prints the gate alone
+        self.assertIn("exit condition", guidance("plan", "one"))
+        for mode, pointer in (("one", True), ("none", True), ("converge", False)):
+            with self.subTest(mode=mode):
+                self.assertEqual("Backchain passes: one" in guidance("spec", mode), pointer)
+        for path in (self.SHIPLOOP / "SKILL.md", self.SHIPLOOP / "references" / "backchain-planning.md"):
+            for sentence in self.sentences(path.read_text(encoding="utf-8")):
+                if "exit condition" in sentence and "`converge`" in sentence:
+                    with self.subTest(path=path.name, text=sentence[:80]):
+                        self.assertIn("convergence reference", sentence)  # converge: the host takes it from there
+                if "exit condition" in sentence and "Backchain passes option" in sentence:
+                    with self.subTest(path=path.name, text=sentence[:80]):
+                        self.assertIn("`one`", sentence)  # the packet prints an exit condition in `one` only
+                if "points to Backchain's convergence reference" in sentence:
+                    with self.subTest(path=path.name, text=sentence[:80]):
+                        for mode in ("`one`", "`none`", "`converge`"):
+                            self.assertIn(mode, sentence)
 
     def test_the_terminal_evidence_set_is_one_record_and_the_check_receipt_for_the_marker(self) -> None:
         convergence = self.flat(self.BACKCHAIN / "references" / "convergence.md")
@@ -2879,7 +2954,7 @@ class BackchainGateDocumentsTest(unittest.TestCase):
                 self.assertNotIn("its `required_trivial_reviews: 2` gate for two consecutive", flat)
 
     def test_no_document_the_host_reads_tells_it_two_reviews_without_naming_the_default_or_the_other_modes(self) -> None:
-        documents = [*sorted((self.BACKCHAIN).rglob("*.md")),
+        documents = [*sorted((self.BACKCHAIN).rglob("*.md")), *sorted((ROOT / "agents").glob("*.md")),
                      *sorted(self.SHIPLOOP.glob("*.md")), *sorted((self.SHIPLOOP / "references").rglob("*.md"))]
         self.assertGreater(len(documents), 20)
         found = 0

@@ -57,14 +57,16 @@ planning repair or required distinct review, and `required_trivial_reviews: 2`.
 With `Backchain passes: one` beside the binding marker, supply instead the same repeat
 condition, `required_trivial_reviews: 0` and this exit condition: One complete dependency
 review/fix/check cycle has run; every finding of that cycle is repaired within the edit
-bounds; every `Confirm by` clause meets the planning guide's Outcomes rule; the printed
-`backchain-check` is ok on the final candidate and its receipt is cited; final
-candidate-specific domain evidence is saved. (`backchain-check` is the structural check a
-ShipLoop packet prints; another caller names its own check of the exact candidate.) A pass
-that completes that cycle reports `exit_assessment: satisfied` even when it repaired the
-candidate; Until Loop then completes the child and no second review runs. An open gap is
-reported `unsatisfied` and the loop continues; nothing adds a pass ceiling. The rest of
-this reference applies to that one cycle unchanged.
+bounds; every `Confirm by` clause on a step this cycle may change meets the planning guide's
+Outcomes rule; the printed `backchain-check` is ok on the final candidate and its receipt is
+cited; final candidate-specific domain evidence is saved. (`backchain-check` is the structural
+check a ShipLoop packet prints, and the Outcomes rule is the section of ShipLoop's
+`references/backchain-planning.md` that defines a `Confirm by` clause; another caller names its
+own check of the exact candidate and its own confirmation rule.) A pass that completes that
+cycle reports `exit_assessment: satisfied` even when it repaired the candidate; Until Loop then
+completes the child and no second review runs. An open gap is reported `unsatisfied` and the
+loop continues; nothing adds a pass ceiling. The rest of this reference applies to that one
+cycle unchanged.
 
 The child scope includes only the plan artifact and permitted planning companions. It must retain:
 

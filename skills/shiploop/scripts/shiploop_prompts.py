@@ -1966,15 +1966,17 @@ request exactly one action `repair` / stage `revise`, a whole native operation
 that needs the loop resources named in the planning guide's Source-aware native
 caller section (the packet's "Loop resources" line reports them) and keeps its
 start contract within the budget below."""
-# Mode one only.  A pointer, not a gate field: the audit text never names `required_trivial_reviews`; the
-# child's gate and exit condition are the ones Backchain's convergence reference defines for the marker line.
-_BACKCHAIN_AUDIT_ONE_PASS = """ A repair/revise child runs one review/fix/check cycle (`Backchain passes: one`,
-as Backchain's convergence reference defines it)."""
+# Modes one and none.  An instruction to write the marker line, not a gate field: the audit text never names
+# `required_trivial_reviews`; the child's gate and exit condition are the ones Backchain's convergence reference
+# defines for the marker line, and without the line a repair/revise child runs that reference's two-review default.
+_BACKCHAIN_AUDIT_ONE_PASS = """ A repair/revise child runs one review/fix/check cycle: put the line
+`Backchain passes: one` beside the binding marker in the child request, as Backchain's
+convergence reference defines it."""
 _BACKCHAIN_AUDIT_WHOLE = """ A whole `plan`/`draft` is requested only
 at `plan`."""
-# Mode none, at every stage: the run requests no whole loop, so the audit text says that in its place.
-_BACKCHAIN_AUDIT_WHOLE_NONE = """ No whole `plan`/`draft` is requested in this run
-(`Backchain passes: none`)."""
+# Mode none, at every stage: the run requests no whole loop, so the audit text says that in its place.  `one` is
+# the only marker value Backchain's convergence reference defines, so the text does not print `none` as one.
+_BACKCHAIN_AUDIT_WHOLE_NONE = """ No whole `plan`/`draft` is requested in this run."""
 _BACKCHAIN_AUDIT_TAIL = """ A MISSING loop resource blocks repair/revise; no other install
 substitutes. A forbidden revision, nonterminal child or unresolved finding stays
 incomplete and is not submitted as a completed parent action.
@@ -2011,12 +2013,12 @@ transition; Backchain and ShipLoop do not copy that runtime or create another co
 Backchain passes: one. Write the child's start contract with `required_trivial_reviews: 0` and this
 exit condition verbatim, appending only case-specific clauses: One complete dependency
 review/fix/check cycle has run; every finding of that cycle is repaired within the edit
-bounds; every `Confirm by` clause meets the planning guide's Outcomes rule; the printed
-`backchain-check` is ok on the final candidate and its receipt is cited; final
-candidate-specific domain evidence is saved. A pass that completes that cycle reports
-`exit_assessment: satisfied` even when it repaired the candidate; Until Loop then completes
-the child and no second review runs. Put the line `Backchain passes: one` beside the
-binding marker in the child's `work`.
+bounds; every `Confirm by` clause on a step this cycle may change meets the planning guide's
+Outcomes rule; the printed `backchain-check` is ok on the final candidate and its receipt is
+cited; final candidate-specific domain evidence is saved. A pass that completes that cycle
+reports `exit_assessment: satisfied` even when it repaired the candidate; Until Loop then
+completes the child and no second review runs. Put the line `Backchain passes: one` beside the
+binding marker in the child request.
 """
 
 

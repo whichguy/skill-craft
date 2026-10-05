@@ -431,11 +431,11 @@ class BackchainStageTextTests(unittest.TestCase):
         flat = " ".join(guidance._backchain_guidance(self.LOOP_STAGE, backchain_passes="one").split())
         self.assertEqual(flat.count("`required_trivial_reviews: 0`"), 1)
         for printed in ("Backchain passes: one.",
-                        "Put the line `Backchain passes: one` beside the binding marker in the child's `work`",
+                        "Put the line `Backchain passes: one` beside the binding marker in the child request",
                         "this exit condition verbatim",
                         "One complete dependency review/fix/check cycle has run",
                         "every finding of that cycle is repaired within the edit bounds",
-                        "every `Confirm by` clause meets the planning guide's Outcomes rule",
+                        "every `Confirm by` clause on a step this cycle may change meets the planning guide's Outcomes rule",
                         "the printed `backchain-check` is ok on the final candidate and its receipt is cited",
                         "final candidate-specific domain evidence is saved",
                         "reports `exit_assessment: satisfied` even when it repaired the candidate",
@@ -466,8 +466,8 @@ class BackchainStageTextTests(unittest.TestCase):
                     self.assertEqual(packets[stage].count(
                         guidance._backchain_guidance(stage, backchain_passes=mode)), 1)
 
-    POINTER = ("A repair/revise child runs one review/fix/check cycle (`Backchain passes: one`, "
-               "as Backchain's convergence reference defines it)")
+    POINTER = ("A repair/revise child runs one review/fix/check cycle: put the line `Backchain passes: one` "
+               "beside the binding marker in the child request, as Backchain's convergence reference defines it")
 
     def test_audit_stages_carry_the_one_pass_pointer_in_mode_one_and_nothing_in_converge(self):
         for stage in self.AUDIT_STAGES:
@@ -482,7 +482,7 @@ class BackchainStageTextTests(unittest.TestCase):
                 self.assertEqual(one.replace(self.POINTER + ". ", ""), converge)
 
 
-    NONE_SENTENCE = "No whole `plan`/`draft` is requested in this run (`Backchain passes: none`)"
+    NONE_SENTENCE = "No whole `plan`/`draft` is requested in this run"
     # The six resources only a whole loop reads; the seventh, the caller contract, serves the read-only audit.
     LOOP_ONLY_LABELS = ("Backchain SKILL.md", "Backchain references/convergence.md",
                         "Backchain prompts/convergence-review.prompt.md", "Until Loop ADAPTER.md",
@@ -518,11 +518,12 @@ class BackchainStageTextTests(unittest.TestCase):
         for dropped in ("A whole `plan`/`draft` is requested only", "action `plan` / stage `draft`",
                         "Backchain standalone Until Loop binding", "required_trivial_reviews",
                         "`MISSING: ...`", "Record the binding id", "The Until Loop child is plan-only",
-                        "Backchain passes: one."):
+                        "Backchain passes: one.", "Backchain passes: none"):
             with self.subTest(dropped=dropped):
                 self.assertNotIn(dropped, flat)
         self.assertEqual(flat.count("`plan`/`draft`"), 1)  # named once: to say it is not requested
-        self.assertIn("Backchain graph check: ", plan)  # the record-only check stays for a repair/revise
+        self.assertIn("Backchain graph check: ", plan)  # the record-only check command line stays
+        self.assertIn(guidance.BACKCHAIN_CHECK, plan)  # and the guidance sentence that tells the host to run it
         self.assertEqual(plan.count("Backchain planning guide: "), 1)
 
     def test_none_prints_the_audit_resource_and_the_loop_status_not_the_six_file_block_at_plan(self):
@@ -563,6 +564,7 @@ class BackchainStageTextTests(unittest.TestCase):
             one = " ".join(guidance._backchain_guidance(stage, backchain_passes="one").split())
             with self.subTest(stage=stage):
                 self.assertEqual(none.count(self.NONE_SENTENCE), 1)
+                self.assertNotIn("Backchain passes: none", none)  # `one` is the only marker value the reference defines
                 self.assertNotIn("A whole `plan`/`draft` is requested only", none)
                 self.assertIn(self.POINTER, none)  # a repair/revise after a finding runs one pass
                 self.assertNotIn("required_trivial_reviews", none)

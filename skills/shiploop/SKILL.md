@@ -391,9 +391,10 @@ safety pins: [lint catalog](references/lint-catalog.md).
 `--backchain-passes one|converge|none` at `init` or `workspace start` records the
 run option `backchain_passes` (default `one`): how many passes the Backchain
 planning child may take. `one` is one review/fix/check cycle, `converge` is two
-consecutive trivial reviews, and `none` offers no whole Backchain loop at `plan`. In `one`
-and `converge` the plan packet prints the gate and exit condition of the recorded value; the
-host copies them into the child's start contract. In `none` the plan packet prints the
+consecutive trivial reviews, and `none` offers no whole Backchain loop at `plan`. The `one`
+plan packet prints the gate and an exit condition, which the host copies into the child's
+start contract; the `converge` plan packet prints the two-review gate, and the host takes its
+exit condition from Backchain's convergence reference. In `none` the plan packet prints the
 read-only audit route the other Backchain stages print (the one resource it needs and the
 loop-resource status line), says no whole `plan`/`draft` is requested in this run, and
 omits the six-file Backchain and Until Loop resource block; a material finding at any stage
@@ -1006,8 +1007,9 @@ Backchain operation. Backchain supplies its dependency-specific review/fix/check
 work, plan candidate files, source/lens context, and protected bounds to the selected
 actual Until Loop using `Backchain standalone Until Loop binding: <binding-id>`. Until
 Loop owns the temporary callback handle, progress, its review gate (the packet's printed
-gate for the run's Backchain passes option; a `repair`/`revise` packet points to Backchain's
-convergence reference for it), recovery, continuation, and terminal transition; ShipLoop owns
+gate for the run's Backchain passes option; a `repair`/`revise` packet in `one` and `none`
+points to Backchain's convergence reference for it, and in `converge` the default two-review
+gate applies), recovery, continuation, and terminal transition; ShipLoop owns
 none of those controls. Backchain
 returns only opaque actual Until Loop terminal evidence after the child reports
 `complete` and its exact receipt is saved, plus its domain evidence: binding_id, owner,

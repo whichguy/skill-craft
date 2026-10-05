@@ -186,6 +186,8 @@ class OnePassGateTests(unittest.TestCase):
                          "complete")
 
     def test_a_blocked_report_stops_the_loop(self) -> None:
+        # A runtime pin (the SPEC's "a blocker ends the loop as before"): it holds at any printed gate, so it
+        # shows the stop route stays open under gate 0, not that the packet text changed.
         packet = self.start("one")
         stopped = self.report(packet, classification="unresolved", exit_assessment="unsatisfied",
                               continuation_assessment="blocked")

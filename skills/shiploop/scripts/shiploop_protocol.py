@@ -62,7 +62,7 @@ def _require_retry_backchain_passes(existing: dict, requested: "str | None", run
     need(recorded == requested,
          f"--backchain-passes {requested} differs from this run's recorded Backchain passes option "
          f"{recorded}; rerun without --backchain-passes to recover the run. The option cannot change "
-         f"mid-run: start a fresh run (a fresh --run-dir or --workspace-root) to use {requested}")
+         f"mid-run: only the owner starts a fresh run (a fresh --run-dir or --workspace-root) to use {requested}")
 
 
 def workspace_command(core, argv):

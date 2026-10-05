@@ -1297,3 +1297,55 @@ Implemented (2026-10-04; the printed text is not changed until the one-pass gate
   packet says it is not requested and does not print what it would need); whether a host that finds a defect at `plan` takes the audit
   route rather than writing the plan unchecked; what `none` saves in minutes (about 128 on the 1.16.1 run is the plan's estimate, not
   measured).
+- **Review of I1 to I3 and its fix commit (2026-10-04; status: firm for the fixes, hermetic tests; not yet seen in a live run).**
+  Four review lenses (engine, documents, tests, bounds) read `a89135f7`, `0df9b0c4` and `a34a6ee6`; each finding was re-checked
+  against the code before a change. Key learning: the exit condition I2 wrote for gate 0 ("every `Confirm by` clause meets the
+  planning guide's Outcomes rule") contradicted the reference it sits in, which makes a weak clause on a step the cycle may not
+  change (running, completed or protected) advisory. At gate 0 the loop completes on the host's own `satisfied` and nothing adds a
+  ceiling, so an exit no host can honestly meet on such a graph either keeps the loop running or leads the host to report
+  `satisfied` against its own rules. A fresh `plan` was never affected (every step is provisional); `repair`/`revise` at the audit
+  stages and replans over accepted steps were. The packet-to-`convergence.md` parity test did not see it: both said the same wrong
+  thing, and the test ran in one direction only, so a clause only the reference carried also went unseen (a mutant that added one
+  stayed green).
+- **Accepted and fixed in the review commit.** D1 (major): the clause reads "on a step this cycle may change" in the packet and in
+  `convergence.md`. D6: `convergence.md` names ShipLoop's `references/backchain-planning.md` (Outcomes) for a standalone caller.
+  T-2: the parity is two-way (the two clause lists are equal) and a new test pins the scope in both places. E1: the changed-retry
+  refusal says only the owner starts a fresh run, so it no longer contradicts the workspace wrapper's "do not create a replacement
+  run". E2, D3, L4: the documents say `one` prints the gate and an exit condition, `converge` prints the two-review gate and the host
+  takes its exit condition from the convergence reference, and the repair/revise pointer is printed in `one` and `none` only. E3, D2,
+  L2, T-1: the planning guide scopes its resource-block statements to runs that offer a whole loop, with content pins on those
+  paragraphs and on the `none` description in `SKILL.md`. D4, L3: the audit pointer is an instruction ("put the line
+  `Backchain passes: one` beside the binding marker in the child request"; without the line the child runs the reference's
+  two-review default), the plan text says "child request" like the Backchain references, and `none` no longer prints
+  `Backchain passes: none` as if it were a second marker value. T-4: the `none` plan test pins `BACKCHAIN_CHECK` itself, not only
+  the navigator's command line (a mutant dropping it was green). T-5: the blocked-report test says it pins runtime behaviour. D5:
+  the document scan also matches "two clean", "two reviews" and "two trivial" and reads `agents/*.md`. D7, L1: corrections below.
+  D8 (part): `graph-dry-run.md` documents `--backchain-passes`. E4: the plan's note on `harness.md` is corrected.
+- **Rejected, with the evidence.** L5: the `harness.md` entry in the scan's exemption list is live, not dead; the scan flattens
+  paragraphs and the flattened paragraph matches "two consecutive" (the reviewer's grep was line by line and missed the wrapped
+  phrase, the same miss the plan's note made). T-3: `converge` printing today's text is pinned by obligations and phrases on purpose;
+  the plan rejected a whole-text golden. T-6 and T-7: not caused by these commits, and neither a contradiction nor a vacuous test
+  (T-6 is an index-stat race of the vendored runtime in a fixture; T-7 matches the precedent of the sibling tests). D8 (other
+  part): the option-lifecycle paragraph repeats in four documents, each read alone and none contradicting another, so it stays.
+  E5, L7: `shiploop-cross-run` and `shiploop-status-display` fail identically on origin/main `38119014` (a `.progress.lock` file in a
+  run directory). E6, L6: the branch is behind origin/main (the two-dot diff shows the Run Review moves in reverse, and
+  `test/shiploop_e2e/LEARNINGS.md` conflicts on merge); merge before release, keep both sides' sections, and review with
+  `git diff c895d921..HEAD`.
+- **Corrections (dated; the bullets above are not edited).** "Each audit stage is +2 words in `none` against `one`" was +3 (317
+  against 320 words of guidance). After D4 the audit stages are 328 words in both `one` and `none` and 301 in `converge`; the plan
+  stage is 586 in `one`, 480 in `converge` and 328 in `none` (whole plan prompt 3,804, 3,698 and 3,546 words). "Scans every
+  Backchain-gate statement" overstated `BackchainGateDocumentsTest`: it matches a fixed list of phrases in Markdown files and
+  accepts a paragraph that names a scope anywhere in it; it does not read `evals.json` (pinned by
+  `test_the_evals_cover_the_default_and_the_marker_path`). The plan document marks its `+70` and `-179` figures superseded by the
+  measured `+99` and `-160`.
+- **Evidence for the fixes (route, not wording).** On the unchanged source the changed tests failed for the right reason: 5 contract
+  tests (the `Confirm by` scope, the mode documents, the planning-guide scope, and the changed-retry refusal through `init` and
+  through `workspace start`) and 4 dry-run tests (the audit pointer, the `none` sentence at the audit stages and at `plan`, the
+  printed exit clause), 25 failure records in all. The strengthened tests that already held were shown to bite by mutation: a clause
+  only `convergence.md` carries and a clause dropped from the packet (two-way parity), "two clean reviews" in the planning guide and
+  "two trivial reviews" in the agent card (the scan), and the `BACKCHAIN_CHECK` sentence dropped at `none` plan. After the fixes:
+  navigator-contract 74 tests, navigator-dry-run 26, improve-runtime 12, actual-improve-cli 32, packet-bounds 8, guidance 37,
+  delegation 47, e2e 198 and 18 more files all pass, `bash test/improve.test.sh` passes (vendored Until Loop hashes), and the only
+  failures are the two above, reproduced on origin/main.
+- **Not verified in the review commit (needs a host).** That a repair/revise host now writes the marker line from the audit
+  instruction (not replayed); that a host reads "on a step this cycle may change" as the convergence reference defines it.
