@@ -100,27 +100,27 @@ S-10 for one loop and says so). The Backchain planning child (a whole
 pass. Its start contract carries `required_trivial_reviews: 0` and an exit
 condition that one complete dependency review/fix/check cycle has run, its
 findings are repaired within the permitted edit bounds, every `Confirm by`
-clause meets the planning guide's Outcomes rule, and the printed
-`backchain-check` is ok on the final candidate. The loop completes on the
-first report that assesses that exit as satisfied. That assessment is the host
-model's, backed by a structural, record-only check (unique ids, resolved
-suppliers, acyclic, no orphan discovered step); it is not a script-run proof
-that the plan is semantically right, so S-9 holds for this loop only in that
-structural sense. No numeric ceiling is added: a pass that reports an open gap
-continues, a blocker or a user stop ends the loop as before, and the vendored
-Until Loop is unchanged. `--backchain-passes converge` (state option
-`backchain_passes`) restores two consecutive trivial reviews;
-`--backchain-passes none` offers no whole loop at `plan`. The host model
-writes this contract (open item a02), so S-4, S-5, S-12 and S-10's frozen
-contract the script writes stay unmet for this loop, as they already were; a
-future script-written or script-checked contract must accept a gate-0 complete
-packet whose last report is non-trivial. Quality, test and Improve loops are
-not covered; their no-cap rule stands. Basis: in the Luna max battleship run
-(skill-craft 1.16.1) the two Backchain loops took 213 of 647.5 planning
-minutes; the plan loop's passes 2 to 5 each reported a non-trivial finding of
-confirmation level or wording (no edge, goal or supplier changed), passes 6
-and 7 changed nothing, and no later packet names the plan graph. Record:
-docs/shiploop-fast-planning-plan-2026-10-04.md.
+clause on a step this cycle may change meets the planning guide's Outcomes
+rule, and the printed `backchain-check` is ok on the final candidate. The loop
+completes on the first report that assesses that exit as satisfied. That
+assessment is the host model's, backed by a structural, record-only check
+(unique ids, resolved suppliers, acyclic, no orphan discovered step); it is
+not a script-run proof that the plan is semantically right, so S-9 holds for
+this loop only in that structural sense. No numeric ceiling is added: a pass
+that reports an open gap continues, a blocker or a user stop ends the loop as
+before, and the vendored Until Loop is unchanged. `--backchain-passes
+converge` (state option `backchain_passes`) restores two consecutive trivial
+reviews; `--backchain-passes none` offers no whole loop at `plan`. The host
+model writes this contract (open item a02), so S-4, S-5, S-12 and S-10's
+frozen contract the script writes stay unmet for this loop, as they already
+were; a future script-written or script-checked contract must accept a gate-0
+complete packet whose last report is non-trivial. Quality, test and Improve
+loops are not covered; their no-cap rule stands. Basis: in the Luna max
+battleship run (skill-craft 1.16.1) the two Backchain loops took 213 of 647.5
+planning minutes; the plan loop's passes 2 to 5 each reported a non-trivial
+finding of confirmation level or wording (no edge, goal or supplier changed),
+passes 6 and 7 changed nothing, and no later packet names the plan graph.
+Record: docs/shiploop-fast-planning-plan-2026-10-04.md.
 
 **S-11 Knowledge is retained in the repository.** Planning knowledge (living
 spec, environment, test strategy, per-feature records) is committed to the
