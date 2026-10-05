@@ -202,7 +202,9 @@ class QualityLoopTests(unittest.TestCase):
         self.drive_to(quality.STAGE)
         before = (self.run_dir / "state.md").read_bytes()
         cases = [
-            (DONE, "list the saved terminal packet in evidence_refs"),
+            # No loop ran, so the refusal names the command that starts it (the old text only said to cite a file
+            # that does not exist; the test-loop suite still pins that text for a saved but uncited packet).
+            (DONE, "the quality loop has not run: no terminal packet exists at"),
             (dict(DONE, outcome="repeat"), "accepts only done, revise or blocked"),
         ]
         for result, message in cases:

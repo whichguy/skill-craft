@@ -30,6 +30,31 @@ import shiploop_navigator as nav  # noqa: E402
 import shiploop_store as store  # noqa: E402
 
 DONE = {"outcome": "done", "summary": "Synthetic declaration; no work executed."}
+TRIVIAL = {"classification": "trivial", "exit_assessment": "satisfied", "continuation_assessment": "allowed",
+           "evidence": "Nothing to change.", "handoff": "Nothing is open."}
+BLOCKED_REPORT = {"classification": "unresolved", "exit_assessment": "unknown", "continuation_assessment": "blocked",
+                  "evidence": "The item's goal cannot be reached as planned.", "handoff": "See the evidence."}
+# The public graph, declared here and not read from the navigator, so a changed graph updates this test deliberately.
+EXPECTED_STAGES = (
+    "intake", "discovery", "research", "spec", "test-strategy", "plan", "prepare",
+    "select-work", "step-plan", "test-spec", "baseline", "test-author", "test-red", "implement", "test-green",
+    "test-refine", "regression", "document", "skill-assess", "skill-validate", "static-checks", "verify", "integrate",
+    "integration-verify", "carry-forward",
+    "system-test-author", "system-test", "product-acceptance", "release-plan", "release-check", "release",
+    "release-verify", "operations", "handoff",
+)
+# What the accepted plans record, so the stages after them have real commands to run.  The focused command fails
+# until implement has created built.txt, which is the red-then-green the test stages expect.
+FOCUSED = "test -f built.txt && echo TC-1 || { echo TC-1; exit 1; }"
+RESULTS = {
+    "step-plan": {"paths": ["built.txt"], "steps": [{"id": "S1", "task": "Create built.txt", "deps": []}],
+                  "criteria": [{"id": "C1", "text": "built.txt exists"}],
+                  "test_commands": [{"command": FOCUSED, "suite": "focused", "ids": ["TC-1"], "criteria": ["C1"]},
+                                    {"command": "test -f built.txt", "suite": "regression"}]},
+    "system-test-author": {"system_commands": [{"command": "true", "suite": "check"}]},
+    "release-plan": {"consumer_checks": [{"command": "true", "suite": "check"}],
+                     "consumer_entry": {"how": "open built.txt", "sources": ["built.txt"]}},
+}
 
 
 def write_block(path: Path, value: object) -> None:
@@ -63,17 +88,22 @@ class RealCliCase(unittest.TestCase):
         self.base = Path(self._temporary.name).resolve()
         self.env = dict(os.environ, PYTHONDONTWRITEBYTECODE="1", GIT_CONFIG_GLOBAL=os.devnull,
                         GIT_CONFIG_NOSYSTEM="1")
-        self.repo = self.base / "repo"
-        self.repo.mkdir()
-        for argv in (["init", "-q"], ["add", "."]):
-            if argv[0] == "add":
-                (self.repo / "a.txt").write_text("x\n")
-            subprocess.run(["git", *argv], cwd=self.repo, env=self.env, check=True, capture_output=True)
-        subprocess.run(["git", "-c", "user.email=t@example.invalid", "-c", "user.name=t", "commit", "-qm", "init"],
-                       cwd=self.repo, env=self.env, check=True, capture_output=True)
         self.evidence = self.base / "evidence.txt"
         self.evidence.write_text("a note this stage wrote\n")
         self.counter = 0
+        self.repo = self.make_repo()
+
+    def make_repo(self) -> Path:
+        """A one-commit repository of its own; every run gets one, so a stage's files never leak into another."""
+        repo = self.base / f"repo{self.counter}"
+        repo.mkdir()
+        for argv in (["init", "-q"], ["add", "."]):
+            if argv[0] == "add":
+                (repo / "a.txt").write_text("x\n")
+            subprocess.run(["git", *argv], cwd=repo, env=self.env, check=True, capture_output=True)
+        subprocess.run(["git", "-c", "user.email=t@example.invalid", "-c", "user.name=t", "commit", "-qm", "init"],
+                       cwd=repo, env=self.env, check=True, capture_output=True)
+        return repo
 
     def run_argv(self, argv: list[str]) -> subprocess.CompletedProcess:
         return subprocess.run(argv, cwd=self.base, env=self.env, capture_output=True, text=True)
@@ -85,9 +115,22 @@ class RealCliCase(unittest.TestCase):
         """Run a command line exactly as a packet printed it."""
         return self.run_argv(shlex.split(command))
 
-    def new_run(self, stage: str = "intake", **init: str) -> tuple[Path, str]:
-        """A run positioned at ``stage``; returns its directory and the head the CLI prints there."""
+    def new_run(self, stage: str = "intake", *, entered: bool = False, **init: str) -> tuple[Path, str]:
+        """A run positioned at ``stage``; returns its directory and the head the CLI prints there.
+
+        ``entered`` positions the run one stage earlier and completes that stage through the CLI, so the files a
+        transition writes (a loop's contract) exist, as they do in a real run.
+        """
+        if entered:
+            earlier = EXPECTED_STAGES[EXPECTED_STAGES.index(stage) - 1]
+            run, head = self.new_run(earlier, **init)
+            command, path, _ = printed_callback(head)
+            if earlier == "implement":
+                (self.repo / "built.txt").write_text("hello\n")  # the work implement's step did
+            write_block(path, self.fill_done(head))
+            return run, self.accepted(command)
         self.counter += 1
+        self.repo = self.make_repo()
         run = self.base / f"run{self.counter}"
         started = self.cli("init", "--repo", str(self.repo), "--run-dir", str(run), "--prompt=add hello",
                            "--improve-skill", str(CARD), *(f"--{k}={v}" for k, v in init.items()))
@@ -96,14 +139,44 @@ class RealCliCase(unittest.TestCase):
             return run, started.stdout
         state = store.read_record(run / "state.md")
         while nav.current_stage(state) != stage:
-            action = nav.current_action(state)["id"]
-            state = nav.apply(state, action, dict(DONE))
+            action, here = nav.current_action(state)["id"], nav.current_stage(state)
+            if here == "implement":
+                (self.repo / "built.txt").write_text("hello\n")  # the work the stage's step did
+            state = nav.apply(state, action, {**DONE, **RESULTS.get(here, {})})
             if state.get("active_improve") is not None:
                 state = nav.finish_improve(state, action, {"summary": "Synthetic receipt; no review claim."})
         nav.save(run, state)
         head = self.cli("next", "--run-dir", str(run))
         self.assertEqual(head.returncode, 0, head.stdout + head.stderr)
         return run, head.stdout
+
+    def field_values(self) -> dict:
+        """The minimum real value of every stage-specific field a done template can print."""
+        return {
+            "work_items": [{"id": "W1", "title": "Build it", "context": "All of it."}],
+            "assumptions": [{"id": "A1", "assumption": "x holds", "disposition": "evidenced",
+                             "evidence": [str(self.evidence)]}],
+            **{key: value for result in RESULTS.values() for key, value in result.items()
+               if key not in ("outcome", "summary")},
+        }
+
+    def fill_done(self, head: str) -> dict:
+        """The printed done template with each placeholder replaced by real content, field by field."""
+        template = store.loads(head.split("Result template:\n", 1)[1].split("\nAllowed outcomes:", 1)[0])
+        values, block = self.field_values(), {}
+        for key in template:
+            if key == "outcome":
+                block[key] = "done"
+            elif key == "headline":
+                block[key] = "A step finished."
+            elif key == "summary":
+                block[key] = "What this stage established."
+            elif key == "evidence_refs":
+                block[key] = [str(self.evidence)]
+            else:
+                self.assertIn(key, values, f"the template prints {key}: add its minimum real value to this test")
+                block[key] = values[key]
+        return block
 
     def state(self, run: Path) -> dict:
         return store.read_record(run / "state.md")
@@ -364,6 +437,78 @@ class OutcomeShapeTests(RealCliCase):
         start = next(i for i, row in enumerate(started) if row.startswith("Next command (start"))
         for name in nav.OPENING_SECTIONS:
             self.assertIn(f'"## {name}"', started[start + 1])
+
+
+def full_packet_text(head: str) -> str:
+    """The file a head's "Full packet:" line points at."""
+    line = next(row for row in head.splitlines() if row.startswith("Full packet: "))
+    return Path(line.removeprefix("Full packet: ")).read_text(encoding="utf-8")
+
+
+class LoopRefusalRouteTests(RealCliCase):
+    """A loop stage refused because its loop never ran is told the command that runs it, and that command works."""
+
+    def follow_start(self, reply: str) -> Path:
+        """Do what the refusal says: run its start command, follow each packet to complete, return the receipt."""
+        start = re.search(r"Start it with: (.*?)  and follow", reply, re.S).group(1)
+        words = shlex.split(start)
+        self.assertEqual(words[-2], "<")
+        packet = json.loads(subprocess.run(words[:-2], input=Path(words[-1]).read_text(), text=True,
+                                           capture_output=True, check=True, timeout=60).stdout)
+        while packet["status"] == "active":
+            packet = json.loads(subprocess.run(packet["done_argv"], input=json.dumps(TRIVIAL), text=True,
+                                               capture_output=True, check=True, timeout=60).stdout)
+        self.assertEqual(packet["status"], "complete")
+        return Path(re.search(r"Then list (\S+) in evidence_refs", reply).group(1))
+
+    def test_done_before_the_loop_ran_is_told_the_start_command_and_following_it_is_accepted(self) -> None:
+        for stage, label in (("test-green", "test loop"), ("static-checks", "quality loop")):
+            with self.subTest(stage=stage):
+                run, head = self.new_run(stage, entered=True)
+                command, path, action = printed_callback(head)
+                block = self.done_fields()
+                write_block(path, block)
+                reply = self.refused(command, run)
+                self.assertIn(f"the {label} has not run: no terminal packet exists at", reply)
+                # The command in the reply is the one the full packet prints: one definition, not two.
+                printed = next(row for row in full_packet_text(head).splitlines() if row.startswith("Start: "))
+                self.assertIn("Start it with: " + printed.removeprefix("Start: ") + "  and follow", reply)
+                receipt = self.follow_start(reply)
+                write_block(path, {**block, "evidence_refs": [*block["evidence_refs"], str(receipt)]})
+                self.accepted(command)
+                self.assertEqual(nav.current_stage(self.state(run)), "verify" if stage == "static-checks" else "test-refine")
+
+    def test_revise_before_the_loop_stopped_is_told_to_run_it_until_it_stops_blocked(self) -> None:
+        run, head = self.new_run("test-green", entered=True)
+        command, path, _ = printed_callback(head)
+        block = {**self.done_fields(), "outcome": "revise", "summary": "The step plan cannot be met as written."}
+        write_block(path, block)
+        reply = self.refused(command, run)
+        self.assertIn("the test loop has not run", reply)
+        self.assertIn("until its status is stopped: report continuation_assessment blocked", reply)
+        start = re.search(r"Start it with: (.*?)  and follow", reply, re.S).group(1)
+        words = shlex.split(start)
+        packet = json.loads(subprocess.run(words[:-2], input=Path(words[-1]).read_text(), text=True,
+                                           capture_output=True, check=True, timeout=60).stdout)
+        packet = json.loads(subprocess.run(packet["done_argv"], input=json.dumps(BLOCKED_REPORT), text=True,
+                                           capture_output=True, check=True, timeout=60).stdout)
+        self.assertEqual(packet["status"], "stopped")
+        receipt = re.search(r"Then list (\S+) in evidence_refs and submit revise again", reply).group(1)
+        write_block(path, {**block, "evidence_refs": [*block["evidence_refs"], receipt]})
+        self.accepted(command)
+        self.assertEqual(nav.current_stage(self.state(run)), "step-plan")
+
+    def test_citing_a_receipt_nobody_wrote_is_still_refused(self) -> None:
+        for stage, expected in (("test-green", "evidence_refs cite files that do not exist"),
+                                ("static-checks", "the quality loop has not run")):
+            with self.subTest(stage=stage):
+                run, head = self.new_run(stage, entered=True)
+                command, path, _ = printed_callback(head)
+                write_block(path, self.done_fields())
+                named = Path(re.search(r"no terminal packet exists at (\S+)\.", self.refused(command, run)).group(1))
+                write_block(path, {**self.done_fields(), "evidence_refs": [str(self.evidence), str(named)]})
+                self.assertFalse(named.exists())
+                self.assertIn(expected, self.refused(command, run))
 
 
 if __name__ == "__main__":
