@@ -1018,7 +1018,8 @@ def baseline_stages(stages: list | None) -> list | None:
     return [{k: row[k] for k in keep if k in row} for row in stages if isinstance(row, dict)]
 
 
-def baseline_row(result: dict, style: str | None, suite: str | None) -> dict:
+def baseline_row(result: dict, style: str | None, suite: str | None,
+                 planning_review: str = metrics.NOT_RECORDED) -> dict:
     """One comparable summary of a run: the per-case history the suites judge against (SPEC: E2E suites).
 
     Carries host, model and effort because a baseline compares only with rows
@@ -1027,7 +1028,9 @@ def baseline_row(result: dict, style: str | None, suite: str | None) -> dict:
     a whole-run total. ``baseline_stages`` decides which stage fields are worth
     committing; the full rows stay in the run's own metrics.json. A counter the host's
     events cannot show is null here and named in ``unmeasured``, so a later run on that
-    host compares it as not measured and never as 0 -> 0.
+    host compares it as not measured and never as 0 -> 0. ``planning_review`` is the
+    run's option as its state.md recorded it (``metrics.planning_review``): a run is
+    compared only with a row of the same mode (``planning_review_line``).
     """
     m = result.get("metrics") or {}
     versions = result.get("versions") or {}
@@ -1036,7 +1039,8 @@ def baseline_row(result: dict, style: str | None, suite: str | None) -> dict:
             "effort": result.get("effort"), "stages": baseline_stages(m.get("stages")),
             "termination": result.get("termination"), "unmeasured": sorted(m.get("unmeasured") or {}),
             "source": versions.get("source"), "plugin_version": versions.get("plugin_version"),
-            "shiploop_version": versions.get("shiploop_version"), "pass": result.get("pass"),
+            "shiploop_version": versions.get("shiploop_version"), "planning_review": planning_review,
+            "pass": result.get("pass"),
             "verdicts": {k: (result.get(k) or {}).get("pass") for k in ("invoked", "plugin", "process",
                                                                        "shiploop", "committed")},
             "checks_passed": sum(bool(c.get("pass")) for c in result.get("checks") or []),
@@ -1081,6 +1085,46 @@ def previous_row(path: Path, case: str, source: str | None, host: str | None = N
                  model: str | None = None, effort: str | None = None) -> dict | None:
     """The last recorded row for this case that is actually comparable with this run."""
     return scan_baseline(path, case, source, host, model, effort)[0]
+
+
+# `planning_review` (state.md key, ShipLoop 1.22.0 and later) says which planning results start an Improve child: `stage`
+# after each of spec, test-strategy, plan, step-plan and test-spec, `none` after none of them. Planning minutes, Improve
+# passes and turns are not the same quantity in the two modes, so a run is compared only with a row of its own mode. A row
+# written before the field existed has no mode; it stands for `stage` only when its recorded plugin_version is below
+# PLANNING_REVIEW_FIRST_RELEASE (the option did not exist then, so each of its planning stages started an Improve child,
+# which is what `stage` does). A row with no usable plugin_version, or with that release or a later one and no field, stands
+# for nothing known ("not recorded") and is compared with no run: a mode is never inferred from anything else.
+PLANNING_REVIEW_FIRST_RELEASE = "1.22.0"
+
+
+def _release(text) -> tuple[int, int, int] | None:
+    """A MAJOR.MINOR.PATCH version as numbers, or None for a missing version or any other shape (a development build)."""
+    found = re.fullmatch(r"(\d+)\.(\d+)\.(\d+)", text) if isinstance(text, str) else None
+    return tuple(int(part) for part in found.groups()) if found else None
+
+
+def row_planning_review(row: dict) -> tuple[str, str]:
+    """(the planning_review mode a baseline row stands for, why, when the row does not say: "" for a recorded mode)."""
+    recorded = row.get("planning_review")
+    if recorded is not None:
+        return (recorded if isinstance(recorded, str) else json.dumps(recorded)), ""
+    version = row.get("plugin_version")
+    placed = _release(version)
+    if placed is not None and placed < _release(PLANNING_REVIEW_FIRST_RELEASE):
+        return "stage", f"records no mode, read as stage because plugin {version} predates the option"
+    return (metrics.NOT_RECORDED, "records no mode and " + (
+        f"plugin {version} does not predate the option" if placed is not None
+        else "no plugin_version places it before the option"))
+
+
+def planning_review_line(mode: str, before: dict) -> str | None:
+    """None when this run and the earlier row name the same recorded planning_review mode, so they may be compared;
+    otherwise the report line saying that nothing was compared, with both modes (an unrecorded mode never matches)."""
+    earlier, why = row_planning_review(before)
+    if mode != metrics.NOT_RECORDED and mode == earlier:
+        return None
+    return (f"  baseline  not compared across planning_review modes ({mode} vs {earlier}); the earlier row is "
+            f"{str(before.get('date'))[:10]}, ShipLoop {before.get('shiploop_version')}" + (f"; it {why}" if why else ""))
 
 
 NOT_OBSERVED = "not observed (regraded: no host ran)"
@@ -1634,10 +1678,9 @@ def main(argv: list[str] | None = None) -> int:
                 *(c["pass"] for c in check_results)]
     if keepalive is not None:
         keepalive["decisions"] = hosts.keepalive_decisions(out / "home")
-    termination = termination_facts(process,
-                                    metrics.engine_state(Path(shiploop["run_dir"]) if shiploop.get("run_dir")
-                                                         else None),
-                                    resume_stop, earlier_result.get("termination") if regrade else None)
+    engine = metrics.engine_state(Path(shiploop["run_dir"]) if shiploop.get("run_dir") else None)
+    termination = termination_facts(process, engine, resume_stop,
+                                    earlier_result.get("termination") if regrade else None)
     # A resumed run overwrites result.json: keep the termination each earlier invocation recorded.
     earlier_terminations = list(earlier_result.get("earlier_terminations") or []) if resumed else []
     if resumed and not regrade and isinstance(earlier_result.get("termination"), dict):
@@ -1665,7 +1708,7 @@ def main(argv: list[str] | None = None) -> int:
     (out / "result.json").write_text(json.dumps(result, indent=2) + "\n")
     exported = review_export(out)
     style = json.loads(CASES.read_text()).get(name, {}).get("style") if name != "custom" else None
-    row = baseline_row(result, style, args.suite_name)
+    row = baseline_row(result, style, args.suite_name, metrics.planning_review(engine))
     # A baseline measures one host running a case from the start; a resumed run is not one.
     baseline_file = args.baseline if not (resumed or seeded) else None
     before, rows_for_case = (scan_baseline(baseline_file, name, versions["source"], args.host, args.model,
@@ -1736,10 +1779,12 @@ def main(argv: list[str] | None = None) -> int:
     for check in check_results:
         print(f"  check     {mark(check['pass'])}  {check['command']}")
     print(f"  {exported}")
-    if before:
+    if before and (apart := planning_review_line(row["planning_review"], before)):
+        print(apart)  # nothing below is compared: turns, cost and stages mean something else in the other mode
+    elif before:
         unknown = lambda value: "not measured" if value is None else value  # noqa: E731
         print(f"  baseline  vs {before['date'][:10]} (ShipLoop {before['shiploop_version']}, same "
-              f"{args.host}/{args.model}/{args.effort}): "
+              f"{args.host}/{args.model}/{args.effort}, planning_review {row['planning_review']}): "
               f"turns {unknown(before['turns'])} -> {unknown(row['turns'])}, cost {metrics.money(before['cost_usd'])} -> "
               f"{metrics.money(row['cost_usd'])}, "
               f"sessions {before['sessions']} -> {row['sessions']}, "
@@ -1747,6 +1792,8 @@ def main(argv: list[str] | None = None) -> int:
               + (f", narrative shown {before['narrative']['shown']}/{before['narrative']['emitted']} -> "
                  f"{row['narrative']['shown']}/{row['narrative']['emitted']}"
                  if before.get("narrative") and row.get("narrative") else ""))
+        if why := row_planning_review(before)[1]:  # a row with no mode compared as stage by the plugin version rule
+            print(f"            the earlier row {why}")
         for line in stage_diff_lines(before.get("stages"), row.get("stages")):
             print(f"            {line}")
     elif baseline_file:

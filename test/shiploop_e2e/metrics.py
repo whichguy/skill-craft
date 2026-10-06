@@ -149,6 +149,17 @@ def engine_state(run_dir: Path | None) -> dict:
     return value if isinstance(value, dict) else {}
 
 
+NOT_RECORDED = "not recorded"
+
+
+def planning_review(state: dict) -> str:
+    """The run's `planning_review` option as state.md recorded it (ShipLoop 1.22.0): the text as written (`stage` or `none`),
+    any other value shown as it is, and "not recorded" when the key is absent. Never a default. The Run Review exporter
+    (skills/shiploop-run-review) reads the same key the same way."""
+    value = state.get("planning_review")
+    return NOT_RECORDED if value is None else value if isinstance(value, str) else json.dumps(value)
+
+
 def _epoch(text: object) -> float | None:
     """One ShipLoop UTC stamp as epoch seconds, or None when it cannot be read."""
     if not isinstance(text, str):

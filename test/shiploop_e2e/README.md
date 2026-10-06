@@ -177,7 +177,8 @@ predecessor's output and is skipped when that predecessor failed. With
 (`--preflight-only` runs just that): it installs skill-craft the host's way
 and prints what origin/main publishes and what the host got. Every run
 (suite or `--case`) appends one summary row to `baselines.jsonl` (case, style,
-suite, host, model, effort, source, plugin and ShipLoop versions, verdicts, checks,
+suite, host, model, effort, source, plugin and ShipLoop versions, the run's
+`planning_review` mode, verdicts, checks,
 turns, cost, sessions, cancellations, model glue, ShipLoop failures, the per-stage
 rows and the termination record) and prints the change against the previous row
 for the same case, source, host, model and effort (SPEC: a baseline compares only
@@ -190,6 +191,23 @@ nothing to compare with and becomes that identity's first row. A resumed or seed
 run writes no row. When rows do compare, the stage lines show where a whole-run
 difference landed; they gate nothing. Commit the new rows with the run's learnings
 entry. See SPEC.md, "E2E suites" and "Parallel work".
+
+The row's `planning_review` is the run option ShipLoop 1.22.0 records in `state.md`
+(`stage`: an Improve child after each of spec, test-strategy, plan, step-plan and
+test-spec; `none`: after none of them), read as written from the run's own state, and
+`not recorded` when the key is absent: a mode is never defaulted. Planning minutes,
+Improve passes and turns are not the same quantity in the two modes, so a run is
+compared only with a previous row of its own mode. When the modes differ, or either is
+`not recorded`, the report prints `baseline  not compared across planning_review modes
+(<this> vs <previous>)` and compares no turns, cost or stage. A row written before the
+field existed has no mode: it stands for `stage` only when its recorded
+`plugin_version` is below 1.22.0 (the first release with the option, so every planning
+stage of that run started an Improve child, which is what `stage` does) and the report
+says so; a row with no usable `plugin_version`, or with 1.22.0 or later and no field,
+reads `not recorded` and is compared with no run. The previous row is still the last
+row of the same driver: when it has the other mode nothing is compared, even if an
+earlier row of this run's mode exists (compare against it by hand from
+`baselines.jsonl`).
 
 `metrics.json` also reports `script_verifications` (the checks ShipLoop itself
 ran and recorded, from its `*-verify*.md` records) and `model_glue`: shell
