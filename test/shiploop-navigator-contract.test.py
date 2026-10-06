@@ -2827,6 +2827,13 @@ class PlanningReviewOptionTest(unittest.TestCase):
     """
 
     SPEC = ROOT / "test" / "shiploop_e2e" / "SPEC.md"
+    # A none run starts no planning child, so nothing binds the Improve card before the first item's loops read it:
+    # the run names the card where it starts.
+    CARD = str(ROOT / "skills" / "improve" / "SKILL.md")
+
+    def mode_args(self, mode: "str | None") -> tuple[str, ...]:
+        return (("--planning-review", mode) if mode else ()) + (("--improve-skill", self.CARD) if mode == "none" else ())
+
     def setUp(self) -> None:
         self._temporary = tempfile.TemporaryDirectory(prefix="shiploop-planning-review-")
         self.addCleanup(self._temporary.cleanup)
@@ -2860,7 +2867,7 @@ class PlanningReviewOptionTest(unittest.TestCase):
         for mode in (None, *navigator.PLANNING_REVIEW_MODES):
             with self.subTest(mode=mode):
                 run = self.base / ("run-" + (mode or "default"))
-                started = self.init(run, *(("--planning-review", mode) if mode else ()))
+                started = self.init(run, *self.mode_args(mode))
                 self.assertEqual(started.returncode, 0, started.stdout + started.stderr)
                 self.assertEqual(self.recorded(run), mode or "stage")
         self.assertEqual(navigator.new_state(str(self.repo), "Default.")["planning_review"], "stage")
@@ -2887,7 +2894,7 @@ class PlanningReviewOptionTest(unittest.TestCase):
     def test_a_retry_naming_another_value_is_refused_and_a_plain_retry_recovers(self) -> None:
         run = self.base / "run-retry"
         args = self.init_args(run)
-        self.assertEqual(self.cli(*args, "--planning-review", "none").returncode, 0)
+        self.assertEqual(self.cli(*args, *self.mode_args("none")).returncode, 0)
         self.assertEqual(self.recorded(run), "none")
         before = (run / "state.md").read_bytes()
         refused = self.cli(*args, "--planning-review", "stage")
@@ -2914,7 +2921,7 @@ class PlanningReviewOptionTest(unittest.TestCase):
         root = self.base / "workspace"
         args = ("workspace", "start", "--repo", str(self.repo), "--workspace-root", str(root),
                 "--prompt", "Workspace fixture.")
-        started = self.cli(*args, "--planning-review", "none")
+        started = self.cli(*args, *self.mode_args("none"))
         self.assertEqual(started.returncode, 0, started.stdout + started.stderr)
         self.assertEqual(self.recorded(root / "run"), "none")
         before = (root / "run" / "state.md").read_bytes()
@@ -3048,7 +3055,7 @@ class PlanningReviewOptionTest(unittest.TestCase):
         named = set(re.findall(re.escape(flag) + r" `?(\w+)", carve))
         self.assertEqual(set(navigator.PLANNING_REVIEW_MODES), named, carve)
         for mode in navigator.PLANNING_REVIEW_MODES:
-            accepted = self.init(self.base / ("run-spec-" + mode), flag, mode)
+            accepted = self.init(self.base / ("run-spec-" + mode), *self.mode_args(mode))
             self.assertEqual(accepted.returncode, 0, accepted.stdout + accepted.stderr)
 
 
@@ -3080,7 +3087,6 @@ class PlanningReviewNoneTest(unittest.TestCase):
         "Do not embed an Improve review campaign in this result": "forbids a nested review inside the producer; promises no child",
         "so the next Improve packet can recover them": "the run's later Improve packets read these references; no child is promised here",
         "for planning and Improve": "the spec duty's generic retention rule; names Improve, not a child at this stage",
-        "for cold recovery and the normal Improve handoff": "printed today at discovery and research, which never start a child",
         "not that work, tests, or Improve iterations have occurred": "the status-label rule for every stage",
         "Describe Improve activity only from its own observed records": "the progress-report rule for every stage",
         "including a bound Improve child; a producer's done or a child's completion is not run completion":
@@ -3193,6 +3199,25 @@ class PlanningReviewNoneTest(unittest.TestCase):
         self.assertEqual(found, set(self.ALLOWED), "an allowlist entry matched no sentence: "
                          + str(sorted(set(self.ALLOWED) - found)))
 
+    def test_no_none_packet_promises_a_review_in_words_that_do_not_name_the_improve_child(self) -> None:
+        """E3 and the review's F1: two sentences promised a review at every stage, in a none run too, and the scan
+        above could not see them (the inline directive names no Improve; the interaction guide's phrase sat on the
+        list with a reason that did not hold for the stages it is printed at). They are swapped for the none mode."""
+        for delegation in prompts.DELEGATIONS:
+            for stage in prompts.STAGES:
+                with self.subTest(delegation=delegation, stage=stage):
+                    none = self.flat(prompts.prompt(stage, delegation=delegation, planning_review="none"))
+                    self.assertNotIn("Each reviewed step's", none)
+                    self.assertNotIn("the normal Improve handoff", none)
+        staged = {stage: self.flat(prompts.prompt(stage, delegation="inline", planning_review="stage"))
+                  for stage in ("spec", "step-plan")}
+        for stage, text in staged.items():  # stage mode is untouched, byte for byte (the golden proves it too)
+            self.assertIn("Each reviewed step's task/ready/done criteria remain its sole execution directive.", text)
+            self.assertIn("for cold recovery and the normal Improve handoff; do not start a nested review.", text)
+        none = self.flat(prompts.prompt("spec", delegation="inline", planning_review="none"))
+        self.assertIn("Each step's task/ready/done criteria remain its sole execution directive.", none)
+        self.assertIn("for cold recovery; do not start a nested review.", none)
+
     def test_the_plan_experiment_locators_and_purpose_belong_to_the_plan_child(self) -> None:
         locators = ("Planning experiments guide", "Planning investigation notebook",
                     "Keep detailed experiment prompts, raw logs, and review material behind these locators")
@@ -3271,55 +3296,118 @@ class PlanningReviewNoneTest(unittest.TestCase):
 
 
 class PlanningReviewDocumentsTest(unittest.TestCase):
-    """The documents the host reads do not promise an Improve review of a planning result without naming the option.
+    """The documents the host reads do not promise an Improve review of a planning result unless the sentence says
+    it depends on the option.
 
-    A scan, never a whole-text golden: every document that says a planning result is followed by an Improve review
-    must name the `planning_review` option or be on a reasoned list. The tree must not tell the host two things.
+    A scan, never a whole-text golden, scoped by sentence: a sentence that promises an Improve review or child at a
+    planning stage must itself name the option (`planning_review`, `--planning-review`, a `stage` or `none` run,
+    "when the run has one"), concern a child that starts in every mode, or be on the reasoned list. Scoping by
+    document let any document that names the option once carry any false sentence.
     """
 
     SKILL = ROOT / "skills" / "shiploop"
-    APPARATUS = ROOT / "skills" / "shiploop-e2e-audit" / "harness" / "MOCK-REPLAY.md"
-    STAGES = r"(?:planning|\bspec\b|test-strategy|\bplan\b|step-plan|test-spec|\bglobal plan)"
-    REVIEW = r"Improve(?:'s)? (?:review|child|handoff|loop|checkpoint|packet|campaign|reviews)"
+    AUDIT = ROOT / "skills" / "shiploop-e2e-audit"
+    STAGES = r"(?:planning|\bspec(?:ification)?\b|test-strategy|\bplan\b|step-plan|test-spec|\bglobal plan)"
+    REVIEW = (r"(?:Improve(?:'s)?(?: skill)? (?:review|child|handoff|loop|checkpoint|packet|campaign|reviews)"
+              r"|reviews? each planning result)")
     PROMISE = re.compile(rf"(?:{STAGES}[^.]{{0,100}}{REVIEW}|{REVIEW}[^.]{{0,100}}{STAGES})", re.IGNORECASE)
-    OPTION = re.compile(r"planning_review|--planning-review|planning review option")
-    # Documents that describe what a planning review checks, in passing, without stating a schedule: why each may stay.
-    DESCRIBES_THE_CONTENT = "says what a planning Improve review challenges; SKILL.md 'Planning review option' scopes it"
-    ALLOWED = {
-        "references/behavioral-requirements.md": DESCRIBES_THE_CONTENT,
-        "references/consumer-delivery.md": "release-plan keeps its child in every mode",
-        "references/environment-lifecycle.md": DESCRIBES_THE_CONTENT,
-        "references/project-knowledge.md": DESCRIBES_THE_CONTENT,
-        "references/requirements-definition.md": DESCRIBES_THE_CONTENT,
-        "references/workspace-lifecycle.md": "the end-of-work and release-plan children, which keep running in every mode",
+    QUALIFIED = re.compile(r"planning_review|--planning-review|planning review option|`none`|`stage`"
+                           r"|when the run has one|where the stage has one")
+    # A sentence about a child that starts in every mode promises nothing the option removes.
+    EVERY_MODE = "about a child that starts in every mode (release-plan, system-test-author, the last carry-forward)"
+    DESCRIBES_THE_CONTENT = ("says what a planning Improve review challenges when the run has one; SKILL.md "
+                             "'Planning review option' scopes it")
+    PLAN_CHILD = ("describes the Plan Improve child's own mechanics; a `none` run has no such child and "
+                  "references/navigator.md and references/planning-experiments.md say so")
+    # (document, words of the sentence) -> why it may stay unqualified.  A sentence that says a planning result
+    # is reviewed is not here: it says when (`stage` runs) in its own words.
+    SENTENCES = {
+        ("SKILL.md", "Their Improve packets carry a planning review focus"):
+            "the same list item's first sentence names `planning_review` and the stages its reviews cover",
+        ("SKILL.md", "`test-spec` gets no Improve child"):
+            "says when test-spec gets no child (an item with no test to run); true in every mode",
+        ("references/behavioral-requirements.md", "The spec producer and its Improve review apply them"):
+            DESCRIBES_THE_CONTENT,
+        ("references/behavioral-requirements.md", "read and revalidate them at step planning and affected Improve reviews"):
+            DESCRIBES_THE_CONTENT,
+        ("references/behavioral-requirements.md", "The normal Improve handoff reviews decisions at this same planning level"):
+            DESCRIBES_THE_CONTENT,
+        ("references/behavioral-requirements.md", "each affected feature and its existing Improve review"):
+            DESCRIBES_THE_CONTENT,
+        ("references/consumer-delivery.md", "release planning and its Improve review may refresh affected prechecks"):
+            EVERY_MODE,
+        ("references/environment-lifecycle.md", "`carry-forward` and the affected Improve reviews reconcile"): EVERY_MODE,
+        ("references/navigator.md", "Pre-update checks can be refreshed during release planning and its Improve review"):
+            EVERY_MODE,
+        ("references/navigator.md", "continue to `product-acceptance` and the release-plan Improve review"): EVERY_MODE,
+        ("references/workspace-lifecycle.md", "once no Improve child is active (the end-of-work child and the "
+                                               "`release-plan` child have been imported)"): EVERY_MODE,
+        ("references/delivery-authority.md", "Before an Improve campaign converges, resolve contradictions"):
+            "names any Improve campaign, not a planning child; the specification and the plan are the example's documents",
+        ("references/environment-lifecycle.md", "not permission to execute inside `plan` or its Improve review"):
+            "a prohibition on executing during `plan`; it holds whether or not the run has the review",
+        ("references/improve-context.md", "for the selected initial Plan Improve child using the bundled ephemeral runtime"):
+            PLAN_CHILD,
+        ("references/navigator.md", "Its initial Plan Improve child can return a stopped"): PLAN_CHILD,
+        ("references/parallel-chain.md", "If the graph is first created or materially changed after that planning review"):
+            "follows the paragraph that states both schedules; says what a graph changed later needs before it is bound",
+        ("references/planning-experiments.md", "This planning-specific duty applies only to the initial bound Plan Improve child"):
+            PLAN_CHILD,
+        ("references/planning-experiments.md", "A plan-local finding stays in the current Improve child."): PLAN_CHILD,
+        ("references/planning-experiments.md", "The return path is available only for the initial `plan` Improve child"):
+            PLAN_CHILD,
+        ("references/project-knowledge.md", "at planning and the normal Improve handoff; keep the full decisions"):
+            "a retention rule for the guidance's locators, not a schedule; the handoff is the one the stage has",
+        ("references/requirements-definition.md", "normal standalone Improve reviews use those same materials"):
+            "says what a review that runs uses; promises none",
+        ("references/research-loop.md", "and affected Improve reviews to consume"):
+            "names the consumers of a note that exist; promises none",
+        ("references/state-files.md", "An Improve handoff receives that same source plus"):
+            "says what an Improve handoff that runs receives; the stages listed are the source's owners",
+        ("references/testing-and-documentation.md", "for review, plan, apply, check and two-trivial assessment"):
+            "`plan` is a verb of the Until Loop here, not the stage",
     }
 
     def documents(self) -> dict[str, Path]:
         names = ["SKILL.md", "README.md", *sorted(str(p.relative_to(self.SKILL)) for p in (self.SKILL / "commands").glob("*.md")),
                  *sorted(str(p.relative_to(self.SKILL)) for p in (self.SKILL / "references").glob("*.md"))]
         found = {name: self.SKILL / name for name in names}
-        found["../shiploop-e2e-audit/harness/MOCK-REPLAY.md"] = self.APPARATUS
+        for name in ("harness/MOCK-REPLAY.md", "harness/README.md", "SKILL.md"):
+            found["../shiploop-e2e-audit/" + name] = self.AUDIT / name
         return found
 
-    def test_every_document_that_promises_a_planning_review_names_the_option(self) -> None:
-        hits, unscoped = {}, {}
-        for name, path in self.documents().items():
-            text = path.read_text(encoding="utf-8")
-            found = [sentence for block in re.split(r"\n\s*\n", text)
-                     for sentence in re.split(r"(?<=[.!?]) (?=[A-Z(`\[|])", " ".join(block.split()))
-                     if self.PROMISE.search(sentence)]
-            if found:
-                hits[name] = found
-                if not self.OPTION.search(text):
-                    unscoped[name] = found[0][:160]
-        missing = {name: first for name, first in unscoped.items() if name not in self.ALLOWED}
-        self.assertFalse(missing, "documents that state a planning review without naming planning_review: "
-                         + json.dumps(missing, indent=1))
-        for name, reason in self.ALLOWED.items():
-            self.assertIn(name, hits, "the list names a document with no planning-review sentence: " + name)
-            self.assertFalse(self.OPTION.search(self.documents()[name].read_text(encoding="utf-8")),
-                             "a listed document now names the option, so it needs no entry: " + name)
+    def unlisted(self, name: str, text: str) -> list[str]:
+        """The sentences of ``text`` that promise a planning review without saying when, and are not listed."""
+        flat = [sentence for block in re.split(r"\n\s*\n", text)
+                for sentence in re.split(r"(?<=[.!?]) (?=[A-Z(`\[|])", " ".join(block.split()))]
+        return [sentence for sentence in flat
+                if self.PROMISE.search(sentence) and not self.QUALIFIED.search(sentence)
+                and not any(doc == name and words in sentence for doc, words in self.SENTENCES)]
+
+    def test_every_sentence_that_promises_a_planning_review_names_the_option_or_is_listed(self) -> None:
+        unlisted = {name: [sentence[:150] for sentence in found] for name, path in self.documents().items()
+                    if (found := self.unlisted(name, path.read_text(encoding="utf-8")))}
+        if unlisted:
+            self.fail("sentences that promise an Improve review of a planning result without saying it depends on "
+                      "planning_review: " + json.dumps(unlisted, indent=1))
+        texts = {name: " ".join(path.read_text(encoding="utf-8").split()) for name, path in self.documents().items()}
+        for (name, words), reason in self.SENTENCES.items():
             self.assertTrue(reason)
+            self.assertIn(words, texts[name], "a listed sentence is gone or reworded: " + name + ": " + words)
+
+    def test_the_scan_is_scoped_by_sentence_not_by_document(self) -> None:
+        """A document that names the option elsewhere does not excuse a sentence that does not."""
+        promise = "Every spec result is followed by an Improve review before the graph advances."
+        qualified = "Every spec result of a `stage` run is followed by an Improve review before the graph advances."
+        named_elsewhere = "`--planning-review none` starts no child.\n\n"
+        self.assertEqual(self.unlisted("README.md", named_elsewhere + promise), [promise])
+        self.assertEqual(self.unlisted("README.md", named_elsewhere + qualified), [])
+        self.assertEqual(self.unlisted("README.md", "Improve skill reviews each planning result."),
+                         ["Improve skill reviews each planning result."])
+        self.assertEqual(self.unlisted("README.md", "Improve skill reviews each planning result, including `test-spec`, "
+                                                    "and the end-of-work candidate."),
+                         ["Improve skill reviews each planning result, including `test-spec`, and the end-of-work "
+                          "candidate."])  # naming a child that always runs does not excuse the rest of the sentence
 
     def test_the_schedule_statements_say_what_none_does(self) -> None:
         raw = (self.SKILL / "SKILL.md").read_text(encoding="utf-8")
@@ -3332,13 +3420,16 @@ class PlanningReviewDocumentsTest(unittest.TestCase):
         self.assertIn("`none`", when)
         for stated in ("`--planning-review none`", "`system-test-author`", "`release-plan`", "last `carry-forward`",
                        "`improve-reconcile`", "plan-time experiments", "no Improve child reviews", "`--backchain-passes none`",
-                       "first Improve child of a run", "docs/shiploop"):
+                       "first Improve child of a run", "docs/shiploop", "`--improve-skill=<absolute selected Improve SKILL.md>`",
+                       "refuse `--planning-review none` without"):
             with self.subTest(stated=stated):
                 self.assertIn(stated, option)
         pins = {
-            "README.md": ("`--planning-review stage|none`", "`--planning-review none`"),
+            "README.md": ("`--planning-review stage|none`", "`--planning-review none`", "`--planning-review none` requires it"),
+            "commands/shiploop.md": ("(required with `--planning-review none`)",),
             "commands/shiploop-complete.md": ("planning_review", "a `none` run has no Plan Improve child"),
-            "references/navigator.md": ("`stage` or `none`", "starts no Improve child"),
+            "references/navigator.md": ("`stage` or `none`", "starts no Improve child",
+                                        "a `--planning-review none` run is refused without `--improve-skill`"),
             "references/state-files.md": ("`stage` or `none`", "only the records at `system-test-author`"),
             "references/graph-dry-run.md": ("--planning-review none", "`--planning-review stage|none`"),
             "references/planning-experiments.md": ("`planning_review: none`", "no Plan Improve child"),
@@ -3354,7 +3445,7 @@ class PlanningReviewDocumentsTest(unittest.TestCase):
             for needle in needles:
                 with self.subTest(document=name, needle=needle):
                     self.assertIn(needle, text)
-        mock = " ".join(self.APPARATUS.read_text(encoding="utf-8").split())
+        mock = " ".join((self.AUDIT / "harness" / "MOCK-REPLAY.md").read_text(encoding="utf-8").split())
         self.assertIn("planning_review", mock)
 
 

@@ -57,6 +57,34 @@ PYTEST_QUIET = "..F\n1 failed, 2 passed in 0.05s\n"
 UNITTEST_SKIPPED = "ss\n----------------------------------------------------------------------\nRan 2 tests in 0.000s\n\nOK (skipped=2)\n"
 UNITTEST_ZERO = "\n----------------------------------------------------------------------\nRan 0 tests in 0.000s\n\nNO TESTS RAN\n"
 MOCHA = "  board\n    ✓ TC-1 places\n\n  3 passing (12ms)\n  1 failing\n"
+# Real unittest output (Python 3.14, tracebacks trimmed, neutral module names): a test module that cannot be imported
+# is reported as one synthetic test, ``unittest.loader._FailedTest``, that errored.  ``Ran`` and ``errors=`` count it
+# as a test, but no test of the module ran.  The second form is the name Python 3.8 to 3.11 print.
+UNITTEST_LOAD_FAILURE = """\
+E
+======================================================================
+ERROR: test_widgets (unittest.loader._FailedTest.test_widgets)
+----------------------------------------------------------------------
+ImportError: Failed to import test module: test_widgets
+Traceback (most recent call last):
+  File "unittest/loader.py", line 141, in loadTestsFromName
+    module = __import__(module_name)
+  File "test_widgets.py", line 1, in <module>
+    import widgets
+ModuleNotFoundError: No module named 'widgets'
+
+
+----------------------------------------------------------------------
+Ran 1 test in 0.000s
+
+FAILED (errors=1)
+"""
+UNITTEST_LOAD_FAILURE_OLD_NAME = UNITTEST_LOAD_FAILURE.replace("_FailedTest.test_widgets)", "_FailedTest)")
+# One module loads and passes two tests, another cannot be imported: Ran 3, errors=1, but only 2 tests ran.
+UNITTEST_ONE_MODULE_LOADS = UNITTEST_LOAD_FAILURE.replace("E\n=====", "..E\n=====", 1).replace("Ran 1 test", "Ran 3 tests")
+# One module has a failing and a passing test, another cannot be imported: Ran 3, failures=1, errors=1.
+UNITTEST_FAILING_AND_UNLOADABLE = (UNITTEST_LOAD_FAILURE.replace("E\n=====", "F.E\n=====", 1).replace("Ran 1 test", "Ran 3 tests")
+                                   .replace("FAILED (errors=1)", "FAILED (failures=1, errors=1)"))
 CARGO = ("running 2 tests\ntest a ... ok\ntest b ... ok\n\ntest result: ok. 2 passed; 0 failed; 0 ignored; "
          "0 measured; 3 filtered out; finished in 0.00s\n\nrunning 0 tests\n\ntest result: ok. 0 passed; 0 failed; "
          "0 ignored; 0 measured; 0 filtered out; finished in 0.00s\n")
@@ -92,6 +120,16 @@ class CountTests(unittest.TestCase):
         self.assertRan(CARGO, 2)
         self.assertRan(GO_VERBOSE, 2, 1)
         self.assertRan(DOTNET, 3)
+
+    def test_a_unittest_module_that_cannot_be_imported_is_not_a_test_that_ran(self):
+        """The loader's synthetic ``_FailedTest`` is counted by ``Ran`` and ``errors=``; no test of that module ran."""
+        self.assertRan(UNITTEST_LOAD_FAILURE, 0, 0, exit_code=1)
+        self.assertRan(UNITTEST_LOAD_FAILURE_OLD_NAME, 0, 0, exit_code=1)
+        self.assertRan(UNITTEST_ONE_MODULE_LOADS, 2, 0, exit_code=1)
+        self.assertRan(UNITTEST_FAILING_AND_UNLOADABLE, 2, 1, exit_code=1)
+        # a real error inside a test is still a failure that ran
+        self.assertRan("E.\n======\nERROR: test_a (test_a.A.test_a)\nRan 2 tests in 0.001s\n\nFAILED (errors=1)\n", 2, 1,
+                       exit_code=1)
 
     def test_unrecognised_output_is_not_guessed(self):
         self.assertIsNone(counts.count("all good\n", 0))
@@ -134,6 +172,15 @@ class JudgeTests(unittest.TestCase):
         self.assertEqual(self.status(row, 0, JEST_PASS, red=True), "green")
         self.assertEqual(self.status(row, 1, "Ran 1 test in 0.01s\nOK\n", red=True), "not-red")
         self.assertEqual(self.status({"command": "./t", "suite": "focused"}, 1, "boom\n", red=True), "uncounted")
+
+
+    def test_an_unloadable_unittest_module_reads_as_no_test_ran_in_both_modes(self):
+        """The W1 defect class for the most common Python runner: no listed ID, so only the count can refuse it."""
+        row = {"command": "python3 -m unittest test_widgets", "suite": "focused"}
+        self.assertEqual(self.status(row, 1, UNITTEST_LOAD_FAILURE), "no-tests")
+        self.assertEqual(self.status(row, 1, UNITTEST_LOAD_FAILURE, red=True), "no-tests")
+        self.assertEqual(self.status(row, 1, UNITTEST_ONE_MODULE_LOADS, red=True), "not-red")
+        self.assertEqual(self.status(row, 1, UNITTEST_FAILING_AND_UNLOADABLE, red=True), "red")
 
 
 class CommandSchemaTests(unittest.TestCase):

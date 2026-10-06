@@ -147,8 +147,9 @@ commands, criteria, paths and dependency order; the knowledge home's required
 files, credential screen and requirement-ID retention); the structural,
 record-only `backchain-check`; at `test-author`, a run of the focused commands
 that must run a test (a counted test and every listed ID shown on exit 0, a
-failing test on a non-zero exit), so a test that cannot load is refused where it
-can be fixed; and then the `test-red`, `test-green`, `regression` and
+failing test on a non-zero exit), so a command whose tests cannot load is refused where it
+can be fixed (a command that also runs a failing test and has a module that cannot load, with no ID listed
+for that module, is still accepted: a count cannot tell); and then the `test-red`, `test-green`, `regression` and
 system-test gates, which ShipLoop runs and records. No script-run check at
 planning, in any mode, covers whether the spec's criteria are complete and
 verifiable, whether the test strategy maps every criterion to a check, or
@@ -163,14 +164,16 @@ not a script-run check. In `none` the plan child's stopped-child reconciliation
 plan's assumption list is still checked at `complete`); the spec and test
 strategy are committed to the knowledge home when each is accepted and no
 Improve child reviews them afterwards, so later runs inherit them unreviewed;
-and the first Improve child of a run, and so the first loading of the Improve
-card, is the last item's `carry-forward`. Basis: in the Luna xhigh run the
+and the first Improve child of a run is the last item's `carry-forward`, so a `none` run names its Improve
+card at `init` or `workspace start` (`--improve-skill`, resolved there; refused without it), because the
+first item's quality and test loops read the card and no earlier child binds it. Basis: in the Luna xhigh run the
 planning window was 375.9 minutes, 203.4 (54%) in five Improve children (22
 passes), and in the Grok medium run 72.7 minutes, 42.4 (58%) in five children
 (26 passes); the Luna reviews made five warranted fixes and did not raise the
 `test-red` defect whose redo cost 165.9 minutes; a Sonnet 5.5 battleship run's
-plan review did raise the same class (a plan with no importable server seam,
-commit b1e196d), and in a condensed-packet experiment the planning review with
+plan review raised a related class [I] (a plan with no importable server seam,
+commit b1e196d; the Luna defect was a focused suite that imported a file no step created, and
+the Sonnet reviews took about 4 seconds each, so it is not a like-for-like benchmark), and in a condensed-packet experiment the planning review with
 the platform-claim bullet caught 10 of 15 real plan-stage platform errors
 against 0 of 15 without it (Sonnet, three trials per cell). No run without the
 planning reviews exists, so the rate of defects that escape without them is

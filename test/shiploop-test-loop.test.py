@@ -53,6 +53,16 @@ LOADER = ('if test ! -f widgets.txt; then echo "Error: Cannot find module \'./wi
 UNITTEST_OK = "..\nRan 2 tests in 0.001s\n\nOK\n"
 UNITTEST_FAIL = "F.\n======\nFAIL: test_a\nRan 2 tests in 0.001s\n\nFAILED (failures=1)\n"
 UNITTEST_ZERO = "\nRan 0 tests in 0.000s\n\nOK\n"
+# Real unittest output (Python 3.14, trimmed): a test module that cannot be imported is one synthetic test of
+# ``unittest.loader._FailedTest`` that errored, and ``Ran`` and ``errors=`` count it, though no test of it ran.
+UNITTEST_LOAD_FAILURE = (
+    "E\n" + "=" * 70 + "\nERROR: test_widgets (unittest.loader._FailedTest.test_widgets)\n" + "-" * 70 + "\n"
+    "ImportError: Failed to import test module: test_widgets\nTraceback (most recent call last):\n"
+    "  File \"test_widgets.py\", line 1, in <module>\n    import widgets\n"
+    "ModuleNotFoundError: No module named 'widgets'\n\n\n" + "-" * 70 + "\nRan 1 test in 0.000s\n\nFAILED (errors=1)\n")
+UNITTEST_ONE_MODULE_LOADS = UNITTEST_LOAD_FAILURE.replace("E\n=", "..E\n=", 1).replace("Ran 1 test", "Ran 3 tests")
+UNITTEST_FAILING_AND_UNLOADABLE = (UNITTEST_LOAD_FAILURE.replace("E\n=", "F.E\n=", 1).replace("Ran 1 test", "Ran 3 tests")
+                                   .replace("FAILED (errors=1)", "FAILED (failures=1, errors=1)"))
 NODE_LOAD_FAILURE = """node:internal/modules/cjs/loader:1478
   throw err;
   ^
@@ -248,6 +258,23 @@ class TestLoopTests(unittest.TestCase):
         with self.assertRaisesRegex(nav.NavigatorError, pattern):
             self.complete(result)
         self.assertEqual((self.run_dir / "state.md").read_bytes(), before)
+
+    def test_a_none_run_started_with_its_card_binds_the_quality_and_test_loops(self):
+        """GUARD (passes on the unchanged tree; F1): both loops read the run's recorded Improve card at every item,
+        and under `--planning-review none` no planning child binds it, so a none run is started with the card and
+        the loops are then enforced exactly as in a stage run: done without the loop is refused."""
+        nav.save(self.run_dir, nav.new_state(str(self.repo), "Test loop fixture.", improve_skill=str(IMPROVE_CARD),
+                                             lint_option="off", planning_review="none"))
+        self.drive_to("test-green")
+        packet = self.packet()
+        self.assertIn("Test loop (bound Until Loop; the loop script counts iterations", packet)
+        self.assertNotIn("no Improve card is bound", packet)
+        self.assert_refused(DONE, "the test loop has not run: no terminal packet exists")
+        self.drive_to("static-checks")
+        packet = self.packet()
+        self.assertIn("Bound Until Loop card", packet)
+        self.assertNotIn("no Improve card is bound", packet)
+        self.assert_refused(dict(DONE, evidence_refs=[]), "the quality loop has not run: no terminal packet exists")
 
     def test_a_started_loop_packet_says_to_continue_from_its_receipt(self):
         """X10 (e9_loop_recovery.py): after context loss mid-loop the packet gave no way back but Start."""
@@ -737,6 +764,13 @@ class TestLoopTests(unittest.TestCase):
         dict(name="exit 1, one failing test", code=1, out=UNITTEST_FAIL, status="red", accepted=True),
         dict(name="exit 1, a failing test named by its ID", ids=["TC-01", "TC-02"], code=1, out=NODE_ONE_FAILING,
              status="red", accepted=True),
+        # The runner every Python project has: its loader reports a module it cannot import as a test that errored.
+        dict(name="exit 1, a unittest module that cannot be imported, no ids", code=1, out=UNITTEST_LOAD_FAILURE,
+             status="no-tests", accepted=False),
+        dict(name="exit 1, one unittest module loads and passes, another cannot be imported", code=1,
+             out=UNITTEST_ONE_MODULE_LOADS, status="not-red", accepted=False),
+        dict(name="exit 1, known limit: a failing test and an unimportable module in one command, no ids", code=1,
+             out=UNITTEST_FAILING_AND_UNLOADABLE, status="red", accepted=True),
     )
 
     def test_the_probe_accepts_a_run_only_when_a_test_ran(self):
@@ -768,7 +802,7 @@ class TestLoopTests(unittest.TestCase):
         with self.assertRaises(nav.NavigatorError) as raised:
             self.complete(DONE)
         refusal = str(raised.exception)
-        self.assertRegex(refusal, r"(?s)test-author is not done.*did not run a test.*\[focused\] sh run.sh -> ")
+        self.assertRegex(refusal, r"(?s)test-author is not done.*did not show a usable test run.*\[focused\] sh run.sh -> ")
         self.assertIn("Cannot find module './widgets'", refusal)  # the runner's own tail, as at every stage
         flat = " ".join(refusal.split())
         self.assertIn(test_loop.PROBE_RULE, flat)
@@ -807,6 +841,35 @@ class TestLoopTests(unittest.TestCase):
         self.refuse_unrunnable(DONE, attempts=2)
         self.complete(dict(DONE, outcome="revise"))  # revise stays open on ShipLoop's own record
         self.assertEqual(nav.current_stage(self.state()), "step-plan")
+
+    def test_a_probe_attempt_that_reached_no_verdict_names_its_own_fix_and_not_the_placeholder_rule(self):
+        """The rule is about what the tests load; a run that never reached a verdict has nothing to say about that."""
+        self.start()
+        self.drive_to("test-author")
+        with mock.patch.object(test_loop.lint, "run_argv", return_value=self.TIMED_OUT):
+            with self.assertRaises(nav.NavigatorError) as raised:
+                self.complete(DONE)
+        flat = " ".join(str(raised.exception).split())
+        self.assertNotIn(test_loop.PROBE_RULE, flat)
+        self.assertIn("this item's own test or fixture is yours to fix here", flat)  # the stage forbids product edits
+        self.assertNotIn("own code, test or fixture", flat)
+
+    def test_a_probe_refusal_for_a_run_in_which_tests_ran_does_not_say_none_ran(self):
+        """E2: exit 1 with only passing tests is refused, but the tests ran: the header and the reason must not say
+        otherwise, and must not tell the author to make a passing test fail (test-author accepts a counted pass)."""
+        self.start()
+        self.drive_to("test-author", step_plan=self.probe_item())
+        with mock.patch.object(test_loop.lint, "run_argv", return_value=("failed", 1, UNITTEST_OK.encode(), b"")):
+            with self.assertRaises(nav.NavigatorError) as raised:
+                self.complete(DONE)
+        flat = " ".join(str(raised.exception).split())
+        self.assertNotIn("did not run a test", flat)
+        self.assertNotIn("fail on the missing behaviour", flat)
+        self.assertIn("exited non-zero but no test failed (unittest reported 2 run, 0 failed)", flat)
+        self.assertIn("Make the command exit 0 when its tests pass, or fail inside a test.", flat)
+        # test-red keeps its own wording: there a passing run is the defect
+        self.assertIn("fail on the missing behaviour", test_loop._explain(
+            {"status": "not-red", "counts": {"runners": ["unittest"], "ran": 2, "failed": 0}}, test_loop.RED_STAGE))
 
     def test_the_probe_never_gates_an_outcome_other_than_done(self):
         """GUARD (passes on the unchanged tree): the host can always revise or block, so no command runs for them."""
@@ -853,6 +916,13 @@ class TestLoopTests(unittest.TestCase):
         self.assertEqual(test_loop.judge(focused, 1, NODE_LOAD_FAILURE, red=True)["status"], "uncounted")
         self.assertEqual(test_loop.judge(listed, 1, NODE_LOAD_FAILURE, red=True)["status"], "ids-missing")
         self.assertEqual(test_loop.judge(listed, 1, NODE_ONE_FAILING, red=True)["status"], "red")
+
+    def test_the_judge_reads_recorded_unittest_load_failure_as_no_test_ran(self):
+        """The unittest counterpart of the Node characterisation above: no ID is listed, so only the count refuses it."""
+        focused = {"suite": "focused", "command": "x"}
+        self.assertEqual(test_loop.counts.count(UNITTEST_LOAD_FAILURE, 1)["ran"], 0)
+        self.assertEqual(test_loop.judge(focused, 1, UNITTEST_LOAD_FAILURE, red=True)["status"], "no-tests")
+        self.assertEqual(test_loop.judge(focused, 1, UNITTEST_LOAD_FAILURE)["status"], "no-tests")  # test-green too
 
     def test_the_probe_rule_and_the_two_duty_sentences_name_no_technology(self):
         """S-8: the engine's prose speaks of a file or module and a test, never of a runner, a language or a product."""

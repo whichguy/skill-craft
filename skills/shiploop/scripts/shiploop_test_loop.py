@@ -486,6 +486,10 @@ def _explain(run: Mapping[str, Any], stage: str = "") -> str:
     if status == "green":
         return ("passed, but test-red expects the new tests to fail before implementation. If they are meant to "
                 "pass already, give the reason in red_na.")
+    if status == "not-red" and stage == PROBE_STAGE:
+        # test-author accepts a counted pass, so it must not be told to make a test fail.
+        return ("exited non-zero but no test failed" + seen + ": a setup, import or coverage-gate error is not "
+                "evidence about the tests. Make the command exit 0 when its tests pass, or fail inside a test.")
     if status == "not-red":
         return ("failed without any failing test" + seen + ": a syntax, import or setup error is not a "
                 "meaningful RED. Fix the test setup so the tests run and fail on the missing behaviour.")
@@ -702,7 +706,7 @@ def verify(root: Path, state: Mapping[str, Any], work_item: str, action: str, st
     lines = ["ShipLoop test run: " + stage + " is not done. ShipLoop ran the " + str(len(runs))
              + " listed command" + ("" if len(runs) == 1 else "s") + " from " + str(repo) + " and "
              + str(len(failing)) + (" did not fail as expected:" if red
-                                    else " did not run a test:" if probe else " did not pass:")]
+                                    else " did not show a usable test run:" if probe else " did not pass:")]
     for run in failing:
         lines.append("- [" + run["suite"] + "] " + run["command"] + " -> " + _explain(run, stage))
         tail = (run["stdout"] + "\n" + run["stderr"]).strip().splitlines()[-15:]

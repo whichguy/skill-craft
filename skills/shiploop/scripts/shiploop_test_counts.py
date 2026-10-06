@@ -68,16 +68,21 @@ def _pytest(text: str, exit_code: Optional[int]) -> Optional[Dict[str, int]]:
 
 
 def _unittest(text: str) -> Optional[Dict[str, int]]:
-    """unittest: ``Ran 4 tests in 0.01s`` then ``OK (skipped=2)`` or ``FAILED (failures=1)``."""
+    """unittest: ``Ran 4 tests in 0.01s`` then ``OK (skipped=2)`` or ``FAILED (failures=1)``.
+
+    A module that cannot be imported is reported as one synthetic test (``unittest.loader._FailedTest``) that
+    errored, and ``Ran`` and ``errors=`` count it, though no test of that module ran: it is taken out of both.
+    """
     ran_lines = re.findall(r"^Ran (\d+) tests? in ", text, re.MULTILINE)
     if not ran_lines:
         if "NO TESTS RAN" in text:
             return {"ran": 0, "failed": 0}
         return None
-    total = sum(int(value) for value in ran_lines)
+    unloadable = len(re.findall(r"^ERROR: .*\(unittest\.loader\._FailedTest[.)]", text, re.MULTILINE))
+    total = sum(int(value) for value in ran_lines) - unloadable
     skipped = _sum(text, r"\bskipped=" + _INT)
-    failed = _sum(text, r"\bfailures=" + _INT) + _sum(text, r"\berrors=" + _INT)
-    return {"ran": max(total - skipped, 0), "failed": failed}
+    failed = _sum(text, r"\bfailures=" + _INT) + _sum(text, r"\berrors=" + _INT) - unloadable
+    return {"ran": max(total - skipped, 0), "failed": max(failed, 0)}
 
 
 def _mocha(text: str) -> Optional[Dict[str, int]]:

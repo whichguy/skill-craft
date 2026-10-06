@@ -112,7 +112,7 @@ recovery-isolation fixtures reject old-run reuse. Keep those tests beside DAG
 replay: a completed stage sequence alone cannot establish either transport
 attribution or fresh-request identity. Separate observer regression tests check
 the protocol 4 smoke boundaries and callbacks: the `plan` selection means the
-plan accepted after its Improve child, and each accepted action needs its own
+plan accepted (after its Improve child in a `stage` run), and each accepted action needs its own
 callback (`improve-complete` for an action with an Improve record, `complete`
 otherwise). A checkpoint producer callback alone cannot satisfy
 lifecycle evidence. These fixture checks do not establish a new live Grok

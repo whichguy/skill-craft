@@ -226,7 +226,7 @@ isolation is not used; it has no automatic workspace-return protection:
 
 ```sh
 python3 "$CLI" init --repo "$REPO" --run-dir "$RUN_DIR" --prompt='<user request>'
-# Optional: select the exact actual Improve skill at initialization.
+# Optional (required with --planning-review none): select the exact actual Improve skill at initialization.
 python3 "$CLI" init --repo "$REPO" --run-dir "$RUN_DIR" \
   --improve-skill="$IMPROVE_SKILL" --prompt='<user request>'
 ```
@@ -237,7 +237,8 @@ v1/v2/v3, managed or legacy run, is refused with an error that names its protoco
 or mode; start a fresh `--run-dir` (or workspace root) for that request. If
 new-run initialization did not select an Improve skill, the first Improve
 checkpoint stays pending until its packet directs the owner to bind the selected
-card with `improve-bind --action ... --skill-card ...`. Use the packet's exact
+card with `improve-bind --action ... --skill-card ...` (a `--planning-review none` run has no planning
+child to bind it, so it is refused without `--improve-skill`). Use the packet's exact
 command and absolute selected-card path; never guess an installed copy or
 substitute a same-named skill. Recover an existing run's current packet with:
 
@@ -429,9 +430,13 @@ cover the Backchain, quality and test loops.
 Besides the review, `none` removes what only the plan child hosts: its `improve-reconcile`
 route and the plan-time experiments (the packets do not print them). The spec and the test
 strategy are committed to `docs/shiploop` when each is accepted, with no review after, so
-later runs inherit them unreviewed. The first Improve child of a run, and so the first
-resolution of the selected Improve card, is the last item's `carry-forward`: a missing or
-unloadable card first shows there. `--planning-review none` with `--backchain-passes none`
+later runs inherit them unreviewed. The first Improve child of a run is the last item's
+`carry-forward`, but the quality and test loops of the first item read the selected Improve card,
+and under `stage` the `spec` child is what binds it. So a `none` run names the card where it
+starts: `init` and `workspace start` refuse `--planning-review none` without
+`--improve-skill=<absolute selected Improve SKILL.md>`, and resolve the card there, so a missing
+or unloadable card shows at the start and not at the first `static-checks`.
+`--planning-review none` with `--backchain-passes none`
 leaves no model-run second look at the plan graph at all; it is the highest-risk
 combination, documented and not refused. SPEC S-10's second carve-out names what stands in for
 the review (ShipLoop's gates) and what nothing replaces (whether the criteria and oracles are

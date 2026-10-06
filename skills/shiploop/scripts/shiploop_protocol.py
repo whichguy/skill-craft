@@ -76,6 +76,25 @@ def _require_retry_planning_review(existing: dict, requested: "str | None", run_
                                 navigator.recorded_planning_review(existing))
 
 
+def _require_card_for_unreviewed_planning(requested: "str | None", card: str) -> None:
+    """A run with no planning child names its Improve card where it starts, and the card is resolved there.
+
+    Under ``stage`` the first child, at ``spec``, binds the card.  Under ``none`` the first child is the last item's
+    ``carry-forward``, but the quality and test loops of the first item read the recorded card, so a run started
+    without one blocks at its first ``static-checks``, and nothing can bind it without a child.
+    """
+    if (requested or navigator.DEFAULT_PLANNING_REVIEW) != "none":
+        return
+    need(bool(card), "--planning-review none needs --improve-skill=<absolute selected Improve SKILL.md>: with no "
+                     "Improve child at the planning stages nothing else binds the card before the first item's "
+                     "quality and test loops, which read it. Start the run again with the flag.")
+    import shiploop_standalone_improve as standalone
+    try:
+        standalone.resolve_skill(str(Path(card).expanduser().absolute()))
+    except standalone.StandaloneImproveError as exc:
+        raise ProtocolError(f"the selected Improve card cannot be resolved: {exc}") from exc
+
+
 def workspace_command(core, argv):
     """One CLI family; workspace effects stay outside the opaque navigator."""
     import shiploop_workspace as workspace
@@ -147,8 +166,9 @@ def workspace_command(core, argv):
                 # Identical re-entry is recovery, not another capture of the
                 # source after product work or a completed integration.
                 return main(core, ["next", "--run-dir", str(root / "run")])
-            # The parent grant is proven before an empty directory becomes a
-            # repository, so a refusal leaves the source exactly as it was.
+            # Both refusals come before anything is created, so a refusal leaves the source as it was.
+            _require_card_for_unreviewed_planning(args.planning_review, args.improve_skill)
+            # The parent grant is proven before an empty directory becomes a repository.
             workspace.require_parent_grant(root)
             baseline = workspace.bootstrap_empty(Path(args.repo))
             if baseline:
@@ -558,6 +578,7 @@ def main(core, argv=None):
             )
             repo = Path(args.repo or os.getcwd()).resolve()
             need(root != repo, "run directory cannot be the product repository root")
+            _require_card_for_unreviewed_planning(args.planning_review, args.improve_skill)
             if args.execution_mode == "navigator-worktree":
                 import shiploop_workspace as workspace
                 try:

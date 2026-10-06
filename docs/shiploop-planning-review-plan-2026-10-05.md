@@ -1,9 +1,11 @@
 # ShipLoop planning review plan, 2026-10-05
 
-Status: decided; the first increment is built. Owner request (2026-10-05): "yes, do the planning review change", with a
-ceiling of 30 minutes for the planning window. Landed so far: the test-author probe (I3, `e11b86ef`, follow-up
-`7ad157cb`). This record and the SPEC carve-out are I0. The option (I1) and `none` (I2) follow. The default flip (I5)
-is the owner's later decision and is not part of this work.
+Status: decided; I3, I0, I1 and I2 are built and landed (table under "Increments"). Owner request (2026-10-05): "yes,
+do the planning review change", with a ceiling of 30 minutes for the planning window. The default flip (I5) is the
+owner's later decision and is not part of this work. A review of the landed commits changed three statements of this
+record, each marked where it stands and dated 2026-10-05: a `none` run must name its Improve card at its start (F1,
+A2-10), the test-author probe reads a unittest module that cannot import as no test run (E1), and the Sonnet catch is
+a related class, not the same defect (F5).
 
 This is the design of a read-only investigation (four investigators, a draft design, two attacks, a revision), kept whole in `docs/experiments/shiploop-planning-review-20261005/` (`design-final.json`, the
 draft it replaced, four reports, two attacks, the Sonnet commit and the E6b excerpt, `probe_judge.py` and `passes.py`
@@ -39,15 +41,15 @@ best; no review change reaches 30 there.
 
 Quality. Nothing looks a second time at planning under `none`. Review caught five warranted fixes on Luna, 10 of 15
 real plan-stage platform errors once the platform-claim bullet was added (Sonnet, condensed packets), and a missing
-importable-server seam on a Sonnet battleship run, which is the defect class that cost Luna 165.9 minutes of redo when
-review missed it. The rate at which defects escape without review is unknown.
+importable-server seam on a Sonnet battleship run, a related class [I] (Luna's defect was a focused suite importing a
+file no step created, which cost 165.9 minutes of redo when review missed it). The rate at which defects escape without review is unknown.
 
 What carries the exit criterion. ShipLoop's gates at `complete`; the test-author probe (I3); the later red, green and
 regression gates. Whether the spec's criteria are complete and the oracles independent has **no script-run check in any
 mode**. The SPEC carve-out says so. It strains the owner's rule that a step iterates until a stated check confirms each
 exit criterion, and the enterprise-rigour rule.
 
-Order and default. Probe (I3, done), SPEC carve-out (I0), option (I1), `none` (I2). The default stays `stage`.
+Order and default. Probe (I3), SPEC carve-out (I0), option (I1), `none` (I2): all landed. The default stays `stage`.
 
 ## The two modes
 
@@ -59,7 +61,7 @@ Order and default. Probe (I3, done), SPEC carve-out (I0), option (I1), `none` (I
 | Packets | byte-identical to the tree before the option (golden, both delegations) | the Improve line says no child starts; five duty sentences and the plan purpose and test-facility sentences are swapped, only for a stage that starts no child, from one table with an import-time guard |
 | Plan child's `improve-reconcile` route and the plan-time experiments it hosts | kept | do not exist (printed only in the child packet, so nothing dangles); the plan's assumption list is still checked at `complete` by `_check_submitted_assumptions` |
 | Knowledge home (S-11) | spec and test strategy are committed after their review | committed when each is accepted (`_knowledge_close` follows any accepted stage that changed the home) and no Improve child reviews them afterwards, so later runs inherit them unreviewed |
-| First Improve child, and the first loading of the Improve card | the `spec` child | the last item's `carry-forward` (the card is resolved at `improve-bind`, not at `init`): a missing card first shows after all implementation work, as a stall with the action pending, recoverable; a known limit, no engine change |
+| First Improve child, and the first loading of the Improve card | the `spec` child binds the card | the last item's `carry-forward` is the first child, but the first item's quality and test loops read the recorded card, so `init` and `workspace start` refuse `none` without `--improve-skill` and resolve the card there (**changed 2026-10-05, review finding F1**: the design called a missing card a recoverable stall at the end of the run, which was wrong: a run started without the card blocks at its first `static-checks`, and no verb binds a card without an active child) |
 | `--backchain-passes none` together with `--planning-review none` | n/a | no model-run second look at the plan graph: the highest-risk combination; documented, not refused (KISS, as `--backchain-passes none` itself was not) |
 
 Measured cost of `stage` (the control and the revert target): Grok medium (grok-4.7, 1.21.0): window 72.7 minutes,
@@ -110,7 +112,10 @@ Labels are judgement; there is no ground truth.
   review took 9 passes, four consecutive commits widening one import allow-list [M].
 - 1.16.1 max: first passes found warranted defects in 6 of 9 children and 13 of 32 later passes changed something (3
   warranted, 7 marginal, 3 churn) [I, `docs/shiploop-fast-planning-plan-2026-10-04.md`, item c6].
-- A measured catch of the same class review missed on Luna: a Sonnet 5.5 battleship run (skill-craft 1.16.0), commit
+- A measured catch of a related class [I] to the one review missed on Luna (both are a plan with no loadable seam; the
+  Luna defect was a focused suite importing a file no step created, the Sonnet one a server that listens on import;
+  the Sonnet run's Improve passes took about 4 s each and wrote about 270 B of review text, ledger F12, so it is not a
+  like-for-like benchmark): a Sonnet 5.5 battleship run (skill-craft 1.16.0), commit
   `b1e196d` in its work repository, "Plan: add server entry guard so tests import without listening", message "Review:
   plan lacked an importable server design; tests needing a port would be flaky" [M, `sonnet-plan-review-b1e196d.txt`].
   Its planning commits span about 3.6 minutes, so `none` would save about 2 there and lose this catch.
@@ -119,13 +124,13 @@ Labels are judgement; there is no ground truth.
   three trials per cell, the judge shares the gaps]. Under `none` that review does not run.
 - What review missed: on Luna xhigh a plan that gave the tests no real module to load cost a 165.9-minute redo against
   99.2 the first time through those stages [M, ledger F9]; the 123-minute 1.16.1 case is an analogue (an implement
-  revise), not the same defect. One same-class event with review on, and one catch of the same class on another host.
+  revise), not the same defect. One missed event with review on, and one catch of a related class on another host [I].
 - Break-even: `none` saves at most 203.4 minutes on Luna xhigh against an escape costing 66.7 (extra over the first
   pass) to 165.9: 1.2 to 3.0 extra escapes per run [I, arithmetic]. On Grok medium it saves at most 42.4 and the cost of
   an escape was never measured (the probe stopped before `test-red`): unknown. The escape rate with review off is
   unknown: no run without planning reviews exists.
 - `none` also gives up plan reconcile and plan-time experiments, commits an unreviewed spec into the knowledge later
-  runs inherit, and moves the first Improve card resolution to the end of the run.
+  runs inherit, and requires the Improve card at the start of the run (F1).
 
 The default is one constant for every host. So a flip to `none` removes a small, measured catch from fast hosts for
 about two minutes saved (D1). The owner decides that with M1 and M2 in hand.
@@ -144,8 +149,8 @@ rejected. First the SPEC's own questions, then every finding of the two attacks,
 | Weakens S-7, S-8, S-12, S-13 | **Mitigated**: one swap table with an import-time guard (not scattered edits, S-12); one shared retry helper for the option guard (no third copy of the lint and backchain guards); no `--set` verb and no environment variable (S-13, no new surface); text is mode-neutral and names no platform (S-8). |
 | Breaks another host, style or platform | **Mitigated** by the default staying `stage`; **accepted** for the flip: Sonnet-class hosts lose the `b1e196d` catch for about two minutes, an owner decision at I5. |
 | Fails silently or passes tests while failing live | **Accepted and measured later**: a host that claims a review ran under `none` is not caught (the packet says not to claim one); a `none` run that still starts a child is refused by state. M1 to M4 read live behaviour. The probe's first design did fail silently (see A2-1) and was corrected before it landed. |
-| Adds glue, refusals, dead ends, waits | **Mitigated**: the probe refusal names its exit (`revise` after `MAX_REFUSED_RUNS`, never gated on `revise` or `blocked`); the stall when the Improve card is missing is recoverable and is a recorded limit. The plan child commits by raw git in every mode today and is unchanged. |
-| Enlarges packet or filed text | **Mitigated**: `none` packets are shorter; `stage` packets are byte-identical; I3 added two sentences, each by golden. |
+| Adds glue, refusals, dead ends, waits | **Mitigated**: the probe refusal names its exit (`revise` after `MAX_REFUSED_RUNS`, never gated on `revise` or `blocked`); a `none` run without `--improve-skill` is refused at its start, so no run stalls on a missing card (F1). The plan child commits by raw git in every mode today and is unchanged. |
+| Enlarges packet or filed text | **Mitigated**: `none` packets are shorter in bytes at all five planning stages (33 to 944 bytes, `inline`, at `f6ed230f`) but not in words at `step-plan` and `test-spec` (5 and 1 words longer) [M, review finding F3]; `stage` packets are byte-identical to the tree before I1; I3 added three generic sentences (two in the `test-author` duty, one in the `step-plan` duty). |
 | Leaks secrets or touches user work | None new: the same knowledge commits as today. |
 | Breaks saved runs and pinned behaviour | **Mitigated by design**: a saved run without the key is refused with the fresh-run hint (one supported version); the owner is told before release (D8). The tests that pin the schedule keep passing while the default is `stage`; the flip is where 177 assertions in 17 of 22 schedule-sensitive suites need the old mode pinned (A2-5). |
 | Costs more than it saves | **Accepted with arithmetic** (Quality, above). The probe costs one focused-command run at `test-author`'s done, the path ShipLoop already runs at `test-red`. |
@@ -170,7 +175,7 @@ rejected. First the SPEC's own questions, then every finding of the two attacks,
 | # | Sev | Finding | Disposition and evidence |
 |---|---|---|---|
 | A2-1 | major | The probe judged in red mode accepts an exit-0 run that ran nothing and an exit-0 run whose listed IDs never appear | **Accepted; built in I3** (`e11b86ef`): exit 0 is judged in passing mode, a non-zero exit in red mode, accepted `passed` and `red`. Reproduced on seven recorded outputs [M, `probe_judge.py` and `probe_judge.out`; the rows are `PROBE_CASES` in `test/shiploop-test-loop.test.py`]. |
-| A2-2 | minor | The probe's refusal text says the opposite of the placeholder rule | **Accepted; built in I3**: its own header ("did not run a test") and a closing sentence with `PROBE_RULE`. `test-author` may create the smallest loadable placeholder named in the step plan's paths (D5). |
+| A2-2 | minor | The probe's refusal text says the opposite of the placeholder rule | **Accepted; built in I3**: its own header (reworded in the review fixes from "did not run a test", which was false for a run in which tests ran, to "did not show a usable test run") and a closing sentence with `PROBE_RULE`. `test-author` may create the smallest loadable placeholder named in the step plan's paths (D5). |
 | A2-3 | minor | Under `once` the repeat clause collides with in-place repair | **Moot while `once` is not built** (D2). Recorded as a requirement should `once` ever be built: reword the planning repeat clause so a defect the child can repair in place is repaired and only an unrepairable premise takes the `cancelled` route. |
 | A2-4 | minor | The plan child prints no `improve-commit` route | **Rejected for `stage` and `none`**: the plan child omits it in every run today [M, `_render_improve` planning-reconcile branch], the commit gate needs no change [M, `improve_changes` snapshots the tree at bind], and raw-git glue exists today. Accepted for `once` only (not built). |
 | A2-5 | minor | The default flip breaks 17 suites and `make_packet_frame.py` | **Accepted for whoever flips the default (I5, not this work)**: pin `planning_review='stage'` in every fixture that finishes a child at `spec` and in `skills/rubric-eval/suites/architecture-v4/make_packet_frame.py`; widen the file list to the measured set; one commit with the flip so main never has a red suite [M, attack logs re-summed: 177 added failures in 17 of 22 suites, a lower bound]. |
@@ -178,7 +183,7 @@ rejected. First the SPEC's own questions, then every finding of the two attacks,
 | A2-7 | minor | The packet scan uses three phrases; a `none` packet names Improve in 8 to 15 sentences | **Accepted** (I2): the scan is derived from the real render for every mode, delegation and planning stage; every sentence naming Improve is allowlisted with a reason or absent when the mode starts no child; the `str.replace` special case becomes one mode-neutral sentence; the table guard fires on an edited old sentence. Stage-mode packets have 11, 12, 20, 12 and 11 such sentences at the five stages [M]. |
 | A2-8 | minor | `stage` is not byte-identical; baseline rows lack the mode | **Accepted** (byte-identity, as A1-4); recording `planning_review` in baseline rows and the Run Review export is a **handoff** (D7). |
 | A2-9 | minor | Sequencing: the carve-out names the probe, which may land after the option | **Accepted**: the probe landed first; I1 registers `stage` only; no released tree carries a recorded option the engine ignores. |
-| A2-10 | minor | Under `none` the first Improve binding moves to the end of the run | **Rejected as an engine change, accepted as a recorded limit**: the attack found no engine change needed for correctness; the stall is recoverable [M, `standalone.resolve_skill` runs at `improve-bind`]; KISS. The carve-out names it. |
+| A2-10 | minor | Under `none` the first Improve binding moves to the end of the run | **Rejected as an engine change, accepted as a recorded limit: superseded 2026-10-05 by review finding F1.** The attack found no engine change needed and called the stall recoverable; it is not: the quality and test loops of the first item read `improve_skill`, which only the first `improve-bind` records, and no verb binds without an active child, so a `none` run started without the card blocks at its first `static-checks` (reproduced on the pure navigator: stage prints "Bound Until Loop card", none prints "Unavailable: no Improve card is bound to this run"). Built: `init` and `workspace start` refuse `none` without `--improve-skill` and resolve the card there, before anything is created. |
 
 ### The owner's rules
 
@@ -208,7 +213,7 @@ Savings below are [ledger, `docs/experiments/shiploop-planning-time-20261005/led
 | L7 lazy per-item planning | Relabels time: wall to green is unchanged unless the step plan is derived after RED, which changes the stage graph. |
 | L11 script lint of documents, L17 a cheaper revise path, `--backchain-passes none` as the default (L13) | D10: out of scope. They are the only levers that reach 30 minutes on Luna xhigh. |
 | A host-sensitive default (`none` for slow hosts) | A new surface in the engine; pass `none` by the case prompt instead. |
-| Resolve the Improve card at `init` under `none` | An engine change for a recoverable stall (A2-10); KISS. |
+| Resolve the Improve card at `init` under `none` | **Built after review (F1)**, for `none` only: the stall A2-10 called recoverable is a block at the first `static-checks`. `stage` keeps binding at the `spec` child. |
 | Static import analysis for the missing-module defect | Language-specific (S-8); the probe runs the real focused command instead. |
 
 ## Measurement plan and the revert rule
@@ -245,15 +250,18 @@ the window per definition, wide and narrow, each with its clock.
 | Id | What | State |
 |---|---|---|
 | I3 | The test-author probe: a script-run check that a test can load, where it can be fixed (independent of the option) | landed, `e11b86ef`, journal correction `7ad157cb` |
-| I0 | SPEC carve-out, this record, the evidence directory, the journal, supersession marks | this commit |
-| I1 | The option, value `stage` only, recorded like `backchain_passes`; every packet byte-identical | next |
-| I2 | `none`: mode-aware validation, stage-identical text, docs and oracles (`dag_replay.py`, `workflow_review.py`) | after I1 |
+| I0 | SPEC carve-out, this record, the evidence directory, the journal, supersession marks | landed, `6db8ef7a` |
+| I1 | The option, value `stage` only, recorded like `backchain_passes`; every packet byte-identical | landed, `7317f458` |
+| I2 | `none`: mode-aware validation, stage-identical text, docs and oracles (`dag_replay.py`, `workflow_review.py`) | landed, `f6ed230f` |
+| R1 | Review fixes: unittest load failures count as no test ran (E1); a `none` run names and resolves its Improve card at its start (F1); document scan scoped by sentence and the unqualified sentences qualified (F2); two review-promising sentences swapped for `none` (E3); wording and record corrections | the commit after `f6ed230f` |
 | I4 | `once` | not built (D2) |
-| I5 | The default flip: its own dated SPEC commit stating the default and the measured basis, then one constant and its pins | the owner's later decision (D1); not part of this work |
+| I5 | The default flip: its own dated SPEC commit stating the default and the measured basis, then one constant and its pins. With `none` as the default every new run must name its Improve card (F1), so the flip also makes `--improve-skill` required for a plain `init` or `workspace start`: decide that with the flip | the owner's later decision (D1); not part of this work |
 
 ## Known limits
 
-- The first Improve card resolution moves to the end of a `none` run (A2-10).
+- A command that runs a failing test and also has a module that cannot load, with no ID listed for that module, is
+  accepted by the test-author probe: a count cannot tell (the SPEC carve-out says so).
+
 - `none` with `--backchain-passes none` leaves no model-run look at the plan graph.
 - The plan child commits by raw git in every mode today, which the E2E metrics count as model glue (S-4, S-5); unchanged.
 - The test-author probe does not cover a test that contradicts its own helper (the 1.16.1 implement revise looks RED at

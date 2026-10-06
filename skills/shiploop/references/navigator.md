@@ -180,7 +180,9 @@ not select or persist a successor. At an Improve checkpoint a producer `done`
 records the result then parks the parent at `active_improve`; it does not advance
 directly. Any other producer `done` advances to the next producer. When a skill
 was not selected at initialization, the checkpoint's packet supplies the exact
-`improve-bind --action ... --skill-card ...` command. Follow that command and
+`improve-bind --action ... --skill-card ...` command (a `--planning-review none` run is refused
+without `--improve-skill`: its first child is the last item's `carry-forward`, after the quality and
+test loops have read the card). Follow that command and
 the selected card's bound runtime rather than guessing an adapter. Only an
 accepted matching completion run through `improve-complete` imports the child and
 releases the next graph edge.
@@ -785,7 +787,7 @@ and cannot prove that the host performed the checks or wrote good documentation.
 
 | Responsibility | Stage | Expected evidence or decision |
 | --- | --- | --- |
-| Challenge acceptance and tests | `step-plan` and its Improve review, `test-refine`, `test-author` | Resolve ambiguous meaning with positive and nearby negative examples; derive expected results from the specification. For important regressions where practical, show an adequate check rejects the known-bad behavior and passes the candidate. |
+| Challenge acceptance and tests | `step-plan` and its Improve review (`stage` runs), `test-refine`, `test-author` | Resolve ambiguous meaning with positive and nearby negative examples; derive expected results from the specification. For important regressions where practical, show an adequate check rejects the known-bad behavior and passes the candidate. |
 | Own delegated work | `step-plan`, `implement`, `integrate` | If delegating, identify bounded task/file ownership, shared interfaces, inputs, outputs/checks and the integrating owner. The owner inspects actual contributions and checks their combined behavior before its one completion. |
 | Diagnose persistent failure | `verify`, all Improve campaigns | Distinguish product, test and environment explanations with a small observable experiment. Record the conclusion and why the next action follows; a repeated attempt alone is not progress. |
 | Select relevant operational checks | `step-plan`, `verify` | Identify changed authorization/data boundaries, dependencies, recovery or diagnostic needs. Choose proportional checks and retain genuinely missing prerequisites as incomplete. |

@@ -298,7 +298,7 @@ affected work, owner, and safe recheck/resume condition. These are descriptive
 notes, not new result fields or an authentication state machine. Reuse an existing
 request for the same system/role/scope; do not repeatedly prompt on unchanged
 blockers or after refusal. A changed need or new user direction can reopen it.
-Before the plan's Improve review completes, check that each concrete external dependency
+Before the plan is accepted (in a `stage` run, before its Improve review completes), check that each concrete external dependency
 has relevant access evidence or a disclosed access/setup requirement, owner,
 and earliest gating stage.
 An undisclosed known requirement is a planning defect; a disclosed downstream

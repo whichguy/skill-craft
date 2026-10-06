@@ -2188,6 +2188,10 @@ _INLINE_PLANNING_DIRECTIVE = (
 )
 
 
+def _inline_planning_handoff() -> str:
+    return _PLANNING_HANDOFF.replace(*_INLINE_PLANNING_DIRECTIVE)
+
+
 def duty(stage: str, *, delegation: str = ASK_AGENT, planning_review: str = "stage") -> str:
     """Return one stage duty with the run's implementation-route paragraph.
 
@@ -2207,8 +2211,8 @@ def duty(stage: str, *, delegation: str = ASK_AGENT, planning_review: str = "sta
 
 
 # Planning review option ``none``: sentences that promise an Improve child at a planning stage the run starts
-# none for, each swapped for text that does not.  One table of (stage, old, new) rows; ``*`` is the text every
-# stage's packet carries.  A row applies only for the recorded mode ``none``, so the stage-mode text is the text
+# none for, each swapped for text that does not.  One table of (stage, old, new) rows; ``*`` is text that
+# packets of several stages carry (COMMON, the interaction guide, the inline planning handoff).  A row applies only for the recorded mode ``none``, so the stage-mode text is the text
 # above, byte for byte.  Each ``old`` must occur exactly once in every stage-mode text it occurs in (the
 # delegations and the plan's Backchain call are separate texts) and in at least one: the import-time check in
 # _check_swaps fails when an edit to the text above leaves a row matching nothing or twice.
@@ -2228,6 +2232,10 @@ is accepted on this step's own checks and the graph advances directly.""",
      "leaves no work item pending get an actual Improve-skill handoff; every other result,\n"
      + ", ".join(_NONE_CHOICE[:-1]) + " and " + _NONE_CHOICE[-1] + " included, is accepted on this\n"
      "step's own checks and the graph advances directly."),
+    ("*", "for cold recovery and the normal Improve handoff; do not start a nested review.",
+     "for cold recovery; do not start a nested review."),
+    ("*", "Each reviewed step's task/ready/done criteria remain its sole execution directive.",
+     "Each step's task/ready/done criteria remain its sole execution directive."),
     ("plan", """\
 After creating the initial steps, submit this producer result to its mandatory
 actual Improve handoff. The plan remains a draft until
@@ -2268,7 +2276,7 @@ implementation.""", "No Improve child reviews this result in this run."),
 def _stage_texts(stage: str) -> list[str]:
     """The stage-mode texts a swap row for ``stage`` may match: both delegations, and the plan's Backchain call."""
     if stage == "*":
-        return [COMMON]
+        return [COMMON, INTERACTION_DESIGN, _inline_planning_handoff()]
     texts = [duty(stage, delegation=delegation) for delegation in DELEGATIONS]
     if stage in BACKCHAIN_STAGES:
         texts.append(_backchain_guidance(stage))
@@ -2343,12 +2351,12 @@ def prompt(stage: str, *, delegation: str = ASK_AGENT,
     parts = [_swapped(COMMON, "*", planning_review),
              duty(stage, delegation=delegation, planning_review=planning_review)]
     if stage in stage_spec.with_block("interaction-design"):
-        parts.append(INTERACTION_DESIGN)
+        parts.append(_swapped(INTERACTION_DESIGN, "*", planning_review))
     if stage in stage_spec.with_block("work-items"):
         parts.append(WORK_ITEM_CONTEXT)
     if stage in PRELUDE or stage in PLANNING_REVIEW_STAGES:
-        parts.append(_PLANNING_HANDOFF if delegation == ASK_AGENT
-                     else _PLANNING_HANDOFF.replace(*_INLINE_PLANNING_DIRECTIVE))
+        parts.append(_swapped(_PLANNING_HANDOFF if delegation == ASK_AGENT else _inline_planning_handoff(),
+                              "*", planning_review))
     improves = (stage in stage_spec.reviewed_stages(planning_review)
                 or stage_spec.stage(stage).improve == "last-item")
     if stage in TEST_FACILITY_STAGES:

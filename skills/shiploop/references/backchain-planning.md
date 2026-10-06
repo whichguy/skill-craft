@@ -16,7 +16,7 @@ producers before consumers. At `step-plan`, apply it to the scoped local
 microplan and its suppliers. At `carry-forward` and `product-acceptance`, use it
 only for affected pending/corrective work and newly exposed dependencies. In a
 native call, a whole `plan`/`draft` or authorized `repair`/`revise`
-operation owns its internal convergence; the ordinary Improve handoff remains a
+operation owns its internal convergence; the ordinary Improve handoff, where the stage has one, remains a
 separate broader review.
 
 After the initial steps are created, both `plan` and `step-plan` must complete

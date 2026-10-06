@@ -286,6 +286,8 @@ def render_walk(state, run, *, plan_items=None, limit=300):
 
 
 ITEMS = [{"id": "W1", "title": "First"}, {"id": "W2", "title": "Second"}]
+# The validator's refusal of a missing planning record names the option that decides which records exist.
+SCHEDULED_RECORDS = r"every planning-stage result this run's planning_review option reviews"
 # Declared here, independently of stage_spec: the children a two-item run starts, by planning_review.
 STAGE_CHILDREN = [("spec", None), ("test-strategy", None), ("plan", None), ("step-plan", "W1"),
                   ("test-spec", "W1"), ("step-plan", "W2"), ("test-spec", "W2"), ("carry-forward", "W2"),
@@ -338,11 +340,11 @@ class PlanningReviewScheduleTests(unittest.TestCase):
                 action = next(e["action"] for e in state["history"] if e["stage"] == stage)
                 broken = dict(state, improve_results={
                     k: v for k, v in state["improve_results"].items() if k != action})
-                with self.assertRaisesRegex(nav.NavigatorError, "every planning-stage result"):
+                with self.assertRaisesRegex(nav.NavigatorError, SCHEDULED_RECORDS):
                     nav.validate(broken)
         stage_state, _ = walk(self.new("stage"), plan_items=ITEMS)
         action = next(e["action"] for e in stage_state["history"] if e["stage"] == "spec")
-        with self.assertRaisesRegex(nav.NavigatorError, "every planning-stage result"):
+        with self.assertRaisesRegex(nav.NavigatorError, SCHEDULED_RECORDS):
             nav.validate(dict(stage_state, improve_results={
                 k: v for k, v in stage_state["improve_results"].items() if k != action}))
 
@@ -424,8 +426,19 @@ class PlanningReviewNoneCliTests(unittest.TestCase):
                      ["-c", "user.email=t@example.invalid", "-c", "user.name=t", "commit", "-qm", "init"]):
             subprocess.run(["git", *argv], cwd=self.repo, env=self.env, check=True)
         run = self.base / ("run-" + mode)
-        self.cli("init", "--repo", self.repo, "--run-dir", run, "--prompt=add hello", "--planning-review", mode)
+        # A none run starts no child that would bind the card, so it names the card at its start.
+        card = ("--improve-skill", CARD) if mode == "none" else ()
+        self.cli("init", "--repo", self.repo, "--run-dir", run, "--prompt=add hello", "--planning-review", mode, *card)
         return run
+
+    def repository(self, name):
+        repo = self.base / name
+        repo.mkdir()
+        (repo / "a.txt").write_text("x\n")
+        for argv in (["init", "-q"], ["add", "."],
+                     ["-c", "user.email=t@example.invalid", "-c", "user.name=t", "commit", "-qm", "init"]):
+            subprocess.run(["git", *argv], cwd=repo, env=self.env, check=True)
+        return repo
 
     @staticmethod
     def saved(run):
@@ -437,10 +450,12 @@ class PlanningReviewNoneCliTests(unittest.TestCase):
         store.write_record(path, dict(DONE, **result))
         return self.cli("complete", "--run-dir", run, "--action", action, "--result", path)
 
-    def advance_to(self, run, stage):
-        while self.saved(run)["stage"] != stage:
+    def advance_to(self, run, stage, limit=60):
+        for _ in range(limit):  # a regression in the schedule fails here in seconds, not at the suite's time limit
+            if self.saved(run)["stage"] == stage:
+                return self.saved(run)["action"]["id"]
             self.complete(run)
-        return self.saved(run)["action"]["id"]
+        raise AssertionError("did not reach " + stage + "; stuck at " + self.saved(run)["stage"])
 
     def knowledge_commits(self):
         subjects = subprocess.run(["git", "-C", str(self.repo), "log", "--format=%s"], env=self.env, check=True,
@@ -500,6 +515,51 @@ class PlanningReviewNoneCliTests(unittest.TestCase):
                       refused.stdout + refused.stderr)
         self.assertNotIn("Traceback", refused.stdout + refused.stderr)
         self.assertEqual((run / "state.md").read_bytes(), before)
+
+    NEEDS_CARD = "--planning-review none needs --improve-skill"
+
+    def test_a_none_run_must_name_its_card_at_init_because_no_planning_child_binds_it(self):
+        """F1: the quality and test loops read the recorded card at the first item, and under none the first child
+        (the one that binds it) is the last item's carry-forward: a run started without the card would block at its
+        first static-checks. The refusal leaves the run directory empty."""
+        repo = self.repository("repo-nocard")
+        run = self.base / "run-nocard"
+        refused = self.cli("init", "--repo", repo, "--run-dir", run, "--prompt=add hello",
+                           "--planning-review", "none", status=2)
+        self.assertIn(self.NEEDS_CARD + "=", refused.stdout + refused.stderr)
+        self.assertIn("quality and test loops", " ".join((refused.stdout + refused.stderr).split()))
+        self.assertFalse((run / "state.md").exists())
+        missing = self.cli("init", "--repo", repo, "--run-dir", run, "--prompt=add hello", "--planning-review", "none",
+                           "--improve-skill", self.base / "no-such-card" / "SKILL.md", status=2)
+        self.assertIn("the selected Improve card cannot be resolved", missing.stdout + missing.stderr)
+        self.assertFalse((run / "state.md").exists())
+        # the card is optional where a planning child binds it
+        stage_run = self.base / "run-stage-nocard"
+        self.cli("init", "--repo", repo, "--run-dir", stage_run, "--prompt=add hello", "--planning-review", "stage")
+        self.assertEqual(self.saved(stage_run)["improve_skill"], "")
+
+    def test_a_none_run_started_with_its_card_records_it_and_recovers_without_repeating_it(self):
+        run = self.start("none")
+        self.assertEqual(self.saved(run)["improve_skill"], str(CARD))
+        self.assertEqual(self.saved(run)["planning_review"], "none")
+        # an identical retry is recovery: it neither needs the card again nor changes the recorded one
+        self.cli("init", "--repo", self.repo, "--run-dir", run, "--prompt=add hello", "--planning-review", "none")
+        self.assertEqual(self.saved(run)["improve_skill"], str(CARD))
+
+    def test_workspace_start_refuses_a_none_run_without_its_card_before_it_creates_anything(self):
+        repo = self.repository("repo-ws")
+        branches = lambda: subprocess.run(["git", "-C", str(repo), "branch", "--list"], env=self.env, check=True,
+                                          capture_output=True, text=True).stdout
+        before = branches()
+        root = self.base / "ws-none"
+        refused = self.cli("workspace", "start", "--repo", repo, "--workspace-root", root, "--prompt=add hello",
+                           "--planning-review", "none", status=2)
+        self.assertIn(self.NEEDS_CARD + "=", refused.stdout + refused.stderr)
+        self.assertFalse(root.exists(), "no workspace, worktree or run directory is created")
+        self.assertEqual(branches(), before)
+        self.cli("workspace", "start", "--repo", repo, "--workspace-root", root, "--prompt=add hello",
+                 "--planning-review", "none", "--improve-skill", CARD)
+        self.assertEqual(self.saved(root / "run")["improve_skill"], str(CARD))
 
     def test_the_assumption_list_is_refused_at_plan_in_a_none_run(self):
         run = self.start("none")
