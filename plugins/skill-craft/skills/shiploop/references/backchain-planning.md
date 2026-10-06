@@ -16,11 +16,13 @@ producers before consumers. At `step-plan`, apply it to the scoped local
 microplan and its suppliers. At `carry-forward` and `product-acceptance`, use it
 only for affected pending/corrective work and newly exposed dependencies. In a
 native call, a whole `plan`/`draft` or authorized `repair`/`revise`
-operation owns its internal convergence; the ordinary Improve handoff remains a
+operation owns its internal convergence; the ordinary Improve handoff, where the stage has one, remains a
 separate broader review.
 
 After the initial steps are created, both `plan` and `step-plan` must complete
-their actual Improve handoff before consumers use the plan. Include any serial
+their actual Improve handoff before consumers use the plan, when the run has one: in a
+`planning_review: none` run neither stage has an Improve child, so the graph's only checks before
+consumers use it are ShipLoop's at `complete` and the structural `backchain-check`. Include any serial
 or parallel execution graph in that review's candidate and evidence locators;
 Backchain's result does not bypass this broader planning review. Follow the
 [chain review requirement](parallel-chain.md#required-review-after-step-creation)
@@ -299,7 +301,7 @@ structural check are independently recorded.
 ## Experiment-informed planning
 
 In [experiment-informed planning](planning-experiments.md), the provisional delivery plan exposes
-assumptions to its existing Plan Improve owner. That child may run bounded
+assumptions to its existing Plan Improve owner (a `planning_review: none` run has none). That child may run bounded
 experiments and revise the candidate or return an upstream-reconciliation need.
 Native Backchain remains plan-only; do not launch another Backchain/Until loop
 inside Plan Improve. Bind the accepted graph to the dispatcher only after the

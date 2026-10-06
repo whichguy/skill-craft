@@ -643,7 +643,7 @@ python3 "$HARNESS/run.py" suite \
 | Suite | Cases | Observation boundary |
 | --- | --- | --- |
 | `launch-smoke` | Tic-tac-toe and checkers create | Accepted `intake` and its real callback |
-| `planning-smoke` | Tic-tac-toe create | Reviewed plan: `plan` accepted after its Improve child |
+| `planning-smoke` | Tic-tac-toe create | Reviewed plan: `plan` accepted after its Improve child (a `stage` run) |
 | `ttt-full` | Create, guidance, best-move refinement | Full verified deployment, hosted behavior, and predecessor chain |
 | `checkers-full` | Create, guidance, hint-toggle refinement | Full verified deployment, hosted behavior, and predecessor chain |
 | `battleship-full` | Create, status/history, history-filter refinement | Full verified deployment, hosted behavior, and predecessor chain |
@@ -698,10 +698,11 @@ python3 "$HARNESS/run.py" run \
 
 Choose any prelude boundary: `intake`, `discovery`, `research`, `spec`,
 `test-strategy` or `plan`. Only navigator protocol 4 runs are observed; a
-run of any other protocol has no supported boundary. `spec`, `test-strategy`
+run of any other protocol has no supported boundary. In a `stage` run `spec`, `test-strategy`
 and `plan` are Improve checkpoints: each is accepted only after its Improve
 child returns, so callback auditing requires `improve-complete` for them, and
 their earlier producer `complete` call does not establish stage acceptance.
+In a `none` run (the run's recorded `planning_review`) they are not: each is accepted by its `complete` callback.
 Other stages are accepted by their `complete` callback. INNER
 boundaries are not exposed because the same stage recurs across work items and
 needs a separate explicit selection contract.

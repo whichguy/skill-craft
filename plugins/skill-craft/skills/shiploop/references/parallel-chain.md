@@ -125,6 +125,11 @@ steps and the graph through its full improvement loop before `chain bind`, in
 both parallel and serial mode. Use the existing planning handoff and its two
 consecutive trivial self-passes; retain the terminal receipt and reviewed graph
 identity in ordinary evidence. Backchain's dependency audit informs this review.
+This is the `planning_review: stage` schedule. A `planning_review: none` run starts no Improve
+child at `step-plan`, so there is no such review to retain: the script refuses `chain bind` only
+while an Improve child is active, and the graph has been seen only by ShipLoop's checks at
+`complete` and the structural `backchain-check` (with `--backchain-passes none` not even by a
+Backchain pass). Judge the graph's dependencies and shared resources yourself before binding.
 
 If the graph is first created or materially changed after that planning review,
 keep it a draft and complete the selected actual Improve loop on the revised
@@ -604,8 +609,8 @@ existing directory. Preserve their evidence/workspaces and prepare a newly
 reviewed managed chain when continuing the work.
 
 Only after the chain finishes may the parent submit its normal current producer
-result. ShipLoop then invokes its existing actual Improve checkpoint and later
-tests. Improve may refine the returned candidate; completing the chain neither
+result. ShipLoop then invokes its existing actual Improve checkpoint (when the run's
+`planning_review` option reviews that stage) and later tests. Improve may refine the returned candidate; completing the chain neither
 replaces those stages nor authorizes publication or deployment.
 Halting the parent is also refused while its bound chain is unfinished. Pause
 is reversible and preserves the current action; collect/reconcile active workers

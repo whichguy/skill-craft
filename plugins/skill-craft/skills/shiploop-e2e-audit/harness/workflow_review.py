@@ -9,8 +9,8 @@ from __future__ import annotations
 from collections.abc import Mapping
 from pathlib import Path
 
-# Every accepted result at these stages passed through its own Improve child.
-from dag_replay import _PLANNING_CHECKPOINTS as PLANNING_REVIEW_STAGES
+# Every accepted result at the stages a run's recorded planning_review lists passed through its own Improve child.
+from dag_replay import _PLANNING_CHECKPOINTS as PLANNING_CHECKPOINTS
 from grading import _artifact_result
 
 
@@ -49,9 +49,10 @@ def _observed_improve_actions(result: dict, errors: list[str], unknown: list[str
     Navigator protocol 4 stores a completed Improve receipt by its
     ordinary producer action ID, and only checkpoint actions carry one. The
     inventory is therefore exactly the recorded actions. As in the navigator,
-    every record must belong to an accepted action and every accepted ``plan``
-    action must have one. A snapshot of any other protocol cannot supply an
-    inventory. A partial or malformed snapshot is an audit limitation, never a
+    every record must belong to an accepted action and every accepted action at
+    a stage the state's recorded ``planning_review`` reviews must have one. A
+    snapshot of any other protocol, or one that records no option, cannot supply
+    an inventory. A partial or malformed snapshot is an audit limitation, never a
     completed child record manufactured from an active producer.
     """
     has_lifecycle = "lifecycle" in result
@@ -88,6 +89,11 @@ def _observed_improve_actions(result: dict, errors: list[str], unknown: list[str
             unknown.append("current-run navigator protocol is unsupported; only protocol 4 supplies Improve inventory")
             comparable = False
             continue
+        planning_review = state.get("planning_review")
+        if planning_review not in PLANNING_CHECKPOINTS:
+            unknown.append("current-run planning review option is missing or unsupported")
+            comparable = False
+            continue
         history = state.get("history")
         if not isinstance(history, list):
             errors.append("current-run navigator history is malformed")
@@ -102,7 +108,7 @@ def _observed_improve_actions(result: dict, errors: list[str], unknown: list[str
                 malformed_history = True
                 break
             action_ids.append(action)
-            if entry.get("stage") in PLANNING_REVIEW_STAGES:
+            if entry.get("stage") in PLANNING_CHECKPOINTS[planning_review]:
                 plan_ids.add(action)
         if malformed_history or len(set(action_ids)) != len(action_ids):
             errors.append("current-run accepted history is malformed")

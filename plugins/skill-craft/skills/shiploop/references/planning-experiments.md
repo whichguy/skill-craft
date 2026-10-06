@@ -1,8 +1,11 @@
 # Experiments during planning
 
-Every navigator protocol 4 run supports planning experiments; there is no
-protocol selector, and a saved run from an older protocol is refused. Follow the
-current packet.
+Every navigator protocol 4 run recorded with `planning_review: stage` (the default)
+supports planning experiments; there is no protocol selector, and a saved run from an older
+protocol is refused. A run recorded with `planning_review: none` has no Plan Improve child, so
+none of this applies: its packets print neither the guide and notebook locators nor the
+`improve-reconcile` route, and the plan's `assumptions` list is still checked at `complete`.
+Follow the current packet.
 
 Lifecycle and owner rules remain in the
 [navigator execution mode adapter](research-loop.md#navigator-execution-mode-adapter).

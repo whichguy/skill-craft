@@ -2,6 +2,21 @@
 
 Written by scripts/release.py.
 
+## 2026-10-06
+
+### skill-craft 1.22.0
+
+- Skills: shiploop 0.54.0, shiploop-e2e-audit 0.7.0
+
+### shiploop 0.54.0
+
+- New run option `--planning-review stage|none` at `init` and `workspace start`, recorded as `planning_review` in `state.md` like `--backchain-passes` (default `stage`). `stage` starts an Improve child after each of the five planning results (`spec`, `test-strategy`, `plan`, `step-plan`, `test-spec`), as every run did before, and no packet changes. `none` starts none: those five results are accepted on ShipLoop's own checks at `complete` and the graph advances, so the planning window no longer includes five reviews. The children after `system-test-author` and `release-plan` and the last `carry-forward` start in both modes. In a `none` run the packets say so (the Improve line, the plan and step-plan duties and the shared handoff sentence name only the stages that hand off), the plan child's `improve-reconcile` route and plan-time experiments do not exist and are not printed, the spec and test strategy are committed to `docs/shiploop` when each is accepted with no review after, and the first Improve child is the last item's `carry-forward`, so a `none` run names its Improve card at the start: `init` and `workspace start` refuse `--planning-review none` without `--improve-skill=<absolute selected Improve SKILL.md>` and resolve it there (the first item's quality and test loops read the card, and no earlier child binds it). The inline step directive and the interaction guide no longer say a step or handoff is reviewed. `--planning-review none` with `--backchain-passes none` leaves no model-run second look at the plan graph; it is documented, not refused. A retry of `init` or `workspace start` cannot change the option and no verb changes it mid-run. A saved run without the key is refused with the fresh-run hint: start the request again in a fresh `--run-dir` or `--workspace-root`. `graph-dry-run` takes the same flag and simulates the selected schedule.
+- `test-author` is now script-checked: on `done` ShipLoop runs the item's focused commands once and accepts only a run in which a test ran. Exit 0 needs a counted test (at least `min_tests`) with every listed ID shown; a non-zero exit needs a failing test inside a test. A run that stops before any test runs, for example because a file the tests load is missing, is refused at `test-author` with the rule for fixing it: create the smallest loadable placeholder at a path the step plan's `paths` names, or load it inside the test so a missing file fails that test and not the run. A unittest module the loader cannot import (`unittest.loader._FailedTest`) now counts as no test run, so the probe refuses it without listed IDs, and `test-red` and `test-green` read it the same way; a command that also runs a failing test, with a module that cannot load and no ID listed for it, is still accepted. A refusal for a run in which tests did run no longer says none ran (header "did not show a usable test run"; a passing run with a non-zero exit is told to exit 0 or fail inside a test). Before, only `test-red` could notice, and it forbids product edits. After 7 refused runs `done` is no longer accepted and `revise` is the named remedy; a command that reaches no verdict (timeout, cannot start) refuses without counting; `revise` and `blocked` are never gated. The `step-plan` duty gains one generic sentence and the `test-author` duty two, about where a loadable file comes from. Other packets are unchanged.
+
+### shiploop-e2e-audit 0.7.0
+
+- The DAG replay and the workflow review read ShipLoop's new run option `planning_review` (`stage` or `none`). Every replay case now declares it (a case without one is refused) and the oracle keeps one literal Improve schedule per value, so a `none` run's five planning producers must advance with no child while `system-test-author`, `release-plan` and the last `carry-forward` still park; `synthetic-none-full` replays one. The workflow review judges a run's Improve inventory against the schedule of the mode its state records, and reports a state that records no `planning_review` as unverified instead of comparable (a state that records `none` is judged against the `none` schedule and is comparable).
+
 ## 2026-10-05
 
 ### skill-craft 1.21.2

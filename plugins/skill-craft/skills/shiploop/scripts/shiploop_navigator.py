@@ -114,6 +114,7 @@ _STATE_KEYS = frozenset(
         "revisions",
         "lint",
         "backchain_passes",
+        "planning_review",
     )
 )
 # Run-level execution delegation.  Every run records it; new runs default to
@@ -130,6 +131,12 @@ DEFAULT_LINT = lint.DEFAULT_MODE
 # without the key is refused (one supported version), never migrated, and no verb changes it mid-run.
 BACKCHAIN_PASSES_MODES = guidance.BACKCHAIN_PASSES_MODES
 DEFAULT_BACKCHAIN_PASSES = guidance.DEFAULT_BACKCHAIN_PASSES
+# Run-level planning review option: which planning results start an Improve child (see
+# shiploop_stage_spec.PLANNING_REVIEW_MODES: ``stage`` or ``none``).  New CLI-created runs record
+# DEFAULT_PLANNING_REVIEW; a saved run without the key is refused (one supported version), never
+# migrated, and no verb changes it mid-run.
+PLANNING_REVIEW_MODES = stage_spec.PLANNING_REVIEW_MODES
+DEFAULT_PLANNING_REVIEW = stage_spec.DEFAULT_PLANNING_REVIEW
 # Printed for any saved run this navigator cannot load.
 FRESH_RUN_HINT = ("Preserve it; this ShipLoop cannot resume it. Start new work with init or "
                   "workspace start in a fresh --run-dir.")
@@ -154,6 +161,7 @@ __all__ = [
     "lint_view",
     "recorded_backchain_passes",
     "recorded_delegation",
+    "recorded_planning_review",
     "new_state",
     "reconcile",
     "render",
@@ -174,6 +182,11 @@ def recorded_delegation(state: Mapping[str, Any]) -> str:
 def recorded_backchain_passes(state: Mapping[str, Any]) -> str:
     """Return the run's Backchain passes option (every supported run records one)."""
     return state["backchain_passes"]
+
+
+def recorded_planning_review(state: Mapping[str, Any]) -> str:
+    """Return the run's planning review option (every supported run records one)."""
+    return state["planning_review"]
 
 
 def lint_mode(state: Mapping[str, Any]) -> str:
@@ -246,13 +259,14 @@ _IMPROVE_STAGES = guidance.PLANNING_REVIEW_STAGES | {"carry-forward"}
 def _improve_checkpoint(state: Mapping[str, Any], stage: str, result: Mapping[str, Any]) -> bool:
     """Say whether this accepted producer result starts an actual Improve child.
 
-    Every planning/contract result is reviewed, plus the successful
-    carry-forward that leaves no work item pending (after its own queue
-    revision), so one review covers all executed steps before OUTER system
-    tests and release.  A later Improve that adds work items moves that end
-    review to the new last item's carry-forward.
+    Every planning/contract result the run's ``planning_review`` option reviews
+    is reviewed (all seven under ``stage``; under ``none`` only system-test-author
+    and release-plan), plus the successful carry-forward that leaves no work item
+    pending (after its own queue revision), so one review covers all executed
+    steps before OUTER system tests and release.  A later Improve that adds work
+    items moves that end review to the new last item's carry-forward.
     """
-    if stage in guidance.PLANNING_REVIEW_STAGES:
+    if stage in stage_spec.reviewed_stages(recorded_planning_review(state)):
         return True
     if stage not in stage_spec.with_improve("last-item") or result["outcome"] != "done":
         return False
@@ -714,13 +728,15 @@ def new_state(
     delegation: str = DEFAULT_DELEGATION,
     lint_option: str | None = None,
     backchain_passes: str = DEFAULT_BACKCHAIN_PASSES,
+    planning_review: str = DEFAULT_PLANNING_REVIEW,
 ) -> dict[str, Any]:
     """Create an unpersisted navigator cursor with one initial work item.
 
     ``delegation`` records the run's execution route (inline or ask-agent).
     ``lint_option`` records the script-owned lint option; ``None`` records off,
     and the CLI passes DEFAULT_LINT for new runs. ``backchain_passes`` records
-    how many passes the Backchain planning child may take.
+    how many passes the Backchain planning child may take. ``planning_review``
+    records which planning results start an Improve child.
     """
     _need(type(delivery_contract) is bool, "delivery_contract must be boolean")
     _need(type(worktree) is bool, "worktree must be boolean")
@@ -729,6 +745,8 @@ def new_state(
           "lint must be one of " + ", ".join(LINT_MODES))
     _need(backchain_passes in BACKCHAIN_PASSES_MODES,
           "backchain passes must be one of " + ", ".join(BACKCHAIN_PASSES_MODES))
+    _need(planning_review in PLANNING_REVIEW_MODES,
+          "planning review must be one of " + ", ".join(PLANNING_REVIEW_MODES))
     _text(repo, "repo")
     _text(prompt, "prompt")
     _need(not privacy.sensitive_text(prompt),
@@ -772,6 +790,7 @@ def new_state(
     # (the CLI always passes its fix default).
     state["lint"] = lint_option if lint_option is not None else "off"
     state["backchain_passes"] = backchain_passes
+    state["planning_review"] = planning_review
     validate(state)
     return state
 
@@ -963,20 +982,24 @@ def _validate_current_state(state: Mapping[str, Any]) -> None:
           "unsupported lint option; expected one of " + ", ".join(LINT_MODES))
     _need(state["backchain_passes"] in BACKCHAIN_PASSES_MODES,
           "unsupported backchain passes option; expected one of " + ", ".join(BACKCHAIN_PASSES_MODES))
+    _need(state["planning_review"] in PLANNING_REVIEW_MODES,
+          "unsupported planning review option; expected one of " + ", ".join(PLANNING_REVIEW_MODES))
     _text(state.get("improve_skill"), "improve_skill", allow_empty=True)
     records = state.get("improve_results")
     _need(isinstance(records, Mapping), "Improve results must be an object")
-    # Most results are accepted directly; every planning-stage result always
-    # passed through its own Improve child.
+    # Most results are accepted directly; every planning-stage result this run's
+    # planning_review option reviews passed through its own Improve child.
+    reviewed = stage_spec.reviewed_stages(recorded_planning_review(state))
     expected = {entry["action"] for entry in history}
     # A test stage recorded as not applicable to its item (no test command, only
     # non-code paths; derived from the item's own step plan) had nothing to review.
     planning = {entry["action"] for entry in history
-                if entry["stage"] in guidance.PLANNING_REVIEW_STAGES
+                if entry["stage"] in reviewed
                 and not (entry["stage"] in item_scope.TEST_STAGES and entry["workitem"]
                          and item_scope.no_test_item(state, entry["workitem"]))}
     _need(planning <= set(records) <= expected,
-          "Improve results must belong to completed steps, including every planning-stage result")
+          "Improve results must belong to completed steps, including every planning-stage result "
+          "this run's planning_review option reviews")
     history_stage = {entry["action"]: entry["stage"] for entry in history}
     for record_id, record in records.items():
         _need(isinstance(record, Mapping), "Improve result must be an object")
@@ -998,8 +1021,8 @@ def _validate_current_state(state: Mapping[str, Any]) -> None:
         _need(seed == child["seed_result"],
               "Improve requires a canonical step attempt result")
         _need(_improve_checkpoint(state, child["stage"], seed),
-              "this run's Improve child is at " + child["stage"] + ", a stage that never starts "
-              "an Improve child; only planning stages and the final carry-forward do")
+              "this run's Improve child is at " + child["stage"] + ", a stage that does not start "
+              "an Improve child in this run (planning_review: " + recorded_planning_review(state) + ")")
         selected = child["skill"]
         if selected is None:
             _need("version" not in child and "contract_marker" not in child,
@@ -2209,16 +2232,18 @@ def _test_rerun_gate(root: Path, state: Mapping[str, Any], action_id: str, stage
     _need(not refusal, refusal)
 
 
-def _test_red_gate(root: Path, state: Mapping[str, Any], action_id: str,
-                   workitem: str | None, submitted: Any) -> None:
-    """Accept test-red's done only after ShipLoop runs the focused commands and sees them fail inside a test.
+def _focused_run_gate(root: Path, state: Mapping[str, Any], action_id: str, stage: str,
+                      workitem: str | None, submitted: Any) -> None:
+    """Accept done at test-author or test-red only after ShipLoop runs the focused commands itself.
 
-    With ``red_na`` the commands must pass instead, and must still have run tests.
+    test-red needs each to fail inside a test; with ``red_na`` they must pass instead, and must still have run
+    tests.  test-author needs a run in which a test ran (a counted pass or a failing test), so a test that cannot
+    load is refused where it can be fixed.  Any outcome but done returns, so the host can always revise.
     """
     if not isinstance(submitted, Mapping) or submitted.get("outcome") != "done":
         return
     red_na = submitted.get("red_na")
-    writes, refusal = test_loop.verify(root, state, workitem or "", action_id, test_loop.RED_STAGE,
+    writes, refusal = test_loop.verify(root, state, workitem or "", action_id, stage,
                                        red_na=red_na if isinstance(red_na, str) and red_na.strip() else None)
     for relative, text in writes.items():
         store.atomic_write_text(root / relative, text)
@@ -3058,6 +3083,7 @@ def render(core: Any, root: Path, state: Mapping[str, Any],
             lines.append("Backchain graph check: " + shlex.join(
                 ["python3", _command(core), "backchain-check", "--run-dir", str(root), "--candidate"])
                 + " <your candidate file>")
+    reviewed = stage_spec.reviewed_stages(recorded_planning_review(state))  # stages whose result starts a child
     if stage in ("plan", "select-work", "carry-forward"):
         lines.append("Full ordered work queue: " + str(root / "state.md") + "; field work_items.")
         child = state.get("active_improve")
@@ -3073,11 +3099,17 @@ def render(core: Any, root: Path, state: Mapping[str, Any],
             lines.append("At plan, supplied work_items replaces the complete ordered queue. "
                          "Omission retains the existing queue (initially W1); use that only "
                          "when it represents the whole approved plan.")
-            lines.append("Revalidate the current work-item queue against the whole revised plan, "
-                         "including after reconciliation. If membership, order or context changes, "
-                         "return the complete ordered work_items in the producer result or Improve "
-                         "final_result. Omit work_items only after confirming the retained queue "
-                         "still represents the whole approved plan.")
+            if "plan" in reviewed:
+                lines.append("Revalidate the current work-item queue against the whole revised plan, "
+                             "including after reconciliation. If membership, order or context changes, "
+                             "return the complete ordered work_items in the producer result or Improve "
+                             "final_result. Omit work_items only after confirming the retained queue "
+                             "still represents the whole approved plan.")
+            else:
+                lines.append("Revalidate the current work-item queue against the whole plan. If "
+                             "membership, order or context changes, return the complete ordered "
+                             "work_items in the producer result. Omit work_items only after "
+                             "confirming the retained queue still represents the whole approved plan.")
         elif stage == "carry-forward":
             lines.extend([
                 "Omit work_items to retain the future queue. Supplied work_items replaces "
@@ -3100,17 +3132,18 @@ def render(core: Any, root: Path, state: Mapping[str, Any],
             "test-strategy": "Map requirements to observable checks, representative targets, setup, "
                              "isolation and due stages; planned checks are not passed checks.",
             "plan": "Build a provisional dependency plan with explicit readiness, completion and "
-                    "integration ownership; its Improve child evaluates whether the evidence supports it.",
+                    "integration ownership" + ("; its Improve child evaluates whether the evidence "
+                                               "supports it." if "plan" in reviewed else "."),
         }
-        lines.extend([
-            "Planning phase intent: " + purpose[stage],
-            *_planning_source_lines(state, root),
-            "Planning experiments guide: " + str(reference_dir / "planning-experiments.md"),
-            "Planning investigation notebook: " + str(planning_notebook),
-            "Keep detailed experiment prompts, raw logs, and review material behind these "
-            "locators. A child continuity context carries a compact planning summary and source "
-            "locators; do not duplicate the full parent packet or verbose logs.",
-        ])
+        lines.extend(["Planning phase intent: " + purpose[stage], *_planning_source_lines(state, root)])
+        if "plan" in reviewed:  # the experiments and reconcile route belong to the plan child
+            lines.extend([
+                "Planning experiments guide: " + str(reference_dir / "planning-experiments.md"),
+                "Planning investigation notebook: " + str(planning_notebook),
+                "Keep detailed experiment prompts, raw logs, and review material behind these "
+                "locators. A child continuity context carries a compact planning summary and source "
+                "locators; do not duplicate the full parent packet or verbose logs.",
+            ])
     if state["bound_plan"]:
         lines.append("Bound plan locator: " + _required_excerpt(state["bound_plan"], root, "bound_plan"))
     if state["history"]:
@@ -3237,7 +3270,8 @@ def render(core: Any, root: Path, state: Mapping[str, Any],
     lines.extend(_replan_delta_lines(root, state, stage))
     lines.extend(knowledge.stage_lines(state, stage))
     instruction = guidance.prompt(stage, delegation=route,
-                                  backchain_passes=recorded_backchain_passes(state))
+                                  backchain_passes=recorded_backchain_passes(state),
+                                  planning_review=recorded_planning_review(state))
     _need(isinstance(instruction, str) and bool(instruction.strip()),
           f"navigator prompt is unavailable for {stage}")
     lines.extend(
@@ -3279,7 +3313,7 @@ def render(core: Any, root: Path, state: Mapping[str, Any],
             "",
             "Call this when done:",
             _callback(core, root, "complete", action=action["id"], result=str(result_path)),
-            _improve_line(stage),
+            _improve_line(state, stage),
             "Pause without consuming the action: " + _callback(core, root, "pause", reason="<who asked and why>")
             + " (only when the user asks or a real blocker stops authorized work)",
             "Halt (terminal and irreversible; only on an explicit user stop): "
@@ -3442,11 +3476,15 @@ def _first_callback_lines(core: Any, root: Path, state: Mapping[str, Any]) -> li
             "never 'complete'): " + _callback(core, root, "improve-complete", action=action_id)]
 
 
-def _improve_line(stage: str) -> str:
+def _improve_line(state: Mapping[str, Any], stage: str) -> str:
     """Tell a producer whether its result starts an Improve child."""
-    if stage in guidance.PLANNING_REVIEW_STAGES:
+    mode = recorded_planning_review(state)
+    if stage in stage_spec.reviewed_stages(mode):
         when = ("Every " + stage + " result, including blocked and repeat, starts this action's "
                 "Improve child.")
+    elif stage in stage_spec.PLANNING_CHOICE_STAGES:
+        when = ("no Improve child starts after this result in this run (planning_review: " + mode
+                + "); ShipLoop's own checks at complete are the only gate before the graph advances.")
     elif stage == "carry-forward":
         when = ("A done result that leaves no work item pending starts the run's single "
                 "end-of-work Improve child over every executed step; any other result advances directly.")
@@ -4448,8 +4486,8 @@ def dispatch(core: Any, root: Path, state: Mapping[str, Any], args: Any,
                 _test_loop_gate(root, state, action_id, cursor_stage, cursor_item, submitted)
             elif cursor_stage in test_loop.RERUN_STAGES:
                 _test_rerun_gate(root, state, action_id, cursor_stage, cursor_item, submitted)
-            elif cursor_stage == test_loop.RED_STAGE:
-                _test_red_gate(root, state, action_id, cursor_item, submitted)
+            elif cursor_stage in (test_loop.PROBE_STAGE, test_loop.RED_STAGE):
+                _focused_run_gate(root, state, action_id, cursor_stage, cursor_item, submitted)
             if (cursor_stage == "implement" and cursor_item and isinstance(submitted, Mapping)
                     and submitted.get("outcome") == "done"):
                 refusal = item_scope.scope_refusal(root, state, cursor_item)

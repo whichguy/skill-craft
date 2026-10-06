@@ -5,6 +5,7 @@ from pathlib import Path
 import tempfile
 import unittest
 
+import dag_replay
 from workflow_review import DIMENSIONS, HARNESS_QUESTIONS, validate_review
 
 
@@ -31,10 +32,11 @@ class WorkflowReviewTests(unittest.TestCase):
     def assess(self, review=None):
         return validate_review(review or self.review, self.result, self.root)
 
-    def nav_state(self, *, history, improve_results, run_id="current", protocol=4, **extra):
+    def nav_state(self, *, history, improve_results, run_id="current", protocol=4, planning_review="stage", **extra):
         return {
             "run_id": run_id,
             "navigator_protocol_version": protocol,
+            "planning_review": planning_review,
             "history": history,
             "improve_results": improve_results,
             **extra,
@@ -193,6 +195,51 @@ class WorkflowReviewTests(unittest.TestCase):
             "current-run navigator protocol is unsupported; only protocol 4 supplies Improve inventory",
             assessment["unverified"],
         )
+
+    def engine_state(self, planning_review):
+        """A finished run built by the real navigator, so the recorded schedule is the engine's own."""
+        root = dag_replay.DEFAULT_SKILL_ROOT
+        navigator = dag_replay._load_navigator(root, dag_replay._source_fingerprint(root))
+        state = navigator.new_state("/simulation-only/workflow-review", "Engine-built fixture.", improve_skill="",
+                                    planning_review=planning_review)
+        for _ in range(200):
+            if state["status"] == "done":
+                return state
+            action = navigator.current_action(state)["id"]
+            state = navigator.apply(state, action, {"outcome": "done", "summary": "Synthetic; no work executed."})
+            if state["active_improve"] is not None:
+                state = navigator.finish_improve(state, action, {
+                    "summary": "Synthetic.", "review_refs": ["synthetic://r"], "check_refs": ["synthetic://c"]})
+        raise AssertionError("fixture run did not finish")
+
+    def use_state(self, state):
+        """Declare ``state`` the current run's only snapshot and name exactly its Improve records as the inventory."""
+        self.use_inventory(sorted(state["improve_results"]))
+        self.result["lifecycle"] = {"run_id": state["run_id"]}
+        self.result["navigation"] = {"states": [{"state": state}]}
+        return self.assess()
+
+    def test_the_inventory_follows_the_recorded_planning_review(self):
+        """Engine-built states: a none run's three children are comparable; a state is read against its own mode."""
+        built = {mode: self.engine_state(mode) for mode in ("stage", "none")}
+        for mode, children in (("stage", 8), ("none", 3)):
+            with self.subTest(mode=mode):
+                self.assertEqual(len(built[mode]["improve_results"]), children)
+                assessment = self.use_state(built[mode])
+                self.assertEqual(assessment["status"], "supported-pass", assessment)
+        # a none run read as a stage run is missing the planning records its schedule would have
+        assessment = self.use_state(dict(built["none"], planning_review="stage"))
+        self.assertEqual(assessment["status"], "unverified", assessment)
+        self.assertIn("current-run accepted planning-stage result has no Improve record", assessment["unverified"])
+        # a none run still owes the records of the stages it does review
+        short = deepcopy(built["none"])
+        dropped = next(e["action"] for e in short["history"] if e["stage"] == "release-plan")
+        del short["improve_results"][dropped]
+        self.assertEqual(self.use_state(short)["status"], "unverified")
+        # a state that records no mode (a run from before the option) cannot say which schedule applied
+        assessment = self.use_state({key: value for key, value in built["none"].items() if key != "planning_review"})
+        self.assertEqual(assessment["status"], "unverified", assessment)
+        self.assertIn("current-run planning review option is missing or unsupported", assessment["unverified"])
 
     def test_malformed_present_navigation_containers_do_not_raise_or_support_inventory(self):
         for lifecycle, navigation in ((None, None), ([], {}), ({"run_id": "current"}, [])):

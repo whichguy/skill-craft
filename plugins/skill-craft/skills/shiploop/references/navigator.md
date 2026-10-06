@@ -7,8 +7,9 @@ persists SDLC traversal. Improve follows the Until Loop runtime bound by its
 selected card and owns review iterations, child state, and convergence. The
 script imports one matching child result before it selects another producer.
 
-Every run includes
-[experiment-informed planning](planning-experiments.md). Its initial Plan Improve
+Every run recorded with `planning_review: stage` (the default) includes
+[experiment-informed planning](planning-experiments.md); a `none` run has no Plan Improve
+child, so no experiment and no reconciliation. Its initial Plan Improve
 child can return a stopped, evidenced upstream-reconciliation need. The parent
 archives it through `improve-reconcile`, records a non-success result, and reruns
 the fixed suffix from discovery, research, spec, or test strategy. This is the
@@ -19,7 +20,7 @@ refused with an error naming it.
 ```mermaid
 flowchart LR
   P[Current producer prompt] --> R[Producer result]
-  R -->|Planning stage or last carry-forward| I[Actual Improve skill]
+  R -->|Reviewed planning stage or last carry-forward| I[Actual Improve skill]
   R -->|Any other stage| F
   I --> U[Bound Until Loop cycle]
   U -->|Incomplete| U
@@ -91,7 +92,10 @@ flowchart TD
   REL --> done
 ```
 
-✦ starts an actual Improve child. ⛔ is script-enforced: `implement`,
+✦ starts an actual Improve child. A run recorded with `planning_review: none` starts no Improve
+child at `spec`, `test-strategy`, `plan`, `step-plan` or `test-spec`: those five are accepted on
+ShipLoop's checks at `complete` and the graph advances; `system-test-author`, `release-plan` and the last
+`carry-forward` keep their child. ⛔ is script-enforced: `implement`,
 `test-green` and `regression` are not accepted while the lint gate reports an
 unwaived new finding, and every stage from `test-green` on that can edit code
 (`test-green`, `test-refine`, `regression`, `static-checks`, `verify`,
@@ -111,7 +115,7 @@ prompt loop reruns failing checks at `implement`, `test-refine` and
 | | Inner loop | Outer loop |
 | --- | --- | --- |
 | Runs | once per work item, over one shared graph | once, unless `replan` reopens it |
-| Improve children | `step-plan`, `test-spec`, last `carry-forward` | `system-test-author`, `release-plan` |
+| Improve children | `step-plan`, `test-spec` (only when `planning_review` is `stage`), last `carry-forward` | `system-test-author`, `release-plan` |
 | Outcomes | `done`, `repeat`, `blocked`; from `test-spec` to `integration-verify` also `revise`, back to `step-plan` at most twice per item (`test-green`, `regression`, `static-checks`: `done`, `revise`, `blocked`) | adds `replan` with new work items |
 | Going back | `revise` returns the item to `step-plan`; `carry-forward` replaces the future queue | `replan` appends items; after their end review, outer restarts at `system-test-author` |
 | Script-owned checks | recorded test commands at `step-plan`; lint gate at `implement`, `test-green`, `regression`; test-loop terminal packets at `test-green`, `regression`; ShipLoop's own test run at those two plus `test-refine`, `static-checks`, `integration-verify`; quality-loop terminal packet at `static-checks` | none |
@@ -176,7 +180,9 @@ not select or persist a successor. At an Improve checkpoint a producer `done`
 records the result then parks the parent at `active_improve`; it does not advance
 directly. Any other producer `done` advances to the next producer. When a skill
 was not selected at initialization, the checkpoint's packet supplies the exact
-`improve-bind --action ... --skill-card ...` command. Follow that command and
+`improve-bind --action ... --skill-card ...` command (a `--planning-review none` run is refused
+without `--improve-skill`: its first child is the last item's `carry-forward`, after the quality and
+test loops have read the card). Follow that command and
 the selected card's bound runtime rather than guessing an adapter. Only an
 accepted matching completion run through `improve-complete` imports the child and
 releases the next graph edge.
@@ -205,6 +211,16 @@ fresh-run hint. `none` offers no whole `plan`/`draft` loop: the `plan` packet pr
 audit resource and the loop-resource status line, as the other Backchain stages do, and
 not the six-file "Selected Backchain and Until Loop resources" block that `one` and
 `converge` print there. See [Backchain passes option](../SKILL.md#backchain-passes-option).
+
+Every run also records its `planning_review` option (`stage` or `none`; `stage` unless
+`--planning-review` says otherwise), which selects the planning results that start an
+Improve child: `stage` is every planning result, as before, and no packet changes with it;
+`none` is no Improve child after `spec`, `test-strategy`, `plan`, `step-plan` or `test-spec`,
+so the Improve line of those packets says none starts and no reconcile route or plan-time
+experiment locator is printed. The children after `system-test-author` and `release-plan` and
+the last `carry-forward` start in both modes. No verb changes it mid-run, a retry of `init` or `workspace start` cannot change
+it, and a saved run without it is refused with the fresh-run hint. See
+[Planning review option](../SKILL.md#planning-review-option).
 
 Every packet prints the shared
 [reference handoff policy](project-knowledge.md#reference-handoffs-and-destinations).
@@ -397,7 +413,7 @@ The semantic result contract is small:
 
 | Field | Meaning |
 | --- | --- |
-| `outcome` | `done`, `repeat`, or `blocked`; outer steps also allow `replan` with new corrective work items; `reconcile` is recorded only through the initial plan child's `improve-reconcile`. Planning results and the last carry-forward first wait for actual Improve; other results advance directly. The final disposition then determines the script-owned route. |
+| `outcome` | `done`, `repeat`, or `blocked`; outer steps also allow `replan` with new corrective work items; `reconcile` is recorded only through the initial plan child's `improve-reconcile`. Planning results the run's `planning_review` reviews and the last carry-forward first wait for actual Improve; other results advance directly. The final disposition then determines the script-owned route. |
 | `summary` | Concise statement of the current action’s real result. |
 | `headline` | One line of at most 100 characters, for the user, saying what this step established; the [run narrative](status-display.md#run-narrative) lists it under Achieved. The template's placeholder is refused. Without it the narrative uses the summary's first sentence. |
 | `evidence_refs` | Absolute paths of the files this stage wrote or of the check output it recorded, or other safe references to source, test, note, or external-operation evidence. The template's placeholder is refused. |
@@ -771,7 +787,7 @@ and cannot prove that the host performed the checks or wrote good documentation.
 
 | Responsibility | Stage | Expected evidence or decision |
 | --- | --- | --- |
-| Challenge acceptance and tests | `step-plan` and its Improve review, `test-refine`, `test-author` | Resolve ambiguous meaning with positive and nearby negative examples; derive expected results from the specification. For important regressions where practical, show an adequate check rejects the known-bad behavior and passes the candidate. |
+| Challenge acceptance and tests | `step-plan` and its Improve review (`stage` runs), `test-refine`, `test-author` | Resolve ambiguous meaning with positive and nearby negative examples; derive expected results from the specification. For important regressions where practical, show an adequate check rejects the known-bad behavior and passes the candidate. |
 | Own delegated work | `step-plan`, `implement`, `integrate` | If delegating, identify bounded task/file ownership, shared interfaces, inputs, outputs/checks and the integrating owner. The owner inspects actual contributions and checks their combined behavior before its one completion. |
 | Diagnose persistent failure | `verify`, all Improve campaigns | Distinguish product, test and environment explanations with a small observable experiment. Record the conclusion and why the next action follows; a repeated attempt alone is not progress. |
 | Select relevant operational checks | `step-plan`, `verify` | Identify changed authorization/data boundaries, dependencies, recovery or diagnostic needs. Choose proportional checks and retain genuinely missing prerequisites as incomplete. |

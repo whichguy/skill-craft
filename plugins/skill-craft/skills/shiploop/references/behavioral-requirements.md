@@ -356,8 +356,7 @@ case mapping. Use compact Markdown tables and Mermaid diagrams where they make
 ordering or state changes clearer. Use consistent IDs and terminology across
 diagrams, tables, tests, and implementation; a pretty diagram alone is not a spec.
 Apply [Discovery and research](#discovery-and-research) to unresolved rules before
-accepting them. Write the model with its acceptance decisions; the spec's
-Improve review then challenges it. R/F/T model records remain Markdown
+accepting them. Write the model with its acceptance decisions; in a `stage` run the spec's Improve review then challenges it. R/F/T model records remain Markdown
 prose, not an invented model schema.
 
 ### Sequence flows
@@ -464,7 +463,7 @@ Carry this model through the existing stages:
 | Stage | Durable action |
 | --- | --- |
 | `discovery`, `research` | Inventory existing flows, state owners and boundaries; investigate uncertain or consequential behavior without product edits. |
-| `spec` and its Improve review | Write the model, challenge clarity/consistency/feasibility, and settle it before planning. |
+| `spec` and its Improve review (`stage` runs) | Write the model, challenge clarity/consistency/feasibility, and settle it before planning. |
 | `test-strategy`, `plan` | Map the behavior/test/documentation outputs and dependencies into ordered work items. Put contract, environment and deployment prerequisites before their consumers. Keep product behavior order distinct from the work queue. |
 | `step-plan`, `test-spec` | Select the item's slice, cases and expected transitions/effects before code. |
 | `implement` | Implement the active slice, cases, and enduring product diagrams/ledger where needed; compare with the accepted spec, not an improvised model. |

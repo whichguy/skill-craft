@@ -5,7 +5,7 @@ description: >-
   script's current action packet, and submit its exact completion call until
   the script reports completion with an HTML achievement report. Use when the
   user says shiploop, ship the project, or requests a durable delivery loop.
-version: 0.53.1
+version: 0.54.0
 allowed-tools: all
 license: MIT
 platforms:
@@ -29,16 +29,19 @@ and returns the prompt for the current step together with the one callback that
 completes it. The host is a library call: it performs that one step and runs the
 printed callback, then follows the packet the callback returns. It never chooses
 a successor itself. Navigator protocol 4 is the only protocol. At a planning
-stage or the last carry-forward, the script parks that same parent action while the selected
-actual Improve skill runs its own bound Until Loop cycle. `state.md` owns SDLC
-traversal; the Improve child owns its iterations and runtime state. The host
-follows one current owner at a time. The initial plan child may also run
-packet-issued planning experiments and request reconciliation.
+stage the run's `planning_review` option reviews, or the last carry-forward, the script parks that
+same parent action while the selected actual Improve skill runs its own bound Until Loop
+cycle. `state.md` owns SDLC traversal; the Improve child owns its iterations and runtime
+state. The host follows one current owner at a time. The initial plan child (a `stage` run;
+`--planning-review none` has none) may also run packet-issued planning experiments and request
+reconciliation.
 
 ## Experiment-informed planning
 
 Every run supports [experiments during planning](references/planning-experiments.md).
-The existing Plan Improve child investigates consequential assumptions. When a
+The existing Plan Improve child investigates consequential assumptions (a run recorded
+with `--planning-review none` has no such child, so no plan-time experiment and no
+reconciliation). When a
 finding invalidates an upstream premise, the parent can settle its stopped child
 and rerun the affected planning suffix before preparation. Follow only the
 packet-issued reconciliation callback. Graphs are not replaced after dispatch.
@@ -223,7 +226,7 @@ isolation is not used; it has no automatic workspace-return protection:
 
 ```sh
 python3 "$CLI" init --repo "$REPO" --run-dir "$RUN_DIR" --prompt='<user request>'
-# Optional: select the exact actual Improve skill at initialization.
+# Optional (required with --planning-review none): select the exact actual Improve skill at initialization.
 python3 "$CLI" init --repo "$REPO" --run-dir "$RUN_DIR" \
   --improve-skill="$IMPROVE_SKILL" --prompt='<user request>'
 ```
@@ -234,7 +237,8 @@ v1/v2/v3, managed or legacy run, is refused with an error that names its protoco
 or mode; start a fresh `--run-dir` (or workspace root) for that request. If
 new-run initialization did not select an Improve skill, the first Improve
 checkpoint stays pending until its packet directs the owner to bind the selected
-card with `improve-bind --action ... --skill-card ...`. Use the packet's exact
+card with `improve-bind --action ... --skill-card ...` (a `--planning-review none` run has no planning
+child to bind it, so it is refused without `--improve-skill`). Use the packet's exact
 command and absolute selected-card path; never guess an installed copy or
 substitute a same-named skill. Recover an existing run's current packet with:
 
@@ -299,8 +303,11 @@ inline|ask-agent` previews either route (inline by default).
 
 Two kinds of result start an actual Improve child:
 
-- Every result of a planning stage: `spec`, `test-strategy`, `plan`, `step-plan`,
-  `test-spec`, `system-test-author` and `release-plan`. These stages write the
+- Every result of a planning stage the run's `planning_review` option reviews. With
+  `stage` (the default) those are `spec`, `test-strategy`, `plan`, `step-plan`,
+  `test-spec`, `system-test-author` and `release-plan`; with `none`, only
+  `system-test-author` and `release-plan` (see [Planning review option](#planning-review-option)).
+  These stages write the
   contracts that later work is built on, where a sentence, example or expected
   result can look done and still be wrong. Their Improve packets carry a
   planning review focus: find steps or examples that can't be replayed exactly,
@@ -311,8 +318,9 @@ Two kinds of result start an actual Improve child:
   end-of-work child reviews every executed step together (code, tests,
   documentation and the queue) before OUTER system tests and release.
 
-Every other producer result is accepted on its own checks and the graph
-advances directly. The stage names stay in the graph, so an auditor still sees
+Every other producer result, and a planning result the option does not review, is
+accepted on its own checks and the graph advances directly. The stage names stay in
+the graph, so an auditor still sees
 each stage happen. If the end review adds work items, the review moves to the
 new last item's carry-forward. An isolated run's workspace return happens at
 `release` or `handoff` once no child is active.
@@ -403,6 +411,40 @@ Like `lint`, a saved run without the key is refused (start a fresh run), never
 migrated, and an `init` or `workspace start` retry cannot change it. Unlike
 `lint`, no verb changes it mid-run: a fresh run is the route to another value.
 Improve's review loops are not covered by it.
+
+### Planning review option
+
+`--planning-review stage|none` at `init` or `workspace start` records the run option
+`planning_review` (default `stage`): which planning results start an Improve child.
+`stage` starts one after each of `spec`, `test-strategy`, `plan`, `step-plan` and
+`test-spec`, as every run did before the option existed; its packets are the same as
+before. With `--planning-review none` no Improve child starts after any of the five:
+each result is accepted on ShipLoop's own checks at `complete` (cited files exist, the
+plan's assumption list, the step plan's commands, criteria and paths, the knowledge
+home's checks), the graph advances, and no Improve child reviews it in this run. The
+packets say so: the Improve line, the plan and step-plan duties and the shared handoff
+sentence name only the stages that hand off. The children after `system-test-author`,
+`release-plan` and the last `carry-forward` start in both modes; the option does not
+cover the Backchain, quality and test loops.
+
+Besides the review, `none` removes what only the plan child hosts: its `improve-reconcile`
+route and the plan-time experiments (the packets do not print them). The spec and the test
+strategy are committed to `docs/shiploop` when each is accepted, with no review after, so
+later runs inherit them unreviewed. The first Improve child of a run is the last item's
+`carry-forward`, but the quality and test loops of the first item read the selected Improve card,
+and under `stage` the `spec` child is what binds it. So a `none` run names the card where it
+starts: `init` and `workspace start` refuse `--planning-review none` without
+`--improve-skill=<absolute selected Improve SKILL.md>`, and resolve the card there, so a missing
+or unloadable card shows at the start and not at the first `static-checks`.
+`--planning-review none` with `--backchain-passes none`
+leaves no model-run second look at the plan graph at all; it is the highest-risk
+combination, documented and not refused. SPEC S-10's second carve-out names what stands in for
+the review (ShipLoop's gates) and what nothing replaces (whether the criteria and oracles are
+complete).
+
+Like `backchain_passes`, a saved run without the key is refused (start a fresh run),
+never migrated, an `init` or `workspace start` retry cannot change it, and no verb
+changes it mid-run: a fresh run is the route to another value.
 
 ### Static-checks quality loop
 
@@ -498,6 +540,17 @@ shown). A green run, a zero-test run or a failure before any test ran (syntax,
 import, setup) is refused. Characterisation tests that already pass carry
 `red_na` with the reason; ShipLoop then requires them to pass and to have run.
 
+`test-author` is script-checked before it: on `done` ShipLoop runs the focused
+commands once and accepts only a run in which a test ran. Exit 0 needs a counted
+test (at least `min_tests`) with every listed ID shown; a non-zero exit needs a
+failing test inside a test. A run that stops before any test runs, for example
+because a file the tests load is missing, is refused here, where the smallest
+loadable placeholder at a path in the step plan's `paths` can be created (or the
+load moved inside the test); `test-red` forbids product edits. After 7 refused
+runs `done` is no longer accepted and `revise` is the named remedy; a command that
+reaches no verdict (timeout, cannot start) refuses without counting, and `revise`
+and `blocked` are never gated.
+
 Every stage after the test loops that can edit code reruns them too: on `done`
 at `test-refine`, `static-checks` (after its quality-loop check) and
 `integration-verify`, ShipLoop runs every recorded command and refuses unless
@@ -531,7 +584,8 @@ runs the dry-run deploy and each post-release confirm command once, recording
 their "not there yet" output before the real deploy.
 
 These are commands the step plan recorded; ShipLoop runs them outside the host's
-permission prompts, and the step plan's Improve review is their check. With an
+permission prompts, and ShipLoop's checks at `complete` and the step plan's Improve
+review (a `stage` run; a `none` run has none) are their check. With an
 empty list the stage has no loop and accepts `done` with the recorded reason.
 
 ### Confirmation is a passing command
@@ -863,7 +917,7 @@ incomplete rather than creating a hidden success edge.
 
 Implementation chains are the opt-in `delegation: ask-agent` route. Under
 `delegation: inline`, `step-plan` records its `steps` in order, without a Plan
-Dispatcher execution graph; its actual Improve loop reviews them. ShipLoop then
+Dispatcher execution graph; its actual Improve loop (`stage` runs) reviews them. ShipLoop then
 issues one `implement` packet per step, in that order, in the execution checkout
 in this conversation: each packet names its step, the steps already accepted and
 the ones still to come, and the callback after the last step moves to the test
@@ -874,7 +928,8 @@ side effect; a replay of an existing binding keeps its recorded mode. To use a
 chain, first switch the run with `delegation --set ask-agent`.
 
 On an ask-agent run, after creating initial steps, require their plan and execution graph to complete
-the selected actual Improve loop before execution. The normal `plan`/`step-plan`
+the selected actual Improve loop before execution (in a `stage` run; a `none` run has no such
+loop, so only ShipLoop's checks at `complete` and the structural `backchain-check` have seen the graph). The normal `plan`/`step-plan`
 handoff owns that review; follow the linked guide for late graph creation or
 material revisions. Retain the completed review's graph identity and evidence.
 For a reviewed graph within the current `implement` action that has safe

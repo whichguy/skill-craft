@@ -24,12 +24,16 @@ python3 "$CLI" graph-dry-run --scenario delivery --delegation ask-agent --format
 `ask-agent` renders the opt-in delegated packets. `--backchain-passes one|converge|none`
 likewise selects the simulated run's
 [Backchain passes option](../SKILL.md#backchain-passes-option), default `one`, and changes the
-Backchain stage packets the trace prints.
+Backchain stage packets the trace prints. `--planning-review stage|none` selects the simulated run's
+[planning review option](../SKILL.md#planning-review-option), default `stage`: `stage` changes no
+packet; `--planning-review none` simulates a run with no Improve child at `spec`, `test-strategy`,
+`plan`, `step-plan` or `test-spec`, and the built-in scenarios are then the none schedule (the
+same names; the Improve completions the trace pairs with those five producers are absent).
 
 `--list` prints the scenarios: delivery, two
 work items, blocked/resume, a repeat returned through Improve, pause/resume and
-halt. The planning stages and the last carry-forward are followed by a synthetic
-Improve completion; other producers advance directly. An unknown scenario
+halt. The planning stages the selected option reviews and the last carry-forward are followed
+by a synthetic Improve completion; other producers advance directly. An unknown scenario
 name is an input error (exit 2) that lists the available names. Expectations are authored independently of the routing tables. Each trace
 contains the effective packet before its synthetic declaration and the resulting
 stage, status, owner, and completed-instance IDs. The packet contains the current
@@ -49,8 +53,8 @@ Improve child owns those under the normal parent binding.
 
 Custom JSON has only `steps` (any other top-level field is refused), each with an effective `at`, `expect`, optional
 `status` (default `active`), and either a generic `result` or
-`command: pause|resume|halt`. Each planning producer and the last carry-forward
-(`command: produce`, optional `result`) is paired with `command: finish-improve`
+`command: pause|resume|halt`. Each reviewed planning producer and the last carry-forward
+(`command: produce`, optional `result`; the stages `--planning-review` reviews) is paired with `command: finish-improve`
 carrying a synthetic `receipt` and optional `final_result`. The last completion
 expects stage/status `done`. Run it with `--script PATH`. The packaged
 `graph-dry-run-scenario.json` is an example prefix:

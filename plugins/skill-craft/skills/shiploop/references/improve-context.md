@@ -90,7 +90,8 @@ has written the terminal packet,
 run the packet's parent return and
 callback (`improve-complete`, with no separate record: it imports the reviews
 directory's own `review-<n>.md`/`checks.md`). Runtime completion alone never advances the action, and no ShipLoop
-callback runs earlier. For the selected initial Plan Improve child, the
+callback runs earlier. For the selected initial Plan Improve child (a `planning_review: stage`
+run; a `none` run has no Plan Improve child and no such route), the
 parent-only `improve-reconcile` route applies once the runtime has returned its
 stopped packet in this conversation and no candidate write is in progress.
 
@@ -222,7 +223,8 @@ planning this opening supplies the compact planning summary; keep full
 packets and verbose logs behind their existing locators rather than copying
 them into child context.
 
-For the initial Plan Improve child, retain the packet's experiment objective
+For the initial Plan Improve child (only a `planning_review: stage` run has one; `none` starts no
+Improve child at `spec`, `test-strategy`, `plan`, `step-plan` or `test-spec`), retain the packet's experiment objective
 and exit criteria, applicable original constraints, current source/action
 locators, and decision consequences in that compact context. Keep essential
 findings and rationale inline; locators cannot replace critical reasoning.

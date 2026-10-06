@@ -385,7 +385,7 @@ runner does not expand) is fixed in the stage that finds it.
 ## Review test assets through Improve
 
 In the navigator, the selected actual standalone Improve skill reviews each
-planning result, including `test-spec`, and the end-of-work candidate. Within that
+planning result the run's `planning_review` option reviews (including `test-spec` under `stage`), and the end-of-work candidate. Within that
 candidate scope, its review
 includes local and remote-resident test definitions, execution/target locations,
 platform/library testing-system fit, browser inspection versus retained test

@@ -139,6 +139,42 @@ class DagReplayTests(unittest.TestCase):
         self.assertEqual("W2", handoff["next_owner"])
         self.assertEqual(["W1"], handoff["completed_work_items"])
 
+    def test_a_none_run_replays_with_no_checkpoint_at_the_five_planning_stages(self) -> None:
+        report = self._replay("synthetic-none-full")
+
+        self.assertTrue(report["ok"], report.get("error"))
+        # 34 producer callbacks plus 3 Improve completions: the last carry-forward, system-test-author, release-plan
+        self.assertEqual(37, len(report["events"]))
+        improved = [event["from"] for event in report["events"] if event["command"] == "finish-improve"]
+        self.assertEqual(["carry-forward", "system-test-author", "release-plan"], improved)
+        for stage in ("spec", "test-strategy", "plan"):
+            producer = next(event for event in report["events"] if event["from"] == stage)
+            with self.subTest(stage=stage):
+                self.assertFalse(producer["active_improve"])
+                self.assertNotEqual(producer["post_action_id"], producer["submitted_action_id"])
+        # the stage-mode oracle refuses a none walk: the case's own mode is what the replay checks against
+        wrong = deepcopy(dag_replay.synthetic_cases()["synthetic-none-full"])
+        wrong["id"] = "synthetic-none-read-as-stage"
+        wrong["planning_review"] = "stage"
+        fixture = {"kind": "in-code-synthetic", "sha256": dag_replay._canonical_fixture_digest(wrong)}
+        refused = dag_replay.replay_case(wrong, fixture=fixture, output=self.root / "none-as-stage")
+        self.assertFalse(refused["ok"])
+
+    def test_every_case_states_its_planning_review_and_an_unknown_one_is_refused(self) -> None:
+        cases = dag_replay.synthetic_cases()
+        self.assertEqual({"stage", "none"}, {case["planning_review"] for case in cases.values()})
+        self.assertEqual(["synthetic-none-full"], [name for name, case in cases.items() if case["planning_review"] == "none"])
+        for broken in ("two", None):
+            with self.subTest(value=broken):
+                invalid = deepcopy(cases["synthetic-full"])
+                invalid["planning_review"] = broken
+                with self.assertRaisesRegex(dag_replay.DagReplayError, "planning_review"):
+                    dag_replay.validate_case(invalid)
+        missing = deepcopy(cases["synthetic-full"])
+        del missing["planning_review"]
+        with self.assertRaisesRegex(dag_replay.DagReplayError, "missing"):
+            dag_replay.validate_case(missing)
+
     def test_improve_and_callback_replay_guards_are_observed(self) -> None:
         report = self._replay("synthetic-improve-replay-guards")
 
@@ -331,6 +367,17 @@ class DagReplayTests(unittest.TestCase):
             with self.subTest(case=index, message=message):
                 with self.assertRaisesRegex(dag_replay.DagReplayError, message):
                     check(navigator, before, after, "produce", "a1", result)
+        # A none case: the five planning stages advance with no child; the other two keep theirs.
+        none = {"planning_review": "none"}
+        check(navigator, state("spec", "a1"), state("test-strategy", "a2"), "produce", "a1", done, **none)
+        check(navigator, state("system-test-author", "a1"), parked("system-test-author", "a1"),
+              "produce", "a1", done, **none)
+        for message, before, after in (
+                ("parked Improve outside a checkpoint", state("spec", "a1"), parked("spec", "a1")),
+                ("replaced the parent action", state("release-plan", "a1"), state("release-check", "a2"))):
+            with self.subTest(none=message):
+                with self.assertRaisesRegex(dag_replay.DagReplayError, message):
+                    check(navigator, before, after, "produce", "a1", done, **none)
 
     def test_public_cli_rejects_output_inside_selected_subject(self) -> None:
         output = dag_replay.DEFAULT_SKILL_ROOT / "forbidden-e2e-output"

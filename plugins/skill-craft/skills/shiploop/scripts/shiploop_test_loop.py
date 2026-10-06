@@ -6,7 +6,9 @@ and a minimum test count (``min_tests``).  A command that exits 0 but ran no
 test, too few tests, or not its named IDs is refused (``shiploop_test_counts``):
 a filter that selects nothing is not passing evidence.  At ``test-red`` ShipLoop
 runs the focused commands and expects them to fail inside a test, not before any
-test ran.  On the transition into ``test-green`` or ``regression``
+test ran.  At ``test-author`` it runs them once and accepts only a run in which a
+test ran, so tests that cannot load are refused where they can be fixed.  On the
+transition into ``test-green`` or ``regression``
 ShipLoop writes an Until Loop contract whose work embeds that exact list; the
 host runs the loop (run every command, fix the code, rerun) and saves its
 terminal packet.  On ``complete`` ShipLoop accepts ``done`` only when the
@@ -39,6 +41,13 @@ import shiploop_test_counts as counts
 STAGES = stage_spec.with_complete_run("test-loop")
 # The expected-RED control: ShipLoop runs the focused commands and expects a test failure.
 RED_STAGE, = stage_spec.with_complete_run("test-red")
+# The test-author probe: ShipLoop runs the focused commands once and requires that a test ran.
+PROBE_STAGE, = stage_spec.with_complete_run("test-probe")
+# What a probe refusal says about a test that cannot load.  test-red forbids product edits, so
+# this is the stage where the missing file can be created.
+PROBE_RULE = ("If the tests load a file or module this item creates, create the smallest loadable placeholder "
+              "at a path the step plan's `paths` names (that is allowed here), or load it inside the test so a "
+              "missing file fails that test and not the whole run.")
 # Stages that can edit code after the test loops: on done ShipLoop reruns every
 # recorded command (no loop).
 RERUN_STAGES = stage_spec.with_complete_run("test-rerun")
@@ -166,8 +175,8 @@ def _latest_root_result(state: Mapping[str, Any], stage: str) -> Mapping[str, An
 def stage_commands(state: Mapping[str, Any], stage: str, work_item: str) -> Tuple[List[Dict[str, str]], str]:
     """This stage's commands and, when there are none, why.
 
-    test-green and test-red run the focused commands; every other stage runs
-    every command.
+    test-green, test-red and the test-author probe run the focused commands;
+    every other stage runs every command.
     """
     if stage in OUTER_SOURCES:
         source, field = OUTER_SOURCES[stage]
@@ -178,7 +187,7 @@ def stage_commands(state: Mapping[str, Any], stage: str, work_item: str) -> Tupl
     if "test_commands" not in result:
         return [], ""
     commands = [dict(row) for row in result["test_commands"]
-                if stage not in ("test-green", RED_STAGE) or row["suite"] == "focused"]
+                if stage not in ("test-green", RED_STAGE, PROBE_STAGE) or row["suite"] == "focused"]
     if commands:
         return commands, ""
     return [], str(result.get("test_commands_na") or ("the accepted step plan lists no focused command"
@@ -477,6 +486,10 @@ def _explain(run: Mapping[str, Any], stage: str = "") -> str:
     if status == "green":
         return ("passed, but test-red expects the new tests to fail before implementation. If they are meant to "
                 "pass already, give the reason in red_na.")
+    if status == "not-red" and stage == PROBE_STAGE:
+        # test-author accepts a counted pass, so it must not be told to make a test fail.
+        return ("exited non-zero but no test failed" + seen + ": a setup, import or coverage-gate error is not "
+                "evidence about the tests. Make the command exit 0 when its tests pass, or fail inside a test.")
     if status == "not-red":
         return ("failed without any failing test" + seen + ": a syntax, import or setup error is not a "
                 "meaningful RED. Fix the test setup so the tests run and fail on the missing behaviour.")
@@ -613,7 +626,10 @@ def verify(root: Path, state: Mapping[str, Any], work_item: str, action: str, st
 
     An empty refusal means every command passed (``judge``).  At test-red each
     focused command must fail inside a test, unless ``red_na`` gives the reason
-    the tests already pass; then they must pass and must have run.  A command
+    the tests already pass; then they must pass and must have run.  At test-author
+    (the probe) each focused command must have run a test: exit 0 is judged as a
+    pass (a counted test, at least ``min_tests``, every listed ID shown) and a
+    non-zero exit as a red run (a failing test inside a test).  A command
     that times out, cannot start or is skipped because the invocation's budget
     ran out refuses the stage, but the attempt is recorded ``could-not-run`` and
     does not count toward ``MAX_REFUSED_RUNS``: see ``_disposition``.  ``budget``
@@ -625,6 +641,7 @@ def verify(root: Path, state: Mapping[str, Any], work_item: str, action: str, st
     if not commands:
         return {}, ""
     red = stage == RED_STAGE and not red_na
+    probe = stage == PROBE_STAGE
     refused = refused_runs(root, action)
     number = _verify_count(root, action) + 1
     if refused >= MAX_REFUSED_RUNS:
@@ -667,9 +684,9 @@ def verify(root: Path, state: Mapping[str, Any], work_item: str, action: str, st
             run["status"] = "failed"
         else:
             output = out.decode("utf-8", "replace") + "\n" + err.decode("utf-8", "replace")
-            run.update(judge(row, code, output, red=red))
+            run.update(judge(row, code, output, red=red or (probe and code != 0)))
         runs.append(run)
-    good = ("red",) if red else PASSING
+    good = ("red",) if red else ("red", "passed") if probe else PASSING
     disposition = _disposition(runs, good)
     record = {
         "schema": SCHEMA, "action": action, "stage": stage, "work_item": work_item,
@@ -679,6 +696,8 @@ def verify(root: Path, state: Mapping[str, Any], work_item: str, action: str, st
     }
     if stage == RED_STAGE:
         record["expect"] = "red" if red else "green (red_na: " + str(red_na) + ")"
+    elif probe:
+        record["expect"] = "a test ran"
     relative = verify_path(action, number)
     writes = {relative: store.dumps(record, "ShipLoop test-loop verification")}
     if record["passed"]:
@@ -686,7 +705,8 @@ def verify(root: Path, state: Mapping[str, Any], work_item: str, action: str, st
     failing = [run for run in runs if run["status"] not in good]
     lines = ["ShipLoop test run: " + stage + " is not done. ShipLoop ran the " + str(len(runs))
              + " listed command" + ("" if len(runs) == 1 else "s") + " from " + str(repo) + " and "
-             + str(len(failing)) + (" did not fail as expected:" if red else " did not pass:")]
+             + str(len(failing)) + (" did not fail as expected:" if red
+                                    else " did not show a usable test run:" if probe else " did not pass:")]
     for run in failing:
         lines.append("- [" + run["suite"] + "] " + run["command"] + " -> " + _explain(run, stage))
         tail = (run["stdout"] + "\n" + run["stderr"]).strip().splitlines()[-15:]
@@ -697,7 +717,7 @@ def verify(root: Path, state: Mapping[str, Any], work_item: str, action: str, st
         # explicitly instead, or a command that always hangs has none.  The remedy
         # is accepted on ShipLoop's own record of this attempt (``remedy_open``).
         remedy = _remedy(stage)
-        own = "test or fixture" if red else "code, test or fixture"
+        own = "test or fixture" if red or probe else "code, test or fixture"
         skipped = any(run["status"] == "skipped" for run in runs)
         attempts = ("No command reached a verdict about the product, so this attempt does not count toward "
                     "the " + str(MAX_REFUSED_RUNS) + " refused runs (still at " + str(refused) + "). Nothing is "
@@ -726,6 +746,11 @@ def verify(root: Path, state: Mapping[str, Any], work_item: str, action: str, st
                      + " Full output: " + str(root / relative) + ".")
     elif red:
         lines.append("Fix the tests or their setup (not the product code), then submit done again. " + attempts + " Full output: " + str(root / relative) + ".")
+    elif probe:
+        # A run that never reached a verdict has nothing to say about what the tests load.
+        lines.append("Make the focused commands run this item's tests, then submit done again."
+                     + ("" if disposition == "could-not-run" else " " + PROBE_RULE) + " " + attempts
+                     + " Full output: " + str(root / relative) + ".")
     elif stage in OUTER_SOURCES and all(run["status"] == "uncounted" for run in failing):
         # Nothing here is a product failure: the recorded command itself cannot be counted, and only a replan
         # reaches the stage that records it, so a "fix the code" line would send the model the wrong way.
@@ -742,6 +767,8 @@ def verify(root: Path, state: Mapping[str, Any], work_item: str, action: str, st
 __all__ = (
     "MAX_REFUSED_RUNS",
     "PASSING",
+    "PROBE_RULE",
+    "PROBE_STAGE",
     "RED_STAGE",
     "RERUN_STAGES",
     "STAGES",
