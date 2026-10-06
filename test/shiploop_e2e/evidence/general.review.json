@@ -1,0 +1,41 @@
+{
+ "schema": "run-review-export/v2",
+ "docs": {
+  "observations": {
+   "o44": {
+    "title": "Specify says each planning result is accepted only after its Improve review; under planning_review none it is not",
+    "criterion": "phase-1",
+    "kind": "decision",
+    "status": "open",
+    "run": "any",
+    "expected": "The Specify expectation (phase-1) holds for every run: the script accepts the spec and the test strategy only after each one's Improve review, and the spec is committed to docs/shiploop/.",
+    "observed": "Under the run option planning_review none (state.md key planning_review, recorded since skill-craft 1.22.0) the engine starts no Improve child after spec, test-strategy, plan, step-plan or test-spec: each result is accepted at complete and the graph advances, and the spec and test strategy are committed to the knowledge home when each is accepted, so later runs inherit them unreviewed. Under stage the sentence still holds. In the engine's own walk (the two state fixtures test/fixtures/run-review/state-stage.md and state-none.md) stage parks an Improve child after spec, test-strategy and plan and none parks none.",
+    "evidence": "skills/shiploop/references/state-files.md (section 'Planning review', at 45f163d0); docs/shiploop-planning-review-plan-2026-10-05.md (the two modes, D3 and D7); test/shiploop_e2e/SPEC.md (S-10 carve-out, owner decision 2026-10-05); skills/shiploop-run-review/defaults/expectations.json (phase-1)",
+    "effect": "bent",
+    "advice": "Amend phase-1 with the wording of the SPEC's S-10 carve-out of 2026-10-05 and keep its original sentence, so the page states what the engine does under each mode and does not read an unreviewed none run as a defect. Inferred: until the owner flips the default (I5 of the planning review plan) every new run is stage, so the amended text describes the exception and the original sentence stays the rule.",
+    "createdAt": "2026-10-06T07:47:18Z"
+   }
+  },
+  "actions": {
+   "a26": {
+    "title": "Amend the Specify expectation for planning_review none",
+    "criterion": "phase-1",
+    "kind": "change-expectation",
+    "effort": "S",
+    "recommended": true,
+    "status": "open",
+    "findings": [
+     "o44"
+    ],
+    "ref": "docs/shiploop-planning-review-plan-2026-10-05.md; 45f163d0",
+    "change": {
+     "target": "page",
+     "to": "The model writes a spec and a test strategy from the notes, one stage at a time. The script accepts each only after its Improve review, and the spec is committed to docs/shiploop/. The run option `planning_review` (recorded in `state.md` at `init` or `workspace start`, never changed afterwards) selects which of the five planning results `spec`, `test-strategy`, `plan`, `step-plan` and `test-spec` start an Improve child: `--planning-review stage` starts one after each of the five, as before, and `--planning-review none` starts none. In `none` a planning result is accepted without a review loop, the spec and test strategy are committed to the knowledge home when each is accepted and no Improve child reviews them afterwards, so later runs inherit them unreviewed. The Improve children after `system-test-author` and `release-plan` and the last `carry-forward` start in every mode (test/shiploop_e2e/SPEC.md, S-10 carve-out of 2026-10-05).",
+     "reason": "Under planning_review none (skill-craft 1.22.0) the sentence 'the script accepts each only after its Improve review' is untrue for spec and test-strategy; the SPEC's S-10 carve-out of 2026-10-05 states the exception, and the page's Specify text should carry it."
+    },
+    "goal": "Do: replace the text of phase-1 in skills/shiploop-run-review/defaults/expectations.json with change.to, append a revs entry naming option a26 and finding o44, and journal the change. Files and symbols: phase-1 in skills/shiploop-run-review/defaults/expectations.json; docs/shiploop-run-review-journal.md. Test: python3 -B test/shiploop-run-review.test.py. Done when: the defaults carry the amended phase-1 text with its revs entry and the suite passes.",
+    "why": "For: the page's Specify text promises an Improve review of the spec and the test strategy that planning_review none does not run, and the SPEC states the exception. Against: a longer expectation text for a mode that is not the default yet. Verdict: apply it, so a none run is judged against the SPEC's own wording."
+   }
+  }
+ }
+}

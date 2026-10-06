@@ -4211,5 +4211,91 @@ class PlanningReviewPageTests(unittest.TestCase):
         self.assertNotIn("Improve", page_probe('setCol(0);textOf("seqdetail")', setup=mode_page(self.runs["none"])))
 
 
+GENERAL_REVIEW = EVIDENCE_DIR / "general.review.json"
+# phase-1's text in defaults/expectations.json until a ticked a26 has been applied from the repo (expectation changes are prompt-only).
+PHASE_1_TEXT = ("The model writes a spec and a test strategy from the notes, one stage at a time. The script accepts each only after "
+                "its Improve review, and the spec is committed to docs/shiploop/.")
+
+
+class GeneralReviewBundleTests(unittest.TestCase):
+    """R18: findings that belong to no single run live in general.review.json. It passes the check, its option amends the Specify
+    expectation with the SPEC's own carve-out wording (and does not edit the defaults: that is the owner's tick), and the page's
+    prompt names the evidence directory and the ticked option."""
+
+    @classmethod
+    def setUpClass(cls):
+        cls.docs = json.loads(GENERAL_REVIEW.read_text(encoding="utf-8"))["docs"]
+        cls.finding, cls.option = cls.docs["observations"]["o44"], cls.docs["actions"]["a26"]
+        cls.defaults = {e["key"]: e for e in json.loads((DEFAULTS_DIR / "expectations.json").read_text(encoding="utf-8"))}
+
+    def test_it_passes_the_check_with_no_failure_and_no_warning(self):
+        out, err = io.StringIO(), io.StringIO()
+        with contextlib.redirect_stdout(out), contextlib.redirect_stderr(err):
+            code = export.main(["--check", str(GENERAL_REVIEW)])
+        self.assertEqual((code, err.getvalue(), out.getvalue().strip()), (0, "", "check: ok (2 documents, 0 failures, 0 warnings)"))
+
+    def test_its_finding_and_option_are_shaped_as_the_handoff_asks_and_reuse_no_id_of_another_bundle(self):
+        f, o = self.finding, self.option
+        self.assertEqual([f[k] for k in ("run", "kind", "status", "effect", "criterion")], ["any", "decision", "open", "bent", "phase-1"])
+        self.assertNotIn("phase", f)  # it belongs to no stage of one run
+        self.assertLessEqual(len(re.findall(r"[.!?](?:\s|$)", f["advice"])), 3)
+        for text in ("45f163d0", "docs/shiploop-planning-review-plan-2026-10-05.md", "state-files.md", "'Planning review'"):
+            self.assertIn(text, f["evidence"])
+        self.assertEqual([o[k] for k in ("kind", "effort", "recommended", "status", "findings")],
+                         ["change-expectation", "S", True, "open", ["o44"]])
+        self.assertEqual((o["criterion"], o["change"]["target"]), ("phase-1", "page"))
+        self.assertTrue(re.fullmatch(r"Do: .* Files and symbols: .* Test: .* Done when: [^:]*", o["goal"]), o["goal"])
+        self.assertIn("skills/shiploop-run-review/defaults/expectations.json", o["goal"])
+        self.assertNotIn("reviews", self.docs)  # no run, so no arc and no basis
+        luna = json.loads(LUNA_REVIEW.read_text(encoding="utf-8"))["docs"]
+        self.assertFalse(set(self.docs["observations"]) & set(luna["observations"]))
+        self.assertFalse(set(self.docs["actions"]) & set(luna["actions"]))
+
+    def test_the_amended_text_is_the_original_phase_1_text_plus_the_words_of_the_specs_carve_out(self):
+        to = self.option["change"]["to"]
+        self.assertTrue(to.startswith(PHASE_1_TEXT + " "))
+        self.assertIn(self.defaults["phase-1"]["text"], (PHASE_1_TEXT, to))  # the defaults are the owner's: unchanged until a26 is ticked
+        spec = " ".join(SPEC_MD.read_text(encoding="utf-8").split())
+        carve_out = spec[spec.index("**S-10 carve-out, owner decision 2026-10-05**"):spec.index("**S-11")]
+        for phrase in ("recorded in `state.md` at `init` or `workspace start`, never changed afterwards",
+                       "selects which of the five planning results `spec`, `test-strategy`, `plan`, `step-plan` and `test-spec` start an Improve child",
+                       "`--planning-review stage` starts one after each of the five, as before", "`--planning-review none` starts none",
+                       "In `none` a planning result is accepted without a review loop",
+                       "the spec and test strategy are committed to the knowledge home when each is accepted and no Improve child reviews "
+                       "them afterwards, so later runs inherit them unreviewed",
+                       "The Improve children after `system-test-author` and `release-plan` and the last `carry-forward` start in every mode"):
+            self.assertIn(phrase, to)
+            self.assertIn(phrase, carve_out)
+
+    def test_a_prompt_with_a26_ticked_names_the_evidence_directory_the_option_and_the_expectation_change(self):
+        cfg = json.loads((DEFAULTS_DIR / "config.json").read_text(encoding="utf-8"))
+        state = {"run": {"key": "r1", "name": "Run", "evidence": "/runs/r1"}, "runs": [],
+                 "findings": [{"id": i, **d} for i, d in self.docs["observations"].items()],
+                 "options": [{"id": i, **d} for i, d in self.docs["actions"].items()], "review": None, "after": "wait", "notes": "",
+                 "expectations": self.defaults, "selected": {"options": {"a26": True}, "find": {}},
+                 "config": {**cfg["prompt"], "artifactUrl": ""}}
+        text = run_logic("buildPrompt(%s)" % json.dumps(state))
+        self.assertIn("Review files: the *.review.json bundles in test/shiploop_e2e/evidence/ (find each ticked id below in the bundle "
+                      "that has it, for example grep -l '\"a26\"' test/shiploop_e2e/evidence/*.review.json; edit it there).",
+                      text.split("\n")[0])
+        self.assertIn("CHANGE AN EXPECTATION", text)
+        self.assertIn("1. a26 phase-1 Amend the Specify expectation for planning_review none: target page. Now: " + self.option["change"]["to"], text)
+        self.assertIn(" Was: " + self.defaults["phase-1"]["text"] + " Why: " + self.option["change"]["reason"] + " Resolves: o44.", text)
+        self.assertIn("A page change means editing skills/shiploop-run-review/defaults/expectations.json", text)
+        self.assertIn("- o44 [phase-1, open] " + self.finding["title"], text)
+        self.assertIn("a26 ", text)
+
+    def test_the_general_finding_shows_under_the_general_filter_with_its_option_and_not_under_other_runs(self):
+        state = {"findings": [{"id": i, **d} for i, d in self.docs["observations"].items()],
+                 "options": [{"id": i, **d} for i, d in self.docs["actions"].items()], "runKey": "r1"}
+        general, open_for_run, other = run_logic("(function(S){return ['general','open','other'].map(function(f){"
+                                                 "return cardsFor(Object.assign({filter:f},S));});})(%s)" % json.dumps(state))
+        self.assertEqual([c["finding"]["id"] for c in general["cards"]], ["o44"])
+        self.assertEqual([o["id"] for o in general["cards"][0]["options"]], ["a26"])
+        self.assertFalse(general["cards"][0]["noOption"])
+        self.assertEqual([c["finding"]["id"] for c in open_for_run["cards"]], ["o44"])  # `any` applies to every run
+        self.assertEqual(other["cards"], [])
+
+
 if __name__ == "__main__":
     unittest.main()
