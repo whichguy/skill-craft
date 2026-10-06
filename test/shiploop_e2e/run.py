@@ -1054,43 +1054,12 @@ def baseline_row(result: dict, style: str | None, suite: str | None,
             "output": result.get("output")}
 
 
-def scan_baseline(path: Path, case: str, source: str | None, host: str | None = None,
-                  model: str | None = None, effort: str | None = None) -> tuple[dict | None, int]:
-    """(the last comparable row, how many rows were recorded for this case and source).
-
-    SPEC: a baseline compares only with rows from the same host, model and
-    effort, so a row that does not name all three, or names different ones, is
-    not a baseline for this run. Rows written before those fields existed are
-    therefore skipped rather than compared against. The count lets a caller say
-    "rows exist but none is comparable" instead of printing nothing.
-    """
-    if not path.is_file():
-        return None, 0
-    found, seen = None, 0
-    for line in path.read_text().splitlines():
-        try:
-            row = json.loads(line)
-        except ValueError:
-            continue
-        if row.get("case") != case or row.get("source") != source:
-            continue
-        seen += 1
-        if (row.get("host"), row.get("model"), row.get("effort")) != (host, model, effort):
-            continue
-        found = row
-    return found, seen
-
-
-def previous_row(path: Path, case: str, source: str | None, host: str | None = None,
-                 model: str | None = None, effort: str | None = None) -> dict | None:
-    """The last recorded row for this case that is actually comparable with this run."""
-    return scan_baseline(path, case, source, host, model, effort)[0]
-
-
 # `planning_review` (state.md key, ShipLoop 1.22.0 and later) says which planning results start an Improve child: `stage`
 # after each of spec, test-strategy, plan, step-plan and test-spec, `none` after none of them. Planning minutes, Improve
-# passes and turns are not the same quantity in the two modes, so a run is compared only with a row of its own mode. A row
-# written before the field existed has no mode; it stands for `stage` only when its recorded plugin_version is below
+# passes and turns are not the same quantity in the two modes, so a run is compared with the last row of its own mode
+# (the same case, source, host, model and effort as ever) and never with a row of the other mode; when no earlier row of
+# that driver has the run's mode, nothing is compared and the report says so (`planning_review_line`). A row written before
+# the field existed has no mode; it stands for `stage` only when its recorded plugin_version is below
 # PLANNING_REVIEW_FIRST_RELEASE (the option did not exist then, so each of its planning stages started an Improve child,
 # which is what `stage` does). A row with no usable plugin_version, or with that release or a later one and no field, stands
 # for nothing known ("not recorded") and is compared with no run: a mode is never inferred from anything else.
@@ -1117,14 +1086,53 @@ def row_planning_review(row: dict) -> tuple[str, str]:
         else "no plugin_version places it before the option"))
 
 
-def planning_review_line(mode: str, before: dict) -> str | None:
-    """None when this run and the earlier row name the same recorded planning_review mode, so they may be compared;
-    otherwise the report line saying that nothing was compared, with both modes (an unrecorded mode never matches)."""
-    earlier, why = row_planning_review(before)
-    if mode != metrics.NOT_RECORDED and mode == earlier:
-        return None
-    return (f"  baseline  not compared across planning_review modes ({mode} vs {earlier}); the earlier row is "
-            f"{str(before.get('date'))[:10]}, ShipLoop {before.get('shiploop_version')}" + (f"; it {why}" if why else ""))
+def planning_review_line(mode: str, last: dict) -> str:
+    """The report line for a run that has no earlier row of its own mode to compare with. `last` is the last row of the
+    same driver, which stands for another mode or for none (a run that records no mode matches no row)."""
+    earlier, why = row_planning_review(last)
+    reason = "this run records no mode" if mode == metrics.NOT_RECORDED else f"no earlier row of mode {mode}"
+    return (f"  baseline  not compared across planning_review modes ({mode} vs {earlier}); {reason}; the last row for this "
+            f"driver is {str(last.get('date'))[:10]}, ShipLoop {last.get('shiploop_version')}" + (f"; it {why}" if why else ""))
+
+
+def scan_baseline(path: Path, case: str, source: str | None, host: str | None = None,
+                  model: str | None = None, effort: str | None = None,
+                  planning_review: str | None = None) -> tuple[dict | None, int]:
+    """(the last comparable row, how many rows were recorded for this case and source).
+
+    SPEC: a baseline compares only with rows from the same host, model and
+    effort, so a row that does not name all three, or names different ones, is
+    not a baseline for this run. Rows written before those fields existed are
+    therefore skipped rather than compared against. The count lets a caller say
+    "rows exist but none is comparable" instead of printing nothing. With
+    ``planning_review`` (this run's mode) a row that stands for another mode
+    (``row_planning_review``) is skipped too, so the last row of the run's own
+    mode is found past any rows of the other; a run that records no mode matches no row.
+    """
+    if not path.is_file():
+        return None, 0
+    found, seen = None, 0
+    for line in path.read_text().splitlines():
+        try:
+            row = json.loads(line)
+        except ValueError:
+            continue
+        if row.get("case") != case or row.get("source") != source:
+            continue
+        seen += 1
+        if (row.get("host"), row.get("model"), row.get("effort")) != (host, model, effort):
+            continue
+        if planning_review is not None and (planning_review == metrics.NOT_RECORDED
+                                            or row_planning_review(row)[0] != planning_review):
+            continue
+        found = row
+    return found, seen
+
+
+def previous_row(path: Path, case: str, source: str | None, host: str | None = None,
+                 model: str | None = None, effort: str | None = None) -> dict | None:
+    """The last recorded row for this case that is actually comparable with this run."""
+    return scan_baseline(path, case, source, host, model, effort)[0]
 
 
 NOT_OBSERVED = "not observed (regraded: no host ran)"
@@ -1712,7 +1720,9 @@ def main(argv: list[str] | None = None) -> int:
     # A baseline measures one host running a case from the start; a resumed run is not one.
     baseline_file = args.baseline if not (resumed or seeded) else None
     before, rows_for_case = (scan_baseline(baseline_file, name, versions["source"], args.host, args.model,
-                                           args.effort) if baseline_file else (None, 0))
+                                           args.effort, row["planning_review"]) if baseline_file else (None, 0))
+    last = (previous_row(baseline_file, name, versions["source"], args.host, args.model, args.effort)
+            if baseline_file and before is None else None)  # the driver's last row, of another mode: what the report names
     if baseline_file:
         with baseline_file.open("a") as handle:
             handle.write(json.dumps(row) + "\n")
@@ -1779,9 +1789,7 @@ def main(argv: list[str] | None = None) -> int:
     for check in check_results:
         print(f"  check     {mark(check['pass'])}  {check['command']}")
     print(f"  {exported}")
-    if before and (apart := planning_review_line(row["planning_review"], before)):
-        print(apart)  # nothing below is compared: turns, cost and stages mean something else in the other mode
-    elif before:
+    if before:
         unknown = lambda value: "not measured" if value is None else value  # noqa: E731
         print(f"  baseline  vs {before['date'][:10]} (ShipLoop {before['shiploop_version']}, same "
               f"{args.host}/{args.model}/{args.effort}, planning_review {row['planning_review']}): "
@@ -1796,6 +1804,8 @@ def main(argv: list[str] | None = None) -> int:
             print(f"            the earlier row {why}")
         for line in stage_diff_lines(before.get("stages"), row.get("stages")):
             print(f"            {line}")
+    elif last:
+        print(planning_review_line(row["planning_review"], last))  # turns, cost and stages mean something else in the other mode
     elif baseline_file:
         print("  baseline  nothing compared: " + (
             f"{rows_for_case} earlier row(s) for {name}, none recorded with {args.host}/{args.model}/"

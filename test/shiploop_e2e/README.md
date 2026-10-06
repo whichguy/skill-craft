@@ -197,17 +197,18 @@ The row's `planning_review` is the run option ShipLoop 1.22.0 records in `state.
 test-spec; `none`: after none of them), read as written from the run's own state, and
 `not recorded` when the key is absent: a mode is never defaulted. Planning minutes,
 Improve passes and turns are not the same quantity in the two modes, so a run is
-compared only with a previous row of its own mode. When the modes differ, or either is
-`not recorded`, the report prints `baseline  not compared across planning_review modes
-(<this> vs <previous>)` and compares no turns, cost or stage. A row written before the
-field existed has no mode: it stands for `stage` only when its recorded
-`plugin_version` is below 1.22.0 (the first release with the option, so every planning
-stage of that run started an Improve child, which is what `stage` does) and the report
-says so; a row with no usable `plugin_version`, or with 1.22.0 or later and no field,
-reads `not recorded` and is compared with no run. The previous row is still the last
-row of the same driver: when it has the other mode nothing is compared, even if an
-earlier row of this run's mode exists (compare against it by hand from
-`baselines.jsonl`).
+compared with the last row of its own mode: the last row of the same case, source, host,
+model and effort that stands for the run's mode, found past any rows of the other mode
+(the report names that row by its date and ShipLoop version). When no earlier row of
+that driver has the run's mode, the report prints `baseline  not compared across
+planning_review modes (<this> vs <previous>); no earlier row of mode <this>` (<previous>
+is the mode of the driver's last row) and compares no turns, cost or stage; a run whose
+own mode is `not recorded` matches no row and the report says it records no mode. A row written before the field existed has no mode: it
+stands for `stage` only when its recorded `plugin_version` is below 1.22.0 (the first
+release with the option, so every planning stage of that run started an Improve child,
+which is what `stage` does) and the report says so; a row with no usable
+`plugin_version`, or with 1.22.0 or later and no field, reads `not recorded` and is
+compared with no run.
 
 `metrics.json` also reports `script_verifications` (the checks ShipLoop itself
 ran and recorded, from its `*-verify*.md` records) and `model_glue`: shell
