@@ -1380,7 +1380,7 @@ written, `not recorded` when absent. `run.main` reads the state once (the termin
   below `PLANNING_REVIEW_FIRST_RELEASE` (1.22.0, named once, compared as numbers: 1.9.0 is before it), because the option did not
   exist and every planning stage of that run started an Improve child, which is what `stage` does; otherwise `not recorded` (no
   or malformed `plugin_version`, or 1.22.0 or later with no field). A null counts as absent.
-- `planning_review_line(mode, before)`: None when this run and the previous row name the same recorded mode; otherwise "baseline
+- (Superseded 2026-10-06, see the last entry: the row is now the last of the run's own mode.) `planning_review_line(mode, before)`: None when this run and the previous row name the same recorded mode; otherwise "baseline
   not compared across planning_review modes (<this> vs <previous>); the earlier row is <date>, ShipLoop <v>" (plus "; it records no
   mode, read as stage because plugin 1.21.0 predates the option" when the rule supplied the mode) and nothing below it is compared,
   not turns, cost, sessions, glue nor a stage. Two `not recorded` modes are not known to match and are not compared. A comparison
@@ -1423,7 +1423,7 @@ silently; and eleven on the bundle. Also green: `node test/skill-frontmatter.tes
 `test/marketplace-package.test.py` (29), `scripts/check-release-boundary.py --base origin/main`.
 
 **Limits, documented not guarded.**
-- The previous row is still the last row of the same case, source, host, model and effort. When it has the other mode nothing is
+- (Superseded 2026-10-06, see the last entry: the owner approved choosing the last row of the same mode.) The previous row is still the last row of the same case, source, host, model and effort. When it has the other mode nothing is
   compared, even if an earlier row of this run's mode exists: after none runs, a stage control would not be compared with the
   1.21.0 stage rows. Choosing the last row of the same mode is a change of `scan_baseline` of about ten lines; it is not made
   because the handoff says "compares nothing when the modes differ" and the safe reading is the literal one.
@@ -1443,5 +1443,22 @@ silently; and eleven on the bundle. Also green: `node test/skill-frontmatter.tes
 
 **Owner decisions.** (1) Republish the template; then upload each new run's document and `export.py --docs
 test/shiploop_e2e/evidence/general.review.json` for o44 and a26. (2) Tick a26 (or not): it amends phase-1 on the page only. (3)
-Whether the baseline comparison should take the last row of the same mode (the limit above). (4) Whether the prompt's run facts and
+Whether the baseline comparison should take the last row of the same mode (the limit above; decided yes on 2026-10-06, built in `25d1d93d`). (4) Whether the prompt's run facts and
 the comparison table should carry the mode.
+
+## 2026-10-06: R18 follow-up, a run is compared with the last row of its own planning_review mode (local, unpublished)
+
+Status: firm. Decision 2 of the R18 entry (take the last row of the same mode) was approved by the coordinator on the owner's
+"continue", and is built in one harness-only commit, `25d1d93d` (test/shiploop_e2e/run.py, README.md, test/shiploop-e2e.test.py; no
+change note). `scan_baseline(..., planning_review)` now finds the last row of the same driver that stands for the run's mode, past rows of
+the other mode (the old-row rule is unchanged: a row with no field is `stage` only when its plugin_version is below 1.22.0); with no such
+row the report prints "baseline  not compared across planning_review modes (<this> vs <previous>); no earlier row of mode <this>; the
+last row for this driver is <date>, ShipLoop <v>" and compares nothing, and a comparison names its row by date and ShipLoop version as
+before. Effect on the sequence the plan measures: [1.21.0 stage row, none, none] then a stage control compares with the 1.21.0 row, and a
+none run after [stage, none] compares with the none row. 247 tests in test/shiploop-e2e.test.py (241 before); 11 of the 16 tests of the two
+baseline classes fail on the tip before it, and 11 deliberate defects are caught. The proof trees for harness tests must be real git
+repositories (the harness runs git on its own checkout): the R18 commit `9eba8f41` was re-proved that way (all 10 of its tests fail on its
+parent, all 8 of its defects are caught), so its recorded claims stand. The branch was rebased onto `origin/main` 3b246328 with no
+conflicts; the R18 commits of the entry above are now `c757cedf` (exporter, page), `9eba8f41` (baseline rows), `cb0baf6e` (bundle) and
+`219c1de6` (that entry), and the R17 commits `f31095ce`, `09f27638` and `a88a3cf7` (they were `b2e879a6`, `defaeb12`, `4b09f959`, `4a7fe0e8`
+and `c439244f`, `442bd572`, `cd631edb`). Also resolved there: the limit "a stage control would not be compared with the 1.21.0 stage rows".
