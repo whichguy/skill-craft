@@ -2819,6 +2819,256 @@ class BackchainPassesOptionTest(unittest.TestCase):
         self.assertEqual(accepted.returncode, 0, accepted.stdout + accepted.stderr)
 
 
+class PlanningReviewOptionTest(unittest.TestCase):
+    """The run option `planning_review`: recorded, validated, refused when missing or changed, threaded to the packet.
+
+    Same shape as BackchainPassesOptionTest. Only the value `stage` is registered until the option has a second
+    behaviour, so a changed retry cannot be named through the shipped CLI; those two refusals are driven with a second
+    value registered inside the child process (FORCED_SECOND_VALUE), through the real parser, the real run-directory
+    load and the real retry gates at both sites. The option never changes a printed packet.
+    """
+
+    SPEC = ROOT / "test" / "shiploop_e2e" / "SPEC.md"
+    # Registers a second value before the CLI imports the navigator, so the choices, the validator and the retry
+    # gates all see it. It adds nothing once the engine registers `none` itself.
+    FORCED_SECOND_VALUE = (
+        "import importlib.machinery, importlib.util, sys\n"
+        "scripts, *argv = sys.argv[1:]\n"
+        "sys.path.insert(0, scripts)\n"
+        "import shiploop_stage_spec as stage_spec\n"
+        "if 'none' not in stage_spec.PLANNING_REVIEW_MODES:\n"
+        "    stage_spec.PLANNING_REVIEW_MODES = stage_spec.PLANNING_REVIEW_MODES + ('none',)\n"
+        "loader = importlib.machinery.SourceFileLoader('shiploop', scripts + '/shiploop')\n"
+        "module = importlib.util.module_from_spec(importlib.util.spec_from_loader('shiploop', loader))\n"
+        "sys.modules['shiploop'] = module\n"
+        "loader.exec_module(module)\n"
+        "sys.exit(module.main(argv))\n")
+
+    def setUp(self) -> None:
+        self._temporary = tempfile.TemporaryDirectory(prefix="shiploop-planning-review-")
+        self.addCleanup(self._temporary.cleanup)
+        self.base = Path(self._temporary.name).resolve()
+        self.env = dict(os.environ, PYTHONDONTWRITEBYTECODE="1",
+                        GIT_CONFIG_GLOBAL=os.devnull, GIT_CONFIG_NOSYSTEM="1")
+        self.repo = self.base / "repo"
+        self.repo.mkdir()
+        (self.repo / "a.txt").write_text("x\n")
+        for argv in (["init", "-q"], ["add", "."],
+                     ["-c", "user.email=t@example.invalid", "-c", "user.name=t", "commit", "-qm", "init"]):
+            subprocess.run(["git", *argv], cwd=self.repo, env=self.env, check=True)
+
+    def cli(self, *argv: str) -> subprocess.CompletedProcess:
+        return subprocess.run([sys.executable, "-B", str(SCRIPTS / "shiploop"), *argv], cwd=self.base,
+                              env=self.env, capture_output=True, text=True, timeout=60)
+
+    def cli_with_second_value(self, *argv: str) -> subprocess.CompletedProcess:
+        return subprocess.run([sys.executable, "-B", "-c", self.FORCED_SECOND_VALUE, str(SCRIPTS), *argv],
+                              cwd=self.base, env=self.env, capture_output=True, text=True, timeout=60)
+
+    def init_args(self, run: Path, *extra: str, prompt: str = "add hello") -> tuple[str, ...]:
+        return ("init", "--repo", str(self.repo), "--run-dir", str(run), "--prompt=" + prompt, *extra)
+
+    def init(self, run: Path, *extra: str, prompt: str = "add hello") -> subprocess.CompletedProcess:
+        return self.cli(*self.init_args(run, *extra, prompt=prompt))
+
+    @staticmethod
+    def recorded(run: Path) -> object:
+        return store.read_record(run / "state.md").get("planning_review")
+
+    def test_new_runs_record_stage_by_default_and_when_named(self) -> None:
+        self.assertEqual(navigator.PLANNING_REVIEW_MODES, ("stage",))
+        self.assertEqual(navigator.DEFAULT_PLANNING_REVIEW, "stage")
+        for mode in (None, *navigator.PLANNING_REVIEW_MODES):
+            with self.subTest(mode=mode):
+                run = self.base / ("run-" + (mode or "default"))
+                started = self.init(run, *(("--planning-review", mode) if mode else ()))
+                self.assertEqual(started.returncode, 0, started.stdout + started.stderr)
+                self.assertEqual(self.recorded(run), "stage")
+        self.assertEqual(navigator.new_state(str(self.repo), "Default.")["planning_review"], "stage")
+
+    def test_an_unregistered_value_is_refused_by_the_cli_and_by_the_state_api(self) -> None:
+        for value in ("none", "two"):
+            with self.subTest(value=value):
+                run = self.base / ("run-unregistered-" + value)
+                refused = self.init(run, "--planning-review", value)
+                self.assertEqual(refused.returncode, 2, refused.stdout + refused.stderr)
+                self.assertIn("invalid choice", refused.stderr)
+                self.assertFalse(run.exists())
+                with self.assertRaisesRegex(navigator.NavigatorError, "planning review must be one of"):
+                    navigator.new_state(str(self.repo), "Bad.", planning_review=value)
+        workspace = self.cli("workspace", "start", "--repo", str(self.repo), "--workspace-root",
+                             str(self.base / "workspace-unregistered"), "--prompt", "Workspace fixture.",
+                             "--planning-review", "none")
+        self.assertEqual(workspace.returncode, 2, workspace.stdout + workspace.stderr)
+        self.assertIn("invalid choice", workspace.stderr)
+        state = navigator.new_state(str(self.repo), "Good.")
+        with self.assertRaisesRegex(navigator.NavigatorError, "unsupported planning review option"):
+            navigator.validate(dict(state, planning_review="two"))
+
+    def test_a_retry_naming_another_value_is_refused_and_a_plain_retry_recovers(self) -> None:
+        run = self.base / "run-retry"
+        args = self.init_args(run)
+        self.assertEqual(self.cli_with_second_value(*args, "--planning-review", "none").returncode, 0)
+        self.assertEqual(self.recorded(run), "none")
+        before = (run / "state.md").read_bytes()
+        refused = self.cli_with_second_value(*args, "--planning-review", "stage")
+        self.assertEqual(refused.returncode, 2, refused.stdout + refused.stderr)
+        self.assertIn("recorded", refused.stderr)
+        self.assertIn("none", refused.stderr)
+        self.assertIn("fresh --run-dir", refused.stderr)  # there is no mid-run switch to offer
+        self.assertIn("only the owner starts a fresh run", refused.stderr)
+        self.assertNotIn("--set", refused.stderr)
+        self.assertEqual((run / "state.md").read_bytes(), before)
+        for same in (("--planning-review", "none"), ()):
+            with self.subTest(same=same):
+                recovered = self.cli_with_second_value(*args, *same)
+                self.assertEqual(recovered.returncode, 0, recovered.stdout + recovered.stderr)
+        self.assertEqual(self.recorded(run), "none")
+        # The shipped CLI, which registers only `stage`, recovers a run that names the recorded value.
+        fresh = self.base / "run-retry-shipped"
+        self.assertEqual(self.init(fresh).returncode, 0)
+        for same in (("--planning-review", "stage"), ()):
+            with self.subTest(shipped=same):
+                self.assertEqual(self.init(fresh, *same).returncode, 0)
+
+    def test_workspace_start_records_the_value_and_refuses_a_changed_retry(self) -> None:
+        root = self.base / "workspace"
+        args = ("workspace", "start", "--repo", str(self.repo), "--workspace-root", str(root),
+                "--prompt", "Workspace fixture.")
+        started = self.cli_with_second_value(*args, "--planning-review", "none")
+        self.assertEqual(started.returncode, 0, started.stdout + started.stderr)
+        self.assertEqual(self.recorded(root / "run"), "none")
+        before = (root / "run" / "state.md").read_bytes()
+        refused = self.cli_with_second_value(*args, "--planning-review", "stage")
+        self.assertEqual(refused.returncode, 2, refused.stdout + refused.stderr)
+        self.assertIn("none", refused.stderr)
+        # the workspace wrapper forbids creating a replacement run to bypass a refusal, so the refusal must not
+        # tell the host to start one: it names the owner as the one who does
+        self.assertIn("create a replacement run", refused.stderr)
+        self.assertIn("only the owner starts a fresh run", refused.stderr)
+        self.assertEqual((root / "run" / "state.md").read_bytes(), before)
+        self.assertEqual(self.cli_with_second_value(*args).returncode, 0)
+        self.assertEqual(self.recorded(root / "run"), "none")
+        shipped = self.base / "workspace-shipped"
+        shipped_args = ("workspace", "start", "--repo", str(self.repo), "--workspace-root", str(shipped),
+                        "--prompt", "Workspace fixture.")
+        self.assertEqual(self.cli(*shipped_args, "--planning-review", "stage").returncode, 0)
+        self.assertEqual(self.recorded(shipped / "run"), "stage")
+        self.assertEqual(self.cli(*shipped_args).returncode, 0)
+
+    def test_a_saved_run_without_the_key_is_refused_with_the_fresh_run_hint(self) -> None:
+        run = self.base / "run-old"
+        self.assertEqual(self.init(run).returncode, 0)
+        saved = store.read_record(run / "state.md")
+        del saved["planning_review"]
+        store.write_record(run / "state.md", saved, title="Saved ShipLoop state")
+        before = (run / "state.md").read_bytes()
+        with self.assertRaises(navigator.NavigatorError) as caught:
+            navigator.validate(saved)
+        self.assertIn("missing: planning_review", str(caught.exception))
+        self.assertIn(navigator.FRESH_RUN_HINT, str(caught.exception))
+        for argv in (("next", "--run-dir", str(run)), ("report", "--run-dir", str(run)),
+                     ("init", "--repo", str(self.repo), "--run-dir", str(run), "--prompt=add hello")):
+            with self.subTest(command=argv[0]):
+                refused = self.cli(*argv)
+                output = refused.stdout + refused.stderr
+                self.assertEqual(refused.returncode, 2, output)
+                self.assertIn("missing: planning_review", output)
+                self.assertIn("fresh --run-dir", output)
+                self.assertNotIn("Traceback", output)
+                self.assertEqual((run / "state.md").read_bytes(), before)
+
+    def test_the_recorded_mode_reaches_the_guidance_the_packet_is_rendered_from(self) -> None:
+        for mode in navigator.PLANNING_REVIEW_MODES:
+            with self.subTest(mode=mode):
+                state = navigator.new_state(str(self.repo), "Thread it.", planning_review=mode)
+                with patch.object(navigator.guidance, "prompt", wraps=prompts.prompt) as rendered:
+                    navigator.render(None, self.base / "run", state)
+                rendered.assert_called_once()
+                self.assertEqual(rendered.call_args.kwargs["planning_review"], mode)
+
+    def test_naming_the_mode_changes_no_packet_and_an_unknown_one_is_refused(self) -> None:
+        """The option has no text of its own yet: every stage prompt and duty renders as it does without it."""
+        for delegation in prompts.DELEGATIONS:
+            for stage in prompts.STAGES:
+                with self.subTest(stage=stage, delegation=delegation):
+                    for mode in navigator.PLANNING_REVIEW_MODES:
+                        self.assertEqual(prompts.prompt(stage, delegation=delegation, planning_review=mode),
+                                         prompts.prompt(stage, delegation=delegation))
+                        self.assertEqual(prompts.duty(stage, delegation=delegation, planning_review=mode),
+                                         prompts.duty(stage, delegation=delegation))
+        for stage in prompts.STAGES:  # the catalog renders the default
+            self.assertEqual(prompts.PROMPTS[stage], prompts.prompt(stage, planning_review="stage"))
+        for call in (lambda: prompts.prompt("plan", planning_review="two"),
+                     lambda: prompts.duty("plan", planning_review="two")):
+            with self.assertRaises(ValueError):
+                call()
+
+    def test_the_backchain_retry_messages_are_what_they_were(self) -> None:
+        """GUARD, passes on the unchanged code: moving the guard onto the shared helper must not reword it."""
+        import shiploop_protocol as protocol
+        existing = {"backchain_passes": "converge"}
+        with self.assertRaises(protocol.ProtocolError) as refused:
+            protocol._require_retry_backchain_passes(existing, "none", Path("/unused"))
+        self.assertEqual(
+            str(refused.exception),
+            "--backchain-passes none differs from this run's recorded Backchain passes option converge; rerun "
+            "without --backchain-passes to recover the run. The option cannot change mid-run: only the owner "
+            "starts a fresh run (a fresh --run-dir or --workspace-root) to use none")
+        self.assertIsNone(protocol._require_retry_backchain_passes(existing, None, Path("/unused")))
+        self.assertIsNone(protocol._require_retry_backchain_passes(existing, "converge", Path("/unused")))
+
+    def test_both_options_use_the_one_retry_helper(self) -> None:
+        """S-12: one implementation of the fixed-option retry guard; the wrappers name their own flag and label."""
+        import shiploop_protocol as protocol
+        existing = {"backchain_passes": "converge", "planning_review": "stage"}
+        run = Path("/unused")
+        with self.assertRaises(protocol.ProtocolError) as refused:
+            protocol._require_retry_planning_review(existing, "none", run)
+        self.assertEqual(
+            str(refused.exception),
+            "--planning-review none differs from this run's recorded planning review option stage; rerun "
+            "without --planning-review to recover the run. The option cannot change mid-run: only the owner "
+            "starts a fresh run (a fresh --run-dir or --workspace-root) to use none")
+        self.assertIsNone(protocol._require_retry_planning_review(existing, None, run))   # no flag named: recovery
+        self.assertIsNone(protocol._require_retry_planning_review(existing, "stage", run))  # the recorded value named
+        with patch.object(protocol, "_require_retry_fixed_option") as shared:
+            protocol._require_retry_backchain_passes(existing, "none", run)
+            protocol._require_retry_planning_review(existing, "none", run)
+        self.assertEqual([call.args[1] for call in shared.call_args_list],
+                         ["--backchain-passes", "--planning-review"])
+
+    def test_the_documents_the_host_reads_name_the_option(self) -> None:
+        skill = ROOT / "skills" / "shiploop"
+        guide = (skill / "SKILL.md").read_text(encoding="utf-8")
+        self.assertIn("### Planning review option", guide)
+        option = " ".join(guide.split("### Planning review option", 1)[1].split("\n### ", 1)[0].split())
+        self.assertIn("`planning_review`", option)
+        self.assertIn("--planning-review", option)
+        synopsis = [line for line in (skill / "README.md").read_text(encoding="utf-8").splitlines()
+                    if re.match(r"shiploop (init|workspace start) ", line)]
+        self.assertEqual(len(synopsis), 2, synopsis)
+        for line in synopsis:
+            self.assertIn("--planning-review", line)
+        for name in ("navigator.md", "state-files.md", "graph-dry-run.md"):
+            with self.subTest(document=name):
+                self.assertIn("planning-review", (skill / "references" / name).read_text(encoding="utf-8"))
+
+    def test_the_spec_carve_out_names_the_option_the_code_defines(self) -> None:
+        """Parity, not prose, as a subset until the engine registers every value the carve-out names."""
+        spec = " ".join(self.SPEC.read_text(encoding="utf-8").split())
+        carve = spec.split("**S-10 carve-out, owner decision 2026-10-05", 1)[1].split("**S-11", 1)[0]
+        key = "planning_review"
+        self.assertIn("(state option `" + key + "`", carve)
+        self.assertIn(key, navigator.new_state(str(self.repo), "Key."))
+        flag = "--" + key.replace("_", "-")
+        named = set(re.findall(re.escape(flag) + r" `?(\w+)", carve))
+        self.assertLessEqual(set(navigator.PLANNING_REVIEW_MODES), named, carve)
+        for mode in navigator.PLANNING_REVIEW_MODES:
+            accepted = self.init(self.base / ("run-spec-" + mode), flag, mode)
+            self.assertEqual(accepted.returncode, 0, accepted.stdout + accepted.stderr)
+
+
 class BackchainGateDocumentsTest(unittest.TestCase):
     """The Backchain gate is caller-selected, and no document the host reads contradicts the printed gate.
 

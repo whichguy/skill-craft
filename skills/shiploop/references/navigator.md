@@ -206,6 +206,13 @@ audit resource and the loop-resource status line, as the other Backchain stages 
 not the six-file "Selected Backchain and Until Loop resources" block that `one` and
 `converge` print there. See [Backchain passes option](../SKILL.md#backchain-passes-option).
 
+Every run also records its `planning_review` option (`stage`, the only value accepted
+today, unless `--planning-review` says otherwise), which selects the planning results that
+start an Improve child; `stage` is every planning result, as before, and no packet changes
+with it. No verb changes it mid-run, a retry of `init` or `workspace start` cannot change
+it, and a saved run without it is refused with the fresh-run hint. See
+[Planning review option](../SKILL.md#planning-review-option).
+
 Every packet prints the shared
 [reference handoff policy](project-knowledge.md#reference-handoffs-and-destinations).
 Use its explicit package/repository/run/child roots for requirement and test

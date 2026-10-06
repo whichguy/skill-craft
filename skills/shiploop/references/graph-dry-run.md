@@ -24,7 +24,9 @@ python3 "$CLI" graph-dry-run --scenario delivery --delegation ask-agent --format
 `ask-agent` renders the opt-in delegated packets. `--backchain-passes one|converge|none`
 likewise selects the simulated run's
 [Backchain passes option](../SKILL.md#backchain-passes-option), default `one`, and changes the
-Backchain stage packets the trace prints.
+Backchain stage packets the trace prints. `--planning-review stage` selects the simulated run's
+[planning review option](../SKILL.md#planning-review-option), the only value accepted today; it
+changes no packet.
 
 `--list` prints the scenarios: delivery, two
 work items, blocked/resume, a repeat returned through Improve, pause/resume and

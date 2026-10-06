@@ -319,6 +319,30 @@ class NavigatorDryRunTests(unittest.TestCase):
             self.assertEqual(refused.returncode, 2, refused.stdout + refused.stderr)
             self.assertIn('invalid choice', refused.stderr)
 
+    def test_the_dry_run_simulates_the_selected_planning_review_option(self):
+        scenario = driver.scenarios()['delivery']
+        for mode in navigator.PLANNING_REVIEW_MODES:
+            with self.subTest(mode=mode):
+                with patch.object(navigator.guidance, 'prompt', wraps=guidance.prompt) as rendered:
+                    report = driver.run_scenario('delivery', scenario, planning_review=mode)
+                self.assertTrue(report['ok'], report.get('error'))
+                self.assertTrue(rendered.call_args_list)
+                self.assertEqual({call.kwargs['planning_review'] for call in rendered.call_args_list}, {mode})
+        env = dict(os.environ, PYTHONDONTWRITEBYTECODE='1')
+        base = [sys.executable, '-B', str(SCRIPTS / 'shiploop'), 'graph-dry-run', '--scenario', 'delivery']
+        with tempfile.TemporaryDirectory(prefix='navigator-dry-run-planning-review-') as temporary:
+            for mode in navigator.PLANNING_REVIEW_MODES:
+                with self.subTest(cli=mode):
+                    result = subprocess.run(base + ['--planning-review', mode], cwd=temporary, env=env,
+                                            capture_output=True, text=True)
+                    self.assertEqual(result.returncode, 0, result.stdout + result.stderr)
+            for unregistered in ('none', 'two'):
+                with self.subTest(refused=unregistered):
+                    refused = subprocess.run(base + ['--planning-review', unregistered], cwd=temporary, env=env,
+                                             capture_output=True, text=True)
+                    self.assertEqual(refused.returncode, 2, refused.stdout + refused.stderr)
+                    self.assertIn('invalid choice', refused.stderr)
+
     def test_protocol_version_flag_is_retired(self):
         env = dict(os.environ, PYTHONDONTWRITEBYTECODE='1')
         base = [sys.executable, '-B', str(SCRIPTS / 'shiploop'), 'graph-dry-run']

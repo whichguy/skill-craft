@@ -114,6 +114,7 @@ _STATE_KEYS = frozenset(
         "revisions",
         "lint",
         "backchain_passes",
+        "planning_review",
     )
 )
 # Run-level execution delegation.  Every run records it; new runs default to
@@ -130,6 +131,11 @@ DEFAULT_LINT = lint.DEFAULT_MODE
 # without the key is refused (one supported version), never migrated, and no verb changes it mid-run.
 BACKCHAIN_PASSES_MODES = guidance.BACKCHAIN_PASSES_MODES
 DEFAULT_BACKCHAIN_PASSES = guidance.DEFAULT_BACKCHAIN_PASSES
+# Run-level planning review option: which planning results start an Improve child (see
+# shiploop_stage_spec.PLANNING_REVIEW_MODES).  New CLI-created runs record ``stage``; a saved run
+# without the key is refused (one supported version), never migrated, and no verb changes it mid-run.
+PLANNING_REVIEW_MODES = stage_spec.PLANNING_REVIEW_MODES
+DEFAULT_PLANNING_REVIEW = stage_spec.DEFAULT_PLANNING_REVIEW
 # Printed for any saved run this navigator cannot load.
 FRESH_RUN_HINT = ("Preserve it; this ShipLoop cannot resume it. Start new work with init or "
                   "workspace start in a fresh --run-dir.")
@@ -154,6 +160,7 @@ __all__ = [
     "lint_view",
     "recorded_backchain_passes",
     "recorded_delegation",
+    "recorded_planning_review",
     "new_state",
     "reconcile",
     "render",
@@ -174,6 +181,11 @@ def recorded_delegation(state: Mapping[str, Any]) -> str:
 def recorded_backchain_passes(state: Mapping[str, Any]) -> str:
     """Return the run's Backchain passes option (every supported run records one)."""
     return state["backchain_passes"]
+
+
+def recorded_planning_review(state: Mapping[str, Any]) -> str:
+    """Return the run's planning review option (every supported run records one)."""
+    return state["planning_review"]
 
 
 def lint_mode(state: Mapping[str, Any]) -> str:
@@ -714,13 +726,15 @@ def new_state(
     delegation: str = DEFAULT_DELEGATION,
     lint_option: str | None = None,
     backchain_passes: str = DEFAULT_BACKCHAIN_PASSES,
+    planning_review: str = DEFAULT_PLANNING_REVIEW,
 ) -> dict[str, Any]:
     """Create an unpersisted navigator cursor with one initial work item.
 
     ``delegation`` records the run's execution route (inline or ask-agent).
     ``lint_option`` records the script-owned lint option; ``None`` records off,
     and the CLI passes DEFAULT_LINT for new runs. ``backchain_passes`` records
-    how many passes the Backchain planning child may take.
+    how many passes the Backchain planning child may take. ``planning_review``
+    records which planning results start an Improve child.
     """
     _need(type(delivery_contract) is bool, "delivery_contract must be boolean")
     _need(type(worktree) is bool, "worktree must be boolean")
@@ -729,6 +743,8 @@ def new_state(
           "lint must be one of " + ", ".join(LINT_MODES))
     _need(backchain_passes in BACKCHAIN_PASSES_MODES,
           "backchain passes must be one of " + ", ".join(BACKCHAIN_PASSES_MODES))
+    _need(planning_review in PLANNING_REVIEW_MODES,
+          "planning review must be one of " + ", ".join(PLANNING_REVIEW_MODES))
     _text(repo, "repo")
     _text(prompt, "prompt")
     _need(not privacy.sensitive_text(prompt),
@@ -772,6 +788,7 @@ def new_state(
     # (the CLI always passes its fix default).
     state["lint"] = lint_option if lint_option is not None else "off"
     state["backchain_passes"] = backchain_passes
+    state["planning_review"] = planning_review
     validate(state)
     return state
 
@@ -963,6 +980,8 @@ def _validate_current_state(state: Mapping[str, Any]) -> None:
           "unsupported lint option; expected one of " + ", ".join(LINT_MODES))
     _need(state["backchain_passes"] in BACKCHAIN_PASSES_MODES,
           "unsupported backchain passes option; expected one of " + ", ".join(BACKCHAIN_PASSES_MODES))
+    _need(state["planning_review"] in PLANNING_REVIEW_MODES,
+          "unsupported planning review option; expected one of " + ", ".join(PLANNING_REVIEW_MODES))
     _text(state.get("improve_skill"), "improve_skill", allow_empty=True)
     records = state.get("improve_results")
     _need(isinstance(records, Mapping), "Improve results must be an object")
@@ -3239,7 +3258,8 @@ def render(core: Any, root: Path, state: Mapping[str, Any],
     lines.extend(_replan_delta_lines(root, state, stage))
     lines.extend(knowledge.stage_lines(state, stage))
     instruction = guidance.prompt(stage, delegation=route,
-                                  backchain_passes=recorded_backchain_passes(state))
+                                  backchain_passes=recorded_backchain_passes(state),
+                                  planning_review=recorded_planning_review(state))
     _need(isinstance(instruction, str) and bool(instruction.strip()),
           f"navigator prompt is unavailable for {stage}")
     lines.extend(

@@ -404,6 +404,19 @@ migrated, and an `init` or `workspace start` retry cannot change it. Unlike
 `lint`, no verb changes it mid-run: a fresh run is the route to another value.
 Improve's review loops are not covered by it.
 
+### Planning review option
+
+`--planning-review stage` at `init` or `workspace start` records the run option
+`planning_review` (default `stage`): which planning results start an Improve child.
+`stage` starts one after each of `spec`, `test-strategy`, `plan`, `step-plan` and
+`test-spec`, as every run did before the option existed, and it is the only value
+accepted today; the packets are the same for it. The children after `system-test-author`,
+`release-plan` and the last `carry-forward` are not covered by the option, nor are the
+Backchain, quality and test loops.
+Like `backchain_passes`, a saved run without the key is refused (start a fresh run),
+never migrated, an `init` or `workspace start` retry cannot change it, and no verb
+changes it mid-run: a fresh run is the route to another value.
+
 ### Static-checks quality loop
 
 `static-checks` runs one quality loop on the Until Loop bound to the selected

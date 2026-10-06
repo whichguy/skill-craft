@@ -2097,6 +2097,11 @@ def _require_delegation(delegation: str) -> None:
         raise ValueError(f"unknown navigator delegation: {delegation!r}")
 
 
+def _require_planning_review(planning_review: str) -> None:
+    if planning_review not in stage_spec.PLANNING_REVIEW_MODES:
+        raise ValueError(f"unknown planning review option: {planning_review!r}")
+
+
 # Inline runs replace only the chain-specific paragraphs of these duties; the
 # ask-agent text above stays the single source for the delegated route.
 _INLINE_DUTY_PARAGRAPHS = {
@@ -2183,10 +2188,15 @@ _INLINE_PLANNING_DIRECTIVE = (
 )
 
 
-def duty(stage: str, *, delegation: str = ASK_AGENT) -> str:
-    """Return one stage duty with the run's implementation-route paragraph."""
+def duty(stage: str, *, delegation: str = ASK_AGENT, planning_review: str = "stage") -> str:
+    """Return one stage duty with the run's implementation-route paragraph.
+
+    ``planning_review`` is the run's option (see stage_spec.PLANNING_REVIEW_MODES); no mode changes the
+    text yet, so the literal default ``stage`` keeps catalog renders independent of the option's default.
+    """
     _require_stage(stage)
     _require_delegation(delegation)
+    _require_planning_review(planning_review)
     text = DUTIES[stage]
     if delegation == INLINE and stage in _INLINE_DUTY_PARAGRAPHS:
         delegated, inline = _INLINE_DUTY_PARAGRAPHS[stage]
@@ -2220,17 +2230,19 @@ failed or was not run (with the reason).
 
 
 def prompt(stage: str, *, delegation: str = ASK_AGENT,
-           backchain_passes: str = DEFAULT_BACKCHAIN_PASSES) -> str:
+           backchain_passes: str = DEFAULT_BACKCHAIN_PASSES,
+           planning_review: str = "stage") -> str:
     """Return the single current producer instruction for a navigator graph stage.
 
-    The navigator always passes the run's delegation and Backchain passes option; the
-    ask-agent default keeps catalog renders identical to runs recorded before the
-    delegation setting existed, and the catalog renders the default passes option.
+    The navigator always passes the run's delegation, Backchain passes option and planning review
+    option; the ask-agent default keeps catalog renders identical to runs recorded before the
+    delegation setting existed, and the catalog renders the default of each option.
     """
     _require_stage(stage)
     _require_delegation(delegation)
     _require_backchain_passes(backchain_passes)
-    parts = [COMMON, duty(stage, delegation=delegation)]
+    _require_planning_review(planning_review)
+    parts = [COMMON, duty(stage, delegation=delegation, planning_review=planning_review)]
     if stage in stage_spec.with_block("interaction-design"):
         parts.append(INTERACTION_DESIGN)
     if stage in stage_spec.with_block("work-items"):

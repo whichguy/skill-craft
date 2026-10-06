@@ -52,6 +52,18 @@ class StageTableTest(unittest.TestCase):
             "spec", "test-strategy", "plan", "step-plan", "test-spec", "system-test-author", "release-plan"}))
         self.assertEqual(spec.with_improve("last-item"), frozenset({"carry-forward"}))
 
+    def test_planning_review_modes(self) -> None:
+        """The run option `planning_review`: the registered modes and the stages a mode reviews."""
+        self.assertEqual(spec.PLANNING_REVIEW_MODES, ("stage",))
+        self.assertEqual(spec.DEFAULT_PLANNING_REVIEW, "stage")
+        self.assertIn(spec.DEFAULT_PLANNING_REVIEW, spec.PLANNING_REVIEW_MODES)
+        # `stage` is today's behaviour: every stage whose rule is `always` starts an Improve child.
+        self.assertEqual(spec.reviewed_stages("stage"), spec.with_improve("always"))
+        self.assertEqual(spec.reviewed_stages("stage"), frozenset({
+            "spec", "test-strategy", "plan", "step-plan", "test-spec", "system-test-author", "release-plan"}))
+        with self.assertRaises(ValueError):
+            spec.reviewed_stages("two")
+
     def test_prompt_block_sets(self) -> None:
         self.assertEqual(prompts.TEST_FACILITY_STAGES, frozenset({
             "test-strategy", "plan", "step-plan", "test-spec", "test-author", "test-red", "test-refine",

@@ -141,7 +141,8 @@ def _completed_instances(state):
 
 
 def run_scenario(name, scenario, *, delegation=navigator.DEFAULT_DELEGATION,
-                 backchain_passes=navigator.DEFAULT_BACKCHAIN_PASSES):
+                 backchain_passes=navigator.DEFAULT_BACKCHAIN_PASSES,
+                 planning_review=navigator.DEFAULT_PLANNING_REVIEW):
     report = {'name': name, 'simulation_only': True, 'ok': False, 'events': []}
     try:
         if not isinstance(scenario, dict):
@@ -156,6 +157,7 @@ def run_scenario(name, scenario, *, delegation=navigator.DEFAULT_DELEGATION,
             '/simulation-only/repo',
             'Inspect the SDLC graph with synthetic declarations.',
             improve_skill='', delegation=delegation, backchain_passes=backchain_passes,
+            planning_review=planning_review,
         )
         for index, step in enumerate(rows, 1):
             if not isinstance(step, dict) or not {'at', 'expect'} <= set(step):
@@ -217,6 +219,8 @@ def add_arguments(parser):
                         help='execution delegation to simulate; default follows new runs (inline)')
     parser.add_argument('--backchain-passes', choices=navigator.BACKCHAIN_PASSES_MODES, default=None,
                         help='Backchain passes option to simulate; default follows new runs (one)')
+    parser.add_argument('--planning-review', choices=navigator.PLANNING_REVIEW_MODES, default=None,
+                        help='planning review option to simulate; default follows new runs (stage)')
     parser.add_argument('--list', action='store_true')
 
 
@@ -232,7 +236,9 @@ def run(args):
             selected = choices if args.scenario == 'all' else {args.scenario: choices[args.scenario]}
         delegation = args.delegation or navigator.DEFAULT_DELEGATION
         backchain_passes = args.backchain_passes or navigator.DEFAULT_BACKCHAIN_PASSES
-        reports = [run_scenario(name, value, delegation=delegation, backchain_passes=backchain_passes)
+        planning_review = args.planning_review or navigator.DEFAULT_PLANNING_REVIEW
+        reports = [run_scenario(name, value, delegation=delegation, backchain_passes=backchain_passes,
+                                planning_review=planning_review)
                    for name, value in selected.items()]
     except (OSError, ValueError) as exc:
         print(f'Graph dry-run input error: {exc}')
