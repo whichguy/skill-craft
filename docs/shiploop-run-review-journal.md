@@ -1299,3 +1299,149 @@ the planned steps as "?" and `executed not measured`. (3) Republish the template
 `if_version`, the Luna Backchain documents never over the hand-built `luna1-plan` and `luna1-step-plan`, and the packets in ten
 batches; whether to upload the packets of all five runs or only the run under review (7.5 MB). (4) The page cannot refresh a
 loaded packet without a reload.
+
+## 2026-10-06: R18, the planning_review option in the export, the page and the baseline rows, and the general review bundle (local, unpublished)
+
+Status: firm for the definitions, the real state.md lines, the printed readings and the tests below; interim for the old-row rule on
+rows nobody has written yet (one case below). Local commits on `rr17-a0486a` (base `origin/main` 45f163d0, skill-craft 1.22.0, then
+the three R17 commits `c439244f`, `442bd572`, `cd631edb`): `b2e879a6` (exporter, page, SCHEMA.md, SKILL.md, 15 tests, two state
+fixtures, change note `changes/shiploop-run-review/planning-review-option.md`), `defaeb12` (the baseline row and comparison, 10
+tests, harness only), `4b09f959` (`general.review.json` and 5 tests) and this entry. No push, no `scripts/release.py`, no E2E run
+launched or resumed, no Artifact or ArtifactData call, nothing written under `/Users/dadleet/e2e-runs`; the canonical checkout was
+not touched. The template changed, so the page needs one republish (not done); a re-export of any run now carries
+`planningReview` (`not recorded` for a run before 1.22.0).
+
+**Why.** The E2E session landed the run option `planning_review` (`--planning-review stage|none`, state key `planning_review`) in
+1.22.0 (45f163d0; engine commits `7317f458`, `f6ed230f`, `17cded5a`) and handed this leaf the readers (D7 of
+`docs/shiploop-planning-review-plan-2026-10-05.md`; the "Handoffs to the Run Review session" bullets of the Planning review entry
+of `test/shiploop_e2e/LEARNINGS.md`): record the mode in the export, the page and the baseline rows so a cell is never compared
+across modes silently; do not let a none run's zero Improve passes read like a run with missing evidence; and fix the phase-1
+expectation, whose text ("The script accepts each only after its Improve review") is untrue under `none`. Item a24 of
+`luna1.review.json` ("compare Improve's planning-stage passes on the next Luna run") is, per the plan, answered by its M1 to M4
+runs; it stays open here, and R18 makes those runs' Improve numbers readable.
+
+**Real format (no model, no network).** `shiploop init --run-dir RUN --repo REPO --prompt P --planning-review stage|none` of the
+plugin's own CLI at this tree, in a scratch git repository, then the harness's `SEED_SCRIPT` pattern (the pure navigator, a
+synthetic `done` result per stage, a synthetic Improve receipt wherever a child is parked) stopped at `step-plan`. The two lines
+the exporter reads, from the two `state.md` files:
+
+| Mode | The key | The Improve card (resolved at `init`) | Children parked while walking intake to select-work |
+| --- | --- | --- | --- |
+| `stage` | `  "planning_review": "stage",` | `  "improve_skill": "",` | 3: spec, test-strategy, plan (`improve_results` holds 3 records) |
+| `none` | `  "planning_review": "none",` | `  "improve_skill": "<path>/skills/improve/SKILL.md",` | 0 (`improve_results` is `{}`) |
+
+Everything else in the two records is the same key set (sorted keys, `backchain_passes`, `delegation`, `lint`, a `history` of
+8 rows with `workitem`). They are committed as `test/fixtures/run-review/state-stage.md` (5,299 bytes) and `state-none.md`
+(4,392 bytes) with the two scratch paths normalised to `/work/repo` and `/plugin/skills/improve/SKILL.md` and nothing else
+changed; the test fixtures take the option's value from them.
+
+**(a) The export.** `export.py` reads the key with one helper (`_recorded_option(state, key)`, replacing `_backchain_option`, so
+both options are read the same way): the value as written, any other value shown as it is (a number as its JSON), and
+`not recorded` when the key is absent, never a default. A run document gains `planningReview`; `facts.md` gains
+"Planning review option (state.md): none"; SCHEMA.md and the exporter's `SCHEMA` table type it (optional string).
+
+**(b) Improve under none.** The Improve totals are what the `improve/` directories hold, so a none run that has not yet reached its
+last item's `carry-forward` reads `improvePasses` 0 and `improveMin` 0 as measured, which for a stage run means missing evidence.
+They are kept (they are measured); a run whose recorded mode is `none` also gets `improveScope`
+"planning stages skipped by design (planning_review none)", and no other run does (`stage`, an unknown value and `not recorded`
+claim nothing). A planning-stage row of a none run never has an `improve` map; the rows at `carry-forward` and
+`system-test-author` do.
+
+| Reading of a none fixture (2 children at carry-forward and system-test-author) | What it prints |
+| --- | --- |
+| run document | `planningReview` "none", `improveScope` as above, `improvePasses` 3, `improveMin` 9.5, `imp` "2 children, 3 review passes" |
+| facts.md | "- Improve: 2 children, 3 review passes; most passes in one child: 2; 9.5 min bind to receipt; planning stages skipped by design (planning_review none)" and "- Planning review option (state.md): none" |
+| header line (`headerFacts`) | "skill-craft 1.16.1, ShipLoop 0.48.1 \| running, 3.3 h at snapshot \| 1 refusals \| 2 glue \| 2 children, 3 review passes \| planning review: none" |
+| chip beside it (`modeChip`) | "no Improve at planning stages" (title: the mode and "not comparable with a stage run's") |
+| Improve card (`kpiCards`) | "3 passes", note "9.5 min; no Improve at planning stages (planning_review none)", no share of elapsed |
+| detail of the spec visit (`columnDetail`) | "Improve: not run by design (planning_review none)"; the carry-forward visit reads "2 passes, 6.5 min" |
+
+A stage fixture reads "9 passes", "36.5 min, 18% of elapsed" and no chip; a fixture with no key reads the same and its header
+prints nothing about the mode (a hand-built document with `planningReview` missing, empty or `not recorded` prints as before).
+The page's list of the five planning stages (`PLANNING_REVIEW_STAGES`) is kept equal to the engine's `PLANNING_CHOICE_STAGES` by a
+test, and the engine's registered modes are asserted to be exactly `stage` and `none`, so a mode the engine adds fails a test
+instead of reading silently. The detail line is said only for a work visit (a skipped or seeded visit says nothing, and a visit
+that does have a child shows the measured line, never contradicted).
+
+*Decisions.* (1) Under none the card prints no share of elapsed, not even a non-zero one: the minutes stay, the percentage beside
+a stage run's would invite the comparison the chip says not to make. (2) The chip is only for `none`; a `stage` run shows the
+mode in the header line, and an unknown value shows there verbatim and nothing more. (3) The visit table's "Improve" column is
+unchanged: blank for a planning visit of a none run (the detail card says why).
+
+**Seen in a browser tab** (a local `python3 -m http.server` on 127.0.0.1 over the template with a mock database serving exports of
+the fixtures; no Artifact call): the none run's header with the amber chip, its Improve card, the spec visit's detail line, and the
+stage and no-record runs with no chip and the old card; at 375 px the header wraps and the chip takes its own line.
+
+**(c) Baseline rows.** `metrics.planning_review(state)` reads the key from the state `metrics.engine_state` already returns, as
+written, `not recorded` when absent. `run.main` reads the state once (the termination record used the same read) and
+`baseline_row(..., planning_review)` stores it, `not recorded` when a caller passes none. The comparison:
+
+- `row_planning_review(row)`: the recorded value as written; for a row with no field, `stage` only when its `plugin_version` is
+  below `PLANNING_REVIEW_FIRST_RELEASE` (1.22.0, named once, compared as numbers: 1.9.0 is before it), because the option did not
+  exist and every planning stage of that run started an Improve child, which is what `stage` does; otherwise `not recorded` (no
+  or malformed `plugin_version`, or 1.22.0 or later with no field). A null counts as absent.
+- `planning_review_line(mode, before)`: None when this run and the previous row name the same recorded mode; otherwise "baseline
+  not compared across planning_review modes (<this> vs <previous>); the earlier row is <date>, ShipLoop <v>" (plus "; it records no
+  mode, read as stage because plugin 1.21.0 predates the option" when the rule supplied the mode) and nothing below it is compared,
+  not turns, cost, sessions, glue nor a stage. Two `not recorded` modes are not known to match and are not compared. A comparison
+  that does run names the mode in its header and says so on its own line when the previous row's mode came from the rule.
+
+Printed by the fake-host harness: stage then stage "baseline  vs ... same grok/grok-4.7/medium, planning_review stage): turns 4 -> 4,
+..."; stage then none "... modes (none vs stage); the earlier row is <date>, ShipLoop <v>"; a 1.21.0 row with no field then none "...
+(none vs stage); ...; it records no mode, read as stage because plugin 1.21.0 predates the option", then stage, which compares and
+prints "the earlier row records no mode, read as stage because plugin 1.21.0 predates the option"; a row with no `plugin_version`
+then stage "(stage vs not recorded) ... no plugin_version places it before the option". The committed `baselines.jsonl` has 16
+rows and only the last (claude, claude-sonnet-5-5, plugin 1.20.0) names a host, so the rule changes what that one row compares as
+and nothing else today. README.md (Suites and baselines) says all of it.
+
+**(d) The general bundle and the expectation option.** `test/shiploop_e2e/evidence/general.review.json` (no `reviews` document;
+run `any`; no `phase`) holds finding **o44** (criterion `phase-1`, kind `decision`, status `open`, effect `bent`) and option **a26**
+(`change-expectation`, effort S, recommended, open, `change` target `page`). a26's `to` is the original phase-1 text followed by the
+SPEC S-10 carve-out of 2026-10-05 in its own words (seven phrases of it appear verbatim in both, which a test checks against the
+SPEC), and the goal follows `references/advice.md` (Do, Files and symbols, Test, Done when). `defaults/expectations.json` is not
+edited: an expectation change is the owner's tick and the aggregate prompt's edit. `export.py --check` on the bundle: "check: ok
+(2 documents, 0 failures, 0 warnings)", exit 0. The ids follow o43 and a25 of `luna1.review.json` and appear in no other committed
+bundle. The page files o44 under its General filter with a26 under it, and ticking a26 gives a prompt that names
+`test/shiploop_e2e/evidence/` with a `grep -l '"a26"'` for it. SCHEMA.md says in one sentence that a bundle named for a run holds
+that run's reviews and `general.review.json` the findings that belong to no single run; SKILL.md says in one sentence that a
+finding spanning runs or belonging to none goes there. (The R16 follow-up's open point (3), whether a finding of another run
+should live in its own run's bundle, is settled for findings that span runs or belong to none; `luna1.review.json` keeps what it
+already holds.)
+
+**Tests.** `python3 -B test/shiploop-run-review.test.py`: 275 tests OK (255 at the base `cd631edb`; new: `PlanningReviewExportTest` 7,
+`PlanningReviewPageTests` 8, `GeneralReviewBundleTests` 5). `python3 -B test/shiploop-e2e.test.py`: 241 tests OK (231 before;
+new: `PlanningReviewRowTest` 5, `PlanningReviewBaselineThroughMainTest` 5; the fake hosts' state.md now records
+`FAKE_PLANNING_REVIEW`, default `stage`, `absent` leaves the key out). Fail-first, each against a `git archive` of the tip before
+its commit with only its test files and fixtures copied in: 13 of the 15 exporter and page tests fail (the 2 that pass are labelled
+guards: a stage run, an unknown value and a run with no record keep their numbers and their card), all 10 harness tests fail, and
+the bundle class errors because the bundle is absent. Mutation checks on copies (28 deliberate defects, all caught): share printed
+under none, by-design claimed for any recorded mode, `not recorded` printed in the header, a chip for every recorded mode, a stage
+dropped from the page's list, a skipped visit told by design, the scope for every non-stage value, a default for an absent key, the
+scope missing from facts.md; unrecorded modes equal, the first release read as before the option, every field-less row read as
+stage, a loose version parse, the mode check not gating, the row defaulting to stage, a default for an absent key, the rule applied
+silently; and eleven on the bundle. Also green: `node test/skill-frontmatter.test.js` (22 skills), `test/test-groups.test.py` (21),
+`test/marketplace-package.test.py` (29), `scripts/check-release-boundary.py --base origin/main`.
+
+**Limits, documented not guarded.**
+- The previous row is still the last row of the same case, source, host, model and effort. When it has the other mode nothing is
+  compared, even if an earlier row of this run's mode exists: after none runs, a stage control would not be compared with the
+  1.21.0 stage rows. Choosing the last row of the same mode is a change of `scan_baseline` of about ten lines; it is not made
+  because the handoff says "compares nothing when the modes differ" and the safe reading is the literal one.
+- A row written by a `--source checkout` run of a tree that already carries the option but whose plugin version is still below
+  1.22.0 (the planning-review commits landed before the release bump) has no field and would read as `stage` even if it ran
+  none. `baselines.jsonl` holds no such row (its latest plugin version is 1.20.0); every row written after `defaeb12` records the
+  mode itself. Rows the E2E session wrote locally in that window are not visible here.
+- A stage run, or one whose key is absent, that has no `improve/` directory at all still reads 0 passes and 0 minutes as
+  measured (unchanged, as the handoff's own text says). Marking it unmeasured needs a rule for when a planning stage was accepted
+  without a child in a run that should have one.
+- The five committed run exports are not re-exported: none has `planningReview`, the page treats the absence as before, and a
+  re-export would add `not recorded` to each.
+- The prompt's "Run facts" line and the "Compare with" table do not name the mode (a none run's Improve cell carries the scope
+  note; the run facts line reads "3 Improve passes" as it does for any run).
+- Not in R18, still open from the same handoff: a case that runs `--planning-review none` must also pass `--improve-skill` in the
+  `init` or `workspace start` its prompt names (`run.py` and the case catalog; the E2E session's), and the stop-point design.
+
+**Owner decisions.** (1) Republish the template; then upload each new run's document and `export.py --docs
+test/shiploop_e2e/evidence/general.review.json` for o44 and a26. (2) Tick a26 (or not): it amends phase-1 on the page only. (3)
+Whether the baseline comparison should take the last row of the same mode (the limit above). (4) Whether the prompt's run facts and
+the comparison table should carry the mode.
