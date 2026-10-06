@@ -1,0 +1,433 @@
+STOP-POINT DESIGN STUDY: REPORT
+
+Source tree: /Users/dadleet/src/skill-craft/.claude/worktrees/cifix-ece1d3, HEAD d1cca62f (skill-craft 1.21.2, ShipLoop 0.53.1), clean at start and at end (git status empty).
+Scratch: /private/tmp/claude-501/-Users-dadleet-src-skill-craft/f7d9360d-b88d-417b-8773-fc5b3eee6419/scratchpad/stop-points-design/ (S below). Every command ran with nice -n 19 and PYTHONDONTWRITEBYTECODE=1.
+
+Labels: [M] = I read or ran it. [I] = inferred. [M-peer] = I re-read the raw files of another agent that worked in the same scratch directory. I did not run those calls. Unknown = I could not get the measure.
+
+S is shared. Files that are NOT mine: p1, p1-cli, p2-relocate, p3-env-*, p4-pause, p5-*, proto, navigator, navigator-orig, orig, exp, exp-runs, hosts-eng, make_proto.py, prototype*.py, prototype.patch, probe_stages.py, probe_relocate*.py, probe_env_hosts.py, probe_stop_*.py, probe_pause_len.py, probe1_existing_pause.sh, run_facts.py, scan_env_cmds.py, SOURCE_HEAD.txt. Mine are listed in section 12.
+
+---------------------------------------------------------------------
+1. ANSWER
+---------------------------------------------------------------------
+
+Yes. The script can own a stop point, with one split.
+
+- Stage, visit and work-item boundaries (stop after a stage is accepted; the Nth acceptance of it; for a named work item) can be script-owned and exactly deterministic. This is the "first test-spec accept" case.
+  - A prototype built from the real navigator functions paused the run inside the accepting transition.
+  - The run then resumed cleanly at the next stage (section 5.3, lab_stop_proto.out).
+- Iterations inside an Until Loop child (Improve review pass N, Backchain pass N, quality-loop iteration N) cannot be script-owned in the current architecture (section 6.3).
+  - The loop runs in the vendored runtime. ShipLoop is not called between passes.
+  - They need a runtime change, a SPEC decision, or harness polling.
+  - I recommend not doing this in v1.
+
+The crux (the model starts ShipLoop, so the harness cannot pass a flag) has three workable resolutions.
+- Recommended: after the run directory appears, the harness runs a new script verb `stop-at --set` itself. This is host-independent. It also serves the "continue later" case.
+- Second choice: a creation-time environment variable recorded in state.md. It reaches the model's tool shell on all three hosts (section 3).
+- Reject: a file in the work directory, or text in the case prompt.
+
+A stopped run is not a failure and not a pass of the full case. It needs a "partial run" grading rule and a SPEC amendment in its own commit first (section 7).
+
+---------------------------------------------------------------------
+2. HARNESS FINDINGS (question 1)
+---------------------------------------------------------------------
+
+2.1 Resume and relaunch behaviour (test/shiploop_e2e/run.py main, hosts.py)
+- Only hosts with `resumable = True` are relaunched: GrokHost and CodexHost. ClaudeHost is not, and it runs with --no-session-persistence. [M, hosts.py]
+  - A Claude run whose ShipLoop is active at session end records resume_stop "host is not resumable".
+  - The relaunch pain you described is a Grok and Codex pain.
+- The loop is `while host.resumable and not regrade and len(sessions) <= args.max_resumes` (default 20).
+  - Each pass calls grade_shiploop. If status is not "active" or None it sets resume_stop = "ShipLoop run is <status>" and breaks. [M]
+  - So a paused, blocked, halted or done run is NEVER relaunched, and a paused run does not relaunch a host forever.
+  - Other break reasons: "no host session id to resume" and "run deadline spent". [M]
+- Resume prompt text (run.resume_prompt):
+  - With a run: "This session ended while the ShipLoop run was still active. Continue it now: run `<cli> next --run-dir <dir>` and follow the packet it prints, to the end of the run. Never end the turn while a ShipLoop command is still running."
+  - With no run yet: "This session ended before the ShipLoop run was started. Continue the original request now: ..."
+- The session id comes from the last `sessionId` in events.jsonl (last_session_id).
+- Why you had to kill the harness: a killed host leaves ShipLoop active, so the loop relaunches. [M, code]
+- Workaround available today with no code change [M for the harness side, run in lab_paused.py; the kill side is [I]]:
+  - Run `shiploop pause --run-dir R --reason ...`, then end the host.
+  - The harness does not relaunch, and it finishes grading.
+  - I ran the harness's own termination_facts on a real paused run. It printed "no further resume: ShipLoop run is paused; engine paused with step-plan never accepted".
+  - The cost is the grading problems in 2.3.
+
+2.2 `--resume-run` gate
+- Statuses done and blocked are a regrade: no host starts and the process block is restated.
+- A paused or halted run is refused with SystemExit "needs an active, blocked or finished ShipLoop run". [M, main]
+- That refusal is pinned by test_resume_run_refuses_a_run_that_is_neither_active_nor_done in test/shiploop-e2e.test.py. [M]
+- A resumed run applies the version gate (local HEAD equals origin/main, no pending change notes, CI), minus problems starting "installed ". [M]
+- A Codex run cannot resume after a new release. Codex replaces the plugin at session start and deletes the old version's files. [M, main]
+- Consequence for "test later stages without paying for planning again":
+  - A paused-at-stop run cannot be continued or regraded today.
+  - Continuation must happen in place and on the same plugin install.
+  - Forking one planning stop into several continuations is blocked by absolute paths. The binding requires `binding["run_dir"] == str(root)`, and state.md holds the absolute worktree path. [M, shiploop_protocol init path; fork itself untested]
+
+2.3 Termination record and verdicts for a deliberate early stop
+- Termination: metrics.session_stop and termination_facts. [M]
+  - termination_facts records engine_status, engine_stage, engine_unaccepted_stage = metrics.pending_stage(engine), engine_status_reason, session_stops, resume_stop.
+  - stopped_line prints "engine paused with <stage> never accepted". For a deliberate stop that wording is misleading.
+- pending_stage returns the current stage for any non-done run.
+  - The only exception is a blocked run whose last history row is that stage's own blocked result.
+  - Lab result [M]: metrics.collect on a paused run adds a phantom row {"stage": "step-plan", "outcome": null, "incomplete": true}.
+  - A deliberate stop needs the same exemption as the blocked case.
+- Today a stop-paused run is graded FAIL on shiploop, committed and checks. [M]
+  - grade_shiploop passes only for status done plus report.html. Lab: pass False.
+  - committed_facts needs HEAD moved plus at least one file plus nothing uncommitted. Lab: pass False.
+  - checks run in the work directory against a product that does not exist yet [I].
+  - result["pass"] is False, mismatch.md is written, and a baseline row is appended unless the run was seeded or resumed (baseline_file is None only then). [M, code]
+- The harness already has an n/a idiom: a verdict of None is left out of the all() list.
+  - process.pass None for a regrade is excluded.
+  - budget_facts(interrupted=True) returns {applies: False, pass: None, reason}.
+  - write_mismatch skips None.
+  - A stop run can reuse this, and no case's budget is touched.
+
+2.4 `--interrupt-at chain-launched` (the precedent for a deliberate stop), read in full [M]
+- launch(stop_when=...) polls every 2 s (proc.wait(timeout=2) wakes the moment the session ends).
+- When stop_when is true it does SIGKILL on the whole process group and returns status "interrupted".
+- main then writes interrupt.json (at, elapsed_seconds, stage, revision, chain facts).
+- It relaunches the host with resume-after-interrupt.txt.
+- It grades `recovery` (interrupt happened AND chain passed), with RECOVERY_SOURCE naming S-6 and S-14.
+- It is one-shot: stop_when is None when interrupt.json already exists.
+- Its expectation lives in invocation.json["interrupt_at"] and result["expectations"]["recovery"].
+- This is a kill-based polling stop. It is exactly the class of mechanism that missed "stage baseline".
+- Measured stage windows [M, 9 recorded runs with metrics.json]:
+  - Stage windows can be 0.0 s. These are NA-recorded stages: baseline, regression, test-author, test-green, test-red, test-refine and test-spec all show min 0.0.
+  - Median baseline is 12 s.
+  - The shortest first stage is intake at 11.6 s (hello, Sonnet 5.5, 2026-10-03).
+  - Research is 5.0 s in v1200-hello-sonnet.
+  - Against a 2-minute poll, or even a 2 s poll, a boundary can be missed. An in-script stop cannot be missed.
+
+2.5 Why killed runs have no metrics.json (question 3)
+- run.py writes metrics.json, result.json and review-export only at the end of main, after the host session ends. [M]
+- Two killed runs confirm it. /Users/dadleet/e2e-runs/20261005/v1210-battleship-grok-medium and v1210-battleship-luna-xhigh contain events.jsonl, home, invocation, prompt, stderr, timeline and work. They have no metrics.json, result.json or review-export. Finished hello runs have all three. [M, read-only listing]
+- A deliberate stop that leaves the harness alive therefore yields metrics.json, result.json and review-export automatically.
+
+---------------------------------------------------------------------
+3. HOST FINDINGS (question 2)
+---------------------------------------------------------------------
+
+3.1 How a session ends
+- All three hosts are one-turn headless sessions. The session ends when the model ends its turn. [M, run.py comment and hosts.py]
+- Codex: CodexTranslator turns turn.completed or turn.failed into an "end" event, and `codex exec` exits. The harness then resumes with `codex exec ... resume <thread_id> <prompt>`, but only if ShipLoop is active. [M]
+- ShipLoop keepalive: the Stop hook (_decide) allows the turn to end when status != active, with "run is paused". shiploop-drive returns exit 3 "run is paused". [M, shiploop_keepalive.py]
+- Grok headless never runs plugin hooks. The harness installs the global Grok hooks first (grok_keepalive). [M, hosts.py docstring]
+
+3.2 What the model sees on a paused packet today
+- Lab [M]: for a worktree run, the full paused packet was 18,874 B and PRINT_LIMIT is 16,000. The printed copy ended before the "Paused, unfinished ... Resume: ..." lines, which sit at the end of the file.
+- The printed copy does show "Continuation: resolve the condition and resume before using the current action."
+- This size depends on path length. Real e2e paths are shorter, so whether it truncates there is Unknown.
+- A dedicated stop packet must print its stop block first and short.
+
+3.3 Models and a script-returned stop packet
+- No run of mine covers this.
+- [M-peer] p5-claude-1 (claude-sonnet-5-5) and p5-grok-1 (grok-4.7 medium) ran a prototype ShipLoop copy in S. The model ran `init` itself, and the stop point arrived by environment variable.
+  - The run paused after intake. The raw state.md shows status paused, stage discovery, revision 1, history [intake done].
+  - The model then ended its turn. Claude: 5 turns, $0.159. Grok: 5 turns, $0.061.
+  - The prototype's packet text was explicit: "End your turn now; do not resume the run...".
+- p5-codex-1 was still running when I last read it (run active at intake, revision 0). Unknown.
+- No evidence exists for a model reacting to the CURRENT generic paused packet when the script paused it.
+  - Evidence for a model-initiated pause: LEARNINGS 2026-09-27, Codex ran 34 min, paused the run itself, and the session ended on its own.
+
+3.4 Does the harness-set environment reach the model's tool shell?
+- My probe (probe_env.py), one real call per host through hosts.py argv and env shapes. ShipLoop was not run.
+  - Each host started with SHIPLOOP_STOP_AT_PROBE=probe-<host>-<hex> and SHIPLOOP_PROBE_TOKEN=tok-<host>-<hex> in the host.env dict.
+  - Claude's env had CLAUDE* and CODEX_COMPANION* stripped, because this session is itself a Claude Code session.
+  - Prompt: "Run exactly this one shell command, unchanged: sh S/hosts/envprobe.sh. Then reply with its stdout verbatim and nothing else. Do not run anything else."
+  - envprobe.sh echoes both variables from the shell and from a python3 child, greps selected names, and counts variables.
+  - Commands run: `PYTHONDONTWRITEBYTECODE=1 nice -n 19 python3 S/probe_env.py claude grok codex`.
+
+  Exact argv shapes:
+  - claude: claude -p <prompt> --model claude-sonnet-5-5 --max-turns 6 --max-budget-usd 1.0 --permission-mode auto --output-format stream-json --verbose --no-session-persistence --setting-sources project,local --strict-mcp-config
+  - grok: grok --cwd <work> --prompt-file <f> --verbose --output-format streaming-json --model grok-4.7 --max-turns 6 --permission-mode auto --no-auto-update --reasoning-effort medium
+  - codex: codex exec --json -m gpt-6-luna --skip-git-repo-check -s danger-full-access -c approval_policy="never" -C <work> -c model_reasoning_effort=low <prompt>
+
+  Results:
+  - Codex (gpt-6-luna, effort low) executed it: /bin/zsh -lc 'sh S/hosts/envprobe.sh' [M, S/hosts/codex/events.jsonl].
+    - The shell and the python child both saw SHIPLOOP_STOP_AT_PROBE=probe-codex-96e218 and SHIPLOOP_PROBE_TOKEN=tok-codex-96e218.
+    - The TOKEN-named variable was not filtered.
+    - It saw CODEX_HOME=<throwaway>, HOME=<throwaway>, NO_COLOR=1 and GIT_TERMINAL_PROMPT=0, and 63 variables in all.
+    - Cost: not reported. Tokens: 27,877 in, 425 out. 15.1 s.
+  - Claude: the host's auto-mode classifier denied the command before it ran ("Credential Materialization"). Cost $0.0342, 2 turns, 14.5 s. [M, S/hosts/claude/events.jsonl]
+  - Grok: the host's auto mode blocked it ("Unknown envprobe script in temp may extract secrets..."). Cost $0.01026, 2 turns, 17.4 s. [M, S/hosts/grok/events.jsonl]
+- I stayed at the one-call cap, so Claude and Grok were not retried.
+  - Lesson: never design the stop point so that the MODEL prints or inspects the environment. Host classifiers deny it. The engine must read os.environ inside its own python child.
+- [M-peer] p3-env-claude, p3-env-claude-2, p3-env-grok and p3-env-codex settle the other hosts. I decoded the raw event streams myself.
+  - Claude: a model-run env | grep listed SHIPLOOP_STOP_AT, SHIPLOOP_STOP_AT_KEY, SHIPLOOP_KEEPALIVE_PROBE, MYTOOL_STOP_AT, SLP_PLAIN_PROBE, STOP_AT_PROBE, NO_COLOR=1 and GIT_TERMINAL_PROMPT=0.
+  - Grok: all seven plus GIT_CONFIG_GLOBAL=<throwaway home>/.gitconfig.
+  - Codex: all seven, including the KEY-named variable.
+- Independent indirect evidence from past real runs [M, read-only]:
+  - Both the Grok and Luna run worktrees have ShipLoop's own commits authored "ShipLoop E2E <shiploop-e2e@example.invalid>". That identity comes from harness-set HOME and GIT_CONFIG_GLOBAL, so the env reached a python child of the model's tool shell.
+  - The Grok event stream has node saying "The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set".
+- Name constraints: hosts._isolated_env strips names starting CLAUDE, GROK, XDG_ (Grok) and CLAUDE, CODEX, XDG_ (Codex). SHIPLOOP_* survives.
+- Claude 2.1.289 has CLAUDE_CODE_SUBPROCESS_ENV_SCRUB. When set it hardens subprocess env and permission mode. [M, binary strings] It is not set in the harness env, but if the owner's shell sets it, a variable could be scrubbed [I].
+- In this session's own Bash tool, launcher variables (XPC_FLAGS, XPC_SERVICE_NAME, __CFBundleIdentifier, COMMAND_MODE) are visible. That shows the Claude Code Bash tool inherits the claude process env. [M]
+
+---------------------------------------------------------------------
+4. EXPORTER (question 3)
+---------------------------------------------------------------------
+
+- RUN_STATUS maps active, paused, blocked, halted->failed and done. The page schema allows paused. [M, export.py]
+- Lab [M] (lab_export.py on a real paused run): metrics.collect and export_run both succeeded.
+  - The run doc status was "paused" and time "paused after 0 min".
+  - The facts line read "Run: ShipLoop status paused; 8 accepted actions".
+- build_run needs:
+  - metrics.json with an `unmeasured` dict,
+  - timeline.json with an accepted map,
+  - a results/ directory,
+  - state.md.
+- It refuses otherwise. A stop before any accepted action ("missing results") skips the export.
+- Today export reads `result["shiploop"]["pass"]` and `committed`. If those say False for a deliberate stop, the Run Review page shows red verdicts.
+- Needed for a deliberately stopped run, all in the harness:
+  - no phantom incomplete row (the pending_stage exemption),
+  - shiploop and committed verdicts as n/a, not False,
+  - one facts line "Stop point: after test-spec, requested X, reached at revision N".
+  - No exporter schema change is needed.
+- Regrade of a paused run (killed while paused) is refused today. A one-line change makes `--resume-run` on a paused run a regrade, like blocked (R10). It needs a dated owner decision, because LEARNINGS R10 recorded "paused and halted still refuse".
+
+---------------------------------------------------------------------
+5. THE ENGINE DESIGN
+---------------------------------------------------------------------
+
+5.1 What exists [M, shiploop_navigator.py]
+- _STATUSES = active, paused, blocked, halted, done.
+- control(state, "pause"|"resume"|"halt") is the one function that returns a new state for each.
+  - A pause needs status_reason and refuses housekeeping words (_HOUSEKEEPING_PAUSE).
+  - A resume of a plain pause clears status_reason.
+- The active packet prints "Pause without consuming the action: <callback pause --reason ...>".
+- Packets for paused, blocked, awaiting, halted and done print whole, up to PRINT_LIMIT.
+- Optional state keys already exist: status_reason, delivery_contract_version, chain_bindings, delegation_hold. They are exempt from the "missing" check in _validate_current_state. A new key can join them.
+- Today's validate() refuses an unknown `stop_at` key: "unexpected: stop_at". [M, lab]
+- Option plumbing precedent: backchain_passes (a89135f7) and lint, delegation. Each is a flag on init and workspace start, a retry guard (_require_retry_*), a state key, and docs. Lint and delegation also have a `--set` verb.
+- _knowledge_close and _item_commit already key on the history rows added by a transition (rows = after["history"][len(before["history"]):]). That is the same signal a stop point needs.
+
+5.2 Proposed state and grammar
+- New OPTIONAL key `stop_at` in state.md:
+  {"after": "<stage>", "nth": 1, "item": null, "set_revision": N, "set_by": "...", "reached": {"revision": R, "action": "...", "visit": V}}
+- The key is absent when unused, so saved runs keep loading. This is the delegation_hold pattern, not a migration.
+- An older ShipLoop refuses a run carrying the key, which fits the one-supported-version rule.
+- CLI grammar: --stop-after <stage>[#n][@item], for example test-spec, test-spec#2, carry-forward@W1.
+- Stage names come from stage_spec. The final stage `handoff` is refused.
+- The setter refuses an unknown stage, nth < 1, a bad item id, a terminal run, and a point already behind the run ("test-spec was accepted at revision N"). A late set is an error, never a silent miss.
+
+5.3 Where it fires
+- Best choke point: wrap _apply_result. Both `apply` for non-Improve stages and `finish_improve` go through it.
+  - Call the inner function, then compare history rows: if a new done row matches the spec, the state becomes paused in that same transition.
+  - The graph dry-run oracle calls apply and finish_improve, so it exercises stop points for free.
+  - A replay of an accepted action returns early and never refires. A model's retried `complete` after the stop just gets the stop packet again.
+- Prototype [M, lab_stop_proto.py, using the real navigator.apply, finish_improve, control and save; nothing in the repo edited]. Log for `after test-spec`:
+  - complete at step-plan: 0 new rows, active_improve parked
+  - improve-complete at step-plan: 1 row
+  - complete at test-spec: 0 rows, parked
+  - improve-complete at test-spec: 1 row, status paused
+  - Final state: paused at `baseline`, revision 16 (accept and pause are two revisions).
+  - hook-status reported status paused with the reason. `resume` gave an active baseline packet at revision 17.
+  - This shows an Improve-reviewed stage is accepted at improve-complete, not at complete. The stop must key on the history row.
+- Knowledge and item commits run after save and key on rows. A stop leaves the repo exactly as a normal run would at that moment. [M, code]
+- Side facts:
+  - NA-recorded test stages write synthetic done rows (_record_not_applicable_tests). They count as rows, so `after test-red` can fire on one.
+  - One transition can add several rows. The hook fires once.
+
+5.4 One-shot and the stop packet
+- `reached` is stored in the same transition, so the stop is inert afterwards. `resume` needs no change and the audit record stays in state.md.
+- Render the stop packet only when status == paused and stop_at.reached.revision == state.revision. A later generic pause then renders normally.
+- The stop packet goes FIRST and stays short: "stopped at the requested stop point: after X accepted; paused on purpose for testing; nothing failed. Do not resume or run any ShipLoop command. End your turn now."
+- Do not put the resume command in the printed head. It stays in the packet file and in `status`.
+- Active packets stay byte-identical with or without a stop point. This follows the backchain_passes precedent, and it keeps the measured run identical.
+  - The stop shows only in `status`, progress.html, state.md and the stop packet.
+  - Open owner choice: show it to the user in packet heads, at some cost to measurement purity.
+- Use `paused`, not a new status, so the exporter, hook_status, keepalive and termination code need no change.
+- Do not use `halt`. It is irreversible.
+
+5.5 Verb and flags
+- Flags: --stop-after on init and workspace start, with a retry guard like lint's.
+- Verb: `stop-at --run-dir R --set <spec> | --clear [--reason ...]`, the lint-mode and delegation shape.
+- The verb is needed for continuation (a next stop after `resume`) and for the harness route in section 6.
+- Touch list, from the backchain_passes precedent: shiploop_navigator.py (state key, new_state, validation, setter, wrapper, render, status_block), shiploop_protocol.py (flags, verb, retry guard), shiploop_status_hook.py (PACKET_VERBS), shiploop_navigator_dry_run.py, README, SKILL.md, references/navigator.md, references/state-files.md, and a changes/shiploop note (minor).
+
+5.6 Stage versus iteration (the real limit)
+- Script-owned and deterministic:
+  - after a stage is accepted;
+  - the Nth acceptance, which covers revise redos and per-item repeats;
+  - after a stage for work item Wk;
+  - stop at the Improve checkpoint, meaning the producer result is submitted and the review has not started. This is a possible later `review:<stage>` form. The prototype shows the parked state (0 rows, active_improve set).
+- Not script-owned: passes inside an Until Loop child.
+  - The runtime (skills/improve/runtime/until-loop/scripts/until_loop_ephemeral.py) owns the pass counter (`action_number`), terminal conditions and receipts.
+  - ShipLoop is not called between passes. Its only per-pass touchpoints are the model's optional `improve-commit` and a read-only receipt read in hook_status.
+  - The loop's terminal statuses are complete and stopped, and a stop comes only from a model-written report.
+  - The vendored runtime is hash-pinned (test/improve.test.sh) and S-10 forbids an iteration cap. In the Backchain loop the host model even writes the contract (SPEC S-10 carve-out).
+- Options for pass-level, none recommended for v1:
+  (a) Accept the limit. Pass counts and per-pass commits are measured after the fact.
+  (b) The harness watches the child receipt (progress.action_number) and runs `shiploop pause` at or after pass N. It is not deterministic, and the model keeps looping until its next ShipLoop call.
+  (c) A requested-stop field in the Until Loop contract that makes `done` return a stopped packet. This needs a vendored-runtime change, an Improve skill change, a SPEC note and a reconcile mapping. It is a separate owner decision.
+- S-10 text for the design: a stop point is a user stop (S-10 names it), taken only at an accepted-stage boundary after the stage's own loop finished. It is not an iteration cap and never ends a loop.
+
+---------------------------------------------------------------------
+6. THE CRUX: HOW A HARNESS-LAUNCHED RUN RECEIVES A STOP POINT
+---------------------------------------------------------------------
+
+Route evaluation (reliability, honesty, S-clauses):
+
+(a) Harness sets it by script via the new `stop-at` verb after the run directory appears. RECOMMENDED.
+- Host-independent: no env or model dependence.
+- The harness finds the run through grade_shiploop (rglob state.md under out/). main already finds the ShipLoop CLI as host.plugin_cli(out/"home") or plugin_dir/.../shiploop.
+- Needs a tick callback in launch's 2 s loop.
+- Window: the verb lands about 2 s after the run dir appears. The shortest first accept ever recorded is 11.6 s, so there is a margin of about 5x. A late set is refused by the verb and recorded as a failed stop verdict, never silent.
+- Honest on both sides: state.md has stop_at, and the harness writes S-style stop-point.json (requested, how given, +seconds, revision at set, verb exit and stdout head).
+- The verb takes the run lock and blocks if a complete is running tests, so run it in a thread.
+- It is the same code path as continuation, and a person can use the verb too.
+- Not model glue: it is outside the host event stream.
+
+(b) Environment variable read at run creation (for example SHIPLOOP_STOP_AT), recorded in state.md with its source. VIABLE SECOND CHOICE.
+- Reaches the tool shell on all three hosts (section 3.4).
+- Peer prototype end to end [M-peer]: Claude and Grok models ran init, the stop fired at after:intake, and the sessions ended.
+- Simplest harness change: one line in the host env dict.
+- Costs:
+  - It is the first graph-affecting environment input. Today's SHIPLOOP_* variables are operational: KEEPALIVE, KEEPALIVE_HOME, PROGRESS, GIT_TIMEOUT.
+  - SKILL.md says "Environment settings do not change this boundary" (the ShipLoop versus launcher boundary). Re-read that before choosing.
+  - It is ambient: a person's exported variable would silently stop their real runs.
+  - It must be ignored on an `init` retry that finds a saved run. A retry guard must not refuse over the env.
+  - Any init notice printed to the model changes the measured run.
+  - The harness cannot know it worked until it reads state.md. It can detect a miss about 3 s in and fall back to (a).
+- Verification before relying on it: the engine must read os.environ itself. A model-run `env` is denied by Claude and Grok classifiers.
+
+(c) A file in the work directory read by init. REJECT.
+- launch requires an empty work directory ("working directory is not empty").
+- workspace start treats an empty directory as a fresh repo, and a non-empty one differently, which perturbs the probe.
+- A file in the parent of the repo is an invisible convention.
+
+(d) Text in the case prompt telling the model to pass the flag. REJECT.
+- The model can mistype or omit it.
+- The text pollutes the recorded request and the spec (state.md prompt is the verbatim request; init retries compare it).
+- It adds model-written glue (S-4).
+
+(e) The harness runs `workspace start --stop-after` itself, then launches the host. This is the seed_run precedent and is deterministic. GOOD for harness-started runs and continuations, but the model no longer runs the skill's own start. The seeded host prompt differs. Seeded runs are not baselines today. It does not give start-path fidelity.
+
+(f) Interim, engine unchanged: the harness polls state.md at the 2 s tick and runs the existing `shiploop pause` verb. Weaker:
+- The pause lands 0 to 2 s late, after the model has started the next stage's work.
+- The refused next `complete` ("navigator is not active; resume or inspect it first") invites self-resume.
+- The paused packet can be truncated (section 3.2).
+- It is still better than kill-and-relaunch, and it gives metrics.
+
+---------------------------------------------------------------------
+7. HARNESS DESIGN
+---------------------------------------------------------------------
+
+- run.py gets `--stop-after <spec>`, recorded in invocation.json["stop_point"] like interrupt_at and seeded.
+- Injection and watching: extend launch with a tick callback (one polling loop, S-12). After state.md appears, run `stop-at --set`. Then watch for stop_at.reached.
+- Grace-kill: if the host has not ended within a grace period after `reached` (for example 90 to 120 s), kill the process group. The state is already clean and nothing is lost.
+  - Record process.status as "stopped-at-stop-point" with pass true only if `reached` is recorded.
+  - Record host_ended: "by itself after N s" or "killed after grace".
+  - The resume loop already refuses a paused run.
+- result.json stop_point block:
+  - requested: {after, nth, item}
+  - source: the SPEC clause or owner decision
+  - given: {via: stop-at verb, at_seconds, revision_at_set, exit, stdout_head}
+  - recorded: state.md stop_at as read back
+  - reached: {revision, action, visit, elapsed_minutes from timeline}, or null
+  - honoured_by: script (the history row), not the model's word
+  - held: still paused at session end, not resumed by the model
+  - host_ended
+  - pass: recorded equals requested AND reached AND held
+  - full_case: "not run: stopped on purpose"
+  - If the verb was refused or late, or `reached` is null, the stop verdict fails loudly and the run is not graded as a full case.
+- Verdicts for a stop run: invoked, plugin, process and stop_point are graded. shiploop, committed and checks are n/a (pass None, applies False, reason), reusing the process-None and budget idiom.
+  - result["pass"] covers those four and carries scope "partial: stopped after test-spec".
+  - The suite runner and exit code work from that.
+- Termination: engine_unaccepted_stage is None for a stop. stopped_line says "stopped at the requested stop point: after test-spec". A pending_stage exemption removes the phantom row.
+- Baselines: a stop run writes a row only under its own `stop` key. scan_baseline must also require equal `stop`, None for full runs. Full-case baselines stay clean and planning-time rows compare with each other.
+- Continuation: `--resume-run X` on a stop-paused run is a regrade (no host), like blocked, which is the safe default and costs nothing.
+  - `--resume-run X --release-stop [--stop-after Y]` makes the harness run `shiploop resume` and `stop-at --set`, then launch a host.
+  - Grok and Codex can use the session id. Claude starts a fresh session on the resume prompt, as it already does.
+  - Constraints: same plugin install (Codex replaces plugins at release), the version gate, and one continuation per stopped run (the fork limit above).
+- Prior art [M]: skills/shiploop-e2e-audit/harness/run.py has `--stop-after-stage` (prelude stages only, "before the navigator can enter an ambiguous per-work-item inner loop").
+  - It polls, kills, and grades with partial_observation and accepted_after_boundary.
+  - Its status partial-smoke-overshot shows polling can overshoot.
+  - Line 1349 raises "partial smoke trials cannot be graded as full product E2E passes".
+  - The same verdict vocabulary fits here. The script-owned stop makes overshoot structurally 0, and it also covers inner stages.
+
+SPEC (test/shiploop_e2e/SPEC.md) and "Evolving this spec":
+- The plan must amend the SPEC in its own dated owner-decision commit BEFORE any code. It does two things:
+  - A harness rule: a run with a requested stop point is partial. It is graded on invoked, plugin, process and stop_point, is never a pass or fail of the full case, and has separate baselines.
+  - A clarification, not a carve-out: a stop point is the user stop S-10 already names, not an iteration cap.
+- Clause check:
+  - S-1, S-2, S-5: the script decides and records the stop.
+  - S-6: the stop is in state.md, so it survives context loss, and the packet stands alone.
+  - S-9: the evidence is the script-recorded `reached`.
+  - S-12: one wrapper, one parser.
+  - S-13: no product knowledge.
+  - S-14: a stop prompts nobody and waits on no input. It is an owner-set end, off by default, and it never uses the `awaiting` route.
+
+---------------------------------------------------------------------
+8. ADVERSARIAL EVALUATION (SPEC "Change admission", concise)
+---------------------------------------------------------------------
+
+1. Weakens S-10? Mitigated: it fires only after a stage's own loop finished. Test that no stop fires inside a loop.
+2. Never fires (stage skipped or never reached), and the run proceeds to full cost. Mitigated: the verb refuses unknown or already-passed points. `nth` beyond what the plan produces is undeterminable. The harness --timeout is the backstop, and the stop verdict fails.
+3. The model ignores the stop packet or resumes. Evidence for compliance [M-peer]: Claude and Grok ended their turns on the prototype's packet. Mitigated by the grace-kill, the `held` field, and the packet text. Codex is unobserved.
+4. Active packets get bigger or change. Mitigated: byte-identical with or without a stop, and a pin test.
+5. Gaming a metric (a stopped run looks fast). Mitigated: separate `stop` key in baselines, and a full-case baseline never compares to a stop row.
+6. Breaks saved runs. Mitigated: optional key. An older ShipLoop refuses new state, which is accepted under the one-version rule.
+7. Concurrency: the verb takes the same run lock, and `apply` matches by action id, not revision.
+8. A host-specific failure in the verb route: none. In the env route: the Claude env-scrub variable.
+9. Passes tests, fails live: needs one live smoke per host (section 9).
+10. Unit of hostile reading: the verb lets anyone with CLI access pause a run, which is no more than `pause`.
+
+---------------------------------------------------------------------
+9. PLAN (ordered, with parallelism)
+---------------------------------------------------------------------
+
+Gate G0 (owner, own commit first): decide (a) verb injection versus env as the harness route; (b) hide the stop from active packets; (c) regrade of paused runs; (d) defer pass-level stops. Then commit the SPEC amendment above and a dated LEARNINGS/journal entry (test/shiploop_e2e/LEARNINGS.md, per your journal rule).
+
+Then two streams in parallel, sharing only the frozen contract (state key shape, spec grammar, `stop-at` verb):
+- Engine stream:
+  - navigator key, setter, wrapper, stop packet, status line; protocol flags, verb, retry guard; status-hook verb list; dry-run parameter.
+  - docs and the change note.
+  - Fail-first tests, in the existing navigator-contract and dry-run files so no suite_catalog registration is needed:
+    - a stop fires on the accepting transition for a non-Improve stage and for an Improve stage;
+    - a parked `complete` does not fire;
+    - nth=2 and the item selector;
+    - multi-row transitions fire once;
+    - one-shot, and a replay never refires;
+    - malformed, unknown, final and already-passed specs are refused;
+    - the retry guard, the verb on halted or done runs, `resume` leaves a stop inert;
+    - packets are byte-identical without and with a stop, and the generic paused packet is unchanged;
+    - hook-status and keepalive allow the paused run;
+    - mutation checks on each.
+- Harness stream (test/shiploop-e2e.test.py):
+  - launch tick, the injector (success, refusal, too late, run never appeared), the stop watcher with grace-kill;
+  - the verdict block, termination wording and pending_stage exemption, baseline `stop` key, the exporter facts line;
+  - `--resume-run` regrade and `--release-stop`, which changes test_resume_run_refuses_a_run_that_is_neither_active_nor_done.
+- Then release (scripts/release.py), refresh hosts, and live smokes. The cheapest is hello on Claude, stopped after `research` (9 turns, 27 s in the v1200 run). Estimate about $0.2, proportional [I]; the recorded whole-run cost is $3.62 for 149 turns. Then one smoke each on Grok and Codex. Then the real planning-only probe (Grok medium, after test-spec). I would not run it before the smokes.
+- Commits that change printed text (the stop packet) get the verbose message your rules ask for.
+- Rough size, all [I]: engine about 150 LOC plus docs, harness about 250 LOC, tests about 500 LOC.
+
+---------------------------------------------------------------------
+10. DOES NOT SOLVE
+---------------------------------------------------------------------
+- Pass-level stops inside an Until Loop (section 5.6).
+- Forking several continuations from one stop.
+- Stopping between a model's tool calls inside one stage.
+
+---------------------------------------------------------------------
+11. WHAT I COULD NOT DETERMINE
+---------------------------------------------------------------------
+- Whether Claude's and Grok's tool shells pass a harness variable, by MY probe: both were denied by their own classifiers. The answer is settled by [M-peer] raw files and the real-run commit identities, not by my calls.
+- How Codex reacts to a stop packet. The peer's Codex run was still active when I last read it.
+- Whether a real E2E paused packet crosses PRINT_LIMIT. Lab: 18,874 B in a long scratch path. Real paths are shorter.
+- Whether the harness grace-kill leaves Claude's final result event (never observed).
+- Anything from run.main itself. I did not launch it, per the brief. All harness behaviour above comes from code reading, unit-test names, function-level labs on a real paused run, and past run directories.
+- Implementation time and cost. The estimates are mine.
+- Whether a copied output directory could continue (fork). Not tested.
+
+---------------------------------------------------------------------
+12. ARTIFACTS
+---------------------------------------------------------------------
+My scripts and outputs in S:
+- probe_env.py, hosts/envprobe.sh, hosts/probe-results.json, hosts/{claude,grok,codex}/events.jsonl (host env probe)
+- decode_events.py (decodes an events.jsonl)
+- lab_paused.py and lab_paused.out (real paused run, harness grading functions, packet size)
+- lab_export.py and lab_export.out (metrics.collect and export_run on a paused run)
+- lab_stop_proto.py and lab_stop_proto.out (real-navigator stop prototype, hook-status, resume)
+- lab/out1, lab/out2, lab/home (the scratch runs)
+
+Read-only sources: /Users/dadleet/e2e-runs/20261003..20261005 (listings, metrics.json, events.jsonl, git logs). Nothing was written there. No E2E run, release or push occurred. No repository file was edited.
