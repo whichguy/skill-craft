@@ -1200,3 +1200,102 @@ that already held ("confirm and leave") and pass there by design. Also green: `n
 its URL; pass the same one to keep it (`--live` with an equal URL writes nothing). (3) Findings span runs but a review bundle is
 named by one run key (`luna1.review.json` holds the hello findings): the prompt no longer depends on that, but `advise` still
 writes `<runKey>.review.json`; whether a finding of another run should live in that run's own bundle is a convention to settle.
+
+## 2026-10-05: R17, the plan, the steps loop and each visit's packet on step 1 (local, unpublished)
+
+Status: firm for the definitions, the numbers and the tests below. Local commits `d897fe06` (exporter, contract, evidence) and
+`721c8212` (template) on `rr17-a0486a`, base `d1cca62f` (skill-craft 1.21.2, shiploop-run-review 0.1.1, released); no push, no
+`scripts/release.py`, no E2E run, no Artifact or ArtifactData call, nothing written under `/Users/dadleet/e2e-runs` (every export
+went to the session scratchpad with `--out`). The template changed, so the page needs one republish and the page database needs
+the `packets` upload (neither done). Related: `f1545b10` (R16, the loops under `run/backchain/`), `38119014`.
+
+**The owner's request.** "I would like the run review draft to be able to also show me the packets and the number of times it
+went through the steps loop (because, technically, we should have multiple steps in our planning process that were produced that
+we're supposed to go execute on)." Two things were missing from the page: the packet text of each visit, and the plan: how many
+work items and steps planning produced, and how many of those steps an implement visit executed.
+
+**Definitions** (SCHEMA.md "Plan and execution" holds them; every number is counted from `state.md` history and the accepted
+results, never from summary text).
+
+- `stepPlans`: the item's accepted `step-plan` visits of any outcome (a plan that came back `repeat` counts).
+- `loops`: how many times the item went through the **steps loop**: ShipLoop plans the item's steps, then builds them one
+  implement visit per step. The first pass counts 1 (once the item has any visit, else 0) and each accepted `revise` starts one
+  more, so `loops` is `1 + revises` while `stepPlans` also counts a repeated plan. Why this and not `stepPlans`: the engine sends
+  an item back to `step-plan` only on a `revise` (`REVISE_TO`, at most `MAX_REVISES` 2), and a pass is what the owner means by "went
+  through the loop"; a `repeat` re-issues the same stage and is not a new pass.
+- The pairing of steps with visits is the engine's own rule (`implement_progress`, `_step_lines` in `shiploop_navigator.py`): on
+  the inline route ShipLoop issues one implement packet per step, in order, and only a `done` visit moves to the next, so the k-th
+  done implement visit after an item's **latest accepted step plan** executed step k; a `repeat` visit is another attempt at that
+  step, and a `revise` visit ends the pass. A stage row gets `workitem`, `loop` and, for an implement visit, the `step` its packet
+  named (the plan then in force), so `S3` of loop 1 and `S3` of loop 2 are told apart.
+- Where the rule does not hold the export says so instead of guessing: `workItems` is absent with a reason when `state.md` has no
+  queue or history rows carry no `workitem`, or when the plan visit was recorded by the E2E seed; an item has no `stepsExecuted`
+  and its steps no `action` when the run's `delegation` is not `inline` (ask-agent issues one implement packet for the whole
+  plan) or when the counts do not line up with one packet per step (more done visits than steps, or the item moved past implement
+  with fewer); the run's `stepsPlanned` and `stepsExecuted` are then absent with a reason under their own name. A planned step no
+  visit executed has `action: null` (written, not omitted).
+
+**Real data, read only** (each run exported through this exporter into the scratchpad; `Steps` is planned/executed; the
+pairing was tested against every run by a loader test: each executed step names an accepted implement visit of its own item with
+the same step id, and the counted `revises` equal `state.md`'s own `revisions` map, `{W1: 1}` for Luna and `{}` for the hello
+runs). The real records agreed with the engine pairing in all five runs: no row needed a different rule.
+
+| Run (key) | Work items | Step plans | Loops | Steps | Implement visits by outcome | Packets | Packet text | Largest | Cut |
+| --- | --- | --- | --- | --- | --- | --- | --- | --- | --- |
+| Luna 1.16.1 (`luna1`) | 1 (W1) | 2 | 2 | 5/5 | done 7, revise 1 | 39 | 1,830,890 B | 65,126 B | 0 |
+| hello 1.16.1 (`hello-1161`) | 1 | 1 | 1 | 2/2 | done 2 | 35 | 1,276,373 B | 59,205 B | 0 |
+| hello 1.18.0 (`hello-1180`) | 1 | 1 | 1 | 1/1 | done 1 | 34 | 1,246,204 B | 59,112 B | 0 |
+| hello 1.19.0 gate (`hello-1190a`) | 1 | 1 | 1 | 1/1 | done 1 | 34 | 1,249,392 B | 55,961 B | 0 |
+| hello 1.19.0 repeat (`hello-1190b`) | 2 (W2 added by replan) | 2 | 1 + 1 | 2/2 | done 2 | 47 | 1,738,609 B | 56,177 B | 0 |
+
+Luna's first pass planned five steps and built S1 and S2 before the revise at S3 (visit 15); the second plan has the same five
+step ids and an implement visit executed each (visits 22 to 26). The packets are one document per visit that has a packet file
+(Luna has 40 files and 39 accepted visits, the fortieth is the next action's), 189 documents and 7,487,848 bytes on disk for the
+five runs, none near the 150,000-byte cut. In `hello-1190b` W2 is the corrective item the system-test replan added; the seven
+engine-skipped visits have no packet file and no document. At upload the packets go in `ArtifactData` batches of at most 50
+documents and 1 MiB: two batches a run, ten in all.
+
+**What the page shows.** Step 1 gains a "Plan and execution" panel below the six cards (still six): per work item its title, a
+badge ("steps loop once", "steps loop x2"), a counts line, one cell per planned step (filled with its visit number when executed,
+dashed "not run" when no visit executed it, dotted "?" when unpaired) and the step tasks in a collapsed list; the headline "1 work
+item, 2 passes through the steps loop" and the line "Steps planned 5, executed 5"; a run with no `workItems` reads "Not measured:"
+with its reason. Tapping an item shades its visits in the picture, tapping a step selects the visit that ran it or says it was never
+executed. A tapped visit's detail names its work item, loop and step, and a closed "Packet" box does one `get` of
+`packets/<runKey>--<action>` when opened, with a scroll box, Copy, size, digest and truncation note. The page never subscribes to
+`packets`. Seen in a browser tab (a local server over the template with a mock database that served the exported documents):
+Luna's panel, W1 selected and 30 columns shaded, S1 tapped to "Visit 22: implement" with "W1, steps-loop pass 2" and "S1", the Packet
+read once as `packets/luna1--nav-b7f4...` (47.3 KB, `dd1d01c90aa4`), seven collections subscribed and none of them `packets`;
+a hello run edited to have a never-run step and an unpaired item drew the dashed and dotted cells and the message on tapping, and
+fits 375 px in the dark scheme with no sideways scroll.
+
+**Limits, documented not guarded.** A run that switched its delegation route mid-run is read by its final route (`state.md`
+keeps only the current one). An item a `carry-forward` revision removed before it started is not listed (the export reads the final
+queue). A step task and a work item title are cut at 200 characters with a flag; a packet over 150,000 bytes is cut at a line
+boundary and one whose escaped JSON would pass the page database's 256 KiB per-document limit is cut further (a test with 150,000
+bytes of quotes and newlines); the validator refuses an oversize document. The page keeps a loaded packet for the page's life, so
+a re-uploaded packet shows after a reload. The artifact database's total size cap is not known here (a `quota_exceeded` would
+name it): 7.5 MB for the five runs is the largest write the page has had.
+
+**Tests.** `python3 -B test/shiploop-run-review.test.py`: 255 tests OK (212 at the base, 43 new: `PlanAndExecutionTest` 13,
+`PacketDocumentTest` 9, four in `CommittedEvidenceTest`, `PlanPanelTests` 10 and `PacketBoxTests` 7). The fixture's `state.md` and results now follow the engine's shape (a `workitem`
+on each history row, a `delegation`, a step plan with steps), and two existing assertions changed with what they pin (the row's
+`packetDoc`, and `writes.json` now ending with the packets). Run from a `git archive` of `d1cca62f` outside the repository with
+only the new test file copied over, all 43 new tests fail and the only other two failures are those two changed assertions. Also
+green: `node test/skill-frontmatter.test.js` (22 skills), `test/test-groups.test.py` (21), `test/marketplace-package.test.py` (29),
+`scripts/check-release-boundary.py --base origin/main` (both change notes accepted), `export.py --check` on `luna1.review.json` (69
+documents, 0 failures) and on the committed evidence files. The long `test/shiploop-e2e.test.py` was not run: nothing under
+`test/shiploop_e2e` changed except the five evidence files.
+
+**Evidence files.** The five committed run exports were re-exported with the page keys (`--key --name --order` as R13 recorded) and
+the same file names: 49,276 bytes in all became 60,562 (Luna 14,660 to 18,277, hello 1.16.1 8,031 to 9,766, 1.18.0 7,911 to 9,495,
+1.19.0 gate 7,926 to 9,467, repeat 10,748 to 13,557), each under the exporter's 200,000-byte limit. Every run document differs from
+before only by the new fields; the two Luna Backchain documents also gained the R16 record-only fields (`backchainPasses`,
+`candidateMatch`, `trivialRequired`, two facts) that the earlier file predates. The packets are not in these files.
+
+**Left for the owner.** (1) A seeded run has `workItems` absent (as asked): its work item is the harness's, though its step-plan
+visits are the model's, so the steps loop of a seeded run is not shown; showing it with the item marked seeded is a small change.
+(2) The ask-agent route has no per-step pairing by construction (one implement packet for the whole plan); the panel then shows
+the planned steps as "?" and `executed not measured`. (3) Republish the template, then upload each run: its `runs` document with
+`if_version`, the Luna Backchain documents never over the hand-built `luna1-plan` and `luna1-step-plan`, and the packets in ten
+batches; whether to upload the packets of all five runs or only the run under review (7.5 MB). (4) The page cannot refresh a
+loaded packet without a reload.
