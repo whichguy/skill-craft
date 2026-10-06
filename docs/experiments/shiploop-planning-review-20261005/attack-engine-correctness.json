@@ -1,0 +1,75 @@
+{
+  "verdict": "needs-changes",
+  "findings": [
+    {
+      "part": "I3 test-author probe (shiploop_test_loop.verify, judge) and the SPEC carve-out sentence that cites it",
+      "severity": "major",
+      "claim": "The probe as specified (judge in red mode, accept 'red' and 'green', described as 'a test ran') accepts an exit-0 run that ran no test, and an exit-0 run that never shows its listed IDs. The carve-out's 'a run of the focused commands that must run tests' and S-9 ('a check that ran nothing is not a pass') would then overclaim what the code does.",
+      "evidence": "[M] shiploop_test_loop.judge in red mode returns 'green' for code == 0 whenever the count is unreadable: only 'tally is not None and ran == 0' yields 'no-tests'. I built the draft's I3 on a scratch copy (stage_spec complete_runs test-probe, PROBE_STAGE, stage_commands, verify with red = stage in (RED_STAGE, PROBE_STAGE), good = (red, green), _test_probe_gate in dispatch complete) and drove verify with a stub runner. Results: node static-import missing module (ids listed and not) REFUSED (ids-missing, uncounted), so the target defect is caught. But 'exit 0, empty output' ACCEPTED, 'exit 0, ids listed but never shown' ACCEPTED. 'exit 0, Ran 0 tests' REFUSED, 'exit 0, Ran 1 test' and 'exit 1, 1 failed' ACCEPTED. The I3 fail-first list never tests the exit-0-ran-nothing case, so it would not catch this. Scripts: scratchpad/planning-review-design/zz-attack-engine-3a9f/exp4.py, judge_probe4.py.",
+      "correction": "Judge an exit-0 probe run in passing mode (counted ran >= 1, or listed IDs shown), exit != 0 in red mode: in verify use judge(..., red=(red and not (stage == PROBE_STAGE and code == 0))) and good = ('red','passed') for PROBE_STAGE. I verified this two-line variant on the scratch copy (exp4b.py): exit-0 no output and exit-0 ids-not-shown are refused, counted exit-0, counted RED and the missing-module cases behave as intended. Add a fail-first test that an exit-0 command with no countable test output is refused at test-author."
+    },
+    {
+      "part": "I3 refusal text for the probe (verify's red-mode branches)",
+      "severity": "minor",
+      "claim": "Reusing the red branch makes the probe's refusal tell the host the opposite of the placeholder rule: it says the command 'did not fail as expected' and ends 'Fix the tests or their setup (not the product code)', although the probe accepts green and its remedy is creating a loadable placeholder, which is product code. The draft only names _explain and record['expect'].",
+      "evidence": "[M] In verify, 'did not fail as expected' is chosen by 'if red' and the closing line 'Fix the tests or their setup (not the product code)' by 'elif red'. With PROBE_STAGE folded into red both print for test-author (exp4.py output: 'ran the 1 listed command ... 1 did not fail as expected' and 'Fix the tests or their setup (not the product code)'). The test-author duty in shiploop_prompts does not forbid product edits, and the stage row's edits={'tests'} is descriptive only (no script reads it).",
+      "correction": "Give PROBE_STAGE its own header and closing sentence in verify (it must run at least one test; creating the smallest loadable placeholder named in the step plan's paths is allowed here) and pin both lines in the I3 tests. Decide, in the carve-out or owner decision 5, that test-author may create the placeholder."
+    },
+    {
+      "part": "I4 once: the plan child's script-written repeat clause",
+      "severity": "minor",
+      "claim": "Under once the plan child is told to edit the covered spec and test-strategy in place, but the contract the loop actually follows still tells it that a finding which invalidates an accepted spec or test-strategy premise means 'report cancelled', i.e. stop and take the improve-reconcile route. I4 changes the exit clause and scope only, so the two instructions collide exactly where once is new.",
+      "evidence": "[M] improve_start_contract, planning branch: repeat += 'If a finding invalidates an accepted discovery, research, spec or test-strategy premise, finish the current bounded work and report ... continuation_assessment cancelled'. [M] In my scratch walk improve-reconcile at the once plan child restarts at spec and re-runs spec, test-strategy and plan (once: 1 child after restart, stage: 3). The I4 packet block says to change a covered decision in the files and state it in the summary. Which wins for an ordinary spec defect found at plan is unspecified; the worst case is a restart of the whole global trio.",
+      "correction": "In I4, reword the planning repeat clause for once: a defect in a covered document that the same child can repair together with the dependent documents is fixed in place; only a premise the child cannot repair (discovery, research, or a spec/test-strategy conclusion the plan cannot be made coherent with) takes the cancelled/reconcile route. Add a test on the frozen contract text."
+    },
+    {
+      "part": "I4 once: commit route for a child over several knowledge-home documents",
+      "severity": "minor",
+      "claim": "The plan child's packet prints no improve-commit route, so under once the single reviewer of spec, test-strategy and plan has only raw git commit, which the E2E metrics count as model glue (S-4/S-5). The draft's 'the commit gate needs no change' is right for the gate but silent on the printed route.",
+      "evidence": "[M] _render_improve builds the commit lines as '[improve-commit text] if not planning_reconcile else [planning text without it]'. Rendering bound children on the scratch navigator: spec, test-strategy, step-plan and test-spec packets print improve-commit and the commit-message path, the plan packet prints neither (exp3.py). [M] improve_changes.review_changes snapshots the whole tree at bind and _improve_change_gate only needs the edits committed, so there is no deadlock; _improve_commit itself is not stage-restricted.",
+      "correction": "In I4 print the improve-commit lines for the plan child as well (one conditional), or record in the plan doc that the plan child commits through the Improve card's own policy and accept the glue count."
+    },
+    {
+      "part": "I5 default flip: non-test consumers and the file list",
+      "severity": "minor",
+      "claim": "The draft says skills/rubric-eval/suites/architecture-v4/make_packet_frame.py 'tolerates a once or none run generically'. It does not tolerate none: with none as the default it walks the whole run and raises. I5's file list also names 9 test files where the flip breaks at least 16.",
+      "evidence": "[M] make_packet_frame.py loops 'while not (current_stage == plan and active_improve)' from a default new_state. On a scratch copy with DEFAULT_PLANNING_REVIEW='none' it ends with NavigatorError 'navigator is not active' after 38 iterations (exp5.py); with stage it reaches the plan child in 8. [M] Running 22 schedule-sensitive suites on the scratch copy with the default flipped to none (schedule logic only, no text change) added 177 failures in 17 files: improve-schedule 8, navigator-contract 21, navigator-v4 10, standalone-improve 2, v4-consumers 4, callback-contract 6, packet-bounds 1, quality 1, revise 10, delegation 13, consumer-delivery 30, guidance 13, planning-context 2, rehydration 5, actual-improve-cli 25, navigator-dry-run 26 (aborts early). The I5 list omits navigator-v4, standalone-improve, v4-consumers, callback-contract, packet-bounds, quality and rehydration. Baseline noise from the scratch layout (chain-planning-context, status-display) was excluded.",
+      "correction": "Pin planning_review='stage' (or once) in make_packet_frame.py and say its frame is no longer a default run's packet; widen I5's file list to the measured set and state that the pin is applied wherever a helper finishes a child at spec. Land I5's pins and the flip in one commit so main never has a red suite."
+    },
+    {
+      "part": "Fail-first claims in I2, I1 and I3 tests",
+      "severity": "minor",
+      "claim": "Several listed tests would pass on the unchanged code or assert the wrong refusal, so they are guards rather than fail-first evidence, contrary to the draft's 'fail first, through the real gates'.",
+      "evidence": "[M] I2 test (2): a forged active child at spec under none is refused at load, not by improve-bind: protocol.main calls navigator.validate on every saved run and dispatch starts with validate, so the message is the 'a stage that never starts an Improve child' refusal; 'no matching active Improve parent' is what a host-initiated improve-bind on a none run (no child) gets. The test as worded pairs the wrong input with the wrong message. I2 test (5) (assumption list refused at complete under none) passes before I2 because _check_submitted_assumptions already runs at complete and none then behaves as stage. I3 test (6) (recorded Node output through the real judge gives ids-missing or uncounted) passes on today's code; I verified the statuses (judge_probe.py: static import ids-missing, no-ids uncounted) but they characterise existing code. I3 test (2) (accepted after the placeholder) is likewise vacuous before.",
+      "correction": "Split each list into fail-first tests and regression guards and label them; for I2 (2) pin both routes (load-time refusal of a forged state; improve-bind on a none run). Keep the fail-first set to tests that fail on the pre-increment tree (none walk, none-state validity, none improve-reconcile refusal, S-11 commit at spec, probe refusal, the new exit-0 case)."
+    },
+    {
+      "part": "I2 mode-neutral text and the packet scan",
+      "severity": "minor",
+      "claim": "The I2 packet scan uses three fixed phrases, but a none-mode planning packet names Improve in 8 to 15 sentences, and several that promise or presuppose a child are outside those phrases. A regression in them would pass the scan.",
+      "evidence": "[M] Rendering every planning stage of a none-mode run on the scratch copy (exp7.py): spec 9 sentences naming Improve (1 matched by 'mandatory actual Improve' / 'automatic Improve handoff' / 'Only planning results'), test-strategy 8 (1), plan 15 (2), step-plan 11 (3), test-spec 8 (1). Unmatched promising ones include 'its Improve child evaluates whether the evidence supports it' (plan purpose), 'so Improve reviews their actual contents', 'Material findings remain visible and cannot clear ordinary Improve', 'the Improve child's context/notes' and the _BACKCHAIN_IMPROVE_OWNER paragraph. The draft's change list does cover most of them, but the scan would not detect an omission. [M] Also prompt() builds the non-improving TEST_FACILITY_HANDOFF with str.replace on an exact sentence, which silently does nothing if that sentence is edited.",
+      "correction": "Derive the scan from the real render: for each mode and planning stage, assert that every sentence containing 'Improve' (outside the Improve line) is either in a reasoned allowlist of mode-neutral sentences or absent when the mode starts no child. Replace the str.replace special case with a single mode-neutral sentence, as the draft already intends."
+    },
+    {
+      "part": "stage mode as 'today's behaviour', control cell and revert target",
+      "severity": "minor",
+      "claim": "After I2 the stage mode is not byte-identical to 1.21.x: COMMON, the plan, step-plan and test-spec duties and TEST_FACILITY_HANDOFF are rewritten for every mode. 'No behaviour change; it is the control cell and the revert target' is true of the schedule, not of the packets, and the I1 'every packet byte-identical' test stops being true at I2.",
+      "evidence": "[M] The draft's own I2 text: stage-mode packets change by the Improve sentences, 'deliberately shorter'. [M] The 1.21.0 Grok and Luna baselines were measured on the old wording; E2E baseline rows carry host, model and effort but no planning_review. The harness passes no run option, so no stage control cell can be selected (owner decision 7).",
+      "correction": "Say in the plan doc and journal that stage means the same schedule with reworded Improve sentences and that the 1.21.0 runs remain the only control for the old wording; record planning_review in the baseline row (Run Review handoff) so cells are not compared across modes silently."
+    },
+    {
+      "part": "Sequencing of the SPEC carve-out, I1 and I3 against I2",
+      "severity": "minor",
+      "claim": "The carve-out states what stands in for the review (including the test-author probe), but I3 is only required before the default flips (I5), not before the option goes live in I2. I1 also accepts and records once and none while the engine ignores them.",
+      "evidence": "[M] Draft: I3 'may land first or in parallel with I0 to I2; must land before I5'; I1: 'once and none are accepted and recorded but select no behaviour until I2 and I4'. [M] After I2 an explicit --planning-review none run exists without the probe the SPEC names. The precedent commit a89135f7 shipped an inert option the same way, within one release; the owner's memory rule is that every push runs release.py.",
+      "correction": "State that I1 to I3 (and I4 if kept) ship in one release, or order I3 before I2, or make I1 refuse once and none ('not yet supported') until their increments land, so no released tree carries a recorded option the engine ignores or a carve-out whose stand-in check does not exist."
+    },
+    {
+      "part": "none: first Improve binding moves to the end of the run",
+      "severity": "minor",
+      "claim": "Under none the first Improve child of a run is the last item's carry-forward, so an unselected, missing or unloadable Improve card (improve_skill '') is first exercised after all implementation work instead of minutes into planning. The draft does not mention this shift.",
+      "evidence": "[M] new_state only records the selected card ('actual card loading and package binding still belong to the later bind operation'); standalone.resolve_skill runs at improve-bind. [M] My two-item walk: none starts only carry-forward/W2, system-test-author and release-plan, versus spec as the first child under stage. The failure mode is a stall with the action pending ('report the missing skill'), not corruption, so it is recoverable.",
+      "correction": "Record it as a known limit in the plan doc, or (KISS: only if it bites) resolve and validate the card at init when planning_review is none or once is not selected. No engine change is required for correctness."
+    }
+  ]
+}

@@ -1,0 +1,481 @@
+PLANNING-REVIEW CHANGE: DESIGN REPORT (read-only; nothing in any repository was edited, no E2E run launched, no release, no push)
+
+Source tree: /Users/dadleet/src/skill-craft/.claude/worktrees/cifix-ece1d3 (HEAD d1cca62f, still clean after my work).
+Scratch: /private/tmp/claude-501/-Users-dadleet-src-skill-craft/f7d9360d-b88d-417b-8773-fc5b3eee6419/scratchpad/planning-review-design/ (called S below).
+Labels: [M] I read or ran it, with the file or symbol; [I] inferred; "unknown" means I could not get it.
+
+======================================================================
+A. BOTTOM LINE
+======================================================================
+
+1. Neither `once` nor `none` makes Luna xhigh reach 30 minutes. `none` with no extra authoring leaves 166 of 375 min. `once` as I would build it leaves about 328-361. [M arithmetic on measured minutes, plus stated assumptions]
+
+2. On Grok medium, `none` leaves 24.1 min if no review work turns into authoring. That figure is 37.4 if all pass-1 time moves to authoring. The two differ by about the run-to-run variance the stage-clock note reports. `once` leaves about 60-66 min. So `once` does not meet the owner's ceiling on either measured model. Only `none` on Grok can. [M arithmetic, I assumptions]
+
+3. The `once` described in the brief cannot be built as written for the per-item pair. An Improve child is bound to one action, and `finish_improve` can only replace that action's result.
+   - A child bound to test-spec cannot repair the accepted step-plan result.
+   - That result (steps, test_commands, criteria) is what the script enforces and later stages read.
+   - 3 of 5 step-plan children across the runs changed those fields (Luna xhigh replan, Grok, 1.16.1 first step-plan).
+   - Recommendation: collapse only the global trio (spec, test-strategy, plan) into one child at `plan`. That trio is 79% of Luna's review minutes and 78% of Grok's. Leave step-plan and test-spec children as they are.
+   - Only if the owner insists on per-item collapse: bind the single child at step-plan and drop test-spec's. That saves 15.7 min on Luna and 3.2 on Grok.
+
+4. The owner's "review missed it twice" premise is true for Luna xhigh only.
+   - The xhigh revise was the missing module.
+   - The 1.16.1 revise was a different defect. Test code contradicted its own helper (SYS-PORT-09), found at implement. No planning document could show it.
+
+5. The W1 revise (165.9 min) was not detection-limited. The existing test-red gate already refuses a run where no test ran (measured with the real `judge`, section H). The cause is an engine gap, which the guard in section H closes.
+   - test-red forbids product edits.
+   - test-author is never script-checked against its own done-when ("a test the focused command runs").
+   - No stage or packet text says who creates a loadable placeholder.
+   - The Luna host never submitted `done` at test-red. It submitted `revise` directly, so the gate never ran.
+   - The cheapest guard is one script-run probe at test-author's `done` plus two sentences. It reuses `test_loop.verify` and `judge`.
+   - This guard also cuts the cost of any revise, so it should land before or with the review change.
+
+6. Evidence on what the planning reviews bought:
+   - Luna 22 passes: 4 warranted, 5 marginal, 3 churn, 10 none. Warranted passes are 34% of Improve-phase minutes.
+   - Grok 26 passes: 4 warranted, 6 marginal, 4 churn, 12 none. Warranted passes are 28% of Improve-phase minutes.
+   - Almost all warranted findings sit in spec and test-strategy docs. Their classes (oracle strength, traceability, internal contradiction) are classes the unchanged later nets also catch: test-refine, verify, the carry-forward, system-test-author and release-plan Improve children. The 1.16.1 end review found exactly those classes.
+   - No run without the planning reviews exists, so the counterfactual is unknown for all of them.
+
+7. Mechanical facts about the code (all [M]):
+   - Flipping the default to `once` or `none` without an explicit recorded mode breaks existing tests. My scratch simulation of a global default flip, on the 36-file fast subset (590 tests), failed 135 tests in 18 files for `once` and 187 in 20 files for `none`. The baseline has 5 failures in 2 files, both pre-existing.
+   - The state key must not be `improve_cadence`. That key is retired and pinned as refused by `test_saved_improve_cadence_key_is_refused_with_a_named_error`. Suggested name: `planning_review`.
+   - The E2E harness has no channel to select a run option. The host prompt is only "$skill-craft:shiploop <request>". The harness has never passed `--backchain-passes` either.
+
+8. Tension with the owner's primary rule ("steps iterate until a stated check confirms each exit criterion"): `once` moves the check for spec and test-strategy to the plan close. `none` removes it. The existing script-run checks cover only the mechanical part of those criteria (section J.5).
+
+======================================================================
+B. PREMISE CHECKS (brief versus evidence)
+======================================================================
+
+Checked and consistent [M]:
+ - Luna xhigh window 375.0 (stage clock) and 375.9 (engine stamp).
+ - Improve children 22 passes, 12 changing and 10 clean, in 5 children.
+ - Grok medium 26 passes in 5 children.
+ - The ledger's 5 warranted fixes. They fall in 4 of my "warranted" passes.
+
+Corrections:
+
+ C1. "Missed BOTH times the defect: no real module to load, 165.9 and 123 min."
+     - 1.16.1 (v1161-battleship-luna, state.md accepted result nav-00607fa4...): action outcome `revise` at stage implement. "The startup suite passed 4/5 and exited 1 at SYS-PORT-09: test-support/http-server.js returns port: 3000 ... while test/server-startup.test.js asserts defaultProcess.port is undefined."
+     - That is a test-code contradiction found at implement. It is not a missing module.
+     - 1.16.1 had handled the missing-module case another way: test-author "converted missing-entrypoint diagnostics to explicit expected assertions".
+     - Grok's test-strategy tells the author to use a dynamic import() inside each test for the same reason.
+     - So only 1 of the 3 runs (Luna xhigh) took the seam revise. The gap is real but the host's handling varied.
+
+ C2. "About 247 KB of review paperwork per child."
+     - It is about 250 KB across the five Luna children (about 50 KB each). Document bytes are 100.8 KB for spec, test-strategy, plan and test-spec; the ledger's 112-116 KB includes other docs.
+     - By file role under worktree/.shiploop-improve: reviews 84.9 KB, runtime-written packet.json 72.4 KB, start.json 44.5 KB, checks.md 23.2 KB, opening.md 19.6 KB, parent-return.md 3.9 KB (one commit-message.md, 1.4 KB, in that tree). [M sizes, I roles]
+     - About half is script or runtime-written. That affects the "decode minutes" arithmetic behind lever L12.
+
+ C3. "Review caught 5 warranted fixes... and 5 minor ones" matches the ledger's findings-level count. Mine differ by one pass in two cells (ts p1 marginal, sp#1 p2 churn). Labels are judgement.
+
+ C4. "each work item's step-plan and test-spec reviewed once after test-spec" is not buildable without a new engine primitive (section J.2).
+
+ C5. The 30-minute ceiling: the stage clock and ledger do not say whether per-item planning (select-work, step-plan, test-spec) counts. Under the "intake to plan accept" reading, Luna's `stage` figure is 279.9 [from the ledger] rather than 375.9. I computed the first-test-spec-accept window throughout.
+
+======================================================================
+C. EVIDENCE BASE AND METHOD
+======================================================================
+
+Read in full or in the parts that matter:
+ - Journal entry "Planning time" in test/shiploop_e2e/LEARNINGS.md.
+ - The planning-time evidence dir: README.md, stage-clock.md, ledger-account-final.json (F4, F5, F9, F10, F11, L1-L4, L12, L13, L17, unknowns).
+ - docs/shiploop-fast-planning-plan-2026-10-04.md.
+ - Precedent commits 9747d769, a89135f7, 0df9b0c4, a34a6ee6, 2f091a35.
+ - SPEC S-9, S-10 (carve-out), S-11, S-14, and "Change admission".
+ - docs/shiploop-delivery-overhead-plan-2026-09-23.md, sections "0.21.0", "0.22.0" and "Next".
+ - Every review-N.md of every Improve child in the Luna xhigh and Grok medium runs (49 files), plus step-plan, test-spec and carry-forward reviews of 1.16.1 and the Sonnet battleship/hello runs.
+ - The scoped commit(s) of each pass: git -C <run worktree> log with --name-only and --numstat, mapped to child windows.
+ - Seed result versus accepted result for every Improve child (state.md improve_results).
+ - Paperwork bytes per child.
+
+Run in scratch (read-only on the repo):
+ - git archive of d1cca62f into S/proto/base.
+ - Two crude one-condition patches (S/proto/once, S/proto/none). Each patch edits `_improve_checkpoint` and the planning set in `_validate_current_state` in a scratch copy only.
+ - The 36 fast ShipLoop test files in all three copies: S/runsubset.py with the 3 result files S/proto/{base,once,none}-subset.json.
+ - A real node:test missing-module output fed to the real `test_loop.judge`: S/probe_judge.py.
+
+Time conventions:
+ - Pass minutes are gaps between review-file mtimes. A child starts at start.json mtime and ends at receipt.md mtime.
+ - "Full" child time starts when the producer's result file (run/inbox/<action>.md) is written. Full time includes bind and opening-writing and closing.
+ - Kill-inflated passes, by the ledger: Luna ts p4 (10.8 min of orientation), plan p1 (13.4), replan step-plan p2 (18.2).
+
+Label rules:
+ - W: warranted. Fixes a defect against the stage's done-when or the spec, and a later stage or failing test would plausibly not catch it. Judged by me from the text. No counterfactual exists.
+ - M: marginal.
+ - C: churn. Corrects an earlier pass of the same child, or finishes a half-fixed concept of that child.
+ - N: no change.
+
+======================================================================
+D. PER-CHILD, PER-PASS TABLES
+======================================================================
+(lines = ins+del of the scoped commit; "whole" means the commit added the whole document, which was untracked before pass 1, so pass 1's own delta is unknown)
+
+LUNA xhigh, 1.21.0 (child minutes / full minutes)
+
+spec (5 passes, 38.5 pass min; child 40.7, full 46.8)
+ p1  12.8 W  6 findings in the spec: R-to-TC traceability links wrong; fixture could bypass the real rules module (AC-4/TC-09); D-5 promised 405/404 but TC-10 omitted them; PORT proven only by parser tests, not by the real entry point; AC-2 contradicted the self-contained UI; AC-7 narrower than the manifest rule. whole +152
+ p2  20.5 M  Concrete test inputs pushed into the SPEC: new D-9 (LCG seeds 1,2,3), F-TEST fleet, shot vectors, invalid-body examples. This is test-planning detail and the backbone of W1's fixture. +19/-15
+ p3   2.4 C  D-8 changed to D-9 in the feature record (stale after p2). +1/-1
+ p4   1.6 N
+ p5   1.2 N
+
+test-strategy (8 passes, 58.9; child 59.8, full 61.3)
+ p1   4.6 M  AC-8 browser outcomes (one roving tab stop, corner clamping, reduced motion). whole +127
+ p2   2.7 N
+ p3   7.1 W  /api/new recovery untested (F-1); D-3/D-6 audit too narrow. +11/-6
+ p4  21.2 (10.4 net of kill) W  HTTP oracles lacked JSON content-type and error-body shape. +28/-9
+ p5   7.2 M+C  Fractional PORT 3000.5 case (marginal); media-type wording corrects p4's shorthand (churn). +7/-5
+ p6   8.9 M  UUIDv4 format oracle. +6/-4
+ p7   5.0 N
+ p8   2.2 N
+
+plan (4 passes, 45.7; child 46.5, full 57.5)
+ p1  30.5 (17.1 net of kill) W  W3 Done lacked the initial /api/new acknowledgement before ready; S2 asserted traversal requests that TC-10 does not define. whole +100
+ p2  10.5 C  Corrects p1's overclaim that TC-12 repeats path confinement. +2/-2
+ p3   2.8 N
+ p4   1.9 N
+
+step-plan #1 (4 passes, 21.6; child 22.4, full 27.4)
+ p1  15.3 M  Exact D-9 samples, mutation and coordinates written into plan.md and test-strategy.md (an upstream doc). +14/-5
+ p2   1.0 C  Concrete overlap/lower-bound examples, the same concept left half-done by p1 (upstream doc). +1/-1
+ p3   2.7 N
+ p4   2.6 N
+
+test-spec #1 (1 pass, 5.6; child 7.7, full 15.7)
+ p1   5.6 N
+
+--- after the test-red revise (not in the planning window; shown because the redo reran these) ---
+step-plan #2 (4 passes, 69.0; child 71.5, full 76.8)
+ p1  17.4 W (in context)  Placeholder shape for the seam and an owner for the import audit. The result changed: steps +1,025 B, test_commands +415 B, criteria +193 B. No repo commit.
+ p2  39.2 (18.2 net of kill) C  Wording of the evidence attribution in the result summary. No repo file changed.
+ p3   5.3 N
+ p4   7.2 N
+test-spec #2 (1 pass, 6.2; child 7.8, full 12.9)
+ p1   6.2 N
+
+Luna tallies, first five children (22 passes, 170.3 pass minutes, 208.7 full minutes):
+ W  4 passes   71.6 min (34% of 208.7)
+ M  5 passes   56.5 (27%)
+ C  3 passes   13.9 (7%)
+ N 10 passes   28.3 (14%)
+ overhead outside passes (bind, opening, close) 38.4 (18%)
+By stage W/M/C/N: spec 1/1/1/2; test-strategy 2/3/0/3; plan 1/0/1/2; step-plan 0/1/1/2; test-spec 0/0/0/1.
+Pass 1 across the five children: 68.8 min. Clean confirmation passes: 9 passes, 22.7 min, mean 2.5.
+Later changing passes (p>=2): 8 passes, 78.4 min total, mean 9.8, median 8.1. They changed 118 lines in all (median 11); roughly 0.66 min per changed line.
+
+GROK medium, 1.21.0
+
+spec (9 passes, 14.0; child 15.2, full 17.2)
+ p1  4.7 W  8 confirm-strengthening findings: replay fixture pinned, one request per failure row, JSON media type, hidden-layout confirm, infinite-loop guard, PORT range, colour tokens, wording. whole +265
+ p2  1.9 C  R-9's confirm contradicted R-10 (p1's own edit); plus R-8 sample inputs (marginal). +8/-8
+ p3  1.5 N
+ p4  0.9 W  R-1 required node: specifiers only but R-6 requires a relative rules import (a correct server would fail R-1). +2/-2
+ p5  1.3 C  Closed allow-list lacked node:assert. +4/-4, also edits environment.md (upstream)
+ p6  1.0 C  Same defect on the test side. +3/-3, environment.md
+ p7  1.1 C  node:child_process for launching server.js. +4/-4, environment.md
+ p8  0.8 N
+ p9  0.8 N
+ Four consecutive passes on one concept. This matches the journal's note, and I also count p4 as the one warranted pass in the chain.
+
+test-strategy (7 passes, 12.4; child 13.1, full 14.4)
+ p1  2.2 M  Fixture variable and JSON, TC-02 inputs. Edits spec.md (upstream). whole +231
+ p2  1.6 M  R-2 confirm gaps, charset. Edits spec.md (upstream). +8
+ p3  3.7 W  Error bodies: a 400 that also recorded a hit would pass. +24
+ p4  1.9 M  NFR-1 CDN check; F-2/F-3 oracles. +6
+ p5  1.5 M  TC-31 JSON, TC-40 load. +4
+ p6  0.7 N
+ p7  0.8 N
+
+plan (4 passes, 4.6; child 5.2, full 6.5)
+ p1  1.4 N
+ p2  1.6 M  The Done sentence required TC-41 although the strategy leaves it conditional. whole +53; work_items 1812->1770 B
+ p3  1.0 N
+ p4  0.6 N
+
+step-plan (3 passes, 6.1; child 6.4, full 7.3)
+ p1  4.3 W  The regression command listed criteria it cannot confirm (a weaker stand-in that the script would record as confirming). test_commands 694->649 B. +13 plan.md
+ p2  1.0 N
+ p3  0.8 N
+
+test-spec (3 passes, 2.3; child 2.5, full 3.2)
+ p1  0.7 M  Follow-up shots went to a fresh game, so a server that applied a bad request would still pass. whole +231
+ p2  1.0 N
+ p3  0.6 N
+
+Grok tallies (26 passes, 39.4 pass minutes, 48.6 full):
+ W  4 passes  13.6 (28% of 48.6)
+ M  6 passes   9.5 (20%)
+ C  4 passes   5.3 (11%)
+ N 12 passes  11.0 (23%)
+ overhead 9.2 (19%)
+By stage W/M/C/N: spec 2/0/4/3; test-strategy 1/4/0/2; plan 0/1/0/3; step-plan 1/0/0/2; test-spec 0/1/0/2.
+Pass 1 across the five children: 13.3 min. Later changing passes: 10 passes, mean 1.7 min, median 1.6.
+
+1.16.1 Luna max (counts and commit subjects only, so labels are [I]):
+ - First five children: spec 4 passes, test-strategy 11, plan 3, step-plan 3, test-spec 5 = 26 passes (matches the ledger). The redo adds step-plan 1 and test-spec 8.
+ - Changing passes by scoped commit: spec 2 of 4; test-strategy 8 of 11 (subjects like "cover browser error recovery" then "complete browser recovery checks" (churn), "widen timeout observation window"); plan 1 of 3; test-spec #1 3 of 5; test-spec #2 4 of 8, mostly one boundary-value chain (fractional PORT and coordinates).
+ - Step-plan #1 changed test_commands and criteria with no repo commit. Step-plan #2 changed nothing.
+
+Sonnet 5.5 (1.16.0 battleship; 1.16.1 and 1.20.0 hello) [M]:
+ - Hello: all 8 Improve children are 1 pass, 0.0-0.3 min each, and changed 0 files. The only commits in those windows are ShipLoop's own knowledge commits. The planning window is 3.2-3.7 min.
+ - Battleship 1.16.0: docs total about 6 KB, planning window 4.7 min. Five reviews changed docs. One plan review caught an importability omission ("server entry guard so tests import without listening", b1e196d). That is a different defect from the xhigh seam, a design omission rather than stage ordering.
+ - Review cost is not the lever on a terse model.
+
+======================================================================
+E. WHAT THE REVIEWS BOUGHT, BY STAGE
+======================================================================
+
+ - Where the warranted findings sit [M]: Luna 4 of 4 warranted passes are in spec, test-strategy and plan, and the global trio is 79% of Luna's review minutes. Grok has 3 of 4 in the trio, which is 78% of its review minutes. step-plan has 1 (Grok); test-spec has 0 on both runs.
+ - The classes found, which match the owner's own 2026-09-24 evidence ("a documented test command that ran nothing; a plan too loose to replay; a weaker stand-in; a plan edit that dropped test IDs"):
+   * weak or missing oracle (JSON content-type, error bodies, follow-up on the wrong game);
+   * traceability mislinks;
+   * internal contradiction between two confirm lines or documents;
+   * missing coverage of a stated requirement (/api/new recovery, 405/404);
+   * script-evidence mis-attribution (regression command naming criteria it cannot confirm).
+ - Concept chains: one concept refined stage after stage.
+   * Luna "concrete test inputs": spec p2 20.5 + p3 2.4 + step-plan p1 15.3 + p2 1.0 = 39.2 min, the same concept in four passes across two stages.
+   * Grok "import allow-list": spec p4-p7, 4.3 min in 4 passes.
+ - Cross-document edits by later reviews, in stage mode:
+   * Luna: 2 of 12 changing passes edited an upstream doc (both step-plan #1, test-strategy.md), 16.3 min.
+   * Grok: 5 of 14 changing passes (spec p5-p7 edited environment.md; test-strategy p1-p2 edited spec.md), 7.2 min.
+   * Grok's spec reached "clean" after 9 passes and the next stage's review still edited spec.md twice.
+ - The reviews are self-reviews by the same executor (SKILL.md "When Improve runs": "self-passes by the same executor, not independent reviews"). The planning review focus (`PLANNING_REVIEW_FOCUS`) already lists "wrong order or unowned verification", and the Luna reviews still missed the seam. More text would not have caught it. A script check would.
+ - Reconciliation, the engine's route for an invalidated upstream premise, was never used. `planning_reconciliations` is empty in all three runs [M].
+
+======================================================================
+F. QUESTION 1: WHAT A SINGLE END-OF-PHASE REVIEW CATCHES, AND CASCADES
+======================================================================
+
+Still caught by one review over all trio docs [I]: every finding in the tables above is a defect visible in the documents. A combined review also sees cross-document conflicts that stage reviews catch late or churn on: Luna plan p2 and Grok plan p2 are plan-versus-strategy conflicts; Grok spec p4-p7 is an upstream conflict that a downstream stage re-found. Whether one executor finds as many in one combined review as in many sequential ones is unmeasured.
+
+Cascades in `once` ordering: test-strategy and plan are authored against the unreviewed spec, and the single review has to edit all three. The cascade-prone defects:
+ - Luna spec p2 (D-9/F-TEST). Largest. Later consumers: test-strategy TC rows, plan W1 deliverables, step-plan, test-spec, test-author's fixture.
+ - Luna spec p1 (AC-4/TC-09 fixture bypass; TC-02; TC-10). Echoed in test-strategy and plan.
+ - Grok spec p1 (replay fixture, confirm lines).
+ - Grok spec p4-p7 (allow-list): echoed in environment.md ×3 and NFR-2.
+
+Cost estimate, honestly:
+ - Unknown, and not zero.
+ - Measured proxies from stage mode, for cross-document propagation: Luna 16.3 min (2 passes), Grok 7.2 min (5 passes).
+ - Upper bound if a defect forced a stage re-run: re-authoring test-strategy plus plan, authoring only (stage window minus review): Luna 18.5 + 63.5 = 82 min, Grok 5.2 + 5.7 = 10.9. No such re-run happened in 3 runs.
+ - In practice the plan-stage child edits docs in place, the same way each stage's child did. The engine route for a premise it cannot fix in place is `improve-reconcile` (restarts the planning suffix at the target). I did not exercise it.
+
+======================================================================
+G. QUESTION 2: WHAT LATER STAGES WOULD CATCH ANYWAY
+======================================================================
+
+Script-run gates available later [M, code] and their reach:
+ - test-red gate: `_test_red_gate` / `test_loop.judge`. Refuses a run with no test run or ids missing.
+ - test-green loop and ShipLoop's own rerun; regression.
+ - Step-plan criteria coverage: `_normalise_criteria` (every criterion confirmed by a recorded command).
+ - `knowledge.check`: files present at the closes, credential screen, no living-spec R-ID dropped.
+ - `item_scope.scope_refusal` at implement.
+ - Lint gate; system-test commands.
+ - Backchain-check (structural, record-only).
+None checks oracle strength, traceability mislinks, or contradictions inside the spec.
+
+Model reviews later, unchanged by this change: stage test-refine ("tighten weak assertions"), verify, and the Improve children at carry-forward, system-test-author and release-plan.
+
+Evidence of what the later reviews catch (1.16.1, the only run that reached them) [M]:
+ - carry-forward p1: board axes inverted against the accepted interface (a product defect); a test with no stable ID or AC map (traceability); stale verification prose; thin boundary coverage (extended tests).
+ - system-test-author p1: a missing local source-return check in the plan.
+ - Sonnet 1.16.0 carry-forward: UI hardened against failed and stale requests.
+ These are the oracle-strength and traceability classes of the planning findings, found after implementation, for the cost of a 3-pass end review (43.4 min on 1.16.1).
+
+Per warranted finding [I]:
+ - LD1 traceability: re-derived at test-strategy; mislinks persist under `none` until the end review.
+ - LD2 fixture bypass: no script gate; end review.
+ - LD3 /api/new recovery untested: no script gate; system-test-author Improve.
+ - LD4 JSON oracles: test-refine or end review.
+ - LD5 W3 ready check: W3 step-plan and verify.
+ - GD2 R-1/R-6 contradiction: fails at the dependency audit late. This is the costly one under `none`: a replan of the spec.
+ - GD4 criteria on the regression command: nothing but the end review.
+ Whether they would "plausibly not be caught" cannot be shown. No counterfactual run exists, and the Luna and Grok runs stopped before the later nets.
+
+======================================================================
+H. QUESTION 3: THE W1 TEST-RED REVISE AND THE CHEAPEST GUARD
+======================================================================
+
+What happened [M]:
+ - Luna test-author (nav-6b3d41c9) accepted done while saying "The focused rules command has not run: game.js is absent."
+ - test-author's own done-when, #1 in `stage_spec`, is "each case in the test spec has a test the focused command runs". Nothing checks it: test-author has no `complete_runs`.
+ - test-red (nav-7474e0b2) submitted revise: "The focused command was not run because it would fail during import... forbids product-code edits." The packet says "Do not edit production code" at test-red and `stage_spec` gives test-red edits=tests only.
+ - No packet, reference or stage row mentions a seam, stub or placeholder. A grep of shiploop_prompts.py, references/*.md and SKILL.md for seam|loadable|stub|placeholder finds nothing relevant.
+ - The redo fix was three lines: test-author created a placeholder root game.js.
+ - The redo cost 165.9 min against 99.2 first time: step-plan 120.1 (Backchain 41.2, Improve 69.5), test-spec 25.2, baseline 5.1, test-author 12.2, test-red 3.3.
+
+Detection already exists. I fed a real node:test missing-module output to the real judge (S/probe_judge.py):
+ - With ids listed, red mode returns `ids-missing` (refused).
+ - Without ids it returns `uncounted` (refused).
+ - Node's summary is not recognised by `shiploop_test_counts`, so the `ids` list is what carries the verdict for node:test.
+So the test-red gate would have refused. The host never called it.
+
+Cheapest guard, as one increment (script-run check plus two sentences):
+ 1. Stage table, `shiploop_stage_spec.py`: add `"test-probe"` to COMPLETE_RUNS and give the test-author row `complete_runs=("test-probe",)`, like the test-red row.
+ 2. `shiploop_test_loop.py`:
+    - `stage_commands` returns the focused commands for the probe stage.
+    - `verify` gets a probe mode. It accepts any verdict where tests ran: `red` or passing. It refuses `no-tests`, `not-red`, `ids-missing`, `uncounted`.
+    - `_explain` names the placeholder rule.
+ 3. `shiploop_navigator.py`: in the gate chain beside `_test_red_gate`, add `elif cursor_stage == PROBE_STAGE`. Same refusal shape, same MAX_REFUSED_RUNS.
+ 4. `shiploop_prompts.py`: one sentence in the test-author text and one in step-plan: tests that load something this item creates need the smallest loadable placeholder, created in test-author, with its path in the step plan's `paths`; or the load happens inside the test. Do not add language-specific text (S-8).
+ This is the script-run check that carries test-author's own stated exit criterion (S-9), and the exit criterion check the owner's primary rule asks for.
+
+Cost: one run of the focused commands per test-author done, seconds, already a path ShipLoop runs at test-red.
+Saving if the guard had existed: roughly the redo, 165.9 min on Luna xhigh, less a few minutes in-stage [I]. Cost measured; saving is an estimate.
+
+Rejected alternatives:
+ - Static import analysis: language-specific (S-8).
+ - Backchain-check consumers: the graph models implement steps only, so tests-before-code ordering is invisible to it.
+ - Lint at test-author: needs a configured resolver, so it is not generic.
+ - Text alone: Luna's reviews and host ignored text of this kind; 1.16.1 and Grok found a route by themselves, Luna xhigh did not.
+ - A cheaper revise path (L17): complementary, a separate increment.
+
+Not covered by this guard: the 1.16.1 SYS-PORT-09 class (a test that contradicts its helper looks RED at test-red).
+
+======================================================================
+I. QUESTION 4: EXPECTED PLANNING-WINDOW MINUTES
+======================================================================
+
+Measured (n=1 per model; the stage-clock source note says stage times vary about 2x between runs of the same model):
+ Grok medium: window 72.7. Improve phase (producer result to receipt, 5 children) 48.6 = 67%.
+ Luna xhigh: window 375.0. Improve phase 208.7 = 56%.
+
+Table. Stage, once, none; global trio = spec, test-strategy, plan; per-item pair unchanged under `once`.
+
+ Mode                                        Grok medium            Luna xhigh
+ stage (measured)                            72.7                   375.0
+ once, trio merged, pessimistic (A2)         66.4                   361.0
+ once, trio merged, central (A3)             61.2                   338.8
+ once, trio merged, optimistic (A4)          59.5                   327.6
+ once, plus per-item test-spec child dropped additional -3.2        additional -15.7
+ none, no review work becomes authoring (A0) 24.1                   166.3
+ none, all pass-1 time becomes authoring (A1) 37.4                  235.1
+
+Assumptions:
+ - A0: window minus Improve phase. Nothing else changes.
+ - A1: add the five children's pass-1 minutes (13.3 / 68.8). The ledger says drafts are 73-85% of final size, so part of pass 1 is authoring. The share that moves is unmeasured.
+ - A2: a combined review still needs every changing pass of the three children (Luna 3+5+2 = 10, Grok 6+5+1 = 12); it saves one opening instead of three and two clean passes instead of seven (Luna) or seven (Grok).
+ - A3: changing passes = (largest per-doc count) + 1 (6 on Luna, 7 on Grok). Pass 1 costs the sum of the three pass-1 times; later changing passes cost the trio's measured mean (Luna 11.1, Grok 1.7); 2 clean passes at the sum of per-doc clean means (Luna 7.0, Grok 2.6); opening = the largest opening proxy (Luna 11.8, Grok 3.2).
+ - A4: changing passes = the largest per-doc count (5 on Luna, 6 on Grok).
+ - A3 and A4 rest on the owner's "each pass closes about 80% of the remaining gap" postulate [I]. No combined review was ever run, so the pass count of the combined child is unknown. The labels are scenarios, not measures.
+ - Kill orientation is left in the current figures and the merged figures alike.
+
+Ceiling check against 30 min: only `none` on Grok, and then only under A0 (24.1; A1 gives 37.4). `once` fails on both models. Luna xhigh fails under every mode: the ledger's floor with no review and no Backchain loop beyond the draft is 115-131 [ledger I].
+Sonnet 5.5: already 3-5 min; modes are irrelevant (section D).
+Break-even per escape: one Luna xhigh redo cost 165.9. `once` central saves about 36 of that, so it pays for itself if it adds fewer than about 0.22 escapes per run. `none` saves up to 208.7, so the break-even is about 1.26 escapes per run. Whether turning review off adds escapes is unmeasured; both observed escapes happened with review on.
+
+======================================================================
+J. DESIGN VERDICT
+======================================================================
+
+J.1 Option and modes
+ - Name: `--planning-review stage|once|none`, state key `planning_review`. Not `improve_cadence`.
+   * That key was removed at 0.23.0 (b960891b), after the 2026-09-24 decisions (0.21.0 plan-and-end, then 0.22.0 keeps test-spec and the other planning reviews).
+   * It is pinned refused by `test_saved_improve_cadence_key_is_refused_with_a_named_error` in test/shiploop-improve-schedule.test.py.
+   * The earlier evidence from that session ("only contract-sentence reviews (step-plan, test-spec) found bugs") supports keeping the per-item pair as is.
+ - Recorded in state.md like lint, delegation and backchain_passes; flag on `init` and `workspace start`; a recovery retry cannot change it (`_require_retry_planning_review`, copy of the backchain one); no mid-run `--set`; a saved run without the key is refused with FRESH_RUN_HINT by the generic missing-keys check. No shim, no migration.
+ - Values:
+   * `stage`: today. One Improve child per planning stage.
+   * `once` (refined): spec and test-strategy results are accepted on the script's checks. The plan result starts the one child, scope = living spec, feature spec, test-strategy, feature plan, README, environment, SHIPLOOP.md. Its exit condition carries the done-when of spec, test-strategy and plan. step-plan and test-spec children are unchanged.
+   * `none`: no child at spec, test-strategy, plan, step-plan, test-spec. The carry-forward, system-test-author and release-plan children are unchanged.
+
+J.2 Why per-item `once` is not buildable as stated [M code]
+ - `apply` parks one action. `finish_improve` computes `result = child["seed_result"] if final_result is None else final_result`, canonicalises it for `child["stage"]`, and `_apply_result` records that one action.
+ - A child bound to test-spec cannot change the accepted step-plan result; the only route is `revise` (back to step-plan, at most 2 per item), which costs what the owner is trying to avoid.
+ - Seed-versus-accepted comparison across the three runs: step-plan changed structured fields in 3 of 5 children; plan changed work_items in 2 of 3. All other children changed only summary or evidence_refs. The structured fields are the ones the script enforces (`_normalise_criteria`, `normalise_commands`).
+ - Options if the owner still wants per-item collapse: drop test-spec's child (saves 15.7 / 3.2 min) or accept unrepaired step plans. I recommend neither.
+
+J.3 Code touchpoints [M, symbols]
+ - shiploop_prompts.py:
+   * `PLANNING_REVIEW_STAGES` becomes a function of the mode; add the mode constants and default.
+   * `prompt()` gets the mode like `backchain_passes`.
+   * Per-stage Improve statements. The COMMON paragraph says only planning results get an Improve handoff; the plan duty says "mandatory actual Improve handoff"; the step-plan duty says "automatic Improve handoff immediately after". 11 lines in the file say "automatic/actual Improve handoff".
+   * `IMPROVE_SCOPES["plan"]` must name all three docs in `once`.
+   * `PLANNING_REVIEW_FOCUS` needs one cross-document consistency line for `once`.
+ - shiploop_navigator.py:
+   * `_STATE_KEYS`, `new_state`, `_validate_current_state` (the mode check and the `planning` set that requires one Improve record per planning stage), `recorded_planning_review`.
+   * `_improve_checkpoint(state, stage, result)` already receives `state`, so it is the one place to branch.
+   * `_improve_line(stage)` needs the mode.
+   * `render`.
+   * `improve_start_contract` plus `loop_contract.stage_exit(stage)` (add the extra stages' done-when in `once`; keep within CONTRACT_BUDGET with the real opening).
+   * `_render_improve` opening instructions for the plan child.
+ - shiploop_protocol.py: `--planning-review` on `init` and `workspace start`, the retry guard.
+ - shiploop_navigator_dry_run.py: take the mode.
+ - Docs that must not contradict the packet: SKILL.md "When Improve runs", README.md (lines about planning results), references/state-files.md, navigator.md, graph-dry-run.md, parallel-chain.md ("Every planning producer and its Improve completion"), planning handoff text.
+ - Exporter: skills/shiploop-run-review/scripts/export.py and SCHEMA.md record the option as a record-only fact, like `backchainPasses`. The SPEC clause-evidence table row for S-9/S-10 names "Improve children" as harness evidence, so the grader must read the option.
+ - Vendored Until Loop: untouched; test/improve.test.sh hashes stay.
+ - Existing nets that stay: reconcile, `knowledge.check`.
+
+J.4 Increments, following the precedent shape (own commit each; fail-first tests; change note under changes/shiploop/; verbose commit message citing evidence and related commits)
+ I0. SPEC carve-out in its own commit before any code, with the decision record and the journal entry. Wording points are in J.6. Related refs: 9747d769, a9f592a3, 04ad68a2, 520bfb85, b960891b, 47bba520, 4af28a7e. Add a test like the one 9747d769 added to test/shiploop-e2e.test.py that pins the carve-out's option name, default and values to the code constants.
+ I1. Plumbing with default `stage`, no text change, every packet byte-identical. Tests: a `PlanningReviewOptionTest` mirroring `BackchainPassesOptionTest` (default and each value through the CLI, invalid value, changed retry via `init` and `workspace start`, saved run without the key refused through `next`, `report` and `init`, the recorded mode reaching the checkpoint decision, the key is not `improve_cadence`).
+ I2. `once` behaviour and text. Tests through the real gate, not wording: `walk()` in test/shiploop-improve-schedule.test.py per mode (reviewed stages); a forged child at spec refused through `improve-bind` in `once`; a record at spec refused by `validate` in `once`; the plan child's frozen contract carries three stages' done-when and stays within budget; packet text pins derived from the render (lesson of 2f091a35).
+ I3. `none`. Same style, plus the harness fact.
+ I4. Default flip and E2E selector (J.7). The simulation shows why this is separate: a global default flip fails 135 (`once`) or 187 (`none`) of 590 fast-subset tests. The tests that fail are the pins on today's schedule. Options for the flip: keep the API default `new_state(...)` at `stage` and have the CLI pass the real default (the `lint` precedent: API default off, CLI passes DEFAULT_LINT), or update the pins to explicit modes.
+ IG. Red-seam guard (section H) as its own increment, ideally first.
+ Test impact beyond the fast subset (chain suites, e2e) was not run.
+
+J.5 Exit criteria without the review: which script-run check carries them
+ Existing script-run checks [M] and what each stage's done-when leaves model-judged:
+  - spec: knowledge.check (no R-ID dropped, credential screen); evidence refs exist. Model-judged: outcomes map to criteria; criteria verifiable; NFR assessed.
+  - test-strategy: none specific. Model-judged: criterion to check and surface; harness choice; planned-not-passed.
+  - plan: `_check_submitted_assumptions` (list complete); backchain-check structural (record-only); `_planning_sources_current` at prepare. Model-judged: each criterion owned; order and readiness.
+  - step-plan: schema, `_normalise_criteria`, `normalise_commands`. Model-judged: whether the commands actually prove the criteria (Grok sp p1).
+  - test-spec: knowledge.check requires the file at the close. Model-judged: cases and oracles.
+ A small, generic addition that stays within S-8 and S-12 by extending `knowledge.check` at the closes: (a) each living-spec R-n appears in test-strategy.md and in the feature plan; (b) each step-plan criterion id appears in the item's test-spec; (c) local links and anchors under docs/shiploop resolve. It uses only engine-owned IDs. Ledger lever L11 reports 100 model-written check scripts (73.8 min) in the Luna window, which this replaces [ledger, not re-derived].
+ Honest limit: none of the 9 warranted findings above would be caught by (a)-(c). Under `none`, the semantic part of the exit criteria becomes model-asserted with downstream script evidence only. Under `once` it is deferred to the plan close. This is the tension with the primary rule and with "enterprise rigour"; the carve-out must name it.
+
+J.6 SPEC carve-out content (own commit first)
+ - Dated 2026-10-05, owner decision, anchor: the 30-min ceiling and the 1.21.0 Luna xhigh / Grok medium runs.
+ - It relaxes S-10 for planning-stage review loops (their existence, not any loop's exit condition) and S-9 for planning exit criteria in `once` and `none`, and says so.
+ - It states: modes and default; which children remain; every review that runs keeps required_trivial_reviews 2 and the vendored runtime is unchanged; what carries each exit criterion (J.5); that the model's assessment, not a script proof, is the check for the semantic part; that the harness reads the recorded option.
+ - Change-admission adversarial evaluation to record in the plan item and the commit summary:
+   * Weakens S-9/S-10 and the primary rule: accepted, named in the carve-out; `once` keeps one review and `none` is explicit opt-in.
+   * Silent failure: a host starting a spec child under `once` is refused mechanically (mitigated and tested through `improve-bind`).
+   * Other hosts: Sonnet and trivial requests lose nothing measurable (reviews 0.0-0.3 min, 0 changes).
+   * Packet text grows slightly: plan child scope and exit text; check CONTRACT_BUDGET.
+   * Saved runs: refused (one supported version).
+   * Costs more than it saves: possible if `none` adds escapes; break-even in section I.
+   * S-11: spec and test-strategy knowledge commits happen before their review in `once`; the plan child commits scoped fixes afterward and the close at prepare still requires all files. Accepted.
+   * Gaming: n/a.
+
+J.7 E2E selector prerequisite [M]
+ The harness invokes `$skill-craft:shiploop <request>` (host-prompt.txt) and the host picks CLI flags. Nothing in test/shiploop_e2e/run.py or skills/shiploop-e2e-audit/harness passes a run option; `--backchain-passes` was never selected by a harness run. To compare `stage`, `once` and `none` on the same case the harness needs a channel. Cheapest without a new engine surface: a harness-appended sentence on the host prompt, with the harness verifying the recorded key in state.md (export fact) and failing setup on mismatch. An environment variable read by `init` would be a new surface (S-13); none exists today.
+
+J.8 Recommendation on default [for the owner to decide]
+ - Evidence cannot separate `once` from `none` on quality (no counterfactual).
+ - The owner's ceiling separates them: only `none` on Grok can meet it. If the ceiling governs the default, the default is `none`, with a real, unmeasured rigour cost. If rigour governs, `once` is defensible but then planning stays over 30 min on both models.
+ - I would build all three with the owner's stated default `once`, ship the red-seam guard first, and run one measured Grok `none` and one `once` comparison before claiming either meets the ceiling.
+
+======================================================================
+K. UNKNOWNS AND WHAT I COULD NOT DETERMINE
+======================================================================
+
+ 1. How many passes a combined review over three docs needs (never run). All `once` figures are scenarios.
+ 2. The share of pass-1 time that is really authoring (first-draft size 73-85% of final per the ledger; the share that moves under `none` is unmeasured).
+ 3. Cascade cost of an upstream defect found only at the plan close. Only proxies exist.
+ 4. Whether turning review off adds escapes (no run without the planning reviews).
+ 5. What downstream stages would have caught for the specific 5+4 findings: the Luna and Grok runs stopped at W1 implement and test-spec.
+ 6. Grok medium's redo cost for any escape (the probe stopped before test-red).
+ 7. Whether the per-item window counts toward the 30 min (ledger unknown 21).
+ 8. Pass-level labels are my judgement. Review commit-to-pass mapping used commit sequence, not time, for passes with no commit (they differ from mtimes by up to a minute).
+ 9. 1.16.1 labels come from commit subjects, not full reads.
+ 10. The 1.16.1 and Luna kill-inflated minutes: I used raw minutes and flagged the three inflated passes.
+ 11. Tests outside the 36-file fast subset (chain, workspace, e2e, full-runtime) were not run, so the default-flip footprint is a lower bound. The 135 and 187 counts come from a crude one-condition patch, so some failures are the simulation's incoherence, not true pins; the real change must parametrize them.
+ 12. The dry-run test file aborted early under both patches (26 tests became 13 run), so more may fail there.
+ 13. Baseline failures in the scratch copy: status-display (1, a pre-existing .progress.lock failure that earlier commit messages also report) and no-model-launch (4, build-packages.py fails in a git archive copy without .git).
+
+======================================================================
+L. SCRATCH ARTIFACTS (all under S)
+======================================================================
+
+ - load_state.py, children.py (per-child passes and timing), commits_by_child.py, opening.py (producer-result to receipt overhead), sec.py (review section extractor)
+ - passtable.py: the per-pass labels and tallies. Labels are hand-assigned in its LAB dict.
+ - estimate.py: the per-mode window arithmetic of section I.
+ - upstream_edits.py: scoped commits that edited an earlier stage's document.
+ - probe_judge.py plus nodeprobe/ and nodeprobe2/: the real `judge` on a real node:test output.
+ - runsubset.py, runtests.py: the test runners.
+ - proto/base, proto/once, proto/none: the scratch copies and proto/*-subset.json|out results.
+ - Other files in that scratch dir (engine, dependents, run_tests.*, zz-design-*) are not mine.

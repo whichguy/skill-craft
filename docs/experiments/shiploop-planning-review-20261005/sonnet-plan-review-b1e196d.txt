@@ -1,0 +1,12 @@
+commit b1e196d55b75f71a0caaebcf09f0814caab5f6b5
+Author: Jim Wiese
+Date:   Sat Oct 3 10:29:18 2026 -0700
+
+Plan: add server entry guard so tests import without listening
+
+Review: plan lacked an importable server design; tests needing a port would be flaky.
+Changes: require.main guard and createServer() export noted in plan.md.
+Validation: node --test exit 0 (0 tests, pre-implementation).
+
+Co-Authored-By: Claude Sonnet 5.5 <noreply@anthropic.com>
+

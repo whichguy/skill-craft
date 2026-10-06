@@ -857,13 +857,37 @@ class FastPlanningRecordTest(unittest.TestCase):
         self.assertTrue((ROOT / "docs" / "shiploop-fast-planning-plan-2026-10-04.md").is_file())
         json.loads((self.EVIDENCE / "design-final.json").read_text())
 
-    def test_spec_s10_names_its_one_carve_out(self):
+    def test_spec_s10_names_its_carve_outs(self):
         spec = (ROOT / "test" / "shiploop_e2e" / "SPEC.md").read_text()
         s10 = " ".join(spec[spec.index("**S-10 Loops"):spec.index("**S-11")].split())  # the SPEC is hard-wrapped
-        self.assertIn("Except for the carve-out below, there is no iteration cap", s10)
-        self.assertIn("**S-10 carve-out, owner decision 2026-10-04**", s10)
-        for option in ("--backchain-passes converge", "--backchain-passes none", "backchain_passes"):
+        self.assertIn("Except for the carve-outs below, there is no iteration cap", s10)
+        for heading in ("**S-10 carve-out, owner decision 2026-10-04**", "**S-10 carve-out, owner decision 2026-10-05**"):
+            self.assertIn(heading, s10)
+        for option in ("--backchain-passes converge", "--backchain-passes none", "backchain_passes",
+                       "--planning-review stage", "--planning-review none", "planning_review"):
             self.assertIn(option, s10)
+
+    def test_the_planning_review_evidence_is_in_the_repository(self):
+        evidence = ROOT / "docs" / "experiments" / "shiploop-planning-review-20261005"
+        journal = (ROOT / "test" / "shiploop_e2e" / "LEARNINGS.md").read_text()
+        self.assertIn("docs/experiments/shiploop-planning-review-20261005/", journal)
+        self.assertIn("docs/shiploop-planning-review-plan-2026-10-05.md", journal)
+        self.assertTrue((ROOT / "docs" / "shiploop-planning-review-plan-2026-10-05.md").is_file())
+        for name in ("README.md", "design-draft.json", "design-final.json", "report-engine.txt",
+                     "report-consumers.txt", "report-value.txt", "report-rules-and-wording.txt",
+                     "attack-measurement-and-text.json", "attack-engine-correctness.json",
+                     "sonnet-plan-review-b1e196d.txt", "e6b-excerpt.md", "probe_judge.py", "probe_judge.out",
+                     "passes.py", "passes.out"):
+            self.assertTrue((evidence / name).is_file(), name)
+        for name in ("design-draft.json", "design-final.json", "attack-measurement-and-text.json",
+                     "attack-engine-correctness.json"):
+            json.loads((evidence / name).read_text())
+
+    def test_the_statements_the_planning_review_supersedes_say_so(self):
+        for name in ("shiploop-fast-planning-plan-2026-10-04.md", "shiploop-delivery-overhead-plan-2026-09-23.md"):
+            text = " ".join((ROOT / "docs" / name).read_text().split())
+            self.assertIn("Superseded 2026-10-05", text, name)
+            self.assertIn("docs/shiploop-planning-review-plan-2026-10-05.md", text, name)
 
     def test_the_planning_time_evidence_is_in_the_repository(self):
         evidence = ROOT / "docs" / "experiments" / "shiploop-planning-time-20261005"

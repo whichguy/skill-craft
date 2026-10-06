@@ -1,0 +1,7 @@
+exit0 empty output                         first=green       accepted=True  | corrected=uncounted   accepted=False
+exit0 ids listed never shown               first=green       accepted=True  | corrected=ids-missing accepted=False
+exit0 ran 2                                first=green       accepted=True  | corrected=passed      accepted=True
+exit0 ran 0                                first=no-tests    accepted=False | corrected=no-tests    accepted=False
+exit1 node missing module, no ids          first=uncounted   accepted=False | corrected=uncounted   accepted=False
+exit1 node missing module, ids listed      first=ids-missing accepted=False | corrected=ids-missing accepted=False
+exit1 one failing test                     first=red         accepted=True  | corrected=red         accepted=True

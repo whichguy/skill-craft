@@ -90,7 +90,7 @@ model's own judgment. A check that ran nothing is not a pass.
 **S-10 Loops iterate until their exit condition is met.** Quality, test and
 review loops (Until Loop) run until a stated, checkable condition holds, with
 a frozen contract the script writes and iterations the script counts. Except
-for the carve-out below, there is no iteration cap; a loop ends on its
+for the carve-outs below, there is no iteration cap; a loop ends on its
 condition, a true blocker or a user stop.
 
 **S-10 carve-out, owner decision 2026-10-04** (anchor: the owner's request and
@@ -114,13 +114,67 @@ reviews; `--backchain-passes none` offers no whole loop at `plan`. The host
 model writes this contract (open item a02), so S-4, S-5, S-12 and S-10's
 frozen contract the script writes stay unmet for this loop, as they already
 were; a future script-written or script-checked contract must accept a gate-0
-complete packet whose last report is non-trivial. Quality, test and Improve
-loops are not covered; their no-cap rule stands. Basis: in the Luna max
+complete packet whose last report is non-trivial. Quality and test loops are
+not covered, nor are Improve loops except as the next carve-out says; their
+no-cap rule stands. Basis: in the Luna max
 battleship run (skill-craft 1.16.1) the two Backchain loops took 213 of 647.5
 planning minutes; the plan loop's passes 2 to 5 each reported a non-trivial
 finding of confirmation level or wording (no edge, goal or supplier changed),
 passes 6 and 7 changed nothing, and no later packet names the plan graph.
 Record: docs/shiploop-fast-planning-plan-2026-10-04.md.
+
+**S-10 carve-out, owner decision 2026-10-05** (anchor: the owner's rule that
+planning takes no more than 30 minutes, decided after the evaluation of the
+skill-craft 1.21.0 battleship runs on Luna xhigh and Grok medium, not a clause
+this serves; it relaxes S-9, S-10 and the rule that a step iterates until a
+check confirms each exit criterion, for the Improve review of planning results,
+and says so). The run option `planning_review` (state option `planning_review`,
+recorded in `state.md` at `init` or `workspace start`, never changed afterwards;
+a saved run without it is refused) selects which of the five planning results
+`spec`, `test-strategy`, `plan`, `step-plan` and `test-spec` start an Improve
+child. `--planning-review stage` starts one after each of the five, as before.
+`--planning-review none` starts none. The Improve children after
+`system-test-author` and `release-plan` and the last `carry-forward` start in
+every mode; the quality and test loops and the Backchain child are not covered
+and their rules stand. The option's default is a separate owner decision: until
+a later dated SPEC commit states it, the code default is `stage`. Every Improve
+child that starts is unchanged (a contract the script writes, the same
+two-review or unchanged-first-pass exit, no iteration cap), so S-10 holds for
+each loop that runs. In `none` a planning result is accepted without a review
+loop. What stands in for the loop is what S-9 can name: ShipLoop's gates at
+`complete` (cited files exist; the plan's assumption list; the step plan's
+commands, criteria, paths and dependency order; the knowledge home's required
+files, credential screen and requirement-ID retention); the structural,
+record-only `backchain-check`; at `test-author`, a run of the focused commands
+that must run a test (a counted test and every listed ID shown on exit 0, a
+failing test on a non-zero exit), so a test that cannot load is refused where it
+can be fixed; and then the `test-red`, `test-green`, `regression` and
+system-test gates, which ShipLoop runs and records. No script-run check at
+planning, in any mode, covers whether the spec's criteria are complete and
+verifiable, whether the test strategy maps every criterion to a check, or
+whether a test spec's oracles are independent. Under `none` those rest on the
+producer's own confirmation of the Done-when conditions the packet prints (a
+model judgement, printed in every mode), on the later gates and on the
+end-of-work review. An Improve child's own S-9 evidence has been loop mechanics
+the script counts (passes, the review streak, a Git cross-check, the commit
+rule), never a check of the review's content, so `none` removes a second look,
+not a script-run check. In `none` the plan child's stopped-child reconciliation
+(`improve-reconcile`) and the plan-time experiments it hosts do not exist (the
+plan's assumption list is still checked at `complete`); the spec and test
+strategy are committed to the knowledge home when each is accepted and no
+Improve child reviews them afterwards, so later runs inherit them unreviewed;
+and the first Improve child of a run, and so the first loading of the Improve
+card, is the last item's `carry-forward`. Basis: in the Luna xhigh run the
+planning window was 375.9 minutes, 203.4 (54%) in five Improve children (22
+passes), and in the Grok medium run 72.7 minutes, 42.4 (58%) in five children
+(26 passes); the Luna reviews made five warranted fixes and did not raise the
+`test-red` defect whose redo cost 165.9 minutes; a Sonnet 5.5 battleship run's
+plan review did raise the same class (a plan with no importable server seam,
+commit b1e196d), and in a condensed-packet experiment the planning review with
+the platform-claim bullet caught 10 of 15 real plan-stage platform errors
+against 0 of 15 without it (Sonnet, three trials per cell). No run without the
+planning reviews exists, so the rate of defects that escape without them is
+unknown. Record: docs/shiploop-planning-review-plan-2026-10-05.md.
 
 **S-11 Knowledge is retained in the repository.** Planning knowledge (living
 spec, environment, test strategy, per-feature records) is committed to the

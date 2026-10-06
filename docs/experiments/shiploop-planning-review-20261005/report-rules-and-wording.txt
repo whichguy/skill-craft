@@ -1,0 +1,496 @@
+REPORT: ShipLoop planning-review change (option `planning_review`: stage | once | none)
+
+Read-only. Source tree: /Users/dadleet/src/skill-craft/.claude/worktrees/cifix-ece1d3 (d1cca62f). No repository was edited, and git status of the source worktree is clean. Everything I ran used scratch copies under SCR = /private/tmp/claude-501/-Users-dadleet-src-skill-craft/f7d9360d-b88d-417b-8773-fc5b3eee6419/scratchpad/planning-review-design/dependents.
+
+Labels: [M] I read or ran it (symbols cited, not line numbers). [I] inferred. Unmeasured is unknown, not zero.
+
+---
+
+## 1. BOTTOM LINE
+
+1. **The option plumbing is verified.** A recorded state key with a flag on `init` and `workspace start`, no `--set`, a retry guard, and a refused saved run without the key follows the `backchain_passes` precedent exactly. I built it in a scratch prototype and it works end to end:
+   - the flag records the key in state.md;
+   - the default is recorded when the flag is omitted;
+   - a retry naming another value is refused;
+   - an invalid value is rejected by argparse.
+2. **The candidate's per-item merge should be dropped.** Moving the step-plan review to a single child after test-spec has a structural hole. A child anchored at `test-spec` cannot revise the step plan's `steps`, `paths`, `criteria` or `test_commands` [M, `_canonical_result`; run in the prototype, E2]. It would save at most the test-spec child's own minutes (Luna 14.2 and 12.1, Grok 3.0).
+3. **Recommended `once`.** One Improve child at `plan` covering spec, test-strategy and plan together (80% of Luna's review minutes, 79% of Grok's). Per-item `step-plan` and `test-spec` children stay as today.
+4. **The option must name five stages, not seven.** `guidance.PLANNING_REVIEW_STAGES` has seven members. `system-test-author` and `release-plan` are in it, and the owner wants them untouched.
+5. **A hard engine invariant would refuse every `once` or `none` state.**
+   - `_validate_current_state` requires an Improve record for every history entry at those seven stages.
+   - Verified in the prototype: with the mode-aware change the engine accepts such runs, and without it the refusal is "Improve results must belong to completed steps, including every planning-stage result".
+6. **There is a silent breakage outside the engine.** `skills/shiploop-e2e-audit/harness/workflow_review._observed_improve_actions` marks an engine-valid `once` run as comparable=False (unverified, no error) [M, experiment exp_workflow_review.py].
+7. **The 30-minute ceiling is not reachable by this change on either measured configuration.**
+   - Grok medium: even `none` leaves 30.3 min. `once` leaves at least 39.2, with the merged child's own cost unknown.
+   - Luna xhigh: `none` leaves 172.5 min and `once` at least 213.4 (section 2).
+8. **Blast radius of flipping the default to `once`, measured on a prototype with the real suites.**
+
+   | Variant | Newly failing tests | Suites |
+   |---|---|---|
+   | Owner's candidate (plan plus per-item test-spec) | 140 | 22 |
+   | Recommended `once` | 116 | 20 |
+   | Pure API stays `stage`, CLI defaults `once` | 33 | 4 |
+
+   The split-default variant is a lint-style trap and I recommend against it.
+   - Roughly 70% of the failures are fixtures that use `spec` as a convenient first Improve checkpoint.
+   - Roughly 30% are real schedule pins (counts, order, names).
+   - Details in section 8.
+9. **Sequence the work so the default flip is its own last commit.** The mechanics land first with default `stage`, which keeps every existing test green.
+10. **`none` is a bigger relaxation than `once`.** It removes the planning-experiment and reconcile route, because those need the bound initial plan Improve child. Ship it later, after `once` is measured live.
+
+---
+
+## 2. WHAT THE EVIDENCE CAN AND CANNOT REACH
+
+All figures are from docs/experiments/shiploop-planning-time-20261005/: ledger-account-final.json, grok-medium-improve-children.json, and the stage `improve.min` fields in run-doc-luna-xhigh-v1210.json.
+
+| Block (minutes) | Grok medium 1.21.0 | Luna xhigh 1.21.0 |
+|---|---|---|
+| Planning window | 72.7 | 375.9 |
+| Improve review children, total | 42.4 (58%) | 203.4 (54%) |
+| spec | 15.2 (9 passes) | 44.5 (5) |
+| test-strategy | 13.1 (7) | 61.07 (8) |
+| plan | 5.2 (4) | 56.93 (4) |
+| Trio subtotal | 33.5 (79%) | 162.5 (80%) |
+| step-plan, W1 | 6.4 (3) | 26.72 (4) |
+| test-spec, W1 | 2.5 (3) | 14.18 (1) |
+| Per-item pair, W1 | 8.9 | 40.9 |
+| Remainder (authoring, Backchain, etc.) | 30.3 | 172.5 |
+
+The Luna rows sum to 203.4, matching ledger finding F4.
+
+- **Lower bounds [M arithmetic, I for the reading]:** this assumes the merged child costs zero, which it cannot.
+  - `once` (trio merged): Grok at least 39.2 min (72.7 − 33.5), Luna at least 213.4.
+  - `none`: Grok 30.3 min (still just over 30), Luna 172.5.
+- **Unmeasured, so unknown:** the merged child's real minutes. Ledger lever L3 estimates saving 118–178 min on Luna [I], which gives a window of about 197–258 min. It is not additive with other levers.
+- **Reasons the real saving will be smaller than the gross figure:** pass 1 of each child is partly a second authoring pass, so some of it moves to the producer. Grok's four consecutive import-allow-list commits suggest churn that a merge does not remove.
+- **Runtime fact worth knowing:** a child whose first pass is trivial and leaves the Git tree unchanged completes after one pass (`unchanged_first_pass`). The cheap path is therefore open plus one pass; cost comes from findings.
+
+---
+
+## 3. CODE FACTS THE DESIGN RESTS ON
+
+**C1.** `shiploop_stage_spec.Stage.improve` is "always", "last-item" or None.
+- "always" belongs to seven stages: spec, test-strategy, plan, step-plan, test-spec, system-test-author, release-plan.
+- `guidance.PLANNING_REVIEW_STAGES = stage_spec.with_improve("always")` is therefore seven stages.
+- Used by `_improve_checkpoint`, `_IMPROVE_STAGES`, the `_validate_current_state` record check, `_improve_line`, `_render_improve` (focus text), `STEP_PLANNING_STAGES`, and the dry-run and apparatus oracles [M].
+
+**C2.** `_improve_checkpoint(state, stage, result)` is the only place that decides whether a producer result parks an Improve child [M]. `apply` creates `active_improve` only if it returns True. Otherwise `_apply_result` advances directly, the same path as `intake` or `prepare`.
+
+**C3.** `_validate_current_state` computes the set `planning` of history actions at `PLANNING_REVIEW_STAGES` (excluding N/A test stages) and requires `planning <= set(improve_results) <= expected` [M]. It also asserts `_improve_checkpoint(...)` for any `active_improve`. The message "a stage that never starts an Improve child; only planning stages and the final carry-forward do" becomes self-contradictory in `once` [M, exp_forged.py]. A forged child at spec in once is refused with exactly that text, while spec is a planning stage.
+
+**C4.** Extra records are allowed, because `records <= expected` [M]. Mode ordering stage ⊃ once ⊃ none means a mid-run switch toward fewer reviews would always be state-valid, and the opposite never. That is one more reason for "no `--set`" besides KISS [I].
+
+**C5.** The producer's `complete` path runs the same script gates as `improve-complete` [M, `dispatch`]:
+- `_check_submitted_evidence`
+- `_check_submitted_assumptions`
+- `_check_submitted_test_commands`
+- `_check_submitted_consumer_entry`
+- `_check_submitted_recorded_commands`
+- `_check_submitted_awaiting`
+- `_knowledge_gate`
+
+So under `once` and `none` no script check is skipped at spec or test-strategy. What is lost is the model-run review, plus a second application of the gates to a child's revised final_result.
+
+**C6.** S-11 is independent of Improve [M]. `knowledge.commit` runs "after an accepted stage that changed [the knowledge home] (every stage, not only closes)", and the closes are `prepare`, `test-spec`, `release-plan` and `release-verify`. The privacy screen and the dropped-requirement-ID check run on every stage that changes the home. Consequence: under `once` and `none` the spec is committed to docs/shiploop/ before any review, and later runs inherit it.
+
+**C7.** `_canonical_result` allows `steps`, `paths`, `criteria` and `test_commands` only on a done step-plan result [M]. A child at test-spec canonicalises its final_result with stage test-spec. Experiment E2 in the prototype:
+- `steps`, `paths` and `test_commands` in a test-spec child's final_result are all REFUSED.
+- Outcome `revise` is ACCEPTED by the pure `finish_improve`: the item returns to step-plan and uses one of its two revisions.
+- The packet text says a child's final_result outcome is done, repeat, blocked or, at OUTER stages, replan. So `revise` from a child is undocumented, and I did not verify the CLI route with it [I].
+
+**C8.** `improve_start_contract` writes the child's frozen exit condition and appends `loop_contract.stage_exit(child["stage"])` [M]. That is the one stage's own done_when. This is the script-written carrier of "iterate until a stated check confirms each exit criterion". For a merged plan child it must carry spec's, test-strategy's and plan's done_when lists, plus the covered results' locators in the scope.
+- Measured size: spec 310 B, test-strategy 254 B.
+- Measured effect on the host-writable opening allowance (`improve_opening_allowance`): spec child 5,262 B, plan child 4,869 B today.
+- With the covered criteria and locators added in the prototype, the plan child's allowance is 3,954 B (−18.8%).
+- CONTRACT_BUDGET is 9,216 B and derives from the vendored Until Loop state cap, so it cannot simply be raised.
+- Existing precedent: `improve-start` refused an oversized opening 4 times in the old run, 3 of them on size [per the fast-planning plan, c8].
+
+**C9.** `_render_improve` attaches planning experiments, the assumption-list text and the reconcile route only when `child["stage"] == "plan"`. `_reconciliation_permitted` requires the bound active initial plan Improve child [M]. Experiment E3 on `none`: after the plan result the stage is prepare with no child, and reconcile is refused. `planning-experiments.md` states the duty applies only to that child. Under `none` the experiment and reconcile machinery is unreachable. `_check_submitted_assumptions` still enforces the assumption list at the producer's submit.
+
+**C10.** Text that becomes false when a stage skips its child [M]:
+- `_improve_line`: "Every {stage} result, including blocked and repeat, starts this action's Improve child."
+- `guidance.COMMON`: "Only planning results (spec, test-strategy, plan, step-plan, test-spec, system-test-author, release-plan) and the carry-forward ... get an actual Improve-skill handoff".
+- `DUTIES["plan"]`: "mandatory actual Improve handoff. The plan remains a draft until that loop completes".
+- `DUTIES["step-plan"]` and its `_INLINE_DUTY_PARAGRAPHS` variants: "mandatory actual Improve loop must review the created steps".
+- `DUTIES["test-spec"]`: "The next review is the packet's automatic Improve handoff immediately after this producer result".
+- Under the recommended `once`, only `_improve_line` for spec and test-strategy and `COMMON` change. Under `none` all of the above change.
+
+**C11.** Planning stages: child text is large. `improve_prompt` is 9.5, 9.4, 10.9, 11.4 and 8.9 KB for the five stages, about 50 KB across them [M]. A merged plan child needs 18 reference locators against plan's 12 (six added: Behavior-model, Behavior traceability, Repeatable test-suite, Target-native test selection, Test-case planning, System-test catalog) [M]. Net printed text per run falls [I].
+
+**C12.** Tolerant by construction, because these read records through `.get` or skip when absent [M]:
+- `shiploop_planning_context._collect_improve_artifacts` and `_improve_projection`
+- `shiploop_context_index._entry_lines`
+- the navigator's packet "Prior Improve evidence" line (written only when a record exists, as for intake today)
+- `narrative_facts`
+- the "(reviewed by Improve)" marker
+- `_render_report`
+
+No script subscripts `improve_results[...]` except reconcile paths, which need the plan child.
+
+---
+
+## 4. THE DESIGN: VERIFIED, REFINED, REPLACED
+
+**Option.** Key `planning_review`, flag `--planning-review stage|once|none` on `init` and `workspace start`. Same shape as `backchain_passes` and `lint`:
+- recorded in `_STATE_KEYS` and `new_state`;
+- validated in `_validate_current_state`;
+- a `recorded_planning_review(state)` accessor;
+- a `_require_retry_planning_review` guard in `shiploop_protocol` (a retry naming another value is refused, and no `--set`);
+- a saved run without the key refused by the existing generic missing-fields check with `FRESH_RUN_HINT`;
+- recovery retry cannot change it.
+
+**Which stages start a child.**
+
+| Mode | Children for a 2-item run | Which stages |
+|---|---|---|
+| stage | 10 | spec, test-strategy, plan, step-plan, test-spec (per item), carry-forward (last), system-test-author, release-plan |
+| once (recommended) | 8 | plan, step-plan and test-spec per item, carry-forward (last), system-test-author, release-plan |
+| once (owner's candidate) | 6 | plan, test-spec per item, carry-forward (last), system-test-author, release-plan |
+| none | 3 | carry-forward (last), system-test-author, release-plan |
+
+Single definition site, as `offers_whole_backchain_loop` is for Backchain: `guidance.starts_planning_review(stage, mode)`.
+- It is True for any stage outside the five.
+- It is True for all five under `stage`.
+- It is False for the five under `none`.
+- Under `once` it is True for plan, step-plan and test-spec.
+
+Consumers: `_improve_checkpoint`, the `_validate_current_state` record set, and the dry-run and apparatus oracles.
+
+**What changes under `once` (recommended), by symbol.**
+- **Engine:** `_improve_checkpoint`; the `_validate_current_state` record set; the forged-child message.
+- **Script-written contract:** `improve_start_contract` plus `loop_contract.stage_exit`. For the plan child under `once`, add spec's and test-strategy's done_when to the exit condition, and append the covered results' locators to the scope. Prototype allowance numbers are in C8.
+- **Text:**
+  - `_improve_line` becomes mode-aware: spec and test-strategy say "advances directly; one planning review runs after plan".
+  - `COMMON` is reworded.
+  - `IMPROVE_SCOPES["plan"]` and `improve_prompt("plan")` name three documents.
+  - `PLANNING_REVIEW_FOCUS` gains a cross-document consistency clause, which is a benefit a per-stage child cannot deliver [I].
+- **Docs and tests:** see section 7.
+
+**Reject the owner's per-item merge** (candidate: the step-plan and test-spec reviewed once after test-spec).
+- Structural hole (C7).
+- Saving at most the test-spec child's cost: Luna 14.2 min (W1) and 12.1 (replan), about 9% of Luna's Improve minutes in the run; Grok 3.0 (7%).
+- Test and fixture churn differs by only 24 tests (140 versus 116).
+- The merged child still needs `revise` as an escape route, which has no tested path and carries the 165.9-min replay cost.
+- Possible later alternative: keep only the step-plan child and drop the test-spec child. That has no structural hole and saves exactly the test-spec child. But the old 1.16.1 run's test-spec children did change things (5 passes, 54.5 min), so it is unproven.
+
+**`none` (later increment).**
+- Planning experiments and reconcile are unreachable (C9).
+- Knowledge is committed unreviewed (C6).
+- The assumption list is still script-enforced at the producer.
+- Producer sentences in C10 must change.
+- `planning-experiments.md`, `improve-context.md` and `SKILL.md` ("The existing Plan Improve child investigates consequential assumptions") need a `none` clause.
+
+**Default flip handling.** A single default (`once`) is needed. A lint-style split, with the pure API defaulting to `stage` and the CLI to `once`, drops churn to 33 tests but means pure-navigator tests no longer exercise what production runs. SPEC Change admission names "pass the tests while failing a live run" explicitly. Rejected.
+
+---
+
+## 5. OWNER RULES IN TENSION, AND WHAT CARRIES THE EXIT CRITERION
+
+- **"Steps iterate until a stated check confirms each exit criterion" (primary).**
+  - Today each planning stage's exit is confirmed by its own child. The script freezes that stage's done_when into the child's exit condition via `stage_exit` (C8). The pass judgement is the model's: planning passes are "self-passes by this same executor" [M, `_render_improve`].
+  - Under `once`, spec's and test-strategy's criteria are not confirmed by any loop when the stage is accepted. The deferred confirmation is the plan child, whose frozen exit condition (extended by this change) names all three stages' done_when. The tension is real: spec and test-strategy are accepted, and test-strategy and plan are written against them, before any review.
+  - Under `none`, no loop ever confirms them.
+- **S-9 (passing script-run check is the evidence).**
+  - Present on every path: the C5 gates, `backchain-check` (structural, record-only), `_planning_sources_current`, and the knowledge gates (required files, privacy screen, no dropped requirement ID).
+  - The first script-run proof of planning-document content is `test-red`, which fails the stage unless the focused commands fail for the right reason. That is the check that caught the W1 defect both times, at 123–166 min of redo.
+  - Neither review mode changes that exposure, because the review missed it in both runs (n=2, one request) [from the ledger].
+  - Not present: requirement-ID traceability across strategy, plan and test-spec. `knowledge.check` only compares the spec's `R-n` set with the committed one. This is ledger lever L11 and the Luna review's first warranted-fix class; I recommend it as a follow-up before `none` claims any S-9 compensation. It is not part of this change.
+- **S-10.** `once` keeps S-10 for each child that runs (no cap, exit until condition). `none` relaxes it for five stages.
+- **S-11.** Unaffected in mechanism (C6).
+- **S-14.** No prompt added.
+- **Enterprise rigour.** Tests, deploy, quotas, ownership and security gates are untouched. What is removed is a model-run quality aid. Where it is the only design review of test oracles before code is where I would watch: the five warranted fixes in the Luna window were traceability and test-design classes (labels are the ledger's, judgement).
+- **Loops unbounded.** `once` keeps every remaining loop unbounded.
+- **Owner's wording "yes, do the planning review change".** I treated this as approval of the direction, not of my refinements. The per-item merge rejection and the staging are the owner's to confirm.
+
+---
+
+## 6. SPEC CARVE-OUT (DRAFT FOR THE OWNER'S CONFIRMATION)
+
+Own commit first, after the 2026-10-04 carve-out and before S-11. File: SCR/carve_out_draft.md.
+
+```
+**S-10 carve-out, planning review, owner decision 2026-10-05** (anchor: the
+owner's rule that planning takes no more than 30 minutes, and the Luna xhigh and
+Grok medium battleship runs on skill-craft 1.21.0, not a clause this serves; it
+relaxes S-9 and S-10 for the Improve children at five planning stages and says
+so). The run option `planning_review` schedules the Improve child that follows
+the planning stages `spec`, `test-strategy`, `plan`, `step-plan` and
+`test-spec`. `--planning-review stage` starts one child after each of the five,
+as before. `--planning-review once`, the default, starts one child after `plan`
+over the accepted spec, test strategy and plan together, and one child per work
+item after `step-plan` and after `test-spec` as before; the child's script-written
+exit condition carries the done-when criteria of every stage it covers, and it
+runs until that condition holds with no iteration cap, so S-10 holds for each
+child that runs. `--planning-review none` starts no child at the five planning
+stages: each is accepted on ShipLoop's own checks (result shape, the assumption
+list, the knowledge-home checks, `backchain-check`), which are structural and
+record-only, and the first script-run proof of a planning document's content is
+the RED run at `test-red`, so S-9 holds at planning only in that structural
+sense. The children after `system-test-author`, `release-plan` and the last
+`carry-forward`, and the quality and test loops, are not covered; their no-cap
+rule stands. The option is recorded at `init` or `workspace start`, cannot
+change mid-run, and a saved run without it is refused. Basis: on the 1.21.0
+battleship runs the planning Improve children took 203.4 of 375.9 minutes on Luna
+xhigh (54%) and 42.4 of 72.7 on Grok medium (58%), of which `spec`,
+`test-strategy` and `plan` took 80% and 79%; the review caught five warranted
+fixes in the Luna window and missed both runs' test-red revise, which cost 165.9
+and 123 minutes. Record: docs/shiploop-planning-review-plan-2026-10-05.md.
+```
+
+Pin compatibility, tested on a scratch copy:
+- Inserting it after the 2026-10-04 carve-out and before S-11 keeps `FastPlanningRecordTest` (5 tests) and `BackchainPassesOptionTest.test_the_spec_carve_out_names_the_option_the_code_defines` green.
+- That parity test uses `spec.split("**S-10 carve-out", 1)[1]`, which spans both carve-outs, so the new block must come after the old one.
+
+Edits that must ride in the same commit:
+- Change the S-10 head sentence to "carve-outs below", and update `test_spec_s10_names_its_one_carve_out`, which asserts the singular text and fails otherwise.
+- Amend the old carve-out's closing "Quality, test and Improve loops are not covered" to point at the new carve-out for the five stages.
+- Amend the SPEC table row S-9, S-10, whose evidence column names "Improve children", to say counts follow the recorded option.
+- Add an existence test for the new carve-out.
+- Mark superseded, with date and reason:
+  - plan c6 ("Improve review loops at the planning stages ... keep") in docs/shiploop-fast-planning-plan-2026-10-04.md;
+  - the 9747d769 sentence "Improve's planning-stage passes stay".
+- No skill path changes, so `No-Change-Note`.
+
+---
+
+## 7. DEPENDENT CHECKLIST, ORDERED BY RISK
+
+Verdicts: BREAKS-LOUD (fails a test or refuses), BREAKS-SILENT (wrong without failing), NEEDS (one-line or small change), TOLERATES.
+
+| # | Dependent | Verdict | Evidence | Action |
+|---|---|---|---|---|
+| 1 | `_validate_current_state` record check and `_improve_checkpoint` message | BREAKS-LOUD | C3, exp_forged.py | mode-aware set and message (I1) |
+| 2 | `workflow_review._observed_improve_actions` and its tests | BREAKS-SILENT | exp_workflow_review.py: engine-valid once run gives comparable=False, unknown "no Improve record"; test_workflow_review still passes because it feeds crafted dicts and pins the old rule ("Every planning stage, not only plan, requires its Improve record") | read the recorded option, expected set per mode, update both tests (I1, own note under changes/shiploop-e2e-audit/) |
+| 3 | `dag_replay._PLANNING_CHECKPOINTS` literal oracle, `new_state` call | BREAKS-LOUD, quick tier on every push | `shiploop-mock-replay` 4–6 tests fail (full-route "34 stages and 42 callback boundaries", replay guards, repeat/replan, two-items); apparatus `--suite all` 5 more failures | oracle takes the case's mode; pass `planning_review` to `new_state` (I1) |
+| 4 | Producer prompts and `_improve_line` (C10) | BREAKS-SILENT: host told two things | grep, section 3 | I2 for the recommended `once`; I4 for `none` |
+| 5 | Candidate's per-item merge | structural defect | C7, E2 | rejected |
+| 6 | Test pins (section 8) | 116 tests, 20 suites at the flip | census | flip commit |
+| 7 | `references/graph-dry-run-scenario.json` (shipped example: spec produce plus finish-improve) | BREAKS-LOUD | `test_example_script_passes` fails | regenerate or add the option flag |
+| 8 | `shiploop_navigator_dry_run`: `REVIEWED3`, `activity()`, `scenarios()` (literal independent oracle) | BREAKS-LOUD | 9–10 tests | parametrise by mode like `backchain_passes` already is |
+| 9 | Saved runs: new key refuses every older saved state | accepted (one supported version) | `_STATE_KEYS` generic check | the two 1.21.0 battleship run dirs under /Users/dadleet/e2e-runs/20261005 lack the key and would be refused on resume [I]; no E2E harness process was running when I checked |
+| 10 | `none` removes planning experiments, reconcile, and review of retained knowledge | design cost | C9, C6 | state in SPEC and docs (I4) |
+| 11 | Child opening budget | NEEDS | −18.8% allowance | watch `improve-start` refusals in the first live run |
+| 12 | Run Review (not edited here) | TOLERATES, plus handoff | below | handoff list |
+| 13 | E2E harness `test/shiploop_e2e/*` | TOLERATES | below | none |
+| 14 | Progress, status, narrative, report.html, context index, planning-context, chain, plan-dispatcher, knowledge closes, Improve card, rubric-eval frame | TOLERATES | below | none |
+
+**(a) Tests and what each pins, recommended `once` default flip.** Counts are newly failing tests against a green baseline. Categorisation is by failure message: FIX means a fixture parks a child at spec or test-strategy for convenience, SCH means an explicit schedule pin.
+
+| Suite | Tests | What it pins | Kind |
+|---|---|---|---|
+| shiploop-actual-improve-cli | 25 | real CLI route: first child at spec ("no matching active Improve parent") | FIX |
+| shiploop-consumer-delivery | 25 | helper walks spec with finish_improve | FIX |
+| shiploop-navigator-contract | 10 | `_at_spec` helper ("spec is not an Improve checkpoint"); `every_stage_carries_generic_policy_content` reviewed-stages tuple | FIX 9, SCH 1 |
+| shiploop-navigator-dry-run | 9 | `REVIEWED3`; "event 4: expected spec/active, got test-strategy/active"; metadata-only item review count; shipped example; CLI | SCH |
+| shiploop-revise | 7 | walks to step-plan through a spec child | FIX |
+| shiploop-delegation | 6 | per-stage "Improve: Every ... starts this action's Improve child"; counts; bound-child toggle | SCH and text |
+| shiploop-rehydration | 5 | stale parent action; "Done when" packet text | FIX |
+| shiploop-callback-contract | 5 | `improve-start` head, opening headings, allowance test (still green in principle: allowance is computed) | FIX |
+| shiploop-improve-schedule | 4 | exact reviewed list, `state_requires_every_planning_stage_review`, packet fixtures | SCH and FIX |
+| shiploop-mock-replay | 4 | literal oracle counts | SCH |
+| shiploop-guidance | 3 | cold-walk tuples of reviewed stages | SCH |
+| shiploop-confirmation, shiploop-discovery, shiploop-full-runtime | 2 each | child fixtures; ('spec', action) tuple | FIX, SCH |
+| shiploop-status-display | 2 new | 'Where: Preparation > spec (4 of 7, Improve review)' | SCH |
+| shiploop-navigator-v4, packet-bounds, planning-context, quality, v4-consumers | 1 each | child fixtures | FIX |
+
+Not affected in any variant: shiploop-e2e (228 tests), shiploop-run-review, planning-handoff, keepalive, the chain family (chain, chain-async, chain-git, chain-handoff, chain-planning-context), standalone-improve (under the recommended variant), plan-dispatcher JS (no Improve references), improve-runtime, improve.test.sh.
+
+Silent pins that stay green but encode the old rule: both workflow_review tests (row 2).
+
+**(b) E2E harness, metrics, SPEC, Run Review.**
+- `metrics.improve_children` counts directories under `improve/`; `improve_reviews` uses `default=0` for empty. TOLERATES zero children at a stage [M].
+- `run.py` seed script advances `apply` then calls `finish_improve` only `if state["active_improve"] is not None`. TOLERATES [M].
+- SPEC clauses: S-9, S-10 and the table row name "Improve children" generically, with no stage names. A carve-out (not a code change) is needed.
+- `skills/shiploop-run-review/scripts/export.py`:
+  - `_improve_children` and the stage-row `improve` are optional per stage. TOLERATES.
+  - `_improve_totals({})` returns `{'improvePasses': 0, 'improveMin': 0}` [M, ran it]. A run with no `improve/` directory and a run with zero children are indistinguishable, and zero children becomes legitimate at the planning window under `none`. This is the "unmeasured is unknown" case.
+  - Under `once` the plan visit's `improve` figures cover three documents. Attribution should say so.
+  - `shiploop-run-review` passes in all variants.
+- `defaults/expectations.json` key `phase-1` says "The script accepts each only after its Improve review". That becomes untrue under `once` and `none`.
+
+**(c) Progress, status, report, handoff, knowledge.**
+- Status shows "(Improve review)" only while a child owns the step and "(reviewed by Improve)" only when a record exists. `narrative_facts` says "Improve is reviewing the plan result", which understates the merged scope (one-line wording change).
+- `_render_report` is history-only.
+- Knowledge commits: C6.
+- Planning-handoff, chain, planning-context, plan-dispatcher: tolerant (C12 plus passing suites).
+- `skills/rubric-eval/suites/architecture-v4/make_packet_frame.py` renders the plan-stage Improve packet. It loops on `active_improve` generically and tolerates `once`. Its frame and `.source` hash need a manual regeneration after the plan-packet text change; no test pins it.
+
+**(d) Docs needing a clause or rewrite** (section headings, not line numbers):
+- `skills/shiploop/SKILL.md`:
+  - "When Improve runs", first bullet ("Every result of a planning stage ...");
+  - a new "Planning review option" section next to "Backchain passes option";
+  - the system/release-check paragraph ending "the step plan's Improve review is their check";
+  - the `init` and `workspace start` flag summaries.
+- `skills/shiploop/README.md`:
+  - "Navigator: producer, Improve child, then transition";
+  - "Improve discovery and planning before proceeding";
+  - the two command-synopsis lines (`workspace start`, `init`);
+  - the stage-duty tables that say "and its Improve review(s)".
+- `references/navigator.md`: whole-run map paragraph, the ✦ legend, the Improve-children table row, the `outcome` row ("Planning results and the last carry-forward first wait for actual Improve"), and the "Run it" flag examples.
+- `references/state-files.md`: state.md row and a short section.
+- `references/graph-dry-run.md`: option and the "planning stages ... synthetic Improve completion" paragraphs.
+- `references/behavioral-requirements.md`: the "`spec` and its Improve review" row.
+- `references/research-loop.md`: "At an Improve checkpoint ...".
+- `references/testing-and-documentation.md`: "each is followed by its Improve review".
+- `references/execution-planning.md`: step-plan "reviews the plan before the script releases test-spec" (true under recommended `once`, false under `none`).
+- `references/planning-experiments.md` and `references/improve-context.md`: initial plan child scope (once) and unavailability (none).
+- `skills/shiploop-e2e-audit/harness/MOCK-REPLAY.md`: schedule paragraph.
+- Not changed: `skills/improve/SKILL.md` (it names no schedule).
+
+A doc-scan test in the style of `BackchainGateDocumentsTest` is the guard against the I2 lesson ("the tree must not tell the host two things"). Pin the unscoped statements in C10 and the doc sites above.
+
+**(e) Run Review handoff** (do not edit here):
+1. Export the run's `planning_review` as recorded, from state.md, like the existing `_backchain_option` and `backchainPasses` (add to SCHEMA.md and `validate_doc`).
+2. `_improve_totals({})` should be unknown, not zero, when no `improve/` evidence exists.
+3. Rewrite the `phase-1` expectation text.
+4. Note in SCHEMA that under `once` a plan visit's `improve` covers three documents.
+
+For the E2E session: any release adds the state key, so in-flight or resumable 1.21.0 runs are refused (row 9), and the push hold noted for the long Luna run still applies. Coordinate before any release or push.
+
+---
+
+## 8. CENSUS (EMPIRICAL)
+
+Method:
+- Scratch exports of d1cca62f via `git archive`, git-initialised in scratch only so package-building tests work.
+- A minimal prototype: state key, `starts_planning_review`, validator, `_improve_checkpoint`, CLI flag and retry guard. No packet text change. Scripts: SCR/make_prototype.py, run_census.py, summarize_census.py, classify.py, reasons.py.
+- 80 suites: the ShipLoop family, the E2E apparatus (mock and `--suite all`), improve-*, plan-dispatcher, and related core suites.
+
+Baseline: 3 failing suites on the unchanged tree, none caused by this work:
+- shiploop-status-display (1) and shiploop-cross-run (1): progress-observer files in a run dir.
+- experiments-shiploop-chain-native-pilot (2): timeouts under heavy machine load; sibling agents were running tests concurrently.
+
+Results (newly failing tests):
+
+| Variant | Tests | Suites | Notes |
+|---|---|---|---|
+| A. Owner's candidate, once at plan and test-spec | 140 | 22 | includes apparatus `--suite all` |
+| B. Recommended, once at plan, per-item unchanged | 116 | 20 | apparatus `--suite all` not rerun; the 4 mock-replay failures are included |
+| C. `new_state` default stage, CLI default once | 33 | 4 | actual-improve-cli 25, callback-contract 5, full-runtime 2, delegation 1 |
+
+Failure-category counts are approximate because I classified by message pattern: for variant B, about 90 FIX, about 40 SCH, a handful TEXT.
+
+Not run: `shiploop-chain-lifecycle` (803 s in CI). It was running on variant B when I finished composing; see section 13 for its result.
+
+---
+
+## 9. INCREMENTS (PRECEDENT SHAPE) WITH FAIL-FIRST TESTS
+
+Each increment ends green on the quick tier, because `shiploop-mock-replay` runs on every push.
+
+**I0. SPEC carve-out, plan doc, evidence, journal** (docs only).
+- Files: test/shiploop_e2e/SPEC.md; docs/shiploop-planning-review-plan-2026-10-05.md; docs/experiments/shiploop-planning-review-20261005/; LEARNINGS.md entry "Planning review".
+- Journal entry statuses: firm for counts and the structural facts; interim for savings; exploratory for quality.
+- Fail-first in test/shiploop-e2e.test.py: the new-carve-out existence test; the plural update of `test_spec_s10_names_its_one_carve_out`.
+- `No-Change-Note`.
+- Export the evidence scripts and census summaries into the repo (journal rule: evidence stays in the repo, not only in scratch).
+
+**I1. Option and mechanics, default `stage`.**
+- State key, `new_state`, validator, `_improve_checkpoint`, `starts_planning_review`, `_require_retry_planning_review`, CLI flags.
+- Apparatus: oracle and `workflow_review` mode-aware.
+- Dry-run: `REVIEWED3` and `activity()` by mode.
+- Change notes: shiploop (minor), shiploop-e2e-audit.
+- Fail-first, through the real gates:
+  - `PlanningReviewOptionTest` in the navigator-contract suite, mirroring `BackchainPassesOptionTest`: default and each mode via `init` and via `workspace start`; invalid value; a changed retry refused naming the recorded value; saved run without the key refused with the fresh-run hint via `next`, `report` and `init`; SPEC carve-out parity with the code constants.
+  - improve-schedule: `walk` reviewed lists per mode (10, 8, 3 for two items); `state_requires_every_planning_stage_review` per mode; a forged child at a stage that does not start one under the mode is refused with the corrected message; an engine state with a missing plan record is still refused under `once`.
+  - workflow_review: an engine-built `once` state is comparable.
+  - A real-route test in actual-improve-cli: CLI `init --planning-review once`, `complete` at spec and test-strategy (no child), then `improve-start` and `improve-complete` at plan, and `validate` passes.
+
+**I2. `once` text and contract, in one commit.**
+- `improve_start_contract` and `stage_exit` cover the three stages; scope locators; `_improve_line`; `COMMON`; the plan-child scope and focus text; docs from section 7(d); `graph-dry-run-scenario.json`.
+- Fail-first:
+  - a frozen-contract test (through `improve_start_contract`) that the plan child under `once` carries spec's and test-strategy's done_when and locators;
+  - `stage` text byte-identical to today for all seven stages (capture before the change, as I3 did);
+  - the doc-scan test;
+  - the callback-contract allowance test still true.
+
+**I3. Flip the default to `once`.** The fixture update: 116 tests in 20 suites. Same release as I2. Then a live Grok medium battleship planning probe.
+
+**I4. `none` text and docs.** Producer sentences, planning-experiments and reconcile unavailability, the SPEC wording already in the carve-out. Only after the live `once` run.
+
+**I5. Run Review handoff (not here).**
+
+---
+
+## 10. ADVERSARIAL EVALUATION (SPEC "CHANGE ADMISSION"), ONE LINE EACH
+
+- **Weakens S-9 and S-10:** accepted by carve-out. `once` keeps S-10 for each child; `none` relaxation is stated.
+- **Spec defect found late, after strategy and plan were written against it:** accepted for `once`. The plan child's frozen exit covers all three stages, and the cross-document focus is new. Measured by pre-registered reads (section 11).
+- **Plan child scoped to plan only (silent):** mitigated by script-written scope locators and exit criteria in the frozen contract, and by the packet listing the documents. A refusal for a missing locator was considered and rejected because it adds a host dead end (S-4 style). Observed in the live run.
+- **Host waits for a child that never starts, or claims a review ran:** mitigated in I2 by mode-aware `_improve_line`, `COMMON` and DUTIES text plus the doc-scan test. Tested through the real render, not the wording alone.
+- **Quick tier red mid-series:** mitigated by default `stage` until the flip.
+- **Other hosts, platforms:** engine-level scheduling, host-neutral. `none` removes review for every host, so it is an option, not the default.
+- **Saved runs:** refused by design (one supported version).
+- **Opening budget shrinks 18.8%:** accepted, watched via `improve-start` refusals.
+- **Gaming:** minutes drop whatever happens to quality, so quality reads are pre-registered (section 11).
+- **Extra context or printed text:** net decrease of two to three child packets per run (about 50 KB of improve prompt text across five children today) [I].
+- **Silent apparatus downgrade:** mitigated in I1 with the workflow_review test.
+
+---
+
+## 11. MEASUREMENT (PRE-REGISTER BEFORE THE FIRST LIVE RUN)
+
+- **Baselines:** the 1.21.0 Grok medium and Luna xhigh battleship runs (n=1 each, about 2x run-to-run variance).
+- **Reads on a Grok medium planning-only probe at `once`:**
+  - planning window minutes by stage, and the number of Improve children (expect plan plus W1 step-plan plus W1 test-spec = 3);
+  - passes and minutes of the merged plan child;
+  - finding classes, against the baseline per-stage children;
+  - whether a test-red revise (W1 redo) recurs;
+  - `planning_reconciliations`;
+  - `improve-start` refusals;
+  - `workflow_review` comparability.
+- **Do not claim** the 30-minute target is met by this change alone.
+
+---
+
+## 12. REJECTED OR DEFERRED
+
+- Per-item merge (section 4); lint-style split default (section 4).
+- Opening refusal for missing locators: rejected (host dead end); the script appends the locators instead.
+- Cheaper revise path (L17), lint-based document checks including requirement-ID traceability (L11), and Backchain `none` (L13): out of scope here. They carry the remaining minutes.
+
+---
+
+## 13. UNKNOWN OR NOT DETERMINED
+
+- The merged child's real minutes, quality effect, and pass count: unmeasured.
+- Whether a host copies the new text; whether hosts obey a `none` run: needs a live run.
+- Whether `improve-complete --final-result` with outcome `revise` works through the CLI: only the pure `finish_improve` was run.
+- Variant A and B apparatus `--suite all` was run only for variant A; variant B's apparatus failures (beyond the 4 mock-replay tests) are inferred equal [I].
+- `shiploop-chain-lifecycle` on variant B: still running when I finished composing, at about 20 minutes elapsed. Treat the chain family (five other chain suites passed) as the signal, and the lifecycle result as unknown unless its summary exists at SCR/run4-lifecycle-global/summary.tsv.
+- The census was a structural prototype: no text change, so text pins are undercounted. It ran under heavy shared load, and native-pilot fails on the baseline too.
+- I did not look at in-flight run state beyond `ls` of /Users/dadleet/e2e-runs.
+- Whether the existing "5 warranted fixes" labels (the ledger's judgement) generalise: unknown.
+
+---
+
+## 14. SCRATCH ARTIFACTS (all under SCR)
+
+Prototypes and trees:
+- `base/` (d1cca62f export)
+- `proto/` (candidate shape, once at plan and test-spec)
+- `proto-global/` (recommended once)
+- `proto-split/` (split default)
+- `proto-contract/` (contract and scope patch)
+- `spec-base/` (SPEC carve-out trial)
+
+Scripts:
+- make_prototype.py
+- run_census.py
+- summarize_census.py
+- classify.py
+- reasons.py
+- exp_walk.py (modes; E2 and E2b)
+- exp_forged.py
+- exp_allowance.py
+- exp_workflow_review.py
+- carve_out_draft.md
+- NOTES.md
+
+Results:
+- `run1-base/`, `run1-once/` (candidate flip), `run2-global/`, `run2b-global/`, `run2-merged/` (recommended flip), `run3-split/`, `run3b-split/`
+- `run4-lifecycle-global/` (lifecycle run, in progress)
+- mock-base.out, mock-proto.out
+
+Note: `census-base/` and `census-proto-once/` are stale partial outputs from a first attempt killed because the scratch tree had no `.git`; ignore them.

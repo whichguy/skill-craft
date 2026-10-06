@@ -168,6 +168,11 @@ reviewers.
   release/handoff once no Improve child is active.
 - Every planning result gets its own Improve child, and code-changing work is
   covered by the end-of-work child.
+  **Superseded 2026-10-05** for the five planning results (`spec`, `test-strategy`, `plan`,
+  `step-plan`, `test-spec`) in a run started with `--planning-review none`: none of them gets an
+  Improve child there. `--planning-review stage` keeps the invariant. The end-of-work, system-test
+  and release children stay in every mode. Record:
+  `docs/shiploop-planning-review-plan-2026-10-05.md`.
 - Only the latest behaviour is kept (owner decision, 2026-09-24): no parallel
   versions or compatibility modes. A saved run that the current code cannot load
   is refused with a clear error, not migrated silently.
