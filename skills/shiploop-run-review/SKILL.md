@@ -55,7 +55,8 @@ defaults are `$SKILL_ROOT/template/index.html` and `$SKILL_ROOT/defaults/`.
 ## export RUN_DIR
 
 Numbers only. `export.py RUN_DIR` writes `<RUN_DIR>/review-export/`: one file per document, `writes.json`, `facts.md`
-and one compact `review-export.json` to commit with the learnings entry. `test/shiploop_e2e/run.py` and `iterate.py`
+and one compact `review-export.json` to commit with the learnings entry (it leaves out the `packets` documents: each
+visit's packet text, megabytes, read from the run directory, which is their record). `test/shiploop_e2e/run.py` and `iterate.py`
 run it for you. A `metrics.json` with no `unmeasured` record is refused: regrade the finished run first, as the
 message says. Add `--key KEY` to keep the key the page already has for a run.
 
@@ -101,13 +102,14 @@ token; an open finding with no `effect` (the page shows it as "not rated").
    any document you did not write.
 3. **The run.** Upload the `writes.json` of `export RUN_DIR` the same way, except an existing `backchain` document: it
    may hold hand verdicts the exporter cannot rebuild (`luna1-plan` and `luna1-step-plan` do), so never `set` a
-   Backchain document whose id exists with hand-built content.
+   Backchain document whose id exists with hand-built content. The `packets` entries come last in `writes.json`: upload
+   them in `ArtifactData` batches of their own, at most 50 documents and 1 MiB each (split by file size).
 4. **The review.** `export.py --docs FILE --out DIR` checks the review file, refuses a failing one, and writes its
    documents and a `writes.json`. Read each document that exists live before replacing it: a `status` or field the file
    lacks is the owner's change on the page, so pull it into the file with advise and never overwrite it; otherwise pin
    `if_version`.
-5. **Upload** each `writes.json` with an `ArtifactData` `batch` (at most 50 writes a call; add `if_version` to an entry
-   whose document exists).
+5. **Upload** each `writes.json` with an `ArtifactData` `batch` (at most 50 writes and 1 MiB a call; packets in their own
+   batches; add `if_version` to an entry whose document exists).
 6. **Open and tell.** Open the page once (`Artifact` action `open`) and give the owner the link with the arc: what was
    done, what is running and why, the conclusions, what was learned, what is next.
 7. **No Artifact tools?** Say the page was not updated, and keep the review file.
@@ -120,4 +122,5 @@ token; an open finding with no `effect` (the page shows it as "not rated").
   replicas written by publish; changing an expectation is an option the owner ticks, applied from the repo.
 - A number the host could not measure is absent, with its reason in `runs.unmeasured`; the page says "not measured".
   Never write or read it as 0.
-- Evidence stays in the repo (the committed export and review file). The artifact database is the working copy.
+- Evidence stays in the repo (the committed export and review file; the packets stay in the run directory). The artifact
+  database is the working copy.

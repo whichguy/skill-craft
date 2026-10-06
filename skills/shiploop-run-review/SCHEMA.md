@@ -49,7 +49,7 @@ otherwise "not examined". Findings that are fixed, accepted or re-expected do no
 | `phases` | array of `done` \| `running` \| `blocked` \| `none` | required; aligned with the phase docs |
 | `time`, `imp` | string | required: short text shown in the run header |
 | `refusals`, `glue` | number | optional: omitted, never 0, when the harness names the counter unmeasured (`shiploop_failures`, `model_glue`: a host whose events cannot show it, such as Claude's). The header reads "refusals not measured" |
-| `unmeasured` | map of string | the reason for each measure that is absent: the harness's reason for each counter it could not measure (`metrics.json` `unmeasured`), and one under the run field's own name for each measure below that is missing (`calls`, `contextPeak`, `contextWindow`, `compactions`, `improvePasses`, `improveMin`, `visitContext`; the harness names the first and third `model_calls` and `window_tokens`, and a peak with no reason of its own takes the calls' reason). `{}` when everything was measured. A `metrics.json` without the key is refused: regrade the finished run first |
+| `unmeasured` | map of string | the reason for each measure that is absent: the harness's reason for each counter it could not measure (`metrics.json` `unmeasured`), and one under the run field's own name for each measure below that is missing (`calls`, `contextPeak`, `contextWindow`, `compactions`, `improvePasses`, `improveMin`, `visitContext`, `workItems`, `stepsPlanned`, `stepsExecuted`; the harness names the first and third `model_calls` and `window_tokens`, and a peak with no reason of its own takes the calls' reason). `{}` when everything was measured. A `metrics.json` without the key is refused: regrade the finished run first |
 | `improvePasses` | number | optional: Improve review passes over every `improve/<action>/` child, from each child's `terminal.json` `progress.action_number`. Absent, with a reason in `unmeasured`, when any child has none (a sum over an unknown part is unknown). `0` when the run has no Improve child |
 | `improveMin` | number | optional: minutes spent in Improve, the sum over children of `improve/<action>-bind.md` to `improve/<action>/receipt.md` by file time. Absent, with a reason, when any child lacks either file or its times run backwards. A child still running when the run stopped has no receipt, and the run's `improveMin` is then unknown |
 | `calls` | number | optional: model calls of the main thread (unique assistant messages for Claude, usage events for Grok, rollout calls for Codex), from `metrics.json` `model_calls`. Chain workers and Improve agents report elsewhere and are not in it |
@@ -60,12 +60,16 @@ otherwise "not examined". Findings that are fixed, accepted or re-expected do no
 | `status` | `done` \| `active` \| `paused` \| `blocked` \| `failed` | the ShipLoop run status; a stopped (paused) run is `paused`, not `active` |
 | `startedAt`, `endedAt` | ISO string | |
 | `verdicts` | object of booleans | invoked, plugin, process, shiploop, committed, checks |
-| `stages` | array of `{stage, outcome, min?, turns?, packetBytes?, resultBytes?, action?, skipped?, seeded?, improve?, context?}` | one row per accepted visit, in `state.md` history order; `min` is the accept-to-accept delta from `timeline.json`, never the harness's stage metric. `min` is **null** (the page shows "n/a") when the visit has no accept stamp, the visit before it has none (its start is then unknown), its stamp is earlier than the one before it (stamps running backwards: unknown, neither negative nor clamped), or the harness seeded the visit; never 0. Fields below |
+| `stages` | array of `{stage, outcome, min?, turns?, packetBytes?, resultBytes?, action?, skipped?, seeded?, improve?, context?, workitem?, loop?, step?, packetDoc?}` | one row per accepted visit, in `state.md` history order; `min` is the accept-to-accept delta from `timeline.json`, never the harness's stage metric. `min` is **null** (the page shows "n/a") when the visit has no accept stamp, the visit before it has none (its start is then unknown), its stamp is earlier than the one before it (stamps running backwards: unknown, neither negative nor clamped), or the harness seeded the visit; never 0. Fields below |
 | `stages[].action` | string | optional: the action id of the visit (`state.md` history). The Improve child and the packet file carry the same id |
 | `stages[].skipped` | `true` | present only when true: `packets/` holds files and none is `<action>.md`, so the engine skipped the visit ("Not applicable to this item") and issued no packet. No summary text is read; a model-authored "Not applicable:" visit has a packet and is work. Absent when `packets/` is empty or missing (unknown) |
 | `stages[].seeded` | `true` | present only when true: the E2E harness recorded the visit itself (`--seed-at`) without doing it. They are the first `len(seeded.skipped)` history rows, taken from `result.json` `seeded` and used only when their stage names match `seeded.skipped` in order (else none is marked and `facts.md` says why). A seeded visit has `min` null and is neither work nor `skipped` |
 | `stages[].improve` | map `{passes?, min?}` | present when the visit started an Improve child: `passes` from `terminal.json` `progress.action_number`, `min` from `improve/<action>-bind.md` to `improve/<action>/receipt.md` by file time. A member is omitted when unknown (`min` when either file is missing or the times run backwards), never 0 |
 | `stages[].context` | map `{calls?, peak?, peakPct?, compactions?}` | present only where the harness measured that visit's context: the main thread's calls, the largest call's tokens (`peak`, a call's total tokens on Codex, see `contextPeak`), `peakPct` of the window, and compactions inside the visit. Today only a Codex run with rollouts has it. The harness's stage rows carry no action id, so they are matched to the visits by position in the history and used only when their count and every stage and outcome agree; else no visit has a context. When no visit has one, `unmeasured.visitContext` says why |
+| `stages[].workitem`, `stages[].loop`, `stages[].step` | string, number, string | present when `workItems` is: the visit's work item id (from `state.md` history; absent at an outer stage), its `loop` (1-based pass through the steps loop that visit belongs to: 1 plus the accepted `revise` visits of that item before it) and, for an implement visit on the inline route, the `step` id its packet named (the step plan then in force, one step per done visit; a `repeat` or `revise` visit is an attempt at that step). Step ids repeat across plans, so read `step` with `loop` |
+| `stages[].packetDoc` | `true` | present only when a `packets` document was written for the visit: its packet file exists and was read. The page loads `packets/<runKey>--<action>` on demand |
+| `workItems` | array (below) | optional: the plan's work items and how each went through the steps loop, from `state.md` and `results/` only. Absent, with the reason in `unmeasured.workItems`, when the records cannot tell (see "Plan and execution") |
+| `stepsPlanned`, `stepsExecuted` | number | optional: the sums over `workItems` of each item's `stepsPlanned` and `stepsExecuted`. Each is absent, with a reason under its own name in `unmeasured`, when any item's steps were unreadable or its pairing is unknown: a sum over an unknown part is unknown, never 0 |
 | `knowledge` | object `{fileName: bytes}` | sizes of the planning documents the run committed (spec, test strategy, plan, ...) |
 | `failures` | array of `{verb, line}` | ShipLoop commands that exited non-zero; omitted with `refusals` when unmeasured |
 | `evidence` | string | path of the output directory (local, not durable) |
@@ -110,6 +114,33 @@ snapshots are not records). A value that is not 64 hex digits ("unavailable") is
 last pass's output digest. `change` of a one-pass loop is the step diff between `convergence.candidate.input_sha256` and that
 digest when both snapshots exist. A `candidateMatch` of `false` means the plan was edited after the loop closed (the parent
 stage rechecked another candidate), not that the loop failed.
+
+**Plan and execution** (`workItems`). One entry per work item of `state.md`'s final queue (`work_items`), with these fields.
+Every number is counted from `state.md` history and the accepted results (`results/<action>.md`, else `state.md`
+`accepted`), never from summary text.
+
+- `id`, `title` (string): the item's id and its title, cut at 200 characters (`titleTruncated` true when cut).
+- `origin` (`plan`, `replan` or `carry-forward`, optional): the stage whose accepted result first listed the item in its `work_items`: the plan, an outer stage's corrective `replan`, or a `carry-forward` revision of the queue. Absent when no result lists it.
+- `stepPlans` (number): the item's accepted `step-plan` visits of any outcome (a plan visit that came back `repeat` counts).
+- `loops` (number): how many times the item went through the **steps loop**: ShipLoop plans the item's steps, then builds them one implement visit per step. The first pass counts 1 (once the item has any visit; 0 before that) and each accepted `revise` (an inner stage from test-spec to integration-verify sends the item back to `step-plan`, at most twice) starts one more. So `loops` is 1 plus `revises`, while `stepPlans` also counts a repeated plan.
+- `revises`, `repeats` (number): the item's visits with outcome `revise` and `repeat`, at any inner stage.
+- `implementVisits` (map of number): the item's implement visits by outcome: `done`, `repeat`, `revise`, `replan`, `blocked` (a count each, 0 when none).
+- `steps` (array of `{id, task, truncated?, action?}`): the steps of the item's **latest accepted (done) step plan**, in order, each `task` cut at 200 characters (`truncated` true when cut); `[]` for an item with no accepted step plan. Absent, with the reason in `unmeasured.stepsPlanned`, when that plan lists no readable steps.
+- `steps[].action` (string or null): the action id of the accepted implement visit that executed the step, or `null` when no visit did (never executed, or not yet). **Absent when the pairing is unknown** (below): then the item has no `stepsExecuted` either.
+- `stepsPlanned`, `stepsExecuted` (number): the item's step count, and the steps with an `action` (`stepsExecuted` absent when unknown).
+
+*The pairing.* On the inline route ShipLoop issues one implement packet per step, in order, and only a `done` implement
+visit moves to the next step (`implement_progress` and `_step_lines` in `shiploop_navigator.py`: the step is
+`steps[done]`, where `done` counts the item's done implement visits since its latest accepted step plan). So the k-th
+done implement visit after the latest accepted step plan executed step k, and a `repeat` visit is another attempt at the
+same step. The export follows that rule exactly. It does not guess elsewhere: the item gets no `stepsExecuted` and its steps no
+`action`, with the reason under `unmeasured.stepsExecuted`, when the run's recorded `delegation` is not `inline` (ask-agent
+issues one implement packet for the whole plan; a run whose route was switched mid-run is read by its final route), when
+more done implement visits follow a plan than it has steps, or when the item moved past implement with fewer done implement
+visits than steps: in each the one-packet-per-step rule did not hold. `workItems` itself is absent, with its reason in
+`unmeasured.workItems`, when `state.md` has no `work_items` queue or its history rows carry no `workitem`, or when the
+plan visit was recorded by the E2E seed (the queue is then the harness's one synthetic item "The whole request", not the
+model's planning). An item removed from the queue by a `carry-forward` revision before it started is not listed.
 
 **`observations/<id>`** (the page calls them findings; the collection name stays)
 
@@ -160,6 +191,27 @@ Options are ranked recommended first, then by kind in the order above, then by e
 
 No verdict is stored: the chip is always derived.
 
+**`packets/<runKey>--<action>`** (the text of one visit's packet file; the page loads one on demand, never subscribes to the collection)
+
+| Field | Type | Notes |
+| --- | --- | --- |
+| `run`, `action` | string | required: the run key and the action id of the visit |
+| `stage` | string | the visit's stage |
+| `bytes` | number | required: the size of the whole packet file |
+| `sha256` | string | required: the digest of the whole packet file (hex) |
+| `text` | string | required: the packet text (UTF-8). A file over 150,000 bytes keeps its first 150,000 bytes cut at a line boundary (a hard cut only when that part holds no newline); a document that would pass the page database's 256 KiB limit for one document once serialized is cut further |
+| `shownBytes` | number | the UTF-8 size of `text`; equals `bytes` unless `truncated` |
+| `truncated` | `true` | present only when `text` is shorter than the file: the page says "truncated: showing the first N of M bytes" |
+
+One document per visit whose packet file `run/packets/<action>.md` exists and could be read as UTF-8. A visit with no
+file (skipped by the engine, seeded or never printed) has none and its stage row has no `packetDoc`; a file that cannot
+be read gets none, and `facts.md` counts the unreadable files. The packets are **not** part of `review-export.json` (a run
+holds megabytes of them: 1.8 MB over 40 visits for the Luna 1.16.1 run); the run directory is their record, `export.py`
+writes them under `docs/packets/` and `writes.json` lists them last, after every other collection, and `--check` rejects a
+review bundle that carries any. An old run's `packets/` files are read the same way, so any run directory can be exported
+again to fill them. The page needs no collection that holds only some of a run's visits: a missing document reads "packet
+not uploaded for this run".
+
 **`config/page`**: `title`, and `artifactUrl` (optional string: the artifact's own URL). A page cannot read its own URL, so publish sets it with `export.py --defaults --page-url URL`; the prompt's head prints it as `Page: <url>` and prints nothing when it is empty or absent. **`config/prompt`**: `constraints` (the rules printed in every prompt: about 600
 characters, specific to repairing a reviewed run) and `closing` (the report-back instruction). The prompt itself is
 built by one pure function in the page, `buildPrompt`, from what the viewer ticked; the page falls back to a short
@@ -168,7 +220,7 @@ default closing, and prints no rules, when the document is missing.
 ## The export file
 
 `review-export.json` (the compact file to commit with the learnings entry) is `{"schema": "run-review-export/v2",
-"docs": {<collection>: {<id>: <document>}}}`. v2 differs from v1 in three ways: `refusals`, `glue` and `failures` are
+"docs": {<collection>: {<id>: <document>}}}`, with every collection but `packets` (the packets are written to `docs/packets/` and `writes.json` only). v2 differs from v1 in three ways: `refusals`, `glue` and `failures` are
 optional and omitted when unmeasured, `unmeasured` is new, and a stage's `min` may be null. Files written as v1 are
 history; they are not read back. A run document also no longer has the `improve` array (Improve is read from each visit's
 `improve` and the run's `improvePasses` and `improveMin`) and its `status` can be `paused`.
@@ -191,7 +243,9 @@ agents report elsewhere.
 
 ## Writes
 
-A new run adds `runs/<key>` and its `backchain/*` documents with `set` (no `if_version`). A write to an existing document
+A new run adds `runs/<key>`, its `backchain/*` documents and its `packets/*` documents with `set` (no `if_version`; a packet
+document is written whole, so a re-export replaces it). A `set` batch holds at most 50 documents and 1 MiB: the run and its loops
+go in one batch and the packets in batches of their own, split by file size. A write to an existing document
 needs `if_version`: read it first, and never overwrite a document the owner edited on the page. The page itself writes only:
 observations (add, status), actions (add) and backchain (verdicts). Nothing else is written from the page: expectations,
 config and the runs are replicas written by publish.

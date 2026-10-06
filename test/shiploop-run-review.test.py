@@ -43,6 +43,8 @@ _spec.loader.exec_module(export)
 T0 = datetime(2026, 10, 3, 10, 0, tzinfo=timezone.utc)
 IDS = {name: f"nav-{index:02d}{hashlib.sha256(name.encode()).hexdigest()[:30]}" for index, name in enumerate(
     ("intake", "spec", "test-strategy", "plan", "select-work", "step-plan", "implement", "extra"))}
+INNER = ("select-work", "step-plan", "test-spec", "baseline", "test-author", "test-red", "implement", "test-green",
+         "test-refine", "regression")  # the stages that belong to a work item (the fixture uses the first of them)
 # (action, stage, minutes after T0 when accepted, outcome)
 ACCEPTS = [("intake", "intake", 5, "done"), ("spec", "spec", 15, "done"), ("test-strategy", "test-strategy", 35, "done"),
            ("plan", "plan", 95, "done"), ("select-work", "select-work", 97, "done"),
@@ -99,15 +101,21 @@ def make_run(root: Path, accepts=ACCEPTS, status: str = "active", loops: bool = 
     """A run output directory shaped like test/shiploop_e2e/run.py writes it; `metrics` overrides keys of its metrics.json."""
     out = root / "run-out"
     run = out / ".shiploop-runs" / "work-1" / "run"
-    history = [{"action": IDS[a], "stage": s, "outcome": o, "summary": "x"} for a, s, _, o in accepts]
+    # state.md as ShipLoop writes it: each history row names its work item (None at an outer stage) and the run records
+    # its delegation route, so the plan and execution can be read (R17).
+    history = [{"action": IDS[a], "stage": s, "outcome": o, "summary": "x", "workitem": "W1" if s in INNER else None}
+               for a, s, _, o in accepts]
     record(run / "state.md", {"status": status, "stage": "inner-loop" if status != "done" else "done",
-                              "work_items": [{"id": "W1"}], "work_index": 0,
+                              "delegation": "inline",
+                              "work_items": [{"id": "W1", "title": "Build the thing"}], "work_index": 0,
                               "inner_loops": {"W1": {"stage": "test-green", "action": {"id": "nav-x", "stage": "test-green"}}},
                               "history": history})
     write_json(run / "timeline.json", {"started": iso(0), "accepted": {IDS[a]: iso(m) for a, _, m, _ in accepts}})
     for action, stage, _, outcome in accepts:
-        record(run / "results" / f"{IDS[action]}.md", {"action": IDS[action], "stage": stage,
-                                                        "result": {"outcome": outcome, "summary": "s"}})
+        body = {"outcome": outcome, "summary": "s"}
+        if stage == "step-plan":
+            body["steps"] = [{"id": "S1", "task": "Write the rules module"}, {"id": "S2", "task": "Write the server"}]
+        record(run / "results" / f"{IDS[action]}.md", {"action": IDS[action], "stage": stage, "result": body})
         (run / "packets").mkdir(parents=True, exist_ok=True)
         (run / "packets" / f"{IDS[action]}.md").write_text("P" * 100)
     make_improve_child(run, IDS["plan"])
@@ -237,7 +245,7 @@ class RunReviewTest(unittest.TestCase):
         self.assertEqual(code, 0)
         run = self.docs(target)["runs"]["codex-gpt-6-luna-1.16.1-battleship-20261003"]
         self.assertEqual(run["stages"][-1], {"stage": "brand-new-stage", "outcome": "done", "min": 10.0,
-                                             "action": IDS["extra"], "packetBytes": 100,
+                                             "action": IDS["extra"], "packetBytes": 100, "packetDoc": True,
                                              "resultBytes": run["stages"][-1]["resultBytes"]})
         self.assertEqual(run["phases"][3], "running")
         self.assertIn("brand-new-stage", (target / "facts.md").read_text())
@@ -338,10 +346,12 @@ class RunReviewTest(unittest.TestCase):
     def test_writes_json_lists_every_document_in_a_stable_order_with_absolute_paths(self):
         _, target = self.export(make_run(self.tmp))
         writes = json.loads((target / "writes.json").read_text())
-        self.assertEqual([(w["collection"], w["doc_id"]) for w in writes],
-                         [("runs", "codex-gpt-6-luna-1.16.1-battleship-20261003"),
-                          ("backchain", "codex-gpt-6-luna-1.16.1-battleship-20261003-plan"),
-                          ("backchain", "codex-gpt-6-luna-1.16.1-battleship-20261003-step-plan")])
+        key = "codex-gpt-6-luna-1.16.1-battleship-20261003"
+        self.assertEqual([(w["collection"], w["doc_id"]) for w in writes[:3]],
+                         [("runs", key), ("backchain", f"{key}-plan"), ("backchain", f"{key}-step-plan")])
+        # The packets follow, last and in their own sorted run, so a publish can upload them as separate batches (R17).
+        self.assertEqual([w["collection"] for w in writes[3:]], ["packets"] * len(ACCEPTS))
+        self.assertEqual([w["doc_id"] for w in writes[3:]], sorted(f"{key}--{IDS[a[0]]}" for a in ACCEPTS))
         for write in writes:
             self.assertEqual(write["op"], "set")
             self.assertNotIn("if_version", write)
@@ -1034,6 +1044,354 @@ class BackchainLoopRecordsTest(unittest.TestCase):
         for phrase in ("The first visit's `min` runs from `timeline.json` `started`", "host's first event",
                        "2.5 min here (2.45 before the export rounds to a tenth) and 3.4 in the harness line"):
             self.assertIn(phrase, text)
+
+
+# ---------------------------------------------------------------- R17: the plan's work items and each visit's packet
+
+def make_plan_run(root: Path, rows: list, delegation: str = "inline", queue: list | None = None,
+                  loops: bool = False) -> Path:
+    """A run whose history follows the engine's own shape. `rows` are (name, stage, outcome, workitem, result body):
+    the body holds what that visit's result carries (`steps` for a step plan, `work_items` for a plan or a replan).
+    `queue` is state.md's final work_items (default: every id a plan or replan row lists)."""
+    for name, *_ in rows:
+        IDS.setdefault(name, f"nav-{hashlib.sha256(name.encode()).hexdigest()[:32]}")
+    out = make_run(root, [(name, stage, 5 * (i + 1), outcome) for i, (name, stage, outcome, *_) in enumerate(rows)],
+                   status="active", loops=loops)
+    run = run_dir_of(out)
+    listed = [item for *_, body in rows for item in body.get("work_items", [])]
+    set_state(out, delegation=delegation, work_items=queue if queue is not None else listed,
+              history=[{"action": IDS[name], "stage": stage, "outcome": outcome, "summary": "x", "workitem": item}
+                       for name, stage, outcome, item, _ in rows])
+    for name, stage, outcome, _, body in rows:
+        record(run / "results" / f"{IDS[name]}.md",
+               {"action": IDS[name], "stage": stage, "result": {"outcome": outcome, "summary": "s", **body}})
+    return out
+
+
+def steps_of(*ids: str) -> dict:
+    return {"steps": [{"id": step, "task": f"do {step}"} for step in ids]}
+
+
+# W1 is planned; its first step plan has three steps, two are built, the third comes back `revise`; the second plan has two
+# steps, S1 needs one more attempt (`repeat`), both are built, and the item finishes. W2 is added by a replan at system-test:
+# its plan has two steps and the run stops after the first implement visit, so S2 is never executed.
+PLAN_ROWS = [
+    ("plan", "plan", "done", None, {"work_items": [{"id": "W1", "title": "First item"}]}),
+    ("select-work", "select-work", "done", "W1", {}),
+    ("sp1", "step-plan", "done", "W1", steps_of("S1", "S2", "S3")),
+    ("i1", "implement", "done", "W1", {}), ("i2", "implement", "done", "W1", {}),
+    ("i3", "implement", "revise", "W1", {}),
+    ("sp2", "step-plan", "done", "W1", steps_of("S1", "S2")),
+    ("i4", "implement", "repeat", "W1", {}), ("i5", "implement", "done", "W1", {}), ("i6", "implement", "done", "W1", {}),
+    ("test-green", "test-green", "done", "W1", {}),
+    ("carry-forward", "carry-forward", "done", "W1", {"work_items": []}),
+    ("replan", "system-test", "replan", None, {"work_items": [{"id": "W2", "title": "Corrective item"}]}),
+    ("select-work-2", "select-work", "done", "W2", {}),
+    ("sp3", "step-plan", "done", "W2", steps_of("S1", "S2")),
+    ("i7", "implement", "done", "W2", {}),
+]
+
+
+class PlanAndExecutionTest(unittest.TestCase):
+    """R17: the run document names each work item, how many times it went through the steps loop and which implement
+    visit executed each planned step, from state.md and the results only."""
+
+    KEY = RunReviewTest.KEY
+
+    def setUp(self):
+        tmp = tempfile.TemporaryDirectory()
+        self.addCleanup(tmp.cleanup)
+        self.tmp = Path(tmp.name)
+
+    def build(self, out: Path) -> tuple[dict, list[str]]:
+        docs, facts = export.build_run(out)
+        run = docs["runs"][self.KEY]
+        self.assertEqual(export.validate_doc("runs", run), [])
+        return run, facts
+
+    def fresh(self) -> Path:
+        return Path(tempfile.mkdtemp(dir=self.tmp))
+
+    def test_each_work_item_counts_its_loops_plans_and_implement_visits_and_pairs_steps_with_visits(self):
+        run, _ = self.build(make_plan_run(self.fresh(), PLAN_ROWS))
+        w1, w2 = run["workItems"]
+        self.assertEqual((w1["id"], w1["title"], w1["origin"]), ("W1", "First item", "plan"))
+        self.assertEqual((w1["stepPlans"], w1["loops"], w1["revises"], w1["repeats"]), (2, 2, 1, 1))
+        self.assertEqual(w1["implementVisits"], {"done": 4, "repeat": 1, "revise": 1, "replan": 0, "blocked": 0})
+        # the steps of the LATEST accepted plan, each with the done visit that executed it (the repeat is not it)
+        self.assertEqual([(s["id"], s["action"]) for s in w1["steps"]], [("S1", IDS["i5"]), ("S2", IDS["i6"])])
+        self.assertEqual((w1["stepsPlanned"], w1["stepsExecuted"]), (2, 2))
+        self.assertEqual((w2["id"], w2["origin"], w2["stepPlans"], w2["loops"], w2["revises"]), ("W2", "replan", 1, 1, 0))
+        self.assertEqual(w2["implementVisits"]["done"], 1)
+        self.assertEqual([(s["id"], s["action"]) for s in w2["steps"]], [("S1", IDS["i7"]), ("S2", None)])
+        self.assertEqual((w2["stepsPlanned"], w2["stepsExecuted"]), (2, 1))
+        self.assertEqual((run["stepsPlanned"], run["stepsExecuted"]), (4, 3))  # steps executed < planned
+        self.assertNotIn("workItems", run["unmeasured"])
+        self.assertTrue(w2["steps"][1]["action"] is None and "action" in w2["steps"][1])  # None is written, not omitted
+
+    def test_each_visit_row_names_its_work_item_loop_and_the_step_its_packet_was_for(self):
+        run, _ = self.build(make_plan_run(self.fresh(), PLAN_ROWS))
+        by_action = {r["action"]: r for r in run["stages"]}
+        mark = lambda name: {k: by_action[IDS[name]].get(k) for k in ("workitem", "loop", "step")}
+        self.assertEqual(mark("plan"), {"workitem": None, "loop": None, "step": None})  # an outer stage has none
+        self.assertEqual(mark("sp1"), {"workitem": "W1", "loop": 1, "step": None})
+        self.assertEqual([mark(n)["step"] for n in ("i1", "i2", "i3")], ["S1", "S2", "S3"])  # the plan then in force
+        self.assertEqual(mark("i3")["loop"], 1)  # the revise visit ends loop 1
+        self.assertEqual(mark("sp2")["loop"], 2)
+        # a repeat is another attempt at the step that was still open
+        self.assertEqual([(mark(n)["loop"], mark(n)["step"]) for n in ("i4", "i5", "i6")], [(2, "S1"), (2, "S1"), (2, "S2")])
+        self.assertEqual((mark("test-green")["workitem"], mark("i7")["workitem"], mark("i7")["step"]), ("W1", "W2", "S1"))
+        self.assertEqual(mark("replan")["workitem"], None)
+
+    def test_a_not_yet_started_item_has_zero_loops_and_no_steps_and_a_title_is_cut_with_a_flag(self):
+        rows = [*PLAN_ROWS[:1], PLAN_ROWS[1], PLAN_ROWS[2]]
+        queue = [{"id": "W1", "title": "t" * 250}, {"id": "W9", "title": "later"}]
+        run, _ = self.build(make_plan_run(self.fresh(), rows, queue=queue))
+        w1, w9 = run["workItems"]
+        self.assertEqual((len(w1["title"]), w1["titleTruncated"]), (200, True))
+        self.assertEqual((w9["loops"], w9["stepPlans"], w9["steps"], w9["stepsPlanned"], w9["stepsExecuted"]), (0, 0, [], 0, 0))
+        self.assertNotIn("origin", w9)  # no accepted result lists it
+        self.assertEqual((run["stepsPlanned"], run["stepsExecuted"]), (3, 0))
+
+    def test_a_step_task_over_200_characters_keeps_200_and_says_truncated(self):
+        rows = [PLAN_ROWS[0], PLAN_ROWS[1],
+                ("sp", "step-plan", "done", "W1", {"steps": [{"id": "S1", "task": "x" * 201}, {"id": "S2", "task": "y" * 200}]})]
+        run, _ = self.build(make_plan_run(self.fresh(), rows))
+        s1, s2 = run["workItems"][0]["steps"]
+        self.assertEqual((len(s1["task"]), s1["truncated"], len(s2["task"]), "truncated" in s2), (200, True, 200, False))
+
+    def test_a_run_on_the_ask_agent_route_has_steps_but_no_pairing(self):
+        out = make_plan_run(self.fresh(), PLAN_ROWS, delegation="ask-agent")
+        run, facts = self.build(out)
+        w1 = run["workItems"][0]
+        self.assertEqual((w1["stepsPlanned"], w1["loops"]), (2, 2))  # what the records do say stays
+        self.assertTrue(all("action" not in s for item in run["workItems"] for s in item["steps"]))
+        self.assertTrue(all("stepsExecuted" not in item for item in run["workItems"]) and "stepsExecuted" not in run)
+        self.assertEqual(run["stepsPlanned"], 4)
+        self.assertIn("ask-agent", run["unmeasured"]["stepsExecuted"])
+        self.assertTrue(all("step" not in r for r in run["stages"]))  # no packet named a step on this route
+        self.assertTrue(all(r.get("workitem") for r in run["stages"] if r["stage"] == "implement"))
+        self.assertIn("executed not measured (", "\n".join(facts))
+
+    def test_counts_that_do_not_line_up_with_one_packet_per_step_are_unknown_not_guessed(self):
+        # one implement visit for a two-step plan, then the item moved on: it was not paired step by step
+        rows = [PLAN_ROWS[0], PLAN_ROWS[1], ("sp", "step-plan", "done", "W1", steps_of("S1", "S2")),
+                ("i1", "implement", "done", "W1", {}), ("test-green", "test-green", "done", "W1", {})]
+        run, _ = self.build(make_plan_run(self.fresh(), rows))
+        item = run["workItems"][0]
+        self.assertNotIn("stepsExecuted", item)
+        self.assertTrue(all("action" not in s for s in item["steps"]))
+        self.assertIn("W1: it moved past implement with 1 done implement visits for 2 steps", run["unmeasured"]["stepsExecuted"])
+        self.assertEqual(run["stepsPlanned"], 2)
+        # more done visits than the plan has steps
+        rows = [PLAN_ROWS[0], PLAN_ROWS[1], ("sp", "step-plan", "done", "W1", steps_of("S1")),
+                ("i1", "implement", "done", "W1", {}), ("i2", "implement", "done", "W1", {})]
+        run, _ = self.build(make_plan_run(self.fresh(), rows))
+        self.assertIn("2 done implement visits follow a plan of 1 steps", run["unmeasured"]["stepsExecuted"])
+        self.assertNotIn("stepsExecuted", run)
+
+    def test_a_step_plan_that_lists_no_readable_steps_leaves_its_item_unmeasured(self):
+        rows = [PLAN_ROWS[0], PLAN_ROWS[1], ("sp", "step-plan", "done", "W1", {})]
+        run, _ = self.build(make_plan_run(self.fresh(), rows))
+        item = run["workItems"][0]
+        self.assertTrue("steps" not in item and "stepsPlanned" not in item and "stepsExecuted" not in item)
+        self.assertEqual((item["stepPlans"], item["loops"]), (1, 1))
+        self.assertNotIn("stepsPlanned", run)
+        self.assertIn("W1: its latest step plan lists no readable steps", run["unmeasured"]["stepsPlanned"])
+        self.assertIn("W1:", run["unmeasured"]["stepsExecuted"])
+
+    def test_a_seeded_plan_visit_leaves_the_work_items_unmeasured_with_the_reason(self):
+        out = make_plan_run(self.fresh(), PLAN_ROWS)
+        edit_json(out / "result.json", lambda r: r.update(seeded={"skipped": ["plan"], "stage": "select-work"}))
+        run, _ = self.build(out)
+        self.assertTrue(all(k not in run for k in ("workItems", "stepsPlanned", "stepsExecuted")))
+        self.assertIn("recorded by the E2E seed", run["unmeasured"]["workItems"])
+        self.assertTrue(all("workitem" not in r and "loop" not in r and "step" not in r for r in run["stages"]))
+        self.assertTrue(run["stages"][0]["seeded"])  # the visits themselves are still marked as seeded
+
+    def test_the_old_shapes_say_what_is_missing_instead_of_counting_zero(self):
+        out = make_plan_run(self.fresh(), PLAN_ROWS)
+        set_state(out, work_items=None)
+        run, facts = self.build(out)
+        self.assertNotIn("workItems", run)
+        self.assertIn("no work_items queue", run["unmeasured"]["workItems"])
+        self.assertIn("Work items and steps loop: not measured (state.md has no work_items queue", "\n".join(facts))
+        out = make_plan_run(self.fresh(), PLAN_ROWS)
+        state = export._record(run_dir_of(out) / "state.md")
+        for entry in state["history"]:
+            del entry["workitem"]
+        set_state(out, history=state["history"])
+        run, _ = self.build(out)
+        self.assertNotIn("workItems", run)
+        self.assertIn("carry no workitem", run["unmeasured"]["workItems"])
+
+    def test_a_run_with_no_visit_yet_has_an_empty_measured_list_not_a_missing_one(self):
+        out = make_plan_run(self.fresh(), PLAN_ROWS[:1], queue=[])
+        run, _ = self.build(out)
+        self.assertEqual((run["workItems"], run["stepsPlanned"], run["stepsExecuted"]), ([], 0, 0))
+
+    def test_the_facts_line_reports_the_headline_numbers(self):
+        _, facts = self.build(make_plan_run(self.fresh(), PLAN_ROWS))
+        line = next(f for f in facts if f.startswith("- Work items:"))
+        self.assertEqual(line, "- Work items: 2 (1 added by replan); 3 step plans; 3 passes through the steps loop "
+                               "(1 revises); 5 done implement visits; steps planned 4, executed 3")
+
+    def test_the_table_of_stages_after_implement_is_the_engines(self):
+        path = ROOT / "skills" / "shiploop" / "scripts" / "shiploop_stage_spec.py"
+        spec = importlib.util.spec_from_file_location("run_review_selected_stage_spec_2", path)
+        stage_spec = importlib.util.module_from_spec(spec)
+        sys.modules[spec.name] = stage_spec
+        self.addCleanup(sys.modules.pop, spec.name, None)
+        spec.loader.exec_module(stage_spec)
+        inner = list(stage_spec.INNER)
+        self.assertEqual(export.AFTER_IMPLEMENT, tuple(inner[inner.index("implement") + 1:]))
+        self.assertEqual((stage_spec.REVISE_TO, stage_spec.MAX_REVISES), ("step-plan", 2))  # SCHEMA.md says "at most twice"
+
+    def test_schema_md_defines_loops_the_pairing_and_the_unknown_cases(self):
+        text = " ".join(SCHEMA_MD.read_text(encoding="utf-8").split())
+        for phrase in ("steps loop", "1 plus `revises`", "latest accepted (done) step plan", "implement_progress",
+                       "k-th done implement visit", "ask-agent", "recorded by the E2E seed", "never 0",
+                       "unmeasured.workItems", "unmeasured.stepsExecuted", "unmeasured.stepsPlanned"):
+            self.assertIn(phrase, text, phrase)
+        for name in ("workItems", "stepsPlanned", "stepsExecuted", "titleTruncated", "implementVisits", "origin",
+                     "stages[].workitem", "stages[].packetDoc"):
+            self.assertIn(name, text, name)
+
+
+class PacketDocumentTest(unittest.TestCase):
+    """R17: the packet text of each visit goes into its own collection, never into the committed export."""
+
+    KEY = RunReviewTest.KEY
+
+    def setUp(self):
+        tmp = tempfile.TemporaryDirectory()
+        self.addCleanup(tmp.cleanup)
+        self.tmp = Path(tmp.name)
+
+    def export(self, out: Path) -> tuple[dict, Path]:
+        target = self.tmp / f"export-{len(list(self.tmp.glob('export-*')))}"
+        with contextlib.redirect_stdout(io.StringIO()):
+            self.assertEqual(export.main([str(out), "--out", str(target)]), 0)
+        return json.loads((target / "docs" / "runs" / f"{self.KEY}.json").read_text()), target
+
+    def packet(self, out: Path, name: str) -> Path:
+        return run_dir_of(out) / "packets" / f"{IDS[name]}.md"
+
+    def test_each_visit_with_a_packet_file_gets_a_document_with_its_size_digest_and_text(self):
+        out = make_run(self.tmp, loops=False)
+        self.packet(out, "plan").write_text("# Packet\nline two é\n", encoding="utf-8")
+        run, target = self.export(out)
+        doc = json.loads((target / "docs" / "packets" / f"{self.KEY}--{IDS['plan']}.json").read_text())
+        raw = self.packet(out, "plan").read_bytes()
+        self.assertEqual(doc, {"run": self.KEY, "action": IDS["plan"], "stage": "plan", "bytes": len(raw),
+                               "shownBytes": len(raw), "sha256": hashlib.sha256(raw).hexdigest(),
+                               "text": "# Packet\nline two é\n"})
+        self.assertEqual(export.validate_doc("packets", doc), [])
+        self.assertEqual(len(list((target / "docs" / "packets").glob("*.json"))), len(ACCEPTS))
+        self.assertTrue(all(r["packetDoc"] is True and r["packetBytes"] == 100 or r["stage"] == "plan" for r in run["stages"]))
+        self.assertEqual(len([r for r in run["stages"] if r.get("packetDoc")]), len(ACCEPTS))
+        self.assertIn(f"- Packet documents: {len(ACCEPTS)} written", (target / "facts.md").read_text())
+        self.assertIn("0 truncated; 0 packet files unreadable", (target / "facts.md").read_text())
+
+    def test_the_committed_export_leaves_the_packets_out_and_writes_json_lists_them_last(self):
+        out = make_run(self.tmp, loops=False)
+        _, target = self.export(out)
+        bundle = json.loads((target / "review-export.json").read_text())
+        self.assertEqual(sorted(bundle["docs"]), ["backchain", "runs"])
+        self.assertNotIn("P" * 100, (target / "review-export.json").read_text())  # no packet text (the fixture's packets)
+        self.assertIn(self.KEY, (target / "review-export.json").read_text())
+        writes = json.loads((target / "writes.json").read_text())
+        collections = [w["collection"] for w in writes]
+        self.assertEqual(collections, sorted(collections, key=lambda c: export.COLLECTION_ORDER.index(c)))
+        self.assertEqual(collections[-1], "packets")
+        self.assertEqual(export.COLLECTION_ORDER[-1], "packets")
+
+    def test_a_packet_over_150000_bytes_is_cut_at_a_line_boundary_and_keeps_the_whole_files_size_and_digest(self):
+        out = make_run(self.tmp, loops=False)
+        text = "".join(f"line {n:06d} of the packet\n" for n in range(7000))[:200_000 // 1]
+        self.packet(out, "plan").write_text(text, encoding="utf-8")
+        self.assertGreater(len(text.encode()), 150_000)
+        run, target = self.export(out)
+        doc = json.loads((target / "docs" / "packets" / f"{self.KEY}--{IDS['plan']}.json").read_text())
+        raw = text.encode()
+        self.assertEqual((doc["bytes"], doc["sha256"], doc["truncated"]), (len(raw), hashlib.sha256(raw).hexdigest(), True))
+        self.assertLessEqual(doc["shownBytes"], export.MAX_PACKET_TEXT)
+        self.assertGreater(doc["shownBytes"], export.MAX_PACKET_TEXT - 100)  # cut at the last line that fits
+        self.assertTrue(doc["text"].endswith("\n") and text.startswith(doc["text"]))
+        self.assertEqual(len(doc["text"].encode()), doc["shownBytes"])
+        self.assertEqual(export.validate_doc("packets", doc), [])
+        self.assertIn("1 truncated", (target / "facts.md").read_text())
+        plan = next(r for r in run["stages"] if r["stage"] == "plan")
+        self.assertEqual((plan["packetBytes"], plan["packetDoc"]), (len(raw), True))  # the row keeps the full size
+
+    def test_a_packet_whose_json_would_pass_the_database_limit_is_cut_further(self):
+        out = make_run(self.tmp, loops=False)
+        self.packet(out, "plan").write_text('"\n' * 75_000, encoding="utf-8")  # 150,000 bytes, 300,000 once escaped
+        _, target = self.export(out)
+        doc = json.loads((target / "docs" / "packets" / f"{self.KEY}--{IDS['plan']}.json").read_text())
+        self.assertEqual((doc["bytes"], doc["truncated"]), (150_000, True))
+        self.assertLess(doc["shownBytes"], 150_000)
+        self.assertLessEqual(export._serialized_bytes(doc), export.MAX_DOC_BYTES)
+        self.assertEqual(export.validate_doc("packets", doc), [])
+        big = dict(doc, text="x" * (export.MAX_DOC_BYTES + 1))
+        self.assertIn("limit for one document", "\n".join(export.validate_doc("packets", big)))
+
+    def test_a_visit_with_no_packet_file_has_no_document_and_no_flag(self):
+        out = make_run(self.tmp, loops=False)
+        self.packet(out, "select-work").unlink()
+        run, target = self.export(out)
+        row = next(r for r in run["stages"] if r["stage"] == "select-work")
+        self.assertTrue(row["skipped"] and "packetDoc" not in row and "packetBytes" not in row)
+        self.assertFalse((target / "docs" / "packets" / f"{self.KEY}--{IDS['select-work']}.json").exists())
+        self.assertEqual(len(list((target / "docs" / "packets").glob("*.json"))), len(ACCEPTS) - 1)
+        shutil.rmtree(run_dir_of(out) / "packets")
+        run, target = self.export(out)
+        self.assertTrue(all("packetDoc" not in r for r in run["stages"]))
+        self.assertFalse((target / "docs" / "packets").exists())
+
+    def test_a_packet_file_that_cannot_be_read_gets_no_document_and_facts_count_it(self):
+        out = make_run(self.tmp, loops=False)
+        self.packet(out, "spec").write_bytes(b"\xff\xfe not utf-8 \x80")
+        run, target = self.export(out)
+        row = next(r for r in run["stages"] if r["stage"] == "spec")
+        self.assertEqual((row["packetBytes"], "packetDoc" in row), (len(b"\xff\xfe not utf-8 \x80"), False))
+        self.assertFalse((target / "docs" / "packets" / f"{self.KEY}--{IDS['spec']}.json").exists())
+        self.assertEqual(len(list((target / "docs" / "packets").glob("*.json"))), len(ACCEPTS) - 1)
+        self.assertIn(f"{len(ACCEPTS) - 1} written", (target / "facts.md").read_text())
+        self.assertIn("1 packet files unreadable (no document written)", (target / "facts.md").read_text())
+
+    def test_a_second_export_drops_the_packet_documents_the_first_wrote(self):
+        out = make_run(self.tmp, loops=False)
+        target = self.tmp / "same"
+        with contextlib.redirect_stdout(io.StringIO()):
+            export.main([str(out), "--out", str(target)])
+            self.packet(out, "plan").unlink()
+            export.main([str(out), "--out", str(target)])
+        self.assertFalse((target / "docs" / "packets" / f"{self.KEY}--{IDS['plan']}.json").exists())
+        writes = json.loads((target / "writes.json").read_text())
+        self.assertEqual(len([w for w in writes if w["collection"] == "packets"]), len(ACCEPTS) - 1)
+
+    def test_a_review_bundle_may_not_carry_packets_and_the_validator_knows_the_collection(self):
+        out = make_run(self.tmp, loops=False)
+        docs, _ = export.build_run(out)
+        self.assertEqual(sorted(docs), ["backchain", "packets", "runs"])
+        self.assertTrue(all(export.validate_doc("packets", d) == [] for d in docs["packets"].values()))
+        bad = dict(next(iter(docs["packets"].values())))
+        del bad["sha256"]
+        self.assertIn("missing required field 'sha256'", "\n".join(export.validate_doc("packets", bad)))
+        failures, _ = export.check_bundle({"schema": export.SCHEMA_ID, "docs": {"packets": docs["packets"]}})
+        self.assertTrue(any("packets documents are not part of a review bundle" in f for f in failures))
+        failures, _ = export.check_bundle({"schema": export.SCHEMA_ID, "docs": {"runs": docs["runs"]}})
+        self.assertEqual(failures, [])
+
+    def test_schema_md_and_skill_md_name_the_packets_collection_and_how_it_is_uploaded(self):
+        schema = " ".join(SCHEMA_MD.read_text(encoding="utf-8").split())
+        skill = " ".join(SKILL_MD.read_text(encoding="utf-8").split())
+        for phrase in ("`packets/<runKey>--<action>`", "not** part of `review-export.json`", "150,000 bytes",
+                       "256 KiB", "at most 50 documents and 1 MiB", "`packetDoc`", "unreadable"):
+            self.assertIn(phrase, schema, phrase)
+        for phrase in ("packets", "at most 50 documents and 1 MiB each", "in `ArtifactData` batches of their own"):
+            self.assertIn(phrase, skill, phrase)
 
 
 # ---------------------------------------------------------------- the page template and its pure logic
@@ -2369,6 +2727,58 @@ class CommittedEvidenceTest(unittest.TestCase):
         self.assertEqual((run["calls"], run["contextPeak"]), (149, 271220))
         for key in ("hello-1161", "hello-1180", "hello-1190a"):
             self.assertFalse(any(row.get("skipped") for row in self.run_doc(key)["stages"]), key)
+
+    # ---- R17: the plan's work items and the packets of the five real runs
+
+    PLAN = {  # key: (work items, step plans, loops per item, steps planned, steps executed, done implement visits)
+        "luna1": (1, 2, [2], 5, 5, 7), "hello-1161": (1, 1, [1], 2, 2, 2), "hello-1180": (1, 1, [1], 1, 1, 1),
+        "hello-1190a": (1, 1, [1], 1, 1, 1), "hello-1190b": (2, 2, [1, 1], 2, 2, 2)}
+
+    def test_the_work_items_and_steps_loop_of_each_real_run(self):
+        for key, (count, plans, loops, planned, executed, done) in self.PLAN.items():
+            with self.subTest(run=key):
+                run = self.run_doc(key)
+                items = run["workItems"]
+                self.assertEqual((len(items), sum(i["stepPlans"] for i in items), [i["loops"] for i in items]),
+                                 (count, plans, loops))
+                self.assertEqual((run["stepsPlanned"], run["stepsExecuted"]), (planned, executed))
+                self.assertEqual(sum(i["implementVisits"]["done"] for i in items), done)
+                self.assertNotIn("workItems", run["unmeasured"])
+                by_action = {row["action"]: row for row in run["stages"]}
+                for item in items:  # every executed step names an accepted implement visit of its own item
+                    self.assertEqual(item["stepsPlanned"], len(item["steps"]))
+                    self.assertEqual(item["stepsExecuted"], sum(1 for s in item["steps"] if s["action"]))
+                    for step in item["steps"]:
+                        if step["action"]:
+                            row = by_action[step["action"]]
+                            self.assertEqual((row["stage"], row["outcome"], row["workitem"], row["step"]),
+                                             ("implement", "done", item["id"], step["id"]))
+
+    def test_luna_1_16_1_went_through_the_steps_loop_twice_and_built_all_five_steps_of_its_second_plan(self):
+        run = self.run_doc("luna1")
+        item = run["workItems"][0]
+        self.assertEqual((item["id"], item["origin"], item["revises"], item["repeats"]), ("W1", "plan", 1, 0))
+        self.assertEqual(item["implementVisits"], {"done": 7, "repeat": 0, "revise": 1, "replan": 0, "blocked": 0})
+        self.assertEqual([s["id"] for s in item["steps"]], ["S1", "S2", "S3", "S4", "S5"])
+        marks = [(r["loop"], r["step"], r["outcome"]) for r in run["stages"] if r["stage"] == "implement"]
+        self.assertEqual(marks, [(1, "S1", "done"), (1, "S2", "done"), (1, "S3", "revise")] + [
+            (2, f"S{n}", "done") for n in range(1, 6)])
+        self.assertTrue(item["steps"][2]["truncated"] and len(item["steps"][2]["task"]) == 200)
+
+    def test_hello_1_19_0_second_run_added_a_second_work_item_by_replan(self):
+        first, second = self.run_doc("hello-1190b")["workItems"]
+        self.assertEqual((first["origin"], second["origin"]), ("plan", "replan"))
+        self.assertEqual(second["title"], "Correct the system-test plan so ShipLoop can judge ST-1")
+
+    def test_packets_are_not_in_the_committed_files_and_every_visit_with_a_packet_file_has_a_document(self):
+        for name, key in EVIDENCE_RUNS.items():
+            with self.subTest(file=name):
+                self.assertNotIn("packets", self.bundles[name]["docs"])
+                rows = self.run_doc(key)["stages"]
+                self.assertTrue(all(("packetDoc" in r) == ("packetBytes" in r) for r in rows))
+                self.assertTrue(all(r["packetDoc"] is True for r in rows if "packetDoc" in r))
+        self.assertEqual(sum("packetDoc" in r for r in self.run_doc("luna1")["stages"]), 39)
+        self.assertEqual(sum("packetDoc" in r for r in self.run_doc("hello-1190b")["stages"]), 47)  # 7 visits were skipped
 
 
 class ReviewBundleCheckTests(unittest.TestCase):
