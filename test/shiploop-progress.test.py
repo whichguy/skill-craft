@@ -59,6 +59,12 @@ class ProgressTests(unittest.TestCase):
                               env={**os.environ, "SHIPLOOP_PROGRESS": auto,
                                    "PYTHONDONTWRITEBYTECODE": "1"})
 
+    def cli_ok(self, *args):
+        """Run the CLI and require exit 0, showing its own output when it does not."""
+        result = self.cli(*args)
+        self.assertEqual(result.returncode, 0, f"{' '.join(args[2:])}: stdout={result.stdout!r} stderr={result.stderr!r}")
+        return result
+
     def wait_for(self, predicate, timeout=6):
         deadline = time.monotonic() + timeout
         while time.monotonic() < deadline:
@@ -130,21 +136,19 @@ class ProgressTests(unittest.TestCase):
             self.assertLess(time.monotonic() - started, 3)
 
     def test_duplicate_start_and_cooperative_stop_then_restart(self):
-        first = self.cli("view", "--run-dir", str(self.run), "--start", "--interval", ".1")
-        self.assertEqual(first.returncode, 0, first.stderr)
+        first = self.cli_ok("view", "--run-dir", str(self.run), "--start", "--interval", ".1")
         self.wait_for(lambda: (self.run / progress.STATUS).is_file())
         identity = json.loads((self.run / progress.STATUS).read_text())["instance"]
-        second = self.cli("view", "--run-dir", str(self.run), "--start")
-        self.assertEqual(second.returncode, 0, second.stderr)
+        self.cli_ok("view", "--run-dir", str(self.run), "--start")
         self.assertEqual(identity, json.loads((self.run / progress.STATUS).read_text())["instance"])
-        self.assertEqual(self.cli("view", "--run-dir", str(self.run), "--stop").returncode, 0)
+        self.cli_ok("view", "--run-dir", str(self.run), "--stop")
         self.wait_for(lambda: not progress.running(self.run))
         with mock.patch.dict(os.environ, {"SHIPLOOP_PROGRESS": "watch"}):
             progress.ensure(self.run)
         self.assertFalse(progress.running(self.run))
-        self.assertEqual(self.cli("view", "--run-dir", str(self.run)).returncode, 0)
+        self.cli_ok("view", "--run-dir", str(self.run))
         self.assertEqual(json.loads((self.run / progress.STATUS).read_text())["status"], "snapshot")
-        self.assertEqual(self.cli("view", "--run-dir", str(self.run), "--start", "--interval", ".1").returncode, 0)
+        self.cli_ok("view", "--run-dir", str(self.run), "--start", "--interval", ".1")
         self.wait_for(lambda: json.loads((self.run / progress.STATUS).read_text())["instance"] != identity)
 
     def test_default_init_starts_observer_after_cli_exits(self):
