@@ -4227,6 +4227,8 @@ class GeneralReviewBundleTests(unittest.TestCase):
     def setUpClass(cls):
         cls.docs = json.loads(GENERAL_REVIEW.read_text(encoding="utf-8"))["docs"]
         cls.finding, cls.option = cls.docs["observations"]["o44"], cls.docs["actions"]["a26"]
+        # a26 is applied, so the bundle holds o44 fixed and a26 done; the page views below are of the rows while open.
+        cls.open_docs = {c: {i: {**d, "status": "open"} for i, d in rows.items()} for c, rows in cls.docs.items()}
         cls.defaults = {e["key"]: e for e in json.loads((DEFAULTS_DIR / "expectations.json").read_text(encoding="utf-8"))}
 
     def test_it_passes_the_check_with_no_failure_and_no_warning(self):
@@ -4237,13 +4239,14 @@ class GeneralReviewBundleTests(unittest.TestCase):
 
     def test_its_finding_and_option_are_shaped_as_the_handoff_asks_and_reuse_no_id_of_another_bundle(self):
         f, o = self.finding, self.option
-        self.assertEqual([f[k] for k in ("run", "kind", "status", "effect", "criterion")], ["any", "decision", "open", "bent", "phase-1"])
+        self.assertEqual([f[k] for k in ("run", "kind", "status", "effect", "criterion")], ["any", "decision", "fixed", "bent", "phase-1"])
         self.assertNotIn("phase", f)  # it belongs to no stage of one run
         self.assertLessEqual(len(re.findall(r"[.!?](?:\s|$)", f["advice"])), 3)
         for text in ("45f163d0", "docs/shiploop-planning-review-plan-2026-10-05.md", "state-files.md", "'Planning review'"):
             self.assertIn(text, f["evidence"])
         self.assertEqual([o[k] for k in ("kind", "effort", "recommended", "status", "findings")],
-                         ["change-expectation", "S", True, "open", ["o44"]])
+                         ["change-expectation", "S", True, "done", ["o44"]])
+        self.assertRegex(o["ref"], r"; [0-9a-f]{8}$")  # a done option cites the commit that landed it
         self.assertEqual((o["criterion"], o["change"]["target"]), ("phase-1", "page"))
         self.assertTrue(re.fullmatch(r"Do: .* Files and symbols: .* Test: .* Done when: [^:]*", o["goal"]), o["goal"])
         self.assertIn("skills/shiploop-run-review/defaults/expectations.json", o["goal"])
@@ -4271,8 +4274,8 @@ class GeneralReviewBundleTests(unittest.TestCase):
     def test_a_prompt_with_a26_ticked_names_the_evidence_directory_the_option_and_the_expectation_change(self):
         cfg = json.loads((DEFAULTS_DIR / "config.json").read_text(encoding="utf-8"))
         state = {"run": {"key": "r1", "name": "Run", "evidence": "/runs/r1"}, "runs": [],
-                 "findings": [{"id": i, **d} for i, d in self.docs["observations"].items()],
-                 "options": [{"id": i, **d} for i, d in self.docs["actions"].items()], "review": None, "after": "wait", "notes": "",
+                 "findings": [{"id": i, **d} for i, d in self.open_docs["observations"].items()],
+                 "options": [{"id": i, **d} for i, d in self.open_docs["actions"].items()], "review": None, "after": "wait", "notes": "",
                  "expectations": self.defaults, "selected": {"options": {"a26": True}, "find": {}},
                  "config": {**cfg["prompt"], "artifactUrl": ""}}
         text = run_logic("buildPrompt(%s)" % json.dumps(state))
@@ -4287,8 +4290,8 @@ class GeneralReviewBundleTests(unittest.TestCase):
         self.assertIn("a26 ", text)
 
     def test_the_general_finding_shows_under_the_general_filter_with_its_option_and_not_under_other_runs(self):
-        state = {"findings": [{"id": i, **d} for i, d in self.docs["observations"].items()],
-                 "options": [{"id": i, **d} for i, d in self.docs["actions"].items()], "runKey": "r1"}
+        state = {"findings": [{"id": i, **d} for i, d in self.open_docs["observations"].items()],
+                 "options": [{"id": i, **d} for i, d in self.open_docs["actions"].items()], "runKey": "r1"}
         general, open_for_run, other = run_logic("(function(S){return ['general','open','other'].map(function(f){"
                                                  "return cardsFor(Object.assign({filter:f},S));});})(%s)" % json.dumps(state))
         self.assertEqual([c["finding"]["id"] for c in general["cards"]], ["o44"])
@@ -4314,6 +4317,13 @@ class GeneralReviewBundleTests(unittest.TestCase):
         written = docs["expectations"]["phase-1"]
         self.assertEqual((written["text"], written["revs"]), (self.defaults["phase-1"]["text"], self.defaults["phase-1"]["revs"]))
         self.assertIn("expectations/phase-1: the page's text, which has no revision of its own, is replaced by the defaults' text", notes)
+
+    def test_once_applied_a26_is_listed_as_done_and_is_not_offered_again_under_its_finding(self):
+        state = {"findings": [{"id": i, **d} for i, d in self.docs["observations"].items()],
+                 "options": [{"id": i, **d} for i, d in self.docs["actions"].items()], "runKey": "r1"}
+        general = run_logic("cardsFor(Object.assign({filter:'general'},%s))" % json.dumps(state))
+        self.assertEqual([o["id"] for o in general["done"]], ["a26"])
+        self.assertEqual([o["id"] for c in general["cards"] for o in c["options"]], [])
 
 
 if __name__ == "__main__":

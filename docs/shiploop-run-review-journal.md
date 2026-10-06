@@ -1445,3 +1445,43 @@ silently; and eleven on the bundle. Also green: `node test/skill-frontmatter.tes
 test/shiploop_e2e/evidence/general.review.json` for o44 and a26. (2) Tick a26 (or not): it amends phase-1 on the page only. (3)
 Whether the baseline comparison should take the last row of the same mode (the limit above). (4) Whether the prompt's run facts and
 the comparison table should carry the mode.
+
+## 2026-10-06: a26 applied, the Specify expectation states what the engine does under each planning_review mode (defaults, tests and note)
+
+Status: firm for the text, its revision, the tests and the upgrade dry run below; the page itself is not updated. Base `origin/main`
+219c1de6 (R17 and R18 landed). Commit `d48a0630` (defaults, tests, change note `changes/shiploop-run-review/phase-1-planning-review-modes.md`)
+and the commit that carries this entry and the two statuses; both go to main in one push. No `scripts/release.py`, no E2E run, no
+Artifact or ArtifactData call.
+
+**Why.** The owner ticked option a26 on the page (the advice of finding o44, R18): amend phase-1 with the wording of the SPEC's S-10
+carve-out of 2026-10-05 and keep the original sentence. Under `--planning-review none` (skill-craft 1.22.0) the engine starts no
+Improve child after spec, test-strategy, plan, step-plan or test-spec, so "The script accepts each only after its Improve review" is
+untrue for the spec and the test strategy there, and a none run would read as a defect of Specify. Under `stage`, the code default
+until a later dated SPEC commit says otherwise, the sentence holds, so the added text describes the exception and the original
+sentence stays the rule.
+
+**What changed.** `phase-1` in `skills/shiploop-run-review/defaults/expectations.json` takes a26's `change.to` verbatim (180 to 945
+characters: the original sentence, then the carve-out's words) and one `revs` entry `{at 2026-10-06T14:45:21Z, from, obs o44, option
+a26, reason, to}`, the revision form SCHEMA.md requires, so the page's upgrade never overwrites the owner's wording. The text and the
+reason are read from `general.review.json`, not retyped. In `general.review.json` a26 is `done` (its `ref` adds `d48a0630`) and o44
+is `fixed`. Tests (`test/shiploop-run-review.test.py`): the exact upgrade-notes list in `DefaultsUpgradeTests` gains the phase-1
+note (it comes first, in defaults order); `GeneralReviewBundleTests` now requires the defaults' phase-1 text to equal a26's `to` and
+pins the two statuses and the commit in `ref`, and the two page-view tests there (the general filter's card and the prompt for a ticked
+option) now build their state from the rows as they were while open, because the page by design lists a `done` option under done and
+prints a finding's own status; three new tests pin the revision (`from` is the original sentence, `obs` o44, `option` a26, `reason`
+a26's), the saved page's upgrade, and the applied state (a26 under done, no option card).
+
+**Evidence.** Fail-first: before the edit two of the new tests errored and two existing ones failed (the exact upgrade-notes list and the SPEC-phrase test); after it
+`python3 -B test/shiploop-run-review.test.py` passes 278 tests (275 at the base plus the three new). `export.py --defaults --live
+test/shiploop_e2e/evidence/run-review-db-snapshot-2026-10-04.json` (phase-1 with the original text and no revs) prints a note for
+phase-1 and none of a refusal, and writes phase-1 with the revision. The quick tier selected by the commit's files passed (18 suites,
+exit 0). `scripts/release.py --dry-run` accepts the four pending `shiploop-run-review` notes (R17 two, R18 one, this one): 0.1.1 to
+0.1.2 and skill-craft 1.22.0 to 1.22.1.
+
+**Limits, documented not guarded.** (a) The page is not updated: its database changes only through publish (SKILL.md). The live
+page was last read at the 2026-10-04 snapshot; if the owner edited phase-1 there since, the upgrade refuses with an `ExportError`
+naming the document and the page's text and revs must be copied into the defaults first. (b) The draft page's o44 and a26 rows still
+read `open` there until the Run Review session refreshes them. (c) The amendment reaches installs only through a release.
+
+**Owner decisions.** (1) When to cut the release that carries the four notes. (2) Whether to apply the defaults upgrade to the live
+page after the template republish (re-read its expectations first).
