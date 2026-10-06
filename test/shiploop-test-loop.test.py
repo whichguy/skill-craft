@@ -45,6 +45,66 @@ CHECK = ('echo "Ran 1 test in 0.001s"\n'
          'if test -f "$1"; then echo OK; else echo "FAILED (failures=1)"; exit 1; fi\n')
 COMMANDS = [{"command": "sh check.sh fixed.txt", "suite": "focused"},
             {"command": "test -f retained.txt", "suite": "regression"}]
+# A test file that loads something this item creates dies before any test runs while that file is missing.  LOADER is
+# a neutral one-test runner that does so; NODE_LOAD_FAILURE and NODE_ONE_FAILING are real node:test outputs (v25, a
+# neutral module name, paths trimmed): the whole file fails before a test runs, then one of two named tests fails.
+LOADER = ('if test ! -f widgets.txt; then echo "Error: Cannot find module \'./widgets\'"; exit 1; fi\n'
+          'echo "Ran 1 test in 0.001s"; echo OK\n')
+UNITTEST_OK = "..\nRan 2 tests in 0.001s\n\nOK\n"
+UNITTEST_FAIL = "F.\n======\nFAIL: test_a\nRan 2 tests in 0.001s\n\nFAILED (failures=1)\n"
+UNITTEST_ZERO = "\nRan 0 tests in 0.000s\n\nOK\n"
+NODE_LOAD_FAILURE = """node:internal/modules/cjs/loader:1478
+  throw err;
+  ^
+
+Error: Cannot find module '../widgets.js'
+Require stack:
+- test/widgets.test.js
+    at Module._resolveFilename (node:internal/modules/cjs/loader:1475:15)
+    at Module.require (node:internal/modules/helpers:191:16)
+    at Object.<anonymous> (test/widgets.test.js:3:17) {
+  code: 'MODULE_NOT_FOUND',
+  requireStack: [
+    'test/widgets.test.js'
+  ]
+}
+
+Node.js v25.9.0
+\u2716 test/widgets.test.js (55.125209ms)
+\u2139 tests 1
+\u2139 suites 0
+\u2139 pass 0
+\u2139 fail 1
+\u2139 cancelled 0
+\u2139 skipped 0
+\u2139 todo 0
+\u2139 duration_ms 59.189125
+
+\u2716 failing tests:
+
+test at test/widgets.test.js:1:1
+\u2716 test/widgets.test.js (55.125209ms)
+  'test failed'
+"""
+NODE_ONE_FAILING = """\u2716 TC-01 makes a widget (1.238625ms)
+\u2714 TC-02 counts widgets (0.092542ms)
+\u2139 tests 2
+\u2139 suites 0
+\u2139 pass 1
+\u2139 fail 1
+\u2139 cancelled 0
+\u2139 skipped 0
+\u2139 todo 0
+\u2139 duration_ms 61.397291
+
+\u2716 failing tests:
+
+test at test/widgets.test.js:4:1
+\u2716 TC-01 makes a widget (1.238625ms)
+  AssertionError [ERR_ASSERTION]: Expected values to be strictly equal:
+
+  2 !== 1
+"""
 
 
 def git(repo: Path, *args: str) -> str:
@@ -642,6 +702,171 @@ class TestLoopTests(unittest.TestCase):
         self.assertEqual(nav.current_stage(self.state()), "implement")
         with self.assertRaisesRegex(nav.NavigatorError, "red_na is allowed only on a done test-red result"):
             nav._canonical_result(characterise, stage="test-green")
+
+    # -- the test-author probe -------------------------------------------------------
+    #
+    # test-author's own done-when is "each case has a test the focused command runs", and nothing checked it: a
+    # test file that loads something the item creates died before any test ran, the host reported test-author done,
+    # and test-red (which forbids product edits) was the first stage that could notice.  ShipLoop now runs the
+    # focused commands once at test-author's done and accepts only when a test ran: exit 0 needs a counted test (and
+    # every listed ID shown), a non-zero exit needs a failing test inside a test.  The refusal comes where creating
+    # the smallest loadable placeholder is allowed.
+
+    def probe_item(self, ids=None, **row_extra) -> dict:
+        """A step plan whose one focused command is ``sh run.sh`` (the test writes run.sh) and one regression command."""
+        row = dict({"command": "sh run.sh", "suite": "focused"}, **row_extra)
+        if ids:
+            row["ids"] = ids
+        return {"test_commands": [row, COMMANDS[1]], "paths": ["a.py"]}
+
+    PROBE_CASES = (
+        # The recorded outputs of the design's judge table plus the other refusal statuses.  The first draft judged
+        # every exit code in red mode and so accepted the 1st and 2nd rows (an exit-0 run that ran nothing).
+        dict(name="exit 0, no countable output", code=0, out="", status="uncounted", accepted=False),
+        dict(name="exit 0, a listed ID never shown", ids=["TC-1"], code=0, out="all good\n", status="ids-missing",
+             accepted=False),
+        dict(name="exit 0, two tests ran", code=0, out=UNITTEST_OK, status="passed", accepted=True),
+        dict(name="exit 0, zero tests ran", code=0, out=UNITTEST_ZERO, status="no-tests", accepted=False),
+        dict(name="exit 0, fewer tests than min_tests", row=dict(min_tests=3), code=0, out=UNITTEST_OK,
+             status="too-few-tests", accepted=False),
+        dict(name="exit 1, a load failure before any test, no ids", code=1, out=NODE_LOAD_FAILURE,
+             status="uncounted", accepted=False),
+        dict(name="exit 1, a load failure before any test, ids listed", ids=["TC-01"], code=1,
+             out=NODE_LOAD_FAILURE, status="ids-missing", accepted=False),
+        dict(name="exit 1, tests ran and none failed", code=1, out=UNITTEST_OK, status="not-red", accepted=False),
+        dict(name="exit 1, one failing test", code=1, out=UNITTEST_FAIL, status="red", accepted=True),
+        dict(name="exit 1, a failing test named by its ID", ids=["TC-01", "TC-02"], code=1, out=NODE_ONE_FAILING,
+             status="red", accepted=True),
+    )
+
+    def test_the_probe_accepts_a_run_only_when_a_test_ran(self):
+        for case in self.PROBE_CASES:
+            with self.subTest(case["name"]):
+                self.restart()
+                self.drive_to("test-author", step_plan=self.probe_item(case.get("ids"), **case.get("row", {})))
+                action = self.action()
+                canned = ("passed" if case["code"] == 0 else "failed", case["code"], case["out"].encode(), b"")
+                with mock.patch.object(test_loop.lint, "run_argv", return_value=canned):
+                    if case["accepted"]:
+                        self.complete(DONE)
+                        self.assertEqual(nav.current_stage(self.state()), "test-red")
+                    else:
+                        self.assert_refused(DONE, r"test-author is not done")
+                record = store.read_record(self.run_dir / test_loop.verify_path(action, 1))
+                self.assertEqual(record["stage"], "test-author")
+                self.assertEqual(record["runs"][0]["status"], case["status"])
+                self.assertEqual(record["passed"], case["accepted"])
+                self.assertEqual(record["expect"], "a test ran")
+                self.assertEqual([row["command"] for row in record["runs"]], ["sh run.sh"])  # focused only
+
+    def test_a_load_failure_is_refused_with_the_placeholder_rule_until_the_file_exists(self):
+        """The defect class: tests load a file the item creates, the file is missing, no test runs."""
+        self.start()
+        (self.repo / "run.sh").write_text(LOADER)
+        self.drive_to("test-author", step_plan=self.probe_item())
+        action = self.action()
+        with self.assertRaises(nav.NavigatorError) as raised:
+            self.complete(DONE)
+        refusal = str(raised.exception)
+        self.assertRegex(refusal, r"(?s)test-author is not done.*did not run a test.*\[focused\] sh run.sh -> ")
+        self.assertIn("Cannot find module './widgets'", refusal)  # the runner's own tail, as at every stage
+        flat = " ".join(refusal.split())
+        self.assertIn(test_loop.PROBE_RULE, flat)
+        self.assertIn("smallest loadable placeholder", flat)
+        self.assertIn("`paths`", flat)
+        self.assertIn("Refused runs for this action: 1 of 7; after that the item goes back to its step plan (revise).",
+                      flat)
+        # Not the wording of the stage that forbids product edits: the way out here is to create the file.
+        self.assertNotIn("did not fail as expected", flat)
+        self.assertNotIn("not the product code", flat)
+        self.assertEqual(nav.current_stage(self.state()), "test-author")
+        (self.repo / "widgets.txt").write_text("created at test-author\n")  # the placeholder
+        self.complete(DONE)  # the same result, now accepted
+        self.assertEqual(nav.current_stage(self.state()), "test-red")
+        record = store.read_record(self.run_dir / test_loop.verify_path(action, 2))
+        self.assertTrue(record["passed"])
+        self.assertEqual(record["runs"][0]["status"], "passed")
+
+    def test_after_seven_refused_probe_runs_done_is_refused_and_revise_is_accepted(self):
+        self.start()
+        (self.repo / "run.sh").write_text(LOADER)
+        self.drive_to("test-author", step_plan=self.probe_item())
+        for attempt in range(1, test_loop.MAX_REFUSED_RUNS + 1):
+            self.assert_refused(DONE, "Refused runs for this action: " + str(attempt) + " of 7")
+        (self.repo / "widgets.txt").write_text("created too late\n")  # even a now-passing tree
+        with mock.patch.object(test_loop, "lint", wraps=test_loop.lint) as runner:
+            self.assert_refused(DONE, r"test-author was refused 7 times; done is no longer accepted for this action"
+                                      r"\. Report outcome revise, naming the failing command")
+            runner.run_argv.assert_not_called()
+        self.complete(dict(DONE, outcome="revise"))  # the named remedy, through the same gate
+        self.assertEqual(nav.current_stage(self.state()), "step-plan")
+
+    def test_a_probe_command_that_reaches_no_verdict_is_refused_without_spending_a_refused_run(self):
+        self.start()
+        self.drive_to("test-author")
+        self.refuse_unrunnable(DONE, attempts=2)
+        self.complete(dict(DONE, outcome="revise"))  # revise stays open on ShipLoop's own record
+        self.assertEqual(nav.current_stage(self.state()), "step-plan")
+
+    def test_the_probe_never_gates_an_outcome_other_than_done(self):
+        """GUARD (passes on the unchanged tree): the host can always revise or block, so no command runs for them."""
+        for outcome, extra in (("revise", {}), ("blocked", {"blocked_by": "external"})):
+            with self.subTest(outcome=outcome):
+                self.restart()
+                (self.repo / "run.sh").write_text(LOADER)
+                self.drive_to("test-author", step_plan=self.probe_item())
+                with mock.patch.object(test_loop, "verify", side_effect=AssertionError("no command runs")):
+                    self.complete(dict(DONE, outcome=outcome, **extra))
+                self.assertEqual(self.state()["status"], "active" if outcome == "revise" else "blocked")
+
+    def test_the_probe_accepts_a_real_failing_test_and_a_real_counted_pass(self):
+        """GUARD (passes on the unchanged tree): the probe refuses only a run in which no test ran, never a test
+        that fails (the usual RED at test-author) or one that already passes (characterisation tests)."""
+        for name, fixed in (("a failing test", False), ("a counted pass", True)):
+            with self.subTest(name):
+                self.restart()
+                self.drive_to("test-author")  # the default focused command is `sh check.sh fixed.txt`
+                if fixed:
+                    (self.repo / "fixed.txt").write_text("fixed\n")
+                self.complete(DONE)
+                self.assertEqual(nav.current_stage(self.state()), "test-red")
+
+    def test_an_item_with_no_focused_command_has_nothing_to_probe(self):
+        """GUARD (passes on the unchanged tree): no focused command, no probe, and no record."""
+        for name, plan in (("test_commands_na", {"test_commands": [], "test_commands_na": "Docs-only item.",
+                                                 "paths": ["a.py"]}),
+                           ("regression only", {"test_commands": [COMMANDS[1]], "paths": ["a.py"]})):
+            with self.subTest(name):
+                self.restart()
+                self.drive_to("test-author", step_plan=plan)
+                action = self.action()
+                self.complete(DONE)
+                self.assertEqual(nav.current_stage(self.state()), "test-red")
+                self.assertFalse((self.run_dir / test_loop.verify_path(action, 1)).exists())
+
+    def test_the_judge_reads_recorded_node_output_as_a_load_failure(self):
+        """GUARD (characterisation of the existing judge, as measured on a fixture): its summary is not counted, so the
+        listed IDs carry the verdict, and a load failure never reads as a test that ran."""
+        self.assertIsNone(test_loop.counts.count(NODE_LOAD_FAILURE, 1))
+        focused = {"suite": "focused", "command": "x"}
+        listed = dict(focused, ids=["TC-01"])
+        self.assertEqual(test_loop.judge(focused, 1, NODE_LOAD_FAILURE, red=True)["status"], "uncounted")
+        self.assertEqual(test_loop.judge(listed, 1, NODE_LOAD_FAILURE, red=True)["status"], "ids-missing")
+        self.assertEqual(test_loop.judge(listed, 1, NODE_ONE_FAILING, red=True)["status"], "red")
+
+    def test_the_probe_rule_and_the_two_duty_sentences_name_no_technology(self):
+        """S-8: the engine's prose speaks of a file or module and a test, never of a runner, a language or a product."""
+        texts = [test_loop.PROBE_RULE]
+        for stage, first, last in (("test-author", "On done, ShipLoop runs the item's focused commands once",
+                                    "fails that test and not the run."),
+                                   ("step-plan", "A test that loads something this item creates",
+                                    "fails a test and not the whole run.")):
+            duty = " ".join(prompts.duty(stage).split())
+            self.assertIn(first, duty)
+            texts.append(duty[duty.index(first):duty.index(last) + len(last)])
+        for text in texts:
+            for word in ("node", "npm", "jest", "pytest", "python", "javascript", "java ", "game", "widget"):
+                self.assertNotIn(word, text.lower(), word)
 
     def run_quality_loop(self) -> None:
         """One trivial quality-loop iteration, saved to the static-checks terminal path."""

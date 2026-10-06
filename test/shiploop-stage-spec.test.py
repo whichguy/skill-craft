@@ -83,6 +83,10 @@ class StageTableTest(unittest.TestCase):
         self.assertEqual(test_loop.RERUN_STAGES, ("test-refine", "static-checks", "verify", "integration-verify",
                                                  "system-test", "release-verify"))
         self.assertEqual(test_loop.RED_STAGE, "test-red")
+        self.assertEqual(test_loop.PROBE_STAGE, "test-author")
+        self.assertEqual(spec.with_complete_run("test-probe"), ("test-author",))
+        self.assertIn("test-probe", spec.COMPLETE_RUNS)
+        self.assertEqual(spec.stage("test-author").complete_runs, ("test-probe",))
         self.assertEqual(quality.STAGE, "static-checks")
         self.assertEqual(spec.with_entry_run("lint-base"), ("select-work",))
         # ShipLoop loops are unbounded (owner decision 2026-09-26): no stage carries a limit.
@@ -95,10 +99,11 @@ class StageTableTest(unittest.TestCase):
     def test_stages_that_edit_code_run_a_script_check_before_done(self) -> None:
         # A stage that may change code or tests must end with a script-run lint
         # gate, test run or loop check.  Exempt, each checked by a later stage:
-        # test-author (test-red runs its tests next), integrate
-        # (integration-verify reruns every command) and system-test-author (its
-        # tests run at system-test).
-        exempt = {"test-author", "integrate", "system-test-author"}
+        # integrate (integration-verify reruns every command) and
+        # system-test-author (its tests run at system-test).  test-author is not
+        # exempt: ShipLoop runs its focused commands once and requires that a test ran
+        # (the test-probe run), so a test that cannot load is refused where it can be fixed.
+        exempt = {"integrate", "system-test-author"}
         for name, row in spec.STAGE_SPEC.items():
             if {"code", "tests"} & row.edits and name not in exempt:
                 with self.subTest(stage=name):

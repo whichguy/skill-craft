@@ -498,6 +498,17 @@ shown). A green run, a zero-test run or a failure before any test ran (syntax,
 import, setup) is refused. Characterisation tests that already pass carry
 `red_na` with the reason; ShipLoop then requires them to pass and to have run.
 
+`test-author` is script-checked before it: on `done` ShipLoop runs the focused
+commands once and accepts only a run in which a test ran. Exit 0 needs a counted
+test (at least `min_tests`) with every listed ID shown; a non-zero exit needs a
+failing test inside a test. A run that stops before any test runs, for example
+because a file the tests load is missing, is refused here, where the smallest
+loadable placeholder at a path in the step plan's `paths` can be created (or the
+load moved inside the test); `test-red` forbids product edits. After 7 refused
+runs `done` is no longer accepted and `revise` is the named remedy; a command that
+reaches no verdict (timeout, cannot start) refuses without counting, and `revise`
+and `blocked` are never gated.
+
 Every stage after the test loops that can edit code reruns them too: on `done`
 at `test-refine`, `static-checks` (after its quality-loop check) and
 `integration-verify`, ShipLoop runs every recorded command and refuses unless

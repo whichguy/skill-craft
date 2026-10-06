@@ -1149,6 +1149,9 @@ metadata (for example a Salesforce tab or app), ShipLoop records the test stages
 not applicable to this item instead of issuing them; otherwise every test stage
 runs. If implement then changes anything outside `paths`, or any code, ShipLoop
 refuses it until the step plan is revised.
+A test that loads something this item creates needs it loadable at test-author:
+plan the smallest loadable placeholder there (list its path in `paths`) or have
+the load happen inside the test, so its absence fails a test and not the whole run.
 Give every completion criterion a confirmation: `<condition>. Confirm by:
 <command, observation, or inspection>; pass when <expected result>.` It must pass
 the two-people test: two people running it separately would be forced to agree.
@@ -1277,6 +1280,11 @@ with their authorized installation/invocation prerequisites.
 Authoring is complete only when selected clauses have executable check bindings
 or justified reproducible manual procedures at their required surfaces. Keep
 unavailable execution prerequisites and later-phase observations pending.
+On done, ShipLoop runs the item's focused commands once and refuses unless a test
+ran (a counted test with every listed ID shown, or a failing test). Tests that
+load something this item creates need it loadable now: create the smallest
+loadable placeholder at a path the step plan's `paths` names, or load it inside
+the test so a missing file fails that test and not the run.
 """,
     "test-red": """\
 Execute the selected pre-implementation tests and establish a meaningful expected

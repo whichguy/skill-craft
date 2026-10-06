@@ -1172,6 +1172,22 @@ class NavigatorContractTests(unittest.TestCase):
                 self.assertIn("Current item test-decision source", instruction)
                 self.assertIn("prior decision locators and any justified revision", instruction)
 
+    def test_test_author_and_step_plan_say_where_a_loadable_file_comes_from(self) -> None:
+        """ShipLoop runs the focused commands once at test-author's done and refuses a run in which no test ran
+        (tests/shiploop-test-loop.test.py drives that refusal); the two duties tell the host the route, in both
+        delegations, in general terms (S-8)."""
+        for delegation in prompts.DELEGATIONS:
+            with self.subTest(delegation=delegation):
+                author = " ".join(prompts.duty("test-author", delegation=delegation).split())
+                self.assertIn("ShipLoop runs the item's focused commands once", author)
+                self.assertIn("smallest loadable placeholder", author)
+                self.assertIn("a path the step plan's `paths` names", author)
+                self.assertIn("so a missing file fails that test and not the run", author)
+                plan = " ".join(prompts.duty("step-plan", delegation=delegation).split())
+                self.assertIn("smallest loadable placeholder", plan)
+                self.assertIn("list its path in `paths`", plan)
+                self.assertIn("so its absence fails a test and not the whole run", plan)
+
     def test_remote_test_routes_keep_local_and_remote_evidence_distinct(self) -> None:
         """Route remote test assets without treating a local result as their evidence."""
         strategy = " ".join(prompts.prompt("test-strategy").split())

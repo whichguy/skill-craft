@@ -42,6 +42,7 @@ ENTRY_RUNS = frozenset({
 COMPLETE_RUNS = frozenset({
     "lint-gate",           # refuse done while a new finding on a changed line is unwaived
     "test-loop",           # check the test-loop terminal packet, then run the commands
+    "test-probe",          # run the focused commands once and require that a test ran
     "test-red",            # run the focused commands and require them to fail in a test
     "test-rerun",          # run every recorded test command and require each to pass
     "quality-terminal",    # check the quality-loop terminal packet
@@ -258,6 +259,7 @@ _ROWS = (
         test="Write the tests the spec calls for; never weaken an assertion to fit an expected implementation.",
         tools="Tests follow the repository's test framework and lint rules.",
         edits=frozenset({"tests"}),
+        complete_runs=("test-probe",),
         reads=("test-strategy", "item:step-plan", "item:test-spec"),
         blocks=frozenset({"test-facility", "test-decision", "code-craft"}),
     ),

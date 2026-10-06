@@ -65,7 +65,7 @@ do not copy this table into every work item or create a second acceptance ledger
 | prepare, select-work, step-plan | Authorized preparation or selected item with supplier evidence | Actual prerequisites and bounded item Ready/Done criteria revalidated; relevant clause/case locators retained |
 | test-spec | Assigned clauses and accepted strategy | Inputs, independent expected observations, required surfaces, fixtures and execution phases specified |
 | baseline, test-red | Starting candidate and applicable checks | Actual baseline or meaningful expected failure observed and classified; missing coverage/setup failure is not a passing product check |
-| test-author, system-test-author | Independent cases and permitted test scope | Executable checks or justified reproducible manual procedures supplied, discoverable and bound to clauses; authoring does not claim execution |
+| test-author, system-test-author | Independent cases and permitted test scope | Executable checks or justified reproducible manual procedures supplied, discoverable and bound to clauses; authoring does not claim execution. At `test-author` ShipLoop runs the focused commands once and refuses unless a test ran, so tests that load something the item creates need a loadable placeholder or an in-test load |
 | implement | Ready item, independent expectations and edit authority | Scoped candidate supplied; accepted criteria are preserved |
 | test-green, regression, static-checks | Current candidate and selected checks | Actual results recorded only for the behavior/surface those checks observe |
 | test-refine | Original cases plus implementation evidence | Retained, added, removed or narrowed cases reconciled with an independent basis; required coverage cannot disappear |

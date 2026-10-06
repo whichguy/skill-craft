@@ -2209,16 +2209,18 @@ def _test_rerun_gate(root: Path, state: Mapping[str, Any], action_id: str, stage
     _need(not refusal, refusal)
 
 
-def _test_red_gate(root: Path, state: Mapping[str, Any], action_id: str,
-                   workitem: str | None, submitted: Any) -> None:
-    """Accept test-red's done only after ShipLoop runs the focused commands and sees them fail inside a test.
+def _focused_run_gate(root: Path, state: Mapping[str, Any], action_id: str, stage: str,
+                      workitem: str | None, submitted: Any) -> None:
+    """Accept done at test-author or test-red only after ShipLoop runs the focused commands itself.
 
-    With ``red_na`` the commands must pass instead, and must still have run tests.
+    test-red needs each to fail inside a test; with ``red_na`` they must pass instead, and must still have run
+    tests.  test-author needs a run in which a test ran (a counted pass or a failing test), so a test that cannot
+    load is refused where it can be fixed.  Any outcome but done returns, so the host can always revise.
     """
     if not isinstance(submitted, Mapping) or submitted.get("outcome") != "done":
         return
     red_na = submitted.get("red_na")
-    writes, refusal = test_loop.verify(root, state, workitem or "", action_id, test_loop.RED_STAGE,
+    writes, refusal = test_loop.verify(root, state, workitem or "", action_id, stage,
                                        red_na=red_na if isinstance(red_na, str) and red_na.strip() else None)
     for relative, text in writes.items():
         store.atomic_write_text(root / relative, text)
@@ -4448,8 +4450,8 @@ def dispatch(core: Any, root: Path, state: Mapping[str, Any], args: Any,
                 _test_loop_gate(root, state, action_id, cursor_stage, cursor_item, submitted)
             elif cursor_stage in test_loop.RERUN_STAGES:
                 _test_rerun_gate(root, state, action_id, cursor_stage, cursor_item, submitted)
-            elif cursor_stage == test_loop.RED_STAGE:
-                _test_red_gate(root, state, action_id, cursor_item, submitted)
+            elif cursor_stage in (test_loop.PROBE_STAGE, test_loop.RED_STAGE):
+                _focused_run_gate(root, state, action_id, cursor_stage, cursor_item, submitted)
             if (cursor_stage == "implement" and cursor_item and isinstance(submitted, Mapping)
                     and submitted.get("outcome") == "done"):
                 refusal = item_scope.scope_refusal(root, state, cursor_item)
