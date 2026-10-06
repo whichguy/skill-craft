@@ -27,8 +27,9 @@ audit request, complete its callbacks yourself, or coach the builder.
 
 Every live case has a mandatory publication/freshness preflight. It compares
 each selected ShipLoop and Improve package with the released package on
-authoritative source `main` (`plugins/<leaf>` and its entry in skill-craft's own
-marketplace catalog), by contents and executable modes.
+authoritative source `main` (its copy under `plugins/skill-craft`, the one plugin that
+carries every skill, and that plugin's entry in skill-craft's own marketplace catalog), by
+contents and executable modes.
 Equal version labels alone are insufficient. If either newest source is unreleased,
 either installation is stale, or either comparison cannot be verified, report the
 retained freshness receipt and stop before the builder launches.
