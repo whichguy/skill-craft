@@ -210,6 +210,7 @@ label.opt .t{min-width:0}
 .sq-ctx.warn{fill:var(--bent);opacity:1}
 .sq-nm{stroke:var(--muted);stroke-dasharray:2 2;stroke-width:1.5}
 .sq-tri{fill:var(--fg)}
+.sq-item{fill:var(--accent-bg);opacity:.9}
 .sq-sel{fill:none;stroke:var(--fg);stroke-width:1.5}
 .sq-hit{fill:transparent;cursor:pointer}
 .sqleg{display:flex;flex-wrap:wrap;gap:4px 14px;font-size:12px;color:var(--muted);margin-top:8px}
@@ -226,6 +227,23 @@ label.opt .t{min-width:0}
 .sw.s-ctx{background:var(--accent);opacity:.65}
 .sw.s-warn{background:var(--bent)}
 .sqnum{font-weight:600;color:var(--accent)}
+.plancard{margin-top:12px}
+.pl-line{margin:3px 0 0;font-size:13px}
+.pl-item{border-top:1px solid var(--line);margin-top:8px;padding:6px 6px 4px;border-radius:6px}
+.pl-item.sel{background:var(--accent-bg)}
+.pl-head{display:flex;gap:8px;align-items:center;flex-wrap:wrap}
+.pl-title{font:inherit;font-size:13.5px;font-weight:600;background:none;border:0;padding:4px 0;min-height:36px;color:var(--fg);cursor:pointer;text-align:left}
+.pl-item .sub{margin:2px 0 0}
+.pl-strip{display:flex;flex-wrap:wrap;gap:4px;margin:6px 0 2px}
+.pl-cell{font:inherit;font-family:var(--mono);font-size:12px;line-height:1.25;min-width:52px;min-height:40px;padding:3px 6px;border-radius:6px;display:flex;flex-direction:column;align-items:center;justify-content:center;cursor:pointer}
+.pl-cell small{font-size:10.5px}
+.pl-cell.executed{background:var(--holds);border:1.5px solid var(--holds);color:var(--surface)}
+.pl-cell.never{background:transparent;border:1.5px dashed var(--muted);color:var(--muted)}
+.pl-cell.unknown{background:var(--none-bg);border:1.5px dotted var(--muted);color:var(--muted)}
+.pl-tasks{margin:4px 0 0;padding-left:20px;font-size:12.5px}
+.pl-tasks li{margin:2px 0}
+.pkt{margin-top:10px}
+.pkt-text{font-family:var(--mono);font-size:12px;line-height:1.45;max-height:340px;overflow:auto;white-space:pre;background:var(--code-bg);padding:8px 10px;border-radius:6px;margin:6px 0 0}
 .sqd{margin-top:10px}
 .sqd .row{margin:10px 0 0}
 .sqd .btn{min-height:44px}
@@ -259,6 +277,7 @@ table.cmp .kn{display:block;color:var(--muted);font-size:12px;overflow-wrap:anyw
 <div class="row"><label for="runsel">Run</label><select id="runsel"></select><span class="snap" id="runfacts"></span></div>
 <div id="arc" class="arc"></div>
 <div class="kpis" id="kpis" role="group" aria-label="Six numbers for this run"></div>
+<div class="card plancard" id="plancard" hidden></div>
 <div class="card seqcard" id="seqcard" hidden>
 <h3>Every visit, in order</h3>
 <p class="sub" id="seqcap" style="margin:2px 0 0"></p>
@@ -716,7 +735,7 @@ function kpiCards(run,loops){
    A work visit is as tall as the square root of its minutes on this run's own scale (the tallest is `plot`, none is
    under `minH`); a skipped, seeded or untimed (n/a) visit has a fixed small height and is never drawn as a zero bar.
    `band` is the per-column context strip, or null when no visit carries a context (then `bandNote` says why).
-   opts: {loops}. */
+   opts: {loops, item}: `item` is a work item id whose columns are marked (`inItem`). */
 function sequenceModel(run,opts){
   opts=opts||{};
   var rows=(run&&Array.isArray(run.stages))?run.stages:[],win=run&&isCount(run.contextWindow)&&run.contextWindow>0?run.contextWindow:null;
@@ -740,6 +759,7 @@ function sequenceModel(run,opts){
     c.improve=im&&(isCount(im.passes)||isCount(im.min))?{passes:isCount(im.passes)?im.passes:null,min:isCount(im.min)?im.min:null}:null;
     c.packetBytes=c.n===1&&isCount(r.packetBytes)?r.packetBytes:null;c.resultBytes=c.n===1&&isCount(r.resultBytes)?r.resultBytes:null;
     c.context=contextOf(c.rows,win);
+    c.inItem=!!opts.item&&c.rows.some(function(x){return x&&x.workitem===opts.item;});
     if(c.kind==="work"&&c.min>maxMin){maxMin=c.min;tallest=c;}
   });
   cols.forEach(function(c){
@@ -774,6 +794,9 @@ function columnDetail(model,k,run,findings){
     (c.kind==="seeded"?"seeded: the harness recorded this visit without running it":c.outcome+(c.mark?" (marked "+c.mark+")":""))]);
   lines.push(["Minutes",(c.kind==="skipped"?(c.min===null?"n/a":c.min+" min"):(c.na?"n/a (no accept time recorded)":visitMinutes(c.rows[0])))+
     (c.share!==null&&c.min>0?", "+pctText(c.share)+" of elapsed":"")]);
+  var one=c.n===1?c.rows[0]||{}:null;
+  if(one&&typeof one.workitem==="string")lines.push(["Work item",one.workitem+(isCount(one.loop)?", steps-loop pass "+one.loop:"")]);
+  if(one&&typeof one.step==="string")lines.push(["Step",one.step+" (the step this packet named)"]);
   if(c.packetBytes!==null)lines.push(["Packet file",kbText(c.packetBytes)]);
   if(c.resultBytes!==null)lines.push(["Result file",kbText(c.resultBytes)]);
   if(c.improve)lines.push(["Improve",(c.improve.passes!==null?plural(c.improve.passes,"pass"):"passes not measured")+(c.improve.min!==null?", "+c.improve.min+" min":", minutes not measured")]);
@@ -786,7 +809,79 @@ function columnDetail(model,k,run,findings){
     lines.push(["Context (main thread)",bits.join(", ")]);
   }else if(model.band)lines.push(["Context (main thread)","not measured for this visit"]);
   var marked=(findings||[]).filter(function(f){return appliesTo(f,key)&&c.phases.indexOf(f.phase)>=0;});
-  return {title:title,lines:lines,findings:marked,prev:k>0?k-1:null,next:k<model.columns.length-1?k+1:null};
+  return {title:title,lines:lines,findings:marked,prev:k>0?k-1:null,next:k<model.columns.length-1?k+1:null,
+    packet:one&&packetId(run,one)?{id:packetId(run,one)}:null};
+}
+/* The id of the packets document of one visit (`<runKey>--<action>`), or "" when the export wrote none for it. */
+function packetId(run,row){
+  return run&&typeof run.key==="string"&&row&&row.packetDoc===true&&typeof row.action==="string"?run.key+"--"+row.action:"";
+}
+/* What the packet box says about a loaded document: its size and digest, and when it is cut, how much of it shows. */
+function packetMeta(d){
+  var bytes=d&&isCount(d.bytes)?d.bytes:null,sha=d&&typeof d.sha256==="string"&&d.sha256?"sha256 "+d.sha256.slice(0,12):"",out=[];
+  if(bytes!==null)out.push(kbText(bytes));
+  if(sha)out.push(sha);
+  var line=out.join(", ");
+  if(d&&d.truncated===true)line+=(line?"; ":"")+"truncated: showing the first "+(isCount(d.shownBytes)?grouped(d.shownBytes):"part")+" of "+(bytes!==null?grouped(bytes):"the file's")+" bytes";
+  return line;
+}
+/* ---- plan and execution (step 1) ---- */
+var OUTCOME_KEYS=["done","revise","repeat","replan","blocked"];
+/* A work item's passes through the steps loop as a badge: "steps loop once" for 1, "x2" from 2, never a bare 0. */
+function loopsBadge(n){return !isCount(n)?"steps loop not recorded":n===0?"steps loop not started":n===1?"steps loop once":"steps loop x"+n;}
+/* The counts line of one work item: step plans, then implement visits with their outcomes (a blocked or replan count shows only when it is not 0). */
+function itemCounts(it){
+  var plans=isCount(it&&it.stepPlans)?plural(it.stepPlans,"step plan"):"step plans not recorded";
+  var v=it&&it.implementVisits&&typeof it.implementVisits==="object"?it.implementVisits:null;
+  if(!v)return plans+", implement visits not recorded";
+  var n=function(k){return isCount(v[k])?v[k]:0;};
+  var total=OUTCOME_KEYS.reduce(function(a,k){return a+n(k);},0);
+  var text=plans+", "+plural(total,"implement visit")+": "+n("done")+" done, "+n("revise")+" revise, "+n("repeat")+" repeat";
+  if(n("replan"))text+=", "+n("replan")+" replan";
+  if(n("blocked"))text+=", "+n("blocked")+" blocked";
+  return text;
+}
+/* One run-level number as text: the number, or "not measured" with the reason the exporter gave (never 0). */
+function planNumber(run,name){return isCount(run&&run[name])?String(run[name]):"not measured"+(reasonFor(run,name)?" ("+reasonFor(run,name)+")":"");}
+/* The plan and its execution as data for the panel. `measured` is false (with `why`) when the run's document has no
+   workItems: the panel then says "not measured" and gives the reason. A step cell is `executed` (an implement visit ran
+   it: `visit` is its 1-based position among the visits), `never` (the records show no visit that did) or `unknown`
+   (the exporter could not pair steps with visits on this run); only a never-executed cell is drawn as outlined. */
+function planModel(run){
+  var list=run&&Array.isArray(run.workItems)?run.workItems:null;
+  if(!list){
+    var why=reasonFor(run,"workItems")||"this run's document has no work item record; export the run again";
+    return {measured:false,why:why,items:[],headline:"",line:"",planned:null,executed:null,loops:null};
+  }
+  var rows=(run&&Array.isArray(run.stages))?run.stages:[];
+  function visitOf(action){for(var i=0;i<rows.length;i++)if(rows[i]&&rows[i].action===action)return i+1;return null;}
+  var items=[],loops=0,loopsKnown=true;
+  list.forEach(function(it){
+    if(!it||typeof it.id!=="string")return;
+    var steps=Array.isArray(it.steps)?it.steps:null,paired=!!steps&&isCount(it.stepsExecuted);
+    var cells=(steps||[]).filter(function(s){return s&&typeof s.id==="string";}).map(function(s){
+      var ran=paired&&typeof s.action==="string";
+      return {id:s.id,task:typeof s.task==="string"?s.task:"",truncated:s.truncated===true,
+        state:!paired?"unknown":(ran?"executed":"never"),visit:ran?visitOf(s.action):null};
+    });
+    if(isCount(it.loops))loops+=it.loops;else loopsKnown=false;
+    var added=it.origin==="replan"||it.origin==="carry-forward";
+    items.push({id:it.id,label:it.id+(typeof it.title==="string"&&it.title?": "+it.title:""),
+      badge:loopsBadge(it.loops),counts:itemCounts(it),cells:cells,
+      added:added?(it.origin==="replan"?"added by replan":"revised at carry-forward"):"",
+      stepsText:!steps?"Steps not recorded for this item.":paired?it.stepsExecuted+" of "+it.stepsPlanned+" planned steps executed":
+        plural(steps.length,"step")+" planned; which visit ran each is not recorded for this run"});
+  });
+  var headline=plural(items.length,"work item")+(loopsKnown?", "+plural(loops,"pass")+" through the steps loop":", passes through the steps loop not recorded");
+  return {measured:true,why:"",items:items,headline:headline,
+    line:"Steps planned "+planNumber(run,"stepsPlanned")+", executed "+planNumber(run,"stepsExecuted"),
+    planned:isCount(run.stepsPlanned)?run.stepsPlanned:null,executed:isCount(run.stepsExecuted)?run.stepsExecuted:null,loops:loopsKnown?loops:null};
+}
+/* The column of a picture that holds visit `i` (0-based position among the visits), or -1. */
+function columnOfVisit(model,i){
+  var cols=(model&&model.columns)||[];
+  for(var k=0;k<cols.length;k++)if(i>=cols[k].first&&i<=cols[k].last)return k;
+  return -1;
 }
 /* The same visits as a table, the phone-readable and accessible form of the picture: one row per visit. A context
    column appears only when the picture has its band. */
@@ -822,6 +917,7 @@ function sequenceSvg(model,picked){
     p.push('<rect class="sq-bandbg" x="'+x0+'" y="'+by+'" width="'+n*pitch+'" height="'+bh+'"/>');
     p.push('<line class="sq-100" x1="'+x0+'" y1="'+by+'" x2="'+(x0+n*pitch)+'" y2="'+by+'"/><text x="'+(x0-4)+'" y="'+(by+4)+'" text-anchor="end">100%</text>');
   }
+  cols.forEach(function(c,k){if(c.inItem)p.push('<rect class="sq-item" x="'+(x0+k*pitch)+'" y="'+L.head+'" width="'+pitch+'" height="'+selH+'"/>');});
   cols.forEach(function(c,k){
     var x=x0+k*pitch,bx=x+SQ.gap/2,bw=pitch-SQ.gap,cx=x+pitch/2,top=y0-c.h;
     var cls=c.kind==="skipped"?"skip":(c.kind==="seeded"?"seed":(c.na?"na":"o-"+outcomeClass(c.outcome)));
@@ -1034,28 +1130,111 @@ function renderPanel(){
   });
 }
 /* ---------- step 1: the six cards, the picture, a tapped column and the table of visits ---------- */
-var pickedCol=-1,pickedRun="";
+var pickedCol=-1,pickedRun="",pickedItem="",planMsg="",lastModel=null;
+/* A packet's text is loaded on demand, one `get` per visit the viewer opens, and kept here for the page's life so a redraw
+   (every collection snapshot redraws the page) neither closes the box nor fetches again. packetBody holds the box now on screen. */
+var packetState={},packetBody={};
 function loopsFor(run){return loaded.bc?data.bc.filter(function(d){return d.run===run.key;}):null;}
 function setCol(k,reveal){pickedCol=k;renderPicture(reveal);}
+function pickItem(id){pickedItem=pickedItem===id?"":id;planMsg="";renderPicture(false);}
+/* Tapping a step cell: the picture selects the implement visit that executed it, or the panel says none did. */
+function pickStep(item,cell){
+  pickedItem=item.id;
+  if(cell.visit){planMsg="";pickedCol=columnOfVisit(lastModel,cell.visit-1);renderPicture(true);return;}
+  planMsg=cell.state==="never"?"Step "+cell.id+" of "+item.id+" was never executed: no implement visit is recorded for it."
+    :cell.state==="executed"?"Step "+cell.id+" of "+item.id+" was executed by a visit that this run's list of visits does not hold."
+    :"Which visit ran step "+cell.id+" of "+item.id+" is not recorded for this run.";
+  renderPicture(false);
+}
+function renderPlan(run){
+  var box=byId("plancard"),pm=planModel(run);clear(box);box.hidden=false;
+  box.appendChild(h("h3","","Plan and execution"));
+  if(!pm.measured){box.appendChild(h("p","sub","Not measured: "+pm.why+"."));return;}
+  box.appendChild(h("p","sub","What planning produced, and how the run went through it. A work item goes through the steps loop: its steps are planned, then built one implement visit per step; a revise starts the loop again. A filled cell is a step an implement visit executed, an outlined one is a step no visit executed. Tap an item or a step to find its visits in the picture below."));
+  box.appendChild(h("p","pl-line",pm.headline));
+  box.appendChild(h("p","pl-line",pm.line));
+  if(!pm.items.length)box.appendChild(h("p","sub","This run's queue holds no work item."));
+  pm.items.forEach(function(it){
+    var row=h("div","pl-item"+(pickedItem===it.id?" sel":"")),head=h("div","pl-head");
+    var tb=h("button","pl-title",it.label);tb.type="button";tb.setAttribute("aria-pressed",pickedItem===it.id?"true":"false");tb.onclick=function(){pickItem(it.id);};
+    head.appendChild(tb);head.appendChild(h("span","chip acc",it.badge));
+    if(it.added)head.appendChild(h("span","chip bent",it.added));
+    row.appendChild(head);row.appendChild(h("p","sub",it.counts));row.appendChild(h("p","sub",it.stepsText));
+    if(it.cells.length){
+      var strip=h("div","pl-strip");
+      it.cells.forEach(function(c){
+        var b=h("button","pl-cell "+c.state);b.type="button";
+        b.appendChild(h("span","",c.id));b.appendChild(h("small","",c.state==="executed"?(c.visit?"visit "+c.visit:"executed"):c.state==="never"?"not run":"?"));
+        b.setAttribute("aria-label","Step "+c.id+": "+(c.state==="executed"?(c.visit?"executed by visit "+c.visit:"executed"):c.state==="never"?"never executed":"which visit ran it is not recorded"));
+        b.title=c.task;b.onclick=function(){pickStep(it,c);};strip.appendChild(b);
+      });
+      row.appendChild(strip);
+      var det=h("details");det.appendChild(h("summary","","Step tasks ("+it.cells.length+")"));
+      var ol=h("ol","pl-tasks");
+      it.cells.forEach(function(c){ol.appendChild(h("li","",c.id+": "+c.task+(c.truncated?" (cut at 200 characters)":"")+(c.state==="never"?" [never executed]":"")));});
+      det.appendChild(ol);row.appendChild(det);
+    }
+    box.appendChild(row);
+  });
+  var m=h("p","msg",planMsg);m.setAttribute("aria-live","polite");box.appendChild(m);
+}
+/* The Packet box of a tapped visit: closed until opened, then one `get` of packets/<runKey>--<action>. */
+function packetBox(p){
+  var st=packetState[p.id]||(packetState[p.id]={open:false,status:""}),det=h("details","pkt"),body=h("div");
+  det.appendChild(h("summary","","Packet"));det.appendChild(body);packetBody[p.id]=body;
+  fillPacket(p.id);
+  det.open=st.open===true;
+  det.ontoggle=function(){st.open=det.open===true;if(st.open&&!st.status)loadPacket(p.id);};
+  return det;
+}
+function loadPacket(id){
+  var st=packetState[id];
+  if(!db||!live)return;
+  st.status="loading";fillPacket(id);
+  var req;
+  try{req=db.doc("packets/"+id).get();}catch(e){st.status="error";fillPacket(id);return;}
+  req.then(function(snap){
+    var d=snap&&snap.exists?snap.data():null;
+    if(d&&typeof d.text==="string"){st.status="ready";st.doc=d;}else st.status="missing";
+    fillPacket(id);
+  },function(){st.status="error";fillPacket(id);});
+}
+function fillPacket(id){
+  var body=packetBody[id],st=packetState[id];if(!body||!st)return;clear(body);
+  if(st.status==="loading")body.appendChild(h("p","msg","Loading the packet."));
+  else if(st.status==="missing")body.appendChild(h("p","msg","packet not uploaded for this run"));
+  else if(st.status==="error")body.appendChild(h("p","msg","Could not read the packet."));
+  else if(st.status==="ready"){
+    var d=st.doc,msg=h("p","msg"),row=h("div","row"),cp=h("button","btn sm","Copy");cp.type="button";
+    cp.onclick=function(){
+      var fail=function(){msg.textContent="Could not copy. Select the text and press Ctrl+C or Cmd+C.";};
+      try{navigator.clipboard.writeText(d.text).then(function(){msg.textContent="Copied.";},fail);}catch(e){fail();}
+    };
+    row.appendChild(cp);row.appendChild(h("span","snap",packetMeta(d)));body.appendChild(row);body.appendChild(msg);
+    var pre=h("pre","pkt-text");pre.setAttribute("tabindex","0");pre.textContent=d.text;body.appendChild(pre);
+  }
+}
 /* The "scroll sideways" hint shows only while the picture is wider than its box (so it follows a resize). */
 function updateHint(){var sc=byId("seqscroll");byId("seqhint").hidden=!(sc.scrollWidth>sc.clientWidth+1);}
 try{window.addEventListener("resize",updateHint);}catch(e){}
 function renderPicture(reveal){
   var o=runOf(),kp=byId("kpis"),sc=byId("seqscroll"),det=byId("seqdetail"),tb=byId("seqtable"),card=byId("seqcard"),box=byId("seqtabbox");
   clear(kp);clear(det);clear(tb);
-  if(!o.run){card.hidden=true;box.hidden=true;return;}
+  if(!o.run){card.hidden=true;box.hidden=true;byId("plancard").hidden=true;return;}
   var run=o.run;
-  if(pickedRun!==run.key){pickedRun=run.key;pickedCol=-1;}
-  var model=sequenceModel(run,{loops:loopsFor(run)});
+  if(pickedRun!==run.key){pickedRun=run.key;pickedCol=-1;pickedItem="";planMsg="";}
+  var model=sequenceModel(run,{loops:loopsFor(run),item:pickedItem});lastModel=model;
   if(pickedCol>=model.columns.length)pickedCol=-1;
   model.cards.forEach(function(c){
     var d=h("div","kpi"+(c.measured?"":" nm")+(!c.measured&&c.note.length>60?" wide":""));d.setAttribute("role","group");d.setAttribute("aria-label",c.label+": "+c.text);
     d.appendChild(h("span","kl",c.label));d.appendChild(h("b","kv",c.value));if(c.note)d.appendChild(h("span","kn",c.note));kp.appendChild(d);
   });
+  renderPlan(run);
   card.hidden=!model.columns.length;box.hidden=!model.columns.length;
   if(!model.columns.length)return;
   byId("seqcap").textContent="Column height is the square root of minutes on this run's own scale"+
-    (model.maxMin?"; the tallest is "+model.maxMin.min+" min ("+model.maxMin.stage+", visit "+model.maxMin.visit+").":"; no visit has a measured time.");
+    (model.maxMin?"; the tallest is "+model.maxMin.min+" min ("+model.maxMin.stage+", visit "+model.maxMin.visit+").":"; no visit has a measured time.")+
+    (pickedItem?" Shaded columns are the visits of work item "+pickedItem+".":"");
   var keep=sc.scrollLeft;sc.innerHTML=sequenceSvg(model,pickedCol);sc.scrollLeft=keep;
   if(reveal&&pickedCol>=0&&sc.clientWidth){
     var x=(model.lay.padL+pickedCol*SQ.pitch+SQ.pitch/2)*(sc.scrollWidth/model.lay.width);
@@ -1074,6 +1253,7 @@ function renderPicture(reveal){
       var fr=h("div","chips");d.findings.forEach(function(f){var b=h("button","chip acc","#"+obsNo(f)+" "+f.title);b.type="button";b.onclick=function(){openFinding(f.id);};fr.appendChild(b);});
       fd.appendChild(fr);dc.appendChild(fd);
     }
+    if(d.packet&&live&&db)dc.appendChild(packetBox(d.packet));
     var nav=h("div","row");
     function step(label,to){var b=h("button","btn",label);b.type="button";b.disabled=to===null;b.onclick=function(){setCol(to,true);};nav.appendChild(b);}
     step("Previous visit",d.prev);step("Next visit",d.next);

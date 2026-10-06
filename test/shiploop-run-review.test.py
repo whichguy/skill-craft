@@ -3690,5 +3690,261 @@ class SequencePictureTests(unittest.TestCase):
         self.assertEqual(more, ["1 finding, 1 open", "2 findings, 1 open"])  # o4 names only r2, so it is not r1's
 
 
+
+# ---------------------------------------------------------------- R17: the plan and execution panel and the packet box
+
+# A fake database for the page: it records every call so a test can say what the page asked for and what it subscribed to.
+# get() and writeText() answer with a thenable that resolves at once, because page_probe evaluates synchronously.
+FAKE_DB = """
+var DB_CALLS=[],PACKET_DOCS={};
+function sync(v,fail){return {then:function(ok,no){if(fail){if(no)no(v);}else if(ok)ok(v);return this;}};}
+db={doc:function(path){return {get:function(){DB_CALLS.push(["get",path]);var d=PACKET_DOCS[path];
+        return sync({exists:d!==undefined,data:function(){return d;}});},
+      onSnapshot:function(){DB_CALLS.push(["doc-snapshot",path]);}};},
+    collection:function(name){var q={orderBy:function(){return q;},onSnapshot:function(){DB_CALLS.push(["subscribe",name]);},
+        doc:function(){return {};},add:function(){return sync();}};return q;}};
+live=true;
+"""
+
+# A run with a revise in W1, a replan-added W2 and a planned step that was never executed, as the exporter writes it.
+PLAN_RUN = {
+    "key": "pr", "name": "Plan run", "order": 1, "release": "r", "time": "t", "imp": "i", "wallMin": 30,
+    "phases": ["done", "done", "done", "running", "none", "none", "none", "none"],
+    "stages": [
+        {"stage": "plan", "outcome": "done", "min": 3, "action": "nav-p", "packetBytes": 40, "packetDoc": True},
+        {"stage": "step-plan", "outcome": "done", "min": 2, "action": "nav-s1", "workitem": "W1", "loop": 1, "packetDoc": True},
+        {"stage": "implement", "outcome": "done", "min": 5, "action": "nav-i1", "workitem": "W1", "loop": 1, "step": "S1", "packetDoc": True},
+        {"stage": "implement", "outcome": "revise", "min": 4, "action": "nav-i2", "workitem": "W1", "loop": 1, "step": "S2"},
+        {"stage": "step-plan", "outcome": "done", "min": 2, "action": "nav-s2", "workitem": "W1", "loop": 2},
+        {"stage": "implement", "outcome": "done", "min": 6, "action": "nav-i3", "workitem": "W1", "loop": 2, "step": "S1"},
+        {"stage": "implement", "outcome": "done", "min": 6, "action": "nav-i4", "workitem": "W2", "loop": 1, "step": "S1"}],
+    "workItems": [
+        {"id": "W1", "title": "First <b>item</b>", "origin": "plan", "stepPlans": 2, "loops": 2, "revises": 1, "repeats": 0,
+         "implementVisits": {"done": 2, "repeat": 0, "revise": 1, "replan": 0, "blocked": 0}, "stepsPlanned": 1, "stepsExecuted": 1,
+         "steps": [{"id": "S1", "task": "do S1 <script>alert(1)</script>", "action": "nav-i3"}]},
+        {"id": "W2", "title": "Corrective", "origin": "replan", "stepPlans": 1, "loops": 1, "revises": 0, "repeats": 0,
+         "implementVisits": {"done": 1, "repeat": 0, "revise": 0, "replan": 0, "blocked": 0}, "stepsPlanned": 2, "stepsExecuted": 1,
+         "steps": [{"id": "S1", "task": "do S1", "action": "nav-i4"}, {"id": "S2", "task": "x" * 200, "truncated": True, "action": None}]}],
+    "stepsPlanned": 3, "stepsExecuted": 2, "unmeasured": {}}
+
+
+def plan_setup(run: dict = PLAN_RUN, extra: str = "") -> str:
+    return ("data.runs=[" + json.dumps(run) + "];data.bc=[];Object.keys(loaded).forEach(function(k){loaded[k]=true;});"
+            + FAKE_DB + extra + "renderAll();")
+
+
+class PlanPanelTests(unittest.TestCase):
+    """R17: the Plan and execution panel on step 1: one row per work item, its steps loop badge and one cell per planned step."""
+
+    def model(self, run: dict) -> dict:
+        return run_logic("planModel(" + json.dumps(run) + ")")
+
+    def test_planmodel_reads_the_headline_numbers_the_badges_the_counts_and_the_cells_of_a_real_run(self) -> None:
+        luna = self.model(evidence_run("luna1"))
+        item = luna["items"][0]
+        self.assertTrue(luna["measured"])
+        self.assertEqual((luna["headline"], luna["line"]), ("1 work item, 2 passes through the steps loop", "Steps planned 5, executed 5"))
+        self.assertEqual((item["badge"], item["added"]), ("steps loop x2", ""))
+        self.assertEqual(item["counts"], "2 step plans, 8 implement visits: 7 done, 1 revise, 0 repeat")
+        self.assertEqual([(c["id"], c["state"]) for c in item["cells"]], [(f"S{n}", "executed") for n in range(1, 6)])
+        rows = evidence_run("luna1")["stages"]
+        done = [i + 1 for i, r in enumerate(rows) if r["stage"] == "implement" and r["outcome"] == "done"][-5:]
+        self.assertEqual([c["visit"] for c in item["cells"]], done)  # the visit each cell points at, 1-based
+        hello = self.model(evidence_run("hello-1190b"))
+        self.assertEqual([(i["badge"], i["added"]) for i in hello["items"]],
+                         [("steps loop once", ""), ("steps loop once", "added by replan")])
+        self.assertEqual(hello["headline"], "2 work items, 2 passes through the steps loop")
+
+    def test_a_planned_step_no_visit_executed_is_never_and_a_run_whose_pairing_is_unknown_says_unknown(self) -> None:
+        model = self.model(PLAN_RUN)
+        w2 = model["items"][1]
+        self.assertEqual([(c["id"], c["state"], c["visit"]) for c in w2["cells"]], [("S1", "executed", 7), ("S2", "never", None)])
+        self.assertEqual(w2["stepsText"], "1 of 2 planned steps executed")
+        self.assertEqual(model["line"], "Steps planned 3, executed 2")
+        ask = json.loads(json.dumps(PLAN_RUN))
+        for item in ask["workItems"]:
+            del item["stepsExecuted"]
+            for step in item["steps"]:
+                step.pop("action", None)
+        del ask["stepsExecuted"]
+        ask["unmeasured"] = {"stepsExecuted": "this run's delegation is ask-agent"}
+        unknown = self.model(ask)
+        self.assertEqual({c["state"] for i in unknown["items"] for c in i["cells"]}, {"unknown"})
+        self.assertEqual(unknown["line"], "Steps planned 3, executed not measured (this run's delegation is ask-agent)")
+        self.assertIn("which visit ran each is not recorded", unknown["items"][0]["stepsText"])
+
+    def test_a_run_with_no_work_items_record_says_not_measured_with_the_reason_never_zero(self) -> None:
+        for run, why in (({"unmeasured": {"workItems": "the plan visit was recorded by the E2E seed"}},
+                          "the plan visit was recorded by the E2E seed"),
+                         ({}, "this run's document has no work item record; export the run again"),
+                         ({"workItems": None, "unmeasured": {"workItems": "r"}}, "r")):
+            model = self.model(run)
+            self.assertEqual((model["measured"], model["why"], model["items"]), (False, why, []))
+        out = page_probe('[textOf("plancard"),REG.plancard.hidden]', setup=with_run("hello-1190b").replace(
+            'renderAll();', 'delete data.runs[0].workItems;delete data.runs[0].stepsPlanned;renderAll();'))
+        self.assertEqual(out[0].split("Plan and execution")[1][:40], "Not measured: this run's document has no")
+        self.assertFalse(out[1])
+        self.assertNotRegex(out[0], r"Steps planned|steps loop x?0")
+
+    def test_the_badge_reads_once_for_one_pass_x_n_from_two_and_never_a_bare_zero(self) -> None:
+        self.assertEqual(run_logic('[loopsBadge(1),loopsBadge(2),loopsBadge(7),loopsBadge(0),loopsBadge(undefined),loopsBadge("2")]'),
+                         ["steps loop once", "steps loop x2", "steps loop x7", "steps loop not started",
+                          "steps loop not recorded", "steps loop not recorded"])
+        self.assertEqual(run_logic('itemCounts({stepPlans:1,implementVisits:{done:1,blocked:2,replan:1,repeat:3}})'),
+                         "1 step plan, 7 implement visits: 1 done, 0 revise, 3 repeat, 1 replan, 2 blocked")
+        self.assertEqual(run_logic('itemCounts({})'), "step plans not recorded, implement visits not recorded")
+
+    def test_the_panel_draws_one_row_per_item_a_filled_cell_per_executed_step_and_an_outlined_one_for_a_step_never_run(self) -> None:
+        out = page_probe(
+            '[textOf("plancard"),byClass("plancard","pl-item").length,byClass("plancard","pl-cell").map(function(c){return c.className+"|"+c.textContent;}),'
+            'byClass("plancard","chip").map(function(c){return c.textContent;}),byClass("plancard","pl-tasks").map(function(o){return o.textContent;}),'
+            'REG.kpis.children.length,REG.plancard.hidden]', setup=plan_setup())
+        text, rows, cells, chips, tasks, kpis, hidden = out
+        self.assertIn("Plan and execution", text)
+        self.assertEqual((rows, kpis, hidden), (2, 6, False))  # still six cards: the panel is not a seventh
+        self.assertIn("2 work items, 3 passes through the steps loop", text)
+        self.assertIn("Steps planned 3, executed 2", text)
+        self.assertIn("2 step plans, 3 implement visits: 2 done, 1 revise, 0 repeat", text)
+        self.assertEqual(cells, ["pl-cell executed|S1visit 6", "pl-cell executed|S1visit 7", "pl-cell never|S2not run"])
+        self.assertEqual(chips, ["steps loop x2", "steps loop once", "added by replan"])
+        self.assertIn("S2: " + "x" * 200 + " (cut at 200 characters) [never executed]", tasks[1])
+
+    def test_a_step_task_and_a_title_with_markup_are_text_never_elements(self) -> None:
+        out = page_probe('[textOf("plancard"),walk(REG.plancard,function(e){return e.tagName==="script"||e.tagName==="b";}).length,'
+                         'byClass("plancard","pl-title")[0].textContent]', setup=plan_setup())
+        self.assertIn("do S1 <script>alert(1)</script>", out[0])
+        self.assertEqual((out[1], out[2]), (0, "W1: First <b>item</b>"))
+        html = TEMPLATE.read_text(encoding="utf-8")
+        panel = html[html.index("function renderPlan"):html.index("function packetBox")]
+        self.assertNotIn("innerHTML", panel)  # built with createElement and textContent only
+
+    def test_tapping_an_item_shades_its_columns_and_tapping_a_step_selects_the_visit_that_ran_it_or_says_never_executed(self) -> None:
+        out = page_probe(
+            'var cells=function(){return byClass("plancard","pl-cell");};'
+            'byClass("plancard","pl-title")[0].onclick();var shaded=REG.seqscroll.innerHTML.split("sq-item").length-1,cap=textOf("seqcap");'
+            'cells()[0].onclick();var a=[pickedCol,pickedItem,textOf("seqdetail").indexOf("Visit 6: implement")>=0,textOf("seqdetail").indexOf("steps-loop pass 2")>=0];'
+            'cells()[2].onclick();var b=[pickedItem,textOf("plancard").indexOf("Step S2 of W2 was never executed: no implement visit is recorded for it.")>=0];'
+            'byClass("plancard","pl-title")[1].onclick();[shaded,cap,a,b,pickedItem,REG.seqscroll.innerHTML.split("sq-item").length-1]', setup=plan_setup())
+        self.assertEqual(out[0], 5)  # the five visits of W1 are shaded (the picture has seven columns; W2's and the plan are not)
+        self.assertIn("Shaded columns are the visits of work item W1.", out[1])
+        self.assertEqual(out[2], [5, "W1", True, True])
+        self.assertEqual(out[3], ["W2", True])
+        self.assertEqual((out[4], out[5]), ("", 0))  # tapping the selected item (W2, chosen by its step) again clears the shading
+
+    def test_the_picture_marks_columns_of_an_item_and_finds_the_column_of_a_visit(self) -> None:
+        model = run_logic("(function(){var m=sequenceModel(" + json.dumps(PLAN_RUN) + ",{item:'W2'});"
+                          "return {inItem:m.columns.map(function(c){return c.inItem;}),col:columnOfVisit(m,6),none:columnOfVisit(m,99)};})()")
+        self.assertEqual(model["inItem"], [False] * 6 + [True])
+        self.assertEqual((model["col"], model["none"]), (6, -1))
+        skipped = {"stages": [{"stage": "a", "outcome": "done"}, {"stage": "b", "outcome": "done", "skipped": True},
+                              {"stage": "c", "outcome": "done", "skipped": True}, {"stage": "d", "outcome": "done"}]}
+        self.assertEqual(run_logic("[0,1,2,3,4].map(function(i){return columnOfVisit(sequenceModel(" + json.dumps(skipped) + ",{}),i);})"),
+                         [0, 1, 1, 2, -1])  # two skipped visits in a row are one column
+        svg = run_logic("sequenceSvg(sequenceModel(" + json.dumps(PLAN_RUN) + ",{item:'W1'}),-1)")
+        self.assertEqual(svg.count('class="sq-item"'), 5)
+        self.assertEqual(run_logic("sequenceSvg(sequenceModel(" + json.dumps(PLAN_RUN) + ",{}),-1)").count("sq-item"), 0)
+
+    def test_a_column_detail_names_its_work_item_loop_and_step_and_a_run_without_them_is_unchanged(self) -> None:
+        out = page_probe('setCol(5);textOf("seqdetail")', setup=plan_setup())
+        self.assertIn("Work itemW1, steps-loop pass 2", out)
+        self.assertIn("StepS1 (the step this packet named)", out)
+        plain = page_probe('setCol(1);textOf("seqdetail")', setup=SAMPLE_SETUP)
+        for absent in ("Work item", "Step", "Packet"):
+            self.assertNotIn(absent, plain.replace("Previous visit", "").replace("Next visit", "").replace("Stages", ""), absent)
+        self.assertEqual(page_probe('setCol(1);byClass("seqdetail","pkt").length', setup=SAMPLE_SETUP + FAKE_DB), 0)
+
+    def test_template_places_the_panel_below_the_six_cards_and_above_the_picture(self) -> None:
+        html = TEMPLATE.read_text(encoding="utf-8")
+        self.assertLess(html.index('id="kpis"'), html.index('id="plancard"'))
+        self.assertLess(html.index('id="plancard"'), html.index('id="seqcard"'))
+        self.assertEqual(run_logic("kpiCards({},[]).length"), 6)
+
+
+class PacketBoxTests(unittest.TestCase):
+    """R17: a tapped visit's Packet box loads its document on demand, with one get, and the page never subscribes to packets."""
+
+    DOC = {"run": "pr", "action": "nav-i1", "stage": "implement", "bytes": 200_000, "shownBytes": 149_990,
+           "sha256": "ab12cd34ef56" + "0" * 52, "text": "# Packet\nline <script>alert(1)</script>\n", "truncated": True}
+
+    def probe(self, expression: str, docs: dict | None = None, extra: str = "", stored_db: bool = True):
+        setup = plan_setup(extra=("PACKET_DOCS=" + json.dumps(docs or {}) + ";") + extra)
+        if not stored_db:
+            setup = setup.replace("live=true;", "db=null;live=false;")
+        return page_probe(expression, setup=setup)
+
+    def test_the_packet_is_loaded_with_one_get_of_the_right_path_only_when_opened_and_never_again(self) -> None:
+        out = self.probe(
+            'setCol(2);var box=byClass("seqdetail","pkt")[0],before=DB_CALLS.slice(),closed=textOf("seqdetail").indexOf("# Packet");'
+            'box.open=true;box.ontoggle();var once=DB_CALLS.slice();'
+            'box.open=false;box.ontoggle();box.open=true;box.ontoggle();'
+            'renderAll();var again=byClass("seqdetail","pkt")[0];var kept=again.open;'
+            '[before,closed,once,DB_CALLS.length,kept,byClass("seqdetail","pkt-text")[0].textContent]',
+            docs={"packets/pr--nav-i1": self.DOC})
+        before, closed, once, calls, kept, text = out
+        self.assertEqual((before, closed), ([], -1))  # nothing is read until the box is opened
+        self.assertEqual(once, [["get", "packets/pr--nav-i1"]])
+        self.assertEqual((calls, kept), (1, True))  # reopened and redrawn: still one get, and the box stays open
+        self.assertEqual(text, self.DOC["text"])
+
+    def test_the_box_shows_the_text_in_a_scroll_box_with_size_digest_and_the_truncation_note_and_never_as_markup(self) -> None:
+        out = self.probe('setCol(2);var b=byClass("seqdetail","pkt")[0];b.open=true;b.ontoggle();'
+                         '[textOf("seqdetail"),walk(REG.seqdetail,function(e){return e.tagName==="script";}).length,'
+                         'byClass("seqdetail","pkt-text")[0].tagName,byClass("seqdetail","pkt-text")[0].attrs.tabindex]',
+                         docs={"packets/pr--nav-i1": self.DOC})
+        self.assertIn("195.3 KB, sha256 ab12cd34ef56; truncated: showing the first 149,990 of 200,000 bytes", out[0])
+        self.assertIn("line <script>alert(1)</script>", out[0])
+        self.assertEqual(out[1:], [0, "pre", "0"])
+        css = TEMPLATE.read_text(encoding="utf-8").split("</style>")[0]
+        rule = re.search(r"\.pkt-text\{([^}]*)\}", css).group(1)
+        for needed in ("max-height", "overflow:auto", "white-space:pre", "font-family:var(--mono)"):
+            self.assertIn(needed, rule)
+        self.assertEqual(run_logic('[packetMeta({bytes:100,sha256:"abcdef0123456789"}),packetMeta({}),'
+                                   'packetMeta({truncated:true,bytes:300000})]'),
+                         ["100 B, sha256 abcdef012345", "", "293 KB; truncated: showing the first part of 300,000 bytes"])
+
+    def test_a_document_that_does_not_exist_reads_packet_not_uploaded_and_a_failed_read_says_so(self) -> None:
+        out = self.probe('setCol(2);var b=byClass("seqdetail","pkt")[0];b.open=true;b.ontoggle();textOf("seqdetail")')
+        self.assertIn("packet not uploaded for this run", out)
+        failed = self.probe('db.doc=function(p){return {get:function(){return sync({code:"unavailable"},true);}};};'
+                            'setCol(2);var b=byClass("seqdetail","pkt")[0];b.open=true;b.ontoggle();textOf("seqdetail")')
+        self.assertIn("Could not read the packet.", failed)
+        self.assertNotIn("not uploaded", failed)
+
+    def test_without_the_database_or_a_packet_document_the_box_prints_nothing(self) -> None:
+        self.assertEqual(self.probe('setCol(2);byClass("seqdetail","pkt").length', stored_db=False), 0)
+        # visit 4 (the revise) has no packetDoc: no box
+        self.assertEqual(self.probe('setCol(3);byClass("seqdetail","pkt").length'), 0)
+        self.assertEqual(self.probe('setCol(2);byClass("seqdetail","pkt").length'), 1)
+
+    def test_the_copy_button_writes_the_text_to_the_clipboard_from_its_click_and_a_failure_says_so(self) -> None:
+        open_box = 'setCol(2);var b=byClass("seqdetail","pkt")[0];b.open=true;b.ontoggle();'
+        docs = {"packets/pr--nav-i1": self.DOC}
+        ok = self.probe(open_box + 'var copied=null;navigator.clipboard={writeText:function(t){copied=t;return sync();}};'
+                        'var btn=byClass("seqdetail","btn").filter(function(x){return x.textContent==="Copy";})[0];btn.onclick();'
+                        '[copied,textOf("seqdetail").indexOf("Copied.")>=0]', docs)
+        self.assertEqual(ok, [self.DOC["text"], True])
+        rejected = self.probe(open_box + 'navigator.clipboard={writeText:function(t){return sync("no",true);}};'
+                              'byClass("seqdetail","btn").filter(function(x){return x.textContent==="Copy";})[0].onclick();'
+                              'textOf("seqdetail").indexOf("Could not copy")>=0', docs)
+        self.assertTrue(rejected)
+        absent = self.probe(open_box + 'byClass("seqdetail","btn").filter(function(x){return x.textContent==="Copy";})[0].onclick();'
+                            'textOf("seqdetail").indexOf("Could not copy")>=0', docs)  # navigator has no clipboard in the stub
+        self.assertTrue(absent)
+
+    def test_the_page_never_subscribes_to_the_packets_collection_and_reads_it_by_get_only(self) -> None:
+        out = self.probe('subscribe();DB_CALLS.map(function(c){return c[1];})')
+        self.assertEqual(sorted(out), sorted(["runs", "observations", "actions", "backchain", "expectations", "config", "reviews"]))
+        page = script_text()
+        self.assertNotIn('collection("packets")', page)
+        self.assertNotIn('["packets"', page)
+        self.assertEqual(re.findall(r'db\.doc\("packets/"\+id\)\.get\(\)', page), ['db.doc("packets/"+id).get()'])
+        self.assertNotIn("onSnapshot", page[page.index("function loadPacket"):page.index("function fillPacket")])
+
+    def test_the_template_has_no_packet_data_and_the_page_asks_for_no_collection_the_contract_lacks(self) -> None:
+        self.assertIn("**`packets/", SCHEMA_MD.read_text(encoding="utf-8"))
+        self.assertEqual(run_logic('[packetId({key:"k"},{packetDoc:true,action:"nav-a"}),packetId({key:"k"},{action:"nav-a"}),'
+                                   'packetId({},{packetDoc:true,action:"nav-a"})]'), ["k--nav-a", "", ""])
+
+
 if __name__ == "__main__":
     unittest.main()
