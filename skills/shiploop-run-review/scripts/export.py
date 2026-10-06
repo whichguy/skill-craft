@@ -116,6 +116,9 @@ SCHEMA = {
         "improvePasses": (N, False), "improveMin": (N, False), "calls": (N, False), "contextPeak": (N, False),
         "contextWindow": (N, False), "compactions": (N, False),
         "wallMin": (N, False), "host": (S, False), "model": (S, False), "effort": (S, False), "case": (S, False),
+        # The run's `planning_review` option as state.md recorded it, text as written ("not recorded" when the key is
+        # absent: never a default), and, only for the recorded value `none`, what that means for the Improve numbers.
+        "planningReview": (S, False), "improveScope": (S, False),
         "status": (("enum", ("done", "active", "paused", "blocked", "failed")), False),
         "startedAt": (ISO, False), "endedAt": (ISO, False),
         "verdicts": (("map", B), False),
@@ -551,11 +554,19 @@ def _start_record(run_dir: Path, loop: Path) -> Path | None:
     return None
 
 
-def _backchain_option(state: dict) -> str:
-    """The run's `backchain_passes` as state.md recorded it: the text as written (one, converge or none, or whatever
-    else the record holds), and "not recorded" when the key is absent. Never a default."""
-    value = state.get("backchain_passes")
+def _recorded_option(state: dict, key: str) -> str:
+    """A run-level option as state.md recorded it (`backchain_passes`: one, converge or none; `planning_review`: stage or
+    none): the text as written, whatever else the record holds shown as it is, and "not recorded" when the key is absent.
+    Never a default."""
+    value = state.get(key)
     return NOT_RECORDED if value is None else value if isinstance(value, str) else json.dumps(value)
+
+
+# The one value of `planning_review` whose behaviour the page may state: no Improve child starts at the planning stages
+# (`PLANNING_CHOICE_STAGES` in shiploop_stage_spec.py). `stage` is the other registered value; any other value is shown
+# as written and claims nothing. The sentence is the exporter's own, printed in facts.md and kept in the run document.
+PLANNING_NONE = "none"
+IMPROVE_SCOPE_NONE = "planning stages skipped by design (planning_review none)"
 
 
 def _digest_at(record, path: tuple[str, ...], key: str) -> str | None:
@@ -1240,7 +1251,12 @@ def build_run(out: Path, key: str | None = None, name: str | None = None,
            "imp": f"{len(children)} children" + (f", {improve['improvePasses']} review passes"
                                                  if improve.get("improvePasses") else ""),
            "stages": stages, "unmeasured": unmeasured, **improve, **measures,
-           "knowledge": knowledge, "evidence": str(out)}
+           "knowledge": knowledge, "evidence": str(out),
+           "planningReview": _recorded_option(state, "planning_review")}
+    if run["planningReview"] == PLANNING_NONE:
+        # The Improve totals above are what the improve/ directories hold, measured, and stay as they are. Under none the
+        # engine starts no child at the five planning stages, so those stages have none by design: the scope says so.
+        run["improveScope"] = IMPROVE_SCOPE_NONE
     if items is not None:
         run["workItems"] = items
         for field in ("stepsPlanned", "stepsExecuted"):  # a sum over an unknown part is unknown
@@ -1273,7 +1289,7 @@ def build_run(out: Path, key: str | None = None, name: str | None = None,
     docs: dict[str, dict[str, dict]] = {"runs": {key: run}, "backchain": {}, "packets": packet_set}
     loops = []
     scratch = run_dir / "scratch"
-    option = _backchain_option(state)
+    option = _recorded_option(state, "backchain_passes")
     stage_of = {row["action"]: row["stage"] for row in stages if "action" in row}
     for loop in [*(find_loops(scratch) if scratch.is_dir() else []), *find_backchain_loops(run_dir)]:
         try:
@@ -1348,7 +1364,8 @@ def _facts(run, run_dir, out, raw_status, children, failures, knowledge_root, lo
              f"- Improve: {run['imp']}" + (f"; most passes in one child: {most}" if most else "")
              + (f"; {run['improveMin']} min bind to receipt" if "improveMin" in run
                 else f"; minutes not measured ({unmeasured['improveMin']})")
-             + ("" if "improvePasses" in run else f"; passes not measured ({unmeasured['improvePasses']})"),
+             + ("" if "improvePasses" in run else f"; passes not measured ({unmeasured['improvePasses']})")
+             + (f"; {run['improveScope']}" if "improveScope" in run else ""),
              "- Model calls (main thread only): " + "; ".join(
                  f"{label} {run[field]:,}" if field in run else f"{label} not measured ({unmeasured[field]})"
                  for field, label in (("calls", "calls"), ("contextPeak", "context peak"),
@@ -1368,6 +1385,7 @@ def _facts(run, run_dir, out, raw_status, children, failures, knowledge_root, lo
              f"- Packet documents: {len(packet_set)} written, {sum(d['bytes'] for d in packet_set.values()) / 1024:.1f} KB "
              f"of packet files, {sum(1 for d in packet_set.values() if d.get('truncated'))} truncated; "
              f"{unreadable} packet files unreadable (no document written)",
+             f"- Planning review option (state.md): {run['planningReview']}",
              f"- Backchain passes option (state.md): {option}",
              "- Backchain loops: " + ("; ".join(
                  f"{d['loop']} {next((f['v'] for f in d['facts'] if f['k'] == 'Passes'), '?')} passes, "

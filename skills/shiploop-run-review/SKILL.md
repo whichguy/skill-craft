@@ -66,7 +66,8 @@ message says. Add `--key KEY` to keep the key the page already has for a run.
 
 1. Read the run's evidence and write `test/shiploop_e2e/evidence/<runKey>.review.json` (the page's key for the run, as in the run document's id),
    following [references/advice.md](references/advice.md): the `reviews`, `observations` (findings) and `actions`
-   (options) documents, in the shape of `review-export.json`. Keep every document the owner added on the page.
+   (options) documents, in the shape of `review-export.json`. Keep every document the owner added on the page. A finding that
+   spans runs or belongs to none goes in `test/shiploop_e2e/evidence/general.review.json`.
 2. Run `export.py --check FILE` until it exits 0, and read every warning.
 3. Commit the review file with the run's learnings entry.
 

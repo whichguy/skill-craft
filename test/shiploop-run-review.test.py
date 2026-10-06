@@ -3946,5 +3946,270 @@ class PacketBoxTests(unittest.TestCase):
                                    'packetId({},{packetDoc:true,action:"nav-a"})]'), ["k--nav-a", "", ""])
 
 
+# ---------------------------------------------------------------- R18: the run option planning_review
+
+STATE_FIXTURES = ROOT / "test" / "fixtures" / "run-review"
+PLANNING_NONE_TEXT = "planning stages skipped by design (planning_review none)"
+PLANNING_STAGES = ("spec", "test-strategy", "plan", "step-plan", "test-spec")
+# The planning stages, then the stages after them whose results start a child under none (the last item's carry-forward and
+# system-test-author). (action, stage, minutes after T0 when accepted, outcome), as in ACCEPTS.
+PLANNING_ACCEPTS = [("intake", "intake", 5, "done"), ("spec", "spec", 15, "done"), ("test-strategy", "test-strategy", 35, "done"),
+                    ("plan", "plan", 95, "done"), ("select-work", "select-work", 97, "done"),
+                    ("step-plan", "step-plan", 127, "done"), ("test-spec", "test-spec", 140, "done"),
+                    ("carry-forward", "carry-forward", 180, "done"), ("system-test-author", "system-test-author", 200, "done")]
+# improve/<child>/ of a run by the mode it started with, (passes, bind time, receipt time), as the engine's own walk of its
+# pure navigator leaves them (the two state fixtures): stage starts a child after each planning result, none starts none there.
+STAGE_CHILDREN = {"spec": (2, 16, 24), "test-strategy": (1, 36, 41), "plan": (3, 96, 110),
+                  "carry-forward": (2, 172, 178.5), "system-test-author": (1, 192, 195)}
+NONE_CHILDREN = {"carry-forward": (2, 172, 178.5), "system-test-author": (1, 192, 195)}
+
+
+def real_state(mode: str) -> dict:
+    """The shiploop-state record of a genuine state.md: `shiploop init --planning-review <mode>` of the plugin's own CLI at
+    45f163d0, advanced to select-work on its pure navigator with no model; its two paths are normalised, nothing else."""
+    return export._record(STATE_FIXTURES / f"state-{mode}.md")
+
+
+def planning_run(root: Path, mode: str | None, children: dict, **state) -> Path:
+    """A run whose state.md records the option the way the engine does (the value is read from the genuine state of `mode`;
+    None leaves the key out, as a run before ShipLoop 1.22.0 does) and whose improve/ directory holds only `children`: make_run's
+    one child, at plan, is removed first. Extra keyword arguments are written into the state record as they are."""
+    for name, *_ in PLANNING_ACCEPTS:
+        IDS.setdefault(name, f"nav-{hashlib.sha256(name.encode()).hexdigest()[:32]}")
+    out = make_run(root, PLANNING_ACCEPTS, loops=False)
+    run = run_dir_of(out)
+    shutil.rmtree(run / "improve")
+    for name, (passes, bind_at, receipt_at) in children.items():
+        make_improve_child(run, IDS[name], passes, bind_at, receipt_at)
+    set_state(out, planning_review=real_state(mode)["planning_review"] if mode else None)
+    if state:
+        set_state(out, **state)
+    return out
+
+
+class PlanningReviewExportTest(unittest.TestCase):
+    """R18: the run-level planning_review option, exported as state.md wrote it and never defaulted, and what a none run's
+    Improve numbers mean. The fixtures take the option's value from a genuine state.md of each mode."""
+
+    KEY = RunReviewTest.KEY
+
+    def setUp(self):
+        tmp = tempfile.TemporaryDirectory()
+        self.addCleanup(tmp.cleanup)
+        self.tmp = Path(tmp.name)
+
+    def build(self, mode: str | None, children: dict | None = None, **state) -> tuple[dict, list[str]]:
+        out = planning_run(Path(tempfile.mkdtemp(dir=self.tmp)), mode, STAGE_CHILDREN if children is None else children, **state)
+        docs, facts = export.build_run(out)
+        run = docs["runs"][self.KEY]
+        self.assertEqual(export.validate_doc("runs", run), [])
+        return run, facts
+
+    def test_a_genuine_state_md_of_each_mode_carries_the_key_the_exporter_reads(self):
+        for mode in ("stage", "none"):
+            state = real_state(mode)
+            self.assertEqual(state["planning_review"], mode)
+            self.assertEqual(export._recorded_option(state, "planning_review"), mode)
+        self.assertEqual(set(real_state("stage")), set(real_state("none")))  # one key set; the option is a value, not a shape
+        # what each mode did in the engine's own walk: stage parked a child after spec, test-strategy and plan, none none
+        self.assertEqual((len(real_state("stage")["improve_results"]), len(real_state("none")["improve_results"])), (3, 0))
+        self.assertEqual(real_state("none")["improve_skill"], "/plugin/skills/improve/SKILL.md")  # none resolves the card at init
+
+    def test_the_option_is_exported_as_state_md_wrote_it_and_is_not_recorded_when_the_key_is_absent(self):
+        for written, shown in (("stage", "stage"), ("none", "none"), ("once", "once"), (2, "2"), (None, "not recorded")):
+            with self.subTest(written=written):
+                run, facts = self.build(None, planning_review=written)
+                self.assertEqual(run["planningReview"], shown)
+                self.assertIn(f"- Planning review option (state.md): {shown}", facts)
+        bare, _ = self.build(None)  # the fixture's state has no key at all: every run before 1.22.0
+        self.assertEqual(bare["planningReview"], "not recorded")
+
+    def test_a_none_run_keeps_the_numbers_its_improve_directories_hold_and_says_planning_stages_were_skipped_by_design(self):
+        run, facts = self.build("none", NONE_CHILDREN)
+        self.assertEqual((run["planningReview"], run["improveScope"]), ("none", PLANNING_NONE_TEXT))
+        self.assertEqual((run["improvePasses"], run["improveMin"], run["imp"]), (3, 9.5, "2 children, 3 review passes"))
+        self.assertEqual([r["stage"] for r in run["stages"] if "improve" in r], ["carry-forward", "system-test-author"])
+        for row in run["stages"]:
+            if row["stage"] in PLANNING_STAGES:
+                self.assertNotIn("improve", row, row["stage"])  # no child by design: a row never gets an improve map
+        self.assertEqual(next(f for f in facts if f.startswith("- Improve:")),
+                         "- Improve: 2 children, 3 review passes; most passes in one child: 2; 9.5 min bind to receipt; "
+                         + PLANNING_NONE_TEXT)
+        self.assertIn("- Planning review option (state.md): none", facts)
+
+    def test_a_none_run_that_has_not_reached_a_later_child_keeps_its_measured_zeros_and_the_scope(self):
+        run, facts = self.build("none", {})
+        self.assertEqual((run["improvePasses"], run["improveMin"], run["imp"]), (0, 0, "0 children"))  # what the directories give
+        self.assertEqual(run["improveScope"], PLANNING_NONE_TEXT)
+        self.assertTrue(next(f for f in facts if f.startswith("- Improve:")).endswith("; " + PLANNING_NONE_TEXT))
+
+    def test_a_stage_run_an_unknown_value_and_a_run_with_no_record_claim_nothing_about_improve(self):
+        """Guard (it passes before the change too): the Improve numbers and the facts line of these runs do not move."""
+        for label, mode, extra in (("stage", "stage", {}), ("not recorded", None, {}), ("unknown", None, {"planning_review": "once"})):
+            with self.subTest(option=label):
+                run, facts = self.build(mode, **extra)
+                self.assertNotIn("improveScope", run)
+                self.assertEqual((run["improvePasses"], run["improveMin"]), (9, 36.5))
+                self.assertEqual(next(f for f in facts if f.startswith("- Improve:")),
+                                 "- Improve: 5 children, 9 review passes; most passes in one child: 3; 36.5 min bind to receipt")
+                self.assertEqual([r["stage"] for r in run["stages"] if "improve" in r],
+                                 ["spec", "test-strategy", "plan", "carry-forward", "system-test-author"])
+                self.assertNotIn("by design", json.dumps(run) + "\n".join(facts))
+
+    def test_the_contract_types_both_fields_documents_them_and_states_the_bundle_convention(self):
+        base = {"key": "k", "name": "n", "order": 1, "release": "r", "phases": ["done"], "time": "t", "imp": "i"}
+        self.assertEqual(export.validate_doc("runs", dict(base, planningReview="none", improveScope="x")), [])
+        problems = "\n".join(export.validate_doc("runs", dict(base, planningReview=1, improveScope=True)))
+        self.assertIn("planningReview: expected a string", problems)
+        self.assertIn("improveScope: expected a string", problems)
+        schema = " ".join(SCHEMA_MD.read_text(encoding="utf-8").split())
+        for phrase in ("`planningReview`", "`improveScope`", "`not recorded` when the key is absent", PLANNING_NONE_TEXT,
+                       "no Improve at planning stages (planning_review none)", "A bundle named for a run holds that run's reviews",
+                       "`general.review.json` holds the findings that belong to no single run"):
+            self.assertIn(phrase, schema)
+        self.assertIn("`test/shiploop_e2e/evidence/general.review.json`", " ".join(SKILL_MD.read_text(encoding="utf-8").split()))
+
+    def test_the_exporter_and_the_page_know_the_modes_and_planning_stages_the_engine_registers(self):
+        path = ROOT / "skills" / "shiploop" / "scripts" / "shiploop_stage_spec.py"
+        spec = importlib.util.spec_from_file_location("run_review_selected_stage_spec_3", path)
+        stage_spec = importlib.util.module_from_spec(spec)
+        sys.modules[spec.name] = stage_spec
+        self.addCleanup(sys.modules.pop, spec.name, None)
+        spec.loader.exec_module(stage_spec)
+        # a mode the engine adds that the exporter and the page were not written for fails here instead of reading silently
+        self.assertEqual(tuple(stage_spec.PLANNING_REVIEW_MODES), ("stage", export.PLANNING_NONE))
+        self.assertEqual(set(run_logic("PLANNING_REVIEW_STAGES")), set(stage_spec.PLANNING_CHOICE_STAGES))
+        self.assertEqual(set(PLANNING_STAGES), set(stage_spec.PLANNING_CHOICE_STAGES))
+        self.assertFalse(stage_spec.reviewed_stages("none") & stage_spec.PLANNING_CHOICE_STAGES)
+
+
+def mode_page(run: dict) -> str:
+    """Page setup that shows one exported run, with one phase document so the run header is drawn."""
+    return ("data.runs=[" + json.dumps(run) + "];data.bc=[];data.exp={'phase-0':{kind:'phase',order:0,title:'Understand',short:'Intake',"
+            "text:'Understand the request.'}};Object.keys(loaded).forEach(function(k){loaded[k]=true;});renderAll();")
+
+
+class PlanningReviewPageTests(unittest.TestCase):
+    """R18: the run header, its chip, the Improve card and a planning visit's detail, over run documents the exporter wrote
+    for a none run, a stage run, a run with no record and a run with a value the page does not know."""
+
+    @classmethod
+    def setUpClass(cls):
+        cls.tmp = tempfile.TemporaryDirectory()
+
+        def doc(mode: str | None, children: dict, **state) -> dict:
+            out = planning_run(Path(tempfile.mkdtemp(dir=cls.tmp.name)), mode, children, **state)
+            return export.build_run(out)[0]["runs"][RunReviewTest.KEY]
+
+        cls.runs = {"none": doc("none", NONE_CHILDREN), "bare": doc("none", {}), "stage": doc("stage", STAGE_CHILDREN),
+                    "absent": doc(None, STAGE_CHILDREN), "unknown": doc(None, STAGE_CHILDREN, planning_review="once")}
+
+    @classmethod
+    def tearDownClass(cls):
+        cls.tmp.cleanup()
+
+    def card(self, run: dict, key: str = "improve") -> dict:
+        return next(c for c in run_logic("kpiCards(%s, [])" % json.dumps(run)) if c["key"] == key)
+
+    def details(self, run: dict) -> dict:
+        """{stage: {label: text}} of the detail of every column of the picture."""
+        rows = run_logic("(function(r){var m=sequenceModel(r,{});return m.columns.map(function(c,k){"
+                         "return {stage:c.stage,lines:columnDetail(m,k,r,[]).lines};});})(%s)" % json.dumps(run))
+        return {row["stage"]: dict(row["lines"]) for row in rows}
+
+    def test_the_header_line_names_a_recorded_mode_and_prints_nothing_for_an_absent_or_not_recorded_one(self):
+        none, stage, absent, unknown = (self.runs[k] for k in ("none", "stage", "absent", "unknown"))
+        lines = run_logic("(function(a){return a.map(headerFacts);})(%s)" % json.dumps([none, stage, absent, unknown]))
+        self.assertTrue(lines[0].endswith(" | 2 children, 3 review passes | planning review: none"), lines[0])
+        self.assertTrue(lines[1].endswith(" | planning review: stage"), lines[1])
+        self.assertTrue(lines[3].endswith(" | planning review: once"), lines[3])  # an unknown value is shown as written
+        self.assertEqual(absent["planningReview"], "not recorded")
+        self.assertNotIn("planning review", lines[2])  # not recorded: the run reads as it always did
+        plain = 'release:"r",time:"t",imp:"i"'
+        self.assertEqual(run_logic(f'[headerFacts({{{plain}}}), headerFacts({{{plain},planningReview:""}}),'
+                                   f' headerFacts({{{plain},planningReview:"not recorded"}}), headerFacts({{{plain},planningReview:2}}),'
+                                   f' headerFacts({{{plain},planningReview:"none"}})]'),
+                         ["r | t | refusals not measured | glue not measured | i"] * 4
+                         + ["r | t | refusals not measured | glue not measured | i | planning review: none"])
+
+    def test_a_none_run_gets_a_chip_and_no_other_run_does(self):
+        chips = run_logic('[modeChip({planningReview:"none"}), modeChip({planningReview:"stage"}), modeChip({planningReview:"once"}),'
+                          ' modeChip({planningReview:"not recorded"}), modeChip({}), modeChip(null)]')
+        self.assertEqual(chips[0]["text"], "no Improve at planning stages")
+        self.assertIn("planning_review none", chips[0]["title"])
+        self.assertIn("not comparable with a stage run's", chips[0]["title"])
+        self.assertEqual(chips[1:], [None] * 5)
+
+    def test_the_improve_card_of_a_none_run_keeps_its_measured_numbers_names_the_scope_and_prints_no_share(self):
+        card = self.card(self.runs["none"])
+        self.assertEqual((card["value"], card["note"], card["measured"]),
+                         ("3 passes", "9.5 min; no Improve at planning stages (planning_review none)", True))
+        self.assertNotIn("%", card["text"])
+        none_yet = self.card(self.runs["bare"])  # measured zero children: by design, and never a bare 0%
+        self.assertEqual((none_yet["value"], none_yet["note"]), ("0 passes", "0 min; no Improve at planning stages (planning_review none)"))
+        self.assertNotRegex(none_yet["text"], r"\d%")
+
+    def test_the_improve_card_says_the_scope_when_the_passes_or_the_minutes_of_a_none_run_were_not_measured(self):
+        scope = "no Improve at planning stages (planning_review none)"
+        unknown_passes, unknown_minutes = run_logic(
+            '[kpiCards({planningReview:"none",unmeasured:{improvePasses:"1 of 2 Improve children has no terminal.json"}},[]),'
+            ' kpiCards({planningReview:"none",improvePasses:3,wallMin:60,unmeasured:{improveMin:"a child lacks its receipt"}},[])]')
+        passes, minutes = (next(c for c in cards if c["key"] == "improve") for cards in (unknown_passes, unknown_minutes))
+        self.assertEqual((passes["value"], passes["measured"]), ("not measured", False))
+        self.assertEqual(passes["note"], f"1 of 2 Improve children has no terminal.json; {scope}")
+        self.assertEqual((minutes["value"], minutes["note"]), ("3 passes", f"minutes not measured: a child lacks its receipt; {scope}"))
+
+    def test_a_stage_run_an_unknown_value_and_a_run_with_no_record_keep_the_card_they_always_had(self):
+        """Guard (it passes before the change too): nothing about these runs' Improve card moves."""
+        for key in ("stage", "absent", "unknown"):
+            card = self.card(self.runs[key])
+            self.assertEqual((card["value"], card["note"]), ("9 passes", "36.5 min, 18% of elapsed"), key)
+        self.assertEqual(self.card({"stages": []})["note"], "no Improve record")
+
+    def test_the_detail_of_a_planning_visit_in_a_none_run_says_improve_was_not_run_by_design_and_nothing_else_does(self):
+        lines = self.details(self.runs["none"])
+        for stage in PLANNING_STAGES:
+            self.assertEqual(lines[stage]["Improve"], "not run by design (planning_review none)", stage)
+        for stage in ("intake", "select-work"):
+            self.assertNotIn("Improve", lines[stage], stage)  # no child here in any mode: nothing to say
+        self.assertEqual((lines["carry-forward"]["Improve"], lines["system-test-author"]["Improve"]), ("2 passes, 6.5 min", "1 pass, 3 min"))
+        for key in ("stage", "absent", "unknown"):
+            other = self.details(self.runs[key])
+            self.assertFalse([s for s, rows in other.items() if "by design" in rows.get("Improve", "")], key)
+        self.assertEqual(self.details(self.runs["stage"])["spec"]["Improve"], "2 passes, 8 min")
+        for stage in ("step-plan", "test-spec"):  # a stage run's planning visit with no child recorded claims nothing
+            self.assertNotIn("Improve", self.details(self.runs["stage"])[stage])
+
+    def test_a_skipped_or_seeded_planning_visit_and_a_visit_with_a_child_are_not_told_they_were_not_run_by_design(self):
+        run = copy.deepcopy(self.runs["none"])
+        by_stage = {row["stage"]: row for row in run["stages"]}
+        by_stage["spec"]["skipped"] = True
+        by_stage["test-strategy"]["seeded"] = True
+        by_stage["plan"]["improve"] = {"passes": 1}  # a child that should not exist: shown as measured, never contradicted
+        lines = self.details(run)
+        self.assertNotIn("Improve", lines["spec"])
+        self.assertNotIn("Improve", lines["test-strategy"])
+        self.assertEqual(lines["plan"]["Improve"], "1 pass, minutes not measured")
+        self.assertEqual(lines["step-plan"]["Improve"], "not run by design (planning_review none)")
+
+    def test_the_page_draws_the_header_line_the_chip_the_improve_card_and_the_detail_of_a_planning_visit(self):
+        probe = '[textOf("runfacts"),REG.runmode.hidden,REG.runmode.textContent,REG.runmode.title,textOf("kpis")]'
+        none = page_probe(probe, setup=mode_page(self.runs["none"]))
+        self.assertTrue(none[0].endswith(" | planning review: none"), none[0])
+        self.assertEqual(none[1:3], [False, "no Improve at planning stages"])
+        self.assertIn("planning_review none", none[3])
+        self.assertIn("Improve3 passes9.5 min; no Improve at planning stages (planning_review none)", none[4])
+        for key in ("stage", "absent"):
+            other = page_probe(probe, setup=mode_page(self.runs[key]))
+            self.assertTrue(other[1], key)  # the chip is hidden
+            self.assertEqual((other[2], other[3]), ("", ""), key)
+            self.assertIn("Improve9 passes36.5 min, 18% of elapsed", other[4], key)
+        self.assertEqual(page_probe('textOf("runfacts").indexOf("planning review")', setup=mode_page(self.runs["absent"])), -1)
+        detail = page_probe('setCol(1);textOf("seqdetail")', setup=mode_page(self.runs["none"]))
+        self.assertIn("Visit 2: spec", detail)
+        self.assertIn("Improvenot run by design (planning_review none)", detail)
+        self.assertNotIn("Improve", page_probe('setCol(0);textOf("seqdetail")', setup=mode_page(self.runs["none"])))
+
+
 if __name__ == "__main__":
     unittest.main()

@@ -274,7 +274,7 @@ table.cmp .kn{display:block;color:var(--muted);font-size:12px;overflow-wrap:anyw
 <section class="step" id="step-1" data-step="1" aria-labelledby="h-step-1">
 <h2 id="h-step-1">1. What happened</h2>
 <p class="sub">Pick a run. Six numbers say how big it was. The picture shows every stage visit in order, how long each took, where Improve worked and, where the host measured it, how full the model's context was. Tap a column for its detail. Below, the path every run should take and the Backchain time spent on it.</p>
-<div class="row"><label for="runsel">Run</label><select id="runsel"></select><span class="snap" id="runfacts"></span></div>
+<div class="row"><label for="runsel">Run</label><select id="runsel"></select><span class="snap" id="runfacts"></span><span class="chip bent" id="runmode" hidden></span></div>
 <div id="arc" class="arc"></div>
 <div class="kpis" id="kpis" role="group" aria-label="Six numbers for this run"></div>
 <div class="card plancard" id="plancard" hidden></div>
@@ -376,10 +376,27 @@ function reasonFor(run,name){var u=run&&run.unmeasured;return u&&typeof u[name]=
 /* countText, with the reason in brackets after "not measured" when there is one. */
 function measuredText(run,name){var t=countText(run,name),r=reasonFor(run,name);return t==="not measured"&&r?t+" ("+r+")":t;}
 function grouped(n){return String(Math.round(n)).replace(/\B(?=(\d{3})+(?!\d))/g,",");}
-/* The run header line; a counter reads "13 refusals" or "refusals not measured", never "undefined refusals". */
+/* The run's planning_review option as the export recorded it, the text as written ("stage", "none", or any other value
+   as it is), or "" when the record says nothing: a run before ShipLoop 1.22.0 has no field, or "not recorded". */
+function planningReview(run){var v=run&&run.planningReview;return typeof v==="string"&&v&&v!=="not recorded"?v:"";}
+/* The five planning stages the option covers (shiploop_stage_spec.PLANNING_CHOICE_STAGES; a test keeps them equal). Under
+   the recorded value none no Improve child starts after any of them, by design. */
+var PLANNING_REVIEW_STAGES=["spec","test-strategy","plan","step-plan","test-spec"];
+/* True only for a run that recorded none and a stage in that list; stage, an unknown value and "not recorded" claim nothing. */
+function improveByDesign(run,stage){return planningReview(run)==="none"&&PLANNING_REVIEW_STAGES.indexOf(stage)>=0;}
+/* The run header line; a counter reads "13 refusals" or "refusals not measured", never "undefined refusals". A run that
+   recorded its planning_review option says which; a run that did not reads as it always did. */
 function headerFacts(run){
   function phrase(name){var t=countText(run,name);return t==="not measured"?name+" not measured":t+" "+name;}
-  return [run.release,run.time,phrase("refusals"),phrase("glue"),run.imp].join(" | ");
+  var mode=planningReview(run),parts=[run.release,run.time,phrase("refusals"),phrase("glue"),run.imp];
+  if(mode)parts.push("planning review: "+mode);
+  return parts.join(" | ");
+}
+/* The chip beside the header line for a run whose mode changes what its numbers mean: {text, title}, or null. Only none
+   has one, so a none run is never read beside a stage run without the mode showing. */
+function modeChip(run){
+  return planningReview(run)==="none"?{text:"no Improve at planning stages",
+    title:"This run recorded planning_review none: no Improve child starts after spec, test-strategy, plan, step-plan or test-spec, so its Improve numbers and its planning minutes are not comparable with a stage run's."}:null;
 }
 /* A stage's minutes: "n/a" when the visit has no accept time (min is null), never "0 min". */
 function minutesText(min){return isCount(min)?min+" min":"n/a";}
@@ -711,10 +728,13 @@ function kpiCards(run,loops){
   out.push(isCount(run&&run.wallMin)?kpi("elapsed","Elapsed (accept to accept)",spanText(run.wallMin),
     "start to the last accept"+(run.wallMin>=120?", "+String(Math.round(run.wallMin*10)/10).replace(/\B(?=(\d{3})+(?!\d))/g,",")+" min":""),true)
     :kpi("elapsed","Elapsed (accept to accept)","not measured",reasonFor(run,"wallMin")||"no accept times recorded",false));
-  var im=improveFacts(run);
-  if(im.passes===null)out.push(kpi("improve","Improve","not measured",whyNot(run,"improvePasses")||"no Improve record",false));
-  else out.push(kpi("improve","Improve",plural(im.passes,"pass"),im.min!==null?(Math.round(im.min*10)/10)+" min"+(im.share!==null?", "+im.share+"% of elapsed":""):
-    "minutes not measured"+(whyNot(run,"improveMin")?": "+whyNot(run,"improveMin"):""),true));
+  /* A run that recorded planning_review none keeps its measured passes and minutes and says where Improve did not run. Its
+     share of elapsed is not printed: a bare 0% beside a stage run's share would read as Improve costing nothing, when no
+     Improve child starts at the planning stages in that mode. A stage run, an unknown value and a run with no record read as before. */
+  var im=improveFacts(run),none=planningReview(run)==="none",scope=none?"no Improve at planning stages (planning_review none)":"";
+  if(im.passes===null)out.push(kpi("improve","Improve","not measured",(whyNot(run,"improvePasses")||"no Improve record")+(scope?"; "+scope:""),false));
+  else out.push(kpi("improve","Improve",plural(im.passes,"pass"),(im.min!==null?(Math.round(im.min*10)/10)+" min"+(!none&&im.share!==null?", "+im.share+"% of elapsed":""):
+    "minutes not measured"+(whyNot(run,"improveMin")?": "+whyNot(run,"improveMin"):""))+(scope?"; "+scope:""),true));
   if(!Array.isArray(loops))out.push(kpi("loops","Backchain loops","not loaded","the loop record has not loaded yet",false));
   else if(!loops.length)out.push(kpi("loops","Backchain loops","none","no Backchain loop recorded for this run",true));
   else{
@@ -800,6 +820,7 @@ function columnDetail(model,k,run,findings){
   if(c.packetBytes!==null)lines.push(["Packet file",kbText(c.packetBytes)]);
   if(c.resultBytes!==null)lines.push(["Result file",kbText(c.resultBytes)]);
   if(c.improve)lines.push(["Improve",(c.improve.passes!==null?plural(c.improve.passes,"pass"):"passes not measured")+(c.improve.min!==null?", "+c.improve.min+" min":", minutes not measured")]);
+  else if(c.kind==="work"&&c.n===1&&improveByDesign(run,c.stage))lines.push(["Improve","not run by design (planning_review none)"]);
   if(c.context){
     var cx=c.context,bits=[];
     if(cx.calls!==null)bits.push(plural(cx.calls,"call"));
@@ -1072,11 +1093,12 @@ function renderFlow(){
   o.rs.forEach(function(r){var op=h("option","",r.name);op.value=r.key;sel.appendChild(op);});
   var f=byId("flow");clear(f);
   var P=phases();
-  if(!o.run){f.style.minWidth="0";f.style.gridTemplateColumns="1fr";f.appendChild(h("div","empty",loaded.runs?"No runs recorded yet.":"Loading the shared record."));byId("runfacts").textContent="";return;}
+  if(!o.run){f.style.minWidth="0";f.style.gridTemplateColumns="1fr";f.appendChild(h("div","empty",loaded.runs?"No runs recorded yet.":"Loading the shared record."));byId("runfacts").textContent="";byId("runmode").hidden=true;return;}
   if(!P.length){f.style.minWidth="0";f.style.gridTemplateColumns="1fr";f.appendChild(h("div","empty",loaded.exp?"No stages are defined yet. Seed the starting expectations (the shiploop-run-review skill, SKILL.md).":"Loading the shared record."));return;}
   f.style.gridTemplateColumns="92px repeat("+P.length+",minmax(104px,1fr))";f.style.minWidth=(92+P.length*108)+"px";
   sel.value=o.run.key;var run=o.run;
   byId("runfacts").textContent=headerFacts(run);
+  var chip=byId("runmode"),mark=modeChip(run);chip.hidden=!mark;chip.textContent=mark?mark.text:"";chip.title=mark?mark.title:"";
   f.appendChild(h("div","lane","Expected"));
   P.forEach(function(p){
     var e=ex(p.key);var c=h("button","chev exp");c.type="button";c.setAttribute("aria-pressed",L.phase===p.order?"true":"false");
