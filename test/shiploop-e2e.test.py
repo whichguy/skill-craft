@@ -1440,31 +1440,66 @@ class PlanningReviewRowTest(unittest.TestCase):
                 self.assertTrue(why.startswith("records no mode and "), why)
         self.assertEqual(run.PLANNING_REVIEW_FIRST_RELEASE, "1.22.0")
 
-    def test_this_run_and_an_earlier_row_compare_only_when_both_name_the_same_recorded_mode(self):
+    def test_the_report_line_names_why_nothing_was_compared_and_the_last_row_of_the_driver(self):
         line = run.planning_review_line
-        self.assertIsNone(line("none", self.earlier(planning_review="none")))
-        self.assertIsNone(line("stage", self.earlier(planning_review="stage")))
-        self.assertIsNone(line("stage", self.earlier(plugin_version="1.21.0")))  # a row with no mode compares as stage
-        differ = line("none", self.earlier(planning_review="stage"))
-        self.assertEqual(differ, "  baseline  not compared across planning_review modes (none vs stage); "
-                                 "the earlier row is 2026-10-04, ShipLoop 0.52.0")
-        self.assertIn("(stage vs none)", line("stage", self.earlier(planning_review="none")))
+        self.assertEqual(line("none", self.earlier(planning_review="stage")),
+                         "  baseline  not compared across planning_review modes (none vs stage); no earlier row of mode none; "
+                         "the last row for this driver is 2026-10-04, ShipLoop 0.52.0")
+        self.assertIn("(stage vs none); no earlier row of mode stage;", line("stage", self.earlier(planning_review="none")))
         as_stage = line("none", self.earlier(plugin_version="1.21.0"))
-        self.assertIn("(none vs stage)", as_stage)
+        self.assertIn("(none vs stage); no earlier row of mode none;", as_stage)
         self.assertTrue(as_stage.endswith("; it records no mode, read as stage because plugin 1.21.0 predates the option"), as_stage)
         for fields, why in ((self.earlier(), "no plugin_version places it before the option"),
                             (self.earlier(plugin_version="1.22.0"), "plugin 1.22.0 does not predate the option")):
             unknown = line("stage", fields)
-            self.assertIn("(stage vs not recorded)", unknown)
+            self.assertIn("(stage vs not recorded); no earlier row of mode stage;", unknown)
             self.assertTrue(unknown.endswith("; it records no mode and " + why), unknown)
-        self.assertIn("(not recorded vs stage)", line("not recorded", self.earlier(planning_review="stage")))
-        self.assertIn("(not recorded vs not recorded)", line("not recorded", self.earlier(planning_review="not recorded")))
-        self.assertIn("(not recorded vs not recorded)", line("not recorded", self.earlier()))  # two unknowns are not known to match
+        # a run that records no mode matches no row, and says that instead of "no earlier row of mode not recorded"
+        self.assertIn("(not recorded vs stage); this run records no mode;", line("not recorded", self.earlier(planning_review="stage")))
+        both = line("not recorded", self.earlier(planning_review="not recorded"))
+        self.assertIn("(not recorded vs not recorded); this run records no mode;", both)
+        self.assertNotIn("no earlier row of mode", both)
+
+    DRIVER = {"case": "hello", "source": "marketplace", "host": "claude", "model": "m", "effort": "high"}
+
+    def scan(self, rows: list[dict], mode: str | None, **driver) -> tuple[dict | None, int]:
+        with tempfile.TemporaryDirectory() as tmp:
+            path = Path(tmp) / "baselines.jsonl"
+            path.write_text("".join(json.dumps({**self.DRIVER, **row}) + "\n" for row in rows))
+            return run.scan_baseline(path, "hello", "marketplace", "claude", "m", "high", mode)
+
+    def test_a_run_is_compared_with_the_last_row_of_its_own_mode_found_past_rows_of_the_other(self):
+        stage, none = {"planning_review": "stage"}, {"planning_review": "none"}
+        turns = lambda found: found and found["turns"]  # noqa: E731
+        self.assertEqual(turns(self.scan([dict(stage, turns=1), dict(none, turns=2)], "stage")[0]), 1)  # not refused as before
+        self.assertEqual(turns(self.scan([dict(stage, turns=1), dict(none, turns=2)], "none")[0]), 2)
+        rows = [dict(stage, turns=1), dict(none, turns=2), dict(stage, turns=3), dict(none, turns=4)]  # interleaved
+        self.assertEqual((turns(self.scan(rows, "none")[0]), turns(self.scan(rows, "stage")[0])), (4, 3))
+        self.assertEqual(turns(self.scan(rows[:3], "none")[0]), 2)
+        self.assertEqual(self.scan(rows, "stage")[1], 4)  # the count still says how many rows the case and source have
+        self.assertEqual(turns(self.scan(rows, None)[0]), 4)  # no mode asked for: the last row of the driver, as before
+
+    def test_no_earlier_row_of_the_runs_mode_finds_nothing_and_an_unrecorded_mode_matches_no_row(self):
+        self.assertEqual(self.scan([{"planning_review": "none", "turns": 1}], "stage"), (None, 1))
+        self.assertEqual(self.scan([{"planning_review": "stage", "turns": 1}], "once"), (None, 1))
+        self.assertEqual(self.scan([{"planning_review": "not recorded", "turns": 1}], "not recorded"), (None, 1))
+        self.assertEqual(self.scan([{"turns": 1}], "not recorded"), (None, 1))
+        other_driver = [{"planning_review": "stage", "turns": 1, "host": "codex"}]
+        self.assertEqual(self.scan(other_driver, "stage"), (None, 1))  # the driver rule is unchanged
+
+    def test_a_row_with_no_mode_is_found_as_stage_only_when_its_plugin_predates_the_option(self):
+        none = {"planning_review": "none", "turns": 2}
+        old = {"plugin_version": "1.21.0", "turns": 1}
+        self.assertEqual(self.scan([old, none], "stage")[0]["turns"], 1)  # the old row is the stage row past the none row
+        self.assertEqual(self.scan([old, none], "none")[0]["turns"], 2)
+        for fields in ({"turns": 1}, {"turns": 1, "plugin_version": "1.22.0"}, {"turns": 1, "plugin_version": "dev"}):
+            self.assertIsNone(self.scan([fields, none], "stage")[0], fields)
 
     def test_the_version_constant_is_named_once_and_the_readme_says_the_rule(self):
         self.assertEqual(Path(run.__file__).read_text().count('"1.22.0"'), 1)
         readme = " ".join((ROOT / "test" / "shiploop_e2e" / "README.md").read_text().split())
-        for phrase in ("not compared across planning_review modes (<this> vs <previous>)", "only with a previous row of its own mode",
+        for phrase in ("not compared across planning_review modes (<this> vs <previous>)",
+                       "compared with the last row of its own mode", "no earlier row of mode <this>",
                        "it stands for `stage` only when its recorded `plugin_version` is below 1.22.0",
                        "reads `not recorded` and is compared with no run", "the run's `planning_review` mode"):
             self.assertIn(phrase, readme)
@@ -2898,16 +2933,43 @@ class PlanningReviewBaselineThroughMainTest(PrintedCase):
         self.assertNotIn("not compared across", printed)
         self.assertNotIn("records no mode", printed)  # it recorded one: no rule was used
 
-    def test_a_run_of_the_other_mode_compares_nothing_and_names_both_modes_either_way_round(self):
+    def number_rows(self, *turns: int) -> None:
+        """Give each committed row a distinctive `turns`, so the printed `turns <earlier> -> <now>` names the row compared with."""
+        rows = [json.loads(line) for line in self.baselines.read_text().splitlines()]
+        self.assertEqual(len(rows), len(turns))
+        self.baselines.write_text("".join(json.dumps(dict(row, turns=n)) + "\n" for row, n in zip(rows, turns)))
+
+    def test_a_run_with_only_rows_of_the_other_mode_compares_nothing_and_says_there_is_no_earlier_row_of_its_mode(self):
         for first, second in (("stage", "none"), ("none", "stage")):
             with self.subTest(first=first, second=second):
                 self.baselines.unlink(missing_ok=True)
                 self.run_with(first)
                 _, printed = self.run_with(second)
-                self.assertIn(f"  baseline  not compared across planning_review modes ({second} vs {first}); the earlier row is ", printed)
+                self.assertIn(f"  baseline  not compared across planning_review modes ({second} vs {first}); "
+                              f"no earlier row of mode {second}; the last row for this driver is ", printed)
                 self.assertNotIn("baseline  vs", printed)
                 self.assertNotRegex(printed, r"turns \S+ -> |stage turns|per-stage")  # nothing below the line is compared
         self.assertEqual(len(self.baselines.read_text().splitlines()), 2)  # the run still writes its own row
+
+    def test_a_run_is_compared_with_the_last_row_of_its_own_mode_not_refused_because_the_last_row_has_the_other(self):
+        self.run_with("stage")
+        _, printed = self.run_with("none")  # the only earlier row is a stage row: nothing to compare
+        self.assertIn("no earlier row of mode none", printed)
+        self.number_rows(11, 22)
+        _, printed = self.run_with("stage")  # [stage, none] then stage: the stage row, found past the none row
+        self.assertIn("planning_review stage): turns 11 -> ", printed)
+        self.assertNotIn("not compared across", printed)
+
+    def test_two_modes_interleaved_each_pick_their_own_last_row(self):
+        for mode in ("stage", "none", "stage", "none"):
+            self.run_with(mode)
+        self.number_rows(111, 222, 333, 444)
+        _, printed = self.run_with("none")
+        self.assertIn("planning_review none): turns 444 -> ", printed)
+        self.number_rows(111, 222, 333, 444, 555)
+        _, printed = self.run_with("stage")
+        self.assertIn("planning_review stage): turns 333 -> ", printed)
+        self.assertNotIn("not compared across", printed)
 
     def test_an_earlier_row_with_no_mode_compares_as_stage_only_when_its_plugin_predates_the_option(self):
         self.run_with("stage")
@@ -2917,20 +2979,30 @@ class PlanningReviewBaselineThroughMainTest(PrintedCase):
         self.assertIn("            the earlier row records no mode, read as stage because plugin 1.21.0 predates the option", printed)
         self.earlier_row(planning_review=None, plugin_version="1.21.0")
         _, printed = self.run_with("none")
-        self.assertIn("  baseline  not compared across planning_review modes (none vs stage); the earlier row is ", printed)
+        self.assertIn("  baseline  not compared across planning_review modes (none vs stage); no earlier row of mode none; ", printed)
         self.assertIn("; it records no mode, read as stage because plugin 1.21.0 predates the option", printed)
         for version in (None, "1.22.0"):  # no plugin_version, and a release that has the option but wrote no field
             self.earlier_row(planning_review=None, plugin_version=version)
             _, printed = self.run_with("stage")
-            self.assertIn("modes (stage vs not recorded); the earlier row is ", printed, version)
+            self.assertIn("modes (stage vs not recorded); no earlier row of mode stage; ", printed, version)
             self.assertNotIn("baseline  vs", printed, version)
+
+    def test_an_old_row_still_serves_as_the_stage_row_after_a_none_run_has_been_recorded_after_it(self):
+        self.run_with("stage")
+        self.earlier_row(planning_review=None, plugin_version="1.21.0", turns=555)
+        _, printed = self.run_with("none")
+        self.assertIn("(none vs stage); no earlier row of mode none; ", printed)
+        _, printed = self.run_with("stage")  # [old row, none row] then stage: the old row, read as stage
+        self.assertIn("planning_review stage): turns 555 -> ", printed)
+        self.assertIn("            the earlier row records no mode, read as stage because plugin 1.21.0 predates the option", printed)
 
     def test_a_run_whose_state_named_no_mode_is_compared_with_no_row(self):
         self.run_with("stage")
         _, printed = self.run_with("absent")
-        self.assertIn("modes (not recorded vs stage); the earlier row is ", printed)
+        self.assertIn("modes (not recorded vs stage); this run records no mode; the last row for this driver is ", printed)
         _, printed = self.run_with("absent")  # two unrecorded modes are not known to match
-        self.assertIn("modes (not recorded vs not recorded); the earlier row is ", printed)
+        self.assertIn("modes (not recorded vs not recorded); this run records no mode; ", printed)
+        self.assertNotIn("baseline  vs", printed)
 
 
 class AttributionEdgeTest(unittest.TestCase):
