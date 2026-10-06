@@ -2495,6 +2495,7 @@ class DefaultsUpgradeTests(unittest.TestCase):
         self.assertFalse([k for k in docs["expectations"] if k.startswith("iter-")])
         self.assertEqual(set(docs), {"expectations", "config"})
         self.assertEqual(notes, [
+            "expectations/phase-1: the page's text, which has no revision of its own, is replaced by the defaults' text",
             "expectations/group-principles: the page's text, which has no revision of its own, is replaced by the "
             "defaults' text",
             "config/prompt: replaced by the defaults (fields the defaults do not have are dropped)"])
@@ -4212,14 +4213,14 @@ class PlanningReviewPageTests(unittest.TestCase):
 
 
 GENERAL_REVIEW = EVIDENCE_DIR / "general.review.json"
-# phase-1's text in defaults/expectations.json until a ticked a26 has been applied from the repo (expectation changes are prompt-only).
+# phase-1's text in defaults/expectations.json before the ticked a26 was applied from the repo (expectation changes are prompt-only).
 PHASE_1_TEXT = ("The model writes a spec and a test strategy from the notes, one stage at a time. The script accepts each only after "
                 "its Improve review, and the spec is committed to docs/shiploop/.")
 
 
 class GeneralReviewBundleTests(unittest.TestCase):
     """R18: findings that belong to no single run live in general.review.json. It passes the check, its option amends the Specify
-    expectation with the SPEC's own carve-out wording (and does not edit the defaults: that is the owner's tick), and the page's
+    expectation with the SPEC's own carve-out wording (the defaults carry that text since the owner ticked it), and the page's
     prompt names the evidence directory and the ticked option."""
 
     @classmethod
@@ -4254,7 +4255,7 @@ class GeneralReviewBundleTests(unittest.TestCase):
     def test_the_amended_text_is_the_original_phase_1_text_plus_the_words_of_the_specs_carve_out(self):
         to = self.option["change"]["to"]
         self.assertTrue(to.startswith(PHASE_1_TEXT + " "))
-        self.assertIn(self.defaults["phase-1"]["text"], (PHASE_1_TEXT, to))  # the defaults are the owner's: unchanged until a26 is ticked
+        self.assertEqual(self.defaults["phase-1"]["text"], to)  # the owner ticked a26 and the defaults carry its text
         spec = " ".join(SPEC_MD.read_text(encoding="utf-8").split())
         carve_out = spec[spec.index("**S-10 carve-out, owner decision 2026-10-05**"):spec.index("**S-11")]
         for phrase in ("recorded in `state.md` at `init` or `workspace start`, never changed afterwards",
@@ -4295,6 +4296,24 @@ class GeneralReviewBundleTests(unittest.TestCase):
         self.assertFalse(general["cards"][0]["noOption"])
         self.assertEqual([c["finding"]["id"] for c in open_for_run["cards"]], ["o44"])  # `any` applies to every run
         self.assertEqual(other["cards"], [])
+
+    def test_the_defaults_record_the_revision_of_phase_1_naming_its_finding_and_option(self):
+        doc, change = self.defaults["phase-1"], self.option["change"]
+        self.assertEqual(len(doc["revs"]), 1)
+        rev = doc["revs"][0]
+        self.assertEqual({k: rev[k] for k in ("from", "to", "reason", "obs", "option")},
+                         {"from": PHASE_1_TEXT, "to": change["to"], "reason": change["reason"], "obs": "o44", "option": "a26"})
+        self.assertRegex(rev["at"], r"\d{4}-\d\d-\d\dT\d\d:\d\d:\d\d(\.\d+)?Z")
+        self.assertEqual(export.validate_doc("expectations", doc), [])
+
+    def test_the_saved_page_upgrades_to_the_amended_phase_1_text_and_gains_its_revision(self):
+        live = export.read_live(SNAPSHOT)
+        self.assertEqual(live["expectations"]["phase-1"]["text"], PHASE_1_TEXT)  # the page still holds the original sentence
+        self.assertFalse(live["expectations"]["phase-1"].get("revs"))
+        docs, notes = export.upgrade_docs(live)
+        written = docs["expectations"]["phase-1"]
+        self.assertEqual((written["text"], written["revs"]), (self.defaults["phase-1"]["text"], self.defaults["phase-1"]["revs"]))
+        self.assertIn("expectations/phase-1: the page's text, which has no revision of its own, is replaced by the defaults' text", notes)
 
 
 if __name__ == "__main__":

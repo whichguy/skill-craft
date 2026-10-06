@@ -1,0 +1,4 @@
+---
+bump: patch
+---
+The page's Specify expectation (`phase-1`) keeps its original sentence and now also says what the engine does under each `planning_review` mode, in the words of the SPEC's S-10 carve-out of 2026-10-05: `stage` starts an Improve child after each of the five planning results, `none` starts none and accepts each result without a review loop (the spec and test strategy are then committed unreviewed), and the Improve children after `system-test-author` and `release-plan` and the last `carry-forward` start in every mode. A `none` run is no longer read as a defect of Specify; until the default changes every new run is `stage`, so the added text describes the exception. The change is a revision recorded in `defaults/expectations.json` (finding o44, option a26); a page shows it after the defaults upgrade (`export.py --defaults --live`).
