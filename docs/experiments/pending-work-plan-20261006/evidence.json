@@ -1,0 +1,646 @@
+{
+ "workflow": "wf_2b3e2f49-588 (pending-work-and-issue-plan)",
+ "origin_main_when_read": "85d8358b",
+ "agents": {
+  "total": 17,
+  "done": 16,
+  "failed": 1,
+  "failed_agent": "plan:housekeeping-and-release (StructuredOutput retry cap exceeded, invalid JSON)"
+ },
+ "decisions": [
+  {
+   "id": "D1",
+   "question": "What does the 30-minute planning ceiling gate, and what is the pre-registered rule for flipping the default planning-review to none?",
+   "options": [
+    "A) Gate E2E planning probes on Grok medium and Sonnet, report Luna xhigh, pass none per run, default stays stage (no engine change)",
+    "B) A plus flip DEFAULT_PLANNING_REVIEW to none (PT-5) if the rule is met",
+    "C) Probe Luna below xhigh (pin exception, unknown cost)",
+    "D) Build a planning-lite profile"
+   ],
+   "recommendation": "A. Pre-register the flip rule as: (a) both Grok none wide windows at most 30 min; (b) no revise at the first test-red and the probe silent; (d) Sonnet hosts accept losing the b1e196d catch for about 2 of 4.7 min. The PT-3 quality finding is advisory only (model-judged results do not gate a flip). Luna xhigh floor is unmeasured, estimated at least 115 min [I], so it cannot reach 30 by any listed lever."
+  },
+  {
+   "id": "D2",
+   "question": "Cut one patch release now from the four pending run-review notes (and who runs it)?",
+   "options": [
+    "A) Cut one patch release now via scripts/release.py in a fresh worktree, this session runs it with the owner present, fork agrees to a push freeze",
+    "B) Wait for more fork work and release later"
+   ],
+   "recommendation": "A. The user asked for merge, push and marketplace update; the release unblocks every --source marketplace run (version_gate refuses while notes are unreleased) and PT-2. The live v1220 run has ended, so no hold is needed. Expect permission prompts for release.py and release-push.py; on a moved main, rebuild from the new origin/main, never reuse the release commit."
+  },
+  {
+   "id": "D3",
+   "question": "Spend credits on two Grok medium planning-review none probes (PT-2), and serial or concurrent?",
+   "options": [
+    "Go, serial, with --timeout 5400 and --max-resumes 2 (worst case about $45 each, $90 for two [I])",
+    "Go, concurrent (shorter, contention confound)",
+    "No go"
+   ],
+   "recommendation": "Go, serial if the Grok balance is tight (balance unknown; run run.py --preflight-only --host grok first, free). Approve the cap, not the estimate: a killed Grok session reports no cost, so true spend is unknown. Window rule: no release, no note-carrying commit, no skills/ commit during the probes."
+  },
+  {
+   "id": "D4",
+   "question": "Approve the W0-6 cleanup (about 45 branches and worktrees) in batches, after the release and with preservation first?",
+   "options": [
+    "Approve all four batches: fork-owned list, engine-line list (incl. three tagged and out-of-tree worktrees), Codex worktrees, --force removals plus the repo-distill branch and remote-less lab write",
+    "Approve selected batches only",
+    "Defer cleanup"
+   ],
+   "recommendation": "Approve all, in that order, only after W0-2 (tags for all 14 non-ancestor branches plus the eight pre-rebase SHAs, bundle verified, a13 and baseline-row diffs copied) and the housekeeping journal commit. Make it a separate step from the release. Never use --force on plrev-d354b1."
+  },
+  {
+   "id": "D5",
+   "question": "Lifecycle stack (3533706e, 8d75b3e4, 4244b359, delivered-baseline change spec): land now, defer or drop?",
+   "options": [
+    "A) Defer; record as backlog candidate 14; design reachable at keep/repo-distill-c75d630a and keep/codex-shiploop-finalize",
+    "B) Cherry-pick the three codex commits now, then release and one live follow-on case (credits)",
+    "C) Drop"
+   ],
+   "recommendation": "A. d0b2b0be deferred it, evidence is n=2 on one case, live qualification is unknown, and it changes the S-11 retention rule. If B, take the codex stack (not 722037f8) and confirm the 2026-09-27 owner decision still stands."
+  },
+  {
+   "id": "D6",
+   "question": "Where does the archive of deleted branches live, and should the three live-trigger tags be pushed?",
+   "options": [
+    "Repo journal plus local tags plus bundle in /Users/dadleet/src-archive/2026-10-06/ only",
+    "Also push keep/codex-shiploop-finalize, archive/codex-shiploop-e2e-evidence and keep/bold-albattani-dab387b5 to origin",
+    "Push all archive/* and keep/* tags"
+   ],
+   "recommendation": "Journal in the repo before any delete (tag names, shas, triggers) plus local tags and bundle, and also push the three tags that name future-work triggers so the designs survive a lost machine. Pushing tags is publishing, so the call is the owner's."
+  }
+ ],
+ "merge_steps": [
+  "Run the guards: `git -C /Users/dadleet/src/skill-craft ls-remote origin refs/heads/main` must equal `git -C /Users/dadleet/src/skill-craft rev-parse origin/main` (85d8358b when last read), `git -C /Users/dadleet/src/skill-craft status --short --untracked-files=all` must list exactly the 12 known dirty paths, `pgrep -fl 'shiploop_e2e/run.py'` must be empty and `find ~/.codex/sessions -name '*.jsonl' -mmin -90` must show no live Codex ShipLoop run.",
+  "Tag every unincorporated tip before any delete: `git -C /Users/dadleet/src/skill-craft tag archive/<branch>-20261006 <sha>` for shiploop-stage-spec-5d1cfb (9acf6ba7), shiploop-0.20-140a7b (8e842a0b), platform-card-pointer-b6a76b (3e14e613), shiploop-fixes-ac4358 (2e595588), next-batch-eb98fc (7c2a27be), the nine rr14/rr9/rrt/rrh/rrr/a1a3-integ/nextrel/agent-af41/agent-a05 branches, and `archive/fork-prerebase-<sha>` for the eight pre-rebase SHAs in the fork journal.",
+  "Write the tips list and bundle: `git -C /Users/dadleet/src/skill-craft for-each-ref --format='%(refname:short) %(objectname)' refs/tags/archive refs/tags/keep > /Users/dadleet/src-archive/2026-10-06/tips.txt`, then `git -C /Users/dadleet/src/skill-craft bundle create /Users/dadleet/src-archive/2026-10-06/skill-craft-tags-20261006.bundle <all archive/* and keep/* tags>` and `git -C /Users/dadleet/src/skill-craft bundle verify` on it, reading the exit code on its own (no pipe).",
+  "Preserve file-level state without deleting anything: `git -C <a13-33dbfd> diff HEAD --binary` plus a copy of the untracked changes/shiploop/system-test-open-item.md, `git -C <wt> diff -- test/shiploop_e2e/baselines.jsonl` for plrev-d354b1, harness-af8532, e2e-hosts-b66343 and next-batch-eb98fc, and `cp` of the 5 calibration files, all into /Users/dadleet/src-archive/2026-10-06/, each checked non-empty.",
+  "Ask the fork for a push freeze to origin/main, then build the release: `git -C /Users/dadleet/src/skill-craft fetch origin`, `git -C /Users/dadleet/src/skill-craft worktree add <C>/.claude/worktrees/rel3-<RAND> -b rel/batch-<RAND> origin/main`, `python3 <R>/scripts/release.py --dry-run` (expect shiploop-run-review 0.1.1 to 0.1.2 and skill-craft 1.22.0 to 1.22.1), then `python3 <R>/scripts/release.py`.",
+  "Record `git -C <R> rev-parse HEAD 'HEAD^{tree}'` and require `git -C <R> status --short --untracked-files=all` to be empty, then qualify those exact bytes: `python3 scripts/check-release-boundary.py --base origin/main --head HEAD`, `bash scripts/sync-plugin-views.sh --check`, `python3 scripts/check-marketplace-packages.py`, `bash test/run-all.sh --group quick --changed-from origin/main`, each exit code read on its own.",
+  "Re-run the W0-1 guards and `git -C /Users/dadleet/src/skill-craft ls-remote origin refs/heads/main`, then publish with `python3 <R>/scripts/release-push.py --repo <R> --expected-head <commit> --expected-tree <tree> --expected-base <origin/main sha> --check '[\"bash\",\"scripts/sync-plugin-views.sh\",\"--check\"]' --check '[\"python3\",\"scripts/check-marketplace-packages.py\"]'`; if it aborts because main moved, remove the rel worktree and branch, recreate from the new origin/main and redo release.py and qualification (never reuse the release commit). Do not wait on CI.",
+  "Only after the owner confirms pid 7013 is idle, preserve the canonical dirty tree: `git -C /Users/dadleet/src/skill-craft switch -c preserve/canonical-dirty-20261006-<rand>`, `git -C /Users/dadleet/src/skill-craft add -- <the 12 explicit paths>`, confirm `git diff --cached --name-only | wc -l` is 12, and commit locally with a 'not for merge; never push' message, a No-Change-Note trailer and the Co-Authored-By trailer (first checking each path's blob with `git log origin/main --find-object=<hash-object> -1 -- <path>`).",
+  "Fast-forward canonical: `git -C /Users/dadleet/src/skill-craft switch main`, require `git -C /Users/dadleet/src/skill-craft status --short` empty, `git -C /Users/dadleet/src/skill-craft fetch origin`, `git -C /Users/dadleet/src/skill-craft merge --ff-only origin/main`, and check `git -C /Users/dadleet/src/skill-craft rev-parse HEAD origin/main` are equal and `ls /Users/dadleet/src/skill-craft/changes` shows README.md only (this also moves the OpenCode symlinks).",
+  "Refresh the hosts, re-running the Codex-activity guard before the Codex step: `claude plugin marketplace update whichguy`, `codex plugin marketplace upgrade whichguy`, `grok plugin marketplace update`, and re-copy plugins/skill-craft from the release commit over ~/.cursor/plugins/local/skill-craft (Cursor is on 1.21.0); verify each by disk read (installed_plugins.json, Codex cache dir, Grok plugin.json, Cursor .marketplace-origin) showing 1.22.1 and the release commit, and report any host whose version does not move as unknown.",
+  "After the release, commit the housekeeping journal in a fresh worktree on origin/main: `git -C <hk-worktree> add -- docs/repo-housekeeping-journal-2026-10.md` (every tag, sha, trigger and the bundle path), commit as docs-only, and push before any E2E launch so no checkout is ahead of origin/main.",
+  "Once the owner approves the cleanup batches (decision D4), remove each worktree and branch one at a time with `git -C /Users/dadleet/src/skill-craft worktree remove <path>` (never --force without a verified preservation copy) followed by `git -C /Users/dadleet/src/skill-craft branch -d <branch>` for ancestors or `branch -D <branch>` only after `git -C /Users/dadleet/src/skill-craft rev-parse --verify archive/<name>-20261006` succeeds; re-run `lsof -d cwd | grep -E '\\.claude/worktrees/|skill-craft-shiploop-audit-fixes'` before each batch, remove the release worktree rel3-<RAND> and rel/batch-<RAND> next, plrev-d354b1 last (after its baseline row diff is copied), and finish with `git -C /Users/dadleet/src/skill-craft worktree prune` and `git -C /Users/dadleet/src/skill-craft worktree list`."
+ ],
+ "review_findings_applied": [
+  "R1-P1 PT-2 credit ask: added launch mode (Desktop background task, dedicated pinned worktree), --timeout 5400 and --max-resumes 2 (per-run vs per-session unknown, to be verified in run.py), worst case about $45 per probe and $90 for two [I], killed Grok session cost is unknown, window computed from state stamps, owner approves the cap in D3.",
+  "R1-P1 and R3-P1 reflog is not a backup: verified 9 of 9 incorporated branches are NOT ancestors of origin/main (git merge-base --is-ancestor); W0-2 now tags all nine plus the eight pre-rebase SHAs, writes tips.txt and the bundle before any delete, gates every branch -D on the tag existing, and drops the 'reflog covers them' sentence. (R1's '7 of 9' count came from git cherry, which shows two patch-equivalent; the ancestor test says 9 of 9.)",
+  "R1-P1 and R3-P1 CI-1 ordering: release now lands first (the user asked for it); CI-1 lands after PT-2 as a note-less change, reworded as 'fixes a demonstrated race, whether it caused the 1.22.0 flake is unknown', with the S-15 evidence statement (hermetic only, viewer-only path) and the honest consequence that it ships with the next release and marketplace runs before then do not carry it.",
+  "R1-P1 and R3-P2 missing notes and no freeze rule: section 2c and the wave tables now carry a note column for every skill-source item (C1, C2 exporter, CI-6, PT-5, RC4, lifecycle, bold-albattani, Step B); added the PT-2 window rule (no release, no note-carrying or skills/ commit, no fast-forward of the launch worktree, no local-only commits, preflight before the second probe) and batching of note-carrying items into one release after PT-2.",
+  "R1-P1 PT-3 bespoke rubric: re-expressed as a rubric-eval frame and scenario set with a stated cap of 8 Opus 5.5 medium calls, conditional on PT-2 meeting (a) and (b), a separate owner go after PT-2; flip rule (c) is now advisory so a model-judged result does not gate the default flip.",
+  "R1-P1 rrr-edc892 ownership: moved to the fork's ack list (rr-prefixed, fork-owned); the engine-line row no longer infers ownership.",
+  "R1-P2 C1: moved from Wave 2 to Wave 3 with the trigger 'a host actually fails or truncates the read'; noted it has no S-n anchor today, S-7 and the dropped L5 conflict, value is about 1 minute of a 30-minute window, and the parts belong in the packet file not the head.",
+  "R1-P2 PT-1 docs pin: dropped the wording pin; decision record is prose in an engine-side docs/experiments file with a one-line pointer added by the fork (also answers R3-P2 one-writer-per-harness-file).",
+  "R1-P2 Luna 'known by arithmetic': reworded everywhere to 'unmeasured, estimated at least 115 min [I]'; options C and D appear once, as D1 owner options, not also under Dropped.",
+  "R1-P2 CI-3: kept the per-suite seconds print, dropped the ::warning feature, and aimed the fail-first test at the defect (unmeasured read as 0.0 s; 46 of 108 suites have no entry, 17 of the 69 selected in a merge-sized range, reconciling both reviewers' counts).",
+  "R1-P2 and R1-P2 evidence in repo: the housekeeping journal (every tag, sha, trigger, bundle path) is committed before any delete; pushing the three live-trigger tags is now explicit decision D6.",
+  "R1-P2 decision load: cut 13 decisions to 6 plus a recorded-defaults list; W0-6 cleanup is a separate optional step after the release and host refresh.",
+  "R1-P2 and R3-P2 release.py: removed the cwd hedge (ROOT = Path(__file__).resolve().parents[1], verified), added the release worktree and rel/batch-RAND branch to the cleanup list, and noted permission prompts for release.py and release-push.py; e4dd88d7 is still dropped but for KISS (no observed failure, trigger named), not the '11 of 25 runs resumed' argument.",
+  "R2-P1 live run ended: verified result.json pass true, exited 0, 1059.8 s, 0 resumes, source checkout, 1.22.0/0.54.0, local_head 81e0502f, no run.py process, and plrev-d354b1 dirty with a new battleship claude-sonnet-5-5 baseline row. Removed the release and refresh hold, stated the run came from this session's process tree, made the new row fork-owned evidence (diff preserved in W0-2, plrev removed last and never with --force).",
+  "R2-P2 Cursor and OpenCode: verified Cursor is a local copy at 1.21.0 (~/.cursor/plugins/local/skill-craft/.marketplace-origin) and OpenCode skills are symlinks into the canonical checkout; added a Cursor re-copy step and verification to W0-5, and noted OpenCode moves with the W0-4 ff.",
+  "R2-P2 three checked-out archive-tag branches: verified stage-spec-5d1cfb, platform-card-pointer-b6a76b and the out-of-tree /Users/dadleet/src/skill-craft-shiploop-audit-fixes-529567 (0.20) are worktrees; added their removal before branch -D and widened the lsof guard to the out-of-tree path.",
+  "R2-P2 stale numbers and CI: canonical is 215 behind (verified), the Codex progress-view and companions counts are now 'about 250', and CI on 85d8358b is recorded as success (verified), removed from Unknown.",
+  "R2-P2 republish wording: now cites the change notes (planning-review-option.md, plan-panel-and-packet-box.md) instead of 'every commit'.",
+  "R3-P1 preservation only in prose: all preservation actions (a13 diff plus untracked file with git apply --check, four baseline-row diffs, calibration files, lab row) are numbered in W0-2 with non-empty checks before the matching --force.",
+  "R3-P1 release-push race: added the push freeze request, the abort and recovery path (rebuild from the new origin/main, never reuse the release commit), and the clean-including-untracked and ls-remote re-checks after qualification.",
+  "R3-P1 guard instrument: replaced the ps|grep with pgrep on run.py plus a recent-Codex-rollout find and an owner question about Codex app threads, re-run before the push and before the Codex upgrade; Claude refresh is non-destructive, Codex's is not.",
+  "R3-P2 PT-2 owner and hold: stated the run's ancestry and that no hold is needed; added the window rule above.",
+  "R3-P2 exp/repo-distill: added the keep-tag worktree as the lab's SKILL_CRAFT_ROOT and put the branch and the lab write into the D4 approval batch.",
+  "R3-P2 W0-5: added per-host commands, disk-read verification and the 'version did not move' outcome (record as unknown, ask the owner)."
+ ],
+ "review_findings_rejected": [
+  "R1-P1 'CI-1: use a patch note instead of No-Change-Note': kept No-Change-Note as the recommendation. The race is viewer-only, a patch note would make version_gate refuse every marketplace run until a second release, and the checklist says a trailer ships at the next release at its unchanged version. I accepted the other parts (release first, honest wording, S-15 evidence statement, ship-time consequence stated).",
+  "R3-P1 'tag or bundle the eight pre-rebase SHAs or have the fork add its mapping commit before any rr17/p1amend/rr* worktree is removed': tagging is done (archive/fork-prerebase-*), but the fork's mapping commit stays a follow-up rather than a precondition because the tags already protect the objects and gating deletes on another session's docs commit adds a dependency for no safety gain.",
+  "R1-P2 'drop PT-3 or route through rubric-eval': not dropped; re-routed through rubric-eval with a call cap and made conditional and advisory, because the quality-proxy gap for unreviewed planning documents is the only evidence the flip rule's quality condition could ever have, and it costs nothing unless the owner gives a go after PT-2."
+ ],
+ "reviews": [
+  {
+   "lens": "Owner-rule fit: KISS and overbuilding, one supported version, concise prompts, fail-first script-run tests, unmeasured is unknown, ask befor",
+   "verdict": "revise",
+   "findings": [
+    {
+     "severity": "P1",
+     "claim": "Wave 1 PT-2 and decision 4: two Grok medium none probes at about $11-17 each, $22-34 in total [I], launched with an external watcher.",
+     "problem": "The credit ask is a point estimate with no hard bound. The harness says Grok has no spend cap, the default --timeout is 10800 s and --max-resumes is 20, so a watcher that never fires leaves a run uncapped for up to 3 h. The probes run 36-50 minutes, and LEARNINGS records that background tasks are killed at about 30 minutes. A kill splits the wide window being measured. The resume also replays work, and a killed session reports no cost, so the real spend cannot be reconstructed. The plan names no launch mode, no --timeout, no --max-resumes and no handling of the kill.",
+     "evidence": "test/shiploop_e2e/run.py parser: --max-budget-usd 'claude only; grok has no spend cap', --timeout default 10800, --max-resumes default 20. test/shiploop_e2e/LEARNINGS.md: 'killed at 1798 s by the 30-minute background-task limit', 'Launch long runs as background tasks ... never detach with nohup', 'a killed session reports no cost', per-stage minutes omit the kill-to-resume gap, and c1/c2 interrupt runs cost $25.85 against $8.60-11.20 uninterrupted because the killed session's work is replayed.",
+     "fix": "Put the bound in the ask. Name the --timeout and --max-resumes values for each probe, the launch mode (Desktop background task), and a worst-case dollar figure that includes one replayed resume. State that a killed Grok session's cost is unknown. Define the window from timeline or state stamps so a resume gap does not void the measurement. The owner approves the cap, not just the estimate."
+    },
+    {
+     "severity": "P1",
+     "claim": "W0-2 and W0-6: for the nine already-incorporated branches, record tips in the journal 'instead of tagging (reflog covers them)', then git branch -D.",
+     "problem": "Deleting a branch deletes its reflog, so the reflog protects nothing. Only the objects survive until gc. The tips are written to the journal at the end of W0-6, after the deletes. The plan's own rule is to tag every branch whose tip is not an ancestor of origin/main, and 7 of the 9 branches are not ancestors by that test. Main counterparts do exist for the ones I sampled (dc3ce69a to 5561e12c, aa8867ff to c98dd047, 80b48e4d to 180a1b48, ef7086c6 to c895d921), so deletion looks plausible. The safety net as written is nonetheless false and sits after the irreversible step.",
+     "evidence": "git cherry origin/main <branch> shows '+' commits on rr14-98a6ad (2 of 2), rr9-e0c0c4 (1), rrt-466f9b (1), rrr-edc892 (1), worktree-agent-af41c2912efab94c7 (1), nextrel-evalskills-0001ba (1) and a1a3-integ-7f216e (1). Only rrh-3d4174 and worktree-agent-a05edeeaa883c2c09 show 0.",
+     "fix": "Apply the tag rule uniformly (tags cost nothing and the bundle step already exists). Or commit docs/repo-housekeeping-journal-2026-10.md with every tip SHA plus a subject-and-diffstat match to its main counterpart before the first delete. Drop the 'reflog covers them' sentence."
+    },
+    {
+     "severity": "P1",
+     "claim": "Order of landing pushes: 'CI-1 and CI-2 first (so the release commit carries the flake fix)', with CI-1 carrying No-Change-Note (decision 10).",
+     "problem": "The user asked for merge, push and marketplace update. This ordering makes that release wait on an unrelated one-character engine fix, for a flake that passed on rerun and whose cause the plan itself leaves unproven. The No-Change-Note rationale ('no pending note, so no marketplace-run gate') is moot under the plan's own order, because a note landed before the release is consumed by that release. The recommendation also contradicts the checklist: a No-Change-Note is for a change nobody needs to receive as an update, yet the stated purpose is to ship the fix to hosts. By the checklist it ships 'at its unchanged version', so two different byte sets would both be ShipLoop 0.54.0. Change admission also asks for an evidence statement for a ShipLoop change, which the plan does not give for CI-1 (hermetic only, no live run).",
+     "evidence": "docs/skill-release-checklist.md: 'a source change carrying No-Change-Note ships with the next release at its unchanged version and reaches only fresh installs'. test/shiploop_e2e/run.py version_gate gates on released['unreleased'] notes. skills/shiploop/scripts/shiploop_progress.py _read_json has the 'st_nlink != 1' check. skills/shiploop was untouched between 45f163d0 and origin/main (git diff --stat).",
+     "fix": "Decouple. Cut the release first, as the user asked. Land CI-1 afterwards. Either use a patch note and accept the marketplace-run gate until the next release, or use the trailer and say it ships only with the next release. State in the commit that the live suite is not run and why (viewer-only). Word the flake as 'fixes a demonstrated race, whether it caused the 1.22.0 flake is unknown'."
+    },
+    {
+     "severity": "P1",
+     "claim": "Wave 2 to 4 items that change skill source, with section 2c's per-push table of notes.",
+     "problem": "The table gives no change-note line for C1 (skills/shiploop packet text and SKILL.md), CI-6 (skills/rubric-eval/suites/architecture-v4/make_packet_frame.py and its frame), C2's exporter half (skills/shiploop-run-review), PT-5 or the RC4 engine. The release-boundary check rejects any of these without a note or trailer. A note-carrying landing also makes version_gate refuse every later --source marketplace run until the next release. The plan lands such items while PT-2's serial second probe still needs the marketplace gate to pass, and has no freeze rule. A probe launched after such a landing is refused before spending anything, but the plan has not planned for that stall.",
+     "evidence": "test/shiploop_e2e/run.py version_gate: 'origin/main has unreleased changes'. changes/README.md and docs/skill-release-checklist.md: a skill change needs changes/<leaf>/<slug>.md or No-Change-Note. The plan's section 2c lists only the release, CI-1, CI-2, CI-3/4/5, chain-split, the lifecycle stack, bold-albattani and Step B.",
+     "fix": "Add a note column for every skill-source item. Add a freeze rule: no note-carrying landing between the W0-3 release and the end of PT-2, or batch those items into one following release. Run --preflight-only before the second probe."
+    },
+    {
+     "severity": "P1",
+     "claim": "PT-3: a bespoke fixed five-item rubric, one Opus 5.5 judge blind to mode, planted-defect calibration. Flip rule (c) in decision 1 depends on its result.",
+     "problem": "The repo has a sanctioned evaluation path, rubric-eval with its SPEC (arms, one blind evidence-first judge, quality then tokens then time, paired standard tests). The owner's rule is that all evaluation goes through it with standard scales and no invented thresholds, yet PT-3 builds its own. The planted-defect fail-first test is itself a model run, so it spends judge credits that the 'cost unmeasured' ask does not count. At least 2 PT-2 sets, the reviewed 1.21.0 set, 2 planted copies and 1 unmodified copy make 6 or more judge calls with no cap. A model-judged result then gates a default flip, which sits badly with the S-9 principle that a script-run check is the evidence.",
+     "evidence": "skills/rubric-eval/SKILL.md description and SPEC.md exist on origin/main. The plan's PT-3 row and decision 1 flip rule (c).",
+     "fix": "Express the five items as a rubric-eval frame and scenario set, or drop PT-3. State the call count and a cost cap in the ask. Make (c) advisory: the flip then rests on the script-checkable rules (a), (b) and (d), plus the owner's own read of the documents."
+    },
+    {
+     "severity": "P1",
+     "claim": "Section 2a: rrr-edc892 is deleted by this session on 'ownership inferred (engine side)'.",
+     "problem": "The brief assigns rr* branches to the E2E (fork) session. rrr-edc892 carries that prefix and is also a worktree path, and the plan routes its removal around the fork on an inference. The plan elsewhere honours the ownership rule (fork acks for rr14, rr9, rrt, rrh).",
+     "evidence": "git worktree list shows .claude/worktrees/rrr-edc892 on branch rrr-edc892. The plan's own table says 'Ownership inferred'.",
+     "fix": "Move rrr-edc892 to the fork's ack list, or get the owner's explicit assignment before removal. Do not infer ownership for a branch the naming rule already assigns."
+    },
+    {
+     "severity": "P2",
+     "claim": "C1: script-computed read parts (about 16,000-char line ranges) plus a sed fallback in packet_head, emit, the Improve-card sentences and SKILL.md. SPEC column: 'none for the code'.",
+     "problem": "The change has no S-n anchor, and change admission says a change with no anchor is not made. It enlarges the printed head (the plan's own 49 KB packet would list several parts), against S-7 'printed head is short' and the owner's 'packets point to files'. It introduces a size-based chunk limit while L5 is dropped because 'size caps contradict S-7'. The measured value is about 1 minute of a 30-minute window, by the plan's own number. Its live check 'rides the next Codex run', a credit-spending run the plan does not schedule.",
+     "evidence": "skills/shiploop/SKILL.md and scripts/shiploop_navigator.py contain the 'file-reading tool' sentences. test/shiploop_e2e/SPEC.md S-7 and 'Change admission' (Anchor, adversarial evaluation first).",
+     "fix": "Drop C1 or move it to Wave 3 with a measured trigger (a host that actually fails or truncates the read). If kept, anchor S-7, write the adversarial evaluation, and keep the head unchanged by putting the parts in the packet file."
+    },
+    {
+     "severity": "P2",
+     "claim": "PT-1 fail-first test: a docs-pin in test/shiploop-e2e.test.py that the LEARNINGS entry 'cites the decision and rule'.",
+     "problem": "This is a test of wording that fails only because prose is missing. It tests no route or behaviour. It adds a pin to a suite the CI audit identifies as the main design tax (pins broke 22 of 36 red runs). The behaviour the flip rule protects is already covered by PT-5's default-parity test.",
+     "evidence": "docs/experiments/ci-audit-20261005/README.md ('the real design tax is pins'). The plan's PT-1 row.",
+     "fix": "Drop the pin. Keep the decision record as prose in the 'Planning time' status in LEARNINGS or docs/experiments/shiploop-planning-time-20261005/. The real test belongs to PT-5 if it is built."
+    },
+    {
+     "severity": "P2",
+     "claim": "Decision 1 options C and D, plus 'Deliberately not planned: the Luna none run (answer known by arithmetic)'.",
+     "problem": "The 'Luna xhigh floor of 115-131 min even with no Improve and no Backchain loop' is labelled [I]. Only the 171.6 min 'other' window is measured, and it includes the Backchain loops. A figure marked inferred is presented as known, and the same options appear both as owner choices and as 'Dropped under KISS'. Option A's premise ('Luna xhigh cannot reach 30 by any listed lever') then rests on an inference.",
+     "evidence": "The plan's own [I] labels. docs/experiments/shiploop-planning-time-20261005/ holds the Luna 375.0 / 203.4 / 171.6 minute split.",
+     "fix": "Say 'unmeasured, estimated >= 115 min [I]'. Present C and D once, as owner options, with a cost estimate for a bounded Luna probe, or drop them from decision 1. Do not call the answer known."
+    },
+    {
+     "severity": "P2",
+     "claim": "CI-3: print per-suite seconds, a ::warning above QUICK_MAX_SECONDS, and refresh _DURATION_SECONDS. Its fail-first test is 'stdout matches the new pattern for a fake suite'.",
+     "problem": "The defect the plan names is that an unmeasured suite is read as 0.0 s ('unmeasured is zero'). In the catalog, _light uses _DURATION_SECONDS.get(path, 0.0), and 46 of 108 suites have no entry. The test pins the new output format, not that defect, and the ::warning is a new feature with no cited failure. The 'about 17 selected suites without an entry' figure does not match the 46 I count in the catalog, though it may count only suites selected for a particular change.",
+     "evidence": "test/suite_catalog.py: _light, _DURATION_SECONDS, the comment 'Replace it with the suite's own GitHub seconds once the runner prints per-suite time'. Docs/experiments/ci-audit-20261005 lists O4 (per-suite seconds) as open.",
+     "fix": "Keep the per-suite seconds print, which the catalog comment asks for. Drop the ::warning. Make the fail-first test about the defect: an unmeasured suite must not be treated as light (an assertion over suites missing from _DURATION_SECONDS, failing on main today), then refresh the table from the printed seconds."
+    },
+    {
+     "severity": "P2",
+     "claim": "Decision 7 and section 2a: evidence for the lifecycle stack, the Battleship checker and the payload-digest idea is 'ready material for the fork' on local tags plus a local bundle; the plan recommends not pushing the tags.",
+     "problem": "The owner's rule is that evidence lives in the repo. The five keep/ and archive/ tags exist only locally (none appears in git ls-remote --tags origin). The plan deletes the codex worktrees and branches and leaves one machine's .git and a bundle in src-archive as the only copy of designs it names as triggered future work. repo-distill-lab has no remote either.",
+     "evidence": "git tag -l shows archive/codex-shiploop-e2e-evidence, archive/evalskills-52b2ee-2026-10-04, keep/bold-albattani-dab387b5, keep/codex-shiploop-finalize, keep/repo-distill-c75d630a. git ls-remote --tags origin returned none of them.",
+     "fix": "Put tag names, SHAs and the trigger for each in docs/repo-housekeeping-journal-2026-10.md (committed before the deletes), or push just the three tags with live triggers. Treat the bundle as a backup, not the record."
+    },
+    {
+     "severity": "P2",
+     "claim": "Section 4: thirteen owner decisions; W0-6 cleanup of about 45 worktrees and branches placed in Wave 0 beside the release.",
+     "problem": "Decisions 7 to 13 are mostly defaults the plan already recommends or concern items it does not build (8, 12, 13). They block nothing and load the owner. The destructive cleanup was not requested; the request was to decide how to merge pending work, merge, push and update the marketplace. Bundling it into Wave 0 couples an irreversible, approval-heavy job to the user-requested release path.",
+     "evidence": "The plan's section 4 and the W0-6 text. The request relayed at the top of this task.",
+     "fix": "Ask only decisions 1 to 4 plus the cleanup go-ahead. Record defaults for the rest and proceed. Make W0-6 a separate optional step after W0-5, with the journal commit first."
+    },
+    {
+     "severity": "P2",
+     "claim": "W0-3 and the e4dd88d7 drop: 'If the script needs its repo as cwd, run it with $R as cwd in a subshell'; no removal of the release worktree; e4dd88d7 'would refuse routine --resume-run (11 of 25 recorded runs were resumed)'.",
+     "problem": "Three small mismatches. (a) release.py sets ROOT from its own file path and runs every git call with -C ROOT, so the cwd hedge is unnecessary and invites exactly the cd-then-git habit the owner forbids; the plan lists this as unknown when one read settles it. (b) The release worktree and its rel/batch-RAND branch are created and never listed in W0-6. (c) e4dd88d7 refuses a resume only when the package or release differs from the run's own. It matches the one-supported-version rule ('refuse missing identities rather than maintaining a legacy resume path'). The plan's own reason conflates 'a run was resumed' with 'a run was resumed across a release', and it separately holds the release push because a Codex run cannot resume across one.",
+     "evidence": "scripts/release.py: ROOT = Path(__file__).resolve().parents[1]; git() uses '-C', str(ROOT); it refuses a dirty checkout. git show --stat e4dd88d7.",
+     "fix": "State that release.py resolves its repo from its own path and drop the cwd hedge. Add the release worktree and branch to W0-6. Keep the e4dd88d7 drop but give the KISS reason (no observed failure; trigger already named) and drop the 11-of-25 argument."
+    }
+   ],
+   "claims_checked": [
+    {
+     "claim": "origin/main is 85d8358b, not 3b246328 (plan section 0).",
+     "holds": true,
+     "evidence": "git rev-parse origin/main in the canonical repo prints 85d8358b466cb6150e0cd1f1f382806562916811. The plrev-d354b1 worktree is at 81e0502f, so it lags by the Specify amendment. I did not re-run git ls-remote for main."
+    },
+    {
+     "claim": "Four pending notes, all patch bumps in changes/shiploop-run-review/; shiploop-run-review is at 0.1.1 and skill-craft at 1.22.0.",
+     "holds": true,
+     "evidence": "git ls-tree origin/main changes lists plan-and-packets-export, plan-panel-and-packet-box, planning-review-option and phase-1-planning-review-modes, each with bump: patch. skills/shiploop-run-review/SKILL.md has version 0.1.1 and catalog/skill-craft-plugin.json has 1.22.0. The phase-1 note is on origin/main but not in the older worktree."
+    },
+    {
+     "claim": "skills/shiploop is untouched since 1.22.0 (the plan did not re-diff 85d8358b).",
+     "holds": true,
+     "evidence": "git diff --stat 45f163d0 origin/main -- skills agents catalog scripts shows only skills/shiploop-run-review files (SCHEMA.md, SKILL.md, defaults/expectations.json, scripts/export.py, template/index.html)."
+    },
+    {
+     "claim": "version_gate refuses a marketplace run while origin/main has unreleased notes; a checkout-source run does not gate.",
+     "holds": true,
+     "evidence": "test/shiploop_e2e/run.py version_gate adds 'origin/main has unreleased changes' from released['unreleased'] and is called from marketplace_preflight. --source checkout builds the checkout and skips it."
+    },
+    {
+     "claim": "run.py --preflight-only --host grok costs no credits.",
+     "holds": true,
+     "evidence": "GrokHost.install_marketplace in hosts.py runs grok plugin marketplace add and grok plugin install skill-craft --trust, then reads the registry. No model call is made."
+    },
+    {
+     "claim": "release.py resolves its repo from its own path (the plan lists this as unknown). release-push.py takes the arguments the plan uses.",
+     "holds": true,
+     "evidence": "scripts/release.py: ROOT = Path(__file__).resolve().parents[1] and git() runs 'git -C ROOT'. It refuses a dirty checkout and, on failure, runs git clean in ROOT. scripts/release-push.py has --repo, --expected-head, --expected-tree, --expected-base and repeated --check. check-release-boundary.py has --base and --head."
+    },
+    {
+     "claim": "CI-1: _read_json uses st_nlink != 1, and test/shiploop-progress.test.py has 17 tests.",
+     "holds": true,
+     "evidence": "skills/shiploop/scripts/shiploop_progress.py _read_json fstat check 'st_nlink != 1'; _regular() has an lstat check; store.atomic_write_text exists in shiploop_store.py. grep counts 17 test_ methods. The 2 of 1,700 trial rate is not verified by me."
+    },
+    {
+     "claim": "_light() reads an unmeasured suite as 0.0 s ('unmeasured is zero'); about 17 selected suites have no entry.",
+     "holds": true,
+     "evidence": "test/suite_catalog.py: _light uses _DURATION_SECONDS.get(path, 0.0) <= QUICK_MAX_SECONDS. 46 of 108 suites have no entry and 45 of those pass _light. The plan's '17 selected' is unverifiable and differs from my count."
+    },
+    {
+     "claim": "The nine branches planned for -D are incorporated, with every commit having a main counterpart.",
+     "holds": false,
+     "evidence": "Counterparts by subject exist for the commits I sampled. But git cherry origin/main <branch> reports '+' commits on 7 of the 9 (rr14, rr9, rrt, rrr, agent-af41, nextrel, a1a3-integ), and 'reflog covers them' is wrong once a branch is deleted."
+    },
+    {
+     "claim": "The archive tags keep/* and archive/* exist; the plan recommends not pushing them.",
+     "holds": true,
+     "evidence": "git tag -l lists five keep/ or archive/ tags. git ls-remote --tags origin returns none of them, so they are local only."
+    },
+    {
+     "claim": "The PT-2 --prompt route exists and RC2's --start-run / --run-option do not.",
+     "holds": true,
+     "evidence": "run.py parser has --prompt, --resume-run and --preflight-only; there is no --start-run, --run-option or --stop-after. Grok has no spend cap (--max-budget-usd is claude only); --timeout defaults to 10800 and --max-resumes to 20."
+    },
+    {
+     "claim": "PT-5's single constant DEFAULT_PLANNING_REVIEW in skills/shiploop/scripts/shiploop_stage_spec.py.",
+     "holds": true,
+     "evidence": "shiploop_stage_spec.py defines DEFAULT_PLANNING_REVIEW = \"stage\"; shiploop_navigator.py, shiploop_navigator_dry_run.py and shiploop_protocol.py read it, and a comment there states 'a saved run without the key is refused (one supported version)'."
+    },
+    {
+     "claim": "CI-3, CI-4 and CI-5 are grounded in measured evidence, not invented (they come from the audit's open items).",
+     "holds": true,
+     "evidence": "docs/experiments/ci-audit-20261005/README.md: open O4 per-suite seconds, O11 hub suite for the 09-24 miss, O10 derive the suite-count pin; 'pins are the real design tax'. test/test-groups.test.py pins counts 67, 39 and 108; _HUB_SUITE_IDS in suite_catalog.py is a fixed nine."
+    }
+   ]
+  },
+  {
+   "lens": "Factual verification of the plan against the repository, hosts, CI and live processes (read-only; scratch clone and exports under the wf scr",
+   "verdict": "revise",
+   "findings": [
+    {
+     "severity": "P1",
+     "claim": "Section 0 'A live E2E run exists ... do not remove or move plrev-d354b1, and hold the release push ... until the run ends'; section 2a plrev-d354b1 'keep until last'; W0-6 plain 'worktree remove' (no --force).",
+     "problem": "The run has ended. /Users/dadleet/e2e-runs/20261006/v1220-battleship-sonnet/result.json (08:23) shows pass true, process.status exited, stop success, 1059.8 s, versions.source checkout at 1.22.0/0.54.0, with the plugin loaded from <run>/build/plugins/skill-craft. No run.py or claude -p process remains in ps. Because the run used the default --baseline, it appended a new baseline row, so plrev-d354b1 is now dirty (M test/shiploop_e2e/baselines.jsonl, a battleship / claude-sonnet-5-5 row dated 2026-10-06T08:23:04). The plan's 'plrev is clean' and 'plain worktree remove' no longer hold. The refusal is safe, but the plan's only escape is --force, which would discard a fresh, unrecorded 1.22.0 Battleship baseline row. The release-push hold is moot, and the unverified claim that a checkout-source run is immune to a marketplace refresh is now verified: the run loaded its own build, not the marketplace install.",
+     "evidence": "git -C plrev-d354b1 status --short prints ' M test/shiploop_e2e/baselines.jsonl'. The added row begins {\"date\": \"2026-10-06T08:23:04-0700\", \"case\": \"battleship\", ... \"host\": \"claude\", \"model\": \"claude-sonnet-5-5\"}. result.json has pass true and plugin.loaded equal to .../build/plugins/skill-craft. ps shows no shiploop_e2e/run.py process at 08:24.",
+     "fix": "Re-read the live state before each step. Drop the 'hold the release push' condition from decision 2. Treat the new battleship row as fork-owned evidence: the fork (or the session that launched the run) commits it to baselines.jsonl, or copies it to the archive and then discards it. Remove plrev-d354b1 only after that, and never use --force on it. Add to the plan the run's result: Claude Sonnet 5.5 battleship passed on 1.22.0 in 17.7 min, checkout source at 81e0502f."
+    },
+    {
+     "severity": "P2",
+     "claim": "Section 1 hosts: 'Cursor: no skill-craft in ~/.cursor/plugins/cache, so unverified (app-installed)'; W0-5 'Grok and Cursor per docs/distribution.md ... verify with the same disk reads'.",
+     "problem": "Cursor is verifiable. It has a local plugin at ~/.cursor/plugins/local/skill-craft (the path docs/distribution.md names) at version 1.21.0, not 1.22.0. The plan looked only in plugins/cache. docs/distribution.md gives no refresh command for a local Cursor copy (only 'place or symlink plugins/skill-craft' or the GitHub import UI), so W0-5 as written would leave Cursor on 1.21.0 without anyone noticing. OpenCode is also verifiable, not 'unverified': ~/.config/opencode/skills holds symlinks to the canonical checkout's skills (shiploop, improve, backchain and others), so OpenCode currently reads the stale and dirty canonical tree.",
+     "evidence": "~/.cursor/plugins/local/skill-craft/.marketplace-origin: source=skill-craft@whichguy, version=1.21.0, gitCommitSha=1411d5f15056ba39da25b7000aa39d4368868f01, shiploop=0.53.0; .cursor-plugin/plugin.json version 1.21.0. 'ls -la ~/.config/opencode/skills' shows shiploop -> /Users/dadleet/src/skill-craft/skills/shiploop.",
+     "fix": "State Cursor as 1.21.0, a local copy that needs a manual refresh after the release (re-copy plugins/skill-craft from the release, or the import UI). Add a W0-5 step and a verification read of ~/.cursor/plugins/local/skill-craft/.marketplace-origin. State that OpenCode is on canonical and moves only with the W0-4 fast-forward."
+    },
+    {
+     "severity": "P2",
+     "claim": "2a / W0-2 / W0-6: branches feat/shiploop-stage-spec-5d1cfb, feat/shiploop-0.20-140a7b and skills/platform-card-pointer-b6a76b are 'archive via tag, then delete: Tag rule in W0-2, then branch -D'.",
+     "problem": "All three are checked out in worktrees, so git branch -D refuses until the worktree is removed. The 0.20 worktree is /Users/dadleet/src/skill-craft-shiploop-audit-fixes-529567, outside .claude/worktrees. The plan never names that path, and its pre-delete guard (lsof -d cwd | grep -F .claude/worktrees/) would not see a process there. The enumerated W0-6 order (fork list, engine list, Codex, plrev last) omits these three worktrees.",
+     "evidence": "git worktree list: '/Users/dadleet/src/skill-craft-shiploop-audit-fixes-529567 8e842a0b [feat/shiploop-0.20-140a7b]', '.../shiploop-stage-spec-5d1cfb 9acf6ba7 [feat/shiploop-stage-spec-5d1cfb]', '.../platform-card-pointer-b6a76b 3e14e613 [skills/platform-card-pointer-b6a76b]'. All three are clean.",
+     "fix": "Add the three worktree removals (including the out-of-tree path) to the engine-line list before their branch -D. Widen the lsof guard to cover them."
+    },
+    {
+     "severity": "P2",
+     "claim": "Section 1: canonical is '212 behind'; 2a: codex/shiploop-progress-view and codex/shiploop-companions are '239 and 247 behind'; section 0 and risks: CI on 85d8358b 'in progress' / 'unknown'.",
+     "problem": "The counts are from older heads. At origin/main 85d8358b the canonical checkout is 215 behind (212 was at 81e0502f). progress-view is 259 behind and companions 251 (239 and 247 were at 3b246328, and in swapped order: 247 for progress-view, 239 for companions). CI for 85d8358b has completed with success (15:07Z), so the 'unknown' is resolved.",
+     "evidence": "git rev-list --count 1ff8c841..origin/main = 215. fc18954c..origin/main = 259, ede4b9df..origin/main = 251. gh run list --commit 85d8358b: 'CI push' completed success.",
+     "fix": "Update the numbers or drop them. Delete CI-on-85d8358b from the Unknown list. Re-read origin/main before each step, as section 0 already says."
+    },
+    {
+     "severity": "P2",
+     "claim": "W0-5: 'every R17/R18 commit says \"not republished\"'.",
+     "problem": "Overstated. Only f31095ce, 09f27638 and c757cedf mention republishing, and a88a3cf7, 9eba8f41, cb0baf6e, 219c1de6 and d48a0630 do not (9eba8f41 is harness-only). The republish need is stated in the pending change notes (planning-review-option.md, plan-panel-and-packet-box.md: 'The page needs one republish'), not in every commit.",
+     "evidence": "grep -ci republish over the commit messages: f31095ce 1, 09f27638 1, c757cedf 2, others 0.",
+     "fix": "Cite the change notes or the three commits instead of 'every commit'."
+    }
+   ],
+   "claims_checked": [
+    {
+     "claim": "origin/main is 85d8358b (not 3b246328); local origin/main equals ls-remote",
+     "holds": true,
+     "evidence": "git ls-remote origin refs/heads/main = 85d8358b466cb6150e0cd1f1f382806562916811, equal to the local origin/main ref. plrev-d354b1 HEAD is 81e0502f, three commits behind it."
+    },
+    {
+     "claim": "rr17-a0486a and p1amend-565711 are both at 85d8358b",
+     "holds": true,
+     "evidence": "git rev-parse for both branches and git worktree list: 85d8358b."
+    },
+    {
+     "claim": "R17/R18 is f31095ce..219c1de6, 7 commits; then 25d1d93d and 81e0502f; then d48a0630, 4b4c2561 and merge 85d8358b",
+     "holds": true,
+     "evidence": "git rev-list 3b246328..219c1de6 gives 7: f31095ce 09f27638 a88a3cf7 c757cedf 9eba8f41 cb0baf6e 219c1de6. 85d8358b has parents 4b4c2561 and 81e0502f; d48a0630 and 25d1d93d both have parent 219c1de6."
+    },
+    {
+     "claim": "CI success for 45f163d0, 3b246328, 219c1de6 and 81e0502f; 85d8358b in progress",
+     "holds": true,
+     "evidence": "gh run list: all four success. 85d8358b is now also success, completed 15:07Z, so 'in progress' is stale. 45f163d0 shows attempt 2, consistent with the one flake and rerun."
+    },
+    {
+     "claim": "Release 1.22.0 = 45f163d0 (skill-craft 1.22.0, shiploop 0.54.0, shiploop-e2e-audit 0.7.0); catalog says 1.22.0; shiploop-run-review is 0.1.1; e11b86ef is in 1.22.0; default planning review is stage",
+     "holds": true,
+     "evidence": "The commit title matches. catalog/skill-craft-plugin.json is 1.22.0. SKILL.md versions are shiploop 0.54.0, shiploop-e2e-audit 0.7.0 and run-review 0.1.1. e11b86ef is an ancestor of 45f163d0. DEFAULT_PLANNING_REVIEW = \"stage\" in shiploop_stage_spec.py."
+    },
+    {
+     "claim": "Four unreleased patch notes under changes/shiploop-run-review/; source since 1.22.0 is only the run-review skill (plus test and docs); skills/shiploop untouched through 85d8358b",
+     "holds": true,
+     "evidence": "git ls-tree origin/main changes lists the four named notes (all bump: patch). git diff --stat 45f163d0 origin/main -- skills agents catalog shows only skills/shiploop-run-review (5 files)."
+    },
+    {
+     "claim": "release.py --dry-run shows shiploop-run-review 0.1.1 -> 0.1.2 and skill-craft 1.22.0 -> 1.22.1",
+     "holds": true,
+     "evidence": "In plrev (81e0502f, 3 notes) the dry run prints 'shiploop-run-review 0.1.1 -> 0.1.2 (3 note(s))' and 'skill-craft 1.22.0 -> 1.22.1'. A scratch git copy of the origin/main export (85d8358b) prints '(4 note(s))' with the same versions. release.py resolves ROOT as Path(__file__).resolve().parents[1], so the plan's 'unknown: whether it resolves its repo from its own path' is answerable."
+    },
+    {
+     "claim": "Hosts: Claude installed 1.22.0 at sha 45f163d0; Codex cache 1.22.0; Grok installed-plugins/skill-craft-b923f37c 1.22.0",
+     "holds": true,
+     "evidence": "installed_plugins.json: version 1.22.0, gitCommitSha 45f163d09008c5c3ff58ced2bf854444b78d5fb8. ~/.codex/plugins/cache/whichguy/skill-craft/1.22.0 exists. Grok registry.json and .claude-plugin/plugin.json: 1.22.0."
+    },
+    {
+     "claim": "Cursor has no verifiable skill-craft install",
+     "holds": false,
+     "evidence": "~/.cursor/plugins/local/skill-craft is installed at 1.21.0 (see finding 2)."
+    },
+    {
+     "claim": "The canonical checkout is HEAD 1ff8c841, stash empty, with exactly 12 dirty paths (10 modified, 2 untracked)",
+     "holds": true,
+     "evidence": "git -C canonical status --short --untracked-files=all gives the 12 listed paths. git stash list is empty. Two claude processes (pids 7013, 7084) have cwd there per lsof."
+    },
+    {
+     "claim": "Every dirty file equals a blob already in main's history (0d8d32f9, 3c604304, 67db96c6, e469f2a4); the untracked note was consumed by 7aff70aa",
+     "holds": true,
+     "evidence": "git hash-object plus git log --find-object finds each blob. SKILL.md, navigator.md, test_loop.py, the test-loop test and the note match 0d8d32f9. run.py, metrics.py, progress.py, the e2e test and LEARNINGS match 3c604304. The plan-rev6 doc matches 67db96c6 and is identical to current main. The comparison draft matches e469f2a4. 7aff70aa deletes changes/shiploop/test-run-could-not-run.md. Nuance: the plan-rev6 doc is byte-identical to main, not 'superseded'."
+    },
+    {
+     "claim": "W0-4: a fast-forward over the dirty tree refuses on 11 of 12 paths; the preservation-branch sequence then makes the tree clean and the ff succeeds",
+     "holds": true,
+     "evidence": "Reproduced in a scratch clone at 1ff8c841 with the 12 files copied in. 'merge --ff-only 85d8358b' lists 10 tracked files plus the untracked comparison doc as overwritten. The switch -c, add, commit (12 staged), switch main, merge --ff-only sequence leaves status empty and HEAD at 85d8358b."
+    },
+    {
+     "claim": "Whole-branch merge conflicts: codex/shiploop-finalize 12, exp/repo-distill 8, codex/shiploop-e2e-evidence 11, bold-albattani 1, chain-split 2 files",
+     "holds": true,
+     "evidence": "git merge-tree --write-tree --name-only against 85d8358b in a scratch clone gave 12, 8, 11, 1 and 2 conflicting files. chain-split's two are test/shiploop-chain.test.py and test/test-groups.test.py, and the helper assert_context_boundary_preserves_chain_mode sits in _ChainIntegrationCase on the branch."
+    },
+    {
+     "claim": "Lifecycle stack 3533706e, 8d75b3e4, 4244b359 applies cleanly to main; fail-first 24 failures and 12 errors on main vs 39/39 with it",
+     "holds": true,
+     "evidence": "Sequential merge-tree cherry-pick simulation, each rc=0. test/shiploop-knowledge.test.py ran 39 tests OK on the stack tree, and 'FAILED (failures=24, errors=12)' on main code with the stack's test files."
+    },
+    {
+     "claim": "bold-albattani: three commits 8d7efd52, e5352442, dab387b5 pick with one conflict (suite counts); merge 8e712b92 skipped",
+     "holds": true,
+     "evidence": "Sequential simulation: the first two are clean, dab387b5 conflicts only in test/test-groups.test.py. git cherry shows exactly those three as unique, and 8e712b92 is a merge commit."
+    },
+    {
+     "claim": "Tags exist: keep/repo-distill-c75d630a = c75d630a, keep/codex-shiploop-finalize = bfb2ccaa, archive/codex-shiploop-e2e-evidence = 6e22f287, keep/bold-albattani-dab387b5; bfb2ccaa holds all three codex tips",
+     "holds": true,
+     "evidence": "git rev-parse on each tag matches. cleanup 73a55c3c, release d615463d and finalize bfb2ccaa are all ancestors of bfb2ccaa, in a chain. git cherry gives 6 unique patches for finalize (3533706e e4dd88d7 8d75b3e4 73a55c3c 4244b359 8cd80bb9). An extra tag archive/evalskills-52b2ee-2026-10-04 also exists."
+    },
+    {
+     "claim": "W0-2 branch shas 9acf6ba7, 8e842a0b, 3e14e613, 2e595588, 7c2a27be map to the named branches and none is an ancestor of main",
+     "holds": true,
+     "evidence": "git branch --points-at gives feat/shiploop-stage-spec-5d1cfb, feat/shiploop-0.20-140a7b, skills/platform-card-pointer-b6a76b, shiploop-fixes-ac4358 and next-batch-eb98fc. All five report is-ancestor = no."
+    },
+    {
+     "claim": "Ancestors of main and clean: rr8, rrx, rr-move-e0fcf3, rr16, the 12 listed clean worktrees, harness/metric-fix/review-snap/audit-refresh detached heads, rr17 and p1amend",
+     "holds": true,
+     "evidence": "merge-base --is-ancestor yes for every one (unique=0). Dirty counts: only a13 (7), repo-distill (1), next-batch (1), harness-af8532 (1) and e2e-hosts (1) were dirty before the run finished. The 12 clean worktrees total about 497 MiB with no process cwd, against the plan's 493."
+    },
+    {
+     "claim": "The nine 'incorporated' fork/engine branches have main counterparts",
+     "holds": true,
+     "evidence": "git cherry shows rrh and a05e with 0 unique. The other unmatched patches have same-subject counterparts on main: 2fa82da5 to 57457dc8, 2286feea to 6cd71d29, f619512b to 576df5bb, aa8867ff to c98dd047, 80b48e4d to 180a1b48, dc3ce69a to 5561e12c, ef7086c6 to c895d921. merge-tree of a1a3-integ-7f216e with main yields main's own tree."
+    },
+    {
+     "claim": "harness-af8532's one dirty baseline row equals 1c84470a's row",
+     "holds": true,
+     "evidence": "The added line in the dirty diff is identical to the line added by 1c84470a and is present in origin/main's baselines.jsonl."
+    },
+    {
+     "claim": "a13-33dbfd is a dirty draft of c7ee64ba with an unfilled __QUICK_EXIT__ placeholder",
+     "holds": true,
+     "evidence": "6 modified files plus an untracked changes/shiploop/ (7 entries). The diff contains __QUICK_EXIT__ once, and main has none. c7ee64ba lands the same test name."
+    },
+    {
+     "claim": "Stale rows in e2e-hosts-b66343 (1.12.2/1.13.0, cost 0), next-batch-eb98fc (1.16.1 turns 0, null cost), repo-distill-fe584c (mdkit 1.14.0 turns 0, null cost not in the lab file); the lab has no remote",
+     "holds": true,
+     "evidence": "The diff rows match. e2e-hosts rows show cost_usd 0 with 66 and 478 turns. The mdkit row is absent from the lab's e2e-baseline-rows.jsonl (0 matches). The lab has no remote. scripts/paths.py exits unless SKILL_CRAFT_ROOT or a sibling skill-craft is present."
+    },
+    {
+     "claim": "CI-1: _read_json in skills/shiploop/scripts/shiploop_progress.py uses st_nlink != 1; a rename landing after the open makes it raise ValueError; > 1 fixes it and hard links stay refused by _regular(); 17 tests",
+     "holds": true,
+     "evidence": "Reproduced on an export of main: patching progress.os.open to call store.atomic_write_text after the open gives 'ValueError invalid progress control file'; with st_nlink > 1 it returns the old record. _regular() also checks st_nlink != 1 via lstat. test/shiploop-progress.test.py has 17 test_ methods."
+    },
+    {
+     "claim": "version_gate in test/shiploop_e2e/run.py refuses a marketplace run while origin/main has unreleased notes (text 'origin/main has unreleased changes')",
+     "holds": true,
+     "evidence": "version_gate and released_versions['unreleased'] (any changes/*.md except README) exist. The gate applies on --source marketplace; README says checkout source records versions but does not gate. The code allows a local HEAD behind origin/main (README says HEAD must equal it), a minor mismatch."
+    },
+    {
+     "claim": "README says a background task is killed after '18-30 minutes'; the plan proposes 120.3",
+     "holds": true,
+     "evidence": "The test/shiploop_e2e/README.md 'Launching long runs' text says 18-30 minutes. LEARNINGS and ledger-account-final.json record 120.3."
+    },
+    {
+     "claim": "CI-2: checklist step 3 recommends --changed-from origin/main, which on a merge-sized range selects 68-80 suites (about 10 min); test/README says hubs select every light ShipLoop suite while the code selects the fixed nine in _HUB_SUITE_IDS",
+     "holds": true,
+     "evidence": "Scratch run of run_suites.py --group quick --changed-from: 1ff8c841 selects 80 suites (known durations about 690 s), a9f592a3 selects 69. test/README.md says 'select every light ShipLoop suite'. _HUB_SUITE_IDS has 9 ids in test/suite_catalog.py."
+    },
+    {
+     "claim": "CI-3/4/5: _DURATION_SECONDS, QUICK_MAX_SECONDS, _HUB_SUITE_IDS exist; e2e is 61.0; native-pilot is 72.5 s; 17 selected suites have no duration entry; test-groups pins 67/39/108; 8 nested-path entries",
+     "holds": true,
+     "evidence": "Symbols are in test/suite_catalog.py (not run_suites.py, which only prints 'OK   <id>'). Durations: shiploop-e2e 61.0, test_native_pilot.py 72.521, chain 191.262, chain-lifecycle 803.023. The id experiments-shiploop-chain-native-pilot exists. The 69-suite selection has 17 suites without an entry, and _light() reads them as 0.0. test/test-groups.test.py asserts 67, 39 and 108, and the catalog lists 108 suites. 8 suites have paths deeper than test/<name>.test.<ext>."
+    },
+    {
+     "claim": "PT-5: one constant DEFAULT_PLANNING_REVIEW in shiploop_stage_spec.py; --improve-skill is required when the effective mode is none",
+     "holds": true,
+     "evidence": "shiploop_stage_spec.py defines DEFAULT_PLANNING_REVIEW = \"stage\"; the navigator re-exports it. _require_card_for_unreviewed_planning in shiploop_protocol.py needs --improve-skill when the mode is none."
+    },
+    {
+     "claim": "Pre-rebase SHAs in the fork's journal (d897fe06, 721c8212, c439244f, 442bd572, cd631edb, b2e879a6, defaeb12, 4b09f959)",
+     "holds": true,
+     "evidence": "All eight exist as objects, none is an ancestor of origin/main, and docs/shiploop-run-review-journal.md cites each."
+    },
+    {
+     "claim": "Step B abb0d238 and 72732860: text lives in the retired shiploop_navigator_v3_prompts.py; round 7 +5.1 [+3.0,+7.2], p=0.0006",
+     "holds": true,
+     "evidence": "Both commits are ancestors of origin/main (reachable via cifix-ece1d3, jrnl-17620c). They edited skills/shiploop/scripts/shiploop_navigator_v3_prompts.py, which is not in the current tree, and DESIGN_REVIEW_CHECKS appears nowhere on main. The results doc line reads '+5.1 [+3.0, +7.2], Wilcoxon p = 0.0006'. The plan's wording 'not on any branch to merge' is imprecise: they are already in main's history."
+    },
+    {
+     "claim": "The v1210 figures (Luna 375.0/203.4/171.6; Grok 72.0/45.9/26.1) are committed",
+     "holds": true,
+     "evidence": "Not as literal strings, but derivable. Committed run-doc-grok-medium-v1210.json has improveMin 45.88 and stage minutes summing to 72.0 (wallMin 72.4). stage-clock.md gives 72.7, 375.0 and 42.4. The 42.4 vs 45.9 definition clash the plan names is real."
+    },
+    {
+     "claim": "Reconciliation doc owner decision: do not merge codex/shiploop-e2e-evidence (6e22f287) wholesale; D7/D8 triggers exist; the 2026-09-27 decision is cited only in 722037f8 and the 3533706e docstring",
+     "holds": true,
+     "evidence": "docs/shiploop-e2e-plan-reconciliation-2026-10-04.md line 157 states it, and D7 and D8 rows exist. 722037f8 and 3533706e carry 'Owner decision(s) 2026-09-27'. Main has no such text and no docs/shiploop-spec-lifecycle-plan-2026-09-27.md. The memory index has no entry for it."
+    },
+    {
+     "claim": "release-push.py and checks: flags --repo/--expected-head/--expected-tree/--expected-base/--check; full 40-hex ids required; check-release-boundary.py --base; run-all.sh --group quick --changed-from; the host refresh verbs",
+     "holds": true,
+     "evidence": "argparse definitions match, and release-push requires full object ids and pushes the frozen head. 'claude plugin marketplace update', 'codex plugin marketplace upgrade' and 'grok plugin marketplace' exist per --help."
+    },
+    {
+     "claim": "Worktree and e2e-runs housekeeping facts: harness evidence dir 962 MiB; uncited run dirs preflight-codex and preflight-grok",
+     "holds": true,
+     "evidence": "du -sh /Users/dadleet/tmp/shiploop-e2e-verify-kkd4mVW5 = 962M. preflight-codex (63 MiB) and preflight-grok (57 MiB) are cited nowhere in main. e2e-runs totals 1.4G today against the plan's 1.2 GiB. seat-reservations is cited by name in 14 files, but that is the case name, so its 'uncited' status is unverified."
+    },
+    {
+     "claim": "Live run: pids 11943 and 11929, cwd plrev-d354b1, environment carries this session's id; 'I did not launch it'",
+     "holds": false,
+     "evidence": "Process facts matched at 08:1x (cwd plrev, CODEX_COMPANION_SESSION_ID f7d9360d). 11929 is a direct child of pid 7084, which the plan itself calls 'this session', so the run came from this session's own process tree rather than an unknown third party. The run has since finished (see finding 1)."
+    }
+   ]
+  },
+  {
+   "lens": "Sequencing, coordination and irreversibility: walked W0-1..W0-6, the waves and the decisions as if executing them against origin/main 85d835",
+   "verdict": "revise",
+   "findings": [
+    {
+     "severity": "P1",
+     "claim": "Section 2b W0-2 rule: \"for the nine already-incorporated fork/engine branches, record tips in the W0-6 journal entry instead of tagging (reflog covers them)\"",
+     "problem": "The reflog does not cover them. All nine are NOT ancestors of origin/main (rr14-98a6ad, rr9-e0c0c4, rrt-466f9b, rrh-3d4174, worktree-agent-af41c2912efab94c7, rrr-edc892, a1a3-integ-7f216e, nextrel-evalskills-0001ba, worktree-agent-a05edeeaa883c2c09), so they need -D, and `git branch -D` deletes the branch's reflog while `git worktree remove` deletes the worktree's HEAD reflog. The plan's own tag rule (\"tag every branch whose tip is not an ancestor\") is contradicted by this exception. The tips would be recorded only in the journal commit made at the END of W0-6, after the deletes, and local-only. Same gap for the fork journal's eight pre-rebase SHAs (d897fe06, 721c8212, c439244f, 442bd572, cd631edb, b2e879a6, defaeb12, 4b09f959): `git branch --contains` shows no branch holds any of them today, so removing rr17/p1amend and the other worktrees removes the last reflog anchors for commits the fork's journal cites.",
+     "evidence": "git merge-base --is-ancestor over those tips: notanc for all nine; rrr-edc892 has 27 reflog entries that would vanish; `git branch --contains` empty for all eight pre-rebase SHAs.",
+     "fix": "Extend the W0-2 loop to tag every non-ancestor tip as archive/<branch>-20261006 (nine more tags, same bundle), and write a tips list (branch, full sha) to /Users/dadleet/src-archive/2026-10-06/ before the first -D. Tag or bundle the eight pre-rebase SHAs, or have the fork add its mapping commit (2d.1) before any rr17/p1amend/rr* worktree is removed. Gate every `branch -D` on `git rev-parse --verify archive/<name>-20261006` succeeding."
+    },
+    {
+     "severity": "P1",
+     "claim": "Section 2a row a13-33dbfd (\"copy the diff to a13_dirty.patch first\") and W0-2 (\"no irreversible step precedes this\")",
+     "problem": "The ordered sequence W0-2 contains only tags and the bundle. The other preservation steps exist only in the table prose: the a13 patch, the repo-distill-lab row append, the 5 calibration files copy, and the three stale baseline rows. And `git diff` would not capture all of a13: it has 6 modified files plus an untracked `changes/shiploop/system-test-open-item.md` (the note carrying the unfilled placeholder). `worktree remove --force` is the one truly irreversible step in the plan and its preservation is not in the executable sequence.",
+     "evidence": "git status --porcelain --untracked-files=all in a13-33dbfd: 6 ' M' files (testing-and-documentation.md, shiploop_prompts.py, three tests, LEARNINGS.md) and '?? changes/shiploop/system-test-open-item.md'. The dirty scan over all worktrees matches the plan otherwise: a13 7, e2e-hosts-b66343 1, harness-af8532 1, next-batch-eb98fc 1, repo-distill-fe584c 1, canonical 12.",
+     "fix": "Move every preservation action into W0-2 as numbered commands with a verification: for a13, `git add -N` the untracked note then `git diff HEAD --binary > a13_dirty.patch` (or tar the 7 files) and `git apply --check` it against a clean checkout of d9222402; `cp` the 5 calibration files; append the repo-distill row to the lab and commit it; copy the three baseline-row diffs into the housekeeping journal. Mark `--force` removals as blocked until the corresponding file exists and is non-empty."
+    },
+    {
+     "severity": "P1",
+     "claim": "W0-3 release (qualify, then release-push.py --expected-base)",
+     "problem": "release-push refuses unless remote main equals --expected-base at the start, again after each --check, and again before the push. Qualification (quick tier plus the two --check commands, up to 1800 s each) takes tens of minutes, and the fork pushed to origin/main at 00:46, 00:50, 00:53, 07:46, 07:51, 07:54, 08:01 and 08:02 today. A race is likely and the plan has no freeze and no recovery step. release-push also needs the candidate clean including untracked files, so any non-ignored test artifact written during qualification blocks it.",
+     "evidence": "release-push.py remote_identity compares ls-remote to expected_base exactly and raises 'remote branch moved or differs from --expected-base'; local_identity raises 'candidate checkout must be clean, including untracked files'. git log origin/main shows the push times above.",
+     "fix": "Add to W0-3: (a) ask the fork for a push freeze to origin/main from `git fetch` until release-push prints status pushed (the same kind of hold the 2026-10-04 memory entry describes), (b) recovery: if blocked, delete rel/batch-$RAND and its worktree, recreate from the new origin/main and rerun release.py and the qualification (never rebase or reuse the release commit), (c) run `git status --short --untracked-files=all` and re-read `git ls-remote` after qualification and immediately before release-push."
+    },
+    {
+     "severity": "P1",
+     "claim": "Section 2c: \"Order of landing pushes: CI-1 and CI-2 first (so the release commit carries the flake fix), then the release\"; decision 10 (CI-1 with No-Change-Note, \"no pending note, so no marketplace-run gate\")",
+     "problem": "Two sequencing defects. (1) Wave 0 and decision 2 put the release on the critical path (it blocks PT-2) but 2c serialises it behind CI-1 (about 1 h of fail-first work) and a new CI round, during which the fork keeps pushing, so the release candidate's base moves again. Nothing in the release needs CI-1. (2) The 'no gate' rationale is backwards. version_gate looks only at pending changes/*.md notes, CI failure and local HEAD ahead of origin/main, so a note-less skills/shiploop source change on origin/main is invisible to the gate. Marketplace runs between that push and the next release would test served bytes without the fix and nothing would say so. The checklist confirms a No-Change-Note change 'ships with the next release at its unchanged version'. A patch note is what makes the gate and the changelog work.",
+     "evidence": "run.py released_versions: `pending` = tracked changes/*.md except README; version_gate adds 'origin/main has unreleased changes' only from it. docs/skill-release-checklist.md: 'a source change carrying No-Change-Note ships with the next release at its unchanged version'. release.py: with no notes it cuts only on output drift.",
+     "fix": "Release first (W0-3 as soon as the freeze and guards are in place). Land CI-1 afterwards with a shiploop patch note so it gates marketplace runs until released, and ride it in the next release; use No-Change-Note only if the owner accepts CI-1 shipping silently. If CI-1 must go first, state a time box and that no PT-2 launch happens until the release is pushed."
+    },
+    {
+     "severity": "P1",
+     "claim": "W0-1 guard `ps ... | grep -E 'run\\.py|codex exec|grok '`, W0-3/W0-5 preconditions (\"no Codex run live\"), and risk bullet \"none was live at 08:10\"",
+     "problem": "The guard is run once at the start but the irreversible events come 30+ minutes later (the push in W0-3, the host refresh in W0-5). It is also the wrong instrument. It matches Codex app helper processes permanently (pid 6933 is `codex exec-server --remote ...`, and `codex exec ... computer_history` appears too), so it cannot discriminate, and it misses Codex app threads, which run inside `codex app-server` (pid 6654). run.py documents that Codex replaces the installed plugin at session start and deletes the old version's files; on disk the Codex cache holds exactly one version dir (1.22.0, created 07:31) while the Claude cache keeps 1.0.0 through 1.22.0. So the Codex side is destructive and unrecoverable locally; the Claude side is not. Whether the push alone triggers Codex's sync is unknown.",
+     "evidence": "ps shows 6933 and 6654 matching or hiding behind the pattern; run.py comment at the resumed-run branch ('Codex syncs installed plugins ... and deletes the old version's files'); ls ~/.codex/plugins/cache/whichguy/skill-craft = 1.22.0 only; ls ~/.claude/plugins/cache/whichguy/skill-craft = 34 retained version dirs. Only two Codex rollouts modified in the last 90 min, both last written 07:32 (inactive).",
+     "fix": "Replace the guard with a script that (a) lists active E2E run dirs under /Users/dadleet/e2e-runs and recent rollouts under ~/.codex/sessions by mtime, and (b) is asked of the owner for Codex app threads. Run it as a --check argv inside release-push.py so it executes immediately before the push, and again before `codex plugin marketplace upgrade`. Do the Claude refresh whenever convenient; gate only the Codex refresh on no live Codex ShipLoop run."
+    },
+    {
+     "severity": "P2",
+     "claim": "Section 0 and decision 2: the live v1220 run's \"purpose is unknown to me\"; \"hold the release push and host refresh until the fork or owner says it is safe\"; \"ask the fork\"",
+     "problem": "The owner of the run is identifiable: pid 11943 (run.py) has parent 11929, whose parent is 7084, the Claude session with cwd in the canonical checkout, and 11929's environment carries CODEX_COMPANION_SESSION_ID f7d9360d-..., this session's id (the scratchpad path). So the fork cannot answer; the executing session must state what the run is for. The hold is also unnecessary for this run: a `--source checkout` Claude run builds its own plugin (build_candidate) and loads it with --plugin-dir and --setting-sources project,local, so neither the push nor a Claude/Codex host refresh can change it. Its only external dependency is the plrev-d354b1 working tree, which the plan already keeps until last. A release actually helps a later resume, because the resume gate currently refuses on the 4 unreleased notes.",
+     "evidence": "ps -o pid,ppid: 11943 <- 11929 <- 7084; lsof cwd of 11943 = plrev-d354b1; run.py module docstring (isolation of claude host) and the checkout branch `build_candidate`/`install_plugin`; resume branch applies version_gate minus 'installed' problems.",
+     "fix": "Record the run as this session's, state its purpose in the plan, and drop the push/refresh hold; keep only 'do not remove or move plrev-d354b1 until the run ends'."
+    },
+    {
+     "severity": "P2",
+     "claim": "Wave 1 PT-2 and Wave 2/3 landing pushes (no hold rule while probes run)",
+     "problem": "PT-2 runs two Grok planning probes whose wide window is about 72 min, beyond the roughly 30-minute task lifetime recorded in memory, so a `--resume-run` is likely. On resume the gate still applies the CI-failure, unreleased-notes and local-HEAD-ahead checks, so any push carrying a changes/ note (C1, a CI-1 patch note, fork skill-source work) or a red CI during PT-2 makes the resume refuse and wastes credits. The checkout used for the run must also have no local-only commits (the W0-6 housekeeping journal commit must be pushed first) or the gate refuses a fresh launch.",
+     "evidence": "run.py resume branch: `version_gate(released, None, None)` minus 'installed ' problems; version_gate local_head vs origin_main check; memory push-hold-luna-run entries.",
+     "fix": "Add an explicit PT-2 window rule: from launch until both probes finish (including resumes) only note-less test/docs commits land; no release, no commit with a changes/ note; tell the fork; require `git rev-list origin/main..HEAD` empty on the launch checkout."
+    },
+    {
+     "severity": "P2",
+     "claim": "Wave 1 PT-1 (\"one page in test/shiploop_e2e/LEARNINGS.md ... docs-pin in test/shiploop-e2e.test.py\", owner: me drafts)",
+     "problem": "Both files are in the fork's domain and were both touched by the fork's last two harness commits (25d1d93d, 9eba8f41), so two sessions would edit the same files while the fork also owns run.py, RC1, RC5-1 and C2 in the same area.",
+     "evidence": "git log origin/main -3 -- test/shiploop_e2e/LEARNINGS.md test/shiploop-e2e.test.py shows 25d1d93d and 9eba8f41 by the fork on 10-06.",
+     "fix": "Put the decision record and flip rule in an engine-side docs/ file written by this session, and ask the fork to add the LEARNINGS.md pointer and the docs-pin in its own commit; or send the text and let the fork land it. Keep one writer per harness file."
+    },
+    {
+     "severity": "P2",
+     "claim": "W0-3 / W0-6: release worktree and branch lifecycle",
+     "problem": "The release worktree `$C/.claude/worktrees/rel3-$RAND` and branch `rel/batch-$RAND` are created but never removed in W0-6 (the repo already carries leftovers: rel-51f07e, rel2-aa2e70, rel/batch-51f07e). Also the plan leaves the expected-version claim (run-review 0.1.1 to 0.1.2, skill-craft 1.22.0 to 1.22.1) unverified at runtime, and the permission classifier denied my own `release.py --dry-run` ('Modify Shared Resources'), so release.py and release-push.py may also need explicit owner approval in the permission system, not only a chat 'go'.",
+     "evidence": "release.py plan(): 4 patch notes under changes/shiploop-run-review give a patch bump for that skill and the plugin (static reading). git worktree list shows the leftover rel* worktrees. My dry-run call was denied.",
+     "fix": "Add `worktree remove` and `branch -d rel/batch-$RAND` (it will be an ancestor after the push) to the end of W0-6, and note in decision 2 that the owner must expect permission prompts for release.py and release-push.py."
+    },
+    {
+     "severity": "P2",
+     "claim": "Section 2a row exp/repo-distill-fe584c and the repo-distill-fe584c worktree; decision 3 batches",
+     "problem": "Deleting this branch and worktree removes the only checkout carrying skills/repo-distill that the lab uses (the lab's default skill-craft root is the sibling ../skill-craft, i.e. the canonical checkout, which W0-4 moves to main), and memory records round-3 grading as still pending. Neither the branch deletion nor the lab commit (a write in a separate, remote-less repo) is named in any of decision 3's four approval batches.",
+     "evidence": "repo-distill-lab/scripts/paths.py resolves $SKILL_CRAFT_ROOT or ../skill-craft and exits when the skill is missing; README lines 22-24; `git remote -v` empty in the lab; tag keep/repo-distill-c75d630a equals the branch tip c75d630a.",
+     "fix": "Add this branch/worktree and the lab README/row commit as an explicit owner-approved item, and in the same step create `git worktree add <path> keep/repo-distill-c75d630a` so the lab has a working SKILL_CRAFT_ROOT before the old worktree goes."
+    },
+    {
+     "severity": "P2",
+     "claim": "W0-5 (\"claude plugin marketplace update whichguy, codex plugin marketplace upgrade whichguy, Grok and Cursor per docs/distribution.md\")",
+     "problem": "docs/distribution.md and the checklist describe these commands only as refreshing the Git catalogs. Whether the installed plugin updates (versus a separate update/install command) is not stated anywhere I could read, and the plan has no action if the disk read afterwards still shows 1.22.0. Cursor and OpenCode state is unverified.",
+     "evidence": "distribution.md: 'Refresh Git catalogs with Claude `plugin marketplace update whichguy`, Codex `plugin marketplace upgrade whichguy` or Grok `grok plugin marketplace update`'. installed_plugins.json currently: skill-craft@whichguy 1.22.0 at 45f163d0.",
+     "fix": "Add the per-host install/update command to W0-5 (or state that it is unknown and verify by disk read), and define the outcome if the version does not move."
+    }
+   ],
+   "claims_checked": [
+    {
+     "claim": "origin/main is 85d8358b; rr17-a0486a and p1amend-565711 are both at it",
+     "holds": true,
+     "evidence": "git ls-remote origin refs/heads/main = 85d8358b466cb6...; local origin/main same; both branches rev-parse to 85d8358b. gh run list: CI push succeeded for 85d8358b, 81e0502f, 219c1de6, 3b246328, 45f163d0, so the plan's 'in progress' is now stale (success)."
+    },
+    {
+     "claim": "Canonical checkout is stale (HEAD 1ff8c841, ancestor of origin/main), has exactly 12 dirty paths, empty stash, and every dirty blob is already in origin/main history",
+     "holds": true,
+     "evidence": "git status shows 10 M plus 2 ??; merge-base --is-ancestor 1ff8c841 origin/main exit 0; stash list empty; git log origin/main --find-object=<hash-object of each file> found a commit for all 12 (6a59012c, 0d8d32f9, 3c604304, ce32a143, 67db96c6, 08f90c2e). File mtimes are 09-28 to 10-04, so no live editing. Ignored dirs .claude/ and tasks/ hold nothing tracked on either side."
+    },
+    {
+     "claim": "W0-4 preservation branch is safe against the 50-file hook and release-boundary rules",
+     "holds": true,
+     "evidence": "core.hooksPath is unset both locally and globally and .git/hooks holds only samples (the 50-file hook is in ~/.claude only); the preserve branch is local and never pushed, so check-release-boundary never sees it. 12 files is below 50 anyway."
+    },
+    {
+     "claim": "release.py can be run from a fresh worktree and will not touch the canonical dirty tree (plan listed this as unknown)",
+     "holds": true,
+     "evidence": "release.py ROOT = Path(__file__).resolve().parents[1] and every git call uses -C ROOT; it refuses a dirty checkout before cutting and on failure does reset --hard/clean -fdq only in ROOT, so a dedicated worktree is the right place."
+    },
+    {
+     "claim": "release-push.py takes --repo/--expected-head/--expected-tree/--expected-base/--check as the plan writes, pushes without force",
+     "holds": true,
+     "evidence": "scripts/release-push.py argparse and publish(): requires full object IDs, clean checkout incl. untracked, remote main == expected base, then pushes <head>:refs/heads/main with no force. Consequence: a moving main aborts it (see finding 3)."
+    },
+    {
+     "claim": "Skill source touched since the 1.22.0 release 45f163d0 is only shiploop-run-review, so the pending release is run-review patch plus plugin 1.22.1",
+     "holds": true,
+     "evidence": "git diff --stat 45f163d0 origin/main -- skills lists only skills/shiploop-run-review (5 files); changes/ holds 4 bump: patch notes, all under shiploop-run-review; catalog/skill-craft-plugin.json is 1.22.0. The runtime dry-run itself was denied, so the exact version strings are unverified."
+    },
+    {
+     "claim": "version_gate refuses a marketplace run while origin/main has unreleased notes; a checkout-source run is not gated",
+     "holds": true,
+     "evidence": "run.py released_versions builds `unreleased` from tracked changes/*.md; version_gate emits 'origin/main has unreleased changes'; the checkout branch (else of args.source) installs build_candidate with no gate. Marketplace runs use git archive of origin/main (Claude) or a fresh profile (Grok), so the user's host refresh is not an input to PT-2."
+    },
+    {
+     "claim": "Branch tips in W0-2 tag list equal the branches named (5 branches) and the existing keep/ tags equal their branch tips",
+     "holds": true,
+     "evidence": "feat/shiploop-stage-spec-5d1cfb=9acf6ba7, feat/shiploop-0.20-140a7b=8e842a0b, skills/platform-card-pointer-b6a76b=3e14e613, shiploop-fixes-ac4358=2e595588, next-batch-eb98fc=7c2a27be, exp/repo-distill-fe584c=c75d630a (keep tag equal), codex/shiploop-finalize=bfb2ccaa, codex/shiploop-e2e-evidence=6e22f287 (archive tag equal). codex cleanup < release < finalize is true (all is-ancestor exit 0), so one tag covers the three branches."
+    },
+    {
+     "claim": "Fork/engine branches listed as ancestors are ancestors; the nine 'incorporated' ones are not, and the others are clean",
+     "holds": false,
+     "evidence": "Ancestors confirmed: rr8, rrx, rr-move-e0fcf3, rr16, rr17, p1amend, the 12 clean merged worktree branches, the five detached harness/review-snap worktrees and shiploop-audit-refresh. The nine rr14/rr9/rrt/rrh/agent-af41/rrr/a1a3-integ/nextrel/agent-a05 branches are not ancestors, so the reflog-as-backup claim fails (finding 1). Dirty-worktree scan matches the plan's list exactly."
+    },
+    {
+     "claim": "chain-split-caa8c4 conflicts in two places and lands as test-only",
+     "holds": true,
+     "evidence": "git merge-tree --write-tree --name-only origin/main test/chain-split-caa8c4: conflicts in test/shiploop-chain.test.py and test/test-groups.test.py only; test/README.md and test/suite_catalog.py auto-merge. Branch is 1 commit, d2c8511a."
+    },
+    {
+     "claim": "A checkout-source live run is immune to a marketplace refresh; Claude's refresh is non-destructive",
+     "holds": true,
+     "evidence": "run.py docstring: claude host uses --setting-sources project,local plus --plugin-dir; build_candidate writes under the output dir. Claude's cache retains every prior version dir; Codex's keeps only the current one (and run.py says Codex deletes old files at session start)."
+    },
+    {
+     "claim": "The plan treats worktree removal under live processes safely (lsof guard before deletes, plrev last)",
+     "holds": true,
+     "evidence": "lsof shows live processes with cwd in plrev-d354b1 (the E2E run 11943 and shells) and p1amend-565711 (shells, two long sleeps, this reviewer); the guard would catch both. Removal of rr17/p1amend must therefore wait for the fork."
+    }
+   ]
+  }
+ ]
+}
