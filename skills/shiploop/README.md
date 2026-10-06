@@ -41,9 +41,9 @@ add same-name skill-directory links alongside marketplace packages. Open a fresh
 host session after an update so it loads the selected package's current card.
 
 New runs use navigator protocol 4: the script persists and traverses the SDLC
-graph and issues one producer prompt at a time. After a planning result or the
-last carry-forward it parks that parent action for the selected actual Improve
-skill; every other result advances directly. The script owns navigation; the
+graph and issues one producer prompt at a time. After a planning result the run's
+`planning_review` option reviews, or the last carry-forward, it parks that parent action
+for the selected actual Improve skill; every other result advances directly. The script owns navigation; the
 model is a library call that performs the current step and runs the printed
 callback. Improve follows the Until Loop runtime bound by
 its selected card and owns its own iterations, evidence, and convergence. The
@@ -51,8 +51,9 @@ script imports one accepted child result before choosing the next producer; it
 does not recreate Improve's review logic, phases, counters, or policy in a
 ShipLoop prompt.
 
-Every run includes experiment-informed Plan Improve and a guarded return to the
-earliest invalidated planning stage; there is no protocol selector.
+Every run recorded with the default `--planning-review stage` includes experiment-informed
+Plan Improve and a guarded return to the earliest invalidated planning stage; `--planning-review
+none` has no Plan Improve child, so neither. There is no protocol selector.
 Read [experiments during planning](references/planning-experiments.md) for effects,
 evidence, budget limitations and recovery. No separate experiment loop is added.
 
@@ -75,8 +76,8 @@ evidence, budget limitations and recovery. No separate experiment loop is added.
   not supported.
   The Dispatcher must advertise `planning_context: "shiploop-planning-artifacts/v1"`
   and `graph_validation: "execution-graph/v1"`; [chain preflight](references/parallel-chain.md#planning-artifact-handoff)
-  rejects invalid graphs before binding. Initial steps and their graph must
-  complete the planning Improve loop; later material revisions require review.
+  rejects invalid graphs before binding. In a `stage` run the initial steps and their graph must
+  complete the planning Improve loop (a `none` run has none); later material revisions require review.
   Both execution modes prepare through the selected Ask-Agent workspace helper.
   Parallel mode grants native launches. `chain bind --mode serial` executes one
   ready step in the main context, with a managed preparation receipt and no
@@ -150,7 +151,10 @@ Planning results (`spec`, `test-strategy`, `plan`, `step-plan`, `test-spec`,
 `system-test-author`, `release-plan`) and the successful `carry-forward` that
 leaves no work item pending follow this sequence; every other producer result is
 accepted on its own checks and the script selects the next producer directly
-(see the skill card's "When Improve runs"). The 34 producers' full flat
+(see the skill card's "When Improve runs"). That is the default of the run option
+`--planning-review stage|none`; with `none` the first five of those (`spec` through `test-spec`)
+are accepted on ShipLoop's checks at `complete` too, and only `system-test-author`, `release-plan`
+and the last `carry-forward` follow this sequence. The 34 producers' full flat
 order is: `intake`, `discovery`, `research`, `spec`, `test-strategy`, `plan`,
 `prepare`; then, for each ready item, `select-work`, `step-plan`, `test-spec`,
 `baseline`, `test-author`, `test-red`, `implement`, `test-green`, `test-refine`,
@@ -547,7 +551,8 @@ runtime own child iterations. ShipLoop has no second review counter.
 ## Improve discovery and planning before proceeding
 
 The navigator applies the actual-skill handoff to the planning stages (spec, test
-strategy, plan, step plan, test spec, system-test authoring and release plan) and
+strategy, plan, step plan, test spec, system-test authoring and release plan; with
+`--planning-review none`, only system-test authoring and release plan) and
 to the last carry-forward, whose review covers all executed steps before OUTER
 work. See the skill card's "When Improve runs" section. The producer callback first saves its attempt. The next
 packet binds or resumes the selected Improve skill; the graph advances only
@@ -913,10 +918,10 @@ line after the header is the one legal callback. The command surface is:
 
 ```sh
 # Start a navigator protocol 4 run
-shiploop workspace start --repo REPO --workspace-root ROOT [--improve-skill ABSOLUTE_SKILL_CARD] [--include-untracked=PATH]... [--exclude=PATH]... [--delivery-contract] [--delegation=inline|ask-agent] [--lint=fix|report|off] [--backchain-passes=one|converge|none] [--planning-review=stage] --prompt=TEXT
+shiploop workspace start --repo REPO --workspace-root ROOT [--improve-skill ABSOLUTE_SKILL_CARD] [--include-untracked=PATH]... [--exclude=PATH]... [--delivery-contract] [--delegation=inline|ask-agent] [--lint=fix|report|off] [--backchain-passes=one|converge|none] [--planning-review=stage|none] --prompt=TEXT
 shiploop workspace plan-return --workspace-root ROOT
 shiploop workspace return      --workspace-root ROOT
-shiploop init     --repo REPO [--run-dir RUN] [--improve-skill ABSOLUTE_SKILL_CARD] [--delivery-contract] [--delegation=inline|ask-agent] [--lint=fix|report|off] [--backchain-passes=one|converge|none] [--planning-review=stage] --prompt=TEXT
+shiploop init     --repo REPO [--run-dir RUN] [--improve-skill ABSOLUTE_SKILL_CARD] [--delivery-contract] [--delegation=inline|ask-agent] [--lint=fix|report|off] [--backchain-passes=one|converge|none] [--planning-review=stage|none] --prompt=TEXT
 # Reread the current packet; never advances
 shiploop next     --run-dir RUN
 shiploop report   --run-dir RUN

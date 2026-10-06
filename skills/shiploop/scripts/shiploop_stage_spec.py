@@ -601,16 +601,21 @@ def with_improve(rule: str) -> frozenset[str]:
 # Run-level planning review option (state key ``planning_review``): which planning results start an
 # Improve child.  A value is registered together with the behaviour it selects, so no commit records
 # a value the engine ignores.  ``stage`` is today's behaviour: every stage whose rule is ``always``
-# starts its own child.  New CLI-created runs record DEFAULT_PLANNING_REVIEW; a saved run without the
-# key is refused (one supported version), and no verb changes it mid-run.
-PLANNING_REVIEW_MODES = ("stage",)
+# starts its own child.  ``none`` starts none at the five planning stages the option covers; the
+# children after system-test-author and release-plan and the last carry-forward's rule are not the
+# option's, so they keep running.  New CLI-created runs record DEFAULT_PLANNING_REVIEW; a saved run
+# without the key is refused (one supported version), and no verb changes it mid-run.
+PLANNING_REVIEW_MODES = ("stage", "none")
 DEFAULT_PLANNING_REVIEW = "stage"
+PLANNING_CHOICE_STAGES = frozenset(("spec", "test-strategy", "plan", "step-plan", "test-spec"))
 
 
 def reviewed_stages(mode: str) -> frozenset[str]:
     """Stages whose accepted result starts an Improve child under planning review ``mode``."""
     if mode not in PLANNING_REVIEW_MODES:
         raise ValueError(f"unknown planning review option: {mode!r}")
+    if mode == "none":
+        return with_improve("always") - PLANNING_CHOICE_STAGES
     return with_improve("always")
 
 

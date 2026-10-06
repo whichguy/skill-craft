@@ -77,11 +77,14 @@ result text is retained in debug output. Keep those cases non-sensitive. The
 allowlisted sanitization guarantee applies to the live-behavior exporter; the
 mock transport is not a general secret scrubber for arbitrary custom fixtures.
 
-The cases state the Improve schedule literally rather than importing it. Only
-the planning checkpoints (`spec`, `test-strategy`, `plan`, `step-plan`,
-`test-spec`, `system-test-author`, `release-plan`) and the successful
-carry-forward that leaves no work item pending park their action for Improve.
-For example, a `spec` producer response must leave the same action waiting for
+The cases state the Improve schedule literally rather than importing it. Each
+case declares the run option it replays, `planning_review` (`stage` or `none`; a
+case without one is refused), and the oracle holds one literal table per value.
+For `stage`, only the planning checkpoints (`spec`, `test-strategy`, `plan`,
+`step-plan`, `test-spec`, `system-test-author`, `release-plan`) and the successful
+carry-forward that leaves no work item pending park their action for Improve; for
+`none`, only `system-test-author`, `release-plan` and that carry-forward do, and
+the five planning producers advance directly (`synthetic-none-full`). For example, a `spec` producer response must leave the same action waiting for
 Improve, and a synthetic Improve completion then advances to `test-strategy`.
 An `intake` producer response instead advances directly to `discovery`; a
 control that expects any other edge must fail at that first event. Other

@@ -2191,8 +2191,10 @@ _INLINE_PLANNING_DIRECTIVE = (
 def duty(stage: str, *, delegation: str = ASK_AGENT, planning_review: str = "stage") -> str:
     """Return one stage duty with the run's implementation-route paragraph.
 
-    ``planning_review`` is the run's option (see stage_spec.PLANNING_REVIEW_MODES); no mode changes the
-    text yet, so the literal default ``stage`` keeps catalog renders independent of the option's default.
+    ``planning_review`` is the run's option (see stage_spec.PLANNING_REVIEW_MODES): ``stage`` renders the
+    text below unchanged, ``none`` swaps the sentences that promise an Improve child the run will not start
+    (see _NO_REVIEW_SWAPS).  The literal default ``stage`` keeps catalog renders independent of the option's
+    default.
     """
     _require_stage(stage)
     _require_delegation(delegation)
@@ -2201,7 +2203,103 @@ def duty(stage: str, *, delegation: str = ASK_AGENT, planning_review: str = "sta
     if delegation == INLINE and stage in _INLINE_DUTY_PARAGRAPHS:
         delegated, inline = _INLINE_DUTY_PARAGRAPHS[stage]
         text = text.replace(delegated, inline)
+    return _swapped(text, stage, planning_review)
+
+
+# Planning review option ``none``: sentences that promise an Improve child at a planning stage the run starts
+# none for, each swapped for text that does not.  One table of (stage, old, new) rows; ``*`` is the text every
+# stage's packet carries.  A row applies only for the recorded mode ``none``, so the stage-mode text is the text
+# above, byte for byte.  Each ``old`` must occur exactly once in every stage-mode text it occurs in (the
+# delegations and the plan's Backchain call are separate texts) and in at least one: the import-time check in
+# _check_swaps fails when an edit to the text above leaves a row matching nothing or twice.
+def _graph_order(stages: "frozenset[str]") -> list[str]:
+    return [name for name in STAGES if name in stages]
+
+
+_NONE_REVIEWED = ", ".join(_graph_order(stage_spec.reviewed_stages("none")))
+_NONE_CHOICE = _graph_order(stage_spec.PLANNING_CHOICE_STAGES)
+_NO_REVIEW_SWAPS = (
+    ("*", """\
+Only planning results (spec, test-strategy, plan,
+step-plan, test-spec, system-test-author, release-plan) and the carry-forward that
+leaves no work item pending get an actual Improve-skill handoff; every other result
+is accepted on this step's own checks and the graph advances directly.""",
+     "Only planning results (" + _NONE_REVIEWED + ") and the carry-forward that\n"
+     "leaves no work item pending get an actual Improve-skill handoff; every other result,\n"
+     + ", ".join(_NONE_CHOICE[:-1]) + " and " + _NONE_CHOICE[-1] + " included, is accepted on this\n"
+     "step's own checks and the graph advances directly."),
+    ("plan", """\
+After creating the initial steps, submit this producer result to its mandatory
+actual Improve handoff. The plan remains a draft until
+that loop completes; dependent work waits. Link the created plan and any execution
+graph in evidence_refs so Improve reviews their actual contents. Do not schedule
+an extra review stage or claim the loop ran. Keep these as ordinary notes, not
+new result fields.""", """\
+After creating the initial steps, submit this producer result; ShipLoop's own
+checks at complete are its gate, and the accepted plan is what dependent work
+builds on. Link the created plan and any execution graph in evidence_refs. Do not
+schedule a review stage or claim one ran. Keep these as ordinary notes, not
+new result fields."""),
+    ("plan", """\
+Material findings remain visible and cannot clear
+ordinary Improve.""", "Material findings remain visible."),
+    ("plan", """\
+These restrictions
+belong to that Backchain child, not the separate Improve executor's authority.""", """\
+These restrictions
+belong to that Backchain child."""),
+    ("step-plan", """\
+This producer's mandatory
+actual Improve loop must review the created steps and graph before they are used
+for execution.""", """\
+ShipLoop's checks at complete are the gate for the created steps and graph;
+no Improve child reviews them in this run."""),
+    ("step-plan", """\
+This producer's mandatory actual Improve loop must review
+the steps before they are used for execution.""", """\
+ShipLoop's checks at complete are the gate for the steps; no Improve child
+reviews them in this run."""),
+    ("step-plan", """\
+The next review is the packet's automatic Improve handoff immediately after this producer result, before
+implementation.""", "No Improve child reviews this result in this run."),
+)
+
+
+def _stage_texts(stage: str) -> list[str]:
+    """The stage-mode texts a swap row for ``stage`` may match: both delegations, and the plan's Backchain call."""
+    if stage == "*":
+        return [COMMON]
+    texts = [duty(stage, delegation=delegation) for delegation in DELEGATIONS]
+    if stage in BACKCHAIN_STAGES:
+        texts.append(_backchain_guidance(stage))
+    return texts
+
+
+def _check_swaps(rows: "tuple[tuple[str, str, str], ...]") -> None:
+    """Fail at import when a swap row matches nothing, matches twice in one text, or names a stage the option skips."""
+    for stage, old, new in rows:
+        if stage != "*" and stage not in stage_spec.PLANNING_CHOICE_STAGES:
+            raise RuntimeError(f"navigator planning review swap names a stage the option does not cover: {stage!r}")
+        counts = {text.count(old) for text in _stage_texts(stage)}
+        if counts not in ({1}, {0, 1}) or old == new:
+            raise RuntimeError(f"navigator planning review swap for {stage!r} no longer matches its text once: "
+                               f"{' '.join(old.split())[:70]!r}")
+    # COMMON's schedule list is the stage-mode reviewed list, in graph order
+    if ", ".join(_graph_order(stage_spec.reviewed_stages("stage"))) not in " ".join(COMMON.split()):
+        raise RuntimeError("navigator COMMON lists a schedule other than the stage-mode reviewed stages")
+
+
+def _swapped(text: str, stage: str, planning_review: str) -> str:
+    """``text`` with the rows for ``stage`` applied when the run's planning review option starts no child there."""
+    if planning_review != "none":
+        return text
+    for row_stage, old, new in _NO_REVIEW_SWAPS:
+        if row_stage == stage:
+            text = text.replace(old, new)
     return text
+
+
+_check_swaps(_NO_REVIEW_SWAPS)
 
 
 # Stages that run tests: none is done while a check it runs is red.
@@ -2242,7 +2340,8 @@ def prompt(stage: str, *, delegation: str = ASK_AGENT,
     _require_delegation(delegation)
     _require_backchain_passes(backchain_passes)
     _require_planning_review(planning_review)
-    parts = [COMMON, duty(stage, delegation=delegation, planning_review=planning_review)]
+    parts = [_swapped(COMMON, "*", planning_review),
+             duty(stage, delegation=delegation, planning_review=planning_review)]
     if stage in stage_spec.with_block("interaction-design"):
         parts.append(INTERACTION_DESIGN)
     if stage in stage_spec.with_block("work-items"):
@@ -2250,7 +2349,8 @@ def prompt(stage: str, *, delegation: str = ASK_AGENT,
     if stage in PRELUDE or stage in PLANNING_REVIEW_STAGES:
         parts.append(_PLANNING_HANDOFF if delegation == ASK_AGENT
                      else _PLANNING_HANDOFF.replace(*_INLINE_PLANNING_DIRECTIVE))
-    improves = stage_spec.stage(stage).improve is not None
+    improves = (stage in stage_spec.reviewed_stages(planning_review)
+                or stage_spec.stage(stage).improve == "last-item")
     if stage in TEST_FACILITY_STAGES:
         parts.append(TEST_FACILITY_HANDOFF if improves else TEST_FACILITY_HANDOFF.replace(
             "Carry relevant locators into item context and the\nImprove child's context/notes.",
@@ -2261,7 +2361,7 @@ def prompt(stage: str, *, delegation: str = ASK_AGENT,
         parts.append(OUTER_TEST_HANDOFF if improves else OUTER_TEST_HANDOFF.replace(
             "in this result and the Improve child's context/notes.", "in this result."))
     if stage in BACKCHAIN_STAGES:
-        parts.append(_backchain_guidance(stage, backchain_passes=backchain_passes))
+        parts.append(_swapped(_backchain_guidance(stage, backchain_passes=backchain_passes), stage, planning_review))
     if stage in RECONCILIATION_STAGES:
         parts.append(SELECTED_CASE_RECONCILIATION)
     if stage in PASS_OR_STOP_STAGES:

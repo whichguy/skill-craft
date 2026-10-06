@@ -1,7 +1,9 @@
 #!/usr/bin/env python3
 """Pin when Improve runs: every planning result plus one end-of-work review."""
 import copy
+import os
 from pathlib import Path
+import subprocess
 import sys
 import tempfile
 import unittest
@@ -194,8 +196,8 @@ class ImproveScheduleTests(unittest.TestCase):
                 # W1's carry-forward leaves W2 pending, so it is not the end review.
                 with self.assertRaisesRegex(
                         nav.NavigatorError,
-                        "Improve child is at " + target + ", a stage that never starts an "
-                        "Improve child"):
+                        "Improve child is at " + target + ", a stage that does not start an "
+                        r"Improve child in this run \(planning_review: stage\)"):
                     nav.validate(forged)
 
     def test_improve_record_at_a_non_planning_step_is_refused(self):
@@ -263,6 +265,253 @@ class ImproveScheduleTests(unittest.TestCase):
                 for callback in ("Callback for this stage", "Next command (bind",
                                  "Callback for this Improve child"):
                     self.assertNotIn(callback, packet)
+
+
+def render_walk(state, run, *, plan_items=None, limit=300):
+    """Drive the pure navigator to done, rendering every packet on the way; return the stages that started a child."""
+    reviewed = []
+    for _ in range(limit):
+        if state["status"] == "done":
+            return state, reviewed
+        packet = nav.render(None, run, state)
+        assert "Call this when done:" in packet or state["active_improve"] is not None, packet
+        stage, action = nav.current_stage(state), nav.current_action(state)["id"]
+        result = dict(DONE, work_items=plan_items) if stage == "plan" and plan_items else DONE
+        state = nav.apply(state, action, result)
+        if state["active_improve"] is not None:
+            reviewed.append(stage)
+            nav.render(None, run, state)
+            state = nav.finish_improve(state, action, receipt(stage))
+    raise AssertionError("render_walk did not finish")
+
+
+ITEMS = [{"id": "W1", "title": "First"}, {"id": "W2", "title": "Second"}]
+# Declared here, independently of stage_spec: the children a two-item run starts, by planning_review.
+STAGE_CHILDREN = [("spec", None), ("test-strategy", None), ("plan", None), ("step-plan", "W1"),
+                  ("test-spec", "W1"), ("step-plan", "W2"), ("test-spec", "W2"), ("carry-forward", "W2"),
+                  ("system-test-author", None), ("release-plan", None)]
+NONE_CHILDREN = [("carry-forward", "W2"), ("system-test-author", None), ("release-plan", None)]
+PLANNING_CHOICE = ("spec", "test-strategy", "plan", "step-plan", "test-spec")
+
+
+class PlanningReviewScheduleTests(unittest.TestCase):
+    """The run option `planning_review` decides which planning results start an Improve child.
+
+    Pure navigator first (the schedule, the validator's required records, the forged-child refusal), then the
+    shipped CLI for what only the real gates show: the load-time refusal, the knowledge commit, the missing bind
+    and reconcile routes.
+    """
+
+    def new(self, mode, **extra):
+        return nav.new_state("/simulation-only/repo", "Schedule fixture.", improve_skill="",
+                             planning_review=mode, **extra)
+
+    def test_a_two_item_walk_starts_the_children_the_mode_names(self):
+        for mode, expected in (("stage", STAGE_CHILDREN), ("none", NONE_CHILDREN)):
+            with self.subTest(mode=mode):
+                state, reviewed = walk(self.new(mode), plan_items=ITEMS)
+                self.assertEqual(reviewed, expected)
+                self.assertEqual(state["status"], "done")
+                nav.validate(state)
+                recorded = {entry["stage"] for entry in state["history"]
+                            if entry["action"] in state["improve_results"]}
+                self.assertEqual(recorded, {stage for stage, _ in expected})
+
+    def test_none_leaves_no_child_in_the_planning_window_and_the_end_review_still_moves_to_the_last_item(self):
+        state = self.new("none")
+        for stage in ("intake", "discovery", "research", *PLANNING_CHOICE[:3], "prepare"):
+            self.assertEqual(nav.current_stage(state), stage)
+            state = nav.apply(state, nav.current_action(state)["id"], DONE)
+            self.assertIsNone(state["active_improve"], stage)
+        self.assertEqual(state["improve_results"], {})
+        # an end review that adds work still moves to the new last item's carry-forward
+        added = dict(DONE, work_items=[{"id": "W2", "title": "Found by the end review"}])
+        _, reviewed = walk(self.new("none"), end_final=[added])
+        self.assertEqual([entry for entry in reviewed if entry[0] == "carry-forward"],
+                         [("carry-forward", "W1"), ("carry-forward", "W2")])
+
+    def test_the_validator_requires_the_records_the_mode_reviews(self):
+        state, _ = walk(self.new("none"), plan_items=ITEMS)
+        nav.validate(state)  # no planning record at the five choice stages is valid
+        for stage in ("system-test-author", "release-plan"):
+            with self.subTest(stage=stage):
+                action = next(e["action"] for e in state["history"] if e["stage"] == stage)
+                broken = dict(state, improve_results={
+                    k: v for k, v in state["improve_results"].items() if k != action})
+                with self.assertRaisesRegex(nav.NavigatorError, "every planning-stage result"):
+                    nav.validate(broken)
+        stage_state, _ = walk(self.new("stage"), plan_items=ITEMS)
+        action = next(e["action"] for e in stage_state["history"] if e["stage"] == "spec")
+        with self.assertRaisesRegex(nav.NavigatorError, "every planning-stage result"):
+            nav.validate(dict(stage_state, improve_results={
+                k: v for k, v in stage_state["improve_results"].items() if k != action}))
+
+    def test_a_child_forged_at_a_planning_stage_is_refused_only_where_the_mode_starts_none(self):
+        for mode, refused in (("stage", False), ("none", True)):
+            with self.subTest(mode=mode):
+                state = advance_to(self.new(mode), "spec")
+                action = nav.current_action(state)["id"]
+                forged = copy.deepcopy(state)
+                forged["active_improve"] = {
+                    "action_id": action, "stage": "spec", "binding_id": state["run_id"] + "/" + action,
+                    "workspace": state["repo"], "seed_result": dict(DONE, evidence_refs=[]), "skill": None}
+                if refused:
+                    with self.assertRaisesRegex(
+                            nav.NavigatorError,
+                            "Improve child is at spec, a stage that does not start an Improve child in "
+                            r"this run \(planning_review: none\)"):
+                        nav.validate(forged)
+                else:
+                    nav.validate(forged)
+
+    def test_the_assumption_list_is_still_checked_at_plan_in_every_mode(self):
+        """GUARD for stage (passes on the unchanged code); none gets the same gate, not a lighter one."""
+        open_entry = dict(DONE, assumptions=[{
+            "id": "A1", "assumption": "A server seam exists.", "disposition": "open",
+            "check": "import it", "reason": "not run", "consumer": "W9"}])
+        for mode in ("stage", "none"):
+            with self.subTest(mode=mode):
+                with self.assertRaisesRegex(nav.NavigatorError, "W9"):
+                    nav._check_submitted_assumptions(self.new(mode), "plan", open_entry)
+
+    def test_every_backchain_passes_value_renders_and_walks_in_every_mode(self):
+        run = Path("/simulation-only/run")
+        for passes in nav.BACKCHAIN_PASSES_MODES:
+            for mode, expected in (("stage", [c[0] for c in STAGE_CHILDREN]), ("none", [c[0] for c in NONE_CHILDREN])):
+                with self.subTest(backchain_passes=passes, planning_review=mode):
+                    state, reviewed = render_walk(self.new(mode, backchain_passes=passes), run, plan_items=ITEMS)
+                    self.assertEqual(reviewed, expected)
+
+    def test_the_plan_packet_names_no_review_the_run_does_not_have(self):
+        run = Path("/simulation-only/run")
+        plan = advance_to(self.new("none"), "plan")
+        packet = nav.render(None, run, plan)
+        for absent in ("improve-reconcile", "Planning experiments guide", "Planning investigation notebook",
+                       "its Improve child evaluates", "mandatory actual Improve handoff",
+                       "starts this action's Improve child", "Proposed queue awaiting Improve"):
+            self.assertNotIn(absent, packet)
+        self.assertIn("Improve: no Improve child starts after this result in this run (planning_review: none)",
+                      packet)
+        # the same producer packet in stage mode still promises the child and carries the experiment locators
+        staged = nav.render(None, run, advance_to(self.new("stage"), "plan"))
+        for present in ("Planning experiments guide", "Planning investigation notebook",
+                        "its Improve child evaluates", "starts this action's Improve child"):
+            self.assertIn(present, staged)
+
+
+class PlanningReviewNoneCliTests(unittest.TestCase):
+    """`--planning-review none` through the shipped CLI: the gates a host meets, not the pure functions."""
+
+    def setUp(self):
+        self._temporary = tempfile.TemporaryDirectory(prefix="shiploop-planning-review-none-")
+        self.addCleanup(self._temporary.cleanup)
+        self.base = Path(self._temporary.name).resolve()
+        self.env = dict(os.environ, PYTHONDONTWRITEBYTECODE="1", GIT_CONFIG_GLOBAL=os.devnull,
+                        GIT_CONFIG_NOSYSTEM="1")
+
+    def cli(self, *argv, status=0):
+        done = subprocess.run([sys.executable, "-B", str(CLI), *map(str, argv)], cwd=self.base, env=self.env,
+                              capture_output=True, text=True, timeout=60)
+        self.assertEqual(done.returncode, status, done.stdout + done.stderr)
+        return done
+
+    def start(self, mode):
+        """A fresh repository and run recorded with ``mode``; returns the run directory."""
+        self.repo = self.base / ("repo-" + mode)
+        self.repo.mkdir()
+        (self.repo / "a.txt").write_text("x\n")
+        for argv in (["init", "-q"], ["add", "."],
+                     ["-c", "user.email=t@example.invalid", "-c", "user.name=t", "commit", "-qm", "init"]):
+            subprocess.run(["git", *argv], cwd=self.repo, env=self.env, check=True)
+        run = self.base / ("run-" + mode)
+        self.cli("init", "--repo", self.repo, "--run-dir", run, "--prompt=add hello", "--planning-review", mode)
+        return run
+
+    @staticmethod
+    def saved(run):
+        return store.read_record(run / "state.md")
+
+    def complete(self, run, **result):
+        action = self.saved(run)["action"]["id"]
+        path = run / "inbox" / (action + ".md")
+        store.write_record(path, dict(DONE, **result))
+        return self.cli("complete", "--run-dir", run, "--action", action, "--result", path)
+
+    def advance_to(self, run, stage):
+        while self.saved(run)["stage"] != stage:
+            self.complete(run)
+        return self.saved(run)["action"]["id"]
+
+    def knowledge_commits(self):
+        subjects = subprocess.run(["git", "-C", str(self.repo), "log", "--format=%s"], env=self.env, check=True,
+                                  capture_output=True, text=True).stdout.splitlines()
+        return [line for line in subjects if "knowledge after spec" in line]
+
+    def test_the_spec_is_accepted_and_committed_at_complete_with_no_review(self):
+        """S-11 under none: the knowledge home is committed when the spec is accepted; under stage a child holds it."""
+        commits = {}
+        for mode in ("stage", "none"):
+            run = self.start(mode)
+            self.advance_to(run, "spec")
+            spec = self.repo / "docs" / "shiploop" / "spec.md"
+            spec.parent.mkdir(parents=True)
+            spec.write_text("# spec\n\nR-1: Say hello.\n")
+            self.complete(run)
+            state = self.saved(run)
+            if mode == "none":
+                self.assertEqual(state["stage"], "test-strategy")
+                self.assertIsNone(state.get("active_improve"))
+                self.assertEqual(state["improve_results"], {})
+            else:
+                self.assertEqual(state["stage"], "spec")
+                self.assertIsNotNone(state["active_improve"])
+            commits[mode] = self.knowledge_commits()
+        self.assertEqual(commits["stage"], [])
+        self.assertEqual(len(commits["none"]), 1, commits)
+
+    def test_a_none_run_has_no_child_to_bind_and_nothing_to_reconcile(self):
+        run = self.start("none")
+        self.advance_to(run, "plan")
+        action = self.saved(run)["action"]["id"]
+        result = run / "inbox" / (action + "-reconcile.md")
+        store.write_record(result, {"summary": "Reconcile.", "target": "research", "evidence_refs": []})
+        refused = self.cli("improve-reconcile", "--run-dir", run, "--action", action, "--result", result,
+                           status=2)
+        self.assertIn("reconciliation requires the bound active initial plan Improve child",
+                      refused.stdout + refused.stderr)
+        self.complete(run, assumptions=[])
+        state = self.saved(run)
+        self.assertEqual(state["stage"], "prepare")
+        self.assertIsNone(state.get("active_improve"))
+        bind = self.cli("improve-bind", "--run-dir", run, "--action", action, "--skill-card", CARD, status=2)
+        self.assertIn("no matching active Improve parent", bind.stdout + bind.stderr)
+
+    def test_a_child_forged_at_spec_in_a_none_run_is_refused_when_the_run_loads(self):
+        run = self.start("none")
+        action = self.advance_to(run, "spec")
+        saved = self.saved(run)
+        saved["active_improve"] = {
+            "action_id": action, "stage": "spec", "binding_id": saved["run_id"] + "/" + action,
+            "workspace": saved["repo"], "seed_result": dict(DONE, evidence_refs=[]), "skill": None}
+        store.write_record(run / "state.md", saved, title="Saved ShipLoop state")
+        before = (run / "state.md").read_bytes()
+        refused = self.cli("next", "--run-dir", run, status=2)
+        self.assertIn("a stage that does not start an Improve child in this run (planning_review: none)",
+                      refused.stdout + refused.stderr)
+        self.assertNotIn("Traceback", refused.stdout + refused.stderr)
+        self.assertEqual((run / "state.md").read_bytes(), before)
+
+    def test_the_assumption_list_is_refused_at_plan_in_a_none_run(self):
+        run = self.start("none")
+        self.advance_to(run, "plan")
+        open_entry = [{"id": "A1", "assumption": "A server seam exists.", "disposition": "open",
+                       "check": "import it", "reason": "not run", "consumer": "W9"}]
+        action = self.saved(run)["action"]["id"]
+        path = run / "inbox" / (action + ".md")
+        store.write_record(path, dict(DONE, assumptions=open_entry))
+        refused = self.cli("complete", "--run-dir", run, "--action", action, "--result", path, status=2)
+        self.assertIn("W9", refused.stdout + refused.stderr)
+        self.assertEqual(self.saved(run)["stage"], "plan")
 
 
 class ReceiptCountTests(unittest.TestCase):

@@ -24,11 +24,14 @@ chat or worktree. `improve-complete` takes no result file: it imports the
 child's own `review-<n>.md` and `checks.md` from its reviews directory and
 writes the summary itself; pass `--notes` for lessons, `--final-result` only
 when the review changed a decision, and `--no-commit` for a user's or
-repository's instruction not to commit. Every result at a planning stage
-(including `blocked` and `repeat`),
+repository's instruction not to commit. Every result at a planning stage the run's
+`planning_review` option reviews (all seven under `stage`, the default; only `system-test-author`
+and `release-plan` under `none`), including `blocked` and `repeat`,
 and a `done` at the last `carry-forward` that leaves no work item pending, parks
 the action for its Improve child instead of advancing: bind it with the printed
-`improve-bind` command; only `improve-complete` releases it.
+`improve-bind` command; only `improve-complete` releases it. The packet's Improve line says
+which: under `none`, a result at `spec`, `test-strategy`, `plan`, `step-plan` or `test-spec`
+advances on ShipLoop's checks at `complete`, with no child to bind.
 An identical replay is safe; a changed result for a consumed action is refused.
 Protocol 4 adds `improve-reconcile`, printed only when its Plan Improve child
-returns a reconciliation need.
+returns a reconciliation need (a `none` run has no Plan Improve child).

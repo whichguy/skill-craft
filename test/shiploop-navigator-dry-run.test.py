@@ -320,28 +320,59 @@ class NavigatorDryRunTests(unittest.TestCase):
             self.assertIn('invalid choice', refused.stderr)
 
     def test_the_dry_run_simulates_the_selected_planning_review_option(self):
-        scenario = driver.scenarios()['delivery']
         for mode in navigator.PLANNING_REVIEW_MODES:
             with self.subTest(mode=mode):
+                scenario = driver.scenarios(planning_review=mode)['delivery']
                 with patch.object(navigator.guidance, 'prompt', wraps=guidance.prompt) as rendered:
                     report = driver.run_scenario('delivery', scenario, planning_review=mode)
                 self.assertTrue(report['ok'], report.get('error'))
                 self.assertTrue(rendered.call_args_list)
                 self.assertEqual({call.kwargs['planning_review'] for call in rendered.call_args_list}, {mode})
         env = dict(os.environ, PYTHONDONTWRITEBYTECODE='1')
-        base = [sys.executable, '-B', str(SCRIPTS / 'shiploop'), 'graph-dry-run', '--scenario', 'delivery']
+        base = [sys.executable, '-B', str(SCRIPTS / 'shiploop'), 'graph-dry-run', '--scenario', 'all']
         with tempfile.TemporaryDirectory(prefix='navigator-dry-run-planning-review-') as temporary:
             for mode in navigator.PLANNING_REVIEW_MODES:
                 with self.subTest(cli=mode):
                     result = subprocess.run(base + ['--planning-review', mode], cwd=temporary, env=env,
                                             capture_output=True, text=True)
                     self.assertEqual(result.returncode, 0, result.stdout + result.stderr)
-            for unregistered in ('none', 'two'):
+                    self.assertEqual(result.stdout.count('PASS '), len(driver.scenarios()), result.stdout)
+            for unregistered in ('once', 'two'):
                 with self.subTest(refused=unregistered):
                     refused = subprocess.run(base + ['--planning-review', unregistered], cwd=temporary, env=env,
                                              capture_output=True, text=True)
                     self.assertEqual(refused.returncode, 2, refused.stdout + refused.stderr)
                     self.assertIn('invalid choice', refused.stderr)
+
+    def test_the_dry_run_schedule_is_declared_per_planning_review_mode(self):
+        """An independent oracle: the stages whose result starts an Improve child, declared here for each mode."""
+        reviewed = {'stage': {'spec', 'test-strategy', 'plan', 'step-plan', 'test-spec',
+                              'system-test-author', 'release-plan'},
+                    'none': {'system-test-author', 'release-plan'}}
+        events = {'stage': {'delivery': 42, 'two-work-items': 62, 'blocked-resume': 44, 'repeat-improve': 44,
+                            'revise': 50, 'pause-resume': 44, 'halted': 1},
+                  # none drops one finish-improve row for each planning result the option covers
+                  'none': {'delivery': 37, 'two-work-items': 55, 'blocked-resume': 39, 'repeat-improve': 39,
+                           'revise': 43, 'pause-resume': 39, 'halted': 1}}
+        self.assertEqual(set(driver.REVIEWED3), set(navigator.PLANNING_REVIEW_MODES))
+        for mode in navigator.PLANNING_REVIEW_MODES:
+            self.assertEqual(driver.REVIEWED3[mode], reviewed[mode])
+            for name, scenario in driver.scenarios(planning_review=mode).items():
+                with self.subTest(mode=mode, scenario=name):
+                    report = driver.run_scenario(name, scenario, planning_review=mode)
+                    self.assertTrue(report['ok'], report.get('error'))
+                    self.assertEqual(len(report['events']), events[mode][name])
+                    finishes = {event['from'] for event in report['events'] if event['command'] == 'finish-improve'}
+                    self.assertLessEqual(finishes, reviewed[mode] | {'carry-forward'})
+                    self.assertEqual(finishes, set() if name == 'halted' else reviewed[mode] | {'carry-forward'})
+        # a stage-mode script is refused by a none run: the oracle is not the engine's own table
+        stale = driver.run_scenario('delivery', driver.scenarios()['delivery'], planning_review='none')
+        self.assertFalse(stale['ok'])
+        self.assertIn('event 4: expected spec/active, got test-strategy/active', stale['error'])
+        # and the other way: a none script is refused by a stage run, which parks a child at spec
+        early = driver.run_scenario('delivery', driver.scenarios(planning_review='none')['delivery'])
+        self.assertFalse(early['ok'])
+        self.assertIn('event 4: expected test-strategy/active, got spec/active', early['error'])
 
     def test_protocol_version_flag_is_retired(self):
         env = dict(os.environ, PYTHONDONTWRITEBYTECODE='1')

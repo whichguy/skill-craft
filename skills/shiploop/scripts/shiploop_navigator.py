@@ -132,8 +132,9 @@ DEFAULT_LINT = lint.DEFAULT_MODE
 BACKCHAIN_PASSES_MODES = guidance.BACKCHAIN_PASSES_MODES
 DEFAULT_BACKCHAIN_PASSES = guidance.DEFAULT_BACKCHAIN_PASSES
 # Run-level planning review option: which planning results start an Improve child (see
-# shiploop_stage_spec.PLANNING_REVIEW_MODES).  New CLI-created runs record ``stage``; a saved run
-# without the key is refused (one supported version), never migrated, and no verb changes it mid-run.
+# shiploop_stage_spec.PLANNING_REVIEW_MODES: ``stage`` or ``none``).  New CLI-created runs record
+# DEFAULT_PLANNING_REVIEW; a saved run without the key is refused (one supported version), never
+# migrated, and no verb changes it mid-run.
 PLANNING_REVIEW_MODES = stage_spec.PLANNING_REVIEW_MODES
 DEFAULT_PLANNING_REVIEW = stage_spec.DEFAULT_PLANNING_REVIEW
 # Printed for any saved run this navigator cannot load.
@@ -258,13 +259,14 @@ _IMPROVE_STAGES = guidance.PLANNING_REVIEW_STAGES | {"carry-forward"}
 def _improve_checkpoint(state: Mapping[str, Any], stage: str, result: Mapping[str, Any]) -> bool:
     """Say whether this accepted producer result starts an actual Improve child.
 
-    Every planning/contract result is reviewed, plus the successful
-    carry-forward that leaves no work item pending (after its own queue
-    revision), so one review covers all executed steps before OUTER system
-    tests and release.  A later Improve that adds work items moves that end
-    review to the new last item's carry-forward.
+    Every planning/contract result the run's ``planning_review`` option reviews
+    is reviewed (all seven under ``stage``; under ``none`` only system-test-author
+    and release-plan), plus the successful carry-forward that leaves no work item
+    pending (after its own queue revision), so one review covers all executed
+    steps before OUTER system tests and release.  A later Improve that adds work
+    items moves that end review to the new last item's carry-forward.
     """
-    if stage in guidance.PLANNING_REVIEW_STAGES:
+    if stage in stage_spec.reviewed_stages(recorded_planning_review(state)):
         return True
     if stage not in stage_spec.with_improve("last-item") or result["outcome"] != "done":
         return False
@@ -985,17 +987,19 @@ def _validate_current_state(state: Mapping[str, Any]) -> None:
     _text(state.get("improve_skill"), "improve_skill", allow_empty=True)
     records = state.get("improve_results")
     _need(isinstance(records, Mapping), "Improve results must be an object")
-    # Most results are accepted directly; every planning-stage result always
-    # passed through its own Improve child.
+    # Most results are accepted directly; every planning-stage result this run's
+    # planning_review option reviews passed through its own Improve child.
+    reviewed = stage_spec.reviewed_stages(recorded_planning_review(state))
     expected = {entry["action"] for entry in history}
     # A test stage recorded as not applicable to its item (no test command, only
     # non-code paths; derived from the item's own step plan) had nothing to review.
     planning = {entry["action"] for entry in history
-                if entry["stage"] in guidance.PLANNING_REVIEW_STAGES
+                if entry["stage"] in reviewed
                 and not (entry["stage"] in item_scope.TEST_STAGES and entry["workitem"]
                          and item_scope.no_test_item(state, entry["workitem"]))}
     _need(planning <= set(records) <= expected,
-          "Improve results must belong to completed steps, including every planning-stage result")
+          "Improve results must belong to completed steps, including every planning-stage result "
+          "this run's planning_review option reviews")
     history_stage = {entry["action"]: entry["stage"] for entry in history}
     for record_id, record in records.items():
         _need(isinstance(record, Mapping), "Improve result must be an object")
@@ -1017,8 +1021,8 @@ def _validate_current_state(state: Mapping[str, Any]) -> None:
         _need(seed == child["seed_result"],
               "Improve requires a canonical step attempt result")
         _need(_improve_checkpoint(state, child["stage"], seed),
-              "this run's Improve child is at " + child["stage"] + ", a stage that never starts "
-              "an Improve child; only planning stages and the final carry-forward do")
+              "this run's Improve child is at " + child["stage"] + ", a stage that does not start "
+              "an Improve child in this run (planning_review: " + recorded_planning_review(state) + ")")
         selected = child["skill"]
         if selected is None:
             _need("version" not in child and "contract_marker" not in child,
@@ -3079,6 +3083,7 @@ def render(core: Any, root: Path, state: Mapping[str, Any],
             lines.append("Backchain graph check: " + shlex.join(
                 ["python3", _command(core), "backchain-check", "--run-dir", str(root), "--candidate"])
                 + " <your candidate file>")
+    reviewed = stage_spec.reviewed_stages(recorded_planning_review(state))  # stages whose result starts a child
     if stage in ("plan", "select-work", "carry-forward"):
         lines.append("Full ordered work queue: " + str(root / "state.md") + "; field work_items.")
         child = state.get("active_improve")
@@ -3094,11 +3099,17 @@ def render(core: Any, root: Path, state: Mapping[str, Any],
             lines.append("At plan, supplied work_items replaces the complete ordered queue. "
                          "Omission retains the existing queue (initially W1); use that only "
                          "when it represents the whole approved plan.")
-            lines.append("Revalidate the current work-item queue against the whole revised plan, "
-                         "including after reconciliation. If membership, order or context changes, "
-                         "return the complete ordered work_items in the producer result or Improve "
-                         "final_result. Omit work_items only after confirming the retained queue "
-                         "still represents the whole approved plan.")
+            if "plan" in reviewed:
+                lines.append("Revalidate the current work-item queue against the whole revised plan, "
+                             "including after reconciliation. If membership, order or context changes, "
+                             "return the complete ordered work_items in the producer result or Improve "
+                             "final_result. Omit work_items only after confirming the retained queue "
+                             "still represents the whole approved plan.")
+            else:
+                lines.append("Revalidate the current work-item queue against the whole plan. If "
+                             "membership, order or context changes, return the complete ordered "
+                             "work_items in the producer result. Omit work_items only after "
+                             "confirming the retained queue still represents the whole approved plan.")
         elif stage == "carry-forward":
             lines.extend([
                 "Omit work_items to retain the future queue. Supplied work_items replaces "
@@ -3121,17 +3132,18 @@ def render(core: Any, root: Path, state: Mapping[str, Any],
             "test-strategy": "Map requirements to observable checks, representative targets, setup, "
                              "isolation and due stages; planned checks are not passed checks.",
             "plan": "Build a provisional dependency plan with explicit readiness, completion and "
-                    "integration ownership; its Improve child evaluates whether the evidence supports it.",
+                    "integration ownership" + ("; its Improve child evaluates whether the evidence "
+                                               "supports it." if "plan" in reviewed else "."),
         }
-        lines.extend([
-            "Planning phase intent: " + purpose[stage],
-            *_planning_source_lines(state, root),
-            "Planning experiments guide: " + str(reference_dir / "planning-experiments.md"),
-            "Planning investigation notebook: " + str(planning_notebook),
-            "Keep detailed experiment prompts, raw logs, and review material behind these "
-            "locators. A child continuity context carries a compact planning summary and source "
-            "locators; do not duplicate the full parent packet or verbose logs.",
-        ])
+        lines.extend(["Planning phase intent: " + purpose[stage], *_planning_source_lines(state, root)])
+        if "plan" in reviewed:  # the experiments and reconcile route belong to the plan child
+            lines.extend([
+                "Planning experiments guide: " + str(reference_dir / "planning-experiments.md"),
+                "Planning investigation notebook: " + str(planning_notebook),
+                "Keep detailed experiment prompts, raw logs, and review material behind these "
+                "locators. A child continuity context carries a compact planning summary and source "
+                "locators; do not duplicate the full parent packet or verbose logs.",
+            ])
     if state["bound_plan"]:
         lines.append("Bound plan locator: " + _required_excerpt(state["bound_plan"], root, "bound_plan"))
     if state["history"]:
@@ -3301,7 +3313,7 @@ def render(core: Any, root: Path, state: Mapping[str, Any],
             "",
             "Call this when done:",
             _callback(core, root, "complete", action=action["id"], result=str(result_path)),
-            _improve_line(stage),
+            _improve_line(state, stage),
             "Pause without consuming the action: " + _callback(core, root, "pause", reason="<who asked and why>")
             + " (only when the user asks or a real blocker stops authorized work)",
             "Halt (terminal and irreversible; only on an explicit user stop): "
@@ -3464,11 +3476,15 @@ def _first_callback_lines(core: Any, root: Path, state: Mapping[str, Any]) -> li
             "never 'complete'): " + _callback(core, root, "improve-complete", action=action_id)]
 
 
-def _improve_line(stage: str) -> str:
+def _improve_line(state: Mapping[str, Any], stage: str) -> str:
     """Tell a producer whether its result starts an Improve child."""
-    if stage in guidance.PLANNING_REVIEW_STAGES:
+    mode = recorded_planning_review(state)
+    if stage in stage_spec.reviewed_stages(mode):
         when = ("Every " + stage + " result, including blocked and repeat, starts this action's "
                 "Improve child.")
+    elif stage in stage_spec.PLANNING_CHOICE_STAGES:
+        when = ("no Improve child starts after this result in this run (planning_review: " + mode
+                + "); ShipLoop's own checks at complete are the only gate before the graph advances.")
     elif stage == "carry-forward":
         when = ("A done result that leaves no work item pending starts the run's single "
                 "end-of-work Improve child over every executed step; any other result advances directly.")

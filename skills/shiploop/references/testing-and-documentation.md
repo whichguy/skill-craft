@@ -7,7 +7,9 @@ create a service just to satisfy a test-category label.
 
 Before product execution, use the current packet's planning checks. The
 `test-strategy`, `plan`, `step-plan` and `test-spec` producers plan the checks,
-and each is followed by its Improve review. Planning checks do not certify future
+and in a `planning_review: stage` run each is followed by its Improve review. Under `none` no
+Improve review follows them: ShipLoop's checks at `complete` are the gate, and `test-author` runs
+the focused commands once before `test-red`. Planning checks do not certify future
 product test results. Product acceptance remains blocked until its real
 implementation checks run. Research evidence does not prove that a live
 environment stayed unchanged; see

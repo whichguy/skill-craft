@@ -2822,28 +2822,11 @@ class BackchainPassesOptionTest(unittest.TestCase):
 class PlanningReviewOptionTest(unittest.TestCase):
     """The run option `planning_review`: recorded, validated, refused when missing or changed, threaded to the packet.
 
-    Same shape as BackchainPassesOptionTest. Only the value `stage` is registered until the option has a second
-    behaviour, so a changed retry cannot be named through the shipped CLI; those two refusals are driven with a second
-    value registered inside the child process (FORCED_SECOND_VALUE), through the real parser, the real run-directory
-    load and the real retry gates at both sites. The option never changes a printed packet.
+    Same shape as BackchainPassesOptionTest, through the shipped CLI, the real run-directory load and the real retry
+    gates at both sites. Naming `stage` never changes a printed packet; what `none` prints is PlanningReviewNoneTest's.
     """
 
     SPEC = ROOT / "test" / "shiploop_e2e" / "SPEC.md"
-    # Registers a second value before the CLI imports the navigator, so the choices, the validator and the retry
-    # gates all see it. It adds nothing once the engine registers `none` itself.
-    FORCED_SECOND_VALUE = (
-        "import importlib.machinery, importlib.util, sys\n"
-        "scripts, *argv = sys.argv[1:]\n"
-        "sys.path.insert(0, scripts)\n"
-        "import shiploop_stage_spec as stage_spec\n"
-        "if 'none' not in stage_spec.PLANNING_REVIEW_MODES:\n"
-        "    stage_spec.PLANNING_REVIEW_MODES = stage_spec.PLANNING_REVIEW_MODES + ('none',)\n"
-        "loader = importlib.machinery.SourceFileLoader('shiploop', scripts + '/shiploop')\n"
-        "module = importlib.util.module_from_spec(importlib.util.spec_from_loader('shiploop', loader))\n"
-        "sys.modules['shiploop'] = module\n"
-        "loader.exec_module(module)\n"
-        "sys.exit(module.main(argv))\n")
-
     def setUp(self) -> None:
         self._temporary = tempfile.TemporaryDirectory(prefix="shiploop-planning-review-")
         self.addCleanup(self._temporary.cleanup)
@@ -2861,10 +2844,6 @@ class PlanningReviewOptionTest(unittest.TestCase):
         return subprocess.run([sys.executable, "-B", str(SCRIPTS / "shiploop"), *argv], cwd=self.base,
                               env=self.env, capture_output=True, text=True, timeout=60)
 
-    def cli_with_second_value(self, *argv: str) -> subprocess.CompletedProcess:
-        return subprocess.run([sys.executable, "-B", "-c", self.FORCED_SECOND_VALUE, str(SCRIPTS), *argv],
-                              cwd=self.base, env=self.env, capture_output=True, text=True, timeout=60)
-
     def init_args(self, run: Path, *extra: str, prompt: str = "add hello") -> tuple[str, ...]:
         return ("init", "--repo", str(self.repo), "--run-dir", str(run), "--prompt=" + prompt, *extra)
 
@@ -2876,18 +2855,18 @@ class PlanningReviewOptionTest(unittest.TestCase):
         return store.read_record(run / "state.md").get("planning_review")
 
     def test_new_runs_record_stage_by_default_and_when_named(self) -> None:
-        self.assertEqual(navigator.PLANNING_REVIEW_MODES, ("stage",))
+        self.assertEqual(navigator.PLANNING_REVIEW_MODES, ("stage", "none"))
         self.assertEqual(navigator.DEFAULT_PLANNING_REVIEW, "stage")
         for mode in (None, *navigator.PLANNING_REVIEW_MODES):
             with self.subTest(mode=mode):
                 run = self.base / ("run-" + (mode or "default"))
                 started = self.init(run, *(("--planning-review", mode) if mode else ()))
                 self.assertEqual(started.returncode, 0, started.stdout + started.stderr)
-                self.assertEqual(self.recorded(run), "stage")
+                self.assertEqual(self.recorded(run), mode or "stage")
         self.assertEqual(navigator.new_state(str(self.repo), "Default.")["planning_review"], "stage")
 
     def test_an_unregistered_value_is_refused_by_the_cli_and_by_the_state_api(self) -> None:
-        for value in ("none", "two"):
+        for value in ("once", "two"):
             with self.subTest(value=value):
                 run = self.base / ("run-unregistered-" + value)
                 refused = self.init(run, "--planning-review", value)
@@ -2898,7 +2877,7 @@ class PlanningReviewOptionTest(unittest.TestCase):
                     navigator.new_state(str(self.repo), "Bad.", planning_review=value)
         workspace = self.cli("workspace", "start", "--repo", str(self.repo), "--workspace-root",
                              str(self.base / "workspace-unregistered"), "--prompt", "Workspace fixture.",
-                             "--planning-review", "none")
+                             "--planning-review", "once")
         self.assertEqual(workspace.returncode, 2, workspace.stdout + workspace.stderr)
         self.assertIn("invalid choice", workspace.stderr)
         state = navigator.new_state(str(self.repo), "Good.")
@@ -2908,10 +2887,10 @@ class PlanningReviewOptionTest(unittest.TestCase):
     def test_a_retry_naming_another_value_is_refused_and_a_plain_retry_recovers(self) -> None:
         run = self.base / "run-retry"
         args = self.init_args(run)
-        self.assertEqual(self.cli_with_second_value(*args, "--planning-review", "none").returncode, 0)
+        self.assertEqual(self.cli(*args, "--planning-review", "none").returncode, 0)
         self.assertEqual(self.recorded(run), "none")
         before = (run / "state.md").read_bytes()
-        refused = self.cli_with_second_value(*args, "--planning-review", "stage")
+        refused = self.cli(*args, "--planning-review", "stage")
         self.assertEqual(refused.returncode, 2, refused.stdout + refused.stderr)
         self.assertIn("recorded", refused.stderr)
         self.assertIn("none", refused.stderr)
@@ -2921,7 +2900,7 @@ class PlanningReviewOptionTest(unittest.TestCase):
         self.assertEqual((run / "state.md").read_bytes(), before)
         for same in (("--planning-review", "none"), ()):
             with self.subTest(same=same):
-                recovered = self.cli_with_second_value(*args, *same)
+                recovered = self.cli(*args, *same)
                 self.assertEqual(recovered.returncode, 0, recovered.stdout + recovered.stderr)
         self.assertEqual(self.recorded(run), "none")
         # The shipped CLI, which registers only `stage`, recovers a run that names the recorded value.
@@ -2935,11 +2914,11 @@ class PlanningReviewOptionTest(unittest.TestCase):
         root = self.base / "workspace"
         args = ("workspace", "start", "--repo", str(self.repo), "--workspace-root", str(root),
                 "--prompt", "Workspace fixture.")
-        started = self.cli_with_second_value(*args, "--planning-review", "none")
+        started = self.cli(*args, "--planning-review", "none")
         self.assertEqual(started.returncode, 0, started.stdout + started.stderr)
         self.assertEqual(self.recorded(root / "run"), "none")
         before = (root / "run" / "state.md").read_bytes()
-        refused = self.cli_with_second_value(*args, "--planning-review", "stage")
+        refused = self.cli(*args, "--planning-review", "stage")
         self.assertEqual(refused.returncode, 2, refused.stdout + refused.stderr)
         self.assertIn("none", refused.stderr)
         # the workspace wrapper forbids creating a replacement run to bypass a refusal, so the refusal must not
@@ -2947,7 +2926,7 @@ class PlanningReviewOptionTest(unittest.TestCase):
         self.assertIn("create a replacement run", refused.stderr)
         self.assertIn("only the owner starts a fresh run", refused.stderr)
         self.assertEqual((root / "run" / "state.md").read_bytes(), before)
-        self.assertEqual(self.cli_with_second_value(*args).returncode, 0)
+        self.assertEqual(self.cli(*args).returncode, 0)
         self.assertEqual(self.recorded(root / "run"), "none")
         shipped = self.base / "workspace-shipped"
         shipped_args = ("workspace", "start", "--repo", str(self.repo), "--workspace-root", str(shipped),
@@ -2987,16 +2966,20 @@ class PlanningReviewOptionTest(unittest.TestCase):
                 rendered.assert_called_once()
                 self.assertEqual(rendered.call_args.kwargs["planning_review"], mode)
 
-    def test_naming_the_mode_changes_no_packet_and_an_unknown_one_is_refused(self) -> None:
-        """The option has no text of its own yet: every stage prompt and duty renders as it does without it."""
+    def test_naming_stage_changes_no_packet_none_changes_two_duties_and_an_unknown_value_is_refused(self) -> None:
+        """`stage` renders what omitting the option renders; `none` differs in exactly the duties that promised a child."""
         for delegation in prompts.DELEGATIONS:
             for stage in prompts.STAGES:
                 with self.subTest(stage=stage, delegation=delegation):
-                    for mode in navigator.PLANNING_REVIEW_MODES:
-                        self.assertEqual(prompts.prompt(stage, delegation=delegation, planning_review=mode),
-                                         prompts.prompt(stage, delegation=delegation))
-                        self.assertEqual(prompts.duty(stage, delegation=delegation, planning_review=mode),
-                                         prompts.duty(stage, delegation=delegation))
+                    self.assertEqual(prompts.prompt(stage, delegation=delegation, planning_review="stage"),
+                                     prompts.prompt(stage, delegation=delegation))
+                    self.assertEqual(prompts.duty(stage, delegation=delegation, planning_review="stage"),
+                                     prompts.duty(stage, delegation=delegation))
+                    # the duties `none` rewrites: the plan's and the step plan's (declared here, not read from the table)
+                    differs = stage in ("plan", "step-plan")
+                    self.assertEqual(
+                        prompts.duty(stage, delegation=delegation, planning_review="none")
+                        != prompts.duty(stage, delegation=delegation), differs)
         for stage in prompts.STAGES:  # the catalog renders the default
             self.assertEqual(prompts.PROMPTS[stage], prompts.prompt(stage, planning_review="stage"))
         for call in (lambda: prompts.prompt("plan", planning_review="two"),
@@ -3055,7 +3038,7 @@ class PlanningReviewOptionTest(unittest.TestCase):
                 self.assertIn("planning-review", (skill / "references" / name).read_text(encoding="utf-8"))
 
     def test_the_spec_carve_out_names_the_option_the_code_defines(self) -> None:
-        """Parity, not prose, as a subset until the engine registers every value the carve-out names."""
+        """Parity, not prose: the carve-out names exactly the values the engine registers."""
         spec = " ".join(self.SPEC.read_text(encoding="utf-8").split())
         carve = spec.split("**S-10 carve-out, owner decision 2026-10-05", 1)[1].split("**S-11", 1)[0]
         key = "planning_review"
@@ -3063,10 +3046,316 @@ class PlanningReviewOptionTest(unittest.TestCase):
         self.assertIn(key, navigator.new_state(str(self.repo), "Key."))
         flag = "--" + key.replace("_", "-")
         named = set(re.findall(re.escape(flag) + r" `?(\w+)", carve))
-        self.assertLessEqual(set(navigator.PLANNING_REVIEW_MODES), named, carve)
+        self.assertEqual(set(navigator.PLANNING_REVIEW_MODES), named, carve)
         for mode in navigator.PLANNING_REVIEW_MODES:
             accepted = self.init(self.base / ("run-spec-" + mode), flag, mode)
             self.assertEqual(accepted.returncode, 0, accepted.stdout + accepted.stderr)
+
+
+class PlanningReviewNoneTest(unittest.TestCase):
+    """What a run recorded with `planning_review: none` tells the host: nothing that promises a child it will not get.
+
+    Every check renders the real packet from a real state (never a hand-built string) for each mode, delegation and
+    planning stage. The stages that start a child per mode are declared here, independently of stage_spec. These are
+    content pins and a scan, never whole-text goldens; stage-mode byte identity is proved against a golden captured
+    before the change (commit message), and here by each swapped sentence being present once in the stage render.
+    """
+
+    RUN = Path("/simulation-only/run")
+    DONE = {"outcome": "done", "summary": "Synthetic declaration; no work executed."}
+    MODES = ("stage", "none")  # declared here: a loop over the registered modes would pass vacuously before `none` exists
+    PLANNING = ("spec", "test-strategy", "plan", "step-plan", "test-spec", "system-test-author", "release-plan")
+    REVIEWED = {"stage": set(PLANNING), "none": {"system-test-author", "release-plan"}}
+    CHOICE = ("spec", "test-strategy", "plan", "step-plan", "test-spec")
+    NONE_LINE = "Improve: no Improve child starts after this result in this run (planning_review: none)"
+    # Every sentence of an unreviewed planning stage's packet that names Improve and is not rewritten: why it may stay.
+    ALLOWED = {
+        NONE_LINE: "the none text of the Improve line itself",
+        "get an actual Improve-skill handoff; every other result, spec, test-strategy, plan, step-plan and "
+        "test-spec included, is accepted": "the none text of COMMON: it says which stages hand off and which do not",
+        "no Improve child reviews them in this run": "the none text of the step-plan duty: says no child reviews the steps",
+        "No Improve child reviews this result in this run": "the none text of the step-plan duty: says no child reviews it",
+        "Improve follows its own selected context and ownership policy": "the chain-precedence rule on an ask-agent "
+        "packet: whose context an Improve invocation uses, not a child at this stage",
+        "Do not embed an Improve review campaign in this result": "forbids a nested review inside the producer; promises no child",
+        "so the next Improve packet can recover them": "the run's later Improve packets read these references; no child is promised here",
+        "for planning and Improve": "the spec duty's generic retention rule; names Improve, not a child at this stage",
+        "for cold recovery and the normal Improve handoff": "printed today at discovery and research, which never start a child",
+        "not that work, tests, or Improve iterations have occurred": "the status-label rule for every stage",
+        "Describe Improve activity only from its own observed records": "the progress-report rule for every stage",
+        "including a bound Improve child; a producer's done or a child's completion is not run completion":
+            "the progress-report rule for every stage",
+    }
+
+    @staticmethod
+    def flat(text: str) -> str:
+        return " ".join(text.split())
+
+    def state_at(self, stage: str, mode: str, delegation: str, **extra):
+        state = navigator.new_state("/simulation-only/repo", "Packet fixture.", improve_skill="",
+                                    planning_review=mode, delegation=delegation, **extra)
+        for _ in range(300):
+            if navigator.current_stage(state) == stage and state["active_improve"] is None:
+                return state
+            action = navigator.current_action(state)["id"]
+            state = navigator.apply(state, action, self.DONE)
+            if state["active_improve"] is not None:
+                state = navigator.finish_improve(state, action, {
+                    "summary": "Synthetic Improve completion.", "review_refs": ["synthetic://review"],
+                    "check_refs": ["synthetic://check"]})
+        raise AssertionError("did not reach " + stage)
+
+    def packet(self, stage: str, mode: str, delegation: str = "inline", **extra) -> str:
+        return navigator.render(None, self.RUN, self.state_at(stage, mode, delegation, **extra))
+
+    def test_the_registered_modes_are_the_ones_declared_here(self) -> None:
+        self.assertEqual(set(navigator.PLANNING_REVIEW_MODES), set(self.MODES))
+
+    def test_the_improve_line_promises_a_child_exactly_where_the_mode_starts_one(self) -> None:
+        for mode in self.MODES:
+            for delegation in prompts.DELEGATIONS:
+                for stage in self.PLANNING:
+                    with self.subTest(mode=mode, delegation=delegation, stage=stage):
+                        packet = self.flat(self.packet(stage, mode, delegation))
+                        promise = ("Improve: Every " + stage + " result, including blocked and repeat, "
+                                   "starts this action's Improve child.")
+                        if stage in self.REVIEWED[mode]:
+                            self.assertIn(promise, packet)
+                            self.assertNotIn(self.NONE_LINE, packet)
+                        else:
+                            self.assertIn(self.NONE_LINE + "; ShipLoop's own checks at complete are the only gate "
+                                          "before the graph advances. If work cannot continue, submit outcome "
+                                          "'blocked' with a truthful summary; when the run stops blocked, the next "
+                                          "packet prints its Resume command.", packet)
+                            self.assertNotIn("starts this action's Improve child", packet)
+
+    def test_the_common_schedule_lists_the_stages_the_mode_reviews_on_every_stage(self) -> None:
+        for mode in self.MODES:
+            for delegation in prompts.DELEGATIONS:
+                for stage in ("intake", "spec", "implement", "release-plan"):
+                    with self.subTest(mode=mode, delegation=delegation, stage=stage):
+                        text = self.flat(prompts.prompt(stage, delegation=delegation, planning_review=mode))
+                        schedule = re.search(r"Only planning results \(([^)]*)\) and the carry-forward that leaves "
+                                             r"no work item pending get an actual Improve-skill handoff;", text)
+                        self.assertIsNotNone(schedule, text)
+                        self.assertEqual({name.strip() for name in schedule.group(1).split(",")},
+                                         self.REVIEWED[mode])
+                        none_clause = ("every other result, spec, test-strategy, plan, step-plan and test-spec "
+                                       "included, is accepted on this step's own checks and the graph advances "
+                                       "directly.")
+                        self.assertEqual(none_clause in text, mode == "none")
+
+    def test_each_swapped_sentence_is_in_the_stage_text_once_and_the_none_text_in_its_place(self) -> None:
+        rows = prompts._NO_REVIEW_SWAPS
+        self.assertGreaterEqual(len(rows), 7)
+        used = set()
+        for stage_name, old, new in rows:
+            old, new = self.flat(old), self.flat(new)
+            self.assertNotEqual(old, new)
+            for stage in (prompts.STAGES if stage_name == "*" else (stage_name,)):
+                for delegation in prompts.DELEGATIONS:
+                    staged = self.flat(prompts.prompt(stage, delegation=delegation, planning_review="stage"))
+                    swapped = self.flat(prompts.prompt(stage, delegation=delegation, planning_review="none"))
+                    self.assertNotIn(new, staged, (stage_name, stage, delegation))
+                    if old in staged:  # the step plan's two variants each carry one of its rows
+                        used.add((stage_name, old))
+                        self.assertEqual(staged.count(old), 1, (stage_name, stage, delegation))
+                        self.assertNotIn(old, swapped)
+                        self.assertEqual(swapped.count(new), 1, (stage_name, stage, delegation))
+        self.assertEqual(len(used), len(rows), "a swap row matched no stage text")
+
+    def test_the_swap_guard_refuses_an_edited_or_ambiguous_sentence(self) -> None:
+        rows = prompts._NO_REVIEW_SWAPS
+        prompts._check_swaps(rows)  # the table as shipped holds
+        for index, (stage, old, new) in enumerate(rows):
+            with self.subTest(row=index):
+                edited = rows[:index] + ((stage, old + " (edited)", new),) + rows[index + 1:]
+                with self.assertRaises(RuntimeError):
+                    prompts._check_swaps(edited)
+        with self.assertRaises(RuntimeError):  # a sentence that occurs more than once is ambiguous
+            prompts._check_swaps(rows + (("plan", "the", "a"),))
+
+    def test_no_other_sentence_naming_improve_promises_a_child_the_run_will_not_start(self) -> None:
+        found = set()
+        for delegation in prompts.DELEGATIONS:
+            for stage in self.CHOICE:
+                for passes in ("one", "converge") if stage == "plan" else ("one",):
+                    with self.subTest(delegation=delegation, stage=stage, backchain_passes=passes):
+                        packet = self.packet(stage, "none", delegation, backchain_passes=passes)
+                        for block in re.split(r"\n\s*\n", packet):
+                            for sentence in re.split(r"(?<=[.!?]) (?=[A-Z(`\"'])", self.flat(block)):
+                                if not re.search(r"\bImprove\b", sentence):
+                                    continue
+                                allowed = [key for key in self.ALLOWED if key in sentence]
+                                self.assertTrue(allowed, "unreviewed sentence naming Improve in the none packet "
+                                                "at " + stage + ": " + sentence[:300])
+                                found.update(allowed)
+        self.assertEqual(found, set(self.ALLOWED), "an allowlist entry matched no sentence: "
+                         + str(sorted(set(self.ALLOWED) - found)))
+
+    def test_the_plan_experiment_locators_and_purpose_belong_to_the_plan_child(self) -> None:
+        locators = ("Planning experiments guide", "Planning investigation notebook",
+                    "Keep detailed experiment prompts, raw logs, and review material behind these locators")
+        for stage in ("discovery", "research", "spec", "test-strategy", "plan"):
+            with self.subTest(stage=stage):
+                none = self.flat(self.packet(stage, "none"))
+                staged = self.flat(self.packet(stage, "stage"))
+                for locator in locators:
+                    self.assertNotIn(locator, none)
+                    self.assertIn(locator, staged)
+                self.assertIn("Planning phase intent: ", none)
+        purpose = "Build a provisional dependency plan with explicit readiness, completion and integration ownership"
+        self.assertIn(purpose + ".", self.flat(self.packet("plan", "none")))
+        self.assertIn(purpose + "; its Improve child evaluates whether the evidence supports it.",
+                      self.flat(self.packet("plan", "stage")))
+
+    def test_the_work_queue_rule_names_no_improve_result_a_none_run_cannot_have(self) -> None:
+        none = self.flat(self.packet("plan", "none"))
+        staged = self.flat(self.packet("plan", "stage"))
+        revalidate = "Revalidate the current work-item queue against the whole"
+        self.assertIn(revalidate, none)
+        self.assertNotIn("Improve final_result", none)
+        self.assertNotIn("including after reconciliation", none)
+        self.assertIn("return the complete ordered work_items in the producer result. Omit work_items only after "
+                      "confirming the retained queue still represents the whole approved plan.", none)
+        self.assertIn("including after reconciliation", staged)
+        self.assertIn("in the producer result or Improve final_result", staged)
+
+    def test_the_backchain_plan_text_does_not_name_the_review_a_none_run_lacks(self) -> None:
+        for passes in ("one", "converge"):
+            with self.subTest(backchain_passes=passes):
+                none = self.flat(self.packet("plan", "none", backchain_passes=passes))
+                staged = self.flat(self.packet("plan", "stage", backchain_passes=passes))
+                self.assertIn("Material findings remain visible. The planning guide's Source-aware native caller "
+                              "section", none)
+                self.assertIn("or broaden scope. These restrictions belong to that Backchain child.", none)
+                self.assertNotIn("ordinary Improve", none)
+                self.assertNotIn("separate Improve executor", none)
+                self.assertIn("cannot clear ordinary Improve", staged)
+                self.assertIn("not the separate Improve executor's authority", staged)
+        # a run with no whole Backchain loop at plan renders the none text too
+        self.assertIn(self.NONE_LINE, self.flat(self.packet("plan", "none", backchain_passes="none")))
+
+    def test_the_test_facility_sentence_drops_the_child_only_where_none_starts_none(self) -> None:
+        child = "Carry relevant locators into item context and the Improve child's context/notes."
+        plain = "Carry relevant locators into item context."
+        for stage in ("test-strategy", "plan", "step-plan", "test-spec"):
+            with self.subTest(stage=stage):
+                self.assertIn(child, self.flat(self.packet(stage, "stage")))
+                none = self.flat(self.packet(stage, "none"))
+                self.assertNotIn(child, none)
+                self.assertIn(plain, none)
+        # the two OUTER planning stages keep their child and so their sentence
+        for stage in ("system-test-author", "release-plan"):
+            with self.subTest(stage=stage):
+                self.assertIn("Improve child's context/notes", self.flat(self.packet(stage, "none")))
+
+    def test_the_step_plan_duty_gates_through_complete_in_both_delegations(self) -> None:
+        for delegation, sentence in (
+                ("ask-agent", "ShipLoop's checks at complete are the gate for the created steps and graph; "
+                              "no Improve child reviews them in this run."),
+                ("inline", "ShipLoop's checks at complete are the gate for the steps; no Improve child reviews "
+                           "them in this run.")):
+            with self.subTest(delegation=delegation):
+                duty = self.flat(prompts.duty("step-plan", delegation=delegation, planning_review="none"))
+                self.assertIn(sentence, duty)
+                self.assertIn("No Improve child reviews this result in this run. Do not schedule a review stage "
+                              "or claim it ran.", duty)
+                self.assertNotIn("mandatory actual Improve loop", duty)
+                self.assertNotIn("automatic Improve handoff", duty)
+        plan = self.flat(prompts.duty("plan", planning_review="none"))
+        self.assertIn("ShipLoop's own checks at complete are its gate, and the accepted plan is what dependent "
+                      "work builds on.", plan)
+        self.assertIn("Do not schedule a review stage or claim one ran.", plan)
+        self.assertNotIn("remains a draft until that loop completes", plan)
+
+
+class PlanningReviewDocumentsTest(unittest.TestCase):
+    """The documents the host reads do not promise an Improve review of a planning result without naming the option.
+
+    A scan, never a whole-text golden: every document that says a planning result is followed by an Improve review
+    must name the `planning_review` option or be on a reasoned list. The tree must not tell the host two things.
+    """
+
+    SKILL = ROOT / "skills" / "shiploop"
+    APPARATUS = ROOT / "skills" / "shiploop-e2e-audit" / "harness" / "MOCK-REPLAY.md"
+    STAGES = r"(?:planning|\bspec\b|test-strategy|\bplan\b|step-plan|test-spec|\bglobal plan)"
+    REVIEW = r"Improve(?:'s)? (?:review|child|handoff|loop|checkpoint|packet|campaign|reviews)"
+    PROMISE = re.compile(rf"(?:{STAGES}[^.]{{0,100}}{REVIEW}|{REVIEW}[^.]{{0,100}}{STAGES})", re.IGNORECASE)
+    OPTION = re.compile(r"planning_review|--planning-review|planning review option")
+    # Documents that describe what a planning review checks, in passing, without stating a schedule: why each may stay.
+    DESCRIBES_THE_CONTENT = "says what a planning Improve review challenges; SKILL.md 'Planning review option' scopes it"
+    ALLOWED = {
+        "references/behavioral-requirements.md": DESCRIBES_THE_CONTENT,
+        "references/consumer-delivery.md": "release-plan keeps its child in every mode",
+        "references/environment-lifecycle.md": DESCRIBES_THE_CONTENT,
+        "references/project-knowledge.md": DESCRIBES_THE_CONTENT,
+        "references/requirements-definition.md": DESCRIBES_THE_CONTENT,
+        "references/workspace-lifecycle.md": "the end-of-work and release-plan children, which keep running in every mode",
+    }
+
+    def documents(self) -> dict[str, Path]:
+        names = ["SKILL.md", "README.md", *sorted(str(p.relative_to(self.SKILL)) for p in (self.SKILL / "commands").glob("*.md")),
+                 *sorted(str(p.relative_to(self.SKILL)) for p in (self.SKILL / "references").glob("*.md"))]
+        found = {name: self.SKILL / name for name in names}
+        found["../shiploop-e2e-audit/harness/MOCK-REPLAY.md"] = self.APPARATUS
+        return found
+
+    def test_every_document_that_promises_a_planning_review_names_the_option(self) -> None:
+        hits, unscoped = {}, {}
+        for name, path in self.documents().items():
+            text = path.read_text(encoding="utf-8")
+            found = [sentence for block in re.split(r"\n\s*\n", text)
+                     for sentence in re.split(r"(?<=[.!?]) (?=[A-Z(`\[|])", " ".join(block.split()))
+                     if self.PROMISE.search(sentence)]
+            if found:
+                hits[name] = found
+                if not self.OPTION.search(text):
+                    unscoped[name] = found[0][:160]
+        missing = {name: first for name, first in unscoped.items() if name not in self.ALLOWED}
+        self.assertFalse(missing, "documents that state a planning review without naming planning_review: "
+                         + json.dumps(missing, indent=1))
+        for name, reason in self.ALLOWED.items():
+            self.assertIn(name, hits, "the list names a document with no planning-review sentence: " + name)
+            self.assertFalse(self.OPTION.search(self.documents()[name].read_text(encoding="utf-8")),
+                             "a listed document now names the option, so it needs no entry: " + name)
+            self.assertTrue(reason)
+
+    def test_the_schedule_statements_say_what_none_does(self) -> None:
+        raw = (self.SKILL / "SKILL.md").read_text(encoding="utf-8")
+
+        def section(heading: str) -> str:
+            return " ".join(re.split(r"\n#{2,3} ", raw.split(heading, 1)[1], maxsplit=1)[0].split())
+
+        when, option = section("### When Improve runs"), section("### Planning review option")
+        self.assertIn("`planning_review`", when)
+        self.assertIn("`none`", when)
+        for stated in ("`--planning-review none`", "`system-test-author`", "`release-plan`", "last `carry-forward`",
+                       "`improve-reconcile`", "plan-time experiments", "no Improve child reviews", "`--backchain-passes none`",
+                       "first Improve child of a run", "docs/shiploop"):
+            with self.subTest(stated=stated):
+                self.assertIn(stated, option)
+        pins = {
+            "README.md": ("`--planning-review stage|none`", "`--planning-review none`"),
+            "commands/shiploop-complete.md": ("planning_review", "a `none` run has no Plan Improve child"),
+            "references/navigator.md": ("`stage` or `none`", "starts no Improve child"),
+            "references/state-files.md": ("`stage` or `none`", "only the records at `system-test-author`"),
+            "references/graph-dry-run.md": ("--planning-review none", "`--planning-review stage|none`"),
+            "references/planning-experiments.md": ("`planning_review: none`", "no Plan Improve child"),
+            "references/improve-context.md": ("a `none` run has no Plan Improve child",),
+            "references/research-loop.md": ("`planning_review: none`",),
+            "references/execution-planning.md": ("a `none` run has no such review",),
+            "references/backchain-planning.md": ("`planning_review: none`",),
+            "references/parallel-chain.md": ("`planning_review: none`", "`backchain-check`"),
+            "references/testing-and-documentation.md": ("Under `none` no Improve review follows them",),
+        }
+        for name, needles in pins.items():
+            text = " ".join((self.SKILL / name).read_text(encoding="utf-8").split())
+            for needle in needles:
+                with self.subTest(document=name, needle=needle):
+                    self.assertIn(needle, text)
+        mock = " ".join(self.APPARATUS.read_text(encoding="utf-8").split())
+        self.assertIn("planning_review", mock)
 
 
 class BackchainGateDocumentsTest(unittest.TestCase):

@@ -98,7 +98,7 @@ def workspace_command(core, argv):
     start.add_argument("--backchain-passes", choices=navigator.BACKCHAIN_PASSES_MODES, default=None,
                        help="new run: Backchain planning child passes, one (default), converge or none")
     start.add_argument("--planning-review", choices=navigator.PLANNING_REVIEW_MODES, default=None,
-                       help="new run: which planning results start an Improve child, stage (default)")
+                       help="new run: which planning results start an Improve child, stage (default) or none")
     for name in ("plan-return", "return"):
         child = subs.add_parser(name)
         child.add_argument("--workspace-root", required=True)
@@ -426,7 +426,7 @@ def main(core, argv=None):
             sub.add_argument("--backchain-passes", choices=navigator.BACKCHAIN_PASSES_MODES, default=None,
                              help="new run: Backchain planning child passes, one (default), converge or none")
             sub.add_argument("--planning-review", choices=navigator.PLANNING_REVIEW_MODES, default=None,
-                             help="new run: which planning results start an Improve child, stage (default)")
+                             help="new run: which planning results start an Improve child, stage (default) or none")
         if name == "delegation":
             sub.add_argument("--set", dest="delegation_value", choices=navigator.DELEGATIONS, required=True,
                              help="execution delegation for this run's future assignments")

@@ -85,8 +85,9 @@ prerequisites in `deps`, using earlier step IDs, or `[]` if there are none. Thes
 declarations feed the progress diagram; serial list order is not itself evidence
 of dependency. Saved legacy steps may omit `deps` and display them as unknown.
 On the inline route ShipLoop issues one
-`implement` packet per step. It is a planning stage, so the selected actual Improve
-skill reviews the plan before the script releases `test-spec`; ShipLoop runs no
+`implement` packet per step. It is a planning stage, so in a `planning_review: stage` run the
+selected actual Improve skill reviews the plan before the script releases `test-spec` (a `none`
+run has no such review: ShipLoop's checks at `complete` release it); ShipLoop runs no
 convergence loop of its own. Product edits wait for `implement`. A step is not
 ready to code merely because its work item is next, and a plan is not ready
 merely because one pass produced it.
@@ -242,8 +243,8 @@ requirement.
 
 ## Plan review questions
 
-The step-plan's Improve review, and the producer before it, should answer these
-for the current item:
+The step-plan's Improve review (a `stage` run; under `none` the producer alone), and the producer
+before it, should answer these for the current item:
 
 | Area | Question |
 |---|---|
@@ -284,7 +285,7 @@ step-plan producer inspects the actual handler and finds that its proposed write
 could overwrite a completed result. The plan orders the existing terminal-state
 guard and an expected-outcome case (cancelling an already completed job leaves
 its state and notifications unchanged) before the call-site update, and names
-the affected notification consumer. The Improve review challenges that plan
+the affected notification consumer. The Improve review (when the run has one) challenges that plan
 against current code before the script releases `test-spec`. Neither the plan
 nor its review claims that cancellation works yet: implementation and its
 product tests are still the next activities.

@@ -54,13 +54,23 @@ class StageTableTest(unittest.TestCase):
 
     def test_planning_review_modes(self) -> None:
         """The run option `planning_review`: the registered modes and the stages a mode reviews."""
-        self.assertEqual(spec.PLANNING_REVIEW_MODES, ("stage",))
+        self.assertEqual(spec.PLANNING_REVIEW_MODES, ("stage", "none"))
         self.assertEqual(spec.DEFAULT_PLANNING_REVIEW, "stage")
         self.assertIn(spec.DEFAULT_PLANNING_REVIEW, spec.PLANNING_REVIEW_MODES)
         # `stage` is today's behaviour: every stage whose rule is `always` starts an Improve child.
         self.assertEqual(spec.reviewed_stages("stage"), spec.with_improve("always"))
         self.assertEqual(spec.reviewed_stages("stage"), frozenset({
             "spec", "test-strategy", "plan", "step-plan", "test-spec", "system-test-author", "release-plan"}))
+        # `none` starts no child at the five planning stages the option covers; the children after
+        # system-test-author and release-plan stay, and the last carry-forward's rule is not the option's.
+        self.assertEqual(spec.PLANNING_CHOICE_STAGES, frozenset({
+            "spec", "test-strategy", "plan", "step-plan", "test-spec"}))
+        self.assertEqual(spec.reviewed_stages("none"), frozenset({"system-test-author", "release-plan"}))
+        self.assertEqual(spec.with_improve("last-item"), frozenset({"carry-forward"}))
+        for mode in spec.PLANNING_REVIEW_MODES:
+            self.assertLessEqual(spec.reviewed_stages(mode), spec.with_improve("always"))
+        # the seven-stage set the option does not redefine still drives the source-printing packets
+        self.assertEqual(prompts.PLANNING_REVIEW_STAGES, spec.with_improve("always"))
         with self.assertRaises(ValueError):
             spec.reviewed_stages("two")
 

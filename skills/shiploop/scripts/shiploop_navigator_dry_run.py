@@ -14,10 +14,13 @@ WORK3 = ('select-work step-plan test-spec baseline test-author test-red implemen
          'integrate integration-verify carry-forward').split()
 AFTER3 = ('system-test-author system-test product-acceptance release-plan release-check '
           'release release-verify operations handoff').split()
-# Stages whose result starts an Improve child, besides the last carry-forward.
-# Declared independently of the navigator's tables.
-REVIEWED3 = {'spec', 'test-strategy', 'plan', 'step-plan', 'test-spec',
-             'system-test-author', 'release-plan'}
+# Stages whose result starts an Improve child, besides the last carry-forward, for each
+# planning_review option.  Declared independently of the navigator's tables.
+REVIEWED3 = {
+    'stage': {'spec', 'test-strategy', 'plan', 'step-plan', 'test-spec',
+              'system-test-author', 'release-plan'},
+    'none': {'system-test-author', 'release-plan'},
+}
 SCOPE = 'SIMULATION ONLY: actual navigator routes and packets; no project work, checks, commits, or delivery performed.'
 CORE = SimpleNamespace(PACKAGE_ROOT=Path(__file__).resolve().parents[1],
                        REF_DIR=Path(__file__).resolve().parents[1] / 'references')
@@ -38,21 +41,16 @@ def _improve_receipt(stage):
     }
 
 
-def activity(*, two=False):
+def activity(planning_review='stage', *, two=False):
     """Explicit producer/Improve declarations for the navigator graph.
 
-    Improve follows only the planning stages and the last item's carry-forward.
+    Improve follows only the planning stages the option reviews and the last item's carry-forward.
     """
     path = BEFORE3 + WORK3 * (2 if two else 1) + AFTER3
     last_carry = len(path) - 1 - path[::-1].index('carry-forward')
     rows = []
     for index, (stage, target) in enumerate(zip(path, path[1:] + ['done'])):
-        if stage not in REVIEWED3 and index != last_carry:
-            rows.append({'at': stage, 'command': 'produce', 'expect': target,
-                         'result': {'outcome': 'done',
-                                    'summary': 'Synthetic declaration; no work executed.'},
-                         'status': 'done' if target == 'done' else 'active'})
-            continue
+        status = 'done' if target == 'done' else 'active'
         producer = {'outcome': 'done', 'summary': 'Synthetic declaration; no work executed.'}
         if stage == 'step-plan':
             producer['test_commands'] = [
@@ -63,11 +61,14 @@ def activity(*, two=False):
                 {'id': 'W1', 'title': 'First fixture'},
                 {'id': 'W2', 'title': 'Second fixture'},
             ]
+        if stage not in REVIEWED3[planning_review] and index != last_carry:
+            rows.append({'at': stage, 'command': 'produce', 'expect': target,
+                         'result': producer, 'status': status})
+            continue
         rows.append({'at': stage, 'command': 'produce', 'expect': stage,
                      'result': producer, 'status': 'active'})
         rows.append({'at': stage, 'command': 'finish-improve', 'expect': target,
-                     'receipt': _improve_receipt(stage),
-                     'status': 'done' if target == 'done' else 'active'})
+                     'receipt': _improve_receipt(stage), 'status': status})
     return rows
 
 
@@ -78,22 +79,24 @@ def _insert_before(rows, stage, command, extra):
     return rows
 
 
-def scenarios():
+def scenarios(planning_review='stage'):
     """Declarations for protocol 4: most producers advance without an Improve child."""
-    repeat = _insert_before(activity(), 'plan', 'finish-improve', [
-        {'at': 'plan', 'command': 'finish-improve', 'receipt': _improve_receipt('plan'),
+    # a child that asks for another attempt: at plan when the run reviews it, else at the first stage that has one
+    repeat_at = 'plan' if 'plan' in REVIEWED3[planning_review] else 'system-test-author'
+    repeat = _insert_before(activity(planning_review), repeat_at, 'finish-improve', [
+        {'at': repeat_at, 'command': 'finish-improve', 'receipt': _improve_receipt(repeat_at),
          'final_result': {'outcome': 'repeat', 'summary': 'More investigation needed.'},
-         'expect': 'plan'},
-        {'at': 'plan', 'command': 'produce', 'expect': 'plan',
+         'expect': repeat_at},
+        {'at': repeat_at, 'command': 'produce', 'expect': repeat_at,
          'result': {'outcome': 'done', 'summary': 'Synthetic second attempt.'}},
     ])
-    paused = _insert_before(activity(), 'test-author', 'produce', [
+    paused = _insert_before(activity(planning_review), 'test-author', 'produce', [
         {'at': 'test-author', 'command': 'pause', 'expect': 'test-author', 'status': 'paused'},
         {'at': 'test-author', 'command': 'resume', 'expect': 'test-author'},
     ])
     # implement finds the step plan unachievable: the item goes back to
     # step-plan and walks its planning and test stages again.
-    base = activity()
+    base = activity(planning_review)
     replan_rows = []
     for row in base[base.index(next(r for r in base if r['at'] == 'step-plan')):]:
         if row['at'] == 'implement':
@@ -105,15 +108,15 @@ def scenarios():
         *replan_rows,
     ])
     return {
-        'delivery': {'steps': activity()},
-        'two-work-items': {'steps': activity(two=True)},
+        'delivery': {'steps': activity(planning_review)},
+        'two-work-items': {'steps': activity(planning_review, two=True)},
         'blocked-resume': {
             'steps': [
                 {'at': 'intake', 'result': {
                     'outcome': 'blocked', 'blocked_by': 'external', 'summary': 'Synthetic prerequisite missing.'},
                  'command': 'produce', 'expect': 'intake', 'status': 'blocked'},
                 {'at': 'intake', 'command': 'resume', 'expect': 'intake'},
-                *activity(),
+                *activity(planning_review),
             ],
         },
         'repeat-improve': {'steps': repeat},
@@ -232,7 +235,7 @@ def run(args):
         if args.script:
             selected = {'custom': json.loads(Path(args.script).read_text(encoding='utf-8'))}
         else:
-            choices = scenarios()
+            choices = scenarios(args.planning_review or navigator.DEFAULT_PLANNING_REVIEW)
             selected = choices if args.scenario == 'all' else {args.scenario: choices[args.scenario]}
         delegation = args.delegation or navigator.DEFAULT_DELEGATION
         backchain_passes = args.backchain_passes or navigator.DEFAULT_BACKCHAIN_PASSES

@@ -38,7 +38,7 @@ SIMULATION_SCOPE = (
 )
 _CASE_FIELDS = frozenset((
     "schema", "id", "kind", "protocol_version", "provenance", "prompt", "steps",
-    "expected_final", "expected_failure",
+    "expected_final", "expected_failure", "planning_review",
 ))
 _STEP_FIELDS = frozenset((
     "at", "owner", "command", "result", "receipt", "final_result", "expect", "status",
@@ -66,13 +66,17 @@ _OUTER = (
     "release-check", "release", "release-verify", "operations", "handoff",
 )
 # The Improve schedule, stated literally so the replay oracle stays independent
-# of the navigator's own constants: every planning/contract producer, plus the
-# successful carry-forward that leaves no work item pending, parks for Improve.
-# Every other producer result is accepted directly.
-_PLANNING_CHECKPOINTS = frozenset((
-    "spec", "test-strategy", "plan", "step-plan", "test-spec",
-    "system-test-author", "release-plan",
-))
+# of the navigator's own constants, for each run option ``planning_review`` a case
+# declares: the planning/contract producers the option reviews, plus the successful
+# carry-forward that leaves no work item pending, park for Improve. Every other
+# producer result is accepted directly.
+_PLANNING_CHECKPOINTS = {
+    "stage": frozenset((
+        "spec", "test-strategy", "plan", "step-plan", "test-spec",
+        "system-test-author", "release-plan",
+    )),
+    "none": frozenset(("system-test-author", "release-plan")),
+}
 _MOCK_RESPONSE_TIMEOUT_SECONDS = 5.0
 # The navigator's top-level import closure.
 _ENGINE_MODULES = frozenset((
@@ -145,11 +149,14 @@ def validate_case(raw: Any, *, origin: str = "fixture") -> dict[str, Any]:
     if not isinstance(raw, dict):
         raise DagReplayError(f"{origin}: case must be an object")
     keys = set(raw)
-    required = {"schema", "id", "kind", "protocol_version", "provenance", "steps", "expected_final"}
+    required = {"schema", "id", "kind", "protocol_version", "provenance", "steps", "expected_final",
+                "planning_review"}
     if not required <= keys or not keys <= _CASE_FIELDS:
         raise DagReplayError(f"{origin}: case has unsupported or missing fields")
     if raw["schema"] != CASE_SCHEMA:
         raise DagReplayError(f"{origin}: unsupported case schema")
+    if raw["planning_review"] not in _PLANNING_CHECKPOINTS:
+        raise DagReplayError(f"{origin}: planning_review must be one of {', '.join(_PLANNING_CHECKPOINTS)}")
     case_id = _text(raw["id"], f"{origin} id")
     if not all(char.isalnum() or char in "_-" for char in case_id):
         raise DagReplayError(f"{origin}: id has unsafe characters")
@@ -240,7 +247,8 @@ def _receipt(stage: str, *, marker: str = "complete") -> dict[str, Any]:
 
 
 def _path_steps(stages: tuple[str, ...], *, work_items: list[dict[str, str]] | None = None,
-                   active_owner: str = "W1", terminal_target: str | None = None) -> list[dict[str, Any]]:
+                   active_owner: str = "W1", terminal_target: str | None = None,
+                   planning_review: str = "stage") -> list[dict[str, Any]]:
     """Build independent expected edges for the producer/Improve schedule.
 
     A literal checkpoint producer parks its action and a synthetic Improve
@@ -253,7 +261,7 @@ def _path_steps(stages: tuple[str, ...], *, work_items: list[dict[str, str]] | N
         target = stages[index + 1] if index + 1 < len(stages) else (terminal_target or "done")
         if stage == "carry-forward":
             item_index += 1
-        checkpoint = stage in _PLANNING_CHECKPOINTS or (
+        checkpoint = stage in _PLANNING_CHECKPOINTS[planning_review] or (
             stage == "carry-forward" and item_index >= len(item_ids)
         )
         edge: dict[str, Any] = {"expect": target, "status": "done" if target == "done" else "active"}
@@ -277,12 +285,13 @@ def _path_steps(stages: tuple[str, ...], *, work_items: list[dict[str, str]] | N
 
 
 def _synthetic_case(case_id: str, steps: list[dict[str, Any]], expected_final: dict[str, str], *,
-                    expected_failure: str | None = None) -> dict[str, Any]:
+                    expected_failure: str | None = None, planning_review: str = "stage") -> dict[str, Any]:
     case: dict[str, Any] = {
         "schema": CASE_SCHEMA,
         "id": case_id,
         "kind": "synthetic",
         "protocol_version": _PROTOCOL_VERSION,
+        "planning_review": planning_review,
         "provenance": {
             "source": "dag_replay.py synthetic builder",
             "meaning": "Fixture controls only; no retained model or product behavior.",
@@ -303,6 +312,12 @@ def synthetic_cases() -> dict[str, dict[str, Any]]:
         "synthetic-full": _synthetic_case(
             "synthetic-full", _path_steps(full_path),
             {"stage": "done", "status": "done", "completed_work_items": ["W1"]}
+        ),
+        # A none run: no checkpoint at the five planning stages; the last carry-forward, system-test-author and
+        # release-plan still park for Improve.
+        "synthetic-none-full": _synthetic_case(
+            "synthetic-none-full", _path_steps(full_path, planning_review="none"),
+            {"stage": "done", "status": "done", "completed_work_items": ["W1"]}, planning_review="none",
         ),
         "synthetic-two-work-items": _synthetic_case(
             "synthetic-two-work-items",
@@ -648,9 +663,9 @@ def _apply_callback(navigator: Any, state: Mapping[str, Any], command: str, outp
     raise DagReplayError(f"unsupported replay command: {command}")
 
 
-def _literal_checkpoint(before: Mapping[str, Any], stage: str, result: Any) -> bool:
+def _literal_checkpoint(before: Mapping[str, Any], stage: str, result: Any, planning_review: str) -> bool:
     """Say whether this producer result must park for Improve, per the literal schedule."""
-    if stage in _PLANNING_CHECKPOINTS:
+    if stage in _PLANNING_CHECKPOINTS[planning_review]:
         return True
     if stage != "carry-forward" or not isinstance(result, Mapping) or result.get("outcome") != "done":
         return False
@@ -660,7 +675,8 @@ def _literal_checkpoint(before: Mapping[str, Any], stage: str, result: Any) -> b
 
 
 def _assert_cursor_invariants(navigator: Any, before: Mapping[str, Any], after: Mapping[str, Any],
-                                 command: str, submitted_action: str, result: Any = None) -> None:
+                                 command: str, submitted_action: str, result: Any = None, *,
+                                 planning_review: str = "stage") -> None:
     """Check packet-level invariants the coarse stage oracle cannot see."""
     producer = {"done", "produce", "duplicate-produce", "conflicting-produce", "malformed-produce"}
     if command in producer:
@@ -674,7 +690,7 @@ def _assert_cursor_invariants(navigator: Any, before: Mapping[str, Any], after: 
         elif parked is not None:
             if after_action != before_action or child != parked:
                 raise DagReplayError("producer replay replaced the parked Improve child")
-        elif _literal_checkpoint(before, navigator.current_stage(before), result):
+        elif _literal_checkpoint(before, navigator.current_stage(before), result, planning_review):
             if after_action != before_action:
                 raise DagReplayError("producer replaced the parent action instead of parking it for Improve")
             if not isinstance(child, Mapping) or child.get("action_id") != submitted_action:
@@ -796,6 +812,7 @@ def replay_case(case: Mapping[str, Any], *, fixture: Mapping[str, Any], output: 
         f"/simulation-only/dag-replay/{case['id']}",
         case.get("prompt", "Synthetic ShipLoop DAG replay fixture; no project work."),
         improve_skill="",
+        planning_review=case["planning_review"],
     )
     navigator.save(run_dir, state)
     initial_state = _load_durable(navigator, run_dir)
@@ -866,7 +883,7 @@ def replay_case(case: Mapping[str, Any], *, fixture: Mapping[str, Any], output: 
                 state = pre_state
             else:
                 _assert_cursor_invariants(navigator, pre_state, state, command, submitted_action,
-                                             output_value.get("result"))
+                                             output_value.get("result"), planning_review=case["planning_review"])
                 if state != pre_state:
                     navigator.save(run_dir, state)
             effective_stage = navigator.current_stage(state)
