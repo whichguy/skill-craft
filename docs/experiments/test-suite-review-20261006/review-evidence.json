@@ -1,0 +1,593 @@
+{
+ "workflow": "wf_cb632ddc-d55 (test-suite-sizing-review)",
+ "main_when_read": "219c1de6 (worktree moved to 81e0502f during the timing run)",
+ "agents": 13,
+ "applied": [
+  "Fixture: said the hand-written GAS Battleship under docs/experiments/shiploop-composition-state-20260926/battleship/fixtures/gas is a skeleton (Code.gs 4 lines, index.html bodies are comments, place() returns []), usable only for doGet/manifest/closure checks; calibration is no longer called free and writing a known-good game is listed as missing effort (verified by reading the files).",
+  "Clarification: replaced 'the only Apps Script Battleship one-shot prompt is battleship-create' with an accurate list: the documented open experiment in docs/shiploop-composition-state-experiments-2026-09-26.md (verified, never run, the likeliest intent), rubric-eval S01 (verified, single-player GAS/SF, scores plans), and battleship-create (differs: hot-seat, hosted, three steps, Grok only).",
+  "Baseline rows resolved: 16 committed at both 219c1de6 and 81e0502f, 17 in the working tree with the 1.22.0 Battleship row uncommitted (verified with git show); removed from the unresolved list and stated the row is not in repository history.",
+  "hello cost: corrected '2.2x on one release' to 1.36x between the two 1.19.0 runs ($5.37, $7.33) and 2.2x across 1.16.1 to 1.19.0; cause not shown; noted LEARNINGS marks the rises-with-release reading superseded (verified from baselines.jsonl).",
+  "Marked FastPlanningRecordTest, the run.py '1.22.0' pin, and the no-model-launch REMOVED_SCRIPTS pin as inside DNT suites needing owner go; removed them from the Wave 1 deletion list; the improve.test.sh sha256 and upstream-commit literals and the backchain-check counts are kept; only the corpus-move deletion of file-existence checks remains, as a Wave 3 item.",
+  "SHIPLOOP_COMMAND: corrected 11 to 10 unmatched verbs and noted lint-mode is counted under lint (verified by applying the regex to shiploop --help's 23 verbs); the parity test stays and is red today.",
+  "release-boundary: reworded '4 of 5 branches' to name the untested pieces: CHANGELOG, README inventory block, bundle version, the four host catalog prefixes, and the negative case; A2 and A10 are acknowledged as covering the plugins/ prefix and card version (verified against release_output_changes).",
+  "test_gas_artifact.py count corrected from 11 to 12 (verified).",
+  "release-push assert_blocked: now says it checks a nonzero exit and an unmoved remote, not the reason (verified).",
+  "ci-policy: now says it forbids a pinned ubuntu-24.04 runner (assertNotIn) rather than pinning it (verified).",
+  "CI run count corrected to 118 runs (#357 to #474) and 119 attempts counting the #471 rerun; plan, release-boundary and checkout guard stated as green in every final attempt.",
+  "O6 reclassified: audit's DNT entry is 'speed it up, do not remove it', so O6 is audit-recommended and not DNT; added the audit's solo-baseline step; cited the audit's figure (636 s to about 180 s) beside my 350 to 385 s and said they are unreconciled (verified from ci-audit-final.json).",
+  "Progress idle-timeout: reworded to say the path runs in test_failed_shutdown_render_still_records_stop and only the reason text is unasserted (verified).",
+  "dual-body-guard: cited docs/skill-release-checklist.md as naming it the guard; noted the fail-first test proves only the external half and that one stray-directory test stays; added that the three absent leaves get the conservative entrypoint fallback in check-marketplace-packages.py (both verified).",
+  "Prose-pin counts replaced: guidance 159, actual-improve-cli 109, delegation 61 assertIn calls (verified by grep -c), with the caveat that assertIn includes non-prose asserts; the unreproducible 74/43/37 and the navigator 580-line figure are now 'count not measured'.",
+  "'Oversized' defined (gating pole plus a measured defect-level cause); moved the 3-skill fixture rewrite, integration-boundaries grace parameter, ask-agent-managed-harness retirement, and mutants-own-job speed items to 'not shown to cost, no action', following the audit's step 6; noted ask-agent-managed-harness is 39 s on GitHub per the audit; recorded what a later fixture must keep (hook-declaring, agents-card and script-bearing leaves).",
+  "Old-version row split and reduced to 'none confirmed deletable': row_planning_review reads live data (verified: 1 of 17 rows has planning_review), upgrade_docs is the current live-page upgrade (SKILL.md documents export.py --defaults --live), the saved-protocol-3 refusal is the one-supported-version obligation (found in two DNT navigator suites; the '5 suites' count could not be reproduced).",
+  "O10 narrowed to the audit's own text: delete only the three count assertions and add a derived reachability check; kept assertLess(len(baseline), 17) and the exact path table, with the bound to change only in the O9 step or via a recorded-seconds sum once O4 lands.",
+  "O5 changed to the audit's memo-in-fixture variant (467 s to 103 s local, 338 of 338 passing; GitHub 170 s is an inference); dropped the unmeasured 2-file OBSERVER_ROOT stub and said why (placement assertions would be vacuous; apparatus suites are DNT).",
+  "Progress flake: stated the cause as unproven (matches the owner memory and the review's own never-measured list); removed 'make the deadline injectable' (a start() change) and the relaxation of the four assertions from Wave 1; kept only a test-only soft-failure test by patching Popen and the clock.",
+  "Busy-lock 3 s to 10 s widening removed as an invented threshold; now 'no failure recorded, leave; if it flakes assert on the observable'.",
+  "Section 3 restructured: proposed rows kept only where there is a demonstrated miss or a verified untested destructive/oracle path; oracle row scoped to Battleship (and GAS once built); rubric-eval scoped to v4 after the v2/v3 decision; grab-bag, G3, crash-point, iterate, node:test and symlink items moved to a 'candidates, not proposed' paragraph; the 'few seconds' addition estimate dropped as unmeasured.",
+  "Added a Fail-first column: only the SHIPLOOP_COMMAND parity test is red today; every pass-first test names the mutation that must turn it red; rows 11, 12, 13 and 15 are marked unknown until run against a throwaway worktree of main.",
+  "Duplicates (inherited re-runs about 2.6 s and 0.9 s, improve-plugin, skill-interop-hygiene, E6) downgraded to no action unless touched, with the unique assertions to move first and a mutation proof required.",
+  "Ask-agent helper routing: replaced 'roughly neutral, drops three suites' with the measured selection (28 suites = 16 baseline + 4 ask-agent + 8 hub extras; the hub set has 9, planning-handoff already in baseline, verified with suite_catalog.quick) and required a before/after diff plus a must-select row.",
+  "Unknown-versus-resolved cleanups: 1.22.0 Battleship wall now 'at least 17.5 min of stage time' (46 stage entries sum to 1048.9 s, verified); breadth duration marked extrapolated/unknown; billing now 'billable 0 ms on 3 sampled runs, account billing not verified'; the 115.1 s versus 124 s comparison explained (the audit's 124 s was a 17-suite selection).",
+  "Added the audit's note that O4 durations must come from GitHub only (a Mac refresh would evict ask-agent suites from quick), and the audit's step order (O4, O11 and O10, O5 with O6, then stop) as the frame for section 5.",
+  "Decisions list rewritten with options and recommendations, leading with the Apps Script Battleship question (which harness, run or not, hosted or not), plus O5/O6 go, receipts download approval, old-version tests, ask-agent-managed-harness, hub set, rubric v2/v3, and informing the E2E session."
+ ],
+ "rejected": [
+  "Reviewer 3's claim that FastPlanningRecordTest is safe to delete because improve-runtime covers the gate_experiment rerun: rejected. I checked that only test/shiploop-e2e.test.py references gate_experiment.py (improve-runtime's OnePassGateTests covers the gate semantics, not the script rerun), the class contains the S-10 carve-out and audit-evidence tests, and the suite is on the audit's DNT list. Deletion is deferred to the corpus move and limited to file-existence checks.",
+  "Reviewer 2's request to drop the soft-failure progress test from Wave 1 entirely: partly rejected. Kept as a test-only coverage addition (patch Popen and the clock, no product change, no assertion relaxed); the injectable deadline and the 'tolerate best-effort start' change were dropped.",
+  "Reviewer 3's check that widening the busy-lock bound to 10 s loses nothing: rejected in favour of reviewer 2. Widening to a number I did not measure breaks the invent-no-thresholds rule and no failure is recorded, so the test is left alone and would assert on the observable if it ever flakes.",
+  "Reviewer 2's suggestion to move the ask-agent-managed-harness retirement entirely out of the review: rejected as a bare drop. It stays as an owner decision (item 7) with the corrected GitHub figure of 39 s and a recommendation to leave it, because the repo shows no other consumer.",
+  "Reviewer 3's figure that an ask-agent helper edit selects 13 suites and a reroute drops 9: not adopted. I measured 28 selected suites with suite_catalog.quick, which is 16 baseline plus 12 added (4 ask-agent and 8 hub, since planning-handoff is already in the baseline), so the review now says 8 hub suites would drop and requires a measured diff before any claim.",
+  "Reviewer 3's suggestion to keep the improve.test.sh version literal alongside the sha and commit literals: not adopted as a requirement; the review says the sha256 and upstream-commit literals are the real anchors and leaves the version literal as an optional cut, only with owner go."
+ ],
+ "decisions": [
+  "Which Battleship did you mean, and where does the case live? Options: (A) one offline-checked, single-player, no-deployment battleship-gas case in the main harness cases.json; (B) the audit harness battleship-create (hot-seat, hosted via MCP, Grok only); (C) both. Recommend A: it matches the documented open experiment, rubric S01 and the main ladder, and needs no deployment or Grok credits.",
+  "Whether and when to run the Apps Script Battleship one-shot. Options: authorize one live run now; authorize it only after a known-good game and mutants pass calibration; hold. Recommend the second: one Claude Sonnet 5.5 run, estimated $5 to $10 (unmeasured for GAS), reporting hosted behaviour as open, with no spend before the checks distinguish good from mutants.",
+  "Hosted deployment for the GAS case. Options: require deployment in the prompt; leave it out. Recommend leaving it out for now and authorizing the MCP, Google account, OAuth, access mode and cleanup separately later if the hosted variant is wanted.",
+  "Release tier O5 and O6. Options: both after O4; O5 only; hold. Recommend both in the audit's order, O5 as the memo variant and O6 with the solo baseline and a 38-mutant killed-set comparison; O6 needs owner go because it changes what the gate runs.",
+  "Approve downloading the hermetic-<group> receipt artifacts of GitHub Actions run 37391042290 (about 89 KB total, expire 2027-01-03) to fill _DURATION_SECONDS, or fill from log lines only. Recommend approve.",
+  "Old-version tests. Options: keep all; rewrite the 16 baseline rows to carry planning_review then remove the shim and its tests together. Recommend keep all; none is confirmed deletable.",
+  "ask-agent-managed-harness (39 s on GitHub). Options: retire, run full-tier only, leave. Recommend leave until O4 shows its GitHub cost against a pole.",
+  "Hub set. Options: add native-pilot to _HUB_SUITE_IDS (up to about 56 s on hub edits); the fuller derived version; neither. Recommend native-pilot only (audit O11 minimal).",
+  "rubric-eval suites v2 and v3, cursor-imports, marketplace-lifecycle-smoke --self-test. Recommend deciding v2 and v3 first because it scopes the rubric-eval tests, and leaving cursor-imports opt-in.",
+  "Tell the E2E and Run Review session that the 08:23 Battleship run was the Node case, together with the answer to the first decision. Recommend yes."
+ ],
+ "challenges": [
+  {
+   "lens": "factual verification",
+   "verdict": "revise",
+   "findings": [
+    {
+     "severity": "P1",
+     "claim": "Section 6, 'Offline pieces' and 'Cheapest honest way' step 1: 'a hand-written single-player Battleship (Code.gs, index.html, appsscript.json) under docs/experiments/shiploop-composition-state-20260926/battleship/fixtures/gas/' is the good product for calibrating the checks, 'a part that costs no credits'.",
+     "problem": "The fixture is a skeleton, not a playable game. Code.gs is 4 lines (doGet serving index). index.html has place() returning [], and fire(), computerTurn() and render() bodies that are only comments. There is no placement, hit/miss/sunk or winner logic, so it cannot be the known-good product that a full sweep ends or a repeat shot is refused against. Only the static and closure checks (doGet, appsscript.json webapp block, localStorage) could run against it.",
+     "evidence": "Read the three files directly. index.html: `function place() { /* random non-overlapping placement ... */ return []; }`, `function fire(r, c) { /* mark hit or miss ... */ save(); render(); }`, `function computerTurn() { /* hunt/target AI ... */ }`, `function render() { /* draws both grids ... */ }`. README.md there says 'Single-player Battleship against the computer' but the code does not implement it. wc -l: Code.gs 4, index.html 17, appsscript.json 7.",
+     "fix": "Say the fixture is a skeleton usable only as a closure/doGet fixture. A known-good GAS Battleship (client logic plus a vm/DOM-stub harness) has to be written first, and that is real effort. The calibration step is therefore not free."
+    },
+    {
+     "severity": "P1",
+     "claim": "Opening clarification and Section 6: 'The only Apps Script Battleship one-shot prompt is `battleship-create` in `skills/shiploop-e2e-audit/harness/scenarios.json`.'",
+     "problem": "Overbroad and it misses the closest match to what the owner described. docs/shiploop-composition-state-experiments-2026-09-26.md ends with an open experiment: 'One full ShipLoop run from \"Build a Battleship game\" on Apps Script, to confirm the intake question reaches the plan and work items.' That is a single one-shot end-to-end prompt on GAS, recorded as never run. Also skills/rubric-eval/suites/architecture-v4/scenarios.json S01 has request 'Build a Battleship game that one person plays in the browser against the computer.' for runtimes GAS and SF (the review cites S01 elsewhere but not as a one-shot prompt). battleship-create is a multi-step, hot-seat, MCP-deployment scenario, which is not 'single one-shot'.",
+     "evidence": "grep of docs/shiploop-composition-state-experiments-2026-09-26.md ('Open experiments' list, last bullet); scenarios.json battleship-create prompt ('two local players ... Use the configured Google Apps Script deployment MCP'); rubric-eval architecture-v4 S01 JSON ('runtimes': ['GAS','SF'], single-player request).",
+     "fix": "Name the documented open experiment as the likely intended case, state that it was never run, and say battleship-create is the nearest existing scenario but differs (two local players, hosted deployment, three chained steps). Replace 'the only' with an accurate list."
+    },
+    {
+     "severity": "P1",
+     "claim": "'Where the inputs disagree' bullet 1 and Section 6: 'Baseline rows: 16 at 219c1de6, 17 committed at 81e0502f plus one uncommitted. Not resolved.' and 'I did not check which commit added the extra row.'",
+     "problem": "Resolvable and wrong. Both 219c1de6 and 81e0502f hold 16 committed rows. The 17th row (the 2026-10-06T08:23 Claude Sonnet 5.5, plugin 1.22.0, Battleship row the review leans on) exists only as an uncommitted modification of test/shiploop_e2e/baselines.jsonl in the worktree. No commit added it.",
+     "evidence": "git show 219c1de6:test/shiploop_e2e/baselines.jsonl and git show 81e0502f:... both parse to 16 rows, 1 with a host field (hello 1.20.0). git status --short shows ' M test/shiploop_e2e/baselines.jsonl'. Working-tree file parses to 17 rows. git log -- baselines.jsonl: latest commit is 1c84470a (hello 1.20.0).",
+     "fix": "State 16 committed rows at both commits and 17 in the working tree, the 17th uncommitted; remove it from the 'unresolved' list. Say the cited 1.22.0 Battleship row is not in the repository history."
+    },
+    {
+     "severity": "P1",
+     "claim": "Section 6 ladder table, hello row: 'Cost varied 2.2x on one release (n=2).'",
+     "problem": "Not supported by the data. The two hello runs on one release (1.19.0) cost $5.37 and $7.33, a ratio of 1.36. The 2.2x is the spread between 1.16.1 ($3.30) and the 1.19.0 repeat ($7.33), which are different releases. LEARNINGS.md also marks the 'rises with each release' reading as superseded because the environment was uncontrolled.",
+     "evidence": "baselines.jsonl hello rows: 1.16.1 3.295; 1.19.0 5.3678 and 7.3252. evidence/claude-claude-sonnet-5-5-1.19.0-hello-20261004{,-b}.json wallMin 12.5 and 15.2 (ratio 1.2). LEARNINGS.md 'Verification of skill-craft 1.19.0' table and its superseded note.",
+     "fix": "Write 'cost varied 1.36x between two runs of 1.19.0 ($5.37, $7.33) and 2.2x across 1.16.1 to 1.19.0 (n=1 to 2 per release); the cause is not shown'."
+    },
+    {
+     "severity": "P1",
+     "claim": "Section 7 Wave 1 row 5: delete 'brittle and duplicate items that are not on the do-not-touch list: ... the version, hash, size and tombstone pins, `FastPlanningRecordTest`, ...'.",
+     "problem": "Some listed items are inside suites the audit's DO NOT TOUCH list names. FastPlanningRecordTest and the `run.py` '\"1.22.0\"' count pin both live in test/shiploop-e2e.test.py, part of 'The E2E harness and apparatus tooling suites (14 of 17 sampled were sole guards)'. shiploop-no-model-launch (the REMOVED_SCRIPTS == 30 tombstone pin) is in the quick fixed baseline, which is untouchable 'until the O9 diff check'. The audit also says to keep drift guards and 'prefer derive, don't pin'.",
+     "evidence": "docs/experiments/ci-audit-20261005/ci-audit-final.json recommendation text, DO NOT TOUCH list. grep: FastPlanningRecordTest at test/shiploop-e2e.test.py (7 tests); 'count(\\'\"1.22.0\\\"\\') == 1' in the same file; suite_catalog.quick(()) contains shiploop-no-model-launch.",
+     "fix": "Mark these rows 'inside a DNT suite, owner go required (or O9 first)' as is already done for O6 and navigator-contract, or drop them from the 'not on the list' wave."
+    },
+    {
+     "severity": "P2",
+     "claim": "Section 3 row 11: 'metrics.SHIPLOOP_COMMAND misses 11 CLI verbs (view, chain, backchain-check, hook-status, graph-dry-run, delegation, lint-mode, status, report, context, halt).'",
+     "problem": "It misses 10. `lint-mode` is matched, mislabelled as verb 'lint', because the regex alternative `lint` is followed by `\\b`, which fires before the hyphen.",
+     "evidence": "`shiploop --help` lists 23 verbs. Applying the regex `shiploop\\S*\\s+(?P<verb>complete|next|improve-[\\w-]+|init|workspace|lint|resume|pause)\\b` to each: 10 unmatched (view, chain, backchain-check, hook-status, graph-dry-run, delegation, status, report, context, halt); `shiploop lint-mode --x` matches with verb 'lint'.",
+     "fix": "Say 10 verbs, and note lint-mode is counted under 'lint'. The proposed derive-from-help test is still right."
+    },
+    {
+     "severity": "P2",
+     "claim": "Section 2 release-boundary row: '4 of 5 `release_output_changes` branches are untested: the host catalog prefixes, CHANGELOG, README inventory, bundle version.'",
+     "problem": "The function has four if/elif conditions (generated prefixes or CHANGELOG file, README inventory, bundle version, skill-card version), and the generated-prefix branch is exercised through plugins/ (A2) while the card-version branch is exercised by A10. The four host catalog prefixes are sub-cases of the tested prefix branch. The untested pieces are the CHANGELOG file, README inventory and bundle version (and the four catalog prefixes as inputs), not '4 of 5 branches'.",
+     "evidence": "scripts/check-release-boundary.py release_output_changes; GENERATED_PREFIXES has 5 prefixes, GENERATED_FILES = ('CHANGELOG.md',). test/release-boundary.test.sh A2 hand-edits plugins/a/SKILL.md; A10 covers the front-matter version; grep of the file finds no CHANGELOG, README, claude-plugin, grok-plugin, cursor-plugin or skill-craft-plugin.json case. The gap itself holds.",
+     "fix": "Reword to 'CHANGELOG.md, the README inventory block, the bundle version and the four host catalog prefixes have no case'."
+    },
+    {
+     "severity": "P2",
+     "claim": "Section 6: 'gas_artifact.inspect_artifact and test_gas_artifact.py (11 tests)'.",
+     "problem": "The file has 12 tests.",
+     "evidence": "skills/shiploop-e2e-audit/harness/test_gas_artifact.py: test methods at lines 30, 42, 49, 56, 64, 69, 80, 90, 98, 111, 118, 127 in class GasArtifactTests.",
+     "fix": "Write 12."
+    },
+    {
+     "severity": "P2",
+     "claim": "Section 3 row 7: '`assert_blocked` currently checks the exit code alone.'",
+     "problem": "It asserts a nonzero exit and that the remote head is unchanged (equal to the expected base). What it lacks is the reason text.",
+     "evidence": "test/release-push.test.py assert_blocked: assertNotEqual(returncode, 0, ...) and assertEqual(self.remote_head(), expected_remote or self.base). The ancestry gap itself holds: no test names ancestry, and release-push.py runs `git merge-base --is-ancestor`.",
+     "fix": "Say 'checks a nonzero exit and an unmoved remote, not the reason'."
+    },
+    {
+     "severity": "P2",
+     "claim": "Section 2 pins row: ci-policy pins '(`check-latest` count of 5, `upload-artifact@v7`, `ubuntu-24.04`)'.",
+     "problem": "The test forbids `ubuntu-24.04` (assertNotIn), it does not pin it. ci.yml uses `ubuntu-latest`. The other two pins are real.",
+     "evidence": "test/ci-policy.test.py test_workflow_uses_recorded_merge_candidate_latest_runtimes_and_evidence: assertEqual(workflow.count('check-latest: true'), 5), assertNotIn('ubuntu-24.04', workflow), assertIn('uses: actions/upload-artifact@v7', workflow). ci.yml has 5 check-latest lines.",
+     "fix": "Say 'forbids a pinned ubuntu-24.04 runner'."
+    },
+    {
+     "severity": "P2",
+     "claim": "Section 1 CI health: '119 completed main runs (#357 to #474)' and 'green 119 of 119'.",
+     "problem": "#357 to #474 is 118 runs. 119 is 118 runs plus the rerun attempt of #471. The nine red outcomes (8 failed runs plus #471 attempt 1) do reproduce.",
+     "evidence": "gh run list (200 main push runs): runs numbered 357 to 474 = 118; conclusions 110 success, 8 failure (#373-376, #410, #415, #421, #422). plan and release-boundary succeeded in all 118 final attempts; 'Checkout unchanged' succeeded in 218 job steps. #471 has attempt 2 success; attempt 1 shiploop-2 failed.",
+     "fix": "Say '118 runs, 119 attempts'."
+    },
+    {
+     "severity": "P2",
+     "claim": "Section 5 O6 row: 'Open item and on the do-not-touch list. Owner go required.' with an estimate of 576 to 632 s down to about 350 to 385 s.",
+     "problem": "The audit's DO NOT TOUCH entry is 'the plan-dispatcher-mutants gate itself: speed it up, do not remove it', and its recommended step 5 is O5 and O6 together. O6 is the audit's own speed-up, so it is not 'on the list'. The audit's estimate (GitHub 636 s to about 180 s, core 1,081 to about 625 s) differs a lot from the review's (about 4 min off core), and the difference is not reconciled.",
+     "evidence": "ci-audit-final.json recommendation (DO NOT TOUCH and step 5) and option O6 ('saves': 'GitHub 636 s to about 180 s [I]').",
+     "fix": "Mark O6 'audit-recommended, changes what the gate runs, compare killed sets first' and cite the audit's figure beside the review's own."
+    },
+    {
+     "severity": "P2",
+     "claim": "Section 3 row 20: 'Progress idle-timeout and racing starts' have no test.",
+     "problem": "The idle-timeout path is executed: test_failed_shutdown_render_still_records_stop calls progress.observe(..., watch=True, idle_timeout=.1) and ends through it. What is unasserted is the 'idle timeout; next ShipLoop packet can restart the observer' reason text.",
+     "evidence": "test/shiploop-progress.test.py test_failed_shutdown_render_still_records_stop; skills/shiploop/scripts/shiploop_progress.py observe idle-timeout branch; grep for 'idle timeout' in the test finds nothing.",
+     "fix": "Say 'the idle-timeout reason is never asserted'."
+    },
+    {
+     "severity": "P2",
+     "claim": "Section 2 duplicates row: dual-body-guard is a 'Duplicate, contested' deletion candidate; and Section 3 row on installed-skill-invocation and marketplace-package: three leaves 'absent from both tables'.",
+     "problem": "Two omitted facts. docs/skill-release-checklist.md ('External plugins') names test/dual-body-guard.test.sh as the guard for never re-adding skills/<same-name>/ for an external plugin, so the owner's own checklist treats it as the guard. And scripts/check-marketplace-packages.py says packages absent from NATIVE_SCRIPT_ENTRYPOINTS 'use the conservative recognized-script fallback', so adversarial-review, rubric-eval and shiploop-run-review are not simply unchecked. The absence from both tables does hold (0 mentions of each).",
+     "evidence": "docs/skill-release-checklist.md 'External plugins' paragraph; check-marketplace-packages.py NATIVE_SCRIPT_ENTRYPOINTS comment; test/installed-skill-invocation.test.py LEAVES has 6 leaves.",
+     "fix": "Cite the checklist when proposing the fail-first test for dual-body-guard, and say the three leaves get the fallback check but no named entrypoint."
+    },
+    {
+     "severity": "P2",
+     "claim": "Section 2 prose pins: 'guidance (74 phrases), actual-improve-cli (43), delegation (37), navigator-contract (about 580 lines of document scans)'.",
+     "problem": "Not reproducible from the files. assertIn counts are 159 (guidance), 109 (actual-improve-cli) and 61 (delegation). The review does not define how its counts were taken, so these figures are unverified.",
+     "evidence": "grep -c 'assertIn(' on those three test files.",
+     "fix": "Define the counting rule, or say 'unmeasured, many phrase pins'."
+    }
+   ],
+   "claims_checked": [
+    {
+     "claim": "cases.json has 9 cases (hello, battleship, battleship-scoring, csv-report, seat-reservations, 4 chain cases) and none is Apps Script; battleship is a Node HTTP server graded by node --test and live requests on ports 39171 to 39173",
+     "holds": true,
+     "evidence": "test/shiploop_e2e/cases.json: 9 keys; grep for Apps Script/appsscript/doGet/clasp in test/shiploop_e2e finds nothing; battleship prompt and 4 checks read directly."
+    },
+    {
+     "claim": "Suite counts: 108 suites; groups core 39, shiploop-1 1, shiploop-2 35, shiploop-3 31, e2e-apparatus 2, shiploop 67, ask-agent 9, shiploop-composition 16; fixed quick baseline 16; test-groups pins 67/39/108 and assertLess(len(baseline), 17)",
+     "holds": true,
+     "evidence": "Imported test/suite_catalog.py (no bytecode): len(SUITES)=108; select([g]) counts per group; quick(())=16 ids; test/test-groups.test.py lines 95 to 97 and 138."
+    },
+    {
+     "claim": "QUICK_MAX_SECONDS=120, _light() reads missing as 0.0, shard planner reads missing as 60 s, 46 of 108 suites have no _DURATION_SECONDS entry, 7 unlisted ShipLoop suites, 37 core suites without entries; catalog values 420 (mutants), 803 (lifecycle), 61.0 (shiploop-e2e, labelled an estimate)",
+     "holds": true,
+     "evidence": "suite_catalog.py constants and the _DURATION_SECONDS comment; computed 62 entries, 46 missing, 7 ShipLoop missing, 37 core missing."
+    },
+    {
+     "claim": "CI workflow: quick tier = 4 jobs, full tier = 8 jobs, release commit selects full, PR runs last 2026-09-25 and dispatch runs last 2026-09-23",
+     "holds": true,
+     "evidence": ".github/workflows/ci.yml (plan, checks matrix, release-boundary, hermetic); test/ci_policy.py select(); gh run list by event gave PR #284 2026-09-25 and dispatch #257 2026-09-23; all 93 quick runs show 4 jobs, all 25 full runs 8."
+    },
+    {
+     "claim": "CI timings: quick wall median 3.8 min (n=29, 1.9 to 11.5); since ebc2d25d n=8 median 3.0 (2.2 to 4.0); quick test step median 179 s and 126 s since; full median 18.6 min (n=11, 17.7 to 32.7); per-job medians core 18.2, shiploop-1 9.2, shiploop-2 8.3, shiploop-3 8.5, apparatus 14.6 (10.7 to 18.0); job-minutes 2.8 quick and 57.1 full",
+     "holds": true,
+     "evidence": "Recomputed from gh run view JSON for runs #357 to #474: last-29 quick median 3.83 (1.87 to 11.52); #465 to #474 quick median 3.03; 'Hermetic group' step medians 179 and 125.5; last-11 full medians exactly as stated; job-minute medians 2.8 and 57.1."
+    },
+    {
+     "claim": "Run #463 selected 33 suites and shiploop-e2e took about 300 s before the poll fix and 40.3 to 41.3 s after; mutants 576.3 s (#462) and 631.8 s (#469); apparatus 338 tests in 768.9 s (#469); lifecycle 546.6, chain 181.3, planning-context 81.1, test-loop 31.6 at 45 tests, native-pilot 56.5",
+     "holds": true,
+     "evidence": "Re-ran suite_catalog.quick() over git diff 520bfb85..f1545b10: 33. Job logs via gh api: 'Ran 224 tests in 303.044s' (#463); 'Ran 228 tests in 40.275s' (#465), 229 in 41.332 (#468) and 41.058 (#469); 'Ran 2 tests in 576.347s' and '631.849s'; 'Ran 338 tests in 768.919s'; 52 tests 546.631s; 42 tests 181.254s; 15 tests 81.106s; 45 tests 31.644s (test-loop had 45 tests at d1cca62f); 11 tests 56.517s."
+    },
+    {
+     "claim": "Run 37428360963 (#471) attempt 1 failed in shiploop-2 on shiploop-progress test_duplicate_start_and_cooperative_stop_then_restart with '2 != 0'; attempt 2 green; wall 32.7 min; commit 3b246328 prints CLI output on failure; #472 green",
+     "holds": true,
+     "evidence": "gh api attempt-1 job log: 'FAIL: test_duplicate_start_and_cooperative_stop_then_restart ... AssertionError: 2 != 0'; run createdAt 07:13:45 to updatedAt 07:46:28; git show 3b246328 message; run #472 conclusion success."
+    },
+    {
+     "claim": "Red-run classification: #373 to #376 pins, #410 and #415 real regressions, #421 and #422 runner Git-filter environment; no pin red after #376; plan, release-boundary and checkout guard always green",
+     "holds": true,
+     "evidence": "Failed-job logs: #374 to #376 test-groups 'AssertionError: 36 != 35' (#373 navigator-v4 'substring not found'); #410 shiploop-e2e SyntaxError; #415 mock-replay 'unresolved package reference: SKILL.md -> absolute'; #421/#422 'custom Git filters are unsupported'. Only the '119 runs' count is off by one attempt (see finding)."
+    },
+    {
+     "claim": "Billed cost is 0 (public repo); hermetic-<group> receipts of run 37391042290 total about 89 KB and expire 2027-01-03",
+     "holds": true,
+     "evidence": "gh api repos/whichguy/skill-craft: private=false; runs/37391042290/timing billable total_ms 0; artifacts list 2907+28964+23745+3767+29358 bytes, expires_at 2027-01-03."
+    },
+    {
+     "claim": "The repo has no Apps Script Battleship case in the live E2E harness; the Battleship baseline row at 08:23 (Claude Sonnet 5.5, plugin 1.22.0, $6.54, 238 turns, /Users/dadleet/e2e-runs/20261006/v1220-battleship-sonnet) is the Node case",
+     "holds": true,
+     "evidence": "cases.json; baselines.jsonl row 17 fields; (that row is uncommitted, see finding)."
+    },
+    {
+     "claim": "Baseline rows: 17 committed at 81e0502f plus one uncommitted; only 1 committed row names host, model and effort",
+     "holds": false,
+     "evidence": "git show of the file at 219c1de6 and 81e0502f: 16 rows each, 1 with a host (hello 1.20.0, effort null so it names host and model only); the 17th row is an uncommitted working-tree modification."
+    },
+    {
+     "claim": "Opt-in integration tier targets (cursor-imports, marketplace-claude/grok/codex, codex-ask-agent, current-dispatcher, three live E2E targets) and ci-policy asserts CI never runs it",
+     "holds": true,
+     "evidence": "test/run-integration.sh usage and case arms; ci-policy.test.py assertNotIn('run-integration', workflow)."
+    },
+    {
+     "claim": "ci-policy pins check-latest count 5, upload-artifact@v7 and ubuntu-24.04",
+     "holds": false,
+     "evidence": "check-latest 5 and upload-artifact@v7 are asserted; ubuntu-24.04 is assertNotIn (a floating runner is required)."
+    },
+    {
+     "claim": "metrics.SHIPLOOP_COMMAND misses 11 CLI verbs including lint-mode",
+     "holds": false,
+     "evidence": "23 verbs in `shiploop --help`; regex test leaves 10 unmatched; lint-mode matches as 'lint'."
+    },
+    {
+     "claim": "Progress observer start deadline is 1.0 s, four tests assert success, no soft-failure test exists, busy-lock test asserts under 3 s",
+     "holds": true,
+     "evidence": "shiploop_progress.start: deadline = monotonic()+1.0; test file has no 'unavailable' or 'soft' test; test_busy_lock_skips_without_blocking assertLess(..., 3)."
+    },
+    {
+     "claim": "FastPlanningRecordTest has 7 tests; no-model-launch pins len(REMOVED_SCRIPTS)==30; backchain-check pins a 131-byte line and counts [23, 28, 5]; plan-dispatcher mutants total 38 (18+10+10)",
+     "holds": true,
+     "evidence": "AST/grep of the three test files; test/orchestrator_scenarios/mutants/*.json counts 18, 10, 10."
+    },
+    {
+     "claim": "Quick selection holes: native-pilot is not selected by shiploop_navigator.py, shiploop_protocol.py or shiploop_chain.py edits; a SKILL.md edit adds only 4 suites and not shiploop-literal-transport; edits to the 10 prompt-only leaf cards add nothing beyond the baseline; ask-agent helper edit hits the hub fallback (12 referencing suites, limit 8)",
+     "holds": true,
+     "evidence": "suite_catalog.quick([...]) for each path; HUB_REFERENCE_LIMIT = 8; _referencing(skills/ask-agent/scripts/ask_agent_workspace.py) = 12; PROMPT_LEAVES has 10 entries."
+    },
+    {
+     "claim": "release-boundary has '4 of 5' untested release_output_changes branches",
+     "holds": false,
+     "evidence": "4 if/elif conditions; plugins/ prefix (A2) and card version (A10) are tested; CHANGELOG, README inventory, bundle version and the four catalog prefixes are untested."
+    },
+    {
+     "claim": "release.py has a clean-checkout guard and a failure handler running git reset --hard / git clean -fdq with no test of the dirty case; install.sh 'Invalid --skill value' guard has no test; release-push has no ancestry test",
+     "holds": true,
+     "evidence": "scripts/release.py 'checkout must be clean' and reset/clean; install.sh line 209 and no test names it; test/release-push.test.py test list has no ancestry or non-descendant test (assert_blocked also checks remote head, see finding)."
+    },
+    {
+     "claim": "Audit harness battleship-create is a Grok-only scenario that needs the configured Apps Script deployment MCP; battleship-full chains it with two follow-ups; oracle_games has five Battleship cases; fixtures/gas has 16 directories, none Battleship; test_gas_artifact has 11 tests",
+     "holds": false,
+     "evidence": "All hold except the test count: test_gas_artifact.py has 12 tests."
+    },
+    {
+     "claim": "A hand-written single-player Battleship exists as a fixture usable as the known-good product",
+     "holds": false,
+     "evidence": "docs/experiments/shiploop-composition-state-20260926/battleship/fixtures/gas/index.html bodies are comments only; place() returns []."
+    },
+    {
+     "claim": "ClaudeHost.argv passes --strict-mcp-config with no --mcp-config; Grok and Codex run in a throwaway HOME",
+     "holds": true,
+     "evidence": "test/shiploop_e2e/hosts.py line 260 and module docstring; no other mcp-config reference."
+    },
+    {
+     "claim": "History: a hosted create has never completed; the 2026-09-18 tic-tac-toe attempt hit 7200 s with no product (invalid-trial); local creates took 34m28s and 42m32s on Grok 4.6 xhigh",
+     "holds": true,
+     "evidence": "SAMPLES-2026-09-18.md result table (elapsed 7200.39568 s, invalid-trial, MCP project created); SAMPLES-2026-09-17.md rows."
+    },
+    {
+     "claim": "Battleship cost/duration history: 1.16.0 Sonnet 19 min, 353 turns, at least $4.62; Grok 66 to 113 min and $22.66 to $35.32; Luna 19 h and blocked; hello $3.30 to $7.33, 7.4 to 15.2 min, 35 accepted actions",
+     "holds": true,
+     "evidence": "/Users/dadleet/e2e-runs/20261003/batch-sonnet/battleship/metrics.json cost 4.6237, 353 turns; LEARNINGS.md lines 126, 175 and 931; evidence/*hello*.json wallMin 7.8, 11.8, 12.5, 15.2; baselines costs."
+    },
+    {
+     "claim": "hello cost varied 2.2x on one release (n=2)",
+     "holds": false,
+     "evidence": "1.19.0 pair is $5.37 and $7.33 (1.36x)."
+    },
+    {
+     "claim": "The 2026-10-05 CI audit's DNT list and O4 to O13 descriptions as cited (O4 per-suite seconds, O5/O6 apparatus and mutants, O9 baseline diff check, O10/O11 count pins and native-pilot, O12 lifecycle split); O6 is on the DNT list",
+     "holds": false,
+     "evidence": "Items match ci-audit-final.json, except O6: the DNT entry says speed the mutants gate up, not leave it, and the audit recommends O6."
+    },
+    {
+     "claim": "Inherited re-runs: shiploop-delegation 18 of 47 collected, shiploop-knowledge 7 of 21; workspace chmod 0555 helper used by 4 tests with no uid guard; improve-runtime, ask-agent-managed-harness and review-coverage tests have no GIT_CONFIG isolation",
+     "holds": true,
+     "evidence": "AST count with inheritance (47/18, 21/7); _read_only used at 4 sites, no geteuid in test; grep -c GIT_CONFIG = 0 in the three files."
+    },
+    {
+     "claim": "Gap claims: no hook-declaration validation tests for duplicate id, bad timeout, malformed JSON or extra key; no node:test count reader; no stderr-only-summary test; chain launched_intent and child_init_intent crash points and _require_external_run refusal untested; rubric-eval CLI, claude/codex argv and v2 to v4 suites unexercised; iterate.main untested; TAIL_CHARS untested",
+     "holds": true,
+     "evidence": "generator messages in scripts/skill-frontmatter-to-plugin-json.js vs expect_fail list in test/sync-plugin-views.test.sh; shiploop_test_counts.py has no node:test reader; greps over test/ for each name return nothing; test/rubric-eval.test.py SUITE = suites/architecture only and tests claude_outside/codex_outside not argv."
+    },
+    {
+     "claim": "Worktree moved from 219c1de6 to 81e0502f and the move changed only the E2E harness and a journal",
+     "holds": true,
+     "evidence": "git diff --stat 219c1de6 81e0502f: docs/shiploop-run-review-journal.md, test/shiploop-e2e.test.py, test/shiploop_e2e/README.md, test/shiploop_e2e/run.py."
+    }
+   ]
+  },
+  {
+   "lens": "Owner rules and overbuilding: KISS, audit do-not-touch list, one supported version, unmeasured is unknown, no invented thresholds, ask-befor",
+   "verdict": "revise",
+   "findings": [
+    {
+     "severity": "P1",
+     "claim": "Section 2 labels suites Oversized, plus section 5 and Wave 2 row 9 and Wave 3 row 19: 3-skill fixture for sync-plugin-views, release-flow and native-marketplace-adapters; integration-boundaries grace parameter; retire or demote ask-agent-managed-harness; give mutants its own CI job.",
+     "problem": "The Oversized verdict has no stated comparison. Section 2 never defines it, yet lifecycle at 546 s is 'Large but appropriate'. The review also says 'Minutes matter less than risk here, because of proceed-optimistically', then schedules several speed-only rewrites unconditionally. The audit's own order says to stop after O4, O5 and O6 and take up O7-O9, O12 and O13 'only if a measured wait still hurts'. No measured wait is cited for any of these five items.",
+     "evidence": "Local seconds (suite-seconds.json): integration-boundaries 11.8, sync-plugin-views 41.5, release-flow 29.0, native-marketplace-adapters 19.1, ask-agent-managed-harness 80.1. Every one is below QUICK_MAX_SECONDS = 120. All sit in core, whose GitHub median is 18.2 min (about 1,090 s), with mutants alone 576 to 632 s, so the three fixture suites are about 90 local seconds of that. The review itself says local seconds do not convert to GitHub seconds. 'Estimated 89.6 s to about 25 s' has no derivation: 1.0 s to 0.22 s per sync --check gives about 20 s only if all of the time were sync --check calls. The audit's headline (e) says slow suites that could be shared-fixture fast: NO. release-flow guards release.py, so shrinking its tree also lowers its fidelity. The 'mutants own job' estimates (14.6, 11, 9 to 10 min) are stacked estimates for a release wait the owner does not take.",
+     "fix": "Define the verdict as: contributes to a gating pole AND has a measured, defect-level fix. Under that definition only mutants (O6) and the apparatus (O5) qualify, and both are already audit items. Move the fixture rewrite, the grace parameter, the ask-agent-managed-harness retirement and the mutants-own-job option to a 'not shown to cost, no action' row. Add 'revisit after O4 gives GitHub seconds and O5/O6 land' as the audit's step 6 states."
+    },
+    {
+     "severity": "P1",
+     "claim": "Section 2 row 'FastPlanningRecordTest (7 tests in shiploop-e2e): Misplaced ... Delete' and the 'run.py \"1.22.0\" count in shiploop-e2e' pin deletion, both queued in Wave 1 row 5.",
+     "problem": "These sit in test/shiploop-e2e.test.py, an E2E harness suite on the audit's DO NOT TOUCH list ('14 of 17 sampled were sole guards; your 09-24 misses were this kind'). The review gives no evidence that overrides it. The stated duplicate ('a rerun of gate_experiment.py that improve-runtime already covers') is not supported. The class also holds tests that pin obligations, not incidental text. The deletion is justified only by a future corpus move, and no cost in seconds is shown.",
+     "evidence": "grep -rln gate_experiment test finds only test/shiploop-e2e.test.py (and LEARNINGS.md), so no other suite references that script. FastPlanningRecordTest contains test_spec_s10_names_its_carve_outs (a SPEC S-10 obligation), test_the_statements_the_planning_review_supersedes_say_so (the owner's mark-superseded journal rule) and test_the_ci_audit_evidence_is_in_the_repository (the audit evidence this review relies on). The owner rules say to keep evidence in the repo. The only cited trigger is that the corpus is 'planned' to move to shiploop-prompt-lab. No fail-first showing another suite goes red was run.",
+     "fix": "Leave the class and the run.py version pin until the corpus move actually happens. At that move delete only the file-existence checks, and keep or derive the S-10 carve-out test. If the duplicate claim stays, show it fail-first (remove one evidence file or edit gate_experiment.out and name the other suite that goes red). Drop both items from Wave 1 row 5."
+    },
+    {
+     "severity": "P1",
+     "claim": "Section 2 'Old-version compatibility tests ... Suspect (one supported version)': 'a retired receipt test', 'forged legacy events', and 'a saved-protocol-3 refusal repeated in 5 suites' under 'Nothing current writes those formats'.",
+     "problem": "The owner's one-supported-version rule is 'replace the old version and refuse old saved artifacts with a clear error'. A test that a gate refuses a saved protocol-3 artifact pins that obligation, not a compatibility mode. 'Nothing current writes those formats' is the wrong test for a refusal check, because the point is old files already on disk. The review does not say which 5 suites repeat it, and some may be navigator or chain suites on the do-not-touch list. Only the chain case is excepted.",
+     "evidence": "memory one-supported-version.md: 'refuse old saved artifacts with a clear error instead'; memory test-the-route-not-the-wording.md: a refusal must be submitted through the real gate in a test. The 5 suites are not named in the review.",
+     "fix": "Split the row. Delete only tests that accept, migrate or read old formats (row_planning_review for plugin below 1.22.0, the upgrade_docs and --live tests). Keep one refusal test per refusing gate, through the real route. De-duplicate the 5-suite repeat only after listing the suites and showing fail-first that the gate's own suite catches the same break. Exclude chain and navigator suites per the audit."
+    },
+    {
+     "severity": "P1",
+     "claim": "Section 5 'O10, reduced': delete the three count assertions and the `< 17` bound, assert a named set of the 8 nested and apparatus ids, make the path table a subset check.",
+     "problem": "This goes beyond O10 and past the audit's fixed-baseline protection. (a) assertLess(len(baseline), 17) is the only size guard on the fixed baseline, which is DO NOT TOUCH until the O9 diff check. It was edited twice (e4bf3443, 04b1ea56) in 11 days and is not part of the 38-commit count-literal churn the review cites, which is the 67/39/108 lines. (b) A named id set is itself a pin; the audit says 'prefer derive, don't pin' and proposes a reachability check. (c) Turning the exact path table into a subset check makes the `docs/notes.md: set()` case vacuous, since an empty set is a subset of anything. It also drops the exact over-selection check, and over-selection was the audit's #1 measured cost (445 of 569 s).",
+     "evidence": "test/test-groups.test.py: test_quick_is_a_light_baseline_plus_the_suites_matching_changed_files contains assertLess(len(baseline), 17) and a `cases` table checked with assertEqual(extra, expected). git log -S'assertLess(len(baseline)' returns only e4bf3443. git log -G on the three count lines gives 38 commits since 09-22 and 4 since 09-28. The review itself reports no pin red in 98 runs.",
+     "fix": "Delete only the three count assertions (67, 39, 108) and replace them with a derived reachability check for nested experiment and apparatus entries, as the audit specified. Keep `< 17` and the exact-equality table. If the baseline-size guard must change, do it in the O9 diff-check step."
+    },
+    {
+     "severity": "P2",
+     "claim": "Section 5 and Wave 2 row 7, O5 'as a test-only change': stub OBSERVER_ROOT to a 2-file fixture in RunTests.setUp; 'The audit measured 467 s to 103 s locally. Estimated 768.9 s to about 170 s on GitHub'.",
+     "problem": "The measured 467 s to 103 s, 338 of 338 passing, was for the audit's memoized credential-shape check, built inside the test fixture, with the same bytes and coverage. The review substitutes a different mechanism, a 2-file root, which has not been measured. It then reuses the audit's number and GitHub 170 s [I] as if they transferred. The stub also reduces what the apparatus tests exercise, and the apparatus tooling suites are DO NOT TOUCH. The review does not say it departs from the audit's preferred variant.",
+     "evidence": "ci-audit-final.json option O5: 'Memoize ... by file-content hash. Preferred variant: build the cache inside the test fixture'; why_slow item 3: '7-line memo took 467.2 s to 103.4 s'. run.py harness_manifest iterates every .py and .json in OBSERVER_ROOT, and freeze_package sanitizes each file.",
+     "fix": "Adopt the audit's memo variant inside the test fixture (measured, coverage kept). Or keep the stub, but state its saving as unknown until one measured local run, and keep the real-root trial for the freeze_package path. Add the direct freeze_package test first, as the review already proposes."
+    },
+    {
+     "severity": "P2",
+     "claim": "Section 3 row 3 and Wave 1 row 1: the 1.0 s start deadline 'produced the one demonstrated flake'; make the deadline injectable, have the four tests tolerate best-effort start.",
+     "problem": "Causation is asserted as fact in section 3 but the review's own last section lists 'the cause of the #471 flake' as never measured. The owner memory marks the 1.0 s start path as UNPROVEN and says not to change start() until commit 3b246328's diagnostic output shows the path. Making the deadline injectable is a change under skills/shiploop, which needs a change note. Making the tests tolerate a failed start would hide the exact failure that diagnostic is waiting to capture.",
+     "evidence": "memory ci-audit-2026-10-05.md: 'Likeliest path (UNPROVEN) ... 3b246328 makes the next failure print the CLI's stdout/stderr; do not change start() until that shows the path.' Review section 4 says 'Change the product bound only after the next failure shows its path', which conflicts with Wave 1 row 1.",
+     "fix": "Take row 3 out of Wave 1. Say 'cause unproven; wait for the next failure's printed output'. Keep only the wait_for polling in the test if it is needed, and add the soft-failure test after the path is known."
+    },
+    {
+     "severity": "P2",
+     "claim": "Section 3 rows 2, 9 (G3), 15, 17, 18 and 20, and the Wave 2 row 13 bundle: coverage-hunting rows with no real run that hit them.",
+     "problem": "The KISS memory says to fix only what breaks or misleads a normal run (a real run hit it) and to document adversarial or could-happen gaps. Row 20 is a grab-bag of about 14 items, including run-directory and .lock symlink refusals, a malformed acceptance file, backchain-check symlink record failures and TAIL_CHARS. Row 2 builds a known-good and known-bad product per case, for about 44 checks across 9 cases, while the only demonstrated weakness cited is Battleship. Row 15 loops the consistency test over rubric suites v2 to v4, while Wave 3 row 17 asks whether to retire v2 and v3, which is the one-supported-version question and should come first.",
+     "evidence": "memory kiss-over-adversarial-guards.md: 'Did a real run hit it? Does it break or mislead the normal path? If neither, document it and move on.' cases.json has 9 cases (hello 2, battleship 4, battleship-scoring 3, csv-report 5, seat-reservations 4, temperature-report 6, unit-converter 7, word-report 7, temperature-plain 6 checks).",
+     "fix": "Keep rows with a demonstrated miss or a verified untested destructive guard: 5 (release.py reset/clean guard present at its 'checkout must be clean' check, no test), 6, 7, 11, 12. Scope row 2 to Battleship (and the GAS case if built). Restrict row 15 to the supported suite (v4) after the row 17 decision. Move row 20, G3 and the symlink and malformed-input items to a documented-trust-boundary list. Drop the 'few seconds' estimate for additions, since several land in suites measured at 181 s on GitHub (chain)."
+    },
+    {
+     "severity": "P2",
+     "claim": "Section 2 'Duplicate' rows: improve-plugin (2.4 s), skill-interop-hygiene (0.04 s), the inherited re-runs in shiploop-delegation (18 of 47) and shiploop-knowledge (7 of 21), and install-arbitrary-skill E6: 'Delete' or 'move to a mixin'.",
+     "problem": "Only dual-body-guard gets a fail-first check. The audit found duplicate layers 'NOT SUPPORTED' (22 of 30 sampled tests were sole guards), though it did not trace shell or improve suites. The claimed owner of improve-plugin is not shown: improve-plugin.test.py asserts host-manifest parity on the real built package, while marketplace-package.test.py checks manifests on a 'Sample package' fixture. The cost avoided is negligible next to the churn of catalog edits and count pins.",
+     "evidence": "Local seconds: improve-plugin 2.445, skill-interop-hygiene 0.04, shiploop-delegation 6.7 s for 47 tests, shiploop-knowledge 2.7 s for 21 tests. Even a full removal of the inherited re-runs is about 2.6 s and 0.9 s. test/marketplace-package.test.py lines 41 to 55 use a sample fixture package.",
+     "fix": "Delete none of them without a one-line mutation (break the claimed owner and name which suite goes red), the same method the review proposes for dual-body-guard. At 0.04 to 2.4 s there is no cost to justify the change otherwise."
+    },
+    {
+     "severity": "P2",
+     "claim": "Facts presented as unknown or resolved that the repo settles, and inferred numbers presented without that label (section 1, section 4, section 6, 'Where the inputs disagree').",
+     "problem": "(1) 'Baseline rows: 16 at 219c1de6, 17 committed at 81e0502f plus one uncommitted ... Not resolved.' It resolves in one command: both commits hold 16 rows; the working file holds 17, one uncommitted (08:23 Battleship). (2) The 1.22.0 Battleship 'wall unknown', although the committed-row format carries 46 stage seconds that sum to 17.5 min (a lower bound, excluding between-stage time). (3) Breadth is 'About 19 min per case on Claude', but the 19 min figure is the Node Battleship run on 1.16.0 (LEARNINGS), and the review's own row says csv-report never ran on Claude. (4) 'Billed cost is 0' rests on 3 sampled runs plus a public-repo assumption; the audit lists account-level billing as an unverified assumption. (5) The 4-test busy-lock bound is widened to '10 s' with no basis (cold start measured about 0.26 s idle and 0.6 to 3 s at 4x load per the owner memory). (6) 'Local fixed baseline sums to 115.1 s (loaded machine; the audit said about 124 s idle)' places a loaded figure below an idle one without explaining why.",
+     "evidence": "git show 219c1de6:test/shiploop_e2e/baselines.jsonl | wc -l gives 16, git show 81e0502f:... gives 16, the working file has 17 (git diff adds the 08:23 row). The 17 stage entries in the working row sum to 17.48 min and 237 turns. memory ci-audit-2026-10-05.md for the 1.0 s start and cold-start figures. ci-audit-final.json unknowns for account billing.",
+     "fix": "State 16 committed rows at both commits and one uncommitted row. Say '1.22.0 Battleship: at least 17.5 min of stage time, $6.54, 238 turns'. Say the breadth duration is unknown for csv-report and seat-reservations and extrapolated for Battleship. Write 'billable_ms 0 on 3 sampled runs; account billing unverified'. For the lock-bound test, assert on the observable (lock skipped, process exited) or derive the bound from a measured cold start, not 10 s. Drop the idle-versus-loaded comparison, or explain the baseline composition change."
+    }
+   ],
+   "claims_checked": [
+    {
+     "claim": "Local timing statistics: 108 suites, 3524.7 s total, 22 suites over 30 s make up 90.2 percent, top ten 74.0 percent, 67 under 5 s, fixed baseline sums to 115.1 s.",
+     "holds": true,
+     "evidence": "Recomputed from scratchpad tests-review/suite-seconds.json: 3524.6 s sum, 0.9024 and 0.7400 shares, 67 under 5 s, 16 quick-flag suites summing 115.08 s. Measured on a loaded machine and labelled as such."
+    },
+    {
+     "claim": "46 of 108 suites have no _DURATION_SECONDS entry; _light() reads missing as 0.0 while the shard planner reads 60 s; 7 unlisted ShipLoop suites are 420 s assumed against 48.9 s measured.",
+     "holds": true,
+     "evidence": "test/suite_catalog.py: _DURATION_SECONDS has 62 entries (46 missing), _light uses .get(path, 0.0), _FALLBACK_DURATION_SECONDS = 60.0; the 7 unlisted ShipLoop suites sum to 48.934 s in the local data."
+    },
+    {
+     "claim": "GitHub seconds: apparatus 768.9 s for 338 tests, mutants 576 to 632 s, shiploop-chain 181.3 s, native-pilot about 56 s.",
+     "holds": true,
+     "evidence": "gh-full-37391042290.log and logs/*: 'Ran 338 tests in 768.919s' (twice) and 843.998s, 'Ran 2 tests in 631.849s', 'Ran 42 tests in 181.254s', 'Ran 11 tests in 56.517s' (matched to native-pilot by test count, an inference, since the shard prints all OK lines with one timestamp)."
+    },
+    {
+     "claim": "Count-pin churn: about 39 commits touched the count lines since 09-22, 4 count-bump commits since 09-28.",
+     "holds": true,
+     "evidence": "git log -G on the 67/39/108 lines returns 38 commits since 09-22 and 4 since 09-28 (f1545b10, 5561e12c, 62c36c73, 931c53e2). The `< 17` bound is a different pin and was edited only twice."
+    },
+    {
+     "claim": "No credit spend was made or hidden; every model-backed step is gated.",
+     "holds": true,
+     "evidence": "Section 6 'What needs your authorization' and Wave 3 rows 14 to 16 carry [CREDITS]. The receipt download is marked as needing approval. Wave 2 row 10 builds checks and a calibration pair without running. Sonnet 5.5 is only 'recommended first', behind the owner's choice of harness and game variant."
+    },
+    {
+     "claim": "No Hermes tests are proposed.",
+     "holds": true,
+     "evidence": "No Hermes suite, case or fixture appears in sections 2, 3 or 7. The install.sh test proposal targets the Claude home directory."
+    },
+    {
+     "claim": "Gap row 5: release.py has a destructive failure handler and an untested dirty-checkout guard; gap row 6: install.sh has an untested --skill guard.",
+     "holds": true,
+     "evidence": "scripts/release.py raises 'checkout must be clean' and the failure handler runs git reset -q --hard HEAD and git clean -fdq. test/release-flow.test.sh has no dirty-checkout case. install.sh prints 'Invalid --skill value' and no test greps it."
+    },
+    {
+     "claim": "The repo has no Apps Script Battleship case in the live E2E harness; the Battleship run that wrote the 08:23 row was the Node case.",
+     "holds": true,
+     "evidence": "test/shiploop_e2e/cases.json has 9 cases, none Apps Script; its battleship prompt says 'Node.js HTTP server'; no mention of Apps Script under test/shiploop_e2e. The 08:23 row is plugin 1.22.0, claude-sonnet-5-5, 238 turns, $6.54. The review's 'only Apps Script one-shot prompt is battleship-create' sits beside its own mention of rubric S01 (GAS runtime, single-player), a minor internal inconsistency."
+    },
+    {
+     "claim": "The move from 219c1de6 to 81e0502f changed only the E2E harness and a journal.",
+     "holds": true,
+     "evidence": "git diff --stat 219c1de6 81e0502f: docs/shiploop-run-review-journal.md, test/shiploop-e2e.test.py, test/shiploop_e2e/README.md, test/shiploop_e2e/run.py."
+    },
+    {
+     "claim": "The review respects the audit's do-not-touch list.",
+     "holds": false,
+     "evidence": "Respects the list for mutants (owner go for O6), navigator prose pins (deferred to the flip) and chain suites (leaves the one legacy-event deletion). Does not respect it for FastPlanningRecordTest and the run.py version pin in shiploop-e2e, the apparatus O5 mechanism change, and the removal of the fixed-baseline size guard (`< 17`)."
+    },
+    {
+     "claim": "Committed baseline rows: 16 at 219c1de6, 17 at 81e0502f plus one uncommitted.",
+     "holds": false,
+     "evidence": "Both commits hold 16 rows. The working file holds 17, one uncommitted (the 08:23 Battleship row). Resolvable by wc -l on git show output."
+    },
+    {
+     "claim": "'improve-runtime already covers' the gate_experiment rerun in FastPlanningRecordTest.",
+     "holds": false,
+     "evidence": "grep -rln gate_experiment test returns only test/shiploop-e2e.test.py (and LEARNINGS.md under test/shiploop_e2e); no other suite references the script."
+    }
+   ]
+  },
+  {
+   "lens": "Regression risk of the proposed changes: what each removal, shrink, merge or move would have missed in history, which release or push gate i",
+   "verdict": "revise",
+   "findings": [
+    {
+     "severity": "P1",
+     "claim": "Section 2, row 'Old-version compatibility tests': row_planning_review for plugin below 1.22.0 (about 7 tests) is 'suspect', 'nothing current writes those formats', delete after owner confirms",
+     "problem": "These tests do not pin an old-version shim. They pin how the harness reads live data: 16 of the 17 rows in the committed test/shiploop_e2e/baselines.jsonl have no planning_review field (counted), and row_planning_review plus scan_baseline decide which of them a new stage-mode run may compare with. Deleting the tests leaves that code unguarded. Deleting the code makes 16 rows uncomparable. The E2E harness's coverage is on the audit's do-not-touch list.",
+     "evidence": "Commit 25d1d93d (R18) fixed a real defect in exactly this logic: a run was refused a comparison when the last row was of the other mode. Tests: test_a_row_stands_for_the_mode_it_recorded_and_for_stage_only_when_its_plugin_predates_the_option and test_the_report_line_names_why_nothing_was_compared_and_the_last_row_of_the_driver in test/shiploop-e2e.test.py. The planning-review plan's M1 to M4 runs compare a stage control with the 1.21.0 rows, which only this rule allows.",
+     "fix": "Keep these tests. If the owner wants the shim gone, first rewrite or prune the 16 baseline rows to carry planning_review, then delete code and tests together. Reclassify the row as 'reads historical data' and move it out of the one-supported-version list."
+    },
+    {
+     "severity": "P1",
+     "claim": "Section 2, same row: upgrade_docs and --live (9 tests) are old-version compatibility and can be deleted",
+     "problem": "upgrade_docs is the current, documented operation that upgrades the owner's live Run Review page database ('the one-time upgrade of the live page's expectations and settings is code'). It runs every time the page revision changes, on documents that hold the owner's ticks. It is not an old format that nothing writes. The row's own test ('pins old-version compatibility') does not apply.",
+     "evidence": "skills/shiploop-run-review/scripts/export.py (upgrade_docs, read_live, export_defaults); test/shiploop-run-review.test.py asserts SKILL.md documents 'export.py --defaults --live FILE --page-url URL --out DIR'. Commits 9bcfbcca, fc4698c4 (R9) and bf591ff7 (R16) built and extended it. test_a_page_revision_the_defaults_lack_refuses_the_upgrade_and_names_each_document is a refusal that protects live data.",
+     "fix": "Keep. If the live page is retired, delete the feature, its SKILL.md line and the tests together, on the owner's say-so."
+    },
+    {
+     "severity": "P1",
+     "claim": "Section 2, same row: 'a saved-protocol-3 refusal repeated in 5 suites' is suspect under one supported version",
+     "problem": "A refusal of a saved old run is the one-supported-version obligation itself (owner memory: refuse old artifacts, no shims). It is not compatibility. The tests I can find sit in two navigator suites, both on the audit's do-not-touch list (navigator door suites, 'each caught something unique'). I found the saved-protocol-3 refusal in only 2 suites, not 5. The 'five' is unverified.",
+     "evidence": "test/shiploop-navigator-contract.test.py test_saved_pre_v4_runs_are_refused_with_a_clear_error_and_no_mutation (protocol 1, 2, 3, managed, legacy and JSON-state, exit 2, byte-identical run directory). test/shiploop-navigator-v4.test.py test_saved_protocol_3_run_is_refused_without_mutation (asserts 'only protocol 4' and 'fresh --run-dir'). The audit's value_evidence cites navigator-contract catching 'a refused retired run still written to'.",
+     "fix": "Delete nothing here. If duplicates across suites are wanted gone, name the five suites with a grep and deduplicate only outside the navigator door suites."
+    },
+    {
+     "severity": "P1",
+     "claim": "Section 5, row 'O10, reduced': delete the `< 17` bound and make the path table a subset check",
+     "problem": "The count pins (67/39/108) are fair to drop. The other two are not shown to cost anything and weaken quick-tier guards. (a) The `assertLess(len(baseline), 17)` bound is the only guard on growth of the fixed baseline. The per-suite check in test_quick_never_runs_heavy_suites_or_the_apparatus bounds one suite, not the sum, and the review puts the baseline sum at 115.1 s against a 120 s target. The bound changed twice in history (15 at e4bf3443, 17 at 04b1ea56), so it is not the churn source. Section 5's own first row relies on it ('would trip the < 17 pin'). (b) The `cases` table in test_quick_is_a_light_baseline_plus_the_suites_matching_changed_files uses assertEqual(extra, expected). That is the must-not-select half that the audit's O3 verification depended on. O3 fixed over-selection of 28 suites and 569 s for a docs-and-skills diff. A subset check cannot see that class. The table changed in 5 commits in 11 days (2be7906b, d0b2b0bed, fd2b02ea8, 62c36c73, 4e8ab439), against count lines edited in dozens. The fixed baseline is on the do-not-touch list until the O9 diff check.",
+     "evidence": "git log -S and blame of test/test-groups.test.py; docs/experiments/ci-audit-20261005/ci-audit-final.json options O3 and O10 and the DO NOT TOUCH list. catalog_omissions in test/run_suites.py covers top-level files only, so the named nested and apparatus id set is a valid replacement for the count pins only.",
+     "fix": "Narrow O10 to: delete the three count assertions, add the named nested-and-apparatus id set. Keep `< 17`, or replace it with 'sum of recorded baseline seconds <= QUICK_MAX_SECONDS' once O4 fills the durations. Keep the exact path table, and regenerate the expected sets from one helper if the edits are the pain."
+    },
+    {
+     "severity": "P1",
+     "claim": "Sections 2 and 5, row O5: 'test-only change', stub OBSERVER_ROOT to a 2-file fixture in RunTests.setUp, audit status 'open item'",
+     "problem": "This is not the audit's O5. The audit's O5 memoizes the credential-shape check by content hash inside the test fixture, so every one of the 338 tests keeps its inputs. The review's variant swaps the observer for a 2-file fixture across RunTests. The E2E harness and apparatus coverage is on the do-not-touch list ('14 of 17 sampled were sole guards'). With a stubbed root, assertions made against the real root become vacuous: the isolated-suite test's `assertFalse(product_repo.is_relative_to(Path(run.OBSERVER_ROOT).resolve()))` in test_run.py, and the observer_root overlap check in run._new_suite_product_parent. The real sanitizer over the real harness files then runs in one trial only.",
+     "evidence": "skills/shiploop-e2e-audit/harness/run.py (OBSERVER_ROOT, harness_manifest, freeze_package, _new_suite_product_parent). test_run.py already patches OBSERVER_ROOT only for the observer_fixture tests, so those tests keep their own isolation. ci-audit-final.json O5 text and 'DO NOT TOUCH'.",
+     "fix": "Use the audit's variant: a content-hash memo built in the test fixture, keyed on the sanitizer identity. Land the direct freeze_package test first. Verify 338 of 338 and equal assertion counts, then compare with one unmemoized run. If stubbing is kept anyway, exempt the placement tests and name a real-root canary test."
+    },
+    {
+     "severity": "P2",
+     "claim": "Section 3 rows 3 to 8, 12, 17 and 18: each proposed test names a fail-first shape",
+     "problem": "Several of these guard behaviour that already exists on main, so they pass first. The tests are valuable coverage, but they are not fail-first by the owner's rule unless shown by mutation. Verified on main: shiploop_progress.start returns False and ensure prints the 'unavailable' line (row 3); shiploop_test_loop.verify joins stdout and stderr (`output = out... + err...`), so a stderr-only summary is already counted (row 4); release.py raises 'checkout must be clean' (row 5); install.sh already has the safe-name regex and the 'Invalid --skill value' message (row 6); release-push already runs `merge-base --is-ancestor` (row 7); freeze_package already has both branches (row 8); check_release_boundary.release_output_changes already has all five branches (row 12); shiploop_chain._require_external_run exists (row 17). A grep of the release and install suites finds no existing test of rows 5 to 7. Row 11 is genuinely red on main: metrics.SHIPLOOP_COMMAND lists only complete|next|improve-*|init|workspace|lint|resume|pause, while `shiploop --help` also lists view, chain, backchain-check, hook-status, graph-dry-run, delegation, lint-mode, status, report, context and halt. Rows 9 (G3 'read not executed'), 10, 14 (spec unread), 15, 16 and 19 cannot be judged without running them.",
+     "fix": "For each pass-first row, record the mutation that turns it red in a scratch copy and label it a mutation-proof test: delete the `merge-base --is-ancestor` call, drop the install.sh regex, remove the clean-checkout raise, make verify read stdout only, drop CHANGELOG from GENERATED_FILES, remove the omission branch in freeze_package. For rows 9, 10, 14, 15, 16 and 19, run the new test against a throwaway worktree of 219c1de6 and keep the red output before any fix."
+    },
+    {
+     "severity": "P2",
+     "claim": "Section 4 first row and Wave 1 row 1: make the four progress tests tolerate a best-effort start",
+     "problem": "Commit 3b246328 added diagnostics so the next red run shows which path produced '2 != 0'. Relaxing the assertions now removes that instrument, and the review itself says to change the bound 'only after the next failure shows its path'. Exit code 2 is also the busy-lock refusal that test_busy_lock_skips_without_blocking asserts. A test that accepts 2 as 'soft' would hide a real refusal.",
+     "evidence": "3b246328 commit message ('unproven: the CI log cannot tell that path from an exception'); start() in skills/shiploop/scripts/shiploop_progress.py; test/shiploop-progress.test.py.",
+     "fix": "Add the soft-failure test only if it is a mutation-proof test (see the finding above). Leave the four assertions and their diagnostics. If a retry is wanted, make the test retry `--start` after wait_for, not accept exit 2."
+    },
+    {
+     "severity": "P2",
+     "claim": "Section 2 and Wave 2 row 9: shrink sync-plugin-views, release-flow and native-marketplace-adapters to a fixture of 3 prompt-only skills plus real scripts/",
+     "problem": "Parts of these suites are tied to real leaves and need carrying over. Only sync-plugin-views asserts the exact generated hook JSON per host: the Claude/Grok, Codex ($PLUGIN_ROOT) and Cursor (afterShellExecution, loop_limit 50) files from skills/shiploop/host-hooks.json. Other pins: the agents/ list (backchain.md, shiploop.md, skill-interop.md), the pycache pin under skills/shiploop/scripts (e2f69450, 18c656c6), and Plan Dispatcher and Backchain bundling. release-flow edits real skills/shiploop and skills/improve and uses c-plan, architect and shiploop version arithmetic. Commit 9d2fa961 (quoted hook commands failed every ShipLoop hook on Grok) updated this suite, but check-marketplace-packages also rejects the quoted form, so that regression would still be caught. The per-host shape is the sole-guarded part. Real-tree consistency stays guarded by release-boundary output_matches_source and marketplace-package, so the shrink itself is sound.",
+     "fix": "The fixture must include one hook-declaring leaf, one agents-card leaf and one script-bearing leaf, or the per-host hook content, agents listing and pycache pin move to a named suite. Keep a single stray plugins/<name> test (sync-plugin-views --check). The review proposes deleting both the native-marketplace stray block and dual-body-guard's second half, so one must stay."
+    },
+    {
+     "severity": "P2",
+     "claim": "Section 2, row 'Version, hash, count, size and tombstone pins': no-model-launch (len(REMOVED_SCRIPTS) == 30 plus tombstones) and improve.test.sh (5 literals PROVENANCE.json already holds)",
+     "problem": "In test/shiploop-no-model-launch.test.py, the length pin is brittle. The tombstone checks are not: the removed scripts, references and commands must be absent from the package, REMOVED_VERBS must be refused with exit 2 and no run directory, and RETIRED_DOC_MENTIONS must be absent. That is the one-supported-version guard against a retired runtime resurfacing. In test/improve.test.sh, the literals (upstream commit, version, script sha256, ADAPTER upstream sha256) are independent anchors for the vendored Until Loop bytes. PROVENANCE.json is edited together with the vendored script at each re-vendor (1732b32d, 96efe26e, 3f92cdcb, d42ef53d). Without the literals the check is circular: bytes equal the manifest hash, and the manifest is edited with the bytes.",
+     "fix": "In no-model-launch, delete only `assertEqual(len(REMOVED_SCRIPTS), 30)`. In improve.test.sh, keep the script sha256 and upstream commit literals, and drop the `version: 0.7.0` adapter literal if wanted. Treat backchain-check counts [23, 28, 5] the same way: they are the only guard against silently shrinking a corpus recorded once from lib.js."
+    },
+    {
+     "severity": "P2",
+     "claim": "Section 5, row 'Route ask-agent helper edits to the ask-agent group instead of the hub fallback': 'roughly neutral', drops lint, keepalive and actual-improve-cli",
+     "problem": "The measured current selection for skills/ask-agent/scripts/ask_agent_workspace.py is 13 suites: the 4 ask-agent suites plus all 9 _HUB_SUITE_IDS. The reroute therefore drops 9, not 3 (also delegation, guidance, planning-handoff, privacy, quality and store). The 12 suites that actually name the helper (via _referencing) include install-arbitrary-skill, marketplace-host-isolation, shiploop-progress, chain-planning-context, native-pilot and chain-async, and the fallback already drops several of them. 'Neutral' is unmeasured, and a hand-picked group may drop a referencing suite that the 09-24 hub miss shows matters.",
+     "fix": "Derive the set from suite_catalog._referencing filtered by _light, print suite_catalog.quick((path,)) before and after, and add a must-select row to test-groups. Do not claim 'neutral' without that diff."
+    },
+    {
+     "severity": "P2",
+     "claim": "Section 5, row O6 (per-scenario mutants) and Wave 2 row 8",
+     "problem": "For the scenarios mutants file the idea is sound: plan-dispatcher-scenarios.test.js runAll runs each id as its own child process (`node file id`), so a solo run equals the in-suite run, and mutate.py still demands a `FAIL [killed_by]` line. The audit's second part is missing from the review: add a baseline pass of each distinct killed_by scenario alone against the unmutated package, so a solo failure cannot yield vacuous kills. The gate is on the do-not-touch list. mutate.py has no unit test, and runOne dereferences scenario.name outside its try, so an unknown id crashes with no FAIL line.",
+     "evidence": "test/orchestrator_scenarios/mutate.py, test/plan-dispatcher-scenarios.test.js, ci-audit-final.json O6 ('keep the full baseline run and add a baseline pass of each distinct killed_by scenario').",
+     "fix": "Do the mutate.py unit tests first (SURVIVED, WRONG-REASON, stale find, killed). Then add the solo baseline and run all 38 mutants both ways once. Record the killed sets in the journal before changing CI."
+    },
+    {
+     "severity": "P2",
+     "claim": "Section 2, rows 'improve-plugin, skill-interop-hygiene, install-arbitrary-skill E6, native-marketplace stray-directory blocks, dual-body-guard' are duplicates to delete",
+     "problem": "Mostly sound, with leftovers. improve-plugin asserts two things nothing else does: skills/improve/README.md ships in the package, and the package README lists skills/improve/SKILL.md (parity, interface fields and LICENSE are covered by native-marketplace-adapters). E6 has one unique line, that an installed copy gets no bytecode; the rest is covered by ask-agent-workspace test_copied_package_helper_runs_from_unrelated_directory_without_checkout_import and by S26 in install-status-uninstall. dual-body-guard's external-leaf half is covered by the generator (reservedNames in skill-frontmatter-to-plugin-json.js, tested as 'external local-name collision' with c-plan), but its plugins/<other>-directory half is covered only by the stray tests that the same table proposes to delete. skill-interop-hygiene is file-existence and prose greps, and scaffold-skill covers the templates.",
+     "fix": "Move the improve README lines into marketplace-package. Keep the E6 bytecode assertion or move it. For dual-body-guard, the fail-first demonstration (add skills/lennox-s40/SKILL.md, run `node scripts/skill-frontmatter-to-plugin-json.js --marketplaces --check`, expect 'also published from this repository') proves the external half only. Keep the sync-plugin-views stray test for the other half."
+    }
+   ],
+   "claims_checked": [
+    {
+     "claim": "FastPlanningRecordTest (7 tests) is existence checks plus a gate_experiment rerun that improve-runtime already covers; safe to delete",
+     "holds": true,
+     "evidence": "The class asserts files exist and JSON parses. The gate_experiment.out rerun tests the vendored Until Loop gate 0/1/2 decisions, and test/improve-runtime.test.py covers the same semantics with real tests (test_a_trivial_first_pass_that_changed_nothing_completes, test_a_first_pass_that_changed_a_file_needs_the_second_review, OnePassGateTests). The S-10 carve-out text is covered by navigator-contract parity tests ('Parity, not prose'), which split on the carve-out heading."
+    },
+    {
+     "claim": "Inherited re-runs in shiploop-delegation (18 of 47) and shiploop-knowledge (7 of 21) are pure duplicates",
+     "holds": true,
+     "evidence": "StepTests and PacketContractTests inherit DelegationStateTests with the same setUp. STEPS is read only by StepTests's own helpers, not by inherited tests. KnowledgeAfterEveryStageTests inherits KnowledgeTests with no override. A shared mixin loses nothing."
+    },
+    {
+     "claim": "The review's lock-test widening (test_busy_lock_skips_without_blocking 3 s to 10 s) loses nothing because the guarded regression is unbounded",
+     "holds": true,
+     "evidence": "shiploop_progress._lock takes the flock with LOCK_NB. A regression to a blocking lock would hang against the test's held lock, so any finite bound catches it."
+    },
+    {
+     "claim": "integration-boundaries' 10 s is a hard-coded TERM grace in run_with_process_group and can become a parameter",
+     "holds": true,
+     "evidence": "test/current_dispatcher.py run_with_process_group uses communicate(timeout=10) after SIGTERM. It is test-support for the opt-in current-dispatcher qualification, so a parameter with a 10 s default changes no product behaviour."
+    },
+    {
+     "claim": "Rows 5 to 7 (release.py dirty checkout, install.sh name guard, release-push ancestry) are untested destructive paths",
+     "holds": true,
+     "evidence": "The guards exist in release.py, install.sh and release-push.py, and a grep of release-flow, install-*, release-push and release-boundary finds no test of 'checkout must be clean', 'Invalid --skill' or ancestry. So they are real gaps, but the new tests pass on main (see finding on fail-first)."
+    },
+    {
+     "claim": "'Nothing current writes those formats' for the old-version row",
+     "holds": false,
+     "evidence": "True for protocol-3 states. False for baseline rows: 16 of 17 committed rows lack planning_review, and row_planning_review reads them on every run. upgrade_docs is a current operation on the live page."
+    },
+    {
+     "claim": "The saved-protocol-3 refusal is repeated in 5 suites",
+     "holds": false,
+     "evidence": "Found in test/shiploop-navigator-contract.test.py (a table of 6 saved forms) and test/shiploop-navigator-v4.test.py only. The five-suite count is unverified."
+    },
+    {
+     "claim": "The test-groups count pins (67/39/108) are the only guard for nested experiment and apparatus entries",
+     "holds": true,
+     "evidence": "test/run_suites.py catalog_omissions covers top-level test files and missing fixed targets only, so the named-id-set replacement is right. The `< 17` bound and the exact path table are different guards."
+    },
+    {
+     "claim": "The generator already refuses collisions between external plugins and bundled skills",
+     "holds": true,
+     "evidence": "loadExternalPlugins(reservedNames(leaves)) in scripts/skill-frontmatter-to-plugin-json.js fails with 'also published from this repository'. test/native-marketplace-adapters.test.sh covers it with the c-plan name, not a lennox-s40 dual body."
+    },
+    {
+     "claim": "mutate.py has no unit test, and freeze_package omission and changed-bytes branches have no assertion",
+     "holds": true,
+     "evidence": "Only plan-dispatcher-mutants.test.py runs mutate.py. A grep of the harness test_*.py finds no reference to 'credential-shaped-input' or 'selected skill changed' (observer-source-changed is asserted once in test_run.py)."
+    },
+    {
+     "claim": "metrics.SHIPLOOP_COMMAND misses 11 CLI verbs",
+     "holds": true,
+     "evidence": "Regex in test/shiploop_e2e/metrics.py lists complete|next|improve-[\\w-]+|init|workspace|lint|resume|pause. `shiploop --help` lists view, chain, backchain-check, hook-status, graph-dry-run, delegation, lint-mode, status, report, context and halt in addition. This test is genuinely fail-first."
+    },
+    {
+     "claim": "The apparatus and mutants gates need no further work beyond the review's proposals",
+     "holds": false,
+     "evidence": "Both are on the audit's do-not-touch list. O5 as written differs from the audit's variant, and O6 omits the audit's solo-baseline step (see findings)."
+    }
+   ]
+  }
+ ]
+}

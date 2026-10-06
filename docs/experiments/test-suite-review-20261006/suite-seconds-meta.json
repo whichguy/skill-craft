@@ -1,0 +1,30 @@
+{
+  "repo": "/Users/dadleet/src/skill-craft/.claude/worktrees/plrev-d354b1",
+  "head": "219c1de638f202e29af1d79de33d01c79e97502e",
+  "uptime_before": "8:00  up 42 mins, 1 user, load averages: 6.31 5.75 6.32",
+  "loadavg_before": [
+    6.30712890625,
+    5.74658203125,
+    6.3203125
+  ],
+  "started_wall": "2026-10-06T08:00:58-0700",
+  "budget_seconds": 2700,
+  "order_policy": "estimate<100s in catalog order, then heavy ascending",
+  "suites_in_catalog": 108,
+  "env_added": {
+    "SHIPLOOP_PROGRESS": "off",
+    "PYTHONDONTWRITEBYTECODE": "1"
+  },
+  "cpus": 18,
+  "note": "single local serial run on a shared machine; not CI numbers",
+  "uptime_after": "8:59  up  1:41, 1 user, load averages: 3.51 3.77 5.00",
+  "loadavg_after": [
+    3.5107421875,
+    3.7724609375,
+    5.0009765625
+  ],
+  "ended_wall": "2026-10-06T08:59:43-0700",
+  "total_wall_seconds": 3524.7,
+  "guard_events": [],
+  "sum_of_suite_seconds": 3524.6
+}
