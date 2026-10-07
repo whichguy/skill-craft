@@ -1,0 +1,52 @@
+# Batch plan 2026-10-07: correctness, stage clarity, read-back audit, run-review cards
+
+Status: **plan, before audit**. Process (owner): plan every change, audit it, resolve the unknowns, build the whole batch, then test.
+Live verification runs are launched without asking (owner, 2026-10-07). Every change is judged by the main tenet (README top, SPEC S-6):
+a model holding only the next packet knows what to do, how it is checked and where the run stands; repetition between packets stays.
+Scripts navigate the graph from the ledger (`state.md` is the single authority); nothing here moves that to the model.
+Evidence: `docs/lifecycle-review-2026-10-07.md`, `docs/planning-time-analysis-2026-10-06.md`, `docs/experiments/grok-none-battleship-20261006/`,
+`docs/experiments/gas-battleship-audit-20261006/`, fixtures `docs/experiments/batch-1007-fixtures/` (real `node --test` output by reporter).
+
+## Items
+
+| Id | Change | Why (evidence) | Files | Fail-first test |
+|---|---|---|---|---|
+| B1 | Test counter reads `node --test`: the spec/default reporter (`ℹ tests/pass/fail/skipped/todo`), TAP (`# tests ...`), ANSI stripped; the `dot` reporter and junit have no countable summary and are refused as uncounted with the remedy "use the spec or tap reporter". Skip detection by runner syntax (leading skip glyph `﹣`/`○`/`-`, trailing `# SKIP`/`# TODO`, summary lines), never by a word in a title. | `counts: null` for `node --test` in every Grok record; `min_tests` never enforced; a passing test titled "pending cell" counted as missing and refused `complete` at system-test (run 20261006 Grok). | `skills/shiploop/scripts/shiploop_test_counts.py`, `test/shiploop-test-counts*.test.py` | Real outputs from the fixtures: spec, tap, dot, a title containing pending/skip/todo on a passing line is `shown`; a `﹣ ... # reason` line stays missing; ANSI-wrapped output counts the same. |
+| B2 | Suite-membership drift: an id declared by a system command appears in the output of an inner or regression command; record it and refuse `complete` at system-test with the remedy to guard or move the file. | The delivered repo's plain `node --test` ran the two Chrome cases and needs macOS Chrome; three review passes and every gate passed it. | `shiploop_test_loop.py` (verify records), packet text for system-test | A fixture where a regression run prints a system id is refused; the same id in its own system command passes; a focused id legitimately repeated in regression passes. |
+| B3 | `release-verify` runs the consumer checks in the returned source checkout for a source-return release. | `tests/*verify1.md` cwd is the work area, so the script proof does not observe the product the user receives. | workspace return and release-verify code (to locate in audit) | A return fixture where the check passes in the work area and fails in the returned checkout is refused. |
+| B4 | Docs and prompt corrections. README: `skill-assess` described as the reuse/update/create decision (not "captures learnings"); the opening paragraph no longer says the conversation clears at `select-work` (the prompt says do not clear); the default one-pass Backchain loop and `--backchain-passes`; supported test runners incl. node:test and the skip rule. SKILL.md: the "iteration 4 that still fails stops it" sentence removed (the loop has no iteration limit); runner list. | Verified contradictions (lifecycle review, README audit). | `skills/shiploop/README.md`, `skills/shiploop/SKILL.md` | Existing doc-pin suites stay green; a new check that SKILL.md and the loop contract do not both state a limit and no limit. |
+| B5 | Rename stage `select-work` to `get-next-work-item` (identifier, packet text, status and report labels, docs, tests, exporter, audit-harness replay). Saved runs recorded with the old name are refused with a clear message (one supported version). Historical committed evidence keeps the old name. | Owner request; the name should say what the stage does. | engine: `shiploop_stage_spec.py`, `shiploop_prompts.py`, `shiploop_navigator.py`, `shiploop_planning_context.py`, `shiploop_navigator_dry_run.py`, `references/*`; tests (about 10 files); `skills/shiploop-run-review/scripts/export.py` + `template/index.html`; `skills/shiploop-e2e-audit/harness/{dag_replay,behavior_capture}.py` | The stage list, the dry-run graph and every packet use the new id; loading a saved run with `select-work` is refused with the message. |
+| B6 | Skill stages (option C): when the item touches no skill surface, the script writes the concrete N/A disposition for `skill-assess` and `skill-validate` with no model turn; when it does, both run as today. Skill surface is defined once in `path-classes.json`: `SKILL.md`, files under a `skills/` or `agents/` directory, and the repo's skill index files. | 5 of 5 item-runs were model-written N/A; README requires a recorded N/A, never a missing stage. | `shiploop_navigator.py`, `references/path-classes.json`, prompts for the two stages | An item with no skill path advances both stages by script with the N/A recorded in the ledger; an item with `skills/x/SKILL.md` in its paths gets the model packets. |
+| B7 | Settled-fact lines: `plan` states each item's module format and loadable seam; `test-strategy` names and probes the tool for every host-browser case and states which commands may print which ids. | Plan said ESM with no package.json; browser tool unprobed (Luna escapes 165.9 and 123.4 min). | `shiploop_prompts.py` (plan, test-strategy) | Packet text contains the lines; the packet-completeness test (B12) stays green. |
+| B8 | Record the retry loop's state path in the ledger when the loop starts. | A fresh agent cannot find the loop after a clear (S-6 gap). | `shiploop_navigator.py` / test-loop start | After start the ledger names the path; a resume fixture reads it. |
+| B9 | Plan-shape measure (record only): work items, requirement ids and declared files per item, shown in status and the export; a warning, not a refusal, when one item owns every requirement and more than one file. | Sonnet planned one item holding rules, server, page and tests; Grok planned two. No threshold is invented. | `shiploop_navigator.py` (plan accept), export | A one-item plan with several files records the warning; a two-item plan does not. |
+| B10 | Record register and read-back audit: `references/record-contract.json` lists every record kind with its writer, its readers (script function or stage) and whether it is authoritative or derived; `shiploop audit-records --run-dir` (record only) reports kinds that have files but no declared reader, and with a host events file the model reads per kind. The exporter includes the result. | Notes written 9 times and never read; 88 lint files with no model read; the owner's rule that nothing is written and abandoned. | new `shiploop_record_audit.py`, `references/record-contract.json`, export | A fixture run with an orphan kind is flagged; the real three runs are audited and each finding is fixed or the reader declared. |
+| B11 | Run Review stage cards (handoff to the Run Review session): for each stage visit, the stage purpose and exit-check kind, the packet sent (head, size, link), the output written back (result summary, file, size), time, refusals and the read-back state. | Owner request; the page already has the packet box (R17). | `skills/shiploop-run-review/*` (fork) | Fork's tests. |
+| B12 | Packet-completeness test (hermetic, no model): every stage's packet states its purpose, how the stage operates, how the result is checked or reviewed, what it must produce and the recovery command. | The tenet; no automated check exists. | new test in `test/` | Fails today if any stage packet lacks one of the five. |
+
+## Not in this batch
+Merging test-red, integrate, release-check; script-first test-green and regression (S-10 decision); packet or ledger de-duplication that moves
+grounding out of a packet (withdrawn under the tenet); the Backchain pass itself; the default planning-review flip.
+
+## Unknowns, with state
+Resolved by read-only probes: (U1) no clear mechanism depends on the stage name `select-work`; only 5 code uses (stage list, two navigator
+conditionals, packet text, display group); (U2) `path-classes.json` has no skill class, so B6 adds one; (U3) `node --test` prints
+`ℹ tests/pass/fail/skipped/todo` by default when piped and `# tests ...` in TAP on Node 25.9, `dot` prints only dots; skipped lines start
+with `﹣` and end `# reason`, todo lines end `# TODO`; (U5) stage names live also in the Run Review exporter and template and the audit
+harness replay code; historical evidence rows keep the old name.
+Open (the audit and the build must settle each): (O1) older Node versions (only 25.9 installed) may print different summaries, so the reader
+must refuse what it cannot read; (O2) whether a protocol-version bump is needed or a refused unknown stage is enough for B5; (O3) where the
+returned checkout path is available to release-verify (B3); (O4) whether a stage can be script-completed today (B6) or needs new engine
+support; (O5) whether the vendored Until Loop runtime prints its state path at start (B8); (O6) whether the requirement-id to item mapping is
+machine-readable in the plan (B9); (O7) script-side reads cannot be measured from host events, so B10 declares them from source and the
+declaration can be wrong; (O8) the hard-coded names in committed baselines and evidence when the rename lands.
+
+## Order, tests, verification
+Build in one worktree with a failing test first for each item and one change note per skill touched: B1+B4 counter and docs, B2, B3, B5,
+B6, B7, B8, B9, B10, B12, then B11 by the Run Review session. Test: the quick tier on every group of commits, the full tier before the
+release; then live runs, launched without asking: Sonnet (checks on) and Grok (checks off) on the Node Battleship case from the build
+(checkout source), the Grok run with the host killed once at a stage boundary and once inside a stage (the harness resumes it with a fresh
+context, which is the clear-the-context probe). Expected: no `uncounted` or title-word refusal, stage name `get-next-work-item` in the
+ledger and the export, the two skill stages script-completed, the read-back audit with no orphan kind, planning near 22 minutes (Grok, checks
+off), the delivered repo's plain `node --test` independent of Chrome. A release is the owner's decision; after it, the same runs by the
+marketplace route.
