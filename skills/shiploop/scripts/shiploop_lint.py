@@ -589,13 +589,12 @@ class _Invoker:
         seconds = self.clock() - started
         number = len(self.calls) + 1
         out_log = self.logs / (self.prefix + "-" + str(number) + ".out")
-        err_log = self.logs / (self.prefix + "-" + str(number) + ".err")
-        _write_private(out_log, out)
-        _write_private(err_log, err)
+        if stdout_note:  # the only log a report cites; stderr is quoted inline
+            _write_private(out_log, out)
         error = status == "error" or (status != "timeout" and ok_codes is not None and code not in ok_codes)
         call = {"n": number, "argv": list(argv), "status": status, "exit": code, "error": error,
                 "seconds": round(seconds, 3), "stdout": out, "stderr": err,
-                "out_log": os.fspath(out_log), "err_log": os.fspath(err_log),
+                "out_log": os.fspath(out_log),
                 "stdin_note": stdin_note, "note": note, "stdout_note": stdout_note}
         self.calls.append(call)
         return call
@@ -1968,7 +1967,7 @@ def _call_lines(calls: Sequence[Mapping[str, Any]]) -> List[str]:
         if call["note"]:
             head += " (" + call["note"] + ")"
         lines.append(head)
-        for name, key, log in (("stdout", "stdout", "out_log"), ("stderr", "stderr", "err_log")):
+        for name, key, log in (("stdout", "stdout", "out_log"), ("stderr", "stderr", None)):
             data = call[key]
             if not data:
                 lines.append("    " + name + ": (empty)")

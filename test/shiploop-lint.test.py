@@ -1052,7 +1052,7 @@ class HookTests(Fixture):
                                 "check_refs": ["synthetic://c"]},
                 dict(DONE, work_items=[{"id": "W2", "title": "Review follow-up"}]))
             writes, payload = nav._lint_transition(CORE, self.run_dir, state, updated)
-        self.assertEqual(nav.current_stage(updated), "select-work")
+        self.assertEqual(nav.current_stage(updated), "get-next-work-item")
         self.assertIn("lint/items/W2.md", writes)
         self.assertIsNone(payload)
 
@@ -1244,6 +1244,22 @@ class DiscoveredLinterTests(Fixture):
         self.edit({"a.py": "# header\nx = 1\ny = 2  # lint\n"})
         second = self.run_pass(mode="report")["gating"]
         self.assertIn(first, [row["id"] for row in second])
+
+
+class InvokerLogTests(unittest.TestCase):
+    """A log file is written only when a report cites it: stderr is quoted inline, stdout only when it is a noted copy."""
+
+    def run_tool(self, logs: Path, **kw):
+        runner = lambda argv, cwd, timeout, input_bytes=b"", env=None: ("ok", 0, b"out\n", b"")  # noqa: E731
+        invoker = lint._Invoker(logs, logs, "t", {}, budget=60.0, tool_timeout=10.0, clock=time.monotonic, runner=runner)
+        invoker.run(["tool"], what="x", **kw)
+        return sorted(path.name for path in logs.iterdir())
+
+    def test_no_stderr_log_and_a_stdout_log_only_for_a_noted_copy(self) -> None:
+        with tempfile.TemporaryDirectory() as temporary:
+            self.assertEqual(self.run_tool(Path(temporary)), [])
+        with tempfile.TemporaryDirectory() as temporary:
+            self.assertEqual(self.run_tool(Path(temporary), stdout_note="fixed source"), ["t-1.out"])
 
 
 class GateTests(Fixture):

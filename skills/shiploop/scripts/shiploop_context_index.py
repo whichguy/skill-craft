@@ -157,8 +157,8 @@ def _in_progress_lines(state: Mapping[str, Any], root: Path) -> list[str]:
     loop_dir = ("tests" if "test-loop" in row.complete_runs
                 else "quality" if "quality-terminal" in row.complete_runs else None)
     if loop_dir:
-        lines.append(f"- Loop packets: {root / loop_dir / (action_id + '-latest.json')} (latest), "
-                     f"{root / loop_dir / (action_id + '-terminal.json')} (terminal)")
+        lines.append(f"- Loop receipt (the runtime writes every packet here, the last one terminal): "
+                     f"{root / loop_dir / (action_id + '-terminal.json')}")
     runs = sorted(root.glob(f"tests/{action_id}-verify*.md"))
     if runs:
         lines.append(f"- ShipLoop test runs for this action: {len(runs)}, latest {runs[-1]}")

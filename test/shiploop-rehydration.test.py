@@ -52,6 +52,7 @@ class IndexTests(unittest.TestCase):
             self.assertIn("## In progress", text)
             self.assertIn(f"Pass log (what each pass checked and what is left): {root / 'notes' / (action + '.md')}", text)
             self.assertIn(str(root / "tests" / (action + "-terminal.json")), text)
+            self.assertNotIn("-latest.json", text)  # nothing writes it; the receipt is the one loop record
             self.assertLess(text.index("## In progress"), text.index("## Request"))
 
     def test_script_records_list_what_the_script_wrote(self) -> None:
