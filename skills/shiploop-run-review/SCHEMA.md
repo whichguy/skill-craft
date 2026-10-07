@@ -62,7 +62,7 @@ otherwise "not examined". Findings that are fixed, accepted or re-expected do no
 | `status` | `done` \| `active` \| `paused` \| `blocked` \| `failed` | the ShipLoop run status; a stopped (paused) run is `paused`, not `active` |
 | `startedAt`, `endedAt` | ISO string | |
 | `verdicts` | object of booleans | invoked, plugin, process, shiploop, committed, checks |
-| `stages` | array of `{stage, outcome, min?, turns?, packetBytes?, resultBytes?, action?, skipped?, seeded?, improve?, context?, workitem?, loop?, step?, packetDoc?, summary?, summaryTruncated?, resultFile?, carried?, packetImprove?}` | one row per accepted visit, in `state.md` history order; `min` is the accept-to-accept delta from `timeline.json`, never the harness's stage metric. `min` is **null** (the page shows "n/a") when the visit has no accept stamp, the visit before it has none (its start is then unknown), its stamp is earlier than the one before it (stamps running backwards: unknown, neither negative nor clamped), or the harness seeded the visit; never 0. Fields below |
+| `stages` | array of `{stage, outcome, min?, turns?, packetBytes?, resultBytes?, action?, skipped?, seeded?, improve?, context?, workitem?, loop?, step?, packetDoc?, summary?, summaryTruncated?, resultFile?, carried?, packetImprove?, improvePacketBytes?, improvePacketDoc?}` | one row per accepted visit, in `state.md` history order; `min` is the accept-to-accept delta from `timeline.json`, never the harness's stage metric. `min` is **null** (the page shows "n/a") when the visit has no accept stamp, the visit before it has none (its start is then unknown), its stamp is earlier than the one before it (stamps running backwards: unknown, neither negative nor clamped), or the harness seeded the visit; never 0. Fields below |
 | `stages[].action` | string | optional: the action id of the visit (`state.md` history). The Improve child and the packet file carry the same id |
 | `stages[].skipped` | `true` | present only when true: `packets/` holds files and none is `<action>.md`, so the engine skipped the visit ("Not applicable to this item") and issued no packet. No summary text is read; a model-authored "Not applicable:" visit has a packet and is work. Absent when `packets/` is empty or missing (unknown) |
 | `stages[].seeded` | `true` | present only when true: the E2E harness recorded the visit itself (`--seed-at`) without doing it. They are the first `len(seeded.skipped)` history rows, taken from `result.json` `seeded` and used only when their stage names match `seeded.skipped` in order (else none is marked and `facts.md` says why). A seeded visit has `min` null and is neither work nor `skipped` |
@@ -72,8 +72,9 @@ otherwise "not examined". Findings that are fixed, accepted or re-expected do no
 | `stages[].packetDoc` | `true` | present only when a `packets` document was written for the visit: its packet file exists and was read. The page loads `packets/<runKey>--<action>` on demand |
 | `stages[].summary`, `stages[].summaryTruncated` | string, `true` | present when the visit's accepted result has a summary: the text from `state.md` history (else the result record's), trimmed and cut at 300 characters; `summaryTruncated` is present only when it was cut. The card prints it as the visit's output. Absent when the records carry none |
 | `stages[].resultFile` | boolean | `true` when `results/<action>.md` exists, `false` when it does not (the accepted result is then read from `state.md`); absent for a visit with no action id. `resultBytes` is its size when it exists |
-| `stages[].carried` | map of boolean | what the visit's **packet text** carried: one key per label of the table in "The stage card" below, `true` when the label's markers were found. Computed from the whole packet file and only when it was readable and is the producer's packet; absent otherwise (older export, no packet file, unreadable, or `packetImprove`). A `false` says "not found in the packet text": a statement about the text, not about whether the model needed it |
-| `stages[].packetImprove` | `true` | present only when the visit's packet file is the Improve child's packet (it starts "Current action: Improve the completed ..."). The engine writes one packet file per action and rewrites it at every printing, so a visit that started an Improve child keeps only the child's last packet and the producer's own is gone; `carried` is then not computed, since every producer label would read false for no fault of the producer's packet |
+| `stages[].carried` | map of boolean | what the visit's **packet text** carried: one key per label of the table in "The packet checklist" below, `true` when the label's markers were found. Computed from the whole producer packet file `<action>.md` and only when it was readable and is the producer's packet; absent otherwise (older export, no packet file, unreadable, or `packetImprove`). A `false` says "not found in the packet text": a statement about the text, not about whether the model needed it |
+| `stages[].improvePacketBytes`, `stages[].improvePacketDoc` | number, `true` | the **new layout** (the engine after ShipLoop 1.22.0): an Improve child's packets go to their own file `packets/<action>-improve.md` and the producer packet that was sent stays intact in `packets/<action>.md`. `improvePacketBytes` is the size of the `-improve.md` file, present only when it exists; `improvePacketDoc` is present only when a `packets` document `<runKey>--<action>-improve` (`kind` `improve`) was written for it. `carried` is read from the producer file, so a reviewed stage's checklist is a real one |
+| `stages[].packetImprove` | `true` | **old layout history** (ShipLoop 1.22.0 and earlier): present only when the visit has no `-improve.md` file and its one packet file is the Improve child's packet (it starts "Current action: Improve the completed ..."). The engine then wrote one packet file per action and rewrote it at every printing, so a visit that started an Improve child kept only the child's last packet and the producer's own is gone; `carried` is then not computed, since every producer label would read false for no fault of the producer's packet. A run of the new layout never has it |
 | `workItems` | array (below) | optional: the plan's work items and how each went through the steps loop, from `state.md` and `results/` only. Absent, with the reason in `unmeasured.workItems`, when the records cannot tell (see "Plan and execution") |
 | `stepsPlanned`, `stepsExecuted` | number | optional: the sums over `workItems` of each item's `stepsPlanned` and `stepsExecuted`. Each is absent, with a reason under its own name in `unmeasured`, when any item's steps were unreadable or its pairing is unknown: a sum over an unknown part is unknown, never 0 |
 | `knowledge` | object `{fileName: bytes}` | sizes of the planning documents the run committed (spec, test strategy, plan, ...) |
@@ -208,10 +209,12 @@ No verdict is stored: the chip is always derived.
 | `text` | string | required: the packet text (UTF-8). A file over 150,000 bytes keeps its first 150,000 bytes cut at a line boundary (a hard cut only when that part holds no newline); a document that would pass the page database's 256 KiB limit for one document once serialized is cut further |
 | `shownBytes` | number | the UTF-8 size of `text`; equals `bytes` unless `truncated` |
 | `truncated` | `true` | present only when `text` is shorter than the file: the page says "truncated: showing the first N of M bytes" |
+| `kind` | `improve` | present only on the document of an Improve child's packet file (new layout, id `<runKey>--<action>-improve`, `action` the visit's action id); absent on a producer's document |
 
-One document per visit whose packet file `run/packets/<action>.md` exists and could be read as UTF-8. A visit with no
-file (skipped by the engine, seeded or never printed) has none and its stage row has no `packetDoc`; a file that cannot
-be read gets none, and `facts.md` counts the unreadable files. The packets are **not** part of `review-export.json` (a run
+One document per visit whose packet file `run/packets/<action>.md` exists and could be read as UTF-8, and a second, with `kind`
+`improve`, for a visit whose Improve child's file `run/packets/<action>-improve.md` exists and could be read (the new layout;
+the producer document is then the packet that was sent, intact). A visit with no file (skipped by the engine, seeded or never
+printed) has none and its stage row has no `packetDoc`; a file that cannot be read gets none, and `facts.md` counts the unreadable files. The packets are **not** part of `review-export.json` (a run
 holds megabytes of them: 1.8 MB over 40 visits for the Luna 1.16.1 run); the run directory is their record, `export.py`
 writes them under `docs/packets/` and `writes.json` lists them last, after every other collection, and `--check` rejects a
 review bundle that carries any. An old run's `packets/` files are read the same way, so any run directory can be exported
@@ -287,8 +290,10 @@ starting 'Checked by:' that a later engine prints under the Done-when list; noth
 "Found in" is what the packets of every run directory on disk showed (15 runs, ShipLoop 1.16.1 to 1.22.0, 493 packet files):
 every packet of an accepted producer visit carried every label, `inputs` aside. The files of no accepted visit (the next
 action's, the final `done` state's) are another shape and are not read. A cross reads "not found in the packet text": a
-statement about the exported text, not about whether the model needed the item. The packet size on a visit with
-`packetImprove` is the Improve child's file, and the card says so.
+statement about the exported text, not about whether the model needed the item. In the old layout the packet size on a visit
+with `packetImprove` is the Improve child's file, and the card says so; in the new layout the checklist is read from the producer
+packet of every reviewed stage, and no real run of the new layout is in the committed evidence yet (the five exports are
+runs of ShipLoop 1.16.1 to 1.19.0).
 
 ## The stage card
 
@@ -300,9 +305,9 @@ stage row has no display name: the stage name with hyphens replaced by spaces an
 and, when it differs, as secondary text, and is what every other part of the page prints.
 
 - **Sent: the packet.** The stage's purpose and the exit-check chip (from the catalog, with the reason), the packet size, the
-  checklist above as ticks and crosses with the tooltip "not found in the packet text" (for a visit with `packetImprove` a note
-  instead, and none for a skipped or seeded visit), the packet head and the Packet box. The head is the first 12 non-empty
-  lines of the visit's `packets` document, loaded on demand by the same single `get` and cache as the Packet box.
+  checklist above as ticks and crosses with the tooltip "not found in the packet text" (for a visit with `packetImprove`, old
+  layout, a note instead, and none for a skipped or seeded visit), the packet head and the Packet box. The head is the first 12
+  non-empty lines of the visit's `packets` document, loaded on demand by the same single `get` and cache as the Packet box.
 - **Done: how the visit went.** Outcome, minutes and their share of the run, work item, steps-loop pass and step, the item's
   revise count, Improve passes and minutes for the visit, refusals, and context where measured. Refusals are a run-level count
   (`failures` carry a verb and a line, no action), so the card says "not recorded per visit" and prints the run's figure
@@ -315,6 +320,10 @@ and, when it differs, as secondary text, and is what every other part of the pag
 
 The list of cards has one row per column of the picture (a run of skipped visits is one row "xN skipped"): stage, purpose,
 outcome, exit-check chip, minutes, packet size sent, result size written and how many stages declare reading it.
+
+Record kinds (what a run writes, who reads it, which are authoritative and which derived) are classified in the E2E session's
+record register of 2026-10-07, a prose document; this contract does not copy its classes, so the card's "declared by the stage
+spec" readers are the stage table's, not the register's.
 
 ## The export file
 

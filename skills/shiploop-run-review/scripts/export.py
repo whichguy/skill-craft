@@ -167,7 +167,10 @@ SCHEMA = {
                               # text carried (absent when the text was unreadable or is an Improve child's packet) and
                               # whether the packet file is the Improve child's, not the producer's.
                               "summary": (S, False), "summaryTruncated": (B, False), "resultFile": (B, False),
-                              "carried": (("map", B), False), "packetImprove": (B, False)}), False),
+                              "carried": (("map", B), False), "packetImprove": (B, False),
+                              # an Improve child's own packet file packets/<action>-improve.md (the layout after ShipLoop 1.22.0): its
+                              # size, and true when a packets document `<runKey>--<action>-improve` was written for it.
+                              "improvePacketBytes": (N, False), "improvePacketDoc": (B, False)}), False),
         # The plan's work items and how each went through the steps loop, from state.md and results/ only. Absent, with
         # a reason in `unmeasured.workItems`, when the records cannot tell; stepsPlanned and stepsExecuted are absent,
         # with a reason under their own name, when any item's steps or pairing is unknown. Never a zero for those.
@@ -230,8 +233,10 @@ SCHEMA = {
                                      "planningChoice": (B, False), "reads": (("list", S), True)}), False)},
     # packets/<runKey>--<action>: the text of one visit's packet file, read by the page on demand. Never in the
     # committed review-export.json (megabytes); the run directory is the record.
+    # `kind` is `improve` on the document of an Improve child's packet (id <runKey>--<action>-improve) and absent on a producer's.
     "packets": {"run": (S, True), "action": (S, True), "stage": (S, False), "bytes": (N, True),
-                "shownBytes": (N, False), "sha256": (S, True), "text": (S, True), "truncated": (B, False)},
+                "shownBytes": (N, False), "sha256": (S, True), "text": (S, True), "truncated": (B, False),
+                "kind": (("enum", ("improve",)), False)},
 }
 
 
@@ -1148,9 +1153,13 @@ CARRIED = (
 )
 CARRIED_RX = tuple((label, tuple(tuple(tuple(re.compile(rx, re.M) for rx in group) for group in rule) for rule in rules))
                    for label, _, rules in CARRIED)
-# The packet file of an action is rewritten at every printing, so a visit that started an Improve child keeps the
-# child's last packet, which starts with this line; the producer's own packet is gone. Such a file is not read for labels.
+# Two layouts of a visit's packet files. Old (ShipLoop 1.22.0 and earlier): one file per action, rewritten at every
+# printing, so a visit that started an Improve child keeps only the child's last packet, which has this line, and the
+# producer's own packet is gone; such a file is not read for labels (`packetImprove`). New: the producer's packet stays
+# in packets/<action>.md and an Improve child's packets go to packets/<action>-improve.md, so the producer packet is
+# intact and is what `carried` reads. A visit is told by its files: a `-improve.md` beside the producer file is the new layout.
 IMPROVE_PACKET = re.compile(r"^Current action: Improve the completed ", re.M)
+IMPROVE_SUFFIX = "-improve"
 
 
 def carried_markers(text: str) -> dict[str, bool]:
@@ -1159,9 +1168,9 @@ def carried_markers(text: str) -> dict[str, bool]:
             for label, rules in CARRIED_RX}
 
 
-def _packet_doc(run_key: str, action: str, stage: str, path: Path) -> tuple[dict, str] | None:
+def _packet_doc(run_key: str, action: str, stage: str, path: Path, kind: str | None = None) -> tuple[dict, str] | None:
     """(the packets/<runKey>--<action> document for one packet file, the whole file's text), or None when the file
-    cannot be read as UTF-8.
+    cannot be read as UTF-8. `kind` "improve" marks the document of an Improve child's packet file.
 
     `bytes` and `sha256` are the whole file's. A file over MAX_PACKET_TEXT bytes keeps its first MAX_PACKET_TEXT bytes cut
     at a line boundary (a hard cut only when that part holds no newline), and one whose document would pass the page
@@ -1177,7 +1186,7 @@ def _packet_doc(run_key: str, action: str, stage: str, path: Path) -> tuple[dict
         head = head[:head.rindex(b"\n") + 1]
     text = head.decode("utf-8", errors="ignore")
     doc = {"run": run_key, "action": action, "stage": stage, "bytes": len(raw),
-           "sha256": hashlib.sha256(raw).hexdigest(), "text": text}
+           "sha256": hashlib.sha256(raw).hexdigest(), "text": text, **({"kind": kind} if kind else {})}
     while _serialized_bytes(doc) > MAX_DOC_BYTES - 1024 and doc["text"]:
         keep = doc["text"][:int(len(doc["text"]) * 0.9)]
         doc["text"] = keep[:keep.rindex("\n") + 1] if "\n" in keep else keep
@@ -1190,25 +1199,37 @@ def _packet_doc(run_key: str, action: str, stage: str, path: Path) -> tuple[dict
 
 def packet_docs(run_key: str, packets: Path, stages: list[dict]) -> tuple[dict[str, dict], int]:
     """({doc id: packets document}, the packet files that could not be read) for every visit that has a packet file.
-    A visit with no file (skipped, seeded or never printed) gets none; a visit's row gets `packetDoc` true when its
-    document was written, and from the whole file's text `carried` (carried_markers), or `packetImprove` true when the
-    file is the Improve child's packet and no label is read."""
+    A visit with no file (skipped, seeded or never printed) gets none. The producer file `<action>.md` gives the document
+    `<runKey>--<action>` and the row's `packetDoc` true, and from the whole file's text `carried` (carried_markers). An
+    Improve child's file `<action>-improve.md` (new layout) gives a second document `<runKey>--<action>-improve` with `kind`
+    `improve` and the row's `improvePacketDoc` true; the producer file is then intact, so `carried` is read from it. With no
+    such file (old layout) a producer file that is the Improve child's packet (it has the child's first lines) is marked
+    `packetImprove` instead and no label is read from it."""
     found, unreadable = {}, 0
     for row in stages:
         action = row.get("action")
-        if not isinstance(action, str) or "packetBytes" not in row or not re.fullmatch(r"[A-Za-z0-9._-]+", action):
+        if not isinstance(action, str) or not re.fullmatch(r"[A-Za-z0-9._-]+", action):
             continue
-        read = _packet_doc(run_key, action, row["stage"], packets / f"{action}.md")
-        if read is None:
-            unreadable += 1
-            continue
-        doc, text = read
-        found[f"{run_key}--{action}"] = doc
-        row["packetDoc"] = True
-        if IMPROVE_PACKET.search(text):
-            row["packetImprove"] = True  # another packet's file: the producer labels would read false for no fault of its own
-        else:
-            row["carried"] = carried_markers(text)
+        new_layout = "improvePacketBytes" in row
+        if "packetBytes" in row:
+            read = _packet_doc(run_key, action, row["stage"], packets / f"{action}.md")
+            if read is None:
+                unreadable += 1
+            else:
+                doc, text = read
+                found[f"{run_key}--{action}"] = doc
+                row["packetDoc"] = True
+                if not new_layout and IMPROVE_PACKET.search(text):
+                    row["packetImprove"] = True  # old layout: the producer labels would read false for no fault of its own
+                else:
+                    row["carried"] = carried_markers(text)
+        if new_layout:
+            read = _packet_doc(run_key, action, row["stage"], packets / f"{action}{IMPROVE_SUFFIX}.md", "improve")
+            if read is None:
+                unreadable += 1
+            else:
+                found[f"{run_key}--{action}{IMPROVE_SUFFIX}"] = read[0]
+                row["improvePacketDoc"] = True
     return found, unreadable
 
 
@@ -1277,7 +1298,8 @@ def build_run(out: Path, key: str | None = None, name: str | None = None,
         row = {"stage": stage, "outcome": outcome, "min": None if minutes is None else round(minutes, 1)}
         if isinstance(action, str):
             row["action"] = action
-        for field, path in (("packetBytes", packets / f"{action}.md"), ("resultBytes", results / f"{action}.md")):
+        for field, path in (("packetBytes", packets / f"{action}.md"), ("improvePacketBytes", packets / f"{action}{IMPROVE_SUFFIX}.md"),
+                            ("resultBytes", results / f"{action}.md")):
             if path.is_file():
                 row[field] = path.stat().st_size
         if isinstance(action, str):
@@ -1290,7 +1312,7 @@ def build_run(out: Path, key: str | None = None, name: str | None = None,
                 row["summaryTruncated"] = True
         if action in seeded_ids:
             row["seeded"] = True
-        elif issued and isinstance(action, str) and "packetBytes" not in row:
+        elif issued and isinstance(action, str) and "packetBytes" not in row and "improvePacketBytes" not in row:
             row["skipped"] = True  # packets were issued, and none for this visit: the engine skipped it
         figures = {k: v for k, v in (children.get(action) or {}).items() if v is not None}
         if figures:
@@ -1436,8 +1458,9 @@ def _carried_line(run) -> str:
     rows = run["stages"]
     read = [r["carried"] for r in rows if "carried" in r]
     improve = sum(1 for r in rows if r.get("packetImprove"))
-    return (f"- Packet text carried (producer packets read {len(read)}; {improve} visits keep only an Improve child's packet, "
-            "not read): " + (", ".join(f"{label} {sum(1 for c in read if c.get(label))}" for label, _, _ in CARRIED)
+    separate = sum(1 for r in rows if "improvePacketBytes" in r)
+    return (f"- Packet text carried (producer packets read {len(read)}; {separate} visits have a separate Improve packet file; "
+            f"{improve} visits (old layout) keep only an Improve child's packet, not read): " + (", ".join(f"{label} {sum(1 for c in read if c.get(label))}" for label, _, _ in CARRIED)
                              if read else "no label counted"))
 
 
@@ -1492,7 +1515,8 @@ def _facts(run, run_dir, out, raw_status, children, failures, knowledge_root, lo
              _plan_line(run),
              f"- Packet documents: {len(packet_set)} written, {sum(d['bytes'] for d in packet_set.values()) / 1024:.1f} KB "
              f"of packet files, {sum(1 for d in packet_set.values() if d.get('truncated'))} truncated; "
-             f"{unreadable} packet files unreadable (no document written)",
+             f"{unreadable} packet files unreadable (no document written); "
+             f"{sum(1 for d in packet_set.values() if d.get('kind') == 'improve')} of the documents are an Improve child's packet",
              _carried_line(run),
              f"- Planning review option (state.md): {run['planningReview']}",
              f"- Backchain passes option (state.md): {option}",

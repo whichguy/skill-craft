@@ -4636,7 +4636,8 @@ class CardRowFieldsTests(unittest.TestCase):
         (run / "packets" / f"{IDS['spec']}.md").write_text(packet_fixture("packet-lines-1220-improve.txt"), encoding="utf-8")
         (run / "packets" / f"{IDS['intake']}.md").write_text(packet_fixture("packet-lines-1161.txt"), encoding="utf-8")
         line = next(l for l in export.build_run(out)[1] if l.startswith("- Packet text carried"))
-        self.assertIn(f"producer packets read {len(ACCEPTS) - 1}; 1 visits keep only an Improve child's packet", line)
+        self.assertIn(f"producer packets read {len(ACCEPTS) - 1}; 0 visits have a separate Improve packet file; "
+                      "1 visits (old layout) keep only an Improve child's packet", line)
         self.assertIn("where 1, purpose 1, operates 1, checked 1, produces 1, recovery 1, inputs 1", line)
 
     def test_validate_doc_rejects_wrong_shapes_for_the_card_fields(self):
@@ -5142,6 +5143,237 @@ class PacketHeadTests(unittest.TestCase):
         page = script_text()
         self.assertEqual(re.findall(r'db\.doc\("packets/"\+id\)\.get\(\)', page), ['db.doc("packets/"+id).get()'])
         self.assertNotIn('collection("packets")', page)
+
+
+# ================================================================ R21: the two packet files of a visit, and the packet head
+
+ENGINE_SCRIPTS = ROOT / "skills" / "shiploop" / "scripts"
+# The harness's seed pattern (test/shiploop_e2e/run.py SEED_SCRIPT) on the checkout's own navigator, with no model: it walks the
+# graph on synthetic results to the first inner stage and PRINTS every packet (navigator.emit), so packets/ is what that engine
+# writes: one file per action up to ShipLoop 1.22.0, a producer file plus `<action>-improve.md` for a reviewed stage after.
+REAL_ENGINE_SEED = r"""
+import contextlib, io, json, os, subprocess, sys
+from datetime import datetime, timedelta, timezone
+from pathlib import Path
+scripts, out = Path(sys.argv[1]), Path(sys.argv[2])
+work = out / "work"
+work.mkdir(parents=True)
+env = {**os.environ, "GIT_CONFIG_GLOBAL": os.devnull, "GIT_CONFIG_NOSYSTEM": "1"}
+for args in (["init", "-q"], ["add", "README.md"], ["-c", "user.name=t", "-c", "user.email=t@example.invalid", "commit", "-qm", "seed"]):
+    if args[0] == "init":
+        (work / "README.md").write_text("# seeded\n")
+    subprocess.run(["git", "-C", str(work), *args], check=True, capture_output=True, env=env)
+root = out / ".shiploop-runs" / "seed"
+started = subprocess.run([sys.executable, str(scripts / "shiploop"), "workspace", "start", f"--repo={work}",
+                          f"--workspace-root={root}", "--delegation=inline", "--prompt=Build a tiny thing."],
+                         capture_output=True, text=True, env=env)
+assert started.returncode == 0, started.stderr[-1500:] + started.stdout[-1500:]
+run_dir = root / "run"
+sys.path.insert(0, str(scripts))
+import shiploop_navigator as nav, shiploop_store as store
+state = store.read_record(run_dir / "state.md")
+stop = nav.stage_spec.INNER[0]
+t0 = datetime(2026, 10, 7, 9, 0, tzinfo=timezone.utc)
+accepted, visits = {}, []
+def emit(s):
+    with contextlib.redirect_stdout(io.StringIO()):
+        nav.emit(None, run_dir, s)
+while nav.current_stage(state) != stop:
+    stage, action = nav.current_stage(state), str(nav.current_action(state)["id"])
+    emit(state)
+    result = {"outcome": "done", "headline": "Synthetic", "summary": f"Synthetic {stage} result.", "evidence_refs": ["/synthetic"]}
+    if stage == "plan":
+        result["work_items"] = [{"id": "W1", "title": "The whole request"}]
+    state = nav.apply(state, action, result)
+    nav.save(run_dir, state)
+    reviewed = state["active_improve"] is not None
+    if reviewed:
+        emit(state)
+        state = nav.finish_improve(state, action, {"summary": "Synthetic Improve receipt."})
+        nav.save(run_dir, state)
+    accepted[action] = (t0 + timedelta(minutes=2 * (len(visits) + 1))).strftime("%Y-%m-%dT%H:%M:%SZ")
+    visits.append({"stage": stage, "action": action, "reviewed": reviewed})
+(run_dir / "timeline.json").write_text(json.dumps({"started": t0.strftime("%Y-%m-%dT%H:%M:%SZ"), "accepted": accepted}))
+(out / "metrics.json").write_text(json.dumps({"unmeasured": {}, "shiploop_failures": [], "model_glue": [], "model_calls": 1}))
+print(json.dumps(visits))
+"""
+
+
+def real_engine_run(tmp: Path) -> tuple[Path, list[dict]]:
+    """(a run output directory the checkout's own navigator wrote with no model, its visits as {stage, action, reviewed})."""
+    out = tmp / "engine-run"
+    done = subprocess.run([sys.executable, "-B", "-c", REAL_ENGINE_SEED, str(ENGINE_SCRIPTS), str(out)],
+                          capture_output=True, text=True, timeout=300)
+    if done.returncode:
+        raise AssertionError(f"the engine seed failed:\n{done.stderr[-2000:]}")
+    return out, json.loads(done.stdout.strip().splitlines()[-1])
+
+
+class ImprovePacketLayoutTests(unittest.TestCase):
+    """The two layouts of a visit's packet files: new (producer file intact, Improve child's file beside it) and old (one file)."""
+
+    KEY = RunReviewTest.KEY
+
+    def setUp(self):
+        tmp = tempfile.TemporaryDirectory()
+        self.addCleanup(tmp.cleanup)
+        self.tmp = Path(tmp.name)
+
+    def build(self, out: Path) -> tuple[dict, dict, list[str]]:
+        docs, facts = export.build_run(out)
+        return docs["runs"][self.KEY], docs["packets"], facts
+
+    def row(self, run: dict, stage: str) -> dict:
+        return next(r for r in run["stages"] if r["stage"] == stage)
+
+    def new_layout(self) -> Path:
+        """spec has its real-shaped producer packet and an Improve child's file beside it; plan is a visit with no Improve child."""
+        out = make_run(self.tmp, loops=False)
+        packets = run_dir_of(out) / "packets"
+        (packets / f"{IDS['spec']}.md").write_text(packet_fixture("packet-lines-1220.txt"), encoding="utf-8")
+        (packets / f"{IDS['spec']}-improve.md").write_text(packet_fixture("packet-lines-1220-improve.txt"), encoding="utf-8")
+        return out
+
+    def test_the_new_layout_writes_a_second_document_and_reads_the_checklist_from_the_intact_producer_packet(self):
+        out = self.new_layout()
+        run, packets, facts = self.build(out)
+        spec = self.row(run, "spec")
+        improve = (run_dir_of(out) / "packets" / f"{IDS['spec']}-improve.md")
+        self.assertEqual((spec["improvePacketDoc"], spec["improvePacketBytes"], spec["packetDoc"]), (True, improve.stat().st_size, True))
+        self.assertEqual(spec["carried"], {label: True for label, _, _ in export.CARRIED})  # read from the producer packet
+        self.assertNotIn("packetImprove", spec)
+        doc = packets[f"{self.KEY}--{IDS['spec']}-improve"]
+        raw = improve.read_bytes()
+        self.assertEqual(doc, {"run": self.KEY, "action": IDS["spec"], "stage": "spec", "bytes": len(raw), "shownBytes": len(raw),
+                               "sha256": hashlib.sha256(raw).hexdigest(), "text": raw.decode(), "kind": "improve"})
+        self.assertEqual(export.validate_doc("packets", doc), [])
+        producer = packets[f"{self.KEY}--{IDS['spec']}"]
+        self.assertNotIn("kind", producer)  # the producer's document is as before
+        self.assertTrue(producer["text"].startswith("ShipLoop navigator | implement"))
+        self.assertEqual(export.validate_doc("runs", run), [])
+
+    def test_a_visit_with_no_improve_child_has_no_improve_fields_and_no_second_document(self):
+        out = self.new_layout()
+        run, packets, _ = self.build(out)
+        plan = self.row(run, "plan")
+        for field in ("improvePacketDoc", "improvePacketBytes", "packetImprove"):
+            self.assertNotIn(field, plan)
+        self.assertNotIn(f"{self.KEY}--{IDS['plan']}-improve", packets)
+        self.assertEqual(len(packets), len(ACCEPTS) + 1)  # one producer document per visit and the one Improve document
+
+    def test_the_old_layout_keeps_its_packet_improve_mark_and_has_no_improve_fields(self):  # a guard: it passes before this change too
+        out = make_run(self.tmp, loops=False)
+        (run_dir_of(out) / "packets" / f"{IDS['spec']}.md").write_text(packet_fixture("packet-lines-1220-improve.txt"), encoding="utf-8")
+        run, packets, _ = self.build(out)
+        spec = self.row(run, "spec")
+        self.assertIs(spec["packetImprove"], True)
+        self.assertNotIn("carried", spec)
+        for field in ("improvePacketDoc", "improvePacketBytes"):
+            self.assertNotIn(field, spec)
+        self.assertFalse([d for d in packets.values() if d.get("kind")])
+
+    def test_a_beside_file_means_the_producer_file_is_the_producer_even_if_it_mentions_the_improve_line(self):
+        out = self.new_layout()
+        producer = run_dir_of(out) / "packets" / f"{IDS['spec']}.md"
+        producer.write_text(packet_fixture("packet-lines-1220.txt") + "Current action: Improve the completed spec result.\n", encoding="utf-8")
+        run, _, _ = self.build(out)
+        spec = self.row(run, "spec")
+        self.assertNotIn("packetImprove", spec)
+        self.assertIn("carried", spec)
+
+    def test_the_two_layouts_can_meet_in_one_run_each_visit_told_by_its_own_files(self):
+        out = self.new_layout()  # spec: new layout
+        (run_dir_of(out) / "packets" / f"{IDS['plan']}.md").write_text(packet_fixture("packet-lines-1220-improve.txt"), encoding="utf-8")  # old
+        run, packets, facts = self.build(out)
+        self.assertEqual((self.row(run, "spec").get("improvePacketDoc"), self.row(run, "spec").get("packetImprove")), (True, None))
+        self.assertEqual((self.row(run, "plan").get("improvePacketDoc"), self.row(run, "plan").get("packetImprove")), (None, True))
+        line = next(l for l in facts if l.startswith("- Packet text carried"))
+        self.assertIn("1 visits have a separate Improve packet file; 1 visits (old layout) keep only an Improve child's packet", line)
+        self.assertIn("1 of the documents are an Improve child's packet", "\n".join(facts))
+
+    def test_an_improve_file_that_cannot_be_read_keeps_its_size_gets_no_document_and_is_counted(self):
+        out = self.new_layout()
+        (run_dir_of(out) / "packets" / f"{IDS['spec']}-improve.md").write_bytes(b"\xff\xfe not utf-8 \x80")
+        run, packets, facts = self.build(out)
+        spec = self.row(run, "spec")
+        self.assertEqual((spec["improvePacketBytes"], "improvePacketDoc" in spec, spec["packetDoc"]), (len(b"\xff\xfe not utf-8 \x80"), False, True))
+        self.assertNotIn(f"{self.KEY}--{IDS['spec']}-improve", packets)
+        self.assertIn("1 packet files unreadable (no document written)", "\n".join(facts))
+
+    def test_an_improve_file_with_no_producer_file_is_not_a_skipped_visit(self):
+        out = self.new_layout()
+        (run_dir_of(out) / "packets" / f"{IDS['spec']}.md").unlink()
+        run, packets, _ = self.build(out)
+        spec = self.row(run, "spec")
+        self.assertNotIn("skipped", spec)
+        self.assertEqual((spec["improvePacketDoc"], "packetDoc" in spec, "carried" in spec), (True, False, False))
+
+    def test_both_documents_are_written_listed_in_order_and_dropped_again_with_their_files(self):
+        out = self.new_layout()
+        target = self.tmp / "twice"
+        with contextlib.redirect_stdout(io.StringIO()):
+            export.main([str(out), "--out", str(target)])
+        ids = [w["doc_id"] for w in json.loads((target / "writes.json").read_text()) if w["collection"] == "packets"]
+        self.assertEqual(ids, sorted(ids))
+        self.assertEqual(ids.index(f"{self.KEY}--{IDS['spec']}-improve"), ids.index(f"{self.KEY}--{IDS['spec']}") + 1)
+        (run_dir_of(out) / "packets" / f"{IDS['spec']}-improve.md").unlink()
+        with contextlib.redirect_stdout(io.StringIO()):
+            export.main([str(out), "--out", str(target)])
+        self.assertFalse((target / "docs" / "packets" / f"{self.KEY}--{IDS['spec']}-improve.json").exists())
+
+    def test_the_committed_export_never_carries_a_packet_text_of_either_file(self):  # a guard: it passes before this change too
+        out = self.new_layout()
+        target = self.tmp / "bundle"
+        with contextlib.redirect_stdout(io.StringIO()):
+            export.main([str(out), "--out", str(target)])
+        text = (target / "review-export.json").read_text()
+        self.assertNotIn("ShipLoop navigator", text)
+        self.assertNotIn("Current action: Improve", text)
+        bundle = json.loads(text)
+        self.assertEqual(sorted(bundle["docs"]), ["backchain", "runs"])
+        self.assertEqual(export.check_bundle(bundle)[0], [])
+
+    def test_the_contract_rejects_a_kind_that_is_not_improve_and_shapes_for_the_new_row_fields(self):
+        out = self.new_layout()
+        run, packets, _ = self.build(out)
+        doc = dict(packets[f"{self.KEY}--{IDS['spec']}-improve"], kind="producer")
+        self.assertIn("'producer' is not one of improve", "\n".join(export.validate_doc("packets", doc)))
+        bad = dict(run, stages=[dict(run["stages"][0], improvePacketBytes="big", improvePacketDoc="yes")])
+        problems = "\n".join(export.validate_doc("runs", bad))
+        for needle in ("stages[0].improvePacketBytes: expected a number", "stages[0].improvePacketDoc: expected a boolean"):
+            self.assertIn(needle, problems)
+
+    def test_schema_md_documents_both_layouts_the_kind_and_the_second_document(self):
+        schema = " ".join(SCHEMA_MD.read_text(encoding="utf-8").split())
+        for phrase in ("`stages[].improvePacketBytes`", "`improvePacketDoc`", "<action>-improve.md", "new layout", "old layout history",
+                       "`<runKey>--<action>-improve`", "| `kind` | `improve` |", "the E2E session's record register of 2026-10-07"):
+            self.assertIn(phrase, schema, phrase)
+
+    def test_the_checkouts_own_navigator_writes_the_layout_the_exporter_reads_for_every_reviewed_stage(self):  # old engine: a guard of the old layout; new engine: fails before this change
+        """No model: the navigator prints each packet on synthetic results, so this reads what that engine writes. Up to ShipLoop
+        1.22.0 a reviewed stage keeps only the Improve child's packet; after it the producer packet stays and the child's file
+        sits beside it. Either way the exporter must say so, and no reviewed visit may read as if it had both or neither."""
+        out, visits = real_engine_run(self.tmp)
+        packets = next((out / ".shiploop-runs").glob("*/run/packets"))
+        new = any(packets.glob("*-improve.md"))
+        docs, _ = export.build_run(out, key="real")
+        run = docs["runs"]["real"]
+        reviewed = [v["stage"] for v in visits if v["reviewed"]]
+        self.assertTrue({"spec", "test-strategy", "plan"} <= set(reviewed), reviewed)  # planning_review stage, the default
+        for visit, row in zip(visits, run["stages"]):
+            self.assertEqual(row["stage"], visit["stage"])
+            if visit["reviewed"] and new:
+                self.assertTrue(row["improvePacketDoc"], visit["stage"])
+                self.assertNotIn("packetImprove", row)
+                self.assertTrue(all(row["carried"].values()) or visit["stage"] == "intake", (visit["stage"], row.get("carried")))
+                self.assertIn(f"real--{visit['action']}-improve", docs["packets"])
+            elif visit["reviewed"]:
+                self.assertTrue(row["packetImprove"], visit["stage"])  # the old engine's one file is the child's
+                self.assertNotIn("improvePacketDoc", row)
+            else:
+                self.assertEqual({f for f in ("improvePacketDoc", "improvePacketBytes", "packetImprove") if f in row}, set(), visit["stage"])
+                self.assertIn("carried", row)
+        self.assertEqual(export.validate_doc("runs", run), [])
 
 
 if __name__ == "__main__":
