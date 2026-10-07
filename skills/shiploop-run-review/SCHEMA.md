@@ -290,6 +290,32 @@ action's, the final `done` state's) are another shape and are not read. A cross 
 statement about the exported text, not about whether the model needed the item. The packet size on a visit with
 `packetImprove` is the Improve child's file, and the card says so.
 
+## The stage card
+
+Tapping a visit on step 1 (the picture or a row of the "Stage cards" list below it) opens that visit's card with three labelled
+blocks, and Previous and Next visit step through the run. It uses only what the export holds, and prints a part only when its
+data exists: an older export shows less, never a zero. A stage is named for display by one derived rule, since the engine's
+stage row has no display name: the stage name with hyphens replaced by spaces and the first letter upper-cased
+(`get-next-work-item` reads "Get next work item", `system-test-author` "System test author"); the raw name stays as the tooltip
+and, when it differs, as secondary text, and is what every other part of the page prints.
+
+- **Sent: the packet.** The stage's purpose and the exit-check chip (from the catalog, with the reason), the packet size, the
+  checklist above as ticks and crosses with the tooltip "not found in the packet text" (for a visit with `packetImprove` a note
+  instead, and none for a skipped or seeded visit), the packet head and the Packet box. The head is the first 12 non-empty
+  lines of the visit's `packets` document, loaded on demand by the same single `get` and cache as the Packet box.
+- **Done: how the visit went.** Outcome, minutes and their share of the run, work item, steps-loop pass and step, the item's
+  revise count, Improve passes and minutes for the visit, refusals, and context where measured. Refusals are a run-level count
+  (`failures` carry a verb and a line, no action), so the card says "not recorded per visit" and prints the run's figure
+  labelled run-level, or "not measured" and points to the Refusals card for the reason.
+- **Written: the result.** The summary (cut at 300 characters, said so), whether the result file exists and its size, and
+  **read by**: the stages the catalog declares as readers of this stage's result, labelled "declared by the stage spec", or "no
+  stage declares reading it". The stage spec declares stage readers only; ShipLoop's own scripts read results too and are not
+  listed. The engine records no observed reads (who actually opened a record), so the card has no observed read-back and says
+  "declared", never "read".
+
+The list of cards has one row per column of the picture (a run of skipped visits is one row "xN skipped"): stage, purpose,
+outcome, exit-check chip, minutes, packet size sent, result size written and how many stages declare reading it.
+
 ## The export file
 
 `review-export.json` (the compact file to commit with the learnings entry) is `{"schema": "run-review-export/v2",
