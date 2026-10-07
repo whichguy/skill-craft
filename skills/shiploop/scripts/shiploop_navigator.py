@@ -1232,10 +1232,14 @@ PACKET_DIR = "packets"
 
 
 def packet_path(root: Path, state: Mapping[str, Any]) -> Path:
-    """Where the full packet for the current action is kept for the host to read."""
-    action = state.get("active_improve") or {}
-    action_id = action.get("id") or current_action(state).get("id") or f"rev-{state['revision']}"
-    return Path(root) / PACKET_DIR / f"{action_id}.md"
+    """Where the full packet for the current action is kept for the host to read.
+
+    An Improve child's packets are a different packet for the same action, so they keep their own file: the producer
+    packet that was sent stays on disk for audit.
+    """
+    improve = state.get("active_improve")
+    action_id = (improve or {}).get("id") or current_action(state).get("id") or f"rev-{state['revision']}"
+    return Path(root) / PACKET_DIR / (f"{action_id}-improve.md" if improve else f"{action_id}.md")
 
 
 # Printed characters at most: below the ~20,000-character cut some hosts (Grok)

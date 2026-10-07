@@ -127,6 +127,31 @@ class PacketBoundsTests(unittest.TestCase):
                     self.assertIn("Full packet: " + str(navigator.packet_path(self.run, state)), printed.getvalue())
                 self.assertEqual(navigator.packet_path(self.run, state).read_text(), text)
 
+    def test_an_improve_printing_does_not_overwrite_the_producer_packet_that_was_sent(self):
+        """A reviewed stage printed its producer packet and then the Improve child's at the same path, so after a run the
+        producer packet of spec, test-strategy, plan, step-plan and test-spec could not be audited (10 of 46 visits)."""
+        import contextlib, io
+        state = self.state()
+        while navigator.current_stage(state) != "spec":
+            state = self.complete(state)
+        action = navigator.current_action(state)["id"]
+        store.write_record(self.run / "state.md", state)
+        with contextlib.redirect_stdout(io.StringIO()):
+            navigator.emit(None, self.run, state)
+        producer = navigator.packet_path(self.run, state)
+        sent = producer.read_text()
+        waiting = navigator.apply(state, action, {"outcome": "done", "summary": "Synthetic packet fixture"})
+        self.assertIsNotNone(waiting.get("active_improve"))
+        store.write_record(self.run / "state.md", waiting)
+        with contextlib.redirect_stdout(io.StringIO()):
+            navigator.emit(None, self.run, waiting)
+        improve = navigator.packet_path(self.run, waiting)
+        self.assertNotEqual(improve, producer)
+        self.assertEqual(producer.name, action + ".md")
+        self.assertEqual(improve.name, action + "-improve.md")
+        self.assertEqual(producer.read_text(), sent)
+        self.assertIn("Current action: Improve the completed spec result.", improve.read_text())
+
     def test_oversized_delivery_template_is_not_truncated_into_invalid_json(self):
         state = navigator.new_state(str(self.repo), "Observe local behavior.", delivery_contract=True)
         while navigator.current_stage(state) != "plan":

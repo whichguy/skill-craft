@@ -696,7 +696,8 @@ with an accepted decision instead of silently choosing. Packets point at materia
 rather than asking you to reread it at every stage.
 
 Every packet is complete, and it lives in a file: ShipLoop writes the full
-packet to `<run>/packets/<action>.md` and prints only a short head, with the
+packet to `<run>/packets/<action>.md` (an Improve child's packets for the same action go to
+`<action>-improve.md`, so the producer packet that was sent stays on disk) and prints only a short head, with the
 callback, the goal and done-when, the result path, template and allowed
 outcomes, the packet file's path, the recovery and pause commands and the status
 block. Read the packet file with a file-reading tool before acting; do not print
