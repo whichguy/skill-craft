@@ -1,0 +1,4 @@
+---
+bump: minor
+---
+Every producer packet now has a `Checked by:` line under its Done-when list: the script checks ShipLoop runs when the stage reports done (lint gate, test-loop terminal packet and rerun, red probe, quality-loop terminal packet), or, for the stages with none, that nothing automatic runs beyond the result's form and the model confirms each Done-when condition. The Improve-phase packet gets a `Checked by:` line naming the `improve-complete` callback and what it validates and imports. A new hermetic suite, `shiploop-packet-completeness`, renders the real packet of every stage and every Improve-phase packet from a cold read of `state.md` and checks the five things the main tenet asks of a packet: what the stage is for, how it operates, how its result is checked, what it must produce, and how to recover.

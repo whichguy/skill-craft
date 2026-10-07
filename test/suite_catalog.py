@@ -80,6 +80,7 @@ _SHIPLOOP_PATHS = (
     "test/shiploop-standalone-improve.test.py",
     "test/shiploop-actual-improve-cli.test.py",
     "test/shiploop-packet-bounds.test.py",
+    "test/shiploop-packet-completeness.test.py",
     "test/shiploop-guidance.test.py",
     "test/shiploop-local-skills.test.py",
     "test/experiments/shiploop_ui_allocation/test_evidence.py",
@@ -157,6 +158,7 @@ _DURATION_SECONDS = {
     "test/shiploop-navigator-contract.test.py": 2.793,
     "test/shiploop-v4-consumers.test.py": 1.048,
     "test/shiploop-packet-bounds.test.py": 0.167,
+    "test/shiploop-packet-completeness.test.py": 0.1,
     "test/experiments/shiploop_ui_allocation/test_evidence.py": 0.602,
     "test/shiploop-auth-readiness.test.py": 29.207,
     "test/shiploop-workspace.test.py": 19.448,
@@ -485,6 +487,7 @@ _SHIPLOOP_PROMPT_IDS = (
     "shiploop-reference-routing",
     "shiploop-delegation",
     "shiploop-packet-bounds",
+    "shiploop-packet-completeness",
     "shiploop-navigator-dry-run",
 )
 _SHIPLOOP_PROMPT_PREFIXES = ("skills/shiploop/references/", "skills/shiploop/commands/")

@@ -148,7 +148,7 @@ class RepeatPacketTests(KeepaliveTestCase):
         contract = next(i for i, line in enumerate(lines) if line.startswith("Write the structured result to: "))
         self.assertTrue(lines[callback + 1].startswith("Goal: "))
         for line in lines[callback + 2:contract]:
-            self.assertTrue(line.startswith(("Done when", "Considerations for this stage:", "- ")), line)
+            self.assertTrue(line.startswith(("Done when", "Checked by: ", "Considerations for this stage:", "- ")), line)
         self.assertEqual(lines[contract + 1], "Result template:")
         outcomes = next(i for i, line in enumerate(lines) if line.startswith("Allowed outcomes: "))
         self.assertEqual(sum(line.startswith("Write the structured result to: ") for line in lines), 1)
