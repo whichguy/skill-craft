@@ -2214,5 +2214,26 @@ class GuidanceTests(unittest.TestCase):
 
 
 
+class SettledFactTests(unittest.TestCase):
+    """The Battleship runs lost hours to facts the plan left open: the module format with no package.json (a missing-module
+    escape) and a default `node --test` that needed the host browser. The planning duties now state them."""
+
+    def duty(self, stage: str) -> str:
+        sys.path.insert(0, str(SCRIPTS))
+        import shiploop_prompts as prompts
+        return " ".join(prompts.DUTIES[stage].split())
+
+    def test_plan_states_each_items_module_format_and_loadable_seam(self) -> None:
+        text = self.duty("plan")
+        self.assertIn("module format", text)
+        self.assertIn("loadable seam", text)
+
+    def test_test_strategy_keeps_host_dependent_cases_out_of_the_default_suite_command(self) -> None:
+        text = self.duty("test-strategy")
+        self.assertIn("host-dependent", text)
+        self.assertIn("probe", text)
+        self.assertIn("default test command", text)
+
+
 if __name__ == "__main__":
     unittest.main(verbosity=2)

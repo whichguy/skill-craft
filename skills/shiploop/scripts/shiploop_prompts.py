@@ -720,11 +720,11 @@ Do:
 1. Read the bound Until Loop card in full once per context and follow it. Start
    the run with the printed command. Do not edit, retype or extend the contract.
 2. Execute each returned iteration exactly as its work says, then call its done
-   command. Save every returned packet from stdout to the printed latest-packet
-   path, so a reset can recover the run through its next_argv. Continue until
-   the runtime returns complete or stopped.
-3. Save the terminal packet, byte for byte from stdout, to the printed terminal
-   path and list that path in evidence_refs.
+   command. The runtime writes every packet it returns to the printed receipt,
+   so after a reset its next_argv resumes the run; do not write or edit the
+   receipt. Continue until the runtime returns complete or stopped.
+3. List the printed receipt path in evidence_refs: its last packet is the
+   terminal one, written by the runtime.
 Report: done when the loop completed; revise when it stopped blocked because a
 failure is unachievable as planned (the item goes back to its step plan, with the
 failing command as evidence); blocked, with blocked_by, only when the user, an access grant or
@@ -971,6 +971,11 @@ Use Service discovery guidance for affected cache authorization/invalidation,
 remote reconciliation, async recovery and observability checks. Map each relevant
 contract to independent outcomes and its real observation boundary; fixture
 results do not prove live permissions, event delivery or operator log access.
+Settle these now, so later stages do not guess. For each command, say which test
+ids it may print. A host-dependent case (it needs a host browser, a device, an
+account or a service) names its tool, is probed now to show the tool exists, and
+stays out of the project's default test command: give it its own opt-in command
+or flag, so a plain run of the default test command passes without the host tool.
 """,
     "plan": """\
 Create a dependency-aware delivery plan from desired outcomes back to required
@@ -988,6 +993,9 @@ State and data assessment. Map each applicable obligation to its responsible wor
 item, prerequisites, observing test and relevant release/recovery conditions, or
 retain a reasoned exclusion or unresolved need. Preserve the mapping in existing
 plan notes, item context and evidence_refs; a completed template is not proof.
+For each work item, state the module format its files use (for example CommonJS or ESM,
+with or without a package.json) and the loadable seam its tests import, so a test
+can load before the implementation exists.
 """ + DESIGN_BASIS_DUTY + "\n\n" + """After creating the initial steps, submit this producer result to its mandatory
 actual Improve handoff. The plan remains a draft until
 that loop completes; dependent work waits. Link the created plan and any execution
@@ -1470,11 +1478,11 @@ Do:
 1. Read the bound Until Loop card in full once per context and follow it. Start
    the run with the printed command. Do not edit, retype or extend the contract.
 2. Execute each returned iteration exactly as its work says, then call its done
-   command. Save every returned packet from stdout to the printed latest-packet
-   path, so a reset can recover the run through its next_argv. Continue until
-   the runtime returns complete or stopped.
-3. Save the terminal packet, byte for byte from stdout, to the printed terminal
-   path and list that path in evidence_refs.
+   command. The runtime writes every packet it returns to the printed receipt,
+   so after a reset its next_argv resumes the run; do not write or edit the
+   receipt. Continue until the runtime returns complete or stopped.
+3. List the printed receipt path in evidence_refs: its last packet is the
+   terminal one, written by the runtime.
 Report: done when the loop completed; revise when it stopped blocked because a
 finding shows the item's goal is wrong as planned, naming it (the item goes back
 to its step plan);

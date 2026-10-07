@@ -267,6 +267,17 @@ class QualityLoopTests(unittest.TestCase):
             self.complete(result)
         self.assertEqual((self.run_dir / "state.md").read_bytes(), before)
 
+    def test_a_loop_duty_does_not_tell_the_model_to_write_the_receipt_the_packet_says_not_to_touch(self):
+        """The duty said to save every packet to a "printed latest-packet path" and the terminal one byte for byte;
+        the packet prints a receipt the runtime writes and tells the model not to write or edit it."""
+        for stage in ("static-checks", "test-green", "regression"):
+            duty = prompts.DUTIES[stage]
+            with self.subTest(stage):
+                self.assertNotIn("latest-packet", duty)
+                self.assertNotIn("byte for byte", duty)
+                self.assertIn("receipt", duty)
+        self.assertIn("do not write or edit it", quality.RECEIPT_LINE)
+
     def test_the_loop_has_no_iteration_limit(self):
         """Owner decision 2026-09-26: ShipLoop loops run until their exit condition holds."""
         self.start()
