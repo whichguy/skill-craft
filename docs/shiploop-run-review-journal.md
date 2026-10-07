@@ -1720,3 +1720,95 @@ page read them without the fields (chosen here: kept). (2) Start the packet head
 are an Improve child's today). (4) Republish the template, then upload `config/stages` and the three scratch exports (never over the
 hand-built `luna1-plan` and `luna1-step-plan` backchain documents). (5) The later rename commit: regenerate `defaults/stages.json`;
 flipping the alias order and the two phase-table entries is optional.
+
+
+## 2026-10-07: R21, the rename half, two packet files per visit, the packet head and the real new layout (local, unpublished)
+
+Status: firm for the definitions, the merged-tree results, the real-layout check, the sizes and the tests below. Local commits on
+`rr20-ccaebb` on top of the R20a commits: `38e72e66` (the rename half, **atomic with the engine's `bf958708`**), `97dc44ef` (the exporter
+reads two packet files per visit, SCHEMA.md, change note `improve-packet-document.md`), `5cd2477d` (the page, change note
+`stage-card-improve-packet-and-head.md`) and this entry. No push, no `scripts/release.py`, no E2E run launched or resumed, no
+Artifact or ArtifactData call, nothing written under `/Users/dadleet/e2e-runs`; the canonical checkout and `batch1007-68672e` were only
+read (`git show`, no checkout). One throwaway worktree and branch (`rr21-merge-919215`) held the merge test and are removed. The
+E2E branch's commits read: `bf958708` (stage `select-work` is now `get-next-work-item`, a run saved under the old name is refused),
+`3e715dce` (record register), `bc1d6452` (an Improve child's packet gets its own file) on top of `44427a98` (every packet says how its
+result is checked: a `Checked by:` line). Related: `d4b848dc`, `9b5e8af6`, `bde62009` (R20a), `ee6712a5`.
+
+**(a) The rename half.** In the throwaway merge of `rr20-ccaebb` with `batch1007-68672e` (no conflicts: the E2E branch touches nothing
+under `skills/shiploop-run-review`), the unchanged suite failed exactly four tests, all comparing the committed catalog with the engine's
+table (`StageCatalogTests`: the drift test, the stages-command test, the defaults-document test and the upgrade-note test). Changes, one commit:
+`defaults/stages.json` regenerated with `export.py --stages` (one line differs); `PHASES` and the page's `STAGE_FLOW` list the new name;
+`STAGE_ALIASES` is `(("get-next-work-item", "select-work"),)` in both, the engine's name first and canonical, with a comment saying the old
+name is history of ShipLoop 1.22.0 and earlier; SCHEMA.md says so; the test file's current-run fixtures use the new name (`IDS`, `ACCEPTS`,
+the plan rows, the card and list fixtures, the skipped and seeded tests, the planning-review accepts), the old name stays where a test is
+about old evidence (the alias tests of both sides, a label test, a list-row test and a card test of each name) and one new assertion pins that
+it is in no `PHASES` entry; the two genuine 1.22.0 state fixtures take the engine's current stage name in their one history row, since
+ShipLoop now refuses the old one. Results: on the merged tree 341 tests OK; on `rr20-ccaebb` alone exactly the four catalog tests are red
+(341 run, 4 failures), by design, against the old engine. The commit was made on the merge branch and cherry-picked onto `rr20-ccaebb`
+(it applies cleanly to both). **Where the old name is left** at `5cd2477d`, outside history: `scripts/export.py` 2 (a comment and the alias
+table), `template/index.html` 2 (the same), `SCHEMA.md` 2 (the alias paragraph), `test/shiploop-run-review.test.py` 18 (all of them
+alias or old-evidence tests; 43 before), the two fixtures and `defaults/stages.json` 0. History untouched and still rendering through the alias:
+the five committed run exports, the page snapshot, `luna1.review.json`, the journal and the change notes.
+*Found on the merged tree (not ours):* `scripts/check-release-boundary.py --base origin/main` fails there because `bf958708` changes
+`skills/shiploop-e2e-audit/harness/behavior_capture.py` and `dag_replay.py` with no `changes/shiploop-e2e-audit/*.md` note and no
+`No-Change-Note:` trailer; the E2E session must add one before merging. `rr20-ccaebb` alone passes the check.
+
+**(b) Two packet files per visit.** After `bc1d6452` `packet_path` writes an Improve child's printings to `packets/<action>-improve.md` and
+leaves the producer packet in `packets/<action>.md`. The exporter now tells a visit's layout by its own files. *New layout:* a `-improve.md`
+beside the producer file. The producer file is the packet that was sent, so `carried` is read from it with no Improve test (a producer
+file that merely mentions the Improve line stays a producer's), the row gets `improvePacketBytes` and, when readable, `improvePacketDoc`
+true, and a second packets document `<runKey>--<action>-improve` is written with `kind` `improve` (the producer's document has no kind).
+*Old layout* (ShipLoop 1.22.0 and earlier): no `-improve.md`; a visit whose one file is the child's keeps `packetImprove` and no checklist,
+documented as old-layout history; one run may hold both layouts, visit by visit. An unreadable Improve file keeps its size, writes no
+document and is counted; an Improve file with no producer file is not a skipped visit. `facts.md` counts both.
+*Real-layout check, no model:* the harness's seed pattern (the navigator walking the graph on synthetic results, with `navigator.emit`
+printing each packet), run on the merged tree's engine in a scratch directory, wrote 7 visits up to the first inner stage and an
+`-improve.md` for each of the three reviewed ones (spec, test-strategy, plan); exported, those three visits have `improvePacketDoc`, all
+seven checklist labels found (`inputs` aside on intake) and no `packetImprove`; the documents are 10 (7 producer, 3 improve; producer
+packets 26.4 to 52.2 KB, Improve files 19.6 to 24.1 KB because only the first printing was made: the file is overwritten at each printing, so
+a real run keeps the last, and the old layout's last printings were 44.8 to 55.5 KB in the 1.22.0 run). The same seed on the old engine
+(this branch alone) leaves one file per visit and reads `packetImprove` on those three. `ImprovePacketLayoutTests.test_the_checkouts_own_
+navigator_writes_the_layout_the_exporter_reads_for_every_reviewed_stage` runs that seed in a temporary directory and asserts whichever
+layout the checkout's engine writes, so it is green on both trees; it fails on the merged tree before this change. **No real run of the new
+layout exists yet, and none is committed:** the five committed exports are runs of ShipLoop 1.16.1 to 1.19.0, the 1.22.0 run and the others
+re-exported for the draft page are old layout, and the synthetic run's export (`export/synthetic-new-layout`, order 99) is for looking at the
+card, not for the live page. The upload cost of a reviewed visit rises by the Improve document (about 45 to 55 KB of packet text each in a
+real run, within the 150,000-byte cut); the packets still go in `ArtifactData` batches of at most 50 documents and 1 MiB.
+
+**(c) The packet head** starts at the first line beginning `ShipLoop navigator |` (the engine's own printed head, after the inline run's
+delegation preamble) and takes 12 non-empty lines from there, so Goal, Done when, Checked by and the callback show; with no such line it
+falls back to the first 12 non-empty lines; a mention of the phrase mid-line does not count; the caption says which start it used.
+**(d)** SCHEMA.md points to the E2E session's record register of 2026-10-07 as the place where record kinds are classified and says the
+contract does not copy its classes (the register is prose, a hand copy would drift); the card's "declared by the stage spec" is unchanged.
+**(e)** The scratch exports were refreshed from the merged tree into
+`/private/tmp/claude-501/-Users-dadleet-src-skill-craft/8ee9a7a0-b6e5-4ea7-af94-1c3edde60d84/scratchpad/rr21/export/<key>/` (`luna1`, `hello-1161`,
+`hello-1180`, `hello-1190a`, `hello-1190b`, `battleship-1220`, and `synthetic-new-layout`) with `defaults/` holding `config/stages` (34 entries,
+`get-next-work-item`); a second export of each from the merged tree is byte-identical to the branch's, `export.py --check` passes, and the old
+runs still carry `select-work` rows that resolve through the alias.
+
+**What the card shows for a new-layout visit** (seen in a local server over the template at 375 px, light and dark, `scrollWidth` 375; no
+Artifact call; tab and server closed): "Packet size 51 KB" (the producer's), "Improve child's packet file 23.6 KB", seven ticks from the
+producer packet, the head opening at "ShipLoop navigator | plan | revision 7" with the callback line, the Packet box, and a second closed
+"Improve child's packet" box that, opened, did one read of its own document and showed its size and digest. A 1.22.0 `spec` visit (old layout)
+still says its packet file is the Improve child's and has one box.
+
+**Tests.** `python3 -B test/shiploop-run-review.test.py`: **363 OK on the merged tree** (278 at the R20a base `ee6712a5`, 341 after the rename
+commit, 353 after the exporter commit with `ImprovePacketLayoutTests` 12, 363 after the page commit with `ImprovePacketCardTests` 7 and
+`PacketHeadStartTests` 3); on `rr20-ccaebb` alone the same 363 run with exactly the four catalog tests red. Also green on the merged tree:
+`node test/skill-frontmatter.test.js` (22), `test/test-groups.test.py` (21), `test/marketplace-package.test.py` (29); on `rr20-ccaebb`
+`scripts/check-release-boundary.py --base origin/main` passes (the three change notes accepted). Fail-first, against a `git archive` of the
+tip before each commit with only the test file copied in: the exporter commit, 9 of its 12 new tests fail on `38e72e66` and 10 of 12 on the
+merged starting tree (the real-engine test fails there as it should), the three that pass on `38e72e66` are labelled (two guards, and the
+real-engine test, a guard of the old layout on the old engine) plus the one facts assertion that pins the changed line; the page commit, 8 of
+its 10 new tests fail, the two that pass are labelled guards (one fetch path; one box without the second document). 10 deliberate defects,
+each on a copy of the merged tree, all caught: the old-layout test applied to a new-layout producer file; the Improve document never written
+or without `kind`; an Improve-only visit read as skipped; the Improve size not recorded; `improvePacketId` ignoring the flag; the head
+ignoring the navigator line or matching it mid-line; the Improve box loading without a tap or shown without a second document.
+
+**Sizes.** The template 148,794 to 150,592 bytes (R20a: 127,259). The committed evidence files are unchanged.
+
+**Owner decisions.** (1) The committed-evidence question is unchanged by R21: the five exports are old layout and old name (history, rendered
+through the alias and the old-layout mark); re-exporting them only adds the R20a fields (+76.5 KB, mostly summaries), so keep them until a
+real new-layout run exists and commit that one. (2) The E2E session needs a `changes/shiploop-e2e-audit` note (or a trailer) for `bf958708`
+before its branch passes the release-boundary check. (3) Upload: `config/stages` first (the new name), then each run's `runs` document; never
+the synthetic run to the live page; the Improve packet documents add one document per reviewed visit of any new-layout run.
