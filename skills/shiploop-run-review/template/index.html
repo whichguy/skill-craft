@@ -245,6 +245,24 @@ label.opt .t{min-width:0}
 .pkt{margin-top:10px}
 .pkt-text{font-family:var(--mono);font-size:12px;line-height:1.45;max-height:340px;overflow:auto;white-space:pre;background:var(--code-bg);padding:8px 10px;border-radius:6px;margin:6px 0 0}
 .sqd{margin-top:10px}
+.sc-block{border-top:1px solid var(--line);margin-top:10px;padding-top:8px}
+.sc-block h4{margin:0 0 4px;font-size:12px;font-weight:600;letter-spacing:.04em;text-transform:uppercase;color:var(--accent)}
+.sc-purpose{margin:6px 0 0;font-size:13.5px}
+.sc-why{margin:2px 0 0}
+.sc-summary{margin:4px 0 6px;font-size:13.5px;overflow-wrap:anywhere}
+.sc-carried{margin:6px 0 2px}
+.pkt-head{font-family:var(--mono);font-size:12px;line-height:1.45;white-space:pre-wrap;overflow-wrap:anywhere;background:var(--code-bg);padding:8px 10px;border-radius:6px;margin:6px 0 0}
+.sclist{margin-top:12px}
+.sc-list{display:grid;gap:4px;margin-top:8px}
+.sc-row{font:inherit;text-align:left;display:flex;flex-direction:column;gap:2px;padding:8px 10px;min-height:44px;border:1px solid var(--line);border-radius:8px;background:var(--surface);color:var(--fg);cursor:pointer;min-width:0}
+.sc-row.sel{border-color:var(--accent);background:var(--accent-bg)}
+.sc-top{display:flex;gap:6px;align-items:center;flex-wrap:wrap}
+.sc-raw{display:inline-block;font-family:var(--mono);font-size:11.5px;font-weight:400;color:var(--muted);margin-left:8px;white-space:nowrap}
+.sc-name .sc-raw{white-space:normal}
+.sc-no{font-family:var(--mono);font-size:11.5px;color:var(--muted);min-width:2.2em}
+.sc-name{font-size:13.5px}
+.sc-purp{font-size:12.5px;color:var(--muted)}
+.sc-nums{display:flex;flex-wrap:wrap;gap:0 12px;font-family:var(--mono);font-size:11.5px;color:var(--muted)}
 .sqd .row{margin:10px 0 0}
 .sqd .btn{min-height:44px}
 .sqd .facts{grid-template-columns:minmax(0,34%) minmax(0,1fr);gap:4px 10px}
@@ -273,7 +291,7 @@ table.cmp .kn{display:block;color:var(--muted);font-size:12px;overflow-wrap:anyw
 
 <section class="step" id="step-1" data-step="1" aria-labelledby="h-step-1">
 <h2 id="h-step-1">1. What happened</h2>
-<p class="sub">Pick a run. Six numbers say how big it was. The picture shows every stage visit in order, how long each took, where Improve worked and, where the host measured it, how full the model's context was. Tap a column for its detail. Below, the path every run should take and the Backchain time spent on it.</p>
+<p class="sub">Pick a run. Six numbers say how big it was. The picture shows every stage visit in order, how long each took, where Improve worked and, where the host measured it, how full the model's context was. Tap a column, or a row of the stage cards, for that visit's card: what the stage was for, what it was sent and what it wrote back. Below, the path every run should take and the Backchain time spent on it.</p>
 <div class="row"><label for="runsel">Run</label><select id="runsel"></select><span class="snap" id="runfacts"></span><span class="chip bent" id="runmode" hidden></span></div>
 <div id="arc" class="arc"></div>
 <div class="kpis" id="kpis" role="group" aria-label="Six numbers for this run"></div>
@@ -287,6 +305,7 @@ table.cmp .kn{display:block;color:var(--muted);font-size:12px;overflow-wrap:anyw
 <p class="legend" id="seqnote"></p>
 </div>
 <div id="seqdetail" aria-live="polite"></div>
+<div class="card sclist" id="sclist" hidden></div>
 <details id="seqtabbox" hidden><summary id="seqtabsum"></summary><div class="rtabbox" id="seqtable"></div></details>
 <h3 style="margin-top:22px">The path every run takes</h3>
 <p class="sub">Expected, observed, Backchain time and numbered findings for each stage. Select a stage to read what we expect of it.</p>
@@ -622,14 +641,21 @@ function esc(s){return String(s).replace(/&/g,"&amp;").replace(/</g,"&lt;").repl
 /* The engine's phases and the stages each one serves, in flow order (the exporter's phase table; a test keeps them equal).
    A stage this table does not know belongs to the phase of the visit before it. */
 var STAGE_FLOW=[["Understand",["intake","discovery","research"]],["Specify",["spec","test-strategy"]],
-  ["Plan",["plan","prepare","select-work","step-plan"]],
+  ["Plan",["plan","prepare","get-next-work-item","step-plan"]],
   ["Build",["test-spec","baseline","test-author","test-red","implement","test-green","test-refine"]],
   ["Prove",["regression","document","skill-assess","skill-validate","static-checks","verify"]],
   ["Integrate",["integrate","integration-verify","carry-forward"]],
   ["System test",["system-test-author","system-test","product-acceptance"]],
   ["Release",["release-plan","release-check","release","release-verify","operations","handoff"]]];
+/* The engine renamed select-work to get-next-work-item and refuses a saved run with the old name, so a new run never needs
+   this: it is here so committed history (exports of ShipLoop 1.22.0 and earlier runs, the database, old run directories)
+   renders under either name. The first name is canonical. One group, resolved by stageNames only; a test keeps it equal to
+   the exporter's STAGE_ALIASES. */
+var STAGE_ALIASES=[["get-next-work-item","select-work"]];
+function stageNames(stage){for(var i=0;i<STAGE_ALIASES.length;i++)if(STAGE_ALIASES[i].indexOf(stage)>=0)return STAGE_ALIASES[i];return [stage];}
 function phaseOfStage(stage,previous){
-  for(var i=0;i<STAGE_FLOW.length;i++)if(STAGE_FLOW[i][1].indexOf(stage)>=0)return i;
+  var names=stageNames(stage);
+  for(var i=0;i<STAGE_FLOW.length;i++)for(var j=0;j<names.length;j++)if(STAGE_FLOW[i][1].indexOf(names[j])>=0)return i;
   return previous;
 }
 /* Where a finding sits in a run: one cell per visit in order, coloured by outcome (a letter under each cell that did
@@ -803,8 +829,26 @@ function sequenceModel(run,opts){
   return {columns:cols,visits:rows.length,maxMin:tallest?{min:maxMin,stage:tallest.stage,visit:tallest.first+1}:null,lay:lay,band:band,
     bandNote:rows.length&&!anyCtx?"Per-visit context not measured on this host"+(why?": "+why:""):"",cards:kpiCards(run,opts.loops)};
 }
-/* What a tapped column says: its title, labelled lines, the findings marked at its phase, and its neighbours. */
-function columnDetail(model,k,run,findings){
+/* A visit's Improve line for its detail: passes and minutes as far as measured, "not run by design" for a planning visit of a
+   none run, "" when the visit has nothing to say. Never 0 for a figure the export does not carry. */
+function improveText(run,r){
+  var work=kindOf(r)==="work",im=work&&r.improve&&typeof r.improve==="object"?r.improve:null;
+  var p=im&&isCount(im.passes)?im.passes:null,m=im&&isCount(im.min)?im.min:null;
+  if(p!==null||m!==null)return (p!==null?plural(p,"pass"):"passes not measured")+(m!==null?", "+m+" min":", minutes not measured");
+  return work&&improveByDesign(run,r.stage)?"not run by design (planning_review none)":"";
+}
+/* The context line of a visit or column (contextOf's figures): calls, peak, compactions as far as measured. */
+function contextLine(cx){
+  var bits=[];
+  if(cx.calls!==null)bits.push(plural(cx.calls,"call"));
+  if(cx.peak!==null)bits.push("peak "+grouped(cx.peak)+" tokens"+(cx.peakPct!==null?" ("+pctText(cx.peakPct)+" of the window)":""));
+  else if(cx.peakPct!==null)bits.push("peak "+pctText(cx.peakPct)+" of the window");
+  bits.push(cx.compactions!==null?plural(cx.compactions,"compaction"):"compactions not measured");
+  return bits.join(", ");
+}
+/* What a tapped column says: its title, labelled lines, the findings marked at its phase, and its neighbours. A column of one
+   visit also carries its stage card (stageCard; `catalog` is config/stages.stages, null when the database has none). */
+function columnDetail(model,k,run,findings,catalog){
   var c=model&&model.columns[k];if(!c)return null;
   var key=run&&run.key,lines=[];
   var title=c.kind==="skipped"?(c.n===1?"Visit "+(c.first+1)+": "+c.stage+" (skipped)":"Visits "+(c.first+1)+" to "+(c.last+1)+": "+c.n+" skipped")
@@ -819,23 +863,22 @@ function columnDetail(model,k,run,findings){
   if(one&&typeof one.step==="string")lines.push(["Step",one.step+" (the step this packet named)"]);
   if(c.packetBytes!==null)lines.push(["Packet file",kbText(c.packetBytes)]);
   if(c.resultBytes!==null)lines.push(["Result file",kbText(c.resultBytes)]);
-  if(c.improve)lines.push(["Improve",(c.improve.passes!==null?plural(c.improve.passes,"pass"):"passes not measured")+(c.improve.min!==null?", "+c.improve.min+" min":", minutes not measured")]);
-  else if(c.kind==="work"&&c.n===1&&improveByDesign(run,c.stage))lines.push(["Improve","not run by design (planning_review none)"]);
-  if(c.context){
-    var cx=c.context,bits=[];
-    if(cx.calls!==null)bits.push(plural(cx.calls,"call"));
-    if(cx.peak!==null)bits.push("peak "+grouped(cx.peak)+" tokens"+(cx.peakPct!==null?" ("+pctText(cx.peakPct)+" of the window)":""));
-    else if(cx.peakPct!==null)bits.push("peak "+pctText(cx.peakPct)+" of the window");
-    bits.push(cx.compactions!==null?plural(cx.compactions,"compaction"):"compactions not measured");
-    lines.push(["Context (main thread)",bits.join(", ")]);
-  }else if(model.band)lines.push(["Context (main thread)","not measured for this visit"]);
+  var imp=one?improveText(run,one):"";
+  if(imp)lines.push(["Improve",imp]);
+  if(c.context)lines.push(["Context (main thread)",contextLine(c.context)]);
+  else if(model.band)lines.push(["Context (main thread)","not measured for this visit"]);
   var marked=(findings||[]).filter(function(f){return appliesTo(f,key)&&c.phases.indexOf(f.phase)>=0;});
   return {title:title,lines:lines,findings:marked,prev:k>0?k-1:null,next:k<model.columns.length-1?k+1:null,
-    packet:one&&packetId(run,one)?{id:packetId(run,one)}:null};
+    packet:one&&packetId(run,one)?{id:packetId(run,one)}:null,card:one?stageCard(run,c.first,catalog):null};
 }
 /* The id of the packets document of one visit (`<runKey>--<action>`), or "" when the export wrote none for it. */
 function packetId(run,row){
   return run&&typeof run.key==="string"&&row&&row.packetDoc===true&&typeof row.action==="string"?run.key+"--"+row.action:"";
+}
+/* The id of the packets document of a visit's Improve child's packet (`<runKey>--<action>-improve`; the layout of an engine after
+   ShipLoop 1.22.0 keeps it beside the producer packet), or "" when the export wrote none. */
+function improvePacketId(run,row){
+  return run&&typeof run.key==="string"&&row&&row.improvePacketDoc===true&&typeof row.action==="string"?run.key+"--"+row.action+"-improve":"";
 }
 /* What the packet box says about a loaded document: its size and digest, and when it is cut, how much of it shows. */
 function packetMeta(d){
@@ -845,6 +888,161 @@ function packetMeta(d){
   var line=out.join(", ");
   if(d&&d.truncated===true)line+=(line?"; ":"")+"truncated: showing the first "+(isCount(d.shownBytes)?grouped(d.shownBytes):"part")+" of "+(bytes!==null?grouped(bytes):"the file's")+" bytes";
   return line;
+}
+/* ---- the stage card (step 1): what a stage was, what it was sent, what it wrote back ---- */
+/* A stage's display text, derived (the engine's stage row has no display name): hyphens to spaces, first letter upper-cased, so
+   'get-next-work-item' reads 'Get next work item'. The raw name stays as a tooltip and, when it differs, as secondary text. */
+function stageLabel(stage){var s=typeof stage==="string"?stage.replace(/-/g," "):"";return s.charAt(0).toUpperCase()+s.slice(1);}
+function rawShown(stage){return typeof stage==="string"&&stage!==""&&stageLabel(stage).toLowerCase()!==stage;}
+/* The stage catalog (config/stages.stages, derived from the engine's stage table) entry of a stage, found under either name of
+   an alias; null when the database has no catalog or no entry. */
+function stageInfo(catalog,stage){
+  if(!Array.isArray(catalog))return null;
+  var names=stageNames(stage);
+  for(var i=0;i<catalog.length;i++)if(catalog[i]&&names.indexOf(catalog[i].stage)>=0)return catalog[i];
+  return null;
+}
+var EXIT_CHECKS=["script-run","model judgement","review loop"];
+/* The kind of check that ends a stage in this run: the catalog's own, except that under a recorded planning_review none a
+   stage whose only check was the Improve review is the model's judgement (the exporter's effective_exit_check; a test keeps them equal). */
+function exitCheckOf(info,run){
+  if(!info||EXIT_CHECKS.indexOf(info.exitCheck)<0)return "";
+  return planningReview(run)==="none"&&info.planningChoice===true&&info.exitCheck==="review loop"?"model judgement":info.exitCheck;
+}
+/* One sentence saying what the exit check is for this stage, from the catalog's own fields. */
+function exitCheckWhy(info,run){
+  var kind=exitCheckOf(info,run);
+  if(kind==="script-run")return "ShipLoop runs "+(Array.isArray(info.completeRuns)&&info.completeRuns.length?info.completeRuns.join(", "):"a check")+" before it accepts done.";
+  if(kind==="review loop")return info.improve==="last-item"?"An Improve review of the whole run follows only the last work item's carry-forward; an earlier item's advances directly."
+    :"An Improve child reviews this result before the graph advances.";
+  if(kind==="model judgement")return improveByDesignInfo(info,run)?"planning_review none: no Improve child starts after this stage, so the model's own judgement against its done-when list ends it."
+    :"The model judges the stage against its done-when list; no script run or Improve review follows.";
+  return "";
+}
+function improveByDesignInfo(info,run){return planningReview(run)==="none"&&info&&info.planningChoice===true;}
+/* The stages that declare reading this stage's result (the inverse of every entry's `reads`), [{stage, item}] in graph order;
+   `item` is true when the reader reads this work item's result. null when there is no catalog (unknown, never "none"). */
+function readersOf(catalog,stage){
+  if(!Array.isArray(catalog))return null;
+  var names=stageNames(stage),out=[];
+  catalog.forEach(function(e){
+    if(!e||typeof e.stage!=="string"||!Array.isArray(e.reads))return;
+    var hit=false,item=false;
+    e.reads.forEach(function(r){var it=typeof r==="string"&&r.indexOf("item:")===0,s=it?r.slice(5):r;if(names.indexOf(s)>=0){hit=true;item=it;}});
+    if(hit)out.push({stage:e.stage,item:item});
+  });
+  return out;
+}
+/* The readers of a result as text: the stages that read it, then those that read this work item's result; "no stage declares
+   reading it" when none does. */
+function readersText(readers){
+  if(!readers||!readers.length)return "no stage declares reading it";
+  var run=readers.filter(function(x){return !x.item;}).map(function(x){return x.stage;}),item=readers.filter(function(x){return x.item;}).map(function(x){return x.stage;});
+  var parts=[];if(run.length)parts.push(run.join(", "));
+  if(item.length)parts.push(item.join(", ")+(run.length?" (these read this work item's result)":" (each reads this work item's result)"));
+  return parts.join("; ");
+}
+/* What a producer packet's text can carry: [key, label, what was looked for]. The exporter's CARRIED table holds the
+   patterns; a test keeps these keys, their order and this wording equal to it. */
+var CARRIED_LABELS=[
+  ["where","where","the progress line 'ShipLoop navigator | <stage> | revision N'"],
+  ["purpose","purpose","a 'Goal:' line, or the implement packet's 'Step S1 (1 of 3)' line"],
+  ["operates","operates","the 'Current stage guidance:' rules or the 'Considerations for this stage:' list"],
+  ["checked","checked","the 'Done when (' list and the 'Improve:' line that says whether a review loop follows, or a 'Checked by:' line"],
+  ["produces","produces","the 'Result template:' and the 'Allowed outcomes:' line"],
+  ["recovery","recovery","the blocked_by sentence ('A blocked result adds blocked_by' up to 1.21.0, a 'blocked: {...}' shape line from 1.22.0) and the sentence that a problem the run can fix itself is repaired in the stage, not blocked"],
+  ["inputs","inputs","the 'Results this stage builds on' list"]];
+/* The checklist of one visit: [{key, label, found: true|false|null, na, tip}], null when the row has no `carried` (older export,
+   unreadable packet, skipped, seeded or an Improve child's packet). A cross is "not found in the packet text": a statement about
+   the text, not about whether the model needed it. `inputs` is not applicable to a stage that reads no earlier result. */
+function carriedItems(row,info){
+  var c=row&&row.carried&&typeof row.carried==="object"?row.carried:null;
+  if(!c)return null;
+  return CARRIED_LABELS.map(function(l){
+    var v=c[l[0]],found=v===true?true:(v===false?false:null);
+    var na=found===false&&l[0]==="inputs"&&!!info&&Array.isArray(info.reads)&&info.reads.length===0;
+    return {key:l[0],label:l[1],found:found,na:na,
+      tip:found===true?"found in the packet text: "+l[2]:na?"this stage reads no earlier result, so its packet lists none":
+        found===false?"not found in the packet text ("+l[2]+"). This says what the exported text lacks, not whether the model needed it.":"not recorded in this export"};
+  });
+}
+/* Where a packet's head starts: the index of its first line beginning "ShipLoop navigator |" (the part the engine prints; an inline
+   run's file opens with a delegation preamble before it), or -1 when it has none. */
+function packetHeadStart(text){
+  var lines=String(text===undefined||text===null?"":text).split("\n");
+  for(var i=0;i<lines.length;i++)if(lines[i].indexOf("ShipLoop navigator |")===0)return i;
+  return -1;
+}
+/* The first n non-empty lines of a packet's text from its "ShipLoop navigator |" line (so Goal, Done when, Checked by and the
+   callback show), or from its first line when it has no such line (the card's head; the full text stays in the Packet box). */
+function packetHeadLines(text,n){
+  var out=[],lines=String(text===undefined||text===null?"":text).split("\n"),from=Math.max(0,packetHeadStart(text));
+  for(var i=from;i<lines.length&&out.length<n;i++){var l=lines[i].replace(/\s+$/,"");if(l.trim()!=="")out.push(l);}
+  return out;
+}
+/* One visit as a stage card: {visit, title, stage, kind, purpose, check:{kind,why}|null, outcome,
+   sent:{bytes,note,carried,carriedNote,packet}, done:{lines}, written:{summary,truncated,lines,readers,observed}}. Every part may
+   be absent (an older export): the card names only what exists and nothing as zero. `catalog` is config/stages.stages or null. */
+function stageCard(run,i,catalog){
+  var rows=run&&Array.isArray(run.stages)?run.stages:[],r=rows[i];
+  if(!r||typeof r!=="object")return null;
+  var kind=kindOf(r),info=stageInfo(catalog,r.stage),check=exitCheckOf(info,run),out=String(r.outcome||"done");
+  var wall=run&&isCount(run.wallMin)&&run.wallMin>0?run.wallMin:0;
+  var purpose=info&&typeof info.purpose==="string"&&info.purpose?info.purpose.charAt(0).toUpperCase()+info.purpose.slice(1):"";
+  /* sent: the packet */
+  var sent={bytes:isCount(r.packetBytes)?r.packetBytes:null,bytesLabel:r.packetImprove===true?"Packet file kept (the Improve child's)":"Packet size",
+    improveBytes:isCount(r.improvePacketBytes)?r.improvePacketBytes:null,improvePacket:improvePacketId(run,r)?{id:improvePacketId(run,r)}:null,
+    note:"",carried:null,carriedNote:"",packet:packetId(run,r)?{id:packetId(run,r)}:null};
+  if(kind==="skipped")sent.note="No packet was issued: the engine found this stage not applicable to the item.";
+  else if(kind==="seeded")sent.note="The harness recorded this visit itself, so no packet was sent for it.";
+  else if(r.packetImprove===true)sent.carriedNote="The packet file kept for this visit is the Improve child's: an engine of ShipLoop 1.22.0 or earlier rewrote one file per action, so the producer's own packet is not available and no checklist is shown.";
+  else{
+    sent.carried=carriedItems(r,info);
+    if(!sent.carried&&sent.bytes!==null)sent.carriedNote="Whether the packet carried each item is not recorded in this export (export the run again).";
+  }
+  /* done: how the visit went */
+  var done=[],mark=kind==="work"&&out!=="done"?(OUTCOME_MARK[out]||out.charAt(0).toUpperCase()):"";
+  done.push(["Outcome",kind==="skipped"?"skipped: no packet was issued, the engine found it not applicable":
+    (kind==="seeded"?"seeded: the harness recorded this visit without running it":out+(mark?" (marked "+mark+")":""))]);
+  var min=kind==="seeded"?null:(isCount(r.min)?r.min:null);
+  done.push(["Minutes",(kind==="skipped"?(min===null?"n/a":min+" min"):(kind==="work"&&min===null?"n/a (no accept time recorded)":visitMinutes(r)))+
+    (min!==null&&min>0&&wall?", "+pctText(100*min/wall)+" of elapsed":"")]);
+  if(typeof r.workitem==="string")done.push(["Work item",r.workitem+(isCount(r.loop)?", steps-loop pass "+r.loop:"")]);
+  if(typeof r.step==="string")done.push(["Step",r.step+" (the step this packet named)"]);
+  var item=typeof r.workitem==="string"&&run&&Array.isArray(run.workItems)?run.workItems.filter(function(w){return w&&w.id===r.workitem;})[0]:null;
+  if(item&&isCount(item.revises))done.push(["Revises of this item",String(item.revises)+(item.revises===0?" (never sent back to step-plan)":" (each sent it back to step-plan)")]);
+  var imp=improveText(run,r);if(imp)done.push(["Improve",imp]);
+  done.push(["Refusals","not recorded per visit"+(isCount(run&&run.refusals)?"; run-level: "+run.refusals+" (not attributed to a visit)":
+    "; run-level not measured"+(whyNot(run,"refusals")?" (the reason is on the Refusals card)":""))]);
+  var cx=contextOf([r],run&&isCount(run.contextWindow)&&run.contextWindow>0?run.contextWindow:null);
+  if(cx)done.push(["Context (main thread)",contextLine(cx)]);
+  else if(rows.some(function(x){return x&&x.context&&typeof x.context==="object";}))done.push(["Context (main thread)","not measured for this visit"]);
+  /* written: the result */
+  var written=[],summary=typeof r.summary==="string"&&r.summary?r.summary:"";
+  if(r.resultFile===false)written.push(["Result file","none: the accepted result is read from state.md"]);
+  else if(r.resultFile===true||isCount(r.resultBytes))written.push(["Result file","written"+(isCount(r.resultBytes)?", "+kbText(r.resultBytes):"")]);
+  var readers=readersOf(catalog,r.stage);
+  if(kind!=="skipped"&&kind!=="seeded"&&readers!==null)written.push(["Read by (declared by the stage spec)",readersText(readers)]);
+  return {visit:i+1,title:"Visit "+(i+1)+": "+stageLabel(r.stage),stage:String(r.stage||""),label:stageLabel(r.stage),rawShown:rawShown(r.stage),kind:kind,purpose:purpose,
+    check:check?{kind:check,why:exitCheckWhy(info,run)}:null,
+    outcome:kind==="skipped"?"skipped":kind==="seeded"?"seeded":out,
+    sent:sent,done:{lines:done},
+    written:{summary:summary,truncated:r.summaryTruncated===true,lines:written,readers:readers}};
+}
+/* The list of stage cards: one row per column of the picture, so a tap selects the same visit as a tap on the picture. A run of
+   skipped visits is one row "xN skipped". Sizes and counts print only when the export has them. */
+function cardRows(model,run,catalog){
+  return ((model&&model.columns)||[]).map(function(c,k){
+    var r=c.rows[0]||{},many=c.n>1,info=many?null:stageInfo(catalog,c.stage),check=many?"":exitCheckOf(info,run);
+    var rd=many||c.kind!=="work"?null:readersOf(catalog,c.stage);
+    return {col:k,visit:many?(c.first+1)+" to "+(c.last+1):String(c.first+1),
+      stage:many?"x"+c.n+" skipped":stageLabel(c.stage),raw:many?"":c.stage,rawShown:many?false:rawShown(c.stage),
+      purpose:info&&typeof info.purpose==="string"?info.purpose.charAt(0).toUpperCase()+info.purpose.slice(1):"",
+      outcome:c.kind==="skipped"?"skipped":c.kind==="seeded"?"seeded":c.outcome,kind:c.kind,check:check,
+      sent:c.packetBytes!==null?kbText(c.packetBytes)+(r.packetImprove===true?" (the Improve child's)":""):"",written:c.resultBytes!==null?kbText(c.resultBytes):"",
+      readBy:rd===null?null:rd.length,
+      min:many?(c.min===null?"":c.min+" min"):(c.kind==="seeded"?"":(c.na?"n/a":visitMinutes(r)))};
+  });
 }
 /* ---- plan and execution (step 1) ---- */
 var OUTCOME_KEYS=["done","revise","repeat","replan","blocked"];
@@ -1155,7 +1353,7 @@ function renderPanel(){
 var pickedCol=-1,pickedRun="",pickedItem="",planMsg="",lastModel=null;
 /* A packet's text is loaded on demand, one `get` per visit the viewer opens, and kept here for the page's life so a redraw
    (every collection snapshot redraws the page) neither closes the box nor fetches again. packetBody holds the box now on screen. */
-var packetState={},packetBody={};
+var packetState={},packetBody={},packetHeads={};
 function loopsFor(run){return loaded.bc?data.bc.filter(function(d){return d.run===run.key;}):null;}
 function setCol(k,reveal){pickedCol=k;renderPicture(reveal);}
 function pickItem(id){pickedItem=pickedItem===id?"":id;planMsg="";renderPicture(false);}
@@ -1201,9 +1399,9 @@ function renderPlan(run){
   var m=h("p","msg",planMsg);m.setAttribute("aria-live","polite");box.appendChild(m);
 }
 /* The Packet box of a tapped visit: closed until opened, then one `get` of packets/<runKey>--<action>. */
-function packetBox(p){
+function packetBox(p,label){
   var st=packetState[p.id]||(packetState[p.id]={open:false,status:""}),det=h("details","pkt"),body=h("div");
-  det.appendChild(h("summary","","Packet"));det.appendChild(body);packetBody[p.id]=body;
+  det.appendChild(h("summary","",label||"Packet"));det.appendChild(body);packetBody[p.id]=body;
   fillPacket(p.id);
   det.open=st.open===true;
   det.ontoggle=function(){st.open=det.open===true;if(st.open&&!st.status)loadPacket(p.id);};
@@ -1211,7 +1409,7 @@ function packetBox(p){
 }
 function loadPacket(id){
   var st=packetState[id];
-  if(!db||!live)return;
+  if(!db||!live||st.status==="loading"||st.status==="ready")return;  /* one get per visit: the box and the head share it */
   st.status="loading";fillPacket(id);
   var req;
   try{req=db.doc("packets/"+id).get();}catch(e){st.status="error";fillPacket(id);return;}
@@ -1221,7 +1419,30 @@ function loadPacket(id){
     fillPacket(id);
   },function(){st.status="error";fillPacket(id);});
 }
+/* The card's packet head: the first 12 non-empty lines of the same document the Packet box shows, loaded on demand by the same
+   loadPacket (so one get and one cache serve both). */
+function packetHead(p){
+  var box=h("div","pkt-headbox");
+  if(!packetState[p.id])packetState[p.id]={open:false,status:""};
+  packetHeads[p.id]=box;fillHead(p.id);return box;
+}
+function fillHead(id){
+  var box=packetHeads[id],st=packetState[id];if(!box||!st)return;clear(box);
+  if(st.status==="ready"){
+    var lines=packetHeadLines(st.doc.text,12),navigator=packetHeadStart(st.doc.text)>=0;
+    box.appendChild(h("div","meta","Packet head: "+(navigator?"the first "+plural(lines.length,"non-empty line")+" from the 'ShipLoop navigator |' line (the whole text, with what comes before that line, is in the Packet box below)"
+      :"the first "+plural(lines.length,"non-empty line")+" of the packet (the whole text is in the Packet box below)")));
+    var pre=h("pre","pkt-head");pre.textContent=lines.join("\n");box.appendChild(pre);
+  }
+  else if(st.status==="loading")box.appendChild(h("p","msg","Loading the packet."));
+  else if(st.status==="missing")box.appendChild(h("p","msg","packet not uploaded for this run"));
+  else{
+    if(st.status==="error")box.appendChild(h("p","msg","Could not read the packet."));
+    var b=h("button","btn sm",st.status==="error"?"Try again":"Show the packet head");b.type="button";b.onclick=function(){loadPacket(id);};box.appendChild(b);
+  }
+}
 function fillPacket(id){
+  fillHead(id);
   var body=packetBody[id],st=packetState[id];if(!body||!st)return;clear(body);
   if(st.status==="loading")body.appendChild(h("p","msg","Loading the packet."));
   else if(st.status==="missing")body.appendChild(h("p","msg","packet not uploaded for this run"));
@@ -1236,13 +1457,86 @@ function fillPacket(id){
     var pre=h("pre","pkt-text");pre.setAttribute("tabindex","0");pre.textContent=d.text;body.appendChild(pre);
   }
 }
+/* ---------- the stage card and the list of stage cards (all text goes in through textContent) ---------- */
+function stageCatalog(){var s=cfgOf("stages").stages;return Array.isArray(s)?s:null;}
+var OUTCOME_CHIP={done:"holds",revise:"bent",replan:"bent",repeat:"bent",blocked:"broken"};
+var CHECK_CHIP={"script-run":"holds","review loop":"acc","model judgement":"muted"};
+function chipEl(cls,text,title){var c=h("span","chip "+cls,text);if(title)c.title=title;return c;}
+function factsEl(lines){var dl=h("dl","facts");lines.forEach(function(l){dl.appendChild(h("dt","",l[0]));dl.appendChild(h("dd","",l[1]));});return dl;}
+function renderCard(dc,c){
+  var chips=h("div","chips");
+  chips.appendChild(chipEl(OUTCOME_CHIP[c.outcome]||"muted",c.outcome));
+  if(c.check)chips.appendChild(chipEl(CHECK_CHIP[c.check.kind]||"muted","exit check: "+c.check.kind,c.check.why));
+  dc.appendChild(chips);
+  if(c.purpose){var pp=h("p","sc-purpose");pp.appendChild(h("b","","What the stage is for. "));pp.appendChild(document.createTextNode(c.purpose+"."));dc.appendChild(pp);}
+  if(c.check)dc.appendChild(h("p","sub sc-why","How it is checked: "+c.check.kind+". "+c.check.why));
+  var s=h("div","sc-block sc-sent"),n0;
+  s.appendChild(h("h4","","Sent: the packet"));n0=s.children.length;
+  if(c.sent.note)s.appendChild(h("p","sub",c.sent.note));
+  var sizes=[];
+  if(c.sent.bytes!==null)sizes.push([c.sent.bytesLabel,kbText(c.sent.bytes)]);
+  if(c.sent.improveBytes!==null)sizes.push(["Improve child's packet file",kbText(c.sent.improveBytes)]);
+  if(sizes.length)s.appendChild(factsEl(sizes));
+  if(c.sent.carried){
+    s.appendChild(h("div","meta","What the packet text carried"));
+    var cl=h("div","chips sc-carried");
+    c.sent.carried.forEach(function(it){
+      var glyph=it.found===true?"✓ ":it.found===false?(it.na?"– ":"✗ "):"? ";
+      var ch=chipEl(it.found===true?"holds":it.found===false&&!it.na?"broken":"muted",glyph+it.label,it.tip);
+      ch.setAttribute("aria-label",it.label+": "+(it.found===true?"found in the packet text":it.na?"not applicable":it.found===false?"not found in the packet text":"not recorded"));
+      cl.appendChild(ch);
+    });
+    s.appendChild(cl);
+    s.appendChild(h("p","legend","✓ found in the packet text; ✗ not found in the packet text (that says what the exported text lacks, not whether the model needed it)."));
+  }
+  if(c.sent.carriedNote)s.appendChild(h("p","msg",c.sent.carriedNote));
+  if(c.sent.packet&&live&&db){s.appendChild(packetHead(c.sent.packet));s.appendChild(packetBox(c.sent.packet));}
+  if(c.sent.improvePacket&&live&&db)s.appendChild(packetBox(c.sent.improvePacket,"Improve child's packet"));  /* closed; the same loader and cache */
+  if(s.children.length===n0)s.appendChild(h("p","sub","Nothing about the packet is recorded in this export."));
+  dc.appendChild(s);
+  var d=h("div","sc-block sc-done");d.appendChild(h("h4","","Done: how the visit went"));d.appendChild(factsEl(c.done.lines));dc.appendChild(d);
+  var w=h("div","sc-block sc-written");w.appendChild(h("h4","","Written: the result"));n0=w.children.length;
+  if(c.written.summary){
+    var sp=h("p","sc-summary");sp.appendChild(h("b","","Summary. "));
+    sp.appendChild(document.createTextNode(c.written.summary+(c.written.truncated?"\u2026 (cut at 300 characters)":"")));w.appendChild(sp);
+  }
+  if(c.written.lines.length)w.appendChild(factsEl(c.written.lines));
+  if(w.children.length===n0)w.appendChild(h("p","sub","Nothing about the result is recorded in this export."));
+  dc.appendChild(w);
+}
+function renderCardList(model,run){
+  var box=byId("sclist");clear(box);box.hidden=!(model&&model.columns.length);if(box.hidden)return;
+  var catalog=stageCatalog();
+  box.appendChild(h("h3","","Stage cards"));
+  box.appendChild(h("p","sub","One row per visit, in order: what the stage is for, how it ended and how it is checked, the packet sent and the result written, how many stages declare reading it, and the minutes. Tap a row for its card."));
+  var list=h("div","sc-list");
+  cardRows(model,run,catalog).forEach(function(r){
+    var b=h("button","sc-row"+(pickedCol===r.col?" sel":""));b.type="button";b.setAttribute("aria-pressed",pickedCol===r.col?"true":"false");
+    var top=h("span","sc-top"),nm=h("b","sc-name",r.stage);top.appendChild(h("span","sc-no",r.visit));
+    if(r.raw){b.title=r.raw;if(r.rawShown)nm.appendChild(h("span","sc-raw",r.raw));}
+    top.appendChild(nm);
+    top.appendChild(chipEl(OUTCOME_CHIP[r.outcome]||"muted",r.outcome));
+    if(r.check)top.appendChild(chipEl(CHECK_CHIP[r.check]||"muted",r.check));
+    b.appendChild(top);
+    if(r.purpose)b.appendChild(h("span","sc-purp",r.purpose));
+    var bits=[];
+    if(r.min)bits.push(r.min);
+    if(r.sent)bits.push("sent "+r.sent);
+    if(r.written)bits.push("written "+r.written);
+    if(r.readBy!==null)bits.push(r.readBy===0?"no declared reader":"declared readers "+r.readBy);  /* the stage table's, never an observed count */
+    if(bits.length){var nums=h("span","sc-nums");bits.forEach(function(x){nums.appendChild(h("span","sc-bit",x));});b.appendChild(nums);}
+    b.onclick=function(){setCol(r.col,true);try{byId("seqdetail").scrollIntoView({block:"start"});}catch(e){}};
+    list.appendChild(b);
+  });
+  box.appendChild(list);
+}
 /* The "scroll sideways" hint shows only while the picture is wider than its box (so it follows a resize). */
 function updateHint(){var sc=byId("seqscroll");byId("seqhint").hidden=!(sc.scrollWidth>sc.clientWidth+1);}
 try{window.addEventListener("resize",updateHint);}catch(e){}
 function renderPicture(reveal){
   var o=runOf(),kp=byId("kpis"),sc=byId("seqscroll"),det=byId("seqdetail"),tb=byId("seqtable"),card=byId("seqcard"),box=byId("seqtabbox");
   clear(kp);clear(det);clear(tb);
-  if(!o.run){card.hidden=true;box.hidden=true;byId("plancard").hidden=true;return;}
+  if(!o.run){card.hidden=true;box.hidden=true;byId("plancard").hidden=true;byId("sclist").hidden=true;return;}
   var run=o.run;
   if(pickedRun!==run.key){pickedRun=run.key;pickedCol=-1;pickedItem="";planMsg="";}
   var model=sequenceModel(run,{loops:loopsFor(run),item:pickedItem});lastModel=model;
@@ -1253,7 +1547,7 @@ function renderPicture(reveal){
   });
   renderPlan(run);
   card.hidden=!model.columns.length;box.hidden=!model.columns.length;
-  if(!model.columns.length)return;
+  if(!model.columns.length){byId("sclist").hidden=true;return;}
   byId("seqcap").textContent="Column height is the square root of minutes on this run's own scale"+
     (model.maxMin?"; the tallest is "+model.maxMin.min+" min ("+model.maxMin.stage+", visit "+model.maxMin.visit+").":"; no visit has a measured time.")+
     (pickedItem?" Shaded columns are the visits of work item "+pickedItem+".":"");
@@ -1265,23 +1559,25 @@ function renderPicture(reveal){
   updateHint();
   byId("sqlegband").hidden=!model.band;
   var note=byId("seqnote");note.textContent=model.bandNote;note.hidden=!model.bandNote;
-  var d=pickedCol>=0?columnDetail(model,pickedCol,run,data.obs):null;
+  var d=pickedCol>=0?columnDetail(model,pickedCol,run,data.obs,stageCatalog()):null;
   if(d){
-    var dc=h("div","card sqd");dc.appendChild(h("h3","",d.title));
-    var dl=h("dl","facts");d.lines.forEach(function(l){dl.appendChild(h("dt","",l[0]));dl.appendChild(h("dd","",l[1]));});dc.appendChild(dl);
+    var dc=h("div","card sqd"),hd=h("h3","",d.card?d.card.title:d.title);
+    if(d.card){hd.title=d.card.stage;if(d.card.rawShown)hd.appendChild(h("span","sc-raw",d.card.stage));}
+    dc.appendChild(hd);
+    if(d.card)renderCard(dc,d.card);else dc.appendChild(factsEl(d.lines));
     if(d.findings.length){
       var fo=d.findings.filter(isOpen).length,fd=h("details");fd.open=d.findings.length<=4;
       fd.appendChild(h("summary","","Findings marked at this stage ("+d.findings.length+(fo?", "+fo+" open":"")+")"));
       var fr=h("div","chips");d.findings.forEach(function(f){var b=h("button","chip acc","#"+obsNo(f)+" "+f.title);b.type="button";b.onclick=function(){openFinding(f.id);};fr.appendChild(b);});
       fd.appendChild(fr);dc.appendChild(fd);
     }
-    if(d.packet&&live&&db)dc.appendChild(packetBox(d.packet));
     var nav=h("div","row");
     function step(label,to){var b=h("button","btn",label);b.type="button";b.disabled=to===null;b.onclick=function(){setCol(to,true);};nav.appendChild(b);}
     step("Previous visit",d.prev);step("Next visit",d.next);
     var cl=h("button","btn","Close");cl.type="button";cl.onclick=function(){setCol(-1,false);};nav.appendChild(cl);
     dc.appendChild(nav);det.appendChild(dc);
   }
+  renderCardList(model,run);
   var vt=visitTable(run,model);
   byId("seqtabsum").textContent="Table of the "+plural(vt.rows.length,"visit")+" (packet and result are file sizes, not what the model read)";
   var tbl=h("table","vt"),hd=h("tr"),th0=h("thead"),tbody=h("tbody");

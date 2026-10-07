@@ -42,12 +42,12 @@ _spec.loader.exec_module(export)
 
 T0 = datetime(2026, 10, 3, 10, 0, tzinfo=timezone.utc)
 IDS = {name: f"nav-{index:02d}{hashlib.sha256(name.encode()).hexdigest()[:30]}" for index, name in enumerate(
-    ("intake", "spec", "test-strategy", "plan", "select-work", "step-plan", "implement", "extra"))}
-INNER = ("select-work", "step-plan", "test-spec", "baseline", "test-author", "test-red", "implement", "test-green",
+    ("intake", "spec", "test-strategy", "plan", "get-next-work-item", "step-plan", "implement", "extra"))}
+INNER = ("get-next-work-item", "step-plan", "test-spec", "baseline", "test-author", "test-red", "implement", "test-green",
          "test-refine", "regression")  # the stages that belong to a work item (the fixture uses the first of them)
 # (action, stage, minutes after T0 when accepted, outcome)
 ACCEPTS = [("intake", "intake", 5, "done"), ("spec", "spec", 15, "done"), ("test-strategy", "test-strategy", 35, "done"),
-           ("plan", "plan", 95, "done"), ("select-work", "select-work", 97, "done"),
+           ("plan", "plan", 95, "done"), ("get-next-work-item", "get-next-work-item", 97, "done"),
            ("step-plan", "step-plan", 127, "done"), ("implement", "implement", 140, "revise")]
 
 
@@ -211,7 +211,7 @@ class RunReviewTest(unittest.TestCase):
         run = self.docs(target)["runs"]["codex-gpt-6-luna-1.16.1-battleship-20261003"]
         self.assertEqual([(s["stage"], s["min"]) for s in run["stages"]],
                          [("intake", 5.0), ("spec", 10.0), ("test-strategy", 20.0), ("plan", 60.0),
-                          ("select-work", 2.0), ("step-plan", 30.0), ("implement", 13.0)])
+                          ("get-next-work-item", 2.0), ("step-plan", 30.0), ("implement", 13.0)])
         self.assertEqual(run["stages"][-1]["outcome"], "revise")
         self.assertEqual((run["stages"][0]["packetBytes"], run["wallMin"], run["order"]),
                          (100, 140.0, int(T0.timestamp())))
@@ -246,7 +246,9 @@ class RunReviewTest(unittest.TestCase):
         run = self.docs(target)["runs"]["codex-gpt-6-luna-1.16.1-battleship-20261003"]
         self.assertEqual(run["stages"][-1], {"stage": "brand-new-stage", "outcome": "done", "min": 10.0,
                                              "action": IDS["extra"], "packetBytes": 100, "packetDoc": True,
-                                             "resultBytes": run["stages"][-1]["resultBytes"]})
+                                             "resultBytes": run["stages"][-1]["resultBytes"], "resultFile": True,
+                                             "summary": "x",  # the fixture's packet text carries none of the labels
+                                             "carried": {label: False for label, _, _ in export.CARRIED}})
         self.assertEqual(run["phases"][3], "running")
         self.assertIn("brand-new-stage", (target / "facts.md").read_text())
 
@@ -260,7 +262,8 @@ class RunReviewTest(unittest.TestCase):
         spec.loader.exec_module(stage_spec)
         listed = [stage for _, stages in export.PHASES for stage in stages]
         self.assertEqual(len(listed), len(set(listed)))
-        self.assertEqual(set(listed), set(stage_spec.STAGES))
+        # PHASES lists the first (canonical) name of an alias group, the engine's own
+        self.assertEqual(set(listed), {export.stage_names(stage)[0] for stage in stage_spec.STAGES})
         orders = [export.STAGE_PHASE[stage] for stage in stage_spec.STAGES]
         self.assertEqual(orders, sorted(orders), "a phase must not start before an earlier phase's stages end")
         phases = sorted((e for e in json.loads((SKILL_ROOT / "defaults" / "expectations.json").read_text())
@@ -339,8 +342,10 @@ class RunReviewTest(unittest.TestCase):
             self.assertEqual(written, {k: v for k, v in entry.items() if k != "key"})
         for doc_id in ("page", "prompt"):
             self.assertEqual(json.loads((target / "docs" / "config" / f"{doc_id}.json").read_text()), config[doc_id])
+        stages = json.loads((SKILL_ROOT / "defaults" / "stages.json").read_text())["stages"]
+        self.assertEqual(json.loads((target / "docs" / "config" / "stages.json").read_text()), {"stages": stages})
         writes = json.loads((target / "writes.json").read_text())
-        self.assertEqual(len(writes), len(entries) + 2)
+        self.assertEqual(len(writes), len(entries) + 3)  # the expectations, config/page, config/prompt and config/stages
         self.assertTrue(all(set(w) == {"op", "collection", "doc_id", "file_path"} and w["op"] == "set" for w in writes))
 
     def test_writes_json_lists_every_document_in_a_stable_order_with_absolute_paths(self):
@@ -473,7 +478,7 @@ class RunReviewTest(unittest.TestCase):
         run = self.docs(target)["runs"][self.KEY]
         self.assertEqual([(s["stage"], s["min"]) for s in run["stages"]],
                          [("intake", 5.0), ("spec", 10.0), ("test-strategy", 20.0), ("plan", 60.0),
-                          ("select-work", 2.0), ("step-plan", None), ("implement", None)])
+                          ("get-next-work-item", 2.0), ("step-plan", None), ("implement", None)])
         self.assertEqual(export.validate_doc("runs", run), [])
         self.assertEqual(run["wallMin"], 140.0)  # start to the last stamped accept (implement)
         self.assertIn('"min": null', (target / "docs" / "runs" / f"{self.KEY}.json").read_text())
@@ -512,15 +517,20 @@ class RunReviewTest(unittest.TestCase):
         named = set(re.findall(r"\*\*`(\w+)/", text))
         self.assertEqual(named - set(export.SCHEMA), set())
         self.assertIn("config", named)
-        # Every field a SCHEMA.md table names is known to the validator for that collection.
-        collection = None
+        # Every field a SCHEMA.md table names is known to the validator for that collection. The table under config/stages
+        # holds the fields of one catalog entry; a markdown heading ends a collection's tables.
+        fields = None
         for line in text.splitlines():
-            heading = re.match(r"\*\*`(\w+)/", line)
-            if heading:
+            heading = re.match(r"\*\*`(\w+)/(\w*)", line)
+            if line.startswith("#"):
+                fields = None
+            elif heading:
                 collection = heading.group(1)
-            elif collection and line.startswith("| `"):
+                fields = (export.SCHEMA["config"]["stages"][0][1] if heading.group(2) == "stages"
+                          else export.SCHEMA[collection])
+            elif fields is not None and line.startswith("| `"):
                 for field in re.findall(r"`(\w+)`", line.split("|")[1]):
-                    self.assertIn(field, export.SCHEMA[collection], f"{collection}.{field}")
+                    self.assertIn(field, fields, field)
 
 
 # ---------------------------------------------------------------- what a visit is, and the run's measures (R12)
@@ -578,11 +588,11 @@ class RunVisitsTest(unittest.TestCase):
 
     def test_a_visit_with_no_packet_among_issued_packets_is_skipped_and_the_others_are_work(self):
         out = make_run(self.tmp, loops=False)
-        (run_dir_of(out) / "packets" / f"{IDS['select-work']}.md").unlink()
+        (run_dir_of(out) / "packets" / f"{IDS['get-next-work-item']}.md").unlink()
         run, facts = self.build(out)
-        self.assertEqual([r["stage"] for r in run["stages"] if r.get("skipped")], ["select-work"])
-        self.assertIs(self.row(run, "select-work")["skipped"], True)
-        self.assertNotIn("packetBytes", self.row(run, "select-work"))
+        self.assertEqual([r["stage"] for r in run["stages"] if r.get("skipped")], ["get-next-work-item"])
+        self.assertIs(self.row(run, "get-next-work-item")["skipped"], True)
+        self.assertNotIn("packetBytes", self.row(run, "get-next-work-item"))
         self.assertEqual(sum("skipped" in r for r in run["stages"]), 1)
         self.assertIn("7 accepted actions (6 work, 1 skipped, 0 seeded)", "\n".join(facts))
 
@@ -594,16 +604,16 @@ class RunVisitsTest(unittest.TestCase):
         self.assertEqual(self.row(run, "plan")["action"], IDS["plan"])
 
     def test_a_model_authored_not_applicable_visit_with_a_packet_and_four_seconds_stays_work(self):
-        accepts = [*ACCEPTS[:4], ("select-work", "select-work", 95 + 4 / 60, "done"), *ACCEPTS[5:]]
+        accepts = [*ACCEPTS[:4], ("get-next-work-item", "get-next-work-item", 95 + 4 / 60, "done"), *ACCEPTS[5:]]
         out = make_run(self.tmp, accepts, loops=False)
         run_dir = run_dir_of(out)
         for text in ("Not applicable: nothing to select", "Not applicable to this item"):  # the engine's own phrase too
-            record(run_dir / "results" / f"{IDS['select-work']}.md", {"action": IDS["select-work"], "stage": "select-work",
+            record(run_dir / "results" / f"{IDS['get-next-work-item']}.md", {"action": IDS["get-next-work-item"], "stage": "get-next-work-item",
                                                                     "result": {"outcome": "done", "summary": text}})
             run, _ = self.build(out)
-            row = self.row(run, "select-work")
+            row = self.row(run, "get-next-work-item")
             self.assertEqual((row["min"], row["packetBytes"], "skipped" in row), (0.1, 100, False), text)
-            self.assertEqual(row["action"], IDS["select-work"])
+            self.assertEqual(row["action"], IDS["get-next-work-item"])
 
     # ---- Improve per visit and in total
 
@@ -1077,7 +1087,7 @@ def steps_of(*ids: str) -> dict:
 # its plan has two steps and the run stops after the first implement visit, so S2 is never executed.
 PLAN_ROWS = [
     ("plan", "plan", "done", None, {"work_items": [{"id": "W1", "title": "First item"}]}),
-    ("select-work", "select-work", "done", "W1", {}),
+    ("get-next-work-item", "get-next-work-item", "done", "W1", {}),
     ("sp1", "step-plan", "done", "W1", steps_of("S1", "S2", "S3")),
     ("i1", "implement", "done", "W1", {}), ("i2", "implement", "done", "W1", {}),
     ("i3", "implement", "revise", "W1", {}),
@@ -1086,7 +1096,7 @@ PLAN_ROWS = [
     ("test-green", "test-green", "done", "W1", {}),
     ("carry-forward", "carry-forward", "done", "W1", {"work_items": []}),
     ("replan", "system-test", "replan", None, {"work_items": [{"id": "W2", "title": "Corrective item"}]}),
-    ("select-work-2", "select-work", "done", "W2", {}),
+    ("get-next-work-item-2", "get-next-work-item", "done", "W2", {}),
     ("sp3", "step-plan", "done", "W2", steps_of("S1", "S2")),
     ("i7", "implement", "done", "W2", {}),
 ]
@@ -1202,7 +1212,7 @@ class PlanAndExecutionTest(unittest.TestCase):
 
     def test_a_seeded_plan_visit_leaves_the_work_items_unmeasured_with_the_reason(self):
         out = make_plan_run(self.fresh(), PLAN_ROWS)
-        edit_json(out / "result.json", lambda r: r.update(seeded={"skipped": ["plan"], "stage": "select-work"}))
+        edit_json(out / "result.json", lambda r: r.update(seeded={"skipped": ["plan"], "stage": "get-next-work-item"}))
         run, _ = self.build(out)
         self.assertTrue(all(k not in run for k in ("workItems", "stepsPlanned", "stepsExecuted")))
         self.assertIn("recorded by the E2E seed", run["unmeasured"]["workItems"])
@@ -1338,11 +1348,11 @@ class PacketDocumentTest(unittest.TestCase):
 
     def test_a_visit_with_no_packet_file_has_no_document_and_no_flag(self):
         out = make_run(self.tmp, loops=False)
-        self.packet(out, "select-work").unlink()
+        self.packet(out, "get-next-work-item").unlink()
         run, target = self.export(out)
-        row = next(r for r in run["stages"] if r["stage"] == "select-work")
+        row = next(r for r in run["stages"] if r["stage"] == "get-next-work-item")
         self.assertTrue(row["skipped"] and "packetDoc" not in row and "packetBytes" not in row)
-        self.assertFalse((target / "docs" / "packets" / f"{self.KEY}--{IDS['select-work']}.json").exists())
+        self.assertFalse((target / "docs" / "packets" / f"{self.KEY}--{IDS['get-next-work-item']}.json").exists())
         self.assertEqual(len(list((target / "docs" / "packets").glob("*.json"))), len(ACCEPTS) - 1)
         shutil.rmtree(run_dir_of(out) / "packets")
         run, target = self.export(out)
@@ -2490,7 +2500,9 @@ class DefaultsUpgradeTests(unittest.TestCase):
         docs, notes = export.upgrade_docs(self.live)
         cfg = json.loads((DEFAULTS_DIR / "config.json").read_text(encoding="utf-8"))
         self.assertIn("concatPreamble", self.live["config"]["prompt"])
-        self.assertEqual(docs["config"], {"prompt": cfg["prompt"]})  # config/page holds the page's URL: left alone
+        stages = json.loads((DEFAULTS_DIR / "stages.json").read_text(encoding="utf-8"))["stages"]
+        # config/page holds the page's URL: left alone; config/stages is the derived catalog, always the defaults'
+        self.assertEqual(docs["config"], {"prompt": cfg["prompt"], "stages": {"stages": stages}})
         self.assertEqual(set(docs["expectations"]), set(self.defaults))
         self.assertFalse([k for k in docs["expectations"] if k.startswith("iter-")])
         self.assertEqual(set(docs), {"expectations", "config"})
@@ -2500,7 +2512,7 @@ class DefaultsUpgradeTests(unittest.TestCase):
             "defaults' text",
             "config/prompt: replaced by the defaults (fields the defaults do not have are dropped)"])
         bare = {"expectations": {}, "config": {}}
-        self.assertEqual(export.upgrade_docs(bare)[0]["config"], cfg)  # a page with no settings gets both
+        self.assertEqual(export.upgrade_docs(bare)[0]["config"], {**cfg, "stages": {"stages": stages}})  # a page with no settings gets all three
 
     def test_a_page_revision_the_defaults_lack_refuses_the_upgrade_and_names_each_document(self):
         live = copy.deepcopy(self.live)
@@ -2522,7 +2534,7 @@ class DefaultsUpgradeTests(unittest.TestCase):
         self.assertIn("note: expectations/group-principles", out.getvalue())
         writes = json.loads((self.tmp / "up" / "writes.json").read_text())
         self.assertEqual(sorted((w["collection"], w["doc_id"]) for w in writes),
-                         sorted([("config", "prompt")] + [("expectations", k) for k in self.defaults]))
+                         sorted([("config", "prompt"), ("config", "stages")] + [("expectations", k) for k in self.defaults]))
         bad = self.tmp / "bad.json"
         bad.write_text(json.dumps({"docs": {"expectations": {"P1": {"text": "a bare document, not a row"}}}}))
         with contextlib.redirect_stdout(io.StringIO()), contextlib.redirect_stderr(err):
@@ -3079,7 +3091,7 @@ class ReviewBundleCheckTests(unittest.TestCase):
             with self.subTest(args=args), contextlib.redirect_stderr(err), self.assertRaises(SystemExit) as raised:
                 export.main(args)
             self.assertEqual(raised.exception.code, 2)
-            self.assertIn("give one of RUN_DIR, --defaults, --check FILE or --docs FILE", err.getvalue())
+            self.assertIn("give one of RUN_DIR, --defaults, --stages, --check FILE or --docs FILE", err.getvalue())
 
 
 LUNA_REVIEW = EVIDENCE_DIR / "luna1.review.json"
@@ -3479,7 +3491,7 @@ class SequenceModelTests(unittest.TestCase):
     def test_a_seeded_visit_is_never_a_zero_bar_and_a_visit_with_no_time_is_n_a(self) -> None:
         model = run_logic(
             'sequenceModel({wallMin:10,stages:[{stage:"intake",outcome:"done",min:null},{stage:"spec",outcome:"done",min:null,seeded:true},'
-            '{stage:"plan",outcome:"done",min:4},{stage:"select-work",outcome:"done",min:0,skipped:true},'
+            '{stage:"plan",outcome:"done",min:4},{stage:"get-next-work-item",outcome:"done",min:0,skipped:true},'
             '{stage:"step-plan",outcome:"done",min:0,skipped:true}]})')
         none, seeded, work, skipped = model["columns"]
         self.assertEqual((none["kind"], none["na"], none["min"], none["h"]), ("work", True, None, 26))
@@ -3585,7 +3597,7 @@ class SequencePictureTests(unittest.TestCase):
     def test_skipped_seeded_and_untimed_visits_are_drawn_apart_and_no_bar_has_zero_height(self) -> None:
         run = {"wallMin": 10, "stages": [
             {"stage": "intake", "outcome": "done", "min": None}, {"stage": "spec", "outcome": "done", "min": None, "seeded": True},
-            {"stage": "plan", "outcome": "done", "min": 4}, {"stage": "select-work", "outcome": "done", "min": 0},
+            {"stage": "plan", "outcome": "done", "min": 4}, {"stage": "get-next-work-item", "outcome": "done", "min": 0},
             {"stage": "step-plan", "outcome": "done", "min": 0.0, "skipped": True}]}
         svg = self.svg(run)
         classes = re.findall(r'class="sq-col ([^"]+)"', svg)
@@ -3627,16 +3639,16 @@ class SequencePictureTests(unittest.TestCase):
     def test_tapping_a_column_shows_its_detail_with_the_findings_at_its_stage_and_previous_and_next_walk_the_visits(self) -> None:
         out = page_probe(
             'setCol(1);var a=textOf("seqdetail"),btns=byClass("seqdetail","btn").map(function(b){return b.textContent+":"+b.disabled;}),'
-            'chips=byClass("seqdetail","chip").map(function(c){return c.textContent;}),sel=REG.seqscroll.innerHTML.indexOf("sq-sel")>0;'
+            'chips=byClass("seqdetail","chip").filter(function(c){return c.tagName==="button";}).map(function(c){return c.textContent;}),sel=REG.seqscroll.innerHTML.indexOf("sq-sel")>0;'
             'byClass("seqdetail","btn")[0].onclick();var b=textOf("seqdetail");'
             'setCol(1);byClass("seqdetail","btn")[2].onclick();[a,btns,chips,sel,b,textOf("seqdetail"),pickedCol]', setup=SAMPLE_SETUP)
-        self.assertIn("Visit 2: spec", out[0])
+        self.assertIn("Visit 2: Spec", out[0])
         self.assertIn("blocked (marked B)", out[0])
         self.assertIn("25 min, 83.3% of elapsed", out[0])
         self.assertEqual(out[1], ["Previous visit:false", "Next visit:true", "Close:false"])
         self.assertEqual(out[2], ["#1 First finding"])  # the finding marked at the Specify phase for this run
         self.assertTrue(out[3])
-        self.assertIn("Visit 1: intake", out[4])  # Previous
+        self.assertIn("Visit 1: Intake", out[4])  # Previous
         self.assertEqual((out[5], out[6]), ("", -1))  # Close
 
     def test_the_click_handler_selects_the_tapped_column_again_deselects_and_another_run_starts_clean(self) -> None:
@@ -3823,7 +3835,7 @@ class PlanPanelTests(unittest.TestCase):
         out = page_probe(
             'var cells=function(){return byClass("plancard","pl-cell");};'
             'byClass("plancard","pl-title")[0].onclick();var shaded=REG.seqscroll.innerHTML.split("sq-item").length-1,cap=textOf("seqcap");'
-            'cells()[0].onclick();var a=[pickedCol,pickedItem,textOf("seqdetail").indexOf("Visit 6: implement")>=0,textOf("seqdetail").indexOf("steps-loop pass 2")>=0];'
+            'cells()[0].onclick();var a=[pickedCol,pickedItem,textOf("seqdetail").indexOf("Visit 6: Implement")>=0,textOf("seqdetail").indexOf("steps-loop pass 2")>=0];'
             'cells()[2].onclick();var b=[pickedItem,textOf("plancard").indexOf("Step S2 of W2 was never executed: no implement visit is recorded for it.")>=0];'
             'byClass("plancard","pl-title")[1].onclick();[shaded,cap,a,b,pickedItem,REG.seqscroll.innerHTML.split("sq-item").length-1]', setup=plan_setup())
         self.assertEqual(out[0], 5)  # the five visits of W1 are shaded (the picture has seven columns; W2's and the plan are not)
@@ -3955,7 +3967,7 @@ PLANNING_STAGES = ("spec", "test-strategy", "plan", "step-plan", "test-spec")
 # The planning stages, then the stages after them whose results start a child under none (the last item's carry-forward and
 # system-test-author). (action, stage, minutes after T0 when accepted, outcome), as in ACCEPTS.
 PLANNING_ACCEPTS = [("intake", "intake", 5, "done"), ("spec", "spec", 15, "done"), ("test-strategy", "test-strategy", 35, "done"),
-                    ("plan", "plan", 95, "done"), ("select-work", "select-work", 97, "done"),
+                    ("plan", "plan", 95, "done"), ("get-next-work-item", "get-next-work-item", 97, "done"),
                     ("step-plan", "step-plan", 127, "done"), ("test-spec", "test-spec", 140, "done"),
                     ("carry-forward", "carry-forward", 180, "done"), ("system-test-author", "system-test-author", 200, "done")]
 # improve/<child>/ of a run by the mode it started with, (passes, bind time, receipt time), as the engine's own walk of its
@@ -3967,7 +3979,8 @@ NONE_CHILDREN = {"carry-forward": (2, 172, 178.5), "system-test-author": (1, 192
 
 def real_state(mode: str) -> dict:
     """The shiploop-state record of a genuine state.md: `shiploop init --planning-review <mode>` of the plugin's own CLI at
-    45f163d0, advanced to select-work on its pure navigator with no model; its two paths are normalised, nothing else."""
+    45f163d0, advanced to its first inner stage on its pure navigator with no model; its two paths are normalised and the stage
+    name is the engine's current get-next-work-item (that release wrote select-work, which ShipLoop now refuses)."""
     return export._record(STATE_FIXTURES / f"state-{mode}.md")
 
 
@@ -4171,7 +4184,7 @@ class PlanningReviewPageTests(unittest.TestCase):
         lines = self.details(self.runs["none"])
         for stage in PLANNING_STAGES:
             self.assertEqual(lines[stage]["Improve"], "not run by design (planning_review none)", stage)
-        for stage in ("intake", "select-work"):
+        for stage in ("intake", "get-next-work-item"):
             self.assertNotIn("Improve", lines[stage], stage)  # no child here in any mode: nothing to say
         self.assertEqual((lines["carry-forward"]["Improve"], lines["system-test-author"]["Improve"]), ("2 passes, 6.5 min", "1 pass, 3 min"))
         for key in ("stage", "absent", "unknown"):
@@ -4207,7 +4220,7 @@ class PlanningReviewPageTests(unittest.TestCase):
             self.assertIn("Improve9 passes36.5 min, 18% of elapsed", other[4], key)
         self.assertEqual(page_probe('textOf("runfacts").indexOf("planning review")', setup=mode_page(self.runs["absent"])), -1)
         detail = page_probe('setCol(1);textOf("seqdetail")', setup=mode_page(self.runs["none"]))
-        self.assertIn("Visit 2: spec", detail)
+        self.assertIn("Visit 2: Spec", detail)
         self.assertIn("Improvenot run by design (planning_review none)", detail)
         self.assertNotIn("Improve", page_probe('setCol(0);textOf("seqdetail")', setup=mode_page(self.runs["none"])))
 
@@ -4324,6 +4337,1179 @@ class GeneralReviewBundleTests(unittest.TestCase):
         general = run_logic("cardsFor(Object.assign({filter:'general'},%s))" % json.dumps(state))
         self.assertEqual([o["id"] for o in general["done"]], ["a26"])
         self.assertEqual([o["id"] for c in general["cards"] for o in c["options"]], [])
+
+
+# ---------------------------------------------------------------- R20a: the stage catalog, the card fields and the stage card
+
+STAGES_JSON = DEFAULTS_DIR / "stages.json"
+FIXTURES = ROOT / "test" / "fixtures" / "run-review"
+ENGINE_SPEC_PATH = ROOT / "skills" / "shiploop" / "scripts" / "shiploop_stage_spec.py"
+CARD_FIELDS = ("summary", "summaryTruncated", "resultFile", "carried", "packetImprove")
+MODES = (None, "stage", "none", "not recorded", "a mode the engine adds later")
+
+
+def engine_spec():
+    return export.load_stage_spec(ENGINE_SPEC_PATH)
+
+
+class StageCatalogTests(unittest.TestCase):
+    """The catalog is derived from the engine's stage table, never written by hand, and its exit-check rule is exact."""
+
+    def setUp(self):
+        self.spec = engine_spec()
+        self.catalog = export.stage_catalog(self.spec)
+        self.by_name = {e["stage"]: e for e in self.catalog}
+        tmp = tempfile.TemporaryDirectory()
+        self.addCleanup(tmp.cleanup)
+        self.tmp = Path(tmp.name)
+
+    def test_the_committed_catalog_equals_what_the_engines_stage_table_yields(self):
+        committed = json.loads(STAGES_JSON.read_text(encoding="utf-8"))
+        self.assertEqual(committed["stages"], self.catalog, "stage table changed: run export.py --stages")
+        self.assertEqual([e["stage"] for e in committed["stages"]], list(self.spec.STAGES))  # graph order, every stage once
+        for entry in self.catalog:  # nothing is hand-written: the purpose is the row's goal as the engine states it
+            self.assertEqual(entry["purpose"], self.spec.STAGE_SPEC[entry["stage"]].goal)
+            self.assertEqual(entry["reads"], list(self.spec.STAGE_SPEC[entry["stage"]].reads))
+
+    def test_the_stages_command_rewrites_the_committed_file_byte_for_byte(self):
+        out = io.StringIO()
+        with contextlib.redirect_stdout(out):
+            self.assertEqual(export.main(["--stages", "--out", str(self.tmp)]), 0)
+        written = self.tmp / "stages.json"
+        self.assertEqual(out.getvalue().strip(), str(written.resolve()))
+        self.assertEqual(written.read_bytes(), STAGES_JSON.read_bytes())
+
+    def test_the_stages_command_names_a_missing_engine_table_and_refuses_a_second_mode(self):
+        with self.assertRaises(export.ExportError) as raised:
+            export.write_stages(self.tmp, spec_path=self.tmp / "no-such-spec.py")
+        self.assertIn("missing", str(raised.exception))
+        self.assertIn("stage table of the shiploop skill", str(raised.exception))
+        with contextlib.redirect_stderr(io.StringIO()) as err, self.assertRaises(SystemExit):
+            export.main(["--stages", "--defaults"])
+        self.assertIn("give one of", err.getvalue())
+
+    def entry(self, stage: str) -> dict:
+        """The catalog entry of a stage under either name of an alias group, so the engine's rename changes nothing here."""
+        return next(e for e in self.catalog if e["stage"] in export.stage_names(stage))
+
+    def test_each_exit_check_class_has_a_real_stage_and_the_rule_reads_only_the_rows_own_fields(self):
+        self.assertEqual({n: self.entry(n)["exitCheck"] for n in
+                          ("implement", "test-green", "verify", "intake", "get-next-work-item", "document", "release",
+                           "spec", "plan", "step-plan", "carry-forward", "release-plan")},
+                         {"implement": "script-run", "test-green": "script-run", "verify": "script-run",
+                          "intake": "model judgement", "get-next-work-item": "model judgement", "document": "model judgement",
+                          "release": "model judgement", "spec": "review loop", "plan": "review loop",
+                          "step-plan": "review loop", "carry-forward": "review loop", "release-plan": "review loop"})
+        for stage in self.spec.STAGES:
+            row = self.spec.STAGE_SPEC[stage]
+            self.assertEqual(self.by_name[stage]["exitCheck"],
+                             "script-run" if row.complete_runs else "review loop" if row.improve else "model judgement", stage)
+        # the rule on its own, including the precedence no engine row exercises today
+        self.assertEqual([export.exit_check(r, i) for r, i in (((), None), ((), "always"), ((), "last-item"),
+                                                               (("lint-gate",), None), (("lint-gate",), "always"))],
+                         ["model judgement", "review loop", "review loop", "script-run", "script-run"])
+        self.assertEqual({e["exitCheck"] for e in self.catalog}, set(export.EXIT_CHECKS))
+        self.assertFalse([s for s in self.spec.STAGES if self.spec.STAGE_SPEC[s].complete_runs
+                          and self.spec.STAGE_SPEC[s].improve], "a stage with both would be script-run by rule, not by an example")
+
+    def test_the_mode_none_case_follows_the_engines_own_reviewed_stages(self):
+        self.assertEqual({e["stage"] for e in self.catalog if e.get("planningChoice")}, set(self.spec.PLANNING_CHOICE_STAGES))
+        for stage in self.spec.PLANNING_CHOICE_STAGES:  # only a stage the Improve rule `always` covers can be the option's
+            self.assertEqual(self.by_name[stage]["improve"], "always", stage)
+        last_item = {e["stage"] for e in self.catalog if e.get("improve") == "last-item"}
+        for mode in self.spec.PLANNING_REVIEW_MODES:
+            reviewed = {e["stage"] for e in self.catalog if export.effective_exit_check(e, mode) == "review loop"}
+            self.assertEqual(reviewed, set(self.spec.reviewed_stages(mode)) | last_item, mode)
+        for stage in ("spec", "test-strategy", "plan", "step-plan", "test-spec"):
+            self.assertEqual([export.effective_exit_check(self.by_name[stage], m) for m in MODES],
+                             ["review loop", "review loop", "model judgement", "review loop", "review loop"], stage)
+        for stage in ("carry-forward", "system-test-author", "release-plan", "implement", "intake"):
+            self.assertEqual({export.effective_exit_check(self.by_name[stage], m) for m in MODES},
+                             {self.by_name[stage]["exitCheck"]}, stage)  # the option does not touch these
+
+    def test_catalog_entries_validate_and_the_defaults_documents_carry_them(self):
+        docs = export.defaults_docs()
+        self.assertEqual(docs["config"]["stages"], {"stages": self.catalog})
+        self.assertEqual(export.validate_doc("config", docs["config"]["stages"]), [])
+        bad = {"stages": [dict(self.catalog[0], exitCheck="by hand"), {"stage": "x"}]}
+        problems = "\n".join(export.validate_doc("config", bad))
+        self.assertIn("'by hand' is not one of", problems)
+        self.assertIn("missing required field 'purpose'", problems)
+
+    def test_a_page_whose_catalog_differs_is_replaced_and_told_so_and_a_page_with_none_gets_it_quietly(self):
+        live = export.read_live(SNAPSHOT)
+        docs, notes = export.upgrade_docs(live)
+        self.assertEqual(docs["config"]["stages"], {"stages": self.catalog})
+        self.assertFalse([n for n in notes if "config/stages" in n])  # the saved page has none: nothing is replaced
+        live["config"]["stages"] = {"stages": [{"stage": "old", "purpose": "p", "exitCheck": "script-run", "reads": []}]}
+        _, notes = export.upgrade_docs(live)
+        self.assertTrue([n for n in notes if n.startswith("config/stages: replaced by the defaults")])
+        live["config"]["stages"] = {"stages": self.catalog}
+        self.assertFalse([n for n in export.upgrade_docs(live)[1] if "config/stages" in n])
+
+    def test_schema_md_documents_the_catalog_the_rule_the_aliases_and_every_marker(self):
+        schema = " ".join(SCHEMA_MD.read_text(encoding="utf-8").split())
+        for phrase in ("`config/stages`", "`export.py --stages`", "`defaults/stages.json`", "script-run", "review loop",
+                       "model judgement", "`planningChoice`", "`STAGE_ALIASES`", "get-next-work-item",
+                       "not found in the packet text", "`summaryTruncated`", "`packetImprove`"):
+            self.assertIn(phrase, schema, phrase)
+        for label, description, _ in export.CARRIED:
+            self.assertIn(f"`{label}` | {description}", schema.replace("\\|", "|"), label)  # the table escapes the pipes
+
+
+class StageAliasTests(unittest.TestCase):
+    """select-work and get-next-work-item are one group, resolved once, so old evidence and new runs both render."""
+
+    def test_both_names_resolve_to_the_same_group_phase_and_catalog_entry(self):
+        self.assertEqual(export.STAGE_ALIASES, (("get-next-work-item", "select-work"),))  # the engine's name first: canonical
+        self.assertEqual(export.stage_names("select-work"), export.stage_names("get-next-work-item"))
+        self.assertEqual(export.stage_names("select-work")[0], "get-next-work-item")
+        self.assertEqual([stage for _, stages in export.PHASES for stage in stages if "work-item" in stage or stage == "select-work"],
+                         ["get-next-work-item"])  # the old name is in the alias table only
+        self.assertEqual(export.stage_names("spec"), ("spec",))
+        self.assertEqual(export.STAGE_PHASE["select-work"], export.STAGE_PHASE["get-next-work-item"])
+        self.assertEqual(export.PHASES[export.STAGE_PHASE["get-next-work-item"]][0], "Plan")
+        # the table goes both ways: a table that lists the new name gives the old one the same value
+        self.assertEqual(export._with_aliases({"get-next-work-item": 7, "spec": 1}),
+                         {"get-next-work-item": 7, "select-work": 7, "spec": 1})
+        self.assertEqual(export._with_aliases({"select-work": 7, "spec": 1}), {"get-next-work-item": 7, "select-work": 7, "spec": 1})
+
+    def test_a_run_whose_rows_carry_either_name_exports_the_same_phases_and_lists_no_unknown_stage(self):
+        results = []
+        for stage in ("select-work", "get-next-work-item"):
+            accepts = [(a, stage if a == "get-next-work-item" else s, m, o) for a, s, m, o in ACCEPTS]
+            tmp = tempfile.TemporaryDirectory()
+            self.addCleanup(tmp.cleanup)
+            docs, facts = export.build_run(make_run(Path(tmp.name), accepts, loops=False))
+            run = next(iter(docs["runs"].values()))
+            self.assertIn(stage, [r["stage"] for r in run["stages"]])
+            self.assertNotIn("not in the phase table", "\n".join(facts))
+            results.append(run["phases"])
+        self.assertEqual(results[0], results[1])
+
+# A packet text is one real line of each marker, in order, taken verbatim from a real packet of its era: the Luna run on
+# ShipLoop 1.16.1 (skill-validate) and the Sonnet run on 1.22.0 (implement). The whole sets were counted by the journal entry.
+def packet_fixture(name: str) -> str:
+    return (FIXTURES / name).read_text(encoding="utf-8")
+
+
+def carried_of(text: str) -> dict:
+    return export.carried_markers(text)
+
+
+class CardRowFieldsTests(unittest.TestCase):
+    """The stage row's summary, result file and packet checklist, from the run's own records."""
+
+    KEY = RunReviewTest.KEY
+
+    def setUp(self):
+        tmp = tempfile.TemporaryDirectory()
+        self.addCleanup(tmp.cleanup)
+        self.tmp = Path(tmp.name)
+
+    def row(self, out: Path, stage: str) -> dict:
+        docs, _ = export.build_run(out)
+        return next(r for r in docs["runs"][self.KEY]["stages"] if r["stage"] == stage)
+
+    def set_summary(self, out: Path, name: str, summary) -> None:
+        def change(state):
+            for entry in state["history"]:
+                if entry["action"] == IDS[name]:
+                    if summary is None:
+                        entry.pop("summary")
+                    else:
+                        entry["summary"] = summary
+        path = run_dir_of(out) / "state.md"
+        value = json.loads(re.search(r"```shiploop-state\n(.*?)\n```", path.read_text(), re.S).group(1))
+        change(value)
+        record(path, value)
+
+    def test_the_summary_is_the_accepted_text_cut_at_300_characters_with_a_flag_only_when_cut(self):
+        out = make_run(self.tmp, loops=False)
+        self.set_summary(out, "spec", "s" * 300)
+        self.set_summary(out, "plan", "p" * 301)
+        self.set_summary(out, "intake", "  padded  ")
+        spec, plan, intake = (self.row(out, s) for s in ("spec", "plan", "intake"))
+        self.assertEqual((spec["summary"], "summaryTruncated" in spec), ("s" * 300, False))
+        self.assertEqual((plan["summary"], plan["summaryTruncated"]), ("p" * 300, True))
+        self.assertEqual(intake["summary"], "padded")
+        self.assertEqual(export.validate_doc("runs", export.build_run(out)[0]["runs"][self.KEY]), [])
+
+    def test_a_visit_with_no_history_summary_falls_back_to_its_result_record_and_with_neither_has_none(self):
+        out = make_run(self.tmp, loops=False)
+        self.set_summary(out, "spec", None)  # the fixture's result record says "s"
+        self.assertEqual(self.row(out, "spec")["summary"], "s")
+        self.set_summary(out, "plan", None)
+        (run_dir_of(out) / "results" / f"{IDS['plan']}.md").unlink()
+        row = self.row(out, "plan")
+        self.assertNotIn("summary", row)
+        self.assertNotIn("summaryTruncated", row)
+
+    def test_the_result_file_is_true_when_it_exists_false_when_it_does_not_and_the_size_stays_its_own(self):
+        out = make_run(self.tmp, loops=False)
+        (run_dir_of(out) / "results" / f"{IDS['spec']}.md").unlink()
+        spec, plan = self.row(out, "spec"), self.row(out, "plan")
+        self.assertIs(spec["resultFile"], False)
+        self.assertNotIn("resultBytes", spec)  # a size only for a file that exists
+        self.assertEqual((plan["resultFile"], plan["resultBytes"] > 0), (True, True))
+
+    def test_the_real_packet_lines_of_each_era_carry_every_label_and_removing_a_labels_lines_flips_only_that_label(self):
+        labels = [label for label, _, _ in export.CARRIED]
+        for name in ("packet-lines-1161.txt", "packet-lines-1220.txt"):
+            text = packet_fixture(name)
+            self.assertEqual(carried_of(text), {label: True for label in labels}, name)
+            for label, _, rules in export.CARRIED:
+                rxs = [re.compile(rx, re.M) for rule in rules for group in rule for rx in group]
+                kept = "\n".join(l for l in text.split("\n") if not any(rx.search(l) for rx in rxs))
+                got = carried_of(kept)
+                self.assertFalse(got[label], f"{name} {label}")
+                # a line may serve two labels (the blocked line carries the recovery sentence and, in 1.22.0, the shape)
+                self.assertGreaterEqual(sum(got.values()), len(labels) - 2, f"{name} {label}")
+
+    def test_the_two_eras_differ_only_in_the_blocked_by_sentence_and_the_purpose_marker(self):
+        old, new = packet_fixture("packet-lines-1161.txt"), packet_fixture("packet-lines-1220.txt")
+        self.assertIn("A blocked result adds blocked_by", old)
+        self.assertNotIn("A blocked result adds blocked_by", new)
+        self.assertIn('blocked: {"outcome": "blocked"', new)
+        self.assertNotIn("Step S1 (1 of 3)", old)  # the implement packet's step line is the purpose marker's second pattern
+        # recovery needs both sentences: the blocked_by one alone is not enough
+        only = "\n".join(l for l in old.split("\n") if not l.startswith("A blocked result adds"))
+        self.assertFalse(carried_of(only)["recovery"])
+        no_goal = "\n".join(l for l in new.split("\n") if not l.startswith("Goal: "))
+        self.assertTrue(carried_of(no_goal)["purpose"])  # the Step line alone says the purpose of an implement packet
+
+    def test_a_checked_by_line_is_an_additional_way_for_checked_to_be_found_and_nothing_needs_it(self):
+        old, new = packet_fixture("packet-lines-1161.txt"), packet_fixture("packet-lines-1220.txt")
+        for text in (old, new):  # packets that predate the line keep the old pair of markers
+            self.assertNotIn("Checked by:", text)
+            self.assertTrue(carried_of(text)["checked"])
+        without = "\n".join(l for l in new.split("\n") if not l.startswith(("Done when (", "Improve: ")))
+        self.assertFalse(carried_of(without)["checked"])
+        with_line = without + "\nChecked by: the lint gate and the focused test command\n"
+        got = carried_of(with_line)
+        self.assertTrue(got["checked"])
+        self.assertEqual(got, {label: True for label, _, _ in export.CARRIED})  # the two dropped lines served no other label
+        only = carried_of("Checked by: a review loop\n")
+        self.assertEqual([k for k, v in only.items() if v], ["checked"])
+        self.assertFalse(carried_of("The result is Checked by: nobody\n")["checked"])  # a line starting with it, not a mention
+        half = "\n".join(l for l in new.split("\n") if not l.startswith("Done when ("))
+        self.assertFalse(carried_of(half)["checked"])  # the old rule still needs both of its groups
+
+    def test_a_row_gets_carried_from_the_whole_packet_text_and_a_packet_with_a_late_marker_counts(self):
+        out = make_run(self.tmp, loops=False)
+        packet = run_dir_of(out) / "packets" / f"{IDS['implement']}.md"
+        text = packet_fixture("packet-lines-1220.txt").replace("\nImprove: ", "\n" + "filler\n" * 40_000 + "Improve: ")
+        packet.write_text(text, encoding="utf-8")
+        self.assertGreater(len(text.encode()), export.MAX_PACKET_TEXT)  # past the document's cut: still read whole
+        row = self.row(out, "implement")
+        self.assertEqual(row["carried"], {label: True for label, _, _ in export.CARRIED})
+        self.assertIs(row["packetDoc"], True)
+        self.assertNotIn("packetImprove", row)
+
+    def test_an_improve_childs_packet_is_marked_and_no_label_is_read_from_it(self):
+        out = make_run(self.tmp, loops=False)
+        (run_dir_of(out) / "packets" / f"{IDS['spec']}.md").write_text(
+            packet_fixture("packet-lines-1220-improve.txt"), encoding="utf-8")
+        row = self.row(out, "spec")
+        self.assertIs(row["packetImprove"], True)
+        self.assertNotIn("carried", row)
+        self.assertIs(row["packetDoc"], True)  # the packet box still shows the file that exists
+        self.assertEqual(export.validate_doc("runs", export.build_run(out)[0]["runs"][self.KEY]), [])
+
+    def test_carried_is_absent_when_the_packet_text_was_not_readable_or_there_was_no_packet(self):
+        out = make_run(self.tmp, loops=False)
+        run = run_dir_of(out)
+        (run / "packets" / f"{IDS['spec']}.md").write_bytes(b"\xff\xfe not utf-8 \x80")
+        (run / "packets" / f"{IDS['plan']}.md").unlink()
+        docs, facts = export.build_run(out)
+        rows = {r["stage"]: r for r in docs["runs"][self.KEY]["stages"]}
+        for stage in ("spec", "plan"):
+            self.assertNotIn("carried", rows[stage], stage)
+            self.assertNotIn("packetImprove", rows[stage], stage)
+        self.assertIn("carried", rows["intake"])  # the fixture's other packets are readable text: every label false, none invented
+        self.assertEqual(set(rows["intake"]["carried"].values()), {False})
+        self.assertIn("producer packets read", "\n".join(facts))
+
+    def test_facts_count_the_labels_the_packets_carried_and_the_improve_packets_not_read(self):
+        out = make_run(self.tmp, loops=False)
+        run = run_dir_of(out)
+        (run / "packets" / f"{IDS['spec']}.md").write_text(packet_fixture("packet-lines-1220-improve.txt"), encoding="utf-8")
+        (run / "packets" / f"{IDS['intake']}.md").write_text(packet_fixture("packet-lines-1161.txt"), encoding="utf-8")
+        line = next(l for l in export.build_run(out)[1] if l.startswith("- Packet text carried"))
+        self.assertIn(f"producer packets read {len(ACCEPTS) - 1}; 0 visits have a separate Improve packet file; "
+                      "1 visits (old layout) keep only an Improve child's packet", line)
+        self.assertIn("where 1, purpose 1, operates 1, checked 1, produces 1, recovery 1, inputs 1", line)
+
+    def test_validate_doc_rejects_wrong_shapes_for_the_card_fields(self):
+        run, _ = export.build_run(make_run(self.tmp, loops=False))
+        run = run["runs"][self.KEY]
+        bad = dict(run, stages=[dict(run["stages"][0], summary=3, summaryTruncated="yes", resultFile=1, carried={"where": "yes"},
+                                     packetImprove="no")])
+        problems = "\n".join(export.validate_doc("runs", bad))
+        for needle in ("stages[0].summary: expected a string", "stages[0].summaryTruncated: expected a boolean",
+                       "stages[0].resultFile: expected a boolean", "stages[0].carried.where: expected a boolean",
+                       "stages[0].packetImprove: expected a boolean"):
+            self.assertIn(needle, problems)
+
+    def test_the_committed_evidence_still_validates_without_any_card_field(self):  # a guard: it passes before this change too
+        for name in EVIDENCE_RUNS:
+            for run in json.loads((EVIDENCE_DIR / name).read_text())["docs"]["runs"].values():
+                self.assertEqual(export.validate_doc("runs", run), [], name)
+
+
+# ================================================================ R20a part 2: the page (template)
+
+class StageCatalogPageTests(unittest.TestCase):
+    """The page's reading of the catalog: aliases, readers and the labels it shares with the exporter."""
+
+    def test_readers_are_the_inverse_of_reads_and_the_page_computes_the_same_list(self):
+        inverse = {}
+        for entry in export.stage_catalog(engine_spec()):
+            for read in entry["reads"]:
+                inverse.setdefault(read.removeprefix("item:"), []).append(
+                    {"stage": entry["stage"], "item": read.startswith("item:")})
+        page = run_logic("(function(c){var o={};" + json.dumps(list(engine_spec().STAGES)) +
+                         ".forEach(function(s){o[s]=readersOf(c,s);});return o;})(" + json.dumps(export.stage_catalog(engine_spec())) + ")")
+        for stage in engine_spec().STAGES:
+            self.assertEqual(page[stage], inverse.get(stage, []), stage)
+        self.assertEqual(page["handoff"], [])  # nothing reads the last stage
+        self.assertIn({"stage": "test-green", "item": True}, page["implement"])
+        self.assertIsNone(run_logic('readersOf(null,"spec")'))  # no catalog: unknown, never "no readers"
+
+    def test_the_page_aliases_resolve_either_name_to_one_group_and_one_phase(self):
+        self.assertEqual(run_logic('[stageNames("select-work"),stageNames("get-next-work-item"),stageNames("spec")]'),
+                         [list(g) for g in export.STAGE_ALIASES] * 2 + [["spec"]])
+        self.assertEqual(run_logic("STAGE_ALIASES"), [list(g) for g in export.STAGE_ALIASES])  # the page's table equals the exporter's
+        self.assertEqual(run_logic('[phaseOfStage("select-work",-1),phaseOfStage("get-next-work-item",-1),phaseOfStage("nothing",5)]'),
+                         [2, 2, 5])
+
+    def test_a_catalog_naming_either_stage_is_found_under_either_name(self):
+        for catalog_name in ("select-work", "get-next-work-item"):
+            catalog = [{"stage": "spec", "purpose": "p", "exitCheck": "review loop", "reads": []},
+                       {"stage": catalog_name, "purpose": "pick", "exitCheck": "model judgement", "reads": ["spec"]}]
+            found = run_logic('[stageInfo(%s,"select-work"),stageInfo(%s,"get-next-work-item"),stageInfo(%s,"nothing"),'
+                              'stageInfo(null,"spec"),readersOf(%s,"spec")]' % ((json.dumps(catalog),) * 4))
+            self.assertEqual(found[0], catalog[1], catalog_name)
+            self.assertEqual(found[1], catalog[1], catalog_name)
+            self.assertEqual((found[2], found[3]), (None, None))
+            self.assertEqual(found[4], [{"stage": catalog_name, "item": False}])
+
+    def test_the_page_draws_a_row_of_each_name_in_the_plan_phase(self):
+        for stage in ("select-work", "get-next-work-item"):
+            # an unknown stage takes the phase of the visit before it, so the name must be known to land in Plan after intake
+            run = {"key": "k", "stages": [{"stage": "intake", "outcome": "done"}, {"stage": stage, "outcome": "done"},
+                                          {"stage": "step-plan", "outcome": "done"}]}
+            strip = run_logic('whereStrip(%s,{phase:2})' % json.dumps(run))
+            self.assertIn("Plan: 2 of 3 visits", strip, stage)
+
+    def test_schema_md_documents_the_stage_card_the_reader_labels_and_the_reserved_audit(self):
+        schema = " ".join(SCHEMA_MD.read_text(encoding="utf-8").split())
+        for phrase in ("## The stage card", "\"Stage cards\" list", "declared by the stage spec",
+                       "no stage declares reading it", "records no observed reads", "not recorded per visit", "xN skipped"):
+            self.assertIn(phrase, schema, phrase)
+
+
+# A run for the card tests: a real-shaped run with a revise, an Improve child's packet, skipped visits, a seeded one and a
+# visit whose packet text lacked its recovery sentence.
+CARRIED_KEYS = ("where", "purpose", "operates", "checked", "produces", "recovery", "inputs")  # a test keeps them equal to export.CARRIED
+ALL_CARRIED = {label: True for label in CARRIED_KEYS}
+CARD_RUN = {
+    "key": "cr", "name": "Card run", "order": 1, "release": "r", "time": "t", "imp": "i", "wallMin": 40, "refusals": 13,
+    "planningReview": "stage", "phases": ["done"] * 4 + ["none"] * 4, "unmeasured": {},
+    "stages": [
+        {"stage": "intake", "outcome": "done", "min": 1, "action": "nav-a1", "packetBytes": 27_172, "packetDoc": True,
+         "resultFile": True, "resultBytes": 1_593, "summary": "Outcomes: <script>alert(1)</script> and more", "summaryTruncated": True,
+         "carried": dict(ALL_CARRIED, inputs=False)},
+        {"stage": "spec", "outcome": "done", "min": 4, "action": "nav-a2", "packetBytes": 46_170, "packetDoc": True,
+         "packetImprove": True, "improve": {"passes": 3, "min": 3.3}, "resultFile": True, "resultBytes": 1_239, "summary": "Living spec"},
+        {"stage": "get-next-work-item", "outcome": "done", "min": 1, "action": "nav-a3", "workitem": "W1", "loop": 1, "packetBytes": 30_000,
+         "packetDoc": True, "resultFile": True, "resultBytes": 700, "summary": "Still the right item", "carried": ALL_CARRIED},
+        {"stage": "skill-assess", "outcome": "done", "action": "nav-a4", "workitem": "W1", "loop": 1, "skipped": True, "min": 0,
+         "resultFile": True, "resultBytes": 300},
+        {"stage": "skill-validate", "outcome": "done", "action": "nav-a5", "workitem": "W1", "loop": 1, "skipped": True, "min": 0,
+         "resultFile": True, "resultBytes": 300},
+        {"stage": "implement", "outcome": "revise", "min": 6, "action": "nav-a6", "workitem": "W1", "loop": 1, "step": "S1",
+         "packetBytes": 40_677, "packetDoc": True, "resultFile": True, "resultBytes": 1_300, "summary": "S1 cannot be built",
+         "carried": dict(ALL_CARRIED, recovery=False), "context": {"calls": 9, "peak": 100_000, "peakPct": 10, "compactions": 0}},
+        {"stage": "implement", "outcome": "done", "min": 8, "action": "nav-a7", "workitem": "W1", "loop": 2, "step": "S1",
+         "packetBytes": 41_000, "packetDoc": True, "resultFile": False, "summary": "Built S1", "carried": ALL_CARRIED,
+         "context": {"calls": 12, "peak": 120_000, "peakPct": 12, "compactions": 1}},
+        {"stage": "system-test-author", "outcome": "done", "seeded": True, "action": "nav-a8", "resultFile": True}],
+    "workItems": [{"id": "W1", "title": "The item", "stepPlans": 1, "loops": 2, "revises": 1, "repeats": 0,
+                   "implementVisits": {"done": 1, "repeat": 0, "revise": 1, "replan": 0, "blocked": 0}}]}
+
+
+def readers_text(stage: str) -> str:
+    """The card's 'Read by' text for a stage, worked out in Python from the committed catalog (the inverse of every `reads`)."""
+    catalog = json.loads(STAGES_JSON.read_text(encoding="utf-8"))["stages"]
+    run = [e["stage"] for e in catalog if stage in e["reads"]]
+    item = [e["stage"] for e in catalog if f"item:{stage}" in e["reads"]]
+    parts = [", ".join(run)] if run else []
+    if item:
+        parts.append(", ".join(item) + (" (these read this work item's result)" if run else " (each reads this work item's result)"))
+    return "; ".join(parts) or "no stage declares reading it"
+
+
+def catalog_json() -> str:
+    return json.dumps(json.loads(STAGES_JSON.read_text(encoding="utf-8"))["stages"])
+
+
+def card_setup(run: dict = CARD_RUN, extra: str = "", catalog: bool = True) -> str:
+    return plan_setup(run, ("data.cfg={stages:{stages:" + catalog_json() + "}};" if catalog else "") + extra)
+
+
+def card(run: dict, index: int, catalog: bool = True) -> dict:
+    return run_logic("stageCard(%s,%d,%s)" % (json.dumps(run), index, catalog_json() if catalog else "null"))
+
+
+class StageCardLogicTests(unittest.TestCase):
+    """stageCard is pure: one visit in, the three blocks out, and only what the export holds."""
+
+    def lines(self, block: list) -> dict:
+        return {k: v for k, v in block}
+
+    def test_a_work_visit_reads_purpose_check_checklist_sizes_and_declared_readers_from_the_catalog(self):
+        c = card(CARD_RUN, 5)  # the revise visit of implement
+        self.assertEqual((c["title"], c["stage"], c["kind"], c["outcome"]), ("Visit 6: Implement", "implement", "work", "revise"))
+        self.assertEqual(c["purpose"], "Make the planned change")
+        self.assertEqual(c["check"]["kind"], "script-run")
+        self.assertIn("lint-gate", c["check"]["why"])
+        self.assertEqual(c["sent"]["bytes"], 40_677)
+        self.assertEqual([(i["key"], i["found"]) for i in c["sent"]["carried"]],
+                         [(l, l != "recovery") for l, _, _ in export.CARRIED])
+        recovery = next(i for i in c["sent"]["carried"] if i["key"] == "recovery")
+        self.assertIn("not found in the packet text", recovery["tip"])
+        self.assertIn("not whether the model needed it", recovery["tip"])
+        self.assertTrue(all("found in the packet text:" in i["tip"] for i in c["sent"]["carried"] if i["found"]))
+        done = self.lines(c["done"]["lines"])
+        self.assertEqual(done["Outcome"], "revise (marked R)")
+        self.assertEqual(done["Minutes"], "6 min, 15% of elapsed")
+        self.assertEqual((done["Work item"], done["Step"]), ("W1, steps-loop pass 1", "S1 (the step this packet named)"))
+        self.assertEqual(done["Revises of this item"], "1 (each sent it back to step-plan)")
+        self.assertEqual(done["Refusals"], "not recorded per visit; run-level: 13 (not attributed to a visit)")
+        self.assertEqual(done["Context (main thread)"], "9 calls, peak 100,000 tokens (10% of the window), 0 compactions")
+        written = self.lines(c["written"]["lines"])
+        self.assertEqual(c["written"]["summary"], "S1 cannot be built")
+        self.assertEqual(written["Result file"], "written, 1.3 KB")
+        self.assertEqual(written["Read by (declared by the stage spec)"], readers_text("implement"))
+        self.assertEqual(readers_text("implement"), "test-green, test-refine, document, static-checks, verify "
+                         "(each reads this work item's result)")
+
+    def test_readers_read_as_run_level_stages_then_those_that_read_this_work_items_result(self):
+        text = run_logic('[readersText([]),readersText(null),readersText([{stage:"a",item:false},{stage:"b",item:false}]),'
+                         'readersText([{stage:"c",item:true},{stage:"d",item:true}]),'
+                         'readersText([{stage:"a",item:false},{stage:"c",item:true}])]')
+        self.assertEqual(text, ["no stage declares reading it", "no stage declares reading it", "a, b",
+                                "c, d (each reads this work item's result)", "a; c (these read this work item's result)"])
+        self.assertEqual(readers_text("handoff"), "no stage declares reading it")
+
+    def test_a_visit_whose_result_file_is_absent_says_the_result_is_read_from_state_md(self):
+        written = self.lines(card(CARD_RUN, 6)["written"]["lines"])
+        self.assertEqual(written["Result file"], "none: the accepted result is read from state.md")
+
+    def test_a_visit_that_kept_only_an_improve_childs_packet_shows_no_checklist_and_says_why(self):
+        c = card(CARD_RUN, 1)
+        self.assertIsNone(c["sent"]["carried"])
+        self.assertIn("Improve child's", c["sent"]["carriedNote"])
+        self.assertEqual(c["sent"]["bytesLabel"], "Packet file kept (the Improve child's)")
+        self.assertEqual(self.lines(c["done"]["lines"])["Improve"], "3 passes, 3.3 min")
+        self.assertEqual(c["check"]["kind"], "review loop")
+        self.assertEqual(card(CARD_RUN, 0)["sent"]["bytesLabel"], "Packet size")
+
+    def test_a_stage_that_reads_nothing_is_not_marked_missing_its_inputs(self):
+        items = {i["key"]: i for i in card(CARD_RUN, 0)["sent"]["carried"]}
+        self.assertEqual((items["inputs"]["found"], items["inputs"]["na"]), (False, True))
+        self.assertIn("reads no earlier result", items["inputs"]["tip"])
+        self.assertFalse(items["purpose"]["na"])
+        self.assertEqual(self.lines(card(CARD_RUN, 0)["written"]["lines"])["Read by (declared by the stage spec)"],
+                         readers_text("intake"))
+        self.assertEqual(readers_text("intake"), "discovery, research, spec, plan, product-acceptance, handoff")
+
+    def test_a_skipped_and_a_seeded_visit_say_so_and_claim_neither_a_packet_nor_a_reader_list(self):
+        skipped, seeded = card(CARD_RUN, 3), card(CARD_RUN, 7)
+        self.assertEqual((skipped["kind"], skipped["outcome"], seeded["kind"], seeded["outcome"]), ("skipped", "skipped", "seeded", "seeded"))
+        self.assertIn("No packet was issued", skipped["sent"]["note"])
+        self.assertIn("harness recorded this visit itself", seeded["sent"]["note"])
+        for c in (skipped, seeded):
+            self.assertIsNone(c["sent"]["carried"])
+            self.assertNotIn("Read by (declared by the stage spec)", self.lines(c["written"]["lines"]))
+        self.assertEqual(self.lines(skipped["done"]["lines"])["Minutes"], "0 min")  # a skipped visit's span, as the table has it
+        self.assertEqual(self.lines(seeded["done"]["lines"])["Outcome"], "seeded: the harness recorded this visit without running it")
+        self.assertEqual(self.lines(seeded["done"]["lines"])["Minutes"], "n/a (seeded, never timed)")
+
+    def test_a_run_whose_refusals_are_not_measured_says_so_with_the_reason_never_a_count(self):
+        run = json.loads(json.dumps(CARD_RUN))
+        del run["refusals"]
+        run["unmeasured"] = {"shiploop_failures": "Claude's events cannot show it"}
+        self.assertEqual(self.lines(card(run, 0)["done"]["lines"])["Refusals"],
+                         "not recorded per visit; run-level not measured (the reason is on the Refusals card)")
+        del run["unmeasured"]
+        self.assertEqual(self.lines(card(run, 0)["done"]["lines"])["Refusals"], "not recorded per visit; run-level not measured")
+
+    def test_a_planning_stage_of_a_none_run_is_the_models_judgement_and_the_card_says_why(self):
+        run = dict(CARD_RUN, planningReview="none")
+        spec = card(run, 1)
+        self.assertEqual(spec["check"]["kind"], "model judgement")
+        self.assertIn("planning_review none", spec["check"]["why"])
+        self.assertEqual(self.lines(spec["done"]["lines"])["Improve"], "3 passes, 3.3 min")  # measured figures stay, as in R18
+        self.assertEqual(card(dict(CARD_RUN, planningReview="stage"), 1)["check"]["kind"], "review loop")
+        self.assertIn("last work item", run_logic('exitCheckWhy({stage:"carry-forward",exitCheck:"review loop",improve:"last-item"},{})'))
+
+    def test_the_exit_check_of_every_stage_in_every_mode_equals_the_exporters_rule(self):
+        catalog = export.stage_catalog(engine_spec())
+        modes = [m for m in MODES]
+        page = run_logic("(function(c,modes){return c.map(function(e){return modes.map(function(m){"
+                         "return exitCheckOf(e,m===null?{}:{planningReview:m});});});})(%s,%s)" % (json.dumps(catalog), json.dumps(modes)))
+        for entry, got in zip(catalog, page):
+            self.assertEqual(got, [export.effective_exit_check(entry, m) for m in modes], entry["stage"])
+        self.assertEqual(run_logic('[exitCheckOf(null,{}),exitCheckOf({exitCheck:"nonsense"},{}),exitCheckWhy(null,{})]'), ["", "", ""])
+
+    def test_an_old_row_with_none_of_the_new_fields_prints_only_what_exists_and_names_nothing_as_zero(self):
+        run = {"key": "old", "stages": [{"stage": "plan", "outcome": "done", "min": 3.5, "action": "nav-p"}], "wallMin": 35}
+        c = card(run, 0, catalog=False)
+        self.assertEqual((c["purpose"], c["check"], c["sent"]["bytes"], c["sent"]["carried"], c["sent"]["carriedNote"], c["sent"]["packet"]),
+                         ("", None, None, None, "", None))
+        self.assertEqual(c["written"], {"summary": "", "truncated": False, "lines": [], "readers": None})
+        self.assertEqual([k for k, _ in c["done"]["lines"]], ["Outcome", "Minutes", "Refusals"])
+        self.assertEqual(self.lines(c["done"]["lines"])["Minutes"], "3.5 min, 10% of elapsed")
+        self.assertNotRegex(json.dumps(c), r'"0 |\b0 KB|undefined|null"')
+        withcat = card(run, 0)  # the catalog alone adds purpose, check and readers, still no packet or result claim
+        self.assertEqual((withcat["purpose"], withcat["check"]["kind"]), ("Build the dependency plan and the work-item queue", "review loop"))
+        self.assertEqual(self.lines(withcat["written"]["lines"]), {"Read by (declared by the stage spec)": readers_text("plan")})
+        self.assertIsNone(run_logic("stageCard({stages:[]},0,null)"))
+        self.assertIsNone(run_logic("stageCard(null,0,null)"))
+
+    def test_a_bare_export_with_a_packet_file_but_no_checklist_says_it_is_not_recorded_in_this_export(self):
+        run = {"key": "k", "stages": [{"stage": "plan", "outcome": "done", "min": 1, "action": "nav-p", "packetBytes": 100, "packetDoc": True}]}
+        c = card(run, 0, catalog=False)
+        self.assertIn("not recorded in this export", c["sent"]["carriedNote"])
+        self.assertEqual(c["sent"]["packet"], {"id": "k--nav-p"})
+
+    def test_the_old_and_new_detail_lines_agree_where_they_overlap(self):
+        model = "sequenceModel(%s,{})" % json.dumps(CARD_RUN)
+        detail = run_logic("(function(m){return [5,6].map(function(k){var d=columnDetail(m,k,%s,[],%s);return {lines:d.lines,card:d.card};});})(%s)"
+                           % (json.dumps(CARD_RUN), catalog_json(), model))
+        for d in detail:
+            card_lines = self.lines(d["card"]["done"]["lines"])
+            old = self.lines(d["lines"])
+            for label in ("Outcome", "Minutes", "Work item", "Step", "Improve", "Context (main thread)"):
+                if label in old:
+                    self.assertEqual(card_lines.get(label), old[label], label)
+
+    def test_the_packet_head_is_the_first_twelve_non_empty_lines(self):
+        text = "\n".join(["", "one", "", "two   ", *[f"line {n}" for n in range(3, 30)]])
+        head = run_logic("packetHeadLines(%s,12)" % json.dumps(text))
+        self.assertEqual(head, ["one", "two"] + [f"line {n}" for n in range(3, 13)])
+        self.assertEqual(run_logic('[packetHeadLines("",12),packetHeadLines(null,12),packetHeadLines("a\\n\\n \\nb",12)]'), [[], [], ["a", "b"]])
+
+    def test_the_labels_these_tests_use_are_the_exporters_in_the_exporters_order(self):  # a consistency check: the exporter half exists before the page does
+        self.assertEqual(CARRIED_KEYS, tuple(label for label, _, _ in export.CARRIED))
+
+    def test_the_page_labels_and_aliases_equal_the_exporters(self):
+        self.assertEqual(run_logic("CARRIED_LABELS"), [[label, label, description] for label, description, _ in export.CARRIED])
+        self.assertEqual(run_logic("EXIT_CHECKS"), list(export.EXIT_CHECKS))
+        self.assertEqual(export.EXIT_CHECKS, ("script-run", "model judgement", "review loop"))
+
+
+class StageLabelTests(unittest.TestCase):
+    """A stage is named for display by one derived rule: hyphens to spaces, first letter upper-cased; the raw name stays."""
+
+    def test_the_label_is_derived_from_the_name_and_the_raw_name_is_shown_only_when_it_differs(self):
+        self.assertEqual(run_logic('["get-next-work-item","system-test-author","select-work","spec","implement","",undefined,null,7].map(stageLabel)'),
+                         ["Get next work item", "System test author", "Select work", "Spec", "Implement", "", "", "", ""])
+        self.assertEqual(run_logic('["get-next-work-item","spec","",undefined].map(rawShown)'), [True, False, False, False])
+        for stage in engine_spec().STAGES:  # every engine stage reads as plain words, with no hyphen left
+            label = run_logic("stageLabel(%s)" % json.dumps(stage))
+            words = stage.replace("-", " ")
+            self.assertEqual(label, words[0].upper() + words[1:])
+            self.assertNotIn("-", label)
+
+    def test_the_card_titles_use_the_label_with_the_raw_name_as_tooltip_and_secondary_text_for_a_hyphenated_stage(self):
+        run = json.loads(json.dumps(CARD_RUN))
+        run["stages"][7]["stage"] = "get-next-work-item"
+        self.assertEqual((card(run, 7)["title"], card(run, 7)["label"], card(run, 7)["rawShown"]),
+                         ("Visit 8: Get next work item", "Get next work item", True))
+        out = page_probe('setCol(6);var h3=walk(REG.seqdetail,function(e){return e.tagName==="h3";})[0];'
+                         '[h3.textContent,h3.title,byClass(h3,"sc-raw").map(function(x){return x.textContent;})]', setup=card_setup(run))
+        self.assertEqual(out, ["Visit 8: Get next work itemget-next-work-item", "get-next-work-item", ["get-next-work-item"]])
+        plain = page_probe('setCol(4);var h3=walk(REG.seqdetail,function(e){return e.tagName==="h3";})[0];[h3.textContent,h3.title,byClass(h3,"sc-raw").length]',
+                           setup=card_setup())
+        self.assertEqual(plain, ["Visit 6: Implement", "implement", 0])  # one word: the raw name would only repeat it
+
+    def test_the_list_rows_use_the_label_with_the_raw_name_as_tooltip_and_the_skipped_group_keeps_its_own_text(self):
+        for stage, label in (("get-next-work-item", "Get next work item"), ("select-work", "Select work")):  # the old name is history
+            run = json.loads(json.dumps(CARD_RUN))
+            run["stages"][2]["stage"] = stage
+            out = page_probe('var rows=byClass("sclist","sc-row");[rows[2].title,byClass(rows[2],"sc-name")[0].textContent,'
+                             'byClass(rows[2],"sc-raw").map(function(x){return x.textContent;}),rows[3].title||"",byClass(rows[3],"sc-name")[0].textContent,'
+                             'byClass(rows[4],"sc-raw").length]', setup=card_setup(run))
+            self.assertEqual(out, [stage, label + stage, [stage], "", "x2 skipped", 0], stage)
+
+
+class StageCardListTests(unittest.TestCase):
+    """One row per column of the picture, so a tap selects the same visit as a tap on the picture."""
+
+    def rows(self, run: dict = CARD_RUN, catalog: bool = True) -> list:
+        return run_logic("cardRows(sequenceModel(%s,{}),%s,%s)" % (json.dumps(run), json.dumps(run), catalog_json() if catalog else "null"))
+
+    def test_rows_follow_the_columns_collapse_skipped_visits_and_print_only_what_the_export_holds(self):
+        rows = self.rows()
+        self.assertEqual([r["col"] for r in rows], list(range(7)))  # eight visits, two skipped in a row are one column
+        self.assertEqual([(r["visit"], r["stage"]) for r in rows],
+                         [("1", "Intake"), ("2", "Spec"), ("3", "Get next work item"), ("4 to 5", "x2 skipped"), ("6", "Implement"),
+                          ("7", "Implement"), ("8", "System test author")])
+        self.assertEqual([(r["raw"], r["rawShown"]) for r in rows],
+                         [("intake", False), ("spec", False), ("get-next-work-item", True), ("", False), ("implement", False),
+                          ("implement", False), ("system-test-author", True)])
+        spec, skipped, revise = rows[1], rows[3], rows[4]
+        self.assertEqual((spec["sent"], spec["written"], spec["check"], spec["outcome"], spec["min"]),
+                         ("45.1 KB (the Improve child's)", "1.2 KB", "review loop", "done", "4 min"))
+        self.assertEqual(spec["purpose"], "Define required behavior and acceptance criteria")
+        self.assertEqual((skipped["outcome"], skipped["check"], skipped["sent"], skipped["written"], skipped["readBy"], skipped["purpose"]),
+                         ("skipped", "", "", "", None, ""))
+        self.assertEqual((revise["outcome"], revise["check"], revise["readBy"], revise["sent"], revise["written"]),
+                         ("revise", "script-run", 5, "39.7 KB", "1.3 KB"))
+        self.assertEqual(rows[6]["outcome"], "seeded")
+        self.assertEqual(rows[6]["min"], "")
+
+    def test_a_stage_no_one_declares_reading_says_so_instead_of_a_count_that_reads_as_observed(self):
+        run = {"key": "k", "stages": [{"stage": "handoff", "outcome": "done", "min": 1, "action": "nav-h", "resultBytes": 100}]}
+        row = run_logic("cardRows(sequenceModel(%s,{}),%s,%s)" % (json.dumps(run), json.dumps(run), catalog_json()))[0]
+        self.assertEqual(row["readBy"], 0)  # the model keeps the number; the page words it
+        out = page_probe('byClass("sclist","sc-bit").map(function(b){return b.textContent;})', setup=card_setup(dict(CARD_RUN, **run)))
+        self.assertIn("no declared reader", out)
+        self.assertNotIn("declared readers 0", out)
+        self.assertFalse([b for b in out if re.search(r"\bread by\b", b)])  # no wording that could pass for an observation
+
+    def test_a_row_without_a_catalog_or_sizes_prints_nothing_for_them(self):
+        rows = self.rows({"key": "old", "stages": [{"stage": "plan", "outcome": "done", "min": 3.5}]}, catalog=False)
+        self.assertEqual(rows, [{"col": 0, "visit": "1", "stage": "Plan", "raw": "plan", "rawShown": False, "purpose": "",
+                                 "outcome": "done", "kind": "work", "check": "", "sent": "", "written": "", "readBy": None,
+                                 "min": "3.5 min"}])
+
+    def test_a_run_of_skipped_visits_is_one_row_and_a_single_skipped_visit_keeps_its_name(self):
+        run = {"key": "k", "stages": [{"stage": "a", "outcome": "done", "min": 1}, {"stage": "skill-assess", "outcome": "done", "skipped": True},
+                                      {"stage": "b", "outcome": "done", "min": 1}, {"stage": "skill-validate", "outcome": "done", "skipped": True}]}
+        rows = self.rows(run, catalog=False)
+        self.assertEqual([(r["visit"], r["stage"], r["outcome"]) for r in rows],
+                         [("1", "A", "done"), ("2", "Skill assess", "skipped"), ("3", "B", "done"), ("4", "Skill validate", "skipped")])
+
+
+class StageCardPageTests(unittest.TestCase):
+    """The card on the page: three labelled blocks, Prev and Next that keep working, the list, escaping and the shared packet get."""
+
+    def test_the_card_has_the_three_blocks_the_chips_the_checklist_and_the_purpose(self):
+        out = page_probe('setCol(4);[byClass("seqdetail","sc-block").map(function(b){return b.children[0].textContent;}),'
+                         'byClass("seqdetail","chip").map(function(c){return c.textContent;}),textOf("seqdetail")]', setup=card_setup())
+        blocks, chips, text = out
+        self.assertEqual(blocks, ["Sent: the packet", "Done: how the visit went", "Written: the result"])
+        self.assertIn("revise", chips)
+        self.assertIn("exit check: script-run", chips)
+        self.assertIn("✓ where", chips)
+        self.assertIn("✗ recovery", chips)
+        self.assertIn("What the stage is for. Make the planned change.", text)
+        self.assertIn("How it is checked: script-run. ShipLoop runs lint-gate before it accepts done.", text)
+        self.assertIn("not found in the packet text", text)  # the legend, readable without hovering
+        self.assertIn("Packet size39.7 KB", text)
+        self.assertIn("Summary. S1 cannot be built", text)
+        self.assertIn("Read by (declared by the stage spec)", text)
+
+    def test_previous_and_next_walk_the_visits_and_the_card_follows(self):
+        out = page_probe('setCol(2);var go=function(label){byClass("seqdetail","btn").filter(function(b){return b.textContent===label;})[0].onclick();};'
+                         'var a=textOf("seqdetail").indexOf("Visit 3: Get next work item")>=0;go("Next visit");var b=pickedCol,t1=textOf("seqdetail").indexOf("Visits 4 to 5: 2 skipped")>=0;'
+                         'go("Next visit");var c=textOf("seqdetail").indexOf("Visit 6: Implement")>=0;go("Previous visit");go("Previous visit");'
+                         '[a,b,t1,c,pickedCol,byClass("seqdetail","btn").map(function(x){return x.textContent+":"+x.disabled;}).filter(function(s){return s.indexOf("Show")<0;})]', setup=card_setup())
+        self.assertEqual(out[:5], [True, 3, True, True, 2])
+        self.assertEqual(out[5], ["Previous visit:false", "Next visit:false", "Close:false"])
+
+    def test_a_collapsed_skipped_column_keeps_the_old_lines_and_no_card(self):  # a guard: it passes before this change too
+        out = page_probe('setCol(3);[byClass("seqdetail","sc-block").length,textOf("seqdetail")]', setup=card_setup())
+        self.assertEqual(out[0], 0)
+        self.assertIn("Visits 4 to 5: 2 skipped", out[1])
+        self.assertIn("skill-assess, skill-validate", out[1])
+
+    def test_the_summary_with_markup_is_text_never_an_element_and_the_cut_is_said(self):
+        out = page_probe('setCol(0);[textOf("seqdetail"),walk(REG.seqdetail,function(e){return e.tagName==="script";}).length]', setup=card_setup())
+        self.assertIn("Summary. Outcomes: <script>alert(1)</script> and more\u2026 (cut at 300 characters)", out[0])
+        self.assertEqual(out[1], 0)
+        html = TEMPLATE.read_text(encoding="utf-8")
+        code = html[html.index("function renderCard("):html.index("/* The \"scroll sideways\" hint")]
+        self.assertNotIn("innerHTML", code)  # built with createElement and textContent only
+
+    def test_the_list_has_a_row_per_column_marks_the_picked_one_and_a_tap_selects_the_same_visit(self):
+        out = page_probe('var rows=function(){return byClass("sclist","sc-row");};var n=rows().length,hidden=REG.sclist.hidden,first=rows()[4].textContent,'
+                         'bits=byClass(rows()[4],"sc-bit").map(function(b){return b.textContent;});'
+                         'rows()[4].onclick();var a=[pickedCol,rows()[4].className,rows()[4].attrs["aria-pressed"],rows()[0].attrs["aria-pressed"]];'
+                         'rows()[3].onclick();[n,hidden,first,a,pickedCol,textOf("seqdetail").indexOf("Visits 4 to 5")>=0,rows()[3].textContent,bits]', setup=card_setup())
+        self.assertEqual((out[0], out[1]), (7, False))
+        for part in ("6", "Implement", "revise", "script-run", "Make the planned change"):
+            self.assertIn(part, out[2])
+        self.assertEqual(out[7], ["6 min", "sent 39.7 KB", "written 1.3 KB", "declared readers 5"])  # one span each, so a phone wraps between them
+        self.assertEqual(out[3], [4, "sc-row sel", "true", "false"])
+        self.assertEqual(out[4], 3)
+        self.assertTrue(out[5])
+        self.assertIn("x2 skipped", out[6])
+        self.assertIn("skipped", out[6])
+
+    def test_the_list_sits_between_the_card_and_the_table_and_a_run_with_no_visits_hides_it(self):
+        html = TEMPLATE.read_text(encoding="utf-8")
+        self.assertLess(html.index('id="seqdetail"'), html.index('id="sclist"'))
+        self.assertLess(html.index('id="sclist"'), html.index('id="seqtabbox"'))
+        out = page_probe('[REG.sclist.hidden,byClass("sclist","sc-row").length]', setup=card_setup(dict(CARD_RUN, stages=[])))
+        self.assertEqual(out, [True, 0])
+
+    def test_without_the_catalog_or_the_new_fields_the_page_still_draws_a_card_and_a_list_from_what_exists(self):
+        old = {"key": "old", "name": "Old", "order": 1, "release": "r", "time": "t", "imp": "i", "wallMin": 10,
+               "phases": ["done"] * 8, "stages": [{"stage": "plan", "outcome": "done", "min": 3.5, "action": "nav-p", "packetBytes": 100,
+                                                  "resultBytes": 50}]}
+        out = page_probe('setCol(0);[textOf("seqdetail"),textOf("sclist"),byClass("seqdetail","chip").map(function(c){return c.textContent;})]',
+                         setup=card_setup(old, catalog=False))
+        self.assertIn("Visit 1: Plan", out[0])
+        self.assertIn("Packet size100 B", out[0])
+        self.assertIn("Result filewritten, 50 B", out[0])
+        self.assertNotIn("exit check", " ".join(out[2]))
+        self.assertNotRegex(out[0] + out[1], r"undefined|NaN|\bnull\b")
+        self.assertIn("Plan", out[1])
+
+    def test_the_real_evidence_rows_render_a_card_and_a_list_with_and_without_the_catalog(self):
+        for key in ("luna1", "hello-1190b"):
+            for with_catalog in (True, False):
+                setup = with_run(key).replace("renderAll();", ("data.cfg={stages:{stages:" + catalog_json() + "}};" if with_catalog else "") + "renderAll();")
+                out = page_probe('setCol(10);[textOf("seqdetail"),byClass("sclist","sc-row").length,textOf("sclist")]', setup=setup)
+                self.assertIn("Visit 11:", out[0], (key, with_catalog))
+                self.assertGreater(out[1], 10)
+                self.assertNotRegex(out[0] + out[2], r"undefined|NaN|\bnull\b", (key, with_catalog))
+                self.assertEqual("exit check:" in out[0], with_catalog, (key, with_catalog))
+                self.assertEqual("script-run" in out[2] or "review loop" in out[2] or "model judgement" in out[2], with_catalog)
+
+    def test_a_select_work_visit_and_a_get_next_work_item_visit_both_get_the_catalogs_card(self):
+        for stage in ("select-work", "get-next-work-item"):
+            run = json.loads(json.dumps(CARD_RUN))
+            run["stages"][2]["stage"] = stage
+            c = card(run, 2)
+            purpose = next(e["purpose"] for e in export.stage_catalog(engine_spec()) if e["stage"] in export.stage_names(stage))
+            self.assertEqual((c["purpose"], c["check"]["kind"]), (purpose[0].upper() + purpose[1:], "model judgement"), stage)
+
+
+class PacketHeadTests(unittest.TestCase):
+    """The card's packet head is the same document as the Packet box: one get, one cache, loaded on demand."""
+
+    TEXT = "\n".join(["Continue in this context.", "", *[f"line {n}" for n in range(1, 40)]]) + "\n"
+    DOC = {"run": "cr", "action": "nav-a6", "stage": "implement", "bytes": len(TEXT), "shownBytes": len(TEXT), "sha256": "ab" * 32, "text": TEXT}
+
+    def probe(self, expression: str, docs: dict | None = None, extra: str = ""):
+        return page_probe(expression, setup=card_setup(extra=("PACKET_DOCS=" + json.dumps(docs if docs is not None else {"packets/cr--nav-a6": self.DOC}) + ";") + extra))
+
+    def test_nothing_is_read_until_the_viewer_asks_and_then_one_get_serves_the_head_and_the_box(self):
+        out = self.probe('setCol(4);var before=DB_CALLS.slice(),btn=byClass("seqdetail","btn").filter(function(b){return b.textContent==="Show the packet head";})[0];'
+                         'btn.onclick();var after=DB_CALLS.slice(),head=byClass("seqdetail","pkt-head")[0].textContent;'
+                         'var box=byClass("seqdetail","pkt")[0];box.open=true;box.ontoggle();renderAll();'
+                         '[before,after,head,DB_CALLS.length,byClass("seqdetail","pkt-text")[0].textContent.length,'
+                         'byClass("seqdetail","btn").filter(function(b){return b.textContent==="Show the packet head";}).length]')
+        before, after, head, calls, full, buttons = out
+        self.assertEqual(before, [])
+        self.assertEqual(after, [["get", "packets/cr--nav-a6"]])
+        self.assertEqual(head.split("\n"), ["Continue in this context."] + [f"line {n}" for n in range(1, 12)])  # 12 non-empty lines
+        self.assertEqual((calls, full, buttons), (1, len(self.TEXT), 0))  # the box reused the cache; the head survived a redraw
+
+    def test_opening_the_box_first_fills_the_head_too_and_a_second_visit_loads_its_own_document(self):
+        out = self.probe('setCol(4);var box=byClass("seqdetail","pkt")[0];box.open=true;box.ontoggle();'
+                         '[byClass("seqdetail","pkt-head").length,DB_CALLS.length]')
+        self.assertEqual(out, [1, 1])
+        two = self.probe('setCol(4);byClass("seqdetail","btn").filter(function(b){return b.textContent==="Show the packet head";})[0].onclick();'
+                         'setCol(5);var b=byClass("seqdetail","btn").filter(function(b){return b.textContent==="Show the packet head";}),before=DB_CALLS.length;'
+                         'b[0].onclick();[b.length,before,DB_CALLS.slice(),textOf("seqdetail").indexOf("packet not uploaded for this run")>=0]')
+        self.assertEqual(two, [1, 1, [["get", "packets/cr--nav-a6"], ["get", "packets/cr--nav-a7"]], True])  # visit 7 asks only when tapped, for its own document
+
+    def test_a_missing_document_and_a_failed_read_say_so_and_the_head_can_be_tried_again(self):
+        missing = self.probe('setCol(4);byClass("seqdetail","btn").filter(function(b){return b.textContent==="Show the packet head";})[0].onclick();textOf("seqdetail")',
+                             docs={})
+        self.assertIn("packet not uploaded for this run", missing)
+        failed = self.probe('db.doc=function(p){return {get:function(){return sync({code:"unavailable"},true);}};};setCol(4);'
+                            'byClass("seqdetail","btn").filter(function(b){return b.textContent==="Show the packet head";})[0].onclick();'
+                            '[textOf("seqdetail").indexOf("Could not read the packet.")>=0,byClass("seqdetail","btn").map(function(b){return b.textContent;}).indexOf("Try again")>=0]')
+        self.assertEqual(failed, [True, True])
+
+    def test_the_head_text_is_never_markup_and_without_a_database_there_is_no_head_or_box(self):
+        evil = dict(self.DOC, text="<script>alert(1)</script>\n<b>bold</b>\n")
+        out = self.probe('setCol(4);byClass("seqdetail","btn").filter(function(b){return b.textContent==="Show the packet head";})[0].onclick();'
+                         '[byClass("seqdetail","pkt-head")[0].textContent,walk(REG.seqdetail,function(e){return e.tagName==="script";}).length,'
+                         'byClass("seqdetail","pkt-head")[0].children.length]', docs={"packets/cr--nav-a6": evil})
+        self.assertEqual(out, ["<script>alert(1)</script>\n<b>bold</b>", 0, 0])
+        setup = card_setup().replace("live=true;", "db=null;live=false;")
+        self.assertEqual(page_probe('setCol(4);[byClass("seqdetail","pkt").length,byClass("seqdetail","pkt-headbox").length]', setup=setup), [0, 0])
+
+    def test_the_page_has_one_packet_fetch_path_and_never_subscribes_to_packets(self):  # a guard: it passes before this change too
+        page = script_text()
+        self.assertEqual(re.findall(r'db\.doc\("packets/"\+id\)\.get\(\)', page), ['db.doc("packets/"+id).get()'])
+        self.assertNotIn('collection("packets")', page)
+
+
+# ================================================================ R21: the two packet files of a visit, and the packet head
+
+ENGINE_SCRIPTS = ROOT / "skills" / "shiploop" / "scripts"
+# The harness's seed pattern (test/shiploop_e2e/run.py SEED_SCRIPT) on the checkout's own navigator, with no model: it walks the
+# graph on synthetic results to the first inner stage and PRINTS every packet (navigator.emit), so packets/ is what that engine
+# writes: one file per action up to ShipLoop 1.22.0, a producer file plus `<action>-improve.md` for a reviewed stage after.
+REAL_ENGINE_SEED = r"""
+import contextlib, io, json, os, subprocess, sys
+from datetime import datetime, timedelta, timezone
+from pathlib import Path
+scripts, out = Path(sys.argv[1]), Path(sys.argv[2])
+work = out / "work"
+work.mkdir(parents=True)
+env = {**os.environ, "GIT_CONFIG_GLOBAL": os.devnull, "GIT_CONFIG_NOSYSTEM": "1"}
+for args in (["init", "-q"], ["add", "README.md"], ["-c", "user.name=t", "-c", "user.email=t@example.invalid", "commit", "-qm", "seed"]):
+    if args[0] == "init":
+        (work / "README.md").write_text("# seeded\n")
+    subprocess.run(["git", "-C", str(work), *args], check=True, capture_output=True, env=env)
+root = out / ".shiploop-runs" / "seed"
+started = subprocess.run([sys.executable, str(scripts / "shiploop"), "workspace", "start", f"--repo={work}",
+                          f"--workspace-root={root}", "--delegation=inline", "--prompt=Build a tiny thing."],
+                         capture_output=True, text=True, env=env)
+assert started.returncode == 0, started.stderr[-1500:] + started.stdout[-1500:]
+run_dir = root / "run"
+sys.path.insert(0, str(scripts))
+import shiploop_navigator as nav, shiploop_store as store
+state = store.read_record(run_dir / "state.md")
+stop = nav.stage_spec.INNER[0]
+t0 = datetime(2026, 10, 7, 9, 0, tzinfo=timezone.utc)
+accepted, visits = {}, []
+def emit(s):
+    with contextlib.redirect_stdout(io.StringIO()):
+        nav.emit(None, run_dir, s)
+while nav.current_stage(state) != stop:
+    stage, action = nav.current_stage(state), str(nav.current_action(state)["id"])
+    emit(state)
+    result = {"outcome": "done", "headline": "Synthetic", "summary": f"Synthetic {stage} result.", "evidence_refs": ["/synthetic"]}
+    if stage == "plan":
+        result["work_items"] = [{"id": "W1", "title": "The whole request"}]
+    state = nav.apply(state, action, result)
+    nav.save(run_dir, state)
+    reviewed = state["active_improve"] is not None
+    if reviewed:
+        emit(state)
+        state = nav.finish_improve(state, action, {"summary": "Synthetic Improve receipt."})
+        nav.save(run_dir, state)
+    accepted[action] = (t0 + timedelta(minutes=2 * (len(visits) + 1))).strftime("%Y-%m-%dT%H:%M:%SZ")
+    visits.append({"stage": stage, "action": action, "reviewed": reviewed})
+(run_dir / "timeline.json").write_text(json.dumps({"started": t0.strftime("%Y-%m-%dT%H:%M:%SZ"), "accepted": accepted}))
+(out / "metrics.json").write_text(json.dumps({"unmeasured": {}, "shiploop_failures": [], "model_glue": [], "model_calls": 1}))
+print(json.dumps(visits))
+"""
+
+
+def real_engine_run(tmp: Path) -> tuple[Path, list[dict]]:
+    """(a run output directory the checkout's own navigator wrote with no model, its visits as {stage, action, reviewed})."""
+    out = tmp / "engine-run"
+    done = subprocess.run([sys.executable, "-B", "-c", REAL_ENGINE_SEED, str(ENGINE_SCRIPTS), str(out)],
+                          capture_output=True, text=True, timeout=300)
+    if done.returncode:
+        raise AssertionError(f"the engine seed failed:\n{done.stderr[-2000:]}")
+    return out, json.loads(done.stdout.strip().splitlines()[-1])
+
+
+class ImprovePacketLayoutTests(unittest.TestCase):
+    """The two layouts of a visit's packet files: new (producer file intact, Improve child's file beside it) and old (one file)."""
+
+    KEY = RunReviewTest.KEY
+
+    def setUp(self):
+        tmp = tempfile.TemporaryDirectory()
+        self.addCleanup(tmp.cleanup)
+        self.tmp = Path(tmp.name)
+
+    def build(self, out: Path) -> tuple[dict, dict, list[str]]:
+        docs, facts = export.build_run(out)
+        return docs["runs"][self.KEY], docs["packets"], facts
+
+    def row(self, run: dict, stage: str) -> dict:
+        return next(r for r in run["stages"] if r["stage"] == stage)
+
+    def new_layout(self) -> Path:
+        """spec has its real-shaped producer packet and an Improve child's file beside it; plan is a visit with no Improve child."""
+        out = make_run(self.tmp, loops=False)
+        packets = run_dir_of(out) / "packets"
+        (packets / f"{IDS['spec']}.md").write_text(packet_fixture("packet-lines-1220.txt"), encoding="utf-8")
+        (packets / f"{IDS['spec']}-improve.md").write_text(packet_fixture("packet-lines-1220-improve.txt"), encoding="utf-8")
+        return out
+
+    def test_the_new_layout_writes_a_second_document_and_reads_the_checklist_from_the_intact_producer_packet(self):
+        out = self.new_layout()
+        run, packets, facts = self.build(out)
+        spec = self.row(run, "spec")
+        improve = (run_dir_of(out) / "packets" / f"{IDS['spec']}-improve.md")
+        self.assertEqual((spec["improvePacketDoc"], spec["improvePacketBytes"], spec["packetDoc"]), (True, improve.stat().st_size, True))
+        self.assertEqual(spec["carried"], {label: True for label, _, _ in export.CARRIED})  # read from the producer packet
+        self.assertNotIn("packetImprove", spec)
+        doc = packets[f"{self.KEY}--{IDS['spec']}-improve"]
+        raw = improve.read_bytes()
+        self.assertEqual(doc, {"run": self.KEY, "action": IDS["spec"], "stage": "spec", "bytes": len(raw), "shownBytes": len(raw),
+                               "sha256": hashlib.sha256(raw).hexdigest(), "text": raw.decode(), "kind": "improve"})
+        self.assertEqual(export.validate_doc("packets", doc), [])
+        producer = packets[f"{self.KEY}--{IDS['spec']}"]
+        self.assertNotIn("kind", producer)  # the producer's document is as before
+        self.assertTrue(producer["text"].startswith("ShipLoop navigator | implement"))
+        self.assertEqual(export.validate_doc("runs", run), [])
+
+    def test_a_visit_with_no_improve_child_has_no_improve_fields_and_no_second_document(self):
+        out = self.new_layout()
+        run, packets, _ = self.build(out)
+        plan = self.row(run, "plan")
+        for field in ("improvePacketDoc", "improvePacketBytes", "packetImprove"):
+            self.assertNotIn(field, plan)
+        self.assertNotIn(f"{self.KEY}--{IDS['plan']}-improve", packets)
+        self.assertEqual(len(packets), len(ACCEPTS) + 1)  # one producer document per visit and the one Improve document
+
+    def test_the_old_layout_keeps_its_packet_improve_mark_and_has_no_improve_fields(self):  # a guard: it passes before this change too
+        out = make_run(self.tmp, loops=False)
+        (run_dir_of(out) / "packets" / f"{IDS['spec']}.md").write_text(packet_fixture("packet-lines-1220-improve.txt"), encoding="utf-8")
+        run, packets, _ = self.build(out)
+        spec = self.row(run, "spec")
+        self.assertIs(spec["packetImprove"], True)
+        self.assertNotIn("carried", spec)
+        for field in ("improvePacketDoc", "improvePacketBytes"):
+            self.assertNotIn(field, spec)
+        self.assertFalse([d for d in packets.values() if d.get("kind")])
+
+    def test_a_beside_file_means_the_producer_file_is_the_producer_even_if_it_mentions_the_improve_line(self):
+        out = self.new_layout()
+        producer = run_dir_of(out) / "packets" / f"{IDS['spec']}.md"
+        producer.write_text(packet_fixture("packet-lines-1220.txt") + "Current action: Improve the completed spec result.\n", encoding="utf-8")
+        run, _, _ = self.build(out)
+        spec = self.row(run, "spec")
+        self.assertNotIn("packetImprove", spec)
+        self.assertIn("carried", spec)
+
+    def test_the_two_layouts_can_meet_in_one_run_each_visit_told_by_its_own_files(self):
+        out = self.new_layout()  # spec: new layout
+        (run_dir_of(out) / "packets" / f"{IDS['plan']}.md").write_text(packet_fixture("packet-lines-1220-improve.txt"), encoding="utf-8")  # old
+        run, packets, facts = self.build(out)
+        self.assertEqual((self.row(run, "spec").get("improvePacketDoc"), self.row(run, "spec").get("packetImprove")), (True, None))
+        self.assertEqual((self.row(run, "plan").get("improvePacketDoc"), self.row(run, "plan").get("packetImprove")), (None, True))
+        line = next(l for l in facts if l.startswith("- Packet text carried"))
+        self.assertIn("1 visits have a separate Improve packet file; 1 visits (old layout) keep only an Improve child's packet", line)
+        self.assertIn("1 of the documents are an Improve child's packet", "\n".join(facts))
+
+    def test_an_improve_file_that_cannot_be_read_keeps_its_size_gets_no_document_and_is_counted(self):
+        out = self.new_layout()
+        (run_dir_of(out) / "packets" / f"{IDS['spec']}-improve.md").write_bytes(b"\xff\xfe not utf-8 \x80")
+        run, packets, facts = self.build(out)
+        spec = self.row(run, "spec")
+        self.assertEqual((spec["improvePacketBytes"], "improvePacketDoc" in spec, spec["packetDoc"]), (len(b"\xff\xfe not utf-8 \x80"), False, True))
+        self.assertNotIn(f"{self.KEY}--{IDS['spec']}-improve", packets)
+        self.assertIn("1 packet files unreadable (no document written)", "\n".join(facts))
+
+    def test_an_improve_file_with_no_producer_file_is_not_a_skipped_visit(self):
+        out = self.new_layout()
+        (run_dir_of(out) / "packets" / f"{IDS['spec']}.md").unlink()
+        run, packets, _ = self.build(out)
+        spec = self.row(run, "spec")
+        self.assertNotIn("skipped", spec)
+        self.assertEqual((spec["improvePacketDoc"], "packetDoc" in spec, "carried" in spec), (True, False, False))
+
+    def test_both_documents_are_written_listed_in_order_and_dropped_again_with_their_files(self):
+        out = self.new_layout()
+        target = self.tmp / "twice"
+        with contextlib.redirect_stdout(io.StringIO()):
+            export.main([str(out), "--out", str(target)])
+        ids = [w["doc_id"] for w in json.loads((target / "writes.json").read_text()) if w["collection"] == "packets"]
+        self.assertEqual(ids, sorted(ids))
+        self.assertEqual(ids.index(f"{self.KEY}--{IDS['spec']}-improve"), ids.index(f"{self.KEY}--{IDS['spec']}") + 1)
+        (run_dir_of(out) / "packets" / f"{IDS['spec']}-improve.md").unlink()
+        with contextlib.redirect_stdout(io.StringIO()):
+            export.main([str(out), "--out", str(target)])
+        self.assertFalse((target / "docs" / "packets" / f"{self.KEY}--{IDS['spec']}-improve.json").exists())
+
+    def test_the_committed_export_never_carries_a_packet_text_of_either_file(self):  # a guard: it passes before this change too
+        out = self.new_layout()
+        target = self.tmp / "bundle"
+        with contextlib.redirect_stdout(io.StringIO()):
+            export.main([str(out), "--out", str(target)])
+        text = (target / "review-export.json").read_text()
+        self.assertNotIn("ShipLoop navigator", text)
+        self.assertNotIn("Current action: Improve", text)
+        bundle = json.loads(text)
+        self.assertEqual(sorted(bundle["docs"]), ["backchain", "runs"])
+        self.assertEqual(export.check_bundle(bundle)[0], [])
+
+    def test_the_contract_rejects_a_kind_that_is_not_improve_and_shapes_for_the_new_row_fields(self):
+        out = self.new_layout()
+        run, packets, _ = self.build(out)
+        doc = dict(packets[f"{self.KEY}--{IDS['spec']}-improve"], kind="producer")
+        self.assertIn("'producer' is not one of improve", "\n".join(export.validate_doc("packets", doc)))
+        bad = dict(run, stages=[dict(run["stages"][0], improvePacketBytes="big", improvePacketDoc="yes")])
+        problems = "\n".join(export.validate_doc("runs", bad))
+        for needle in ("stages[0].improvePacketBytes: expected a number", "stages[0].improvePacketDoc: expected a boolean"):
+            self.assertIn(needle, problems)
+
+    def test_schema_md_documents_both_layouts_the_kind_and_the_second_document(self):
+        schema = " ".join(SCHEMA_MD.read_text(encoding="utf-8").split())
+        for phrase in ("`stages[].improvePacketBytes`", "`improvePacketDoc`", "<action>-improve.md", "new layout", "old layout history",
+                       "`<runKey>--<action>-improve`", "| `kind` | `improve` |", "the E2E session's record register of 2026-10-07"):
+            self.assertIn(phrase, schema, phrase)
+
+    def test_the_checkouts_own_navigator_writes_the_layout_the_exporter_reads_for_every_reviewed_stage(self):  # old engine: a guard of the old layout; new engine: fails before this change
+        """No model: the navigator prints each packet on synthetic results, so this reads what that engine writes. Up to ShipLoop
+        1.22.0 a reviewed stage keeps only the Improve child's packet; after it the producer packet stays and the child's file
+        sits beside it. Either way the exporter must say so, and no reviewed visit may read as if it had both or neither."""
+        out, visits = real_engine_run(self.tmp)
+        packets = next((out / ".shiploop-runs").glob("*/run/packets"))
+        new = any(packets.glob("*-improve.md"))
+        docs, _ = export.build_run(out, key="real")
+        run = docs["runs"]["real"]
+        reviewed = [v["stage"] for v in visits if v["reviewed"]]
+        self.assertTrue({"spec", "test-strategy", "plan"} <= set(reviewed), reviewed)  # planning_review stage, the default
+        for visit, row in zip(visits, run["stages"]):
+            self.assertEqual(row["stage"], visit["stage"])
+            if visit["reviewed"] and new:
+                self.assertTrue(row["improvePacketDoc"], visit["stage"])
+                self.assertNotIn("packetImprove", row)
+                self.assertTrue(all(row["carried"].values()) or visit["stage"] == "intake", (visit["stage"], row.get("carried")))
+                self.assertIn(f"real--{visit['action']}-improve", docs["packets"])
+            elif visit["reviewed"]:
+                self.assertTrue(row["packetImprove"], visit["stage"])  # the old engine's one file is the child's
+                self.assertNotIn("improvePacketDoc", row)
+            else:
+                self.assertEqual({f for f in ("improvePacketDoc", "improvePacketBytes", "packetImprove") if f in row}, set(), visit["stage"])
+                self.assertIn("carried", row)
+        self.assertEqual(export.validate_doc("runs", run), [])
+
+
+def new_layout_run() -> dict:
+    """CARD_RUN with its spec visit (column 1) in the new layout: the producer packet intact, an Improve child's file beside it."""
+    run = json.loads(json.dumps(CARD_RUN))
+    spec = run["stages"][1]
+    del spec["packetImprove"]
+    spec.update({"improvePacketDoc": True, "improvePacketBytes": 52_000, "carried": ALL_CARRIED})
+    return run
+
+
+PRODUCER_TEXT = "\n".join(["Continue in this context.", "Delegation: inline.", "", "ShipLoop navigator | spec | revision 5",
+                           "Callback for this stage: run it", "Goal: Define required behavior and acceptance criteria.",
+                           "Done when (confirm each):", "- every request outcome maps to a criterion",
+                           "Checked by: nothing automatic.", *[f"line {n}" for n in range(1, 30)]]) + "\n"
+IMPROVE_TEXT = "ShipLoop navigator | spec | revision 5\nCurrent action: Improve the completed spec result.\n<script>alert(1)</script>\n"
+NEW_DOCS = {"packets/cr--nav-a2": {"run": "cr", "action": "nav-a2", "stage": "spec", "bytes": len(PRODUCER_TEXT), "shownBytes": len(PRODUCER_TEXT),
+                                   "sha256": "ab" * 32, "text": PRODUCER_TEXT},
+            "packets/cr--nav-a2-improve": {"run": "cr", "action": "nav-a2", "stage": "spec", "bytes": len(IMPROVE_TEXT), "shownBytes": len(IMPROVE_TEXT),
+                                           "sha256": "cd" * 32, "text": IMPROVE_TEXT, "kind": "improve"}}
+
+
+class ImprovePacketCardTests(unittest.TestCase):
+    """The card for a new-layout visit: the checklist is real, and the Improve child's packet is a second, closed, on-demand box."""
+
+    def probe(self, expression: str, run: dict | None = None, docs: dict | None = None, db: bool = True):
+        setup = card_setup(run or new_layout_run(), "PACKET_DOCS=" + json.dumps(NEW_DOCS if docs is None else docs) + ";")
+        if not db:
+            setup = setup.replace("live=true;", "db=null;live=false;")
+        return page_probe(expression, setup=setup)
+
+    def test_the_ids_and_the_card_data_name_the_second_document_and_keep_a_real_checklist(self):
+        self.assertEqual(run_logic('[improvePacketId({key:"k"},{improvePacketDoc:true,action:"nav-a"}),improvePacketId({key:"k"},{action:"nav-a"}),'
+                                   'improvePacketId({key:"k"},{improvePacketDoc:false,action:"nav-a"}),improvePacketId({},{improvePacketDoc:true,action:"nav-a"})]'),
+                         ["k--nav-a-improve", "", "", ""])
+        c = card(new_layout_run(), 1)
+        self.assertEqual((c["sent"]["improvePacket"], c["sent"]["improveBytes"], c["sent"]["packet"]),
+                         ({"id": "cr--nav-a2-improve"}, 52_000, {"id": "cr--nav-a2"}))
+        self.assertEqual(c["sent"]["bytesLabel"], "Packet size")  # the size is the producer packet's
+        self.assertEqual(c["sent"]["carriedNote"], "")
+        self.assertEqual([i["found"] for i in c["sent"]["carried"]], [True] * len(export.CARRIED))
+        old = card(CARD_RUN, 1)  # the old layout of the same visit
+        self.assertEqual((old["sent"]["improvePacket"], old["sent"]["improveBytes"], old["sent"]["carried"]), (None, None, None))
+        self.assertIn("1.22.0 or earlier", old["sent"]["carriedNote"])
+
+    def test_the_card_shows_the_checklist_both_sizes_and_a_second_closed_box_for_the_improve_childs_packet(self):
+        out = self.probe('setCol(1);var boxes=byClass("seqdetail","pkt");[boxes.map(function(b){return b.children[0].textContent+":"+b.open;}),'
+                         'textOf("seqdetail"),byClass("seqdetail","chip").map(function(c){return c.textContent;}),DB_CALLS.length]')
+        boxes, text, chips, calls = out
+        self.assertEqual(boxes, ["Packet:false", "Improve child's packet:false"])
+        self.assertIn("Packet size45.1 KB", text)
+        self.assertIn("Improve child's packet file50.8 KB", text)
+        self.assertNotIn("The packet file kept for this visit is the Improve child's", text)
+        self.assertEqual([c for c in chips if c.startswith("✗")], [])
+        self.assertEqual(sum(1 for c in chips if c.startswith("✓")), len(export.CARRIED))
+        self.assertEqual(calls, 0)  # nothing is read until the viewer asks
+
+    def test_opening_the_improve_box_does_one_get_of_its_own_document_and_never_again_and_shows_text_not_markup(self):
+        out = self.probe('setCol(1);var boxes=byClass("seqdetail","pkt"),b=boxes[1];b.open=true;b.ontoggle();var once=DB_CALLS.slice();'
+                         'b.open=false;b.ontoggle();b.open=true;b.ontoggle();renderAll();var again=byClass("seqdetail","pkt")[1];'
+                         '[once,DB_CALLS.length,again.open,byClass(again,"pkt-text")[0].textContent,'
+                         'walk(REG.seqdetail,function(e){return e.tagName==="script";}).length,byClass("seqdetail","pkt-head").length]')
+        once, calls, kept, text, scripts, heads = out
+        self.assertEqual(once, [["get", "packets/cr--nav-a2-improve"]])
+        self.assertEqual((calls, kept, scripts, heads), (1, True, 0, 0))  # no head for the Improve packet; the producer's head is its own
+        self.assertEqual(text, IMPROVE_TEXT)
+
+    def test_the_producer_packet_and_its_head_load_by_their_own_one_get_independent_of_the_improve_box(self):
+        out = self.probe('setCol(1);byClass("seqdetail","btn").filter(function(b){return b.textContent==="Show the packet head";})[0].onclick();'
+                         'var a=DB_CALLS.slice();var boxes=byClass("seqdetail","pkt");boxes[0].open=true;boxes[0].ontoggle();boxes[1].open=true;boxes[1].ontoggle();'
+                         '[a,DB_CALLS.slice(),byClass("seqdetail","pkt-head")[0].textContent.split("\\n")]')
+        self.assertEqual(out[0], [["get", "packets/cr--nav-a2"]])
+        self.assertEqual(out[1], [["get", "packets/cr--nav-a2"], ["get", "packets/cr--nav-a2-improve"]])  # the box reused the head's get
+        self.assertEqual(out[2][0], "ShipLoop navigator | spec | revision 5")  # (c): the head starts at the navigator line
+
+    def test_a_visit_without_the_second_document_has_one_box_and_without_a_database_none(self):  # a guard: it passes before this change too
+        run = new_layout_run()
+        del run["stages"][1]["improvePacketDoc"]
+        self.assertEqual(self.probe('setCol(1);byClass("seqdetail","pkt").map(function(b){return b.children[0].textContent;})', run=run), ["Packet"])
+        self.assertEqual(self.probe('setCol(1);byClass("seqdetail","pkt").length', db=False), 0)
+        old = self.probe('setCol(1);[byClass("seqdetail","pkt").map(function(b){return b.children[0].textContent;}),textOf("seqdetail")]', run=CARD_RUN)
+        self.assertEqual(old[0], ["Packet"])  # old layout: the one file that exists, the Improve child's, shown as a plain Packet box
+        self.assertIn("Packet file kept (the Improve child's)", old[1])
+
+    def test_a_missing_improve_document_reads_not_uploaded_and_a_failed_read_says_so(self):
+        out = self.probe('setCol(1);var b=byClass("seqdetail","pkt")[1];b.open=true;b.ontoggle();textOf("seqdetail")', docs={})
+        self.assertIn("packet not uploaded for this run", out)
+        failed = self.probe('db.doc=function(p){return {get:function(){return sync({code:"unavailable"},true);}};};setCol(1);'
+                            'var b=byClass("seqdetail","pkt")[1];b.open=true;b.ontoggle();textOf("seqdetail")')
+        self.assertIn("Could not read the packet.", failed)
+
+    def test_the_page_still_has_one_packet_fetch_path(self):  # a guard: it passes before this change too
+        page = script_text()
+        self.assertEqual(re.findall(r'db\.doc\("packets/"\+id\)\.get\(\)', page), ['db.doc("packets/"+id).get()'])
+        self.assertNotIn('collection("packets")', page)
+
+
+class PacketHeadStartTests(unittest.TestCase):
+    """The head starts at the first line beginning 'ShipLoop navigator |', so Goal, Done when, Checked by and the callback show."""
+
+    PREAMBLE = "\n".join(["Continue in this context and execute the prompt.", "", "Delegation: inline. Execute this INNER stage in this conversation,",
+                          "including the get-next-work-item stage that opens each work item.", "", "", "ShipLoop navigator | implement | revision 37",
+                          "Callback for this stage: python3 shiploop complete", "Goal: Make the planned change.",
+                          "Done when (confirm each before calling done):", "- every step is confirmed", "- the lint gate is clean",
+                          "Checked by: ShipLoop lints this item's changes.", "Considerations for this stage:", "- Develop: x",
+                          "- Test: y", "- Tools: z", "Write the structured result to: /x"]) + "\n"
+
+    def test_the_head_is_twelve_non_empty_lines_from_the_navigator_line_and_the_preamble_is_left_out(self):
+        head = run_logic("packetHeadLines(%s,12)" % json.dumps(self.PREAMBLE))
+        self.assertEqual(head[0], "ShipLoop navigator | implement | revision 37")
+        self.assertEqual(len(head), 12)
+        for wanted in ("Goal: Make the planned change.", "Done when (confirm each before calling done):", "Checked by: ShipLoop lints this item's changes."):
+            self.assertIn(wanted, head)
+        self.assertNotIn("Delegation: inline. Execute this INNER stage in this conversation,", head)
+        self.assertEqual(head[-1], "Write the structured result to: /x")  # the twelfth non-empty line from the navigator line
+
+    def test_a_packet_with_no_navigator_line_falls_back_to_its_first_twelve_non_empty_lines_and_a_mention_mid_line_does_not_count(self):
+        text = "\n".join(["", "first", "", "see the ShipLoop navigator | line below", *[f"line {n}" for n in range(1, 20)]])
+        self.assertEqual(run_logic("packetHeadLines(%s,12)" % json.dumps(text)), ["first", "see the ShipLoop navigator | line below"] + [f"line {n}" for n in range(1, 11)])
+        self.assertEqual(run_logic('[packetHeadStart(%s),packetHeadStart(%s),packetHeadStart(""),packetHeadStart(null)]'
+                                   % (json.dumps(text), json.dumps(self.PREAMBLE))), [-1, 6, -1, -1])
+        self.assertEqual(run_logic('packetHeadLines("ShipLoop navigator | a\\nb",12)'), ["ShipLoop navigator | a", "b"])  # a first line is the start too
+        self.assertEqual(run_logic('[packetHeadLines("",12),packetHeadLines(undefined,12)]'), [[], []])
+
+    def test_the_card_says_which_start_it_used(self):
+        def probe(text: str) -> str:
+            doc = {"run": "cr", "action": "nav-a6", "stage": "implement", "bytes": len(text), "shownBytes": len(text), "sha256": "ab" * 32, "text": text}
+            return page_probe('setCol(4);byClass("seqdetail","btn").filter(function(b){return b.textContent==="Show the packet head";})[0].onclick();'
+                              'byClass("seqdetail","pkt-headbox")[0].textContent',
+                              setup=card_setup(extra="PACKET_DOCS=" + json.dumps({"packets/cr--nav-a6": doc}) + ";"))
+        with_line, without = probe(self.PREAMBLE), probe("one\ntwo\nthree\n")
+        self.assertIn("from the 'ShipLoop navigator |' line", with_line)
+        self.assertIn("with what comes before that line", with_line)
+        self.assertNotIn("Delegation: inline.", with_line.split("Packet box below)")[1])
+        self.assertNotIn("from the 'ShipLoop navigator |' line", without)
+        self.assertIn("the first 3 non-empty lines of the packet", without)
 
 
 if __name__ == "__main__":

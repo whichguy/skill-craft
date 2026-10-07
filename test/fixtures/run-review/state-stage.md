@@ -110,7 +110,7 @@
     {
       "action": "nav-12d354b18b354c28a1b5113dafed45ec",
       "outcome": "done",
-      "stage": "select-work",
+      "stage": "get-next-work-item",
       "summary": "Synthetic: recorded by the R18 fixture walk without doing it.",
       "workitem": "W1"
     }

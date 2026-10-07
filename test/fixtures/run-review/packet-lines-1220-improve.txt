@@ -1,0 +1,2 @@
+ShipLoop navigator | spec | revision 5
+Current action: Improve the completed spec result.
