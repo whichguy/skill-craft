@@ -1,5 +1,11 @@
 # ShipLoop navigator 0.54.0
 
+> **Main tenet: context can be cleared or compacted between any two stages, so every packet must stand alone.** A packet states what
+> its stage is for, how the stage operates, how its result will be checked and reviewed, what it must produce, and how to recover. It
+> does so even when the previous packet said the same thing. Repetition from one packet to the next is how a cleared model is grounded;
+> the only repetition to remove is inside one packet. Make a packet smaller only by dropping what that stage does not need, and prove
+> the result by clearing the context at a stage boundary and inside a stage and comparing the redone work. SPEC S-6 states the rule.
+
 ShipLoop's invoking conversation owns navigation, acceptance and delivery. New
 runs record `delegation: inline`, so that conversation also executes every
 assignment. It clears once per work item at the `select-work` packet (through a

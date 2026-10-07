@@ -8,6 +8,21 @@ the Sonnet 5.5 run (checks on) and the Google Apps Script run as comparisons. Ev
 derived from stage times, or estimated; none has been tested. The reviewers' own reports are model output; this document is the
 combination. Related: `docs/planning-time-analysis-2026-10-06.md`, `docs/test-suite-review-2026-10-06.md`.
 
+## 0. The tenet that governs every proposal below (owner, 2026-10-07)
+
+Assume the previous stage's context is cleared before the next stage runs. Each packet must therefore restate, for its own stage, what
+it is for, how the stage operates and how its result will be checked and reviewed, even when earlier packets said the same. Repetition
+between packets is grounding, not waste; only repetition inside one packet is waste. Test for any change: a model holding only the next
+packet knows what to do, how it is checked and where the run stands, shown by clearing the context at a stage boundary and inside a stage
+and comparing the redone work. The tenet is now in `skills/shiploop/README.md` and SPEC S-6.
+
+Effect on this review: the reviewers' packet and ledger proposals that move grounding out of the packet are **withdrawn** (a run-level
+rules file; relative-path index; optional notes; general packet de-duplication). Ledger de-duplication stays only for what the script alone
+reads (the duplicate `history` list in `state.md`); the summaries reprinted in packets stay. Script-first steps and stage merges stay only
+if the packet that follows, or the merged packet, still states how the stage operates and is reviewed, including when a retry loop opens
+only on failure. Reference cards stay as a way to shrink what a packet points at, not what it says. Strengthened: the correctness fixes,
+the settled-fact lines in planning, and recording the retry loop's state path in the ledger.
+
 ## 1. Correctness findings (more important than speed)
 
 1. **The test counter misreads two common cases** (`shiploop_test_counts.py`): `node --test` output is not parsed (`counts: null`, so

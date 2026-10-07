@@ -63,12 +63,21 @@ executed correctly: the goal, the exit criteria, the rules that apply to that
 step (stated once), the callback and the recovery command. It does not rely on
 earlier conversation.
 
+**S-6 is a main tenet of ShipLoop (owner decision 2026-10-07).** Assume the previous stage's context is gone before the next stage
+runs. Each packet therefore restates, for its own stage, how the stage is meant to operate and how its result will be checked and
+reviewed, even when earlier packets said the same; repetition between packets is grounding, not waste. Only repetition inside one packet
+is waste, and "stated once" above means once per packet. A proposal to shorten, merge or move packet text or ledger records is judged by
+this test: a model holding only the next packet knows what to do, how it is checked and where the run stands. The evidence base: after
+each of the 5 compactions in the 2026-10-06 Grok run the model's first call was to re-read the current packet. A change that moves
+grounding out of the packet, into a file the packet merely names or into a record the model has to find, fails S-6 unless a
+clear-the-context probe at a stage boundary and inside a stage shows no redone work.
+
 **S-7 Packets are small where they are printed; detail lives in files.** The
 printed head is short: callback, goal, result contract, the path of the full
 packet, recovery and pause. The full packet and every reference are files the
 model opens by path. References are cited by path and section; the model reads
 only the section a step needs and never re-reads whole cards or repeats
-unchanged run rules. Large planning context is acceptable when it sits in a
+unchanged run rules inside one packet (S-6: across packets the repetition stays). Large planning context is acceptable when it sits in a
 file the packet names.
 
 **S-8 The engine is product- and technology-agnostic.** Scripts, stage prompts,
