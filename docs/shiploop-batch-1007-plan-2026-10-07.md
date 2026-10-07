@@ -1,6 +1,6 @@
 # Batch plan 2026-10-07: correctness, stage clarity, read-back audit, run-review cards
 
-Status: **plan, before audit**. Process (owner): plan every change, audit it, resolve the unknowns, build the whole batch, then test.
+Status: **audited 2026-10-07 (three reviewers: blast radius, feasibility, tenet/owner rules); revised below**. Process (owner): plan every change, audit it, resolve the unknowns, build the whole batch, then test.
 Live verification runs are launched without asking (owner, 2026-10-07). Every change is judged by the main tenet (README top, SPEC S-6):
 a model holding only the next packet knows what to do, how it is checked and where the run stands; repetition between packets stays.
 Scripts navigate the graph from the ledger (`state.md` is the single authority); nothing here moves that to the model.
@@ -50,3 +50,22 @@ context, which is the clear-the-context probe). Expected: no `uncounted` or titl
 ledger and the export, the two skill stages script-completed, the read-back audit with no orphan kind, planning near 22 minutes (Grok, checks
 off), the delivered repo's plain `node --test` independent of Chrome. A release is the owner's decision; after it, the same runs by the
 marketplace route.
+
+## Audit outcome (2026-10-07): what changed in the plan
+
+Three read-only reviewers (blast radius a0be366b, feasibility a553ffdb, tenet and owner rules abb29bce) checked every item against the
+code and the records. Dispositions, each with its reason:
+
+| Item | Disposition | Reason (evidence) |
+|---|---|---|
+| B1, B4 | **Built** (c38f6887) | TAP double-counted through the Go reader; the plan's "leading dash" rule would have matched Go `--- PASS:`; a load failure printed `tests 1 / fail 1` and read as a test that ran; the regression command with no ids still passes uncounted, so "dot is refused" holds only for focused commands. |
+| B2 | **Deferred; replaced by B7 guidance** | System ids are declared at `system-test-author`, after the inner runs, so the check can only live at `system-test`; verify records keep a 6000-character tail; no field separates a host-dependent case from a legitimate repeat in the regression suite, so "id in regression output" would refuse repos whose default runner includes integration tests. Needs a declared marker (schema change): an owner decision, not a quiet add. |
+| B3 | **Deferred, owner decision** | Release-verify may run before the return (`workspace return` is allowed only at release or handoff); checks would run in the user's real tree; nothing broke in a normal run. |
+| B5 | Keep, atomic with the Run Review exporter alias; retired-stage message in `retired_run_reason`; no protocol bump | 56 files, 156 hits, 15 test files; the exporter's `PHASES`, `template/index.html`, `dag_replay`, `behavior_capture` and the dry-run WORK3 literal also carry the name. Saved runs are already refused with a bare "unknown navigator stage". |
+| B6 | **Deferred** | `skill-assess` also decides create/update/helper/MCP/library cases, so a skill-path predicate silently drops them; a new path class must sit before `docs` and be non-behavioural; evidence is 5 of 5 N/A on one product (about 1.6 minutes per item). Revisit with a second product. |
+| B7 | Keep: module-format/seam line and a host-dependent-case line (name and probe the tool; state which commands may print which ids) | The seam line is supported by the 165.9-minute missing-module escape; the browser-tool half rests on the Chrome-dependent `node --test`. Guidance only; no script check. |
+| B8 | **Replaced** by correcting the stale packet text that tells the model to save each packet to a "printed latest-packet path" that is not printed | The Until Loop runtime already writes every packet, with `state_file`, to the printed `--receipt` path; the engine never starts the loop, so a ledger write has no hook. |
+| B9 | **Dropped** | Work items carry only id, title and context; requirement ids and paths exist later, per item, at step-plan; the threshold rested on two plans. |
+| B10 | **Shrunk** to a one-time register document with verified readers, no CLI verb, no exporter change | A declared-from-source audit passes by declaring a reader; the notes it would flag are the recovery aids the tenet wants. |
+| B11 | Fork owns it; after B5 | Must handle visits with no packet and run the exporter privacy screen. |
+| B12 | Keep, widened | Improve-phase packets (release-plan, system-test-author, planning stages under `--planning-review stage`, carry-forward on the last item) lack Goal, Done-when and a Result template; "how checked" is missing or generic in 13 to 22 of 34 stages. The test fails first, then the prompts are completed. |
