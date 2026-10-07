@@ -1,0 +1,42 @@
+[32m✔ TC-1 passes [90m(0.477125ms)[39m[39m
+[32m✔ TC-2 pending cell shows [90m(0.040291ms)[39m[39m
+[90m﹣ TC-3 skipped on purpose [90m(0.027125ms)[39m # x[39m
+[32m✔ TC-4 todo later [90m(0.032209ms)[39m # TODO[39m
+▶ TC-5 group
+  [32m✔ TC-6 inner passes [90m(0.0395ms)[39m[39m
+  [31m✖ TC-7 inner fails [90m(0.615708ms)[39m[39m
+[31m✖ TC-5 group [90m(0.7435ms)[39m[39m
+[32m✔ TC-8 second file [90m(0.439166ms)[39m[39m
+[34mℹ tests 7[39m
+[34mℹ suites 1[39m
+[34mℹ pass 4[39m
+[34mℹ fail 1[39m
+[34mℹ cancelled 0[39m
+[34mℹ skipped 1[39m
+[34mℹ todo 1[39m
+[34mℹ duration_ms 61.364583[39m
+
+[31m✖ failing tests:[39m
+
+test at test/a.test.js:9:3
+[31m✖ TC-7 inner fails [90m(0.615708ms)[39m[39m
+  AssertionError [ERR_ASSERTION]: Expected values to be strictly equal:
+  
+  1 !== 2
+  
+      at TestContext.<anonymous> [90m(/work/[39mtest/a.test.js:9:41[90m)[39m
+  [90m    at Test.runInAsyncScope (node:async_hooks:226:14)[39m
+  [90m    at Test.run (node:internal/test_runner/test:1201:25)[39m
+  [90m    at Suite.processPendingSubtests (node:internal/test_runner/test:831:18)[39m
+  [90m    at Test.postRun (node:internal/test_runner/test:1330:19)[39m
+  [90m    at Test.run (node:internal/test_runner/test:1258:12)[39m
+      at async Promise.all (index 0)
+  [90m    at async Suite.run (node:internal/test_runner/test:1619:7)[39m
+  [90m    at async Test.processPendingSubtests (node:internal/test_runner/test:831:7)[39m {
+    generatedMessage: [33mtrue[39m,
+    code: [32m'ERR_ASSERTION'[39m,
+    actual: [33m1[39m,
+    expected: [33m2[39m,
+    operator: [32m'strictEqual'[39m,
+    diff: [32m'simple'[39m
+  }

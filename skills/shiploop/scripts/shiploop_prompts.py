@@ -1139,7 +1139,8 @@ runs them itself before accepting each stage, so each must be runnable from the
 repository root. ShipLoop reads the runner's summary and refuses a run that
 executed no test, because a filter that matches nothing exits 0 in most runners.
 Give each focused command the `ids` of the test-spec cases it must run, and a
-runner flag that prints test names (for example Jest `--verbose`, pytest `-v`),
+runner flag that prints test names (for example Jest `--verbose`, pytest `-v`, `node --test` with its default
+spec or the tap reporter, never dot or junit),
 so the output shows them; add `min_tests` when a command must run at least that
 many. An empty list needs `test_commands_na` with the reason.
 Record the files this item will change in `paths` (repository-relative files or

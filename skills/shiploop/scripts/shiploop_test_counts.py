@@ -109,7 +109,8 @@ def _go(text: str) -> Optional[Dict[str, int]]:
     if verdicts:
         failed = verdicts.count("FAIL")
         return {"ran": len(verdicts), "failed": failed}
-    ok_lines = re.findall(r"^ok\s+\S+\s+.*$", text, re.MULTILINE)
+    # ``ok  <package>  0.12s`` or ``(cached)``; TAP's ``ok 1 - title`` is not a Go package line.
+    ok_lines = re.findall(r"^ok\s+(?!\d+ - )\S+\s+(?:[\d.]+s|\(cached\)).*$", text, re.MULTILINE)
     empty = re.findall(r"\[no test files\]|\[no tests to run\]|testing: warning: no tests to run", text)
     ran_packages = [line for line in ok_lines if "[no tests to run]" not in line]
     fail_packages = re.findall(r"^FAIL\s+\S+\s+[\d.]+s", text, re.MULTILINE)
@@ -119,6 +120,28 @@ def _go(text: str) -> Optional[Dict[str, int]]:
     if empty:
         return {"ran": 0, "failed": 0}
     return None
+
+
+_NODE_FILE_FAILURE = re.compile(r"^(?:\u2716 |not ok \d+ - )(\S+\.[cm]?[jt]s)(?: \(|\s*$)", re.MULTILINE)
+
+
+def _node(text: str) -> Optional[Dict[str, int]]:
+    """``node --test``: spec ``\u2139 tests 4`` or TAP ``# tests 4``, then ``pass``, ``fail`` and ``cancelled`` lines.
+
+    ``skipped`` and ``todo`` tests are in ``tests`` but not in ``pass``, so they are not counted as run.  A test file
+    that fails to load is one synthetic failing "test" named by its path (the summary counts it); no test of that
+    file ran, so it is taken out of both counts, as ``_unittest`` does.  The ``dot`` and junit reporters print no
+    summary and are not guessed.
+    """
+    totals = {}
+    for key in ("tests", "pass", "fail", "cancelled"):
+        found = re.findall(r"^(?:\u2139|#) " + key + r" (\d+)\s*$", text, re.MULTILINE)
+        if not found:
+            return None
+        totals[key] = sum(int(value) for value in found)
+    unloadable = len(set(_NODE_FILE_FAILURE.findall(text)))
+    failed = totals["fail"] + totals["cancelled"]
+    return {"ran": max(totals["pass"] + failed - unloadable, 0), "failed": max(failed - unloadable, 0)}
 
 
 def _dotnet(text: str) -> Optional[Dict[str, int]]:
@@ -134,11 +157,12 @@ def _dotnet(text: str) -> Optional[Dict[str, int]]:
 
 def count(output: str, exit_code: Optional[int]) -> Optional[Dict[str, object]]:
     """Return ``{"ran", "failed", "runners"}`` summed over every recognised runner, or ``None``."""
+    output = _plain(output)
     found: List[str] = []
     ran = failed = 0
     for name, reader in (
         ("jest", _jest), ("vitest", _vitest), ("unittest", _unittest), ("mocha", _mocha),
-        ("cargo", _cargo), ("go", _go), ("dotnet", _dotnet),
+        ("cargo", _cargo), ("go", _go), ("dotnet", _dotnet), ("node", _node),
     ):
         result = reader(output)
         if result is not None:
@@ -155,7 +179,21 @@ def count(output: str, exit_code: Optional[int]) -> Optional[Dict[str, object]]:
     return {"ran": ran, "failed": failed, "runners": found}
 
 
-_SKIP_LINE = re.compile(r"\bskipped\b|\bskip\b|\bSKIP\b|\bpending\b|\bdeselected\b|\btodo\b|○|✎", re.IGNORECASE)
+_ANSI = re.compile(r"\x1b\[[0-9;?]*[A-Za-z]")
+
+
+def _plain(text: str) -> str:
+    """Output without terminal colour codes (``FORCE_COLOR``, a TTY runner)."""
+    return _ANSI.sub("", text)
+
+
+# A skipped test is marked by each runner's own syntax, never by a word in a test title: a leading skip glyph (jest
+# and vitest, node spec), mocha's pending ``- title``, a trailing ``# SKIP``/``# TODO`` (TAP, node), pytest's
+# ``SKIPPED``, unittest's ``... skipped`` and go's ``--- SKIP:``.  ``# Subtest:`` is TAP's announcement of a test,
+# printed before its result line, so it shows nothing about the outcome.
+_SKIP_LINE = re.compile(
+    r"^\s*[○✎﹣↓] |^\s*- |#\s*(?:SKIP|TODO)\b|\bSKIPPED\b|\.\.\. skipped\b|--- SKIP: |\[skipped\]", re.IGNORECASE)
+_ANNOUNCEMENT = re.compile(r"^\s*# Subtest:")
 
 
 def _id_pattern(test_id: str) -> "re.Pattern[str]":
@@ -164,7 +202,7 @@ def _id_pattern(test_id: str) -> "re.Pattern[str]":
 
 def named(output: str, ids: Sequence[str]) -> Dict[str, List[str]]:
     """Split declared IDs into ``shown`` (on a non-skip output line) and ``missing``."""
-    lines = output.splitlines()
+    lines = [line for line in _plain(output).splitlines() if not _ANNOUNCEMENT.match(line)]
     shown: List[str] = []
     missing: List[str] = []
     for test_id in ids:

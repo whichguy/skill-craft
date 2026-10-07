@@ -506,7 +506,7 @@ Improve card:
    iteration runs every command, finds the cause of each failure, fixes the
    product code (never a check to get green) and reruns the whole list after
    its last edit. The loop ends after an iteration in which every command
-   exited 0 and nothing changed; iteration 4 that still fails stops it.
+   exited 0 and nothing changed; there is no iteration limit.
 3. The stage accepts only `done`, `revise` or `blocked`. `done` needs the saved terminal
    packet `tests/<action>-terminal.json`, checked against the contract rebuilt
    from run state. Then ShipLoop runs every listed command itself with
@@ -516,10 +516,11 @@ Improve card:
    pass and the end of its output.
 
 A command passes only when it exits 0 **and ran tests**. ShipLoop reads the
-runner's summary (Jest, Vitest, pytest, unittest, Mocha, cargo, go, dotnet) and
+runner's summary (Jest, Vitest, pytest, unittest, Mocha, cargo, go, dotnet, `node --test` with the spec or tap
+reporter, not dot or junit) and
 refuses a run of zero tests (`no-tests`), fewer than `min_tests`
 (`too-few-tests`), or one whose output does not show each listed ID on a line
-that is not a skip line (`ids-missing`). A focused command whose count ShipLoop
+that is not a skip line, a skip being the runner's own marker and never a word in a test title (`ids-missing`). A focused command whose count ShipLoop
 cannot read passes only with `ids` that all appear; a regression command without
 `ids` or `min_tests` may pass uncounted.
 

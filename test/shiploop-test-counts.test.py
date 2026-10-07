@@ -182,6 +182,70 @@ class JudgeTests(unittest.TestCase):
         self.assertEqual(self.status(row, 1, UNITTEST_ONE_MODULE_LOADS, red=True), "not-red")
         self.assertEqual(self.status(row, 1, UNITTEST_FAILING_AND_UNLOADABLE, red=True), "red")
 
+NODE = ROOT / "test/fixtures/shiploop-node-test"
+
+
+def node(name: str) -> str:
+    return (NODE / name).read_text(encoding="utf-8")
+
+
+class NodeTestRunnerTests(unittest.TestCase):
+    """``node --test`` output as Node 25 prints it (see the fixtures README): spec, TAP, ANSI-coloured, a load failure.
+
+    A skipped or todo test is not a test that ran; a title that merely contains ``pending``, ``skip`` or ``todo`` is."""
+
+    def assertRan(self, name: str, ran: int, failed: int, code: int = 0) -> None:
+        result = counts.count(node(name), code)
+        self.assertIsNotNone(result, name)
+        self.assertEqual((result["ran"], result["failed"]), (ran, failed), name)
+        self.assertEqual(result["runners"], ["node"], name)
+
+    def test_the_spec_and_tap_reporters_are_counted(self):
+        self.assertRan("pass-spec.txt", 2, 0)
+        self.assertRan("pass-tap.txt", 2, 0)
+        self.assertRan("fail-spec.txt", 5, 1, code=1)
+        self.assertRan("fail-tap.txt", 5, 1, code=1)
+
+    def test_colour_codes_do_not_change_the_count_or_the_names(self):
+        self.assertRan("fail-spec-color.txt", 5, 1, code=1)
+        shown = counts.named(node("fail-spec-color.txt"), ["TC-2", "TC-3", "TC-7"])
+        self.assertEqual((shown["shown"], shown["missing"]), (["TC-2", "TC-7"], ["TC-3"]))
+
+    def test_a_file_that_cannot_be_loaded_is_not_a_test_that_ran(self):
+        self.assertRan("load-spec.txt", 0, 0, code=1)
+        self.assertRan("load-tap.txt", 0, 0, code=1)
+
+    def test_reporters_without_a_summary_are_not_guessed(self):
+        self.assertIsNone(counts.count(node("pass-dot.txt"), 0))
+        self.assertIsNone(counts.count(node("fail-junit.txt"), 1))
+
+    def test_a_skip_is_read_from_the_runner_syntax_not_from_a_word_in_the_title(self):
+        ids = ["TC-1", "TC-2", "TC-3", "TC-4"]
+        for name in ("pass-spec.txt", "pass-tap.txt"):
+            with self.subTest(name):
+                names = counts.named(node(name), ids)
+                self.assertEqual(names["shown"], ["TC-1", "TC-2"])  # TC-2 says "pending" in its title and ran
+                self.assertEqual(names["missing"], ["TC-3", "TC-4"])  # skipped and todo tests did not run
+
+    def test_existing_runners_keep_their_skip_lines(self):
+        for line in ("test_a.py::TC-5 SKIPPED (reason)", "test_x (m.C.TC-5) ... skipped 'why'", "--- SKIP: TC-5",
+                     "  - TC-5", "  \u2193 TC-5 [skipped]", "ok 5 - TC-5 # SKIP"):
+            with self.subTest(line=line):
+                self.assertEqual(counts.named(line + "\n", ["TC-5"])["missing"], ["TC-5"])
+        self.assertEqual(counts.named("--- PASS: TC-5 (0.00s)\n", ["TC-5"])["shown"], ["TC-5"])
+        self.assertEqual(counts.named("    \u2713 TC-5 pending cell\n", ["TC-5"])["shown"], ["TC-5"])
+
+    def test_the_judge_refuses_a_node_load_failure_and_accepts_the_real_runs(self):
+        focused = {"command": "node --test", "suite": "focused"}
+        status = lambda row, code, name, **kw: test_loop.judge(row, code, node(name), **kw)["status"]  # noqa: E731
+        self.assertEqual(status(focused, 1, "load-spec.txt"), "no-tests")
+        self.assertEqual(status(focused, 1, "load-spec.txt", red=True), "no-tests")
+        self.assertEqual(status(focused, 0, "pass-spec.txt"), "passed")
+        self.assertEqual(status(dict(focused, min_tests=3), 0, "pass-spec.txt"), "too-few-tests")
+        self.assertEqual(status(dict(focused, ids=["TC-3"]), 0, "pass-tap.txt"), "ids-missing")
+        self.assertEqual(status(focused, 1, "fail-spec.txt", red=True), "red")
+        self.assertEqual(status(focused, 0, "pass-dot.txt"), "uncounted")
+
 
 class CommandSchemaTests(unittest.TestCase):
     def test_ids_and_min_tests_are_validated(self):

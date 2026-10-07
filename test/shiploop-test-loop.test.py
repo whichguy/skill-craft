@@ -757,9 +757,9 @@ class TestLoopTests(unittest.TestCase):
         dict(name="exit 0, fewer tests than min_tests", row=dict(min_tests=3), code=0, out=UNITTEST_OK,
              status="too-few-tests", accepted=False),
         dict(name="exit 1, a load failure before any test, no ids", code=1, out=NODE_LOAD_FAILURE,
-             status="uncounted", accepted=False),
+             status="no-tests", accepted=False),
         dict(name="exit 1, a load failure before any test, ids listed", ids=["TC-01"], code=1,
-             out=NODE_LOAD_FAILURE, status="ids-missing", accepted=False),
+             out=NODE_LOAD_FAILURE, status="no-tests", accepted=False),
         dict(name="exit 1, tests ran and none failed", code=1, out=UNITTEST_OK, status="not-red", accepted=False),
         dict(name="exit 1, one failing test", code=1, out=UNITTEST_FAIL, status="red", accepted=True),
         dict(name="exit 1, a failing test named by its ID", ids=["TC-01", "TC-02"], code=1, out=NODE_ONE_FAILING,
@@ -908,13 +908,13 @@ class TestLoopTests(unittest.TestCase):
                 self.assertFalse((self.run_dir / test_loop.verify_path(action, 1)).exists())
 
     def test_the_judge_reads_recorded_node_output_as_a_load_failure(self):
-        """GUARD (characterisation of the existing judge, as measured on a fixture): its summary is not counted, so the
-        listed IDs carry the verdict, and a load failure never reads as a test that ran."""
-        self.assertIsNone(test_loop.counts.count(NODE_LOAD_FAILURE, 1))
+        """A file that fails to load is one synthetic failing test named by its path; no test of it ran, so it reads as
+        zero tests with or without listed IDs (before the node reader the same output was uncounted or ids-missing)."""
+        self.assertEqual(test_loop.counts.count(NODE_LOAD_FAILURE, 1)["ran"], 0)
         focused = {"suite": "focused", "command": "x"}
         listed = dict(focused, ids=["TC-01"])
-        self.assertEqual(test_loop.judge(focused, 1, NODE_LOAD_FAILURE, red=True)["status"], "uncounted")
-        self.assertEqual(test_loop.judge(listed, 1, NODE_LOAD_FAILURE, red=True)["status"], "ids-missing")
+        self.assertEqual(test_loop.judge(focused, 1, NODE_LOAD_FAILURE, red=True)["status"], "no-tests")
+        self.assertEqual(test_loop.judge(listed, 1, NODE_LOAD_FAILURE, red=True)["status"], "no-tests")
         self.assertEqual(test_loop.judge(listed, 1, NODE_ONE_FAILING, red=True)["status"], "red")
 
     def test_the_judge_reads_recorded_unittest_load_failure_as_no_test_ran(self):

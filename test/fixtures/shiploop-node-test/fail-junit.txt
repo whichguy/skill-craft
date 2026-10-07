@@ -1,0 +1,55 @@
+<?xml version="1.0" encoding="utf-8"?>
+<testsuites>
+	<testcase name="TC-1 passes" time="0.000448" classname="test" file="/work/test/a.test.js"/>
+	<testcase name="TC-2 pending cell shows" time="0.000040" classname="test" file="/work/test/a.test.js"/>
+	<testcase name="TC-3 skipped on purpose" time="0.000028" classname="test" file="/work/test/a.test.js">
+		<skipped type="skipped" message="x"/>
+	</testcase>
+	<testcase name="TC-4 todo later" time="0.000033" classname="test" file="/work/test/a.test.js">
+		<skipped type="todo" message="true"/>
+	</testcase>
+	<testsuite name="TC-5 group" time="0.000618" disabled="0" errors="0" tests="2" failures="1" skipped="0" hostname="BigDog.local">
+		<testcase name="TC-6 inner passes" time="0.000039" classname="test" file="/work/test/a.test.js"/>
+		<testcase name="TC-7 inner fails" time="0.000485" classname="test" file="/work/test/a.test.js" failure="Expected values to be strictly equal:&#10;&#10;1 !== 2&#10;">
+			<failure type="testCodeFailure" message="Expected values to be strictly equal:&#10;&#10;1 !== 2">
+Error [ERR_TEST_FAILURE]: Expected values to be strictly equal:
+
+1 !== 2
+
+    at async Promise.all (index 0) {
+  code: 'ERR_TEST_FAILURE',
+  failureType: 'testCodeFailure',
+  cause: AssertionError [ERR_ASSERTION]: Expected values to be strictly equal:
+  
+  1 !== 2
+  
+      at TestContext.&lt;anonymous> (/work/test/a.test.js:9:41)
+      at Test.runInAsyncScope (node:async_hooks:226:14)
+      at Test.run (node:internal/test_runner/test:1201:25)
+      at Suite.processPendingSubtests (node:internal/test_runner/test:831:18)
+      at Test.postRun (node:internal/test_runner/test:1330:19)
+      at Test.run (node:internal/test_runner/test:1258:12)
+      at async Promise.all (index 0)
+      at async Suite.run (node:internal/test_runner/test:1619:7)
+      at async Test.processPendingSubtests (node:internal/test_runner/test:831:7) {
+    generatedMessage: true,
+    code: 'ERR_ASSERTION',
+    actual: 1,
+    expected: 2,
+    operator: 'strictEqual',
+    diff: 'simple'
+  }
+}
+			</failure>
+		</testcase>
+	</testsuite>
+	<testcase name="TC-8 second file" time="0.000437" classname="test" file="/work/test/b.test.js"/>
+	<!-- tests 7 -->
+	<!-- suites 1 -->
+	<!-- pass 4 -->
+	<!-- fail 1 -->
+	<!-- cancelled 0 -->
+	<!-- skipped 1 -->
+	<!-- todo 1 -->
+	<!-- duration_ms 59.328666 -->
+</testsuites>

@@ -1,0 +1,4 @@
+---
+bump: minor
+---
+The test counter now reads `node --test` (spec and TAP reporters, colour codes stripped), so `min_tests` is enforced and a test file that fails to load reads as zero tests instead of a failing test that ran. A test counts as skipped only by its runner's own marker (a skip glyph, `# SKIP`/`# TODO`, pytest `SKIPPED`, unittest `... skipped`, go `--- SKIP:`), never because its title contains `pending`, `skip` or `todo`; a TAP `# Subtest:` announcement no longer shows an id as run. The refusal text and the test-strategy packet name the node reporters that work (spec, tap) and the ones that do not (dot, junit). README and SKILL.md corrections: no packet or hook clears the conversation, `skill-assess` is the reuse/update/create decision, the default one-pass Backchain loop and `--planning-review` are described, and the test loop has no iteration limit.

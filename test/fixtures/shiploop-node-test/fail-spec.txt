@@ -1,0 +1,42 @@
+✔ TC-1 passes (0.469459ms)
+✔ TC-2 pending cell shows (0.038958ms)
+﹣ TC-3 skipped on purpose (0.027083ms) # x
+✔ TC-4 todo later (0.03325ms) # TODO
+▶ TC-5 group
+  ✔ TC-6 inner passes (0.038166ms)
+  ✖ TC-7 inner fails (0.461459ms)
+✖ TC-5 group (0.59075ms)
+✔ TC-8 second file (0.444209ms)
+ℹ tests 7
+ℹ suites 1
+ℹ pass 4
+ℹ fail 1
+ℹ cancelled 0
+ℹ skipped 1
+ℹ todo 1
+ℹ duration_ms 59.396167
+
+✖ failing tests:
+
+test at test/a.test.js:9:3
+✖ TC-7 inner fails (0.461459ms)
+  AssertionError [ERR_ASSERTION]: Expected values to be strictly equal:
+  
+  1 !== 2
+  
+      at TestContext.<anonymous> (/work/test/a.test.js:9:41)
+      at Test.runInAsyncScope (node:async_hooks:226:14)
+      at Test.run (node:internal/test_runner/test:1201:25)
+      at Suite.processPendingSubtests (node:internal/test_runner/test:831:18)
+      at Test.postRun (node:internal/test_runner/test:1330:19)
+      at Test.run (node:internal/test_runner/test:1258:12)
+      at async Promise.all (index 0)
+      at async Suite.run (node:internal/test_runner/test:1619:7)
+      at async Test.processPendingSubtests (node:internal/test_runner/test:831:7) {
+    generatedMessage: true,
+    code: 'ERR_ASSERTION',
+    actual: 1,
+    expected: 2,
+    operator: 'strictEqual',
+    diff: 'simple'
+  }

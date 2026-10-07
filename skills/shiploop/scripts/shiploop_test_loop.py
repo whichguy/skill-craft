@@ -359,7 +359,8 @@ COUNT_RULE = ("A command passes only when it exits 0 and actually ran tests: Shi
               "refuses a run of zero tests, and checks that every listed ID appears in the output. A filter "
               "that matches nothing is not evidence; running the whole suite instead of the named cases does "
               "not satisfy a listed ID. If ShipLoop cannot read a focused command's test count, it needs ids "
-              "and a runner flag that prints test names (for example --verbose).")
+              "and a runner flag that prints test names (for example --verbose; for node --test the spec or tap "
+              "reporter, never dot or junit).")
 
 
 def check_terminal(root: Path, state: Mapping[str, Any], work_item: str, action: str, stage: str,
@@ -481,8 +482,8 @@ def _explain(run: Mapping[str, Any], stage: str = "") -> str:
                     "exit code. Report outcome replan now, with one corrective work item: a new id, a title, and a "
                     "context that names this command and says to record it as suite check in " + field
                     + ". The outer stages then run again, and " + source + " records it.")
-        return (unread + "Give the command ids and a runner flag that prints test names, use a runner ShipLoop "
-                "recognises, or, for a command that is not a test runner, record it as suite `check`.")
+        return (unread + "Give the command ids and a runner flag that prints test names (node --test: the spec or tap "
+                "reporter, never dot or junit), use a runner ShipLoop recognises, or, for a command that is not a test runner, record it as suite `check`.")
     if status == "green":
         return ("passed, but test-red expects the new tests to fail before implementation. If they are meant to "
                 "pass already, give the reason in red_na.")
