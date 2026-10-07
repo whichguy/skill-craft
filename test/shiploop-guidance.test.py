@@ -1037,7 +1037,7 @@ class GuidanceTests(unittest.TestCase):
         self.assertIn("reviewed UI replacement with explicit precedence", replacement_packet)
         self.assertNotIn(original_locator, replacement_packet)
         state, _ = self.complete_stage(state)
-        self.assertEqual(navigator.current_stage(state), "select-work")
+        self.assertEqual(navigator.current_stage(state), "get-next-work-item")
         state, _ = self.complete_stage(state)
         state, cold_packet = self.cold_packet(state)
         self.assertEqual(navigator.current_stage(state), "step-plan")
@@ -1290,7 +1290,7 @@ class GuidanceTests(unittest.TestCase):
         self.assertEqual(navigator.current_stage(state), "prepare")
         state, _prepare_action = self.complete_stage(state, evidence_refs=["unrelated://prepare"])
         state = self.save_reload(state)
-        self.assertEqual(navigator.current_stage(state), "select-work")
+        self.assertEqual(navigator.current_stage(state), "get-next-work-item")
         state, _select_action = self.complete_stage(state, evidence_refs=["unrelated://select-w1"])
         state = self.save_reload(state)
         self.assertEqual(navigator.current_stage(state), "step-plan")
@@ -1650,7 +1650,7 @@ class GuidanceTests(unittest.TestCase):
         state = navigator.apply(state, replan_action, replan_result)
         self.assertIsNone(state["active_improve"])
         state = self.save_reload(state)
-        self.assertEqual(navigator.current_stage(state), "select-work")
+        self.assertEqual(navigator.current_stage(state), "get-next-work-item")
         self.assertEqual(navigator._current_work_item(state), "W3")
 
         while navigator.current_stage(state) != "system-test-author":

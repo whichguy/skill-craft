@@ -48,7 +48,7 @@ EXPECTED_PRELUDE = (
     "intake", "discovery", "research", "spec", "test-strategy", "plan", "prepare",
 )
 EXPECTED_INNER = (
-    "select-work", "step-plan", "test-spec", "baseline", "test-author", "test-red",
+    "get-next-work-item", "step-plan", "test-spec", "baseline", "test-author", "test-red",
     "implement", "test-green", "test-refine", "regression", "document", "skill-assess",
     "skill-validate", "static-checks", "verify", "integrate", "integration-verify",
     "carry-forward",
@@ -1019,7 +1019,7 @@ class FullRuntimeCompositionTests(unittest.TestCase):
                 "work_items": [{"id": "W2", "title": "Synthetic corrective item"}],
             },
         )
-        self.assertEqual(self._cursor(state)[0], "select-work")
+        self.assertEqual(self._cursor(state)[0], "get-next-work-item")
         self.assertEqual(state["completed_work_items"], ["W1"])
         self.assertEqual([item["id"] for item in state["work_items"]], ["W1", "W2"])
         self.assertTrue(previous_actions.issubset(state["improve_results"]))
@@ -1029,20 +1029,20 @@ class FullRuntimeCompositionTests(unittest.TestCase):
 
         state, repeat_context = self._advance_stage(
             shiploop=self.source_shiploop, improve=self.source_improve,
-            repo=repo, run=run, stage="select-work",
+            repo=repo, run=run, stage="get-next-work-item",
             final_result={
                 "outcome": "repeat",
                 "summary": "Synthetic Improve correction requests another selection attempt.",
             },
         )
         repeated_stage, repeated_action = self._cursor(state)
-        self.assertEqual(repeated_stage, "select-work")
+        self.assertEqual(repeated_stage, "get-next-work-item")
         self.assertNotEqual(repeated_action["id"], repeat_context["action"])
         self.assertEqual(state["accepted"][repeat_context["action"]]["outcome"], "repeat")
 
         state, _ = self._advance_stage(
             shiploop=self.source_shiploop, improve=self.source_improve,
-            repo=repo, run=run, stage="select-work",
+            repo=repo, run=run, stage="get-next-work-item",
         )
         self.assertEqual(self._cursor(state)[0], "step-plan")
 
@@ -1100,7 +1100,7 @@ class FullRuntimeCompositionTests(unittest.TestCase):
                 },
             },
         )
-        self.assertEqual(self._cursor(state)[0], "select-work")
+        self.assertEqual(self._cursor(state)[0], "get-next-work-item")
         self.assertEqual(state["completed_work_items"], ["W1", "W2"])
         self.assertEqual([item["id"] for item in state["work_items"]], ["W1", "W2", "W3"])
         blocked_packet = self._run(

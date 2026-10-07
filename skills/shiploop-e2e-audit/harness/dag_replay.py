@@ -56,7 +56,7 @@ _PRELUDE = (
     "intake", "discovery", "research", "spec", "test-strategy", "plan", "prepare",
 )
 _INNER = (
-    "select-work", "step-plan", "test-spec", "baseline", "test-author", "test-red",
+    "get-next-work-item", "step-plan", "test-spec", "baseline", "test-author", "test-red",
     "implement", "test-green", "test-refine", "regression", "document", "skill-assess",
     "skill-validate", "static-checks", "verify", "integrate", "integration-verify",
     "carry-forward",
@@ -367,7 +367,7 @@ def synthetic_cases() -> dict[str, dict[str, Any]]:
         "synthetic-pause-blocked-cold-recovery", paused_steps, {"stage": "test-strategy", "status": "active"}
     )
 
-    repeat_prefix = _path_steps(_PRELUDE + ("select-work",), terminal_target="step-plan")
+    repeat_prefix = _path_steps(_PRELUDE + ("get-next-work-item",), terminal_target="step-plan")
     repeat_steps = repeat_prefix + [
         {"at": "step-plan", "command": "produce", "result": _result("step-plan", outcome="repeat"), "expect": "step-plan", "status": "active"},
         {"at": "step-plan", "command": "finish-improve", "receipt": _receipt("step-plan"), "final_result": _result("step-plan", outcome="repeat"), "expect": "step-plan", "status": "active"},
@@ -383,7 +383,7 @@ def synthetic_cases() -> dict[str, dict[str, Any]]:
     )
     corrective_steps = corrective_prefix + [
         # system-test is not a checkpoint: its corrective replan applies directly.
-        {"at": "system-test", "owner": "root", "command": "produce", "result": _result("system-test", outcome="replan", work_items=[{"id": "W2", "title": "Corrective synthetic item"}]), "expect": "select-work", "expect_owner": "W2", "status": "active"},
+        {"at": "system-test", "owner": "root", "command": "produce", "result": _result("system-test", outcome="replan", work_items=[{"id": "W2", "title": "Corrective synthetic item"}]), "expect": "get-next-work-item", "expect_owner": "W2", "status": "active"},
         *_path_steps(_INNER + _OUTER, active_owner="W2"),
     ]
     cases["synthetic-corrective-replan"] = _synthetic_case(

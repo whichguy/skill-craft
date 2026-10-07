@@ -2,7 +2,7 @@
 
 `carry-forward` is the last INNER stage of each work item, after
 `integration-verify`. It records what the item learned and revises the future
-work queue before the script selects the next item's `select-work`, or returns
+work queue before the script selects the next item's `get-next-work-item`, or returns
 ownership to `system-test-author` after the final item. It uses the normal
 producer result and callback; there is no separate ledger or command.
 
@@ -14,7 +14,7 @@ flowchart TD
     Q -->|work_items supplied| R[Entire future queue replaced]
     K --> N{Items left?}
     R --> N
-    N -->|yes| S[Next item's select-work]
+    N -->|yes| S[Next item's get-next-work-item]
     N -->|no| I[End-of-work Improve child, then system-test-author]
 ```
 

@@ -45,7 +45,7 @@ _PLANNING_STAGES = frozenset(
         "test-strategy",
         "plan",
         "prepare",
-        "select-work",
+        "get-next-work-item",
         "step-plan",
         "test-spec",
         "baseline",

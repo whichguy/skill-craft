@@ -213,6 +213,21 @@ def lint_view(state: Mapping[str, Any]) -> dict[str, Any]:
     }
 
 
+# Stages renamed since a run could have been saved; the old name in a saved run is refused, never mapped.
+_RENAMED_STAGES = {"select-work": "get-next-work-item"}
+
+
+def _names(value: Any, name: str) -> bool:
+    """Whether the string ``name`` appears as a value anywhere in a saved state."""
+    if isinstance(value, str):
+        return value == name
+    if isinstance(value, Mapping):
+        return any(_names(item, name) for item in value.values())
+    if isinstance(value, (list, tuple)):
+        return any(_names(item, name) for item in value)
+    return False
+
+
 def retired_run_reason(state: Any) -> str | None:
     """Name a saved run from a removed protocol or mode; ``None`` when not retired.
 
@@ -228,6 +243,10 @@ def retired_run_reason(state: Any) -> str | None:
                     "longer supports (only protocol 4). " + FRESH_RUN_HINT)
         if _durable_improve_runtime(state):
             return DURABLE_IMPROVE_REASON
+        for old, new in _RENAMED_STAGES.items():
+            if _names(state, old):
+                return (f"this run was saved with the stage name {old!r}, which ShipLoop renamed to {new!r}. "
+                        + FRESH_RUN_HINT)
         return None
     if state.get("execution_mode") in ("navigator", "navigator-worktree"):
         return None
@@ -2561,7 +2580,7 @@ def _accepted_test_source_lines(
 def _latest_done_item_step_plan(state: Mapping[str, Any]) -> Mapping[str, Any] | None:
     """Find the effective item's current accepted step-plan once later stages run."""
     workitem = _current_work_item(state)
-    if workitem is None or current_stage(state) in ("select-work", "step-plan"):
+    if workitem is None or current_stage(state) in ("get-next-work-item", "step-plan"):
         return None
     action_id = planning_revision.current_actions(state).get((workitem, "step-plan"))
     for entry in reversed(state["history"]):
@@ -3084,7 +3103,7 @@ def render(core: Any, root: Path, state: Mapping[str, Any],
                 ["python3", _command(core), "backchain-check", "--run-dir", str(root), "--candidate"])
                 + " <your candidate file>")
     reviewed = stage_spec.reviewed_stages(recorded_planning_review(state))  # stages whose result starts a child
-    if stage in ("plan", "select-work", "carry-forward"):
+    if stage in ("plan", "get-next-work-item", "carry-forward"):
         lines.append("Full ordered work queue: " + str(root / "state.md") + "; field work_items.")
         child = state.get("active_improve")
         if child is not None and "work_items" in child["seed_result"]:

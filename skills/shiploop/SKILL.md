@@ -638,7 +638,7 @@ another state record. Do not copy a current node, action ID, result path, status
 or predicted successor into the handoff as graph authority.
 
 Under `delegation: inline`, every INNER producer packet, including the
-`select-work` packet that opens each work item, begins "Continue in this context
+`get-next-work-item` packet that opens each work item, begins "Continue in this context
 and execute the prompt." then "Delegation: inline.": no clear, no pause for a
 clear and no delegation. Inline INNER Improve packets begin "Keep the invoking
 parent alive and run this Improve invocation inline.": the parent runs the whole
@@ -908,7 +908,7 @@ ordered work queue.
 
 After the navigator accepts `carry-forward` and imports its bound Improve completion, the
 locked state transaction marks the completed item, retains its evidence, and
-either creates the next item's `select-work` action or returns ownership to
+either creates the next item's `get-next-work-item` action or returns ownership to
 `system-test-author`. Root status and queue remain global. A `repeat` replaces
 only the current producer action; an active Improve child resumes through its
 own recorded state. A blocked child or producer keeps the parent action

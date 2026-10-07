@@ -285,7 +285,7 @@ class InteractionGuidanceTests(unittest.TestCase):
 
         self.assertEqual(navigator.current_stage(state), "plan")
         state = self._finish_synthetic_v3_step(state, work_items=[work_item])
-        for stage in ("prepare", "select-work"):
+        for stage in ("prepare", "get-next-work-item"):
             self.assertEqual(navigator.current_stage(state), stage)
             state = self._finish_synthetic_v3_step(state)
 

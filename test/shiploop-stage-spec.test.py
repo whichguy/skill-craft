@@ -24,7 +24,7 @@ import shiploop_stage_spec as spec  # noqa: E402
 import shiploop_test_loop as test_loop  # noqa: E402
 
 PRELUDE = ("intake", "discovery", "research", "spec", "test-strategy", "plan", "prepare")
-INNER = ("select-work", "step-plan", "test-spec", "baseline", "test-author", "test-red", "implement",
+INNER = ("get-next-work-item", "step-plan", "test-spec", "baseline", "test-author", "test-red", "implement",
          "test-green", "test-refine", "regression", "document", "skill-assess", "skill-validate",
          "static-checks", "verify", "integrate", "integration-verify", "carry-forward")
 OUTER = ("system-test-author", "system-test", "product-acceptance", "release-plan", "release-check",
@@ -110,7 +110,7 @@ class StageTableTest(unittest.TestCase):
         self.assertIn("test-probe", spec.COMPLETE_RUNS)
         self.assertEqual(spec.stage("test-author").complete_runs, ("test-probe",))
         self.assertEqual(quality.STAGE, "static-checks")
-        self.assertEqual(spec.with_entry_run("lint-base"), ("select-work",))
+        self.assertEqual(spec.with_entry_run("lint-base"), ("get-next-work-item",))
         # ShipLoop loops are unbounded (owner decision 2026-09-26): no stage carries a limit.
         self.assertFalse(any(hasattr(spec.stage(name), "loop_limit") for name in spec.STAGES))
         for condition in (prompts.QUALITY_REPEAT_CONDITION, prompts.TEST_REPEAT_CONDITION):

@@ -32,12 +32,12 @@ import shiploop_prompts as guidance  # noqa: E402
 
 
 INNER_AFTER_PLAN = (
-    "prepare", "select-work", "step-plan", "test-spec", "baseline",
+    "prepare", "get-next-work-item", "step-plan", "test-spec", "baseline",
     "test-author", "test-red", "implement", "test-green", "test-refine",
     "regression", "document", "skill-assess", "skill-validate",
     "static-checks", "verify", "integrate", "integration-verify", "carry-forward",
 )
-# A corrective replan re-enters at select-work and runs the item's whole cycle.
+# A corrective replan re-enters at get-next-work-item and runs the item's whole cycle.
 CORRECTIVE_CYCLE = INNER_AFTER_PLAN[1:] + ("system-test-author",)
 
 
@@ -286,7 +286,7 @@ class ConsumerDeliveryTests(unittest.TestCase):
             },
         )
         self.assertEqual(state["completed_work_items"], ["W1"])
-        self.assertEqual(navigator.current_stage(state), "select-work")
+        self.assertEqual(navigator.current_stage(state), "get-next-work-item")
         self.assertEqual(consumer_delivery.project(state)["contract"], changed)
         for stage in CORRECTIVE_CYCLE:
             state = self.advance(state, stage)
@@ -490,12 +490,12 @@ class ConsumerDeliveryTests(unittest.TestCase):
                 "supersedes": prior["anchor"],
             },
         )
-        self.assertEqual(navigator.current_stage(state), "select-work")
+        self.assertEqual(navigator.current_stage(state), "get-next-work-item")
         self.assertIn("replanning", consumer_delivery.project(state)["replan_required"])
         self.assertIn("accepted outer replan", navigator.render(None, self.root, state))
 
         for stage in (
-            "select-work", "step-plan", "test-spec", "baseline", "test-author",
+            "get-next-work-item", "step-plan", "test-spec", "baseline", "test-author",
             "test-red", "implement", "test-green", "test-refine", "regression",
             "document", "skill-assess", "skill-validate", "static-checks", "verify",
             "integrate", "integration-verify", "carry-forward", "system-test-author",
@@ -539,7 +539,7 @@ class ConsumerDeliveryTests(unittest.TestCase):
         self.assertIsNone(consumer_delivery.project(state)["replan_required"])
 
         for stage in (
-            "select-work", "step-plan", "test-spec", "baseline", "test-author",
+            "get-next-work-item", "step-plan", "test-spec", "baseline", "test-author",
             "test-red", "implement", "test-green", "test-refine", "regression",
             "document", "skill-assess", "skill-validate", "static-checks", "verify",
             "integrate", "integration-verify", "carry-forward", "system-test-author",

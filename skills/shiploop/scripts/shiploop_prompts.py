@@ -79,7 +79,7 @@ INLINE_STAGE_CONTEXT = """\
 Continue in this context and execute the prompt.
 
 Delegation: inline. Execute this INNER stage in this conversation, including the
-select-work stage that opens each work item. Do not clear, pause for a clear, or
+get-next-work-item stage that opens each work item. Do not clear, pause for a clear, or
 hand it to Ask Agent or a native worker: no packet, script or hook output can
 clear a host conversation, and the host's own compaction manages its context.
 This conversation is the only writer and alone submits ShipLoop callbacks. After
@@ -124,7 +124,7 @@ STAGES = PRELUDE + INNER + OUTER
 STAGE_PURPOSE = {name: row.goal for name, row in stage_spec.STAGE_SPEC.items()}
 
 INNER_GROUPS = (
-    ("Plan", ("select-work", "step-plan")),
+    ("Plan", ("get-next-work-item", "step-plan")),
     ("Tests first", ("test-spec", "baseline", "test-author", "test-red")),
     ("Build", ("implement", "test-green", "test-refine")),
     ("Check", ("regression", "document", "skill-assess", "skill-validate",
@@ -214,7 +214,7 @@ STAGE_REFERENCES: dict[str, tuple[tuple[str, str], ...]] = {
         ("UI planning ownership when applicable", "behavioral-requirements.md#allocate-ui-decisions-to-their-planning-owner"),
         ("Workspace and return guidance", "workspace-lifecycle.md#entry-identity-and-storage"),
     ),
-    "select-work": (
+    "get-next-work-item": (
         ("Cold-start evidence guidance", "execution-planning.md#cold-start-evidence"),
         ("Decision carry-forward guidance", "project-knowledge.md#carry-context-into-the-new-plan"),
     ),
@@ -1095,7 +1095,7 @@ observation, then rerun the original initial check against unchanged product and
 tests before dependent feature edits. Do not replace it with an easier route or
 describe the blocked baseline as passed.
 """,
-    "select-work": """\
+    "get-next-work-item": """\
 Revalidate the current script-selected work item in queue order. Confirm its
 dependencies, scope, owner, relevant lessons, expected outcomes, and prerequisites
 are current. The script does not choose among dependency-ready items. If this
@@ -1781,7 +1781,7 @@ IMPROVE_SCOPES = {
     "test-strategy": "independent test/risk strategy and required test boundaries",
     "plan": "the newly created steps and dependency graph, readiness/done conditions, and correction routes",
     "prepare": "environment readiness evidence or its justified N/A disposition",
-    "select-work": "the ready-item selection and prerequisite assessment",
+    "get-next-work-item": "the ready-item selection and prerequisite assessment",
     "step-plan": "the newly created bounded steps and any parallel or serial execution graph, conventions, checks, and diagnostic obligations",
     "test-spec": "test-first cases, independent oracles, and RED/GREEN definitions",
     "baseline": "baseline commands, observations, initial-baseline applicability, and pre-existing failure classification",

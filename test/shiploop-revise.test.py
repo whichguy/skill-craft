@@ -80,7 +80,7 @@ class ReviseTests(unittest.TestCase):
     def test_revise_is_allowed_only_where_the_stage_table_allows_it(self) -> None:
         self.assertEqual(spec.with_outcome("revise")[0], "test-spec")
         self.assertEqual(spec.with_outcome("revise")[-1], "integration-verify")
-        for stage in ("intake", "plan", "select-work", "step-plan", "carry-forward"):
+        for stage in ("intake", "plan", "get-next-work-item", "step-plan", "carry-forward"):
             with self.subTest(stage=stage):
                 state = drive_to(stage)
                 with self.assertRaisesRegex(nav.NavigatorError, "revise sends a work item back"):
@@ -90,12 +90,12 @@ class ReviseTests(unittest.TestCase):
         state = drive_to("implement")
         current = planning_revision.current_actions(state)
         self.assertIn(("W1", "test-spec"), current)
-        self.assertIn(("W1", "select-work"), current)
+        self.assertIn(("W1", "get-next-work-item"), current)
         state = submit(state, REVISE)
         current = planning_revision.current_actions(state)
         self.assertNotIn(("W1", "step-plan"), current)
         self.assertNotIn(("W1", "test-spec"), current)
-        self.assertIn(("W1", "select-work"), current)
+        self.assertIn(("W1", "get-next-work-item"), current)
         self.assertIn((None, "plan"), current)
 
     def test_packet_states_the_revise_outcome_and_budget(self) -> None:

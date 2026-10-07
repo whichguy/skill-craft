@@ -52,7 +52,7 @@ class PacketBoundsTests(unittest.TestCase):
         state = self.state()
         long_context = "c" * 2_000_000 + "REQUIRED_CONTEXT_TAIL"
         long_title = "t" * 100_000 + "TITLE_TAIL"
-        while navigator.current_stage(state) != "select-work":
+        while navigator.current_stage(state) != "get-next-work-item":
             extra = {}
             if navigator.current_stage(state) == "plan":
                 extra["work_items"] = [{"id": "W1", "title": long_title, "context": long_context}]

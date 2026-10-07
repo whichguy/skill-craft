@@ -184,15 +184,15 @@ class NavigatorDryRunTests(unittest.TestCase):
         self.assertEqual({event['owner'] for event in two_items['events']
                           if event['owner'] != 'root'}, {'W1', 'W2'})
         produce_inner = [event for event in two_items['events']
-                         if event['from'] in ('select-work', 'implement', 'carry-forward')
+                         if event['from'] in ('get-next-work-item', 'implement', 'carry-forward')
                          and event['command'] == 'produce']
         self.assertEqual([event['owner'] for event in produce_inner],
                          ['W1', 'W1', 'W1', 'W2', 'W2', 'W2'])
-        # select-work/implement are not planning stages and W1's carry-forward
+        # get-next-work-item/implement are not planning stages and W1's carry-forward
         # leaves W2 pending, so only W2's end-of-work carry-forward gets a
         # review; W1's carry-forward advances straight to W2 without one.
         finish_inner = [event for event in two_items['events']
-                        if event['from'] in ('select-work', 'implement', 'carry-forward')
+                        if event['from'] in ('get-next-work-item', 'implement', 'carry-forward')
                         and event['command'] == 'finish-improve']
         self.assertEqual([event['owner'] for event in finish_inner], ['W2'])
         w1_produce = next(event for event in two_items['events']

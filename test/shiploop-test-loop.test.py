@@ -507,7 +507,7 @@ class TestLoopTests(unittest.TestCase):
 
     def test_prepare_commits_the_repository_knowledge_home(self):
         self.start()
-        self.drive_to("select-work")
+        self.drive_to("get-next-work-item")
         log = git(self.repo, "log", "--format=%s", "-n", "3")
         self.assertIn("docs(shiploop): record", log)
         self.assertIn("knowledge at prepare", log)

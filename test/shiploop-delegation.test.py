@@ -146,15 +146,15 @@ class DelegationStateTests(unittest.TestCase):
         # pause for a clear stopped every work item until the user came back.
         state = self.state()
         self.assertTrue(self.render(state).startswith("ShipLoop navigator | intake |"))
-        state = advance(state, "select-work")
+        state = advance(state, "get-next-work-item")
         entry = self.render(state)
         self.assertTrue(entry.startswith(
             "Continue in this context and execute the prompt.\n\nDelegation: inline."))
-        self.assertIn("including the\nselect-work stage that opens each work item", entry)
+        self.assertIn("including the\nget-next-work-item stage that opens each work item", entry)
         self.assertNotIn("Clear and then", entry)
         self.assertIn("Pause without consuming the action:", entry)
         # step-plan is a planning-review stage, so completing it starts an
-        # actual Improve child (select-work itself no longer does).
+        # actual Improve child (get-next-work-item itself no longer does).
         improve = self.render(advance(state, "step-plan", stop_after_apply=True))
         self.assertTrue(improve.startswith(
             "Keep the invoking parent alive and run this Improve invocation inline.\n"))
@@ -340,19 +340,19 @@ class PacketContractTests(DelegationStateTests):
     """Packet fields a fresh inline context needs, pinned on both routes where shared."""
 
     def test_producer_packets_state_outcomes_and_explicit_commands(self):
-        entry = self.render(advance(self.state(), "select-work"))
+        entry = self.render(advance(self.state(), "get-next-work-item"))
         # The result contract sits under the callback; the tail repeats only the callback.
         head = entry.split("Current stage guidance:", 1)[0]
         self.assertIn("\nWrite the structured result to: ", head)
         self.assertIn("\nAllowed outcomes: done | repeat | blocked.\n", head)
         self.assertIn("\nCall this when done:\n", entry.split("Current stage guidance:", 1)[1])
         self.assertIn("Halt (terminal and irreversible; only on an explicit user stop): ", entry)
-        # select-work is not a planning/checkpoint stage; it advances directly.
+        # get-next-work-item is not a planning/checkpoint stage; it advances directly.
         self.assertIn("This result advances directly; no Improve child runs for this stage.", entry)
         # No route offers a pause for a context clear: the host cannot be cleared from a packet.
         for route in ("inline", "ask-agent"):
             with self.subTest(route=route):
-                packet = self.render(advance(self.state(route), "select-work"))
+                packet = self.render(advance(self.state(route), "get-next-work-item"))
                 self.assertNotIn("context-boundary", packet)
                 self.assertNotIn("Recovery command, then the printed Resume", packet)
         self.assertIn("Optional work_items replaces the whole queue", self.render(advance(self.state(), "plan")))

@@ -43,7 +43,7 @@ BLOCKED_REPORT = {"classification": "unresolved", "exit_assessment": "unknown", 
 # The public graph, declared here and not read from the navigator, so a changed graph updates this test deliberately.
 EXPECTED_STAGES = (
     "intake", "discovery", "research", "spec", "test-strategy", "plan", "prepare",
-    "select-work", "step-plan", "test-spec", "baseline", "test-author", "test-red", "implement", "test-green",
+    "get-next-work-item", "step-plan", "test-spec", "baseline", "test-author", "test-red", "implement", "test-green",
     "test-refine", "regression", "document", "skill-assess", "skill-validate", "static-checks", "verify", "integrate",
     "integration-verify", "carry-forward",
     "system-test-author", "system-test", "product-acceptance", "release-plan", "release-check", "release",

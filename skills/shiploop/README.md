@@ -163,7 +163,7 @@ accepted on its own checks and the script selects the next producer directly
 are accepted on ShipLoop's checks at `complete` too, and only `system-test-author`, `release-plan`
 and the last `carry-forward` follow this sequence. The 34 producers' full flat
 order is: `intake`, `discovery`, `research`, `spec`, `test-strategy`, `plan`,
-`prepare`; then, for each ready item, `select-work`, `step-plan`, `test-spec`,
+`prepare`; then, for each ready item, `get-next-work-item`, `step-plan`, `test-spec`,
 `baseline`, `test-author`, `test-red`, `implement`, `test-green`, `test-refine`,
 `regression`, `document`, `skill-assess`, `skill-validate`, `static-checks`,
 `verify`, `integrate`, `integration-verify`, `carry-forward`; then
@@ -554,7 +554,7 @@ action. At an Improve checkpoint the script parks that action while its actual
 Improve child runs.
 
 After `carry-forward` is accepted (and, for the last item, its Improve child is
-imported), the script selects the next item's `select-work`, or returns
+imported), the script selects the next item's `get-next-work-item`, or returns
 ownership to `system-test-author` after the final item. The
 [navigator ownership guide](references/navigator.md#one-shared-inner-graph-and-per-item-records)
 explains the shared cursor boundary. ShipLoop stores the actual child binding

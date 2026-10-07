@@ -41,7 +41,7 @@ EXPECTED_PRELUDE = (
     "intake", "discovery", "research", "spec", "test-strategy", "plan", "prepare",
 )
 EXPECTED_INNER = (
-    "select-work", "step-plan", "test-spec", "baseline", "test-author", "test-red",
+    "get-next-work-item", "step-plan", "test-spec", "baseline", "test-author", "test-red",
     "implement", "test-green", "test-refine", "regression", "document", "skill-assess",
     "skill-validate", "static-checks", "verify", "integrate", "integration-verify",
     "carry-forward",
@@ -427,10 +427,10 @@ class NavigatorContractTests(unittest.TestCase):
         root.mkdir()
         state = self._planned_queue([{"id": "W1", "title": "One item"}])
         state = self._produce(state, "prepare")
-        self.assertEqual(navigator.current_stage(state), "select-work")
+        self.assertEqual(navigator.current_stage(state), "get-next-work-item")
         action = self._action(state)
         waiting = self._bind_synthetic_child(
-            self._pending(self._produce(state, "select-work"))
+            self._pending(self._produce(state, "get-next-work-item"))
         )
         self.assertEqual(navigator.current_stage(waiting), "step-plan")
         prefix = "Clear and then execute the prompt.\n"
@@ -450,7 +450,7 @@ class NavigatorContractTests(unittest.TestCase):
             for command in ("pause", "halt"):
                 stopped = navigator.control(current, command, "Synthetic stop")
                 self.assertNotIn(expected_prefix, navigator.render(None, root, stopped))
-        # select-work is not a checkpoint stage, so a blocked result advances
+        # get-next-work-item is not a checkpoint stage, so a blocked result advances
         # directly; no Improve child completes in between.
         blocked = navigator.apply(state, action["id"], result(outcome="blocked", blocked_by="external"))
         self.assertEqual(blocked["status"], "blocked")
@@ -1390,7 +1390,7 @@ class NavigatorContractTests(unittest.TestCase):
         )
         state = self._complete_improve(waiting, action, "plan")
         state = self._produce(state, "prepare")
-        state = self._produce(state, "select-work")
+        state = self._produce(state, "get-next-work-item")
         self.assertEqual(navigator.current_stage(state), "step-plan")
         self.assertEqual(state["work_items"][0]["context"], prerequisite_context)
         cold_root = self.repo / ".shiploop" / "cold-prerequisite-context"
@@ -1508,7 +1508,7 @@ class NavigatorContractTests(unittest.TestCase):
         )
         self.assertEqual(revised["completed_work_items"], ["W1"])
         self.assertIn("W2", [item["id"] for item in revised["work_items"]])
-        self.assertEqual(navigator.current_stage(revised), "select-work")
+        self.assertEqual(navigator.current_stage(revised), "get-next-work-item")
         self.assertNotEqual(navigator.current_stage(revised), stage)
         packet = navigator.render(None, self.repo.parent / "replan-progress", revised)
         self.assertIn("Outer stages: 0/9 accepted done.", packet)
@@ -1590,7 +1590,7 @@ class NavigatorContractTests(unittest.TestCase):
         self.assertEqual(completed["completed_work_items"], ["W1"])
         self.assertEqual(completed["work_index"], 1)
         self.assertNotIn("work_items", completed["accepted"][action["id"]])
-        self.assertEqual(navigator.current_stage(completed), "select-work")
+        self.assertEqual(navigator.current_stage(completed), "get-next-work-item")
 
     def test_carry_forward_replaces_only_future_queue_and_rejects_prior_ids(self) -> None:
         """An explicit carry-forward array replaces future work; it cannot reuse prior IDs."""
@@ -1613,7 +1613,7 @@ class NavigatorContractTests(unittest.TestCase):
             ["NEW"],
         )
         self.assertEqual(revised["completed_work_items"], ["W1"])
-        self.assertEqual(navigator.current_stage(revised), "select-work")
+        self.assertEqual(navigator.current_stage(revised), "get-next-work-item")
 
         empty_state = self._advance_to_carry_forward(self._planned_queue(rows))
         empty_action = self._action(empty_state)
@@ -1678,7 +1678,7 @@ class NavigatorContractTests(unittest.TestCase):
         ]
         state = self._planned_queue(rows)
         state = self._produce(state, "prepare")
-        self.assertEqual(navigator.current_stage(state), "select-work")
+        self.assertEqual(navigator.current_stage(state), "get-next-work-item")
         completed_stages = {item["id"]: [] for item in rows}
         repeated = False
         blocked = False
@@ -1721,7 +1721,7 @@ class NavigatorContractTests(unittest.TestCase):
             state = self._produce(state, stage)
             completed_stages[item_id].append(stage)
             if item_id == "INTEGRATION" and stage == "carry-forward":
-                self.assertEqual(navigator.current_stage(state), "select-work")
+                self.assertEqual(navigator.current_stage(state), "get-next-work-item")
                 self.assertEqual(
                     state["work_items"][state["work_index"]]["id"], "AUDIT"
                 )
@@ -1793,7 +1793,7 @@ class NavigatorContractTests(unittest.TestCase):
         self.assertIn(proposed_queue_locator, cold_plan_child_packet)
         state = navigator.finish_improve(plan_child, plan_action["id"], receipt("plan"))
         state = self._produce(state, "prepare")
-        self.assertEqual(navigator.current_stage(state), "select-work")
+        self.assertEqual(navigator.current_stage(state), "get-next-work-item")
         select_packet = navigator.render(None, root, state)
         self.assertIn(queue_locator, select_packet)
         self.assertIn(
@@ -1802,7 +1802,7 @@ class NavigatorContractTests(unittest.TestCase):
         self.assertNotIn("Select the next ready work item", select_packet)
 
         select_action = self._action(state)
-        # select-work is not a checkpoint stage; it advances directly, with
+        # get-next-work-item is not a checkpoint stage; it advances directly, with
         # no Improve child to complete.
         state = navigator.apply(state, select_action["id"], result())
         self.assertIsNone(state["active_improve"])
@@ -1882,6 +1882,24 @@ class NavigatorContractTests(unittest.TestCase):
                         self.assertIn(phrase, text)
                     for phrase in retired:
                         self.assertNotIn(phrase, text)
+
+    def test_a_run_saved_with_the_stage_name_select_work_is_refused_with_the_new_name(self) -> None:
+        """Stage `select-work` became `get-next-work-item`; one supported version, so a saved run is refused by name."""
+        state = self.state()
+        for where in ("cursor", "history"):
+            with self.subTest(where=where):
+                old = copy.deepcopy(state)
+                if where == "cursor":
+                    old["stage"] = old["action"]["stage"] = "select-work"
+                else:
+                    old["history"] = [dict(row, stage="select-work") for row in old["history"]] or [
+                        {"action": "nav-" + "a" * 32, "stage": "select-work", "workitem": "W1", "outcome": "done",
+                         "summary": "Saved before the rename."}]
+                with self.assertRaises(navigator.NavigatorError) as caught:
+                    navigator.validate(old)
+                self.assertIn("select-work", str(caught.exception))
+                self.assertIn("get-next-work-item", str(caught.exception))
+                self.assertIn("fresh --run-dir", str(caught.exception))
 
     def test_rejects_forged_results_and_corrupt_or_retired_state(self) -> None:
         state = self.state()

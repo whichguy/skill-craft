@@ -199,7 +199,7 @@ _ROWS = (
     ),
     # ------------------------------------------------------------------ inner
     Stage(
-        "select-work", "inner",
+        "get-next-work-item", "inner",
         goal="confirm this work item is still the right next item",
         done_when=(
             "the item's prerequisites are accepted done",

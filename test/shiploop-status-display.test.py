@@ -132,10 +132,10 @@ class StatusBlockTests(unittest.TestCase):
 
     def test_work_item_map_item_plan_and_completed_items(self) -> None:
         state = self.planned(self.ROWS)
-        state = self.advance_to(state, "select-work")
+        state = self.advance_to(state, "get-next-work-item")
         block = navigator.status_block(state)
         self.assertEqual(line(block, "Where"),
-                         'Where:     Work items > W1 "Config loader refactor" (1 of 2) > Plan > select-work')
+                         'Where:     Work items > W1 "Config loader refactor" (1 of 2) > Plan > get-next-work-item')
         self.assertEqual(line(block, "Run"),
                          f"Run:       Preparation {DONE} | Work items 0/2 {NOW} | Release {TODO}")
         self.assertEqual(line(block, "Item"),
@@ -160,7 +160,7 @@ class StatusBlockTests(unittest.TestCase):
                              summary="W1 merged into the worktree with 12 tests. Lessons noted.")
         block = navigator.status_block(state)
         self.assertEqual(line(block, "Where"),
-                         'Where:     Work items > W2 "Add --version flag" (2 of 2) > Plan > select-work')
+                         'Where:     Work items > W2 "Add --version flag" (2 of 2) > Plan > get-next-work-item')
         self.assertEqual(line(block, "Done"),
                          "Done:      W1 carry-forward: W1 merged into the worktree with 12 tests.")
         self.assertEqual(line(block, "Completed"),
