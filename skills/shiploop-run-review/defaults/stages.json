@@ -7,7 +7,7 @@
 {"stage": "test-strategy", "purpose": "map requirements to the checks that will prove them", "exitCheck": "review loop", "improve": "always", "planningChoice": true, "reads": ["spec", "research"]},
 {"stage": "plan", "purpose": "build the dependency plan and the work-item queue", "exitCheck": "review loop", "improve": "always", "planningChoice": true, "reads": ["intake", "discovery", "research", "spec", "test-strategy"]},
 {"stage": "prepare", "purpose": "ready the development and test environment", "exitCheck": "model judgement", "reads": ["plan", "test-strategy"]},
-{"stage": "select-work", "purpose": "confirm this work item is still the right next item", "exitCheck": "model judgement", "reads": ["spec", "plan"]},
+{"stage": "get-next-work-item", "purpose": "confirm this work item is still the right next item", "exitCheck": "model judgement", "reads": ["spec", "plan"]},
 {"stage": "step-plan", "purpose": "plan this item's concrete changes and checks", "exitCheck": "review loop", "improve": "always", "planningChoice": true, "reads": ["spec", "test-strategy", "plan", "prepare"]},
 {"stage": "test-spec", "purpose": "specify the tests this item needs before code changes", "exitCheck": "review loop", "improve": "always", "planningChoice": true, "reads": ["spec", "test-strategy", "plan", "item:step-plan"]},
 {"stage": "baseline", "purpose": "record the relevant checks before any change", "exitCheck": "model judgement", "reads": ["test-strategy", "item:step-plan", "item:test-spec"]},

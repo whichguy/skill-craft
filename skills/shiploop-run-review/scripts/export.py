@@ -68,22 +68,23 @@ FIGURE_TONES = ("expected", "saw", "limit")
 # Stage -> phase. The phase orders match defaults/expectations.json (phase-<order>); the stage names
 # are shiploop_stage_spec.STAGES, and a test checks that every stage there is listed here once.
 # carry-forward ("record lessons and revise the remaining queue") runs once per work item before
-# the next select-work, so it belongs to Integrate, not System test.
+# the next get-next-work-item, so it belongs to Integrate, not System test.
 PHASES = (
     ("Understand", ("intake", "discovery", "research")),
     ("Specify", ("spec", "test-strategy")),
-    ("Plan", ("plan", "prepare", "select-work", "step-plan")),
+    ("Plan", ("plan", "prepare", "get-next-work-item", "step-plan")),
     ("Build", ("test-spec", "baseline", "test-author", "test-red", "implement", "test-green", "test-refine")),
     ("Prove", ("regression", "document", "skill-assess", "skill-validate", "static-checks", "verify")),
     ("Integrate", ("integrate", "integration-verify", "carry-forward")),
     ("System test", ("system-test-author", "system-test", "product-acceptance")),
     ("Release", ("release-plan", "release-check", "release", "release-verify", "operations", "handoff")),
 )
-# select-work is being renamed get-next-work-item in the engine. The engine refuses a saved run that carries the old
-# name, so a new run never needs this table: it exists only so committed historical evidence, the page's database and
-# exports of old run directories (which this exporter still re-exports) render under either name. One group, one place:
-# STAGE_PHASE below and the page's stage lookup resolve a name through it, nothing else mentions the alias.
-STAGE_ALIASES = (("select-work", "get-next-work-item"),)
+# The engine renamed select-work to get-next-work-item and refuses a saved run that carries the old name, so a new run
+# never needs this table: it exists only so committed historical evidence (runs of ShipLoop 1.22.0 and earlier), the page's
+# database and exports of old run directories (which this exporter still re-exports) render under either name. The first
+# name of a group is canonical (the engine's; PHASES lists it); the rest are history. One group, one place: STAGE_PHASE
+# below and the page's stage lookup resolve a name through it, nothing else mentions the old name.
+STAGE_ALIASES = (("get-next-work-item", "select-work"),)
 
 
 def stage_names(stage: str) -> tuple[str, ...]:

@@ -249,19 +249,19 @@ over every stage and both modes). It reads only the row's own fields:
 | --- | --- | --- |
 | `script-run` | `complete_runs` is non-empty: the script runs a gate or the recorded commands before it accepts done | `implement` (lint gate), `test-green` and `regression` (lint gate, test loop), `test-red`, `test-refine`, `verify`, `static-checks`, `system-test` |
 | `review loop` | no `complete_runs`, and `improve` is set: an Improve child reviews the result before the graph advances (`last-item`: only the last work item's `carry-forward`, so an earlier item's advances directly) | `spec`, `test-strategy`, `plan`, `step-plan`, `test-spec`, `carry-forward`, `system-test-author`, `release-plan` |
-| `model judgement` | neither: the model decides against the row's `done_when`, and no script run or Improve review follows | `intake`, `discovery`, `select-work`, `document`, `release`, `handoff` |
+| `model judgement` | neither: the model decides against the row's `done_when`, and no script run or Improve review follows | `intake`, `discovery`, `get-next-work-item`, `document`, `release`, `handoff` |
 
 A row with both would be `script-run` (the script's run is the check it cannot skip); no row has both today, and a test says
 so. The mode: under a recorded `planning_review none` the engine starts no Improve child at the `planningChoice` stages, so those
 stages are `model judgement` in that run (`stage`, an unknown value and `not recorded` leave the catalog's class). The five
 planning stages are the only ones whose class depends on the mode, a test checks that against the engine's `reviewed_stages`.
 
-*Stage aliases.* `select-work` is being renamed `get-next-work-item` in the engine. The engine refuses a saved run carrying the
-old name, so a new run never needs an alias; the table `STAGE_ALIASES` in `export.py` (one group, mirrored by the page's
-`STAGE_ALIASES`, a test keeps them equal) exists only so committed historical evidence, the page's database and exports of old
-run directories, which are still re-exported, render under either name. A name is resolved once, where the phase table and the
-catalog are looked up: both names give the same phase and the same catalog entry, and the catalog uses whichever name the engine
-has when it is regenerated.
+*Stage aliases.* The engine renamed the stage `select-work` to `get-next-work-item` and refuses a saved run carrying the old name,
+so a new run never needs an alias. The table `STAGE_ALIASES` in `export.py` (one group whose first name, the engine's, is
+canonical; mirrored by the page's `STAGE_ALIASES`, a test keeps them equal) exists only so committed historical evidence (runs of
+ShipLoop 1.22.0 and earlier, which wrote `select-work`), the page's database and exports of old run directories, which are still
+re-exported, render under either name. A name is resolved once, where the phase table and the catalog are looked up: both names
+give the same phase and the same catalog entry, and the catalog uses whichever name the engine has when it is regenerated.
 
 ## The packet checklist (`stages[].carried`)
 

@@ -641,16 +641,17 @@ function esc(s){return String(s).replace(/&/g,"&amp;").replace(/</g,"&lt;").repl
 /* The engine's phases and the stages each one serves, in flow order (the exporter's phase table; a test keeps them equal).
    A stage this table does not know belongs to the phase of the visit before it. */
 var STAGE_FLOW=[["Understand",["intake","discovery","research"]],["Specify",["spec","test-strategy"]],
-  ["Plan",["plan","prepare","select-work","step-plan"]],
+  ["Plan",["plan","prepare","get-next-work-item","step-plan"]],
   ["Build",["test-spec","baseline","test-author","test-red","implement","test-green","test-refine"]],
   ["Prove",["regression","document","skill-assess","skill-validate","static-checks","verify"]],
   ["Integrate",["integrate","integration-verify","carry-forward"]],
   ["System test",["system-test-author","system-test","product-acceptance"]],
   ["Release",["release-plan","release-check","release","release-verify","operations","handoff"]]];
-/* select-work is being renamed get-next-work-item in the engine. The engine refuses a saved run with the old name, so a new run
-   never needs this: it is here so committed history (the exports, the database, old run directories) renders under either
-   name. One group, resolved by stageNames only; a test keeps it equal to the exporter's STAGE_ALIASES. */
-var STAGE_ALIASES=[["select-work","get-next-work-item"]];
+/* The engine renamed select-work to get-next-work-item and refuses a saved run with the old name, so a new run never needs
+   this: it is here so committed history (exports of ShipLoop 1.22.0 and earlier runs, the database, old run directories)
+   renders under either name. The first name is canonical. One group, resolved by stageNames only; a test keeps it equal to
+   the exporter's STAGE_ALIASES. */
+var STAGE_ALIASES=[["get-next-work-item","select-work"]];
 function stageNames(stage){for(var i=0;i<STAGE_ALIASES.length;i++)if(STAGE_ALIASES[i].indexOf(stage)>=0)return STAGE_ALIASES[i];return [stage];}
 function phaseOfStage(stage,previous){
   var names=stageNames(stage);
